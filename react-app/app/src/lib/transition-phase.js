@@ -4,6 +4,7 @@ export const TRANSITION_PHASES = Object.freeze({
   IDLE: 'idle',
   MODAL_OPEN: 'modal-open',
   ROUTE_OUT: 'route-out',
+  ROUTE_LOADING: 'route-loading',
   ROUTE_IN: 'route-in',
 });
 
@@ -75,7 +76,9 @@ export function getTransitionPhase() {
 }
 
 export function isRouteTransitionPhase(phase = getTransitionPhase()) {
-  return phase === TRANSITION_PHASES.ROUTE_OUT || phase === TRANSITION_PHASES.ROUTE_IN;
+  return phase === TRANSITION_PHASES.ROUTE_OUT
+    || phase === TRANSITION_PHASES.ROUTE_LOADING
+    || phase === TRANSITION_PHASES.ROUTE_IN;
 }
 
 export function setTransitionPhase(phase, options = {}) {
@@ -139,7 +142,7 @@ export function syncTransitionPhaseFromDom(root = getRoot()) {
   const gateBusy = root.dataset.absGateTransition === 'active';
 
   if (routeBusy) {
-    if (current === TRANSITION_PHASES.ROUTE_OUT || current === TRANSITION_PHASES.ROUTE_IN) {
+    if (isRouteTransitionPhase(current)) {
       return current;
     }
     const next = gateBusy ? TRANSITION_PHASES.ROUTE_OUT : TRANSITION_PHASES.ROUTE_IN;

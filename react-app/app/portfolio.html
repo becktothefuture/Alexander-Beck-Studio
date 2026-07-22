@@ -44,6 +44,8 @@
       }
 
       #abs-boot-overlay {
+        --abs-loader-exit-scale: 2.4;
+        --abs-loader-exit-transform: scale(2.4) translateZ(0);
         position: fixed;
         inset: 0;
         z-index: 2147483000;
@@ -64,13 +66,17 @@
         animation: absBootLoaderExit var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.32, 0, 0.67, 0) both;
       }
 
+      .is-exiting .abs-loader-spinner:not(#abs-boot-spinner) {
+        animation: absBootLoaderExit var(--abs-loader-exit-duration, 160ms) cubic-bezier(0.32, 0, 0.67, 0) both;
+      }
+
       #abs-boot-stage {
         position: relative;
         width: 0;
         height: 0;
       }
 
-      #abs-boot-spinner {
+      .abs-loader-spinner {
         --color-1: var(--abs-boot-loader-1);
         --color-2: var(--abs-boot-loader-2);
         --color-3: var(--abs-boot-loader-3);
@@ -298,7 +304,13 @@
       @keyframes absBootLoaderExit {
         0% { opacity: 1; transform: scale(1) translateZ(0); }
         18% { opacity: 1; transform: scale(1.08) translateZ(0); }
-        100% { opacity: 0; transform: scale(2.4) translateZ(0); }
+        100% {
+          opacity: 0;
+          transform: var(
+            --abs-loader-exit-transform,
+            scale(var(--abs-loader-exit-scale, 2.4)) translateZ(0)
+          );
+        }
       }
 
       @keyframes absBootSceneReveal {
@@ -315,7 +327,8 @@
           --abs-boot-overlay-out-ms: 150ms;
         }
 
-        #abs-boot-spinner {
+        .abs-loader-spinner,
+        .is-exiting .abs-loader-spinner:not(#abs-boot-spinner) {
           animation: none;
         }
 
@@ -325,7 +338,8 @@
         }
 
         #abs-boot-overlay.is-exiting #abs-boot-stage,
-        #abs-boot-overlay.is-exiting #abs-boot-spinner {
+        #abs-boot-overlay.is-exiting #abs-boot-spinner,
+        #abs-boot-overlay.is-exiting .abs-loader-spinner:not(#abs-boot-spinner) {
           animation: none;
           opacity: 0;
         }
@@ -460,7 +474,7 @@
   <body class="body portfolio-page">
     <div id="abs-boot-overlay" role="status" aria-live="polite" aria-atomic="true">
       <div id="abs-boot-stage">
-        <span id="abs-boot-spinner" class="abs-boot-loader" aria-hidden="true"></span>
+        <span id="abs-boot-spinner" class="abs-boot-loader abs-loader-spinner" aria-hidden="true"></span>
         <div id="abs-boot-messages" aria-hidden="true">
           <p class="abs-boot-message">Tuning the motion.</p>
           <p class="abs-boot-message">Building the scene.</p>

@@ -284,7 +284,7 @@
           ],
           "lookAtRoll": 0,
           "fov": 58,
-          "easing": "smoothstep",
+          "easing": "linear",
           "locked": false
         },
         {
@@ -452,7 +452,7 @@
           ],
           "lookAtRoll": 0,
           "fov": 48,
-          "easing": "linear",
+          "easing": "ease-in-out",
           "locked": false
         },
         {
@@ -522,6 +522,13 @@
           "id": "visibility-disciplines",
           "atWU": 8.65,
           "visibility": 1,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "visibility-discipline-read",
+          "atWU": 11.85,
+          "visibility": 0.86,
           "easing": "smoothstep",
           "locked": false
         },
@@ -739,7 +746,7 @@
               "id": "ambient-drift-v1",
               "enabled": true,
               "parameters": {
-                "amplitude": 0.035,
+                "amplitude": 0.028,
                 "speed": 0.55,
                 "timeMode": "ambient"
               }
@@ -766,9 +773,9 @@
               0,
               0
             ],
-            "scale": 1.68,
+            "scale": 1.58,
             "pointSizeScale": 1.15,
-            "mobileScale": 1.46,
+            "mobileScale": 1.38,
             "mobileYOffset": 0.2,
             "mobileLandscapeScale": 1.65,
             "mobileLandscapeXScale": 1.65,
@@ -802,20 +809,20 @@
               "parameters": {
                 "formationMode": "surface-rise",
                 "baseStart": 0.06,
-                "headStart": 0.62,
-                "layerSoftness": 0.48,
+                "headStart": 0.58,
+                "layerSoftness": 0.44,
                 "platformScale": 2.75,
                 "platformSettle": 0.28,
                 "surfaceHeight": -1.52,
                 "submergeDepth": 3.65,
-                "waterlineSoftness": 0.3,
+                "waterlineSoftness": 0.34,
                 "surfaceCarry": 0.28,
                 "fragmentHeight": 0.78,
                 "fragmentFade": 0.54,
                 "fragmentReveal": 0.34,
-                "fragmentSpread": 0.52,
-                "fragmentFall": 0.22,
-                "fragmentPresence": 0.62
+                "fragmentSpread": 0.42,
+                "fragmentFall": 0.18,
+                "fragmentPresence": 0.56
               }
             },
             {
@@ -936,7 +943,7 @@
               {
                 "id": "selected-clients",
                 "kind": "logo-grid",
-                "label": "Ambitious organisations, distinctive challenges.",
+                "label": "Selected work across verification, finance, aviation, automotive, hospitality, media and infrastructure.",
                 "items": [
                   {
                     "id": "yoti",
@@ -1411,22 +1418,22 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 8.65,
-          "activationWU": 8.65,
+          "startWU": 8.25,
+          "activationWU": 8.25,
           "endWU": 12.45,
           "targetWorldId": "world-grid",
           "parameters": {
             "labelWindowWU": 3.8,
             "staggerWU": 0.5,
             "backgroundFadeWU": 0.38,
-            "backgroundOpacity": 0.34,
-            "reconnectOpacity": 0.26,
+            "backgroundOpacity": 0.42,
+            "reconnectOpacity": 0.3,
             "pointScale": 5.2,
             "restoreDurationWU": 0.3,
             "labelOffsetPx": 22,
-            "labelScale": 1.22,
-            "labelDurationWU": 0.24,
-            "holdWU": 0.12,
+            "labelScale": 1.28,
+            "labelDurationWU": 0.32,
+            "holdWU": 0.18,
             "readingLineY": 0.5,
             "mobileReadingLineY": 0.52,
             "approachBandY": 0.13,
@@ -1438,7 +1445,7 @@
                 "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
                   0.42,
-                  0.18
+                  0.16
                 ],
                 "mobilePosition": [
                   0.42,
@@ -1451,7 +1458,7 @@
                 "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
                   0.43,
-                  0.32
+                  0.31
                 ],
                 "mobilePosition": [
                   0.43,
@@ -1477,7 +1484,7 @@
                 "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
                   0.43,
-                  0.6
+                  0.61
                 ],
                 "mobilePosition": [
                   0.43,
@@ -1490,7 +1497,7 @@
                 "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
                   0.43,
-                  0.74
+                  0.76
                 ],
                 "mobilePosition": [
                   0.43,
@@ -1503,7 +1510,7 @@
                 "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
                   0.43,
-                  0.88
+                  0.91
                 ],
                 "mobilePosition": [
                   0.43,

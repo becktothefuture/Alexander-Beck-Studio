@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 let cachedText = null;
+let cachedTextPromise = null;
 
 function isObject(v) {
   return !!v && typeof v === 'object' && !Array.isArray(v);
@@ -46,6 +47,7 @@ async function fetchTextJSON() {
  */
 export async function loadRuntimeText() {
   if (cachedText) return cachedText;
+  if (cachedTextPromise) return cachedTextPromise;
 
   const fromWindow = readWindowText();
   if (fromWindow) {
@@ -53,12 +55,19 @@ export async function loadRuntimeText() {
     return cachedText;
   }
 
-  const fetched = await fetchTextJSON();
-  cachedText = fetched;
-  try {
-    if (typeof window !== 'undefined') window.__TEXT__ = fetched;
-  } catch (e) {}
-  return cachedText;
+  cachedTextPromise = fetchTextJSON()
+    .then((fetched) => {
+      cachedText = fetched;
+      try {
+        if (typeof window !== 'undefined') window.__TEXT__ = fetched;
+      } catch (e) {}
+      return cachedText;
+    })
+    .catch((error) => {
+      cachedTextPromise = null;
+      throw error;
+    });
+  return cachedTextPromise;
 }
 
 /**
@@ -86,4 +95,3 @@ export function getText(path, fallback = '') {
   }
   return cur;
 }
-

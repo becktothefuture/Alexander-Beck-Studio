@@ -66,6 +66,22 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
 };
 
 let designSystemPromise = null;
+const legacyConfigPromises = new Map();
+
+function loadCachedLegacyConfig(cacheKey, inlineKey, paths) {
+  const inline = readInlineObject(inlineKey);
+  if (inline) return Promise.resolve(inline);
+
+  const cached = legacyConfigPromises.get(cacheKey);
+  if (cached) return cached;
+
+  const pending = loadFirstJson(paths).catch((error) => {
+    legacyConfigPromises.delete(cacheKey);
+    throw error;
+  });
+  legacyConfigPromises.set(cacheKey, pending);
+  return pending;
+}
 
 const RETIRED_RUNTIME_KEYS = new Set([
   'chromeHarmonyMode',
@@ -304,12 +320,48 @@ const RETIRED_SHELL_MOTION_KEYS = new Set([
   'puckSoundIntensity',
 ]);
 
+const SHELL_ROUTE_TRANSITION_NUMBER_KEYS = Object.freeze([
+  'exitDurationMs',
+  'loaderEnterDurationMs',
+  'loaderFirstMinimumMs',
+  'loaderRepeatMinimumMs',
+  'readinessTimeoutMs',
+  'spinnerExitDurationMs',
+  'plateExitDelayMs',
+  'plateExitDurationMs',
+  'surfaceEnterDurationMs',
+  'routeBookendDurationMs',
+  'routeBookendStepMs',
+  'routeBookendBlurPx',
+  'routeBookendDriftEm',
+  'contextDurationMs',
+  'actionDurationMs',
+  'supportDurationMs',
+  'itemStepMs',
+  'repeatTimingScale',
+  'repeatStaggerScale',
+]);
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function clone(value) {
   return isPlainObject(value) ? JSON.parse(JSON.stringify(value)) : {};
+}
+
+function normalizeShellRouteTransition(routeTransition = {}) {
+  const normalized = clone(routeTransition);
+  for (const key of SHELL_ROUTE_TRANSITION_NUMBER_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(normalized, key)) continue;
+    const numeric = Number(normalized[key]);
+    if (Number.isFinite(numeric)) {
+      normalized[key] = numeric;
+    } else {
+      delete normalized[key];
+    }
+  }
+  return normalized;
 }
 
 function pruneRuntimeConfig(runtime = {}) {
@@ -360,6 +412,11 @@ function pruneShellConfig(shell = {}) {
   if (isPlainObject(nextShell.motion)) {
     for (const key of RETIRED_SHELL_MOTION_KEYS) {
       delete nextShell.motion[key];
+    }
+    if (isPlainObject(nextShell.motion.routeTransition)) {
+      nextShell.motion.routeTransition = normalizeShellRouteTransition(nextShell.motion.routeTransition);
+    } else {
+      delete nextShell.motion.routeTransition;
     }
   }
   return nextShell;
@@ -600,25 +657,17 @@ export function shouldUseCanonicalDesignConfig() {
 }
 
 export async function loadLegacyRuntimeConfig() {
-  const inline = readInlineObject('__RUNTIME_CONFIG__');
-  if (inline) return inline;
-  return loadFirstJson(LEGACY_RUNTIME_PATHS);
+  return loadCachedLegacyConfig('runtime', '__RUNTIME_CONFIG__', LEGACY_RUNTIME_PATHS);
 }
 
 export async function loadLegacyShellConfig() {
-  const inline = readInlineObject('__SHELL_CONFIG__');
-  if (inline) return inline;
-  return loadFirstJson(LEGACY_SHELL_PATHS);
+  return loadCachedLegacyConfig('shell', '__SHELL_CONFIG__', LEGACY_SHELL_PATHS);
 }
 
 export async function loadLegacyPortfolioConfig() {
-  const inline = readInlineObject('__PORTFOLIO_CONFIG__');
-  if (inline) return inline;
-  return loadFirstJson(LEGACY_PORTFOLIO_PATHS);
+  return loadCachedLegacyConfig('portfolio', '__PORTFOLIO_CONFIG__', LEGACY_PORTFOLIO_PATHS);
 }
 
 export async function loadLegacyCvConfig() {
-  const inline = readInlineObject('__CV_CONFIG__');
-  if (inline) return inline;
-  return loadFirstJson(LEGACY_CV_PATHS);
+  return loadCachedLegacyConfig('cv', '__CV_CONFIG__', LEGACY_CV_PATHS);
 }

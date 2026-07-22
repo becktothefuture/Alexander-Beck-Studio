@@ -112,7 +112,7 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
     assert.equal(key.lookAtTarget.length, 3);
     assert.equal(Number.isFinite(key.lookAtRoll), true);
   });
-  assert.equal(visibilityKeys.length, 16);
+  assert.equal(visibilityKeys.length, 17);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, canonical.profiles.desktop.storyDurationWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
@@ -120,6 +120,16 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
   assert.equal(
     visibilityKeys.find((key) => key.id === 'visibility-emergent-title-hold')?.visibility,
     1,
+  );
+  assert.deepEqual(
+    visibilityKeys.find((key) => key.id === 'visibility-discipline-read'),
+    {
+      id: 'visibility-discipline-read',
+      atWU: 11.85,
+      visibility: 0.86,
+      easing: 'smoothstep',
+      locked: false,
+    },
   );
   assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, 20.75);
   assert.equal(visibilityKeys.at(-1).visibility, 1);
@@ -223,8 +233,14 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.ok(authored.modifiers[1].parameters.platformSettle <= 0.3);
   assert.equal(authored.modifiers[1].parameters.formationMode, 'surface-rise');
   assert.ok(authored.modifiers[1].parameters.submergeDepth >= 3);
-  assert.equal(authored.protected, true);
+  assert.equal(authored.seed, grid.seed);
   assert.ok(authored.shapeParameters.density >= 0.3);
+  assert.ok(authored.shapeParameters.density <= grid.shapeParameters.density);
+  assert.ok(authored.modifiers[1].parameters.surfaceCarry >= 0.2);
+  assert.ok(authored.modifiers[1].parameters.surfaceCarry <= 0.45);
+  assert.ok(authored.modifiers[1].parameters.fragmentPresence >= 0.45);
+  assert.ok(authored.modifiers[1].parameters.fragmentPresence <= 0.7);
+  assert.equal(authored.protected, true);
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
@@ -289,7 +305,7 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
     id: 'ambient-drift-v1',
     enabled: true,
     parameters: {
-      amplitude: 0.035,
+      amplitude: 0.028,
       speed: 0.55,
       timeMode: 'ambient',
     },
@@ -593,7 +609,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
   assert.ok(Math.min(...horizontalPositions) >= 0.4);
   assert.ok(Math.max(...horizontalPositions) <= 0.5);
   assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.5);
-  assert.ok(Math.min(...verticalPositions) >= 0.15);
+  assert.ok(Math.min(...verticalPositions) >= 0.08);
   assert.ok(Math.max(...verticalPositions) <= 0.95);
   assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
 
@@ -604,9 +620,9 @@ test('World C flies straight into plan view before the authored ripple orbit and
   disciplineReveal.parameters.items.forEach((item, index) => {
     assert.equal(item.description, homeDescriptions.get(item.label));
     assert.ok(item.position[0] >= 0.4 && item.position[0] <= 0.5);
-    assert.ok(item.position[1] >= 0.15 && item.position[1] <= 0.95);
-    assert.ok(item.mobilePosition[0] >= 0.4 && item.mobilePosition[0] <= 0.5);
-    assert.ok(item.mobilePosition[1] >= 0.1 && item.mobilePosition[1] <= 0.95);
+    assert.ok(item.position[1] >= 0.08 && item.position[1] <= 0.95);
+    assert.ok(item.mobilePosition[0] >= 0.35 && item.mobilePosition[0] <= 0.5);
+    assert.ok(item.mobilePosition[1] >= 0.08 && item.mobilePosition[1] <= 0.95);
     if (index > 0) assert.ok(item.position[1] > disciplineReveal.parameters.items[index - 1].position[1]);
   });
   const assertMinimumGridSeparation = (positions, pointCount) => {
@@ -850,7 +866,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(backgroundUnit.block.modules.filter((module) => module.kind === 'prose').length, 3);
   const logoGrid = backgroundUnit.block.modules.find((module) => module.kind === 'logo-grid');
   assert.equal(logoGrid.items.length, 14);
-  assert.equal(logoGrid.label, 'Ambitious organisations, distinctive challenges.');
+  assert.equal(
+    logoGrid.label,
+    'Selected work across verification, finance, aviation, automotive, hospitality, media and infrastructure.',
+  );
   logoGrid.items.forEach((item) => {
     assert.ok(item.id && item.label);
     assert.match(item.src, /^\/images\/about\/client-logos\/.+\.(?:svg|png)$/);

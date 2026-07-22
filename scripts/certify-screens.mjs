@@ -582,18 +582,32 @@ function assessRequirement(requirement, selectorResult) {
   }
 
   if (requirement.requiredText?.length) {
-    const combinedText = presentStats.map((item) => item.text).join(' ').toLowerCase();
+    const combinedText = presentStats
+      .map((item) => item.text)
+      .join(' ')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .toLowerCase();
     requirement.requiredText.forEach((expected) => {
-      if (!combinedText.includes(String(expected).toLowerCase())) {
+      const normalizedExpected = String(expected).replace(/\s+/gu, ' ').trim().toLowerCase();
+      if (!combinedText.includes(normalizedExpected)) {
         failures.push(`${requirement.selector}:missing-text:${expected}`);
       }
     });
   }
 
   if (requirement.requiredTextAnyOf?.length) {
-    const combinedText = presentStats.map((item) => item.text).join(' ').toLowerCase();
+    const combinedText = presentStats
+      .map((item) => item.text)
+      .join(' ')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .toLowerCase();
     requirement.requiredTextAnyOf.forEach((options) => {
-      const matched = options.some((expected) => combinedText.includes(String(expected).toLowerCase()));
+      const matched = options.some((expected) => {
+        const normalizedExpected = String(expected).replace(/\s+/gu, ' ').trim().toLowerCase();
+        return combinedText.includes(normalizedExpected);
+      });
       if (!matched) {
         failures.push(`${requirement.selector}:missing-any-of:${options.join('|')}`);
       }

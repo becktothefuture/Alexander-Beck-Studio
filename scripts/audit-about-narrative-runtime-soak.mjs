@@ -49,7 +49,7 @@ try {
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
   ), null, { timeout: 60_000 });
 
-  const transport = page.locator('.about-editor-transport input[type="range"]');
+  const transport = page.getByRole('slider', { name: 'Story WU playhead' });
   const maxWU = Number(await transport.getAttribute('max'));
   const storyWUs = [
     Math.min(maxWU, 2.8),
@@ -60,7 +60,7 @@ try {
   ];
 
   const drive = (count) => page.evaluate(async ({ values, count: cycleCount }) => {
-    const input = document.querySelector('.about-editor-transport input[type="range"]');
+    const input = document.querySelector('input[aria-label="Story WU playhead"]');
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     for (let index = 0; index < cycleCount; index += 1) {
       setter.call(input, String(values[index % values.length]));

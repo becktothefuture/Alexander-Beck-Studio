@@ -284,7 +284,7 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
 
   const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
   const directEntrance = (isAboutNarrativeRoute || routeId === 'contact') && routeContent
-    ? createEntranceSequence({ scopes: routeContent, profile: 'route' })
+    ? createEntranceSequence({ scopes: routeContent, profile: 'direct' })
     : null;
   directEntrance?.stage();
 
@@ -317,6 +317,7 @@ export function SiteApp() {
   const chromeSurfaceRef = useRef(null);
   const secondarySurfaceRef = useRef(null);
   const footerSurfaceRef = useRef(null);
+  const controlsSurfaceRef = useRef(null);
   const surfaceRefs = useMemo(() => ({
     wall: wallSurfaceRef,
     hero: heroSurfaceRef,
@@ -324,6 +325,7 @@ export function SiteApp() {
     chrome: chromeSurfaceRef,
     secondary: secondarySurfaceRef,
     footer: footerSurfaceRef,
+    controls: controlsSurfaceRef,
   }), []);
 
   useEffect(() => {
@@ -355,9 +357,12 @@ export function SiteApp() {
   const {
     routeState,
     activeRouteId,
+    pendingRouteId,
     routeRuntime,
     routeView,
+    transitionState = { phase: 'idle', pendingRouteId: null },
     transitionCurrentRoute,
+    prewarmRoute,
   } = useShellRouteTransition({
     getRouteView,
     getRouteRuntime,
@@ -375,6 +380,39 @@ export function SiteApp() {
 
   useSiteHaptics({ routeId: routeState.route.id });
   useTimeOfDayPaletteSync(shellRuntimeReady && !isStandaloneRoute);
+
+  useEffect(() => {
+    if (
+      !shellRuntimeReady
+      || isStandaloneRoute
+      || routeState.route.id === 'portfolio'
+      || transitionState.phase !== 'idle'
+    ) return undefined;
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const constrained = connection?.saveData === true
+      || connection?.effectiveType === 'slow-2g'
+      || connection?.effectiveType === '2g';
+    if (constrained) return undefined;
+
+    let cancelled = false;
+    const warm = () => {
+      if (!cancelled) void prewarmRoute('portfolio', { reason: 'idle' });
+    };
+    const usesIdleCallback = typeof window.requestIdleCallback === 'function';
+    const idleId = usesIdleCallback
+      ? window.requestIdleCallback(warm, { timeout: 1800 })
+      : window.setTimeout(warm, 900);
+
+    return () => {
+      cancelled = true;
+      if (usesIdleCallback && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, [isStandaloneRoute, prewarmRoute, routeState.route.id, shellRuntimeReady, transitionState.phase]);
 
   useLayoutEffect(() => {
     if (isStandaloneRoute) return;
@@ -479,7 +517,12 @@ export function SiteApp() {
           transitionCurrentRoute={transitionCurrentRoute}
         >
           <StudioShell
-            activeRouteId={routeView.navigationRouteId || activeRouteId}
+            activeRouteId={routeView.navigationRouteId || routeState.route.id}
+            pendingRouteId={transitionState.pendingRouteId || pendingRouteId || (
+              activeRouteId !== routeState.route.id ? activeRouteId : null
+            )}
+            transitionPhase={transitionState.phase}
+            transitionState={transitionState}
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             studioWindowClassName={routeView.studioWindowClassName || routeView.wallClassName}
@@ -495,6 +538,7 @@ export function SiteApp() {
             simulationFocusControls={<SimulationFocusSwitcher />}
             simulationFocusModal={<SimulationFocusChooser />}
             surfaceRefs={surfaceRefs}
+            onRoutePrewarm={prewarmRoute}
           />
         </SimulationFocusProvider>
       )}

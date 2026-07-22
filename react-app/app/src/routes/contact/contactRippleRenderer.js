@@ -5,6 +5,7 @@ import {
 } from './contactRippleConfig.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import { getTransitionPhase, isRouteTransitionPhase } from '../../lib/transition-phase.js';
 
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
@@ -591,13 +592,16 @@ export function createContactRippleRenderer({
   }
 
   function requestFrame() {
-    if (destroyed || frameId || document.hidden) return;
+    if (destroyed || frameId || document.hidden || isRouteTransitionPhase(getTransitionPhase())) return;
     frameId = window.requestAnimationFrame(step);
   }
 
   function step() {
     frameId = 0;
-    if (destroyed || document.hidden) return;
+    if (destroyed || document.hidden || isRouteTransitionPhase(getTransitionPhase())) {
+      if (!destroyed && !document.hidden) setState('paused');
+      return;
+    }
     const now = performance.now();
     if (!startedAt) startedAt = now;
     const animationActive = render(now);
@@ -620,6 +624,17 @@ export function createContactRippleRenderer({
     requestFrame();
   }
 
+  function handleRouteTransitionChange() {
+    if (isRouteTransitionPhase(getTransitionPhase())) {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      frameId = 0;
+      setState('paused');
+      return;
+    }
+    needsRender = true;
+    requestFrame();
+  }
+
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(handleResize)
     : null;
@@ -628,6 +643,13 @@ export function createContactRippleRenderer({
   if (quietZoneElement) resizeObserver?.observe(quietZoneElement);
   window.addEventListener('resize', handleResize, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  const transitionObserver = typeof MutationObserver === 'function'
+    ? new MutationObserver(handleRouteTransitionChange)
+    : null;
+  transitionObserver?.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-abs-transition-phase'],
+  });
 
   return {
     start() {
@@ -689,6 +711,7 @@ export function createContactRippleRenderer({
       if (frameId) window.cancelAnimationFrame(frameId);
       frameId = 0;
       resizeObserver?.disconnect();
+      transitionObserver?.disconnect();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       context.setTransform(1, 0, 0, 1, 0, 0);

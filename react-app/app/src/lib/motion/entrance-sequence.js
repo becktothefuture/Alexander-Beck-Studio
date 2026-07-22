@@ -1,3 +1,5 @@
+import { getShellRouteTransitionConfig } from '../../legacy/modules/visual/site-shell.js';
+
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
 const FOCUSABLE_SELECTOR = [
@@ -139,8 +141,38 @@ export function prepareBookendTitleGlyphs(element) {
   return glyphs;
 }
 
-function resolveProfile(name) {
-  return PROFILES[name] || PROFILES.route;
+function resolveProfile(name, timingMode = 'repeat') {
+  if (name !== 'route') return PROFILES[name] || PROFILES.route;
+  const config = getShellRouteTransitionConfig();
+  const reduced = timingMode === 'reduced';
+  const timingScale = timingMode === 'repeat' ? config.repeatTimingScale : 1;
+  const staggerScale = timingMode === 'repeat' ? config.repeatStaggerScale : 1;
+  const duration = (value) => reduced ? 120 : Math.round(value * timingScale);
+  const step = reduced ? 0 : Math.round(config.itemStepMs * staggerScale);
+  return {
+    ...PROFILES.route,
+    compactFlow: true,
+    identityLineStepMs: reduced ? 0 : Math.round(50 * staggerScale),
+    contextGapMs: reduced ? 0 : Math.round(40 * timingScale),
+    actionGapMs: reduced ? 0 : Math.round(60 * timingScale),
+    footerStepMs: reduced ? 0 : Math.round(20 * staggerScale),
+    blurPx: reduced ? 0 : PROFILES.route.blurPx,
+    bookendTitle: {
+      ...PROFILES.route.bookendTitle,
+      blurPx: reduced ? 0 : config.routeBookendBlurPx,
+      durationMs: reduced ? 120 : duration(config.routeBookendDurationMs),
+      stepMs: reduced ? 0 : Math.round(config.routeBookendStepMs * staggerScale),
+      driftEm: reduced ? 0 : config.routeBookendDriftEm,
+    },
+    groups: {
+      identity: { ...PROFILES.route.groups.identity, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      legend: { ...PROFILES.route.groups.legend, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      context: { ...PROFILES.route.groups.context, stepMs: step, durationMs: duration(config.contextDurationMs) },
+      action: { ...PROFILES.route.groups.action, stepMs: step, durationMs: duration(config.actionDurationMs) },
+      footer: { ...PROFILES.route.groups.footer, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      control: { ...PROFILES.route.groups.control, stepMs: 0, durationMs: duration(config.supportDurationMs) },
+    },
+  };
 }
 
 function readGroup(profile, name) {
@@ -155,13 +187,47 @@ function getTargetEndMs(target) {
 }
 
 function sequenceTargets(targets, profile) {
-  const identityTitles = targets
-    .filter((target) => target.groupName === 'identity' && target.variant === 'bookend-title')
+  const identityTargets = targets
+    .filter((target) => target.groupName === 'identity')
     .sort((left, right) => left.order - right.order);
-  if (identityTitles.length === 0) return targets;
+  if (identityTargets.length === 0) return targets;
 
-  let glyphOffset = 0;
   const identityStartMs = readGroup(profile, 'identity').startMs;
+  if (profile.compactFlow) {
+    identityTargets.forEach((target, index) => {
+      target.delayMs = identityStartMs + (index * profile.identityLineStepMs);
+    });
+    const identityEndMs = Math.max(...identityTargets.map(getTargetEndMs));
+    const contextStartMs = identityEndMs + profile.contextGapMs;
+    const starts = {
+      legend: contextStartMs,
+      context: contextStartMs,
+      action: contextStartMs + profile.actionGapMs,
+      footer: contextStartMs + profile.actionGapMs + profile.footerStepMs,
+      control: contextStartMs + profile.actionGapMs + profile.footerStepMs + readGroup(profile, 'control').stepMs,
+    };
+    SEQUENCED_GROUPS.forEach((groupName) => {
+      const group = readGroup(profile, groupName);
+      const groupTargets = targets
+        .filter((target) => target.groupName === groupName)
+        .sort((left, right) => left.order - right.order);
+      groupTargets.forEach((target) => {
+        const groupStep = groupName === 'footer'
+          ? profile.footerStepMs
+          : group.stepMs;
+        target.delayMs = starts[groupName] + (groupStep * target.order);
+      });
+    });
+    return targets.sort((left, right) => (
+      left.delayMs - right.delayMs
+      || left.groupName.localeCompare(right.groupName)
+      || left.order - right.order
+    ));
+  }
+
+  const identityTitles = identityTargets.filter((target) => target.variant === 'bookend-title');
+  if (identityTitles.length === 0) return targets;
+  let glyphOffset = 0;
   identityTitles.forEach((target) => {
     target.delayMs = identityStartMs + (glyphOffset * target.letterStepMs);
     glyphOffset += target.glyphs.length;
@@ -365,11 +431,12 @@ function stageTarget(target, blurPx) {
 export function createEntranceSequence({
   scopes = document,
   profile: profileName = 'route',
+  timingMode = 'repeat',
   diagnosticRoot = null,
   reducedMotion = prefersReducedMotion(),
   onAnimation,
 } = {}) {
-  const profile = resolveProfile(profileName);
+  const profile = resolveProfile(profileName, timingMode);
   let targets = collectTargets(scopes, profile);
   let animations = [];
   let staged = false;

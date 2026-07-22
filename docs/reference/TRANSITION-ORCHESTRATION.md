@@ -9,17 +9,28 @@ Canonical engineering contract for route and modal transitions.
   - `idle`
   - `modal-open`
   - `route-out`
+  - `route-loading`
   - `route-in`
+
+### Transaction core and side-effect boundaries
+
+- `src/lib/motion/route-transition-transaction.js` is the deterministic, DOM-free transaction model. It owns legal phase order, generation identity, commit state, timing mode, latest-intent classification, cancellation reason, and the named settlement endpoints `restore-outgoing`, `preserve-covered-destination`, `settle-incoming`, and `discard-detached-content`.
+- The hook remains the only phase publisher. The transaction core rejects stale or illegal progress but never writes DOM, React state, focus, history, animations, or accessibility state.
+- `route-transition-surfaces.js` owns the one surface descriptor registry plus discovery, inert preservation, commit pinning, visibility, and restoration. Do not add a second list of surface selectors to the hook or a route runtime.
+- `route-transition-loader-timing.js` owns the painted-cover timestamp, first cover frame, destination paint barrier, and abort-aware minimum hold. It does not own loader appearance or global phase.
+- `route-transition-navigation.js` owns history commit/rollback and focus settlement. Browser Back/Forward has history mode `none`: the browser has already selected the entry, so normal transition settlement must not push or replace it.
+- All driver state is created inside the hook transaction or hook lifetime. No active transaction, animation set, timer set, readiness waiter, or mutable driver state may be module-global.
 
 ## 2) Legacy role (execute, do not orchestrate)
 - Legacy modules may execute visual effects (blur/depth/modal card/cursor behavior).
 - Legacy modules must not own route/modal transition sequencing.
 - Legacy modules must not directly set orchestration state outside the phase API.
-- Legacy boot helpers may reveal direct loads only. They must no-op during `route-out` / `route-in`.
+- Legacy boot helpers may reveal direct loads only. They must no-op during every route phase.
 
 ## 3) Phase contract
 - Entering a modal sets `modal-open`.
 - Route transition starts with `route-out`.
+- The opaque in-window cover and committed-route readiness barrier use `route-loading`.
 - Destination reveal uses `route-in`.
 - Settled state returns to `idle`.
 - Optional return easing marker: `data-abs-transition-returning="active"`.
@@ -27,6 +38,8 @@ Canonical engineering contract for route and modal transitions.
 - Runtime-backed `abs:route-ready` events include a generation. Readiness consumers compare it with the authoritative module-local runtime snapshot and ignore stale events.
 - Home readiness requires the current runtime snapshot, `data-abs-home-route-ready="true"`, and either a confirmed canvas-title draw or the restored three-line semantic title fallback. Canvas allocation alone is not readiness.
 - First-load entrance choreography and SPA route choreography are separate systems. Direct-load helpers must not mutate route-in visibility.
+- Normal route navigation is one shell-owned transaction: preload and route-out run together, the loader covers before commit, readiness settles behind the cover, and route-in begins from the same boundary as loader departure. A superseded generation may never commit, reveal, focus, announce, or clean up a newer transaction.
+- Optional route-local participants may implement `prepare`, `exit`, `restore`, `waitUntilReady`, `enter`, `cancel`, and `complete`. `restore` returns a retained outgoing route to a usable state after a pre-commit failure. Participants may prepare or animate local material, but they must never mutate the global phase.
 - Both systems execute route-owned child reveals through `src/lib/motion/entrance-sequence.js`. Routes declare targets; boot and route owners decide when the shared executor may run.
 - A motion target may animate opacity and filter, but never its layout `transform`. The named `bookend-title` variant keeps the title container at settled geometry while its internal glyphs resolve left to right from a restrained horizontal offset, blur, and zero opacity. It never uses a mask, crop, vertical travel, or scale. Positioned or centred containers retain their settled geometry for the complete transaction; expressive scale belongs to the route surface or simulation material layer.
 
@@ -58,7 +71,7 @@ Canonical engineering contract for route and modal transitions.
 - Returning to Home through the SPA runs a compact `home-route-return` simulation-material grow after the new canvas is visually ready. It does not replay the direct-load Home UI choreography; reduced motion settles the simulation immediately.
 - Home direct-load entrance order uses named groups: identity first, all six top-left legend labels in visual order, top-right context after the labels are established, then action nav and footer/support chrome. The Home simulation selector enters last. The slow stagger settles in roughly 3.9s.
 - `audit:boot-overlay` runs desktop, tablet-emulated, and mobile-emulated profiles by default; set `ABS_BOOT_AUDIT_PROFILE=desktop`, `tablet`, or `mobile` only for focused local reruns.
-- Boot helpers must no-op during `route-out` / `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
+- Boot helpers must no-op during `route-out`, `route-loading`, and `route-in`; SPA route transitions remain owned by `useShellRouteTransition`.
 - The localhost-only `?absBootHold=1` hook may hold the overlay for audits, then release through `window.__ABS_RELEASE_BOOT_OVERLAY__()`.
 
 ## 5) Forbidden ownership patterns
@@ -69,31 +82,48 @@ Canonical engineering contract for route and modal transitions.
   - `center-stage--modal-hidden`
   - `fade-out-up`
 - These may exist for compatibility, but must not be the source of truth for sequencing.
-- Do not call `forceBootVisible()` / legacy reveal helpers from SPA bootstraps while the phase is `route-out` or `route-in`.
+- Do not call `forceBootVisible()` / legacy reveal helpers from SPA bootstraps while a route transition phase is active.
 - Do not mutate `entrance-pre-transition`, `entrance-transitioning`, `entrance-complete`, or `ui-entered` during SPA route transitions.
 - `legacy/modules/utils/page-nav.js` is fallback-only compatibility for hard document navigation, View Transitions API arrival/departure, bfcache restore, and pre-SPA modal routing state. It may close stale overlays before `pageswap` / `pagehide`, reveal content after a browser View Transition on `pagereveal`, and clear old session navigation flags. It must no-op phase normalization while `useShellRouteTransition` owns `data-abs-route-transition="active"`.
 
 ## 6) Surface grouping contract
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
 - The Button Bar is a stable shell control; route transitions must not animate or hide it. The footer is Home-only content and remains absent on the other routes.
-- The stable shell preserves explicit transition surfaces as implementation details: wall, hero, chrome, and route secondary content.
-- Route-in restores and settles its owned surfaces first, then animates route-owned children marked with `[data-route-enter]`.
+- The stable shell preserves one descriptor registry for every transition surface: wall, hero, chrome, route secondary content, Home footer, and simulation-focus controls. All hiding, inert management, animation, cancellation, restoration, and diagnostics derive from that registry.
+- Stable wrappers expose `data-route-surface` and keyed route children expose `data-route-view`. The Home footer and simulation controls are first-class surfaces; neither may mount visibly before route-in.
+- Route-in begins surface resolution and route-owned `[data-route-enter]` children from one coordinated loader-departure boundary. Child delays express hierarchy without serializing the entire surface reveal.
 - `[data-route-enter]` accepts the named groups `identity`, `legend`, `context`, `action`, `footer`, and `control`; `data-route-enter-order` controls order inside a group. The same declaration is used by direct-load and SPA profiles. Add these markers to route content instead of adding new shell selectors when a view needs child-level entrance motion.
 - Route-out animates route-owned surfaces as a unit. It does not reverse or replay child staggers; any active child entrance is cancelled and settled before the destination transaction proceeds.
 - After `abs:route-ready`, route-in must wait for a short paint barrier before preparing child entrances so destination refs, layout, and `[data-route-enter]` markers belong to the new route.
 - Portfolio route-in prepares final deck geometry, restores hero + route UI together, then uses the shell-owned `abs:portfolio:reveal` boundary to start its local cards/dial reveal. Title and description retain the shared `identity` and `context` groups; card transforms remain Portfolio-owned.
 - During Portfolio route-in the speed field may paint a deterministic static frame, but it must not schedule drift until the global phase returns to `idle`.
+- Contact ripple and About point-field motion also remain static until the global phase returns to `idle`.
 - First readable route-in frame must already have final geometry for the hero surface inside the inner wall.
 
-## 7) Instrument Wake
+## 7) In-window route loader
+
+- `RouteTransitionLoader` is always mounted inside `#abs-scene` at layer 280. Its invariant black plate covers the studio window, including route overlays and Portfolio sheets, and stops above the persistent Button Bar.
+- The route loader reuses the shared `.abs-loader-spinner` geometry and keyframes. `#abs-boot-spinner` remains unique to direct boot; direct boot retains its 750ms minimum, 640ms exit, and 2.4× bloom.
+- SPA loading uses the compact route profile from `shell.motion.routeTransition`: 130ms surface exit, 70ms spinner arrival, 160ms first-visit minimum or 110ms return minimum, 160ms spinner departure capped at 1.45×, a 40ms-delayed 160ms plate fade, and a 220ms destination surface resolve.
+- Visited-route compression is memory-only and resets on reload. Reduced motion keeps the same phase/readiness barriers, removes artificial loader holds and spatial effects, and uses a 120ms opacity handoff.
+- Registered route surfaces preserve their prior `inert` state while busy. The Button Bar and polite live status remain outside inert content. `aria-current` follows only the committed route; pending visual state is separate.
+
+### Prewarm and cache boundaries
+
+- Prewarming is preparation only. It may import a route module, fetch and normalize configuration/content, and decode readiness-critical first-view media. It must never mount an inactive route, start a canvas/particle loop, open a gate or drawer, play video, or publish a phase.
+- Eligible idle time after the direct boot may prewarm Portfolio. Hover, focus, pointer-down, and touch intent use the same deduplicated in-memory promise. Idle prewarming is skipped for `saveData`, `slow-2g`, and `2g` connections; explicit intent may still prepare the route.
+- Route modules, normalized shell/runtime/Portfolio configuration, Home copy, Portfolio data, and first-view decoded thumbnails are cached only for the current document. Failed module or media promises are removed where retry can recover. Nothing is stored in local storage, session storage, cookies, or the design configuration.
+- Portfolio prewarming decodes only the centre, right one, left one, right two, and left two first-view sources. Project-detail media, lazy case-study assets, and video playback are not readiness dependencies.
+
+## 8) Instrument Wake
 - Bottom-tab route switches use the named Instrument Wake transition inside `useShellRouteTransition`; this remains part of the single route owner, not a second state machine.
-- `<html data-abs-instrument-wake="out|in">` is an effect marker only. The canonical route phase remains `data-abs-transition-phase="route-out|route-in|idle"`.
-- Instrument Wake targets route-owned window content surfaces: studio window, hero, chrome, and route secondary content. It must not target `.fade-content` as a whole, `.button-bar` / legacy `.shell-bottom-band`, `#portfolio-sheet-host`, or modal layers.
-- Timing is intentionally fast: outgoing content is roughly 110ms; incoming content is roughly 165ms. The former masked gradient sweep is intentionally disabled; `data-abs-instrument-wake` remains an internal marker only.
+- `<html data-abs-instrument-wake="out|in">` is an effect marker only. The canonical route phase remains `data-abs-transition-phase="route-out|route-loading|route-in|idle"`.
+- Instrument Wake targets only registered route surfaces. It must not target `.fade-content` as a whole, `.button-bar` / legacy `.shell-bottom-band`, or modal layers.
+- Timing comes from `shell.motion.routeTransition`; `data-abs-instrument-wake` remains an internal marker only.
 - Child route entrances use the same named groups as the home post-boot entrance, but with a compact route cadence so bottom-tab clicks remain responsive; persistent shell controls remain stable while the route's own elements animate in.
 - Reduced motion disables blur, depth scaling, and the window pass while preserving the route phase cleanup back to `idle`.
 
-## 8) Validation gate for transition changes
+## 9) Validation gate for transition changes
 
 The portfolio card/project handoff is a local overlay state machine, not a route-transition owner. It may coordinate the deck, project drawer, and temporary media bridge, but it must not mutate `<html data-abs-transition-phase>` or compete with `useShellRouteTransition`. Route change or unmount must abort the local handoff and remove its temporary bridge.
 
@@ -105,14 +135,20 @@ Run on preview or dev server (serially, not in parallel):
 ABS_DEV_URL=http://localhost:8013 npm run audit:boot-overlay
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium npm run audit:transition-flows
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit npm run audit:transition-flows
-ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_STRICT_RAF=1 npm run audit:transition-flows
-ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit ABS_TRANSITION_STRICT_RAF=1 ABS_TRANSITION_HARD_TIMEOUT_MS=300000 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_VIEWPORT=390x844 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_REDUCED_MOTION=1 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_STRESS=1 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_DELAYED_READINESS=1 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_PRELOAD_FAILURE=1 npm run audit:transition-flows
+ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium ABS_TRANSITION_CPU_THROTTLE_RATE=4 npm run audit:transition-flows
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=chromium npm run audit:portfolio-gate
 ABS_DEV_URL=http://localhost:8013 ABS_BROWSER=webkit npm run audit:portfolio-gate
 ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 ```
 
-## 9) PR acceptance checklist (transition-related work)
+Run `npm run check:route-transitions` for the fast deterministic transaction suite before browser work. Transition trace JSON reports phase durations, loader-covered duration, readiness timing, first meaningful destination content, maximum frame interval, Long Task API entries where the browser supports them, and the recorder's own maximum/total per-frame sampling cost. Continuous computed-style recording is intentionally intrusive; treat its cadence as invariant evidence rather than an uninstrumented frame-rate benchmark. Use `ABS_TRANSITION_CPU_THROTTLE_RATE=4` for the constrained Chromium profile and compare like-for-like reports. Reduced-motion checks require the static spinner only when loading lasts long enough for its 80ms opacity establishment; they do not create an artificial hold for a fast cached route. The Portfolio carousel audit has a four-minute default process ceiling; override it with `ABS_PORTFOLIO_AUDIT_TIMEOUT_MS` only after inspecting the reported step and artifacts. Automated checks do not replace the documented follow-up on physical iPhone/Safari and Android/Chrome hardware.
+
+## 10) PR acceptance checklist (transition-related work)
 - [ ] Transition owner remains centralized in shell hook/FSM.
 - [ ] No new direct orchestration class/dataset toggles in legacy modules.
 - [ ] Child entrance mechanics remain in `entrance-sequence.js`; route and boot modules only stage, start, cancel, or settle a transaction.
@@ -120,6 +156,6 @@ ABS_DEV_URL=http://localhost:8013 npm run certify:screens
 - [ ] SPA bootstraps do not call boot-only reveal helpers during active route phases.
 - [ ] Direct document loads hold `#abs-boot-overlay` until the route is visually ready.
 - [ ] First readable Home → Portfolio preview frame has final deck geometry, title before card action, and no geometry snap afterward.
-- [ ] Chromium/WebKit audits pass (normal + strict RAF).
-- [ ] In-flight and settled checkpoint artifacts are generated.
+- [ ] Continuous-RAF Chromium/WebKit audits pass, plus focused mobile, reduced-motion, rapid-intent, and delayed-readiness probes.
+- [ ] Failure traces contain per-frame phase, effective opacity, loader geometry, readiness, inert/busy/current/pending, and focus state.
 - [ ] `certify:screens` passes.

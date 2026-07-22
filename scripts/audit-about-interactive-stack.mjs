@@ -32,6 +32,17 @@ async function readTopId(page) {
   return page.locator('[data-stack-depth="0"]').getAttribute('data-stack-item-id');
 }
 
+async function dragStage(page, stage, { dx, dy, steps = 2, holdMs = 0 }) {
+  const box = await stage.boundingBox();
+  const x = box.x + box.width * 0.5;
+  const y = box.y + box.height * 0.5;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx, y + dy, { steps });
+  if (holdMs) await page.waitForTimeout(holdMs);
+  await page.mouse.up();
+}
+
 async function auditFullMotion() {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
@@ -58,11 +69,16 @@ async function auditFullMotion() {
     const rect = stageNode.getBoundingClientRect();
     const planeRect = stageNode.querySelector('.about-interactive-stack__plane').getBoundingClientRect();
     const cardRect = stageNode.querySelector('[data-stack-depth="0"]').getBoundingClientRect();
+    const activeMedia = stageNode.querySelector('[data-stack-depth="0"] img');
     return {
       cardCount: stageNode.querySelectorAll('.about-interactive-stack__card').length,
       imageCount: stageNode.querySelectorAll('img').length,
       ratio: rect.width / rect.height,
       cardWidthRatio: cardRect.width / planeRect.width,
+      stageUserSelect: getComputedStyle(stageNode).userSelect || getComputedStyle(stageNode).webkitUserSelect,
+      mediaUserSelect: activeMedia
+        ? getComputedStyle(activeMedia).userSelect || getComputedStyle(activeMedia).webkitUserSelect
+        : '',
       status: document.querySelector('[id$="-status"]')?.textContent.trim(),
     };
   });
@@ -70,6 +86,8 @@ async function auditFullMotion() {
   assert.ok(initial.imageCount <= 7);
   assert.ok(Math.abs(initial.ratio - (4 / 3)) < 0.01);
   assert.ok(Math.abs(initial.cardWidthRatio - 0.775) < 0.002, 'Authored cards must render 1.25× larger.');
+  assert.equal(initial.stageUserSelect, 'none');
+  assert.equal(initial.mediaUserSelect, 'none');
   assert.match(initial.status, /^Project impression \d+ of 20:/);
   assert.ok(previewRequests.length <= 7);
 
@@ -84,27 +102,21 @@ async function auditFullMotion() {
   await page.waitForTimeout(520);
   assert.equal(await readTopId(page), first);
 
-  const box = await stage.boundingBox();
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.18, box.y + box.height * 0.5, { steps: 3 });
-  await page.mouse.up();
-  await page.waitForTimeout(520);
+  await dragStage(page, stage, { dx: -56, dy: 0, steps: 3 });
+  await page.waitForTimeout(32);
   assert.notEqual(await readTopId(page), first, 'A committed horizontal drag must advance once.');
 
   const beforeFastFlick = await readTopId(page);
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.74, box.y + box.height * 0.5, { steps: 1 });
-  await page.mouse.up();
-  await page.waitForTimeout(520);
+  await dragStage(page, stage, { dx: 52, dy: 38, steps: 1 });
+  await page.waitForTimeout(16);
   assert.notEqual(await readTopId(page), beforeFastFlick, 'A same-frame fast flick must not strand the pending pointer phase.');
   assert.equal(await stage.getAttribute('data-stack-phase'), 'idle');
 
   const beforeFadeThrow = await readTopId(page);
+  const box = await stage.boundingBox();
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.66, box.y + box.height * 0.5, { steps: 4 });
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5 - 58, { steps: 4 });
   await page.waitForTimeout(32);
   const dragVisual = await page.evaluate(() => {
     const card = document.querySelector('[data-stack-depth="0"]');
@@ -115,23 +127,45 @@ async function auditFullMotion() {
       blurPx: blurMatch ? Number(blurMatch[1]) : 0,
     };
   });
-  assert.ok(dragVisual.opacity < 0.5, 'The outgoing card must fade before it reaches the stage clip.');
-  assert.ok(dragVisual.blurPx >= 7, 'The outgoing image must blur before it reaches the stage clip.');
-  await page.waitForTimeout(120);
+  assert.ok(
+    dragVisual.opacity <= 0.05,
+    `A short drag must fade before stage clipping; received opacity ${dragVisual.opacity}.`,
+  );
+  assert.ok(
+    dragVisual.blurPx >= 12,
+    `A short drag must blur before stage clipping; received ${dragVisual.blurPx}px.`,
+  );
   await page.mouse.up();
-  await page.waitForTimeout(520);
-  assert.equal(await readTopId(page), beforeFadeThrow, 'A held sub-threshold drag must settle without reordering.');
+  await page.waitForTimeout(32);
+  assert.notEqual(await readTopId(page), beforeFadeThrow, 'A short upward drag must dismiss the top image.');
   assert.equal(await stage.getAttribute('data-stack-phase'), 'idle');
 
-  for (let index = 0; index < 8; index += 1) {
+  const beforeSettle = await readTopId(page);
+  await dragStage(page, stage, { dx: 7, dy: 5, steps: 2, holdMs: 120 });
+  await page.waitForTimeout(240);
+  assert.equal(await readTopId(page), beforeSettle, 'A clearly sub-threshold drag must settle without reordering.');
+  assert.equal(await stage.getAttribute('data-stack-phase'), 'idle');
+
+  const loopStart = await readTopId(page);
+  const directions = [
+    { dx: 56, dy: 0 },
+    { dx: -56, dy: 0 },
+    { dx: 0, dy: 56 },
+    { dx: 0, dy: -56 },
+    { dx: 48, dy: 48 },
+    { dx: -48, dy: -48 },
+    { dx: 48, dy: -48 },
+    { dx: -48, dy: 48 },
+  ];
+  for (let index = 0; index < 60; index += 1) {
     const beforeThrow = await readTopId(page);
-    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.18, box.y + box.height * 0.5, { steps: 3 });
-    await page.mouse.up();
-    await page.waitForTimeout(520);
-    assert.notEqual(await readTopId(page), beforeThrow, `Throw ${index + 1} must advance the stack.`);
-    assert.equal(await stage.getAttribute('data-stack-phase'), 'idle', `Throw ${index + 1} must return to idle.`);
+    await dragStage(page, stage, { ...directions[index % directions.length], steps: index % 3 === 0 ? 1 : 2 });
+    await page.waitForTimeout(16);
+    assert.notEqual(await readTopId(page), beforeThrow, `Directional flick ${index + 1} must advance the stack.`);
+    assert.equal(await stage.getAttribute('data-stack-phase'), 'idle', `Directional flick ${index + 1} must return to idle.`);
+    if ((index + 1) % 20 === 0) {
+      assert.equal(await readTopId(page), loopStart, `Full loop ${(index + 1) / 20} must return to its first image.`);
+    }
   }
 
   const beforeInterruptedDrag = await readTopId(page);
@@ -151,12 +185,10 @@ async function auditFullMotion() {
   );
 
   const beforeVertical = await readTopId(page);
-  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.51, box.y + box.height * 0.72, { steps: 4 });
-  await page.mouse.up();
-  await page.waitForTimeout(300);
-  assert.equal(await readTopId(page), beforeVertical, 'A vertical-intent gesture must not reorder the stack.');
+  await dragStage(page, stage, { dx: 0, dy: 56, steps: 4 });
+  await page.waitForTimeout(32);
+  assert.notEqual(await readTopId(page), beforeVertical, 'A downward drag must dismiss the top image.');
+  assert.equal(await stage.getAttribute('data-stack-phase'), 'idle');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.waitForFunction(() => (

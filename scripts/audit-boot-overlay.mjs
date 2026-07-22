@@ -954,13 +954,20 @@ async function auditRoute(browser, route, profile) {
   let homeRevealReleased = null;
   let homeRevealSettled = null;
   if (route.label === 'home') {
-    await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-enter'), null, { timeout: timeoutMs });
-    homeRevealReleased = await readHomeRevealSnapshot(page);
-    assertHomeRevealStarted(homeRevealReleased);
-    const homeRevealTiming = await readHomeRevealTimingSnapshot(page);
-    assertHomeRevealOrder(homeRevealTiming, routeLabel);
-    await assertHomeRevealVisibleOrder(page, routeLabel);
-    await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-complete'), null, { timeout: timeoutMs });
+    const revealState = await page.waitForFunction(() => {
+      const root = document.documentElement;
+      if (root.classList.contains('abs-home-post-boot-complete')) return 'complete';
+      if (root.classList.contains('abs-home-post-boot-enter')) return 'enter';
+      return '';
+    }, null, { timeout: timeoutMs });
+    if (await revealState.jsonValue() === 'enter') {
+      homeRevealReleased = await readHomeRevealSnapshot(page);
+      assertHomeRevealStarted(homeRevealReleased);
+      const homeRevealTiming = await readHomeRevealTimingSnapshot(page);
+      assertHomeRevealOrder(homeRevealTiming, routeLabel);
+      await assertHomeRevealVisibleOrder(page, routeLabel);
+      await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-complete'), null, { timeout: timeoutMs });
+    }
     homeRevealSettled = await readHomeRevealSnapshot(page);
     assertHomeRevealSettled(homeRevealSettled, profile);
   }

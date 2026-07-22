@@ -9,6 +9,9 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
+const HARD_TIMEOUT_MS = Number(process.env.ABS_PORTFOLIO_AUDIT_TIMEOUT_MS || 240000);
+let activeAuditStep = 'startup';
+let activeBrowser = null;
 const ARTIFACT_ROOT = path.resolve(
   process.cwd(),
   process.env.ABS_CAROUSEL_ARTIFACT_DIR
@@ -77,6 +80,7 @@ async function waitForCarousel(page) {
 }
 
 async function openViewport(page, viewport) {
+  activeAuditStep = `opening ${viewport.name}`;
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.goto(resolvePortfolioUrl(), { waitUntil: 'networkidle', timeout: 60000 });
   await waitForCarousel(page);
@@ -1069,7 +1073,11 @@ async function auditParticleFieldRemount(page) {
   await page.locator('[data-route-tab="home"]').click();
   await page.waitForURL(/\/index\.html(?:[?#]|$)/, { timeout: WAIT_MS });
   await page.waitForFunction(
-    () => (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle',
+    () => (
+      (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      && document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView === 'home'
+      && !document.querySelector('.portfolio-speed-field-canvas')
+    ),
     null,
     { timeout: WAIT_MS }
   );
@@ -1118,6 +1126,7 @@ async function auditReducedMotion(page) {
 async function main() {
   await fs.mkdir(ARTIFACT_ROOT, { recursive: true });
   const browser = await chromium.launch();
+  activeBrowser = browser;
   const page = await browser.newPage();
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.stack || error)));
@@ -1385,10 +1394,31 @@ async function main() {
     }
   } finally {
     await browser.close();
+    if (activeBrowser === browser) activeBrowser = null;
   }
 }
 
-main().catch((error) => {
+async function runWithAuditTimeout() {
+  let timeoutId = null;
+  try {
+    await Promise.race([
+      main(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(
+            `Portfolio carousel audit exceeded ${HARD_TIMEOUT_MS}ms while ${activeAuditStep}. `
+            + 'Increase ABS_PORTFOLIO_AUDIT_TIMEOUT_MS only after inspecting the current artifact directory.'
+          ));
+        }, HARD_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+    await activeBrowser?.close().catch(() => undefined);
+  }
+}
+
+runWithAuditTimeout().catch((error) => {
   console.error(error);
   process.exit(1);
 });

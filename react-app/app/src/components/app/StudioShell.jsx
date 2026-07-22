@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react';
 
 import { SiteFooter } from '../SiteFooter.jsx';
+import { RouteTransitionLoader } from './RouteTransitionLoader.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
 import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
@@ -14,11 +15,11 @@ function disposeRouteDepthTitleCanvas() {
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
     case 'portfolio':
-      return <div data-sfid="sfid:shell/portfolio">{children}</div>;
+      return <div data-sfid="sfid:shell/portfolio" data-shell-route-view="portfolio">{children}</div>;
     case 'contact':
-      return <div data-sfid="sfid:shell/contact">{children}</div>;
+      return <div data-sfid="sfid:shell/contact" data-shell-route-view="contact">{children}</div>;
     case 'about':
-      return <div data-sfid="sfid:shell/about">{children}</div>;
+      return <div data-sfid="sfid:shell/about" data-shell-route-view="about">{children}</div>;
     case 'about-narrative-lab':
       return <div data-sfid="sfid:shell/about-narrative-lab">{children}</div>;
     case 'styleguide':
@@ -45,7 +46,7 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/spatial-scan">{children}</div>;
     case 'home':
     default:
-      return <div data-sfid="sfid:shell/home">{children}</div>;
+      return <div data-sfid="sfid:shell/home" data-shell-route-view={routeRenderKey || 'home'}>{children}</div>;
   }
 }
 
@@ -80,6 +81,9 @@ function normalizeRouteUiLayer(uiLayer, headerContent, mainContent) {
 
 export function StudioShell({
   activeRouteId,
+  pendingRouteId,
+  transitionPhase = 'idle',
+  transitionState,
   routeRenderKey,
   contentRenderKey = routeRenderKey,
   studioWindowClassName,
@@ -97,6 +101,7 @@ export function StudioShell({
   simulationFocusControls,
   simulationFocusModal,
   surfaceRefs,
+  onRoutePrewarm,
 }) {
   const routeWindowClassName = studioWindowClassName ?? wallClassName;
   const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
@@ -127,7 +132,11 @@ export function StudioShell({
     <>
       <RouteSceneMount routeRenderKey={routeRenderKey}>
         <div id="abs-scene" className="app-scene abs-scene">
-          <div id="simulations" className={windowLayerClassName}>
+          <div
+            id="simulations"
+            className={windowLayerClassName}
+            aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
+          >
             <div id="scene-effects" className="scene-effects" aria-hidden="true">
               <div className="noise" />
             </div>
@@ -136,8 +145,13 @@ export function StudioShell({
               id="shell-wall-slot"
               ref={surfaceRefs?.wall}
               className="studio-window-slot shell-wall-slot shell-transition-surface shell-transition-surface--wall"
+              data-route-surface="wall"
             >
-              <div key={`window-${routeRenderKey}`} className="studio-window-route-root shell-wall-route-root route-simulation-layer">
+              <div
+                key={`window-${routeRenderKey}`}
+                className="studio-window-route-root shell-wall-route-root route-simulation-layer"
+                data-route-view={routeRenderKey}
+              >
                 {routeSimulationLayer}
               </div>
             </div>
@@ -145,36 +159,60 @@ export function StudioShell({
               id="shell-hero-slot"
               ref={surfaceRefs?.hero}
               className="shell-hero-slot shell-transition-surface shell-transition-surface--hero"
+              data-route-surface="hero"
             >
-              <div className="shell-hero-surface">
+              <div key={`hero-${routeRenderKey}`} className="shell-hero-surface" data-route-view={routeRenderKey}>
                 {routeHeroLayer}
               </div>
             </div>
-            {simulationFocusControls}
+            <div
+              ref={surfaceRefs?.controls}
+              className="shell-transition-surface shell-transition-surface--controls"
+              data-route-surface="controls"
+            >
+              <div key={`controls-${routeRenderKey}`} data-route-view={routeRenderKey}>
+                {simulationFocusControls}
+              </div>
+            </div>
           </div>
           <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
           <div className="frame-vignette" aria-hidden="true" />
           <div className="simulation-contrast-veil" aria-hidden="true" />
 
+          <RouteTransitionLoader
+            transitionState={transitionState || {
+              phase: transitionPhase,
+              pendingRouteId,
+            }}
+          />
+
           <div
             ref={surfaceRefs?.ui}
             className="fade-content page-content ui-layer"
+            data-route-surface="ui"
+            aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
           >
             <div id="app-frame" className="ui-layer-wrapper">
                 <div
                   id="shell-route-slot"
                   className="shell-route-slot"
                 >
-                  <div key={`content-${contentRenderKey}`} className="shell-route-content-root route-ui-layer">
+                  <div
+                    key={`content-${contentRenderKey}`}
+                    className="shell-route-content-root route-ui-layer"
+                    data-route-view={routeRenderKey}
+                  >
                     <div
                       ref={surfaceRefs?.chrome}
                       className="shell-transition-surface shell-transition-surface--chrome"
+                      data-route-surface="chrome"
                     >
                       {routeUiLayer.chrome}
                     </div>
                     <div
                       ref={surfaceRefs?.secondary}
                       className="shell-transition-surface shell-transition-surface--secondary"
+                      data-route-surface="secondary"
                     >
                       {routeUiLayer.secondary}
                     </div>
@@ -183,8 +221,11 @@ export function StudioShell({
                 <div
                   ref={surfaceRefs?.footer}
                   className="shell-transition-surface shell-transition-surface--footer"
+                  data-route-surface="footer"
                 >
-                  {showFooter ? <SiteFooter /> : null}
+                  <div key={`footer-${routeRenderKey}`} data-route-view={routeRenderKey}>
+                    {showFooter ? <SiteFooter /> : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -193,8 +234,13 @@ export function StudioShell({
           </ShellWindowOverlay>
           <ShellButtonBar
             activeRouteId={activeRouteId || routeRenderKey}
+            pendingRouteId={pendingRouteId}
             materialVariant="dominant-tab"
             onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}
+            onRouteIntent={(routeId, tab, reason) => onRoutePrewarm?.(routeId, {
+              href: tab.href,
+              reason,
+            })}
           />
           {/* Portfolio drawer: keep its route content and scroll cue above the window UI but below the Button Bar. */}
           <div

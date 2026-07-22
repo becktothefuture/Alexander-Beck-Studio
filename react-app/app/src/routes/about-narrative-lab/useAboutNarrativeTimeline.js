@@ -77,7 +77,8 @@ export function getAboutNarrativeEditorialReveal(
   const reveal = record.field?.reveal || {};
   const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
   const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
-  const delayWU = Number(reveal.fadeDelayWU ?? 0);
+  const delayWU = Number(reveal.fadeDelayWU ?? 0)
+    + (reducedMotion ? 0 : Number(record.revealDelayWU || 0));
   const durationWU = Math.max(0.02, Number(reveal.fadeDurationWU ?? 0.12));
   if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
   return clamp01((elapsedWU - delayWU) / durationWU);
@@ -92,7 +93,8 @@ export function getAboutNarrativeEditorialBlurReveal(
   const reveal = record.field?.reveal || {};
   const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
   const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
-  const delayWU = Number(reveal.blurDelayWU ?? 0);
+  const delayWU = Number(reveal.blurDelayWU ?? 0)
+    + (reducedMotion ? 0 : Number(record.revealDelayWU || 0));
   const durationWU = Math.max(0.02, Number(reveal.blurDurationWU ?? 0.16));
   if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
   return clamp01((elapsedWU - delayWU) / durationWU);
@@ -275,6 +277,7 @@ export function useAboutNarrativeTimeline({
           field,
           startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
+          revealDelayWU: Math.max(0, Number(node.dataset.editorialDelayWu) || 0),
           progress: 0,
           blurProgress: 0,
         }];

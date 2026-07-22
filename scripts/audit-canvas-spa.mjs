@@ -114,37 +114,28 @@ async function waitForCanvasDigestChange(page, initialDigest, timeoutMs = BUFFER
 }
 
 async function runCancelledPortfolioBootstrapProbe(page) {
-  let releaseRequest;
-  let markRequestHeld;
-  let markRequestSettled;
-  const releasePromise = new Promise((resolve) => { releaseRequest = resolve; });
-  const requestHeldPromise = new Promise((resolve) => { markRequestHeld = resolve; });
-  const requestSettledPromise = new Promise((resolve) => { markRequestSettled = resolve; });
-  const portfolioDataPattern = /\/config\/contents-portfolio\.json(?:\?|$)/;
-
-  await page.route(portfolioDataPattern, async (route) => {
-    markRequestHeld();
-    try {
-      await releasePromise;
-      await route.continue();
-    } catch {
-      // The expected abort path can close the held request before release.
-    } finally {
-      markRequestSettled();
-    }
-  });
-
   await page.evaluate(() => {
     sessionStorage.setItem('abs_portfolio_ok', String(Date.now()));
-    window.__ABS_SPA_NAVIGATE__('/portfolio.html', {});
+    window.__ABS_CANCELLED_PRELOAD_REQUESTED__ = false;
+    window.__ABS_RELEASE_CANCELLED_PRELOAD__ = null;
+    window.__ABS_SPA_NAVIGATE__('/portfolio.html', {
+      preloadRouteModule: () => {
+        window.__ABS_CANCELLED_PRELOAD_REQUESTED__ = true;
+        return new Promise((resolve) => {
+          window.__ABS_RELEASE_CANCELLED_PRELOAD__ = resolve;
+        });
+      },
+    });
   });
-  await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
-  await Promise.race([
-    requestHeldPromise,
-    page.waitForTimeout(BUFFER_WAIT_MS).then(() => {
-      throw new Error('portfolio bootstrap did not request contents-portfolio.json');
-    }),
-  ]);
+  await page.waitForFunction(
+    () => window.__ABS_CANCELLED_PRELOAD_REQUESTED__ === true,
+    null,
+    { timeout: BUFFER_WAIT_MS, polling: 'raf' },
+  );
+  const preCommitPath = new URL(page.url()).pathname;
+  if (preCommitPath !== '/' && !/index/i.test(preCommitPath)) {
+    throw new Error(`portfolio preload committed history before it settled: ${preCommitPath}`);
+  }
 
   await page.evaluate(() => {
     window.__ABS_SPA_NAVIGATE__('/index.html', {});
@@ -152,14 +143,11 @@ async function runCancelledPortfolioBootstrapProbe(page) {
   await page.waitForURL((url) => url.pathname === '/' || /index/i.test(url.pathname), {
     timeout: BUFFER_WAIT_MS,
   });
-  releaseRequest();
-  await Promise.race([
-    requestSettledPromise,
-    page.waitForTimeout(BUFFER_WAIT_MS).then(() => {
-      throw new Error('held Portfolio bootstrap request did not settle after release');
-    }),
-  ]);
-  await page.unroute(portfolioDataPattern);
+  await page.evaluate(() => {
+    window.__ABS_RELEASE_CANCELLED_PRELOAD__?.();
+    delete window.__ABS_CANCELLED_PRELOAD_REQUESTED__;
+    delete window.__ABS_RELEASE_CANCELLED_PRELOAD__;
+  });
   await page.evaluate(() => new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(resolve));
   }));

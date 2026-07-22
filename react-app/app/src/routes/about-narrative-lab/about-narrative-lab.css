@@ -396,13 +396,13 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-client-field figcaption {
   margin: 0;
-  color: var(--text-muted);
-  font-family: var(--abs-font-mono);
-  font-size: clamp(0.68rem, 0.8vw, 0.76rem);
-  font-weight: 500;
-  letter-spacing: 0.035em;
-  line-height: 1.4;
+  max-width: min(42rem, 100%);
+  justify-self: center;
   text-align: center;
+  color: color-mix(in srgb, var(--text-primary) 62%, transparent);
+  font-size: clamp(0.72rem, 0.76vw, 0.8rem);
+  letter-spacing: 0;
+  line-height: 1.36;
   text-wrap: balance;
 }
 
@@ -414,6 +414,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-client-logos li {
+  --client-logo-display-scale: 0.8;
   display: grid;
   grid-column: span 2;
   place-items: center;
@@ -425,6 +426,10 @@ body.about-narrative-page .route-simulation-layer {
   line-height: 1.2;
   text-align: center;
   text-wrap: balance;
+}
+
+.about-narrative-client-logos li[data-client-logo='yoti'] {
+  --client-logo-display-scale: 1;
 }
 
 .about-narrative-client-logos li:nth-last-child(2):nth-child(3n + 1) {
@@ -440,7 +445,7 @@ body.about-narrative-page .route-simulation-layer {
     var(--client-logo-offset-x, 0%),
     var(--client-logo-offset-y, 0%),
     0
-  ) scale(var(--client-logo-scale, 1));
+  ) scale(calc(var(--client-logo-scale, 1) * var(--client-logo-display-scale, 1)));
   transform-origin: center;
 }
 
@@ -558,6 +563,9 @@ body.dark-mode .about-narrative-client-logos img {
   color: inherit;
   isolation: isolate;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   appearance: none;
 }
 
@@ -619,6 +627,9 @@ body.dark-mode .about-narrative-client-logos img {
   display: block;
   width: 100%;
   height: 100%;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .about-interactive-stack__card[data-stack-depth='0'] > img,

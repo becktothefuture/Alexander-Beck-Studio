@@ -4,7 +4,10 @@ import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPat
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
 import { normalizeSimulationId, writeManualSimulationFocus } from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
-import { getActiveLegacyRuntimeSnapshot } from './useLegacyRouteRuntime.js';
+import {
+  getActiveLegacyRuntimeSnapshot,
+  loadRouteRuntimeModule,
+} from './useLegacyRouteRuntime.js';
 import {
   isSimulationVisualTransitionSourceActive,
   recordSimulationVisualTransitionEvent,
@@ -27,6 +30,30 @@ import {
   resetEntranceTargets,
 } from '../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
+import { createRouteLoaderTimingDriver } from '../lib/motion/route-transition-loader-timing.js';
+import {
+  createRouteHistoryDriver,
+  settleRouteFocus,
+} from '../lib/motion/route-transition-navigation.js';
+import { createRouteTransitionParticipantGeneration } from '../lib/motion/route-transition-participants.js';
+import {
+  ROUTE_NAVIGATION_DECISIONS,
+  advanceRouteTransitionTransaction,
+  cancelRouteTransitionTransaction,
+  classifyRouteNavigationIntent,
+  createRouteTransitionTransaction,
+  markRouteTransitionCommitted,
+  settleRouteTransitionTransaction,
+} from '../lib/motion/route-transition-transaction.js';
+import {
+  createRouteSurfaceInertRegistry,
+  getOwnedRouteSurfaceNodes,
+  getRouteContentLayers,
+  pinRouteSurfacesForCommit,
+  restoreRouteSurfaces,
+  setRouteSurfaceVisibility,
+} from '../lib/motion/route-transition-surfaces.js';
+import { getShellRouteTransitionConfig } from '../legacy/modules/visual/site-shell.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ROUTE STATE
@@ -175,10 +202,44 @@ const DAILY_LAB_ROUTE_IDS = new Set([
   'rift-rings',
 ]);
 
-let transitionToken = 0;
-let activeAnimations = [];
-let activeEntranceSequence = null;
-let activeEntranceStartTimer = null;
+function createAnimationRegistry() {
+  const registry = {
+    animations: new Set(),
+    timers: new Map(),
+    entranceSequence: null,
+    add(animation) {
+      if (animation) registry.animations.add(animation);
+      return animation;
+    },
+    addTimer(callback, delayMs, onCancel = null) {
+      let timeoutId = null;
+      timeoutId = setStableTimeout(() => {
+        registry.timers.delete(timeoutId);
+        callback();
+      }, delayMs);
+      registry.timers.set(timeoutId, onCancel);
+      return timeoutId;
+    },
+    cancel() {
+      registry.entranceSequence?.cancel();
+      registry.entranceSequence = null;
+      registry.animations.forEach((animation) => {
+        try {
+          animation.cancel();
+        } catch {
+          /* The animation may already be detached with its route. */
+        }
+      });
+      registry.animations.clear();
+      registry.timers.forEach((onCancel, timeoutId) => {
+        clearStableTimeout(timeoutId);
+        onCancel?.();
+      });
+      registry.timers.clear();
+    },
+  };
+  return registry;
+}
 
 function readRootMs(name, fallback) {
   try {
@@ -213,56 +274,48 @@ function getRouteTransitionTimings({
   revealMs,
   readyMs,
   reduceMotion,
+  repeatVisit = false,
 }) {
+  const shared = getShellRouteTransitionConfig();
   const fallbackFade = readRootMs('--ui-route-duration-out', readRootMs('--ui-duration-out', FADE_OUT_MS));
   const fallbackStagger = readRootMs('--ui-route-stagger', readRootMs('--ui-stagger', STAGGER_OFFSET_MS));
   const fallbackReveal = readRootMs('--ui-route-duration-in', readRootMs('--ui-duration-in', ELEMENT_REVEAL_MS));
-  const fallbackReady = parseTransitionMs(readyMs, READY_FALLBACK_MS);
+  const fallbackReady = parseTransitionMs(readyMs, shared.readinessTimeoutMs || READY_FALLBACK_MS);
   const revealEasing = readRootEasing('--ui-ease-in', EASE_OUT);
   const fadeEasing = readRootEasing('--ui-ease-out', EASE_OUT);
+  const timingScale = repeatVisit ? shared.repeatTimingScale : 1;
+  const staggerScale = repeatVisit ? shared.repeatStaggerScale : 1;
 
   if (reduceMotion) {
     return {
-      fadeOut: 150,
+      fadeOut: 120,
       stagger: 0,
-      reveal: 150,
+      reveal: 120,
       ready: fallbackReady,
       revealEasing,
       fadeEasing,
+      loaderMinimum: 0,
+      staggerScale: 0,
+      opacityOnly: true,
+      repeatVisit,
     };
   }
 
   return {
-    fadeOut: parseTransitionMs(fadeMs, fallbackFade),
-    stagger: parseTransitionMs(staggerMs, fallbackStagger),
-    reveal: parseTransitionMs(revealMs, fallbackReveal),
+    fadeOut: parseTransitionMs(fadeMs, shared.exitDurationMs ?? fallbackFade) * timingScale,
+    stagger: parseTransitionMs(staggerMs, fallbackStagger) * staggerScale,
+    reveal: parseTransitionMs(revealMs, shared.surfaceEnterDurationMs ?? fallbackReveal) * timingScale,
     ready: fallbackReady,
     revealEasing,
     fadeEasing,
+    loaderMinimum: repeatVisit ? shared.loaderRepeatMinimumMs : shared.loaderFirstMinimumMs,
+    staggerScale,
+    opacityOnly: false,
+    repeatVisit,
   };
 }
 
 /* ── content layer references ────────────────────────────────────────────── */
-
-function getSurfaceNode(surfaceRef, fallbackSelector) {
-  if (surfaceRef?.current) return surfaceRef.current;
-  if (!fallbackSelector) return null;
-  if (fallbackSelector.startsWith('#')) {
-    return document.getElementById(fallbackSelector.slice(1));
-  }
-  return document.querySelector(fallbackSelector);
-}
-
-function getContentLayers(surfaceRefs) {
-  return {
-    wall: getSurfaceNode(surfaceRefs?.wall, '#shell-wall-slot'),
-    hero: getSurfaceNode(surfaceRefs?.hero, '#shell-hero-slot'),
-    ui: getSurfaceNode(surfaceRefs?.ui, '.fade-content'),
-    chrome: getSurfaceNode(surfaceRefs?.chrome, '.shell-transition-surface--chrome'),
-    secondary: getSurfaceNode(surfaceRefs?.secondary, '.shell-transition-surface--secondary'),
-    footer: getSurfaceNode(surfaceRefs?.footer, '.shell-transition-surface--footer'),
-  };
-}
 
 function setInstrumentWakeState(state) {
   const root = document.documentElement;
@@ -273,53 +326,8 @@ function setInstrumentWakeState(state) {
   delete root.dataset.absInstrumentWake;
 }
 
-function setRouteLayerVisibility(visible, surfaceRefs) {
-  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
-  const hidden = !visible;
-  const opacity = hidden ? '0' : '';
-  const visibility = hidden ? 'hidden' : '';
-  const pointerEvents = hidden ? 'none' : '';
-
-  [wall, hero, chrome, secondary].forEach((el) => {
-    if (!el) return;
-    if (hidden) {
-      el.style.opacity = opacity;
-      el.style.visibility = visibility;
-      el.style.pointerEvents = pointerEvents;
-    } else {
-      el.style.removeProperty('opacity');
-      el.style.removeProperty('visibility');
-      el.style.removeProperty('pointer-events');
-    }
-  });
-}
-
-function pinRouteSurfacesForCommit(surfaceRefs) {
-  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
-
-  [wall, hero, chrome, secondary].forEach((el) => {
-    if (!el) return;
-    el.style.opacity = '0';
-    el.style.removeProperty('visibility');
-    el.style.pointerEvents = 'none';
-    el.style.willChange = 'opacity, transform, filter';
-  });
-
-  cancelActiveAnimations();
-}
-
-function holdPinnedRouteSurfacesUntilRouteIn(surfaceRefs, shouldContinue) {
-  const tick = () => {
-    if (!shouldContinue()) return;
-    pinRouteSurfacesForCommit(surfaceRefs);
-    window.requestAnimationFrame(tick);
-  };
-
-  window.requestAnimationFrame(tick);
-}
-
-function buildRouteTransitionGroups(routeId, surfaceRefs) {
-  const surfaces = getContentLayers(surfaceRefs);
+function buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs = GROUPED_ROUTE_OFFSET_MS) {
+  const surfaces = getRouteContentLayers(surfaceRefs);
   const addGroup = (delayMs, items) => ({
     delayMs,
     items: items.filter((item) => item?.el),
@@ -331,9 +339,11 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
         { el: surfaces.hero, slide: true },
         { el: surfaces.chrome, slide: true },
       ]),
-      addGroup(GROUPED_ROUTE_OFFSET_MS, [
+      addGroup(groupOffsetMs, [
         { el: surfaces.wall, slide: false },
         { el: surfaces.secondary, slide: false },
+        { el: surfaces.footer, slide: true },
+        { el: surfaces.controls, slide: true },
       ]),
     ];
   }
@@ -344,8 +354,10 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
         { el: surfaces.hero, slide: true },
         { el: surfaces.chrome, slide: true },
         { el: surfaces.secondary, slide: true },
+        { el: surfaces.footer, slide: true },
+        { el: surfaces.controls, slide: true },
       ]),
-      addGroup(GROUPED_ROUTE_OFFSET_MS, [
+      addGroup(groupOffsetMs, [
         { el: surfaces.wall, slide: false },
       ]),
     ];
@@ -355,8 +367,10 @@ function buildRouteTransitionGroups(routeId, surfaceRefs) {
     addGroup(0, [
       { el: surfaces.chrome, slide: true },
       { el: surfaces.secondary, slide: true },
+      { el: surfaces.footer, slide: true },
+      { el: surfaces.controls, slide: true },
     ]),
-    addGroup(GROUPED_ROUTE_OFFSET_MS, [
+    addGroup(groupOffsetMs, [
       { el: surfaces.wall, slide: false },
       { el: surfaces.hero, slide: true },
     ]),
@@ -418,23 +432,6 @@ function dismissGateBackdrop(options = {}) {
 
 /* ── animation tracking ──────────────────────────────────────────────────── */
 
-function cancelActiveAnimations() {
-  if (activeEntranceStartTimer !== null) {
-    clearStableTimeout(activeEntranceStartTimer);
-    activeEntranceStartTimer = null;
-  }
-  activeEntranceSequence?.cancel();
-  activeEntranceSequence = null;
-  activeAnimations.forEach((a) => {
-    try {
-      a.cancel();
-    } catch {
-      /* no-op */
-    }
-  });
-  activeAnimations = [];
-}
-
 function commitStaggerStyles(routeId, surfaceRefs) {
   getGroupedTransitionItems(routeId, surfaceRefs).forEach(({ el }) => {
     el.style.opacity = '1';
@@ -442,8 +439,7 @@ function commitStaggerStyles(routeId, surfaceRefs) {
     el.style.filter = '';
     el.style.willChange = 'auto';
   });
-  const { wall, hero, chrome, secondary, footer } = getContentLayers(surfaceRefs);
-  resetEntranceTargets([wall, hero, chrome, secondary, footer]);
+  resetEntranceTargets(getOwnedRouteSurfaceNodes(surfaceRefs));
 }
 
 /* ── single cleanup path (idempotent, always safe to call) ───────────────── */
@@ -452,15 +448,18 @@ function finalizeTransition(
   isGate,
   routeId,
   surfaceRefs,
+  animationRegistry,
+  inertRegistry,
   {
     suppressReturnAnimation = false,
     gateBackdropDismissed = false,
     preserveTransitionPhase = false,
   } = {}
 ) {
-  cancelActiveAnimations();
+  animationRegistry.cancel();
+  inertRegistry.restore();
   commitStaggerStyles(routeId, surfaceRefs);
-  setRouteLayerVisibility(true, surfaceRefs);
+  setRouteSurfaceVisibility(true, surfaceRefs);
   if (isGate && !gateBackdropDismissed) {
     dismissGateBackdrop({ suppressReturnAnimation });
   }
@@ -468,73 +467,50 @@ function finalizeTransition(
   if (!preserveTransitionPhase) {
     setTransitionPhase(TRANSITION_PHASES.IDLE);
   }
+  delete document.documentElement.dataset.absRouteLoadingCoveredAt;
   setInstrumentWakeState(null);
 
-  // Restore content layers.
-  const { wall, hero, ui, chrome, secondary } = getContentLayers(surfaceRefs);
-  if (wall) { wall.style.opacity = '1'; wall.style.willChange = 'auto'; }
-  if (hero) { hero.style.opacity = '1'; hero.style.willChange = 'auto'; }
-  if (ui) { ui.style.opacity = '1'; ui.style.willChange = 'auto'; }
-  if (chrome) { chrome.style.opacity = '1'; chrome.style.willChange = 'auto'; }
-  if (secondary) { secondary.style.opacity = '1'; secondary.style.willChange = 'auto'; }
-  [wall, hero, ui, chrome, secondary].forEach((el) => {
-    if (!el) return;
-    el.style.removeProperty('visibility');
-    el.style.removeProperty('pointer-events');
-    el.style.removeProperty('transform');
-    el.style.removeProperty('filter');
-  });
-}
-
-function interruptTransitionForPopstate(isGate, routeId, surfaceRefs) {
-  cancelActiveAnimations();
-  commitStaggerStyles(routeId, surfaceRefs);
-  if (isGate) {
-    dismissGateBackdrop({ suppressReturnAnimation: true });
-  }
-  clearLegacyRouteTransitionFlags();
-  setRouteLayerVisibility(false, surfaceRefs);
-  setTransitionPhase(TRANSITION_PHASES.IDLE);
-
-  const { wall, hero, ui } = getContentLayers(surfaceRefs);
-  if (wall) wall.style.willChange = 'auto';
-  if (hero) hero.style.willChange = 'auto';
-  if (ui) ui.style.willChange = 'auto';
-  setInstrumentWakeState(null);
+  restoreRouteSurfaces(surfaceRefs);
 }
 
 /* ── fade out content layers (wall stays visible) ─────────────────────────── */
 
-function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, options = {}) {
-  const { wall, hero, chrome, secondary } = getContentLayers(surfaceRefs);
+function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationRegistry, options = {}) {
   const finalOpacity = Number.isFinite(options?.finalOpacity) ? options.finalOpacity : 0;
+  const opacityOnly = options?.opacityOnly === true;
   const anims = [];
   const seen = new Set();
 
-  setInstrumentWakeState('out');
+  setInstrumentWakeState(opacityOnly ? null : 'out');
 
-  [wall, hero, chrome, secondary].forEach((el) => {
+  getOwnedRouteSurfaceNodes(surfaceRefs).forEach((el) => {
     if (!el) return;
     if (seen.has(el)) return;
     seen.add(el);
     if (typeof el.animate !== 'function') {
       el.style.opacity = String(finalOpacity);
-      el.style.filter = 'blur(var(--instrument-wake-blur))';
-      el.style.transform = 'scale(var(--instrument-wake-recede-scale))';
+      if (!opacityOnly) {
+        el.style.filter = 'blur(var(--instrument-wake-blur))';
+        el.style.transform = 'scale(var(--instrument-wake-recede-scale))';
+      }
       return;
     }
+    const resolvedOpacity = Number.parseFloat(getComputedStyle(el).opacity);
+    const startOpacity = Number.isFinite(resolvedOpacity) ? resolvedOpacity : 1;
     const anim = el.animate(
-      [
-        { opacity: 1, filter: 'blur(0)', transform: 'scale(1)' },
-        {
-          opacity: finalOpacity,
-          filter: 'blur(var(--instrument-wake-blur))',
-          transform: 'scale(var(--instrument-wake-recede-scale))',
-        },
-      ],
+      opacityOnly
+        ? [{ opacity: startOpacity }, { opacity: finalOpacity }]
+        : [
+            { opacity: startOpacity, filter: 'blur(0)', transform: 'scale(1)' },
+            {
+              opacity: finalOpacity,
+              filter: 'blur(var(--instrument-wake-blur))',
+              transform: 'scale(var(--instrument-wake-recede-scale))',
+            },
+          ],
       { duration: durationMs, easing, fill: 'forwards' }
     );
-    activeAnimations.push(anim);
+    animationRegistry.add(anim);
     anims.push(anim);
   });
 
@@ -564,6 +540,7 @@ function dismissPortfolioGateSceneBridge({
   delayMs = 0,
   easing = EASE_OUT,
   instant = false,
+  animationRegistry = null,
 } = {}) {
   const bridge = document.querySelector('[data-portfolio-gate-scene-bridge]');
   if (!bridge) return;
@@ -580,7 +557,7 @@ function dismissPortfolioGateSceneBridge({
     ? [{ opacity: startOpacity, offset: 0 }, { opacity: startOpacity, offset: holdOffset }, { opacity: 0, offset: 1 }]
     : [{ opacity: startOpacity }, { opacity: 0 }];
   const animation = bridge.animate(keyframes, { duration: totalMs, easing, fill: 'forwards' });
-  activeAnimations.push(animation);
+  animationRegistry?.add(animation);
   let settled = false;
   const remove = () => {
     if (settled) return;
@@ -627,7 +604,7 @@ function setSimulationFocusTransitionState(state) {
 
 function setSimulationShellStability(active, surfaceRefs, options = {}) {
   const root = document.documentElement;
-  const { hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
+  const { hero, ui, chrome, secondary, footer } = getRouteContentLayers(surfaceRefs);
   const titleSurface = options.titleSurface || '';
   const stableSurfaces = [hero, ui, chrome, secondary, footer];
 
@@ -668,7 +645,7 @@ function getSimulationTitleSurfaceForRouteChange(currentRouteId, nextRouteId) {
 }
 
 function getSimulationFocusLayer(surfaceRefs) {
-  return getContentLayers(surfaceRefs).wall;
+  return getRouteContentLayers(surfaceRefs).wall;
 }
 
 function cleanupSimulationFocusLayer(surfaceRefs) {
@@ -839,31 +816,26 @@ function waitForSimulationFocusHold(durationMs) {
   return new Promise((resolve) => setStableTimeout(resolve, durationMs));
 }
 
-function waitForRoutePaintFrames(count = 2) {
-  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
-    return Promise.resolve();
+function waitWithTransitionTimeout(promise, timeoutMs, signal = null) {
+  if (signal?.aborted) {
+    return Promise.reject(new DOMException('Transition aborted.', 'AbortError'));
   }
-
-  return new Promise((resolve) => {
-    let settled = false;
-    let remaining = Math.max(1, count);
-    const fallbackId = setStableTimeout(finish, Math.max(80, remaining * 34));
-    function finish() {
-      if (settled) return;
-      settled = true;
-      clearStableTimeout(fallbackId);
-      resolve();
-    }
-    const tick = () => {
-      if (settled) return;
-      remaining -= 1;
-      if (remaining <= 0) {
-        finish();
-        return;
-      }
-      window.requestAnimationFrame(tick);
+  if (!(timeoutMs > 0)) return Promise.resolve(promise);
+  return new Promise((resolve, reject) => {
+    const finish = (callback, value) => {
+      clearStableTimeout(timeoutId);
+      signal?.removeEventListener('abort', handleAbort);
+      callback(value);
     };
-    window.requestAnimationFrame(tick);
+    const handleAbort = () => finish(reject, new DOMException('Transition aborted.', 'AbortError'));
+    const timeoutId = setStableTimeout(() => {
+      finish(reject, new Error('Route transition participant readiness timed out.'));
+    }, timeoutMs);
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    Promise.resolve(promise).then(
+      (value) => finish(resolve, value),
+      (error) => finish(reject, error),
+    );
   });
 }
 
@@ -1003,6 +975,14 @@ function isRouteReadySnapshotStable(routeId, previous, next, options = {}) {
   if (options.lockedGateId === 'portfolio') return true;
   if (!previous || !next) return false;
   const deckFailed = document.body?.classList.contains('portfolio-deck-failed');
+  const deckPrepared = document.getElementById('portfolioProjectMount')
+    ?.classList.contains('is-portfolio-boot-preparing');
+  if (deckPrepared) {
+    return (
+      rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
+      && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
+    );
+  }
   return (
     rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
     && (!previous.heroRect || !next.heroRect || rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2))
@@ -1046,6 +1026,8 @@ function isRouteBaselineReady(routeId, options = {}) {
   if (routeId === 'portfolio') {
     const deckFailed = body.classList.contains('portfolio-deck-failed');
     const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
+    const portfolioMount = document.getElementById('portfolioProjectMount');
+    const deckPrepared = portfolioMount?.classList.contains('is-portfolio-boot-preparing');
     const runtime = getActiveLegacyRuntimeSnapshot();
     if (options.lockedGateId === 'portfolio') {
       return Boolean(body.classList.contains('portfolio-page') && lockedGate);
@@ -1062,8 +1044,8 @@ function isRouteBaselineReady(routeId, options = {}) {
           && runtime.status === 'ready'
           && hasCanvasBufferReady()
           && (
-          document.getElementById('portfolioProjectMount')
-          && (deckFailed || isPortfolioScrollRailReady())
+            portfolioMount
+            && (deckFailed || deckPrepared || isPortfolioScrollRailReady())
           )
         )
       )
@@ -1075,7 +1057,10 @@ function isRouteBaselineReady(routeId, options = {}) {
     return Boolean(
       body.classList.contains('about-page')
       && aboutRoute
-      && aboutRoute.dataset.aboutSceneReady === 'true'
+      && (
+        aboutRoute.dataset.aboutSceneReady === 'true'
+        || !body.classList.contains('about-narrative-page')
+      )
     );
   }
 
@@ -1134,6 +1119,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
       settled = true;
       window.removeEventListener('abs:route-ready', onReady);
       window.removeEventListener('abs:daily-focus-failed', onFailed);
+      window.removeEventListener('abs:route-failed', onFailed);
       if (pollId) clearStableTimeout(pollId);
       if (timeoutId) clearStableTimeout(timeoutId);
       resolve(status);
@@ -1151,6 +1137,7 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
     };
     window.addEventListener('abs:route-ready', onReady);
     window.addEventListener('abs:daily-focus-failed', onFailed);
+    window.addEventListener('abs:route-failed', onFailed);
     timeoutId = setStableTimeout(() => settle('timeout'), timeoutMs);
 
     if (maybeSettleReady()) {
@@ -1175,19 +1162,24 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
 function staggeredEntrance({
   routeId,
   surfaceRefs,
+  animationRegistry,
   enterMs = ELEMENT_REVEAL_MS,
   revealEasing = EASE_OUT,
+  repeatVisit = false,
+  reducedMotion = false,
+  staggerScale = 1,
   onPrepared,
   onViewSettled,
 } = {}) {
   return new Promise((resolve) => {
-    const groups = buildRouteTransitionGroups(routeId, surfaceRefs);
+    const groupOffsetMs = reducedMotion ? 0 : GROUPED_ROUTE_OFFSET_MS * staggerScale;
+    const groups = buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs);
     const targets = getGroupedTransitionItems(routeId, surfaceRefs);
-    const { wall, hero, ui, chrome, secondary, footer } = getContentLayers(surfaceRefs);
+    const { wall, hero, ui, chrome, secondary, footer, controls } = getRouteContentLayers(surfaceRefs);
     const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
-      cancelActiveAnimations();
+      animationRegistry.cancel();
       if (wall) wall.style.opacity = '1';
       if (hero) hero.style.opacity = '1';
       if (ui) ui.style.opacity = '1';
@@ -1198,7 +1190,7 @@ function staggeredEntrance({
       return;
     }
 
-    setInstrumentWakeState('in');
+    setInstrumentWakeState(reducedMotion ? null : 'in');
 
     // Hide every owned transition target before making it visible.
     targets.forEach(({ el }) => {
@@ -1214,14 +1206,16 @@ function staggeredEntrance({
     if (hero) hero.style.removeProperty('visibility');
     if (wall) wall.style.removeProperty('pointer-events');
     if (hero) hero.style.removeProperty('pointer-events');
-    cancelActiveAnimations();
+    animationRegistry.cancel();
 
     const routeEntrance = createEntranceSequence({
-      scopes: [wall, hero, chrome, secondary, footer],
+      scopes: [wall, hero, chrome, secondary, footer, controls],
       profile: 'route',
-      onAnimation: (animation) => activeAnimations.push(animation),
+      timingMode: reducedMotion ? 'reduced' : (repeatVisit ? 'repeat' : 'first'),
+      reducedMotion,
+      onAnimation: (animation) => animationRegistry.add(animation),
     });
-    activeEntranceSequence = routeEntrance;
+    animationRegistry.entranceSequence = routeEntrance;
     routeEntrance.stage();
 
     // Keep the .fade-content container visible: footer and bottom tabs live inside it.
@@ -1235,14 +1229,20 @@ function staggeredEntrance({
 
     const hasWaapi = typeof document.documentElement.animate === 'function';
     if (typeof onPrepared === 'function') onPrepared();
+    if (typeof onViewSettled === 'function') onViewSettled();
+    dispatchRouteEntranceStart(routeId, 'route');
+    const childEntrancePromise = routeEntrance.play();
+    const surfacePromises = [];
 
     groups.forEach((group) => {
       group.items.forEach(({ el, slide }) => {
-        const delay = isRouteTransition ? group.delayMs : group.delayMs;
+        const delay = reducedMotion ? 0 : group.delayMs;
         const routeSlideOffset = isRouteTransition ? 'scale(var(--instrument-wake-resolve-scale))' : 'translateY(var(--space-sm))';
 
         if (hasWaapi) {
-          const keyframes = slide
+          const keyframes = reducedMotion
+            ? [{ opacity: 0 }, { opacity: 1 }]
+            : slide
             ? [
                 { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--instrument-wake-blur))' },
                 { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
@@ -1258,7 +1258,7 @@ function staggeredEntrance({
             easing: revealEasing,
             fill: 'forwards',
           });
-          activeAnimations.push(anim);
+          animationRegistry.add(anim);
           anim.onfinish = () => {
             el.style.opacity = '1';
             el.style.transform = '';
@@ -1266,31 +1266,39 @@ function staggeredEntrance({
             el.style.willChange = 'auto';
           };
           anim.oncancel = anim.onfinish;
+          surfacePromises.push(anim.finished.catch(() => undefined));
         } else {
-          setStableTimeout(() => {
-            el.style.transition = `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
-            el.style.opacity = '1';
-            el.style.transform = '';
-            el.style.filter = '';
-            setStableTimeout(() => {
-              el.style.transition = '';
-              el.style.willChange = 'auto';
-            }, enterMs + 50);
-          }, delay);
+          surfacePromises.push(new Promise((surfaceResolve) => {
+            let resolved = false;
+            const settleSurface = () => {
+              if (resolved) return;
+              resolved = true;
+              surfaceResolve();
+            };
+            animationRegistry.addTimer(() => {
+              if (!el.isConnected) {
+                settleSurface();
+                return;
+              }
+              el.style.transition = reducedMotion
+                ? `opacity ${enterMs}ms ${revealEasing}`
+                : `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
+              el.style.opacity = '1';
+              el.style.transform = '';
+              el.style.filter = '';
+              animationRegistry.addTimer(() => {
+                if (el.isConnected) {
+                  el.style.transition = '';
+                  el.style.willChange = 'auto';
+                }
+                settleSurface();
+              }, enterMs + 50, settleSurface);
+            }, delay, settleSurface);
+          }));
         }
       });
     });
-
-    const surfaceTotal = Math.max(0, ...groups.map((group) => group.delayMs)) + enterMs;
-    activeEntranceStartTimer = setStableTimeout(() => {
-      activeEntranceStartTimer = null;
-      if (typeof onViewSettled === 'function') onViewSettled();
-      dispatchRouteEntranceStart(routeId, 'route');
-      void routeEntrance.play();
-    }, surfaceTotal);
-
-    const routeEnterTotal = routeEntrance.totalMs;
-    setStableTimeout(resolve, surfaceTotal + routeEnterTotal + 50);
+    Promise.all([childEntrancePromise, ...surfacePromises]).then(resolve);
   });
 }
 
@@ -1301,6 +1309,15 @@ function staggeredEntrance({
 export function useShellRouteTransition({ getRouteView, getRouteRuntime, surfaceRefs }) {
   const [routeState, setRouteState] = useState(() => computeRouteState(window.location.href));
   const [pendingActiveRouteId, setPendingActiveRouteId] = useState(null);
+  const [transitionState, setTransitionState] = useState(() => ({
+    phase: TRANSITION_PHASES.IDLE,
+    generation: 0,
+    pendingRouteId: null,
+    activation: null,
+    phaseStartedAt: performance.now(),
+    settledGeneration: 0,
+    settledRouteId: routeState.route.id,
+  }));
   const transitionActiveRef = useRef(false);
   const queuedNavigationRef = useRef(null);
   const activeRouteIdRef = useRef(routeState.route.id);
@@ -1310,9 +1327,39 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const activeGateTransitionRef = useRef(false);
   const activeTransitionCommittedRef = useRef(false);
   const activeRouteReadyCancelRef = useRef(null);
+  const transitionGenerationRef = useRef(0);
+  const activeTransactionRef = useRef(null);
+  const navigateRef = useRef(null);
+  const routePrewarmPromisesRef = useRef(new Map());
+  const [animationRegistry] = useState(() => createAnimationRegistry());
+  const [inertRegistry] = useState(() => createRouteSurfaceInertRegistry());
+  const visitedRouteIdsRef = useRef(new Set([routeState.route.id]));
+  const lastActivationRef = useRef('pointer');
   const getRouteRuntimeRef = useRef(getRouteRuntime);
   const syncSteadyTransitionPhase = useCallback(() => {
     syncTransitionPhaseFromDom(document.documentElement);
+  }, []);
+  const publishTransitionPhase = useCallback((
+    phase,
+    generation = 0,
+    pendingRouteId = null,
+    activation = null,
+  ) => {
+    // The DOM phase is synchronous and is the paint-safety boundary. React state
+    // mirrors it for the persistent loader, accessibility, and diagnostics.
+    const transaction = activeTransactionRef.current;
+    if (transaction?.generation === generation && isRouteTransitionPhase(phase)) {
+      advanceRouteTransitionTransaction(transaction, phase);
+    }
+    setTransitionPhase(phase);
+    setTransitionState((current) => ({
+      ...current,
+      phase,
+      generation,
+      pendingRouteId,
+      activation: activation || current.activation,
+      phaseStartedAt: performance.now(),
+    }));
   }, []);
 
   const navigate = useCallback((href, options = {}) => {
@@ -1327,15 +1374,25 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const isSameRoute = nextRouteId === activeRouteIdRef.current;
     const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
-    const method = options.replace ? 'replaceState' : 'pushState';
     const previousState = activeRouteStateRef.current;
     const previousRouteId = activeRouteIdRef.current;
     const previousRouteContentSignature = activeRouteContentSignatureRef.current;
     const previousFocusSimulationId = activeFocusSimulationIdRef.current;
-    let historyCommitted = false;
-    const commitHistory = (historyMethod = method) => {
-      window.history[historyMethod](options.state || {}, '', nextState.canonicalHref);
-      historyCommitted = true;
+    const activation = options.activation
+      || (options.source === 'history' ? 'history' : lastActivationRef.current);
+    const focusAtStart = document.activeElement;
+    const historyDriver = createRouteHistoryDriver({
+      source: options.source,
+      replace: options.replace,
+      state: options.state || {},
+      nextHref: nextState.canonicalHref,
+      previousHref: previousState.canonicalHref,
+    });
+    let historyCommitted = historyDriver.committed;
+    if (historyCommitted) activeTransitionCommittedRef.current = true;
+    const commitHistory = (historyMode = historyDriver.historyMode) => {
+      historyDriver.commit(historyMode);
+      historyCommitted = historyDriver.committed;
       activeTransitionCommittedRef.current = true;
     };
     const commit = () => {
@@ -1349,7 +1406,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
     };
     const rollback = (error) => {
-      window.history.replaceState(window.history.state || {}, '', previousState.canonicalHref);
+      historyDriver.rollback();
+      historyCommitted = false;
       setRouteState(previousState);
       activeRouteStateRef.current = previousState;
       activeRouteIdRef.current = previousRouteId;
@@ -1361,30 +1419,151 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         // Failure reporting must not prevent route restoration.
       }
     };
-    const canPreemptActiveTransition = Boolean(
+    const activeTransaction = activeTransactionRef.current;
+    const repeatsQueuedIntent = Boolean(
+      queuedNavigationRef.current
+      && queuedNavigationRef.current.routeContentSignature === nextRouteContentSignature
+    );
+    const repeatsActiveTransaction = Boolean(
+      transitionActiveRef.current
+      && activeTransaction
+      && readRouteContentSignature(activeTransaction.toState) === nextRouteContentSignature
+    );
+    const canPreemptWithoutTransaction = Boolean(
       options.preemptTransition
       && !activeGateTransitionRef.current
       && isRouteTransitionPhase(getTransitionPhase())
     );
+    const navigationDecision = activeTransaction
+      ? classifyRouteNavigationIntent({
+          transitionActive: transitionActiveRef.current,
+          phase: getTransitionPhase(),
+          activeCommitted: activeTransaction.committed,
+          activeRecovering: activeTransaction.recovering,
+          repeatsActive: repeatsActiveTransaction,
+          repeatsQueued: repeatsQueuedIntent,
+          gateActive: activeGateTransitionRef.current,
+          allowPreempt: canPreemptWithoutTransaction,
+        })
+      : (
+          transitionActiveRef.current
+            ? (canPreemptWithoutTransaction
+                ? ROUTE_NAVIGATION_DECISIONS.PREEMPT
+                : ROUTE_NAVIGATION_DECISIONS.QUEUE)
+            : ROUTE_NAVIGATION_DECISIONS.START
+        );
+    const canPreemptActiveTransition = navigationDecision === ROUTE_NAVIGATION_DECISIONS.PREEMPT;
+    const canRetargetCoveredTransition = navigationDecision === ROUTE_NAVIGATION_DECISIONS.RETARGET_COVERED;
+    const canRecoverIncomingTransition = navigationDecision === ROUTE_NAVIGATION_DECISIONS.RECOVER_ROUTE_IN;
     const preemptActiveTransition = () => {
       const wasSimulationFocusTransition = Boolean(
         document.documentElement.dataset.absSimulationFocusTransition
       );
-      ++transitionToken;
+      ++transitionGenerationRef.current;
+      cancelRouteTransitionTransaction(activeTransactionRef.current, 'preempted');
+      activeTransactionRef.current?.abortController.abort('preempted');
+      activeTransactionRef.current?.participants.cancel('preempted');
+      activeTransactionRef.current = null;
       queuedNavigationRef.current = null;
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
-      finalizeTransition(false, activeRouteIdRef.current, surfaceRefs);
+      finalizeTransition(false, activeRouteIdRef.current, surfaceRefs, animationRegistry, inertRegistry);
       resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
       if (wasSimulationFocusTransition) {
         dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
       }
       setPendingActiveRouteId(null);
       syncSteadyTransitionPhase();
-      commitHistory(activeTransitionCommittedRef.current ? 'replaceState' : method);
+      commitHistory(activeTransitionCommittedRef.current ? 'replace' : historyDriver.historyMode);
     };
+
+    if (navigationDecision === ROUTE_NAVIGATION_DECISIONS.IGNORE) return true;
+
+    if (activeTransaction?.recovering) {
+      queuedNavigationRef.current = {
+        href: targetUrl.toString(),
+        options,
+        routeId: nextRouteId,
+        routeContentSignature: nextRouteContentSignature,
+        focusSimulationId: nextFocusSimulationId,
+      };
+      return true;
+    }
+
+    if (canRecoverIncomingTransition) {
+      queuedNavigationRef.current = {
+        href: targetUrl.toString(),
+        options,
+        routeId: nextRouteId,
+        routeContentSignature: nextRouteContentSignature,
+        focusSimulationId: nextFocusSimulationId,
+      };
+      activeTransaction.recovering = true;
+      ++transitionGenerationRef.current;
+      cancelRouteTransitionTransaction(activeTransaction, 'route-in-retargeted');
+      activeTransaction.abortController.abort('route-in-retargeted');
+      activeTransaction.participants.cancel('route-in-retargeted');
+      activeRouteReadyCancelRef.current?.();
+      activeRouteReadyCancelRef.current = null;
+      animationRegistry.cancel();
+      void fadeOutContent(80, EASE_OUT, surfaceRefs, animationRegistry, {
+        finalOpacity: 0,
+        opacityOnly: true,
+      }).then(() => {
+        const queued = queuedNavigationRef.current;
+        queuedNavigationRef.current = null;
+        setRouteSurfaceVisibility(false, surfaceRefs);
+        const targetRouteId = queued?.routeId || nextRouteId;
+        publishTransitionPhase(
+          TRANSITION_PHASES.ROUTE_LOADING,
+          transitionGenerationRef.current,
+          targetRouteId,
+          queued?.options?.activation || activation,
+        );
+        activeTransactionRef.current = null;
+        transitionActiveRef.current = false;
+        activeGateTransitionRef.current = false;
+        setPendingActiveRouteId(null);
+        navigateRef.current?.(queued?.href || targetUrl.toString(), {
+          ...(queued?.options || options),
+          resumeCovered: true,
+          forceTransition: true,
+        });
+      });
+      return true;
+    }
+
+    if (canRetargetCoveredTransition) {
+      ++transitionGenerationRef.current;
+      cancelRouteTransitionTransaction(activeTransactionRef.current, 'retargeted');
+      activeTransactionRef.current.abortController.abort('retargeted');
+      activeTransactionRef.current.participants.cancel('retargeted');
+      activeTransactionRef.current = null;
+      activeRouteReadyCancelRef.current?.();
+      activeRouteReadyCancelRef.current = null;
+      animationRegistry.cancel();
+      setRouteSurfaceVisibility(false, surfaceRefs);
+      publishTransitionPhase(
+        TRANSITION_PHASES.ROUTE_LOADING,
+        transitionGenerationRef.current,
+        nextRouteId,
+        activation,
+      );
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      queuedNavigationRef.current = null;
+      setPendingActiveRouteId(null);
+      setStableTimeout(() => {
+        navigateRef.current?.(targetUrl.toString(), {
+          ...options,
+          resumeCovered: true,
+          forceTransition: true,
+        });
+      }, 0);
+      return true;
+    }
 
     if (transitionActiveRef.current && canPreemptActiveTransition) {
       preemptActiveTransition();
@@ -1405,18 +1584,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const nextRouteRuntime = getRouteRuntimeRef.current(nextRouteId, nextState.canonicalHref, nextState);
     const isGate = options.transitionStyle === 'gate-success';
     const isSimulationFocus = options.transitionStyle === 'simulation-focus';
+    const resumeCovered = options.resumeCovered === true;
     if (!isSimulationFocus && document.documentElement.dataset.absSimulationFocusTransition) {
       resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
       dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
     }
-    const readyMs = options.readyFallbackMs
-      ?? (isGate ? 850 : (nextRouteId === 'home' ? 500 : (nextRouteId === 'portfolio' ? 2400 : 700)));
+    const readyMs = options.readyFallbackMs;
+    const isRepeatVisit = visitedRouteIdsRef.current.has(nextRouteId);
     const routeTimings = getRouteTransitionTimings({
       fadeMs: options.exitMs,
       staggerMs: options.staggerMs,
       revealMs: options.enterMs,
       readyMs,
       reduceMotion,
+      repeatVisit: isRepeatVisit,
     });
 
     const processQueuedNavigation = () => {
@@ -1432,28 +1613,44 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       }
       queuedNavigationRef.current = null;
       setStableTimeout(() => {
-        if (!transitionActiveRef.current) navigate(queued.href, queued.options);
+        if (!transitionActiveRef.current) navigateRef.current?.(queued.href, queued.options);
       }, 0);
     };
 
     const finishTransition = (isGateTransition, gateBackdropDismissed = false) => {
+      const settledRouteId = activeRouteIdRef.current;
+      const settledGeneration = transitionGenerationRef.current;
+      visitedRouteIdsRef.current.add(settledRouteId);
+      activeTransactionRef.current?.participants.complete('ready');
+      settleRouteTransitionTransaction(activeTransactionRef.current, 'ready');
+      activeTransactionRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       setPendingActiveRouteId(null);
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
-      finalizeTransition(isGateTransition, activeRouteIdRef.current, surfaceRefs, {
+      finalizeTransition(isGateTransition, activeRouteIdRef.current, surfaceRefs, animationRegistry, inertRegistry, {
         suppressReturnAnimation: isGateTransition,
         gateBackdropDismissed,
-        preserveTransitionPhase: releaseGateBackdrop,
+        preserveTransitionPhase: true,
       });
       resetSimulationFocusTransition(surfaceRefs);
       if (releaseGateBackdrop) {
         dismissGateBackdrop({ instant: isSimulationFocus });
       } else {
-        syncSteadyTransitionPhase();
+        setTransitionState((current) => ({
+          ...current,
+          phase: TRANSITION_PHASES.IDLE,
+          generation: settledGeneration,
+          pendingRouteId: null,
+          activation,
+          phaseStartedAt: performance.now(),
+          settledGeneration,
+          settledRouteId,
+        }));
       }
+      settleRouteFocus({ activation, focusAtStart });
       // Portfolio consumes its release marker itself. Keeping the marker until
       // then makes the shell/runtime handshake replayable when module setup is
       // slower than the shell entrance preparation.
@@ -1480,8 +1677,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         titleSurface: simulationTitleSurface,
       });
 
-      const token = ++transitionToken;
-      const stale = () => token !== transitionToken;
+      const token = ++transitionGenerationRef.current;
+      const stale = () => token !== transitionGenerationRef.current;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
       const retainedSimulation = captureSimulationTransactionSnapshot();
       const readinessRouteId = nextState.dailyFocusRouteId || nextState.route.id;
@@ -1635,22 +1832,52 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       return true;
     }
 
-    /* ── smooth transition (gate-success OR any SPA route change) ────────── */
-    if ((!isSameRoute || hasRouteContentChange) && !reduceMotion) {
+    /* ── shared route transaction (standard, gate, and reduced motion) ───── */
+    if (!isSameRoute || hasRouteContentChange || options.forceTransition === true) {
       transitionActiveRef.current = true;
       activeGateTransitionRef.current = isGate;
       activeTransitionCommittedRef.current = historyCommitted;
       setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: isGate });
-      setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
-
-      const token = ++transitionToken;
-      const stale = () => token !== transitionToken;
-      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
-        lockedGateId: nextState.lockedGateId || null,
+      const token = ++transitionGenerationRef.current;
+      const abortController = new AbortController();
+      const participants = createRouteTransitionParticipantGeneration({
+        generation: token,
+        fromRouteId: previousRouteId,
+        toRouteId: nextRouteId,
+        signal: abortController.signal,
       });
-      const routeReady = routeReadyWaiter.promise;
-      activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
+      const loaderTimingDriver = createRouteLoaderTimingDriver({
+        minimumMs: routeTimings.loaderMinimum,
+        signal: abortController.signal,
+      });
+      const transaction = createRouteTransitionTransaction({
+        generation: token,
+        fromState: previousState,
+        toState: nextState,
+        historyMode: historyDriver.historyMode,
+        activation,
+        resumedCovered: resumeCovered,
+        timingMode: reduceMotion ? 'reduced' : (visitedRouteIdsRef.current.has(nextRouteId) ? 'repeat' : 'first'),
+        abortController,
+        participants,
+        animationRegistry,
+        loaderTimingDriver,
+      });
+      activeTransactionRef.current = transaction;
+      inertRegistry.activate(getOwnedRouteSurfaceNodes(surfaceRefs));
+      const stale = () => (
+        token !== transitionGenerationRef.current
+        || abortController.signal.aborted
+      );
+      publishTransitionPhase(
+        resumeCovered ? TRANSITION_PHASES.ROUTE_LOADING : TRANSITION_PHASES.ROUTE_OUT,
+        token,
+        nextRouteId,
+        activation,
+      );
+
+      let routeReadyWaiter = null;
       let gateBackdropDismissed = false;
       const dismissGateBackdropOnce = () => {
         if (!isGate || gateBackdropDismissed) return;
@@ -1658,63 +1885,98 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         dismissGateBackdrop({ suppressReturnAnimation: true });
       };
 
-      Promise.resolve()
-        .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
-        .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          return fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs, {
-            finalOpacity: isGate ? 0 : 0.08,
-          });
+      const preloadRouteModule = typeof options.preloadRouteModule === 'function'
+        ? options.preloadRouteModule
+        : nextRouteRuntime?.loadModule;
+      const preloadResult = loadRouteRuntimeModule(preloadRouteModule)
+        .then(() => ({ error: null }), (error) => ({ error }));
+      const participantDepartureResult = waitWithTransitionTimeout(
+        Promise.all([participants.prepare(), participants.exit()]),
+        routeTimings.ready,
+        abortController.signal,
+      ).then(() => ({ error: null }), (error) => ({ error }));
+      const exitPromise = resumeCovered
+        ? Promise.resolve()
+        : fadeOutContent(
+            routeTimings.fadeOut,
+            routeTimings.fadeEasing,
+            surfaceRefs,
+            animationRegistry,
+            {
+              finalOpacity: isGate ? 0 : 0.08,
+              opacityOnly: routeTimings.opacityOnly,
+            },
+          );
+
+      Promise.all([preloadResult, exitPromise, participantDepartureResult])
+        .then(async ([preload, , participantDeparture]) => {
+          if (stale()) return;
+          const departureError = preload.error || participantDeparture.error;
+
+          publishTransitionPhase(TRANSITION_PHASES.ROUTE_LOADING, token, nextRouteId, activation);
+          setRouteSurfaceVisibility(false, surfaceRefs);
+          animationRegistry.cancel();
+          await loaderTimingDriver.establishCover();
+          if (departureError) throw departureError;
         })
         .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          if (isGate) {
-            // Gate-success handoffs stay hidden while the destination settles.
-            setRouteLayerVisibility(false, surfaceRefs);
-          } else {
-            pinRouteSurfacesForCommit(surfaceRefs);
-          }
+          if (stale()) return undefined;
+          pinRouteSurfacesForCommit(surfaceRefs, animationRegistry);
           commit();
-          if (!isGate) {
-            holdPinnedRouteSurfacesUntilRouteIn(
-              surfaceRefs,
-              () => !stale() && getTransitionPhase() === TRANSITION_PHASES.ROUTE_OUT
-            );
+          markRouteTransitionCommitted(transaction);
+          return loaderTimingDriver.waitForDestinationPaint();
+        })
+        .then(async () => {
+          if (stale()) return;
+          await waitWithTransitionTimeout(
+            participants.prepare(),
+            routeTimings.ready,
+            abortController.signal,
+          );
+          if (stale()) return;
+          routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
+            lockedGateId: nextState.lockedGateId || null,
+          });
+          transaction.readinessWaiter = routeReadyWaiter;
+          activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
+          const [readinessStatus] = await Promise.all([
+            routeReadyWaiter.promise,
+            waitWithTransitionTimeout(
+              participants.waitUntilReady(),
+              routeTimings.ready,
+              abortController.signal,
+            ),
+          ]);
+          if (readinessStatus !== 'ready') {
+            throw new Error(`Route "${nextState.route.id}" did not become ready (${readinessStatus}).`);
           }
-          return routeReady;
+          if (stale()) return;
+          await loaderTimingDriver.waitForMinimum();
         })
         .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          return waitForRoutePaintFrames(2);
-        })
-        .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
-          // Keep route layers hidden until staggeredEntrance has already pinned
-          // the new route surfaces to opacity 0. Restoring visibility first can
-          // expose portfolio text for a frame before the stagger prep runs.
-          return staggeredEntrance({
+          if (stale()) return;
+          let participantEnterPromise = Promise.resolve();
+          const shellEntrancePromise = staggeredEntrance({
             routeId: nextState.route.id,
             surfaceRefs,
+            animationRegistry,
             enterMs: routeTimings.reveal,
             revealEasing: routeTimings.revealEasing,
+            repeatVisit: routeTimings.repeatVisit,
+            reducedMotion: routeTimings.opacityOnly,
+            staggerScale: routeTimings.staggerScale,
             onPrepared: () => {
+              publishTransitionPhase(TRANSITION_PHASES.ROUTE_IN, token, nextRouteId, activation);
+              participantEnterPromise = waitWithTransitionTimeout(
+                participants.enter(),
+                routeTimings.ready,
+                abortController.signal,
+              );
               dismissPortfolioGateSceneBridge({
                 durationMs: PORTFOLIO_GATE_SCENE_FADE_MS,
                 delayMs: GROUPED_ROUTE_OFFSET_MS,
                 easing: 'linear',
+                animationRegistry,
               });
               dismissGateBackdropOnce();
             },
@@ -1724,94 +1986,122 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
               }
             },
           });
+          return Promise.all([shellEntrancePromise, participantEnterPromise]);
         })
         .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
+          if (stale()) return;
           finishTransition(isGate, gateBackdropDismissed);
         })
-        .catch(() => {
-          routeReadyWaiter.cancel();
-          if (!stale()) {
-            finishTransition(isGate, gateBackdropDismissed);
+        .catch(async (error) => {
+          routeReadyWaiter?.cancel();
+          if (stale()) return;
+
+          const keepMountedDestination = transaction.committed && isRouteBaselineReady(
+            nextRouteId,
+            { lockedGateId: nextState.lockedGateId || null },
+          );
+          let revealRouteId = previousRouteId;
+          if (keepMountedDestination) {
+            revealRouteId = nextRouteId;
+            setPendingActiveRouteId(nextRouteId);
+            try {
+              options.onFailure?.(error, nextState);
+            } catch {
+              // A degraded but usable destination still needs to settle visibly.
+            }
+          } else if (transaction.committed) {
+            participants.cancel('rollback');
+            rollback(error);
+            setPendingActiveRouteId(previousRouteId);
+            await loaderTimingDriver.waitForDestinationPaint();
+            const restoredWaiter = waitForRouteReady(previousRouteId, routeTimings.ready, {
+              lockedGateId: previousState.lockedGateId || null,
+            });
+            activeRouteReadyCancelRef.current = restoredWaiter.cancel;
+            await restoredWaiter.promise;
+          } else {
+            await waitWithTransitionTimeout(
+              participants.restore(),
+              routeTimings.ready,
+              abortController.signal,
+            ).catch(() => undefined);
+            try {
+              options.onFailure?.(error, previousState);
+            } catch {
+              // Failure reporting must not prevent the outgoing route returning.
+            }
           }
+
+          if (stale()) return;
+          await staggeredEntrance({
+            routeId: revealRouteId,
+            surfaceRefs,
+            animationRegistry,
+            enterMs: routeTimings.reveal,
+            revealEasing: routeTimings.revealEasing,
+            repeatVisit: visitedRouteIdsRef.current.has(revealRouteId),
+            reducedMotion: routeTimings.opacityOnly,
+            staggerScale: routeTimings.staggerScale,
+            onPrepared: () => {
+              publishTransitionPhase(
+                TRANSITION_PHASES.ROUTE_IN,
+                token,
+                revealRouteId,
+                activation,
+              );
+              if (keepMountedDestination) {
+                void waitWithTransitionTimeout(
+                  participants.enter(),
+                  routeTimings.ready,
+                  abortController.signal,
+                ).catch(() => undefined);
+              }
+            },
+            onViewSettled: () => {
+              if (revealRouteId === 'portfolio') releasePortfolioDeck('route-in-fallback');
+            },
+          });
+          if (!stale()) finishTransition(isGate, gateBackdropDismissed);
         });
 
       return true;
     }
 
-    /* ── reduced motion or same-route: instant with cleanup ──────────────── */
-    if (isGate) {
-      transitionActiveRef.current = true;
-      activeGateTransitionRef.current = true;
-      activeTransitionCommittedRef.current = historyCommitted;
-      setPendingActiveRouteId(nextRouteId);
-      setLegacyRouteTransitionActive(true, { gate: true });
-      setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
-      const token = ++transitionToken;
-      const stale = () => token !== transitionToken;
-      const routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
-        lockedGateId: nextState.lockedGateId || null,
-      });
-      const routeReady = routeReadyWaiter.promise;
-      activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
-      let gateBackdropDismissed = false;
-      const dismissGateBackdropOnce = () => {
-        if (gateBackdropDismissed) return;
-        gateBackdropDismissed = true;
-        dismissGateBackdrop({ suppressReturnAnimation: true });
-      };
-
-      Promise.resolve()
-        .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
-        .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          if (!isSameRoute || hasRouteContentChange) {
-            setRouteLayerVisibility(false, surfaceRefs);
-            commit();
-          }
-          return routeReady;
-        })
-        .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          setTransitionPhase(TRANSITION_PHASES.ROUTE_IN);
-          setRouteLayerVisibility(true, surfaceRefs);
-          releasePortfolioDeck('reduced-motion');
-          dismissPortfolioGateSceneBridge({ instant: true });
-          dismissGateBackdropOnce();
-          return undefined;
-        })
-        .then(() => {
-          if (stale()) {
-            routeReadyWaiter.cancel();
-            return;
-          }
-          finishTransition(true, gateBackdropDismissed);
-        })
-        .catch(() => {
-          routeReadyWaiter.cancel();
-          if (!stale()) {
-            finishTransition(true, gateBackdropDismissed);
-          }
-        });
-
-      return true;
-    }
-
-    /* ── same-route or reduced-motion non-gate: instant commit ────────────── */
+    /* ── same-route non-gate: instant commit ─────────────────────────────── */
     commit();
     setPendingActiveRouteId(null);
     syncSteadyTransitionPhase();
     return true;
-  }, [surfaceRefs, syncSteadyTransitionPhase]);
+  }, [animationRegistry, inertRegistry, publishTransitionPhase, surfaceRefs, syncSteadyTransitionPhase]);
+
+  useLayoutEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
+  const prewarmRoute = useCallback((routeId, options = {}) => {
+    const route = getRouteById(routeId);
+    if (!route?.id) return Promise.resolve(false);
+    const href = options.href || buildRouteHref(route.id);
+    const nextState = computeRouteState(new URL(href, window.location.href).toString());
+    const cacheKey = readRouteContentSignature(nextState);
+    const cached = routePrewarmPromisesRef.current.get(cacheKey);
+    if (cached) return cached;
+
+    const runtime = getRouteRuntimeRef.current(route.id, nextState.canonicalHref, nextState);
+    if (typeof runtime?.loadModule !== 'function') return Promise.resolve(false);
+
+    const pending = loadRouteRuntimeModule(runtime.loadModule)
+      .then(() => true)
+      .catch((error) => {
+        routePrewarmPromisesRef.current.delete(cacheKey);
+        if (options.reason !== 'idle') {
+          console.warn(`[transition] Route prewarm failed for "${route.id}"`, error);
+        }
+        return false;
+      });
+    routePrewarmPromisesRef.current.set(cacheKey, pending);
+    return pending;
+  }, []);
 
   const transitionCurrentRoute = useCallback((task, options = {}) => {
     if (transitionActiveRef.current) return false;
@@ -1824,6 +2114,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       revealMs: options.enterMs,
       readyMs: options.readyFallbackMs,
       reduceMotion,
+      repeatVisit: true,
     });
     const isSimulationFocus = options.transitionStyle === 'simulation-focus';
 
@@ -1831,7 +2122,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
-      finalizeTransition(false, currentRouteId, surfaceRefs, {
+      finalizeTransition(false, currentRouteId, surfaceRefs, animationRegistry, inertRegistry, {
         preserveTransitionPhase: releaseGateBackdrop,
       });
       resetSimulationFocusTransition(surfaceRefs);
@@ -1861,8 +2152,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeTransitionCommittedRef.current = false;
       setLegacyRouteTransitionActive(true, { gate: false });
       setSimulationShellStability(true, surfaceRefs);
-      const token = ++transitionToken;
-      const stale = () => token !== transitionToken;
+      const token = ++transitionGenerationRef.current;
+      const stale = () => token !== transitionGenerationRef.current;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
       let taskError = null;
 
@@ -1920,6 +2211,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
 
     if (reduceMotion) {
+      inertRegistry.activate(getOwnedRouteSurfaceNodes(surfaceRefs));
       transitionActiveRef.current = true;
       activeTransitionCommittedRef.current = false;
       setLegacyRouteTransitionActive(true, { gate: false });
@@ -1931,17 +2223,24 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
 
     transitionActiveRef.current = true;
+    inertRegistry.activate(getOwnedRouteSurfaceNodes(surfaceRefs));
     activeTransitionCommittedRef.current = false;
     setLegacyRouteTransitionActive(true, { gate: false });
     setTransitionPhase(TRANSITION_PHASES.ROUTE_OUT);
 
-    const token = ++transitionToken;
-    const stale = () => token !== transitionToken;
+    const token = ++transitionGenerationRef.current;
+    const stale = () => token !== transitionGenerationRef.current;
 
-    fadeOutContent(routeTimings.fadeOut, routeTimings.fadeEasing, surfaceRefs, { finalOpacity: 0.08 })
+    fadeOutContent(
+      routeTimings.fadeOut,
+      routeTimings.fadeEasing,
+      surfaceRefs,
+      animationRegistry,
+      { finalOpacity: 0.08 },
+    )
       .then(() => {
         if (stale()) return undefined;
-        setRouteLayerVisibility(false, surfaceRefs);
+        setRouteSurfaceVisibility(false, surfaceRefs);
         return runTask();
       })
       .catch(() => undefined)
@@ -1951,8 +2250,12 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         return staggeredEntrance({
           routeId: currentRouteId,
           surfaceRefs,
+          animationRegistry,
           enterMs: routeTimings.reveal,
           revealEasing: routeTimings.revealEasing,
+          repeatVisit: true,
+          reducedMotion: routeTimings.opacityOnly,
+          staggerScale: routeTimings.staggerScale,
         });
       })
       .then(() => {
@@ -1967,7 +2270,18 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       });
 
     return true;
-  }, [navigate, surfaceRefs, syncSteadyTransitionPhase]);
+  }, [animationRegistry, inertRegistry, navigate, surfaceRefs, syncSteadyTransitionPhase]);
+
+  useEffect(() => {
+    const markPointer = () => { lastActivationRef.current = 'pointer'; };
+    const markKeyboard = () => { lastActivationRef.current = 'keyboard'; };
+    window.addEventListener('pointerdown', markPointer, true);
+    window.addEventListener('keydown', markKeyboard, true);
+    return () => {
+      window.removeEventListener('pointerdown', markPointer, true);
+      window.removeEventListener('keydown', markKeyboard, true);
+    };
+  }, []);
 
   useEffect(() => installSpaNavigationBridge(navigate), [navigate]);
 
@@ -2004,6 +2318,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   }, []);
 
   useEffect(() => {
+    const generationRef = transitionGenerationRef;
     const handlePopState = () => {
       const nextHref = window.location.href;
       const nextState = computeRouteState(nextHref);
@@ -2014,10 +2329,24 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         document.documentElement.dataset.absSimulationFocusTransition
       );
 
-      ++transitionToken;
+      ++transitionGenerationRef.current;
+      cancelRouteTransitionTransaction(activeTransactionRef.current, 'popstate');
+      activeTransactionRef.current?.abortController.abort('popstate');
+      activeTransactionRef.current?.participants.cancel('popstate');
+      activeTransactionRef.current = null;
       queuedNavigationRef.current = null;
       if (wasTransitionActive || wasGateTransition) {
-        interruptTransitionForPopstate(wasGateTransition, activeRouteIdRef.current, surfaceRefs);
+        animationRegistry.cancel();
+        setRouteSurfaceVisibility(false, surfaceRefs);
+        publishTransitionPhase(
+          TRANSITION_PHASES.ROUTE_LOADING,
+          transitionGenerationRef.current,
+          nextState.route.id,
+          'history',
+        );
+        if (wasGateTransition) {
+          dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
+        }
       }
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
@@ -2028,8 +2357,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
         dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
       }
-      if (isSameRoute) {
-        setRouteLayerVisibility(true, surfaceRefs);
+      if (isSameRoute && !wasTransitionActive && !wasGateTransition) {
+        setRouteSurfaceVisibility(true, surfaceRefs);
         setRouteState(nextState);
         activeRouteStateRef.current = nextState;
         activeRouteIdRef.current = nextState.route.id;
@@ -2039,7 +2368,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         return;
       }
       setStableTimeout(() => {
-        navigate(nextHref, { replace: true });
+        navigate(nextHref, {
+          replace: true,
+          source: 'history',
+          activation: 'history',
+          resumeCovered: wasTransitionActive || wasGateTransition,
+          forceTransition: wasTransitionActive || wasGateTransition,
+        });
       }, 0);
     };
     window.addEventListener('popstate', handlePopState);
@@ -2049,11 +2384,21 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         document.documentElement.dataset.absSimulationFocusTransition
       );
       if (transitionActiveRef.current) {
-        ++transitionToken;
+        ++generationRef.current;
+        cancelRouteTransitionTransaction(activeTransactionRef.current, 'unmount');
+        activeTransactionRef.current?.abortController.abort('unmount');
+        activeTransactionRef.current?.participants.cancel('unmount');
+        activeTransactionRef.current = null;
         queuedNavigationRef.current = null;
         activeRouteReadyCancelRef.current?.();
         activeRouteReadyCancelRef.current = null;
-        finalizeTransition(activeGateTransitionRef.current, activeRouteIdRef.current, surfaceRefs);
+        finalizeTransition(
+          activeGateTransitionRef.current,
+          activeRouteIdRef.current,
+          surfaceRefs,
+          animationRegistry,
+          inertRegistry,
+        );
         transitionActiveRef.current = false;
         activeGateTransitionRef.current = false;
         setPendingActiveRouteId(null);
@@ -2064,7 +2409,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
       }
     };
-  }, [navigate, surfaceRefs, syncSteadyTransitionPhase]);
+  }, [animationRegistry, inertRegistry, navigate, publishTransitionPhase, surfaceRefs, syncSteadyTransitionPhase]);
 
   useLayoutEffect(() => {
     getRouteRuntimeRef.current = getRouteRuntime;
@@ -2081,6 +2426,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       syncSteadyTransitionPhase();
     }
   }, [routeState.route.id, syncSteadyTransitionPhase]);
+
+  useLayoutEffect(() => {
+    if (transitionState.phase !== TRANSITION_PHASES.IDLE || transitionActiveRef.current) return;
+    syncSteadyTransitionPhase();
+  }, [syncSteadyTransitionPhase, transitionState.phase, transitionState.settledGeneration]);
 
   useLayoutEffect(() => {
     if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) return;
@@ -2105,8 +2455,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   return {
     routeState,
     activeRouteId: pendingActiveRouteId || routeState.route.id,
+    pendingRouteId: pendingActiveRouteId,
+    transitionState,
     routeRuntime,
     routeView,
     transitionCurrentRoute,
+    prewarmRoute,
   };
 }

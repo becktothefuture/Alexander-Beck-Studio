@@ -291,6 +291,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     isRouteTransitionPhase(getTransitionPhase())
     || isSimulationFocusTransitionActive()
   );
+  const yieldCoveredBootstrapFrame = async () => {
+    if (!shellRouteTransitionActiveAtStart || !isCurrent()) return;
+    await waitForFrames(1);
+  };
   if (shellRouteTransitionActiveAtStart) {
     setBootLifecycleState('ready');
   } else {
@@ -407,6 +411,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     } catch (e) {
       console.warn('Tactile layer init failed:', e);
     }
+    await yieldCoveredBootstrapFrame();
+    if (!isCurrent()) return cleanup;
 
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
@@ -433,6 +439,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
+    await yieldCoveredBootstrapFrame();
+    if (!isCurrent()) return cleanup;
 
     // Layout controls integrated into master panel
 

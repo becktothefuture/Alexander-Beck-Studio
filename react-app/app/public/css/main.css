@@ -618,6 +618,104 @@ html[data-shell-route='home'] .page-content {
   min-height: 0;
 }
 
+.shell-transition-surface--controls {
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  pointer-events: none;
+}
+
+/* Route loading is a shell-owned, in-window cover. It shares the boot spinner
+   primitive but keeps its own compact cadence and never covers the Button Bar. */
+.route-transition-loader {
+  --abs-loader-exit-scale: 1.45;
+  --abs-boot-overlay-out-ms: var(--abs-route-spinner-exit-duration, 160ms);
+
+  position: fixed;
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  z-index: 280;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--frame-outer-radius);
+  background: #000000;
+  color-scheme: dark;
+  forced-color-adjust: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.route-transition-loader__stage {
+  position: relative;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transform: scale(0.94);
+  transition:
+    opacity var(--abs-route-loader-enter-duration, 70ms) var(--ui-ease-in),
+    transform var(--abs-route-loader-enter-duration, 70ms) var(--ui-ease-in);
+}
+
+html[data-abs-transition-phase='route-loading'] .route-transition-loader,
+html[data-abs-transition-phase='route-in'] .route-transition-loader {
+  visibility: visible;
+}
+
+html[data-abs-transition-phase='route-loading'] .route-transition-loader {
+  opacity: 1;
+  pointer-events: auto;
+  transition: none;
+}
+
+html[data-abs-transition-phase='route-loading'] .route-transition-loader__stage,
+html[data-abs-transition-phase='route-in'] .route-transition-loader__stage {
+  opacity: 1;
+  transform: scale(1);
+}
+
+html[data-abs-transition-phase='route-in'] .route-transition-loader {
+  opacity: 0;
+  transition: opacity var(--abs-route-plate-exit-duration, 160ms) cubic-bezier(0.45, 0, 0.55, 1)
+    var(--abs-route-plate-exit-delay, 40ms);
+}
+
+html[data-abs-transition-phase='route-in'] .route-transition-loader .abs-loader-spinner {
+  animation: absBootLoaderExit var(--abs-route-spinner-exit-duration, 160ms) cubic-bezier(0.32, 0, 0.67, 0) both;
+}
+
+/* The loader is a visual cover, not the visibility invariant. Stable route
+   wrappers remain independently suppressed through destination commit/readiness. */
+html[data-abs-transition-phase='route-loading'] [data-route-surface] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+html[data-abs-transition-phase='route-loading'] [data-route-enter] {
+  pointer-events: none;
+}
+
+/* The active pill may lead navigation while aria-current continues to describe
+   the route that is actually committed. Keep those visual/semantic states distinct. */
+.button-bar[data-button-bar-material='dominant-tab']
+  [data-route-tabs][data-pending-route]
+  .shell-tab[aria-current='page'] {
+  color: var(--dominant-primary-idle-ink);
+  cursor: pointer;
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  [data-route-tabs][data-pending-route]
+  .shell-tab[data-route-pending='true'] {
+  color: var(--dominant-primary-active-ink);
+  cursor: default;
+}
+
 .shell-route-slot {
   position: relative;
   grid-column: 1;
@@ -3487,6 +3585,7 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
 /* SPA route transitions already animate the home nav row as part of the shell
    reveal, so skip the secondary delayed entrance on the individual pills. */
 html[data-abs-transition-phase='route-out'] .ui-main-nav .footer_link,
+html[data-abs-transition-phase='route-loading'] .ui-main-nav .footer_link,
 html[data-abs-transition-phase='route-in'] .ui-main-nav .footer_link {
   opacity: 1;
   filter: blur(0);
@@ -3532,12 +3631,50 @@ html[data-abs-transition-phase='route-in'] body.cv-page #abs-scene {
 }
 
 html[data-abs-transition-phase='route-out'] [data-shell-bottom-band],
+html[data-abs-transition-phase='route-loading'] [data-shell-bottom-band],
 html[data-abs-transition-phase='route-in'] [data-shell-bottom-band],
 html[data-abs-transition-phase='route-out'] [data-button-bar],
+html[data-abs-transition-phase='route-loading'] [data-button-bar],
 html[data-abs-transition-phase='route-in'] [data-button-bar],
 html[data-abs-transition-phase='route-out'] [data-button-bar] :is(a, button, [role='button']),
+html[data-abs-transition-phase='route-loading'] [data-button-bar] :is(a, button, [role='button']),
 html[data-abs-transition-phase='route-in'] [data-button-bar] :is(a, button, [role='button']) {
   pointer-events: auto;
+}
+
+html[data-abs-transition-phase='route-loading'] :is(
+  #shell-wall-slot,
+  #shell-hero-slot,
+  #abs-scene,
+  #simulations,
+  #hero-title,
+  .shell-transition-surface,
+  .fade-content,
+  main.ui-center,
+  main.ui-center-spacer,
+  .cv-scroll-container
+) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-transition-loader,
+  .route-transition-loader__stage {
+    transform: none;
+    transition-property: opacity;
+    transition-duration: 80ms;
+    transition-timing-function: linear;
+  }
+
+  .route-transition-loader .abs-loader-spinner,
+  html[data-abs-transition-phase='route-in'] .route-transition-loader .abs-loader-spinner {
+    animation: none;
+    transform: none;
+  }
+
+  html[data-abs-transition-phase='route-in'] .route-transition-loader {
+    transition: opacity 120ms linear;
+  }
 }
 
 /* Exit stagger: reverse order (right to left) when modal opens */

@@ -503,11 +503,11 @@ const VERTEX_SHADER = `
     // anchor enters the scroll-authored reveal. The selected anchor then regains
     // the material colour it already owned; no colour is reassigned at reveal time.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
-    // The finale is a single material object, not a rainbow of independently
-    // coloured particles. Preserve a faint trace of the palette at emergence,
-    // then resolve it into a cool mineral tone.
-    float bustMaterialResolve = toBust * smoothstep(0.16, 0.9, globalMorph);
-    pointTint = mix(pointTint, vec3(0.105, 0.19, 0.25), bustMaterialResolve * 0.84);
+    // The resolved bust should read as one editorial material while retaining a
+    // slight memory of the coloured field that generated it.
+    float portraitToneResolve = toBust * smoothstep(0.18, 0.92, globalMorph);
+    vec3 bustAuthorityColor = mix(disciplineBackgroundColor, baseColor, 0.14);
+    pointTint = mix(pointTint, bustAuthorityColor, portraitToneResolve * 0.82);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
@@ -1860,9 +1860,15 @@ function createPointFieldAdapter({
           ? 1
           : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
         // The physical grid decides when an anchor reaches the reading line.
-        // Keep the authored item available after its timed introduction so a
-        // slower mobile projection cannot make a discipline miss its pass.
-        const itemRelease = 1;
+        // Keep each item available after timed introduction, then release it as
+        // the next discipline arrives so one label owns the moment.
+        const itemRelease = orderIndex >= reveal.items.length - 1
+          ? 1
+          : 1 - smoothRange(
+            storyWU,
+            itemStartWU + (revealState.staggerWU * 2.1),
+            itemStartWU + (revealState.staggerWU * 2.5),
+          );
         disciplineArrivalHold[item.group - 1] = reducedActive
           ? 1
           : smoothRange(
@@ -1994,7 +2000,7 @@ function createPointFieldAdapter({
               : Number(reveal.readingLineY ?? 0.52);
             const approachBandY = Math.max(0.001, Number(reveal.approachBandY ?? 0.12));
             const exitLineY = Number(reveal.exitLineY ?? 0.9);
-            const viewportEntryY = Math.max(0.05, readingLineY - (approachBandY * 2));
+            const viewportEntryY = Math.max(0.05, readingLineY - (approachBandY * 1.5));
             const bottomDepartureReveal = 1 - smoothRange(
               viewportY,
               exitLineY,
@@ -2002,8 +2008,8 @@ function createPointFieldAdapter({
             );
             const topDepartureReveal = smoothRange(
               viewportY,
-              -Math.max(0.08, approachBandY * 0.8),
-              Math.max(0.02, approachBandY * 0.2),
+              -Math.max(0.2, approachBandY * 1.5),
+              Math.max(0.04, approachBandY * 0.3),
             );
             const departureReveal = bottomDepartureReveal * topDepartureReveal;
             // Discipline anchors travel upward through the plan-view camera.
@@ -2037,8 +2043,12 @@ function createPointFieldAdapter({
           }
         }
         let activeLabelIndex = -1;
+        let activeLabelReveal = 0.05;
         for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
-          if (disciplineSpatialReveal[index] > 0.05) activeLabelIndex = index;
+          if (disciplineSpatialReveal[index] > activeLabelReveal) {
+            activeLabelIndex = index;
+            activeLabelReveal = disciplineSpatialReveal[index];
+          }
         }
         for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
           writeDisciplineRevealStyles(

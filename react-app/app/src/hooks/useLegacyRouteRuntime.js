@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createLegacyRuntimeScope } from '../lib/legacy-runtime-scope.js';
 
 let nextRuntimeGeneration = 0;
+const runtimeModulePromises = new WeakMap();
 let activeRuntimeSnapshot = Object.freeze({
   routeId: null,
   generation: 0,
@@ -45,6 +46,27 @@ function dispatchRouteReady(routeId, generation) {
       }));
     });
   });
+}
+
+function dispatchRouteFailed(routeId, generation, error) {
+  if (typeof window === 'undefined' || !routeId) return;
+  window.dispatchEvent(new CustomEvent('abs:route-failed', {
+    detail: { routeId, generation, error },
+  }));
+}
+
+export function loadRouteRuntimeModule(loadModule) {
+  if (typeof loadModule !== 'function') return Promise.resolve(undefined);
+  const cached = runtimeModulePromises.get(loadModule);
+  if (cached) return cached;
+  const pending = Promise.resolve()
+    .then(() => loadModule())
+    .catch((error) => {
+      runtimeModulePromises.delete(loadModule);
+      throw error;
+    });
+  runtimeModulePromises.set(loadModule, pending);
+  return pending;
 }
 
 export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId }) {
@@ -91,7 +113,7 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
     publishRuntimeLifecycle(routeId, generation, 'booting');
 
     Promise.resolve()
-      .then(() => loadModule())
+      .then(() => loadRouteRuntimeModule(loadModule))
       .then((module) => {
         if (!isCurrent()) return undefined;
         const boot = module?.[exportName];
@@ -117,6 +139,7 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
         scope.stopCapturing?.();
         if (isCurrent()) {
           publishRuntimeLifecycle(routeId, generation, 'failed');
+          dispatchRouteFailed(routeId, generation, error);
           console.error(`[spa] Failed to bootstrap legacy route export "${exportName}"`, error);
         }
       });

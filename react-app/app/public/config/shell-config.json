@@ -83,7 +83,28 @@
     "modalOverlayTransitionOutMs": 500,
     "modalOverlayContentDelayMs": 200,
     "modalDepthScale": 0.943,
-    "modalDepthTranslateY": 1
+    "modalDepthTranslateY": 1,
+    "routeTransition": {
+      "exitDurationMs": 130,
+      "loaderEnterDurationMs": 70,
+      "loaderFirstMinimumMs": 160,
+      "loaderRepeatMinimumMs": 110,
+      "readinessTimeoutMs": 4500,
+      "spinnerExitDurationMs": 160,
+      "plateExitDelayMs": 40,
+      "plateExitDurationMs": 160,
+      "surfaceEnterDurationMs": 220,
+      "routeBookendDurationMs": 220,
+      "routeBookendStepMs": 8,
+      "routeBookendBlurPx": 4,
+      "routeBookendDriftEm": -0.05,
+      "contextDurationMs": 240,
+      "actionDurationMs": 220,
+      "supportDurationMs": 240,
+      "itemStepMs": 22,
+      "repeatTimingScale": 0.78,
+      "repeatStaggerScale": 0.65
+    }
   },
   "hero": {
     "startupMode": "",

@@ -233,7 +233,9 @@ export class PortfolioParticleField {
 
   isRouteTransitionPaused() {
     const transitionPhase = document.documentElement.dataset.absTransitionPhase || 'idle';
-    return transitionPhase === 'route-out' || transitionPhase === 'route-in';
+    return transitionPhase === 'route-out'
+      || transitionPhase === 'route-loading'
+      || transitionPhase === 'route-in';
   }
 
   isLifecycleSuspended() {

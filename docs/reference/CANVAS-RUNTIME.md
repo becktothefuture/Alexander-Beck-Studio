@@ -52,6 +52,8 @@ The Home owner does not equate canvas allocation with readiness. It waits for cr
 
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 
+When Home is bootstrapped behind an active shell route cover, its renderer/input/tactile setup and its legend/keyboard/mode setup are separated by painted scheduling yields. The loader remains opaque and Home surfaces remain hidden/inert while those groups complete. Direct document boot keeps its existing cadence. Do not remove the covered yields without profiling Home re-entry Long Tasks and transition frame gaps; do not add per-frame allocations or move physics work into React to address bootstrap cost.
+
 ### Runtime generation and cancellation
 
 `useLegacyRouteRuntime` assigns each mounted route runtime a generation and passes the boot export a lifecycle context containing `signal`, `generation`, `isCurrent`, and `registerCleanup`.

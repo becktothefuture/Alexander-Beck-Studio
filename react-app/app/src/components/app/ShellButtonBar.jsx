@@ -356,19 +356,30 @@ function SecondaryButtons({
 
 function RouteButton({
   tab,
-  isActive,
+  isCurrent,
+  isPending,
+  isVisualActive,
   onRouteNavigate,
   onRouteSelect,
+  onRouteIntent,
   renderDecoration,
 }) {
+  const signalIntent = (reason) => {
+    if (isVisualActive) return;
+    onRouteIntent?.(tab.routeId, tab, reason);
+  };
   const selectRoute = () => {
-    if (isActive) return;
+    if (isVisualActive) return;
     onRouteSelect?.(tab.routeId, tab);
   };
 
-  const navigateRoute = () => {
-    if (isActive) return;
-    if (!onRouteNavigate?.(tab.href, tab, { source: 'button-bar', preemptTransition: true })) {
+  const navigateRoute = (activation = 'keyboard') => {
+    if (isVisualActive) return;
+    if (!onRouteNavigate?.(tab.href, tab, {
+      source: 'button-bar',
+      activation,
+      preemptTransition: true,
+    })) {
       window.location.assign(tab.href);
     }
   };
@@ -377,28 +388,32 @@ function RouteButton({
     className: getRouteButtonClassName(tab),
     'data-button-bar-item': tab.routeId,
     'data-route-tab': tab.routeId,
-    'data-state': isActive ? 'active' : 'idle',
+    'data-state': isPending ? 'pending' : (isCurrent ? 'active' : 'idle'),
+    'data-route-pending': isPending ? 'true' : undefined,
     'aria-label': tab.ariaLabel,
-    'aria-current': isActive ? 'page' : undefined,
+    'aria-current': isCurrent ? 'page' : undefined,
+    onPointerEnter: () => signalIntent('pointer-hover'),
+    onFocus: () => signalIntent('keyboard-focus'),
     onPointerDown: (event) => {
-      if (isActive) return;
+      if (isVisualActive) return;
       if (isModifiedRouteEvent(event)) return;
+      signalIntent(event.pointerType === 'touch' ? 'touch-intent' : 'pointer-intent');
       if (beginCapturedPointerPress(event)) {
         playButtonBarPressSound();
         markPointerActivated(event);
         if (!onRouteSelect) {
           event.preventDefault();
-          navigateRoute();
+          navigateRoute('pointer');
         }
       }
     },
     onPointerUp: (event) => {
-      if (isActive) return;
+      if (isVisualActive) return;
       if (!completeCapturedPointerPress(event)) return;
       if (onRouteSelect) selectRoute();
     },
     onKeyDown: (event) => {
-      if (!isActive && isKeyboardPress(event)) playButtonBarPressSound();
+      if (!isVisualActive && isKeyboardPress(event)) playButtonBarPressSound();
     },
   };
   const decoration = renderDecoration?.(tab);
@@ -437,7 +452,7 @@ function RouteButton({
     }
 
     event.preventDefault();
-    navigateRoute();
+    navigateRoute(event.detail === 0 ? 'keyboard' : 'pointer');
   };
 
   return (
@@ -454,11 +469,13 @@ function RouteButton({
 
 export function ShellButtonBar({
   activeRouteId,
+  pendingRouteId = null,
   className = 'shell-bottom-band',
   materialVariant,
   navClassName = '',
   onRouteNavigate,
   onRouteSelect,
+  onRouteIntent,
   preview = false,
   previewTheme,
   onPreviewThemeChange,
@@ -466,11 +483,13 @@ export function ShellButtonBar({
   renderSecondaryButtonDecoration,
 }) {
   const normalizedActiveRouteId = getNormalizedActiveRouteId(activeRouteId);
-  const activeRouteTab = getRouteTabById(normalizedActiveRouteId);
+  const normalizedPendingRouteId = getNormalizedActiveRouteId(pendingRouteId);
+  const visualActiveRouteId = normalizedPendingRouteId || normalizedActiveRouteId;
+  const activeRouteTab = getRouteTabById(visualActiveRouteId);
   const primaryNavRef = useRef(null);
   useActivePillGeometry(
     primaryNavRef,
-    normalizedActiveRouteId,
+    visualActiveRouteId,
     materialVariant === 'dominant-tab',
   );
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
@@ -497,15 +516,21 @@ export function ShellButtonBar({
         data-button-bar-nav
         data-route-tabs
         data-active-route={activeRouteTab?.routeId}
+        data-pending-route={normalizedPendingRouteId || undefined}
       >
         <span className="button-bar__active-pill" aria-hidden="true" />
         {SHELL_ROUTE_TABS.map((tab) => (
           <RouteButton
             key={tab.routeId}
             tab={tab}
-            isActive={tab.routeId === normalizedActiveRouteId}
+            isCurrent={tab.routeId === normalizedActiveRouteId}
+            isPending={Boolean(normalizedPendingRouteId && tab.routeId === normalizedPendingRouteId)}
+            isVisualActive={tab.routeId === visualActiveRouteId || Boolean(
+              normalizedPendingRouteId && tab.routeId === normalizedActiveRouteId
+            )}
             onRouteNavigate={onRouteNavigate}
             onRouteSelect={onRouteSelect}
+            onRouteIntent={onRouteIntent}
             renderDecoration={renderRouteButtonDecoration}
           />
         ))}

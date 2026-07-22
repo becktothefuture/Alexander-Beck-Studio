@@ -16,6 +16,7 @@ import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrative
 
 const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
 const TIME_EPSILON = 0.000001;
+const REDUCED_DISCIPLINE_HANDOFF_LEAD_WU = 0.02;
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -552,7 +553,7 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
     config.effectEndWU - Math.max(0, config.restoreDurationWU),
   );
   target.restoreProgress = reducedMotion
-    ? (storyWU >= restoreStartWU ? 1 : 0)
+    ? (storyWU >= config.effectEndWU - REDUCED_DISCIPLINE_HANDOFF_LEAD_WU ? 1 : 0)
     : smoothRange(storyWU, restoreStartWU, config.effectEndWU);
   return target;
 }

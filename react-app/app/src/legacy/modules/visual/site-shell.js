@@ -104,7 +104,28 @@ const DEFAULT_SHELL_CONFIG = {
     modalOverlayTransitionOutMs: 500,
     modalOverlayContentDelayMs: 200,
     modalDepthScale: 0.943,
-    modalDepthTranslateY: 1
+    modalDepthTranslateY: 1,
+    routeTransition: {
+      exitDurationMs: 130,
+      loaderEnterDurationMs: 70,
+      loaderFirstMinimumMs: 160,
+      loaderRepeatMinimumMs: 110,
+      readinessTimeoutMs: 4500,
+      spinnerExitDurationMs: 160,
+      plateExitDelayMs: 40,
+      plateExitDurationMs: 160,
+      surfaceEnterDurationMs: 220,
+      routeBookendDurationMs: 220,
+      routeBookendStepMs: 8,
+      routeBookendBlurPx: 4,
+      routeBookendDriftEm: -0.05,
+      contextDurationMs: 240,
+      actionDurationMs: 220,
+      supportDurationMs: 240,
+      itemStepMs: 22,
+      repeatTimingScale: 0.78,
+      repeatStaggerScale: 0.65
+    }
   },
   hero: {
     startupMode: '',
@@ -131,17 +152,57 @@ let currentShellConfig = DEFAULT_SHELL_CONFIG;
 let shellConfigPromise = null;
 
 function mergeShellConfig(base, override) {
+  const baseMotion = base.motion || {};
+  const overrideMotion = override?.motion || {};
   return {
     theme: { ...base.theme, ...(override?.theme || {}) },
     layout: { ...base.layout, ...(override?.layout || {}) },
     surface: { ...base.surface, ...(override?.surface || {}) },
-    motion: { ...base.motion, ...(override?.motion || {}) },
+    motion: {
+      ...baseMotion,
+      ...overrideMotion,
+      routeTransition: {
+        ...(baseMotion.routeTransition || {}),
+        ...(overrideMotion.routeTransition || {})
+      }
+    },
     hero: { ...base.hero, ...(override?.hero || {}) }
   };
 }
 
 export function getShellConfig() {
   return currentShellConfig;
+}
+
+function roundedNumberInRange(value, min, max, fallback) {
+  return Math.round(numberInRange(value, min, max, fallback));
+}
+
+export function getShellRouteTransitionConfig(config = currentShellConfig) {
+  const defaults = DEFAULT_SHELL_CONFIG.motion.routeTransition;
+  const source = config?.motion?.routeTransition || {};
+
+  return {
+    exitDurationMs: roundedNumberInRange(source.exitDurationMs, 0, 2000, defaults.exitDurationMs),
+    loaderEnterDurationMs: roundedNumberInRange(source.loaderEnterDurationMs, 0, 2000, defaults.loaderEnterDurationMs),
+    loaderFirstMinimumMs: roundedNumberInRange(source.loaderFirstMinimumMs, 0, 5000, defaults.loaderFirstMinimumMs),
+    loaderRepeatMinimumMs: roundedNumberInRange(source.loaderRepeatMinimumMs, 0, 5000, defaults.loaderRepeatMinimumMs),
+    readinessTimeoutMs: roundedNumberInRange(source.readinessTimeoutMs, 250, 30000, defaults.readinessTimeoutMs),
+    spinnerExitDurationMs: roundedNumberInRange(source.spinnerExitDurationMs, 0, 2000, defaults.spinnerExitDurationMs),
+    plateExitDelayMs: roundedNumberInRange(source.plateExitDelayMs, 0, 2000, defaults.plateExitDelayMs),
+    plateExitDurationMs: roundedNumberInRange(source.plateExitDurationMs, 0, 2000, defaults.plateExitDurationMs),
+    surfaceEnterDurationMs: roundedNumberInRange(source.surfaceEnterDurationMs, 0, 3000, defaults.surfaceEnterDurationMs),
+    routeBookendDurationMs: roundedNumberInRange(source.routeBookendDurationMs, 0, 3000, defaults.routeBookendDurationMs),
+    routeBookendStepMs: roundedNumberInRange(source.routeBookendStepMs, 0, 500, defaults.routeBookendStepMs),
+    routeBookendBlurPx: numberInRange(source.routeBookendBlurPx, 0, 40, defaults.routeBookendBlurPx),
+    routeBookendDriftEm: numberInRange(source.routeBookendDriftEm, -1, 1, defaults.routeBookendDriftEm),
+    contextDurationMs: roundedNumberInRange(source.contextDurationMs, 0, 3000, defaults.contextDurationMs),
+    actionDurationMs: roundedNumberInRange(source.actionDurationMs, 0, 3000, defaults.actionDurationMs),
+    supportDurationMs: roundedNumberInRange(source.supportDurationMs, 0, 3000, defaults.supportDurationMs),
+    itemStepMs: roundedNumberInRange(source.itemStepMs, 0, 500, defaults.itemStepMs),
+    repeatTimingScale: numberInRange(source.repeatTimingScale, 0.1, 2, defaults.repeatTimingScale),
+    repeatStaggerScale: numberInRange(source.repeatStaggerScale, 0.1, 2, defaults.repeatStaggerScale)
+  };
 }
 
 export function patchShellTheme(themePatch = {}) {
@@ -366,6 +427,7 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   const root = document.documentElement;
   const layout = config?.layout || DEFAULT_SHELL_CONFIG.layout;
   const motion = config?.motion || DEFAULT_SHELL_CONFIG.motion;
+  const routeTransition = getShellRouteTransitionConfig(config);
   const hero = config?.hero || DEFAULT_SHELL_CONFIG.hero;
 
   const frameInset = resolveFrameInsetEndpoints(layout);
@@ -412,6 +474,25 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--modal-content-delay', `${motion.modalOverlayContentDelayMs}ms`);
   root.style.setProperty('--modal-depth-scale', String(motion.modalDepthScale));
   root.style.setProperty('--modal-depth-translate-y', `${motion.modalDepthTranslateY}px`);
+  root.style.setProperty('--abs-route-exit-duration', `${routeTransition.exitDurationMs}ms`);
+  root.style.setProperty('--abs-route-loader-enter-duration', `${routeTransition.loaderEnterDurationMs}ms`);
+  root.style.setProperty('--abs-route-loader-first-minimum', `${routeTransition.loaderFirstMinimumMs}ms`);
+  root.style.setProperty('--abs-route-loader-repeat-minimum', `${routeTransition.loaderRepeatMinimumMs}ms`);
+  root.style.setProperty('--abs-route-readiness-timeout', `${routeTransition.readinessTimeoutMs}ms`);
+  root.style.setProperty('--abs-route-spinner-exit-duration', `${routeTransition.spinnerExitDurationMs}ms`);
+  root.style.setProperty('--abs-route-plate-exit-delay', `${routeTransition.plateExitDelayMs}ms`);
+  root.style.setProperty('--abs-route-plate-exit-duration', `${routeTransition.plateExitDurationMs}ms`);
+  root.style.setProperty('--abs-route-surface-enter-duration', `${routeTransition.surfaceEnterDurationMs}ms`);
+  root.style.setProperty('--abs-route-bookend-duration', `${routeTransition.routeBookendDurationMs}ms`);
+  root.style.setProperty('--abs-route-bookend-step', `${routeTransition.routeBookendStepMs}ms`);
+  root.style.setProperty('--abs-route-bookend-blur', `${routeTransition.routeBookendBlurPx}px`);
+  root.style.setProperty('--abs-route-bookend-drift', `${routeTransition.routeBookendDriftEm}em`);
+  root.style.setProperty('--abs-route-context-duration', `${routeTransition.contextDurationMs}ms`);
+  root.style.setProperty('--abs-route-action-duration', `${routeTransition.actionDurationMs}ms`);
+  root.style.setProperty('--abs-route-support-duration', `${routeTransition.supportDurationMs}ms`);
+  root.style.setProperty('--abs-route-item-step', `${routeTransition.itemStepMs}ms`);
+  root.style.setProperty('--abs-route-repeat-timing-scale', String(routeTransition.repeatTimingScale));
+  root.style.setProperty('--abs-route-repeat-stagger-scale', String(routeTransition.repeatStaggerScale));
   root.style.setProperty('--abs-home-mobile-nav-bottom-offset', hero.mobileNavBottomOffset);
   root.style.setProperty('--abs-home-logo-width-vw', String(Number.isFinite(Number(hero.desktopLogoWidthVw)) ? hero.desktopLogoWidthVw : 52));
   root.style.setProperty('--abs-home-logo-min-px', `${Number.isFinite(Number(hero.desktopLogoMinPx)) ? hero.desktopLogoMinPx : 340}px`);

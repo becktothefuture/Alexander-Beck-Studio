@@ -29,20 +29,24 @@ const INITIAL_GESTURE = Object.freeze({
   samples: [],
 });
 
+const DRAG_LOCK_DISTANCE_PX = 6;
+
+function getDragCommitDistance(rect) {
+  return Math.max(28.8, Math.min(51.2, Math.min(rect.width, rect.height) * 0.104));
+}
+
 function createInitialState(items, seed) {
   return {
     order: createAboutInteractiveStackOrder(items, seed),
     phase: 'idle',
-    direction: 0,
-    queuedDirection: 0,
-    durationMs: 0,
+    motionId: 0,
   };
 }
 
 function reducer(state, action) {
   switch (action.type) {
     case 'reset':
-      return { ...state, order: action.order, phase: 'idle', direction: 0, queuedDirection: 0, durationMs: 0 };
+      return { ...state, order: action.order, phase: 'idle', motionId: state.motionId + 1 };
     case 'reconcile':
       return { ...state, order: action.order };
     case 'pointer-pending':
@@ -50,44 +54,21 @@ function reducer(state, action) {
     case 'dragging':
       return state.phase === 'pending-pointer' ? { ...state, phase: 'dragging' } : state;
     case 'settling':
-      return { ...state, phase: 'settling' };
+      return { ...state, phase: 'settling', motionId: state.motionId + 1 };
     case 'navigate':
       if (state.order.length <= 1) return state;
-      if (state.phase !== 'idle' && !(
-        action.fromGesture
-        && (state.phase === 'pending-pointer' || state.phase === 'dragging')
-      )) {
-        return { ...state, queuedDirection: action.direction };
-      }
-      if (action.immediate) {
-        return {
-          ...state,
-          order: action.direction > 0
-            ? advanceAboutInteractiveStackOrder(state.order)
-            : retreatAboutInteractiveStackOrder(state.order),
-        };
-      }
       return {
         ...state,
-        phase: 'departing',
-        direction: action.direction,
-        durationMs: action.durationMs || 0,
-      };
-    case 'finish-settle':
-      return { ...state, phase: 'idle', direction: 0, queuedDirection: 0, durationMs: 0 };
-    case 'finish-departure':
-      return {
-        ...state,
-        order: state.direction > 0
+        order: action.direction > 0
           ? advanceAboutInteractiveStackOrder(state.order)
           : retreatAboutInteractiveStackOrder(state.order),
         phase: 'idle',
-        direction: 0,
-        queuedDirection: 0,
-        durationMs: 0,
+        motionId: state.motionId + 1,
       };
+    case 'finish-settle':
+      return action.motionId === state.motionId ? { ...state, phase: 'idle' } : state;
     case 'cancel':
-      return { ...state, phase: 'idle', direction: 0, queuedDirection: 0, durationMs: 0 };
+      return { ...state, phase: 'idle', motionId: state.motionId + 1 };
     default:
       return state;
   }
@@ -184,6 +165,11 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
 
   useLayoutEffect(() => { stateRef.current = state; }, [state]);
 
+  const dispatchAction = useCallback((action) => {
+    stateRef.current = reducer(stateRef.current, action);
+    dispatch(action);
+  }, []);
+
   const clearScheduledWork = useCallback(() => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
     if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
@@ -204,6 +190,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
     const stage = stageRef.current;
     if (!stage) return;
     stage.style.setProperty('--stack-drag-x', '0px');
+    stage.style.setProperty('--stack-drag-y', '0px');
     stage.style.setProperty('--stack-drag-rotation', '0deg');
     stage.style.setProperty('--stack-drag-progress', '0');
     stage.style.setProperty('--stack-drag-opacity', '1');
@@ -211,93 +198,56 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
     stage.style.setProperty('--stack-drag-scale', '1');
   }, []);
 
-  const finishPhase = useCallback((phase) => {
+  const beginNavigation = useCallback((direction, { preserveDragVisual = false } = {}) => {
+    if (stateRef.current.order.length <= 1) return;
     clearScheduledWork();
-    resetDragVariables();
-    const current = stateRef.current;
-    const queuedDirection = current.queuedDirection;
-    dispatch({ type: phase === 'departing' ? 'finish-departure' : 'finish-settle' });
-    if (phase === 'departing' && queuedDirection) {
+    dispatchAction({ type: 'navigate', direction });
+    if (preserveDragVisual) {
       frameRef.current = requestAnimationFrame(() => {
-        const stage = stageRef.current;
-        if (!stage) return;
-        const rect = stage.getBoundingClientRect();
-        stage.style.setProperty('--stack-depart-x', `${queuedDirection > 0 ? -(rect.width + 32) : rect.width + 32}px`);
-        stage.style.setProperty('--stack-active-duration', `${parameters.transitionMs}ms`);
-        dispatch({ type: 'navigate', direction: queuedDirection, immediate: !fullMotion });
+        frameRef.current = 0;
+        resetDragVariables();
       });
+    } else {
+      resetDragVariables();
     }
-  }, [clearScheduledWork, fullMotion, parameters.transitionMs, resetDragVariables]);
-
-  const beginNavigation = useCallback((direction, { fromGesture = false, velocity = 0 } = {}) => {
-    const current = stateRef.current;
-    if (current.order.length <= 1) return;
-    const gestureCanCommit = fromGesture
-      && (current.phase === 'pending-pointer' || current.phase === 'dragging');
-    if (current.phase !== 'idle' && !gestureCanCommit) {
-      dispatch({ type: 'navigate', direction, immediate: false });
-      return;
-    }
-    if (!fullMotion) {
-      dispatch({ type: 'navigate', direction, immediate: true });
-      return;
-    }
-    const stage = stageRef.current;
-    const card = stage?.querySelector('[data-stack-depth="0"]');
-    if (stage && card) {
-      const stageRect = stage.getBoundingClientRect();
-      const cardRect = card.getBoundingClientRect();
-      const distance = direction > 0
-        ? -(cardRect.right - stageRect.left + 24)
-        : stageRect.right - cardRect.left + 24;
-      stage.style.setProperty('--stack-depart-x', `${distance}px`);
-      stage.style.setProperty('--stack-transition-ms', `${parameters.transitionMs}ms`);
-    }
-    const durationMs = Math.max(
-      180,
-      Math.min(parameters.transitionMs, parameters.transitionMs / (1 + Math.max(0, velocity))),
-    );
-    stage?.style.setProperty('--stack-active-duration', `${durationMs}ms`);
-    dispatch({ type: 'navigate', direction, immediate: false, fromGesture, durationMs });
-  }, [fullMotion, parameters.transitionMs]);
+  }, [clearScheduledWork, dispatchAction, resetDragVariables]);
 
   useEffect(() => {
-    if (state.phase !== 'departing' && state.phase !== 'settling') return undefined;
+    if (state.phase !== 'settling') return undefined;
     const stage = stageRef.current;
     const card = stage?.querySelector('[data-stack-depth="0"]');
     if (!stage || !card) {
-      finishPhase(state.phase);
+      dispatchAction({ type: 'finish-settle', motionId: state.motionId });
       return undefined;
     }
-    const duration = state.phase === 'settling'
-      ? Math.min(240, parameters.transitionMs * 0.65)
-      : state.durationMs || parameters.transitionMs;
+    const duration = fullMotion ? Math.min(180, parameters.transitionMs * 0.5) : 0;
     stage.style.setProperty('--stack-active-duration', `${duration}ms`);
     let finished = false;
     const finish = (event) => {
       if (finished || (event && (event.target !== card || event.propertyName !== 'transform'))) return;
       finished = true;
-      finishPhase(state.phase);
+      clearScheduledWork();
+      resetDragVariables();
+      dispatchAction({ type: 'finish-settle', motionId: state.motionId });
     };
     card.addEventListener('transitionend', finish);
-    timeoutRef.current = window.setTimeout(() => finish(), duration + 90);
-    if (state.phase === 'settling') {
-      frameRef.current = requestAnimationFrame(resetDragVariables);
-    }
+    timeoutRef.current = window.setTimeout(() => finish(), duration + 50);
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = 0;
+      resetDragVariables();
+    });
     return () => card.removeEventListener('transitionend', finish);
-  }, [finishPhase, parameters.transitionMs, resetDragVariables, state.durationMs, state.phase]);
+  }, [clearScheduledWork, dispatchAction, fullMotion, parameters.transitionMs, resetDragVariables, state.motionId, state.phase]);
 
   useEffect(() => {
     const phase = stateRef.current.phase;
-    if (phase === 'departing') {
-      finishPhase('departing');
-    } else if (phase !== 'idle') {
+    if (phase !== 'idle') {
       clearScheduledWork();
       releasePointer();
       resetDragVariables();
-      dispatch({ type: 'cancel' });
+      dispatchAction({ type: 'cancel' });
     }
-  }, [clearScheduledWork, finishPhase, fullMotion, releasePointer, resetDragVariables]);
+  }, [clearScheduledWork, dispatchAction, fullMotion, releasePointer, resetDragVariables]);
 
   useEffect(() => {
     const nextSeed = parameters.seed;
@@ -306,14 +256,14 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
       releasePointer();
       resetDragVariables();
       previousSeedRef.current = nextSeed;
-      dispatch({ type: 'reset', order: createAboutInteractiveStackOrder(items, nextSeed) });
+      dispatchAction({ type: 'reset', order: createAboutInteractiveStackOrder(items, nextSeed) });
       return;
     }
-    dispatch({
+    dispatchAction({
       type: 'reconcile',
       order: reconcileAboutInteractiveStackOrder(stateRef.current.order, items, nextSeed),
     });
-  }, [clearScheduledWork, items, parameters.seed, releasePointer, resetDragVariables]);
+  }, [clearScheduledWork, dispatchAction, items, parameters.seed, releasePointer, resetDragVariables]);
 
   useEffect(() => {
     const target = figureRef.current;
@@ -344,10 +294,6 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
   useEffect(() => {
     const cancelTransientInteraction = () => {
       const phase = stateRef.current.phase;
-      if (phase === 'departing') {
-        finishPhase('departing');
-        return;
-      }
       if (phase === 'idle') return;
       if (gestureRef.current.locked || phase === 'dragging') {
         suppressClickRef.current = true;
@@ -355,7 +301,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
       clearScheduledWork();
       releasePointer();
       resetDragVariables();
-      dispatch({ type: 'cancel' });
+      dispatchAction({ type: 'cancel' });
     };
     const onVisibilityChange = () => {
       const visible = document.visibilityState === 'visible';
@@ -375,7 +321,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
       window.removeEventListener('resize', onResize);
       window.removeEventListener('blur', onWindowBlur);
     };
-  }, [clearScheduledWork, finishPhase, releasePointer, resetDragVariables]);
+  }, [clearScheduledWork, dispatchAction, releasePointer, resetDragVariables]);
 
   useEffect(() => () => {
     clearScheduledWork();
@@ -387,21 +333,33 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
     frameRef.current = 0;
     const stage = stageRef.current;
     if (!stage) return;
-    const { dx } = gestureRef.current;
-    const width = Math.max(1, stage.getBoundingClientRect().width);
-    const rotation = Math.max(-8, Math.min(8, (dx / width) * 12));
-    const distanceRatio = Math.abs(dx) / width;
-    const exitProgress = Math.max(0, Math.min(1, (distanceRatio - 0.05) / 0.16));
+    const { dx, dy } = gestureRef.current;
+    const rect = stage.getBoundingClientRect();
+    const distance = Math.hypot(dx, dy);
+    const commitDistance = getDragCommitDistance(rect);
+    const rotation = Math.max(-8, Math.min(8, ((dx - dy * 0.15) / Math.max(1, rect.width)) * 14));
+    const exitProgress = Math.max(0, Math.min(
+      1,
+      (distance - DRAG_LOCK_DISTANCE_PX) / Math.max(1, commitDistance - DRAG_LOCK_DISTANCE_PX),
+    ));
     stage.style.setProperty('--stack-drag-x', `${dx}px`);
+    stage.style.setProperty('--stack-drag-y', `${dy}px`);
     stage.style.setProperty('--stack-drag-rotation', `${rotation}deg`);
     stage.style.setProperty('--stack-drag-progress', exitProgress.toFixed(4));
-    stage.style.setProperty('--stack-drag-opacity', (1 - exitProgress * 0.94).toFixed(4));
-    stage.style.setProperty('--stack-drag-blur', `${(exitProgress * 12).toFixed(2)}px`);
-    stage.style.setProperty('--stack-drag-scale', (1 + exitProgress * 0.035).toFixed(4));
+    stage.style.setProperty('--stack-drag-opacity', (1 - exitProgress).toFixed(4));
+    stage.style.setProperty('--stack-drag-blur', `${(exitProgress * 14).toFixed(2)}px`);
+    stage.style.setProperty('--stack-drag-scale', (1 - exitProgress * 0.025).toFixed(4));
   }, []);
 
   const onPointerDown = (event) => {
-    if (stateRef.current.phase !== 'idle' || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (stateRef.current.phase === 'settling') {
+      clearScheduledWork();
+      resetDragVariables();
+      dispatchAction({ type: 'cancel' });
+    } else if (stateRef.current.phase !== 'idle') {
+      return;
+    }
     suppressClickRef.current = false;
     gestureRef.current = {
       pointerId: event.pointerId,
@@ -410,9 +368,9 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
       dx: 0,
       dy: 0,
       locked: false,
-      samples: [{ x: event.clientX, time: event.timeStamp }],
+      samples: [{ x: event.clientX, y: event.clientY, time: event.timeStamp }],
     };
-    dispatch({ type: 'pointer-pending' });
+    dispatchAction({ type: 'pointer-pending' });
   };
 
   const onPointerMove = (event) => {
@@ -422,19 +380,16 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
     gesture.dy = event.clientY - gesture.startY;
     if (stateRef.current.phase === 'pending-pointer') {
       const distance = Math.hypot(gesture.dx, gesture.dy);
-      if (distance < 8) return;
-      if (Math.abs(gesture.dx) < 1.25 * Math.abs(gesture.dy)) {
-        gestureRef.current = { ...INITIAL_GESTURE };
-        dispatch({ type: 'cancel' });
-        return;
+      if (distance < DRAG_LOCK_DISTANCE_PX) return;
+      if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.setPointerCapture?.(event.pointerId);
       }
-      event.currentTarget.setPointerCapture(event.pointerId);
       gesture.locked = true;
-      dispatch({ type: 'dragging' });
+      dispatchAction({ type: 'dragging' });
     }
-    if (stateRef.current.phase === 'dragging' || Math.abs(gesture.dx) >= 8) {
+    if (gesture.locked) {
       event.preventDefault();
-      gesture.samples.push({ x: event.clientX, time: event.timeStamp });
+      gesture.samples.push({ x: event.clientX, y: event.clientY, time: event.timeStamp });
       gesture.samples = gesture.samples.filter((sample) => event.timeStamp - sample.time <= 100);
       if (!frameRef.current) frameRef.current = requestAnimationFrame(writeDragFrame);
     }
@@ -444,28 +399,33 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
     const gesture = gestureRef.current;
     if (gesture.pointerId !== event.pointerId) return;
     const phase = stateRef.current.phase;
+    gesture.dx = event.clientX - gesture.startX;
+    gesture.dy = event.clientY - gesture.startY;
+    gesture.samples.push({ x: event.clientX, y: event.clientY, time: event.timeStamp });
     const samples = gesture.samples.filter((sample) => event.timeStamp - sample.time <= 100);
     const oldest = samples[0];
     const newest = samples.at(-1);
     const velocity = oldest && newest && newest.time > oldest.time
-      ? Math.abs((newest.x - oldest.x) / (newest.time - oldest.time))
+      ? Math.hypot(newest.x - oldest.x, newest.y - oldest.y) / (newest.time - oldest.time)
       : 0;
-    const stageWidth = Math.max(1, stageRef.current?.getBoundingClientRect().width || 1);
+    const stageRect = stageRef.current?.getBoundingClientRect() || { width: 1, height: 1 };
+    const commitDistance = getDragCommitDistance(stageRect);
+    const distance = Math.hypot(gesture.dx, gesture.dy);
     const wasDragging = gesture.locked || phase === 'dragging';
     const committed = !cancelled && wasDragging && (
-      Math.abs(gesture.dx) >= stageWidth * 0.22
-      || (Math.abs(gesture.dx) >= 32 && velocity >= 0.45)
+      distance >= commitDistance
+      || (distance >= Math.max(12, commitDistance * 0.5) && velocity >= 0.35)
     );
     releasePointer();
     if (wasDragging) suppressClickRef.current = true;
     if (committed) {
-      beginNavigation(gesture.dx < 0 ? 1 : -1, { fromGesture: true, velocity });
+      beginNavigation(1, { preserveDragVisual: true });
     } else if (wasDragging) {
-      dispatch({ type: 'settling' });
+      dispatchAction({ type: 'settling' });
     } else {
-      dispatch({ type: 'cancel' });
+      dispatchAction({ type: 'cancel' });
     }
-  }, [beginNavigation, releasePointer]);
+  }, [beginNavigation, dispatchAction, releasePointer]);
 
   useEffect(() => {
     const finishGlobalPointer = (event) => finishPointer(event);
@@ -566,7 +526,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
         </span>
       </button>
       <span id={instructionsId} className="about-narrative-visually-hidden">
-        Activate to advance. Use the left and right arrow keys to move backward or forward. Drag horizontally to throw the top image.
+        Activate to advance. Use the left and right arrow keys to move backward or forward. Drag the top image in any direction to dismiss it.
       </span>
       <span id={statusId} className="about-narrative-visually-hidden" aria-live="polite" aria-atomic="true">
         Project impression {activePosition} of {items.length}: {activeItem?.alt || module.label || 'Project impression'}.

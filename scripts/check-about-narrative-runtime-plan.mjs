@@ -579,6 +579,24 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   assert.equal(handoff.active, reveal.endWU + 0.000001 < reveal.effectEndWU);
 });
 
+test('Reduced Motion holds the discipline constellation until the editorial handoff', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, {
+    layoutProfile: 'desktop',
+    motionProfile: 'reduced',
+  });
+  const reveal = plan.disciplineReveal;
+  const restoreStartWU = reveal.effectEndWU - reveal.restoreDurationWU;
+  const held = sampleAboutNarrativeRuntimePlan(
+    plan,
+    restoreStartWU + (reveal.restoreDurationWU * 0.5),
+  ).disciplineReveal;
+  const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU).disciplineReveal;
+
+  assert.equal(held.labelActive, true);
+  assert.equal(held.restoreProgress, 0);
+  assert.equal(handoff.restoreProgress, 1);
+});
+
 test('Reduced Motion step-samples the current authored Camera FOV and full roll', () => {
   const document = structuredClone(canonical);
   document.tracks.camera.keys[0].rotation = [12, -18, 37];

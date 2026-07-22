@@ -196,6 +196,7 @@ function shouldRefreshEveryFrame(root, scene) {
     || root.classList.contains('abs-home-post-boot-pending');
   return root.classList.contains('entrance-transitioning')
     || bootEntranceActive
+    || root.dataset?.absTransitionPhase === 'route-loading'
     || root.dataset?.absTransitionPhase === 'route-in'
     || sceneAnimationRunning;
 }

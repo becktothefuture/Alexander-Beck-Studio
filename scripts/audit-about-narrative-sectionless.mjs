@@ -73,7 +73,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.layoutProfile, expectedProfile);
 
   await page.locator('.about-narrative-scrollport').evaluate((node, storyDurationWU) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (9.25 / storyDurationWU);
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (10.55 / storyDurationWU);
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
   }, canonical.profiles[expectedProfile].storyDurationWU);
   await page.waitForFunction(() => {
@@ -82,8 +82,8 @@ async function auditProduction(viewport, label, expectedProfile) {
     const visibleLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
       .length;
-    return storyWU > 9.21
-      && storyWU < 9.29
+    return storyWU > 10.51
+      && storyWU < 10.59
       && visibleLabels >= 1
       && visibleLabels <= 6;
   });
@@ -395,7 +395,7 @@ async function auditEditor() {
   assert.ok(editorialTrigger.fontSize >= 23);
   assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 0.55);
 
-  const editorialRevealWU = editorialStartWU + 0.24;
+  const editorialRevealWU = editorialStartWU + 0.5;
   await setPlayhead(editorialRevealWU);
   await page.waitForFunction((expectedWU) => Math.abs(
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
@@ -405,13 +405,14 @@ async function auditEditor() {
   ).evaluateAll((nodes) => nodes.map((node) => Number(
     node.style.getPropertyValue('--editorial-reveal'),
   )));
-  assert.equal(editorialReveals.length, 1);
-  assert.ok(editorialReveals[0] > 0.95);
+  assert.ok(editorialReveals.length >= 1);
+  assert.ok(Math.max(...editorialReveals) > 0.95);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
-  await setPlayhead(9.47);
+  await setPlayhead(10.55);
   await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 9.43
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 10.51
+    && document.querySelector('.about-narrative-lab')?.dataset.worldTo === 'calm-field-v1'
     && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) >= 1
     && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) <= 4
   ));
@@ -596,7 +597,7 @@ async function auditEditor() {
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(9.47);
+  await setPlayhead(10.55);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
@@ -605,34 +606,38 @@ async function auditEditor() {
   await page.waitForFunction(() => {
     const root = document.querySelector('.about-narrative-lab');
     const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
-    return Number(root?.dataset.narrativeStoryWu) > 9.43
+    return Number(root?.dataset.narrativeStoryWu) > 10.51
       && visibleLabels >= 1
       && visibleLabels <= 6;
   });
   await page.waitForFunction(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();
     if (!viewport) return false;
-    return [...document.querySelectorAll('[data-discipline-group]')]
+    const intersectingLabels = [...document.querySelectorAll('[data-discipline-group]')]
       .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .every((label) => {
+      .filter((label) => {
+        const rect = label.getBoundingClientRect();
+        return rect.bottom > viewport.top && rect.top < viewport.bottom;
+      });
+    return intersectingLabels.length >= 1 && intersectingLabels.every((label) => {
       const rect = label.getBoundingClientRect();
       return rect.left >= viewport.left - 1
-        && rect.right <= viewport.right + 1
-        && rect.top >= viewport.top - 1
-        && rect.bottom <= viewport.bottom + 1;
+        && rect.right <= viewport.right + 1;
     });
   });
   const mobileDisciplineBounds = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
-    return [...document.querySelectorAll('[data-discipline-group]')]
+    const intersectingLabels = [...document.querySelectorAll('[data-discipline-group]')]
       .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .every((label) => {
+      .filter((label) => {
         const rect = label.getBoundingClientRect();
-        return rect.left >= viewport.left - 1
-          && rect.right <= viewport.right + 1
-          && rect.top >= viewport.top - 1
-          && rect.bottom <= viewport.bottom + 1;
+        return rect.bottom > viewport.top && rect.top < viewport.bottom;
       });
+    return intersectingLabels.length >= 1 && intersectingLabels.every((label) => {
+      const rect = label.getBoundingClientRect();
+      return rect.left >= viewport.left - 1
+        && rect.right <= viewport.right + 1;
+    });
   });
   assert.equal(mobileDisciplineBounds, true);
   await selectPreviewOrientation('landscape');

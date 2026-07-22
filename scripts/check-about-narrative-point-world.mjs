@@ -167,6 +167,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniform float bustBuildHeadStart/);
   assert.match(source, /uniform float bustPlatformScale/);
   assert.match(source, /uniform float bustPlatformSettle/);
+  assert.doesNotMatch(source, /bustMaterialResolve|cool mineral tone/);
   assert.match(source, /vec2 gatheredPlatform = gridRippleCenter[\s\S]*?toWorld\.xz/);
   assert.match(source, /vec3 submergedBust = toWorld/);
   assert.match(source, /float surfaceTransit = max\(0\.0, surfaceDeparture - surfaceArrival\)/);

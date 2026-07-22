@@ -48,6 +48,8 @@ export function getHomeRouteView() {
         id="hero-title"
         className="hero-title hero-title--canvas-source"
         data-canvas-title-source="home"
+        data-route-focus-target
+        tabIndex={-1}
         aria-label={HOME_IDENTITY.ariaLabel}
       >
         <span className="hero-title__name" data-route-enter="identity" data-route-enter-order="0" data-route-enter-variant="bookend-title">{HOME_IDENTITY.name}</span>

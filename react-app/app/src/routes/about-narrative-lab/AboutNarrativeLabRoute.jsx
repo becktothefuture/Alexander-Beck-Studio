@@ -1,4 +1,9 @@
-import { AboutNarrativeLabExperience } from './AboutNarrativeLabExperience.jsx';
+import { lazy, Suspense } from 'react';
+
+const AboutNarrativeLabExperience = lazy(() => (
+  import('./AboutNarrativeLabExperience.jsx')
+    .then((module) => ({ default: module.AboutNarrativeLabExperience }))
+));
 
 export const ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME = {
   legacyRuntime: false,
@@ -13,7 +18,11 @@ export function getAboutNarrativeLabRouteView() {
     routeRenderKey: 'about-narrative-lab',
     contentRenderKey: 'about-narrative-lab',
     studioWindowClassName: 'about-narrative-lab-window route-page-window w-embed',
-    simulationLayer: <AboutNarrativeLabExperience />,
+    simulationLayer: (
+      <Suspense fallback={null}>
+        <AboutNarrativeLabExperience />
+      </Suspense>
+    ),
     uiLayer: {
       chrome: null,
       secondary: null,

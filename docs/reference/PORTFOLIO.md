@@ -50,6 +50,16 @@ Portfolio prepares its final title, description, field, card, and dial geometry 
 
 The shell remains the route-transition owner. The Portfolio runtime owns only its local material reveal, exposed in audit state as `preparing`, `entering`, or `complete` plus the release reason. Never add generic entrance transforms to the cards because that would replace their authored orbital transforms.
 
+SPA arrivals use the normalized `portfolio.runtime.entrance` profile. Only the nearest visible permanent card instances receive stable visual ranks in the order centre, right one, left one, right two, left two. Opacity and media blur use those ranks; orbital transforms remain entirely runtime-owned. Completion follows the real visible-card and dial animation promises with a guarded timeout, so offscreen repeated copies cannot extend the global transition.
+
+## Route prewarming and readiness
+
+`preloadPortfolioRoute()` is a document-scoped, deduplicated preparation path used by shell idle time and Button Bar intent. It may load Portfolio data and normalized configuration and decode only the five readiness-critical first-view thumbnail sources. It never constructs `PortfolioScrollApp`, mounts cards, starts the particle field, starts the orbital loop, plays video, opens access UI, or creates a project handoff.
+
+The real route bootstrap reuses those exact decoded-image promises. Readiness-critical media is limited to the visible first-view posters/images or an existing fallback. Video playback and project-detail/lazy case-study media are explicitly outside the route-ready barrier. Failed image promises are released so route bootstrap can retry or install the existing fallback; no prewarm result is persisted across reloads.
+
+`window.__ABS_PORTFOLIO_PREWARM__` is an audit-only snapshot of prewarm status and critical/ready source counts. It is output, never product or design truth.
+
 ## Project-triggered access gate
 
 Portfolio always boots the full live deck on route entry, regardless of access storage. Each project explicitly declares `access: "public" | "protected"`; missing values fail closed at runtime and the content validator rejects missing or unsupported authored values.
@@ -63,3 +73,5 @@ The old `PortfolioGateScene` and same-route gate-success bridge are dormant comp
 ## Required verification
 
 Use a fresh production build, then run the Portfolio gate in Chromium and WebKit, followed by the carousel, drawer, pointer, and project-transition audits. The gate audit covers public bypass, protected intent, invalid/valid code, exact-project continuation, Portfolio-wide persistence, reset, click/keyboard cancellation, focus, route interruption, reduced motion, desktop/mobile, and light/dark. The carousel audit must cover sustained traversal beyond ten project cycles in both directions, bounded lead and coordinates, fixed card and particle counts, rapid reversal, reduced motion, settlement, and active-field frame timing. Run project/route transitions in Chromium and WebKit serially. Manually inspect entrance and gate screenshots for hierarchy, live-deck recognisability, stable card geometry, and Button Bar clearance.
+
+The carousel audit is process-bounded by `ABS_PORTFOLIO_AUDIT_TIMEOUT_MS` (240000ms by default) and reports the active viewport/step on timeout so headless SwiftShader stalls cannot run indefinitely.

@@ -19,6 +19,7 @@ import './about-narrative-lab.css';
 const INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT = normalizeAboutNarrativeTrackDocument(
   ABOUT_NARRATIVE_DOCUMENT,
 );
+const CLIENT_LOGO_REVEAL_STAGGER_WU = 0.045;
 
 function getRenderSpanStyle(span) {
   const startWU = Number(span.scrollBounds.startWU);
@@ -98,16 +99,19 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
-function ClientLogoItem({ item }) {
+function ClientLogoItem({ item, reveal = false, revealIndex = 0 }) {
   const record = typeof item === 'string'
     ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
     : item;
   const scale = Number(record.scale);
   const offsetX = Number(record.offsetX);
   const offsetY = Number(record.offsetY);
+  const revealDelayWU = Math.max(0, revealIndex * CLIENT_LOGO_REVEAL_STAGGER_WU);
   return (
     <li
       data-client-logo={record.id}
+      data-editorial-line={reveal ? true : undefined}
+      data-editorial-delay-wu={reveal ? revealDelayWU.toFixed(3) : undefined}
       style={{
         '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
         '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
@@ -136,10 +140,15 @@ function ClientLogoItem({ item }) {
 function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
   return (
     <figure className="about-narrative-client-field">
-      {label ? <figcaption>{label}</figcaption> : null}
+      {label ? <figcaption data-editorial-line>{label}</figcaption> : null}
       <ul className="about-narrative-client-logos" aria-label="Selected clients">
-        {items.map((item) => (
-          <ClientLogoItem key={typeof item === 'string' ? item : item.id} item={item} />
+        {items.map((item, itemIndex) => (
+          <ClientLogoItem
+            key={typeof item === 'string' ? item : item.id}
+            item={item}
+            reveal
+            revealIndex={itemIndex + 1}
+          />
         ))}
       </ul>
     </figure>
@@ -207,7 +216,7 @@ function EditorialMediaDeck({ module }) {
 function EditorialStack({ block, motionProfile, scrollportRef }) {
   const moduleGapRem = Number(block.moduleGapRem);
   const revealModulesIndividually = block.modules?.some(
-    (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND,
+    (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND || module.kind === 'logo-grid',
   );
   return (
     <div
@@ -272,20 +281,27 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   }
   if (block.kind === 'clients') {
     return (
-      <ul {...commonProps} className="about-narrative-client-logos" data-editorial-line aria-label="Selected clients">
-        {(block.items || []).map((item) => <ClientLogoItem key={typeof item === 'string' ? item : item.id} item={item} />)}
+      <ul {...commonProps} className="about-narrative-client-logos" aria-label="Selected clients">
+        {(block.items || []).map((item, itemIndex) => (
+          <ClientLogoItem
+            key={typeof item === 'string' ? item : item.id}
+            item={item}
+            reveal
+            revealIndex={itemIndex}
+          />
+        ))}
       </ul>
     );
   }
   if (block.kind === 'stack') {
-    const hasInteractiveStack = block.modules?.some(
-      (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND,
+    const revealModulesIndividually = block.modules?.some(
+      (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND || module.kind === 'logo-grid',
     );
     return (
       <section
         {...commonProps}
         className="about-narrative-editorial-unit"
-        data-editorial-line={hasInteractiveStack ? undefined : true}
+        data-editorial-line={revealModulesIndividually ? undefined : true}
       >
         <EditorialStack
           block={block}

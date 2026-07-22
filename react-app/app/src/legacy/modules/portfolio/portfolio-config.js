@@ -23,6 +23,16 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-drawer-outline-opacity': '0.28',
   },
   runtime: {
+    entrance: {
+      cardStepMs: 52,
+      cardOpacityDurationMs: 440,
+      mediaBlurDurationMs: 560,
+      mediaBlurPx: 4,
+      cardStartDelayMs: 80,
+      indicatorDurationMs: 240,
+      indicatorDelayMs: 140,
+      completionTimeoutMs: 1500,
+    },
     layout: {
       heroTopOffset: 0,
       spawnInsetViewport: 0.1,
@@ -222,6 +232,17 @@ export function normalizePortfolioConfig(rawConfig) {
     delete runtime.motion.imageFadeMs;
     delete runtime.motion.titleRevealDelayMs;
     delete runtime.motion.openGhostDurationMs;
+  }
+  if (runtime?.entrance) {
+    const entrance = runtime.entrance;
+    entrance.cardStepMs = Math.min(160, Math.max(0, Number(entrance.cardStepMs) || 52));
+    entrance.cardOpacityDurationMs = Math.min(1200, Math.max(1, Number(entrance.cardOpacityDurationMs) || 440));
+    entrance.mediaBlurDurationMs = Math.min(1400, Math.max(1, Number(entrance.mediaBlurDurationMs) || 560));
+    entrance.mediaBlurPx = Math.min(16, Math.max(0, Number(entrance.mediaBlurPx) || 4));
+    entrance.cardStartDelayMs = Math.min(600, Math.max(0, Number(entrance.cardStartDelayMs) || 80));
+    entrance.indicatorDurationMs = Math.min(900, Math.max(1, Number(entrance.indicatorDurationMs) || 240));
+    entrance.indicatorDelayMs = Math.min(900, Math.max(0, Number(entrance.indicatorDelayMs) || 140));
+    entrance.completionTimeoutMs = Math.min(3000, Math.max(600, Number(entrance.completionTimeoutMs) || 1500));
   }
   return {
     cssVars: isObject(merged.cssVars) ? { ...merged.cssVars } : { ...DEFAULT_PORTFOLIO_CONFIG.cssVars },

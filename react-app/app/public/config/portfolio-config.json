@@ -14,6 +14,16 @@
     "--portfolio-drawer-outline-opacity": "0.65"
   },
   "runtime": {
+    "entrance": {
+      "cardStepMs": 52,
+      "cardOpacityDurationMs": 440,
+      "mediaBlurDurationMs": 560,
+      "mediaBlurPx": 4,
+      "cardStartDelayMs": 80,
+      "indicatorDurationMs": 240,
+      "indicatorDelayMs": 140,
+      "completionTimeoutMs": 1500
+    },
     "layout": {
       "spawnInsetViewport": 0.1,
       "headerTopSpacing": 24

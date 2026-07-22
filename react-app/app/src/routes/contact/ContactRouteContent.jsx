@@ -102,6 +102,8 @@ export function ContactRouteContent() {
           data-route-enter="identity"
           data-route-enter-order="0"
           data-route-enter-variant="bookend-title"
+          data-route-focus-target
+          tabIndex={-1}
         >
           {title}
         </h1>
