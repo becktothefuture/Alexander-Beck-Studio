@@ -88,6 +88,11 @@ function waitForHomeModeSurface(timeoutMs = 3200) {
   });
 }
 
+function readSimulationFocusTransitionPhase() {
+  if (typeof document === 'undefined') return 'idle';
+  return document.documentElement.dataset.absSimulationFocusTransition || 'idle';
+}
+
 function getFocusableElements(container) {
   if (!container) return [];
   return Array.from(container.querySelectorAll(
@@ -120,9 +125,13 @@ export function SimulationFocusProvider({
   const returnFocusRef = useRef(null);
   const closeTimerRef = useRef(null);
   const selectionFrameRef = useRef(null);
+  const selectionGenerationRef = useRef(0);
+  const isSelectionPendingRef = useRef(false);
   const [focusState, setFocusState] = useState(() => getResolvedSimulationFocus());
   const [homeMode, setHomeMode] = useState(readUrlMode);
-  const [optimisticActiveId, setOptimisticActiveId] = useState(null);
+  const [pendingSelectionId, setPendingSelectionId] = useState(null);
+  const [pendingDisplayActiveId, setPendingDisplayActiveId] = useState(null);
+  const [simulationTransitionPhase, setSimulationTransitionPhase] = useState(readSimulationFocusTransitionPhase);
   const [isChooserOpen, setChooserOpen] = useState(false);
   const [isChooserClosing, setChooserClosing] = useState(false);
   const [isChooserActive, setChooserActive] = useState(false);
@@ -133,14 +142,20 @@ export function SimulationFocusProvider({
 
   useEffect(() => {
     routeIdRef.current = routeId;
+    const cancelledPendingSelection = selectionFrameRef.current !== null;
     if (selectionFrameRef.current !== null) {
       window.cancelAnimationFrame(selectionFrameRef.current);
       selectionFrameRef.current = null;
+      selectionGenerationRef.current += 1;
+      isSelectionPendingRef.current = readSimulationFocusTransitionPhase() !== 'idle';
       dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
     }
     const syncTimer = window.setTimeout(() => {
       setHomeMode(readUrlMode());
-      setOptimisticActiveId(null);
+      if (cancelledPendingSelection) {
+        setPendingSelectionId(null);
+        setPendingDisplayActiveId(null);
+      }
       refreshFocusState();
     }, 0);
     return () => {
@@ -152,7 +167,6 @@ export function SimulationFocusProvider({
     const handleModeChanged = (event) => {
       const nextMode = event?.detail?.mode || null;
       setHomeMode(nextMode);
-      setOptimisticActiveId(null);
       refreshFocusState();
     };
     const handleStorage = (event) => {
@@ -162,7 +176,6 @@ export function SimulationFocusProvider({
     };
     const handleFocusChanged = () => {
       setHomeMode(readUrlMode());
-      setOptimisticActiveId(null);
       refreshFocusState();
     };
 
@@ -176,16 +189,45 @@ export function SimulationFocusProvider({
     };
   }, [refreshFocusState]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') {
+      return undefined;
+    }
+
+    const syncTransitionPhase = () => {
+      setSimulationTransitionPhase(readSimulationFocusTransitionPhase());
+    };
+    syncTransitionPhase();
+
+    const observer = new MutationObserver(syncTransitionPhase);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-abs-simulation-focus-transition'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const routeIsDailyFocus = routeId === 'home' && DAILY_FOCUS_ID_SET.has(surfaceRouteId);
-  const activeId = optimisticActiveId
-    || (routeIsDailyFocus ? surfaceRouteId : null)
-    || (routeId === 'home' && DAILY_FOCUS_ID_SET.has(homeMode) ? homeMode : null)
+  const isSelectionPending = Boolean(pendingSelectionId)
+    || simulationTransitionPhase !== 'idle';
+  const routeBackedActiveId = routeIsDailyFocus ? surfaceRouteId : null;
+  const homeModeActiveId = routeId === 'home' && DAILY_FOCUS_ID_SET.has(homeMode) ? homeMode : null;
+  const activeId = routeBackedActiveId
+    || homeModeActiveId
+    || (isSelectionPending ? pendingDisplayActiveId : null)
     || focusState.activeId;
   const activeSimulation = DAILY_FOCUS_SIMULATIONS.find((entry) => entry.id === activeId)
-    || focusState.activeSimulation
+    || (!isSelectionPending ? focusState.activeSimulation : null)
     || DAILY_FOCUS_SIMULATIONS[0]
     || null;
   const shouldShowSwitcher = routeId === 'home' || routeIsDailyFocus;
+
+  useEffect(() => {
+    isSelectionPendingRef.current = isSelectionPending;
+  }, [isSelectionPending]);
 
   useEffect(() => {
     if (!routeIsDailyFocus) return;
@@ -235,6 +277,7 @@ export function SimulationFocusProvider({
   }, []);
 
   const openChooser = useCallback((triggerElement = null) => {
+    if (isSelectionPendingRef.current) return;
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
@@ -272,6 +315,7 @@ export function SimulationFocusProvider({
   }, [isChooserActive, isChooserClosing, isChooserOpen, shouldShowSwitcher]);
 
   useEffect(() => () => {
+    selectionGenerationRef.current += 1;
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
     }
@@ -282,6 +326,12 @@ export function SimulationFocusProvider({
   }, []);
 
   const toggleChooser = useCallback((triggerElement = null) => {
+    if (isSelectionPendingRef.current) {
+      if (isChooserOpen) {
+        closeChooser({ haptic: false, restoreFocus: false, instant: true });
+      }
+      return;
+    }
     if (isChooserOpen) {
       closeChooser();
       return;
@@ -293,13 +343,22 @@ export function SimulationFocusProvider({
     const target = getSimulationLaunchTarget(simulationId);
     if (!target) return false;
 
+    if (isSelectionPendingRef.current) {
+      closeChooser({ haptic: false, restoreFocus: false, instant: true });
+      return false;
+    }
+
     if (simulationId === activeId) {
       closeChooser({ restoreFocus: false });
       return true;
     }
 
     triggerHaptic('step');
-    setOptimisticActiveId(simulationId);
+    const selectionGeneration = selectionGenerationRef.current + 1;
+    selectionGenerationRef.current = selectionGeneration;
+    isSelectionPendingRef.current = true;
+    setPendingSelectionId(simulationId);
+    setPendingDisplayActiveId(activeId);
     closeChooser({ haptic: false, restoreFocus: false, instant: true });
 
     const transitionOptions = {
@@ -315,27 +374,40 @@ export function SimulationFocusProvider({
     selectionFrameRef.current = window.requestAnimationFrame(() => {
       selectionFrameRef.current = null;
       const runSelection = () => {
+        const isCurrentSelection = () => selectionGenerationRef.current === selectionGeneration;
         const cleanHomeHref = buildRouteHref('home');
         const targetHomeHref = `${cleanHomeHref}?mode=${encodeURIComponent(target.mode || '')}`;
         const previousHomeMode = homeMode;
         const handleSelectionFailure = (error) => {
-          setOptimisticActiveId(null);
+          if (!isCurrentSelection()) return;
+          setPendingSelectionId(null);
+          setPendingDisplayActiveId(null);
+          isSelectionPendingRef.current = readSimulationFocusTransitionPhase() !== 'idle';
           setHomeMode(previousHomeMode);
           dismissGateBackdrop({ instant: true });
           publishSimulationSwitchState(simulationId, 'failed', error);
         };
         const commitFocusChoice = () => {
+          if (!isCurrentSelection()) return false;
           writeManualSimulationFocus(simulationId);
           refreshFocusState();
+          setPendingSelectionId(null);
+          setPendingDisplayActiveId(null);
+          isSelectionPendingRef.current = readSimulationFocusTransitionPhase() !== 'idle';
           publishSimulationSwitchState(simulationId, 'ready');
+          return true;
         };
+        if (!isCurrentSelection()) return;
         if (target.surface === 'home-mode') {
           const applySelectedHomeMode = async () => {
+            if (!isCurrentSelection()) return false;
             const surfaceReady = await waitForHomeModeSurface();
+            if (!isCurrentSelection()) return false;
             if (!surfaceReady) throw new Error('Home simulation surface did not become ready');
-            setHomeMode(target.mode);
             const applied = await applyHomeMode(target.mode);
+            if (!isCurrentSelection()) return false;
             if (applied === false) throw new Error(`Simulation "${target.mode}" failed to initialize`);
+            setHomeMode(target.mode);
             replaceCurrentUrl(cleanHomeHref);
             commitFocusChoice();
             return true;
@@ -349,8 +421,9 @@ export function SimulationFocusProvider({
               onFailure: handleSelectionFailure,
             });
             if (!didNavigate) {
-              commitFocusChoice();
-              window.location.assign(cleanHomeHref);
+              if (commitFocusChoice() && isCurrentSelection()) {
+                window.location.assign(cleanHomeHref);
+              }
             }
             return;
           }
@@ -384,12 +457,14 @@ export function SimulationFocusProvider({
             afterRouteReady: applySelectedHomeMode,
             onFailure: handleSelectionFailure,
           })) {
-            commitFocusChoice();
-            window.location.assign(cleanHomeHref);
+            if (commitFocusChoice() && isCurrentSelection()) {
+              window.location.assign(cleanHomeHref);
+            }
           }
           return;
         }
 
+        if (!isCurrentSelection()) return;
         publishSimulationSwitchState(simulationId, 'preloading');
         setHomeMode(null);
         if (!trySpaNavigate(target.href, {
@@ -397,8 +472,9 @@ export function SimulationFocusProvider({
           onCommit: commitFocusChoice,
           onFailure: handleSelectionFailure,
         })) {
-          commitFocusChoice();
-          window.location.assign(target.href);
+          if (commitFocusChoice() && isCurrentSelection()) {
+            window.location.assign(target.href);
+          }
         }
       };
       runSelection();
@@ -417,9 +493,12 @@ export function SimulationFocusProvider({
     isChooserClosing,
     isChooserMounted: isChooserOpen || isChooserClosing,
     isChooserOpen,
+    isSelectionPending,
     markChooserOverlayReady,
     openChooser,
+    pendingSelectionId,
     routeId,
+    simulationTransitionPhase,
     surfaceRouteId,
     selectedId: focusState.selectedId,
     selectSimulation,
@@ -434,9 +513,12 @@ export function SimulationFocusProvider({
     isChooserActive,
     isChooserClosing,
     isChooserOpen,
+    isSelectionPending,
     markChooserOverlayReady,
     openChooser,
+    pendingSelectionId,
     routeId,
+    simulationTransitionPhase,
     surfaceRouteId,
     selectSimulation,
     shouldShowSwitcher,
@@ -454,6 +536,7 @@ export function SimulationFocusSwitcher() {
   const {
     activeSimulation,
     isChooserOpen,
+    isSelectionPending,
     shouldShowSwitcher,
     toggleChooser,
   } = useSimulationFocus();
@@ -465,6 +548,7 @@ export function SimulationFocusSwitcher() {
     <div
       className="simulation-focus-switcher-slot"
       data-open={String(isChooserOpen)}
+      data-pending={String(isSelectionPending)}
       data-route-enter="control"
     >
       <button
@@ -475,6 +559,9 @@ export function SimulationFocusSwitcher() {
         aria-haspopup="dialog"
         aria-expanded={isChooserOpen}
         aria-controls={FOCUS_MODAL_ID}
+        aria-busy={isSelectionPending ? 'true' : undefined}
+        aria-disabled={isSelectionPending ? 'true' : undefined}
+        disabled={isSelectionPending}
         onClick={() => toggleChooser(buttonRef.current)}
       >
         <span className="simulation-focus-pill__label">{activeSimulation.name}</span>
@@ -493,7 +580,9 @@ export function SimulationFocusChooser() {
     isChooserClosing,
     isChooserMounted,
     isChooserOpen,
+    isSelectionPending,
     markChooserOverlayReady,
+    pendingSelectionId,
     selectSimulation,
   } = useSimulationFocus();
   const modalRef = useRef(null);
@@ -637,6 +726,7 @@ export function SimulationFocusChooser() {
       <div className="simulation-focus-list" role="list">
         {dailySimulations.map((entry, index) => {
           const isActive = entry.id === activeId;
+          const isPending = entry.id === pendingSelectionId;
           return (
             <button
               key={entry.id}
@@ -644,6 +734,8 @@ export function SimulationFocusChooser() {
               className="simulation-focus-row"
               style={{ '--simulation-focus-row-index': index }}
               aria-current={isActive ? 'true' : undefined}
+              aria-busy={isPending ? 'true' : undefined}
+              disabled={isSelectionPending}
               onClick={() => selectSimulation(entry.id)}
             >
               <SimulationIcon id={entry.id} className="simulation-focus-row__icon" />
