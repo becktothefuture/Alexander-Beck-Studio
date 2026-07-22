@@ -131,7 +131,7 @@ const INTERACTIVE_STACK_PARAMETER_KEYS = new Set([
 const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND]);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
-const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'position', 'mobilePosition']);
+const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'description', 'position', 'mobilePosition']);
 const INTERACTION_KEYS = new Set(['id', 'type', 'startWU', 'activationWU', 'endWU', 'targetWorldId', 'parameters', 'protected']);
 const LIBRARY_KEYS = new Set(['presets']);
 const PRESET_KEYS = new Set(['id', 'label', 'scope', 'protected']);
@@ -825,6 +825,9 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     }
     groups.add(item?.group);
     validateSafeText(item?.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 80 });
+    if (item?.description != null) {
+      validateSafeText(item.description, diagnostics, `${itemPath}.description`, { required: true, maximum: 180 });
+    }
     if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
     if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
   });

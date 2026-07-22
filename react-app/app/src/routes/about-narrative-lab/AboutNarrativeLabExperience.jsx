@@ -474,7 +474,12 @@ function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = '
             '--discipline-label-scale': reveal.labelScale,
           }}
         >
-          <span className="about-narrative-discipline-reveal__label">{item.label}</span>
+          <span className="about-narrative-discipline-reveal__copy">
+            <span className="about-narrative-discipline-reveal__label">{item.label}</span>
+            {item.description ? (
+              <span className="about-narrative-discipline-reveal__description">{item.description}</span>
+            ) : null}
+          </span>
         </li>
       ))}
     </ol>

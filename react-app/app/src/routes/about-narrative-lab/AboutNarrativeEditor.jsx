@@ -1858,7 +1858,7 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                     <InspectorFolder
                       key={`discipline-${item.group}`}
                       group={{ id: `discipline-${item.group}`, label: item.label }}
-                      count={5}
+                      count={6}
                       defaultOpen={item.group === 1}
                     >
                       <div className="about-track-editor-discipline-heading">
@@ -1876,6 +1876,15 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                         onCommit={(value) => commit('Edit Discipline label', (target) => {
                           const targetItem = target.parameters.items.find((candidate) => candidate.group === item.group);
                           if (targetItem) targetItem.label = value;
+                        })}
+                      />
+                      <TextField
+                        label="Description"
+                        value={item.description || ''}
+                        disabled={locked}
+                        onCommit={(value) => commit('Edit Discipline description', (target) => {
+                          const targetItem = target.parameters.items.find((candidate) => candidate.group === item.group);
+                          if (targetItem) targetItem.description = value;
                         })}
                       />
                       {['Desktop X', 'Desktop Y', 'Mobile X', 'Mobile Y'].map((label, index) => {
