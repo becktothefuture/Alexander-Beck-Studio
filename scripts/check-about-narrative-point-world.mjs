@@ -138,6 +138,10 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
     '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css',
     import.meta.url,
   ), 'utf8');
+  const modifierSampling = readFileSync(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeModifierSampling.js',
+    import.meta.url,
+  ), 'utf8');
   assert.match(source, /presence \*= clamp\(simulationVisibility, 0\.0, 1\.0\)/);
   assert.match(source, /points\.visible = simulationVisibility > 0\.001/);
   assert.match(source, /uniform float sceneEntranceScale/);
@@ -167,11 +171,18 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniform float bustBuildHeadStart/);
   assert.match(source, /uniform float bustPlatformScale/);
   assert.match(source, /uniform float bustPlatformSettle/);
-  assert.doesNotMatch(source, /bustMaterialResolve|cool mineral tone/);
+  const tintStart = source.indexOf('float materialSeed =');
+  const tintEnd = source.indexOf('vec4 viewPoint =', tintStart);
+  assert.ok(tintStart >= 0 && tintEnd > tintStart);
+  assert.doesNotMatch(source.slice(tintStart, tintEnd), /\b(?:fromBust|toBust)\b/);
   assert.match(source, /vec2 gatheredPlatform = gridRippleCenter[\s\S]*?toWorld\.xz/);
   assert.match(source, /vec3 submergedBust = toWorld/);
   assert.match(source, /float surfaceTransit = max\(0\.0, surfaceDeparture - surfaceArrival\)/);
   assert.match(source, /presence \*= mix\(1\.0, clamp\(bustSurfaceCarry/);
+  assert.match(
+    source,
+    /else \{[\s\S]*uniforms\.fromDisciplineIsolation\.value = 0;[\s\S]*uniforms\.toDisciplineIsolation\.value = 0;/,
+  );
   assert.match(source, /uniform float bustFragmentSpread/);
   assert.match(source, /bustFragmentProgress[\s\S]*bustAssemblyWeight/);
   assert.match(source, /float rippleClock = mix\([\s\S]*?ambientTime/);
@@ -180,6 +191,11 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /float undertowRipple = cos\(/);
   assert.match(source, /float centerPulse = cos\(/);
   assert.match(source, /float surfaceRippleMix = 1\.0 - \(/);
+  assert.match(source, /toBust \* smoothstep\(0\.08, 0\.92, globalMorph\)/);
+  assert.match(
+    modifierSampling,
+    /toBust \* smoothstep01\(\(globalMorph - 0\.08\) \/ 0\.84\)/,
+  );
   assert.match(source, /worldPoint\.y \+= gatheringWeight \* perpetualRipple/);
   assert.match(source, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
   assert.match(source, /gridRippleEmphasis/);

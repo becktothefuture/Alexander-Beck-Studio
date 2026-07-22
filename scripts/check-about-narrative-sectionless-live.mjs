@@ -480,7 +480,7 @@ test('B forms a denser moving field and the Camera flies straight through it', (
   const cameraZ = (key) => key.position[2];
   const flyThroughZ = flyThrough.map(cameraZ);
   assert.ok(flyThroughZ[1] < flyThroughZ[0]);
-  assert.ok(flyThroughZ[2] > flyThroughZ[1]);
+  assert.ok(flyThroughZ[2] < flyThroughZ[1]);
   assert.ok(flyThrough[0].position[2] > 0);
   assert.ok(flyThrough.at(-1).position[2] < 0);
   const openingPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
@@ -654,7 +654,9 @@ test('World C flies straight into plan view before the authored ripple orbit and
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
   assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) >= 0.8);
-  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.52);
+  assert.equal(disciplineReveal.parameters.readingLineY, 0.8);
+  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.8);
+  assert.equal(disciplineReveal.parameters.approachBandY, 0.02);
   const mobileRippleCenter = [
     rippleCenter[0],
     Number((background.transform.position[1]

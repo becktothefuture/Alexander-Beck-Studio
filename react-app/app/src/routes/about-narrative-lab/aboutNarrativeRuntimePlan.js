@@ -543,7 +543,8 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
     config.effectEndWU,
     durationWU,
   );
-  target.labelActive = isActiveAt(storyWU, config.startWU, config.endWU, durationWU);
+  const labelEndWU = reducedMotion ? config.effectEndWU : config.endWU;
+  target.labelActive = isActiveAt(storyWU, config.startWU, labelEndWU, durationWU);
   target.settled = reducedMotion;
   target.backgroundProgress = reducedMotion
     ? (target.labelActive ? 1 : 0)

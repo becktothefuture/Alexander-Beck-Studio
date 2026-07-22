@@ -221,7 +221,7 @@
           "position": [
             0,
             0.5,
-            -1
+            -8.8
           ],
           "rotation": [
             0,
@@ -232,7 +232,7 @@
           "lookAtTarget": [
             0,
             0.5,
-            -2
+            -9.8
           ],
           "lookAtRoll": 0,
           "fov": 52,
@@ -1069,16 +1069,16 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 12.85,
-          "focusWU": 13.15,
+          "startWU": 12.55,
+          "focusWU": 12.95,
           "endWU": 15.15,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
           },
           "reveal": {
-            "fadeDelayWU": 0.08,
-            "fadeDurationWU": 0.2,
+            "fadeDelayWU": 0,
+            "fadeDurationWU": 0.24,
             "blurDelayWU": 0,
             "blurDurationWU": 0.24
           },
@@ -1418,12 +1418,12 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 8.25,
-          "activationWU": 8.25,
+          "startWU": 7.5,
+          "activationWU": 7.5,
           "endWU": 12.45,
           "targetWorldId": "world-grid",
           "parameters": {
-            "labelWindowWU": 3.8,
+            "labelWindowWU": 4.95,
             "staggerWU": 0.5,
             "backgroundFadeWU": 0.38,
             "backgroundOpacity": 0.42,
@@ -1434,9 +1434,9 @@
             "labelScale": 1.28,
             "labelDurationWU": 0.32,
             "holdWU": 0.18,
-            "readingLineY": 0.5,
-            "mobileReadingLineY": 0.52,
-            "approachBandY": 0.13,
+            "readingLineY": 0.8,
+            "mobileReadingLineY": 0.8,
+            "approachBandY": 0.02,
             "exitLineY": 0.92,
             "items": [
               {

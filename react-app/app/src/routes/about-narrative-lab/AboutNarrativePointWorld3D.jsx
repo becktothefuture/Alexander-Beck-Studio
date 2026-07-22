@@ -456,10 +456,10 @@ const VERTEX_SHADER = `
       + (undertowRipple * 0.12)
       + (centerPulse * 0.26)
     ) * rippleFalloff;
-    // Keep a restrained surface response alive while the bust rises. The form
-    // should emerge through the water rather than replace it at the first beat.
+    // Hand the same particles continuously from the ripple into the bust. The
+    // surface motion eases away across the full rise instead of stopping early.
     float surfaceRippleMix = 1.0 - (
-      toBust * smoothstep(0.02, 0.32, globalMorph) * 0.58
+      toBust * smoothstep(0.08, 0.92, globalMorph)
     );
     float gatheringWeight = gridRippleWeight * gridRippleAmplitude * surfaceRippleMix;
     worldPoint.y += gatheringWeight * perpetualRipple;
@@ -503,11 +503,6 @@ const VERTEX_SHADER = `
     // anchor enters the scroll-authored reveal. The selected anchor then regains
     // the material colour it already owned; no colour is reassigned at reveal time.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
-    // The resolved bust should read as one editorial material while retaining a
-    // slight memory of the coloured field that generated it.
-    float portraitToneResolve = toBust * smoothstep(0.18, 0.92, globalMorph);
-    vec3 bustAuthorityColor = mix(disciplineBackgroundColor, baseColor, 0.14);
-    pointTint = mix(pointTint, bustAuthorityColor, portraitToneResolve * 0.82);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     gl_Position = projectionMatrix * viewPoint;
@@ -1862,23 +1857,16 @@ function createPointFieldAdapter({
         // The physical grid decides when an anchor reaches the reading line.
         // Keep each item available after timed introduction, then release it as
         // the next discipline arrives so one label owns the moment.
-        const itemRelease = orderIndex >= reveal.items.length - 1
-          ? 1
-          : 1 - smoothRange(
-            storyWU,
-            itemStartWU + (revealState.staggerWU * 2.1),
-            itemStartWU + (revealState.staggerWU * 2.5),
-          );
         disciplineArrivalHold[item.group - 1] = reducedActive
           ? 1
           : smoothRange(
             storyWU,
             itemStartWU + (revealState.labelDurationWU * 0.75),
             itemStartWU + revealState.labelDurationWU,
-          ) * itemRelease;
+          );
         if (reducedActive) disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
         const labelReveal = storyWU <= revealState.endWU
-          ? itemReveal * itemRelease * activationProgress * (1 - exitProgress) * restoreWeight
+          ? itemReveal * activationProgress * (1 - exitProgress) * restoreWeight
           : 0;
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
       }
@@ -1892,6 +1880,11 @@ function createPointFieldAdapter({
       uniforms.toDisciplineIsolation.value = isolationWeight;
       uniforms.fromDisciplineBackgroundOpacity.value = backgroundOpacity;
       uniforms.toDisciplineBackgroundOpacity.value = backgroundOpacity;
+    } else {
+      // Do not let the discipline monochrome pass tint later worlds, especially
+      // the ripple-to-bust morph where the original material colours must return.
+      uniforms.fromDisciplineIsolation.value = 0;
+      uniforms.toDisciplineIsolation.value = 0;
     }
     uniforms.disciplineRevealActive.value = revealAvailable ? 1 : 0;
     uniforms.disciplineBackgroundWeight.value = backgroundWeight;
@@ -2000,7 +1993,7 @@ function createPointFieldAdapter({
               : Number(reveal.readingLineY ?? 0.52);
             const approachBandY = Math.max(0.001, Number(reveal.approachBandY ?? 0.12));
             const exitLineY = Number(reveal.exitLineY ?? 0.9);
-            const viewportEntryY = Math.max(0.05, readingLineY - (approachBandY * 1.5));
+            const viewportEntryY = Math.max(0.05, readingLineY - approachBandY);
             const bottomDepartureReveal = 1 - smoothRange(
               viewportY,
               exitLineY,
@@ -2043,14 +2036,17 @@ function createPointFieldAdapter({
           }
         }
         let activeLabelIndex = -1;
-        let activeLabelReveal = 0.05;
+        const activeLabelThreshold = 0.05;
         for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
-          if (disciplineSpatialReveal[index] > activeLabelReveal) {
+          if (disciplineSpatialReveal[index] > activeLabelThreshold) {
             activeLabelIndex = index;
-            activeLabelReveal = disciplineSpatialReveal[index];
           }
         }
         for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
+          if (index !== activeLabelIndex) {
+            disciplineWeights[index] = 0;
+            disciplineSpatialReveal[index] = 0;
+          }
           writeDisciplineRevealStyles(
             index,
             index === activeLabelIndex ? disciplineSpatialReveal[index] : 0,
