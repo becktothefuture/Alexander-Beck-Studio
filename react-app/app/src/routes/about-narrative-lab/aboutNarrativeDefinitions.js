@@ -31,12 +31,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.43, y: 0.38 }),
-  Object.freeze({ group: 2, x: 0.47, y: 0.49 }),
-  Object.freeze({ group: 3, x: 0.42, y: 0.6 }),
-  Object.freeze({ group: 4, x: 0.46, y: 0.71 }),
-  Object.freeze({ group: 5, x: 0.44, y: 0.82 }),
-  Object.freeze({ group: 6, x: 0.48, y: 0.93 }),
+  Object.freeze({ group: 1, x: 0.42, y: 0.18 }),
+  Object.freeze({ group: 2, x: 0.43, y: 0.32 }),
+  Object.freeze({ group: 3, x: 0.42, y: 0.46 }),
+  Object.freeze({ group: 4, x: 0.43, y: 0.6 }),
+  Object.freeze({ group: 5, x: 0.43, y: 0.74 }),
+  Object.freeze({ group: 6, x: 0.43, y: 0.88 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -463,12 +463,12 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       approachBandY: 0.1,
       exitLineY: 0.94,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: [0.43, 0.38], mobilePosition: [0.455, 0.05] }),
-        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: [0.47, 0.49], mobilePosition: [0.45, 0.23] }),
-        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: [0.42, 0.6], mobilePosition: [0.47, 0.41] }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: [0.46, 0.71], mobilePosition: [0.4565, 0.59] }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: [0.44, 0.82], mobilePosition: [0.46, 0.77] }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: [0.48, 0.93], mobilePosition: [0.48, 0.95] }),
+        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: [0.42, 0.18], mobilePosition: [0.42, 0.1] }),
+        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: [0.43, 0.32], mobilePosition: [0.43, 0.27] }),
+        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: [0.42, 0.46], mobilePosition: [0.42, 0.44] }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: [0.43, 0.6], mobilePosition: [0.43, 0.61] }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: [0.43, 0.74], mobilePosition: [0.43, 0.78] }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: [0.43, 0.88], mobilePosition: [0.43, 0.95] }),
       ]),
     }),
     parameters: Object.freeze([

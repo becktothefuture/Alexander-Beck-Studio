@@ -548,14 +548,17 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and six 
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress > 1);
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < reveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
-  const leftColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x < 0.5);
-  const rightColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x > 0.45);
+  const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(leftColumn.length >= 3);
-  assert.ok(rightColumn.length >= 2);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.1);
-  assert.ok(Math.min(...verticalPositions) >= 0.45);
-  assert.ok(Math.max(...verticalPositions) <= 0.7);
+  const sortedVerticalPositions = [...verticalPositions].sort((left, right) => left - right);
+  const verticalGaps = sortedVerticalPositions.slice(1).map((value, index) => value - sortedVerticalPositions[index]);
+  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
+  assert.ok(Math.min(...horizontalPositions) >= 0.4);
+  assert.ok(Math.max(...horizontalPositions) <= 0.5);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.5);
+  assert.ok(Math.min(...verticalGaps) >= 0.1);
+  assert.ok(Math.min(...verticalPositions) >= 0.15);
+  assert.ok(Math.max(...verticalPositions) <= 0.95);
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {

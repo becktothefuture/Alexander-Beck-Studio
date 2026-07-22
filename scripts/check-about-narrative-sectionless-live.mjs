@@ -588,11 +588,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
 
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
-  const leftColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x < 0.5);
-  const rightColumn = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.filter((anchor) => anchor.x > 0.45);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(leftColumn.length >= 3);
-  assert.ok(rightColumn.length >= 2);
   assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
   assert.ok(Math.min(...horizontalPositions) >= 0.4);
   assert.ok(Math.max(...horizontalPositions) <= 0.5);
@@ -610,7 +606,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.ok(item.position[0] >= 0.4 && item.position[0] <= 0.5);
     assert.ok(item.position[1] >= 0.15 && item.position[1] <= 0.95);
     assert.ok(item.mobilePosition[0] >= 0.4 && item.mobilePosition[0] <= 0.5);
-    assert.ok(item.mobilePosition[1] >= 0.15 && item.mobilePosition[1] <= 0.95);
+    assert.ok(item.mobilePosition[1] >= 0.1 && item.mobilePosition[1] <= 0.95);
     if (index > 0) assert.ok(item.position[1] > disciplineReveal.parameters.items[index - 1].position[1]);
   });
   const assertMinimumGridSeparation = (positions, pointCount) => {
@@ -639,8 +635,8 @@ test('World C flies straight into plan view before the authored ripple orbit and
   assertMinimumGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
   assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.position), 12000);
   assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
-  assert.ok(disciplineReveal.parameters.staggerWU * 5 >= 1.75);
-  assert.ok(disciplineReveal.parameters.staggerWU * 5 <= 2.05);
+  assert.ok(disciplineReveal.parameters.staggerWU * 5 >= 2.4);
+  assert.ok(disciplineReveal.parameters.staggerWU * 5 <= 2.6);
   assert.equal(keys.get('grid-birds-eye').position[1], keys.get('discipline-hold').position[1]);
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
