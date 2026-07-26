@@ -1079,7 +1079,6 @@ function isRouteBaselineReady(routeId, options = {}) {
         || (
           runtime.routeId === 'portfolio'
           && runtime.status === 'ready'
-          && hasCanvasBufferReady()
           && (
             portfolioMount
             && (deckFailed || deckPrepared || isPortfolioScrollRailReady())

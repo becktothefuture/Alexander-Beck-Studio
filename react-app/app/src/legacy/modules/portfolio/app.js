@@ -3546,7 +3546,6 @@ function readPortfolioPresentationSnapshot() {
     ready: Boolean(
       rectIsUsable(wallRect)
       && rectIsUsable(topbarRect)
-      && isCanvasBackingStoreReady(canvas)
       && heroReady
       && labelCount > 0
       && firstLabelReady
