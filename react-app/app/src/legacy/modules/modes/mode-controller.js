@@ -272,6 +272,10 @@ async function ensureModeRuntime(mode) {
   return loadPromise;
 }
 
+export async function prewarmModeRuntime(mode) {
+  return ensureModeRuntime(mode);
+}
+
 function maybePreloadAllModes() {
   const globals = getGlobals();
   if (globals.featureLazyModeLoadingEnabled !== false || preloadAllStarted) return;

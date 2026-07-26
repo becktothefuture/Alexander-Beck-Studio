@@ -21,7 +21,14 @@ import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
-import { setMode, getForceApplicator, getModeCustomStep, initModeSystem, disposeModeSystem } from './modules/modes/mode-controller.js';
+import {
+  setMode,
+  getForceApplicator,
+  getModeCustomStep,
+  initModeSystem,
+  disposeModeSystem,
+  prewarmModeRuntime,
+} from './modules/modes/mode-controller.js';
 import { startMainLoop, stopMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
@@ -229,12 +236,30 @@ function applyHomeHeroRuntimeConfig() {
 
 const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
 const HOME_TITLE_PREPARE_GRACE_MS = 1200;
+const HOME_ROUTE_RETURN_VISUAL_TIMING = Object.freeze({
+  durationMs: 220,
+  localDurationMs: 180,
+  easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  reason: 'home-route-return',
+});
 
 function isSimulationFocusTransitionActive() {
   const phase = document.documentElement.dataset.absSimulationFocusTransition
     || window.__ABS_SIMULATION_FOCUS_TRANSITION__?.phase
     || 'idle';
   return phase === 'out' || phase === 'hold' || phase === 'in';
+}
+
+export async function prewarmHomeRoute({ signal } = {}) {
+  if (signal?.aborted) throw signal.reason || new DOMException('Aborted', 'AbortError');
+  const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
+  const mode = configuredHeroMode || getDailyMode() || MODES.PIT;
+  await Promise.all([
+    loadRuntimeText(),
+    prewarmModeRuntime(mode),
+  ]);
+  if (signal?.aborted) throw signal.reason || new DOMException('Aborted', 'AbortError');
+  return true;
 }
 
 // Global error handler for unhandled rejections and errors
@@ -262,6 +287,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   let disposed = false;
   let rendererOwner = null;
   let directEntrance = null;
+  let routeReturnVisualPromise = null;
   const isCurrent = () => (
     !disposed
     && !signal?.aborted
@@ -289,12 +315,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
   const shellRouteTransitionActiveAtStart = (
     isRouteTransitionPhase(getTransitionPhase())
+    || document.documentElement.dataset.absRouteTransition === 'active'
+    || Boolean(document.documentElement.dataset.absRouteLoadingCoveredAt)
     || isSimulationFocusTransitionActive()
   );
-  const yieldCoveredBootstrapFrame = async () => {
-    if (!shellRouteTransitionActiveAtStart || !isCurrent()) return;
-    await waitForFrames(1);
-  };
   if (shellRouteTransitionActiveAtStart) {
     setBootLifecycleState('ready');
   } else {
@@ -411,9 +435,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     } catch (e) {
       console.warn('Tactile layer init failed:', e);
     }
-    await yieldCoveredBootstrapFrame();
-    if (!isCurrent()) return cleanup;
-
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
 
@@ -439,9 +460,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
-    await yieldCoveredBootstrapFrame();
-    if (!isCurrent()) return cleanup;
-
     // Layout controls integrated into master panel
 
     // Initialize starting mode. A non-empty startupMode overrides reload selection
@@ -458,6 +476,26 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     if (!isCurrent()) return cleanup;
     if (!shellRouteTransitionActiveAtStart || startupReduceMotion) {
       setInitialSimulationVisualScale(1);
+    }
+
+    // Start the compact route-return bloom on the first simulation frame. The
+    // shell can then resolve its cover over material that is already moving,
+    // while non-critical quote/dev tooling continues independently.
+    startMainLoop(null, { getForcesFn: getForceApplicator });
+    if (shellRouteTransitionActiveAtStart) {
+      if (startupReduceMotion) {
+        setInitialSimulationVisualScale(1);
+        routeReturnVisualPromise = Promise.resolve();
+      } else {
+        routeReturnVisualPromise = runSimulationVisualTransition(
+          'in',
+          HOME_ROUTE_RETURN_VISUAL_TIMING,
+        );
+      }
+      setHomeRouteReadyState(true);
+      markReady?.();
+      await waitForFrames(1);
+      if (!isCurrent()) return cleanup;
     }
 
     if (isHomeRuntimeAuditEnabled() && typeof window !== 'undefined') {
@@ -581,13 +619,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     // NOTE: Scroll FX is portfolio-only (see `source/modules/portfolio/`).
 
-    // Start main render loop
-    // PERF: getForcesFn is resolved once per frame in the loop, not per particle
-    startMainLoop(null, { getForcesFn: getForceApplicator });
-    if (shellRouteTransitionActiveAtStart) {
-      setHomeRouteReadyState(true);
-      markReady?.();
-    }
     const confirmCanvasTitleDraw = () => {
       if (!isCurrent()) return;
       if (isCanvasHomeTitleDrawn()) {
@@ -768,12 +799,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         if (reduceMotion) {
           setInitialSimulationVisualScale(1);
         } else {
-          await runSimulationVisualTransition('in', {
-            durationMs: 520,
-            localDurationMs: 320,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            reason: 'home-route-return',
-          });
+          await (routeReturnVisualPromise || runSimulationVisualTransition(
+            'in',
+            HOME_ROUTE_RETURN_VISUAL_TIMING,
+          ));
           if (!isCurrent()) return cleanup;
         }
         console.log('✓ Home simulation route-return entrance completed');

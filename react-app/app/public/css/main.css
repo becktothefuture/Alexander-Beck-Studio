@@ -625,8 +625,8 @@ html[data-shell-route='home'] .page-content {
   pointer-events: none;
 }
 
-/* Route loading is a shell-owned, in-window cover. It shares the boot spinner
-   primitive but keeps its own compact cadence and never covers the Button Bar. */
+/* Route loading is a shell-owned, theme-matched in-window cover. It shares the
+   boot spinner geometry but escalates to it only for sustained readiness work. */
 .route-transition-loader {
   --abs-loader-exit-scale: 1.45;
   --abs-boot-overlay-out-ms: var(--abs-route-spinner-exit-duration, 160ms);
@@ -641,12 +641,14 @@ html[data-shell-route='home'] .page-content {
   place-items: center;
   overflow: hidden;
   border-radius: var(--frame-outer-radius);
-  background: #000000;
-  color-scheme: dark;
-  forced-color-adjust: none;
+  background: var(--studio-window-bg);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+.route-transition-loader__spinner {
+  --abs-loader-dot-color: var(--text-primary);
 }
 
 .route-transition-loader__stage {
@@ -671,19 +673,27 @@ html[data-abs-transition-phase='route-loading'] .route-transition-loader {
   transition: none;
 }
 
-html[data-abs-transition-phase='route-loading'] .route-transition-loader__stage,
-html[data-abs-transition-phase='route-in'] .route-transition-loader__stage {
+html[data-abs-route-loader-presentation='spinner'][data-abs-transition-phase='route-loading']
+  .route-transition-loader__stage,
+html[data-abs-route-loader-presentation='spinner'][data-abs-transition-phase='route-in']
+  .route-transition-loader__stage {
   opacity: 1;
   transform: scale(1);
 }
 
 html[data-abs-transition-phase='route-in'] .route-transition-loader {
   opacity: 0;
+  transition: opacity var(--abs-route-warm-plate-exit-duration, 70ms) cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+html[data-abs-route-loader-presentation='spinner'][data-abs-transition-phase='route-in']
+  .route-transition-loader {
   transition: opacity var(--abs-route-plate-exit-duration, 160ms) cubic-bezier(0.45, 0, 0.55, 1)
     var(--abs-route-plate-exit-delay, 40ms);
 }
 
-html[data-abs-transition-phase='route-in'] .route-transition-loader .abs-loader-spinner {
+html[data-abs-route-loader-presentation='spinner'][data-abs-transition-phase='route-in']
+  .route-transition-loader .abs-loader-spinner {
   animation: absBootLoaderExit var(--abs-route-spinner-exit-duration, 160ms) cubic-bezier(0.32, 0, 0.67, 0) both;
 }
 

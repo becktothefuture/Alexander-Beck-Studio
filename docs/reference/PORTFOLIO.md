@@ -54,11 +54,13 @@ SPA arrivals use the normalized `portfolio.runtime.entrance` profile. Only the n
 
 ## Route prewarming and readiness
 
-`preloadPortfolioRoute()` is a document-scoped, deduplicated preparation path used by shell idle time and Button Bar intent. It may load Portfolio data and normalized configuration and decode only the five readiness-critical first-view thumbnail sources. It never constructs `PortfolioScrollApp`, mounts cards, starts the particle field, starts the orbital loop, plays video, opens access UI, or creates a project handoff.
+`preloadPortfolioRoute()` participates in the shell's document-scoped readiness registry and is used by initial data preparation, eligible background media preparation, Button Bar intent, and navigation. It may load Portfolio data and normalized configuration and decode only the five readiness-critical first-view thumbnail sources. It never constructs `PortfolioScrollApp`, mounts cards, starts the particle field, starts the orbital loop, plays video, opens access UI, or creates a project handoff.
 
 The real route bootstrap reuses those exact decoded-image promises. Readiness-critical media is limited to the visible first-view posters/images or an existing fallback. Video playback and project-detail/lazy case-study media are explicitly outside the route-ready barrier. Failed image promises are released so route bootstrap can retry or install the existing fallback; no prewarm result is persisted across reloads.
 
 `window.__ABS_PORTFOLIO_PREWARM__` is an audit-only snapshot of prewarm status and critical/ready source counts. It is output, never product or design truth.
+
+During a route transition, the runtime may publish the first valid measured deck geometry as its readiness boundary because the Portfolio route participant then confirms that geometry across two painted frames before the shell begins route-in. Direct loads retain their self-contained two-pass geometry check.
 
 ## Project-triggered access gate
 

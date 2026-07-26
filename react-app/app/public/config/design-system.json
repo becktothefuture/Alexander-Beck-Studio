@@ -532,8 +532,8 @@
       "routeTransition": {
         "exitDurationMs": 130,
         "loaderEnterDurationMs": 70,
-        "loaderFirstMinimumMs": 160,
-        "loaderRepeatMinimumMs": 110,
+        "spinnerDelayMs": 120,
+        "spinnerMinimumMs": 140,
         "readinessTimeoutMs": 4500,
         "spinnerExitDurationMs": 160,
         "plateExitDelayMs": 40,

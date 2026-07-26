@@ -13,6 +13,7 @@ const STRESS_MODE = process.env.ABS_TRANSITION_STRESS === '1';
 const DELAYED_READINESS_MODE = process.env.ABS_TRANSITION_DELAYED_READINESS === '1';
 const PRELOAD_FAILURE_MODE = process.env.ABS_TRANSITION_PRELOAD_FAILURE === '1';
 const CPU_THROTTLE_RATE = Math.max(1, Number(process.env.ABS_TRANSITION_CPU_THROTTLE_RATE || 1));
+const READINESS_DELAY_MS = Math.max(0, Number(process.env.ABS_TRANSITION_READINESS_DELAY_MS || 0));
 const VIEWPORT_MATCH = String(process.env.ABS_TRANSITION_VIEWPORT || '1280x900').match(/^(\d+)x(\d+)$/i);
 const VIEWPORT = VIEWPORT_MATCH
   ? { width: Number(VIEWPORT_MATCH[1]), height: Number(VIEWPORT_MATCH[2]) }
@@ -22,6 +23,8 @@ const FULL_COVER_OPACITY = 0.98;
 const GEOMETRY_TOLERANCE_PX = 1.5;
 const FRAME_TOLERANCE_MS = 20;
 const REDUCED_SPINNER_ESTABLISHMENT_MS = 80;
+const SPINNER_DELAY_MS = 120;
+const SPINNER_MINIMUM_MS = 140;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'transition-flows');
 const BROWSERS = { chromium, firefox, webkit };
@@ -35,6 +38,7 @@ const runStem = [
   DELAYED_READINESS_MODE ? 'delayed' : '',
   PRELOAD_FAILURE_MODE ? 'preload-failure' : '',
   CPU_THROTTLE_RATE > 1 ? `cpu-${CPU_THROTTLE_RATE}x` : '',
+  READINESS_DELAY_MS > 0 ? `readiness-${READINESS_DELAY_MS}ms` : '',
 ].filter(Boolean).join('-');
 
 const ROUTE_DEFINITIONS = Object.freeze({
@@ -138,14 +142,12 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       longTasks: [],
       rafId: 0,
       running: true,
-      loaderMinimumMs: reducedMotion ? 0 : (() => {
-        const raw = getComputedStyle(document.documentElement)
-          .getPropertyValue('--abs-route-loader-repeat-minimum')
-          .trim();
-        const value = Number.parseFloat(raw);
-        if (!Number.isFinite(value)) return 110;
-        return /ms$/i.test(raw) ? value : (/s$/i.test(raw) ? value * 1000 : value);
-      })(),
+      spinnerDelayMs: Number.parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--abs-route-spinner-delay')) || 120,
+      spinnerMinimumMs: reducedMotion ? 0 : (
+        Number.parseFloat(getComputedStyle(document.documentElement)
+          .getPropertyValue('--abs-route-spinner-minimum')) || 140
+      ),
     };
     const nativeRequestAnimationFrame = window.__ABS_AUDIT_NATIVE_RAF__
       || window.requestAnimationFrame.bind(window);
@@ -367,6 +369,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const root = document.documentElement;
       const loader = document.querySelector('[data-route-transition-loader]');
       const spinner = loader?.querySelector('.route-transition-loader__spinner');
+      const spinnerDots = Array.from(spinner?.querySelectorAll('.abs-loader-spinner__dot') || []);
       const routeTabs = document.querySelector('[data-route-tabs]');
       const currentTab = document.querySelector('[data-route-tab][aria-current="page"]');
       const shellRoute = document.querySelector('[data-shell-route-view]');
@@ -384,13 +387,32 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         loader: loaderState ? {
           ...loaderState,
           state: loader?.dataset.routeTransitionLoaderState || '',
+          presentation: loader?.dataset.routeTransitionLoaderPresentation
+            || root.dataset.absRouteLoaderPresentation
+            || 'plate',
+          spinnerStartedAt: Number(loader?.dataset.routeTransitionSpinnerStartedAt || 0),
           backgroundColor: getComputedStyle(loader).backgroundColor,
           coveredForMs: root.dataset.absRouteLoadingCoveredAt
             ? round(Math.max(0, performance.now() - Number(root.dataset.absRouteLoadingCoveredAt)), 2)
             : 0,
         } : null,
-        spinner: readEffective(spinner),
+        spinner: {
+          ...readEffective(spinner),
+          color: spinner ? getComputedStyle(spinner).color : '',
+          dots: spinnerDots.map((dot) => {
+            const style = getComputedStyle(dot);
+            const rect = rectOf(dot);
+            return {
+              width: rect?.width || 0,
+              height: rect?.height || 0,
+              borderRadius: style.borderRadius,
+              clipPath: style.clipPath,
+              backgroundColor: style.backgroundColor,
+            };
+          }),
+        },
         studioWindow: readEffective(document.getElementById('simulations')),
+        studioWindowBackgroundColor: getComputedStyle(document.getElementById('simulations')).backgroundColor,
         buttonBar: readEffective(document.querySelector('[data-button-bar]')),
         surfaces: readSurfaces(),
         routeViews: readRouteViews(),
@@ -417,6 +439,12 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
               ...window.__ABS_PORTFOLIO_BOOTSTRAP__,
               stages: [...(window.__ABS_PORTFOLIO_BOOTSTRAP__.stages || [])],
             }
+          : null,
+        routeReadiness: window.__ABS_ROUTE_READINESS__
+          ? JSON.parse(JSON.stringify(window.__ABS_ROUTE_READINESS__))
+          : null,
+        routeHistory: window.__ABS_ROUTE_HISTORY__
+          ? { ...window.__ABS_ROUTE_HISTORY__ }
           : null,
       });
       const latest = state.samples.at(-1);
@@ -497,7 +525,8 @@ async function stopRafRecorder(page) {
       readyEvents: state.readyEvents,
       failureEvents: state.failureEvents,
       longTasks: state.longTasks,
-      loaderMinimumMs: state.loaderMinimumMs,
+      spinnerDelayMs: state.spinnerDelayMs,
+      spinnerMinimumMs: state.spinnerMinimumMs,
       metrics: {
         phaseDurationsMs,
         totalDurationMs: samples.at(-1)?.elapsedMs || 0,
@@ -598,33 +627,58 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
       sample,
     );
     assert(
-      sample.loader.backgroundColor === 'rgb(0, 0, 0)',
-      `${trace.label}: loader plate was not opaque black`,
+      sample.loader.backgroundColor === sample.studioWindowBackgroundColor,
+      `${trace.label}: loader plate did not match the studio-window theme`,
       sample.loader,
     );
   });
   const loadingStart = samples[loadingIndex]?.elapsedMs || 0;
   const routeInStart = samples[routeInIndex]?.elapsedMs || 0;
-  const visiblyEstablishedSpinner = samples.some((sample) => (
+  const spinnerSamples = samples.filter((sample) => (
     (sample.phase === 'route-loading' || sample.phase === 'route-in')
     && sample.loader?.effectiveOpacity >= FULL_COVER_OPACITY
-    && sample.spinner?.effectiveOpacity > 0.5
+    && sample.loader?.presentation === 'spinner'
   ));
+  const visiblyEstablishedSpinner = spinnerSamples.some((sample) => sample.spinner?.effectiveOpacity > 0.5);
   const loadingDurationMs = Math.max(0, routeInStart - loadingStart);
-  if (!REDUCED_MOTION || loadingDurationMs >= REDUCED_SPINNER_ESTABLISHMENT_MS) {
+  const spinnerExpected = READINESS_DELAY_MS > SPINNER_DELAY_MS;
+  const spinnerForbidden = READINESS_DELAY_MS > 0
+    ? READINESS_DELAY_MS <= SPINNER_DELAY_MS
+    : (!STRESS_MODE && CPU_THROTTLE_RATE === 1);
+  if (spinnerExpected && (!REDUCED_MOTION || loadingDurationMs >= REDUCED_SPINNER_ESTABLISHMENT_MS)) {
     assert(
       visiblyEstablishedSpinner,
-      `${trace.label}: loader spinner never became visibly established`,
+      `${trace.label}: sustained readiness did not escalate to the spinner`,
       { phases, loadingDurationMs, reducedMotion: REDUCED_MOTION },
     );
   }
-
-  const coveredForMs = samples[routeInIndex]?.loader?.coveredForMs || 0;
-  assert(
-    coveredForMs >= Math.max(0, trace.loaderMinimumMs - FRAME_TOLERANCE_MS),
-    `${trace.label}: route-loading hold was shorter than the configured minimum`,
-    { loadingStart, routeInStart, coveredForMs, configuredMinimumMs: trace.loaderMinimumMs },
-  );
+  if (spinnerForbidden) {
+    assert(
+      spinnerSamples.length === 0,
+      `${trace.label}: warm readiness showed an unnecessary SPA spinner`,
+      { phases, loadingDurationMs, readinessDelayMs: READINESS_DELAY_MS },
+    );
+  }
+  if (spinnerSamples.length > 0) {
+    const firstSpinner = spinnerSamples[0];
+    const spinnerVisibleForMs = firstSpinner.loader?.spinnerStartedAt > 0
+      ? Math.max(0, (trace.startedAt + routeInStart) - firstSpinner.loader.spinnerStartedAt)
+      : Math.max(0, routeInStart - firstSpinner.elapsedMs);
+    if (!REDUCED_MOTION) {
+      assert(
+        spinnerVisibleForMs >= SPINNER_MINIMUM_MS - FRAME_TOLERANCE_MS,
+        `${trace.label}: spinner disappeared before its minimum presence`,
+        { spinnerVisibleForMs, configuredMinimumMs: trace.spinnerMinimumMs },
+      );
+    }
+    assert(firstSpinner.spinner?.dots?.length === 8, `${trace.label}: spinner does not have eight dots`, firstSpinner.spinner);
+    firstSpinner.spinner.dots.forEach((dot, index) => {
+      assert(Math.abs(dot.width - dot.height) <= 0.05, `${trace.label}: spinner dot ${index + 1} is not square`, dot);
+      assert(dot.borderRadius === '50%', `${trace.label}: spinner dot ${index + 1} lost circular radius`, dot);
+      assert(dot.clipPath.includes('circle(50%'), `${trace.label}: spinner dot ${index + 1} lost circular clipping`, dot);
+      assert(dot.backgroundColor === firstSpinner.spinner.color, `${trace.label}: spinner dot ${index + 1} did not inherit theme ink`, dot);
+    });
+  }
 
   const firstRouteIn = samples[routeInIndex];
   assert(
@@ -648,6 +702,7 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
   assert(settled.busy.studioWindow === 'false' && settled.busy.ui === 'false', `${trace.label}: shell remained aria-busy`, settled.busy);
   assert(settled.incoming.inertCount === 0, `${trace.label}: destination entrance targets remained inert`, settled.incoming);
   assert(settled.focus?.inert !== true, `${trace.label}: focus remained inside inert content`, settled.focus);
+  assert(settled.routeHistory?.provisional !== true, `${trace.label}: provisional history survived settlement`, settled.routeHistory);
   const settledRoutes = Object.keys(settled.routeViews);
   assert(
     settledRoutes.length === 1 && settledRoutes[0] === trace.toRouteId,
@@ -697,7 +752,6 @@ async function runTransition(page, {
   label,
   activate,
   requireRouteOut = true,
-  loaderMinimumOverride = null,
   afterActivate,
 }) {
   await startRafRecorder(page, { fromRouteId, toRouteId: step.id, label });
@@ -707,9 +761,6 @@ async function runTransition(page, {
     await afterActivate?.();
     await waitForTargetSettled(page, step);
     trace = await stopRafRecorder(page);
-    if (Number.isFinite(loaderMinimumOverride)) {
-      trace.loaderMinimumMs = loaderMinimumOverride;
-    }
     assertTransitionTrace(trace, { requireRouteOut });
     return trace;
   } catch (error) {
@@ -769,7 +820,6 @@ async function runStressProbe(page, traces, nextIndex) {
     fromRouteId: 'home',
     step: aboutStep,
     label: `${String(nextIndex).padStart(2, '0')}-stress-home-to-contact-to-about`,
-    loaderMinimumOverride: 0,
     activate: async () => {
       await clickRouteTab(page, contactStep.id);
       await page.waitForFunction(() => (
@@ -887,13 +937,14 @@ async function main() {
   });
 
   try {
-    await page.addInitScript(() => {
+    await page.addInitScript(({ readinessDelayMs }) => {
       // Legacy route runtimes temporarily scope requestAnimationFrame so they can
       // clean up their own loops. Keep the audit recorder outside that scope or
       // a route unmount can cancel the very observer intended to inspect it.
       window.__ABS_AUDIT_NATIVE_RAF__ = window.requestAnimationFrame.bind(window);
       window.__ABS_AUDIT_NATIVE_CANCEL_RAF__ = window.cancelAnimationFrame.bind(window);
-    });
+      window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ = readinessDelayMs;
+    }, { readinessDelayMs: READINESS_DELAY_MS });
     await page.goto(routeUrl('/index.html?mode=pit&absAudit=1'), {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
@@ -979,6 +1030,7 @@ async function main() {
       delayedReadiness: DELAYED_READINESS_MODE,
       preloadFailure: PRELOAD_FAILURE_MODE,
       cpuThrottleRate: CPU_THROTTLE_RATE,
+      readinessDelayMs: READINESS_DELAY_MS,
       traces,
       consoleErrors,
       pageErrors,
@@ -1001,6 +1053,7 @@ async function main() {
       viewport: VIEWPORT,
       reducedMotion: REDUCED_MOTION,
       cpuThrottleRate: CPU_THROTTLE_RATE,
+      readinessDelayMs: READINESS_DELAY_MS,
       transitions: traces.length,
       reportPath,
     }, null, 2));

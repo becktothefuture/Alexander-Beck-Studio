@@ -466,13 +466,24 @@ function warmPortfolioThumbnail(src) {
   return pending;
 }
 
-export async function preloadPortfolioRoute() {
+export async function preloadPortfolioRoute({
+  signal = null,
+  includeMedia = true,
+  waitForMedia = false,
+} = {}) {
   portfolioPrewarmState.status = 'loading';
   portfolioPrewarmState.startedAt = performance.now();
   portfolioPrewarmState.settledAt = 0;
   publishPortfolioPrewarmState();
   try {
     const [data] = await Promise.all([loadPortfolioData(), loadPortfolioRuntimeConfig()]);
+    if (signal?.aborted) throw new DOMException('Portfolio prewarm aborted.', 'AbortError');
+    if (!includeMedia) {
+      portfolioPrewarmState.status = 'prepared';
+      portfolioPrewarmState.settledAt = performance.now();
+      publishPortfolioPrewarmState();
+      return true;
+    }
     if (!portfolioThumbnailPreloadPromise) {
       const sources = getCriticalPortfolioThumbnailSources(data);
       portfolioPrewarmState.criticalSourceCount = sources.length;
@@ -488,10 +499,13 @@ export async function preloadPortfolioRoute() {
           portfolioThumbnailPreloadPromise = null;
         });
     }
-    const settledWithinBudget = await Promise.race([
-      portfolioThumbnailPreloadPromise.then(() => true),
-      new Promise((resolve) => window.setTimeout(() => resolve(false), 650)),
-    ]);
+    const settledWithinBudget = waitForMedia
+      ? await portfolioThumbnailPreloadPromise.then(() => true)
+      : await Promise.race([
+          portfolioThumbnailPreloadPromise.then(() => true),
+          new Promise((resolve) => window.setTimeout(() => resolve(false), 650)),
+        ]);
+    if (signal?.aborted) throw new DOMException('Portfolio prewarm aborted.', 'AbortError');
     if (!settledWithinBudget) {
       portfolioPrewarmState.status = 'warming';
       publishPortfolioPrewarmState();
@@ -709,7 +723,7 @@ class PortfolioScrollApp {
     };
   }
 
-  async init(signal) {
+  async init(signal, { routeTransition = false } = {}) {
     this.destroyed = false;
     if (signal?.aborted) return false;
     this.ensureAnnouncer();
@@ -726,8 +740,10 @@ class PortfolioScrollApp {
     if (signal?.aborted) return false;
     this.setupDeckEvents();
     this.applyProjectPalette();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    if (signal?.aborted) return false;
+    if (!routeTransition) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      if (signal?.aborted) return false;
+    }
     this.updateCardMetrics();
     this.particleField.start();
     this.setActiveProject(0, { immediate: true });
@@ -3540,21 +3556,21 @@ function readPortfolioPresentationSnapshot() {
 
 async function waitForStablePortfolioPresentation(options = {}) {
   const timeoutMs = Math.max(400, Number(options.timeoutMs) || 2000);
+  const requiredReadyPasses = Math.max(1, Math.round(Number(options.requiredReadyPasses) || 2));
 
   return new Promise((resolve) => {
     const startedAt = performance.now();
-    let previous = null;
     let stablePasses = 0;
 
     const tick = () => {
       const snapshot = readPortfolioPresentationSnapshot();
-      if (snapshot.ready && previous?.ready) {
+      if (snapshot.ready) {
         stablePasses += 1;
-      } else if (!snapshot.ready) {
+      } else {
         stablePasses = 0;
       }
 
-      if (snapshot.ready && stablePasses >= 1) {
+      if (stablePasses >= requiredReadyPasses) {
         window.__ABS_PORTFOLIO_PRESENTATION__ = {
           ...snapshot,
           elapsedMs: performance.now() - startedAt,
@@ -3574,11 +3590,11 @@ async function waitForStablePortfolioPresentation(options = {}) {
         return;
       }
 
-      previous = snapshot;
       requestAnimationFrame(tick);
     };
 
-    requestAnimationFrame(tick);
+    if (requiredReadyPasses === 1) tick();
+    else requestAnimationFrame(tick);
   });
 }
 
@@ -3810,7 +3826,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
     projects
   });
   try {
-    await app.init(signal);
+    await app.init(signal, { routeTransition: shellRouteTransitionActive });
     if (!isCurrentBootstrapRun()) return cleanup;
     markBootstrapStage('app-ready');
   } catch (error) {
@@ -3844,15 +3860,12 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   };
   settlePortfolioPresentation();
 
-  // Wait one frame so the first JS-computed card poses land, then reveal with
-  // CSS-level choreography. The stricter presentation check runs after the
-  // reveal because it requires visible deck geometry.
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  if (!isCurrentBootstrapRun()) return cleanup;
-  settlePortfolioPresentation();
-
+  // A route transition can publish its first valid measured geometry here: the
+  // route participant owns the following two painted-frame confirmation. Direct
+  // loads retain the self-contained two-pass stability check.
   const presentationPrepared = await waitForStablePortfolioPresentation({
     timeoutMs: shellRouteTransitionActive ? 700 : 900,
+    requiredReadyPasses: shellRouteTransitionActive ? 1 : 2,
   });
   if (!isCurrentBootstrapRun()) return cleanup;
   bootstrapDiagnostics.presentation = {

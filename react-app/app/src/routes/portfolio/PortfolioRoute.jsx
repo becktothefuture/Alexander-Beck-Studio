@@ -1,12 +1,26 @@
 import homeContent from 'virtual:abs-content/home';
 import { PortfolioGateRoute } from './PortfolioGateRoute.jsx';
 
+const loadPortfolioRouteModule = () => import('../../legacy/modules/portfolio/app.js');
+
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
-  loadModule: () => import('../../legacy/modules/portfolio/app.js').then(async (module) => {
+  loadModule: () => loadPortfolioRouteModule().then(async (module) => {
     await module.preloadPortfolioRoute?.();
     return module;
-  })
+  }),
+  prewarm: async ({ signal, priority } = {}) => {
+    const module = await loadPortfolioRouteModule();
+    if (signal?.aborted) throw new DOMException('Portfolio prewarm aborted.', 'AbortError');
+    const includeMedia = priority !== 'data';
+    const ready = await module.preloadPortfolioRoute?.({
+      signal,
+      includeMedia,
+      waitForMedia: includeMedia,
+    });
+    if (ready === false) throw new Error('Portfolio prewarm failed.');
+    return module;
+  },
 };
 
 export function getPortfolioRouteView(canonicalHref, routeState = {}) {

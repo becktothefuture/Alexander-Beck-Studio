@@ -32,9 +32,11 @@ import {
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
 import { createRouteLoaderTimingDriver } from '../lib/motion/route-transition-loader-timing.js';
 import {
+  createRouteHistoryCoordinator,
   createRouteHistoryDriver,
   settleRouteFocus,
 } from '../lib/motion/route-transition-navigation.js';
+import { prewarmRouteReadiness } from '../lib/motion/route-readiness-registry.js';
 import { createRouteTransitionParticipantGeneration } from '../lib/motion/route-transition-participants.js';
 import {
   ROUTE_NAVIGATION_DECISIONS,
@@ -220,6 +222,12 @@ function createAnimationRegistry() {
       registry.timers.set(timeoutId, onCancel);
       return timeoutId;
     },
+    removeTimer(timeoutId) {
+      if (!registry.timers.has(timeoutId)) return false;
+      clearStableTimeout(timeoutId);
+      registry.timers.delete(timeoutId);
+      return true;
+    },
     cancel() {
       registry.entranceSequence?.cancel();
       registry.entranceSequence = null;
@@ -294,7 +302,8 @@ function getRouteTransitionTimings({
       ready: fallbackReady,
       revealEasing,
       fadeEasing,
-      loaderMinimum: 0,
+      spinnerDelay: shared.spinnerDelayMs,
+      spinnerMinimum: 0,
       staggerScale: 0,
       opacityOnly: true,
       repeatVisit,
@@ -308,11 +317,35 @@ function getRouteTransitionTimings({
     ready: fallbackReady,
     revealEasing,
     fadeEasing,
-    loaderMinimum: repeatVisit ? shared.loaderRepeatMinimumMs : shared.loaderFirstMinimumMs,
+    spinnerDelay: shared.spinnerDelayMs,
+    spinnerMinimum: shared.spinnerMinimumMs,
     staggerScale,
     opacityOnly: false,
     repeatVisit,
   };
+}
+
+function prepareRouteRuntime({
+  routeId,
+  contentSignature,
+  runtime,
+  priority = 'data',
+  reason = 'unknown',
+  signal = null,
+} = {}) {
+  const prepare = typeof runtime?.prewarm === 'function'
+    ? (context) => runtime.prewarm(context)
+    : (typeof runtime?.loadModule === 'function'
+        ? () => loadRouteRuntimeModule(runtime.loadModule)
+        : () => true);
+  return prewarmRouteReadiness({
+    routeId,
+    contentSignature,
+    priority,
+    reason,
+    signal,
+    prepare,
+  });
 }
 
 /* ── content layer references ────────────────────────────────────────────── */
@@ -340,7 +373,7 @@ function buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs = GROUPE
         { el: surfaces.chrome, slide: true },
       ]),
       addGroup(groupOffsetMs, [
-        { el: surfaces.wall, slide: false },
+        { el: surfaces.wall, slide: false, materialOwned: true },
         { el: surfaces.secondary, slide: false },
         { el: surfaces.footer, slide: true },
         { el: surfaces.controls, slide: true },
@@ -351,14 +384,12 @@ function buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs = GROUPE
   if (routeId === 'home') {
     return [
       addGroup(0, [
+        { el: surfaces.wall, slide: false, materialOwned: true },
         { el: surfaces.hero, slide: true },
         { el: surfaces.chrome, slide: true },
         { el: surfaces.secondary, slide: true },
         { el: surfaces.footer, slide: true },
         { el: surfaces.controls, slide: true },
-      ]),
-      addGroup(groupOffsetMs, [
-        { el: surfaces.wall, slide: false },
       ]),
     ];
   }
@@ -519,14 +550,16 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
   return Promise.all(
     anims.map((a) => new Promise((r) => {
       let settled = false;
+      let fallbackId = null;
       const finish = () => {
         if (settled) return;
         settled = true;
+        animationRegistry.removeTimer(fallbackId);
         r();
       };
       a.onfinish = finish;
       a.oncancel = finish;
-      setStableTimeout(finish, durationMs + 80);
+      fallbackId = animationRegistry.addTimer(finish, durationMs + 80, finish);
     }))
   );
 }
@@ -559,14 +592,18 @@ function dismissPortfolioGateSceneBridge({
   const animation = bridge.animate(keyframes, { duration: totalMs, easing, fill: 'forwards' });
   animationRegistry?.add(animation);
   let settled = false;
+  let fallbackId = null;
   const remove = () => {
     if (settled) return;
     settled = true;
+    animationRegistry?.removeTimer(fallbackId);
     bridge.remove();
   };
   animation.onfinish = remove;
   animation.oncancel = remove;
-  setStableTimeout(remove, totalMs + 80);
+  fallbackId = animationRegistry
+    ? animationRegistry.addTimer(remove, totalMs + 80, remove)
+    : setStableTimeout(remove, totalMs + 80);
 }
 
 function releasePortfolioDeck(reason = 'route-in') {
@@ -1087,13 +1124,24 @@ function waitForRouteReady(routeId, timeoutMs, options = {}) {
     let previousSnapshot = null;
     let stableReadyFrames = 0;
     const POLL_MS = 16;
-    const REQUIRED_STABLE_FRAMES = routeId === 'portfolio' ? 2 : 0;
+    const isLocalAuditHost = window.location.hostname === 'localhost'
+      || window.location.hostname === '127.0.0.1';
+    const auditDelayMs = isLocalAuditHost
+      ? Math.max(0, Number(window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ || 0))
+      : 0;
+    const readinessStartedAt = Number(options.readinessStartedAt) || performance.now();
+    const auditReadyNotBefore = readinessStartedAt + auditDelayMs;
+    // Portfolio's runtime and participant each own painted-geometry barriers;
+    // repeating them in the shell delayed a fully prepared deck by three more
+    // frames without adding a stronger invariant.
+    const REQUIRED_STABLE_FRAMES = 0;
     const maybeSettleReady = () => {
       if (!isRouteBaselineReady(routeId, options)) {
         stableReadyFrames = 0;
         previousSnapshot = null;
         return false;
       }
+      if (auditDelayMs > 0 && performance.now() < auditReadyNotBefore) return false;
       if (REQUIRED_STABLE_FRAMES === 0) {
         settle('ready');
         return true;
@@ -1235,9 +1283,17 @@ function staggeredEntrance({
     const surfacePromises = [];
 
     groups.forEach((group) => {
-      group.items.forEach(({ el, slide }) => {
+      group.items.forEach(({ el, slide, materialOwned = false }) => {
         const delay = reducedMotion ? 0 : group.delayMs;
         const routeSlideOffset = isRouteTransition ? 'scale(var(--instrument-wake-resolve-scale))' : 'translateY(var(--space-sm))';
+
+        if (materialOwned) {
+          el.style.opacity = '1';
+          el.style.transform = '';
+          el.style.filter = '';
+          el.style.willChange = 'auto';
+          return;
+        }
 
         if (hasWaapi) {
           const keyframes = reducedMotion
@@ -1313,6 +1369,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     phase: TRANSITION_PHASES.IDLE,
     generation: 0,
     pendingRouteId: null,
+    loaderPresentation: 'plate',
+    loaderSpinnerStartedAt: 0,
     activation: null,
     phaseStartedAt: performance.now(),
     settledGeneration: 0,
@@ -1322,6 +1380,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const queuedNavigationRef = useRef(null);
   const activeRouteIdRef = useRef(routeState.route.id);
   const activeRouteStateRef = useRef(routeState);
+  const settledRouteStateRef = useRef(routeState);
   const activeRouteContentSignatureRef = useRef(readRouteContentSignature(routeState));
   const activeFocusSimulationIdRef = useRef(readRouteStateSimulationFocusId(routeState));
   const activeGateTransitionRef = useRef(false);
@@ -1329,10 +1388,11 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const activeRouteReadyCancelRef = useRef(null);
   const transitionGenerationRef = useRef(0);
   const activeTransactionRef = useRef(null);
+  const routeLoaderSessionRef = useRef(null);
   const navigateRef = useRef(null);
-  const routePrewarmPromisesRef = useRef(new Map());
   const [animationRegistry] = useState(() => createAnimationRegistry());
   const [inertRegistry] = useState(() => createRouteSurfaceInertRegistry());
+  const [historyCoordinator] = useState(() => createRouteHistoryCoordinator());
   const visitedRouteIdsRef = useRef(new Set([routeState.route.id]));
   const lastActivationRef = useRef('pointer');
   const getRouteRuntimeRef = useRef(getRouteRuntime);
@@ -1361,6 +1421,17 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       phaseStartedAt: performance.now(),
     }));
   }, []);
+  const publishLoaderPresentation = useCallback((presentation, detail = {}) => {
+    const normalized = presentation === 'spinner' ? 'spinner' : 'plate';
+    document.documentElement.dataset.absRouteLoaderPresentation = normalized;
+    setTransitionState((current) => ({
+      ...current,
+      loaderPresentation: normalized,
+      loaderSpinnerStartedAt: normalized === 'spinner'
+        ? Number(detail.spinnerShownAt || performance.now())
+        : 0,
+    }));
+  }, []);
 
   const navigate = useCallback((href, options = {}) => {
     const route = resolveRouteFromHref(href, window.location.href);
@@ -1374,7 +1445,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const isSameRoute = nextRouteId === activeRouteIdRef.current;
     const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
-    const previousState = activeRouteStateRef.current;
+    const previousState = options.resumeCovered === true
+      ? settledRouteStateRef.current
+      : activeRouteStateRef.current;
     const previousRouteId = activeRouteIdRef.current;
     const previousRouteContentSignature = activeRouteContentSignatureRef.current;
     const previousFocusSimulationId = activeFocusSimulationIdRef.current;
@@ -1387,6 +1460,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       state: options.state || {},
       nextHref: nextState.canonicalHref,
       previousHref: previousState.canonicalHref,
+      coordinator: historyCoordinator,
     });
     let historyCommitted = historyDriver.committed;
     if (historyCommitted) activeTransitionCommittedRef.current = true;
@@ -1404,6 +1478,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeRouteIdRef.current = nextRouteId;
       activeRouteContentSignatureRef.current = nextRouteContentSignature;
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
+    };
+    const finalizeHistory = () => {
+      historyDriver.finalize();
+      activeTransitionCommittedRef.current = historyDriver.finalized;
     };
     const rollback = (error) => {
       historyDriver.rollback();
@@ -1469,6 +1547,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeRouteReadyCancelRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
+      routeLoaderSessionRef.current?.clear();
+      routeLoaderSessionRef.current = null;
+      historyCoordinator.rollback();
       finalizeTransition(false, activeRouteIdRef.current, surfaceRefs, animationRegistry, inertRegistry);
       resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
       if (wasSimulationFocusTransition) {
@@ -1508,6 +1589,13 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       animationRegistry.cancel();
+      publishTransitionPhase(
+        TRANSITION_PHASES.ROUTE_LOADING,
+        transitionGenerationRef.current,
+        nextRouteId,
+        activation,
+      );
+      routeLoaderSessionRef.current?.retarget();
       void fadeOutContent(80, EASE_OUT, surfaceRefs, animationRegistry, {
         finalOpacity: 0,
         opacityOnly: true,
@@ -1545,6 +1633,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       activeRouteReadyCancelRef.current = null;
       animationRegistry.cancel();
       setRouteSurfaceVisibility(false, surfaceRefs);
+      routeLoaderSessionRef.current?.retarget();
       publishTransitionPhase(
         TRANSITION_PHASES.ROUTE_LOADING,
         transitionGenerationRef.current,
@@ -1621,6 +1710,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const settledRouteId = activeRouteIdRef.current;
       const settledGeneration = transitionGenerationRef.current;
       visitedRouteIdsRef.current.add(settledRouteId);
+      settledRouteStateRef.current = activeRouteStateRef.current;
       activeTransactionRef.current?.participants.complete('ready');
       settleRouteTransitionTransaction(activeTransactionRef.current, 'ready');
       activeTransactionRef.current = null;
@@ -1629,6 +1719,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       setPendingActiveRouteId(null);
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
+      routeLoaderSessionRef.current?.clear();
+      routeLoaderSessionRef.current = null;
+      publishLoaderPresentation('plate');
       const releaseGateBackdrop = Boolean(options.releaseGateBackdropOnComplete);
       finalizeTransition(isGateTransition, activeRouteIdRef.current, surfaceRefs, animationRegistry, inertRegistry, {
         suppressReturnAnimation: isGateTransition,
@@ -1847,10 +1940,18 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         toRouteId: nextRouteId,
         signal: abortController.signal,
       });
-      const loaderTimingDriver = createRouteLoaderTimingDriver({
-        minimumMs: routeTimings.loaderMinimum,
-        signal: abortController.signal,
-      });
+      let loaderTimingDriver = resumeCovered ? routeLoaderSessionRef.current : null;
+      if (!loaderTimingDriver) {
+        routeLoaderSessionRef.current?.clear();
+        loaderTimingDriver = createRouteLoaderTimingDriver({
+          spinnerDelayMs: routeTimings.spinnerDelay,
+          spinnerMinimumMs: routeTimings.spinnerMinimum,
+          reducedMotion: routeTimings.opacityOnly,
+          onPresentationChange: publishLoaderPresentation,
+        });
+        routeLoaderSessionRef.current = loaderTimingDriver;
+        publishLoaderPresentation('plate');
+      }
       const transaction = createRouteTransitionTransaction({
         generation: token,
         fromState: previousState,
@@ -1878,6 +1979,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       );
 
       let routeReadyWaiter = null;
+      let routeReadinessStartedAt = 0;
       let gateBackdropDismissed = false;
       const dismissGateBackdropOnce = () => {
         if (!isGate || gateBackdropDismissed) return;
@@ -1888,7 +1990,17 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const preloadRouteModule = typeof options.preloadRouteModule === 'function'
         ? options.preloadRouteModule
         : nextRouteRuntime?.loadModule;
-      const preloadResult = loadRouteRuntimeModule(preloadRouteModule)
+      const preloadPromise = typeof options.preloadRouteModule === 'function'
+        ? loadRouteRuntimeModule(preloadRouteModule)
+        : prepareRouteRuntime({
+            routeId: nextRouteId,
+            contentSignature: nextRouteContentSignature,
+            runtime: nextRouteRuntime,
+            priority: 'navigation',
+            reason: 'navigation',
+            signal: abortController.signal,
+          });
+      const preloadResult = preloadPromise
         .then(() => ({ error: null }), (error) => ({ error }));
       const participantDepartureResult = waitWithTransitionTimeout(
         Promise.all([participants.prepare(), participants.exit()]),
@@ -1924,6 +2036,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           pinRouteSurfacesForCommit(surfaceRefs, animationRegistry);
           commit();
           markRouteTransitionCommitted(transaction);
+          routeReadinessStartedAt = performance.now();
+          loaderTimingDriver.beginReadinessWait();
+          // Dynamic routes own their final-geometry paint barrier at the point
+          // their runtime becomes ready. Static routes use the shell barrier
+          // immediately after commit.
+          if (nextState.route.id === 'home' || nextState.route.id === 'portfolio') {
+            return undefined;
+          }
           return loaderTimingDriver.waitForDestinationPaint();
         })
         .then(async () => {
@@ -1936,6 +2056,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           if (stale()) return;
           routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
             lockedGateId: nextState.lockedGateId || null,
+            readinessStartedAt: routeReadinessStartedAt,
           });
           transaction.readinessWaiter = routeReadyWaiter;
           activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
@@ -1951,7 +2072,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             throw new Error(`Route "${nextState.route.id}" did not become ready (${readinessStatus}).`);
           }
           if (stale()) return;
-          await loaderTimingDriver.waitForMinimum();
+          // Home readiness is the first scheduled canvas/title composition, so
+          // keep its final geometry covered for two paints. Portfolio's route
+          // participant owns the equivalent barrier.
+          if (nextState.route.id === 'home') {
+            await loaderTimingDriver.waitForDestinationPaint();
+            if (stale()) return;
+          }
+          await loaderTimingDriver.waitForReadiness();
         })
         .then(() => {
           if (stale()) return;
@@ -1966,6 +2094,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             reducedMotion: routeTimings.opacityOnly,
             staggerScale: routeTimings.staggerScale,
             onPrepared: () => {
+              finalizeHistory();
               publishTransitionPhase(TRANSITION_PHASES.ROUTE_IN, token, nextRouteId, activation);
               participantEnterPromise = waitWithTransitionTimeout(
                 participants.enter(),
@@ -2025,10 +2154,12 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
               routeTimings.ready,
               abortController.signal,
             ).catch(() => undefined);
-            try {
-              options.onFailure?.(error, previousState);
-            } catch {
-              // Failure reporting must not prevent the outgoing route returning.
+            const restoringDifferentRoute = readRouteContentSignature(activeRouteStateRef.current)
+              !== previousRouteContentSignature;
+            rollback(error);
+            setPendingActiveRouteId(previousRouteId);
+            if (restoringDifferentRoute) {
+              await loaderTimingDriver.waitForDestinationPaint();
             }
           }
 
@@ -2043,6 +2174,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             reducedMotion: routeTimings.opacityOnly,
             staggerScale: routeTimings.staggerScale,
             onPrepared: () => {
+              finalizeHistory();
               publishTransitionPhase(
                 TRANSITION_PHASES.ROUTE_IN,
                 token,
@@ -2069,10 +2201,20 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
     /* ── same-route non-gate: instant commit ─────────────────────────────── */
     commit();
+    finalizeHistory();
+    settledRouteStateRef.current = nextState;
     setPendingActiveRouteId(null);
     syncSteadyTransitionPhase();
     return true;
-  }, [animationRegistry, inertRegistry, publishTransitionPhase, surfaceRefs, syncSteadyTransitionPhase]);
+  }, [
+    animationRegistry,
+    historyCoordinator,
+    inertRegistry,
+    publishLoaderPresentation,
+    publishTransitionPhase,
+    surfaceRefs,
+    syncSteadyTransitionPhase,
+  ]);
 
   useLayoutEffect(() => {
     navigateRef.current = navigate;
@@ -2083,23 +2225,23 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     if (!route?.id) return Promise.resolve(false);
     const href = options.href || buildRouteHref(route.id);
     const nextState = computeRouteState(new URL(href, window.location.href).toString());
-    const cacheKey = readRouteContentSignature(nextState);
-    const cached = routePrewarmPromisesRef.current.get(cacheKey);
-    if (cached) return cached;
-
     const runtime = getRouteRuntimeRef.current(route.id, nextState.canonicalHref, nextState);
-    if (typeof runtime?.loadModule !== 'function') return Promise.resolve(false);
-
-    const pending = loadRouteRuntimeModule(runtime.loadModule)
+    const pending = prepareRouteRuntime({
+      routeId: route.id,
+      contentSignature: readRouteContentSignature(nextState),
+      runtime,
+      priority: options.priority || (options.reason === 'idle' ? 'media' : 'intent'),
+      reason: options.reason || 'intent',
+      signal: options.signal || null,
+    })
       .then(() => true)
       .catch((error) => {
-        routePrewarmPromisesRef.current.delete(cacheKey);
-        if (options.reason !== 'idle') {
+        if (options.throwOnError) throw error;
+        if (options.reason !== 'idle' && error?.name !== 'AbortError') {
           console.warn(`[transition] Route prewarm failed for "${route.id}"`, error);
         }
         return false;
       });
-    routePrewarmPromisesRef.current.set(cacheKey, pending);
     return pending;
   }, []);
 
@@ -2320,6 +2462,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   useEffect(() => {
     const generationRef = transitionGenerationRef;
     const handlePopState = () => {
+      historyCoordinator.discard();
       const nextHref = window.location.href;
       const nextState = computeRouteState(nextHref);
       const isSameRoute = nextState.route.id === activeRouteIdRef.current;
@@ -2364,6 +2507,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         activeRouteIdRef.current = nextState.route.id;
         activeRouteContentSignatureRef.current = readRouteContentSignature(nextState);
         activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(nextState);
+        settledRouteStateRef.current = nextState;
         syncSteadyTransitionPhase();
         return;
       }
@@ -2392,6 +2536,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         queuedNavigationRef.current = null;
         activeRouteReadyCancelRef.current?.();
         activeRouteReadyCancelRef.current = null;
+        routeLoaderSessionRef.current?.clear();
+        routeLoaderSessionRef.current = null;
+        historyCoordinator.rollback();
         finalizeTransition(
           activeGateTransitionRef.current,
           activeRouteIdRef.current,
@@ -2409,7 +2556,15 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
       }
     };
-  }, [animationRegistry, inertRegistry, navigate, publishTransitionPhase, surfaceRefs, syncSteadyTransitionPhase]);
+  }, [
+    animationRegistry,
+    historyCoordinator,
+    inertRegistry,
+    navigate,
+    publishTransitionPhase,
+    surfaceRefs,
+    syncSteadyTransitionPhase,
+  ]);
 
   useLayoutEffect(() => {
     getRouteRuntimeRef.current = getRouteRuntime;
@@ -2434,6 +2589,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
 
   useLayoutEffect(() => {
     if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) return;
+    if (transitionActiveRef.current || historyCoordinator.provisional) return;
     const simulationId = routeState.focusSimulationId || routeState.dailyFocusRouteId || '';
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentHref !== routeState.canonicalHref) {
@@ -2441,7 +2597,14 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     }
     if (!simulationId) return;
     writeManualSimulationFocus(simulationId);
-  }, [routeState.canonicalHref, routeState.dailyFocusRouteId, routeState.focusSimulationId]);
+  }, [
+    historyCoordinator,
+    routeState.canonicalHref,
+    routeState.dailyFocusRouteId,
+    routeState.focusSimulationId,
+    transitionState.phase,
+    transitionState.settledGeneration,
+  ]);
 
   const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref, routeState), [
     getRouteView,

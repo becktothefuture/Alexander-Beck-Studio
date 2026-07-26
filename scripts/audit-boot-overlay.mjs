@@ -134,9 +134,11 @@ function assertCriticalBootSource() {
     assertSourceHasNoDeprecatedBootChrome(source, file);
     assert(!source.includes('html[data-abs-boot-state="booting"]::before'), `${file}: duplicate critical boot cover returned`);
     assert(!source.includes('html[data-abs-boot-state="booting"]::after'), `${file}: duplicate critical spinner returned`);
-    assert(source.includes('@keyframes absBootSpin'), `${file}: missing supplied shadow-spinner keyframes`);
+    assert(source.includes('@keyframes absBootSpin'), `${file}: missing spinner orbit keyframes`);
     assert(source.includes('animation: absBootSpin 1.1s infinite ease'), `${file}: boot spinner cadence drifted`);
     assert(source.includes('--abs-boot-loader-size: 0.5px'), `${file}: boot spinner size drifted`);
+    assert(source.includes('class="abs-loader-spinner__dot"'), `${file}: explicit circular spinner dots are missing`);
+    assert(source.includes('clip-path: circle(50% at 50% 50%)'), `${file}: spinner dots lost circular clipping`);
     assert(source.includes('--abs-boot-overlay-out-ms: 640ms'), `${file}: boot handoff duration drifted`);
     assert(source.includes('transition: opacity var(--abs-boot-overlay-out-ms, 480ms) cubic-bezier(0.45, 0, 0.55, 1)'), `${file}: boot crossfade easing drifted`);
     assert(source.includes('transform: scale(2.4) translateZ(0)'), `${file}: loader exit scale drifted`);
@@ -234,11 +236,21 @@ async function readSpinnerSnapshot(page) {
     const documentStyle = getComputedStyle(document.documentElement);
     return {
       spinnerAnimation: spinnerStyle?.animationName || '',
-      spinnerBoxShadow: spinnerStyle?.boxShadow || '',
+      spinnerColor: spinnerStyle?.color || '',
       spinnerFontSize: Number.parseFloat(spinnerStyle?.fontSize || '0'),
       spinnerWidth: Number.parseFloat(spinnerStyle?.width || '0'),
       spinnerHeight: Number.parseFloat(spinnerStyle?.height || '0'),
       spinnerBorderRadius: spinnerStyle?.borderRadius || '',
+      dots: Array.from(spinner?.querySelectorAll('.abs-loader-spinner__dot') || []).map((dot) => {
+        const style = getComputedStyle(dot);
+        return {
+          width: Number.parseFloat(style.width || '0'),
+          height: Number.parseFloat(style.height || '0'),
+          borderRadius: style.borderRadius,
+          clipPath: style.clipPath,
+          backgroundColor: style.backgroundColor,
+        };
+      }),
       loaderStrongColor: documentStyle.getPropertyValue('--abs-boot-loader-1').trim(),
       messageColor: documentStyle.getPropertyValue('--abs-boot-message-color').trim(),
       resolvedMessageColor: messageLine ? getComputedStyle(messageLine).color : '',
@@ -268,7 +280,12 @@ async function assertMinimumVisibleElapsed(page, label) {
 }
 
 function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
-  assert(snapshot.spinnerBoxShadow && snapshot.spinnerBoxShadow !== 'none', `${label}: spinner shadows did not render`);
+  assert(snapshot.dots.length === 8, `${label}: expected eight explicit spinner dots`);
+  snapshot.dots.forEach((dot, index) => {
+    assert(Math.abs(dot.width - dot.height) <= 0.01, `${label}: dot ${index + 1} is not square before clipping`);
+    assert(dot.borderRadius === '50%', `${label}: dot ${index + 1} lost its circular radius`);
+    assert(dot.clipPath.includes('circle(50%'), `${label}: dot ${index + 1} lost circular clipping`);
+  });
   assert(snapshot.spinnerFontSize >= 4.9 && snapshot.spinnerFontSize <= 5.1, `${label}: spinner core size drifted to ${snapshot.spinnerFontSize}px`);
   assert(snapshot.spinnerWidth >= 4.9 && snapshot.spinnerWidth <= 5.1, `${label}: spinner width drifted to ${snapshot.spinnerWidth}px`);
   assert(snapshot.spinnerHeight >= 4.9 && snapshot.spinnerHeight <= 5.1, `${label}: spinner height drifted to ${snapshot.spinnerHeight}px`);
@@ -285,7 +302,7 @@ function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
     assert(
       snapshot.spinnerAnimation.includes('absBootSpin')
         || snapshot.spinnerAnimation.includes('absBootLoaderExit'),
-      `${label}: shadow-spinner animation or release handoff was not active`
+      `${label}: spinner orbit animation or release handoff was not active`
     );
   }
 }
@@ -293,7 +310,8 @@ function assertSpinnerReady(snapshot, label, { reducedMotion = false } = {}) {
 function assertSpinnerTheme(bootSnapshot, spinnerSnapshot, label) {
   assert(bootSnapshot.rootColorScheme.includes('dark'), `${label}: root browser color-scheme must stay dark during boot`);
   assert(spinnerSnapshot.loaderStrongColor.includes('255, 255, 255'), `${label}: dark boot surface did not use light loader ink`);
-  assert(spinnerSnapshot.spinnerBoxShadow.includes('255, 255, 255'), `${label}: loader did not resolve light ink`);
+  assert(spinnerSnapshot.spinnerColor.includes('255, 255, 255'), `${label}: loader did not resolve light ink`);
+  assert(spinnerSnapshot.dots.every((dot) => dot.backgroundColor.includes('255, 255, 255')), `${label}: spinner dots did not inherit light ink`);
   assert(spinnerSnapshot.messageColor.includes('255, 255, 255'), `${label}: dark boot surface did not use light message ink`);
   assert(spinnerSnapshot.resolvedMessageColor.includes('255, 255, 255'), `${label}: message copy did not inherit its subtle light ink`);
   assert(spinnerSnapshot.resolvedMessageColor.includes('0.54'), `${label}: message copy lost its subtle opacity`);

@@ -323,8 +323,8 @@ const RETIRED_SHELL_MOTION_KEYS = new Set([
 const SHELL_ROUTE_TRANSITION_NUMBER_KEYS = Object.freeze([
   'exitDurationMs',
   'loaderEnterDurationMs',
-  'loaderFirstMinimumMs',
-  'loaderRepeatMinimumMs',
+  'spinnerDelayMs',
+  'spinnerMinimumMs',
   'readinessTimeoutMs',
   'spinnerExitDurationMs',
   'plateExitDelayMs',

@@ -12,6 +12,8 @@ import {
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
+const dailyFocusJsonPromises = new Map();
+
 const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(getTimeOfDayPaletteId())?.dark || [];
 const DEFAULT_PALETTE = RAW_DEFAULT_PALETTE.slice();
 
@@ -33,11 +35,45 @@ export const DEFAULT_DAILY_FOCUS_THEME = Object.freeze({
   mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 });
 
+function requestDailyFocusJson(url) {
+  const cached = dailyFocusJsonPromises.get(url);
+  if (cached) return cached;
+  const pending = fetch(url, { cache: 'no-store' })
+    .then((response) => {
+      if (!response.ok) throw new Error(`Failed to load ${url} (${response.status}).`);
+      return response.json();
+    })
+    .catch((error) => {
+      if (dailyFocusJsonPromises.get(url) === pending) dailyFocusJsonPromises.delete(url);
+      throw error;
+    });
+  dailyFocusJsonPromises.set(url, pending);
+  return pending;
+}
+
+export function prewarmDailyFocusJson(url, { signal } = {}) {
+  const pending = requestDailyFocusJson(url);
+  if (!signal) return pending;
+  if (signal.aborted) return Promise.reject(new DOMException('JSON prewarm aborted.', 'AbortError'));
+  return new Promise((resolve, reject) => {
+    const handleAbort = () => reject(new DOMException('JSON prewarm aborted.', 'AbortError'));
+    signal.addEventListener('abort', handleAbort, { once: true });
+    pending.then(
+      (value) => {
+        signal.removeEventListener('abort', handleAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', handleAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
 export async function loadDailyFocusJson(url, fallback) {
   try {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) return fallback;
-    return await response.json();
+    return await requestDailyFocusJson(url);
   } catch {
     return fallback;
   }

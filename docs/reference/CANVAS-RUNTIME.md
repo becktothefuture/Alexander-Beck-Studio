@@ -35,7 +35,11 @@ React route files export runtime descriptors such as:
 ```js
 export const HOME_ROUTE_RUNTIME = {
   exportName: 'bootstrapHomePage',
-  loadModule: () => import('../../legacy/main.js')
+  loadModule: () => import('../../legacy/main.js'),
+  prewarm: async ({ signal }) => {
+    const module = await import('../../legacy/main.js');
+    return module.prewarmHomeRoute({ signal });
+  }
 };
 ```
 
@@ -52,7 +56,7 @@ The Home owner does not equate canvas allocation with readiness. It waits for cr
 
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 
-When Home is bootstrapped behind an active shell route cover, its renderer/input/tactile setup and its legend/keyboard/mode setup are separated by painted scheduling yields. The loader remains opaque and Home surfaces remain hidden/inert while those groups complete. Direct document boot keeps its existing cadence. Do not remove the covered yields without profiling Home re-entry Long Tasks and transition frame gaps; do not add per-frame allocations or move physics work into React to address bootstrap cost.
+Home prewarming may cache the Home route module, copy, and the selected simulation-mode module, but it never creates a canvas runtime, initializes simulation state, or starts a loop. When Home is bootstrapped behind an active shell route cover, it reports route readiness immediately after mode initialization and scheduling the first main-loop frame. The shell then keeps the final canvas/title geometry covered for two painted frames. Non-critical quote and development tooling continues after that readiness boundary. Direct document boot keeps its existing self-contained readiness cadence. Do not add per-frame allocations or move physics work into React to reduce bootstrap cost.
 
 ### Runtime generation and cancellation
 

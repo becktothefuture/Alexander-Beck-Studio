@@ -7,6 +7,11 @@ export const ROUTE_SURFACE_DESCRIPTORS = Object.freeze([
   Object.freeze({ key: 'controls', selector: '.shell-transition-surface--controls', slide: true }),
 ]);
 
+// A non-zero, visually imperceptible alpha lets the browser rasterize a newly
+// committed canvas while the invariant-black loader is still fully opaque.
+// This avoids deferring the first canvas texture upload to the reveal frame.
+const COVERED_PREPAINT_OPACITY = '0.001';
+
 function getSurfaceNode(surfaceRef, fallbackSelector) {
   if (surfaceRef?.current) return surfaceRef.current;
   if (!fallbackSelector) return null;
@@ -80,7 +85,7 @@ export function setRouteSurfaceVisibility(visible, surfaceRefs) {
 
 export function pinRouteSurfacesForCommit(surfaceRefs, animationRegistry) {
   getOwnedRouteSurfaceNodes(surfaceRefs).forEach((element) => {
-    element.style.opacity = '0';
+    element.style.opacity = COVERED_PREPAINT_OPACITY;
     element.style.removeProperty('visibility');
     element.style.pointerEvents = 'none';
     element.style.willChange = 'opacity, transform, filter';

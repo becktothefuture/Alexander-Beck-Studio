@@ -1,8 +1,8 @@
-# PRD: Route Transition Quality and Performance Hardening
+# PRD: Adaptive, Theme-Aware Route Transition Hardening
 
 ## Introduction
 
-Strengthen the existing unified route-transition system across Home, Portfolio, About Me, and Contact without changing the frontend visual design.
+Strengthen the existing unified route-transition system across Home, Portfolio, About Me, and Contact without changing the route layouts, typography, content, Button Bar, frame, or entrance choreography. Replace the compulsory in-window spinner ceremony with a theme-aware plate that escalates to the existing spinner language only for genuine waits.
 
 The current system already prevents the original Home content flash and owns navigation through one shell-level transaction:
 
@@ -10,28 +10,33 @@ The current system already prevents the original Home content flash and owns nav
 
 It also preserves the physical shell and Button Bar, keeps incoming content hidden until readiness, supports route participants, handles rapid retargeting, and provides reduced-motion and accessibility behavior. Fresh transition analysis nevertheless identified four material opportunities:
 
-1. Portfolio remains behind the opaque loader for too long, including on repeat visits where almost no network transfer occurs.
+1. A spinner appears during ordinary warmed route changes even when preparation is almost complete, making the interface feel slower than it is.
 2. Home re-entry can produce occasional long main-thread tasks near the reveal boundary.
 3. The transition coordinator is concentrated in one large React hook, making cancellation and failure behavior harder to test in isolation.
 4. Browser audits provide strong end-to-end evidence but lack a deterministic transaction-test layer, and the reduced-motion audit incorrectly requires a fully established spinner during valid short waits.
 
-This work will refactor and optimise the system simultaneously. It will preserve the current appearance and interaction design while improving internal ownership, repeat-route readiness, perceived latency, main-thread scheduling, bundle boundaries, and verification reliability.
+This work will refactor and optimise the system simultaneously. It will preserve the current route design while making the temporary route cover follow the live studio-window theme, repairing spinner-dot geometry, improving internal ownership, route readiness, perceived latency, main-thread scheduling, bundle boundaries, and verification reliability. The fixed-black direct-load boot overlay remains unchanged.
 
 ## Confirmed Product Decisions
 
 - Scope is the full improvement programme: architecture, Portfolio acceleration, Home long-task reduction, bundle/configuration work, deterministic tests, and audit repairs.
 - Architecture refactoring and performance optimisation will be delivered together rather than as separate projects.
 - Timing improvements are best-effort and evidence-driven. There are no brittle hard duration gates that fail solely because a particular machine is slower.
-- Portfolio prewarming starts during eligible idle time and is reinforced by hover, focus, pointer-down, and touch intent.
-- Prewarming may cache route modules, normalized configuration, content data, and decoded first-view Portfolio media in memory.
+- Data-level preparation for all four primary routes begins during direct boot; eligible media preparation follows after Home's essential work and direct reveal.
+- Hover, focus, pointer-down, and touch intent promote the relevant route through the same readiness registry.
+- Prewarming may cache route modules, normalized configuration, content data, Home's active mode module, and decoded first-view Portfolio media in memory.
 - The Portfolio route runtime or DOM tree will not remain persistently mounted while another route is active.
+- The SPA spinner appears only after 120ms of destination readiness waiting and, once visible, remains for at least 140ms. Reduced motion uses the same threshold without an artificial hold.
+- Covered route intents remain provisional in history until route-in; unseen intermediate destinations create no browser entry.
+- The direct boot overlay remains fixed black. Only the in-window SPA plate follows `--studio-window-bg` and only the SPA spinner follows `--text-primary`.
 - Final certification includes Chromium and WebKit desktop, Chromium mobile, reduced motion, CPU-throttled coverage, and a physical-phone follow-up.
 - The frontend visual design must not change.
 
 ## Goals
 
-- Preserve the current route-transition composition, timing character, typography, palette, geometry, loader, spinner, stagger order, and persistent-shell behavior.
-- Reduce time spent behind the opaque loader, especially on first and repeat Portfolio navigation.
+- Preserve the current route-transition composition, timing character, typography, route palette, geometry, stagger order, and persistent-shell behavior.
+- Replace ordinary warmed spinner punctuation with a short theme-matched plate breath; reserve the spinner for sustained readiness.
+- Reduce time spent behind the opaque cover, especially on first and repeat Portfolio navigation.
 - Make repeat Portfolio visits materially faster by reusing safe in-memory preparation work.
 - Ensure the Portfolio center card becomes meaningful as early as readiness safely permits while preserving the existing center-right-left reveal order.
 - Move Home simulation preparation away from the exposed route-in boundary and reduce re-entry long tasks.
@@ -92,24 +97,43 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 - [ ] Existing unrelated legacy-runtime and route code is not reformatted or rewritten.
 - [ ] `npm run check:site` passes.
 
-### US-003: Add safe Portfolio prewarming
+### US-003: Add safe four-route prewarming
 
-**Description:** As a visitor, I want Portfolio to be prepared before I select it so that navigation spends less time behind the loader without changing what the transition looks like.
+**Description:** As a visitor, I want all primary views to be prepared before I select them so ordinary navigation needs only a short theme-matched cover and no spinner.
 
 **Acceptance Criteria:**
 
-- [ ] After direct boot and essential Home work settle, eligible idle time may preload the Portfolio route module, content data, normalized configuration, and first-view media.
-- [ ] Hover, keyboard focus, pointer-down, and touch intent on the Portfolio tab raise prewarming priority.
-- [ ] Prewarming is deduplicated; concurrent callers share the same in-flight promises.
-- [ ] Prewarming uses an in-memory cache that resets on document reload and is never persisted as user or design truth.
+- [ ] Data-level code/configuration/content preparation for Home, Portfolio, About Me, and Contact begins during direct boot without delaying Home reveal.
+- [ ] After direct boot and essential Home work settle, eligible idle time may promote all four routes to media readiness.
+- [ ] Hover, keyboard focus, pointer-down, and touch intent on any primary route tab raise that route's preparation priority.
+- [ ] Prewarming is deduplicated through keys containing route content signature, viewport class, rounded DPR, theme, and configuration revision; concurrent callers share in-flight promises.
+- [ ] Prewarming uses an in-memory cache that resets on document reload and is never persisted as user or design truth; rejected jobs are removed for retry.
 - [ ] Only first-view readiness-critical media is decoded: the center card and the nearest visible permanent card instances needed by the existing reveal.
 - [ ] Lazy project-detail media and video playback are not prewarming dependencies.
 - [ ] Prewarming never mounts a hidden Portfolio route tree or starts the Portfolio particle field, orbital loop, video, gate, drawer, or project runtime.
 - [ ] Idle image prewarming is skipped or reduced when `navigator.connection.saveData` is enabled or the connection is reported as severely constrained; intent-driven preparation may still proceed.
 - [ ] A prewarm failure does not affect current-route usability and is retried safely during real navigation.
+- [ ] Home preparation may import its active mode but never allocates a canvas, initializes balls, or starts a simulation; Contact caches its design-system configuration and production About resolves immediately.
 - [ ] No new visual indicator, progress bar, tooltip, or frontend element is added.
 - [ ] `npm run check:site` passes.
 - [ ] Verify in browser using dev-browser skill.
+
+### US-003A: Make SPA loading adaptive and theme-aware
+
+**Description:** As a visitor, I want route changes to feel immediate when content is warm and honestly communicate only real waits, while matching the current studio-window theme.
+
+**Acceptance Criteria:**
+
+- [ ] `route-loading` begins with a plate only, using the current `--studio-window-bg`; it updates if the theme changes while covered.
+- [ ] The readiness clock begins when the destination is provisionally committed. A destination ready within 120ms never shows a spinner or receives an artificial minimum delay.
+- [ ] A wait beyond 120ms shows the spinner once. Normal motion then honours a 140ms minimum presence; reduced motion uses a static spinner with no artificial hold.
+- [ ] Covered retargeting preserves the plate, pending delay, or visible spinner and never restarts the loader arrival.
+- [ ] History stays provisional while the plate is opaque. A rapid unseen `Work → Contact → About` burst produces only the durable final destination entry.
+- [ ] The route spinner uses eight explicit equal-sided, circularly clipped dots and live `--text-primary` ink. Its orbit, size, cadence, and bloom endpoints remain unchanged.
+- [ ] The direct-load boot overlay remains fixed black with fixed light dots and its existing lifecycle.
+- [ ] Warmed `Home → Work → Home → About → Home → Contact → Home` produces zero SPA spinners.
+- [ ] Forced 80ms readiness produces no spinner; forced 150ms and 500ms readiness produces one non-restarting spinner and honours the applicable hold.
+- [ ] Desktop and mobile DPR 1/2/3 pixel captures prove transparent dot corners and equal dimensions.
 
 ### US-004: Shorten the Portfolio readiness critical path
 
@@ -211,7 +235,7 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 
 - [ ] The reduced-motion transition audit does not require a spinner to exceed an arbitrary visibility threshold when route-loading is shorter than the spinner establishment time.
 - [ ] Reduced motion still asserts full loader coverage, correct route opacity, readiness before reveal, no artificial minimum hold, and complete settlement.
-- [ ] Normal-motion audits continue to require the spinner punctuation and opaque plate behavior.
+- [ ] Normal-motion audits forbid spinner punctuation for warmed routes, require it after the configured readiness threshold, and always require opaque plate coverage.
 - [ ] Browser traces report phase durations, readiness milestones, loader-covered duration, first meaningful destination content, settlement, frame intervals, and long tasks.
 - [ ] Portfolio traces distinguish module/content/media preparation, runtime readiness, route-in, and visible-card animation completion.
 - [ ] Home traces expose first usable canvas frame and any long task overlapping loader departure.
@@ -227,7 +251,7 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 **Acceptance Criteria:**
 
 - [ ] Compare Home, Portfolio, About Me, and Contact before/after screenshots at desktop and mobile sizes in light and dark themes.
-- [ ] Confirm no change to route layout, typography, copy, colors, surface geometry, frame, Button Bar, cursor, loader design, spinner design, card design, or content order.
+- [ ] Confirm no change to route layout, typography, copy, route colours, surface geometry, frame, Button Bar, cursor, card design, or content order; loader differences are limited to the specified adaptive theme colour and circular-dot repair.
 - [ ] Confirm the physical window, outside wall, exposed black band, and Button Bar do not animate with route content.
 - [ ] Confirm the loader remains clipped to the studio window and stops above the Button Bar.
 - [ ] Confirm Portfolio drawer, gate, card-to-drawer handoff, carousel input, and particle field appearance remain unchanged.
@@ -264,11 +288,11 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 - FR-4: All route-owned hide, inert, busy, animation, cancellation, restoration, and audit operations must derive from the route-surface descriptor registry.
 - FR-5: Incoming route surfaces and entrance targets must remain hidden and inert until readiness and route-in staging are complete.
 - FR-6: Every pre-commit frame must contain visible outgoing route content or a fully opaque loader covering the complete studio window above the Button Bar.
-- FR-7: The loader, spinner, plate color, geometry, stacking, and reduced-motion appearance must remain visually unchanged.
+- FR-7: The in-window plate must use the live studio-window background, while the fixed-black direct boot overlay remains visually and behaviorally unchanged.
 - FR-8: The transaction core must ignore stale callbacks and prevent more than one history commit for a transaction.
 - FR-9: Cancellation and finalization must be idempotent and must settle animations, timers, abort signals, participants, inert state, busy state, focus state, and diagnostic attributes.
-- FR-10: Portfolio module, content, configuration, and first-view media preparation must be deduplicated and safely reusable within the current document lifetime.
-- FR-11: Portfolio prewarming must never persist data to browser storage or mount/start the inactive route runtime.
+- FR-10: Primary-route module, content, configuration, and readiness-critical media preparation must be deduplicated and safely reusable within the current document lifetime.
+- FR-11: Route prewarming must never persist data to browser storage or mount/start an inactive route runtime.
 - FR-12: Portfolio readiness must use the smallest set of assets and geometry required for a usable first view.
 - FR-13: Portfolio reveal order and orbital transform ownership must remain unchanged.
 - FR-14: Home must prepare its first usable canvas/title state while covered and must not expose partially initialized simulation content.
@@ -283,12 +307,17 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 - FR-23: Deterministic transaction tests must run as part of the canonical local verification gate.
 - FR-24: Browser transition audits must run serially in Chromium and WebKit when cadence or route orchestration changes.
 - FR-25: Performance reports must distinguish network time, readiness time, animation time, main-thread task time, and audit overhead.
+- FR-26: The SPA spinner delay and minimum must be globally configurable as `spinnerDelayMs` and `spinnerMinimumMs`; obsolete first/repeat loader-minimum controls must be removed.
+- FR-27: The spinner delay must be cancellable without a stale state update, and every timer/hold must settle on abort, retarget, failure, or unmount.
+- FR-28: Browser history writes must occur only when route-in begins; covered provisional destinations must coalesce to the latest intent.
+- FR-29: Route plate and spinner colours must react to a manual theme change while covered without recolouring the Button Bar, frame, or direct boot overlay.
+- FR-30: Warm navigation must not show a spinner; delayed readiness must escalate once and never replay during covered retargeting.
 
 ## Non-Goals
 
 - No frontend visual redesign.
-- No changes to typography, copy, palette, route composition, layout, spacing, card geometry, Button Bar, loader, spinner, cursor, wall, frame, or animation visual endpoints.
-- No new loader treatment, skeleton screen, progress bar, route sound, haptic, transition overlay, or decorative effect.
+- No changes to typography, copy, route composition, layout, spacing, card geometry, Button Bar, cursor, wall, frame, or route animation endpoints beyond the specified adaptive plate colour and spinner-dot geometry repair.
+- No skeleton screen, progress bar, route sound, haptic, additional transition overlay, or decorative effect.
 - No duplicate incoming/outgoing React route trees, `TransitionGroup`, view-transition snapshots, or duplicate canvas IDs.
 - No persistent hidden Portfolio React tree, particle field, orbital loop, gate, drawer, video runtime, or project runtime.
 - No WebGL migration or rewrite of active Canvas 2D legacy infrastructure.
@@ -301,7 +330,7 @@ These values are diagnostic baselines, not universal guarantees. Final evaluatio
 ## Design Considerations
 
 - Treat the current frontend as visually locked. The work is successful when visitors perceive the same designed transition with less waiting and fewer hitches.
-- Preserve the compact mechanical-breath character: decisive exit, short black punctuation, coordinated loader departure, then identity, context, action, and support.
+- Preserve the compact mechanical-breath character: decisive exit, short theme-matched punctuation, coordinated cover departure, then identity, context, action, and support.
 - Preserve the Portfolio center-out spatial reveal. Performance work must accelerate preparation rather than flattening the composition into a generic fade.
 - Preserve Home's title, expertise labels, footer sequence, social icons, London time, simulation focus, and compact material bloom.
 - Preserve Contact's early useful action and About's calmer entrance.
@@ -409,6 +438,11 @@ Also complete:
 - All route transitions preserve exact phase ordering, coverage, readiness, inert, busy, history, and settlement invariants.
 - No Home footer, social icon, label, title, or simulation-focus control appears before route-in.
 - No route exposes a blank frame without outgoing content or a fully opaque loader.
+- Normal warmed six-hop primary-route navigation shows no SPA spinner.
+- Forced 80ms readiness does not show a spinner; forced 150ms and 500ms readiness show one spinner without restarting it.
+- Route-cover and spinner colours match both live themes, including a theme toggle while covered; direct boot remains fixed black.
+- Spinner dots pass transparent-corner and equal-dimension pixel checks on desktop/mobile DPR 1, 2, and 3.
+- Rapid covered retargeting and Back/Forward create no unseen intermediate history entry.
 - Repeat Portfolio navigation shows a material improvement in loader-covered and total settlement time in like-for-like median measurements.
 - First Portfolio navigation shows a material improvement or a documented evidence-based reason why further reduction would compromise readiness or the locked design.
 - Repeat Portfolio navigation reuses module/content/configuration/media preparation and avoids redundant fetch/decode work.
@@ -435,4 +469,3 @@ Also complete:
 ## Open Questions
 
 - None blocking. Timing values are best-effort rather than hard gates; implementation must report before/after evidence and prioritise correctness and unchanged visual design over hitting an arbitrary duration on one machine.
-

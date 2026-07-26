@@ -13,7 +13,13 @@ import {
   markRouteTransitionCommitted,
   settleRouteTransitionTransaction,
 } from '../react-app/app/src/lib/motion/route-transition-transaction.js';
-import { createRouteHistoryDriver } from '../react-app/app/src/lib/motion/route-transition-navigation.js';
+import {
+  createRouteHistoryCoordinator,
+  createRouteHistoryDriver,
+} from '../react-app/app/src/lib/motion/route-transition-navigation.js';
+import {
+  createAdaptiveSpinnerController,
+} from '../react-app/app/src/lib/motion/route-transition-loader-timing.js';
 import {
   createRouteTransitionParticipantGeneration,
   registerRouteTransitionParticipant,
@@ -26,6 +32,40 @@ function createTransaction(overrides = {}) {
     toState: { route: { id: 'portfolio' } },
     ...overrides,
   });
+}
+
+function createFakeClock() {
+  let now = 0;
+  let nextId = 1;
+  const timers = new Map();
+  return {
+    now: () => now,
+    setTimer(callback, delayMs) {
+      const id = nextId++;
+      timers.set(id, { callback, at: now + Math.max(0, delayMs) });
+      return id;
+    },
+    clearTimer(id) {
+      timers.delete(id);
+    },
+    tick(durationMs) {
+      const target = now + durationMs;
+      while (true) {
+        const next = [...timers.entries()]
+          .filter(([, timer]) => timer.at <= target)
+          .sort((left, right) => left[1].at - right[1].at)[0];
+        if (!next) break;
+        const [id, timer] = next;
+        timers.delete(id);
+        now = timer.at;
+        timer.callback();
+      }
+      now = target;
+    },
+    get pendingCount() {
+      return timers.size;
+    },
+  };
 }
 
 test('normal route transaction follows the only legal phase order', () => {
@@ -170,6 +210,156 @@ test('history driver does not rewrite a browser back or forward entry on commit'
   } finally {
     delete globalThis.window;
   }
+});
+
+test('provisional history coalesces covered destinations until route-in', () => {
+  const calls = [];
+  globalThis.window = {
+    history: {
+      state: { key: 'home' },
+      pushState: (...args) => calls.push(['push', ...args]),
+      replaceState: (...args) => calls.push(['replace', ...args]),
+    },
+  };
+  try {
+    const coordinator = createRouteHistoryCoordinator({ history: window.history });
+    const work = createRouteHistoryDriver({
+      coordinator,
+      nextHref: '/portfolio.html',
+      previousHref: '/index.html',
+    });
+    const contact = createRouteHistoryDriver({
+      coordinator,
+      nextHref: '/contact.html',
+      previousHref: '/index.html',
+    });
+    const about = createRouteHistoryDriver({
+      coordinator,
+      nextHref: '/about.html',
+      previousHref: '/index.html',
+    });
+    work.commit();
+    contact.commit();
+    about.commit();
+    assert.deepEqual(calls, []);
+    assert.equal(coordinator.provisional.nextHref, '/about.html');
+    assert.equal(about.finalize(), true);
+    assert.deepEqual(calls, [['push', {}, '', '/about.html']]);
+    assert.equal(coordinator.provisional, null);
+    assert.equal(work.finalize(), false);
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test('provisional history rollback performs no browser write', () => {
+  const calls = [];
+  globalThis.window = {
+    history: {
+      state: {},
+      pushState: (...args) => calls.push(['push', ...args]),
+      replaceState: (...args) => calls.push(['replace', ...args]),
+    },
+  };
+  try {
+    const coordinator = createRouteHistoryCoordinator({ history: window.history });
+    const driver = createRouteHistoryDriver({
+      coordinator,
+      nextHref: '/contact.html',
+      previousHref: '/index.html',
+    });
+    driver.commit();
+    driver.rollback();
+    assert.deepEqual(calls, []);
+    assert.equal(coordinator.provisional, null);
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test('adaptive spinner cancels a warm wait before the delay', async () => {
+  const clock = createFakeClock();
+  const presentations = [];
+  const spinner = createAdaptiveSpinnerController({
+    delayMs: 120,
+    minimumMs: 140,
+    now: clock.now,
+    setTimer: clock.setTimer,
+    clearTimer: clock.clearTimer,
+    onPresentationChange: (presentation) => presentations.push(presentation),
+  });
+  spinner.begin();
+  clock.tick(80);
+  await spinner.resolve();
+  clock.tick(100);
+  assert.equal(spinner.presentation, 'plate');
+  assert.deepEqual(presentations, []);
+  assert.equal(clock.pendingCount, 0);
+});
+
+test('adaptive spinner escalates once and honours its minimum presence', async () => {
+  const clock = createFakeClock();
+  const presentations = [];
+  const spinner = createAdaptiveSpinnerController({
+    delayMs: 120,
+    minimumMs: 140,
+    now: clock.now,
+    setTimer: clock.setTimer,
+    clearTimer: clock.clearTimer,
+    onPresentationChange: (presentation) => presentations.push([presentation, clock.now()]),
+  });
+  spinner.begin();
+  clock.tick(120);
+  assert.equal(spinner.presentation, 'spinner');
+  const resolution = spinner.resolve();
+  let resolved = false;
+  void resolution.then(() => { resolved = true; });
+  clock.tick(139);
+  await Promise.resolve();
+  assert.equal(resolved, false);
+  clock.tick(1);
+  await resolution;
+  assert.deepEqual(presentations, [['spinner', 120]]);
+});
+
+test('covered retarget reuses the original spinner delay and cancellation clears timers', async () => {
+  const clock = createFakeClock();
+  const presentations = [];
+  const spinner = createAdaptiveSpinnerController({
+    delayMs: 120,
+    minimumMs: 140,
+    now: clock.now,
+    setTimer: clock.setTimer,
+    clearTimer: clock.clearTimer,
+    onPresentationChange: (presentation) => presentations.push([presentation, clock.now()]),
+  });
+  spinner.begin();
+  clock.tick(90);
+  spinner.begin();
+  clock.tick(30);
+  assert.deepEqual(presentations, [['spinner', 120]]);
+  const resolution = spinner.resolve();
+  spinner.cancel();
+  await resolution;
+  assert.equal(spinner.presentation, 'plate');
+  assert.equal(clock.pendingCount, 0);
+});
+
+test('reduced motion uses the same delay without an artificial spinner hold', async () => {
+  const clock = createFakeClock();
+  const spinner = createAdaptiveSpinnerController({
+    delayMs: 120,
+    minimumMs: 140,
+    reducedMotion: true,
+    now: clock.now,
+    setTimer: clock.setTimer,
+    clearTimer: clock.clearTimer,
+  });
+  spinner.begin();
+  clock.tick(150);
+  assert.equal(spinner.presentation, 'spinner');
+  await spinner.resolve();
+  assert.equal(clock.pendingCount, 0);
 });
 
 test('participant generation preserves the complete route lifecycle order', async () => {

@@ -7,6 +7,7 @@ const AboutNarrativeLabExperience = lazy(() => (
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
+  prewarm: () => true,
 };
 
 export function getAboutRouteView() {

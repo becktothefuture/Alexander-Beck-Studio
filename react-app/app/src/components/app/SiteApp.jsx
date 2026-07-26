@@ -58,6 +58,7 @@ import { completeDirectBoot, failDirectBoot } from '../../legacy/modules/visual/
 import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
+import { loadDesignSystemConfig } from '../../legacy/modules/utils/design-config.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
@@ -101,6 +102,8 @@ const ROUTE_DESCRIPTORS = Object.freeze({
   'loader-playground': defineRouteDescriptor('loader-playground', { getView: getLoaderPlaygroundRouteView, runtime: LOADER_PLAYGROUND_ROUTE_RUNTIME }),
 });
 
+const PRIMARY_ROUTE_IDS = Object.freeze(['home', 'portfolio', 'about', 'contact']);
+
 let sharedShellRuntimeSyncPromise = null;
 
 function syncSharedShellRuntimeState() {
@@ -108,7 +111,9 @@ function syncSharedShellRuntimeState() {
     sharedShellRuntimeSyncPromise = Promise.all([
       loadRuntimeConfig(),
       loadShellConfig(),
-    ]).then(([runtimeConfig, shellConfig]) => {
+      loadDesignSystemConfig(),
+    ]).then(([runtimeConfig, shellConfig, designSystem]) => {
+      document.documentElement.dataset.absDesignConfigRevision = String(designSystem?.version || 1);
       initState(runtimeConfig);
       applyLayoutCSSVars();
       syncShellToDocument({
@@ -382,12 +387,21 @@ export function SiteApp() {
   useTimeOfDayPaletteSync(shellRuntimeReady && !isStandaloneRoute);
 
   useEffect(() => {
-    if (
-      !shellRuntimeReady
-      || isStandaloneRoute
-      || routeState.route.id === 'portfolio'
-      || transitionState.phase !== 'idle'
-    ) return undefined;
+    if (isStandaloneRoute) return undefined;
+
+    const controller = new AbortController();
+    PRIMARY_ROUTE_IDS.forEach((routeId) => {
+      void prewarmRoute(routeId, {
+        reason: 'initial-boot',
+        priority: 'data',
+        signal: controller.signal,
+      });
+    });
+    return () => controller.abort('site-app-unmounted');
+  }, [isStandaloneRoute, prewarmRoute]);
+
+  useEffect(() => {
+    if (!shellRuntimeReady || isStandaloneRoute || transitionState.phase !== 'idle') return undefined;
 
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const constrained = connection?.saveData === true
@@ -396,23 +410,34 @@ export function SiteApp() {
     if (constrained) return undefined;
 
     let cancelled = false;
+    let scheduledWithIdleCallback = typeof window.requestIdleCallback === 'function';
     const warm = () => {
-      if (!cancelled) void prewarmRoute('portfolio', { reason: 'idle' });
+      if (cancelled) return;
+      const overlay = document.getElementById('abs-boot-overlay');
+      const bootStillCovered = document.documentElement.dataset.absBootState === 'booting'
+        || (overlay && Number.parseFloat(getComputedStyle(overlay).opacity || '1') > 0.02);
+      if (bootStillCovered) {
+        scheduledWithIdleCallback = false;
+        idleId = window.setTimeout(warm, 120);
+        return;
+      }
+      PRIMARY_ROUTE_IDS.forEach((routeId) => {
+        void prewarmRoute(routeId, { reason: 'idle', priority: 'media' });
+      });
     };
-    const usesIdleCallback = typeof window.requestIdleCallback === 'function';
-    const idleId = usesIdleCallback
+    let idleId = scheduledWithIdleCallback
       ? window.requestIdleCallback(warm, { timeout: 1800 })
       : window.setTimeout(warm, 900);
 
     return () => {
       cancelled = true;
-      if (usesIdleCallback && typeof window.cancelIdleCallback === 'function') {
+      if (scheduledWithIdleCallback && typeof window.cancelIdleCallback === 'function') {
         window.cancelIdleCallback(idleId);
       } else {
         window.clearTimeout(idleId);
       }
     };
-  }, [isStandaloneRoute, prewarmRoute, routeState.route.id, shellRuntimeReady, transitionState.phase]);
+  }, [isStandaloneRoute, prewarmRoute, shellRuntimeReady, transitionState.phase]);
 
   useLayoutEffect(() => {
     if (isStandaloneRoute) return;

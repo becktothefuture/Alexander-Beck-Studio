@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { LoaderSpinner } from './LoaderSpinner.jsx';
 
 const ROUTE_LABELS = Object.freeze({
   home: 'Home',
@@ -19,6 +20,8 @@ export function RouteTransitionLoader({ transitionState = {} }) {
     activation = null,
     settledGeneration = 0,
     settledRouteId = null,
+    loaderPresentation = 'plate',
+    loaderSpinnerStartedAt = 0,
   } = transitionState;
   const isActive = ACTIVE_PHASES.has(phase);
   const isExiting = phase === 'route-in';
@@ -67,11 +70,13 @@ export function RouteTransitionLoader({ transitionState = {} }) {
         ].filter(Boolean).join(' ')}
         data-route-transition-loader
         data-route-transition-loader-state={phase}
+        data-route-transition-loader-presentation={loaderPresentation}
+        data-route-transition-spinner-started-at={loaderSpinnerStartedAt || undefined}
         data-route-transition-generation={generation}
         aria-hidden="true"
       >
         <div className="route-transition-loader__stage">
-          <span className="abs-loader-spinner route-transition-loader__spinner" />
+          <LoaderSpinner className="route-transition-loader__spinner" />
         </div>
       </div>
       <div

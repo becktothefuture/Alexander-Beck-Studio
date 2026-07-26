@@ -77,10 +77,6 @@
       }
 
       .abs-loader-spinner {
-        --color-1: var(--abs-boot-loader-1);
-        --color-2: var(--abs-boot-loader-2);
-        --color-3: var(--abs-boot-loader-3);
-        --color-4: var(--abs-boot-loader-4);
         --size: var(--abs-boot-loader-size);
 
         position: absolute;
@@ -89,21 +85,32 @@
         width: 1em;
         height: 1em;
         margin: -0.5em 0 0 -0.5em;
+        color: var(--abs-loader-dot-color, var(--abs-boot-loader-1));
         border-radius: 50%;
         font-size: calc(10 * var(--size));
-        text-indent: -9999em;
-        box-shadow:
-          0 -2.6em 0 0 var(--color-1),
-          1.8em -1.8em 0 0 var(--color-2),
-          2.5em 0 0 0 var(--color-2),
-          1.75em 1.75em 0 0 var(--color-2),
-          0 2.5em 0 0 var(--color-2),
-          -1.8em 1.8em 0 0 var(--color-2),
-          -2.6em 0 0 0 var(--color-3),
-          -1.8em -1.8em 0 0 var(--color-4);
         animation: absBootSpin 1.1s infinite ease;
         transform: translateZ(0);
       }
+
+      .abs-loader-spinner__dot {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 1em;
+        height: 1em;
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: 50%;
+        background: currentColor;
+        clip-path: circle(50% at 50% 50%);
+        opacity: 0.2;
+        transform: rotate(calc(var(--abs-loader-dot-index) * 45deg)) translateY(-2.6em);
+        transform-origin: 50% 50%;
+      }
+
+      .abs-loader-spinner__dot:nth-child(1) { opacity: 1; }
+      .abs-loader-spinner__dot:nth-child(7) { opacity: 0.5; }
+      .abs-loader-spinner__dot:nth-child(8) { opacity: 0.7; }
 
       #abs-boot-messages {
         position: absolute;
@@ -202,92 +209,28 @@
 
       @keyframes absBootSpin {
         0%, 100% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            2.5em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.75em 1.75em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            0 2.5em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em 1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -2.6em 0 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            -1.8em -1.8em 0 0 var(--color-4, var(--abs-boot-loader-4));
+          transform: rotate(0deg) translateZ(0);
         }
         12.5% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            1.8em -1.8em 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            2.5em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.75em 1.75em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            0 2.5em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em 1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -2.6em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em -1.8em 0 0 var(--color-3, var(--abs-boot-loader-3));
+          transform: rotate(45deg) translateZ(0);
         }
         25% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            1.8em -1.8em 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            2.5em 0 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            1.75em 1.75em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            0 2.5em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em 1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -2.6em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2));
+          transform: rotate(90deg) translateZ(0);
         }
         37.5% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.8em -1.8em 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            2.5em 0 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            1.75em 1.75em 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            0 2.5em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em 1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -2.6em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2));
+          transform: rotate(135deg) translateZ(0);
         }
         50% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            2.5em 0 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            1.75em 1.75em 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            0 2.5em 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            -1.8em 1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -2.6em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2));
+          transform: rotate(180deg) translateZ(0);
         }
         62.5% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            2.5em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.75em 1.75em 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            0 2.5em 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            -1.8em 1.8em 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            -2.6em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2));
+          transform: rotate(225deg) translateZ(0);
         }
         75% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            2.5em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.75em 1.75em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            0 2.5em 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            -1.8em 1.8em 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            -2.6em 0 0 0 var(--color-1, var(--abs-boot-loader-1)),
-            -1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2));
+          transform: rotate(270deg) translateZ(0);
         }
         87.5% {
-          box-shadow:
-            0 -2.6em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.8em -1.8em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            2.5em 0 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            1.75em 1.75em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            0 2.5em 0 0 var(--color-2, var(--abs-boot-loader-2)),
-            -1.8em 1.8em 0 0 var(--color-3, var(--abs-boot-loader-3)),
-            -2.6em 0 0 0 var(--color-4, var(--abs-boot-loader-4)),
-            -1.8em -1.8em 0 0 var(--color-1, var(--abs-boot-loader-1));
+          transform: rotate(315deg) translateZ(0);
         }
       }
 
@@ -474,7 +417,16 @@
   <body class="body contact-page">
     <div id="abs-boot-overlay" role="status" aria-live="polite" aria-atomic="true">
       <div id="abs-boot-stage">
-        <span id="abs-boot-spinner" class="abs-boot-loader abs-loader-spinner" aria-hidden="true"></span>
+        <span id="abs-boot-spinner" class="abs-boot-loader abs-loader-spinner" aria-hidden="true">
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:0"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:1"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:2"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:3"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:4"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:5"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:6"></span>
+          <span class="abs-loader-spinner__dot" style="--abs-loader-dot-index:7"></span>
+        </span>
         <div id="abs-boot-messages" aria-hidden="true">
           <p class="abs-boot-message">Tuning the motion.</p>
           <p class="abs-boot-message">Building the scene.</p>

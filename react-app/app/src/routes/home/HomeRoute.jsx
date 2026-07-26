@@ -2,9 +2,15 @@ import homeContent from 'virtual:abs-content/home';
 import { HOME_IDENTITY } from '../../lib/home-identity.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 
+const loadHomeRouteModule = () => import('../../legacy/main.js');
+
 export const HOME_ROUTE_RUNTIME = {
   exportName: 'bootstrapHomePage',
-  loadModule: () => import('../../legacy/main.js')
+  loadModule: loadHomeRouteModule,
+  prewarm: async ({ signal } = {}) => {
+    const routeModule = await loadHomeRouteModule();
+    return routeModule.prewarmHomeRoute?.({ signal });
+  },
 };
 
 function renderLegendItem(item) {

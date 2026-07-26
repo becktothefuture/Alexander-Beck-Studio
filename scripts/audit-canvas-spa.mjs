@@ -10,7 +10,7 @@
  */
 import { chromium } from 'playwright';
 
-const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 20000);
+const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
 const SIMULATION_CANVAS_SELECTOR = [
   '#c',
   '#flock-of-birds-canvas',
@@ -224,7 +224,11 @@ async function main() {
       await browser.close();
       return;
     }
-    await page.waitForURL(/portfolio/i, { timeout: BUFFER_WAIT_MS });
+    await page.waitForFunction(
+      () => /portfolio/i.test(window.location.pathname),
+      null,
+      { timeout: BUFFER_WAIT_MS },
+    );
     await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
     rows.push({ ...(await snapshot(page, `portfolio-r${round}`)) });
@@ -232,10 +236,28 @@ async function main() {
     await page.evaluate(() => {
       window.__ABS_SPA_NAVIGATE__('/index.html', {});
     });
-    await page.waitForURL((url) => {
-      const path = url.pathname || '';
-      return path === '/' || /index/i.test(path) || path.startsWith('/lab/');
-    }, { timeout: BUFFER_WAIT_MS });
+    try {
+      await page.waitForFunction(
+        () => {
+          const path = window.location.pathname || '';
+          return path === '/' || /index/i.test(path) || path.startsWith('/lab/');
+        },
+        null,
+        { timeout: BUFFER_WAIT_MS },
+      );
+    } catch (error) {
+      const state = await page.evaluate(() => ({
+        path: window.location.pathname,
+        phase: document.documentElement.dataset.absTransitionPhase || 'idle',
+        renderedRoute: document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || '',
+        currentRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.dataset.routeTab || '',
+        pendingRoute: document.querySelector('[data-route-tabs]')?.dataset.pendingRoute || '',
+        history: window.__ABS_ROUTE_HISTORY__ || null,
+        runtime: window.__ABS_RUNTIME_LIFECYCLE__ || null,
+      }));
+      console.error(`Home return probe failed in round ${round + 1}:`, JSON.stringify(state, null, 2));
+      throw error;
+    }
     await page.waitForSelector(SIMULATION_CANVAS_SELECTOR, { state: 'attached', timeout: BUFFER_WAIT_MS });
     await waitForSimulationCanvasBuffer(page);
   }

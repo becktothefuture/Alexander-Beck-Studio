@@ -108,8 +108,8 @@ const DEFAULT_SHELL_CONFIG = {
     routeTransition: {
       exitDurationMs: 130,
       loaderEnterDurationMs: 70,
-      loaderFirstMinimumMs: 160,
-      loaderRepeatMinimumMs: 110,
+      spinnerDelayMs: 120,
+      spinnerMinimumMs: 140,
       readinessTimeoutMs: 4500,
       spinnerExitDurationMs: 160,
       plateExitDelayMs: 40,
@@ -185,8 +185,8 @@ export function getShellRouteTransitionConfig(config = currentShellConfig) {
   return {
     exitDurationMs: roundedNumberInRange(source.exitDurationMs, 0, 2000, defaults.exitDurationMs),
     loaderEnterDurationMs: roundedNumberInRange(source.loaderEnterDurationMs, 0, 2000, defaults.loaderEnterDurationMs),
-    loaderFirstMinimumMs: roundedNumberInRange(source.loaderFirstMinimumMs, 0, 5000, defaults.loaderFirstMinimumMs),
-    loaderRepeatMinimumMs: roundedNumberInRange(source.loaderRepeatMinimumMs, 0, 5000, defaults.loaderRepeatMinimumMs),
+    spinnerDelayMs: roundedNumberInRange(source.spinnerDelayMs, 0, 5000, defaults.spinnerDelayMs),
+    spinnerMinimumMs: roundedNumberInRange(source.spinnerMinimumMs, 0, 5000, defaults.spinnerMinimumMs),
     readinessTimeoutMs: roundedNumberInRange(source.readinessTimeoutMs, 250, 30000, defaults.readinessTimeoutMs),
     spinnerExitDurationMs: roundedNumberInRange(source.spinnerExitDurationMs, 0, 2000, defaults.spinnerExitDurationMs),
     plateExitDelayMs: roundedNumberInRange(source.plateExitDelayMs, 0, 2000, defaults.plateExitDelayMs),
@@ -476,8 +476,8 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--modal-depth-translate-y', `${motion.modalDepthTranslateY}px`);
   root.style.setProperty('--abs-route-exit-duration', `${routeTransition.exitDurationMs}ms`);
   root.style.setProperty('--abs-route-loader-enter-duration', `${routeTransition.loaderEnterDurationMs}ms`);
-  root.style.setProperty('--abs-route-loader-first-minimum', `${routeTransition.loaderFirstMinimumMs}ms`);
-  root.style.setProperty('--abs-route-loader-repeat-minimum', `${routeTransition.loaderRepeatMinimumMs}ms`);
+  root.style.setProperty('--abs-route-spinner-delay', `${routeTransition.spinnerDelayMs}ms`);
+  root.style.setProperty('--abs-route-spinner-minimum', `${routeTransition.spinnerMinimumMs}ms`);
   root.style.setProperty('--abs-route-readiness-timeout', `${routeTransition.readinessTimeoutMs}ms`);
   root.style.setProperty('--abs-route-spinner-exit-duration', `${routeTransition.spinnerExitDurationMs}ms`);
   root.style.setProperty('--abs-route-plate-exit-delay', `${routeTransition.plateExitDelayMs}ms`);

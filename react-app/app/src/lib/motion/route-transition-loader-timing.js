@@ -28,44 +28,149 @@ function waitForPaintFrames(count = 2) {
   });
 }
 
-function waitForMinimumDuration(durationMs, signal = null) {
-  if (!(durationMs > 0)) return Promise.resolve();
-  return new Promise((resolve) => {
-    let timeoutId = 0;
-    const finish = () => {
-      if (timeoutId) clearStableTimeout(timeoutId);
-      signal?.removeEventListener('abort', finish);
-      resolve();
-    };
-    signal?.addEventListener('abort', finish, { once: true });
-    timeoutId = setStableTimeout(finish, durationMs);
-  });
+function defaultNow() {
+  return typeof performance === 'undefined' ? Date.now() : performance.now();
 }
 
-export function createRouteLoaderTimingDriver({ minimumMs = 0, signal = null } = {}) {
-  let minimumPromise = Promise.resolve();
+export function createAdaptiveSpinnerController({
+  delayMs = 120,
+  minimumMs = 140,
+  reducedMotion = false,
+  onPresentationChange = () => {},
+  now = defaultNow,
+  setTimer = setStableTimeout,
+  clearTimer = clearStableTimeout,
+} = {}) {
+  let presentation = 'plate';
+  let waiting = false;
+  let delayTimerId = 0;
+  let spinnerShownAt = 0;
+  let cancellationGeneration = 0;
+  const holdWaiters = new Set();
+
+  const publish = (nextPresentation) => {
+    if (presentation === nextPresentation) return;
+    presentation = nextPresentation;
+    onPresentationChange(presentation, {
+      spinnerShownAt,
+      waiting,
+    });
+  };
+  const clearDelay = () => {
+    if (!delayTimerId) return;
+    clearTimer(delayTimerId);
+    delayTimerId = 0;
+  };
+  const showSpinner = () => {
+    delayTimerId = 0;
+    if (!waiting || presentation === 'spinner') return;
+    spinnerShownAt = now();
+    publish('spinner');
+  };
+
+  return {
+    begin({ restartDelay = false } = {}) {
+      if (waiting && !restartDelay) return;
+      waiting = true;
+      if (presentation === 'spinner') return;
+      clearDelay();
+      if (!(delayMs > 0)) {
+        showSpinner();
+        return;
+      }
+      delayTimerId = setTimer(showSpinner, delayMs);
+    },
+    async resolve() {
+      waiting = false;
+      clearDelay();
+      if (presentation !== 'spinner' || reducedMotion || !(minimumMs > 0)) return;
+      const activeCancellationGeneration = cancellationGeneration;
+      let remainingMs = Math.max(0, minimumMs - (now() - spinnerShownAt));
+      while (remainingMs > 0 && activeCancellationGeneration === cancellationGeneration) {
+        await new Promise((resolve) => {
+          const waiter = { timerId: 0, resolve };
+          waiter.timerId = setTimer(() => {
+            holdWaiters.delete(waiter);
+            resolve();
+          }, remainingMs);
+          holdWaiters.add(waiter);
+        });
+        remainingMs = Math.max(0, minimumMs - (now() - spinnerShownAt));
+      }
+    },
+    cancel({ resetPresentation = true } = {}) {
+      waiting = false;
+      cancellationGeneration += 1;
+      clearDelay();
+      holdWaiters.forEach((waiter) => {
+        clearTimer(waiter.timerId);
+        waiter.resolve();
+      });
+      holdWaiters.clear();
+      spinnerShownAt = 0;
+      if (resetPresentation) publish('plate');
+    },
+    get presentation() {
+      return presentation;
+    },
+    get spinnerShownAt() {
+      return spinnerShownAt;
+    },
+    get waiting() {
+      return waiting;
+    },
+  };
+}
+
+export function createRouteLoaderTimingDriver({
+  spinnerDelayMs = 120,
+  spinnerMinimumMs = 140,
+  reducedMotion = false,
+  onPresentationChange = () => {},
+} = {}) {
   let coveredAt = 0;
+  const spinner = createAdaptiveSpinnerController({
+    delayMs: spinnerDelayMs,
+    minimumMs: spinnerMinimumMs,
+    reducedMotion,
+    onPresentationChange,
+  });
 
   return {
     async establishCover() {
-      await waitForPaintFrames(1);
-      coveredAt = performance.now();
-      document.documentElement.dataset.absRouteLoadingCoveredAt = String(coveredAt);
-      minimumPromise = waitForMinimumDuration(minimumMs, signal);
+      if (!coveredAt) {
+        await waitForPaintFrames(1);
+        coveredAt = defaultNow();
+        document.documentElement.dataset.absRouteLoadingCoveredAt = String(coveredAt);
+      }
       return coveredAt;
+    },
+    beginReadinessWait({ restartDelay = false } = {}) {
+      spinner.begin({ restartDelay });
+    },
+    retarget() {
+      // The same controller remains alive while the opaque plate is retargeted.
+      // An active delay or visible spinner therefore continues without replay.
     },
     waitForDestinationPaint() {
       return waitForPaintFrames(2);
     },
-    waitForMinimum() {
-      return minimumPromise;
+    waitForReadiness() {
+      return spinner.resolve();
     },
     clear() {
+      spinner.cancel();
       delete document.documentElement.dataset.absRouteLoadingCoveredAt;
       coveredAt = 0;
     },
     get coveredAt() {
       return coveredAt;
+    },
+    get presentation() {
+      return spinner.presentation;
+    },
+    get spinnerShownAt() {
+      return spinner.spinnerShownAt;
     },
   };
 }
