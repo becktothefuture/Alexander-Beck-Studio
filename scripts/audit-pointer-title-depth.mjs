@@ -229,30 +229,35 @@ async function auditCrispGlowTitleDepth(page) {
       && snap?.frontShare <= 0.48
       && document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active');
   }, undefined, { timeout: WAIT_MS });
-  const emergence = await page.evaluate(() => ({
-    ...window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
-    depthLayerActive: document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active'),
-    dedicatedTitleCanvasCount: document.querySelectorAll('.simulation-crisp-title-canvas').length,
-    experimentalTitleCanvasCount: document.querySelectorAll('.atmosphere-title-canvas').length,
-    edgeCanvasCount: document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length,
-    edgeClipCount: document.querySelectorAll('.atmosphere-edge-light-defs clipPath path').length,
-    materialZ: Number.parseFloat(getComputedStyle(document.getElementById('c')).zIndex),
-    titleZ: Number.parseFloat(getComputedStyle(document.getElementById('simulation-crisp-title-canvas')).zIndex),
-    frontZ: Number.parseFloat(getComputedStyle(document.getElementById('simulation-front-depth-canvas')).zIndex),
-    materialFilter: getComputedStyle(document.getElementById('c')).filter,
-    titleFilter: getComputedStyle(document.getElementById('simulation-crisp-title-canvas')).filter,
-    frontFilter: getComputedStyle(document.getElementById('simulation-front-depth-canvas')).filter,
-  }));
+  const emergence = await page.evaluate(() => {
+    const material = document.getElementById('c');
+    const title = document.getElementById('simulation-crisp-title-canvas');
+    const front = document.getElementById('simulation-front-depth-canvas');
+    return {
+      ...window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
+      depthLayerActive: document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active'),
+      dedicatedTitleCanvasCount: document.querySelectorAll('.simulation-crisp-title-canvas').length,
+      experimentalTitleCanvasCount: document.querySelectorAll('.atmosphere-title-canvas').length,
+      edgeCanvasCount: document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length,
+      edgeClipCount: document.querySelectorAll('.atmosphere-edge-light-defs clipPath path').length,
+      materialZ: Number.parseFloat(getComputedStyle(material).zIndex),
+      titleZ: title ? Number.parseFloat(getComputedStyle(title).zIndex) : null,
+      frontZ: Number.parseFloat(getComputedStyle(front).zIndex),
+      materialFilter: getComputedStyle(material).filter,
+      titleFilter: title ? getComputedStyle(title).filter : '',
+      frontFilter: getComputedStyle(front).filter,
+    };
+  });
   if (
     emergence.depthLayerActive !== true
-    || emergence.dedicatedTitleCanvasCount !== 1
+    || emergence.dedicatedTitleCanvasCount !== 0
     || emergence.experimentalTitleCanvasCount !== 0
     || emergence.edgeCanvasCount !== 1
     || emergence.edgeClipCount !== 0
-    || !(emergence.materialZ < emergence.titleZ && emergence.titleZ < emergence.frontZ)
-    || !emergence.materialFilter.includes('blur(1px)')
-    || emergence.titleFilter !== 'none'
-    || !emergence.frontFilter.includes('blur(1px)')
+    || !(emergence.materialZ < emergence.frontZ)
+    || emergence.materialFilter !== 'none'
+    || emergence.titleFilter !== ''
+    || emergence.frontFilter !== 'none'
     || emergence.edgeWidth <= 0
     || emergence.edgeHeight <= 0
   ) {

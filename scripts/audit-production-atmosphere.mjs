@@ -460,7 +460,30 @@ async function runTransitionSnapshotContract(browser) {
         ...PRIMARY_SCENARIOS[0],
         path: `/index.html?mode=${mode}&absAudit=1`,
       };
-      const initial = await gotoScenario(page, scenario);
+      let initial = await gotoScenario(page, scenario);
+      assertAtmosphereState(initial, scenario);
+      await page.keyboard.press('/');
+      await page.waitForFunction(() => (
+        document.getElementById('atmosphereLightMaterialBlurPxSlider')
+        && document.getElementById('atmosphereDarkMaterialBlurPxSlider')
+      ), null, { timeout: WAIT_MS });
+      await page.evaluate(() => {
+        for (const id of [
+          'atmosphereLightMaterialBlurPxSlider',
+          'atmosphereDarkMaterialBlurPxSlider',
+        ]) {
+          const input = document.getElementById(id);
+          input.value = '1';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+      await page.waitForFunction(() => (
+        window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().materialBlurPx === 1
+        && window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().status === 'ready'
+        && document.getElementById('simulation-crisp-title-canvas')
+      ), null, { timeout: WAIT_MS, polling: 'raf' });
+      await page.keyboard.press('/');
+      initial = await readAtmosphereState(page);
       assertAtmosphereState(initial, scenario);
       const expectedMaterialFilter = `blur(${initial.snapshot.materialBlurPx}px)`;
       assert(await markStableOutputNodes(page), `${mode}: Home did not mount stable atmosphere outputs`);
@@ -786,8 +809,8 @@ async function runCrispPersistenceContract(browser) {
     await page.waitForFunction(() => {
       const snapshot = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
       return snapshot?.status === 'ready'
-        && snapshot?.config?.light?.materialBlurPx === 1
-        && snapshot?.config?.dark?.materialBlurPx === 1;
+        && snapshot?.config?.light?.materialBlurPx === 0
+        && snapshot?.config?.dark?.materialBlurPx === 0;
     }, null, { timeout: WAIT_MS, polling: 'raf' });
 
     const clampResults = await page.evaluate(async () => {
@@ -812,7 +835,7 @@ async function runCrispPersistenceContract(browser) {
     return {
       reset: { light: 1, dark: 1 },
       savePayload: { light: 2.25, dark: 1.25 },
-      reload: { light: 1, dark: 1 },
+      reload: { light: 0, dark: 0 },
       clampResults,
     };
   } finally {
