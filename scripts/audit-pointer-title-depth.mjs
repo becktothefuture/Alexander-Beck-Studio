@@ -212,7 +212,11 @@ async function auditCrispGlowTitleDepth(page) {
         && snap?.titleVisible === true;
     }, mode, { timeout: WAIT_MS });
     const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
-    titleResults.push({ mode, titleVisible: snap.titleVisible });
+    titleResults.push({
+      mode,
+      titleVisible: snap.titleVisible,
+      crispTitleCanvasCount: snap.crispTitleCanvasCount,
+    });
   }
 
   await page.selectOption('select[aria-label="Simulation"]', 'bubbles');
@@ -228,13 +232,21 @@ async function auditCrispGlowTitleDepth(page) {
   const emergence = await page.evaluate(() => ({
     ...window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
     depthLayerActive: document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active'),
-    dedicatedTitleCanvasCount: document.querySelectorAll('.atmosphere-title-canvas').length,
+    dedicatedTitleCanvasCount: document.querySelectorAll('.simulation-crisp-title-canvas').length,
+    experimentalTitleCanvasCount: document.querySelectorAll('.atmosphere-title-canvas').length,
     edgeCanvasCount: document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length,
     edgeClipCount: document.querySelectorAll('.atmosphere-edge-light-defs clipPath path').length,
+    materialZ: Number.parseFloat(getComputedStyle(document.getElementById('c')).zIndex),
+    titleZ: Number.parseFloat(getComputedStyle(document.getElementById('simulation-crisp-title-canvas')).zIndex),
+    frontZ: Number.parseFloat(getComputedStyle(document.getElementById('simulation-front-depth-canvas')).zIndex),
+    materialFilter: getComputedStyle(document.getElementById('c')).filter,
+    titleFilter: getComputedStyle(document.getElementById('simulation-crisp-title-canvas')).filter,
+    frontFilter: getComputedStyle(document.getElementById('simulation-front-depth-canvas')).filter,
   }));
   if (
     emergence.depthLayerActive !== true
-    || emergence.dedicatedTitleCanvasCount !== 0
+    || emergence.dedicatedTitleCanvasCount !== 1
+    || emergence.experimentalTitleCanvasCount !== 0
     || emergence.edgeCanvasCount !== 1
     || emergence.edgeClipCount !== 1
     || emergence.edgeWidth <= 0
@@ -245,6 +257,7 @@ async function auditCrispGlowTitleDepth(page) {
 
   const requiredCompositionControls = [
     'ballPresence',
+    'materialBlurPx',
     'glowAmount',
     'glowRadiusFxPx',
     'colourStrength',
@@ -278,6 +291,7 @@ async function auditCrispGlowTitleDepth(page) {
   await page.evaluate(() => {
     const values = {
       ballPresence: '0.42',
+      materialBlurPx: '1.5',
       hazeStrength: '0.65',
       grainStrength: '0.5',
       edgeWidthPx: '2',
@@ -294,15 +308,39 @@ async function auditCrispGlowTitleDepth(page) {
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
     const rootStyle = getComputedStyle(document.documentElement);
-    return snap?.composition?.ballPresence === 0.42
-      && snap?.composition?.hazeStrength === 0.65
-      && snap?.composition?.grainStrength === 0.5
-      && snap?.composition?.edgeWidthPx === 2
-      && snap?.composition?.blendMode === 'screen'
+    const material = document.getElementById('c');
+    const title = document.getElementById('simulation-crisp-title-canvas');
+    const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
+    return snap?.config?.dark?.ballPresence === 0.42
+      && snap?.config?.dark?.materialBlurPx === 1.5
+      && snap?.config?.dark?.hazeStrength === 0.65
+      && snap?.config?.dark?.grainStrength === 0.5
+      && snap?.config?.dark?.edgeWidthPx === 2
+      && snap?.config?.dark?.glowBlendMode === 'screen'
+      && snap?.materialBlurPx === 1.5
+      && snap?.materialFilterStrategy === 'css-compositor'
+      && snap?.crispTitleCanvasCount === 1
       && getComputedStyle(document.body).getPropertyValue('--atmosphere-core-presence').trim() === '0.42'
+      && rootStyle.getPropertyValue('--atmosphere-material-blur').trim() === '1.5px'
       && rootStyle.getPropertyValue('--atmosphere-haze-strength').trim() === '0.65'
       && rootStyle.getPropertyValue('--atmosphere-grain-strength').trim() === '0.5'
-      && rootStyle.getPropertyValue('--atmosphere-edge-width').trim() === '2px';
+      && rootStyle.getPropertyValue('--atmosphere-edge-width').trim() === '2px'
+      && getComputedStyle(material).filter.includes('blur(1.5px)')
+      && getComputedStyle(title).filter === 'none'
+      && getComputedStyle(edge).filter === 'none';
+  }, undefined, { timeout: WAIT_MS });
+
+  await page.$eval('input[data-parameter-id="materialBlurPx"]', (input) => {
+    input.value = '0';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+    return snap?.materialBlurPx === 0
+      && snap?.materialFilterStrategy === 'none'
+      && snap?.crispTitleCanvasCount === 0
+      && getComputedStyle(document.getElementById('c')).filter === 'none'
+      && snap?.titleVisible === true;
   }, undefined, { timeout: WAIT_MS });
   await page.getByRole('button', { name: 'Reset' }).click();
 
@@ -312,7 +350,7 @@ async function auditCrispGlowTitleDepth(page) {
   });
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    return snap?.config?.common?.titleYOffsetVh === 3.25
+    return snap?.config?.titleYOffsetVh === 3.25
       && getComputedStyle(document.documentElement).getPropertyValue('--atmosphere-title-y-offset').trim() === '3.25vh';
   }, undefined, { timeout: WAIT_MS });
   await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
@@ -329,7 +367,11 @@ async function auditCrispGlowTitleDepth(page) {
       { timeout: WAIT_MS },
     );
     const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
-    themeResults.push({ theme, edgeLight: snap.config.profiles.crispGlow[theme].edgeLight });
+    themeResults.push({
+      theme,
+      edgeLight: snap.config[theme].edgeLight,
+      materialBlurPx: snap.config[theme].materialBlurPx,
+    });
   }
 
   return {

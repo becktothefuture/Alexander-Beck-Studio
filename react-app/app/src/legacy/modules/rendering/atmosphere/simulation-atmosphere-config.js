@@ -2,6 +2,7 @@ const createProfile = (values) => Object.freeze(values);
 
 const LIGHT_PROFILE = createProfile({
   ballPresence: 0.95,
+  materialBlurPx: 1,
   glowAmount: 0.38,
   glowRadiusFxPx: 37,
   colourStrength: 1.5,
@@ -17,6 +18,7 @@ const LIGHT_PROFILE = createProfile({
 
 const DARK_PROFILE = createProfile({
   ballPresence: 0.95,
+  materialBlurPx: 1,
   glowAmount: 0.19,
   glowRadiusFxPx: 80,
   colourStrength: 1.5,
@@ -58,6 +60,7 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     controls: Object.freeze([
       { id: 'enabled', label: 'Enabled', type: 'checkbox', scope: 'common' },
       { id: 'ballPresence', label: 'Balls', type: 'range', min: 0, max: 1, step: 0.01, display: 'percent' },
+      { id: 'materialBlurPx', label: 'Body Blur', type: 'range', min: 0, max: 3, step: 0.25, display: 'subpx' },
       { id: 'glowAmount', label: 'Atmosphere', type: 'range', min: 0, max: 0.85, step: 0.01, display: 'percent' },
       { id: 'glowRadiusFxPx', label: 'Radius', type: 'range', min: 12, max: 80, step: 1, display: 'px' },
       { id: 'colourStrength', label: 'Colour', type: 'range', min: 0, max: 1.5, step: 0.05 },
@@ -110,6 +113,7 @@ function normalizeThemeProfile(profile, defaults) {
   const source = profile && typeof profile === 'object' ? profile : {};
   return {
     ballPresence: clampNumber(source.ballPresence, 0, 1, defaults.ballPresence),
+    materialBlurPx: clampNumber(source.materialBlurPx, 0, 3, defaults.materialBlurPx),
     glowAmount: clampNumber(source.glowAmount, 0, 0.85, defaults.glowAmount),
     glowRadiusFxPx: clampNumber(source.glowRadiusFxPx, 12, 80, defaults.glowRadiusFxPx),
     colourStrength: clampNumber(source.colourStrength, 0, 1.5, defaults.colourStrength),
@@ -184,6 +188,7 @@ export function resolveSimulationAtmosphereRenderProfile(config, theme = 'light'
     edgeLight: visual.edgeLight,
     edgeWidthPx: visual.edgeWidthPx,
     ballPresence: visual.ballPresence,
+    materialBlurPx: visual.materialBlurPx,
     hazeStrength: visual.hazeStrength,
     grainStrength: visual.grainStrength,
     blurRadiusFxPx: visual.glowRadiusFxPx,

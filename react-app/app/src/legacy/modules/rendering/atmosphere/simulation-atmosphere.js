@@ -21,6 +21,13 @@ const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 1200;
 const RESPONSIVE_REFERENCE_PX = 720;
 const RESPONSIVE_MIN_SCALE = 0.72;
+const CSS_MATERIAL_BLUR_SUPPORTED = (() => {
+  try {
+    return typeof CSS !== 'undefined' && CSS.supports?.('filter', 'blur(1px)') === true;
+  } catch (e) {
+    return false;
+  }
+})();
 const AMBIENT_COLOURS_LIGHT = Object.freeze(['#4f7fff', '#ff7657', '#d8e54f', '#53d39c']);
 const AMBIENT_COLOURS_DARK = Object.freeze(['#5c87ff', '#ff7657', '#dceb54', '#55dba0']);
 const AMBIENT_COUNT = 8;
@@ -253,11 +260,17 @@ function rebuildProfile({ resetQuality = false } = {}) {
 function applyPresentationState() {
   if (!host) return;
   const enabled = configuration.enabled && Boolean(activeSource) && !failureReason;
+  const materialBlurPx = enabled && CSS_MATERIAL_BLUR_SUPPORTED
+    ? Math.max(0, Math.min(3, Number(renderProfile?.materialBlurPx) || 0))
+    : 0;
   const root = host.root;
   const presentationRoot = document.documentElement;
   root.dataset.atmosphereActive = String(enabled);
   root.dataset.atmosphereStatus = enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle';
+  root.dataset.atmosphereMaterialBlurActive = String(materialBlurPx > 0);
+  root.dataset.atmosphereMaterialFilter = materialBlurPx > 0 ? 'css-compositor' : 'none';
   presentationRoot.style.setProperty('--atmosphere-core-presence', String(renderProfile?.ballPresence ?? 1));
+  presentationRoot.style.setProperty('--atmosphere-material-blur', `${materialBlurPx}px`);
   presentationRoot.style.setProperty('--atmosphere-haze-strength', String(renderProfile?.hazeStrength ?? 1));
   presentationRoot.style.setProperty('--atmosphere-grain-strength', String(renderProfile?.grainStrength ?? 1));
   presentationRoot.style.setProperty('--atmosphere-edge-width', `${renderProfile?.edgeWidthPx ?? 1.5}px`);
@@ -646,6 +659,12 @@ function getDiagnosticSnapshot() {
     themeMode,
     reducedMotion,
     effectiveDrift: renderProfile?.driftSpeedPxPerSec || 0,
+    materialBlurPx: getSimulationAtmosphereMaterialBlurPx(),
+    materialFilterSupported: CSS_MATERIAL_BLUR_SUPPORTED,
+    materialFilterStrategy: getSimulationAtmosphereMaterialBlurPx() > 0 ? 'css-compositor' : 'none',
+    crispTitleCanvasCount: typeof document === 'undefined'
+      ? 0
+      : document.querySelectorAll('#simulation-crisp-title-canvas').length,
     outputWidth: host?.glowCanvas.width || 0,
     outputHeight: host?.glowCanvas.height || 0,
     compositedFrameCount,
@@ -749,12 +768,15 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     glowCanvas.hidden = true;
     edgeCanvas.hidden = true;
     document.documentElement.style.removeProperty('--atmosphere-core-presence');
+    document.documentElement.style.removeProperty('--atmosphere-material-blur');
     document.documentElement.style.removeProperty('--atmosphere-haze-strength');
     document.documentElement.style.removeProperty('--atmosphere-grain-strength');
     document.documentElement.style.removeProperty('--atmosphere-edge-width');
     delete root.dataset.atmosphereActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
+    delete root.dataset.atmosphereMaterialBlurActive;
+    delete root.dataset.atmosphereMaterialFilter;
     if (window.__ABS_SIMULATION_ATMOSPHERE__) delete window.__ABS_SIMULATION_ATMOSPHERE__;
     host = null;
   };
@@ -880,4 +902,9 @@ export function getSimulationAtmosphereMaterialOpacity() {
   return isSimulationAtmosphereActive()
     ? Math.max(0, Math.min(1, Number(renderProfile?.ballPresence) || 0))
     : 1;
+}
+
+export function getSimulationAtmosphereMaterialBlurPx() {
+  if (!CSS_MATERIAL_BLUR_SUPPORTED || !isSimulationAtmosphereActive()) return 0;
+  return Math.max(0, Math.min(3, Number(renderProfile?.materialBlurPx) || 0));
 }

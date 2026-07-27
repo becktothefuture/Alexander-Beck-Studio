@@ -18,8 +18,17 @@ import {
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
-import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
-import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
+import {
+  TITLE_DEPTH_PLANE_Z,
+  disposeHomepageCrispTitleCanvas,
+  drawHomepageCanvasTitle,
+  modeUsesDepthTitlePlane,
+  syncHomepageCrispTitleCanvas,
+} from '../rendering/title-depth.js';
+import {
+  getSimulationAtmosphereMaterialBlurPx,
+  getSimulationAtmosphereMaterialOpacity,
+} from '../rendering/atmosphere/simulation-atmosphere.js';
 import {
   doesAtmosphereEngineOwnTitle,
   isAtmosphereFrameRendererActive,
@@ -861,6 +870,7 @@ export function render() {
   const customRenderer = getModeCustomRenderer();
   const depthRenderer = getModeDepthRenderer();
   const atmosphereMaterialOpacity = getSimulationAtmosphereMaterialOpacity();
+  const atmosphereMaterialBlurPx = getSimulationAtmosphereMaterialBlurPx();
   const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
   if (
     needsDepthTitleLayer &&
@@ -879,9 +889,18 @@ export function render() {
   if (frontCtx && frontCanvas) {
     frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
   }
+  const crispTitleCtx = engineOwnsTitle && atmosphereMaterialBlurPx > 0
+    ? syncHomepageCrispTitleCanvas(globals, canvas, needsDepthTitleLayer)
+    : null;
+  if (crispTitleCtx) {
+    crispTitleCtx.clearRect(0, 0, canvas.width, canvas.height);
+  } else if (globals.crispTitleCanvas) {
+    disposeHomepageCrispTitleCanvas(globals);
+  }
+  const titleCtx = crispTitleCtx || ctx;
 
   if (customRenderer) {
-    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
     ctx.save();
     ctx.globalAlpha *= atmosphereMaterialOpacity;
     customRenderer(ctx);
@@ -897,7 +916,7 @@ export function render() {
     });
     ctx.restore();
 
-    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
 
     frontCtx.save();
     frontCtx.globalAlpha *= atmosphereMaterialOpacity;
@@ -925,13 +944,13 @@ export function render() {
       renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
 
-    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
 
     if (zPartitionCache.inFront.length > 0) {
       renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
   } else {
-    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
     renderBallsColorBatched(ctx, balls, false, ballRenderOptions, atmosphereMaterialOpacity);
   }
 

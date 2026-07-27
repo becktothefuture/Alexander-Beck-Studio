@@ -119,6 +119,7 @@ Scheduling and performance are part of the contract:
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
 - automatic cadence is 30 FPS on desktop and 20 FPS on coarse-pointer, narrow, or short viewports; source physics/renderers retain their own cadence;
 - Canvas sources use one downsampled `drawImage`; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
+- authored source-material softness uses one CSS compositor blur per registered material Canvas (and Home depth layer), never `CanvasRenderingContext2D.filter` or `shadowBlur` inside the body loop;
 - automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
 - internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep a drift loop alive;
 - two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.

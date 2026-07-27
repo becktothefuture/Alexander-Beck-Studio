@@ -4,6 +4,7 @@ import { chromium, webkit } from 'playwright';
 const ORIGIN = String(process.env.ABS_DEV_URL || 'http://localhost:8012').replace(/\/+$/, '');
 const WAIT_MS = Math.max(5000, Number(process.env.ABS_ATMOSPHERE_WAIT_MS || 45000));
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const HEADED = process.env.ABS_HEADED === '1';
 const ENFORCE_COST_BUDGET = process.env.ABS_ATMOSPHERE_ENFORCE_COST === '1';
 const PHASE_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_PHASES || '')
   .split(',')
@@ -524,6 +525,7 @@ async function runConfigPanelContract(browser) {
       'atmosphereHazeCadenceSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
         'BallPresence',
+        'MaterialBlurPx',
         'GlowAmount',
         'GlowRadiusFxPx',
         'ColourStrength',
@@ -580,7 +582,7 @@ async function runConfigPanelContract(browser) {
 }
 
 async function main() {
-  const browser = await browserType.launch({ headless: process.env.ABS_HEADED !== '1' });
+  const browser = await browserType.launch({ headless: !HEADED });
   try {
     const shouldRun = (phase) => PHASE_FILTER.size === 0 || PHASE_FILTER.has(phase);
     const directBoots = shouldRun('direct') ? await runDirectBootMatrix(browser) : null;

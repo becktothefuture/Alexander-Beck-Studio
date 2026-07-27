@@ -48,6 +48,8 @@ The shared atmosphere has two canonical shell locations:
 
 `src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js` is the one default, normalization, control-schema, and profile-resolution module. Do not duplicate profile defaults in a route, lab, stylesheet, or renderer. `normalizeDesignSystemConfig()` normalizes these nested fields before canonical save and build flattening; the generated `shell-config.json` therefore carries the same values for production fallback loading.
 
+Each Light/Dark material profile owns `materialBlurPx` as a 0–3px source-material softness value, authored at 1px by default. The runtime projects it to a CSS compositor filter; it must never become a per-body Canvas filter. A zero value restores the unfiltered source path exactly.
+
 The Crisp + Glow lab remains the focused visual comparison surface. The main development panel also exposes the shared production schema once, under **Background Atmosphere**, with one Global section and separate Light Mode and Dark Mode profiles. Both surfaces run the production compositor, apply changes live, and save the same two atmosphere-owned shell paths in `design-system.json`; neither keeps a second set of defaults or opens a detached atmosphere window.
 
 `atmosphere-lab.json` owns only the WebGL Post, Instanced Density, and Canvas Feedback experiments. It must not persist or regenerate a `crispGlow` profile or Title Y value. Exact atmosphere values remain in canonical JSON and normalizer code, consistent with the general authority rule above.

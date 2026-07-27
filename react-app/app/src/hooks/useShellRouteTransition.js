@@ -736,6 +736,15 @@ function readSimulationSnapshotLayerId(canvas, index) {
     || `canvas-${index + 1}`;
 }
 
+function readSimulationSnapshotFilter(style, pixelRatio) {
+  const filter = String(style?.filter || style?.webkitFilter || 'none');
+  if (!filter || filter === 'none') return 'none';
+  return filter.replace(/blur\(\s*([\d.]+)px\s*\)/gi, (match, rawRadius) => {
+    const radius = Number.parseFloat(rawRadius);
+    return Number.isFinite(radius) ? `blur(${radius * pixelRatio}px)` : match;
+  });
+}
+
 function captureSimulationTransactionSnapshot() {
   const host = document.getElementById('simulations');
   const snapshotHost = document.getElementById('simulation-transaction-snapshot-host');
@@ -760,6 +769,7 @@ function captureSimulationTransactionSnapshot() {
     .sort((left, right) => readSimulationSnapshotOrder(left) - readSimulationSnapshotOrder(right));
   let capturedLayers = 0;
   const capturedLayerIds = [];
+  const capturedLayerRecords = [];
   sourceCanvases.forEach((canvas, index) => {
     const style = getComputedStyle(canvas);
     const rect = canvas.getBoundingClientRect();
@@ -773,6 +783,7 @@ function captureSimulationTransactionSnapshot() {
         : style.mixBlendMode === 'plus-lighter'
           ? 'lighter'
           : 'source-over';
+      context.filter = readSimulationSnapshotFilter(style, pixelRatio);
       context.drawImage(
         canvas,
         (rect.left - hostRect.left) * pixelRatio,
@@ -781,9 +792,13 @@ function captureSimulationTransactionSnapshot() {
         rect.height * pixelRatio,
       );
       capturedLayers += 1;
-      capturedLayerIds.push(readSimulationSnapshotLayerId(canvas, index));
+      const layerId = readSimulationSnapshotLayerId(canvas, index);
+      capturedLayerIds.push(layerId);
+      capturedLayerRecords.push({ id: layerId, filter: context.filter });
     } catch {
       // A failed layer capture must never block the route switch.
+    } finally {
+      context.filter = 'none';
     }
   });
   context.globalAlpha = 1;
@@ -792,6 +807,10 @@ function captureSimulationTransactionSnapshot() {
 
   snapshot.dataset.capturedLayers = String(capturedLayers);
   snapshot.dataset.capturedLayerIds = capturedLayerIds.join(',');
+  snapshot.dataset.capturedLayerRecords = JSON.stringify(capturedLayerRecords);
+  if (new URLSearchParams(window.location.search).has('absAudit')) {
+    window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__ = capturedLayerRecords.map((record) => ({ ...record }));
+  }
   let released = false;
   let releaseScheduled = false;
   let visibleAt = 0;

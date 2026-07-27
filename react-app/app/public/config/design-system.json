@@ -522,6 +522,7 @@
         "hazeCadence": "auto",
         "light": {
           "ballPresence": 0.95,
+          "materialBlurPx": 1,
           "glowAmount": 0.38,
           "glowRadiusFxPx": 37,
           "colourStrength": 1.5,
@@ -536,6 +537,7 @@
         },
         "dark": {
           "ballPresence": 1,
+          "materialBlurPx": 1,
           "glowAmount": 0.36,
           "glowRadiusFxPx": 80,
           "colourStrength": 1.5,

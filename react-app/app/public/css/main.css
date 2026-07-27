@@ -5000,10 +5000,23 @@ html.portfolio-access-gate-closing #modal-content-layer {
   /* Semantic alias for the main ball canvas. */
 }
 
+#simulations canvas.simulation-crisp-title-canvas {
+  z-index: 9;
+  pointer-events: none;
+  touch-action: auto;
+  background: transparent;
+  filter: none;
+  will-change: auto;
+}
+
+#simulations.simulation-depth-title-layer-active canvas.simulation-crisp-title-canvas {
+  z-index: 11;
+}
+
 #simulations > .simulation-front-depth-canvas {
   position: absolute;
   inset: 0;
-  z-index: 8;
+  z-index: 12;
   display: none;
   width: 100%;
   height: 100%;
@@ -5015,6 +5028,18 @@ html.portfolio-access-gate-closing #modal-content-layer {
 
 #simulations.simulation-depth-title-layer-active > .simulation-front-depth-canvas {
   display: block;
+}
+
+/* Source material can use a small compositor blur without putting Canvas 2D
+   filters in the per-body render path. The engine moves Home's title to its
+   own unfiltered Canvas while this is active. */
+#simulations[data-atmosphere-active='true'][data-atmosphere-material-blur-active='true']
+  canvas[data-atmosphere-source-material='true'],
+#simulations[data-atmosphere-active='true'][data-atmosphere-material-blur-active='true']
+  > .simulation-front-depth-canvas {
+  -webkit-filter: blur(var(--atmosphere-material-blur, 0px));
+  filter: blur(var(--atmosphere-material-blur, 0px));
+  will-change: transform, filter;
 }
 
 /* Production simulation atmosphere. The two output canvases are stable shell

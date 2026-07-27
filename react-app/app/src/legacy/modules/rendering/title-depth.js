@@ -64,6 +64,58 @@ const DEPTH_PLANE_TITLE_MODES = new Set([
   MODES.PARALLAX_FLOAT
 ]);
 
+export function disposeHomepageCrispTitleCanvas(globals) {
+  const canvas = globals?.crispTitleCanvas
+    || (typeof document === 'undefined' ? null : document.getElementById('simulation-crisp-title-canvas'));
+  try {
+    globals?.crispTitleCtx?.clearRect?.(0, 0, canvas?.width || 0, canvas?.height || 0);
+  } catch (e) {
+    /* ignore */
+  }
+  canvas?.remove?.();
+  if (globals) {
+    globals.crispTitleCanvas = null;
+    globals.crispTitleCtx = null;
+  }
+}
+
+export function syncHomepageCrispTitleCanvas(globals, sourceCanvas, depthActive = false) {
+  if (!globals || !sourceCanvas || typeof document === 'undefined') return null;
+  const parent = sourceCanvas.parentElement;
+  if (!parent) {
+    disposeHomepageCrispTitleCanvas(globals);
+    return null;
+  }
+
+  let canvas = globals.crispTitleCanvas;
+  if (!canvas || !canvas.isConnected || canvas.parentElement !== parent) {
+    disposeHomepageCrispTitleCanvas(globals);
+    canvas = document.createElement('canvas');
+    canvas.id = 'simulation-crisp-title-canvas';
+    canvas.className = 'simulation-crisp-title-canvas';
+    canvas.dataset.simulationSnapshotId = 'home-canvas-title';
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.setAttribute('role', 'presentation');
+    parent.appendChild(canvas);
+    globals.crispTitleCanvas = canvas;
+    globals.crispTitleCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+  }
+
+  if (!globals.crispTitleCtx) {
+    disposeHomepageCrispTitleCanvas(globals);
+    return null;
+  }
+  if (canvas.width !== sourceCanvas.width) canvas.width = sourceCanvas.width;
+  if (canvas.height !== sourceCanvas.height) canvas.height = sourceCanvas.height;
+  const nextDepthActive = String(Boolean(depthActive));
+  const nextSnapshotOrder = depthActive ? '25' : '15';
+  if (canvas.dataset.depthActive !== nextDepthActive) canvas.dataset.depthActive = nextDepthActive;
+  if (canvas.dataset.simulationSnapshotOrder !== nextSnapshotOrder) {
+    canvas.dataset.simulationSnapshotOrder = nextSnapshotOrder;
+  }
+  return globals.crispTitleCtx;
+}
+
 function getCanvasCenter(canvas) {
   return {
     x: canvas ? canvas.width * 0.5 : 0,

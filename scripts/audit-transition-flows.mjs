@@ -7,6 +7,7 @@ import { chromium, firefox, webkit } from 'playwright';
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 60000);
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const HEADED = process.env.ABS_HEADED === '1';
 const STRICT_RAF = process.env.ABS_TRANSITION_STRICT_RAF === '1';
 const REDUCED_MOTION = process.env.ABS_TRANSITION_REDUCED_MOTION === '1';
 const STRESS_MODE = process.env.ABS_TRANSITION_STRESS === '1';
@@ -39,6 +40,7 @@ const runStem = [
   PRELOAD_FAILURE_MODE ? 'preload-failure' : '',
   CPU_THROTTLE_RATE > 1 ? `cpu-${CPU_THROTTLE_RATE}x` : '',
   READINESS_DELAY_MS > 0 ? `readiness-${READINESS_DELAY_MS}ms` : '',
+  HEADED ? 'headed' : '',
 ].filter(Boolean).join('-');
 
 const ROUTE_DEFINITIONS = Object.freeze({
@@ -908,7 +910,7 @@ async function runPreloadFailureProbe(page, traces, nextIndex) {
 async function main() {
   await mkdir(outputRoot, { recursive: true });
   const browserType = BROWSERS[BROWSER_NAME] || chromium;
-  const browser = await browserType.launch();
+  const browser = await browserType.launch({ headless: !HEADED });
   const context = await browser.newContext({
     viewport: VIEWPORT,
     reducedMotion: REDUCED_MOTION ? 'reduce' : 'no-preference',
