@@ -34,7 +34,10 @@ import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { hasGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
-import { prepareBookendTitleGlyphs } from '../../../lib/motion/entrance-sequence.js';
+import {
+  applyBookendTitleKerning,
+  prepareBookendTitleGlyphs,
+} from '../../../lib/motion/entrance-sequence.js';
 import { registerRouteTransitionParticipant } from '../../../lib/motion/route-transition-participants.js';
 
 const BASE_PATH = (() => {
@@ -1361,6 +1364,7 @@ class PortfolioScrollApp {
     pin.append(intro, viewport, dotDial, mist, status);
     stage.append(pin);
     this.mount.appendChild(stage);
+    applyBookendTitleKerning(intro.querySelector('[data-route-enter-variant="bookend-title"]'));
     this.deckStage = stage;
     this.deckPin = pin;
     this.deckViewport = viewport;

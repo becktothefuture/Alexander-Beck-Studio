@@ -1411,6 +1411,7 @@ body.styleguide-page .styleguide-type-card--mono .styleguide-type-card__sample {
 
 body.styleguide-page .styleguide-type-card--headline .styleguide-type-card__sample {
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: calc(var(--text-xl) * var(--abs-font-headline-scale, 1));
   line-height: calc(var(--line-height-title) * var(--abs-font-headline-line-height-scale, 1));
   letter-spacing: var(--abs-font-headline-letter-spacing);
@@ -1572,6 +1573,7 @@ body.styleguide-page .styleguide-type-hero-block {
 body.styleguide-page .styleguide-type-sample--hero-name,
 body.styleguide-page .styleguide-type-sample--hero-role {
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-weight: 400;
   letter-spacing: var(--abs-font-headline-letter-spacing);
   line-height: calc(1.1 * var(--abs-font-headline-line-height-scale, 1));
@@ -1708,6 +1710,7 @@ body.dark-mode.styleguide-page .styleguide-type-gate-block {
 
 body.styleguide-page .styleguide-type-sample--gate-title {
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: calc(48px * var(--abs-font-headline-scale, 1));
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   margin: 0 0 var(--gap-sm);
@@ -3313,6 +3316,7 @@ html[data-shell-route='home'] .hero-title--canvas-source {
   );
   --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
 }
@@ -3408,6 +3412,7 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 .route-entrance-word {
   display: inline-block;
   white-space: nowrap;
+  font-kerning: normal;
 }
 
 .route-entrance-glyph,
@@ -3416,6 +3421,7 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 }
 
 .route-entrance-glyph {
+  margin-inline-start: var(--route-entrance-glyph-kern, 0em);
   /* Filter/transform animation promotes each glyph to its own paint layer.
      Keep that layer larger than the serif ink plus the 10px blur footprint,
      while cancelling the extra box size so line geometry never changes. */
@@ -7691,6 +7697,7 @@ body.portfolio-page--locked #simulations {
 .route-centered-page__title {
   margin: 0;
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: var(--route-entry-title-size);
   font-weight: var(--abs-weight-regular);
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));

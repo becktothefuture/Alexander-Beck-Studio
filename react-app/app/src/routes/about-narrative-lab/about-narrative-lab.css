@@ -226,6 +226,7 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
   max-width: var(--about-title-display-max-width, 22ch);
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: clamp(2.4rem, 6.7vw, 7.8rem);
   font-weight: 400;
   letter-spacing: var(--abs-font-headline-letter-spacing);

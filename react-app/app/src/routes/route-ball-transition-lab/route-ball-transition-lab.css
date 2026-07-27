@@ -150,6 +150,7 @@ body.route-ball-transition-lab-page button {
 .route-ball-scene__copy h1 {
   margin: 0;
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: clamp(48px, 8.2cqw, 112px);
   font-weight: 400;
   letter-spacing: var(--abs-font-headline-letter-spacing, -0.01ch);

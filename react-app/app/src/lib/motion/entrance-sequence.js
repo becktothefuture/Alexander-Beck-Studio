@@ -1,4 +1,5 @@
 import { getShellRouteTransitionConfig } from '../../legacy/modules/visual/site-shell.js';
+import { resolvePairKerningEm } from './glyph-kerning.js';
 
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
@@ -28,6 +29,7 @@ const BOOKEND_TITLE_MOTION = Object.freeze({
 const SEQUENCED_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer', 'control']);
 const GROUP_GAP_MS = 40;
 let glyphPreparationGeneration = 0;
+let glyphKerningContext = null;
 
 const PROFILES = Object.freeze({
   direct: Object.freeze({
@@ -91,6 +93,56 @@ function createGlyph(character) {
   return glyph;
 }
 
+function getGlyphKerningContext() {
+  if (glyphKerningContext) return glyphKerningContext;
+  if (typeof document === 'undefined') return null;
+  glyphKerningContext = document.createElement('canvas').getContext('2d');
+  return glyphKerningContext;
+}
+
+function buildCanvasFont(style, fontSizePx) {
+  const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
+  const fontWeight = style.fontWeight || '400';
+  return `${fontStyle}${fontWeight} ${fontSizePx}px ${style.fontFamily || 'sans-serif'}`;
+}
+
+export function applyBookendTitleKerning(element) {
+  if (!element?.isConnected || typeof getComputedStyle !== 'function') return false;
+  const context = getGlyphKerningContext();
+  if (!context) return false;
+
+  const words = element.querySelectorAll('.route-entrance-word');
+  let applied = false;
+  words.forEach((word) => {
+    const glyphs = Array.from(word.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
+    if (glyphs.length === 0) return;
+
+    const style = getComputedStyle(word);
+    const fontSizePx = Number.parseFloat(style.fontSize);
+    if (!Number.isFinite(fontSizePx) || fontSizePx <= 0) return;
+
+    context.font = buildCanvasFont(style, fontSizePx);
+    if ('fontKerning' in context) context.fontKerning = 'normal';
+    if ('letterSpacing' in context) context.letterSpacing = '0px';
+    const measureText = (text) => context.measureText(text);
+
+    glyphs.forEach((glyph, index) => {
+      const kerningEm = index === 0
+        ? 0
+        : resolvePairKerningEm({
+          measureText,
+          previousGlyph: glyphs[index - 1].textContent || '',
+          currentGlyph: glyph.textContent || '',
+          fontSizePx,
+        });
+      glyph.style.setProperty('--route-entrance-glyph-kern', `${kerningEm.toFixed(6)}em`);
+    });
+    applied = true;
+  });
+
+  return applied;
+}
+
 /**
  * Converts one title into stable word groups and individually animatable glyphs.
  * The title keeps its accessible name while visual children remain aria-hidden.
@@ -100,6 +152,7 @@ export function prepareBookendTitleGlyphs(element) {
   const existingGlyphs = Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
   if (existingGlyphs.length > 0) {
     existingGlyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
+    applyBookendTitleKerning(element);
     return existingGlyphs;
   }
 
@@ -138,6 +191,7 @@ export function prepareBookendTitleGlyphs(element) {
   element.append(fragment);
   const glyphs = Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
   glyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
+  applyBookendTitleKerning(element);
   return glyphs;
 }
 

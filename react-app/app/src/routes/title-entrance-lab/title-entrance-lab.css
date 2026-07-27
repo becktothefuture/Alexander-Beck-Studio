@@ -270,6 +270,7 @@ body.title-entrance-lab-page .title-entrance-lab__header h2 {
   --title-letter-drift: -0.12em;
   margin: 0;
   font-family: var(--abs-font-headline);
+  font-kerning: normal;
   font-size: clamp(52px, 7.5vw, 124px);
   font-weight: var(--abs-weight-regular);
   line-height: 0.91;
