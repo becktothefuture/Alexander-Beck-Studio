@@ -1,6 +1,7 @@
 import homeContent from 'virtual:abs-content/home';
 import { HOME_IDENTITY } from '../../lib/home-identity.js';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import { getAtmosphereLabVariant } from '../atmosphere-lab/atmosphereLabRoutes.js';
 
 const loadHomeRouteModule = () => import('../../legacy/main.js');
 
@@ -22,7 +23,11 @@ function renderLegendItem(item) {
   );
 }
 
-export function getHomeRouteView() {
+export function getHomeRouteView(canonicalHref = '') {
+  const atmospherePathname = typeof window === 'undefined'
+    ? canonicalHref
+    : new URL(canonicalHref || window.location.href, window.location.origin).pathname;
+  const atmosphereVariant = getAtmosphereLabVariant(atmospherePathname);
   const philosophyLink = homeContent.philosophy.link;
   const handleContactClick = (event) => {
     if (
@@ -42,7 +47,7 @@ export function getHomeRouteView() {
   };
 
   return {
-    bodyClass: 'body',
+    bodyClass: atmosphereVariant ? `body atmosphere-lab-page atmosphere-lab-page--${atmosphereVariant}` : 'body',
     contentRenderKey: 'home-shell',
     showFooter: true,
     studioWindowClassName: 'ball-simulation w-embed',

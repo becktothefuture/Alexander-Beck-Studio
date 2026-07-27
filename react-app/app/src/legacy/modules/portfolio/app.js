@@ -29,6 +29,7 @@ import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
 import { PortfolioProjectHandoff } from './project-handoff.js';
 import { PortfolioParticleField } from './portfolio-speed-field.js';
+import { registerSimulationAtmosphereSource } from '../rendering/atmosphere/simulation-atmosphere.js';
 import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { hasGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
@@ -640,6 +641,8 @@ class PortfolioScrollApp {
     this.deckContentRevealDelayMs = PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS;
     this.deckOptions = { ...PORTFOLIO_DECK_DEFAULTS };
     this.particleField = null;
+    this.atmosphereSourceCleanup = null;
+    this.atmosphereRouteExiting = false;
     this.ringCopyRadius = 1;
     this.deckStage = null;
     this.deckPin = null;
@@ -733,8 +736,12 @@ class PortfolioScrollApp {
     this.registerRouteParticipant();
     this.particleField = new PortfolioParticleField(
       document.querySelector('.portfolio-speed-field-canvas'),
-      this.deckOptions.particleField
+      {
+        ...this.deckOptions.particleField,
+        onSuspensionChange: (suspended) => this.syncAtmosphereSource(suspended),
+      }
     );
+    this.syncAtmosphereSource(true);
     this.thumbnailReadinessPromise = this.prepareProjectThumbnails();
     await this.thumbnailReadinessPromise;
     if (signal?.aborted) return false;
@@ -746,6 +753,7 @@ class PortfolioScrollApp {
     }
     this.updateCardMetrics();
     this.particleField.start();
+    this.syncAtmosphereSource(false);
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
     document.addEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
@@ -761,6 +769,25 @@ class PortfolioScrollApp {
     globals.portfolioRelayoutLabels = () => this.updateCardMetrics();
     installPortfolioAuditBridge(this);
     return true;
+  }
+
+  syncAtmosphereSource(suspended = this.particleField?.suspended === true) {
+    if (this.atmosphereRouteExiting) return;
+    this.atmosphereSourceCleanup?.();
+    this.atmosphereSourceCleanup = null;
+    if (this.destroyed) return;
+
+    const canvas = this.particleField?.canvas || null;
+    const useAmbientFallback = suspended || !canvas;
+    this.atmosphereSourceCleanup = registerSimulationAtmosphereSource({
+      id: useAmbientFallback ? 'portfolio:ambient' : 'portfolio:speed-field',
+      routeId: 'portfolio',
+      kind: useAmbientFallback ? 'ambient' : 'canvas',
+      canvas: useAmbientFallback ? null : canvas,
+      quietZoneElement: () => document.getElementById('hero-title'),
+      scheduler: 'internal',
+      opacityElement: useAmbientFallback ? null : canvas,
+    });
   }
 
   registerRouteParticipant() {
@@ -875,6 +902,7 @@ class PortfolioScrollApp {
 
   prepareRouteExit({ signal } = {}) {
     if (signal?.aborted || this.destroyed) return;
+    this.atmosphereRouteExiting = true;
     this.stopDeckAnimation();
     this.clearDeckSettleTimer();
     this.pauseAllVideos();
@@ -892,6 +920,7 @@ class PortfolioScrollApp {
 
   restoreRouteAfterFailedExit() {
     if (this.destroyed || !this.mount) return;
+    this.atmosphereRouteExiting = false;
     this.cancelEntrancePromise();
     this.mount.classList.remove(
       'is-portfolio-boot-preparing',
@@ -904,6 +933,10 @@ class PortfolioScrollApp {
     this.mount.inert = false;
     this.mount.removeAttribute('aria-busy');
     this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
+    const shouldSuspend = this.isProjectOpen || Boolean(this.pendingProjectIntent);
+    const suspensionChanged = this.particleField?.suspended !== shouldSuspend;
+    this.particleField?.setSuspended(shouldSuspend);
+    if (!suspensionChanged) this.syncAtmosphereSource(shouldSuspend);
   }
 
   enterRoute({ signal, reason = 'route-in' } = {}) {
@@ -1010,6 +1043,7 @@ class PortfolioScrollApp {
     this.routeCompletionObserver = null;
     const settleWhenIdle = () => {
       if (this.destroyed || getTransitionPhase() !== 'idle') return false;
+      this.atmosphereRouteExiting = false;
       this.routeCompletionObserver?.disconnect();
       this.routeCompletionObserver = null;
       this.particleField?.setSuspended(this.isProjectOpen || Boolean(this.pendingProjectIntent));
@@ -1027,6 +1061,8 @@ class PortfolioScrollApp {
 
   destroy() {
     this.destroyed = true;
+    this.atmosphereSourceCleanup?.();
+    this.atmosphereSourceCleanup = null;
     removePortfolioAuditBridge(this);
     document.removeEventListener('abs:portfolio:open-project', this.boundAuditOpenProject);
     window.removeEventListener('abs:portfolio:access-granted', this.boundAccessGranted);

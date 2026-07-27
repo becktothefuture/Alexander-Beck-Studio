@@ -85,6 +85,7 @@ export function FlockOfBirdsRuntime() {
         ref={canvasRef}
         id="flock-of-birds-canvas"
         className="flock-of-birds-canvas"
+        data-simulation-atmosphere-source="true"
         role="img"
         aria-label="Convergence flat flock simulation"
       />

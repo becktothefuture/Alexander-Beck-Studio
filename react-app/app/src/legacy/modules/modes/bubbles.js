@@ -10,6 +10,7 @@ import { playCollisionSound } from '../audio/sound-engine.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { resolveAtmosphereDepthProfile } from '../rendering/atmosphere/atmosphere-frame-hook.js';
 
 const TAU = Math.PI * 2;
 const POINTER_SPEED_SMOOTHING = 0.18;
@@ -66,10 +67,31 @@ function getBubbleBand(g, canvas) {
   return { bandTop, bandBottom };
 }
 
-function getBubbleZ(g) {
+function getBubbleZ(g, sideRandom = Math.random(), depthRandom = Math.random()) {
+  const atmosphereProfile = resolveAtmosphereDepthProfile(MODES.BUBBLES);
+  if (atmosphereProfile) {
+    const plane = clamp(Number(atmosphereProfile.plane ?? 0.5), 0, 1);
+    const span = clamp(Number(atmosphereProfile.spread ?? 0.26), 0.02, 1);
+    const frontShare = clamp01(Number(atmosphereProfile.frontShare ?? 0.34));
+    const halfSpan = span * 0.5;
+    const z = sideRandom < frontShare
+      ? plane + depthRandom * halfSpan
+      : plane - depthRandom * halfSpan;
+    return clamp(z, 0, 1);
+  }
   const span = Math.max(0.1, Math.min(1, g.bubblesDepthSpan ?? 0.8));
   const z = 0.5 + (Math.random() - 0.5) * span;
   return Math.max(0, Math.min(1, z));
+}
+
+export function refreshBubbleAtmosphereDepth() {
+  const g = getGlobals();
+  if (g.currentMode !== MODES.BUBBLES || !Array.isArray(g.balls)) return;
+  for (let i = 0; i < g.balls.length; i += 1) {
+    const ball = g.balls[i];
+    ball.z = getBubbleZ(g, randomFromBall(ball), randomFromBall(ball));
+    assignBubbleTraits(ball, g, ball.bubbleSourceIndex || 0);
+  }
 }
 
 function getBubbleSources(g, canvas) {

@@ -152,6 +152,12 @@ function buildCanonicalRouteHref(route, url) {
   if (__DEV__ && route.id === 'about-narrative-lab' && url.searchParams.get('edit') === '1') {
     canonical.searchParams.set('edit', '1');
   }
+  if (route.id.startsWith('atmosphere-')) {
+    ['mode', 'panel', 'absAudit'].forEach((key) => {
+      const value = url.searchParams.get(key);
+      if (value) canonical.searchParams.set(key, value);
+    });
+  }
   canonical.hash = url.hash;
   return `${canonical.pathname}${canonical.search}${canonical.hash}`;
 }
@@ -709,6 +715,27 @@ function resetSimulationFocusTransition(surfaceRefs, { discardSnapshots = false 
   setSimulationFocusTransitionState(null);
 }
 
+function readSimulationSnapshotOrder(canvas) {
+  const explicitOrder = Number.parseFloat(canvas.dataset.simulationSnapshotOrder);
+  if (Number.isFinite(explicitOrder)) return explicitOrder;
+  if (canvas.classList.contains('simulation-atmosphere-glow-canvas')) return 10;
+  if (canvas.classList.contains('simulation-front-depth-canvas')) return 30;
+  if (canvas.classList.contains('simulation-atmosphere-edge-light-canvas')) return 40;
+
+  // Route canvases live inside nested stacking contexts, so their computed
+  // z-index is useful only within the main-material band.
+  const localZ = Number.parseFloat(getComputedStyle(canvas).zIndex);
+  return 20 + (Number.isFinite(localZ) ? Math.max(-999, Math.min(999, localZ)) / 1000 : 0);
+}
+
+function readSimulationSnapshotLayerId(canvas, index) {
+  return canvas.dataset.simulationSnapshotId
+    || canvas.dataset.atmosphereLayer
+    || canvas.id
+    || canvas.classList.item(0)
+    || `canvas-${index + 1}`;
+}
+
 function captureSimulationTransactionSnapshot() {
   const host = document.getElementById('simulations');
   const snapshotHost = document.getElementById('simulation-transaction-snapshot-host');
@@ -730,19 +757,22 @@ function captureSimulationTransactionSnapshot() {
   const context = snapshot.getContext('2d');
   const sourceCanvases = Array.from(host.querySelectorAll('canvas'))
     .filter((canvas) => canvas !== snapshot && canvas.width > 0 && canvas.height > 0)
-    .sort((left, right) => {
-      const leftZ = Number.parseFloat(getComputedStyle(left).zIndex) || 0;
-      const rightZ = Number.parseFloat(getComputedStyle(right).zIndex) || 0;
-      return leftZ - rightZ;
-    });
+    .sort((left, right) => readSimulationSnapshotOrder(left) - readSimulationSnapshotOrder(right));
   let capturedLayers = 0;
-  sourceCanvases.forEach((canvas) => {
+  const capturedLayerIds = [];
+  sourceCanvases.forEach((canvas, index) => {
     const style = getComputedStyle(canvas);
     const rect = canvas.getBoundingClientRect();
     if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return;
     if (rect.width < 1 || rect.height < 1) return;
     try {
-      context.globalAlpha = Number.parseFloat(style.opacity) || 1;
+      const opacity = Number.parseFloat(style.opacity);
+      context.globalAlpha = Number.isFinite(opacity) ? opacity : 1;
+      context.globalCompositeOperation = style.mixBlendMode === 'screen'
+        ? 'screen'
+        : style.mixBlendMode === 'plus-lighter'
+          ? 'lighter'
+          : 'source-over';
       context.drawImage(
         canvas,
         (rect.left - hostRect.left) * pixelRatio,
@@ -751,14 +781,17 @@ function captureSimulationTransactionSnapshot() {
         rect.height * pixelRatio,
       );
       capturedLayers += 1;
+      capturedLayerIds.push(readSimulationSnapshotLayerId(canvas, index));
     } catch {
       // A failed layer capture must never block the route switch.
     }
   });
   context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
   if (capturedLayers === 0) return null;
 
   snapshot.dataset.capturedLayers = String(capturedLayers);
+  snapshot.dataset.capturedLayerIds = capturedLayerIds.join(',');
   let released = false;
   let releaseScheduled = false;
   let visibleAt = 0;

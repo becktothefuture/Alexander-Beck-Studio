@@ -118,6 +118,7 @@ function publishSimulationSwitchState(simulationId, status, error = null) {
 export function SimulationFocusProvider({
   routeId,
   surfaceRouteId = routeId,
+  homeModeHrefBase = null,
   transitionCurrentRoute = null,
   children,
 }) {
@@ -375,7 +376,7 @@ export function SimulationFocusProvider({
       selectionFrameRef.current = null;
       const runSelection = () => {
         const isCurrentSelection = () => selectionGenerationRef.current === selectionGeneration;
-        const cleanHomeHref = buildRouteHref('home');
+        const cleanHomeHref = homeModeHrefBase || buildRouteHref('home');
         const targetHomeHref = `${cleanHomeHref}?mode=${encodeURIComponent(target.mode || '')}`;
         const previousHomeMode = homeMode;
         const handleSelectionFailure = (error) => {
@@ -481,7 +482,7 @@ export function SimulationFocusProvider({
     });
 
     return true;
-  }, [activeId, closeChooser, homeMode, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
+  }, [activeId, closeChooser, homeMode, homeModeHrefBase, refreshFocusState, routeIsDailyFocus, transitionCurrentRoute]);
 
   const value = useMemo(() => ({
     activeId,

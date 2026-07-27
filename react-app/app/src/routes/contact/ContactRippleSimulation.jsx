@@ -12,6 +12,7 @@ import {
 } from './contactRippleConfig.js';
 import { CONTACT_RIPPLE_BURST_EVENT } from './contactRippleEvents.js';
 import { createContactRippleRenderer } from './contactRippleRenderer.js';
+import { registerSimulationAtmosphereSource } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import './contact-route.css';
 
 export function ContactRippleSimulation() {
@@ -78,6 +79,7 @@ export function ContactRippleSimulation() {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return undefined;
+    const sourceContextAvailable = Boolean(canvas.getContext('2d', { alpha: true }));
 
     const renderer = createContactRippleRenderer({
       canvas,
@@ -89,6 +91,15 @@ export function ContactRippleSimulation() {
     });
     rendererRef.current = renderer;
     renderer.start();
+    const unregisterAtmosphereSource = registerSimulationAtmosphereSource({
+      id: sourceContextAvailable ? 'contact:ripple' : 'contact:ambient',
+      routeId: 'contact',
+      kind: sourceContextAvailable ? 'canvas' : 'ambient',
+      canvas: sourceContextAvailable ? canvas : null,
+      quietZoneElement: () => document.getElementById('contact-route-content'),
+      scheduler: 'internal',
+      opacityElement: sourceContextAvailable ? canvas : null,
+    });
 
     const handleConfigChange = (event) => {
       renderer.updateConfig?.(event.detail?.config || getContactRippleConfig());
@@ -100,6 +111,7 @@ export function ContactRippleSimulation() {
     return () => {
       window.removeEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
       window.removeEventListener(CONTACT_RIPPLE_BURST_EVENT, handleBurstRequest);
+      unregisterAtmosphereSource();
       renderer.destroy();
       if (rendererRef.current === renderer) rendererRef.current = null;
     };

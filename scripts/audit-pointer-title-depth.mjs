@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 
 const DEFAULT_ORIGIN = 'http://127.0.0.1:8012';
 const WAIT_MS = Number(process.env.ABS_POINTER_TITLE_WAIT_MS || 30000);
+const CRISP_GLOW_PATH = '/lab/atmosphere-crisp-glow.html';
 // This audit verifies the legacy home #c canvas contract. Keep these fixtures
 // to current daily home-mode entries; collection modes can route to the daily
 // shell and intentionally do not provide #c on direct startup.
@@ -14,6 +15,14 @@ function resolveModeUrl(mode) {
   const url = new URL(/\.html$/i.test(raw) ? raw : `${raw}/index.html`);
   url.searchParams.set('mode', mode);
   url.searchParams.set('absAudit', '1');
+  return url.toString();
+}
+
+function resolveCrispGlowUrl(mode = 'bubbles') {
+  const raw = String(process.env.ABS_DEV_URL || DEFAULT_ORIGIN).trim().replace(/\/+$/, '');
+  const origin = new URL(/\.html$/i.test(raw) ? raw : `${raw}/index.html`).origin;
+  const url = new URL(CRISP_GLOW_PATH, origin);
+  url.searchParams.set('mode', mode);
   return url.toString();
 }
 
@@ -182,6 +191,160 @@ async function auditNoDepthModes(page) {
   return results;
 }
 
+async function auditCrispGlowTitleDepth(page) {
+  await page.goto(resolveCrispGlowUrl(), { waitUntil: 'networkidle', timeout: 60000 });
+  await page.waitForFunction(() => {
+    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+    return snap?.variant === 'crispGlow' && snap?.titleOwner === 'engine' && snap?.titleVisible === true;
+  }, undefined, { timeout: WAIT_MS });
+
+  const simulationModes = await page.$$eval(
+    'select[aria-label="Simulation"] option',
+    (options) => options.map((option) => option.value),
+  );
+  const titleResults = [];
+  for (const mode of simulationModes) {
+    await page.selectOption('select[aria-label="Simulation"]', mode);
+    await page.waitForFunction((expectedMode) => {
+      const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+      return snap?.simulationMode === expectedMode
+        && snap?.titleOwner === 'engine'
+        && snap?.titleVisible === true;
+    }, mode, { timeout: WAIT_MS });
+    const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
+    titleResults.push({ mode, titleVisible: snap.titleVisible });
+  }
+
+  await page.selectOption('select[aria-label="Simulation"]', 'bubbles');
+  await page.waitForFunction(() => {
+    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+    return snap?.simulationMode === 'bubbles'
+      && snap?.rearCount > 0
+      && snap?.frontCount > 0
+      && snap?.frontShare >= 0.2
+      && snap?.frontShare <= 0.48
+      && document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active');
+  }, undefined, { timeout: WAIT_MS });
+  const emergence = await page.evaluate(() => ({
+    ...window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
+    depthLayerActive: document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active'),
+    dedicatedTitleCanvasCount: document.querySelectorAll('.atmosphere-title-canvas').length,
+    edgeCanvasCount: document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length,
+    edgeClipCount: document.querySelectorAll('.atmosphere-edge-light-defs clipPath path').length,
+  }));
+  if (
+    emergence.depthLayerActive !== true
+    || emergence.dedicatedTitleCanvasCount !== 0
+    || emergence.edgeCanvasCount !== 1
+    || emergence.edgeClipCount !== 1
+    || emergence.edgeWidth <= 0
+    || emergence.edgeHeight <= 0
+  ) {
+    throw new Error(`Crisp + Glow layer contract invalid: ${JSON.stringify(emergence)}`);
+  }
+
+  const requiredCompositionControls = [
+    'ballPresence',
+    'glowAmount',
+    'glowRadiusFxPx',
+    'colourStrength',
+    'glowBlendMode',
+    'edgeLight',
+    'edgeWidthPx',
+    'hazeStrength',
+    'grainStrength',
+    'titleClearance',
+    'titleYOffsetVh',
+    'afterglowHalfLifeMs',
+    'driftSpeedPxPerSec',
+  ];
+  const compositionControlIds = await page.$$eval(
+    '[data-parameter-id]',
+    (controls) => controls.map((control) => control.dataset.parameterId),
+  );
+  const missingCompositionControls = requiredCompositionControls.filter(
+    (id) => !compositionControlIds.includes(id),
+  );
+  if (missingCompositionControls.length > 0) {
+    throw new Error(`Crisp + Glow controls missing: ${missingCompositionControls.join(', ')}`);
+  }
+
+  await page.selectOption('select[aria-label="Theme values to edit and preview"]', 'dark');
+  await page.waitForFunction(
+    () => window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().themeMode === 'dark',
+    undefined,
+    { timeout: WAIT_MS },
+  );
+  await page.evaluate(() => {
+    const values = {
+      ballPresence: '0.42',
+      hazeStrength: '0.65',
+      grainStrength: '0.5',
+      edgeWidthPx: '2',
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const input = document.querySelector(`input[data-parameter-id="${id}"]`);
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const blend = document.querySelector('select[data-parameter-id="glowBlendMode"]');
+    blend.value = 'screen';
+    blend.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+    const rootStyle = getComputedStyle(document.documentElement);
+    return snap?.composition?.ballPresence === 0.42
+      && snap?.composition?.hazeStrength === 0.65
+      && snap?.composition?.grainStrength === 0.5
+      && snap?.composition?.edgeWidthPx === 2
+      && snap?.composition?.blendMode === 'screen'
+      && getComputedStyle(document.body).getPropertyValue('--atmosphere-core-presence').trim() === '0.42'
+      && rootStyle.getPropertyValue('--atmosphere-haze-strength').trim() === '0.65'
+      && rootStyle.getPropertyValue('--atmosphere-grain-strength').trim() === '0.5'
+      && rootStyle.getPropertyValue('--atmosphere-edge-width').trim() === '2px';
+  }, undefined, { timeout: WAIT_MS });
+  await page.getByRole('button', { name: 'Reset' }).click();
+
+  await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
+    input.value = '3.25';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+    return snap?.config?.common?.titleYOffsetVh === 3.25
+      && getComputedStyle(document.documentElement).getPropertyValue('--atmosphere-title-y-offset').trim() === '3.25vh';
+  }, undefined, { timeout: WAIT_MS });
+  await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
+    input.value = '0';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  const themeResults = [];
+  for (const theme of ['dark', 'light']) {
+    await page.selectOption('select[aria-label="Theme values to edit and preview"]', theme);
+    await page.waitForFunction(
+      (expectedTheme) => window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().themeMode === expectedTheme,
+      theme,
+      { timeout: WAIT_MS },
+    );
+    const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
+    themeResults.push({ theme, edgeLight: snap.config.profiles.crispGlow[theme].edgeLight });
+  }
+
+  return {
+    simulations: titleResults.length,
+    emergence: {
+      rearCount: emergence.rearCount,
+      frontCount: emergence.frontCount,
+      frontShare: emergence.frontShare,
+      titleOwner: emergence.titleOwner,
+    },
+    compositionControls: requiredCompositionControls.length,
+    themeResults,
+  };
+}
+
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -191,12 +354,14 @@ async function main() {
     const touchSphere = await auditTouchSphere(browser);
     const depthModes = await auditDepthModes(page);
     const noDepthModes = await auditNoDepthModes(page);
+    const crispGlow = await auditCrispGlowTitleDepth(page);
     console.log(JSON.stringify({
       ok: true,
       mouseSphere,
       touchSphere,
       depthModes,
-      noDepthModes
+      noDepthModes,
+      crispGlow,
     }, null, 2));
   } finally {
     await page.close().catch(() => {});

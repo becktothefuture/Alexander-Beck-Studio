@@ -258,6 +258,7 @@
   "flubberBlobWallBounce": 0.34,
   "flubberBlobMaxSpeed": 1400,
   "weaveFieldBallCount": 132,
+  "weaveFieldBallSizeMul": 0.6,
   "weaveFieldLaneCount": 4,
   "weaveFieldFlowSpeed": 118,
   "weaveFieldWeaveStrength": 0.9,

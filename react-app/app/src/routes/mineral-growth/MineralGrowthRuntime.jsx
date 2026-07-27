@@ -85,6 +85,7 @@ export function MineralGrowthRuntime() {
         ref={canvasRef}
         id="mineral-growth-canvas"
         className="mineral-growth-canvas"
+        data-simulation-atmosphere-source="true"
         role="img"
         aria-label="Formation flat growth simulation"
       />

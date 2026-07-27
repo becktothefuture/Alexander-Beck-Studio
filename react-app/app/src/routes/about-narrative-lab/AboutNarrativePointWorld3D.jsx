@@ -41,6 +41,10 @@ import {
   resolveAboutNarrativeWorldAnchorRailZ,
 } from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
+import {
+  registerSimulationAtmosphereSource,
+  tickSimulationAtmosphere,
+} from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { easeSimulationVisualProgress } from '../../lib/simulationVisualTransition.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
@@ -1021,6 +1025,30 @@ function createPointFieldAdapter({
   let viewportOffsetX = 0;
   let viewportOffsetY = 0;
   let latestFrame = null;
+  const atmosphereEligible = Boolean(document.getElementById('simulation-atmosphere-glow-canvas'));
+  let atmosphereSourceCleanup = null;
+  let atmosphereSourceKind = '';
+  const syncAtmosphereSource = () => {
+    if (!atmosphereEligible || disposed) return;
+    const nextKind = contextAvailable && root.dataset.editorialInView !== 'true'
+      ? 'canvas'
+      : 'ambient';
+    if (nextKind === atmosphereSourceKind) return;
+    atmosphereSourceCleanup?.();
+    atmosphereSourceCleanup = null;
+    atmosphereSourceKind = nextKind;
+    const canvasSource = nextKind === 'canvas';
+    atmosphereSourceCleanup = registerSimulationAtmosphereSource({
+      id: canvasSource ? 'about:narrative-world' : 'about:ambient',
+      routeId: 'about',
+      kind: canvasSource ? 'canvas' : 'ambient',
+      canvas: canvasSource ? canvas : null,
+      quietZoneElement: () => root.querySelector('[data-primary-copy]'),
+      scheduler: canvasSource ? 'renderer-coupled' : 'internal',
+      opacityElement: canvasSource ? canvas : null,
+    });
+  };
+  syncAtmosphereSource();
   root.dataset.aboutEntranceState = 'staged';
   delete root.dataset.aboutSceneReady;
 
@@ -2113,6 +2141,7 @@ function createPointFieldAdapter({
 
   const render = (frame) => {
     latestFrame = frame;
+    syncAtmosphereSource();
     if (!frame || !contextAvailable || document.hidden) return;
     if (frame.pointProfile && frame.pointProfile !== quality) {
       if (lastInteractionEnabled !== false) {
@@ -2389,6 +2418,9 @@ function createPointFieldAdapter({
       runtimeObserver.hotFrameDomWrite();
     }
     runtimeObserver.render();
+    if (atmosphereSourceKind === 'canvas') {
+      tickSimulationAtmosphere(performance.now(), 'about:narrative-world');
+    }
     markSceneReady();
   };
 
@@ -2433,6 +2465,7 @@ function createPointFieldAdapter({
   const handleContextLost = (event) => {
     event.preventDefault();
     contextAvailable = false;
+    syncAtmosphereSource();
     preparationController.setVisible(false);
     bootstrapController?.abort();
     bootstrapRequestId += 1;
@@ -2444,6 +2477,7 @@ function createPointFieldAdapter({
   };
   const handleContextRestored = () => {
     contextAvailable = true;
+    syncAtmosphereSource();
     root.dataset.pointWorldState = 'ready';
     resize();
     updateTheme();
@@ -2544,6 +2578,8 @@ function createPointFieldAdapter({
 
   return () => {
     disposed = true;
+    atmosphereSourceCleanup?.();
+    atmosphereSourceCleanup = null;
     window.clearTimeout(runtimeReadyTimer);
     unsubscribePreparation();
     preparationController.dispose();
@@ -2644,8 +2680,32 @@ export function AboutNarrativePointWorld3D({
       });
     } catch (error) {
       root.dataset.pointWorldState = 'unavailable';
+      root.dataset.aboutSceneReady = 'true';
+      let atmosphereCleanup = null;
+      if (document.getElementById('simulation-atmosphere-glow-canvas')) {
+        try {
+          atmosphereCleanup = registerSimulationAtmosphereSource({
+            id: 'about:ambient',
+            routeId: 'about',
+            kind: 'ambient',
+            quietZoneElement: () => root.querySelector('[data-primary-copy]'),
+            scheduler: 'internal',
+          });
+        } catch {
+          // The route remains usable even when both renderers are unavailable.
+        }
+      }
+      const readyTimer = window.setTimeout(() => {
+        root.dispatchEvent(new CustomEvent('about:world-runtime-ready'));
+        window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+      }, 0);
       console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);
-      return () => { delete root.dataset.pointWorldState; };
+      return () => {
+        window.clearTimeout(readyTimer);
+        atmosphereCleanup?.();
+        delete root.dataset.pointWorldState;
+        delete root.dataset.aboutSceneReady;
+      };
     }
   }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef, showCameraFocusAnchor]);
 

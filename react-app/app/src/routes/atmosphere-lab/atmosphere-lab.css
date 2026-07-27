@@ -1,0 +1,371 @@
+body.atmosphere-lab-page {
+  overflow: hidden;
+}
+
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) {
+  --atmosphere-core-presence: 0;
+  --atmosphere-haze-strength: 1;
+  --atmosphere-grain-strength: 1;
+}
+
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) #c,
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) #simulation-front-depth-canvas {
+  opacity: var(--atmosphere-core-presence);
+}
+
+body.atmosphere-lab-page .simulation-contrast-veil::before {
+  --atmosphere-haze-alpha: calc(
+    var(--simulation-contrast-veil-opacity)
+    * var(--atmosphere-haze-strength)
+  );
+  background:
+    linear-gradient(
+      90deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-x),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-x)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 0%,
+      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-y),
+      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-y)),
+      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 100%
+    );
+}
+
+body.atmosphere-lab-page .simulation-contrast-veil::after {
+  opacity: calc(
+    var(--simulation-contrast-veil-dither-opacity, 0.035)
+    * var(--atmosphere-haze-strength)
+  );
+}
+
+html.entrance-complete.noise-ready body.atmosphere-lab-page .noise,
+html.entrance-complete body.atmosphere-lab-page.noise-ready .noise {
+  opacity: calc(
+    var(--noise-opacity-light)
+    * var(--abs-noise-enabled)
+    * var(--atmosphere-grain-strength)
+  );
+}
+
+html.entrance-complete.noise-ready body.atmosphere-lab-page.dark-mode .noise,
+html.entrance-complete body.atmosphere-lab-page.dark-mode.noise-ready .noise {
+  opacity: calc(
+    var(--noise-opacity-dark)
+    * var(--abs-noise-enabled)
+    * var(--atmosphere-grain-strength)
+  );
+}
+
+body.atmosphere-lab-page #simulations canvas.atmosphere-output-canvas,
+body.atmosphere-lab-page #simulations canvas.atmosphere-title-canvas,
+body.atmosphere-lab-page #simulations canvas.atmosphere-edge-light-canvas {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  pointer-events: none;
+  touch-action: none;
+}
+
+body.atmosphere-lab-page #simulations canvas.atmosphere-output-canvas {
+  z-index: 11;
+  image-rendering: auto;
+}
+
+body.atmosphere-lab-page--crispGlow #simulations canvas.atmosphere-output-canvas {
+  z-index: 9;
+}
+
+body.atmosphere-lab-page #simulations canvas.atmosphere-title-canvas {
+  z-index: 12;
+}
+
+body.atmosphere-lab-page #simulations .atmosphere-edge-light-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.atmosphere-lab-page #simulations canvas.atmosphere-edge-light-canvas {
+  z-index: 13;
+  image-rendering: auto;
+  mix-blend-mode: normal;
+}
+
+body.atmosphere-lab-page.dark-mode #simulations canvas.atmosphere-edge-light-canvas {
+  mix-blend-mode: screen;
+}
+
+body.atmosphere-lab-page .atmosphere-parameterizer {
+  --parameterizer-panel-width: 328px;
+  --parameterizer-header-height: 28px;
+  --parameterizer-folder-height: 24px;
+  --parameterizer-row-height: 25px;
+  --parameterizer-panel-bg: #17181b;
+  --parameterizer-header-bg: #0e0f11;
+  --parameterizer-folder-bg: #22242a;
+  --parameterizer-row-bg: #17181b;
+  --parameterizer-row-hover: #1e2025;
+  --parameterizer-separator: #30333a;
+  --parameterizer-text: #f0f2f4;
+  --parameterizer-muted: #9096a0;
+  --parameterizer-widget-bg: #292c32;
+  --parameterizer-accent: #8dd8ff;
+
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--parameterizer-panel-width), calc(100% - 16px));
+  max-height: calc(100% - 16px);
+  overflow: hidden;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 4px;
+  background: var(--parameterizer-panel-bg);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+  font: 500 11px/1.25 var(--abs-font-sans);
+  pointer-events: auto;
+}
+
+.atmosphere-parameterizer .parameterizer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--parameterizer-header-height);
+  padding-inline: 8px;
+  border-bottom: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.atmosphere-parameterizer[data-dragging='true'] {
+  will-change: transform;
+}
+
+.atmosphere-parameterizer[data-dragging='true'] .parameterizer-header {
+  cursor: grabbing;
+}
+
+.atmosphere-parameterizer .parameterizer-header:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: -2px;
+}
+
+.atmosphere-parameterizer__heading {
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.atmosphere-parameterizer__header-tools {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.atmosphere-parameterizer__metrics {
+  color: var(--parameterizer-muted);
+  font: 500 9px/1 var(--abs-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.atmosphere-parameterizer button.atmosphere-parameterizer__exit {
+  min-height: 18px;
+  padding-inline: 5px;
+  color: var(--parameterizer-muted);
+  border-color: transparent;
+  background: transparent;
+  font: 600 9px/1 var(--abs-font-sans);
+}
+
+.atmosphere-parameterizer button.atmosphere-parameterizer__collapse {
+  min-height: 18px;
+  padding-inline: 5px;
+  color: var(--parameterizer-muted);
+  border-color: transparent;
+  background: transparent;
+  font: 600 9px/1 var(--abs-font-sans);
+}
+
+.atmosphere-parameterizer[data-collapsed='true'] > .atmosphere-parameterizer__approach,
+.atmosphere-parameterizer[data-collapsed='true'] > .parameterizer-scroll,
+.atmosphere-parameterizer[data-collapsed='true'] > .parameterizer-actions {
+  display: none;
+}
+
+.atmosphere-parameterizer__approach {
+  display: grid;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.atmosphere-parameterizer__approach label {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  align-items: center;
+  gap: 6px;
+  color: var(--parameterizer-muted);
+}
+
+.atmosphere-parameterizer .parameterizer-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.atmosphere-parameterizer .parameterizer-folder {
+  border-bottom: 1px solid var(--parameterizer-separator);
+}
+
+.atmosphere-parameterizer .parameterizer-folder-title {
+  display: flex;
+  align-items: center;
+  min-height: var(--parameterizer-folder-height);
+  padding-inline: 8px;
+  color: var(--parameterizer-text);
+  background: var(--parameterizer-folder-bg);
+  cursor: default;
+  font-weight: 650;
+  list-style: none;
+}
+
+.atmosphere-parameterizer .parameterizer-folder-title::-webkit-details-marker {
+  display: none;
+}
+
+.atmosphere-parameterizer .parameterizer-folder-title::before {
+  width: 12px;
+  color: var(--parameterizer-muted);
+  content: 'v';
+  font: 9px/1 var(--abs-font-mono);
+}
+
+.atmosphere-parameterizer .parameterizer-folder:not([open]) .parameterizer-folder-title::before {
+  content: '>';
+}
+
+.atmosphere-parameterizer__rows {
+  padding-block: 2px;
+}
+
+.atmosphere-parameterizer .parameterizer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 34%) minmax(0, 1fr) 58px;
+  align-items: center;
+  min-height: var(--parameterizer-row-height);
+  padding-inline: 8px 6px;
+  gap: 6px;
+  background: var(--parameterizer-row-bg);
+}
+
+.atmosphere-parameterizer .parameterizer-row:hover {
+  background: var(--parameterizer-row-hover);
+}
+
+.atmosphere-parameterizer .parameterizer-label,
+.atmosphere-parameterizer .parameterizer-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atmosphere-parameterizer .parameterizer-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.atmosphere-parameterizer .parameterizer-control--checkbox {
+  justify-content: flex-end;
+}
+
+.atmosphere-parameterizer .parameterizer-value {
+  color: var(--parameterizer-muted);
+  font: 500 10px/1 var(--abs-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.atmosphere-parameterizer input,
+.atmosphere-parameterizer select,
+.atmosphere-parameterizer button {
+  font: inherit;
+}
+
+.atmosphere-parameterizer input[type='range'] {
+  width: 100%;
+  accent-color: var(--parameterizer-accent);
+}
+
+.atmosphere-parameterizer input[type='checkbox'] {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--parameterizer-accent);
+}
+
+.atmosphere-parameterizer select {
+  width: 100%;
+  min-width: 0;
+  height: 20px;
+  padding-inline: 4px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+}
+
+.atmosphere-parameterizer .parameterizer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-top: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.atmosphere-parameterizer button {
+  min-height: 22px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  cursor: pointer;
+}
+
+.atmosphere-parameterizer input:focus-visible,
+.atmosphere-parameterizer select:focus-visible,
+.atmosphere-parameterizer button:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  body.atmosphere-lab-page .atmosphere-parameterizer {
+    --parameterizer-row-height: 32px;
+    --parameterizer-folder-height: 30px;
+    width: min(300px, calc(100% - 16px));
+    max-height: min(62%, 520px);
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  html[data-shell-route='home'] body.atmosphere-lab-page .hero-title--canvas-source {
+    --home-hero-title-font-size: min(
+      calc(var(--route-entry-title-size) * var(--route-bookend-title-scale)),
+      11svh
+    );
+  }
+}

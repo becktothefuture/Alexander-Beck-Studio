@@ -19,6 +19,13 @@ import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-exp
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { TITLE_DEPTH_PLANE_Z, drawHomepageCanvasTitle, modeUsesDepthTitlePlane } from '../rendering/title-depth.js';
+import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
+import {
+  doesAtmosphereEngineOwnTitle,
+  isAtmosphereFrameRendererActive,
+  renderActiveAtmosphereFrame,
+  resolveAtmosphereTitlePlacementOverride,
+} from '../rendering/atmosphere/atmosphere-frame-hook.js';
 import { 
   getAccumulator, 
   setAccumulator, 
@@ -63,6 +70,8 @@ function getDepthFogOpacity(z) {
 }
 
 function modeNeedsDepthTitleLayer(mode) {
+  const override = resolveAtmosphereTitlePlacementOverride(mode);
+  if (override) return override === 'depth-plane';
   return modeUsesDepthTitlePlane(mode);
 }
 
@@ -796,6 +805,8 @@ export function render() {
   // ═══════════════════════════════════════════════════════════════════════════════
   const dpr = globals.DPR || 1;
   const qualityProfile = getRenderQualityProfile(globals);
+  const atmosphereRendererActive = isAtmosphereFrameRendererActive();
+  const engineOwnsTitle = !atmosphereRendererActive || doesAtmosphereEngineOwnTitle();
   const pitFxThrottleAware = isPitMode
     && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware'
     && (Number(globals.adaptiveThrottleLevel) || 0) >= 1;
@@ -849,6 +860,7 @@ export function render() {
 
   const customRenderer = getModeCustomRenderer();
   const depthRenderer = getModeDepthRenderer();
+  const atmosphereMaterialOpacity = getSimulationAtmosphereMaterialOpacity();
   const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
   if (
     needsDepthTitleLayer &&
@@ -869,24 +881,33 @@ export function render() {
   }
 
   if (customRenderer) {
-    drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    ctx.save();
+    ctx.globalAlpha *= atmosphereMaterialOpacity;
     customRenderer(ctx);
+    ctx.restore();
   } else if (needsDepthTitleLayer && frontCtx && depthRenderer) {
+    ctx.save();
+    ctx.globalAlpha *= atmosphereMaterialOpacity;
     depthRenderer(ctx, {
       layer: 'behind',
       depthPlane: TITLE_DEPTH_PLANE_Z,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     });
+    ctx.restore();
 
-    drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
 
+    frontCtx.save();
+    frontCtx.globalAlpha *= atmosphereMaterialOpacity;
     depthRenderer(frontCtx, {
       layer: 'front',
       depthPlane: TITLE_DEPTH_PLANE_Z,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     });
+    frontCtx.restore();
   } else if (needsDepthTitleLayer && frontCtx) {
     resetZPartitionCache();
 
@@ -901,17 +922,17 @@ export function render() {
     }
 
     if (zPartitionCache.behind.length > 0) {
-      renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions);
+      renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
 
-    drawHomepageCanvasTitle(ctx, globals);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
 
     if (zPartitionCache.inFront.length > 0) {
-      renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions);
+      renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
   } else {
-    drawHomepageCanvasTitle(ctx, globals);
-    renderBallsColorBatched(ctx, balls, false, ballRenderOptions);
+    if (engineOwnsTitle) drawHomepageCanvasTitle(ctx, globals);
+    renderBallsColorBatched(ctx, balls, false, ballRenderOptions, atmosphereMaterialOpacity);
   }
 
   if (modeRenderer && modeRenderer.postRender) {
@@ -925,6 +946,7 @@ export function render() {
   drawWalls(ctx, canvas.width, canvas.height, {
     wallGradientStrokeEnabled: qualityProfile.wallGradientStrokeEnabled
   });
+  renderActiveAtmosphereFrame(globals);
   if (isPitMode) {
     postFxMs = performance.now() - postFxStart;
     finalizePitPerfSample(globals, performance.now() - renderStart, postFxMs);
@@ -937,7 +959,13 @@ export function render() {
  * @param {CanvasRenderingContext2D} ctx
  * @param {Array} ballsToRender - Array of Ball objects
  */
-function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, renderOptions = null) {
+function renderBallsColorBatched(
+  ctx,
+  ballsToRender,
+  applyDepthFog = false,
+  renderOptions = null,
+  materialOpacity = 1,
+) {
   if (!ballsToRender || ballsToRender.length === 0) return;
   const globals = getGlobals();
   const pitLodEnabled = Boolean(renderOptions?.pitRenderLodEnabled);
@@ -966,6 +994,9 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
   
   // Draw in batches (far fewer fillStyle state changes)
   for (const [color, group] of ballsByColor) {
+    const inheritedAlpha = ctx.globalAlpha;
+    const groupMaterialAlpha = Math.max(0, Math.min(1, Number(materialOpacity) || 0));
+    ctx.globalAlpha = inheritedAlpha * groupMaterialAlpha;
     ctx.fillStyle = color;
 
     if (simpleCircleBodies) {
@@ -991,7 +1022,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
         if (effectiveAlpha <= 0.001) continue;
         if (effectiveAlpha < 0.999) {
           ctx.save();
-          ctx.globalAlpha = effectiveAlpha;
+          ctx.globalAlpha = inheritedAlpha * groupMaterialAlpha * effectiveAlpha;
           ctx.beginPath();
           ctx.moveTo(ball.x + radius, ball.y);
           ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
@@ -1006,6 +1037,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       if (hasOpaqueCircles) {
         ctx.fill();
       }
+      ctx.globalAlpha = inheritedAlpha;
       continue;
     }
     
@@ -1039,7 +1071,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       if (hasSquash || hasAlpha) {
         // Complex case: use save/restore for alpha and transforms
         ctx.save();
-        ctx.globalAlpha = effectiveAlpha;
+        ctx.globalAlpha = inheritedAlpha * groupMaterialAlpha * effectiveAlpha;
         
         if (hasSquash) {
           // Use existing Ball.draw() for squash (it handles transforms)
@@ -1074,6 +1106,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
         ctx.restore();
       }
     }
+    ctx.globalAlpha = inheritedAlpha;
   }
 
 }

@@ -1,7 +1,6 @@
 import { MODES } from '../core/constants.js';
 
 export const TITLE_DEPTH_PLANE_Z = 0.5;
-const TITLE_RENDER_REFRESH_MS = 500;
 const TITLE_RENDER_MAX_LINES = 4;
 const TITLE_RENDER_MAX_GLYPHS = 64;
 export const TITLE_SCENE_PLACEMENT = Object.freeze({
@@ -82,6 +81,13 @@ export function modeUsesDepthTitlePlane(mode) {
   return resolveTitleScenePlacement(mode) === TITLE_SCENE_PLACEMENT.DEPTH_PLANE;
 }
 
+export function invalidateHomepageCanvasTitleGeometry() {
+  titleRenderCache.signature = '';
+  titleRenderCache.lastRefreshMs = 0;
+  titleCenterCache.signature = '';
+  titleCenterCache.lastRefreshMs = 0;
+}
+
 export function getHeroTitleCanvasCenter(globals) {
   const canvas = globals?.canvas;
   if (!canvas || typeof document === 'undefined') return getCanvasCenter(canvas);
@@ -98,7 +104,6 @@ export function getHeroTitleCanvasCenter(globals) {
   if (
     titleCenterCache.signature === signature
     && !shouldRefreshEveryFrame(root, scene)
-    && now - titleCenterCache.lastRefreshMs <= TITLE_RENDER_REFRESH_MS
   ) {
     return { x: titleCenterCache.x, y: titleCenterCache.y };
   }
@@ -240,8 +245,7 @@ function refreshCanvasTitleCache(ctx, globals) {
   const scene = document.getElementById('abs-scene');
   const signature = buildTitleRenderSignature(canvas, title, root, body, scene);
   const needsRefresh = titleRenderCache.signature !== signature
-    || shouldRefreshEveryFrame(root, scene)
-    || now - titleRenderCache.lastRefreshMs > TITLE_RENDER_REFRESH_MS;
+    || shouldRefreshEveryFrame(root, scene);
 
   if (!needsRefresh) return titleRenderCache;
 
@@ -322,7 +326,13 @@ function refreshCanvasTitleCache(ctx, globals) {
     target.blurPx = parseBlurPx(style.filter) * scaleY;
 
     const glyphNodes = source.querySelectorAll?.('[data-route-enter-glyph]') || [];
-    target.glyphCount = Math.min(TITLE_RENDER_MAX_GLYPHS, glyphNodes.length);
+    let drawAsSettledLine = body?.classList?.contains('atmosphere-lab-page') && glyphNodes.length > 0;
+    for (let glyphIndex = 0; drawAsSettledLine && glyphIndex < glyphNodes.length; glyphIndex += 1) {
+      if (glyphNodes[glyphIndex].__absRouteEntranceState?.settled !== true) drawAsSettledLine = false;
+    }
+    target.glyphCount = drawAsSettledLine
+      ? 0
+      : Math.min(TITLE_RENDER_MAX_GLYPHS, glyphNodes.length);
     for (let glyphIndex = 0; glyphIndex < target.glyphs.length; glyphIndex += 1) {
       const glyphTarget = target.glyphs[glyphIndex];
       const glyphSource = glyphNodes[glyphIndex];

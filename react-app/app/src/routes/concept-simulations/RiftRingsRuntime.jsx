@@ -87,6 +87,7 @@ export function RiftRingsRuntime() {
         ref={canvasRef}
         id="rift-rings-canvas"
         className="concept-simulation-canvas"
+        data-simulation-atmosphere-source="true"
         role="img"
         aria-label={ENTRY.ariaLabel}
       />

@@ -16,6 +16,18 @@ import { getReloadSimulationId } from '../../../data/simulationCatalog.js';
 import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
+import { invalidateHomepageCanvasTitleGeometry } from '../rendering/title-depth.js';
+import {
+  getSimulationAtmosphereConfig,
+  invalidateSimulationAtmosphereGeometry,
+  setSimulationAtmosphereConfig,
+} from '../rendering/atmosphere/simulation-atmosphere.js';
+import {
+  DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
+  SIMULATION_ATMOSPHERE_CONTROL_GROUPS,
+  normalizeSimulationAtmosphereConfig,
+  normalizeSimulationAtmosphereTitleYOffsetVh,
+} from '../rendering/atmosphere/simulation-atmosphere-config.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
@@ -269,11 +281,22 @@ loadVisibility();
 export const MASTER_GROUPS = [
   {
     id: 'studio',
-    title: 'Studio',
+    title: 'Studio Surface',
     icon: '✨',
     sections: [
       'colors',
-      'colorDistribution'
+      'colorDistribution',
+      'wallLight'
+    ]
+  },
+  {
+    id: 'atmosphere',
+    title: 'Background Atmosphere',
+    icon: '🌫️',
+    sections: [
+      'atmosphereCommon',
+      'atmosphereLight',
+      'atmosphereDark'
     ]
   },
   {
@@ -288,10 +311,9 @@ export const MASTER_GROUPS = [
   },
   {
     id: 'lightGroup',
-    title: 'Light',
+    title: 'Legibility',
     icon: '💡',
     sections: [
-      'wallLight',
       'contrastVeil'
     ]
   },
@@ -745,7 +767,170 @@ function createButtonBarControls() {
   ]);
 }
 
+const ATMOSPHERE_PROFILE_GROUPS = SIMULATION_ATMOSPHERE_CONTROL_GROUPS
+  .filter((group) => group.scope === 'themeProfile')
+  .map((group) => ({
+    ...group,
+    controls: group.controls.filter((control) => control.scope !== 'common'),
+  }))
+  .filter((group) => group.controls.length > 0);
+
+function getAtmosphereStateKey(id, theme = '') {
+  const themePrefix = theme ? `${theme[0].toUpperCase()}${theme.slice(1)}` : '';
+  const idPrefix = `${id[0].toUpperCase()}${id.slice(1)}`;
+  return `atmosphere${themePrefix}${idPrefix}`;
+}
+
+function formatAtmosphereControlValue(value, control) {
+  if (control.type === 'checkbox') return value ? 'On' : 'Off';
+  if (control.type === 'select') return String(value);
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  if (control.display === 'percent') return `${Math.round(numeric * 100)}%`;
+  if (control.display === 'px') return `${Math.round(numeric)}px`;
+  if (control.display === 'subpx') return `${numeric.toFixed(2).replace(/\.00$/, '')}px`;
+  if (control.display === 'vh') return `${numeric.toFixed(2).replace(/\.00$/, '')}vh`;
+  if (control.display === 'ms') return `${Math.round(numeric)}ms`;
+  if (control.display === 'pxs') return `${numeric.toFixed(2).replace(/\.00$/, '')}px/s`;
+  return numeric.toFixed(2).replace(/\.00$/, '');
+}
+
+function readAtmosphereState(g, key, fallback) {
+  const value = g?.[key];
+  return value === undefined ? fallback : value;
+}
+
+function readTitleYOffsetFromDocument() {
+  const authored = document.documentElement.style.getPropertyValue('--atmosphere-title-y-offset');
+  const numeric = Number.parseFloat(authored);
+  return normalizeSimulationAtmosphereTitleYOffsetVh(
+    Number.isFinite(numeric) ? numeric : DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
+  );
+}
+
+export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
+  if (!g) return;
+  const config = getSimulationAtmosphereConfig();
+  g[getAtmosphereStateKey('enabled')] = config.enabled;
+  g[getAtmosphereStateKey('qualityMode')] = config.qualityMode;
+  g[getAtmosphereStateKey('hazeCadence')] = config.hazeCadence;
+  g[getAtmosphereStateKey('titleYOffsetVh')] = readTitleYOffsetFromDocument();
+  for (const theme of ['light', 'dark']) {
+    for (const group of ATMOSPHERE_PROFILE_GROUPS) {
+      for (const control of group.controls) {
+        g[getAtmosphereStateKey(control.id, theme)] = config[theme][control.id];
+      }
+    }
+  }
+}
+
+export function buildSimulationAtmosphereConfigFromControlState(
+  g = getGlobals(),
+  baseConfig = getSimulationAtmosphereConfig(),
+) {
+  const base = normalizeSimulationAtmosphereConfig(baseConfig);
+  const next = {
+    enabled: readAtmosphereState(g, getAtmosphereStateKey('enabled'), base.enabled),
+    qualityMode: readAtmosphereState(g, getAtmosphereStateKey('qualityMode'), base.qualityMode),
+    hazeCadence: readAtmosphereState(g, getAtmosphereStateKey('hazeCadence'), base.hazeCadence),
+    light: { ...base.light },
+    dark: { ...base.dark },
+  };
+  for (const theme of ['light', 'dark']) {
+    for (const group of ATMOSPHERE_PROFILE_GROUPS) {
+      for (const control of group.controls) {
+        next[theme][control.id] = readAtmosphereState(
+          g,
+          getAtmosphereStateKey(control.id, theme),
+          base[theme][control.id],
+        );
+      }
+    }
+  }
+  return normalizeSimulationAtmosphereConfig(next);
+}
+
+export function getSimulationAtmosphereTitleYOffsetFromControlState(g = getGlobals()) {
+  return normalizeSimulationAtmosphereTitleYOffsetVh(
+    readAtmosphereState(
+      g,
+      getAtmosphereStateKey('titleYOffsetVh'),
+      readTitleYOffsetFromDocument(),
+    ),
+  );
+}
+
+function applySimulationAtmosphereControlState(g) {
+  setSimulationAtmosphereConfig(buildSimulationAtmosphereConfigFromControlState(g));
+  const titleYOffsetVh = getSimulationAtmosphereTitleYOffsetFromControlState(g);
+  document.documentElement.style.setProperty('--atmosphere-title-y-offset', `${titleYOffsetVh}vh`);
+  invalidateHomepageCanvasTitleGeometry();
+  invalidateSimulationAtmosphereGeometry();
+}
+
+function createAtmosphereCommonControls() {
+  const controlsById = new Map(
+    SIMULATION_ATMOSPHERE_CONTROL_GROUPS.flatMap((group) => (
+      group.controls.map((control) => [control.id, { group: group.title, control }])
+    )),
+  );
+  return ['enabled', 'titleYOffsetVh', 'qualityMode', 'hazeCadence'].map((id) => {
+    const entry = controlsById.get(id);
+    const control = entry.control;
+    return {
+      ...control,
+      id: getAtmosphereStateKey(id),
+      stateKey: getAtmosphereStateKey(id),
+      designScope: 'simulationAtmosphere',
+      group: entry.group,
+      default: id === 'titleYOffsetVh'
+        ? DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH
+        : normalizeSimulationAtmosphereConfig()[id],
+      parse: control.type === 'checkbox' ? (value) => !!value : (
+        control.type === 'select' ? (value) => String(value) : Number.parseFloat
+      ),
+      format: (value) => formatAtmosphereControlValue(value, control),
+      hint: `Background atmosphere: ${control.label.toLowerCase()}.`,
+      onChange: applySimulationAtmosphereControlState,
+    };
+  });
+}
+
+function createAtmosphereThemeControls(theme) {
+  const defaults = normalizeSimulationAtmosphereConfig()[theme];
+  return ATMOSPHERE_PROFILE_GROUPS.flatMap((group) => group.controls.map((control) => ({
+    ...control,
+    id: getAtmosphereStateKey(control.id, theme),
+    stateKey: getAtmosphereStateKey(control.id, theme),
+    designScope: 'simulationAtmosphere',
+    group: group.title,
+    default: defaults[control.id],
+    parse: control.type === 'select' ? (value) => String(value) : Number.parseFloat,
+    format: (value) => formatAtmosphereControlValue(value, control),
+    hint: `${theme === 'dark' ? 'Dark' : 'Light'} atmosphere: ${control.label.toLowerCase()}.`,
+    onChange: applySimulationAtmosphereControlState,
+  })));
+}
+
 export const CONTROL_SECTIONS = {
+  atmosphereCommon: {
+    title: 'Global',
+    icon: '🌐',
+    defaultOpen: true,
+    controls: createAtmosphereCommonControls(),
+  },
+  atmosphereLight: {
+    title: 'Light Mode',
+    icon: '☀️',
+    defaultOpen: false,
+    controls: createAtmosphereThemeControls('light'),
+  },
+  atmosphereDark: {
+    title: 'Dark Mode',
+    icon: '🌙',
+    defaultOpen: false,
+    controls: createAtmosphereThemeControls('dark'),
+  },
   // ═══════════════════════════════════════════════════════════════════════════
   // LITE MODE — Global performance toggle
   // ═══════════════════════════════════════════════════════════════════════════
@@ -4362,6 +4547,18 @@ export const CONTROL_SECTIONS = {
         hint: 'Total woven bodies. Mobile/lite budgets can still reduce the effective count.'
       },
       {
+        id: 'weaveFieldBallSizeMul',
+        label: 'Ball Size',
+        stateKey: 'weaveFieldBallSizeMul',
+        type: 'range',
+        min: 0.2, max: 1.5, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Radius multiplier for Juxtaposition balls relative to the shared responsive ball size.'
+      },
+      {
         id: 'weaveFieldLaneCount',
         label: 'Lane Count',
         stateKey: 'weaveFieldLaneCount',
@@ -6325,6 +6522,7 @@ export function bindRegisteredControls(options = {}) {
   const uiDocument = getUiDocument(options.uiDocument);
   if (!uiDocument) return;
   registerPanelUiDocument(uiDocument);
+  hydrateSimulationAtmosphereControlState(g);
 
   for (const [sectionKey, section] of Object.entries(CONTROL_SECTIONS)) {
     for (const control of section.controls) {

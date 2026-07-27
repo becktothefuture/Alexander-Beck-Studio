@@ -57,6 +57,9 @@ export class PortfolioParticleField {
     this.frameCount = 0;
     this.drawCount = 0;
     this.options = {};
+    this.onSuspensionChange = typeof options.onSuspensionChange === 'function'
+      ? options.onSuspensionChange
+      : null;
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
     this.boundVisibilityChange = () => this.syncLifecycle();
     this.boundMotionPreferenceChange = () => this.syncLifecycle();
@@ -223,8 +226,11 @@ export class PortfolioParticleField {
   }
 
   setSuspended(suspended) {
-    this.suspended = Boolean(suspended);
+    const nextSuspended = Boolean(suspended);
+    const changed = this.suspended !== nextSuspended;
+    this.suspended = nextSuspended;
     this.syncLifecycle();
+    if (changed) this.onSuspensionChange?.(this.suspended);
   }
 
   isReducedMotion() {
@@ -452,6 +458,7 @@ export class PortfolioParticleField {
     this.particles.length = 0;
     this.colors.length = 0;
     this.maskGradient = null;
+    this.onSuspensionChange = null;
     this.canvas = null;
     this.ctx = null;
   }

@@ -297,9 +297,9 @@ function getMasterPanelContent({
   `;
 
   // Build all master groups with proper content injection
-  // - Theme + Palette → Studio
-  // - Outer / inner wall lighting → Light Group
-  // - Frame geometry, layers, spacing → Shell
+  // - Theme, palette, wall shape, and wall lighting → Studio Surface
+  // - Contrast and reading protection → Legibility
+  // - Remaining shell layers and spacing → Shell
   // - Puck appearance + size/padding/colors → Puck
   // - Sound → Audio
   // - Mode switcher + simulation-system controls → Simulations
@@ -327,12 +327,14 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      shell: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
+      studio: [
+        generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
+        generateStudioSurfaceControlsHTML(),
+      ].join(''),
       simulations: simulationsPrepend,
       ballsGroup: ballsPrepend,
     },
     append: {
-      studio: generateStudioSurfaceControlsHTML(),
       shell: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
       puck: generateStudioShellControlsHTML({
         sectionKeys: ['puck'],

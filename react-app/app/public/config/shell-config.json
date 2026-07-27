@@ -69,7 +69,40 @@
     "lightEdgeTopOpacityLight": 0,
     "lightEdgeTopOpacityDark": 0,
     "lightEdgeBottomOpacityLight": 0,
-    "lightEdgeBottomOpacityDark": 0
+    "lightEdgeBottomOpacityDark": 0,
+    "simulationAtmosphere": {
+      "enabled": true,
+      "qualityMode": "low",
+      "hazeCadence": "auto",
+      "light": {
+        "ballPresence": 0.95,
+        "glowAmount": 0.38,
+        "glowRadiusFxPx": 37,
+        "colourStrength": 1.5,
+        "glowBlendMode": "add",
+        "hazeStrength": 1,
+        "grainStrength": 1,
+        "afterglowHalfLifeMs": 700,
+        "driftSpeedPxPerSec": 5.75,
+        "titleClearance": 0.49,
+        "edgeLight": 1.4,
+        "edgeWidthPx": 1.25
+      },
+      "dark": {
+        "ballPresence": 1,
+        "glowAmount": 0.36,
+        "glowRadiusFxPx": 80,
+        "colourStrength": 1.5,
+        "glowBlendMode": "normal",
+        "hazeStrength": 2,
+        "grainStrength": 2,
+        "afterglowHalfLifeMs": 2000,
+        "driftSpeedPxPerSec": 8,
+        "titleClearance": 0.75,
+        "edgeLight": 2.5,
+        "edgeWidthPx": 2
+      }
+    }
   },
   "motion": {
     "shellRevealMs": 180,
@@ -123,6 +156,7 @@
     "navKeepClearOffsetRatio": 0.15,
     "centerKeepClearForce": 900,
     "pitSpawnBiasX": 0.74,
-    "pitSpawnBandWidthRatio": 0.18
+    "pitSpawnBandWidthRatio": 0.18,
+    "titleYOffsetVh": 1.75
   }
 }

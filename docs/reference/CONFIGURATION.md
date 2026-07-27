@@ -9,7 +9,7 @@ Exact current values belong in JSON and normalizer code, not copied into Markdow
 ## Namespaces
 
 - `runtime`: shared Canvas/runtime behavior and global tokens
-- `shell`: physical frame, wall finish, shared chrome, typography, and cross-route surface language
+- `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, and the production simulation atmosphere
 - `portfolio`: active orbital deck, drawer, handoff motion, and route-specific composition
 - `cv`: retained generated-schema compatibility only; it is not a live CV route
 
@@ -38,6 +38,19 @@ The root build checks the shared HTML entry shell before flattening and Vite. A 
 ## Ownership boundaries
 
 Shared visual finish belongs in `shell`. Page namespaces own composition, page-specific motion, and content geometry. When one value renders through multiple paths—such as DOM plus Canvas—update and verify every path.
+
+### Production simulation atmosphere
+
+The shared atmosphere has two canonical shell locations:
+
+- `shell.surface.simulationAtmosphere` owns the enabled state, quality and cadence policy, and complete Light/Dark material profiles;
+- `shell.hero.titleYOffsetVh` owns the single responsive Home title adjustment used by both the semantic title geometry and its Canvas rendering path.
+
+`src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js` is the one default, normalization, control-schema, and profile-resolution module. Do not duplicate profile defaults in a route, lab, stylesheet, or renderer. `normalizeDesignSystemConfig()` normalizes these nested fields before canonical save and build flattening; the generated `shell-config.json` therefore carries the same values for production fallback loading.
+
+The Crisp + Glow lab remains the focused visual comparison surface. The main development panel also exposes the shared production schema once, under **Background Atmosphere**, with one Global section and separate Light Mode and Dark Mode profiles. Both surfaces run the production compositor, apply changes live, and save the same two atmosphere-owned shell paths in `design-system.json`; neither keeps a second set of defaults or opens a detached atmosphere window.
+
+`atmosphere-lab.json` owns only the WebGL Post, Instanced Density, and Canvas Feedback experiments. It must not persist or regenerate a `crispGlow` profile or Title Y value. Exact atmosphere values remain in canonical JSON and normalizer code, consistent with the general authority rule above.
 
 The production ball palette is resolved once by the shared shell from the visitor's local time of day. Eight palettes fill the 24-hour cycle in three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00. Home, Portfolio, About, and Contact consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
 

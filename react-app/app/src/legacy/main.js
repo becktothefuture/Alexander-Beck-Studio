@@ -57,6 +57,9 @@ import {
   waitForPageReadyBarrier,
 } from './modules/visual/page-orchestrator.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
+import { getAtmosphereLabVariant } from '../routes/atmosphere-lab/atmosphereLabRoutes.js';
+import { isAtmosphereLabSimulationMode } from '../routes/atmosphere-lab/atmosphereLabSimulations.js';
+import { registerSimulationAtmosphereSource } from './modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   runSimulationVisualTransition,
   setInitialSimulationVisualScale,
@@ -163,7 +166,9 @@ function getUrlStartupModeOverride() {
     if (!mode) return '';
     const auditAllowsMode = globalThis.__ABS_ROUTE_PERF_AUDIT__ === true
       && Object.values(MODES).includes(mode);
-    return (NARRATIVE_MODE_SEQUENCE.includes(mode) || auditAllowsMode) ? mode : '';
+    const atmosphereLabAllowsMode = Boolean(getAtmosphereLabVariant(window.location.pathname))
+      && isAtmosphereLabSimulationMode(mode);
+    return (NARRATIVE_MODE_SEQUENCE.includes(mode) || auditAllowsMode || atmosphereLabAllowsMode) ? mode : '';
   } catch (e) {
     return '';
   }
@@ -283,9 +288,12 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     isCurrent: isRuntimeCurrent,
     registerCleanup,
     markReady,
+    generation,
   } = runtimeContext;
   let disposed = false;
   let rendererOwner = null;
+  let atmosphereOwner = null;
+  let atmosphereSourceCleanup = null;
   let directEntrance = null;
   let routeReturnVisualPromise = null;
   const isCurrent = () => (
@@ -296,12 +304,22 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   const cleanup = () => {
     if (disposed) return;
     disposed = true;
+    atmosphereSourceCleanup?.();
+    atmosphereSourceCleanup = null;
     directEntrance?.cancel({ clearPhase: true });
     clearHomeEntrancePhase();
     try {
       disposeModeSystem();
     } catch (e) {
       /* ignore */
+    }
+    if (atmosphereOwner !== null) {
+      try {
+        atmosphereOwner.destroy();
+      } catch (e) {
+        /* ignore */
+      }
+      atmosphereOwner = null;
     }
     if (rendererOwner !== null) {
       try {
@@ -478,6 +496,32 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       setInitialSimulationVisualScale(1);
     }
 
+    const atmosphereLabVariant = getAtmosphereLabVariant(window.location.pathname);
+    if (atmosphereLabVariant) {
+      const { initializeAtmosphereLab } = await import('./modules/rendering/atmosphere/atmosphere-controller.js');
+      if (!isCurrent()) return cleanup;
+      atmosphereOwner = await initializeAtmosphereLab({
+        variant: atmosphereLabVariant,
+        globals: getGlobals(),
+      });
+      if (!isCurrent()) return cleanup;
+    } else {
+      atmosphereSourceCleanup = registerSimulationAtmosphereSource({
+        id: `home:legacy:${Number(generation || 0)}`,
+        routeId: 'home',
+        kind: 'emitters',
+        canvas,
+        getEmitters: () => getGlobals().balls,
+        quietZoneElement: () => document.getElementById('hero-title'),
+        scheduler: 'external',
+        opacityElement: canvas,
+      });
+      if (getGlobals().currentMode === MODES.BUBBLES) {
+        const { refreshBubbleAtmosphereDepth } = await import('./modules/modes/bubbles.js');
+        refreshBubbleAtmosphereDepth();
+      }
+    }
+
     // Start the compact route-return bloom on the first simulation frame. The
     // shell can then resolve its cover over material that is already moving,
     // while non-critical quote/dev tooling continues independently.
@@ -565,7 +609,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // Dev panel after setMode so Simulation HTML includes the active mode's controls.
     // Production builds stay panel-free, except an explicit localhost preview hook for
     // tuning the built bundle without exposing the panel on the live site.
-    if (ABS_DEV || localBuildPanelPreview) {
+    if ((ABS_DEV || localBuildPanelPreview) && !atmosphereLabVariant) {
       try {
         if (ABS_DEV) {
           const panelManager = await import('./modules/ui/panel-popup-manager.js');

@@ -1,5 +1,9 @@
 import { getGlobals } from '../core/state.js';
-import { getAllControls } from '../ui/control-registry.js';
+import {
+  buildSimulationAtmosphereConfigFromControlState,
+  getAllControls,
+  getSimulationAtmosphereTitleYOffsetFromControlState,
+} from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
 import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
 import { getShellConfig } from '../visual/site-shell.js';
@@ -39,7 +43,11 @@ export function buildRuntimeConfigSnapshot() {
     const controls = getAllControls();
     for (const control of controls) {
       if (!control?.stateKey) continue;
-      if (control.designScope === 'shellTheme' || control.designScope === 'shellLayout') continue;
+      if (
+        control.designScope === 'shellTheme'
+        || control.designScope === 'shellLayout'
+        || control.designScope === 'simulationAtmosphere'
+      ) continue;
       const value = g[control.stateKey];
       if (value === undefined) continue;
       config[control.stateKey] = value;
@@ -114,6 +122,18 @@ export function buildShellConfigSnapshot() {
   };
   delete nextShell.layout.frameInsetTablet;
   delete nextShell.layout.frameRadiusTablet;
+
+  nextShell.surface = {
+    ...(nextShell.surface || {}),
+    simulationAtmosphere: buildSimulationAtmosphereConfigFromControlState(
+      g,
+      nextShell.surface?.simulationAtmosphere,
+    ),
+  };
+  nextShell.hero = {
+    ...(nextShell.hero || {}),
+    titleYOffsetVh: getSimulationAtmosphereTitleYOffsetFromControlState(g),
+  };
 
   return nextShell;
 }

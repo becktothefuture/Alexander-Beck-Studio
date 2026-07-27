@@ -18,6 +18,7 @@ import {
 } from '../../scripts/lib/simulation-admin-store.mjs';
 import { normalizeMineralGrowthConfig } from './src/routes/mineral-growth/mineralGrowthControls.js';
 import { normalizeLoaderPlaygroundConfig } from './src/routes/loader-playground/loaderPlaygroundControls.js';
+import { normalizeAtmosphereLabConfig } from './src/routes/atmosphere-lab/atmosphereLabControls.js';
 import {
   ABOUT_NARRATIVE_EDITOR_HEADER,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
@@ -130,6 +131,7 @@ export function createDevAdminPlugin({ publicConfigDir, aboutNarrativeConfigPath
   const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
   const mineralGrowthConfigPath = resolve(publicConfigDir, 'mineral-growth-demo.json');
   const loaderPlaygroundConfigPath = resolve(publicConfigDir, 'loader-playground-demo.json');
+  const atmosphereLabConfigPath = resolve(publicConfigDir, 'atmosphere-lab.json');
   const aboutPersistence = createAboutNarrativePersistenceService({ configPath: aboutNarrativeConfigPath });
 
   return {
@@ -270,6 +272,29 @@ export function createDevAdminPlugin({ publicConfigDir, aboutNarrativeConfigPath
 
       server.middlewares.use('/api/repel-room/config', handleRepelRoomConfigSave);
       server.middlewares.use('/api/wall-repel/config', handleRepelRoomConfigSave);
+
+      server.middlewares.use('/api/atmosphere-lab/config', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
+        }
+
+        try {
+          const payload = await readRequestJson(req);
+          const nextConfig = payload?.config;
+          if (!nextConfig || typeof nextConfig !== 'object' || Array.isArray(nextConfig)) {
+            sendJson(res, 400, { ok: false, error: 'Missing atmosphere lab config payload' });
+            return;
+          }
+
+          const normalizedConfig = normalizeAtmosphereLabConfig(nextConfig);
+          await writeFile(atmosphereLabConfigPath, `${JSON.stringify(normalizedConfig, null, 2)}\n`, 'utf8');
+          sendJson(res, 200, { ok: true, version: normalizedConfig.version });
+        } catch (error) {
+          sendJson(res, 500, { ok: false, error: error?.message || 'Failed to save atmosphere lab config' });
+        }
+      });
 
       server.middlewares.use('/api/mineral-growth/config', async (req, res) => {
         if (req.method !== 'POST') {

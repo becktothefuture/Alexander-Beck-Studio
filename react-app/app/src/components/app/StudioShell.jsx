@@ -1,10 +1,14 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import { SiteFooter } from '../SiteFooter.jsx';
 import { RouteTransitionLoader } from './RouteTransitionLoader.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
 import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import {
+  attachSimulationAtmosphereHost,
+  setSimulationAtmosphereTransitionState,
+} from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 function disposeRouteDepthTitleCanvas() {
   if (typeof document === 'undefined') return;
@@ -84,6 +88,7 @@ export function StudioShell({
   pendingRouteId,
   transitionPhase = 'idle',
   transitionState,
+  atmosphereHostScope = null,
   routeRenderKey,
   contentRenderKey = routeRenderKey,
   studioWindowClassName,
@@ -103,6 +108,8 @@ export function StudioShell({
   surfaceRefs,
   onRoutePrewarm,
 }) {
+  const atmosphereGlowCanvasRef = useRef(null);
+  const atmosphereEdgeCanvasRef = useRef(null);
   const routeWindowClassName = studioWindowClassName ?? wallClassName;
   const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
   // Route scenes and optional hero material stay below the shared veil.
@@ -110,6 +117,25 @@ export function StudioShell({
   const routeSimulationLayer = simulationLayer ?? studioWindowContent ?? wallContent;
   const routeHeroLayer = heroLayer ?? heroTitle;
   const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
+
+  useLayoutEffect(() => {
+    if (!atmosphereHostScope) return undefined;
+    try {
+      return attachSimulationAtmosphereHost({
+        root: document.getElementById('simulations'),
+        glowCanvas: atmosphereGlowCanvasRef.current,
+        edgeCanvas: atmosphereEdgeCanvasRef.current,
+        scope: atmosphereHostScope,
+      });
+    } catch (error) {
+      console.warn('[simulation-atmosphere] Compositor unavailable; preserving crisp route material.', error);
+      return undefined;
+    }
+  }, [atmosphereHostScope]);
+
+  useLayoutEffect(() => {
+    setSimulationAtmosphereTransitionState(transitionPhase);
+  }, [transitionPhase]);
 
   useLayoutEffect(() => {
     if (routeRenderKey === 'home') return undefined;
@@ -147,6 +173,17 @@ export function StudioShell({
               className="studio-window-slot shell-wall-slot shell-transition-surface shell-transition-surface--wall"
               data-route-surface="wall"
             >
+              {atmosphereHostScope ? (
+                <canvas
+                  id="simulation-atmosphere-glow-canvas"
+                  ref={atmosphereGlowCanvasRef}
+                  className="simulation-atmosphere-glow-canvas"
+                  data-atmosphere-layer="glow"
+                  data-simulation-snapshot-id="atmosphere-glow"
+                  data-simulation-snapshot-order="10"
+                  aria-hidden="true"
+                />
+              ) : null}
               <div
                 key={`window-${routeRenderKey}`}
                 className="studio-window-route-root shell-wall-route-root route-simulation-layer"
@@ -174,6 +211,17 @@ export function StudioShell({
                 {simulationFocusControls}
               </div>
             </div>
+            {atmosphereHostScope ? (
+              <canvas
+                id="simulation-atmosphere-edge-light-canvas"
+                ref={atmosphereEdgeCanvasRef}
+                className="simulation-atmosphere-edge-light-canvas"
+                data-atmosphere-layer="edge-light"
+                data-simulation-snapshot-id="atmosphere-edge-light"
+                data-simulation-snapshot-order="40"
+                aria-hidden="true"
+              />
+            ) : null}
           </div>
           <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
           <div className="frame-vignette" aria-hidden="true" />

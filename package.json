@@ -63,6 +63,7 @@
     "audit:portfolio-carousel" : "node scripts\/audit-portfolio-carousel.mjs",
     "audit:portfolio-gate" : "node scripts\/audit-portfolio-gate-flow.mjs",
     "audit:portfolio-transition" : "node scripts\/audit-portfolio-project-transition.mjs",
+    "audit:production-atmosphere" : "node scripts\/audit-production-atmosphere.mjs",
     "audit:route-cursor-colour" : "node scripts\/audit-route-cursor-colour.mjs",
     "audit:route-loader-spinner" : "node scripts\/audit-route-loader-spinner.mjs",
     "audit:shapes-kinetic-grab" : "node scripts\/audit-shapes-kinetic-grab.mjs",

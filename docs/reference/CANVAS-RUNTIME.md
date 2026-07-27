@@ -84,6 +84,47 @@ Prefer explicit cleanup contracts in new code:
 
 Do not rely on global patching as the first choice for new runtime code. Keep `legacy-runtime-scope` because it protects the current mixed integration model.
 
+## Production Simulation Atmosphere
+
+`modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas directly inside `#simulations`; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
+
+Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. The Crisp + Glow lab mounts the same compositor under a lab scope for authoring. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
+
+The registration boundary is:
+
+```js
+const unregister = registerSimulationAtmosphereSource({
+  id,
+  routeId,
+  kind: 'emitters' | 'canvas' | 'ambient',
+  canvas,
+  getEmitters,
+  quietZoneElement,
+  opacityElement,
+  scheduler: 'external' | 'internal' | 'renderer-coupled',
+});
+```
+
+- `emitters` requires `getEmitters()` and `external`; the Home physics frame hook calls `tickSimulationAtmosphere()` after material rendering.
+- `canvas` accepts `internal` when the compositor may sample independently, or `renderer-coupled` when the source renderer must tick it after publishing a frame. A registered source Canvas must never be either compositor output Canvas.
+- `ambient` requires `internal` and uses the compositor's fixed eight-emitter fallback. It is for a genuinely canvas-less or deliberately suspended eligible state, not a substitute for registering available route material.
+- `quietZoneElement` may be an element or getter. Its geometry is cached and invalidated by resize, source, theme, and authored-geometry changes; settled frames must not introduce repeated layout reads.
+- `opacityElement` identifies the crisp material whose authored presence the compositor projects. Home keeps title opacity inside its engine rather than fading a title-bearing Canvas wholesale.
+
+Registration returns a generation-qualified, idempotent disposer. A stale disposer cannot clear a newer route source. Source changes clear feedback in the idle state; during a shell transition the outgoing result may freeze under the route cover until the next source is ready. The disposer also exposes `firstFrame`, which resolves `ready`, `cancelled`, or `failed-open` without extending the shell's global readiness timeout.
+
+Scheduling and performance are part of the contract:
+
+- only one host, source, internal animation frame, glow Canvas, and edge Canvas may exist at once;
+- High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
+- automatic cadence is 30 FPS on desktop and 20 FPS on coarse-pointer, narrow, or short viewports; source physics/renderers retain their own cadence;
+- Canvas sources use one downsampled `drawImage`; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
+- automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
+- internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep a drift loop alive;
+- two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.
+
+`window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot()` is diagnostic output only. It reports ownership, source, scheduler, scale, cadence, geometry reads, sampled emitters, and rolling cost; it must not become configuration truth.
+
 ## Future Direction
 
 A useful long-term direction is a named canvas runtime adapter around the existing engine, not a visual rewrite or directory rename for its own sake.

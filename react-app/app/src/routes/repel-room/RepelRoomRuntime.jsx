@@ -85,6 +85,7 @@ export function RepelRoomRuntime() {
         ref={canvasRef}
         id="repel-room-canvas"
         className="repel-room-canvas"
+        data-simulation-atmosphere-source="true"
         role="img"
         aria-label="Tension flat ball simulation"
       />

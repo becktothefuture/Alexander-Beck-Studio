@@ -88,7 +88,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange.
 - Simulation colours have one time-of-day owner. Home, Work, About Me, and Contact consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route- or config-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
-- Grain, vignette, and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
+- Grain and the contrast veil should make the window feel physical without muddying type or flattening surface separation.
 - All normal text must meet WCAG 2.2 AA contrast in both themes. Do not use opacity as the only way to create hierarchy when it makes the resolved color fail.
 
 ### Spacing and layout
@@ -229,6 +229,16 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
 - Contact's concentric ripple field and Portfolio's deterministic speed field are intentional production exceptions because they retain the same solid-body palette and physical logic.
+
+### Shared simulation atmosphere
+
+Home and Daily simulations, Work / Portfolio, About Me, and Contact share one shell-owned Crisp + Glow material system. It unifies the existing background noise, low-frequency colour glow, crisp source material, title/content quiet zone, thin wall-edge reflection, and haze; it does not replace route-specific motion or flatten every route into the same simulation.
+
+- The source material remains the only crisp colour layer. Glow is restrained environmental illumination derived from that material, and the edge response remains a 1–2px reflection that follows the studio-window contour.
+- Home preserves its Canvas title placement: ordinary material passes in front of the title, while the established depth modes and Emergence may place stable material on both sides. Other routes keep readable DOM copy above their route material and use the same field only to create breathing room around it.
+- Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Canvas-less, suspended, or editorial-only states may use the compositor's bounded ambient field so the shared finish does not disappear abruptly.
+- Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
+- Reduced Motion retains one static diffused colour response but removes atmospheric drift. Mobile keeps the same visual hierarchy at reduced output scale and cadence rather than disabling the material.
 
 ## Fluid responsive contract
 

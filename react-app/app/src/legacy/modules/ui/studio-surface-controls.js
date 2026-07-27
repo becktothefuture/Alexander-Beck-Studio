@@ -36,7 +36,7 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
 const SURFACE_CONTROL_SECTIONS = [
   {
     key: 'surfaceSystem',
-    title: 'Universal Surface',
+    title: 'Surface Finish',
     icon: '✨',
     defaultOpen: true,
     controls: [
@@ -60,7 +60,7 @@ const SURFACE_CONTROL_SECTIONS = [
 const SHELL_OBJECT_CONTROL_SECTIONS = [
   {
     key: 'frame',
-    title: 'Frame',
+    title: 'Wall Shape',
     icon: '📐',
     defaultOpen: true,
     controls: [

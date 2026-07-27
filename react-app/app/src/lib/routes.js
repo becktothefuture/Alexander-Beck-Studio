@@ -7,6 +7,30 @@ const ROUTE_DEFS = {
     aliases: ['/', '/index.html', '/index'],
     gated: false,
   },
+  'atmosphere-webgl-post': {
+    id: 'atmosphere-webgl-post',
+    path: '/lab/atmosphere-webgl-post.html',
+    aliases: ['/lab/atmosphere-webgl-post.html', '/lab/atmosphere-webgl-post'],
+    gated: false,
+  },
+  'atmosphere-density': {
+    id: 'atmosphere-density',
+    path: '/lab/atmosphere-density.html',
+    aliases: ['/lab/atmosphere-density.html', '/lab/atmosphere-density'],
+    gated: false,
+  },
+  'atmosphere-feedback': {
+    id: 'atmosphere-feedback',
+    path: '/lab/atmosphere-feedback.html',
+    aliases: ['/lab/atmosphere-feedback.html', '/lab/atmosphere-feedback'],
+    gated: false,
+  },
+  'atmosphere-crisp-glow': {
+    id: 'atmosphere-crisp-glow',
+    path: '/lab/atmosphere-crisp-glow.html',
+    aliases: ['/lab/atmosphere-crisp-glow.html', '/lab/atmosphere-crisp-glow'],
+    gated: false,
+  },
   contact: {
     id: 'contact',
     path: '/contact.html',

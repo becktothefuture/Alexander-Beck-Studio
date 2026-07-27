@@ -64,6 +64,8 @@ import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js'
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
 import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
+import { setSimulationAtmosphereConfig } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import { normalizeSimulationAtmosphereTitleYOffsetVh } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js';
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
@@ -77,8 +79,42 @@ function defineRouteDescriptor(routeId, definition) {
   return Object.freeze({ ...getRouteById(routeId), ...definition });
 }
 
+function getAtmosphereLabHomeView(canonicalHref) {
+  return {
+    ...getHomeRouteView(canonicalHref),
+    navigationRouteId: 'home',
+    routeRenderKey: 'home',
+    contentRenderKey: 'home-shell',
+    runtimeRouteId: 'home',
+    shellRouteId: 'home',
+    surfaceRouteId: 'home',
+    providerRouteId: 'home',
+    homeModeHrefBase: new URL(canonicalHref, window.location.origin).pathname,
+  };
+}
+
 const ROUTE_DESCRIPTORS = Object.freeze({
   home: defineRouteDescriptor('home', { title: 'Alexander Beck — Designer and Technologist', getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
+  'atmosphere-webgl-post': defineRouteDescriptor('atmosphere-webgl-post', {
+    title: 'Atmosphere Lab — WebGL Post',
+    getView: getAtmosphereLabHomeView,
+    runtime: HOME_ROUTE_RUNTIME,
+  }),
+  'atmosphere-density': defineRouteDescriptor('atmosphere-density', {
+    title: 'Atmosphere Lab — Instanced Density',
+    getView: getAtmosphereLabHomeView,
+    runtime: HOME_ROUTE_RUNTIME,
+  }),
+  'atmosphere-feedback': defineRouteDescriptor('atmosphere-feedback', {
+    title: 'Atmosphere Lab — Canvas Feedback',
+    getView: getAtmosphereLabHomeView,
+    runtime: HOME_ROUTE_RUNTIME,
+  }),
+  'atmosphere-crisp-glow': defineRouteDescriptor('atmosphere-crisp-glow', {
+    title: 'Atmosphere Lab — Crisp + Glow',
+    getView: getAtmosphereLabHomeView,
+    runtime: HOME_ROUTE_RUNTIME,
+  }),
   contact: defineRouteDescriptor('contact', { title: 'Contact - Alexander Beck Studio', getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
   portfolio: defineRouteDescriptor('portfolio', { title: 'Portfolio - Alexander Beck', getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
   about: defineRouteDescriptor('about', { title: 'About Me - Alexander Beck Studio', getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
@@ -103,6 +139,21 @@ const ROUTE_DESCRIPTORS = Object.freeze({
 });
 
 const PRIMARY_ROUTE_IDS = Object.freeze(['home', 'portfolio', 'about', 'contact']);
+const PRODUCTION_ATMOSPHERE_ROUTE_IDS = new Set([
+  ...PRIMARY_ROUTE_IDS,
+  'repel-room',
+  'flock-of-birds',
+  'mineral-growth',
+  'rift-rings',
+]);
+
+function resolveAtmosphereHostScope(routeId, routeView) {
+  if (routeId === 'atmosphere-crisp-glow') return 'lab';
+  if (String(routeId || '').startsWith('atmosphere-')) return null;
+  if (PRIMARY_ROUTE_IDS.includes(routeId)) return 'production';
+  const dailyRuntimeRouteId = routeView?.runtimeRouteId || '';
+  return PRODUCTION_ATMOSPHERE_ROUTE_IDS.has(dailyRuntimeRouteId) ? 'production' : null;
+}
 
 let sharedShellRuntimeSyncPromise = null;
 
@@ -114,6 +165,11 @@ function syncSharedShellRuntimeState() {
       loadDesignSystemConfig(),
     ]).then(([runtimeConfig, shellConfig, designSystem]) => {
       document.documentElement.dataset.absDesignConfigRevision = String(designSystem?.version || 1);
+      setSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere);
+      document.documentElement.style.setProperty(
+        '--atmosphere-title-y-offset',
+        `${normalizeSimulationAtmosphereTitleYOffsetVh(designSystem?.shell?.hero?.titleYOffsetVh)}vh`,
+      );
       initState(runtimeConfig);
       applyLayoutCSSVars();
       syncShellToDocument({
@@ -441,8 +497,8 @@ export function SiteApp() {
 
   useLayoutEffect(() => {
     if (isStandaloneRoute) return;
-    applyActiveRouteCursorColor(activeRouteId || routeState.route.id);
-  }, [activeRouteId, isStandaloneRoute, routeState.route.id]);
+    applyActiveRouteCursorColor(routeView.navigationRouteId || activeRouteId || routeState.route.id);
+  }, [activeRouteId, isStandaloneRoute, routeState.route.id, routeView.navigationRouteId]);
 
   useLayoutEffect(() => {
     if (isStandaloneRoute) return undefined;
@@ -470,14 +526,14 @@ export function SiteApp() {
 
   useLayoutEffect(() => {
     let cancelled = false;
-    void markDirectShellRouteReady(routeState.route.id, isStandaloneRoute, {
+    void markDirectShellRouteReady(routeView.runtimeRouteId || routeState.route.id, isStandaloneRoute, {
       deferBootState: isDailyFocusRoute,
       isCancelled: () => cancelled,
     });
     return () => {
       cancelled = true;
     };
-  }, [isDailyFocusRoute, isStandaloneRoute, routeState.route.id]);
+  }, [isDailyFocusRoute, isStandaloneRoute, routeState.route.id, routeView.runtimeRouteId]);
 
   useLegacyRouteRuntime({
     active: routeRuntimeActive,
@@ -531,14 +587,15 @@ export function SiteApp() {
       <BodyClassManager
         className={routeView.bodyClass}
         htmlClassName={routeView.htmlClassName}
-        routeId={routeState.route.id}
+        routeId={routeView.shellRouteId || routeState.route.id}
       />
       {isStandaloneRoute ? (
         routeView.mainContent
       ) : (
         <SimulationFocusProvider
-          routeId={routeState.route.id}
+          routeId={routeView.providerRouteId || routeState.route.id}
           surfaceRouteId={routeView.surfaceRouteId || routeState.route.id}
+          homeModeHrefBase={routeView.homeModeHrefBase}
           transitionCurrentRoute={transitionCurrentRoute}
         >
           <StudioShell
@@ -548,6 +605,7 @@ export function SiteApp() {
             )}
             transitionPhase={transitionState.phase}
             transitionState={transitionState}
+            atmosphereHostScope={resolveAtmosphereHostScope(routeState.route.id, routeView)}
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             studioWindowClassName={routeView.studioWindowClassName || routeView.wallClassName}

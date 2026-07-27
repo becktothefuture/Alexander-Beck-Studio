@@ -3272,6 +3272,7 @@ button.abs-meta-btn,
       clamp(20px, 5vh, 52px)
       - 4vh
       + var(--home-hero-title-offset-y, 0px)
+      + var(--atmosphere-title-y-offset, 0vh)
     ))
     scale(calc(
       var(--abs-scene-impact-logo-scale, 1) *
@@ -3344,6 +3345,7 @@ html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-so
         clamp(20px, 5vh, 52px)
         - 4vh
         + var(--home-hero-title-offset-y, 0px)
+        + var(--atmosphere-title-y-offset, 0vh)
       ))
       scale(calc(
         var(--abs-scene-impact-logo-scale, 1) *
@@ -5015,6 +5017,66 @@ html.portfolio-access-gate-closing #modal-content-layer {
   display: block;
 }
 
+/* Production simulation atmosphere. The two output canvases are stable shell
+   material; route runtimes register sources without moving these layers. */
+#simulations canvas.simulation-atmosphere-glow-canvas,
+#simulations > canvas.simulation-atmosphere-edge-light-canvas {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  touch-action: auto;
+  image-rendering: auto;
+  will-change: auto;
+  contain: strict;
+}
+
+#simulations canvas.simulation-atmosphere-glow-canvas {
+  z-index: 0;
+}
+
+#simulations > canvas.simulation-atmosphere-edge-light-canvas {
+  z-index: 160;
+  mix-blend-mode: normal;
+}
+
+#simulations > .atmosphere-edge-light-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#simulations[data-atmosphere-active='true'] canvas.simulation-atmosphere-glow-canvas,
+#simulations[data-atmosphere-active='true'] > canvas.simulation-atmosphere-edge-light-canvas {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.dark-mode #simulations[data-atmosphere-active='true']
+  > canvas.simulation-atmosphere-edge-light-canvas,
+html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
+  > canvas.simulation-atmosphere-edge-light-canvas {
+  mix-blend-mode: screen;
+}
+
+/* Only title-free route canvases opt into whole-canvas material opacity.
+   Home's main Canvas includes its title and applies ball opacity in the engine. */
+#simulations[data-atmosphere-active='true']
+  canvas[data-atmosphere-source-material='true']:not(.ball-canvas-layer) {
+  opacity: var(--atmosphere-core-presence, 0.95);
+}
+
+/* The About point world has its own opaque route ground. The physical window
+   remains the ground while the registered field lets shell glow show through. */
+body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab {
+  background: transparent;
+}
+
 /* Mobile performance contract: the live canvas owns the frame budget. Avoid
    continuously repainted grain on touch devices. */
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
@@ -5073,6 +5135,11 @@ html.portfolio-access-gate-closing #modal-content-layer {
 }
 
 .simulation-contrast-veil {
+  --simulation-contrast-veil-effective-opacity: var(--simulation-contrast-veil-opacity);
+  --simulation-contrast-veil-effective-dither-opacity: var(
+    --simulation-contrast-veil-dither-opacity,
+    0.035
+  );
   position: absolute;
   top: var(--safari-tint-inset-y, var(--safari-tint-inset));
   left: var(--safari-tint-inset-x, var(--safari-tint-inset));
@@ -5094,18 +5161,30 @@ html.portfolio-access-gate-closing #modal-content-layer {
   background:
     linear-gradient(
       90deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 0%,
+      rgba(
+        var(--simulation-contrast-veil-rgb),
+        var(--simulation-contrast-veil-effective-opacity, var(--simulation-contrast-veil-opacity))
+      ) 0%,
       rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-x),
       rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-x)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 100%
+      rgba(
+        var(--simulation-contrast-veil-rgb),
+        var(--simulation-contrast-veil-effective-opacity, var(--simulation-contrast-veil-opacity))
+      ) 100%
     ),
     linear-gradient(
       180deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 0%,
+      rgba(
+        var(--simulation-contrast-veil-rgb),
+        var(--simulation-contrast-veil-effective-opacity, var(--simulation-contrast-veil-opacity))
+      ) 0%,
       rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-y),
       rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-y)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--simulation-contrast-veil-opacity)) 100%
-  );
+      rgba(
+        var(--simulation-contrast-veil-rgb),
+        var(--simulation-contrast-veil-effective-opacity, var(--simulation-contrast-veil-opacity))
+      ) 100%
+    );
   filter: blur(var(--simulation-contrast-veil-blur, 80px));
 }
 
@@ -5121,7 +5200,10 @@ html.portfolio-access-gate-closing #modal-content-layer {
     var(--simulation-contrast-veil-dither-size, 96px)
     var(--simulation-contrast-veil-dither-size, 96px);
   background-repeat: repeat;
-  opacity: var(--simulation-contrast-veil-dither-opacity, 0.035);
+  opacity: var(
+    --simulation-contrast-veil-effective-dither-opacity,
+    var(--simulation-contrast-veil-dither-opacity, 0.035)
+  );
   mix-blend-mode: soft-light;
   -webkit-mask-image:
     radial-gradient(
@@ -5138,12 +5220,23 @@ html.portfolio-access-gate-closing #modal-content-layer {
       transparent 46%,
       rgba(0, 0, 0, 0.65) 72%,
       #000 100%
-    );
+  );
 }
 
 .frame-vignette::after {
   /* Generated grain is painted only by `.noise::before` so it reveals atomically. */
   content: none;
+}
+
+#simulations[data-atmosphere-active='true'] ~ .simulation-contrast-veil {
+  --simulation-contrast-veil-effective-opacity: calc(
+    var(--simulation-contrast-veil-opacity)
+    * var(--atmosphere-haze-strength, 1)
+  );
+  --simulation-contrast-veil-effective-dither-opacity: calc(
+    var(--simulation-contrast-veil-dither-opacity, 0.035)
+    * var(--atmosphere-haze-strength, 1)
+  );
 }
 
 .noise {
@@ -5170,7 +5263,11 @@ html.portfolio-access-gate-closing #modal-content-layer {
 html.entrance-complete.noise-ready .noise,
 html.entrance-complete .noise-ready .noise {
   visibility: visible;
-  opacity: calc(var(--noise-opacity-light) * var(--abs-noise-enabled));
+  opacity: calc(
+    var(--noise-opacity-light)
+    * var(--abs-noise-enabled)
+    * var(--atmosphere-effective-grain-strength, 1)
+  );
   mix-blend-mode: normal;
   transition: visibility 0s linear 0s, opacity 160ms ease-out;
 }
@@ -5205,7 +5302,15 @@ html.entrance-complete .noise-ready .noise {
 /* Dark mode noise fade-in with correct opacities and colors */
 html.entrance-complete.noise-ready body.dark-mode .noise,
 html.entrance-complete body.dark-mode.noise-ready .noise {
-  opacity: calc(var(--noise-opacity-dark) * var(--abs-noise-enabled));
+  opacity: calc(
+    var(--noise-opacity-dark)
+    * var(--abs-noise-enabled)
+    * var(--atmosphere-effective-grain-strength, 1)
+  );
+}
+
+#simulations[data-atmosphere-active='true'] .noise {
+  --atmosphere-effective-grain-strength: var(--atmosphere-grain-strength, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

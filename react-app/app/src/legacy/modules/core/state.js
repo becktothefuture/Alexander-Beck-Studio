@@ -573,6 +573,7 @@ const state = {
 
   // Weave Field mode
   weaveFieldBallCount: 132,
+  weaveFieldBallSizeMul: 0.6,
   weaveFieldLaneCount: 4,
   weaveFieldFlowSpeed: 118,
   weaveFieldWeaveStrength: 0.9,
@@ -2023,6 +2024,7 @@ export function initState(config) {
   if (config.flubberBlobReleaseTransfer !== undefined) state.flubberBlobReleaseTransfer = clampNumber(config.flubberBlobReleaseTransfer, 0, 1.2, state.flubberBlobReleaseTransfer);
   if (config.flubberBlobMaxSpeed !== undefined) state.flubberBlobMaxSpeed = clampInt(config.flubberBlobMaxSpeed, 360, 1800, state.flubberBlobMaxSpeed);
   if (config.weaveFieldBallCount !== undefined) state.weaveFieldBallCount = clampInt(config.weaveFieldBallCount, 48, 260, state.weaveFieldBallCount);
+  if (config.weaveFieldBallSizeMul !== undefined) state.weaveFieldBallSizeMul = clampNumber(config.weaveFieldBallSizeMul, 0.2, 1.5, state.weaveFieldBallSizeMul);
   if (config.weaveFieldLaneCount !== undefined) state.weaveFieldLaneCount = clampInt(config.weaveFieldLaneCount, 3, 9, state.weaveFieldLaneCount);
   if (config.weaveFieldFlowSpeed !== undefined) state.weaveFieldFlowSpeed = clampNumber(config.weaveFieldFlowSpeed, 0, 180, state.weaveFieldFlowSpeed);
   if (config.weaveFieldWeaveStrength !== undefined) state.weaveFieldWeaveStrength = clampNumber(config.weaveFieldWeaveStrength, 0, 1.2, state.weaveFieldWeaveStrength);

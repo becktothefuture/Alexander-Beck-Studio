@@ -10,20 +10,28 @@ The expanded physical order is:
 
 1. browser/page ground;
 2. outer frame and inner wall;
-3. route scene transform group;
-4. simulation wall/effects;
-5. Home ball canvas and visual title path;
-6. pointer-transparent inner-shadow/contrast veil;
-7. route UI and the Home footer when Home is active;
-8. window overlays and Portfolio project sheet;
-9. modal/focus overlays;
-10. persistent Button Bar and its finish layer.
+3. route scene transform group and background noise;
+4. low-resolution simulation-atmosphere glow;
+5. registered crisp route material, including Home's rear/main pass;
+6. the Home Canvas title plane and any front depth material;
+7. the thin simulation-atmosphere wall-edge reflection;
+8. pointer-transparent contrast veil;
+9. route UI and the Home footer when Home is active;
+10. window overlays and Portfolio project sheet;
+11. modal/focus overlays;
+12. persistent Button Bar and its finish layer.
 
 ## Ownership
 
 `StudioShell.jsx` owns the physical window, overlay hosts, Home-only footer surface, and Button Bar. Route content stays inside the studio window. The Button Bar is outside the window and must never be covered by route content or a project sheet.
 
 `simulationLayer` and optional `heroLayer` content are scene-side and therefore below the shared veil. Visible route copy and controls belong in `uiLayer`, above the veil. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays below the veil with the balls.
+
+The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material, and `.simulation-atmosphere-edge-light-canvas` as a direct child of `#simulations` at `160`, below the contrast veil at `180`. Both output canvases remain rectangular; `#simulations` is their sole rounded clip, so the 1–2px edge light follows the same physical contour without creating a second antialiased boundary.
+
+Home's ordinary title remains inside its main Canvas render order. Sphere, Cube, Parallax, and Emergence may use the existing rear/title/front contract, with `.simulation-front-depth-canvas` above the title plane but below the edge and finish. Portfolio, About, Contact, and route-backed Daily copy remains DOM-owned in its established hero/UI layer; the atmosphere quiet-zone mask attenuates glow but never moves copy into a compositor Canvas.
+
+During route transitions, the simulation transaction snapshot captures glow, registered material, depth material, and edge in authored order. The live edge is hidden while a transition is active so it cannot double with the snapshot. Do not move either atmosphere output into a route-owned subtree, put route UI beneath the edge Canvas, or solve atmosphere stacking with route-specific z-index escalation.
 
 The Portfolio project drawer repeats the same local order. Its media and scrolling case-study content sit below the drawer veil; its project title, eyebrow, scroll cue, and Back control sit above it. The drawer veil remains present for the full visible lifecycle, including opening and closing.
 

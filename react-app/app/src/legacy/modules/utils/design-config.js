@@ -1,4 +1,8 @@
 import { withBasePath } from '../../../lib/base-path.js';
+import {
+  normalizeSimulationAtmosphereConfig,
+  normalizeSimulationAtmosphereTitleYOffsetVh,
+} from '../rendering/atmosphere/simulation-atmosphere-config.js';
 
 const DESIGN_SYSTEM_PATHS = [
   withBasePath('/config/design-system.json'),
@@ -408,6 +412,9 @@ function pruneShellConfig(shell = {}) {
     for (const key of RETIRED_SHELL_SURFACE_KEYS) {
       delete nextShell.surface[key];
     }
+    nextShell.surface.simulationAtmosphere = normalizeSimulationAtmosphereConfig(
+      nextShell.surface.simulationAtmosphere,
+    );
   }
   if (isPlainObject(nextShell.motion)) {
     for (const key of RETIRED_SHELL_MOTION_KEYS) {
@@ -418,6 +425,11 @@ function pruneShellConfig(shell = {}) {
     } else {
       delete nextShell.motion.routeTransition;
     }
+  }
+  if (isPlainObject(nextShell.hero)) {
+    nextShell.hero.titleYOffsetVh = normalizeSimulationAtmosphereTitleYOffsetVh(
+      nextShell.hero.titleYOffsetVh,
+    );
   }
   return nextShell;
 }

@@ -116,6 +116,7 @@ export function setupPointer() {
       target.closest('.panel-toggle-btn') ||
       target.closest('.panel-dock') ||
       target.closest('.panel') ||
+      target.closest('.parameterizer-panel') ||
       target.closest('#expertise-legend') ||  // Legend area is UI
       target.closest('.legend__item')  // Individual legend items
     );

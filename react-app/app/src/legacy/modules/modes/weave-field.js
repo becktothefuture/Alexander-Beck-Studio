@@ -118,7 +118,8 @@ function getFrameState(g, ball, dt) {
 
 function seedBall(g, family, lane, groupSlot, groupCount, lanes) {
   const canvas = g.canvas;
-  const r = randomRadiusForMode(g, MODES.WEAVE_FIELD);
+  const sizeMultiplier = clamp(Number(g.weaveFieldBallSizeMul ?? 0.6), 0.2, 1.5);
+  const r = Math.max(1, randomRadiusForMode(g, MODES.WEAVE_FIELD) * sizeMultiplier);
   const { color, distributionIndex } = pickRandomColorWithIndex();
   const ball = new Ball(0, 0, r, color);
   const lanePhase = lanes > 1 ? lane / lanes : 0;
