@@ -111,6 +111,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   mobileCardMaxHeightPx: 500,
   centerYPercent: 50,
   mobileCenterYPercent: 58,
+  sliderYOffsetDvh: 0,
+  introYOffsetDvh: 0,
   desktopViewportYOffsetDvh: 3,
   largeViewportOrbitCapStartProgress: 0.6,
   largeViewportTitleCardGapDvh: 8,
@@ -162,8 +164,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
 });
 
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
-  title: 'Selected design work',
-  body: 'From early concepts to shipped websites, apps, tools, and platforms.',
+  title: 'Work',
+  body: 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.',
 });
 const PORTFOLIO_CARD_DARK_INK = Object.freeze({
   css: '#111111',
@@ -1815,9 +1817,15 @@ class PortfolioScrollApp {
     const largeViewportGroupOffsetDvh = stageWidth > 900
       ? largeViewportGroupOffsetMaxDvh * largeViewportGroupOffsetProgress
       : 0;
+    const introYOffsetDvh = clamp(
+      toNumber(this.deckOptions.introYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.introYOffsetDvh),
+      -12,
+      12
+    );
+    const resolvedIntroYOffsetDvh = largeViewportGroupOffsetDvh + introYOffsetDvh;
     this.mount.style.setProperty(
       '--portfolio-deck-intro-y-offset',
-      `${largeViewportGroupOffsetDvh.toFixed(4)}dvh`
+      `${resolvedIntroYOffsetDvh.toFixed(4)}dvh`
     );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
     const configuredPathRadius = lerp(
@@ -1879,9 +1887,23 @@ class PortfolioScrollApp {
       Math.min(uncappedCenterYPercent, largeViewportCappedCenterYPercent),
       largeViewportOrbitCapProgress
     );
+    const sliderYOffsetDvh = clamp(
+      toNumber(this.deckOptions.sliderYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.sliderYOffsetDvh),
+      -12,
+      12
+    );
+    const resolvedViewportYOffsetDvh = viewportYOffsetDvh + sliderYOffsetDvh;
+    const resolvedCenterYRatio = clamp(
+      (
+        (stageHeight * centerYPercent / 100)
+        + (viewportHeight * resolvedViewportYOffsetDvh / 100)
+      ) / stageHeight,
+      0,
+      1
+    );
     this.particleField?.configure({
       ...this.deckOptions.particleField,
-      quietBandCenterY: centerYPercent / 100,
+      quietBandCenterY: resolvedCenterYRatio,
     });
     const getScaleAtOffset = (offset) => {
       const absOffset = Math.abs(offset);
@@ -1951,6 +1973,11 @@ class PortfolioScrollApp {
       cardHeight,
       minCardGap,
       dotDialRadius,
+      centerYPercent,
+      sliderYOffsetDvh,
+      introYOffsetDvh,
+      resolvedViewportYOffsetDvh,
+      resolvedIntroYOffsetDvh,
       dotArcOffsetDeg: clamp(toNumber(this.deckOptions.dotArcOffsetDeg, PORTFOLIO_DECK_DEFAULTS.dotArcOffsetDeg), -60, 60),
       maxVisibleOffset,
     };
@@ -1960,7 +1987,7 @@ class PortfolioScrollApp {
     this.mount.style.setProperty('--portfolio-deck-card-height-fluid', `${cardHeightCqh}cqh`);
     this.mount.style.setProperty('--portfolio-deck-card-height-max', `${cardMaxHeightPx}px`);
     this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
-    this.mount.style.setProperty('--portfolio-deck-viewport-y-offset', `${viewportYOffsetDvh}dvh`);
+    this.mount.style.setProperty('--portfolio-deck-viewport-y-offset', `${resolvedViewportYOffsetDvh}dvh`);
     this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
     this.mount.style.setProperty('--portfolio-card-content-scale', largeViewportContentScale.toFixed(4));
     this.mount.style.setProperty('--portfolio-carousel-path-radius', `${pathRadius}px`);
@@ -2472,6 +2499,11 @@ class PortfolioScrollApp {
         effectiveAngleStepDeg: this.deckMetrics?.angleStepDeg,
         dotDialRadius: this.deckMetrics?.dotDialRadius,
         dotCount: this.dotDialDots.length,
+        centerYPercent: this.deckMetrics?.centerYPercent,
+        sliderYOffsetDvh: this.deckMetrics?.sliderYOffsetDvh,
+        introYOffsetDvh: this.deckMetrics?.introYOffsetDvh,
+        resolvedViewportYOffsetDvh: this.deckMetrics?.resolvedViewportYOffsetDvh,
+        resolvedIntroYOffsetDvh: this.deckMetrics?.resolvedIntroYOffsetDvh,
       },
       activeIndex: this.activeProjectIndex,
       intendedIndex: this.getDeckIntentIndex(),

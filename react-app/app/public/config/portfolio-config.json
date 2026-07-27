@@ -66,6 +66,8 @@
       "largeViewportContentScaleMax": 1.45,
       "mobileCardWidthPercent": 64,
       "mobileCardMaxWidthPx": 300,
+      "sliderYOffsetDvh": 0,
+      "introYOffsetDvh": 0,
       "centerYPercent": 56.25,
       "mobileCenterYPercent": 63,
       "desktopViewportYOffsetDvh": 3,

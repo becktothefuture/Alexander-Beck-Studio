@@ -2648,7 +2648,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   }
 
   .portfolio-deck-intro {
-    top: clamp(32px, calc(7cqh + 8px), 68px);
+    top: calc(clamp(32px, calc(7cqh + 8px), 68px) + var(--portfolio-deck-intro-y-offset));
     width: min(42rem, 88%);
   }
 

@@ -25,9 +25,9 @@ const ROUTE_STUDIES = Object.freeze([
     id: 'portfolio',
     label: 'Work',
     accent: '#d7ff2f',
-    titleLines: [homeContent.portfolio?.heroLines?.[0] || 'Selected design work'],
+    titleLines: [homeContent.portfolio?.heroLines?.[0] || 'Work'],
     subtitle: homeContent.portfolio?.blurb
-      || 'From early concepts to shipped websites, apps, tools, and platforms.',
+      || 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.',
   },
   {
     id: 'about',
