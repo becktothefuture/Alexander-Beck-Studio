@@ -248,7 +248,11 @@ async function auditCrispGlowTitleDepth(page) {
     || emergence.dedicatedTitleCanvasCount !== 1
     || emergence.experimentalTitleCanvasCount !== 0
     || emergence.edgeCanvasCount !== 1
-    || emergence.edgeClipCount !== 1
+    || emergence.edgeClipCount !== 0
+    || !(emergence.materialZ < emergence.titleZ && emergence.titleZ < emergence.frontZ)
+    || !emergence.materialFilter.includes('blur(1px)')
+    || emergence.titleFilter !== 'none'
+    || !emergence.frontFilter.includes('blur(1px)')
     || emergence.edgeWidth <= 0
     || emergence.edgeHeight <= 0
   ) {

@@ -212,15 +212,17 @@ export function StudioShell({
               </div>
             </div>
             {atmosphereHostScope ? (
-              <canvas
-                id="simulation-atmosphere-edge-light-canvas"
-                ref={atmosphereEdgeCanvasRef}
-                className="simulation-atmosphere-edge-light-canvas"
-                data-atmosphere-layer="edge-light"
-                data-simulation-snapshot-id="atmosphere-edge-light"
-                data-simulation-snapshot-order="40"
-                aria-hidden="true"
-              />
+              <div className="simulation-atmosphere-edge-light-layer" aria-hidden="true">
+                <canvas
+                  id="simulation-atmosphere-edge-light-canvas"
+                  ref={atmosphereEdgeCanvasRef}
+                  className="simulation-atmosphere-edge-light-canvas"
+                  data-atmosphere-layer="edge-light"
+                  data-simulation-snapshot-id="atmosphere-edge-light"
+                  data-simulation-snapshot-order="40"
+                  aria-hidden="true"
+                />
+              </div>
             ) : null}
           </div>
           <div id="simulation-transaction-snapshot-host" aria-hidden="true" />

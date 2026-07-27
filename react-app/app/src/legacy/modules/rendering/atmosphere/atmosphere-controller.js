@@ -55,6 +55,14 @@ function createLayerCanvas(className, label) {
   return canvas;
 }
 
+function createEdgeLightLayer(canvas) {
+  const layer = document.createElement('div');
+  layer.className = 'simulation-atmosphere-edge-light-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  layer.append(canvas);
+  return layer;
+}
+
 function resolveResponsiveEffectScale(width, height) {
   const shortestSide = Math.max(1, Math.min(Number(width) || 1, Number(height) || 1));
   return Math.max(RESPONSIVE_EFFECT_MIN_SCALE, Math.min(1, shortestSide / RESPONSIVE_EFFECT_REFERENCE_PX));
@@ -114,12 +122,13 @@ class AtmosphereLabController {
     this.edgeLightCanvas = variant === 'crispGlow'
       ? createLayerCanvas('atmosphere-edge-light-canvas', 'edge-light')
       : null;
+    this.edgeLightLayer = this.edgeLightCanvas ? createEdgeLightLayer(this.edgeLightCanvas) : null;
     this.edgeLight = this.edgeLightCanvas ? new AtmosphereEdgeLight(this.edgeLightCanvas) : null;
     this.sourceCanvas = document.createElement('canvas');
     this.sourceContext = this.sourceCanvas.getContext('2d', { alpha: true, desynchronized: true });
     this.particleLightSource = new ParticleLightSource();
     this.routeLayer.append(this.outputCanvas);
-    if (this.edgeLight) this.routeLayer.append(this.edgeLight.clipSvg, this.edgeLightCanvas);
+    if (this.edgeLightLayer) this.routeLayer.append(this.edgeLightLayer);
     if (this.titleCanvas) this.routeLayer.append(this.titleCanvas);
     this.effect = null;
     this.fallback = false;
@@ -409,14 +418,7 @@ class AtmosphereLabController {
       this.titleCanvas.height = this.mainCanvas.height;
     }
     if (this.edgeLight) {
-      this.edgeLight.resize(
-        width,
-        height,
-        rect.width,
-        rect.height,
-        this.renderProfile.edgeWidthPx,
-        Number(this.globals.frameOuterRadius) || 42,
-      );
+      this.edgeLight.resize(width, height);
     }
   }
 
@@ -574,7 +576,7 @@ class AtmosphereLabController {
     this.edgeLight?.destroy();
     this.particleLightSource.destroy();
     this.outputCanvas.remove();
-    this.edgeLightCanvas?.remove();
+    this.edgeLightLayer?.remove();
     this.titleCanvas?.remove();
     document.body.style.removeProperty('--atmosphere-core-presence');
     document.documentElement.style.removeProperty('--atmosphere-title-y-offset');

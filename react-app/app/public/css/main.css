@@ -5045,7 +5045,7 @@ html.portfolio-access-gate-closing #modal-content-layer {
 /* Production simulation atmosphere. The two output canvases are stable shell
    material; route runtimes register sources without moving these layers. */
 #simulations canvas.simulation-atmosphere-glow-canvas,
-#simulations > canvas.simulation-atmosphere-edge-light-canvas {
+#simulations > .simulation-atmosphere-edge-light-layer > canvas.simulation-atmosphere-edge-light-canvas {
   inset: 0;
   width: 100%;
   height: 100%;
@@ -5063,28 +5063,49 @@ html.portfolio-access-gate-closing #modal-content-layer {
   z-index: 0;
 }
 
-#simulations > canvas.simulation-atmosphere-edge-light-canvas {
+#simulations > .simulation-atmosphere-edge-light-layer {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
   z-index: 160;
+  border: var(--atmosphere-edge-width, 1.5px) solid transparent;
+  border-radius: inherit;
+  corner-shape: inherit;
+  pointer-events: none;
+  /* Use the wall's real border geometry for both contours. Unlike a content-box
+     cutout, the padding edge is the browser-defined inner edge of this border,
+     so round and squircle corners remain one concentric physical rim. */
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  -webkit-mask-origin: border-box, padding-box;
+  -webkit-mask-clip: border-box, padding-box;
+  -webkit-mask-composite: xor;
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-origin: border-box, padding-box;
+  mask-clip: border-box, padding-box;
+  mask-composite: exclude;
+}
+
+#simulations > .simulation-atmosphere-edge-light-layer > canvas.simulation-atmosphere-edge-light-canvas {
+  inset: calc(-1 * var(--atmosphere-edge-width, 1.5px));
+  width: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
+  height: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
+  z-index: 0;
   mix-blend-mode: normal;
 }
 
-#simulations > .atmosphere-edge-light-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 #simulations[data-atmosphere-active='true'] canvas.simulation-atmosphere-glow-canvas,
-#simulations[data-atmosphere-active='true'] > canvas.simulation-atmosphere-edge-light-canvas {
+#simulations[data-atmosphere-active='true']
+  > .simulation-atmosphere-edge-light-layer
+  > canvas.simulation-atmosphere-edge-light-canvas {
   opacity: 1;
   visibility: visible;
 }
 
 body.dark-mode #simulations[data-atmosphere-active='true']
+  > .simulation-atmosphere-edge-light-layer
   > canvas.simulation-atmosphere-edge-light-canvas,
 html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
+  > .simulation-atmosphere-edge-light-layer
   > canvas.simulation-atmosphere-edge-light-canvas {
   mix-blend-mode: screen;
 }

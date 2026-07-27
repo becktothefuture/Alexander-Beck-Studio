@@ -86,7 +86,7 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Atmosphere
 
-`modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas directly inside `#simulations`; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
+`modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas inside the wall-radius-inheriting edge layer; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
 
 Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. The Crisp + Glow lab mounts the same compositor under a lab scope for authoring. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
 

@@ -281,15 +281,6 @@ function applyPresentationState() {
   }
 }
 
-function parseCornerGeometry(root) {
-  const computed = getComputedStyle(root);
-  const radius = Number.parseFloat(computed.borderTopLeftRadius);
-  return {
-    radius: Number.isFinite(radius) ? radius : 42,
-    shape: computed.cornerTopLeftShape || computed.cornerShape || 'round',
-  };
-}
-
 function refreshQuietZoneObservation() {
   if (!host?.resizeObserver) return;
   if (host.observedQuietZone) host.resizeObserver.unobserve(host.observedQuietZone);
@@ -363,16 +354,7 @@ function syncGeometry() {
     maskDirty = true;
     lastEffectAt = 0;
   }
-  const cornerGeometry = parseCornerGeometry(host.root);
-  host.edgeLight.resize(
-    width,
-    height,
-    rect.width,
-    rect.height,
-    renderProfile.edgeWidthPx,
-    cornerGeometry.radius,
-    cornerGeometry.shape,
-  );
+  host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
   host.geometry.width = rect.width;
@@ -742,7 +724,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     scope,
     detach: null,
   };
-  root.append(edgeLight.clipSvg);
   resizeObserver?.observe(root);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
