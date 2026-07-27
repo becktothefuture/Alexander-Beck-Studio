@@ -15,6 +15,7 @@ const routePaths = {
 };
 const routeOrder = Object.keys(routePaths);
 const routeWaitMs = Number(process.env.ABS_ROUTE_CURSOR_WAIT_MS || 20000);
+const expectedCursorBackground = 'rgba(148, 148, 148, 0.34)';
 
 function log(message) {
   console.log(`[route-cursor] ${message}`);
@@ -160,8 +161,10 @@ function assertRouteCursorState(state) {
   if (/abs-cursor-(?:tap|action-hover|project-hover)/.test(state.cursorClass)) {
     throw new Error(`${state.routeId}: legacy cursor mode remained active: "${state.cursorClass}"`);
   }
-  if (!state.cursorBackground || state.cursorBackground === 'rgba(0, 0, 0, 0)') {
-    throw new Error(`${state.routeId}: standard lens material resolved transparent`);
+  if (state.cursorBackground !== expectedCursorBackground) {
+    throw new Error(
+      `${state.routeId}: standard lens material was ${state.cursorBackground || '(empty)'}, expected ${expectedCursorBackground}`
+    );
   }
 }
 

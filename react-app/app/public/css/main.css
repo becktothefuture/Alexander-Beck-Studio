@@ -5767,7 +5767,7 @@ a:active {
 /* Custom Cursor */
 #custom-cursor {
   --abs-cursor-scale: 1;
-  --abs-lens-bg: rgba(var(--abs-rgb-black), 0.1);
+  --abs-lens-bg: rgba(148, 148, 148, 0.34);
   --abs-lens-filter: none;
   --abs-lens-shadow:
     0 8px 22px rgba(var(--abs-rgb-black), 0.12),
@@ -5794,7 +5794,6 @@ a:active {
 }
 
 body.dark-mode #custom-cursor {
-  --abs-lens-bg: rgba(var(--abs-rgb-white), 0.16);
   --abs-lens-shadow:
     0 8px 24px rgba(var(--abs-rgb-black), 0.16),
     inset 0 1px 0 rgba(var(--abs-rgb-white), 0.18),

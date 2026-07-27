@@ -2,7 +2,7 @@
 
 Cross-route interaction intent lives in [`DESIGN.md`](../../DESIGN.md).
 
-The production site has one custom cursor: a fixed 48px translucent lens matching the lens shown over the Home simulation switcher. Its adaptive neutral material is dark over the light studio-window theme and light over the dark theme, with a restrained inset rim and shadow. It never adopts route or simulation accent colours.
+The production site has one custom cursor: a fixed 48px translucent lens matching the lens shown over the Home simulation switcher. Its material is the same mid-gray translucent fill in both studio-window themes, with a restrained inset rim and shadow so it remains visible over the invariant dark wall as well as the window interior. It never adopts route or simulation accent colours.
 
 The lens is fixed to `body` and follows the pointer across the studio window, outer shell, persistent Button Bar, every primary route, gates, drawers, and modal overlays. Route changes and overlay transitions may alter its stacking level, but never its size, material, or shape.
 
