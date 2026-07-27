@@ -175,6 +175,13 @@ function readRouteContentSignature(routeState) {
   ].join(':');
 }
 
+function resolveRouteReadinessId(getRouteReadinessId, routeState) {
+  const routeId = routeState?.route?.id || 'home';
+  const fallbackId = routeState?.dailyFocusRouteId || routeId;
+  if (typeof getRouteReadinessId !== 'function') return fallbackId;
+  return getRouteReadinessId(routeId, routeState.canonicalHref, routeState) || fallbackId;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    SMOOTH TRANSITION ENGINE
    Fades route-owned surfaces (wall + title + UI) while the wall frame stays visible,
@@ -976,16 +983,14 @@ function isElementVisiblyRevealed(element) {
   );
 }
 
-function isElementSurfaceReady(element) {
-  if (!isElementVisiblyRevealed(element)) return false;
-  const rect = element.getBoundingClientRect();
-  return rect.width >= 64 && rect.height >= 64;
-}
-
-function isCanvasSurfaceReady(selector) {
+function isCanvasSurfacePrepared(selector) {
   const canvas = document.querySelector(selector);
-  if (!isElementSurfaceReady(canvas)) return false;
-  return canvas.width >= 64 && canvas.height >= 64;
+  if (!canvas) return false;
+  const rect = canvas.getBoundingClientRect();
+  return rect.width >= 64
+    && rect.height >= 64
+    && canvas.width >= 64
+    && canvas.height >= 64;
 }
 
 function isPortfolioScrollRailReady() {
@@ -1017,23 +1022,23 @@ function isDailyLabRouteReady(routeId) {
   if (isLocalAuditHost && window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ === routeId) return false;
   switch (routeId) {
     case 'repel-room':
-      return isCanvasSurfaceReady('#repel-room-canvas')
+      return isCanvasSurfacePrepared('#repel-room-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'flock-of-birds':
-      return isCanvasSurfaceReady('#flock-of-birds-canvas')
+      return isCanvasSurfacePrepared('#flock-of-birds-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'mineral-growth':
-      return isCanvasSurfaceReady('#mineral-growth-canvas')
+      return isCanvasSurfacePrepared('#mineral-growth-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'rift-rings':
-      return isCanvasSurfaceReady('#rift-rings-canvas')
+      return isCanvasSurfacePrepared('#rift-rings-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'beach-ball-room': {
       const container = document.querySelector('.beach-ball-room-simulation');
       const loadState = container?.dataset?.beachBallRoomLoadState;
       return Boolean(
         loadState === 'ready'
-          && isCanvasSurfaceReady('.beach-ball-room-canvas')
+          && isCanvasSurfacePrepared('.beach-ball-room-canvas')
           && isSimulationVisualTransitionSourceActive(routeId)
       );
     }
@@ -1413,7 +1418,12 @@ function staggeredEntrance({
    HOOK
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-export function useShellRouteTransition({ getRouteView, getRouteRuntime, surfaceRefs }) {
+export function useShellRouteTransition({
+  getRouteView,
+  getRouteRuntime,
+  getRouteReadinessId,
+  surfaceRefs,
+}) {
   const [routeState, setRouteState] = useState(() => computeRouteState(window.location.href));
   const [pendingActiveRouteId, setPendingActiveRouteId] = useState(null);
   const [transitionState, setTransitionState] = useState(() => ({
@@ -1432,6 +1442,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const activeRouteIdRef = useRef(routeState.route.id);
   const activeRouteStateRef = useRef(routeState);
   const settledRouteStateRef = useRef(routeState);
+  const initialReadinessRouteId = resolveRouteReadinessId(getRouteReadinessId, routeState);
+  const activeReadinessRouteIdRef = useRef(initialReadinessRouteId);
+  const settledReadinessRouteIdRef = useRef(initialReadinessRouteId);
   const activeRouteContentSignatureRef = useRef(readRouteContentSignature(routeState));
   const activeFocusSimulationIdRef = useRef(readRouteStateSimulationFocusId(routeState));
   const activeGateTransitionRef = useRef(false);
@@ -1447,6 +1460,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   const visitedRouteIdsRef = useRef(new Set([routeState.route.id]));
   const lastActivationRef = useRef('pointer');
   const getRouteRuntimeRef = useRef(getRouteRuntime);
+  const getRouteReadinessIdRef = useRef(getRouteReadinessId);
   const syncSteadyTransitionPhase = useCallback(() => {
     syncTransitionPhaseFromDom(document.documentElement);
   }, []);
@@ -1491,6 +1505,10 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     const targetUrl = new URL(href, window.location.href);
     const nextState = computeRouteState(targetUrl.toString());
     const nextRouteId = nextState.route.id;
+    const nextReadinessRouteId = resolveRouteReadinessId(
+      getRouteReadinessIdRef.current,
+      nextState,
+    );
     const nextRouteContentSignature = readRouteContentSignature(nextState);
     const nextFocusSimulationId = readRouteStateSimulationFocusId(nextState);
     const isSameRoute = nextRouteId === activeRouteIdRef.current;
@@ -1500,6 +1518,9 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       ? settledRouteStateRef.current
       : activeRouteStateRef.current;
     const previousRouteId = activeRouteIdRef.current;
+    const previousReadinessRouteId = options.resumeCovered === true
+      ? settledReadinessRouteIdRef.current
+      : activeReadinessRouteIdRef.current;
     const previousRouteContentSignature = activeRouteContentSignatureRef.current;
     const previousFocusSimulationId = activeFocusSimulationIdRef.current;
     const activation = options.activation
@@ -1527,6 +1548,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       setRouteState(nextState);
       activeRouteStateRef.current = nextState;
       activeRouteIdRef.current = nextRouteId;
+      activeReadinessRouteIdRef.current = nextReadinessRouteId;
       activeRouteContentSignatureRef.current = nextRouteContentSignature;
       activeFocusSimulationIdRef.current = nextFocusSimulationId;
     };
@@ -1540,6 +1562,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       setRouteState(previousState);
       activeRouteStateRef.current = previousState;
       activeRouteIdRef.current = previousRouteId;
+      activeReadinessRouteIdRef.current = previousReadinessRouteId;
       activeRouteContentSignatureRef.current = previousRouteContentSignature;
       activeFocusSimulationIdRef.current = previousFocusSimulationId;
       try {
@@ -1762,6 +1785,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const settledGeneration = transitionGenerationRef.current;
       visitedRouteIdsRef.current.add(settledRouteId);
       settledRouteStateRef.current = activeRouteStateRef.current;
+      settledReadinessRouteIdRef.current = activeReadinessRouteIdRef.current;
       activeTransactionRef.current?.participants.complete('ready');
       settleRouteTransitionTransaction(activeTransactionRef.current, 'ready');
       activeTransactionRef.current = null;
@@ -1825,7 +1849,6 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       const stale = () => token !== transitionGenerationRef.current;
       const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
       const retainedSimulation = captureSimulationTransactionSnapshot();
-      const readinessRouteId = nextState.dailyFocusRouteId || nextState.route.id;
       const shouldWaitForRouteReady = !isSameRoute
         || Boolean(nextState.dailyFocusRouteId)
         || hasSimulationFocusChange
@@ -1833,7 +1856,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
       let routeReadyWaiter = null;
       const waitForCommittedRouteReady = () => {
         if (!shouldWaitForRouteReady) return Promise.resolve('ready');
-        routeReadyWaiter = waitForRouteReady(readinessRouteId, routeTimings.ready, {
+        routeReadyWaiter = waitForRouteReady(nextReadinessRouteId, routeTimings.ready, {
           lockedGateId: nextState.lockedGateId || null,
         });
         activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
@@ -1924,7 +1947,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         })
         .then((readinessStatus) => {
           if (readinessStatus !== 'ready') {
-            throw new Error(`Route "${readinessRouteId}" did not become ready (${readinessStatus})`);
+            throw new Error(`Route "${nextReadinessRouteId}" did not become ready (${readinessStatus})`);
           }
           return runAfterRouteReady();
         })
@@ -1957,7 +1980,6 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           if (routeCommitted) {
             retainedSimulation?.show();
             rollback(error);
-            const previousReadinessRouteId = previousState.dailyFocusRouteId || previousState.route.id;
             const restoredRouteWaiter = waitForRouteReady(previousReadinessRouteId, routeTimings.ready, {
               lockedGateId: previousState.lockedGateId || null,
             });
@@ -2007,6 +2029,8 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         generation: token,
         fromState: previousState,
         toState: nextState,
+        fromReadinessRouteId: previousReadinessRouteId,
+        toReadinessRouteId: nextReadinessRouteId,
         historyMode: historyDriver.historyMode,
         activation,
         resumedCovered: resumeCovered,
@@ -2105,7 +2129,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             abortController.signal,
           );
           if (stale()) return;
-          routeReadyWaiter = waitForRouteReady(nextState.route.id, routeTimings.ready, {
+          routeReadyWaiter = waitForRouteReady(nextReadinessRouteId, routeTimings.ready, {
             lockedGateId: nextState.lockedGateId || null,
             readinessStartedAt: routeReadinessStartedAt,
           });
@@ -2120,7 +2144,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             ),
           ]);
           if (readinessStatus !== 'ready') {
-            throw new Error(`Route "${nextState.route.id}" did not become ready (${readinessStatus}).`);
+            throw new Error(`Route "${nextReadinessRouteId}" did not become ready (${readinessStatus}).`);
           }
           if (stale()) return;
           // Home readiness is the first scheduled canvas/title composition, so
@@ -2177,7 +2201,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
           if (stale()) return;
 
           const keepMountedDestination = transaction.committed && isRouteBaselineReady(
-            nextRouteId,
+            nextReadinessRouteId,
             { lockedGateId: nextState.lockedGateId || null },
           );
           let revealRouteId = previousRouteId;
@@ -2194,7 +2218,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
             rollback(error);
             setPendingActiveRouteId(previousRouteId);
             await loaderTimingDriver.waitForDestinationPaint();
-            const restoredWaiter = waitForRouteReady(previousRouteId, routeTimings.ready, {
+            const restoredWaiter = waitForRouteReady(previousReadinessRouteId, routeTimings.ready, {
               lockedGateId: previousState.lockedGateId || null,
             });
             activeRouteReadyCancelRef.current = restoredWaiter.cancel;
@@ -2254,6 +2278,7 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
     commit();
     finalizeHistory();
     settledRouteStateRef.current = nextState;
+    settledReadinessRouteIdRef.current = nextReadinessRouteId;
     setPendingActiveRouteId(null);
     syncSteadyTransitionPhase();
     return true;
@@ -2556,9 +2581,15 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
         setRouteState(nextState);
         activeRouteStateRef.current = nextState;
         activeRouteIdRef.current = nextState.route.id;
+        const nextReadinessRouteId = resolveRouteReadinessId(
+          getRouteReadinessIdRef.current,
+          nextState,
+        );
+        activeReadinessRouteIdRef.current = nextReadinessRouteId;
         activeRouteContentSignatureRef.current = readRouteContentSignature(nextState);
         activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(nextState);
         settledRouteStateRef.current = nextState;
+        settledReadinessRouteIdRef.current = nextReadinessRouteId;
         syncSteadyTransitionPhase();
         return;
       }
@@ -2622,10 +2653,15 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime, surface
   }, [getRouteRuntime]);
 
   useLayoutEffect(() => {
+    getRouteReadinessIdRef.current = getRouteReadinessId;
+  }, [getRouteReadinessId]);
+
+  useLayoutEffect(() => {
     activeRouteIdRef.current = routeState.route.id;
+    activeReadinessRouteIdRef.current = resolveRouteReadinessId(getRouteReadinessId, routeState);
     activeRouteContentSignatureRef.current = readRouteContentSignature(routeState);
     activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(routeState);
-  }, [routeState]);
+  }, [getRouteReadinessId, routeState]);
 
   useLayoutEffect(() => {
     if (!transitionActiveRef.current) {

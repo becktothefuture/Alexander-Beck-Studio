@@ -81,6 +81,18 @@ test('normal route transaction follows the only legal phase order', () => {
   assert.equal(transaction.settlementEndpoint, ROUTE_SETTLEMENT_ENDPOINTS.SETTLE_INCOMING);
 });
 
+test('canonical navigation and effective readiness identities remain distinct', () => {
+  const transaction = createTransaction({
+    fromState: { route: { id: 'about' } },
+    toState: { route: { id: 'home' } },
+    fromReadinessRouteId: 'about',
+    toReadinessRouteId: 'flock-of-birds',
+  });
+  assert.equal(transaction.toState.route.id, 'home');
+  assert.equal(transaction.toReadinessRouteId, 'flock-of-birds');
+  assert.equal(transaction.fromReadinessRouteId, 'about');
+});
+
 test('covered resume starts at route-loading without inventing route-out', () => {
   const transaction = createTransaction({ resumedCovered: true });
   assert.equal(advanceRouteTransitionTransaction(transaction, ROUTE_TRANSACTION_PHASES.ROUTE_LOADING), true);

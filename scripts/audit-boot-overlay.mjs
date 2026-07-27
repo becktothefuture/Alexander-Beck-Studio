@@ -135,7 +135,8 @@ function assertCriticalBootSource() {
     assert(!source.includes('html[data-abs-boot-state="booting"]::before'), `${file}: duplicate critical boot cover returned`);
     assert(!source.includes('html[data-abs-boot-state="booting"]::after'), `${file}: duplicate critical spinner returned`);
     assert(source.includes('@keyframes absBootSpin'), `${file}: missing spinner orbit keyframes`);
-    assert(source.includes('animation: absBootSpin 1.1s infinite ease'), `${file}: boot spinner cadence drifted`);
+    assert(source.includes('animation: absBootSpin 1.1s infinite linear'), `${file}: boot spinner cadence drifted`);
+    assert(source.includes('transform: rotate(360deg) translateZ(0)'), `${file}: spinner rotation must finish forwards`);
     assert(source.includes('--abs-boot-loader-size: 0.5px'), `${file}: boot spinner size drifted`);
     assert(source.includes('class="abs-loader-spinner__dot"'), `${file}: explicit circular spinner dots are missing`);
     assert(source.includes('clip-path: circle(50% at 50% 50%)'), `${file}: spinner dots lost circular clipping`);

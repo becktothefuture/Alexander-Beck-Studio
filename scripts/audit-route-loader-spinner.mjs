@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { PNG } from 'pngjs';
 
 const BASE_URL = String(process.env.ABS_DEV_URL || 'http://127.0.0.1:8013').replace(/\/+$/, '');
 const TIMEOUT_MS = Math.max(10000, Number(process.env.ABS_ROUTE_SPINNER_AUDIT_TIMEOUT_MS || 60000));
 const OUTPUT_DIR = resolve('output/playwright/route-loader-spinner');
+const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
+const BROWSERS = { chromium, webkit };
 const REQUESTED_PROFILE = String(process.env.ABS_ROUTE_SPINNER_AUDIT_PROFILE || '').trim();
 const ALL_PROFILES = [
   ...[1, 2, 3].map((deviceScaleFactor) => ({
@@ -68,6 +70,47 @@ async function waitForInitialShell(page) {
   }, null, { timeout: TIMEOUT_MS, polling: 'raf' });
 }
 
+async function inspectSpinnerContinuity(page, label) {
+  const result = await page.evaluate(async () => {
+    const spinner = document.querySelector('.route-transition-loader .abs-loader-spinner');
+    const animationName = getComputedStyle(spinner).animationName;
+    const readAngle = () => {
+      const transform = getComputedStyle(spinner).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+      const degrees = Math.atan2(matrix.b, matrix.a) * (180 / Math.PI);
+      return (degrees + 360) % 360;
+    };
+    const rawAngles = [];
+    const startedAt = performance.now();
+    while ((performance.now() - startedAt) < 2400) {
+      await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame));
+      rawAngles.push(readAngle());
+    }
+
+    let unwrappedAngle = rawAngles[0] || 0;
+    let minimumDelta = Number.POSITIVE_INFINITY;
+    for (let index = 1; index < rawAngles.length; index += 1) {
+      let delta = rawAngles[index] - rawAngles[index - 1];
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+      minimumDelta = Math.min(minimumDelta, delta);
+      unwrappedAngle += delta;
+    }
+
+    return {
+      animationName,
+      sampleCount: rawAngles.length,
+      minimumDelta,
+      forwardTravel: unwrappedAngle - (rawAngles[0] || 0),
+    };
+  });
+  assert(result.animationName.includes('absBootSpin'), `${label}: spinner rotation animation is not active`, result);
+  assert(result.sampleCount >= 20, `${label}: insufficient spinner continuity samples`, result);
+  assert(result.minimumDelta >= -0.5, `${label}: spinner reversed direction`, result);
+  assert(result.forwardTravel >= 650, `${label}: spinner did not complete multiple forward rotations`, result);
+  return result;
+}
+
 async function captureProfile(browser, profile, index) {
   console.log(`Auditing ${profile.label}...`);
   const context = await browser.newContext({
@@ -78,7 +121,7 @@ async function captureProfile(browser, profile, index) {
   });
   const page = await context.newPage();
   await page.addInitScript(() => {
-    window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ = 1000;
+    window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ = 3600;
   });
   await page.goto(`${BASE_URL}/index.html?absAudit=1`, { waitUntil: 'domcontentloaded', timeout: TIMEOUT_MS });
   await waitForInitialShell(page);
@@ -89,6 +132,8 @@ async function captureProfile(browser, profile, index) {
     && document.documentElement.dataset.absRouteLoaderPresentation === 'spinner'
     && Number.parseFloat(getComputedStyle(document.querySelector('.route-transition-loader__stage')).opacity) >= 0.9
   ), null, { timeout: TIMEOUT_MS, polling: 'raf' });
+
+  const continuity = await inspectSpinnerContinuity(page, profile.label);
 
   const beforeTheme = await page.evaluate(() => {
     const root = document.documentElement;
@@ -177,12 +222,13 @@ async function captureProfile(browser, profile, index) {
   }
 
   await context.close();
-  return { profile, beforeTheme, afterTheme, pixelChecks };
+  return { profile, beforeTheme, afterTheme, continuity, pixelChecks };
 }
 
 await mkdir(OUTPUT_DIR, { recursive: true });
 assert(PROFILES.length > 0, `Unknown ABS_ROUTE_SPINNER_AUDIT_PROFILE "${REQUESTED_PROFILE}"`);
-const browser = await chromium.launch({ headless: true });
+assert(BROWSERS[BROWSER_NAME], `Unknown ABS_BROWSER "${BROWSER_NAME}" (expected chromium or webkit)`);
+const browser = await BROWSERS[BROWSER_NAME].launch({ headless: true });
 const results = [];
 try {
   for (let index = 0; index < PROFILES.length; index += 1) {
@@ -192,7 +238,11 @@ try {
   await browser.close();
 }
 
-const reportPath = resolve(OUTPUT_DIR, 'route-loader-spinner-report.json');
-await writeFile(reportPath, `${JSON.stringify({ baseUrl: BASE_URL, results }, null, 2)}\n`);
+const reportPath = resolve(OUTPUT_DIR, `route-loader-spinner-${BROWSER_NAME}-report.json`);
+await writeFile(reportPath, `${JSON.stringify({
+  baseUrl: BASE_URL,
+  browser: BROWSER_NAME,
+  results,
+}, null, 2)}\n`);
 console.log(JSON.stringify({ profiles: results.length, reportPath }, null, 2));
-console.log('PASS: route loader dots are circular at DPR 1/2/3 and loader colours follow the live studio theme');
+console.log(`PASS: ${BROWSER_NAME} route loader completed multiple forward rotations at DPR 1/2/3 and loader colours followed the live studio theme`);

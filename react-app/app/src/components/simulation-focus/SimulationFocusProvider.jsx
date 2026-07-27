@@ -733,6 +733,7 @@ export function SimulationFocusChooser() {
               key={entry.id}
               type="button"
               className="simulation-focus-row"
+              data-simulation-id={entry.id}
               style={{ '--simulation-focus-row-index': index }}
               aria-current={isActive ? 'true' : undefined}
               aria-busy={isPending ? 'true' : undefined}

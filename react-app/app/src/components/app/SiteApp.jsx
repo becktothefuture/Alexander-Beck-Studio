@@ -415,6 +415,16 @@ export function SiteApp() {
     getRouteRuntimeForId(routeId, canonicalHref, routeStateSnapshot, simulationFocusRevision)
   ), [simulationFocusRevision]);
 
+  const getRouteReadinessId = useCallback((routeId, canonicalHref, routeStateSnapshot) => {
+    const resolvedView = getRouteViewForId(
+      routeId,
+      canonicalHref,
+      routeStateSnapshot,
+      simulationFocusRevision,
+    );
+    return resolvedView.readinessRouteId || resolvedView.runtimeRouteId || routeId;
+  }, [simulationFocusRevision]);
+
   const {
     routeState,
     activeRouteId,
@@ -427,6 +437,7 @@ export function SiteApp() {
   } = useShellRouteTransition({
     getRouteView,
     getRouteRuntime,
+    getRouteReadinessId,
     surfaceRefs,
   });
   const isStandaloneRoute = routeView.layout === 'standalone';

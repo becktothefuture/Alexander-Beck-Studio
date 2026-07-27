@@ -15,6 +15,7 @@ const DELAYED_READINESS_MODE = process.env.ABS_TRANSITION_DELAYED_READINESS === 
 const PRELOAD_FAILURE_MODE = process.env.ABS_TRANSITION_PRELOAD_FAILURE === '1';
 const CPU_THROTTLE_RATE = Math.max(1, Number(process.env.ABS_TRANSITION_CPU_THROTTLE_RATE || 1));
 const READINESS_DELAY_MS = Math.max(0, Number(process.env.ABS_TRANSITION_READINESS_DELAY_MS || 0));
+const ROUTE_BACKED_HOME_ID = String(process.env.ABS_TRANSITION_ROUTE_BACKED_HOME || '').trim();
 const VIEWPORT_MATCH = String(process.env.ABS_TRANSITION_VIEWPORT || '1280x900').match(/^(\d+)x(\d+)$/i);
 const VIEWPORT = VIEWPORT_MATCH
   ? { width: Number(VIEWPORT_MATCH[1]), height: Number(VIEWPORT_MATCH[2]) }
@@ -45,10 +46,16 @@ const runStem = [
 
 const ROUTE_DEFINITIONS = Object.freeze({
   portfolio: Object.freeze({ id: 'portfolio', href: '/portfolio.html', ready: '#portfolioProjectMount' }),
-  home: Object.freeze({ id: 'home', href: '/index.html', ready: '#c' }),
+  home: Object.freeze({ id: 'home', href: '/index.html', ready: '#c, #simulation-stage' }),
   about: Object.freeze({ id: 'about', href: '/about.html', ready: '[data-route-content="about"]' }),
   contact: Object.freeze({ id: 'contact', href: '/contact.html', ready: '[data-route-content="contact"]' }),
 });
+const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
+  'repel-room',
+  'flock-of-birds',
+  'mineral-growth',
+  'rift-rings',
+]);
 const requestedSequence = String(process.env.ABS_TRANSITION_SEQUENCE || '').trim();
 const ROUTE_STEPS = (requestedSequence
   ? requestedSequence.split(',').map((routeId) => routeId.trim()).filter(Boolean)
@@ -75,6 +82,20 @@ function routeUrl(pathname) {
 
 function compress(values) {
   return values.filter((value, index) => index === 0 || value !== values[index - 1]);
+}
+
+function isRouteViewForDestination(routeViewId, destinationRouteId) {
+  return routeViewId === destinationRouteId
+    || (destinationRouteId === 'home' && DAILY_FOCUS_ROUTE_IDS.includes(routeViewId));
+}
+
+function getDestinationRouteMaxOpacity(routeViews, destinationRouteId) {
+  return Math.max(
+    0,
+    ...Object.entries(routeViews || {})
+      .filter(([routeViewId]) => isRouteViewForDestination(routeViewId, destinationRouteId))
+      .map(([, routeView]) => routeView?.maxOpacity || 0),
+  );
 }
 
 function traceExcerpt(trace, sampleIndex, radius = 2) {
@@ -130,7 +151,13 @@ async function waitForInitialHome(page) {
 }
 
 async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
-  await page.evaluate(({ fromRouteId: source, toRouteId: target, label: traceLabel, reducedMotion }) => {
+  await page.evaluate(({
+    fromRouteId: source,
+    toRouteId: target,
+    label: traceLabel,
+    reducedMotion,
+    dailyFocusRouteIds,
+  }) => {
     window.__ABS_TRANSITION_FLOW_RECORDER__?.stop?.();
 
     const state = {
@@ -239,7 +266,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           semanticTitle?.querySelector('.hero-title__name')?.textContent?.trim()
           && semanticTitle?.querySelectorAll('.hero-title__role').length >= 2
         );
-        const ready = Boolean(
+        const legacyReady = Boolean(
           document.querySelector('[data-shell-route-view="home"]')
           && hasCanvasBuffer(canvas)
           && root.dataset.absRuntimeRoute === 'home'
@@ -247,8 +274,37 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           && root.dataset.absHomeRouteReady === 'true'
           && (root.dataset.absHomeCanvasTitleReady === 'true' || semanticTitleReady)
         );
+        const dailyStage = document.getElementById('simulation-stage');
+        const dailyRouteView = [...document.querySelectorAll('[data-route-view]')]
+          .find((element) => dailyFocusRouteIds.includes(element.dataset.routeView || ''));
+        const dailyRouteId = dailyStage?.dataset.simulationId
+          || dailyRouteView?.dataset.routeView
+          || '';
+        const dailyCanvasSelector = {
+          'repel-room': '#repel-room-canvas',
+          'flock-of-birds': '#flock-of-birds-canvas',
+          'mineral-growth': '#mineral-growth-canvas',
+          'rift-rings': '#rift-rings-canvas',
+        }[dailyRouteId] || '';
+        const dailyCanvas = dailyCanvasSelector
+          ? document.querySelector(dailyCanvasSelector)
+          : null;
+        const dailyReady = Boolean(
+          dailyFocusRouteIds.includes(dailyRouteId)
+          && dailyStage
+          && dailyStage.getBoundingClientRect().width >= 64
+          && dailyStage.getBoundingClientRect().height >= 64
+          && dailyCanvas
+          && dailyCanvas.getBoundingClientRect().width >= 64
+          && dailyCanvas.getBoundingClientRect().height >= 64
+          && dailyCanvas.width >= 64
+          && dailyCanvas.height >= 64
+          && dailyRouteView
+        );
         return {
-          ready,
+          ready: legacyReady || dailyReady,
+          effectiveRouteId: dailyReady ? dailyRouteId : 'home',
+          dailyFocusStatus: root.dataset.absDailyFocusStatus || '',
           runtimeRoute: root.dataset.absRuntimeRoute || '',
           runtimeStatus: root.dataset.absRuntimeStatus || '',
           homeRouteReady: root.dataset.absHomeRouteReady || '',
@@ -382,7 +438,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         path: location.pathname,
         phase: root.dataset.absTransitionPhase || 'idle',
         instrumentWake: root.dataset.absInstrumentWake || '',
-        renderedRoute: shellRoute?.dataset.shellRouteView || '',
+        renderedRoute: shellRoute?.dataset.shellRouteView || currentTab?.getAttribute('data-route-tab') || '',
         committedRoute: currentTab?.getAttribute('data-route-tab') || '',
         pendingRoute: routeTabs?.dataset.pendingRoute || '',
         activeRouteVisual: routeTabs?.dataset.activeRoute || '',
@@ -450,8 +506,19 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           : null,
       });
       const latest = state.samples.at(-1);
-      latest.incoming.routeMaxOpacity = latest.routeViews[target]?.maxOpacity || 0;
-      const incomingChildren = children.filter((child) => child.routeId === target);
+      latest.incoming.routeMaxOpacity = Math.max(
+        0,
+        ...Object.entries(latest.routeViews)
+          .filter(([routeViewId]) => (
+            routeViewId === target
+            || (target === 'home' && dailyFocusRouteIds.includes(routeViewId))
+          ))
+          .map(([, routeView]) => routeView?.maxOpacity || 0),
+      );
+      const incomingChildren = children.filter((child) => (
+        child.routeId === target
+        || (target === 'home' && dailyFocusRouteIds.includes(child.routeId))
+      ));
       latest.incoming.childCount = incomingChildren.length;
       latest.incoming.childMaxOpacity = round(Math.max(0, ...incomingChildren.map((child) => child.effectiveOpacity || 0)));
       latest.incoming.inertCount = incomingChildren.filter((child) => child.inert).length;
@@ -494,7 +561,13 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
     sample(performance.now());
     state.rafId = nativeRequestAnimationFrame(tick);
     window.__ABS_TRANSITION_FLOW_RECORDER__ = state;
-  }, { fromRouteId, toRouteId, label, reducedMotion: REDUCED_MOTION });
+  }, {
+    fromRouteId,
+    toRouteId,
+    label,
+    reducedMotion: REDUCED_MOTION,
+    dailyFocusRouteIds: DAILY_FOCUS_ROUTE_IDS,
+  });
 }
 
 async function stopRafRecorder(page) {
@@ -599,7 +672,10 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
       );
     }
 
-    const outgoingVisible = (sample.routeViews[trace.fromRouteId]?.maxOpacity || 0) > VISIBILITY_EPSILON;
+    const outgoingVisible = getDestinationRouteMaxOpacity(
+      sample.routeViews,
+      trace.fromRouteId,
+    ) > VISIBILITY_EPSILON;
     const loaderFullyCovering = Boolean(
       sample.loader
       && sample.loader.effectiveOpacity >= FULL_COVER_OPACITY
@@ -663,9 +739,22 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
   }
   if (spinnerSamples.length > 0) {
     const firstSpinner = spinnerSamples[0];
+    const firstEstablishedSpinnerIndex = samples.findIndex((sample) => (
+      sample.loader?.presentation === 'spinner'
+      && sample.spinner?.effectiveOpacity > 0.5
+    ));
+    const firstDisappearingSpinner = firstEstablishedSpinnerIndex >= 0
+      ? samples.slice(firstEstablishedSpinnerIndex + 1).find((sample) => (
+          sample.loader?.presentation !== 'spinner'
+          || sample.spinner?.effectiveOpacity <= 0.5
+        ))
+      : null;
+    const visibleUntilElapsedMs = firstDisappearingSpinner?.elapsedMs
+      ?? samples.at(-1)?.elapsedMs
+      ?? routeInStart;
     const spinnerVisibleForMs = firstSpinner.loader?.spinnerStartedAt > 0
-      ? Math.max(0, (trace.startedAt + routeInStart) - firstSpinner.loader.spinnerStartedAt)
-      : Math.max(0, routeInStart - firstSpinner.elapsedMs);
+      ? Math.max(0, (trace.startedAt + visibleUntilElapsedMs) - firstSpinner.loader.spinnerStartedAt)
+      : Math.max(0, visibleUntilElapsedMs - firstSpinner.elapsedMs);
     if (!REDUCED_MOTION) {
       assert(
         spinnerVisibleForMs >= SPINNER_MINIMUM_MS - FRAME_TOLERANCE_MS,
@@ -696,7 +785,11 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
 
   const settled = samples.at(-1);
   assert(settled.phase === 'idle', `${trace.label}: transition did not settle to idle`, settled);
-  assert(settled.renderedRoute === trace.toRouteId, `${trace.label}: rendered route did not settle to destination`, settled);
+  assert(
+    isRouteViewForDestination(settled.renderedRoute, trace.toRouteId),
+    `${trace.label}: rendered route did not settle to destination`,
+    settled,
+  );
   assert(settled.committedRoute === trace.toRouteId, `${trace.label}: aria-current route did not settle to destination`, settled);
   assert(settled.pendingRoute === '', `${trace.label}: pending route remained after settlement`, settled);
   assert(settled.loader?.state === 'idle', `${trace.label}: loader state did not settle to idle`, settled.loader);
@@ -707,7 +800,7 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
   assert(settled.routeHistory?.provisional !== true, `${trace.label}: provisional history survived settlement`, settled.routeHistory);
   const settledRoutes = Object.keys(settled.routeViews);
   assert(
-    settledRoutes.length === 1 && settledRoutes[0] === trace.toRouteId,
+    settledRoutes.length === 1 && isRouteViewForDestination(settledRoutes[0], trace.toRouteId),
     `${trace.label}: stale route-view roots remained after settlement`,
     { settledRoutes, routeViews: settled.routeViews },
   );
@@ -715,26 +808,32 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
 
 async function waitForTargetSettled(page, step) {
   await page.waitForSelector(step.ready, { timeout: WAIT_MS, state: 'attached' });
-  await page.waitForFunction(({ routeId, pathname }) => {
+  await page.waitForFunction(({ routeId, pathname, dailyFocusRouteIds }) => {
     const root = document.documentElement;
     const loader = document.querySelector('[data-route-transition-loader]');
     const loaderStyle = loader ? getComputedStyle(loader) : null;
     const loaderHidden = !loader
       || loaderStyle.visibility === 'hidden'
       || Number.parseFloat(loaderStyle.opacity || '1') < 0.02;
-    const renderedRoute = document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || '';
     const committedRoute = document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '';
+    const renderedRoute = document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || committedRoute;
     const pendingRoute = document.querySelector('[data-route-tabs]')?.dataset.pendingRoute || '';
+    const renderedDestination = renderedRoute === routeId
+      || (routeId === 'home' && dailyFocusRouteIds.includes(renderedRoute));
     return (
       (root.dataset.absTransitionPhase || 'idle') === 'idle'
-      && renderedRoute === routeId
+      && renderedDestination
       && committedRoute === routeId
       && pendingRoute === ''
       && location.pathname === pathname
       && loader?.dataset.routeTransitionLoaderState === 'idle'
       && loaderHidden
     );
-  }, { routeId: step.id, pathname: step.href }, { timeout: WAIT_MS, polling: 'raf' });
+  }, {
+    routeId: step.id,
+    pathname: step.href,
+    dailyFocusRouteIds: DAILY_FOCUS_ROUTE_IDS,
+  }, { timeout: WAIT_MS, polling: 'raf' });
 
   if (step.id === 'portfolio') {
     await page.waitForFunction(() => {
@@ -816,7 +915,7 @@ function createDelayedPortfolioDependency(page) {
 async function runStressProbe(page, traces, nextIndex) {
   const contactStep = { id: 'contact', href: '/contact.html', ready: '[data-route-content="contact"]' };
   const aboutStep = { id: 'about', href: '/about.html', ready: '[data-route-content="about"]' };
-  const homeStep = { id: 'home', href: '/index.html', ready: '#c' };
+  const homeStep = { id: 'home', href: '/index.html', ready: '#c, #simulation-stage' };
 
   const retargetTrace = await runTransition(page, {
     fromRouteId: 'home',
@@ -952,6 +1051,25 @@ async function main() {
       timeout: 60000,
     });
     await waitForInitialHome(page);
+
+    if (ROUTE_BACKED_HOME_ID) {
+      assert(
+        DAILY_FOCUS_ROUTE_IDS.includes(ROUTE_BACKED_HOME_ID),
+        `Unknown ABS_TRANSITION_ROUTE_BACKED_HOME "${ROUTE_BACKED_HOME_ID}"`,
+      );
+      await page.locator('.simulation-focus-switcher').click();
+      await page.locator(`.simulation-focus-row[data-simulation-id="${ROUTE_BACKED_HOME_ID}"]`).click();
+      await page.waitForFunction((simulationId) => {
+        const root = document.documentElement;
+        const stage = document.getElementById('simulation-stage');
+        return (
+          (root.dataset.absTransitionPhase || 'idle') === 'idle'
+          && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle'
+          && root.dataset.absDailyFocusStatus === 'ready'
+          && stage?.dataset.simulationId === simulationId
+        );
+      }, ROUTE_BACKED_HOME_ID, { timeout: WAIT_MS, polling: 'raf' });
+    }
 
     let currentRouteId = 'home';
     for (let index = 0; index < ROUTE_STEPS.length; index += 1) {

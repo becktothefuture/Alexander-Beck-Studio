@@ -36,6 +36,7 @@ export function getDailyFocusRouteView(routeId) {
     legacyRuntime: false,
     routeRenderKey: routeId,
     runtimeRouteId: routeId,
+    readinessRouteId: routeId,
     surfaceRouteId: routeId,
     studioWindowClassName: 'ball-simulation w-embed daily-focus-wall',
     simulationLayer: (
