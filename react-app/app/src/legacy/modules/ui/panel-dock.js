@@ -296,14 +296,9 @@ function getMasterPanelContent({
     <div class="panel-footer">${footerHint}</div>
   `;
 
-  // Build all master groups with proper content injection
-  // - Theme, palette, wall shape, and wall lighting → Studio Surface
-  // - Contrast and reading protection → Legibility
-  // - Remaining shell layers and spacing → Shell
-  // - Puck appearance + size/padding/colors → Puck
-  // - Sound → Audio
-  // - Mode switcher + simulation-system controls → Simulations
-  // - Ball sizing + mode-specific dials → Balls
+  // Build the parent taxonomy with focused content injection.
+  // Keep nouns together: palette, finish, structure, layout, simulation setup,
+  // global material systems, per-mode tuning, and interaction/motion concerns.
   //
   // includeRegisteredSections MUST stay true — otherwise every `MASTER_GROUPS.*.sections`
   // slider block is omitted and the panel shows empty groups (only injected prepend/append).
@@ -327,15 +322,13 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      studio: [
-        generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
-        generateStudioSurfaceControlsHTML(),
-      ].join(''),
+      finish: generateStudioSurfaceControlsHTML(),
+      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
       simulations: simulationsPrepend,
-      ballsGroup: ballsPrepend,
+      simulationModes: ballsPrepend,
     },
     append: {
-      shell: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
+      layout: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
       puck: generateStudioShellControlsHTML({
         sectionKeys: ['puck'],
         puckPrependHTML: getPuckColorControlsHTML(),

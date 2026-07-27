@@ -280,13 +280,21 @@ loadVisibility();
 
 export const MASTER_GROUPS = [
   {
-    id: 'studio',
-    title: 'Studio Surface',
-    icon: '✨',
+    id: 'palette',
+    title: 'Colour & Theme',
+    icon: '🎨',
     sections: [
       'colors',
-      'colorDistribution',
-      'wallLight'
+      'colorDistribution'
+    ]
+  },
+  {
+    id: 'finish',
+    title: 'Surface Finish',
+    icon: '✨',
+    sections: [
+      'wallLight',
+      'noise'
     ]
   },
   {
@@ -300,47 +308,91 @@ export const MASTER_GROUPS = [
     ]
   },
   {
-    id: 'shell',
-    title: 'Shell',
-    icon: '🧱',
+    id: 'structure',
+    title: 'Wall & Frame',
+    icon: '🖼️',
     sections: [
-      'wallGeometry',
-      'noise',
+      'wallGeometry'
+    ]
+  },
+  {
+    id: 'layout',
+    title: 'Layout & Content',
+    icon: '📐',
+    sections: [
       'uiSpacing'
     ]
   },
   {
-    id: 'lightGroup',
+    id: 'legibility',
     title: 'Legibility',
-    icon: '💡',
+    icon: '◐',
     sections: [
       'contrastVeil'
     ]
   },
   {
     id: 'simulations',
-    title: 'Simulations',
-    icon: '⚡',
+    title: 'Simulation Setup',
+    icon: '🎛️',
+    sections: []
+  },
+  {
+    id: 'physics',
+    title: 'Physics',
+    icon: '⚖️',
     sections: [
-      'liteMode',
-      'physics',
-      'scene'
+      'physics'
     ]
   },
   {
-    id: 'ballsGroup',
-    title: 'Balls',
+    id: 'balls',
+    title: 'Ball Material',
     icon: '🎱',
     sections: [
       'balls'
     ]
   },
   {
+    id: 'simulationModes',
+    title: 'Simulation Modes',
+    icon: '⚡',
+    sections: []
+  },
+  {
     id: 'puck',
-    title: 'Puck',
+    title: 'Quote Puck',
     icon: '🔘',
     sections: [
       'puckLight'
+    ]
+  },
+  {
+    id: 'interaction',
+    title: 'Input & Links',
+    icon: '🖐️',
+    sections: [
+      'cursor',
+      'links'
+    ]
+  },
+  {
+    id: 'motion',
+    title: 'Motion & Layers',
+    icon: '🎭',
+    sections: [
+      'scene',
+      'overlay',
+      'entrance'
+    ]
+  },
+  {
+    id: 'runtime',
+    title: 'Browser & Performance',
+    icon: '🧭',
+    sections: [
+      'environment',
+      'liteMode'
     ]
   },
   {
@@ -348,18 +400,6 @@ export const MASTER_GROUPS = [
     title: 'Audio',
     icon: '🔊',
     sections: []
-  },
-  {
-    id: 'advanced',
-    title: 'Advanced',
-    icon: '🧪',
-    sections: [
-      'cursor',
-      'links',
-      'overlay',
-      'entrance',
-      'environment'
-    ]
   }
 ];
 
