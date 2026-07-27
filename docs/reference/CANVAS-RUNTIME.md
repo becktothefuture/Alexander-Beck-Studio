@@ -24,7 +24,7 @@ React mounts the DOM structure and route slots. The runtime bootstraps imperativ
 
 Canvas display sizing is CSS-owned too. The renderer must not serialize fractional computed wall dimensions into inline Canvas pixel sizes: embedded Chromium can round that string to a different layout quantum. CSS keeps the display box attached to the frame immediately during resize; JavaScript measures the resulting box only to update the backing store and physics cache.
 
-Physics uses the separate `simulationCollisionBounds` cache. Changing that boundary must never change the Canvas CSS box or the visible wall contour.
+Physics uses the separate `simulationCollisionBounds` cache. Its locked `0px` production inset and resolved `cornerShape` come from the visible wall measurement, so body surfaces meet the browser-rendered round or squircle contour. There is no independent authoring control for this boundary. Changing the visible wall measurement must never change the Canvas CSS box.
 
 Run `npm run audit:rendered-wall-contour` for Chromium and `ABS_BROWSER=webkit npm run audit:rendered-wall-contour` for WebKit. The audit compares the production corner pixels with a forced parent-only clip oracle across the supported breakpoint, theme, and DPR matrix.
 

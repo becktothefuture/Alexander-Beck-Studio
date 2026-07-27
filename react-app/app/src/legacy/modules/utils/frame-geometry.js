@@ -8,8 +8,20 @@ function readCssPx(value, fallback = 0) {
   return Number.isFinite(numeric) ? Math.max(0, numeric) : fallback;
 }
 
+export function resolveSimulationCornerShape(style) {
+  const value = style?.cornerTopLeftShape
+    || style?.cornerShape
+    || style?.getPropertyValue?.('corner-top-left-shape')
+    || style?.getPropertyValue?.('corner-shape')
+    || '';
+  const normalized = String(value).trim().toLowerCase();
+  return normalized.includes('squircle') || /superellipse\(\s*2(?:\.0+)?\s*\)/.test(normalized)
+    ? 'squircle'
+    : 'round';
+}
+
 export function getSimulationCollisionInsetCssPx(globals) {
-  return Math.max(0, toFiniteNumber(globals?.simulationCollisionInsetPx, 10));
+  return Math.max(0, toFiniteNumber(globals?.simulationCollisionInsetPx, 0));
 }
 
 export function getSimulationCollisionInsetPx(globals) {
@@ -48,6 +60,7 @@ export function syncSimulationCollisionBounds(globals, container, canvas) {
   const cssWidth = Math.max(1, containerCssWidth - (insetCss * 2));
   const cssHeight = Math.max(1, containerCssHeight - (insetCss * 2));
   const outerCssRadius = readCssPx(containerStyle.borderTopLeftRadius);
+  const cornerShape = resolveSimulationCornerShape(containerStyle);
   const cssRadius = Math.max(0, Math.min(
     outerCssRadius - insetCss,
     cssWidth * 0.5,
@@ -70,6 +83,7 @@ export function syncSimulationCollisionBounds(globals, container, canvas) {
     width,
     height,
     radius,
+    cornerShape,
     generation: globals.simulationCanvasGeneration ?? 0,
     css: {
       x: insetCss,
@@ -80,6 +94,7 @@ export function syncSimulationCollisionBounds(globals, container, canvas) {
       authoredInset,
       inset: insetCss,
       outerRadius: outerCssRadius,
+      cornerShape,
     },
   };
   globals.simulationCollisionBounds = bounds;

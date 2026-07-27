@@ -304,7 +304,18 @@ async function waitForPhysicalSimulationBoundary(page) {
     if (!canvas || !wall || !boundary) return false;
     const canvasRect = canvas.getBoundingClientRect();
     const wallRect = wall.getBoundingClientRect();
-    const wallRadius = Number.parseFloat(getComputedStyle(wall).borderTopLeftRadius);
+    const wallStyle = getComputedStyle(wall);
+    const wallRadius = Number.parseFloat(wallStyle.borderTopLeftRadius);
+    const wallCornerValue = wallStyle.cornerTopLeftShape
+      || wallStyle.cornerShape
+      || wallStyle.getPropertyValue('corner-top-left-shape')
+      || wallStyle.getPropertyValue('corner-shape')
+      || '';
+    const normalizedWallCorner = String(wallCornerValue).toLowerCase();
+    const wallCornerShape = normalizedWallCorner.includes('squircle')
+      || /superellipse\(\s*2(?:\.0+)?\s*\)/.test(normalizedWallCorner)
+      ? 'squircle'
+      : 'round';
     const inset = Number(physics?.collisionInset);
     const matches = [
       canvasRect.x - wallRect.x,
@@ -317,7 +328,7 @@ async function waitForPhysicalSimulationBoundary(page) {
       boundary.height - (wallRect.height - (inset * 2)),
       boundary.radius - Math.max(0, wallRadius - inset),
     ].every((delta) => Number.isFinite(delta) && Math.abs(delta) <= tolerance);
-    if (!matches) {
+    if (!matches || boundary.cornerShape !== wallCornerShape) {
       window.__absThemeWallPhysicalBoundarySince = 0;
       return false;
     }
@@ -385,7 +396,11 @@ async function readInvariantState(page) {
       wallWidth: Math.round(rect.width * 100) / 100,
       wallHeight: Math.round(rect.height * 100) / 100,
       wallBorderRadius: wallStyle.borderRadius,
-      wallCornerShape: wallStyle.cornerShape || '',
+      wallCornerShape: wallStyle.cornerTopLeftShape
+        || wallStyle.cornerShape
+        || wallStyle.getPropertyValue('corner-top-left-shape')
+        || wallStyle.getPropertyValue('corner-shape')
+        || '',
       wallOverflow: wallStyle.overflow,
       wallBackgroundImage: wallStyle.backgroundImage,
       studioWindowBackground: rootStyle.getPropertyValue('--studio-window-bg').trim(),
@@ -488,6 +503,7 @@ async function readInvariantState(page) {
       values.physicsBoundaryAuthoredInset = String(boundary?.authoredInset ?? '');
       values.physicsBoundaryInset = String(boundary?.inset ?? '');
       values.physicsBoundaryOuterRadius = String(boundary?.outerRadius ?? '');
+      values.physicsBoundaryCornerShape = String(boundary?.cornerShape ?? '');
     }
 
     for (const name of vars) {
@@ -592,6 +608,14 @@ function assertExactSimulationRadiusContract(state, route, viewport, { requireLi
     const actualCollisionRadius = parseRadius(state.physicsBoundaryRadius);
     if (actualCollisionRadius === null || Math.abs(actualCollisionRadius - expectedCollisionRadius) > maxRadiusDeltaPx) {
       diffs.push(`physicsBoundaryRadius=${state.physicsBoundaryRadius}`);
+    }
+    const normalizedWallCorner = String(state.wallCornerShape).toLowerCase();
+    const renderedShape = normalizedWallCorner.includes('squircle')
+      || /superellipse\(\s*2(?:\.0+)?\s*\)/.test(normalizedWallCorner)
+      ? 'squircle'
+      : 'round';
+    if (state.physicsBoundaryCornerShape !== renderedShape) {
+      diffs.push(`physicsBoundaryCornerShape=${state.physicsBoundaryCornerShape} differs from wall ${renderedShape}`);
     }
   }
   if (diffs.length > 0) {
@@ -929,11 +953,11 @@ async function auditBallPitBoundary(browser, viewport) {
     }
 
     // Restore the canonical authored value before testing theme invariance.
-    await page.evaluate(() => {
+    await page.evaluate((canonicalInset) => {
       const globals = window.__ABS_HOME_AUDIT__?.getGlobals?.();
-      globals.simulationCollisionInsetPx = 10;
+      globals.simulationCollisionInsetPx = canonicalInset;
       window.dispatchEvent(new Event('resize'));
-    });
+    }, Number(lightState.physicsCollisionInset) || 0);
     await waitForPhysicalSimulationBoundary(page);
 
     const themeToggle = page.locator('.button-bar__theme-toggle');

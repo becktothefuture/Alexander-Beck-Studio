@@ -459,7 +459,7 @@ const state = {
 
   // Physics-only clearance from the visible wall. CSS visual geometry never
   // consumes this value.
-  simulationCollisionInsetPx: 10,
+  simulationCollisionInsetPx: 0,
 
   // Magnetic mode params (updated defaults)
   magneticBallCount: 180,
@@ -1274,6 +1274,7 @@ export function applyLayoutCSSVars() {
             width: state.simulationCollisionBounds.width,
             height: state.simulationCollisionBounds.height,
             radius: state.simulationCollisionBounds.radius,
+            cornerShape: state.simulationCollisionBounds.cornerShape,
             generation: state.simulationCollisionBounds.generation,
             css: state.simulationCollisionBounds.css ? {
               x: state.simulationCollisionBounds.css.x,
@@ -1284,6 +1285,7 @@ export function applyLayoutCSSVars() {
               authoredInset: state.simulationCollisionBounds.css.authoredInset,
               inset: state.simulationCollisionBounds.css.inset,
               outerRadius: state.simulationCollisionBounds.css.outerRadius,
+              cornerShape: state.simulationCollisionBounds.css.cornerShape,
             } : null,
           } : null,
         }),
@@ -2391,7 +2393,7 @@ export function initState(config) {
   
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.simulationCollisionInsetPx !== undefined) {
-    state.simulationCollisionInsetPx = clampNumber(config.simulationCollisionInsetPx, 0, 32, 10);
+    state.simulationCollisionInsetPx = clampNumber(config.simulationCollisionInsetPx, 0, 32, 0);
   }
 
   // Ball spacing (collision padding)

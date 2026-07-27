@@ -10,9 +10,19 @@ import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-s
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawPebbleBody, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
+import { resolveInteriorWallViolation } from './wall-collision-geometry.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
+const WALL_VIOLATION_SCRATCH = {
+  normalX: 0,
+  normalY: 0,
+  signedDistance: 0,
+  penetration: 0,
+  nx: 0,
+  ny: 0,
+  effectiveRadius: 0,
+};
 
 function clamp(value, min, max, fallback = min) {
   const next = Number(value);
@@ -81,32 +91,30 @@ function getInteriorWallViolation(ball, w, h) {
   const cy = boundaryY + hy;
   const lx = ball.x - cx;
   const ly = ball.y - cy;
-  const ax = Math.abs(lx);
-  const ay = Math.abs(ly);
+  // Portfolio bodies can be chunkier than circles; using r for walls makes them float above the
+  // floor and feel disconnected from the wall mask. Use support along the same SDF normal n.
+  const usePortfolioWallExtent =
+    currentMode === MODES.PORTFOLIO_PIT
+    && ball.portfolioBodyShape
+    && ball.portfolioBodyShape !== 'circle';
+  // The measured wall is authoritative. A browser without CSS squircle support
+  // resolves the wall to round, so physics follows the rendered fallback too.
+  const useSquircle = hasMeasuredBounds
+    ? measuredBounds.cornerShape === 'squircle'
+    : globals.cornerShapeSquircleEnabled !== false;
+  if (!resolveInteriorWallViolation(
+    WALL_VIOLATION_SCRATCH,
+    lx,
+    ly,
+    hx,
+    hy,
+    rr,
+    effectiveRadius,
+    useSquircle,
+  )) return null;
 
-  const rdx = ax - (hx - rr);
-  const rdy = ay - (hy - rr);
-  const outsideCorner = Math.hypot(Math.max(rdx, 0), Math.max(rdy, 0));
-  const insideRect = Math.min(Math.max(rdx, rdy), 0);
-  const sdfDist = outsideCorner + insideRect - rr;
-
-  let nx = 0;
-  let ny = 0;
-  if (rdx > 0 && rdy > 0) {
-    const len = Math.hypot(rdx, rdy);
-    if (len > 1e-6) {
-      nx = rdx / len;
-      ny = rdy / len;
-    }
-  } else if (rdx > rdy) {
-    nx = 1;
-    ny = 0;
-  } else {
-    nx = 0;
-    ny = 1;
-  }
-  nx *= lx < 0 ? -1 : 1;
-  ny *= ly < 0 ? -1 : 1;
+  const nx = WALL_VIOLATION_SCRATCH.normalX;
+  const ny = WALL_VIOLATION_SCRATCH.normalY;
 
   // Pit balls pour through the straight top opening, but the rounded top
   // corners remain physical. The previous broad `ny < -0.5` exemption also
@@ -114,21 +122,27 @@ function getInteriorWallViolation(ball, w, h) {
   // unrelated to the ball-pit boundary.
   const skipForPit = isPitMode && ny < 0 && Math.abs(nx) <= 1e-4;
   const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
-  // Portfolio bodies can be chunkier than circles; using r for walls makes them float above the
-  // floor and feel disconnected from the wall mask. Use support along the same SDF normal n.
-  const usePortfolioWallExtent =
-    currentMode === MODES.PORTFOLIO_PIT
-    && ball.portfolioBodyShape
-    && ball.portfolioBodyShape !== 'circle';
+  if (skipForPit || skipForBubbles) return null;
+
   const shapeExtentAlongN = usePortfolioWallExtent
     ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)
     : effectiveRadius;
   // The physical boundary already includes the shared frame inset.
   const margin = shapeExtentAlongN;
-  const penetration = sdfDist + margin;
-  if (penetration <= 0) return null;
-  if (skipForPit || skipForBubbles) return null;
-  return { nx, ny, penetration, effectiveRadius: shapeExtentAlongN };
+  if (shapeExtentAlongN !== effectiveRadius && !resolveInteriorWallViolation(
+    WALL_VIOLATION_SCRATCH,
+    lx,
+    ly,
+    hx,
+    hy,
+    rr,
+    margin,
+    useSquircle,
+  )) return null;
+  WALL_VIOLATION_SCRATCH.nx = WALL_VIOLATION_SCRATCH.normalX;
+  WALL_VIOLATION_SCRATCH.ny = WALL_VIOLATION_SCRATCH.normalY;
+  WALL_VIOLATION_SCRATCH.effectiveRadius = shapeExtentAlongN;
+  return WALL_VIOLATION_SCRATCH;
 }
 
 /**

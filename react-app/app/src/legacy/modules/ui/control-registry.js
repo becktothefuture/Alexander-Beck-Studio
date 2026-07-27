@@ -1027,35 +1027,6 @@ export const CONTROL_SECTIONS = {
     icon: '⚖️',
     defaultOpen: false,
     controls: [
-      { type: 'divider', label: 'Collision' },
-      {
-        id: 'simulationCollisionInsetPx',
-        label: 'Wall collision inset',
-        stateKey: 'simulationCollisionInsetPx',
-        type: 'range',
-        min: 0, max: 32, step: 1,
-        default: 10,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Physics-only clearance from the visible wall. It never moves the canvas, rim, shadow, or wall radius.',
-        onChange: (g, val) => {
-          g.simulationCollisionInsetPx = Math.max(0, Math.min(32, Number(val) || 0));
-          resize();
-          import('../physics/Ball.js').then(({ clampBallPositionToWallInterior }) => {
-            const w = g.canvas?.width || 0;
-            const h = g.canvas?.height || 0;
-            if (!(w > 0) || !(h > 0) || !Array.isArray(g.balls)) return;
-            for (const ball of g.balls) {
-              if (!ball || !clampBallPositionToWallInterior(ball, w, h)) continue;
-              if (typeof ball.wake === 'function') ball.wake();
-              else {
-                ball.isSleeping = false;
-                ball.sleepTimer = 0;
-              }
-            }
-          }).catch(() => {});
-        }
-      },
       { type: 'divider', label: 'Material' },
       {
         id: 'ballMassKg',

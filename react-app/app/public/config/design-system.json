@@ -3,6 +3,7 @@
   "runtime": {
     "liteModeEnabled": false,
     "cornerShapeSquircleEnabled": true,
+    "simulationCollisionInsetPx": 0,
     "ballMassKg": 240,
     "REST": 0.18,
     "FRICTION": 0.018,
@@ -23,7 +24,6 @@
     "pebbleOrganic": 0.12,
     "pebbleBulge": 0.18,
     "ballSpacing": 0,
-    "simulationCollisionInsetPx": 10,
     "sizeVariationGlobalMul": 1,
     "sizeVariationCap": 0,
     "cursorInfluenceRadiusVw": 7,
