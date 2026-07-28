@@ -1,4 +1,5 @@
 import { MODES } from '../core/constants.js';
+import { getGlobals } from '../core/state.js';
 
 export const TITLE_DEPTH_PLANE_Z = 0.5;
 const TITLE_RENDER_MAX_LINES = 4;
@@ -47,9 +48,16 @@ const titleRenderCache = {
     firstLineFontSizeCssPx: 0,
     firstLineX: 0,
     firstLineY: 0,
-    sourceId: 'hero-title'
+    sourceId: 'hero-title',
+    sourceConnected: false,
+    retainedPixels: false,
+    renderRevision: 0,
+    invalidationRevision: 0,
+    sleeping: true,
   }
 };
+
+let titlePlaneController = null;
 
 const titleCenterCache = {
   signature: '',
@@ -86,6 +94,8 @@ export function invalidateHomepageCanvasTitleGeometry() {
   titleRenderCache.lastRefreshMs = 0;
   titleCenterCache.signature = '';
   titleCenterCache.lastRefreshMs = 0;
+  titleRenderCache.state.invalidationRevision += 1;
+  titlePlaneController?.requestRender();
 }
 
 export function getHeroTitleCanvasCenter(globals) {
@@ -186,6 +196,15 @@ function markCanvasTitleInactive(globals) {
   titleRenderCache.state.firstLineFontSizeCssPx = 0;
   titleRenderCache.state.firstLineX = 0;
   titleRenderCache.state.firstLineY = 0;
+  titleRenderCache.state.sourceConnected = false;
+  titleRenderCache.state.retainedPixels = false;
+  if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
+  return titleRenderCache;
+}
+
+function retainCanvasTitlePixels(globals) {
+  titleRenderCache.state.sourceConnected = false;
+  titleRenderCache.state.retainedPixels = titleRenderCache.state.renderRevision > 0;
   if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
   return titleRenderCache;
 }
@@ -197,8 +216,7 @@ function shouldRefreshEveryFrame(root, scene) {
   // The stable shell is marked entrance-complete before the route-owned Home
   // content enters. Follow the dedicated content phase so the canvas-rendered
   // title mirrors every semantic DOM opacity frame after the loader detaches.
-  const bootEntranceActive = root.classList.contains('abs-home-post-boot-enter')
-    || root.classList.contains('abs-home-post-boot-pending');
+  const bootEntranceActive = root.classList.contains('abs-home-post-boot-enter');
   return root.classList.contains('entrance-transitioning')
     || bootEntranceActive
     || root.dataset?.absTransitionPhase === 'route-loading'
@@ -230,12 +248,15 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
   ].join('|');
 }
 
-function refreshCanvasTitleCache(ctx, globals) {
-  const canvas = globals?.canvas;
+function refreshCanvasTitleCache(ctx, canvas, globals) {
   if (!ctx || !canvas || typeof document === 'undefined') return markCanvasTitleInactive(globals);
 
   const title = document.getElementById('hero-title');
-  if (!isCanvasTitleSource(title)) return markCanvasTitleInactive(globals);
+  if (!isCanvasTitleSource(title)) {
+    return titleRenderCache.state.renderRevision > 0
+      ? retainCanvasTitlePixels(globals)
+      : markCanvasTitleInactive(globals);
+  }
 
   const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
     ? performance.now()
@@ -266,11 +287,6 @@ function refreshCanvasTitleCache(ctx, globals) {
   const scaleX = canvas.width / canvasRect.width;
   const scaleY = canvas.height / canvasRect.height;
   const titleStyle = getComputedStyle(title);
-  const rootStyle = root ? getComputedStyle(root) : null;
-  const uiObscured = clamp01(parseCssPx(rootStyle?.getPropertyValue('--ui-obscured'), 0));
-  const canvasTitleOpacity = clamp01(
-    parseCssPx(titleStyle.getPropertyValue('--canvas-title-opacity'), 1 - uiObscured)
-  );
   const lineNodes = title.querySelectorAll(
     '.hero-title__name, .hero-title__role, .hero-title__line, .hero-title__eyebrow'
   );
@@ -310,7 +326,10 @@ function refreshCanvasTitleCache(ctx, globals) {
     const cssFontSize = parseCssPx(style.fontSize, 16);
     const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
     const fontPx = Math.max(1, fontSizeCssPx * scaleY);
-    const opacity = clamp01(parseCssPx(style.opacity, 1) * canvasTitleOpacity);
+    // Modal obscuring belongs to the stable plane's CSS presentation. Never
+    // bake it into pixels or opening the chooser would destructively erase the
+    // title bitmap needed by the following switch transaction.
+    const opacity = clamp01(parseCssPx(style.opacity, 1));
     const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * stableTitleScale * scaleX;
     const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';
     const fontWeight = style.fontWeight || '400';
@@ -347,7 +366,7 @@ function refreshCanvasTitleCache(ctx, globals) {
       glyphTarget.font = target.font;
       glyphTarget.color = target.color;
       glyphTarget.finalOpacity = clamp01(
-        state ? state.finalOpacity * canvasTitleOpacity : opacity
+        state ? state.finalOpacity : opacity
       );
       glyphTarget.blurPx = Math.max(0, Number(state?.blurPx) || 0) * scaleY;
       glyphTarget.driftPx = fontSizeCssPx * (Number(state?.driftEm) || 0) * scaleX;
@@ -368,16 +387,22 @@ function refreshCanvasTitleCache(ctx, globals) {
   titleRenderCache.state.firstLineFontSizeCssPx = titleRenderCache.lines[0].fontSizeCssPx;
   titleRenderCache.state.firstLineX = titleRenderCache.lines[0].x;
   titleRenderCache.state.firstLineY = titleRenderCache.lines[0].y;
+  titleRenderCache.state.sourceConnected = true;
+  titleRenderCache.state.retainedPixels = false;
   globals.canvasTitleRenderState = titleRenderCache.state;
 
   return titleRenderCache;
 }
 
-export function drawHomepageCanvasTitle(ctx, globals) {
-  const cache = refreshCanvasTitleCache(ctx, globals);
-  const canvas = globals?.canvas;
+function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
+  const cache = refreshCanvasTitleCache(ctx, canvas, globals);
   if (!canvas || !cache.active || cache.lineCount <= 0) return false;
 
+  // A keyed route swap temporarily removes the semantic source. Keep the
+  // stable plane's last good bitmap until its replacement can be measured.
+  if (!cache.state.sourceConnected) return cache.visible;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -432,8 +457,244 @@ export function drawHomepageCanvasTitle(ctx, globals) {
   cache.maxOpacity = maxOpacity;
   cache.state.visible = visible;
   cache.state.maxOpacity = maxOpacity;
+  cache.state.renderRevision += 1;
+  cache.state.retainedPixels = false;
+  cache.state.sleeping = false;
+  canvas.dataset.titlePlaneReady = visible ? 'true' : 'false';
+  canvas.dataset.titlePlaneRenderRevision = String(cache.state.renderRevision);
   if (visible && document.documentElement.dataset.absHomeCanvasTitleReady !== 'true') {
     document.documentElement.dataset.absHomeCanvasTitleReady = 'true';
   }
   return visible;
+}
+
+function hasActiveTitleGlyphs(cache) {
+  for (let lineIndex = 0; lineIndex < cache.lines.length; lineIndex += 1) {
+    const line = cache.lines[lineIndex];
+    for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
+      const state = line.glyphs[glyphIndex].state;
+      if (state?.phase === 'playing' && state.settled !== true) return true;
+    }
+  }
+  return false;
+}
+
+function preserveCanvasDuringResize(canvas, width, height) {
+  if (canvas.width === width && canvas.height === height) return false;
+  let previous = null;
+  if (canvas.width > 0 && canvas.height > 0 && titleRenderCache.state.renderRevision > 0) {
+    previous = document.createElement('canvas');
+    previous.width = canvas.width;
+    previous.height = canvas.height;
+    previous.getContext('2d', { alpha: true })?.drawImage(canvas, 0, 0);
+  }
+  canvas.width = width;
+  canvas.height = height;
+  if (previous) {
+    canvas.getContext('2d', { alpha: true })?.drawImage(previous, 0, 0, width, height);
+  }
+  return true;
+}
+
+function syncTitlePlaneBackingStore(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  return preserveCanvasDuringResize(
+    canvas,
+    Math.max(1, Math.round(rect.width * dpr)),
+    Math.max(1, Math.round(rect.height * dpr)),
+  );
+}
+
+function publishTitlePlaneState(canvas, globals) {
+  const state = titleRenderCache.state;
+  state.sleeping = titlePlaneController?.rafId ? false : true;
+  canvas.dataset.titlePlaneSourceConnected = state.sourceConnected ? 'true' : 'false';
+  canvas.dataset.titlePlaneRetainedPixels = state.retainedPixels ? 'true' : 'false';
+  if (globals) globals.canvasTitleRenderState = state;
+  window.dispatchEvent(new CustomEvent('abs:simulation-title-plane-rendered', {
+    detail: getHomepageCanvasTitleSnapshot(),
+  }));
+}
+
+function renderTitlePlane(controller) {
+  if (!controller || controller.disposed || !controller.canvas.isConnected) return false;
+  const { canvas, context } = controller;
+  syncTitlePlaneBackingStore(canvas);
+  const globals = getGlobals();
+  const source = document.getElementById('hero-title');
+  if (source !== controller.observedSource) {
+    if (controller.observedSource) controller.resizeObserver?.unobserve(controller.observedSource);
+    controller.observedSource = isCanvasTitleSource(source) ? source : null;
+    if (controller.observedSource) controller.resizeObserver?.observe(controller.observedSource);
+    titleRenderCache.signature = '';
+  }
+  const visible = drawHomepageCanvasTitleCache(context, canvas, globals);
+  publishTitlePlaneState(canvas, globals);
+
+  const root = document.documentElement;
+  const scene = document.getElementById('abs-scene');
+  if (titleRenderCache.state.sourceConnected
+    && (shouldRefreshEveryFrame(root, scene) || hasActiveTitleGlyphs(titleRenderCache))) {
+    controller.requestRender();
+  }
+  return visible;
+}
+
+function createTitlePlaneController(canvas) {
+  const context = canvas.getContext('2d', {
+    alpha: true,
+    desynchronized: true,
+  }) || canvas.getContext('2d');
+  if (!context) throw new Error('Stable simulation title plane requires a 2D context.');
+
+  const controller = {
+    canvas,
+    context,
+    disposed: false,
+    rafId: 0,
+    observedSource: null,
+    resizeObserver: null,
+    mutationObserver: null,
+    rootMutationObserver: null,
+    requestRender() {
+      if (this.disposed || this.rafId) return;
+      titleRenderCache.state.sleeping = false;
+      this.rafId = window.requestAnimationFrame(() => {
+        this.rafId = 0;
+        renderTitlePlane(this);
+        if (!this.rafId) {
+          titleRenderCache.state.sleeping = true;
+          this.canvas.dataset.titlePlaneSleeping = 'true';
+        } else {
+          this.canvas.dataset.titlePlaneSleeping = 'false';
+        }
+      });
+    },
+  };
+
+  const invalidate = () => invalidateHomepageCanvasTitleGeometry();
+  controller.resizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(invalidate)
+    : null;
+  controller.resizeObserver?.observe(canvas);
+
+  const simulations = canvas.parentElement;
+  controller.mutationObserver = typeof MutationObserver === 'function' && simulations
+    ? new MutationObserver(invalidate)
+    : null;
+  controller.mutationObserver?.observe(simulations, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'data-route-enter-glyph-revision'],
+  });
+
+  controller.rootMutationObserver = typeof MutationObserver === 'function'
+    ? new MutationObserver(invalidate)
+    : null;
+  controller.rootMutationObserver?.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: [
+      'class',
+      'style',
+      'data-abs-transition-phase',
+      'data-abs-boot-state',
+      'data-abs-theme',
+      'data-shell-route',
+    ],
+  });
+  if (document.body) {
+    controller.rootMutationObserver?.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
+  }
+
+  controller.handleViewportChange = invalidate;
+  controller.handleThemeChange = invalidate;
+  controller.handleFontChange = invalidate;
+  window.addEventListener('resize', controller.handleViewportChange, { passive: true });
+  window.addEventListener('orientationchange', controller.handleViewportChange, { passive: true });
+  window.addEventListener('abs:theme-changed', controller.handleThemeChange);
+  document.fonts?.addEventListener?.('loadingdone', controller.handleFontChange);
+  document.fonts?.ready?.then(() => {
+    if (!controller.disposed) invalidate();
+  });
+  return controller;
+}
+
+/**
+ * Attaches the one shell-owned visual title plane. The returned disposer only
+ * releases observers; it deliberately leaves the bitmap intact.
+ */
+export function attachHomepageCanvasTitlePlane(canvas) {
+  if (!canvas || typeof window === 'undefined') return undefined;
+  if (titlePlaneController?.canvas === canvas && !titlePlaneController.disposed) {
+    titlePlaneController.requestRender();
+    return () => {};
+  }
+  titlePlaneController?.dispose?.();
+  const controller = createTitlePlaneController(canvas);
+  controller.dispose = () => {
+    if (controller.disposed) return;
+    controller.disposed = true;
+    if (controller.rafId) window.cancelAnimationFrame(controller.rafId);
+    controller.rafId = 0;
+    controller.resizeObserver?.disconnect();
+    controller.mutationObserver?.disconnect();
+    controller.rootMutationObserver?.disconnect();
+    window.removeEventListener('resize', controller.handleViewportChange);
+    window.removeEventListener('orientationchange', controller.handleViewportChange);
+    window.removeEventListener('abs:theme-changed', controller.handleThemeChange);
+    document.fonts?.removeEventListener?.('loadingdone', controller.handleFontChange);
+    if (titlePlaneController === controller) titlePlaneController = null;
+  };
+  titlePlaneController = controller;
+  canvas.dataset.titlePlaneIdentity = 'shell-owned';
+  controller.requestRender();
+  return controller.dispose;
+}
+
+export function getHomepageCanvasTitleSnapshot() {
+  const state = titleRenderCache.state;
+  return {
+    ...state,
+    canvasId: titlePlaneController?.canvas?.id || '',
+    connected: titlePlaneController?.canvas?.isConnected === true,
+  };
+}
+
+export function waitForHomepageCanvasTitleReady({ timeoutMs = 2000 } = {}) {
+  if (titleRenderCache.state.visible && titleRenderCache.state.sourceConnected) {
+    return Promise.resolve(getHomepageCanvasTitleSnapshot());
+  }
+  titlePlaneController?.requestRender();
+  return new Promise((resolve, reject) => {
+    let timeoutId = 0;
+    const settle = () => {
+      const snapshot = getHomepageCanvasTitleSnapshot();
+      if (!snapshot.visible || !snapshot.sourceConnected) return;
+      window.removeEventListener('abs:simulation-title-plane-rendered', settle);
+      window.clearTimeout(timeoutId);
+      resolve(snapshot);
+    };
+    window.addEventListener('abs:simulation-title-plane-rendered', settle);
+    timeoutId = window.setTimeout(() => {
+      window.removeEventListener('abs:simulation-title-plane-rendered', settle);
+      reject(new Error('Stable simulation title plane did not become ready in time.'));
+    }, Math.max(1, timeoutMs));
+  });
+}
+
+/**
+ * Compatibility for authoring controllers that used to own a second title
+ * canvas. The shell controller is now the only visual renderer.
+ */
+export function drawHomepageCanvasTitle() {
+  if (!titlePlaneController) return false;
+  if (!titleRenderCache.state.sourceConnected) titlePlaneController.requestRender();
+  return titleRenderCache.state.visible;
 }

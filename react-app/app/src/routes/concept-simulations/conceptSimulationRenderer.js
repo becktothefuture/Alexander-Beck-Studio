@@ -13,6 +13,7 @@ import {
   resolveMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -1054,6 +1055,7 @@ export function createConceptSimulationRenderer({
       }
     }
     markAuditFrame(canvas);
+    notifySimulationAtmosphereSourceFrame(simulationId);
   }
 
   function start() {

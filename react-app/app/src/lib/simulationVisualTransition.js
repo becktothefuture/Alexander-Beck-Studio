@@ -161,7 +161,7 @@ function isSimulationFocusShellTransitionActive() {
 }
 
 function resolveInitialVisualScaleForRegistration() {
-  if (prefersReducedMotion()) return 1;
+  if (prefersReducedMotion()) return initialVisualScale;
   if (initialVisualScale < 0.999) return initialVisualScale;
   if (
     firstDailyRegistrationPending
@@ -290,7 +290,7 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
 
   if (prefersReducedMotion()) {
     firstDailyRegistrationPending = false;
-    initialVisualScale = 1;
+    initialVisualScale = targetScale;
     recordSimulationVisualTransitionEvent(`${normalizedDirection}-complete`, {
       sourceId: entry?.sourceId || activeSourceId || '',
       sequence,
@@ -298,7 +298,7 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
       reason: 'reduced-motion',
     });
     try {
-      entry?.handlers?.setVisualScale?.(1, { immediate: true, phase: 'reduced-motion' });
+      entry?.handlers?.setVisualScale?.(targetScale, { immediate: true, phase: 'reduced-motion' });
     } catch (error) {
       void error;
     }
@@ -307,9 +307,9 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
       sourceId: entry?.sourceId || activeSourceId || '',
       startedAt: now(),
       direction: normalizedDirection,
-      minScale: 1,
-      maxScale: 1,
-      visibleRatio: 1,
+      minScale: targetScale,
+      maxScale: targetScale,
+      visibleRatio: targetScale > 0.02 ? 1 : 0,
       sequence,
     });
     return;
@@ -364,14 +364,6 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
         direction: normalizedDirection,
         reason: transitionTimings.reason,
       });
-      if (normalizedDirection === 'out') {
-        recordSimulationVisualTransitionEvent('hold-start', {
-          sourceId: entry?.sourceId || activeSourceId || '',
-          sequence,
-          direction: normalizedDirection,
-          reason: transitionTimings.reason,
-        });
-      }
       try {
         completionHandler?.setVisualScale?.(targetScale, {
           immediate: true,
@@ -381,7 +373,7 @@ export async function runSimulationVisualTransition(direction, timings = {}) {
         void error;
       }
       publishDebug({
-        phase: normalizedDirection === 'out' ? 'hold' : 'idle',
+        phase: normalizedDirection === 'out' ? 'out-complete' : 'idle',
         sourceId: completionEntry?.sourceId || activeSourceId || '',
         updatedAt: now(),
         direction: normalizedDirection,

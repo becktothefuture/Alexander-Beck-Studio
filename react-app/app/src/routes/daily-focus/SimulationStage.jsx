@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { DailyFocusShellBridge } from './DailyFocusShellBridge.jsx';
-import { registerSimulationAtmosphereSource } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import {
+  getSimulationAtmosphereReplacementContext,
+  registerSimulationAtmosphereSource,
+} from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 export function SimulationStage({
   simulationId,
@@ -16,27 +19,27 @@ export function SimulationStage({
 
     let unregisterSource = null;
     let registeredCanvas = null;
-    let registeredKind = '';
     let syncFrame = 0;
     const syncSource = () => {
       const sources = stage.querySelectorAll('[data-simulation-atmosphere-source="true"]');
       const canvas = sources.length === 1 && sources[0] instanceof HTMLCanvasElement
         ? sources[0]
         : null;
-      const kind = canvas ? 'canvas' : 'ambient';
-      if (canvas === registeredCanvas && kind === registeredKind) return;
+      if (!canvas || canvas === registeredCanvas) return;
       unregisterSource?.();
       unregisterSource = null;
       registeredCanvas = canvas;
-      registeredKind = kind;
+      const replacement = getSimulationAtmosphereReplacementContext(simulationId);
       unregisterSource = registerSimulationAtmosphereSource({
-        id: canvas ? `daily:${simulationId}` : `daily:${simulationId}:ambient`,
+        id: `daily:${simulationId}`,
         routeId: simulationId,
-        kind,
+        transactionId: replacement?.transactionId || '',
+        kind: 'canvas',
         canvas,
         quietZoneElement: () => document.getElementById('hero-title'),
         scheduler: 'internal',
         opacityElement: canvas,
+        requireRealFrame: true,
       });
     };
     const scheduleSync = () => {

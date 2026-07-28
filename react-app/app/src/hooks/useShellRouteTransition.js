@@ -2,7 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { hasGateAccess } from '../lib/access-gates.js';
 import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPathname } from '../lib/routes.js';
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
-import { normalizeSimulationId, writeManualSimulationFocus } from '../data/simulationCatalog.js';
+import {
+  getResolvedSimulationFocus,
+  getSimulationLaunchTarget,
+  normalizeSimulationId,
+  writeManualSimulationFocus,
+} from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
 import {
   getActiveLegacyRuntimeSnapshot,
@@ -48,6 +53,20 @@ import {
   settleRouteTransitionTransaction,
 } from '../lib/motion/route-transition-transaction.js';
 import {
+  SIMULATION_SWITCH_PHASES,
+  SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS,
+  advanceSimulationSwitchTransaction,
+  beginSimulationSwitchRollback,
+  canSettleSimulationSwitchTransaction,
+  cancelSimulationSwitchTransaction,
+  createSimulationSwitchTransaction,
+  failOpenSimulationSwitchTransaction,
+  isSimulationSwitchTransactionStale,
+  markSimulationSwitchCommitted,
+  rewindSimulationSwitchTransactionForRecovery,
+  settleSimulationSwitchTransaction,
+} from '../lib/motion/simulation-switch-transaction.js';
+import {
   createRouteSurfaceInertRegistry,
   getOwnedRouteSurfaceNodes,
   getRouteContentLayers,
@@ -55,6 +74,16 @@ import {
   restoreRouteSurfaces,
   setRouteSurfaceVisibility,
 } from '../lib/motion/route-transition-surfaces.js';
+import {
+  armSimulationAtmosphereReplacement,
+  commitSimulationAtmosphereReplacement,
+  prepareSimulationAtmosphereReplacement,
+  prepareSimulationAtmosphereRollback,
+  rollbackSimulationAtmosphereReplacement,
+  setSimulationAtmosphereSwitchPhase,
+  settleSimulationAtmosphereReplacement,
+  waitForSimulationAtmosphereReady,
+} from '../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { getShellRouteTransitionConfig } from '../legacy/modules/visual/site-shell.js';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -205,7 +234,6 @@ const GROUPED_ROUTE_OFFSET_MS = 80;
 const PORTFOLIO_GATE_SCENE_FADE_MS = 480;
 const SIMULATION_FOCUS_EXIT_MS = 520;
 const SIMULATION_FOCUS_ENTER_MS = 500;
-const SIMULATION_FOCUS_ZERO_HOLD_MS = 48;
 const SIMULATION_FOCUS_EXIT_LOCAL_MS = 240;
 const SIMULATION_FOCUS_ENTER_LOCAL_MS = 280;
 const SIMULATION_FOCUS_EASE_OUT = 'cubic-bezier(0.72, 0, 0.86, 0.32)';
@@ -652,6 +680,126 @@ function setSimulationFocusTransitionState(state) {
   };
 }
 
+const IDLE_SIMULATION_SWITCH_SNAPSHOT = Object.freeze({
+  transactionId: null,
+  generation: 0,
+  phase: SIMULATION_SWITCH_PHASES.IDLE,
+  phaseHistory: Object.freeze([SIMULATION_SWITCH_PHASES.IDLE]),
+  fromSimulationId: null,
+  targetSimulationId: null,
+  topology: null,
+  busy: false,
+  recovering: false,
+  commitCount: 0,
+  publicationCount: 0,
+  error: '',
+  status: 'idle',
+});
+
+function getSimulationSwitchTopology(fromTarget, target) {
+  const fromSurface = fromTarget?.routeBacked ? 'route-backed' : 'home-mode';
+  const targetSurface = target?.routeBacked ? 'route-backed' : 'home-mode';
+  return `${fromSurface}-to-${targetSurface}`;
+}
+
+function createSimulationSwitchBootstrapContext(transaction, target, readinessRouteId, options = {}) {
+  return Object.freeze({
+    transactionId: transaction.id,
+    generation: transaction.generation,
+    targetSimulationId: target.id,
+    requestedHomeMode: target.routeBacked ? null : target.mode,
+    directBoot: false,
+    topology: transaction.topology,
+    rollback: options.rollback === true,
+    reducedMotion: transaction.timingMode === 'reduced-motion',
+    readinessRouteId,
+    signal: options.signal || transaction.abortController?.signal || null,
+  });
+}
+
+function createSimulationSwitchDiagnosticSnapshot(transaction, status = '') {
+  if (!transaction) return IDLE_SIMULATION_SWITCH_SNAPSHOT;
+  return Object.freeze({
+    transactionId: transaction.id,
+    generation: transaction.generation,
+    phase: transaction.phase,
+    phaseHistory: Object.freeze([...transaction.phaseHistory]),
+    fromSimulationId: transaction.from?.id || null,
+    targetSimulationId: transaction.to?.id || null,
+    topology: transaction.topology || null,
+    busy: !transaction.settled && !transaction.cancelled,
+    recovering: !transaction.settled && Boolean(transaction.recovering),
+    commitCount: transaction.commitCount,
+    publicationCount: transaction.publicationCount,
+    error: transaction.error?.message || String(transaction.error || ''),
+    status: status || transaction.settlementStatus || (transaction.failure ? 'recovering' : transaction.phase),
+  });
+}
+
+function waitForSimulationPrimeBarrier({ target, timeoutMs, signal = null }) {
+  return new Promise((resolve, reject) => {
+    const startedAt = performance.now();
+    let frameId = 0;
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      if (frameId) cancelAnimationFrame(frameId);
+      signal?.removeEventListener('abort', handleAbort);
+      callback(value);
+    };
+    const handleAbort = () => finish(
+      reject,
+      signal?.reason || new DOMException('Simulation prime aborted.', 'AbortError'),
+    );
+    const inspect = () => {
+      const canvas = target.routeBacked
+        ? document.querySelector('.daily-simulation-layer canvas')
+        : document.getElementById('c');
+      const ready = Boolean(canvas && canvas.width >= 64 && canvas.height >= 64);
+      if (ready) {
+        finish(resolve, true);
+        return;
+      }
+      if (performance.now() - startedAt >= timeoutMs) {
+        finish(reject, new Error('Simulation surface did not become ready'));
+        return;
+      }
+      frameId = requestAnimationFrame(inspect);
+    };
+    if (signal?.aborted) {
+      handleAbort();
+      return;
+    }
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    frameId = requestAnimationFrame(inspect);
+  });
+}
+
+function waitForSimulationRouteReady(readinessRouteId, timeoutMs, signal = null) {
+  const waiter = waitForRouteReady(readinessRouteId, timeoutMs);
+  if (!signal) return waiter.promise;
+  if (signal.aborted) {
+    waiter.cancel();
+    return Promise.reject(signal.reason || new DOMException('Simulation readiness aborted.', 'AbortError'));
+  }
+  return new Promise((resolve, reject) => {
+    const finish = (callback, value) => {
+      signal.removeEventListener('abort', handleAbort);
+      callback(value);
+    };
+    const handleAbort = () => {
+      waiter.cancel();
+      finish(reject, signal.reason || new DOMException('Simulation readiness aborted.', 'AbortError'));
+    };
+    signal.addEventListener('abort', handleAbort, { once: true });
+    waiter.promise.then(
+      (status) => finish(resolve, status),
+      (error) => finish(reject, error),
+    );
+  });
+}
+
 function setSimulationShellStability(active, surfaceRefs, options = {}) {
   const root = document.documentElement;
   const { hero, ui, chrome, secondary, footer } = getRouteContentLayers(surfaceRefs);
@@ -689,11 +837,6 @@ function setSimulationShellStability(active, surfaceRefs, options = {}) {
   });
 }
 
-function getSimulationTitleSurfaceForRouteChange(currentRouteId, nextRouteId) {
-  if (currentRouteId !== 'home' && nextRouteId === 'home') return 'dom-handoff';
-  return '';
-}
-
 function getSimulationFocusLayer(surfaceRefs) {
   return getRouteContentLayers(surfaceRefs).wall;
 }
@@ -709,154 +852,10 @@ function cleanupSimulationFocusLayer(surfaceRefs) {
   layer.style.removeProperty('pointer-events');
 }
 
-function removeSimulationTransactionSnapshots() {
-  document.querySelectorAll('.simulation-transaction-snapshot').forEach((node) => node.remove());
-}
-
-function resetSimulationFocusTransition(surfaceRefs, { discardSnapshots = false } = {}) {
+function resetSimulationFocusTransition(surfaceRefs) {
   cleanupSimulationFocusLayer(surfaceRefs);
-  if (discardSnapshots) {
-    removeSimulationTransactionSnapshots();
-  }
   setSimulationShellStability(false, surfaceRefs);
   setSimulationFocusTransitionState(null);
-}
-
-function readSimulationSnapshotOrder(canvas) {
-  const explicitOrder = Number.parseFloat(canvas.dataset.simulationSnapshotOrder);
-  if (Number.isFinite(explicitOrder)) return explicitOrder;
-  if (canvas.classList.contains('simulation-atmosphere-glow-canvas')) return 10;
-  if (canvas.classList.contains('simulation-front-depth-canvas')) return 30;
-  if (canvas.classList.contains('simulation-atmosphere-edge-light-canvas')) return 40;
-
-  // Route canvases live inside nested stacking contexts, so their computed
-  // z-index is useful only within the main-material band.
-  const localZ = Number.parseFloat(getComputedStyle(canvas).zIndex);
-  return 20 + (Number.isFinite(localZ) ? Math.max(-999, Math.min(999, localZ)) / 1000 : 0);
-}
-
-function readSimulationSnapshotLayerId(canvas, index) {
-  return canvas.dataset.simulationSnapshotId
-    || canvas.dataset.atmosphereLayer
-    || canvas.id
-    || canvas.classList.item(0)
-    || `canvas-${index + 1}`;
-}
-
-function readSimulationSnapshotFilter(style, pixelRatio) {
-  const filter = String(style?.filter || style?.webkitFilter || 'none');
-  if (!filter || filter === 'none') return 'none';
-  return filter.replace(/blur\(\s*([\d.]+)px\s*\)/gi, (match, rawRadius) => {
-    const radius = Number.parseFloat(rawRadius);
-    return Number.isFinite(radius) ? `blur(${radius * pixelRatio}px)` : match;
-  });
-}
-
-function captureSimulationTransactionSnapshot() {
-  const host = document.getElementById('simulations');
-  const snapshotHost = document.getElementById('simulation-transaction-snapshot-host');
-  const hostRect = host?.getBoundingClientRect();
-  if (!host || !snapshotHost || !hostRect || hostRect.width < 1 || hostRect.height < 1) return null;
-
-  removeSimulationTransactionSnapshots();
-  const pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-  const snapshot = document.createElement('canvas');
-  snapshot.className = 'simulation-transaction-snapshot';
-  snapshot.dataset.state = 'captured';
-  snapshot.width = Math.max(1, Math.round(hostRect.width * pixelRatio));
-  snapshot.height = Math.max(1, Math.round(hostRect.height * pixelRatio));
-  snapshot.style.left = `${hostRect.left}px`;
-  snapshot.style.top = `${hostRect.top}px`;
-  snapshot.style.width = `${hostRect.width}px`;
-  snapshot.style.height = `${hostRect.height}px`;
-
-  const context = snapshot.getContext('2d');
-  const sourceCanvases = Array.from(host.querySelectorAll('canvas'))
-    .filter((canvas) => canvas !== snapshot && canvas.width > 0 && canvas.height > 0)
-    .sort((left, right) => readSimulationSnapshotOrder(left) - readSimulationSnapshotOrder(right));
-  let capturedLayers = 0;
-  const capturedLayerIds = [];
-  const capturedLayerRecords = [];
-  sourceCanvases.forEach((canvas, index) => {
-    const style = getComputedStyle(canvas);
-    const rect = canvas.getBoundingClientRect();
-    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return;
-    if (rect.width < 1 || rect.height < 1) return;
-    try {
-      const opacity = Number.parseFloat(style.opacity);
-      context.globalAlpha = Number.isFinite(opacity) ? opacity : 1;
-      context.globalCompositeOperation = style.mixBlendMode === 'screen'
-        ? 'screen'
-        : style.mixBlendMode === 'plus-lighter'
-          ? 'lighter'
-          : 'source-over';
-      context.filter = readSimulationSnapshotFilter(style, pixelRatio);
-      context.drawImage(
-        canvas,
-        (rect.left - hostRect.left) * pixelRatio,
-        (rect.top - hostRect.top) * pixelRatio,
-        rect.width * pixelRatio,
-        rect.height * pixelRatio,
-      );
-      capturedLayers += 1;
-      const layerId = readSimulationSnapshotLayerId(canvas, index);
-      capturedLayerIds.push(layerId);
-      capturedLayerRecords.push({ id: layerId, filter: context.filter });
-    } catch {
-      // A failed layer capture must never block the route switch.
-    } finally {
-      context.filter = 'none';
-    }
-  });
-  context.globalAlpha = 1;
-  context.globalCompositeOperation = 'source-over';
-  if (capturedLayers === 0) return null;
-
-  snapshot.dataset.capturedLayers = String(capturedLayers);
-  snapshot.dataset.capturedLayerIds = capturedLayerIds.join(',');
-  snapshot.dataset.capturedLayerRecords = JSON.stringify(capturedLayerRecords);
-  if (new URLSearchParams(window.location.search).has('absAudit')) {
-    window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__ = capturedLayerRecords.map((record) => ({ ...record }));
-  }
-  let released = false;
-  let releaseScheduled = false;
-  let visibleAt = 0;
-  const snapshotHandle = {
-    node: snapshot,
-    show() {
-      if (released || !snapshotHost.isConnected) return;
-      if (!snapshot.isConnected) {
-        snapshotHost.append(snapshot);
-        snapshot.getBoundingClientRect();
-      }
-      snapshot.dataset.state = 'visible';
-      visibleAt = performance.now();
-    },
-    release({ immediate = false } = {}) {
-      if (released) return;
-      if (!immediate && visibleAt > 0) {
-        const remainingRecoveryHold = 2500 - (performance.now() - visibleAt);
-        if (remainingRecoveryHold > 0) {
-          if (!releaseScheduled) {
-            releaseScheduled = true;
-            setStableTimeout(() => {
-              releaseScheduled = false;
-              snapshotHandle.release();
-            }, remainingRecoveryHold);
-          }
-          return;
-        }
-      }
-      released = true;
-      if (immediate || !snapshot.isConnected) {
-        snapshot.remove();
-        return;
-      }
-      snapshot.dataset.state = 'releasing';
-      setStableTimeout(() => snapshot.remove(), 200);
-    },
-  };
-  return snapshotHandle;
 }
 
 function animateSimulationFocusLayer(surfaceRefs, {
@@ -888,7 +887,6 @@ function getSimulationFocusTimings(options, reduceMotion) {
     return {
       exit: 0,
       enter: 0,
-      hold: 0,
       exitLocal: 0,
       enterLocal: 0,
       exitEasing: SIMULATION_FOCUS_EASE_OUT,
@@ -899,17 +897,11 @@ function getSimulationFocusTimings(options, reduceMotion) {
   return {
     exit: parseTransitionMs(options.exitMs, SIMULATION_FOCUS_EXIT_MS),
     enter: parseTransitionMs(options.enterMs, SIMULATION_FOCUS_ENTER_MS),
-    hold: parseTransitionMs(options.holdMs, SIMULATION_FOCUS_ZERO_HOLD_MS),
     exitLocal: parseTransitionMs(options.exitLocalMs, SIMULATION_FOCUS_EXIT_LOCAL_MS),
     enterLocal: parseTransitionMs(options.enterLocalMs, SIMULATION_FOCUS_ENTER_LOCAL_MS),
     exitEasing: options.exitEasing || SIMULATION_FOCUS_EASE_OUT,
     enterEasing: options.enterEasing || SIMULATION_FOCUS_EASE_IN,
   };
-}
-
-function waitForSimulationFocusHold(durationMs) {
-  if (!durationMs) return Promise.resolve();
-  return new Promise((resolve) => setStableTimeout(resolve, durationMs));
 }
 
 function waitWithTransitionTimeout(promise, timeoutMs, signal = null) {
@@ -1452,6 +1444,13 @@ export function useShellRouteTransition({
   const activeRouteReadyCancelRef = useRef(null);
   const transitionGenerationRef = useRef(0);
   const activeTransactionRef = useRef(null);
+  const activeSimulationSwitchRef = useRef(null);
+  const queuedSimulationIntentRef = useRef(null);
+  const cancelActiveSimulationSwitchRef = useRef(null);
+  const simulationSwitchGenerationRef = useRef(0);
+  const [simulationSwitchSnapshot, setSimulationSwitchSnapshot] = useState(
+    IDLE_SIMULATION_SWITCH_SNAPSHOT,
+  );
   const routeLoaderSessionRef = useRef(null);
   const navigateRef = useRef(null);
   const [animationRegistry] = useState(() => createAnimationRegistry());
@@ -1498,6 +1497,659 @@ export function useShellRouteTransition({
     }));
   }, []);
 
+  const publishSimulationSwitchTransaction = useCallback((transaction, status = '') => {
+    const snapshot = createSimulationSwitchDiagnosticSnapshot(transaction, status);
+    setSimulationSwitchSnapshot(snapshot);
+    if (snapshot.phase === SIMULATION_SWITCH_PHASES.IDLE) {
+      setSimulationFocusTransitionState(null);
+    } else {
+      setSimulationFocusTransitionState(snapshot.phase);
+    }
+    window.__ABS_SIMULATION_SWITCH_TRANSACTION__ = snapshot;
+    window.dispatchEvent(new CustomEvent('abs:simulation-switch-state', { detail: snapshot }));
+  }, []);
+
+  useEffect(() => {
+    window.__ABS_SIMULATION_SWITCH_TRANSACTION__ = simulationSwitchSnapshot;
+  }, [simulationSwitchSnapshot]);
+
+  const requestSimulationSwitch = useCallback((requestedSimulationId) => {
+    const target = getSimulationLaunchTarget(requestedSimulationId);
+    if (!target) return false;
+
+    if (activeSimulationSwitchRef.current) {
+      if (queuedSimulationIntentRef.current?.kind !== 'route') {
+        queuedSimulationIntentRef.current = activeSimulationSwitchRef.current.to?.id === target.id
+          ? null
+          : Object.freeze({
+              kind: 'simulation',
+              simulationId: target.id,
+            });
+      }
+      return true;
+    }
+    if (transitionActiveRef.current) return false;
+
+    const settledState = settledRouteStateRef.current;
+    const settledFocusId = readRouteStateSimulationFocusId(settledState)
+      || getResolvedSimulationFocus().activeId;
+    const fromTarget = getSimulationLaunchTarget(settledFocusId);
+    if (!fromTarget || fromTarget.id === target.id) return Boolean(fromTarget);
+
+    const generation = ++simulationSwitchGenerationRef.current;
+    const abortController = new AbortController();
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const transaction = createSimulationSwitchTransaction({
+      transactionId: `simulation-switch-${generation}`,
+      generation,
+      from: fromTarget,
+      to: target,
+      topology: getSimulationSwitchTopology(fromTarget, target),
+      timingMode: reduceMotion ? 'reduced-motion' : 'normal',
+      abortController,
+    });
+    const previousState = Object.freeze({ ...settledState });
+    const targetHref = target.routeBacked
+      ? target.href
+      : `${buildRouteHref('home')}?mode=${encodeURIComponent(target.mode)}`;
+    const computedTargetState = computeRouteState(targetHref);
+    const targetReadinessRouteId = resolveRouteReadinessId(
+      getRouteReadinessIdRef.current,
+      computedTargetState,
+    );
+    const targetContext = createSimulationSwitchBootstrapContext(
+      transaction,
+      target,
+      targetReadinessRouteId,
+    );
+    const nextState = Object.freeze({
+      ...computedTargetState,
+      simulationSwitchContext: targetContext,
+    });
+    const previousReadinessRouteId = settledReadinessRouteIdRef.current;
+    const changesRuntimeOwnership = fromTarget.routeBacked || target.routeBacked;
+    const targetAtmosphereRouteId = target.routeBacked ? target.id : 'home';
+    const previousAtmosphereRouteId = fromTarget.routeBacked ? fromTarget.id : 'home';
+    const reusesHomeAtmosphereSource = !fromTarget.routeBacked && !target.routeBacked;
+    const timings = getSimulationFocusTimings({}, reduceMotion);
+    let committed = false;
+    let atmospherePrepared = false;
+    let outStarted = false;
+    let orchestrationCancelled = false;
+    let unmounted = false;
+    let recoveryController = null;
+    let recoveryPromise = null;
+    let previousOwnershipRestored = false;
+    let ownershipCommitPromise = Promise.resolve();
+
+    const isStale = () => (
+      orchestrationCancelled
+      || abortController.signal.aborted
+      || activeSimulationSwitchRef.current !== transaction
+      || isSimulationSwitchTransactionStale(transaction, generation)
+    );
+    const publishPhase = (phase) => {
+      if (!advanceSimulationSwitchTransaction(transaction, phase, generation)) {
+        throw new Error(`Illegal simulation switch phase: ${transaction.phase} → ${phase}`);
+      }
+      setSimulationAtmosphereSwitchPhase(phase, transaction.id);
+      publishSimulationSwitchTransaction(transaction);
+    };
+    const commitRouteState = (state, readinessRouteId) => {
+      if (unmounted) return false;
+      setRouteState(state);
+      activeRouteStateRef.current = state;
+      activeRouteIdRef.current = state.route.id;
+      activeReadinessRouteIdRef.current = readinessRouteId;
+      activeRouteContentSignatureRef.current = readRouteContentSignature(state);
+      activeFocusSimulationIdRef.current = readRouteStateSimulationFocusId(state);
+      return true;
+    };
+    const prepareTarget = async () => {
+      const runtime = getRouteRuntimeRef.current(
+        nextState.route.id,
+        nextState.canonicalHref,
+        nextState,
+      );
+      if (target.routeBacked) {
+        await loadRouteRuntimeModule(runtime?.loadModule);
+        return;
+      }
+      const [{ prewarmModeRuntime }, homeModule] = await Promise.all([
+        import('../legacy/modules/modes/mode-controller.js'),
+        loadRouteRuntimeModule(runtime?.loadModule),
+      ]);
+      const modeRuntime = await prewarmModeRuntime(target.mode);
+      if (!modeRuntime) throw new Error(`Simulation "${target.mode}" failed to preload`);
+      await homeModule?.prewarmHomeRoute?.({ signal: abortController.signal });
+    };
+    const commitTarget = async () => {
+      publishPhase(SIMULATION_SWITCH_PHASES.COMMIT);
+      if (!markSimulationSwitchCommitted(transaction, generation)) {
+        throw new Error('Simulation switch commit was rejected');
+      }
+      committed = true;
+      if (!commitSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Simulation atmosphere ownership commit was rejected');
+      }
+      recordSimulationVisualTransitionEvent('commit', {
+        routeId: nextState.route.id,
+        transactionId: transaction.id,
+      });
+      if (!changesRuntimeOwnership) {
+        const { setMode } = await import('../legacy/modules/modes/mode-controller.js');
+        const applied = await setMode(target.mode);
+        if (applied === false) throw new Error(`Simulation "${target.mode}" failed to initialize`);
+        if (orchestrationCancelled || unmounted) {
+          throw new DOMException('Simulation ownership commit was cancelled.', 'AbortError');
+        }
+        commitRouteState(
+          Object.freeze({ ...nextState, simulationSwitchContext: null }),
+          targetReadinessRouteId,
+        );
+        return;
+      }
+      commitRouteState(nextState, targetReadinessRouteId);
+    };
+    const primeTarget = async (primeTarget, readinessRouteId, signal = abortController.signal) => {
+      publishPhase(SIMULATION_SWITCH_PHASES.PRIME);
+      if (changesRuntimeOwnership) {
+        const readinessStatus = await waitForSimulationRouteReady(
+          readinessRouteId,
+          primeTarget.routeBacked ? 13000 : 3200,
+          signal,
+        );
+        if (readinessStatus !== 'ready') {
+          throw new Error(`Simulation runtime "${readinessRouteId}" did not become ready (${readinessStatus})`);
+        }
+      }
+      await waitForSimulationPrimeBarrier({
+        target: primeTarget,
+        timeoutMs: primeTarget.routeBacked ? 13000 : 3200,
+        signal,
+      });
+      if (!armSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Simulation atmosphere prime could not be armed');
+      }
+      await waitForSimulationAtmosphereReady({
+        transactionId: transaction.id,
+        targetSimulationId: primeTarget.id,
+        timeoutMs: primeTarget.routeBacked ? 13000 : 3200,
+        signal,
+      });
+    };
+    const runIn = async () => {
+      publishPhase(SIMULATION_SWITCH_PHASES.IN);
+      recordSimulationVisualTransitionEvent('runtime-ready', {
+        routeId: activeRouteIdRef.current,
+        transactionId: transaction.id,
+      });
+      await animateSimulationFocusLayer(surfaceRefs, {
+        direction: 'in',
+        durationMs: timings.enter,
+        localDurationMs: timings.enterLocal,
+        easing: timings.enterEasing,
+      });
+    };
+    const restorePrevious = async (signal) => {
+      if (signal?.aborted || unmounted) {
+        throw signal?.reason || new DOMException('Simulation recovery was aborted.', 'AbortError');
+      }
+      const rollbackHref = fromTarget.routeBacked
+        ? fromTarget.href
+        : `${buildRouteHref('home')}?mode=${encodeURIComponent(fromTarget.mode)}`;
+      const rollbackComputedState = computeRouteState(rollbackHref);
+      const rollbackContext = createSimulationSwitchBootstrapContext(
+        transaction,
+        fromTarget,
+        previousReadinessRouteId,
+        { rollback: true, signal },
+      );
+      const rollbackState = Object.freeze({
+        ...rollbackComputedState,
+        simulationSwitchContext: rollbackContext,
+      });
+
+      if (!prepareSimulationAtmosphereRollback({
+        transactionId: transaction.id,
+        targetSimulationId: fromTarget.id,
+        targetSourceRouteId: previousAtmosphereRouteId,
+        reuseActiveDefinition: reusesHomeAtmosphereSource,
+      })) {
+        throw new Error('Previous simulation atmosphere generation could not be reserved');
+      }
+      if (!commitSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Previous simulation atmosphere ownership could not be restored');
+      }
+
+      if (!changesRuntimeOwnership && !fromTarget.routeBacked) {
+        const { setMode } = await import('../legacy/modules/modes/mode-controller.js');
+        const restored = await setMode(fromTarget.mode);
+        if (restored === false) throw new Error(`Previous simulation "${fromTarget.mode}" failed to restore`);
+        if (signal?.aborted || unmounted) {
+          throw signal?.reason || new DOMException('Simulation recovery was aborted.', 'AbortError');
+        }
+        commitRouteState(
+          Object.freeze({ ...previousState, simulationSwitchContext: null }),
+          previousReadinessRouteId,
+        );
+      } else {
+        commitRouteState(rollbackState, previousReadinessRouteId);
+      }
+      rewindSimulationSwitchTransactionForRecovery(transaction, generation);
+      setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.PRIME, transaction.id);
+      publishSimulationSwitchTransaction(transaction, 'recovering');
+      if (changesRuntimeOwnership) {
+        const readinessStatus = await waitForSimulationRouteReady(
+          previousReadinessRouteId,
+          fromTarget.routeBacked ? 13000 : 3200,
+          signal,
+        );
+        if (readinessStatus !== 'ready') {
+          throw new Error(`Previous simulation runtime "${previousReadinessRouteId}" did not recover (${readinessStatus})`);
+        }
+      }
+      await waitForSimulationPrimeBarrier({
+        target: fromTarget,
+        timeoutMs: fromTarget.routeBacked ? 13000 : 3200,
+        signal,
+      });
+      if (!armSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Previous simulation atmosphere prime could not be armed');
+      }
+      await waitForSimulationAtmosphereReady({
+        transactionId: transaction.id,
+        targetSimulationId: fromTarget.id,
+        timeoutMs: fromTarget.routeBacked ? 13000 : 3200,
+        signal,
+      });
+      if (signal?.aborted || unmounted) {
+        throw signal?.reason || new DOMException('Simulation recovery was aborted.', 'AbortError');
+      }
+      previousOwnershipRestored = true;
+      publishPhase(SIMULATION_SWITCH_PHASES.IN);
+      await animateSimulationFocusLayer(surfaceRefs, {
+        direction: 'in',
+        durationMs: timings.enter,
+        localDurationMs: timings.enterLocal,
+        easing: timings.enterEasing,
+      });
+      if (!settleSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Previous simulation atmosphere settlement was rejected');
+      }
+    };
+    const finish = (status) => {
+      if (unmounted) return;
+      activeSimulationSwitchRef.current = null;
+      cancelActiveSimulationSwitchRef.current = null;
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      setLegacyRouteTransitionActive(false);
+      cleanupSimulationFocusLayer(surfaceRefs);
+      setSimulationShellStability(false, surfaceRefs);
+      setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.IDLE, transaction.id);
+      publishSimulationSwitchTransaction(transaction, status);
+
+      const nextIntent = queuedSimulationIntentRef.current;
+      queuedSimulationIntentRef.current = null;
+      if (nextIntent?.kind === 'route') {
+        setStableTimeout(() => navigateRef.current?.(nextIntent.href, nextIntent.options), 0);
+        return;
+      }
+      if (
+        nextIntent?.kind === 'simulation'
+        && nextIntent.simulationId !== readRouteStateSimulationFocusId(activeRouteStateRef.current)
+      ) {
+        setStableTimeout(() => requestSimulationSwitch(nextIntent.simulationId), 0);
+        return;
+      }
+      const queuedNavigation = queuedNavigationRef.current;
+      queuedNavigationRef.current = null;
+      if (queuedNavigation) {
+        setStableTimeout(() => navigateRef.current?.(queuedNavigation.href, queuedNavigation.options), 0);
+      }
+    };
+
+    const publishTargetSettlement = (status, endpoint) => {
+      const settlementOptions = { status, endpoint, publish: true };
+      if (!canSettleSimulationSwitchTransaction(transaction, settlementOptions, generation)) {
+        throw new Error('Simulation switch publication preflight was rejected');
+      }
+      const cleanHref = buildRouteHref('home');
+      const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (currentHref !== cleanHref) {
+        window.history.replaceState(window.history.state || {}, '', cleanHref);
+      }
+      const publishedFocus = writeManualSimulationFocus(target.id);
+      if (!publishedFocus) throw new Error(`Simulation "${target.id}" could not be published`);
+      const settledState = Object.freeze({
+        ...activeRouteStateRef.current,
+        canonicalHref: cleanHref,
+      });
+      commitRouteState(settledState, targetReadinessRouteId);
+      settledRouteStateRef.current = settledState;
+      settledReadinessRouteIdRef.current = targetReadinessRouteId;
+      if (!settleSimulationSwitchTransaction(transaction, settlementOptions, generation)) {
+        throw new Error('Simulation switch settlement failed after a successful preflight');
+      }
+    };
+
+    const completeRecovery = async (status = 'recovered') => {
+      if (recoveryPromise) return recoveryPromise;
+      recoveryController = new AbortController();
+      recoveryPromise = (async () => {
+        await ownershipCommitPromise.catch(() => undefined);
+        if (unmounted) return;
+        await restorePrevious(recoveryController.signal);
+        if (!settleSimulationSwitchTransaction(transaction, {
+          status,
+          endpoint: SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.RESTORE_PREVIOUS,
+          publish: false,
+        }, generation)) {
+          throw new Error('Previous simulation recovery settlement was rejected');
+        }
+      })();
+      return recoveryPromise;
+    };
+
+    const preserveMountedTarget = async () => {
+      recoveryController = new AbortController();
+      const preservationSignal = recoveryController.signal;
+      const preservationContext = createSimulationSwitchBootstrapContext(
+        transaction,
+        target,
+        targetReadinessRouteId,
+        { signal: preservationSignal },
+      );
+      const preservedState = Object.freeze({
+        ...computedTargetState,
+        simulationSwitchContext: target.routeBacked ? preservationContext : null,
+      });
+      if (!prepareSimulationAtmosphereRollback({
+        transactionId: transaction.id,
+        targetSimulationId: target.id,
+        targetSourceRouteId: targetAtmosphereRouteId,
+        reuseActiveDefinition: reusesHomeAtmosphereSource,
+      })) {
+        throw new Error('Mounted target atmosphere generation could not be reserved');
+      }
+      if (!commitSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Mounted target atmosphere ownership could not be preserved');
+      }
+      if (!changesRuntimeOwnership) {
+        const { setMode } = await import('../legacy/modules/modes/mode-controller.js');
+        const preserved = await setMode(target.mode);
+        if (preserved === false) throw new Error(`Mounted target "${target.mode}" could not be preserved`);
+        if (preservationSignal.aborted || unmounted) {
+          throw preservationSignal.reason
+            || new DOMException('Mounted-target preservation was aborted.', 'AbortError');
+        }
+      }
+      commitRouteState(preservedState, targetReadinessRouteId);
+      if (transaction.phase !== SIMULATION_SWITCH_PHASES.PRIME) {
+        rewindSimulationSwitchTransactionForRecovery(transaction, generation);
+      }
+      setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.PRIME, transaction.id);
+      if (changesRuntimeOwnership) {
+        const readinessStatus = await waitForSimulationRouteReady(
+          targetReadinessRouteId,
+          target.routeBacked ? 13000 : 3200,
+          preservationSignal,
+        );
+        if (readinessStatus !== 'ready') {
+          throw new Error(`Mounted target runtime "${targetReadinessRouteId}" was not ready (${readinessStatus})`);
+        }
+      }
+      await waitForSimulationPrimeBarrier({
+        target,
+        timeoutMs: target.routeBacked ? 13000 : 3200,
+        signal: preservationSignal,
+      });
+      if (!armSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Mounted target atmosphere prime could not be armed');
+      }
+      await waitForSimulationAtmosphereReady({
+        transactionId: transaction.id,
+        targetSimulationId: target.id,
+        timeoutMs: target.routeBacked ? 13000 : 3200,
+        signal: preservationSignal,
+      });
+      if (transaction.phase === SIMULATION_SWITCH_PHASES.PRIME) {
+        advanceSimulationSwitchTransaction(transaction, SIMULATION_SWITCH_PHASES.IN, generation);
+      }
+      setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.IN, transaction.id);
+      await animateSimulationFocusLayer(surfaceRefs, {
+        direction: 'in',
+        durationMs: timings.enter,
+        localDurationMs: timings.enterLocal,
+        easing: timings.enterEasing,
+      });
+      if (!settleSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+        throw new Error('Mounted target atmosphere settlement was rejected');
+      }
+      publishTargetSettlement('degraded-target', SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.PRESERVE_TARGET);
+    };
+
+    const cancelActiveSimulationSwitch = (reason = 'cancelled', options = {}) => {
+      if (options.unmount === true) {
+        unmounted = true;
+        orchestrationCancelled = true;
+        cancelSimulationSwitchTransaction(transaction, reason, generation);
+        abortController.abort(reason);
+        recoveryController?.abort(reason);
+        if (atmospherePrepared) {
+          rollbackSimulationAtmosphereReplacement({ transactionId: transaction.id, reason });
+          atmospherePrepared = false;
+        }
+        setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.IDLE, transaction.id);
+        ++simulationSwitchGenerationRef.current;
+        activeSimulationSwitchRef.current = null;
+        cancelActiveSimulationSwitchRef.current = null;
+        queuedSimulationIntentRef.current = null;
+        transitionActiveRef.current = false;
+        setLegacyRouteTransitionActive(false);
+        cleanupSimulationFocusLayer(surfaceRefs);
+        setSimulationShellStability(false, surfaceRefs);
+        setSimulationFocusTransitionState(null);
+        return true;
+      }
+      if (orchestrationCancelled) return false;
+      orchestrationCancelled = true;
+      cancelSimulationSwitchTransaction(transaction, reason, generation);
+      recoveryController?.abort(reason);
+      publishSimulationSwitchTransaction(transaction, committed ? 'recovering' : 'cancelling');
+
+      void (async () => {
+        if (!committed) {
+          if (atmospherePrepared) {
+            rollbackSimulationAtmosphereReplacement({ transactionId: transaction.id, reason });
+            atmospherePrepared = false;
+          }
+          if (outStarted) {
+            await animateSimulationFocusLayer(surfaceRefs, {
+              direction: 'in',
+              durationMs: timings.enter,
+              localDurationMs: timings.enterLocal,
+              easing: timings.enterEasing,
+            });
+          }
+          finish('cancelled');
+          return;
+        }
+
+        try {
+          await completeRecovery('cancelled-recovered');
+          if (unmounted) return;
+          finish('cancelled-recovered');
+        } catch (recoveryError) {
+          if (unmounted) return;
+          transaction.error = recoveryError;
+          if (previousOwnershipRestored) {
+            if (transaction.phase !== SIMULATION_SWITCH_PHASES.PRIME) {
+              rewindSimulationSwitchTransactionForRecovery(transaction, generation);
+            }
+            if (transaction.phase === SIMULATION_SWITCH_PHASES.PRIME) {
+              advanceSimulationSwitchTransaction(transaction, SIMULATION_SWITCH_PHASES.IN, generation);
+            }
+            setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.IN, transaction.id);
+            await animateSimulationFocusLayer(surfaceRefs, {
+              direction: 'in',
+              durationMs: timings.enter,
+              localDurationMs: timings.enterLocal,
+              easing: timings.enterEasing,
+            }).catch(() => undefined);
+            settleSimulationAtmosphereReplacement({ transactionId: transaction.id });
+            settleSimulationSwitchTransaction(transaction, {
+              status: 'recovery-failed-open',
+              endpoint: SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.RESTORE_PREVIOUS,
+              publish: false,
+            }, generation);
+          } else {
+            await preserveMountedTarget();
+          }
+          finish(previousOwnershipRestored ? 'recovery-failed-open' : 'degraded-target');
+        }
+      })().catch((error) => {
+        if (unmounted) return;
+        transaction.error = error;
+        failOpenSimulationSwitchTransaction(transaction, 'recovery-failed-open', generation);
+        finish('recovery-failed-open');
+      });
+      return true;
+    };
+
+    activeSimulationSwitchRef.current = transaction;
+    cancelActiveSimulationSwitchRef.current = cancelActiveSimulationSwitch;
+    transitionActiveRef.current = true;
+    activeTransitionCommittedRef.current = false;
+    setLegacyRouteTransitionActive(true, { gate: false });
+    setSimulationShellStability(true, surfaceRefs);
+
+    void Promise.resolve()
+      .then(() => {
+        if (isStale()) return undefined;
+        prepareSimulationAtmosphereReplacement({
+          transactionId: transaction.id,
+          targetSimulationId: target.id,
+          targetSourceRouteId: targetAtmosphereRouteId,
+          reuseActiveDefinition: reusesHomeAtmosphereSource,
+        });
+        atmospherePrepared = true;
+        publishPhase(SIMULATION_SWITCH_PHASES.PREPARE);
+        return prepareTarget();
+      })
+      .then(() => {
+        if (isStale()) return undefined;
+        publishPhase(SIMULATION_SWITCH_PHASES.OUT);
+        outStarted = true;
+        return animateSimulationFocusLayer(surfaceRefs, {
+          direction: 'out',
+          durationMs: timings.exit,
+          localDurationMs: timings.exitLocal,
+          easing: timings.exitEasing,
+        });
+      })
+      .then(() => {
+        if (isStale()) return undefined;
+        ownershipCommitPromise = commitTarget();
+        return ownershipCommitPromise;
+      })
+      .then(() => {
+        if (isStale()) return undefined;
+        return primeTarget(target, targetReadinessRouteId);
+      })
+      .then(() => {
+        if (isStale()) return undefined;
+        return runIn();
+      })
+      .then(() => {
+        if (isStale()) return;
+        if (!settleSimulationAtmosphereReplacement({ transactionId: transaction.id })) {
+          throw new Error('Simulation atmosphere settlement was rejected');
+        }
+        publishTargetSettlement('ready', SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.SETTLE_INCOMING);
+        finish('ready');
+      })
+      .catch(async (error) => {
+        if (isStale()) return;
+        beginSimulationSwitchRollback(transaction, error, generation);
+        publishSimulationSwitchTransaction(transaction, committed ? 'recovering' : 'failed');
+        try {
+          if (committed) {
+            await completeRecovery('recovered');
+          } else {
+            if (atmospherePrepared) {
+              rollbackSimulationAtmosphereReplacement({
+                transactionId: transaction.id,
+                reason: 'precommit-failure',
+              });
+              atmospherePrepared = false;
+            }
+            if (outStarted) {
+              await animateSimulationFocusLayer(surfaceRefs, {
+                direction: 'in',
+                durationMs: timings.enter,
+                localDurationMs: timings.enterLocal,
+                easing: timings.enterEasing,
+              });
+            }
+            settleSimulationSwitchTransaction(transaction, {
+              status: 'failed',
+              endpoint: SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.RESTORE_OUTGOING,
+              publish: false,
+            }, generation);
+          }
+        } catch (recoveryError) {
+          if (orchestrationCancelled || unmounted) return;
+          transaction.error = recoveryError;
+          if (committed && previousOwnershipRestored) {
+            if (transaction.phase !== SIMULATION_SWITCH_PHASES.PRIME) {
+              rewindSimulationSwitchTransactionForRecovery(transaction, generation);
+            }
+            if (transaction.phase === SIMULATION_SWITCH_PHASES.PRIME) {
+              advanceSimulationSwitchTransaction(transaction, SIMULATION_SWITCH_PHASES.IN, generation);
+            }
+            setSimulationAtmosphereSwitchPhase(SIMULATION_SWITCH_PHASES.IN, transaction.id);
+            await animateSimulationFocusLayer(surfaceRefs, {
+              direction: 'in',
+              durationMs: timings.enter,
+              localDurationMs: timings.enterLocal,
+              easing: timings.enterEasing,
+            }).catch(() => undefined);
+            settleSimulationAtmosphereReplacement({ transactionId: transaction.id });
+            settleSimulationSwitchTransaction(transaction, {
+              status: 'recovery-failed-open',
+              endpoint: SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.RESTORE_PREVIOUS,
+              publish: false,
+            }, generation);
+          } else if (committed) {
+            try {
+              await preserveMountedTarget();
+            } catch (preservationError) {
+              transaction.error = preservationError;
+              failOpenSimulationSwitchTransaction(transaction, 'recovery-failed-open', generation);
+            }
+          } else if (!committed) {
+            settleSimulationSwitchTransaction(transaction, {
+              status: 'failed',
+              endpoint: SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.RESTORE_OUTGOING,
+              publish: false,
+            }, generation);
+          }
+        }
+        if (orchestrationCancelled || unmounted) return;
+        finish(committed
+          ? (previousOwnershipRestored
+              ? 'recovered'
+              : (transaction.settlementEndpoint === SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS.PRESERVE_MOUNTED
+                  ? 'recovery-failed-open'
+                  : 'degraded-target'))
+          : 'failed');
+      });
+
+    return true;
+  }, [publishSimulationSwitchTransaction, surfaceRefs]);
+
   const navigate = useCallback((href, options = {}) => {
     const route = resolveRouteFromHref(href, window.location.href);
     if (!route) return false;
@@ -1511,6 +2163,18 @@ export function useShellRouteTransition({
     );
     const nextRouteContentSignature = readRouteContentSignature(nextState);
     const nextFocusSimulationId = readRouteStateSimulationFocusId(nextState);
+    if (options.transitionStyle === 'simulation-focus') {
+      return requestSimulationSwitch(options.simulationId || nextFocusSimulationId);
+    }
+    if (activeSimulationSwitchRef.current) {
+      queuedSimulationIntentRef.current = Object.freeze({
+        kind: 'route',
+        href: targetUrl.toString(),
+        options: Object.freeze({ ...options }),
+      });
+      cancelActiveSimulationSwitchRef.current?.('route-navigation');
+      return true;
+    }
     const isSameRoute = nextRouteId === activeRouteIdRef.current;
     const hasRouteContentChange = nextRouteContentSignature !== activeRouteContentSignatureRef.current;
     const hasSimulationFocusChange = nextFocusSimulationId !== activeFocusSimulationIdRef.current;
@@ -1559,6 +2223,10 @@ export function useShellRouteTransition({
     const rollback = (error) => {
       historyDriver.rollback();
       historyCommitted = false;
+      const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (options.source !== 'history' && currentHref !== previousState.canonicalHref) {
+        window.history.replaceState(window.history.state || {}, '', previousState.canonicalHref);
+      }
       setRouteState(previousState);
       activeRouteStateRef.current = previousState;
       activeRouteIdRef.current = previousRouteId;
@@ -1670,13 +2338,10 @@ export function useShellRouteTransition({
         activation,
       );
       routeLoaderSessionRef.current?.retarget();
-      void fadeOutContent(80, EASE_OUT, surfaceRefs, animationRegistry, {
-        finalOpacity: 0,
-        opacityOnly: true,
-      }).then(() => {
+      setRouteSurfaceVisibility(false, surfaceRefs);
+      setStableTimeout(() => {
         const queued = queuedNavigationRef.current;
         queuedNavigationRef.current = null;
-        setRouteSurfaceVisibility(false, surfaceRefs);
         const targetRouteId = queued?.routeId || nextRouteId;
         publishTransitionPhase(
           TRANSITION_PHASES.ROUTE_LOADING,
@@ -1690,10 +2355,11 @@ export function useShellRouteTransition({
         setPendingActiveRouteId(null);
         navigateRef.current?.(queued?.href || targetUrl.toString(), {
           ...(queued?.options || options),
+          replace: true,
           resumeCovered: true,
           forceTransition: true,
         });
-      });
+      }, 0);
       return true;
     }
 
@@ -1746,9 +2412,8 @@ export function useShellRouteTransition({
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
     const nextRouteRuntime = getRouteRuntimeRef.current(nextRouteId, nextState.canonicalHref, nextState);
     const isGate = options.transitionStyle === 'gate-success';
-    const isSimulationFocus = options.transitionStyle === 'simulation-focus';
     const resumeCovered = options.resumeCovered === true;
-    if (!isSimulationFocus && document.documentElement.dataset.absSimulationFocusTransition) {
+    if (document.documentElement.dataset.absSimulationFocusTransition) {
       resetSimulationFocusTransition(surfaceRefs, { discardSnapshots: true });
       dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
     }
@@ -1805,7 +2470,7 @@ export function useShellRouteTransition({
       });
       resetSimulationFocusTransition(surfaceRefs);
       if (releaseGateBackdrop) {
-        dismissGateBackdrop({ instant: isSimulationFocus });
+        dismissGateBackdrop();
       } else {
         setTransitionState((current) => ({
           ...current,
@@ -1833,170 +2498,6 @@ export function useShellRouteTransition({
       }
       processQueuedNavigation();
     };
-
-    if (isSimulationFocus) {
-      transitionActiveRef.current = true;
-      activeGateTransitionRef.current = false;
-      activeTransitionCommittedRef.current = historyCommitted;
-      setLegacyRouteTransitionActive(true, { gate: false });
-      setSimulationFocusTransitionState('prepare');
-      const simulationTitleSurface = getSimulationTitleSurfaceForRouteChange(activeRouteIdRef.current, nextRouteId);
-      setSimulationShellStability(true, surfaceRefs, {
-        titleSurface: simulationTitleSurface,
-      });
-
-      const token = ++transitionGenerationRef.current;
-      const stale = () => token !== transitionGenerationRef.current;
-      const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
-      const retainedSimulation = captureSimulationTransactionSnapshot();
-      const shouldWaitForRouteReady = !isSameRoute
-        || Boolean(nextState.dailyFocusRouteId)
-        || hasSimulationFocusChange
-        || typeof options.afterRouteReady === 'function';
-      let routeReadyWaiter = null;
-      const waitForCommittedRouteReady = () => {
-        if (!shouldWaitForRouteReady) return Promise.resolve('ready');
-        routeReadyWaiter = waitForRouteReady(nextReadinessRouteId, routeTimings.ready, {
-          lockedGateId: nextState.lockedGateId || null,
-        });
-        activeRouteReadyCancelRef.current = routeReadyWaiter.cancel;
-        return routeReadyWaiter.promise;
-      };
-      let routeCommitted = false;
-      let transitionFinished = false;
-      const runCommitCallback = () => Promise.resolve()
-        .then(() => (typeof options.onCommit === 'function' ? options.onCommit(nextState) : undefined));
-      const runAfterRouteReady = () => Promise.resolve()
-        .then(() => (typeof options.afterRouteReady === 'function' ? options.afterRouteReady(nextState) : undefined));
-      const finishSimulationFocusTransition = () => {
-        if (transitionFinished) return;
-        transitionFinished = true;
-        retainedSimulation?.release();
-        finishTransition(false);
-      };
-      const runSimulationFocusEnter = () => {
-        setSimulationFocusTransitionState('in');
-        if (nextRouteId === 'home' && !nextState.dailyFocusRouteId) {
-          finishSimulationFocusTransition();
-          return Promise.resolve();
-        }
-        return animateSimulationFocusLayer(surfaceRefs, {
-          direction: 'in',
-          durationMs: simulationTimings.enter,
-          localDurationMs: simulationTimings.enterLocal,
-          easing: simulationTimings.enterEasing,
-        }).finally(() => {
-          if (transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
-            finishSimulationFocusTransition();
-          }
-        });
-      };
-      const cancelStaleSimulationFocus = () => {
-        routeReadyWaiter?.cancel();
-        retainedSimulation?.release({ immediate: true });
-        if (routeCommitted && transitionActiveRef.current && activeRouteIdRef.current === nextRouteId) {
-          finishSimulationFocusTransition();
-        }
-      };
-
-      Promise.resolve()
-        .then(() => nextRouteRuntime?.loadModule?.())
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
-          }
-          setSimulationShellStability(true, surfaceRefs, {
-            titleSurface: simulationTitleSurface,
-          });
-          setSimulationFocusTransitionState('out');
-          return animateSimulationFocusLayer(surfaceRefs, {
-            direction: 'out',
-            durationMs: simulationTimings.exit,
-            localDurationMs: simulationTimings.exitLocal,
-            easing: simulationTimings.exitEasing,
-          });
-        })
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
-          }
-          setSimulationFocusTransitionState('hold');
-          return waitForSimulationFocusHold(simulationTimings.hold);
-        })
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
-          }
-          recordSimulationVisualTransitionEvent('commit', { routeId: nextState.route.id });
-          commit();
-          routeCommitted = true;
-          return undefined;
-        })
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
-          }
-          setSimulationShellStability(true, surfaceRefs, {
-            titleSurface: simulationTitleSurface,
-          });
-          return waitForCommittedRouteReady();
-        })
-        .then((readinessStatus) => {
-          if (readinessStatus !== 'ready') {
-            throw new Error(`Route "${nextReadinessRouteId}" did not become ready (${readinessStatus})`);
-          }
-          return runAfterRouteReady();
-        })
-        .then(() => runCommitCallback())
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return undefined;
-          }
-          setSimulationShellStability(true, surfaceRefs, {
-            titleSurface: simulationTitleSurface,
-          });
-          recordSimulationVisualTransitionEvent('runtime-ready', { routeId: nextState.route.id });
-          retainedSimulation?.release({ immediate: true });
-          return runSimulationFocusEnter();
-        })
-        .then(() => {
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return;
-          }
-          finishSimulationFocusTransition();
-        })
-        .catch(async (error) => {
-          routeReadyWaiter?.cancel();
-          if (stale()) {
-            cancelStaleSimulationFocus();
-            return;
-          }
-          if (routeCommitted) {
-            retainedSimulation?.show();
-            rollback(error);
-            const restoredRouteWaiter = waitForRouteReady(previousReadinessRouteId, routeTimings.ready, {
-              lockedGateId: previousState.lockedGateId || null,
-            });
-            await restoredRouteWaiter.promise;
-          } else {
-            try {
-              options.onFailure?.(error, previousState);
-            } catch {
-              // Failure reporting must not prevent transition cleanup.
-            }
-          }
-          retainedSimulation?.release({ immediate: !routeCommitted });
-          finishSimulationFocusTransition();
-        });
-
-      return true;
-    }
 
     /* ── shared route transaction (standard, gate, and reduced motion) ───── */
     if (!isSameRoute || hasRouteContentChange || options.forceTransition === true) {
@@ -2290,6 +2791,7 @@ export function useShellRouteTransition({
     publishTransitionPhase,
     surfaceRefs,
     syncSteadyTransitionPhase,
+    requestSimulationSwitch,
   ]);
 
   useLayoutEffect(() => {
@@ -2335,6 +2837,9 @@ export function useShellRouteTransition({
       repeatVisit: true,
     });
     const isSimulationFocus = options.transitionStyle === 'simulation-focus';
+    if (isSimulationFocus) {
+      return requestSimulationSwitch(options.simulationId);
+    }
 
     const finishTransition = () => {
       transitionActiveRef.current = false;
@@ -2345,7 +2850,7 @@ export function useShellRouteTransition({
       });
       resetSimulationFocusTransition(surfaceRefs);
       if (releaseGateBackdrop) {
-        dismissGateBackdrop({ instant: isSimulationFocus });
+        dismissGateBackdrop();
       } else {
         syncSteadyTransitionPhase();
       }
@@ -2364,69 +2869,6 @@ export function useShellRouteTransition({
 
     const runTask = () => Promise.resolve()
       .then(() => (typeof task === 'function' ? task() : undefined));
-
-    if (isSimulationFocus) {
-      transitionActiveRef.current = true;
-      activeTransitionCommittedRef.current = false;
-      setLegacyRouteTransitionActive(true, { gate: false });
-      setSimulationShellStability(true, surfaceRefs);
-      const token = ++transitionGenerationRef.current;
-      const stale = () => token !== transitionGenerationRef.current;
-      const simulationTimings = getSimulationFocusTimings(options, reduceMotion);
-      let taskError = null;
-
-      setSimulationFocusTransitionState('out');
-      animateSimulationFocusLayer(surfaceRefs, {
-        direction: 'out',
-        durationMs: simulationTimings.exit,
-        localDurationMs: simulationTimings.exitLocal,
-        easing: simulationTimings.exitEasing,
-      })
-        .then(() => {
-          if (stale()) return undefined;
-          setSimulationFocusTransitionState('hold');
-          return waitForSimulationFocusHold(simulationTimings.hold);
-        })
-        .then(() => {
-          if (stale()) return undefined;
-          recordSimulationVisualTransitionEvent('commit', { routeId: currentRouteId });
-          return runTask();
-        })
-        .catch((error) => {
-          taskError = error;
-          try {
-            options.onFailure?.(error);
-          } catch {
-            // Failure reporting must not prevent the current scene returning.
-          }
-        })
-        .then(() => {
-          if (stale()) return undefined;
-          setSimulationShellStability(true, surfaceRefs);
-          recordSimulationVisualTransitionEvent(taskError ? 'runtime-failed' : 'runtime-ready', {
-            routeId: currentRouteId,
-          });
-          setSimulationFocusTransitionState('in');
-          return animateSimulationFocusLayer(surfaceRefs, {
-            direction: 'in',
-            durationMs: simulationTimings.enter,
-            localDurationMs: simulationTimings.enterLocal,
-            easing: simulationTimings.enterEasing,
-          });
-        })
-        .then(() => {
-          if (!stale()) {
-            finishTransition();
-          }
-        })
-        .catch(() => {
-          if (!stale()) {
-            finishTransition();
-          }
-        });
-
-      return true;
-    }
 
     if (reduceMotion) {
       inertRegistry.activate(getOwnedRouteSurfaceNodes(surfaceRefs));
@@ -2488,7 +2930,14 @@ export function useShellRouteTransition({
       });
 
     return true;
-  }, [animationRegistry, inertRegistry, navigate, surfaceRefs, syncSteadyTransitionPhase]);
+  }, [
+    animationRegistry,
+    inertRegistry,
+    navigate,
+    requestSimulationSwitch,
+    surfaceRefs,
+    syncSteadyTransitionPhase,
+  ]);
 
   useEffect(() => {
     const markPointer = () => { lastActivationRef.current = 'pointer'; };
@@ -2541,6 +2990,19 @@ export function useShellRouteTransition({
       historyCoordinator.discard();
       const nextHref = window.location.href;
       const nextState = computeRouteState(nextHref);
+      if (activeSimulationSwitchRef.current) {
+        queuedSimulationIntentRef.current = Object.freeze({
+          kind: 'route',
+          href: nextHref,
+          options: Object.freeze({
+            replace: true,
+            source: 'history',
+            activation: 'history',
+          }),
+        });
+        cancelActiveSimulationSwitchRef.current?.('popstate');
+        return;
+      }
       const isSameRoute = nextState.route.id === activeRouteIdRef.current;
       const wasGateTransition = activeGateTransitionRef.current;
       const wasTransitionActive = transitionActiveRef.current;
@@ -2606,6 +3068,9 @@ export function useShellRouteTransition({
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      if (activeSimulationSwitchRef.current) {
+        cancelActiveSimulationSwitchRef.current?.('unmount', { unmount: true });
+      }
       const wasSimulationFocusTransition = Boolean(
         document.documentElement.dataset.absSimulationFocusTransition
       );
@@ -2675,23 +3140,16 @@ export function useShellRouteTransition({
   }, [syncSteadyTransitionPhase, transitionState.phase, transitionState.settledGeneration]);
 
   useLayoutEffect(() => {
-    if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) return;
-    if (transitionActiveRef.current || historyCoordinator.provisional) return;
-    const simulationId = routeState.focusSimulationId || routeState.dailyFocusRouteId || '';
+    if (
+      simulationSwitchGenerationRef.current !== 0
+      || transitionActiveRef.current
+      || !routeState.dailyFocusRouteId
+    ) return;
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentHref !== routeState.canonicalHref) {
       window.history.replaceState(window.history.state || {}, '', routeState.canonicalHref);
     }
-    if (!simulationId) return;
-    writeManualSimulationFocus(simulationId);
-  }, [
-    historyCoordinator,
-    routeState.canonicalHref,
-    routeState.dailyFocusRouteId,
-    routeState.focusSimulationId,
-    transitionState.phase,
-    transitionState.settledGeneration,
-  ]);
+  }, [routeState.canonicalHref, routeState.dailyFocusRouteId]);
 
   const routeView = useMemo(() => getRouteView(routeState.route.id, routeState.canonicalHref, routeState), [
     getRouteView,
@@ -2711,5 +3169,7 @@ export function useShellRouteTransition({
     routeView,
     transitionCurrentRoute,
     prewarmRoute,
+    requestSimulationSwitch,
+    simulationSwitchSnapshot,
   };
 }

@@ -720,9 +720,18 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
   const visiblyEstablishedSpinner = spinnerSamples.some((sample) => sample.spinner?.effectiveOpacity > 0.5);
   const loadingDurationMs = Math.max(0, routeInStart - loadingStart);
   const spinnerExpected = READINESS_DELAY_MS > SPINNER_DELAY_MS;
-  const spinnerForbidden = READINESS_DELAY_MS > 0
-    ? READINESS_DELAY_MS <= SPINNER_DELAY_MS
-    : (!STRESS_MODE && CPU_THROTTLE_RATE === 1);
+  const mountsRouteBackedHomeSurface = trace.toRouteId === 'home'
+    && trace.readyEvents.some((event) => event.detail?.routeId === ROUTE_BACKED_HOME_ID);
+  // A clean Home URL may still own a route-backed Daily surface. Its readiness
+  // now requires a real renderer frame and atmosphere composite, so it is not
+  // the static warm-Home case for which a spinner would be unnecessary.
+  const readinessCompletesBeforeSpinnerDelay = loadingDurationMs
+    < Math.max(0, trace.spinnerDelayMs - FRAME_TOLERANCE_MS);
+  const spinnerForbidden = !mountsRouteBackedHomeSurface
+    && readinessCompletesBeforeSpinnerDelay
+    && (READINESS_DELAY_MS > 0
+      ? READINESS_DELAY_MS <= SPINNER_DELAY_MS
+      : (!STRESS_MODE && CPU_THROTTLE_RATE === 1));
   if (spinnerExpected && (!REDUCED_MOTION || loadingDurationMs >= REDUCED_SPINNER_ESTABLISHMENT_MS)) {
     assert(
       visiblyEstablishedSpinner,

@@ -31,9 +31,18 @@ let host = null;
 let hostGeneration = 0;
 let activeSource = null;
 let sourceGeneration = 0;
+let replacementTransaction = null;
+let activeSourceGeneration = 0;
+let outputSourceGeneration = 0;
+let resetSourceGeneration = 0;
+let firstCompositeGeneration = 0;
+let outputTransactionId = '';
+let feedbackResetCount = 0;
+let sourceUnregisterCount = 0;
 let configuration = normalizeSimulationAtmosphereConfig(DEFAULT_SIMULATION_ATMOSPHERE_CONFIG);
 let themeMode = 'light';
 let transitionPhase = 'idle';
+let simulationSwitchPhase = 'idle';
 let transitionSourceGeneration = 0;
 let internalFrameId = 0;
 let geometryDirty = true;
@@ -160,6 +169,64 @@ function createFirstFrameDeferred() {
   return { promise, resolve, settled: false };
 }
 
+function normalizeTransactionId(value) {
+  return String(value || '').trim();
+}
+
+function createReplacementDeferred() {
+  let resolve = null;
+  const promise = new Promise((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve, settled: false };
+}
+
+function isReplacementCurrent(transactionId) {
+  return Boolean(
+    replacementTransaction
+    && replacementTransaction.transactionId === normalizeTransactionId(transactionId)
+  );
+}
+
+function maybeSettleReplacementReadiness() {
+  const replacement = replacementTransaction;
+  if (
+    !replacement
+    || replacement.readiness.settled
+    || !replacement.committed
+    || !replacement.armed
+    || !replacement.targetFrameReady
+    || (!replacement.firstCompositeReady && !replacement.degraded)
+  ) return;
+  replacement.readiness.settled = true;
+  replacement.readiness.resolve(Object.freeze({
+    status: replacement.degraded ? 'degraded' : 'ready',
+    transactionId: replacement.transactionId,
+    targetSimulationId: replacement.targetSimulationId,
+    generation: replacement.generation,
+    targetFrameReady: true,
+    firstCompositeReady: replacement.firstCompositeReady,
+    reason: replacement.degradedReason || '',
+  }));
+}
+
+function markReplacementDegraded(source, reason) {
+  const replacement = replacementTransaction;
+  if (!replacement || source?.generation !== replacement.generation) return;
+  replacement.degraded = true;
+  replacement.degradedReason = String(reason || 'atmosphere-failed-open');
+  maybeSettleReplacementReadiness();
+}
+
+function createReplacementHandle(replacement) {
+  return Object.freeze({
+    transactionId: replacement.transactionId,
+    targetSimulationId: replacement.targetSimulationId,
+    targetSourceRouteId: replacement.targetSourceRouteId,
+    generation: replacement.generation,
+  });
+}
+
 function markSourceElement(source, active) {
   const candidate = source?.opacityElement || source?.canvas;
   const element = typeof candidate === 'function' ? candidate() : candidate;
@@ -212,6 +279,9 @@ function clearOutput({ preservePresentation = false } = {}) {
   clearCount += 1;
   lastEffectAt = 0;
   firstCompositeAt = 0;
+  outputSourceGeneration = 0;
+  firstCompositeGeneration = 0;
+  outputTransactionId = '';
   staticFrameDirty = true;
   if (!preservePresentation && host) {
     host.glowCanvas.hidden = true;
@@ -233,6 +303,7 @@ function failOpen(reason, source = activeSource) {
       source.firstFrame.settled = true;
       source.firstFrame.resolve({ status: 'failed-open', generation: source.generation, reason: failureReason });
     }
+    markReplacementDegraded(source, failureReason);
   }
   cancelInternalFrame();
   clearOutput();
@@ -468,6 +539,14 @@ function settleFirstFrame(source, now) {
   source.firstFrameTimeoutId = 0;
   source.firstFrame.settled = true;
   source.firstFrame.resolve({ status: 'ready', generation: source.generation, at: now });
+  outputSourceGeneration = source.generation;
+  outputTransactionId = source.transactionId || '';
+  firstCompositeGeneration = source.generation;
+  const replacement = replacementTransaction;
+  if (replacement?.generation === source.generation) {
+    replacement.firstCompositeReady = true;
+    maybeSettleReplacementReadiness();
+  }
 }
 
 function resolveGlowEmissionScale(now) {
@@ -500,6 +579,11 @@ function maybeDowngradeQuality() {
 
 function renderComposite(now) {
   if (!host || !activeSource || !configuration.enabled || document.hidden || failureReason) return false;
+  if (activeSource.requiresRealFrame && !activeSource.realFrameReady) return false;
+  if (
+    replacementTransaction?.generation === activeSource.generation
+    && !replacementTransaction.armed
+  ) return false;
   if (transitionPhase !== 'idle' && activeSource.generation === transitionSourceGeneration) return false;
   if (reducedMotion && !staticFrameDirty) return false;
   if (!syncGeometry()) return false;
@@ -584,8 +668,15 @@ function cancelInternalFrame() {
   internalFrameId = 0;
 }
 
-function activateCurrentSource() {
-  if (!host || !activeSource) return;
+function activateCurrentSource({ resetOutput = true } = {}) {
+  if (!activeSource) return;
+  if (!host) {
+    if (
+      replacementTransaction?.generation === activeSource.generation
+      && replacementTransaction.armed
+    ) markReplacementDegraded(activeSource, 'atmosphere-host-unavailable');
+    return;
+  }
   failureReason = '';
   consecutiveErrors = 0;
   geometryDirty = true;
@@ -594,18 +685,27 @@ function activateCurrentSource() {
   lastEffectAt = 0;
   refreshQuietZoneObservation();
   rebuildProfile({ resetQuality: true });
-  clearOutput();
+  if (resetOutput) clearOutput();
   applyPresentationState();
   if (configuration.enabled) markSourceElement(activeSource, true);
   resetCostMetrics();
-  if (configuration.enabled && !activeSource.firstFrame.settled && !activeSource.firstFrameTimeoutId) {
-    const generation = activeSource.generation;
-    activeSource.firstFrameTimeoutId = window.setTimeout(() => {
-      if (activeSource?.generation !== generation || activeSource.firstFrame.settled) return;
-      failOpen('source-first-frame-timeout', activeSource);
-    }, FIRST_FRAME_TIMEOUT_MS);
+  const replacement = replacementTransaction;
+  const canStartFirstFrameTimeout = replacement?.generation !== activeSource.generation
+    || replacement.armed;
+  if (configuration.enabled && canStartFirstFrameTimeout) armSourceFirstFrameTimeout(activeSource);
+  if (!configuration.enabled && replacement?.generation === activeSource.generation && replacement.armed) {
+    markReplacementDegraded(activeSource, 'atmosphere-disabled');
   }
   if (configuration.enabled && activeSource.scheduler === 'internal') scheduleInternalFrame();
+}
+
+function armSourceFirstFrameTimeout(source) {
+  if (!source || source !== activeSource || source.firstFrame.settled || source.firstFrameTimeoutId) return;
+  const generation = source.generation;
+  source.firstFrameTimeoutId = window.setTimeout(() => {
+    if (activeSource?.generation !== generation || source.firstFrame.settled) return;
+    failOpen('source-first-frame-timeout', source);
+  }, FIRST_FRAME_TIMEOUT_MS);
 }
 
 function deactivateSource(source, { preserveOutput = false } = {}) {
@@ -637,11 +737,6 @@ function handleThemeChange() {
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
-function handleSimulationModeChange() {
-  if (activeSource?.routeId !== 'home' || activeSource.kind !== 'canvas') return;
-  clearOutput();
-}
-
 function handleReducedMotionChange(event) {
   reducedMotion = event.matches === true;
   rebuildProfile();
@@ -665,6 +760,14 @@ function getDiagnosticSnapshot() {
     activeSourceId: activeSource?.id || '',
     sourceKind: activeSource?.kind || '',
     sourceGeneration: activeSource?.generation || 0,
+    transactionId: replacementTransaction?.transactionId || activeSource?.transactionId || '',
+    activeSourceGeneration,
+    outputSourceGeneration,
+    resetSourceGeneration,
+    firstCompositeGeneration,
+    outputTransactionId,
+    feedbackResetCount,
+    sourceUnregisterCount,
     activeSourceCount: activeSource ? 1 : 0,
     compositorCount: host ? 1 : 0,
     glowCanvasCount: host ? 1 : 0,
@@ -708,6 +811,7 @@ function getDiagnosticSnapshot() {
     },
     failOpenReason: failureReason,
     transitioning: transitionPhase !== 'idle',
+    simulationSwitchPhase,
   };
 }
 
@@ -715,6 +819,14 @@ function installDiagnosticHandle() {
   window.__ABS_SIMULATION_ATMOSPHERE__ = Object.freeze({
     getSnapshot: getDiagnosticSnapshot,
     invalidateGeometry: invalidateSimulationAtmosphereGeometry,
+    prepareReplacement: prepareSimulationAtmosphereReplacement,
+    prepareRollback: prepareSimulationAtmosphereRollback,
+    commitReplacement: commitSimulationAtmosphereReplacement,
+    armReplacement: armSimulationAtmosphereReplacement,
+    waitUntilReady: waitForSimulationAtmosphereReady,
+    settleReplacement: settleSimulationAtmosphereReplacement,
+    rollbackReplacement: rollbackSimulationAtmosphereReplacement,
+    setSwitchPhase: setSimulationAtmosphereSwitchPhase,
   });
 }
 
@@ -765,7 +877,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   resizeObserver?.observe(root);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
-  window.addEventListener('bb:modeChanged', handleSimulationModeChange);
   reducedMotionQuery?.addEventListener?.('change', handleReducedMotionChange);
   glowCanvas.hidden = true;
   edgeCanvas.hidden = true;
@@ -779,7 +890,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     cancelInternalFrame();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
-    window.removeEventListener('bb:modeChanged', handleSimulationModeChange);
     reducedMotionQuery?.removeEventListener?.('change', handleReducedMotionChange);
     resizeObserver?.disconnect();
     markSourceElement(activeSource, false);
@@ -822,9 +932,332 @@ export function getSimulationAtmosphereConfig() {
   return normalizeSimulationAtmosphereConfig(configuration);
 }
 
+/**
+ * Reserve the next compositor generation without touching the active source or
+ * its feedback. The route coordinator owns the returned transaction id.
+ */
+export function prepareSimulationAtmosphereReplacement({
+  transactionId,
+  targetSimulationId,
+  targetSourceRouteId = '',
+  reuseActiveDefinition = false,
+} = {}) {
+  const id = normalizeTransactionId(transactionId);
+  const targetId = String(targetSimulationId || '').trim();
+  if (!id || !targetId) {
+    throw new TypeError('Atmosphere replacement requires transactionId and targetSimulationId.');
+  }
+  if (isReplacementCurrent(id)) return createReplacementHandle(replacementTransaction);
+
+  const previous = replacementTransaction;
+  if (previous && !previous.readiness.settled) {
+    previous.readiness.settled = true;
+    previous.readiness.resolve(Object.freeze({
+      status: 'cancelled',
+      transactionId: previous.transactionId,
+      targetSimulationId: previous.targetSimulationId,
+      generation: previous.generation,
+    }));
+  }
+  replacementTransaction = {
+    transactionId: id,
+    targetSimulationId: targetId,
+    targetSourceRouteId: String(
+      targetSourceRouteId || (reuseActiveDefinition ? activeSource?.routeId : '') || targetId,
+    ),
+    reuseActiveDefinition: reuseActiveDefinition === true,
+    generation: ++sourceGeneration,
+    committed: false,
+    armed: false,
+    targetFrameReady: false,
+    firstCompositeReady: false,
+    degraded: false,
+    degradedReason: '',
+    resetApplied: false,
+    readiness: createReplacementDeferred(),
+  };
+  return createReplacementHandle(replacementTransaction);
+}
+
+/** Reserve a fresh generation for the previous runtime after a committed failure. */
+export function prepareSimulationAtmosphereRollback({
+  transactionId,
+  targetSimulationId,
+  targetSourceRouteId = '',
+  reuseActiveDefinition = false,
+} = {}) {
+  const id = normalizeTransactionId(transactionId);
+  const targetId = String(targetSimulationId || '').trim();
+  if (!id || !targetId || !isReplacementCurrent(id)) return false;
+  const failedTarget = replacementTransaction;
+  if (!failedTarget.readiness.settled) {
+    failedTarget.readiness.settled = true;
+    failedTarget.readiness.resolve(Object.freeze({
+      status: 'cancelled',
+      transactionId: failedTarget.transactionId,
+      targetSimulationId: failedTarget.targetSimulationId,
+      generation: failedTarget.generation,
+      reason: 'rollback-prepared',
+    }));
+  }
+  replacementTransaction = {
+    transactionId: id,
+    targetSimulationId: targetId,
+    targetSourceRouteId: String(
+      targetSourceRouteId || (reuseActiveDefinition ? activeSource?.routeId : '') || targetId,
+    ),
+    reuseActiveDefinition: reuseActiveDefinition === true,
+    generation: ++sourceGeneration,
+    committed: false,
+    armed: false,
+    rollback: true,
+    targetFrameReady: false,
+    firstCompositeReady: false,
+    degraded: false,
+    degradedReason: '',
+    resetApplied: false,
+    readiness: createReplacementDeferred(),
+  };
+  return createReplacementHandle(replacementTransaction);
+}
+
+/** Remove the outgoing source and reset compositor feedback exactly once. */
+export function commitSimulationAtmosphereReplacement({ transactionId } = {}) {
+  if (!isReplacementCurrent(transactionId)) return false;
+  const replacement = replacementTransaction;
+  if (replacement.committed) return createReplacementHandle(replacement);
+  replacement.committed = true;
+  let reusableDefinition = null;
+  let reusableOwner = null;
+  if (activeSource && activeSource.generation !== replacement.generation) {
+    const outgoing = activeSource;
+    if (
+      replacement.reuseActiveDefinition
+      && outgoing.routeId === replacement.targetSourceRouteId
+    ) {
+      reusableDefinition = outgoing.definition;
+      reusableOwner = outgoing.owner;
+    }
+    activeSource = null;
+    activeSourceGeneration = 0;
+    sourceUnregisterCount += 1;
+    sourceSwitchCount += 1;
+    deactivateSource(outgoing, { preserveOutput: true });
+  }
+  if (!replacement.resetApplied) {
+    replacement.resetApplied = true;
+    feedbackResetCount += 1;
+    resetSourceGeneration = replacement.generation;
+    outputSourceGeneration = 0;
+    firstCompositeGeneration = 0;
+    outputTransactionId = '';
+    clearOutput();
+  }
+  refreshQuietZoneObservation();
+  applyPresentationState();
+  if (reusableDefinition && reusableOwner && !reusableOwner.cleaned) {
+    registerSimulationAtmosphereSource({
+      ...reusableDefinition,
+      transactionId: replacement.transactionId,
+      requireRealFrame: true,
+      sourceOwner: reusableOwner,
+    });
+  }
+  return createReplacementHandle(replacement);
+}
+
+/** Arm the prime barrier after the target runtime has initialized. */
+export function armSimulationAtmosphereReplacement({ transactionId } = {}) {
+  if (!isReplacementCurrent(transactionId) || !replacementTransaction.committed) return false;
+  replacementTransaction.armed = true;
+  staticFrameDirty = true;
+  if (!host) {
+    markReplacementDegraded(activeSource, 'atmosphere-host-unavailable');
+  } else if (!configuration.enabled) {
+    markReplacementDegraded(activeSource, 'atmosphere-disabled');
+  } else {
+    armSourceFirstFrameTimeout(activeSource);
+  }
+  if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  maybeSettleReplacementReadiness();
+  return createReplacementHandle(replacementTransaction);
+}
+
+export function waitForSimulationAtmosphereReady({
+  transactionId,
+  targetSimulationId = '',
+  timeoutMs = FIRST_FRAME_TIMEOUT_MS,
+  signal,
+} = {}) {
+  if (!isReplacementCurrent(transactionId)) {
+    return Promise.reject(new Error('Atmosphere replacement transaction is stale or missing.'));
+  }
+  const replacement = replacementTransaction;
+  if (targetSimulationId && replacement.targetSimulationId !== String(targetSimulationId)) {
+    return Promise.reject(new Error('Atmosphere replacement target does not match the active transaction.'));
+  }
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason || new DOMException('Aborted', 'AbortError'));
+  }
+  const waitMs = Math.max(1, Number(timeoutMs) || FIRST_FRAME_TIMEOUT_MS);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      signal?.removeEventListener?.('abort', handleAbort);
+      callback(value);
+    };
+    const handleAbort = () => finish(
+      reject,
+      signal.reason || new DOMException('Aborted', 'AbortError'),
+    );
+    const timeoutId = window.setTimeout(() => {
+      finish(reject, new Error(`Atmosphere target surface did not become ready within ${waitMs}ms.`));
+    }, waitMs);
+    signal?.addEventListener?.('abort', handleAbort, { once: true });
+    replacement.readiness.promise.then((result) => {
+      if (result?.status === 'cancelled') {
+        finish(reject, new Error(`Atmosphere replacement was cancelled (${result.reason || 'stale'}).`));
+        return;
+      }
+      finish(resolve, result);
+    });
+  });
+}
+
+/**
+ * Rollback/cancel never restores a captured output. The previous route remount
+ * registers a fresh source after the coordinator restores its immutable state.
+ */
+export function rollbackSimulationAtmosphereReplacement({ transactionId, reason = 'rollback' } = {}) {
+  if (!isReplacementCurrent(transactionId)) return false;
+  const replacement = replacementTransaction;
+  if (activeSource?.generation === replacement.generation) {
+    const target = activeSource;
+    activeSource = null;
+    activeSourceGeneration = 0;
+    sourceUnregisterCount += 1;
+    deactivateSource(target);
+  }
+  if (!replacement.readiness.settled) {
+    replacement.readiness.settled = true;
+    replacement.readiness.resolve(Object.freeze({
+      status: 'cancelled',
+      transactionId: replacement.transactionId,
+      targetSimulationId: replacement.targetSimulationId,
+      generation: replacement.generation,
+      reason: String(reason || 'rollback'),
+    }));
+  }
+  replacementTransaction = null;
+  return true;
+}
+
+export function settleSimulationAtmosphereReplacement({ transactionId } = {}) {
+  if (!isReplacementCurrent(transactionId)) return false;
+  if (!replacementTransaction.readiness.settled) maybeSettleReplacementReadiness();
+  if (!replacementTransaction.readiness.settled) return false;
+  replacementTransaction = null;
+  return true;
+}
+
+export function getSimulationAtmosphereReplacementContext(targetSimulationId = '') {
+  const replacement = replacementTransaction;
+  if (!replacement?.committed) return null;
+  if (targetSimulationId && replacement.targetSimulationId !== String(targetSimulationId)) return null;
+  return createReplacementHandle(replacement);
+}
+
+export function getSimulationAtmosphereReplacementByTransactionId(transactionId) {
+  if (!isReplacementCurrent(transactionId)) return null;
+  return createReplacementHandle(replacementTransaction);
+}
+
+/**
+ * Called immediately after a simulation renderer has produced a real frame.
+ * The hot path is one identity check and one conditional scheduler callback.
+ */
+export function notifySimulationAtmosphereSourceFrame(simulationId = '') {
+  const source = activeSource;
+  if (!source || !source.requiresRealFrame || source.realFrameReady) return false;
+  const id = String(simulationId || '');
+  if (id && id !== source.routeId && id !== source.id) return false;
+  source.realFrameReady = true;
+  const replacement = replacementTransaction;
+  if (replacement?.generation === source.generation) {
+    replacement.targetFrameReady = true;
+    maybeSettleReplacementReadiness();
+  }
+  if (
+    window.__ABS_AUDIT_FORCE_ATMOSPHERE_FIRST_FRAME_FAILURE__ === true
+    && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    failOpen('audit-first-composite-failure', source);
+    return true;
+  }
+  staticFrameDirty = true;
+  if (source.scheduler === 'internal') scheduleInternalFrame();
+  return true;
+}
+
+export function isSimulationAtmosphereSourceFrameReady(simulationId = '') {
+  const source = activeSource;
+  const id = String(simulationId || '');
+  return Boolean(
+    source
+    && source.realFrameReady
+    && (!id || id === source.routeId || id === source.id)
+  );
+}
+
 export function registerSimulationAtmosphereSource(definition) {
   const normalized = validateSource(definition);
-  const generation = ++sourceGeneration;
+  const requestedTransactionId = normalizeTransactionId(definition.transactionId);
+  const replacement = replacementTransaction;
+  const definitionRouteId = String(definition.routeId || '');
+  const transactionMatches = Boolean(
+    requestedTransactionId
+    && requestedTransactionId === replacement?.transactionId
+  );
+  const matchesReplacementTarget = Boolean(
+    replacement
+    && (
+      transactionMatches
+      || definitionRouteId === replacement.targetSourceRouteId
+      || definitionRouteId === replacement.targetSimulationId
+      || String(definition.id || '') === replacement.targetSimulationId
+      || (replacement.targetSimulationId === 'home' && definitionRouteId === 'home')
+    )
+  );
+  const staleTransactionalRegistration = Boolean(
+    (requestedTransactionId && requestedTransactionId !== replacement?.transactionId)
+    || (replacement?.committed && !matchesReplacementTarget)
+  );
+  if (staleTransactionalRegistration) {
+    const staleFirstFrame = Promise.resolve(Object.freeze({
+      status: 'cancelled',
+      generation: 0,
+      reason: 'stale-transaction-registration',
+    }));
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      staleCleanupCount += 1;
+    };
+    cleanup.generation = 0;
+    cleanup.firstFrame = staleFirstFrame;
+    cleanup.sourceId = normalized.id;
+    return cleanup;
+  }
+  const bindsReplacement = Boolean(
+    replacement?.committed
+    && (!requestedTransactionId || requestedTransactionId === replacement.transactionId)
+    && matchesReplacementTarget
+  );
+  const generation = bindsReplacement ? replacement.generation : ++sourceGeneration;
   const firstFrame = createFirstFrameDeferred();
   const source = {
     ...definition,
@@ -832,28 +1265,42 @@ export function registerSimulationAtmosphereSource(definition) {
     routeId: String(definition.routeId || ''),
     quietZoneElement: definition.quietZoneElement || definition.getQuietZoneElement || null,
     opacityElement: definition.opacityElement || definition.materialElement || null,
+    transactionId: bindsReplacement ? replacement.transactionId : requestedTransactionId,
+    requiresRealFrame: bindsReplacement || definition.requireRealFrame === true,
+    realFrameReady: !bindsReplacement && definition.requireRealFrame !== true,
+    definition: Object.freeze({ ...definition, sourceOwner: undefined }),
     generation,
     firstFrame,
     firstFrameTimeoutId: 0,
   };
+  const owner = definition.sourceOwner && typeof definition.sourceOwner === 'object'
+    ? definition.sourceOwner
+    : { generation, cleaned: false };
+  owner.generation = generation;
+  source.owner = owner;
   const previous = activeSource;
   activeSource = source;
+  activeSourceGeneration = generation;
   sourceSwitchCount += previous ? 1 : 0;
-  if (previous) deactivateSource(previous, { preserveOutput: transitionPhase !== 'idle' });
-  activateCurrentSource();
+  if (previous) {
+    sourceUnregisterCount += 1;
+    deactivateSource(previous, { preserveOutput: transitionPhase !== 'idle' });
+  }
+  activateCurrentSource({ resetOutput: !bindsReplacement });
 
-  let cleaned = false;
   const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    if (activeSource?.generation !== generation) {
+    if (owner.cleaned) return;
+    owner.cleaned = true;
+    if (activeSource?.generation !== owner.generation) {
       staleCleanupCount += 1;
       markSourceElement(source, false);
       return;
     }
     const preserveOutput = transitionPhase !== 'idle';
+    sourceUnregisterCount += 1;
     deactivateSource(source, { preserveOutput });
     activeSource = null;
+    activeSourceGeneration = 0;
     if (preserveOutput && host) {
       host.root.dataset.atmosphereStatus = 'frozen';
       host.edgeCanvas.hidden = true;
@@ -863,7 +1310,7 @@ export function registerSimulationAtmosphereSource(definition) {
       if (host) host.root.dataset.atmosphereStatus = 'waiting-source';
     }
   };
-  cleanup.generation = generation;
+  Object.defineProperty(cleanup, 'generation', { get: () => owner.generation });
   cleanup.firstFrame = firstFrame.promise;
   cleanup.sourceId = source.id;
   return cleanup;
@@ -906,6 +1353,23 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   host.edgeCanvas.hidden = !firstCompositeAt || renderProfile.edgeLight <= 0;
   staticFrameDirty = true;
   if (activeSource.scheduler === 'internal') scheduleInternalFrame();
+}
+
+/**
+ * Simulation prepare/out deliberately keep the outgoing compositor live. The
+ * coordinator calls this diagnostic boundary for every lifecycle phase; only
+ * commitSimulationAtmosphereReplacement performs the atomic source cutoff.
+ */
+export function setSimulationAtmosphereSwitchPhase(phase = 'idle', transactionId = '') {
+  const nextPhase = String(phase || 'idle');
+  if (
+    transactionId
+    && replacementTransaction
+    && replacementTransaction.transactionId !== normalizeTransactionId(transactionId)
+  ) return false;
+  simulationSwitchPhase = nextPhase;
+  if (nextPhase === 'idle' && activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  return true;
 }
 
 export function getSimulationAtmosphereSnapshot() {

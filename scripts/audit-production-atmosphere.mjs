@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 
@@ -10,6 +10,7 @@ const HEADED = process.env.ABS_HEADED === '1';
 const ENFORCE_COST_BUDGET = process.env.ABS_ATMOSPHERE_ENFORCE_COST === '1';
 const CAPTURE_RESPONSIVE = process.env.ABS_ATMOSPHERE_CAPTURE_RESPONSIVE === '1';
 const RESPONSIVE_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere-responsive');
+const HANDOFF_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere', BROWSER_NAME);
 const RESPONSIVE_REFERENCE_PX = 720;
 const RESPONSIVE_MIN_SCALE = 0.72;
 const RESPONSIVE_MAX_SCALE = 2.5;
@@ -471,55 +472,276 @@ async function runSpaLifecycle(browser) {
   }
 }
 
-async function runTransitionSnapshotContract(browser) {
-  const results = [];
-  for (const mode of ['pit', 'bubbles']) {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    await installPortfolioAccess(context);
-    const page = await context.newPage();
-    try {
-      const scenario = {
-        ...PRIMARY_SCENARIOS[0],
-        path: `/index.html?mode=${mode}&absAudit=1`,
-      };
-      const initial = await gotoScenario(page, scenario);
-      assertAtmosphereState(initial, scenario);
-      assert(await markStableOutputNodes(page), `${mode}: Home did not mount stable atmosphere outputs`);
-      if (mode === 'bubbles') {
-        await page.waitForFunction(() => (
-          document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active')
-          && document.getElementById('simulation-front-depth-canvas')
-          && window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().sourceLayerCount === 2
-        ), null, { timeout: WAIT_MS, polling: 'raf' });
-      }
-      await page.evaluate(() => {
-        delete window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__;
+async function beginAtmosphereHandoffSampling(page, label) {
+  await page.evaluate(({ auditLabel }) => {
+    const audit = {
+      label: auditLabel,
+      startedAt: performance.now(),
+      sawBusy: false,
+      done: false,
+      samples: [],
+      boundaries: [],
+    };
+    window.__ABS_ATMOSPHERE_HANDOFF_AUDIT__ = audit;
+    const capture = (kind, transactionOverride = null) => {
+      const transaction = transactionOverride || window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || {};
+      const atmosphere = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null;
+      audit.samples.push({
+        kind,
+        at: performance.now(),
+        transaction: {
+          transactionId: transaction.transactionId || '',
+          phase: transaction.phase || 'idle',
+          busy: transaction.busy === true,
+          topology: transaction.topology || '',
+          commitCount: Number(transaction.commitCount) || 0,
+          publicationCount: Number(transaction.publicationCount) || 0,
+          phaseHistory: Array.isArray(transaction.phaseHistory) ? [...transaction.phaseHistory] : [],
+          status: transaction.status || '',
+        },
+        atmosphere: atmosphere ? {
+          status: atmosphere.status,
+          transactionId: atmosphere.transactionId,
+          activeSourceId: atmosphere.activeSourceId,
+          activeSourceCount: atmosphere.activeSourceCount,
+          compositorCount: atmosphere.compositorCount,
+          activeSourceGeneration: atmosphere.activeSourceGeneration,
+          outputSourceGeneration: atmosphere.outputSourceGeneration,
+          resetSourceGeneration: atmosphere.resetSourceGeneration,
+          firstCompositeGeneration: atmosphere.firstCompositeGeneration,
+          outputTransactionId: atmosphere.outputTransactionId,
+          feedbackResetCount: atmosphere.feedbackResetCount,
+          sourceUnregisterCount: atmosphere.sourceUnregisterCount,
+          failOpenReason: atmosphere.failOpenReason,
+        } : null,
       });
+      if (transaction.busy || (transaction.phase && transaction.phase !== 'idle')) audit.sawBusy = true;
+      if (audit.sawBusy && !transaction.busy && transaction.phase === 'idle') audit.done = true;
+    };
+    audit.handleState = (event) => {
+      capture('boundary', event.detail);
+      audit.boundaries.push(event.detail?.phase || '');
+    };
+    window.addEventListener('abs:simulation-switch-state', audit.handleState);
+    const sample = () => {
+      capture('raf');
+      if (!audit.done && performance.now() - audit.startedAt < 30000) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  }, { auditLabel: label });
+}
 
-      await chooseDailySimulation(page, 'Tension', PRIMARY_SCENARIOS[4]);
-      const records = await page.evaluate(() => (
-        Array.isArray(window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__)
-          ? window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__.map((record) => ({ ...record }))
-          : []
-      ));
-      const materialIndex = records.findIndex((record) => record.id === 'c');
-      const frontIndex = records.findIndex((record) => record.id === 'simulation-front-depth-canvas');
-      const materialRecord = records[materialIndex];
-      const frontRecord = records[frontIndex];
-      assert(materialIndex >= 0, `${mode}: transition snapshot omitted Home material`, records);
-      assert(materialRecord?.filter === 'none', `${mode}: transition snapshot blurred Home material`, records);
-      if (mode === 'bubbles') {
-        assert(materialIndex < frontIndex, 'bubbles: transition snapshot rear/front order is wrong', records);
-        assert(frontRecord?.filter === 'none', 'bubbles: transition snapshot blurred front material', records);
-      } else {
-        assert(frontIndex < 0, `${mode}: ordinary transition snapshot captured a front depth layer`, records);
-      }
-      results.push({ mode, records });
-    } finally {
-      await context.close();
+async function finishAtmosphereHandoffSampling(page) {
+  return page.evaluate(() => {
+    const audit = window.__ABS_ATMOSPHERE_HANDOFF_AUDIT__;
+    if (audit?.handleState) window.removeEventListener('abs:simulation-switch-state', audit.handleState);
+    if (!audit) return null;
+    return {
+      label: audit.label,
+      startedAt: audit.startedAt,
+      sawBusy: audit.sawBusy,
+      done: audit.done,
+      boundaries: [...audit.boundaries],
+      samples: audit.samples.map((sample) => ({
+        ...sample,
+        transaction: { ...sample.transaction, phaseHistory: [...sample.transaction.phaseHistory] },
+        atmosphere: sample.atmosphere ? { ...sample.atmosphere } : null,
+      })),
+    };
+  });
+}
+
+function assertAtomicAtmosphereHandoff(result, before, expected) {
+  assert(result?.sawBusy && result.done, `${expected.label}: transaction was not sampled through settlement`, result);
+  assert(result.samples.length >= 3, `${expected.label}: insufficient handoff samples`, result);
+  const atmosphereSamples = result.samples.filter((sample) => sample.atmosphere);
+  assert(
+    atmosphereSamples.every((sample) => (
+      sample.atmosphere.activeSourceCount <= 1 && sample.atmosphere.compositorCount <= 1
+    )),
+    `${expected.label}: overlapping atmosphere ownership was observed`,
+    atmosphereSamples,
+  );
+
+  const settled = atmosphereSamples.at(-1);
+  const transaction = settled?.transaction;
+  const atmosphere = settled?.atmosphere;
+  const exactHistory = ['idle', 'prepare', 'out', 'commit', 'prime', 'in', 'idle'];
+  assert(
+    JSON.stringify(transaction?.phaseHistory) === JSON.stringify(exactHistory),
+    `${expected.label}: transaction phase history is incomplete or contains a retired phase`,
+    transaction,
+  );
+  assert(transaction.topology === expected.topology, `${expected.label}: topology diagnostic is wrong`, transaction);
+  assert(transaction.commitCount === 1, `${expected.label}: ownership commit was not exact-once`, transaction);
+  assert(transaction.publicationCount === 1, `${expected.label}: settlement publication was not exact-once`, transaction);
+  assert(
+    atmosphere.feedbackResetCount - before.feedbackResetCount === 1,
+    `${expected.label}: feedback reset was not exact-once`,
+    { before, atmosphere },
+  );
+  assert(
+    atmosphere.sourceUnregisterCount - before.sourceUnregisterCount === 1,
+    `${expected.label}: outgoing source unregister was not exact-once`,
+    { before, atmosphere },
+  );
+  const targetGeneration = atmosphere.activeSourceGeneration;
+  assert(targetGeneration > 0, `${expected.label}: target generation is missing`, atmosphere);
+  assert(atmosphere.activeSourceId === expected.sourceId, `${expected.label}: target source ownership is wrong`, atmosphere);
+  assert(
+    atmosphere.outputSourceGeneration === targetGeneration
+      && atmosphere.resetSourceGeneration === targetGeneration
+      && atmosphere.firstCompositeGeneration === targetGeneration,
+    `${expected.label}: active/output/reset/first-composite generations diverged`,
+    atmosphere,
+  );
+  assert(
+    atmosphere.transactionId === transaction.transactionId
+      && atmosphere.outputTransactionId === transaction.transactionId,
+    `${expected.label}: atmosphere transaction ownership diverged`,
+    { atmosphere, transaction },
+  );
+
+  const postCommit = atmosphereSamples.filter((sample) => (
+    sample.atmosphere.resetSourceGeneration !== before.resetSourceGeneration
+  ));
+  assert(postCommit.length > 0, `${expected.label}: commit/reset boundary was not sampled`, atmosphereSamples);
+  assert(
+    postCommit.every((sample) => sample.atmosphere.outputSourceGeneration !== before.activeSourceGeneration),
+    `${expected.label}: outgoing atmosphere output reappeared after commit`,
+    postCommit,
+  );
+  const inBoundary = result.samples.find((sample) => (
+    sample.kind === 'boundary' && sample.transaction.phase === 'in'
+  ));
+  assert(inBoundary, `${expected.label}: in boundary was not observed`, result.boundaries);
+  assert(
+    inBoundary.atmosphere?.firstCompositeGeneration === targetGeneration
+      && inBoundary.atmosphere?.outputSourceGeneration === targetGeneration
+      && inBoundary.atmosphere?.outputTransactionId === transaction.transactionId,
+    `${expected.label}: target's first clean composite was not ready before in`,
+    inBoundary,
+  );
+
+  return {
+    label: expected.label,
+    topology: expected.topology,
+    transactionId: transaction.transactionId,
+    sampleCount: result.samples.length,
+    boundaries: result.boundaries,
+    targetGeneration,
+    resetDelta: atmosphere.feedbackResetCount - before.feedbackResetCount,
+    unregisterDelta: atmosphere.sourceUnregisterCount - before.sourceUnregisterCount,
+  };
+}
+
+async function chooseSimulationForHandoff(page, targetName) {
+  await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
+  await page.locator('.simulation-focus-modal.active .simulation-focus-row')
+    .filter({ hasText: targetName })
+    .first()
+    .click({ timeout: WAIT_MS });
+}
+
+async function runAtomicHandoffContract(browser) {
+  await mkdir(HANDOFF_CAPTURE_ROOT, { recursive: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  const handoffs = [
+    {
+      label: 'home-to-home', targetName: 'Assembly', targetId: 'shapes',
+      topology: 'home-mode-to-home-mode', sourceId: null,
+    },
+    {
+      label: 'home-to-daily', targetName: 'Tension', targetId: 'repel-room',
+      topology: 'home-mode-to-route-backed', sourceId: 'daily:repel-room',
+    },
+    {
+      label: 'daily-to-daily', targetName: 'Convergence', targetId: 'flock-of-birds',
+      topology: 'route-backed-to-route-backed', sourceId: 'daily:flock-of-birds',
+    },
+    {
+      label: 'daily-to-home', targetName: 'Foundation', targetId: 'pit',
+      topology: 'route-backed-to-home-mode', sourceId: null,
+    },
+  ];
+  try {
+    const initial = await gotoScenario(page, PRIMARY_SCENARIOS[0]);
+    assertAtmosphereState(initial, PRIMARY_SCENARIOS[0]);
+    assert(await markStableOutputNodes(page), 'Atomic handoff audit could not mark stable outputs');
+    const results = [];
+    for (const handoff of handoffs) {
+      const before = await page.evaluate(() => window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot());
+      await beginAtmosphereHandoffSampling(page, handoff.label);
+      await chooseSimulationForHandoff(page, handoff.targetName);
+      await page.waitForFunction(({ targetId }) => {
+        const audit = window.__ABS_ATMOSPHERE_HANDOFF_AUDIT__;
+        const transaction = window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || {};
+        const runtimeId = document.querySelector('#simulation-stage')?.dataset?.simulationId
+          || window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().mode;
+        return audit?.done && transaction.targetSimulationId === targetId && runtimeId === targetId;
+      }, { targetId: handoff.targetId }, { timeout: WAIT_MS, polling: 'raf' });
+      const result = await finishAtmosphereHandoffSampling(page);
+      const settledSourceId = result.samples.at(-1)?.atmosphere?.activeSourceId || '';
+      const expected = {
+        ...handoff,
+        sourceId: handoff.sourceId || settledSourceId,
+      };
+      results.push(assertAtomicAtmosphereHandoff(result, before, expected));
+      await assertStableOutputNodes(page, handoff.label);
+      await page.screenshot({ path: resolve(HANDOFF_CAPTURE_ROOT, `${handoff.label}.png`) });
     }
+    return results;
+  } catch (error) {
+    await page.screenshot({ path: resolve(HANDOFF_CAPTURE_ROOT, 'handoff-failure.png'), fullPage: true }).catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
   }
-  return results;
+}
+
+async function runAtmosphereFailOpenContract(browser) {
+  await mkdir(HANDOFF_CAPTURE_ROOT, { recursive: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await gotoScenario(page, PRIMARY_SCENARIOS[0]);
+    await page.evaluate(() => {
+      window.__ABS_AUDIT_FORCE_ATMOSPHERE_FIRST_FRAME_FAILURE__ = true;
+    });
+    await chooseSimulationForHandoff(page, 'Tension');
+    await page.waitForFunction(() => {
+      const transaction = window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || {};
+      const atmosphere = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
+      const material = document.querySelector('#simulation-stage canvas');
+      const rect = material?.getBoundingClientRect();
+      return transaction.phase === 'idle'
+        && transaction.targetSimulationId === 'repel-room'
+        && atmosphere?.status === 'failed-open'
+        && atmosphere?.failOpenReason === 'audit-first-composite-failure'
+        && atmosphere?.activeSourceCount <= 1
+        && atmosphere?.compositorCount <= 1
+        && rect?.width > 1
+        && rect?.height > 1
+        && Number.parseFloat(getComputedStyle(material).opacity || '1') >= 0.99;
+    }, null, { timeout: WAIT_MS, polling: 'raf' });
+    const result = await page.evaluate(() => ({
+      transaction: window.__ABS_SIMULATION_SWITCH_TRANSACTION__,
+      atmosphere: window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot(),
+      routeStatus: document.documentElement.dataset.absDailyFocusStatus,
+      transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+    }));
+    assert(result.transaction.phase === 'idle' && !result.transaction.busy, 'Fail-open did not settle idle', result);
+    assert(result.routeStatus === 'ready', 'Fail-open target runtime is not ready', result);
+    assert(result.transitionPhase === 'idle', 'Fail-open left the shell transition active', result);
+    await page.screenshot({ path: resolve(HANDOFF_CAPTURE_ROOT, 'fail-open.png') });
+    return result;
+  } catch (error) {
+    await page.screenshot({ path: resolve(HANDOFF_CAPTURE_ROOT, 'fail-open-failure.png'), fullPage: true }).catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
+  }
 }
 
 async function runKaleidoscopeFinalFrameContract(browser) {
@@ -1120,7 +1342,10 @@ async function main() {
     const shouldRun = (phase) => PHASE_FILTER.size === 0 || PHASE_FILTER.has(phase);
     const directBoots = shouldRun('direct') ? await runDirectBootMatrix(browser) : null;
     const spaLifecycle = shouldRun('spa') ? await runSpaLifecycle(browser) : null;
-    const transitionSnapshot = shouldRun('snapshot') ? await runTransitionSnapshotContract(browser) : null;
+    const atomicHandoffs = shouldRun('handoff') || shouldRun('snapshot')
+      ? await runAtomicHandoffContract(browser)
+      : null;
+    const failOpen = shouldRun('fail-open') ? await runAtmosphereFailOpenContract(browser) : null;
     const kaleidoscope = shouldRun('kaleidoscope') ? await runKaleidoscopeFinalFrameContract(browser) : null;
     const mobile = shouldRun('mobile') ? await runMobilePerformance(browser) : null;
     const reducedMotion = shouldRun('reduced') ? await runReducedMotion(browser) : null;
@@ -1129,13 +1354,14 @@ async function main() {
     const persistence = shouldRun('persistence') ? await runCrispPersistenceContract(browser) : null;
     const experimentalLab = shouldRun('experimental') ? await runExperimentalLabIsolation(browser) : null;
     const configPanel = shouldRun('panel') ? await runConfigPanelContract(browser) : null;
-    console.log(JSON.stringify({
+    const output = {
       ok: true,
       browser: BROWSER_NAME,
       origin: ORIGIN,
       directBoots,
       spaLifecycle,
-      transitionSnapshot,
+      atomicHandoffs,
+      failOpen,
       kaleidoscope,
       mobile,
       reducedMotion,
@@ -1144,7 +1370,10 @@ async function main() {
       persistence,
       experimentalLab,
       configPanel,
-    }, null, 2));
+    };
+    await mkdir(HANDOFF_CAPTURE_ROOT, { recursive: true });
+    await writeFile(resolve(HANDOFF_CAPTURE_ROOT, 'result.json'), `${JSON.stringify(output, null, 2)}\n`);
+    console.log(JSON.stringify(output, null, 2));
   } finally {
     await browser.close();
   }

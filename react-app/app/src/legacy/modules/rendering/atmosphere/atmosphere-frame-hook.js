@@ -1,5 +1,6 @@
 import {
   isSimulationAtmosphereActive,
+  notifySimulationAtmosphereSourceFrame,
   tickSimulationAtmosphere,
 } from './simulation-atmosphere.js';
 
@@ -17,6 +18,9 @@ export function setAtmosphereFrameRenderer(renderer, policy = null) {
 }
 
 export function renderActiveAtmosphereFrame(globals) {
+  // The physics renderer calls this only after its target canvas has been
+  // painted. Keep this handshake allocation-free on the steady-state path.
+  notifySimulationAtmosphereSourceFrame('home');
   if (frameRenderer) {
     frameRenderer(globals);
     return;
@@ -51,6 +55,6 @@ export function resolveAtmosphereDepthProfile(mode) {
 export function getAtmosphereFramePolicySnapshot() {
   if (!frameRenderer) return null;
   return {
-    titleOwner: framePolicy?.titleOwner || 'atmosphere',
+    titleOwner: framePolicy?.titleOwner || 'shell',
   };
 }

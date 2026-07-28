@@ -432,8 +432,9 @@ export function SiteApp() {
     routeRuntime,
     routeView,
     transitionState = { phase: 'idle', pendingRouteId: null },
-    transitionCurrentRoute,
     prewarmRoute,
+    requestSimulationSwitch,
+    simulationSwitchSnapshot,
   } = useShellRouteTransition({
     getRouteView,
     getRouteRuntime,
@@ -550,7 +551,8 @@ export function SiteApp() {
     active: routeRuntimeActive,
     loadModule: routeRuntime.loadModule,
     exportName: routeRuntime.exportName,
-    routeId: routeRuntimeId
+    routeId: routeRuntimeId,
+    runtimeContext: routeState.simulationSwitchContext || null,
   });
 
   useEffect(() => {
@@ -606,8 +608,8 @@ export function SiteApp() {
         <SimulationFocusProvider
           routeId={routeView.providerRouteId || routeState.route.id}
           surfaceRouteId={routeView.surfaceRouteId || routeState.route.id}
-          homeModeHrefBase={routeView.homeModeHrefBase}
-          transitionCurrentRoute={transitionCurrentRoute}
+          requestSimulationSwitch={requestSimulationSwitch}
+          simulationSwitchSnapshot={simulationSwitchSnapshot}
         >
           <StudioShell
             activeRouteId={routeView.navigationRouteId || routeState.route.id}

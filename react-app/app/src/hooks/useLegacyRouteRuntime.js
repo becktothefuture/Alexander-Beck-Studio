@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createLegacyRuntimeScope } from '../lib/legacy-runtime-scope.js';
 
 let nextRuntimeGeneration = 0;
@@ -69,13 +69,26 @@ export function loadRouteRuntimeModule(loadModule) {
   return pending;
 }
 
-export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId }) {
+export function useLegacyRouteRuntime({
+  active,
+  loadModule,
+  exportName,
+  routeId,
+  runtimeContext = null,
+}) {
+  const runtimeContextRef = useRef(runtimeContext);
+  runtimeContextRef.current = runtimeContext;
+
   useEffect(() => {
     if (!active || typeof loadModule !== 'function' || !exportName) return undefined;
 
     const scope = createLegacyRuntimeScope();
     const controller = new AbortController();
     const generation = ++nextRuntimeGeneration;
+    const bootstrapContext = runtimeContextRef.current;
+    const frozenRuntimeContext = bootstrapContext && typeof bootstrapContext === 'object'
+      ? (Object.isFrozen(bootstrapContext) ? bootstrapContext : Object.freeze({ ...bootstrapContext }))
+      : null;
     const cleanups = [];
     const cleanupStates = new Map();
     let cancelled = false;
@@ -127,6 +140,7 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
             isCurrent,
             registerCleanup,
             markReady,
+            simulationSwitch: frozenRuntimeContext,
           })).then(registerCleanup);
         }
         throw new Error(`Legacy module is missing export "${exportName}"`);
@@ -155,5 +169,8 @@ export function useLegacyRouteRuntime({ active, loadModule, exportName, routeId 
       }
       scope.cleanup();
     };
+  // The bootstrap context is consumed only when runtime ownership changes.
+  // Clearing a completed switch context must not remount an otherwise-stable
+  // Home runtime and replay direct-boot choreography.
   }, [active, exportName, loadModule, routeId]);
 }

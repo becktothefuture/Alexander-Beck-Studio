@@ -20,6 +20,9 @@ import {
   clearHomeEntrancePhase,
   createEntranceSequence,
 } from '../../lib/motion/entrance-sequence.js';
+import {
+  isSimulationAtmosphereSourceFrameReady,
+} from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 let runtimeConfigPromise = null;
 let runtimeTextPromise = null;
@@ -92,6 +95,7 @@ function isDailyFocusRuntimeReady(simulationId) {
 
   const runtime = getDailyFocusRuntimeElement(id);
   if (!isElementSurfaceReady(runtime)) return false;
+  if (!isSimulationAtmosphereSourceFrameReady(id)) return false;
 
   switch (id) {
     case 'repel-room':

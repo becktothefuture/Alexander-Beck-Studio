@@ -17,6 +17,7 @@ import {
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
@@ -262,6 +263,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.className = 'beach-ball-room-canvas';
+  renderer.domElement.dataset.simulationAtmosphereSource = 'true';
   renderer.domElement.setAttribute('aria-label', 'Beach ball room staging simulation');
   renderer.domElement.setAttribute('role', 'img');
   container.appendChild(renderer.domElement);
@@ -905,6 +907,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     writeMotionDebug();
 
     renderer.render(scene, camera);
+    notifySimulationAtmosphereSourceFrame('beach-ball-room');
     if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
       renderer.domElement.__absAuditFrameCount = (Number(renderer.domElement.__absAuditFrameCount) || 0) + 1;
     }

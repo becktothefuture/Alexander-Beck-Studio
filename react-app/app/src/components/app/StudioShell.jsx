@@ -9,12 +9,7 @@ import {
   attachSimulationAtmosphereHost,
   setSimulationAtmosphereTransitionState,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
-
-function disposeRouteDepthTitleCanvas() {
-  if (typeof document === 'undefined') return;
-  document.getElementById('simulation-front-depth-canvas')?.remove();
-  document.getElementById('simulations')?.classList?.remove('simulation-depth-title-layer-active');
-}
+import { attachHomepageCanvasTitlePlane } from '../../legacy/modules/rendering/title-depth.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -110,6 +105,7 @@ export function StudioShell({
 }) {
   const atmosphereGlowCanvasRef = useRef(null);
   const atmosphereEdgeCanvasRef = useRef(null);
+  const titleCanvasRef = useRef(null);
   const routeWindowClassName = studioWindowClassName ?? wallClassName;
   const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
   // Route scenes and optional hero material stay below the shared veil.
@@ -138,21 +134,9 @@ export function StudioShell({
   }, [transitionPhase]);
 
   useLayoutEffect(() => {
-    if (routeRenderKey === 'home') return undefined;
-
-    let firstFrame = 0;
-    let secondFrame = 0;
-    disposeRouteDepthTitleCanvas();
-    firstFrame = window.requestAnimationFrame(() => {
-      disposeRouteDepthTitleCanvas();
-      secondFrame = window.requestAnimationFrame(disposeRouteDepthTitleCanvas);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      window.cancelAnimationFrame(secondFrame);
-    };
-  }, [routeRenderKey]);
+    if (!titleCanvasRef.current) return undefined;
+    return attachHomepageCanvasTitlePlane(titleCanvasRef.current);
+  }, []);
 
   return (
     <>
@@ -167,6 +151,14 @@ export function StudioShell({
               <div className="noise" />
             </div>
             <div className="inner-wall-gradient-edge" aria-hidden="true" />
+            <canvas
+              id="simulation-title-canvas"
+              ref={titleCanvasRef}
+              className="simulation-title-canvas"
+              data-simulation-title-plane="stable"
+              aria-hidden="true"
+              role="presentation"
+            />
             <div
               id="shell-wall-slot"
               ref={surfaceRefs?.wall}
@@ -270,7 +262,6 @@ export function StudioShell({
               </div>
             </div>
           </div>
-          <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
 
           <RouteTransitionLoader
             transitionState={transitionState || {

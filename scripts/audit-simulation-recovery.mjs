@@ -22,7 +22,12 @@ async function openFlies(page) {
   await page.waitForFunction(() => {
     const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
     return snapshot?.mode === 'flies'
-      && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies';
+      && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies'
+      && document.documentElement.dataset.absRuntimeStatus === 'ready'
+      && (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
+      && document.getElementById('simulation-title-canvas')?.dataset.titlePlaneReady === 'true'
+      && !document.getElementById('abs-boot-overlay');
   }, null, { timeout: waitMs });
 }
 
@@ -38,7 +43,7 @@ async function readRecoveryState(page) {
     activeId: document.querySelector('.simulation-focus-switcher')?.dataset.simulationId || '',
     homeMode: window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode || '',
     dailyStage: document.querySelector('#simulation-stage')?.dataset.simulationId || '',
-    switchState: window.__ABS_SIMULATION_SWITCH__ || null,
+    switchState: window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || null,
     loadState: window.__ABS_DAILY_RUNTIME_LOAD__ || null,
     storedChoice: sessionStorage.getItem('abs_simulation_focus_choice_v1'),
     transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
@@ -60,7 +65,7 @@ async function waitForRestoredFlies(page) {
     const windowBlur = document.getElementById('window-overlay-blur-layer');
     const styles = windowBlur ? getComputedStyle(windowBlur) : null;
     return (
-      window.__ABS_SIMULATION_SWITCH__?.status === 'failed'
+      ['failed', 'recovered'].includes(window.__ABS_SIMULATION_SWITCH_TRANSACTION__?.status)
       && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.()?.mode === 'flies'
       && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'flies'
       && !document.querySelector('#simulation-stage')
@@ -146,58 +151,43 @@ async function main() {
       await page.evaluate(() => {
         window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ = 'repel-room';
       });
+      const titleBefore = await page.locator('#simulation-title-canvas').evaluate((canvas) => ({
+        identity: canvas.dataset.titlePlaneIdentity || '',
+        renderRevision: Number(canvas.dataset.titlePlaneRenderRevision || 0),
+        width: canvas.width,
+        height: canvas.height,
+      }));
       await chooseRepelRoom(page);
-      await page.waitForFunction(() => (
-        document.querySelector('.simulation-transaction-snapshot')?.dataset.state === 'visible'
-      ), null, { timeout: waitMs });
-      const retainedFrame = await page.locator('.simulation-transaction-snapshot').evaluate((canvas) => {
-        const context = canvas.getContext('2d');
-        const styles = getComputedStyle(canvas);
-        const blurLayer = document.getElementById('window-overlay-blur-layer');
-        const blurStyles = blurLayer ? getComputedStyle(blurLayer) : null;
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        let nonTransparentSamples = 0;
-        const pixelCount = canvas.width * canvas.height;
-        const stride = Math.max(1, Math.floor(pixelCount / 5000));
-        for (let pixelIndex = 0; pixelIndex < pixelCount; pixelIndex += stride) {
-          if (pixels[(pixelIndex * 4) + 3] > 0) nonTransparentSamples += 1;
-        }
-        return {
-          state: canvas.dataset.state,
-          capturedLayers: Number(canvas.dataset.capturedLayers || 0),
-          width: canvas.width,
-          height: canvas.height,
-          nonTransparentSamples,
-          insideScene: Boolean(document.getElementById('abs-scene')?.contains(canvas)),
-          hostId: canvas.parentElement?.id || '',
-          zIndex: Number.parseFloat(styles.zIndex || '0'),
-          blurZIndex: Number.parseFloat(blurStyles?.zIndex || '0'),
-        };
-      });
-      assert(
-        retainedFrame.state === 'visible'
-          && retainedFrame.capturedLayers > 0
-          && retainedFrame.nonTransparentSamples > 0
-          && retainedFrame.insideScene
-          && retainedFrame.hostId === 'simulation-transaction-snapshot-host'
-          && retainedFrame.zIndex < retainedFrame.blurZIndex,
-        'Last-known-good simulation frame was not retained below the in-window blur during recovery',
-        retainedFrame,
-      );
       await waitForRestoredFlies(page);
+      const retainedTitlePlane = await page.locator('#simulation-title-canvas').evaluate((canvas, before) => ({
+        sameBackingStore: canvas.width === before.width && canvas.height === before.height,
+        identity: canvas.dataset.titlePlaneIdentity || '',
+        ready: canvas.dataset.titlePlaneReady || '',
+        renderRevision: Number(canvas.dataset.titlePlaneRenderRevision || 0),
+        snapshotCount: document.querySelectorAll('.simulation-transaction-snapshot').length,
+      }), titleBefore);
+      assert(
+        retainedTitlePlane.identity === 'shell-owned'
+          && retainedTitlePlane.ready === 'true'
+          && retainedTitlePlane.sameBackingStore
+          && retainedTitlePlane.renderRevision >= titleBefore.renderRevision
+          && retainedTitlePlane.snapshotCount === 0,
+        'Stable shell-owned title plane did not survive recovery without a snapshot layer',
+        retainedTitlePlane,
+      );
       const timeoutState = await readRecoveryState(page);
+      assert(timeoutState.switchState?.status === 'recovered', 'Readiness failure did not settle through recovery', timeoutState);
       assert(!timeoutState.readyEvents.includes('repel-room'), 'Timed-out runtime dispatched route-ready', timeoutState);
       assert(timeoutState.activeId === 'flies' && timeoutState.homeMode === 'flies', 'Readiness timeout did not roll back', timeoutState);
       proof.readinessTimeoutRolledBack = timeoutState;
-      proof.lastKnownGoodFrameRetained = retainedFrame;
+      proof.stableTitlePlaneRetained = retainedTitlePlane;
 
       await page.evaluate(() => {
         delete window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__;
-        window.__ABS_SIMULATION_SWITCH__ = null;
       });
       await chooseRepelRoom(page);
       await page.waitForFunction(() => (
-        window.__ABS_SIMULATION_SWITCH__?.status === 'ready'
+        window.__ABS_SIMULATION_SWITCH_TRANSACTION__?.status === 'ready'
         && document.querySelector('#simulation-stage')?.dataset.simulationId === 'repel-room'
         && document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === 'repel-room'
       ), null, { timeout: waitMs });

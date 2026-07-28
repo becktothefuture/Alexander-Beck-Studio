@@ -544,7 +544,7 @@ html[data-shell-route='home'] .page-content {
 
 .shell-wall-slot {
   position: relative;
-  z-index: 10; /* Ball canvas layer: above semantic title source and scene effects */
+  z-index: 10; /* Simulation material above the stable title plane in normal modes. */
   width: 100%;
   height: 100%;
 }
@@ -782,10 +782,6 @@ html[data-abs-transition-phase='route-loading'] [data-route-enter] {
 
 .daily-focus-wall .shell-wall-route-root {
   position: relative;
-}
-
-body.daily-focus-page .shell-wall-slot {
-  z-index: 4;
 }
 
 .daily-simulation-layer {
@@ -3274,10 +3270,9 @@ button.abs-meta-btn,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   HERO TITLE — semantic <h1> inside #simulations.
-   Normal modes keep canvas material above the title; depth-title modes split
-   the canvas behind/in front of the title via .simulation-depth-title-layer-active.
-   Replaces the former canvas-rendered SVG logo.
+   HERO TITLE — one invisible semantic source plus one stable shell Canvas.
+   The Canvas is outside route-owned/keyed surfaces. Normal modes keep material
+   above it; depth-title modes split rear/title/front at z 4/11/12.
    ───────────────────────────────────────────────────────────────────────────── */
 
 .hero-title {
@@ -3342,41 +3337,12 @@ html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-optical-offset-x: clamp(1px, 0.15vw, 2px);
 }
 
-/* On Home this node is semantic copy and a geometry source only. The canvas is
-   the sole visual title owner, including boot, failure, and transition states. */
-html[data-shell-route='home'] body:not(.daily-focus-page) .hero-title--canvas-source {
+/* Home and promoted Daily simulations share the same invisible semantic and
+   measurable source. #simulation-title-canvas is their sole visual owner. */
+html[data-shell-route='home'] .hero-title--canvas-source {
   --canvas-title-opacity: calc(1 - var(--ui-obscured, 0));
   opacity: 0;
   transition: none;
-}
-
-/* Promoted Daily Simulations keep the semantic title visible instead of
-   redrawing it on Canvas. Centre that mobile DOM layer through layout so iOS
-   browsers do not have to composite a percentage-translated text surface. */
-@media (max-width: 600px) {
-  body.daily-focus-page .shell-hero-surface {
-    display: grid;
-    place-items: center;
-  }
-
-  body.daily-focus-page .hero-title--canvas-source {
-    position: relative;
-    top: auto;
-    left: var(--home-hero-title-optical-offset-x, 0px);
-    width: max-content;
-    max-width: calc(100% - (var(--content-padding-x) * 2));
-    transform:
-      translateY(calc(
-        clamp(20px, 5vh, 52px)
-        - 4vh
-        + var(--home-hero-title-offset-y, 0px)
-        + var(--atmosphere-title-y-offset, 0vh)
-      ))
-      scale(calc(
-        var(--abs-scene-impact-logo-scale, 1) *
-        var(--brand-logo-user-scale, 1)
-      ));
-  }
 }
 
 html[data-abs-simulation-shell-stable='true'] #shell-hero-slot {
@@ -5004,27 +4970,32 @@ html.portfolio-access-gate-closing #modal-content-layer {
   will-change: transform; /* Hint to create stacking context */
 }
 
-.simulation-transaction-snapshot {
-  position: fixed;
-  z-index: 160;
-  display: block;
-  box-sizing: border-box;
-  border-radius: var(--frame-outer-radius);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 180ms var(--ui-ease-out, ease-out);
-}
-
-.simulation-transaction-snapshot[data-state='visible'] {
-  opacity: 1;
-}
-
-.simulation-transaction-snapshot[data-state='releasing'] {
-  opacity: 0;
-}
-
 #simulations canvas.ball-canvas-layer {
   /* Semantic alias for the main ball canvas. */
+}
+
+#simulations > canvas.simulation-title-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  touch-action: auto;
+  background: transparent;
+  contain: strict;
+  will-change: auto;
+}
+
+html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
+  opacity: calc(1 - var(--ui-obscured, 0));
+  visibility: visible;
+}
+
+#simulations.simulation-depth-title-layer-active > canvas.simulation-title-canvas {
+  z-index: 11;
 }
 
 #simulations > .simulation-front-depth-canvas {
@@ -5112,8 +5083,8 @@ html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
   mix-blend-mode: screen;
 }
 
-/* Only title-free route canvases opt into whole-canvas material opacity.
-   Home's main Canvas includes its title and applies ball opacity in the engine. */
+/* Source opacity applies only to simulation material. The stable title plane is
+   structurally outside every atmosphere source registration. */
 #simulations[data-atmosphere-active='true']
   canvas[data-atmosphere-source-material='true']:not(.ball-canvas-layer) {
   opacity: var(--atmosphere-core-presence, 0.95);

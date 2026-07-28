@@ -11,6 +11,7 @@ import {
   triggerImpact,
   triggerPressure,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 
 const TAU = Math.PI * 2;
@@ -1665,6 +1666,7 @@ export function createMineralGrowthRenderer({
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });
+    notifySimulationAtmosphereSourceFrame('mineral-growth');
     return writeRenderMetrics(rendered, started);
   }
 
@@ -1692,6 +1694,7 @@ export function createMineralGrowthRenderer({
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });
+    notifySimulationAtmosphereSourceFrame('mineral-growth');
     return writeRenderMetrics(rendered, started);
   }
 

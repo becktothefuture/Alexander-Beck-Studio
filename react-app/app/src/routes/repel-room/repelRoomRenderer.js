@@ -7,6 +7,7 @@ import {
   resolveMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 
 const TAU = Math.PI * 2;
@@ -671,6 +672,7 @@ export function createRepelRoomRenderer({
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });
+    notifySimulationAtmosphereSourceFrame('repel-room');
     lastRenderMs = performance.now() - startedAt;
   }
 
@@ -687,6 +689,7 @@ export function createRepelRoomRenderer({
       transparentBackground,
       getVisualScaleAt: visualTransition.getScaleAt,
     });
+    notifySimulationAtmosphereSourceFrame('repel-room');
     lastRenderMs = performance.now() - startedAt;
   }
 

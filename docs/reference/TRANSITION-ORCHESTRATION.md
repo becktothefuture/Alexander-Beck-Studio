@@ -45,12 +45,17 @@ Canonical engineering contract for route and modal transitions.
 
 ### Simulation focus overlay ownership
 
-- `useShellRouteTransition` is the sole owner of simulation handoff state through `<html data-abs-simulation-focus-transition="prepare|out|hold|in">`.
+- `useShellRouteTransition` is the sole owner of simulation handoff state through the exact lifecycle `idle → prepare → out → commit → prime → in → idle`. `src/lib/motion/simulation-switch-transaction.js` enforces legal progress, exact-once commit/publication, generation identity, and named failure settlement.
 - The chooser may own `simulation-focus-modal-open` only while its dialog is mounted. Providers must not create a second global handoff or blur-suppression class.
-- Selecting a different simulation dismisses the chooser and its backdrop immediately. The `out|hold|in` handoff stays unobscured so the existing material scale-down/scale-up transition remains visible.
+- Selecting a different simulation dismisses the chooser and its backdrop immediately. The `out|commit|prime|in` handoff stays unobscured so the material scale-down/scale-up transition remains visible.
 - Route-backed runtime preloading runs inside the transition transaction so load failure, history navigation, preemption, and unmount share the same cleanup path.
+- Atmosphere replacement participates in the same transaction. Prepare reserves a generation without touching the outgoing source; commit unregisters the outgoing source and resets feedback exactly once; prime arms the target only after runtime readiness; and `in` may begin only after a generation-qualified target render frame and that generation's first atmosphere composite. A compositor fault may resolve the atmosphere leg as degraded, but it never substitutes for the real target frame.
+- The coordinator mirrors each lifecycle phase through `setSimulationAtmosphereSwitchPhase(phase, transactionId)`. That marker never freezes prepare/out; the outgoing renderer and compositor remain synchronized until atomic commit. Home-mode → Home-mode prepare sets `reuseActiveDefinition: true`, preserving the mounted source owner while assigning a new logical generation. Route-backed → Home binds through the immutable transaction id, not by comparing the catalog id with `routeId: home`.
+- Home bootstrap captures the frozen `runtimeContext.simulationSwitch` once. Daily renderers publish a one-shot real-frame signal from their draw boundary. Neither runtime may recover switch intent from URL, storage, title DOM, or diagnostic globals.
+- A committed failure reserves a new rollback generation for the previous runtime and repeats `commit → prime → in`. Stale source registration, frame notification, and disposer calls are no-ops against a newer generation.
+- Reduced motion uses the same phases and readiness barriers with zero-duration material transitions: out still settles at scale zero and in at scale one.
 - Simulation handoff state must never paint a modal blur on Home or affect Portfolio, About Me, Contact, or another route if state becomes stale.
-- Completion, failure, normal route navigation, `popstate`, and unmount all remove the simulation phase, discard retained snapshots when interrupted, restore shell surfaces, and dismiss the legacy backdrop. The in-window layer is the only visible fade surface.
+- Completion, failure, normal route navigation, `popstate`, and unmount all remove the simulation phase, settle or roll back the live atmosphere generation, restore shell surfaces, and dismiss the legacy backdrop. No bitmap snapshot is part of the handoff. The in-window layer is the only visible fade surface.
 
 ## 4) Direct-load boot overlay
 - Direct document loads start behind `#abs-boot-overlay`, with `<html data-abs-boot-state="booting">` and `#root` hidden/inert.

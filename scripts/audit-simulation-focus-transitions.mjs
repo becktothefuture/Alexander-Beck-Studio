@@ -944,6 +944,10 @@ async function analyzeFrames(frames, flow) {
     || event.wallTime >= frames.eventStartedWallTime - 50
   ));
   const eventTypes = new Set(flowEvents.map((event) => event.type));
+  const phaseSequence = (frames.phaseAudit || [])
+    .map((entry) => entry.phase)
+    .filter((phase, index, sequence) => index === 0 || phase !== sequence[index - 1]);
+  const expectedPhaseSequence = ['prepare', 'out', 'commit', 'prime', 'in', 'idle'];
   const visualMinScales = frames
     .map((frame) => Number(frame.state.visualTransition?.minScale))
     .filter(Number.isFinite);
@@ -955,8 +959,10 @@ async function analyzeFrames(frames, flow) {
     .filter(Number.isFinite);
 
   if (!observedPhases.has('out') && !eventTypes.has('out-start')) issues.push('missing-simulation-scale-out-phase');
-  if (!observedPhases.has('hold') && !eventTypes.has('hold-start')) issues.push('missing-simulation-zero-hold-phase');
   if (!observedPhases.has('in') && !eventTypes.has('in-start')) issues.push('missing-simulation-scale-in-phase');
+  if (phaseSequence.join('|') !== expectedPhaseSequence.join('|')) {
+    issues.push(`invalid-simulation-phase-order:${phaseSequence.join('>') || 'none'}`);
+  }
   if (!visualMinScales.some((scale) => scale >= 0 && scale < 0.16)) {
     issues.push('missing-scale-zero-near-frame');
   }
@@ -991,6 +997,7 @@ async function analyzeFrames(frames, flow) {
     phases: Array.from(observedPhases),
     events: flowEvents,
     phaseAudit: frames.phaseAudit || [],
+    phaseSequence,
     firstShellStableIndex,
     issues,
   };

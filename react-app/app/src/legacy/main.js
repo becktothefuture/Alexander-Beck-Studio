@@ -59,7 +59,9 @@ import {
 import { getTransitionPhase, isRouteTransitionPhase } from '../lib/transition-phase.js';
 import { getAtmosphereLabVariant } from '../routes/atmosphere-lab/atmosphereLabRoutes.js';
 import { isAtmosphereLabSimulationMode } from '../routes/atmosphere-lab/atmosphereLabSimulations.js';
-import { registerSimulationAtmosphereSource } from './modules/rendering/atmosphere/simulation-atmosphere.js';
+import {
+  registerSimulationAtmosphereSource,
+} from './modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   runSimulationVisualTransition,
   setInitialSimulationVisualScale,
@@ -252,7 +254,11 @@ function isSimulationFocusTransitionActive() {
   const phase = document.documentElement.dataset.absSimulationFocusTransition
     || window.__ABS_SIMULATION_FOCUS_TRANSITION__?.phase
     || 'idle';
-  return phase === 'out' || phase === 'hold' || phase === 'in';
+  return phase === 'prepare'
+    || phase === 'out'
+    || phase === 'commit'
+    || phase === 'prime'
+    || phase === 'in';
 }
 
 export async function prewarmHomeRoute({ signal } = {}) {
@@ -290,6 +296,12 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     markReady,
     generation,
   } = runtimeContext;
+  // The shell coordinator freezes this object. Capture it once so a switch boot
+  // never infers intent again from URL, storage, or mutable DOM diagnostics.
+  const simulationSwitch = runtimeContext.simulationSwitch || null;
+  const simulationSwitchTransactionId = String(simulationSwitch?.transactionId || '');
+  const requestedHomeMode = String(simulationSwitch?.requestedHomeMode || '').trim();
+  const isSimulationSwitchBoot = Boolean(simulationSwitchTransactionId);
   let disposed = false;
   let rendererOwner = null;
   let atmosphereOwner = null;
@@ -332,7 +344,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   registerCleanup?.(cleanup);
 
   const shellRouteTransitionActiveAtStart = (
-    isRouteTransitionPhase(getTransitionPhase())
+    isSimulationSwitchBoot
+    || isRouteTransitionPhase(getTransitionPhase())
     || document.documentElement.dataset.absRouteTransition === 'active'
     || Boolean(document.documentElement.dataset.absRouteLoadingCoveredAt)
     || isSimulationFocusTransitionActive()
@@ -482,17 +495,23 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     // Initialize starting mode. A non-empty startupMode overrides reload selection
     // until it is cleared again in the authored shell config.
-    const urlMode = getUrlStartupModeOverride();
+    const urlMode = isSimulationSwitchBoot ? '' : getUrlStartupModeOverride();
     const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
-    const startMode = urlMode || configuredHeroMode || getDailyMode() || MODES.PIT;
+    const startMode = (
+      (isSimulationSwitchBoot && Object.values(MODES).includes(requestedHomeMode) ? requestedHomeMode : '')
+      || urlMode
+      || configuredHeroMode
+      || getDailyMode()
+      || MODES.PIT
+    );
     const startupReduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    setInitialSimulationVisualScale(startupReduceMotion ? 1 : 0);
+    setInitialSimulationVisualScale(isSimulationSwitchBoot ? 0 : (startupReduceMotion ? 1 : 0));
 
     // Initialize mode runtime (handles eager/lazy mode rollout flags)
     initModeSystem();
     await setMode(startMode);
     if (!isCurrent()) return cleanup;
-    if (!shellRouteTransitionActiveAtStart || startupReduceMotion) {
+    if (!isSimulationSwitchBoot && (!shellRouteTransitionActiveAtStart || startupReduceMotion)) {
       setInitialSimulationVisualScale(1);
     }
 
@@ -510,11 +529,18 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       atmosphereSourceCleanup = registerSimulationAtmosphereSource({
         id: `home:legacy:${Number(generation || 0)}`,
         routeId: 'home',
+        transactionId: simulationSwitchTransactionId,
         kind: 'canvas',
         canvas,
         getCanvasLayers: () => {
+          // The front-depth canvas now contains simulation material only. The
+          // stable shell title plane is structurally separate and is never
+          // returned to compositor feedback.
           const frontDepthCanvas = getGlobals().depthTitleFrontCanvas;
-          if (frontDepthCanvas?.isConnected) {
+          if (
+            frontDepthCanvas?.isConnected
+            && frontDepthCanvas.id !== 'simulation-title-canvas'
+          ) {
             atmosphereCanvasLayers[1] = frontDepthCanvas;
             atmosphereCanvasLayers.length = 2;
           } else {
@@ -525,6 +551,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         quietZoneElement: () => document.getElementById('hero-title'),
         scheduler: 'renderer-coupled',
         opacityElement: canvas,
+        requireRealFrame: true,
       });
       if (getGlobals().currentMode === MODES.BUBBLES) {
         const { refreshBubbleAtmosphereDepth } = await import('./modules/modes/bubbles.js');
@@ -536,7 +563,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // shell can then resolve its cover over material that is already moving,
     // while non-critical quote/dev tooling continues independently.
     startMainLoop(null, { getForcesFn: getForceApplicator });
-    if (shellRouteTransitionActiveAtStart) {
+    if (shellRouteTransitionActiveAtStart && !isSimulationSwitchBoot) {
       if (startupReduceMotion) {
         setInitialSimulationVisualScale(1);
         routeReturnVisualPromise = Promise.resolve();
@@ -815,7 +842,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       // Run the home UI entrance for every direct landing/reload. Shell route
       // transitions restore stable UI without replaying choreography.
       const shellRouteTransitionActive = (
-        isRouteTransitionPhase(getTransitionPhase())
+        isSimulationSwitchBoot
+        || isRouteTransitionPhase(getTransitionPhase())
         || isSimulationFocusTransitionActive()
       );
       const shouldRunHomePostBootEntrance = !shellRouteTransitionActive;
@@ -850,7 +878,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         setBootLifecycleState('ready');
         setHomeRouteReadyState(true);
         markReady?.();
-        if (reduceMotion) {
+        if (isSimulationSwitchBoot) {
+          // The coordinator owns prime and in for every timing mode.
+          setInitialSimulationVisualScale(0);
+        } else if (reduceMotion) {
           setInitialSimulationVisualScale(1);
         } else {
           await (routeReturnVisualPromise || runSimulationVisualTransition(

@@ -20,13 +20,10 @@ import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import {
   TITLE_DEPTH_PLANE_Z,
-  drawHomepageCanvasTitle,
   modeUsesDepthTitlePlane,
 } from '../rendering/title-depth.js';
 import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
 import {
-  doesAtmosphereEngineOwnTitle,
-  isAtmosphereFrameRendererActive,
   renderActiveAtmosphereFrame,
   resolveAtmosphereTitlePlacementOverride,
 } from '../rendering/atmosphere/atmosphere-frame-hook.js';
@@ -809,8 +806,6 @@ export function render() {
   // ═══════════════════════════════════════════════════════════════════════════════
   const dpr = globals.DPR || 1;
   const qualityProfile = getRenderQualityProfile(globals);
-  const atmosphereRendererActive = isAtmosphereFrameRendererActive();
-  const engineOwnsTitle = !atmosphereRendererActive || doesAtmosphereEngineOwnTitle();
   const pitFxThrottleAware = isPitMode
     && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware'
     && (Number(globals.adaptiveThrottleLevel) || 0) >= 1;
@@ -883,10 +878,7 @@ export function render() {
   if (frontCtx && frontCanvas) {
     frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
   }
-  const titleCtx = ctx;
-
   if (customRenderer) {
-    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
     ctx.save();
     ctx.globalAlpha *= atmosphereMaterialOpacity;
     customRenderer(ctx);
@@ -901,8 +893,6 @@ export function render() {
       canvasHeight: canvas.height
     });
     ctx.restore();
-
-    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
 
     frontCtx.save();
     frontCtx.globalAlpha *= atmosphereMaterialOpacity;
@@ -930,13 +920,10 @@ export function render() {
       renderBallsColorBatched(ctx, zPartitionCache.behind, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
 
-    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
-
     if (zPartitionCache.inFront.length > 0) {
       renderBallsColorBatched(frontCtx, zPartitionCache.inFront, true, ballRenderOptions, atmosphereMaterialOpacity);
     }
   } else {
-    if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);
     renderBallsColorBatched(ctx, balls, false, ballRenderOptions, atmosphereMaterialOpacity);
   }
 

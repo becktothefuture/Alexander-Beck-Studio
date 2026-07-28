@@ -19,7 +19,6 @@ import {
 } from '../../../../routes/atmosphere-lab/atmosphereLabSimulations.js';
 import { createAtmosphereParameterizer } from '../../../../routes/atmosphere-lab/atmosphereParameterizer.js';
 import {
-  drawHomepageCanvasTitle,
   invalidateHomepageCanvasTitleGeometry,
 } from '../title-depth.js';
 import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
@@ -43,7 +42,6 @@ import { MODES } from '../../core/constants.js';
 
 let activeController = null;
 
-const ATMOSPHERE_TITLE_POLICY = Object.freeze({ titleOwner: 'atmosphere' });
 const RESPONSIVE_EFFECT_REFERENCE_PX = 720;
 const RESPONSIVE_EFFECT_MIN_SCALE = 0.72;
 
@@ -115,10 +113,6 @@ class AtmosphereLabController {
     this.mainCanvas = globals.canvas;
     this.routeLayer = this.mainCanvas.parentElement;
     this.outputCanvas = createLayerCanvas('atmosphere-output-canvas', 'fog');
-    this.titleCanvas = variant === 'crispGlow'
-      ? null
-      : createLayerCanvas('atmosphere-title-canvas', 'title');
-    this.titleContext = this.titleCanvas?.getContext('2d', { alpha: true, desynchronized: true }) || null;
     this.edgeLightCanvas = variant === 'crispGlow'
       ? createLayerCanvas('atmosphere-edge-light-canvas', 'edge-light')
       : null;
@@ -129,7 +123,6 @@ class AtmosphereLabController {
     this.particleLightSource = new ParticleLightSource();
     this.routeLayer.append(this.outputCanvas);
     if (this.edgeLightLayer) this.routeLayer.append(this.edgeLightLayer);
-    if (this.titleCanvas) this.routeLayer.append(this.titleCanvas);
     this.effect = null;
     this.fallback = false;
     this.lastEffectAt = 0;
@@ -331,7 +324,6 @@ class AtmosphereLabController {
     root.style.setProperty('--atmosphere-grain-strength', String(presentationProfile?.grainStrength ?? 1));
     root.style.setProperty('--atmosphere-edge-width', `${presentationProfile?.edgeWidthPx ?? 1.5}px`);
     this.outputCanvas.hidden = !enabled;
-    if (this.titleCanvas) this.titleCanvas.hidden = false;
     if (this.edgeLightCanvas) {
       this.edgeLightCanvas.hidden = !enabled || this.renderProfile.edgeLight <= 0;
     }
@@ -360,7 +352,6 @@ class AtmosphereLabController {
     this.effect?.clear?.();
     this.edgeLight?.clear();
     this.sourceContext.clearRect(0, 0, this.sourceCanvas.width, this.sourceCanvas.height);
-    this.titleContext?.clearRect(0, 0, this.titleCanvas.width, this.titleCanvas.height);
   }
 
   resolveTitleMask() {
@@ -409,13 +400,6 @@ class AtmosphereLabController {
       this.effect.resize(width, height);
       this.titleMaskDirty = true;
       this.lastEffectAt = 0;
-    }
-    if (
-      this.titleCanvas
-      && (this.titleCanvas.width !== this.mainCanvas.width || this.titleCanvas.height !== this.mainCanvas.height)
-    ) {
-      this.titleCanvas.width = this.mainCanvas.width;
-      this.titleCanvas.height = this.mainCanvas.height;
     }
     if (this.edgeLight) {
       this.edgeLight.resize(width, height);
@@ -476,13 +460,6 @@ class AtmosphereLabController {
     context.restore();
   }
 
-  drawProtectedTitle() {
-    if (!this.titleContext || !this.titleCanvas) return;
-    this.titleContext.setTransform(1, 0, 0, 1, 0, 0);
-    this.titleContext.clearRect(0, 0, this.titleCanvas.width, this.titleCanvas.height);
-    drawHomepageCanvasTitle(this.titleContext, this.globals);
-  }
-
   resolveRenderProfile() {
     return this.fallback ? this.fallbackProfile : this.renderProfile;
   }
@@ -503,11 +480,9 @@ class AtmosphereLabController {
 
   render(now = performance.now()) {
     if (this.destroyed) return;
-    const frameDt = Math.min(100, Math.max(0, now - this.lastFrameAt));
     this.lastFrameAt = now;
     this.metricsFrames += 1;
     this.syncSize();
-    if (this.titleCanvas) this.drawProtectedTitle();
     if (!this.config.common.enabled) return;
 
     const cadence = this.reducedMotion ? Math.min(20, resolveAtmosphereCadence(this.config.common.hazeCadence)) : resolveAtmosphereCadence(this.config.common.hazeCadence);
@@ -577,7 +552,6 @@ class AtmosphereLabController {
     this.particleLightSource.destroy();
     this.outputCanvas.remove();
     this.edgeLightLayer?.remove();
-    this.titleCanvas?.remove();
     document.body.style.removeProperty('--atmosphere-core-presence');
     document.documentElement.style.removeProperty('--atmosphere-title-y-offset');
     document.documentElement.style.removeProperty('--atmosphere-haze-strength');
@@ -725,7 +699,7 @@ class CrispGlowLabController {
           variant: this.variant,
           renderer: 'production-canvas-feedback',
           simulationMode: this.globals.currentMode,
-          titleOwner: 'engine',
+          titleOwner: 'shell',
           titleVisible: Boolean(this.globals.canvasTitleRenderState?.visible),
           titleLayoutReadCount: Number(this.globals.titleLayoutReadCount) || 0,
           ballCount: balls.length,
@@ -783,7 +757,7 @@ export async function initializeAtmosphereLab({ variant, globals }) {
       return;
     }
     activeController.render(performance.now());
-  }, ATMOSPHERE_TITLE_POLICY);
+  });
   return activeController;
 }
 
