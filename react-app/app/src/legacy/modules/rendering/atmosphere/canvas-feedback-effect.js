@@ -11,6 +11,15 @@ function resolveCompositeOperation(mode) {
   return 'source-over';
 }
 
+const REFERENCE_FRAME_MS = 1000 / 30;
+
+function resolveFrameNormalizedAlpha(alpha, dtMs, blendMode) {
+  const boundedAlpha = Math.min(1, Math.max(0, Number(alpha) || 0));
+  const frameScale = Math.max(0, Number(dtMs) || REFERENCE_FRAME_MS) / REFERENCE_FRAME_MS;
+  if (blendMode === 'add') return Math.min(1, boundedAlpha * frameScale);
+  return 1 - Math.pow(1 - boundedAlpha, frameScale);
+}
+
 export class CanvasFeedbackEffect {
   constructor(outputCanvas) {
     this.outputCanvas = outputCanvas;
@@ -44,7 +53,15 @@ export class CanvasFeedbackEffect {
     });
   }
 
-  render({ sourceCanvas, config, dtMs, qualityScale, responsiveScale = 1, nowMs = 0 }) {
+  render({
+    sourceCanvas,
+    config,
+    dtMs,
+    qualityScale,
+    responsiveScale = 1,
+    emissionScale = 1,
+    nowMs = 0,
+  }) {
     const readCanvas = this.history[this.readIndex];
     const writeIndex = 1 - this.readIndex;
     const writeContext = this.historyContexts[writeIndex];
@@ -52,7 +69,7 @@ export class CanvasFeedbackEffect {
     const height = this.outputCanvas.height;
     const halfLife = Math.max(0, config.afterglowHalfLifeMs);
     const decay = halfLife > 0 ? Math.exp((-Math.LN2 * dtMs) / halfLife) : 0;
-    const spatialScale = Math.max(0.65, Math.min(1, Number(responsiveScale) || 1));
+    const spatialScale = Math.max(0.65, Math.min(2.5, Number(responsiveScale) || 1));
     const drift = config.driftSpeedPxPerSec * qualityScale * spatialScale * (dtMs / 1000);
     const wobble = Math.sin((Number(nowMs) || 0) * 0.00037) * config.turbulence * 1.5;
     const passes = Math.max(1, Math.round(config.diffusionPasses));
@@ -75,14 +92,17 @@ export class CanvasFeedbackEffect {
     }
 
     writeContext.globalCompositeOperation = resolveCompositeOperation(config.blendMode);
-    writeContext.globalAlpha = Math.min(1, config.sourceGain * (0.75 + config.emissionGain * 0.25));
+    const sourceAlpha = config.sourceGain * (0.75 + config.emissionGain * 0.25);
+    writeContext.globalAlpha = resolveFrameNormalizedAlpha(sourceAlpha, dtMs, config.blendMode)
+      * Math.min(1, Math.max(0, Number(emissionScale) || 0));
     writeContext.drawImage(sourceCanvas, 0, 0, width, height);
 
     this.outputContext.setTransform(1, 0, 0, 1, 0, 0);
     this.outputContext.globalCompositeOperation = 'source-over';
-    this.outputContext.globalAlpha = Math.min(1, config.fogDensity);
+    const fogOpacity = 1 - Math.exp(-Math.max(0, Number(config.fogDensity) || 0) * 1.6);
+    this.outputContext.globalAlpha = Math.min(1, fogOpacity);
     this.outputContext.clearRect(0, 0, width, height);
-    const blurRadius = Math.max(1, config.blurRadiusFxPx * qualityScale * config.haloSpread * spatialScale);
+    const blurRadius = Math.max(0.5, config.blurRadiusFxPx * qualityScale * config.haloSpread * spatialScale);
     const saturation = 1 + config.accentLift * 0.65;
     const outputBlurKey = Math.round(blurRadius * 10);
     const outputSaturationKey = Math.round(saturation * 100);
@@ -96,7 +116,8 @@ export class CanvasFeedbackEffect {
     this.outputContext.filter = 'none';
     const lightDefinition = Math.min(0.65, Math.max(0, Number(config.lightDefinition) || 0));
     if (lightDefinition > 0) {
-      this.outputContext.globalAlpha = lightDefinition;
+      this.outputContext.globalAlpha = lightDefinition
+        * Math.min(1, Math.max(0, Number(emissionScale) || 0));
       this.outputContext.globalCompositeOperation = 'screen';
       this.outputContext.drawImage(sourceCanvas, 0, 0);
     }

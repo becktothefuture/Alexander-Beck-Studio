@@ -141,6 +141,7 @@ async function readRouteCursorState(page, routeId) {
       cursorOpacity: cursorStyle?.opacity || '',
       cursorTransform: cursorStyle?.transform || '',
       cursorBackground: cursorStyle?.backgroundColor || '',
+      cursorBoxShadow: cursorStyle?.boxShadow || '',
       cursorZIndex: cursorStyle?.zIndex || '',
     };
   }, routeId);
@@ -165,6 +166,9 @@ function assertRouteCursorState(state) {
     throw new Error(
       `${state.routeId}: standard lens material was ${state.cursorBackground || '(empty)'}, expected ${expectedCursorBackground}`
     );
+  }
+  if (state.cursorBoxShadow !== 'none') {
+    throw new Error(`${state.routeId}: standard lens shadow was ${state.cursorBoxShadow || '(empty)'}, expected none`);
   }
 }
 
@@ -197,8 +201,9 @@ function assertClickableCursorState(state, label) {
   if (Math.abs(Number(state.cursorOpacity) - 0.72) > 0.01) {
     throw new Error(`${label} cursor opacity was ${state.cursorOpacity}, expected 0.72`);
   }
-  if (!state.cursorTransform.startsWith('matrix(0.84,')) {
-    throw new Error(`${label} cursor transform was ${state.cursorTransform}, expected scale(0.84)`);
+  const interactiveScale = Number(state.cursorTransform.match(/^matrix\(([^,]+)/)?.[1]);
+  if (!Number.isFinite(interactiveScale) || Math.abs(interactiveScale * 48 - 20) > 0.01) {
+    throw new Error(`${label} cursor transform was ${state.cursorTransform}, expected a 20px rendered lens`);
   }
 }
 

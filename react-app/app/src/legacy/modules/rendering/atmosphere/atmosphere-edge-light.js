@@ -32,7 +32,7 @@ export class AtmosphereEdgeLight {
     context.clearRect(0, 0, width, height);
     if (!sourceCanvas || intensity <= 0) return;
 
-    const strength = Math.min(2.5, Math.max(0, Number(intensity) || 0));
+    const strength = Math.min(5, Math.max(0, Number(intensity) || 0));
     context.globalAlpha = Math.min(1, strength);
     const filterKey = Math.round(strength * 100);
     if (filterKey !== this.filterKey) {

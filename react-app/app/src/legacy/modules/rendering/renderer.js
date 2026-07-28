@@ -19,7 +19,6 @@ import {
 } from '../core/state.js';
 import { applyCanvasShadow } from './effects.js';
 import { stopMainLoop } from './loop.js';
-import { disposeHomepageCrispTitleCanvas } from './title-depth.js';
 import { isDev } from '../utils/logger.js';
 import {
   getSimulationCollisionInsetPx,
@@ -210,7 +209,6 @@ function disposeDepthTitleCanvas() {
   container?.classList?.remove('simulation-depth-title-layer-active');
   globals.depthTitleFrontCanvas = null;
   globals.depthTitleFrontCtx = null;
-  disposeHomepageCrispTitleCanvas(globals);
 }
 
 /**

@@ -129,7 +129,7 @@ The Home simulation switcher, Portfolio drawer back control, and Contact email/c
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
 - Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and text/icon contrast. The Home switcher also keeps that state while its chooser is open.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
-- The custom cursor remains one consistent translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response is a small reduction in scale and opacity; controls do not request a route-, overlay-, or geometry-specific cursor.
+- The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 48px lens to 20px (`scale(0.4166667)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
 Inside the simulation chooser, option rows are transparent at rest and retain transparent border geometry in every state. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It is transparent at rest and uses the shared emphasis material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
@@ -239,6 +239,7 @@ Home and Daily simulations, Work / Portfolio, About Me, and Contact share one sh
 - Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Canvas-less, suspended, or editorial-only states may use the compositor's bounded ambient field so the shared finish does not disappear abruptly.
 - Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
 - Reduced Motion retains one static diffused colour response but removes atmospheric drift. Mobile keeps the same visual hierarchy at reduced output scale and cadence rather than disabling the material.
+- The atmosphere is an entrance response rather than a permanent wash: fresh glow holds briefly, then follows one smooth shared fade envelope in both themes, while each theme's feedback memory controls the remaining tail.
 
 ## Fluid responsive contract
 

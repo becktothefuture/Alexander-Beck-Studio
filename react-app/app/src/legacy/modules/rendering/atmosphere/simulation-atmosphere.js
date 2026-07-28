@@ -21,13 +21,8 @@ const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 1200;
 const RESPONSIVE_REFERENCE_PX = 720;
 const RESPONSIVE_MIN_SCALE = 0.72;
-const CSS_MATERIAL_BLUR_SUPPORTED = (() => {
-  try {
-    return typeof CSS !== 'undefined' && CSS.supports?.('filter', 'blur(1px)') === true;
-  } catch (e) {
-    return false;
-  }
-})();
+const RESPONSIVE_MAX_SCALE = 2.5;
+const SUSTAINED_EMISSION_SCALE = 0.5;
 const AMBIENT_COLOURS_LIGHT = Object.freeze(['#4f7fff', '#ff7657', '#d8e54f', '#53d39c']);
 const AMBIENT_COLOURS_DARK = Object.freeze(['#5c87ff', '#ff7657', '#dceb54', '#55dba0']);
 const AMBIENT_COUNT = 8;
@@ -63,6 +58,7 @@ let quietZoneGeometryReadCount = 0;
 let firstCompositeAt = 0;
 let failureReason = '';
 let lastSourceLightCount = 0;
+let lastSourceLayerCount = 0;
 let lastSampledEmitterCount = 0;
 let lastCostMs = 0;
 let costEmaMs = 0;
@@ -89,6 +85,7 @@ const effectRenderArgs = {
   dtMs: 0,
   qualityScale: 0.375,
   responsiveScale: 1,
+  emissionScale: 1,
   nowMs: 0,
 };
 const particleRenderArgs = {
@@ -100,6 +97,7 @@ const particleRenderArgs = {
   nowMs: 0,
   emitterStride: 1,
 };
+const resolvedCanvasLayers = [];
 
 function getQualityById(id) {
   return QUALITY_LEVELS[id] || QUALITY_LEVELS.balanced;
@@ -219,6 +217,9 @@ function clearOutput({ preservePresentation = false } = {}) {
     host.glowCanvas.hidden = true;
     host.edgeCanvas.hidden = true;
     host.root.dataset.atmosphereReady = 'false';
+    host.root.dataset.atmosphereStatus = configuration.enabled && activeSource && !failureReason
+      ? 'waiting-source'
+      : 'idle';
   }
 }
 
@@ -260,17 +261,11 @@ function rebuildProfile({ resetQuality = false } = {}) {
 function applyPresentationState() {
   if (!host) return;
   const enabled = configuration.enabled && Boolean(activeSource) && !failureReason;
-  const materialBlurPx = enabled && CSS_MATERIAL_BLUR_SUPPORTED
-    ? Math.max(0, Math.min(3, Number(renderProfile?.materialBlurPx) || 0))
-    : 0;
   const root = host.root;
   const presentationRoot = document.documentElement;
   root.dataset.atmosphereActive = String(enabled);
   root.dataset.atmosphereStatus = enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle';
-  root.dataset.atmosphereMaterialBlurActive = String(materialBlurPx > 0);
-  root.dataset.atmosphereMaterialFilter = materialBlurPx > 0 ? 'css-compositor' : 'none';
   presentationRoot.style.setProperty('--atmosphere-core-presence', String(renderProfile?.ballPresence ?? 1));
-  presentationRoot.style.setProperty('--atmosphere-material-blur', `${materialBlurPx}px`);
   presentationRoot.style.setProperty('--atmosphere-haze-strength', String(renderProfile?.hazeStrength ?? 1));
   presentationRoot.style.setProperty('--atmosphere-grain-strength', String(renderProfile?.grainStrength ?? 1));
   presentationRoot.style.setProperty('--atmosphere-edge-width', `${renderProfile?.edgeWidthPx ?? 1.5}px`);
@@ -344,7 +339,10 @@ function syncGeometry() {
   geometryReadCount += 1;
   if (rect.width <= 1 || rect.height <= 1) return false;
   const shortestSide = Math.min(rect.width, rect.height);
-  responsiveScale = Math.max(RESPONSIVE_MIN_SCALE, Math.min(1, shortestSide / RESPONSIVE_REFERENCE_PX));
+  responsiveScale = Math.max(
+    RESPONSIVE_MIN_SCALE,
+    Math.min(RESPONSIVE_MAX_SCALE, shortestSide / RESPONSIVE_REFERENCE_PX),
+  );
   const width = Math.max(2, Math.round(rect.width * dynamicQuality.scale));
   const height = Math.max(2, Math.round(rect.height * dynamicQuality.scale));
   if (host.sourceCanvas.width !== width || host.sourceCanvas.height !== height) {
@@ -378,6 +376,7 @@ function updateAmbientSource(nowMs) {
     ball.color = colours[index % colours.length];
   }
   lastSampledEmitterCount = AMBIENT_COUNT;
+  lastSourceLayerCount = 0;
   particleRenderArgs.context = host.sourceContext;
   particleRenderArgs.canvas = canvas;
   particleRenderArgs.balls = ambientBalls;
@@ -388,7 +387,26 @@ function updateAmbientSource(nowMs) {
   lastSourceLightCount = host.particleLightSource.render(particleRenderArgs);
 }
 
-function copyCanvasSource(sourceCanvas) {
+function resolveCanvasLayers(source) {
+  const candidates = typeof source?.getCanvasLayers === 'function'
+    ? source.getCanvasLayers()
+    : source?.canvasLayers;
+  resolvedCanvasLayers.length = 0;
+  const layerCount = Array.isArray(candidates) ? candidates.length : 1;
+  for (let index = 0; index < layerCount; index += 1) {
+    const canvas = Array.isArray(candidates) ? candidates[index] : source?.canvas;
+    if (!(canvas instanceof HTMLCanvasElement) || !canvas.isConnected) continue;
+    if (
+      canvas.width <= 1
+      || canvas.height <= 1
+      || resolvedCanvasLayers.includes(canvas)
+    ) continue;
+    resolvedCanvasLayers.push(canvas);
+  }
+  return resolvedCanvasLayers;
+}
+
+function copyCanvasSource(source) {
   const context = host.sourceContext;
   const canvas = host.sourceCanvas;
   context.setTransform(1, 0, 0, 1, 0, 0);
@@ -396,9 +414,13 @@ function copyCanvasSource(sourceCanvas) {
   context.globalCompositeOperation = 'source-over';
   context.filter = 'none';
   context.clearRect(0, 0, canvas.width, canvas.height);
-  if (!sourceCanvas?.isConnected || sourceCanvas.width <= 1 || sourceCanvas.height <= 1) return false;
-  context.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
-  lastSourceLightCount = Math.max(0, Number(sourceCanvas.dataset.simulationBodyCount) || 0);
+  const layers = resolveCanvasLayers(source);
+  lastSourceLayerCount = layers.length;
+  if (layers.length === 0) return false;
+  for (let index = 0; index < layers.length; index += 1) {
+    context.drawImage(layers[index], 0, 0, canvas.width, canvas.height);
+  }
+  lastSourceLightCount = Math.max(0, Number(source.canvas?.dataset.simulationBodyCount) || 0);
   lastSampledEmitterCount = 0;
   return true;
 }
@@ -406,7 +428,8 @@ function copyCanvasSource(sourceCanvas) {
 function copyEmitterSource(source, nowMs) {
   const emitters = source.getEmitters();
   const count = Array.isArray(emitters) ? emitters.length : 0;
-  if (count === 0) return copyCanvasSource(source.canvas);
+  if (count === 0) return copyCanvasSource(source);
+  lastSourceLayerCount = 0;
   const stride = Math.max(1, Math.ceil(count / dynamicQuality.emitterBudget));
   lastSampledEmitterCount = Math.ceil(count / stride);
   particleRenderArgs.context = host.sourceContext;
@@ -427,7 +450,7 @@ function copyActiveSource(nowMs) {
     return true;
   }
   if (activeSource.kind === 'emitters') return copyEmitterSource(activeSource, nowMs);
-  return copyCanvasSource(activeSource.canvas);
+  return copyCanvasSource(activeSource);
 }
 
 function applyQuietZoneMask() {
@@ -445,6 +468,18 @@ function settleFirstFrame(source, now) {
   source.firstFrameTimeoutId = 0;
   source.firstFrame.settled = true;
   source.firstFrame.resolve({ status: 'ready', generation: source.generation, at: now });
+}
+
+function resolveGlowEmissionScale(now) {
+  if (!firstCompositeAt) return 1;
+  const holdMs = Math.max(0, Number(renderProfile?.glowHoldMs) || 0);
+  const fadeOutMs = Math.max(0, Number(renderProfile?.glowFadeOutMs) || 0);
+  const fadeElapsed = Math.max(0, now - firstCompositeAt - holdMs);
+  if (fadeElapsed <= 0) return 1;
+  if (fadeOutMs <= 0) return SUSTAINED_EMISSION_SCALE;
+  const progress = Math.min(1, fadeElapsed / fadeOutMs);
+  const easedProgress = progress * progress * (3 - 2 * progress);
+  return SUSTAINED_EMISSION_SCALE + (1 - SUSTAINED_EMISSION_SCALE) * (1 - easedProgress);
 }
 
 function maybeDowngradeQuality() {
@@ -487,6 +522,7 @@ function renderComposite(now) {
   effectRenderArgs.dtMs = dtMs;
   effectRenderArgs.qualityScale = dynamicQuality.scale;
   effectRenderArgs.responsiveScale = responsiveScale;
+  effectRenderArgs.emissionScale = reducedMotion ? 1 : resolveGlowEmissionScale(now);
   effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
   host.edgeLight.render(host.glowCanvas, renderProfile.edgeLight);
@@ -601,6 +637,11 @@ function handleThemeChange() {
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
+function handleSimulationModeChange() {
+  if (activeSource?.routeId !== 'home' || activeSource.kind !== 'canvas') return;
+  clearOutput();
+}
+
 function handleReducedMotionChange(event) {
   reducedMotion = event.matches === true;
   rebuildProfile();
@@ -638,15 +679,11 @@ function getDiagnosticSnapshot() {
     cadence,
     quality: dynamicQuality.id,
     scale: dynamicQuality.scale,
+    responsiveScale,
     themeMode,
     reducedMotion,
     effectiveDrift: renderProfile?.driftSpeedPxPerSec || 0,
-    materialBlurPx: getSimulationAtmosphereMaterialBlurPx(),
-    materialFilterSupported: CSS_MATERIAL_BLUR_SUPPORTED,
-    materialFilterStrategy: getSimulationAtmosphereMaterialBlurPx() > 0 ? 'css-compositor' : 'none',
-    crispTitleCanvasCount: typeof document === 'undefined'
-      ? 0
-      : document.querySelectorAll('#simulation-crisp-title-canvas').length,
+    glowEmissionScale: reducedMotion ? 1 : resolveGlowEmissionScale(performance.now()),
     outputWidth: host?.glowCanvas.width || 0,
     outputHeight: host?.glowCanvas.height || 0,
     compositedFrameCount,
@@ -658,6 +695,7 @@ function getDiagnosticSnapshot() {
     quietZoneGeometryReadCount,
     sampledEmitterCount: lastSampledEmitterCount,
     sourceLightCount: lastSourceLightCount,
+    sourceLayerCount: lastSourceLayerCount,
     emitterBudget: dynamicQuality.emitterBudget,
     firstCompositeAt,
     cost: {
@@ -727,6 +765,7 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   resizeObserver?.observe(root);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+  window.addEventListener('bb:modeChanged', handleSimulationModeChange);
   reducedMotionQuery?.addEventListener?.('change', handleReducedMotionChange);
   glowCanvas.hidden = true;
   edgeCanvas.hidden = true;
@@ -740,6 +779,7 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     cancelInternalFrame();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
+    window.removeEventListener('bb:modeChanged', handleSimulationModeChange);
     reducedMotionQuery?.removeEventListener?.('change', handleReducedMotionChange);
     resizeObserver?.disconnect();
     markSourceElement(activeSource, false);
@@ -749,15 +789,12 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     glowCanvas.hidden = true;
     edgeCanvas.hidden = true;
     document.documentElement.style.removeProperty('--atmosphere-core-presence');
-    document.documentElement.style.removeProperty('--atmosphere-material-blur');
     document.documentElement.style.removeProperty('--atmosphere-haze-strength');
     document.documentElement.style.removeProperty('--atmosphere-grain-strength');
     document.documentElement.style.removeProperty('--atmosphere-edge-width');
     delete root.dataset.atmosphereActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
-    delete root.dataset.atmosphereMaterialBlurActive;
-    delete root.dataset.atmosphereMaterialFilter;
     if (window.__ABS_SIMULATION_ATMOSPHERE__) delete window.__ABS_SIMULATION_ATMOSPHERE__;
     host = null;
   };
@@ -883,9 +920,4 @@ export function getSimulationAtmosphereMaterialOpacity() {
   return isSimulationAtmosphereActive()
     ? Math.max(0, Math.min(1, Number(renderProfile?.ballPresence) || 0))
     : 1;
-}
-
-export function getSimulationAtmosphereMaterialBlurPx() {
-  if (!CSS_MATERIAL_BLUR_SUPPORTED || !isSimulationAtmosphereActive()) return 0;
-  return Math.max(0, Math.min(3, Number(renderProfile?.materialBlurPx) || 0));
 }

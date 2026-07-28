@@ -2,9 +2,8 @@ const createProfile = (values) => Object.freeze(values);
 
 const LIGHT_PROFILE = createProfile({
   ballPresence: 0.95,
-  materialBlurPx: 1,
-  glowAmount: 0.38,
-  glowRadiusFxPx: 37,
+  glowAmount: 0.83,
+  glowRadiusFxPx: 78,
   colourStrength: 1.5,
   glowBlendMode: 'add',
   hazeStrength: 1,
@@ -17,18 +16,17 @@ const LIGHT_PROFILE = createProfile({
 });
 
 const DARK_PROFILE = createProfile({
-  ballPresence: 0.95,
-  materialBlurPx: 1,
-  glowAmount: 0.19,
+  ballPresence: 1,
+  glowAmount: 0.36,
   glowRadiusFxPx: 80,
   colourStrength: 1.5,
-  glowBlendMode: 'add',
+  glowBlendMode: 'normal',
   hazeStrength: 2,
   grainStrength: 2,
   afterglowHalfLifeMs: 2000,
   driftSpeedPxPerSec: 8,
-  titleClearance: 0.62,
-  edgeLight: 2,
+  titleClearance: 0.75,
+  edgeLight: 2.5,
   edgeWidthPx: 2,
 });
 
@@ -36,6 +34,8 @@ export const DEFAULT_SIMULATION_ATMOSPHERE_CONFIG = Object.freeze({
   enabled: true,
   qualityMode: 'auto',
   hazeCadence: 'auto',
+  glowHoldMs: 2000,
+  glowFadeOutMs: 3000,
   light: LIGHT_PROFILE,
   dark: DARK_PROFILE,
 });
@@ -60,10 +60,9 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     controls: Object.freeze([
       { id: 'enabled', label: 'Enabled', type: 'checkbox', scope: 'common' },
       { id: 'ballPresence', label: 'Balls', type: 'range', min: 0, max: 1, step: 0.01, display: 'percent' },
-      { id: 'materialBlurPx', label: 'Body Blur', type: 'range', min: 0, max: 3, step: 0.25, display: 'subpx' },
-      { id: 'glowAmount', label: 'Atmosphere', type: 'range', min: 0, max: 0.85, step: 0.01, display: 'percent' },
-      { id: 'glowRadiusFxPx', label: 'Radius', type: 'range', min: 12, max: 80, step: 1, display: 'px' },
-      { id: 'colourStrength', label: 'Colour', type: 'range', min: 0, max: 1.5, step: 0.05 },
+      { id: 'glowAmount', label: 'Atmosphere', type: 'range', min: 0, max: 2, step: 0.01, display: 'percent' },
+      { id: 'glowRadiusFxPx', label: 'Radius', type: 'range', min: 0, max: 420, step: 2, display: 'px' },
+      { id: 'colourStrength', label: 'Colour', type: 'range', min: 0, max: 3, step: 0.05 },
       { id: 'glowBlendMode', label: 'Blend', type: 'select', options: ['normal', 'screen', 'add'] },
     ]),
   }),
@@ -72,10 +71,10 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     initiallyOpen: true,
     scope: 'themeProfile',
     controls: Object.freeze([
-      { id: 'edgeLight', label: 'Edge Strength', type: 'range', min: 0, max: 2.5, step: 0.05, display: 'percent' },
-      { id: 'edgeWidthPx', label: 'Edge Width', type: 'range', min: 1, max: 2, step: 0.25, display: 'subpx' },
-      { id: 'hazeStrength', label: 'Haze', type: 'range', min: 0, max: 2, step: 0.01, display: 'percent' },
-      { id: 'grainStrength', label: 'Grain', type: 'range', min: 0, max: 2, step: 0.01, display: 'percent' },
+      { id: 'edgeLight', label: 'Edge Strength', type: 'range', min: 0, max: 5, step: 0.05, display: 'percent' },
+      { id: 'edgeWidthPx', label: 'Edge Width', type: 'range', min: 0, max: 8, step: 0.25, display: 'subpx' },
+      { id: 'hazeStrength', label: 'Haze', type: 'range', min: 0, max: 4, step: 0.01, display: 'percent' },
+      { id: 'grainStrength', label: 'Grain', type: 'range', min: 0, max: 4, step: 0.01, display: 'percent' },
     ]),
   }),
   Object.freeze({
@@ -83,8 +82,8 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     initiallyOpen: true,
     scope: 'themeProfile',
     controls: Object.freeze([
-      { id: 'titleClearance', label: 'Legibility', type: 'range', min: 0, max: 0.75, step: 0.01, display: 'percent' },
-      { id: 'titleYOffsetVh', label: 'Title Y', type: 'range', min: -12, max: 12, step: 0.25, display: 'vh', scope: 'common' },
+      { id: 'titleClearance', label: 'Legibility', type: 'range', min: 0, max: 1, step: 0.01, display: 'percent' },
+      { id: 'titleYOffsetVh', label: 'Title Y', type: 'range', min: -24, max: 24, step: 0.25, display: 'vh', scope: 'common' },
     ]),
   }),
   Object.freeze({
@@ -92,8 +91,10 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     initiallyOpen: true,
     scope: 'themeProfile',
     controls: Object.freeze([
-      { id: 'afterglowHalfLifeMs', label: 'Memory', type: 'range', min: 0, max: 2000, step: 25, display: 'ms' },
-      { id: 'driftSpeedPxPerSec', label: 'Drift', type: 'range', min: 0, max: 12, step: 0.25, display: 'pxs' },
+      { id: 'glowHoldMs', label: 'Glow Hold', type: 'range', min: 0, max: 10000, step: 250, display: 'ms', scope: 'common' },
+      { id: 'glowFadeOutMs', label: 'Glow Fade', type: 'range', min: 0, max: 10000, step: 250, display: 'ms', scope: 'common' },
+      { id: 'afterglowHalfLifeMs', label: 'Memory', type: 'range', min: 0, max: 6000, step: 25, display: 'ms' },
+      { id: 'driftSpeedPxPerSec', label: 'Drift', type: 'range', min: 0, max: 60, step: 0.25, display: 'pxs' },
     ]),
   }),
   PERFORMANCE_CONTROLS,
@@ -113,18 +114,17 @@ function normalizeThemeProfile(profile, defaults) {
   const source = profile && typeof profile === 'object' ? profile : {};
   return {
     ballPresence: clampNumber(source.ballPresence, 0, 1, defaults.ballPresence),
-    materialBlurPx: clampNumber(source.materialBlurPx, 0, 3, defaults.materialBlurPx),
-    glowAmount: clampNumber(source.glowAmount, 0, 0.85, defaults.glowAmount),
-    glowRadiusFxPx: clampNumber(source.glowRadiusFxPx, 12, 80, defaults.glowRadiusFxPx),
-    colourStrength: clampNumber(source.colourStrength, 0, 1.5, defaults.colourStrength),
+    glowAmount: clampNumber(source.glowAmount, 0, 2, defaults.glowAmount),
+    glowRadiusFxPx: clampNumber(source.glowRadiusFxPx, 0, 420, defaults.glowRadiusFxPx),
+    colourStrength: clampNumber(source.colourStrength, 0, 3, defaults.colourStrength),
     glowBlendMode: normalizeChoice(source.glowBlendMode, ['normal', 'screen', 'add'], defaults.glowBlendMode),
-    hazeStrength: clampNumber(source.hazeStrength, 0, 2, defaults.hazeStrength),
-    grainStrength: clampNumber(source.grainStrength, 0, 2, defaults.grainStrength),
-    afterglowHalfLifeMs: clampNumber(source.afterglowHalfLifeMs, 0, 2000, defaults.afterglowHalfLifeMs),
-    driftSpeedPxPerSec: clampNumber(source.driftSpeedPxPerSec, 0, 12, defaults.driftSpeedPxPerSec),
-    titleClearance: clampNumber(source.titleClearance, 0, 0.75, defaults.titleClearance),
-    edgeLight: clampNumber(source.edgeLight, 0, 2.5, defaults.edgeLight),
-    edgeWidthPx: clampNumber(source.edgeWidthPx, 1, 2, defaults.edgeWidthPx),
+    hazeStrength: clampNumber(source.hazeStrength, 0, 4, defaults.hazeStrength),
+    grainStrength: clampNumber(source.grainStrength, 0, 4, defaults.grainStrength),
+    afterglowHalfLifeMs: clampNumber(source.afterglowHalfLifeMs, 0, 6000, defaults.afterglowHalfLifeMs),
+    driftSpeedPxPerSec: clampNumber(source.driftSpeedPxPerSec, 0, 60, defaults.driftSpeedPxPerSec),
+    titleClearance: clampNumber(source.titleClearance, 0, 1, defaults.titleClearance),
+    edgeLight: clampNumber(source.edgeLight, 0, 5, defaults.edgeLight),
+    edgeWidthPx: clampNumber(source.edgeWidthPx, 0, 8, defaults.edgeWidthPx),
   };
 }
 
@@ -142,6 +142,18 @@ export function normalizeSimulationAtmosphereConfig(input = {}) {
       ['auto', '60', '30', '20'],
       DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.hazeCadence,
     ),
+    glowHoldMs: clampNumber(
+      source.glowHoldMs,
+      0,
+      10000,
+      DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.glowHoldMs,
+    ),
+    glowFadeOutMs: clampNumber(
+      source.glowFadeOutMs,
+      0,
+      10000,
+      DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.glowFadeOutMs,
+    ),
     light: normalizeThemeProfile(source.light, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.light),
     dark: normalizeThemeProfile(source.dark, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.dark),
   };
@@ -150,8 +162,8 @@ export function normalizeSimulationAtmosphereConfig(input = {}) {
 export function normalizeSimulationAtmosphereTitleYOffsetVh(value) {
   return clampNumber(
     value,
-    -12,
-    12,
+    -24,
+    24,
     DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
   );
 }
@@ -168,6 +180,8 @@ export function resolveSimulationAtmosphereRenderProfile(config, theme = 'light'
     enabled: normalized.enabled,
     qualityMode: normalized.qualityMode,
     hazeCadence: normalized.hazeCadence,
+    glowHoldMs: normalized.glowHoldMs,
+    glowFadeOutMs: normalized.glowFadeOutMs,
     emissionGain: 1,
     fogDensity: visual.glowAmount,
     haloSpread: 1,
@@ -188,7 +202,6 @@ export function resolveSimulationAtmosphereRenderProfile(config, theme = 'light'
     edgeLight: visual.edgeLight,
     edgeWidthPx: visual.edgeWidthPx,
     ballPresence: visual.ballPresence,
-    materialBlurPx: visual.materialBlurPx,
     hazeStrength: visual.hazeStrength,
     grainStrength: visual.grainStrength,
     blurRadiusFxPx: visual.glowRadiusFxPx,

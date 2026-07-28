@@ -224,25 +224,15 @@ export function StudioShell({
                 />
               </div>
             ) : null}
-          </div>
-          <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
-          <div className="frame-vignette" aria-hidden="true" />
-          <div className="simulation-contrast-veil" aria-hidden="true" />
-
-          <RouteTransitionLoader
-            transitionState={transitionState || {
-              phase: transitionPhase,
-              pendingRouteId,
-            }}
-          />
-
-          <div
-            ref={surfaceRefs?.ui}
-            className="fade-content page-content ui-layer"
-            data-route-surface="ui"
-            aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
-          >
-            <div id="app-frame" className="ui-layer-wrapper">
+            <div className="frame-vignette" aria-hidden="true" />
+            <div className="simulation-contrast-veil" aria-hidden="true" />
+            <div
+              ref={surfaceRefs?.ui}
+              className="fade-content page-content ui-layer"
+              data-route-surface="ui"
+              aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
+            >
+              <div id="app-frame" className="ui-layer-wrapper">
                 <div
                   id="shell-route-slot"
                   className="shell-route-slot"
@@ -279,6 +269,15 @@ export function StudioShell({
                 </div>
               </div>
             </div>
+          </div>
+          <div id="simulation-transaction-snapshot-host" aria-hidden="true" />
+
+          <RouteTransitionLoader
+            transitionState={transitionState || {
+              phase: transitionPhase,
+              pendingRouteId,
+            }}
+          />
           <ShellWindowOverlay>
             {windowOverlayContent ?? simulationFocusModal}
           </ShellWindowOverlay>

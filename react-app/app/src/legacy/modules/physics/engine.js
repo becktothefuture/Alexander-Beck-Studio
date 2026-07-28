@@ -20,15 +20,10 @@ import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import {
   TITLE_DEPTH_PLANE_Z,
-  disposeHomepageCrispTitleCanvas,
   drawHomepageCanvasTitle,
   modeUsesDepthTitlePlane,
-  syncHomepageCrispTitleCanvas,
 } from '../rendering/title-depth.js';
-import {
-  getSimulationAtmosphereMaterialBlurPx,
-  getSimulationAtmosphereMaterialOpacity,
-} from '../rendering/atmosphere/simulation-atmosphere.js';
+import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
 import {
   doesAtmosphereEngineOwnTitle,
   isAtmosphereFrameRendererActive,
@@ -870,7 +865,6 @@ export function render() {
   const customRenderer = getModeCustomRenderer();
   const depthRenderer = getModeDepthRenderer();
   const atmosphereMaterialOpacity = getSimulationAtmosphereMaterialOpacity();
-  const atmosphereMaterialBlurPx = getSimulationAtmosphereMaterialBlurPx();
   const needsDepthTitleLayer = !customRenderer && modeNeedsDepthTitleLayer(globals.currentMode);
   if (
     needsDepthTitleLayer &&
@@ -889,15 +883,7 @@ export function render() {
   if (frontCtx && frontCanvas) {
     frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
   }
-  const crispTitleCtx = engineOwnsTitle && atmosphereMaterialBlurPx > 0
-    ? syncHomepageCrispTitleCanvas(globals, canvas, needsDepthTitleLayer)
-    : null;
-  if (crispTitleCtx) {
-    crispTitleCtx.clearRect(0, 0, canvas.width, canvas.height);
-  } else if (globals.crispTitleCanvas) {
-    disposeHomepageCrispTitleCanvas(globals);
-  }
-  const titleCtx = crispTitleCtx || ctx;
+  const titleCtx = ctx;
 
   if (customRenderer) {
     if (engineOwnsTitle) drawHomepageCanvasTitle(titleCtx, globals);

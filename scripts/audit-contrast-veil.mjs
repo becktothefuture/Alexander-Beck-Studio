@@ -158,6 +158,9 @@ async function readShellState(page, route) {
       routeId,
       sceneRect: rectOf(scene),
       veilRect: rectOf(veil),
+      uiRect: rectOf(ui),
+      veilContainedByScene: veil?.parentElement === scene,
+      uiContainedByScene: ui?.parentElement === scene,
       sceneZ: Number.parseInt(getComputedStyle(scene).zIndex, 10),
       veilZ: Number.parseInt(getComputedStyle(veil).zIndex, 10),
       uiZ: Number.parseInt(getComputedStyle(ui).zIndex, 10),
@@ -183,12 +186,22 @@ function assertShellState(state) {
   assert(state.veilBeforeBackground !== 'none', 'Shared veil edge field is missing', state);
   assert(state.veilAfterBackground !== 'none', 'Shared veil dither field is missing', state);
   assert(state.sceneRect && state.veilRect, 'Shared scene or veil geometry is missing', state);
+  assert(state.veilContainedByScene, 'Shared veil must be contained by the studio-window clip', state);
+  assert(state.uiContainedByScene, 'Route UI must be contained by the studio-window clip', state);
   const geometryTolerance = state.routeId === 'portfolio-locked' ? 5 : 1;
   for (const edge of ['left', 'top', 'right', 'bottom', 'width', 'height']) {
     assert(
       Math.abs(state.sceneRect[edge] - state.veilRect[edge]) <= geometryTolerance,
       `Shared veil ${edge} does not match the studio window`,
       state,
+    );
+  }
+  assert(state.uiRect, 'Shared route UI geometry is missing', state);
+  for (const edge of ['left', 'top', 'right', 'bottom', 'width', 'height']) {
+    assert(
+      Math.abs(state.sceneRect[edge] - state.uiRect[edge]) <= 1,
+      `Shared route UI ${edge} does not match the studio window`,
+      state
     );
   }
   for (const [name, owned] of Object.entries(state.ownership)) {

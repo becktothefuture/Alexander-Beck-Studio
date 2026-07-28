@@ -506,14 +506,24 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       });
       if (!isCurrent()) return cleanup;
     } else {
+      const atmosphereCanvasLayers = [canvas];
       atmosphereSourceCleanup = registerSimulationAtmosphereSource({
         id: `home:legacy:${Number(generation || 0)}`,
         routeId: 'home',
-        kind: 'emitters',
+        kind: 'canvas',
         canvas,
-        getEmitters: () => getGlobals().balls,
+        getCanvasLayers: () => {
+          const frontDepthCanvas = getGlobals().depthTitleFrontCanvas;
+          if (frontDepthCanvas?.isConnected) {
+            atmosphereCanvasLayers[1] = frontDepthCanvas;
+            atmosphereCanvasLayers.length = 2;
+          } else {
+            atmosphereCanvasLayers.length = 1;
+          }
+          return atmosphereCanvasLayers;
+        },
         quietZoneElement: () => document.getElementById('hero-title'),
-        scheduler: 'external',
+        scheduler: 'renderer-coupled',
         opacityElement: canvas,
       });
       if (getGlobals().currentMode === MODES.BUBBLES) {

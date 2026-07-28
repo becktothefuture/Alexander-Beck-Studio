@@ -215,7 +215,6 @@ async function auditCrispGlowTitleDepth(page) {
     titleResults.push({
       mode,
       titleVisible: snap.titleVisible,
-      crispTitleCanvasCount: snap.crispTitleCanvasCount,
     });
   }
 
@@ -231,7 +230,6 @@ async function auditCrispGlowTitleDepth(page) {
   }, undefined, { timeout: WAIT_MS });
   const emergence = await page.evaluate(() => {
     const material = document.getElementById('c');
-    const title = document.getElementById('simulation-crisp-title-canvas');
     const front = document.getElementById('simulation-front-depth-canvas');
     return {
       ...window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
@@ -241,10 +239,8 @@ async function auditCrispGlowTitleDepth(page) {
       edgeCanvasCount: document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length,
       edgeClipCount: document.querySelectorAll('.atmosphere-edge-light-defs clipPath path').length,
       materialZ: Number.parseFloat(getComputedStyle(material).zIndex),
-      titleZ: title ? Number.parseFloat(getComputedStyle(title).zIndex) : null,
       frontZ: Number.parseFloat(getComputedStyle(front).zIndex),
       materialFilter: getComputedStyle(material).filter,
-      titleFilter: title ? getComputedStyle(title).filter : '',
       frontFilter: getComputedStyle(front).filter,
     };
   });
@@ -256,7 +252,6 @@ async function auditCrispGlowTitleDepth(page) {
     || emergence.edgeClipCount !== 0
     || !(emergence.materialZ < emergence.frontZ)
     || emergence.materialFilter !== 'none'
-    || emergence.titleFilter !== ''
     || emergence.frontFilter !== 'none'
     || emergence.edgeWidth <= 0
     || emergence.edgeHeight <= 0
@@ -266,7 +261,6 @@ async function auditCrispGlowTitleDepth(page) {
 
   const requiredCompositionControls = [
     'ballPresence',
-    'materialBlurPx',
     'glowAmount',
     'glowRadiusFxPx',
     'colourStrength',
@@ -300,7 +294,6 @@ async function auditCrispGlowTitleDepth(page) {
   await page.evaluate(() => {
     const values = {
       ballPresence: '0.42',
-      materialBlurPx: '1.5',
       hazeStrength: '0.65',
       grainStrength: '0.5',
       edgeWidthPx: '2',
@@ -318,39 +311,20 @@ async function auditCrispGlowTitleDepth(page) {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
     const rootStyle = getComputedStyle(document.documentElement);
     const material = document.getElementById('c');
-    const title = document.getElementById('simulation-crisp-title-canvas');
     const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
     return snap?.config?.dark?.ballPresence === 0.42
-      && snap?.config?.dark?.materialBlurPx === 1.5
       && snap?.config?.dark?.hazeStrength === 0.65
       && snap?.config?.dark?.grainStrength === 0.5
       && snap?.config?.dark?.edgeWidthPx === 2
       && snap?.config?.dark?.glowBlendMode === 'screen'
-      && snap?.materialBlurPx === 1.5
-      && snap?.materialFilterStrategy === 'css-compositor'
-      && snap?.crispTitleCanvasCount === 1
       && getComputedStyle(document.body).getPropertyValue('--atmosphere-core-presence').trim() === '0.42'
-      && rootStyle.getPropertyValue('--atmosphere-material-blur').trim() === '1.5px'
       && rootStyle.getPropertyValue('--atmosphere-haze-strength').trim() === '0.65'
       && rootStyle.getPropertyValue('--atmosphere-grain-strength').trim() === '0.5'
       && rootStyle.getPropertyValue('--atmosphere-edge-width').trim() === '2px'
-      && getComputedStyle(material).filter.includes('blur(1.5px)')
-      && getComputedStyle(title).filter === 'none'
+      && getComputedStyle(material).filter === 'none'
       && getComputedStyle(edge).filter === 'none';
   }, undefined, { timeout: WAIT_MS });
 
-  await page.$eval('input[data-parameter-id="materialBlurPx"]', (input) => {
-    input.value = '0';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    return snap?.materialBlurPx === 0
-      && snap?.materialFilterStrategy === 'none'
-      && snap?.crispTitleCanvasCount === 0
-      && getComputedStyle(document.getElementById('c')).filter === 'none'
-      && snap?.titleVisible === true;
-  }, undefined, { timeout: WAIT_MS });
   await page.getByRole('button', { name: 'Reset' }).click();
 
   await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
@@ -379,7 +353,6 @@ async function auditCrispGlowTitleDepth(page) {
     themeResults.push({
       theme,
       edgeLight: snap.config[theme].edgeLight,
-      materialBlurPx: snap.config[theme].materialBlurPx,
     });
   }
 

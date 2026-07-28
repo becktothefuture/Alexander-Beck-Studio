@@ -854,6 +854,8 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   g[getAtmosphereStateKey('enabled')] = config.enabled;
   g[getAtmosphereStateKey('qualityMode')] = config.qualityMode;
   g[getAtmosphereStateKey('hazeCadence')] = config.hazeCadence;
+  g[getAtmosphereStateKey('glowHoldMs')] = config.glowHoldMs;
+  g[getAtmosphereStateKey('glowFadeOutMs')] = config.glowFadeOutMs;
   g[getAtmosphereStateKey('titleYOffsetVh')] = readTitleYOffsetFromDocument();
   for (const theme of ['light', 'dark']) {
     for (const group of ATMOSPHERE_PROFILE_GROUPS) {
@@ -873,6 +875,8 @@ export function buildSimulationAtmosphereConfigFromControlState(
     enabled: readAtmosphereState(g, getAtmosphereStateKey('enabled'), base.enabled),
     qualityMode: readAtmosphereState(g, getAtmosphereStateKey('qualityMode'), base.qualityMode),
     hazeCadence: readAtmosphereState(g, getAtmosphereStateKey('hazeCadence'), base.hazeCadence),
+    glowHoldMs: readAtmosphereState(g, getAtmosphereStateKey('glowHoldMs'), base.glowHoldMs),
+    glowFadeOutMs: readAtmosphereState(g, getAtmosphereStateKey('glowFadeOutMs'), base.glowFadeOutMs),
     light: { ...base.light },
     dark: { ...base.dark },
   };
@@ -914,7 +918,14 @@ function createAtmosphereCommonControls() {
       group.controls.map((control) => [control.id, { group: group.title, control }])
     )),
   );
-  return ['enabled', 'titleYOffsetVh', 'qualityMode', 'hazeCadence'].map((id) => {
+  return [
+    'enabled',
+    'titleYOffsetVh',
+    'glowHoldMs',
+    'glowFadeOutMs',
+    'qualityMode',
+    'hazeCadence',
+  ].map((id) => {
     const entry = controlsById.get(id);
     const control = entry.control;
     return {

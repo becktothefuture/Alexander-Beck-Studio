@@ -43,12 +43,12 @@ Shared visual finish belongs in `shell`. Page namespaces own composition, page-s
 
 The shared atmosphere has two canonical shell locations:
 
-- `shell.surface.simulationAtmosphere` owns the enabled state, quality and cadence policy, and complete Light/Dark material profiles;
+- `shell.surface.simulationAtmosphere` owns the enabled state, quality and cadence policy, the shared glow hold/fade envelope, and complete Light/Dark material profiles;
 - `shell.hero.titleYOffsetVh` owns the single responsive Home title adjustment used by both the semantic title geometry and its Canvas rendering path.
 
 `src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js` is the one default, normalization, control-schema, and profile-resolution module. Do not duplicate profile defaults in a route, lab, stylesheet, or renderer. `normalizeDesignSystemConfig()` normalizes these nested fields before canonical save and build flattening; the generated `shell-config.json` therefore carries the same values for production fallback loading.
 
-Each Light/Dark material profile owns `materialBlurPx` as a 0–3px source-material softness value, authored at 1px by default. The runtime projects it to a CSS compositor filter; it must never become a per-body Canvas filter. A zero value restores the unfiltered source path exactly.
+The theme-independent `glowHoldMs` and `glowFadeOutMs` values time the entrance atmosphere. Each Light/Dark material profile owns atmosphere amount, viewport-scaled radius, colour, blend, environmental finish, title clearance, motion, and the final feedback-memory tail. Body blur is intentionally not part of the production material contract; simulation bodies remain crisp while the shared atmosphere Canvas supplies the broad softness.
 
 The Crisp + Glow lab remains the focused visual comparison surface. The main development panel also exposes the shared production schema once, under **Background Atmosphere**, with one Global section and separate Light Mode and Dark Mode profiles. Both surfaces run the production compositor, apply changes live, and save the same two atmosphere-owned shell paths in `design-system.json`; neither keeps a second set of defaults or opens a detached atmosphere window.
 

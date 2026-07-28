@@ -105,8 +105,8 @@ const unregister = registerSimulationAtmosphereSource({
 });
 ```
 
-- `emitters` requires `getEmitters()` and `external`; the Home physics frame hook calls `tickSimulationAtmosphere()` after material rendering.
-- `canvas` accepts `internal` when the compositor may sample independently, or `renderer-coupled` when the source renderer must tick it after publishing a frame. A registered source Canvas must never be either compositor output Canvas.
+- `emitters` requires `getEmitters()` and `external`.
+- `canvas` accepts `internal` when the compositor may sample independently, or `renderer-coupled` when the source renderer must tick it after publishing a frame. Home uses a renderer-coupled Canvas source and supplies its main and active front-depth canvases in final display order through `getCanvasLayers()`, so custom, replicated, and depth-split modes all feed the same finished-frame atmosphere path. A registered source Canvas must never be either compositor output Canvas.
 - `ambient` requires `internal` and uses the compositor's fixed eight-emitter fallback. It is for a genuinely canvas-less or deliberately suspended eligible state, not a substitute for registering available route material.
 - `quietZoneElement` may be an element or getter. Its geometry is cached and invalidated by resize, source, theme, and authored-geometry changes; settled frames must not introduce repeated layout reads.
 - `opacityElement` identifies the crisp material whose authored presence the compositor projects. Home keeps title opacity inside its engine rather than fading a title-bearing Canvas wholesale.
@@ -117,9 +117,12 @@ Scheduling and performance are part of the contract:
 
 - only one host, source, internal animation frame, glow Canvas, and edge Canvas may exist at once;
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
+- atmosphere radius and drift scale from `0.72×` to `2.5×` against the final studio-window framing, so a large display expands the authored field instead of leaving a desktop-sized patch;
 - automatic cadence is 30 FPS on desktop and 20 FPS on coarse-pointer, narrow, or short viewports; source physics/renderers retain their own cadence;
-- Canvas sources use one downsampled `drawImage`; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
-- authored source-material softness uses one CSS compositor blur per registered material Canvas (and Home depth layer), never `CanvasRenderingContext2D.filter` or `shadowBlur` inside the body loop;
+- `glowHoldMs` and `glowFadeOutMs` form one theme-independent smoothstep entrance envelope that settles to a sustained 50% live-source feed; it never stops ingesting the current final frame. Home clears feedback when its simulation changes, then rebuilds from the new mode's completed render rather than carrying an earlier mode into it;
+- the wall `ResizeObserver` must update glow, edge, and quiet-zone backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
+- Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
+- simulation bodies stay crisp; broad softness belongs to the shared atmosphere output and never to `CanvasRenderingContext2D.filter`, `shadowBlur`, or a whole-source CSS blur;
 - automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
 - internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep a drift loop alive;
 - two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.

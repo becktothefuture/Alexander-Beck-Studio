@@ -471,6 +471,27 @@ html.fonts-loading .project-detail {
   transform: translateZ(0);
 }
 
+/* Route UI is a true in-window layer. Keep its viewport-authored endpoints while
+   making #simulations the single physical clip for text blur and shadow spill. */
+#simulations > .page-content {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  padding-top: max(
+    0px,
+    calc(max(var(--abs-safe-top), var(--content-padding-y)) - var(--safari-tint-inset-y, var(--safari-tint-inset)))
+  );
+  padding-right: max(
+    0px,
+    calc(max(var(--abs-safe-right), var(--content-padding-x)) - var(--safari-tint-inset-x, var(--safari-tint-inset)))
+  );
+  padding-left: max(
+    0px,
+    calc(max(var(--abs-safe-left), var(--content-padding-x)) - var(--safari-tint-inset-x, var(--safari-tint-inset)))
+  );
+}
+
 /* Re-enable pointer events ONLY for actual interactive UI elements.
    Non-interactive wrappers remain pointer-events: none so clicks pass through to canvas.
    This prevents blank areas in header/footer from blocking simulation interaction. */
@@ -5006,19 +5027,6 @@ html.portfolio-access-gate-closing #modal-content-layer {
   /* Semantic alias for the main ball canvas. */
 }
 
-#simulations canvas.simulation-crisp-title-canvas {
-  z-index: 9;
-  pointer-events: none;
-  touch-action: auto;
-  background: transparent;
-  filter: none;
-  will-change: auto;
-}
-
-#simulations.simulation-depth-title-layer-active canvas.simulation-crisp-title-canvas {
-  z-index: 11;
-}
-
 #simulations > .simulation-front-depth-canvas {
   position: absolute;
   inset: 0;
@@ -5034,18 +5042,6 @@ html.portfolio-access-gate-closing #modal-content-layer {
 
 #simulations.simulation-depth-title-layer-active > .simulation-front-depth-canvas {
   display: block;
-}
-
-/* Source material can use a small compositor blur without putting Canvas 2D
-   filters in the per-body render path. The engine moves Home's title to its
-   own unfiltered Canvas while this is active. */
-#simulations[data-atmosphere-active='true'][data-atmosphere-material-blur-active='true']
-  canvas[data-atmosphere-source-material='true'],
-#simulations[data-atmosphere-active='true'][data-atmosphere-material-blur-active='true']
-  > .simulation-front-depth-canvas {
-  -webkit-filter: blur(var(--atmosphere-material-blur, 0px));
-  filter: blur(var(--atmosphere-material-blur, 0px));
-  will-change: transform, filter;
 }
 
 /* Production simulation atmosphere. The two output canvases are stable shell
@@ -5203,6 +5199,12 @@ body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab
   z-index: var(--z-contrast-veil, 180);
 }
 
+#simulations > .frame-vignette,
+#simulations > .simulation-contrast-veil {
+  inset: 0;
+  border-radius: inherit;
+}
+
 .simulation-contrast-veil::before,
 .portfolio-project-view__veil::before {
   content: '';
@@ -5280,7 +5282,7 @@ body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab
   content: none;
 }
 
-#simulations[data-atmosphere-active='true'] ~ .simulation-contrast-veil {
+#simulations[data-atmosphere-active='true'] > .simulation-contrast-veil {
   --simulation-contrast-veil-effective-opacity: calc(
     var(--simulation-contrast-veil-opacity)
     * var(--atmosphere-haze-strength, 1)
@@ -5775,17 +5777,13 @@ a:active {
   --abs-cursor-scale: 1;
   --abs-lens-bg: rgba(148, 148, 148, 0.34);
   --abs-lens-filter: none;
-  --abs-lens-shadow:
-    0 8px 22px rgba(var(--abs-rgb-black), 0.12),
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.16),
-    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.06);
   /* cursor.js moves this to body and fixes it to the viewport on first pointer movement. */
   position: absolute;
   pointer-events: none;
   z-index: 3; /* Within UI stacking context */
   border: none;
   background: var(--abs-lens-bg);
-  box-shadow: var(--abs-lens-shadow);
+  box-shadow: none;
   -webkit-backdrop-filter: var(--abs-lens-filter);
   backdrop-filter: var(--abs-lens-filter);
   transform-origin: center center;
@@ -5799,16 +5797,9 @@ a:active {
   border-radius: 50%;
 }
 
-body.dark-mode #custom-cursor {
-  --abs-lens-shadow:
-    0 8px 24px rgba(var(--abs-rgb-black), 0.16),
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.18),
-    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.12);
-}
-
 /* The sole cursor response: smaller and quieter over any clickable target. */
 #custom-cursor.abs-cursor-interactive {
-  --abs-cursor-scale: 0.84;
+  --abs-cursor-scale: 0.4166667;
   opacity: 0.72;
   transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
 }

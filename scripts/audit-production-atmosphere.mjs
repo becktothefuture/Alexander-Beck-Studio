@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 
 const ORIGIN = String(process.env.ABS_DEV_URL || 'http://localhost:8012').replace(/\/+$/, '');
@@ -6,6 +8,11 @@ const WAIT_MS = Math.max(5000, Number(process.env.ABS_ATMOSPHERE_WAIT_MS || 4500
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const HEADED = process.env.ABS_HEADED === '1';
 const ENFORCE_COST_BUDGET = process.env.ABS_ATMOSPHERE_ENFORCE_COST === '1';
+const CAPTURE_RESPONSIVE = process.env.ABS_ATMOSPHERE_CAPTURE_RESPONSIVE === '1';
+const RESPONSIVE_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere-responsive');
+const RESPONSIVE_REFERENCE_PX = 720;
+const RESPONSIVE_MIN_SCALE = 0.72;
+const RESPONSIVE_MAX_SCALE = 2.5;
 const PHASE_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_PHASES || '')
   .split(',')
   .map((value) => value.trim())
@@ -19,6 +26,13 @@ const SPA_SCENARIO_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_SPA_SCENAR
   .map((value) => value.trim())
   .filter(Boolean));
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
+const RESPONSIVE_PROFILES = Object.freeze([
+  Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 30 }),
+  Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 30 }),
+  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 20 }),
+  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 20 }),
+  Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 30 }),
+]);
 
 if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
   throw new Error(`Unsupported ABS_BROWSER=${BROWSER_NAME}; use chromium or webkit.`);
@@ -30,7 +44,7 @@ const PRIMARY_SCENARIOS = Object.freeze([
     path: '/index.html?mode=pit&absAudit=1',
     routeId: 'home',
     sourceIds: [/^home:legacy:\d+$/],
-    sourceKinds: ['emitters'],
+    sourceKinds: ['canvas'],
   },
   {
     id: 'portfolio',
@@ -92,6 +106,15 @@ async function waitForSettledAtmosphere(page, scenario) {
       const audit = window.__ABS_SIMULATION_ATMOSPHERE__;
       const snapshot = audit?.getSnapshot?.();
       if (!snapshot) return false;
+      const bootOverlay = document.getElementById('abs-boot-overlay');
+      const routeLoader = document.querySelector('.route-transition-loader');
+      const isVisuallyHidden = (element) => {
+        if (!element) return true;
+        const style = getComputedStyle(element);
+        return style.display === 'none'
+          || style.visibility === 'hidden'
+          || Number.parseFloat(style.opacity || '1') < 0.02;
+      };
       const sourceMatches = acceptedIds.some((candidate) => (
         candidate.type === 'regexp'
           ? new RegExp(candidate.value).test(snapshot.activeSourceId)
@@ -101,7 +124,10 @@ async function waitForSettledAtmosphere(page, scenario) {
         || (snapshot.status === 'failed-open' && Boolean(snapshot.failOpenReason));
       return (
         (root.dataset.absTransitionPhase || 'idle') === 'idle'
-        && root.dataset.absBootState !== 'booting'
+        && root.dataset.absBootState === 'ready'
+        && root.classList.contains('entrance-complete')
+        && isVisuallyHidden(bootOverlay)
+        && isVisuallyHidden(routeLoader)
         && snapshot.scope === 'production'
         && snapshot.routeId === expectedRouteId
         && sourceMatches
@@ -133,14 +159,13 @@ async function readAtmosphereState(page) {
     const wallRect = wall?.getBoundingClientRect() || null;
     const glow = document.getElementById('simulation-atmosphere-glow-canvas');
     const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
+    const glowRect = glow?.getBoundingClientRect() || null;
+    const edgeRect = edge?.getBoundingClientRect() || null;
     const edgeLayer = edge?.closest('.simulation-atmosphere-edge-light-layer') || null;
     const wallStyle = wall ? getComputedStyle(wall) : null;
     const edgeStyle = edge ? getComputedStyle(edge) : null;
     const edgeLayerStyle = edgeLayer ? getComputedStyle(edgeLayer) : null;
     const edgeLayerRect = edgeLayer?.getBoundingClientRect() || null;
-    const sourceMaterial = document.querySelector('[data-atmosphere-source-material="true"]');
-    const frontDepth = document.getElementById('simulation-front-depth-canvas');
-    const crispTitle = document.getElementById('simulation-crisp-title-canvas');
     return {
       snapshot,
       pathname: location.pathname,
@@ -154,6 +179,8 @@ async function readAtmosphereState(page) {
         edgeHidden: edge?.hidden ?? null,
         glowPointerEvents: glow ? getComputedStyle(glow).pointerEvents : '',
         edgePointerEvents: edge ? getComputedStyle(edge).pointerEvents : '',
+        glowRect: glowRect ? { width: glowRect.width, height: glowRect.height } : null,
+        edgeRect: edgeRect ? { width: edgeRect.width, height: edgeRect.height } : null,
         edgeLayerCount: document.querySelectorAll('.simulation-atmosphere-edge-light-layer').length,
         legacyEdgeContourCount: document.querySelectorAll('.atmosphere-edge-light-defs').length,
         wallRadius: wallStyle?.borderTopLeftRadius || '',
@@ -168,10 +195,6 @@ async function readAtmosphereState(page) {
         } : null,
         glowFilter: glow ? getComputedStyle(glow).filter : '',
         edgeFilter: edge ? getComputedStyle(edge).filter : '',
-        sourceMaterialFilter: sourceMaterial ? getComputedStyle(sourceMaterial).filter : '',
-        frontDepthFilter: frontDepth ? getComputedStyle(frontDepth).filter : '',
-        crispTitleCount: document.querySelectorAll('#simulation-crisp-title-canvas').length,
-        crispTitleFilter: crispTitle ? getComputedStyle(crispTitle).filter : '',
       },
     };
   });
@@ -192,6 +215,12 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.edgeCanvasId === 'simulation-atmosphere-edge-light-canvas', `${scenario.id}: edge canvas identity is wrong`, state);
   assert(state.dom.glowPointerEvents === 'none', `${scenario.id}: glow canvas captures pointer input`, state);
   assert(state.dom.edgePointerEvents === 'none', `${scenario.id}: edge canvas captures pointer input`, state);
+  assert(
+    Math.abs((state.dom.glowRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
+      && Math.abs((state.dom.glowRect?.height || 0) - (state.wallRect?.height || 0)) <= 0.25,
+    `${scenario.id}: glow display geometry diverges from the wall`,
+    state,
+  );
   assert(state.dom.edgeLayerCount === 1, `${scenario.id}: expected one edge-light layer`, state);
   assert(state.dom.legacyEdgeContourCount === 0, `${scenario.id}: legacy edge contour is still mounted`, state);
   assert(state.dom.edgeClipPath === 'none', `${scenario.id}: edge Canvas has an independent clip path`, state);
@@ -227,23 +256,9 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.outputWidth > 1 && snapshot.outputHeight > 1, `${scenario.id}: output buffer is empty`, state);
   assert(state.dom.glowHidden === false, `${scenario.id}: ready glow canvas is hidden`, state);
   assert(state.wallRect?.width > 1 && state.wallRect?.height > 1, `${scenario.id}: wall geometry is missing`, state);
-  if (snapshot.sourceKind !== 'ambient' && snapshot.materialBlurPx > 0) {
-    assert(
-      state.dom.sourceMaterialFilter.includes(`blur(${snapshot.materialBlurPx}px)`),
-      `${scenario.id}: source material did not receive the resolved blur`,
-      state,
-    );
-  }
-  if (scenario.id === 'home' && snapshot.materialBlurPx > 0) {
-    assert(state.dom.crispTitleCount === 1, 'home: crisp title canvas is missing', state);
-    assert(state.dom.crispTitleFilter === 'none', 'home: title canvas received material blur', state);
-    if (state.dom.frontDepthFilter) {
-      assert(
-        state.dom.frontDepthFilter.includes(`blur(${snapshot.materialBlurPx}px)`),
-        'home: front depth material did not receive the resolved blur',
-        state,
-      );
-    }
+  if (scenario.id === 'home') {
+    assert(snapshot.sourceKind === 'canvas', 'home: atmosphere does not sample the final rendered frame', state);
+    assert(snapshot.sourceLayerCount >= 1, 'home: final-frame source has no visible layers', state);
   }
   const expectedWidth = Math.round(state.wallRect.width * snapshot.scale);
   const expectedHeight = Math.round(state.wallRect.height * snapshot.scale);
@@ -260,6 +275,13 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
       state,
     );
     assert(snapshot.cadence === expectedResponsive.cadence, `${scenario.id}: responsive cadence is wrong`, state);
+    if (Number.isFinite(expectedResponsive.responsiveScale)) {
+      assert(
+        Math.abs(snapshot.responsiveScale - expectedResponsive.responsiveScale) <= 0.0001,
+        `${scenario.id}: responsive effect scale is wrong`,
+        state,
+      );
+    }
   }
 }
 
@@ -460,38 +482,14 @@ async function runTransitionSnapshotContract(browser) {
         ...PRIMARY_SCENARIOS[0],
         path: `/index.html?mode=${mode}&absAudit=1`,
       };
-      let initial = await gotoScenario(page, scenario);
+      const initial = await gotoScenario(page, scenario);
       assertAtmosphereState(initial, scenario);
-      await page.keyboard.press('/');
-      await page.waitForFunction(() => (
-        document.getElementById('atmosphereLightMaterialBlurPxSlider')
-        && document.getElementById('atmosphereDarkMaterialBlurPxSlider')
-      ), null, { timeout: WAIT_MS });
-      await page.evaluate(() => {
-        for (const id of [
-          'atmosphereLightMaterialBlurPxSlider',
-          'atmosphereDarkMaterialBlurPxSlider',
-        ]) {
-          const input = document.getElementById(id);
-          input.value = '1';
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      });
-      await page.waitForFunction(() => (
-        window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().materialBlurPx === 1
-        && window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().status === 'ready'
-        && document.getElementById('simulation-crisp-title-canvas')
-      ), null, { timeout: WAIT_MS, polling: 'raf' });
-      await page.keyboard.press('/');
-      initial = await readAtmosphereState(page);
-      assertAtmosphereState(initial, scenario);
-      const expectedMaterialFilter = `blur(${initial.snapshot.materialBlurPx}px)`;
       assert(await markStableOutputNodes(page), `${mode}: Home did not mount stable atmosphere outputs`);
       if (mode === 'bubbles') {
         await page.waitForFunction(() => (
           document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active')
           && document.getElementById('simulation-front-depth-canvas')
-          && document.getElementById('simulation-crisp-title-canvas')
+          && window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().sourceLayerCount === 2
         ), null, { timeout: WAIT_MS, polling: 'raf' });
       }
       await page.evaluate(() => {
@@ -504,24 +502,16 @@ async function runTransitionSnapshotContract(browser) {
           ? window.__ABS_SIMULATION_TRANSACTION_SNAPSHOT__.map((record) => ({ ...record }))
           : []
       ));
-      const titleIndex = records.findIndex((record) => record.id === 'home-canvas-title');
       const materialIndex = records.findIndex((record) => record.id === 'c');
       const frontIndex = records.findIndex((record) => record.id === 'simulation-front-depth-canvas');
-      const titleRecord = records[titleIndex];
       const materialRecord = records[materialIndex];
       const frontRecord = records[frontIndex];
-      assert(titleIndex >= 0, `${mode}: transition snapshot omitted the crisp Home title layer`, records);
-      assert(titleRecord.filter === 'none', `${mode}: transition snapshot blurred the title layer`, records);
-      assert(materialRecord?.filter.includes(expectedMaterialFilter), `${mode}: transition snapshot omitted material blur`, records);
+      assert(materialIndex >= 0, `${mode}: transition snapshot omitted Home material`, records);
+      assert(materialRecord?.filter === 'none', `${mode}: transition snapshot blurred Home material`, records);
       if (mode === 'bubbles') {
-        assert(
-          materialIndex < titleIndex && titleIndex < frontIndex,
-          'bubbles: transition snapshot rear/title/front order is wrong',
-          records,
-        );
-        assert(frontRecord?.filter.includes(expectedMaterialFilter), 'bubbles: transition snapshot omitted front blur', records);
+        assert(materialIndex < frontIndex, 'bubbles: transition snapshot rear/front order is wrong', records);
+        assert(frontRecord?.filter === 'none', 'bubbles: transition snapshot blurred front material', records);
       } else {
-        assert(titleIndex < materialIndex, `${mode}: transition snapshot title/material order is wrong`, records);
         assert(frontIndex < 0, `${mode}: ordinary transition snapshot captured a front depth layer`, records);
       }
       results.push({ mode, records });
@@ -530,6 +520,128 @@ async function runTransitionSnapshotContract(browser) {
     }
   }
   return results;
+}
+
+async function runKaleidoscopeFinalFrameContract(browser) {
+  const context = await browser.newContext({ viewport: { width: 2560, height: 1440 } });
+  const page = await context.newPage();
+  const scenario = PRIMARY_SCENARIOS[0];
+  const results = [];
+  try {
+    await gotoScenario(page, scenario);
+    await page.evaluate(async () => {
+      const atmosphere = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+      const config = atmosphere.getSimulationAtmosphereConfig();
+      atmosphere.setSimulationAtmosphereConfig({
+        ...config,
+        qualityMode: 'low',
+        glowHoldMs: 0,
+        glowFadeOutMs: 0,
+      });
+    });
+
+    for (const mode of ['kaleidoscope-3', 'kaleidoscope-rift']) {
+      const before = await page.evaluate(() => (
+        window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null
+      ));
+      await page.evaluate(async (nextMode) => {
+        const controller = await import('/src/legacy/modules/modes/mode-controller.js');
+        await controller.setMode(nextMode);
+      }, mode);
+      await page.waitForFunction(async (expectedMode) => {
+        const runtime = await import('/src/legacy/modules/core/state.js');
+        return runtime.getGlobals().currentMode === expectedMode
+          && runtime.getGlobals().warmupFramesRemaining === 0;
+      }, mode, { timeout: WAIT_MS, polling: 'raf' });
+      await page.waitForTimeout(6200);
+      await page.waitForFunction(
+        async ({ expectedMode, minimumClearCount }) => {
+          const runtime = await import('/src/legacy/modules/core/state.js');
+          const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
+          return runtime.getGlobals().currentMode === expectedMode
+            && snapshot?.status === 'ready'
+            && snapshot?.firstCompositeAt > 0
+            && snapshot?.sourceKind === 'canvas'
+            && snapshot?.sourceLayerCount === 1
+            && snapshot?.clearCount > minimumClearCount
+            && snapshot?.glowEmissionScale >= 0.49
+            && snapshot?.glowEmissionScale <= 0.51;
+        },
+        {
+          expectedMode: mode,
+          minimumClearCount: before?.clearCount || 0,
+        },
+        { timeout: WAIT_MS, polling: 'raf' },
+      );
+
+      const coverage = await page.evaluate(({ sampleWidth, sampleHeight, sectorCount }) => {
+        const sampleSectors = (canvas) => {
+          const sample = document.createElement('canvas');
+          sample.width = sampleWidth;
+          sample.height = sampleHeight;
+          const context2d = sample.getContext('2d', { alpha: true });
+          context2d.drawImage(canvas, 0, 0, sampleWidth, sampleHeight);
+          const pixels = context2d.getImageData(0, 0, sampleWidth, sampleHeight).data;
+          const occupied = new Array(sectorCount).fill(0);
+          const alpha = new Array(sectorCount).fill(0);
+          const eligible = new Array(sectorCount).fill(0);
+          const centerX = sampleWidth * 0.5;
+          const centerY = sampleHeight * 0.5;
+          const maxRadius = Math.min(sampleWidth, sampleHeight) * 0.5;
+
+          for (let y = 0; y < sampleHeight; y += 1) {
+            for (let x = 0; x < sampleWidth; x += 1) {
+              const dx = x + 0.5 - centerX;
+              const dy = y + 0.5 - centerY;
+              const radius = Math.hypot(dx, dy) / maxRadius;
+              if (radius < 0.28 || radius > 0.92) continue;
+              const angle = (Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2);
+              const sector = Math.min(
+                sectorCount - 1,
+                Math.floor((angle / (Math.PI * 2)) * sectorCount),
+              );
+              const pixelAlpha = pixels[(y * sampleWidth + x) * 4 + 3];
+              eligible[sector] += 1;
+              alpha[sector] += pixelAlpha;
+              if (pixelAlpha > 2) occupied[sector] += 1;
+            }
+          }
+
+          return {
+            occupancy: occupied.map((count, index) => count / Math.max(1, eligible[index])),
+            meanAlpha: alpha.map((total, index) => total / Math.max(1, eligible[index]) / 255),
+          };
+        };
+
+        return {
+          snapshot: window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null,
+          source: sampleSectors(document.getElementById('c')),
+          atmosphere: sampleSectors(document.getElementById('simulation-atmosphere-glow-canvas')),
+        };
+      }, { sampleWidth: 320, sampleHeight: 180, sectorCount: 16 });
+
+      const sourceActiveSectors = coverage.source.occupancy.filter((value) => value > 0.002).length;
+      const atmosphereActiveSectors = coverage.atmosphere.meanAlpha.filter((value) => value > 0.002).length;
+      const matchedSectors = coverage.source.occupancy.reduce((count, value, index) => (
+        value > 0.002 && coverage.atmosphere.meanAlpha[index] > 0.002 ? count + 1 : count
+      ), 0);
+      const matchedRatio = sourceActiveSectors > 0 ? matchedSectors / sourceActiveSectors : 0;
+
+      assert(sourceActiveSectors === 16, `${mode}: final render does not occupy every mirrored sector`, coverage);
+      assert(atmosphereActiveSectors === 16, `${mode}: atmosphere collapsed to a subset of wedges`, coverage);
+      assert(matchedRatio === 1, `${mode}: atmosphere does not match every final-render sector`, coverage);
+      results.push({
+        mode,
+        sourceActiveSectors,
+        atmosphereActiveSectors,
+        matchedRatio,
+        glowEmissionScale: coverage.snapshot?.glowEmissionScale,
+      });
+    }
+    return results;
+  } finally {
+    await context.close();
+  }
 }
 
 async function runMobilePerformance(browser) {
@@ -543,10 +655,14 @@ async function runMobilePerformance(browser) {
   const page = await context.newPage();
   try {
     await gotoScenario(page, scenario);
-    await page.waitForFunction(() => {
+    const settledFrameCount = await page.evaluate(() => (
+      window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().compositedFrameCount || 0
+    ));
+    await page.waitForFunction((minimumFrameCount) => {
       const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
-      return snapshot?.status === 'failed-open' || snapshot?.cost?.sampleCount >= 20;
-    }, null, { timeout: WAIT_MS, polling: 50 });
+      return snapshot?.status === 'failed-open'
+        || snapshot?.compositedFrameCount >= minimumFrameCount;
+    }, settledFrameCount + 120, { timeout: WAIT_MS, polling: 50 });
     const state = await readAtmosphereState(page);
     assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 20 });
     if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready') {
@@ -598,6 +714,156 @@ async function runReducedMotion(browser) {
   }
 }
 
+async function setPageTheme(page, theme) {
+  await page.evaluate(async (nextTheme) => {
+    const module = await import('/src/legacy/modules/visual/dark-mode-v2.js');
+    module.setTheme(nextTheme);
+  }, theme);
+  await page.waitForFunction((expectedTheme) => {
+    const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
+    return snapshot?.themeMode === expectedTheme
+      && snapshot?.status === 'ready'
+      && snapshot?.firstCompositeAt > 0
+      && document.getElementById('simulation-atmosphere-glow-canvas')?.hidden === false;
+  }, theme, { timeout: WAIT_MS, polling: 'raf' });
+}
+
+async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeometryReads) {
+  await page.waitForFunction(
+    ({ expectedRouteId, expectedCadence, minimumGeometryReads }) => {
+      const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
+      const wallRect = document.getElementById('simulations')?.getBoundingClientRect();
+      const glow = document.getElementById('simulation-atmosphere-glow-canvas');
+      if (
+        !snapshot
+        || !wallRect
+        || snapshot.status !== 'ready'
+        || snapshot.firstCompositeAt <= 0
+        || glow?.hidden !== false
+      ) return false;
+      const expectedWidth = Math.round(wallRect.width * snapshot.scale);
+      const expectedHeight = Math.round(wallRect.height * snapshot.scale);
+      return snapshot.routeId === expectedRouteId
+        && snapshot.cadence === expectedCadence
+        && snapshot.geometryReadCount > minimumGeometryReads
+        && Math.abs(snapshot.outputWidth - expectedWidth) <= 2
+        && Math.abs(snapshot.outputHeight - expectedHeight) <= 2
+        && snapshot.edgeWidth === snapshot.outputWidth
+        && snapshot.edgeHeight === snapshot.outputHeight;
+    },
+    {
+      expectedRouteId: scenario.routeId,
+      expectedCadence: profile.cadence,
+      minimumGeometryReads: previousGeometryReads,
+    },
+    { timeout: WAIT_MS, polling: 'raf' },
+  );
+}
+
+async function waitForStableWallGeometry(page) {
+  await page.evaluate(() => new Promise((resolve) => {
+    const startedAt = performance.now();
+    let previousWidth = -1;
+    let previousHeight = -1;
+    let stableFrames = 0;
+    const sample = () => {
+      const rect = document.getElementById('simulations')?.getBoundingClientRect();
+      if (!rect) {
+        resolve();
+        return;
+      }
+      const stable = Math.abs(rect.width - previousWidth) < 0.05
+        && Math.abs(rect.height - previousHeight) < 0.05;
+      stableFrames = stable ? stableFrames + 1 : 0;
+      previousWidth = rect.width;
+      previousHeight = rect.height;
+      if (stableFrames >= 4 || performance.now() - startedAt > 2000) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  }));
+}
+
+async function runResponsiveResizeMatrix(browser) {
+  const results = [];
+  const scenarios = PRIMARY_SCENARIOS.slice(0, 4);
+  if (CAPTURE_RESPONSIVE) await mkdir(RESPONSIVE_CAPTURE_ROOT, { recursive: true });
+
+  for (const scenario of scenarios) {
+    const initialProfile = RESPONSIVE_PROFILES[0];
+    const context = await browser.newContext({
+      viewport: { width: initialProfile.width, height: initialProfile.height },
+    });
+    await installPortfolioAccess(context);
+    const page = await context.newPage();
+    try {
+      let state = await gotoScenario(page, scenario);
+      for (const theme of ['light', 'dark']) {
+        await setPageTheme(page, theme);
+        for (let index = 0; index < RESPONSIVE_PROFILES.length; index += 1) {
+          const profile = RESPONSIVE_PROFILES[index];
+          const previousGeometryReads = state.snapshot.geometryReadCount;
+          await page.setViewportSize({ width: profile.width, height: profile.height });
+          await waitForResponsiveAtmosphere(
+            page,
+            scenario,
+            profile,
+            index === 0 ? previousGeometryReads - 1 : previousGeometryReads,
+          );
+          await waitForStableWallGeometry(page);
+          await waitForResponsiveAtmosphere(page, scenario, profile, -1);
+          state = await readAtmosphereState(page);
+          const expectedResponsiveScale = Math.max(
+            RESPONSIVE_MIN_SCALE,
+            Math.min(
+              RESPONSIVE_MAX_SCALE,
+              Math.min(state.wallRect.width, state.wallRect.height) / RESPONSIVE_REFERENCE_PX,
+            ),
+          );
+          assertAtmosphereState(state, scenario, {
+            qualities: ['high', 'balanced', 'low'],
+            cadence: profile.cadence,
+            responsiveScale: expectedResponsiveScale,
+          });
+          assert(
+            state.snapshot.edgeWidth === state.snapshot.outputWidth
+              && state.snapshot.edgeHeight === state.snapshot.outputHeight,
+            `${scenario.id}/${theme}/${profile.id}: edge backing store diverges from glow output`,
+            state,
+          );
+          if (CAPTURE_RESPONSIVE) {
+            await page.screenshot({
+              path: resolve(
+                RESPONSIVE_CAPTURE_ROOT,
+                `${BROWSER_NAME}-${scenario.id}-${theme}-${profile.id}.png`,
+              ),
+            });
+          }
+          results.push({
+            route: scenario.id,
+            theme,
+            profile: profile.id,
+            wall: state.wallRect,
+            output: {
+              width: state.snapshot.outputWidth,
+              height: state.snapshot.outputHeight,
+            },
+            cadence: state.snapshot.cadence,
+            quality: state.snapshot.quality,
+            responsiveScale: state.snapshot.responsiveScale,
+          });
+        }
+      }
+    } finally {
+      await context.close();
+    }
+  }
+  return results;
+}
+
 async function measureFrameCadence(page, count = 90) {
   return page.evaluate((sampleCount) => new Promise((resolve) => {
     const deltas = [];
@@ -642,44 +908,12 @@ async function runCrispLabViewport(browser, profile, { measureCadence = false } 
     assert(state.snapshot.compositorCount === 1, 'Crisp lab mounted more than one compositor', state);
     assert(state.snapshot.activeSourceCount === 1, 'Crisp lab mounted more than one source', state);
     assert(state.snapshot.sourceKind === 'emitters', 'Crisp lab did not reuse the emitter production path', state);
-    await page.$eval('input[data-parameter-id="materialBlurPx"]', (input) => {
-      input.value = '0';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await page.waitForFunction(() => (
-      window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().materialBlurPx === 0
-      && document.querySelectorAll('#simulation-crisp-title-canvas').length === 0
-    ), null, { timeout: WAIT_MS, polling: 'raf' });
-    const baselineCadence = measureCadence ? await measureFrameCadence(page) : null;
-
-    await page.$eval('input[data-parameter-id="materialBlurPx"]', (input) => {
-      input.value = '3';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await page.waitForFunction(() => (
-      window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().materialBlurPx === 3
-      && document.querySelectorAll('#simulation-crisp-title-canvas').length === 1
-    ), null, { timeout: WAIT_MS, polling: 'raf' });
-    const blurredState = await readAtmosphereState(page);
     assert(
-      blurredState.dom.sourceMaterialFilter.includes('blur(3px)'),
-      'Crisp lab source material did not receive 3px blur',
-      blurredState,
+      await page.locator('input[data-parameter-id="materialBlurPx"]').count() === 0,
+      'Crisp lab still exposes the retired Body Blur control',
+      state,
     );
-    assert(blurredState.dom.crispTitleFilter === 'none', 'Crisp lab title received material blur', blurredState);
-    const blurCadence = measureCadence ? await measureFrameCadence(page) : null;
-    if (measureCadence) {
-      assert(
-        blurCadence.p95Ms <= Math.max(20, baselineCadence.p95Ms + 4),
-        'Crisp lab compositor blur regressed frame cadence',
-        { profile: profile.id, baselineCadence, blurCadence },
-      );
-      assert(
-        blurCadence.over25Ms <= baselineCadence.over25Ms + 2,
-        'Crisp lab compositor blur introduced sustained slow frames',
-        { profile: profile.id, baselineCadence, blurCadence },
-      );
-    }
+    const baselineCadence = measureCadence ? await measureFrameCadence(page) : null;
     return {
       profile: profile.id,
       status: state.snapshot.status,
@@ -687,7 +921,6 @@ async function runCrispLabViewport(browser, profile, { measureCadence = false } 
       sourceId: state.snapshot.activeSourceId,
       cadenceMeasured: measureCadence,
       baselineCadence,
-      blurCadence,
     };
   } finally {
     await context.close();
@@ -716,55 +949,9 @@ async function runCrispLabIsolation(browser) {
   return results;
 }
 
-async function runUnsupportedFilterFallback(browser) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  await context.addInitScript(() => {
-    const nativeSupports = CSS.supports.bind(CSS);
-    Object.defineProperty(CSS, 'supports', {
-      configurable: true,
-      value(property, value) {
-        if (property === 'filter' && value === 'blur(1px)') return false;
-        return nativeSupports(property, value);
-      },
-    });
-  });
-  const page = await context.newPage();
-  try {
-    await page.goto(routeUrl('/lab/atmosphere-crisp-glow.html?mode=water&panel=0&absAudit=1'), {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000,
-    });
-    await page.waitForFunction(() => {
-      const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
-      return snapshot?.status === 'ready' && snapshot?.materialFilterSupported === false;
-    }, null, { timeout: WAIT_MS, polling: 'raf' });
-    const state = await readAtmosphereState(page);
-    assert(state.snapshot.materialBlurPx === 0, 'Unsupported filter did not resolve blur to zero', state);
-    assert(state.snapshot.materialFilterStrategy === 'none', 'Unsupported filter retained a blur strategy', state);
-    assert(state.dom.sourceMaterialFilter === 'none', 'Unsupported filter did not fail open to crisp material', state);
-    assert(state.dom.crispTitleCount === 0, 'Unsupported filter created an unnecessary title layer', state);
-    return {
-      materialFilterSupported: state.snapshot.materialFilterSupported,
-      materialBlurPx: state.snapshot.materialBlurPx,
-      materialFilterStrategy: state.snapshot.materialFilterStrategy,
-    };
-  } finally {
-    await context.close();
-  }
-}
-
 async function runCrispPersistenceContract(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
-  let savedPayload = null;
-  await page.route('**/api/design-system/config', async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.continue();
-      return;
-    }
-    savedPayload = JSON.parse(route.request().postData() || '{}');
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
-  });
   try {
     await page.goto(routeUrl('/lab/atmosphere-crisp-glow.html?mode=water&absAudit=1'), {
       waitUntil: 'domcontentloaded',
@@ -774,68 +961,50 @@ async function runCrispPersistenceContract(browser) {
       window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().status === 'ready'
     ), null, { timeout: WAIT_MS, polling: 'raf' });
 
-    const setThemeBlur = async (theme, value) => {
-      await page.selectOption('select[aria-label="Theme values to edit and preview"]', theme);
-      await page.$eval('input[data-parameter-id="materialBlurPx"]', (input, nextValue) => {
-        input.value = String(nextValue);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }, value);
-      await page.waitForFunction(({ expectedTheme, expectedValue }) => {
-        const snapshot = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-        return snapshot?.themeMode === expectedTheme
-          && snapshot?.config?.[expectedTheme]?.materialBlurPx === expectedValue;
-      }, { expectedTheme: theme, expectedValue: value }, { timeout: WAIT_MS, polling: 'raf' });
-    };
-
-    await setThemeBlur('light', 0.5);
-    await setThemeBlur('dark', 1.5);
-    await page.getByRole('button', { name: 'Reset' }).click();
-    await page.waitForFunction(() => {
-      const config = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().config;
-      return config?.light?.materialBlurPx === 1 && config?.dark?.materialBlurPx === 1;
-    }, null, { timeout: WAIT_MS, polling: 'raf' });
-
-    await setThemeBlur('light', 2.25);
-    await setThemeBlur('dark', 1.25);
-    await page.getByRole('button', { name: 'Save JSON' }).click();
-    await page.waitForFunction(() => (
-      document.querySelector('.atmosphere-parameterizer__metrics')?.textContent?.trim() === 'saved'
-    ), null, { timeout: WAIT_MS, polling: 'raf' });
-    const savedAtmosphere = savedPayload?.config?.shell?.surface?.simulationAtmosphere;
-    assert(savedAtmosphere?.light?.materialBlurPx === 2.25, 'Save payload omitted Light body blur', savedPayload);
-    assert(savedAtmosphere?.dark?.materialBlurPx === 1.25, 'Save payload omitted Dark body blur', savedPayload);
-
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForFunction(() => {
-      const snapshot = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-      return snapshot?.status === 'ready'
-        && snapshot?.config?.light?.materialBlurPx === 0
-        && snapshot?.config?.dark?.materialBlurPx === 0;
-    }, null, { timeout: WAIT_MS, polling: 'raf' });
-
     const clampResults = await page.evaluate(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js');
+      const below = module.normalizeSimulationAtmosphereConfig({
+        light: { glowRadiusFxPx: -20, glowAmount: -2 },
+      }).light;
+      const above = module.normalizeSimulationAtmosphereConfig({
+        dark: {
+          glowRadiusFxPx: 900,
+          glowAmount: 9,
+          colourStrength: 8,
+          hazeStrength: 9,
+          grainStrength: 9,
+          afterglowHalfLifeMs: 9000,
+          driftSpeedPxPerSec: 900,
+          titleClearance: 8,
+          edgeLight: 9,
+          edgeWidthPx: 20,
+          materialBlurPx: 3,
+        },
+      }).dark;
       return {
-        below: module.normalizeSimulationAtmosphereConfig({
-          light: { materialBlurPx: -20 },
-        }).light.materialBlurPx,
-        above: module.normalizeSimulationAtmosphereConfig({
-          dark: { materialBlurPx: 20 },
-        }).dark.materialBlurPx,
-        invalid: module.normalizeSimulationAtmosphereConfig({
-          light: { materialBlurPx: 'invalid' },
-        }).light.materialBlurPx,
+        below,
+        above,
+        bodyBlurRetired: !Object.hasOwn(above, 'materialBlurPx'),
       };
     });
     assert(
-      clampResults.below === 0 && clampResults.above === 3 && clampResults.invalid === 1,
-      'Body blur normalization did not clamp safely',
+      clampResults.below.glowRadiusFxPx === 0
+        && clampResults.below.glowAmount === 0
+        && clampResults.above.glowRadiusFxPx === 420
+        && clampResults.above.glowAmount === 2
+        && clampResults.above.colourStrength === 3
+        && clampResults.above.hazeStrength === 4
+        && clampResults.above.grainStrength === 4
+        && clampResults.above.afterglowHalfLifeMs === 6000
+        && clampResults.above.driftSpeedPxPerSec === 60
+        && clampResults.above.titleClearance === 1
+        && clampResults.above.edgeLight === 5
+        && clampResults.above.edgeWidthPx === 8
+        && clampResults.bodyBlurRetired,
+      'Expanded atmosphere normalization ranges are wrong',
       clampResults,
     );
     return {
-      reset: { light: 1, dark: 1 },
-      savePayload: { light: 2.25, dark: 1.25 },
-      reload: { light: 0, dark: 0 },
       clampResults,
     };
   } finally {
@@ -884,11 +1053,12 @@ async function runConfigPanelContract(browser) {
     const expectedControlIds = [
       'atmosphereEnabledSlider',
       'atmosphereTitleYOffsetVhSlider',
+      'atmosphereGlowHoldMsSlider',
+      'atmosphereGlowFadeOutMsSlider',
       'atmosphereQualityModeSlider',
       'atmosphereHazeCadenceSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
         'BallPresence',
-        'MaterialBlurPx',
         'GlowAmount',
         'GlowRadiusFxPx',
         'ColourStrength',
@@ -951,10 +1121,11 @@ async function main() {
     const directBoots = shouldRun('direct') ? await runDirectBootMatrix(browser) : null;
     const spaLifecycle = shouldRun('spa') ? await runSpaLifecycle(browser) : null;
     const transitionSnapshot = shouldRun('snapshot') ? await runTransitionSnapshotContract(browser) : null;
+    const kaleidoscope = shouldRun('kaleidoscope') ? await runKaleidoscopeFinalFrameContract(browser) : null;
     const mobile = shouldRun('mobile') ? await runMobilePerformance(browser) : null;
     const reducedMotion = shouldRun('reduced') ? await runReducedMotion(browser) : null;
+    const responsive = shouldRun('responsive') ? await runResponsiveResizeMatrix(browser) : null;
     const crispLab = shouldRun('crisp') ? await runCrispLabIsolation(browser) : null;
-    const unsupportedFilter = shouldRun('unsupported') ? await runUnsupportedFilterFallback(browser) : null;
     const persistence = shouldRun('persistence') ? await runCrispPersistenceContract(browser) : null;
     const experimentalLab = shouldRun('experimental') ? await runExperimentalLabIsolation(browser) : null;
     const configPanel = shouldRun('panel') ? await runConfigPanelContract(browser) : null;
@@ -965,10 +1136,11 @@ async function main() {
       directBoots,
       spaLifecycle,
       transitionSnapshot,
+      kaleidoscope,
       mobile,
       reducedMotion,
+      responsive,
       crispLab,
-      unsupportedFilter,
       persistence,
       experimentalLab,
       configPanel,
