@@ -23,7 +23,6 @@
 | flock-of-birds | directional particle flock | bird glyph/crossed sticks | wedge of moving dots and one trajectory |
 | flubber-blob | cohesive circle-material blob | eye/bean/face | organic filled mass with subtle contour |
 | weave-field | interlaced field | hash mark/noise | two horizontals, two verticals, woven offsets |
-| mineral-growth | faceted accretion | spiky tree | compact crystal facets |
 | elastic-center | central force in loom frame | generic target | frame, center node, anchored tension |
 | kaleidoscope-3 | mirrored radial circle geometry | decorative knot | four-way mirrored diamond |
 | beach-ball-room | ball inside room bounds | app window/target | room frame plus beach-ball seams |

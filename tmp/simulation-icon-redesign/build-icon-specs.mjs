@@ -111,13 +111,6 @@ const icons = {
     path('M17 10c-4 6 0 12 1 18 1 4 0 7-1 10'),
     path('M31 10c-4 6 0 12 1 18 1 4 0 7-1 10'),
   ],
-  'mineral-growth': [
-    path('M14 34l6-16 8-5 8 14-6 9H18z'),
-    path('M20 18l4 18M28 13l-4 23M36 27l-12 9'),
-    circle(20, 18, 1.9),
-    circle(28, 13, 2),
-    circle(36, 27, 1.9),
-  ],
   'elastic-center': [
     path('M13 13h22v22H13z'),
     path('M24 24V13M24 24h11M24 24v11M24 24H13'),

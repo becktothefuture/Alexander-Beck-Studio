@@ -96,7 +96,7 @@
     "check:portfolio-content" : "node scripts\/check-portfolio-content.mjs",
     "check:site" : "npm run check:malformed-tokens && npm run check:studio-cli && npm run check:flat-circle-materials && npm run check:wall-collision-geometry && npm run check:3d-cube && npm run check:palette-schedule && npm run check:simulation-palette-contract && npm run check:title-kerning && npm run check:route-transitions && npm run validate:html-entries && npm run sim:validate && npm run check:about-narrative && npm run check:portfolio-content && npm run lint --prefix react-app\/app && npm run check:design-config && npm run build",
     "check:studio-cli" : "node --check scripts\/studio.mjs",
-    "clean" : "rm -rf react-app\/app\/dist",
+    "clean" : "rm -rf react-app\/app\/dist react-app\/app\/dist-certify react-app\/app\/dist-editor-preview",
     "dev" : "npm run dev:react",
     "dev:react" : "npm run dev --prefix react-app\/app -- --port 8012",
     "figma:capture:external" : "node scripts\/figma-capture-external.mjs",

@@ -1,1 +1,0 @@
-function n(){if(typeof document>"u")return;const t=e=>e instanceof Element?!!(e.closest(".panel-dock .panel .panel-content")||e.closest("#controlPanel")||e.closest(".simulation-focus-list")):!1;document.addEventListener("touchmove",e=>{t(e.target)||e.preventDefault()},{passive:!1,capture:!0})}export{n as s};

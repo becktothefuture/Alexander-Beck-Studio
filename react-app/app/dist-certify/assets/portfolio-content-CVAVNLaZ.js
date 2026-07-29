@@ -1,1 +1,0 @@
-function l(t,e="Untitled Project"){const i=String(t?.eyebrow||t?.labelEyebrow||t?.client||"").trim(),n=String(t?.shapeTitle||t?.shapeTitleLong||t?.bodyTitle||t?.displayTitle||t?.title||e).trim()||String(e||"Untitled Project").trim();return{eyebrow:i,title:n}}export{l as r};

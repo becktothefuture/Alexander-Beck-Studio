@@ -1,1 +1,0 @@
-function e(t,o){const n=Number(t);return Number.isFinite(n)?Math.max(0,Math.min(1,n)):o}function c(t){return t*t*(3-2*t)}function u(t,o={}){const n=e(t,1),r=e(o.fogStart,.95),i=e(o.fogMin,.58);if(r<=0||n>=r)return 1;const a=(r-n)/r;return 1-c(Math.max(0,Math.min(1,a)))*(1-i)}export{u as r};
