@@ -292,15 +292,15 @@ export const MASTER_GROUPS = [
     title: 'Surface Finish',
     icon: '✨',
     sections: [
+      'atmosphereEdge',
       'noise'
     ]
   },
   {
     id: 'atmosphere',
-    title: 'Light Edge',
-    icon: '🌗',
+    title: 'Background Atmosphere',
+    icon: '🌫️',
     sections: [
-      'atmosphereEdge',
       'atmosphereCommon',
       'atmosphereLight',
       'atmosphereDark'
@@ -835,7 +835,8 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   if (!g) return;
   const config = getSimulationAtmosphereConfig();
   g[getAtmosphereStateKey('enabled')] = config.enabled;
-  g[getAtmosphereStateKey('spread')] = config.spread;
+  g[getAtmosphereStateKey('largeSpread')] = config.largeSpread;
+  g[getAtmosphereStateKey('smallSpread')] = config.smallSpread;
   g[getAtmosphereStateKey('contentClearance')] = config.contentClearance;
   g[getAtmosphereStateKey('edgeStrength')] = config.edgeStrength;
   for (const theme of ['light', 'dark']) {
@@ -854,7 +855,16 @@ export function buildSimulationAtmosphereConfigFromControlState(
   const base = normalizeSimulationAtmosphereConfig(baseConfig);
   const next = {
     enabled: readAtmosphereState(g, getAtmosphereStateKey('enabled'), base.enabled),
-    spread: readAtmosphereState(g, getAtmosphereStateKey('spread'), base.spread),
+    largeSpread: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('largeSpread'),
+      base.largeSpread,
+    ),
+    smallSpread: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('smallSpread'),
+      base.smallSpread,
+    ),
     contentClearance: readAtmosphereState(
       g,
       getAtmosphereStateKey('contentClearance'),
@@ -931,12 +941,13 @@ function createAtmosphereThemeControls(theme) {
 
 export const CONTROL_SECTIONS = {
   atmosphereCommon: {
-    title: 'Source Field',
+    title: 'Glow Field',
     icon: '🌐',
     defaultOpen: true,
     controls: createAtmosphereCommonControls([
       'enabled',
-      'spread',
+      'largeSpread',
+      'smallSpread',
       'contentClearance',
     ]),
   },

@@ -25,6 +25,8 @@ const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 1200;
 const GLOW_RADIUS_MIN_CSS_PX = 36;
 const GLOW_RADIUS_MAX_CSS_PX = 180;
+const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
+const SMALL_GLOW_RADIUS_MAX_CSS_PX = 72;
 const AMBIENT_COUNT = 8;
 
 let host = null;
@@ -55,6 +57,8 @@ let pendingQuality = null;
 let cadence = 30;
 let responsiveScale = 1;
 let resolvedGlowRadiusCss = 0;
+let smallResponsiveScale = 1;
+let resolvedSmallGlowRadiusCss = 0;
 let reducedMotion = false;
 let destroyed = false;
 let consecutiveErrors = 0;
@@ -400,9 +404,14 @@ function syncGeometry() {
   const shortestSide = Math.min(rect.width, rect.height);
   resolvedGlowRadiusCss = Math.max(
     GLOW_RADIUS_MIN_CSS_PX,
-    Math.min(GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.spread),
+    Math.min(GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.largeSpread),
   );
   responsiveScale = resolvedGlowRadiusCss / shortestSide;
+  resolvedSmallGlowRadiusCss = Math.max(
+    SMALL_GLOW_RADIUS_MIN_CSS_PX,
+    Math.min(SMALL_GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.smallSpread),
+  );
+  smallResponsiveScale = resolvedSmallGlowRadiusCss / shortestSide;
   const width = Math.max(2, Math.round(rect.width * dynamicQuality.scale));
   const height = Math.max(2, Math.round(rect.height * dynamicQuality.scale));
   if (host.sourceCanvas.width !== width || host.sourceCanvas.height !== height) {
@@ -414,7 +423,9 @@ function syncGeometry() {
   }
   const backingScaleX = width / rect.width;
   const backingScaleY = height / rect.height;
-  renderProfile.blurRadiusBackingPx = resolvedGlowRadiusCss * Math.sqrt(backingScaleX * backingScaleY);
+  const backingScale = Math.sqrt(backingScaleX * backingScaleY);
+  renderProfile.largeBlurRadiusBackingPx = resolvedGlowRadiusCss * backingScale;
+  renderProfile.smallBlurRadiusBackingPx = resolvedSmallGlowRadiusCss * backingScale;
   host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
@@ -770,12 +781,14 @@ function getDiagnosticSnapshot() {
     quality: dynamicQuality.id,
     scale: dynamicQuality.scale,
     responsiveScale,
+    smallResponsiveScale,
     themeMode,
     paletteGeneration: ambientPaletteSnapshot.generation,
     paletteId: ambientPaletteSnapshot.paletteId,
     reducedMotion,
     temporalMemoryFrames: 0,
     resolvedGlowRadiusCss,
+    resolvedSmallGlowRadiusCss,
     outputWidth: host?.glowCanvas.width || 0,
     outputHeight: host?.glowCanvas.height || 0,
     compositedFrameCount,

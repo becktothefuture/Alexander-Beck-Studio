@@ -117,9 +117,9 @@ Scheduling and performance are part of the contract:
 
 - only one host, source, internal animation frame, glow Canvas, and edge Canvas may exist at once;
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
-- atmosphere radius resolves from the authored proportion of the studio window's shortest side, with bounded CSS-pixel endpoints; backing-store quality changes resolution only and cannot change the apparent spread;
+- the large atmospheric field and small colour-reflection field each resolve from their authored proportion of the studio window's shortest side, with separate bounded CSS-pixel endpoints; backing-store quality changes resolution only and cannot change either apparent spread;
 - automatic atmosphere cadence is 30 FPS across desktop, coarse-pointer, narrow, and short viewports; source physics/renderers retain their own cadence;
-- each compositor frame clears the previous output, samples the current completed source frame, applies one broad blur, then applies the quiet-zone attenuation. There is no feedback buffer, decay, drift, temporal diffusion, accumulation, or mode-to-mode trail;
+- each compositor frame clears the previous output, samples the current completed source frame, applies a broad atmosphere blur plus a tighter colour-preserving blur, then applies the quiet-zone attenuation. Both passes use only the current frame: there is no feedback buffer, decay, drift, temporal diffusion, accumulation, or mode-to-mode trail;
 - the wall `ResizeObserver` must update glow, edge, and quiet-zone backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
 - Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
 - simulation bodies stay crisp; broad softness belongs to the shared atmosphere output and never to source-body `CanvasRenderingContext2D.filter`, `shadowBlur`, or a whole-source CSS blur;

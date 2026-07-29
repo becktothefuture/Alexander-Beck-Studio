@@ -13,6 +13,8 @@ const RESPONSIVE_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmo
 const HANDOFF_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere', BROWSER_NAME);
 const GLOW_RADIUS_MIN_CSS_PX = 36;
 const GLOW_RADIUS_MAX_CSS_PX = 180;
+const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
+const SMALL_GLOW_RADIUS_MAX_CSS_PX = 72;
 const PHASE_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_PHASES || '')
   .split(',')
   .map((value) => value.trim())
@@ -279,6 +281,15 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
       assert(
         Math.abs(snapshot.resolvedGlowRadiusCss - expectedResponsive.resolvedGlowRadiusCss) <= 0.25,
         `${scenario.id}: responsive glow radius is wrong`,
+        state,
+      );
+    }
+    if (Number.isFinite(expectedResponsive.resolvedSmallGlowRadiusCss)) {
+      assert(
+        Math.abs(
+          snapshot.resolvedSmallGlowRadiusCss - expectedResponsive.resolvedSmallGlowRadiusCss
+        ) <= 0.25,
+        `${scenario.id}: responsive small glow radius is wrong`,
         state,
       );
     }
@@ -1033,13 +1044,22 @@ async function runResponsiveResizeMatrix(browser) {
             GLOW_RADIUS_MIN_CSS_PX,
             Math.min(
               GLOW_RADIUS_MAX_CSS_PX,
-              Math.min(state.wallRect.width, state.wallRect.height) * atmosphereConfig.spread,
+              Math.min(state.wallRect.width, state.wallRect.height) * atmosphereConfig.largeSpread,
+            ),
+          );
+          const expectedSmallGlowRadiusCss = Math.max(
+            SMALL_GLOW_RADIUS_MIN_CSS_PX,
+            Math.min(
+              SMALL_GLOW_RADIUS_MAX_CSS_PX,
+              Math.min(state.wallRect.width, state.wallRect.height)
+                * atmosphereConfig.smallSpread,
             ),
           );
           assertAtmosphereState(state, scenario, {
             qualities: ['high', 'balanced', 'low'],
             cadence: profile.cadence,
             resolvedGlowRadiusCss: expectedGlowRadiusCss,
+            resolvedSmallGlowRadiusCss: expectedSmallGlowRadiusCss,
           });
           assert(
             state.snapshot.edgeWidth === state.snapshot.outputWidth
@@ -1067,6 +1087,7 @@ async function runResponsiveResizeMatrix(browser) {
             cadence: state.snapshot.cadence,
             quality: state.snapshot.quality,
             resolvedGlowRadiusCss: state.snapshot.resolvedGlowRadiusCss,
+            resolvedSmallGlowRadiusCss: state.snapshot.resolvedSmallGlowRadiusCss,
           });
         }
       }
@@ -1177,13 +1198,15 @@ async function runCrispPersistenceContract(browser) {
     const clampResults = await page.evaluate(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js');
       const belowConfig = module.normalizeSimulationAtmosphereConfig({
-        spread: -2,
+        largeSpread: -2,
+        smallSpread: -2,
         contentClearance: -2,
         edgeStrength: -2,
         light: { intensity: -2, colourStrength: -2 },
       });
       const aboveConfig = module.normalizeSimulationAtmosphereConfig({
-        spread: 9,
+        largeSpread: 9,
+        smallSpread: 9,
         contentClearance: 9,
         edgeStrength: 9,
         dark: { intensity: 9, colourStrength: 9, afterglowHalfLifeMs: 9000 },
@@ -1191,21 +1214,28 @@ async function runCrispPersistenceContract(browser) {
       return {
         below: belowConfig,
         above: aboveConfig,
+        legacy: module.normalizeSimulationAtmosphereConfig({ spread: 0.12 }),
         memoryRetired: !Object.hasOwn(aboveConfig.dark, 'afterglowHalfLifeMs'),
+        legacySpreadRetired: !Object.hasOwn(aboveConfig, 'spread'),
       };
     });
     assert(
-      clampResults.below.spread === 0.06
+      clampResults.below.largeSpread === 0.06
+        && clampResults.below.smallSpread === 0.02
         && clampResults.below.contentClearance === 0
         && clampResults.below.edgeStrength === 0
         && clampResults.below.light.intensity === 0
         && clampResults.below.light.colourStrength === 0
-        && clampResults.above.spread === 0.2
+        && clampResults.above.largeSpread === 0.2
+        && clampResults.above.smallSpread === 0.1
         && clampResults.above.contentClearance === 1
         && clampResults.above.edgeStrength === 1.5
-        && clampResults.above.dark.intensity === 0.8
+        && clampResults.above.dark.intensity === 1
         && clampResults.above.dark.colourStrength === 1.6
-        && clampResults.memoryRetired,
+        && clampResults.legacy.largeSpread === 0.12
+        && Math.abs(clampResults.legacy.smallSpread - 0.0408) < 0.000001
+        && clampResults.memoryRetired
+        && clampResults.legacySpreadRetired,
       'Diffuse atmosphere normalization ranges are wrong',
       clampResults,
     );
@@ -1265,7 +1295,8 @@ async function runStatelessGlowContract(browser) {
       const effect = new DiffuseGlowEffect(output);
       const config = {
         intensity: 1,
-        blurRadiusBackingPx: 4,
+        largeBlurRadiusBackingPx: 4,
+        smallBlurRadiusBackingPx: 1.36,
         colourStrength: 1,
       };
       const paintSource = (x) => {
@@ -1308,9 +1339,9 @@ async function runConfigPanelContract(browser) {
     const group = page.locator('details[data-group-id="atmosphere"]');
     await group.waitFor({ state: 'visible', timeout: WAIT_MS });
     const expectedControlIds = [
-      'atmosphereEdgeStrengthSlider',
       'atmosphereEnabledSlider',
-      'atmosphereSpreadSlider',
+      'atmosphereLargeSpreadSlider',
+      'atmosphereSmallSpreadSlider',
       'atmosphereContentClearanceSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
         'Intensity',
@@ -1324,30 +1355,37 @@ async function runConfigPanelContract(browser) {
       sectionTitles: Array.from(node.querySelectorAll('.panel-section-accordion > summary'))
         .map((summary) => summary.textContent.trim().replace(/\s+/g, ' ')),
       controlIds: Array.from(node.querySelectorAll('input, select')).map((control) => control.id),
+      intensityMaxima: ['Light', 'Dark'].map((theme) => (
+        node.querySelector(`#atmosphere${theme}IntensitySlider`)?.max ?? null
+      )),
     }));
     assert(
-      state.groupTitle?.includes('Light Edge'),
-      'Atmosphere controls are not grouped under the Light Edge parent',
+      state.groupTitle?.includes('Background Atmosphere'),
+      'Glow controls are not grouped under the Background Atmosphere parent',
       state,
     );
     assert(
       JSON.stringify(state.controlIds) === JSON.stringify(expectedControlIds),
-      'Light Edge panel does not match the shared production control schema',
+      'Background Atmosphere panel does not match the shared production control schema',
       state,
     );
     assert(
-      state.sectionTitles.some((title) => title.includes('Edge Response'))
-        && state.sectionTitles.some((title) => title.includes('Source Field'))
+      JSON.stringify(state.intensityMaxima) === JSON.stringify(['1', '1']),
+      'Background Atmosphere intensity must remain adjustable through 100%',
+      state,
+    );
+    assert(
+      state.sectionTitles.some((title) => title.includes('Glow Field'))
         && state.sectionTitles.some((title) => title.includes('Light Mode'))
         && state.sectionTitles.some((title) => title.includes('Dark Mode')),
-      'Light Edge panel is missing its response, source-field, or theme sections',
+      'Background Atmosphere panel is missing its glow-field or theme sections',
       state,
     );
 
     const edgeControl = page.locator('#atmosphereEdgeStrengthSlider');
     assert(
       await edgeControl.count() === 1,
-      'Light Edge must expose exactly one edge-strength control',
+      'Surface Finish must expose exactly one edge-strength control',
       { count: await edgeControl.count() },
     );
     const edgeControlState = await edgeControl.evaluate((control) => {
@@ -1361,9 +1399,9 @@ async function runConfigPanelContract(browser) {
       };
     });
     assert(
-      edgeControlState.groupId === 'atmosphere'
+      edgeControlState.groupId === 'finish'
         && edgeControlState.sectionTitle?.includes('Edge Response'),
-      'Atmosphere edge-strength control is not grouped with Light Edge',
+      'Atmosphere edge-strength control is not grouped with Surface Finish',
       edgeControlState,
     );
 
@@ -1371,18 +1409,24 @@ async function runConfigPanelContract(browser) {
     const globalSummary = group.locator('.panel-section-accordion > summary').first();
     const globalSection = globalSummary.locator('..');
     if ((await globalSection.getAttribute('open')) === null) await globalSummary.click();
-    const spreadSlider = page.locator('#atmosphereSpreadSlider');
-    const originalSpread = await spreadSlider.inputValue();
-    await spreadSlider.fill('0.12');
+    const largeSpreadSlider = page.locator('#atmosphereLargeSpreadSlider');
+    const smallSpreadSlider = page.locator('#atmosphereSmallSpreadSlider');
+    const originalLargeSpread = await largeSpreadSlider.inputValue();
+    const originalSmallSpread = await smallSpreadSlider.inputValue();
+    await largeSpreadSlider.fill('0.12');
+    await smallSpreadSlider.fill('0.04');
     await page.waitForFunction(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
-      return module.getSimulationAtmosphereConfig().spread === 0.12;
+      const config = module.getSimulationAtmosphereConfig();
+      return config.largeSpread === 0.12 && config.smallSpread === 0.04;
     }, null, { timeout: WAIT_MS });
-    await spreadSlider.fill(originalSpread);
+    await largeSpreadSlider.fill(originalLargeSpread);
+    await smallSpreadSlider.fill(originalSmallSpread);
 
     return {
       controlCount: state.controlIds.length,
       sectionTitles: state.sectionTitles,
+      intensityMaxima: state.intensityMaxima,
       edgeControl: edgeControlState,
       spreadLiveApply: true,
     };

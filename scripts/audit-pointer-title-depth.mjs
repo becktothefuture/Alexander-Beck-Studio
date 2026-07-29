@@ -263,7 +263,8 @@ async function auditCrispGlowTitleDepth(page) {
     'enabled',
     'intensity',
     'colourStrength',
-    'spread',
+    'largeSpread',
+    'smallSpread',
     'contentClearance',
     'edgeStrength',
   ];
@@ -288,7 +289,8 @@ async function auditCrispGlowTitleDepth(page) {
     const values = {
       intensity: '0.42',
       colourStrength: '1.1',
-      spread: '0.12',
+      largeSpread: '0.12',
+      smallSpread: '0.04',
       contentClearance: '0.4',
       edgeStrength: '0.25',
     };
@@ -304,7 +306,8 @@ async function auditCrispGlowTitleDepth(page) {
     const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
     return snap?.config?.dark?.intensity === 0.42
       && snap?.config?.dark?.colourStrength === 1.1
-      && snap?.config?.spread === 0.12
+      && snap?.config?.largeSpread === 0.12
+      && snap?.config?.smallSpread === 0.04
       && snap?.config?.contentClearance === 0.4
       && snap?.config?.edgeStrength === 0.25
       && snap?.temporalMemoryFrames === 0
