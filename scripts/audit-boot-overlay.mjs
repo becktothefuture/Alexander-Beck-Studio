@@ -12,11 +12,11 @@ const copyOnly = process.env.ABS_BOOT_AUDIT_COPY_ONLY === '1';
 const deprecatedBootChromeHex = '#3c3c3c';
 const deprecatedBootChromeRgb = 'rgb(60, 60, 60)';
 const longBootMessages = [
-  { afterMs: 5000, text: 'Tuning the motion.' },
-  { afterMs: 10000, text: 'Building the scene.' },
-  { afterMs: 20000, text: 'The simulation is warming up.' },
+  { afterMs: 5000, text: 'Just getting things ready.' },
+  { afterMs: 10000, text: 'Putting a few things in place.' },
+  { afterMs: 20000, text: 'Taking a moment longer.' },
   { afterMs: 30000, text: 'Nearly there.' },
-  { afterMs: 40000, text: 'Still here. Thanks for waiting.' },
+  { afterMs: 40000, text: 'Thanks for bearing with me.' },
 ];
 const tabletDevice = devices['iPad (gen 7)'];
 const mobileDevice = devices['iPhone 13'];
@@ -135,7 +135,7 @@ function assertCriticalBootSource() {
     assert(!source.includes('html[data-abs-boot-state="booting"]::before'), `${file}: duplicate critical boot cover returned`);
     assert(!source.includes('html[data-abs-boot-state="booting"]::after'), `${file}: duplicate critical spinner returned`);
     assert(source.includes('@keyframes absBootSpin'), `${file}: missing spinner orbit keyframes`);
-    assert(source.includes('animation: absBootSpin 1.1s infinite linear'), `${file}: boot spinner cadence drifted`);
+    assert(source.includes('animation: absBootSpin 1.1s steps(8, end) infinite'), `${file}: boot spinner cadence must match its eight dot positions`);
     assert(source.includes('transform: rotate(360deg) translateZ(0)'), `${file}: spinner rotation must finish forwards`);
     assert(source.includes('--abs-boot-loader-size: 0.5px'), `${file}: boot spinner size drifted`);
     assert(source.includes('class="abs-loader-spinner__dot"'), `${file}: explicit circular spinner dots are missing`);

@@ -89,11 +89,15 @@ async function inspectSpinnerContinuity(page, label) {
 
     let unwrappedAngle = rawAngles[0] || 0;
     let minimumDelta = Number.POSITIVE_INFINITY;
+    let maximumDelta = Number.NEGATIVE_INFINITY;
+    let movingFrameCount = 0;
     for (let index = 1; index < rawAngles.length; index += 1) {
       let delta = rawAngles[index] - rawAngles[index - 1];
       if (delta > 180) delta -= 360;
       if (delta < -180) delta += 360;
       minimumDelta = Math.min(minimumDelta, delta);
+      maximumDelta = Math.max(maximumDelta, delta);
+      if (Math.abs(delta) >= 0.5) movingFrameCount += 1;
       unwrappedAngle += delta;
     }
 
@@ -101,12 +105,16 @@ async function inspectSpinnerContinuity(page, label) {
       animationName,
       sampleCount: rawAngles.length,
       minimumDelta,
+      maximumDelta,
+      movingFrameCount,
       forwardTravel: unwrappedAngle - (rawAngles[0] || 0),
     };
   });
   assert(result.animationName.includes('absBootSpin'), `${label}: spinner rotation animation is not active`, result);
   assert(result.sampleCount >= 20, `${label}: insufficient spinner continuity samples`, result);
   assert(result.minimumDelta >= -0.5, `${label}: spinner reversed direction`, result);
+  assert(result.maximumDelta >= 40 && result.maximumDelta <= 50, `${label}: spinner did not advance in one-dot steps`, result);
+  assert(result.movingFrameCount <= result.sampleCount * 0.67, `${label}: spinner movement is still visually continuous`, result);
   assert(result.forwardTravel >= 650, `${label}: spinner did not complete multiple forward rotations`, result);
   return result;
 }
