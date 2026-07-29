@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
-import { getTimeOfDayPalette } from '../../palette/timeOfDayPalette.js';
+import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
 import './dominant-tab-lab.css';
 import '../../components/app/shell-button-bar-dominant.css';
 
@@ -35,8 +35,8 @@ export function DominantTabLab() {
   const [theme, setTheme] = useState(getInitialTheme);
 
   const paletteStyle = useMemo(() => {
-    const palette = getTimeOfDayPalette();
-    const colors = Array.isArray(palette?.light) ? palette.light : FALLBACK_COLORS;
+    const palette = getSimulationPaletteSnapshot();
+    const colors = Array.isArray(palette?.colors) ? palette.colors : FALLBACK_COLORS;
     const style = colors.reduce((nextStyle, color, index) => {
       nextStyle[`--ball-${index + 1}`] = color;
       return nextStyle;

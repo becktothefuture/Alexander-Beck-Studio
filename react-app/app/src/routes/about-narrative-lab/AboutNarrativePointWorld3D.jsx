@@ -48,12 +48,20 @@ import {
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { easeSimulationVisualProgress } from '../../lib/simulationVisualTransition.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  resolveSimulationColorDistribution,
+} from '../../palette/simulationPaletteContract.js';
+import {
+  getSimulationPaletteSnapshot,
+  subscribeSimulationPalette,
+} from '../../palette/simulationPaletteController.js';
 import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-resource-tools';
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
 const MATERIAL_SLOT_COUNT = 6;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
+let nextRuntimeInstanceId = 1;
+let nextGeometryInstanceId = 1;
 const DEFAULT_BUST_ASSEMBLY = Object.freeze({
   formationMode: 'gather',
   baseStart: 0.04,
@@ -80,15 +88,6 @@ const DISCIPLINE_LABEL_SELECTORS = Object.freeze([
   '[data-discipline-group="5"]',
   '[data-discipline-group="6"]',
 ]);
-const FALLBACK_MATERIAL_DISTRIBUTION = Object.freeze([
-  Object.freeze({ colorIndex: 0, weight: 31 }),
-  Object.freeze({ colorIndex: 3, weight: 13 }),
-  Object.freeze({ colorIndex: 2, weight: 16 }),
-  Object.freeze({ colorIndex: 6, weight: 20 }),
-  Object.freeze({ colorIndex: 7, weight: 10 }),
-  Object.freeze({ colorIndex: 5, weight: 10 }),
-]);
-
 const VERTEX_SHADER = `
   attribute vec3 targetPosition;
   attribute float pointSeed;
@@ -596,6 +595,8 @@ const FRAGMENT_SHADER = `
     if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
     gl_FragColor = vec4(pointTint, fieldOpacity * pointAlpha * edge);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -613,37 +614,20 @@ function readColorToken(styles, token, fallback) {
   return styles.getPropertyValue(token).trim() || fallback;
 }
 
-function getMaterialDistribution() {
-  const configured = getGlobals()?.colorDistribution;
-  const valid = Array.isArray(configured)
-    ? configured.filter((row) => Number(row?.weight) > 0).slice(0, MATERIAL_SLOT_COUNT)
-    : [];
-  if (valid.length !== MATERIAL_SLOT_COUNT) return FALLBACK_MATERIAL_DISTRIBUTION;
-  return valid;
+function getMaterialDistribution(snapshot = getSimulationPaletteSnapshot()) {
+  return resolveSimulationColorDistribution(snapshot.distribution)
+    .slice(0, MATERIAL_SLOT_COUNT);
 }
 
-function syncMaterialPalette(uniforms, styles) {
-  const distribution = getMaterialDistribution();
-  const fallbackPalette = getTimeOfDayPaletteColors(
-    new Date(),
-    document.documentElement.classList.contains('dark-mode'),
-  );
+function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSnapshot()) {
+  const distribution = getMaterialDistribution(snapshot);
+  const palette = snapshot.colors;
   const weights = distribution.map((row) => Number(row.weight));
   const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
   let cumulative = 0;
   distribution.forEach((row, index) => {
     const colorIndex = Math.max(0, Math.min(7, Math.floor(Number(row.colorIndex) || 0)));
-    const fallback = FALLBACK_MATERIAL_DISTRIBUTION[index];
-    const fallbackIndex = Math.max(0, Math.min(7, Number(fallback.colorIndex) || 0));
-    const color = readColorToken(
-      styles,
-      `--ball-${colorIndex + 1}`,
-      readColorToken(
-        styles,
-        `--ball-${fallbackIndex + 1}`,
-        fallbackPalette[colorIndex] || fallbackPalette[fallbackIndex] || '#ffffff',
-      ),
-    );
+    const color = palette[colorIndex] || palette[0] || '#ffffff';
     uniforms[`materialColor${index + 1}`].value.setStyle(color);
     cumulative += weights[index] / total;
     if (index < MATERIAL_SLOT_COUNT - 1) {
@@ -776,6 +760,8 @@ function createPointFieldAdapter({
   pointProfile: explicitPointProfile,
   showCameraFocusAnchor = false,
 }) {
+  const runtimeInstanceId = nextRuntimeInstanceId;
+  nextRuntimeInstanceId += 1;
   const initialBounds = root.getBoundingClientRect();
   const layoutProfile = classifyAboutNarrativeLayoutProfile({
     inlineSize: initialBounds.width || window.innerWidth,
@@ -817,11 +803,14 @@ function createPointFieldAdapter({
     ...rendererAttributes,
     ...(instrumentedContext ? { context: instrumentedContext } : {}),
   });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 80);
   const cameraFocusAnchor = showCameraFocusAnchor ? createCameraFocusAnchor() : null;
   if (cameraFocusAnchor) scene.add(cameraFocusAnchor.object);
   const geometry = new THREE.BufferGeometry();
+  const geometryInstanceId = nextGeometryInstanceId;
+  nextGeometryInstanceId += 1;
   const seeds = createAboutNarrativeSeeds(pointCount, 0x1e35a7bd);
   const emptyPositions = new Float32Array(pointCount * 3);
   const emptyPresence = createEmptyAttribute(pointCount, 1);
@@ -1340,8 +1329,10 @@ function createPointFieldAdapter({
 
   const updateTheme = () => {
     const styles = getComputedStyle(root);
-    syncMaterialPalette(uniforms, styles);
-    if (installedPair) refreshInstalledDisciplineGroups(installedPair);
+    const snapshot = getSimulationPaletteSnapshot();
+    syncMaterialPalette(uniforms, styles, snapshot);
+    root.dataset.simulationPaletteGeneration = String(snapshot.generation);
+    root.dataset.simulationPaletteId = snapshot.paletteId;
   };
 
   const resize = () => {
@@ -2518,7 +2509,7 @@ function createPointFieldAdapter({
   interaction.addEventListener('keydown', handleKeyDown);
   canvas.addEventListener('webglcontextlost', handleContextLost);
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
-  window.addEventListener('bb:paletteChanged', updateTheme);
+  const unsubscribePalette = subscribeSimulationPalette(updateTheme);
   window.addEventListener('abs:theme-changed', updateTheme);
   window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
   document.fonts?.ready.then(() => {
@@ -2533,10 +2524,15 @@ function createPointFieldAdapter({
   let cachedRuntimeLifecycle = null;
   const getRuntimeDiagnosticsSnapshot = () => {
     const lifecycle = diagnostics.getSnapshot();
+    const paletteSnapshot = getSimulationPaletteSnapshot();
     // `subscribeDiagnostics` is lifecycle-only. A snapshot therefore remains
     // identical until that store emits, even while pull-only performance
     // counters continue changing.
-    if (cachedRuntimeDiagnosticsSnapshot && cachedRuntimeLifecycle === lifecycle) {
+    if (
+      cachedRuntimeDiagnosticsSnapshot
+      && cachedRuntimeLifecycle === lifecycle
+      && cachedRuntimeDiagnosticsSnapshot.paletteGeneration === paletteSnapshot.generation
+    ) {
       return cachedRuntimeDiagnosticsSnapshot;
     }
     const shapeCacheSnapshot = shapeCache.getSnapshot();
@@ -2562,6 +2558,23 @@ function createPointFieldAdapter({
       failedSequenceKey: lifecycle.state === 'failed' ? lifecycle.sequenceKey || '' : '',
       installedPairId: installedPair?.key || '',
       installedWorldId: getAboutNarrativeWorldId(installedPair?.toWorld),
+      runtimeInstanceId,
+      geometryInstanceId,
+      paletteId: paletteSnapshot.paletteId,
+      paletteGeneration: paletteSnapshot.generation,
+      paletteColors: paletteSnapshot.colors,
+      materialRoles: paletteSnapshot.distribution,
+      materialSrgbColors: Object.freeze(Array.from({ length: MATERIAL_SLOT_COUNT }, (_, index) => (
+        `#${uniforms[`materialColor${index + 1}`].value.getHexString(THREE.SRGBColorSpace)}`
+      ))),
+      materialThresholds: Object.freeze([
+        uniforms.materialThreshold1.value,
+        uniforms.materialThreshold2.value,
+        uniforms.materialThreshold3.value,
+        uniforms.materialThreshold4.value,
+        uniforms.materialThreshold5.value,
+        1,
+      ]),
       ...runtimeObserver.getLifecycleFields(),
       shapeCache: shapeCacheSnapshot,
       sequenceCache: sequenceCacheSnapshot,
@@ -2622,7 +2635,7 @@ function createPointFieldAdapter({
     interaction.removeEventListener('keydown', handleKeyDown);
     canvas.removeEventListener('webglcontextlost', handleContextLost);
     canvas.removeEventListener('webglcontextrestored', handleContextRestored);
-    window.removeEventListener('bb:paletteChanged', updateTheme);
+    unsubscribePalette();
     window.removeEventListener('abs:theme-changed', updateTheme);
     window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
     geometry.dispose();

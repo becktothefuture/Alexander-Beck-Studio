@@ -8,8 +8,13 @@ import {
 } from '../../../palette/londonPalettes.js';
 import {
   TIME_OF_DAY_PALETTE_PERIODS,
-  getTimeOfDayPaletteId,
 } from '../../../palette/timeOfDayPalette.js';
+import { resolveSimulationColorDistribution } from '../../../palette/simulationPaletteContract.js';
+import {
+  createSimulationMaterialSequence,
+  getSimulationPaletteSnapshot,
+  selectSimulationMaterialRole,
+} from '../../../palette/simulationPaletteController.js';
 
 function clamp01(t) {
   const n = Number(t);
@@ -90,8 +95,6 @@ export const PALETTE_CHAPTER_ORDER = TIME_OF_DAY_PALETTE_PERIODS.map(
   (period) => period.paletteId,
 );
 
-// Legacy fallback weights (only used if no valid `colorDistribution` is present).
-const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 let distributionCoverageKey = '';
 let distributionCoverageCursor = 0;
 let distributionCoverageOrder = [];
@@ -110,8 +113,10 @@ function clampIntFallback(v, min, max, fallback = min) {
 }
 
 function getDistribution(g) {
-  const dist = g?.colorDistribution;
-  return Array.isArray(dist) ? dist : null;
+  return resolveSimulationColorDistribution(
+    g?.colorDistribution,
+    Array.isArray(g?.currentColors) ? g.currentColors.length : 8,
+  );
 }
 
 function getDistributionCoverageKey(dist) {
@@ -153,7 +158,8 @@ export function resolveColorTemplateName(templateName) {
 }
 
 export function getTimeOfDayPaletteTemplate() {
-  return resolveLondonWeatherPaletteId(getTimeOfDayPaletteId()) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
+  return resolveLondonWeatherPaletteId(getSimulationPaletteSnapshot().paletteId)
+    || DEFAULT_LONDON_WEATHER_PALETTE_ID;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -529,45 +535,21 @@ export function pickRandomColorWithIndex() {
   // Hot-path safe: O(7) work, zero allocations.
   const dist = getDistribution(globals);
   if (dist && dist.length) {
-    let total = 0;
-    for (let i = 0; i < dist.length; i++) {
-      const w = Number(dist[i]?.weight);
-      if (Number.isFinite(w) && w > 0) total += w;
+    const coverageIndex = getCoverageDistributionIndex(dist);
+    if (coverageIndex != null) {
+      const row = dist[coverageIndex];
+      const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
+      return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: coverageIndex };
     }
-    if (total > 0) {
-      const coverageIndex = getCoverageDistributionIndex(dist);
-      if (coverageIndex != null) {
-        const row = dist[coverageIndex];
-        const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
-        return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: coverageIndex };
-      }
-      let r = Math.random() * total;
-      for (let i = 0; i < dist.length; i++) {
-        const row = dist[i];
-        const w = Number(row?.weight);
-        if (!Number.isFinite(w) || w <= 0) continue;
-        r -= w;
-        if (r <= 0) {
-          const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
-          return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: i };
-        }
-      }
-      // Numeric edge case: fall through to a deterministic row.
-      const last = dist[dist.length - 1];
-      const idx = clampIntFallback(last?.colorIndex, 0, 7, 0);
-      return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: dist.length - 1 };
-    }
+    const role = selectSimulationMaterialRole(Math.random(), getSimulationPaletteSnapshot());
+    const idx = clampIntFallback(role?.colorIndex, 0, 7, 0);
+    return {
+      color: colors[idx] || colors[0] || '#ffffff',
+      distributionIndex: clampIntFallback(role?.distributionIndex, 0, dist.length - 1, 0),
+    };
   }
 
-  // Fallback: legacy weights over the first 8 palette entries.
-  const random = Math.random();
-  let cumulativeWeight = 0;
-  const maxIdx = Math.min(colors.length, LEGACY_COLOR_WEIGHTS.length, 8);
-  for (let i = 0; i < maxIdx; i++) {
-    cumulativeWeight += LEGACY_COLOR_WEIGHTS[i];
-    if (random <= cumulativeWeight) return { color: colors[i], distributionIndex: i };
-  }
-  return { color: colors[Math.min(colors.length - 1, 7)] || '#ffffff', distributionIndex: 0 };
+  return { color: colors[0] || '#ffffff', distributionIndex: 0 };
 }
 
 export function pickRandomColor() {
@@ -786,25 +768,58 @@ export function applyColorTemplate(templateName) {
   } catch (_) { /* no-op */ }
 }
 
-function updateExistingBallColors() {
+export function applySimulationPaletteSnapshot(snapshot) {
+  const globals = getGlobals();
+  if (!snapshot || snapshot.generation === globals.simulationPaletteGeneration) return;
+
+  globals.currentTemplate = snapshot.paletteId;
+  globals.currentColors = snapshot.colors.slice();
+  globals.colorDistribution = snapshot.distribution.map((row) => ({ ...row }));
+  globals.simulationPaletteGeneration = snapshot.generation;
+  globals.simulationPaletteEffectiveAt = snapshot.effectiveAt;
+  if (globals.canvas?.dataset) {
+    globals.canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
+    globals.canvas.dataset.simulationPaletteId = snapshot.paletteId;
+  }
+  applyPaletteTheme(snapshot.paletteId);
+
+  try {
+    forEachPanelUiDocument((uiDocument) => {
+      const select = uiDocument.getElementById('colorSelect');
+      if (select) select.value = snapshot.paletteId;
+    });
+  } catch (_) { /* no-op */ }
+
+  updateExistingBallColors(snapshot);
+  const routePick = applyActiveRouteCursorColor();
+  if (!routePick) {
+    applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
+  }
+  updateColorPickersUI();
+}
+
+function updateExistingBallColors(snapshot = getSimulationPaletteSnapshot()) {
   const globals = getGlobals();
   const balls = globals.balls;
   const distribution = getDistribution(globals);
+  const materialSequence = balls.length
+    ? createSimulationMaterialSequence(balls.length, {}, snapshot)
+    : [];
 
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
     if (!ball) continue;
-    if (ball._preserveColor) {
-      const distributionIndex = Number(ball.distributionIndex);
-      const paletteIndex = Number.isInteger(distributionIndex)
-        ? Number(distribution?.[distributionIndex]?.colorIndex)
-        : NaN;
-      if (Number.isInteger(paletteIndex) && globals.currentColors[paletteIndex]) {
-        ball.color = globals.currentColors[paletteIndex];
-        continue;
-      }
+    const distributionIndex = Number(ball.distributionIndex);
+    const paletteIndex = Number.isInteger(distributionIndex)
+      ? Number(distribution?.[distributionIndex]?.colorIndex)
+      : NaN;
+    if (Number.isInteger(paletteIndex) && globals.currentColors[paletteIndex]) {
+      ball.color = globals.currentColors[paletteIndex];
+      continue;
     }
-    ball.color = pickRandomColor();
+    const role = materialSequence[i] || distribution[0];
+    ball.distributionIndex = Number(role?.distributionIndex) || 0;
+    ball.color = globals.currentColors[role?.colorIndex] || globals.currentColors[0] || '#ffffff';
   }
 }
 

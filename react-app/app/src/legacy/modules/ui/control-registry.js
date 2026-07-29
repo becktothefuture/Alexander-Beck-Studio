@@ -40,6 +40,7 @@ import {
   applyButtonBarCssVars,
   formatButtonBarControlValue,
 } from '../../../lib/buttonBarControls.js';
+import { configureSimulationPalette } from '../../../palette/simulationPaletteController.js';
 
 
 
@@ -6447,7 +6448,12 @@ export function bindRegisteredControls(options = {}) {
             }
             used.add(idx);
             const w = clampIntLocal(incoming?.weight, 0, 100, clampIntLocal(map.get(key)?.weight, 0, 100, 0));
-            out.push({ label, colorIndex: idx, weight: w });
+            out.push({
+              roleId: String(incoming?.roleId || map.get(key)?.roleId || '').trim(),
+              label,
+              colorIndex: idx,
+              weight: w,
+            });
           }
           return out;
         }
@@ -6544,16 +6550,12 @@ export function bindRegisteredControls(options = {}) {
           import('./legend-colors.js')
             .then(({ applyExpertiseLegendColors }) => applyExpertiseLegendColors?.())
             .catch(() => {});
-          // 2) Recolor existing balls for immediate feedback (event-driven; not hot path)
-          import('../visual/colors.js')
-            .then(({ pickRandomColor }) => {
-              if (typeof pickRandomColor !== 'function') return;
-              const balls = g.balls || [];
-              for (let i = 0; i < balls.length; i++) {
-                balls[i].color = pickRandomColor();
-              }
-            })
-            .catch(() => {});
+        }
+
+        function commitDistribution(distribution) {
+          const snapshot = configureSimulationPalette({ colorDistribution: distribution });
+          g.colorDistribution = snapshot.distribution.map((row) => ({ ...row }));
+          return g.colorDistribution;
         }
 
         function syncColorDistributionUI() {
@@ -6562,12 +6564,12 @@ export function bindRegisteredControls(options = {}) {
           // Ensure sum to 100.
           const weights = normalizeWeightsTo100(sanitized.map(r => r.weight), 0);
           for (let i = 0; i < sanitized.length; i++) sanitized[i].weight = weights[i];
-          g.colorDistribution = sanitized;
+          const committed = commitDistribution(sanitized);
 
           // Used colors map (for disabling dropdown options).
           const usedByIndex = {};
-          for (let i = 0; i < sanitized.length; i++) {
-            usedByIndex[sanitized[i].colorIndex] = sanitized[i].label;
+          for (let i = 0; i < committed.length; i++) {
+            usedByIndex[committed[i].colorIndex] = committed[i].label;
           }
 
           const options = buildPaletteOptions(usedByIndex);
@@ -6575,7 +6577,7 @@ export function bindRegisteredControls(options = {}) {
 
           // Update each row UI.
           for (let i = 0; i < labels.length; i++) {
-            const row = sanitized[i] || { colorIndex: 0, weight: 0, label: labels[i] };
+            const row = committed[i] || { colorIndex: 0, weight: 0, label: labels[i] };
             const swatch = uiDocument.getElementById(`colorDistSwatch${i}`);
             const select = uiDocument.getElementById(`colorDistColor${i}`);
             const weight = uiDocument.getElementById(`colorDistWeight${i}`);
@@ -6614,7 +6616,7 @@ export function bindRegisteredControls(options = {}) {
           const totalEl = uiDocument.getElementById('colorDistTotalVal');
           if (totalEl) {
             let total = 0;
-            for (let i = 0; i < sanitized.length; i++) total += sanitized[i].weight;
+            for (let i = 0; i < committed.length; i++) total += committed[i].weight;
             totalEl.textContent = `${total}%`;
           }
         }
@@ -6626,9 +6628,10 @@ export function bindRegisteredControls(options = {}) {
         if (resetBtn) {
           resetBtn.addEventListener('click', () => {
             const defaults = g?.config?.colorDistribution;
-            g.colorDistribution = sanitizeDistribution(defaults);
-            const weights = normalizeWeightsTo100(g.colorDistribution.map(r => r.weight), 0);
-            for (let i = 0; i < g.colorDistribution.length; i++) g.colorDistribution[i].weight = weights[i];
+            const distribution = sanitizeDistribution(defaults);
+            const weights = normalizeWeightsTo100(distribution.map(r => r.weight), 0);
+            for (let i = 0; i < distribution.length; i++) distribution[i].weight = weights[i];
+            commitDistribution(distribution);
             syncColorDistributionUI();
             applyDistributionSideEffects();
           });
@@ -6644,7 +6647,7 @@ export function bindRegisteredControls(options = {}) {
               const idx = clampIntLocal(select.value, 0, 7, 0);
               const dist = sanitizeDistribution(g.colorDistribution);
               dist[i].colorIndex = idx;
-              g.colorDistribution = dist;
+              commitDistribution(dist);
               syncColorDistributionUI();
               applyDistributionSideEffects();
             });
@@ -6656,7 +6659,7 @@ export function bindRegisteredControls(options = {}) {
               const dist = sanitizeDistribution(g.colorDistribution);
               const newWeights = rebalanceWeights(dist, i, val);
               for (let j = 0; j < dist.length; j++) dist[j].weight = newWeights[j];
-              g.colorDistribution = dist;
+              commitDistribution(dist);
               syncColorDistributionUI();
               applyDistributionSideEffects();
             });

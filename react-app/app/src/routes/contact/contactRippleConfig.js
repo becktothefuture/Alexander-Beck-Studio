@@ -88,6 +88,10 @@ export function normalizeContactRippleConfig(input = {}) {
 
 let currentContactRippleConfig = normalizeContactRippleConfig(DEFAULT_CONTACT_RIPPLE_CONFIG);
 
+if (typeof window !== 'undefined') {
+  window.__ABS_CONTACT_RIPPLE_CONFIG__ = { ...currentContactRippleConfig };
+}
+
 export function getContactRippleConfig() {
   return { ...currentContactRippleConfig };
 }

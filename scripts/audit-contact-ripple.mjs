@@ -13,6 +13,7 @@ const baseUrl = String(process.env.ABS_CONTACT_RIPPLE_URL || 'http://localhost:8
 const shouldStartDevServer = !process.env.ABS_CONTACT_RIPPLE_URL;
 const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
+const boundaryOnly = process.env.ABS_CONTACT_RIPPLE_BOUNDARY_ONLY === '1';
 const viewports = [
   { label: 'desktop', width: 1440, height: 900 },
   { label: 'mobile', width: 375, height: 812 },
@@ -149,6 +150,8 @@ async function readRippleState(page) {
       burstOrigin: stage?.dataset.contactRippleBurstOrigin || '',
       lastBurstOrigin: stage?.dataset.contactRippleLastBurstOrigin || '',
       bodyCount: Number(stage?.dataset.contactRippleBodyCount || 0),
+      ringCount: Number(stage?.dataset.contactRippleRingCount || 0),
+      paletteGeneration: Number(stage?.dataset.simulationPaletteGeneration || 0),
       bodyRadius: Number(stage?.dataset.contactRippleBodyRadius || 0),
       innerAlpha: Number(stage?.dataset.contactRippleInnerAlpha || 0),
       outerAlpha: Number(stage?.dataset.contactRippleOuterAlpha || 0),
@@ -210,6 +213,7 @@ function assertLayout(state, viewport) {
   assert(state.paletteSize >= 6, 'Contact ripple did not load the site palette', state);
   assert(state.bodyCount >= 40, 'Contact ripple fixed body field is unexpectedly sparse', state);
   assert(state.bodyCount <= 560, 'Contact ripple fixed body field is too dense for the Contact treatment', state);
+  assert(state.ringCount > 0, 'Contact ripple did not expose its stable ring count', state);
   assert(
     state.config?.burstDurationMs >= 500 && state.config?.burstDurationMs <= 4000,
     'Contact ripple canonical config did not load',
@@ -269,6 +273,58 @@ function assertLayout(state, viewport) {
   assert(state.buttonRect && state.contentRect, 'Contact content geometry is missing', state);
   assert(state.typographyEffectPresent === false, 'Contact typography effect is still present', state);
   assert(state.diagnostics?.activeInstances === 1, 'Unexpected active Contact ripple instance count', state);
+  assert(state.diagnostics?.paletteGeneration === state.paletteGeneration, 'Contact diagnostics report a mixed palette generation', state);
+  assert(state.diagnostics?.colors?.length === 8, 'Contact diagnostics do not expose all eight palette colours', state);
+  assert(state.diagnostics?.distribution?.length === 6, 'Contact diagnostics do not expose all six material roles', state);
+}
+
+async function runPaletteBoundaryScenario(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    timezoneId: 'Europe/London',
+  });
+  const page = await context.newPage();
+  try {
+    await page.clock.install({ time: new Date(2026, 6, 18, 8, 59, 30, 0) });
+    await page.goto(`${baseUrl}/contact.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await waitForIdle(page);
+    await waitForRipple(page, 'idle');
+    await page.clock.fastForward(4000);
+    await waitForRipple(page, 'idle');
+    await page.clock.setSystemTime(new Date(2026, 6, 18, 8, 59, 59, 800));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('abs:contact-ripple-burst')));
+    await waitForRipple(page, 'burst');
+    const before = await readRippleState(page);
+    await page.clock.fastForward(400);
+    try {
+      await page.waitForFunction((generation) => (
+        Number(document.querySelector('[data-contact-ripple-stage]')?.dataset.simulationPaletteGeneration || 0)
+          > generation
+      ), before.paletteGeneration, { timeout: 5000, polling: 'raf' });
+    } catch (error) {
+      const clockState = await page.evaluate(() => ({
+        now: Date.now(),
+        local: new Date().toString(),
+        snapshot: window.__ABS_SIMULATION_PALETTE__ || null,
+        rootGeneration: document.documentElement.dataset.absSimulationPaletteGeneration || '',
+      }));
+      throw new Error(`Contact palette boundary did not advance\n${JSON.stringify(clockState, null, 2)}`, {
+        cause: error,
+      });
+    }
+    const after = await readRippleState(page);
+    assert(after.paletteGeneration === before.paletteGeneration + 1, 'Contact did not commit exactly one boundary generation', { before, after });
+    assert(after.paletteId !== before.paletteId, 'Contact palette ID did not change at the boundary', { before, after });
+    assert(after.diagnostics?.rendererInstanceId === before.diagnostics?.rendererInstanceId, 'Contact renderer was recreated at the boundary', { before, after });
+    assert(after.diagnostics?.bodyBuildCount === before.diagnostics?.bodyBuildCount, 'Contact ring bodies were rebuilt at the boundary', { before, after });
+    assert(after.ringCount === before.ringCount && after.bodyCount === before.bodyCount, 'Contact ring geometry changed at the boundary', { before, after });
+    assert(after.activeBurstCount === before.activeBurstCount, 'Contact lost an in-flight burst at the boundary', { before, after });
+    assert(after.diagnostics?.spriteBuildCount === before.diagnostics?.spriteBuildCount + 1, 'Contact did not replace its palette sprites exactly once', { before, after });
+    return { before, after };
+  } finally {
+    await context.close();
+  }
 }
 
 async function exerciseAutonomousDrift(page, initial) {
@@ -518,16 +574,19 @@ async function main() {
   const browser = await browserType.launch();
   const results = [];
   try {
-    for (const viewport of viewports) {
-      for (const theme of ['light', 'dark']) {
-        results.push({
-          viewport: viewport.label,
-          theme,
-          scenario: await runStandardScenario(browser, viewport, theme),
-        });
+    if (!boundaryOnly) {
+      for (const viewport of viewports) {
+        for (const theme of ['light', 'dark']) {
+          results.push({
+            viewport: viewport.label,
+            theme,
+            scenario: await runStandardScenario(browser, viewport, theme),
+          });
+        }
       }
+      results.push({ reducedMotion: await runReducedMotionScenario(browser) });
     }
-    results.push({ reducedMotion: await runReducedMotionScenario(browser) });
+    results.push({ paletteBoundary: await runPaletteBoundaryScenario(browser) });
   } finally {
     await browser.close();
     await server?.stop();
@@ -537,7 +596,9 @@ async function main() {
     resolve(outputRoot, `contact-ripple-${browserName}.json`),
     `${JSON.stringify(results, null, 2)}\n`,
   );
-  console.log(`PASS: Contact ripple audit passed in ${browserName} across desktop/mobile, light/dark, failure, rapid-click, reduced-motion, and SPA lifecycle states.`);
+  console.log(boundaryOnly
+    ? `PASS: Contact ripple live palette-boundary audit passed in ${browserName}.`
+    : `PASS: Contact ripple audit passed in ${browserName} across desktop/mobile, light/dark, failure, rapid-click, reduced-motion, SPA lifecycle, and live palette-boundary states.`);
 }
 
 main().catch((error) => {

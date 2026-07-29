@@ -101,31 +101,37 @@
     "brandLogoSecondaryOpacity": 0.58,
     "colorDistribution": [
       {
+        "roleId": "product-design",
         "label": "Product Design",
         "colorIndex": 0,
         "weight": 31
       },
       {
+        "roleId": "experience-design",
         "label": "Experience Design",
         "colorIndex": 3,
         "weight": 13
       },
       {
+        "roleId": "art-direction",
         "label": "Art Direction",
         "colorIndex": 2,
         "weight": 16
       },
       {
+        "roleId": "motion-3d",
         "label": "Motion & 3D",
         "colorIndex": 6,
         "weight": 20
       },
       {
+        "roleId": "creative-engineering",
         "label": "Creative Engineering",
         "colorIndex": 7,
         "weight": 10
       },
       {
+        "roleId": "parametric-systems",
         "label": "Parametric Systems",
         "colorIndex": 5,
         "weight": 10

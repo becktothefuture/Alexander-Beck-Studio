@@ -16,10 +16,11 @@ import {
   resolveResponsiveFrameInsetPx,
 } from '../visual/frame-inset.js';
 import {
-  getTimeOfDayPalette,
-  getTimeOfDayPaletteColors,
-} from '../../../palette/timeOfDayPalette.js';
+  configureSimulationPalette,
+  getSimulationPaletteSnapshot,
+} from '../../../palette/simulationPaletteController.js';
 import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
+import { SIMULATION_MATERIAL_ROLE_COUNT } from '../../../palette/simulationPaletteContract.js';
 import {
   BUTTON_BAR_DEFAULTS,
   applyButtonBarCssVars,
@@ -30,9 +31,8 @@ import {
   resolveMobileSimulationBodyScale,
 } from '../../../lib/mobileSimulationSizing.js';
 
-const timeOfDayPalette = getTimeOfDayPalette();
-const timeOfDayPaletteColors = getTimeOfDayPaletteColors();
-const timeOfDayAccents = getLondonWeatherPaletteAccents(timeOfDayPalette?.id) || {};
+const initialSimulationPalette = getSimulationPaletteSnapshot();
+const timeOfDayAccents = getLondonWeatherPaletteAccents(initialSimulationPalette.paletteId) || {};
 
 // Helper: Convert hex color to "r, g, b" string for CSS rgba()
 function hexToRgbString(hex) {
@@ -486,19 +486,12 @@ const state = {
   // Keep these aligned with the palette selected from the visitor's local time so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: timeOfDayPaletteColors,
-  currentTemplate: timeOfDayPalette?.id || 'portlandHaze',
+  currentColors: initialSimulationPalette.colors.slice(),
+  currentTemplate: initialSimulationPalette.paletteId,
   // Color Distribution (labels ↔ palette indices ↔ weights)
   // Used by `pickRandomColor()` for ALL modes.
-  // NOTE: 6 disciplines choose 6 distinct palette indices (0..7). Neutral slots stay dominant.
-  colorDistribution: [
-    { label: 'Product Design', colorIndex: 0, weight: 44 },
-    { label: 'Experience Design', colorIndex: 3, weight: 14 },
-    { label: 'Art Direction', colorIndex: 2, weight: 17 },
-    { label: 'Motion & 3D', colorIndex: 6, weight: 11 },
-    { label: 'Creative Engineering', colorIndex: 7, weight: 7 },
-    { label: 'Parametric Systems', colorIndex: 5, weight: 7 }
-  ],
+  // Six disciplines choose six distinct palette indices; authored weights remain canonical.
+  colorDistribution: initialSimulationPalette.distribution.map((row) => ({ ...row })),
   
   // Flies mode
   fliesBallCount: 60,
@@ -1536,7 +1529,7 @@ export function initState(config) {
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
 
-  // Color distribution (7 rows)
+  // Canonical six-role material distribution.
   // Accepts: [{ label: string, colorIndex: 0..7, weight: 0..100 }, ...]
   // We clamp indices + weights for safety; UI enforces uniqueness + sum=100.
   if (Array.isArray(config.colorDistribution)) {
@@ -1544,10 +1537,13 @@ export function initState(config) {
     // Build on top of existing defaults so missing entries don't explode the UI.
     const base = Array.isArray(state.colorDistribution) ? state.colorDistribution : [];
     const out = [];
-    const n = Math.max(0, Math.min(7, src.length));
-    for (let i = 0; i < 7; i++) {
+    const n = Math.max(0, Math.min(SIMULATION_MATERIAL_ROLE_COUNT, src.length));
+    for (let i = 0; i < n; i++) {
       const b = base[i] || {};
       const s = src[i] || {};
+      const roleId = (typeof s.roleId === 'string' && s.roleId.trim())
+        ? s.roleId.trim()
+        : String(b.roleId || '').trim();
       let label = (typeof s.label === 'string' && s.label.trim())
         ? s.label.trim()
         : (typeof b.label === 'string' ? b.label : `Discipline ${i + 1}`);
@@ -1557,9 +1553,10 @@ export function initState(config) {
       }
       const colorIndex = clampInt(s.colorIndex, 0, 7, clampInt(b.colorIndex, 0, 7, 0));
       const weight = clampInt(s.weight, 0, 100, clampInt(b.weight, 0, 100, 0));
-      out.push({ label, colorIndex, weight });
+      out.push({ roleId, label, colorIndex, weight });
     }
-    state.colorDistribution = out;
+    const snapshot = configureSimulationPalette({ colorDistribution: out });
+    state.colorDistribution = snapshot.distribution.map((row) => ({ ...row }));
   }
 
   // Warmup frames (per simulation) — integer 0..240
@@ -2575,6 +2572,11 @@ export function setCanvas(canvas, ctx, container) {
   state.canvas = canvas;
   state.ctx = ctx;
   state.container = container;
+  if (canvas?.dataset) {
+    const snapshot = getSimulationPaletteSnapshot();
+    canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
+    canvas.dataset.simulationPaletteId = snapshot.paletteId;
+  }
 }
 
 export function setMode(mode) {

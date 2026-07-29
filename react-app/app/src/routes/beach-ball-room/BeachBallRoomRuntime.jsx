@@ -2,11 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
-  getCurrentPalette,
-  getTimeOfDayPaletteTemplate,
-  resolveColorTemplateName,
-} from '../../legacy/modules/visual/colors.js';
-import {
   createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
@@ -14,9 +9,8 @@ import {
   triggerImpact,
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
-import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
@@ -45,7 +39,6 @@ const IDLE_REST_ANGULAR_SPEED = 0.08;
 const IDLE_REST_HOLD_SECONDS = 0.8;
 const MOTION_DEBUG_INTERVAL_FRAMES = 12;
 const FALLBACK_APPROVED_COLOR_INDICES = Object.freeze([0, 1, 2, 3, 6, 5, 7]);
-const FALLBACK_PALETTE_COLORS = Object.freeze(getTimeOfDayPaletteColors());
 
 const ROOM_SETTING_KEYS = new Set([
   'showRoomLines',
@@ -186,32 +179,28 @@ function buildStripColorSequence(approvedColors, white, allowBlack) {
   return sequence.length ? sequence : candidates;
 }
 
-function resolvePalette(isDarkMode) {
-  const globals = getGlobals();
-  const templateId = resolveColorTemplateName(
-    globals.currentTemplate
-      || getTimeOfDayPaletteTemplate(),
-  );
-  const colors = getCurrentPalette(templateId, isDarkMode)
+function resolvePalette(snapshot) {
+  const colors = snapshot.colors
     .map((hex) => normalizeHexColor(hex, null))
     .filter(Boolean);
-  const distribution = Array.isArray(globals.colorDistribution) ? globals.colorDistribution : [];
+  const distribution = snapshot.distribution;
   const approvedIndices = distribution.length
     ? distribution
       .map((row) => clampBeachBallRoomInteger(row?.colorIndex, 0, 7))
       .filter((index, position, list) => list.indexOf(index) === position)
     : [...FALLBACK_APPROVED_COLOR_INDICES];
   const approvedColors = uniqueColors(
-    approvedIndices.map((index) => colors[index] || FALLBACK_PALETTE_COLORS[index] || null),
+    approvedIndices.map((index) => colors[index] || null),
   );
   const resolvedApprovedColors = approvedColors.length
     ? approvedColors
-    : uniqueColors(FALLBACK_APPROVED_COLOR_INDICES.map((index) => FALLBACK_PALETTE_COLORS[index]));
+    : uniqueColors(FALLBACK_APPROVED_COLOR_INDICES.map((index) => colors[index]));
   const white = normalizeHexColor(colors[2], null) || resolvedApprovedColors[0];
   const blackAllowed = approvedIndices.includes(4);
   const stripeColors = buildStripColorSequence(resolvedApprovedColors, white, blackAllowed);
   return {
-    id: templateId,
+    id: snapshot.paletteId,
+    generation: snapshot.generation,
     approvedIndices,
     approvedColors: resolvedApprovedColors,
     blackAllowed,
@@ -245,13 +234,18 @@ function createLineMesh(start, end, thickness, material) {
 }
 
 function createEngine(container, initialSettings, palette, reducedMotion) {
-  container.dataset.paletteId = palette.id;
-  container.dataset.approvedColorIndices = palette.approvedIndices.join(',');
-  container.dataset.approvedColors = palette.approvedColors.join(',');
-  container.dataset.blackAllowed = String(palette.blackAllowed);
-  container.dataset.stripColors = palette.stripColors.join(',');
-  container.dataset.whiteColor = palette.white;
-  container.dataset.roomLineColor = palette.roomLine;
+  let activePalette = palette;
+  const applyPaletteDiagnostics = (nextPalette) => {
+    container.dataset.paletteId = nextPalette.id;
+    container.dataset.simulationPaletteGeneration = String(nextPalette.generation);
+    container.dataset.approvedColorIndices = nextPalette.approvedIndices.join(',');
+    container.dataset.approvedColors = nextPalette.approvedColors.join(',');
+    container.dataset.blackAllowed = String(nextPalette.blackAllowed);
+    container.dataset.stripColors = nextPalette.stripColors.join(',');
+    container.dataset.whiteColor = nextPalette.white;
+    container.dataset.roomLineColor = nextPalette.roomLine;
+  };
+  applyPaletteDiagnostics(activePalette);
   container.dataset.backgroundColor = 'shared-shell';
 
   const renderer = new THREE.WebGLRenderer({
@@ -259,6 +253,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     alpha: true,
     powerPreference: 'high-performance',
   });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = false;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   renderer.setClearColor(0x000000, 0);
@@ -309,7 +304,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   let visualBeadCount = 0;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(palette.roomLine),
+    color: new THREE.Color(activePalette.roomLine),
     transparent: true,
     opacity: initialSettings.roomLineOpacity,
     depthWrite: false,
@@ -618,7 +613,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     const bottomCap = THREE.MathUtils.degToRad(clampBeachBallRoomNumber(settings.bottomCapAngleDeg, 0, 90));
     const colorRatio = colorColumns / columnsPerStrip;
     const centerRadius = ballRadius + beadRadius * (0.35 + clampBeachBallRoomNumber(settings.beadSurfaceOffset, 0, 2));
-    const colorCounts = new Map(palette.approvedColors.map((color) => [color, 0]));
+    const colorCounts = new Map(activePalette.approvedColors.map((color) => [color, 0]));
     const meshesByColor = new Map();
     const writeIndices = new Map();
     let beadCount = 0;
@@ -637,7 +632,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
           stripPhaseRad,
           stripCount,
           colorRatio,
-          palette,
+          palette: activePalette,
         });
         colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
         beadCount += 1;
@@ -692,7 +687,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
           stripPhaseRad,
           stripCount,
           colorRatio,
-          palette,
+          palette: activePalette,
         });
         const mesh = meshesByColor.get(color);
         if (!mesh) continue;
@@ -1046,6 +1041,20 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   frameId = window.requestAnimationFrame(renderFrame);
 
   return {
+    updatePalette(nextPalette) {
+      if (!nextPalette || nextPalette.generation === activePalette.generation) return;
+      activePalette = nextPalette;
+      applyPaletteDiagnostics(activePalette);
+      lineMaterial.color.setStyle(activePalette.roomLine);
+      for (let index = 0; index < beadMeshes.length; index += 1) {
+        const color = activePalette.approvedColors[index % activePalette.approvedColors.length]
+          || activePalette.white;
+        beadMeshes[index].material.color.setStyle(color);
+        beadMeshes[index].userData.color = color;
+      }
+      container.dataset.renderedBeadColors = beadMeshes.map((mesh) => mesh.userData.color).join(',');
+      renderer.render(scene, camera);
+    },
     updateSettings,
     scheduleRebuild,
     dispose() {
@@ -1084,8 +1093,9 @@ export function BeachBallRoomRuntime({
   const containerRef = useRef(null);
   const engineRef = useRef(null);
   const reducedMotion = usePrefersReducedMotion();
-  const isDark = useRenderedThemeIsDark();
-  const palette = useMemo(() => resolvePalette(isDark), [isDark]);
+  const paletteSnapshot = useSimulationPalette();
+  const palette = useMemo(() => resolvePalette(paletteSnapshot), [paletteSnapshot]);
+  const initialPaletteRef = useRef(palette);
   const initialSettingsRef = useRef(settings);
   const previousSettingsRef = useRef(settings);
   const previousReducedMotionRef = useRef(reducedMotion);
@@ -1101,7 +1111,7 @@ export function BeachBallRoomRuntime({
     containerRef.current.dataset.beachBallRoomLoadState = 'initializing';
     onLoadStateChangeRef.current?.('initializing');
     try {
-      engine = createEngine(containerRef.current, initialSettingsRef.current, palette, reducedMotion);
+      engine = createEngine(containerRef.current, initialSettingsRef.current, initialPaletteRef.current, reducedMotion);
       containerRef.current.dataset.beachBallRoomLoadState = 'ready';
       onLoadStateChangeRef.current?.('ready');
     } catch (error) {
@@ -1115,7 +1125,11 @@ export function BeachBallRoomRuntime({
       engineRef.current = null;
       engine.dispose();
     };
-  }, [palette, reducedMotion]);
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    engineRef.current?.updatePalette(palette);
+  }, [palette]);
 
   useEffect(() => {
     const changedKeys = getBeachBallRoomChangedSettingKeys(previousSettingsRef.current, settings);

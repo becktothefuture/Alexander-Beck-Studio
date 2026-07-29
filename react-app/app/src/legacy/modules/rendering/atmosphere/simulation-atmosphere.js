@@ -1,4 +1,9 @@
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../../../lib/theme-state.js';
+import {
+  createSimulationMaterialSequence,
+  getSimulationPaletteSnapshot,
+  subscribeSimulationPalette,
+} from '../../../../palette/simulationPaletteController.js';
 import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
 import { DiffuseGlowEffect } from './diffuse-glow-effect.js';
 import {
@@ -20,8 +25,6 @@ const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 1200;
 const GLOW_RADIUS_MIN_CSS_PX = 36;
 const GLOW_RADIUS_MAX_CSS_PX = 180;
-const AMBIENT_COLOURS_LIGHT = Object.freeze(['#4f7fff', '#ff7657', '#d8e54f', '#53d39c']);
-const AMBIENT_COLOURS_DARK = Object.freeze(['#5c87ff', '#ff7657', '#dceb54', '#55dba0']);
 const AMBIENT_COUNT = 8;
 
 let host = null;
@@ -65,6 +68,12 @@ let geometryReadCount = 0;
 let quietZoneGeometryReadCount = 0;
 let firstCompositeAt = 0;
 let failureReason = '';
+let ambientPaletteSnapshot = getSimulationPaletteSnapshot();
+let ambientColours = createSimulationMaterialSequence(
+  AMBIENT_COUNT,
+  {},
+  ambientPaletteSnapshot,
+).map((role) => ambientPaletteSnapshot.colors[role.colorIndex]);
 let lastSourceLightCount = 0;
 let lastSourceLayerCount = 0;
 let lastSampledEmitterCount = 0;
@@ -80,7 +89,7 @@ const ambientBalls = Array.from({ length: AMBIENT_COUNT }, (_, index) => ({
   x: 0,
   y: 0,
   r: 1,
-  color: AMBIENT_COLOURS_LIGHT[index % AMBIENT_COLOURS_LIGHT.length],
+  color: ambientColours[index % ambientColours.length],
   pebbleSeed: 7000 + index * 37,
   baseX: 0.08 + ((index * 0.317) % 0.84),
   baseY: 0.1 + ((index * 0.463) % 0.8),
@@ -419,7 +428,6 @@ function syncGeometry() {
 function updateAmbientSource(nowMs) {
   const canvas = host.sourceCanvas;
   const shortest = Math.min(canvas.width, canvas.height);
-  const colours = themeMode === 'dark' ? AMBIENT_COLOURS_DARK : AMBIENT_COLOURS_LIGHT;
   const time = reducedMotion ? 0 : nowMs * 0.000045;
   for (let index = 0; index < AMBIENT_COUNT; index += 1) {
     const ball = ambientBalls[index];
@@ -427,7 +435,7 @@ function updateAmbientSource(nowMs) {
     ball.x = (ball.baseX + Math.sin(orbit) * 0.035) * canvas.width;
     ball.y = (ball.baseY + Math.cos(orbit * 0.83) * 0.028) * canvas.height;
     ball.r = shortest * (0.026 + (index % 3) * 0.006);
-    ball.color = colours[index % colours.length];
+    ball.color = ambientColours[index % ambientColours.length];
   }
   lastSourceLayerCount = 0;
   lastSourceLightCount = renderEmitterDiscs(ambientBalls, canvas, 1);
@@ -763,6 +771,8 @@ function getDiagnosticSnapshot() {
     scale: dynamicQuality.scale,
     responsiveScale,
     themeMode,
+    paletteGeneration: ambientPaletteSnapshot.generation,
+    paletteId: ambientPaletteSnapshot.paletteId,
     reducedMotion,
     temporalMemoryFrames: 0,
     resolvedGlowRadiusCss,
@@ -830,6 +840,14 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     ? new ResizeObserver(() => invalidateSimulationAtmosphereGeometry('resize-observer'))
     : null;
   const reducedMotionQuery = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
+  const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
+    ambientPaletteSnapshot = snapshot;
+    ambientColours = createSimulationMaterialSequence(AMBIENT_COUNT, {}, snapshot)
+      .map((role) => snapshot.colors[role.colorIndex]);
+    staticFrameDirty = true;
+    root.dataset.simulationPaletteGeneration = String(snapshot.generation);
+    if (host && activeSource?.kind === 'ambient') scheduleInternalFrame();
+  });
   reducedMotion = reducedMotionQuery?.matches === true;
   destroyed = false;
   host = {
@@ -845,6 +863,7 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     edgeLight,
     resizeObserver,
     reducedMotionQuery,
+    unsubscribePalette,
     observedQuietZone: null,
     hasQuietZoneMask: false,
     geometry: { left: 0, top: 0, width: 0, height: 0 },
@@ -868,6 +887,7 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener(THEME_CHANGE_EVENT, handleThemeChange);
     reducedMotionQuery?.removeEventListener?.('change', handleReducedMotionChange);
+    unsubscribePalette();
     resizeObserver?.disconnect();
     markSourceElement(activeSource, false);
     edgeLight.destroy();

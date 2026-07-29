@@ -12,7 +12,13 @@ import {
   triggerPressure,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationMaterialColorIndex,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
+import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -20,15 +26,8 @@ const DEFAULT_THEME = {
   light: '#efefef',
   dark: '#202020',
   active: '#202020',
-  palette: getTimeOfDayPaletteColors(),
-  colorDistribution: [
-    { colorIndex: 0, weight: 31 },
-    { colorIndex: 3, weight: 13 },
-    { colorIndex: 2, weight: 16 },
-    { colorIndex: 6, weight: 20 },
-    { colorIndex: 7, weight: 10 },
-    { colorIndex: 5, weight: 10 },
-  ],
+  palette: FALLBACK_SIMULATION_PALETTE_COLORS,
+  colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
 };
 
 const BODY_KIND_STEM = 0;
@@ -161,83 +160,23 @@ function rgbString(color, alpha = 1) {
   return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
 }
 
-function relativeLuminance(color) {
-  return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-}
-
-function colorSaturation(color) {
-  return Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
-}
-
 function resolvePalette(theme) {
   const source = Array.isArray(theme?.palette) ? theme.palette : DEFAULT_THEME.palette;
-  const palette = source.filter(isHexColor);
-  return palette.length ? palette : DEFAULT_THEME.palette;
+  return resolveSimulationPaletteColors(source.filter(isHexColor));
 }
 
-function resolveColorDistribution(theme, paletteLength) {
-  const source = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_THEME.colorDistribution;
-  const distribution = [];
-
-  for (const row of source) {
-    const colorIndex = Math.round(Number(row?.colorIndex));
-    const weight = Number(row?.weight);
-    if (
-      Number.isFinite(colorIndex)
-      && colorIndex >= 0
-      && colorIndex < paletteLength
-      && Number.isFinite(weight)
-      && weight > 0
-    ) {
-      distribution.push({ colorIndex, weight });
-    }
-  }
-
-  return distribution.length
-    ? distribution
-    : Array.from({ length: Math.max(1, paletteLength) }, (_, colorIndex) => ({ colorIndex, weight: 1 }));
+function pickWeightedMaterialRoleIndex(random, theme) {
+  return selectSimulationMaterialRole(random(), theme?.paletteSnapshot || theme)?.distributionIndex || 0;
 }
 
-function isLightNeutralPaletteIndex(theme, index) {
-  const palette = resolvePalette(theme);
-  const color = parseHexColor(palette[index]);
-  return relativeLuminance(color) > 218 && colorSaturation(color) < 38;
+function pickStemMaterialRoleIndex(random, theme) {
+  return pickWeightedMaterialRoleIndex(random, theme, 0.24);
 }
 
-function pickWeightedPaletteIndex(random, theme, lightNeutralScale = 1) {
-  const palette = resolvePalette(theme);
-  const distribution = resolveColorDistribution(theme, palette.length);
-  let total = 0;
-
-  for (const row of distribution) {
-    const scale = isLightNeutralPaletteIndex(theme, row.colorIndex)
-      ? clamp(lightNeutralScale, 0, 1)
-      : 1;
-    total += row.weight * scale;
-  }
-  if (total <= 0) return 0;
-
-  let sample = random() * total;
-  for (const row of distribution) {
-    const scale = isLightNeutralPaletteIndex(theme, row.colorIndex)
-      ? clamp(lightNeutralScale, 0, 1)
-      : 1;
-    sample -= row.weight * scale;
-    if (sample <= 0) return row.colorIndex;
-  }
-  return distribution[distribution.length - 1]?.colorIndex || 0;
-}
-
-function pickStemPaletteIndex(random, theme) {
-  return pickWeightedPaletteIndex(random, theme, 0.24);
-}
-
-function pickLeafletPaletteIndex(random, theme, config) {
+function pickLeafletMaterialRoleIndex(random, theme, config) {
   const spread = clamp(Number(config.colorSpread ?? 1), 0, 1);
   const lightNeutralScale = 0.18 + (1 - spread) * 0.18;
-  return pickWeightedPaletteIndex(random, theme, lightNeutralScale);
+  return pickWeightedMaterialRoleIndex(random, theme, lightNeutralScale);
 }
 
 function getThemeKey(theme) {
@@ -245,7 +184,6 @@ function getThemeKey(theme) {
     theme?.active,
     theme?.light,
     theme?.dark,
-    resolvePalette(theme).join(','),
   ].join(':');
 }
 
@@ -626,7 +564,7 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     stretchX: new Float32Array(countLimit),
     stretchY: new Float32Array(countLimit),
     rotation: new Float32Array(countLimit),
-    colorIndex: new Uint8Array(countLimit),
+    materialRoleIndex: new Uint8Array(countLimit),
     soundPlayed: new Uint8Array(countLimit),
     kind: new Uint8Array(countLimit),
     root: new Uint16Array(countLimit),
@@ -732,7 +670,10 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
   }
 
   function markColorUsed(index) {
-    const colorIndex = state.colorIndex[index] % Math.max(1, paletteLength);
+    const colorIndex = resolveSimulationMaterialColorIndex(
+      state.materialRoleIndex[index],
+      theme?.paletteSnapshot || theme?.colorDistribution,
+    ) % Math.max(1, paletteLength);
     if (state.colorUsage[colorIndex] === 0) state.paletteUsed += 1;
     state.colorUsage[colorIndex] += 1;
   }
@@ -766,9 +707,9 @@ function buildFormation(metrics, theme, config, seed, reducedMotion) {
     state.stretchX[index] = 0.96 + hash01(pebbleSeed + 17) * 0.08;
     state.stretchY[index] = 0.95 + hash01(pebbleSeed + 31) * 0.09;
     state.rotation[index] = hash01(pebbleSeed + 47) * TAU;
-    state.colorIndex[index] = kind === BODY_KIND_LEAFLET
-      ? pickLeafletPaletteIndex(random, theme, config)
-      : pickStemPaletteIndex(random, theme, rootIndex, depth);
+    state.materialRoleIndex[index] = kind === BODY_KIND_LEAFLET
+      ? pickLeafletMaterialRoleIndex(random, theme, config)
+      : pickStemMaterialRoleIndex(random, theme, rootIndex, depth);
     markColorUsed(index);
 
     state.formationMinX = Math.min(state.formationMinX, x);
@@ -1470,7 +1411,11 @@ function renderState(ctx, state, metrics, theme, now, elapsed, duration, options
     const grow = state.growthScale[i];
     if (grow <= 0) continue;
     visibleCount += 1;
-    const color = palette[state.colorIndex[i] % palette.length] || parseHexColor(DEFAULT_THEME.palette[0]);
+    const colorIndex = resolveSimulationMaterialColorIndex(
+      state.materialRoleIndex[i],
+      theme?.paletteSnapshot || theme?.colorDistribution,
+    );
+    const color = palette[colorIndex % palette.length] || parseHexColor(DEFAULT_THEME.palette[0]);
     const radius = state.radius[i] * (0.38 + grow * 0.62) * getVisualScaleAt(i);
     if (radius <= 0.05) continue;
     drawPebble(ctx, state, i, radius, color);
@@ -1528,6 +1473,7 @@ export function createMineralGrowthRenderer({
   let startedAt = 0;
   let running = false;
   let frameMs = 0;
+  let stateBuildCount = 0;
   let lastMetrics = {
     activeCount: 0,
     targetCount: 0,
@@ -1604,12 +1550,16 @@ export function createMineralGrowthRenderer({
     const key = getFormationKey(config, theme, metrics, currentSeed, reducedMotion);
     if (!state || state.configKey !== key) {
       state = buildFormation(metrics, theme, config, currentSeed, reducedMotion);
+      stateBuildCount += 1;
       startedAt = performance.now();
       lastFrameAt = 0;
       lastRenderAt = 0;
     }
     canvas.dataset.mobileSimulationBodyScale = state.mobileSimulationBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = state.nominalBodyRadius.toFixed(2);
+    canvas.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
+    canvas.dataset.simulationPaletteId = String(theme?.paletteId || '');
+    canvas.dataset.simulationStateBuildCount = String(stateBuildCount);
     canvas.dataset.simulationBodyCount = String(state.count);
     canvas.dataset.simulationSeedCount = String(state.rootCount);
     return { config, theme };

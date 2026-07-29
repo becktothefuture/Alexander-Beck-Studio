@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
-import { getTimeOfDayPalette } from '../../palette/timeOfDayPalette.js';
+import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
 import './button-bar-playground.css';
 import './button-bar-playground-spatial-states.css';
 import '../../components/app/shell-button-bar-dominant.css';
@@ -58,10 +58,8 @@ const PLAYGROUND_CONTROLS = Object.freeze(
   PLAYGROUND_CONTROL_GROUPS.flatMap((group) => group.controls),
 );
 
-const PLAYGROUND_TIME_PALETTE = getTimeOfDayPalette();
-const PLAYGROUND_TIME_COLORS = Array.isArray(PLAYGROUND_TIME_PALETTE?.light)
-  ? PLAYGROUND_TIME_PALETTE.light
-  : ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'];
+const PLAYGROUND_TIME_PALETTE = getSimulationPaletteSnapshot();
+const PLAYGROUND_TIME_COLORS = PLAYGROUND_TIME_PALETTE.colors;
 
 function getContrastInk(hex) {
   const normalized = String(hex || '').replace('#', '');
@@ -543,7 +541,7 @@ export function ButtonBarPlayground() {
         className="button-bar-playground"
         aria-labelledby="button-bar-playground-title"
         data-playground-theme={theme}
-        data-time-palette={PLAYGROUND_TIME_PALETTE?.id}
+        data-time-palette={PLAYGROUND_TIME_PALETTE.paletteId}
         data-config-panel-open={isWalkmanPanelOpen ? 'true' : 'false'}
         data-spatial-layers={walkmanConfig.layerCount}
         style={walkmanStyle}

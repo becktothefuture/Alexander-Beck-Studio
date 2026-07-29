@@ -8,7 +8,13 @@ import {
 } from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationMaterialColorIndex,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
+import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -16,15 +22,8 @@ const DEFAULT_THEME = {
   light: '#efefef',
   dark: '#202020',
   active: '#202020',
-  palette: getTimeOfDayPaletteColors(),
-  colorDistribution: [
-    { colorIndex: 0, weight: 31 },
-    { colorIndex: 3, weight: 13 },
-    { colorIndex: 2, weight: 16 },
-    { colorIndex: 6, weight: 20 },
-    { colorIndex: 7, weight: 10 },
-    { colorIndex: 5, weight: 10 },
-  ],
+  palette: FALLBACK_SIMULATION_PALETTE_COLORS,
+  colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
 };
 
 function clamp(value, min, max) {
@@ -77,56 +76,11 @@ function mixColor(a, b, amount) {
 
 function resolvePalette(theme) {
   const source = Array.isArray(theme?.palette) ? theme.palette : DEFAULT_THEME.palette;
-  const palette = source.filter(isHexColor);
-  return palette.length ? palette : DEFAULT_THEME.palette;
+  return resolveSimulationPaletteColors(source.filter(isHexColor));
 }
 
-function resolveColorDistribution(theme, paletteLength) {
-  const source = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_THEME.colorDistribution;
-  const distribution = [];
-
-  for (const row of source) {
-    const colorIndex = Math.round(Number(row?.colorIndex));
-    const weight = Number(row?.weight);
-    if (
-      Number.isFinite(colorIndex)
-      && colorIndex >= 0
-      && colorIndex < paletteLength
-      && Number.isFinite(weight)
-      && weight > 0
-    ) {
-      distribution.push({ colorIndex, weight });
-    }
-  }
-
-  return distribution.length ? distribution : DEFAULT_THEME.colorDistribution;
-}
-
-function pickWeightedPaletteIndex(random, theme) {
-  const palette = resolvePalette(theme);
-  const distribution = resolveColorDistribution(theme, palette.length);
-  let total = 0;
-
-  for (const row of distribution) total += row.weight;
-  if (total <= 0) return 0;
-
-  let sample = random() * total;
-  for (const row of distribution) {
-    sample -= row.weight;
-    if (sample <= 0) return row.colorIndex;
-  }
-  return distribution[distribution.length - 1]?.colorIndex || 0;
-}
-
-function getThemeKey(theme) {
-  return [
-    theme?.active,
-    theme?.light,
-    theme?.dark,
-    resolvePalette(theme).join(','),
-  ].join(':');
+function pickWeightedMaterialRoleIndex(random, theme) {
+  return selectSimulationMaterialRole(random(), theme?.paletteSnapshot || theme)?.distributionIndex || 0;
 }
 
 function getConfigKey(config, count, theme, metrics) {
@@ -145,7 +99,6 @@ function getConfigKey(config, count, theme, metrics) {
     Number(config.directionalBias).toFixed(3),
     Number(config.spinBias).toFixed(3),
     mobileBodyScale.toFixed(2),
-    getThemeKey(theme),
   ].join(':');
 }
 
@@ -232,7 +185,7 @@ function createState(count, metrics, theme, config) {
     vy: new Float32Array(count),
     radius: new Float32Array(count),
     phase: new Float32Array(count),
-    colorIndex: new Uint8Array(count),
+    materialRoleIndex: new Uint8Array(count),
     next: new Int32Array(count),
     head: new Int32Array(gridCols * gridRows),
     gridCols,
@@ -277,7 +230,7 @@ function createState(count, metrics, theme, config) {
     state.vx[i] = (dirX / dirLength) * speed;
     state.vy[i] = (dirY / dirLength) * speed;
     state.phase[i] = random() * TAU;
-    state.colorIndex[i] = pickWeightedPaletteIndex(random, theme);
+    state.materialRoleIndex[i] = pickWeightedMaterialRoleIndex(random, theme);
   }
 
   return state;
@@ -557,7 +510,10 @@ function drawState(ctx, state, metrics, theme, options = {}) {
     ctx.fillStyle = rgbString(colors.body[colorIndex], 1);
     ctx.beginPath();
     for (let i = 0; i < state.count; i += 1) {
-      if (state.colorIndex[i] !== colorIndex) continue;
+      if (resolveSimulationMaterialColorIndex(
+        state.materialRoleIndex[i],
+        theme?.paletteSnapshot || theme?.colorDistribution,
+      ) !== colorIndex) continue;
       const radius = state.radius[i] * getVisualScaleAt(i);
       if (radius <= 0.05) continue;
       ctx.moveTo(state.x[i] + radius, state.y[i]);
@@ -598,6 +554,7 @@ export function createRepelRoomRenderer({
   let lastFrameAt = 0;
   let lastUpdateAt = 0;
   let lastRenderMs = 0;
+  let stateBuildCount = 0;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'repel-room',
@@ -649,7 +606,9 @@ export function createRepelRoomRenderer({
     const key = getConfigKey(config, count, theme, metrics);
     if (!state || state.configKey !== key) {
       state = createState(count, metrics, theme, config);
+      stateBuildCount += 1;
     }
+    canvas.dataset.simulationStateBuildCount = String(stateBuildCount);
   }
 
   function syncFrameState() {
@@ -662,6 +621,8 @@ export function createRepelRoomRenderer({
     canvas.dataset.simulationBodyRadius = state.baseRadius.toFixed(2);
     canvas.dataset.simulationBodyCount = String(state.count);
     canvas.dataset.simulationInitialSpeed = state.initialSpeed.toFixed(0);
+    canvas.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
+    canvas.dataset.simulationPaletteId = String(theme?.paletteId || '');
     return { config, theme };
   }
 

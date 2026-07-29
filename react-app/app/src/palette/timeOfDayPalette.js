@@ -1,8 +1,3 @@
-import {
-  DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  getLondonWeatherPalette,
-} from './londonPalettes.js';
-
 export const TIME_OF_DAY_PALETTE_PERIODS = Object.freeze([
   Object.freeze({
     id: 'after-midnight',
@@ -85,33 +80,7 @@ export function getTimeOfDayPalettePeriod(date = new Date()) {
 }
 
 export function getTimeOfDayPaletteId(date = new Date()) {
-  return getTimeOfDayPalettePeriod(date)?.paletteId || DEFAULT_LONDON_WEATHER_PALETTE_ID;
-}
-
-export function getTimeOfDayPalette(date = new Date()) {
-  return getLondonWeatherPalette(getTimeOfDayPaletteId(date));
-}
-
-export function getTimeOfDayPaletteColors(date = new Date(), isDarkMode = false) {
-  const palette = getTimeOfDayPalette(date);
-  const colors = isDarkMode ? palette?.dark : palette?.light;
-  return Array.isArray(colors) ? colors.slice() : [];
-}
-
-export function syncTimeOfDayPaletteCssVars({
-  date = new Date(),
-  isDarkMode = false,
-  root = typeof document !== 'undefined' ? document.documentElement : null,
-} = {}) {
-  const paletteId = getTimeOfDayPaletteId(date);
-  const colors = getTimeOfDayPaletteColors(date, isDarkMode);
-  if (!root) return { paletteId, colors };
-
-  colors.slice(0, 8).forEach((color, index) => {
-    root.style.setProperty(`--ball-${index + 1}`, color);
-  });
-  root.dataset.absTimeOfDayPalette = paletteId;
-  return { paletteId, colors };
+  return getTimeOfDayPalettePeriod(date)?.paletteId || DEFAULT_PERIOD.paletteId;
 }
 
 export function getTimeUntilNextPalettePeriod(date = new Date()) {
@@ -127,11 +96,17 @@ export function getTimeUntilNextPalettePeriod(date = new Date()) {
     .find((boundary) => boundary.getTime() > current.getTime());
 
   if (next) {
-    return Math.max(1_000, next.getTime() - current.getTime());
+    return Math.max(1, next.getTime() - current.getTime());
   }
 
   const firstBoundaryTomorrow = new Date(current.getTime());
   firstBoundaryTomorrow.setDate(firstBoundaryTomorrow.getDate() + 1);
   firstBoundaryTomorrow.setHours(TIME_OF_DAY_PALETTE_PERIODS[0].startHour, 0, 0, 0);
-  return Math.max(1_000, firstBoundaryTomorrow.getTime() - current.getTime());
+  return Math.max(1, firstBoundaryTomorrow.getTime() - current.getTime());
+}
+
+export function getNextTimeOfDayPaletteBoundary(date = new Date()) {
+  const current = date instanceof Date ? new Date(date.getTime()) : new Date(date);
+  if (!Number.isFinite(current.getTime())) return new Date(Date.now() + 60_000);
+  return new Date(current.getTime() + getTimeUntilNextPalettePeriod(current));
 }

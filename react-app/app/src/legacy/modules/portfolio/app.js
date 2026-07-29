@@ -3833,9 +3833,8 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
         reason,
         routeTransition: waitForShellRelease,
       }).then(() => {
-        if (!isCurrentBootstrapRun() || getTransitionPhase() !== 'idle') return;
-        app?.particleField?.setSuspended(false);
-        app?.resumeVisibleVideos();
+        if (!isCurrentBootstrapRun()) return;
+        app?.completeRouteTransition();
       });
     }
   };

@@ -4,7 +4,11 @@ import {
   normalizeContactRippleConfig,
 } from './contactRippleConfig.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  resolveSimulationColorDistribution,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
+import { createSimulationMaterialSequence } from '../../palette/simulationPaletteController.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../lib/transition-phase.js';
 
 const TAU = Math.PI * 2;
@@ -18,15 +22,6 @@ const KALEIDOSCOPE_DOT_AREA_MUL = 1.15;
 const KALEIDOSCOPE_DOT_SIZE_VARIANCE = 0.38;
 const CONFIRMATION_PALETTE_INDEX = 7;
 const COLOR_WAVE_PEAK = 0.94;
-const DEFAULT_DISTRIBUTION = [
-  { colorIndex: 0, weight: 31 },
-  { colorIndex: 3, weight: 13 },
-  { colorIndex: 2, weight: 16 },
-  { colorIndex: 6, weight: 20 },
-  { colorIndex: 7, weight: 10 },
-  { colorIndex: 5, weight: 10 },
-];
-
 let rendererInstanceId = 0;
 
 function clamp(value, min, max) {
@@ -78,29 +73,16 @@ function createBallSprite(color) {
 }
 
 function resolvePalette(theme) {
-  const palette = Array.isArray(theme?.palette)
-    ? theme.palette.filter(isHexColor)
-    : [];
-  return palette.length
-    ? palette
-    : getTimeOfDayPaletteColors(new Date(), Boolean(theme?.isDark));
+  const palette = Array.isArray(theme?.palette) ? theme.palette.filter(isHexColor) : [];
+  return resolveSimulationPaletteColors(palette);
 }
 
-function resolveColorSequence(theme, paletteLength) {
-  const distribution = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_DISTRIBUTION;
-  const sequence = [];
-
-  for (const role of distribution) {
-    const colorIndex = Number(role?.colorIndex);
-    if (!Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex >= paletteLength) continue;
-    const repeats = Math.round(clamp(Number(role?.weight) || 10, 5, 40) / 8);
-    for (let index = 0; index < repeats; index += 1) sequence.push(colorIndex);
-  }
-
-  if (sequence.length) return sequence;
-  return Array.from({ length: paletteLength }, (_, index) => index);
+function resolveMaterialSequence(theme, paletteLength) {
+  const snapshot = theme?.paletteSnapshot || {
+    colors: resolvePalette(theme),
+    distribution: resolveSimulationColorDistribution(theme?.colorDistribution, paletteLength),
+  };
+  return createSimulationMaterialSequence(100, {}, snapshot);
 }
 
 function createSpriteSet(theme) {
@@ -111,7 +93,7 @@ function createSpriteSet(theme) {
   return {
     key: getThemeKey(theme, palette),
     palette,
-    sequence: resolveColorSequence(theme, palette.length),
+    sequence: resolveMaterialSequence(theme, palette.length),
     sprites: palette.map(createBallSprite),
     confirmationColor,
     confirmationSprite: createBallSprite(confirmationColor),
@@ -119,9 +101,10 @@ function createSpriteSet(theme) {
 }
 
 function getThemeKey(theme, resolvedPalette = resolvePalette(theme)) {
-  const distribution = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_DISTRIBUTION;
+  const distribution = resolveSimulationColorDistribution(
+    theme?.colorDistribution,
+    resolvedPalette.length,
+  );
   const distributionKey = distribution
     .map((role) => `${Number(role?.colorIndex) || 0}:${Number(role?.weight) || 0}`)
     .join(',');
@@ -192,6 +175,8 @@ export function createContactRippleRenderer({
     dpr: 1,
   };
   let spriteSet = createSpriteSet(getTheme?.());
+  let spriteBuildCount = 1;
+  let bodyBuildCount = 0;
   let bodies = [];
   let layoutKey = '';
   let lastMotionFrameAt = 0;
@@ -252,14 +237,37 @@ export function createContactRippleRenderer({
     const nextPalette = resolvePalette(theme);
     stage.dataset.contactRippleSurface = String(theme?.active || '');
     stage.dataset.contactRipplePaletteId = String(theme?.paletteId || '');
+    stage.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
     stage.dataset.contactRipplePalette = nextPalette.join(',');
     stage.dataset.contactRippleBurstColor = nextPalette[CONFIRMATION_PALETTE_INDEX]
       || nextPalette[nextPalette.length - 1]
       || '';
     const nextKey = getThemeKey(theme, nextPalette);
+    if (diagnostics) {
+      diagnostics.paletteId = String(theme?.paletteId || '');
+      diagnostics.paletteGeneration = Number(theme?.paletteGeneration || 0);
+      diagnostics.colors = nextPalette.slice();
+      diagnostics.distribution = (theme?.paletteSnapshot?.distribution || []).map((role) => ({
+        roleId: role.roleId,
+        label: role.label,
+        colorIndex: role.colorIndex,
+        weight: role.weight,
+      }));
+    }
     if (nextKey === spriteSet.key) return;
     spriteSet = createSpriteSet(theme);
+    spriteBuildCount += 1;
+    const roleById = new Map(
+      (theme?.paletteSnapshot?.distribution || []).map((role) => [role.roleId, role]),
+    );
+    for (let index = 0; index < bodies.length; index += 1) {
+      const body = bodies[index];
+      const role = roleById.get(body.roleId)
+        || theme?.paletteSnapshot?.distribution?.[body.distributionIndex];
+      if (role) body.colorIndex = role.colorIndex;
+    }
     stage.dataset.contactRipplePaletteSize = String(spriteSet.palette.length);
+    if (diagnostics) diagnostics.spriteBuildCount = spriteBuildCount;
     needsRender = true;
   }
 
@@ -323,7 +331,6 @@ export function createContactRippleRenderer({
       config.bodyGapScale.toFixed(2),
       config.ringGapScale.toFixed(2),
       config.innerRingSkipCount,
-      spriteSet.key,
     ].join(':');
     if (nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;
@@ -332,7 +339,7 @@ export function createContactRippleRenderer({
     needsRender = needsRender || resized;
   }
 
-  function getBodyColorIndex(ringIndex, beadIndex, beadCount) {
+  function getBodyMaterial(ringIndex, beadIndex, beadCount) {
     const segmentCount = Math.min(12, Math.max(6, Math.round(beadCount / 9)));
     const segment = Math.floor((beadIndex / Math.max(1, beadCount)) * segmentCount);
     const sequenceIndex = (segment + (ringIndex * 3)) % spriteSet.sequence.length;
@@ -346,6 +353,7 @@ export function createContactRippleRenderer({
   }
 
   function rebuildBodies() {
+    bodyBuildCount += 1;
     const nextBodies = [];
     const bodyRadius = metrics.bodyRadius;
     const spacingRadius = metrics.maxBodyRadius || bodyRadius;
@@ -361,12 +369,15 @@ export function createContactRippleRenderer({
 
       for (let beadIndex = 0; beadIndex < beadCount; beadIndex += 1) {
         const angle = angleOffset + ((beadIndex / beadCount) * TAU);
+        const material = getBodyMaterial(ringIndex, beadIndex, beadCount);
         nextBodies.push({
           angle,
           baseRadius: ringRadius,
           ringIndex,
           ringDirection: ringIndex % 2 === 0 ? 1 : -1,
-          colorIndex: getBodyColorIndex(ringIndex, beadIndex, beadCount),
+          roleId: material?.roleId || '',
+          distributionIndex: material?.distributionIndex || 0,
+          colorIndex: material?.colorIndex || 0,
           radius: getBodyRadius(ringIndex, beadIndex),
           phase: ringIndex * 0.12,
         });
@@ -376,7 +387,17 @@ export function createContactRippleRenderer({
 
     bodies = nextBodies;
     stage.dataset.contactRippleBodyCount = String(bodies.length);
+    stage.dataset.contactRippleRingCount = String(
+      Math.max(0, ringIndex - config.innerRingSkipCount),
+    );
     stage.dataset.contactRippleBodyRadius = bodyRadius.toFixed(2);
+    if (diagnostics) {
+      diagnostics.bodyCount = bodies.length;
+      diagnostics.ringCount = Math.max(0, ringIndex - config.innerRingSkipCount);
+      diagnostics.rendererInstanceId = instanceId;
+      diagnostics.bodyBuildCount = bodyBuildCount;
+      diagnostics.spriteBuildCount = spriteBuildCount;
+    }
   }
 
   function drawBall(x, y, radius, alpha, colorIndex, waveMix = 0) {

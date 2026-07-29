@@ -12,22 +12,21 @@ import {
   isMobileSimulationViewport,
   resolveMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationMaterialColorIndex,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
+import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
 const DEFAULT_THEME = {
   active: '#202020',
-  palette: getTimeOfDayPaletteColors(),
-  colorDistribution: [
-    { colorIndex: 0, weight: 31 },
-    { colorIndex: 3, weight: 13 },
-    { colorIndex: 2, weight: 16 },
-    { colorIndex: 6, weight: 20 },
-    { colorIndex: 7, weight: 10 },
-    { colorIndex: 5, weight: 10 },
-  ],
+  palette: FALLBACK_SIMULATION_PALETTE_COLORS,
+  colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
 };
 
 function clamp(value, min, max) {
@@ -61,46 +60,13 @@ function isHexColor(value) {
 
 function resolvePalette(theme) {
   const source = Array.isArray(theme?.palette) ? theme.palette : DEFAULT_THEME.palette;
-  const palette = source.filter(isHexColor);
-  return palette.length ? palette : DEFAULT_THEME.palette;
-}
-
-function resolveColorDistribution(theme, paletteLength) {
-  const source = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_THEME.colorDistribution;
-  const distribution = [];
-
-  for (const row of source) {
-    const colorIndex = Math.round(Number(row?.colorIndex));
-    const weight = Number(row?.weight);
-    if (
-      Number.isFinite(colorIndex)
-      && colorIndex >= 0
-      && colorIndex < paletteLength
-      && Number.isFinite(weight)
-      && weight > 0
-    ) {
-      distribution.push({ colorIndex, weight });
-    }
-  }
-
-  return distribution.length ? distribution : DEFAULT_THEME.colorDistribution;
+  return resolveSimulationPaletteColors(source.filter(isHexColor));
 }
 
 function pickWeightedColor(random, theme) {
   const palette = resolvePalette(theme);
-  const distribution = resolveColorDistribution(theme, palette.length);
-  let total = 0;
-  for (const row of distribution) total += row.weight;
-  if (total <= 0) return palette[0];
-
-  let sample = random() * total;
-  for (const row of distribution) {
-    sample -= row.weight;
-    if (sample <= 0) return palette[row.colorIndex] || palette[0];
-  }
-  return palette[distribution[distribution.length - 1]?.colorIndex || 0] || palette[0];
+  const role = selectSimulationMaterialRole(random(), theme?.paletteSnapshot || theme);
+  return { color: palette[role?.colorIndex || 0] || palette[0], role };
 }
 
 function resolveDpr(config) {
@@ -319,6 +285,7 @@ function drawBody(ctx, body, visualScale = 1) {
 
 function makeBody(random, theme, x, y, r, extra = {}) {
   const shapeKind = extra.shapeKind || 'pebble';
+  const material = pickWeightedColor(random, theme);
   return {
     x,
     y,
@@ -327,7 +294,10 @@ function makeBody(random, theme, x, y, r, extra = {}) {
     vx: 0,
     vy: 0,
     r: r * (0.9 + random() * 0.18),
-    color: pickWeightedColor(random, theme),
+    color: material.color,
+    roleId: material.role?.roleId || '',
+    distributionIndex: material.role?.distributionIndex || 0,
+    colorIndex: material.role?.colorIndex || 0,
     rotation: random() * TAU,
     spin: (random() - 0.5) * 0.018,
     shape: shapeKind === 'circle' ? null : createPebbleShape(random),
@@ -823,6 +793,8 @@ export function createConceptSimulationRenderer({
   let lastTime = 0;
   let started = false;
   let layoutKey = '';
+  let paletteGeneration = 0;
+  let stateBuildCount = 0;
   let riftMotionState = {
     shear: 0,
     expansion: 0,
@@ -886,7 +858,6 @@ export function createConceptSimulationRenderer({
       Number(config.titleReserveHeight || 0).toFixed(3),
       Number(config.titleReserveY || 0).toFixed(3),
       mobileBodyScale.toFixed(2),
-      resolvePalette(theme).join(','),
     ].join(':');
   }
 
@@ -909,11 +880,13 @@ export function createConceptSimulationRenderer({
     bodies.forEach((body, index) => {
       body.bodyIndex = index;
     });
+    stateBuildCount += 1;
     let radiusTotal = 0;
     for (const body of bodies) radiusTotal += Number(body.r) || 0;
     metrics.simulationBodyRadius = bodies.length ? radiusTotal / bodies.length : 0;
     canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
     canvas.dataset.simulationBodyCount = String(bodies.length);
+    canvas.dataset.simulationStateBuildCount = String(stateBuildCount);
   }
 
   function syncLayout() {
@@ -935,6 +908,20 @@ export function createConceptSimulationRenderer({
     if (metrics.changed || nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;
       rebuildBodies(config, theme);
+    }
+    if (paletteGeneration !== Number(theme?.paletteGeneration || 0)) {
+      paletteGeneration = Number(theme?.paletteGeneration || 0);
+      const palette = resolvePalette(theme);
+      for (const body of bodies) {
+        const colorIndex = resolveSimulationMaterialColorIndex(
+          body,
+          theme?.paletteSnapshot || theme?.colorDistribution,
+        );
+        body.colorIndex = colorIndex;
+        body.color = palette[colorIndex] || palette[0];
+      }
+      canvas.dataset.simulationPaletteGeneration = String(paletteGeneration);
+      canvas.dataset.simulationPaletteId = String(theme?.paletteId || '');
     }
   }
 

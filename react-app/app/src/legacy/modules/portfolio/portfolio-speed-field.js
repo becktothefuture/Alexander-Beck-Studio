@@ -1,4 +1,8 @@
-import { getTimeOfDayPaletteColors } from '../../../palette/timeOfDayPalette.js';
+import {
+  createSimulationMaterialSequence,
+  getSimulationPaletteSnapshot,
+  subscribeSimulationPalette,
+} from '../../../palette/simulationPaletteController.js';
 
 const DPR_CAP = 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -43,6 +47,9 @@ export class PortfolioParticleField {
     this.dpr = 1;
     this.particles = [];
     this.colors = [];
+    this.colorDistribution = [];
+    this.paletteId = '';
+    this.paletteGeneration = 0;
     this.maskGradient = null;
     this.targetVelocity = 0;
     this.filteredVelocity = 0;
@@ -72,7 +79,7 @@ export class PortfolioParticleField {
       attributes: true,
       attributeFilter: ['data-abs-transition-phase'],
     });
-    this.refreshPalette();
+    this.unsubscribePalette = subscribeSimulationPalette((snapshot) => this.refreshPalette(snapshot));
     this.configure(options);
   }
 
@@ -114,24 +121,22 @@ export class PortfolioParticleField {
     this.syncLifecycle();
   }
 
-  refreshPalette() {
+  refreshPalette(snapshot = getSimulationPaletteSnapshot()) {
     if (!this.canvas) return;
-    const styles = getComputedStyle(document.documentElement);
-    this.colors.length = 0;
-    for (let index = 1; index <= 8; index += 1) {
-      const color = styles.getPropertyValue(`--ball-${index}`).trim();
-      if (color) this.colors.push(color);
+    if (snapshot.generation === this.paletteGeneration) return;
+    this.colors.splice(0, this.colors.length, ...snapshot.colors);
+    this.colorDistribution = snapshot.distribution;
+    this.paletteId = snapshot.paletteId;
+    this.paletteGeneration = snapshot.generation;
+    const roleById = new Map(snapshot.distribution.map((row) => [row.roleId, row]));
+    for (let index = 0; index < this.particles.length; index += 1) {
+      const particle = this.particles[index];
+      const role = roleById.get(particle.roleId) || snapshot.distribution[particle.distributionIndex];
+      if (role) particle.colorIndex = role.colorIndex;
     }
-    if (!this.colors.length) {
-      this.colors.push(...getTimeOfDayPaletteColors(
-        new Date(),
-        document.documentElement.classList.contains('dark-mode'),
-      ));
-    }
-    if (this.width && this.height) {
-      this.seedParticles();
-      if (this.started) this.drawFrame(performance.now(), 0);
-    }
+    this.canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
+    this.canvas.dataset.simulationPaletteId = snapshot.paletteId;
+    if (this.width && this.height && this.started) this.drawFrame(performance.now(), 0);
   }
 
   resize({ force = false } = {}) {
@@ -157,11 +162,24 @@ export class PortfolioParticleField {
   seedParticles() {
     if (!this.width || !this.height) return;
     const random = createSeededRandom(0xabecc1e);
+    const colorRandom = createSeededRandom(0xc0104ab5);
     const areaScale = clamp(Math.sqrt((this.width * this.height) / REFERENCE_AREA), 0.62, 1.32);
     const radiusRange = this.options.maxRadiusPx - this.options.minRadiusPx;
+    const layerCounts = FIELD_LAYERS.map((layer) => (
+      Math.max(3, Math.round(layer.count * areaScale * this.options.densityScale))
+    ));
+    const materialSequence = createSimulationMaterialSequence(
+      layerCounts.reduce((sum, count) => sum + count, 0),
+      {},
+      getSimulationPaletteSnapshot(),
+    ).slice();
+    for (let index = materialSequence.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(colorRandom() * (index + 1));
+      [materialSequence[index], materialSequence[swapIndex]] = [materialSequence[swapIndex], materialSequence[index]];
+    }
     this.particles.length = 0;
     FIELD_LAYERS.forEach((layer, layerIndex) => {
-      const count = Math.max(3, Math.round(layer.count * areaScale * this.options.densityScale));
+      const count = layerCounts[layerIndex];
       const layerSpeed = clamp(
         0.72 + ((layer.speed - 0.72) * this.options.parallaxDepth),
         0.08,
@@ -178,7 +196,9 @@ export class PortfolioParticleField {
           arcPhase: random() * Math.PI * 2,
           arcAmplitude: lerp(8, 26, layerIndex / Math.max(1, FIELD_LAYERS.length - 1))
             * (0.72 + (random() * 0.56)),
-          colorIndex: Math.floor(random() * Math.max(1, this.colors.length)),
+          roleId: materialSequence[this.particles.length]?.roleId || this.colorDistribution[0]?.roleId,
+          distributionIndex: materialSequence[this.particles.length]?.distributionIndex || 0,
+          colorIndex: materialSequence[this.particles.length]?.colorIndex || 0,
           layerIndex,
         });
       }
@@ -411,6 +431,20 @@ export class PortfolioParticleField {
 
   getSnapshot() {
     const transitionPaused = this.isRouteTransitionPaused();
+    const colorCounts = new Array(this.colors.length).fill(0);
+    const roleCounts = Object.fromEntries(
+      this.colorDistribution.map((row) => [row.roleId, 0]),
+    );
+    for (let index = 0; index < this.particles.length; index += 1) {
+      const particle = this.particles[index];
+      const colorIndex = particle?.colorIndex;
+      if (Number.isInteger(colorIndex) && colorCounts[colorIndex] !== undefined) {
+        colorCounts[colorIndex] += 1;
+      }
+      if (particle?.roleId && roleCounts[particle.roleId] !== undefined) {
+        roleCounts[particle.roleId] += 1;
+      }
+    }
     return {
       active: this.started && !this.isLifecycleSuspended(),
       running: this.running,
@@ -438,6 +472,18 @@ export class PortfolioParticleField {
           || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON ? 'motion' : 'idle'),
       scheduled: Boolean(this.animationFrame || this.frameTimer),
       particleCount: this.particles.length,
+      palette: this.colors.slice(),
+      paletteId: this.paletteId,
+      paletteGeneration: this.paletteGeneration,
+      colorDistribution: this.colorDistribution.map((row) => ({
+        roleId: row.roleId,
+        label: row.label,
+        distributionIndex: row.distributionIndex,
+        colorIndex: row.colorIndex,
+        weight: row.weight,
+      })),
+      colorCounts,
+      roleCounts,
       frameCount: this.frameCount,
       drawCount: this.drawCount,
       cssWidth: this.width,
@@ -454,9 +500,13 @@ export class PortfolioParticleField {
     document.removeEventListener('visibilitychange', this.boundVisibilityChange);
     this.reducedMotionQuery?.removeEventListener?.('change', this.boundMotionPreferenceChange);
     this.transitionObserver?.disconnect();
+    this.unsubscribePalette?.();
+    this.unsubscribePalette = null;
     this.clear();
     this.particles.length = 0;
     this.colors.length = 0;
+    this.colorDistribution.length = 0;
+    this.paletteId = '';
     this.maskGradient = null;
     this.onSuspensionChange = null;
     this.canvas = null;

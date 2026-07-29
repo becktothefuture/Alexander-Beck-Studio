@@ -1,37 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  getLondonWeatherPalette,
-} from '../../palette/londonPalettes.js';
-import { getTimeOfDayPaletteId } from '../../palette/timeOfDayPalette.js';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   normalizeMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
+import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
+import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
 const dailyFocusJsonPromises = new Map();
 
-const RAW_DEFAULT_PALETTE = getLondonWeatherPalette(getTimeOfDayPaletteId())?.dark || [];
-const DEFAULT_PALETTE = RAW_DEFAULT_PALETTE.slice();
-
-const DEFAULT_COLOR_DISTRIBUTION = [
-  { label: 'Product Design', colorIndex: 0, weight: 31 },
-  { label: 'Experience Design', colorIndex: 3, weight: 13 },
-  { label: 'Art Direction', colorIndex: 2, weight: 16 },
-  { label: 'Motion & 3D', colorIndex: 6, weight: 20 },
-  { label: 'Creative Engineering', colorIndex: 7, weight: 10 },
-  { label: 'Parametric Systems', colorIndex: 5, weight: 10 },
-];
+const INITIAL_PALETTE_SNAPSHOT = getSimulationPaletteSnapshot();
 
 export const DEFAULT_DAILY_FOCUS_THEME = Object.freeze({
   light: '#efefef',
   dark: '#202020',
   active: '#202020',
-  palette: DEFAULT_PALETTE,
-  colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
+  paletteId: INITIAL_PALETTE_SNAPSHOT.paletteId,
+  paletteGeneration: INITIAL_PALETTE_SNAPSHOT.generation,
+  palette: INITIAL_PALETTE_SNAPSHOT.colors,
+  colorDistribution: INITIAL_PALETTE_SNAPSHOT.distribution,
   mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 });
 
@@ -82,27 +72,25 @@ export async function loadDailyFocusJson(url, fallback) {
 export function resolveDailyFocusTheme(
   designSystem,
   isDarkMode = false,
-  paletteId = getTimeOfDayPaletteId(),
+  paletteSnapshot = getSimulationPaletteSnapshot(),
 ) {
   const runtime = designSystem?.runtime || {};
-  const palette = getLondonWeatherPalette(paletteId);
+  const snapshot = paletteSnapshot?.colors ? paletteSnapshot : getSimulationPaletteSnapshot();
   const bgLight = runtime.bgLight || DEFAULT_DAILY_FOCUS_THEME.light;
   const bgDark = runtime.bgDark || DEFAULT_DAILY_FOCUS_THEME.dark;
   const activeBg = isDarkMode ? bgDark : bgLight;
-  const rawPalette = Array.isArray(isDarkMode ? palette?.dark : palette?.light)
-    ? (isDarkMode ? palette.dark : palette.light)
-    : DEFAULT_DAILY_FOCUS_THEME.palette;
 
   return {
     light: bgLight,
     dark: bgDark,
     active: activeBg,
     isDark: isDarkMode,
-    paletteId,
-    palette: rawPalette.slice(),
-    colorDistribution: Array.isArray(runtime.colorDistribution)
-      ? runtime.colorDistribution
-      : DEFAULT_DAILY_FOCUS_THEME.colorDistribution,
+    paletteId: snapshot.paletteId,
+    paletteGeneration: snapshot.generation,
+    paletteEffectiveAt: snapshot.effectiveAt,
+    paletteSnapshot: snapshot,
+    palette: snapshot.colors,
+    colorDistribution: snapshot.distribution,
     mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
       runtime.mobileSimulationBodyScale,
     ),
@@ -111,17 +99,11 @@ export function resolveDailyFocusTheme(
 
 export function useDailyFocusTheme(designSystem) {
   const isDark = useRenderedThemeIsDark();
-  const [paletteId, setPaletteId] = useState(() => getTimeOfDayPaletteId());
-
-  useEffect(() => {
-    const handlePaletteChange = () => setPaletteId(getTimeOfDayPaletteId());
-    window.addEventListener('bb:paletteChanged', handlePaletteChange);
-    return () => window.removeEventListener('bb:paletteChanged', handlePaletteChange);
-  }, []);
+  const paletteSnapshot = useSimulationPalette();
 
   return useMemo(
-    () => resolveDailyFocusTheme(designSystem, isDark, paletteId),
-    [designSystem, isDark, paletteId],
+    () => resolveDailyFocusTheme(designSystem, isDark, paletteSnapshot),
+    [designSystem, isDark, paletteSnapshot],
   );
 }
 

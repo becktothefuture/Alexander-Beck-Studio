@@ -69,11 +69,8 @@ import { normalizeSimulationAtmosphereTitleYOffsetVh } from '../../legacy/module
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
-import { syncTimeOfDayPaletteCssVars } from '../../palette/timeOfDayPalette.js';
 import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../../lib/motion/route-entrance-events.js';
-
-syncTimeOfDayPaletteCssVars({ isDarkMode: isDarkThemeDocument() });
 
 function defineRouteDescriptor(routeId, definition) {
   return Object.freeze({ ...getRouteById(routeId), ...definition });

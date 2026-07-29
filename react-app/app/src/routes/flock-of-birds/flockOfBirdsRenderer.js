@@ -5,7 +5,13 @@ import {
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
-import { getTimeOfDayPaletteColors } from '../../palette/timeOfDayPalette.js';
+import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationMaterialColorIndex,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
+import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -13,15 +19,8 @@ const DEFAULT_THEME = {
   light: '#efefef',
   dark: '#202020',
   active: '#202020',
-  palette: getTimeOfDayPaletteColors(),
-  colorDistribution: [
-    { colorIndex: 0, weight: 31 },
-    { colorIndex: 3, weight: 13 },
-    { colorIndex: 2, weight: 16 },
-    { colorIndex: 6, weight: 20 },
-    { colorIndex: 7, weight: 10 },
-    { colorIndex: 5, weight: 10 },
-  ],
+  palette: FALLBACK_SIMULATION_PALETTE_COLORS,
+  colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
 };
 
 function clamp(value, min, max) {
@@ -117,49 +116,11 @@ function isHexColor(value) {
 
 function resolvePalette(theme) {
   const source = Array.isArray(theme?.palette) ? theme.palette : DEFAULT_THEME.palette;
-  const palette = source.filter(isHexColor);
-  return palette.length > 0 ? palette : DEFAULT_THEME.palette;
+  return resolveSimulationPaletteColors(source.filter(isHexColor));
 }
 
-function resolveColorDistribution(theme, paletteLength) {
-  const source = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_THEME.colorDistribution;
-  const distribution = [];
-
-  for (const row of source) {
-    const colorIndex = Math.round(Number(row?.colorIndex));
-    const weight = Number(row?.weight);
-    if (
-      Number.isFinite(colorIndex)
-      && colorIndex >= 0
-      && colorIndex < paletteLength
-      && Number.isFinite(weight)
-      && weight > 0
-    ) {
-      distribution.push({ colorIndex, weight });
-    }
-  }
-
-  return distribution.length > 0 ? distribution : DEFAULT_THEME.colorDistribution;
-}
-
-function pickWeightedPaletteIndex(random, theme) {
-  const palette = resolvePalette(theme);
-  const distribution = resolveColorDistribution(theme, palette.length);
-  let total = 0;
-
-  for (const row of distribution) total += row.weight;
-
-  if (total <= 0) return 0;
-
-  let sample = random() * total;
-  for (const row of distribution) {
-    sample -= row.weight;
-    if (sample <= 0) return row.colorIndex;
-  }
-
-  return distribution[distribution.length - 1]?.colorIndex || 0;
+function pickWeightedMaterialRoleIndex(random, theme) {
+  return selectSimulationMaterialRole(random(), theme?.paletteSnapshot || theme)?.distributionIndex || 0;
 }
 
 function resolveDpr(config) {
@@ -258,7 +219,7 @@ export function createFlockOfBirdsRenderer({
     bankLoad: new Float32Array(0),
     signedBankLoad: new Float32Array(0),
     speedBuckets: new Uint16Array(SPEED_BUCKET_COUNT),
-    colorIndex: new Uint8Array(0),
+    materialRoleIndex: new Uint8Array(0),
     gridHead: new Int32Array(0),
     gridNext: new Int32Array(0),
     gridCols: 0,
@@ -306,6 +267,7 @@ export function createFlockOfBirdsRenderer({
   let lastTime = 0;
   let metricsDirty = true;
   let metricsSyncCount = 0;
+  let stateBuildCount = 0;
   let mobileBodyScale = 1;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
@@ -392,7 +354,7 @@ export function createFlockOfBirdsRenderer({
     state.bankLoad = new Float32Array(count);
     state.signedBankLoad = new Float32Array(count);
     state.speedBuckets = new Uint16Array(SPEED_BUCKET_COUNT);
-    state.colorIndex = new Uint8Array(count);
+    state.materialRoleIndex = new Uint8Array(count);
     state.gridNext = new Int32Array(count);
 
     const groundY = height * config.groundLine;
@@ -457,13 +419,14 @@ export function createFlockOfBirdsRenderer({
       state.vy[i] = (headingY / headingMag) * speed;
       state.phase[i] = rand() * TAU;
       state.depth[i] = (rand() * 2 - 1) * 0.65;
-      state.colorIndex[i] = pickWeightedPaletteIndex(rand, theme);
+      state.materialRoleIndex[i] = pickWeightedMaterialRoleIndex(rand, theme);
     }
 
     state.initialized = true;
     state.warmed = false;
     state.initWidth = width;
     state.initHeight = height;
+    stateBuildCount += 1;
     return true;
   }
 
@@ -1259,7 +1222,11 @@ export function createFlockOfBirdsRenderer({
       const depth = clamp(state.depth[i], -1, 1);
       const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
       if (radius <= 0.05) continue;
-      const color = colors[state.colorIndex[i] % colors.length];
+      const colorIndex = resolveSimulationMaterialColorIndex(
+        state.materialRoleIndex[i],
+        theme?.paletteSnapshot || theme?.colorDistribution,
+      );
+      const color = colors[colorIndex % colors.length];
 
       ctx.beginPath();
       ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
@@ -1278,7 +1245,10 @@ export function createFlockOfBirdsRenderer({
     metrics.simulationBodyRadius = config.birdRadius * mobileBodyScale;
     canvas.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
+    canvas.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
+    canvas.dataset.simulationPaletteId = String(theme?.paletteId || '');
     initializeBirds(config, theme);
+    canvas.dataset.simulationStateBuildCount = String(stateBuildCount);
     metrics.birdCount = state.count;
     canvas.dataset.simulationBodyCount = String(state.count);
     const mobileFlight = isMobileRuntime() || metrics.cssWidth < 720;
