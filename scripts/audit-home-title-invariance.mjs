@@ -645,7 +645,7 @@ async function auditStableTitleHandoffs(browser) {
     });
 
     const handoffs = [
-      { label: 'home-to-home', targetName: 'Assembly', targetId: 'shapes' },
+      { label: 'home-to-home', targetName: 'Scaffold', targetId: '3d-cube' },
       { label: 'home-to-daily', targetName: 'Tension', targetId: 'repel-room' },
       { label: 'daily-to-daily', targetName: 'Convergence', targetId: 'flock-of-birds' },
       { label: 'daily-to-home', targetName: 'Foundation', targetId: 'pit' },

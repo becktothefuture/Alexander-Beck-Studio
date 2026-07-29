@@ -18,7 +18,6 @@ import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/
 import { getBeachBallRoomRouteView, BEACH_BALL_ROOM_ROUTE_RUNTIME } from '../../routes/beach-ball-room/BeachBallRoomRoute.jsx';
 import { getFlockOfBirdsRouteView, FLOCK_OF_BIRDS_ROUTE_RUNTIME } from '../../routes/flock-of-birds/FlockOfBirdsRoute.jsx';
 import { getRepelRoomRouteView, REPEL_ROOM_ROUTE_RUNTIME } from '../../routes/repel-room/RepelRoomRoute.jsx';
-import { getMineralGrowthRouteView, MINERAL_GROWTH_ROUTE_RUNTIME } from '../../routes/mineral-growth/MineralGrowthRoute.jsx';
 import { getLoaderPlaygroundRouteView, LOADER_PLAYGROUND_ROUTE_RUNTIME } from '../../routes/loader-playground/LoaderPlaygroundRoute.jsx';
 import {
   getDailyFocusRouteView,
@@ -125,7 +124,6 @@ const ROUTE_DESCRIPTORS = Object.freeze({
   'beach-ball-room': defineRouteDescriptor('beach-ball-room', { getView: getBeachBallRoomRouteView, runtime: BEACH_BALL_ROOM_ROUTE_RUNTIME }),
   'flock-of-birds': defineRouteDescriptor('flock-of-birds', { getView: getFlockOfBirdsRouteView, runtime: FLOCK_OF_BIRDS_ROUTE_RUNTIME }),
   'repel-room': defineRouteDescriptor('repel-room', { getView: getRepelRoomRouteView, runtime: REPEL_ROOM_ROUTE_RUNTIME }),
-  'mineral-growth': defineRouteDescriptor('mineral-growth', { getView: getMineralGrowthRouteView, runtime: MINERAL_GROWTH_ROUTE_RUNTIME }),
   'aperture-bloom': defineRouteDescriptor('aperture-bloom', { getView: getApertureBloomRouteView, runtime: APERTURE_BLOOM_ROUTE_RUNTIME }),
   'confluence-bridges': defineRouteDescriptor('confluence-bridges', { getView: getConfluenceBridgesRouteView, runtime: CONFLUENCE_BRIDGES_ROUTE_RUNTIME }),
   'napoleon-point-cloud': defineRouteDescriptor('napoleon-point-cloud', { getView: getNapoleonPointCloudRouteView, runtime: NAPOLEON_POINT_CLOUD_ROUTE_RUNTIME }),
@@ -139,7 +137,6 @@ const PRODUCTION_ATMOSPHERE_ROUTE_IDS = new Set([
   ...PRIMARY_ROUTE_IDS,
   'repel-room',
   'flock-of-birds',
-  'mineral-growth',
   'rift-rings',
 ]);
 

@@ -86,7 +86,7 @@ export function initializeParallaxFloat() {
 
   // Z-depth range (how far back the grid extends)
   const zNear = Math.max(10, g.parallaxFloatZNear ?? 50);
-  const zFar = Math.max(zNear + 100, g.parallaxFloatZFar ?? 900);
+  const zFar = Math.max(zNear + 100, g.parallaxFloatZFar ?? 2800);
   const zStep = (zFar - zNear) / Math.max(1, gridZ - 1);
 
   // Camera/projection
@@ -98,7 +98,7 @@ export function initializeParallaxFloat() {
 
   // Randomization amount (0-100 UI scale, or 0-1 legacy)
   // 0 = perfect grid like linear; 100 = fully random
-  let randomizeRaw = g.parallaxFloatRandomize ?? 50;
+  let randomizeRaw = g.parallaxFloatRandomize ?? 0.4;
   let randomize01 = (randomizeRaw > 1) ? (randomizeRaw / 100) : randomizeRaw;
   const randomize = Math.max(0, Math.min(1, randomize01));
 
@@ -129,11 +129,11 @@ export function initializeParallaxFloat() {
         const x2d = centerX + x3d * scale;
         const y2d = centerY + y3d * scale;
 
-        // Size and depth-based opacity (fade over last ¼ of depth)
+        // Size and depth-based opacity (configurable fog ramp near the far plane)
         const r = baseR * scale;
-        const fadeStart = 0.75;
+        const fadeStart = Math.max(0.5, Math.min(0.98, g.parallaxFloatFogStart ?? 0.9));
         const fadeRamp = depthFactor > fadeStart ? (depthFactor - fadeStart) / (1 - fadeStart) : 0;
-        const alpha = 1.0 - fadeRamp * 0.85; // Opaque until 75% depth, then fade to 0.15
+        const alpha = 1.0 - fadeRamp * 0.85;
 
         const color = pickRandomColor();
         const ball = spawnBall(x2d, y2d, color);

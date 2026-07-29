@@ -2,7 +2,6 @@ const RUNTIME_LOADERS = Object.freeze({
   'beach-ball-room': () => import('../beach-ball-room/BeachBallRoomRuntime.jsx'),
   'rift-rings': () => import('../concept-simulations/RiftRingsRuntime.jsx'),
   'flock-of-birds': () => import('../flock-of-birds/FlockOfBirdsRuntime.jsx'),
-  'mineral-growth': () => import('../mineral-growth/MineralGrowthRuntime.jsx'),
   'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx'),
 });
 
@@ -12,7 +11,6 @@ const RUNTIME_RETRY_LOADERS = Object.freeze({
   'beach-ball-room': () => import('../beach-ball-room/BeachBallRoomRuntime.jsx?runtime-retry'),
   'rift-rings': () => import('../concept-simulations/RiftRingsRuntime.jsx?runtime-retry'),
   'flock-of-birds': () => import('../flock-of-birds/FlockOfBirdsRuntime.jsx?runtime-retry'),
-  'mineral-growth': () => import('../mineral-growth/MineralGrowthRuntime.jsx?runtime-retry'),
   'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx?runtime-retry'),
 });
 
@@ -20,7 +18,6 @@ const RUNTIME_USER_RETRY_LOADERS = Object.freeze({
   'beach-ball-room': () => import('../beach-ball-room/BeachBallRoomRuntime.jsx?runtime-user-retry'),
   'rift-rings': () => import('../concept-simulations/RiftRingsRuntime.jsx?runtime-user-retry'),
   'flock-of-birds': () => import('../flock-of-birds/FlockOfBirdsRuntime.jsx?runtime-user-retry'),
-  'mineral-growth': () => import('../mineral-growth/MineralGrowthRuntime.jsx?runtime-user-retry'),
   'repel-room': () => import('../repel-room/RepelRoomRuntime.jsx?runtime-user-retry'),
 });
 
@@ -30,7 +27,6 @@ export const DAILY_FOCUS_RUNTIME_EXPORTS = Object.freeze({
   'beach-ball-room': 'BeachBallRoomRuntime',
   'rift-rings': 'RiftRingsRuntime',
   'flock-of-birds': 'FlockOfBirdsRuntime',
-  'mineral-growth': 'MineralGrowthRuntime',
   'repel-room': 'RepelRoomRuntime',
 });
 

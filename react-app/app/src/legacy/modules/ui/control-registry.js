@@ -4531,194 +4531,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  shapes: {
-    title: 'Assembly',
-    icon: '▣',
-    mode: 'shapes',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'shapesBallCount',
-        label: 'Dot Count',
-        stateKey: 'shapesBallCount',
-        type: 'range',
-        min: 72, max: 320, step: 8,
-        default: 168,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'Approximate dot budget used to choose crisp row patterns for the mixed-size primitives.'
-      },
-      {
-        id: 'shapesMobileCountScale',
-        label: 'Mobile Count',
-        stateKey: 'shapesMobileCountScale',
-        type: 'range',
-        min: 0.25, max: 1, step: 0.01,
-        default: 0.5,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Assembly-only mobile count multiplier applied after the shared mobile performance reduction.'
-      },
-      {
-        id: 'shapesDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'shapesDotSizeMul',
-        type: 'range',
-        min: 0.5, max: 1.2, step: 0.01,
-        default: 1,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Circle radius as a multiplier of the shared ball size.'
-      },
-      {
-        id: 'shapesDotSpacingMul',
-        label: 'Dot Spacing',
-        stateKey: 'shapesDotSpacingMul',
-        type: 'range',
-        min: 1.95, max: 2.8, step: 0.01,
-        default: 2.34,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Consistent center spacing between circles inside each shape, leaving visible air between dots.'
-      },
-      {
-        id: 'shapesGravityScale',
-        label: 'Gravity',
-        stateKey: 'shapesGravityScale',
-        type: 'range',
-        min: 0, max: 1.4, step: 0.01,
-        default: 0.92,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        hint: 'Gravity applied to each compound shape body.'
-      },
-      {
-        id: 'shapesWallRestitution',
-        label: 'Wall Bounce',
-        stateKey: 'shapesWallRestitution',
-        type: 'range',
-        min: 0.05, max: 0.95, step: 0.01,
-        default: 0.48,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        hint: 'How much velocity each dot-body keeps after bouncing off the wall.'
-      },
-      {
-        id: 'shapesBodyCollisionEnabled',
-        label: 'Body Collisions',
-        stateKey: 'shapesBodyCollisionEnabled',
-        type: 'toggle',
-        default: 1,
-        format: v => Number(v) !== 0 ? 'On' : 'Off',
-        parse: v => (v ? 1 : 0),
-        hint: 'Keep the five compound shapes from passing through each other.'
-      },
-      {
-        id: 'shapesPointerRadius',
-        label: 'Pointer Radius',
-        stateKey: 'shapesPointerRadius',
-        type: 'range',
-        min: 60, max: 420, step: 5,
-        default: 220,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Empty-space drag radius that sweeps into the dot shapes.'
-      },
-      {
-        id: 'shapesPointerStrength',
-        label: 'Sweep Strength',
-        stateKey: 'shapesPointerStrength',
-        type: 'range',
-        min: 0, max: 60000, step: 1000,
-        default: 21000,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Strength of the empty-space drag sweep.'
-      },
-      {
-        id: 'shapesDamping',
-        label: 'Air Damping',
-        stateKey: 'shapesDamping',
-        type: 'range',
-        min: 0.86, max: 0.999, step: 0.001,
-        default: 0.978,
-        format: v => Number(v).toFixed(3),
-        parse: parseFloat,
-        hint: 'Velocity damping for the moving shape bodies.'
-      },
-      {
-        id: 'shapesGrabAngularDampingPerSec',
-        label: 'Held Spin Damping',
-        stateKey: 'shapesGrabAngularDampingPerSec',
-        type: 'range',
-        min: 0, max: 8, step: 0.1,
-        default: 1.2,
-        format: v => `${Number(v).toFixed(1)}/s`,
-        parse: parseFloat,
-        hint: 'Per-second angular damping while a shape is pinned to the pointer.'
-      },
-      {
-        id: 'shapesReleaseLinearGain',
-        label: 'Throw Gain',
-        stateKey: 'shapesReleaseLinearGain',
-        type: 'range',
-        min: 0, max: 1.5, step: 0.05,
-        default: 1,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        hint: 'Multiplier applied to reconstructed centre velocity on release.'
-      },
-      {
-        id: 'shapesReleaseAngularGain',
-        label: 'Spin Gain',
-        stateKey: 'shapesReleaseAngularGain',
-        type: 'range',
-        min: 0, max: 1.5, step: 0.05,
-        default: 1,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        hint: 'Multiplier applied to retained angular velocity on release.'
-      },
-      {
-        id: 'shapesMaxSpeed',
-        label: 'Max Throw Speed',
-        stateKey: 'shapesMaxSpeed',
-        type: 'range',
-        min: 80, max: 2400, step: 20,
-        default: 1250,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10),
-        hint: 'Maximum CSS-pixel speed for held input and released shape movement.'
-      },
-      {
-        id: 'shapesMaxAngularSpeed',
-        label: 'Max Spin',
-        stateKey: 'shapesMaxAngularSpeed',
-        type: 'range',
-        min: 0.5, max: 12, step: 0.1,
-        default: 8,
-        format: v => `${Number(v).toFixed(1)}rad/s`,
-        parse: parseFloat,
-        hint: 'Maximum angular speed while held and after release.'
-      },
-      {
-        id: 'shapesReducedMotionScale',
-        label: 'Reduced Motion Scale',
-        stateKey: 'shapesReducedMotionScale',
-        type: 'range',
-        min: 0.1, max: 1, step: 0.05,
-        default: 0.35,
-        format: v => Number(v).toFixed(2),
-        parse: parseFloat,
-        hint: 'Scales release gains and caps while increasing post-release settling.'
-      },
-      warmupFramesControl('shapesWarmupFrames')
-    ]
-  },
 
   pressureCrucible: {
     title: 'Pressure Field',
@@ -5200,6 +5012,8 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PARALLAX FLOAT — Organic variant with random positions + levitation
   // ═══════════════════════════════════════════════════════════════════════════
   parallaxFloat: {
@@ -5214,7 +5028,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'parallaxFloatRandomize',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.5,
+        default: 0.4,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         reinitMode: true,
@@ -5295,11 +5109,23 @@ export const CONTROL_SECTIONS = {
         label: 'Z Far',
         stateKey: 'parallaxFloatZFar',
         type: 'range',
-        min: 200, max: 2000, step: 50,
-        default: 900,
+        min: 200, max: 3000, step: 50,
+        default: 2800,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         reinitMode: true
+      },
+      {
+        id: 'parallaxFloatFogStart',
+        label: 'Fog Start',
+        stateKey: 'parallaxFloatFogStart',
+        type: 'range',
+        min: 0.5, max: 0.98, step: 0.01,
+        default: 0.9,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'Depth point where the far-plane fade begins'
       },
       { type: 'divider', label: 'Camera' },
       {
@@ -6104,10 +5930,8 @@ export function generateModeSwitcherHTML() {
     'repel-room': '↔',
     'wall-repel': '↔',
     'aperture-bloom': '◎',
-    'mineral-growth': '✺',
     'flubber-blob': '🫠',
     'weave-field': '🧵',
-    'shapes': '▣',
     'pressure-crucible': '◉',
     'particle-fountain': '⛲',
     'particle-fountain-b': '⛲',
@@ -6134,10 +5958,8 @@ export function generateModeSwitcherHTML() {
     'repel-room': 'Tension',
     'wall-repel': 'Tension',
     'aperture-bloom': 'Aperture Bloom',
-    'mineral-growth': 'Formation',
     'flubber-blob': 'Cohesion',
     'weave-field': 'Juxtaposition',
-    'shapes': 'Assembly',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Fountain A',
     'particle-fountain-b': 'Fountain B',
@@ -6234,10 +6056,8 @@ function generateHomeModeSectionHTML() {
               'repel-room': '↔',
               'wall-repel': '↔',
               'aperture-bloom': '◎',
-              'mineral-growth': '✺',
               'flubber-blob': '🫠',
               'weave-field': '🧵',
-              'shapes': '▣',
               'pressure-crucible': '◉',
               'particle-fountain': '⛲',
               'particle-fountain-b': '⛲',
@@ -6264,10 +6084,8 @@ function generateHomeModeSectionHTML() {
               'repel-room': 'Tension',
               'wall-repel': 'Tension',
               'aperture-bloom': 'Aperture Bloom',
-              'mineral-growth': 'Formation',
               'flubber-blob': 'Cohesion',
               'weave-field': 'Juxtaposition',
-              'shapes': 'Assembly',
               'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Fountain A',
               'particle-fountain-b': 'Fountain B',

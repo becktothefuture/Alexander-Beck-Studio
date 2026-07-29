@@ -16,7 +16,6 @@ const canvasSelector = [
   '#repel-room-canvas',
   '#wall-repel-canvas',
   '#flock-of-birds-canvas',
-  '#mineral-growth-canvas',
   '#rift-rings-canvas',
   '.concept-simulation-canvas',
 ].join(',');
@@ -349,7 +348,7 @@ async function main() {
   await mkdir(outputRoot, { recursive: true });
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   const entries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
-  if (entries.length !== 16) throw new Error(`Expected 16 Daily Simulations, found ${entries.length}`);
+  if (entries.length !== 18) throw new Error(`Expected 18 Daily Simulations, found ${entries.length}`);
 
   const browser = await chromium.launch({
     args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],

@@ -236,7 +236,6 @@ const productionConsumers = [
   'react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx',
   'react-app/app/src/routes/concept-simulations/conceptSimulationRenderer.js',
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
-  'react-app/app/src/routes/mineral-growth/mineralGrowthRenderer.js',
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
   'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
@@ -315,23 +314,11 @@ assert.match(portfolioSource, /roleId:\s*row\.roleId/);
 for (const relativePath of [
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
-  'react-app/app/src/routes/mineral-growth/mineralGrowthRenderer.js',
 ]) {
   const source = readFileSync(resolve(repoRoot, relativePath), 'utf8');
   assert.match(source, /materialRoleIndex/, `${relativePath} must retain stable material-role indices.`);
   assert.match(source, /resolveSimulationMaterialColorIndex/, `${relativePath} must resolve role colours from the current snapshot.`);
 }
-const mineralSource = readFileSync(resolve(
-  repoRoot,
-  'react-app/app/src/routes/mineral-growth/mineralGrowthRenderer.js',
-), 'utf8');
-const mineralThemeKey = mineralSource.match(/function getThemeKey\(theme\) \{[\s\S]*?\n\}/)?.[0] || '';
-assert.doesNotMatch(
-  mineralThemeKey,
-  /resolvePalette/,
-  'Mineral Growth geometry identity must not include palette colours.',
-);
-
 const controlRegistrySource = readFileSync(resolve(
   repoRoot,
   'react-app/app/src/legacy/modules/ui/control-registry.js',

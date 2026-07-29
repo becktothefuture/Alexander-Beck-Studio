@@ -25,13 +25,14 @@ const ICONS = {
   'flock-of-birds': FlockIcon,
   'flubber-blob': FlubberBlobIcon,
   'weave-field': WeaveFieldIcon,
-  shapes: ShapesIcon,
-  'mineral-growth': MineralGrowthIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
   'kaleidoscope-rift': KaleidoscopeRiftIcon,
   'rift-rings': RiftRingsIcon,
   bubbles: BubblesIcon,
   'beach-ball-room': BeachBallRoomIcon,
+  magnetic: MagneticFieldIcon,
+  'parallax-float': ParallaxDriftIcon,
+  'particle-fountain-b': FountainBIcon,
 };
 
 export function SimulationIcon({ id, className, title }) {
@@ -216,28 +217,57 @@ function WeaveFieldIcon() {
   );
 }
 
-function ShapesIcon() {
+function FountainBIcon() {
   return (
     <g>
-      <path {...DOT_PROPS} d="M10.9328 24C12.1356 24 13.1106 23.0249 13.1106 21.8221C13.1106 20.6193 12.1356 19.6443 10.9328 19.6443C9.72995 19.6443 8.75488 20.6193 8.75488 21.8221C8.75488 23.0249 9.72995 24 10.9328 24Z" />
-      <path {...DOT_PROPS} d="M10.9328 30.5337C12.1356 30.5337 13.1106 29.5586 13.1106 28.3558C13.1106 27.153 12.1356 26.1779 10.9328 26.1779C9.72995 26.1779 8.75488 27.153 8.75488 28.3558C8.75488 29.5586 9.72995 30.5337 10.9328 30.5337Z" />
-      <path {...DOT_PROPS} d="M17.4663 30.5337C18.6691 30.5337 19.6442 29.5586 19.6442 28.3558C19.6442 27.153 18.6691 26.1779 17.4663 26.1779C16.2635 26.1779 15.2885 27.153 15.2885 28.3558C15.2885 29.5586 16.2635 30.5337 17.4663 30.5337Z" />
-      <path {...DOT_PROPS} d="M10.9328 37.0673C12.1356 37.0673 13.1106 36.0922 13.1106 34.8894C13.1106 33.6866 12.1356 32.7115 10.9328 32.7115C9.72995 32.7115 8.75488 33.6866 8.75488 34.8894C8.75488 36.0922 9.72995 37.0673 10.9328 37.0673Z" />
-      <path {...DOT_PROPS} d="M17.4663 37.0673C18.6691 37.0673 19.6442 36.0922 19.6442 34.8894C19.6442 33.6866 18.6691 32.7115 17.4663 32.7115C16.2635 32.7115 15.2885 33.6866 15.2885 34.8894C15.2885 36.0922 16.2635 37.0673 17.4663 37.0673Z" />
-      <path {...DOT_PROPS} d="M24 37.0673C25.2028 37.0673 26.1779 36.0922 26.1779 34.8894C26.1779 33.6866 25.2028 32.7115 24 32.7115C22.7972 32.7115 21.8221 33.6866 21.8221 34.8894C21.8221 36.0922 22.7972 37.0673 24 37.0673Z" />
-      <path {...DOT_PROPS} d="M30.7204 17.9174C31.571 17.0669 31.571 15.688 30.7204 14.8374C29.8699 13.9869 28.491 13.9869 27.6405 14.8374C26.7899 15.688 26.7899 17.0669 27.6405 17.9174C28.491 18.768 29.8699 18.768 30.7204 17.9174Z" />
-      <path {...DOT_PROPS} d="M35.3404 13.2974C36.191 12.4469 36.191 11.0679 35.3404 10.2174C34.4899 9.3669 33.111 9.3669 32.2605 10.2174C31.4099 11.0679 31.4099 12.4469 32.2605 13.2974C33.111 14.1479 34.4899 14.1479 35.3404 13.2974Z" />
-      <path {...DOT_PROPS} d="M35.3404 22.5374C36.191 21.6869 36.191 20.308 35.3404 19.4574C34.4899 18.6069 33.111 18.6069 32.2605 19.4574C31.4099 20.308 31.4099 21.6869 32.2605 22.5374C33.111 23.3879 34.4899 23.3879 35.3404 22.5374Z" />
-      <path {...DOT_PROPS} d="M39.9604 17.9174C40.811 17.0669 40.811 15.6879 39.9604 14.8374C39.1099 13.9869 37.731 13.9869 36.8804 14.8374C36.0299 15.6879 36.0299 17.0669 36.8804 17.9174C37.731 18.7679 39.1099 18.7679 39.9604 17.9174Z" />
+      <circle {...DOT_PROPS} cx="12" cy="36.25" r="2.25" />
+      <circle {...DOT_PROPS} cx="12" cy="29.25" r="2" />
+      <circle {...DOT_PROPS} cx="12" cy="23" r="1.75" />
+      <circle {...DOT_PROPS} cx="24" cy="36" r="2.5" />
+      <circle {...DOT_PROPS} cx="24" cy="28" r="2.25" />
+      <circle {...DOT_PROPS} cx="24" cy="20" r="2" />
+      <circle {...DOT_PROPS} cx="24" cy="12.5" r="1.75" />
+      <circle {...DOT_PROPS} cx="36" cy="36.25" r="2.25" />
+      <circle {...DOT_PROPS} cx="36" cy="29.25" r="2" />
+      <circle {...DOT_PROPS} cx="36" cy="23" r="1.75" />
     </g>
   );
 }
 
-function MineralGrowthIcon() {
+function MagneticFieldIcon() {
   return (
     <g>
-      <path {...ICON_PROPS} d="M36 29L28 15L18.5 20L14 36L24 38" />
-      <path {...ICON_PROPS} d="M24 38L18.5 20L11 10L28 15L24 38ZM24 38L36 29" />
+      <circle {...ICON_PROPS} cx="24" cy="24" r="4" />
+      <circle {...DOT_PROPS} cx="24.5" cy="15" r="2.25" />
+      <circle {...DOT_PROPS} cx="16.125" cy="17.25" r="2" />
+      <circle {...DOT_PROPS} cx="29.625" cy="32.75" r="2.25" />
+      <circle {...DOT_PROPS} cx="31.875" cy="17.25" r="2" />
+      <circle {...DOT_PROPS} cx="20" cy="31.6512" r="2.25" />
+      <circle {...DOT_PROPS} cx="13.875" cy="26" r="2.25" />
+      <circle {...DOT_PROPS} cx="33.226" cy="24.875" r="2.25" />
+      <circle {...DOT_PROPS} cx="24.75" cy="38.3522" r="2" />
+      <circle {...DOT_PROPS} cx="36.375" cy="32.5" r="2" />
+      <circle {...DOT_PROPS} cx="40.375" cy="18.1838" r="2" />
+      <circle {...DOT_PROPS} cx="32.375" cy="9.909" r="2" />
+      <circle {...DOT_PROPS} cx="17.25" cy="7.909" r="2" />
+      <circle {...DOT_PROPS} cx="7.625" cy="20.5914" r="2" />
+      <circle {...DOT_PROPS} cx="10.3032" cy="33" r="2" />
+    </g>
+  );
+}
+
+function ParallaxDriftIcon() {
+  return (
+    <g>
+      <circle {...DOT_PROPS} cx="18" cy="11" r="1.25" />
+      <circle {...DOT_PROPS} cx="24.625" cy="11" r="1.4" />
+      <circle {...DOT_PROPS} cx="31.25" cy="11" r="1.25" />
+      <circle {...DOT_PROPS} cx="15" cy="21" r="1.75" />
+      <circle {...DOT_PROPS} cx="24.625" cy="21" r="2" />
+      <circle {...DOT_PROPS} cx="34.25" cy="21" r="1.75" />
+      <circle {...DOT_PROPS} cx="11.5" cy="34.25" r="2.25" />
+      <circle {...DOT_PROPS} cx="24.625" cy="33.75" r="2.75" />
+      <circle {...DOT_PROPS} cx="37.75" cy="34.25" r="2.25" />
     </g>
   );
 }

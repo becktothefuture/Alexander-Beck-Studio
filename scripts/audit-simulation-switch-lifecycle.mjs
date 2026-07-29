@@ -8,7 +8,7 @@
 //   ABS_LIFECYCLE_MOTION=normal|reduced|all
 //   ABS_LIFECYCLE_TOPOLOGY=home-mode-to-home-mode|home-mode-to-route-backed|
 //     route-backed-to-home-mode|route-backed-to-route-backed|all
-//   ABS_LIFECYCLE_FLOW=foundation-to-assembly,...|all
+//   ABS_LIFECYCLE_FLOW=foundation-to-scaffold,...|all
 // Harness controls: ABS_DEV_URL, ABS_LIFECYCLE_WAIT_MS,
 // ABS_LIFECYCLE_HEADED=1, ABS_LIFECYCLE_SKIP_RAPID=1,
 // ABS_LIFECYCLE_SKIP_FAULTS=1.
@@ -41,7 +41,7 @@ const viewports = Object.freeze({
 });
 
 const coreFlows = Object.freeze([
-  Object.freeze({ name: 'foundation-to-assembly', from: 'pit', to: 'shapes', topology: 'home-mode-to-home-mode' }),
+  Object.freeze({ name: 'foundation-to-scaffold', from: 'pit', to: '3d-cube', topology: 'home-mode-to-home-mode' }),
   Object.freeze({ name: 'flow-to-tension', from: 'water', to: 'repel-room', topology: 'home-mode-to-route-backed' }),
   Object.freeze({ name: 'tension-to-multiplicity', from: 'repel-room', to: 'kaleidoscope-rift', topology: 'route-backed-to-home-mode' }),
   Object.freeze({ name: 'tension-to-convergence', from: 'repel-room', to: 'flock-of-birds', topology: 'route-backed-to-route-backed' }),
@@ -574,7 +574,7 @@ async function runRapidProbe(browser, profile, entries) {
       if (typeof navigate !== 'function') return false;
       const queuedIntermediate = navigate('/index.html', {
         transitionStyle: 'simulation-focus',
-        simulationId: 'shapes',
+        simulationId: '3d-cube',
       });
       const restoredLatest = navigate('/index.html', {
         transitionStyle: 'simulation-focus',

@@ -31,10 +31,8 @@ export const MODES = {
   REPEL_ROOM: 'repel-room',
   WALL_REPEL: 'repel-room',
   APERTURE_BLOOM: 'aperture-bloom',
-  MINERAL_GROWTH: 'mineral-growth',
   FLUBBER_BLOB: 'flubber-blob',
   WEAVE_FIELD: 'weave-field',
-  SHAPES: 'shapes',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain',
   PARTICLE_FOUNTAIN_B: 'particle-fountain-b',
@@ -98,10 +96,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.FLOCK_OF_BIRDS]: 'CONVERGENCE',
   [MODES.REPEL_ROOM]: 'TENSION',
   [MODES.APERTURE_BLOOM]: 'APERTURE BLOOM',
-  [MODES.MINERAL_GROWTH]: 'FORMATION',
   [MODES.FLUBBER_BLOB]: 'COHESION',
   [MODES.WEAVE_FIELD]: 'JUXTAPOSITION',
-  [MODES.SHAPES]: 'ASSEMBLY',
   [MODES.PRESSURE_CRUCIBLE]: 'PRESSURE FIELD',
   [MODES.SPHERE_3D]: 'CONTINUITY',
   [MODES.CUBE_3D]: 'SCAFFOLD',
@@ -138,10 +134,6 @@ export const NARRATIVE_QUOTES = {
   [MODES.FLIES]: {
     quote: 'No man ever steps in the same river twice.',
     author: 'Heraclitus'
-  },
-  [MODES.CUBE_3D]: {
-    quote: 'Less, but better.',
-    author: 'Dieter Rams'
   },
   [MODES.BUBBLES]: {
     quote: 'In the middle of difficulty lies opportunity.',
@@ -183,10 +175,6 @@ export const NARRATIVE_QUOTES = {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },
-  [MODES.MINERAL_GROWTH]: {
-    quote: 'Nature does not hurry, yet everything is accomplished.',
-    author: 'Lao Tzu'
-  },
   [MODES.FLUBBER_BLOB]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
@@ -195,7 +183,7 @@ export const NARRATIVE_QUOTES = {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },
-  [MODES.SHAPES]: {
+  [MODES.CUBE_3D]: {
     quote: 'Less, but better.',
     author: 'Dieter Rams'
   },

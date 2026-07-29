@@ -28,7 +28,6 @@ const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 const routeBackedDailySurfaceSelector = [
   '#flock-of-birds-canvas',
-  '#mineral-growth-canvas',
   '#repel-room-canvas',
   '#wall-repel-canvas',
   'canvas.concept-simulation-canvas',

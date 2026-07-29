@@ -670,7 +670,7 @@ async function runAtomicHandoffContract(browser) {
   const page = await context.newPage();
   const handoffs = [
     {
-      label: 'home-to-home', targetName: 'Assembly', targetId: 'shapes',
+      label: 'home-to-home', targetName: 'Scaffold', targetId: '3d-cube',
       topology: 'home-mode-to-home-mode', sourceId: null,
     },
     {
@@ -1371,16 +1371,12 @@ async function runStatelessGlowContract(browser) {
       sourceContext.fillStyle = '#00ff88';
       sourceContext.fillRect(0, 0, source.width, source.height);
       const edgeEffect = new AtmosphereEdgeLight(edgeOutput);
-      edgeEffect.render(source, 1.2, 1.5);
+      edgeEffect.render(source, 1.2);
       const edgeContext = edgeOutput.getContext('2d', { alpha: true, willReadFrequently: true });
       const edgeAlpha = edgeContext.getImageData(0, 32, 1, 1).data[3];
       const centerAlpha = edgeContext.getImageData(80, 32, 1, 1).data[3];
-      const edgeStripBackingPx = edgeEffect.lastStripBackingPx;
+      const cornerAlpha = edgeContext.getImageData(12, 12, 1, 1).data[3];
       const edgeDrawCallCount = edgeEffect.lastDrawCallCount;
-      edgeEffect.render(source, 1.2, 1.5, 8);
-      const insetOuterAlpha = edgeContext.getImageData(0, 32, 1, 1).data[3];
-      const insetRimAlpha = edgeContext.getImageData(8, 32, 1, 1).data[3];
-      const edgeInsetBackingPx = edgeEffect.lastInsetBackingPx;
       edgeEffect.destroy();
       return {
         firstOldAlpha,
@@ -1393,11 +1389,8 @@ async function runStatelessGlowContract(browser) {
         temporalMemoryFrames,
         edgeAlpha,
         centerAlpha,
-        edgeStripBackingPx,
+        cornerAlpha,
         edgeDrawCallCount,
-        insetOuterAlpha,
-        insetRimAlpha,
-        edgeInsetBackingPx,
       };
     });
     assert(result.firstOldAlpha > 20, 'Diffuse glow fixture did not render its first source', result);
@@ -1416,18 +1409,10 @@ async function runStatelessGlowContract(browser) {
       'Retired quiet-zone input still removed the middle of the atmosphere',
       result,
     );
-    assert(result.edgeAlpha > 20, 'Edge response did not render its perimeter source', result);
-    assert(result.centerAlpha === 0, 'Edge response rendered pixels outside its perimeter budget', result);
+    assert(result.edgeAlpha > 20, 'Edge response did not render its colour texture', result);
     assert(
-      result.edgeStripBackingPx === 4 && result.edgeDrawCallCount === 2,
-      'Strong edge response did not stay within its bounded strip render contract',
-      result,
-    );
-    assert(
-      result.insetOuterAlpha === 0
-        && result.insetRimAlpha > 20
-        && result.edgeInsetBackingPx === 8,
-      'Inset edge response did not move its bounded sample band inward',
+      result.centerAlpha > 20 && result.cornerAlpha > 20 && result.edgeDrawCallCount === 2,
+      'Edge colour texture is not continuous across straight, centre, and corner samples',
       result,
     );
     return result;

@@ -1106,7 +1106,7 @@ function ensurePointerSubscription() {
   unsubscribePointer = subscribeScenePointer(handlePointer);
 }
 
-export function cleanupShapes() {
+function cleanupShapes() {
   const g = getGlobals();
   const state = g.shapesState;
   if (!state) return;
@@ -1205,10 +1205,6 @@ function initializeShapeWorld(mode, options = {}) {
   }
 
   syncDotsToBodies(g);
-}
-
-export function initializeShapes() {
-  initializeShapeWorld(MODES.SHAPES);
 }
 
 export function initializeScaffoldShapes() {
@@ -1323,10 +1319,6 @@ function stepShapeWorld(dt, expectedMode) {
   syncDotsToBodies(g);
 }
 
-export function stepShapes(dt) {
-  stepShapeWorld(dt, MODES.SHAPES);
-}
-
 export function stepScaffoldShapes(dt) {
   stepShapeWorld(dt, MODES.CUBE_3D);
 }
@@ -1334,5 +1326,3 @@ export function stepScaffoldShapes(dt) {
 export function cleanupScaffoldShapes() {
   cleanupShapes();
 }
-
-export function applyShapesForces() {}

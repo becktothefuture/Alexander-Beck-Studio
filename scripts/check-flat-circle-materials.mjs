@@ -21,7 +21,6 @@ const circleRendererFiles = [
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/routes/concept-simulations/conceptSimulationRenderer.js',
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
-  'react-app/app/src/routes/mineral-growth/mineralGrowthRenderer.js',
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/legacy/modules/modes/pressure-crucible.js',
 ];

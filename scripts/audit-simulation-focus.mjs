@@ -67,7 +67,6 @@ async function waitForFocusId(page, id, label = '') {
     '#repel-room-canvas',
     '#wall-repel-canvas',
     '#flock-of-birds-canvas',
-    '#mineral-growth-canvas',
     '.napoleon-point-cloud__canvas--front',
     '.beach-ball-room-canvas',
     '.concept-simulation-canvas',

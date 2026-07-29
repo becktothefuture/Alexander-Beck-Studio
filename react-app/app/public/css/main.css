@@ -5096,9 +5096,8 @@ html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
   );
   corner-shape: inherit;
   pointer-events: none;
-  /* Use the wall's real border geometry for both contours. Unlike a content-box
-     cutout, the padding edge is the browser-defined inner edge of this border,
-     so round and squircle corners remain one concentric physical rim. */
+  /* One browser-defined border owns the complete rim. The Canvas beneath it is
+     only a colour texture, so corners cannot diverge from straight edges. */
   -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
   -webkit-mask-origin: border-box, padding-box;
   -webkit-mask-clip: border-box, padding-box;

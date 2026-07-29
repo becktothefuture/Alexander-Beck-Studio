@@ -44,10 +44,8 @@ const MODE_NAMES = {
   'repel-room': 'Tension',
   'wall-repel': 'Tension',
   'aperture-bloom': 'Aperture Bloom',
-  'mineral-growth': 'Formation',
   'flubber-blob': 'Cohesion',
   'weave-field': 'Juxtaposition',
-  shapes: 'Assembly',
   'pressure-crucible': 'Pressure Field',
   'particle-fountain': 'Fountain A',
   'particle-fountain-b': 'Fountain B',
@@ -187,15 +185,6 @@ const MODE_REGISTRY = {
       force: 'applyWeaveFieldForces'
     }
   },
-  [MODES.SHAPES]: {
-    load: () => import('./shapes.js'),
-    hooks: {
-      initialize: 'initializeShapes',
-      cleanup: 'cleanupShapes',
-      force: 'applyShapesForces',
-      customStep: 'stepShapes'
-    }
-  },
   [MODES.PRESSURE_CRUCIBLE]: {
     load: () => import('./pressure-crucible.js'),
     hooks: {
@@ -319,7 +308,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
     case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
-    case MODES.SHAPES: return globals.shapesWarmupFrames ?? 0;
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN_B: return 0;
@@ -352,7 +340,6 @@ function applyModePhysicsState(mode, globals) {
     MODES.ELASTIC_CENTER,
     MODES.FLUBBER_BLOB,
     MODES.WEAVE_FIELD,
-    MODES.SHAPES,
     MODES.PRESSURE_CRUCIBLE
   ]);
 

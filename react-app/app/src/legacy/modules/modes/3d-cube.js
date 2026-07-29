@@ -1,5 +1,5 @@
 // Scaffold keeps its historical mode id for saved-state compatibility while
-// deliberately sharing Assembly's rigid-body runtime. Only its silhouettes differ.
+// deliberately sharing the circle-body runtime used by its tessellating pieces.
 
 import {
   cleanupScaffoldShapes,

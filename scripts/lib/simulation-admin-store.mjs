@@ -75,13 +75,6 @@ const DEDICATED_LAB_ROUTE_DELETION_RULES = Object.freeze({
     importPath: '../../routes/repel-room/RepelRoomRoute.jsx',
     hasDevAdminPluginApi: true,
   },
-  'mineral-growth': {
-    routeDir: 'mineral-growth',
-    routeView: 'getMineralGrowthRouteView',
-    routeRuntime: 'MINERAL_GROWTH_ROUTE_RUNTIME',
-    importPath: '../../routes/mineral-growth/MineralGrowthRoute.jsx',
-    hasDevAdminPluginApi: true,
-  },
 });
 
 export function slugify(value) {

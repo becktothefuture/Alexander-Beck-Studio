@@ -24,7 +24,7 @@ function createTransaction(overrides = {}) {
     transactionId: 'switch-1',
     generation: 1,
     from: { id: 'foundation' },
-    to: { id: 'assembly' },
+    to: { id: 'scaffold' },
     topology: 'home-mode-to-home-mode',
     ...overrides,
   });

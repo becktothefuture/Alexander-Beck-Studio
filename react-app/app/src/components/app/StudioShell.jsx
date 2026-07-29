@@ -33,8 +33,6 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/flock-of-birds">{children}</div>;
     case 'repel-room':
       return <div data-sfid="sfid:shell/repel-room">{children}</div>;
-    case 'mineral-growth':
-      return <div data-sfid="sfid:shell/mineral-growth">{children}</div>;
     case 'aperture-bloom':
       return <div data-sfid="sfid:shell/aperture-bloom">{children}</div>;
     case 'confluence-bridges':

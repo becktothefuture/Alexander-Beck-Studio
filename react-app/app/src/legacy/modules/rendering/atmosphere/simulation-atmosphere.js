@@ -311,7 +311,6 @@ function rebuildProfile({ resetQuality = false } = {}) {
   renderProfile = resolveSimulationAtmosphereRenderProfile(configuration, themeMode);
   if (reducedMotion) renderProfile.memoryMs = 0;
   cadence = resolveSimulationAtmosphereCadence('auto');
-  host?.edgeLight?.setQuality(dynamicQuality.id);
   geometryDirty = true;
   staticFrameDirty = true;
   applyPresentationState();
@@ -341,7 +340,6 @@ function syncGeometry() {
     automaticQuality = nextAutomaticQuality;
     dynamicQuality = automaticQuality;
     pendingQuality = null;
-    host.edgeLight.setQuality(dynamicQuality.id);
     resetCostMetrics();
     lastEffectAt = 0;
   }
@@ -372,8 +370,6 @@ function syncGeometry() {
   const backingScale = Math.sqrt(backingScaleX * backingScaleY);
   renderProfile.largeBlurRadiusBackingPx = resolvedGlowRadiusCss * backingScale;
   renderProfile.smallBlurRadiusBackingPx = resolvedSmallGlowRadiusCss * backingScale;
-  renderProfile.edgeWidthBackingPx = renderProfile.edgeWidthPx * backingScale;
-  renderProfile.edgeInsetBackingPx = renderProfile.edgeInsetPx * backingScale;
   host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
@@ -520,7 +516,6 @@ function applyPendingQuality() {
   if (!pendingQuality) return;
   dynamicQuality = pendingQuality;
   pendingQuality = null;
-  host?.edgeLight?.setQuality(dynamicQuality.id);
   resetCostMetrics();
   geometryDirty = true;
   staticFrameDirty = true;
@@ -550,12 +545,7 @@ function renderComposite(now) {
   effectRenderArgs.config = renderProfile;
   effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
-  host.edgeLight.render(
-    host.glowCanvas,
-    renderProfile.edgeStrength,
-    renderProfile.edgeWidthBackingPx,
-    renderProfile.edgeInsetBackingPx,
-  );
+  host.edgeLight.render(host.glowCanvas, renderProfile.edgeStrength);
   const costMs = performance.now() - start;
   recordCost(costMs);
   compositedFrameCount += 1;
@@ -723,8 +713,6 @@ function getDiagnosticSnapshot() {
     edgeStrength: renderProfile?.edgeStrength ?? configuration.edgeStrength,
     edgeWidthPx: renderProfile?.edgeWidthPx ?? configuration.edgeWidthPx,
     edgeInsetPx: renderProfile?.edgeInsetPx ?? configuration.edgeInsetPx,
-    edgeStripBackingPx: host?.edgeLight?.lastStripBackingPx || 0,
-    edgeInsetBackingPx: host?.edgeLight?.lastInsetBackingPx || 0,
     edgeDrawCallCount: host?.edgeLight?.lastDrawCallCount || 0,
     scheduler: activeSource?.scheduler || '',
     schedulerActive: activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource),

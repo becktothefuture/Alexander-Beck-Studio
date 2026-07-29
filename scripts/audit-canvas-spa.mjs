@@ -14,7 +14,6 @@ const BUFFER_WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 30000);
 const SIMULATION_CANVAS_SELECTOR = [
   '#c',
   '#flock-of-birds-canvas',
-  '#mineral-growth-canvas',
   '#repel-room-canvas',
   '#wall-repel-canvas',
   '.beach-ball-room-canvas',

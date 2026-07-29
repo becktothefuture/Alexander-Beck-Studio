@@ -252,7 +252,6 @@ const state = {
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
     [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
     [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
-    [MODES.SHAPES]: { desktop: 150, mobile: 96 },
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.SPHERE_3D]: { desktop: 140, mobile: 84 },
@@ -663,9 +662,10 @@ const state = {
   parallaxFloatSpanX: 5.0,
   parallaxFloatSpanY: 2.6,
   parallaxFloatZNear: 50,
-  parallaxFloatZFar: 900,
+  parallaxFloatZFar: 2800,
+  parallaxFloatFogStart: 0.9,
   parallaxFloatFocalLength: 420,
-  parallaxFloatRandomize: 0.5,
+  parallaxFloatRandomize: 0.4,
   parallaxFloatLevitationAmp: 20,
   parallaxFloatLevitationSpeed: 0.2,
   parallaxFloatParallaxStrength: 120,
@@ -1848,6 +1848,7 @@ export function initState(config) {
   if (config.parallaxFloatSpanY !== undefined) state.parallaxFloatSpanY = clampNumber(config.parallaxFloatSpanY, 0.2, 12.0, state.parallaxFloatSpanY);
   if (config.parallaxFloatZNear !== undefined) state.parallaxFloatZNear = clampNumber(config.parallaxFloatZNear, 10, 1200, state.parallaxFloatZNear);
   if (config.parallaxFloatZFar !== undefined) state.parallaxFloatZFar = clampNumber(config.parallaxFloatZFar, 50, 3000, state.parallaxFloatZFar);
+  if (config.parallaxFloatFogStart !== undefined) state.parallaxFloatFogStart = clampNumber(config.parallaxFloatFogStart, 0.5, 0.98, state.parallaxFloatFogStart);
   if (config.parallaxFloatFocalLength !== undefined) state.parallaxFloatFocalLength = clampNumber(config.parallaxFloatFocalLength, 80, 2000, state.parallaxFloatFocalLength);
 
   // Generic "apply like-for-like" config keys to state

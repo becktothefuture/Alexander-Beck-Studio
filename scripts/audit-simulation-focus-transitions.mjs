@@ -29,7 +29,6 @@ let expectedChooserRows = 0;
 const ROUTE_BACKED_FOCUS_IDS = new Set([
   'repel-room',
   'flock-of-birds',
-  'mineral-growth',
   'rift-rings',
 ]);
 
@@ -253,7 +252,6 @@ async function getState(page, elapsedMs) {
       '#repel-room-canvas',
       '#wall-repel-canvas',
       '#flock-of-birds-canvas',
-      '#mineral-growth-canvas',
       '.napoleon-point-cloud__canvas--front',
       '.beach-ball-room-canvas',
       '.concept-simulation-canvas',
@@ -818,7 +816,7 @@ async function assertSimulationOverlayReleased(page, label) {
 async function exerciseCrossRouteInterruptions(page) {
   const proof = {};
   const currentLabel = await page.locator('.simulation-focus-switcher').textContent();
-  const nextHomeMode = ['Foundation', 'Assembly', 'Attention']
+  const nextHomeMode = ['Foundation', 'Scaffold', 'Attention']
     .find((label) => !currentLabel?.includes(label));
   if (!nextHomeMode) throw new Error(`Could not choose a different Home simulation from "${currentLabel || ''}"`);
 

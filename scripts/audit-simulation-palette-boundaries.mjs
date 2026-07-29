@@ -18,7 +18,6 @@ const allSurfaces = [
   { id: 'contact', path: '/contact.html' },
   { id: 'daily-repel-room', path: '/lab/repel-room.html?daily=1' },
   { id: 'daily-flock-of-birds', path: '/lab/flock-of-birds.html?daily=1' },
-  { id: 'daily-mineral-growth', path: '/lab/mineral-growth.html?daily=1' },
   { id: 'daily-rift-rings', path: '/lab/rift-rings.html?daily=1' },
 ];
 const surfaceFilter = String(process.env.ABS_SIMULATION_PALETTE_SURFACE || '').trim();

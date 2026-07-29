@@ -497,14 +497,7 @@ class AtmosphereLabController {
         nowMs: now,
         responsiveScale: this.responsiveEffectScale,
       });
-      const edgeWidthBackingPx = (this.renderProfile.edgeWidthPx ?? 1.5) * this.dynamicQuality.scale;
-      const edgeInsetBackingPx = (this.renderProfile.edgeInsetPx ?? 0) * this.dynamicQuality.scale;
-      this.edgeLight?.render(
-        this.outputCanvas,
-        this.renderProfile.edgeLight,
-        edgeWidthBackingPx,
-        edgeInsetBackingPx,
-      );
+      this.edgeLight?.render(this.outputCanvas, this.renderProfile.edgeLight);
     } catch (error) {
       if (!this.fallback) {
         console.warn('[atmosphere-lab] Renderer failed; activating Canvas fallback', error);

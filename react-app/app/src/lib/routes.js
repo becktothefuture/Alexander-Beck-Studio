@@ -100,12 +100,6 @@ const ROUTE_DEFS = {
     ],
     gated: false,
   },
-  'mineral-growth': {
-    id: 'mineral-growth',
-    path: '/lab/mineral-growth.html',
-    aliases: ['/lab/mineral-growth.html', '/lab/mineral-growth', '/mineral-growth.html', '/mineral-growth'],
-    gated: false,
-  },
   'aperture-bloom': {
     id: 'aperture-bloom',
     path: '/lab/aperture-bloom.html',

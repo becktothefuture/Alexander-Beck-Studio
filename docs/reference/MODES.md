@@ -11,9 +11,9 @@ Source of truth for mode IDs and narrative order:
 
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
 - `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `16` Daily simulations.
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `18` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
-- `flock-of-birds`, `repel-room`, `mineral-growth`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds`, `repel-room`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 - `elastic-center`, `napoleon-point-cloud`, and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.
 
@@ -32,17 +32,16 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Mode | ID | Runtime status |
 | --- | --- | --- |
 | Foundation | `pit` | Active |
-| Assembly | `shapes` | Active |
 | Attention | `flies` | Active |
 | Weightless Drift | `weightless` | Active |
 | Flow | `water` | Active |
-| Magnetic Field | `magnetic` | Active |
+| Magnetic Field | `magnetic` | Active daily |
 | Emergence | `bubbles` | Active |
 | Refraction | `kaleidoscope-3` | Active |
 | Multiplicity | `kaleidoscope-rift` | Active |
 | Depth | `rift-rings` | Route-backed daily/lab |
 | Critter Swarm | `critters` | Active |
-| Parallax Drift | `parallax-float` | Active |
+| Parallax Drift | `parallax-float` | Active daily |
 | Continuity | `3d-sphere` | Active |
 | Scaffold | `3d-cube` | Active |
 | Perspective | `starfield-3d` | Active |
@@ -50,12 +49,11 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Convergence | `flock-of-birds` | Route-backed daily/lab |
 | Tension | `repel-room` | Route-backed daily/lab (`wall-repel` remains a legacy URL/config alias) |
 | Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
-| Formation | `mineral-growth` | Route-backed daily/lab |
 | Cohesion | `flubber-blob` | Active |
 | Juxtaposition | `weave-field` | Active |
 | Pressure Field | `pressure-crucible` | Active |
 | Fountain A | `particle-fountain` | Active |
-| Fountain B | `particle-fountain-b` | Active |
+| Fountain B | `particle-fountain-b` | Active daily |
 | Impression | `napoleon-point-cloud` | Route-backed collection/lab |
 | Beach Ball Room | `beach-ball-room` | Route-backed collection/lab |
 
@@ -66,32 +64,30 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 ### Featured Tier (shown first)
 
 1. `pit` — FOUNDATION
-2. `shapes` — ASSEMBLY
-3. `flies` — ATTENTION
-4. `3d-cube` — SCAFFOLD
-5. `water` — FLOW
-6. `repel-room` — TENSION
-7. `3d-sphere` — CONTINUITY
-8. `flock-of-birds` — CONVERGENCE
-9. `flubber-blob` — COHESION
-10. `weave-field` — JUXTAPOSITION
-11. `mineral-growth` — FORMATION
-12. `kaleidoscope-3` — REFRACTION
-13. `bubbles` — EMERGENCE
-14. `starfield-3d` — PERSPECTIVE
-15. `kaleidoscope-rift` — MULTIPLICITY
-16. `rift-rings` — DEPTH
+2. `flies` — ATTENTION
+3. `3d-cube` — SCAFFOLD
+4. `water` — FLOW
+5. `repel-room` — TENSION
+6. `3d-sphere` — CONTINUITY
+7. `flock-of-birds` — CONVERGENCE
+8. `flubber-blob` — COHESION
+9. `weave-field` — JUXTAPOSITION
+10. `kaleidoscope-3` — REFRACTION
+11. `bubbles` — EMERGENCE
+12. `magnetic` — MAGNETIC FIELD
+13. `starfield-3d` — PERSPECTIVE
+14. `kaleidoscope-rift` — MULTIPLICITY
+15. `parallax-float` — PARALLAX DRIFT
+16. `particle-fountain-b` — FOUNTAIN B
+17. `rift-rings` — DEPTH
 
 ### Extended Tier (shown after Featured)
 
-17. `aperture-bloom` — APERTURE BLOOM
-18. `magnetic` — MAGNETIC FIELD
+18. `aperture-bloom` — APERTURE BLOOM
 19. `weightless` — WEIGHTLESS DRIFT
 20. `critters` — CRITTER SWARM
-21. `parallax-float` — PARALLAX DRIFT
-22. `pressure-crucible` — PRESSURE FIELD
-23. `particle-fountain` — FOUNTAIN A
-24. `particle-fountain-b` — FOUNTAIN B
+21. `pressure-crucible` — PRESSURE FIELD
+22. `particle-fountain` — FOUNTAIN A
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -110,7 +106,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Pointer And Title Depth Rules
 
 - Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
-- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. `3d-sphere` and `parallax-float` split particles around the fixed title plane at normalized z `0.5`; Scaffold renders its Assembly-style rigid pieces on the front side of the title plane.
+- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. `3d-sphere` and `parallax-float` split particles around the fixed title plane at normalized z `0.5`; Scaffold renders its rigid pieces on the front side of the title plane.
 - The visible home title/subtitle are canvas-rendered from the semantic `#hero-title` source. No-depth modes draw the title before the normal ball pass, preserving the old title-behind-simulation relationship. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
 
 ---
@@ -118,7 +114,6 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Behavior Snapshot (Runnable Modes)
 
 - `pit`: gravity + collisions + cursor repeller.
-- `shapes`: clear graphic design primitives as solid multicolored thick-rubber dot-cluster bodies with crisp row-based outlines, extra-large square/circle/plus contrast, and smaller right-triangle/hexagon bodies made from fewer same-size dots at the same spacing; shapes release one by one from different x-axis positions above the visible wall, then fall under gravity with heavier-friction, very bouncy wall/body collisions. Press a dot to create an exact hard pivot: pointer movement, gravity, and collisions rotate the body around that held point, and normal release retains the resulting throw and spin momentum. Drag empty wall space to sweep-push them.
 - `flies`: swarm attractor behavior with lightweight motion.
 - `weightless`: zero-gravity bounce with cursor blast-style interaction.
 - `water`: dense drag/ripple motion field.
@@ -128,20 +123,19 @@ Loop order is `Featured -> Extended -> Featured`.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
 - `rift-rings`: route-backed Depth concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
 - `critters`: locomotion-based critter behavior and local separation.
-- `parallax-float`: layered depth field with levitation/parallax response.
+- `parallax-float`: layered depth field with levitation/parallax response, a 2,800px far plane, 40% grid randomization, and a configurable far-depth fog ramp beginning at 90% by default.
 - `3d-sphere`: rotating spherical point cloud.
-- `3d-cube`: five tessellating dot-body silhouettes using Assembly's staggered drop, gravity, collision, sweep, grab, spin, and throw behavior.
+- `3d-cube`: five tessellating dot-body silhouettes using staggered drop, gravity, collision, sweep, grab, spin, and throw behavior.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `repel-room`: route-backed Tension with heavy palette balls launched through a bounded room, strong room-edge repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings. Legacy `wall-repel` links resolve to this canonical mode.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
-- `mineral-growth`: route-backed terrarium thicket with edge-rooted pebble branches and leaflet clusters, deterministic seed support, no visible overlap, and mobile-collapsed controls.
 - `napoleon-point-cloud`: route-backed Impression surface-sampled classical bust-face point cloud with the title layered through the dot field, 5k point amount, 14% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.
 - `beach-ball-room`: Collection-only route-backed Beach Ball Room circle-built beach ball with room-scale wall physics, softened room-line treatment, calmer rebound, and controls hidden unless `controls=1`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
-- `pressure-crucible`: Extended-tier experiment, not a daily candidate. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.
+- `pressure-crucible`: Extended-tier experiment. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.
 - `particle-fountain`: centred continuous emitter that aims toward the pointer within a 30-degree left/right sweep.
 - `particle-fountain-b`: three park-fountain nozzles alternate solos, crossing arches, travelling beats, and intentional rests.
 

@@ -84,9 +84,19 @@ Theme preference and surface behavior are owned by [`THEME-STATE.md`](THEME-STAT
 - Shared shell finish is authored once and reused across routes.
 - Convenience presets must explicitly be persistent or UI-only.
 
-### Assembly kinetic grab controls
+### Parallax Drift depth controls
 
-The Assembly hard-pivot interaction is authored through runtime keys in `design-system.json`:
+Parallax Drift’s authored depth contract lives in the runtime namespace:
+
+- `parallaxFloatZFar` sets the far plane and supports values through `3000`.
+- `parallaxFloatFogStart` sets the normalized depth where particles begin fading toward the far plane; the control range is `0.5`–`0.98`.
+- `parallaxFloatRandomize` offsets particles from their 3D grid positions; lower values retain more grid alignment.
+
+Changing any of these values reinitializes the mode so the live editor, canonical save, reload, flattening, and preview all render the same particle field.
+
+### Scaffold kinetic grab controls
+
+The Scaffold hard-pivot interaction is authored through runtime keys in `design-system.json`:
 
 - `shapesGrabAngularDampingPerSec` controls held spin damping as a per-second exponential rate.
 - `shapesReleaseLinearGain` and `shapesReleaseAngularGain` scale reconstructed release momentum.

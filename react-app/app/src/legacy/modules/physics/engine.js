@@ -287,8 +287,7 @@ function shouldResolveBallCollisionsForMode(mode) {
     mode !== MODES.CUBE_3D &&
     mode !== MODES.PARALLAX_FLOAT &&
     mode !== MODES.STARFIELD_3D &&
-    mode !== MODES.PRESSURE_CRUCIBLE &&
-    mode !== MODES.SHAPES;
+    mode !== MODES.PRESSURE_CRUCIBLE;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -670,7 +669,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.KALEIDOSCOPE_RIFT &&
         mode !== MODES.WEAVE_FIELD &&
-        mode !== MODES.SHAPES &&
         mode !== MODES.PRESSURE_CRUCIBLE &&
         !isPitLikeMode(mode);
 
@@ -814,7 +812,6 @@ export function render() {
   const crittersRenderLodEnabled = globals.currentMode === MODES.CRITTERS
     && qualityProfile.tier !== 'high';
   const weaveRenderLodEnabled = globals.currentMode === MODES.WEAVE_FIELD;
-  const shapesRenderEnabled = globals.currentMode === MODES.SHAPES;
   const mobileCircleFastPath = Boolean(globals.isMobile || globals.isMobileViewport)
     && Number(globals.pebbleBlend ?? 0) <= 0.02;
   let ballRenderOptions = null;
@@ -826,7 +823,7 @@ export function render() {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };
-  } else if (crittersRenderLodEnabled || weaveRenderLodEnabled || shapesRenderEnabled) {
+  } else if (crittersRenderLodEnabled || weaveRenderLodEnabled) {
     ballRenderOptions = {
       simpleCircleBodies: true,
       canvasWidth: canvas.width,

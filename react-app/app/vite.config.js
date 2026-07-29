@@ -134,7 +134,6 @@ export default defineConfig(({ mode }) => ({
         'lab/atmosphere-feedback': resolve(__dirname, 'lab/atmosphere-feedback.html'),
         'lab/atmosphere-crisp-glow': resolve(__dirname, 'lab/atmosphere-crisp-glow.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
-        'lab/mineral-growth': resolve(__dirname, 'lab/mineral-growth.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),
         'lab/napoleon-point-cloud': resolve(__dirname, 'lab/napoleon-point-cloud.html'),

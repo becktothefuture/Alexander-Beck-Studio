@@ -18,7 +18,6 @@ const RUNTIME_COMPONENTS = Object.freeze({
   'beach-ball-room': createLazyRuntime('beach-ball-room'),
   'rift-rings': createLazyRuntime('rift-rings'),
   'flock-of-birds': createLazyRuntime('flock-of-birds'),
-  'mineral-growth': createLazyRuntime('mineral-growth'),
   'repel-room': createLazyRuntime('repel-room'),
 });
 
