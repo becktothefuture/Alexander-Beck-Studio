@@ -32,7 +32,7 @@ The typography is a deliberate contrast system rather than one family applied ev
 
 Instrument Serif is limited to the Home canvas title and route-level titles using `.route-centered-page__title`, including the Portfolio intro and gate. The production tokens are:
 
-Work, Contact, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour and one globally authored line-to-description gap.
+Work, Contact, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`.
 
 - `--abs-font-headline: "Instrument Serif", ...`
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles

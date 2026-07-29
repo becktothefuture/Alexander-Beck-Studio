@@ -434,19 +434,29 @@ export function useAboutNarrativeTimeline({
       frame.editorialSignals.gridInfluence = gridInfluence;
 
       for (const { node, field } of measurementsRef.current.contextFields) {
-        const contextProgress = frame.storyWU >= field.startWU
+        const titleProgress = frame.storyWU >= field.startWU
           ? clamp01(
             (frame.storyWU - field.startWU)
             / Math.max(0.000001, field.focusWU - field.startWU),
           )
           : 0;
+        const postTitleProgress = frame.storyWU >= field.focusWU
+          ? clamp01(
+            (frame.storyWU - field.focusWU)
+            / Math.max(0.000001, field.endWU - field.focusWU),
+          )
+          : 0;
+        const ruleProgress = reducedMotion
+          ? (frame.storyWU >= field.startWU ? 1 : 0)
+          : smooth01(postTitleProgress / 0.24);
         const descriptionProgress = reducedMotion
           ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : smooth01((contextProgress - 0.32) / 0.5);
+          : smooth01((postTitleProgress - 0.24) / 0.46);
         const actionProgress = reducedMotion
           ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : smooth01((contextProgress - 0.62) / 0.38);
-        node.style.setProperty('--spatial-context-opacity', contextProgress.toFixed(4));
+          : smooth01((postTitleProgress - 0.7) / 0.3);
+        node.style.setProperty('--spatial-context-opacity', titleProgress.toFixed(4));
+        node.style.setProperty('--route-title-rule-scale', ruleProgress.toFixed(4));
         node.style.setProperty('--spatial-description-opacity', descriptionProgress.toFixed(4));
         node.style.setProperty('--spatial-action-opacity', actionProgress.toFixed(4));
         node.style.setProperty('--spatial-context-y', `${((1 - descriptionProgress) * 16).toFixed(2)}px`);

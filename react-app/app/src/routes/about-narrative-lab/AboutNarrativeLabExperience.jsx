@@ -425,6 +425,7 @@ function TitleField({
             >
               {field.text}
             </Heading>
+            <span className="route-title-lockup__rule" aria-hidden="true" />
             {field.description ? (
               <p
                 id={descriptionId}
@@ -444,9 +445,11 @@ function TitleField({
             data-primary-copy
             data-route-enter="identity"
             data-route-enter-order="0"
+            data-route-enter-variant="bookend-title"
           >
             {field.text}
           </Heading>
+          <span className="route-title-lockup__rule" aria-hidden="true" />
           {field.description ? (
             <p
               id={descriptionId}

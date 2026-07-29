@@ -918,7 +918,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   --portfolio-title-letter-step: 26ms;
   --portfolio-title-entrance-blur: 10px;
   --portfolio-title-entrance-drift: -0.12em;
-  --portfolio-title-subtitle-gap: 140ms;
+  --portfolio-title-rule-delay: 560ms;
+  --portfolio-title-rule-duration: 140ms;
   --portfolio-title-subtitle-delay: 700ms;
   position: absolute;
   z-index: 8;
@@ -956,6 +957,10 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   pointer-events: none;
 }
 
+.portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro .route-title-lockup__rule {
+  transform: scaleX(0);
+}
+
 .portfolio-deck-mount.is-portfolio-boot-preparing .portfolio-deck-intro__title {
   opacity: 1;
   filter: none;
@@ -979,6 +984,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body {
   filter: blur(0);
   transform: translateY(0) scale(1);
+}
+
+.portfolio-deck-mount.is-portfolio-deck-visible:not(.is-portfolio-deck-revealing)
+  .portfolio-deck-intro .route-title-lockup__rule {
+  transform: scaleX(1);
 }
 
 .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__title,
@@ -1008,7 +1018,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   animation-delay: calc(var(--route-enter-glyph-index) * var(--portfolio-title-letter-step));
 }
 
-.portfolio-deck-mount.is-portfolio-route-transition-entrance {
+.portfolio-deck-mount.is-portfolio-deck-revealing
+  .portfolio-deck-intro .route-title-lockup__rule {
+  animation: portfolio-title-rule-in var(--portfolio-title-rule-duration)
+    cubic-bezier(0.22, 0, 0.16, 1) both;
+  animation-delay: var(--portfolio-title-rule-delay);
+}
+
+.portfolio-deck-mount.is-portfolio-route-transition-entrance .portfolio-deck-intro {
   --portfolio-title-duration: var(--abs-route-bookend-duration, 220ms);
   --portfolio-title-letter-step: var(--abs-route-bookend-step, 8ms);
   --portfolio-title-subtitle-delay: 260ms;
@@ -1041,6 +1058,16 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     opacity: 1;
     filter: blur(0);
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes portfolio-title-rule-in {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
   }
 }
 

@@ -3,6 +3,8 @@ import { resolvePairKerningEm } from './glyph-kerning.js';
 
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
+const LOCKUP_SELECTOR = '.route-title-lockup';
+const LOCKUP_RULE_SELECTOR = '.route-title-lockup__rule';
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -19,12 +21,14 @@ const HOME_PHASE_CLASSES = Object.freeze([
 ]);
 const styleCleanupGeneration = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
+export const BOOKEND_LOCKUP_RULE_DURATION_MS = 140;
 const BOOKEND_TITLE_MOTION = Object.freeze({
   blurPx: 10,
   durationMs: 560,
   stepMs: 26,
   driftEm: -0.12,
   subtitleGapMs: 140,
+  ruleDurationMs: BOOKEND_LOCKUP_RULE_DURATION_MS,
 });
 const SEQUENCED_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer', 'control']);
 const DIRECT_FLOW_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer']);
@@ -218,6 +222,7 @@ function resolveProfile(name, timingMode = 'repeat') {
       durationMs: reduced ? 120 : duration(config.routeBookendDurationMs),
       stepMs: reduced ? 0 : Math.round(config.routeBookendStepMs * staggerScale),
       driftEm: reduced ? 0 : config.routeBookendDriftEm,
+      ruleDurationMs: reduced ? 0 : duration(BOOKEND_TITLE_MOTION.ruleDurationMs),
     },
     groups: {
       identity: { ...PROFILES.route.groups.identity, stepMs: step, durationMs: duration(config.supportDurationMs) },
@@ -248,12 +253,18 @@ function sequenceTargets(targets, profile) {
   if (identityTargets.length === 0) return targets;
 
   const identityStartMs = readGroup(profile, 'identity').startMs;
+  const lockupRuleTargets = targets.filter((target) => target.variant === 'lockup-rule');
   if (profile.compactFlow) {
     identityTargets.forEach((target, index) => {
       target.delayMs = identityStartMs + (index * profile.identityLineStepMs);
     });
     const identityEndMs = Math.max(...identityTargets.map(getTargetEndMs));
-    const contextStartMs = identityEndMs + profile.contextGapMs;
+    lockupRuleTargets.forEach((target) => {
+      target.delayMs = identityEndMs;
+    });
+    const contextStartMs = lockupRuleTargets.length > 0
+      ? Math.max(...lockupRuleTargets.map(getTargetEndMs))
+      : identityEndMs + profile.contextGapMs;
     const starts = {
       legend: contextStartMs,
       context: contextStartMs,
@@ -288,7 +299,15 @@ function sequenceTargets(targets, profile) {
     glyphOffset += target.glyphs.length;
   });
 
-  let cursorMs = Math.max(...identityTitles.map(getTargetEndMs)) + profile.bookendTitle.subtitleGapMs;
+  let cursorMs = Math.max(...identityTitles.map(getTargetEndMs));
+  if (lockupRuleTargets.length > 0) {
+    lockupRuleTargets.forEach((target) => {
+      target.delayMs = cursorMs;
+    });
+    cursorMs = Math.max(...lockupRuleTargets.map(getTargetEndMs));
+  } else {
+    cursorMs += profile.bookendTitle.subtitleGapMs;
+  }
   // The Home simulation switcher is the identity's primary control. Reveal it
   // as soon as the identity resolves, in parallel with the first supporting
   // content, instead of holding it behind the complete footer sequence.
@@ -361,6 +380,28 @@ function collectTargets(scopes, profile) {
     });
   });
 
+  targets
+    .filter((target) => target.variant === 'bookend-title')
+    .forEach((titleTarget) => {
+      const lockup = titleTarget.element.closest?.(LOCKUP_SELECTOR);
+      const rule = lockup?.querySelector?.(`:scope > ${LOCKUP_RULE_SELECTOR}`);
+      if (!rule || seen.has(rule)) return;
+      seen.add(rule);
+      targets.push({
+        element: rule,
+        groupName: 'lockup-rule',
+        order: titleTarget.order,
+        delayMs: 0,
+        durationMs: profile.bookendTitle.ruleDurationMs,
+        blurPx: 0,
+        letterStepMs: 0,
+        driftEm: 0,
+        glyphs: [],
+        variant: 'lockup-rule',
+        finalOpacity: 1,
+      });
+    });
+
   return sequenceTargets(targets.sort((a, b) => (
     a.delayMs - b.delayMs
     || a.groupName.localeCompare(b.groupName)
@@ -395,6 +436,10 @@ function clearTargetStyles(target) {
   element.style.removeProperty('filter');
   element.style.removeProperty('pointer-events');
   element.style.removeProperty('will-change');
+  if (target.variant === 'lockup-rule') {
+    element.style.removeProperty('transform');
+    element.style.removeProperty('transform-origin');
+  }
   target.glyphs.forEach((glyph) => {
     glyph.style.removeProperty('opacity');
     glyph.style.removeProperty('filter');
@@ -417,7 +462,9 @@ function restoreTargetInert(element) {
 }
 
 function settleTarget(target) {
-  if (target.variant === 'bookend-title') {
+  if (target.variant === 'lockup-rule') {
+    target.element.style.transform = 'scaleX(1)';
+  } else if (target.variant === 'bookend-title') {
     target.element.style.opacity = '1';
     target.element.style.filter = 'none';
     target.glyphs.forEach((glyph) => {
@@ -441,7 +488,10 @@ function stageTarget(target, blurPx) {
   );
   target.element.style.transition = 'none';
   target.element.style.transitionDelay = `${target.delayMs}ms`;
-  if (target.variant === 'bookend-title') {
+  if (target.variant === 'lockup-rule') {
+    target.element.style.transform = 'scaleX(0)';
+    target.element.style.transformOrigin = '50% 50%';
+  } else if (target.variant === 'bookend-title') {
     target.element.style.opacity = '1';
     target.element.style.filter = 'none';
     target.glyphs.forEach((glyph, glyphIndex) => {
@@ -475,7 +525,9 @@ function stageTarget(target, blurPx) {
   target.element.style.pointerEvents = 'none';
   target.element.style.willChange = target.variant === 'bookend-title'
     ? 'auto'
-    : 'opacity, filter';
+    : target.variant === 'lockup-rule'
+      ? 'transform'
+      : 'opacity, filter';
   // Opacity and pointer-events do not remove delayed controls from sequential
   // keyboard navigation. Scope inert to targets that actually contain controls,
   // then restore their original state on completion or cancellation.
@@ -573,6 +625,22 @@ export function createEntranceSequence({
     if (diagnosticRoot) setHomePhase(diagnosticRoot, 'enter');
 
     animations = targets.flatMap((target) => {
+      if (target.variant === 'lockup-rule') {
+        const animation = target.element.animate(
+          [
+            { transform: 'scaleX(0)' },
+            { transform: 'scaleX(1)' },
+          ],
+          {
+            duration: target.durationMs,
+            delay: target.delayMs,
+            easing: profile.easing,
+            fill: 'both',
+          },
+        );
+        onAnimation?.(animation);
+        return [animation];
+      }
       if (target.variant === 'bookend-title') {
         const startedAt = performance.now();
         return target.glyphs.map((glyph, glyphIndex) => {

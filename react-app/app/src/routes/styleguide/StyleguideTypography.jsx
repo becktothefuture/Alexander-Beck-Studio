@@ -303,6 +303,7 @@ export function StyleguideTypographySection() {
           <div className="styleguide-type-role__sample">
             <div className="styleguide-type-centered-route route-title-lockup">
               <div className="styleguide-type-sample styleguide-type-sample--gate-title route-centered-page__title">About Me</div>
+              <span className="route-title-lockup__rule" aria-hidden="true" />
               <p className="styleguide-type-sample styleguide-type-sample--gate-desc route-centered-page__description">Coming soon.</p>
             </div>
           </div>

@@ -36,8 +36,10 @@ import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 import {
   applyBookendTitleKerning,
+  BOOKEND_LOCKUP_RULE_DURATION_MS,
   prepareBookendTitleGlyphs,
 } from '../../../lib/motion/entrance-sequence.js';
+import { getShellRouteTransitionConfig } from '../visual/site-shell.js';
 import { registerRouteTransitionParticipant } from '../../../lib/motion/route-transition-participants.js';
 
 const BASE_PATH = (() => {
@@ -83,7 +85,6 @@ const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
 const PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS = 300;
 const PORTFOLIO_TITLE_GLYPH_DURATION_MS = 560;
 const PORTFOLIO_TITLE_GLYPH_STEP_MS = 26;
-const PORTFOLIO_TITLE_SUBTITLE_GAP_MS = 140;
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
 const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
 const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
@@ -816,6 +817,21 @@ class PortfolioScrollApp {
   applyEntranceConfiguration({ routeTransition = false } = {}) {
     if (!this.mount) return [];
     const entrance = this.getEntranceOptions();
+    const intro = this.mount.querySelector('.portfolio-deck-intro');
+    const titleGlyphCount = Math.max(
+      1,
+      Number.parseInt(intro?.style.getPropertyValue('--portfolio-title-glyph-count') || '1', 10) || 1,
+    );
+    const routeMotion = routeTransition ? getShellRouteTransitionConfig() : null;
+    const titleDurationMs = routeMotion?.routeBookendDurationMs ?? PORTFOLIO_TITLE_GLYPH_DURATION_MS;
+    const titleStepMs = routeMotion?.routeBookendStepMs ?? PORTFOLIO_TITLE_GLYPH_STEP_MS;
+    const ruleDelayMs = titleDurationMs + ((titleGlyphCount - 1) * titleStepMs);
+    const descriptionDelayMs = ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS;
+    intro?.style.setProperty('--portfolio-title-duration', `${titleDurationMs}ms`);
+    intro?.style.setProperty('--portfolio-title-letter-step', `${titleStepMs}ms`);
+    intro?.style.setProperty('--portfolio-title-rule-delay', `${ruleDelayMs}ms`);
+    intro?.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
+    intro?.style.setProperty('--portfolio-title-subtitle-delay', `${descriptionDelayMs}ms`);
     const baseDelayMs = routeTransition
       ? entrance.cardStartDelayMs
       : this.deckContentRevealDelayMs;
@@ -1294,19 +1310,25 @@ class PortfolioScrollApp {
     heading.textContent = title;
     const titleGlyphs = prepareBookendTitleGlyphs(heading);
     const titleGlyphCount = Math.max(1, titleGlyphs.length);
-    const subtitleDelayMs = PORTFOLIO_TITLE_GLYPH_DURATION_MS
-      + ((titleGlyphCount - 1) * PORTFOLIO_TITLE_GLYPH_STEP_MS)
-      + PORTFOLIO_TITLE_SUBTITLE_GAP_MS;
+    const ruleDelayMs = PORTFOLIO_TITLE_GLYPH_DURATION_MS
+      + ((titleGlyphCount - 1) * PORTFOLIO_TITLE_GLYPH_STEP_MS);
+    const subtitleDelayMs = ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS;
     this.deckContentRevealDelayMs = subtitleDelayMs;
     intro.style.setProperty('--portfolio-title-glyph-count', titleGlyphCount);
+    intro.style.setProperty('--portfolio-title-rule-delay', `${ruleDelayMs}ms`);
+    intro.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
     intro.style.setProperty('--portfolio-title-subtitle-delay', `${subtitleDelayMs}ms`);
     this.mount?.style.setProperty('--portfolio-content-reveal-delay', `${subtitleDelayMs}ms`);
+
+    const rule = document.createElement('span');
+    rule.className = 'route-title-lockup__rule';
+    rule.setAttribute('aria-hidden', 'true');
 
     const copy = document.createElement('p');
     copy.className = 'portfolio-deck-intro__body route-centered-page__description route-intro-description';
     copy.textContent = body;
 
-    intro.append(heading, copy);
+    intro.append(heading, rule, copy);
     return intro;
   }
 
