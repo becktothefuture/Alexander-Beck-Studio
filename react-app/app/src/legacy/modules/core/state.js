@@ -167,7 +167,7 @@ const state = {
   sphere3dReducedMotionScale: 0.18,
   sphere3dDepthBlendBand: 0.045,
   sphere3dWarmupFrames: 10,
-  // Scaffold legacy compatibility values (Mode 17)
+  // Scaffold 3D cube values (Mode 17)
   cube3dSizeVw: 50,
   cube3dEdgeDensity: 8,
   cube3dFaceGrid: 0,
@@ -578,25 +578,6 @@ const state = {
   weaveFieldMaxSpeed: 1920,
   weaveFieldCollisionIterations: 1,
   weaveFieldWarmupFrames: 0,
-
-  // Shapes mode
-  shapesBallCount: 168,
-  shapesMobileCountScale: 1,
-  shapesDotSizeMul: 1,
-  shapesDotSpacingMul: 2.34,
-  shapesGravityScale: 0.92,
-  shapesWallRestitution: 0.48,
-  shapesBodyCollisionEnabled: 1,
-  shapesPointerStrength: 21000,
-  shapesPointerRadius: 220,
-  shapesDamping: 0.978,
-  shapesMaxSpeed: 1250,
-  shapesGrabAngularDampingPerSec: 1.2,
-  shapesReleaseLinearGain: 1,
-  shapesReleaseAngularGain: 1,
-  shapesMaxAngularSpeed: 8,
-  shapesReducedMotionScale: 0.35,
-  shapesWarmupFrames: 0,
 
   // Pressure Field mode
   pressureCrucibleBallCount: 144,
@@ -1575,7 +1556,6 @@ export function initState(config) {
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
-  if (config.shapesWarmupFrames !== undefined) state.shapesWarmupFrames = clampInt(config.shapesWarmupFrames, 0, 240, state.shapesWarmupFrames);
   if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
@@ -1905,7 +1885,7 @@ export function initState(config) {
   if (config.sphere3dDepthBlendBand !== undefined) state.sphere3dDepthBlendBand = clampNumber(config.sphere3dDepthBlendBand, 0.001, 0.2, state.sphere3dDepthBlendBand);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
-  // Scaffold legacy compatibility values (Mode 17)
+  // Scaffold 3D cube values (Mode 17)
   if (config.cube3dSizeVw !== undefined) state.cube3dSizeVw = clampNumber(config.cube3dSizeVw, 10, 50, state.cube3dSizeVw);
   if (config.cube3dEdgeDensity !== undefined) state.cube3dEdgeDensity = clampInt(config.cube3dEdgeDensity, 2, 30, state.cube3dEdgeDensity);
   if (config.cube3dFaceGrid !== undefined) state.cube3dFaceGrid = clampInt(config.cube3dFaceGrid, 0, 10, state.cube3dFaceGrid);
@@ -2008,24 +1988,6 @@ export function initState(config) {
 
   // Mobile count overrides
   if (config.waterMobileCountScale !== undefined) state.waterMobileCountScale = clampNumber(config.waterMobileCountScale, 0.25, 1, state.waterMobileCountScale);
-
-  // Shapes mode
-  if (config.shapesBallCount !== undefined) state.shapesBallCount = clampInt(config.shapesBallCount, 72, 320, state.shapesBallCount);
-  if (config.shapesMobileCountScale !== undefined) state.shapesMobileCountScale = clampNumber(config.shapesMobileCountScale, 0.25, 1, state.shapesMobileCountScale);
-  if (config.shapesDotSizeMul !== undefined) state.shapesDotSizeMul = clampNumber(config.shapesDotSizeMul, 0.5, 1.2, state.shapesDotSizeMul);
-  if (config.shapesDotSpacingMul !== undefined) state.shapesDotSpacingMul = clampNumber(config.shapesDotSpacingMul, 1.95, 2.8, state.shapesDotSpacingMul);
-  if (config.shapesGravityScale !== undefined) state.shapesGravityScale = clampNumber(config.shapesGravityScale, 0, 1.4, state.shapesGravityScale);
-  if (config.shapesWallRestitution !== undefined) state.shapesWallRestitution = clampNumber(config.shapesWallRestitution, 0.05, 0.95, state.shapesWallRestitution);
-  if (config.shapesBodyCollisionEnabled !== undefined) state.shapesBodyCollisionEnabled = clampInt(config.shapesBodyCollisionEnabled, 0, 1, state.shapesBodyCollisionEnabled);
-  if (config.shapesPointerStrength !== undefined) state.shapesPointerStrength = clampInt(config.shapesPointerStrength, 0, 60000, state.shapesPointerStrength);
-  if (config.shapesPointerRadius !== undefined) state.shapesPointerRadius = clampInt(config.shapesPointerRadius, 60, 420, state.shapesPointerRadius);
-  if (config.shapesDamping !== undefined) state.shapesDamping = clampNumber(config.shapesDamping, 0.86, 0.999, state.shapesDamping);
-  if (config.shapesMaxSpeed !== undefined) state.shapesMaxSpeed = clampInt(config.shapesMaxSpeed, 80, 2400, state.shapesMaxSpeed);
-  if (config.shapesGrabAngularDampingPerSec !== undefined) state.shapesGrabAngularDampingPerSec = clampNumber(config.shapesGrabAngularDampingPerSec, 0, 8, state.shapesGrabAngularDampingPerSec);
-  if (config.shapesReleaseLinearGain !== undefined) state.shapesReleaseLinearGain = clampNumber(config.shapesReleaseLinearGain, 0, 1.5, state.shapesReleaseLinearGain);
-  if (config.shapesReleaseAngularGain !== undefined) state.shapesReleaseAngularGain = clampNumber(config.shapesReleaseAngularGain, 0, 1.5, state.shapesReleaseAngularGain);
-  if (config.shapesMaxAngularSpeed !== undefined) state.shapesMaxAngularSpeed = clampNumber(config.shapesMaxAngularSpeed, 0.5, 12, state.shapesMaxAngularSpeed);
-  if (config.shapesReducedMotionScale !== undefined) state.shapesReducedMotionScale = clampNumber(config.shapesReducedMotionScale, 0.1, 1, state.shapesReducedMotionScale);
 
   // Pressure Field mode
   if (config.pressureCrucibleBallCount !== undefined) state.pressureCrucibleBallCount = clampInt(config.pressureCrucibleBallCount, 48, 220, state.pressureCrucibleBallCount);

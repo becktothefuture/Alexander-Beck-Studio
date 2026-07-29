@@ -94,14 +94,12 @@ Parallax Drift’s authored depth contract lives in the runtime namespace:
 
 Changing any of these values reinitializes the mode so the live editor, canonical save, reload, flattening, and preview all render the same particle field.
 
-### Scaffold kinetic grab controls
+### Scaffold 3D cube controls
 
-The Scaffold hard-pivot interaction is authored through runtime keys in `design-system.json`:
+Scaffold is authored through the `cube3d*` runtime keys in `design-system.json`:
 
-- `shapesGrabAngularDampingPerSec` controls held spin damping as a per-second exponential rate.
-- `shapesReleaseLinearGain` and `shapesReleaseAngularGain` scale reconstructed release momentum.
-- `shapesMaxSpeed` is the CSS-pixel linear safety cap and is converted through DPR once in the runtime.
-- `shapesMaxAngularSpeed` caps held and released angular velocity in radians per second.
-- `shapesReducedMotionScale` scales release gains/caps and increases post-release settling without disabling the exact pointer anchor.
-
-These controls do not change empty-space sweep behavior. The exact grabbed point remains authoritative; at an infeasible edge pose, wall contacts minimize penetration through rotation rather than moving the anchor away from the pointer.
+- `cube3dSizeVw`, `cube3dEdgeDensity`, and `cube3dFaceGrid` define the point-cloud geometry.
+- `cube3dIdleSpeed`, `cube3dCursorInfluence`, `cube3dTumbleSpeed`, and `cube3dTumbleDamping` control rotation and pointer response.
+- `cube3dFocalLength` controls perspective projection.
+- `cube3dDotSizeMul`, `cube3dFogStart`, and `cube3dFogMin` control material size and depth fading.
+- `cube3dWarmupFrames` controls invisible startup settling before the first visible frame.

@@ -106,7 +106,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Pointer And Title Depth Rules
 
 - Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
-- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. `3d-sphere` and `parallax-float` split particles around the fixed title plane at normalized z `0.5`; Scaffold renders its rigid pieces on the front side of the title plane.
+- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. All three split particles around the fixed title plane at normalized z `0.5`, with some circles behind the title and others in front.
 - The visible home title/subtitle are canvas-rendered from the semantic `#hero-title` source. No-depth modes draw the title before the normal ball pass, preserving the old title-behind-simulation relationship. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
 
 ---
@@ -125,7 +125,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response, a 2,800px far plane, 40% grid randomization, and a configurable far-depth fog ramp beginning at 90% by default.
 - `3d-sphere`: rotating spherical point cloud.
-- `3d-cube`: five tessellating dot-body silhouettes using staggered drop, gravity, collision, sweep, grab, spin, and throw behavior.
+- `3d-cube`: Scaffold’s rotating and pointer-tumbled 3D cube point cloud, with optional face lattice points, perspective scaling, and depth fog.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.

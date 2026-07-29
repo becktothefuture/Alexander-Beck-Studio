@@ -1,20 +1,312 @@
-// Scaffold keeps its historical mode id for saved-state compatibility while
-// deliberately sharing the circle-body runtime used by its tessellating pieces.
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                             3D CUBE POINT CLOUD                              ║
+// ║     Rotating cube (edges/faces) projected in 3D with cursor-driven tumble     ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import {
-  cleanupScaffoldShapes,
-  initializeScaffoldShapes,
-  stepScaffoldShapes,
-} from './shapes.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+import { spawnBall } from '../physics/spawn.js';
+import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
+import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
+import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
+import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+
+function clamp01(v) {
+  return Math.max(-1, Math.min(1, v));
+}
+
+function rotateXYZ(x, y, z, rx, ry, rz) {
+  const cosY = Math.cos(ry);
+  const sinY = Math.sin(ry);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+
+  const cosX = Math.cos(rx);
+  const sinX = Math.sin(rx);
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+
+  const cosZ = Math.cos(rz);
+  const sinZ = Math.sin(rz);
+  const x3 = x1 * cosZ - y2 * sinZ;
+  const y3 = x1 * sinZ + y2 * cosZ;
+
+  return { x: x3, y: y3, z: z2 };
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clampCanvasAlpha(value) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return 1;
+  return Math.max(0, Math.min(1, next));
+}
+
+function generateCubePoints(size, edgeDensity, faceGrid) {
+  const pts = [];
+  const half = size * 0.5;
+  const density = Math.max(2, edgeDensity | 0);
+  const faceSteps = Math.max(0, faceGrid | 0);
+
+  // Vertices
+  const verts = [
+    [-half, -half, -half], [half, -half, -half],
+    [-half, half, -half],  [half, half, -half],
+    [-half, -half, half],  [half, -half, half],
+    [-half, half, half],   [half, half, half]
+  ];
+
+  // Edges (pairs of vertex indices)
+  const edges = [
+    [0, 1], [2, 3], [4, 5], [6, 7], // X edges
+    [0, 2], [1, 3], [4, 6], [5, 7], // Y edges
+    [0, 4], [1, 5], [2, 6], [3, 7]  // Z edges
+  ];
+
+  for (const [a, b] of edges) {
+    for (let i = 0; i <= density; i++) {
+      const t = i / density;
+      pts.push({
+        x: lerp(verts[a][0], verts[b][0], t),
+        y: lerp(verts[a][1], verts[b][1], t),
+        z: lerp(verts[a][2], verts[b][2], t)
+      });
+    }
+  }
+
+  // Faces (optional grid)
+  if (faceSteps > 0) {
+    const steps = faceSteps + 1;
+    const step = size / steps;
+    const coords = [];
+    for (let i = 0; i <= steps; i++) coords.push(-half + i * step);
+
+    const faces = [
+      { axis: 'z', value: -half }, { axis: 'z', value: half },
+      { axis: 'x', value: -half }, { axis: 'x', value: half },
+      { axis: 'y', value: -half }, { axis: 'y', value: half }
+    ];
+
+    for (const face of faces) {
+      for (let i = 0; i < coords.length; i++) {
+        for (let j = 0; j < coords.length; j++) {
+          let x = 0, y = 0, z = 0;
+          if (face.axis === 'z') {
+            x = coords[i]; y = coords[j]; z = face.value;
+          } else if (face.axis === 'x') {
+            x = face.value; y = coords[i]; z = coords[j];
+          } else {
+            x = coords[i]; y = face.value; z = coords[j];
+          }
+          pts.push({ x, y, z });
+        }
+      }
+    }
+  }
+
+  return pts;
+}
 
 export function initialize3DCube() {
-  initializeScaffoldShapes();
+  const g = getGlobals();
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  clearBalls();
+
+  // Apply mobile reduction to density BEFORE generating points to preserve cube structure.
+  // Slicing afterwards would cut off entire edges, destroying the cube shape.
+  const baseEdgeDensity = Math.max(2, Math.round(g.cube3dEdgeDensity ?? 8));
+  const edgeDensity = getMobileAdjustedCount(baseEdgeDensity);
+  const baseFaceGrid = Math.max(0, Math.round(g.cube3dFaceGrid ?? 0));
+  const faceGrid = baseFaceGrid > 0 ? getMobileAdjustedCount(baseFaceGrid) : 0;
+  const sizeVw = g.cube3dSizeVw ?? 25;
+  const sizePx = Math.max(10, (sizeVw / 100) * canvas.width);
+  const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
+  const dotSizeMul = Math.max(0.1, g.cube3dDotSizeMul ?? 1.5);
+
+  const pts = generateCubePoints(sizePx, edgeDensity, faceGrid);
+
+  const titleCenter = getHeroTitleCanvasCenter(g);
+  g.cube3dState = {
+    cx: titleCenter.x,
+    cy: titleCenter.y,
+    sizePx,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0,
+    idleSpeed: g.cube3dIdleSpeed ?? 0.2,
+    cursorInfluence: g.cube3dCursorInfluence ?? 1.5,
+    tumbleX: 0,
+    tumbleY: 0,
+    tumbleDamping: Math.max(0, Math.min(0.999, g.cube3dTumbleDamping ?? 0.95)),
+    tumbleSpeed: g.cube3dTumbleSpeed ?? 3,
+    dotSizeMul,
+    pointerWasInCanvas: false,
+    lastPointerSequence: null,
+    audioAngle: 0
+  };
+
+  for (let i = 0; i < pts.length; i++) {
+    const ball = spawnBall(0, 0);
+    if (!ball) continue;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.omega = 0;
+    ball.r = clampRadiusToGlobalBounds(g, baseR * dotSizeMul);
+    ball._cloudBaseR = baseR;
+    ball._cube3d = { x: pts[i].x, y: pts[i].y, z: pts[i].z };
+    ball._cloudMode = 'cube';
+    ball.isSleeping = false;
+  }
 }
 
-export function cleanup3DCube() {
-  cleanupScaffoldShapes();
+export function apply3DCubeForces(ball, dt) {
+  const g = getGlobals();
+  const canvas = g.canvas;
+  const state = g.cube3dState;
+  if (!canvas || !state || !ball || !ball._cube3d) return;
+
+  // Read runtime params each frame for real-time updates
+  const idleSpeed = g.cube3dIdleSpeed ?? 0.2;
+  const cursorInfluence = g.cube3dCursorInfluence ?? 1.5;
+  const tumbleSpeed = g.cube3dTumbleSpeed ?? 3;
+  const tumbleDamping = Math.max(0, Math.min(0.999, g.cube3dTumbleDamping ?? 0.95));
+  const dotSizeMul = Math.max(0.1, g.cube3dDotSizeMul ?? 1.5);
+
+  // Update shared rotation once per frame
+  if (ball === g.balls[0]) {
+    const titleCenter = getHeroTitleCanvasCenter(g);
+    state.cx = titleCenter.x;
+    state.cy = titleCenter.y;
+    const cx = state.cx;
+    const cy = state.cy;
+    const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+    const inputX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+    const inputY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+    const pointerSequence = g.pointerSequence || 0;
+    const nx = pointerInCanvas ? clamp01((inputX - cx) / (canvas.width * 0.5)) : 0;
+    const ny = pointerInCanvas ? clamp01((inputY - cy) / (canvas.height * 0.5)) : 0;
+
+    const needsPointerSeed = pointerInCanvas && (
+      !state.pointerWasInCanvas ||
+      state.lastPointerSequence !== pointerSequence ||
+      g.pointerJustEnteredCanvas === true
+    );
+    const dx = needsPointerSeed ? 0 : nx - (state.prevNx ?? 0);
+    const dy = needsPointerSeed ? 0 : ny - (state.prevNy ?? 0);
+    state.prevNx = nx;
+    state.prevNy = ny;
+    state.pointerWasInCanvas = Boolean(pointerInCanvas);
+    if (pointerInCanvas) state.lastPointerSequence = pointerSequence;
+
+    // Tumble impulse from mouse movement (drag-like)
+    state.tumbleX += -dy * tumbleSpeed;
+    state.tumbleY += dx * tumbleSpeed;
+
+    // Damping
+    state.tumbleX *= tumbleDamping;
+    state.tumbleY *= tumbleDamping;
+
+    // Apply rotation: idle + cursor + tumble
+    state.rotY += (idleSpeed + nx * cursorInfluence + state.tumbleY) * dt;
+    state.rotX += (idleSpeed * 0.6 + ny * cursorInfluence + state.tumbleX) * dt;
+    state.rotZ += idleSpeed * 0.2 * dt;
+    const manualAngularVelocity = Math.hypot(state.tumbleX, state.tumbleY);
+    if (pointerInCanvas && manualAngularVelocity > 0.12) {
+      state.audioAngle += manualAngularVelocity * dt;
+      triggerDetent({
+        id: '3d-cube:edge',
+        value: state.audioAngle,
+        step: Math.PI / 16,
+        velocity: manualAngularVelocity,
+        minVelocity: 0.16,
+        minIntervalMs: 34,
+        gain: 0.052,
+        filterHz: 3300,
+      });
+    }
+  }
+
+  const { x, y, z } = ball._cube3d;
+  const rotated = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
+  const focal = Math.max(80, g.cube3dFocalLength ?? 1200);
+
+  // Calculate distance from viewer for correct perspective
+  // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
+  // zDist: back gives sizePx (far), front gives 0 (close)
+  const halfSize = state.sizePx * 0.5;
+  const zDist = halfSize - rotated.z;
+  const scale = focal / (focal + zDist);
+  // Now: back points get smaller scale (more distant), front points get larger scale (closer)
+
+  const targetX = state.cx + rotated.x * scale;
+  const targetY = state.cy + rotated.y * scale;
+  const rawR = ball._cloudBaseR * dotSizeMul * scale;
+
+  // Depth factor for logo layering and engine fog
+  // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
+  const depthFactor = (rotated.z + halfSize) / state.sizePx;
+
+  ball.alpha = resolveDistanceFogOpacity(depthFactor, {
+    fogStart: g.cube3dFogStart ?? 0.95,
+    fogMin: g.cube3dFogMin ?? 0.58,
+  });
+
+  ball.r = clampRadiusToGlobalBounds(g, rawR);
+  ball.x = targetX;
+  ball.y = targetY;
+  ball.vx = 0;
+  ball.vy = 0;
+  ball.omega = 0;
+  ball.isSleeping = false;
+
+  // Use depthFactor directly as z for logo layering (already normalized 0-1)
+  // Back points: depthFactor=0 (behind logo, dark, small)
+  // Front points: depthFactor=1 (in front of logo, bright, large)
+  ball.z = depthFactor;
 }
 
-export function step3DCube(dt) {
-  stepScaffoldShapes(dt);
+export function render3DCubeDepthLayer(ctx, options = {}) {
+  const g = getGlobals();
+  const balls = g.balls;
+  if (!ctx || !Array.isArray(balls) || balls.length === 0) return;
+
+  const layer = options.layer === 'front' ? 'front' : 'behind';
+  const depthPlane = Number.isFinite(options.depthPlane) ? options.depthPlane : 0.5;
+  const canvasWidth = Number(options.canvasWidth) || Number.POSITIVE_INFINITY;
+  const canvasHeight = Number(options.canvasHeight) || Number.POSITIVE_INFINITY;
+
+  ctx.save();
+  for (let i = 0; i < balls.length; i += 1) {
+    const ball = balls[i];
+    if (!ball || ball._cloudMode !== 'cube') continue;
+
+    const z = Number.isFinite(ball.z) ? ball.z : 1;
+    if (layer === 'behind' ? z >= depthPlane : z < depthPlane) continue;
+
+    const radius = typeof ball.getDisplayRadius === 'function'
+      ? ball.getDisplayRadius()
+      : (Number(ball.r) || 0);
+    if (radius <= 0.05) continue;
+    if (
+      ball.x + radius < 0 ||
+      ball.y + radius < 0 ||
+      ball.x - radius > canvasWidth ||
+      ball.y - radius > canvasHeight
+    ) {
+      continue;
+    }
+
+    const alpha = clampCanvasAlpha((ball.alpha ?? 1) * (ball.filterOpacity ?? 1));
+    if (alpha <= 0.001) continue;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ball.color;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }

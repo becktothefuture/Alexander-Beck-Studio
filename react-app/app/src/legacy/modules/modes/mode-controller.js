@@ -147,8 +147,8 @@ const MODE_REGISTRY = {
     load: () => import('./3d-cube.js'),
     hooks: {
       initialize: 'initialize3DCube',
-      cleanup: 'cleanup3DCube',
-      customStep: 'step3DCube'
+      force: 'apply3DCubeForces',
+      depthRender: 'render3DCubeDepthLayer'
     }
   },
   [MODES.STARFIELD_3D]: {
@@ -302,7 +302,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.KALEIDOSCOPE_RIFT: return globals.kaleidoscopeRiftWarmupFrames ?? 45;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
-    case MODES.CUBE_3D: return globals.shapesWarmupFrames ?? 0;
+    case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
