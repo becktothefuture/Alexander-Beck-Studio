@@ -69,175 +69,6 @@ async function canvasClientPoint(page, xRatio = 0.5, yRatio = 0.5) {
   }, { xRatio, yRatio });
 }
 
-async function waitForSettledTitleGlyphs(page) {
-  await page.waitForFunction(() => {
-    const glyphs = Array.from(document.querySelectorAll('#hero-title [data-route-enter-glyph]'));
-    return document.getElementById('simulation-title-canvas')?.dataset.titlePlaneReady === 'true'
-      && glyphs.length > 0
-      && glyphs.every((glyph) => glyph.__absRouteEntranceState?.settled === true);
-  }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-}
-
-async function titleGlyphClientCenter(page) {
-  return page.$eval('#hero-title [data-route-enter-glyph]', (glyph) => {
-    const rect = glyph.getBoundingClientRect();
-    return {
-      x: rect.left + (rect.width * 0.5),
-      y: rect.top + (rect.height * 0.5),
-    };
-  });
-}
-
-async function waitForBloomSettled(page, { active }) {
-  await page.waitForFunction((expectedActive) => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomSettled === true
-      && snap?.canvasTitleSleeping === true
-      && snap?.canvasTitleBloomActive === expectedActive;
-  }, active, { timeout: WAIT_MS, polling: 'raf' });
-  return snapshot(page);
-}
-
-async function auditTitleBloom(page, mode) {
-  await gotoMode(page, mode);
-  await waitForSettledTitleGlyphs(page);
-  const baseline = await snapshot(page);
-  const center = await titleGlyphClientCenter(page);
-
-  await page.mouse.move(center.x, center.y);
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomActive === true
-      && snap?.canvasTitleBloomAffectedGlyphCount > 0
-      && snap?.canvasTitleBloomMaxTargetScale > 1.0149
-      && snap?.canvasTitleBloomMaxTargetScale <= 1.015001
-      && snap?.canvasTitleBloomMaxRenderedScale > 1;
-  }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-  const centerBloom = await waitForBloomSettled(page, { active: true });
-  if (centerBloom.canvasTitleBloomMaxRenderedScale > 1.015001) {
-    throw new Error(`Title bloom exceeded its 1.5% scale cap: ${JSON.stringify(centerBloom)}`);
-  }
-
-  await page.mouse.move(center.x, center.y - (centerBloom.canvasTitleBloomRadiusCssPx * 0.5));
-  await page.waitForFunction((centerScale) => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomActive === true
-      && snap?.canvasTitleBloomSettled === true
-      && snap?.canvasTitleBloomMaxTargetScale > 1
-      && snap?.canvasTitleBloomMaxTargetScale < centerScale;
-  }, centerBloom.canvasTitleBloomMaxTargetScale, { timeout: WAIT_MS, polling: 'raf' });
-  const falloffBloom = await snapshot(page);
-
-  await page.evaluate(({ x, y }) => {
-    document.dispatchEvent(new PointerEvent('pointermove', {
-      bubbles: true,
-      isPrimary: true,
-      pointerId: 41,
-      pointerType: 'pen',
-      clientX: x,
-      clientY: y,
-    }));
-  }, center);
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomActive === false
-      && snap?.canvasTitleBloomMaxRenderedScale === 1
-      && snap?.canvasTitleBloomMaxTargetScale === 1;
-  }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-
-  await page.mouse.move(center.x, center.y);
-  await waitForBloomSettled(page, { active: true });
-  await page.evaluate(() => {
-    document.querySelector('.simulation-focus-switcher')?.click();
-  });
-  await page.waitForFunction(() => (
-    document.documentElement.classList.contains('simulation-focus-modal-open')
-    && document.documentElement.dataset.absTransitionPhase === 'modal-open'
-  ), undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomActive === false
-      && snap?.canvasTitleBloomMaxRenderedScale === 1
-      && snap?.canvasTitleBloomMaxTargetScale === 1;
-  }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await page.evaluate(() => {
-    document.querySelector('[aria-label="Close simulation chooser"]')?.click();
-  });
-  await page.waitForFunction(() => (
-    !document.documentElement.classList.contains('simulation-focus-modal-open')
-    && document.documentElement.dataset.absTransitionPhase !== 'modal-open'
-  ), undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await waitForBloomSettled(page, { active: true });
-  await page.evaluate(() => {
-    document.documentElement.classList.add('entrance-transitioning');
-  });
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
-    return snap?.canvasTitleBloomActive === false
-      && snap?.canvasTitleBloomMaxRenderedScale === 1
-      && snap?.canvasTitleBloomMaxTargetScale === 1;
-  }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await page.evaluate(() => {
-    document.documentElement.classList.remove('entrance-transitioning');
-  });
-
-  const farPoint = await canvasClientPoint(page, 0.02, 0.02);
-  await page.mouse.move(farPoint.x, farPoint.y);
-  const released = await waitForBloomSettled(page, { active: false });
-  if (
-    released.canvasTitleBloomMaxRenderedScale !== 1
-    || released.canvasTitleBloomMaxTargetScale !== 1
-  ) {
-    throw new Error(`Title bloom did not return to rest: ${JSON.stringify(released)}`);
-  }
-  if (
-    released.mode !== baseline.mode
-    || released.ballCount !== baseline.ballCount
-    || released.depthTitleLayerActive !== baseline.depthTitleLayerActive
-    || released.frontDepthCanvasActive !== baseline.frontDepthCanvasActive
-  ) {
-    throw new Error(`Title bloom changed simulation ownership: ${JSON.stringify({ baseline, released })}`);
-  }
-
-  return {
-    mode,
-    radiusCssPx: centerBloom.canvasTitleBloomRadiusCssPx,
-    centerScale: centerBloom.canvasTitleBloomMaxRenderedScale,
-    falloffScale: falloffBloom.canvasTitleBloomMaxRenderedScale,
-    affectedGlyphCount: centerBloom.canvasTitleBloomAffectedGlyphCount,
-    releasedScale: released.canvasTitleBloomMaxRenderedScale,
-    sleeping: released.canvasTitleSleeping,
-  };
-}
-
-async function auditReducedMotionTitleBloom(browser) {
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 900 },
-    reducedMotion: 'reduce',
-  });
-  try {
-    await gotoMode(page, 'pit');
-    await waitForSettledTitleGlyphs(page);
-    const center = await titleGlyphClientCenter(page);
-    await page.mouse.move(center.x, center.y);
-    await page.waitForTimeout(220);
-    const snap = await snapshot(page);
-    if (
-      snap.canvasTitleBloomActive !== false
-      || snap.canvasTitleBloomMaxRenderedScale !== 1
-      || snap.canvasTitleBloomMaxTargetScale !== 1
-    ) {
-      throw new Error(`Reduced motion allowed title bloom: ${JSON.stringify(snap)}`);
-    }
-    return {
-      active: snap.canvasTitleBloomActive,
-      scale: snap.canvasTitleBloomMaxRenderedScale,
-    };
-  } finally {
-    await page.close();
-  }
-}
-
 async function auditMouseSphere(page) {
   await gotoMode(page, '3d-sphere');
   await page.evaluate(() => {
@@ -310,18 +141,7 @@ async function auditTouchSphere(browser) {
   if (end.pointerType !== 'touch') {
     throw new Error(`3d-sphere touch pointer type invalid: ${JSON.stringify(end)}`);
   }
-  if (
-    end.canvasTitleBloomActive !== false
-    || end.canvasTitleBloomMaxRenderedScale !== 1
-    || end.canvasTitleBloomMaxTargetScale !== 1
-  ) {
-    throw new Error(`Touch input activated title bloom: ${JSON.stringify(end)}`);
-  }
-  return {
-    rotationDelta,
-    pointerSequence: end.pointerSequence,
-    titleBloomScale: end.canvasTitleBloomMaxRenderedScale,
-  };
+  return { rotationDelta, pointerSequence: end.pointerSequence };
 }
 
 async function auditDepthModes(page) {
@@ -533,9 +353,6 @@ async function main() {
   try {
     const mouseSphere = await auditMouseSphere(page);
     const touchSphere = await auditTouchSphere(browser);
-    const titleBloomNormal = await auditTitleBloom(page, 'pit');
-    const titleBloomDepth = await auditTitleBloom(page, '3d-sphere');
-    const titleBloomReducedMotion = await auditReducedMotionTitleBloom(browser);
     const depthModes = await auditDepthModes(page);
     const noDepthModes = await auditNoDepthModes(page);
     const crispGlow = await auditCrispGlowTitleDepth(page);
@@ -543,9 +360,6 @@ async function main() {
       ok: true,
       mouseSphere,
       touchSphere,
-      titleBloomNormal,
-      titleBloomDepth,
-      titleBloomReducedMotion,
       depthModes,
       noDepthModes,
       crispGlow,
