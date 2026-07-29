@@ -88,6 +88,29 @@ const PORTFOLIO_TITLE_GLYPH_STEP_MS = 26;
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
 const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
 const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
+
+function resolvePortfolioTitleTiming({
+  glyphCount,
+  titleDurationMs = PORTFOLIO_TITLE_GLYPH_DURATION_MS,
+  titleStepMs = PORTFOLIO_TITLE_GLYPH_STEP_MS,
+}) {
+  const ruleDelayMs = titleDurationMs + ((Math.max(1, glyphCount) - 1) * titleStepMs);
+  return {
+    titleDurationMs,
+    titleStepMs,
+    ruleDelayMs,
+    descriptionDelayMs: ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS,
+  };
+}
+
+function applyPortfolioTitleTiming(intro, timing) {
+  intro?.style.setProperty('--portfolio-title-duration', `${timing.titleDurationMs}ms`);
+  intro?.style.setProperty('--portfolio-title-letter-step', `${timing.titleStepMs}ms`);
+  intro?.style.setProperty('--portfolio-title-rule-delay', `${timing.ruleDelayMs}ms`);
+  intro?.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
+  intro?.style.setProperty('--portfolio-title-subtitle-delay', `${timing.descriptionDelayMs}ms`);
+}
+
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
   scrollSensitivity: 1,
@@ -823,15 +846,12 @@ class PortfolioScrollApp {
       Number.parseInt(intro?.style.getPropertyValue('--portfolio-title-glyph-count') || '1', 10) || 1,
     );
     const routeMotion = routeTransition ? getShellRouteTransitionConfig() : null;
-    const titleDurationMs = routeMotion?.routeBookendDurationMs ?? PORTFOLIO_TITLE_GLYPH_DURATION_MS;
-    const titleStepMs = routeMotion?.routeBookendStepMs ?? PORTFOLIO_TITLE_GLYPH_STEP_MS;
-    const ruleDelayMs = titleDurationMs + ((titleGlyphCount - 1) * titleStepMs);
-    const descriptionDelayMs = ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS;
-    intro?.style.setProperty('--portfolio-title-duration', `${titleDurationMs}ms`);
-    intro?.style.setProperty('--portfolio-title-letter-step', `${titleStepMs}ms`);
-    intro?.style.setProperty('--portfolio-title-rule-delay', `${ruleDelayMs}ms`);
-    intro?.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
-    intro?.style.setProperty('--portfolio-title-subtitle-delay', `${descriptionDelayMs}ms`);
+    const timing = resolvePortfolioTitleTiming({
+      glyphCount: titleGlyphCount,
+      titleDurationMs: routeMotion?.routeBookendDurationMs,
+      titleStepMs: routeMotion?.routeBookendStepMs,
+    });
+    applyPortfolioTitleTiming(intro, timing);
     const baseDelayMs = routeTransition
       ? entrance.cardStartDelayMs
       : this.deckContentRevealDelayMs;
@@ -1310,15 +1330,14 @@ class PortfolioScrollApp {
     heading.textContent = title;
     const titleGlyphs = prepareBookendTitleGlyphs(heading);
     const titleGlyphCount = Math.max(1, titleGlyphs.length);
-    const ruleDelayMs = PORTFOLIO_TITLE_GLYPH_DURATION_MS
-      + ((titleGlyphCount - 1) * PORTFOLIO_TITLE_GLYPH_STEP_MS);
-    const subtitleDelayMs = ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS;
-    this.deckContentRevealDelayMs = subtitleDelayMs;
+    const timing = resolvePortfolioTitleTiming({ glyphCount: titleGlyphCount });
+    this.deckContentRevealDelayMs = timing.descriptionDelayMs;
     intro.style.setProperty('--portfolio-title-glyph-count', titleGlyphCount);
-    intro.style.setProperty('--portfolio-title-rule-delay', `${ruleDelayMs}ms`);
-    intro.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
-    intro.style.setProperty('--portfolio-title-subtitle-delay', `${subtitleDelayMs}ms`);
-    this.mount?.style.setProperty('--portfolio-content-reveal-delay', `${subtitleDelayMs}ms`);
+    applyPortfolioTitleTiming(intro, timing);
+    this.mount?.style.setProperty(
+      '--portfolio-content-reveal-delay',
+      `${timing.descriptionDelayMs}ms`,
+    );
 
     const rule = document.createElement('span');
     rule.className = 'route-title-lockup__rule';

@@ -9,6 +9,7 @@ import {
   resolveCube3DMotionScale,
   resolveCube3DSizePx,
 } from '../react-app/app/src/legacy/modules/modes/cube3d-config.js';
+import { generateCubePoints } from '../react-app/app/src/legacy/modules/modes/cube3d-geometry.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const designSystem = JSON.parse(readFileSync(
@@ -33,4 +34,12 @@ assert.equal(resolveCube3DSizePx(390, 44.5), 173.55);
 assert.equal(resolveCube3DMotionScale(false, 0), 1);
 assert.equal(resolveCube3DMotionScale(true, 0.18), 0.18);
 
-console.log('PASS: Scaffold defaults, bounds, responsive sizing, and motion scale share one contract.');
+for (const [edgeDensity, faceGrid] of [[2, 0], [9, 0], [9, 1], [9, 3]]) {
+  const points = generateCubePoints(edgeDensity, faceGrid);
+  const expectedCount = 8 + (12 * (edgeDensity - 1)) + (6 * faceGrid * faceGrid);
+  const uniquePoints = new Set(points.map(({ x, y, z }) => `${x}:${y}:${z}`));
+  assert.equal(points.length, expectedCount);
+  assert.equal(uniquePoints.size, points.length, 'Scaffold geometry must not stack duplicate dots.');
+}
+
+console.log('PASS: Scaffold configuration and unique unit geometry share one contract.');

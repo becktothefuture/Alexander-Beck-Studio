@@ -8,7 +8,6 @@ import {
   FALLBACK_SIMULATION_PALETTE_COLORS,
   SIMULATION_MATERIAL_ROLE_COUNT,
   SIMULATION_PALETTE_SIZE,
-  createSimulationColorThresholds,
   createSimulationMaterialSequence,
   resolveSimulationMaterialColorIndex,
   resolveSimulationColorDistribution,
@@ -46,11 +45,6 @@ const resolvedDistribution = resolveSimulationColorDistribution(authoredDistribu
 assert.deepEqual(compactDistribution(resolvedDistribution), compactDistribution(authoredDistribution));
 assert.equal(new Set(resolvedDistribution.map((row) => row.roleId)).size, SIMULATION_MATERIAL_ROLE_COUNT);
 
-const thresholds = createSimulationColorThresholds(authoredDistribution);
-assert.equal(thresholds.at(-1)?.threshold, 1);
-for (let index = 1; index < thresholds.length; index += 1) {
-  assert.ok(thresholds[index].threshold > thresholds[index - 1].threshold);
-}
 assert.equal(selectSimulationMaterialRole(0, resolvedDistribution)?.roleId, 'product-design');
 assert.equal(selectSimulationMaterialRole(1, resolvedDistribution)?.roleId, 'parametric-systems');
 assert.equal(resolveSimulationMaterialColorIndex('motion-3d', resolvedDistribution), 6);

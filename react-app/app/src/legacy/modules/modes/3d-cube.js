@@ -14,6 +14,7 @@ import {
   resolveCube3DMotionScale,
   resolveCube3DSizePx,
 } from './cube3d-config.js';
+import { generateCubePoints } from './cube3d-geometry.js';
 
 let reducedMotionQuery = null;
 
@@ -46,79 +47,10 @@ function rotateXYZ(x, y, z, rx, ry, rz) {
   return { x: x3, y: y3, z: z2 };
 }
 
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
 function clampCanvasAlpha(value) {
   const next = Number(value);
   if (!Number.isFinite(next)) return 1;
   return Math.max(0, Math.min(1, next));
-}
-
-function generateCubePoints(size, edgeDensity, faceGrid) {
-  const pts = [];
-  const half = size * 0.5;
-  const density = Math.max(2, edgeDensity | 0);
-  const faceSteps = Math.max(0, faceGrid | 0);
-
-  // Vertices
-  const verts = [
-    [-half, -half, -half], [half, -half, -half],
-    [-half, half, -half],  [half, half, -half],
-    [-half, -half, half],  [half, -half, half],
-    [-half, half, half],   [half, half, half]
-  ];
-
-  // Edges (pairs of vertex indices)
-  const edges = [
-    [0, 1], [2, 3], [4, 5], [6, 7], // X edges
-    [0, 2], [1, 3], [4, 6], [5, 7], // Y edges
-    [0, 4], [1, 5], [2, 6], [3, 7]  // Z edges
-  ];
-
-  for (const [a, b] of edges) {
-    for (let i = 0; i <= density; i++) {
-      const t = i / density;
-      pts.push({
-        x: lerp(verts[a][0], verts[b][0], t),
-        y: lerp(verts[a][1], verts[b][1], t),
-        z: lerp(verts[a][2], verts[b][2], t)
-      });
-    }
-  }
-
-  // Faces (optional grid)
-  if (faceSteps > 0) {
-    const steps = faceSteps + 1;
-    const step = size / steps;
-    const coords = [];
-    for (let i = 0; i <= steps; i++) coords.push(-half + i * step);
-
-    const faces = [
-      { axis: 'z', value: -half }, { axis: 'z', value: half },
-      { axis: 'x', value: -half }, { axis: 'x', value: half },
-      { axis: 'y', value: -half }, { axis: 'y', value: half }
-    ];
-
-    for (const face of faces) {
-      for (let i = 0; i < coords.length; i++) {
-        for (let j = 0; j < coords.length; j++) {
-          let x = 0, y = 0, z = 0;
-          if (face.axis === 'z') {
-            x = coords[i]; y = coords[j]; z = face.value;
-          } else if (face.axis === 'x') {
-            x = face.value; y = coords[i]; z = coords[j];
-          } else {
-            x = coords[i]; y = face.value; z = coords[j];
-          }
-          pts.push({ x, y, z });
-        }
-      }
-    }
-  }
-
-  return pts;
 }
 
 export function initialize3DCube() {
@@ -146,7 +78,7 @@ export function initialize3DCube() {
     g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
   );
 
-  const pts = generateCubePoints(1, edgeDensity, faceGrid);
+  const pts = generateCubePoints(edgeDensity, faceGrid);
 
   const titleCenter = getHeroTitleCanvasCenter(g);
   g.cube3dState = {

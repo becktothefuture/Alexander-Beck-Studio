@@ -80,30 +80,6 @@ export function resolveSimulationColorDistribution(
   return freezeDistribution(resolved);
 }
 
-export function createSimulationColorThresholds(
-  distribution,
-  paletteLength = SIMULATION_PALETTE_SIZE,
-) {
-  const resolved = resolveSimulationColorDistribution(distribution, paletteLength);
-  const totalWeight = resolved.reduce((sum, row) => sum + row.weight, 0) || 1;
-  let cumulativeWeight = 0;
-  return Object.freeze(resolved.map((row, index) => {
-    cumulativeWeight += row.weight / totalWeight;
-    return Object.freeze({
-      ...row,
-      threshold: index === resolved.length - 1 ? 1 : cumulativeWeight,
-    });
-  }));
-}
-
-export function selectSimulationColorThreshold(thresholds, sample) {
-  const resolvedThresholds = Array.isArray(thresholds) ? thresholds : [];
-  if (!resolvedThresholds.length) return null;
-  const normalizedSample = clamp(Number(sample) || 0, 0, 1 - Number.EPSILON);
-  return resolvedThresholds.find((row) => normalizedSample < row.threshold)
-    || resolvedThresholds[resolvedThresholds.length - 1];
-}
-
 export function selectSimulationMaterialRole(sample, snapshot) {
   const distribution = snapshot?.distribution || snapshot;
   const resolved = Array.isArray(distribution) && distribution.length
@@ -193,16 +169,4 @@ export function createSimulationMaterialSequence(count, options = {}, snapshot) 
     indices.push(...indices.splice(0, shift));
   }
   return Object.freeze(indices.map((index) => distribution[index]));
-}
-
-// Compatibility helper for renderers that still cache palette indices.
-export function createSimulationPaletteIndexSequence(
-  distribution,
-  paletteLength = SIMULATION_PALETTE_SIZE,
-  sampleCount = 100,
-) {
-  return createSimulationMaterialSequence(sampleCount, { distribution }, {
-    colors: new Array(paletteLength).fill('#000000'),
-    distribution,
-  }).map((role) => role.colorIndex);
 }

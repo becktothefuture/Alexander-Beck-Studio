@@ -455,12 +455,6 @@
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset)
-    .button-bar__sound-toggle {
-    display: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__mobile-theme-reset.shell-tab {
     color: var(--dominant-flat-bright-ink);
     border-width: 0;
