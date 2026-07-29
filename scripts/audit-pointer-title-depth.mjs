@@ -147,23 +147,29 @@ async function auditTitleBloom(page, mode) {
 
   await page.mouse.move(center.x, center.y);
   await waitForBloomSettled(page, { active: true });
-  const previousPhase = await page.evaluate(() => document.documentElement.getAttribute('data-abs-transition-phase'));
   await page.evaluate(() => {
-    document.documentElement.dataset.absTransitionPhase = 'modal-open';
+    document.querySelector('.simulation-focus-switcher')?.click();
   });
+  await page.waitForFunction(() => (
+    document.documentElement.classList.contains('simulation-focus-modal-open')
+    && document.documentElement.dataset.absTransitionPhase === 'modal-open'
+  ), undefined, { timeout: WAIT_MS, polling: 'raf' });
   await page.waitForFunction(() => {
     const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
     return snap?.canvasTitleBloomActive === false
       && snap?.canvasTitleBloomMaxRenderedScale === 1
       && snap?.canvasTitleBloomMaxTargetScale === 1;
   }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await page.evaluate((phase) => {
-    if (phase) document.documentElement.dataset.absTransitionPhase = phase;
-    else delete document.documentElement.dataset.absTransitionPhase;
-  }, previousPhase);
+  await page.evaluate(() => {
+    document.querySelector('[aria-label="Close simulation chooser"]')?.click();
+  });
+  await page.waitForFunction(() => (
+    !document.documentElement.classList.contains('simulation-focus-modal-open')
+    && document.documentElement.dataset.absTransitionPhase !== 'modal-open'
+  ), undefined, { timeout: WAIT_MS, polling: 'raf' });
   await waitForBloomSettled(page, { active: true });
   await page.evaluate(() => {
-    document.documentElement.dataset.absTransitionPhase = 'route-in';
+    document.documentElement.classList.add('entrance-transitioning');
   });
   await page.waitForFunction(() => {
     const snap = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
@@ -171,10 +177,9 @@ async function auditTitleBloom(page, mode) {
       && snap?.canvasTitleBloomMaxRenderedScale === 1
       && snap?.canvasTitleBloomMaxTargetScale === 1;
   }, undefined, { timeout: WAIT_MS, polling: 'raf' });
-  await page.evaluate((phase) => {
-    if (phase) document.documentElement.dataset.absTransitionPhase = phase;
-    else delete document.documentElement.dataset.absTransitionPhase;
-  }, previousPhase);
+  await page.evaluate(() => {
+    document.documentElement.classList.remove('entrance-transitioning');
+  });
 
   const farPoint = await canvasClientPoint(page, 0.02, 0.02);
   await page.mouse.move(farPoint.x, farPoint.y);
