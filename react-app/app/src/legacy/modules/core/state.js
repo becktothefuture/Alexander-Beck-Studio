@@ -2537,9 +2537,8 @@ export function setCanvas(canvas, ctx, container) {
   state.ctx = ctx;
   state.container = container;
   if (canvas?.dataset) {
-    const snapshot = getSimulationPaletteSnapshot();
-    canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
-    canvas.dataset.simulationPaletteId = snapshot.paletteId;
+    canvas.dataset.simulationPaletteGeneration = String(state.simulationPaletteGeneration || 0);
+    canvas.dataset.simulationPaletteId = state.currentTemplate || '';
   }
 }
 

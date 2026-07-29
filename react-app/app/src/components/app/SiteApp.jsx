@@ -441,7 +441,7 @@ export function SiteApp() {
   );
 
   useSiteHaptics({ routeId: routeState.route.id });
-  useTimeOfDayPaletteSync(shellRuntimeReady && !isStandaloneRoute);
+  useTimeOfDayPaletteSync(!isStandaloneRoute);
 
   useEffect(() => {
     if (isStandaloneRoute) return undefined;
