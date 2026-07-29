@@ -4,10 +4,8 @@ import {
   ATMOSPHERE_LAB_VARIANTS,
   DEFAULT_ATMOSPHERE_LAB_CONFIG,
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
-  DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
   normalizeAtmosphereLabConfig,
   normalizeSimulationAtmosphereConfig,
-  normalizeSimulationAtmosphereTitleYOffsetVh,
   resolveAtmosphereCadence,
   resolveAtmosphereProfile,
   resolveAtmosphereQualityScale,
@@ -86,12 +84,7 @@ function fetchDesignSystemConfig() {
 }
 
 function createCrispGlowAuthoringConfig(designSystem) {
-  return {
-    ...normalizeSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere),
-    titleYOffsetVh: normalizeSimulationAtmosphereTitleYOffsetVh(
-      designSystem?.shell?.hero?.titleYOffsetVh,
-    ),
-  };
+  return normalizeSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere);
 }
 
 function downloadDesignSystemConfig(config) {
@@ -141,7 +134,6 @@ class AtmosphereLabController {
     this.titleMaskCache = null;
     this.titleMaskDirty = true;
     this.titleMaskLayoutReadCount = 0;
-    this.lastTitleYOffsetVh = null;
     this.reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
     this.themeMode = isDarkThemeDocument() ? 'dark' : 'light';
     this.handleThemeChange = (event) => {
@@ -326,13 +318,6 @@ class AtmosphereLabController {
     this.outputCanvas.hidden = !enabled;
     if (this.edgeLightCanvas) {
       this.edgeLightCanvas.hidden = !enabled || this.renderProfile.edgeLight <= 0;
-    }
-    const titleYOffsetVh = this.config.common.titleYOffsetVh;
-    root.style.setProperty('--atmosphere-title-y-offset', `${titleYOffsetVh}vh`);
-    if (titleYOffsetVh !== this.lastTitleYOffsetVh) {
-      this.lastTitleYOffsetVh = titleYOffsetVh;
-      this.titleMaskDirty = true;
-      invalidateHomepageCanvasTitleGeometry();
     }
   }
 
@@ -553,7 +538,6 @@ class AtmosphereLabController {
     this.outputCanvas.remove();
     this.edgeLightLayer?.remove();
     document.body.style.removeProperty('--atmosphere-core-presence');
-    document.documentElement.style.removeProperty('--atmosphere-title-y-offset');
     document.documentElement.style.removeProperty('--atmosphere-haze-strength');
     document.documentElement.style.removeProperty('--atmosphere-grain-strength');
     document.documentElement.style.removeProperty('--atmosphere-edge-width');
@@ -614,16 +598,8 @@ class CrispGlowLabController {
   }
 
   applyConfig(nextConfig) {
-    this.config = {
-      ...normalizeSimulationAtmosphereConfig(nextConfig),
-      titleYOffsetVh: normalizeSimulationAtmosphereTitleYOffsetVh(nextConfig?.titleYOffsetVh),
-    };
+    this.config = normalizeSimulationAtmosphereConfig(nextConfig);
     setSimulationAtmosphereConfig(this.config);
-    document.documentElement.style.setProperty(
-      '--atmosphere-title-y-offset',
-      `${this.config.titleYOffsetVh}vh`,
-    );
-    invalidateHomepageCanvasTitleGeometry();
     invalidateSimulationAtmosphereGeometry('crisp-lab-config');
   }
 
@@ -637,10 +613,6 @@ class CrispGlowLabController {
         surface: {
           ...(latest?.shell?.surface || {}),
           simulationAtmosphere: normalizeSimulationAtmosphereConfig(this.config),
-        },
-        hero: {
-          ...(latest?.shell?.hero || {}),
-          titleYOffsetVh: this.config.titleYOffsetVh,
         },
       },
     });
@@ -731,10 +703,6 @@ class CrispGlowLabController {
     this.parameterizer?.destroy();
     this.sourceCleanup?.();
     setSimulationAtmosphereConfig(this.baseConfig || DEFAULT_SIMULATION_ATMOSPHERE_CONFIG);
-    const titleY = this.baseConfig?.titleYOffsetVh
-      ?? DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH;
-    document.documentElement.style.setProperty('--atmosphere-title-y-offset', `${titleY}vh`);
-    invalidateHomepageCanvasTitleGeometry();
     if (window.__ABS_ATMOSPHERE_LAB__) delete window.__ABS_ATMOSPHERE_LAB__;
     if (activeController === this) activeController = null;
   }
@@ -748,7 +716,6 @@ export async function initializeAtmosphereLab({ variant, globals }) {
     const designSystem = await fetchDesignSystemConfig().catch(() => normalizeDesignSystemConfig({
       shell: {
         surface: { simulationAtmosphere: DEFAULT_SIMULATION_ATMOSPHERE_CONFIG },
-        hero: { titleYOffsetVh: DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH },
       },
     }));
     activeController = new CrispGlowLabController({ globals, designSystem });

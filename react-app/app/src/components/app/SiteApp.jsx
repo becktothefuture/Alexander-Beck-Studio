@@ -65,7 +65,6 @@ import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
 import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
 import { setSimulationAtmosphereConfig } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
-import { normalizeSimulationAtmosphereTitleYOffsetVh } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js';
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById } from '../../lib/routes.js';
@@ -163,10 +162,6 @@ function syncSharedShellRuntimeState() {
     ]).then(([runtimeConfig, shellConfig, designSystem]) => {
       document.documentElement.dataset.absDesignConfigRevision = String(designSystem?.version || 1);
       setSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere);
-      document.documentElement.style.setProperty(
-        '--atmosphere-title-y-offset',
-        `${normalizeSimulationAtmosphereTitleYOffsetVh(designSystem?.shell?.hero?.titleYOffsetVh)}vh`,
-      );
       initState(runtimeConfig);
       applyLayoutCSSVars();
       syncShellToDocument({

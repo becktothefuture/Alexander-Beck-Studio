@@ -1,7 +1,6 @@
 import { withBasePath } from '../../../lib/base-path.js';
 import {
   normalizeSimulationAtmosphereConfig,
-  normalizeSimulationAtmosphereTitleYOffsetVh,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
 
 const DESIGN_SYSTEM_PATHS = [
@@ -415,9 +414,7 @@ function pruneShellConfig(shell = {}) {
     }
   }
   if (isPlainObject(nextShell.hero)) {
-    nextShell.hero.titleYOffsetVh = normalizeSimulationAtmosphereTitleYOffsetVh(
-      nextShell.hero.titleYOffsetVh,
-    );
+    delete nextShell.hero.titleYOffsetVh;
   }
   return nextShell;
 }

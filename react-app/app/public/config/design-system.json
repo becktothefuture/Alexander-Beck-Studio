@@ -553,8 +553,7 @@
       "navKeepClearOffsetRatio": 0.15,
       "centerKeepClearForce": 900,
       "pitSpawnBiasX": 0.74,
-      "pitSpawnBandWidthRatio": 0.18,
-      "titleYOffsetVh": 1.75
+      "pitSpawnBandWidthRatio": 0.18
     }
   },
   "portfolio": {

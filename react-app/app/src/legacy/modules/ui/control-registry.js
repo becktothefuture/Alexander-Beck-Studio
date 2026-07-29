@@ -23,10 +23,8 @@ import {
   setSimulationAtmosphereConfig,
 } from '../rendering/atmosphere/simulation-atmosphere.js';
 import {
-  DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
   SIMULATION_ATMOSPHERE_CONTROL_GROUPS,
   normalizeSimulationAtmosphereConfig,
-  normalizeSimulationAtmosphereTitleYOffsetVh,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
@@ -833,14 +831,6 @@ function readAtmosphereState(g, key, fallback) {
   return value === undefined ? fallback : value;
 }
 
-function readTitleYOffsetFromDocument() {
-  const authored = document.documentElement.style.getPropertyValue('--atmosphere-title-y-offset');
-  const numeric = Number.parseFloat(authored);
-  return normalizeSimulationAtmosphereTitleYOffsetVh(
-    Number.isFinite(numeric) ? numeric : DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
-  );
-}
-
 export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   if (!g) return;
   const config = getSimulationAtmosphereConfig();
@@ -848,7 +838,6 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   g[getAtmosphereStateKey('spread')] = config.spread;
   g[getAtmosphereStateKey('contentClearance')] = config.contentClearance;
   g[getAtmosphereStateKey('edgeStrength')] = config.edgeStrength;
-  g[getAtmosphereStateKey('titleYOffsetVh')] = readTitleYOffsetFromDocument();
   for (const theme of ['light', 'dark']) {
     for (const group of ATMOSPHERE_PROFILE_GROUPS) {
       for (const control of group.controls) {
@@ -891,16 +880,6 @@ export function buildSimulationAtmosphereConfigFromControlState(
     }
   }
   return normalizeSimulationAtmosphereConfig(next);
-}
-
-export function getSimulationAtmosphereTitleYOffsetFromControlState(g = getGlobals()) {
-  return normalizeSimulationAtmosphereTitleYOffsetVh(
-    readAtmosphereState(
-      g,
-      getAtmosphereStateKey('titleYOffsetVh'),
-      readTitleYOffsetFromDocument(),
-    ),
-  );
 }
 
 function applySimulationAtmosphereControlState(g) {

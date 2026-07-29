@@ -2,11 +2,9 @@ import {
   ATMOSPHERE_LAB_VARIANTS,
   DEFAULT_ATMOSPHERE_LAB_CONFIG,
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
-  DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
   getAtmosphereControlGroups,
   normalizeAtmosphereLabConfig,
   normalizeSimulationAtmosphereConfig,
-  normalizeSimulationAtmosphereTitleYOffsetVh,
 } from './atmosphereLabControls.js';
 
 const PANEL_POSITION_STORAGE_KEY = 'abs_atmosphere_panel_position_v1';
@@ -285,16 +283,10 @@ export function createAtmosphereParameterizer({
   const usesProductionConfig = variant === 'crispGlow';
   const normalizeConfig = (nextConfig) => {
     if (!usesProductionConfig) return normalizeAtmosphereLabConfig(nextConfig);
-    return {
-      ...normalizeSimulationAtmosphereConfig(nextConfig),
-      titleYOffsetVh: normalizeSimulationAtmosphereTitleYOffsetVh(nextConfig?.titleYOffsetVh),
-    };
+    return normalizeSimulationAtmosphereConfig(nextConfig);
   };
   const defaultConfig = usesProductionConfig
-    ? {
-        ...DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
-        titleYOffsetVh: DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
-      }
+    ? DEFAULT_SIMULATION_ATMOSPHERE_CONFIG
     : DEFAULT_ATMOSPHERE_LAB_CONFIG;
   let config = normalizeConfig(initialConfig);
   let activeSimulationMode = String(simulationMode || '');

@@ -6,10 +6,8 @@ import {
 export { ATMOSPHERE_LAB_VARIANTS } from './atmosphereLabRoutes.js';
 export {
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
-  DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
   SIMULATION_ATMOSPHERE_CONTROL_GROUPS,
   normalizeSimulationAtmosphereConfig,
-  normalizeSimulationAtmosphereTitleYOffsetVh,
   resolveSimulationAtmosphereCadence as resolveAtmosphereCadence,
   resolveSimulationAtmosphereQualityScale as resolveAtmosphereQualityScale,
   resolveSimulationAtmosphereThemeProfile,

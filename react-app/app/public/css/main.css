@@ -3380,7 +3380,6 @@ button.abs-meta-btn,
       clamp(20px, 5vh, 52px)
       - 4vh
       + var(--home-hero-title-offset-y, 0px)
-      + var(--atmosphere-title-y-offset, 0vh)
     ))
     scale(calc(
       var(--abs-scene-impact-logo-scale, 1) *

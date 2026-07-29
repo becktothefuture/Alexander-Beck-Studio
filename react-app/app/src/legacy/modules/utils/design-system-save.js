@@ -2,7 +2,6 @@ import { getGlobals } from '../core/state.js';
 import {
   buildSimulationAtmosphereConfigFromControlState,
   getAllControls,
-  getSimulationAtmosphereTitleYOffsetFromControlState,
 } from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
 import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
@@ -130,11 +129,6 @@ export function buildShellConfigSnapshot() {
       nextShell.surface?.simulationAtmosphere,
     ),
   };
-  nextShell.hero = {
-    ...(nextShell.hero || {}),
-    titleYOffsetVh: getSimulationAtmosphereTitleYOffsetFromControlState(g),
-  };
-
   return nextShell;
 }
 

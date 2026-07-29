@@ -19,8 +19,6 @@ export const DEFAULT_SIMULATION_ATMOSPHERE_CONFIG = Object.freeze({
   dark: DARK_PROFILE,
 });
 
-export const DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH = 0;
-
 export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
   Object.freeze({
     title: 'Material',
@@ -77,15 +75,6 @@ export function normalizeSimulationAtmosphereConfig(input = {}) {
     light: normalizeThemeProfile(source.light, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.light),
     dark: normalizeThemeProfile(source.dark, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.dark),
   };
-}
-
-export function normalizeSimulationAtmosphereTitleYOffsetVh(value) {
-  return clampNumber(
-    value,
-    -24,
-    24,
-    DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH,
-  );
 }
 
 export function resolveSimulationAtmosphereThemeProfile(config, theme = 'light') {
