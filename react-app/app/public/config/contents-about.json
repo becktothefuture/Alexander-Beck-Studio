@@ -638,7 +638,7 @@
             "correspondence": "index-v1"
           },
           "shapeParameters": {
-            "radius": 1.6,
+            "radius": 2,
             "density": 0.198
           },
           "modifiers": [

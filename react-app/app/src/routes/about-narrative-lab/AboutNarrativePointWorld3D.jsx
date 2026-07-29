@@ -509,8 +509,24 @@ const VERTEX_SHADER = `
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
 
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
+    float enteringPoint = (1.0 - step(0.5, fromPresence)) * step(0.5, toPresence);
+    float entryOrder = fract((pointSeed * 53.37) + 0.11);
+    float entryStart = entryOrder * 0.58;
+    float entryProgress = smoothstep(entryStart, entryStart + 0.32, globalMorph);
     gl_Position = projectionMatrix * viewPoint;
+    // Incoming density grows behind established material at its final colour.
+    // Size, rather than dim alpha, authors the reversible reveal so new points
+    // never read as a dark foreground layer while scrolling in either direction.
+    gl_Position.z += enteringPoint
+      * (1.0 - entryProgress)
+      * 0.06
+      * gl_Position.w;
     float presence = mix(fromPresence, toPresence, morph);
+    presence = mix(
+      presence,
+      toPresence * step(0.001, entryProgress),
+      enteringPoint
+    );
     presence *= mix(1.0, clamp(bustSurfaceCarry, 0.0, 1.0), surfaceTransit);
     float bustFragmentKeep = step(
       fract((pointSeed * 131.71) + 0.27),
@@ -564,6 +580,7 @@ const VERTEX_SHADER = `
       * perspectiveScale;
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
     gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 18.0) * entranceScale) * pixelRatio;
+    gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
     pointAlpha = presence * entranceScale;
   }
 `;

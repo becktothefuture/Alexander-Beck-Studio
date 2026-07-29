@@ -146,6 +146,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /points\.visible = simulationVisibility > 0\.001/);
   assert.match(source, /uniform float sceneEntranceScale/);
   assert.match(source, /pointAlpha = presence \* entranceScale/);
+  assert.match(source, /float enteringPoint = \(1\.0 - step\(0\.5, fromPresence\)\) \* step\(0\.5, toPresence\)/);
+  assert.match(source, /gl_Position\.z \+= enteringPoint/);
+  assert.match(source, /gl_PointSize \*= mix\(1\.0, max\(0\.01, entryProgress\), enteringPoint\)/);
   assert.match(source, /ROUTE_ENTRANCE_START_EVENT/);
   assert.match(source, /aboutSceneReady = 'true'/);
   assert.match(source, /easeSimulationVisualProgress\([\s\S]*cubic-bezier\(0\.22, 0, 0\.16, 1\)/);
