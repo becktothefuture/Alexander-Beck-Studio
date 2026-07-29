@@ -301,9 +301,9 @@ export function StyleguideTypographySection() {
             Centered route headline · <code className="styleguide-doc__code">.route-centered-page__title</code>
           </div>
           <div className="styleguide-type-role__sample">
-            <div className="styleguide-type-centered-route">
-              <div className="styleguide-type-sample styleguide-type-sample--gate-title">About Me</div>
-              <p className="styleguide-type-sample styleguide-type-sample--gate-desc">Coming soon.</p>
+            <div className="styleguide-type-centered-route route-title-lockup">
+              <div className="styleguide-type-sample styleguide-type-sample--gate-title route-centered-page__title">About Me</div>
+              <p className="styleguide-type-sample styleguide-type-sample--gate-desc route-centered-page__description">Coming soon.</p>
             </div>
           </div>
         </li>

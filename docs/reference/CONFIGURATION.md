@@ -39,6 +39,8 @@ The root build checks the shared HTML entry shell before flattening and Vite. A 
 
 Shared visual finish belongs in `shell`. Page namespaces own composition, page-specific motion, and content geometry. When one value renders through multiple paths—such as DOM plus Canvas—update and verify every path.
 
+`shell.layout.routeTitleDescriptionGap` owns the shared spacing between the title rule and description in the Work, Contact, and both About Me bookend lockups. The development panel exposes it as **Title / Copy Gap**.
+
 ### Production simulation atmosphere
 
 The shared atmosphere has two canonical shell locations:

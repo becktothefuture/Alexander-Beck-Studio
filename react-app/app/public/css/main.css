@@ -1746,6 +1746,23 @@ body.styleguide-page .styleguide-type-sample--gate-desc {
   opacity: var(--supporting-description-opacity);
 }
 
+body.styleguide-page .styleguide-type-centered-route.route-title-lockup {
+  display: grid;
+  justify-items: center;
+}
+
+body.styleguide-page .styleguide-type-centered-route .styleguide-type-sample--gate-title {
+  margin: 0;
+}
+
+body.styleguide-page .styleguide-type-centered-route > .styleguide-type-sample--gate-desc {
+  margin-top: calc(
+    var(--route-title-rule-offset)
+    + var(--route-title-rule-thickness)
+    + var(--route-title-description-gap)
+  );
+}
+
 body.styleguide-page .styleguide-type-portfolio-slab {
   padding: var(--gap-lg);
   border-radius: var(--abs-radius-9);
@@ -7513,6 +7530,10 @@ body.portfolio-page--locked #simulations {
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
+  --route-title-rule-width: 2rem;
+  --route-title-rule-thickness: 2px;
+  --route-title-rule-offset: clamp(8px, 0.8vw, 12px);
+  --route-title-description-gap: 16px;
 }
 
 /* Bridge the enlarged 600px mobile endpoint to the desktop value at 1025px. */
@@ -7570,6 +7591,34 @@ body.portfolio-page--locked #simulations {
 
 .route-bookend-title {
   font-size: var(--route-bookend-title-size);
+}
+
+.route-title-lockup {
+  gap: 0;
+}
+
+.route-title-lockup > :is(.route-centered-page__title, .route-title-lockup__title) {
+  position: relative;
+}
+
+.route-title-lockup > :is(.route-centered-page__title, .route-title-lockup__title)::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + var(--route-title-rule-offset));
+  left: 50%;
+  width: var(--route-title-rule-width);
+  height: var(--route-title-rule-thickness);
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.route-title-lockup > :is(.route-centered-page__description, .route-title-lockup__description) {
+  margin-top: calc(
+    var(--route-title-rule-offset)
+    + var(--route-title-rule-thickness)
+    + var(--route-title-description-gap)
+  );
 }
 
 .route-centered-page__description {

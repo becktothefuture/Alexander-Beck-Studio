@@ -73,6 +73,7 @@ The core pairing is Instrument Serif plus Geist.
 - The script face is a rare signature, principally the London mark. It is not another heading style.
 - Do not inherit Instrument Serif through a section or route. Apply the headline role explicitly.
 - Project titles stay Geist. The editorial route voice and the project-information voice must not compete.
+- The Work, Contact, and both About Me bookend title/description lockups share one short title-colour rule. Its line-to-description gap is a single shell-authored value across every instance.
 - Tracking and leading belong to named roles. Do not apply a broad optical correction and repair it component by component.
 - The visible Home title is rendered by Canvas from the semantic DOM title's computed metrics. Font family, size, leading, tracking, wrapping, and font-load timing must remain synchronized.
 

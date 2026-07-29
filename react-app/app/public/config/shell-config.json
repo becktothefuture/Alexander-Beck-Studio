@@ -20,6 +20,7 @@
     "quoteButtonSize": "272px",
     "quotePaddingX": "28px",
     "quotePaddingY": "27px",
+    "routeTitleDescriptionGap": "16px",
     "edgeCaptionDistanceMin": "8px",
     "edgeCaptionDistanceMax": "48px"
   },

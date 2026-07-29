@@ -417,22 +417,24 @@ function TitleField({
     >
       {isFinale ? (
         <div className="about-narrative-finale-content">
-          <Heading
-            id={headingId}
-            className="about-narrative-spatial-title about-narrative-spatial-fragment route-bookend-title"
-            data-primary-copy
-          >
-            {field.text}
-          </Heading>
-          {field.description ? (
-            <p id={descriptionId} className="about-narrative-finale-description">
-              {field.description}
-            </p>
-          ) : null}
+          <div className="about-narrative-finale-lockup route-title-lockup">
+            <Heading
+              id={headingId}
+              className="about-narrative-spatial-title about-narrative-spatial-fragment route-bookend-title route-title-lockup__title"
+              data-primary-copy
+            >
+              {field.text}
+            </Heading>
+            {field.description ? (
+              <p id={descriptionId} className="about-narrative-finale-description route-title-lockup__description">
+                {field.description}
+              </p>
+            ) : null}
+          </div>
           <FinaleActions />
         </div>
       ) : isOpener ? (
-        <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner">
+        <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner route-title-lockup">
           <Heading
             id={headingId}
             className="route-centered-page__title route-bookend-title"

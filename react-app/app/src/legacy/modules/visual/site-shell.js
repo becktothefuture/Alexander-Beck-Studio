@@ -43,6 +43,7 @@ const DEFAULT_SHELL_CONFIG = {
     quoteButtonSize: '200px',
     quotePaddingX: '28px',
     quotePaddingY: '24px',
+    routeTitleDescriptionGap: '16px',
     edgeCaptionDistanceMin: '8px',
     edgeCaptionDistanceMax: '48px'
   },
@@ -454,6 +455,10 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-quote-button-size', layout.quoteButtonSize || DEFAULT_SHELL_CONFIG.layout.quoteButtonSize);
   root.style.setProperty('--abs-quote-pad-x', layout.quotePaddingX);
   root.style.setProperty('--abs-quote-pad-y', layout.quotePaddingY);
+  root.style.setProperty(
+    '--route-title-description-gap',
+    layout.routeTitleDescriptionGap || DEFAULT_SHELL_CONFIG.layout.routeTitleDescriptionGap
+  );
   root.style.setProperty('--edge-caption-distance-min', layout.edgeCaptionDistanceMin);
   root.style.setProperty('--edge-caption-distance-max', layout.edgeCaptionDistanceMax);
   root.style.setProperty('--abs-shell-reveal-ms', `${motion.shellRevealMs}ms`);

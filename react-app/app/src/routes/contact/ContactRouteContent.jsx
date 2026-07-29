@@ -95,7 +95,7 @@ export function ContactRouteContent() {
 
   return (
     <div className="route-centered-page contact-route" data-route-content="contact">
-      <section id="contact-route-content" className="route-centered-page__inner contact-route__inner" aria-labelledby="contact-route-title">
+      <section id="contact-route-content" className="route-centered-page__inner route-title-lockup contact-route__inner" aria-labelledby="contact-route-title">
         <h1
           id="contact-route-title"
           className="route-centered-page__title route-bookend-title"

@@ -1283,7 +1283,7 @@ class PortfolioScrollApp {
   createDeckIntro() {
     const { title, body } = this.readDeckIntroContent();
     const intro = document.createElement('section');
-    intro.className = 'portfolio-deck-intro';
+    intro.className = 'portfolio-deck-intro route-title-lockup';
     intro.setAttribute('aria-labelledby', 'portfolioDeckIntroTitle');
 
     const heading = document.createElement('h2');

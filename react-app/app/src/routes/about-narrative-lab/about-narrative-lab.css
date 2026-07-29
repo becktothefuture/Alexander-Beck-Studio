@@ -822,6 +822,12 @@ body.dark-mode .about-narrative-client-logos img {
   transform: none;
 }
 
+.about-narrative-finale-lockup {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+}
+
 .about-narrative-render-span--text-bust-cta .about-narrative-finale-content {
   position: absolute;
   top: auto;

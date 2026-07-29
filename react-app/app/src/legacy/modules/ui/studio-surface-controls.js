@@ -13,6 +13,7 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   quoteButtonSize: 224,
   quotePaddingX: 28,
   quotePaddingY: 24,
+  routeTitleDescriptionGap: 16,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
   frameInsetMobilePx: 10,
@@ -43,6 +44,7 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
       { id: 'scriptMaxWidth', label: 'Script Width', min: 240, max: 520, step: 4, unit: 'px' },
       { id: 'scriptPaddingX', label: 'Script Pad X', min: 0, max: 32, step: 1, unit: 'px' },
       { id: 'scriptPaddingY', label: 'Script Pad Y', min: 0, max: 24, step: 1, unit: 'px' },
+      { id: 'routeTitleDescriptionGap', label: 'Title / Copy Gap', min: 4, max: 40, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMin', label: 'Caption Near', min: 0, max: 24, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMax', label: 'Caption Far', min: 24, max: 80, step: 1, unit: 'px' },
     ],
@@ -143,6 +145,7 @@ function readCurrentConfig() {
     quoteButtonSize: readNumber(rootStyle, '--abs-quote-button-size', DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize),
     quotePaddingX: readNumber(rootStyle, '--abs-quote-pad-x', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX),
     quotePaddingY: readNumber(rootStyle, '--abs-quote-pad-y', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY),
+    routeTitleDescriptionGap: readNumber(rootStyle, '--route-title-description-gap', DEFAULT_STUDIO_SURFACE_CONFIG.routeTitleDescriptionGap),
     edgeCaptionDistanceMin: readNumber(rootStyle, '--edge-caption-distance-min', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: readNumber(rootStyle, '--edge-caption-distance-max', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
     frameInsetMobilePx: (() => {
@@ -242,6 +245,7 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const quoteButtonSize = clamp(config.quoteButtonSize, 120, 400, DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize);
   const quotePaddingX = clamp(config.quotePaddingX, 8, 48, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX);
   const quotePaddingY = clamp(config.quotePaddingY, 6, 40, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
+  const routeTitleDescriptionGap = clamp(config.routeTitleDescriptionGap, 4, 40, DEFAULT_STUDIO_SURFACE_CONFIG.routeTitleDescriptionGap);
   const edgeCaptionDistanceMin = clamp(config.edgeCaptionDistanceMin, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin);
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
   const frameInset = normalizeFrameInsetEndpoints(config);
@@ -259,6 +263,7 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     quoteButtonSize,
     quotePaddingX,
     quotePaddingY,
+    routeTitleDescriptionGap,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
     frameInsetMobilePx: frameInset.mobile,
@@ -279,6 +284,7 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
       frameInsetDesktop: `${frameInset.desktop}px`,
       frameRadiusMobile: `${frameRadius.mobile}px`,
       frameRadiusDesktop: `${frameRadius.desktop}px`,
+      routeTitleDescriptionGap: `${routeTitleDescriptionGap}px`,
     });
     applyShellLayoutVars();
     applyLayoutFromVwToPx();
@@ -292,6 +298,7 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   root.style.setProperty('--abs-quote-button-size', `${quoteButtonSize}px`);
   root.style.setProperty('--abs-quote-pad-x', `${quotePaddingX}px`);
   root.style.setProperty('--abs-quote-pad-y', `${quotePaddingY}px`);
+  root.style.setProperty('--route-title-description-gap', `${routeTitleDescriptionGap}px`);
   root.style.setProperty('--edge-caption-distance-min', `${edgeCaptionDistanceMin}px`);
   root.style.setProperty('--edge-caption-distance-max', `${edgeCaptionDistanceMax}px`);
 
@@ -427,6 +434,7 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.layout.quoteButtonSize = `${Math.round(config.quoteButtonSize ?? DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize)}px`;
   nextShell.layout.quotePaddingX = `${Math.round(config.quotePaddingX)}px`;
   nextShell.layout.quotePaddingY = `${Math.round(config.quotePaddingY)}px`;
+  nextShell.layout.routeTitleDescriptionGap = `${Math.round(config.routeTitleDescriptionGap)}px`;
   nextShell.layout.edgeCaptionDistanceMin = `${Math.round(config.edgeCaptionDistanceMin)}px`;
   nextShell.layout.edgeCaptionDistanceMax = `${Math.round(config.edgeCaptionDistanceMax)}px`;
   const frameInset = normalizeFrameInsetEndpoints(config);
