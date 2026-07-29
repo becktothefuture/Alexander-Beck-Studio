@@ -1,7 +1,7 @@
 export class AtmosphereEdgeLight {
   constructor(outputCanvas) {
     this.outputCanvas = outputCanvas;
-    this.outputContext = outputCanvas.getContext('2d', { alpha: true, desynchronized: true });
+    this.outputContext = outputCanvas.getContext('2d', { alpha: true });
     if (!this.outputContext) throw new Error('Canvas 2D edge-light context unavailable');
     this.filterKey = '';
     this.exposureFilter = 'none';

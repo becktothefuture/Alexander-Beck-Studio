@@ -11,6 +11,7 @@ export {
   resolveSimulationAtmosphereCadence as resolveAtmosphereCadence,
   resolveSimulationAtmosphereQualityScale as resolveAtmosphereQualityScale,
   resolveSimulationAtmosphereThemeProfile,
+  shouldRenderSimulationAtmosphereFrame,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js';
 
 const createProfile = (values) => Object.freeze(values);

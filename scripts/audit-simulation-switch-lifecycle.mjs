@@ -450,7 +450,7 @@ function analyzeSuccessfulTrace(trace, baseline, flow) {
         if (atmosphere.firstCompositeGeneration !== atmosphere.activeSourceGeneration) issues.push('first-composite-not-ready-at-in');
         if (atmosphere.outputTransactionId !== finalTransaction?.transactionId && finalTransaction) issues.push('output-transaction-mismatch');
       }
-      if (atmosphere.feedbackResetCount !== 1) issues.push(`feedback-reset-count:${atmosphere.feedbackResetCount}`);
+      if (atmosphere.outputResetCount !== 1) issues.push(`output-reset-count:${atmosphere.outputResetCount}`);
       if (atmosphere.sourceUnregisterCount !== 1) issues.push(`source-unregister-count:${atmosphere.sourceUnregisterCount}`);
     }
   }

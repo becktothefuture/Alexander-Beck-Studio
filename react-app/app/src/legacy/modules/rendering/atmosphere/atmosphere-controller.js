@@ -9,6 +9,7 @@ import {
   resolveAtmosphereCadence,
   resolveAtmosphereProfile,
   resolveAtmosphereQualityScale,
+  shouldRenderSimulationAtmosphereFrame,
 } from '../../../../routes/atmosphere-lab/atmosphereLabControls.js';
 import { getAtmosphereLabVariant } from '../../../../routes/atmosphere-lab/atmosphereLabRoutes.js';
 import {
@@ -119,6 +120,7 @@ class AtmosphereLabController {
     this.effect = null;
     this.fallback = false;
     this.lastEffectAt = 0;
+    this.frameSchedule = { nextFrameAt: 0 };
     this.lastFrameAt = performance.now();
     this.lastMetricsAt = this.lastFrameAt;
     this.metricsFrames = 0;
@@ -206,6 +208,7 @@ class AtmosphereLabController {
     this.outputCanvas.hidden = !this.config.common.enabled;
     this.fallback = true;
     this.lastEffectAt = 0;
+    this.frameSchedule.nextFrameAt = 0;
   }
 
   installAuditHandle() {
@@ -285,6 +288,7 @@ class AtmosphereLabController {
     url.searchParams.set('mode', requestedMode);
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     this.lastEffectAt = 0;
+    this.frameSchedule.nextFrameAt = 0;
     this.clear();
     this.parameterizer?.setSimulationMode(requestedMode);
     return requestedMode;
@@ -375,6 +379,7 @@ class AtmosphereLabController {
           this.dynamicQuality = nextQuality;
           this.overBudgetSamples = 0;
           this.lastEffectAt = 0;
+          this.frameSchedule.nextFrameAt = 0;
           this.clear();
         }
       }
@@ -387,6 +392,7 @@ class AtmosphereLabController {
       this.effect.resize(width, height);
       this.titleMaskDirty = true;
       this.lastEffectAt = 0;
+      this.frameSchedule.nextFrameAt = 0;
     }
     if (this.edgeLight) {
       this.edgeLight.resize(width, height);
@@ -474,7 +480,7 @@ class AtmosphereLabController {
 
     const cadence = this.reducedMotion ? Math.min(20, resolveAtmosphereCadence(this.config.common.hazeCadence)) : resolveAtmosphereCadence(this.config.common.hazeCadence);
     const interval = 1000 / cadence;
-    if (this.lastEffectAt && now - this.lastEffectAt < interval) {
+    if (!shouldRenderSimulationAtmosphereFrame(this.frameSchedule, now, cadence)) {
       this.updateMetrics(now);
       return;
     }

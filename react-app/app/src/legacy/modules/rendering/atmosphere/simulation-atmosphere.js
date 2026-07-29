@@ -12,6 +12,7 @@ import {
   resolveSimulationAtmosphereCadence,
   resolveSimulationAtmosphereQualityScale,
   resolveSimulationAtmosphereRenderProfile,
+  shouldRenderSimulationAtmosphereFrame,
 } from './simulation-atmosphere-config.js';
 
 const SOURCE_KINDS = new Set(['emitters', 'canvas', 'ambient']);
@@ -49,7 +50,7 @@ let transitionSourceGeneration = 0;
 let internalFrameId = 0;
 let geometryDirty = true;
 let staticFrameDirty = true;
-let lastEffectAt = 0;
+const frameSchedule = { nextFrameAt: 0 };
 let renderProfile = null;
 let automaticQuality = QUALITY_LEVELS.balanced;
 let dynamicQuality = QUALITY_LEVELS.balanced;
@@ -265,7 +266,7 @@ function clearOutput({ preservePresentation = false } = {}) {
     host.sourceContext.clearRect(0, 0, host.sourceCanvas.width, host.sourceCanvas.height);
   }
   clearCount += 1;
-  lastEffectAt = 0;
+  frameSchedule.nextFrameAt = 0;
   firstCompositeAt = 0;
   outputSourceGeneration = 0;
   firstCompositeGeneration = 0;
@@ -341,7 +342,7 @@ function syncGeometry() {
     dynamicQuality = automaticQuality;
     pendingQuality = null;
     resetCostMetrics();
-    lastEffectAt = 0;
+    frameSchedule.nextFrameAt = 0;
   }
   const rect = host.root.getBoundingClientRect();
   geometryReadCount += 1;
@@ -363,7 +364,7 @@ function syncGeometry() {
     host.sourceCanvas.width = width;
     host.sourceCanvas.height = height;
     host.effect.resize(width, height);
-    lastEffectAt = 0;
+    frameSchedule.nextFrameAt = 0;
   }
   const backingScaleX = width / rect.width;
   const backingScaleY = height / rect.height;
@@ -519,7 +520,7 @@ function applyPendingQuality() {
   resetCostMetrics();
   geometryDirty = true;
   staticFrameDirty = true;
-  lastEffectAt = 0;
+  frameSchedule.nextFrameAt = 0;
 }
 
 function renderComposite(now) {
@@ -533,12 +534,10 @@ function renderComposite(now) {
   if (reducedMotion && !staticFrameDirty) return false;
   applyPendingQuality();
   if (!syncGeometry()) return false;
-  const interval = 1000 / Math.max(1, cadence);
-  if (!reducedMotion && lastEffectAt && now - lastEffectAt < interval) {
+  if (!reducedMotion && !shouldRenderSimulationAtmosphereFrame(frameSchedule, now, cadence)) {
     skippedFrameCount += 1;
     return false;
   }
-  lastEffectAt = now;
   const start = performance.now();
   if (!copyActiveSource(now)) return false;
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
@@ -617,7 +616,7 @@ function activateCurrentSource({ resetOutput = true } = {}) {
   consecutiveErrors = 0;
   geometryDirty = true;
   staticFrameDirty = true;
-  lastEffectAt = 0;
+  frameSchedule.nextFrameAt = 0;
   rebuildProfile({ resetQuality: true });
   if (resetOutput) clearOutput();
   applyPresentationState();
@@ -660,7 +659,7 @@ function handleVisibilityChange() {
     cancelInternalFrame();
     return;
   }
-  lastEffectAt = 0;
+  frameSchedule.nextFrameAt = 0;
   staticFrameDirty = true;
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }

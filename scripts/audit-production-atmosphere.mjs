@@ -1307,6 +1307,31 @@ async function runStatelessGlowContract(browser) {
       const { AtmosphereEdgeLight } = await import(
         '/src/legacy/modules/rendering/atmosphere/atmosphere-edge-light.js'
       );
+      const {
+        resolveSimulationAtmosphereCadence,
+        shouldRenderSimulationAtmosphereFrame,
+      } = await import(
+        '/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js'
+      );
+      const sampleSchedule = (refreshRate, durationMs = 3000) => {
+        const schedule = { nextFrameAt: 0 };
+        const accepted = [];
+        const sourceInterval = 1000 / refreshRate;
+        for (let now = 0; now < durationMs; now += sourceInterval) {
+          if (shouldRenderSimulationAtmosphereFrame(schedule, now, 30)) accepted.push(now);
+        }
+        const deltas = accepted.slice(1).map((time, index) => time - accepted[index]);
+        return {
+          count: accepted.length,
+          meanDelta: deltas.reduce((sum, value) => sum + value, 0) / Math.max(1, deltas.length),
+          maxDelta: Math.max(...deltas),
+        };
+      };
+      const cadenceContract = {
+        automaticCadence: resolveSimulationAtmosphereCadence('auto'),
+        sixtyHz: sampleSchedule(60),
+        highRefresh: sampleSchedule(144),
+      };
       const source = document.createElement('canvas');
       const output = document.createElement('canvas');
       source.width = 160;
@@ -1345,10 +1370,25 @@ async function runStatelessGlowContract(browser) {
       effect.render({ sourceCanvas: source, config, nowMs: 1033 });
       const memoryOldAlpha = readAlpha(24);
       const memoryNewAlpha = readAlpha(136);
+      paintSource(80);
+      effect.render({ sourceCanvas: source, config, nowMs: 1066 });
+      const memoryOldestAlpha = readAlpha(24);
+      const memoryPreviousAlpha = readAlpha(136);
+      const memoryCurrentAlpha = readAlpha(80);
       const temporalMemoryFrames = effect.temporalMemoryFrames;
+
+      effect.clear();
+      paintSource(80);
+      effect.render({ sourceCanvas: source, config, nowMs: 2000 });
+      const stationaryFirst = Array.from(outputContext.getImageData(80, 32, 1, 1).data);
+      effect.render({ sourceCanvas: source, config, nowMs: 2027 });
+      const stationaryEarly = Array.from(outputContext.getImageData(80, 32, 1, 1).data);
+      effect.render({ sourceCanvas: source, config, nowMs: 2062 });
+      const stationaryLate = Array.from(outputContext.getImageData(80, 32, 1, 1).data);
+
       effect.clear();
       paintSource(136);
-      effect.render({ sourceCanvas: source, config, nowMs: 1066 });
+      effect.render({ sourceCanvas: source, config, nowMs: 1099 });
       const resetOldAlpha = readAlpha(24);
 
       const legacyMask = document.createElement('canvas');
@@ -1360,7 +1400,7 @@ async function runStatelessGlowContract(browser) {
       sourceContext.clearRect(0, 0, source.width, source.height);
       sourceContext.fillStyle = '#00ff88';
       sourceContext.fillRect(0, 0, source.width, source.height);
-      effect.render({ sourceCanvas: source, maskCanvas: legacyMask, config, nowMs: 1099 });
+      effect.render({ sourceCanvas: source, maskCanvas: legacyMask, config, nowMs: 1132 });
       const fullWallCenterAlpha = readAlpha(80);
       effect.destroy();
 
@@ -1384,6 +1424,12 @@ async function runStatelessGlowContract(browser) {
         secondNewAlpha,
         memoryOldAlpha,
         memoryNewAlpha,
+        memoryOldestAlpha,
+        memoryPreviousAlpha,
+        memoryCurrentAlpha,
+        stationaryFirst,
+        stationaryEarly,
+        stationaryLate,
         resetOldAlpha,
         fullWallCenterAlpha,
         temporalMemoryFrames,
@@ -1391,6 +1437,7 @@ async function runStatelessGlowContract(browser) {
         centerAlpha,
         cornerAlpha,
         edgeDrawCallCount,
+        cadenceContract,
       };
     });
     assert(result.firstOldAlpha > 20, 'Diffuse glow fixture did not render its first source', result);
@@ -1402,7 +1449,20 @@ async function runStatelessGlowContract(browser) {
       result,
     );
     assert(result.memoryNewAlpha > 20, 'Atmosphere memory obscured the current source position', result);
+    assert(
+      result.memoryOldestAlpha <= 1
+        && result.memoryPreviousAlpha > 20
+        && result.memoryCurrentAlpha > 20,
+      'Atmosphere memory recursively retained positions older than the previous clean frame',
+      result,
+    );
     assert(result.temporalMemoryFrames === 1, 'Atmosphere memory allocated more than one history frame', result);
+    assert(
+      JSON.stringify(result.stationaryFirst) === JSON.stringify(result.stationaryEarly)
+        && JSON.stringify(result.stationaryFirst) === JSON.stringify(result.stationaryLate),
+      'Stationary atmosphere brightness changed with compositor frame-time jitter',
+      result,
+    );
     assert(result.resetOldAlpha <= 1, 'Atmosphere memory survived an explicit reset boundary', result);
     assert(
       result.fullWallCenterAlpha > 20,
@@ -1413,6 +1473,21 @@ async function runStatelessGlowContract(browser) {
     assert(
       result.centerAlpha > 20 && result.cornerAlpha > 20 && result.edgeDrawCallCount === 2,
       'Edge colour texture is not continuous across straight, centre, and corner samples',
+      result,
+    );
+    assert(
+      result.cadenceContract.automaticCadence === 30
+        && result.cadenceContract.sixtyHz.count >= 89
+        && result.cadenceContract.sixtyHz.count <= 91
+        && result.cadenceContract.sixtyHz.meanDelta > 32
+        && result.cadenceContract.sixtyHz.meanDelta < 35
+        && result.cadenceContract.sixtyHz.maxDelta < 35
+        && result.cadenceContract.highRefresh.count >= 89
+        && result.cadenceContract.highRefresh.count <= 91
+        && result.cadenceContract.highRefresh.meanDelta > 32
+        && result.cadenceContract.highRefresh.meanDelta < 35
+        && result.cadenceContract.highRefresh.maxDelta < 36,
+      'Atmosphere frame scheduling reintroduced cadence aliasing',
       result,
     );
     return result;

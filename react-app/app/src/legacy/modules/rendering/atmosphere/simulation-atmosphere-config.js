@@ -148,3 +148,17 @@ export function resolveSimulationAtmosphereCadence(cadenceMode = 'auto') {
   if (cadenceMode !== 'auto') return 30;
   return 30;
 }
+
+/** Keep a target deadline so display-frame rounding cannot alias the glow cadence. */
+export function shouldRenderSimulationAtmosphereFrame(schedule, nowMs, cadenceFps) {
+  const now = Number(nowMs) || 0;
+  const interval = 1000 / Math.max(1, Number(cadenceFps) || 30);
+  const tolerance = Math.min(2, interval * 0.2);
+  const deadline = Number(schedule?.nextFrameAt) || 0;
+  if (deadline > 0 && now + tolerance < deadline) return false;
+
+  let nextFrameAt = deadline > 0 ? deadline + interval : now + interval;
+  if (nextFrameAt < now) nextFrameAt = now + interval;
+  schedule.nextFrameAt = nextFrameAt;
+  return true;
+}
