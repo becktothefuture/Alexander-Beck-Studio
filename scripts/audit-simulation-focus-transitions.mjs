@@ -3,11 +3,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PNG } from 'pngjs';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
-const outputRoot = resolve(repoRoot, 'output', 'playwright', 'simulation-focus-transition-stress');
+const outputBaseRoot = resolve(repoRoot, 'output', 'playwright', 'simulation-focus-transition-stress');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 
 const DEFAULT_URL = 'http://127.0.0.1:8013';
@@ -15,6 +15,9 @@ const WAIT_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_WAIT_MS || 40000)
 const FRAME_COUNT = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_FRAMES || 46);
 const FRAME_INTERVAL_MS = Number(process.env.ABS_SIMULATION_FOCUS_STRESS_INTERVAL_MS || 45);
 const HEADLESS = process.env.ABS_SIMULATION_FOCUS_STRESS_HEADED !== '1';
+const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
+const BROWSER_TYPE = BROWSER_NAME === 'webkit' ? webkit : chromium;
+const outputRoot = resolve(outputBaseRoot, BROWSER_NAME);
 const TARGET_FOCUS_IDS = new Set(
   String(process.env.ABS_SIMULATION_FOCUS_STRESS_TARGETS || '')
     .split(',')
@@ -1004,6 +1007,9 @@ async function analyzeFrames(frames, flow) {
 }
 
 async function main() {
+  if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
+    throw new Error(`Unsupported ABS_BROWSER "${BROWSER_NAME}". Expected chromium or webkit.`);
+  }
   await mkdir(outputRoot, { recursive: true });
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   const dailyEntries = catalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
@@ -1017,7 +1023,7 @@ async function main() {
   const startFocus = flows[0]?.fromFocus || dailyEntries[0]?.id || 'pit';
   const startLabel = flows[0]?.from || dailyEntries[0]?.name || 'Foundation';
 
-  const browser = await chromium.launch({ headless: HEADLESS });
+  const browser = await BROWSER_TYPE.launch({ headless: HEADLESS });
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 1,
@@ -1052,6 +1058,7 @@ async function main() {
 
     const report = {
       ok: bootReport.issues.length === 0 && flowReports.every((flow) => flow.issues.length === 0),
+      browserName: BROWSER_NAME,
       outputRoot,
       frameCount: FRAME_COUNT,
       frameIntervalMs: FRAME_INTERVAL_MS,
@@ -1071,6 +1078,7 @@ async function main() {
     if (!report.ok) {
       console.error(JSON.stringify({
         ok: false,
+        browserName: BROWSER_NAME,
         outputRoot,
         boot: bootReport.issues.length ? bootReport : undefined,
         failures: flowReports
@@ -1083,6 +1091,7 @@ async function main() {
 
     console.log(JSON.stringify({
       ok: true,
+      browserName: BROWSER_NAME,
       outputRoot,
       flows: flowReports.map((flow) => ({
         name: flow.name,

@@ -102,7 +102,10 @@ export function SimulationFocusProvider({
   const routeBackedActiveId = routeIsDailyFocus ? surfaceRouteId : null;
   const urlMode = readUrlMode();
   const homeModeActiveId = routeId === 'home' && DAILY_FOCUS_ID_SET.has(urlMode) ? urlMode : null;
-  const activeId = (isSelectionPending ? simulationSwitchSnapshot?.fromSimulationId : null)
+  // The pill communicates the accepted user intent, while runtime ownership continues
+  // to move through prepare/out/commit/prime/in behind it. Keeping the outgoing ID
+  // here made the label lag until the complete switch transaction had settled.
+  const activeId = pendingSelectionId
     || routeBackedActiveId
     || homeModeActiveId
     || focusState.activeId;

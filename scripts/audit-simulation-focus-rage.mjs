@@ -132,6 +132,7 @@ function readStateExpression() {
       storedChoice,
       storedChoiceId: storedChoice?.simulationId || '',
       switchState: window.__ABS_SIMULATION_SWITCH__ || null,
+      switchTransaction: window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || null,
     };
   };
 }
@@ -259,11 +260,14 @@ function analyzeSample(state, targetEntry) {
     issues.push('boot-overlay-during-switch');
   }
   if (
-    state.switcherVisible
-    && state.switcherId === targetEntry.id
-    && state.activeRuntimeId !== targetEntry.id
+    state.switchTransaction?.busy
+    && state.switchTransaction.targetSimulationId === targetEntry.id
+    && (
+      state.switcherId !== targetEntry.id
+      || !state.switcherText.includes(targetEntry.name)
+    )
   ) {
-    issues.push(`visible-optimistic-label:${state.switcherId}-while-runtime-${state.activeRuntimeId || 'none'}`);
+    issues.push(`accepted-target-label-lag:${state.switcherId || 'none'}-while-target-${targetEntry.id}`);
   }
   if (
     state.switchState?.status === 'ready'

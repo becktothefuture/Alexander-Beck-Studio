@@ -254,7 +254,9 @@ A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 - Ambient drift on the resolved emergent form
 - Bust assembly: controls platform width and gather time, bottom-to-head formation timing, layer
   softness, the fragmented lower band, point scatter/fall, and how much of that band remains visible
-- Bust rotation
+- Whole-bust rotation: turns the settled bust platform around its local vertical axis while the
+  authored camera holds. **Platform spin** controls the ambient speed; zero pauses it. Reduced
+  Motion settles the platform without continuous rotation.
 
 Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
 

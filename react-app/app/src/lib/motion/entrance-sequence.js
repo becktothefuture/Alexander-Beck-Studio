@@ -27,6 +27,7 @@ const BOOKEND_TITLE_MOTION = Object.freeze({
   subtitleGapMs: 140,
 });
 const SEQUENCED_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer', 'control']);
+const DIRECT_FLOW_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer']);
 const GROUP_GAP_MS = 40;
 let glyphPreparationGeneration = 0;
 let glyphKerningContext = null;
@@ -42,7 +43,7 @@ const PROFILES = Object.freeze({
       context: Object.freeze({ startMs: 1650, stepMs: 110, durationMs: 480 }),
       action: Object.freeze({ startMs: 2000, stepMs: 110, durationMs: 480 }),
       footer: Object.freeze({ startMs: 2350, stepMs: 100, durationMs: 480 }),
-      control: Object.freeze({ startMs: 3000, stepMs: 0, durationMs: 480 }),
+      control: Object.freeze({ startMs: 0, stepMs: 0, durationMs: 480 }),
     }),
   }),
   route: Object.freeze({
@@ -288,7 +289,19 @@ function sequenceTargets(targets, profile) {
   });
 
   let cursorMs = Math.max(...identityTitles.map(getTargetEndMs)) + profile.bookendTitle.subtitleGapMs;
-  SEQUENCED_GROUPS.forEach((groupName) => {
+  // The Home simulation switcher is the identity's primary control. Reveal it
+  // as soon as the identity resolves, in parallel with the first supporting
+  // content, instead of holding it behind the complete footer sequence.
+  const controlGroup = readGroup(profile, 'control');
+  targets
+    .filter((target) => target.groupName === 'control')
+    .sort((left, right) => left.order - right.order)
+    .forEach((target) => {
+      target.delayMs = Math.max(cursorMs, controlGroup.startMs)
+        + (controlGroup.stepMs * target.order);
+    });
+
+  DIRECT_FLOW_GROUPS.forEach((groupName) => {
     const groupTargets = targets
       .filter((target) => target.groupName === groupName)
       .sort((left, right) => left.order - right.order);

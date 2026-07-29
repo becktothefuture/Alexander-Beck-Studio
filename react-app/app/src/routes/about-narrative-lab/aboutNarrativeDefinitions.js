@@ -403,12 +403,12 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
   }),
   'bust-yaw-v1': Object.freeze({
     id: 'bust-yaw-v1',
-    label: 'Bust rotation',
+    label: 'Whole-bust rotation',
     version: 1,
     cost: 1,
     reducedMotion: 'manual-only',
     parameters: Object.freeze([
-      numberControl('speed', 'Camera orbit', 0, 0.5, 0.001, 'rad/s', 'modifier-motion'),
+      numberControl('speed', 'Platform spin', 0, 0.5, 0.001, 'rad/s', 'modifier-motion'),
       numberControl('dragSensitivity', 'Drag sensitivity', 0.05, 5, 0.05, '', 'modifier-timing'),
       numberControl('resumeDelay', 'Resume delay', 0, 15, 0.1, 's', 'modifier-timing'),
       numberControl('resumeBlend', 'Resume blend', 0.05, 15, 0.05, 's', 'modifier-timing'),

@@ -319,7 +319,21 @@ async function waitForSettledSimulation(page, simulationId) {
 
 async function openAndSelect(page, simulationId) {
   await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
-  await page.locator(`.simulation-focus-modal.active .simulation-focus-row[data-simulation-id="${simulationId}"]`).click({ timeout: waitMs });
+  const row = page.locator(`.simulation-focus-modal.active .simulation-focus-row[data-simulation-id="${simulationId}"]`);
+  const expectedLabel = (await row.locator('.simulation-focus-row__name').textContent())?.trim() || '';
+  await row.click({ timeout: waitMs });
+  return page.evaluate(({ expectedId, expectedName }) => {
+    const switcher = document.querySelector('.simulation-focus-switcher');
+    const transaction = window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || null;
+    return {
+      expectedId,
+      expectedName,
+      switcherId: switcher?.dataset.simulationId || '',
+      switcherText: switcher?.textContent?.trim() || '',
+      targetSimulationId: transaction?.targetSimulationId || '',
+      transactionBusy: Boolean(transaction?.busy),
+    };
+  }, { expectedId: simulationId, expectedName: expectedLabel });
 }
 
 async function stableBaseline(page) {
@@ -499,11 +513,19 @@ async function runCoreTrace(browser, profile, flow, entries) {
       ), phase, { timeout: waitMs, polling: 10 });
       await page.screenshot({ path: resolve(outputRoot, `${id}-${phase}.png`) });
     });
-    await openAndSelect(page, flow.to);
+    const tapState = await openAndSelect(page, flow.to);
     await waitForSettledSimulation(page, flow.to);
     await Promise.all(phaseCaptures);
     trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.stop());
     analysis = analyzeSuccessfulTrace(trace, baseline, flow);
+    if (
+      tapState.switcherId !== tapState.expectedId
+      || !tapState.switcherText.includes(tapState.expectedName)
+      || tapState.targetSimulationId !== tapState.expectedId
+      || !tapState.transactionBusy
+    ) {
+      analysis.issues.push(`tap-label-not-atomic:${JSON.stringify(tapState)}`);
+    }
     if (consoleErrors.length) analysis.issues.push(`console-errors:${consoleErrors.length}`);
     if (pageErrors.length) analysis.issues.push(`page-errors:${pageErrors.length}`);
     if (analysis.issues.length) await page.screenshot({ path: resolve(outputRoot, `${id}-failure.png`) });
@@ -535,7 +557,18 @@ async function runRapidProbe(browser, profile, entries) {
     await page.goto(entryUrl(entries.get('pit')), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForSettledSimulation(page, 'pit');
     await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.start());
-    await openAndSelect(page, 'repel-room');
+    await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
+    await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
+    const burstDispatchCount = await page.evaluate((targetId) => {
+      const row = document.querySelector(
+        `.simulation-focus-modal.active .simulation-focus-row[data-simulation-id="${targetId}"]`,
+      );
+      if (!row) return 0;
+      const count = 20;
+      for (let index = 0; index < count; index += 1) row.click();
+      return count;
+    }, 'repel-room');
+    if (burstDispatchCount !== 20) issues.push(`same-task-burst-not-dispatched:${burstDispatchCount}`);
     const latestIntentAccepted = await page.evaluate(() => {
       const navigate = window.__ABS_SPA_NAVIGATE__;
       if (typeof navigate !== 'function') return false;
@@ -588,6 +621,9 @@ async function runRapidProbe(browser, profile, entries) {
       if (transaction.phase === 'idle' && JSON.stringify(transaction.phaseHistory) !== JSON.stringify(expectedPhases)) {
         issues.push(`rapid-phase-order:${transaction.transactionId}:${transaction.phaseHistory?.join('>')}`);
       }
+    }
+    if (historiesByTransaction.size !== 1) {
+      issues.push(`same-task-burst-created-${historiesByTransaction.size}-transactions`);
     }
   } catch (error) {
     issues.push(`harness:${compactError(error)}`);

@@ -3,7 +3,7 @@
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
-    "editorialRevealThreshold": 0.8,
+    "editorialRevealThreshold": 0.85,
     "worldRail": {
       "originZ": 8,
       "unitsPerWU": 1
@@ -32,7 +32,7 @@
       "openerStartY": 0,
       "endY": -50,
       "readableStart": 0.4,
-      "readableEnd": 0.7,
+      "readableEnd": 0.69,
       "perspective": 1600,
       "entryDepth": 360,
       "exitDepth": 220,
@@ -638,7 +638,7 @@
             "correspondence": "index-v1"
           },
           "shapeParameters": {
-            "radius": 2,
+            "radius": 2.9,
             "density": 0.198
           },
           "modifiers": [
@@ -829,7 +829,7 @@
               "id": "bust-yaw-v1",
               "enabled": true,
               "parameters": {
-                "speed": 0,
+                "speed": 0.035,
                 "dragSensitivity": 1,
                 "resumeDelay": 0.18,
                 "resumeBlend": 0.9,
@@ -852,7 +852,7 @@
           "publishable": true,
           "presentation": {
             "layout": "opener",
-            "viewportY": 56
+            "viewportY": 70
           },
           "movement": "spatial",
           "preset": "opener-v1",
@@ -869,7 +869,7 @@
           "publishable": true,
           "presentation": {
             "layout": "center",
-            "viewportY": 45
+            "viewportY": 50
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -885,7 +885,7 @@
           "publishable": true,
           "presentation": {
             "layout": "center",
-            "viewportY": 45
+            "viewportY": 50
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -903,10 +903,10 @@
             "layout": "reading"
           },
           "reveal": {
-            "fadeDelayWU": 0.27,
-            "fadeDurationWU": 0.18,
-            "blurDelayWU": 0.15,
-            "blurDurationWU": 0.28
+            "fadeDelayWU": 0.1,
+            "fadeDurationWU": 0.2,
+            "blurDelayWU": 0.1,
+            "blurDurationWU": 0.2
           },
           "block": {
             "id": "background-unit",
@@ -1077,10 +1077,10 @@
             "layout": "disciplines"
           },
           "reveal": {
-            "fadeDelayWU": 0,
-            "fadeDurationWU": 0.24,
-            "blurDelayWU": 0,
-            "blurDurationWU": 0.24
+            "fadeDelayWU": 0.1,
+            "fadeDurationWU": 0.2,
+            "blurDelayWU": 0.1,
+            "blurDurationWU": 0.2
           },
           "block": {
             "id": "disciplines-passage",
@@ -1355,7 +1355,7 @@
           "publishable": true,
           "presentation": {
             "layout": "center",
-            "viewportY": 42
+            "viewportY": 50
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1371,7 +1371,7 @@
           "publishable": true,
           "presentation": {
             "layout": "center",
-            "viewportY": 42
+            "viewportY": 50
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1381,13 +1381,13 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 17.08,
-          "focusWU": 17.38,
-          "endWU": 17.68,
+          "startWU": 17.05,
+          "focusWU": 17.35,
+          "endWU": 17.65,
           "publishable": true,
           "presentation": {
             "layout": "center",
-            "viewportY": 42
+            "viewportY": 50
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1403,7 +1403,7 @@
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta",
-            "viewportY": 84
+            "viewportY": 70
           },
           "movement": "spatial",
           "preset": "finale-v1",

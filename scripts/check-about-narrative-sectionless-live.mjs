@@ -70,7 +70,7 @@ test('canonical About source is a deterministic native v5 runtime document', () 
   const bookends = canonical.tracks.text.fields.filter((field) => (
     ['opener-v1', 'finale-v1'].includes(field.preset)
   ));
-  assert.deepEqual(bookends.map((field) => field.presentation.viewportY), [56, 84]);
+  assert.deepEqual(bookends.map((field) => field.presentation.viewportY), [70, 70]);
   bookends.forEach((field) => {
     assert.ok(field.presentation.viewportY >= 0 && field.presentation.viewportY <= 100);
   });
@@ -206,6 +206,8 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.equal(authored.modifiers[0].id, 'ambient-drift-v1');
   assert.equal(authored.modifiers[1].id, 'bust-assembly-v1');
   assert.equal(authored.modifiers[2].id, 'bust-yaw-v1');
+  assert.ok(authored.modifiers[2].parameters.speed > 0);
+  assert.ok(authored.modifiers[2].parameters.speed <= 0.05);
   assert.deepEqual(
     Object.keys(authored.modifiers[1].parameters).sort(),
     [
@@ -767,9 +769,9 @@ test('every travelling title shares one timing while the finale holds through th
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   titles.filter((field) => field.preset === 'travelling-title-v1').forEach((field) => {
-    assert.ok(field.endWU - field.startWU >= 0.6, `${field.id} duration`);
-    assert.ok(field.focusWU - field.startWU >= 0.3, `${field.id} entry timing`);
-    assert.ok(field.endWU - field.focusWU >= 0.3, `${field.id} exit timing`);
+    assert.ok(Number((field.endWU - field.startWU).toFixed(4)) >= 0.6, `${field.id} duration`);
+    assert.ok(Number((field.focusWU - field.startWU).toFixed(4)) >= 0.3, `${field.id} entry timing`);
+    assert.ok(Number((field.endWU - field.focusWU).toFixed(4)) >= 0.3, `${field.id} exit timing`);
     assert.equal(field.movement, 'spatial', `${field.id} movement`);
   });
   const opener = fieldsById.get('text-promise-main');
@@ -915,7 +917,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
   assert.match(liveSources.styles, /--about-editorial-ink:/);
   assert.match(liveSources.styles, /--about-editorial-strong-ink: var\(--text-primary\)/);
-  assert.equal(canonical.globals.editorialRevealThreshold, 0.8);
+  assert.equal(canonical.globals.editorialRevealThreshold, 0.85);
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialReveal\(/);
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialBlurReveal\(/);
   assert.match(liveSources.timeline, /reveal\.fadeDelayWU/);
@@ -983,7 +985,7 @@ test('the final title and actions share the closing frame with the persistent bu
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
   assert.equal(finale.startWU, visibility.get('visibility-open-space').atWU);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
-  assert.equal(finale.presentation.viewportY, 84);
+  assert.equal(finale.presentation.viewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);
   assert.equal(emergent.protected, true);
   assert.equal(canonical.tracks.worlds.objects.filter((world) => world.shapeId === 'bust-v1').length, 1);

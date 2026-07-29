@@ -787,8 +787,16 @@ function assertHomeRevealOrder(snapshot, label) {
     `${label}: footer starts at ${firstFooterDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
   );
   assert(
-    firstSimulationTabDelay > Math.max(lastIdentityDelay, lastLegendDelay, firstContextDelay, firstActionDelay, lastFooterDelay),
-    `${label}: simulation tab starts at ${firstSimulationTabDelay}ms before every Home entrance group is staged`
+    firstSimulationTabDelay > lastIdentityDelay,
+    `${label}: simulation tab starts at ${firstSimulationTabDelay}ms before the Home identity is staged at ${lastIdentityDelay}ms`
+  );
+  assert(
+    firstSimulationTabDelay <= firstLegendDelay,
+    `${label}: simulation tab starts at ${firstSimulationTabDelay}ms after supporting content begins at ${firstLegendDelay}ms`
+  );
+  assert(
+    firstSimulationTabDelay < Math.max(firstContextDelay, firstActionDelay, lastFooterDelay),
+    `${label}: simulation tab is still sequenced behind the complete Home support flow`
   );
 }
 
@@ -917,8 +925,16 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
     `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before all legend labels at ${Math.round(lastLegend)}ms`
   );
   assert(
-    firstSimulationTab > Math.max(lastSeenAt(snapshot.identity), lastLegend, lastSeenAt(snapshot.context), lastSeenAt(snapshot.action), lastFooter),
-    `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms before the rest of Home finished entering`
+    firstSimulationTab > lastSeenAt(snapshot.identity),
+    `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms before the Home identity resolved`
+  );
+  assert(
+    firstSimulationTab <= lastLegend,
+    `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms after all expertise labels at ${Math.round(lastLegend)}ms`
+  );
+  assert(
+    firstSimulationTab < Math.max(lastSeenAt(snapshot.context), lastSeenAt(snapshot.action), lastFooter),
+    `${label}: simulation tab remained the final Home entrance target at ${Math.round(firstSimulationTab)}ms`
   );
 }
 

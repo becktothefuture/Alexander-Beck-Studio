@@ -2024,6 +2024,10 @@ export function useShellRouteTransition({
     activeTransitionCommittedRef.current = false;
     setLegacyRouteTransitionActive(true, { gate: false });
     setSimulationShellStability(true, surfaceRefs);
+    // Publish the accepted target before yielding to preload work. React batches this
+    // with the chooser click, so the switcher label changes in the same interaction
+    // commit instead of waiting for prepare—or the full runtime settlement—to finish.
+    publishSimulationSwitchTransaction(transaction, 'accepted');
 
     void Promise.resolve()
       .then(() => {

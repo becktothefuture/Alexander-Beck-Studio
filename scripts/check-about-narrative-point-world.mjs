@@ -174,6 +174,10 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniform float bustBuildHeadStart/);
   assert.match(source, /uniform float bustPlatformScale/);
   assert.match(source, /uniform float bustPlatformSettle/);
+  assert.match(source, /bustSampleInput\.speed = Math\.max\(0, Number\(bust\?\.speed \|\| 0\)\)/);
+  assert.match(source, /fromPoint = mix\(fromPoint, rotateY\(fromPoint, bustYaw\), fromBust\)/);
+  assert.match(source, /toPoint = mix\(toPoint, rotateY\(toPoint, bustYaw\), toBust\)/);
+  assert.doesNotMatch(source, /cameraOrbitAngle|writeAboutNarrativeCameraOrbitPosition/);
   const tintStart = source.indexOf('float materialSeed =');
   const tintEnd = source.indexOf('vec4 viewPoint =', tintStart);
   assert.ok(tintStart >= 0 && tintEnd > tintStart);

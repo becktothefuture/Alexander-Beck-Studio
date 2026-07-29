@@ -1,9 +1,17 @@
 import { MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
+import { subscribeScenePointer } from '../input/pointer.js';
 
 export const TITLE_DEPTH_PLANE_Z = 0.5;
 const TITLE_RENDER_MAX_LINES = 4;
 const TITLE_RENDER_MAX_GLYPHS = 64;
+const TITLE_BLOOM_MAX_SCALE = 1.015;
+const TITLE_BLOOM_RADIUS_FONT_MULTIPLIER = 1.25;
+const TITLE_BLOOM_RADIUS_MIN_CSS_PX = 72;
+const TITLE_BLOOM_RADIUS_MAX_CSS_PX = 120;
+const TITLE_BLOOM_FOLLOW_MS = 90;
+const TITLE_BLOOM_RELEASE_MS = 160;
+const TITLE_BLOOM_SETTLE_EPSILON = 0.0001;
 export const TITLE_SCENE_PLACEMENT = Object.freeze({
   BEHIND: 'behind',
   DEPTH_PLANE: 'depth-plane',
@@ -37,6 +45,8 @@ const titleRenderCache = {
       finalOpacity: 0,
       blurPx: 0,
       driftPx: 0,
+      bloomScale: 1,
+      bloomTargetScale: 1,
       state: null,
     })),
   })),
@@ -51,6 +61,12 @@ const titleRenderCache = {
     sourceId: 'hero-title',
     sourceConnected: false,
     retainedPixels: false,
+    bloomActive: false,
+    bloomAffectedGlyphCount: 0,
+    bloomRadiusCssPx: 0,
+    bloomMaxRenderedScale: 1,
+    bloomMaxTargetScale: 1,
+    bloomSettled: true,
     renderRevision: 0,
     invalidationRevision: 0,
     sleeping: true,
@@ -156,6 +172,35 @@ function clamp01(value) {
   return value;
 }
 
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function resolveTitleBloomInfluence(distance, radius) {
+  if (!(radius > 0) || !(distance < radius)) return 0;
+  const proximity = 1 - clamp01(distance / radius);
+  return proximity * proximity * (3 - (2 * proximity));
+}
+
+function resetTitleBloomState({ immediate = false } = {}) {
+  let settled = true;
+  for (let lineIndex = 0; lineIndex < titleRenderCache.lines.length; lineIndex += 1) {
+    const line = titleRenderCache.lines[lineIndex];
+    for (let glyphIndex = 0; glyphIndex < line.glyphs.length; glyphIndex += 1) {
+      const glyph = line.glyphs[glyphIndex];
+      glyph.bloomTargetScale = 1;
+      if (immediate) glyph.bloomScale = 1;
+      if (Math.abs(glyph.bloomScale - 1) > TITLE_BLOOM_SETTLE_EPSILON) settled = false;
+    }
+  }
+  titleRenderCache.state.bloomActive = false;
+  titleRenderCache.state.bloomAffectedGlyphCount = 0;
+  titleRenderCache.state.bloomMaxTargetScale = 1;
+  titleRenderCache.state.bloomMaxRenderedScale = immediate ? 1 : titleRenderCache.state.bloomMaxRenderedScale;
+  titleRenderCache.state.bloomSettled = immediate || settled;
+}
+
 // Specialized evaluator for cubic-bezier(0.22, 0, 0.16, 1). Keeping this
 // numeric avoids parsing strings or allocating objects in the render loop.
 function easeTitleGlyphProgress(progress) {
@@ -185,6 +230,7 @@ function resolveGlyphProgress(state, now) {
 }
 
 function markCanvasTitleInactive(globals) {
+  resetTitleBloomState({ immediate: true });
   titleRenderCache.active = false;
   titleRenderCache.visible = false;
   titleRenderCache.lineCount = 0;
@@ -203,6 +249,9 @@ function markCanvasTitleInactive(globals) {
 }
 
 function retainCanvasTitlePixels(globals) {
+  titleRenderCache.state.bloomActive = false;
+  titleRenderCache.state.bloomAffectedGlyphCount = 0;
+  titleRenderCache.state.bloomMaxTargetScale = 1;
   titleRenderCache.state.sourceConnected = false;
   titleRenderCache.state.retainedPixels = titleRenderCache.state.renderRevision > 0;
   if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
@@ -398,7 +447,111 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   return titleRenderCache;
 }
 
-function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
+function isTitleBloomTransitionBlocked(root) {
+  const transitionPhase = root?.dataset?.absTransitionPhase || 'idle';
+  return transitionPhase === 'route-out'
+    || transitionPhase === 'route-loading'
+    || transitionPhase === 'route-in'
+    || transitionPhase === 'modal-open'
+    || root?.classList?.contains('entrance-transitioning')
+    || root?.classList?.contains('abs-home-post-boot-enter')
+    || root?.classList?.contains('simulation-focus-modal-open');
+}
+
+function updateTitleBloomState(cache, controller, canvas, canvasRect, now) {
+  const state = cache.state;
+  const root = document.documentElement;
+  const reducedMotion = controller.reducedMotionQuery?.matches === true;
+  const glyphEntranceActive = hasActiveTitleGlyphs(cache);
+  const routeIsHome = root?.dataset?.shellRoute === 'home';
+  const transitionBlocked = isTitleBloomTransitionBlocked(root);
+  const nonMouseInput = Boolean(controller.bloomPointerType)
+    && controller.bloomPointerType !== 'mouse';
+  const hardDisabled = reducedMotion
+    || glyphEntranceActive
+    || !routeIsHome
+    || transitionBlocked
+    || nonMouseInput;
+  const pointerEligible = !hardDisabled
+    && controller.bloomPointerValid === true
+    && controller.bloomPointerType === 'mouse'
+    && Number.isFinite(controller.bloomClientX)
+    && Number.isFinite(controller.bloomClientY)
+    && canvasRect?.width > 0
+    && canvasRect?.height > 0;
+
+  const radiusCssPx = clamp(
+    state.firstLineFontSizeCssPx * TITLE_BLOOM_RADIUS_FONT_MULTIPLIER,
+    TITLE_BLOOM_RADIUS_MIN_CSS_PX,
+    TITLE_BLOOM_RADIUS_MAX_CSS_PX,
+  );
+  const scaleX = canvasRect?.width > 0 ? canvas.width / canvasRect.width : 1;
+  const scaleY = canvasRect?.height > 0 ? canvas.height / canvasRect.height : 1;
+  const radiusCanvasPx = radiusCssPx * ((scaleX + scaleY) * 0.5);
+  const pointerX = pointerEligible
+    ? (controller.bloomClientX - canvasRect.left) * scaleX
+    : 0;
+  const pointerY = pointerEligible
+    ? (controller.bloomClientY - canvasRect.top) * scaleY
+    : 0;
+  const elapsedMs = controller.lastBloomFrameMs > 0
+    ? Math.min(32, Math.max(0, now - controller.lastBloomFrameMs))
+    : 1000 / 60;
+  controller.lastBloomFrameMs = now;
+
+  let bloomActive = false;
+  let bloomSettled = true;
+  let affectedGlyphCount = 0;
+  let maxRenderedScale = 1;
+  let maxTargetScale = 1;
+  for (let lineIndex = 0; lineIndex < cache.lines.length; lineIndex += 1) {
+    const line = cache.lines[lineIndex];
+    for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
+      const glyph = line.glyphs[glyphIndex];
+      let influence = 0;
+      if (pointerEligible && glyph.state?.settled === true && glyph.text.trim()) {
+        influence = resolveTitleBloomInfluence(
+          Math.hypot(pointerX - glyph.x, pointerY - glyph.y),
+          radiusCanvasPx,
+        );
+      }
+      glyph.bloomTargetScale = 1 + ((TITLE_BLOOM_MAX_SCALE - 1) * influence);
+      if (influence > 0) {
+        bloomActive = true;
+        affectedGlyphCount += 1;
+      }
+
+      if (hardDisabled) {
+        glyph.bloomScale = 1;
+      } else {
+        const durationMs = glyph.bloomTargetScale > glyph.bloomScale
+          ? TITLE_BLOOM_FOLLOW_MS
+          : TITLE_BLOOM_RELEASE_MS;
+        // Four time constants puts the visible response effectively at its
+        // endpoint within the authored follow/release duration.
+        const easing = 1 - Math.exp((-4 * elapsedMs) / durationMs);
+        glyph.bloomScale += (glyph.bloomTargetScale - glyph.bloomScale) * easing;
+        if (Math.abs(glyph.bloomTargetScale - glyph.bloomScale) <= TITLE_BLOOM_SETTLE_EPSILON) {
+          glyph.bloomScale = glyph.bloomTargetScale;
+        } else {
+          bloomSettled = false;
+        }
+      }
+      maxTargetScale = Math.max(maxTargetScale, glyph.bloomTargetScale);
+      maxRenderedScale = Math.max(maxRenderedScale, glyph.bloomScale);
+    }
+  }
+
+  state.bloomActive = bloomActive;
+  state.bloomAffectedGlyphCount = affectedGlyphCount;
+  state.bloomRadiusCssPx = radiusCssPx;
+  state.bloomMaxRenderedScale = maxRenderedScale;
+  state.bloomMaxTargetScale = maxTargetScale;
+  state.bloomSettled = hardDisabled || bloomSettled;
+  return !state.bloomSettled;
+}
+
+function drawHomepageCanvasTitleCache(ctx, canvas, globals, controller, canvasRect) {
   const cache = refreshCanvasTitleCache(ctx, canvas, globals);
   if (!canvas || !cache.active || cache.lineCount <= 0) return false;
 
@@ -416,6 +569,7 @@ function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
   const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
     ? performance.now()
     : Date.now();
+  controller.bloomAnimating = updateTitleBloomState(cache, controller, canvas, canvasRect, now);
   let visible = false;
   let maxOpacity = 0;
   for (let i = 0; i < cache.lines.length; i += 1) {
@@ -437,7 +591,14 @@ function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
           ? `blur(${(glyph.blurPx * (1 - progress)).toFixed(3)}px)`
           : 'none';
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-        ctx.fillText(glyph.text, glyph.x + (glyph.driftPx * (1 - progress)), glyph.y);
+        const drawX = glyph.x + (glyph.driftPx * (1 - progress));
+        if (glyph.bloomScale !== 1) {
+          ctx.translate(drawX, glyph.y);
+          ctx.scale(glyph.bloomScale, glyph.bloomScale);
+          ctx.fillText(glyph.text, 0, 0);
+        } else {
+          ctx.fillText(glyph.text, drawX, glyph.y);
+        }
         ctx.restore();
       }
       continue;
@@ -502,13 +663,14 @@ function preserveCanvasDuringResize(canvas, width, height) {
 
 function syncTitlePlaneBackingStore(canvas) {
   const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return false;
+  if (rect.width <= 0 || rect.height <= 0) return null;
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  return preserveCanvasDuringResize(
+  preserveCanvasDuringResize(
     canvas,
     Math.max(1, Math.round(rect.width * dpr)),
     Math.max(1, Math.round(rect.height * dpr)),
   );
+  return rect;
 }
 
 function publishTitlePlaneState(canvas, globals) {
@@ -525,7 +687,7 @@ function publishTitlePlaneState(canvas, globals) {
 function renderTitlePlane(controller) {
   if (!controller || controller.disposed || !controller.canvas.isConnected) return false;
   const { canvas, context } = controller;
-  syncTitlePlaneBackingStore(canvas);
+  const canvasRect = syncTitlePlaneBackingStore(canvas);
   const globals = getGlobals();
   const source = document.getElementById('hero-title');
   if (source !== controller.observedSource) {
@@ -533,14 +695,17 @@ function renderTitlePlane(controller) {
     controller.observedSource = isCanvasTitleSource(source) ? source : null;
     if (controller.observedSource) controller.resizeObserver?.observe(controller.observedSource);
     titleRenderCache.signature = '';
+    resetTitleBloomState({ immediate: true });
   }
-  const visible = drawHomepageCanvasTitleCache(context, canvas, globals);
+  const visible = drawHomepageCanvasTitleCache(context, canvas, globals, controller, canvasRect);
   publishTitlePlaneState(canvas, globals);
 
   const root = document.documentElement;
   const scene = document.getElementById('abs-scene');
   if (titleRenderCache.state.sourceConnected
-    && (shouldRefreshEveryFrame(root, scene) || hasActiveTitleGlyphs(titleRenderCache))) {
+    && (shouldRefreshEveryFrame(root, scene)
+      || hasActiveTitleGlyphs(titleRenderCache)
+      || controller.bloomAnimating)) {
     controller.requestRender();
   }
   return visible;
@@ -562,6 +727,14 @@ function createTitlePlaneController(canvas) {
     resizeObserver: null,
     mutationObserver: null,
     rootMutationObserver: null,
+    unsubscribeScenePointer: null,
+    reducedMotionQuery: null,
+    bloomClientX: 0,
+    bloomClientY: 0,
+    bloomPointerType: '',
+    bloomPointerValid: false,
+    bloomAnimating: false,
+    lastBloomFrameMs: 0,
     requestRender() {
       if (this.disposed || this.rafId) return;
       titleRenderCache.state.sleeping = false;
@@ -577,6 +750,48 @@ function createTitlePlaneController(canvas) {
       });
     },
   };
+
+  controller.clearBloomPointer = ({ immediate = false } = {}) => {
+    controller.bloomPointerValid = false;
+    if (immediate) resetTitleBloomState({ immediate: true });
+    controller.requestRender();
+  };
+  controller.handleScenePointer = (type, detail = {}) => {
+    const pointerType = detail.pointerType || '';
+    controller.bloomPointerType = pointerType;
+    if (
+      pointerType === 'mouse'
+      && detail.inBounds === true
+      && Number.isFinite(detail.clientX)
+      && Number.isFinite(detail.clientY)
+      && type !== 'cancel'
+    ) {
+      controller.bloomClientX = detail.clientX;
+      controller.bloomClientY = detail.clientY;
+      controller.bloomPointerValid = true;
+      controller.requestRender();
+      return;
+    }
+    controller.clearBloomPointer({ immediate: Boolean(pointerType && pointerType !== 'mouse') });
+  };
+  controller.handlePointerLeave = () => controller.clearBloomPointer();
+  controller.handleWindowBlur = () => controller.clearBloomPointer({ immediate: true });
+  controller.handleVisibilityChange = () => {
+    if (document.hidden) controller.clearBloomPointer({ immediate: true });
+  };
+  controller.handleReducedMotionChange = () => {
+    if (controller.reducedMotionQuery?.matches) {
+      controller.clearBloomPointer({ immediate: true });
+    } else {
+      controller.requestRender();
+    }
+  };
+  controller.unsubscribeScenePointer = subscribeScenePointer(controller.handleScenePointer);
+  controller.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
+  document.addEventListener('mouseleave', controller.handlePointerLeave, { passive: true });
+  window.addEventListener('blur', controller.handleWindowBlur, { passive: true });
+  document.addEventListener('visibilitychange', controller.handleVisibilityChange, { passive: true });
+  controller.reducedMotionQuery?.addEventListener?.('change', controller.handleReducedMotionChange);
 
   const invalidate = () => invalidateHomepageCanvasTitleGeometry();
   controller.resizeObserver = typeof ResizeObserver === 'function'
@@ -650,6 +865,11 @@ export function attachHomepageCanvasTitlePlane(canvas) {
     controller.resizeObserver?.disconnect();
     controller.mutationObserver?.disconnect();
     controller.rootMutationObserver?.disconnect();
+    controller.unsubscribeScenePointer?.();
+    document.removeEventListener('mouseleave', controller.handlePointerLeave);
+    window.removeEventListener('blur', controller.handleWindowBlur);
+    document.removeEventListener('visibilitychange', controller.handleVisibilityChange);
+    controller.reducedMotionQuery?.removeEventListener?.('change', controller.handleReducedMotionChange);
     window.removeEventListener('resize', controller.handleViewportChange);
     window.removeEventListener('orientationchange', controller.handleViewportChange);
     window.removeEventListener('abs:theme-changed', controller.handleThemeChange);

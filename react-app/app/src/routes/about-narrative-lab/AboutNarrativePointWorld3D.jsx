@@ -13,7 +13,6 @@ import {
   ABOUT_NARRATIVE_BUST_STATES,
   createAboutNarrativeBustController,
 } from './aboutNarrativeBustController.js';
-import { writeAboutNarrativeCameraOrbitPosition } from './aboutNarrativeCameraRig.js';
 import { createAboutNarrativePreparationController } from './aboutNarrativePreparationController.js';
 import {
   ABOUT_NARRATIVE_CACHE_LIMITS,
@@ -1119,8 +1118,6 @@ function createPointFieldAdapter({
   };
   let bustYaw = 0;
   let lastBustAmbientTime = 0;
-  let cameraOrbitAngle = 0;
-  const cameraOrbitPosition = [0, 0, 0];
   let dragging = false;
   let dragStart = null;
   const modifierSlotsCache = new WeakMap();
@@ -2214,7 +2211,7 @@ function createPointFieldAdapter({
     bustSampleInput.active = toWorld.shapeId === 'bust-v1';
     bustSampleInput.transitionProgress = transitionProgress;
     bustSampleInput.deltaSeconds = bustDeltaSeconds;
-    bustSampleInput.speed = 0;
+    bustSampleInput.speed = Math.max(0, Number(bust?.speed || 0));
     bustSampleInput.resumeDelay = Number(bust?.resumeDelay || 0);
     bustSampleInput.liveAmbient = frame.ambientTime > 0;
     bustSampleInput.deterministicScrub = frame.ambientTime === 0;
@@ -2230,28 +2227,8 @@ function createPointFieldAdapter({
       dragging = false;
     }
 
-    const cameraOrbitSpeed = Math.max(0, Number(bust?.speed || 0));
-    const cameraOrbiting = bustState.state === ABOUT_NARRATIVE_BUST_STATES.AUTO_ROTATING
-      && cameraOrbitSpeed > 0;
-    if (cameraOrbiting) cameraOrbitAngle += bustDeltaSeconds * cameraOrbitSpeed;
-    else if (toWorld.shapeId !== 'bust-v1' || formingBust) cameraOrbitAngle = 0;
-
     camera.position.fromArray(frame.camera.position);
     camera.quaternion.fromArray(frame.camera.quaternion);
-    if (cameraOrbitAngle !== 0 && frame.camera.aimWeight > 0.999) {
-      writeAboutNarrativeCameraOrbitPosition(
-        cameraOrbitPosition,
-        frame.camera.position,
-        frame.camera.lookAtTarget,
-        cameraOrbitAngle,
-      );
-      camera.position.fromArray(cameraOrbitPosition);
-      camera.lookAt(
-        Number(frame.camera.lookAtTarget[0] || 0),
-        Number(frame.camera.lookAtTarget[1] || 0),
-        Number(frame.camera.lookAtTarget[2] || 0),
-      );
-    }
     if (camera.fov !== frame.camera.fov) {
       camera.fov = frame.camera.fov;
       camera.updateProjectionMatrix();
