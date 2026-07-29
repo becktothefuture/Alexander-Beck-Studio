@@ -2174,11 +2174,54 @@ html[data-shell-route='home'] body .ui-top-right .decorative-script {
   line-height: 1.4;
 }
 
+/* Home resize contract: geometry that does not require a structural reflow is
+   interpolated continuously. Breakpoints may change content topology, but they
+   must not also introduce unrelated padding, type, or control-size jumps. */
+html[data-shell-route='home'] body {
+  --home-responsive-top-gap: clamp(
+    calc(var(--gap-lg) - var(--abs-size-1px)),
+    3.6vw,
+    40px
+  );
+  --home-responsive-copy-font-size: clamp(12px, calc(9px + 0.5vw), 15px);
+  --home-responsive-legend-font-size: clamp(11.5px, calc(10.45px + 0.295vw), 14px);
+  --home-responsive-legend-padding-block: clamp(4px, calc(-3.65px + 1.286vw), 9px);
+  --home-responsive-legend-padding-inline: clamp(
+    0px,
+    calc((100vw - 600px) * 0.0234375),
+    9px
+  );
+  --home-responsive-mobile-inline-padding: clamp(
+    0px,
+    min(calc((768px - 100vw) * 0.083333), 3vw),
+    14px
+  );
+  --home-responsive-footer-control-frame-size: calc(
+    var(--ui-icon-frame-size)
+    - clamp(
+      0px,
+      calc((768px - 100vw) * 0.107143),
+      calc(var(--ui-icon-frame-size) * 0.25)
+    )
+  );
+  --home-footer-meta-font-size: clamp(14px, calc(6.857px + 1.1905vw), 16px);
+  --home-footer-side-padding: clamp(
+    0px,
+    calc((100vw - 768px) * 0.285714),
+    16px
+  );
+  --home-footer-social-overlap: clamp(
+    0px,
+    calc((768px - 100vw) * 0.047619),
+    var(--gap-sm)
+  );
+}
+
 /* Home desktop/tablet: keep the legend in the 2-column arrangement and let the intro text
    elastically yield to the available space instead of reserving a fixed right-column minimum. */
 html[data-shell-route='home'] body .ui-top-main {
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: clamp(calc(var(--gap-lg) - var(--abs-size-1px)), 3.6vw, calc(var(--gap-24) + var(--gap-sm)));
+  gap: var(--home-responsive-top-gap);
 }
 
 html[data-shell-route='home'] body .ui-top-left {
@@ -2196,6 +2239,10 @@ html[data-shell-route='home'] body .legend {
 
 html[data-shell-route='home'] body .legend__item {
   gap: calc(var(--legend-item-gap) - var(--abs-size-1px));
+  min-height: 24px;
+  padding-block: var(--home-responsive-legend-padding-block);
+  padding-inline: var(--home-responsive-legend-padding-inline);
+  font-size: var(--home-responsive-legend-font-size);
 }
 
 html[data-shell-route='home'] body .ui-top-right {
@@ -2209,7 +2256,7 @@ html[data-shell-route='home'] body .ui-top-right .decorative-script {
   width: 100%;
   max-width: min(100%, calc(var(--decorative-script-max-width) * 1.1));
   justify-self: end;
-  font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
+  font-size: var(--home-responsive-copy-font-size);
   margin-block-start: 0;
   padding: var(--home-description-top-inset, 0) 0 0;
 }
@@ -2796,7 +2843,10 @@ body.dark-mode .ui-main-nav .footer_link {
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
-  --home-footer-control-frame-size: var(--ui-icon-frame-size);
+  --home-footer-control-frame-size: var(
+    --home-responsive-footer-control-frame-size,
+    var(--ui-icon-frame-size)
+  );
 
   display: flex;
   justify-content: space-between;
@@ -2811,6 +2861,11 @@ body.dark-mode .ui-main-nav .footer_link {
     width: auto;
     padding: 0 16px;
   }
+}
+
+html[data-shell-route='home'] body .ui-meta-row {
+  width: auto;
+  padding-inline: var(--home-footer-side-padding);
 }
 
 .ui-meta-left, .ui-meta-right {
@@ -5365,12 +5420,12 @@ html.is-safari .noise::before {
   }
 
   html[data-shell-route='home'] body .ui-top-main {
-    gap: 40px;
+    gap: var(--home-responsive-top-gap);
     --home-description-top-inset: clamp(4px, 0.8vw, 7px);
   }
 
   html[data-shell-route='home'] body .legend__item {
-    font-size: 13px;
+    font-size: var(--home-responsive-legend-font-size);
   }
 
   html[data-shell-route='home'] body .ui-top-right {
@@ -5378,7 +5433,7 @@ html.is-safari .noise::before {
   }
 
   html[data-shell-route='home'] body .ui-top-right .decorative-script {
-    font-size: 14px;
+    font-size: var(--home-responsive-copy-font-size);
     line-height: 1.3;
   }
 }
@@ -5593,7 +5648,7 @@ html.is-safari .noise::before {
   }
 
   #social-links .footer_icon-link + .footer_icon-link {
-    margin-inline-start: calc(var(--gap-sm) * -1);
+    margin-inline-start: calc(var(--home-footer-social-overlap, var(--gap-sm)) * -1);
   }
   
   /* Ensure sound toggle doesn't overlap time on mobile */
@@ -8021,13 +8076,13 @@ body.dark-mode .cv-photo {
 
 @media (max-width: 767px) {
   html[data-shell-route='home'] body .ui-top-main {
-    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
-    gap: 20px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--home-responsive-top-gap);
   }
 
   html[data-shell-route='home'] body .ui-top-main:not(.route-topbar) {
     box-sizing: border-box;
-    padding-inline: clamp(10px, 3vw, 14px);
+    padding-inline: var(--home-responsive-mobile-inline-padding);
   }
 
   body.portfolio-page .route-topbar {
@@ -8098,10 +8153,10 @@ body.dark-mode .cv-photo {
 
   html[data-shell-route='home'] body .ui-top-right {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
     justify-content: flex-end;
-    gap: clamp(8px, 2.8vw, 12px);
+    gap: 0;
   }
 
   html[data-shell-route='home'] body .legend {
@@ -8111,12 +8166,9 @@ body.dark-mode .cv-photo {
 
   html[data-shell-route='home'] body .legend__item {
     min-height: 24px;
-    padding: 4px 0;
-    font-size: clamp(
-      0.72rem,
-      2.6vw,
-      0.82rem
-    );
+    padding-block: var(--home-responsive-legend-padding-block);
+    padding-inline: var(--home-responsive-legend-padding-inline);
+    font-size: var(--home-responsive-legend-font-size);
   }
 
   html[data-shell-route='home'] body .legend__item .circle {
@@ -8137,7 +8189,7 @@ body.dark-mode .cv-photo {
   }
 
   html[data-shell-route='home'] body .ui-top-right .decorative-script {
-    font-size: 12px;
+    font-size: var(--home-responsive-copy-font-size);
     line-height: 1.3;
   }
 
@@ -8179,8 +8231,6 @@ body.dark-mode .cv-photo {
   }
 
   .ui-meta-row {
-    --home-footer-control-frame-size: calc(var(--ui-icon-frame-size) * 0.75);
-
     gap: clamp(12px, 4vw, 18px);
   }
 
@@ -8198,7 +8248,7 @@ body.dark-mode .cv-photo {
     height: var(--home-footer-control-frame-size);
     min-height: var(--home-footer-control-frame-size);
     padding-block: 0;
-    font-size: max(calc(var(--text-sm) * 1.08), 14px);
+    font-size: var(--home-footer-meta-font-size, 14px);
   }
 
   #time-display {

@@ -15,6 +15,19 @@ const shouldStartDevServer = !process.env.ABS_DEV_URL;
 const waitMs = Number(process.env.ABS_TITLE_WAIT_MS || 30000);
 const viewport = { width: 390, height: 844 };
 const tolerance = { font: 0.55, rect: 1.25, center: 0.75 };
+const resizeViewports = Object.freeze([
+  Object.freeze({ width: 1440, height: 900 }),
+  Object.freeze({ width: 1024, height: 768 }),
+  Object.freeze({ width: 768, height: 1024 }),
+  Object.freeze({ width: 390, height: 844 }),
+  Object.freeze({ width: 1440, height: 900 }),
+]);
+const continuousResizeWidths = Object.freeze(
+  Array.from({ length: 106 }, (_, index) => 1200 - (index * 8)),
+);
+const continuousResizeHeights = Object.freeze(
+  Array.from({ length: 44 }, (_, index) => 900 - (index * 6)),
+);
 const outputRoot = resolve(repoRoot, 'output', 'playwright', 'home-title-invariance', browserName);
 
 function pageUrl(pathname) {
@@ -138,6 +151,418 @@ function compareTitleMetrics(actual, expected, label) {
   compareMetric(actual.titleRect.height, expected.titleRect.height, 'title height', tolerance.rect, label);
   compareMetric(actual.titleRect.centerX, expected.titleRect.centerX, 'title center x', tolerance.center, label);
   compareMetric(actual.titleRect.centerY, expected.titleRect.centerY, 'title center y', tolerance.center, label);
+}
+
+async function waitForSettledHomeTitle(page) {
+  await page.waitForFunction(() => {
+    const glyphs = Array.from(document.querySelectorAll('#hero-title [data-route-enter-glyph]'));
+    return document.documentElement.dataset.absBootState === 'ready'
+      && document.getElementById('simulation-title-canvas')?.dataset.titlePlaneReady === 'true'
+      && glyphs.length > 0
+      && glyphs.every((glyph) => glyph.__absRouteEntranceState?.settled === true);
+  }, null, { timeout: waitMs, polling: 'raf' });
+  await page.evaluate(() => document.fonts?.ready);
+  await page.evaluate(() => new Promise((resolveFrame) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+  }));
+}
+
+async function readCanvasTitlePixelMetrics(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('simulation-title-canvas');
+    const semanticTitle = document.getElementById('hero-title');
+    const context = canvas?.getContext('2d', { alpha: true, willReadFrequently: true });
+    if (!canvas || !semanticTitle || !context || canvas.width <= 0 || canvas.height <= 0) return null;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const semanticRect = semanticTitle.getBoundingClientRect();
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+    let maxAlpha = 0;
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        const alpha = pixels[((y * canvas.width + x) * 4) + 3];
+        if (alpha > maxAlpha) maxAlpha = alpha;
+        if (alpha <= 8) continue;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    if (maxX < minX || maxY < minY) return null;
+
+    const scaleX = canvasRect.width / canvas.width;
+    const scaleY = canvasRect.height / canvas.height;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const left = canvasRect.left + (minX * scaleX);
+    const top = canvasRect.top + (minY * scaleY);
+    const width = (maxX - minX + 1) * scaleX;
+    const height = (maxY - minY + 1) * scaleY;
+    const glyphs = Array.from(semanticTitle.querySelectorAll('[data-route-enter-glyph]'));
+    return {
+      sameNode: !window.__ABS_RESIZE_TITLE_CANVAS__ || canvas === window.__ABS_RESIZE_TITLE_CANVAS__,
+      canvasCount: document.querySelectorAll('#simulation-title-canvas').length,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      canvasCssWidth: canvasRect.width,
+      canvasCssHeight: canvasRect.height,
+      backingWidthDelta: Math.abs(canvas.width - Math.round(canvasRect.width * dpr)),
+      backingHeightDelta: Math.abs(canvas.height - Math.round(canvasRect.height * dpr)),
+      maxAlpha,
+      inkRect: {
+        left,
+        top,
+        width,
+        height,
+        centerX: left + (width * 0.5),
+        centerY: top + (height * 0.5),
+      },
+      semanticRect: {
+        width: semanticRect.width,
+        height: semanticRect.height,
+        centerX: semanticRect.left + (semanticRect.width * 0.5),
+        centerY: semanticRect.top + (semanticRect.height * 0.5),
+      },
+      settledGlyphs: glyphs.filter((glyph) => glyph.__absRouteEntranceState?.settled === true).length,
+      staleSettledRects: glyphs.filter((glyph) => (
+        glyph.__absRouteEntranceState?.settled === true
+        && glyph.__absRouteEntranceState?.finalRect
+      )).length,
+      glyphCount: glyphs.length,
+      renderRevision: Number(canvas.dataset.titlePlaneRenderRevision) || 0,
+    };
+  });
+}
+
+function compareResizeMetrics(resized, fresh, label) {
+  assert(resized && fresh, `${label}: title pixel metrics unavailable`, { resized, fresh });
+  assert(resized.sameNode, `${label}: stable title plane node was replaced`, resized);
+  assert(resized.canvasCount === 1, `${label}: stable title plane count is not one`, resized);
+  assert(resized.maxAlpha > 0, `${label}: resized title plane has no painted pixels`, resized);
+  assert(resized.glyphCount > 0 && resized.settledGlyphs === resized.glyphCount, `${label}: glyphs did not settle`, resized);
+  assert(resized.staleSettledRects === 0, `${label}: settled glyphs retained entrance geometry`, resized);
+  assert(resized.backingWidthDelta <= 1, `${label}: title backing-store width is stale`, resized);
+  assert(resized.backingHeightDelta <= 1, `${label}: title backing-store height is stale`, resized);
+  compareMetric(resized.inkRect.width, fresh.inkRect.width, 'painted title width', 1.5, label);
+  compareMetric(resized.inkRect.height, fresh.inkRect.height, 'painted title height', 1.5, label);
+  compareMetric(resized.inkRect.centerX, fresh.inkRect.centerX, 'painted title center x', 1.25, label);
+  compareMetric(resized.inkRect.centerY, fresh.inkRect.centerY, 'painted title center y', 1.25, label);
+  compareMetric(resized.semanticRect.centerX, fresh.semanticRect.centerX, 'semantic title center x', 0.75, label);
+  compareMetric(resized.semanticRect.centerY, fresh.semanticRect.centerY, 'semantic title center y', 0.75, label);
+}
+
+async function auditStableTitleResize(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 1200, height: 900 },
+    colorScheme: 'light',
+    reducedMotion: 'reduce',
+  });
+  const page = await context.newPage();
+  const results = [];
+  try {
+    await page.goto(pageUrl('/index.html?mode=water&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await waitForSettledHomeTitle(page);
+    await page.evaluate(() => {
+      window.__ABS_RESIZE_TITLE_CANVAS__ = document.getElementById('simulation-title-canvas');
+    });
+
+    for (let index = 0; index < resizeViewports.length; index += 1) {
+      const target = resizeViewports[index];
+      const previousRevision = await page.evaluate(() => (
+        Number(document.getElementById('simulation-title-canvas')?.dataset.titlePlaneRenderRevision) || 0
+      ));
+      await page.setViewportSize(target);
+      await page.waitForFunction(({ width, height, previous }) => {
+        const canvas = document.getElementById('simulation-title-canvas');
+        const rect = canvas?.getBoundingClientRect();
+        const revision = Number(canvas?.dataset.titlePlaneRenderRevision) || 0;
+        return window.innerWidth === width
+          && window.innerHeight === height
+          && rect?.width > 0
+          && rect?.height > 0
+          && revision > previous;
+      }, { ...target, previous: previousRevision }, { timeout: waitMs, polling: 'raf' });
+      await page.evaluate(() => new Promise((resolveFrame) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+      }));
+      const resized = await readCanvasTitlePixelMetrics(page);
+
+      const freshPage = await context.newPage();
+      let fresh;
+      try {
+        await freshPage.setViewportSize(target);
+        await freshPage.goto(pageUrl('/index.html?mode=water&absAudit=1'), {
+          waitUntil: 'domcontentloaded',
+          timeout: 60000,
+        });
+        await waitForSettledHomeTitle(freshPage);
+        fresh = await readCanvasTitlePixelMetrics(freshPage);
+        await freshPage.screenshot({
+          path: resolve(outputRoot, `resize-${index + 1}-${target.width}x${target.height}-fresh.png`),
+        });
+      } finally {
+        await freshPage.close();
+      }
+
+      const label = `resize-${index + 1}/${target.width}x${target.height}`;
+      compareResizeMetrics(resized, fresh, label);
+      await page.screenshot({
+        path: resolve(outputRoot, `resize-${index + 1}-${target.width}x${target.height}-live.png`),
+      });
+      results.push({
+        ...target,
+        renderRevision: resized.renderRevision,
+        inkCenterDeltaX: Math.abs(resized.inkRect.centerX - fresh.inkRect.centerX),
+        inkCenterDeltaY: Math.abs(resized.inkRect.centerY - fresh.inkRect.centerY),
+        inkWidthDelta: Math.abs(resized.inkRect.width - fresh.inkRect.width),
+        inkHeightDelta: Math.abs(resized.inkRect.height - fresh.inkRect.height),
+      });
+    }
+    return results;
+  } catch (error) {
+    await page.screenshot({ path: resolve(outputRoot, 'resize-failure.png'), fullPage: true }).catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
+  }
+}
+
+async function readContinuousResizeMetrics(page) {
+  return page.evaluate(async () => {
+    const { getHomepageCanvasTitleSnapshot } = await import('/src/legacy/modules/rendering/title-depth.js');
+    const titleSnapshot = getHomepageCanvasTitleSnapshot();
+    const titleCanvas = document.getElementById('simulation-title-canvas');
+    const titleLine = document.querySelector('#hero-title .hero-title__name');
+    const materialCanvas = document.getElementById('c');
+    const titleCanvasRect = titleCanvas?.getBoundingClientRect();
+    const titleLineRect = titleLine?.getBoundingClientRect();
+    const materialRect = materialCanvas?.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const rect = (selector) => {
+      const node = document.querySelector(selector);
+      if (!node || getComputedStyle(node).display === 'none') return null;
+      const bounds = node.getBoundingClientRect();
+      return bounds.width > 0 || bounds.height > 0 ? bounds : null;
+    };
+    const legend = rect('#expertise-legend');
+    const philosophy = rect('.ui-top-right .decorative-script');
+    const switcher = rect('.simulation-focus-switcher-slot');
+    const social = rect('#social-links');
+    const year = rect('#site-year');
+    const caption = rect('#edge-caption');
+    const buttonBar = rect('[data-button-bar]');
+    const simulations = rect('#simulations');
+    const titleScaleX = titleCanvas && titleCanvasRect
+      ? titleCanvasRect.width / Math.max(1, titleCanvas.width)
+      : 0;
+    const titleScaleY = titleCanvas && titleCanvasRect
+      ? titleCanvasRect.height / Math.max(1, titleCanvas.height)
+      : 0;
+    const canvasTitleCenterX = titleCanvasRect
+      ? titleCanvasRect.left + (titleSnapshot.firstLineX * titleScaleX)
+      : 0;
+    const canvasTitleCenterY = titleCanvasRect
+      ? titleCanvasRect.top + (titleSnapshot.firstLineY * titleScaleY)
+      : 0;
+    const semanticTitleCenterX = titleLineRect
+      ? titleLineRect.left + (titleLineRect.width * 0.5)
+      : 0;
+    const semanticTitleCenterY = titleLineRect
+      ? titleLineRect.top + (titleLineRect.height * 0.5)
+      : 0;
+
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      title: {
+        renderRevision: titleSnapshot.renderRevision,
+        sourceConnected: titleSnapshot.sourceConnected,
+        visible: titleSnapshot.visible,
+        canvasSemanticDeltaX: Math.abs(canvasTitleCenterX - semanticTitleCenterX),
+        canvasSemanticDeltaY: Math.abs(canvasTitleCenterY - semanticTitleCenterY),
+        centerOffsetX: canvasTitleCenterX - (innerWidth * 0.5),
+        centerY: canvasTitleCenterY,
+        backingWidthDelta: titleCanvas && titleCanvasRect
+          ? Math.abs(titleCanvas.width - Math.round(titleCanvasRect.width * dpr))
+          : Number.POSITIVE_INFINITY,
+        backingHeightDelta: titleCanvas && titleCanvasRect
+          ? Math.abs(titleCanvas.height - Math.round(titleCanvasRect.height * dpr))
+          : Number.POSITIVE_INFINITY,
+      },
+      material: {
+        present: Boolean(materialCanvas && materialRect),
+        backingWidthDelta: materialCanvas && materialRect
+          ? Math.abs(materialCanvas.width - Math.round(materialRect.width * dpr))
+          : Number.POSITIVE_INFINITY,
+        backingHeightDelta: materialCanvas && materialRect
+          ? Math.abs(materialCanvas.height - Math.round(materialRect.height * dpr))
+          : Number.POSITIVE_INFINITY,
+      },
+      anchors: {
+        legendLeft: legend?.left ?? Number.POSITIVE_INFINITY,
+        legendTop: legend?.top ?? Number.POSITIVE_INFINITY,
+        philosophyRight: philosophy ? innerWidth - philosophy.right : Number.POSITIVE_INFINITY,
+        philosophyTop: philosophy?.top ?? Number.POSITIVE_INFINITY,
+        switcherCenterX: switcher ? switcher.left + (switcher.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
+        switcherCenterY: switcher ? switcher.top + (switcher.height * 0.5) : Number.POSITIVE_INFINITY,
+        socialLeft: social?.left ?? Number.POSITIVE_INFINITY,
+        socialBottom: social ? innerHeight - social.bottom : Number.POSITIVE_INFINITY,
+        yearRight: year ? innerWidth - year.right : Number.POSITIVE_INFINITY,
+        yearBottom: year ? innerHeight - year.bottom : Number.POSITIVE_INFINITY,
+        captionCenterX: caption ? caption.left + (caption.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
+        captionBottom: caption ? innerHeight - caption.bottom : Number.POSITIVE_INFINITY,
+        buttonBarCenterX: buttonBar ? buttonBar.left + (buttonBar.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
+        buttonBarBottom: buttonBar ? innerHeight - buttonBar.bottom : Number.POSITIVE_INFINITY,
+        simulationsLeft: simulations?.left ?? Number.POSITIVE_INFINITY,
+        simulationsRight: simulations ? innerWidth - simulations.right : Number.POSITIVE_INFINITY,
+        simulationsTop: simulations?.top ?? Number.POSITIVE_INFINITY,
+        simulationsBottom: simulations ? innerHeight - simulations.bottom : Number.POSITIVE_INFINITY,
+      },
+    };
+  });
+}
+
+function assertContinuousResizeSample(sample, previous, axis, label) {
+  assert(sample.title.sourceConnected && sample.title.visible, `${label}: title source disconnected`, sample.title);
+  assert(sample.title.renderRevision > (previous?.title.renderRevision || 0), `${label}: title did not redraw`, {
+    current: sample.title.renderRevision,
+    previous: previous?.title.renderRevision || 0,
+  });
+  assert(sample.title.canvasSemanticDeltaX <= 0.25, `${label}: canvas title drifted horizontally`, sample.title);
+  assert(sample.title.canvasSemanticDeltaY <= 0.25, `${label}: canvas title drifted vertically`, sample.title);
+  assert(sample.title.backingWidthDelta <= 1 && sample.title.backingHeightDelta <= 1, `${label}: title backing store is stale`, sample.title);
+  assert(sample.material.present, `${label}: simulation material canvas is missing`, sample.material);
+  assert(sample.material.backingWidthDelta <= 1 && sample.material.backingHeightDelta <= 1, `${label}: simulation material backing store is stale`, sample.material);
+  if (!previous) return;
+
+  const horizontalAnchors = [
+    'legendLeft',
+    'philosophyRight',
+    'switcherCenterX',
+    'socialLeft',
+    'yearRight',
+    'captionCenterX',
+    'buttonBarCenterX',
+    'simulationsLeft',
+    'simulationsRight',
+  ];
+  const verticalAnchors = [
+    'legendTop',
+    'philosophyTop',
+    'switcherCenterY',
+    'socialBottom',
+    'yearBottom',
+    'captionBottom',
+    'buttonBarBottom',
+    'simulationsTop',
+    'simulationsBottom',
+  ];
+  const anchors = axis === 'width' ? horizontalAnchors : verticalAnchors;
+  for (const key of anchors) {
+    if (!Number.isFinite(sample.anchors[key]) || !Number.isFinite(previous.anchors[key])) continue;
+    const delta = Math.abs(sample.anchors[key] - previous.anchors[key]);
+    assert(delta <= 4, `${label}: ${key} jumped by ${delta.toFixed(3)}px`, {
+      current: sample.anchors[key],
+      previous: previous.anchors[key],
+      delta,
+    });
+  }
+  if (axis === 'width') {
+    const titleDelta = Math.abs(sample.title.centerOffsetX - previous.title.centerOffsetX);
+    assert(titleDelta <= 1, `${label}: title horizontal anchor jumped by ${titleDelta.toFixed(3)}px`, {
+      current: sample.title.centerOffsetX,
+      previous: previous.title.centerOffsetX,
+    });
+  } else {
+    const titleDelta = Math.abs(sample.title.centerY - previous.title.centerY);
+    assert(titleDelta <= 4, `${label}: title vertical anchor jumped by ${titleDelta.toFixed(3)}px`, {
+      current: sample.title.centerY,
+      previous: previous.title.centerY,
+    });
+  }
+}
+
+async function auditContinuousHomeResize(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 1200, height: 900 },
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
+  const page = await context.newPage();
+  const results = { widthSamples: 0, heightSamples: 0, maxTitleDeltaX: 0, maxTitleDeltaY: 0 };
+  try {
+    await page.goto(pageUrl('/index.html?mode=water&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await waitForSettledHomeTitle(page);
+
+    let previous = null;
+    for (const width of continuousResizeWidths) {
+      const previousRevision = previous?.title.renderRevision || 0;
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForFunction((revision) => (
+        (() => {
+          const titleCanvas = document.getElementById('simulation-title-canvas');
+          const materialCanvas = document.getElementById('c');
+          const titleRect = titleCanvas?.getBoundingClientRect();
+          const materialRect = materialCanvas?.getBoundingClientRect();
+          const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+          return Number(titleCanvas?.dataset.titlePlaneRenderRevision) > revision
+            && Math.abs(titleCanvas?.width - Math.round((titleRect?.width || 0) * dpr)) <= 1
+            && Math.abs(titleCanvas?.height - Math.round((titleRect?.height || 0) * dpr)) <= 1
+            && Math.abs(materialCanvas?.width - Math.round((materialRect?.width || 0) * dpr)) <= 1
+            && Math.abs(materialCanvas?.height - Math.round((materialRect?.height || 0) * dpr)) <= 1;
+        })()
+      ), previousRevision, { timeout: waitMs, polling: 'raf' });
+      const sample = await readContinuousResizeMetrics(page);
+      assertContinuousResizeSample(sample, previous, 'width', `continuous-width/${width}x900`);
+      results.maxTitleDeltaX = Math.max(results.maxTitleDeltaX, sample.title.canvasSemanticDeltaX);
+      results.maxTitleDeltaY = Math.max(results.maxTitleDeltaY, sample.title.canvasSemanticDeltaY);
+      results.widthSamples += 1;
+      previous = sample;
+    }
+
+    previous = null;
+    for (const height of continuousResizeHeights) {
+      const previousRevision = previous?.title.renderRevision || 0;
+      await page.setViewportSize({ width: 390, height });
+      await page.waitForFunction((revision) => (
+        (() => {
+          const titleCanvas = document.getElementById('simulation-title-canvas');
+          const materialCanvas = document.getElementById('c');
+          const titleRect = titleCanvas?.getBoundingClientRect();
+          const materialRect = materialCanvas?.getBoundingClientRect();
+          const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+          return Number(titleCanvas?.dataset.titlePlaneRenderRevision) > revision
+            && Math.abs(titleCanvas?.width - Math.round((titleRect?.width || 0) * dpr)) <= 1
+            && Math.abs(titleCanvas?.height - Math.round((titleRect?.height || 0) * dpr)) <= 1
+            && Math.abs(materialCanvas?.width - Math.round((materialRect?.width || 0) * dpr)) <= 1
+            && Math.abs(materialCanvas?.height - Math.round((materialRect?.height || 0) * dpr)) <= 1;
+        })()
+      ), previousRevision, { timeout: waitMs, polling: 'raf' });
+      const sample = await readContinuousResizeMetrics(page);
+      assertContinuousResizeSample(sample, previous, 'height', `continuous-height/390x${height}`);
+      results.maxTitleDeltaX = Math.max(results.maxTitleDeltaX, sample.title.canvasSemanticDeltaX);
+      results.maxTitleDeltaY = Math.max(results.maxTitleDeltaY, sample.title.canvasSemanticDeltaY);
+      results.heightSamples += 1;
+      previous = sample;
+    }
+
+    await page.screenshot({ path: resolve(outputRoot, 'continuous-resize-final.png') });
+    return results;
+  } catch (error) {
+    await page.screenshot({ path: resolve(outputRoot, 'continuous-resize-failure.png'), fullPage: true }).catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
+  }
 }
 
 async function visitSimulation(page, entry) {
@@ -485,15 +910,21 @@ async function main() {
 
   try {
     await mkdir(outputRoot, { recursive: true });
-    const homeCanvasEntrance = await auditHomeCanvasTitleEntrance(browser);
-    const stableTitleHandoffs = await auditStableTitleHandoffs(browser);
-    if (process.env.ABS_TITLE_ENTRANCE_ONLY === '1') {
+    const resizeOnly = process.env.ABS_TITLE_RESIZE_ONLY === '1';
+    const homeCanvasEntrance = resizeOnly ? null : await auditHomeCanvasTitleEntrance(browser);
+    const stableTitleHandoffs = resizeOnly ? [] : await auditStableTitleHandoffs(browser);
+    const stableTitleResize = await auditStableTitleResize(browser);
+    const continuousHomeResize = await auditContinuousHomeResize(browser);
+    if (resizeOnly || process.env.ABS_TITLE_ENTRANCE_ONLY === '1') {
       const entranceOutput = {
         ok: true,
         browser: browserName,
         viewport,
+        resizeOnly,
         homeCanvasEntrance,
         stableTitleHandoffs,
+        stableTitleResize,
+        continuousHomeResize,
       };
       await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(entranceOutput, null, 2)}\n`);
       console.log(JSON.stringify(entranceOutput, null, 2));
@@ -538,6 +969,8 @@ async function main() {
       depthModes: byTheme.light.filter((entry) => entry.depthTitleActive).map((entry) => entry.id),
       homeCanvasEntrance,
       stableTitleHandoffs,
+      stableTitleResize,
+      continuousHomeResize,
     };
     if (process.env.ABS_TITLE_AUDIT_DETAILS === '1') output.results = byTheme;
     await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(output, null, 2)}\n`);

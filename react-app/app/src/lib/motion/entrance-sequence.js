@@ -363,6 +363,13 @@ function setHomePhase(root, phase) {
   else delete root.dataset.absIntroPhase;
 }
 
+function settleGlyphEntranceState(glyph) {
+  const state = glyph.__absRouteEntranceState;
+  if (!state) return;
+  state.settled = true;
+  state.finalRect = null;
+}
+
 function clearTargetStyles(target) {
   const { element } = target;
   const generation = (styleCleanupGeneration.get(element) || 0) + 1;
@@ -381,7 +388,7 @@ function clearTargetStyles(target) {
     glyph.style.removeProperty('transform');
     glyph.style.removeProperty('transition');
     glyph.style.removeProperty('will-change');
-    if (glyph.__absRouteEntranceState) glyph.__absRouteEntranceState.settled = true;
+    settleGlyphEntranceState(glyph);
   });
   window.requestAnimationFrame(() => {
     if (styleCleanupGeneration.get(element) !== generation) return;
@@ -404,7 +411,7 @@ function settleTarget(target) {
       glyph.style.opacity = String(target.finalOpacity);
       glyph.style.filter = 'blur(0)';
       glyph.style.transform = 'translate3d(0, 0, 0)';
-      if (glyph.__absRouteEntranceState) glyph.__absRouteEntranceState.settled = true;
+      settleGlyphEntranceState(glyph);
     });
   } else {
     target.element.style.opacity = String(target.finalOpacity);

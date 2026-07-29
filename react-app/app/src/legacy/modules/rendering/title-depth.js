@@ -359,10 +359,14 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       glyphTarget.state = null;
       if (!glyphSource || glyphIndex >= target.glyphCount) continue;
       const state = glyphSource.__absRouteEntranceState || null;
-      const finalRect = state?.finalRect || glyphSource.getBoundingClientRect();
+      // Entrance snapshots are valid only while their glyph is animating. Once
+      // settled, responsive layout becomes the sole geometry owner again.
+      const glyphRect = state?.settled === true
+        ? glyphSource.getBoundingClientRect()
+        : state?.finalRect || glyphSource.getBoundingClientRect();
       glyphTarget.text = String(glyphSource.textContent || '').replace(/\u00a0/g, ' ');
-      glyphTarget.x = ((finalRect.left + finalRect.width * 0.5) - canvasRect.left) * scaleX;
-      glyphTarget.y = ((finalRect.top + finalRect.height * 0.5) - canvasRect.top) * scaleY;
+      glyphTarget.x = ((glyphRect.left + glyphRect.width * 0.5) - canvasRect.left) * scaleX;
+      glyphTarget.y = ((glyphRect.top + glyphRect.height * 0.5) - canvasRect.top) * scaleY;
       glyphTarget.font = target.font;
       glyphTarget.color = target.color;
       glyphTarget.finalOpacity = clamp01(
