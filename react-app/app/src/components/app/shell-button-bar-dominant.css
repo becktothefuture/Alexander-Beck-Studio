@@ -13,11 +13,19 @@
   --dominant-primary-tab-font-weight: 644;
   --dominant-primary-tab-letter-spacing: 0.03em;
   --dominant-primary-tab-gap: var(--shell-tab-gap, 16px);
-  --dominant-primary-active-surface: var(--studio-window-bg);
+  --dominant-flat-active-surface: rgb(216 216 216);
+  --dominant-flat-utility-surface: rgb(32 32 32);
+  --dominant-flat-utility-surface-hover: rgb(40 40 40);
+  --dominant-flat-bright-ink: rgb(245 244 239);
+  --dominant-flat-muted-ink: rgba(var(--abs-rgb-white), 0.62);
+  --dominant-primary-active-surface: var(--dominant-flat-active-surface);
   --dominant-primary-active-ink: rgb(var(--abs-rgb-black));
-  --dominant-primary-idle-ink: rgba(var(--abs-rgb-white), 0.48);
+  --dominant-primary-idle-ink: var(--dominant-flat-muted-ink);
+  --dominant-primary-hover-ink: rgba(var(--abs-rgb-white), 0.78);
+  --dominant-primary-pressed-ink: rgba(var(--abs-rgb-white), 0.92);
   --dominant-secondary-control-height: calc(var(--dominant-primary-control-height) * 0.75);
   --dominant-secondary-icon-size: calc(var(--dominant-secondary-control-height) * 0.5);
+  --dominant-group-separation: clamp(32px, 3vw, 48px);
   --dominant-utility-wall: var(
     --playground-stage,
     var(--dominant-wall, var(--button-bar-gasket-ground))
@@ -31,13 +39,15 @@
     var(--dominant-page-ink, var(--button-bar-outer-ink))
   );
   --button-bar-secondary-control-ink: var(--dominant-utility-ink);
-  --dominant-utility-control-bg: var(--dominant-utility-wall);
-  --dominant-utility-control-bg-hover: var(--dominant-utility-control-bg);
-  --dominant-utility-control-ink: var(--button-bar-secondary-control-ink);
+  --dominant-utility-control-bg: var(--dominant-flat-utility-surface);
+  --dominant-utility-control-bg-hover: var(--dominant-flat-utility-surface-hover);
+  --dominant-utility-control-ink: var(--dominant-flat-muted-ink);
   --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
   --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
-  --dominant-sound-active: var(--dominant-utility-control-bg);
-  --dominant-sound-active-ink: var(--button-bar-sound-active-ink, var(--button-bar-secondary-control-ink));
+  --dominant-sound-active: var(--dominant-flat-utility-surface);
+  --dominant-sound-active-ink: var(--dominant-flat-bright-ink);
+  --dominant-theme-thumb-surface: var(--dominant-flat-bright-ink);
+  --dominant-theme-thumb-ink: rgb(var(--abs-rgb-black));
   --dominant-utility-pressed-rim: none;
   --dominant-tab-pressed-rim: none;
   --shell-tab-motion-ease: cubic-bezier(0.2, 0, 0, 1);
@@ -64,6 +74,20 @@
 
 .button-bar[data-button-bar-material='dominant-tab'] {
   justify-content: center;
+}
+
+.button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider {
+  flex-basis: var(--dominant-group-separation);
+  inline-size: var(--dominant-group-separation);
+  min-inline-size: var(--dominant-group-separation);
+  opacity: 1;
+}
+
+.button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
+  inset-inline-start: auto;
+  inset-inline-end: var(--dominant-primary-tab-gap);
+  background: rgba(var(--abs-rgb-white), 0.2);
+  box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -170,8 +194,7 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
-  color: var(--dominant-primary-idle-ink);
-  outline: none;
+  color: var(--dominant-primary-hover-ink);
   background: transparent;
   box-shadow: none;
 }
@@ -179,8 +202,7 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):active {
-  color: var(--dominant-utility-ink);
-  outline: none;
+  color: var(--dominant-primary-pressed-ink);
   background: transparent;
   box-shadow: none;
 }
@@ -195,13 +217,6 @@
   cursor: default;
   background: transparent;
   box-shadow: none;
-}
-
-:root.dark-mode .button-bar[data-button-bar-material='dominant-tab'],
-:root[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'],
-body.dark-mode .button-bar[data-button-bar-material='dominant-tab'],
-body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab'] {
-  --dominant-primary-active-ink: rgb(var(--abs-rgb-white));
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -233,6 +248,18 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .shell-tab:is(:active, [aria-current='page'])
   :is(.shell-tab__icon, .shell-tab__label) {
   transform: translate3d(0, calc(0px - var(--shell-tab-motion-y, 0px)), 0);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab
+  .shell-tab__label,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:is(:hover, :focus-visible, :active, [aria-current='page'])
+  .shell-tab__label {
+  line-height: 1;
+  transform: translate3d(0, 1px, 0);
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -273,15 +300,14 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']),
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
-  color: var(--button-bar-secondary-control-ink);
-  background: var(--dominant-utility-control-bg);
+  color: var(--dominant-utility-control-ink);
+  background: transparent;
   box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):is(:hover, :focus-visible, :active) {
-  color: var(--button-bar-secondary-control-ink);
-  outline: none;
+  color: var(--dominant-primary-hover-ink);
   background: var(--dominant-utility-control-bg-hover);
   box-shadow: none;
 }
@@ -292,7 +318,6 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
   --shell-tab-text-active: var(--dominant-sound-active-ink);
   color: var(--dominant-sound-active-ink);
-  outline: none;
   background: var(--dominant-sound-active);
   box-shadow: none;
   transform: none;
@@ -337,11 +362,9 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   block-size: var(--dominant-secondary-control-height);
   min-width: calc(var(--dominant-secondary-control-height) * 10 / 7);
   min-height: var(--dominant-secondary-control-height);
-  color: var(--button-bar-secondary-control-ink);
+  color: var(--dominant-utility-control-ink);
   border-width: 0;
   border-radius: var(--button-bar-switch-radius);
-  outline: none;
-  outline-offset: 0;
   background: var(--dominant-utility-control-bg);
   box-shadow: none;
   transform: none;
@@ -356,7 +379,7 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
   :is(.shell-tab__icon, .shell-tab__label) {
-  color: var(--dominant-primary-idle-ink);
+  color: var(--dominant-primary-hover-ink);
 }
 
 .button-bar.button-bar[data-button-bar-material='dominant-tab']
@@ -366,12 +389,12 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):active
   :is(.shell-tab__icon, .shell-tab__label) {
-  color: var(--dominant-utility-ink);
+  color: var(--dominant-primary-pressed-ink);
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
-  background: var(--dominant-utility-control-bg-hover);
+  background: var(--dominant-utility-control-bg);
   box-shadow: none;
 }
 
@@ -396,9 +419,9 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
   .button-bar__theme-thumb {
   position: absolute;
-  color: var(--button-bar-secondary-control-ink);
+  color: var(--dominant-theme-thumb-ink);
   border-radius: var(--button-bar-switch-thumb-radius);
-  background: var(--dominant-utility-control-bg);
+  background: var(--dominant-theme-thumb-surface);
   box-shadow: none;
   filter: none;
   text-shadow: none;
@@ -409,11 +432,46 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
     color 160ms var(--shell-tab-motion-ease);
 }
 
+.button-bar[data-button-bar-material='dominant-tab'] .shell-tab:focus-visible {
+  outline: 1px solid rgba(var(--abs-rgb-white), 0.52);
+  outline-offset: 3px;
+}
+
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --dominant-primary-control-height: var(--button-bar-mobile-primary-height);
-    --dominant-primary-tab-padding-inline: clamp(10px, 2.6vw, 12px);
-    --dominant-primary-tab-gap: 8px;
+    --dominant-primary-tab-padding-inline: clamp(4px, 1.5vw, 8px);
+    --dominant-primary-tab-gap: clamp(4px, 1.75vw, 8px);
+    --dominant-group-separation: clamp(10px, 2.5vw, 16px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons.shell-tab-nav {
+    grid-template-columns:
+      var(--dominant-primary-control-height)
+      max-content
+      max-content
+      max-content;
+    flex: 0 0 auto;
+    inline-size: max-content;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
+    inset-inline-end: 6px;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset)
+    .button-bar__sound-toggle {
+    display: none;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__mobile-theme-reset.shell-tab {
+    color: var(--dominant-flat-bright-ink);
+    border-width: 0;
+    background: var(--dominant-flat-utility-surface);
+    box-shadow: none;
   }
 }
 
@@ -431,8 +489,14 @@ body[data-abs-theme='dark'] .button-bar[data-button-bar-material='dominant-tab']
 
 @media (max-width: 340px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: 4px;
-    --dominant-primary-tab-gap: 7px;
+    --dominant-primary-tab-padding-inline: 1px;
+    --dominant-primary-tab-font-size: 9px;
+    --dominant-primary-tab-gap: 2px;
+    --dominant-group-separation: 4px;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
+    inset-inline-end: 2px;
   }
 }
 

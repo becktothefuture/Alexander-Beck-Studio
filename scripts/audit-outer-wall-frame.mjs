@@ -340,6 +340,9 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   const expectedFrameRgb = hexToRgb(expectedHex);
   const expectedWindowRgb = hexToRgb(expectedWindow);
+  const expectedActiveSurfaceRgb = [216, 216, 216];
+  const expectedUtilitySurfaceRgb = [32, 32, 32];
+  const expectedThumbSurfaceRgb = [245, 244, 239];
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
   const bodyBackground = cssColorToRgba(actual.bodyBackground);
@@ -366,14 +369,14 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activePillBackground || actual.activeTabBackground}`);
   }
 
-  if (pixelDistance(activeBackground.slice(0, 3), expectedWindowRgb) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must match the studio window: expected ${expectedWindowRgb.join(',')}, got ${activeBackground.join(',')}`);
+  if (pixelDistance(activeBackground.slice(0, 3), expectedActiveSurfaceRgb) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must remain theme-invariant: expected ${expectedActiveSurfaceRgb.join(',')}, got ${activeBackground.join(',')}`);
   }
 
   const compositedForeground = compositeRgba(activeForeground, activeBackground);
-  const expectedActiveInk = siteTheme === 'dark' ? [255, 255, 255] : [0, 0, 0];
+  const expectedActiveInk = [0, 0, 0];
   if (activeForeground[3] < 0.99 || pixelDistance(compositedForeground, expectedActiveInk) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must be fully opaque inverse theme ink: expected ${expectedActiveInk.join(',')}, got ${actual.activeTabColor}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must remain opaque dark ink: expected ${expectedActiveInk.join(',')}, got ${actual.activeTabColor}`);
   }
   const activeContrast = contrastRatio(compositedForeground, activeBackground);
   if (activeContrast < 4.5) {
@@ -382,7 +385,13 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   actual.activeTabContrast = Number(activeContrast.toFixed(2));
 
-  const assertUtilityControl = (name, backgroundValue, colorValue, surfaceBackground = compositedButtonBarBackground) => {
+  const assertUtilityControl = (
+    name,
+    backgroundValue,
+    colorValue,
+    surfaceBackground = compositedButtonBarBackground,
+    expectedSurface = expectedFrameRgb,
+  ) => {
     const background = cssColorToRgba(backgroundValue);
     const foreground = cssColorToRgba(colorValue);
     if (!background || !foreground) {
@@ -390,8 +399,8 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     }
 
     const compositedBackground = compositeRgba(background, surfaceBackground);
-    if (pixelDistance(compositedBackground, expectedFrameRgb) > 2) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
+    if (pixelDistance(compositedBackground, expectedSurface) > 2) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface expected ${expectedSurface.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
     }
 
     const compositedControlForeground = compositeRgba(foreground, compositedBackground);
@@ -405,8 +414,22 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   actual.utilityControlContrast = {
     sound: assertUtilityControl('sound-toggle', actual.soundToggleBackground, actual.soundToggleColor),
-    themeTrack: assertUtilityControl('theme-toggle', actual.themeToggleBackground, actual.themeToggleColor),
-    themeThumb: assertUtilityControl('theme-thumb', actual.themeThumbBackground, actual.themeThumbColor, cssColorToRgba(actual.themeToggleBackground) ? compositeRgba(cssColorToRgba(actual.themeToggleBackground), compositedButtonBarBackground) : compositedButtonBarBackground),
+    themeTrack: assertUtilityControl(
+      'theme-toggle',
+      actual.themeToggleBackground,
+      actual.themeToggleColor,
+      compositedButtonBarBackground,
+      expectedUtilitySurfaceRgb,
+    ),
+    themeThumb: assertUtilityControl(
+      'theme-thumb',
+      actual.themeThumbBackground,
+      actual.themeThumbColor,
+      cssColorToRgba(actual.themeToggleBackground)
+        ? compositeRgba(cssColorToRgba(actual.themeToggleBackground), compositedButtonBarBackground)
+        : compositedButtonBarBackground,
+      expectedThumbSurfaceRgb,
+    ),
   };
 
 }
@@ -477,7 +500,7 @@ async function run() {
     await server?.stop();
   }
 
-  log(`PASS (${browserName}): site theme changes the studio window and active primary tab only; the outer frame and Button Bar base remain dark.`);
+  log(`PASS (${browserName}): site theme changes the studio window while the outer frame and flat Button Bar materials remain invariant.`);
 }
 
 run().catch((error) => {

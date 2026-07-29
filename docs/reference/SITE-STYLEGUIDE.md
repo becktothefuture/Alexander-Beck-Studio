@@ -8,7 +8,7 @@ The production design intent and responsive rules live in [`DESIGN.md`](../../DE
 
 The bottom Button Bar is the primary navigation object. Its labels come from `SHELL_ROUTE_TABS`; visible casing is `About Me`. Route top bars are optional back/utility strips only.
 
-The dark outer shell owns the Button Bar’s resting material. Primary cells are content-sized from their rendered label plus inline padding; the active shared pill matches that padded cell, uses fully opaque inverse ink, and has controlled rounded-rectangle corners. Home is the only circular tab. Unselected labels stay visibly faded; hover/focus and pressed states remain clear without recolouring the shell.
+The dark outer shell owns the Button Bar’s resting material. Primary cells are content-sized from their rendered label plus inline padding; the active shared pill matches that padded cell and uses the same flat light-neutral surface with opaque dark ink in both site themes. Home is the only circular tab. Unselected labels stay visibly faded but readable; hover/focus and pressed states remain clear without recolouring the shell. The divider stays visually grouped with the flat-charcoal sound and theme controls, leaving a deliberate breathing gap after the primary navigation.
 
 ## Shell and surfaces
 

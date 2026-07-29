@@ -75,8 +75,6 @@ const themeVariantKeys = new Set([
   'simulationContrastVeilRgb',
   'studioWindowColorScheme',
   'studioWindowBackgroundResolved',
-  'activePrimaryPillBackground',
-  'activePrimaryInk',
   'wallBackgroundImage',
 ]);
 const maxGeometryDeltaPx = 1.5;
@@ -744,10 +742,11 @@ function diffInvariantState(before, after, { includePhysicalBoundary = false } =
 }
 
 function assertActivePrimaryTabThemeContract(state, theme, route, viewport) {
-  if (normalize(state.activePrimaryPillBackground) !== normalize(state.studioWindowBackgroundResolved)) {
-    throw new Error(`${route} ${viewport.name} ${theme} active primary pill did not match the studio-window surface`);
+  const expectedSurface = 'rgb(216, 216, 216)';
+  if (normalize(state.activePrimaryPillBackground) !== expectedSurface) {
+    throw new Error(`${route} ${viewport.name} ${theme} active primary pill expected ${expectedSurface}, got ${state.activePrimaryPillBackground}`);
   }
-  const expectedInk = theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
+  const expectedInk = 'rgb(0, 0, 0)';
   if (normalize(state.activePrimaryInk) !== expectedInk) {
     throw new Error(`${route} ${viewport.name} ${theme} active primary ink expected ${expectedInk}, got ${state.activePrimaryInk}`);
   }
@@ -798,27 +797,17 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
   }
 }
 
-async function waitForActivePrimaryTabThemeContract(page, theme) {
-  await page.waitForFunction((expectedTheme) => {
-    const root = document.documentElement;
+async function waitForActivePrimaryTabThemeContract(page) {
+  await page.waitForFunction(() => {
     const activePrimaryTab = document.querySelector('[data-route-tab][aria-current="page"]');
     const activePrimaryContent = activePrimaryTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const buttonBar = activePrimaryTab?.closest('.button-bar');
     const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
     if (!activePrimaryContent || !activePrimaryPill) return false;
 
-    const probe = document.createElement('span');
-    probe.style.position = 'fixed';
-    probe.style.visibility = 'hidden';
-    probe.style.backgroundColor = getComputedStyle(root).getPropertyValue('--studio-window-bg').trim();
-    document.body.appendChild(probe);
-    const expectedSurface = getComputedStyle(probe).backgroundColor;
-    probe.remove();
-
-    const expectedInk = expectedTheme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
-    return getComputedStyle(activePrimaryPill).backgroundColor === expectedSurface
-      && getComputedStyle(activePrimaryContent).color === expectedInk;
-  }, theme, { timeout: 5000 });
+    return getComputedStyle(activePrimaryPill).backgroundColor === 'rgb(216, 216, 216)'
+      && getComputedStyle(activePrimaryContent).color === 'rgb(0, 0, 0)';
+  }, null, { timeout: 5000 });
 }
 
 async function auditRoute(browser, route, viewport) {
