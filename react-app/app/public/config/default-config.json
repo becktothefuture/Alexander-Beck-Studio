@@ -129,9 +129,6 @@
       "weight": 10
     }
   ],
-  "innerWallGradientEdgeTopOpacity": 0,
-  "innerWallGradientEdgeTopShadowOpacity": 0,
-  "innerWallGradientEdgeWidth": 0,
   "quotePuckEnabled": false,
   "puckShadowOpacity": 0.09,
   "puckEdgeWidth": 3.5,
@@ -436,14 +433,6 @@
   "tensionLoomWarmupFrames": 8,
   "wallBase": "#141414",
   "frameColor": "#000000",
-  "hoverEdgeEnabled": false,
-  "hoverEdgeWidth": 0.5,
-  "hoverEdgeBottomEnabled": false,
-  "hoverEdgeBottomOpacity": 0,
-  "hoverEdgeTopEnabled": false,
-  "hoverEdgeTopOpacity": 0,
-  "frameBorderGradientEdgeOpacity": 0.009,
-  "frameBorderGradientMidOpacity": 0.017,
   "edgeCaptionDistanceMinPx": 8,
   "edgeCaptionDistanceMaxPx": 48
 }

@@ -293,15 +293,15 @@ export const MASTER_GROUPS = [
     title: 'Surface Finish',
     icon: '✨',
     sections: [
-      'wallLight',
       'noise'
     ]
   },
   {
     id: 'atmosphere',
-    title: 'Background Atmosphere',
-    icon: '🌫️',
+    title: 'Light Edge',
+    icon: '🌗',
     sections: [
+      'atmosphereEdge',
       'atmosphereCommon',
       'atmosphereLight',
       'atmosphereDark'
@@ -844,10 +844,9 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   if (!g) return;
   const config = getSimulationAtmosphereConfig();
   g[getAtmosphereStateKey('enabled')] = config.enabled;
-  g[getAtmosphereStateKey('qualityMode')] = config.qualityMode;
-  g[getAtmosphereStateKey('hazeCadence')] = config.hazeCadence;
-  g[getAtmosphereStateKey('glowHoldMs')] = config.glowHoldMs;
-  g[getAtmosphereStateKey('glowFadeOutMs')] = config.glowFadeOutMs;
+  g[getAtmosphereStateKey('spread')] = config.spread;
+  g[getAtmosphereStateKey('contentClearance')] = config.contentClearance;
+  g[getAtmosphereStateKey('edgeStrength')] = config.edgeStrength;
   g[getAtmosphereStateKey('titleYOffsetVh')] = readTitleYOffsetFromDocument();
   for (const theme of ['light', 'dark']) {
     for (const group of ATMOSPHERE_PROFILE_GROUPS) {
@@ -865,10 +864,17 @@ export function buildSimulationAtmosphereConfigFromControlState(
   const base = normalizeSimulationAtmosphereConfig(baseConfig);
   const next = {
     enabled: readAtmosphereState(g, getAtmosphereStateKey('enabled'), base.enabled),
-    qualityMode: readAtmosphereState(g, getAtmosphereStateKey('qualityMode'), base.qualityMode),
-    hazeCadence: readAtmosphereState(g, getAtmosphereStateKey('hazeCadence'), base.hazeCadence),
-    glowHoldMs: readAtmosphereState(g, getAtmosphereStateKey('glowHoldMs'), base.glowHoldMs),
-    glowFadeOutMs: readAtmosphereState(g, getAtmosphereStateKey('glowFadeOutMs'), base.glowFadeOutMs),
+    spread: readAtmosphereState(g, getAtmosphereStateKey('spread'), base.spread),
+    contentClearance: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('contentClearance'),
+      base.contentClearance,
+    ),
+    edgeStrength: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('edgeStrength'),
+      base.edgeStrength,
+    ),
     light: { ...base.light },
     dark: { ...base.dark },
   };
@@ -898,26 +904,16 @@ export function getSimulationAtmosphereTitleYOffsetFromControlState(g = getGloba
 
 function applySimulationAtmosphereControlState(g) {
   setSimulationAtmosphereConfig(buildSimulationAtmosphereConfigFromControlState(g));
-  const titleYOffsetVh = getSimulationAtmosphereTitleYOffsetFromControlState(g);
-  document.documentElement.style.setProperty('--atmosphere-title-y-offset', `${titleYOffsetVh}vh`);
-  invalidateHomepageCanvasTitleGeometry();
   invalidateSimulationAtmosphereGeometry();
 }
 
-function createAtmosphereCommonControls() {
+function createAtmosphereCommonControls(controlIds) {
   const controlsById = new Map(
     SIMULATION_ATMOSPHERE_CONTROL_GROUPS.flatMap((group) => (
       group.controls.map((control) => [control.id, { group: group.title, control }])
     )),
   );
-  return [
-    'enabled',
-    'titleYOffsetVh',
-    'glowHoldMs',
-    'glowFadeOutMs',
-    'qualityMode',
-    'hazeCadence',
-  ].map((id) => {
+  return controlIds.map((id) => {
     const entry = controlsById.get(id);
     const control = entry.control;
     return {
@@ -926,9 +922,7 @@ function createAtmosphereCommonControls() {
       stateKey: getAtmosphereStateKey(id),
       designScope: 'simulationAtmosphere',
       group: entry.group,
-      default: id === 'titleYOffsetVh'
-        ? DEFAULT_SIMULATION_ATMOSPHERE_TITLE_Y_OFFSET_VH
-        : normalizeSimulationAtmosphereConfig()[id],
+      default: normalizeSimulationAtmosphereConfig()[id],
       parse: control.type === 'checkbox' ? (value) => !!value : (
         control.type === 'select' ? (value) => String(value) : Number.parseFloat
       ),
@@ -957,10 +951,20 @@ function createAtmosphereThemeControls(theme) {
 
 export const CONTROL_SECTIONS = {
   atmosphereCommon: {
-    title: 'Global',
+    title: 'Source Field',
     icon: '🌐',
     defaultOpen: true,
-    controls: createAtmosphereCommonControls(),
+    controls: createAtmosphereCommonControls([
+      'enabled',
+      'spread',
+      'contentClearance',
+    ]),
+  },
+  atmosphereEdge: {
+    title: 'Edge Response',
+    icon: '🌗',
+    defaultOpen: true,
+    controls: createAtmosphereCommonControls(['edgeStrength']),
   },
   atmosphereLight: {
     title: 'Light Mode',
@@ -2720,53 +2724,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         group: 'Wall Material',
         hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
-      },
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // WALL RIM — effects listed back-to-front in the rendered stack.
-  // ═══════════════════════════════════════════════════════════════════════════
-  wallLight: {
-    title: 'Wall Rim',
-    icon: '🏠',
-    controls: [
-      { type: 'divider', label: 'Directional Rim' },
-      {
-        id: 'innerWallGradientEdgeTopOpacity',
-        label: 'Rim light',
-        stateKey: 'innerWallGradientEdgeTopOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.31,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Light rim on bottom and sides only (center peak, corners fade). Top edge uses Top shadow rim. Theme toggles do not alter this contour.',
-        onChange: () => applyLayoutCSSVars()
-      },
-      {
-        id: 'innerWallGradientEdgeTopShadowOpacity',
-        label: 'Top shadow',
-        stateKey: 'innerWallGradientEdgeTopShadowOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.319,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Dark inset lip along the top inner edge only. Theme toggles do not alter this contour.',
-        onChange: () => applyLayoutCSSVars()
-      },
-      {
-        id: 'innerWallGradientEdgeWidth',
-        label: 'Rim reach',
-        stateKey: 'innerWallGradientEdgeWidth',
-        type: 'range',
-        min: 0.5, max: 6, step: 0.5,
-        default: 2.5,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'How far the broad directional rim feathers into the pit opening (home + all routes).',
-        onChange: () => applyLayoutCSSVars()
       },
     ]
   },

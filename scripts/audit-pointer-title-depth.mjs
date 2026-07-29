@@ -195,7 +195,7 @@ async function auditCrispGlowTitleDepth(page) {
   await page.goto(resolveCrispGlowUrl(), { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    return snap?.variant === 'crispGlow' && snap?.titleOwner === 'engine' && snap?.titleVisible === true;
+    return snap?.variant === 'crispGlow' && snap?.titleOwner === 'shell' && snap?.titleVisible === true;
   }, undefined, { timeout: WAIT_MS });
 
   const simulationModes = await page.$$eval(
@@ -208,7 +208,7 @@ async function auditCrispGlowTitleDepth(page) {
     await page.waitForFunction((expectedMode) => {
       const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
       return snap?.simulationMode === expectedMode
-        && snap?.titleOwner === 'engine'
+        && snap?.titleOwner === 'shell'
         && snap?.titleVisible === true;
     }, mode, { timeout: WAIT_MS });
     const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
@@ -260,19 +260,12 @@ async function auditCrispGlowTitleDepth(page) {
   }
 
   const requiredCompositionControls = [
-    'ballPresence',
-    'glowAmount',
-    'glowRadiusFxPx',
+    'enabled',
+    'intensity',
     'colourStrength',
-    'glowBlendMode',
-    'edgeLight',
-    'edgeWidthPx',
-    'hazeStrength',
-    'grainStrength',
-    'titleClearance',
-    'titleYOffsetVh',
-    'afterglowHalfLifeMs',
-    'driftSpeedPxPerSec',
+    'spread',
+    'contentClearance',
+    'edgeStrength',
   ];
   const compositionControlIds = await page.$$eval(
     '[data-parameter-id]',
@@ -293,53 +286,33 @@ async function auditCrispGlowTitleDepth(page) {
   );
   await page.evaluate(() => {
     const values = {
-      ballPresence: '0.42',
-      hazeStrength: '0.65',
-      grainStrength: '0.5',
-      edgeWidthPx: '2',
+      intensity: '0.42',
+      colourStrength: '1.1',
+      spread: '0.12',
+      contentClearance: '0.4',
+      edgeStrength: '0.25',
     };
     Object.entries(values).forEach(([id, value]) => {
       const input = document.querySelector(`input[data-parameter-id="${id}"]`);
       input.value = value;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    const blend = document.querySelector('select[data-parameter-id="glowBlendMode"]');
-    blend.value = 'screen';
-    blend.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    const rootStyle = getComputedStyle(document.documentElement);
     const material = document.getElementById('c');
     const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
-    return snap?.config?.dark?.ballPresence === 0.42
-      && snap?.config?.dark?.hazeStrength === 0.65
-      && snap?.config?.dark?.grainStrength === 0.5
-      && snap?.config?.dark?.edgeWidthPx === 2
-      && snap?.config?.dark?.glowBlendMode === 'screen'
-      && getComputedStyle(document.body).getPropertyValue('--atmosphere-core-presence').trim() === '0.42'
-      && rootStyle.getPropertyValue('--atmosphere-haze-strength').trim() === '0.65'
-      && rootStyle.getPropertyValue('--atmosphere-grain-strength').trim() === '0.5'
-      && rootStyle.getPropertyValue('--atmosphere-edge-width').trim() === '2px'
+    return snap?.config?.dark?.intensity === 0.42
+      && snap?.config?.dark?.colourStrength === 1.1
+      && snap?.config?.spread === 0.12
+      && snap?.config?.contentClearance === 0.4
+      && snap?.config?.edgeStrength === 0.25
+      && snap?.temporalMemoryFrames === 0
       && getComputedStyle(material).filter === 'none'
       && getComputedStyle(edge).filter === 'none';
   }, undefined, { timeout: WAIT_MS });
 
   await page.getByRole('button', { name: 'Reset' }).click();
-
-  await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
-    input.value = '3.25';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await page.waitForFunction(() => {
-    const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    return snap?.config?.titleYOffsetVh === 3.25
-      && getComputedStyle(document.documentElement).getPropertyValue('--atmosphere-title-y-offset').trim() === '3.25vh';
-  }, undefined, { timeout: WAIT_MS });
-  await page.$eval('input[data-parameter-id="titleYOffsetVh"]', (input) => {
-    input.value = '0';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
 
   const themeResults = [];
   for (const theme of ['dark', 'light']) {
@@ -352,7 +325,8 @@ async function auditCrispGlowTitleDepth(page) {
     const snap = await page.evaluate(() => window.__ABS_ATMOSPHERE_LAB__.getSnapshot());
     themeResults.push({
       theme,
-      edgeLight: snap.config[theme].edgeLight,
+      intensity: snap.config[theme].intensity,
+      colourStrength: snap.config[theme].colourStrength,
     });
   }
 

@@ -11,9 +11,8 @@ const ENFORCE_COST_BUDGET = process.env.ABS_ATMOSPHERE_ENFORCE_COST === '1';
 const CAPTURE_RESPONSIVE = process.env.ABS_ATMOSPHERE_CAPTURE_RESPONSIVE === '1';
 const RESPONSIVE_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere-responsive');
 const HANDOFF_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere', BROWSER_NAME);
-const RESPONSIVE_REFERENCE_PX = 720;
-const RESPONSIVE_MIN_SCALE = 0.72;
-const RESPONSIVE_MAX_SCALE = 2.5;
+const GLOW_RADIUS_MIN_CSS_PX = 36;
+const GLOW_RADIUS_MAX_CSS_PX = 180;
 const PHASE_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_PHASES || '')
   .split(',')
   .map((value) => value.trim())
@@ -30,8 +29,8 @@ const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 const RESPONSIVE_PROFILES = Object.freeze([
   Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 30 }),
   Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 30 }),
-  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 20 }),
-  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 20 }),
+  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 30 }),
+  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 30 }),
   Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 30 }),
 ]);
 
@@ -276,10 +275,10 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
       state,
     );
     assert(snapshot.cadence === expectedResponsive.cadence, `${scenario.id}: responsive cadence is wrong`, state);
-    if (Number.isFinite(expectedResponsive.responsiveScale)) {
+    if (Number.isFinite(expectedResponsive.resolvedGlowRadiusCss)) {
       assert(
-        Math.abs(snapshot.responsiveScale - expectedResponsive.responsiveScale) <= 0.0001,
-        `${scenario.id}: responsive effect scale is wrong`,
+        Math.abs(snapshot.resolvedGlowRadiusCss - expectedResponsive.resolvedGlowRadiusCss) <= 0.25,
+        `${scenario.id}: responsive glow radius is wrong`,
         state,
       );
     }
@@ -510,7 +509,7 @@ async function beginAtmosphereHandoffSampling(page, label) {
           resetSourceGeneration: atmosphere.resetSourceGeneration,
           firstCompositeGeneration: atmosphere.firstCompositeGeneration,
           outputTransactionId: atmosphere.outputTransactionId,
-          feedbackResetCount: atmosphere.feedbackResetCount,
+          outputResetCount: atmosphere.outputResetCount,
           sourceUnregisterCount: atmosphere.sourceUnregisterCount,
           failOpenReason: atmosphere.failOpenReason,
         } : null,
@@ -576,8 +575,8 @@ function assertAtomicAtmosphereHandoff(result, before, expected) {
   assert(transaction.commitCount === 1, `${expected.label}: ownership commit was not exact-once`, transaction);
   assert(transaction.publicationCount === 1, `${expected.label}: settlement publication was not exact-once`, transaction);
   assert(
-    atmosphere.feedbackResetCount - before.feedbackResetCount === 1,
-    `${expected.label}: feedback reset was not exact-once`,
+    atmosphere.outputResetCount - before.outputResetCount === 1,
+    `${expected.label}: output reset was not exact-once`,
     { before, atmosphere },
   );
   assert(
@@ -630,7 +629,7 @@ function assertAtomicAtmosphereHandoff(result, before, expected) {
     sampleCount: result.samples.length,
     boundaries: result.boundaries,
     targetGeneration,
-    resetDelta: atmosphere.feedbackResetCount - before.feedbackResetCount,
+    resetDelta: atmosphere.outputResetCount - before.outputResetCount,
     unregisterDelta: atmosphere.sourceUnregisterCount - before.sourceUnregisterCount,
   };
 }
@@ -751,17 +750,6 @@ async function runKaleidoscopeFinalFrameContract(browser) {
   const results = [];
   try {
     await gotoScenario(page, scenario);
-    await page.evaluate(async () => {
-      const atmosphere = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
-      const config = atmosphere.getSimulationAtmosphereConfig();
-      atmosphere.setSimulationAtmosphereConfig({
-        ...config,
-        qualityMode: 'low',
-        glowHoldMs: 0,
-        glowFadeOutMs: 0,
-      });
-    });
-
     for (const mode of ['kaleidoscope-3', 'kaleidoscope-rift']) {
       const before = await page.evaluate(() => (
         window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null
@@ -786,8 +774,7 @@ async function runKaleidoscopeFinalFrameContract(browser) {
             && snapshot?.sourceKind === 'canvas'
             && snapshot?.sourceLayerCount === 1
             && snapshot?.clearCount > minimumClearCount
-            && snapshot?.glowEmissionScale >= 0.49
-            && snapshot?.glowEmissionScale <= 0.51;
+            && snapshot?.temporalMemoryFrames === 0;
         },
         {
           expectedMode: mode,
@@ -857,7 +844,7 @@ async function runKaleidoscopeFinalFrameContract(browser) {
         sourceActiveSectors,
         atmosphereActiveSectors,
         matchedRatio,
-        glowEmissionScale: coverage.snapshot?.glowEmissionScale,
+        temporalMemoryFrames: coverage.snapshot?.temporalMemoryFrames,
       });
     }
     return results;
@@ -886,7 +873,7 @@ async function runMobilePerformance(browser) {
         || snapshot?.compositedFrameCount >= minimumFrameCount;
     }, settledFrameCount + 120, { timeout: WAIT_MS, polling: 50 });
     const state = await readAtmosphereState(page);
-    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 20 });
+    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 30 });
     if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready') {
       assert(state.snapshot.cost.meanMs <= 0.75, 'Mobile Low atmosphere exceeded the 0.75 ms mean budget', state);
     }
@@ -919,16 +906,16 @@ async function runReducedMotion(browser) {
         || (snapshot?.reducedMotion === true && snapshot?.internalRafCount === 0);
     }, null, { timeout: WAIT_MS, polling: 'raf' });
     const state = await readAtmosphereState(page);
-    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 20 });
+    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 30 });
     assert(state.snapshot.reducedMotion === true, 'Reduced Motion was not detected', state);
-    assert(state.snapshot.effectiveDrift === 0, 'Reduced Motion retained atmosphere drift', state);
+    assert(state.snapshot.temporalMemoryFrames === 0, 'Reduced Motion retained temporal glow memory', state);
     if (state.snapshot.status === 'ready') {
       assert(state.snapshot.scheduler === 'internal', 'Reduced Motion Contact source is not internally scheduled', state);
       assert(state.snapshot.internalRafCount === 0, 'Reduced Motion retained an active internal atmosphere RAF', state);
     }
     return {
       status: state.snapshot.status,
-      effectiveDrift: state.snapshot.effectiveDrift,
+      temporalMemoryFrames: state.snapshot.temporalMemoryFrames,
       internalRafCount: state.snapshot.internalRafCount,
     };
   } finally {
@@ -1038,17 +1025,21 @@ async function runResponsiveResizeMatrix(browser) {
           await waitForStableWallGeometry(page);
           await waitForResponsiveAtmosphere(page, scenario, profile, -1);
           state = await readAtmosphereState(page);
-          const expectedResponsiveScale = Math.max(
-            RESPONSIVE_MIN_SCALE,
+          const atmosphereConfig = await page.evaluate(async () => {
+            const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+            return module.getSimulationAtmosphereConfig();
+          });
+          const expectedGlowRadiusCss = Math.max(
+            GLOW_RADIUS_MIN_CSS_PX,
             Math.min(
-              RESPONSIVE_MAX_SCALE,
-              Math.min(state.wallRect.width, state.wallRect.height) / RESPONSIVE_REFERENCE_PX,
+              GLOW_RADIUS_MAX_CSS_PX,
+              Math.min(state.wallRect.width, state.wallRect.height) * atmosphereConfig.spread,
             ),
           );
           assertAtmosphereState(state, scenario, {
             qualities: ['high', 'balanced', 'low'],
             cadence: profile.cadence,
-            responsiveScale: expectedResponsiveScale,
+            resolvedGlowRadiusCss: expectedGlowRadiusCss,
           });
           assert(
             state.snapshot.edgeWidth === state.snapshot.outputWidth
@@ -1075,7 +1066,7 @@ async function runResponsiveResizeMatrix(browser) {
             },
             cadence: state.snapshot.cadence,
             quality: state.snapshot.quality,
-            responsiveScale: state.snapshot.responsiveScale,
+            resolvedGlowRadiusCss: state.snapshot.resolvedGlowRadiusCss,
           });
         }
       }
@@ -1129,7 +1120,7 @@ async function runCrispLabViewport(browser, profile, { measureCadence = false } 
     assert(state.snapshot.scope === 'lab', 'Crisp authoring compositor leaked into production scope', state);
     assert(state.snapshot.compositorCount === 1, 'Crisp lab mounted more than one compositor', state);
     assert(state.snapshot.activeSourceCount === 1, 'Crisp lab mounted more than one source', state);
-    assert(state.snapshot.sourceKind === 'emitters', 'Crisp lab did not reuse the emitter production path', state);
+    assert(state.snapshot.sourceKind === 'canvas', 'Crisp lab did not reuse the final-frame production path', state);
     assert(
       await page.locator('input[data-parameter-id="materialBlurPx"]').count() === 0,
       'Crisp lab still exposes the retired Body Blur control',
@@ -1185,45 +1176,37 @@ async function runCrispPersistenceContract(browser) {
 
     const clampResults = await page.evaluate(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js');
-      const below = module.normalizeSimulationAtmosphereConfig({
-        light: { glowRadiusFxPx: -20, glowAmount: -2 },
-      }).light;
-      const above = module.normalizeSimulationAtmosphereConfig({
-        dark: {
-          glowRadiusFxPx: 900,
-          glowAmount: 9,
-          colourStrength: 8,
-          hazeStrength: 9,
-          grainStrength: 9,
-          afterglowHalfLifeMs: 9000,
-          driftSpeedPxPerSec: 900,
-          titleClearance: 8,
-          edgeLight: 9,
-          edgeWidthPx: 20,
-          materialBlurPx: 3,
-        },
-      }).dark;
+      const belowConfig = module.normalizeSimulationAtmosphereConfig({
+        spread: -2,
+        contentClearance: -2,
+        edgeStrength: -2,
+        light: { intensity: -2, colourStrength: -2 },
+      });
+      const aboveConfig = module.normalizeSimulationAtmosphereConfig({
+        spread: 9,
+        contentClearance: 9,
+        edgeStrength: 9,
+        dark: { intensity: 9, colourStrength: 9, afterglowHalfLifeMs: 9000 },
+      });
       return {
-        below,
-        above,
-        bodyBlurRetired: !Object.hasOwn(above, 'materialBlurPx'),
+        below: belowConfig,
+        above: aboveConfig,
+        memoryRetired: !Object.hasOwn(aboveConfig.dark, 'afterglowHalfLifeMs'),
       };
     });
     assert(
-      clampResults.below.glowRadiusFxPx === 0
-        && clampResults.below.glowAmount === 0
-        && clampResults.above.glowRadiusFxPx === 420
-        && clampResults.above.glowAmount === 2
-        && clampResults.above.colourStrength === 3
-        && clampResults.above.hazeStrength === 4
-        && clampResults.above.grainStrength === 4
-        && clampResults.above.afterglowHalfLifeMs === 6000
-        && clampResults.above.driftSpeedPxPerSec === 60
-        && clampResults.above.titleClearance === 1
-        && clampResults.above.edgeLight === 5
-        && clampResults.above.edgeWidthPx === 8
-        && clampResults.bodyBlurRetired,
-      'Expanded atmosphere normalization ranges are wrong',
+      clampResults.below.spread === 0.06
+        && clampResults.below.contentClearance === 0
+        && clampResults.below.edgeStrength === 0
+        && clampResults.below.light.intensity === 0
+        && clampResults.below.light.colourStrength === 0
+        && clampResults.above.spread === 0.2
+        && clampResults.above.contentClearance === 1
+        && clampResults.above.edgeStrength === 1.5
+        && clampResults.above.dark.intensity === 0.8
+        && clampResults.above.dark.colourStrength === 1.6
+        && clampResults.memoryRetired,
+      'Diffuse atmosphere normalization ranges are wrong',
       clampResults,
     );
     return {
@@ -1259,6 +1242,58 @@ async function runExperimentalLabIsolation(browser) {
   }
 }
 
+async function runStatelessGlowContract(browser) {
+  const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(routeUrl('/index.html?mode=pit&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    const result = await page.evaluate(async () => {
+      const { DiffuseGlowEffect } = await import(
+        '/src/legacy/modules/rendering/atmosphere/diffuse-glow-effect.js'
+      );
+      const source = document.createElement('canvas');
+      const output = document.createElement('canvas');
+      source.width = 160;
+      source.height = 64;
+      output.width = 160;
+      output.height = 64;
+      const sourceContext = source.getContext('2d', { alpha: true });
+      const outputContext = output.getContext('2d', { alpha: true, willReadFrequently: true });
+      const effect = new DiffuseGlowEffect(output);
+      const config = {
+        intensity: 1,
+        blurRadiusBackingPx: 4,
+        colourStrength: 1,
+      };
+      const paintSource = (x) => {
+        sourceContext.clearRect(0, 0, source.width, source.height);
+        sourceContext.fillStyle = '#00ff88';
+        sourceContext.fillRect(x - 8, 24, 16, 16);
+      };
+      const readAlpha = (x) => outputContext.getImageData(x, 32, 1, 1).data[3];
+
+      paintSource(24);
+      effect.render({ sourceCanvas: source, config });
+      const firstOldAlpha = readAlpha(24);
+      paintSource(136);
+      effect.render({ sourceCanvas: source, config });
+      const secondOldAlpha = readAlpha(24);
+      const secondNewAlpha = readAlpha(136);
+      effect.destroy();
+      return { firstOldAlpha, secondOldAlpha, secondNewAlpha };
+    });
+    assert(result.firstOldAlpha > 20, 'Diffuse glow fixture did not render its first source', result);
+    assert(result.secondOldAlpha <= 1, 'Diffuse glow retained the previous source position', result);
+    assert(result.secondNewAlpha > 20, 'Diffuse glow did not follow the current source position', result);
+    return result;
+  } finally {
+    await context.close();
+  }
+}
+
 async function runConfigPanelContract(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
@@ -1273,63 +1308,83 @@ async function runConfigPanelContract(browser) {
     const group = page.locator('details[data-group-id="atmosphere"]');
     await group.waitFor({ state: 'visible', timeout: WAIT_MS });
     const expectedControlIds = [
+      'atmosphereEdgeStrengthSlider',
       'atmosphereEnabledSlider',
-      'atmosphereTitleYOffsetVhSlider',
-      'atmosphereGlowHoldMsSlider',
-      'atmosphereGlowFadeOutMsSlider',
-      'atmosphereQualityModeSlider',
-      'atmosphereHazeCadenceSlider',
+      'atmosphereSpreadSlider',
+      'atmosphereContentClearanceSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
-        'BallPresence',
-        'GlowAmount',
-        'GlowRadiusFxPx',
+        'Intensity',
         'ColourStrength',
-        'GlowBlendMode',
-        'EdgeLight',
-        'EdgeWidthPx',
-        'HazeStrength',
-        'GrainStrength',
-        'TitleClearance',
-        'AfterglowHalfLifeMs',
-        'DriftSpeedPxPerSec',
       ].map((id) => `atmosphere${theme}${id}Slider`)),
     ];
     const state = await group.evaluate((node) => ({
+      groupTitle: node.querySelector(':scope > summary')?.textContent
+        ?.trim()
+        .replace(/\s+/g, ' ') ?? null,
       sectionTitles: Array.from(node.querySelectorAll('.panel-section-accordion > summary'))
         .map((summary) => summary.textContent.trim().replace(/\s+/g, ' ')),
       controlIds: Array.from(node.querySelectorAll('input, select')).map((control) => control.id),
     }));
     assert(
-      JSON.stringify(state.controlIds) === JSON.stringify(expectedControlIds),
-      'Background Atmosphere panel does not match the shared production control schema',
+      state.groupTitle?.includes('Light Edge'),
+      'Atmosphere controls are not grouped under the Light Edge parent',
       state,
     );
     assert(
-      state.sectionTitles.some((title) => title.includes('Global'))
+      JSON.stringify(state.controlIds) === JSON.stringify(expectedControlIds),
+      'Light Edge panel does not match the shared production control schema',
+      state,
+    );
+    assert(
+      state.sectionTitles.some((title) => title.includes('Edge Response'))
+        && state.sectionTitles.some((title) => title.includes('Source Field'))
         && state.sectionTitles.some((title) => title.includes('Light Mode'))
         && state.sectionTitles.some((title) => title.includes('Dark Mode')),
-      'Background Atmosphere panel is missing its Global or theme sections',
+      'Light Edge panel is missing its response, source-field, or theme sections',
       state,
+    );
+
+    const edgeControl = page.locator('#atmosphereEdgeStrengthSlider');
+    assert(
+      await edgeControl.count() === 1,
+      'Light Edge must expose exactly one edge-strength control',
+      { count: await edgeControl.count() },
+    );
+    const edgeControlState = await edgeControl.evaluate((control) => {
+      const group = control.closest('details[data-group-id]');
+      const section = control.closest('.panel-section-accordion');
+      return {
+        groupId: group?.dataset.groupId ?? null,
+        sectionTitle: section?.querySelector(':scope > summary')?.textContent
+          ?.trim()
+          .replace(/\s+/g, ' ') ?? null,
+      };
+    });
+    assert(
+      edgeControlState.groupId === 'atmosphere'
+        && edgeControlState.sectionTitle?.includes('Edge Response'),
+      'Atmosphere edge-strength control is not grouped with Light Edge',
+      edgeControlState,
     );
 
     await group.locator(':scope > summary').click();
     const globalSummary = group.locator('.panel-section-accordion > summary').first();
     const globalSection = globalSummary.locator('..');
     if ((await globalSection.getAttribute('open')) === null) await globalSummary.click();
-    const titleSlider = page.locator('#atmosphereTitleYOffsetVhSlider');
-    const originalTitleY = await titleSlider.inputValue();
-    await titleSlider.fill('2.25');
-    await page.waitForFunction(() => (
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--atmosphere-title-y-offset')
-        .trim() === '2.25vh'
-    ), null, { timeout: WAIT_MS });
-    await titleSlider.fill(originalTitleY);
+    const spreadSlider = page.locator('#atmosphereSpreadSlider');
+    const originalSpread = await spreadSlider.inputValue();
+    await spreadSlider.fill('0.12');
+    await page.waitForFunction(async () => {
+      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+      return module.getSimulationAtmosphereConfig().spread === 0.12;
+    }, null, { timeout: WAIT_MS });
+    await spreadSlider.fill(originalSpread);
 
     return {
       controlCount: state.controlIds.length,
       sectionTitles: state.sectionTitles,
-      titleLiveApply: true,
+      edgeControl: edgeControlState,
+      spreadLiveApply: true,
     };
   } finally {
     await context.close();
@@ -1353,6 +1408,7 @@ async function main() {
     const crispLab = shouldRun('crisp') ? await runCrispLabIsolation(browser) : null;
     const persistence = shouldRun('persistence') ? await runCrispPersistenceContract(browser) : null;
     const experimentalLab = shouldRun('experimental') ? await runExperimentalLabIsolation(browser) : null;
+    const stateless = shouldRun('stateless') ? await runStatelessGlowContract(browser) : null;
     const configPanel = shouldRun('panel') ? await runConfigPanelContract(browser) : null;
     const output = {
       ok: true,
@@ -1369,6 +1425,7 @@ async function main() {
       crispLab,
       persistence,
       experimentalLab,
+      stateless,
       configPanel,
     };
     await mkdir(HANDOFF_CAPTURE_ROOT, { recursive: true });

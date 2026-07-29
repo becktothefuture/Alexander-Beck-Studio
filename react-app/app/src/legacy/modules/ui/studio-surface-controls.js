@@ -7,11 +7,6 @@ import { applyShellLayoutVars, patchShellLayout } from '../visual/site-shell.js'
 import { resize } from '../rendering/renderer.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
-  edgeStrength: 0.06,
-  edgeWidth: 0.5,
-  fillOpacity: 0.018,
-  glowOpacity: 0.18,
-  sceneHighlight: 0.3,
   scriptMaxWidth: 431,
   scriptPaddingX: 0,
   scriptPaddingY: 0,
@@ -25,30 +20,6 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   frameRadiusMobilePx: 32,
   frameRadiusDesktopPx: 72,
 };
-
-const SURFACE_CONTROL_SECTIONS = [
-  {
-    key: 'surfaceSystem',
-    title: 'Surface Finish',
-    icon: '✨',
-    defaultOpen: true,
-    controls: [
-      { id: 'edgeStrength', label: 'Light Edge', min: 0, max: 0.45, step: 0.01, unit: '' },
-      { id: 'edgeWidth', label: 'Edge Width', min: 0, max: 2.5, step: 0.1, unit: 'px' },
-      { id: 'fillOpacity', label: 'Glass Fill', min: 0, max: 0.12, step: 0.005, unit: '' },
-      { id: 'glowOpacity', label: 'Glow', min: 0, max: 0.6, step: 0.01, unit: '' },
-    ],
-  },
-  {
-    key: 'sceneLight',
-    title: 'Scene Light',
-    icon: '🫧',
-    defaultOpen: false,
-    controls: [
-      { id: 'sceneHighlight', label: 'Highlight', min: 0, max: 0.6, step: 0.01, unit: '' },
-    ],
-  },
-];
 
 const SHELL_OBJECT_CONTROL_SECTIONS = [
   {
@@ -90,9 +61,60 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
   },
 ];
 
-const ALL_CONTROL_SECTIONS = [
-  ...SURFACE_CONTROL_SECTIONS,
-  ...SHELL_OBJECT_CONTROL_SECTIONS,
+const ALL_CONTROL_SECTIONS = SHELL_OBJECT_CONTROL_SECTIONS;
+
+const OBSOLETE_SURFACE_KEYS = [
+  'sceneHighlight',
+  'contrastVeilOpacityLight',
+  'contrastVeilOpacityDark',
+  'contrastVeilReachX',
+  'contrastVeilReachY',
+  'contrastVeilBlurVmax',
+  'contrastVeilDitherOpacity',
+  'contrastVeilDitherSize',
+  'edgeWidth',
+  'fillOpacityLight',
+  'fillOpacityDark',
+  'edgeOpacityLight',
+  'edgeOpacityDark',
+  'innerShadowOpacityLight',
+  'innerShadowOpacityDark',
+  'shadowOpacityLight',
+  'shadowOpacityDark',
+  'glowOpacityLight',
+  'glowOpacityDark',
+  'lightEdgeInset',
+  'lightEdgeBlur',
+  'lightEdgeTopOpacityLight',
+  'lightEdgeTopOpacityDark',
+  'lightEdgeBottomOpacityLight',
+  'lightEdgeBottomOpacityDark',
+];
+
+const OBSOLETE_THEME_KEYS = [
+  'frameBorderEdgeOpacity',
+  'frameBorderMidOpacity',
+];
+
+const OBSOLETE_RUNTIME_KEYS = [
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopOpacity',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'innerWallGradientEdgeTopOpacity',
+  'innerWallGradientEdgeTopShadowOpacity',
+  'innerWallGradientEdgeWidth',
+  'simulationContrastVeilOpacityLight',
+  'simulationContrastVeilOpacityDark',
+  'simulationContrastVeilReachX',
+  'simulationContrastVeilReachY',
+  'simulationContrastVeilBlurVmax',
+  'simulationContrastVeilDitherOpacity',
+  'simulationContrastVeilDitherSize',
 ];
 
 function clamp(value, min, max, fallback) {
@@ -115,11 +137,6 @@ function readCurrentConfig() {
   const rootStyle = getComputedStyle(document.documentElement);
 
   return {
-    edgeStrength: readNumber(rootStyle, '--abs-surface-edge-opacity', readNumber(rootStyle, '--quote-glass-edge-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength)),
-    edgeWidth: readNumber(rootStyle, '--abs-surface-edge-width', readNumber(rootStyle, '--hover-edge-width', DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth)),
-    fillOpacity: readNumber(rootStyle, '--abs-surface-fill-opacity', readNumber(rootStyle, '--quote-glass-fill-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity)),
-    glowOpacity: readNumber(rootStyle, '--abs-surface-glow-opacity', readNumber(rootStyle, '--quote-glass-shadow-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity)),
-    sceneHighlight: readNumber(rootStyle, '--abs-scene-highlight', readNumber(rootStyle, '--inner-wall-top-light-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
     scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
     scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
@@ -210,16 +227,6 @@ function syncStudioRuntimeState(config) {
     const globals = getGlobals();
     if (!globals || typeof globals !== 'object') return;
 
-    globals.hoverEdgeEnabled = config.edgeStrength > 0;
-    globals.hoverEdgeWidth = config.edgeWidth;
-    globals.hoverEdgeBottomEnabled = config.edgeStrength > 0;
-    globals.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
-    globals.hoverEdgeTopEnabled = config.edgeStrength > 0;
-    globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-    globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
-    globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
-    globals.innerWallTopLightOpacityLight = Number(config.sceneHighlight.toFixed(3));
-    globals.innerWallTopLightOpacityDark = Number(Math.min(0.82, config.sceneHighlight * 1.33).toFixed(3));
     globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
     globals.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 
@@ -229,11 +236,6 @@ function syncStudioRuntimeState(config) {
 
 export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {}) {
   const root = document.documentElement;
-  const edgeStrength = clamp(config.edgeStrength, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength);
-  const edgeWidth = clamp(config.edgeWidth, 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth);
-  const fillOpacity = clamp(config.fillOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity);
-  const glowOpacity = clamp(config.glowOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity);
-  const sceneHighlight = clamp(config.sceneHighlight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight);
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
   const scriptPaddingX = clamp(config.scriptPaddingX, 0, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
   const scriptPaddingY = clamp(config.scriptPaddingY, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
@@ -245,21 +247,12 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const frameInset = normalizeFrameInsetEndpoints(config);
   const frameRadius = normalizeFrameRadiusEndpoints(config);
 
-  // Sync surface config into state first so applyLayoutCSSVars() (e.g. hover-edge vars) uses current values.
   syncStudioRuntimeState({
-    edgeStrength,
-    edgeWidth,
-    sceneHighlight,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
 
   const studioSurfaceSnapshot = {
-    edgeStrength,
-    edgeWidth,
-    fillOpacity,
-    glowOpacity,
-    sceneHighlight,
     scriptMaxWidth,
     scriptPaddingX,
     scriptPaddingY,
@@ -293,28 +286,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     if (refreshGeometry) resize();
   }
 
-  root.style.setProperty('--abs-surface-edge-opacity', `${edgeStrength}`);
-  root.style.setProperty('--abs-surface-edge-width', `${edgeWidth}px`);
-  root.style.setProperty('--abs-surface-fill-opacity', `${fillOpacity}`);
-  root.style.setProperty('--abs-surface-glow-opacity', `${glowOpacity}`);
-  root.style.setProperty('--abs-surface-shadow-opacity', `${glowOpacity}`);
-
-  root.style.setProperty('--quote-glass-edge-opacity', `${edgeStrength}`);
-  root.style.setProperty('--quote-glass-inner-shadow-opacity', `${Math.max(0, edgeStrength * 0.25)}`);
-  root.style.setProperty('--quote-glass-fill-opacity', `${fillOpacity}`);
-  root.style.setProperty('--quote-glass-shadow-opacity', `${glowOpacity}`);
-  root.style.setProperty('--quote-glass-bottom-edge-opacity', `${Math.max(0, edgeStrength * 0.12)}`);
-
-  root.style.setProperty('--hover-edge-enabled', edgeStrength > 0 ? '1' : '0');
-  root.style.setProperty('--hover-edge-width', `${edgeWidth}px`);
-  root.style.setProperty('--hover-edge-bottom-opacity', `${Math.max(0, edgeStrength * 0.78)}`);
-  root.style.setProperty('--hover-edge-top-opacity', `${Math.max(0, edgeStrength * 0.46)}`);
-
-  root.style.setProperty('--abs-scene-highlight', `${sceneHighlight}`);
-  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.029)}`);
-  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.058)}`);
-  root.style.setProperty('--inner-wall-top-light-opacity', `${sceneHighlight}`);
-  root.style.setProperty('--inner-wall-top-light-opacity-dark', `${Math.min(0.82, sceneHighlight * 1.33)}`);
   root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
   root.style.setProperty('--decorative-script-padding-left', `${scriptPaddingX}px`);
   root.style.setProperty('--decorative-script-padding-vertical', `${scriptPaddingY}px`);
@@ -325,9 +296,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   root.style.setProperty('--edge-caption-distance-max', `${edgeCaptionDistanceMax}px`);
 
   syncStudioRuntimeState({
-    edgeStrength,
-    edgeWidth,
-    sceneHighlight,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
@@ -381,10 +349,6 @@ function getShellObjectSections(options = {}) {
   const sectionKeys = Array.isArray(options.sectionKeys) ? options.sectionKeys : null;
   if (!sectionKeys || sectionKeys.length === 0) return SHELL_OBJECT_CONTROL_SECTIONS;
   return SHELL_OBJECT_CONTROL_SECTIONS.filter((section) => sectionKeys.includes(section.key));
-}
-
-export function generateStudioSurfaceControlsHTML() {
-  return generateSectionSetHTML(SURFACE_CONTROL_SECTIONS);
 }
 
 export function generateStudioShellControlsHTML(options = {}) {
@@ -455,26 +419,8 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
     surface: { ...(baseShell?.surface || {}) },
   };
 
-  nextShell.surface.edgeWidth = `${config.edgeWidth}px`;
-  nextShell.surface.fillOpacityLight = config.fillOpacity;
-  nextShell.surface.fillOpacityDark = Math.max(config.fillOpacity, Number((config.fillOpacity * 1.4).toFixed(3)));
-  nextShell.surface.edgeOpacityLight = config.edgeStrength;
-  nextShell.surface.edgeOpacityDark = Math.max(config.edgeStrength, Number((config.edgeStrength * 1.4).toFixed(3)));
-  nextShell.surface.innerShadowOpacityLight = Number((config.edgeStrength * 0.25).toFixed(3));
-  nextShell.surface.innerShadowOpacityDark = Number((config.edgeStrength * 0.38).toFixed(3));
-  nextShell.surface.shadowOpacityLight = Number((config.glowOpacity * 0.58).toFixed(3));
-  nextShell.surface.shadowOpacityDark = config.glowOpacity;
-  nextShell.surface.glowOpacityLight = Number((config.glowOpacity * 0.58).toFixed(3));
-  nextShell.surface.glowOpacityDark = config.glowOpacity;
-  nextShell.surface.lightEdgeInset = `${config.edgeWidth}px`;
-  nextShell.surface.lightEdgeTopOpacityLight = Number((config.edgeStrength * 0.46).toFixed(3));
-  nextShell.surface.lightEdgeTopOpacityDark = Number((config.edgeStrength * 0.58).toFixed(3));
-  nextShell.surface.lightEdgeBottomOpacityLight = Number((config.edgeStrength * 0.12).toFixed(3));
-  nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.2).toFixed(3));
-
-  nextShell.surface.sceneHighlight = config.sceneHighlight;
-  nextShell.theme.frameBorderEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
-  nextShell.theme.frameBorderMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
+  for (const key of OBSOLETE_SURFACE_KEYS) delete nextShell.surface[key];
+  for (const key of OBSOLETE_THEME_KEYS) delete nextShell.theme[key];
   nextShell.layout.decorativeScriptMaxWidth = `${Math.round(config.scriptMaxWidth)}px`;
   nextShell.layout.decorativeScriptPaddingX = `${Math.round(config.scriptPaddingX)}px`;
   nextShell.layout.decorativeScriptPaddingY = `${Math.round(config.scriptPaddingY)}px`;
@@ -516,14 +462,7 @@ export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
     ...(baseRuntime || {}),
   };
 
-  nextRuntime.hoverEdgeEnabled = config.edgeStrength > 0;
-  nextRuntime.hoverEdgeWidth = config.edgeWidth;
-  nextRuntime.hoverEdgeBottomEnabled = config.edgeStrength > 0;
-  nextRuntime.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
-  nextRuntime.hoverEdgeTopEnabled = config.edgeStrength > 0;
-  nextRuntime.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
+  for (const key of OBSOLETE_RUNTIME_KEYS) delete nextRuntime[key];
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 

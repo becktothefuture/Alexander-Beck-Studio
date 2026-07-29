@@ -233,14 +233,14 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### Shared simulation atmosphere
 
-Home and Daily simulations, Work / Portfolio, About Me, and Contact share one shell-owned Crisp + Glow material system. It unifies the existing background noise, low-frequency colour glow, crisp source material, title/content quiet zone, thin wall-edge reflection, and haze; it does not replace route-specific motion or flatten every route into the same simulation.
+Home and Daily simulations, Work / Portfolio, About Me, and Contact share one shell-owned Crisp + Diffuse Glow material system. It unifies a low-frequency colour field, crisp source material, title/content quiet zone, and thin wall-edge reflection; it does not replace route-specific motion or flatten every route into the same simulation. Shell grain and contrast finish remain independent and never intensify because the atmosphere is active.
 
-- The source material remains the only direct colour layer. It may use the authored 0–3px compositor softness, while Glow stays restrained environmental illumination derived from that material and the edge response remains a crisp 1–2px reflection that follows the studio-window contour.
+- The source material remains the only direct colour layer. Glow is a stateless, broad projection of the current completed source frame, while the edge response remains a crisp fixed-width reflection that follows the studio-window contour.
 - Home preserves its Canvas title placement: ordinary material passes in front of the title, while the established depth modes and Emergence may place stable material on both sides. Other routes keep readable DOM copy above their route material and use the same field only to create breathing room around it.
 - Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Canvas-less, suspended, or editorial-only states may use the compositor's bounded ambient field so the shared finish does not disappear abruptly.
 - Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
-- Reduced Motion retains one static diffused colour response but removes atmospheric drift. Mobile keeps the same visual hierarchy at reduced output scale and cadence rather than disabling the material.
-- The atmosphere is an entrance response rather than a permanent wash: fresh glow holds briefly, then follows one smooth shared fade envelope in both themes, while each theme's feedback memory controls the remaining tail.
+- Reduced Motion retains one static diffused colour response. Mobile keeps the same visual hierarchy at reduced output scale rather than disabling the material.
+- The glow has no temporal memory, drift, diffusion history, accumulation, or trail. Every completed atmosphere frame clears the previous result and derives only from the current simulation frame.
 
 ## Fluid responsive contract
 

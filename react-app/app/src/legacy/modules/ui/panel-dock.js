@@ -14,7 +14,6 @@ import {
 } from './control-registry.js';
 import {
   generateStudioShellControlsHTML,
-  generateStudioSurfaceControlsHTML,
 } from './studio-surface-controls.js';
 import { generatePortfolioPitChromePanelHTML } from '../portfolio/panel/control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
@@ -322,7 +321,6 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      finish: generateStudioSurfaceControlsHTML(),
       structure: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
       simulations: simulationsPrepend,
       simulationModes: ballsPrepend,

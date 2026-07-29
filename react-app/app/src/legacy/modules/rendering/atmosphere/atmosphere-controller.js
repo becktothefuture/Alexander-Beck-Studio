@@ -574,14 +574,24 @@ class CrispGlowLabController {
     this.baseConfig = createCrispGlowAuthoringConfig(designSystem);
     this.config = createCrispGlowAuthoringConfig(designSystem);
     this.destroyed = false;
+    this.canvasLayers = [globals.canvas];
     this.sourceCleanup = registerSimulationAtmosphereSource({
       id: 'lab:crisp-glow',
       routeId: 'atmosphere-crisp-glow',
-      kind: 'emitters',
+      kind: 'canvas',
       canvas: globals.canvas,
-      getEmitters: () => globals.balls,
+      getCanvasLayers: () => {
+        const frontDepthCanvas = this.globals.depthTitleFrontCanvas;
+        if (frontDepthCanvas?.isConnected && frontDepthCanvas.id !== 'simulation-title-canvas') {
+          this.canvasLayers[1] = frontDepthCanvas;
+          this.canvasLayers.length = 2;
+        } else {
+          this.canvasLayers.length = 1;
+        }
+        return this.canvasLayers;
+      },
       quietZoneElement: () => document.getElementById('hero-title'),
-      scheduler: 'external',
+      scheduler: 'renderer-coupled',
       opacityElement: globals.canvas,
     });
     this.applyConfig(this.config);
@@ -697,7 +707,7 @@ class CrispGlowLabController {
         return {
           ...production,
           variant: this.variant,
-          renderer: 'production-canvas-feedback',
+          renderer: 'production-diffuse-glow',
           simulationMode: this.globals.currentMode,
           titleOwner: 'shell',
           titleVisible: Boolean(this.globals.canvasTitleRenderState?.visible),

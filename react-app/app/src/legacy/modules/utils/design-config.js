@@ -53,11 +53,6 @@ export const DEFAULT_CV_CONFIG = {
 };
 
 const DEFAULT_STUDIO_SURFACE_CONFIG = {
-  edgeStrength: 0.06,
-  edgeWidth: 0.5,
-  fillOpacity: 0.018,
-  glowOpacity: 0.18,
-  sceneHighlight: 0.3,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
 };
@@ -438,16 +433,10 @@ function clamp(value, min, max, fallback) {
 }
 
 function deriveStudioSurfaceFromShell(shell = {}) {
-  const theme = isPlainObject(shell.theme) ? shell.theme : {};
   const layout = isPlainObject(shell.layout) ? shell.layout : {};
   const surface = isPlainObject(shell.surface) ? shell.surface : {};
 
   return {
-    edgeStrength: clamp(surface.edgeOpacityLight, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength),
-    edgeWidth: clamp(parseNumericToken(surface.edgeWidth, surface.lightEdgeInset), 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth),
-    fillOpacity: clamp(surface.fillOpacityLight, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity),
-    glowOpacity: clamp(surface.glowOpacityDark ?? surface.shadowOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity),
-    sceneHighlight: clamp(surface.sceneHighlight, 0, 0.6, clamp(parseNumericToken(theme.frameBorderMidOpacity, 0.054) / 0.18, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
     edgeCaptionDistanceMin: clamp(parseNumericToken(layout.edgeCaptionDistanceMin, 8), 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: clamp(parseNumericToken(layout.edgeCaptionDistanceMax, 48), 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
   };
@@ -460,14 +449,6 @@ function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
 
   if (theme.wallBase !== undefined) nextRuntime.wallBase = theme.wallBase;
   if (theme.siteFrame !== undefined) nextRuntime.frameColor = theme.siteFrame;
-  nextRuntime.hoverEdgeEnabled = studio.edgeStrength > 0;
-  nextRuntime.hoverEdgeWidth = studio.edgeWidth;
-  nextRuntime.hoverEdgeBottomEnabled = studio.edgeStrength > 0;
-  nextRuntime.hoverEdgeBottomOpacity = Number((studio.edgeStrength * 0.78).toFixed(3));
-  nextRuntime.hoverEdgeTopEnabled = studio.edgeStrength > 0;
-  nextRuntime.hoverEdgeTopOpacity = Number((studio.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.sceneHighlight * 0.029).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((studio.sceneHighlight * 0.058).toFixed(3));
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(studio.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(studio.edgeCaptionDistanceMax);
 

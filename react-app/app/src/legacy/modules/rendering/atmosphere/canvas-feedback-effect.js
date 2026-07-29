@@ -20,6 +20,7 @@ function resolveFrameNormalizedAlpha(alpha, dtMs, blendMode) {
   return 1 - Math.pow(1 - boundedAlpha, frameScale);
 }
 
+/** Experimental feedback renderer retained only by the Canvas Feedback lab. */
 export class CanvasFeedbackEffect {
   constructor(outputCanvas) {
     this.outputCanvas = outputCanvas;

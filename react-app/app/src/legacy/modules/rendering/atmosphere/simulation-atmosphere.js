@@ -1,7 +1,6 @@
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../../../lib/theme-state.js';
 import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
-import { CanvasFeedbackEffect } from './canvas-feedback-effect.js';
-import { ParticleLightSource } from './particle-light-source.js';
+import { DiffuseGlowEffect } from './diffuse-glow-effect.js';
 import {
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
   normalizeSimulationAtmosphereConfig,
@@ -19,10 +18,8 @@ const QUALITY_LEVELS = Object.freeze({
 });
 const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 1200;
-const RESPONSIVE_REFERENCE_PX = 720;
-const RESPONSIVE_MIN_SCALE = 0.72;
-const RESPONSIVE_MAX_SCALE = 2.5;
-const SUSTAINED_EMISSION_SCALE = 0.5;
+const GLOW_RADIUS_MIN_CSS_PX = 36;
+const GLOW_RADIUS_MAX_CSS_PX = 180;
 const AMBIENT_COLOURS_LIGHT = Object.freeze(['#4f7fff', '#ff7657', '#d8e54f', '#53d39c']);
 const AMBIENT_COLOURS_DARK = Object.freeze(['#5c87ff', '#ff7657', '#dceb54', '#55dba0']);
 const AMBIENT_COUNT = 8;
@@ -37,7 +34,7 @@ let outputSourceGeneration = 0;
 let resetSourceGeneration = 0;
 let firstCompositeGeneration = 0;
 let outputTransactionId = '';
-let feedbackResetCount = 0;
+let outputResetCount = 0;
 let sourceUnregisterCount = 0;
 let configuration = normalizeSimulationAtmosphereConfig(DEFAULT_SIMULATION_ATMOSPHERE_CONFIG);
 let themeMode = 'light';
@@ -51,8 +48,10 @@ let staticFrameDirty = true;
 let lastEffectAt = 0;
 let renderProfile = null;
 let dynamicQuality = QUALITY_LEVELS.balanced;
+let pendingQuality = null;
 let cadence = 30;
 let responsiveScale = 1;
+let resolvedGlowRadiusCss = 0;
 let reducedMotion = false;
 let destroyed = false;
 let consecutiveErrors = 0;
@@ -90,21 +89,8 @@ const ambientBalls = Array.from({ length: AMBIENT_COUNT }, (_, index) => ({
 
 const effectRenderArgs = {
   sourceCanvas: null,
+  maskCanvas: null,
   config: null,
-  dtMs: 0,
-  qualityScale: 0.375,
-  responsiveScale: 1,
-  emissionScale: 1,
-  nowMs: 0,
-};
-const particleRenderArgs = {
-  context: null,
-  canvas: null,
-  balls: null,
-  mainCanvas: null,
-  config: null,
-  nowMs: 0,
-  emitterStride: 1,
 };
 const resolvedCanvasLayers = [];
 
@@ -113,7 +99,7 @@ function getQualityById(id) {
 }
 
 function resolveQuality() {
-  const resolved = resolveSimulationAtmosphereQualityScale(configuration.qualityMode);
+  const resolved = resolveSimulationAtmosphereQualityScale('auto');
   return getQualityById(resolved.id);
 }
 
@@ -315,13 +301,12 @@ function failOpen(reason, source = activeSource) {
 
 function rebuildProfile({ resetQuality = false } = {}) {
   themeMode = isDarkThemeDocument() ? 'dark' : 'light';
-  if (resetQuality || configuration.qualityMode !== 'auto') dynamicQuality = resolveQuality();
-  const nextProfile = resolveSimulationAtmosphereRenderProfile(configuration, themeMode);
-  renderProfile = reducedMotion
-    ? { ...nextProfile, driftSpeedPxPerSec: 0, turbulence: 0, particleShimmer: 0 }
-    : nextProfile;
-  if (dynamicQuality.id === 'low') renderProfile.diffusionPasses = 1;
-  cadence = resolveSimulationAtmosphereCadence(configuration.hazeCadence);
+  if (resetQuality) {
+    dynamicQuality = resolveQuality();
+    pendingQuality = null;
+  }
+  renderProfile = resolveSimulationAtmosphereRenderProfile(configuration, themeMode);
+  cadence = resolveSimulationAtmosphereCadence('auto');
   host?.edgeLight?.setQuality(dynamicQuality.id);
   geometryDirty = true;
   maskDirty = true;
@@ -333,13 +318,8 @@ function applyPresentationState() {
   if (!host) return;
   const enabled = configuration.enabled && Boolean(activeSource) && !failureReason;
   const root = host.root;
-  const presentationRoot = document.documentElement;
   root.dataset.atmosphereActive = String(enabled);
   root.dataset.atmosphereStatus = enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle';
-  presentationRoot.style.setProperty('--atmosphere-core-presence', String(renderProfile?.ballPresence ?? 1));
-  presentationRoot.style.setProperty('--atmosphere-haze-strength', String(renderProfile?.hazeStrength ?? 1));
-  presentationRoot.style.setProperty('--atmosphere-grain-strength', String(renderProfile?.grainStrength ?? 1));
-  presentationRoot.style.setProperty('--atmosphere-edge-width', `${renderProfile?.edgeWidthPx ?? 1.5}px`);
   if (!enabled) {
     markSourceElement(activeSource, false);
     host.glowCanvas.hidden = true;
@@ -363,7 +343,7 @@ function rebuildQuietZoneMask(rootRect) {
   maskContext.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
 
   const quietZone = resolveQuietZoneElement();
-  if (!quietZone || renderProfile.titleClearance <= 0 || rootRect.width <= 0 || rootRect.height <= 0) {
+  if (!quietZone || renderProfile.contentClearance <= 0 || rootRect.width <= 0 || rootRect.height <= 0) {
     host.hasQuietZoneMask = false;
     maskDirty = false;
     return;
@@ -374,16 +354,18 @@ function rebuildQuietZoneMask(rootRect) {
   const scaleY = sourceCanvas.height / rootRect.height;
   const centerX = (quietRect.left + quietRect.width * 0.5 - rootRect.left) * scaleX;
   const centerY = (quietRect.top + quietRect.height * 0.5 - rootRect.top) * scaleY;
-  const radiusX = Math.max(1, (quietRect.width * 0.72 + 72) * scaleX);
-  const radiusY = Math.max(1, (quietRect.height * 1.35 + 68) * scaleY);
-  const removal = Math.min(1, 0.46 + renderProfile.titleClearance * 0.72);
+  const clearance = renderProfile.contentClearance;
+  const paddingCss = resolvedGlowRadiusCss * (0.3 + clearance * 0.7);
+  const radiusX = Math.max(1, (quietRect.width * 0.5 + paddingCss) * scaleX);
+  const radiusY = Math.max(1, (quietRect.height * 0.5 + paddingCss) * scaleY);
+  const removal = Math.min(1, 0.2 + clearance * 0.8);
 
   maskContext.save();
   maskContext.translate(centerX, centerY);
   maskContext.scale(radiusX, radiusY);
   const gradient = maskContext.createRadialGradient(0, 0, 0.08, 0, 0, 1);
   gradient.addColorStop(0, `rgba(255, 255, 255, ${removal})`);
-  gradient.addColorStop(0.38, `rgba(255, 255, 255, ${removal * 0.92})`);
+  gradient.addColorStop(0.46, `rgba(255, 255, 255, ${removal * 0.92})`);
   gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
   maskContext.fillStyle = gradient;
   maskContext.fillRect(-1, -1, 2, 2);
@@ -395,25 +377,23 @@ function rebuildQuietZoneMask(rootRect) {
 function syncGeometry() {
   if (!host) return false;
   if (!geometryDirty) return host.sourceCanvas.width > 1 && host.sourceCanvas.height > 1;
-  cadence = resolveSimulationAtmosphereCadence(configuration.hazeCadence);
-  if (configuration.qualityMode === 'auto') {
-    const nextQuality = resolveQuality();
-    if (nextQuality.id !== dynamicQuality.id) {
-      dynamicQuality = nextQuality;
-      renderProfile.diffusionPasses = dynamicQuality.id === 'low' ? 1 : 2;
-      host.edgeLight.setQuality(dynamicQuality.id);
-      resetCostMetrics();
-      lastEffectAt = 0;
-    }
+  cadence = resolveSimulationAtmosphereCadence('auto');
+  const nextQuality = resolveQuality();
+  if (nextQuality.id !== dynamicQuality.id) {
+    dynamicQuality = nextQuality;
+    host.edgeLight.setQuality(dynamicQuality.id);
+    resetCostMetrics();
+    lastEffectAt = 0;
   }
   const rect = host.root.getBoundingClientRect();
   geometryReadCount += 1;
   if (rect.width <= 1 || rect.height <= 1) return false;
   const shortestSide = Math.min(rect.width, rect.height);
-  responsiveScale = Math.max(
-    RESPONSIVE_MIN_SCALE,
-    Math.min(RESPONSIVE_MAX_SCALE, shortestSide / RESPONSIVE_REFERENCE_PX),
+  resolvedGlowRadiusCss = Math.max(
+    GLOW_RADIUS_MIN_CSS_PX,
+    Math.min(GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.spread),
   );
+  responsiveScale = resolvedGlowRadiusCss / shortestSide;
   const width = Math.max(2, Math.round(rect.width * dynamicQuality.scale));
   const height = Math.max(2, Math.round(rect.height * dynamicQuality.scale));
   if (host.sourceCanvas.width !== width || host.sourceCanvas.height !== height) {
@@ -423,6 +403,9 @@ function syncGeometry() {
     maskDirty = true;
     lastEffectAt = 0;
   }
+  const backingScaleX = width / rect.width;
+  const backingScaleY = height / rect.height;
+  renderProfile.blurRadiusBackingPx = resolvedGlowRadiusCss * Math.sqrt(backingScaleX * backingScaleY);
   host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
@@ -446,16 +429,40 @@ function updateAmbientSource(nowMs) {
     ball.r = shortest * (0.026 + (index % 3) * 0.006);
     ball.color = colours[index % colours.length];
   }
-  lastSampledEmitterCount = AMBIENT_COUNT;
   lastSourceLayerCount = 0;
-  particleRenderArgs.context = host.sourceContext;
-  particleRenderArgs.canvas = canvas;
-  particleRenderArgs.balls = ambientBalls;
-  particleRenderArgs.mainCanvas = canvas;
-  particleRenderArgs.config = renderProfile;
-  particleRenderArgs.nowMs = nowMs;
-  particleRenderArgs.emitterStride = 1;
-  lastSourceLightCount = host.particleLightSource.render(particleRenderArgs);
+  lastSourceLightCount = renderEmitterDiscs(ambientBalls, canvas, 1);
+}
+
+function renderEmitterDiscs(emitters, mainCanvas, emitterStride = 1) {
+  const context = host.sourceContext;
+  const canvas = host.sourceCanvas;
+  const count = Array.isArray(emitters) ? emitters.length : 0;
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
+  context.filter = 'none';
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (count === 0 || !mainCanvas) return 0;
+
+  const scaleX = canvas.width / Math.max(1, mainCanvas.width);
+  const scaleY = canvas.height / Math.max(1, mainCanvas.height);
+  const radiusScale = Math.sqrt(scaleX * scaleY);
+  const stride = Math.max(1, Math.round(Number(emitterStride) || 1));
+  let rendered = 0;
+  for (let index = 0; index < count; index += stride) {
+    const emitter = emitters[index];
+    const radius = typeof emitter?.getDisplayRadius === 'function'
+      ? emitter.getDisplayRadius()
+      : Number(emitter?.r || 0);
+    if (!Number.isFinite(emitter?.x) || !Number.isFinite(emitter?.y) || radius <= 0) continue;
+    context.fillStyle = String(emitter.color || '#ffffff');
+    context.beginPath();
+    context.arc(emitter.x * scaleX, emitter.y * scaleY, Math.max(0.5, radius * radiusScale), 0, Math.PI * 2);
+    context.fill();
+    rendered += 1;
+  }
+  lastSampledEmitterCount = rendered;
+  return rendered;
 }
 
 function resolveCanvasLayers(source) {
@@ -502,15 +509,7 @@ function copyEmitterSource(source, nowMs) {
   if (count === 0) return copyCanvasSource(source);
   lastSourceLayerCount = 0;
   const stride = Math.max(1, Math.ceil(count / dynamicQuality.emitterBudget));
-  lastSampledEmitterCount = Math.ceil(count / stride);
-  particleRenderArgs.context = host.sourceContext;
-  particleRenderArgs.canvas = host.sourceCanvas;
-  particleRenderArgs.balls = emitters;
-  particleRenderArgs.mainCanvas = source.canvas;
-  particleRenderArgs.config = renderProfile;
-  particleRenderArgs.nowMs = nowMs;
-  particleRenderArgs.emitterStride = stride;
-  lastSourceLightCount = host.particleLightSource.render(particleRenderArgs);
+  lastSourceLightCount = renderEmitterDiscs(emitters, source.canvas, stride);
   return true;
 }
 
@@ -522,15 +521,6 @@ function copyActiveSource(nowMs) {
   }
   if (activeSource.kind === 'emitters') return copyEmitterSource(activeSource, nowMs);
   return copyCanvasSource(activeSource);
-}
-
-function applyQuietZoneMask() {
-  if (!host?.hasQuietZoneMask) return;
-  const context = host.sourceContext;
-  context.globalCompositeOperation = 'destination-out';
-  context.globalAlpha = 1;
-  context.drawImage(host.maskCanvas, 0, 0);
-  context.globalCompositeOperation = 'source-over';
 }
 
 function settleFirstFrame(source, now) {
@@ -549,32 +539,26 @@ function settleFirstFrame(source, now) {
   }
 }
 
-function resolveGlowEmissionScale(now) {
-  if (!firstCompositeAt) return 1;
-  const holdMs = Math.max(0, Number(renderProfile?.glowHoldMs) || 0);
-  const fadeOutMs = Math.max(0, Number(renderProfile?.glowFadeOutMs) || 0);
-  const fadeElapsed = Math.max(0, now - firstCompositeAt - holdMs);
-  if (fadeElapsed <= 0) return 1;
-  if (fadeOutMs <= 0) return SUSTAINED_EMISSION_SCALE;
-  const progress = Math.min(1, fadeElapsed / fadeOutMs);
-  const easedProgress = progress * progress * (3 - 2 * progress);
-  return SUSTAINED_EMISSION_SCALE + (1 - SUSTAINED_EMISSION_SCALE) * (1 - easedProgress);
-}
-
 function maybeDowngradeQuality() {
-  if (configuration.qualityMode !== 'auto' || dynamicQuality.id === 'low') return;
+  if (dynamicQuality.id === 'low' || pendingQuality) return;
   const budget = dynamicQuality.id === 'balanced' ? 0.95 : 1.35;
   overBudgetSamples = costEmaMs > budget
     ? overBudgetSamples + 1
     : Math.max(0, overBudgetSamples - 2);
   if (overBudgetSamples < 18) return;
-  dynamicQuality = dynamicQuality.id === 'high' ? QUALITY_LEVELS.balanced : QUALITY_LEVELS.low;
-  renderProfile.diffusionPasses = dynamicQuality.id === 'low' ? 1 : 2;
-  host?.edgeLight?.setQuality(dynamicQuality.id);
+  pendingQuality = dynamicQuality.id === 'high' ? QUALITY_LEVELS.balanced : QUALITY_LEVELS.low;
   overBudgetSamples = 0;
+}
+
+function applyPendingQuality() {
+  if (!pendingQuality) return;
+  dynamicQuality = pendingQuality;
+  pendingQuality = null;
+  host?.edgeLight?.setQuality(dynamicQuality.id);
   geometryDirty = true;
   maskDirty = true;
-  clearOutput();
+  staticFrameDirty = true;
+  lastEffectAt = 0;
 }
 
 function renderComposite(now) {
@@ -586,6 +570,7 @@ function renderComposite(now) {
   ) return false;
   if (transitionPhase !== 'idle' && activeSource.generation === transitionSourceGeneration) return false;
   if (reducedMotion && !staticFrameDirty) return false;
+  applyPendingQuality();
   if (!syncGeometry()) return false;
   if (maskDirty) {
     const geometry = host.geometry;
@@ -596,20 +581,14 @@ function renderComposite(now) {
     skippedFrameCount += 1;
     return false;
   }
-  const dtMs = reducedMotion ? interval : (lastEffectAt ? Math.min(120, now - lastEffectAt) : interval);
   lastEffectAt = now;
   const start = performance.now();
   if (!copyActiveSource(now)) return false;
-  applyQuietZoneMask();
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
+  effectRenderArgs.maskCanvas = host.hasQuietZoneMask ? host.maskCanvas : null;
   effectRenderArgs.config = renderProfile;
-  effectRenderArgs.dtMs = dtMs;
-  effectRenderArgs.qualityScale = dynamicQuality.scale;
-  effectRenderArgs.responsiveScale = responsiveScale;
-  effectRenderArgs.emissionScale = reducedMotion ? 1 : resolveGlowEmissionScale(now);
-  effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
-  host.edgeLight.render(host.glowCanvas, renderProfile.edgeLight);
+  host.edgeLight.render(host.glowCanvas, renderProfile.edgeStrength);
   const costMs = performance.now() - start;
   recordCost(costMs);
   compositedFrameCount += 1;
@@ -617,7 +596,7 @@ function renderComposite(now) {
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = false;
-  host.edgeCanvas.hidden = transitionPhase !== 'idle' || renderProfile.edgeLight <= 0;
+  host.edgeCanvas.hidden = transitionPhase !== 'idle' || renderProfile.edgeStrength <= 0;
   host.root.dataset.atmosphereReady = 'true';
   host.root.dataset.atmosphereStatus = 'ready';
   settleFirstFrame(activeSource, now);
@@ -766,7 +745,7 @@ function getDiagnosticSnapshot() {
     resetSourceGeneration,
     firstCompositeGeneration,
     outputTransactionId,
-    feedbackResetCount,
+    outputResetCount,
     sourceUnregisterCount,
     activeSourceCount: activeSource ? 1 : 0,
     compositorCount: host ? 1 : 0,
@@ -785,8 +764,8 @@ function getDiagnosticSnapshot() {
     responsiveScale,
     themeMode,
     reducedMotion,
-    effectiveDrift: renderProfile?.driftSpeedPxPerSec || 0,
-    glowEmissionScale: reducedMotion ? 1 : resolveGlowEmissionScale(performance.now()),
+    temporalMemoryFrames: 0,
+    resolvedGlowRadiusCss,
     outputWidth: host?.glowCanvas.width || 0,
     outputHeight: host?.glowCanvas.height || 0,
     compositedFrameCount,
@@ -845,9 +824,8 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   const sourceContext = sourceCanvas.getContext('2d', { alpha: true, desynchronized: true });
   const maskContext = maskCanvas.getContext('2d', { alpha: true });
   if (!sourceContext || !maskContext) throw new Error('Simulation atmosphere source contexts unavailable.');
-  const effect = new CanvasFeedbackEffect(glowCanvas);
+  const effect = new DiffuseGlowEffect(glowCanvas);
   const edgeLight = new AtmosphereEdgeLight(edgeCanvas);
-  const particleLightSource = new ParticleLightSource();
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(() => invalidateSimulationAtmosphereGeometry('resize-observer'))
     : null;
@@ -865,7 +843,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     maskContext,
     effect,
     edgeLight,
-    particleLightSource,
     resizeObserver,
     reducedMotionQuery,
     observedQuietZone: null,
@@ -895,13 +872,8 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     markSourceElement(activeSource, false);
     edgeLight.destroy();
     effect.destroy();
-    particleLightSource.destroy();
     glowCanvas.hidden = true;
     edgeCanvas.hidden = true;
-    document.documentElement.style.removeProperty('--atmosphere-core-presence');
-    document.documentElement.style.removeProperty('--atmosphere-haze-strength');
-    document.documentElement.style.removeProperty('--atmosphere-grain-strength');
-    document.documentElement.style.removeProperty('--atmosphere-edge-width');
     delete root.dataset.atmosphereActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
@@ -934,7 +906,7 @@ export function getSimulationAtmosphereConfig() {
 
 /**
  * Reserve the next compositor generation without touching the active source or
- * its feedback. The route coordinator owns the returned transaction id.
+ * its output. The route coordinator owns the returned transaction id.
  */
 export function prepareSimulationAtmosphereReplacement({
   transactionId,
@@ -1021,7 +993,7 @@ export function prepareSimulationAtmosphereRollback({
   return createReplacementHandle(replacementTransaction);
 }
 
-/** Remove the outgoing source and reset compositor feedback exactly once. */
+/** Remove the outgoing source and reset compositor output exactly once. */
 export function commitSimulationAtmosphereReplacement({ transactionId } = {}) {
   if (!isReplacementCurrent(transactionId)) return false;
   const replacement = replacementTransaction;
@@ -1046,7 +1018,7 @@ export function commitSimulationAtmosphereReplacement({ transactionId } = {}) {
   }
   if (!replacement.resetApplied) {
     replacement.resetApplied = true;
-    feedbackResetCount += 1;
+    outputResetCount += 1;
     resetSourceGeneration = replacement.generation;
     outputSourceGeneration = 0;
     firstCompositeGeneration = 0;
@@ -1350,7 +1322,7 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
     host.root.dataset.atmosphereStatus = 'waiting-source';
     return;
   }
-  host.edgeCanvas.hidden = !firstCompositeAt || renderProfile.edgeLight <= 0;
+  host.edgeCanvas.hidden = !firstCompositeAt || renderProfile.edgeStrength <= 0;
   staticFrameDirty = true;
   if (activeSource.scheduler === 'internal') scheduleInternalFrame();
 }
@@ -1381,7 +1353,5 @@ export function isSimulationAtmosphereActive() {
 }
 
 export function getSimulationAtmosphereMaterialOpacity() {
-  return isSimulationAtmosphereActive()
-    ? Math.max(0, Math.min(1, Number(renderProfile?.ballPresence) || 0))
-    : 1;
+  return 1;
 }

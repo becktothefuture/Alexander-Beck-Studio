@@ -5100,13 +5100,6 @@ html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
   mix-blend-mode: screen;
 }
 
-/* Source opacity applies only to simulation material. The stable title plane is
-   structurally outside every atmosphere source registration. */
-#simulations[data-atmosphere-active='true']
-  canvas[data-atmosphere-source-material='true']:not(.ball-canvas-layer) {
-  opacity: var(--atmosphere-core-presence, 0.95);
-}
-
 /* The About point world has its own opaque route ground. The physical window
    remains the ground while the registered field lets shell glow show through. */
 body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab {
@@ -5207,7 +5200,6 @@ html.entrance-complete .noise-ready .noise {
   opacity: calc(
     var(--noise-opacity-light)
     * var(--abs-noise-enabled)
-    * var(--atmosphere-effective-grain-strength, 1)
   );
   mix-blend-mode: normal;
   transition: visibility 0s linear 0s, opacity 160ms ease-out;
@@ -5246,12 +5238,7 @@ html.entrance-complete body.dark-mode.noise-ready .noise {
   opacity: calc(
     var(--noise-opacity-dark)
     * var(--abs-noise-enabled)
-    * var(--atmosphere-effective-grain-strength, 1)
   );
-}
-
-#simulations[data-atmosphere-active='true'] .noise {
-  --atmosphere-effective-grain-strength: var(--atmosphere-grain-strength, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
