@@ -9,8 +9,8 @@ The live reference is `/styleguide.html`. It must describe production components
 - Route buttons: Home, Work (Portfolio route), About Me, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: sound and theme
-- Active geometry: content-sized tab cells use label width plus inline padding; one shared pill matches the selected padded cell with rounded-rectangle corners, while Home remains circular
-- Mobile: Home gains a visible label; all controls remain keyboard and touch accessible
+- Active geometry: all content-sized tab cells use label width plus inline padding; one shared rounded-rectangle pill matches the selected padded cell
+- Mobile: all four route labels remain visible; all controls remain keyboard and touch accessible
 - Primary navigation never moves into a route top bar
 
 ## Utility icon buttons

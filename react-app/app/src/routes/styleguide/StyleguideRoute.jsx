@@ -22,8 +22,11 @@ function renderButtonBarSpecimen() {
             aria-current={tab.routeId === 'portfolio' ? 'page' : undefined}
             disabled
           >
-            <i className={`ti ${tab.icon} button-bar__icon shell-tab__icon`} aria-hidden="true" />
-            <span className="button-bar__label shell-tab__label">{tab.label}</span>
+            {tab.iconOnly ? (
+              <i className={`ti ${tab.icon} button-bar__icon shell-tab__icon`} aria-hidden="true" />
+            ) : (
+              <span className="button-bar__label shell-tab__label">{tab.label}</span>
+            )}
           </button>
         ))}
       </nav>

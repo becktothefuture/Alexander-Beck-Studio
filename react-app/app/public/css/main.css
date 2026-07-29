@@ -3921,7 +3921,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .shell-tab-nav {
   display: grid;
-  grid-template-columns: var(--ui-icon-frame-size) repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--shell-tab-gap, 12px);
   width: 100%;
@@ -4647,9 +4647,7 @@ svg.shell-tab__icon {
   }
 
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns:
-      var(--shell-tab-height, 48px)
-      repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     --button-bar-primary-inner-gap: 2px;
     gap: var(--button-bar-primary-inner-gap);
   }
@@ -4733,10 +4731,6 @@ svg.shell-tab__icon {
     display: none;
   }
 
-  .button-bar__primary-buttons .shell-tab[data-route-tab='home'].shell-tab--icon-only .shell-tab__icon {
-    display: block;
-  }
-
   .button-bar__primary-buttons .shell-tab--icon-only {
     inline-size: var(--shell-tab-height, 48px);
     min-width: var(--shell-tab-height, 48px);
@@ -4750,16 +4744,11 @@ svg.shell-tab__icon {
     display: block;
   }
 
-  .button-bar__primary-buttons .shell-tab[data-route-tab='home'] .button-bar__label--mobile-only {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns:
-      var(--shell-tab-height, 48px)
-      repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .button-bar__primary-buttons .shell-tab {
@@ -4776,18 +4765,7 @@ svg.shell-tab__icon {
 
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 2px;
-    grid-template-columns:
-      46px
-      repeat(3, minmax(0, 1fr));
-  }
-
-  .button-bar__primary-buttons .shell-tab[data-route-tab='home'].shell-tab--icon-only {
-    inline-size: 46px;
-    block-size: 46px;
-    min-width: 46px;
-    min-height: 46px;
-    max-width: 46px;
-    max-height: 46px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .button-bar__divider {
@@ -4805,22 +4783,8 @@ svg.shell-tab__icon {
 @media (min-width: 601px) and (max-width: 680px) {
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 8px;
-    grid-template-columns:
-      var(--shell-tab-height, 48px)
-      repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--button-bar-primary-inner-gap);
-  }
-
-  .button-bar__primary-buttons .shell-tab[data-route-tab='home'].shell-tab--icon-only {
-    inline-size: var(--shell-tab-height, 48px);
-    block-size: var(--shell-tab-height, 48px);
-    min-width: var(--shell-tab-height, 48px);
-    min-height: var(--shell-tab-height, 48px);
-    max-width: var(--shell-tab-height, 48px);
-    max-height: var(--shell-tab-height, 48px);
-    padding-inline: 0;
-    border-radius: 50%;
-    justify-self: center;
   }
 
   .button-bar__divider {

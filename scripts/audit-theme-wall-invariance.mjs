@@ -766,12 +766,10 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
 
   const geometryTolerance = 1;
   const expectedHeight = Number(state.activePrimaryTabHeight) * 0.8;
-  const expectedWidth = state.activePrimaryRouteId === 'home'
-    ? Number(state.activePrimaryPillHeight)
-    : Math.min(
-      Number(state.activePrimaryTabWidth),
-      Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
-    );
+  const expectedWidth = Math.min(
+    Number(state.activePrimaryTabWidth),
+    Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
+  );
   const expectedX = Number(state.activePrimaryTabX)
     + ((Number(state.activePrimaryTabWidth) - Number(state.activePrimaryPillWidth)) / 2);
   const failures = [];
@@ -784,10 +782,6 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
   }
   if (Math.abs(Number(state.activePrimaryPillX) - expectedX) > geometryTolerance) {
     failures.push(`centered x expected ${expectedX.toFixed(2)}px, got ${state.activePrimaryPillX}px`);
-  }
-  if (state.activePrimaryRouteId === 'home'
-    && Math.abs(Number(state.activePrimaryPillWidth) - Number(state.activePrimaryPillHeight)) > geometryTolerance) {
-    failures.push(`Home must be circular, got ${state.activePrimaryPillWidth}px × ${state.activePrimaryPillHeight}px`);
   }
   if (failures.length > 0) {
     throw new Error(`${route} ${viewport.name} active primary pill geometry contract failed:\n${failures.join('\n')}`);

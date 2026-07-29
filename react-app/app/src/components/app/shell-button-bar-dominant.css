@@ -93,7 +93,7 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons.shell-tab-nav {
   grid-template-columns:
-    var(--dominant-primary-control-height)
+    max-content
     max-content
     max-content
     max-content;
@@ -122,12 +122,6 @@
     background 180ms var(--shell-tab-motion-ease);
   will-change: inset-inline-start, inline-size;
   contain: layout paint style;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-route='home']
-  .button-bar__active-pill {
-  border-radius: 50%;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -448,7 +442,7 @@
   .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__primary-buttons.shell-tab-nav {
     grid-template-columns:
-      var(--dominant-primary-control-height)
+      max-content
       max-content
       max-content
       max-content;

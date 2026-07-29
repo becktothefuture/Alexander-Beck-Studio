@@ -45,12 +45,10 @@ function syncActivePillGeometry(primaryNav, activeRouteId) {
 
   const primaryNavRect = primaryNav.getBoundingClientRect();
   const activeTabRect = activeTab.getBoundingClientRect();
-  const visualHeight = activePill.getBoundingClientRect().height;
-  if (!primaryNavRect.width || !activeTabRect.width || !visualHeight) return;
+  if (!primaryNavRect.width || !activeTabRect.width) return;
 
-  const isHomeTab = activeTab.dataset.routeTab === 'home';
-  const width = isHomeTab ? visualHeight : activeTabRect.width;
-  const x = activeTabRect.left - primaryNavRect.left + ((activeTabRect.width - width) / 2);
+  const width = activeTabRect.width;
+  const x = activeTabRect.left - primaryNavRect.left;
 
   primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
   primaryNav.style.setProperty('--button-bar-active-pill-width', `${width.toFixed(3)}px`);
@@ -152,9 +150,9 @@ function RouteButtonContent({ tab, decoration }) {
   return (
     <>
       {decoration}
-      <ButtonBarIcon tab={tab} />
       {tab.iconOnly ? (
         <>
+          <ButtonBarIcon tab={tab} />
           <span className="screen-reader">{tab.label}</span>
           <span className="button-bar__label button-bar__label--mobile-only shell-tab__label" aria-hidden="true">{tab.label}</span>
         </>
