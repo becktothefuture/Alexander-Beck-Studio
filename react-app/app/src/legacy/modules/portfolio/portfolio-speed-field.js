@@ -125,7 +125,7 @@ export class PortfolioParticleField {
     if (!this.canvas) return;
     if (snapshot.generation === this.paletteGeneration) return;
     this.colors.splice(0, this.colors.length, ...snapshot.colors);
-    this.colorDistribution = snapshot.distribution;
+    this.colorDistribution = snapshot.distribution.slice();
     this.paletteId = snapshot.paletteId;
     this.paletteGeneration = snapshot.generation;
     const roleById = new Map(snapshot.distribution.map((row) => [row.roleId, row]));
