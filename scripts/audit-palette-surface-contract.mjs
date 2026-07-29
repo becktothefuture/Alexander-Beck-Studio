@@ -25,13 +25,6 @@ function normalize(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
-function hexToRgbString(hex) {
-  const value = String(hex || '').trim().replace(/^#/, '');
-  if (!/^[\da-f]{6}$/i.test(value)) return '';
-  const n = Number.parseInt(value, 16);
-  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
-}
-
 function loadExpectations() {
   const designSystem = JSON.parse(readFileSync(designSystemPath, 'utf8'));
   const runtime = designSystem.runtime || {};
@@ -50,7 +43,6 @@ function loadExpectations() {
       studioWindow: lightWindow,
       textPrimary: runtime.textColorLight || '#161616',
       textMuted: runtime.textColorLightMuted || '#2f2f2f',
-      veilRgb: hexToRgbString(lightWindow),
     },
     dark: {
       wall: stableWall,
@@ -61,7 +53,6 @@ function loadExpectations() {
       studioWindow: darkWindow,
       textPrimary: runtime.textColorDark || '#f0f0f0',
       textMuted: runtime.textColorDarkMuted || '#c8c8c8',
-      veilRgb: hexToRgbString(darkWindow),
     },
   };
 }
@@ -148,7 +139,6 @@ async function readContractState(page, palette) {
       frameInnerSurface: cs.getPropertyValue('--frame-inner-surface').trim(),
       textPrimary: cs.getPropertyValue('--text-primary').trim(),
       textMuted: cs.getPropertyValue('--text-muted').trim(),
-      veilRgb: cs.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
       linkHover: cs.getPropertyValue('--link-hover-color').trim(),
       colorAccent: cs.getPropertyValue('--color-accent').trim(),
       heroRoleAccent: cs.getPropertyValue('--hero-role-accent').trim(),
@@ -162,7 +152,7 @@ async function readContractState(page, palette) {
 }
 
 function assertSurfaceContract(theme, palette, actual, expected) {
-  for (const key of ['wall', 'wallLight', 'wallDark', 'bgLight', 'bgDark', 'studioWindow', 'textPrimary', 'textMuted', 'veilRgb']) {
+  for (const key of ['wall', 'wallLight', 'wallDark', 'bgLight', 'bgDark', 'studioWindow', 'textPrimary', 'textMuted']) {
     if (normalize(actual[key]) !== normalize(expected[key])) {
       throw new Error(`${theme}/${palette} ${key}: expected ${expected[key]}, got ${actual[key]}`);
     }

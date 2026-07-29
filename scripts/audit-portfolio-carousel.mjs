@@ -956,40 +956,6 @@ async function auditPermanentRing(page) {
   };
 }
 
-async function readPortfolioVeil(page) {
-  return page.evaluate(() => {
-    const rectOf = (element) => {
-      if (!element) return null;
-      const rect = element.getBoundingClientRect();
-      return [rect.x, rect.y, rect.width, rect.height].map((value) => Number(value.toFixed(2)));
-    };
-    const veil = document.querySelector('.simulation-contrast-veil');
-    const before = veil ? getComputedStyle(veil, '::before') : null;
-    const after = veil ? getComputedStyle(veil, '::after') : null;
-    const veilStyle = veil ? getComputedStyle(veil) : null;
-    const wallInset = getComputedStyle(document.getElementById('simulations'), '::before');
-    const rootStyle = getComputedStyle(document.documentElement);
-    return {
-      theme: document.querySelector('.button-bar__theme-toggle')?.dataset.state || '',
-      rect: rectOf(veil),
-      overlayRect: rectOf(document.getElementById('window-overlay-content-layer')),
-      pointerEvents: veilStyle?.pointerEvents || '',
-      zIndex: Number.parseInt(veilStyle?.zIndex || '0', 10) || 0,
-      wallZ: Number.parseInt(getComputedStyle(document.getElementById('simulations')).zIndex || '0', 10) || 0,
-      uiZ: Number.parseInt(getComputedStyle(document.querySelector('.fade-content')).zIndex || '0', 10) || 0,
-      sheetZ: Number.parseInt(getComputedStyle(document.getElementById('portfolio-sheet-host')).zIndex || '0', 10) || 0,
-      beforeContent: before?.content || '',
-      beforeBackground: before?.backgroundImage || '',
-      afterContent: after?.content || '',
-      afterBackground: after?.backgroundImage || '',
-      wallInsetContent: wallInset?.content || '',
-      wallInsetShadow: wallInset?.boxShadow || '',
-      wallRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
-      opacity: rootStyle.getPropertyValue('--simulation-contrast-veil-opacity').trim(),
-    };
-  });
-}
-
 async function setPortfolioTheme(page, theme) {
   const toggle = page.locator('.button-bar__theme-toggle');
   if (await toggle.getAttribute('data-state') !== theme) await toggle.click();
@@ -999,22 +965,6 @@ async function setPortfolioTheme(page, theme) {
     { timeout: WAIT_MS }
   );
   await page.waitForTimeout(180);
-}
-
-async function captureVeilThemes(page) {
-  await page.evaluate(() => {
-    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
-    app?.setActiveProject?.(0, { immediate: true });
-  });
-  await page.waitForTimeout(320);
-  await setPortfolioTheme(page, 'light');
-  const light = await readPortfolioVeil(page);
-  await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-veil-light.png') });
-  await setPortfolioTheme(page, 'dark');
-  const dark = await readPortfolioVeil(page);
-  await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-veil-dark.png') });
-  await setPortfolioTheme(page, 'light');
-  return { light, dark };
 }
 
 async function captureAccents(page) {
@@ -1150,7 +1100,6 @@ async function main() {
 
       if (viewport.name === 'desktop') {
         summary.permanentRing = await auditPermanentRing(page);
-        summary.veil = await captureVeilThemes(page);
         summary.viewports.desktop.cursor = await auditCursor(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-hover.png') });
         summary.viewports.desktop.press = await auditPointerPress(page, 'desktop-pointer-down.png');
@@ -1357,15 +1306,6 @@ async function main() {
     if (summary.permanentRing?.minEdgeOpacity == null) failures.push('permanent ring did not expose an edge-opacity sample');
     if ((summary.permanentRing?.minEdgeOpacity ?? 0) < 0.78) failures.push('permanent ring edge opacity fell below the 0.8 floor');
     if ((summary.permanentRing?.minEdgeOpacity ?? 1) > 0.9) failures.push('permanent ring edge opacity did not soften toward the 0.8 floor');
-    for (const [theme, veil] of Object.entries(summary.veil || {})) {
-      if (JSON.stringify(veil.rect) !== JSON.stringify(veil.overlayRect)) failures.push(`${theme}: portfolio veil does not match the inner-window rectangle`);
-      if (!(veil.wallZ < veil.zIndex && veil.zIndex < veil.uiZ && veil.zIndex < veil.sheetZ)) failures.push(`${theme}: portfolio veil stacking order is incorrect`);
-      if (veil.pointerEvents !== 'none') failures.push(`${theme}: portfolio veil intercepts pointer input`);
-      if (veil.beforeContent === 'none' || veil.beforeBackground === 'none') failures.push(`${theme}: portfolio full-window edge gradient is inactive`);
-      if (veil.afterContent === 'none' || veil.afterBackground === 'none') failures.push(`${theme}: portfolio full-window dither is inactive`);
-      if (veil.wallInsetContent !== 'none' || veil.wallInsetShadow !== 'none') failures.push(`${theme}: portfolio wall inset shadow is still active`);
-      if (!veil.wallRgb || !veil.opacity) failures.push(`${theme}: portfolio veil is not using shared wall tokens`);
-    }
     const accentCount = summary.accents?.length || 0;
     const distinctAccentCount = new Set(summary.accents?.map((entry) => entry.accent)).size;
     if (!accentCount || distinctAccentCount !== accentCount) failures.push('accent audit did not resolve one distinct accent per project');

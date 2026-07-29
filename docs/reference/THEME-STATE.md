@@ -38,7 +38,7 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 | Exposed browser/page band | `--abs-browser-chrome`, `--frame-color`, `--wall-color` | Dark-only outer-shell policy |
 | Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Stable authored dark wall |
 | Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
-| In-window contrast finish | `--simulation-contrast-veil-rgb` and finish opacities | Resolved site theme |
+| Home grouped legibility fields | `--frame-inner-surface` | Resolved site theme |
 | Persistent Button Bar | Outer-shell tokens; active primary pill consumes `--studio-window-bg` | Dark outer shell with one selected-tab theme projection |
 
 Never alias the window-interior tokens back to `--abs-wall-base`; keep each surface token explicit even when they share the same active light/dark endpoint.
@@ -79,4 +79,4 @@ npm run audit:palette-surface-contract
 ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-gate
 ```
 
-The theme audit covers manual persistence, mobile, SPA routes, reload, two browser tabs, Auto browser-preference changes, manual precedence, and independent outer-frame response. The wall audit protects outer variables, geometry, pixels, and Button Bar styles while requiring the studio-window surface and contrast veil to change.
+The theme audit covers manual persistence, mobile, SPA routes, reload, two browser tabs, Auto browser-preference changes, manual precedence, and independent outer-frame response. The wall audit protects outer variables, geometry, pixels, and Button Bar styles while requiring the studio-window surface to change.

@@ -72,7 +72,6 @@ const themeVariantKeys = new Set([
   'theme',
   'studioWindowBackground',
   'frameInnerSurface',
-  'simulationContrastVeilRgb',
   'studioWindowColorScheme',
   'studioWindowBackgroundResolved',
   'wallBackgroundImage',
@@ -381,7 +380,6 @@ async function readInvariantState(page) {
       canvasBorderRadius: '#simulations canvas',
       overlayBorderRadius: '.window-overlay-layer',
       vignetteBorderRadius: '.frame-vignette',
-      veilBorderRadius: '.simulation-contrast-veil',
       noiseBorderRadius: '.noise',
       sceneEffectsBorderRadius: '.scene-effects',
     };
@@ -404,7 +402,6 @@ async function readInvariantState(page) {
       studioWindowBackground: rootStyle.getPropertyValue('--studio-window-bg').trim(),
       studioWindowBackgroundResolved: resolveColor(rootStyle.getPropertyValue('--studio-window-bg').trim()),
       frameInnerSurface: rootStyle.getPropertyValue('--frame-inner-surface').trim(),
-      simulationContrastVeilRgb: rootStyle.getPropertyValue('--simulation-contrast-veil-rgb').trim(),
       rootColorScheme: rootStyle.colorScheme,
       studioWindowColorScheme: getComputedStyle(wall).colorScheme,
       inactiveTabStyles: [...document.querySelectorAll('[data-route-tab]:not([aria-current="page"])')].map((tab) => {
@@ -869,9 +866,6 @@ async function auditRoute(browser, route, viewport) {
     if (normalize(lightState.frameInnerSurface) !== normalize(lightState.studioWindowBackground)
       || normalize(darkState.frameInnerSurface) !== normalize(darkState.studioWindowBackground)) {
       throw new Error(`${route} ${viewport.name} frame-inner surface drifted from the studio-window surface`);
-    }
-    if (normalize(lightState.simulationContrastVeilRgb) === normalize(darkState.simulationContrastVeilRgb)) {
-      throw new Error(`${route} ${viewport.name} did not retint the in-window contrast veil`);
     }
     if (!normalize(lightState.rootColorScheme).includes('dark') || !normalize(darkState.rootColorScheme).includes('dark')) {
       throw new Error(`${route} ${viewport.name} root browser color-scheme did not stay dark`);

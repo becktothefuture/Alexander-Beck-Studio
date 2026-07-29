@@ -1,10 +1,9 @@
 # Layer stacking
 
-Every `StudioShell` window uses the same three-layer content contract:
+Every `StudioShell` window uses the same two-layer content contract:
 
 1. route scene/content at `100`;
-2. the pointer-transparent contrast veil at `180`;
-3. route UI, the Home footer, and overlays at `200+`.
+2. route UI, the Home footer, and overlays at `200+`.
 
 The expanded physical order is:
 
@@ -15,27 +14,26 @@ The expanded physical order is:
 5. registered crisp route material, including Home's rear/main pass;
 6. the Home Canvas title plane and any front depth material;
 7. the thin simulation-atmosphere wall-edge reflection;
-8. pointer-transparent contrast veil;
-9. route UI and the Home footer when Home is active;
-10. window overlays and Portfolio project sheet;
-11. modal/focus overlays;
-12. persistent Button Bar and its finish layer.
+8. route UI and the Home footer when Home is active;
+9. window overlays and Portfolio project sheet;
+10. modal/focus overlays;
+11. persistent Button Bar and its finish layer.
 
 ## Ownership
 
 `StudioShell.jsx` owns the physical window, overlay hosts, Home-only footer surface, and Button Bar. Route content stays inside the studio window. The Button Bar is outside the window and must never be covered by route content or a project sheet.
 
-`simulationLayer` and optional `heroLayer` content are scene-side and therefore below the shared veil. Visible route copy and controls belong in `uiLayer`, above the veil. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays below the veil with the balls.
+`simulationLayer` and optional `heroLayer` content are scene-side. Visible route copy and controls belong in `uiLayer`. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays with the balls.
 
-The frame vignette, contrast veil, and route UI are descendants of `#simulations`, in that order. This keeps entrance blur, text shadows, and control effects inside the studio-window contour while preserving `#simulations` as the sole rounded clip. Do not mount route UI as an unclipped viewport sibling of the wall.
+The frame vignette and route UI are descendants of `#simulations`, in that order. This keeps entrance blur, grouped Home legibility fields, and control effects inside the studio-window contour while preserving `#simulations` as the sole rounded clip. Do not mount route UI as an unclipped viewport sibling of the wall.
 
-The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material, and the edge-light Canvas inside `.simulation-atmosphere-edge-light-layer` at `160`, below the contrast veil at `180`. `#simulations` remains the sole outer rounded clip. The edge layer inherits that exact radius and corner shape, and uses the browser's border-box/padding-box border geometry only to isolate the authored-width reflection; it must not generate an independent Canvas, SVG, or route-specific corner path.
+The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material, and the edge-light Canvas inside `.simulation-atmosphere-edge-light-layer` at `160`, below route UI. `#simulations` remains the sole outer rounded clip. The edge layer inherits that exact radius and corner shape, and uses the browser's border-box/padding-box border geometry only to isolate the authored-width reflection; it must not generate an independent Canvas, SVG, or route-specific corner path.
 
 Home and route-backed Daily simulations share one shell-owned `#simulation-title-canvas`. Their keyed route content supplies one invisible semantic `#hero-title`, but neither route replacement nor an atmosphere source registration owns the visible title plane. Normal modes stack title/material at `9/10`; depth modes stack rear/title/front material at `4/11/12`. The compositor samples simulation material only and applies its title quiet-zone mask after composing active sources. Portfolio, About, and Contact copy remains DOM-owned in its established hero/UI layer.
 
 Simulation transitions keep the stable title plane live while route-owned material is replaced. Do not snapshot or duplicate the title, move either atmosphere output into a route-owned subtree, put route UI beneath the edge Canvas, or solve atmosphere stacking with route-specific z-index escalation.
 
-The Portfolio project drawer repeats the same local order. Its media and scrolling case-study content sit below the drawer veil; its project title, eyebrow, scroll cue, and Back control sit above it. The drawer veil remains present for the full visible lifecycle, including opening and closing.
+The Portfolio project drawer keeps its media, scrolling case-study content, project title, eyebrow, scroll cue, and Back control within the drawer-owned stack without an additional veil.
 
 `#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Portfolio sheet covers the Portfolio route content but stops above the Button Bar. Its project scroll cue is drawer-owned and independent of the Home footer. Preserve the host radius and clipping contract.
 

@@ -165,7 +165,6 @@ async function installPixelProbe(page) {
         .simulation-focus-switcher-slot,
         #custom-cursor,
         .frame-vignette,
-        .simulation-contrast-veil,
         .fade-content,
         .window-overlay-layer,
         .shell-bottom-band,

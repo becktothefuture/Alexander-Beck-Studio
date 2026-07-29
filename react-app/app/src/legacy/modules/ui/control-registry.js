@@ -324,14 +324,6 @@ export const MASTER_GROUPS = [
     ]
   },
   {
-    id: 'legibility',
-    title: 'Legibility',
-    icon: '◐',
-    sections: [
-      'contrastVeil'
-    ]
-  },
-  {
     id: 'simulations',
     title: 'Simulation Setup',
     icon: '🎛️',
@@ -2775,122 +2767,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'How far the broad directional rim feathers into the pit opening (home + all routes).',
         onChange: () => applyLayoutCSSVars()
-      },
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // BALL CONTRAST VEIL — edge tint drawn only into ball bodies.
-  // ═══════════════════════════════════════════════════════════════════════════
-  contrastVeil: {
-    title: 'Ball Contrast Veil',
-    icon: '◐',
-    defaultOpen: true,
-    controls: [
-      {
-        id: 'simulationContrastVeilOpacityLight',
-        label: 'Light opacity',
-        stateKey: 'simulationContrastVeilOpacityLight',
-        type: 'range',
-        min: 0, max: 0.6, step: 0.01,
-        default: 0.216,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the edge tint drawn only into ball bodies in light mode. The wall background is not painted by this layer.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilOpacityLight = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilOpacityDark',
-        label: 'Dark opacity',
-        stateKey: 'simulationContrastVeilOpacityDark',
-        type: 'range',
-        min: 0, max: 0.6, step: 0.01,
-        default: 0.348,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the same ball-only edge tint in dark mode.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilOpacityDark = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilReachX',
-        label: 'Reach X',
-        stateKey: 'simulationContrastVeilReachX',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 25,
-        format: v => `${Math.round(v)}vw`,
-        parse: parseFloat,
-        hint: 'How far the left and right ball tint extends toward the centre.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilReachX = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilReachY',
-        label: 'Reach Y',
-        stateKey: 'simulationContrastVeilReachY',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 25,
-        format: v => `${Math.round(v)}vh`,
-        parse: parseFloat,
-        hint: 'How far the top and bottom ball tint extends toward the centre.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilReachY = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilBlurVmax',
-        label: 'Blur',
-        stateKey: 'simulationContrastVeilBlurVmax',
-        type: 'range',
-        min: 2, max: 16, step: 0.5,
-        default: 7,
-        format: v => `${Number(v).toFixed(1).replace(/\.0$/, '')}vmax`,
-        parse: parseFloat,
-        hint: 'Softness of the ball tint edge. Higher values make the tint broader and smoother.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilBlurVmax = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilDitherOpacity',
-        label: 'Dither',
-        stateKey: 'simulationContrastVeilDitherOpacity',
-        type: 'range',
-        min: 0, max: 0.12, step: 0.005,
-        default: 0.035,
-        format: v => `${Math.round(v * 1000) / 10}%`,
-        parse: parseFloat,
-        hint: 'Subtle deterministic grain in the ball tint that prevents visible gradient bands.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilDitherOpacity = val;
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'simulationContrastVeilDitherSize',
-        label: 'Dither size',
-        stateKey: 'simulationContrastVeilDitherSize',
-        type: 'range',
-        min: 24, max: 240, step: 4,
-        default: 96,
-        format: v => `${Math.round(v)}px`,
-        parse: parseFloat,
-        hint: 'Scale of the dither tile. Smaller values are finer; larger values are softer and less busy.',
-        onChange: (g, val) => {
-          g.simulationContrastVeilDitherSize = val;
-          applyLayoutCSSVars();
-        }
       },
     ]
   },

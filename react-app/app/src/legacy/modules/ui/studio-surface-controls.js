@@ -12,13 +12,6 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   fillOpacity: 0.018,
   glowOpacity: 0.18,
   sceneHighlight: 0.3,
-  contrastVeilOpacityLight: 0.216,
-  contrastVeilOpacityDark: 0.348,
-  contrastVeilReachX: 25,
-  contrastVeilReachY: 25,
-  contrastVeilBlurVmax: 7,
-  contrastVeilDitherOpacity: 0.035,
-  contrastVeilDitherSize: 96,
   scriptMaxWidth: 431,
   scriptPaddingX: 0,
   scriptPaddingY: 0,
@@ -127,41 +120,6 @@ function readCurrentConfig() {
     fillOpacity: readNumber(rootStyle, '--abs-surface-fill-opacity', readNumber(rootStyle, '--quote-glass-fill-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity)),
     glowOpacity: readNumber(rootStyle, '--abs-surface-glow-opacity', readNumber(rootStyle, '--quote-glass-shadow-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity)),
     sceneHighlight: readNumber(rootStyle, '--abs-scene-highlight', readNumber(rootStyle, '--inner-wall-top-light-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
-    contrastVeilOpacityLight: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilOpacityLight;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityLight;
-    })(),
-    contrastVeilOpacityDark: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilOpacityDark;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityDark;
-    })(),
-    contrastVeilReachX: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilReachX;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachX;
-    })(),
-    contrastVeilReachY: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilReachY;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachY;
-    })(),
-    contrastVeilBlurVmax: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilBlurVmax;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilBlurVmax;
-    })(),
-    contrastVeilDitherOpacity: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilDitherOpacity;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherOpacity;
-    })(),
-    contrastVeilDitherSize: (() => {
-      const g = getGlobals();
-      const v = g?.simulationContrastVeilDitherSize;
-      return Number.isFinite(v) ? v : DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherSize;
-    })(),
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
     scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
     scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
@@ -260,13 +218,6 @@ function syncStudioRuntimeState(config) {
     globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
     globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
     globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
-    if (Number.isFinite(config.contrastVeilOpacityLight)) globals.simulationContrastVeilOpacityLight = config.contrastVeilOpacityLight;
-    if (Number.isFinite(config.contrastVeilOpacityDark)) globals.simulationContrastVeilOpacityDark = config.contrastVeilOpacityDark;
-    if (Number.isFinite(config.contrastVeilReachX)) globals.simulationContrastVeilReachX = config.contrastVeilReachX;
-    if (Number.isFinite(config.contrastVeilReachY)) globals.simulationContrastVeilReachY = config.contrastVeilReachY;
-    if (Number.isFinite(config.contrastVeilBlurVmax)) globals.simulationContrastVeilBlurVmax = config.contrastVeilBlurVmax;
-    if (Number.isFinite(config.contrastVeilDitherOpacity)) globals.simulationContrastVeilDitherOpacity = config.contrastVeilDitherOpacity;
-    if (Number.isFinite(config.contrastVeilDitherSize)) globals.simulationContrastVeilDitherSize = config.contrastVeilDitherSize;
     globals.innerWallTopLightOpacityLight = Number(config.sceneHighlight.toFixed(3));
     globals.innerWallTopLightOpacityDark = Number(Math.min(0.82, config.sceneHighlight * 1.33).toFixed(3));
     globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
@@ -283,13 +234,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const fillOpacity = clamp(config.fillOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity);
   const glowOpacity = clamp(config.glowOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity);
   const sceneHighlight = clamp(config.sceneHighlight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight);
-  const contrastVeilOpacityLight = clamp(config.contrastVeilOpacityLight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityLight);
-  const contrastVeilOpacityDark = clamp(config.contrastVeilOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilOpacityDark);
-  const contrastVeilReachX = clamp(config.contrastVeilReachX, 0, 50, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachX);
-  const contrastVeilReachY = clamp(config.contrastVeilReachY, 0, 50, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilReachY);
-  const contrastVeilBlurVmax = clamp(config.contrastVeilBlurVmax, 2, 16, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilBlurVmax);
-  const contrastVeilDitherOpacity = clamp(config.contrastVeilDitherOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherOpacity);
-  const contrastVeilDitherSize = clamp(config.contrastVeilDitherSize, 24, 240, DEFAULT_STUDIO_SURFACE_CONFIG.contrastVeilDitherSize);
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
   const scriptPaddingX = clamp(config.scriptPaddingX, 0, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
   const scriptPaddingY = clamp(config.scriptPaddingY, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
@@ -306,13 +250,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     edgeStrength,
     edgeWidth,
     sceneHighlight,
-    contrastVeilOpacityLight,
-    contrastVeilOpacityDark,
-    contrastVeilReachX,
-    contrastVeilReachY,
-    contrastVeilBlurVmax,
-    contrastVeilDitherOpacity,
-    contrastVeilDitherSize,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
@@ -323,13 +260,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     fillOpacity,
     glowOpacity,
     sceneHighlight,
-    contrastVeilOpacityLight,
-    contrastVeilOpacityDark,
-    contrastVeilReachX,
-    contrastVeilReachY,
-    contrastVeilBlurVmax,
-    contrastVeilDitherOpacity,
-    contrastVeilDitherSize,
     scriptMaxWidth,
     scriptPaddingX,
     scriptPaddingY,
@@ -383,13 +313,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   root.style.setProperty('--abs-scene-highlight', `${sceneHighlight}`);
   root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.029)}`);
   root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.058)}`);
-  root.style.setProperty('--simulation-contrast-veil-opacity', `${document.body.classList.contains('dark-mode') ? contrastVeilOpacityDark : contrastVeilOpacityLight}`);
-  root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
-  root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
-  root.style.setProperty('--simulation-contrast-veil-blur-vmax', `${contrastVeilBlurVmax}`);
-  root.style.setProperty('--simulation-contrast-veil-blur', `clamp(42px, ${contrastVeilBlurVmax}vmax, 120px)`);
-  root.style.setProperty('--simulation-contrast-veil-dither-opacity', `${contrastVeilDitherOpacity}`);
-  root.style.setProperty('--simulation-contrast-veil-dither-size', `${contrastVeilDitherSize}px`);
   root.style.setProperty('--inner-wall-top-light-opacity', `${sceneHighlight}`);
   root.style.setProperty('--inner-wall-top-light-opacity-dark', `${Math.min(0.82, sceneHighlight * 1.33)}`);
   root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
@@ -405,13 +328,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     edgeStrength,
     edgeWidth,
     sceneHighlight,
-    contrastVeilOpacityLight,
-    contrastVeilOpacityDark,
-    contrastVeilReachX,
-    contrastVeilReachY,
-    contrastVeilBlurVmax,
-    contrastVeilDitherOpacity,
-    contrastVeilDitherSize,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
@@ -557,13 +473,6 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.2).toFixed(3));
 
   nextShell.surface.sceneHighlight = config.sceneHighlight;
-  nextShell.surface.contrastVeilOpacityLight = config.contrastVeilOpacityLight;
-  nextShell.surface.contrastVeilOpacityDark = config.contrastVeilOpacityDark;
-  nextShell.surface.contrastVeilReachX = config.contrastVeilReachX;
-  nextShell.surface.contrastVeilReachY = config.contrastVeilReachY;
-  nextShell.surface.contrastVeilBlurVmax = config.contrastVeilBlurVmax;
-  nextShell.surface.contrastVeilDitherOpacity = config.contrastVeilDitherOpacity;
-  nextShell.surface.contrastVeilDitherSize = config.contrastVeilDitherSize;
   nextShell.theme.frameBorderEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
   nextShell.theme.frameBorderMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
   nextShell.layout.decorativeScriptMaxWidth = `${Math.round(config.scriptMaxWidth)}px`;
@@ -615,13 +524,6 @@ export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
   nextRuntime.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
   nextRuntime.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
   nextRuntime.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
-  nextRuntime.simulationContrastVeilOpacityLight = config.contrastVeilOpacityLight;
-  nextRuntime.simulationContrastVeilOpacityDark = config.contrastVeilOpacityDark;
-  nextRuntime.simulationContrastVeilReachX = config.contrastVeilReachX;
-  nextRuntime.simulationContrastVeilReachY = config.contrastVeilReachY;
-  nextRuntime.simulationContrastVeilBlurVmax = config.contrastVeilBlurVmax;
-  nextRuntime.simulationContrastVeilDitherOpacity = config.contrastVeilDitherOpacity;
-  nextRuntime.simulationContrastVeilDitherSize = config.contrastVeilDitherSize;
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 

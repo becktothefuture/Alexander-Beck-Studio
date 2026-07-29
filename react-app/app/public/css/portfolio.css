@@ -1701,21 +1701,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
 }
 
-.portfolio-project-view__veil {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
-}
-
-.portfolio-project-view.is-visible .portfolio-project-view__veil {
-  opacity: 1;
-}
-
 .portfolio-project-view.is-open .portfolio-project-view__drawer {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);

@@ -61,13 +61,6 @@ const DEFAULT_SHELL_CONFIG = {
     controlMaterialSaturation: 1.08,
     indicatorLineThickness: '3px',
     sceneHighlight: 0.3,
-    contrastVeilOpacityLight: 0.216,
-    contrastVeilOpacityDark: 0.348,
-    contrastVeilReachX: 25,
-    contrastVeilReachY: 25,
-    contrastVeilBlurVmax: 7,
-    contrastVeilDitherOpacity: 0.035,
-    contrastVeilDitherSize: 96,
     edgeWidth: '0.5px',
     fillOpacityLight: 0.018,
     fillOpacityDark: 0.028,
@@ -420,7 +413,6 @@ export function applyWindowPalette({ light, dark, active }) {
   root.style.setProperty('--studio-window-bg-dark', nextDark);
   root.style.setProperty('--studio-window-bg', nextActive);
   root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
-  root.style.setProperty('--simulation-contrast-veil-rgb', colorToRgbString(nextActive));
 }
 
 export function applyShellLayoutVars(config = currentShellConfig) {
@@ -513,48 +505,6 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   const sceneHighlight = Number.isFinite(Number(surface.sceneHighlight))
     ? Number(surface.sceneHighlight)
     : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
-  const contrastVeilOpacityLight = numberInRange(
-    surface.contrastVeilOpacityLight,
-    0,
-    0.6,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilOpacityLight
-  );
-  const contrastVeilOpacityDark = numberInRange(
-    surface.contrastVeilOpacityDark,
-    0,
-    0.6,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilOpacityDark
-  );
-  const contrastVeilReachX = numberInRange(
-    surface.contrastVeilReachX,
-    0,
-    50,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilReachX
-  );
-  const contrastVeilReachY = numberInRange(
-    surface.contrastVeilReachY,
-    0,
-    50,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilReachY
-  );
-  const contrastVeilBlurVmax = numberInRange(
-    surface.contrastVeilBlurVmax,
-    2,
-    16,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilBlurVmax
-  );
-  const contrastVeilDitherOpacity = numberInRange(
-    surface.contrastVeilDitherOpacity,
-    0,
-    0.12,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilDitherOpacity
-  );
-  const contrastVeilDitherSize = numberInRange(
-    surface.contrastVeilDitherSize,
-    24,
-    240,
-    DEFAULT_SHELL_CONFIG.surface.contrastVeilDitherSize
-  );
   const controlMaterialDarkenPercent = numberInRange(
     surface.controlMaterialDarkenPercent,
     0,
@@ -679,28 +629,10 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--quote-glass-bottom-edge-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
 
   root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
-  root.style.setProperty('--simulation-contrast-veil-opacity', String(isDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
-  root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
-  root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
-  root.style.setProperty('--simulation-contrast-veil-blur-vmax', String(contrastVeilBlurVmax));
-  root.style.setProperty('--simulation-contrast-veil-blur', `clamp(42px, ${contrastVeilBlurVmax}vmax, 120px)`);
-  root.style.setProperty('--simulation-contrast-veil-dither-opacity', String(contrastVeilDitherOpacity));
-  root.style.setProperty('--simulation-contrast-veil-dither-size', `${contrastVeilDitherSize}px`);
   root.style.setProperty('--inner-wall-top-light-opacity', String(isDark
     ? Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))
     : sceneHighlight));
   root.style.setProperty('--inner-wall-top-light-opacity-dark', String(Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))));
-
-  try {
-    const globals = getGlobals();
-    globals.simulationContrastVeilOpacityLight = contrastVeilOpacityLight;
-    globals.simulationContrastVeilOpacityDark = contrastVeilOpacityDark;
-    globals.simulationContrastVeilReachX = contrastVeilReachX;
-    globals.simulationContrastVeilReachY = contrastVeilReachY;
-    globals.simulationContrastVeilBlurVmax = contrastVeilBlurVmax;
-    globals.simulationContrastVeilDitherOpacity = contrastVeilDitherOpacity;
-    globals.simulationContrastVeilDitherSize = contrastVeilDitherSize;
-  } catch (e) {}
 }
 
 export function syncThemeColorMeta() {

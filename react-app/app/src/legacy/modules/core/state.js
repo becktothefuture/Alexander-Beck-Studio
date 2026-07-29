@@ -783,14 +783,6 @@ const state = {
   frameVignetteEdgeOpacity: 0.12, // Inset vignette edge opacity
   frameVignetteAmbientBlur: 250,  // Ambient vignette blur in px
   frameVignetteAmbientOpacity: 0.08, // Ambient vignette opacity
-  simulationContrastVeilOpacityLight: 0.216,
-  simulationContrastVeilOpacityDark: 0.348,
-  simulationContrastVeilReachX: 25,
-  simulationContrastVeilReachY: 25,
-  simulationContrastVeilBlurVmax: 7,
-  simulationContrastVeilDitherOpacity: 0.035,
-  simulationContrastVeilDitherSize: 96,
-  
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
   textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
@@ -1292,29 +1284,6 @@ export function applyLayoutCSSVars() {
       };
     }
   } catch (e) {}
-  const contrastVeilOpacityLight = clampNumber(state.simulationContrastVeilOpacityLight, 0, 0.6, 0.216);
-  const contrastVeilOpacityDark = clampNumber(state.simulationContrastVeilOpacityDark, 0, 0.6, 0.348);
-  const contrastVeilReachX = clampNumber(state.simulationContrastVeilReachX, 0, 50, 25);
-  const contrastVeilReachY = clampNumber(state.simulationContrastVeilReachY, 0, 50, 25);
-  const contrastVeilBlurVmax = clampNumber(state.simulationContrastVeilBlurVmax, 2, 16, 7);
-  const contrastVeilDitherOpacity = clampNumber(state.simulationContrastVeilDitherOpacity, 0, 0.12, 0.035);
-  const contrastVeilDitherSize = clampNumber(state.simulationContrastVeilDitherSize, 24, 240, 96);
-  const contrastVeilIsDark = document.body.classList.contains('dark-mode');
-  state.simulationContrastVeilOpacityLight = contrastVeilOpacityLight;
-  state.simulationContrastVeilOpacityDark = contrastVeilOpacityDark;
-  state.simulationContrastVeilReachX = contrastVeilReachX;
-  state.simulationContrastVeilReachY = contrastVeilReachY;
-  state.simulationContrastVeilBlurVmax = contrastVeilBlurVmax;
-  state.simulationContrastVeilDitherOpacity = contrastVeilDitherOpacity;
-  state.simulationContrastVeilDitherSize = contrastVeilDitherSize;
-  root.style.setProperty('--simulation-contrast-veil-opacity', String(contrastVeilIsDark ? contrastVeilOpacityDark : contrastVeilOpacityLight));
-  root.style.setProperty('--simulation-contrast-veil-reach-x', `${contrastVeilReachX}vw`);
-  root.style.setProperty('--simulation-contrast-veil-reach-y', `${contrastVeilReachY}vh`);
-  root.style.setProperty('--simulation-contrast-veil-blur-vmax', String(contrastVeilBlurVmax));
-  root.style.setProperty('--simulation-contrast-veil-blur', `clamp(42px, ${contrastVeilBlurVmax}vmax, 120px)`);
-  root.style.setProperty('--simulation-contrast-veil-dither-opacity', String(contrastVeilDitherOpacity));
-  root.style.setProperty('--simulation-contrast-veil-dither-size', `${contrastVeilDitherSize}px`);
-
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {
     const w = getLayoutViewportWidthPx();
@@ -2210,28 +2179,6 @@ export function initState(config) {
       state.frameVignetteAmbientOpacity
     );
   }
-  if (config.simulationContrastVeilOpacityLight !== undefined) {
-    state.simulationContrastVeilOpacityLight = clampNumber(config.simulationContrastVeilOpacityLight, 0, 0.6, state.simulationContrastVeilOpacityLight);
-  }
-  if (config.simulationContrastVeilOpacityDark !== undefined) {
-    state.simulationContrastVeilOpacityDark = clampNumber(config.simulationContrastVeilOpacityDark, 0, 0.6, state.simulationContrastVeilOpacityDark);
-  }
-  if (config.simulationContrastVeilReachX !== undefined) {
-    state.simulationContrastVeilReachX = clampNumber(config.simulationContrastVeilReachX, 0, 50, state.simulationContrastVeilReachX);
-  }
-  if (config.simulationContrastVeilReachY !== undefined) {
-    state.simulationContrastVeilReachY = clampNumber(config.simulationContrastVeilReachY, 0, 50, state.simulationContrastVeilReachY);
-  }
-  if (config.simulationContrastVeilBlurVmax !== undefined) {
-    state.simulationContrastVeilBlurVmax = clampNumber(config.simulationContrastVeilBlurVmax, 2, 16, state.simulationContrastVeilBlurVmax);
-  }
-  if (config.simulationContrastVeilDitherOpacity !== undefined) {
-    state.simulationContrastVeilDitherOpacity = clampNumber(config.simulationContrastVeilDitherOpacity, 0, 0.12, state.simulationContrastVeilDitherOpacity);
-  }
-  if (config.simulationContrastVeilDitherSize !== undefined) {
-    state.simulationContrastVeilDitherSize = clampNumber(config.simulationContrastVeilDitherSize, 24, 240, state.simulationContrastVeilDitherSize);
-  }
-  
   // Text colors
   if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;
   else state.textColorLight = readTokenVar('--text-color-light', state.textColorLight);

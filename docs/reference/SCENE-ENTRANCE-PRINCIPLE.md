@@ -11,7 +11,7 @@ Canonical rule for deciding what may animate into the site and how those entranc
 This is a visual boundary, not only a DOM-parent test:
 
 - Inside-window content includes route wall/content, hero content, window-positioned route controls, `#portfolio-sheet-host`, and `#quote-viewport-host`.
-- Permanent structure includes the outer frame, exposed frame gap, inner-window aperture/rim, vignette and contrast veil, Button Bar, and other route-stable shell controls.
+- Permanent structure includes the outer frame, exposed frame gap, inner-window aperture/rim, vignette, Button Bar, and other route-stable shell controls.
 - Temporary overlays may animate into focus, but dismissing them must reveal the underlying interface as an object that was waiting underneath.
 
 ## 2. Motion language

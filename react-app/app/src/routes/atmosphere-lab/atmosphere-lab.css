@@ -13,35 +13,6 @@ body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) #simulation-front-
   opacity: var(--atmosphere-core-presence);
 }
 
-body.atmosphere-lab-page .simulation-contrast-veil::before {
-  --atmosphere-haze-alpha: calc(
-    var(--simulation-contrast-veil-opacity)
-    * var(--atmosphere-haze-strength)
-  );
-  background:
-    linear-gradient(
-      90deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 0%,
-      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-x),
-      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-x)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 0%,
-      rgba(var(--simulation-contrast-veil-rgb), 0) var(--simulation-contrast-veil-reach-y),
-      rgba(var(--simulation-contrast-veil-rgb), 0) calc(100% - var(--simulation-contrast-veil-reach-y)),
-      rgba(var(--simulation-contrast-veil-rgb), var(--atmosphere-haze-alpha)) 100%
-    );
-}
-
-body.atmosphere-lab-page .simulation-contrast-veil::after {
-  opacity: calc(
-    var(--simulation-contrast-veil-dither-opacity, 0.035)
-    * var(--atmosphere-haze-strength)
-  );
-}
-
 html.entrance-complete.noise-ready body.atmosphere-lab-page .noise,
 html.entrance-complete body.atmosphere-lab-page.noise-ready .noise {
   opacity: calc(

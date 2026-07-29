@@ -217,7 +217,6 @@ export function StudioShell({
               </div>
             ) : null}
             <div className="frame-vignette" aria-hidden="true" />
-            <div className="simulation-contrast-veil" aria-hidden="true" />
             <div
               ref={surfaceRefs?.ui}
               className="fade-content page-content ui-layer"
