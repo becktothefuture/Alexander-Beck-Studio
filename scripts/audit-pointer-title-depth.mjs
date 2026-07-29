@@ -52,6 +52,13 @@ function matrixDistance(a, b) {
   return total;
 }
 
+function cubeRotationDistance(a, b) {
+  return ['rotX', 'rotY', 'rotZ'].reduce(
+    (total, key) => total + Math.abs((a?.[key] || 0) - (b?.[key] || 0)),
+    0,
+  );
+}
+
 async function gotoMode(page, mode) {
   await page.goto(resolveModeUrl(mode), { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector('#c', { state: 'attached', timeout: WAIT_MS });
@@ -142,6 +149,77 @@ async function auditTouchSphere(browser) {
     throw new Error(`3d-sphere touch pointer type invalid: ${JSON.stringify(end)}`);
   }
   return { rotationDelta, pointerSequence: end.pointerSequence };
+}
+
+async function getCubeSnapshot(page) {
+  return page.evaluate(() => {
+    const globals = window.__ABS_HOME_AUDIT__.getGlobals();
+    const state = globals.cube3dState;
+    const balls = globals.balls.filter((ball) => ball?._cloudMode === 'cube');
+    const left = Math.min(...balls.map((ball) => ball.x - ball.r));
+    const right = Math.max(...balls.map((ball) => ball.x + ball.r));
+    return {
+      canvasWidth: globals.canvas.width,
+      canvasHeight: globals.canvas.height,
+      sizeVw: globals.cube3dSizeVw,
+      sizePx: state?.sizePx || 0,
+      rotX: state?.rotX || 0,
+      rotY: state?.rotY || 0,
+      rotZ: state?.rotZ || 0,
+      left,
+      right,
+      ballCount: balls.length,
+    };
+  });
+}
+
+async function auditResponsiveCube(page) {
+  await gotoMode(page, '3d-cube');
+  const desktop = await getCubeSnapshot(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction((previousWidth) => {
+    const globals = window.__ABS_HOME_AUDIT__?.getGlobals?.();
+    return globals?.canvas?.width > 0
+      && globals.canvas.width < previousWidth
+      && Math.abs(
+        globals.cube3dState?.sizePx
+          - ((globals.cube3dSizeVw / 100) * globals.canvas.width),
+      ) < 1;
+  }, desktop.canvasWidth, { timeout: WAIT_MS, polling: 'raf' });
+  const mobile = await getCubeSnapshot(page);
+  const expectedDesktopSize = (desktop.sizeVw / 100) * desktop.canvasWidth;
+  const expectedMobileSize = (mobile.sizeVw / 100) * mobile.canvasWidth;
+  if (Math.abs(desktop.sizePx - expectedDesktopSize) > 1) {
+    throw new Error(`3d-cube desktop size is stale: ${JSON.stringify(desktop)}`);
+  }
+  if (Math.abs(mobile.sizePx - expectedMobileSize) > 1) {
+    throw new Error(`3d-cube mobile size is stale: ${JSON.stringify(mobile)}`);
+  }
+  if (mobile.left < -1 || mobile.right > mobile.canvasWidth + 1) {
+    throw new Error(`3d-cube overflows after mobile resize: ${JSON.stringify(mobile)}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  return { desktop, mobile };
+}
+
+async function auditReducedMotionCube(browser) {
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: 'reduce',
+  });
+  try {
+    await gotoMode(page, '3d-cube');
+    const start = await getCubeSnapshot(page);
+    await page.waitForTimeout(600);
+    const end = await getCubeSnapshot(page);
+    const rotationDelta = cubeRotationDistance(start, end);
+    if (rotationDelta > 0.001) {
+      throw new Error(`3d-cube keeps rotating under reduced motion (${rotationDelta})`);
+    }
+    return { rotationDelta };
+  } finally {
+    await page.close();
+  }
 }
 
 async function auditDepthModes(page) {
@@ -359,6 +437,8 @@ async function main() {
   try {
     const mouseSphere = await auditMouseSphere(page);
     const touchSphere = await auditTouchSphere(browser);
+    const responsiveCube = await auditResponsiveCube(page);
+    const reducedMotionCube = await auditReducedMotionCube(browser);
     const depthModes = await auditDepthModes(page);
     const noDepthModes = await auditNoDepthModes(page);
     const crispGlow = await auditCrispGlowTitleDepth(page);
@@ -366,6 +446,8 @@ async function main() {
       ok: true,
       mouseSphere,
       touchSphere,
+      responsiveCube,
+      reducedMotionCube,
       depthModes,
       noDepthModes,
       crispGlow,

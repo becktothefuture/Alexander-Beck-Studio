@@ -9,6 +9,19 @@ import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+import {
+  CUBE_3D_DEFAULTS,
+  resolveCube3DMotionScale,
+  resolveCube3DSizePx,
+} from './cube3d-config.js';
+
+let reducedMotionQuery = null;
+
+function prefersReducedMotion() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  reducedMotionQuery ||= window.matchMedia('(prefers-reduced-motion: reduce)');
+  return reducedMotionQuery.matches;
+}
 
 function clamp01(v) {
   return Math.max(-1, Math.min(1, v));
@@ -117,16 +130,23 @@ export function initialize3DCube() {
 
   // Apply mobile reduction to density BEFORE generating points to preserve cube structure.
   // Slicing afterwards would cut off entire edges, destroying the cube shape.
-  const baseEdgeDensity = Math.max(2, Math.round(g.cube3dEdgeDensity ?? 8));
+  const baseEdgeDensity = Math.max(2, Math.round(
+    g.cube3dEdgeDensity ?? CUBE_3D_DEFAULTS.cube3dEdgeDensity,
+  ));
   const edgeDensity = getMobileAdjustedCount(baseEdgeDensity);
-  const baseFaceGrid = Math.max(0, Math.round(g.cube3dFaceGrid ?? 0));
+  const baseFaceGrid = Math.max(0, Math.round(
+    g.cube3dFaceGrid ?? CUBE_3D_DEFAULTS.cube3dFaceGrid,
+  ));
   const faceGrid = baseFaceGrid > 0 ? getMobileAdjustedCount(baseFaceGrid) : 0;
-  const sizeVw = g.cube3dSizeVw ?? 25;
-  const sizePx = Math.max(10, (sizeVw / 100) * canvas.width);
+  const sizeVw = g.cube3dSizeVw ?? CUBE_3D_DEFAULTS.cube3dSizeVw;
+  const sizePx = resolveCube3DSizePx(canvas.width, sizeVw);
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
-  const dotSizeMul = Math.max(0.1, g.cube3dDotSizeMul ?? 1.5);
+  const dotSizeMul = Math.max(
+    0.1,
+    g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
+  );
 
-  const pts = generateCubePoints(sizePx, edgeDensity, faceGrid);
+  const pts = generateCubePoints(1, edgeDensity, faceGrid);
 
   const titleCenter = getHeroTitleCanvasCenter(g);
   g.cube3dState = {
@@ -136,13 +156,8 @@ export function initialize3DCube() {
     rotX: 0,
     rotY: 0,
     rotZ: 0,
-    idleSpeed: g.cube3dIdleSpeed ?? 0.2,
-    cursorInfluence: g.cube3dCursorInfluence ?? 1.5,
     tumbleX: 0,
     tumbleY: 0,
-    tumbleDamping: Math.max(0, Math.min(0.999, g.cube3dTumbleDamping ?? 0.95)),
-    tumbleSpeed: g.cube3dTumbleSpeed ?? 3,
-    dotSizeMul,
     pointerWasInCanvas: false,
     lastPointerSequence: null,
     audioAngle: 0
@@ -169,17 +184,33 @@ export function apply3DCubeForces(ball, dt) {
   if (!canvas || !state || !ball || !ball._cube3d) return;
 
   // Read runtime params each frame for real-time updates
-  const idleSpeed = g.cube3dIdleSpeed ?? 0.2;
-  const cursorInfluence = g.cube3dCursorInfluence ?? 1.5;
-  const tumbleSpeed = g.cube3dTumbleSpeed ?? 3;
-  const tumbleDamping = Math.max(0, Math.min(0.999, g.cube3dTumbleDamping ?? 0.95));
-  const dotSizeMul = Math.max(0.1, g.cube3dDotSizeMul ?? 1.5);
+  const idleSpeed = g.cube3dIdleSpeed ?? CUBE_3D_DEFAULTS.cube3dIdleSpeed;
+  const cursorInfluence = g.cube3dCursorInfluence ?? CUBE_3D_DEFAULTS.cube3dCursorInfluence;
+  const tumbleSpeed = g.cube3dTumbleSpeed ?? CUBE_3D_DEFAULTS.cube3dTumbleSpeed;
+  const tumbleDamping = Math.max(0, Math.min(
+    0.999,
+    g.cube3dTumbleDamping ?? CUBE_3D_DEFAULTS.cube3dTumbleDamping,
+  ));
+  const dotSizeMul = Math.max(
+    0.1,
+    g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
+  );
+  const reducedMotion = prefersReducedMotion();
+  const motionScale = resolveCube3DMotionScale(
+    reducedMotion,
+    g.cube3dReducedMotionScale,
+  );
+  const idleMotionScale = reducedMotion ? 0 : 1;
 
   // Update shared rotation once per frame
   if (ball === g.balls[0]) {
     const titleCenter = getHeroTitleCanvasCenter(g);
     state.cx = titleCenter.x;
     state.cy = titleCenter.y;
+    state.sizePx = resolveCube3DSizePx(
+      canvas.width,
+      g.cube3dSizeVw ?? CUBE_3D_DEFAULTS.cube3dSizeVw,
+    );
     const cx = state.cx;
     const cy = state.cy;
     const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
@@ -210,10 +241,16 @@ export function apply3DCubeForces(ball, dt) {
     state.tumbleY *= tumbleDamping;
 
     // Apply rotation: idle + cursor + tumble
-    state.rotY += (idleSpeed + nx * cursorInfluence + state.tumbleY) * dt;
-    state.rotX += (idleSpeed * 0.6 + ny * cursorInfluence + state.tumbleX) * dt;
-    state.rotZ += idleSpeed * 0.2 * dt;
-    const manualAngularVelocity = Math.hypot(state.tumbleX, state.tumbleY);
+    state.rotY += (
+      (idleSpeed * idleMotionScale)
+      + ((nx * cursorInfluence + state.tumbleY) * motionScale)
+    ) * dt;
+    state.rotX += (
+      (idleSpeed * 0.6 * idleMotionScale)
+      + ((ny * cursorInfluence + state.tumbleX) * motionScale)
+    ) * dt;
+    state.rotZ += idleSpeed * 0.2 * idleMotionScale * dt;
+    const manualAngularVelocity = Math.hypot(state.tumbleX, state.tumbleY) * motionScale;
     if (pointerInCanvas && manualAngularVelocity > 0.12) {
       state.audioAngle += manualAngularVelocity * dt;
       triggerDetent({
@@ -230,28 +267,34 @@ export function apply3DCubeForces(ball, dt) {
   }
 
   const { x, y, z } = ball._cube3d;
-  const rotated = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
-  const focal = Math.max(80, g.cube3dFocalLength ?? 1200);
+  const unitRotation = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
+  const rotatedX = unitRotation.x * state.sizePx;
+  const rotatedY = unitRotation.y * state.sizePx;
+  const rotatedZ = unitRotation.z * state.sizePx;
+  const focal = Math.max(
+    80,
+    g.cube3dFocalLength ?? CUBE_3D_DEFAULTS.cube3dFocalLength,
+  );
 
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
   // zDist: back gives sizePx (far), front gives 0 (close)
   const halfSize = state.sizePx * 0.5;
-  const zDist = halfSize - rotated.z;
+  const zDist = halfSize - rotatedZ;
   const scale = focal / (focal + zDist);
   // Now: back points get smaller scale (more distant), front points get larger scale (closer)
 
-  const targetX = state.cx + rotated.x * scale;
-  const targetY = state.cy + rotated.y * scale;
+  const targetX = state.cx + rotatedX * scale;
+  const targetY = state.cy + rotatedY * scale;
   const rawR = ball._cloudBaseR * dotSizeMul * scale;
 
   // Depth factor for logo layering and engine fog
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
-  const depthFactor = (rotated.z + halfSize) / state.sizePx;
+  const depthFactor = (rotatedZ + halfSize) / state.sizePx;
 
   ball.alpha = resolveDistanceFogOpacity(depthFactor, {
-    fogStart: g.cube3dFogStart ?? 0.95,
-    fogMin: g.cube3dFogMin ?? 0.58,
+    fogStart: g.cube3dFogStart ?? CUBE_3D_DEFAULTS.cube3dFogStart,
+    fogMin: g.cube3dFogMin ?? CUBE_3D_DEFAULTS.cube3dFogMin,
   });
 
   ball.r = clampRadiusToGlobalBounds(g, rawR);

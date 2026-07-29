@@ -20,6 +20,7 @@ import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor, resetColorDistributionCoverage } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
+import { CUBE_3D_DEFAULTS } from './cube3d-config.js';
 
 export { MODES };
 
@@ -302,7 +303,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.KALEIDOSCOPE_RIFT: return globals.kaleidoscopeRiftWarmupFrames ?? 45;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
-    case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
+    case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? CUBE_3D_DEFAULTS.cube3dWarmupFrames;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;

@@ -39,6 +39,7 @@ import {
   formatButtonBarControlValue,
 } from '../../../lib/buttonBarControls.js';
 import { configureSimulationPalette } from '../../../palette/simulationPaletteController.js';
+import { CUBE_3D_DEFAULTS, CUBE_3D_LIMITS } from '../modes/cube3d-config.js';
 
 
 
@@ -4932,8 +4933,8 @@ export const CONTROL_SECTIONS = {
         label: 'Size',
         stateKey: 'cube3dSizeVw',
         type: 'range',
-        min: 10, max: 50, step: 0.5,
-        default: 50,
+        min: CUBE_3D_LIMITS.cube3dSizeVw.min, max: CUBE_3D_LIMITS.cube3dSizeVw.max, step: 0.5,
+        default: CUBE_3D_DEFAULTS.cube3dSizeVw,
         format: v => v.toFixed(1) + 'vw',
         parse: parseFloat,
         reinitMode: true
@@ -4943,8 +4944,8 @@ export const CONTROL_SECTIONS = {
         label: 'Edge Density',
         stateKey: 'cube3dEdgeDensity',
         type: 'range',
-        min: 2, max: 30, step: 1,
-        default: 8,
+        min: CUBE_3D_LIMITS.cube3dEdgeDensity.min, max: CUBE_3D_LIMITS.cube3dEdgeDensity.max, step: 1,
+        default: CUBE_3D_DEFAULTS.cube3dEdgeDensity,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -4954,8 +4955,8 @@ export const CONTROL_SECTIONS = {
         label: 'Face Grid',
         stateKey: 'cube3dFaceGrid',
         type: 'range',
-        min: 0, max: 10, step: 1,
-        default: 0,
+        min: CUBE_3D_LIMITS.cube3dFaceGrid.min, max: CUBE_3D_LIMITS.cube3dFaceGrid.max, step: 1,
+        default: CUBE_3D_DEFAULTS.cube3dFaceGrid,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true,
@@ -4966,8 +4967,8 @@ export const CONTROL_SECTIONS = {
         label: 'Idle Rotation',
         stateKey: 'cube3dIdleSpeed',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.2,
+        min: CUBE_3D_LIMITS.cube3dIdleSpeed.min, max: CUBE_3D_LIMITS.cube3dIdleSpeed.max, step: 0.02,
+        default: CUBE_3D_DEFAULTS.cube3dIdleSpeed,
         format: v => v.toFixed(2) + ' rad/s',
         parse: parseFloat
       },
@@ -4976,8 +4977,8 @@ export const CONTROL_SECTIONS = {
         label: 'Cursor Influence',
         stateKey: 'cube3dCursorInfluence',
         type: 'range',
-        min: 0, max: 4, step: 0.05,
-        default: 1.5,
+        min: CUBE_3D_LIMITS.cube3dCursorInfluence.min, max: CUBE_3D_LIMITS.cube3dCursorInfluence.max, step: 0.05,
+        default: CUBE_3D_DEFAULTS.cube3dCursorInfluence,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
@@ -4986,8 +4987,8 @@ export const CONTROL_SECTIONS = {
         label: 'Tumble Speed',
         stateKey: 'cube3dTumbleSpeed',
         type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 6.1,
+        min: CUBE_3D_LIMITS.cube3dTumbleSpeed.min, max: CUBE_3D_LIMITS.cube3dTumbleSpeed.max, step: 0.1,
+        default: CUBE_3D_DEFAULTS.cube3dTumbleSpeed,
         format: v => v.toFixed(1),
         parse: parseFloat
       },
@@ -4996,8 +4997,8 @@ export const CONTROL_SECTIONS = {
         label: 'Tumble Damping',
         stateKey: 'cube3dTumbleDamping',
         type: 'range',
-        min: 0, max: 1, step: 0.005,
-        default: 0.95,
+        min: CUBE_3D_LIMITS.cube3dTumbleDamping.min, max: CUBE_3D_LIMITS.cube3dTumbleDamping.max, step: 0.005,
+        default: CUBE_3D_DEFAULTS.cube3dTumbleDamping,
         format: v => v.toFixed(3),
         parse: parseFloat
       },
@@ -5006,8 +5007,8 @@ export const CONTROL_SECTIONS = {
         label: 'Focal Length',
         stateKey: 'cube3dFocalLength',
         type: 'range',
-        min: 80, max: 2000, step: 10,
-        default: 1100,
+        min: CUBE_3D_LIMITS.cube3dFocalLength.min, max: CUBE_3D_LIMITS.cube3dFocalLength.max, step: 10,
+        default: CUBE_3D_DEFAULTS.cube3dFocalLength,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10)
       },
@@ -5016,8 +5017,8 @@ export const CONTROL_SECTIONS = {
         label: 'Dot Size',
         stateKey: 'cube3dDotSizeMul',
         type: 'range',
-        min: 0.2, max: 4.0, step: 0.05,
-        default: 1.2,
+        min: CUBE_3D_LIMITS.cube3dDotSizeMul.min, max: CUBE_3D_LIMITS.cube3dDotSizeMul.max, step: 0.05,
+        default: CUBE_3D_DEFAULTS.cube3dDotSizeMul,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -5026,8 +5027,8 @@ export const CONTROL_SECTIONS = {
         label: 'Fog Start',
         stateKey: 'cube3dFogStart',
         type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.86,
+        min: CUBE_3D_LIMITS.cube3dFogStart.min, max: CUBE_3D_LIMITS.cube3dFogStart.max, step: 0.05,
+        default: CUBE_3D_DEFAULTS.cube3dFogStart,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
         hint: 'Normalized cube depth where rear fog starts; higher values pull fog forward through more circles.'
@@ -5037,11 +5038,24 @@ export const CONTROL_SECTIONS = {
         label: 'Fog Min Opacity',
         stateKey: 'cube3dFogMin',
         type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.18,
+        min: CUBE_3D_LIMITS.cube3dFogMin.min, max: CUBE_3D_LIMITS.cube3dFogMin.max, step: 0.05,
+        default: CUBE_3D_DEFAULTS.cube3dFogMin,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
         hint: 'Minimum opacity for the furthest cube circles in the background fog.'
+      },
+      {
+        id: 'cube3dReducedMotionScale',
+        label: 'Reduced Motion Input',
+        stateKey: 'cube3dReducedMotionScale',
+        type: 'range',
+        min: CUBE_3D_LIMITS.cube3dReducedMotionScale.min,
+        max: CUBE_3D_LIMITS.cube3dReducedMotionScale.max,
+        step: 0.01,
+        default: CUBE_3D_DEFAULTS.cube3dReducedMotionScale,
+        format: v => Math.round(v * 100) + '%',
+        parse: parseFloat,
+        hint: 'Scales direct pointer response when reduced motion is requested; idle rotation is disabled.'
       },
       warmupFramesControl('cube3dWarmupFrames')
     ]

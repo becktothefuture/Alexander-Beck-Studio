@@ -318,6 +318,7 @@
   "cube3dDotSizeMul": 1.2,
   "cube3dFogStart": 0.86,
   "cube3dFogMin": 0.18,
+  "cube3dReducedMotionScale": 0.18,
   "cube3dWarmupFrames": 10,
   "parallaxFloatRandomize": 0.4,
   "parallaxFloatGridX": 14,

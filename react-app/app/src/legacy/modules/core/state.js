@@ -30,6 +30,10 @@ import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   resolveMobileSimulationBodyScale,
 } from '../../../lib/mobileSimulationSizing.js';
+import {
+  CUBE_3D_DEFAULTS,
+  normalizeCube3DConfig,
+} from '../modes/cube3d-config.js';
 
 const initialSimulationPalette = getSimulationPaletteSnapshot();
 const timeOfDayAccents = getLondonWeatherPaletteAccents(initialSimulationPalette.paletteId) || {};
@@ -168,18 +172,7 @@ const state = {
   sphere3dDepthBlendBand: 0.045,
   sphere3dWarmupFrames: 10,
   // Scaffold 3D cube values (Mode 17)
-  cube3dSizeVw: 50,
-  cube3dEdgeDensity: 8,
-  cube3dFaceGrid: 0,
-  cube3dIdleSpeed: 0.2,
-  cube3dCursorInfluence: 1.5,
-  cube3dTumbleSpeed: 3,
-  cube3dTumbleDamping: 0.95,
-  cube3dFocalLength: 1200,
-  cube3dDotSizeMul: 1.0,
-  cube3dFogStart: 0.95,
-  cube3dFogMin: 0.58,
-  cube3dWarmupFrames: 10,
+  ...CUBE_3D_DEFAULTS,
   // Star Field (Mode 23)
   starfieldCount: 200,
   starfieldSpanX: 1.5,
@@ -1886,18 +1879,7 @@ export function initState(config) {
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
   // Scaffold 3D cube values (Mode 17)
-  if (config.cube3dSizeVw !== undefined) state.cube3dSizeVw = clampNumber(config.cube3dSizeVw, 10, 50, state.cube3dSizeVw);
-  if (config.cube3dEdgeDensity !== undefined) state.cube3dEdgeDensity = clampInt(config.cube3dEdgeDensity, 2, 30, state.cube3dEdgeDensity);
-  if (config.cube3dFaceGrid !== undefined) state.cube3dFaceGrid = clampInt(config.cube3dFaceGrid, 0, 10, state.cube3dFaceGrid);
-  if (config.cube3dIdleSpeed !== undefined) state.cube3dIdleSpeed = clampNumber(config.cube3dIdleSpeed, 0, 1, state.cube3dIdleSpeed);
-  if (config.cube3dCursorInfluence !== undefined) state.cube3dCursorInfluence = clampNumber(config.cube3dCursorInfluence, 0, 4, state.cube3dCursorInfluence);
-  if (config.cube3dTumbleSpeed !== undefined) state.cube3dTumbleSpeed = clampNumber(config.cube3dTumbleSpeed, 0, 10, state.cube3dTumbleSpeed);
-  if (config.cube3dTumbleDamping !== undefined) state.cube3dTumbleDamping = clampNumber(config.cube3dTumbleDamping, 0, 1, state.cube3dTumbleDamping);
-  if (config.cube3dFocalLength !== undefined) state.cube3dFocalLength = clampInt(config.cube3dFocalLength, 80, 2000, state.cube3dFocalLength);
-  if (config.cube3dDotSizeMul !== undefined) state.cube3dDotSizeMul = clampNumber(config.cube3dDotSizeMul, 0.2, 4.0, state.cube3dDotSizeMul);
-  if (config.cube3dFogStart !== undefined) state.cube3dFogStart = clampNumber(config.cube3dFogStart, 0, 1, state.cube3dFogStart);
-  if (config.cube3dFogMin !== undefined) state.cube3dFogMin = clampNumber(config.cube3dFogMin, 0, 1, state.cube3dFogMin);
-  if (config.cube3dWarmupFrames !== undefined) state.cube3dWarmupFrames = clampInt(config.cube3dWarmupFrames, 0, 240, state.cube3dWarmupFrames);
+  Object.assign(state, normalizeCube3DConfig(config, state));
 
   // Star Field (Mode 23)
   if (config.starfieldCount !== undefined) state.starfieldCount = clampInt(config.starfieldCount, 20, 500, state.starfieldCount);
