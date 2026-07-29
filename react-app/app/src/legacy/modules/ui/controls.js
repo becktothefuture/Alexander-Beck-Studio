@@ -121,7 +121,8 @@ export function updateModeButtonsUI(activeMode, options = {}) {
     'weave-field': 'Juxtaposition',
     'shapes': 'Assembly',
     'pressure-crucible': 'Pressure Field',
-    'particle-fountain': 'Particle Fountain',
+    'particle-fountain': 'Fountain A',
+    'particle-fountain-b': 'Fountain B',
     'napoleon-point-cloud': 'Impression'
   };
 

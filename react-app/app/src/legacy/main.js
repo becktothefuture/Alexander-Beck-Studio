@@ -548,7 +548,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           }
           return atmosphereCanvasLayers;
         },
-        quietZoneElement: () => document.getElementById('hero-title'),
         scheduler: 'renderer-coupled',
         opacityElement: canvas,
         requireRealFrame: true,

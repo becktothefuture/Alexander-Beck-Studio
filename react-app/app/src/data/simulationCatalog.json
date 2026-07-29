@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "updatedAt": "2026-07-09",
+  "version": 2,
+  "updatedAt": "2026-07-29",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -305,15 +305,28 @@
     },
     {
       "id": "particle-fountain",
-      "name": "Particle Fountain",
-      "chapter": "PARTICLE FOUNTAIN",
+      "name": "Fountain A",
+      "chapter": "FOUNTAIN A",
       "stage": "collection",
       "surface": "home-mode",
       "origin": "core-site",
       "launchPath": "/index.html?mode=particle-fountain",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Fountain-like flow made from circle particles."
+      "summary": "A centred fountain nozzle aims its continuous particle stream toward the pointer within a 30-degree sweep."
+    },
+    {
+      "id": "particle-fountain-b",
+      "name": "Fountain B",
+      "chapter": "FOUNTAIN B",
+      "stage": "collection",
+      "surface": "home-mode",
+      "origin": "core-site",
+      "introducedOn": "2026-07-29",
+      "launchPath": "/index.html?mode=particle-fountain-b",
+      "includeInNarrative": true,
+      "reviewStatus": "candidate",
+      "summary": "Three evenly spaced park-fountain nozzles perform a repeating choreography of solos, crossing arches, travelling beats, and rests."
     },
     {
       "id": "beach-ball-room",

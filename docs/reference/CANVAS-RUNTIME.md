@@ -99,7 +99,6 @@ const unregister = registerSimulationAtmosphereSource({
   kind: 'emitters' | 'canvas' | 'ambient',
   canvas,
   getEmitters,
-  quietZoneElement,
   opacityElement,
   scheduler: 'external' | 'internal' | 'renderer-coupled',
 });
@@ -108,7 +107,6 @@ const unregister = registerSimulationAtmosphereSource({
 - `emitters` requires `getEmitters()` and `external`.
 - `canvas` accepts `internal` when the compositor may sample independently, or `renderer-coupled` when the source renderer must tick it after publishing a frame. Home uses a renderer-coupled Canvas source and supplies its main and active front-depth canvases in final display order through `getCanvasLayers()`, so custom, replicated, and depth-split modes all feed the same finished-frame atmosphere path. A registered source Canvas must never be either compositor output Canvas.
 - `ambient` requires `internal` and uses the compositor's fixed eight-disc fallback. It is for a genuinely canvas-less or deliberately suspended eligible state, not a substitute for registering available route material.
-- `quietZoneElement` may be an element or getter. Its geometry is cached and invalidated by resize, source, theme, and authored-geometry changes; settled frames must not introduce repeated layout reads.
 - `opacityElement` identifies the crisp material whose authored presence the compositor projects. The shell-owned title plane is never a compositor source and keeps its own opacity contract.
 
 Registration returns a generation-qualified, idempotent disposer. A stale disposer cannot clear a newer route source. Source changes clear the diffuse output in the idle state; during a shell transition the outgoing result may freeze under the route cover until the next source is ready. The disposer also exposes `firstFrame`, which resolves `ready`, `cancelled`, or `failed-open` without extending the shell's global readiness timeout.
@@ -119,9 +117,10 @@ Scheduling and performance are part of the contract:
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
 - the large atmospheric field and small colour-reflection field each resolve from their authored proportion of the studio window's shortest side, with separate bounded CSS-pixel endpoints; backing-store quality changes resolution only and cannot change either apparent spread;
 - automatic atmosphere cadence is 30 FPS across desktop, coarse-pointer, narrow, and short viewports; source physics/renderers retain their own cadence;
-- each compositor frame clears the previous output, samples the current completed source frame, applies a broad atmosphere blur plus a tighter colour-preserving blur, then applies the quiet-zone attenuation. Both passes use only the current frame: there is no feedback buffer, decay, drift, temporal diffusion, accumulation, or mode-to-mode trail;
-- the wall `ResizeObserver` must update glow, edge, and quiet-zone backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
+- each compositor frame samples the current completed source frame, applies a broad atmosphere blur plus a tighter colour-preserving blur across the complete wall, then preserves one short, non-drifting history buffer behind the current field. The authored memory half-life is tightly bounded, resets on source/mode/theme/geometry changes, and is disabled for Reduced Motion; there is no content mask, multi-buffer diffusion, unbounded accumulation, or mode-to-mode trail;
+- the wall `ResizeObserver` must update glow and edge backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
 - Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
+- the edge-light Canvas samples only the narrow quality-scaled band exposed by the shell mask; authored inset moves that band inward while its corner radius remains concentric with the studio window. Brightness and saturation belong to the masked CSS compositor layer so Canvas does not run a filtered full-frame raster pass for the edge response;
 - simulation bodies stay crisp; broad softness belongs to the shared atmosphere output and never to source-body `CanvasRenderingContext2D.filter`, `shadowBlur`, or a whole-source CSS blur;
 - automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
 - internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep an ambient loop alive;

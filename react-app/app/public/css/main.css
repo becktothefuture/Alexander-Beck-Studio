@@ -5090,11 +5090,14 @@ html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
 
 #simulations > .simulation-atmosphere-edge-light-layer {
   position: absolute;
-  inset: 0;
+  inset: var(--atmosphere-edge-inset, 0px);
   box-sizing: border-box;
   z-index: 160;
   border: var(--atmosphere-edge-width, 1.5px) solid transparent;
-  border-radius: inherit;
+  border-radius: max(
+    0px,
+    calc(var(--frame-outer-radius) - var(--atmosphere-edge-inset, 0px))
+  );
   corner-shape: inherit;
   pointer-events: none;
   /* Use the wall's real border geometry for both contours. Unlike a content-box
@@ -5111,9 +5114,9 @@ html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
 }
 
 #simulations > .simulation-atmosphere-edge-light-layer > canvas.simulation-atmosphere-edge-light-canvas {
-  inset: calc(-1 * var(--atmosphere-edge-width, 1.5px));
-  width: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
-  height: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
+  inset: calc(-1 * (var(--atmosphere-edge-inset, 0px) + var(--atmosphere-edge-width, 1.5px)));
+  width: calc(100% + (2 * (var(--atmosphere-edge-inset, 0px) + var(--atmosphere-edge-width, 1.5px))));
+  height: calc(100% + (2 * (var(--atmosphere-edge-inset, 0px) + var(--atmosphere-edge-width, 1.5px))));
   z-index: 0;
   mix-blend-mode: normal;
 }

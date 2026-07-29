@@ -804,6 +804,8 @@ body.dark-mode .about-narrative-client-logos img {
 
 .about-narrative-spatial-copy.is-finale .about-narrative-spatial-title.route-bookend-title {
   max-width: 13ch;
+  padding-block: 0;
+  margin: 0 auto;
   opacity: var(--fragment-opacity, 0);
   filter: blur(min(var(--fragment-blur, 0px), 7px));
   font-size: var(--route-bookend-title-size);
@@ -846,14 +848,7 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-finale-description {
-  max-width: 42ch;
-  margin: 0;
   opacity: var(--spatial-description-opacity, var(--spatial-context-opacity, 0));
-  color: var(--text-muted);
-  font-family: var(--abs-font-sans);
-  font-size: clamp(0.92rem, 1.25vw, 1.12rem);
-  line-height: 1.42;
-  text-wrap: balance;
   transform: none;
 }
 

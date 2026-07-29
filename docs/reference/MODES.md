@@ -54,7 +54,8 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Cohesion | `flubber-blob` | Active |
 | Juxtaposition | `weave-field` | Active |
 | Pressure Field | `pressure-crucible` | Active |
-| Particle Fountain | `particle-fountain` | Active |
+| Fountain A | `particle-fountain` | Active |
+| Fountain B | `particle-fountain-b` | Active |
 | Impression | `napoleon-point-cloud` | Route-backed collection/lab |
 | Beach Ball Room | `beach-ball-room` | Route-backed collection/lab |
 
@@ -89,7 +90,8 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 20. `critters` — CRITTER SWARM
 21. `parallax-float` — PARALLAX DRIFT
 22. `pressure-crucible` — PRESSURE FIELD
-23. `particle-fountain` — PARTICLE FOUNTAIN
+23. `particle-fountain` — FOUNTAIN A
+24. `particle-fountain-b` — FOUNTAIN B
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -108,7 +110,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Pointer And Title Depth Rules
 
 - Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
-- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. These modes split particles around the fixed title plane at normalized z `0.5`, with some balls behind and some in front.
+- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. `3d-sphere` and `parallax-float` split particles around the fixed title plane at normalized z `0.5`; Scaffold renders its Assembly-style rigid pieces on the front side of the title plane.
 - The visible home title/subtitle are canvas-rendered from the semantic `#hero-title` source. No-depth modes draw the title before the normal ball pass, preserving the old title-behind-simulation relationship. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
 
 ---
@@ -128,7 +130,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `critters`: locomotion-based critter behavior and local separation.
 - `parallax-float`: layered depth field with levitation/parallax response.
 - `3d-sphere`: rotating spherical point cloud.
-- `3d-cube`: rotating/tumbling cube point cloud.
+- `3d-cube`: five tessellating dot-body silhouettes using Assembly's staggered drop, gravity, collision, sweep, grab, spin, and throw behavior.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
@@ -140,7 +142,8 @@ Loop order is `Featured -> Extended -> Featured`.
 - `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
 - `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
 - `pressure-crucible`: Extended-tier experiment, not a daily candidate. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.
-- `particle-fountain`: continuous emitter with gravity/drag shaping.
+- `particle-fountain`: centred continuous emitter that aims toward the pointer within a 30-degree left/right sweep.
+- `particle-fountain-b`: three park-fountain nozzles alternate solos, crossing arches, travelling beats, and intentional rests.
 
 ---
 

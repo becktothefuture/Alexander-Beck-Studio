@@ -246,6 +246,7 @@ class AtmosphereLabController {
             grainStrength: this.renderProfile.grainStrength ?? null,
             blendMode: this.renderProfile.blendMode ?? null,
             edgeWidthPx: this.renderProfile.edgeWidthPx ?? null,
+            edgeInsetPx: this.renderProfile.edgeInsetPx ?? null,
           },
           particleLightCount: this.effect?.lastInstanceCount || this.lastSourceLightCount,
           firstEmitter: (() => {
@@ -315,6 +316,7 @@ class AtmosphereLabController {
     root.style.setProperty('--atmosphere-haze-strength', String(presentationProfile?.hazeStrength ?? 1));
     root.style.setProperty('--atmosphere-grain-strength', String(presentationProfile?.grainStrength ?? 1));
     root.style.setProperty('--atmosphere-edge-width', `${presentationProfile?.edgeWidthPx ?? 1.5}px`);
+    root.style.setProperty('--atmosphere-edge-inset', `${presentationProfile?.edgeInsetPx ?? 0}px`);
     this.outputCanvas.hidden = !enabled;
     if (this.edgeLightCanvas) {
       this.edgeLightCanvas.hidden = !enabled || this.renderProfile.edgeLight <= 0;
@@ -495,7 +497,14 @@ class AtmosphereLabController {
         nowMs: now,
         responsiveScale: this.responsiveEffectScale,
       });
-      this.edgeLight?.render(this.outputCanvas, this.renderProfile.edgeLight);
+      const edgeWidthBackingPx = (this.renderProfile.edgeWidthPx ?? 1.5) * this.dynamicQuality.scale;
+      const edgeInsetBackingPx = (this.renderProfile.edgeInsetPx ?? 0) * this.dynamicQuality.scale;
+      this.edgeLight?.render(
+        this.outputCanvas,
+        this.renderProfile.edgeLight,
+        edgeWidthBackingPx,
+        edgeInsetBackingPx,
+      );
     } catch (error) {
       if (!this.fallback) {
         console.warn('[atmosphere-lab] Renderer failed; activating Canvas fallback', error);
@@ -541,6 +550,7 @@ class AtmosphereLabController {
     document.documentElement.style.removeProperty('--atmosphere-haze-strength');
     document.documentElement.style.removeProperty('--atmosphere-grain-strength');
     document.documentElement.style.removeProperty('--atmosphere-edge-width');
+    document.documentElement.style.removeProperty('--atmosphere-edge-inset');
     invalidateHomepageCanvasTitleGeometry();
     if (window.__ABS_ATMOSPHERE_LAB__) delete window.__ABS_ATMOSPHERE_LAB__;
     if (activeController === this) {
@@ -574,7 +584,6 @@ class CrispGlowLabController {
         }
         return this.canvasLayers;
       },
-      quietZoneElement: () => document.getElementById('hero-title'),
       scheduler: 'renderer-coupled',
       opacityElement: globals.canvas,
     });

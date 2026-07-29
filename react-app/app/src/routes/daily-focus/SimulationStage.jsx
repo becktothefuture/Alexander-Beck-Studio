@@ -36,7 +36,6 @@ export function SimulationStage({
         transactionId: replacement?.transactionId || '',
         kind: 'canvas',
         canvas,
-        quietZoneElement: () => document.getElementById('hero-title'),
         scheduler: 'internal',
         opacityElement: canvas,
         requireRealFrame: true,

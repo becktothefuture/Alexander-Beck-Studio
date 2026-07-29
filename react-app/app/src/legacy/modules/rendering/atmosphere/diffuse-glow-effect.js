@@ -10,6 +10,14 @@ export class DiffuseGlowEffect {
     this.outputCanvas = outputCanvas;
     this.outputContext = outputCanvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!this.outputContext) throw new Error('Canvas 2D atmosphere context unavailable');
+    this.historyCanvas = document.createElement('canvas');
+    this.historyCanvas.width = outputCanvas.width;
+    this.historyCanvas.height = outputCanvas.height;
+    this.historyContext = this.historyCanvas.getContext('2d', { alpha: true, desynchronized: true });
+    if (!this.historyContext) throw new Error('Canvas 2D atmosphere history context unavailable');
+    this.hasHistory = false;
+    this.lastRenderAt = 0;
+    this.temporalMemoryFrames = 0;
     this.cachedLargeBlurRadius = -1;
     this.cachedSmallBlurRadius = -1;
     this.cachedSaturation = -1;
@@ -18,18 +26,32 @@ export class DiffuseGlowEffect {
   }
 
   resize(width, height) {
-    if (this.outputCanvas.width === width && this.outputCanvas.height === height) return;
+    if (
+      this.outputCanvas.width === width
+      && this.outputCanvas.height === height
+      && this.historyCanvas.width === width
+      && this.historyCanvas.height === height
+    ) return;
     this.outputCanvas.width = width;
     this.outputCanvas.height = height;
+    this.historyCanvas.width = width;
+    this.historyCanvas.height = height;
+    this.hasHistory = false;
+    this.lastRenderAt = 0;
+    this.temporalMemoryFrames = 0;
     this.cachedLargeBlurRadius = -1;
     this.cachedSmallBlurRadius = -1;
   }
 
   clear() {
     this.outputContext.clearRect(0, 0, this.outputCanvas.width, this.outputCanvas.height);
+    this.historyContext.clearRect(0, 0, this.historyCanvas.width, this.historyCanvas.height);
+    this.hasHistory = false;
+    this.lastRenderAt = 0;
+    this.temporalMemoryFrames = 0;
   }
 
-  render({ sourceCanvas, maskCanvas = null, config }) {
+  render({ sourceCanvas, config, nowMs = performance.now() }) {
     const context = this.outputContext;
     const width = this.outputCanvas.width;
     const height = this.outputCanvas.height;
@@ -43,6 +65,7 @@ export class DiffuseGlowEffect {
       Number(config.smallBlurRadiusBackingPx) || largeBlurRadius * 0.34,
     );
     const saturation = Math.max(0, Number(config.colourStrength) || 0);
+    const memoryMs = Math.min(600, Math.max(0, Number(config.memoryMs) || 0));
     const broadSaturation = saturation * BROAD_SATURATION_MULTIPLIER;
     const colourSaturation = saturation * COLOUR_SATURATION_MULTIPLIER;
 
@@ -51,7 +74,10 @@ export class DiffuseGlowEffect {
     context.globalAlpha = 1;
     context.filter = 'none';
     context.clearRect(0, 0, width, height);
-    if (!sourceCanvas || intensity <= 0 || width <= 1 || height <= 1) return;
+    if (!sourceCanvas || intensity <= 0 || width <= 1 || height <= 1) {
+      this.clear();
+      return;
+    }
 
     if (
       largeBlurRadius !== this.cachedLargeBlurRadius
@@ -82,14 +108,38 @@ export class DiffuseGlowEffect {
     context.drawImage(sourceCanvas, 0, 0, width, height);
     context.filter = 'none';
 
-    if (maskCanvas) {
-      context.globalCompositeOperation = 'destination-out';
-      context.globalAlpha = 1;
-      context.drawImage(maskCanvas, 0, 0, width, height);
+    const frameNow = Number(nowMs) || performance.now();
+    const elapsedMs = this.lastRenderAt > 0 ? Math.max(0, frameNow - this.lastRenderAt) : 0;
+    const decay = memoryMs > 0 && this.hasHistory && elapsedMs > 0
+      ? Math.exp((-Math.LN2 * elapsedMs) / memoryMs)
+      : 0;
+    if (decay > 0.01) {
+      // Preserve history only where the freshly rendered field leaves room.
+      // This prevents stationary glow from accumulating into a muddy plate.
+      context.globalCompositeOperation = 'destination-over';
+      context.globalAlpha = decay;
+      context.drawImage(this.historyCanvas, 0, 0, width, height);
     }
 
     context.globalCompositeOperation = 'source-over';
     context.globalAlpha = 1;
+
+    if (memoryMs > 0) {
+      const historyContext = this.historyContext;
+      historyContext.setTransform(1, 0, 0, 1, 0, 0);
+      historyContext.globalCompositeOperation = 'copy';
+      historyContext.globalAlpha = 1;
+      historyContext.filter = 'none';
+      historyContext.drawImage(this.outputCanvas, 0, 0, width, height);
+      this.hasHistory = true;
+      this.lastRenderAt = frameNow;
+      this.temporalMemoryFrames = 1;
+    } else if (this.hasHistory) {
+      this.historyContext.clearRect(0, 0, width, height);
+      this.hasHistory = false;
+      this.lastRenderAt = 0;
+      this.temporalMemoryFrames = 0;
+    }
   }
 
   destroy() {

@@ -14,6 +14,15 @@ const SHAPE_TYPES = [
   'hexagon',
 ];
 
+const SCAFFOLD_PIECE_TYPES = [
+  'scaffold-top-left',
+  'scaffold-top-right',
+  'scaffold-bottom-right',
+  'scaffold-bottom-left',
+  'scaffold-center',
+];
+const SCAFFOLD_GRID_SIZE = 12;
+
 const EXTRA_LARGE_SHAPE_TYPES = new Set(['square', 'circle', 'plus']);
 const EXTRA_LARGE_SHAPE_SCALE = 2.05;
 const DROP_INITIAL_HOLD_SECONDS = 0.75;
@@ -247,6 +256,48 @@ function buildShapePoints(type, spacing, desiredCount) {
   return points;
 }
 
+function getScaffoldPieceIndex(row, col) {
+  const inner = row >= 3 && row <= 8 && col >= 3 && col <= 8;
+  if (inner) return 4;
+  if (row < 6 && col < 6) return 0;
+  if (row < 6) return 1;
+  if (col >= 6) return 2;
+  return 3;
+}
+
+function buildScaffoldPiecePoints(type, spacing) {
+  const pieceIndex = SCAFFOLD_PIECE_TYPES.indexOf(type);
+  const points = [];
+  const midpoint = (SCAFFOLD_GRID_SIZE - 1) * 0.5;
+
+  for (let row = 0; row < SCAFFOLD_GRID_SIZE; row += 1) {
+    for (let col = 0; col < SCAFFOLD_GRID_SIZE; col += 1) {
+      if (getScaffoldPieceIndex(row, col) !== pieceIndex) continue;
+      points.push({
+        lx: (col - midpoint) * spacing,
+        ly: (row - midpoint) * spacing,
+        row,
+        col,
+      });
+    }
+  }
+
+  let centerX = 0;
+  let centerY = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    centerX += points[i].lx;
+    centerY += points[i].ly;
+  }
+  centerX /= Math.max(1, points.length);
+  centerY /= Math.max(1, points.length);
+  for (let i = 0; i < points.length; i += 1) {
+    points[i].lx -= centerX;
+    points[i].ly -= centerY;
+  }
+
+  return points;
+}
+
 function measureBody(points, dotRadius) {
   let radius = dotRadius;
   let extentX = dotRadius;
@@ -351,25 +402,28 @@ function applyRubberSquash(body, amount, normalAngle) {
   }
 }
 
-function createShapeBodies(g, count, dotRadius) {
+function createShapeBodies(g, count, dotRadius, options = {}) {
   const canvas = g.canvas;
-  const centers = getShapeCenters(g, canvas, dotRadius * EXTRA_LARGE_SHAPE_SCALE, SHAPE_TYPES.length);
+  const types = options.types || SHAPE_TYPES;
+  const pointBuilder = options.pointBuilder || buildShapePoints;
+  const scaleResolver = options.scaleResolver || getShapeScale;
+  const centers = getShapeCenters(g, canvas, dotRadius * EXTRA_LARGE_SHAPE_SCALE, types.length);
   const spacingMul = clamp(Number(g.shapesDotSpacingMul ?? 2.34), 1.95, 2.8);
-  const basePerShape = Math.max(8, Math.floor(count / SHAPE_TYPES.length));
-  const remainder = count - basePerShape * SHAPE_TYPES.length;
+  const basePerShape = Math.max(8, Math.floor(count / types.length));
+  const remainder = count - basePerShape * types.length;
   const dpr = g.DPR || 1;
   const reduced = prefersReducedMotion();
   const bodies = [];
   const targets = [];
 
-  for (let i = 0; i < SHAPE_TYPES.length; i += 1) {
-    const type = SHAPE_TYPES[i];
-    const shapeScale = getShapeScale(type);
+  for (let i = 0; i < types.length; i += 1) {
+    const type = types[i];
+    const shapeScale = scaleResolver(type);
     const baseDesiredCount = basePerShape + (i < remainder ? 1 : 0);
     const desiredCount = Math.round(baseDesiredCount * shapeScale * shapeScale);
     const bodyDotRadius = dotRadius;
     const spacing = dotRadius * spacingMul;
-    const points = buildShapePoints(type, spacing, desiredCount);
+    const points = pointBuilder(type, spacing, desiredCount);
     const measured = measureBody(points, bodyDotRadius);
     const center = centers[i];
     const mass = Math.max(1, points.length * shapeScale * shapeScale * 1.2);
@@ -1019,7 +1073,7 @@ function applyShapeSweep(g, detail) {
 function handlePointer(type, detail) {
   const g = getGlobals();
   const state = g.shapesState;
-  if (g.currentMode !== MODES.SHAPES || !state || !detail) return;
+  if (!state || g.currentMode !== state.mode || !detail) return;
 
   if (type === 'down') {
     if (!detail.inBounds) return;
@@ -1106,7 +1160,7 @@ function syncDotsToBodies(g) {
   }
 }
 
-export function initializeShapes() {
+function initializeShapeWorld(mode, options = {}) {
   const g = getGlobals();
   clearBalls();
   ensurePointerSubscription();
@@ -1121,12 +1175,13 @@ export function initializeShapes() {
     ? clamp(Number(g.shapesMobileCountScale ?? 1), 0.25, 1)
     : 1;
   const count = Math.round(getMobileAdjustedCount(baseCount) * mobileCountScale);
-  const { bodies, targets } = createShapeBodies(g, count, dotRadius);
+  const { bodies, targets } = createShapeBodies(g, count, dotRadius, options);
 
   canvas.dataset.simulationBodyCount = String(targets.length);
   canvas.dataset.simulationRequestedBodyCount = String(count);
 
   g.shapesState = {
+    mode,
     time: 0,
     reducedMotion: prefersReducedMotion(),
     dotRadius,
@@ -1152,10 +1207,22 @@ export function initializeShapes() {
   syncDotsToBodies(g);
 }
 
-export function stepShapes(dt) {
+export function initializeShapes() {
+  initializeShapeWorld(MODES.SHAPES);
+}
+
+export function initializeScaffoldShapes() {
+  initializeShapeWorld(MODES.CUBE_3D, {
+    types: SCAFFOLD_PIECE_TYPES,
+    pointBuilder: buildScaffoldPiecePoints,
+    scaleResolver: () => 1,
+  });
+}
+
+function stepShapeWorld(dt, expectedMode) {
   const g = getGlobals();
   const state = g.shapesState;
-  if (g.currentMode !== MODES.SHAPES || !state || !g.canvas) return;
+  if (g.currentMode !== expectedMode || state?.mode !== expectedMode || !g.canvas) return;
 
   const bodies = state.bodies || [];
   const dpr = g.DPR || 1;
@@ -1254,6 +1321,18 @@ export function stepShapes(dt) {
   }
 
   syncDotsToBodies(g);
+}
+
+export function stepShapes(dt) {
+  stepShapeWorld(dt, MODES.SHAPES);
+}
+
+export function stepScaffoldShapes(dt) {
+  stepShapeWorld(dt, MODES.CUBE_3D);
+}
+
+export function cleanupScaffoldShapes() {
+  cleanupShapes();
 }
 
 export function applyShapesForces() {}

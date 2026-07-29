@@ -96,7 +96,6 @@ export function ContactRippleSimulation() {
       routeId: 'contact',
       kind: sourceContextAvailable ? 'canvas' : 'ambient',
       canvas: sourceContextAvailable ? canvas : null,
-      quietZoneElement: () => document.getElementById('contact-route-content'),
       scheduler: 'internal',
       opacityElement: sourceContextAvailable ? canvas : null,
     });

@@ -426,7 +426,10 @@ function TitleField({
               {field.text}
             </Heading>
             {field.description ? (
-              <p id={descriptionId} className="about-narrative-finale-description route-title-lockup__description">
+              <p
+                id={descriptionId}
+                className="about-narrative-finale-description route-centered-page__description route-intro-description route-title-lockup__description"
+              >
                 {field.description}
               </p>
             ) : null}

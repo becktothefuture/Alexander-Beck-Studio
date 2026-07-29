@@ -37,6 +37,7 @@ export const MODES = {
   SHAPES: 'shapes',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain',
+  PARTICLE_FOUNTAIN_B: 'particle-fountain-b',
   NAPOLEON_POINT_CLOUD: 'napoleon-point-cloud',
   BEACH_BALL_ROOM: 'beach-ball-room'
 };
@@ -109,7 +110,8 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.RIFT_RINGS]: 'DEPTH',
   [MODES.STARFIELD_3D]: 'PERSPECTIVE',
   [MODES.PARALLAX_FLOAT]: 'PARALLAX DRIFT',
-  [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FOUNTAIN',
+  [MODES.PARTICLE_FOUNTAIN]: 'FOUNTAIN A',
+  [MODES.PARTICLE_FOUNTAIN_B]: 'FOUNTAIN B',
   [MODES.NAPOLEON_POINT_CLOUD]: 'IMPRESSION',
   [MODES.BEACH_BALL_ROOM]: 'BEACH BALL ROOM'
 };
@@ -222,6 +224,10 @@ export const NARRATIVE_QUOTES = {
     author: 'Lao Tzu'
   },
   [MODES.PARTICLE_FOUNTAIN]: {
+    quote: "You can't use up creativity. The more you use, the more you have.",
+    author: 'Maya Angelou'
+  },
+  [MODES.PARTICLE_FOUNTAIN_B]: {
     quote: "You can't use up creativity. The more you use, the more you have.",
     author: 'Maya Angelou'
   }

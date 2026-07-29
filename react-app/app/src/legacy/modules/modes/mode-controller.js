@@ -49,7 +49,8 @@ const MODE_NAMES = {
   'weave-field': 'Juxtaposition',
   shapes: 'Assembly',
   'pressure-crucible': 'Pressure Field',
-  'particle-fountain': 'Particle Fountain',
+  'particle-fountain': 'Fountain A',
+  'particle-fountain-b': 'Fountain B',
   'napoleon-point-cloud': 'Impression',
   'beach-ball-room': 'Beach Ball Room'
 };
@@ -148,8 +149,8 @@ const MODE_REGISTRY = {
     load: () => import('./3d-cube.js'),
     hooks: {
       initialize: 'initialize3DCube',
-      force: 'apply3DCubeForces',
-      depthRender: 'render3DCubeDepthLayer'
+      cleanup: 'cleanup3DCube',
+      customStep: 'step3DCube'
     }
   },
   [MODES.STARFIELD_3D]: {
@@ -209,6 +210,14 @@ const MODE_REGISTRY = {
       initialize: 'initializeParticleFountain',
       force: 'applyParticleFountainForces',
       update: 'updateParticleFountain'
+    }
+  },
+  [MODES.PARTICLE_FOUNTAIN_B]: {
+    load: () => import('./particle-fountain-b.js'),
+    hooks: {
+      initialize: 'initializeParticleFountainB',
+      force: 'applyParticleFountainBForces',
+      update: 'updateParticleFountainB'
     }
   }
 };
@@ -304,7 +313,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.KALEIDOSCOPE_RIFT: return globals.kaleidoscopeRiftWarmupFrames ?? 45;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
-    case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
+    case MODES.CUBE_3D: return globals.shapesWarmupFrames ?? 0;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
@@ -313,6 +322,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.SHAPES: return globals.shapesWarmupFrames ?? 0;
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
+    case MODES.PARTICLE_FOUNTAIN_B: return 0;
     default: return 10;
     }
   })();
@@ -353,7 +363,7 @@ function applyModePhysicsState(mode, globals) {
     return;
   }
 
-  if (mode === MODES.PARTICLE_FOUNTAIN) {
+  if (mode === MODES.PARTICLE_FOUNTAIN || mode === MODES.PARTICLE_FOUNTAIN_B) {
     globals.gravityMultiplier = globals.particleFountainGravityMultiplier || 1.0;
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true;

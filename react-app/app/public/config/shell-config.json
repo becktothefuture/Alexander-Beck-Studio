@@ -47,9 +47,11 @@
     "simulationAtmosphere": {
       "enabled": true,
       "largeSpread": 0.18,
-      "smallSpread": 0.027,
-      "contentClearance": 0.66,
-      "edgeStrength": 0.35,
+      "smallSpread": 0.024,
+      "memoryMs": 75,
+      "edgeStrength": 0.65,
+      "edgeWidthPx": 2,
+      "edgeInsetPx": 0,
       "light": {
         "intensity": 0.64,
         "colourStrength": 1.3

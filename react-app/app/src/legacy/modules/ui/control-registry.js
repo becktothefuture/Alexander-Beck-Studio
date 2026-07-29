@@ -837,8 +837,10 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   g[getAtmosphereStateKey('enabled')] = config.enabled;
   g[getAtmosphereStateKey('largeSpread')] = config.largeSpread;
   g[getAtmosphereStateKey('smallSpread')] = config.smallSpread;
-  g[getAtmosphereStateKey('contentClearance')] = config.contentClearance;
+  g[getAtmosphereStateKey('memoryMs')] = config.memoryMs;
   g[getAtmosphereStateKey('edgeStrength')] = config.edgeStrength;
+  g[getAtmosphereStateKey('edgeWidthPx')] = config.edgeWidthPx;
+  g[getAtmosphereStateKey('edgeInsetPx')] = config.edgeInsetPx;
   for (const theme of ['light', 'dark']) {
     for (const group of ATMOSPHERE_PROFILE_GROUPS) {
       for (const control of group.controls) {
@@ -865,15 +867,25 @@ export function buildSimulationAtmosphereConfigFromControlState(
       getAtmosphereStateKey('smallSpread'),
       base.smallSpread,
     ),
-    contentClearance: readAtmosphereState(
+    memoryMs: readAtmosphereState(
       g,
-      getAtmosphereStateKey('contentClearance'),
-      base.contentClearance,
+      getAtmosphereStateKey('memoryMs'),
+      base.memoryMs,
     ),
     edgeStrength: readAtmosphereState(
       g,
       getAtmosphereStateKey('edgeStrength'),
       base.edgeStrength,
+    ),
+    edgeWidthPx: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('edgeWidthPx'),
+      base.edgeWidthPx,
+    ),
+    edgeInsetPx: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('edgeInsetPx'),
+      base.edgeInsetPx,
     ),
     light: { ...base.light },
     dark: { ...base.dark },
@@ -948,14 +960,14 @@ export const CONTROL_SECTIONS = {
       'enabled',
       'largeSpread',
       'smallSpread',
-      'contentClearance',
+      'memoryMs',
     ]),
   },
   atmosphereEdge: {
     title: 'Edge Response',
     icon: '🌗',
     defaultOpen: true,
-    controls: createAtmosphereCommonControls(['edgeStrength']),
+    controls: createAtmosphereCommonControls(['edgeStrength', 'edgeWidthPx', 'edgeInsetPx']),
   },
   atmosphereLight: {
     title: 'Light Mode',
@@ -4819,7 +4831,7 @@ export const CONTROL_SECTIONS = {
   },
 
   particleFountain: {
-    title: 'Particle Fountain',
+    title: 'Fountain A',
     icon: '⛲',
     mode: 'particle-fountain',
     defaultOpen: false,
@@ -5099,127 +5111,91 @@ export const CONTROL_SECTIONS = {
 
   cube3d: {
     title: 'Scaffold',
-    icon: '🧊',
+    icon: '▣',
     mode: '3d-cube',
     defaultOpen: false,
     controls: [
       {
-        id: 'cube3dSizeVw',
-        label: 'Size',
-        stateKey: 'cube3dSizeVw',
-        type: 'range',
-        min: 10, max: 50, step: 0.5,
-        default: 50,
-        format: v => v.toFixed(1) + 'vw',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'cube3dEdgeDensity',
-        label: 'Edge Density',
-        stateKey: 'cube3dEdgeDensity',
-        type: 'range',
-        min: 2, max: 30, step: 1,
-        default: 8,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'cube3dFaceGrid',
-        label: 'Face Grid',
-        stateKey: 'cube3dFaceGrid',
-        type: 'range',
-        min: 0, max: 10, step: 1,
-        default: 0,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: '0 = edges only. >0 adds face lattice points.'
-      },
-      {
-        id: 'cube3dIdleSpeed',
-        label: 'Idle Rotation',
-        stateKey: 'cube3dIdleSpeed',
-        type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.2,
-        format: v => v.toFixed(2) + ' rad/s',
-        parse: parseFloat
-      },
-      {
-        id: 'cube3dCursorInfluence',
-        label: 'Cursor Influence',
-        stateKey: 'cube3dCursorInfluence',
-        type: 'range',
-        min: 0, max: 4, step: 0.05,
-        default: 1.5,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'cube3dTumbleSpeed',
-        label: 'Tumble Speed',
-        stateKey: 'cube3dTumbleSpeed',
-        type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 3,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'cube3dTumbleDamping',
-        label: 'Tumble Damping',
-        stateKey: 'cube3dTumbleDamping',
-        type: 'range',
-        min: 0, max: 1, step: 0.005,
-        default: 0.95,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      {
-        id: 'cube3dFocalLength',
-        label: 'Focal Length',
-        stateKey: 'cube3dFocalLength',
-        type: 'range',
-        min: 80, max: 2000, step: 10,
-        default: 1200,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'cube3dDotSizeMul',
+        id: 'scaffoldDotSizeMul',
         label: 'Dot Size',
-        stateKey: 'cube3dDotSizeMul',
+        stateKey: 'shapesDotSizeMul',
         type: 'range',
-        min: 0.2, max: 4.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat
+        min: 0.5, max: 1.2, step: 0.01,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+        reinitMode: true,
       },
       {
-        id: 'cube3dFogStart',
-        label: 'Fog Start',
-        stateKey: 'cube3dFogStart',
+        id: 'scaffoldDotSpacingMul',
+        label: 'Dot Spacing',
+        stateKey: 'shapesDotSpacingMul',
         type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.86,
-        format: v => Math.round(v * 100) + '%',
+        min: 1.95, max: 2.8, step: 0.01,
+        default: 2.34,
+        format: v => Number(v).toFixed(2),
         parse: parseFloat,
-        hint: 'Normalized cube depth where rear fog starts; higher values pull fog forward through more circles.'
+        reinitMode: true,
       },
       {
-        id: 'cube3dFogMin',
-        label: 'Fog Min Opacity',
-        stateKey: 'cube3dFogMin',
+        id: 'scaffoldGravityScale',
+        label: 'Gravity',
+        stateKey: 'shapesGravityScale',
         type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.18,
-        format: v => Math.round(v * 100) + '%',
+        min: 0, max: 1.4, step: 0.01,
+        default: 0.92,
+        format: v => Number(v).toFixed(2),
         parse: parseFloat,
-        hint: 'Minimum opacity for the furthest cube circles in the background fog.'
       },
-      warmupFramesControl('cube3dWarmupFrames')
+      {
+        id: 'scaffoldWallRestitution',
+        label: 'Wall Bounce',
+        stateKey: 'shapesWallRestitution',
+        type: 'range',
+        min: 0.05, max: 0.95, step: 0.01,
+        default: 0.48,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+      },
+      {
+        id: 'scaffoldBodyCollisionEnabled',
+        label: 'Body Collisions',
+        stateKey: 'shapesBodyCollisionEnabled',
+        type: 'toggle',
+        default: 1,
+        format: v => Number(v) !== 0 ? 'On' : 'Off',
+        parse: v => (v ? 1 : 0),
+      },
+      {
+        id: 'scaffoldDamping',
+        label: 'Air Damping',
+        stateKey: 'shapesDamping',
+        type: 'range',
+        min: 0.86, max: 0.999, step: 0.001,
+        default: 0.978,
+        format: v => Number(v).toFixed(3),
+        parse: parseFloat,
+      },
+      {
+        id: 'scaffoldReleaseLinearGain',
+        label: 'Throw Gain',
+        stateKey: 'shapesReleaseLinearGain',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.05,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+      },
+      {
+        id: 'scaffoldReleaseAngularGain',
+        label: 'Spin Gain',
+        stateKey: 'shapesReleaseAngularGain',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.05,
+        default: 1,
+        format: v => Number(v).toFixed(2),
+        parse: parseFloat,
+      },
     ]
   },
 
@@ -6134,6 +6110,7 @@ export function generateModeSwitcherHTML() {
     'shapes': '▣',
     'pressure-crucible': '◉',
     'particle-fountain': '⛲',
+    'particle-fountain-b': '⛲',
     'napoleon-point-cloud': '●',
     'beach-ball-room': '◍'
   };
@@ -6162,7 +6139,8 @@ export function generateModeSwitcherHTML() {
     'weave-field': 'Juxtaposition',
     'shapes': 'Assembly',
     'pressure-crucible': 'Pressure Field',
-    'particle-fountain': 'Particle Fountain',
+    'particle-fountain': 'Fountain A',
+    'particle-fountain-b': 'Fountain B',
     'napoleon-point-cloud': 'Impression',
     'beach-ball-room': 'Beach Ball Room'
   };
@@ -6262,6 +6240,7 @@ function generateHomeModeSectionHTML() {
               'shapes': '▣',
               'pressure-crucible': '◉',
               'particle-fountain': '⛲',
+              'particle-fountain-b': '⛲',
               'napoleon-point-cloud': '●',
               'beach-ball-room': '◍'
             };
@@ -6290,7 +6269,8 @@ function generateHomeModeSectionHTML() {
               'weave-field': 'Juxtaposition',
               'shapes': 'Assembly',
               'pressure-crucible': 'Pressure Field',
-              'particle-fountain': 'Particle Fountain',
+              'particle-fountain': 'Fountain A',
+              'particle-fountain-b': 'Fountain B',
               'napoleon-point-cloud': 'Impression',
               'beach-ball-room': 'Beach Ball Room'
             };
@@ -6529,7 +6509,8 @@ export function bindRegisteredControls(options = {}) {
             'flubber-blob': g.flubberBlobBallCount,
             'weave-field': g.weaveFieldBallCount,
             'pressure-crucible': g.pressureCrucibleBallCount,
-            'particle-fountain': g.particleFountainMaxParticles
+            'particle-fountain': g.particleFountainMaxParticles,
+            'particle-fountain-b': g.particleFountainMaxParticles
           };
           const v = map[mode];
           return Number.isFinite(Number(v)) ? Number(v) : null;

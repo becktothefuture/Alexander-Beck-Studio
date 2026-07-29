@@ -13,8 +13,59 @@ import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 
 // Emission timer for continuous particle spawning
 let emissionTimer = 0;
+let aimAngle = 0;
+let aimInitialized = false;
+let pointerWasValid = false;
+let lastPointerSequence = null;
 const FADE_DURATION = 2.0;
 const MOBILE_PEAK_HEIGHT_RATIO = 0.6;
+const MAX_AIM_ANGLE = Math.PI / 6;
+const AIM_EASING_PER_SECOND = 9;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function updateFountainAim(g, canvas, dt) {
+  const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
+  const pointerX = Number.isFinite(g.pointerX) ? g.pointerX : g.mouseX;
+  const pointerY = Number.isFinite(g.pointerY) ? g.pointerY : g.mouseY;
+  const pointerSequence = g.pointerSequence || 0;
+  const pointerValid = Boolean(
+    pointerInCanvas
+    && Number.isFinite(pointerX)
+    && Number.isFinite(pointerY)
+  );
+
+  let targetAngle = 0;
+  if (pointerValid) {
+    const sourceX = canvas.width * 0.5;
+    const sourceY = canvas.height - getSimulationCollisionInsetPx(g);
+    const upwardDistance = Math.max(canvas.height * 0.16, sourceY - pointerY);
+    targetAngle = clamp(
+      Math.atan2(pointerX - sourceX, upwardDistance),
+      -MAX_AIM_ANGLE,
+      MAX_AIM_ANGLE,
+    );
+  }
+
+  const shouldSeed = !aimInitialized
+    || (pointerValid && (
+      !pointerWasValid
+      || lastPointerSequence !== pointerSequence
+      || g.pointerJustEnteredCanvas === true
+    ));
+  if (shouldSeed) {
+    aimAngle = targetAngle;
+    aimInitialized = true;
+  } else {
+    const ease = 1 - Math.exp(-AIM_EASING_PER_SECOND * Math.max(0, dt));
+    aimAngle += (targetAngle - aimAngle) * ease;
+  }
+
+  pointerWasValid = pointerValid;
+  if (pointerValid) lastPointerSequence = pointerSequence;
+}
 
 /**
  * Initialize particle fountain mode - start emitting immediately
@@ -29,6 +80,12 @@ export function initializeParticleFountain() {
     emissionTimer = -0.1;
     return;
   }
+
+  aimAngle = 0;
+  aimInitialized = false;
+  pointerWasValid = false;
+  lastPointerSequence = null;
+  updateFountainAim(g, canvas, 0);
   
   // Create a few initial particles immediately for instant visibility
   // This ensures particles appear right away rather than waiting for first update
@@ -58,7 +115,6 @@ function createParticle() {
   const canvas = g.canvas;
   if (!canvas) return null;
   
-  const DPR = g.DPR || 1;
   const w = canvas.width;
   const h = canvas.height;
   
@@ -94,7 +150,7 @@ function createParticle() {
   // Spread angle in radians (symmetric around vertical)
   const spreadAngleDeg = g.particleFountainSpreadAngle ?? 50;
   const spreadAngleRad = (spreadAngleDeg * Math.PI) / 180;
-  const angle = (Math.random() - 0.5) * spreadAngleRad;
+  const angle = aimAngle + (Math.random() - 0.5) * spreadAngleRad;
   
   // Vertical component (upward, negative y)
   ball.vy = -velocity * Math.cos(angle);
@@ -120,7 +176,6 @@ function recycleParticle(ball) {
   const canvas = g.canvas;
   if (!canvas) return;
   
-  const DPR = g.DPR || 1;
   const w = canvas.width;
   const h = canvas.height;
   
@@ -157,7 +212,7 @@ function recycleParticle(ball) {
   // Spread angle
   const spreadAngleDeg = g.particleFountainSpreadAngle ?? 50;
   const spreadAngleRad = (spreadAngleDeg * Math.PI) / 180;
-  const angle = (Math.random() - 0.5) * spreadAngleRad;
+  const angle = aimAngle + (Math.random() - 0.5) * spreadAngleRad;
   
   ball.vy = -velocity * Math.cos(angle);
   ball.vx = velocity * Math.sin(angle);
@@ -283,6 +338,8 @@ export function updateParticleFountain(dt) {
   
   const canvas = g.canvas;
   if (!canvas) return;
+
+  updateFountainAim(g, canvas, dt);
   
   const DPR = g.DPR || 1;
   const w = canvas.width;

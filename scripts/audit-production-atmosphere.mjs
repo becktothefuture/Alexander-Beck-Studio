@@ -244,7 +244,18 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     state,
   );
   assert(state.dom.glowFilter === 'none', `${scenario.id}: glow canvas received source-material blur`, state);
-  assert(state.dom.edgeFilter === 'none', `${scenario.id}: edge canvas received source-material blur`, state);
+  assert(
+    !state.dom.edgeFilter.includes('blur('),
+    `${scenario.id}: edge canvas received source-material blur`,
+    state,
+  );
+  if (snapshot.edgeStrength > 0) {
+    assert(
+      state.dom.edgeFilter.includes('brightness(') && state.dom.edgeFilter.includes('saturate('),
+      `${scenario.id}: edge canvas is missing its compositor-only colour treatment`,
+      state,
+    );
+  }
   assert(snapshot.sourceGeneration > 0, `${scenario.id}: source generation is missing`, state);
 
   if (snapshot.status === 'failed-open') {
@@ -785,7 +796,7 @@ async function runKaleidoscopeFinalFrameContract(browser) {
             && snapshot?.sourceKind === 'canvas'
             && snapshot?.sourceLayerCount === 1
             && snapshot?.clearCount > minimumClearCount
-            && snapshot?.temporalMemoryFrames === 0;
+            && snapshot?.temporalMemoryFrames === 1;
         },
         {
           expectedMode: mode,
@@ -1036,15 +1047,11 @@ async function runResponsiveResizeMatrix(browser) {
           await waitForStableWallGeometry(page);
           await waitForResponsiveAtmosphere(page, scenario, profile, -1);
           state = await readAtmosphereState(page);
-          const atmosphereConfig = await page.evaluate(async () => {
-            const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
-            return module.getSimulationAtmosphereConfig();
-          });
           const expectedGlowRadiusCss = Math.max(
             GLOW_RADIUS_MIN_CSS_PX,
             Math.min(
               GLOW_RADIUS_MAX_CSS_PX,
-              Math.min(state.wallRect.width, state.wallRect.height) * atmosphereConfig.largeSpread,
+              Math.min(state.wallRect.width, state.wallRect.height) * state.snapshot.largeSpread,
             ),
           );
           const expectedSmallGlowRadiusCss = Math.max(
@@ -1052,7 +1059,7 @@ async function runResponsiveResizeMatrix(browser) {
             Math.min(
               SMALL_GLOW_RADIUS_MAX_CSS_PX,
               Math.min(state.wallRect.width, state.wallRect.height)
-                * atmosphereConfig.smallSpread,
+                * state.snapshot.smallSpread,
             ),
           );
           assertAtmosphereState(state, scenario, {
@@ -1201,40 +1208,53 @@ async function runCrispPersistenceContract(browser) {
         largeSpread: -2,
         smallSpread: -2,
         contentClearance: -2,
+        memoryMs: -2,
         edgeStrength: -2,
+        edgeWidthPx: -2,
+        edgeInsetPx: -2,
         light: { intensity: -2, colourStrength: -2 },
       });
       const aboveConfig = module.normalizeSimulationAtmosphereConfig({
         largeSpread: 9,
         smallSpread: 9,
         contentClearance: 9,
+        memoryMs: 9000,
         edgeStrength: 9,
+        edgeWidthPx: 9,
+        edgeInsetPx: 90,
         dark: { intensity: 9, colourStrength: 9, afterglowHalfLifeMs: 9000 },
       });
       return {
         below: belowConfig,
         above: aboveConfig,
         legacy: module.normalizeSimulationAtmosphereConfig({ spread: 0.12 }),
-        memoryRetired: !Object.hasOwn(aboveConfig.dark, 'afterglowHalfLifeMs'),
+        legacyAfterglowRetired: !Object.hasOwn(aboveConfig.dark, 'afterglowHalfLifeMs'),
+        legacyClearanceRetired: !Object.hasOwn(aboveConfig, 'contentClearance')
+          && !Object.hasOwn(belowConfig, 'contentClearance'),
         legacySpreadRetired: !Object.hasOwn(aboveConfig, 'spread'),
       };
     });
     assert(
       clampResults.below.largeSpread === 0.06
         && clampResults.below.smallSpread === 0.02
-        && clampResults.below.contentClearance === 0
+        && clampResults.below.memoryMs === 0
         && clampResults.below.edgeStrength === 0
+        && clampResults.below.edgeWidthPx === 0.5
+        && clampResults.below.edgeInsetPx === 0
         && clampResults.below.light.intensity === 0
         && clampResults.below.light.colourStrength === 0
         && clampResults.above.largeSpread === 0.2
         && clampResults.above.smallSpread === 0.1
-        && clampResults.above.contentClearance === 1
+        && clampResults.above.memoryMs === 600
         && clampResults.above.edgeStrength === 1.5
+        && clampResults.above.edgeWidthPx === 4
+        && clampResults.above.edgeInsetPx === 24
         && clampResults.above.dark.intensity === 1
         && clampResults.above.dark.colourStrength === 1.6
         && clampResults.legacy.largeSpread === 0.12
         && Math.abs(clampResults.legacy.smallSpread - 0.0408) < 0.000001
-        && clampResults.memoryRetired
+        && clampResults.legacyAfterglowRetired
+        && clampResults.legacyClearanceRetired
         && clampResults.legacySpreadRetired,
       'Diffuse atmosphere normalization ranges are wrong',
       clampResults,
@@ -1284,6 +1304,9 @@ async function runStatelessGlowContract(browser) {
       const { DiffuseGlowEffect } = await import(
         '/src/legacy/modules/rendering/atmosphere/diffuse-glow-effect.js'
       );
+      const { AtmosphereEdgeLight } = await import(
+        '/src/legacy/modules/rendering/atmosphere/atmosphere-edge-light.js'
+      );
       const source = document.createElement('canvas');
       const output = document.createElement('canvas');
       source.width = 160;
@@ -1313,12 +1336,100 @@ async function runStatelessGlowContract(browser) {
       effect.render({ sourceCanvas: source, config });
       const secondOldAlpha = readAlpha(24);
       const secondNewAlpha = readAlpha(136);
+
+      effect.clear();
+      config.memoryMs = 100;
+      paintSource(24);
+      effect.render({ sourceCanvas: source, config, nowMs: 1000 });
+      paintSource(136);
+      effect.render({ sourceCanvas: source, config, nowMs: 1033 });
+      const memoryOldAlpha = readAlpha(24);
+      const memoryNewAlpha = readAlpha(136);
+      const temporalMemoryFrames = effect.temporalMemoryFrames;
+      effect.clear();
+      paintSource(136);
+      effect.render({ sourceCanvas: source, config, nowMs: 1066 });
+      const resetOldAlpha = readAlpha(24);
+
+      const legacyMask = document.createElement('canvas');
+      legacyMask.width = source.width;
+      legacyMask.height = source.height;
+      legacyMask.getContext('2d').fillRect(0, 0, legacyMask.width, legacyMask.height);
+      effect.clear();
+      config.memoryMs = 0;
+      sourceContext.clearRect(0, 0, source.width, source.height);
+      sourceContext.fillStyle = '#00ff88';
+      sourceContext.fillRect(0, 0, source.width, source.height);
+      effect.render({ sourceCanvas: source, maskCanvas: legacyMask, config, nowMs: 1099 });
+      const fullWallCenterAlpha = readAlpha(80);
       effect.destroy();
-      return { firstOldAlpha, secondOldAlpha, secondNewAlpha };
+
+      const edgeOutput = document.createElement('canvas');
+      edgeOutput.width = source.width;
+      edgeOutput.height = source.height;
+      sourceContext.clearRect(0, 0, source.width, source.height);
+      sourceContext.fillStyle = '#00ff88';
+      sourceContext.fillRect(0, 0, source.width, source.height);
+      const edgeEffect = new AtmosphereEdgeLight(edgeOutput);
+      edgeEffect.render(source, 1.2, 1.5);
+      const edgeContext = edgeOutput.getContext('2d', { alpha: true, willReadFrequently: true });
+      const edgeAlpha = edgeContext.getImageData(0, 32, 1, 1).data[3];
+      const centerAlpha = edgeContext.getImageData(80, 32, 1, 1).data[3];
+      const edgeStripBackingPx = edgeEffect.lastStripBackingPx;
+      const edgeDrawCallCount = edgeEffect.lastDrawCallCount;
+      edgeEffect.render(source, 1.2, 1.5, 8);
+      const insetOuterAlpha = edgeContext.getImageData(0, 32, 1, 1).data[3];
+      const insetRimAlpha = edgeContext.getImageData(8, 32, 1, 1).data[3];
+      const edgeInsetBackingPx = edgeEffect.lastInsetBackingPx;
+      edgeEffect.destroy();
+      return {
+        firstOldAlpha,
+        secondOldAlpha,
+        secondNewAlpha,
+        memoryOldAlpha,
+        memoryNewAlpha,
+        resetOldAlpha,
+        fullWallCenterAlpha,
+        temporalMemoryFrames,
+        edgeAlpha,
+        centerAlpha,
+        edgeStripBackingPx,
+        edgeDrawCallCount,
+        insetOuterAlpha,
+        insetRimAlpha,
+        edgeInsetBackingPx,
+      };
     });
     assert(result.firstOldAlpha > 20, 'Diffuse glow fixture did not render its first source', result);
     assert(result.secondOldAlpha <= 1, 'Diffuse glow retained the previous source position', result);
     assert(result.secondNewAlpha > 20, 'Diffuse glow did not follow the current source position', result);
+    assert(
+      result.memoryOldAlpha > 20 && result.memoryOldAlpha < result.firstOldAlpha,
+      'Short atmosphere memory did not preserve and decay the previous position',
+      result,
+    );
+    assert(result.memoryNewAlpha > 20, 'Atmosphere memory obscured the current source position', result);
+    assert(result.temporalMemoryFrames === 1, 'Atmosphere memory allocated more than one history frame', result);
+    assert(result.resetOldAlpha <= 1, 'Atmosphere memory survived an explicit reset boundary', result);
+    assert(
+      result.fullWallCenterAlpha > 20,
+      'Retired quiet-zone input still removed the middle of the atmosphere',
+      result,
+    );
+    assert(result.edgeAlpha > 20, 'Edge response did not render its perimeter source', result);
+    assert(result.centerAlpha === 0, 'Edge response rendered pixels outside its perimeter budget', result);
+    assert(
+      result.edgeStripBackingPx === 4 && result.edgeDrawCallCount === 2,
+      'Strong edge response did not stay within its bounded strip render contract',
+      result,
+    );
+    assert(
+      result.insetOuterAlpha === 0
+        && result.insetRimAlpha > 20
+        && result.edgeInsetBackingPx === 8,
+      'Inset edge response did not move its bounded sample band inward',
+      result,
+    );
     return result;
   } finally {
     await context.close();
@@ -1342,7 +1453,7 @@ async function runConfigPanelContract(browser) {
       'atmosphereEnabledSlider',
       'atmosphereLargeSpreadSlider',
       'atmosphereSmallSpreadSlider',
-      'atmosphereContentClearanceSlider',
+      'atmosphereMemoryMsSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
         'Intensity',
         'ColourStrength',
@@ -1383,12 +1494,24 @@ async function runConfigPanelContract(browser) {
     );
 
     const edgeControl = page.locator('#atmosphereEdgeStrengthSlider');
+    const edgeWidthControl = page.locator('#atmosphereEdgeWidthPxSlider');
+    const edgeInsetControl = page.locator('#atmosphereEdgeInsetPxSlider');
     assert(
       await edgeControl.count() === 1,
       'Surface Finish must expose exactly one edge-strength control',
       { count: await edgeControl.count() },
     );
-    const edgeControlState = await edgeControl.evaluate((control) => {
+    assert(
+      await edgeWidthControl.count() === 1,
+      'Surface Finish must expose exactly one edge-thickness control',
+      { count: await edgeWidthControl.count() },
+    );
+    assert(
+      await edgeInsetControl.count() === 1,
+      'Surface Finish must expose exactly one edge-inset control',
+      { count: await edgeInsetControl.count() },
+    );
+    const readEdgeControlState = (control) => {
       const group = control.closest('details[data-group-id]');
       const section = control.closest('.panel-section-accordion');
       return {
@@ -1396,14 +1519,78 @@ async function runConfigPanelContract(browser) {
         sectionTitle: section?.querySelector(':scope > summary')?.textContent
           ?.trim()
           .replace(/\s+/g, ' ') ?? null,
+        min: control.min,
+        max: control.max,
+        step: control.step,
       };
-    });
+    };
+    const edgeControlState = await edgeControl.evaluate(readEdgeControlState);
+    const edgeWidthControlState = await edgeWidthControl.evaluate(readEdgeControlState);
+    const edgeInsetControlState = await edgeInsetControl.evaluate(readEdgeControlState);
     assert(
       edgeControlState.groupId === 'finish'
-        && edgeControlState.sectionTitle?.includes('Edge Response'),
-      'Atmosphere edge-strength control is not grouped with Surface Finish',
-      edgeControlState,
+        && edgeControlState.sectionTitle?.includes('Edge Response')
+        && edgeWidthControlState.groupId === 'finish'
+        && edgeWidthControlState.sectionTitle?.includes('Edge Response')
+        && edgeInsetControlState.groupId === 'finish'
+        && edgeInsetControlState.sectionTitle?.includes('Edge Response'),
+      'Atmosphere edge controls are not grouped together with Surface Finish',
+      { edgeControlState, edgeWidthControlState, edgeInsetControlState },
     );
+    assert(
+      edgeWidthControlState.min === '0.5'
+        && edgeWidthControlState.max === '4'
+        && edgeWidthControlState.step === '0.25',
+      'Atmosphere edge-thickness control range is wrong',
+      edgeWidthControlState,
+    );
+    assert(
+      edgeInsetControlState.min === '0'
+        && edgeInsetControlState.max === '24'
+        && edgeInsetControlState.step === '1',
+      'Atmosphere edge-inset control range is wrong',
+      edgeInsetControlState,
+    );
+
+    const originalEdgeWidth = await edgeWidthControl.inputValue();
+    await edgeWidthControl.evaluate((control) => {
+      control.value = '4';
+      control.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction(async () => {
+      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+      const config = module.getSimulationAtmosphereConfig();
+      const wall = document.getElementById('simulations');
+      return config.edgeWidthPx === 4
+        && getComputedStyle(wall).getPropertyValue('--atmosphere-edge-width').trim() === '4px';
+    }, null, { timeout: WAIT_MS });
+    await edgeWidthControl.evaluate((control, value) => {
+      control.value = value;
+      control.dispatchEvent(new Event('input', { bubbles: true }));
+    }, originalEdgeWidth);
+
+    const originalEdgeInset = await edgeInsetControl.inputValue();
+    await edgeInsetControl.evaluate((control) => {
+      control.value = '12';
+      control.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction(async () => {
+      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+      const config = module.getSimulationAtmosphereConfig();
+      const wall = document.getElementById('simulations');
+      const edgeLayer = wall?.querySelector(':scope > .simulation-atmosphere-edge-light-layer');
+      if (!wall || !edgeLayer) return false;
+      const wallRect = wall.getBoundingClientRect();
+      const edgeRect = edgeLayer.getBoundingClientRect();
+      return config.edgeInsetPx === 12
+        && getComputedStyle(wall).getPropertyValue('--atmosphere-edge-inset').trim() === '12px'
+        && Math.abs(edgeRect.left - wallRect.left - 12) <= 0.25
+        && Math.abs(edgeRect.top - wallRect.top - 12) <= 0.25;
+    }, null, { timeout: WAIT_MS });
+    await edgeInsetControl.evaluate((control, value) => {
+      control.value = value;
+      control.dispatchEvent(new Event('input', { bubbles: true }));
+    }, originalEdgeInset);
 
     await group.locator(':scope > summary').click();
     const globalSummary = group.locator('.panel-section-accordion > summary').first();
@@ -1411,24 +1598,35 @@ async function runConfigPanelContract(browser) {
     if ((await globalSection.getAttribute('open')) === null) await globalSummary.click();
     const largeSpreadSlider = page.locator('#atmosphereLargeSpreadSlider');
     const smallSpreadSlider = page.locator('#atmosphereSmallSpreadSlider');
+    const memorySlider = page.locator('#atmosphereMemoryMsSlider');
     const originalLargeSpread = await largeSpreadSlider.inputValue();
     const originalSmallSpread = await smallSpreadSlider.inputValue();
+    const originalMemory = await memorySlider.inputValue();
     await largeSpreadSlider.fill('0.12');
     await smallSpreadSlider.fill('0.04');
+    await memorySlider.fill('175');
     await page.waitForFunction(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
       const config = module.getSimulationAtmosphereConfig();
-      return config.largeSpread === 0.12 && config.smallSpread === 0.04;
+      return config.largeSpread === 0.12
+        && config.smallSpread === 0.04
+        && config.memoryMs === 175;
     }, null, { timeout: WAIT_MS });
     await largeSpreadSlider.fill(originalLargeSpread);
     await smallSpreadSlider.fill(originalSmallSpread);
+    await memorySlider.fill(originalMemory);
 
     return {
       controlCount: state.controlIds.length,
       sectionTitles: state.sectionTitles,
       intensityMaxima: state.intensityMaxima,
       edgeControl: edgeControlState,
+      edgeWidthControl: edgeWidthControlState,
+      edgeInsetControl: edgeInsetControlState,
       spreadLiveApply: true,
+      memoryLiveApply: true,
+      edgeWidthLiveApply: true,
+      edgeInsetLiveApply: true,
     };
   } finally {
     await context.close();

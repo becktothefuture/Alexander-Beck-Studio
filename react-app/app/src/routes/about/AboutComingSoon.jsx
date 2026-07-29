@@ -1,20 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { registerSimulationAtmosphereSource } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
 export function AboutComingSoon() {
-  const quietZoneRef = useRef(null);
-
   useEffect(() => registerSimulationAtmosphereSource({
     id: 'about:ambient',
     routeId: 'about',
     kind: 'ambient',
-    quietZoneElement: () => quietZoneRef.current,
     scheduler: 'internal',
   }), []);
 
   return (
     <main className="route-centered-page" data-route-content="about">
-      <section ref={quietZoneRef} className="route-centered-page__inner" aria-labelledby="about-coming-soon-title">
+      <section className="route-centered-page__inner" aria-labelledby="about-coming-soon-title">
         <h1
           id="about-coming-soon-title"
           className="route-centered-page__title route-bookend-title"

@@ -1048,7 +1048,6 @@ function createPointFieldAdapter({
       routeId: 'about',
       kind: canvasSource ? 'canvas' : 'ambient',
       canvas: canvasSource ? canvas : null,
-      quietZoneElement: () => root.querySelector('[data-primary-copy]'),
       scheduler: canvasSource ? 'renderer-coupled' : 'internal',
       opacityElement: canvasSource ? canvas : null,
     });
@@ -2695,7 +2694,6 @@ export function AboutNarrativePointWorld3D({
             id: 'about:ambient',
             routeId: 'about',
             kind: 'ambient',
-            quietZoneElement: () => root.querySelector('[data-primary-copy]'),
             scheduler: 'internal',
           });
         } catch {

@@ -265,8 +265,10 @@ async function auditCrispGlowTitleDepth(page) {
     'colourStrength',
     'largeSpread',
     'smallSpread',
-    'contentClearance',
+    'memoryMs',
     'edgeStrength',
+    'edgeWidthPx',
+    'edgeInsetPx',
   ];
   const compositionControlIds = await page.$$eval(
     '[data-parameter-id]',
@@ -291,8 +293,10 @@ async function auditCrispGlowTitleDepth(page) {
       colourStrength: '1.1',
       largeSpread: '0.12',
       smallSpread: '0.04',
-      contentClearance: '0.4',
+      memoryMs: '150',
       edgeStrength: '0.25',
+      edgeWidthPx: '2.5',
+      edgeInsetPx: '12',
     };
     Object.entries(values).forEach(([id, value]) => {
       const input = document.querySelector(`input[data-parameter-id="${id}"]`);
@@ -308,11 +312,13 @@ async function auditCrispGlowTitleDepth(page) {
       && snap?.config?.dark?.colourStrength === 1.1
       && snap?.config?.largeSpread === 0.12
       && snap?.config?.smallSpread === 0.04
-      && snap?.config?.contentClearance === 0.4
+      && snap?.config?.memoryMs === 150
       && snap?.config?.edgeStrength === 0.25
-      && snap?.temporalMemoryFrames === 0
+      && snap?.config?.edgeWidthPx === 2.5
+      && snap?.config?.edgeInsetPx === 12
+      && snap?.temporalMemoryFrames === 1
       && getComputedStyle(material).filter === 'none'
-      && getComputedStyle(edge).filter === 'none';
+      && !getComputedStyle(edge).filter.includes('blur');
   }, undefined, { timeout: WAIT_MS });
 
   await page.getByRole('button', { name: 'Reset' }).click();

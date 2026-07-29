@@ -48,10 +48,10 @@ let simulationSwitchPhase = 'idle';
 let transitionSourceGeneration = 0;
 let internalFrameId = 0;
 let geometryDirty = true;
-let maskDirty = true;
 let staticFrameDirty = true;
 let lastEffectAt = 0;
 let renderProfile = null;
+let automaticQuality = QUALITY_LEVELS.balanced;
 let dynamicQuality = QUALITY_LEVELS.balanced;
 let pendingQuality = null;
 let cadence = 30;
@@ -69,7 +69,6 @@ let staleCleanupCount = 0;
 let compositedFrameCount = 0;
 let skippedFrameCount = 0;
 let geometryReadCount = 0;
-let quietZoneGeometryReadCount = 0;
 let firstCompositeAt = 0;
 let failureReason = '';
 let ambientPaletteSnapshot = getSimulationPaletteSnapshot();
@@ -102,8 +101,8 @@ const ambientBalls = Array.from({ length: AMBIENT_COUNT }, (_, index) => ({
 
 const effectRenderArgs = {
   sourceCanvas: null,
-  maskCanvas: null,
   config: null,
+  nowMs: 0,
 };
 const resolvedCanvasLayers = [];
 
@@ -114,13 +113,6 @@ function getQualityById(id) {
 function resolveQuality() {
   const resolved = resolveSimulationAtmosphereQualityScale('auto');
   return getQualityById(resolved.id);
-}
-
-function resolveQuietZoneElement(source = activeSource) {
-  const candidate = typeof source?.quietZoneElement === 'function'
-    ? source.quietZoneElement()
-    : source?.quietZoneElement;
-  return candidate instanceof Element ? candidate : null;
 }
 
 function validateSource(definition) {
@@ -272,9 +264,6 @@ function clearOutput({ preservePresentation = false } = {}) {
   if (host?.sourceContext) {
     host.sourceContext.clearRect(0, 0, host.sourceCanvas.width, host.sourceCanvas.height);
   }
-  if (host?.maskContext) {
-    host.maskContext.clearRect(0, 0, host.maskCanvas.width, host.maskCanvas.height);
-  }
   clearCount += 1;
   lastEffectAt = 0;
   firstCompositeAt = 0;
@@ -315,14 +304,15 @@ function failOpen(reason, source = activeSource) {
 function rebuildProfile({ resetQuality = false } = {}) {
   themeMode = isDarkThemeDocument() ? 'dark' : 'light';
   if (resetQuality) {
-    dynamicQuality = resolveQuality();
+    automaticQuality = resolveQuality();
+    dynamicQuality = automaticQuality;
     pendingQuality = null;
   }
   renderProfile = resolveSimulationAtmosphereRenderProfile(configuration, themeMode);
+  if (reducedMotion) renderProfile.memoryMs = 0;
   cadence = resolveSimulationAtmosphereCadence('auto');
   host?.edgeLight?.setQuality(dynamicQuality.id);
   geometryDirty = true;
-  maskDirty = true;
   staticFrameDirty = true;
   applyPresentationState();
 }
@@ -331,6 +321,8 @@ function applyPresentationState() {
   if (!host) return;
   const enabled = configuration.enabled && Boolean(activeSource) && !failureReason;
   const root = host.root;
+  root.style.setProperty('--atmosphere-edge-width', `${renderProfile.edgeWidthPx}px`);
+  root.style.setProperty('--atmosphere-edge-inset', `${renderProfile.edgeInsetPx}px`);
   root.dataset.atmosphereActive = String(enabled);
   root.dataset.atmosphereStatus = enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle';
   if (!enabled) {
@@ -340,60 +332,15 @@ function applyPresentationState() {
   }
 }
 
-function refreshQuietZoneObservation() {
-  if (!host?.resizeObserver) return;
-  if (host.observedQuietZone) host.resizeObserver.unobserve(host.observedQuietZone);
-  host.observedQuietZone = resolveQuietZoneElement();
-  if (host.observedQuietZone) host.resizeObserver.observe(host.observedQuietZone);
-}
-
-function rebuildQuietZoneMask(rootRect) {
-  if (!host || !maskDirty) return;
-  const { maskCanvas, maskContext, sourceCanvas } = host;
-  if (maskCanvas.width !== sourceCanvas.width) maskCanvas.width = sourceCanvas.width;
-  if (maskCanvas.height !== sourceCanvas.height) maskCanvas.height = sourceCanvas.height;
-  maskContext.setTransform(1, 0, 0, 1, 0, 0);
-  maskContext.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-
-  const quietZone = resolveQuietZoneElement();
-  if (!quietZone || renderProfile.contentClearance <= 0 || rootRect.width <= 0 || rootRect.height <= 0) {
-    host.hasQuietZoneMask = false;
-    maskDirty = false;
-    return;
-  }
-  const quietRect = quietZone.getBoundingClientRect();
-  quietZoneGeometryReadCount += 1;
-  const scaleX = sourceCanvas.width / rootRect.width;
-  const scaleY = sourceCanvas.height / rootRect.height;
-  const centerX = (quietRect.left + quietRect.width * 0.5 - rootRect.left) * scaleX;
-  const centerY = (quietRect.top + quietRect.height * 0.5 - rootRect.top) * scaleY;
-  const clearance = renderProfile.contentClearance;
-  const paddingCss = resolvedGlowRadiusCss * (0.3 + clearance * 0.7);
-  const radiusX = Math.max(1, (quietRect.width * 0.5 + paddingCss) * scaleX);
-  const radiusY = Math.max(1, (quietRect.height * 0.5 + paddingCss) * scaleY);
-  const removal = Math.min(1, 0.2 + clearance * 0.8);
-
-  maskContext.save();
-  maskContext.translate(centerX, centerY);
-  maskContext.scale(radiusX, radiusY);
-  const gradient = maskContext.createRadialGradient(0, 0, 0.08, 0, 0, 1);
-  gradient.addColorStop(0, `rgba(255, 255, 255, ${removal})`);
-  gradient.addColorStop(0.46, `rgba(255, 255, 255, ${removal * 0.92})`);
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  maskContext.fillStyle = gradient;
-  maskContext.fillRect(-1, -1, 2, 2);
-  maskContext.restore();
-  host.hasQuietZoneMask = true;
-  maskDirty = false;
-}
-
 function syncGeometry() {
   if (!host) return false;
   if (!geometryDirty) return host.sourceCanvas.width > 1 && host.sourceCanvas.height > 1;
   cadence = resolveSimulationAtmosphereCadence('auto');
-  const nextQuality = resolveQuality();
-  if (nextQuality.id !== dynamicQuality.id) {
-    dynamicQuality = nextQuality;
+  const nextAutomaticQuality = resolveQuality();
+  if (nextAutomaticQuality.id !== automaticQuality.id) {
+    automaticQuality = nextAutomaticQuality;
+    dynamicQuality = automaticQuality;
+    pendingQuality = null;
     host.edgeLight.setQuality(dynamicQuality.id);
     resetCostMetrics();
     lastEffectAt = 0;
@@ -418,7 +365,6 @@ function syncGeometry() {
     host.sourceCanvas.width = width;
     host.sourceCanvas.height = height;
     host.effect.resize(width, height);
-    maskDirty = true;
     lastEffectAt = 0;
   }
   const backingScaleX = width / rect.width;
@@ -426,13 +372,14 @@ function syncGeometry() {
   const backingScale = Math.sqrt(backingScaleX * backingScaleY);
   renderProfile.largeBlurRadiusBackingPx = resolvedGlowRadiusCss * backingScale;
   renderProfile.smallBlurRadiusBackingPx = resolvedSmallGlowRadiusCss * backingScale;
+  renderProfile.edgeWidthBackingPx = renderProfile.edgeWidthPx * backingScale;
+  renderProfile.edgeInsetBackingPx = renderProfile.edgeInsetPx * backingScale;
   host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
   host.geometry.width = rect.width;
   host.geometry.height = rect.height;
   geometryDirty = false;
-  rebuildQuietZoneMask(rect);
   return true;
 }
 
@@ -574,8 +521,8 @@ function applyPendingQuality() {
   dynamicQuality = pendingQuality;
   pendingQuality = null;
   host?.edgeLight?.setQuality(dynamicQuality.id);
+  resetCostMetrics();
   geometryDirty = true;
-  maskDirty = true;
   staticFrameDirty = true;
   lastEffectAt = 0;
 }
@@ -591,10 +538,6 @@ function renderComposite(now) {
   if (reducedMotion && !staticFrameDirty) return false;
   applyPendingQuality();
   if (!syncGeometry()) return false;
-  if (maskDirty) {
-    const geometry = host.geometry;
-    rebuildQuietZoneMask(geometry);
-  }
   const interval = 1000 / Math.max(1, cadence);
   if (!reducedMotion && lastEffectAt && now - lastEffectAt < interval) {
     skippedFrameCount += 1;
@@ -604,10 +547,15 @@ function renderComposite(now) {
   const start = performance.now();
   if (!copyActiveSource(now)) return false;
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
-  effectRenderArgs.maskCanvas = host.hasQuietZoneMask ? host.maskCanvas : null;
   effectRenderArgs.config = renderProfile;
+  effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
-  host.edgeLight.render(host.glowCanvas, renderProfile.edgeStrength);
+  host.edgeLight.render(
+    host.glowCanvas,
+    renderProfile.edgeStrength,
+    renderProfile.edgeWidthBackingPx,
+    renderProfile.edgeInsetBackingPx,
+  );
   const costMs = performance.now() - start;
   recordCost(costMs);
   compositedFrameCount += 1;
@@ -678,10 +626,8 @@ function activateCurrentSource({ resetOutput = true } = {}) {
   failureReason = '';
   consecutiveErrors = 0;
   geometryDirty = true;
-  maskDirty = true;
   staticFrameDirty = true;
   lastEffectAt = 0;
-  refreshQuietZoneObservation();
   rebuildProfile({ resetQuality: true });
   if (resetOutput) clearOutput();
   applyPresentationState();
@@ -774,10 +720,17 @@ function getDiagnosticSnapshot() {
     edgeCanvasId: host?.edgeCanvas.id || '',
     edgeWidth: host?.edgeCanvas.width || 0,
     edgeHeight: host?.edgeCanvas.height || 0,
+    edgeStrength: renderProfile?.edgeStrength ?? configuration.edgeStrength,
+    edgeWidthPx: renderProfile?.edgeWidthPx ?? configuration.edgeWidthPx,
+    edgeInsetPx: renderProfile?.edgeInsetPx ?? configuration.edgeInsetPx,
+    edgeStripBackingPx: host?.edgeLight?.lastStripBackingPx || 0,
+    edgeInsetBackingPx: host?.edgeLight?.lastInsetBackingPx || 0,
+    edgeDrawCallCount: host?.edgeLight?.lastDrawCallCount || 0,
     scheduler: activeSource?.scheduler || '',
     schedulerActive: activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource),
     internalRafCount: internalFrameId ? 1 : 0,
     cadence,
+    automaticQuality: automaticQuality.id,
     quality: dynamicQuality.id,
     scale: dynamicQuality.scale,
     responsiveScale,
@@ -786,7 +739,10 @@ function getDiagnosticSnapshot() {
     paletteGeneration: ambientPaletteSnapshot.generation,
     paletteId: ambientPaletteSnapshot.paletteId,
     reducedMotion,
-    temporalMemoryFrames: 0,
+    temporalMemoryFrames: host?.effect?.temporalMemoryFrames || 0,
+    memoryMs: renderProfile?.memoryMs ?? configuration.memoryMs,
+    largeSpread: renderProfile?.largeSpread ?? configuration.largeSpread,
+    smallSpread: renderProfile?.smallSpread ?? configuration.smallSpread,
     resolvedGlowRadiusCss,
     resolvedSmallGlowRadiusCss,
     outputWidth: host?.glowCanvas.width || 0,
@@ -797,7 +753,6 @@ function getDiagnosticSnapshot() {
     clearCount,
     staleCleanupCount,
     geometryReadCount,
-    quietZoneGeometryReadCount,
     sampledEmitterCount: lastSampledEmitterCount,
     sourceLightCount: lastSourceLightCount,
     sourceLayerCount: lastSourceLayerCount,
@@ -843,10 +798,8 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   host?.detach?.();
   const generation = ++hostGeneration;
   const sourceCanvas = document.createElement('canvas');
-  const maskCanvas = document.createElement('canvas');
   const sourceContext = sourceCanvas.getContext('2d', { alpha: true, desynchronized: true });
-  const maskContext = maskCanvas.getContext('2d', { alpha: true });
-  if (!sourceContext || !maskContext) throw new Error('Simulation atmosphere source contexts unavailable.');
+  if (!sourceContext) throw new Error('Simulation atmosphere source context unavailable.');
   const effect = new DiffuseGlowEffect(glowCanvas);
   const edgeLight = new AtmosphereEdgeLight(edgeCanvas);
   const resizeObserver = typeof ResizeObserver === 'function'
@@ -870,15 +823,11 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     edgeCanvas,
     sourceCanvas,
     sourceContext,
-    maskCanvas,
-    maskContext,
     effect,
     edgeLight,
     resizeObserver,
     reducedMotionQuery,
     unsubscribePalette,
-    observedQuietZone: null,
-    hasQuietZoneMask: false,
     geometry: { left: 0, top: 0, width: 0, height: 0 },
     scope,
     detach: null,
@@ -910,6 +859,8 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     delete root.dataset.atmosphereActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
+    root.style.removeProperty('--atmosphere-edge-width');
+    root.style.removeProperty('--atmosphere-edge-inset');
     if (window.__ABS_SIMULATION_ATMOSPHERE__) delete window.__ABS_SIMULATION_ATMOSPHERE__;
     host = null;
   };
@@ -1058,7 +1009,6 @@ export function commitSimulationAtmosphereReplacement({ transactionId } = {}) {
     outputTransactionId = '';
     clearOutput();
   }
-  refreshQuietZoneObservation();
   applyPresentationState();
   if (reusableDefinition && reusableOwner && !reusableOwner.cleaned) {
     registerSimulationAtmosphereSource({
@@ -1268,7 +1218,6 @@ export function registerSimulationAtmosphereSource(definition) {
     ...definition,
     ...normalized,
     routeId: String(definition.routeId || ''),
-    quietZoneElement: definition.quietZoneElement || definition.getQuietZoneElement || null,
     opacityElement: definition.opacityElement || definition.materialElement || null,
     transactionId: bindsReplacement ? replacement.transactionId : requestedTransactionId,
     requiresRealFrame: bindsReplacement || definition.requireRealFrame === true,
@@ -1310,7 +1259,6 @@ export function registerSimulationAtmosphereSource(definition) {
       host.root.dataset.atmosphereStatus = 'frozen';
       host.edgeCanvas.hidden = true;
     } else {
-      refreshQuietZoneObservation();
       applyPresentationState();
       if (host) host.root.dataset.atmosphereStatus = 'waiting-source';
     }
@@ -1330,7 +1278,6 @@ export function tickSimulationAtmosphere(now = performance.now(), sourceId = '')
 
 export function invalidateSimulationAtmosphereGeometry() {
   geometryDirty = true;
-  maskDirty = true;
   staticFrameDirty = true;
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
@@ -1350,7 +1297,6 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   transitionSourceGeneration = 0;
   if (!activeSource) {
     clearOutput();
-    refreshQuietZoneObservation();
     applyPresentationState();
     host.root.dataset.atmosphereStatus = 'waiting-source';
     return;

@@ -789,7 +789,6 @@ class PortfolioScrollApp {
       routeId: 'portfolio',
       kind: useAmbientFallback ? 'ambient' : 'canvas',
       canvas: useAmbientFallback ? null : canvas,
-      quietZoneElement: () => document.getElementById('hero-title'),
       scheduler: 'internal',
       opacityElement: useAmbientFallback ? null : canvas,
     });

@@ -167,7 +167,7 @@ const state = {
   sphere3dReducedMotionScale: 0.18,
   sphere3dDepthBlendBand: 0.045,
   sphere3dWarmupFrames: 10,
-  // Cube Frame (Mode 17)
+  // Scaffold legacy compatibility values (Mode 17)
   cube3dSizeVw: 50,
   cube3dEdgeDensity: 8,
   cube3dFaceGrid: 0,
@@ -257,7 +257,8 @@ const state = {
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.SPHERE_3D]: { desktop: 140, mobile: 84 },
     [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
-    [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
+    [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 },
+    [MODES.PARTICLE_FOUNTAIN_B]: { desktop: 210, mobile: 132 }
   },
 
   // Ball sizes (set by updateBallSizes based on device)
@@ -1903,7 +1904,7 @@ export function initState(config) {
   if (config.sphere3dDepthBlendBand !== undefined) state.sphere3dDepthBlendBand = clampNumber(config.sphere3dDepthBlendBand, 0.001, 0.2, state.sphere3dDepthBlendBand);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
-  // Cube Frame (Mode 17)
+  // Scaffold legacy compatibility values (Mode 17)
   if (config.cube3dSizeVw !== undefined) state.cube3dSizeVw = clampNumber(config.cube3dSizeVw, 10, 50, state.cube3dSizeVw);
   if (config.cube3dEdgeDensity !== undefined) state.cube3dEdgeDensity = clampInt(config.cube3dEdgeDensity, 2, 30, state.cube3dEdgeDensity);
   if (config.cube3dFaceGrid !== undefined) state.cube3dFaceGrid = clampInt(config.cube3dFaceGrid, 0, 10, state.cube3dFaceGrid);
