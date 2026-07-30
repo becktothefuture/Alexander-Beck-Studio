@@ -815,6 +815,9 @@ class PortfolioScrollApp {
       canvas: useAmbientFallback ? null : canvas,
       scheduler: 'internal',
       opacityElement: useAmbientFallback ? null : canvas,
+      requestRealFrame: useAmbientFallback
+        ? null
+        : () => this.particleField?.primeAtmosphereSource(),
     });
   }
 

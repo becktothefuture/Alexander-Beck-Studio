@@ -3,6 +3,7 @@ import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
 } from '../../../palette/simulationPaletteController.js';
+import { notifySimulationAtmosphereSourceFrame } from '../rendering/atmosphere/simulation-atmosphere.js';
 
 const DPR_CAP = 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -281,6 +282,20 @@ export class PortfolioParticleField {
     this.filteredVelocity = previousVelocity;
   }
 
+  primeAtmosphereSource() {
+    if (!this.started || this.isLifecycleSuspended()) return false;
+    this.drawFrame(performance.now(), 0);
+    return true;
+  }
+
+  recordDraw(timestamp) {
+    this.frameCount += 1;
+    this.drawCount += 1;
+    this.canvas.__absAuditFrameCount = this.frameCount;
+    this.canvas.__absAuditLastDrawAt = timestamp;
+    notifySimulationAtmosphereSourceFrame('portfolio');
+  }
+
   syncLifecycle() {
     if (!this.started || !this.canvas || !this.ctx) return;
     if (this.isLifecycleSuspended()) {
@@ -372,10 +387,7 @@ export class PortfolioParticleField {
     if (this.opacity <= OPACITY_EPSILON && targetOpacity <= OPACITY_EPSILON) {
       this.opacity = 0;
       this.clear();
-      this.frameCount += 1;
-      this.drawCount += 1;
-      this.canvas.__absAuditFrameCount = this.frameCount;
-      this.canvas.__absAuditLastDrawAt = timestamp;
+      this.recordDraw(timestamp);
       return;
     }
 
@@ -423,10 +435,7 @@ export class PortfolioParticleField {
       this.ctx.fillRect(0, 0, this.width, this.height);
       this.ctx.globalCompositeOperation = 'source-over';
     }
-    this.frameCount += 1;
-    this.drawCount += 1;
-    this.canvas.__absAuditFrameCount = this.frameCount;
-    this.canvas.__absAuditLastDrawAt = timestamp;
+    this.recordDraw(timestamp);
   }
 
   getSnapshot() {

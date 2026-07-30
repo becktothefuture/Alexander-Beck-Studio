@@ -771,6 +771,10 @@ function installDiagnosticHandle() {
     settleReplacement: settleSimulationAtmosphereReplacement,
     rollbackReplacement: rollbackSimulationAtmosphereReplacement,
     setSwitchPhase: setSimulationAtmosphereSwitchPhase,
+    setEnabled: (enabled) => setSimulationAtmosphereConfig({
+      ...configuration,
+      enabled: enabled === true,
+    }),
   });
 }
 
@@ -1228,6 +1232,9 @@ export function registerSimulationAtmosphereSource(definition) {
     deactivateSource(previous, { preserveOutput: transitionPhase !== 'idle' });
   }
   activateCurrentSource({ resetOutput: !bindsReplacement });
+  if (source.requiresRealFrame && typeof source.requestRealFrame === 'function') {
+    source.requestRealFrame();
+  }
 
   const cleanup = () => {
     if (owner.cleaned) return;
