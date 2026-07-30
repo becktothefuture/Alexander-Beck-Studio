@@ -80,26 +80,6 @@ const DISCIPLINE_POSITION_Y_CONTROL = Object.freeze({
   step: 0.01,
   unit: '× grid',
 });
-const BOOKEND_VIEWPORT_Y_CONTROL = Object.freeze({
-  id: 'viewportY',
-  min: 0,
-  max: 100,
-  step: 1,
-  unit: '%',
-});
-const TRAVELLING_TITLE_VIEWPORT_Y_CONTROL = Object.freeze({
-  id: 'viewportY',
-  min: 0,
-  max: 100,
-  step: 1,
-  unit: '%',
-});
-const EDITORIAL_REVEAL_CONTROLS = Object.freeze([
-  Object.freeze({ id: 'fadeDelayWU', label: 'Fade delay', min: 0, max: 0.8, step: 0.01, unit: 'WU' }),
-  Object.freeze({ id: 'fadeDurationWU', label: 'Fade length', min: 0.02, max: 0.8, step: 0.01, unit: 'WU' }),
-  Object.freeze({ id: 'blurDelayWU', label: 'Blur delay', min: 0, max: 0.8, step: 0.01, unit: 'WU' }),
-  Object.freeze({ id: 'blurDurationWU', label: 'Blur clear length', min: 0.02, max: 0.8, step: 0.01, unit: 'WU' }),
-]);
 const EDITORIAL_MODULE_GAP_CONTROL = Object.freeze({
   id: 'moduleGapRem',
   min: 0.5,
@@ -136,7 +116,7 @@ const TEXT_TRACK_CONTROLS = Object.freeze(ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMa
     .filter((control) => control.group?.startsWith('text-'))
     .map((control) => Object.freeze({
       control,
-      scope: owner.id === 'textMotion' ? 'textMotion' : 'globals',
+      scope: owner.id === 'sequence' ? 'globals' : owner.id,
     }))
 )));
 
@@ -914,7 +894,7 @@ function TextTrackInspector({ snapshot, store }) {
   });
 
   const getValue = ({ control, scope }) => (
-    scope === 'textMotion' ? globals.textMotion[control.id] : globals[control.id]
+    scope === 'globals' ? globals[control.id] : globals[scope][control.id]
   );
   const getBoundedControl = ({ control }) => {
     if (control.id === 'readableStart') {
@@ -926,8 +906,8 @@ function TextTrackInspector({ snapshot, store }) {
     return control;
   };
   const mutateGlobal = (draft, item, value) => {
-    if (item.scope === 'textMotion') draft.globals.textMotion[item.control.id] = value;
-    else draft.globals[item.control.id] = value;
+    if (item.scope === 'globals') draft.globals[item.control.id] = value;
+    else draft.globals[item.scope][item.control.id] = value;
   };
   const bindRange = (item) => {
     const label = `Edit global ${item.control.label}`;
@@ -1622,28 +1602,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                   })}
                 />
               ) : null}
-              {object.kind === 'title' ? (
-                <InspectorFolder group={{ id: 'title-viewport-placement', label: 'Viewport placement' }} count={1} defaultOpen>
-                  <RangeParameterField
-                    label="Title Y"
-                    ariaLabel={`${object.preset === 'opener-v1' ? 'Cover' : object.preset === 'finale-v1' ? 'End' : 'Travelling'} title viewport Y`}
-                    value={object.presentation?.viewportY ?? (object.preset === 'opener-v1' ? 76 : object.preset === 'finale-v1' ? 78 : 50)}
-                    control={['opener-v1', 'finale-v1'].includes(object.preset)
-                      ? BOOKEND_VIEWPORT_Y_CONTROL
-                      : TRAVELLING_TITLE_VIEWPORT_Y_CONTROL}
-                    disabled={locked}
-                    {...bindObjectRange('Edit Title viewport Y', (target, value) => {
-                      target.presentation ||= { layout: object.presentation?.layout || 'center' };
-                      target.presentation.viewportY = value;
-                    })}
-                  />
-                  <p className="about-track-editor-parameter-note">
-                    {['opener-v1', 'finale-v1'].includes(object.preset)
-                      ? 'Positions the complete title stack from the top of the preview height. The full 0–100% range is available; short landscape still keeps a safe bottom inset.'
-                      : 'Positions the travelling title by its visual centre from the top of the preview height.'}
-                  </p>
-                </InspectorFolder>
-              ) : null}
               <SelectField label="Movement" value={object.movement} disabled={locked} options={[{ value: 'spatial', label: 'Spatial' }, { value: 'vertical', label: 'Vertical' }]} onCommit={(value) => commit('Edit Title movement', (target) => { target.movement = value; })} />
               <SelectField label="Title style" value={object.titleStyle || (object.preset === 'opener-v1' || object.preset === 'finale-v1' ? 'display' : 'standard')} disabled={locked} options={ABOUT_NARRATIVE_TITLE_STYLES.map((value) => ({ value, label: value === 'display' ? 'Display · Instrument' : 'Standard · Geist' }))} onCommit={(value) => commit('Edit Title style', (target) => { target.titleStyle = value; })} />
               <TextField label="Motion preset" value={object.preset} disabled={locked} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
@@ -1744,28 +1702,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                 <JsonField label="List items" value={object.block?.items || []} disabled={locked} focusId={!('text' in object.block) ? 'text-copy' : undefined} onCommit={(value) => commit('Edit block items', (target) => { target.block.items = value; })} onError={onMessage} />
               )}
               <JsonField label="Emphasis" value={object.block?.emphasis || []} disabled={locked} onCommit={(value) => commit('Edit block emphasis', (target) => { target.block.emphasis = value; })} onError={onMessage} />
-              <InspectorFolder group={{ id: 'editorial-reveal', label: 'Editorial reveal' }} count={4} defaultOpen>
-                <p className="about-track-editor-parameter-note is-wide">Fade and blur are authored independently from this block’s start.</p>
-                {EDITORIAL_REVEAL_CONTROLS.map((control) => (
-                  <RangeParameterField
-                    key={control.id}
-                    label={control.label}
-                    ariaLabel={`Editorial ${control.label}`}
-                    value={object.reveal?.[control.id] ?? (control.id === 'fadeDurationWU' ? 0.12 : control.id === 'blurDurationWU' ? 0.16 : 0)}
-                    control={control}
-                    disabled={locked}
-                    {...bindObjectRange(`Edit Editorial ${control.label}`, (target, value) => {
-                      target.reveal ||= {
-                        fadeDelayWU: 0,
-                        fadeDurationWU: 0.12,
-                        blurDelayWU: 0,
-                        blurDurationWU: 0.16,
-                      };
-                      target.reveal[control.id] = value;
-                    })}
-                  />
-                ))}
-              </InspectorFolder>
               <label className="about-track-editor-check">
                 <input type="checkbox" checked={object.block?.worldInfluence === true} disabled={locked} onChange={(event) => commit('Edit World influence', (target) => { target.block.worldInfluence = event.target.checked; })} />
                 Influences the World presentation

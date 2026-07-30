@@ -19,7 +19,6 @@ import './about-narrative-lab.css';
 const INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT = normalizeAboutNarrativeTrackDocument(
   ABOUT_NARRATIVE_DOCUMENT,
 );
-const CLIENT_LOGO_REVEAL_STAGGER_WU = 0.045;
 
 function getRenderSpanStyle(span) {
   const startWU = Number(span.scrollBounds.startWU);
@@ -106,12 +105,11 @@ function ClientLogoItem({ item, reveal = false, revealIndex = 0 }) {
   const scale = Number(record.scale);
   const offsetX = Number(record.offsetX);
   const offsetY = Number(record.offsetY);
-  const revealDelayWU = Math.max(0, revealIndex * CLIENT_LOGO_REVEAL_STAGGER_WU);
   return (
     <li
       data-client-logo={record.id}
       data-editorial-line={reveal ? true : undefined}
-      data-editorial-delay-wu={reveal ? revealDelayWU.toFixed(3) : undefined}
+      data-editorial-index={reveal ? revealIndex : undefined}
       style={{
         '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
         '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
@@ -384,6 +382,7 @@ function FinaleActions() {
 
 function TitleField({
   field,
+  textMotion,
   isPrimaryTitle,
   onSelect,
 }) {
@@ -395,9 +394,9 @@ function TitleField({
   const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
     || (isOpener || isFinale ? 'display' : 'standard');
-  const authoredViewportY = field.presentation?.viewportY == null
-    ? Number.NaN
-    : Number(field.presentation.viewportY);
+  const authoredViewportY = Number(isOpener || isFinale
+    ? textMotion.bookendViewportY
+    : textMotion.standardViewportY);
   const viewportYBounds = { min: 0, max: 100 };
   const viewportY = Number.isFinite(authoredViewportY)
     ? Math.min(viewportYBounds.max, Math.max(viewportYBounds.min, authoredViewportY))
@@ -513,6 +512,7 @@ function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = '
 function TextRenderSpan({
   field,
   span,
+  textMotion,
   isPrimaryTitle,
   disciplineOverlayRef,
   onSelect,
@@ -532,6 +532,7 @@ function TextRenderSpan({
         <div className="about-narrative-spatial-stage">
           <TitleField
             field={field}
+            textMotion={textMotion}
             isPrimaryTitle={isPrimaryTitle}
             onSelect={onSelect}
           />
@@ -747,6 +748,7 @@ export function AboutNarrativeLabExperience({
                 key={span.id}
                 field={field}
                 span={span}
+                textMotion={globals.textMotion}
                 isPrimaryTitle={field.id === primaryTitleId}
                 disciplineOverlayRef={disciplineOverlayRef}
                 onSelect={select}

@@ -70,9 +70,9 @@ test('canonical About source is a deterministic native v5 runtime document', () 
   const bookends = canonical.tracks.text.fields.filter((field) => (
     ['opener-v1', 'finale-v1'].includes(field.preset)
   ));
-  assert.deepEqual(bookends.map((field) => field.presentation.viewportY), [70, 70]);
+  assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   bookends.forEach((field) => {
-    assert.ok(field.presentation.viewportY >= 0 && field.presentation.viewportY <= 100);
+    assert.equal(field.presentation.viewportY, undefined);
   });
 });
 
@@ -380,8 +380,17 @@ test('the Text row header exposes only native-v5 global animation controls', () 
     [
       'readingWidthRem',
       'editorialRevealThreshold',
+      'fadeDelayWU',
+      'fadeDurationWU',
+      'blurDelayWU',
+      'blurDurationWU',
+      'maxBlurPx',
+      'travelPx',
+      'logoStaggerWU',
       'standardMaxWidthCh',
       'displayMaxWidthCh',
+      'standardViewportY',
+      'bookendViewportY',
       'startY',
       'openerStartY',
       'endY',
@@ -885,10 +894,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     disciplineEditorial.block.modules.some((module) => module.kind === 'media-deck'),
     false,
   );
-  [backgroundUnit, disciplineEditorial].forEach((field) => {
-    assert.ok(field.reveal.fadeDurationWU > 0);
-    assert.ok(field.reveal.blurDurationWU > 0);
-  });
+  assert.ok(canonical.globals.editorialMotion.fadeDurationWU > 0);
+  assert.ok(canonical.globals.editorialMotion.blurDurationWU > 0);
+  assert.equal(backgroundUnit.reveal, undefined);
+  assert.equal(disciplineEditorial.reveal, undefined);
   const firstBridgeTitle = fields.find((field) => field.id === 'text-complexity-curiosity');
   const finalBridgeTitle = fields.find((field) => field.id === 'text-complexity-listen');
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
@@ -896,8 +905,9 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   ));
   assert.ok(firstBridgeTitle.startWU > backgroundUnit.endWU);
   assert.ok(finalBridgeTitle.startWU > firstBridgeTitle.endWU);
-  assert.equal(firstBridgeTitle.presentation.viewportY, 50);
-  assert.equal(finalBridgeTitle.presentation.viewportY, 50);
+  assert.equal(canonical.globals.textMotion.standardViewportY, 50);
+  assert.equal(firstBridgeTitle.presentation.viewportY, undefined);
+  assert.equal(finalBridgeTitle.presentation.viewportY, undefined);
   assert.ok(disciplineReveal.startWU > finalBridgeTitle.endWU);
   assert.ok(disciplineReveal.activationWU > firstBridgeTitle.focusWU);
   assert.ok(disciplineEditorial.startWU >= (
@@ -939,8 +949,9 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
   assert.match(liveSources.experience, /--about-title-viewport-y/);
-  assert.match(liveSources.editor, /title-viewport-placement/);
-  assert.match(liveSources.editor, /TRAVELLING_TITLE_VIEWPORT_Y_CONTROL/);
+  assert.equal(canonical.globals.textMotion.standardViewportY, 50);
+  assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
+  assert.doesNotMatch(liveSources.editor, /title-viewport-placement/);
   assert.match(liveSources.styles, /top: var\(--about-title-viewport-y/);
 });
 
@@ -985,7 +996,7 @@ test('the final title and actions share the closing frame with the persistent bu
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
   assert.equal(finale.startWU, visibility.get('visibility-open-space').atWU);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
-  assert.equal(finale.presentation.viewportY, 70);
+  assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);
   assert.equal(emergent.protected, true);
   assert.equal(canonical.tracks.worlds.objects.filter((world) => world.shapeId === 'bust-v1').length, 1);
@@ -1006,7 +1017,12 @@ test('editorial markers own first reveal onset in every responsive Scroll WU pro
     const logos = plan.renderSpans.find((span) => span.fieldIds.includes('text-background-unit'));
     const startScrollWU = logos.scrollBounds.startWU;
     const field = plan.textFields.find((item) => item.id === 'text-background-unit');
-    const record = { startScrollWU, layoutOffsetPx: 0, field };
+    const record = {
+      startScrollWU,
+      layoutOffsetPx: 0,
+      field,
+      editorialMotion: canonical.globals.editorialMotion,
+    };
     const viewportHeight = layoutProfile === 'mobile' ? 844 : 900;
     const atMarker = getAboutNarrativeEditorialReveal(
       record,
@@ -1017,7 +1033,8 @@ test('editorial markers own first reveal onset in every responsive Scroll WU pro
     );
     const entering = getAboutNarrativeEditorialReveal(
       record,
-      startScrollWU + field.reveal.fadeDelayWU + (field.reveal.fadeDurationWU * 0.5),
+      startScrollWU + canonical.globals.editorialMotion.fadeDelayWU
+        + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
       viewportHeight,
       canonical.globals.editorialRevealThreshold,
       false,

@@ -89,6 +89,16 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'text-editorial', label: 'Editorial · Reveal & layout' }),
 ]);
 
+export const ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS = Object.freeze({
+  fadeDelayWU: 0.1,
+  fadeDurationWU: 0.2,
+  blurDelayWU: 0.1,
+  blurDurationWU: 0.2,
+  maxBlurPx: 3,
+  travelPx: 12,
+  logoStaggerWU: 0.045,
+});
+
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'camera-fog', label: 'Camera · Distance fog' }),
 ]);
@@ -161,6 +171,19 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    id: 'editorialMotion',
+    label: 'Editorial motion',
+    controls: Object.freeze([
+      numberControl('fadeDelayWU', 'Fade delay', 0, 0.8, 0.01, 'WU', 'text-editorial'),
+      numberControl('fadeDurationWU', 'Fade length', 0.02, 0.8, 0.01, 'WU', 'text-editorial'),
+      numberControl('blurDelayWU', 'Blur delay', 0, 0.8, 0.01, 'WU', 'text-editorial'),
+      numberControl('blurDurationWU', 'Blur clear length', 0.02, 0.8, 0.01, 'WU', 'text-editorial'),
+      numberControl('maxBlurPx', 'Maximum blur', 0, 12, 0.25, 'px', 'text-editorial'),
+      numberControl('travelPx', 'Entrance travel', 0, 48, 1, 'px', 'text-editorial'),
+      numberControl('logoStaggerWU', 'Logo stagger', 0, 0.2, 0.005, 'WU', 'text-editorial'),
+    ]),
+  }),
+  Object.freeze({
     id: 'camera',
     label: 'Camera',
     controls: Object.freeze(ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => Object.freeze({
@@ -193,6 +216,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     controls: Object.freeze([
       numberControl('standardMaxWidthCh', 'Standard max width', 8, 60, 1, 'ch', 'text-layout'),
       numberControl('displayMaxWidthCh', 'Display max width', 8, 60, 1, 'ch', 'text-layout'),
+      numberControl('standardViewportY', 'Travelling title Y', 0, 100, 1, '%', 'text-layout'),
+      numberControl('bookendViewportY', 'Opener and finale Y', 0, 100, 1, '%', 'text-layout'),
       numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
       numberControl('startY', 'Entry Y', -500, 500, 2, 'px', 'text-path'),
       numberControl('openerStartY', 'Opener Y', -500, 500, 2, 'px', 'text-path'),

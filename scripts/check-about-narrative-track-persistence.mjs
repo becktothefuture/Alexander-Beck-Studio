@@ -96,26 +96,24 @@ test('the opener description survives migration, normalization, and serializatio
   assert.equal(persistedOpener.description, opener.description);
 });
 
-test('title viewport placement survives validation and serialization', () => {
+test('shared title viewport placement survives validation and serialization', () => {
   const source = migrateAboutNarrativeVersion2To5(canonicalV2);
-  const opener = source.tracks.text.fields.find((field) => field.preset === 'opener-v1');
-  const finale = source.tracks.text.fields.find((field) => field.preset === 'finale-v1');
-  const travellingTitle = source.tracks.text.fields.find((field) => field.preset === 'travelling-title-v1');
-  opener.presentation.viewportY = 76;
-  finale.presentation.viewportY = 78;
-  travellingTitle.presentation.viewportY = 55;
+  source.globals.textMotion.bookendViewportY = 76;
+  source.globals.textMotion.standardViewportY = 55;
 
   const serialized = serializeAboutNarrativeTrackSource(source);
   const loaded = loadAboutNarrativeTrackSource(serialized);
   assert.equal(loaded.status, 'current');
-  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === opener.id).presentation.viewportY, 76);
-  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === finale.id).presentation.viewportY, 78);
-  assert.equal(loaded.document.tracks.text.fields.find((field) => field.id === travellingTitle.id).presentation.viewportY, 55);
+  assert.equal(loaded.document.globals.textMotion.bookendViewportY, 76);
+  assert.equal(loaded.document.globals.textMotion.standardViewportY, 55);
+  loaded.document.tracks.text.fields.filter((field) => field.kind === 'title').forEach((field) => {
+    assert.equal(field.presentation.viewportY, undefined);
+  });
 
-  opener.presentation.viewportY = -1;
+  source.globals.textMotion.bookendViewportY = -1;
   assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
-  opener.presentation.viewportY = 76;
-  travellingTitle.presentation.viewportY = 101;
+  source.globals.textMotion.bookendViewportY = 76;
+  source.globals.textMotion.standardViewportY = 101;
   assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
 });
 

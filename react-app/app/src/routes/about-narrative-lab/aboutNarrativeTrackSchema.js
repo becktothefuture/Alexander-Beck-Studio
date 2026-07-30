@@ -5,6 +5,7 @@ import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
+  ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS,
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
@@ -62,7 +63,7 @@ const LEGACY_CAMERA_BAKE_MAX_ROTATION_ERROR_DEGREES = 1.5;
 const LEGACY_CAMERA_BAKE_MAX_SCALAR_ERROR = 0.25;
 const LEGACY_CAMERA_BAKE_MAX_DEPTH = 9;
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
-const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
+const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'editorialMotion', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const LEGACY_GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
 const GLOBAL_CAMERA_KEYS = new Set(['distanceFogStartWU', 'distanceFogEndWU']);
@@ -77,7 +78,8 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
 ]);
 const POINT_MATERIAL_KEYS = new Set(['opacity', 'pointSize']);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
-const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const EDITORIAL_MOTION_KEYS = new Set([...Object.keys(ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS)]);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
 const OVERRIDE_TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', 'interactions']);
@@ -246,6 +248,23 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   unknownKeys(diagnostics, globals.pointMaterial, POINT_MATERIAL_KEYS, 'globals.pointMaterial');
   unknownKeys(diagnostics, globals.swarmTurbulence, SWARM_TURBULENCE_KEYS, 'globals.swarmTurbulence');
   unknownKeys(diagnostics, globals.textMotion, TEXT_MOTION_KEYS, 'globals.textMotion');
+  if (globals.editorialMotion != null) {
+    unknownKeys(diagnostics, globals.editorialMotion, EDITORIAL_MOTION_KEYS, 'globals.editorialMotion');
+    validateEditorialReveal(Object.fromEntries(
+      [...REVEAL_KEYS].map((key) => [key, globals.editorialMotion[key]]),
+    ), diagnostics, 'globals.editorialMotion');
+    ['maxBlurPx', 'travelPx', 'logoStaggerWU'].forEach((key) => {
+      const control = key === 'maxBlurPx' ? [0, 12] : key === 'travelPx' ? [0, 48] : [0, 0.2];
+      if (!finite(globals.editorialMotion?.[key]) || Number(globals.editorialMotion[key]) < control[0] || Number(globals.editorialMotion[key]) > control[1]) {
+        diagnostic(diagnostics, 'editorial-motion-range', `globals.editorialMotion.${key}`, `Editorial ${key} is outside its supported range.`);
+      }
+    });
+  }
+  ['standardViewportY', 'bookendViewportY'].forEach((key) => {
+    if (globals.textMotion?.[key] != null && (!finite(globals.textMotion[key]) || Number(globals.textMotion[key]) < 0 || Number(globals.textMotion[key]) > 100)) {
+      diagnostic(diagnostics, 'title-viewport-y', `globals.textMotion.${key}`, 'Global title viewport Y must stay between 0 and 100 percent.');
+    }
+  });
   if (!legacy) {
     if (!finite(globals.worldRail?.originZ) || Number(globals.worldRail.originZ) < -100 || Number(globals.worldRail.originZ) > 100) {
       diagnostic(diagnostics, 'world-rail-origin', 'globals.worldRail.originZ', 'World rail origin Z must stay between -100 and 100.');
@@ -265,13 +284,15 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
-  const { worldRail, ...legacyCompatibleGlobals } = globals;
+  const { worldRail, editorialMotion, ...legacyCompatibleGlobals } = globals;
+  const { standardViewportY, bookendViewportY, ...legacyCompatibleTextMotion } = legacyCompatibleGlobals.textMotion || {};
   // Reuse the established v2 global contract without allowing the legacy
   // validator to see or normalize any authored track data.
   const shim = {
     schemaVersion: 2,
     globals: legacy ? globals : {
       ...legacyCompatibleGlobals,
+      textMotion: legacyCompatibleTextMotion,
       camera: {
         startZ: Number(worldRail?.originZ ?? 8),
         cadence: Number(worldRail?.unitsPerWU ?? 1),
@@ -1151,9 +1172,26 @@ function normalizeCameraAimKey(key) {
 
 export function normalizeAboutNarrativeTrackDocument(input) {
   const source = cloneAboutNarrativeDocument(input);
+  const textFields = [...source.tracks.text.fields];
+  const firstEditorialReveal = textFields.find((field) => field.kind === 'scroll-block' && field.reveal)?.reveal;
+  const openerViewportY = textFields.find((field) => field.kind === 'title' && ['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
+  const standardViewportY = textFields.find((field) => field.kind === 'title' && !['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
+  const globals = {
+    ...source.globals,
+    editorialMotion: {
+      ...ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS,
+      ...firstEditorialReveal,
+      ...source.globals.editorialMotion,
+    },
+    textMotion: {
+      ...source.globals.textMotion,
+      standardViewportY: Number(source.globals.textMotion?.standardViewportY ?? standardViewportY ?? 50),
+      bookendViewportY: Number(source.globals.textMotion?.bookendViewportY ?? openerViewportY ?? 70),
+    },
+  };
   return {
     schemaVersion: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
-    globals: source.globals,
+    globals,
     profiles: {
       desktop: { ...source.profiles.desktop, overrides: normalizeOverrides(source.profiles.desktop.overrides) },
       tablet: { ...source.profiles.tablet, overrides: normalizeOverrides(source.profiles.tablet.overrides) },
@@ -1173,7 +1211,12 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       visibility: { keys: [...source.tracks.visibility.keys]
         .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
       worlds: { objects: [...source.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
-      text: { fields: [...source.tracks.text.fields].sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
+      text: { fields: textFields.map((field) => {
+        const normalizedField = cloneAboutNarrativeDocument(field);
+        if (normalizedField.kind === 'scroll-block') delete normalizedField.reveal;
+        if (normalizedField.kind === 'title' && normalizedField.presentation) delete normalizedField.presentation.viewportY;
+        return normalizedField;
+      }).sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
       interactions: { clips: [...source.tracks.interactions.clips].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
     },
     library: { presets: [...source.library.presets].sort((left, right) => left.id.localeCompare(right.id)) },

@@ -74,7 +74,7 @@ export function getAboutNarrativeEditorialReveal(
   _viewportThreshold,
   reducedMotion,
 ) {
-  const reveal = record.field?.reveal || {};
+  const reveal = record.editorialMotion || {};
   const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
   const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
   const delayWU = Number(reveal.fadeDelayWU ?? 0)
@@ -90,7 +90,7 @@ export function getAboutNarrativeEditorialBlurReveal(
   viewportHeight,
   reducedMotion,
 ) {
-  const reveal = record.field?.reveal || {};
+  const reveal = record.editorialMotion || {};
   const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
   const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
   const delayWU = Number(reveal.blurDelayWU ?? 0)
@@ -275,9 +275,11 @@ export function useAboutNarrativeTimeline({
         return [{
           node,
           field,
+          editorialMotion: plan.model.globals.editorialMotion,
           startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
-          revealDelayWU: Math.max(0, Number(node.dataset.editorialDelayWu) || 0),
+          revealDelayWU: Math.max(0, Number(node.dataset.editorialIndex) || 0)
+            * Math.max(0, Number(plan.model.globals.editorialMotion?.logoStaggerWU) || 0),
           progress: 0,
           blurProgress: 0,
         }];
@@ -424,8 +426,9 @@ export function useAboutNarrativeTimeline({
       }
       for (const { node, progress, blurProgress } of editorialLines) {
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
-        node.style.setProperty('--editorial-blur', `${((1 - blurProgress) * 3).toFixed(2)}px`);
-        node.style.setProperty('--editorial-y', `${((1 - progress) * 12).toFixed(2)}px`);
+        const editorialMotion = frame.globals.editorialMotion;
+        node.style.setProperty('--editorial-blur', `${((1 - blurProgress) * Number(editorialMotion.maxBlurPx)).toFixed(2)}px`);
+        node.style.setProperty('--editorial-y', `${((1 - progress) * Number(editorialMotion.travelPx)).toFixed(2)}px`);
         const group = Number(node.dataset.worldGroup) || 0;
         if (group > 0 && progress >= 0.24) disciplineFocus = group;
         if (node.dataset.worldInfluence === 'true') gridInfluence = Math.max(gridInfluence, progress);
