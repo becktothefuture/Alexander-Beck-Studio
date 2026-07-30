@@ -71,6 +71,8 @@ test('invalid gesture previews retain the last-known-good plan and cancel exactl
   }), false);
   assert.equal(store.getSnapshot().compiledPlan, approvedPlan);
   assert.equal(store.getSnapshot().lastValidPlan, approvedPlan);
+  assert.equal(store.getSnapshot().previewDocumentState.status, 'last-valid-fallback');
+  assert.equal(store.getSnapshot().draftState.valid, false);
   assert.equal(store.getSnapshot().gestureState.valid, false);
   assert.equal(store.commitGesture({ requireValid: true }), false);
   assert.equal(store.cancelGesture(), true);
@@ -118,7 +120,7 @@ test('key movement gestures preview repeatedly and commit one history command', 
   assert.equal(store.pointField.commitGesture({ requireValid: true }), true);
   assert.equal(store.getSnapshot().revision, 1);
   assert.equal(store.getSnapshot().dirty, true);
-  assert.equal(store.getSnapshot().saveState.status, 'draft');
+  assert.equal(store.getSnapshot().saveState.status, 'idle');
   assert.equal(store.getMetrics().gestureUpdates, 2);
   assert.equal(store.getMetrics().compilations - compilationStart, 1);
   assert.equal(store.undo(), true);
@@ -320,7 +322,92 @@ test('save reconciliation preserves edits made after a v6 submission', () => {
   assert.equal(result.clean, false);
   assert.equal(store.getSnapshot().dirty, true);
   assert.equal(store.getSnapshot().baselineHash, 'persisted-v6');
-  assert.equal(store.getSnapshot().saveState.status, 'draft');
+  assert.equal(store.getSnapshot().saveState.status, 'idle');
+});
+
+test('source installation preserves edits made while canonical load is in flight', () => {
+  const store = createStore();
+  const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => !item.protected);
+  const localLabel = `${state.label} local`;
+  assert.equal(store.pointField.patchState({ id: state.id, patch: { label: localLabel } }), true);
+  const remote = structuredClone(canonicalV6);
+  remote.globals.readingWidthRem += 0.25;
+  assert.equal(store.installSource(remote, 'remote-hash', { status: 'ready' }), true);
+  assert.equal(store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => item.id === state.id).label, localLabel);
+  assert.equal(store.getSnapshot().baselineDocument.globals.readingWidthRem, remote.globals.readingWidthRem);
+  assert.equal(store.getSnapshot().baselineHash, 'remote-hash');
+  assert.equal(store.getSnapshot().dirty, true);
+  assert.equal(store.getSnapshot().sourceState.status, 'ready');
+});
+
+test('save lifecycle reconciles newer edits and keeps the next If-Match baseline', () => {
+  const store = createStore({ baselineHash: 'base-v6' });
+  const initialState = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => !item.protected);
+  store.pointField.patchState({
+    id: initialState.id,
+    patch: { label: `${initialState.label} submitted` },
+  });
+  const first = store.beginSave();
+  assert.ok(Object.isFrozen(first));
+  assert.ok(Object.isFrozen(first.document));
+  assert.equal(store.getSnapshot().saveState.status, 'saving');
+  const submittedState = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => item.id === initialState.id);
+  store.pointField.patchState({
+    id: submittedState.id,
+    patch: { label: `${submittedState.label} newer` },
+  });
+  const result = store.markSaved(first.document, 'persisted-v6', first.revision);
+  assert.equal(result.newerEditsExist, true);
+  assert.equal(store.getSnapshot().saveState.status, 'idle');
+  const second = store.beginSave();
+  assert.equal(second.baselineHash, 'persisted-v6');
+  assert.equal(second.revision, store.getSnapshot().revision);
+  const clean = store.markSaved(second.document, 'persisted-v6-next', second.revision);
+  assert.equal(clean.newerEditsExist, false);
+  assert.equal(clean.clean, true);
+  assert.equal(store.getSnapshot().saveState.status, 'saved');
+  assert.equal(store.getSnapshot().baselineHash, 'persisted-v6-next');
+});
+
+test('conflict preserves local work and confirmed reload remains undoable', () => {
+  const store = createStore({ baselineHash: 'base-v6' });
+  const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => !item.protected);
+  const localLabel = `${state.label} local conflict`;
+  store.pointField.patchState({ id: state.id, patch: { label: localLabel } });
+  const localBytes = bytes(store.getSnapshot().document);
+  const remote = structuredClone(canonicalV6);
+  remote.globals.readingWidthRem += 0.5;
+  store.markConflict({
+    currentHash: 'remote-hash',
+    remoteDocument: remote,
+    localDocument: store.getSnapshot().document,
+    comparison: { localChanges: ['state.label'], remoteChanges: ['globals.readingWidthRem'] },
+  });
+  assert.equal(bytes(store.getSnapshot().document), localBytes);
+  assert.equal(store.getSnapshot().saveState.status, 'conflict');
+  assert.equal(store.reloadSource(remote, 'remote-hash'), true);
+  assert.equal(store.getSnapshot().dirty, false);
+  assert.equal(store.undo(), true);
+  assert.equal(bytes(store.getSnapshot().document), localBytes);
+  assert.equal(store.getSnapshot().dirty, true);
+});
+
+test('restore last saved is one undoable command', () => {
+  const store = createStore({ baselineHash: 'base-v6' });
+  const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((item) => !item.protected);
+  const initial = bytes(store.getSnapshot().document);
+  store.pointField.patchState({ id: state.id, patch: { label: `${state.label} changed` } });
+  const changed = bytes(store.getSnapshot().document);
+  assert.equal(store.restoreBaseline(), true);
+  assert.equal(bytes(store.getSnapshot().document), initial);
+  assert.equal(store.undo(), true);
+  assert.equal(bytes(store.getSnapshot().document), changed);
 });
 
 test('live point-field gestures defer full compilation until the atomic commit', () => {

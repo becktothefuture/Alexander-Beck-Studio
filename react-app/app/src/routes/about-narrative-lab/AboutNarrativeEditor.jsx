@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -57,13 +58,31 @@ import {
 } from './aboutNarrativeCameraRig.js';
 import {
   clearAboutNarrativeRecoveryDraft,
+  compareAboutNarrativeDocuments,
+  deleteAboutNarrativeCheckpoint,
   exportAboutNarrativeDocument,
+  flushAboutNarrativeRecoveryDraft,
   loadAboutNarrativeSource,
+  readAboutNarrativeCheckpointState,
   readAboutNarrativeRecoveryDraft,
   saveAboutNarrativeSource,
   writeAboutNarrativeCheckpoint,
-  writeAboutNarrativeRecoveryDraft,
 } from './aboutNarrativePersistence.js';
+import {
+  createEditorialItem,
+  createEditorialModule,
+  createEmphasisEntry,
+  duplicateDirectorArrayItem,
+  getDirectorFieldError,
+  moveDirectorArrayItem,
+  parseDirectorSource,
+  removeDirectorArrayItem,
+  updateDirectorArrayItem,
+} from './aboutNarrativeDirectorText.js';
+import {
+  createAnnouncementDeduper,
+  describeAboutDirectorDiagnostic,
+} from './aboutNarrativeDirectorDiagnostics.js';
 import {
   ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
   ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
@@ -111,7 +130,6 @@ const EDITOR_OWNED_KEYBOARD_TARGET_SELECTOR = [
   'a[href]',
   'summary',
   '[role="button"]',
-  '[role="menuitem"]',
   '[role="slider"]',
 ].join(', ');
 const DISCIPLINE_POSITION_X_CONTROL = Object.freeze({
@@ -294,8 +312,18 @@ function NumberField({ label, value, disabled = false, step = 0.01, min, max, on
   );
 }
 
-function TextField({ label, value = '', disabled = false, multiline = false, focusId, onCommit }) {
+function TextField({
+  label,
+  value = '',
+  disabled = false,
+  multiline = false,
+  focusId,
+  diagnosticPath,
+  error = '',
+  onCommit,
+}) {
   const Element = multiline ? 'textarea' : 'input';
+  const errorId = useId();
   return (
     <label className="about-track-editor-field is-wide">
       <span>{label}</span>
@@ -303,25 +331,48 @@ function TextField({ label, value = '', disabled = false, multiline = false, foc
         key={`${label}-${value}`}
         {...(multiline ? { rows: 4 } : { type: 'text' })}
         data-editor-focus-id={focusId}
+        data-diagnostic-path={diagnosticPath}
         defaultValue={value}
         disabled={disabled}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? errorId : undefined}
         onBlur={(event) => {
           if (event.currentTarget.value !== value) onCommit(event.currentTarget.value);
         }}
       />
+      {error ? <small id={errorId} className="about-director-inline-error">{error}</small> : null}
     </label>
   );
 }
 
-function SelectField({ label, value, disabled = false, options, onCommit }) {
+function SelectField({
+  label,
+  value,
+  disabled = false,
+  options,
+  diagnosticPath,
+  error,
+  onCommit,
+}) {
+  const errorId = error && diagnosticPath
+    ? `about-director-field-error-${diagnosticPath.replace(/[^a-z0-9]+/gi, '-')}`
+    : undefined;
   return (
     <label className="about-track-editor-field">
       <span>{label}</span>
-      <select value={value} disabled={disabled} onChange={(event) => onCommit(event.target.value)}>
+      <select
+        value={value}
+        disabled={disabled}
+        data-diagnostic-path={diagnosticPath}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={errorId}
+        onChange={(event) => onCommit(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
+      {error ? <small id={errorId} className="about-director-inline-error">{error}</small> : null}
     </label>
   );
 }
@@ -1233,27 +1284,348 @@ function TextTrackInspector({ snapshot, store }) {
   );
 }
 
-function JsonField({ label, value, disabled = false, focusId, onCommit, onError }) {
+function AdvancedSourceEditor({
+  label,
+  value,
+  disabled = false,
+  focusId,
+  diagnosticPath,
+  externalError = '',
+  onCommit,
+}) {
+  const serialized = useMemo(() => JSON.stringify(value, null, 2), [value]);
+  const [parseError, setParseError] = useState('');
+  const errorId = useId();
+  const error = parseError || externalError;
+
   return (
-    <label className="about-track-editor-field is-wide">
+    <details className="about-director-advanced-source">
+      <summary>Advanced source · {label}</summary>
+      <label className="about-track-editor-field is-wide">
+        <span>Complete {label.toLowerCase()} JSON</span>
+        <textarea
+          rows={10}
+          key={serialized}
+          data-editor-focus-id={focusId}
+          data-diagnostic-path={diagnosticPath}
+          defaultValue={serialized}
+          disabled={disabled}
+          spellCheck={false}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? errorId : undefined}
+          onChange={() => {
+            if (parseError) setParseError('');
+          }}
+          onBlur={(event) => {
+            const source = event.currentTarget.value;
+            if (source === serialized) return;
+            const parsed = parseDirectorSource(source);
+            if (!parsed.valid) {
+              setParseError(parsed.error);
+              return;
+            }
+            setParseError('');
+            onCommit(parsed.value);
+          }}
+        />
+        {error ? <small id={errorId} className="about-director-inline-error">{error}</small> : null}
+      </label>
+      <p>Lossless escape hatch. Structured edits keep fields they do not own.</p>
+    </details>
+  );
+}
+
+function DirectorStructuredField({
+  label,
+  value = '',
+  path,
+  error = '',
+  disabled = false,
+  type = 'text',
+  options = [],
+  multiline = false,
+  onCommit,
+}) {
+  const errorId = useId();
+  const common = {
+    'data-editor-focus-id': `diagnostic:${path}`,
+    'data-diagnostic-path': path,
+    disabled,
+    'aria-invalid': error ? 'true' : undefined,
+    'aria-describedby': error ? errorId : undefined,
+  };
+  return (
+    <label className="about-track-editor-field is-wide about-director-structured-field">
       <span>{label}</span>
-      <textarea
-        key={`${label}-${JSON.stringify(value)}`}
-        rows={5}
-        data-editor-focus-id={focusId}
-        defaultValue={JSON.stringify(value, null, 2)}
-        disabled={disabled}
-        spellCheck={false}
-        onBlur={(event) => {
-          try {
-            const next = JSON.parse(event.currentTarget.value);
-            onCommit(next);
-          } catch (error) {
-            onError(`${label} is not valid JSON: ${error.message}`);
-          }
-        }}
-      />
+      {options.length ? (
+        <select {...common} value={value} onChange={(event) => onCommit(event.target.value)}>
+          {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      ) : multiline ? (
+        <textarea
+          {...common}
+          rows={4}
+          defaultValue={value}
+          key={`${path}-${value}`}
+          onBlur={(event) => {
+            if (event.currentTarget.value !== value) onCommit(event.currentTarget.value);
+          }}
+        />
+      ) : (
+        <input
+          {...common}
+          type={type}
+          defaultValue={value}
+          key={`${path}-${value}`}
+          onBlur={(event) => {
+            const next = type === 'number' ? Number(event.currentTarget.value) : event.currentTarget.value;
+            if (next !== value && !(type === 'number' && !Number.isFinite(next))) onCommit(next);
+          }}
+        />
+      )}
+      {error ? <small id={errorId} className="about-director-inline-error">{error}</small> : null}
     </label>
+  );
+}
+
+function DirectorItemActions({ index, count, disabled, noun, onMove, onDuplicate, onRemove, removalDisabled = false }) {
+  return (
+    <div className="about-director-item-actions" aria-label={`${noun} actions`}>
+      <button type="button" disabled={disabled || index === 0} onClick={() => onMove(-1)} aria-label={`Move ${noun} up`}>↑</button>
+      <button type="button" disabled={disabled || index === count - 1} onClick={() => onMove(1)} aria-label={`Move ${noun} down`}>↓</button>
+      <button type="button" disabled={disabled} onClick={onDuplicate}>Duplicate</button>
+      <button type="button" className="is-danger" disabled={disabled || removalDisabled} onClick={onRemove}>Remove</button>
+    </div>
+  );
+}
+
+function StructuredEmphasisEditor({ items = [], path, diagnostics, disabled, onChange }) {
+  return (
+    <section className="about-director-structured-section" aria-label="Emphasis entries">
+      <header><strong>Emphasis</strong><span>{items.length}</span></header>
+      {items.map((item, index) => {
+        const itemPath = `${path}.${index}`;
+        return (
+          <article className="about-director-structured-item" key={`${item.text}-${index}`}>
+            <DirectorStructuredField
+              label="Highlighted phrase"
+              value={item.text || ''}
+              path={`${itemPath}.text`}
+              error={getDirectorFieldError(diagnostics, `${itemPath}.text`)}
+              disabled={disabled}
+              onCommit={(value) => onChange(
+                updateDirectorArrayItem(items, index, (entry) => ({ ...entry, text: value })),
+                'Edit emphasis phrase',
+              )}
+            />
+            <DirectorStructuredField
+              label="Tone"
+              value={item.tone || 'blue'}
+              path={`${itemPath}.tone`}
+              error={getDirectorFieldError(diagnostics, `${itemPath}.tone`)}
+              disabled={disabled}
+              options={['blue', 'green', 'orange'].map((tone) => ({ value: tone, label: tone }))}
+              onCommit={(value) => onChange(
+                updateDirectorArrayItem(items, index, (entry) => ({ ...entry, tone: value })),
+                'Edit emphasis tone',
+              )}
+            />
+            <DirectorItemActions
+              index={index}
+              count={items.length}
+              disabled={disabled}
+              noun="emphasis"
+              onMove={(direction) => onChange(moveDirectorArrayItem(items, index, direction), 'Reorder emphasis')}
+              onDuplicate={() => onChange(duplicateDirectorArrayItem(items, index, { idKey: null }), 'Duplicate emphasis')}
+              onRemove={() => onChange(removeDirectorArrayItem(items, index), 'Remove emphasis')}
+            />
+          </article>
+        );
+      })}
+      <button type="button" disabled={disabled} onClick={() => onChange([...items, createEmphasisEntry()], 'Add emphasis')}>Add emphasis</button>
+    </section>
+  );
+}
+
+function StructuredPlainItemsEditor({ items = [], path, diagnostics, disabled, onChange }) {
+  return (
+    <section className="about-director-structured-section" aria-label="List items">
+      <header><strong>List items</strong><span>{items.length}</span></header>
+      {items.map((item, index) => {
+        const itemPath = `${path}.${index}`;
+        return (
+          <article className="about-director-structured-item is-compact" key={`${item}-${index}`}>
+            <DirectorStructuredField
+              label={`Item ${index + 1}`}
+              value={item}
+              path={itemPath}
+              error={getDirectorFieldError(diagnostics, itemPath)}
+              disabled={disabled}
+              multiline
+              onCommit={(value) => onChange(updateDirectorArrayItem(items, index, () => value), 'Edit list item')}
+            />
+            <DirectorItemActions
+              index={index}
+              count={items.length}
+              disabled={disabled}
+              noun="list item"
+              removalDisabled={items.length === 1}
+              onMove={(direction) => onChange(moveDirectorArrayItem(items, index, direction), 'Reorder list items')}
+              onDuplicate={() => onChange(duplicateDirectorArrayItem(items, index, { idKey: null }), 'Duplicate list item')}
+              onRemove={() => onChange(removeDirectorArrayItem(items, index), 'Remove list item')}
+            />
+          </article>
+        );
+      })}
+      <button type="button" disabled={disabled} onClick={() => onChange([...items, 'New item'], 'Add list item')}>Add list item</button>
+    </section>
+  );
+}
+
+function StructuredModuleItemsEditor({ module, moduleIndex, path, diagnostics, disabled, onChange }) {
+  const items = module.items || [];
+  const interactive = module.kind === ABOUT_INTERACTIVE_STACK_KIND;
+  const required = module.kind === 'logo-grid' || interactive;
+  return (
+    <section className="about-director-structured-section" aria-label={`${module.kind} items`}>
+      <header><strong>{interactive ? 'Media cards' : module.kind === 'logo-grid' ? 'Logos' : 'Media'}</strong><span>{items.length}</span></header>
+      {items.map((item, index) => {
+        const itemPath = `${path}.items.${index}`;
+        const update = (field, value) => onChange(
+          updateDirectorArrayItem(items, index, (entry) => ({ ...entry, [field]: value })),
+          `Edit ${module.kind} item`,
+        );
+        return (
+          <article className="about-director-structured-item" key={item.id || index}>
+            <header><code>{item.id || `item-${index + 1}`}</code></header>
+            {module.kind === 'logo-grid' ? (
+              <DirectorStructuredField label="Label" value={item.label || ''} path={`${itemPath}.label`} error={getDirectorFieldError(diagnostics, `${itemPath}.label`)} disabled={disabled} onCommit={(value) => update('label', value)} />
+            ) : null}
+            {interactive ? (
+              <DirectorStructuredField
+                label="Type"
+                value={item.type || 'image'}
+                path={`${itemPath}.type`}
+                error={getDirectorFieldError(diagnostics, `${itemPath}.type`)}
+                disabled={disabled}
+                options={[{ value: 'image', label: 'Image' }, { value: 'video', label: 'Video' }]}
+                onCommit={(value) => onChange(
+                  updateDirectorArrayItem(items, index, (entry) => {
+                    const next = { ...entry, type: value };
+                    if (value === 'video') next.poster ||= entry.src;
+                    else delete next.poster;
+                    return next;
+                  }),
+                  'Edit interactive media type',
+                )}
+              />
+            ) : null}
+            <DirectorStructuredField label="Source" value={item.src || ''} path={`${itemPath}.src`} error={getDirectorFieldError(diagnostics, `${itemPath}.src`)} disabled={disabled} onCommit={(value) => update('src', value)} />
+            <DirectorStructuredField label="Alt text" value={item.alt || ''} path={`${itemPath}.alt`} error={getDirectorFieldError(diagnostics, `${itemPath}.alt`)} disabled={disabled} multiline onCommit={(value) => update('alt', value)} />
+            {interactive && item.type === 'video' ? (
+              <DirectorStructuredField label="Poster" value={item.poster || ''} path={`${itemPath}.poster`} error={getDirectorFieldError(diagnostics, `${itemPath}.poster`)} disabled={disabled} onCommit={(value) => update('poster', value)} />
+            ) : null}
+            {!interactive ? (
+              <>
+                {module.kind !== 'logo-grid' ? (
+                  <DirectorStructuredField label="Label" value={item.label || ''} path={`${itemPath}.label`} error={getDirectorFieldError(diagnostics, `${itemPath}.label`)} disabled={disabled} onCommit={(value) => update('label', value)} />
+                ) : null}
+                <DirectorStructuredField label="Caption" value={item.caption || ''} path={`${itemPath}.caption`} error={getDirectorFieldError(diagnostics, `${itemPath}.caption`)} disabled={disabled} multiline onCommit={(value) => update('caption', value)} />
+                <div className="about-director-structured-grid">
+                  <DirectorStructuredField label="Scale" type="number" value={item.scale ?? 1} path={`${itemPath}.scale`} error={getDirectorFieldError(diagnostics, `${itemPath}.scale`)} disabled={disabled} onCommit={(value) => update('scale', value)} />
+                  <DirectorStructuredField label="Offset X (%)" type="number" value={item.offsetX ?? 0} path={`${itemPath}.offsetX`} error={getDirectorFieldError(diagnostics, `${itemPath}.offsetX`)} disabled={disabled} onCommit={(value) => update('offsetX', value)} />
+                  <DirectorStructuredField label="Offset Y (%)" type="number" value={item.offsetY ?? 0} path={`${itemPath}.offsetY`} error={getDirectorFieldError(diagnostics, `${itemPath}.offsetY`)} disabled={disabled} onCommit={(value) => update('offsetY', value)} />
+                </div>
+              </>
+            ) : null}
+            {interactive ? (
+              <div className="about-director-structured-grid">
+                {['width', 'height', 'aspectRatio'].map((field) => (
+                  <DirectorStructuredField key={field} label={field} type="number" value={item[field]} path={`${itemPath}.${field}`} error={getDirectorFieldError(diagnostics, `${itemPath}.${field}`)} disabled={disabled} onCommit={(value) => update(field, value)} />
+                ))}
+                <DirectorStructuredField label="Fit" value={item.fit || 'cover'} path={`${itemPath}.fit`} error={getDirectorFieldError(diagnostics, `${itemPath}.fit`)} disabled={disabled} options={[{ value: 'cover', label: 'Cover' }, { value: 'contain', label: 'Contain' }]} onCommit={(value) => update('fit', value)} />
+              </div>
+            ) : null}
+            <DirectorItemActions
+              index={index}
+              count={items.length}
+              disabled={disabled}
+              noun={`${module.kind} item`}
+              removalDisabled={required && items.length === 1}
+              onMove={(direction) => onChange(moveDirectorArrayItem(items, index, direction), `Reorder ${module.kind} items`)}
+              onDuplicate={() => onChange(duplicateDirectorArrayItem(items, index, { fallback: 'item' }), `Duplicate ${module.kind} item`)}
+              onRemove={() => onChange(removeDirectorArrayItem(items, index), `Remove ${module.kind} item`)}
+            />
+          </article>
+        );
+      })}
+      <button type="button" disabled={disabled} onClick={() => onChange([...items, createEditorialItem(module, items)], `Add ${module.kind} item`)}>Add {interactive ? 'media card' : module.kind === 'logo-grid' ? 'logo' : 'media'}</button>
+      <span className="about-director-structured-index">Module {moduleIndex + 1}</span>
+    </section>
+  );
+}
+
+function StructuredModulesEditor({ modules = [], path, diagnostics, disabled, onChange }) {
+  const [newKind, setNewKind] = useState('prose');
+  return (
+    <section className="about-director-modules" aria-label="Editorial modules">
+      <header><div><strong>Editorial modules</strong><span>Structured, ordered, lossless</span></div><b>{modules.length}</b></header>
+      {modules.map((module, index) => {
+        const modulePath = `${path}.${index}`;
+        const updateModule = (updater, label) => onChange(
+          updateDirectorArrayItem(modules, index, updater),
+          label,
+        );
+        return (
+          <article className="about-director-module" key={module.id || index}>
+            <header><div><strong>{module.kind}</strong><code>{module.id}</code></div></header>
+            {module.kind === 'prose' ? (
+              <DirectorStructuredField label="Copy" value={module.text || ''} path={`${modulePath}.text`} error={getDirectorFieldError(diagnostics, `${modulePath}.text`)} disabled={disabled} multiline onCommit={(value) => updateModule((entry) => ({ ...entry, text: value }), 'Edit prose module')} />
+            ) : (
+              <DirectorStructuredField label="Label" value={module.label || ''} path={`${modulePath}.label`} error={getDirectorFieldError(diagnostics, `${modulePath}.label`)} disabled={disabled} onCommit={(value) => updateModule((entry) => ({ ...entry, label: value }), `Edit ${module.kind} label`)} />
+            )}
+            {['logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND].includes(module.kind) ? (
+              <StructuredModuleItemsEditor
+                module={module}
+                moduleIndex={index}
+                path={modulePath}
+                diagnostics={diagnostics}
+                disabled={disabled}
+                onChange={(items, label) => updateModule((entry) => ({ ...entry, items }), label)}
+              />
+            ) : null}
+            {module.kind === 'prose' ? (
+              <StructuredEmphasisEditor
+                items={module.emphasis || []}
+                path={`${modulePath}.emphasis`}
+                diagnostics={diagnostics}
+                disabled={disabled}
+                onChange={(emphasis, label) => updateModule((entry) => ({ ...entry, emphasis }), label)}
+              />
+            ) : null}
+            <DirectorItemActions
+              index={index}
+              count={modules.length}
+              disabled={disabled}
+              noun="module"
+              removalDisabled={modules.length === 1}
+              onMove={(direction) => onChange(moveDirectorArrayItem(modules, index, direction), 'Reorder editorial modules')}
+              onDuplicate={() => onChange(duplicateDirectorArrayItem(modules, index, { fallback: 'module' }), 'Duplicate editorial module')}
+              onRemove={() => onChange(removeDirectorArrayItem(modules, index), 'Remove editorial module')}
+            />
+          </article>
+        );
+      })}
+      <div className="about-director-add-row">
+        <select aria-label="New module type" value={newKind} disabled={disabled} onChange={(event) => setNewKind(event.target.value)}>
+          <option value="prose">Prose</option>
+          <option value="logo-grid">Logo grid</option>
+          <option value="media-deck">Media deck</option>
+          <option value={ABOUT_INTERACTIVE_STACK_KIND}>Interactive stack</option>
+        </select>
+        <button type="button" disabled={disabled} onClick={() => onChange([...modules, createEditorialModule(newKind, modules)], 'Add editorial module')}>Add module</button>
+      </div>
+    </section>
   );
 }
 
@@ -1298,11 +1670,15 @@ function TrackObject({
     ? clamp(((Number(object.activationWU) - startWU) / (endWU - startWU)) * 100, 0, 100)
     : null;
 
+  const selectObject = () => {
+    store.setSelection({ type: track.type, id: object.id });
+    store.setTransport({ owner: 'timeline', playing: false, storyWU: getObjectStart(object, track.type) });
+  };
+
   const beginDrag = (event) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    store.setSelection({ type: track.type, id: object.id });
-    store.setTransport({ owner: 'timeline', playing: false, storyWU: getObjectStart(object, track.type) });
+    selectObject();
     if (locked) return;
     if (!store.beginGesture(`Move ${track.label}`, { selection: { type: track.type, id: object.id } })) return;
     pointerRef.current = { pointerId: event.pointerId, startX: event.clientX };
@@ -1396,6 +1772,22 @@ function TrackObject({
         onPointerMove={updateDrag}
         onPointerUp={(event) => finishDrag(event)}
         onPointerCancel={(event) => finishDrag(event, true)}
+        onClick={selectObject}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            selectObject();
+            return;
+          }
+          if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          selectObject();
+          if (locked) return;
+          const direction = event.key === 'ArrowLeft' ? -1 : 1;
+          store.moveSelection(direction * (event.shiftKey ? 0.1 : 0.01));
+        }}
         onDoubleClick={(event) => {
           if (track.type !== 'text-field') return;
           event.stopPropagation();
@@ -1441,6 +1833,8 @@ function Timeline({
   editScope,
   zoom,
   setZoom,
+  dockMode,
+  setDockMode,
   textMenu,
   setTextMenu,
   interactionMenu,
@@ -1537,7 +1931,12 @@ function Timeline({
   };
 
   return (
-    <section className="about-track-editor-timeline" aria-label="About narrative global timeline">
+    <section
+      className="about-track-editor-timeline"
+      aria-label="About narrative global timeline"
+      data-director-panel="timeline"
+      data-director-dock-state={dockMode}
+    >
       <header className="about-track-editor-timeline__toolbar">
         <div>
           <strong>Global Story WU</strong>
@@ -1545,17 +1944,31 @@ function Timeline({
             ? 'Point field keys set form timing · transition bands shape movement'
             : 'Drag clip edges to set duration · World ends ripple with no gaps'}</span>
         </div>
-        <label>
-          Zoom
-          <input
-            type="range"
-            min="0.55"
-            max="2.5"
-            step="0.05"
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-          />
-        </label>
+        <div className="about-director-timeline-tools">
+          <label>
+            Zoom
+            <input
+              type="range"
+              min="0.55"
+              max="2.5"
+              step="0.05"
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+            />
+          </label>
+          <div className="about-director-dock-modes" role="group" aria-label="Timeline dock height">
+            {DIRECTOR_DOCK_MODES.map((mode) => (
+              <button
+                type="button"
+                key={mode.id}
+                className={dockMode === mode.id ? 'is-active' : ''}
+                aria-label={mode.label}
+                aria-pressed={dockMode === mode.id}
+                onClick={() => setDockMode(mode.id)}
+              >{mode.id[0].toUpperCase()}</button>
+            ))}
+          </div>
+        </div>
       </header>
       <div className="about-track-editor-timeline__body">
         <div className="about-track-editor-headers" aria-hidden="false">
@@ -1580,6 +1993,9 @@ function Timeline({
                   aria-expanded={track.id === 'text'
                     ? textMenu
                     : track.id === 'interaction' ? interactionMenu : undefined}
+                  aria-controls={track.id === 'text'
+                    ? 'about-director-add-text'
+                    : track.id === 'interaction' ? 'about-director-add-motion' : undefined}
                   onClick={() => {
                     if (track.id === 'text') {
                       setInteractionMenu(false);
@@ -1593,18 +2009,18 @@ function Timeline({
                 >+</button>
               )}
               {track.id === 'text' && textMenu ? (
-                <div className="about-track-editor-create-menu" role="menu" aria-label="Create Text field">
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('text', 'title')}>Title</button>
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('text', 'scroll-block')}>Scroll block</button>
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('text', 'stub')}>
+                <div id="about-director-add-text" className="about-track-editor-create-menu" aria-label="Create Text field">
+                  <button type="button" onClick={() => createAtPlayhead('text', 'title')}>Title</button>
+                  <button type="button" onClick={() => createAtPlayhead('text', 'scroll-block')}>Scroll block</button>
+                  <button type="button" onClick={() => createAtPlayhead('text', 'stub')}>
                     Third type <span>Stub · Draft</span>
                   </button>
                 </div>
               ) : null}
               {track.id === 'interaction' && interactionMenu ? (
-                <div className="about-track-editor-create-menu" role="menu" aria-label="Create Motion clip">
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Wave generator</button>
-                  <button type="button" role="menuitem" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
+                <div id="about-director-add-motion" className="about-track-editor-create-menu" aria-label="Create Motion clip">
+                  <button type="button" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Wave generator</button>
+                  <button type="button" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
               ) : null}
             </div>
@@ -1678,7 +2094,7 @@ function Timeline({
   );
 }
 
-function ObjectInspector({ snapshot, store, editScope, onMessage }) {
+function ObjectInspector({ snapshot, store, editScope }) {
   const selection = snapshot.selection;
   const pointFieldV6 = Number(snapshot.document.schemaVersion)
     === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
@@ -1732,6 +2148,25 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
     );
   }
   const object = getAboutNarrativeTrackObject(snapshot.document, selection);
+  const editorDiagnostics = [
+    ...(snapshot.diagnostics || []),
+    ...(snapshot.rejectedEdit?.diagnostics || []),
+  ];
+  const textFieldIndex = selection.type === 'text-field'
+    ? snapshot.document.tracks.text.fields.findIndex((field) => field.id === selection.id)
+    : -1;
+  const textBlockPath = textFieldIndex >= 0
+    ? `tracks.text.fields.${textFieldIndex}.block`
+    : '';
+  const textFieldPath = textFieldIndex >= 0
+    ? `tracks.text.fields.${textFieldIndex}`
+    : '';
+  const interactionIndex = selection.type === 'interaction'
+    ? snapshot.document.tracks.interactions.clips.findIndex((clip) => clip.id === selection.id)
+    : -1;
+  const interactionPath = interactionIndex >= 0
+    ? `tracks.interactions.clips.${interactionIndex}`
+    : '';
   const track = TRACK_BY_ID[selection.id];
   if (!object && selection.type === 'track' && selection.id === 'camera') {
     return <CameraTrackInspector snapshot={snapshot} store={store} />;
@@ -1964,13 +2399,15 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
           <p className="about-track-editor-parameter-note is-wide">Position WU moves the whole Text element without changing its entrance or exit duration.</p>
           {object.kind === 'title' ? (
             <>
-              <TextField label="Title" value={object.text} disabled={locked} multiline focusId="text-copy" onCommit={(value) => commit('Edit Title', (target) => { target.text = value; })} />
+              <TextField label="Title" value={object.text} disabled={locked} multiline focusId="text-copy" diagnosticPath={`${textFieldPath}.text`} error={getDirectorFieldError(editorDiagnostics, `${textFieldPath}.text`)} onCommit={(value) => commit('Edit Title', (target) => { target.text = value; })} />
               {object.preset === 'opener-v1' ? (
                 <TextField
                   label="Description"
                   value={object.description || ''}
                   disabled={locked}
                   multiline
+                  diagnosticPath={`${textFieldPath}.description`}
+                  error={getDirectorFieldError(editorDiagnostics, `${textFieldPath}.description`)}
                   onCommit={(value) => commit('Edit Title description', (target) => {
                     if (value.trim()) target.description = value;
                     else delete target.description;
@@ -1979,12 +2416,12 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
               ) : null}
               <SelectField label="Movement" value={object.movement} disabled={locked} options={[{ value: 'spatial', label: 'Spatial' }, { value: 'vertical', label: 'Vertical' }]} onCommit={(value) => commit('Edit Title movement', (target) => { target.movement = value; })} />
               <SelectField label="Title style" value={object.titleStyle || (object.preset === 'opener-v1' || object.preset === 'finale-v1' ? 'display' : 'standard')} disabled={locked} options={ABOUT_NARRATIVE_TITLE_STYLES.map((value) => ({ value, label: value === 'display' ? 'Display · Instrument' : 'Standard · Geist' }))} onCommit={(value) => commit('Edit Title style', (target) => { target.titleStyle = value; })} />
-              <TextField label="Motion preset" value={object.preset} disabled={locked} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
+              <TextField label="Motion preset" value={object.preset} disabled={locked} diagnosticPath={`${textFieldPath}.preset`} error={getDirectorFieldError(editorDiagnostics, `${textFieldPath}.preset`)} onCommit={(value) => commit('Edit Title preset', (target) => { target.preset = value; })} />
             </>
           ) : null}
           {object.kind === 'scroll-block' ? (
             <>
-              {object.block?.kind !== 'stack' ? <TextField label="Copy" value={object.block?.text || ''} disabled={locked || !('text' in object.block)} multiline focusId={'text' in object.block ? 'text-copy' : undefined} onCommit={(value) => commit('Edit Scroll block', (target) => { target.block.text = value; })} /> : null}
+              {object.block?.kind !== 'stack' ? <TextField label="Copy" value={object.block?.text || ''} disabled={locked || !('text' in object.block)} multiline focusId={'text' in object.block ? 'text-copy' : undefined} diagnosticPath={`${textBlockPath}.text`} error={getDirectorFieldError(editorDiagnostics, `${textBlockPath}.text`)} onCommit={(value) => commit('Edit Scroll block', (target) => { target.block.text = value; })} /> : null}
               <SelectField
                 label="Block kind"
                 value={object.block?.kind || 'prose'}
@@ -2010,7 +2447,7 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
                   target.block.kind = value;
                 })}
               />
-              <TextField label="Block label" value={object.block?.label || ''} disabled={locked} onCommit={(value) => commit('Edit block label', (target) => { target.block.label = value; })} />
+              <TextField label="Block label" value={object.block?.label || ''} disabled={locked} diagnosticPath={`${textBlockPath}.label`} error={getDirectorFieldError(editorDiagnostics, `${textBlockPath}.label`)} onCommit={(value) => commit('Edit block label', (target) => { target.block.label = value; })} />
               {object.block?.kind === 'stack' ? (
                 <>
                   <RangeParameterField
@@ -2071,20 +2508,49 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
                       </button>
                     </InspectorFolder>
                   ) : null}
-                  <JsonField label="Stack modules" value={object.block?.modules || []} disabled={locked} focusId="text-copy" onCommit={(value) => commit('Edit stack modules', (target) => { target.block.modules = value; })} onError={onMessage} />
+                  <StructuredModulesEditor
+                    modules={object.block?.modules || []}
+                    path={`${textBlockPath}.modules`}
+                    diagnostics={editorDiagnostics}
+                    disabled={locked}
+                    onChange={(modules, label) => commit(label, (target) => { target.block.modules = modules; })}
+                  />
                 </>
               ) : (
-                <JsonField label="List items" value={object.block?.items || []} disabled={locked} focusId={!('text' in object.block) ? 'text-copy' : undefined} onCommit={(value) => commit('Edit block items', (target) => { target.block.items = value; })} onError={onMessage} />
+                ['clients', 'disciplines', 'list'].includes(object.block?.kind) ? (
+                  <StructuredPlainItemsEditor
+                    items={object.block?.items || []}
+                    path={`${textBlockPath}.items`}
+                    diagnostics={editorDiagnostics}
+                    disabled={locked}
+                    onChange={(items, label) => commit(label, (target) => { target.block.items = items; })}
+                  />
+                ) : null
               )}
-              <JsonField label="Emphasis" value={object.block?.emphasis || []} disabled={locked} onCommit={(value) => commit('Edit block emphasis', (target) => { target.block.emphasis = value; })} onError={onMessage} />
+              <StructuredEmphasisEditor
+                items={object.block?.emphasis || []}
+                path={`${textBlockPath}.emphasis`}
+                diagnostics={editorDiagnostics}
+                disabled={locked}
+                onChange={(emphasis, label) => commit(label, (target) => { target.block.emphasis = emphasis; })}
+              />
+              <AdvancedSourceEditor
+                label="Block"
+                value={object.block || {}}
+                disabled={locked}
+                focusId="text-copy"
+                diagnosticPath={textBlockPath}
+                externalError={getDirectorFieldError(editorDiagnostics, textBlockPath)}
+                onCommit={(value) => commit('Edit complete block source', (target) => { target.block = value; })}
+              />
               <label className="about-track-editor-check">
                 <input type="checkbox" checked={object.block?.worldInfluence === true} disabled={locked} onChange={(event) => commit(`Edit ${pointFieldV6 ? 'Point field' : 'World'} influence`, (target) => { target.block.worldInfluence = event.target.checked; })} />
                 Influences the {pointFieldV6 ? 'Point field' : 'World'} presentation
               </label>
             </>
           ) : null}
-          {object.kind === 'stub' ? <TextField label="Draft label" value={object.label || ''} disabled={locked} multiline focusId="text-copy" onCommit={(value) => commit('Edit Stub label', (target) => { target.label = value; })} /> : null}
-          <TextField label="Presentation layout" value={object.presentation?.layout || ''} disabled={locked} onCommit={(value) => commit('Edit Text layout', (target) => { target.presentation = { ...target.presentation, layout: value }; })} />
+          {object.kind === 'stub' ? <TextField label="Draft label" value={object.label || ''} disabled={locked} multiline focusId="text-copy" diagnosticPath={`${textFieldPath}.label`} error={getDirectorFieldError(editorDiagnostics, `${textFieldPath}.label`)} onCommit={(value) => commit('Edit Stub label', (target) => { target.label = value; })} /> : null}
+          <TextField label="Presentation layout" value={object.presentation?.layout || ''} disabled={locked} diagnosticPath={`${textFieldPath}.presentation.layout`} error={getDirectorFieldError(editorDiagnostics, `${textFieldPath}.presentation.layout`)} onCommit={(value) => commit('Edit Text layout', (target) => { target.presentation = { ...target.presentation, layout: value }; })} />
           <label className="about-track-editor-check">
             <input
               type="checkbox"
@@ -2127,6 +2593,8 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
             label="Motion type"
             value={object.type}
             disabled={locked}
+            diagnosticPath={`${interactionPath}.type`}
+            error={getDirectorFieldError(editorDiagnostics, `${interactionPath}.type`)}
             options={Object.values(ABOUT_NARRATIVE_INTERACTION_DEFINITIONS).map((definition) => ({
               value: definition.id,
               label: definition.label,
@@ -2255,6 +2723,176 @@ function ObjectInspector({ snapshot, store, editScope, onMessage }) {
 
 const publicPreviewBaselineHash = (schemaVersion) => `public-editor-preview-v${schemaVersion}`;
 
+const DIRECTOR_DOCK_MODES = Object.freeze([
+  { id: 'minimized', label: 'Minimize timeline' },
+  { id: 'compact', label: 'Use compact timeline' },
+  { id: 'expanded', label: 'Expand timeline' },
+]);
+
+function hasUsefulInspectorSelection(document, selection) {
+  if (POINT_FIELD_SELECTION_TYPES.has(selection?.type)) return true;
+  if (selection?.type === 'track') {
+    return ['camera', 'visibility', 'text', 'point-field'].includes(selection.id);
+  }
+  return Boolean(getAboutNarrativeTrackObject(document, selection));
+}
+
+function getDirectorSaveLabel(snapshot, previewOnly) {
+  if (previewOnly) return snapshot.dirty ? 'Draft export ready' : 'Preview ready';
+  if (snapshot.sourceState.status === 'read-only') return 'Read only';
+  if (snapshot.saveState.status === 'conflict') return 'Conflict';
+  if (snapshot.saveState.status === 'saving') return 'Saving';
+  if (snapshot.saveState.status === 'failed') return 'Save failed';
+  return snapshot.dirty ? 'Unsaved changes' : 'Saved';
+}
+
+function humanizeDiagnosticProperty(value) {
+  return String(value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/WU\b/g, 'WU')
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function getDiagnosticControlSpec(resolved) {
+  const path = String(resolved.diagnostic?.path || '');
+  const parts = path.split('.');
+  const leaf = parts.at(-1) || resolved.property;
+  const selectionType = resolved.selection.type;
+  if (selectionType === 'point-field-key') {
+    return { label: leaf === 'stateId' ? 'State' : leaf === 'atWU' ? 'Story WU' : humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'point-field-segment') {
+    if (path.includes('.stagger.')) return { folder: 'Stagger', label: humanizeDiagnosticProperty(leaf) };
+    if (path.includes('.path.')) return { folder: 'Organic path', label: leaf === 'mode' ? 'Path' : humanizeDiagnosticProperty(leaf) };
+    if (path.includes('.flatten.')) return { folder: 'Plane motion', label: leaf === 'offset' ? 'Plane position' : humanizeDiagnosticProperty(leaf) };
+    return { label: leaf === 'type' ? 'Type' : leaf === 'easing' ? 'Easing' : leaf === 'correspondence' ? 'Correspondence' : humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'point-field-state') {
+    if (path.includes('.transform.')) {
+      const vectorIndex = Number(leaf);
+      const field = parts.at(-2);
+      return Number.isInteger(vectorIndex)
+        ? { folder: 'Transform', label: `${humanizeDiagnosticProperty(field)} ${'XYZ'[vectorIndex]}` }
+        : { folder: 'Transform', label: leaf === 'pointSizeScale' ? 'Point size' : humanizeDiagnosticProperty(leaf) };
+    }
+    const labels = { shapeId: 'Shape', entryDistanceWU: 'Entry distance', railAnchorWU: 'Rail anchor WU' };
+    return { label: labels[leaf] || humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'camera-key') {
+    const axis = Number(leaf);
+    const field = parts.at(-2);
+    const control = ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS.find((candidate) => (
+      candidate.id === `${field}.${axis}` || candidate.id === leaf
+    ));
+    if (control) return { folder: 'Camera rig', label: control.label };
+    if (leaf === 'easing') return { ariaLabel: 'Camera easing presets' };
+    return { label: humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'visibility-key') {
+    return { label: leaf === 'visibility' ? 'Simulation visibility' : leaf === 'easing' ? 'Fade easing' : humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'interaction') {
+    const labels = {
+      type: 'Motion type',
+      startWU: 'Ripple starts',
+      activationWU: 'activationWU',
+      endWU: 'endWU',
+    };
+    return { label: labels[leaf] || humanizeDiagnosticProperty(leaf) };
+  }
+  return { label: humanizeDiagnosticProperty(leaf) };
+}
+
+function makeDiagnosticTargetFocusable(target) {
+  if (!target) return null;
+  if (!target.disabled) return target;
+  const owner = target.closest('label, [role="group"], .about-track-editor-field');
+  if (!owner) return target;
+  owner.tabIndex = -1;
+  return owner;
+}
+
+function findDiagnosticControl(root, resolved) {
+  if (!root) return null;
+  const spec = getDiagnosticControlSpec(resolved);
+  let scope = root;
+  if (spec.folder) {
+    const folder = [...root.querySelectorAll('details')].find((candidate) => (
+      candidate.querySelector(':scope > summary')?.textContent.trim().startsWith(spec.folder)
+    ));
+    if (folder) {
+      folder.open = true;
+      scope = folder;
+    }
+  }
+  if (spec.ariaLabel) {
+    const owner = [...scope.querySelectorAll('[aria-label]')].find((candidate) => (
+      candidate.getAttribute('aria-label') === spec.ariaLabel
+    ));
+    return makeDiagnosticTargetFocusable(owner?.matches('button, input, select, textarea, [tabindex]')
+      ? owner
+      : owner?.querySelector('button, input, select, textarea, [tabindex]'));
+  }
+  const normalized = spec.label.toLowerCase();
+  const label = [...scope.querySelectorAll('label')].find((candidate) => {
+    const heading = candidate.querySelector(':scope > span')?.textContent
+      || candidate.childNodes[0]?.textContent
+      || '';
+    return heading.trim().toLowerCase() === normalized;
+  });
+  if (label) return makeDiagnosticTargetFocusable(label.querySelector('input, select, textarea, button, [tabindex]'));
+  const group = [...scope.querySelectorAll('[role="group"][aria-label]')].find((candidate) => (
+    candidate.getAttribute('aria-label')?.toLowerCase() === normalized
+  ));
+  if (group) return makeDiagnosticTargetFocusable(group.querySelector('input, select, textarea, button, [tabindex]'));
+  return makeDiagnosticTargetFocusable([...scope.querySelectorAll('[aria-label]')].find((candidate) => (
+    candidate.getAttribute('aria-label')?.toLowerCase().startsWith(`${normalized} `)
+  )) || null);
+}
+
+function DiagnosticsDrawer({ document, diagnostics, onShow, onClose }) {
+  const rows = diagnostics.map((diagnostic, index) => ({
+    diagnostic,
+    key: `${diagnostic.level}-${diagnostic.code}-${diagnostic.path}-${index}`,
+    ...describeAboutDirectorDiagnostic(document, diagnostic),
+  }));
+  return (
+    <section
+      className="about-director-diagnostics"
+      aria-labelledby="about-director-diagnostics-title"
+      role="dialog"
+      aria-modal="false"
+      data-director-panel="diagnostics"
+    >
+      <header>
+        <div>
+          <span>Document health</span>
+          <h2 id="about-director-diagnostics-title">Diagnostics</h2>
+        </div>
+        <button type="button" aria-label="Close diagnostics" onClick={onClose}>Close</button>
+      </header>
+      {rows.length ? (
+        <div className="about-director-diagnostics__table-wrap">
+          <table>
+            <thead><tr><th>Severity</th><th>Object / segment</th><th>Property</th><th>Message</th><th><span className="about-director-visually-hidden">Action</span></th></tr></thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.key} className={`is-${row.severity}`}>
+                  <td><span className="about-director-diagnostic-severity">{row.severity}</span></td>
+                  <td>{row.object}</td>
+                  <td><code>{row.property}</code></td>
+                  <td>{row.message}</td>
+                  <td><button type="button" onClick={() => onShow(row)}>Show</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="about-director-diagnostics__empty">No active diagnostics. The current plan is valid.</p>}
+    </section>
+  );
+}
+
 export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const schemaVersion = Number(snapshot.document.schemaVersion);
@@ -2266,68 +2904,193 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const [editorVisible, setEditorVisible] = useState(true);
   const [editScope, setEditScope] = useState('base');
   const [zoom, setZoom] = useState(1);
+  const [timelineDock, setTimelineDock] = useState('compact');
   const [textMenu, setTextMenu] = useState(false);
   const [interactionMenu, setInteractionMenu] = useState(false);
-  const [baselineHash, setBaselineHash] = useState(previewOnly ? previewBaselineHash : '');
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [phoneSheet, setPhoneSheet] = useState('timeline');
   const [message, setMessage] = useState(previewOnly
     ? 'Public preview: changes stay on this device until exported.'
     : 'Loading canonical source…');
-  const [saving, setSaving] = useState(false);
-  const [recovery, setRecovery] = useState(null);
-  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
+  const editorRef = useRef(null);
+  const menuTriggerRef = useRef(null);
+  const documentMenuTriggerRef = useRef(null);
+  const diagnosticsTriggerRef = useRef(null);
   const saveRef = useRef(() => {});
+  const announcementDeduperRef = useRef(createAnnouncementDeduper());
+  const [announcement, setAnnouncement] = useState('');
+  const saving = snapshot.saveState.status === 'saving';
+  const recovery = snapshot.recoveryState;
+  const baselineHash = snapshot.baselineHash;
   const durationWU = Number(snapshot.compiledPlan?.durationWU
     || snapshot.document.profiles.desktop.storyDurationWU);
+  const diagnostics = snapshot.diagnostics || [];
+  const errors = diagnostics.filter((item) => item.level === 'error');
+  const usefulInspectorSelection = hasUsefulInspectorSelection(
+    snapshot.document,
+    snapshot.selection,
+  );
+  const inspectorVisible = usefulInspectorSelection && inspectorOpen;
+  const pointFieldSelection = POINT_FIELD_SELECTION_TYPES.has(snapshot.selection.type);
+  const saveStateLabel = getDirectorSaveLabel(snapshot, previewOnly);
+  const saveEligibility = store.getSaveEligibility();
+  const saveBlockingReason = saveEligibility.allowed ? '' : saveEligibility.reason;
+
+  useEffect(() => {
+    const next = announcementDeduperRef.current(
+      snapshot.rejectedEdit?.reason || message || saveStateLabel,
+    );
+    if (next) setAnnouncement(next);
+  }, [message, saveStateLabel, snapshot.rejectedEdit?.reason]);
+
+  const closeDirectorMenu = useCallback(({ restoreFocus = true } = {}) => {
+    setActiveMenu(null);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
+    }
+  }, []);
+
+  const closeDiagnostics = useCallback(({ restoreFocus = true } = {}) => {
+    setDiagnosticsOpen(false);
+    if (restoreFocus) window.requestAnimationFrame(() => diagnosticsTriggerRef.current?.focus());
+  }, []);
+
+  const toggleDirectorMenu = useCallback((menu, trigger) => {
+    if (activeMenu === menu) {
+      closeDirectorMenu();
+      return;
+    }
+    menuTriggerRef.current = trigger;
+    setActiveMenu(menu);
+    window.requestAnimationFrame(() => {
+      editorRef.current
+        ?.querySelector(`[data-director-menu-panel="${menu}"] button:not(:disabled)`)
+        ?.focus();
+    });
+  }, [activeMenu, closeDirectorMenu]);
+
+  const refreshConflictCanonical = useCallback(async (currentHash = '') => {
+    try {
+      const remote = await loadAboutNarrativeSource({ targetVersion: persistenceTargetVersion });
+      const latest = store.getSnapshot();
+      store.markConflict({
+        currentHash: remote.hash || currentHash,
+        remoteDocument: remote.document,
+        localDocument: latest.document,
+        comparison: compareAboutNarrativeDocuments({
+          baseline: latest.baselineDocument,
+          local: latest.document,
+          remote: remote.document,
+        }),
+        message: 'Canonical changed. Export this draft, compare it, or reload with confirmation.',
+      });
+      setMessage('Canonical comparison is ready. Local work is preserved.');
+      return true;
+    } catch (error) {
+      store.markConflict({
+        currentHash,
+        localDocument: store.getSnapshot().document,
+        message: `Canonical comparison could not be loaded: ${error.message}. Retry when the source is available.`,
+      });
+      setMessage('Save conflict: local work is preserved. Canonical fetch can be retried.');
+      return false;
+    }
+  }, [persistenceTargetVersion, store]);
 
   const save = useCallback(async () => {
-    if (saving || !baselineHash) return;
+    const current = store.getSnapshot();
+    const eligibility = store.getSaveEligibility();
+    if (!eligibility.allowed) {
+      setMessage(eligibility.reason);
+      return;
+    }
     if (previewOnly) {
       const name = pointFieldV6 ? 'contents-about-v6-preview.json' : 'contents-about-preview.json';
-      exportAboutNarrativeDocument(store.getSnapshot().document, name, {
+      exportAboutNarrativeDocument(current.document, name, {
         targetVersion: persistenceTargetVersion,
       });
       setMessage(`Exported this phone preview as ${name}.`);
       return;
     }
-    setSaving(true);
+    const submission = store.beginSave();
+    if (!submission) return;
     setMessage(`Validating and saving v${persistenceTargetVersion}…`);
     try {
       const persisted = await saveAboutNarrativeSource(
-        store.getSnapshot().document,
-        baselineHash,
+        submission.document,
+        submission.baselineHash,
         { targetVersion: persistenceTargetVersion },
       );
-      store.replaceDocument('Accept saved canonical source', persisted.document, { requireValid: true });
-      store.markBaseline(persisted.document);
-      setBaselineHash(persisted.hash);
-      clearAboutNarrativeRecoveryDraft();
-      setRecovery(null);
-      setMessage(`Saved canonical v${persistenceTargetVersion}.`);
+      const reconciliation = store.markSaved(
+        persisted.document,
+        persisted.hash,
+        submission.revision,
+      );
+      if (reconciliation.clean) {
+        const cleared = clearAboutNarrativeRecoveryDraft();
+        store.setRecoveryState(cleared);
+        setMessage(cleared.status === 'failed'
+          ? `Saved canonical v${persistenceTargetVersion}. Local recovery cleanup needs attention.`
+          : `Saved canonical v${persistenceTargetVersion}.`);
+      } else {
+        const latest = store.getSnapshot();
+        const recoveryResult = flushAboutNarrativeRecoveryDraft({
+          document: latest.document,
+          baselineHash: latest.baselineHash,
+          selection: latest.selection,
+          storyWU: latest.transport.storyWU,
+          targetVersion: persistenceTargetVersion,
+        });
+        store.setRecoveryState(recoveryResult);
+        setMessage('Saved the submitted revision. Newer edits remain unsaved.');
+      }
     } catch (error) {
-      setMessage(error.status === 409
-        ? 'Save conflict: canonical changed. Export this draft or reload before saving.'
-        : error.message);
-    } finally {
-      setSaving(false);
+      if (error.status === 409) {
+        store.markConflict({
+          currentHash: error.currentHash,
+          localDocument: store.getSnapshot().document,
+          message: 'Canonical changed. Loading a stable-ID comparison…',
+        });
+        menuTriggerRef.current = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : documentMenuTriggerRef.current;
+        setActiveMenu('document');
+        await refreshConflictCanonical(error.currentHash);
+      } else {
+        store.markSaveFailed(error);
+        setMessage(error.message);
+      }
     }
-  }, [baselineHash, persistenceTargetVersion, pointFieldV6, previewOnly, saving, store]);
+  }, [persistenceTargetVersion, pointFieldV6, previewOnly, refreshConflictCanonical, store]);
   saveRef.current = save;
 
   useEffect(() => {
     const root = rootRef?.current;
     if (!root) return undefined;
-    if (editorVisible) root.dataset.editorActive = 'true';
-    else delete root.dataset.editorActive;
+    if (editorVisible) {
+      // The preview host exposes editor chrome state to the isolated runtime layers.
+      // eslint-disable-next-line react-hooks/immutability
+      root.dataset.editorActive = 'true';
+      root.dataset.editorInspectorOpen = inspectorVisible ? 'true' : 'false';
+    } else {
+      delete root.dataset.editorActive;
+      delete root.dataset.editorInspectorOpen;
+    }
     return () => {
       delete root.dataset.editorActive;
+      delete root.dataset.editorInspectorOpen;
     };
-  }, [editorVisible, rootRef]);
+  }, [editorVisible, inspectorVisible, rootRef]);
 
   useEffect(() => {
     const root = rootRef?.current;
     if (!root) return undefined;
     const layout = snapshot.previewState.layoutProfile;
     const orientation = snapshot.previewState.orientation;
+    // The runtime observes these attributes without coupling to React editor state.
+    // eslint-disable-next-line react-hooks/immutability
     root.dataset.editorPreviewOrientation = orientation;
     root.dataset.editorPreviewLayout = layout;
     const updatePreviewFrame = () => {
@@ -2359,15 +3122,17 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       root.style.removeProperty('--about-editor-preview-inline-size');
       root.style.removeProperty('--about-editor-preview-block-size');
     };
-  }, [rootRef, snapshot.previewState.layoutProfile, snapshot.previewState.orientation]);
+  }, [inspectorVisible, rootRef, snapshot.previewState.layoutProfile, snapshot.previewState.orientation]);
 
   useEffect(() => {
     if (previewOnly) {
       const source = store.getSnapshot().document;
-      store.markBaseline(source);
-      setBaselineHash(previewBaselineHash);
-      setRecovery(readAboutNarrativeRecoveryDraft({
+      store.installSource(source, previewBaselineHash, { status: 'ready' });
+      store.setRecoveryState(readAboutNarrativeRecoveryDraft({
         baselineHash: previewBaselineHash,
+        targetVersion: persistenceTargetVersion,
+      }) || { status: 'none', available: false });
+      store.setCheckpointState(readAboutNarrativeCheckpointState({
         targetVersion: persistenceTargetVersion,
       }));
       setMessage('Public preview: changes stay on this device until exported.');
@@ -2376,23 +3141,37 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     let active = true;
     loadAboutNarrativeSource({ targetVersion: persistenceTargetVersion }).then((source) => {
       if (!active) return;
-      const current = store.getSnapshot();
-      if (!current.dirty) store.replaceDocument(
-        `Load canonical v${persistenceTargetVersion}`,
+      store.installSource(
         source.document,
-        { requireValid: true },
+        source.hash,
+        {
+          status: 'ready',
+          migrations: source.migrations || [],
+          message: source.migrations?.length
+            ? `Migrated canonical source to v${persistenceTargetVersion}.`
+            : '',
+        },
       );
-      store.markBaseline(source.document);
-      setBaselineHash(source.hash);
-      setRecovery(readAboutNarrativeRecoveryDraft({
+      store.setRecoveryState(readAboutNarrativeRecoveryDraft({
         baselineHash: source.hash,
+        targetVersion: persistenceTargetVersion,
+      }) || { status: 'none', available: false });
+      store.setCheckpointState(readAboutNarrativeCheckpointState({
         targetVersion: persistenceTargetVersion,
       }));
       setMessage(source.migrations?.length
         ? `Loaded and migrated canonical source to v${persistenceTargetVersion}.`
         : `Canonical v${persistenceTargetVersion} ready.`);
     }).catch((error) => {
-      if (active) setMessage(`Canonical load failed: ${error.message}`);
+      if (active) {
+        store.setSourceState({
+          status: error.code === 'future-schema' ? 'read-only' : 'failed',
+          readOnly: error.code === 'future-schema',
+          message: error.message,
+          diagnostics: error.diagnostics || [],
+        });
+        setMessage(`Canonical load failed: ${error.message}`);
+      }
     });
     return () => { active = false; };
   }, [persistenceTargetVersion, previewBaselineHash, previewOnly, store]);
@@ -2400,24 +3179,96 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   useEffect(() => {
     if (!snapshot.dirty || !baselineHash) return undefined;
     const timer = window.setTimeout(() => {
-      try {
-        writeAboutNarrativeRecoveryDraft(snapshot.document, baselineHash, {
-          selection: snapshot.selection,
-          storyWU: snapshot.transport.storyWU,
-          targetVersion: persistenceTargetVersion,
-        });
-      } catch (error) {
-        setMessage(error.message);
-      }
+      const result = flushAboutNarrativeRecoveryDraft({
+        document: snapshot.document,
+        baselineHash,
+        selection: snapshot.selection,
+        storyWU: snapshot.transport.storyWU,
+        targetVersion: persistenceTargetVersion,
+      });
+      store.setRecoveryState(result);
+      if (result.status === 'failed') setMessage(result.reason);
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [baselineHash, persistenceTargetVersion, snapshot.dirty, snapshot.document, snapshot.revision, snapshot.selection, snapshot.transport.storyWU]);
+  }, [baselineHash, persistenceTargetVersion, snapshot.dirty, snapshot.document, snapshot.revision, snapshot.selection, snapshot.transport.storyWU, store]);
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      const current = store.getSnapshot();
+      if (!current.dirty || !current.baselineHash) return;
+      flushAboutNarrativeRecoveryDraft({
+        document: current.document,
+        baselineHash: current.baselineHash,
+        selection: current.selection,
+        storyWU: current.transport.storyWU,
+        targetVersion: persistenceTargetVersion,
+      });
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, [persistenceTargetVersion, store]);
+
+  useEffect(() => {
+    if (!activeMenu) return undefined;
+    const handlePointerDown = (event) => {
+      if (event.target.closest('[data-director-menu-root]')) return;
+      closeDirectorMenu({ restoreFocus: false });
+    };
+    window.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    return () => window.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+  }, [activeMenu, closeDirectorMenu]);
+
+  useEffect(() => {
+    if (!diagnosticsOpen) return undefined;
+    const panel = editorRef.current?.querySelector('.about-director-diagnostics');
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDiagnostics();
+      }
+    };
+    const handlePointerDown = (event) => {
+      if (panel?.contains(event.target) || diagnosticsTriggerRef.current?.contains(event.target)) return;
+      closeDiagnostics({ restoreFocus: false });
+    };
+    panel?.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    return () => {
+      panel?.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+    };
+  }, [closeDiagnostics, diagnosticsOpen]);
+
+  useEffect(() => {
+    if (!activeMenu) return undefined;
+    const panel = editorRef.current?.querySelector(`[data-director-menu-panel="${activeMenu}"]`);
+    if (!panel) return undefined;
+    window.requestAnimationFrame(() => {
+      if (!panel.contains(document.activeElement)) {
+        panel.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], summary')?.focus();
+      }
+    });
+    const handleMenuKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDirectorMenu();
+      }
+    };
+    panel.addEventListener('keydown', handleMenuKeyDown);
+    return () => panel.removeEventListener('keydown', handleMenuKeyDown);
+  }, [activeMenu, closeDirectorMenu]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       const target = event.target;
       const editing = isEditorTypingTarget(target);
       const controlOwnsKeyboard = isEditorOwnedKeyboardTarget(target);
+      const overlayOwnsKeyboard = targetMatchesClosest(
+        target,
+        '[data-director-menu-panel], .about-director-diagnostics',
+      );
       const command = event.metaKey || event.ctrlKey;
       if (editing && isSlashKey(event)) {
         // Keep native typing, but prevent the legacy dev-panel shortcut from
@@ -2431,6 +3282,13 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         if (!event.repeat && !event.shiftKey) setEditorVisible((visible) => !visible);
         return;
       }
+      if (event.key === 'Escape' && diagnosticsOpen) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeDiagnostics();
+        return;
+      }
+      if (!editorVisible || !editorRef.current?.contains(target)) return;
       if (command && event.key.toLowerCase() === 's') {
         event.preventDefault();
         saveRef.current();
@@ -2442,9 +3300,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         store.cancelTry();
         setTextMenu(false);
         setInteractionMenu(false);
-        setMobileInspectorOpen(false);
+        setPhoneSheet('timeline');
+        if (activeMenu) closeDirectorMenu();
         return;
       }
+      if (overlayOwnsKeyboard) return;
       if (controlOwnsKeyboard && !command) return;
       if (command && event.key.toLowerCase() === 'z') {
         event.preventDefault();
@@ -2480,7 +3340,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     };
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [store]);
+  }, [activeMenu, closeDiagnostics, closeDirectorMenu, diagnosticsOpen, editorVisible, store]);
 
   const toggleLoop = () => {
     if (snapshot.transport.loop) {
@@ -2519,12 +3379,33 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     setMessage(recovery.status === 'stale' ? 'Restored stale recovery draft; review before saving.' : 'Recovery draft restored.');
   };
 
-  const diagnostics = snapshot.diagnostics || [];
-  const errors = diagnostics.filter((item) => item.level === 'error');
-  const pointFieldSelection = POINT_FIELD_SELECTION_TYPES.has(snapshot.selection.type);
+  const restoreCheckpoint = (checkpoint) => {
+    if (!window.confirm(`Restore “${checkpoint.name}”? You can undo this action.`)) return;
+    store.replaceDocument('Restore checkpoint', checkpoint.document, { requireValid: true });
+    if (checkpoint.selection) store.setSelection(checkpoint.selection);
+    if (Number.isFinite(checkpoint.storyWU)) {
+      store.setTransport({ owner: 'timeline', playing: false, storyWU: checkpoint.storyWU });
+    }
+    setMessage(`Restored ${checkpoint.name}.`);
+  };
+
+  const reloadConflictSource = () => {
+    const conflict = store.getSnapshot().conflictState;
+    if (!conflict.remoteDocument) {
+      setMessage('Reload is unavailable until the canonical source can be read. Export the local draft first.');
+      return;
+    }
+    if (!window.confirm('Reload the canonical source? Your local draft will remain available through Undo.')) return;
+    store.reloadSource(conflict.remoteDocument, conflict.currentHash);
+    const cleared = clearAboutNarrativeRecoveryDraft();
+    store.setRecoveryState(cleared);
+    setMessage('Reloaded canonical source. Use Undo to return to the local draft.');
+  };
+
   const openTextEditor = useCallback((object) => {
     store.setSelection({ type: 'text-field', id: object.id });
-    if (window.matchMedia('(max-width: 700px)').matches) setMobileInspectorOpen(true);
+    setInspectorOpen(true);
+    if (window.matchMedia('(max-width: 700px)').matches) setPhoneSheet('inspector');
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         document.querySelector('[data-editor-focus-id="text-copy"]')?.focus();
@@ -2532,20 +3413,52 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     });
   }, [store]);
 
+  const showDiagnostic = useCallback((resolved) => {
+    if (POINT_FIELD_SELECTION_TYPES.has(resolved.selection.type)) {
+      store.pointField.select(resolved.selection);
+    } else {
+      store.setSelection(resolved.selection);
+    }
+    if (Number.isFinite(resolved.storyWU)) {
+      store.setTransport({ owner: 'timeline', playing: false, storyWU: resolved.storyWU });
+    }
+    setInspectorOpen(true);
+    setPhoneSheet('inspector');
+    closeDiagnostics({ restoreFocus: false });
+    const focus = () => {
+      const root = editorRef.current;
+      const path = resolved.diagnostic?.path;
+      const safePath = path && window.CSS?.escape ? window.CSS.escape(path) : '';
+      const target = (safePath ? root?.querySelector(`[data-diagnostic-path="${safePath}"]`) : null)
+        || root?.querySelector(`[data-editor-focus-id="${resolved.focusId}"]`)
+        || findDiagnosticControl(root?.querySelector('#about-director-inspector'), resolved)
+        || root?.querySelector('#about-director-inspector input:not(:disabled), #about-director-inspector textarea:not(:disabled), #about-director-inspector select:not(:disabled), #about-director-inspector button:not(:disabled)');
+      target?.focus();
+    };
+    window.requestAnimationFrame(() => window.requestAnimationFrame(focus));
+  }, [closeDiagnostics, store]);
+
   return (
     <aside
+      ref={editorRef}
       className="about-track-editor"
+      data-editor-product="about-director-3"
       data-editor-version={pointFieldV6 ? 'point-field-v6' : 'sectionless-v5'}
-      data-mobile-inspector-open={mobileInspectorOpen ? 'true' : 'false'}
+      data-source-state={snapshot.sourceState.status}
+      data-save-state={snapshot.saveState.status}
+      data-timeline-dock={timelineDock}
+      data-inspector-open={inspectorVisible ? 'true' : 'false'}
+      data-phone-sheet={phoneSheet}
+      data-mobile-inspector-open={phoneSheet === 'inspector' ? 'true' : 'false'}
       hidden={!editorVisible}
       aria-keyshortcuts="/"
-      aria-label="About narrative editor"
+      aria-label="About Director 3.0"
       onKeyDown={stopEditorShortcutPropagation}
     >
-      <header className="about-track-editor-topbar">
+      <header className="about-track-editor-topbar" data-director-panel="command-bar">
         <div className="about-track-editor-brand">
-          <strong>About Timeline</strong>
-          <span>{pointFieldV6 ? 'v6 · Point field keyframes' : 'v5 · camera + visibility'}</span>
+          <strong>About Director <sup>3.0</sup></strong>
+          <span>Schema v{schemaVersion} · {snapshot.sourceState.status}</span>
         </div>
         <div className="about-track-editor-transport" aria-label="Timeline transport">
           <button
@@ -2568,50 +3481,266 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
             onChange={(event) => store.setTransport({ owner: 'timeline', playing: false, storyWU: Number(event.target.value) })}
           />
           <output>{snapshot.transport.storyWU.toFixed(3)} WU</output>
+          <span className="about-director-transport-owner">Owner · {snapshot.transport.owner || 'timeline'}</span>
         </div>
         <div className="about-track-editor-actions">
           <button
             type="button"
             className="about-track-editor-inspector-toggle"
-            aria-expanded={mobileInspectorOpen}
-            onClick={() => setMobileInspectorOpen((open) => !open)}
+            aria-controls="about-director-inspector"
+            aria-expanded={inspectorVisible}
+            disabled={!usefulInspectorSelection}
+            onClick={() => {
+              setInspectorOpen((open) => !open);
+              setPhoneSheet('inspector');
+            }}
           >Inspector</button>
-          <button type="button" disabled={!snapshot.history.canUndo} onClick={() => store.undo()} title={snapshot.history.undoLabel}>Undo</button>
-          <button type="button" disabled={!snapshot.history.canRedo} onClick={() => store.redo()} title={snapshot.history.redoLabel}>Redo</button>
-          <button type="button" onClick={() => exportAboutNarrativeDocument(
-            snapshot.document,
-            pointFieldV6 ? 'contents-about-v6.json' : 'contents-about.json',
-            { targetVersion: persistenceTargetVersion },
-          )}>Export</button>
           <button
             type="button"
-            onClick={() => {
-              try {
-                const timestamp = Date.now();
-                writeAboutNarrativeCheckpoint({
-                  id: `checkpoint-${timestamp}`,
-                  name: `Manual checkpoint · ${new Date(timestamp).toLocaleString()}`,
-                  timestamp,
-                  baseSourceHash: baselineHash,
-                  document: snapshot.document,
-                  selection: snapshot.selection,
-                  storyWU: snapshot.transport.storyWU,
-                }, { targetVersion: persistenceTargetVersion });
-                setMessage('Checkpoint saved locally.');
-              } catch (error) {
-                setMessage(`Checkpoint failed: ${error.message}`);
+            ref={diagnosticsTriggerRef}
+            className={errors.length ? 'has-errors' : ''}
+            aria-controls="about-director-diagnostics"
+            aria-expanded={diagnosticsOpen}
+            onClick={() => setDiagnosticsOpen((open) => !open)}
+          >Diagnostics {diagnostics.length ? `· ${diagnostics.length}` : ''}</button>
+          <button type="button" disabled={!snapshot.history.canUndo} onClick={() => store.undo()} title={snapshot.history.undoLabel}>Undo</button>
+          <button type="button" disabled={!snapshot.history.canRedo} onClick={() => store.redo()} title={snapshot.history.redoLabel}>Redo</button>
+          <div className="about-director-menu-root" data-director-menu-root>
+            <button
+              type="button"
+              ref={documentMenuTriggerRef}
+              aria-haspopup="dialog"
+              aria-controls="about-director-document-menu"
+              aria-expanded={activeMenu === 'document'}
+              onClick={(event) => toggleDirectorMenu('document', event.currentTarget)}
+            >Document</button>
+            {activeMenu === 'document' ? (
+              <section
+                id="about-director-document-menu"
+                className="about-director-menu-panel"
+                role="dialog"
+                aria-modal="false"
+                aria-label="Document actions"
+                data-director-menu-panel="document"
+                data-director-panel="document-menu"
+              >
+                <header>
+                  <div><strong>Document</strong><span>Schema v{schemaVersion}</span></div>
+                  <button type="button" aria-label="Close document menu" onClick={() => closeDirectorMenu()}>Close</button>
+                </header>
+                <div className="about-director-document-actions">
+                  <button type="button" onClick={() => exportAboutNarrativeDocument(
+                    snapshot.document,
+                    pointFieldV6 ? 'contents-about-v6.json' : 'contents-about.json',
+                    { targetVersion: persistenceTargetVersion },
+                  )}>Export current draft</button>
+                  <button
+                    type="button"
+                    disabled={snapshot.checkpointState.status === 'protected'}
+                    onClick={() => {
+                      try {
+                        const timestamp = Date.now();
+                        const items = writeAboutNarrativeCheckpoint({
+                          id: `checkpoint-${timestamp}`,
+                          name: `Manual checkpoint · ${new Date(timestamp).toLocaleString()}`,
+                          timestamp,
+                          baseSourceHash: baselineHash,
+                          document: snapshot.document,
+                          selection: snapshot.selection,
+                          storyWU: snapshot.transport.storyWU,
+                        }, { targetVersion: persistenceTargetVersion });
+                        store.setCheckpointState({ status: 'ready', items, message: '' });
+                        setMessage('Checkpoint saved locally.');
+                      } catch (error) {
+                        store.setCheckpointState({ status: 'failed', message: error.message });
+                        setMessage(`Checkpoint failed: ${error.message}`);
+                      }
+                    }}
+                  >Create checkpoint</button>
+                  <button
+                    type="button"
+                    disabled={!snapshot.dirty || snapshot.saveState.status === 'saving'}
+                    onClick={() => {
+                      if (!window.confirm('Restore the last saved source? You can undo this action.')) return;
+                      if (store.restoreBaseline()) setMessage('Restored the last saved source.');
+                    }}
+                  >Restore last saved</button>
+                </div>
+
+                {snapshot.conflictState.available ? (
+                  <section className="about-track-editor-recovery" aria-label="Save conflict">
+                    <strong>Canonical changed while this draft was open.</strong>
+                    <p>{snapshot.conflictState.message || 'Local work is preserved. No changes were merged automatically.'}</p>
+                    {snapshot.conflictState.comparison ? (
+                      <details>
+                        <summary>Compare stable fields</summary>
+                        <p>{snapshot.conflictState.comparison.localChanges.length} local changes · {snapshot.conflictState.comparison.remoteChanges.length} canonical changes</p>
+                        <ul>
+                          {snapshot.conflictState.comparison.localChanges.slice(0, 12).map((path) => <li key={`local-${path}`}>Local · {path}</li>)}
+                          {snapshot.conflictState.comparison.remoteChanges.slice(0, 12).map((path) => <li key={`remote-${path}`}>Canonical · {path}</li>)}
+                        </ul>
+                      </details>
+                    ) : <p>Comparison is unavailable. Export the local draft before reloading.</p>}
+                    <div>
+                      <button type="button" onClick={() => exportAboutNarrativeDocument(
+                        snapshot.document,
+                        'contents-about-local-conflict.json',
+                        { targetVersion: persistenceTargetVersion },
+                      )}>Export local</button>
+                      {snapshot.conflictState.remoteDocument ? (
+                        <button type="button" onClick={reloadConflictSource}>Reload canonical</button>
+                      ) : (
+                        <button type="button" onClick={() => refreshConflictCanonical(snapshot.conflictState.currentHash)}>Retry canonical fetch</button>
+                      )}
+                    </div>
+                  </section>
+                ) : null}
+
+                {snapshot.checkpointState.items?.length || ['failed', 'protected'].includes(snapshot.checkpointState.status) ? (
+                  <section className="about-track-editor-recovery" aria-label="Local checkpoints">
+                    <strong>Local checkpoints</strong>
+                    {['failed', 'protected'].includes(snapshot.checkpointState.status) ? <p>{snapshot.checkpointState.message}</p> : null}
+                    {snapshot.checkpointState.items?.map((checkpoint) => (
+                      <div className="about-director-checkpoint" key={checkpoint.id}>
+                        <span>{checkpoint.name}</span>
+                        <button type="button" onClick={() => restoreCheckpoint(checkpoint)}>Restore</button>
+                        <button type="button" onClick={() => exportAboutNarrativeDocument(
+                          checkpoint.document,
+                          `${checkpoint.id}.json`,
+                          { targetVersion: persistenceTargetVersion },
+                        )}>Export</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Delete “${checkpoint.name}”?`)) return;
+                            try {
+                              deleteAboutNarrativeCheckpoint(checkpoint.id, {
+                                targetVersion: persistenceTargetVersion,
+                              });
+                              store.setCheckpointState(readAboutNarrativeCheckpointState({
+                                targetVersion: persistenceTargetVersion,
+                              }));
+                            } catch (error) {
+                              store.setCheckpointState({ status: 'failed', message: error.message });
+                            }
+                          }}
+                        >Delete</button>
+                      </div>
+                    ))}
+                    {snapshot.checkpointState.protectedItems?.map((checkpoint) => (
+                      <div className="about-director-checkpoint" key={checkpoint.storageKey}>
+                        <span>{checkpoint.name} · {checkpoint.status}</span>
+                        <button type="button" onClick={() => exportAboutNarrativeDocument(
+                          checkpoint.original,
+                          `${checkpoint.id || checkpoint.storageKey}-protected.json`,
+                          { preserveOriginal: true, targetVersion: persistenceTargetVersion },
+                        )}>Export original</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Delete protected checkpoint “${checkpoint.name}”? Export it first if you need its original data.`)) return;
+                            try {
+                              deleteAboutNarrativeCheckpoint(checkpoint.storageKey, {
+                                targetVersion: persistenceTargetVersion,
+                              });
+                              store.setCheckpointState(readAboutNarrativeCheckpointState({
+                                targetVersion: persistenceTargetVersion,
+                              }));
+                            } catch (error) {
+                              store.setCheckpointState({ status: 'failed', message: error.message });
+                            }
+                          }}
+                        >Delete protected</button>
+                      </div>
+                    ))}
+                  </section>
+                ) : null}
+
+                {recovery?.available ? (
+                  <section className="about-track-editor-recovery" aria-label="Recovery draft">
+                    <strong>{recovery.status === 'stale' ? 'Recovery from an earlier source' : 'Recovery draft available'}</strong>
+                    <p>{recovery.reason || 'Restore it, export it, or discard it.'}</p>
+                    <div>
+                      {recovery.document ? <button type="button" onClick={restoreRecovery}>Restore draft</button> : null}
+                      {recovery.original !== undefined ? <button type="button" onClick={() => exportAboutNarrativeDocument(recovery.original, 'contents-about-recovered.json', { preserveOriginal: true, targetVersion: persistenceTargetVersion })}>Export original</button> : null}
+                      <button type="button" onClick={() => {
+                        const cleared = clearAboutNarrativeRecoveryDraft();
+                        store.setRecoveryState(cleared);
+                      }}>Discard</button>
+                    </div>
+                  </section>
+                ) : null}
+              </section>
+            ) : null}
+          </div>
+          <div className="about-director-menu-root" data-director-menu-root>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="about-director-help-menu"
+              aria-expanded={activeMenu === 'help'}
+              onClick={(event) => toggleDirectorMenu('help', event.currentTarget)}
+            >Help</button>
+            {activeMenu === 'help' ? (
+              <section
+                id="about-director-help-menu"
+                className="about-director-menu-panel about-director-help-panel"
+                role="dialog"
+                aria-modal="false"
+                aria-label="Keyboard help"
+                data-director-menu-panel="help"
+                data-director-panel="keyboard-help"
+              >
+                <header>
+                  <div><strong>Keyboard</strong><span>Director shortcuts</span></div>
+                  <button type="button" aria-label="Close keyboard help" onClick={() => closeDirectorMenu()}>Close</button>
+                </header>
+                <dl>
+                  <div><dt>/</dt><dd>Show or hide Director</dd></div>
+                  <div><dt>Space</dt><dd>Play or pause when Director has focus</dd></div>
+                  <div><dt>⌘ S</dt><dd>Save the current draft</dd></div>
+                  <div><dt>⌘ Z</dt><dd>Undo</dd></div>
+                  <div><dt>⇧ ⌘ Z</dt><dd>Redo</dd></div>
+                  <div><dt>← →</dt><dd>Move the selection or playhead</dd></div>
+                  <div><dt>Esc</dt><dd>Cancel the active gesture or close a panel</dd></div>
+                </dl>
+              </section>
+            ) : null}
+          </div>
+          <output className={`about-director-save-state is-${snapshot.saveState.status}`} aria-label={`Save state: ${saveStateLabel}`}>
+            {saveStateLabel}
+          </output>
+          <button
+            type="button"
+            className="is-save"
+            aria-disabled={!saveEligibility.allowed}
+            aria-describedby={saveBlockingReason ? 'about-director-save-errors' : undefined}
+            data-save-allowed={saveEligibility.allowed ? 'true' : 'false'}
+            onClick={(event) => {
+              if (!saveEligibility.allowed) {
+                event.preventDefault();
+                setMessage(saveBlockingReason);
+                return;
               }
+              save();
             }}
-          >Checkpoint</button>
-          <button type="button" className="is-save" disabled={!snapshot.dirty || saving || errors.length > 0 || !baselineHash} onClick={save}>
+          >
             {previewOnly
               ? snapshot.dirty ? 'Export draft' : 'Preview ready'
-              : saving ? 'Saving…' : snapshot.dirty ? `Save v${persistenceTargetVersion}` : 'Saved'}
+              : saving ? 'Saving…' : snapshot.dirty ? 'Save' : 'Saved'}
           </button>
+          {saveBlockingReason ? (
+            <span
+              id="about-director-save-errors"
+              className="about-director-save-block-reason"
+              role="status"
+              aria-live="polite"
+            >{saveBlockingReason}</span>
+          ) : null}
         </div>
       </header>
 
-      <div className="about-track-editor-preview" aria-label="Responsive preview profile">
+      <div className="about-track-editor-preview" aria-label="Responsive preview profile" data-director-panel="preview-controls">
         <span className="about-track-editor-preview__label">Preview</span>
         {['desktop', 'tablet', 'mobile'].map((profile) => (
           <button
@@ -2654,12 +3783,33 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         ) : null}
       </div>
 
+      <div className="about-director-sheet-switcher" role="group" aria-label="Phone authoring panel">
+        <button
+          type="button"
+          className={phoneSheet === 'timeline' ? 'is-active' : ''}
+          aria-pressed={phoneSheet === 'timeline'}
+          onClick={() => setPhoneSheet('timeline')}
+        >Timeline</button>
+        <button
+          type="button"
+          className={phoneSheet === 'inspector' ? 'is-active' : ''}
+          aria-pressed={phoneSheet === 'inspector'}
+          disabled={!usefulInspectorSelection}
+          onClick={() => {
+            setInspectorOpen(true);
+            setPhoneSheet('inspector');
+          }}
+        >Inspector</button>
+      </div>
+
       <Timeline
         snapshot={snapshot}
         store={store}
         editScope={editScope}
         zoom={zoom}
         setZoom={setZoom}
+        dockMode={timelineDock}
+        setDockMode={setTimelineDock}
         textMenu={textMenu}
         setTextMenu={setTextMenu}
         interactionMenu={interactionMenu}
@@ -2667,18 +3817,23 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         onOpenTextEditor={openTextEditor}
       />
 
-      <section className="about-track-editor-inspector" aria-label="Selected object inspector">
+      <section
+        id="about-director-inspector"
+        className="about-track-editor-inspector"
+        aria-label="Selected object inspector"
+        data-director-panel="inspector"
+        hidden={!inspectorVisible}
+      >
         <button
           type="button"
           className="about-track-editor-inspector-close"
           aria-label="Close inspector"
-          onClick={() => setMobileInspectorOpen(false)}
+          onClick={() => setPhoneSheet('timeline')}
         >Close</button>
         <ObjectInspector
           snapshot={snapshot}
           store={store}
           editScope={editScope}
-          onMessage={setMessage}
         />
         <footer>
           <button type="button" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.copySelection()}>Copy</button>
@@ -2690,25 +3845,30 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         </footer>
       </section>
 
-      <div className="about-track-editor-status" role="status" aria-live="polite">
+      {diagnosticsOpen ? (
+        <div id="about-director-diagnostics">
+          <DiagnosticsDrawer
+            document={snapshot.document}
+            diagnostics={diagnostics}
+            onShow={showDiagnostic}
+            onClose={() => closeDiagnostics()}
+          />
+        </div>
+      ) : null}
+
+      <div className="about-track-editor-status" data-director-panel="status">
         <span className={snapshot.dirty ? 'is-dirty' : 'is-clean'}>
           {snapshot.dirty ? 'Unsaved' : previewOnly ? 'Preview' : 'Canonical'}
         </span>
         <p>{snapshot.rejectedEdit?.reason || message}</p>
         {diagnostics.length ? <b>{errors.length} errors · {diagnostics.length - errors.length} notices</b> : <b>Plan valid</b>}
+        {snapshot.previewDocumentState.status === 'last-valid-fallback' ? (
+          <b>Draft differs from preview · showing the last valid plan</b>
+        ) : null}
       </div>
 
-      {recovery?.available ? (
-        <section className="about-track-editor-recovery" aria-label="Recovery draft">
-          <strong>{recovery.status === 'stale' ? 'A recovery draft exists from an earlier canonical source.' : 'A recovery draft is available.'}</strong>
-          <p>{recovery.reason || 'Restore it, export it, or discard it.'}</p>
-          <div>
-            {recovery.document ? <button type="button" onClick={restoreRecovery}>Restore draft</button> : null}
-            {recovery.original !== undefined ? <button type="button" onClick={() => exportAboutNarrativeDocument(recovery.original, 'contents-about-recovered.json', { preserveOriginal: true, targetVersion: persistenceTargetVersion })}>Export original</button> : null}
-            <button type="button" onClick={() => { clearAboutNarrativeRecoveryDraft(); setRecovery(null); }}>Discard</button>
-          </div>
-        </section>
-      ) : null}
+      <p className="about-director-visually-hidden" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
+
     </aside>
   );
 }

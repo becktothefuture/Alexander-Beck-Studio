@@ -3,10 +3,6 @@ import {
   ABOUT_NARRATIVE_EDITOR_HEADER,
 } from './aboutNarrativeDefinitions.js';
 import {
-  ABOUT_NARRATIVE_CHECKPOINTS_KEY,
-  ABOUT_NARRATIVE_RECOVERY_KEY,
-} from './aboutNarrativeLabData.js';
-import {
   ABOUT_NARRATIVE_TRACK_ENVELOPE_VERSION,
   loadAboutNarrativeTrackSource,
   migrateAboutNarrativeTrackCheckpointEnvelope,
@@ -33,6 +29,8 @@ export {
 } from './aboutNarrativeEditorHardening.js';
 
 export const ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS = 14 * 86400000;
+export const ABOUT_NARRATIVE_RECOVERY_KEY = 'abs:about-narrative:recovery:v1';
+export const ABOUT_NARRATIVE_CHECKPOINTS_KEY = 'abs:about-narrative:checkpoints:v1';
 
 const ENDPOINT = '/api/about-narrative/config';
 const MAX_CHECKPOINTS = 20;
@@ -105,6 +103,24 @@ function assertDocumentSize(serialized) {
   }
 }
 
+function resolveStorage(storage) {
+  const resolved = storage ?? globalThis.localStorage;
+  if (!resolved) throw new Error('Local draft storage is unavailable.');
+  return resolved;
+}
+
+function storageFailure(operation, error) {
+  const wrapped = new Error(`${operation} failed: ${error?.message || String(error)}`);
+  wrapped.name = 'AboutNarrativeStorageError';
+  wrapped.code = error?.name === 'QuotaExceededError'
+    ? 'quota'
+    : error?.name === 'SecurityError'
+      ? 'security'
+      : 'storage';
+  wrapped.cause = error;
+  return wrapped;
+}
+
 export async function loadAboutNarrativeSource({
   targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
@@ -161,12 +177,9 @@ export function exportAboutNarrativeDocument(document, name = 'contents-about.js
   preserveOriginal = false,
   targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
-  const boundary = resolvePersistenceBoundary(targetVersion);
-  let serialized;
-  if (preserveOriginal && typeof document === 'string') serialized = document;
-  else if (preserveOriginal) serialized = `${JSON.stringify(document, null, 2)}\n`;
-  else serialized = boundary.serialize(document, {
-    preflight: boundary.preflight,
+  const serialized = serializeAboutNarrativeDocumentForExport(document, {
+    preserveOriginal,
+    targetVersion,
   });
   const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
   const link = window.document.createElement('a');
@@ -174,6 +187,18 @@ export function exportAboutNarrativeDocument(document, name = 'contents-about.js
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+export function serializeAboutNarrativeDocumentForExport(document, {
+  preserveOriginal = false,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
+  if (preserveOriginal && typeof document === 'string') return document;
+  if (preserveOriginal) return `${JSON.stringify(document, null, 2)}\n`;
+  return boundary.serialize(document, {
+    preflight: boundary.preflight,
+  });
 }
 
 export function classifyAboutNarrativeRecoveryDraft(raw, {
@@ -228,12 +253,24 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
 }
 
 export function readAboutNarrativeRecoveryDraft(options = {}) {
-  const raw = localStorage.getItem(ABOUT_NARRATIVE_RECOVERY_KEY);
-  if (raw == null) return null;
-  return classifyAboutNarrativeRecoveryDraft(raw, options);
+  const { storage, ...classificationOptions } = options;
+  try {
+    const raw = resolveStorage(storage).getItem(ABOUT_NARRATIVE_RECOVERY_KEY);
+    if (raw == null) return null;
+    return classifyAboutNarrativeRecoveryDraft(raw, classificationOptions);
+  } catch (error) {
+    const failure = storageFailure('Recovery read', error);
+    return Object.freeze({
+      status: 'failed',
+      available: true,
+      reason: failure.message,
+      error: failure,
+    });
+  }
 }
 
 export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadata = {}) {
+  const storage = resolveStorage(metadata.storage);
   const boundary = resolvePersistenceBoundary(
     metadata.targetVersion ?? ACTIVE_SCHEMA_VERSION,
   );
@@ -242,7 +279,12 @@ export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadat
   });
   assertDocumentSize(serializedDocument);
 
-  const existingRaw = localStorage.getItem(ABOUT_NARRATIVE_RECOVERY_KEY);
+  let existingRaw;
+  try {
+    existingRaw = storage.getItem(ABOUT_NARRATIVE_RECOVERY_KEY);
+  } catch (error) {
+    throw storageFailure('Recovery read', error);
+  }
   if (existingRaw != null) {
     const existing = boundary.migrateRecovery(existingRaw, {
       preflight: boundary.preflight,
@@ -265,16 +307,57 @@ export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadat
     preflight: boundary.preflight,
   });
   if (!migrated.valid) throw createPersistenceError(migrated, 'The recovery draft is invalid.');
-  localStorage.setItem(ABOUT_NARRATIVE_RECOVERY_KEY, JSON.stringify(migrated.envelope));
+  try {
+    storage.setItem(ABOUT_NARRATIVE_RECOVERY_KEY, JSON.stringify(migrated.envelope));
+  } catch (error) {
+    throw storageFailure('Recovery write', error);
+  }
   return migrated.envelope;
 }
 
-export function clearAboutNarrativeRecoveryDraft() {
-  localStorage.removeItem(ABOUT_NARRATIVE_RECOVERY_KEY);
+export function flushAboutNarrativeRecoveryDraft({
+  document,
+  baselineHash,
+  selection = null,
+  storyWU = null,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+} = {}) {
+  try {
+    const envelope = writeAboutNarrativeRecoveryDraft(document, baselineHash, {
+      selection,
+      storyWU,
+      targetVersion,
+      storage,
+    });
+    return Object.freeze({ status: 'current', available: true, envelope });
+  } catch (error) {
+    return Object.freeze({
+      status: 'failed',
+      available: true,
+      reason: error?.message || String(error),
+      error,
+    });
+  }
 }
 
-function parseStoredCheckpoints() {
-  const raw = localStorage.getItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY);
+export function clearAboutNarrativeRecoveryDraft({ storage = null } = {}) {
+  try {
+    resolveStorage(storage).removeItem(ABOUT_NARRATIVE_RECOVERY_KEY);
+    return Object.freeze({ status: 'none', available: false });
+  } catch (error) {
+    const failure = storageFailure('Recovery clear', error);
+    return Object.freeze({
+      status: 'failed',
+      available: true,
+      reason: failure.message,
+      error: failure,
+    });
+  }
+}
+
+function parseStoredCheckpoints(storage) {
+  const raw = resolveStorage(storage).getItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY);
   if (raw == null) return [];
   let checkpoints;
   try {
@@ -295,35 +378,79 @@ function parseStoredCheckpoints() {
 function migrateStoredCheckpoints({
   strict = false,
   targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+} = {}) {
+  const inspected = inspectStoredCheckpoints({ targetVersion, storage });
+  if (strict && inspected.protectedItems.length) {
+    throw new Error('Checkpoint storage is protected because it contains invalid or newer-editor data.');
+  }
+  return inspected.items;
+}
+
+function inspectStoredCheckpoints({
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
-  const checkpoints = parseStoredCheckpoints();
+  const checkpoints = parseStoredCheckpoints(storage);
   const resolved = [];
-  checkpoints.forEach((checkpoint) => {
+  const protectedItems = [];
+  checkpoints.forEach((checkpoint, index) => {
     const migrated = boundary.migrateCheckpoint(checkpoint, {
       preflight: boundary.preflight,
     });
     if (migrated.valid) resolved.push(migrated.envelope);
-    else if (strict) {
-      throw new Error('Checkpoint storage is protected because it contains invalid or newer-editor data.');
-    }
+    else protectedItems.push(Object.freeze({
+      storageKey: `protected-${index}`,
+      id: typeof checkpoint?.id === 'string' ? checkpoint.id : '',
+      name: typeof checkpoint?.name === 'string' ? checkpoint.name : `Protected checkpoint ${index + 1}`,
+      status: migrated.readOnly ? 'future' : 'invalid',
+      message: migrated.message || 'This checkpoint is not readable by the current editor.',
+      diagnostics: Object.freeze(clone(migrated.diagnostics || [])),
+      original: clone(checkpoint),
+    }));
   });
-  return resolved;
+  return { items: resolved, protectedItems, rawItems: checkpoints };
 }
 
 export function readAboutNarrativeCheckpoints({
   targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+} = {}) {
+  return readAboutNarrativeCheckpointState({ targetVersion, storage }).items;
+}
+
+export function readAboutNarrativeCheckpointState({
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
 } = {}) {
   try {
-    return migrateStoredCheckpoints({ targetVersion });
-  } catch {
-    return [];
+    const inspected = inspectStoredCheckpoints({ targetVersion, storage });
+    const protectedState = inspected.protectedItems.length > 0;
+    return Object.freeze({
+      status: protectedState ? 'protected' : 'ready',
+      items: Object.freeze(inspected.items),
+      protectedItems: Object.freeze(inspected.protectedItems),
+      message: protectedState
+        ? 'Some checkpoints were created by a newer editor or contain invalid data. Export or delete them before creating another checkpoint.'
+        : '',
+    });
+  } catch (error) {
+    return Object.freeze({
+      status: 'failed',
+      items: Object.freeze([]),
+      message: error?.message || String(error),
+      original: clone(error?.original),
+      error,
+    });
   }
 }
 
 export function writeAboutNarrativeCheckpoint(checkpoint, {
   targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
 } = {}) {
+  const resolvedStorage = resolveStorage(storage);
   const boundary = resolvePersistenceBoundary(targetVersion);
   const serializedDocument = boundary.serialize(checkpoint?.document, {
     preflight: boundary.preflight,
@@ -342,8 +469,34 @@ export function writeAboutNarrativeCheckpoint(checkpoint, {
   const checkpoints = [migrated.envelope, ...migrateStoredCheckpoints({
     strict: true,
     targetVersion,
+    storage: resolvedStorage,
   })]
     .slice(0, MAX_CHECKPOINTS);
-  localStorage.setItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY, JSON.stringify(checkpoints));
+  try {
+    resolvedStorage.setItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY, JSON.stringify(checkpoints));
+  } catch (error) {
+    throw storageFailure('Checkpoint write', error);
+  }
   return checkpoints;
+}
+
+export function deleteAboutNarrativeCheckpoint(id, {
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+} = {}) {
+  const resolvedStorage = resolveStorage(storage);
+  const checkpoints = parseStoredCheckpoints(resolvedStorage);
+  const protectedIndex = /^protected-(\d+)$/.exec(String(id || ''));
+  const next = checkpoints.filter((checkpoint, index) => (
+    protectedIndex ? index !== Number(protectedIndex[1]) : checkpoint?.id !== id
+  ));
+  if (next.length === checkpoints.length) {
+    return migrateStoredCheckpoints({ targetVersion, storage: resolvedStorage });
+  }
+  try {
+    resolvedStorage.setItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY, JSON.stringify(next));
+  } catch (error) {
+    throw storageFailure('Checkpoint delete', error);
+  }
+  return migrateStoredCheckpoints({ targetVersion, storage: resolvedStorage });
 }

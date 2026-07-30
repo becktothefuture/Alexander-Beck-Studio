@@ -1,12 +1,34 @@
-# About Narrative creative toolkit
+# About Director 3.0
+
+About Director 3.0 is the local authoring product for the About narrative. The product version and
+the document version are separate: the current canonical document is **schema v6**.
+
+## Director 3.0 editor contract
+
+- The command bar separates Director identity, transport, document actions, and Save state.
+- The timeline has minimized, compact, and expanded dock heights. Resizing the dock does not change
+  zoom, scroll, selection, playhead, active segment, preview geometry, or authored timing.
+- Desktop uses a stage, contextual inspector, and bottom timeline. Tablet uses an overlay inspector
+  that does not resize the emulated preview. Phone uses mutually exclusive Timeline and Inspector
+  sheets.
+- Preview profile and Point Field authoring scope are independent. Changing Desktop, Tablet, Mobile,
+  orientation, or Reduced Motion never changes the Base/Tablet/Mobile authored override.
+- Text blocks have structured add, edit, reorder, duplicate, and remove actions. Advanced source is a
+  lossless escape hatch for unknown valid fields.
+- Diagnostics identify severity, object or segment, property, and message. **Show** selects the
+  relevant timeline item and focuses its inspector control.
+- Save, recovery, conflict, and checkpoint state belong to the editor store. Editor layout, panel
+  sizes, zoom, and selection never become canonical document fields.
+- The schema-v6 Point Field lane, Form keys, transition segments, compiler, and runtime are the
+  authoritative upstream implementation. Director does not define parallel transition types.
 
 ## What this system is
 
 The About page is one authored scroll sequence played by three cooperating layers:
 
 1. Native DOM text remains readable, selectable, responsive, and accessible.
-2. One Three.js point-field runtime draws every procedural World, including the final emergent form.
-3. One world-unit playhead samples Camera, Visibility, World, Text, and Motion at the same moment.
+2. One Three.js point-field runtime draws every procedural Form, including the final emergent form.
+3. One world-unit playhead samples Camera, Visibility, Point Field, Text, and Motion at the same moment.
 
 The creative toolkit is available only during local development:
 
@@ -23,7 +45,7 @@ About Narrative
 └── Sequence
     ├── Camera track → absolute Camera keys
     ├── Visibility track → whole-simulation opacity keys
-    ├── World track → Shape + modifier stack
+    ├── Point Field track → reusable Form states, keys, hold regions, and transition segments
     ├── Text track → travelling Titles and editorial Scroll blocks
     └── Motion track → discipline reveal and gathering-pulse clips
 ```
@@ -31,12 +53,14 @@ About Narrative
 - A **Sequence** is the complete scroll journey.
 - A **Camera key** sets an absolute Position XYZ, Rotation XYZ, and lens at one Story WU.
 - A **Visibility key** fades the complete point simulation independently of camera and fog.
-- A **World** is a registered Three.js system placed at a fixed point in 3D space.
+- A **Form state** is a reusable point-field definition referenced by stable keys.
+- A **Point Field key** places a Form state at an absolute Story WU.
+- A **transition segment** owns the parametric motion between two keys; hold regions retain a Form.
 - A **Shape** is the rest arrangement of the fixed point pool.
 - A **modifier** adds deterministic or ambient movement to a Shape.
 - A **Title** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
-- A **Discipline reveal** is one movable Motion clip that isolates six existing points and projects their labels from exact Three.js anchors without creating another World or six ordinary title keyframes.
+- A **Discipline reveal** is one movable Motion clip that isolates six existing points and projects their labels from exact Three.js anchors without creating another Form or six ordinary title keyframes.
 
 “Stage” is not part of the authored vocabulary.
 
@@ -62,7 +86,7 @@ Other ownership stays separate:
 `1 WU` means one current narrative viewport height. The inspector can reduce the preview width, but the fixed timeline is portalled above the studio window and never changes its height or authored timing.
 
 The sequence saves one Story duration and one Scroll duration per responsive profile. Camera,
-Visibility, World, Text, and Motion objects all use absolute Story WU, so moving one lane never
+Visibility, Point Field, Text, and Motion objects all use absolute Story WU, so moving one lane never
 silently retimes another. The profile resolver maps physical scroll distance to the same authored
 Story WU without measuring DOM content into the creative timing model.
 
@@ -76,8 +100,8 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a collapsible, development-only overlay with five independent lanes: Camera,
-Visibility, World, Text, and Motion. Its palette does not inherit route or website theme colours.
+The timeline is a dockable, development-only instrument with five independent lanes: Camera,
+Visibility, Point Field, Text, and Motion. Its palette does not inherit route or website theme colours.
 The first and final Camera and Visibility boundaries remain protected. Left and Right arrow keys
 jump to the previous or next timing point unless a text field or numeric control has focus.
 
@@ -88,12 +112,12 @@ Global Story WU
 Camera position, rotation, and FOV
 Whole-simulation visibility
 One global distance-fog pair
-From/To World plus transition progress
+From/To Form state plus transition progress
 Text field envelopes
 Interaction activation
 ```
 
-The runtime samples this once per animation frame. No World adapter may start another RAF.
+The runtime samples this once per animation frame. No point-field adapter may start another RAF.
 
 ## Camera fundamentals
 
@@ -180,21 +204,17 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 - `18.45–19.05 WU`: continue a small aimed orbit and gentle bust motion behind the complete invitation,
   description, and actions rather than freezing the last frame.
 
-## How Worlds stay connected
+## How Point Field states stay connected
 
-Each World object owns an absolute `startWU`, registered adapter ID, Shape ID, deterministic seed,
-fixed transform, entry distance, transition window, correspondence mode, and modifier stack. Its end
-is derived from the next World's start; no authored Section container or duplicate boundary is needed.
+Schema v6 stores one Point Field track with `stateDefinitions`, `keys`, and `segments`. Stable keys
+reference reusable Form states. Segments own timing, easing, correspondence, and parametric transition
+motion; hold regions retain the preceding Form without inventing another container. Camera,
+Visibility, Point Field, Text, and Motion remain independent tracks.
 
-The World is placed once on its own world-placement rail:
-
-```text
-World Z = worldRail origin - anchorWU × unitsPerWU - entryDistanceWU
-```
-
-This rail belongs to World anchoring only; it does not modify the authored camera. The World does not remain attached to the camera.
-
-Camera, World, Text, and Motion are independent tracks. Replacing a middle Shape preserves camera keys, text, World placement, and motion unless a capability check says the replacement is incompatible.
+Timing and easing edits do not regenerate geometry or correspondence. The compiler and runtime keep
+one cumulative point identity through the complete key order, so forward, reverse, and direct seeking
+sample the same transition. Responsive differences use the existing Base, Tablet, and Mobile override
+contract rather than duplicate states.
 
 ## The point pool
 
@@ -224,7 +244,10 @@ an impractical 12,000-point exact solver.
 
 Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
 
-Select a World clip and open **Transition in → Correspondence** to compare Index order, Stable seed, Local travel, and Group aware. The inspector identifies the source and target Shapes and reports Preparing, Ready, Baseline fallback, or Failed. Saved JSON stores only the registered mode; generated permutations and metrics remain runtime data.
+Select a Point Field segment and open its Advanced transition controls to compare the supported
+correspondence modes. The inspector identifies the source and target Forms and reports Preparing,
+Ready, last-valid fallback, or Failed. Saved JSON stores only authored parameters; generated
+permutations and metrics remain runtime data.
 
 ## Current procedural Shapes
 
@@ -235,17 +258,18 @@ Select a World clip and open **Transition in → Correspondence** to compare Ind
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
 
-`bust-v1` is the canonical final World. `orbital-system-v1` remains registered for legacy draft
+`bust-v1` is the canonical final Form. `orbital-system-v1` remains registered for legacy draft
 compatibility but is not part of the canonical sequence.
 
-Use **World → Replace Shape → Try** to preview a replacement at the same playhead. **Apply** is one undoable transaction. **Cancel** restores the active compiled plan. While a new Shape generates, the last valid buffers remain visible.
+Use the Point Field state inspector to change a Form. The change is one undoable transaction. While
+a new Shape generates, the last-valid compiled plan and buffers remain visible.
 
 ## Modifiers and clocks
 
 A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
 
 - Ambient drift
-- Swarm life: independent 3D motion driven by the Sequence-level **Shared turbulence** profile. The cluster and turbulent field use the same full-strength profile; each World exposes only a local strength multiplier, allowing the same motion to taper smoothly into the calm field.
+- Swarm life: independent 3D motion driven by the Sequence-level **Shared turbulence** profile. The cluster and turbulent field use the same full-strength profile; each Form exposes only a local strength multiplier, allowing the same motion to taper smoothly into the calm field.
 - Group emphasis
 - Living wave
 - Living colour
@@ -256,7 +280,7 @@ A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
   authored camera holds. **Platform spin** controls the ambient speed; zero pauses it. Reduced
   Motion settles the platform without continuous rotation.
 
-Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The World-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
+Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The Form-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
 
 Two clocks keep editing reproducible:
 
@@ -265,7 +289,7 @@ Two clocks keep editing reproducible:
 - `mixed`: authored state plus a bounded ambient layer
 
 Disable **Live ambient** to freeze ambient movement while comparing frames. The canonical ending has
-no pointer-owned sculpture rotation: camera movement, World morphing, the Bust rotation modifier,
+no pointer-owned sculpture rotation: camera movement, Point Field transitions, the Bust rotation modifier,
 and global Visibility carry the complete final beat.
 
 ## Text editing
@@ -277,7 +301,7 @@ and global Visibility carry the complete final beat.
 3. Select the new Text field, edit its statement, and set its start, focus, and end WU.
 4. Drag the complete field to retime it without changing its internal reading interval.
 
-Clicking a clip selects and highlights it. Clicking a Camera/Visibility key, World start, Text field,
+Clicking a clip selects and highlights it. Clicking a Camera/Visibility key, Point Field key, Text field,
 or Motion activation marker also snaps the global playhead to that exact WU. Clicking a track name
 opens that track's global controls without requiring an empty-canvas click.
 
@@ -299,7 +323,7 @@ into hundreds of keyframes.
 
 ### Edit the six-discipline reveal
 
-Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the
+Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field Form for the
 complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
 point emphasis. Each projected label uses the shared editorial reading line as its single reveal clock
 and remains revealed during forward travel. The clip never owns camera, fog, or whole-system visibility.
@@ -342,33 +366,40 @@ The development server:
 6. Writes, flushes, and atomically renames a same-directory temporary file.
 7. Returns the new hash.
 
-Status meanings:
+Director reliability state is explicit:
 
-- **Draft:** valid unsaved edits exist.
-- **Saving:** a snapshot is being written; editing can continue.
-- **Saved:** the exact sent snapshot is now the baseline.
-- **Save failed:** work remains local and can be retried or exported.
-- **Source changed:** another writer changed the file; Save returns 409 rather than overwriting it.
+- **Source:** loading, ready, read-only, or failed.
+- **Draft:** revision, dirty state, and valid or invalid.
+- **Preview:** saved, valid draft, last-valid fallback, or preparing candidate.
+- **Save:** idle, saving, saved, failed, or conflict.
+- **Recovery:** current, stale, expired, invalid, future, unreadable, or failed.
 
-Edits made while Save is in flight remain dirty after the response. Recovery drafts save after a debounce and on `pagehide`. A stale draft never applies automatically; the editor offers Recover as unsaved copy, Export, or Discard.
+Save submits an immutable `{document, revision, baselineHash}` snapshot. A normalized server response
+becomes the clean document only when no newer edit exists. If editing continues during Save, the new
+hash advances the baseline while the current draft remains dirty. Recovery drafts save after a
+debounce and on `pagehide`. A stale draft never applies automatically; the editor offers Recover as
+unsaved copy, Export, or Discard.
+
+A `409` conflict never overwrites or auto-merges local work. Director offers Export local, a stable-ID
+comparison, a retry when the canonical fetch fails, and confirmed Reload. Checkpoints expose valid,
+invalid, and future-editor entries instead of silently dropping protected data.
 
 The router preserves `?edit=1`, and editor-originated writes do not trigger Vite's generic content reload. Save therefore keeps the same editor URL, selection, and playhead open.
 
-Schema v5 deliberately has one global fog pair. Legacy v3/v4 sources migrate automatically only
-when every Camera key and responsive override agrees with that pair. A source with genuinely
-divergent per-key fog cannot be converted losslessly, so migration fails closed with a
-`camera-fog-migration-divergence` diagnostic and preserves the exact original as a recovery/export
-payload. The editor never averages or silently drops those authored fog changes; resolve them into
-one intentional global pair before importing the document as v5.
+Schema v6 is canonical. The persistence boundary owns migration from v5, including recovery,
+clipboard, checkpoint, import, and canonical-load paths. A migration that cannot preserve authored
+meaning fails closed and retains the original value for recovery or export. Director never creates a
+parallel v3 schema or compatibility adapter.
 
 ## Safeguards
 
-Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown adapters/Shapes/modifiers, broken numeric values, unsupported transitions, invalid buffers, or a missing protected final World and publishable finale.
+Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown Forms,
+modifiers, or transitions, broken numeric values, invalid buffers, or a missing protected finale.
 
 The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, legacy procedural-bust fallback, and accessible editorial content when WebGL is unavailable.
 
 The protected reduced-motion profile step-samples camera and visibility, removes continuous flight,
-depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled World
+depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled Form
 states, and the six labels only during their authored interval.
 
 ## Adding a new Shape generator
@@ -380,7 +411,7 @@ states, and the six labels only during their authored interval.
 5. Add schema/compiler and density tests in `scripts/check-about-narrative.mjs`.
 6. Verify Try, Apply, Cancel, incoming boundary, outgoing boundary, mobile, and reduced motion.
 
-## Adding a future World adapter
+## Adding a future point-field adapter
 
 A future adapter must use the shared renderer, scene, camera, resources, playhead, and RAF. It registers an ID and capabilities for Shapes, morphing, crossfade, interaction, reduced motion, renderer features, and resource cost. JSON can select registered IDs; it can never inject executable code.
 
@@ -390,9 +421,12 @@ An adapter must support preparation cancellation, explicit activation weight, de
 
 ```bash
 npm run check:about-narrative
+npm run check:about-narrative-hardening
 npm run audit:about-narrative
 ABS_BROWSER=webkit npm run audit:about-narrative
+npm run audit:about-narrative-runtime-soak
 npm run check:site
+npm run certify:about-narrative
 ```
 
 The browser audit verifies exact-WU sampling, the direct Position/Rotation/FOV camera rig, global fog,
@@ -401,6 +435,6 @@ boundaries, keyframe navigation, discipline anchors and palette mapping, text ed
 readiness, timeline collapse, and editor clearance above the persistent Button Bar.
 
 The certification runtime-visual audit captures the full authored arc at 32 exact Story WU
-checkpoints. It records World and Visibility state and produces independent-review contact sheets for
+checkpoints. It records Point Field and Visibility state and produces independent-review contact sheets for
 desktop, mobile, and reduced motion. These contact sheets are required release evidence, not optional
-debug output.
+debug output. Run certification from a clean isolated checkout so its source commit is exact.

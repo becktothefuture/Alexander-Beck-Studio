@@ -82,8 +82,47 @@ const POINT_FIELD_PROFILE_PATCH_KEYS = Object.freeze({
   'point-field-segment': new Set(['transition']),
 });
 
+export function getAboutNarrativeSaveEligibility(snapshot) {
+  if (!snapshot) return Object.freeze({ allowed: false, code: 'missing-state', reason: 'The editor is not ready.' });
+  if (snapshot.sourceState?.readOnly || snapshot.sourceState?.status === 'read-only') {
+    return Object.freeze({ allowed: false, code: 'read-only', reason: 'The canonical source is read-only.' });
+  }
+  if (snapshot.sourceState?.status === 'loading') {
+    return Object.freeze({ allowed: false, code: 'source-loading', reason: 'Wait for the canonical source to finish loading.' });
+  }
+  if (snapshot.sourceState?.status === 'failed') {
+    return Object.freeze({ allowed: false, code: 'source-failed', reason: 'The canonical source could not be loaded.' });
+  }
+  if (snapshot.saveState?.status === 'saving') {
+    return Object.freeze({ allowed: false, code: 'saving', reason: 'Save is already in progress.' });
+  }
+  if (snapshot.saveState?.status === 'conflict' || snapshot.conflictState?.available) {
+    return Object.freeze({ allowed: false, code: 'conflict', reason: 'Resolve the canonical conflict before saving.' });
+  }
+  if (!snapshot.dirty) {
+    return Object.freeze({ allowed: false, code: 'clean', reason: 'There are no unsaved changes.' });
+  }
+  if (!snapshot.baselineHash) {
+    return Object.freeze({ allowed: false, code: 'missing-baseline', reason: 'The canonical source hash is unavailable.' });
+  }
+  const invalid = snapshot.draftState?.valid === false
+    || (snapshot.diagnostics || []).some((item) => item.level === 'error');
+  if (invalid) {
+    return Object.freeze({ allowed: false, code: 'invalid-draft', reason: 'Resolve the draft errors before saving.' });
+  }
+  if (snapshot.gestureState || snapshot.tryState) {
+    return Object.freeze({ allowed: false, code: 'edit-in-progress', reason: 'Finish or cancel the active edit before saving.' });
+  }
+  return Object.freeze({ allowed: true, code: 'ready', reason: '' });
+}
+
 const clone = (value) => structuredClone(value);
 const documentsMatch = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const freezeOwned = (value) => {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  Object.values(value).forEach(freezeOwned);
+  return Object.freeze(value);
+};
 const documentBytes = (document) => JSON.stringify(document).length * 2;
 const cleanWU = (value) => Number(Number(value).toFixed(6));
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
@@ -603,15 +642,56 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     gestureState: null,
     tryState: null,
     rejectedEdit: null,
-    saveState: { status: 'saved', message: '', savedAt: null },
+    sourceState: { status: baselineHash ? 'ready' : 'loading', message: '', readOnly: false },
+    draftState: { revision: 0, dirty: false, valid: initialCompiled.plan.valid },
+    previewDocumentState: {
+      status: initialCompiled.plan.valid ? 'valid-draft' : 'last-valid-fallback',
+      revision: 0,
+      preparing: false,
+    },
+    saveState: { status: 'idle', message: '', savedAt: null },
+    recoveryState: { status: 'none', available: false, message: '' },
+    checkpointState: { status: 'idle', items: [], message: '' },
+    conflictState: {
+      available: false,
+      currentHash: '',
+      remoteDocument: null,
+      localDocument: null,
+      comparison: null,
+      message: '',
+    },
     dirty: false,
     revision: 0,
   };
 
-  const emit = () => listeners.forEach((listener) => listener());
-  const saveStateForDirty = (dirty) => (snapshot.saveState.status === 'saving'
+  const refreshReliabilityState = () => {
+    const valid = !(snapshot.diagnostics || []).some((item) => item.level === 'error');
+    const previewStatus = snapshot.previewDocumentState?.preparing
+      ? 'preparing-candidate'
+      : valid
+        ? snapshot.dirty ? 'valid-draft' : 'saved'
+        : 'last-valid-fallback';
+    snapshot = {
+      ...snapshot,
+      draftState: {
+        revision: snapshot.revision,
+        dirty: snapshot.dirty,
+        valid,
+      },
+      previewDocumentState: {
+        ...snapshot.previewDocumentState,
+        status: previewStatus,
+        revision: snapshot.revision,
+      },
+    };
+  };
+  const emit = () => {
+    refreshReliabilityState();
+    listeners.forEach((listener) => listener());
+  };
+  const saveStateForDirty = (dirty) => (['saving', 'conflict'].includes(snapshot.saveState.status)
     ? snapshot.saveState
-    : { ...snapshot.saveState, status: dirty ? 'draft' : 'saved' });
+    : { ...snapshot.saveState, status: dirty ? 'idle' : 'saved' });
 
   const refreshHistoryState = () => {
     snapshot = {
@@ -1275,24 +1355,121 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
         atWU,
       }));
     },
+    installSource(document, hash, {
+      status = 'ready',
+      message = '',
+      readOnly = false,
+      migrations = [],
+    } = {}) {
+      const compiled = compileCandidate(document);
+      if (!compiled.plan.valid) {
+        snapshot = {
+          ...snapshot,
+          sourceState: {
+            status: readOnly ? 'read-only' : 'failed',
+            message: message || 'The canonical source is not valid.',
+            readOnly: Boolean(readOnly),
+            diagnostics: clone(compiled.plan.diagnostics || []),
+          },
+        };
+        emit();
+        return false;
+      }
+      const preserveDraft = snapshot.dirty;
+      const baselineDocument = clone(compiled.document);
+      if (!preserveDraft) {
+        history = [];
+        historyIndex = -1;
+        historyBytes = 0;
+        snapshot = {
+          ...snapshot,
+          document: clone(compiled.document),
+          compiledPlan: compiled.plan,
+          lastValidPlan: compiled.plan,
+          diagnostics: clone(compiled.plan.diagnostics || []),
+          selection: normalizeSelection(snapshot.selection, compiled.document, legacySelectionMap),
+          transport: normalizeTransport(snapshot.transport, compiled.plan.durationWU),
+          revision: 0,
+        };
+        refreshHistoryState();
+      }
+      const dirty = preserveDraft && !documentsMatch(snapshot.document, baselineDocument);
+      snapshot = {
+        ...snapshot,
+        baselineDocument,
+        baselineHash: String(hash || ''),
+        dirty,
+        sourceState: {
+          status,
+          message,
+          readOnly: Boolean(readOnly),
+          migrations: clone(migrations),
+        },
+        saveState: { status: dirty ? 'idle' : 'saved', message: '', savedAt: null },
+      };
+      emit();
+      return true;
+    },
+    setSourceState(sourceState) {
+      snapshot = {
+        ...snapshot,
+        sourceState: { ...snapshot.sourceState, ...clone(sourceState) },
+      };
+      emit();
+    },
+    setPreviewCandidatePreparing(preparing) {
+      snapshot = {
+        ...snapshot,
+        previewDocumentState: {
+          ...snapshot.previewDocumentState,
+          preparing: Boolean(preparing),
+        },
+      };
+      emit();
+    },
     createSaveSubmission() {
-      return Object.freeze({
-        document: clone(snapshot.document),
+      return freezeOwned({
+        document: freezeOwned(clone(snapshot.document)),
         baselineHash: snapshot.baselineHash,
         revision: snapshot.revision,
       });
     },
-    markSaved(document, hash, submittedRevision = snapshot.revision) {
-      const persisted = clone(document);
-      const newerEditsExist = snapshot.revision !== submittedRevision;
-      const dirty = !documentsMatch(snapshot.document, persisted);
+    beginSave() {
+      if (!store.getSaveEligibility().allowed) return null;
+      const submission = store.createSaveSubmission();
       snapshot = {
         ...snapshot,
+        saveState: {
+          status: 'saving',
+          message: 'Validating and saving…',
+          submittedRevision: submission.revision,
+        },
+      };
+      emit();
+      return submission;
+    },
+    markSaved(document, hash, submittedRevision = snapshot.revision) {
+      const newerEditsExist = snapshot.revision !== submittedRevision;
+      const persistedCandidate = compileCandidate(document);
+      const persisted = clone(persistedCandidate.document);
+      const installPersisted = !newerEditsExist && persistedCandidate.plan.valid;
+      const dirty = installPersisted ? false : !documentsMatch(snapshot.document, persisted);
+      snapshot = {
+        ...snapshot,
+        ...(installPersisted ? {
+          document: clone(persisted),
+          compiledPlan: persistedCandidate.plan,
+          lastValidPlan: persistedCandidate.plan,
+          diagnostics: clone(persistedCandidate.plan.diagnostics || []),
+          selection: normalizeSelection(snapshot.selection, persisted, legacySelectionMap),
+          transport: normalizeTransport(snapshot.transport, persistedCandidate.plan.durationWU),
+        } : {}),
         baselineDocument: persisted,
         baselineHash: hash,
         dirty,
+        sourceState: { ...snapshot.sourceState, status: 'ready', readOnly: false },
         saveState: {
-          status: dirty ? 'draft' : 'saved',
+          status: dirty ? 'idle' : 'saved',
           message: newerEditsExist && dirty
             ? 'The submitted revision was saved. Newer edits remain in this draft.'
             : '',
@@ -1300,9 +1477,107 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
           submittedRevision,
           persistedRevision: submittedRevision,
         },
+        conflictState: {
+          available: false,
+          currentHash: '',
+          remoteDocument: null,
+          localDocument: null,
+          comparison: null,
+          message: '',
+        },
       };
       emit();
       return Object.freeze({ clean: !dirty, newerEditsExist });
+    },
+    markSaveFailed(error) {
+      snapshot = {
+        ...snapshot,
+        saveState: {
+          status: 'failed',
+          message: error?.message || String(error || 'Save failed.'),
+          failedAt: Date.now(),
+          diagnostics: clone(error?.diagnostics || []),
+        },
+      };
+      emit();
+    },
+    markConflict({ currentHash = '', remoteDocument = null, localDocument = null, comparison = null, message = '' } = {}) {
+      snapshot = {
+        ...snapshot,
+        saveState: {
+          status: 'conflict',
+          message: message || 'The canonical source changed while this draft was open.',
+        },
+        conflictState: {
+          available: true,
+          currentHash,
+          remoteDocument: clone(remoteDocument),
+          localDocument: clone(localDocument || snapshot.document),
+          comparison: clone(comparison),
+          message,
+        },
+      };
+      emit();
+    },
+    clearConflict() {
+      snapshot = {
+        ...snapshot,
+        saveState: { ...snapshot.saveState, status: snapshot.dirty ? 'idle' : 'saved', message: '' },
+        conflictState: {
+          available: false,
+          currentHash: '',
+          remoteDocument: null,
+          localDocument: null,
+          comparison: null,
+          message: '',
+        },
+      };
+      emit();
+    },
+    reloadSource(document, hash) {
+      const changed = store.replaceDocument('Reload canonical source', document, { requireValid: true });
+      if (!changed && !documentsMatch(snapshot.document, document)) return false;
+      store.markBaseline(document, hash);
+      snapshot = {
+        ...snapshot,
+        sourceState: { status: 'ready', message: '', readOnly: false },
+        conflictState: {
+          available: false,
+          currentHash: '',
+          remoteDocument: null,
+          localDocument: null,
+          comparison: null,
+          message: '',
+        },
+      };
+      emit();
+      return true;
+    },
+    restoreBaseline() {
+      if (documentsMatch(snapshot.document, snapshot.baselineDocument)) return false;
+      return store.replaceDocument('Restore last saved', snapshot.baselineDocument, { requireValid: true });
+    },
+    setRecoveryState(recoveryState) {
+      snapshot = {
+        ...snapshot,
+        recoveryState: {
+          status: 'none',
+          available: false,
+          message: '',
+          ...clone(recoveryState),
+        },
+      };
+      emit();
+    },
+    setCheckpointState(checkpointState) {
+      snapshot = {
+        ...snapshot,
+        checkpointState: { ...snapshot.checkpointState, ...clone(checkpointState) },
+      };
+      emit();
+    },
+    getSaveEligibility() {
+      return getAboutNarrativeSaveEligibility(snapshot);
     },
     markBaseline(document = snapshot.document, hash = snapshot.baselineHash) {
       const baseline = clone(document);
@@ -1312,7 +1587,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
         baselineDocument: baseline,
         baselineHash: hash,
         dirty,
-        saveState: { status: dirty ? 'draft' : 'saved', message: '', savedAt: Date.now() },
+        saveState: { status: dirty ? 'idle' : 'saved', message: '', savedAt: Date.now() },
       };
       emit();
     },

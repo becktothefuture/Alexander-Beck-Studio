@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+
+import { createAnnouncementDeduper } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDirectorDiagnostics.js';
+
+const editor = await readFile(new URL(
+  '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeEditor.jsx',
+  import.meta.url,
+), 'utf8');
+const styles = await readFile(new URL(
+  '../react-app/app/src/routes/about-narrative-lab/about-narrative-editor.css',
+  import.meta.url,
+), 'utf8');
+
+test('announcements are deduplicated before reaching the polite live region', () => {
+  const announce = createAnnouncementDeduper();
+  assert.equal(announce('Saved.'), 'Saved.');
+  assert.equal(announce('Saved.'), '');
+  assert.equal(announce('Unsaved changes.'), 'Unsaved changes.');
+  assert.equal(announce(''), '');
+  assert.ok(editor.includes('announcementDeduperRef.current'));
+  assert.ok(editor.includes('aria-atomic="true"'));
+});
+
+test('modeless panels close without trapping focus and restore their triggers', () => {
+  [
+    'menuTriggerRef.current?.focus()',
+    'diagnosticsTriggerRef.current?.focus()',
+    "event.key === 'Escape'",
+    'closeDiagnostics({ restoreFocus: false })',
+    'role="dialog"',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+  assert.ok(!editor.includes("event.key !== 'Tab'"), 'modeless panels must not trap Tab');
+  assert.ok(!editor.includes('document.activeElement === first'), 'modeless panels must not wrap focus');
+  assert.ok(
+    editor.includes("event.key === 'Escape' && diagnosticsOpen"),
+    'the global editor shortcut handler must close Diagnostics after focus leaves the panel',
+  );
+});
+
+test('shortcuts stay region scoped and Slash remains exclusive', () => {
+  [
+    'isEditorTypingTarget(target)',
+    'isSlashKey(event)',
+    'event.stopImmediatePropagation()',
+    "!editorRef.current?.contains(target)",
+    'if (controlOwnsKeyboard && !command) return;',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+});
+
+test('save errors, inline errors, visible focus, effective targets, and reflow are explicit', () => {
+  [
+    'aria-disabled={!saveEligibility.allowed}',
+    "aria-describedby={saveBlockingReason ? 'about-director-save-errors'",
+    'data-save-allowed=',
+    'setMessage(saveBlockingReason)',
+    'className="about-director-save-block-reason"',
+    'aria-live="polite"',
+    "aria-invalid={error ? 'true'",
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+  [
+    ".about-track-editor [aria-invalid='true']",
+    '.about-director-inline-error',
+    '@media (max-width: 700px)',
+    'min-height: 44px',
+    '@media (max-width: 380px)',
+    '.about-director-visually-hidden',
+    '.about-track-editor-clip::after',
+    '.about-point-field-key::before',
+    'width: max(44px, 100%)',
+    '.about-track-editor-actions > .about-director-menu-root > button',
+    'min-width: 44px',
+  ].forEach((token) => assert.ok(styles.includes(token), `missing ${token}`));
+});
+
+test('timeline clips expose direct keyboard selection and guarded movement', () => {
+  [
+    'onClick={selectObject}',
+    "event.key === 'Enter' || event.key === ' '",
+    "['ArrowLeft', 'ArrowRight'].includes(event.key)",
+    'if (locked) return;',
+    'store.moveSelection(direction * (event.shiftKey ? 0.1 : 0.01))',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+});
+
+test('add disclosures use ordinary controls and conflict focus return is refreshed', () => {
+  [
+    'aria-controls={track.id === \'text\'',
+    'id="about-director-add-text"',
+    'id="about-director-add-motion"',
+    'menuTriggerRef.current = document.activeElement instanceof HTMLElement',
+    'ref={documentMenuTriggerRef}',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+  assert.ok(!editor.includes('role="menu"'), 'add disclosure must not claim menu semantics');
+  assert.ok(!editor.includes('role="menuitem"'), 'add disclosure controls are ordinary buttons');
+});

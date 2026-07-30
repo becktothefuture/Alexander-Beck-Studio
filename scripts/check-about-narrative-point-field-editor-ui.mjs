@@ -76,6 +76,11 @@ test('Point field controls retain editor accessibility and responsive affordance
   assert.equal(component.includes('role="listitem"'), false);
   assert.ok(component.includes('index - ((ids.length - 1) / 2)'));
   assert.match(styles, /\.about-point-field-key[\s\S]*?min-width: 24px;[\s\S]*?min-height: 24px !important;/);
+  assert.match(
+    styles,
+    /\.about-point-field-key \{[\s\S]*?filter: none !important;[\s\S]*?transform: translate\(-50%, -50%\) !important;/,
+    'global button hover and press effects must not move or blur timeline keys',
+  );
   assert.match(styles, /top: calc\(27px \+ \(var\(--point-key-stack, 0\) \* 24px\)\)/);
   assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.about-point-field-state-library > button \{ min-height: 52px; \}/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);

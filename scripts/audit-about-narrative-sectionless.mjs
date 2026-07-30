@@ -236,13 +236,29 @@ async function auditEditor() {
   );
   const pointKeyTargets = await pointFieldKeys.evaluateAll((nodes) => nodes.map((node) => {
     const rect = node.getBoundingClientRect();
-    return { width: rect.width, height: rect.height };
+    const hitArea = getComputedStyle(node, '::before');
+    return {
+      width: rect.width,
+      height: rect.height,
+      effectiveWidth: Number.parseFloat(hitArea.width),
+      effectiveHeight: Number.parseFloat(hitArea.height),
+    };
   }));
   assert.equal(
-    pointKeyTargets.every(({ width, height }) => width >= 24 && height >= 24),
+    pointKeyTargets.every(({ width, height, effectiveWidth, effectiveHeight }) => (
+      width >= 24 && height >= 24 && effectiveWidth >= 24 && effectiveHeight >= 24
+    )),
     true,
-    'Point field keys must retain accessible hit targets.',
+    'Point field keys must retain their authored geometry with effective 24px hit targets.',
   );
+  const saveButton = page.getByRole('button', { name: 'Saved' });
+  assert.equal(await saveButton.getAttribute('aria-disabled'), 'true');
+  await saveButton.focus();
+  assert.equal(await saveButton.evaluate((node) => document.activeElement === node), true, 'Blocked Save must remain focusable.');
+  assert.equal(await page.locator('#about-director-save-errors[role="status"]').isVisible(), true, 'Blocked Save needs a visible live reason.');
+  await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
+  assert.equal(await page.locator('#about-director-add-text [role="menuitem"]').count(), 0, 'Add Text disclosure must use ordinary buttons.');
+  await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
   const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
   assert.equal(await textResizeHandles.count(), 4, 'Only editable non-Title Text clips need duration handles.');
   assert.equal(
@@ -527,7 +543,8 @@ async function auditEditor() {
   });
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-desktop.png` });
 
-  await page.getByRole('button', { name: 'Checkpoint' }).click();
+  await page.getByRole('button', { name: 'Document', exact: true }).click();
+  await page.getByRole('button', { name: 'Create checkpoint' }).click();
   await page.waitForFunction(() => document.querySelector('.about-track-editor-status p')?.textContent === 'Checkpoint saved locally.');
   const checkpoint = await page.evaluate(() => {
     const stored = JSON.parse(localStorage.getItem('abs:about-narrative:checkpoints:v1') || '[]');
@@ -538,11 +555,12 @@ async function auditEditor() {
   assert.match(checkpoint.name, /^Manual checkpoint · /);
 
   await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
+  const addTextPanel = page.getByLabel('Create Text field');
   assert.deepEqual(
-    await page.getByRole('menuitem').allTextContents(),
+    await addTextPanel.getByRole('button').allTextContents(),
     ['Title', 'Scroll block', 'Third type Stub · Draft'],
   );
-  await page.getByRole('menuitem', { name: /Third type/ }).click();
+  await addTextPanel.getByRole('button', { name: /Third type/ }).click();
   const draft = await page.evaluate(() => ({
     clipCount: document.querySelectorAll('[data-text-kind="stub"]').length,
     semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
@@ -666,6 +684,22 @@ async function auditEditor() {
   await page.getByRole('button', { name: 'Undo' }).click();
   assert.equal(Number(await revealSlider.inputValue()), initialRevealThreshold);
 
+  const diagnosticsTrigger = page.getByRole('button', { name: /^Diagnostics/ });
+  await diagnosticsTrigger.click();
+  await page.getByRole('button', { name: 'Play timeline' }).focus();
+  await page.keyboard.press('Escape');
+  await assert.doesNotReject(() => page.locator('.about-director-diagnostics').waitFor({ state: 'hidden' }));
+  await page.waitForFunction(() => (
+    document.activeElement === document.querySelector(
+      '.about-track-editor-actions button[aria-controls="about-director-diagnostics"]',
+    )
+  ));
+  assert.equal(
+    await diagnosticsTrigger.evaluate((node) => document.activeElement === node),
+    true,
+    'Escape must close Diagnostics and restore its trigger after focus leaves the drawer.',
+  );
+
   await page.getByRole('button', { name: 'Tablet' }).click();
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile === 'tablet');
   await selectPreviewOrientation('portrait');
@@ -784,7 +818,9 @@ async function auditEditor() {
   assert.ok(mobileDurationHandle.height >= 36, `Mobile duration handle was ${mobileDurationHandle.height}px tall.`);
   const inspector = page.getByRole('region', { name: 'Selected object inspector' });
   await assert.doesNotReject(() => inspector.waitFor({ state: 'hidden' }));
-  const inspectorToggle = page.getByRole('button', { name: 'Inspector' });
+  const inspectorToggle = page
+    .getByLabel('Phone authoring panel')
+    .getByRole('button', { name: 'Inspector', exact: true });
   const touchHeight = await inspectorToggle.evaluate((node) => node.getBoundingClientRect().height);
   assert.ok(touchHeight >= 44, `Mobile Inspector target was ${touchHeight}px tall.`);
   await inspectorToggle.click();
