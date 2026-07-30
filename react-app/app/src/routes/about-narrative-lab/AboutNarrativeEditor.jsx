@@ -1850,7 +1850,9 @@ function ObjectInspector({ snapshot, store, onMessage }) {
               </div>
             </>
           ) : null}
-          {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters.map((control) => {
+          {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters
+            .filter((control) => control.group)
+            .map((control) => {
             if (control.type === 'select') {
               return (
                 <SelectField

@@ -503,7 +503,7 @@ test('the opening travels continuously from cluster through turbulence into the 
   assert.ok(background.worldState.transition.endWU > background.worldState.transition.startWU);
 });
 
-test('discipline reveal owns one extended clip, a paced camera handoff, and six spaced anchors', () => {
+test('discipline reveal owns one extended clip, a paced camera handoff, and six lower-half anchors', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const background = plan.sections[2];
   const practice = plan.sections[3];
@@ -555,9 +555,9 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and six 
   assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
   assert.ok(Math.min(...horizontalPositions) >= 0.4);
   assert.ok(Math.max(...horizontalPositions) <= 0.5);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.5);
-  assert.ok(Math.min(...verticalGaps) >= 0.1);
-  assert.ok(Math.min(...verticalPositions) >= 0.15);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.4);
+  assert.ok(Math.min(...verticalGaps) >= 0.06);
+  assert.ok(Math.min(...verticalPositions) >= 0.5);
   assert.ok(Math.max(...verticalPositions) <= 0.95);
 });
 

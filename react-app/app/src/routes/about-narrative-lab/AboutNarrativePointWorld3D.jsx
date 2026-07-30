@@ -1131,7 +1131,6 @@ function createPointFieldAdapter({
   const disciplineWeights = new Float32Array(6);
   const disciplineLabelBaseReveal = new Float64Array(6);
   const disciplineSpatialReveal = new Float64Array(6);
-  const disciplineArrivalHold = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
@@ -1862,7 +1861,6 @@ function createPointFieldAdapter({
     disciplineWeights.fill(0);
     disciplineLabelBaseReveal.fill(0);
     disciplineSpatialReveal.fill(0);
-    disciplineArrivalHold.fill(0);
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
@@ -1874,35 +1872,20 @@ function createPointFieldAdapter({
         : smoothRange(
           storyWU,
           revealState.startWU,
-          revealState.startWU + Math.max(0.001, revealState.labelDurationWU * 0.65),
+          revealState.startWU + Math.max(0.001, revealState.backgroundFadeWU),
         );
       const exitStartWU = Math.max(
         revealState.startWU,
         revealState.endWU - Math.max(0.001, Number(revealState.restoreDurationWU || 0.1)),
       );
       const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
-      for (let orderIndex = 0; orderIndex < reveal.items.length; orderIndex += 1) {
-        const item = reveal.items[orderIndex];
-        const itemStartWU = revealState.startWU + (orderIndex * revealState.staggerWU);
-        const itemReveal = reducedActive
-          ? 1
-          : smoothRange(storyWU, itemStartWU, itemStartWU + revealState.labelDurationWU);
-        // The physical grid decides when an anchor reaches the reading line.
-        // Keep each item available after timed introduction, then release it as
-        // the next discipline arrives so one label owns the moment.
-        disciplineArrivalHold[item.group - 1] = reducedActive
-          ? 1
-          : smoothRange(
-            storyWU,
-            itemStartWU + (revealState.labelDurationWU * 0.75),
-            itemStartWU + revealState.labelDurationWU,
-          );
-        if (reducedActive) disciplineWeights[item.group - 1] = itemReveal * restoreWeight;
-        const labelReveal = storyWU <= revealState.endWU
-          ? itemReveal * activationProgress * (1 - exitProgress) * restoreWeight
-          : 0;
+      const labelReveal = storyWU <= revealState.endWU
+        ? activationProgress * (1 - exitProgress) * restoreWeight
+        : 0;
+      reveal.items.forEach((item) => {
         disciplineLabelBaseReveal[item.group - 1] = labelReveal;
-      }
+        if (reducedActive) disciplineWeights[item.group - 1] = labelReveal;
+      });
     }
 
     if (revealAvailable) {
@@ -2038,9 +2021,8 @@ function createPointFieldAdapter({
               Math.max(0.04, approachBandY * 0.3),
             );
             const departureReveal = bottomDepartureReveal * topDepartureReveal;
-            // Discipline anchors travel upward through the plan-view camera.
-            // Reveal as they approach the reading line from below, then retain
-            // the time-authored arrival so copy never blinks after crossing it.
+            // The projected anchor crossing is the sole reveal clock. The
+            // reading-line controls therefore map directly to viewport depth.
             const spatialDotReveal = 1 - smoothRange(
               viewportY,
               viewportEntryY,
@@ -2051,14 +2033,8 @@ function createPointFieldAdapter({
               viewportEntryY,
               viewportEntryY + (approachBandY * 0.35),
             );
-            const dotReveal = Math.max(
-              spatialDotReveal,
-              disciplineArrivalHold[group - 1],
-            ) * departureReveal;
-            const labelReveal = Math.max(
-              spatialLabelReveal,
-              disciplineArrivalHold[group - 1],
-            ) * departureReveal;
+            const dotReveal = spatialDotReveal * departureReveal;
+            const labelReveal = spatialLabelReveal * departureReveal;
             const globalReveal = disciplineLabelBaseReveal[group - 1];
             const spatialReveal = globalReveal * labelReveal;
             disciplineWeights[group - 1] = globalReveal * dotReveal;

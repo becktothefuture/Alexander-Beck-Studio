@@ -581,10 +581,10 @@ async function auditEditor() {
   await revealSlider.press('Tab');
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-lab')?.style
-      .getPropertyValue('--about-editorial-reveal-threshold') === '0.79'
+      .getPropertyValue('--about-editorial-reveal-threshold') === '0.84'
   ));
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await revealSlider.inputValue(), '0.8');
+  assert.equal(await revealSlider.inputValue(), '0.85');
 
   await page.getByRole('button', { name: 'Tablet' }).click();
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile === 'tablet');

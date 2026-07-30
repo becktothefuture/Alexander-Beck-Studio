@@ -284,8 +284,13 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
-  const { worldRail, editorialMotion, ...legacyCompatibleGlobals } = globals;
-  const { standardViewportY, bookendViewportY, ...legacyCompatibleTextMotion } = legacyCompatibleGlobals.textMotion || {};
+  const worldRail = globals.worldRail;
+  const legacyCompatibleGlobals = { ...globals };
+  delete legacyCompatibleGlobals.worldRail;
+  delete legacyCompatibleGlobals.editorialMotion;
+  const legacyCompatibleTextMotion = { ...(legacyCompatibleGlobals.textMotion || {}) };
+  delete legacyCompatibleTextMotion.standardViewportY;
+  delete legacyCompatibleTextMotion.bookendViewportY;
   // Reuse the established v2 global contract without allowing the legacy
   // validator to see or normalize any authored track data.
   const shim = {
@@ -825,10 +830,6 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
       diagnostic(diagnostics, 'discipline-motion-fog-order', `${path}.parameters`, 'Discipline field fog start must precede its end.');
     }
   }
-  const labelCapacityWU = Number(clip.endWU) - Number(clip.activationWU);
-  if (Number(parameters.labelWindowWU) > labelCapacityWU + 0.000001) {
-    diagnostic(diagnostics, 'discipline-motion-label-window', `${path}.parameters.labelWindowWU`, 'The label window must fit between activationWU and the Motion clip end.');
-  }
   if (Number(parameters.restoreDurationWU) > Number(clip.endWU) - Number(clip.startWU) + 0.000001) {
     diagnostic(diagnostics, 'discipline-motion-restore-window', `${path}.parameters.restoreDurationWU`, 'Grid restore duration must fit inside the Discipline reveal Motion clip.');
   }
@@ -852,12 +853,6 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
     if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
   });
-  const labelSequenceWU = (Math.max(0, items.length - 1) * Number(parameters.staggerWU))
-    + Number(parameters.labelDurationWU)
-    + Number(parameters.holdWU);
-  if (labelSequenceWU > Number(parameters.labelWindowWU) + 0.000001) {
-    diagnostic(diagnostics, 'discipline-motion-timing', `${path}.parameters`, 'Label stagger, reveal duration, and hold must fit inside the label window.');
-  }
 }
 
 function validateLibrary(library, diagnostics) {

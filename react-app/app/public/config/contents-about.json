@@ -1424,9 +1424,9 @@
             "labelScale": 1.28,
             "labelDurationWU": 0.32,
             "holdWU": 0.18,
-            "readingLineY": 0.8,
-            "mobileReadingLineY": 0.8,
-            "approachBandY": 0.02,
+            "readingLineY": 0.9,
+            "mobileReadingLineY": 0.9,
+            "approachBandY": 0.06,
             "exitLineY": 0.92,
             "items": [
               {
@@ -1435,11 +1435,11 @@
                 "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
                   0.42,
-                  0.16
+                  0.56
                 ],
                 "mobilePosition": [
                   0.42,
-                  0.1
+                  0.55
                 ]
               },
               {
@@ -1448,11 +1448,11 @@
                 "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
                   0.43,
-                  0.31
+                  0.64
                 ],
                 "mobilePosition": [
                   0.43,
-                  0.27
+                  0.63
                 ]
               },
               {
@@ -1461,11 +1461,11 @@
                 "description": "I define the visual point of view that gives the work character, clarity, and intent.",
                 "position": [
                   0.42,
-                  0.46
+                  0.72
                 ],
                 "mobilePosition": [
                   0.42,
-                  0.44
+                  0.71
                 ]
               },
               {
@@ -1474,11 +1474,11 @@
                 "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
                   0.43,
-                  0.61
+                  0.8
                 ],
                 "mobilePosition": [
                   0.43,
-                  0.61
+                  0.79
                 ]
               },
               {
@@ -1487,11 +1487,11 @@
                 "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
                   0.43,
-                  0.76
+                  0.88
                 ],
                 "mobilePosition": [
                   0.43,
-                  0.78
+                  0.87
                 ]
               },
               {
@@ -1500,7 +1500,7 @@
                 "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
                   0.43,
-                  0.91
+                  0.95
                 ],
                 "mobilePosition": [
                   0.43,

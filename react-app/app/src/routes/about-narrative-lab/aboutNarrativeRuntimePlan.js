@@ -200,7 +200,7 @@ function compileDisciplineReveal(textFields, interactionClips) {
   const effectStartWU = Number(clip.startWU);
   const startWU = Number(clip.activationWU);
   const effectEndWU = Number(clip.endWU);
-  const endWU = Math.min(effectEndWU, startWU + Number(parameters.labelWindowWU));
+  const endWU = effectEndWU;
   const staggerWU = Number(parameters.staggerWU);
   const backgroundFadeWU = Number(parameters.backgroundFadeWU);
   const labelDurationWU = Number(parameters.labelDurationWU);

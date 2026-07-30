@@ -619,8 +619,8 @@ test('World C flies straight into plan view before the authored ripple orbit and
   assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
   assert.ok(Math.min(...horizontalPositions) >= 0.4);
   assert.ok(Math.max(...horizontalPositions) <= 0.5);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) >= 0.5);
-  assert.ok(Math.min(...verticalPositions) >= 0.08);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.4);
+  assert.ok(Math.min(...verticalPositions) >= 0.5);
   assert.ok(Math.max(...verticalPositions) <= 0.95);
   assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
 
@@ -645,7 +645,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
         (position[1] - other[1]) * (rows - 1),
       );
       const otherIndex = index + offset + 1;
-      assert.ok(dotDistance >= 10, `Discipline anchors ${index + 1} and ${otherIndex + 1} are only ${dotDistance.toFixed(2)} grid dots apart.`);
+      assert.ok(dotDistance >= 4.5, `Discipline anchors ${index + 1} and ${otherIndex + 1} are only ${dotDistance.toFixed(2)} grid dots apart.`);
     }));
   };
   const assertMinimumVerticalGridSeparation = (positions, pointCount) => {
@@ -655,22 +655,21 @@ test('World C flies straight into plan view before the authored ripple orbit and
       .map((position) => Math.round(position[1] * (rows - 1)))
       .sort((a, b) => a - b);
     orderedRows.slice(1).forEach((row, index) => {
-      assert.ok(row - orderedRows[index] >= 10, `Discipline rows ${index + 1} and ${index + 2} are fewer than 10 grid dots apart.`);
+      assert.ok(row - orderedRows[index] >= 4, `Discipline rows ${index + 1} and ${index + 2} are fewer than 4 grid dots apart.`);
     });
   };
   assertMinimumGridSeparation(disciplineReveal.parameters.items.map((item) => item.position), 12000);
   assertMinimumGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
   assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.position), 12000);
   assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
-  assert.ok(disciplineReveal.parameters.staggerWU * 5 >= 2.4);
-  assert.ok(disciplineReveal.parameters.staggerWU * 5 <= 2.6);
   assert.ok(keys.get('grid-birds-eye').position[1] <= keys.get('discipline-hold').position[1]);
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
-  assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) >= 0.8);
-  assert.equal(disciplineReveal.parameters.readingLineY, 0.8);
-  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.8);
-  assert.equal(disciplineReveal.parameters.approachBandY, 0.02);
+  assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) <= 0.4);
+  assert.ok(Math.min(...mobileVerticalPositions) >= 0.5);
+  assert.equal(disciplineReveal.parameters.readingLineY, 0.9);
+  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.9);
+  assert.equal(disciplineReveal.parameters.approachBandY, 0.06);
   const mobileRippleCenter = [
     rippleCenter[0],
     Number((background.transform.position[1]
@@ -742,7 +741,8 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.doesNotMatch(liveSources.world, /rippleScale/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
   assert.match(liveSources.world, /const viewportEntryY = Math\.max\([\s\S]*?const topDepartureReveal = smoothRange\([\s\S]*?const spatialDotReveal = 1 - smoothRange\([\s\S]*?viewportEntryY \+ approachBandY[\s\S]*?const spatialLabelReveal = 1 - smoothRange\(/);
-  assert.match(liveSources.world, /disciplineArrivalHold\[item\.group - 1\][\s\S]*?Math\.max\([\s\S]*?spatialLabelReveal[\s\S]*?disciplineArrivalHold\[group - 1\]/);
+  assert.match(liveSources.world, /projected anchor crossing is the sole reveal clock/);
+  assert.doesNotMatch(liveSources.world, /disciplineArrivalHold/);
   assert.match(liveSources.world, /disciplineWeights\[group - 1\] = globalReveal \* dotReveal/);
   assert.match(liveSources.world, /float disciplineMonochrome = disciplineIsolation \* \(1\.0 - revealedGroupWeight\)/);
   assert.doesNotMatch(liveSources.world, /packDisciplineOrder|preferredSide/);
