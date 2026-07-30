@@ -32,11 +32,6 @@ body.about-narrative-page .route-simulation-layer {
   visibility: visible;
 }
 
-.about-narrative-lab[data-editorial-in-view='true'] .about-narrative-world {
-  opacity: 0;
-  visibility: hidden;
-}
-
 .about-narrative-world__canvas {
   position: absolute;
   inset: 0;

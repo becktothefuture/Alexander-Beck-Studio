@@ -941,8 +941,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /\.about-narrative-client-logos \{[^}]*width: 100%;[^}]*\}/);
   assert.match(liveSources.styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(liveSources.styles, /last-child:nth-child\(odd\)/);
-  assert.match(liveSources.styles, /data-editorial-in-view='true'/);
+  assert.doesNotMatch(liveSources.styles, /data-editorial-in-view='true'[\s\S]*?about-narrative-world/);
   assert.match(liveSources.timeline, /editorialFields\.some/);
+  assert.match(liveSources.world, /latestFrame\?\.simulation\?\.visibility/);
+  assert.doesNotMatch(liveSources.world, /root\.dataset\.editorialInView !== 'true'/);
   assert.match(liveSources.editor, /EDITORIAL_MODULE_GAP_CONTROL/);
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);

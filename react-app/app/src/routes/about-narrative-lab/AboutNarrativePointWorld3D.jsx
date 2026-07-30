@@ -1035,7 +1035,8 @@ function createPointFieldAdapter({
   let atmosphereSourceKind = '';
   const syncAtmosphereSource = () => {
     if (!atmosphereEligible || disposed) return;
-    const nextKind = contextAvailable && root.dataset.editorialInView !== 'true'
+    const visibility = Number(latestFrame?.simulation?.visibility ?? 0);
+    const nextKind = contextAvailable && visibility > 0.001
       ? 'canvas'
       : 'ambient';
     if (nextKind === atmosphereSourceKind) return;
