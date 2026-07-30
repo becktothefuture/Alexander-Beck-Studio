@@ -5,6 +5,7 @@ import {
 } from './aboutNarrativeRuntimeConstants.js';
 import { resolveAboutNarrativePointProfile } from './aboutNarrativeProfileResolver.js';
 import { serializeAboutNarrativeSequenceIdentity } from './aboutNarrativeSequenceIdentity.js';
+import { resolveAboutNarrativePointFieldTransitionMotion } from './aboutNarrativePointFieldMotion.js';
 
 export const ABOUT_NARRATIVE_POINT_FIELD_PREPARATION_VARIANTS = Object.freeze([
   'standard',
@@ -316,17 +317,20 @@ export function createAboutNarrativePointFieldTimelineIdentity({
       atWU: canonicalNumber(key.atWU, 'key timing'),
       stateId: requireStableId(key.stateId, 'key state ID'),
     })),
-    segments: segments.map((segment) => ({
-      id: requireStableId(segment.id, 'segment ID'),
-      fromKeyId: requireStableId(segment.fromKeyId, 'segment source key ID'),
-      toKeyId: requireStableId(segment.toKeyId, 'segment target key ID'),
-      type: segment.transition?.type || 'morph',
-      easing: segment.transition?.easing || 'linear',
-      progress: segment.transition?.progress,
-      stagger: canonicalIdentityValue(segment.transition?.stagger || {}, 'transition stagger'),
-      path: canonicalIdentityValue(segment.transition?.path || {}, 'transition path'),
-      flatten: canonicalIdentityValue(segment.transition?.flatten || {}, 'transition flatten'),
-    })),
+    segments: segments.map((segment) => {
+      const motion = resolveAboutNarrativePointFieldTransitionMotion(segment.transition);
+      return {
+        id: requireStableId(segment.id, 'segment ID'),
+        fromKeyId: requireStableId(segment.fromKeyId, 'segment source key ID'),
+        toKeyId: requireStableId(segment.toKeyId, 'segment target key ID'),
+        type: segment.transition?.type || 'morph',
+        easing: segment.transition?.easing || 'linear',
+        progress: segment.transition?.progress,
+        stagger: canonicalIdentityValue(motion.stagger, 'transition stagger'),
+        path: canonicalIdentityValue(motion.path, 'transition path'),
+        flatten: canonicalIdentityValue(motion.flatten, 'transition flatten'),
+      };
+    }),
     interactions: [...interactionClips]
       .sort((left, right) => String(left.id).localeCompare(String(right.id)))
       .map((interaction) => ({

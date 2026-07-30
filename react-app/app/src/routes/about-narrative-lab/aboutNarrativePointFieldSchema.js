@@ -9,6 +9,14 @@ import {
   applyAboutNarrativeWorldTransitionEasing,
 } from './aboutNarrativeMotionMath.js';
 import {
+  ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
+  ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES,
+  ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS,
+  ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
+  ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES,
+  resolveAboutNarrativePointFieldTransitionMotion,
+} from './aboutNarrativePointFieldMotion.js';
+import {
   ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS,
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
   normalizeAboutNarrativeTrackDocument,
@@ -25,9 +33,6 @@ const V6_TRANSITION_TYPES = Object.freeze([
   'hold',
   'step-end',
 ]);
-const STAGGER_MODES = Object.freeze(['uniform', 'random', 'radial', 'axis']);
-const PATH_MODES = Object.freeze(['direct', 'arc', 'curl', 'noise']);
-const FLATTEN_MODES = Object.freeze(['none', 'toward-plane', 'from-plane']);
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
 const TRACK_KEYS = new Set(['camera', 'visibility', 'pointField', 'text', 'interactions']);
 const POINT_FIELD_KEYS = new Set(['stateDefinitions', 'keys', 'segments']);
@@ -55,7 +60,9 @@ const TRANSITION_KEYS = new Set([
   'path',
   'flatten',
 ]);
-const MOTION_KEYS = new Set(['mode', 'amount']);
+const STAGGER_KEYS = new Set(['mode', 'amount', 'axis', 'seed']);
+const PATH_KEYS = new Set(['mode', 'amount', 'axis', 'frequency', 'seed']);
+const FLATTEN_KEYS = new Set(['mode', 'amount', 'axis', 'offset']);
 const INTERACTION_KEYS = new Set([
   'id',
   'type',
@@ -211,21 +218,53 @@ function validateStateDefinition(state, diagnostics, path, seenIds) {
   });
 }
 
-function validateMotionEnvelope(value, modes, diagnostics, path) {
-  if (!unknownKeys(diagnostics, value, MOTION_KEYS, path)) return;
-  if (!modes.includes(value.mode)) diagnostic(diagnostics, 'transition-motion-mode', `${path}.mode`, 'Unsupported transition motion mode.');
-  if (!finite(value.amount) || Number(value.amount) < 0 || Number(value.amount) > 1) {
+function validateMotionEnvelope(value, definition, diagnostics, path) {
+  if (value == null) return;
+  if (!unknownKeys(diagnostics, value, definition.keys, path)) return;
+  if (value.mode != null && !definition.modes.includes(value.mode)) {
+    diagnostic(diagnostics, 'transition-motion-mode', `${path}.mode`, 'Unsupported transition motion mode.');
+  }
+  if (value.amount != null && (
+    !finite(value.amount)
+    || Number(value.amount) < ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.amount.min
+    || Number(value.amount) > ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.amount.max
+  )) {
     diagnostic(diagnostics, 'transition-motion-amount', `${path}.amount`, 'Transition motion amount must stay between 0 and 1.');
+  }
+  if (value.axis != null && !ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES.includes(value.axis)) {
+    diagnostic(diagnostics, 'transition-motion-axis', `${path}.axis`, 'Transition motion axis must be x, y, or z.');
+  }
+  if (value.seed != null && (
+    !Number.isInteger(Number(value.seed))
+    || Number(value.seed) < ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.seed.min
+    || Number(value.seed) > ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.seed.max
+  )) {
+    diagnostic(diagnostics, 'transition-motion-seed', `${path}.seed`, 'Transition motion seed must be a 32-bit unsigned integer.');
+  }
+  if (value.frequency != null && (
+    !finite(value.frequency)
+    || Number(value.frequency) < ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.frequency.min
+    || Number(value.frequency) > ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.frequency.max
+  )) {
+    diagnostic(diagnostics, 'transition-motion-frequency', `${path}.frequency`, 'Transition path frequency must stay between 0.25 and 8.');
+  }
+  if (value.offset != null && (
+    !finite(value.offset)
+    || Number(value.offset) < ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.planeOffset.min
+    || Number(value.offset) > ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.planeOffset.max
+  )) {
+    diagnostic(diagnostics, 'transition-motion-plane-offset', `${path}.offset`, 'Transition plane offset must stay between -8 and 8.');
   }
 }
 
 function isNeutralHoldMotion(transition) {
-  return transition.stagger?.mode === 'uniform'
-    && Number(transition.stagger?.amount) === 0
-    && transition.path?.mode === 'direct'
-    && Number(transition.path?.amount) === 0
-    && transition.flatten?.mode === 'none'
-    && Number(transition.flatten?.amount) === 0;
+  const motion = resolveAboutNarrativePointFieldTransitionMotion(transition);
+  return motion.stagger.mode === 'uniform'
+    && motion.stagger.amount === 0
+    && motion.path.mode === 'direct'
+    && motion.path.amount === 0
+    && motion.flatten.mode === 'none'
+    && motion.flatten.amount === 0;
 }
 
 function validateTransition(transition, diagnostics, path, fromStateId, toStateId) {
@@ -261,9 +300,18 @@ function validateTransition(transition, diagnostics, path, fromStateId, toStateI
   if (transition.type === 'step-end' && fromStateId === toStateId) {
     diagnostic(diagnostics, 'step-end-state', path, 'step-end is reserved for a change to a different state.');
   }
-  validateMotionEnvelope(transition.stagger, STAGGER_MODES, diagnostics, `${path}.stagger`);
-  validateMotionEnvelope(transition.path, PATH_MODES, diagnostics, `${path}.path`);
-  validateMotionEnvelope(transition.flatten, FLATTEN_MODES, diagnostics, `${path}.flatten`);
+  validateMotionEnvelope(transition.stagger, {
+    keys: STAGGER_KEYS,
+    modes: ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES,
+  }, diagnostics, `${path}.stagger`);
+  validateMotionEnvelope(transition.path, {
+    keys: PATH_KEYS,
+    modes: ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
+  }, diagnostics, `${path}.path`);
+  validateMotionEnvelope(transition.flatten, {
+    keys: FLATTEN_KEYS,
+    modes: ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
+  }, diagnostics, `${path}.flatten`);
 }
 
 function sortedKeys(pointField) {

@@ -177,6 +177,21 @@ test('same-state spans are settled holds with no correspondence or hidden motion
   assert.equal(finalSegment.transition.progress, 1, 'final bust formation remains latched');
 });
 
+test('v6 accepts omitted neutral motion controls and keeps the v5 compatibility projection stable', () => {
+  const migrated = migrateAboutNarrativeVersion5To6(canonicalV5);
+  const withoutControls = clone(migrated);
+  withoutControls.tracks.pointField.segments.forEach((segment) => {
+    delete segment.transition.stagger;
+    delete segment.transition.path;
+    delete segment.transition.flatten;
+  });
+  assert.deepEqual(validateAboutNarrativePointFieldDocument(withoutControls), []);
+  assert.deepEqual(
+    projectAboutNarrativePointFieldDocumentToVersion5(withoutControls),
+    projectAboutNarrativePointFieldDocumentToVersion5(migrated),
+  );
+});
+
 test('point-field boundaries are half-open and the final key is inclusive and settled', () => {
   const migrated = migrateAboutNarrativeVersion5To6(canonicalV5);
   const pointField = migrated.tracks.pointField;

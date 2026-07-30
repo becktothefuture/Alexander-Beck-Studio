@@ -12,6 +12,10 @@ import {
   validateAboutNarrativePointFieldDocument,
 } from './aboutNarrativePointFieldSchema.js';
 import { segmentRequiresCorrespondence } from './aboutNarrativePointFieldIdentity.js';
+import {
+  ABOUT_NARRATIVE_POINT_FIELD_MOTION_DEFAULTS,
+  resolveAboutNarrativePointFieldTransitionMotion,
+} from './aboutNarrativePointFieldMotion.js';
 
 const TIME_EPSILON = 0.000001;
 const LAYOUT_PROFILES = new Set(['desktop', 'tablet', 'mobile']);
@@ -172,7 +176,10 @@ function compilePointField(pointField, globals) {
     const fromKey = keys[index];
     const toKey = keys[index + 1];
     const source = segmentByPair.get(`${fromKey.id}->${toKey.id}`);
-    const transition = deepFreeze(clone(source.transition));
+    const transition = deepFreeze({
+      ...clone(source.transition),
+      ...resolveAboutNarrativePointFieldTransitionMotion(source.transition),
+    });
     segments.push(deepFreeze({
       id: source.id,
       occurrenceId: source.id,
@@ -351,19 +358,27 @@ export function compileAboutNarrativePointFieldRuntime(input, options = EMPTY_SA
   });
 }
 
-function writeMotionEnvelope(target, source, fallbackMode) {
-  target.mode = source?.mode || fallbackMode;
-  target.amount = Number(source?.amount || 0);
-}
-
 function writeTransition(target, segment) {
   const transition = segment?.transition;
+  const stagger = transition?.stagger || ABOUT_NARRATIVE_POINT_FIELD_MOTION_DEFAULTS.stagger;
+  const path = transition?.path || ABOUT_NARRATIVE_POINT_FIELD_MOTION_DEFAULTS.path;
+  const flatten = transition?.flatten || ABOUT_NARRATIVE_POINT_FIELD_MOTION_DEFAULTS.flatten;
   target.type = transition?.type || 'hold';
   target.easing = transition?.easing || 'linear';
   target.correspondence = transition?.correspondence ?? null;
-  writeMotionEnvelope(target.stagger, transition?.stagger, 'uniform');
-  writeMotionEnvelope(target.path, transition?.path, 'direct');
-  writeMotionEnvelope(target.flatten, transition?.flatten, 'none');
+  target.stagger.mode = stagger.mode;
+  target.stagger.amount = stagger.amount;
+  target.stagger.axis = stagger.axis;
+  target.stagger.seed = stagger.seed;
+  target.path.mode = path.mode;
+  target.path.amount = path.amount;
+  target.path.axis = path.axis;
+  target.path.frequency = path.frequency;
+  target.path.seed = path.seed;
+  target.flatten.mode = flatten.mode;
+  target.flatten.amount = flatten.amount;
+  target.flatten.axis = flatten.axis;
+  target.flatten.offset = flatten.offset;
 }
 
 function findActiveKeyIndex(keys, storyWU) {
@@ -420,9 +435,9 @@ export function createAboutNarrativePointFieldFrameSample() {
         type: 'hold',
         easing: 'linear',
         correspondence: null,
-        stagger: { mode: 'uniform', amount: 0 },
-        path: { mode: 'direct', amount: 0 },
-        flatten: { mode: 'none', amount: 0 },
+        stagger: { mode: 'uniform', amount: 0, axis: 'y', seed: 0 },
+        path: { mode: 'direct', amount: 0, axis: 'y', frequency: 1, seed: 0 },
+        flatten: { mode: 'none', amount: 0, axis: 'y', offset: 0 },
       },
     },
     interactions: {
