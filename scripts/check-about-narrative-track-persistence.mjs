@@ -10,6 +10,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import './check-about-narrative-v6-migration.mjs';
+
 import {
   createAboutNarrativePersistenceService,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePersistenceServer.js';
