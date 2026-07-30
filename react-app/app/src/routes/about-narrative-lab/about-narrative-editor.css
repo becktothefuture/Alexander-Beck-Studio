@@ -83,6 +83,10 @@
   pointer-events: auto;
 }
 
+.about-track-editor[hidden] {
+  display: none;
+}
+
 .about-track-editor button {
   min-width: 0;
   min-height: 30px;

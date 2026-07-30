@@ -1953,6 +1953,7 @@ const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v5';
 
 export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const [editorVisible, setEditorVisible] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [textMenu, setTextMenu] = useState(false);
   const [interactionMenu, setInteractionMenu] = useState(false);
@@ -1996,11 +1997,13 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
 
   useEffect(() => {
     const root = rootRef?.current;
-    if (root) root.dataset.editorActive = 'true';
+    if (!root) return undefined;
+    if (editorVisible) root.dataset.editorActive = 'true';
+    else delete root.dataset.editorActive;
     return () => {
-      if (root) delete root.dataset.editorActive;
+      delete root.dataset.editorActive;
     };
-  }, [rootRef]);
+  }, [editorVisible, rootRef]);
 
   useEffect(() => {
     const root = rootRef?.current;
@@ -2087,6 +2090,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       const editing = target instanceof HTMLElement
         && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
       const command = event.metaKey || event.ctrlKey;
+      if (!editing && !command && !event.altKey && event.key === '/') {
+        event.preventDefault();
+        setEditorVisible((visible) => !visible);
+        return;
+      }
       if (command && event.key.toLowerCase() === 's') {
         event.preventDefault();
         saveRef.current();
@@ -2174,6 +2182,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       className="about-track-editor"
       data-editor-version="sectionless-v5"
       data-mobile-inspector-open={mobileInspectorOpen ? 'true' : 'false'}
+      hidden={!editorVisible}
+      aria-keyshortcuts="/"
       aria-label="About narrative editor"
     >
       <header className="about-track-editor-topbar">

@@ -174,6 +174,27 @@ async function auditEditor() {
   await page.waitForSelector('.about-track-editor');
   await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
 
+  const editor = page.locator('.about-track-editor');
+  const shortcutInputProbe = page.getByRole('slider', { name: 'Story WU playhead' });
+  await shortcutInputProbe.focus();
+  await page.keyboard.press('Slash');
+  assert.equal(await editor.isVisible(), true, 'Slash must not hide the editor while an input is focused.');
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.press('Slash');
+  assert.equal(await editor.isVisible(), false, 'Slash should hide the complete editor chrome.');
+  assert.equal(
+    await page.locator('.about-narrative-lab').getAttribute('data-editor-active'),
+    null,
+    'The hidden editor must release the full preview viewport.',
+  );
+  await page.keyboard.press('Slash');
+  assert.equal(await editor.isVisible(), true, 'Slash should restore the editor chrome.');
+  assert.equal(
+    await page.locator('.about-narrative-lab').getAttribute('data-editor-active'),
+    'true',
+    'The restored editor must reapply its preview geometry.',
+  );
+
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
     lanes: [...document.querySelectorAll('[data-track-lane]')].map((lane) => lane.dataset.trackLane),
@@ -360,14 +381,19 @@ async function auditEditor() {
     select.dispatchEvent(new Event('input', { bubbles: true }));
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }, value);
-  const editorialStartWU = await page.evaluate(async () => {
+  const editorialContract = await page.evaluate(async () => {
     const response = await fetch('/config/contents-about.json');
     const document = await response.json();
-    return document.tracks.text.fields.find(
-      (field) => field.id === 'text-background-unit',
-    )?.startWU;
+    return {
+      revealThreshold: document.globals.editorialRevealThreshold,
+      startWU: document.tracks.text.fields.find(
+        (field) => field.id === 'text-background-unit',
+      )?.startWU,
+    };
   });
+  const editorialStartWU = editorialContract.startWU;
   assert.equal(Number.isFinite(editorialStartWU), true);
+  assert.equal(Number.isFinite(editorialContract.revealThreshold), true);
 
   await setPlayhead(editorialStartWU);
   await page.waitForFunction((expectedWU) => Math.abs(
@@ -390,7 +416,9 @@ async function auditEditor() {
       rowGap: Number.parseFloat(stackStyle.rowGap),
     };
   });
-  assert.ok(Math.abs(editorialTrigger.firstLineTopRatio - 0.8) < 0.025);
+  assert.ok(Math.abs(
+    editorialTrigger.firstLineTopRatio - editorialContract.revealThreshold,
+  ) < 0.025);
   assert.ok(editorialTrigger.firstLineReveal < 0.08);
   assert.ok(editorialTrigger.fontSize >= 23);
   assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 0.55);
