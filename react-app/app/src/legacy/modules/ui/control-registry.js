@@ -784,14 +784,14 @@ function createButtonBarControls() {
       id: control.id,
       label: control.label,
       stateKey: control.id,
-      type: 'range',
+      type: control.type || 'range',
       min: control.min,
       max: control.max,
       step: control.step,
       default: BUTTON_BAR_DEFAULTS[control.id],
       format: (value) => formatButtonBarControlValue(value, control),
-      parse: parseFloat,
-      hint: `Button Bar: ${control.label.toLowerCase()}.`,
+      parse: control.type === 'checkbox' ? (value) => Boolean(value) : parseFloat,
+      hint: control.hint || `Button Bar: ${control.label.toLowerCase()}.`,
       onChange: (g) => {
         applyButtonBarCssVars(g);
       },

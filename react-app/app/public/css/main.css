@@ -4560,26 +4560,45 @@ svg.shell-tab__icon {
 @media (min-width: 900px) and (hover: hover) {
   .button-bar.shell-bottom-band::before,
   .button-bar.shell-bottom-band::after {
-    --button-bar-groove-inline-inset: clamp(16px, 2vw, 24px);
+    --button-bar-side-line-color: color-mix(
+      in srgb,
+      var(--button-bar-outer-ink, rgba(var(--abs-rgb-white), 0.88)) var(--button-bar-side-line-contrast, 50%),
+      var(--abs-browser-chrome, #000000)
+    );
 
     content: '';
     display: block;
     flex: 1 1 0;
-    align-self: stretch;
+    align-self: center;
     min-width: 0;
-    border-radius: var(--button-bar-gasket-radius);
-    background: none;
-    opacity: 0;
+    block-size: var(--button-bar-side-line-bank-height, 32px);
+    border-radius: var(--button-bar-side-line-radius, 0.5px);
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 var(--button-bar-side-line-start, 2.7px),
+      var(--button-bar-side-line-color) var(--button-bar-side-line-start, 2.7px) var(--button-bar-side-line-end, 3.7px),
+      transparent var(--button-bar-side-line-end, 3.7px) var(--button-bar-side-line-pitch, 6.4px)
+    );
+    opacity: var(--button-bar-side-line-opacity, 0.4);
     pointer-events: none;
   }
 
   .button-bar.shell-bottom-band::before {
-    margin-right: var(--shell-tab-gap, 12px);
+    margin-inline-start: calc(
+      var(--button-bar-side-line-outer-padding, 0px)
+      - var(--shell-bottom-tabs-gap, 10px)
+    );
+    margin-inline-end: var(--button-bar-side-line-menu-gap, 48px);
+    transform: translateY(var(--button-bar-side-line-offset-y, 0px));
   }
 
   .button-bar.shell-bottom-band::after {
-    margin-left: var(--shell-tab-gap, 12px);
-    transform: scaleX(-1);
+    margin-inline-start: var(--button-bar-side-line-menu-gap, 48px);
+    margin-inline-end: calc(
+      var(--button-bar-side-line-outer-padding, 0px)
+      - var(--shell-bottom-tabs-gap, 10px)
+    );
+    transform: translateY(var(--button-bar-side-line-offset-y, 0px));
   }
 
   .button-bar.shell-bottom-band .button-bar__primary-buttons.shell-tab-nav {
