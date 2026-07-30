@@ -240,7 +240,7 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.equal(authored.seed, grid.seed);
   assert.equal(authored.shapeParameters.density, grid.shapeParameters.density);
   assert.equal(authored.modifiers[1].parameters.surfaceCarry, 1);
-  assert.equal(authored.modifiers[1].parameters.fragmentPresence, 1);
+  assert.equal(authored.modifiers[1].parameters.fragmentPresence, 0.5);
   assert.equal(authored.protected, true);
 
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
@@ -563,7 +563,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.equal(key.lookAtRoll, 0);
   });
   orbitKeys.slice(0, 2).forEach((key) => assert.equal(key.lookAtTarget[1], background.shapeParameters.height));
-  orbitKeys.slice(2, -1).forEach((key) => assert.equal(key.lookAtTarget[1], -0.35));
+  orbitKeys.slice(2, -1).forEach((key) => assert.equal(key.lookAtTarget[1], -1.25));
   assert.equal(orbitKeys.at(-1).lookAtTarget[1], -0.88);
   assert.ok(keys.get('emergent-orbit-quarter').position[0] > 0);
   assert.ok(keys.get('emergent-orbit-rear').position[2] > rippleCenter[2]);
@@ -967,6 +967,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.timeline, /getAboutNarrativeSharedRevealProgress/);
   assert.match(liveSources.world, /getAboutNarrativeSharedRevealProgress/);
   assert.doesNotMatch(liveSources.world, /revealState\?\.active/);
+  assert.doesNotMatch(
+    liveSources.styles,
+    /data-about-motion-profile='reduced'\] \.about-narrative-opening-copy \{[^}]*transform:\s*none/,
+  );
   assert.match(liveSources.reveal, /ABOUT_NARRATIVE_REVEAL_START_VIEWPORT_Y = 1/);
   assert.match(liveSources.reveal, /ABOUT_NARRATIVE_REVEAL_TRAVEL_VIEWPORT = 0\.2/);
   assert.doesNotMatch(liveSources.timeline, /editorialIndex|logoStaggerWU|revealDelayWU/);

@@ -162,6 +162,26 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
   assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 18\.0\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
+  assert.match(source, /float globalMorph = clamp\(morphProgress, 0\.0, 1\.0\)/);
+  assert.doesNotMatch(source, /globalMorph = smoothstep\([^\n]*morphProgress/);
+  assert.match(source, /float waveClock = mix\(ambientTime, storyTime/);
+  assert.match(source, /target\.waveStoryMix\.value = resolveAboutNarrativeMotionTimeMix\(wave\?\.timeMode\)/);
+  assert.match(source, /let shortLandscape = isAboutNarrativeShortLandscape/);
+  assert.match(source, /const responsiveLayoutProfile = compact \? 'mobile' : layoutProfile/);
+  assert.match(source, /layoutProfile: responsiveLayoutProfile/);
+  assert.match(source, /mobile-short-landscape/);
+  assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)/);
+  assert.match(source, /const requestedSequenceKey = getResponsiveSequenceKey\(frame\.world\.sequenceKey\)/);
+  assert.match(source, /wasShortLandscape !== shortLandscape && lastPreparationRequest/);
+  assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
+  assert.match(source, /inputFingerprint: pair\.inputFingerprint/);
+  assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
+  assert.match(source, /const revealAvailable = effectAvailable[\s\S]*frame\.storyWU >= revealState\.startWU/);
+  assert.match(source, /frame\.storyWU < revealState\.endWU/);
+  assert.match(source, /attributeFilter: \['data-editor-preview-layout', 'data-editor-preview-orientation'\]/);
+  assert.match(source, /window\.addEventListener\('resize', resize, \{ passive: true \}\)/);
+  assert.match(source, /window\.removeEventListener\('resize', resize\)/);
+  assert.doesNotMatch(source, /targetHasAmbientPositionMotion/);
   assert.match(source, /vec3 fromPoint = applyOrbitalLife[\s\S]*vec3 fromWorld = \(fromTransform/);
   assert.match(source, /float orbitalSeed = fract\(\(seed \* 7\.31\) \+ 0\.17\)/);
   assert.doesNotMatch(source, /ringBand|ringThickness|debris ring/i);
@@ -215,4 +235,30 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
     styles,
     /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*opacity: var\(--discipline-reveal\)/,
   );
+});
+
+test('PointWorld recomputes responsive preparation identity across orientation changes in one live adapter', () => {
+  const source = readFileSync(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+    import.meta.url,
+  ), 'utf8');
+  assert.match(source, /let shortLandscape = isAboutNarrativeShortLandscape/);
+  assert.match(source, /const getResponsiveSequenceKey = \(sequenceKey\) => \{[\s\S]*shortLandscape \? 'mobile-short-landscape' : 'mobile-default'/);
+  assert.match(source, /const wasShortLandscape = shortLandscape;[\s\S]*shortLandscape = isAboutNarrativeShortLandscape[\s\S]*wasShortLandscape !== shortLandscape[\s\S]*preparePlan\(lastPreparationRequest\)/);
+  assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)[\s\S]*sequenceCache\.get\(responsiveSequenceKey\)/);
+});
+
+test('runtime visual certification derives moving World boundaries from the canonical plan', () => {
+  const source = readFileSync(new URL(
+    './audit-about-narrative-runtime-visuals.mjs',
+    import.meta.url,
+  ), 'utf8');
+  assert.match(source, /bustWorld\.transitionIn\.startWU/);
+  assert.match(source, /bustWorld\.transitionIn\.endWU/);
+  assert.match(source, /compileAboutNarrativeRuntimePlan\(canonical/);
+  assert.doesNotMatch(source, /sampleAboutNarrativeRuntimePlan\(plan, checkpoint\.storyWU/);
+  assert.match(source, /stage: 'bust-v1'/);
+  assert.match(source, /visibility: 1/);
+  assert.match(source, /storyWU \/ storyDurationWU/);
+  assert.doesNotMatch(source, /storyWU \/ 16\.35/);
 });

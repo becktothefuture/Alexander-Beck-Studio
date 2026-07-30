@@ -75,6 +75,20 @@ const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
 const GRID_RIPPLE_START_STEP_WU = 0.05;
+const EDITOR_TYPING_TARGET_SELECTOR = [
+  'input',
+  'textarea',
+  'select',
+  '[contenteditable]:not([contenteditable="false"])',
+].join(', ');
+const EDITOR_OWNED_KEYBOARD_TARGET_SELECTOR = [
+  'button',
+  'a[href]',
+  'summary',
+  '[role="button"]',
+  '[role="menuitem"]',
+  '[role="slider"]',
+].join(', ');
 const DISCIPLINE_POSITION_X_CONTROL = Object.freeze({
   min: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.min,
   max: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.max,
@@ -133,6 +147,26 @@ function clamp(value, min, max) {
 
 function cleanWU(value) {
   return Number(Number(value).toFixed(4));
+}
+
+function targetMatchesClosest(target, selector) {
+  return target instanceof Element && Boolean(target.closest(selector));
+}
+
+function isEditorTypingTarget(target) {
+  return targetMatchesClosest(target, EDITOR_TYPING_TARGET_SELECTOR);
+}
+
+function isEditorOwnedKeyboardTarget(target) {
+  return targetMatchesClosest(target, EDITOR_OWNED_KEYBOARD_TARGET_SELECTOR);
+}
+
+function isSlashKey(event) {
+  return event.key === '/' || event.code === 'Slash';
+}
+
+function stopEditorShortcutPropagation(event) {
+  event.stopPropagation();
 }
 
 function getGridRippleStartControl(document, clip) {
@@ -2215,13 +2249,19 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   useEffect(() => {
     const handleKeyDown = (event) => {
       const target = event.target;
-      const editing = target instanceof HTMLElement
-        && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+      const editing = isEditorTypingTarget(target);
+      const controlOwnsKeyboard = isEditorOwnedKeyboardTarget(target);
       const command = event.metaKey || event.ctrlKey;
-      if (!editing && !command && !event.altKey && event.key === '/') {
+      if (editing && isSlashKey(event)) {
+        // Keep native typing, but prevent the legacy dev-panel shortcut from
+        // seeing Slash after the About editor has claimed this route.
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!editing && !command && !event.altKey && isSlashKey(event)) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        setEditorVisible((visible) => !visible);
+        if (!event.repeat && !event.shiftKey) setEditorVisible((visible) => !visible);
         return;
       }
       if (command && event.key.toLowerCase() === 's') {
@@ -2230,6 +2270,15 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         return;
       }
       if (editing) return;
+      if (event.key === 'Escape') {
+        store.cancelGesture();
+        store.cancelTry();
+        setTextMenu(false);
+        setInteractionMenu(false);
+        setMobileInspectorOpen(false);
+        return;
+      }
+      if (controlOwnsKeyboard && !command) return;
       if (command && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) store.redo(); else store.undo();
@@ -2260,11 +2309,6 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         event.preventDefault();
         const state = store.getSnapshot();
         store.setTransport({ owner: state.transport.playing ? 'timeline' : 'playback', playing: !state.transport.playing });
-      } else if (event.key === 'Escape') {
-        store.cancelGesture();
-        store.cancelTry();
-        setTextMenu(false);
-        setMobileInspectorOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown, { capture: true });
@@ -2314,6 +2358,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       hidden={!editorVisible}
       aria-keyshortcuts="/"
       aria-label="About narrative editor"
+      onKeyDown={stopEditorShortcutPropagation}
     >
       <header className="about-track-editor-topbar">
         <div className="about-track-editor-brand">

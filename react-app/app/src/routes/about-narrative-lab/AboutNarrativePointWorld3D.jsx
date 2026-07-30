@@ -34,6 +34,10 @@ import {
   sampleAboutNarrativeAnchorPosition,
 } from './aboutNarrativeModifierSampling.js';
 import {
+  isAboutNarrativeShortLandscape,
+  resolveAboutNarrativeMotionTimeMix,
+} from './aboutNarrativeMotionMath.js';
+import {
   findAboutNarrativeWorldById,
   getAboutNarrativeWorldId,
   getAboutNarrativeWorldPairId,
@@ -128,6 +132,8 @@ const VERTEX_SHADER = `
   uniform float toWaveAmplitude;
   uniform float fromWaveSpeed;
   uniform float toWaveSpeed;
+  uniform float fromWaveStoryMix;
+  uniform float toWaveStoryMix;
   uniform vec2 fromWaveFrequency;
   uniform vec2 toWaveFrequency;
   uniform float fromGroupStrength;
@@ -296,7 +302,7 @@ const VERTEX_SHADER = `
   }
 
   void main() {
-    float globalMorph = smoothstep(0.0, 1.0, morphProgress);
+    float globalMorph = clamp(morphProgress, 0.0, 1.0);
     float bustHeight = clamp((targetPosition.y + 0.86) / 1.72, 0.0, 1.0);
     // Let the fragmented base gather and settle before the head resolves. The
     // wider band makes formation legible across the complete scroll interval
@@ -415,11 +421,13 @@ const VERTEX_SHADER = `
     float waveWeight = mix(fromWaveWeight, toWaveWeight, morph);
     float waveAmplitude = mix(fromWaveAmplitude, toWaveAmplitude, morph);
     float waveSpeed = mix(fromWaveSpeed, toWaveSpeed, morph);
+    float waveStoryMix = mix(fromWaveStoryMix, toWaveStoryMix, morph);
     vec2 waveFrequency = mix(fromWaveFrequency, toWaveFrequency, morph);
+    float waveClock = mix(ambientTime, storyTime, clamp(waveStoryMix, 0.0, 1.0));
     worldPoint.y += waveWeight * waveAmplitude * sin(
       (worldPoint.x * waveFrequency.x)
       + (worldPoint.z * waveFrequency.y)
-      + (ambientTime * waveSpeed)
+      + (waveClock * waveSpeed)
     );
 
     vec2 ripplePoint = worldPoint.xz - gridRippleCenter;
@@ -752,9 +760,18 @@ function createPointFieldAdapter({
   });
   const quality = explicitPointProfile || resolveAboutNarrativePointProfile(layoutProfile);
   const compact = quality === 'mobile';
-  const shortLandscape = layoutProfile === 'mobile'
-    && initialBounds.width > initialBounds.height
-    && initialBounds.height <= 600;
+  const responsiveLayoutProfile = compact ? 'mobile' : layoutProfile;
+  let shortLandscape = isAboutNarrativeShortLandscape({
+    layoutProfile: responsiveLayoutProfile,
+    width: initialBounds.width,
+    height: initialBounds.height,
+  });
+  const getResponsiveSequenceKey = (sequenceKey) => {
+    const variant = compact
+      ? (shortLandscape ? 'mobile-short-landscape' : 'mobile-default')
+      : 'standard';
+    return `${sequenceKey}:responsive:${variant}`;
+  };
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     getGlobals().mobileSimulationBodyScale,
     {
@@ -832,6 +849,8 @@ function createPointFieldAdapter({
     toWaveAmplitude: { value: 0 },
     fromWaveSpeed: { value: 0 },
     toWaveSpeed: { value: 0 },
+    fromWaveStoryMix: { value: 0 },
+    toWaveStoryMix: { value: 0 },
     fromWaveFrequency: { value: new THREE.Vector2(1, 1) },
     toWaveFrequency: { value: new THREE.Vector2(1, 1) },
     fromGroupStrength: { value: 0 },
@@ -911,6 +930,7 @@ function createPointFieldAdapter({
       waveWeight: uniforms.fromWaveWeight,
       waveAmplitude: uniforms.fromWaveAmplitude,
       waveSpeed: uniforms.fromWaveSpeed,
+      waveStoryMix: uniforms.fromWaveStoryMix,
       waveFrequency: uniforms.fromWaveFrequency,
       groupStrength: uniforms.fromGroupStrength,
       disciplineIsolation: uniforms.fromDisciplineIsolation,
@@ -931,6 +951,7 @@ function createPointFieldAdapter({
       waveWeight: uniforms.toWaveWeight,
       waveAmplitude: uniforms.toWaveAmplitude,
       waveSpeed: uniforms.toWaveSpeed,
+      waveStoryMix: uniforms.toWaveStoryMix,
       waveFrequency: uniforms.toWaveFrequency,
       groupStrength: uniforms.toGroupStrength,
       disciplineIsolation: uniforms.toDisciplineIsolation,
@@ -1139,6 +1160,7 @@ function createPointFieldAdapter({
     toWave: {},
     gridRipple: {},
     bustAssembly: {},
+    morphProgressIsVisual: true,
   };
   const anchorCapability = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
   const anchorCapabilityTarget = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
@@ -1294,6 +1316,12 @@ function createPointFieldAdapter({
     const canvasRect = canvas.getBoundingClientRect();
     width = Math.max(1, canvasRect.width);
     height = Math.max(1, canvasRect.height);
+    const wasShortLandscape = shortLandscape;
+    shortLandscape = isAboutNarrativeShortLandscape({
+      layoutProfile: responsiveLayoutProfile,
+      width,
+      height,
+    });
     viewportOffsetX = 0;
     viewportOffsetY = 0;
     const ratio = Math.min(window.devicePixelRatio || 1, pointProfile.maximumPixelRatio);
@@ -1303,6 +1331,9 @@ function createPointFieldAdapter({
     camera.updateProjectionMatrix();
     uniforms.pixelRatio.value = ratio;
     measureDisciplineLabels();
+    if (wasShortLandscape !== shortLandscape && lastPreparationRequest) {
+      preparePlan(lastPreparationRequest);
+    }
   };
 
   const getShape = async (world, signal) => {
@@ -1424,16 +1455,32 @@ function createPointFieldAdapter({
     });
   };
 
-  const createPreparedSequence = (key, sequence, outputs, workerPairs, timings, startedAt) => {
+  const createPreparedSequence = (
+    key,
+    descriptor,
+    sequence,
+    outputs,
+    workerPairs,
+    timings,
+    startedAt,
+  ) => {
     const pairs = new Map();
     workerPairs.forEach((workerPair, index) => {
       const toOutput = outputs[index].output;
       const fromOutput = outputs[Math.max(0, index - 1)].output;
       const fromWorld = sequence[Math.max(0, index - 1)];
       const toWorld = sequence[index];
+      const fromWorldId = requireAboutNarrativeWorldId(fromWorld, 'Prepared source World');
       const toWorldId = requireAboutNarrativeWorldId(toWorld, 'Prepared target World');
+      const pairDescriptor = descriptor.pairs[index];
+      if (pairDescriptor?.fromWorldId !== fromWorldId
+        || pairDescriptor?.toWorldId !== toWorldId
+        || !pairDescriptor.inputFingerprint) {
+        throw new Error(`Prepared pair ${fromWorldId}->${toWorldId} has no exact descriptor fingerprint.`);
+      }
       pairs.set(toWorldId, {
         key: `${key}:${toWorldId}`,
+        inputFingerprint: pairDescriptor.inputFingerprint,
         fromWorld,
         toWorld,
         fromOutput,
@@ -1595,6 +1642,7 @@ function createPointFieldAdapter({
         const response = candidate.response;
         const prepared = createPreparedSequence(
           request.sequenceKey,
+          request.descriptor,
           request.sequence,
           response.outputs,
           response.pairs,
@@ -1676,6 +1724,8 @@ function createPointFieldAdapter({
 
   const preparePlan = ({ sequenceKey, descriptor, targetWorldId = '' } = {}) => {
     lastPreparationRequest = { sequenceKey, descriptor, targetWorldId };
+    const responsiveSequenceKey = getResponsiveSequenceKey(sequenceKey);
+    const responsiveInputFingerprint = `${descriptor?.inputFingerprint || sequenceKey}:${responsiveSequenceKey}`;
     const sequence = descriptor?.runtimeWorlds || descriptor?.worlds;
     const globals = descriptor?.globals
       || (descriptor?.worldRail ? { worldRail: descriptor.worldRail } : { camera: descriptor?.camera });
@@ -1685,22 +1735,22 @@ function createPointFieldAdapter({
       root.dataset.worldError = `Point profile ${descriptor.profile} requires a renderer remount.`;
       return false;
     }
-    if (readySequence?.key === sequenceKey) return true;
-    const cached = sequenceCache.get(sequenceKey);
+    if (readySequence?.key === responsiveSequenceKey) return true;
+    const cached = sequenceCache.get(responsiveSequenceKey);
     if (cached) {
-      if (readySequence?.key && readySequence.key !== sequenceKey) {
+      if (readySequence?.key && readySequence.key !== responsiveSequenceKey) {
         sequenceCache.unpin(readySequence.key, 'ready-sequence');
       }
       readySequence = cached;
-      sequenceCache.pin(sequenceKey, 'ready-sequence');
-      sequenceCache.activate(sequenceKey);
+      sequenceCache.pin(responsiveSequenceKey, 'ready-sequence');
+      sequenceCache.activate(responsiveSequenceKey);
       sequenceState = 'ready';
       root.dataset.worldPrepare = 'ready';
       return true;
     }
-    if (activePreparation?.sequenceKey === sequenceKey && sequenceState === 'loading') {
+    if (activePreparation?.sequenceKey === responsiveSequenceKey && sequenceState === 'loading') {
       const nextTarget = findAboutNarrativeWorldById(sequence, targetWorldId) || sequence[0];
-      bootstrapTarget(sequenceKey, nextTarget);
+      bootstrapTarget(responsiveSequenceKey, nextTarget);
       return true;
     }
     const entries = sequence.map((world, index) => ({
@@ -1722,20 +1772,21 @@ function createPointFieldAdapter({
     }));
     const previousPreparation = activePreparation;
     const nextPreparation = {
-      sequenceKey,
-      inputFingerprint: descriptor.inputFingerprint || sequenceKey,
+      sequenceKey: responsiveSequenceKey,
+      inputFingerprint: responsiveInputFingerprint,
+      descriptor,
       sequence,
       entries,
       startedAt: performance.now(),
     };
     activePreparation = nextPreparation;
     const request = preparationController.requestPreparation({
-      sequenceKey,
+      sequenceKey: responsiveSequenceKey,
       // Preparation ownership follows the immutable sequence. The current
       // target World is only a bootstrap hint and must not reset a failed
       // sequence's retry latch as the playhead moves.
-      pairId: `sequence:${sequenceKey}`,
-      inputFingerprint: descriptor.inputFingerprint || sequenceKey,
+      pairId: `sequence:${responsiveSequenceKey}`,
+      inputFingerprint: responsiveInputFingerprint,
       input: nextPreparation,
     }, { trigger: 'compiled-plan' });
     if (!request.accepted) {
@@ -1747,7 +1798,7 @@ function createPointFieldAdapter({
     sequenceState = 'loading';
     root.dataset.worldPrepare = 'loading';
     const targetWorld = findAboutNarrativeWorldById(sequence, targetWorldId) || sequence[0];
-    bootstrapTarget(sequenceKey, targetWorld);
+    bootstrapTarget(responsiveSequenceKey, targetWorld);
     return true;
   };
 
@@ -1771,6 +1822,7 @@ function createPointFieldAdapter({
     target.waveWeight.value = wave ? Number(wave.strength ?? 1) : 0;
     target.waveAmplitude.value = Number(wave?.amplitude || 0);
     target.waveSpeed.value = Number(wave?.speed || 0);
+    target.waveStoryMix.value = resolveAboutNarrativeMotionTimeMix(wave?.timeMode);
     target.waveFrequency.value.set(
       Number(wave?.frequencyX || 1),
       Number(wave?.frequencyZ || 1),
@@ -1814,20 +1866,27 @@ function createPointFieldAdapter({
     const gridDisciplineIndices = disciplineWorld === toWorld
       ? toDisciplineIndices
       : fromDisciplineIndices;
-    // Anchor visibility belongs to the shared viewport reveal band. The Motion
-    // clip still owns background isolation and restore progress, but it must not
-    // delay a discipline that has already entered the reveal band.
-    const revealAvailable = Boolean(reveal && disciplineWorld);
+    // Background isolation follows the full effect clock. Labels remain on the
+    // activation clock so a split-clock clip can prepare the field before copy
+    // enters the shared viewport reveal band.
+    const effectAvailable = Boolean(
+      reveal
+      && disciplineWorld
+      && frame.storyWU >= reveal.effectStartWU
+      && frame.storyWU < revealState.endWU,
+    );
+    const revealAvailable = effectAvailable
+      && frame.storyWU >= revealState.startWU;
     disciplineWeights.fill(0);
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
-    if (revealAvailable) {
+    if (effectAvailable) {
       const restoreWeight = 1 - Number(revealState.restoreProgress || 0);
       backgroundWeight = Number(revealState.backgroundProgress || 0) * restoreWeight;
     }
 
-    if (revealAvailable) {
+    if (effectAvailable) {
       const isolationWeight = Number(revealState.backgroundProgress || 0)
         * (1 - Number(revealState.restoreProgress || 0));
       const backgroundOpacity = Number(reveal.backgroundOpacity ?? 0.2);
@@ -1895,11 +1954,13 @@ function createPointFieldAdapter({
         anchorSampleInput.fromWave.weight = uniforms.fromWaveWeight.value;
         anchorSampleInput.fromWave.amplitude = uniforms.fromWaveAmplitude.value;
         anchorSampleInput.fromWave.speed = uniforms.fromWaveSpeed.value;
+        anchorSampleInput.fromWave.storyMix = uniforms.fromWaveStoryMix.value;
         anchorSampleInput.fromWave.frequencyX = uniforms.fromWaveFrequency.value.x;
         anchorSampleInput.fromWave.frequencyZ = uniforms.fromWaveFrequency.value.y;
         anchorSampleInput.toWave.weight = uniforms.toWaveWeight.value;
         anchorSampleInput.toWave.amplitude = uniforms.toWaveAmplitude.value;
         anchorSampleInput.toWave.speed = uniforms.toWaveSpeed.value;
+        anchorSampleInput.toWave.storyMix = uniforms.toWaveStoryMix.value;
         anchorSampleInput.toWave.frequencyX = uniforms.toWaveFrequency.value.x;
         anchorSampleInput.toWave.frequencyZ = uniforms.toWaveFrequency.value.y;
         anchorSampleInput.gridRipple.weight = uniforms.gridRippleWeight.value;
@@ -2028,7 +2089,7 @@ function createPointFieldAdapter({
     const requestedFromWorldId = getAboutNarrativeWorldId(requestedFromWorld);
     const requestedToWorldId = getAboutNarrativeWorldId(requestedToWorld);
     if (!requestedFromWorldId || !requestedToWorldId) return;
-    const requestedSequenceKey = frame.world.sequenceKey;
+    const requestedSequenceKey = getResponsiveSequenceKey(frame.world.sequenceKey);
     const preparedPair = readySequence?.key === requestedSequenceKey
       ? readySequence.pairs.get(requestedToWorldId)
       : null;
@@ -2148,19 +2209,6 @@ function createPointFieldAdapter({
     }
     setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
     setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
-    const targetModifierSlots = getModifierSlots(toWorld, frame.globals);
-    const targetHasAmbientPositionMotion = Boolean(
-      targetModifierSlots?.swarm
-      || targetModifierSlots?.drift
-      || targetModifierSlots?.wave
-      || targetModifierSlots?.orbital
-    );
-    // A world with no positional motion modifier is an explicitly settled
-    // field. Do not let its outgoing source keep moving through the morph.
-    if (!targetHasAmbientPositionMotion) {
-      uniforms.fromDriftAmplitude.value = 0;
-      uniforms.fromWaveWeight.value = 0;
-    }
     if (frame.reducedMotion) {
       uniforms.fromDriftAmplitude.value = 0;
       uniforms.toDriftAmplitude.value = 0;
@@ -2340,10 +2388,16 @@ function createPointFieldAdapter({
   };
 
   const resizeObserver = new ResizeObserver(resize);
+  const responsivePreviewObserver = new MutationObserver(resize);
   const themeObserver = new MutationObserver(updateTheme);
   resizeObserver.observe(root);
   resizeObserver.observe(canvas);
+  responsivePreviewObserver.observe(root, {
+    attributes: true,
+    attributeFilter: ['data-editor-preview-layout', 'data-editor-preview-orientation'],
+  });
   themeObserver.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  window.addEventListener('resize', resize, { passive: true });
   interaction.addEventListener('pointerdown', handlePointerDown);
   interaction.addEventListener('pointermove', handlePointerMove, { passive: false });
   interaction.addEventListener('pointerup', handlePointerEnd);
@@ -2384,7 +2438,7 @@ function createPointFieldAdapter({
     const pairs = readySequence
       ? [...readySequence.pairs.values()].map((pair) => Object.freeze({
         pairId: getAboutNarrativeWorldPairId(pair.fromWorld, pair.toWorld),
-        inputFingerprint: activePreparation?.inputFingerprint || '',
+        inputFingerprint: pair.inputFingerprint,
         state: 'ready',
         source: 'worker',
         requestedStrategy: pair.requestedStrategy,
@@ -2468,8 +2522,10 @@ function createPointFieldAdapter({
       delete window.__aboutNarrativeRuntime;
     }
     resizeObserver.disconnect();
+    responsivePreviewObserver.disconnect();
     disciplineLabelResizeObserver.disconnect();
     themeObserver.disconnect();
+    window.removeEventListener('resize', resize);
     interaction.removeEventListener('pointerdown', handlePointerDown);
     interaction.removeEventListener('pointermove', handlePointerMove);
     interaction.removeEventListener('pointerup', handlePointerEnd);

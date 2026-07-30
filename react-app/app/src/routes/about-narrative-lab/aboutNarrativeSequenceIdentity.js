@@ -66,6 +66,7 @@ function createWorldPreparationInput(world, globals) {
   const anchorRailZ = canonicalStoryWU(resolveAboutNarrativeWorldAnchorRailZ(world, globals));
   return {
     id: worldId,
+    adapterId: world.adapterId || '',
     shapeId: world.shapeId,
     seed: world.seed,
     shapeParameters: cloneIdentityValue(world.shapeParameters || {}),
@@ -81,12 +82,48 @@ function createWorldPreparationInput(world, globals) {
       mobileXScale: Number(transform.mobileXScale ?? transform.mobileScale ?? transform.scale ?? 1),
       mobileYOffset: Number(transform.mobileYOffset || 0),
       mobileZOffset: Number(transform.mobileZOffset || 0),
+      mobileLandscapeScale: Number(
+        transform.mobileLandscapeScale ?? transform.mobileScale ?? transform.scale ?? 1,
+      ),
+      mobileLandscapeXScale: Number(
+        transform.mobileLandscapeXScale
+        ?? transform.mobileXScale
+        ?? transform.mobileLandscapeScale
+        ?? transform.mobileScale
+        ?? transform.scale
+        ?? 1,
+      ),
+      mobileLandscapeXOffset: Number(transform.mobileLandscapeXOffset || 0),
+      mobileLandscapeYOffset: Number(transform.mobileLandscapeYOffset || 0),
+      mobileLandscapeZOffset: Number(transform.mobileLandscapeZOffset || 0),
     },
     correspondence: world.transitionIn?.correspondence || 'index-v1',
   };
 }
 
-function createPair(fromWorld, toWorld, profile) {
+/**
+ * Returns only inputs that can change generated points or their correspondence
+ * space. Authored timing remains available on the preparation descriptor, but
+ * does not invalidate prepared buffers when it resolves to the same rail pose.
+ */
+export function createAboutNarrativeWorldGeometryIdentity(world) {
+  if (!world || typeof world !== 'object') {
+    throw new TypeError('About narrative World geometry identity requires a World.');
+  }
+  return {
+    id: world.id,
+    adapterId: world.adapterId,
+    shapeId: world.shapeId,
+    seed: world.seed,
+    shapeParameters: cloneIdentityValue(world.shapeParameters || {}),
+    anchorRailZ: world.anchorRailZ,
+    entryDistanceWU: world.entryDistanceWU,
+    transform: cloneIdentityValue(world.transform || {}),
+    correspondence: world.correspondence,
+  };
+}
+
+function createPair(fromWorld, toWorld, profile, sourceChainFingerprint) {
   const requestedStrategy = fromWorld === toWorld ? 'index-v1' : toWorld.correspondence;
   const identity = {
     protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
@@ -95,13 +132,16 @@ function createPair(fromWorld, toWorld, profile) {
     fromWorld,
     toWorld,
     requestedStrategy,
+    sourceChainFingerprint,
   };
+  const inputFingerprint = serializeAboutNarrativeSequenceIdentity(identity);
   return {
     id: getAboutNarrativeWorldPairId(fromWorld, toWorld),
     fromWorldId: fromWorld.id,
     toWorldId: toWorld.id,
     requestedStrategy,
-    inputFingerprint: serializeAboutNarrativeSequenceIdentity(identity),
+    sourceChainFingerprint,
+    inputFingerprint,
   };
 }
 
@@ -121,17 +161,29 @@ export function createAboutNarrativeWorldPreparationDescriptor({
   if (new Set(worlds.map((world) => world.id)).size !== worlds.length) {
     throw new TypeError('About narrative preparation requires unique stable World ids.');
   }
-  const pairs = worlds.map((toWorld, index) => createPair(
-    worlds[Math.max(0, index - 1)],
-    toWorld,
-    pointProfile.id,
-  ));
+  const geometryWorlds = worlds.map(createAboutNarrativeWorldGeometryIdentity);
+  let sourceChainFingerprint = serializeAboutNarrativeSequenceIdentity({
+    protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
+    correspondenceVersion: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
+    profile: pointProfile.id,
+    sourceWorld: geometryWorlds[0],
+  });
+  const pairs = geometryWorlds.map((toWorld, index) => {
+    const pair = createPair(
+      geometryWorlds[Math.max(0, index - 1)],
+      toWorld,
+      pointProfile.id,
+      sourceChainFingerprint,
+    );
+    sourceChainFingerprint = pair.inputFingerprint;
+    return pair;
+  });
   const identity = {
     protocolVersion: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     correspondenceVersion: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
     profile: pointProfile.id,
     pointCount: pointProfile.pointCount,
-    worlds,
+    worlds: geometryWorlds,
   };
   const worldSequenceKey = `about-narrative-sequence:${serializeAboutNarrativeSequenceIdentity(identity)}`;
   const descriptor = {

@@ -118,7 +118,7 @@ function createTurbulentField(count, seeds, parameters) {
   const depth = Number(parameters.depth ?? 9);
   const chunkCount = Math.max(3, Math.round(Number(parameters.chunkCount ?? 7)));
   const chunkSize = Number(parameters.chunkSize ?? 1.55);
-  const scatter = Number(parameters.scatter ?? 0.14);
+  const scatter = Math.min(1, Math.max(0, Number(parameters.scatter ?? 0.14)));
   const turbulence = Number(parameters.turbulence ?? 0.52);
   const chunks = Array.from({ length: chunkCount }, (_, chunkIndex) => ({
     x: (hash01((chunkIndex + 1) * 17.13) - 0.5) * width * 0.76,

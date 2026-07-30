@@ -1,3 +1,7 @@
+import {
+  normalizeAboutNarrativeWorldTransitionProgress,
+} from './aboutNarrativeMotionMath.js';
+
 export const ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT = 'exact';
 export const ABOUT_NARRATIVE_ANCHOR_SAMPLING_UNSUPPORTED = 'unsupported';
 
@@ -97,7 +101,12 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
 
   const fromPosition = input?.fromPosition;
   const toPosition = input?.toPosition || fromPosition;
-  const globalMorph = smoothstep01(input?.morphProgress);
+  // Runtime frames now provide the fully composed visual progress. Keep the
+  // previous raw-progress behavior for direct v5 sampler callers until their
+  // persisted/test contract crosses the next schema boundary.
+  const globalMorph = input?.morphProgressIsVisual === true
+    ? normalizeAboutNarrativeWorldTransitionProgress(input?.morphProgress)
+    : smoothstep01(input?.morphProgress);
   const yaw = numberOr(input?.bustYaw);
   const sine = Math.sin(yaw);
   const cosine = Math.cos(yaw);
@@ -263,10 +272,20 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     numberOr(toWave.frequencyZ, 1),
     morph,
   );
+  const waveStoryMix = mix(
+    numberOr(fromWave.storyMix),
+    numberOr(toWave.storyMix),
+    morph,
+  );
+  const waveClock = mix(
+    numberOr(input?.ambientTime),
+    numberOr(input?.storyTime),
+    waveStoryMix,
+  );
   target.y += waveWeight * waveAmplitude * Math.sin(
     (target.x * waveFrequencyX)
     + (target.z * waveFrequencyZ)
-    + (numberOr(input?.ambientTime) * waveSpeed),
+    + (waveClock * waveSpeed),
   );
 
   const rippleClock = mix(

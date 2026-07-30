@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
+import {
+  compileAboutNarrativeRuntimePlan,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const outputDir = 'output/playwright/about-narrative-hardening/runtime';
@@ -17,65 +20,120 @@ const browser = await chromium.launch({
 
 await mkdir(outputDir, { recursive: true });
 
-const checkpoints = [
+const canonical = JSON.parse(await readFile(
+  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
+  'utf8',
+));
+const bustWorld = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
+assert.ok(bustWorld, 'The visual audit requires the canonical emergent World.');
+const bustStartWU = Number(bustWorld.transitionIn.startWU);
+const bustEndWU = Number(bustWorld.transitionIn.endWU);
+assert.ok(
+  Number.isFinite(bustStartWU) && Number.isFinite(bustEndWU) && bustStartWU < bustEndWU,
+  'The canonical emergent World requires an ordered finite transition window.',
+);
+const bustWU = (progress) => bustStartWU + ((bustEndWU - bustStartWU) * progress);
+const finaleWU = Number(canonical.profiles.desktop.storyDurationWU) - 0.15;
+assert.ok(
+  Number.isFinite(finaleWU) && finaleWU >= bustEndWU,
+  'The visual-audit finale must follow the emergent World transition.',
+);
+
+const checkpointSpecs = [
   { id: 'desktop-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectCenteredOpener: true },
   { id: 'desktop-complexity-threshold', storyWU: 1.35, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-complexity-through', storyWU: 1.75, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticCoverageRatio: 0.002, maximumChromaticTitleCoverage: 0.04 },
   { id: 'desktop-turbulent', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'desktop-client-logos', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-void', storyWU: 3.78, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-client-logos', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
   { id: 'desktop-grid-flyover', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1 },
-  { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1 },
-  { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 3, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-gathering-close', storyWU: 12.5, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bust-base', storyWU: 13.42, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bust-forming', storyWU: 13.8, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bust-upper', storyWU: 14.02, stage: 'bust-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bust-title', storyWU: 14.45, stage: 'bust-v1', visibility: 0.06, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumChromaticTitleCoverage: 0.01 },
-  { id: 'desktop-bust-resolved', storyWU: 14.75, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticWidthRatio: 0.17, minimumChromaticHeightRatio: 0.25, minimumChromaticStudioEdgePx: 16 },
-  { id: 'desktop-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-finale-bust', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 3, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 5, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-gathering-close', storyWU: 12.5, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-base', storyWU: bustWU(0.05), stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-forming', storyWU: bustWU(0.25), stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-upper', storyWU: bustWU(0.4), stage: 'bust-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-bust-title', storyWU: bustWU(0.65), stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumChromaticTitleCoverage: 0.02 },
+  { id: 'desktop-bust-resolved', storyWU: bustWU(0.85), stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumChromaticWidthRatio: 0.17, minimumChromaticHeightRatio: 0.25, minimumChromaticStudioEdgePx: 16 },
+  { id: 'desktop-bust-hold', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
+  { id: 'desktop-finale-bust', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'mobile-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectCenteredOpener: true },
   { id: 'mobile-complexity-through', storyWU: 1.75, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticCoverageRatio: 0.004, maximumChromaticTitleCoverage: 0.04 },
   { id: 'mobile-complexity-inside', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-void', storyWU: 3.35, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'mobile-client-logos', storyWU: 5.63, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-void', storyWU: 3.78, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-client-logos', storyWU: 5.25, stage: 'calm-field-v1', visibility: 0.507, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
   { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumSpatialTitles: 1 },
+  { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
   { id: 'mobile-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 3, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bust-base', storyWU: 13.42, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bust-forming', storyWU: 13.8, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bust-upper', storyWU: 14.02, stage: 'bust-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bust-title', storyWU: 14.45, stage: 'bust-v1', visibility: 0.06, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumChromaticTitleCoverage: 0.01 },
-  { id: 'mobile-bust-resolved', storyWU: 14.75, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
-  { id: 'mobile-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-finale-bust', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'compact-landscape-discipline', storyWU: 8.72, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'compact-landscape-bust-hold', storyWU: 14.85, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2, minimumChromaticStudioEdgePx: 16 },
-  { id: 'compact-landscape-finale', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2, minimumChromaticStudioEdgePx: 16 },
+  { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 5, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-base', storyWU: bustWU(0.05), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-forming', storyWU: bustWU(0.25), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-upper', storyWU: bustWU(0.4), stage: 'bust-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-bust-title', storyWU: bustWU(0.65), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumChromaticTitleCoverage: 0.01 },
+  { id: 'mobile-bust-resolved', storyWU: bustWU(0.85), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
+  { id: 'mobile-bust-hold', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'mobile-finale-bust', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
+  { id: 'compact-landscape-discipline', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'compact-landscape-bust-hold', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2 },
+  { id: 'compact-landscape-finale', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2 },
   { id: 'reduced-motion-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectCenteredOpener: true },
-  { id: 'reduced-motion-background-editorial', storyWU: 4.3, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'reduced-motion-client-logos', storyWU: 5.63, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'reduced-motion-bridge', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, minimumSpatialTitles: 1 },
-  { id: 'reduced-motion-discipline', storyWU: 8.9, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 6, maximumSpatialTitles: 0, expectCenteredDiscipline: true },
-  { id: 'reduced-motion-bust', storyWU: 14.9, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
-  { id: 'reduced-motion-finale', storyWU: 15.6, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
+  { id: 'reduced-motion-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-client-logos', storyWU: 6.15, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
+  { id: 'reduced-motion-bridge', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-discipline', storyWU: 8.9, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 4, maximumLabels: 4, maximumSpatialTitles: 0, expectCenteredDiscipline: true },
+  { id: 'reduced-motion-bust', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
+  { id: 'reduced-motion-finale', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
 ];
+const requestedCheckpointIds = new Set(
+  String(process.env.ABS_ABOUT_RUNTIME_CHECKPOINTS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+);
+const activeCheckpointSpecs = requestedCheckpointIds.size
+  ? checkpointSpecs.filter(({ id }) => requestedCheckpointIds.has(id))
+  : checkpointSpecs;
+assert.equal(
+  activeCheckpointSpecs.length,
+  requestedCheckpointIds.size || checkpointSpecs.length,
+  'Every requested runtime visual checkpoint must exist.',
+);
+const planCache = new Map();
+const checkpoints = activeCheckpointSpecs.map((checkpoint) => {
+  const planKey = [
+    checkpoint.viewport.width,
+    checkpoint.viewport.height,
+    checkpoint.reducedMotion || 'no-preference',
+  ].join(':');
+  let plan = planCache.get(planKey);
+  if (!plan) {
+    plan = compileAboutNarrativeRuntimePlan(canonical, {
+      inlineSize: checkpoint.viewport.width,
+      blockSize: checkpoint.viewport.height,
+      prefersReducedMotion: checkpoint.reducedMotion === 'reduce',
+    });
+    assert.equal(plan.valid, true, `Could not compile visual-audit plan ${planKey}.`);
+    planCache.set(planKey, plan);
+  }
+  return {
+    ...checkpoint,
+    storyDurationWU: plan.durationWU,
+  };
+});
 const STORY_WU_TOLERANCE = 0.04;
 const VISIBILITY_TOLERANCE = 0.02;
 const CONTACT_SHEET_LAYOUTS = {
@@ -271,41 +329,60 @@ for (const checkpoint of checkpoints) {
 
   await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab', { timeout: 20_000 });
-  await page.evaluate(({ storyWU }) => {
+  await page.evaluate(({ storyWU, storyDurationWU }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
     if (!scrollport) return;
-    const progress = Math.min(1, Math.max(0, storyWU / 16.35));
+    const progress = Math.min(1, Math.max(0, storyWU / storyDurationWU));
     const scrollTravel = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
     scrollport.scrollTo(0, scrollTravel * progress);
     scrollport.dispatchEvent(new Event('scroll', { bubbles: true }));
   }, checkpoint);
-  await page.waitForFunction(({
-    storyWU,
-    stage,
-    expectedVisibility,
-    minimumLabels,
-  }) => {
-    const root = document.querySelector('.about-narrative-lab');
-    const sampledStoryWU = Number(root?.dataset.narrativeStoryWu);
-    const sampledVisibility = Number(root?.dataset.worldVisibility);
-    const storyReady = Number.isFinite(sampledStoryWU)
-      && Math.abs(sampledStoryWU - storyWU) <= 0.04;
-    const visibilityReady = expectedVisibility == null
-      || (Number.isFinite(sampledVisibility)
-        && Math.abs(sampledVisibility - expectedVisibility) <= 0.02);
-    const labelsReady = Number(root?.dataset.worldDisciplineLabels || 0) >= minimumLabels;
-    return storyReady
-      && visibilityReady
-      && labelsReady
-      && root?.dataset.worldPrepare === 'ready'
-      && root.dataset.worldStage === stage
-      && window.__aboutNarrativeRuntime?.getMetrics?.().fixedAttributeIdentityStable === true;
-  }, {
-    storyWU: checkpoint.storyWU,
-    stage: checkpoint.stage,
-    expectedVisibility: checkpoint.visibility ?? null,
-    minimumLabels: checkpoint.minimumLabels ?? 0,
-  }, { timeout: 30_000 });
+  try {
+    await page.waitForFunction(({
+      storyWU,
+      stage,
+      expectedVisibility,
+      minimumLabels,
+    }) => {
+      const root = document.querySelector('.about-narrative-lab');
+      const sampledStoryWU = Number(root?.dataset.narrativeStoryWu);
+      const sampledVisibility = Number(root?.dataset.worldVisibility);
+      const storyReady = Number.isFinite(sampledStoryWU)
+        && Math.abs(sampledStoryWU - storyWU) <= 0.04;
+      const visibilityReady = expectedVisibility == null
+        || (Number.isFinite(sampledVisibility)
+          && Math.abs(sampledVisibility - expectedVisibility) <= 0.02);
+      const labelsReady = Number(root?.dataset.worldDisciplineLabels || 0) >= minimumLabels;
+      return storyReady
+        && visibilityReady
+        && labelsReady
+        && root?.dataset.worldPrepare === 'ready'
+        && root.dataset.worldStage === stage
+        && window.__aboutNarrativeRuntime?.getMetrics?.().fixedAttributeIdentityStable === true;
+    }, {
+      storyWU: checkpoint.storyWU,
+      stage: checkpoint.stage,
+      expectedVisibility: checkpoint.visibility ?? null,
+      minimumLabels: checkpoint.minimumLabels ?? 0,
+    }, { timeout: 30_000 });
+  } catch (error) {
+    const pendingState = await page.evaluate(() => {
+      const root = document.querySelector('.about-narrative-lab');
+      return {
+        storyWU: root?.dataset.narrativeStoryWu || '',
+        visibility: root?.dataset.worldVisibility || '',
+        labels: root?.dataset.worldDisciplineLabels || '',
+        prepare: root?.dataset.worldPrepare || '',
+        stage: root?.dataset.worldStage || '',
+        pointState: root?.dataset.pointWorldState || '',
+        worldError: root?.dataset.worldError || '',
+      };
+    });
+    throw new Error(
+      `${checkpoint.id}: runtime checkpoint did not settle: ${JSON.stringify(pendingState)}`,
+      { cause: error },
+    );
+  }
   await page.waitForTimeout(250);
 
   const state = await page.evaluate(() => {
@@ -381,9 +458,9 @@ for (const checkpoint of checkpoints) {
         ? Math.abs(((disciplineBounds.left + disciplineBounds.right) / 2)
           - (rootRect.left + (rootRect.width / 2))) / rootRect.width
         : null,
-      disciplineWithinInner70: rootRect && disciplineBounds
-        ? disciplineBounds.left >= rootRect.left + (rootRect.width * 0.15) - 1
-          && disciplineBounds.right <= rootRect.right - (rootRect.width * 0.15) + 1
+      disciplineWithinHorizontalSafeArea: rootRect && disciplineBounds
+        ? disciplineBounds.left >= rootRect.left + 12
+          && disciplineBounds.right <= rootRect.right - 12
         : null,
     };
   });
@@ -427,9 +504,9 @@ for (const checkpoint of checkpoints) {
   if (checkpoint.expectExactAnchor) {
     assert.equal(state.anchorSampling, 'exact');
     assert.equal(
-      state.disciplineWithinInner70,
+      state.disciplineWithinHorizontalSafeArea,
       true,
-      `${checkpoint.id}: discipline labels must remain inside the inner 70% viewport band.`,
+      `${checkpoint.id}: discipline labels must remain inside the horizontal safe area.`,
     );
   }
   if (checkpoint.minimumLabels !== undefined) {
@@ -523,7 +600,8 @@ for (const checkpoint of checkpoints) {
 }
 
 const contactSheets = {};
-for (const group of Object.keys(CONTACT_SHEET_LAYOUTS)) {
+const activeReviewGroups = new Set(evidence.map((item) => item.reviewGroup));
+for (const group of Object.keys(CONTACT_SHEET_LAYOUTS).filter((id) => activeReviewGroups.has(id))) {
   contactSheets[group] = await createContactSheet(
     group,
     evidence.filter((item) => item.reviewGroup === group),

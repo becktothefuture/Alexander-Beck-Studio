@@ -1299,7 +1299,6 @@ body.dark-mode .about-narrative-client-logos img {
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-narrative-opening-copy {
   opacity: var(--fragment-opacity, 0);
-  transform: none;
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] .about-interactive-stack__card {

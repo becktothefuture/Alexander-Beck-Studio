@@ -11,6 +11,7 @@ import {
   createAboutNarrativeWorldPreparationDescriptor,
   serializeAboutNarrativeSequenceIdentity,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeSequenceIdentity.js';
+import { resolveAboutNarrativePairStatus } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePairStatus.js';
 import {
   findAboutNarrativeWorldById,
   getAboutNarrativeWorldId,
@@ -196,6 +197,117 @@ test('preparation identity changes only when preparation inputs change', () => {
   const mobile = compileAboutNarrativeDocument(canonical, { profile: 'mobile' });
   assert.notEqual(mobile.worldSequenceKey, baseline.worldSequenceKey);
   assert.equal(mobile.worldPreparationDescriptor.pointCount, 5000);
+});
+
+test('geometry identity covers adapter and every responsive transform without timing churn', () => {
+  const plan = compileAboutNarrativeDocument(canonical, { profile: 'mobile' });
+  const worldSequence = plan.worldSequence.map((world) => ({
+    ...world,
+    adapterId: world.adapterId || 'point-field-v1',
+    anchorRailZ: resolveAboutNarrativeWorldAnchorRailZ(world, canonical.globals),
+    transform: {
+      ...world.transform,
+      mobileLandscapeScale: world.transform.mobileLandscapeScale ?? 1,
+      mobileLandscapeXScale: world.transform.mobileLandscapeXScale ?? 1,
+      mobileLandscapeXOffset: world.transform.mobileLandscapeXOffset ?? 0,
+      mobileLandscapeYOffset: world.transform.mobileLandscapeYOffset ?? 0,
+      mobileLandscapeZOffset: world.transform.mobileLandscapeZOffset ?? 0,
+    },
+  }));
+  const createDescriptor = (sequence) => createAboutNarrativeWorldPreparationDescriptor({
+    worldSequence: sequence,
+    globals: canonical.globals,
+    profile: 'mobile',
+  });
+  const baseline = createDescriptor(worldSequence);
+  const geometryFields = [
+    'mobileLandscapeScale',
+    'mobileLandscapeXScale',
+    'mobileLandscapeXOffset',
+    'mobileLandscapeYOffset',
+    'mobileLandscapeZOffset',
+  ];
+  geometryFields.forEach((field) => {
+    const edited = structuredClone(worldSequence);
+    edited[1].transform[field] += 0.1;
+    assert.notEqual(
+      createDescriptor(edited).worldSequenceKey,
+      baseline.worldSequenceKey,
+      `${field} must invalidate prepared correspondence`,
+    );
+  });
+
+  const adapterEdit = structuredClone(worldSequence);
+  adapterEdit[1].adapterId = 'point-field-v2';
+  assert.notEqual(createDescriptor(adapterEdit).worldSequenceKey, baseline.worldSequenceKey);
+
+  const visualOnlyEdit = structuredClone(worldSequence);
+  visualOnlyEdit[1].transform.pointSizeScale = Number(
+    visualOnlyEdit[1].transform.pointSizeScale ?? 1,
+  ) + 0.1;
+  assert.equal(createDescriptor(visualOnlyEdit).worldSequenceKey, baseline.worldSequenceKey);
+
+  const timingOnlyEdit = structuredClone(worldSequence);
+  timingOnlyEdit[1].startWU += 0.25;
+  assert.equal(createDescriptor(timingOnlyEdit).worldSequenceKey, baseline.worldSequenceKey);
+
+  const railDerivedWorlds = structuredClone(worldSequence);
+  railDerivedWorlds.forEach((world) => delete world.anchorRailZ);
+  const anchorEdit = structuredClone(railDerivedWorlds);
+  anchorEdit[1].anchorWU = Number(
+    anchorEdit[1].anchorWU ?? anchorEdit[1].startWU,
+  ) + 0.25;
+  assert.notEqual(
+    createDescriptor(anchorEdit).worldSequenceKey,
+    createDescriptor(railDerivedWorlds).worldSequenceKey,
+    'anchor timing must invalidate geometry when it moves the resolved rail pose',
+  );
+});
+
+test('pair descriptor fingerprints carry cumulative source identity', () => {
+  const plan = compileAboutNarrativeDocument(canonical, { profile: 'desktop' });
+  const createDescriptor = (worldSequence) => createAboutNarrativeWorldPreparationDescriptor({
+    worldSequence,
+    globals: canonical.globals,
+    profile: 'desktop',
+  });
+  const baseline = createDescriptor(plan.worldSequence).descriptor;
+  const earlyEdit = structuredClone(plan.worldSequence);
+  earlyEdit[0].shapeParameters.radius += 0.05;
+  const changed = createDescriptor(earlyEdit).descriptor;
+
+  assert.equal(changed.pairs.length, baseline.pairs.length);
+  changed.pairs.forEach((pair, index) => {
+    assert.notEqual(
+      pair.inputFingerprint,
+      baseline.pairs[index].inputFingerprint,
+      `pair ${index} must inherit an earlier source change`,
+    );
+    if (index > 0) {
+      assert.equal(pair.sourceChainFingerprint, changed.pairs[index - 1].inputFingerprint);
+    }
+  });
+});
+
+test('a prepared pair record resolves ready only with its exact cumulative descriptor fingerprint', () => {
+  const plan = compileAboutNarrativeDocument(canonical, { profile: 'desktop' });
+  const descriptor = plan.worldPreparationDescriptor.pairs[2];
+  const status = resolveAboutNarrativePairStatus({
+    plan,
+    worldId: descriptor.toWorldId,
+    diagnostics: {
+      pairs: [{
+        pairId: descriptor.id,
+        inputFingerprint: descriptor.inputFingerprint,
+        state: 'ready',
+        source: 'worker',
+      }],
+    },
+  });
+  assert.equal(status.state, 'ready');
+  assert.equal(status.exact, true);
+  assert.equal(status.descriptor, descriptor);
+  assert.equal(status.record.inputFingerprint, descriptor.inputFingerprint);
 });
 
 test('stable World and anchor inputs supersede legacy Section metadata', () => {

@@ -13,6 +13,10 @@ import {
 } from './aboutNarrativeProfileResolver.js';
 import { compileAboutNarrativeRenderSpans } from './aboutNarrativeRenderSpans.js';
 import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrativeSequenceIdentity.js';
+import {
+  applyAboutNarrativeTrackEasing,
+  applyAboutNarrativeWorldTransitionEasing,
+} from './aboutNarrativeMotionMath.js';
 
 const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
 const TIME_EPSILON = 0.000001;
@@ -301,18 +305,6 @@ export function compileAboutNarrativeRuntimePlan(input, options = {}) {
   });
 }
 
-function applyEasing(name, value) {
-  const progress = Math.min(1, Math.max(0, Number(value) || 0));
-  if (name === 'linear') return progress;
-  if (name === 'hold') return progress < 1 ? 0 : 1;
-  if (name === 'ease-in') return progress ** 3;
-  if (name === 'ease-out') return 1 - ((1 - progress) ** 3);
-  if (name === 'ease-in-out') {
-    return progress < 0.5 ? 4 * (progress ** 3) : 1 - (((-2 * progress) + 2) ** 3) / 2;
-  }
-  return progress * progress * (3 - (2 * progress));
-}
-
 function mix(from, to, progress) {
   return from + ((to - from) * progress);
 }
@@ -342,7 +334,10 @@ function sampleVisibility(keys, storyWU, reducedMotion) {
     return Number(storyWU <= Number(keys[0].atWU) ? keys[0].visibility : from.visibility);
   }
   const spanWU = Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
-  const progress = applyEasing(from.easing, (storyWU - Number(from.atWU)) / spanWU);
+  const progress = applyAboutNarrativeTrackEasing(
+    from.easing,
+    (storyWU - Number(from.atWU)) / spanWU,
+  );
   return mix(Number(from.visibility), Number(to.visibility), progress);
 }
 
@@ -370,7 +365,10 @@ function getTransitionProgress(world, storyWU, reducedMotion) {
   // Preserve the established zero-duration morph sampling guard exactly. The
   // first World uses a self-morph at WU 0 during legacy migration.
   const spanWU = Math.max(0.00001, transition.endWU - transition.startWU);
-  return applyEasing(transition.easing, (storyWU - transition.startWU) / spanWU);
+  return applyAboutNarrativeWorldTransitionEasing(
+    transition.easing,
+    (storyWU - transition.startWU) / spanWU,
+  );
 }
 
 function collectActiveIds(target, items, storyWU, durationWU, activation = false) {
@@ -383,7 +381,7 @@ function collectActiveIds(target, items, storyWU, durationWU, activation = false
 
 function smoothRange(value, start, end) {
   const span = Math.max(TIME_EPSILON, end - start);
-  return applyEasing('smoothstep', (value - start) / span);
+  return applyAboutNarrativeTrackEasing('smoothstep', (value - start) / span);
 }
 
 function getInteractionEffectWeight(clip, storyWU, reducedMotion) {
@@ -458,7 +456,7 @@ export function sampleAboutNarrativeTitleFieldInto(
       target.z = 0;
       return target;
     }
-    const entryProgress = applyEasing(
+    const entryProgress = applyAboutNarrativeTrackEasing(
       'smoothstep',
       (valueWU - startWU) / (focusWU - startWU),
     );
@@ -472,7 +470,7 @@ export function sampleAboutNarrativeTitleFieldInto(
   if (isOpener) {
     const spanWU = Math.max(0.00001, endWU - startWU);
     const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
-    const exitProgress = applyEasing('smoothstep', progress);
+    const exitProgress = applyAboutNarrativeTrackEasing('smoothstep', progress);
     target.opacity = valueWU > endWU ? 0 : 1 - exitProgress;
     target.blur = 0;
     target.x = 0;
@@ -496,10 +494,13 @@ export function sampleAboutNarrativeTitleFieldInto(
   const readableEnd = Math.min(1, Math.max(0, Number(textMotion?.readableEnd ?? 0.76)));
   const clearIn = readableStart <= 0
     ? 1
-    : applyEasing('smoothstep', progress / readableStart);
+    : applyAboutNarrativeTrackEasing('smoothstep', progress / readableStart);
   const clearOut = readableEnd >= 1
     ? 1
-    : 1 - applyEasing('smoothstep', (progress - readableEnd) / (1 - readableEnd));
+    : 1 - applyAboutNarrativeTrackEasing(
+      'smoothstep',
+      (progress - readableEnd) / (1 - readableEnd),
+    );
   const clarity = Math.min(clearIn, clearOut);
   target.opacity = clarity;
   target.blur = mix(maxBlur, 0, clarity);
@@ -509,7 +510,7 @@ export function sampleAboutNarrativeTitleFieldInto(
   return target;
 }
 
-function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotion) {
+function writeDisciplineReveal(target, config, storyWU, reducedMotion) {
   if (!config) return null;
   target.id = config.id;
   target.config = config;
@@ -518,15 +519,12 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.endWU = config.endWU;
   target.backgroundFadeWU = config.backgroundFadeWU;
   target.restoreDurationWU = config.restoreDurationWU;
-  target.active = isActiveAt(
-    storyWU,
-    config.effectStartWU,
-    config.effectEndWU,
-    durationWU,
-  );
-  target.backgroundProgress = reducedMotion
-    ? (target.active ? 1 : 0)
-    : smoothRange(storyWU, config.effectStartWU, config.backgroundFadeEndWU);
+  target.active = storyWU >= config.effectStartWU && storyWU < config.effectEndWU;
+  target.backgroundProgress = !target.active
+    ? 0
+    : reducedMotion
+      ? 1
+      : smoothRange(storyWU, config.effectStartWU, config.backgroundFadeEndWU);
   const restoreStartWU = Math.max(
     config.startWU,
     config.effectEndWU - Math.max(0, config.restoreDurationWU),
@@ -724,7 +722,6 @@ export function sampleAboutNarrativeRuntimePlanInto(
     target._disciplineReveal,
     plan.disciplineReveal,
     clampedStoryWU,
-    plan.durationWU,
     reducedMotion,
   );
   target.editorialSignals.disciplineFocus = 0;

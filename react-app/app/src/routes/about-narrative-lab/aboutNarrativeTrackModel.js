@@ -9,6 +9,10 @@ import {
   compileAboutNarrativeCameraKey,
   sampleAboutNarrativeCameraKeysInto,
 } from './aboutNarrativeCameraSampling.js';
+import {
+  applyAboutNarrativeTrackEasing,
+  applyAboutNarrativeWorldTransitionEasing,
+} from './aboutNarrativeMotionMath.js';
 
 /*
  * Sectionless About Narrative track model.
@@ -49,18 +53,6 @@ export function validateAboutNarrativeTrackModel(model) {
   return validateAboutNarrativeTrackDocument(model);
 }
 
-function applyTrackEasing(name, value) {
-  const progress = Math.min(1, Math.max(0, Number(value) || 0));
-  if (name === 'linear') return progress;
-  if (name === 'hold') return progress < 1 ? 0 : 1;
-  if (name === 'ease-in') return progress ** 3;
-  if (name === 'ease-out') return 1 - ((1 - progress) ** 3);
-  if (name === 'ease-in-out') {
-    return progress < 0.5 ? 4 * (progress ** 3) : 1 - (((-2 * progress) + 2) ** 3) / 2;
-  }
-  return progress * progress * (3 - (2 * progress));
-}
-
 function mix(from, to, progress) {
   return from + ((to - from) * progress);
 }
@@ -75,7 +67,10 @@ function sampleVisibility(keys, storyWU) {
   const from = keys[toIndex - 1];
   const to = keys[toIndex];
   const spanWU = Math.max(0.000001, Number(to.atWU) - Number(from.atWU));
-  const progress = applyTrackEasing(from.easing, (storyWU - Number(from.atWU)) / spanWU);
+  const progress = applyAboutNarrativeTrackEasing(
+    from.easing,
+    (storyWU - Number(from.atWU)) / spanWU,
+  );
   return mix(Number(from.visibility), Number(to.visibility), progress);
 }
 
@@ -107,7 +102,7 @@ function sampleWorldStateInto(worlds, storyWU, target) {
     } else if (transition.type === 'hold') {
       transitionProgress = storyWU < transition.endWU ? 0 : 1;
     } else {
-      transitionProgress = applyTrackEasing(
+      transitionProgress = applyAboutNarrativeWorldTransitionEasing(
         transition.easing,
         (storyWU - transition.startWU) / transitionSpanWU,
       );

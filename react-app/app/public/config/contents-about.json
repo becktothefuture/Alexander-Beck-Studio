@@ -342,7 +342,7 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.35,
+            -1.25,
             -7.035
           ],
           "lookAtRoll": 0,
@@ -366,7 +366,7 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.35,
+            -1.25,
             -7.035
           ],
           "lookAtRoll": 0,
@@ -390,7 +390,7 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.35,
+            -1.25,
             -7.035
           ],
           "lookAtRoll": 0,
@@ -765,7 +765,7 @@
                 "fragmentReveal": 0.34,
                 "fragmentSpread": 0.42,
                 "fragmentFall": 0.18,
-                "fragmentPresence": 1
+                "fragmentPresence": 0.5
               }
             },
             {

@@ -36,6 +36,10 @@ import {
   writeAboutNarrativeCameraQuaternion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
 import { applyAboutNarrativeCameraEasing } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
+import {
+  applyAboutNarrativeWorldTransitionEasing,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.js';
+import '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.test.js';
 const canonicalSource = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
@@ -137,6 +141,25 @@ test('runtime accepts schema v5 only after legacy input crosses the persistence 
   assert.equal('sections' in fromCanonicalV5, false);
   assert.equal('sectionIndex' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
   assert.equal('localProgress' in sampleAboutNarrativeRuntimePlan(fromV2, 0), false);
+});
+
+test('World sampling publishes the composed visual transition progress once', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  const world = plan.worlds[1];
+  const rawProgress = 0.25;
+  const storyWU = world.transitionIn.startWU
+    + ((world.transitionIn.endWU - world.transitionIn.startWU) * rawProgress);
+  const sample = sampleAboutNarrativeRuntimePlan(plan, storyWU);
+  assertClose(
+    sample.world.transitionProgress,
+    applyAboutNarrativeWorldTransitionEasing(world.transitionIn.easing, rawProgress),
+    'composed World transition progress',
+  );
+
+  const unsupported = structuredClone(canonical);
+  unsupported.tracks.worlds.objects[1].transitionIn.type = 'crossfade';
+  const compatibleV5 = compileAboutNarrativeRuntimePlan(unsupported, { layoutProfile: 'desktop' });
+  assert.equal(compatibleV5.valid, true, 'schema v5 keeps legacy crossfade documents readable');
 });
 
 test('compiled Worlds derive endWU and anchorRailZ and preparation uses stable World IDs', () => {
@@ -591,6 +614,39 @@ test('Discipline reveal keeps one clip clock and delegates accumulated reveal to
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);
   assert.equal(handoff.active, false);
+});
+
+test('Discipline reveal separates effect availability from label activation without snapping or leaking', () => {
+  const document = structuredClone(canonical);
+  const clip = document.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
+  clip.activationWU = clip.startWU + 0.8;
+  const plan = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
+  assert.equal(plan.valid, true);
+  const reveal = plan.disciplineReveal;
+  assert.ok(reveal.effectStartWU < reveal.startWU);
+
+  const beforeEffect = sampleAboutNarrativeRuntimePlan(
+    plan,
+    reveal.effectStartWU - 0.000001,
+  ).disciplineReveal;
+  const preparing = sampleAboutNarrativeRuntimePlan(
+    plan,
+    reveal.effectStartWU + (reveal.backgroundFadeWU * 0.5),
+  ).disciplineReveal;
+  const activation = sampleAboutNarrativeRuntimePlan(plan, reveal.startWU).disciplineReveal;
+  const afterEnd = sampleAboutNarrativeRuntimePlan(
+    plan,
+    reveal.effectEndWU,
+  ).disciplineReveal;
+
+  assert.equal(beforeEffect.active, false);
+  assert.equal(beforeEffect.backgroundProgress, 0);
+  assert.equal(preparing.active, true);
+  assert.ok(preparing.storyWU < preparing.startWU, 'labels must remain gated before activation');
+  assert.ok(preparing.backgroundProgress > 0 && preparing.backgroundProgress < 1);
+  assert.equal(activation.backgroundProgress, 1, 'activation must not restart the background fade');
+  assert.equal(afterEnd.active, false);
+  assert.equal(afterEnd.backgroundProgress, 0);
 });
 
 test('Discipline positions stay separated in both responsive profiles', () => {
