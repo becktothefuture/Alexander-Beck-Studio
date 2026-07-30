@@ -4695,8 +4695,8 @@ svg.shell-tab__icon {
     justify-content: flex-end;
     align-self: stretch;
     gap: 0;
-    width: var(--button-bar-mobile-secondary-height);
-    min-width: var(--button-bar-mobile-secondary-height);
+    width: max-content;
+    min-width: max-content;
     min-height: var(--button-bar-mobile-secondary-height);
   }
 
@@ -4715,7 +4715,7 @@ svg.shell-tab__icon {
   }
 
   .button-bar__theme-toggle.shell-tab {
-    display: none;
+    display: inline-flex;
   }
 
   .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset) .button-bar__sound-toggle {

@@ -456,22 +456,33 @@
 
   .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__mobile-theme-reset.shell-tab {
+    flex: 0 0 var(--dominant-secondary-control-height);
+    inline-size: var(--dominant-secondary-control-height);
+    block-size: var(--dominant-secondary-control-height);
+    min-width: var(--dominant-secondary-control-height);
+    min-height: var(--dominant-secondary-control-height);
     color: var(--dominant-flat-bright-ink);
     border-width: 0;
     background: var(--dominant-flat-utility-surface);
     box-shadow: none;
   }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset)
+    .button-bar__sound-toggle.shell-tab {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: clamp(9px, 2.5vw, 11px);
+    --dominant-primary-tab-padding-inline: clamp(6px, 1.7vw, 8px);
   }
 }
 
 @media (max-width: 360px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: 6px;
+    --dominant-primary-tab-padding-inline: 5px;
   }
 }
 

@@ -187,15 +187,9 @@ async function setStoredPreference(context, preference) {
 
 async function activateThemeToggle(page, expectedLabel) {
   const toggle = page.locator('.button-bar__theme-toggle');
-  await toggle.waitFor({ state: 'attached', timeout: waitMs });
+  await toggle.waitFor({ state: 'visible', timeout: waitMs });
   assert(await toggle.getAttribute('aria-label') === expectedLabel, `Unexpected theme-toggle action: ${expectedLabel}`);
-  if (await toggle.isVisible()) {
-    await toggle.click();
-  } else {
-    // The compact mobile bar intentionally hides this control; dispatching the
-    // same React click still verifies persistence for a choice made elsewhere.
-    await toggle.dispatchEvent('click');
-  }
+  await toggle.click();
 }
 
 async function navigateByTab(page, step, expectedTheme, expectedFrame, viewportName) {
