@@ -550,10 +550,13 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.equal(key.rotation[2], 0);
     assert.equal(key.lookAtRoll, 0);
   });
-  assert.equal(keys.get('grid-flight-glide').rotation[0], -24);
-  assert.equal(keys.get('grid-tilt-mid').rotation[0], -62);
-  ['grid-birds-eye', 'discipline-hold']
-    .forEach((id) => assert.equal(keys.get(id).rotation[0], -90));
+  assert.deepEqual(gridFlightKeys.map((key) => key.rotation[0]), [-28, -58, -82, -90]);
+  const flyoverKeys = [keys.get('complexity-exit-2'), ...gridFlightKeys];
+  flyoverKeys.slice(1).forEach((key, index) => {
+    assert.ok(key.position[2] > flyoverKeys[index].position[2], 'World C camera must move forward continuously');
+    assert.ok(key.position[1] >= flyoverKeys[index].position[1], 'World C camera must rise continuously');
+    assert.ok(key.rotation[0] < flyoverKeys[index].rotation[0], 'World C camera must tilt downward continuously');
+  });
   const orbitKeys = orbitIds.map((id) => keys.get(id));
   orbitKeys.forEach((key) => {
     assert.ok(key);
@@ -661,7 +664,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
   assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
   assert.ok(disciplineReveal.parameters.staggerWU * 5 >= 2.4);
   assert.ok(disciplineReveal.parameters.staggerWU * 5 <= 2.6);
-  assert.equal(keys.get('grid-birds-eye').position[1], keys.get('discipline-hold').position[1]);
+  assert.ok(keys.get('grid-birds-eye').position[1] <= keys.get('discipline-hold').position[1]);
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
   assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) >= 0.8);

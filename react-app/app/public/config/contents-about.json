@@ -81,8 +81,8 @@
           "discipline-hold": {
             "position": [
               0,
-              11,
-              18
+              13,
+              30
             ],
             "fov": 60
           },
@@ -126,16 +126,16 @@
           "grid-birds-eye": {
             "position": [
               0,
-              11,
-              -18
+              12,
+              2
             ],
             "fov": 62
           },
           "grid-flight-glide": {
             "position": [
               0,
-              4.5,
-              -25
+              5.2,
+              -18
             ],
             "fov": 64
           },
@@ -150,8 +150,8 @@
           "grid-tilt-mid": {
             "position": [
               0,
-              7,
-              -23.5
+              8.5,
+              -8
             ],
             "fov": 63
           },
@@ -231,19 +231,19 @@
           "atWU": 3.526894,
           "position": [
             0,
-            0.5,
-            -8.8
+            2.8,
+            -32
           ],
           "rotation": [
-            0,
+            -8,
             0,
             0
           ],
           "aimEnabled": false,
           "lookAtTarget": [
             0,
-            0.5,
-            -9.8
+            2.66,
+            -32.99
           ],
           "lookAtRoll": 0,
           "fov": 52,
@@ -255,11 +255,11 @@
           "atWU": 7.35,
           "position": [
             0,
-            4.2,
-            -24
+            4.8,
+            -18
           ],
           "rotation": [
-            -24,
+            -28,
             0,
             0
           ],
@@ -267,7 +267,7 @@
           "lookAtTarget": [
             0,
             -1.72,
-            -30
+            -24
           ],
           "lookAtRoll": 0,
           "fov": 60,
@@ -279,11 +279,11 @@
           "atWU": 8.15,
           "position": [
             0,
-            7,
-            -21
+            8,
+            -8
           ],
           "rotation": [
-            -62,
+            -58,
             0,
             0
           ],
@@ -291,7 +291,7 @@
           "lookAtTarget": [
             0,
             -1.72,
-            -21
+            -13
           ],
           "lookAtRoll": 0,
           "fov": 58,
@@ -303,11 +303,11 @@
           "atWU": 8.65,
           "position": [
             0,
-            11,
-            -18
+            12,
+            2
           ],
           "rotation": [
-            -90,
+            -82,
             0,
             0
           ],
@@ -315,7 +315,7 @@
           "lookAtTarget": [
             0,
             -1.72,
-            -18
+            0
           ],
           "lookAtRoll": 0,
           "fov": 56,
@@ -327,8 +327,8 @@
           "atWU": 12.45,
           "position": [
             0,
-            11,
-            18
+            13,
+            30
           ],
           "rotation": [
             -90,
@@ -339,7 +339,7 @@
           "lookAtTarget": [
             0,
             -1.72,
-            18
+            30
           ],
           "lookAtRoll": 0,
           "fov": 56,
