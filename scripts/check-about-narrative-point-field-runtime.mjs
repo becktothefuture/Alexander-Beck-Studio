@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import './check-about-narrative-point-field-motion.mjs';
+import './check-about-narrative-point-field-renderer-bridge.mjs';
 
 import {
   applyAboutNarrativeTrackEasing,
@@ -222,6 +223,24 @@ test('incoming emergent segment owns its absolute-target interaction', () => {
   assert.equal(atStart.interactions.interactionActivated, false);
   assert.equal(afterActivation.interactions.activeInteraction?.targetStateId, 'world-emergent');
   assert.equal(afterActivation.interactions.interactionActivated, true);
+});
+
+test('absolute interactions may begin before their target state becomes the segment destination', () => {
+  const source = structuredClone(canonicalV6);
+  const interaction = source.tracks.interactions.clips.find((clip) => (
+    clip.id === 'interaction-emergent-ripple'
+  ));
+  interaction.startWU = 15.5;
+  const plan = compileAboutNarrativePointFieldRuntime(source);
+  assert.equal(plan.valid, true);
+
+  const preparedEarly = sampleAboutNarrativePointFieldRuntime(plan, 15.75);
+  assert.ok(preparedEarly.interactions.activeClipIds.includes(interaction.id));
+  assert.notEqual(preparedEarly.interactions.activeInteraction?.id, interaction.id);
+
+  const targetIncoming = sampleAboutNarrativePointFieldRuntime(plan, 16.15);
+  assert.equal(targetIncoming.world.to.stateId, interaction.targetStateId);
+  assert.equal(targetIncoming.interactions.activeInteraction?.id, interaction.id);
 });
 
 test('sampleInto reuses the complete caller-owned frame graph', () => {

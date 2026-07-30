@@ -10,6 +10,14 @@ import {
 import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
 } from './aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+} from './aboutNarrativePointFieldSchema.js';
+import {
+  loadAboutNarrativePointFieldPersistenceSource,
+  preflightAboutNarrativePointFieldRuntimePlans,
+  serializeAboutNarrativePointFieldSource,
+} from './aboutNarrativePointFieldPersistence.js';
 
 function hash(serialized) {
   return createHash('sha256').update(serialized).digest('hex');
@@ -43,14 +51,29 @@ function lockedSourceError(current) {
 
 export function createAboutNarrativePersistenceService({
   configPath,
-  preflight = preflightAboutNarrativeTrackRuntimePlans,
+  preflight = null,
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
 }) {
+  if (![ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION, ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION]
+    .includes(Number(targetVersion))) {
+    throw new TypeError('About Narrative persistence targetVersion must be 5 or 6.');
+  }
+  const pointFieldActive = Number(targetVersion) === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
+  const loadSource = pointFieldActive
+    ? loadAboutNarrativePointFieldPersistenceSource
+    : loadAboutNarrativeTrackSource;
+  const serializeSource = pointFieldActive
+    ? serializeAboutNarrativePointFieldSource
+    : serializeAboutNarrativeTrackSource;
+  const runPreflight = preflight || (pointFieldActive
+    ? preflightAboutNarrativePointFieldRuntimePlans
+    : preflightAboutNarrativeTrackRuntimePlans);
   const canonicalPath = resolve(configPath);
   let queue = Promise.resolve();
 
   const read = async () => {
     const raw = await readFile(canonicalPath, 'utf8');
-    const loaded = loadAboutNarrativeTrackSource(raw, { preflight });
+    const loaded = loadSource(raw, { preflight: runPreflight });
     if (!loaded.valid) {
       return Object.freeze({
         document: raw,
@@ -63,7 +86,7 @@ export function createAboutNarrativePersistenceService({
         source: loaded,
       });
     }
-    const serialized = serializeAboutNarrativeTrackSource(loaded.document, { preflight });
+    const serialized = serializeSource(loaded.document, { preflight: runPreflight });
     return Object.freeze({
       document: JSON.parse(serialized),
       serialized,
@@ -87,7 +110,7 @@ export function createAboutNarrativePersistenceService({
       throw error;
     }
 
-    const loaded = loadAboutNarrativeTrackSource(candidate, { preflight });
+    const loaded = loadSource(candidate, { preflight: runPreflight });
     if (!loaded.valid) {
       throw validationError(
         loaded.readOnly
@@ -96,20 +119,20 @@ export function createAboutNarrativePersistenceService({
         loaded,
       );
     }
-    if (loaded.sourceVersion !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+    if (loaded.sourceVersion !== Number(targetVersion)) {
       throw validationError(
-        `Only a schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} About document can be saved. Reload the source to migrate it before saving.`,
+        `Only a schema v${targetVersion} About document can be saved. Reload the source to migrate it before saving.`,
         loaded,
         [{
           level: 'error',
           code: 'schema-version-write',
           path: 'schemaVersion',
-          message: `Persistence accepts only the live schema v${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} document model.`,
+          message: `Persistence accepts only the active schema v${targetVersion} document model.`,
         }],
       );
     }
 
-    const serialized = serializeAboutNarrativeTrackSource(loaded.document, { preflight });
+    const serialized = serializeSource(loaded.document, { preflight: runPreflight });
     const document = JSON.parse(serialized);
     const temporaryPath = `${canonicalPath}.tmp-${process.pid}-${randomBytes(6).toString('hex')}`;
     let fileHandle;

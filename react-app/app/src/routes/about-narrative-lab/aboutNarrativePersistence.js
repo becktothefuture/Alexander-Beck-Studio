@@ -14,6 +14,19 @@ import {
   preflightAboutNarrativeTrackRuntimePlans,
   serializeAboutNarrativeTrackSource,
 } from './aboutNarrativeTrackPersistence.js';
+import {
+  ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} from './aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+} from './aboutNarrativePointFieldSchema.js';
+import {
+  loadAboutNarrativePointFieldPersistenceSource,
+  migrateAboutNarrativePointFieldCheckpointEnvelope,
+  migrateAboutNarrativePointFieldRecoveryEnvelope,
+  preflightAboutNarrativePointFieldRuntimePlans,
+  serializeAboutNarrativePointFieldSource,
+} from './aboutNarrativePointFieldPersistence.js';
 
 export {
   compareAboutNarrativeDocuments,
@@ -25,6 +38,28 @@ const ENDPOINT = '/api/about-narrative/config';
 const MAX_CHECKPOINTS = 20;
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
+
+function resolvePersistenceBoundary(targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+  if (Number(targetVersion) === ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+    return {
+      load: loadAboutNarrativeTrackSource,
+      migrateCheckpoint: migrateAboutNarrativeTrackCheckpointEnvelope,
+      migrateRecovery: migrateAboutNarrativeTrackRecoveryEnvelope,
+      preflight: preflightAboutNarrativeTrackRuntimePlans,
+      serialize: serializeAboutNarrativeTrackSource,
+    };
+  }
+  if (Number(targetVersion) === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION) {
+    return {
+      load: loadAboutNarrativePointFieldPersistenceSource,
+      migrateCheckpoint: migrateAboutNarrativePointFieldCheckpointEnvelope,
+      migrateRecovery: migrateAboutNarrativePointFieldRecoveryEnvelope,
+      preflight: preflightAboutNarrativePointFieldRuntimePlans,
+      serialize: serializeAboutNarrativePointFieldSource,
+    };
+  }
+  throw new TypeError('About Narrative persistence targetVersion must be 5 or 6.');
+}
 
 function parseHash(response, payload) {
   return payload.hash || response.headers.get('ETag')?.replaceAll('"', '') || '';
@@ -40,9 +75,9 @@ function createPersistenceError(result, fallback) {
   return error;
 }
 
-function parseAuthoredPayload(source) {
-  const loaded = loadAboutNarrativeTrackSource(source, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+function parseAuthoredPayload(source, boundary) {
+  const loaded = boundary.load(source, {
+    preflight: boundary.preflight,
   });
   if (!loaded.valid) {
     throw createPersistenceError(
@@ -69,7 +104,10 @@ function assertDocumentSize(serialized) {
   }
 }
 
-export async function loadAboutNarrativeSource() {
+export async function loadAboutNarrativeSource({
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
   const response = await fetch(ENDPOINT, {
     headers: { 'X-ABS-Editor': ABOUT_NARRATIVE_EDITOR_HEADER },
     cache: 'no-store',
@@ -81,7 +119,7 @@ export async function loadAboutNarrativeSource() {
     error.diagnostics = payload.diagnostics || [];
     throw error;
   }
-  const loaded = parseAuthoredPayload(payload.document);
+  const loaded = parseAuthoredPayload(payload.document, boundary);
   return {
     document: loaded.document,
     original: loaded.original,
@@ -90,9 +128,12 @@ export async function loadAboutNarrativeSource() {
   };
 }
 
-export async function saveAboutNarrativeSource(document, baselineHash) {
-  const serialized = serializeAboutNarrativeTrackSource(document, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+export async function saveAboutNarrativeSource(document, baselineHash, {
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
+  const serialized = boundary.serialize(document, {
+    preflight: boundary.preflight,
   });
   const response = await fetch(ENDPOINT, {
     method: 'POST',
@@ -111,16 +152,20 @@ export async function saveAboutNarrativeSource(document, baselineHash) {
     error.currentHash = payload.currentHash || '';
     throw error;
   }
-  const persisted = parseAuthoredPayload(payload.document);
+  const persisted = parseAuthoredPayload(payload.document, boundary);
   return { document: persisted.document, hash: parseHash(response, payload) };
 }
 
-export function exportAboutNarrativeDocument(document, name = 'contents-about.json', { preserveOriginal = false } = {}) {
+export function exportAboutNarrativeDocument(document, name = 'contents-about.json', {
+  preserveOriginal = false,
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
   let serialized;
   if (preserveOriginal && typeof document === 'string') serialized = document;
   else if (preserveOriginal) serialized = `${JSON.stringify(document, null, 2)}\n`;
-  else serialized = serializeAboutNarrativeTrackSource(document, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+  else serialized = boundary.serialize(document, {
+    preflight: boundary.preflight,
   });
   const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
   const link = window.document.createElement('a');
@@ -134,10 +179,12 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
   baselineHash = '',
   now = Date.now(),
   maximumAgeMs = ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS,
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
 } = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
   const displayEnvelope = parseEnvelopeForDisplay(raw);
-  const migrated = migrateAboutNarrativeTrackRecoveryEnvelope(raw, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+  const migrated = boundary.migrateRecovery(raw, {
+    preflight: boundary.preflight,
   });
   if (!migrated.valid) {
     const unreadable = migrated.diagnostics?.some((item) => (
@@ -147,6 +194,7 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
       status: migrated.readOnly ? 'future' : unreadable ? 'unreadable' : 'invalid',
       available: true,
       envelope: displayEnvelope,
+      originalEnvelope: clone(migrated.original),
       original: clone(migrated.source?.original ?? displayEnvelope?.document ?? migrated.original),
       diagnostics: clone(migrated.diagnostics || []),
       reason: migrated.message,
@@ -158,6 +206,7 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
       status: 'expired',
       available: true,
       envelope,
+      originalEnvelope: clone(migrated.original),
       original: clone(migrated.source.original),
       diagnostics: [],
       reason: 'This recovery draft is older than 14 days.',
@@ -168,6 +217,7 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
     status: stale ? 'stale' : 'current',
     available: true,
     envelope,
+    originalEnvelope: clone(migrated.original),
     document: clone(envelope.document),
     original: clone(migrated.source.original),
     migrations: clone(migrated.migrations || []),
@@ -183,15 +233,18 @@ export function readAboutNarrativeRecoveryDraft(options = {}) {
 }
 
 export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadata = {}) {
-  const serializedDocument = serializeAboutNarrativeTrackSource(document, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+  const boundary = resolvePersistenceBoundary(
+    metadata.targetVersion ?? ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  );
+  const serializedDocument = boundary.serialize(document, {
+    preflight: boundary.preflight,
   });
   assertDocumentSize(serializedDocument);
 
   const existingRaw = localStorage.getItem(ABOUT_NARRATIVE_RECOVERY_KEY);
   if (existingRaw != null) {
-    const existing = migrateAboutNarrativeTrackRecoveryEnvelope(existingRaw, {
-      preflight: preflightAboutNarrativeTrackRuntimePlans,
+    const existing = boundary.migrateRecovery(existingRaw, {
+      preflight: boundary.preflight,
     });
     if (!existing.valid) {
       throw new Error('Draft storage is protected because the existing recovery source is invalid or from a newer editor. Export or discard it first.');
@@ -207,8 +260,8 @@ export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadat
     ...(metadata.selection ? { selection: clone(metadata.selection) } : {}),
     ...(Number.isFinite(metadata.storyWU) ? { storyWU: Number(metadata.storyWU) } : {}),
   };
-  const migrated = migrateAboutNarrativeTrackRecoveryEnvelope(candidate, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+  const migrated = boundary.migrateRecovery(candidate, {
+    preflight: boundary.preflight,
   });
   if (!migrated.valid) throw createPersistenceError(migrated, 'The recovery draft is invalid.');
   localStorage.setItem(ABOUT_NARRATIVE_RECOVERY_KEY, JSON.stringify(migrated.envelope));
@@ -238,12 +291,16 @@ function parseStoredCheckpoints() {
   return checkpoints;
 }
 
-function migrateStoredCheckpoints({ strict = false } = {}) {
+function migrateStoredCheckpoints({
+  strict = false,
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
   const checkpoints = parseStoredCheckpoints();
   const resolved = [];
   checkpoints.forEach((checkpoint) => {
-    const migrated = migrateAboutNarrativeTrackCheckpointEnvelope(checkpoint, {
-      preflight: preflightAboutNarrativeTrackRuntimePlans,
+    const migrated = boundary.migrateCheckpoint(checkpoint, {
+      preflight: boundary.preflight,
     });
     if (migrated.valid) resolved.push(migrated.envelope);
     else if (strict) {
@@ -253,17 +310,22 @@ function migrateStoredCheckpoints({ strict = false } = {}) {
   return resolved;
 }
 
-export function readAboutNarrativeCheckpoints() {
+export function readAboutNarrativeCheckpoints({
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
   try {
-    return migrateStoredCheckpoints();
+    return migrateStoredCheckpoints({ targetVersion });
   } catch {
     return [];
   }
 }
 
-export function writeAboutNarrativeCheckpoint(checkpoint) {
-  const serializedDocument = serializeAboutNarrativeTrackSource(checkpoint?.document, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+export function writeAboutNarrativeCheckpoint(checkpoint, {
+  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
+  const serializedDocument = boundary.serialize(checkpoint?.document, {
+    preflight: boundary.preflight,
   });
   assertDocumentSize(serializedDocument);
   const candidate = {
@@ -272,11 +334,14 @@ export function writeAboutNarrativeCheckpoint(checkpoint) {
     kind: 'checkpoint',
     document: JSON.parse(serializedDocument),
   };
-  const migrated = migrateAboutNarrativeTrackCheckpointEnvelope(candidate, {
-    preflight: preflightAboutNarrativeTrackRuntimePlans,
+  const migrated = boundary.migrateCheckpoint(candidate, {
+    preflight: boundary.preflight,
   });
   if (!migrated.valid) throw createPersistenceError(migrated, 'The checkpoint is invalid.');
-  const checkpoints = [migrated.envelope, ...migrateStoredCheckpoints({ strict: true })]
+  const checkpoints = [migrated.envelope, ...migrateStoredCheckpoints({
+    strict: true,
+    targetVersion,
+  })]
     .slice(0, MAX_CHECKPOINTS);
   localStorage.setItem(ABOUT_NARRATIVE_CHECKPOINTS_KEY, JSON.stringify(checkpoints));
   return checkpoints;

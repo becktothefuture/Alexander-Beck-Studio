@@ -278,7 +278,7 @@ function mergeLegacySelectionMap(target, source) {
   return target;
 }
 
-function createLegacySelectionMap(rawDocument, model, suppliedMap) {
+export function createAboutNarrativeTrackLegacySelectionMap(rawDocument, model, suppliedMap) {
   const map = new Map();
   if (Number(rawDocument?.schemaVersion ?? 1) <= 2 && Array.isArray(rawDocument?.sections)) {
     let activeWorld = model.tracks.worlds.objects[0] || null;
@@ -306,7 +306,11 @@ function createLegacySelectionMap(rawDocument, model, suppliedMap) {
   return mergeLegacySelectionMap(map, suppliedMap);
 }
 
-function normalizeEnvelopeSelection(selection, model, legacySelectionMap) {
+export function normalizeAboutNarrativeTrackEnvelopeSelection(
+  selection,
+  model,
+  legacySelectionMap = null,
+) {
   if (!selection) return null;
   const { members, ...primarySource } = selection;
   const primary = normalizeAboutNarrativeTrackSelection(primarySource, model, { legacySelectionMap });
@@ -337,6 +341,8 @@ export function migrateAboutNarrativeTrackEnvelope(input, {
   kind,
   preflight = null,
   legacySelectionMap = null,
+  sourceLoader = loadAboutNarrativeTrackSource,
+  selectionNormalizer = null,
 } = {}) {
   const parsedInput = parseRawInput(input);
   if (parsedInput.error) {
@@ -370,7 +376,7 @@ export function migrateAboutNarrativeTrackEnvelope(input, {
     return invalidEnvelopeResult(original, 'The checkpoint identity is incomplete.', [makeDiagnostic('checkpoint-identity', 'envelope', 'Checkpoints require non-empty id and name strings.')]);
   }
 
-  const source = loadAboutNarrativeTrackSource(parsed.document, { preflight });
+  const source = sourceLoader(parsed.document, { preflight });
   if (!source.valid) {
     if (source.readOnly) {
       return Object.freeze({
@@ -381,8 +387,25 @@ export function migrateAboutNarrativeTrackEnvelope(input, {
     return invalidEnvelopeResult(original, source.message, source.diagnostics, source);
   }
 
-  const selectionMap = createLegacySelectionMap(parsed.document, source.document, legacySelectionMap);
-  const selection = normalizeEnvelopeSelection(parsed.selection, source.document, selectionMap);
+  let selection;
+  if (typeof selectionNormalizer === 'function') {
+    selection = selectionNormalizer(parsed.selection, {
+      document: source.document,
+      rawDocument: parsed.document,
+      legacySelectionMap,
+    });
+  } else {
+    const selectionMap = createAboutNarrativeTrackLegacySelectionMap(
+      parsed.document,
+      source.document,
+      legacySelectionMap,
+    );
+    selection = normalizeAboutNarrativeTrackEnvelopeSelection(
+      parsed.selection,
+      source.document,
+      selectionMap,
+    );
+  }
   const envelope = {
     envelopeVersion: ABOUT_NARRATIVE_TRACK_ENVELOPE_VERSION,
     kind: resolvedKind,

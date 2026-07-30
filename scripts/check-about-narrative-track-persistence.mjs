@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import './check-about-narrative-v6-migration.mjs';
+import './check-about-narrative-v6-persistence.mjs';
 
 import {
   createAboutNarrativePersistenceService,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './check-about-narrative-point-field-editing.mjs';
 import {
   createAboutNarrativeCameraKeyAtWU,
   createAboutNarrativeInteractionAtWU,

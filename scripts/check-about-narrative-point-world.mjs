@@ -162,7 +162,10 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
   assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 18\.0\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
-  assert.match(source, /float globalMorph = clamp\(morphProgress, 0\.0, 1\.0\)/);
+  assert.match(
+    source,
+    /float authoritativeMorph = clamp\(morphProgress, 0\.0, 1\.0\);\s+float globalMorph = resolveParametricProgress\(authoritativeMorph\)/,
+  );
   assert.doesNotMatch(source, /globalMorph = smoothstep\([^\n]*morphProgress/);
   assert.match(source, /float waveClock = mix\(ambientTime, storyTime/);
   assert.match(source, /target\.waveStoryMix\.value = resolveAboutNarrativeMotionTimeMix\(wave\?\.timeMode\)/);

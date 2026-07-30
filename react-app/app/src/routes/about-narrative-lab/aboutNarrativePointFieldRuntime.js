@@ -216,12 +216,7 @@ function compileInteractions(model, profile) {
     ));
 }
 
-function interactionOverlapsSegment(clip, segment) {
-  return Math.max(Number(clip.startWU), segment.startWU)
-    < Math.min(Number(clip.endWU), segment.endWU) - TIME_EPSILON;
-}
-
-function validateInteractionRuntime(interactions, compiled, durationWU) {
+function validateInteractionRuntime(interactions, compiled) {
   const diagnostics = [];
   interactions.forEach((clip, index) => {
     const path = `tracks.interactions.clips.${index}`;
@@ -247,25 +242,6 @@ function validateInteractionRuntime(interactions, compiled, durationWU) {
         'point-field-discipline-capability',
         `${path}.targetStateId`,
         'Discipline reveal requires the calm-field-v1 semantic-anchor state.',
-      ));
-    }
-    const overlapping = compiled.segments.filter((segment) => interactionOverlapsSegment(clip, segment));
-    if (Number(clip.endWU) === durationWU && Number(clip.startWU) <= durationWU) {
-      const finalStateId = compiled.keys.at(-1)?.stateId;
-      if (finalStateId && finalStateId !== clip.targetStateId) {
-        diagnostics.push(makeDiagnostic(
-          'point-field-interaction-final-target',
-          `${path}.targetStateId`,
-          `Final-frame interaction target must be “${finalStateId}”.`,
-        ));
-      }
-    }
-    const mismatch = overlapping.find((segment) => segment.toStateId !== clip.targetStateId);
-    if (mismatch) {
-      diagnostics.push(makeDiagnostic(
-        'point-field-interaction-window',
-        path,
-        `Interaction “${clip.id}” overlaps segment “${mismatch.id}”, whose active destination is “${mismatch.toStateId}”.`,
       ));
     }
   });
@@ -325,11 +301,7 @@ export function compileAboutNarrativePointFieldRuntime(input, options = EMPTY_SA
   );
   const compiled = compilePointField(pointField, model.globals);
   const interactions = compileInteractions(model, resolvedProfile.profile);
-  const interactionDiagnostics = validateInteractionRuntime(
-    interactions,
-    compiled,
-    resolvedProfile.durationWU,
-  );
+  const interactionDiagnostics = validateInteractionRuntime(interactions, compiled);
   const diagnostics = [...sourceDiagnostics, ...interactionDiagnostics];
   if (interactionDiagnostics.length) {
     return invalidPlan(

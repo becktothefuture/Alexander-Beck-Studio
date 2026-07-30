@@ -6,11 +6,13 @@ import {
 } from '../../lib/smooth-scroll.js';
 import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
-  compileAboutNarrativeRuntimePlan,
-  createAboutNarrativeRuntimeFrameSample,
+  compileAboutNarrativeRendererRuntimePlan,
+  createAboutNarrativeRendererFrameSample,
+  getAboutNarrativeRendererPreparationRequest,
+  sampleAboutNarrativeRendererRuntimePlanInto,
+} from './aboutNarrativePointFieldRendererBridge.js';
+import {
   createAboutNarrativeTitleFieldSample,
-  getAboutNarrativeRuntimePreparationRequest,
-  sampleAboutNarrativeRuntimePlanInto,
   sampleAboutNarrativeTitleFieldInto,
 } from './aboutNarrativeRuntimePlan.js';
 import { getAboutNarrativeSharedRevealProgress } from './aboutNarrativeReveal.js';
@@ -46,7 +48,7 @@ function getPreviewOptions(editorStore) {
 
 function createInitialPlan(document, editorStore) {
   const canReadViewport = typeof window !== 'undefined';
-  return compileAboutNarrativeRuntimePlan(document, {
+  return compileAboutNarrativeRendererRuntimePlan(document, {
     inlineSize: canReadViewport ? window.innerWidth : undefined,
     blockSize: canReadViewport ? window.innerHeight : undefined,
     ...getPreviewOptions(editorStore),
@@ -129,7 +131,7 @@ export function useAboutNarrativeTimeline({
   const titleSampleByIdRef = useRef(new Map());
   const measurementsRef = useRef({ ...EMPTY_MEASUREMENTS });
   const requestMeasureRef = useRef(() => {});
-  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeRuntimeFrameSample();
+  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeRendererFrameSample();
   if (frameSampleOptionsRef.current == null) {
     frameSampleOptionsRef.current = { ambientSeconds: 0, deltaSeconds: 0, liveAmbient: true };
   }
@@ -180,7 +182,7 @@ export function useAboutNarrativeTimeline({
     };
 
     const handoffPreparation = (nextStoryWU, { force = false } = {}) => {
-      const request = getAboutNarrativeRuntimePreparationRequest(planRef.current, nextStoryWU);
+      const request = getAboutNarrativeRendererPreparationRequest(planRef.current, nextStoryWU);
       const runtime = worldRuntimeRef.current;
       if (!request || typeof runtime?.preparePlan !== 'function') return false;
       const identity = `${request.sequenceKey}:${request.targetWorldId}`;
@@ -322,7 +324,7 @@ export function useAboutNarrativeTimeline({
       const transport = getTransport(editorStore);
       const sourceDocument = getPlaybackDocument(documentRef, editorStore);
       const contentPressure = collectContentPressure(viewportHeight);
-      const candidate = compileAboutNarrativeRuntimePlan(sourceDocument, {
+      const candidate = compileAboutNarrativeRendererRuntimePlan(sourceDocument, {
         inlineSize: viewportWidth,
         blockSize: viewportHeight,
         prefersReducedMotion: reducedMotionQuery.matches,
@@ -502,7 +504,7 @@ export function useAboutNarrativeTimeline({
       sampleOptions.ambientSeconds = time / 1000;
       sampleOptions.deltaSeconds = deltaSeconds;
       sampleOptions.liveAmbient = getTransport(editorStore)?.liveAmbient !== false;
-      const frame = sampleAboutNarrativeRuntimePlanInto(
+      const frame = sampleAboutNarrativeRendererRuntimePlanInto(
         planRef.current,
         nextStoryWU,
         frameSampleRef.current,

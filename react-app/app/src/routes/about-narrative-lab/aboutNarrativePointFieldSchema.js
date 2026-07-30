@@ -81,6 +81,10 @@ const PROFILE_OVERRIDE_KEYS = new Set([
   'interactions',
 ]);
 const POINT_FIELD_OVERRIDE_KEYS = new Set(['stateDefinitions', 'keys', 'segments']);
+const V5_PROJECTION_ONLY_INTERACTION_CODES = new Set([
+  'interaction-world-window',
+  'profile-interaction-window',
+]);
 const STATE_OVERRIDE_KEYS = new Set(['railAnchorWU', 'transform']);
 const KEY_OVERRIDE_KEYS = new Set(['atWU']);
 const SEGMENT_OVERRIDE_KEYS = new Set(['transition']);
@@ -625,7 +629,7 @@ export function projectAboutNarrativePointFieldDocumentToVersion5(input) {
   };
 }
 
-function validateV6Interactions(interactions, stateIds, diagnostics) {
+function validateV6Interactions(interactions, stateIds, diagnostics, durationWU) {
   if (!unknownKeys(diagnostics, interactions, new Set(['clips']), 'tracks.interactions')) return;
   if (!Array.isArray(interactions.clips)) {
     diagnostic(diagnostics, 'interaction-track', 'tracks.interactions.clips', 'Interaction clips must be an array.');
@@ -635,6 +639,73 @@ function validateV6Interactions(interactions, stateIds, diagnostics) {
     const path = `tracks.interactions.clips.${index}`;
     if (!unknownKeys(diagnostics, clip, INTERACTION_KEYS, path)) return;
     if (!stateIds.has(clip.targetStateId)) diagnostic(diagnostics, 'interaction-target', `${path}.targetStateId`, `Unknown target state “${clip.targetStateId}”.`);
+    const startWU = Number(clip.startWU);
+    const activationWU = Number(clip.activationWU);
+    const endWU = Number(clip.endWU);
+    if (!(startWU >= 0
+      && startWU <= activationWU
+      && activationWU <= endWU
+      && endWU <= durationWU)) {
+      diagnostic(
+        diagnostics,
+        'interaction-time',
+        path,
+        'Interaction timing must remain ordered inside the Story duration.',
+      );
+    }
+  });
+}
+
+function validateV6ProfileInteractions(input, diagnostics, durationWU) {
+  if (!Array.isArray(input.tracks?.interactions?.clips)) return;
+  if (!Array.isArray(input.tracks?.pointField?.stateDefinitions)
+    || !Array.isArray(input.tracks?.pointField?.keys)
+    || !Array.isArray(input.tracks?.pointField?.segments)) return;
+  ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS.forEach((profileId) => {
+    const profileOverrides = input.profiles?.[profileId]?.overrides || {};
+    const overrides = profileOverrides.interactions || {};
+    const pointField = applyAboutNarrativePointFieldOverrides(
+      input.tracks.pointField,
+      profileOverrides.pointField,
+    );
+    const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
+    input.tracks.interactions.clips.forEach((clip) => {
+      if (!pointField.stateDefinitions.some((state) => state.id === clip.targetStateId)) return;
+      const override = overrides[clip.id] || {};
+      const startWU = Number(override.startWU ?? clip.startWU);
+      const activationWU = Number(override.activationWU ?? clip.activationWU);
+      const endWU = Number(override.endWU ?? clip.endWU);
+      if (!(startWU >= 0
+        && startWU <= activationWU
+        && activationWU <= endWU
+        && endWU <= durationWU)) {
+        diagnostic(
+          diagnostics,
+          'profile-interaction-time',
+          `profiles.${profileId}.overrides.interactions.${clip.id}`,
+          'Profile interaction timing must remain ordered inside the Story duration.',
+        );
+        return;
+      }
+      const participates = pointField.segments.some((segment) => {
+        const fromKey = keyById.get(segment.fromKeyId);
+        const toKey = keyById.get(segment.toKeyId);
+        if (!fromKey || !toKey) return false;
+        const targetParticipates = fromKey.stateId === clip.targetStateId
+          || toKey.stateId === clip.targetStateId;
+        return targetParticipates
+          && Math.max(startWU, Number(fromKey.atWU))
+            < Math.min(endWU, Number(toKey.atWU));
+      });
+      if (!participates) {
+        diagnostic(
+          diagnostics,
+          'profile-interaction-participation',
+          `profiles.${profileId}.overrides.interactions.${clip.id}`,
+          `Interaction “${clip.id}” must overlap a point-field segment that uses target state “${clip.targetStateId}”.`,
+        );
+      }
+    });
   });
 }
 
@@ -648,7 +719,8 @@ export function validateAboutNarrativePointFieldDocument(input) {
   const durationWU = Number(input.profiles?.desktop?.storyDurationWU);
   validatePointFieldTrack(input.tracks.pointField, diagnostics, 'tracks.pointField', durationWU);
   const stateIds = new Set((input.tracks.pointField?.stateDefinitions || []).map((state) => state.id));
-  validateV6Interactions(input.tracks.interactions, stateIds, diagnostics);
+  validateV6Interactions(input.tracks.interactions, stateIds, diagnostics, durationWU);
+  validateV6ProfileInteractions(input, diagnostics, durationWU);
 
   ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS.forEach((profileId) => {
     const profile = input.profiles?.[profileId];
@@ -667,7 +739,10 @@ export function validateAboutNarrativePointFieldDocument(input) {
     try {
       const projected = projectAboutNarrativePointFieldDocumentToVersion5(input);
       validateAboutNarrativeTrackDocument(projected)
-        .filter((item) => item.level === 'error')
+        .filter((item) => (
+          item.level === 'error'
+          && !V5_PROJECTION_ONLY_INTERACTION_CODES.has(item.code)
+        ))
         .forEach((item) => diagnostics.push({
           ...item,
           code: `v5-projection-${item.code}`,

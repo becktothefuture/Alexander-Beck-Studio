@@ -9,10 +9,11 @@ const source = await readFile(new URL(
 
 test('live timeline hook consumes only the sectionless runtime contract', () => {
   [
-    'compileAboutNarrativeRuntimePlan',
-    'sampleAboutNarrativeRuntimePlanInto',
+    'compileAboutNarrativeRendererRuntimePlan',
+    'createAboutNarrativeRendererFrameSample',
+    'sampleAboutNarrativeRendererRuntimePlanInto',
     'sampleAboutNarrativeTitleFieldInto',
-    'getAboutNarrativeRuntimePreparationRequest',
+    'getAboutNarrativeRendererPreparationRequest',
     'data-text-field-id',
     'data-editorial-line',
     '--narrative-content-extent-wu',

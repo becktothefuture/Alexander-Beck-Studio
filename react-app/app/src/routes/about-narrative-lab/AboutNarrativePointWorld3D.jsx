@@ -38,6 +38,15 @@ import {
   resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
 import {
+  createAboutNarrativePointFieldMotionSample,
+  sampleAboutNarrativePointFieldMotionInto,
+} from './aboutNarrativePointFieldMotion.js';
+import {
+  applyAboutNarrativePointFieldMotionToPosition,
+  writeAboutNarrativePointFieldSeedPhases,
+  writeAboutNarrativePointFieldSpatialPhases,
+} from './aboutNarrativePointFieldRendererBridge.js';
+import {
   findAboutNarrativeWorldById,
   getAboutNarrativeWorldId,
   getAboutNarrativeWorldPairId,
@@ -84,6 +93,16 @@ const DEFAULT_BUST_ASSEMBLY = Object.freeze({
   fragmentFall: 0.5,
   fragmentPresence: 0.42,
 });
+const pointMotionAxisValue = (axis) => (axis === 'x' ? 0 : axis === 'z' ? 2 : 1);
+const pointMotionStaggerModeValue = (mode) => (
+  mode === 'random' ? 1 : mode === 'radial' ? 2 : mode === 'axis' ? 3 : 0
+);
+const pointMotionPathModeValue = (mode) => (
+  mode === 'arc' ? 1 : mode === 'curl' ? 2 : mode === 'noise' ? 3 : 0
+);
+const pointMotionFlattenModeValue = (mode) => (
+  mode === 'toward-plane' ? 1 : mode === 'from-plane' ? 2 : 0
+);
 const DISCIPLINE_LABEL_SELECTORS = Object.freeze([
   '[data-discipline-group="1"]',
   '[data-discipline-group="2"]',
@@ -101,9 +120,23 @@ const VERTEX_SHADER = `
   attribute float toPointSize;
   attribute float fromGroup;
   attribute float toGroup;
+  attribute vec2 motionSeedPhases;
+  attribute vec4 motionSpatialPhases;
   uniform mat4 fromTransform;
   uniform mat4 toTransform;
   uniform float morphProgress;
+  uniform float parametricMotionEnabled;
+  uniform float motionStaggerMode;
+  uniform float motionStaggerAmount;
+  uniform float motionStaggerAxis;
+  uniform float motionPathMode;
+  uniform float motionPathAmount;
+  uniform float motionPathAxis;
+  uniform float motionPathFrequency;
+  uniform float motionFlattenMode;
+  uniform float motionFlattenAmount;
+  uniform float motionFlattenAxis;
+  uniform float motionFlattenOffset;
   uniform float storyTime;
   uniform float ambientTime;
   uniform float pointSize;
@@ -301,8 +334,74 @@ const VERTEX_SHADER = `
     return materialColor6;
   }
 
+  float motionAxisPhase(float axis) {
+    if (axis < 0.5) return motionSpatialPhases.y;
+    if (axis > 1.5) return motionSpatialPhases.w;
+    return motionSpatialPhases.z;
+  }
+
+  float resolveParametricProgress(float progress) {
+    if (parametricMotionEnabled < 0.5 || progress >= 1.0) return progress;
+    float phase = 0.0;
+    if (motionStaggerMode > 0.5 && motionStaggerMode < 1.5) {
+      phase = motionSeedPhases.x;
+    } else if (motionStaggerMode > 1.5 && motionStaggerMode < 2.5) {
+      phase = motionSpatialPhases.x;
+    } else if (motionStaggerMode > 2.5) {
+      phase = motionAxisPhase(motionStaggerAxis);
+    }
+    float delay = phase * motionStaggerAmount;
+    return clamp(
+      (progress - delay) / max(0.000001, 1.0 - motionStaggerAmount),
+      0.0,
+      1.0
+    );
+  }
+
+  vec3 resolveParametricPath(float progress) {
+    if (parametricMotionEnabled < 0.5 || motionPathMode < 0.5
+      || motionPathAmount <= 0.0 || progress <= 0.0 || progress >= 1.0) {
+      return vec3(0.0);
+    }
+    float envelope = sin(3.14159265359 * progress) * motionPathAmount;
+    if (motionPathMode < 1.5) {
+      if (motionPathAxis < 0.5) return vec3(envelope, 0.0, 0.0);
+      if (motionPathAxis > 1.5) return vec3(0.0, 0.0, envelope);
+      return vec3(0.0, envelope, 0.0);
+    }
+    float angle = (motionSeedPhases.y * 6.28318530718)
+      + (progress * motionPathFrequency * 6.28318530718);
+    if (motionPathMode < 2.5) {
+      if (motionPathAxis < 0.5) {
+        return vec3(0.0, cos(angle) * envelope, sin(angle) * envelope);
+      }
+      if (motionPathAxis > 1.5) {
+        return vec3(cos(angle) * envelope, sin(angle) * envelope, 0.0);
+      }
+      return vec3(cos(angle) * envelope, 0.0, sin(angle) * envelope);
+    }
+    float primary = sin(angle) * envelope;
+    float secondary = sin((angle * 1.37) + 2.1) * envelope;
+    float tertiary = cos((angle * 0.83) + 4.2) * envelope;
+    if (motionPathAxis < 0.5) return vec3(primary, secondary, tertiary);
+    if (motionPathAxis > 1.5) return vec3(secondary, tertiary, primary);
+    return vec3(tertiary, primary, secondary);
+  }
+
+  float resolvePlaneProgress(float progress) {
+    if (parametricMotionEnabled < 0.5 || motionFlattenMode < 0.5
+      || motionFlattenAmount <= 0.0) return progress;
+    if (motionFlattenMode < 1.5) {
+      return progress + (
+        (1.0 - pow(1.0 - progress, 3.0) - progress) * motionFlattenAmount
+      );
+    }
+    return progress + ((pow(progress, 3.0) - progress) * motionFlattenAmount);
+  }
+
   void main() {
-    float globalMorph = clamp(morphProgress, 0.0, 1.0);
+    float authoritativeMorph = clamp(morphProgress, 0.0, 1.0);
+    float globalMorph = resolveParametricProgress(authoritativeMorph);
     float bustHeight = clamp((targetPosition.y + 0.86) / 1.72, 0.0, 1.0);
     // Let the fragmented base gather and settle before the head resolves. The
     // wider band makes formation legible across the complete scroll interval
@@ -512,6 +611,16 @@ const VERTEX_SHADER = `
     // the material colour it already owned; no colour is reassigned at reveal time.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
 
+    worldPoint += resolveParametricPath(globalMorph);
+    float planeProgress = resolvePlaneProgress(globalMorph);
+    float planeWeight = clamp(abs(planeProgress - globalMorph) * 4.0, 0.0, 1.0);
+    if (motionFlattenAxis < 0.5) {
+      worldPoint.x = mix(worldPoint.x, motionFlattenOffset, planeWeight);
+    } else if (motionFlattenAxis > 1.5) {
+      worldPoint.z = mix(worldPoint.z, motionFlattenOffset, planeWeight);
+    } else {
+      worldPoint.y = mix(worldPoint.y, motionFlattenOffset, planeWeight);
+    }
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
     float enteringPoint = (1.0 - step(0.5, fromPresence)) * step(0.5, toPresence);
     float entryOrder = fract((pointSeed * 53.37) + 0.11);
@@ -821,6 +930,18 @@ function createPointFieldAdapter({
     fromTransform: { value: new THREE.Matrix4() },
     toTransform: { value: new THREE.Matrix4() },
     morphProgress: { value: 0 },
+    parametricMotionEnabled: { value: 0 },
+    motionStaggerMode: { value: 0 },
+    motionStaggerAmount: { value: 0 },
+    motionStaggerAxis: { value: 1 },
+    motionPathMode: { value: 0 },
+    motionPathAmount: { value: 0 },
+    motionPathAxis: { value: 1 },
+    motionPathFrequency: { value: 1 },
+    motionFlattenMode: { value: 0 },
+    motionFlattenAmount: { value: 0 },
+    motionFlattenAxis: { value: 1 },
+    motionFlattenOffset: { value: 0 },
     storyTime: { value: 0 },
     ambientTime: { value: 0 },
     pointSize: { value: 5.4 },
@@ -981,6 +1102,8 @@ function createPointFieldAdapter({
     toPointSize: new THREE.BufferAttribute(emptySize.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     fromGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     toGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
+    motionSeedPhases: new THREE.BufferAttribute(new Float32Array(pointCount * 2), 2).setUsage(THREE.DynamicDrawUsage),
+    motionSpatialPhases: new THREE.BufferAttribute(new Float32Array(pointCount * 4), 4).setUsage(THREE.DynamicDrawUsage),
   });
   Object.entries(fixedAttributes).forEach(([name, attribute]) => geometry.setAttribute(name, attribute));
   const points = new THREE.Points(geometry, material);
@@ -1162,6 +1285,19 @@ function createPointFieldAdapter({
     bustAssembly: {},
     morphProgressIsVisual: true,
   };
+  const pointMotionSample = createAboutNarrativePointFieldMotionSample();
+  const pointMotionInput = {
+    seed: 0,
+    radialPhase: 0,
+    xPhase: 0,
+    yPhase: 0,
+    zPhase: 0,
+    axisPhase: 0,
+  };
+  const pointMotionOptions = { reducedMotion: false };
+  let lastMotionSegmentId = '';
+  let lastMotionStaggerSeed = Number.NaN;
+  let lastMotionPathSeed = Number.NaN;
   const anchorCapability = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
   const anchorCapabilityTarget = { capability: ABOUT_NARRATIVE_ANCHOR_SAMPLING_EXACT, unsupportedCount: 0, unsupported: [] };
   let anchorSamplingExact = true;
@@ -1427,6 +1563,10 @@ function createPointFieldAdapter({
     fixedAttributes.toPresence.array.set(pair.toOutput.presence);
     fixedAttributes.fromPointSize.array.set(pair.fromOutput.size);
     fixedAttributes.toPointSize.array.set(pair.toOutput.size);
+    writeAboutNarrativePointFieldSpatialPhases(
+      fixedAttributes.targetPosition.array,
+      fixedAttributes.motionSpatialPhases.array,
+    );
     refreshInstalledDisciplineGroups(pair);
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
@@ -1453,6 +1593,42 @@ function createPointFieldAdapter({
       installedStrategy: installedPair.installedStrategy,
       fallbackReason: installedPair.fallbackReason,
     });
+  };
+
+  const updatePointTransitionMotion = (frame) => {
+    const enabled = frame.world?.parametricMotion === true && !frame.reducedMotion;
+    const transition = frame.world?.transition;
+    const stagger = transition?.stagger;
+    const path = transition?.path;
+    const flatten = transition?.flatten;
+    uniforms.parametricMotionEnabled.value = enabled ? 1 : 0;
+    uniforms.motionStaggerMode.value = pointMotionStaggerModeValue(stagger?.mode);
+    uniforms.motionStaggerAmount.value = Number(stagger?.amount || 0);
+    uniforms.motionStaggerAxis.value = pointMotionAxisValue(stagger?.axis);
+    uniforms.motionPathMode.value = pointMotionPathModeValue(path?.mode);
+    uniforms.motionPathAmount.value = Number(path?.amount || 0);
+    uniforms.motionPathAxis.value = pointMotionAxisValue(path?.axis);
+    uniforms.motionPathFrequency.value = Number(path?.frequency || 1);
+    uniforms.motionFlattenMode.value = pointMotionFlattenModeValue(flatten?.mode);
+    uniforms.motionFlattenAmount.value = Number(flatten?.amount || 0);
+    uniforms.motionFlattenAxis.value = pointMotionAxisValue(flatten?.axis);
+    uniforms.motionFlattenOffset.value = Number(flatten?.offset || 0);
+    const staggerSeed = Number(stagger?.seed || 0);
+    const pathSeed = Number(path?.seed || 0);
+    const segmentId = frame.world?.segmentId || '';
+    if (segmentId === lastMotionSegmentId
+      && staggerSeed === lastMotionStaggerSeed
+      && pathSeed === lastMotionPathSeed) return;
+    lastMotionSegmentId = segmentId;
+    lastMotionStaggerSeed = staggerSeed;
+    lastMotionPathSeed = pathSeed;
+    writeAboutNarrativePointFieldSeedPhases(
+      fixedAttributes.pointSeed.array,
+      staggerSeed,
+      pathSeed,
+      fixedAttributes.motionSeedPhases.array,
+    );
+    fixedAttributes.motionSeedPhases.needsUpdate = true;
   };
 
   const createPreparedSequence = (
@@ -1990,7 +2166,41 @@ function createPointFieldAdapter({
           anchorToPosition.y = fixedAttributes.targetPosition.array[pointOffset + 1];
           anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
           anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
+          if (frame.world?.parametricMotion) {
+            const spatialPhaseOffset = pointIndex * 4;
+            pointMotionInput.seed = anchorSampleInput.pointSeed;
+            pointMotionInput.radialPhase = fixedAttributes.motionSpatialPhases.array[
+              spatialPhaseOffset
+            ];
+            pointMotionInput.xPhase = fixedAttributes.motionSpatialPhases.array[
+              spatialPhaseOffset + 1
+            ];
+            pointMotionInput.yPhase = fixedAttributes.motionSpatialPhases.array[
+              spatialPhaseOffset + 2
+            ];
+            pointMotionInput.zPhase = fixedAttributes.motionSpatialPhases.array[
+              spatialPhaseOffset + 3
+            ];
+            pointMotionInput.axisPhase = pointMotionInput.yPhase;
+            pointMotionOptions.reducedMotion = frame.reducedMotion;
+            sampleAboutNarrativePointFieldMotionInto(
+              frame.world.transition,
+              frame.world.visualProgress,
+              pointMotionInput,
+              pointMotionSample,
+              pointMotionOptions,
+            );
+            anchorSampleInput.morphProgress = pointMotionSample.progress;
+          } else {
+            anchorSampleInput.morphProgress = uniforms.morphProgress.value;
+          }
           sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
+          if (frame.world?.parametricMotion) {
+            applyAboutNarrativePointFieldMotionToPosition(
+              anchorSampleTarget,
+              pointMotionSample,
+            );
+          }
           disciplinePointScratch.set(
             anchorSampleTarget.x,
             anchorSampleTarget.y,
@@ -2181,6 +2391,7 @@ function createPointFieldAdapter({
       shortLandscape,
       toTransformScratch,
     );
+    updatePointTransitionMotion(frame);
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
     uniforms.ambientTime.value = frame.ambientTime;
@@ -2262,9 +2473,19 @@ function createPointFieldAdapter({
       runtimeObserver.hotFrameDomWrite();
     }
     const activeInteraction = frame.interactions?.activeInteraction;
-    const rippleParameters = pairMatchesRequest
+    const activeInteractionTargetId = activeInteraction?.targetStateId
+      || activeInteraction?.targetWorldId
+      || '';
+    const interactionTargetParticipates = activeInteractionTargetId === requestedFromWorldId
+      || activeInteractionTargetId === requestedToWorldId;
+    const installedFromWorldId = getAboutNarrativeWorldId(installedPair.fromWorld);
+    const installedToWorldId = getAboutNarrativeWorldId(installedPair.toWorld);
+    const interactionPairReady = pairMatchesRequest
+      || activeInteractionTargetId === installedFromWorldId
+      || activeInteractionTargetId === installedToWorldId;
+    const rippleParameters = interactionPairReady
+      && interactionTargetParticipates
       && activeInteraction?.type === 'grid-ripple'
-      && activeInteraction.targetWorldId === requestedToWorldId
       ? activeInteraction.parameters
       : null;
     uniforms.gridRippleWeight.value = frame.reducedMotion || !rippleParameters
@@ -2292,12 +2513,12 @@ function createPointFieldAdapter({
     );
     updateDisciplineReveal(frame, fromWorld, toWorld);
 
-    const interactionEnabled = pairMatchesRequest
+    const interactionEnabled = interactionPairReady
+      && interactionTargetParticipates
       && bustController.interactive
       && !formingBust
       && simulationVisibility > 0.001
       && activeInteraction?.type === 'horizontal-spin'
-      && activeInteraction.targetWorldId === requestedToWorldId
       && frame.interactions.interactionActivated;
     if (interactionEnabled !== lastInteractionEnabled) {
       interaction.dataset.active = interactionEnabled ? 'true' : 'false';
