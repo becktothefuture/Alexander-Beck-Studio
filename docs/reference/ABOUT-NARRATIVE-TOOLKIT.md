@@ -168,18 +168,16 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 ### Current camera choreography
 
-- `0–7.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
-  interval, and arrive above the calm grid.
-- `7.35–10.45 WU`: keep one absolute Focus Anchor on the grid while Camera X advances and Camera Y
-  descends; the six disciplines enter the viewport against that continuous flyover.
-- `10.45–11.55 WU`: hide the simulation for the editorial handoff and reposition without a visible
-  camera cut.
-- `11.55–14.55 WU`: return to the same centered surface, sustain the scroll-authored ripple beneath
+- `0–6.55 WU`: establish the opener, travel through the turbulent field, pass the first editorial
+  interval, and bridge directly into the calm grid.
+- `6.55–11.65 WU`: pitch into the grid flyover, reveal the six disciplines in sequence, and fade the
+  material only after the final label has passed.
+- `11.65–13.70 WU`: hold true editorial space for the second reading block while the camera repositions.
+- `13.70–16.15 WU`: return to the same centered surface, sustain the scroll-authored ripple beneath
   the three travelling titles, and begin the sideways descent around its fixed center.
-- `14.55–15.85 WU`: slow the ripple into a broad footprint platform, gather the fixed point pool onto
-  that plane, and build the bust from its lower layers into the head while the aimed camera continues
-  descending and moving sideways.
-- `15.85–16.35 WU`: continue a small aimed orbit and gentle bust motion behind the complete invitation,
+- `16.15–18.45 WU`: gather the fixed point pool onto the footprint plane and build the bust from its
+  lower layers into the head while the final invitation begins over the forming material.
+- `18.45–19.05 WU`: continue a small aimed orbit and gentle bust motion behind the complete invitation,
   description, and actions rather than freezing the last frame.
 
 ## How Worlds stay connected
@@ -302,16 +300,18 @@ into hundreds of keyframes.
 ### Edit the six-discipline reveal
 
 Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field World for the
-complete grid and discipline sequence: the Motion clip owns label activation, grid isolation,
-background opacity, point emphasis, and the label hold. It never owns camera, fog, or whole-system
-visibility. **Grid restore duration** gently returns the grid to its full, unhighlighted circles near
-the clip end. Reorder the six labels without remapping their stable point groups.
+complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
+point emphasis. Each projected label uses the shared editorial reading line as its single reveal clock
+and remains revealed during forward travel. The clip never owns camera, fog, or whole-system visibility.
+**Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
+Reorder the six labels without remapping their stable point groups.
 
 The clip is one draggable timing object. The native DOM labels project from their corresponding
 Three.js points and pack inside the viewport on desktop, portrait mobile, and short landscape. Their
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
-After the labels restore, Visibility hides the complete simulation for editorial copy. C returns in
+After the final labels pass and the grid restoration completes, Visibility hides the complete simulation
+for editorial copy. C returns in
 full colour around the same transformed center. The story-clock ripple combines a primary radial
 wave, harmonic, undertow, and center pulse while the titles cross the surface. It releases into E,
 where each point first gathers onto the base-plane footprint of its eventual bust position. Height

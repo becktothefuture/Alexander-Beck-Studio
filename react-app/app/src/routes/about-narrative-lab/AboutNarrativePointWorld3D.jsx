@@ -23,6 +23,7 @@ import {
   resolveAboutNarrativePointProfile,
 } from './aboutNarrativeProfileResolver.js';
 import { createAboutNarrativeRuntimeDiagnostics } from './aboutNarrativeRuntimeDiagnostics.js';
+import { getAboutNarrativeSharedRevealProgress } from './aboutNarrativeReveal.js';
 import {
   ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
 } from './aboutNarrativeWorkerProtocol.js';
@@ -159,9 +160,6 @@ const VERTEX_SHADER = `
   uniform float disciplineBackgroundOpacity;
   uniform float disciplineReconnectOpacity;
   uniform float disciplinePointScale;
-  uniform vec2 disciplineQuietAnchor;
-  uniform float disciplineQuietRadius;
-  uniform float disciplineQuietStrength;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -540,14 +538,6 @@ const VERTEX_SHADER = `
     );
     presence *= mix(1.0, bustFragmentKeep, bustFragment);
     float reconnect = clamp(gridInfluence, 0.0, 1.0);
-    float quietZone = (1.0 - groupWeight)
-      * disciplineQuietStrength
-      * (1.0 - smoothstep(
-        disciplineQuietRadius * 0.28,
-        max(0.001, disciplineQuietRadius),
-        length(worldPoint.xz - disciplineQuietAnchor)
-      ));
-    presence *= 1.0 - quietZone;
     float textBackgroundWeight = disciplineBackgroundWeight * (1.0 - disciplineIsolation);
     float backgroundVisibility = mix(
       1.0,
@@ -698,12 +688,6 @@ function createTransformScratch() {
   };
 }
 
-function smoothRange(value, from, to) {
-  if (to <= from) return value >= to ? 1 : 0;
-  const progress = Math.min(1, Math.max(0, (value - from) / (to - from)));
-  return progress * progress * (3 - (2 * progress));
-}
-
 function captureDisciplinePositions(output, target, indices = null, groups = null) {
   target.fill(Number.NaN);
   indices?.fill(-1);
@@ -783,6 +767,7 @@ function createPointFieldAdapter({
   const pointProfile = ABOUT_NARRATIVE_POINT_PROFILES[quality];
   if (!pointProfile) throw new RangeError(`Unknown About Narrative point profile: ${quality}.`);
   const pointCount = pointProfile.pointCount;
+  const entranceAlreadyComplete = root.dataset.aboutEntranceState === 'complete';
   const diagnostics = createAboutNarrativeRuntimeDiagnostics({
     initial: { state: 'idle', generation: 0, attemptCount: 0 },
   });
@@ -826,7 +811,7 @@ function createPointFieldAdapter({
     toPointSizeScale: { value: 1 },
     pixelRatio: { value: 1 },
     simulationVisibility: { value: 1 },
-    sceneEntranceScale: { value: 0 },
+    sceneEntranceScale: { value: entranceAlreadyComplete ? 1 : 0 },
     distanceFogStartWU: { value: 8 },
     distanceFogEndWU: { value: 18 },
     fromDriftAmplitude: { value: 0 },
@@ -879,9 +864,6 @@ function createPointFieldAdapter({
     disciplineBackgroundOpacity: { value: 0.06 },
     disciplineReconnectOpacity: { value: 0.24 },
     disciplinePointScale: { value: 3.6 },
-    disciplineQuietAnchor: { value: new THREE.Vector2(999, 999) },
-    disciplineQuietRadius: { value: 0 },
-    disciplineQuietStrength: { value: 0 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -1022,9 +1004,13 @@ function createPointFieldAdapter({
   let disposed = false;
   let contextAvailable = true;
   let sceneReady = false;
-  let entranceRequested = false;
+  // The editor can change point quality after the direct route entrance has
+  // started, which recreates this adapter. Keep the one-shot entrance request
+  // on the route root so the replacement renderer does not return to scale 0.
+  let entranceRequested = entranceAlreadyComplete
+    || root.dataset.aboutEntranceRequested === 'true';
   let entranceStartedAt = -1;
-  let entranceComplete = false;
+  let entranceComplete = entranceAlreadyComplete;
   let width = 1;
   let height = 1;
   let viewportOffsetX = 0;
@@ -1054,7 +1040,7 @@ function createPointFieldAdapter({
     });
   };
   syncAtmosphereSource();
-  root.dataset.aboutEntranceState = 'staged';
+  root.dataset.aboutEntranceState = entranceComplete ? 'complete' : 'staged';
   delete root.dataset.aboutSceneReady;
 
   const completeSceneEntrance = () => {
@@ -1068,6 +1054,7 @@ function createPointFieldAdapter({
     const routeId = event?.detail?.routeId || '';
     if (routeId !== 'about' && routeId !== 'about-narrative-lab') return;
     entranceRequested = true;
+    root.dataset.aboutEntranceRequested = 'true';
     if (sceneReady && latestFrame?.reducedMotion) completeSceneEntrance();
   };
 
@@ -1128,9 +1115,8 @@ function createPointFieldAdapter({
   const correspondenceFromScratch = createTransformScratch();
   const correspondenceToScratch = createTransformScratch();
   const disciplinePointScratch = new THREE.Vector3();
+  const disciplineViewPointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
-  const disciplineLabelBaseReveal = new Float64Array(6);
-  const disciplineSpatialReveal = new Float64Array(6);
   const fromDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const toDisciplinePositions = new Float32Array(18).fill(Number.NaN);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
@@ -1165,13 +1151,9 @@ function createPointFieldAdapter({
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
   const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
-  const disciplineLabelVerticalNudge = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelWidth = new Float64Array(6);
-  const disciplineLabelHeight = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
-  const disciplineWorldX = new Float64Array(6).fill(Number.NaN);
-  const disciplineWorldZ = new Float64Array(6).fill(Number.NaN);
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -1192,7 +1174,6 @@ function createPointFieldAdapter({
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       const label = disciplineLabels[index];
       disciplineLabelWidth[index] = label?.offsetWidth || 0;
-      disciplineLabelHeight[index] = label?.offsetHeight || 0;
     }
   };
   const disciplineLabelResizeObserver = new ResizeObserver(measureDisciplineLabels);
@@ -1232,7 +1213,6 @@ function createPointFieldAdapter({
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
       disciplineLabelNudge[index] = Number.NaN;
-      disciplineLabelVerticalNudge[index] = Number.NaN;
       if (disciplineLabels[index]) disciplineLabelResizeObserver.observe(disciplineLabels[index]);
     }
     measureDisciplineLabels();
@@ -1277,43 +1257,22 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite();
   };
 
-  const writeDisciplineVerticalNudge = (index, value) => {
-    if (disciplineLabelVerticalNudge[index] === value) return;
-    const label = disciplineLabels[index];
-    disciplineLabelVerticalNudge[index] = value;
-    if (!label) return;
-    label.style.setProperty('--discipline-label-safe-y', `${value}px`);
-    runtimeObserver.hotFrameDomWrite();
-  };
-
   const placeDisciplineLabels = (offset) => {
     // On a phone the travelling labels need the same composed reading column
     // as editorial copy, rather than hugging whichever edge their projected
     // point reaches first.
     const safeInset = layoutProfile === 'mobile' ? 48 : compact ? 12 : 16;
-    const safeTop = compact ? 72 : 28;
-    const safeBottom = compact ? 86 : 32;
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
       const labelWidth = disciplineLabelWidth[index];
-      const labelHeight = disciplineLabelHeight[index];
       const localX = disciplineProjectedX[index] - viewportOffsetX;
-      const localY = disciplineProjectedY[index] - viewportOffsetY;
       const proposedLeft = localX + offset;
       const proposedRight = localX + offset + labelWidth;
       const maximumNudge = Math.min(0, (width - safeInset) - proposedRight);
       const nudge = proposedLeft < safeInset
         ? safeInset - proposedLeft
         : maximumNudge;
-      const proposedTop = localY - (labelHeight * 0.525);
-      const proposedBottom = proposedTop + labelHeight;
-      const verticalNudge = proposedTop < safeTop
-        ? safeTop - proposedTop
-        : proposedBottom > height - safeBottom
-          ? (height - safeBottom) - proposedBottom
-          : 0;
       writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
-      writeDisciplineVerticalNudge(index, Math.round(verticalNudge * 100) / 100);
       writeDisciplinePosition(
         index,
         disciplineProjectedX[index],
@@ -1855,37 +1814,17 @@ function createPointFieldAdapter({
     const gridDisciplineIndices = disciplineWorld === toWorld
       ? toDisciplineIndices
       : fromDisciplineIndices;
-    const storyWU = Number(frame.storyWU || 0);
-    const revealAvailable = Boolean(reveal && disciplineWorld && revealState?.active);
-    const reducedActive = Boolean(revealState?.settled && revealState?.labelActive);
+    // Anchor visibility belongs to the shared viewport reveal band. The Motion
+    // clip still owns background isolation and restore progress, but it must not
+    // delay a discipline that has already entered the reveal band.
+    const revealAvailable = Boolean(reveal && disciplineWorld);
     disciplineWeights.fill(0);
-    disciplineLabelBaseReveal.fill(0);
-    disciplineSpatialReveal.fill(0);
 
     let backgroundWeight = 0;
     let visibleLabels = 0;
     if (revealAvailable) {
       const restoreWeight = 1 - Number(revealState.restoreProgress || 0);
       backgroundWeight = Number(revealState.backgroundProgress || 0) * restoreWeight;
-      const activationProgress = reducedActive
-        ? 1
-        : smoothRange(
-          storyWU,
-          revealState.startWU,
-          revealState.startWU + Math.max(0.001, revealState.backgroundFadeWU),
-        );
-      const exitStartWU = Math.max(
-        revealState.startWU,
-        revealState.endWU - Math.max(0.001, Number(revealState.restoreDurationWU || 0.1)),
-      );
-      const exitProgress = reducedActive ? 0 : smoothRange(storyWU, exitStartWU, revealState.endWU);
-      const labelReveal = storyWU <= revealState.endWU
-        ? activationProgress * (1 - exitProgress) * restoreWeight
-        : 0;
-      reveal.items.forEach((item) => {
-        disciplineLabelBaseReveal[item.group - 1] = labelReveal;
-        if (reducedActive) disciplineWeights[item.group - 1] = labelReveal;
-      });
     }
 
     if (revealAvailable) {
@@ -1907,14 +1846,10 @@ function createPointFieldAdapter({
     uniforms.disciplineBackgroundOpacity.value = Number(reveal?.backgroundOpacity ?? 0.06);
     uniforms.disciplineReconnectOpacity.value = Number(reveal?.reconnectOpacity ?? 0.24);
     uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 3.6);
-    uniforms.disciplineQuietRadius.value = 0;
-    uniforms.disciplineQuietStrength.value = 0;
 
     if (overlay) {
       disciplineProjectedX.fill(Number.NaN);
       disciplineProjectedY.fill(Number.NaN);
-      disciplineWorldX.fill(Number.NaN);
-      disciplineWorldZ.fill(Number.NaN);
       if (revealAvailable && anchorSamplingExact) {
         camera.updateMatrixWorld(true);
         anchorSampleInput.fromTransform = uniforms.fromTransform.value;
@@ -1975,6 +1910,10 @@ function createPointFieldAdapter({
         anchorSampleInput.gridRipple.progress = uniforms.gridRippleProgress.value;
         anchorSampleInput.gridRipple.centerX = uniforms.gridRippleCenter.value.x;
         anchorSampleInput.gridRipple.centerZ = uniforms.gridRippleCenter.value.y;
+        const revealThreshold = Number(frame.globals.editorialRevealThreshold ?? 1);
+        const revealDuration = Number(frame.globals.editorialMotion?.fadeDurationWU ?? 0.2);
+        // Use the editorial reading line as the only reveal clock. Each anchor
+        // accumulates independently; forward travel never clears an earlier one.
         for (let group = 1; group <= 6; group += 1) {
           const label = disciplineLabels[group - 1];
           if (!label) continue;
@@ -1991,90 +1930,40 @@ function createPointFieldAdapter({
           anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
           anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
           sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
-          disciplineWorldX[group - 1] = anchorSampleTarget.x;
-          disciplineWorldZ[group - 1] = anchorSampleTarget.z;
           disciplinePointScratch.set(
             anchorSampleTarget.x,
             anchorSampleTarget.y,
             anchorSampleTarget.z,
-          ).project(camera);
+          );
+          const anchorInFrontOfCamera = disciplineViewPointScratch
+            .copy(disciplinePointScratch)
+            .applyMatrix4(camera.matrixWorldInverse).z < 0;
+          disciplinePointScratch.project(camera);
           disciplineProjectedX[group - 1] = viewportOffsetX
             + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
           disciplineProjectedY[group - 1] = viewportOffsetY
             + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
-          if (!reducedActive) {
-            const viewportY = (disciplineProjectedY[group - 1] - viewportOffsetY) / height;
-            const readingLineY = frame.layoutProfile === 'mobile'
-              ? Number(reveal.mobileReadingLineY ?? 0.67)
-              : Number(reveal.readingLineY ?? 0.52);
-            const approachBandY = Math.max(0.001, Number(reveal.approachBandY ?? 0.12));
-            const exitLineY = Number(reveal.exitLineY ?? 0.9);
-            const viewportEntryY = Math.max(0.05, readingLineY - approachBandY);
-            const bottomDepartureReveal = 1 - smoothRange(
+          const viewportY = (disciplineProjectedY[group - 1] - viewportOffsetY) / height;
+          const revealProgress = !anchorInFrontOfCamera
+            ? 0
+            : getAboutNarrativeSharedRevealProgress(
               viewportY,
-              exitLineY,
-              exitLineY + Math.max(0.04, approachBandY * 0.65),
+              revealThreshold,
+              revealDuration,
+              frame.reducedMotion,
             );
-            const topDepartureReveal = smoothRange(
-              viewportY,
-              -Math.max(0.2, approachBandY * 1.5),
-              Math.max(0.04, approachBandY * 0.3),
-            );
-            const departureReveal = bottomDepartureReveal * topDepartureReveal;
-            // The projected anchor crossing is the sole reveal clock. The
-            // reading-line controls therefore map directly to viewport depth.
-            const spatialDotReveal = 1 - smoothRange(
-              viewportY,
-              viewportEntryY,
-              viewportEntryY + approachBandY,
-            );
-            const spatialLabelReveal = 1 - smoothRange(
-              viewportY,
-              viewportEntryY,
-              viewportEntryY + (approachBandY * 0.35),
-            );
-            const dotReveal = spatialDotReveal * departureReveal;
-            const labelReveal = spatialLabelReveal * departureReveal;
-            const globalReveal = disciplineLabelBaseReveal[group - 1];
-            const spatialReveal = globalReveal * labelReveal;
-            disciplineWeights[group - 1] = globalReveal * dotReveal;
-            disciplineSpatialReveal[group - 1] = spatialReveal
-              * uniforms.simulationVisibility.value;
-          } else if (disciplineLabelBaseReveal[group - 1] > 0.05) {
-            visibleLabels += 1;
-          }
-        }
-        let activeLabelIndex = -1;
-        const activeLabelThreshold = 0.05;
-        for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
-          if (disciplineSpatialReveal[index] > activeLabelThreshold) {
-            activeLabelIndex = index;
-          }
-        }
-        for (let index = 0; index < disciplineSpatialReveal.length; index += 1) {
-          if (index !== activeLabelIndex) {
-            disciplineWeights[index] = 0;
-            disciplineSpatialReveal[index] = 0;
-          }
+          disciplineWeights[group - 1] = revealProgress;
           writeDisciplineRevealStyles(
-            index,
-            index === activeLabelIndex ? disciplineSpatialReveal[index] : 0,
+            group - 1,
+            revealProgress * uniforms.simulationVisibility.value,
           );
-        }
-        visibleLabels = activeLabelIndex >= 0 ? 1 : 0;
-        if (activeLabelIndex >= 0) {
-          uniforms.disciplineQuietAnchor.value.set(
-            disciplineWorldX[activeLabelIndex],
-            disciplineWorldZ[activeLabelIndex],
-          );
-          uniforms.disciplineQuietRadius.value = frame.layoutProfile === 'mobile' ? 2.75 : 3.1;
-          uniforms.disciplineQuietStrength.value = 0.9;
+          if (revealProgress > 0.05) visibleLabels += 1;
         }
         placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
-          const labelReveal = disciplineLabelBaseReveal[group - 1]
-            * uniforms.simulationVisibility.value;
+          const labelReveal = uniforms.simulationVisibility.value;
+          disciplineWeights[group - 1] = 1;
           writeDisciplineRevealStyles(group - 1, labelReveal);
           if (labelReveal > 0.05) visibleLabels += 1;
           disciplineProjectedX[group - 1] = viewportOffsetX
@@ -2610,7 +2499,6 @@ function createPointFieldAdapter({
     delete root.dataset.pointAsset;
     delete root.dataset.pointWorldState;
     delete root.dataset.aboutSceneReady;
-    delete root.dataset.aboutEntranceState;
     delete root.dataset.mobileSimulationBodyScale;
     delete root.dataset.worldPrepare;
     delete root.dataset.worldError;

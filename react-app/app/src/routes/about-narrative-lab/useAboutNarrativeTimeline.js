@@ -13,6 +13,7 @@ import {
   sampleAboutNarrativeRuntimePlanInto,
   sampleAboutNarrativeTitleFieldInto,
 } from './aboutNarrativeRuntimePlan.js';
+import { getAboutNarrativeSharedRevealProgress } from './aboutNarrativeReveal.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const smooth01 = (value) => {
@@ -71,33 +72,35 @@ export function getAboutNarrativeEditorialReveal(
   record,
   scrollWU,
   viewportHeight,
-  _viewportThreshold,
+  viewportThreshold,
   reducedMotion,
 ) {
-  const reveal = record.editorialMotion || {};
   const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
-  const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
-  const delayWU = Number(reveal.fadeDelayWU ?? 0)
-    + (reducedMotion ? 0 : Number(record.revealDelayWU || 0));
-  const durationWU = Math.max(0.02, Number(reveal.fadeDurationWU ?? 0.12));
-  if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
-  return clamp01((elapsedWU - delayWU) / durationWU);
+  const viewportY = Number(viewportThreshold)
+    + layoutOffsetWU
+    - (Number(scrollWU) - Number(record.startScrollWU));
+  return getAboutNarrativeSharedRevealProgress(
+    viewportY,
+    viewportThreshold,
+    record.editorialMotion?.fadeDurationWU,
+    reducedMotion,
+  );
 }
 
 export function getAboutNarrativeEditorialBlurReveal(
   record,
   scrollWU,
   viewportHeight,
+  viewportThreshold,
   reducedMotion,
 ) {
-  const reveal = record.editorialMotion || {};
-  const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
-  const elapsedWU = Number(scrollWU) - Number(record.startScrollWU) - layoutOffsetWU;
-  const delayWU = Number(reveal.blurDelayWU ?? 0)
-    + (reducedMotion ? 0 : Number(record.revealDelayWU || 0));
-  const durationWU = Math.max(0.02, Number(reveal.blurDurationWU ?? 0.16));
-  if (reducedMotion) return elapsedWU >= delayWU ? 1 : 0;
-  return clamp01((elapsedWU - delayWU) / durationWU);
+  return getAboutNarrativeEditorialReveal(
+    record,
+    scrollWU,
+    viewportHeight,
+    viewportThreshold,
+    reducedMotion,
+  );
 }
 
 export function useAboutNarrativeTimeline({
@@ -278,8 +281,6 @@ export function useAboutNarrativeTimeline({
           editorialMotion: plan.model.globals.editorialMotion,
           startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
-          revealDelayWU: Math.max(0, Number(node.dataset.editorialIndex) || 0)
-            * Math.max(0, Number(plan.model.globals.editorialMotion?.logoStaggerWU) || 0),
           progress: 0,
           blurProgress: 0,
         }];
@@ -421,6 +422,7 @@ export function useAboutNarrativeTimeline({
           record,
           scrollWU,
           viewportHeight,
+          viewportThreshold,
           reducedMotion,
         );
       }
@@ -567,6 +569,7 @@ export function useAboutNarrativeTimeline({
       }
     };
     const handleScrollPreparation = () => schedulePreparationHandoff();
+    const handleEditorialLinesChange = () => scheduleMeasure();
     const handleVisibilityChange = () => {
       worldRuntimeRef.current?.setVisible?.(!window.document.hidden);
       if (!window.document.hidden) schedulePreparationHandoff(getCurrentStoryWU(), { force: true });
@@ -581,6 +584,7 @@ export function useAboutNarrativeTimeline({
     scrollport.addEventListener('wheel', cancelPlayback, { passive: true });
     scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
     scrollport.addEventListener('scroll', handleScrollPreparation, { passive: true });
+    content.addEventListener('about:editorial-lines-change', handleEditorialLinesChange);
     window.document.addEventListener('visibilitychange', handleVisibilityChange);
     root.addEventListener('about:world-runtime-ready', handleRuntimeReady);
     const unsubscribe = editorStore?.subscribe?.(handleStoreChange);
@@ -602,6 +606,7 @@ export function useAboutNarrativeTimeline({
       scrollport.removeEventListener('wheel', cancelPlayback);
       scrollport.removeEventListener('touchstart', cancelPlayback);
       scrollport.removeEventListener('scroll', handleScrollPreparation);
+      content.removeEventListener('about:editorial-lines-change', handleEditorialLinesChange);
       window.document.removeEventListener('visibilitychange', handleVisibilityChange);
       root.removeEventListener('about:world-runtime-ready', handleRuntimeReady);
       requestMeasureRef.current = () => {};

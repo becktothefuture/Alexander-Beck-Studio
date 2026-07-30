@@ -16,7 +16,6 @@ import { createAboutNarrativeWorldPreparationDescriptor } from './aboutNarrative
 
 const EMPTY_SAMPLE_OPTIONS = Object.freeze({});
 const TIME_EPSILON = 0.000001;
-const REDUCED_DISCIPLINE_HANDOFF_LEAD_WU = 0.02;
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -201,10 +200,7 @@ function compileDisciplineReveal(textFields, interactionClips) {
   const startWU = Number(clip.activationWU);
   const effectEndWU = Number(clip.endWU);
   const endWU = effectEndWU;
-  const staggerWU = Number(parameters.staggerWU);
   const backgroundFadeWU = Number(parameters.backgroundFadeWU);
-  const labelDurationWU = Number(parameters.labelDurationWU);
-  const holdWU = Number(parameters.holdWU);
   return {
     id: clip.id,
     startWU,
@@ -212,7 +208,6 @@ function compileDisciplineReveal(textFields, interactionClips) {
     endWU,
     effectStartWU,
     effectEndWU,
-    staggerWU,
     backgroundFadeWU,
     backgroundFadeEndWU: effectStartWU + backgroundFadeWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
@@ -221,16 +216,6 @@ function compileDisciplineReveal(textFields, interactionClips) {
     restoreDurationWU: Number(parameters.restoreDurationWU),
     labelOffsetPx: Number(parameters.labelOffsetPx),
     labelScale: Number(parameters.labelScale ?? 1),
-    labelDurationWU,
-    holdWU,
-    readingLineY: Number(parameters.readingLineY),
-    mobileReadingLineY: Number(parameters.mobileReadingLineY),
-    approachBandY: Number(parameters.approachBandY),
-    exitLineY: Number(parameters.exitLineY),
-    labelSequenceEndWU: startWU
-      + (Math.max(0, parameters.items.length - 1) * staggerWU)
-      + labelDurationWU
-      + holdWU,
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -531,30 +516,23 @@ function writeDisciplineReveal(target, config, storyWU, durationWU, reducedMotio
   target.storyWU = storyWU;
   target.startWU = config.startWU;
   target.endWU = config.endWU;
-  target.staggerWU = config.staggerWU;
   target.backgroundFadeWU = config.backgroundFadeWU;
-  target.labelDurationWU = config.labelDurationWU;
-  target.holdWU = config.holdWU;
   target.restoreDurationWU = config.restoreDurationWU;
-  target.elapsedWU = storyWU - config.startWU;
   target.active = isActiveAt(
     storyWU,
     config.effectStartWU,
     config.effectEndWU,
     durationWU,
   );
-  const labelEndWU = reducedMotion ? config.effectEndWU : config.endWU;
-  target.labelActive = isActiveAt(storyWU, config.startWU, labelEndWU, durationWU);
-  target.settled = reducedMotion;
   target.backgroundProgress = reducedMotion
-    ? (target.labelActive ? 1 : 0)
+    ? (target.active ? 1 : 0)
     : smoothRange(storyWU, config.effectStartWU, config.backgroundFadeEndWU);
   const restoreStartWU = Math.max(
     config.startWU,
     config.effectEndWU - Math.max(0, config.restoreDurationWU),
   );
   target.restoreProgress = reducedMotion
-    ? (storyWU >= config.effectEndWU - REDUCED_DISCIPLINE_HANDOFF_LEAD_WU ? 1 : 0)
+    ? 0
     : smoothRange(storyWU, restoreStartWU, config.effectEndWU);
   return target;
 }
@@ -577,15 +555,9 @@ export function createAboutNarrativeRuntimeFrameSample() {
     storyWU: 0,
     startWU: 0,
     endWU: 0,
-    staggerWU: 0,
     backgroundFadeWU: 0,
-    labelDurationWU: 0,
-    holdWU: 0,
     restoreDurationWU: 0,
-    elapsedWU: 0,
     active: false,
-    labelActive: false,
-    settled: false,
     backgroundProgress: 0,
     restoreProgress: 0,
   };

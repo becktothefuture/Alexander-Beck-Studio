@@ -41,6 +41,11 @@ import {
   ABOUT_INTERACTIVE_STACK_MIN_ITEMS,
   ABOUT_INTERACTIVE_STACK_SEED_CONTROL,
 } from './aboutInteractiveStackContract.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+  ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
+  getAboutNarrativeDisciplineMinimumSeparation,
+} from './aboutNarrativeDisciplinePositions.js';
 
 export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
@@ -122,7 +127,8 @@ const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU',
 const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
-const REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
+const REVEAL_KEYS = new Set(['fadeDurationWU']);
+const LEGACY_REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
 const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'parameters', 'emphasis']);
 const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale', 'offsetX', 'offsetY']);
 const INTERACTIVE_STACK_ITEM_KEYS = new Set(['id', 'type', 'src', 'poster', 'alt', 'width', 'height', 'aspectRatio', 'fit']);
@@ -211,8 +217,22 @@ function validateVector(value, diagnostics, path) {
 }
 
 function validateDisciplinePosition(value, diagnostics, path) {
-  if (!Array.isArray(value) || value.length !== 2 || value.some((item) => !finite(item) || Number(item) < 0.05 || Number(item) > 0.95)) {
-    diagnostic(diagnostics, 'discipline-position', path, 'Discipline positions require two normalized values between 0.05 and 0.95.');
+  const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
+  const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
+  if (!Array.isArray(value)
+    || value.length !== 2
+    || !finite(value[0])
+    || Number(value[0]) < xBounds.min
+    || Number(value[0]) > xBounds.max
+    || !finite(value[1])
+    || Number(value[1]) < yBounds.min
+    || Number(value[1]) > yBounds.max) {
+    diagnostic(
+      diagnostics,
+      'discipline-position',
+      path,
+      `Discipline positions require normalized X ${xBounds.min}–${xBounds.max} and Y ${yBounds.min}–${yBounds.max}.`,
+    );
     return false;
   }
   return true;
@@ -253,8 +273,8 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
     validateEditorialReveal(Object.fromEntries(
       [...REVEAL_KEYS].map((key) => [key, globals.editorialMotion[key]]),
     ), diagnostics, 'globals.editorialMotion');
-    ['maxBlurPx', 'travelPx', 'logoStaggerWU'].forEach((key) => {
-      const control = key === 'maxBlurPx' ? [0, 12] : key === 'travelPx' ? [0, 48] : [0, 0.2];
+    ['maxBlurPx', 'travelPx'].forEach((key) => {
+      const control = key === 'maxBlurPx' ? [0, 12] : [0, 48];
       if (!finite(globals.editorialMotion?.[key]) || Number(globals.editorialMotion[key]) < control[0] || Number(globals.editorialMotion[key]) > control[1]) {
         diagnostic(diagnostics, 'editorial-motion-range', `globals.editorialMotion.${key}`, `Editorial ${key} is outside its supported range.`);
       }
@@ -657,13 +677,13 @@ function validateEditorialModule(module, diagnostics, path) {
   }
 }
 
-function validateEditorialReveal(reveal, diagnostics, path) {
-  unknownKeys(diagnostics, reveal, REVEAL_KEYS, path);
+function validateEditorialReveal(reveal, diagnostics, path, { legacy = false } = {}) {
+  unknownKeys(diagnostics, reveal, legacy ? LEGACY_REVEAL_KEYS : REVEAL_KEYS, path);
   if (!isObject(reveal)) return;
-  ['fadeDelayWU', 'blurDelayWU'].forEach((key) => {
+  if (legacy) ['fadeDelayWU', 'blurDelayWU'].forEach((key) => {
     if (!finite(reveal[key]) || Number(reveal[key]) < 0 || Number(reveal[key]) > 0.8) diagnostic(diagnostics, 'editorial-reveal-delay', `${path}.${key}`, 'Editorial reveal delays must stay between 0 and 0.8 WU.');
   });
-  ['fadeDurationWU', 'blurDurationWU'].forEach((key) => {
+  (legacy ? ['fadeDurationWU', 'blurDurationWU'] : ['fadeDurationWU']).forEach((key) => {
     if (!finite(reveal[key]) || Number(reveal[key]) < 0.02 || Number(reveal[key]) > 0.8) diagnostic(diagnostics, 'editorial-reveal-duration', `${path}.${key}`, 'Editorial reveal durations must stay between 0.02 and 0.8 WU.');
   });
 }
@@ -771,7 +791,12 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
     if (field.anchor != null) validateSafeText(field.anchor, diagnostics, `${path}.anchor`, { required: true, maximum: 80 });
   } else if (field.kind === 'scroll-block') {
     validateBlock(field.block, diagnostics, `${path}.block`);
-    if (field.reveal != null) validateEditorialReveal(field.reveal, diagnostics, `${path}.reveal`);
+    if (field.reveal != null) validateEditorialReveal(
+      field.reveal,
+      diagnostics,
+      `${path}.reveal`,
+      { legacy: schemaVersion <= 4 },
+    );
   } else if (field.kind === 'stub') {
     validateSafeText(field.label, diagnostics, `${path}.label`, { required: true, maximum: 120 });
     if (field.publishable !== false) diagnostic(diagnostics, 'stub-publishable', `${path}.publishable`, 'Stub fields cannot be published.');
@@ -853,6 +878,19 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
     if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
   });
+  if (items.length === 6 && groups.size === 6) {
+    ['desktop', 'mobile'].forEach((profile) => {
+      const minimum = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
+      if (minimum < ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001) {
+        diagnostic(
+          diagnostics,
+          'discipline-position-spacing',
+          `${path}.parameters.items`,
+          `${profile === 'mobile' ? 'Mobile' : 'Desktop'} Discipline anchors must remain at least ${ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION} grid units apart.`,
+        );
+      }
+    });
+  }
 }
 
 function validateLibrary(library, diagnostics) {
@@ -1064,7 +1102,7 @@ export function validateAboutNarrativeTrackDocument(input, {
       const allowedParameterIds = new Set(interactionDefinition.parameters.map((control) => control.id));
       if (clip.type === 'discipline-reveal') {
         allowedParameterIds.add('items');
-        if (schemaVersion <= 4) REMOVED_DISCIPLINE_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
+        if (schemaVersion <= 4) RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
       }
       if (clip.type === 'grid-ripple' && schemaVersion <= 4) {
         REMOVED_GRID_RIPPLE_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
@@ -1076,11 +1114,6 @@ export function validateAboutNarrativeTrackDocument(input, {
         `${path}.parameters`,
       );
       interactionDefinition.parameters.forEach((control) => {
-        const viewportCrossingControl = control.id === 'readingLineY'
-          || control.id === 'mobileReadingLineY'
-          || control.id === 'approachBandY'
-          || control.id === 'exitLineY';
-        if (schemaVersion <= 4 && viewportCrossingControl) return;
         validateControlValue(
           clip.parameters[control.id],
           control,
@@ -1171,12 +1204,25 @@ export function normalizeAboutNarrativeTrackDocument(input) {
   const firstEditorialReveal = textFields.find((field) => field.kind === 'scroll-block' && field.reveal)?.reveal;
   const openerViewportY = textFields.find((field) => field.kind === 'title' && ['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
   const standardViewportY = textFields.find((field) => field.kind === 'title' && !['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
+  const editorialMotion = {
+    ...firstEditorialReveal,
+    ...source.globals.editorialMotion,
+  };
   const globals = {
     ...source.globals,
     editorialMotion: {
-      ...ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS,
-      ...firstEditorialReveal,
-      ...source.globals.editorialMotion,
+      fadeDurationWU: Number(
+        editorialMotion.fadeDurationWU
+        ?? ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS.fadeDurationWU,
+      ),
+      maxBlurPx: Number(
+        editorialMotion.maxBlurPx
+        ?? ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS.maxBlurPx,
+      ),
+      travelPx: Number(
+        editorialMotion.travelPx
+        ?? ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS.travelPx,
+      ),
     },
     textMotion: {
       ...source.globals.textMotion,
@@ -1763,6 +1809,17 @@ const REMOVED_DISCIPLINE_PARAMETER_KEYS = Object.freeze([
   'fieldFogStrength',
   'backgroundScale',
 ]);
+const RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS = Object.freeze([
+  ...REMOVED_DISCIPLINE_PARAMETER_KEYS,
+  'labelWindowWU',
+  'staggerWU',
+  'labelDurationWU',
+  'holdWU',
+  'readingLineY',
+  'mobileReadingLineY',
+  'approachBandY',
+  'exitLineY',
+]);
 const REMOVED_GRID_RIPPLE_PARAMETER_KEYS = Object.freeze(['centerX', 'centerZ']);
 
 function stripRemovedDisciplineParameters(parameters) {
@@ -1772,11 +1829,8 @@ function stripRemovedDisciplineParameters(parameters) {
 }
 
 function upgradeDisciplineMotionParameters(parameters) {
-  const next = stripRemovedDisciplineParameters(parameters);
-  const defaults = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['discipline-reveal'].defaultParameters;
-  ['readingLineY', 'mobileReadingLineY', 'approachBandY', 'exitLineY'].forEach((key) => {
-    if (!finite(next[key])) next[key] = defaults[key];
-  });
+  const next = cloneAboutNarrativeDocument(parameters || {});
+  RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS.forEach((key) => delete next[key]);
   return next;
 }
 

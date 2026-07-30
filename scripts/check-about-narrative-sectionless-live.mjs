@@ -8,6 +8,9 @@ import {
 import {
   getAboutNarrativeEditorialReveal,
 } from '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js';
+import {
+  getAboutNarrativeSharedRevealProgress,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeReveal.js';
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
@@ -35,6 +38,7 @@ const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
   ['timeline', '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js'],
+  ['reveal', '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeReveal.js'],
   ['world', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx'],
   ['editor', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeEditor.jsx'],
   ['styles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
@@ -87,10 +91,8 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
 
   assert.ok(reveal);
   assert.ok(ripple);
-  assert.equal(cameraKeys.length, 13);
+  assert.equal(cameraKeys.length, 11);
   [
-    'grid-flight-glide',
-    'grid-tilt-mid',
     'grid-birds-eye',
     'discipline-hold',
     'grid-return-centered',
@@ -125,13 +127,13 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
     visibilityKeys.find((key) => key.id === 'visibility-discipline-read'),
     {
       id: 'visibility-discipline-read',
-      atWU: 11.85,
+      atWU: 10.95,
       visibility: 0.86,
       easing: 'smoothstep',
       locked: false,
     },
   );
-  assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, 20.75);
+  assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, 16.95);
   assert.equal(visibilityKeys.at(-1).visibility, 1);
   visibilityKeys.forEach((key) => {
     assert.deepEqual(
@@ -380,13 +382,9 @@ test('the Text row header exposes only native-v5 global animation controls', () 
     [
       'readingWidthRem',
       'editorialRevealThreshold',
-      'fadeDelayWU',
       'fadeDurationWU',
-      'blurDelayWU',
-      'blurDurationWU',
       'maxBlurPx',
       'travelPx',
-      'logoStaggerWU',
       'standardMaxWidthCh',
       'displayMaxWidthCh',
       'standardViewportY',
@@ -529,8 +527,6 @@ test('World C flies straight into plan view before the authored ripple orbit and
       + background.transform.position[2],
   ];
   const gridFlightIds = [
-    'grid-flight-glide',
-    'grid-tilt-mid',
     'grid-birds-eye',
     'discipline-hold',
   ];
@@ -550,7 +546,7 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.equal(key.rotation[2], 0);
     assert.equal(key.lookAtRoll, 0);
   });
-  assert.deepEqual(gridFlightKeys.map((key) => key.rotation[0]), [-28, -58, -82, -90]);
+  assert.deepEqual(gridFlightKeys.map((key) => key.rotation[0]), [-82, -90]);
   const flyoverKeys = [keys.get('complexity-exit-2'), ...gridFlightKeys];
   flyoverKeys.slice(1).forEach((key, index) => {
     assert.ok(key.position[2] > flyoverKeys[index].position[2], 'World C camera must move forward continuously');
@@ -558,22 +554,25 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.ok(key.rotation[0] < flyoverKeys[index].rotation[0], 'World C camera must tilt downward continuously');
   });
   const orbitKeys = orbitIds.map((id) => keys.get(id));
+  const orbitTarget = keys.get('grid-return-centered').lookAtTarget;
   orbitKeys.forEach((key) => {
     assert.ok(key);
     assert.equal(key.aimEnabled, true);
-    assert.equal(key.lookAtTarget[0], rippleCenter[0]);
-    assert.equal(key.lookAtTarget[2], rippleCenter[2]);
+    assert.equal(key.lookAtTarget[0], orbitTarget[0]);
+    assert.equal(key.lookAtTarget[2], orbitTarget[2]);
     assert.equal(key.lookAtRoll, 0);
   });
   orbitKeys.slice(0, 2).forEach((key) => assert.equal(key.lookAtTarget[1], background.shapeParameters.height));
-  orbitKeys.slice(2).forEach((key) => assert.equal(key.lookAtTarget[1], -0.35));
+  orbitKeys.slice(2, -1).forEach((key) => assert.equal(key.lookAtTarget[1], -0.35));
+  assert.equal(orbitKeys.at(-1).lookAtTarget[1], -0.88);
   assert.ok(keys.get('emergent-orbit-quarter').position[0] > 0);
   assert.ok(keys.get('emergent-orbit-rear').position[2] > rippleCenter[2]);
   assert.ok(keys.get('emergent-orbit-three-quarter').position[0] < 0);
   assert.equal(keys.get('finale-hold').position[0], 0.55);
-  const shift = keys.get('grid-flight-glide');
+  const shift = keys.get('grid-birds-eye');
   const bridgeTitle = canonical.tracks.text.fields.find((field) => field.id === 'text-complexity-listen');
-  assert.equal(shift.atWU, bridgeTitle.endWU);
+  assert.ok(shift.atWU > bridgeTitle.endWU);
+  assert.ok(shift.atWU - bridgeTitle.endWU <= 2);
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const firstFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
   for (let storyWU = shift.atWU; storyWU <= keys.get('discipline-hold').atWU; storyWU += 0.025) {
@@ -585,8 +584,8 @@ test('World C flies straight into plan view before the authored ripple orbit and
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assert.equal(frame.camera.targeted, true);
     assert.equal(frame.camera.aimWeight, 1);
-    assertCameraValue(frame.camera.lookAtTarget[0], rippleCenter[0], `Orbit target x at ${storyWU.toFixed(3)} WU`);
-    assertCameraValue(frame.camera.lookAtTarget[2], rippleCenter[2], `Orbit target z at ${storyWU.toFixed(3)} WU`);
+    assertCameraValue(frame.camera.lookAtTarget[0], orbitTarget[0], `Orbit target x at ${storyWU.toFixed(3)} WU`);
+    assertCameraValue(frame.camera.lookAtTarget[2], orbitTarget[2], `Orbit target z at ${storyWU.toFixed(3)} WU`);
   }
   const orbitFrame = sampleAboutNarrativeRuntimePlan(plan, keys.get('emergent-orbit-rear').atWU);
   assert.notDeepEqual(orbitFrame.camera.quaternion, firstFrame.camera.quaternion);
@@ -616,10 +615,10 @@ test('World C flies straight into plan view before the authored ripple orbit and
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
-  assert.ok(Math.min(...horizontalPositions) >= 0.4);
-  assert.ok(Math.max(...horizontalPositions) <= 0.5);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.4);
+  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) >= 0.5);
+  assert.ok(Math.min(...horizontalPositions) >= 0.1);
+  assert.ok(Math.max(...horizontalPositions) <= 0.72);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.45);
   assert.ok(Math.min(...verticalPositions) >= 0.5);
   assert.ok(Math.max(...verticalPositions) <= 0.95);
   assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
@@ -630,10 +629,10 @@ test('World C flies straight into plan view before the authored ripple orbit and
   const homeDescriptions = new Map(homeContent.legend.items.map((item) => [item.label, item.tooltip]));
   disciplineReveal.parameters.items.forEach((item, index) => {
     assert.equal(item.description, homeDescriptions.get(item.label));
-    assert.ok(item.position[0] >= 0.4 && item.position[0] <= 0.5);
-    assert.ok(item.position[1] >= 0.08 && item.position[1] <= 0.95);
-    assert.ok(item.mobilePosition[0] >= 0.35 && item.mobilePosition[0] <= 0.5);
-    assert.ok(item.mobilePosition[1] >= 0.08 && item.mobilePosition[1] <= 0.95);
+    assert.ok(item.position[0] >= 0.1 && item.position[0] <= 0.72);
+    assert.ok(item.position[1] >= 0.4 && item.position[1] <= 0.95);
+    assert.ok(item.mobilePosition[0] >= 0.1 && item.mobilePosition[0] <= 0.72);
+    assert.ok(item.mobilePosition[1] >= 0.4 && item.mobilePosition[1] <= 0.95);
     if (index > 0) assert.ok(item.position[1] > disciplineReveal.parameters.items[index - 1].position[1]);
   });
   const assertMinimumGridSeparation = (positions, pointCount) => {
@@ -665,11 +664,18 @@ test('World C flies straight into plan view before the authored ripple orbit and
   assert.ok(keys.get('grid-birds-eye').position[1] <= keys.get('discipline-hold').position[1]);
   const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
   assert.ok(new Set(mobileVerticalPositions).size >= 5);
-  assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) <= 0.4);
+  assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) <= 0.45);
   assert.ok(Math.min(...mobileVerticalPositions) >= 0.5);
-  assert.equal(disciplineReveal.parameters.readingLineY, 0.9);
-  assert.equal(disciplineReveal.parameters.mobileReadingLineY, 0.9);
-  assert.equal(disciplineReveal.parameters.approachBandY, 0.06);
+  [
+    'labelWindowWU',
+    'staggerWU',
+    'labelDurationWU',
+    'holdWU',
+    'readingLineY',
+    'mobileReadingLineY',
+    'approachBandY',
+    'exitLineY',
+  ].forEach((key) => assert.equal(key in disciplineReveal.parameters, false));
   const mobileRippleCenter = [
     rippleCenter[0],
     Number((background.transform.position[1]
@@ -680,12 +686,13 @@ test('World C flies straight into plan view before the authored ripple orbit and
   for (const profileId of ['tablet', 'mobile']) {
     const compactPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: profileId });
     const compactKeys = new Map(compactPlan.cameraKeys.map((key) => [key.id, key]));
+    const compactOrbitTarget = compactKeys.get('grid-return-centered').lookAtTarget;
     gridFlightIds.forEach((id) => assert.equal(compactKeys.get(id).aimEnabled, false));
     orbitIds.forEach((id) => {
       const key = compactKeys.get(id);
       assert.equal(key.aimEnabled, true);
-      assert.equal(key.lookAtTarget[0], mobileRippleCenter[0]);
-      assert.equal(key.lookAtTarget[2], mobileRippleCenter[2]);
+      assert.equal(key.lookAtTarget[0], compactOrbitTarget[0]);
+      assert.equal(key.lookAtTarget[2], compactOrbitTarget[2]);
     });
     const compactBackground = compactPlan.worlds.find((world) => world.id === background.id);
     assert.equal(compactPlan.pointProfile, 'mobile');
@@ -740,10 +747,10 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
   assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
-  assert.match(liveSources.world, /const viewportEntryY = Math\.max\([\s\S]*?const topDepartureReveal = smoothRange\([\s\S]*?const spatialDotReveal = 1 - smoothRange\([\s\S]*?viewportEntryY \+ approachBandY[\s\S]*?const spatialLabelReveal = 1 - smoothRange\(/);
-  assert.match(liveSources.world, /projected anchor crossing is the sole reveal clock/);
+  assert.match(liveSources.world, /frame\.globals\.editorialRevealThreshold[\s\S]*?frame\.globals\.editorialMotion\?\.fadeDurationWU/);
+  assert.match(liveSources.world, /disciplineWeights\[group - 1\] = revealProgress/);
+  assert.doesNotMatch(liveSources.world, /activeLabelIndex|departureReveal|disciplineSpatialReveal/);
   assert.doesNotMatch(liveSources.world, /disciplineArrivalHold/);
-  assert.match(liveSources.world, /disciplineWeights\[group - 1\] = globalReveal \* dotReveal/);
   assert.match(liveSources.world, /float disciplineMonochrome = disciplineIsolation \* \(1\.0 - revealedGroupWeight\)/);
   assert.doesNotMatch(liveSources.world, /packDisciplineOrder|preferredSide/);
   assert.match(liveSources.editor, /getGridRippleStartControl\(snapshot\.document, object\)/);
@@ -849,7 +856,28 @@ test('title groups retain their authored pacing', () => {
     const previous = fieldsById.get(ids[index]);
     const current = fieldsById.get(id);
     assert.ok(current.startWU > previous.endWU, `${id} must follow the previous title without overlap`);
+    assert.ok(current.startWU - previous.endWU <= 0.15, `${id} must not introduce dead air`);
   }));
+});
+
+test('semantic handoffs keep deliberate breaths without empty scroll runs', () => {
+  const fields = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
+  const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
+  const emergent = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
+  const handoffs = [
+    [fields.get('text-promise-main').endWU, fields.get('text-complexity-idea').startWU],
+    [fields.get('text-complexity-conditions').endWU, fields.get('text-background-unit').startWU],
+    [fields.get('text-background-unit').endWU, fields.get('text-complexity-curiosity').startWU],
+    [fields.get('text-complexity-listen').endWU, reveal.startWU],
+    [fields.get('text-disciplines-title').endWU, fields.get('text-life-momentum').startWU],
+    [fields.get('text-life-character').endWU, emergent.startWU],
+  ];
+  handoffs.forEach(([outgoingEndWU, incomingStartWU]) => {
+    assert.ok(incomingStartWU - outgoingEndWU <= 0.25);
+  });
+  assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
+  assert.ok(fields.get('text-epilogue-invitation').startWU - emergent.startWU <= 0.81);
+  assert.ok(canonical.profiles.desktop.storyDurationWU < 20);
 });
 
 test('the narrative uses the approved A-E title, editorial, logo, and discipline structure', () => {
@@ -898,7 +926,11 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     false,
   );
   assert.ok(canonical.globals.editorialMotion.fadeDurationWU > 0);
-  assert.ok(canonical.globals.editorialMotion.blurDurationWU > 0);
+  assert.deepEqual(Object.keys(canonical.globals.editorialMotion), [
+    'fadeDurationWU',
+    'maxBlurPx',
+    'travelPx',
+  ]);
   assert.equal(backgroundUnit.reveal, undefined);
   assert.equal(disciplineEditorial.reveal, undefined);
   const firstBridgeTitle = fields.find((field) => field.id === 'text-complexity-curiosity');
@@ -906,17 +938,15 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
   ));
-  assert.ok(firstBridgeTitle.startWU > backgroundUnit.endWU);
+  assert.ok(firstBridgeTitle.startWU >= backgroundUnit.endWU - 0.25);
   assert.ok(finalBridgeTitle.startWU > firstBridgeTitle.endWU);
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
   assert.equal(firstBridgeTitle.presentation.viewportY, undefined);
   assert.equal(finalBridgeTitle.presentation.viewportY, undefined);
   assert.ok(disciplineReveal.startWU > finalBridgeTitle.endWU);
   assert.ok(disciplineReveal.activationWU > firstBridgeTitle.focusWU);
-  assert.ok(disciplineEditorial.startWU >= (
-    disciplineReveal.endWU - disciplineReveal.parameters.restoreDurationWU
-  ));
-  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU);
+  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.65);
+  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.25);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields
     .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))
@@ -930,13 +960,19 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
   assert.match(liveSources.styles, /--about-editorial-ink:/);
   assert.match(liveSources.styles, /--about-editorial-strong-ink: var\(--text-primary\)/);
-  assert.equal(canonical.globals.editorialRevealThreshold, 0.85);
+  assert.equal(canonical.globals.editorialRevealThreshold, 1);
+  assert.equal(canonical.globals.editorialMotion.fadeDurationWU, 0.2);
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialReveal\(/);
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialBlurReveal\(/);
-  assert.match(liveSources.timeline, /reveal\.fadeDelayWU/);
-  assert.match(liveSources.timeline, /reveal\.blurDelayWU/);
+  assert.match(liveSources.timeline, /getAboutNarrativeSharedRevealProgress/);
+  assert.match(liveSources.world, /getAboutNarrativeSharedRevealProgress/);
+  assert.doesNotMatch(liveSources.world, /revealState\?\.active/);
+  assert.match(liveSources.reveal, /ABOUT_NARRATIVE_REVEAL_START_VIEWPORT_Y = 1/);
+  assert.match(liveSources.reveal, /ABOUT_NARRATIVE_REVEAL_TRAVEL_VIEWPORT = 0\.2/);
+  assert.doesNotMatch(liveSources.timeline, /editorialIndex|logoStaggerWU|revealDelayWU/);
   assert.match(liveSources.timeline, /startScrollWU: Number\(span\.scrollBounds\.startWU\)/);
   assert.match(liveSources.timeline, /editorialNode\.offsetTop - node\.offsetTop/);
+  assert.match(liveSources.timeline, /about:editorial-lines-change/);
   assert.match(liveSources.timeline, /scrollWUFromStoryWU\(frame\.storyWU\)/);
   assert.doesNotMatch(liveSources.timeline, /sequentialPassage/);
   assert.match(liveSources.styles, /about-narrative-editorial-stack/);
@@ -949,9 +985,16 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.world, /latestFrame\?\.simulation\?\.visibility/);
   assert.doesNotMatch(liveSources.world, /root\.dataset\.editorialInView !== 'true'/);
   assert.match(liveSources.editor, /EDITORIAL_MODULE_GAP_CONTROL/);
-  assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
-  assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 0\.8\)/);
+  assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
+  assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
+  assert.match(liveSources.styles, /--about-spatial-title-type-size: clamp\([\s\S]*?var\(--about-editorial-type-size\) \* 1\.55/);
+  assert.match(liveSources.styles, /font-size: var\(--about-spatial-title-type-size\)/);
+  assert.match(liveSources.experience, /function EditorialLineText/);
+  assert.match(liveSources.experience, /className="about-narrative-media-deck"[\s\S]*?data-editorial-line/);
+  assert.match(liveSources.experience, /new ResizeObserver\(scheduleMeasure\)/);
+  assert.match(liveSources.experience, /data-editorial-line-count/);
+  assert.match(liveSources.experience, /about:editorial-lines-change/);
   assert.match(liveSources.styles, /about-narrative-spatial-title \{[\s\S]*?padding-block: 0\.2em;[\s\S]*?margin: -0\.2em auto -0\.1em;[\s\S]*?overflow: visible;/);
   assert.match(liveSources.experience, /--about-title-viewport-y/);
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
@@ -1016,7 +1059,10 @@ test('the final title and actions share the closing frame with the persistent bu
   assert.match(liveSources.styles, /max-height: 600px/);
 });
 
-test('editorial markers own first reveal onset in every responsive Scroll WU profile', () => {
+test('all responsive editorial markers reveal through the bottom twenty percent', () => {
+  assert.equal(getAboutNarrativeSharedRevealProgress(1, 1, 0.2, false), 0);
+  assert.ok(Math.abs(getAboutNarrativeSharedRevealProgress(0.9, 1, 0.2, false) - 0.5) < 0.000001);
+  assert.equal(getAboutNarrativeSharedRevealProgress(0.8, 1, 0.2, false), 1);
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
     const logos = plan.renderSpans.find((span) => span.fieldIds.includes('text-background-unit'));
@@ -1036,16 +1082,23 @@ test('editorial markers own first reveal onset in every responsive Scroll WU pro
       canonical.globals.editorialRevealThreshold,
       false,
     );
-    const entering = getAboutNarrativeEditorialReveal(
+    const halfway = getAboutNarrativeEditorialReveal(
       record,
-      startScrollWU + canonical.globals.editorialMotion.fadeDelayWU
-        + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
+      startScrollWU + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
       viewportHeight,
       canonical.globals.editorialRevealThreshold,
       false,
     );
-    assert.ok(atMarker <= 0.000001, `${layoutProfile} marker must begin the reveal`);
-    assert.ok(entering > 0 && entering < 1, `${layoutProfile} must reveal immediately after its marker`);
+    const atBandEnd = getAboutNarrativeEditorialReveal(
+      record,
+      startScrollWU + canonical.globals.editorialMotion.fadeDurationWU,
+      viewportHeight,
+      canonical.globals.editorialRevealThreshold,
+      false,
+    );
+    assert.ok(atMarker <= 0.000001, `${layoutProfile} must start at the viewport bottom`);
+    assert.ok(halfway > 0 && halfway < 1, `${layoutProfile} must reveal inside the shared band`);
+    assert.ok(atBandEnd >= 0.999999, `${layoutProfile} must finish twenty percent above the bottom`);
   }
 });
 

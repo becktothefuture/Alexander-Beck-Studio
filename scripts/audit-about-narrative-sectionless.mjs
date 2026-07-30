@@ -21,6 +21,9 @@ const canonical = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const titleHierarchyWU = canonical.tracks.text.fields.find(
+  (field) => field.id === 'text-complexity-idea',
+)?.focusWU;
 
 await mkdir(outputDir, { recursive: true });
 
@@ -84,15 +87,15 @@ async function auditProduction(viewport, label, expectedProfile) {
       .length;
     return storyWU > 10.51
       && storyWU < 10.59
-      && visibleLabels >= 1
-      && visibleLabels <= 6;
+      && visibleLabels === 6;
   });
   const disciplineState = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
     const labels = [...document.querySelectorAll('[data-discipline-group]')]
       .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .map((label) => label.getBoundingClientRect());
+      .map((label) => label.getBoundingClientRect())
+      .filter((rect) => rect.bottom > viewport.top && rect.top < viewport.bottom);
     const overlapPairs = [];
     labels.forEach((rect, index) => labels.slice(index + 1).forEach((other, offset) => {
       const separated = rect.right <= other.left + 1
@@ -105,11 +108,9 @@ async function auditProduction(viewport, label, expectedProfile) {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
       worldTo: root.dataset.worldTo,
-      labelsWithinViewport: labels.every((rect) => (
+      labelsWithinHorizontalViewport: labels.every((rect) => (
         rect.left >= viewport.left - 1
         && rect.right <= viewport.right + 1
-        && rect.top >= viewport.top - 1
-        && rect.bottom <= viewport.bottom + 1
       )),
       overlapPairs,
     };
@@ -118,7 +119,7 @@ async function auditProduction(viewport, label, expectedProfile) {
     activeWorld: 'world-grid',
     gridInfluence: '0.0000',
     worldTo: 'calm-field-v1',
-    labelsWithinViewport: true,
+    labelsWithinHorizontalViewport: true,
     overlapPairs: [],
   }, `${label} discipline labels should remain separate`);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
@@ -173,15 +174,20 @@ async function auditEditor() {
   await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
   await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
+  await page.waitForFunction(() => (
+    document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete'
+  ));
 
   const editor = page.locator('.about-track-editor');
   const shortcutInputProbe = page.getByRole('slider', { name: 'Story WU playhead' });
   await shortcutInputProbe.focus();
   await page.keyboard.press('Slash');
   assert.equal(await editor.isVisible(), true, 'Slash must not hide the editor while an input is focused.');
+  assert.equal(await page.locator('#panelDock:not(.hidden)').isVisible(), false, 'Slash must not open the config panel while an editor input is focused.');
   await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.press('Slash');
   assert.equal(await editor.isVisible(), false, 'Slash should hide the complete editor chrome.');
+  assert.equal(await page.locator('#panelDock:not(.hidden)').isVisible(), false, 'Slash must replace the config-panel shortcut on the About editor.');
   assert.equal(
     await page.locator('.about-narrative-lab').getAttribute('data-editor-active'),
     null,
@@ -189,6 +195,7 @@ async function auditEditor() {
   );
   await page.keyboard.press('Slash');
   assert.equal(await editor.isVisible(), true, 'Slash should restore the editor chrome.');
+  assert.equal(await page.locator('#panelDock:not(.hidden)').isVisible(), false, 'Restoring the About editor must not open the config panel.');
   assert.equal(
     await page.locator('.about-narrative-lab').getAttribute('data-editor-active'),
     'true',
@@ -373,6 +380,25 @@ async function auditEditor() {
     node.dispatchEvent(new Event('input', { bubbles: true }));
     node.dispatchEvent(new Event('change', { bubbles: true }));
   }, value);
+  const readTitleHierarchy = () => page.evaluate(() => {
+    const title = document.querySelector(
+      '[data-text-field-id="text-complexity-idea"] .about-narrative-spatial-title',
+    );
+    const editorial = document.querySelector(
+      '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy',
+    );
+    const titleStyle = getComputedStyle(title);
+    const editorialStyle = getComputedStyle(editorial);
+    const transform = new DOMMatrixReadOnly(titleStyle.transform);
+    const stage = title.closest('.about-narrative-spatial-stage');
+    const perspective = Number.parseFloat(getComputedStyle(stage).perspective);
+    const titleSize = Number.parseFloat(titleStyle.fontSize);
+    return {
+      editorialSize: Number.parseFloat(editorialStyle.fontSize),
+      projectedTitleSize: titleSize * (perspective / (perspective - transform.m43)),
+      titleSize,
+    };
+  });
   const selectPreviewOrientation = (value) => page.evaluate((nextValue) => {
     const select = document.querySelector('select[aria-label="Preview orientation"]');
     if (!select) throw new Error('Preview orientation select is missing.');
@@ -395,6 +421,16 @@ async function auditEditor() {
   assert.equal(Number.isFinite(editorialStartWU), true);
   assert.equal(Number.isFinite(editorialContract.revealThreshold), true);
 
+  await setPlayhead(titleHierarchyWU);
+  await page.waitForFunction((expectedWU) => Math.abs(
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+  ) < 0.01, titleHierarchyWU);
+  const desktopTitleHierarchy = await readTitleHierarchy();
+  assert.ok(
+    desktopTitleHierarchy.projectedTitleSize >= desktopTitleHierarchy.editorialSize * 1.3,
+    'A readable spatial title must remain clearly larger than editorial copy after perspective.',
+  );
+
   await setPlayhead(editorialStartWU);
   await page.waitForFunction((expectedWU) => Math.abs(
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
@@ -414,6 +450,9 @@ async function auditEditor() {
       firstLineReveal: Number(firstLine.style.getPropertyValue('--editorial-reveal')),
       fontSize: Number.parseFloat(passageStyle.fontSize),
       rowGap: Number.parseFloat(stackStyle.rowGap),
+      visualLineCount: passage.querySelectorAll(
+        '.about-narrative-editorial-lines__output > [data-editorial-line]',
+      ).length,
     };
   });
   assert.ok(Math.abs(
@@ -422,6 +461,23 @@ async function auditEditor() {
   assert.ok(editorialTrigger.firstLineReveal < 0.08);
   assert.ok(editorialTrigger.fontSize >= 23);
   assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 0.55);
+  assert.ok(editorialTrigger.visualLineCount >= 3, 'Desktop editorial prose must expose visual lines, not paragraph blocks.');
+
+  const editorialStaggerWU = editorialStartWU + 0.2;
+  await setPlayhead(editorialStaggerWU);
+  await page.waitForFunction((expectedWU) => Math.abs(
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+  ) < 0.01, editorialStaggerWU);
+  const staggeredLineReveals = await page.locator(
+    '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy:first-child .about-narrative-editorial-lines__output > [data-editorial-line]',
+  ).evaluateAll((nodes) => nodes.map((node) => Number(
+    node.style.getPropertyValue('--editorial-reveal'),
+  )));
+  assert.ok(staggeredLineReveals.length >= 3);
+  assert.ok(
+    staggeredLineReveals.every((value, index) => index === 0 || value < staggeredLineReveals[index - 1]),
+    'Editorial prose must reveal in visual-line order instead of one paragraph opacity.',
+  );
 
   const editorialRevealWU = editorialStartWU + 0.5;
   await setPlayhead(editorialRevealWU);
@@ -437,28 +493,47 @@ async function auditEditor() {
   assert.ok(Math.max(...editorialReveals) > 0.95);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
+  const disciplineRevealSamples = [];
+  for (const storyWU of [8.5, 9, 9.5, 10, 10.5, 11]) {
+    await setPlayhead(storyWU);
+    await page.waitForFunction((expectedWU) => Math.abs(
+      Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+    ) < 0.01, storyWU);
+    disciplineRevealSamples.push(await page.locator('[data-discipline-group]').evaluateAll((nodes) => (
+      nodes
+        .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
+        .map((node) => Number(node.dataset.disciplineGroup))
+    )));
+  }
+  disciplineRevealSamples.slice(1).forEach((groups, index) => {
+    const previousGroups = disciplineRevealSamples[index];
+    assert.ok(
+      previousGroups.every((group) => groups.includes(group)),
+      'A revealed discipline must stay revealed as forward scroll advances.',
+    );
+  });
+  assert.equal(disciplineRevealSamples.at(-1).length, 6);
+
   await setPlayhead(10.55);
   await page.waitForFunction(() => (
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 10.51
     && document.querySelector('.about-narrative-lab')?.dataset.worldTo === 'calm-field-v1'
-    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) >= 1
-    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) <= 4
+    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) === 6
   ));
   const disciplineDesktop = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('[aria-label="About Alexander narrative"]').getBoundingClientRect();
     const labels = [...document.querySelectorAll('[data-discipline-group]')]
       .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .map((label) => label.getBoundingClientRect());
+      .map((label) => label.getBoundingClientRect())
+      .filter((rect) => rect.bottom > viewport.top && rect.top < viewport.bottom);
     return {
       activeWorld: root.dataset.activeNarrativeWorld,
       gridInfluence: root.dataset.worldGridInfluence,
       worldTo: root.dataset.worldTo,
-      labelsWithinViewport: labels.every((rect) => (
+      labelsWithinHorizontalViewport: labels.every((rect) => (
         rect.left >= viewport.left - 1
         && rect.right <= viewport.right + 1
-        && rect.top >= viewport.top - 1
-        && rect.bottom <= viewport.bottom + 1
       )),
     };
   });
@@ -466,7 +541,7 @@ async function auditEditor() {
     activeWorld: 'world-grid',
     gridInfluence: '0.0000',
     worldTo: 'calm-field-v1',
-    labelsWithinViewport: true,
+    labelsWithinHorizontalViewport: true,
   });
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-desktop.png` });
 
@@ -602,6 +677,15 @@ async function auditEditor() {
   assert.ok(Math.abs(tabletLandscapeRatio - (1180 / 820)) < 0.01);
   await page.getByRole('button', { name: 'Mobile' }).click();
   await selectPreviewOrientation('portrait');
+  await setPlayhead(titleHierarchyWU);
+  await page.waitForFunction((expectedWU) => Math.abs(
+    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+  ) < 0.01, titleHierarchyWU);
+  const mobileTitleHierarchy = await readTitleHierarchy();
+  assert.ok(
+    mobileTitleHierarchy.projectedTitleSize >= mobileTitleHierarchy.editorialSize * 1.3,
+    'Mobile spatial titles must remain clearly larger than editorial copy after perspective.',
+  );
   await setPlayhead(5.3);
   await page.waitForFunction(() => Math.abs(
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - 5.3,
@@ -617,11 +701,18 @@ async function auditEditor() {
     return {
       fontSize: Number.parseFloat(style.fontSize),
       rowGap: Number.parseFloat(stackStyle.rowGap),
+      visualLineCount: passage.querySelectorAll(
+        '.about-narrative-editorial-lines__output > [data-editorial-line]',
+      ).length,
       withinInlineViewport: bounds.left >= viewport.left && bounds.right <= viewport.right,
     };
   });
   assert.ok(mobileEditorial.fontSize >= 19.5);
   assert.ok(mobileEditorial.rowGap >= mobileEditorial.fontSize * 0.55);
+  assert.ok(
+    mobileEditorial.visualLineCount > editorialTrigger.visualLineCount,
+    'Editorial line markers must be rebuilt for the narrower mobile preview.',
+  );
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
@@ -635,8 +726,7 @@ async function auditEditor() {
     const root = document.querySelector('.about-narrative-lab');
     const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
     return Number(root?.dataset.narrativeStoryWu) > 10.51
-      && visibleLabels >= 1
-      && visibleLabels <= 6;
+      && visibleLabels === 6;
   });
   await page.waitForFunction(() => {
     const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();

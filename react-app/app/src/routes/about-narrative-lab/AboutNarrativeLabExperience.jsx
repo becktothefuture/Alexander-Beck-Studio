@@ -44,8 +44,7 @@ function selectMotionClip(onSelect, clipId, event) {
   onSelect({ type: 'interaction', id: clipId });
 }
 
-function EditorialText({ text = '', emphasis = [] }) {
-  if (!emphasis.length) return text;
+function getEditorialEmphasisMatches(text = '', emphasis = []) {
   const matches = [];
   emphasis.forEach((item, emphasisIndex) => {
     if (!item.text) return;
@@ -71,24 +70,133 @@ function EditorialText({ text = '', emphasis = [] }) {
   matches.forEach((match) => {
     if (match.start >= (accepted.at(-1)?.end || 0)) accepted.push(match);
   });
-  if (!accepted.length) return text;
+  return accepted;
+}
 
-  const parts = [];
-  let cursor = 0;
-  accepted.forEach((match) => {
-    if (match.start > cursor) parts.push(text.slice(cursor, match.start));
-    parts.push(
-      <strong
-        className="about-narrative-editorial-emphasis"
-        key={`${match.start}-${match.end}`}
-      >
-        {text.slice(match.start, match.end)}
-      </strong>,
-    );
-    cursor = match.end;
+function getEditorialTokens(text = '', emphasis = []) {
+  const accepted = getEditorialEmphasisMatches(text, emphasis);
+  const tokens = [];
+  String(text).replace(/\s+|[^\s]+/g, (value, offset) => {
+    const end = offset + value.length;
+    const match = accepted.find((candidate) => offset < candidate.end && end > candidate.start);
+    tokens.push({
+      end,
+      start: offset,
+      text: value,
+      tone: match?.tone || null,
+      whitespace: /^\s+$/.test(value),
+    });
+    return value;
   });
-  if (cursor < text.length) parts.push(text.slice(cursor));
-  return parts;
+  return tokens;
+}
+
+function renderEditorialToken(token, tokenIndex, { measure = false } = {}) {
+  if (token.whitespace) return token.text;
+  const measureProps = measure
+    ? { 'data-editorial-measure-word': true, 'data-token-index': tokenIndex }
+    : {};
+  return token.tone ? (
+    <strong
+      className="about-narrative-editorial-emphasis"
+      key={tokenIndex}
+      {...measureProps}
+    >
+      {token.text}
+    </strong>
+  ) : <span key={tokenIndex} {...measureProps}>{token.text}</span>;
+}
+
+function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
+  const hostRef = useRef(null);
+  const measureRef = useRef(null);
+  const signatureRef = useRef('');
+  const tokens = useMemo(() => getEditorialTokens(text, emphasis), [emphasis, text]);
+  const fallbackRange = useMemo(() => {
+    const first = tokens.findIndex((token) => !token.whitespace);
+    let last = tokens.length - 1;
+    while (last >= 0 && tokens[last]?.whitespace) last -= 1;
+    return first >= 0 && last >= first ? [{ start: first, end: last }] : [];
+  }, [tokens]);
+  const [lineRanges, setLineRanges] = useState(fallbackRange);
+
+  useLayoutEffect(() => {
+    const measureNode = measureRef.current;
+    if (!measureNode || typeof ResizeObserver === 'undefined') return undefined;
+    let frame = 0;
+    let disposed = false;
+
+    const measureLines = () => {
+      frame = 0;
+      if (disposed) return;
+      const wordNodes = Array.from(measureNode.querySelectorAll('[data-editorial-measure-word]'));
+      const ranges = [];
+      let currentTop = null;
+      wordNodes.forEach((wordNode) => {
+        const tokenIndex = Number(wordNode.dataset.tokenIndex);
+        const top = wordNode.getBoundingClientRect().top;
+        if (currentTop == null || Math.abs(top - currentTop) > 1) {
+          ranges.push({ start: tokenIndex, end: tokenIndex });
+          currentTop = top;
+        } else {
+          ranges.at(-1).end = tokenIndex;
+        }
+      });
+      const signature = ranges.map((range) => `${range.start}:${range.end}`).join('|');
+      if (!signature || signature === signatureRef.current) return;
+      signatureRef.current = signature;
+      setLineRanges(ranges);
+    };
+    const scheduleMeasure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(measureLines);
+    };
+    const resizeObserver = new ResizeObserver(scheduleMeasure);
+    resizeObserver.observe(measureNode);
+    measureLines();
+    window.document.fonts?.ready?.then(scheduleMeasure).catch(() => {});
+    window.document.fonts?.addEventListener?.('loadingdone', scheduleMeasure);
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      window.document.fonts?.removeEventListener?.('loadingdone', scheduleMeasure);
+    };
+  }, [tokens]);
+
+  useLayoutEffect(() => {
+    if (!lineRanges.length) return;
+    hostRef.current?.dispatchEvent(new CustomEvent('about:editorial-lines-change', {
+      bubbles: true,
+    }));
+  }, [lineRanges]);
+
+  return (
+    <span
+      className="about-narrative-editorial-lines"
+      data-editorial-line-count={lineRanges.length}
+      ref={hostRef}
+    >
+      <span className="about-narrative-editorial-lines__measure" aria-hidden="true" ref={measureRef}>
+        {tokens.map((token, tokenIndex) => renderEditorialToken(token, tokenIndex, { measure: true }))}
+      </span>
+      <span className="about-narrative-editorial-lines__output">
+        {lineRanges.map((range, lineIndex) => (
+          <span
+            data-editorial-line
+            data-editorial-line-index={lineIndex}
+            data-world-group={worldGroup || undefined}
+            key={`${range.start}-${range.end}`}
+          >
+            {tokens.slice(range.start, range.end + 1).map((token, rangeIndex) => (
+              renderEditorialToken(token, range.start + rangeIndex)
+            ))}
+            {lineIndex < lineRanges.length - 1 ? ' ' : null}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
 }
 
 function getEditorialLines(text = '') {
@@ -98,7 +206,7 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
-function ClientLogoItem({ item, reveal = false, revealIndex = 0 }) {
+function ClientLogoItem({ item, reveal = false }) {
   const record = typeof item === 'string'
     ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
     : item;
@@ -109,7 +217,6 @@ function ClientLogoItem({ item, reveal = false, revealIndex = 0 }) {
     <li
       data-client-logo={record.id}
       data-editorial-line={reveal ? true : undefined}
-      data-editorial-index={reveal ? revealIndex : undefined}
       style={{
         '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
         '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
@@ -140,12 +247,11 @@ function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
     <figure className="about-narrative-client-field">
       {label ? <figcaption data-editorial-line>{label}</figcaption> : null}
       <ul className="about-narrative-client-logos" aria-label="Selected clients">
-        {items.map((item, itemIndex) => (
+        {items.map((item) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
             reveal
-            revealIndex={itemIndex + 1}
           />
         ))}
       </ul>
@@ -170,7 +276,11 @@ function EditorialMediaDeck({ module }) {
     setActiveIndex((index) => (index + direction + items.length) % items.length);
   };
   return (
-    <section className="about-narrative-media-deck" aria-label={module.label || 'Selected artefacts'}>
+    <section
+      className="about-narrative-media-deck"
+      aria-label={module.label || 'Selected artefacts'}
+      data-editorial-line
+    >
       <p>{module.label || 'Selected artefacts'}</p>
       <button
         type="button"
@@ -213,9 +323,6 @@ function EditorialMediaDeck({ module }) {
 
 function EditorialStack({ block, motionProfile, scrollportRef }) {
   const moduleGapRem = Number(block.moduleGapRem);
-  const revealModulesIndividually = block.modules?.some(
-    (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND || module.kind === 'logo-grid',
-  );
   return (
     <div
       className="about-narrative-editorial-stack"
@@ -241,12 +348,8 @@ function EditorialStack({ block, motionProfile, scrollportRef }) {
           );
         }
         return (
-          <p
-            className="about-narrative-editorial-copy"
-            data-editorial-line={revealModulesIndividually ? true : undefined}
-            key={module.id}
-          >
-            <EditorialText text={module.text} emphasis={module.emphasis} />
+          <p className="about-narrative-editorial-copy" key={module.id}>
+            <EditorialLineText text={module.text} emphasis={module.emphasis} />
           </p>
         );
       })}
@@ -265,41 +368,36 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
 
   if (block.kind === 'highlight') {
     return (
-      <h2 {...commonProps} className="about-narrative-editorial-title" data-editorial-line>
-        <EditorialText text={block.text} emphasis={block.emphasis} />
+      <h2 {...commonProps} className="about-narrative-editorial-title">
+        <EditorialLineText text={block.text} emphasis={block.emphasis} />
       </h2>
     );
   }
   if (block.kind === 'detail') {
     return (
-      <p {...commonProps} className="about-narrative-editorial-detail" data-editorial-line>
-        <EditorialText text={block.text} emphasis={block.emphasis} />
+      <p {...commonProps} className="about-narrative-editorial-detail">
+        <EditorialLineText text={block.text} emphasis={block.emphasis} />
       </p>
     );
   }
   if (block.kind === 'clients') {
     return (
       <ul {...commonProps} className="about-narrative-client-logos" aria-label="Selected clients">
-        {(block.items || []).map((item, itemIndex) => (
+        {(block.items || []).map((item) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
             reveal
-            revealIndex={itemIndex}
           />
         ))}
       </ul>
     );
   }
   if (block.kind === 'stack') {
-    const revealModulesIndividually = block.modules?.some(
-      (module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND || module.kind === 'logo-grid',
-    );
     return (
       <section
         {...commonProps}
         className="about-narrative-editorial-unit"
-        data-editorial-line={revealModulesIndividually ? undefined : true}
       >
         <EditorialStack
           block={block}
@@ -313,12 +411,18 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
     return (
       <ol {...commonProps} className="about-narrative-discipline-list" aria-label={block.label || 'Areas of expertise'}>
         {(block.items || []).map((item, itemIndex) => (
-          <li key={item} data-editorial-line data-world-group={itemIndex + 1}>
+          <li key={item}>
             <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
             <span className="about-narrative-discipline-list__number" aria-hidden="true">
               {String(itemIndex + 1).padStart(2, '0')}
             </span>
-            <span><EditorialText text={item} emphasis={block.emphasis} /></span>
+            <span>
+              <EditorialLineText
+                text={item}
+                emphasis={block.emphasis}
+                worldGroup={itemIndex + 1}
+              />
+            </span>
           </li>
         ))}
       </ol>
@@ -335,8 +439,8 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
       >
         {block.label ? <p id={labelId} className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
         <ul>{(block.items || []).map((item) => (
-          <li key={item} data-editorial-line>
-            <EditorialText text={item} emphasis={block.emphasis} />
+          <li key={item}>
+            <EditorialLineText text={item} emphasis={block.emphasis} />
           </li>
         ))}</ul>
       </section>
@@ -350,16 +454,14 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
         className="about-narrative-editorial-copy about-narrative-editorial-passage"
       >
         {lines.map((line, lineIndex) => (
-          <span data-editorial-line key={`${lineIndex}-${line}`}>
-            <EditorialText text={line} emphasis={block.emphasis} />
-          </span>
+          <EditorialLineText text={line} emphasis={block.emphasis} key={`${lineIndex}-${line}`} />
         ))}
       </p>
     );
   }
   return (
-    <p {...commonProps} className="about-narrative-editorial-copy" data-editorial-line>
-      <EditorialText text={block.text} emphasis={block.emphasis} />
+    <p {...commonProps} className="about-narrative-editorial-copy">
+      <EditorialLineText text={block.text} emphasis={block.emphasis} />
     </p>
   );
 }
@@ -707,7 +809,7 @@ export function AboutNarrativeLabExperience({
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
-    '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 0.8,
+    '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 1,
   };
   const contentStyle = {
     '--narrative-content-extent-wu': contentExtentWU,

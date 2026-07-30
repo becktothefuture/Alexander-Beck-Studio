@@ -11,7 +11,6 @@ import {
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
-  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
@@ -54,6 +53,14 @@ import {
   writeAboutNarrativeCheckpoint,
   writeAboutNarrativeRecoveryDraft,
 } from './aboutNarrativePersistence.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+  ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
+  ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
+  constrainAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplineMinimumSeparation,
+  getAboutNarrativeDisciplinePosition,
+} from './aboutNarrativeDisciplinePositions.js';
 import './about-narrative-editor.css';
 
 const TRACKS = Object.freeze([
@@ -69,15 +76,15 @@ const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
 const GRID_RIPPLE_START_STEP_WU = 0.05;
 const DISCIPLINE_POSITION_X_CONTROL = Object.freeze({
-  min: 0.1,
-  max: 0.72,
-  step: 0.01,
+  min: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.min,
+  max: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.max,
+  step: ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
   unit: '× grid',
 });
 const DISCIPLINE_POSITION_Y_CONTROL = Object.freeze({
-  min: 0.4,
-  max: 1,
-  step: 0.01,
+  min: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.min,
+  max: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.max,
+  step: ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
   unit: '× grid',
 });
 const EDITORIAL_MODULE_GAP_CONTROL = Object.freeze({
@@ -503,6 +510,198 @@ function InspectorFolder({ group, count, defaultOpen = false, children }) {
       </summary>
       <div className="about-track-editor-folder__body">{children}</div>
     </details>
+  );
+}
+
+function DisciplinePositionEditor({
+  items,
+  disabled = false,
+  onBegin,
+  onPreview,
+  onFinish,
+  onCancel,
+  onCommit,
+}) {
+  const [profile, setProfile] = useState('desktop');
+  const mapRef = useRef(null);
+  const gestureRef = useRef(null);
+  const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
+  const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
+  const minimumGap = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
+  const toPercent = (value, bounds) => (
+    6 + (((Number(value) - Number(bounds.min)) / (Number(bounds.max) - Number(bounds.min))) * 88)
+  );
+  const pointerPosition = (event) => {
+    const bounds = mapRef.current?.getBoundingClientRect();
+    if (!bounds) return null;
+    const normalizedX = clamp((event.clientX - bounds.left) / Math.max(1, bounds.width), 0.06, 0.94);
+    const normalizedY = clamp((event.clientY - bounds.top) / Math.max(1, bounds.height), 0.06, 0.94);
+    return [
+      normalizeControlValue(
+        xBounds.min + (((normalizedX - 0.06) / 0.88)
+          * (xBounds.max - xBounds.min)),
+        DISCIPLINE_POSITION_X_CONTROL,
+      ),
+      normalizeControlValue(
+        yBounds.min + (((normalizedY - 0.06) / 0.88)
+          * (yBounds.max - yBounds.min)),
+        DISCIPLINE_POSITION_Y_CONTROL,
+      ),
+    ];
+  };
+  const previewPointer = (event) => {
+    const gesture = gestureRef.current;
+    if (!gesture) return;
+    const position = pointerPosition(event);
+    if (position) onPreview?.(gesture.group, profile, position);
+  };
+  const beginPointer = (event, group) => {
+    if (disabled || onBegin?.(group, profile) === false) return;
+    gestureRef.current = { group, pointerId: event.pointerId };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    previewPointer(event);
+  };
+  const finishPointer = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = null;
+    onFinish?.();
+  };
+  const cancelPointer = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = null;
+    onCancel?.();
+  };
+  const adjustWithKeyboard = (event, item) => {
+    const direction = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    }[event.key];
+    if (!direction || disabled) return;
+    event.preventDefault();
+    const amount = ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP * (event.shiftKey ? 5 : 1);
+    const current = getAboutNarrativeDisciplinePosition(item, profile);
+    onCommit?.(item.group, profile, [
+      current[0] + (direction[0] * amount),
+      current[1] + (direction[1] * amount),
+    ]);
+  };
+
+  return (
+    <section className="about-track-editor-discipline-position-editor" aria-label="Discipline positions">
+      <header>
+        <div>
+          <strong>Position map</strong>
+          <small>Drag anchors or enter exact grid coordinates.</small>
+        </div>
+        <div className="about-track-editor-discipline-profile" aria-label="Position profile">
+          {['desktop', 'mobile'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={profile === value ? 'is-active' : ''}
+              aria-pressed={profile === value}
+              onClick={() => setProfile(value)}
+            >
+              {value === 'desktop' ? 'Desktop' : 'Mobile'}
+            </button>
+          ))}
+        </div>
+      </header>
+      <div
+        ref={mapRef}
+        className="about-track-editor-discipline-map"
+        aria-label={`${profile} Discipline anchor map`}
+      >
+        {(items || []).map((item) => {
+          const position = getAboutNarrativeDisciplinePosition(item, profile);
+          return (
+            <button
+              key={item.group}
+              type="button"
+              className="about-track-editor-discipline-map__anchor"
+              style={{
+                '--discipline-editor-x': `${toPercent(position[0], xBounds)}%`,
+                '--discipline-editor-y': `${toPercent(position[1], yBounds)}%`,
+                '--discipline-editor-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
+              }}
+              disabled={disabled}
+              aria-label={`${item.label} position, X ${position[0]}, Y ${position[1]}`}
+              onPointerDown={(event) => beginPointer(event, item.group)}
+              onPointerMove={(event) => {
+                if (gestureRef.current?.pointerId === event.pointerId) previewPointer(event);
+              }}
+              onPointerUp={finishPointer}
+              onPointerCancel={cancelPointer}
+              onKeyDown={(event) => adjustWithKeyboard(event, item)}
+            >
+              {item.group}
+            </button>
+          );
+        })}
+      </div>
+      <p className="about-track-editor-discipline-gap">
+        Minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
+      </p>
+      <div className="about-track-editor-discipline-coordinates">
+        {(items || []).map((item) => {
+          const position = getAboutNarrativeDisciplinePosition(item, profile);
+          const commitAxis = (axis, value) => {
+            const next = [...position];
+            next[axis] = value;
+            onCommit?.(item.group, profile, next);
+          };
+          return (
+            <div className="about-track-editor-discipline-coordinate" key={item.group}>
+              <span title={item.label}>
+                <i
+                  style={{ backgroundColor: `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})` }}
+                  aria-hidden="true"
+                />
+                {item.group}. {item.label}
+              </span>
+              <label>
+                <span>X</span>
+                <input
+                  key={`${profile}-${item.group}-x-${position[0]}`}
+                  type="number"
+                  defaultValue={position[0]}
+                  min={xBounds.min}
+                  max={xBounds.max}
+                  step={ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP}
+                  disabled={disabled}
+                  aria-label={`${item.label} ${profile} X`}
+                  onBlur={(event) => {
+                    const value = Number(event.currentTarget.value);
+                    if (Number.isFinite(value) && value !== position[0]) commitAxis(0, value);
+                    else event.currentTarget.value = String(position[0]);
+                  }}
+                />
+              </label>
+              <label>
+                <span>Y</span>
+                <input
+                  key={`${profile}-${item.group}-y-${position[1]}`}
+                  type="number"
+                  defaultValue={position[1]}
+                  min={yBounds.min}
+                  max={yBounds.max}
+                  step={ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP}
+                  disabled={disabled}
+                  aria-label={`${item.label} ${profile} Y`}
+                  onBlur={(event) => {
+                    const value = Number(event.currentTarget.value);
+                    if (Number.isFinite(value) && value !== position[1]) commitAxis(1, value);
+                    else event.currentTarget.value = String(position[1]);
+                  }}
+                />
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1423,6 +1622,14 @@ function ObjectInspector({ snapshot, store, onMessage }) {
     module.parameters = { ...ABOUT_INTERACTIVE_STACK_DEFAULTS, ...module.parameters };
     module.parameters[id] = value;
   };
+  const mutateDisciplinePosition = (target, group, profile, requested) => {
+    const items = target.parameters?.items || [];
+    const targetItem = items.find((candidate) => Number(candidate.group) === Number(group));
+    if (!targetItem) return;
+    const position = constrainAboutNarrativeDisciplinePosition(items, group, profile, requested);
+    const key = profile === 'mobile' ? 'mobilePosition' : 'position';
+    targetItem[key] = position;
+  };
   return (
     <div className="about-track-editor-inspector__content">
       <header>
@@ -1774,27 +1981,31 @@ function ObjectInspector({ snapshot, store, onMessage }) {
               <p className="about-track-editor-parameter-note is-wide">
                 Each label is pinned to a real grid point and reveals as the camera passes it. Colour is locked to its unique simulation group.
               </p>
+              <DisciplinePositionEditor
+                items={object.parameters?.items || []}
+                disabled={locked}
+                onBegin={(group, profile) => store.beginGesture(
+                  `Move Discipline ${group} ${profile} position`,
+                  { selection },
+                )}
+                onPreview={(group, profile, position) => store.updateGesture((draft) => {
+                  const target = getAboutNarrativeTrackObject(draft, selection);
+                  if (target) mutateDisciplinePosition(target, group, profile, position);
+                }, { selection })}
+                onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
+                onCancel={() => store.cancelGesture()}
+                onCommit={(group, profile, position) => commit(
+                  `Move Discipline ${group} ${profile} position`,
+                  (target) => mutateDisciplinePosition(target, group, profile, position),
+                )}
+              />
               <div className="about-track-editor-discipline-layout is-wide">
                 {(object.parameters?.items || []).map((item) => {
-                  const fallback = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.find((anchor) => anchor.group === item.group);
-                  const desktopPosition = item.position || [fallback?.x ?? 0.5, fallback?.y ?? 0.5];
-                  const mobilePosition = item.mobilePosition || desktopPosition;
-                  const bindPosition = (profile, axis) => bindObjectRange(
-                    `Move ${item.label} ${profile} ${axis === 0 ? 'X' : 'Y'}`,
-                    (target, value) => {
-                      const targetItem = target.parameters.items.find((candidate) => candidate.group === item.group);
-                      if (!targetItem) return;
-                      const key = profile === 'mobile' ? 'mobilePosition' : 'position';
-                      const source = targetItem[key] || targetItem.position || desktopPosition;
-                      targetItem[key] = [...source];
-                      targetItem[key][axis] = value;
-                    },
-                  );
                   return (
                     <InspectorFolder
                       key={`discipline-${item.group}`}
                       group={{ id: `discipline-${item.group}`, label: item.label }}
-                      count={6}
+                      count={2}
                       defaultOpen={item.group === 1}
                     >
                       <div className="about-track-editor-discipline-heading">
@@ -1823,27 +2034,6 @@ function ObjectInspector({ snapshot, store, onMessage }) {
                           if (targetItem) targetItem.description = value;
                         })}
                       />
-                      {['Desktop X', 'Desktop Y', 'Mobile X', 'Mobile Y'].map((label, index) => {
-                        const mobile = index >= 2;
-                        const axis = index % 2;
-                        return (
-                          <RangeParameterField
-                            key={label}
-                            label={label}
-                            ariaLabel={`${item.label} ${label}`}
-                            value={(mobile ? mobilePosition : desktopPosition)[axis]}
-                            control={{
-                              ...(axis === 0
-                                ? DISCIPLINE_POSITION_X_CONTROL
-                                : DISCIPLINE_POSITION_Y_CONTROL),
-                              id: label,
-                              label,
-                            }}
-                            disabled={locked}
-                            {...bindPosition(mobile ? 'mobile' : 'desktop', axis)}
-                          />
-                        );
-                      })}
                     </InspectorFolder>
                   );
                 })}
@@ -2030,6 +2220,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       const command = event.metaKey || event.ctrlKey;
       if (!editing && !command && !event.altKey && event.key === '/') {
         event.preventDefault();
+        event.stopImmediatePropagation();
         setEditorVisible((visible) => !visible);
         return;
       }
@@ -2076,8 +2267,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         setMobileInspectorOpen(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [store]);
 
   const toggleLoop = () => {

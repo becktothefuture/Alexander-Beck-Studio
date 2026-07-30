@@ -60,6 +60,10 @@ import {
   resolveAboutNarrativeSwarmMotion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 import {
+  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+  getAboutNarrativeDisciplineMinimumSeparation,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplinePositions.js';
+import {
   createAboutNarrativeIndependentWorldClip,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorldClips.js';
 import {
@@ -552,13 +556,19 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and six 
   assert.equal(new Set(verticalPositions).size, 6);
   const sortedVerticalPositions = [...verticalPositions].sort((left, right) => left - right);
   const verticalGaps = sortedVerticalPositions.slice(1).map((value, index) => value - sortedVerticalPositions[index]);
-  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) <= 0.1);
-  assert.ok(Math.min(...horizontalPositions) >= 0.4);
-  assert.ok(Math.max(...horizontalPositions) <= 0.5);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.4);
+  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) >= 0.5);
+  assert.ok(Math.min(...horizontalPositions) >= 0.1);
+  assert.ok(Math.max(...horizontalPositions) <= 0.72);
+  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.45);
   assert.ok(Math.min(...verticalGaps) >= 0.06);
   assert.ok(Math.min(...verticalPositions) >= 0.5);
   assert.ok(Math.max(...verticalPositions) <= 0.95);
+  assert.ok(getAboutNarrativeDisciplineMinimumSeparation(
+    ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => ({
+      group: anchor.group,
+      position: [anchor.x, anchor.y],
+    })),
+  ) >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION);
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {

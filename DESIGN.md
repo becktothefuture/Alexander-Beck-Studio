@@ -50,7 +50,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me production placeholder plus development scroll narrative, editorial sections, point field, and emergent-form resolution | `AboutRoute.jsx`, `routes/about-narrative-lab/`, `about-narrative-lab.css` |
+| About Me production `AboutComingSoon` placeholder plus development-only scroll narrative, editor, point field, and emergent-form resolution | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
@@ -174,13 +174,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- Until the public narrative launches, the production About route shows a centered “Coming soon.” placeholder. The full scroll narrative and its editor remain available in development only.
-- About is one continuous scroll narrative inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
+- The production About route renders `AboutComingSoon`, a centered “Coming soon.” placeholder. The full scroll narrative and its editor are separate development-only surfaces; this document does not commit them to a public launch.
+- The development narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
 - The narrative establishes an orb above the opening promise, flies into its complexity, scatters
   through an empty interval, raises an organised grid from below, isolates six disciplines, and
   gathers that same material into one suspended spatial form. These are transformations of one
   material, not separate decorative scenes.
-- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area is one authored unit with independently timed fade and blur channels, and the point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral; internal module spacing remains authorable from the Text inspector. The quieter artefact stack remains a supporting, scroll-safe image module rather than a new chapter.
+- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral; internal module spacing remains authorable from the Text inspector. The quieter artefact stack remains a supporting, scroll-safe image module rather than a new chapter.
 - Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate the opening and finale bookends.
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV, with an optional
   Look-at Target XYZ and horizon roll for shots that must keep one material event framed. Authored
@@ -208,7 +208,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Short mobile landscape is the deliberate exception to the stacked finale: the bust and invitation
   recompose as equal left/right fields so both remain materially present within the shallow studio
   window. World controls expose the short-landscape scale and XYZ offsets; this is not a hidden camera.
-- The creative toolkit belongs to the development lab route with `?edit=1`. The production About route and production lab build use the same validated authored document but expose no tuning interface.
+- The creative toolkit belongs to the development narrative surface and lab route with `?edit=1`. Both read the validated `public/config/contents-about.json` document. The production About route does not mount the narrative or its editor; it renders `AboutComingSoon`.
 
 ### Contact
 
@@ -378,7 +378,7 @@ These are implementation/documentation findings, not permission for a broad refa
 | P2 | Raw component colors and fallback palettes drift | Contact/Portfolio surfaces and Contact ripple fallback duplicate color values. | Introduce local semantic component tokens and one shared palette fallback. |
 | P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
 | P2 | Token scope is broad and repetitive | Global token file mixes foundations, compatibility aliases, and component internals. | Do not rewrite wholesale; keep new global tokens semantic and move component tokens locally when that component is revised. |
-| P3 | About narrative is still being authored | The production route now uses the canonical spatial narrative and protected point-world runtime; its copy and choreography remain an active editorial workstream. | Iterate through the development-only creative toolkit while preserving the shared shell and validated playback contract. |
+| P3 | About narrative is still being authored | The production route renders `AboutComingSoon`; the canonical spatial narrative, editor, and point-world runtime remain development-only. | Continue development authoring without implying or committing to a public launch. |
 
 ## Verification
 

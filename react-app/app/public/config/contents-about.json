@@ -3,15 +3,11 @@
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
-    "editorialRevealThreshold": 0.85,
+    "editorialRevealThreshold": 1,
     "editorialMotion": {
-      "fadeDelayWU": 0.1,
       "fadeDurationWU": 0.2,
-      "blurDelayWU": 0.1,
-      "blurDurationWU": 0.2,
       "maxBlurPx": 3,
-      "travelPx": 12,
-      "logoStaggerWU": 0.045
+      "travelPx": 12
     },
     "worldRail": {
       "originZ": 8,
@@ -52,8 +48,8 @@
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22,
+      "storyDurationWU": 19.05,
+      "scrollDurationWU": 19.05,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -63,8 +59,8 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22,
+      "storyDurationWU": 19.05,
+      "scrollDurationWU": 19.05,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -74,8 +70,8 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22.68,
+      "storyDurationWU": 19.05,
+      "scrollDurationWU": 19.73,
       "overrides": {
         "camera": {
           "discipline-hold": {
@@ -131,14 +127,6 @@
             ],
             "fov": 62
           },
-          "grid-flight-glide": {
-            "position": [
-              0,
-              5.2,
-              -18
-            ],
-            "fov": 64
-          },
           "grid-return-centered": {
             "position": [
               0,
@@ -146,14 +134,6 @@
               -7.035
             ],
             "fov": 62
-          },
-          "grid-tilt-mid": {
-            "position": [
-              0,
-              8.5,
-              -8
-            ],
-            "fov": 63
           },
           "orb-establish": {
             "aimEnabled": false,
@@ -251,56 +231,8 @@
           "locked": false
         },
         {
-          "id": "grid-flight-glide",
-          "atWU": 7.35,
-          "position": [
-            0,
-            4.8,
-            -18
-          ],
-          "rotation": [
-            -28,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            -1.72,
-            -24
-          ],
-          "lookAtRoll": 0,
-          "fov": 60,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "grid-tilt-mid",
-          "atWU": 8.15,
-          "position": [
-            0,
-            8,
-            -8
-          ],
-          "rotation": [
-            -58,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            -1.72,
-            -13
-          ],
-          "lookAtRoll": 0,
-          "fov": 58,
-          "easing": "linear",
-          "locked": false
-        },
-        {
           "id": "grid-birds-eye",
-          "atWU": 8.65,
+          "atWU": 8.3,
           "position": [
             0,
             12,
@@ -324,7 +256,7 @@
         },
         {
           "id": "discipline-hold",
-          "atWU": 12.45,
+          "atWU": 11.55,
           "position": [
             0,
             13,
@@ -348,7 +280,7 @@
         },
         {
           "id": "grid-return-centered",
-          "atWU": 15.15,
+          "atWU": 13.7,
           "position": [
             0,
             11,
@@ -372,7 +304,7 @@
         },
         {
           "id": "ripple-overhead-hold",
-          "atWU": 17.75,
+          "atWU": 16.15,
           "position": [
             0,
             11,
@@ -396,7 +328,7 @@
         },
         {
           "id": "emergent-orbit-quarter",
-          "atWU": 18.5,
+          "atWU": 16.75,
           "position": [
             8,
             3,
@@ -420,7 +352,7 @@
         },
         {
           "id": "emergent-orbit-rear",
-          "atWU": 19.25,
+          "atWU": 17.3,
           "position": [
             0,
             2.7,
@@ -444,7 +376,7 @@
         },
         {
           "id": "emergent-orbit-three-quarter",
-          "atWU": 20,
+          "atWU": 17.85,
           "position": [
             -8,
             3,
@@ -468,7 +400,7 @@
         },
         {
           "id": "finale-hold",
-          "atWU": 22,
+          "atWU": 19.05,
           "position": [
             0.55,
             -0.2,
@@ -482,7 +414,7 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -0.35,
+            -0.88,
             -7.035
           ],
           "lookAtRoll": 0,
@@ -503,14 +435,14 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 2.263302,
+          "atWU": 3.168302,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 2.857038,
+          "atWU": 3.772038,
           "visibility": 0,
           "easing": "linear",
           "locked": false
@@ -531,84 +463,84 @@
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 8.65,
+          "atWU": 8.3,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-discipline-read",
-          "atWU": 11.85,
+          "atWU": 10.95,
           "visibility": 0.86,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 12.65,
+          "atWU": 11.65,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-return-start",
-          "atWU": 15.15,
+          "atWU": 13.7,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 15.48,
+          "atWU": 14,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-start",
-          "atWU": 17.2,
+          "atWU": 15.65,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-low",
-          "atWU": 17.48,
+          "atWU": 15.9,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-hold",
-          "atWU": 17.75,
+          "atWU": 16.15,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-reveal",
-          "atWU": 17.9,
+          "atWU": 16.3,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-pass",
-          "atWU": 18.1,
+          "atWU": 16.5,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-open-space",
-          "atWU": 20.75,
+          "atWU": 16.95,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
-          "atWU": 22,
+          "atWU": 19.05,
           "visibility": 1,
           "easing": "linear",
           "locked": true
@@ -715,8 +647,8 @@
         {
           "id": "world-grid",
           "label": "C",
-          "startWU": 3.075249,
-          "anchorWU": 3.035,
+          "startWU": 4.1,
+          "anchorWU": 4.059751,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
           "seed": 506832829,
@@ -739,8 +671,8 @@
             "mobileYOffset": 0.345
           },
           "transitionIn": {
-            "startWU": 3.075249,
-            "endWU": 3.481223,
+            "startWU": 4.1,
+            "endWU": 4.505974,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
@@ -767,8 +699,8 @@
         {
           "id": "world-emergent",
           "label": "E",
-          "startWU": 17.75,
-          "anchorWU": 3.035,
+          "startWU": 16.15,
+          "anchorWU": 4.059751,
           "adapterId": "point-field-v1",
           "shapeId": "bust-v1",
           "seed": 506832829,
@@ -776,13 +708,13 @@
           "transform": {
             "position": [
               0,
-              0.36,
+              0,
               0
             ],
             "rotation": [
               0,
-              0,
-              0
+              10,
+              0.03
             ],
             "scale": 1.58,
             "pointSizeScale": 1.15,
@@ -795,8 +727,8 @@
             "mobileLandscapeZOffset": 0
           },
           "transitionIn": {
-            "startWU": 17.75,
-            "endWU": 20.75,
+            "startWU": 16.15,
+            "endWU": 18.45,
             "type": "morph",
             "easing": "linear",
             "correspondence": "radial-emergence-v1"
@@ -873,9 +805,9 @@
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 1.195455,
-          "focusWU": 1.595455,
-          "endWU": 1.995455,
+          "startWU": 0.65,
+          "focusWU": 1.05,
+          "endWU": 1.45,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -888,9 +820,9 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 2.390909,
-          "focusWU": 2.790909,
-          "endWU": 3.190909,
+          "startWU": 1.55,
+          "focusWU": 1.95,
+          "endWU": 2.35,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -903,9 +835,9 @@
         {
           "id": "text-background-unit",
           "kind": "scroll-block",
-          "startWU": 3,
-          "focusWU": 3.48,
-          "endWU": 5.45,
+          "startWU": 2.1,
+          "focusWU": 2.58,
+          "endWU": 5,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -1039,9 +971,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 5.65,
-          "focusWU": 6.05,
-          "endWU": 6.45,
+          "startWU": 4.85,
+          "focusWU": 5.25,
+          "endWU": 5.65,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1054,9 +986,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 6.55,
-          "focusWU": 6.95,
-          "endWU": 7.35,
+          "startWU": 5.75,
+          "focusWU": 6.15,
+          "endWU": 6.55,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1069,9 +1001,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 12.55,
-          "focusWU": 12.95,
-          "endWU": 15.15,
+          "startWU": 11.1,
+          "focusWU": 11.5,
+          "endWU": 13.7,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -1343,9 +1275,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 15.35,
-          "focusWU": 15.7,
-          "endWU": 16.1,
+          "startWU": 13.85,
+          "focusWU": 14.2,
+          "endWU": 14.6,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1358,9 +1290,9 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 16.22,
-          "focusWU": 16.57,
-          "endWU": 16.97,
+          "startWU": 14.65,
+          "focusWU": 15,
+          "endWU": 15.4,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1373,9 +1305,9 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 17.05,
-          "focusWU": 17.35,
-          "endWU": 17.65,
+          "startWU": 15.45,
+          "focusWU": 15.75,
+          "endWU": 16.05,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1388,9 +1320,9 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 20.75,
-          "focusWU": 21.32,
-          "endWU": 22,
+          "startWU": 16.95,
+          "focusWU": 17.52,
+          "endWU": 19.05,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta"
@@ -1408,13 +1340,11 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 7.5,
-          "activationWU": 7.5,
-          "endWU": 12.45,
+          "startWU": 6.8,
+          "activationWU": 6.8,
+          "endWU": 11.7,
           "targetWorldId": "world-grid",
           "parameters": {
-            "labelWindowWU": 4.95,
-            "staggerWU": 0.5,
             "backgroundFadeWU": 0.38,
             "backgroundOpacity": 0.42,
             "reconnectOpacity": 0.3,
@@ -1422,24 +1352,18 @@
             "restoreDurationWU": 0.3,
             "labelOffsetPx": 22,
             "labelScale": 1.28,
-            "labelDurationWU": 0.32,
-            "holdWU": 0.18,
-            "readingLineY": 0.9,
-            "mobileReadingLineY": 0.9,
-            "approachBandY": 0.06,
-            "exitLineY": 0.92,
             "items": [
               {
                 "group": 1,
                 "label": "Product Design",
                 "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
-                  0.42,
-                  0.56
+                  0.14,
+                  0.5
                 ],
                 "mobilePosition": [
-                  0.42,
-                  0.55
+                  0.16,
+                  0.5
                 ]
               },
               {
@@ -1447,12 +1371,12 @@
                 "label": "Experience Design",
                 "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
-                  0.43,
-                  0.64
+                  0.42,
+                  0.58
                 ],
                 "mobilePosition": [
-                  0.43,
-                  0.63
+                  0.62,
+                  0.59
                 ]
               },
               {
@@ -1460,12 +1384,12 @@
                 "label": "Art Direction",
                 "description": "I define the visual point of view that gives the work character, clarity, and intent.",
                 "position": [
-                  0.42,
-                  0.72
+                  0.7,
+                  0.66
                 ],
                 "mobilePosition": [
-                  0.42,
-                  0.71
+                  0.16,
+                  0.68
                 ]
               },
               {
@@ -1473,12 +1397,12 @@
                 "label": "Motion & 3D",
                 "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
-                  0.43,
-                  0.8
+                  0.14,
+                  0.76
                 ],
                 "mobilePosition": [
-                  0.43,
-                  0.79
+                  0.62,
+                  0.77
                 ]
               },
               {
@@ -1486,12 +1410,12 @@
                 "label": "Creative Engineering",
                 "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
-                  0.43,
-                  0.88
+                  0.42,
+                  0.85
                 ],
                 "mobilePosition": [
-                  0.43,
-                  0.87
+                  0.16,
+                  0.86
                 ]
               },
               {
@@ -1499,11 +1423,11 @@
                 "label": "Parametric Systems",
                 "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
-                  0.43,
-                  0.95
+                  0.7,
+                  0.94
                 ],
                 "mobilePosition": [
-                  0.43,
+                  0.62,
                   0.95
                 ]
               }
@@ -1513,9 +1437,9 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 15.15,
-          "activationWU": 15.15,
-          "endWU": 17.75,
+          "startWU": 13.7,
+          "activationWU": 13.7,
+          "endWU": 16.15,
           "targetWorldId": "world-grid",
           "parameters": {
             "amplitude": 1.05,
@@ -1528,9 +1452,9 @@
         {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 17.75,
-          "activationWU": 17.85,
-          "endWU": 20.75,
+          "startWU": 16.15,
+          "activationWU": 16.25,
+          "endWU": 19.05,
           "targetWorldId": "world-emergent",
           "parameters": {
             "amplitude": 0.52,

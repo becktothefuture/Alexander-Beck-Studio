@@ -21,7 +21,14 @@ import {
   ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
   migrateAboutNarrativeVersion2To3,
   migrateAboutNarrativeVersion3To4,
+  validateAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+  constrainAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplineMinimumSeparation,
+  getAboutNarrativeDisciplinePosition,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplinePositions.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
   migrateLegacyAboutNarrativeCameraPose,
@@ -542,7 +549,7 @@ test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion
   assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU).simulation.visibility, 1);
 });
 
-test('Discipline reveal exposes absolute WU choreography and extended effect checkpoints', () => {
+test('Discipline reveal keeps one clip clock and delegates accumulated reveal to viewport sampling', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
   assert.ok(reveal);
@@ -550,20 +557,30 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   assert.equal(reveal.motion.type, 'discipline-reveal');
   assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.equal(reveal.motion.targetWorldId, 'world-grid');
-  assert.ok(reveal.staggerWU > 0);
   assert.ok(reveal.backgroundFadeWU > 0);
-  assert.ok(reveal.labelDurationWU > 0);
-  assert.ok(reveal.holdWU > 0);
   assert.ok(reveal.restoreDurationWU > 0);
-  assert.ok(reveal.labelSequenceEndWU <= reveal.endWU + 0.000001);
   assert.equal('fieldTravelStartWU' in reveal, false);
   assert.equal('fieldTravelEndWU' in reveal, false);
-  ['fieldTravelDurationWU', 'fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', 'backgroundScale']
+  [
+    'fieldTravelDurationWU',
+    'fieldTravelWU',
+    'fieldFogStartWU',
+    'fieldFogEndWU',
+    'fieldFogStrength',
+    'backgroundScale',
+    'labelWindowWU',
+    'staggerWU',
+    'labelDurationWU',
+    'holdWU',
+    'readingLineY',
+    'mobileReadingLineY',
+    'approachBandY',
+    'exitLineY',
+  ]
     .forEach((key) => assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`));
 
   const entering = sampleAboutNarrativeRuntimePlan(plan, reveal.effectStartWU + 0.000001).disciplineReveal;
   assert.equal('fieldTravelProgress' in entering, false);
-  const labels = sampleAboutNarrativeRuntimePlan(plan, reveal.startWU + reveal.staggerWU).disciplineReveal;
   const restoring = sampleAboutNarrativeRuntimePlan(
     plan,
     reveal.effectEndWU - (reveal.restoreDurationWU * 0.5),
@@ -571,15 +588,44 @@ test('Discipline reveal exposes absolute WU choreography and extended effect che
   const restored = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU - 0.000001).disciplineReveal;
   const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.endWU + 0.000001).disciplineReveal;
   assert.equal(entering.active, true);
-  assert.equal(labels.labelActive, true);
-  assertClose(labels.elapsedWU, reveal.staggerWU, 'discipline elapsed');
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);
-  assert.equal(handoff.labelActive, false);
-  assert.equal(handoff.active, reveal.endWU + 0.000001 < reveal.effectEndWU);
+  assert.equal(handoff.active, false);
 });
 
-test('Reduced Motion holds the discipline constellation until the editorial handoff', () => {
+test('Discipline positions stay separated in both responsive profiles', () => {
+  const clip = canonical.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
+  const items = clip.parameters.items;
+  ['desktop', 'mobile'].forEach((profile) => {
+    assert.ok(
+      getAboutNarrativeDisciplineMinimumSeparation(items, profile)
+        >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+      `${profile} anchors must preserve the authored minimum gap`,
+    );
+  });
+
+  const invalid = structuredClone(canonical);
+  const invalidItems = invalid.tracks.interactions.clips
+    .find((item) => item.type === 'discipline-reveal').parameters.items;
+  invalidItems[1].position = [...invalidItems[0].position];
+  assert.ok(validateAboutNarrativeTrackDocument(invalid).some((item) => (
+    item.code === 'discipline-position-spacing'
+  )));
+
+  const requested = getAboutNarrativeDisciplinePosition(items[0], 'desktop');
+  const constrained = constrainAboutNarrativeDisciplinePosition(
+    items,
+    items[1].group,
+    'desktop',
+    requested,
+  );
+  assert.ok(Math.hypot(
+    constrained[0] - requested[0],
+    constrained[1] - requested[1],
+  ) >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001);
+});
+
+test('Reduced Motion keeps the discipline clip active without a separate restore clock', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, {
     layoutProfile: 'desktop',
     motionProfile: 'reduced',
@@ -590,11 +636,8 @@ test('Reduced Motion holds the discipline constellation until the editorial hand
     plan,
     restoreStartWU + (reveal.restoreDurationWU * 0.5),
   ).disciplineReveal;
-  const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU).disciplineReveal;
-
-  assert.equal(held.labelActive, true);
+  assert.equal(held.active, true);
   assert.equal(held.restoreProgress, 0);
-  assert.equal(handoff.restoreProgress, 1);
 });
 
 test('Reduced Motion step-samples the current authored Camera FOV and full roll', () => {

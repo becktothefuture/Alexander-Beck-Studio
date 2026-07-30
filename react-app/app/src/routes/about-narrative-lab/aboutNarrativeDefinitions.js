@@ -1,6 +1,10 @@
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
 } from './aboutNarrativeCorrespondenceRegistry.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
+  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
+} from './aboutNarrativeDisciplinePositions.js';
 
 export { ABOUT_NARRATIVE_CORRESPONDENCE_MODES };
 
@@ -31,12 +35,9 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.42, y: 0.56 }),
-  Object.freeze({ group: 2, x: 0.43, y: 0.64 }),
-  Object.freeze({ group: 3, x: 0.42, y: 0.72 }),
-  Object.freeze({ group: 4, x: 0.43, y: 0.8 }),
-  Object.freeze({ group: 5, x: 0.43, y: 0.88 }),
-  Object.freeze({ group: 6, x: 0.43, y: 0.95 }),
+  ...ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS.map(([x, y], index) => (
+    Object.freeze({ group: index + 1, x, y })
+  )),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -86,17 +87,13 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
   Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
   Object.freeze({ id: 'text-depth', label: 'Titles · Depth' }),
-  Object.freeze({ id: 'text-editorial', label: 'Editorial · Reveal & layout' }),
+  Object.freeze({ id: 'text-editorial', label: 'Content · Shared reveal' }),
 ]);
 
 export const ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS = Object.freeze({
-  fadeDelayWU: 0.1,
   fadeDurationWU: 0.2,
-  blurDelayWU: 0.1,
-  blurDurationWU: 0.2,
   maxBlurPx: 3,
   travelPx: 12,
-  logoStaggerWU: 0.045,
 });
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
@@ -167,20 +164,16 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     controls: Object.freeze([
       numberControl('scrollSmoothing', 'Scroll smoothing', 0, 1, 0.01),
       numberControl('readingWidthRem', 'Reading width', 30, 90, 1, 'rem', 'text-editorial'),
-      numberControl('editorialRevealThreshold', 'Reveal viewport line', 0.5, 0.95, 0.01, '×H', 'text-editorial'),
+      numberControl('editorialRevealThreshold', 'Reveal starts', 0.8, 1, 0.01, '×H', 'text-editorial'),
     ]),
   }),
   Object.freeze({
     id: 'editorialMotion',
-    label: 'Editorial motion',
+    label: 'Shared content reveal',
     controls: Object.freeze([
-      numberControl('fadeDelayWU', 'Fade delay', 0, 0.8, 0.01, 'WU', 'text-editorial'),
-      numberControl('fadeDurationWU', 'Fade length', 0.02, 0.8, 0.01, 'WU', 'text-editorial'),
-      numberControl('blurDelayWU', 'Blur delay', 0, 0.8, 0.01, 'WU', 'text-editorial'),
-      numberControl('blurDurationWU', 'Blur clear length', 0.02, 0.8, 0.01, 'WU', 'text-editorial'),
+      numberControl('fadeDurationWU', 'Reveal band', 0.05, 0.4, 0.01, '×H', 'text-editorial'),
       numberControl('maxBlurPx', 'Maximum blur', 0, 12, 0.25, 'px', 'text-editorial'),
       numberControl('travelPx', 'Entrance travel', 0, 48, 1, 'px', 'text-editorial'),
-      numberControl('logoStaggerWU', 'Logo stagger', 0, 0.2, 0.005, 'WU', 'text-editorial'),
     ]),
   }),
   Object.freeze({
@@ -472,8 +465,6 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'discipline-reveal',
     label: 'Discipline reveal',
     defaultParameters: Object.freeze({
-      labelWindowWU: 2.7,
-      staggerWU: 0.36,
       backgroundFadeWU: 0.12,
       backgroundOpacity: 0.42,
       reconnectOpacity: 0.38,
@@ -481,24 +472,16 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       restoreDurationWU: 0.1,
       labelOffsetPx: 22,
       labelScale: 1.65,
-      labelDurationWU: 0.2,
-      holdWU: 0.42,
-      readingLineY: 0.9,
-      mobileReadingLineY: 0.9,
-      approachBandY: 0.06,
-      exitLineY: 0.94,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: [0.42, 0.56], mobilePosition: [0.42, 0.55] }),
-        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: [0.43, 0.64], mobilePosition: [0.43, 0.63] }),
-        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: [0.42, 0.72], mobilePosition: [0.42, 0.71] }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: [0.43, 0.8], mobilePosition: [0.43, 0.79] }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: [0.43, 0.88], mobilePosition: [0.43, 0.87] }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: [0.43, 0.95], mobilePosition: [0.43, 0.95] }),
+        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[0] }),
+        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[1] }),
+        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[2] }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[3] }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[4] }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[5] }),
       ]),
     }),
     parameters: Object.freeze([
-      numberControl('labelWindowWU', 'Legacy label window', 0.2, 6, 0.01, 'WU', ''),
-      numberControl('staggerWU', 'Legacy label stagger', 0.01, 0.5, 0.005, 'WU', ''),
       numberControl('backgroundFadeWU', 'Grid fade duration', 0.01, 1.5, 0.005, 'WU', 'modifier-timing'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
       numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.8, 0.01, '', 'modifier-appearance'),
@@ -506,12 +489,6 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),
       numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px', 'modifier-appearance'),
       numberControl('labelScale', 'Label size', 0.5, 2, 0.05, '×', 'modifier-appearance'),
-      numberControl('labelDurationWU', 'Legacy label duration', 0.01, 1, 0.005, 'WU', ''),
-      numberControl('holdWU', 'Legacy label hold', 0, 3, 0.005, 'WU', ''),
-      numberControl('readingLineY', 'Viewport reading line', 0.2, 0.95, 0.01, '×H', 'modifier-timing'),
-      numberControl('mobileReadingLineY', 'Mobile reading line', 0.2, 0.95, 0.01, '×H', 'modifier-timing'),
-      numberControl('approachBandY', 'Dot growth approach', 0.02, 0.3, 0.01, '×H', 'modifier-timing'),
-      numberControl('exitLineY', 'Viewport exit line', 0.65, 1.1, 0.01, '×H', 'modifier-timing'),
     ]),
   }),
   'grid-ripple': Object.freeze({
