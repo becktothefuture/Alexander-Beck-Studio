@@ -40,6 +40,7 @@ import {
   applyAboutNarrativeWorldTransitionEasing,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.js';
 import '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.test.js';
+import './check-about-narrative-point-field-runtime.mjs';
 const canonicalSource = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
