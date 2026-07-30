@@ -70,6 +70,7 @@
 .ti-brand-instagram:before { content: "\ec20"; }
 .ti-brand-linkedin:before { content: "\ec8c"; }
 .ti-brand-x:before { content: "\fc0f"; }
+.ti-arrow-down:before { content: "\ea16"; }
 .ti-arrow-left:before { content: "\ea19"; }
 .ti-x:before { content: "\eb55"; }
 .ti-copy:before { content: "\ea7a"; }
@@ -7581,6 +7582,7 @@ body.portfolio-page--locked #simulations {
     --route-entry-title-size: calc(
       (6.211765vw - 1.270588px) * var(--abs-font-headline-scale, 1)
     );
+    --route-title-rule-thickness: calc(-0.4117647px + 0.2352941vw);
   }
 }
 
@@ -7681,6 +7683,7 @@ body.portfolio-page--locked #simulations {
     --route-entry-title-size: calc(
       clamp(19px, 8.108vw, 36px) * var(--abs-font-headline-scale, 1)
     );
+    --route-title-rule-thickness: 1px;
     --route-description-font-size: calc(0.875rem * var(--mobile-type-scale));
     --route-description-line-height: 1.34;
     --route-description-max-width: 34ch;

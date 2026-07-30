@@ -249,10 +249,9 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-opening-scroll-cue__icon {
-  font-size: calc(0.62 * clamp(36px, 3.2vw, 48px));
+  font-size: calc(0.38 * clamp(36px, 3.2vw, 48px));
   line-height: 1;
   filter: drop-shadow(0 4px 12px color-mix(in srgb, currentColor 22%, transparent));
-  transform: rotate(-90deg) scale(1.15);
 }
 
 .about-narrative-render-span--editorial {

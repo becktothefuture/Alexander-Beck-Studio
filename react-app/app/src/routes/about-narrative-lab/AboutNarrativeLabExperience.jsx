@@ -571,7 +571,7 @@ function TitleField({
             data-route-enter="action"
             aria-hidden="true"
           >
-            <i className="ti ti-arrow-left about-narrative-opening-scroll-cue__icon" />
+            <i className="ti ti-arrow-down about-narrative-opening-scroll-cue__icon" />
           </div>
         </div>
       ) : (
