@@ -41,6 +41,21 @@ async function auditProduction(viewport, label, expectedProfile) {
   const page = await context.newPage();
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => (
+    document.querySelector('#about-coming-soon-title, .about-narrative-lab')
+  ));
+
+  const stagedHeading = page.locator('#about-coming-soon-title');
+  if (await stagedHeading.count()) {
+    await stagedHeading.waitFor({ state: 'visible' });
+    assert.equal((await stagedHeading.textContent()).replace(/\s+/gu, ' ').trim(), 'Coming soon.');
+    assert.equal(await page.locator('.about-narrative-lab, .about-track-editor').count(), 0);
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
+    await context.close();
+    return;
+  }
+
   await page.waitForSelector('.about-narrative-lab');
   await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
   await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
@@ -251,7 +266,8 @@ async function auditEditor() {
     true,
     'Point field keys must retain their authored geometry with effective 24px hit targets.',
   );
-  const saveButton = page.getByRole('button', { name: 'Saved' });
+  const saveButton = page.locator('[data-director-panel="command-bar"] button.is-save');
+  assert.equal(await saveButton.count(), 1, 'Director must expose one primary Save action.');
   assert.equal(await saveButton.getAttribute('aria-disabled'), 'true');
   await saveButton.focus();
   assert.equal(await saveButton.evaluate((node) => document.activeElement === node), true, 'Blocked Save must remain focusable.');

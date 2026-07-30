@@ -49,6 +49,14 @@ try {
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
   ), null, { timeout: 120_000 });
 
+  if (profile === 'mobile') {
+    await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+    await page.waitForFunction(() => (
+      window.__aboutNarrativeRuntime?.getMetrics?.().pointCount === 5000
+      && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
+    ), null, { timeout: 120_000 });
+  }
+
   const transport = page.getByRole('slider', { name: 'Story WU playhead' });
   const maxWU = Number(await transport.getAttribute('max'));
   const storyWUs = [
