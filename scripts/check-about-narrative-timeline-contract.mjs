@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import './check-about-narrative-point-field-editor-ui.mjs';
-import './check-about-narrative-point-field-editor-integration.mjs';
 
 const source = await readFile(new URL(
   '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js',

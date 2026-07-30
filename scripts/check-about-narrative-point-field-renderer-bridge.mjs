@@ -74,8 +74,28 @@ test('v6 bridge combines the legacy non-point frame with native point-field samp
   assert.equal(plan.worlds.length, 4);
   assert.equal(plan.worldPreparationDescriptor.pairs.length, 4);
   assert.equal(plan.worldSequenceKey, plan.worldPreparationDescriptor.preparationFingerprint);
+  assert.deepEqual(
+    plan.worlds.map((world) => world.stateId),
+    ['world-promise', 'world-complexity', 'world-grid', 'world-emergent'],
+  );
+  assert.deepEqual(
+    plan.worldPreparationDescriptor.pairs.map((pair) => [pair.fromWorldId, pair.toWorldId]),
+    [
+      ['world-promise', 'world-promise'],
+      ['world-promise', 'world-complexity'],
+      ['world-complexity', 'world-grid'],
+      ['world-grid', 'world-emergent'],
+    ],
+  );
 
   const frame = createAboutNarrativeRendererFrameSample();
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, 10.55, frame);
+  assert.equal(frame.world.from.stateId, 'world-complexity');
+  assert.equal(frame.world.to.stateId, 'world-grid');
+  assert.equal(frame.world.transition.type, 'hold');
+  assert.equal(frame.world.transitionProgress, 1);
+  assert.equal(getAboutNarrativeRendererPreparationRequest(plan, 10.55).targetWorldId, 'world-grid');
+
   sampleAboutNarrativeRendererRuntimePlanInto(plan, 16.2, frame, { ambientSeconds: 7 });
   assert.equal(frame.sourceSchemaVersion, 6);
   assert.equal(frame.world.from.stateId, 'world-grid');

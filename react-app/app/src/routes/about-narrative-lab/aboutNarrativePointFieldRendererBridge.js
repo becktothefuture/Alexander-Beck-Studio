@@ -72,7 +72,16 @@ function preparationVariant(layoutProfile, options) {
 }
 
 function createRendererWorlds(pointPlan) {
-  return pointPlan.rendererStates.map((state, index) => {
+  const stateById = new Map(pointPlan.rendererStates.map((state) => [state.stateId, state]));
+  const seenStateIds = new Set();
+  const orderedStates = [];
+  pointPlan.keys.forEach((key) => {
+    const state = key.rendererState || stateById.get(key.stateId);
+    if (!state || seenStateIds.has(state.stateId)) return;
+    seenStateIds.add(state.stateId);
+    orderedStates.push(state);
+  });
+  return orderedStates.map((state, index) => {
     const incoming = pointPlan.segments.find((segment) => (
       segment.toStateId === state.stateId
       && segment.fromStateId !== segment.toStateId
@@ -383,9 +392,15 @@ export function sampleAboutNarrativeRendererRuntimePlanInto(
     options,
   );
   if (!frame || !pointFrame) return null;
-  const fromWorld = findById(plan.worlds, pointFrame.world.from?.stateId, 'stateId');
-  const toWorld = findById(plan.worlds, pointFrame.world.to?.stateId, 'stateId') || fromWorld;
   const segment = findById(plan.pointFieldPlan.segments, pointFrame.world.segmentId);
+  const sampledFromWorld = findById(plan.worlds, pointFrame.world.from?.stateId, 'stateId');
+  const toWorld = findById(plan.worlds, pointFrame.world.to?.stateId, 'stateId')
+    || sampledFromWorld;
+  const settledPair = segment?.transition.type === 'hold'
+    && pointFrame.world.from?.stateId === pointFrame.world.to?.stateId
+    ? plan.worldPreparationDescriptor.pairs.find((pair) => pair.toWorldId === toWorld?.id)
+    : null;
+  const fromWorld = findById(plan.worlds, settledPair?.fromWorldId) || sampledFromWorld;
   frame.sourceSchemaVersion = POINT_FIELD_SCHEMA_VERSION;
   frame.world.parametricMotion = true;
   frame.world.from = fromWorld;

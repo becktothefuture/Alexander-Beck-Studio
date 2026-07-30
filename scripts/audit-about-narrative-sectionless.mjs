@@ -209,20 +209,40 @@ async function auditEditor() {
     plusLabels: [...document.querySelectorAll('.about-track-editor-add')].map((button) => button.getAttribute('aria-label')),
     semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
   }));
-  assert.equal(initial.editorVersion, 'sectionless-v5');
-  assert.deepEqual(initial.lanes, ['camera', 'visibility', 'world', 'text', 'interaction']);
+  assert.equal(initial.editorVersion, 'point-field-v6');
+  assert.deepEqual(initial.lanes, ['camera', 'visibility', 'point-field', 'text', 'interaction']);
   assert.equal(initial.legacyContainerCount, 0);
   assert.deepEqual(initial.plusLabels, [
     'Add Camera object at playhead',
     'Add Visibility object at playhead',
-    'Add World object at playhead',
     'Add Text object at playhead',
     'Add Motion object at playhead',
   ]);
   assert.equal(initial.semanticFieldCount, 11);
 
-  const worldResizeHandles = page.getByRole('button', { name: /^Resize World .+ end$/ });
-  assert.equal(await worldResizeHandles.count(), 3, 'Every non-final World needs one duration handle.');
+  assert.equal(
+    await page.getByRole('button', { name: /^Resize World .+ end$/ }).count(),
+    0,
+    'v6 must not render legacy World duration handles.',
+  );
+  const pointFieldKeys = page.locator('[data-point-field-selection="point-field-key"]');
+  const pointFieldSegments = page.locator('[data-point-field-selection="point-field-segment"]');
+  assert.equal(await pointFieldKeys.count(), 8, 'Every authored v6 Point field key must be visible.');
+  assert.equal(await pointFieldSegments.count(), 7, 'Every adjacent v6 Point field segment must be visible.');
+  assert.equal(
+    await page.locator('[aria-label="Point field state library"] > button').count(),
+    4,
+    'The reusable Point field state library must remain visible.',
+  );
+  const pointKeyTargets = await pointFieldKeys.evaluateAll((nodes) => nodes.map((node) => {
+    const rect = node.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  }));
+  assert.equal(
+    pointKeyTargets.every(({ width, height }) => width >= 24 && height >= 24),
+    true,
+    'Point field keys must retain accessible hit targets.',
+  );
   const textResizeHandles = page.getByRole('button', { name: /^Resize Text .+ (start|end)$/ });
   assert.equal(await textResizeHandles.count(), 4, 'Only editable non-Title Text clips need duration handles.');
   assert.equal(
@@ -240,45 +260,7 @@ async function auditEditor() {
     0,
     'Protected finale Motion must not expose duration handles.',
   );
-  const visibleHandle = await worldResizeHandles.first().evaluate((node) => {
-    const hitTarget = node.getBoundingClientRect();
-    const grip = node.querySelector('span')?.getBoundingClientRect();
-    return {
-      hitWidth: hitTarget.width,
-      hitHeight: hitTarget.height,
-      gripWidth: grip?.width || 0,
-      gripHeight: grip?.height || 0,
-    };
-  });
-  assert.ok(visibleHandle.hitWidth >= 18 && visibleHandle.hitHeight >= 30);
-  assert.ok(visibleHandle.gripWidth >= 10 && visibleHandle.gripHeight >= 24);
-  const worldB = page.locator('[data-track-object-id="world-complexity"]');
-  const worldC = page.locator('[data-track-object-id="world-grid"]');
-  const worldE = page.locator('[data-track-object-id="world-emergent"]');
   const textReference = page.locator('[data-track-object-id="text-background-unit"]');
-  const worldRectsBefore = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
-  assert.ok(Math.abs(worldRectsBefore[0].x + worldRectsBefore[0].width - worldRectsBefore[1].x) < 0.6);
-  const worldBHandle = page.getByRole('button', { name: 'Resize World B end' });
-  const handleBox = await worldBHandle.boundingBox();
-  await page.mouse.move(handleBox.x + (handleBox.width / 2), handleBox.y + (handleBox.height / 2));
-  await page.mouse.down();
-  await page.mouse.move(handleBox.x - 33, handleBox.y + (handleBox.height / 2), { steps: 4 });
-  await page.mouse.up();
-  await page.waitForFunction((beforeX) => {
-    const rect = document.querySelector('[data-track-object-id="world-grid"]')?.getBoundingClientRect();
-    return rect && rect.left < beforeX - 20;
-  }, worldRectsBefore[1].x);
-  const worldRectsAfter = await Promise.all([worldB, worldC, worldE, textReference].map((locator) => locator.boundingBox()));
-  const worldCShift = worldRectsAfter[1].x - worldRectsBefore[1].x;
-  const worldEShift = worldRectsAfter[2].x - worldRectsBefore[2].x;
-  assert.ok(Math.abs(worldRectsAfter[0].x + worldRectsAfter[0].width - worldRectsAfter[1].x) < 0.6, 'Resized World clips must remain edge-to-edge.');
-  assert.ok(Math.abs(worldCShift - worldEShift) < 0.6, 'Every later World must ripple by the same amount.');
-  assert.ok(Math.abs(worldRectsAfter[3].x - worldRectsBefore[3].x) < 0.6, 'Independent Text timing must not move during a World resize.');
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await page.waitForFunction((beforeX) => {
-    const rect = document.querySelector('[data-track-object-id="world-grid"]')?.getBoundingClientRect();
-    return rect && Math.abs(rect.left - beforeX) < 0.6;
-  }, worldRectsBefore[1].x);
 
   const motionClip = page.locator('[data-track-object-id="motion-discipline-reveal"]');
   const motionRectBefore = await motionClip.boundingBox();
@@ -641,25 +623,48 @@ async function auditEditor() {
     '0',
   );
 
-  await page.locator('[data-track-object-id="world-complexity"]').click();
-  for (const label of ['Position X', 'Rotation Z', 'Scale', 'Relative point size', 'Transition type', 'Transition easing', 'Correspondence']) {
-    assert.equal(await page.getByText(label, { exact: true }).count(), 1, `${label} inspector control is missing.`);
+  await page.locator('[data-point-field-id="segment-key-world-grid-departure-to-key-world-grid-arrival"]').click();
+  const pointFieldInspector = page.getByRole('region', { name: 'Selected object inspector' });
+  for (const label of ['Type', 'Easing', 'Correspondence']) {
+    assert.equal(
+      await pointFieldInspector.getByText(label, { exact: true }).count(),
+      1,
+      `${label} transition control is missing.`,
+    );
+  }
+  assert.deepEqual(
+    await pointFieldInspector.locator('details > summary span').allTextContents(),
+    ['Stagger', 'Organic path', 'Plane motion', 'Split transition'],
+  );
+  await page.getByRole('button', { name: 'Point field', exact: true }).click();
+  await page.locator('[aria-label="Point field state library"] > button').nth(2).click();
+  assert.equal(await pointFieldInspector.locator('code').textContent(), 'world-grid');
+  for (const label of ['Position X', 'Rotation Z', 'Scale', 'Point size']) {
+    assert.equal(
+      await pointFieldInspector.getByText(label, { exact: true }).count(),
+      1,
+      `${label} state control is missing.`,
+    );
   }
 
   await page.getByRole('button', { name: 'Text', exact: true }).click();
   assert.equal(await page.getByRole('heading', { name: 'Global text animation' }).count(), 1);
   assert.equal(await page.locator('[data-track-settings="text"] details').count(), 5);
   await page.locator('[data-inspector-group="text-editorial"] > summary').click();
-  const revealSlider = page.getByRole('slider', { name: 'Global text Reveal viewport line slider' });
+  const revealSlider = page.getByRole('slider', { name: 'Global text Reveal starts slider' });
+  const initialRevealThreshold = Number(await revealSlider.inputValue());
+  const steppedRevealThreshold = Number((initialRevealThreshold - 0.01).toFixed(2));
   await revealSlider.focus();
   await revealSlider.press('ArrowLeft');
   await revealSlider.press('Tab');
-  await page.waitForFunction(() => (
-    document.querySelector('.about-narrative-lab')?.style
-      .getPropertyValue('--about-editorial-reveal-threshold') === '0.84'
-  ));
+  await page.waitForFunction((expected) => (
+    Math.abs(Number(
+      document.querySelector('.about-narrative-lab')?.style
+        .getPropertyValue('--about-editorial-reveal-threshold'),
+    ) - expected) < 0.001
+  ), steppedRevealThreshold);
   await page.getByRole('button', { name: 'Undo' }).click();
-  assert.equal(await revealSlider.inputValue(), '0.85');
+  assert.equal(Number(await revealSlider.inputValue()), initialRevealThreshold);
 
   await page.getByRole('button', { name: 'Tablet' }).click();
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile === 'tablet');

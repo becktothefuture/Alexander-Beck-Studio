@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import './check-about-narrative-point-field-motion.mjs';
-import './check-about-narrative-point-field-renderer-bridge.mjs';
 
 import {
   applyAboutNarrativeTrackEasing,
