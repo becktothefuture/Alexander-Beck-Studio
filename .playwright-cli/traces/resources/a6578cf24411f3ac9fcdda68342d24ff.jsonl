@@ -1,4 +1,0 @@
-{"type":"receive","time":1784283928923.4832,"opcode":1,"data":"{\"type\":\"connected\"}"}
-{"type":"receive","time":1784283931892.392,"opcode":1,"data":"{\"type\":\"update\",\"updates\":[{\"type\":\"js-update\",\"timestamp\":1784283931868,\"path\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"acceptedPath\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"explicitImportRequired\":false,\"isWithinCircularImport\":false}]}"}
-{"type":"receive","time":1784283943751.2112,"opcode":1,"data":"{\"type\":\"update\",\"updates\":[{\"type\":\"js-update\",\"timestamp\":1784283943749,\"path\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"acceptedPath\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"explicitImportRequired\":false,\"isWithinCircularImport\":false}]}"}
-{"type":"send","time":1784283958930.864,"opcode":1,"data":"{\"type\":\"ping\"}"}

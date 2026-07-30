@@ -1,2 +1,0 @@
-{"type":"receive","time":1784283579977.2888,"opcode":1,"data":"{\"type\":\"connected\"}"}
-{"type":"receive","time":1784283585951.234,"opcode":1,"data":"{\"type\":\"full-reload\",\"triggeredBy\":\"/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/about-narrative-lab/aboutNarrativeWorkerProtocol.js\",\"path\":\"*\"}"}

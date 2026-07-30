@@ -1,8 +1,0 @@
-{"type":"receive","time":1784283383370.625,"opcode":1,"data":"{\"type\":\"connected\"}"}
-{"type":"receive","time":1784283384206.102,"opcode":1,"data":"{\"type\":\"update\",\"updates\":[{\"type\":\"js-update\",\"timestamp\":1784283384122,\"path\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"acceptedPath\":\"/src/routes/about-narrative-lab/about-narrative-editor.css\",\"explicitImportRequired\":false,\"isWithinCircularImport\":false}]}"}
-{"type":"send","time":1784283413353.064,"opcode":1,"data":"{\"type\":\"ping\"}"}
-{"type":"receive","time":1784283416637.176,"opcode":1,"data":"{\"type\":\"update\",\"updates\":[{\"type\":\"js-update\",\"timestamp\":1784283416637,\"path\":\"/src/routes/about-narrative-lab/AboutNarrativeEditor.jsx\",\"acceptedPath\":\"/src/routes/about-narrative-lab/AboutNarrativeEditor.jsx\",\"explicitImportRequired\":false,\"isWithinCircularImport\":false}]}"}
-{"type":"send","time":1784283443353.232,"opcode":1,"data":"{\"type\":\"ping\"}"}
-{"type":"send","time":1784283473353.19,"opcode":1,"data":"{\"type\":\"ping\"}"}
-{"type":"receive","time":1784283478484.626,"opcode":1,"data":"{\"type\":\"update\",\"updates\":[{\"type\":\"js-update\",\"timestamp\":1784283478483,\"path\":\"/src/routes/portfolio/PortfolioGateRoute.jsx\",\"acceptedPath\":\"/src/routes/portfolio/PortfolioGateRoute.jsx\",\"explicitImportRequired\":false,\"isWithinCircularImport\":false}]}"}
-{"type":"receive","time":1784283498483.041,"opcode":1,"data":"{\"type\":\"full-reload\",\"triggeredBy\":\"/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/react-app/app/src/routes/about-narrative-lab/aboutNarrativeCorrespondence.js\",\"path\":\"*\"}"}
