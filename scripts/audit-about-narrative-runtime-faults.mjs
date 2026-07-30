@@ -184,7 +184,9 @@ function assertSingleReadableRuntime(value, { ready = true } = {}) {
   assert.ok(value.semanticCopyLength > 200, 'Semantic editorial copy must remain readable.');
   assert.equal(value.dataset.pointWorldState, 'ready');
   assert.equal(value.metrics.fixedAttributeIdentityStable, true);
-  assert.equal(value.metrics.fixedAttributeCount, 9);
+  // Schema v6 keeps the nine base point attributes and adds two fixed phase
+  // attributes for parametric transition motion.
+  assert.equal(value.metrics.fixedAttributeCount, 11);
   assert.ok(value.metrics.drawCalls >= 1, 'The last-known-good field must remain rendered.');
   assert.ok(value.metrics.gpuBufferCount <= 24, 'GPU buffer ownership must remain bounded.');
   assert.ok(value.metrics.cacheEntries <= 8, 'Shape cache ownership must remain bounded.');
