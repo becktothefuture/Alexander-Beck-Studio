@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import './check-about-narrative-point-field-editor-store.mjs';
 import {
   compileAboutNarrativeTrackModel,
   createAboutNarrativeTrackModel,
@@ -9,7 +10,7 @@ import { createAboutNarrativeTrackEditorStore } from '../react-app/app/src/route
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 
 const canonicalV4 = JSON.parse(await readFile(
-  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
+  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
   'utf8',
 ));
 const canonical = loadAboutNarrativeTrackSource(canonicalV4).document;

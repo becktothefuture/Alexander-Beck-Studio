@@ -20,7 +20,7 @@ import {
   validateAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 
-const canonicalSource = await readFile(
+const canonicalV6Source = await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 );
@@ -28,7 +28,8 @@ const fixtureSource = await readFile(
   new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
   'utf8',
 );
-const canonicalV5 = JSON.parse(canonicalSource);
+const canonicalV5 = JSON.parse(fixtureSource);
+const canonicalV6 = JSON.parse(canonicalV6Source);
 const clone = (value) => structuredClone(value);
 const EXPECTED_KEY_TIMES = Object.freeze([
   0,
@@ -93,8 +94,11 @@ function compareRuntimeSamples(left, right, storyWU) {
   assertClose(rightFrame.world.transitionProgress, leftFrame.world.transitionProgress, `progress at ${storyWU}`);
 }
 
-test('the checked-in v5 fixture is the exact current canonical source', () => {
-  assert.equal(fixtureSource, canonicalSource);
+test('the canonical source is native deterministic v6 and the legacy oracle remains v5', () => {
+  assert.equal(canonicalV6.schemaVersion, ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION);
+  assert.equal(canonicalV5.schemaVersion, 5);
+  assert.deepEqual(validateAboutNarrativePointFieldDocument(canonicalV6), []);
+  assert.equal(serializeAboutNarrativePointFieldDocument(canonicalV6), canonicalV6Source);
 });
 
 test('canonical v5 migrates to four reusable states, eight keys, and seven adjacent segments', () => {

@@ -14,6 +14,10 @@ import {
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
+  projectAboutNarrativePointFieldDocumentToVersion5,
+  validateAboutNarrativePointFieldDocument,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
+import {
   ABOUT_NARRATIVE_CAMERA_KEY_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
@@ -28,9 +32,11 @@ import {
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
-const canonicalV4 = JSON.parse(canonicalSource);
+const canonicalV6 = JSON.parse(canonicalSource);
 const homeContent = JSON.parse(await read('../react-app/app/public/config/contents-home.json'));
-const loadedCanonical = loadAboutNarrativeTrackSource(canonicalV4);
+const loadedCanonical = loadAboutNarrativeTrackSource(
+  projectAboutNarrativePointFieldDocumentToVersion5(canonicalV6),
+);
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
 const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v24.md');
@@ -61,13 +67,14 @@ function assertCameraValue(actual, expected, label) {
   );
 }
 
-test('canonical About source is a deterministic native v5 runtime document', () => {
-  assert.equal(canonicalV4.schemaVersion, 5);
+test('canonical About source is native v6 with a valid v5 compatibility projection', () => {
+  assert.equal(canonicalV6.schemaVersion, 6);
   assert.equal(canonical.schemaVersion, 5);
   assert.deepEqual(loadedCanonical.migrations, []);
   assert.equal(legacy.schemaVersion, 2, 'The frozen parity fixture must remain legacy v2.');
-  assert.deepEqual(collectForbiddenContainers(canonicalV4), []);
+  assert.deepEqual(collectForbiddenContainers(canonicalV6), []);
   assert.deepEqual(collectForbiddenContainers(canonical), []);
+  assert.equal(validateAboutNarrativePointFieldDocument(canonicalV6).filter((item) => item.level === 'error').length, 0);
   assert.equal(validateAboutNarrativeTrackDocument(canonical).filter((item) => item.level === 'error').length, 0);
   assert.match(canonicalSource, /"tracks": \{/);
   assert.doesNotMatch(canonicalSource, /"sections"\s*:/);
@@ -1106,14 +1113,14 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
   }
 });
 
-test('editor exposes five independent lanes and all Text creation kinds', () => {
+test('editor exposes the five native v6 lanes and all Text creation kinds', () => {
   const trackDeclaration = liveSources.editor.slice(
-    liveSources.editor.indexOf('const TRACKS'),
+    liveSources.editor.indexOf('const POINT_FIELD_TRACKS'),
     liveSources.editor.indexOf('const TRACK_BY_ID'),
   );
   assert.deepEqual(
     [...trackDeclaration.matchAll(/id: '([^']+)'/g)].map((match) => match[1]),
-    ['camera', 'visibility', 'world', 'text', 'interaction'],
+    ['camera', 'visibility', 'point-field', 'text', 'interaction'],
   );
   assert.doesNotMatch(liveSources.editor, /sectionId|sectionRefs|data-narrative-section|['"]section['"]\s*,\s*label/i);
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'title'\)/);

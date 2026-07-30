@@ -15,7 +15,7 @@ import {
   reconcileAboutInteractiveStackOrder,
   retreatAboutInteractiveStackOrder,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutInteractiveStackModel.js';
-import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import { validateAboutNarrativePointFieldDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
 const configPath = new URL('../react-app/app/public/config/contents-about.json', import.meta.url);
 const canonical = JSON.parse(await readFile(configPath, 'utf8'));
@@ -73,9 +73,9 @@ function stackErrorCodes(document) {
   const moduleIndex = document.tracks.text.fields[fieldIndex].block.modules
     .findIndex((module) => module.id === 'project-impressions');
   const stackPath = `tracks.text.fields.${fieldIndex}.block.modules.${moduleIndex}`;
-  return validateAboutNarrativeTrackDocument(document)
+  return validateAboutNarrativePointFieldDocument(document)
     .filter((item) => item.level === 'error' && item.path.startsWith(stackPath))
-    .map((item) => item.code);
+    .map((item) => item.code.replace(/^v5-projection-/, ''));
 }
 
 test('canonical Interactive stack contains 20 strict, valid image records', () => {

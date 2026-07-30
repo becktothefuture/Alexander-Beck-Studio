@@ -171,6 +171,18 @@
 .about-track-editor-preview > select,
 .about-track-editor-preview > label { flex: 0 0 auto; }
 .about-track-editor-preview > select { width: auto; }
+.about-track-editor-preview__label {
+  color: var(--editor-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 8px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.about-track-editor-edit-scope {
+  padding-left: 7px;
+  border-left: 1px solid var(--editor-line);
+}
+.about-track-editor-edit-scope select { width: auto; min-width: 126px; }
 .about-track-editor-preview select,
 .about-track-editor-field select,
 .about-track-editor-field input,
@@ -182,6 +194,9 @@
   border-radius: 4px;
   background: var(--editor-field);
 }
+
+.about-track-editor-preview > select,
+.about-track-editor-preview > .about-track-editor-edit-scope select { width: auto; }
 
 .about-track-editor-preview label,
 .about-track-editor-check {
@@ -419,6 +434,131 @@
 .about-track-editor-clip:is(.is-camera, .is-visibility):hover .about-track-editor-clip__point { background: color-mix(in srgb, var(--lane-colour) 18%, var(--editor-bg)); }
 .about-track-editor-clip:is(.is-camera, .is-visibility):is(.is-selected, :focus-visible) .about-track-editor-clip__point { box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 4px var(--lane-colour); }
 
+/* Schema v6 Point field: keys own timing, segments own motion, states own form. */
+.about-point-field-lane {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 54px;
+  --lane-colour: var(--editor-world);
+}
+
+.about-point-field-segment {
+  position: absolute;
+  z-index: 2;
+  top: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 32px;
+  min-width: 3px;
+  min-height: 32px !important;
+  padding: 0 8px !important;
+  overflow: hidden;
+  color: var(--editor-ink);
+  border-color: color-mix(in srgb, var(--editor-world) 58%, var(--editor-line)) !important;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--editor-world) 15%, var(--editor-field)) !important;
+  font-size: 9px;
+  text-align: left;
+  touch-action: none;
+}
+
+.about-point-field-segment > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-point-field-segment > i {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentcolor;
+  opacity: 0.72;
+}
+
+.about-point-field-segment.is-hold {
+  color: var(--editor-muted);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--editor-world) 5%, var(--editor-field)) !important;
+}
+
+.about-point-field-segment.is-hold > i { background: repeating-linear-gradient(90deg, currentcolor 0 2px, transparent 2px 4px); }
+.about-point-field-segment.is-dissolve-morph { background-image: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--editor-world) 22%, transparent) 5px 7px) !important; }
+.about-point-field-segment.is-step-end { border-right-width: 3px; border-right-color: var(--editor-world) !important; background: color-mix(in srgb, var(--editor-world) 7%, var(--editor-field)) !important; }
+.about-point-field-segment:is(:hover, :focus-visible) { border-color: var(--editor-world) !important; }
+.about-point-field-segment.is-selected { z-index: 4; outline: 2px solid var(--editor-world); outline-offset: 1px; }
+.about-point-field-segment.has-override::after {
+  position: absolute;
+  inset: 3px 3px auto auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--editor-accent);
+  content: '';
+}
+
+.about-point-field-key,
+.about-point-field-key-ghost {
+  position: absolute;
+  top: calc(27px + (var(--point-key-stack, 0) * 24px));
+  left: 0;
+  width: 24px;
+  height: 24px;
+  transform: translate(-12px, -50%);
+}
+
+.about-point-field-key {
+  z-index: 7;
+  min-width: 24px;
+  min-height: 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  touch-action: none;
+}
+
+.about-point-field-key > i,
+.about-point-field-key-ghost {
+  border: 2px solid var(--editor-world);
+  border-radius: 1px;
+  background: var(--editor-bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--editor-world) 14%, transparent);
+  transform: rotate(45deg);
+}
+
+.about-point-field-key > i { display: block; width: 12px; height: 12px; margin: 6px; }
+.about-point-field-key:is(:hover, :focus-visible) > i { background: color-mix(in srgb, var(--editor-world) 20%, var(--editor-bg)); }
+.about-point-field-key.is-selected > i { box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 4px var(--editor-world); }
+.about-point-field-key.is-protected > i { background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgb(255 255 255 / 12%) 3px 5px); }
+.about-point-field-key.has-override::after {
+  position: absolute;
+  top: -3px;
+  right: -2px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--editor-bg);
+  border-radius: 50%;
+  background: var(--editor-accent);
+  content: '';
+}
+
+.about-point-field-key-ghost {
+  z-index: 1;
+  top: 27px;
+  width: 10px;
+  height: 10px;
+  border-width: 1px;
+  border-style: dashed;
+  opacity: 0.42;
+  box-shadow: none;
+  transform: translate(-5px, -50%) rotate(45deg);
+}
+
 .about-track-editor-object.has-resize-start .about-track-editor-clip { padding-left: 20px !important; }
 .about-track-editor-object.has-resize-end .about-track-editor-clip { padding-right: 20px !important; }
 
@@ -530,6 +670,65 @@
 .about-track-editor-inspector p { color: var(--editor-muted); }
 .about-track-editor-inspector code { display: block; color: var(--editor-muted); overflow-wrap: anywhere; }
 .about-track-editor-inspector header b { display: inline-block; margin-top: 8px; padding: 3px 6px; border: 1px solid var(--editor-line-strong); border-radius: 4px; color: var(--editor-accent); font-size: 9px; }
+
+.about-point-field-inspector-header > div { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.about-point-field-override-badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-height: 18px;
+  padding: 2px 6px;
+  color: var(--editor-accent);
+  border: 1px solid color-mix(in srgb, var(--editor-accent) 54%, var(--editor-line));
+  border-radius: 999px;
+  font-family: var(--abs-font-mono);
+  font-size: 8px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.about-point-field-scope-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 7px;
+  color: var(--editor-muted);
+  border: 1px solid var(--editor-line);
+  border-radius: 5px;
+  background: var(--editor-field);
+  font-family: var(--abs-font-mono);
+  font-size: 8px;
+}
+
+.about-point-field-scope-summary b { color: var(--editor-ink); font-weight: 650; }
+.about-point-field-use-note,
+.about-point-field-library-note { margin-top: 12px; }
+
+.about-point-field-state-library { display: grid; gap: 6px; margin-top: 12px; }
+.about-point-field-state-library > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px 8px;
+  min-height: 48px;
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.about-point-field-state-library > button > span:first-child { display: grid; min-width: 0; gap: 2px; }
+.about-point-field-state-library b { overflow: hidden; color: var(--editor-ink); text-overflow: ellipsis; white-space: nowrap; }
+.about-point-field-state-library small,
+.about-point-field-state-library > button > span:nth-child(2) { color: var(--editor-muted); font-family: var(--abs-font-mono); font-size: 8px; }
+.about-point-field-state-library .about-point-field-override-badge { grid-column: 1 / -1; }
+.about-point-field-state-library > button.is-selected { border-color: var(--editor-world); background: color-mix(in srgb, var(--editor-world) 14%, var(--editor-field)); }
+
+.about-point-field-transition-fields > .about-track-editor-folder,
+.about-point-field-transition-fields > .about-point-field-reset { grid-column: 1 / -1; }
+.about-point-field-split-actions,
+.about-point-field-state-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.about-point-field-state-actions { grid-column: 1 / -1; }
+.about-point-field-reset { width: 100%; color: var(--editor-accent); border-color: color-mix(in srgb, var(--editor-accent) 48%, var(--editor-line)); }
 
 .about-track-editor-fields {
   display: grid;
@@ -1043,6 +1242,11 @@
   .about-track-editor-row-head > button:first-of-type { padding-inline: 7px; }
   .about-track-editor-object { top: 5px; height: 44px; min-height: 44px; }
   .about-track-editor-clip { min-height: 44px !important; }
+  .about-point-field-lane { min-height: 47px; }
+  .about-point-field-segment { top: 7px; height: 34px; min-height: 34px !important; }
+  .about-point-field-key { top: calc(23px + (var(--point-key-stack, 0) * 28px)); width: 28px; height: 28px; transform: translate(-14px, -50%); }
+  .about-point-field-key > i { width: 14px; height: 14px; margin: 7px; }
+  .about-point-field-key-ghost { top: 27px; }
   .about-track-editor-inspector {
     top: auto;
     right: 6px;
@@ -1061,6 +1265,10 @@
     margin: 8px 8px 0 auto;
   }
   .about-track-editor-inspector__content { padding: 10px; }
+  .about-point-field-scope-summary,
+  .about-point-field-split-actions,
+  .about-point-field-state-actions { grid-template-columns: 1fr; }
+  .about-point-field-state-library > button { min-height: 52px; }
   .about-track-editor-folder > summary { min-height: 44px; }
   .about-track-editor-parameter__slider { height: 32px; }
   .about-track-editor-parameter__exact input { min-height: 40px; }

@@ -5,6 +5,9 @@ import sharp from 'sharp';
 import {
   compileAboutNarrativeRuntimePlan,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
+import {
+  projectAboutNarrativePointFieldDocumentToVersion5,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const outputDir = 'output/playwright/about-narrative-hardening/runtime';
@@ -20,10 +23,11 @@ const browser = await chromium.launch({
 
 await mkdir(outputDir, { recursive: true });
 
-const canonical = JSON.parse(await readFile(
+const canonicalV6 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const canonical = projectAboutNarrativePointFieldDocumentToVersion5(canonicalV6);
 const bustWorld = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
 assert.ok(bustWorld, 'The visual audit requires the canonical emergent World.');
 const bustStartWU = Number(bustWorld.transitionIn.startWU);

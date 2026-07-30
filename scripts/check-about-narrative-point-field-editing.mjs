@@ -19,7 +19,6 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldEditing.js';
 import {
   applyAboutNarrativePointFieldOverrides,
-  migrateAboutNarrativeVersion5To6,
   validateAboutNarrativePointFieldDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
@@ -28,7 +27,7 @@ const source = JSON.parse(await readFile(
   'utf8',
 ));
 
-const fixture = () => migrateAboutNarrativeVersion5To6(source);
+const fixture = () => structuredClone(source);
 const pointField = (document, profileId = '') => (profileId
   ? applyAboutNarrativePointFieldOverrides(
     document.tracks.pointField,

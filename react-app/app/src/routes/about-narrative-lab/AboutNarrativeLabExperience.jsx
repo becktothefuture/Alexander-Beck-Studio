@@ -5,7 +5,6 @@ import {
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
 import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
-import { normalizeAboutNarrativeTrackDocument } from './aboutNarrativeTrackSchema.js';
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
@@ -16,9 +15,7 @@ import {
 } from './useAboutNarrativeTimeline.js';
 import './about-narrative-lab.css';
 
-const INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT = normalizeAboutNarrativeTrackDocument(
-  ABOUT_NARRATIVE_DOCUMENT,
-);
+const INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT = ABOUT_NARRATIVE_DOCUMENT;
 
 function getRenderSpanStyle(span) {
   const startWU = Number(span.scrollBounds.startWU);
@@ -736,7 +733,7 @@ export function AboutNarrativeLabExperience({
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
   const [indicatorHost, setIndicatorHost] = useState(null);
-  const [playbackDocument, setPlaybackDocument] = useState(INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT);
+  const [playbackDocument, setPlaybackDocument] = useState(INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
@@ -755,11 +752,11 @@ export function AboutNarrativeLabExperience({
     let active = true;
     Promise.all([
       import('./AboutNarrativeEditor.jsx'),
-      import('./aboutNarrativeTrackEditorStore.js'),
+      import('./aboutNarrativePointFieldEditorStore.js'),
     ]).then(([editor, storeModule]) => {
       if (!active) return;
-      const store = storeModule.createAboutNarrativeTrackEditorStore(
-        INITIAL_ABOUT_NARRATIVE_TRACK_DOCUMENT,
+      const store = storeModule.createAboutNarrativePointFieldEditorStore(
+        INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT,
       );
       setEditorStore(store);
       setEditorModule(() => editor.default);

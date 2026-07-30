@@ -130,7 +130,10 @@ export function createDevAdminPlugin({ publicConfigDir, aboutNarrativeConfigPath
   const wallRepelConfigPath = resolve(publicConfigDir, 'wall-repel-demo.json');
   const loaderPlaygroundConfigPath = resolve(publicConfigDir, 'loader-playground-demo.json');
   const atmosphereLabConfigPath = resolve(publicConfigDir, 'atmosphere-lab.json');
-  const aboutPersistence = createAboutNarrativePersistenceService({ configPath: aboutNarrativeConfigPath });
+  const aboutPersistence = createAboutNarrativePersistenceService({
+    configPath: aboutNarrativeConfigPath,
+    targetVersion: 6,
+  });
 
   return {
     name: 'design-system-dev-plugin',

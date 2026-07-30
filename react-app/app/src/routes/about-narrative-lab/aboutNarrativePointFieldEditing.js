@@ -263,6 +263,19 @@ function stateIdsForSegment(pointField, segment) {
   };
 }
 
+export function getAboutNarrativePointFieldStateParticipationStartWU(pointField, stateId) {
+  const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
+  let earliestWU = Number.POSITIVE_INFINITY;
+  pointField.segments.forEach((segment) => {
+    const fromKey = keyById.get(segment.fromKeyId);
+    const toKey = keyById.get(segment.toKeyId);
+    if (!fromKey || !toKey) return;
+    if (fromKey.stateId !== stateId && toKey.stateId !== stateId) return;
+    earliestWU = Math.min(earliestWU, Number(fromKey.atWU));
+  });
+  return Number.isFinite(earliestWU) ? earliestWU : null;
+}
+
 function repairAdjacentTransitions(document, keyId) {
   const pointField = document.tracks.pointField;
   const index = keyIndex(pointField, keyId);

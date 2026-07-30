@@ -58,6 +58,7 @@ function getStoryDurationWU(model) {
     ...(model?.tracks?.camera?.keys || []).map((item) => item.atWU),
     ...(model?.tracks?.visibility?.keys || []).map((item) => item.atWU),
     ...(model?.tracks?.worlds?.objects || []).map((item) => item.startWU),
+    ...(model?.tracks?.pointField?.keys || []).map((item) => item.atWU),
     ...(model?.tracks?.text?.fields || []).map((item) => item.endWU),
     ...(model?.tracks?.interactions?.clips || []).map((item) => item.endWU),
   ].filter(finite).map(Number);
@@ -94,6 +95,14 @@ function scaleNonTextTiming(model, scale) {
     scaleTransition(world.transitionIn, scale);
     (world.modifiers || []).forEach((modifier) => preserveStoryTimedMotion(modifier.parameters, scale));
   });
+  (model.tracks?.pointField?.keys || []).forEach((key) => {
+    key.atWU = scaleTime(key.atWU, scale);
+  });
+  (model.tracks?.pointField?.stateDefinitions || []).forEach((state) => {
+    (state.modifiers || []).forEach((modifier) => {
+      preserveStoryTimedMotion(modifier.parameters, scale);
+    });
+  });
   (model.tracks?.interactions?.clips || []).forEach((clip) => {
     clip.startWU = scaleTime(clip.startWU, scale);
     clip.activationWU = scaleTime(clip.activationWU, scale);
@@ -121,6 +130,9 @@ function scaleNonTextTiming(model, scale) {
     Object.values(profile.overrides?.worlds || {}).forEach((override) => {
       if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
       scaleTransition(override.transitionIn, scale);
+    });
+    Object.values(profile.overrides?.pointField?.keys || {}).forEach((override) => {
+      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
     });
     Object.values(profile.overrides?.interactions || {}).forEach((override) => {
       if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
@@ -161,6 +173,15 @@ function allObjectEntries(model) {
     const track = TYPE_TO_TRACK[type];
     return (getTrackCollection(model, track) || []).map((object) => ({ type, track, object }));
   });
+}
+
+function pointFieldObjectIds(model) {
+  const pointField = model?.tracks?.pointField;
+  return [
+    ...(pointField?.stateDefinitions || []),
+    ...(pointField?.keys || []),
+    ...(pointField?.segments || []),
+  ].map((item) => item.id);
 }
 
 function getSelectionMembers(selection) {
@@ -269,6 +290,65 @@ export function getAboutNarrativeTrackObject(model, selectionOrType, objectId = 
 function sortedWorlds(model) {
   return [...(model?.tracks?.worlds?.objects || [])]
     .sort((left, right) => Number(left.startWU) - Number(right.startWU) || left.id.localeCompare(right.id));
+}
+
+function getPointFieldStateRanges(model, stateId) {
+  const pointField = model?.tracks?.pointField;
+  if (!pointField?.keys?.length || !stateId) return [];
+  const keys = [...pointField.keys]
+    .map((key, index) => ({ ...key, _sourceOrder: index }))
+    .sort((left, right) => (
+      Number(left.atWU) - Number(right.atWU)
+      || left._sourceOrder - right._sourceOrder
+    ));
+  const ranges = [];
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    if (keys[index + 1].stateId !== stateId) continue;
+    const startWU = Number(keys[index].atWU);
+    const endWU = Number(keys[index + 1].atWU);
+    const previous = ranges.at(-1);
+    if (previous && Math.abs(previous.endWU - startWU) <= 0.000001) {
+      previous.endWU = endWU;
+    } else {
+      ranges.push({ startWU, endWU });
+    }
+  }
+  const finalKey = keys.at(-1);
+  if (finalKey.stateId === stateId) {
+    const durationWU = getStoryDurationWU(model);
+    const previous = ranges.at(-1);
+    if (previous && Math.abs(previous.endWU - Number(finalKey.atWU)) <= 0.000001) {
+      previous.endWU = durationWU;
+    } else {
+      ranges.push({ startWU: Number(finalKey.atWU), endWU: durationWU });
+    }
+  }
+  return ranges;
+}
+
+function getPointFieldStateRange(model, stateId, atWU) {
+  const ranges = getPointFieldStateRanges(model, stateId);
+  const time = Number(atWU);
+  return ranges.find((range) => time >= range.startWU && time <= range.endWU)
+    || ranges[0]
+    || null;
+}
+
+function getAboutNarrativeActivePointFieldState(model, storyWU) {
+  const pointField = model?.tracks?.pointField;
+  if (!pointField?.keys?.length) return null;
+  const keys = [...pointField.keys]
+    .map((key, index) => ({ ...key, _sourceOrder: index }))
+    .sort((left, right) => (
+      Number(left.atWU) - Number(right.atWU)
+      || left._sourceOrder - right._sourceOrder
+    ));
+  let index = 0;
+  while (index < keys.length - 1 && Number(keys[index + 1].atWU) <= Number(storyWU)) {
+    index += 1;
+  }
+  const activeKey = index < keys.length - 1 ? keys[index + 1] : keys[index];
+  return pointField.stateDefinitions.find((state) => state.id === activeKey.stateId) || null;
 }
 
 export function getAboutNarrativeActiveWorld(model, storyWU) {
@@ -390,9 +470,18 @@ function validateEditingModel(model) {
       return resultError(`${object.id} has an inverted transition window.`, 'world-transition');
     }
   }
+  for (const id of pointFieldObjectIds(model)) {
+    if (typeof id !== 'string' || !id) {
+      return resultError('Every point-field object needs a stable string ID.', 'object-id');
+    }
+    if (ids.has(id)) return resultError(`Track object ID “${id}” is duplicated.`, 'duplicate-id');
+    ids.add(id);
+  }
 
   const worlds = sortedWorlds(model);
-  if (!worlds.length) return resultError('At least one World Start is required.', 'missing-world');
+  if (!worlds.length && !model?.tracks?.pointField) {
+    return resultError('At least one World Start is required.', 'missing-world');
+  }
   for (let index = 0; index < worlds.length; index += 1) {
     const world = worlds[index];
     const nextStartWU = Number(worlds[index + 1]?.startWU ?? durationWU);
@@ -419,10 +508,35 @@ function validateEditingModel(model) {
 
   for (const clip of model?.tracks?.interactions?.clips || []) {
     const target = worlds.find((world) => world.id === clip.targetWorldId);
-    if (!target) return resultError(`${clip.id} targets a missing World.`, 'interaction-target');
-    const range = getAboutNarrativeTrackObjectRange(model, { type: 'world', id: target.id });
+    const pointField = model?.tracks?.pointField;
+    if (!target && pointField) {
+      if (!pointField.stateDefinitions.some((state) => state.id === clip.targetStateId)) {
+        return resultError(`${clip.id} targets a missing point-field state.`, 'interaction-target');
+      }
+      const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
+      const participates = pointField.segments.some((segment) => {
+        const fromKey = keyById.get(segment.fromKeyId);
+        const toKey = keyById.get(segment.toKeyId);
+        return (fromKey?.stateId === clip.targetStateId || toKey?.stateId === clip.targetStateId)
+          && Math.max(Number(clip.startWU), Number(fromKey?.atWU))
+            < Math.min(Number(clip.endWU), Number(toKey?.atWU));
+      });
+      if (!participates) {
+        return resultError(
+          `${clip.id} must overlap a segment that uses its target point-field state.`,
+          'interaction-target-window',
+        );
+      }
+      continue;
+    }
+    const range = target
+      ? getAboutNarrativeTrackObjectRange(model, { type: 'world', id: target.id })
+      : null;
+    if (!range) {
+      return resultError(`${clip.id} targets a missing World or point-field state.`, 'interaction-target');
+    }
     if (clip.startWU < range.startWU || clip.endWU > range.endWU) {
-      return resultError(`${clip.id} extends outside ${target.id}'s active World range.`, 'interaction-target-window');
+      return resultError(`${clip.id} extends outside its target's active range.`, 'interaction-target-window');
     }
   }
   return Object.freeze({ valid: true });
@@ -565,8 +679,12 @@ export function resizeAboutNarrativeInteractionEdge({
   const clip = getAboutNarrativeTrackObject(model, { type: 'interaction', id });
   if (!clip) return resultError(`Motion clip “${id}” is not available.`, 'object-selection');
   if (clip.locked || clip.protected) return resultError('A protected Motion clip cannot be resized.', 'protected-object');
-  const worldRange = getAboutNarrativeTrackObjectRange(model, { type: 'world', id: clip.targetWorldId });
-  if (!worldRange) return resultError(`Motion clip “${id}” targets a missing World.`, 'interaction-target');
+  const worldRange = clip.targetStateId
+    ? { startWU: 0, endWU: getStoryDurationWU(model) }
+    : getAboutNarrativeTrackObjectRange(model, { type: 'world', id: clip.targetWorldId });
+  if (!worldRange) {
+    return resultError(`Motion clip “${id}” targets a missing World or point-field state.`, 'interaction-target');
+  }
   const requestedWU = snap ? snapWU(atWU) : cleanWU(atWU);
   const nextWU = edge === 'start'
     ? clamp(requestedWU, Number(worldRange.startWU), Number(clip.activationWU))
@@ -705,7 +823,10 @@ export function resizeAboutNarrativeWorldEnd({
 }
 
 function getUsedIds(model) {
-  return new Set(allObjectEntries(model).map(({ object }) => object.id));
+  return new Set([
+    ...allObjectEntries(model).map(({ object }) => object.id),
+    ...pointFieldObjectIds(model),
+  ]);
 }
 
 function createUniqueId(model, requestedId, base) {
@@ -850,15 +971,23 @@ export function createAboutNarrativeInteractionAtWU({
   id = null,
   interactionType = 'horizontal-spin',
   targetWorldId = null,
+  targetStateId = null,
   template = {},
 }) {
   const durationWU = getStoryDurationWU(model);
   const activationWU = cleanWU(clamp(Number(atWU), 0, durationWU));
-  const activeWorld = targetWorldId
+  const pointState = targetStateId
+    ? model?.tracks?.pointField?.stateDefinitions?.find((state) => state.id === targetStateId)
+    : getAboutNarrativeActivePointFieldState(model, activationWU);
+  const activeWorld = pointState ? null : targetWorldId
     ? getAboutNarrativeTrackObject(model, { type: 'world', id: targetWorldId })
     : getAboutNarrativeActiveWorld(model, activationWU);
-  if (!activeWorld) return resultError('Create a World Start before adding an Interaction.', 'interaction-target');
-  const worldRange = getAboutNarrativeTrackObjectRange(model, { type: 'world', id: activeWorld.id });
+  if (!activeWorld && !pointState) {
+    return resultError('Create a World or point-field state before adding an Interaction.', 'interaction-target');
+  }
+  const worldRange = pointState
+    ? getPointFieldStateRange(model, pointState.id, activationWU)
+    : getAboutNarrativeTrackObjectRange(model, { type: 'world', id: activeWorld.id });
   const definition = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[interactionType];
   const parameters = definition?.parameters.length
     ? { ...definition.defaultParameters, ...(template.parameters || {}) }
@@ -870,7 +999,9 @@ export function createAboutNarrativeInteractionAtWU({
     startWU: cleanWU(Math.max(worldRange.startWU, activationWU - 0.1)),
     activationWU,
     endWU: cleanWU(Math.min(worldRange.endWU, activationWU + 0.5)),
-    targetWorldId: activeWorld.id,
+    ...(pointState
+      ? { targetStateId: pointState.id }
+      : { targetWorldId: activeWorld.id }),
     ...(parameters ? { parameters } : {}),
   });
 }

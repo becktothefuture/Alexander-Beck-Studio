@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 58,
@@ -53,7 +53,11 @@
       "overrides": {
         "camera": {},
         "visibility": {},
-        "worlds": {},
+        "pointField": {
+          "stateDefinitions": {},
+          "keys": {},
+          "segments": {}
+        },
         "text": {},
         "interactions": {}
       }
@@ -64,7 +68,11 @@
       "overrides": {
         "camera": {},
         "visibility": {},
-        "worlds": {},
+        "pointField": {
+          "stateDefinitions": {},
+          "keys": {},
+          "segments": {}
+        },
         "text": {},
         "interactions": {}
       }
@@ -145,7 +153,11 @@
           }
         },
         "visibility": {},
-        "worlds": {},
+        "pointField": {
+          "stateDefinitions": {},
+          "keys": {},
+          "segments": {}
+        },
         "text": {},
         "interactions": {}
       }
@@ -547,61 +559,15 @@
         }
       ]
     },
-    "worlds": {
-      "objects": [
-        {
-          "id": "world-promise",
-          "label": "A",
-          "startWU": 0,
-          "anchorWU": 0,
-          "adapterId": "point-field-v1",
-          "shapeId": "cluster-v1",
-          "seed": 506832829,
-          "entryDistanceWU": 8,
-          "transform": {
-            "position": [
-              0,
-              2.25,
-              0
-            ],
-            "rotation": [
-              0,
-              0.174533,
-              0
-            ],
-            "scale": 0.52,
-            "pointSizeScale": 1.15,
-            "mobileScale": 0.44
-          },
-          "transitionIn": {
-            "startWU": 0,
-            "endWU": 0,
-            "type": "dissolve-morph",
-            "easing": "ease-in",
-            "correspondence": "index-v1"
-          },
-          "shapeParameters": {
-            "radius": 2.9,
-            "density": 0.198
-          },
-          "modifiers": [
-            {
-              "id": "swarm-life-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 3.66
-              }
-            }
-          ]
-        },
+    "pointField": {
+      "stateDefinitions": [
         {
           "id": "world-complexity",
           "label": "B",
-          "startWU": 0.72314,
-          "anchorWU": 0.95,
           "adapterId": "point-field-v1",
           "shapeId": "turbulent-field-v1",
           "seed": 506832829,
+          "railAnchorWU": 0.95,
           "entryDistanceWU": 6.2,
           "transform": {
             "position": [
@@ -616,13 +582,6 @@
             ],
             "scale": 0.92,
             "pointSizeScale": 1.05
-          },
-          "transitionIn": {
-            "startWU": 0.72314,
-            "endWU": 1.864941,
-            "type": "morph",
-            "easing": "smoothstep",
-            "correspondence": "spatial-nearest-v2"
           },
           "shapeParameters": {
             "width": 10.5,
@@ -645,65 +604,12 @@
           ]
         },
         {
-          "id": "world-grid",
-          "label": "C",
-          "startWU": 4.1,
-          "anchorWU": 4.059751,
-          "adapterId": "point-field-v1",
-          "shapeId": "calm-field-v1",
-          "seed": 506832829,
-          "entryDistanceWU": 12,
-          "transform": {
-            "position": [
-              0,
-              0.2,
-              0
-            ],
-            "rotation": [
-              0,
-              0,
-              0
-            ],
-            "scale": 1,
-            "pointSizeScale": 1.2,
-            "mobileScale": 1,
-            "mobileXScale": 1,
-            "mobileYOffset": 0.345
-          },
-          "transitionIn": {
-            "startWU": 4.1,
-            "endWU": 4.505974,
-            "type": "morph",
-            "easing": "ease-out",
-            "correspondence": "spatial-nearest-v2"
-          },
-          "shapeParameters": {
-            "width": 48,
-            "depth": 56,
-            "height": -1.72,
-            "jitter": 0,
-            "density": 0.36
-          },
-          "modifiers": [
-            {
-              "id": "ambient-drift-v1",
-              "enabled": true,
-              "parameters": {
-                "amplitude": 0.028,
-                "speed": 0.55,
-                "timeMode": "ambient"
-              }
-            }
-          ]
-        },
-        {
           "id": "world-emergent",
           "label": "E",
-          "startWU": 16.15,
-          "anchorWU": 4.059751,
           "adapterId": "point-field-v1",
           "shapeId": "bust-v1",
           "seed": 506832829,
+          "railAnchorWU": 4.059751,
           "entryDistanceWU": 12,
           "transform": {
             "position": [
@@ -725,13 +631,6 @@
             "mobileLandscapeXOffset": -4.2,
             "mobileLandscapeYOffset": -0.9,
             "mobileLandscapeZOffset": 0
-          },
-          "transitionIn": {
-            "startWU": 16.15,
-            "endWU": 18.45,
-            "type": "morph",
-            "easing": "linear",
-            "correspondence": "radial-emergence-v1"
           },
           "shapeParameters": {
             "density": 0.36
@@ -781,6 +680,291 @@
             }
           ],
           "protected": true
+        },
+        {
+          "id": "world-grid",
+          "label": "C",
+          "adapterId": "point-field-v1",
+          "shapeId": "calm-field-v1",
+          "seed": 506832829,
+          "railAnchorWU": 4.059751,
+          "entryDistanceWU": 12,
+          "transform": {
+            "position": [
+              0,
+              0.2,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": 1,
+            "pointSizeScale": 1.2,
+            "mobileScale": 1,
+            "mobileXScale": 1,
+            "mobileYOffset": 0.345
+          },
+          "shapeParameters": {
+            "width": 48,
+            "depth": 56,
+            "height": -1.72,
+            "jitter": 0,
+            "density": 0.36
+          },
+          "modifiers": [
+            {
+              "id": "ambient-drift-v1",
+              "enabled": true,
+              "parameters": {
+                "amplitude": 0.028,
+                "speed": 0.55,
+                "timeMode": "ambient"
+              }
+            }
+          ]
+        },
+        {
+          "id": "world-promise",
+          "label": "A",
+          "adapterId": "point-field-v1",
+          "shapeId": "cluster-v1",
+          "seed": 506832829,
+          "railAnchorWU": 0,
+          "entryDistanceWU": 8,
+          "transform": {
+            "position": [
+              0,
+              2.25,
+              0
+            ],
+            "rotation": [
+              0,
+              0.174533,
+              0
+            ],
+            "scale": 0.52,
+            "pointSizeScale": 1.15,
+            "mobileScale": 0.44
+          },
+          "shapeParameters": {
+            "radius": 2.9,
+            "density": 0.198
+          },
+          "modifiers": [
+            {
+              "id": "swarm-life-v1",
+              "enabled": true,
+              "parameters": {
+                "strength": 3.66
+              }
+            }
+          ]
+        }
+      ],
+      "keys": [
+        {
+          "id": "key-world-promise-initial",
+          "atWU": 0,
+          "stateId": "world-promise",
+          "protected": true
+        },
+        {
+          "id": "key-world-complexity-departure",
+          "atWU": 0.72314,
+          "stateId": "world-promise"
+        },
+        {
+          "id": "key-world-complexity-arrival",
+          "atWU": 1.864941,
+          "stateId": "world-complexity"
+        },
+        {
+          "id": "key-world-grid-departure",
+          "atWU": 4.1,
+          "stateId": "world-complexity"
+        },
+        {
+          "id": "key-world-grid-arrival",
+          "atWU": 4.505974,
+          "stateId": "world-grid"
+        },
+        {
+          "id": "key-world-emergent-departure",
+          "atWU": 16.15,
+          "stateId": "world-grid"
+        },
+        {
+          "id": "key-world-emergent-arrival",
+          "atWU": 18.45,
+          "stateId": "world-emergent"
+        },
+        {
+          "id": "key-world-emergent-final",
+          "atWU": 19.05,
+          "stateId": "world-emergent",
+          "protected": true
+        }
+      ],
+      "segments": [
+        {
+          "id": "segment-key-world-promise-initial-to-key-world-complexity-departure",
+          "fromKeyId": "key-world-promise-initial",
+          "toKeyId": "key-world-complexity-departure",
+          "transition": {
+            "type": "hold",
+            "easing": "linear",
+            "correspondence": null,
+            "progress": 1,
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-complexity-departure-to-key-world-complexity-arrival",
+          "fromKeyId": "key-world-complexity-departure",
+          "toKeyId": "key-world-complexity-arrival",
+          "transition": {
+            "type": "morph",
+            "easing": "smoothstep",
+            "correspondence": "spatial-nearest-v2",
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-complexity-arrival-to-key-world-grid-departure",
+          "fromKeyId": "key-world-complexity-arrival",
+          "toKeyId": "key-world-grid-departure",
+          "transition": {
+            "type": "hold",
+            "easing": "linear",
+            "correspondence": null,
+            "progress": 1,
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-grid-departure-to-key-world-grid-arrival",
+          "fromKeyId": "key-world-grid-departure",
+          "toKeyId": "key-world-grid-arrival",
+          "transition": {
+            "type": "morph",
+            "easing": "ease-out",
+            "correspondence": "spatial-nearest-v2",
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-grid-arrival-to-key-world-emergent-departure",
+          "fromKeyId": "key-world-grid-arrival",
+          "toKeyId": "key-world-emergent-departure",
+          "transition": {
+            "type": "hold",
+            "easing": "linear",
+            "correspondence": null,
+            "progress": 1,
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-emergent-departure-to-key-world-emergent-arrival",
+          "fromKeyId": "key-world-emergent-departure",
+          "toKeyId": "key-world-emergent-arrival",
+          "transition": {
+            "type": "morph",
+            "easing": "linear",
+            "correspondence": "radial-emergence-v1",
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
+        },
+        {
+          "id": "segment-key-world-emergent-arrival-to-key-world-emergent-final",
+          "fromKeyId": "key-world-emergent-arrival",
+          "toKeyId": "key-world-emergent-final",
+          "transition": {
+            "type": "hold",
+            "easing": "linear",
+            "correspondence": null,
+            "progress": 1,
+            "stagger": {
+              "mode": "uniform",
+              "amount": 0
+            },
+            "path": {
+              "mode": "direct",
+              "amount": 0
+            },
+            "flatten": {
+              "mode": "none",
+              "amount": 0
+            }
+          }
         }
       ]
     },
@@ -1343,7 +1527,6 @@
           "startWU": 6.8,
           "activationWU": 6.8,
           "endWU": 11.7,
-          "targetWorldId": "world-grid",
           "parameters": {
             "backgroundFadeWU": 0.38,
             "backgroundOpacity": 0.42,
@@ -1432,7 +1615,8 @@
                 ]
               }
             ]
-          }
+          },
+          "targetStateId": "world-grid"
         },
         {
           "id": "interaction-grid-ripple",
@@ -1440,14 +1624,14 @@
           "startWU": 13.7,
           "activationWU": 13.7,
           "endWU": 16.15,
-          "targetWorldId": "world-grid",
           "parameters": {
             "amplitude": 1.05,
             "speed": 0.38,
             "frequency": 1.65,
             "releaseWU": 0.62,
             "timeMode": "story"
-          }
+          },
+          "targetStateId": "world-grid"
         },
         {
           "id": "interaction-emergent-ripple",
@@ -1455,14 +1639,14 @@
           "startWU": 16.15,
           "activationWU": 16.25,
           "endWU": 19.05,
-          "targetWorldId": "world-emergent",
           "parameters": {
             "amplitude": 0.52,
             "speed": 0.16,
             "frequency": 1.95,
             "releaseWU": 0.75,
             "timeMode": "story"
-          }
+          },
+          "targetStateId": "world-emergent"
         }
       ]
     }

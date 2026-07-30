@@ -9,7 +9,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
-import { ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
+import { ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
   ABOUT_NARRATIVE_POINT_PROFILES,
@@ -485,12 +485,14 @@ const manifest = {
     webkit: browserDescription(webkit, 'webkit'),
   },
   versions: {
-    schema: ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    schema: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
     compiler: `sha256:${sha256(await readFile(resolve(repoRoot, 'react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js')))}`,
     workerProtocol: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
     correspondenceRegistry: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
-    canonicalWorldCount: canonicalDocument.tracks.worlds.objects.length,
-    canonicalTransitionCount: Math.max(0, canonicalDocument.tracks.worlds.objects.length - 1),
+    canonicalWorldCount: canonicalDocument.tracks.pointField.stateDefinitions.length,
+    canonicalTransitionCount: canonicalDocument.tracks.pointField.segments.filter((segment) => (
+      segment.transition.type !== 'hold'
+    )).length,
     pointBudgets: {
       desktop: ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount,
       mobile: ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount,

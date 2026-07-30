@@ -30,6 +30,17 @@ import {
   getAboutNarrativeTrackObjectRange,
 } from './aboutNarrativeTrackEditing.js';
 import {
+  getAboutNarrativePointFieldItemRange,
+  getAboutNarrativePointFieldStateParticipationStartWU,
+} from './aboutNarrativePointFieldEditing.js';
+import {
+  ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+} from './aboutNarrativePointFieldSchema.js';
+import {
+  PointFieldInspector,
+  PointFieldLane,
+} from './PointFieldLane.jsx';
+import {
   ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
   parseAboutNarrativeCameraEasing,
 } from './aboutNarrativeCameraEasing.js';
@@ -63,14 +74,28 @@ import {
 } from './aboutNarrativeDisciplinePositions.js';
 import './about-narrative-editor.css';
 
-const TRACKS = Object.freeze([
+const LEGACY_TRACKS = Object.freeze([
   { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
   { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
   { id: 'world', label: 'World', type: 'world', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
   { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
 ]);
-const TRACK_BY_ID = Object.freeze(Object.fromEntries(TRACKS.map((track) => [track.id, track])));
+const POINT_FIELD_TRACKS = Object.freeze([
+  { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
+  { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
+  { id: 'point-field', label: 'Point field', type: 'point-field-key', colour: 'world' },
+  { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
+  { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
+]);
+const TRACK_BY_ID = Object.freeze(Object.fromEntries(
+  [...LEGACY_TRACKS, ...POINT_FIELD_TRACKS].map((track) => [track.id, track]),
+));
+const POINT_FIELD_SELECTION_TYPES = new Set([
+  'point-field-key',
+  'point-field-segment',
+  'point-field-state',
+]);
 const MIN_TIMELINE_WIDTH = 920;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
@@ -170,10 +195,16 @@ function stopEditorShortcutPropagation(event) {
 }
 
 function getGridRippleStartControl(document, clip) {
-  const targetWorld = document.tracks.worlds.objects.find((world) => world.id === clip.targetWorldId);
-  const worldStartWU = Number(targetWorld?.startWU ?? 0);
+  const targetStartWU = Number(document.schemaVersion) === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION
+    ? getAboutNarrativePointFieldStateParticipationStartWU(
+      document.tracks.pointField,
+      clip.targetStateId,
+    )
+    : Number(document.tracks.worlds.objects
+      .find((world) => world.id === clip.targetWorldId)?.startWU ?? 0);
   const attackWU = Math.max(0, Number(clip.activationWU) - Number(clip.startWU));
-  const earliestWU = Math.ceil(worldStartWU / GRID_RIPPLE_START_STEP_WU) * GRID_RIPPLE_START_STEP_WU;
+  const earliestTargetWU = Number.isFinite(targetStartWU) ? targetStartWU : 0;
+  const earliestWU = Math.ceil(earliestTargetWU / GRID_RIPPLE_START_STEP_WU) * GRID_RIPPLE_START_STEP_WU;
   const latestWU = Math.floor(
     (Number(clip.endWU) - attackWU) / GRID_RIPPLE_START_STEP_WU,
   ) * GRID_RIPPLE_START_STEP_WU;
@@ -191,7 +222,8 @@ function getGridRippleStartControl(document, clip) {
 function getTrackItems(document, trackId) {
   if (trackId === 'camera') return document.tracks.camera.keys;
   if (trackId === 'visibility') return document.tracks.visibility.keys;
-  if (trackId === 'world') return document.tracks.worlds.objects;
+  if (trackId === 'world') return document.tracks.worlds?.objects || [];
+  if (trackId === 'point-field') return [];
   if (trackId === 'text') return document.tracks.text.fields;
   return document.tracks.interactions.clips;
 }
@@ -1406,6 +1438,7 @@ function TrackObject({
 function Timeline({
   snapshot,
   store,
+  editScope,
   zoom,
   setZoom,
   textMenu,
@@ -1414,6 +1447,9 @@ function Timeline({
   setInteractionMenu,
   onOpenTextEditor,
 }) {
+  const pointFieldV6 = Number(snapshot.document.schemaVersion)
+    === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
+  const tracks = pointFieldV6 ? POINT_FIELD_TRACKS : LEGACY_TRACKS;
   const scrollRef = useRef(null);
   const scrubRef = useRef(null);
   const durationWU = Number(snapshot.compiledPlan?.durationWU
@@ -1424,7 +1460,7 @@ function Timeline({
     () => Array.from({ length: Math.ceil(durationWU) + 1 }, (_, index) => index),
     [durationWU],
   );
-  const worlds = snapshot.document.tracks.worlds.objects;
+  const worlds = snapshot.document.tracks.worlds?.objects || [];
   const editorialTextConnections = useMemo(
     () => getEditorialTextConnections(snapshot.document.tracks.text.fields),
     [snapshot.document],
@@ -1470,12 +1506,44 @@ function Timeline({
     setInteractionMenu(false);
   };
 
+  const movePointFieldKey = ({ phase, keyId, atWU, scope }) => {
+    const selection = { type: 'point-field-key', id: keyId };
+    if (phase === 'begin') {
+      store.pointField.beginMoveKey({ keyId, scope });
+    } else if (phase === 'preview') {
+      store.pointField.updateMoveKey(atWU);
+    } else if (phase === 'cancel') {
+      store.pointField.cancelGesture();
+    } else if (store.getSnapshot().gestureState) {
+      store.pointField.commitGesture({ selectionAfter: selection, requireValid: true });
+    } else {
+      store.pointField.moveKey({ keyId, atWU, scope });
+    }
+  };
+
+  const movePointFieldSegment = ({ phase, segmentId, deltaWU, scope }) => {
+    const selection = { type: 'point-field-segment', id: segmentId };
+    if (phase === 'begin') {
+      store.pointField.beginMoveSegment({ segmentId, scope });
+    } else if (phase === 'preview') {
+      store.pointField.updateMoveSegment(deltaWU);
+    } else if (phase === 'cancel') {
+      store.pointField.cancelGesture();
+    } else if (store.getSnapshot().gestureState) {
+      store.pointField.commitGesture({ selectionAfter: selection, requireValid: true });
+    } else {
+      store.pointField.moveSegment({ segmentId, deltaWU, scope });
+    }
+  };
+
   return (
     <section className="about-track-editor-timeline" aria-label="About narrative global timeline">
       <header className="about-track-editor-timeline__toolbar">
         <div>
           <strong>Global Story WU</strong>
-          <span>Drag clip edges to set duration · World ends ripple with no gaps</span>
+          <span>{pointFieldV6
+            ? 'Point field keys set form timing · transition bands shape movement'
+            : 'Drag clip edges to set duration · World ends ripple with no gaps'}</span>
         </div>
         <label>
           Zoom
@@ -1492,7 +1560,7 @@ function Timeline({
       <div className="about-track-editor-timeline__body">
         <div className="about-track-editor-headers" aria-hidden="false">
           <div className="about-track-editor-ruler-corner">WU</div>
-          {TRACKS.map((track) => (
+          {tracks.map((track) => (
             <div
               className={`about-track-editor-row-head is-${track.colour}${snapshot.selection.type === 'track' && snapshot.selection.id === track.id ? ' is-selected' : ''}`}
               key={track.id}
@@ -1504,24 +1572,26 @@ function Timeline({
               >
                 {track.label}
               </button>
-              <button
-                type="button"
-                className="about-track-editor-add"
-                aria-label={`Add ${track.label} object at playhead`}
-                aria-expanded={track.id === 'text'
-                  ? textMenu
-                  : track.id === 'interaction' ? interactionMenu : undefined}
-                onClick={() => {
-                  if (track.id === 'text') {
-                    setInteractionMenu(false);
-                    setTextMenu((open) => !open);
-                  } else if (track.id === 'interaction') {
-                    setTextMenu(false);
-                    setInteractionMenu((open) => !open);
-                  }
-                  else createAtPlayhead(track.id);
-                }}
-              >+</button>
+              {track.id === 'point-field' ? <span aria-hidden="true" /> : (
+                <button
+                  type="button"
+                  className="about-track-editor-add"
+                  aria-label={`Add ${track.label} object at playhead`}
+                  aria-expanded={track.id === 'text'
+                    ? textMenu
+                    : track.id === 'interaction' ? interactionMenu : undefined}
+                  onClick={() => {
+                    if (track.id === 'text') {
+                      setInteractionMenu(false);
+                      setTextMenu((open) => !open);
+                    } else if (track.id === 'interaction') {
+                      setTextMenu(false);
+                      setInteractionMenu((open) => !open);
+                    }
+                    else createAtPlayhead(track.id);
+                  }}
+                >+</button>
+              )}
               {track.id === 'text' && textMenu ? (
                 <div className="about-track-editor-create-menu" role="menu" aria-label="Create Text field">
                   <button type="button" role="menuitem" onClick={() => createAtPlayhead('text', 'title')}>Title</button>
@@ -1554,17 +1624,28 @@ function Timeline({
                 <span key={mark} style={{ left: mark * pixelsPerWU }}><i />{mark}</span>
               ))}
             </div>
-            {worlds.map((world) => (
+            {!pointFieldV6 ? worlds.map((world) => (
               <i
                 className="about-track-editor-world-guide"
                 key={world.id}
                 style={{ left: world.startWU * pixelsPerWU }}
                 aria-hidden="true"
               />
-            ))}
-            {TRACKS.map((track) => (
+            )) : null}
+            {tracks.map((track) => (
               <div className={`about-track-editor-lane is-${track.colour}`} key={track.id} data-track-lane={track.id}>
-                {getTrackItems(snapshot.document, track.id).map((object) => {
+                {track.id === 'point-field' ? (
+                  <PointFieldLane
+                    document={snapshot.document}
+                    selection={snapshot.selection}
+                    pixelsPerWU={pixelsPerWU}
+                    editScope={editScope}
+                    previewProfile={snapshot.previewState.layoutProfile}
+                    onSelect={(selection) => store.pointField.select(selection)}
+                    onMoveKey={movePointFieldKey}
+                    onMoveSegment={movePointFieldSegment}
+                  />
+                ) : getTrackItems(snapshot.document, track.id).map((object) => {
                   const connection = track.id === 'text'
                     ? editorialTextConnections.get(object.id)
                     : null;
@@ -1597,8 +1678,59 @@ function Timeline({
   );
 }
 
-function ObjectInspector({ snapshot, store, onMessage }) {
+function ObjectInspector({ snapshot, store, editScope, onMessage }) {
   const selection = snapshot.selection;
+  const pointFieldV6 = Number(snapshot.document.schemaVersion)
+    === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
+  if (pointFieldV6 && (
+    POINT_FIELD_SELECTION_TYPES.has(selection.type)
+    || (selection.type === 'track' && selection.id === 'point-field')
+  )) {
+    const moveKey = ({ phase, keyId, atWU, scope }) => {
+      const selectionAfter = { type: 'point-field-key', id: keyId };
+      if (phase === 'begin') store.pointField.beginMoveKey({ keyId, scope });
+      else if (phase === 'preview') store.pointField.updateMoveKey(atWU);
+      else if (phase === 'cancel') store.pointField.cancelGesture();
+      else if (store.getSnapshot().gestureState) {
+        store.pointField.commitGesture({ selectionAfter, requireValid: true });
+      } else store.pointField.moveKey({ keyId, atWU, scope });
+    };
+    const editPointField = ({ phase, scope, type, id, patch, label }) => {
+      const selectionAfter = { type, id };
+      if (phase === 'begin') {
+        store.pointField.beginPatch({ type, id, scope, label });
+      } else if (phase === 'preview') {
+        store.pointField.updatePatch(patch);
+      } else if (phase === 'cancel') {
+        store.pointField.cancelGesture();
+      } else if (store.getSnapshot().gestureState) {
+        store.pointField.updatePatch(patch);
+        store.pointField.commitGesture({ selectionAfter, requireValid: true });
+      } else {
+        const method = type === 'point-field-key'
+          ? 'patchKey'
+          : type === 'point-field-segment' ? 'patchSegment' : 'patchState';
+        store.pointField[method]({ id, scope, patch });
+      }
+    };
+    return (
+      <PointFieldInspector
+        document={snapshot.document}
+        selection={selection}
+        editScope={editScope}
+        previewProfile={snapshot.previewState.layoutProfile}
+        storyWU={snapshot.transport.storyWU}
+        onSelect={(nextSelection) => store.pointField.select(nextSelection)}
+        onEdit={editPointField}
+        onMoveKey={moveKey}
+        onResetOverride={(options) => store.pointField.resetOverride(options)}
+        onMakeUnique={(options) => store.pointField.makeKeyStateUnique(options)}
+        onDuplicateState={(options) => store.pointField.duplicateState(options)}
+        onDeleteState={(options) => store.pointField.deleteState(options)}
+        onSplitSegment={(options) => store.pointField.splitSegment(options)}
+      />
+    );
+  }
   const object = getAboutNarrativeTrackObject(snapshot.document, selection);
   const track = TRACK_BY_ID[selection.id];
   if (!object && selection.type === 'track' && selection.id === 'camera') {
@@ -1615,7 +1747,9 @@ function ObjectInspector({ snapshot, store, onMessage }) {
       <div className="about-track-editor-inspector__empty">
         <span>{track?.label || 'Timeline'}</span>
         <h2>{track ? `${track.label} track` : 'Select an object'}</h2>
-        <p>Drag Text and Motion edges to set their windows. World ends ripple every later World without gaps; Camera and Visibility keys remain points.</p>
+        <p>{pointFieldV6
+          ? 'Drag Text and Motion edges to set their windows. Point field keys place reusable states; transition bands shape how the same dots move.'
+          : 'Drag Text and Motion edges to set their windows. World ends ripple every later World without gaps; Camera and Visibility keys remain points.'}</p>
       </div>
     );
   }
@@ -1944,8 +2078,8 @@ function ObjectInspector({ snapshot, store, onMessage }) {
               )}
               <JsonField label="Emphasis" value={object.block?.emphasis || []} disabled={locked} onCommit={(value) => commit('Edit block emphasis', (target) => { target.block.emphasis = value; })} onError={onMessage} />
               <label className="about-track-editor-check">
-                <input type="checkbox" checked={object.block?.worldInfluence === true} disabled={locked} onChange={(event) => commit('Edit World influence', (target) => { target.block.worldInfluence = event.target.checked; })} />
-                Influences the World presentation
+                <input type="checkbox" checked={object.block?.worldInfluence === true} disabled={locked} onChange={(event) => commit(`Edit ${pointFieldV6 ? 'Point field' : 'World'} influence`, (target) => { target.block.worldInfluence = event.target.checked; })} />
+                Influences the {pointFieldV6 ? 'Point field' : 'World'} presentation
               </label>
             </>
           ) : null}
@@ -2004,11 +2138,19 @@ function ObjectInspector({ snapshot, store, onMessage }) {
             })}
           />
           <SelectField
-            label="Target World"
-            value={object.targetWorldId}
+            label={pointFieldV6 ? 'Target state ID' : 'Target World'}
+            value={pointFieldV6 ? object.targetStateId : object.targetWorldId}
             disabled={locked}
-            options={snapshot.document.tracks.worlds.objects.map((world) => ({ value: world.id, label: world.label || world.id }))}
-            onCommit={(value) => commit('Retarget Interaction', (target) => { target.targetWorldId = value; })}
+            options={pointFieldV6
+              ? snapshot.document.tracks.pointField.stateDefinitions.map((state) => ({
+                value: state.id,
+                label: `${state.label} · ${state.id}`,
+              }))
+              : snapshot.document.tracks.worlds.objects.map((world) => ({ value: world.id, label: world.label || world.id }))}
+            onCommit={(value) => commit('Retarget Interaction', (target) => {
+              if (pointFieldV6) target.targetStateId = value;
+              else target.targetWorldId = value;
+            })}
           />
           {object.type === 'discipline-reveal' ? (
             <>
@@ -2111,15 +2253,22 @@ function ObjectInspector({ snapshot, store, onMessage }) {
   );
 }
 
-const PUBLIC_PREVIEW_BASELINE_HASH = 'public-editor-preview-v5';
+const publicPreviewBaselineHash = (schemaVersion) => `public-editor-preview-v${schemaVersion}`;
 
 export default function AboutNarrativeEditor({ store, rootRef, previewOnly = false }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const schemaVersion = Number(snapshot.document.schemaVersion);
+  const pointFieldV6 = schemaVersion === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
+  const persistenceTargetVersion = pointFieldV6
+    ? ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION
+    : 5;
+  const previewBaselineHash = publicPreviewBaselineHash(persistenceTargetVersion);
   const [editorVisible, setEditorVisible] = useState(true);
+  const [editScope, setEditScope] = useState('base');
   const [zoom, setZoom] = useState(1);
   const [textMenu, setTextMenu] = useState(false);
   const [interactionMenu, setInteractionMenu] = useState(false);
-  const [baselineHash, setBaselineHash] = useState(previewOnly ? PUBLIC_PREVIEW_BASELINE_HASH : '');
+  const [baselineHash, setBaselineHash] = useState(previewOnly ? previewBaselineHash : '');
   const [message, setMessage] = useState(previewOnly
     ? 'Public preview: changes stay on this device until exported.'
     : 'Loading canonical source…');
@@ -2133,20 +2282,27 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const save = useCallback(async () => {
     if (saving || !baselineHash) return;
     if (previewOnly) {
-      exportAboutNarrativeDocument(store.getSnapshot().document, 'contents-about-preview.json');
-      setMessage('Exported this phone preview as contents-about-preview.json.');
+      const name = pointFieldV6 ? 'contents-about-v6-preview.json' : 'contents-about-preview.json';
+      exportAboutNarrativeDocument(store.getSnapshot().document, name, {
+        targetVersion: persistenceTargetVersion,
+      });
+      setMessage(`Exported this phone preview as ${name}.`);
       return;
     }
     setSaving(true);
-    setMessage('Validating and saving v5…');
+    setMessage(`Validating and saving v${persistenceTargetVersion}…`);
     try {
-      const persisted = await saveAboutNarrativeSource(store.getSnapshot().document, baselineHash);
+      const persisted = await saveAboutNarrativeSource(
+        store.getSnapshot().document,
+        baselineHash,
+        { targetVersion: persistenceTargetVersion },
+      );
       store.replaceDocument('Accept saved canonical source', persisted.document, { requireValid: true });
       store.markBaseline(persisted.document);
       setBaselineHash(persisted.hash);
       clearAboutNarrativeRecoveryDraft();
       setRecovery(null);
-      setMessage('Saved canonical v5.');
+      setMessage(`Saved canonical v${persistenceTargetVersion}.`);
     } catch (error) {
       setMessage(error.status === 409
         ? 'Save conflict: canonical changed. Export this draft or reload before saving.'
@@ -2154,7 +2310,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     } finally {
       setSaving(false);
     }
-  }, [baselineHash, previewOnly, saving, store]);
+  }, [baselineHash, persistenceTargetVersion, pointFieldV6, previewOnly, saving, store]);
   saveRef.current = save;
 
   useEffect(() => {
@@ -2209,27 +2365,37 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     if (previewOnly) {
       const source = store.getSnapshot().document;
       store.markBaseline(source);
-      setBaselineHash(PUBLIC_PREVIEW_BASELINE_HASH);
+      setBaselineHash(previewBaselineHash);
       setRecovery(readAboutNarrativeRecoveryDraft({
-        baselineHash: PUBLIC_PREVIEW_BASELINE_HASH,
+        baselineHash: previewBaselineHash,
+        targetVersion: persistenceTargetVersion,
       }));
       setMessage('Public preview: changes stay on this device until exported.');
       return undefined;
     }
     let active = true;
-    loadAboutNarrativeSource().then((source) => {
+    loadAboutNarrativeSource({ targetVersion: persistenceTargetVersion }).then((source) => {
       if (!active) return;
       const current = store.getSnapshot();
-      if (!current.dirty) store.replaceDocument('Load canonical v5', source.document, { requireValid: true });
+      if (!current.dirty) store.replaceDocument(
+        `Load canonical v${persistenceTargetVersion}`,
+        source.document,
+        { requireValid: true },
+      );
       store.markBaseline(source.document);
       setBaselineHash(source.hash);
-      setRecovery(readAboutNarrativeRecoveryDraft({ baselineHash: source.hash }));
-      setMessage(source.migrations?.length ? 'Loaded and migrated canonical source to v5.' : 'Canonical v5 ready.');
+      setRecovery(readAboutNarrativeRecoveryDraft({
+        baselineHash: source.hash,
+        targetVersion: persistenceTargetVersion,
+      }));
+      setMessage(source.migrations?.length
+        ? `Loaded and migrated canonical source to v${persistenceTargetVersion}.`
+        : `Canonical v${persistenceTargetVersion} ready.`);
     }).catch((error) => {
       if (active) setMessage(`Canonical load failed: ${error.message}`);
     });
     return () => { active = false; };
-  }, [previewOnly, store]);
+  }, [persistenceTargetVersion, previewBaselineHash, previewOnly, store]);
 
   useEffect(() => {
     if (!snapshot.dirty || !baselineHash) return undefined;
@@ -2238,13 +2404,14 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         writeAboutNarrativeRecoveryDraft(snapshot.document, baselineHash, {
           selection: snapshot.selection,
           storyWU: snapshot.transport.storyWU,
+          targetVersion: persistenceTargetVersion,
         });
       } catch (error) {
         setMessage(error.message);
       }
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [baselineHash, snapshot.dirty, snapshot.document, snapshot.revision, snapshot.selection, snapshot.transport.storyWU]);
+  }, [baselineHash, persistenceTargetVersion, snapshot.dirty, snapshot.document, snapshot.revision, snapshot.selection, snapshot.transport.storyWU]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -2320,12 +2487,26 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       store.setTransport({ loop: null });
       return;
     }
-    const loop = deriveAboutNarrativeTrackLoopRange({
-      model: snapshot.document,
-      selection: snapshot.selection,
-      preRollWU: 0.15,
-      postRollWU: 0.15,
-    });
+    const pointFieldRange = POINT_FIELD_SELECTION_TYPES.has(snapshot.selection.type)
+      ? getAboutNarrativePointFieldItemRange(
+        snapshot.document,
+        snapshot.selection.type,
+        snapshot.selection.id,
+      )
+      : null;
+    const loop = pointFieldRange
+      ? {
+        valid: Number(pointFieldRange.endWU) > Number(pointFieldRange.startWU),
+        startWU: clamp(Number(pointFieldRange.startWU) - 0.15, 0, durationWU),
+        endWU: clamp(Number(pointFieldRange.endWU) + 0.15, 0, durationWU),
+        reason: 'The selected Point field item has no duration to audition.',
+      }
+      : deriveAboutNarrativeTrackLoopRange({
+        model: snapshot.document,
+        selection: snapshot.selection,
+        preRollWU: 0.15,
+        postRollWU: 0.15,
+      });
     if (loop.valid) store.setTransport({ loop: { startWU: loop.startWU, endWU: loop.endWU } });
     else setMessage(loop.reason);
   };
@@ -2340,6 +2521,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
 
   const diagnostics = snapshot.diagnostics || [];
   const errors = diagnostics.filter((item) => item.level === 'error');
+  const pointFieldSelection = POINT_FIELD_SELECTION_TYPES.has(snapshot.selection.type);
   const openTextEditor = useCallback((object) => {
     store.setSelection({ type: 'text-field', id: object.id });
     if (window.matchMedia('(max-width: 700px)').matches) setMobileInspectorOpen(true);
@@ -2353,7 +2535,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   return (
     <aside
       className="about-track-editor"
-      data-editor-version="sectionless-v5"
+      data-editor-version={pointFieldV6 ? 'point-field-v6' : 'sectionless-v5'}
       data-mobile-inspector-open={mobileInspectorOpen ? 'true' : 'false'}
       hidden={!editorVisible}
       aria-keyshortcuts="/"
@@ -2363,7 +2545,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       <header className="about-track-editor-topbar">
         <div className="about-track-editor-brand">
           <strong>About Timeline</strong>
-          <span>v5 · camera + visibility</span>
+          <span>{pointFieldV6 ? 'v6 · Point field keyframes' : 'v5 · camera + visibility'}</span>
         </div>
         <div className="about-track-editor-transport" aria-label="Timeline transport">
           <button
@@ -2396,7 +2578,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           >Inspector</button>
           <button type="button" disabled={!snapshot.history.canUndo} onClick={() => store.undo()} title={snapshot.history.undoLabel}>Undo</button>
           <button type="button" disabled={!snapshot.history.canRedo} onClick={() => store.redo()} title={snapshot.history.redoLabel}>Redo</button>
-          <button type="button" onClick={() => exportAboutNarrativeDocument(snapshot.document)}>Export</button>
+          <button type="button" onClick={() => exportAboutNarrativeDocument(
+            snapshot.document,
+            pointFieldV6 ? 'contents-about-v6.json' : 'contents-about.json',
+            { targetVersion: persistenceTargetVersion },
+          )}>Export</button>
           <button
             type="button"
             onClick={() => {
@@ -2410,7 +2596,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
                   document: snapshot.document,
                   selection: snapshot.selection,
                   storyWU: snapshot.transport.storyWU,
-                });
+                }, { targetVersion: persistenceTargetVersion });
                 setMessage('Checkpoint saved locally.');
               } catch (error) {
                 setMessage(`Checkpoint failed: ${error.message}`);
@@ -2420,12 +2606,13 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           <button type="button" className="is-save" disabled={!snapshot.dirty || saving || errors.length > 0 || !baselineHash} onClick={save}>
             {previewOnly
               ? snapshot.dirty ? 'Export draft' : 'Preview ready'
-              : saving ? 'Saving…' : snapshot.dirty ? 'Save v5' : 'Saved'}
+              : saving ? 'Saving…' : snapshot.dirty ? `Save v${persistenceTargetVersion}` : 'Saved'}
           </button>
         </div>
       </header>
 
       <div className="about-track-editor-preview" aria-label="Responsive preview profile">
+        <span className="about-track-editor-preview__label">Preview</span>
         {['desktop', 'tablet', 'mobile'].map((profile) => (
           <button
             type="button"
@@ -2450,11 +2637,27 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           />
           Reduced Motion
         </label>
+        {pointFieldV6 ? (
+          <label className="about-track-editor-edit-scope">
+            Edit Point field
+            <select
+              aria-label="Point field edit scope"
+              value={editScope}
+              onChange={(event) => setEditScope(event.target.value)}
+            >
+              <option value="base">Base</option>
+              <option value="desktop">Desktop override</option>
+              <option value="tablet">Tablet override</option>
+              <option value="mobile">Mobile override</option>
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <Timeline
         snapshot={snapshot}
         store={store}
+        editScope={editScope}
         zoom={zoom}
         setZoom={setZoom}
         textMenu={textMenu}
@@ -2471,12 +2674,17 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           aria-label="Close inspector"
           onClick={() => setMobileInspectorOpen(false)}
         >Close</button>
-        <ObjectInspector snapshot={snapshot} store={store} onMessage={setMessage} />
+        <ObjectInspector
+          snapshot={snapshot}
+          store={store}
+          editScope={editScope}
+          onMessage={setMessage}
+        />
         <footer>
-          <button type="button" disabled={snapshot.selection.type === 'track'} onClick={() => store.copySelection()}>Copy</button>
-          <button type="button" disabled={!snapshot.clipboard} onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button>
-          <button type="button" disabled={snapshot.selection.type === 'track'} onClick={() => store.duplicateSelection()}>Duplicate</button>
-          <button type="button" className="is-danger" disabled={snapshot.selection.type === 'track'} onClick={() => store.deleteSelection()}>
+          <button type="button" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.copySelection()}>Copy</button>
+          <button type="button" disabled={!snapshot.clipboard || pointFieldSelection} onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button>
+          <button type="button" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.duplicateSelection()}>Duplicate</button>
+          <button type="button" className="is-danger" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.deleteSelection()}>
             {snapshot.selection.type === 'camera-key' ? 'Delete camera keyframe' : 'Delete'}
           </button>
         </footer>
@@ -2496,7 +2704,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           <p>{recovery.reason || 'Restore it, export it, or discard it.'}</p>
           <div>
             {recovery.document ? <button type="button" onClick={restoreRecovery}>Restore draft</button> : null}
-            {recovery.original !== undefined ? <button type="button" onClick={() => exportAboutNarrativeDocument(recovery.original, 'contents-about-recovered.json', { preserveOriginal: true })}>Export original</button> : null}
+            {recovery.original !== undefined ? <button type="button" onClick={() => exportAboutNarrativeDocument(recovery.original, 'contents-about-recovered.json', { preserveOriginal: true, targetVersion: persistenceTargetVersion })}>Export original</button> : null}
             <button type="button" onClick={() => { clearAboutNarrativeRecoveryDraft(); setRecovery(null); }}>Discard</button>
           </div>
         </section>

@@ -36,10 +36,11 @@ export const ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS = 14 * 86400000;
 
 const ENDPOINT = '/api/about-narrative/config';
 const MAX_CHECKPOINTS = 20;
+const ACTIVE_SCHEMA_VERSION = ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
 
-function resolvePersistenceBoundary(targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
+function resolvePersistenceBoundary(targetVersion = ACTIVE_SCHEMA_VERSION) {
   if (Number(targetVersion) === ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
     return {
       load: loadAboutNarrativeTrackSource,
@@ -105,7 +106,7 @@ function assertDocumentSize(serialized) {
 }
 
 export async function loadAboutNarrativeSource({
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   const response = await fetch(ENDPOINT, {
@@ -129,7 +130,7 @@ export async function loadAboutNarrativeSource({
 }
 
 export async function saveAboutNarrativeSource(document, baselineHash, {
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   const serialized = boundary.serialize(document, {
@@ -158,7 +159,7 @@ export async function saveAboutNarrativeSource(document, baselineHash, {
 
 export function exportAboutNarrativeDocument(document, name = 'contents-about.json', {
   preserveOriginal = false,
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   let serialized;
@@ -179,7 +180,7 @@ export function classifyAboutNarrativeRecoveryDraft(raw, {
   baselineHash = '',
   now = Date.now(),
   maximumAgeMs = ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS,
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   const displayEnvelope = parseEnvelopeForDisplay(raw);
@@ -234,7 +235,7 @@ export function readAboutNarrativeRecoveryDraft(options = {}) {
 
 export function writeAboutNarrativeRecoveryDraft(document, baselineHash, metadata = {}) {
   const boundary = resolvePersistenceBoundary(
-    metadata.targetVersion ?? ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+    metadata.targetVersion ?? ACTIVE_SCHEMA_VERSION,
   );
   const serializedDocument = boundary.serialize(document, {
     preflight: boundary.preflight,
@@ -293,7 +294,7 @@ function parseStoredCheckpoints() {
 
 function migrateStoredCheckpoints({
   strict = false,
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   const checkpoints = parseStoredCheckpoints();
@@ -311,7 +312,7 @@ function migrateStoredCheckpoints({
 }
 
 export function readAboutNarrativeCheckpoints({
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   try {
     return migrateStoredCheckpoints({ targetVersion });
@@ -321,7 +322,7 @@ export function readAboutNarrativeCheckpoints({
 }
 
 export function writeAboutNarrativeCheckpoint(checkpoint, {
-  targetVersion = ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION,
+  targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
   const boundary = resolvePersistenceBoundary(targetVersion);
   const serializedDocument = boundary.serialize(checkpoint?.document, {

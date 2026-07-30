@@ -20,12 +20,15 @@ import {
   sampleAboutNarrativeRuntimePlanInto,
 } from '../src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 import { loadAboutNarrativeTrackSource } from '../src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
+import { projectAboutNarrativePointFieldDocumentToVersion5 } from '../src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
 const canonicalSource = JSON.parse(await readFile(
   new URL('../public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
-const loadedCanonical = loadAboutNarrativeTrackSource(canonicalSource);
+const loadedCanonical = loadAboutNarrativeTrackSource(
+  projectAboutNarrativePointFieldDocumentToVersion5(canonicalSource),
+);
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
 const legacy = JSON.parse(await readFile(

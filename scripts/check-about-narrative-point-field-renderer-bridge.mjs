@@ -17,19 +17,19 @@ import {
   sampleAboutNarrativePointFieldMotionInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldMotion.js';
 import {
-  migrateAboutNarrativeVersion5To6,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
-import {
   compileAboutNarrativeRuntimePlan,
   createAboutNarrativeRuntimeFrameSample,
   sampleAboutNarrativeRuntimePlanInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 
 const canonicalV5 = JSON.parse(await readFile(
+  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
+  'utf8',
+));
+const canonicalV6 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
-const canonicalV6 = migrateAboutNarrativeVersion5To6(canonicalV5);
 
 function firstMorph(document) {
   return document.tracks.pointField.segments.find((segment) => segment.transition.type === 'morph');

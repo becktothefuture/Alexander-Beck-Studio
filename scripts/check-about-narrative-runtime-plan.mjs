@@ -42,7 +42,7 @@ import {
 import '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.test.js';
 import './check-about-narrative-point-field-runtime.mjs';
 const canonicalSource = JSON.parse(await readFile(
-  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
+  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
   'utf8',
 ));
 const legacy = JSON.parse(await readFile(
