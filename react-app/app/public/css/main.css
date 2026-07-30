@@ -3493,14 +3493,17 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 
 .route-entrance-glyph {
   margin-inline-start: var(--route-entrance-glyph-kern, 0em);
-  /* Filter/transform animation promotes each glyph to its own paint layer.
-     Keep that layer larger than the serif ink plus the 10px blur footprint,
-     while cancelling the extra box size so line geometry never changes. */
-  --route-entrance-glyph-overscan: calc(30px + 0.08em);
-  --route-entrance-glyph-overscan-negative: calc(-30px - 0.08em);
+  /* Per-glyph colour and travel stay outside layout. The small overscan keeps
+     fine serif ink intact while each glyph owns its paint layer. */
+  --route-entrance-glyph-overscan: 0.08em;
+  --route-entrance-glyph-overscan-negative: -0.08em;
   padding-block: var(--route-entrance-glyph-overscan);
   margin-block: var(--route-entrance-glyph-overscan-negative);
   transform-origin: 50% 50%;
+}
+
+.route-entrance-description-line {
+  display: block;
 }
 
 body.portfolio-page .hero-title.hero-title--portfolio {
@@ -7565,6 +7568,7 @@ body.portfolio-page--locked #simulations {
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
+  --route-description-letter-spacing: -0.012em;
   --route-title-rule-width: 2rem;
   --route-title-rule-thickness: 2px;
   --route-title-rule-offset: clamp(8px, 0.8vw, 12px);
@@ -7660,9 +7664,9 @@ body.portfolio-page--locked #simulations {
   font-size: var(--route-description-font-size);
   font-weight: 450;
   line-height: var(--route-description-line-height);
-  letter-spacing: var(--supporting-description-letter-spacing);
+  letter-spacing: var(--route-description-letter-spacing);
   color: var(--supporting-description-color);
-  opacity: 0.64;
+  opacity: var(--supporting-description-opacity);
   text-wrap: pretty;
 }
 

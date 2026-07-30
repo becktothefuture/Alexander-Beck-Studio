@@ -37,6 +37,8 @@ const titleRenderCache = {
       finalOpacity: 0,
       blurPx: 0,
       driftPx: 0,
+      flashColors: null,
+      finalColor: '',
       state: null,
     })),
   })),
@@ -156,16 +158,16 @@ function clamp01(value) {
   return value;
 }
 
-// Specialized evaluator for cubic-bezier(0.22, 0, 0.16, 1). Keeping this
+// Specialized evaluator for cubic-bezier(0.22, 0.6, 0.4, 0.9). Keeping this
 // numeric avoids parsing strings or allocating objects in the render loop.
 function easeTitleGlyphProgress(progress) {
   const t = clamp01(progress);
   const cx = 0.66;
-  const bx = -0.84;
-  const ax = 1.18;
-  const cy = 0;
-  const by = 3;
-  const ay = -2;
+  const bx = -0.12;
+  const ax = 0.46;
+  const cy = 1.8;
+  const by = -0.9;
+  const ay = 0.1;
   let x = t;
   for (let i = 0; i < 5; i += 1) {
     const estimate = ((ax * x + bx) * x + cx) * x - t;
@@ -176,12 +178,12 @@ function easeTitleGlyphProgress(progress) {
   return clamp01(((ay * x + by) * x + cy) * x);
 }
 
-function resolveGlyphProgress(state, now) {
+function resolveGlyphLinearProgress(state, now) {
   if (!state || state.settled) return 1;
-  if (state.phase !== 'playing' || !(state.startedAt > 0)) return 0;
-  return easeTitleGlyphProgress(
-    (now - state.startedAt - state.delayMs) / Math.max(1, state.durationMs),
-  );
+  if (state.phase !== 'playing' || !(state.startedAt > 0)) return -1;
+  const elapsed = now - state.startedAt - state.delayMs;
+  if (elapsed < 0) return -1;
+  return clamp01(elapsed / Math.max(1, state.durationMs));
 }
 
 function markCanvasTitleInactive(globals) {
@@ -357,6 +359,8 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       const glyphSource = glyphNodes[glyphIndex];
       glyphTarget.text = '';
       glyphTarget.state = null;
+      glyphTarget.flashColors = null;
+      glyphTarget.finalColor = '';
       if (!glyphSource || glyphIndex >= target.glyphCount) continue;
       const state = glyphSource.__absRouteEntranceState || null;
       // Entrance snapshots are valid only while their glyph is animating. Once
@@ -372,8 +376,10 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       glyphTarget.finalOpacity = clamp01(
         state ? state.finalOpacity : opacity
       );
-      glyphTarget.blurPx = Math.max(0, Number(state?.blurPx) || 0) * scaleY;
-      glyphTarget.driftPx = fontSizeCssPx * (Number(state?.driftEm) || 0) * scaleX;
+      glyphTarget.blurPx = 0;
+      glyphTarget.driftPx = glyphRect.width * (Number(state?.travelPercent) || 0) * -0.01 * scaleX;
+      glyphTarget.flashColors = state?.flashColors || null;
+      glyphTarget.finalColor = state?.finalColor || target.color;
       glyphTarget.state = state;
     }
 
@@ -424,20 +430,28 @@ function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
       for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
         const glyph = line.glyphs[glyphIndex];
         if (!glyph.text) continue;
-        const progress = resolveGlyphProgress(glyph.state, now);
-        const opacity = glyph.finalOpacity * progress;
+        const linearProgress = resolveGlyphLinearProgress(glyph.state, now);
+        if (linearProgress < 0) continue;
+        const movementProgress = easeTitleGlyphProgress(linearProgress);
+        const opacity = glyph.finalOpacity;
         maxOpacity = Math.max(maxOpacity, opacity);
         if (opacity <= 0.01) continue;
+        const flashColors = glyph.flashColors;
+        const colorIndex = flashColors?.length && linearProgress < 1
+          ? Math.min(flashColors.length - 1, Math.floor(linearProgress * flashColors.length))
+          : -1;
         visible = true;
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.fillStyle = glyph.color;
+        ctx.fillStyle = colorIndex >= 0 ? flashColors[colorIndex] : glyph.finalColor;
         ctx.font = glyph.font;
-        ctx.filter = glyph.blurPx * (1 - progress) > 0.01
-          ? `blur(${(glyph.blurPx * (1 - progress)).toFixed(3)}px)`
-          : 'none';
+        ctx.filter = 'none';
         if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-        ctx.fillText(glyph.text, glyph.x + (glyph.driftPx * (1 - progress)), glyph.y);
+        ctx.fillText(
+          glyph.text,
+          glyph.x + (glyph.driftPx * (1 - movementProgress)),
+          glyph.y,
+        );
         ctx.restore();
       }
       continue;

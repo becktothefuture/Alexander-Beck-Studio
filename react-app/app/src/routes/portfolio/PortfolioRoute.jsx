@@ -28,12 +28,12 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
   void routeState;
 
   const portfolioBlurb = homeContent.portfolio?.blurb
-    || 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.';
+    || 'Projects from early concepts to shipped websites, apps, tools, and platforms.';
   const portfolioHeroEyebrow = homeContent.portfolio?.heroEyebrow || 'Alexander Beck';
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'Work'
+        'Selected Work'
       ];
   const portfolioHeroAria = [portfolioHeroEyebrow, ...portfolioHeroLines].filter(Boolean).join(' ');
   const portfolioHeroSecondary = portfolioHeroLines[1] || '';

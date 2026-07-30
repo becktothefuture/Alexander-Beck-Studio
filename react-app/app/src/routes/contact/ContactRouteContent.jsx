@@ -108,7 +108,7 @@ export function ContactRouteContent() {
           {title}
         </h1>
         <span className="route-title-lockup__rule" aria-hidden="true" />
-        <p id="contact-route-description" className="route-centered-page__description route-intro-description" data-route-enter="context">
+        <p id="contact-route-description" className="route-centered-page__description route-intro-description" data-route-enter="context" data-route-enter-variant="bookend-description">
           {description}
         </p>
         <div className="contact-route__copy" data-route-enter="action">

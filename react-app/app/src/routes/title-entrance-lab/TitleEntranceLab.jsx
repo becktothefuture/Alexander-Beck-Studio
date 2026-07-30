@@ -1,182 +1,362 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import { HOME_IDENTITY } from '../../lib/home-identity.js';
+import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
+import {
+  startSimulationPaletteController,
+  stopSimulationPaletteController,
+} from '../../palette/simulationPaletteController.js';
+import {
+  TITLE_ENTRANCE_LAB_CONTROLS,
+  TITLE_ENTRANCE_LAB_DEFAULTS,
+  createTitleEntranceLabSearch,
+  resolveTitleEntranceLabConfig,
+} from './titleEntranceLabControls.js';
 import './title-entrance-lab.css';
 
-const TITLE_DURATION_MS = 560;
-const LETTER_STEP_MS = 26;
-const SUBTITLE_GAP_MS = 140;
-const SUBTITLE_DURATION_MS = 480;
-const VIEW_OUT_MS = 160;
-const VIEW_IN_MS = 230;
-const VIEW_EASING = 'cubic-bezier(0.22, 0, 0.16, 1)';
+const HOME_TITLE_LINES = Object.freeze([HOME_IDENTITY.name, ...HOME_IDENTITY.roleLines]);
+const CONTACT_TITLE_LINES = Object.freeze([homeContent.contact?.title || "Let's talk"]);
+const CONTACT_DESCRIPTION = homeContent.contact?.description
+  || 'If you’re building something that needs design, technology and AI to move together, send me a note.';
 
-const ROUTE_STUDIES = Object.freeze([
-  {
-    id: 'home',
-    label: 'Home',
-    accent: '#00695c',
-    titleLines: [HOME_IDENTITY.name, ...HOME_IDENTITY.roleLines],
-    subtitle: homeContent.edge?.tagline
-      || 'A London-based design practice shaping products, interfaces, and interactive moments.',
-  },
-  {
-    id: 'portfolio',
-    label: 'Work',
-    accent: '#d7ff2f',
-    titleLines: [homeContent.portfolio?.heroLines?.[0] || 'Work'],
-    subtitle: homeContent.portfolio?.blurb
-      || 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.',
-  },
-  {
-    id: 'about',
-    label: 'About Me',
-    accent: '#0d5cb6',
-    titleLines: ['About Me'],
-    subtitle: 'I’ve always been drawn to the complicated bit.',
-  },
-  {
-    id: 'contact',
-    label: 'Contact',
-    accent: '#ffa000',
-    titleLines: [homeContent.contact?.title || "Let’s talk"],
-    subtitle: homeContent.contact?.description
-      || 'If you’re building something that needs design, technology and AI to move together, send me a note.',
-  },
-]);
-
-function getGlyphCount(lines) {
-  return lines.reduce((count, line) => count + Array.from(line).length, 0);
+function getRelativeLuminance(hex) {
+  const normalized = String(hex || '').replace('#', '');
+  if (!/^[\da-f]{6}$/i.test(normalized)) return 0;
+  const channels = [0, 2, 4].map((offset) => {
+    const channel = Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return (channels[0] * 0.2126) + (channels[1] * 0.7152) + (channels[2] * 0.0722);
 }
 
-function AnimatedTitle({ study, playing, onTitleComplete }) {
+function getSeededSample(seed) {
+  return Math.abs(Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1;
+}
+
+function createRandomOrderedFlashColors(colors, count, theme, seed) {
+  const selected = colors
+    .map((color, index) => ({ color, rank: getSeededSample(seed + (index * 47)) }))
+    .sort((left, right) => left.rank - right.rank)
+    .slice(0, Math.min(count, colors.length))
+    .map((entry) => entry.color)
+    .sort((left, right) => getRelativeLuminance(left) - getRelativeLuminance(right));
+  return theme === 'dark' ? selected : selected.reverse();
+}
+
+function createGlyphStyle({
+  colorCount,
+  glyphIndex,
+  paletteColors,
+  sequenceKey,
+  theme,
+}) {
+  const flashColors = createRandomOrderedFlashColors(
+    paletteColors,
+    colorCount,
+    theme,
+    (sequenceKey * 97) + (glyphIndex * 19),
+  );
+  return flashColors.reduce((style, color, index) => ({
+    ...style,
+    [`--flash-${index + 1}`]: color,
+  }), { '--reveal-index': glyphIndex });
+}
+
+function splitDescriptionIntoLines(description, lineCount = 3) {
+  const words = String(description || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length <= lineCount) return words;
+  const targetLength = Math.ceil(description.length / lineCount);
+  const lines = [];
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (lines.length < lineCount - 1 && currentLine && candidate.length > targetLength) {
+      lines.push(currentLine);
+      currentLine = word;
+      return;
+    }
+    currentLine = candidate;
+  });
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function createSupportingLockupStyle(config, glyphCount, descriptionLineCount) {
+  const letterStaggerMs = config.letterDurationMs * (1 - (config.overlapPercent / 100));
+  const titleSequenceDurationMs = config.letterDurationMs
+    + ((glyphCount - 1) * letterStaggerMs);
+  const titleRuleOverlapMs = Math.min(config.lineOverlapMs, titleSequenceDurationMs);
+  const ruleDelayMs = Math.max(0, titleSequenceDurationMs - titleRuleOverlapMs);
+  const descriptionDelayMs = ruleDelayMs + config.descriptionDelayMs;
+  const descriptionMotionDurationMs = config.descriptionDurationMs
+    + (Math.max(0, descriptionLineCount - 1) * config.descriptionLineStaggerMs);
+  return {
+    '--rule-duration': `${config.lineDurationMs}ms`,
+    '--rule-delay': `${ruleDelayMs}ms`,
+    '--description-duration': `${config.descriptionDurationMs}ms`,
+    '--description-motion-duration': `${descriptionMotionDurationMs}ms`,
+    '--description-delay': `${descriptionDelayMs}ms`,
+    '--description-line-stagger': `${config.descriptionLineStaggerMs}ms`,
+  };
+}
+
+function AnimatedSpecimen({
+  config,
+  description,
+  label,
+  lines,
+  meta,
+  number,
+  paletteColors,
+  playing,
+  sequenceKey,
+}) {
   let glyphIndex = 0;
-  const glyphCount = getGlyphCount(study.titleLines);
-  const titleText = study.titleLines.join(' ');
+  const titleText = lines.join(' ');
+  const glyphCount = lines.reduce((count, line) => count + Array.from(line).length, 0);
+  const descriptionLines = splitDescriptionIntoLines(description);
+  const supportingLockupStyle = description
+    ? createSupportingLockupStyle(config, glyphCount, descriptionLines.length)
+    : undefined;
 
   return (
-    <h1 className="title-entrance-specimen__title" aria-label={titleText}>
-      <span className="screen-reader">{titleText}</span>
-      <span aria-hidden="true">
-        {study.titleLines.map((line, lineIndex) => (
-          <span key={`${study.id}-${line}`} className="title-entrance-specimen__line">
-            {Array.from(line).map((glyph) => {
-              const index = glyphIndex;
-              const isLastGlyph = index === glyphCount - 1;
-              glyphIndex += 1;
-              return (
+    <article className="title-entrance-specimen" style={supportingLockupStyle}>
+      <header className="title-entrance-specimen__meta">
+        <div>
+          <span>{number}</span>
+          <h2>{label}</h2>
+        </div>
+        <p>{meta}</p>
+      </header>
+
+      <div className="title-entrance-specimen__viewport">
+        <div className="title-entrance-specimen__lockup">
+          <h3 className="title-entrance-specimen__title" aria-label={titleText}>
+            <span className="screen-reader">{titleText}</span>
+            <span aria-hidden="true">
+              {lines.map((line, lineIndex) => (
                 <span
-                  key={`${lineIndex}-${index}-${glyph}`}
-                  className="title-entrance-specimen__glyph"
-                  style={{ '--glyph-index': index }}
-                  onAnimationEnd={isLastGlyph && playing ? onTitleComplete : undefined}
+                  key={`${lineIndex}-${line}`}
+                  className="title-entrance-specimen__line"
+                  data-title-tone={lineIndex === 0 ? 'primary' : 'secondary'}
                 >
-                  {glyph === ' ' ? '\u00a0' : glyph}
+                  {Array.from(line).map((glyph) => {
+                    const index = glyphIndex;
+                    glyphIndex += 1;
+                    return (
+                      <span
+                        key={`${sequenceKey}-${lineIndex}-${index}-${glyph}`}
+                        className={[
+                          'title-entrance-specimen__glyph',
+                          playing ? 'is-playing' : '',
+                        ].filter(Boolean).join(' ')}
+                        data-color-count={config.colorCount}
+                        style={createGlyphStyle({
+                          colorCount: config.colorCount,
+                          glyphIndex: index,
+                          paletteColors,
+                          sequenceKey,
+                          theme: config.theme,
+                        })}
+                      >
+                        {glyph === ' ' ? '\u00a0' : glyph}
+                      </span>
+                    );
+                  })}
                 </span>
-              );
-            })}
-          </span>
-        ))}
-      </span>
-    </h1>
+              ))}
+            </span>
+          </h3>
+          {description ? (
+            <>
+              <span
+                className={[
+                  'title-entrance-specimen__rule',
+                  playing ? 'is-playing' : '',
+                ].filter(Boolean).join(' ')}
+                aria-hidden="true"
+              />
+              <p
+                aria-label={description}
+                className={[
+                  'title-entrance-specimen__description',
+                  playing ? 'is-playing' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                <span aria-hidden="true">
+                  {descriptionLines.map((descriptionLine, lineIndex) => (
+                    <span
+                      key={`${lineIndex}-${descriptionLine}`}
+                      className="title-entrance-specimen__description-line"
+                    >
+                      {descriptionLine}
+                    </span>
+                  ))}
+                </span>
+              </p>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </article>
   );
 }
 
-function PhaseReadout({ phase }) {
-  const phases = [
-    ['transition', 'View transition'],
-    ['title', 'Title'],
-    ['subtitle', 'Subtitle'],
-  ];
-  const phaseIndex = phases.findIndex(([id]) => id === phase);
-  const completed = phase === 'complete';
+function ParameterRow({ config, control, onChange }) {
+  const controlId = `title-entrance-control-${control.id}`;
+  const disabled = control.id === 'travelPercent' && !config.movementEnabled;
+
+  if (control.type === 'select') {
+    return (
+      <label className="parameterizer-row" htmlFor={controlId}>
+        <span className="parameterizer-label">{control.label}</span>
+        <span className="parameterizer-control">
+          <select
+            id={controlId}
+            value={config[control.id]}
+            onChange={(event) => onChange(control.id, event.target.value)}
+          >
+            {control.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </span>
+      </label>
+    );
+  }
+
+  if (control.type === 'boolean') {
+    return (
+      <label className="parameterizer-row" htmlFor={controlId}>
+        <span className="parameterizer-label">{control.label}</span>
+        <span className="parameterizer-control parameterizer-control--boolean">
+          <input
+            id={controlId}
+            type="checkbox"
+            checked={config[control.id]}
+            onChange={(event) => onChange(control.id, event.target.checked)}
+          />
+        </span>
+      </label>
+    );
+  }
 
   return (
-    <ol className="title-entrance-lab__timeline" aria-label="Entrance sequence status">
-      {phases.map(([id, label], index) => (
-        <li
-          key={id}
-          className={[
-            id === phase ? 'is-active' : '',
-            completed || phaseIndex > index ? 'is-complete' : '',
-          ].filter(Boolean).join(' ')}
-        >
-          <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-          {label}
-        </li>
-      ))}
-    </ol>
+    <label className="parameterizer-row" data-disabled={disabled} htmlFor={controlId}>
+      <span className="parameterizer-label">{control.label}</span>
+      <span className="parameterizer-control">
+        <input
+          id={controlId}
+          type="range"
+          min={control.min}
+          max={control.max}
+          step={control.step}
+          value={config[control.id]}
+          disabled={disabled}
+          onChange={(event) => onChange(control.id, Number(event.target.value))}
+        />
+        <output className="parameterizer-value" htmlFor={controlId}>
+          {config[control.id]}{control.unit}
+        </output>
+      </span>
+    </label>
   );
+}
+
+function ParameterFolder({ children, label }) {
+  return (
+    <details className="parameterizer-folder" open>
+      <summary className="parameterizer-folder-title">{label}</summary>
+      <div>{children}</div>
+    </details>
+  );
+}
+
+function TitleEntrancePanel({ config, copyStatus, onChange, onCopy, onReplay, onReset, palette }) {
+  const groupedControls = useMemo(() => ({
+    Appearance: TITLE_ENTRANCE_LAB_CONTROLS.filter((control) => !control.group),
+    Timing: TITLE_ENTRANCE_LAB_CONTROLS.filter((control) => control.group === 'Timing'),
+    Movement: TITLE_ENTRANCE_LAB_CONTROLS.filter((control) => control.group === 'Movement'),
+  }), []);
+
+  return (
+    <aside className="parameterizer-panel title-entrance-panel" aria-label="Title animation controls">
+      <header className="parameterizer-header">
+        <div>
+          <strong>Title entrance</strong>
+          <span>Parametric study</span>
+        </div>
+        <button type="button" onClick={onReplay}>Replay</button>
+      </header>
+
+      <div className="parameterizer-scroll">
+        {Object.entries(groupedControls).map(([group, controls]) => (
+          <ParameterFolder key={group} label={group}>
+            {controls.map((control) => (
+              <ParameterRow
+                key={control.id}
+                config={config}
+                control={control}
+                onChange={onChange}
+              />
+            ))}
+          </ParameterFolder>
+        ))}
+
+        <div className="title-entrance-panel__palette">
+          <span>Current ball palette</span>
+          <div aria-label={`${palette.paletteId} palette`}>
+            {palette.colors.map((color, index) => (
+              <i key={`${color}-${index}`} style={{ background: color }} title={color} />
+            ))}
+          </div>
+          <small>{palette.paletteId}</small>
+        </div>
+      </div>
+
+      <footer className="parameterizer-actions">
+        <button type="button" onClick={onReset}>Reset</button>
+        <button type="button" onClick={onCopy}>{copyStatus}</button>
+      </footer>
+    </aside>
+  );
+}
+
+function getInitialConfig() {
+  return resolveTitleEntranceLabConfig(typeof window === 'undefined' ? '' : window.location.search);
 }
 
 export function TitleEntranceLab() {
-  const [activeId, setActiveId] = useState('home');
-  const [phase, setPhase] = useState('transition');
+  const [config, setConfig] = useState(getInitialConfig);
   const [sequenceKey, setSequenceKey] = useState(0);
-  const stageRef = useRef(null);
-  const transactionRef = useRef(0);
-  const study = ROUTE_STUDIES.find((item) => item.id === activeId) || ROUTE_STUDIES[0];
-  const glyphCount = getGlyphCount(study.titleLines);
-  const subtitleDelay = ((glyphCount - 1) * LETTER_STEP_MS) + TITLE_DURATION_MS + SUBTITLE_GAP_MS;
-  const playing = phase !== 'transition';
+  const [playing, setPlaying] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('Copy setup link');
+  const palette = useSimulationPalette();
+  const paletteColors = useMemo(() => (
+    Array.isArray(palette.colors) ? palette.colors : []
+  ), [palette.colors]);
+  const letterStaggerMs = config.letterDurationMs * (1 - (config.overlapPercent / 100));
+  const pageStyle = {
+    '--letter-duration': `${config.letterDurationMs}ms`,
+    '--letter-stagger': `${letterStaggerMs}ms`,
+    '--travel-percent': config.movementEnabled ? `${config.travelPercent}%` : '0%',
+    '--description-rise': config.movementEnabled ? 'clamp(4px, 0.45em, 7px)' : '0px',
+  };
 
-  const timingStyle = useMemo(() => ({
-    '--study-accent': study.accent,
-    '--title-duration': `${TITLE_DURATION_MS}ms`,
-    '--letter-step': `${LETTER_STEP_MS}ms`,
-    '--subtitle-delay': `${subtitleDelay}ms`,
-    '--subtitle-duration': `${SUBTITLE_DURATION_MS}ms`,
-  }), [study, subtitleDelay]);
-
-  const runTransition = useCallback(async (nextId) => {
-    const stage = stageRef.current;
-    const transaction = transactionRef.current + 1;
-    transactionRef.current = transaction;
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-
-    setPhase('transition');
-    if (!reducedMotion && stage?.animate) {
-      const exitAnimation = stage.animate(
-        [
-          { opacity: 1, filter: 'blur(0)' },
-          { opacity: 0, filter: 'blur(3px)' },
-        ],
-        { duration: VIEW_OUT_MS, easing: VIEW_EASING, fill: 'forwards' },
-      );
-      await exitAnimation.finished.catch(() => undefined);
-      stage.style.opacity = '0';
-      stage.style.filter = 'blur(3px)';
-      exitAnimation.cancel();
-    }
-    if (transactionRef.current !== transaction) return;
-
-    flushSync(() => {
-      setPhase('transition');
-      setActiveId(nextId);
+  const replay = useCallback(() => {
+    setPlaying(false);
+    window.requestAnimationFrame(() => {
       setSequenceKey((key) => key + 1);
+      setPlaying(true);
     });
+  }, []);
 
-    if (!reducedMotion && stage?.animate) {
-      const enterAnimation = stage.animate(
-        [
-          { opacity: 0, filter: 'blur(3px)' },
-          { opacity: 1, filter: 'blur(0)' },
-        ],
-        { duration: VIEW_IN_MS, easing: VIEW_EASING, fill: 'forwards' },
-      );
-      await enterAnimation.finished.catch(() => undefined);
-      stage.style.opacity = '1';
-      stage.style.filter = 'blur(0)';
-      enterAnimation.cancel();
-    }
-    if (transactionRef.current !== transaction) return;
-
-    if (stage) {
-      stage.style.removeProperty('opacity');
-      stage.style.removeProperty('filter');
-    }
-    setPhase(reducedMotion ? 'complete' : 'title');
+  useEffect(() => {
+    startSimulationPaletteController();
+    return () => stopSimulationPaletteController();
   }, []);
 
   useEffect(() => {
@@ -184,108 +364,100 @@ export function TitleEntranceLab() {
     const begin = async () => {
       await document.fonts?.ready;
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
-      if (!cancelled) void runTransition('home');
+      if (!cancelled) replay();
     };
     void begin();
     return () => {
       cancelled = true;
-      transactionRef.current += 1;
     };
-  }, [runTransition]);
+  }, [replay]);
 
-  const handleRouteSelect = (routeId) => {
-    if (phase === 'transition' || routeId === activeId) return;
-    void runTransition(routeId);
+  const updateConfig = (id, value) => {
+    setConfig((current) => {
+      const next = { ...current, [id]: value };
+      const nextUrl = `${window.location.pathname}${createTitleEntranceLabSearch(next)}${window.location.hash}`;
+      window.history.replaceState(null, '', nextUrl);
+      return next;
+    });
+    replay();
   };
 
-  const handleTitleComplete = () => {
-    setPhase((currentPhase) => (currentPhase === 'title' ? 'subtitle' : currentPhase));
+  const resetConfig = () => {
+    const next = { ...TITLE_ENTRANCE_LAB_DEFAULTS };
+    setConfig(next);
+    window.history.replaceState(null, '', window.location.pathname);
+    replay();
   };
-  const handleSubtitleComplete = () => {
-    setPhase((currentPhase) => (currentPhase === 'subtitle' ? 'complete' : currentPhase));
+
+  const copySetupLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyStatus('Link copied');
+    } catch {
+      setCopyStatus('Copy failed');
+    }
+    window.setTimeout(() => setCopyStatus('Copy setup link'), 1600);
   };
+
+  const directionLabel = config.theme === 'dark'
+    ? 'Darkest to lightest, settling on white'
+    : 'Lightest to darkest, settling on black';
 
   return (
-    <main className="title-entrance-lab" style={timingStyle}>
+    <main
+      className="title-entrance-lab"
+      data-theme={config.theme}
+      data-movement={config.movementEnabled}
+      style={pageStyle}
+    >
       <header className="title-entrance-lab__header">
         <div>
-          <p className="title-entrance-lab__eyebrow">Motion study / route identity</p>
-          <h2>Uncropped entrance</h2>
+          <p className="title-entrance-lab__eyebrow">Motion lab / Instrument Serif</p>
+          <h1>Colour-flash title entrances</h1>
         </div>
         <p>
-          The view settles first. Then each letter drifts gently in from the left and resolves
-          using only position, blur, and opacity. Supporting copy waits for the title to finish.
+          Two ordered examples use the exact Home and Contact content with the current ball palette.
+          {` ${directionLabel}.`}
         </p>
       </header>
 
-      <section className="title-entrance-lab__workbench" aria-label="Route title animation study">
-        <div className="title-entrance-lab__controls">
-          <nav aria-label="Choose a route title">
-            {ROUTE_STUDIES.map((route) => (
-              <button
-                key={route.id}
-                type="button"
-                className={route.id === activeId ? 'is-active' : ''}
-                aria-pressed={route.id === activeId}
-                disabled={phase === 'transition'}
-                onClick={() => handleRouteSelect(route.id)}
-              >
-                <span aria-hidden="true" style={{ background: route.accent }} />
-                {route.label}
-              </button>
-            ))}
-          </nav>
+      <div className="title-entrance-lab__layout">
+        <TitleEntrancePanel
+          config={config}
+          copyStatus={copyStatus}
+          onChange={updateConfig}
+          onCopy={copySetupLink}
+          onReplay={replay}
+          onReset={resetConfig}
+          palette={palette}
+        />
 
-          <div className="title-entrance-lab__sequence-controls">
-            <PhaseReadout phase={phase} />
-            <button
-              type="button"
-              className="title-entrance-lab__replay"
-              disabled={phase === 'transition'}
-              onClick={() => void runTransition(activeId)}
-            >
-              Replay full sequence
-            </button>
-          </div>
-        </div>
-
-        <div className="title-entrance-lab__frame" aria-live="polite">
-          <div className="title-entrance-lab__frame-labels" aria-hidden="true">
-            <span>{study.label}</span>
-            <span>{phase === 'complete' ? 'Settled' : phase}</span>
-          </div>
-
-          <div ref={stageRef} className="title-entrance-lab__stage">
-            <div
-              key={`${activeId}-${sequenceKey}`}
-              className={[
-                'title-entrance-specimen',
-                playing ? 'is-playing' : '',
-                phase === 'complete' ? 'is-complete' : '',
-              ].filter(Boolean).join(' ')}
-            >
-              <AnimatedTitle
-                study={study}
-                playing={playing}
-                onTitleComplete={handleTitleComplete}
-              />
-              <p
-                className="title-entrance-specimen__subtitle"
-                onAnimationEnd={playing ? handleSubtitleComplete : undefined}
-              >
-                {study.subtitle}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="title-entrance-lab__notes">
-        <p><span>26ms</span> letter interval</p>
-        <p><span>560ms</span> letter resolve</p>
-        <p><span>140ms</span> title-to-subtitle pause</p>
-        <p><span>0</span> clipping masks</p>
-      </footer>
+        <section className="title-entrance-lab__specimens" aria-label="Title animation examples">
+          <AnimatedSpecimen
+            key={`home-${sequenceKey}`}
+            config={config}
+            label="Home title"
+            lines={HOME_TITLE_LINES}
+            meta="Title only, without a supporting rule or description."
+            number="01"
+            paletteColors={paletteColors}
+            playing={playing}
+            sequenceKey={sequenceKey}
+          />
+          <AnimatedSpecimen
+            key={`contact-${sequenceKey}`}
+            config={config}
+            description={CONTACT_DESCRIPTION}
+            label="Contact lockup"
+            lines={CONTACT_TITLE_LINES}
+            meta="The title hands into its rule, then a top-to-bottom description fade."
+            number="02"
+            paletteColors={paletteColors}
+            playing={playing}
+            sequenceKey={sequenceKey}
+          />
+        </section>
+      </div>
     </main>
   );
 }

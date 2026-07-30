@@ -36,7 +36,7 @@ import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
 import {
   applyBookendTitleKerning,
-  BOOKEND_LOCKUP_RULE_DURATION_MS,
+  createEntranceSequence,
   prepareBookendTitleGlyphs,
 } from '../../../lib/motion/entrance-sequence.js';
 import { getShellRouteTransitionConfig } from '../visual/site-shell.js';
@@ -83,32 +83,25 @@ const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
 const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
 const PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS = 300;
-const PORTFOLIO_TITLE_GLYPH_DURATION_MS = 560;
-const PORTFOLIO_TITLE_GLYPH_STEP_MS = 26;
+const PORTFOLIO_BOOKEND_FALLBACK_REVEAL_DELAY_MS = 300;
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
 const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
 const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
 
-function resolvePortfolioTitleTiming({
-  glyphCount,
-  titleDurationMs = PORTFOLIO_TITLE_GLYPH_DURATION_MS,
-  titleStepMs = PORTFOLIO_TITLE_GLYPH_STEP_MS,
-}) {
-  const ruleDelayMs = titleDurationMs + ((Math.max(1, glyphCount) - 1) * titleStepMs);
-  return {
-    titleDurationMs,
-    titleStepMs,
-    ruleDelayMs,
-    descriptionDelayMs: ruleDelayMs + BOOKEND_LOCKUP_RULE_DURATION_MS,
-  };
+function resolvePortfolioTitleTiming(sequence) {
+  const totalMs = Number(sequence?.totalMs);
+  if (Number.isFinite(totalMs) && totalMs >= 0) return totalMs;
+  const routeMotion = getShellRouteTransitionConfig();
+  return Math.max(
+    PORTFOLIO_BOOKEND_FALLBACK_REVEAL_DELAY_MS,
+    routeMotion.routeBookendDurationMs,
+  );
 }
 
-function applyPortfolioTitleTiming(intro, timing) {
-  intro?.style.setProperty('--portfolio-title-duration', `${timing.titleDurationMs}ms`);
-  intro?.style.setProperty('--portfolio-title-letter-step', `${timing.titleStepMs}ms`);
-  intro?.style.setProperty('--portfolio-title-rule-delay', `${timing.ruleDelayMs}ms`);
-  intro?.style.setProperty('--portfolio-title-rule-duration', `${BOOKEND_LOCKUP_RULE_DURATION_MS}ms`);
-  intro?.style.setProperty('--portfolio-title-subtitle-delay', `${timing.descriptionDelayMs}ms`);
+function applyPortfolioTitleTiming(mount, sequence) {
+  const revealDelayMs = resolvePortfolioTitleTiming(sequence);
+  mount?.style.setProperty('--portfolio-content-reveal-delay', `${revealDelayMs}ms`);
+  return revealDelayMs;
 }
 
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
@@ -668,6 +661,8 @@ class PortfolioScrollApp {
     this.wheelGesture = null;
     this.deckMotionDirection = -1;
     this.deckContentRevealDelayMs = PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS;
+    this.deckIntroEntrance = null;
+    this.deckIntroEntranceMode = '';
     this.deckOptions = { ...PORTFOLIO_DECK_DEFAULTS };
     this.particleField = null;
     this.atmosphereSourceCleanup = null;
@@ -840,23 +835,34 @@ class PortfolioScrollApp {
     return this.config?.runtime?.entrance || {};
   }
 
+  prepareDeckIntroEntrance({ routeTransition = false, force = false } = {}) {
+    const intro = this.mount?.querySelector('.portfolio-deck-intro');
+    if (!intro) return null;
+    const mode = routeTransition ? 'route' : 'direct';
+    if (!force && this.deckIntroEntrance && this.deckIntroEntranceMode === mode) {
+      return this.deckIntroEntrance;
+    }
+    this.deckIntroEntrance?.cancel();
+    this.deckIntroEntrance = createEntranceSequence({
+      scopes: intro,
+      profile: routeTransition ? 'route' : 'direct',
+      timingMode: routeTransition ? 'repeat' : 'first',
+      reducedMotion: shouldReducePortfolioMotion(),
+    });
+    this.deckIntroEntranceMode = mode;
+    this.deckIntroEntrance.stage();
+    this.deckContentRevealDelayMs = applyPortfolioTitleTiming(
+      this.mount,
+      this.deckIntroEntrance,
+    );
+    return this.deckIntroEntrance;
+  }
+
   applyEntranceConfiguration({ routeTransition = false } = {}) {
     if (!this.mount) return [];
     const entrance = this.getEntranceOptions();
-    const intro = this.mount.querySelector('.portfolio-deck-intro');
-    const titleGlyphCount = Math.max(
-      1,
-      Number.parseInt(intro?.style.getPropertyValue('--portfolio-title-glyph-count') || '1', 10) || 1,
-    );
-    const routeMotion = routeTransition ? getShellRouteTransitionConfig() : null;
-    const timing = resolvePortfolioTitleTiming({
-      glyphCount: titleGlyphCount,
-      titleDurationMs: routeMotion?.routeBookendDurationMs,
-      titleStepMs: routeMotion?.routeBookendStepMs,
-    });
-    applyPortfolioTitleTiming(intro, timing);
     const baseDelayMs = routeTransition
-      ? entrance.cardStartDelayMs
+      ? Math.max(entrance.cardStartDelayMs, this.deckContentRevealDelayMs)
       : this.deckContentRevealDelayMs;
     const stepMs = routeTransition ? entrance.cardStepMs : 40;
     if (routeTransition) {
@@ -919,6 +925,7 @@ class PortfolioScrollApp {
     this.pauseAllVideos();
     this.particleField?.setSuspended(true);
     this.updateCardMetrics();
+    this.prepareDeckIntroEntrance({ routeTransition: true, force: true });
     this.applyEntranceConfiguration({ routeTransition: true });
     this.mount.classList.add('is-portfolio-boot-preparing', 'is-portfolio-route-transition-entrance');
     this.mount.classList.remove('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
@@ -990,6 +997,9 @@ class PortfolioScrollApp {
     this.entranceAbortController?.abort();
     this.entranceAbortController = null;
     this.entrancePromise = null;
+    this.deckIntroEntrance?.cancel();
+    this.deckIntroEntrance = null;
+    this.deckIntroEntranceMode = '';
     this.entranceRankedCards.forEach((card) => {
       card.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
     });
@@ -1036,6 +1046,7 @@ class PortfolioScrollApp {
     const abort = () => controller.abort();
     signal?.addEventListener?.('abort', abort, { once: true });
     this.entranceAbortController = controller;
+    const deckIntroEntrance = this.prepareDeckIntroEntrance({ routeTransition });
     this.applyEntranceConfiguration({ routeTransition });
     this.mount.classList.toggle('is-portfolio-route-transition-entrance', routeTransition);
     this.mount.classList.remove('is-portfolio-boot-preparing');
@@ -1052,17 +1063,22 @@ class PortfolioScrollApp {
       this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
       this.entrancePromise = null;
       this.entranceAbortController = null;
+      this.deckIntroEntrance = null;
+      this.deckIntroEntranceMode = '';
       signal?.removeEventListener?.('abort', abort);
       return true;
     };
 
     if (shouldReducePortfolioMotion()) {
+      void deckIntroEntrance?.play();
       finish();
       return Promise.resolve(true);
     }
 
-    this.entrancePromise = this.waitForEssentialEntranceAnimations(controller.signal)
-      .then(finish);
+    this.entrancePromise = Promise.all([
+      deckIntroEntrance?.play(),
+      this.waitForEssentialEntranceAnimations(controller.signal),
+    ]).then(finish);
     return this.entrancePromise;
   }
 
@@ -1327,20 +1343,13 @@ class PortfolioScrollApp {
     const heading = document.createElement('h2');
     heading.id = 'portfolioDeckIntroTitle';
     heading.className = 'portfolio-deck-intro__title route-centered-page__title route-bookend-title';
+    heading.dataset.routeEnter = 'identity';
+    heading.dataset.routeEnterOrder = '0';
     heading.dataset.routeEnterVariant = 'bookend-title';
     heading.dataset.routeFocusTarget = '';
     heading.tabIndex = -1;
     heading.textContent = title;
-    const titleGlyphs = prepareBookendTitleGlyphs(heading);
-    const titleGlyphCount = Math.max(1, titleGlyphs.length);
-    const timing = resolvePortfolioTitleTiming({ glyphCount: titleGlyphCount });
-    this.deckContentRevealDelayMs = timing.descriptionDelayMs;
-    intro.style.setProperty('--portfolio-title-glyph-count', titleGlyphCount);
-    applyPortfolioTitleTiming(intro, timing);
-    this.mount?.style.setProperty(
-      '--portfolio-content-reveal-delay',
-      `${timing.descriptionDelayMs}ms`,
-    );
+    prepareBookendTitleGlyphs(heading);
 
     const rule = document.createElement('span');
     rule.className = 'route-title-lockup__rule';
@@ -1348,6 +1357,8 @@ class PortfolioScrollApp {
 
     const copy = document.createElement('p');
     copy.className = 'portfolio-deck-intro__body route-centered-page__description route-intro-description';
+    copy.dataset.routeEnter = 'context';
+    copy.dataset.routeEnterVariant = 'bookend-description';
     copy.textContent = body;
 
     intro.append(heading, rule, copy);

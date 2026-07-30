@@ -674,7 +674,7 @@
   --supporting-description-line-height: var(--decorative-script-line-height);
   --supporting-description-letter-spacing: var(--decorative-script-letter-spacing);
   --supporting-description-color: var(--text-muted);
-  --supporting-description-opacity: var(--abs-opacity-muted);
+  --supporting-description-opacity: 0.75;
 
   --cv-route-body-font-size: clamp(1.08rem, 1.3vw, 1.2rem);
   --cv-route-body-line-height: 1.88;

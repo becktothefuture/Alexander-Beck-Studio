@@ -83,9 +83,9 @@
   "portfolio": {
     "heroEyebrow": "Alexander Beck",
     "heroLines": [
-      "Work"
+      "Selected Work"
     ],
-    "blurb": "Selected projects from early concepts to shipped websites, apps, tools, and platforms."
+    "blurb": "Projects from early concepts to shipped websites, apps, tools, and platforms."
   },
   "gates": {
     "portfolio": {

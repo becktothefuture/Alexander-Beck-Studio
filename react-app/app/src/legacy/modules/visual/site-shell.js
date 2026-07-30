@@ -109,10 +109,10 @@ const DEFAULT_SHELL_CONFIG = {
       plateExitDelayMs: 40,
       plateExitDurationMs: 160,
       surfaceEnterDurationMs: 220,
-      routeBookendDurationMs: 220,
-      routeBookendStepMs: 8,
-      routeBookendBlurPx: 4,
-      routeBookendDriftEm: -0.05,
+      routeBookendColorCount: 5, routeBookendDurationMs: 280, routeBookendOverlapPercent: 84,
+      routeBookendLineOverlapMs: 0, routeBookendLineDurationMs: 520,
+      routeBookendDescriptionDelayMs: 260, routeBookendDescriptionDurationMs: 900,
+      routeBookendDescriptionLineStaggerMs: 180, routeBookendMovementEnabled: true, routeBookendTravelPercent: 10,
       contextDurationMs: 240,
       actionDurationMs: 220,
       supportDurationMs: 240,
@@ -186,10 +186,10 @@ export function getShellRouteTransitionConfig(config = currentShellConfig) {
     plateExitDelayMs: roundedNumberInRange(source.plateExitDelayMs, 0, 2000, defaults.plateExitDelayMs),
     plateExitDurationMs: roundedNumberInRange(source.plateExitDurationMs, 0, 2000, defaults.plateExitDurationMs),
     surfaceEnterDurationMs: roundedNumberInRange(source.surfaceEnterDurationMs, 0, 3000, defaults.surfaceEnterDurationMs),
-    routeBookendDurationMs: roundedNumberInRange(source.routeBookendDurationMs, 0, 3000, defaults.routeBookendDurationMs),
-    routeBookendStepMs: roundedNumberInRange(source.routeBookendStepMs, 0, 500, defaults.routeBookendStepMs),
-    routeBookendBlurPx: numberInRange(source.routeBookendBlurPx, 0, 40, defaults.routeBookendBlurPx),
-    routeBookendDriftEm: numberInRange(source.routeBookendDriftEm, -1, 1, defaults.routeBookendDriftEm),
+    routeBookendColorCount: roundedNumberInRange(source.routeBookendColorCount, 2, 8, defaults.routeBookendColorCount), routeBookendDurationMs: roundedNumberInRange(source.routeBookendDurationMs, 0, 3000, defaults.routeBookendDurationMs), routeBookendOverlapPercent: numberInRange(source.routeBookendOverlapPercent, 0, 99, defaults.routeBookendOverlapPercent),
+    routeBookendLineOverlapMs: roundedNumberInRange(source.routeBookendLineOverlapMs, 0, 1000, defaults.routeBookendLineOverlapMs), routeBookendLineDurationMs: roundedNumberInRange(source.routeBookendLineDurationMs, 0, 3000, defaults.routeBookendLineDurationMs),
+    routeBookendDescriptionDelayMs: roundedNumberInRange(source.routeBookendDescriptionDelayMs, 0, 3000, defaults.routeBookendDescriptionDelayMs), routeBookendDescriptionDurationMs: roundedNumberInRange(source.routeBookendDescriptionDurationMs, 0, 3000, defaults.routeBookendDescriptionDurationMs),
+    routeBookendDescriptionLineStaggerMs: roundedNumberInRange(source.routeBookendDescriptionLineStaggerMs, 0, 1000, defaults.routeBookendDescriptionLineStaggerMs), routeBookendMovementEnabled: source.routeBookendMovementEnabled !== false, routeBookendTravelPercent: numberInRange(source.routeBookendTravelPercent, 0, 100, defaults.routeBookendTravelPercent),
     contextDurationMs: roundedNumberInRange(source.contextDurationMs, 0, 3000, defaults.contextDurationMs),
     actionDurationMs: roundedNumberInRange(source.actionDurationMs, 0, 3000, defaults.actionDurationMs),
     supportDurationMs: roundedNumberInRange(source.supportDurationMs, 0, 3000, defaults.supportDurationMs),
@@ -481,9 +481,9 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-route-plate-exit-duration', `${routeTransition.plateExitDurationMs}ms`);
   root.style.setProperty('--abs-route-surface-enter-duration', `${routeTransition.surfaceEnterDurationMs}ms`);
   root.style.setProperty('--abs-route-bookend-duration', `${routeTransition.routeBookendDurationMs}ms`);
-  root.style.setProperty('--abs-route-bookend-step', `${routeTransition.routeBookendStepMs}ms`);
-  root.style.setProperty('--abs-route-bookend-blur', `${routeTransition.routeBookendBlurPx}px`);
-  root.style.setProperty('--abs-route-bookend-drift', `${routeTransition.routeBookendDriftEm}em`);
+  root.style.setProperty('--abs-route-bookend-overlap', `${routeTransition.routeBookendOverlapPercent}%`);
+  root.style.setProperty('--abs-route-bookend-line-duration', `${routeTransition.routeBookendLineDurationMs}ms`);
+  root.style.setProperty('--abs-route-bookend-travel', `${routeTransition.routeBookendTravelPercent}%`);
   root.style.setProperty('--abs-route-context-duration', `${routeTransition.contextDurationMs}ms`);
   root.style.setProperty('--abs-route-action-duration', `${routeTransition.actionDurationMs}ms`);
   root.style.setProperty('--abs-route-support-duration', `${routeTransition.supportDurationMs}ms`);

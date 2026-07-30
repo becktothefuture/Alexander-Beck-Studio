@@ -1,10 +1,13 @@
 import { getShellRouteTransitionConfig } from '../../legacy/modules/visual/site-shell.js';
+import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
+import { isDarkThemeDocument } from '../theme-state.js';
 import { resolvePairKerningEm } from './glyph-kerning.js';
 
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
 const LOCKUP_SELECTOR = '.route-title-lockup';
 const LOCKUP_RULE_SELECTOR = '.route-title-lockup__rule';
+const DESCRIPTION_LINE_SELECTOR = '[data-route-enter-description-line]';
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -21,20 +24,30 @@ const HOME_PHASE_CLASSES = Object.freeze([
 ]);
 const styleCleanupGeneration = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
-export const BOOKEND_LOCKUP_RULE_DURATION_MS = 140;
 const BOOKEND_TITLE_MOTION = Object.freeze({
-  blurPx: 10,
-  durationMs: 560,
-  stepMs: 26,
-  driftEm: -0.12,
+  colorCount: 5,
+  durationMs: 280,
+  overlapPercent: 84,
+  lineOverlapMs: 0,
   subtitleGapMs: 140,
-  ruleDurationMs: BOOKEND_LOCKUP_RULE_DURATION_MS,
+  ruleDurationMs: 520,
+  descriptionDelayMs: 260,
+  descriptionDurationMs: 900,
+  descriptionLineStaggerMs: 180,
+  movementEnabled: true,
+  travelPercent: 10,
 });
 const SEQUENCED_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer', 'control']);
 const DIRECT_FLOW_GROUPS = Object.freeze(['legend', 'context', 'action', 'footer']);
 const GROUP_GAP_MS = 40;
 let glyphPreparationGeneration = 0;
+let entranceSequenceGeneration = 0;
 let glyphKerningContext = null;
+
+const BOOKEND_MOVEMENT_EASING = 'cubic-bezier(0.22, 0.6, 0.4, 0.9)';
+const BOOKEND_RULE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const BOOKEND_DESCRIPTION_MOVEMENT_EASING = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+const BOOKEND_DESCRIPTION_FADE_EASING = 'cubic-bezier(0.37, 0, 0.63, 1)';
 
 const PROFILES = Object.freeze({
   direct: Object.freeze({
@@ -87,6 +100,92 @@ function readFinalOpacity(element) {
   if (Number.isFinite(explicit)) return explicit;
   const computed = Number.parseFloat(getComputedStyle(element).opacity || '');
   return Number.isFinite(computed) && computed > 0.02 ? computed : 1;
+}
+
+function getRelativeLuminance(color) {
+  const normalized = String(color || '').replace('#', '');
+  if (!/^[\da-f]{6}$/i.test(normalized)) return 0;
+  const channels = [0, 2, 4].map((offset) => {
+    const channel = Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return (channels[0] * 0.2126) + (channels[1] * 0.7152) + (channels[2] * 0.0722);
+}
+
+function getSeededSample(seed) {
+  return Math.abs(Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1;
+}
+
+function createRandomOrderedFlashColors(colors, count, isDark, seed) {
+  const selected = colors
+    .map((color, index) => ({ color, rank: getSeededSample(seed + (index * 47)) }))
+    .sort((left, right) => left.rank - right.rank)
+    .slice(0, Math.min(count, colors.length))
+    .map((entry) => entry.color)
+    .sort((left, right) => getRelativeLuminance(left) - getRelativeLuminance(right));
+  return isDark ? selected : selected.reverse();
+}
+
+function createSteppedColorKeyframes(flashColors, finalColor) {
+  const count = Math.max(1, flashColors.length);
+  const keyframes = flashColors.map((color, index) => ({
+    color,
+    offset: index / count,
+    easing: 'steps(1, end)',
+  }));
+  keyframes.push({ color: finalColor, offset: 1 });
+  return keyframes;
+}
+
+function restoreBookendDescription(target) {
+  if (target.variant !== 'bookend-description' || !target.descriptionText) return;
+  target.element.replaceChildren(target.descriptionText);
+}
+
+export function prepareBookendDescriptionLines(element) {
+  if (!element) return [];
+  const existingLines = Array.from(element.querySelectorAll(DESCRIPTION_LINE_SELECTOR));
+  if (existingLines.length > 0) return existingLines;
+
+  const text = String(
+    element.dataset.routeEnterDescriptionText || element.textContent || '',
+  ).replace(/\s+/g, ' ').trim();
+  if (!text) return [];
+  element.dataset.routeEnterDescriptionText = text;
+  if (!element.getAttribute('aria-label')) element.setAttribute('aria-label', text);
+
+  const tokens = text.match(/\S+\s*/g) || [];
+  const tokenNodes = tokens.map((token) => {
+    const span = document.createElement('span');
+    span.textContent = token;
+    span.setAttribute('aria-hidden', 'true');
+    return span;
+  });
+  element.replaceChildren(...tokenNodes);
+
+  const groupedLines = [];
+  tokenNodes.forEach((tokenNode) => {
+    const top = tokenNode.getBoundingClientRect().top;
+    const activeLine = groupedLines[groupedLines.length - 1];
+    if (!activeLine || Math.abs(activeLine.top - top) > 1) {
+      groupedLines.push({ top, text: tokenNode.textContent || '' });
+      return;
+    }
+    activeLine.text += tokenNode.textContent || '';
+  });
+
+  const lineNodes = groupedLines.map((line) => {
+    const span = document.createElement('span');
+    span.className = 'route-entrance-description-line';
+    span.dataset.routeEnterDescriptionLine = '';
+    span.setAttribute('aria-hidden', 'true');
+    span.textContent = line.text.trim();
+    return span;
+  });
+  element.replaceChildren(...lineNodes);
+  return lineNodes;
 }
 
 function createGlyph(character) {
@@ -201,7 +300,7 @@ export function prepareBookendTitleGlyphs(element) {
 }
 
 function resolveProfile(name, timingMode = 'repeat') {
-  if (name !== 'route') return PROFILES[name] || PROFILES.route;
+  const baseProfile = PROFILES[name] || PROFILES.route;
   const config = getShellRouteTransitionConfig();
   const reduced = timingMode === 'reduced';
   const timingScale = timingMode === 'repeat' ? config.repeatTimingScale : 1;
@@ -209,28 +308,33 @@ function resolveProfile(name, timingMode = 'repeat') {
   const duration = (value) => reduced ? 120 : Math.round(value * timingScale);
   const step = reduced ? 0 : Math.round(config.itemStepMs * staggerScale);
   return {
-    ...PROFILES.route,
-    compactFlow: true,
+    ...baseProfile,
+    compactFlow: name === 'route',
     identityLineStepMs: reduced ? 0 : Math.round(50 * staggerScale),
     contextGapMs: reduced ? 0 : Math.round(40 * timingScale),
     actionGapMs: reduced ? 0 : Math.round(60 * timingScale),
     footerStepMs: reduced ? 0 : Math.round(20 * staggerScale),
-    blurPx: reduced ? 0 : PROFILES.route.blurPx,
+    blurPx: reduced ? 0 : baseProfile.blurPx,
     bookendTitle: {
-      ...PROFILES.route.bookendTitle,
-      blurPx: reduced ? 0 : config.routeBookendBlurPx,
-      durationMs: reduced ? 120 : duration(config.routeBookendDurationMs),
-      stepMs: reduced ? 0 : Math.round(config.routeBookendStepMs * staggerScale),
-      driftEm: reduced ? 0 : config.routeBookendDriftEm,
-      ruleDurationMs: reduced ? 0 : duration(BOOKEND_TITLE_MOTION.ruleDurationMs),
+      ...baseProfile.bookendTitle,
+      colorCount: config.routeBookendColorCount,
+      durationMs: reduced ? 0 : config.routeBookendDurationMs,
+      overlapPercent: config.routeBookendOverlapPercent,
+      lineOverlapMs: reduced ? 0 : config.routeBookendLineOverlapMs,
+      ruleDurationMs: reduced ? 0 : config.routeBookendLineDurationMs,
+      descriptionDelayMs: reduced ? 0 : config.routeBookendDescriptionDelayMs,
+      descriptionDurationMs: reduced ? 0 : config.routeBookendDescriptionDurationMs,
+      descriptionLineStaggerMs: reduced ? 0 : config.routeBookendDescriptionLineStaggerMs,
+      movementEnabled: !reduced && config.routeBookendMovementEnabled,
+      travelPercent: reduced ? 0 : config.routeBookendTravelPercent,
     },
     groups: {
-      identity: { ...PROFILES.route.groups.identity, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      legend: { ...PROFILES.route.groups.legend, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      context: { ...PROFILES.route.groups.context, stepMs: step, durationMs: duration(config.contextDurationMs) },
-      action: { ...PROFILES.route.groups.action, stepMs: step, durationMs: duration(config.actionDurationMs) },
-      footer: { ...PROFILES.route.groups.footer, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      control: { ...PROFILES.route.groups.control, stepMs: 0, durationMs: duration(config.supportDurationMs) },
+      identity: { ...baseProfile.groups.identity, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      legend: { ...baseProfile.groups.legend, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      context: { ...baseProfile.groups.context, stepMs: step, durationMs: duration(config.contextDurationMs) },
+      action: { ...baseProfile.groups.action, stepMs: step, durationMs: duration(config.actionDurationMs) },
+      footer: { ...baseProfile.groups.footer, stepMs: step, durationMs: duration(config.supportDurationMs) },
+      control: { ...baseProfile.groups.control, stepMs: 0, durationMs: duration(config.supportDurationMs) },
     },
   };
 }
@@ -240,10 +344,17 @@ function readGroup(profile, name) {
 }
 
 function getTargetEndMs(target) {
-  if (target.variant !== 'bookend-title') return target.delayMs + target.durationMs;
-  return target.delayMs
-    + target.durationMs
-    + (Math.max(0, target.glyphs.length - 1) * target.letterStepMs);
+  if (target.variant === 'bookend-title') {
+    return target.delayMs
+      + target.durationMs
+      + (Math.max(0, target.glyphs.length - 1) * target.letterStepMs);
+  }
+  if (target.variant === 'bookend-description') {
+    return target.delayMs
+      + target.durationMs
+      + (Math.max(0, target.descriptionLines.length - 1) * target.lineStepMs);
+  }
+  return target.delayMs + target.durationMs;
 }
 
 function sequenceTargets(targets, profile) {
@@ -253,34 +364,57 @@ function sequenceTargets(targets, profile) {
   if (identityTargets.length === 0) return targets;
 
   const identityStartMs = readGroup(profile, 'identity').startMs;
+  const identityTitles = identityTargets.filter((target) => target.variant === 'bookend-title');
   const lockupRuleTargets = targets.filter((target) => target.variant === 'lockup-rule');
-  if (profile.compactFlow) {
-    identityTargets.forEach((target, index) => {
-      target.delayMs = identityStartMs + (index * profile.identityLineStepMs);
-    });
-    const identityEndMs = Math.max(...identityTargets.map(getTargetEndMs));
+  if (identityTitles.length === 0) return targets;
+  let glyphOffset = 0;
+  identityTitles.forEach((target) => {
+    target.delayMs = identityStartMs + (glyphOffset * target.letterStepMs);
+    glyphOffset += target.glyphs.length;
+  });
+
+  const identityEndMs = Math.max(...identityTitles.map(getTargetEndMs));
+  if (lockupRuleTargets.length > 0) {
     lockupRuleTargets.forEach((target) => {
-      target.delayMs = identityEndMs;
+      const owningTitle = identityTitles.find((title) => title.lockup === target.lockup);
+      const titleEndMs = owningTitle ? getTargetEndMs(owningTitle) : identityEndMs;
+      target.delayMs = Math.max(0, titleEndMs - profile.bookendTitle.lineOverlapMs);
     });
-    const contextStartMs = lockupRuleTargets.length > 0
-      ? Math.max(...lockupRuleTargets.map(getTargetEndMs))
-      : identityEndMs + profile.contextGapMs;
+  }
+
+  const descriptionTargets = targets.filter((target) => target.variant === 'bookend-description');
+  descriptionTargets.forEach((target) => {
+    const owningRule = lockupRuleTargets.find((rule) => rule.lockup === target.lockup);
+    const owningTitle = identityTitles.find((title) => title.lockup === target.lockup);
+    const titleEndMs = owningTitle ? getTargetEndMs(owningTitle) : identityEndMs;
+    const lockupStartMs = owningRule?.delayMs ?? titleEndMs;
+    target.delayMs = lockupStartMs + profile.bookendTitle.descriptionDelayMs;
+  });
+
+  let cursorMs = Math.max(
+    identityEndMs,
+    ...lockupRuleTargets.map(getTargetEndMs),
+    ...descriptionTargets.map(getTargetEndMs),
+  );
+  if (lockupRuleTargets.length === 0 && descriptionTargets.length === 0) {
+    cursorMs += profile.bookendTitle.subtitleGapMs;
+  }
+
+  if (profile.compactFlow) {
     const starts = {
-      legend: contextStartMs,
-      context: contextStartMs,
-      action: contextStartMs + profile.actionGapMs,
-      footer: contextStartMs + profile.actionGapMs + profile.footerStepMs,
-      control: contextStartMs + profile.actionGapMs + profile.footerStepMs + readGroup(profile, 'control').stepMs,
+      legend: cursorMs,
+      context: cursorMs,
+      action: cursorMs + profile.actionGapMs,
+      footer: cursorMs + profile.actionGapMs + profile.footerStepMs,
+      control: cursorMs + profile.actionGapMs + profile.footerStepMs + readGroup(profile, 'control').stepMs,
     };
     SEQUENCED_GROUPS.forEach((groupName) => {
       const group = readGroup(profile, groupName);
       const groupTargets = targets
-        .filter((target) => target.groupName === groupName)
+        .filter((target) => target.groupName === groupName && target.variant !== 'bookend-description')
         .sort((left, right) => left.order - right.order);
       groupTargets.forEach((target) => {
-        const groupStep = groupName === 'footer'
-          ? profile.footerStepMs
-          : group.stepMs;
+        const groupStep = groupName === 'footer' ? profile.footerStepMs : group.stepMs;
         target.delayMs = starts[groupName] + (groupStep * target.order);
       });
     });
@@ -291,23 +425,6 @@ function sequenceTargets(targets, profile) {
     ));
   }
 
-  const identityTitles = identityTargets.filter((target) => target.variant === 'bookend-title');
-  if (identityTitles.length === 0) return targets;
-  let glyphOffset = 0;
-  identityTitles.forEach((target) => {
-    target.delayMs = identityStartMs + (glyphOffset * target.letterStepMs);
-    glyphOffset += target.glyphs.length;
-  });
-
-  let cursorMs = Math.max(...identityTitles.map(getTargetEndMs));
-  if (lockupRuleTargets.length > 0) {
-    lockupRuleTargets.forEach((target) => {
-      target.delayMs = cursorMs;
-    });
-    cursorMs = Math.max(...lockupRuleTargets.map(getTargetEndMs));
-  } else {
-    cursorMs += profile.bookendTitle.subtitleGapMs;
-  }
   // The Home simulation switcher is the identity's primary control. Reveal it
   // as soon as the identity resolves, in parallel with the first supporting
   // content, instead of holding it behind the complete footer sequence.
@@ -322,7 +439,7 @@ function sequenceTargets(targets, profile) {
 
   DIRECT_FLOW_GROUPS.forEach((groupName) => {
     const groupTargets = targets
-      .filter((target) => target.groupName === groupName)
+      .filter((target) => target.groupName === groupName && target.variant !== 'bookend-description')
       .sort((left, right) => left.order - right.order);
     if (groupTargets.length === 0) return;
     const group = readGroup(profile, groupName);
@@ -340,10 +457,12 @@ function sequenceTargets(targets, profile) {
   ));
 }
 
-function collectTargets(scopes, profile) {
+function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 } = {}) {
   const groupCounts = new Map();
   const seen = new Set();
   const targets = [];
+  const paletteColors = getSimulationPaletteSnapshot()?.colors || [];
+  const isDark = isDarkThemeDocument();
 
   asScopeElements(scopes).forEach((scope) => {
     const elements = [
@@ -352,6 +471,8 @@ function collectTargets(scopes, profile) {
     ];
 
     elements.forEach((element) => {
+      const elementTrigger = element.dataset.routeEnterTrigger || 'route';
+      if (elementTrigger !== trigger) return;
       if (seen.has(element)) return;
       seen.add(element);
       const groupName = element.dataset.routeEnter || 'context';
@@ -359,9 +480,15 @@ function collectTargets(scopes, profile) {
       const order = readOrder(element, fallbackOrder);
       const variant = element.dataset.routeEnterVariant || 'default';
       const isBookendTitle = variant === 'bookend-title';
+      const isBookendDescription = variant === 'bookend-description';
       const glyphs = isBookendTitle ? prepareBookendTitleGlyphs(element) : [];
+      const descriptionLines = isBookendDescription
+        ? prepareBookendDescriptionLines(element)
+        : [];
       groupCounts.set(groupName, Math.max(fallbackOrder + 1, order + 1));
       const group = readGroup(profile, groupName);
+      const finalColor = isBookendTitle ? getComputedStyle(element).color : '';
+      const targetIndex = targets.length;
       targets.push({
         element,
         groupName,
@@ -369,13 +496,36 @@ function collectTargets(scopes, profile) {
         delayMs: group.startMs + (group.stepMs * order),
         durationMs: isBookendTitle
           ? profile.bookendTitle.durationMs
-          : group.durationMs,
-        blurPx: isBookendTitle ? profile.bookendTitle.blurPx : profile.blurPx,
-        letterStepMs: isBookendTitle ? profile.bookendTitle.stepMs : 0,
-        driftEm: isBookendTitle ? profile.bookendTitle.driftEm : 0,
+          : isBookendDescription
+            ? profile.bookendTitle.descriptionDurationMs
+            : group.durationMs,
+        blurPx: isBookendTitle || isBookendDescription ? 0 : profile.blurPx,
+        letterStepMs: isBookendTitle
+          ? profile.bookendTitle.durationMs * (1 - (profile.bookendTitle.overlapPercent / 100))
+          : 0,
+        lineStepMs: isBookendDescription
+          ? profile.bookendTitle.descriptionLineStaggerMs
+          : 0,
+        travelPercent: isBookendTitle && profile.bookendTitle.movementEnabled
+          ? profile.bookendTitle.travelPercent
+          : 0,
         glyphs,
+        descriptionLines,
+        descriptionText: isBookendDescription
+          ? element.dataset.routeEnterDescriptionText
+          : '',
         variant,
         finalOpacity: readFinalOpacity(element),
+        finalColor,
+        flashColors: isBookendTitle
+          ? glyphs.map((glyph, glyphIndex) => createRandomOrderedFlashColors(
+            paletteColors,
+            profile.bookendTitle.colorCount,
+            isDark,
+            (sequenceSeed * 97) + (targetIndex * 131) + (glyphIndex * 19),
+          ))
+          : [],
+        lockup: element.closest?.(LOCKUP_SELECTOR) || null,
       });
     });
   });
@@ -395,10 +545,13 @@ function collectTargets(scopes, profile) {
         durationMs: profile.bookendTitle.ruleDurationMs,
         blurPx: 0,
         letterStepMs: 0,
-        driftEm: 0,
+        lineStepMs: 0,
+        travelPercent: 0,
         glyphs: [],
+        descriptionLines: [],
         variant: 'lockup-rule',
         finalOpacity: 1,
+        lockup,
       });
     });
 
@@ -439,15 +592,24 @@ function clearTargetStyles(target) {
   if (target.variant === 'lockup-rule') {
     element.style.removeProperty('transform');
     element.style.removeProperty('transform-origin');
+  } else if (target.variant === 'bookend-description') {
+    element.style.removeProperty('transform');
   }
   target.glyphs.forEach((glyph) => {
     glyph.style.removeProperty('opacity');
+    glyph.style.removeProperty('color');
     glyph.style.removeProperty('filter');
     glyph.style.removeProperty('transform');
     glyph.style.removeProperty('transition');
     glyph.style.removeProperty('will-change');
     settleGlyphEntranceState(glyph);
   });
+  target.descriptionLines.forEach((line) => {
+    line.style.removeProperty('opacity');
+    line.style.removeProperty('transform');
+    line.style.removeProperty('will-change');
+  });
+  restoreBookendDescription(target);
   window.requestAnimationFrame(() => {
     if (styleCleanupGeneration.get(element) !== generation) return;
     element.style.removeProperty('transition');
@@ -469,9 +631,16 @@ function settleTarget(target) {
     target.element.style.filter = 'none';
     target.glyphs.forEach((glyph) => {
       glyph.style.opacity = String(target.finalOpacity);
-      glyph.style.filter = 'blur(0)';
+      glyph.style.color = target.finalColor;
       glyph.style.transform = 'translate3d(0, 0, 0)';
       settleGlyphEntranceState(glyph);
+    });
+  } else if (target.variant === 'bookend-description') {
+    target.element.style.opacity = '1';
+    target.element.style.filter = 'none';
+    target.element.style.transform = 'translate3d(0, 0, 0)';
+    target.descriptionLines.forEach((line) => {
+      line.style.opacity = String(target.finalOpacity);
     });
   } else {
     target.element.style.opacity = String(target.finalOpacity);
@@ -502,8 +671,9 @@ function stageTarget(target, blurPx) {
         startedAt: 0,
         delayMs: target.delayMs + (glyphIndex * target.letterStepMs),
         durationMs: target.durationMs,
-        blurPx,
-        driftEm: target.driftEm,
+        flashColors: target.flashColors[glyphIndex] || [],
+        finalColor: target.finalColor,
+        travelPercent: target.travelPercent,
         finalOpacity: target.finalOpacity,
         finalRect: {
           left: rect.left,
@@ -513,10 +683,19 @@ function stageTarget(target, blurPx) {
         },
       };
       glyph.style.transition = 'none';
-      glyph.style.opacity = '0';
-      glyph.style.filter = `blur(${blurPx}px)`;
-      glyph.style.transform = `translate3d(${target.driftEm}em, 0, 0)`;
-      glyph.style.willChange = 'opacity, filter, transform';
+      glyph.style.opacity = String(target.finalOpacity);
+      glyph.style.color = 'transparent';
+      glyph.style.filter = 'none';
+      glyph.style.transform = `translate3d(-${target.travelPercent}%, 0, 0)`;
+      glyph.style.willChange = 'color, transform';
+    });
+  } else if (target.variant === 'bookend-description') {
+    target.element.style.opacity = '1';
+    target.element.style.filter = 'none';
+    target.element.style.transform = 'translate3d(0, 0.35em, 0)';
+    target.descriptionLines.forEach((line) => {
+      line.style.opacity = '0';
+      line.style.willChange = 'opacity';
     });
   } else {
     target.element.style.opacity = '0';
@@ -525,6 +704,8 @@ function stageTarget(target, blurPx) {
   target.element.style.pointerEvents = 'none';
   target.element.style.willChange = target.variant === 'bookend-title'
     ? 'auto'
+    : target.variant === 'bookend-description'
+      ? 'transform'
     : target.variant === 'lockup-rule'
       ? 'transform'
       : 'opacity, filter';
@@ -549,8 +730,8 @@ function stageTarget(target, blurPx) {
  * Creates one cancellable entrance transaction.
  *
  * Layout transforms are deliberately out of scope: anchored elements keep their
- * final geometry while this runner owns opacity and filter. Bookend titles use
- * the same non-clipping reveal so serif ascenders and descenders remain intact.
+ * final geometry while this runner owns paint and per-glyph movement. Bookend
+ * titles use a non-clipping colour reveal so serif ink remains intact.
  * This separation prevents centering, responsive placement, and motion from
  * overwriting one another on WebKit and other composited browsers.
  */
@@ -560,10 +741,13 @@ export function createEntranceSequence({
   timingMode = 'repeat',
   diagnosticRoot = null,
   reducedMotion = prefersReducedMotion(),
+  trigger = 'route',
   onAnimation,
 } = {}) {
   const profile = resolveProfile(profileName, timingMode);
-  let targets = collectTargets(scopes, profile);
+  entranceSequenceGeneration += 1;
+  const sequenceSeed = entranceSequenceGeneration;
+  let targets = collectTargets(scopes, profile, { trigger, sequenceSeed });
   let animations = [];
   let staged = false;
   let settled = false;
@@ -608,7 +792,7 @@ export function createEntranceSequence({
     // Include controls or runtime-owned footer elements mounted while the cover
     // was still visible, then give the hidden state one paint before revealing.
     const known = new Set(targets.map((target) => target.element));
-    collectTargets(scopes, profile).forEach((target) => {
+    collectTargets(scopes, profile, { trigger, sequenceSeed }).forEach((target) => {
       if (known.has(target.element)) return;
       targets.push(target);
       stageTarget(target, reducedMotion ? 0 : target.blurPx);
@@ -634,7 +818,7 @@ export function createEntranceSequence({
           {
             duration: target.durationMs,
             delay: target.delayMs,
-            easing: profile.easing,
+            easing: BOOKEND_RULE_EASING,
             fill: 'both',
           },
         );
@@ -643,7 +827,7 @@ export function createEntranceSequence({
       }
       if (target.variant === 'bookend-title') {
         const startedAt = performance.now();
-        return target.glyphs.map((glyph, glyphIndex) => {
+        return target.glyphs.flatMap((glyph, glyphIndex) => {
           const delayMs = target.delayMs + (glyphIndex * target.letterStepMs);
           if (glyph.__absRouteEntranceState) {
             Object.assign(glyph.__absRouteEntranceState, {
@@ -653,29 +837,71 @@ export function createEntranceSequence({
               delayMs,
             });
           }
-          const animation = glyph.animate(
+          const flashColors = target.flashColors[glyphIndex]?.length
+            ? target.flashColors[glyphIndex]
+            : [target.finalColor];
+          const colorAnimation = glyph.animate(
+            createSteppedColorKeyframes(flashColors, target.finalColor),
+            {
+              duration: target.durationMs,
+              delay: delayMs,
+              fill: 'forwards',
+            },
+          );
+          const movementAnimation = glyph.animate(
             [
               {
-                opacity: 0,
-                filter: `blur(${target.blurPx}px)`,
-                transform: `translate3d(${target.driftEm}em, 0, 0)`,
+                transform: `translate3d(-${target.travelPercent}%, 0, 0)`,
               },
               {
-                opacity: target.finalOpacity,
-                filter: 'blur(0)',
                 transform: 'translate3d(0, 0, 0)',
               },
             ],
             {
               duration: target.durationMs,
               delay: delayMs,
-              easing: profile.easing,
-              fill: 'both',
+              easing: BOOKEND_MOVEMENT_EASING,
+              fill: 'forwards',
+            },
+          );
+          onAnimation?.(colorAnimation);
+          onAnimation?.(movementAnimation);
+          return [colorAnimation, movementAnimation];
+        });
+      }
+      if (target.variant === 'bookend-description') {
+        const motionDurationMs = target.durationMs
+          + (Math.max(0, target.descriptionLines.length - 1) * target.lineStepMs);
+        const movementAnimation = target.element.animate(
+          [
+            { transform: 'translate3d(0, 0.35em, 0)' },
+            { transform: 'translate3d(0, 0, 0)' },
+          ],
+          {
+            duration: motionDurationMs,
+            delay: target.delayMs,
+            easing: BOOKEND_DESCRIPTION_MOVEMENT_EASING,
+            fill: 'forwards',
+          },
+        );
+        onAnimation?.(movementAnimation);
+        const lineAnimations = target.descriptionLines.map((line, lineIndex) => {
+          const animation = line.animate(
+            [
+              { opacity: 0 },
+              { opacity: target.finalOpacity },
+            ],
+            {
+              duration: target.durationMs,
+              delay: target.delayMs + (lineIndex * target.lineStepMs),
+              easing: BOOKEND_DESCRIPTION_FADE_EASING,
+              fill: 'forwards',
             },
           );
           onAnimation?.(animation);
           return animation;
         });
+        return [movementAnimation, ...lineAnimations];
       }
       const keyframes = [
         { opacity: 0, filter: `blur(${target.blurPx}px)` },
@@ -713,7 +939,10 @@ export function createEntranceSequence({
 }
 
 export function resetEntranceTargets(scopes = document) {
-  const targets = collectTargets(scopes, PROFILES.route);
+  const targets = collectTargets(scopes, resolveProfile('route'), {
+    trigger: 'route',
+    sequenceSeed: 0,
+  });
   targets.forEach((target) => {
     restoreTargetInert(target.element);
     clearTargetStyles(target);

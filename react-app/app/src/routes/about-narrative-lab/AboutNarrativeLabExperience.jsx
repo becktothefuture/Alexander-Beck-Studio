@@ -8,6 +8,7 @@ import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefiniti
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
+import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
 import {
   ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
   ABOUT_SCROLL_INDICATOR_TICK_COUNT,
@@ -520,6 +521,10 @@ function TitleField({
               id={headingId}
               className="about-narrative-spatial-title about-narrative-spatial-fragment route-bookend-title route-title-lockup__title"
               data-primary-copy
+              data-route-enter="identity"
+              data-route-enter-order="0"
+              data-route-enter-variant="bookend-title"
+              data-route-enter-trigger="deferred"
             >
               {field.text}
             </Heading>
@@ -528,6 +533,9 @@ function TitleField({
               <p
                 id={descriptionId}
                 className="about-narrative-finale-description route-centered-page__description route-intro-description route-title-lockup__description"
+                data-route-enter="context"
+                data-route-enter-variant="bookend-description"
+                data-route-enter-trigger="deferred"
               >
                 {field.description}
               </p>
@@ -553,6 +561,7 @@ function TitleField({
               id={descriptionId}
               className="route-centered-page__description route-intro-description"
               data-route-enter="context"
+              data-route-enter-variant="bookend-description"
             >
               {field.description}
             </p>
@@ -784,6 +793,70 @@ export function AboutNarrativeLabExperience({
     scrollportRef,
     contentRef,
   });
+
+  useEffect(() => {
+    const content = contentRef.current;
+    const scrollport = scrollportRef.current;
+    if (!content || !scrollport) return undefined;
+    const lockups = Array.from(new Set(
+      Array.from(content.querySelectorAll('[data-route-enter-trigger="deferred"]'))
+        .map((target) => target.closest('.route-title-lockup'))
+        .filter(Boolean),
+    ));
+    if (lockups.length === 0) return undefined;
+
+    const sequences = new Map();
+    const play = (lockup) => {
+      const record = sequences.get(lockup);
+      if (!record || record.playing) return;
+      record.playing = true;
+      record.field.dataset.bookendEntranceState = 'playing';
+      void record.sequence.play().then(() => {
+        if (record.field.isConnected) record.field.dataset.bookendEntranceState = 'complete';
+      });
+    };
+
+    lockups.forEach((lockup) => {
+      const field = lockup.closest('[data-text-field-id]') || lockup;
+      const sequence = createEntranceSequence({
+        scopes: lockup,
+        profile: 'route',
+        timingMode: runtimePlan?.motionProfile === 'reduced' ? 'reduced' : 'first',
+        reducedMotion: runtimePlan?.motionProfile === 'reduced',
+        trigger: 'deferred',
+      });
+      field.dataset.bookendEntranceState = 'staged';
+      sequence.stage();
+      sequences.set(lockup, { field, sequence, playing: false });
+    });
+
+    if (typeof IntersectionObserver !== 'function') {
+      lockups.forEach(play);
+      return () => sequences.forEach(({ field, sequence }) => {
+        sequence.cancel();
+        delete field.dataset.bookendEntranceState;
+      });
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const lockup = entry.target.querySelector('.route-title-lockup');
+        if (!lockup) return;
+        play(lockup);
+        observer.unobserve(entry.target);
+      });
+    }, { root: scrollport, threshold: 0.18 });
+    sequences.forEach(({ field }) => observer.observe(field));
+
+    return () => {
+      observer.disconnect();
+      sequences.forEach(({ field, sequence }) => {
+        sequence.cancel();
+        delete field.dataset.bookendEntranceState;
+      });
+    };
+  }, [runtimePlan]);
 
   const textFieldsById = useMemo(() => new Map(
     (runtimePlan?.textFields || []).map((field) => [field.id, field]),
