@@ -8,6 +8,9 @@ import {
   generateAboutNarrativeShape,
   validateAboutNarrativeShapeOutput,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointShapes.js';
+import {
+  sampleAboutNarrativeAnchorPosition,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeModifierSampling.js';
 
 const CANONICAL_POINT_SEED = 506832829;
 const ORBITAL_PARAMETERS = Object.freeze({
@@ -127,6 +130,43 @@ test('emergent-form-v1 is deterministic, centered, and uses the fixed point pool
   assert.ok(output.bounds.max[1] - output.bounds.min[1] > 4.5);
   assert.ok(output.bounds.max[0] > 1.8 && output.bounds.min[0] < -1.8);
   assert.ok(output.bounds.max[2] > 1.8 && output.bounds.min[2] < -1.8);
+});
+
+test('surface-rise bust formation keeps the exact source pose at transition start', () => {
+  const target = {};
+  const input = {
+    fromPosition: [1, 0, 1],
+    toPosition: [5, 5, 5],
+    fromWorldScratch: {},
+    toWorldScratch: {},
+    morphProgress: 0,
+    morphProgressIsVisual: true,
+    fromBust: 0,
+    toBust: 1,
+    bustAssembly: {
+      weight: 1,
+      surfaceRiseWeight: 1,
+      surfaceHeight: -1.52,
+      submergeDepth: 3.2,
+      waterlineSoftness: 0.22,
+    },
+    fromDrift: {},
+    toDrift: {},
+    fromWave: {},
+    toWave: {},
+    gridRipple: {},
+  };
+
+  sampleAboutNarrativeAnchorPosition(input, target);
+  assert.deepEqual([target.x, target.y, target.z], input.fromPosition);
+
+  input.morphProgress = 0.01;
+  sampleAboutNarrativeAnchorPosition(input, target);
+  assert.deepEqual([target.x, target.y, target.z], input.fromPosition);
+
+  input.morphProgress = 0.5;
+  sampleAboutNarrativeAnchorPosition(input, target);
+  assert.notDeepEqual([target.x, target.y, target.z], input.fromPosition);
 });
 
 test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressive bust formation, and orbital motion on one contract', () => {

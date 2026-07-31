@@ -112,6 +112,33 @@ test('v6 bridge combines the legacy non-point frame with native point-field samp
   assert.equal(request.sequenceKey, plan.worldSequenceKey);
 });
 
+test('grid-to-bust begins from the settled grid and introduces its ripple gradually', () => {
+  const plan = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
+  const outgoing = plan.interactionClips.find((clip) => clip.id === 'interaction-grid-ripple');
+  const incoming = plan.interactionClips.find((clip) => clip.id === 'interaction-emergent-ripple');
+  const frame = createAboutNarrativeRendererFrameSample();
+  const boundaryWU = incoming.startWU;
+
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, boundaryWU - 0.000001, frame);
+  assert.equal(frame.interactions.activeInteraction.id, outgoing.id);
+  assert.ok(frame.interactions.effectWeight < 0.001);
+
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, boundaryWU, frame);
+  assert.equal(frame.world.from.stateId, 'world-grid');
+  assert.equal(frame.world.to.stateId, 'world-emergent');
+  assert.equal(frame.world.transitionProgress, 0);
+  assert.equal(frame.interactions.activeInteraction.id, incoming.id);
+  assert.equal(frame.interactions.effectWeight, 0);
+
+  const handoffMidpoint = boundaryWU + ((incoming.activationWU - boundaryWU) * 0.5);
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, handoffMidpoint, frame);
+  assert.ok(frame.interactions.effectWeight > 0);
+  assert.ok(frame.interactions.effectWeight < 1);
+
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, incoming.activationWU, frame);
+  assert.equal(frame.interactions.effectWeight, 1);
+});
+
 test('timing, easing, and parametric motion do not invalidate prepared geometry', () => {
   const baseline = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
   const changed = structuredClone(canonicalV6);

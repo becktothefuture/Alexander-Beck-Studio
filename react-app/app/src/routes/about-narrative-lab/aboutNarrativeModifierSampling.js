@@ -190,7 +190,7 @@ export function sampleAboutNarrativeAnchorPosition(input, target) {
     - (Math.max(0, numberOr(bustAssembly.submergeDepth, 3.2)) * (1 - riseProgress));
   const surfaceHeight = numberOr(bustAssembly.surfaceHeight, -1.52);
   const waterlineSoftness = Math.max(0.001, numberOr(bustAssembly.waterlineSoftness, 0.22));
-  const surfaceDeparture = smoothstep01(
+  const surfaceDeparture = riseProgress * smoothstep01(
     (submergedY - (surfaceHeight - (waterlineSoftness * 3)))
       / (waterlineSoftness * 1.85),
   );

@@ -90,30 +90,6 @@
             ],
             "fov": 60
           },
-          "emergent-orbit-quarter": {
-            "position": [
-              7.5,
-              3,
-              -7.035
-            ],
-            "fov": 56
-          },
-          "emergent-orbit-rear": {
-            "position": [
-              0,
-              2.7,
-              0.5
-            ],
-            "fov": 56
-          },
-          "emergent-orbit-three-quarter": {
-            "position": [
-              -7.5,
-              3,
-              -7.035
-            ],
-            "fov": 56
-          },
           "finale-hold": {
             "position": [
               0.45,
@@ -139,7 +115,7 @@
             "position": [
               0,
               10.5,
-              -7.035
+              -7.045
             ],
             "fov": 62
           },
@@ -296,7 +272,7 @@
           "position": [
             0,
             11,
-            -7.035
+            -7.045
           ],
           "rotation": [
             -90,
@@ -320,7 +296,7 @@
           "position": [
             0,
             11,
-            -7.035
+            -7.045
           ],
           "rotation": [
             -90,
@@ -336,78 +312,6 @@
           "lookAtRoll": 0,
           "fov": 56,
           "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "emergent-orbit-quarter",
-          "atWU": 16.75,
-          "position": [
-            8,
-            3,
-            -7.035
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.25,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 48,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "emergent-orbit-rear",
-          "atWU": 17.3,
-          "position": [
-            0,
-            2.7,
-            0.8
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.25,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 48,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "emergent-orbit-three-quarter",
-          "atWU": 17.85,
-          "position": [
-            -8,
-            3,
-            -7.035
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.25,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 48,
-          "easing": "ease-in-out",
           "locked": false
         },
         {
@@ -504,48 +408,6 @@
         {
           "id": "visibility-returned",
           "atWU": 14,
-          "visibility": 1,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-emergent-title-start",
-          "atWU": 15.65,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-emergent-title-low",
-          "atWU": 15.9,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-emergent-title-hold",
-          "atWU": 16.15,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-emergent-reveal",
-          "atWU": 16.3,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-emergent-pass",
-          "atWU": 16.5,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-open-space",
-          "atWU": 16.95,
           "visibility": 1,
           "easing": "linear",
           "locked": false
@@ -1637,7 +1499,7 @@
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
           "startWU": 16.15,
-          "activationWU": 16.25,
+          "activationWU": 16.75,
           "endWU": 19.05,
           "parameters": {
             "amplitude": 0.52,

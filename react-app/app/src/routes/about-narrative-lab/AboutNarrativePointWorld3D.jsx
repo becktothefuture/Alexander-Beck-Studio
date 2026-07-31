@@ -457,12 +457,12 @@ const VERTEX_SHADER = `
     vec3 submergedBust = toWorld;
     submergedBust.y -= max(0.0, bustSubmergeDepth) * (1.0 - bustRiseProgress);
     float waterlineSoftness = max(0.001, bustWaterlineSoftness);
-    float surfaceDeparture = smoothstep(
+    float surfaceDeparture = bustRiseProgress * smoothstep(
       bustSurfaceHeight - (waterlineSoftness * 3.0),
       bustSurfaceHeight - (waterlineSoftness * 1.15),
       submergedBust.y
     );
-    float surfaceArrival = smoothstep(
+    float surfaceArrival = bustRiseProgress * smoothstep(
       bustSurfaceHeight - (waterlineSoftness * 0.55),
       bustSurfaceHeight + waterlineSoftness,
       submergedBust.y

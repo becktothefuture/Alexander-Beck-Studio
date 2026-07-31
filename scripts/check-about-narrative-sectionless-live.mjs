@@ -98,17 +98,22 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
 
   assert.ok(reveal);
   assert.ok(ripple);
-  assert.equal(cameraKeys.length, 11);
+  assert.equal(cameraKeys.length, 8);
   [
+    'orb-establish',
+    'complexity-exit',
+    'complexity-exit-2',
     'grid-birds-eye',
     'discipline-hold',
     'grid-return-centered',
     'ripple-overhead-hold',
+    'finale-hold',
+  ].forEach((id) => assert.ok(cameraKeys.some((key) => key.id === id), `Missing authored camera key ${id}`));
+  [
     'emergent-orbit-quarter',
     'emergent-orbit-rear',
     'emergent-orbit-three-quarter',
-    'finale-hold',
-  ].forEach((id) => assert.ok(cameraKeys.some((key) => key.id === id), `Missing authored camera key ${id}`));
+  ].forEach((id) => assert.equal(cameraKeys.some((key) => key.id === id), false));
   const finaleHold = cameraKeys.find((key) => key.id === 'finale-hold');
   assert.ok(finaleHold);
   assert.equal(finaleHold.aimEnabled, true);
@@ -121,15 +126,12 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
     assert.equal(key.lookAtTarget.length, 3);
     assert.equal(Number.isFinite(key.lookAtRoll), true);
   });
-  assert.equal(visibilityKeys.length, 17);
+  assert.equal(visibilityKeys.length, 11);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, canonical.profiles.desktop.storyDurationWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
   assert.ok(visibilityKeys.some((key) => key.visibility === 1));
-  assert.equal(
-    visibilityKeys.find((key) => key.id === 'visibility-emergent-title-hold')?.visibility,
-    1,
-  );
+  assert.equal(visibilityKeys.some((key) => key.atWU > 14 && key.atWU < 19.05), false);
   assert.deepEqual(
     visibilityKeys.find((key) => key.id === 'visibility-discipline-read'),
     {
@@ -140,7 +142,6 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
       locked: false,
     },
   );
-  assert.equal(visibilityKeys.find((key) => key.id === 'visibility-open-space')?.atWU, 16.95);
   assert.equal(visibilityKeys.at(-1).visibility, 1);
   visibilityKeys.forEach((key) => {
     assert.deepEqual(
@@ -520,7 +521,7 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C flies straight into plan view before the authored ripple orbit and bust landing', () => {
+test('World C flies straight into plan view before the authored ripple hold and direct bust landing', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   assert.ok(background);
@@ -537,12 +538,9 @@ test('World C flies straight into plan view before the authored ripple orbit and
     'grid-birds-eye',
     'discipline-hold',
   ];
-  const orbitIds = [
+  const targetedIds = [
     'grid-return-centered',
     'ripple-overhead-hold',
-    'emergent-orbit-quarter',
-    'emergent-orbit-rear',
-    'emergent-orbit-three-quarter',
     'finale-hold',
   ];
   const gridFlightKeys = gridFlightIds.map((id) => keys.get(id));
@@ -560,21 +558,20 @@ test('World C flies straight into plan view before the authored ripple orbit and
     assert.ok(key.position[1] >= flyoverKeys[index].position[1], 'World C camera must rise continuously');
     assert.ok(key.rotation[0] < flyoverKeys[index].rotation[0], 'World C camera must tilt downward continuously');
   });
-  const orbitKeys = orbitIds.map((id) => keys.get(id));
-  const orbitTarget = keys.get('grid-return-centered').lookAtTarget;
-  orbitKeys.forEach((key) => {
+  const targetedKeys = targetedIds.map((id) => keys.get(id));
+  const target = keys.get('grid-return-centered').lookAtTarget;
+  targetedKeys.forEach((key) => {
     assert.ok(key);
     assert.equal(key.aimEnabled, true);
-    assert.equal(key.lookAtTarget[0], orbitTarget[0]);
-    assert.equal(key.lookAtTarget[2], orbitTarget[2]);
+    assert.equal(key.lookAtTarget[0], target[0]);
+    assert.equal(key.lookAtTarget[2], target[2]);
     assert.equal(key.lookAtRoll, 0);
   });
-  orbitKeys.slice(0, 2).forEach((key) => assert.equal(key.lookAtTarget[1], background.shapeParameters.height));
-  orbitKeys.slice(2, -1).forEach((key) => assert.equal(key.lookAtTarget[1], -1.25));
-  assert.equal(orbitKeys.at(-1).lookAtTarget[1], -0.88);
-  assert.ok(keys.get('emergent-orbit-quarter').position[0] > 0);
-  assert.ok(keys.get('emergent-orbit-rear').position[2] > rippleCenter[2]);
-  assert.ok(keys.get('emergent-orbit-three-quarter').position[0] < 0);
+  targetedKeys.slice(0, 2).forEach((key) => assert.equal(key.lookAtTarget[1], background.shapeParameters.height));
+  assert.equal(targetedKeys.at(-1).lookAtTarget[1], -0.88);
+  assert.deepEqual(keys.get('ripple-overhead-hold').position, keys.get('grid-return-centered').position);
+  assert.ok(keys.get('finale-hold').position[1] < keys.get('ripple-overhead-hold').position[1]);
+  assert.ok(keys.get('finale-hold').position[2] < keys.get('ripple-overhead-hold').position[2]);
   assert.equal(keys.get('finale-hold').position[0], 0.55);
   const shift = keys.get('grid-birds-eye');
   const bridgeTitle = canonical.tracks.text.fields.find((field) => field.id === 'text-complexity-listen');
@@ -591,11 +588,24 @@ test('World C flies straight into plan view before the authored ripple orbit and
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assert.equal(frame.camera.targeted, true);
     assert.equal(frame.camera.aimWeight, 1);
-    assertCameraValue(frame.camera.lookAtTarget[0], orbitTarget[0], `Orbit target x at ${storyWU.toFixed(3)} WU`);
-    assertCameraValue(frame.camera.lookAtTarget[2], orbitTarget[2], `Orbit target z at ${storyWU.toFixed(3)} WU`);
+    assertCameraValue(frame.camera.lookAtTarget[0], target[0], `Target x at ${storyWU.toFixed(3)} WU`);
+    assertCameraValue(frame.camera.lookAtTarget[2], target[2], `Target z at ${storyWU.toFixed(3)} WU`);
   }
-  const orbitFrame = sampleAboutNarrativeRuntimePlan(plan, keys.get('emergent-orbit-rear').atWU);
-  assert.notDeepEqual(orbitFrame.camera.quaternion, firstFrame.camera.quaternion);
+  const rippleBoundaryWU = keys.get('ripple-overhead-hold').atWU;
+  const beforeRippleBoundary = sampleAboutNarrativeRuntimePlan(plan, rippleBoundaryWU - 0.005);
+  const afterRippleBoundary = sampleAboutNarrativeRuntimePlan(plan, rippleBoundaryWU + 0.005);
+  const rippleBoundaryQuaternionDot = beforeRippleBoundary.camera.quaternion.reduce(
+    (sum, value, index) => sum + (value * afterRippleBoundary.camera.quaternion[index]),
+    0,
+  );
+  assert.ok(
+    Math.abs(rippleBoundaryQuaternionDot) > 0.999,
+    'The retained overhead camera must not roll when C → E starts.',
+  );
+  const finaleFrame = sampleAboutNarrativeRuntimePlan(plan, keys.get('finale-hold').atWU);
+  assert.notDeepEqual(finaleFrame.camera.quaternion, firstFrame.camera.quaternion);
+  assert.ok(finaleFrame.camera.position[1] < keys.get('ripple-overhead-hold').position[1]);
+  assert.ok(finaleFrame.camera.position[2] < keys.get('ripple-overhead-hold').position[2]);
 
   const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
   const editorialOff = visibility.get('visibility-editorial-off');
@@ -693,13 +703,13 @@ test('World C flies straight into plan view before the authored ripple orbit and
   for (const profileId of ['tablet', 'mobile']) {
     const compactPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: profileId });
     const compactKeys = new Map(compactPlan.cameraKeys.map((key) => [key.id, key]));
-    const compactOrbitTarget = compactKeys.get('grid-return-centered').lookAtTarget;
+    const compactTarget = compactKeys.get('grid-return-centered').lookAtTarget;
     gridFlightIds.forEach((id) => assert.equal(compactKeys.get(id).aimEnabled, false));
-    orbitIds.forEach((id) => {
+    targetedIds.forEach((id) => {
       const key = compactKeys.get(id);
       assert.equal(key.aimEnabled, true);
-      assert.equal(key.lookAtTarget[0], compactOrbitTarget[0]);
-      assert.equal(key.lookAtTarget[2], compactOrbitTarget[2]);
+      assert.equal(key.lookAtTarget[0], compactTarget[0]);
+      assert.equal(key.lookAtTarget[2], compactTarget[2]);
     });
     const compactBackground = compactPlan.worlds.find((world) => world.id === background.id);
     assert.equal(compactPlan.pointProfile, 'mobile');
@@ -1053,13 +1063,16 @@ test('the final title and actions share the closing frame with the persistent bu
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
-  assert.equal(finale.startWU, visibility.get('visibility-open-space').atWU);
+  assert.equal(finale.startWU, 16.95);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
   assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);
   assert.equal(emergent.protected, true);
   assert.equal(canonical.tracks.worlds.objects.filter((world) => world.shapeId === 'bust-v1').length, 1);
-  assert.equal(visibility.get('visibility-open-space').visibility, 1);
+  assert.equal(sampleAboutNarrativeRuntimePlan(
+    compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' }),
+    finale.startWU,
+  ).simulation.visibility, 1);
   assert.equal(visibility.get('visibility-end').visibility, 1);
   assert.equal(finalHold.atWU, finale.endWU);
   assert.equal(finalHold.aimEnabled, true);
