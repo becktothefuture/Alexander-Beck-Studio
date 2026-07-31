@@ -709,13 +709,13 @@ This amendment updates the current status only. The 2026-07-30 findings, verdict
 
 | Issue | Current status | Evidence |
 | --- | --- | --- |
-| `TEST-003` | Resolved locally | Five manifest-derived routes pass the production smoke. Focus discovery is route-aware, its traversal bound is DOM-derived, unexpected console errors fail, and forced-failure probes pass. |
+| `TEST-003` | Resolved locally | Five manifest-derived routes pass the production smoke. Focus discovery is route-aware, its traversal bound is DOM-derived, unexpected console errors fail, forced-failure probes pass, and successful runs retain a schema-versioned summary. |
 | `ARCH-003` | Resolved locally | Unknown URLs preserve their location, receive the explicit Home fallback state, and pass the fallback-host browser audit. |
 | `TEST-002` | Resolved locally | Chromium/WebKit geometry and all 6 lifecycle fault cases pass. |
 | `DEP-001` | Resolved locally | Node 22.19 or later is required; root and app full audits report zero findings. |
 | `OPS-003` | Resolved locally; independently accepted | Serialized journaled authoring transactions pass 30 of 30 focused tests. |
-| `DOC-002` | Resolved for current records | Current counts are 30 inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 125 legacy JavaScript/JSX files with 84 unused findings in 32 files and 137 empty catches in 28 files. |
-| `ARCH-004` | Partially resolved | The active cycle is reduced from 12 modules/23 internal edges to 9 modules/15 internal edges. The remaining cycle is documented debt. |
+| `DOC-002` | Resolved for current records | Current counts are 30 inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 126 legacy JavaScript/JSX files with 84 unused findings in 32 files and 136 empty catches in 27 files. |
+| `ARCH-004` | Partially resolved | The active cycle is reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port. The remaining cycle is documented debt. |
 | `PERF-001` | Partially resolved | Chromium has a stable mode-pass artifact. WebKit is environment-invalid, not a mode failure, so cross-browser certification remains incomplete. |
 | M07 / `A11Y-006` | Verified resolved locally | The coherent M07 report passes all 40 states. Playground light-mobile contrast and WebKit gate foreground blur are fixed. |
 | M12 | Refreshed and accepted locally | 14/14 static checks, 8/8 browser states, and all 24 screenshots pass inspection. |

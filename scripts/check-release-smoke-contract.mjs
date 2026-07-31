@@ -4,6 +4,7 @@ import { ROUTE_MANIFEST } from '../react-app/app/src/lib/route-manifest.js';
 import {
   RELEASE_SMOKE_ROUTES,
   assertRepresentativeKeyboardFocus,
+  buildReleaseSmokeSuccessReport,
 } from './lib/release-smoke-helpers.mjs';
 
 const routeIds = RELEASE_SMOKE_ROUTES.map((route) => route.id);
@@ -81,4 +82,37 @@ await assert.rejects(
     && error.assertion === 'representative-keyboard-focus-target',
 );
 
-console.log('PASS: release smoke route-aware focus contract and failure fixture.');
+const successReport = buildReleaseSmokeSuccessReport({
+  browser: 'chromium',
+  preview: '127.0.0.1:8015',
+  baseUrl: 'http://127.0.0.1:8015',
+  viewport: { width: 1280, height: 900 },
+  durationMs: 1234,
+  completedAt: '2026-07-31T00:00:00.000Z',
+  results: [
+    { phase: 'direct', routeId: 'home', durationMs: 500, internalState: 'omitted' },
+    { phase: 'spa-return', routeId: 'portfolio', durationMs: 734 },
+  ],
+});
+assert.deepEqual(successReport, {
+  schemaVersion: 1,
+  status: 'passed',
+  completedAt: '2026-07-31T00:00:00.000Z',
+  browser: 'chromium',
+  preview: '127.0.0.1:8015',
+  baseUrl: 'http://127.0.0.1:8015',
+  viewport: { width: 1280, height: 900 },
+  durationMs: 1234,
+  diagnostics: {
+    pageErrors: 0,
+    consoleErrors: 0,
+    failedResponses: 0,
+    failedRequests: 0,
+  },
+  results: [
+    { phase: 'direct', routeId: 'home', durationMs: 500 },
+    { phase: 'spa-return', routeId: 'portfolio', durationMs: 734 },
+  ],
+});
+
+console.log('PASS: release smoke route-aware focus, failure fixture, and success report contract.');

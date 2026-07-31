@@ -7,7 +7,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
-import { subscribeScenePointer } from '../input/pointer.js';
+import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 

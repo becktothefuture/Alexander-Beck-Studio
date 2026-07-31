@@ -1519,7 +1519,7 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 - **Category:** Architecture
 - **Severity:** Medium
 - **Status:** Partially resolved; remaining cycle is characterized
-- **Evidence:** A focused mode-button seam reduced the active component from 12 modules and 23 internal edges to 9 modules and 15 internal edges. The fail-closed cycle check passes; the remaining component is still architecture debt.
+- **Evidence:** A focused mode-button seam reduced the active component from 12 modules/23 internal edges to 9/15. A route-neutral scene-pointer event port then reduced it to 5 modules/8 edges. The fail-closed cycle and event-port contracts pass; the remaining component is still architecture debt.
 - **Acceptance:** Document the cycle and select at most one stable dependency-inversion seam before implementation.
 - **Effort/risk:** Small audit; medium implementation / high if broadened.
 
@@ -1547,7 +1547,7 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 - **Category:** Documentation
 - **Severity:** Medium
 - **Status:** Resolved for the current programme records on 2026-07-31
-- **Evidence:** Current summaries now record 30/25/22/16 route ownership and 125 files with 84 unused-variable findings in 32 files and 137 empty catches in 28 files. Earlier values remain only as labelled historical snapshots.
+- **Evidence:** Current summaries now record 30/25/22/16 route ownership and 126 files with 84 unused-variable findings in 32 files and 136 empty catches in 27 files. Earlier values remain only as labelled historical snapshots.
 - **Acceptance:** Label historical counts as snapshots and derive volatile current counts from executable checks where practical.
 - **Effort/risk:** Small / low.
 

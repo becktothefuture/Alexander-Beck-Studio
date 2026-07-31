@@ -243,7 +243,7 @@ The 2026-07-30 note above is a historical snapshot. Current evidence changes the
 
 - The null-route startup defect from `ARCH-003` is locally resolved through an explicit fallback state. Unknown URLs remain host-owned and are not rewritten to Home.
 - Multi-file local authoring now uses a serialized, journaled transaction boundary with an explicit durable commit point, rollback, recovery, containment, and cleanup-pending behavior. Independent review accepted the boundary after 30 focused tests.
-- A focused mode-button dependency seam reduced the active legacy cyclic component from 12 modules and 23 internal edges to 9 modules and 15 internal edges. The remaining cycle stays documented; this is not approval for a broad runtime rewrite.
+- A focused mode-button dependency seam reduced the active legacy cyclic component from 12 modules/23 internal edges to 9/15. A route-neutral scene-pointer event port then removed input and three mode modules from the component, reducing it to 5 modules/8 edges without moving frame-frequency work into React. The remaining cycle stays documented; this is not approval for a broad runtime rewrite.
 - The supported development/build runtime is Node 22.19 or later. Root and app full dependency audits are clean after controlled updates.
 - The renderer uses an allocation-free cadence helper that accepts bounded jitter and carries genuinely late callbacks by modulo. This keeps frame accounting aligned with accepted render work.
 

@@ -12,6 +12,7 @@ import {
   assertRouteSemanticContract,
   assertStableSimulationsNode,
   assertSmoke,
+  buildReleaseSmokeSuccessReport,
   captureStableSimulationsNode,
   readRouteState,
   routeUrl,
@@ -217,8 +218,7 @@ async function auditSpaNavigation(baseUrl) {
   }
 }
 
-async function saveFailureArtifacts(error, baseUrl) {
-  const runId = new Date().toISOString().replace(/[:.]/g, '-');
+async function saveFailureArtifacts(error, baseUrl, runId) {
   const outputDir = resolve(outputRoot, runId);
   await mkdir(outputDir, { recursive: true });
   const routeId = error.routeId || currentRouteId;
@@ -252,8 +252,16 @@ async function saveFailureArtifacts(error, baseUrl) {
   return outputDir;
 }
 
+async function saveSuccessArtifact(summary, runId) {
+  const outputDir = resolve(outputRoot, runId);
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(resolve(outputDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
+  return outputDir;
+}
+
 async function main() {
   const runStartedAt = performance.now();
+  const runId = new Date().toISOString().replace(/[:.]/g, '-');
   let baseUrl = externalUrl;
   let watchdogId = 0;
   let summary = null;
@@ -297,13 +305,14 @@ async function main() {
     await auditSpaNavigation(baseUrl);
     await context.tracing.stop();
 
-    return {
-      status: 'passed',
+    return buildReleaseSmokeSuccessReport({
       browser: 'chromium',
       preview: externalUrl ? 'external-production-preview' : `${host}:${port}`,
+      baseUrl,
+      viewport,
       durationMs: elapsedMs(runStartedAt),
-      results: results.map(({ phase, routeId, durationMs }) => ({ phase, routeId, durationMs })),
-    };
+      results,
+    });
   };
   const watchdog = new Promise((_, reject) => {
     watchdogId = setTimeout(() => {
@@ -317,7 +326,7 @@ async function main() {
   try {
     summary = await Promise.race([runAudit(), watchdog]);
   } catch (error) {
-    const artifactDir = await saveFailureArtifacts(error, baseUrl).catch(() => null);
+    const artifactDir = await saveFailureArtifacts(error, baseUrl, runId).catch(() => null);
     const failureRouteId = error.routeId || currentRouteId;
     const failureAssertion = error.assertion || currentAssertion;
     console.error(
@@ -337,7 +346,13 @@ async function main() {
     }
   }
   if (summary && !process.exitCode) {
-    console.log(JSON.stringify(summary, null, 2));
+    try {
+      const artifactDir = await saveSuccessArtifact(summary, runId);
+      console.log(JSON.stringify({ ...summary, artifactDir }, null, 2));
+    } catch (error) {
+      console.error(`[release-smoke] success-artifact/write failed: ${error.message}`);
+      process.exitCode = 1;
+    }
   }
 }
 

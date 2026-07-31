@@ -1808,9 +1808,9 @@ The 2026-07-30 amendment above is a historical checkpoint. The current local tre
 - `TEST-002` is locally resolved by a passing Chromium/WebKit geometry matrix and 6 of 6 lifecycle fault cases.
 - `OPS-003` is locally resolved and independently accepted with 30 of 30 focused transaction tests.
 - `DEP-001` is locally resolved. Root and app full audits report zero findings; Node 22.19 or later is required.
-- `ARCH-004` is reduced and characterized. The active cycle moved from 12 modules and 23 internal edges to 9 modules and 15 internal edges.
+- `ARCH-004` is reduced and characterized. The active cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port.
 - `PERF-001` has a stable Chromium mode-pass. WebKit is environment-invalid, not a mode failure, so cross-browser certification remains open.
-- Current executable inventories are 30 Vite inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 125 legacy JavaScript/JSX files. The lint ratchet records 84 unused-variable findings in 32 files and 137 empty catches in 28 files.
+- Current executable inventories are 30 Vite inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 126 legacy JavaScript/JSX files. The lint ratchet records 84 unused-variable findings in 32 files and 136 empty catches in 27 files.
 - M07 and `A11Y-006` are verified resolved locally. The coherent M07 report passes all 40 states after the Playground light-mobile contrast fix and focus-evidence stabilization.
 - M12 is refreshed and accepted with 14 of 14 static checks, 8 of 8 browser states, and all 24 screenshots inspected.
 - M16 is completed locally. Eight Portfolio hero/title blocks and six locked-overlay blocks moved to `portfolio.css`. Global/Portfolio rule counts changed from 1605/483 to 1589/499; overlaps changed from 428 to 413 and exact overlaps from 36 to 16. Approved-family same-context conflicts and approved Portfolio-only blocks left in `main.css` are both zero.

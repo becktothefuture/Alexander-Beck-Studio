@@ -5,7 +5,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
-import { subscribeScenePointer } from '../input/pointer.js';
+import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 

@@ -8,7 +8,7 @@ import { MODES } from '../core/constants.js';
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
-import { subscribeScenePointer } from '../input/pointer.js';
+import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 

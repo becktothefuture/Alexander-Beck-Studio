@@ -14,10 +14,6 @@
   "components": [
     {
       "members": [
-        "src/legacy/modules/input/pointer.js",
-        "src/legacy/modules/modes/3d-sphere.js",
-        "src/legacy/modules/modes/elastic-center.js",
-        "src/legacy/modules/modes/flubber-blob.js",
         "src/legacy/modules/modes/mode-controller.js",
         "src/legacy/modules/physics/engine.js",
         "src/legacy/modules/portfolio/pit-mode.js",
@@ -25,13 +21,6 @@
         "src/legacy/modules/rendering/renderer.js"
       ],
       "edges": [
-        "src/legacy/modules/input/pointer.js -> src/legacy/modules/modes/mode-controller.js",
-        "src/legacy/modules/modes/3d-sphere.js -> src/legacy/modules/input/pointer.js",
-        "src/legacy/modules/modes/elastic-center.js -> src/legacy/modules/input/pointer.js",
-        "src/legacy/modules/modes/flubber-blob.js -> src/legacy/modules/input/pointer.js",
-        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/3d-sphere.js",
-        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/elastic-center.js",
-        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/flubber-blob.js",
         "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/physics/engine.js",
         "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/portfolio/pit-mode.js",
         "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/rendering/loop.js",

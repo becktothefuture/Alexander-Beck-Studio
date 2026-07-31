@@ -10,10 +10,10 @@ import { updateCursorPosition, hideCursor, showCursor } from '../rendering/curso
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 import { updateModeButtonsUI } from '../ui/mode-buttons.js';
+import { emitScenePointer } from './scene-pointer.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
-const scenePointerSubscribers = new Set();
 
 function triggerWaterRipple(x, y, velocityFactor) {
   if (typeof createWaterRippleFn === 'function') {
@@ -63,23 +63,6 @@ function cycleMode() {
 // Throttle for water ripple creation
 let lastRippleTime = 0;
 const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max
-
-export function subscribeScenePointer(handler) {
-  if (typeof handler !== 'function') return () => {};
-  scenePointerSubscribers.add(handler);
-  return () => {
-    scenePointerSubscribers.delete(handler);
-  };
-}
-
-function emitScenePointer(type, detail) {
-  if (scenePointerSubscribers.size === 0) return;
-  for (const handler of scenePointerSubscribers) {
-    try {
-      handler(type, detail);
-    } catch (e) {}
-  }
-}
 
 /**
  * GLOBAL UNIFIED MOUSE SYSTEM

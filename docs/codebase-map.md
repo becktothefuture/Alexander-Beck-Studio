@@ -359,7 +359,7 @@ The deploy workflow installs root and app dependencies, runs `npm run check:site
 
 - The bounded browser smoke is staged in the release workflow, but remote qualification, five stable Actions runs, and branch protection are not yet proven.
 - Most programme changes still lack an authorized, reviewable commit boundary, so clean-checkout reproducibility remains unproven under `OPS-002`.
-- The active imperative runtime retains one reviewed dependency cycle with 9 modules and 15 internal edges.
+- The active imperative runtime retains one reviewed dependency cycle with 5 modules and 8 internal edges.
 - Chromium performance evidence is valid and passes; the current WebKit environment is invalid for performance certification, so cross-browser confidence remains incomplete.
 - The client-side gate can be mistaken for security unless its UX-only role stays explicit.
 
@@ -409,14 +409,15 @@ Current independent-review issues are recorded as `ARCH-003`, `ARCH-004`, `A11Y-
 ## Current verification snapshot — 2026-07-31
 
 - The route registry has 30 Vite inputs, 25 entry modules, 22 `SiteApp` route descriptors, and 16 shell scenes.
-- The active legacy lint inventory has 125 JavaScript/JSX files, 84 unused-variable findings in 32 files, and 137 empty catches in 28 files.
+- The active legacy lint inventory has 126 JavaScript/JSX files, 84 unused-variable findings in 32 files, and 136 empty catches in 27 files.
 - `TEST-003` is locally resolved. The five-route production smoke derives its route list from the manifest, uses route-aware focus discovery, fails on unexpected console errors, and passes normal and forced-failure contract checks.
+- Passing release-smoke runs now retain a schema-versioned `summary.json` with route timings and zero-error resource diagnostics; failures retain diagnostics, screenshot, and trace artifacts.
 - The complete Playground audit passes serially in Chromium and WebKit, including input, wrapping, media ownership, lightboxes, live configuration, save/restore, routing, and cleanup contracts.
 - `ARCH-003` is locally resolved. Unknown paths preserve their URL, use the explicit Home fallback state, and pass the fallback-host browser audit.
 - `TEST-002` is locally resolved. The Chromium/WebKit geometry matrix and all 6 fault cases pass.
 - `OPS-003` is locally resolved and independently accepted. Serialized transactional authoring operations pass 30 of 30 failure, rollback, recovery, containment, and concurrency checks.
 - `DEP-001` is locally resolved. Root and app full dependency audits report zero findings, and the supported Node baseline is 22.19 or later.
-- The characterized active legacy cycle is smaller: 12 modules and 23 internal edges became 9 modules and 15 internal edges. The remaining cycle is still documented debt.
+- The characterized active legacy cycle is smaller: 12 modules/23 internal edges became 9/15 through the mode-button seam, then 5/8 through the route-neutral scene-pointer event port. The remaining cycle is still documented debt.
 - `PERF-001` is partially resolved. Chromium has a stable mode-pass artifact. The current WebKit result is environment-invalid, not a mode failure, so cross-browser performance certification is still incomplete.
 - M07 is verified locally across all 40 browser/theme/viewport/route states. `A11Y-006` is resolved locally: the Portfolio gate foreground stays sharp while the route behind it blurs independently.
 - M12 is refreshed and accepted: 14 of 14 static checks, 8 of 8 browser states, and all 24 inspected screenshots pass.

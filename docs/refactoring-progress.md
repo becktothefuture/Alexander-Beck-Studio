@@ -717,13 +717,13 @@ No production publish, push, or new commit was performed by this review.
 ### Confirmed local results
 
 - `npm run check:site` passes on the integrated local tree.
-- The production release smoke covers five manifest-derived routes, rejects unexpected console errors, and passes. Its unknown-path fallback-host audit also passes.
+- The production release smoke covers five manifest-derived routes, rejects unexpected console errors, and passes. Its unknown-path fallback-host audit also passes. Passing runs retain a schema-versioned `summary.json`; the verified 2026-07-31 run recorded nine route phases and zero page, console, response, or request failures.
 - Route ownership is 30 Vite inputs, 25 entry modules, 22 `SiteApp` routes, and 16 shell scenes.
-- The active legacy inventory is 125 JavaScript/JSX files, with 84 unused-variable findings in 32 files and 137 empty catches in 28 files.
+- The active legacy inventory is 126 JavaScript/JSX files, with 84 unused-variable findings in 32 files and 136 empty catches in 27 files.
 - The simulation lifecycle evidence passes in Chromium and WebKit, including geometry and all 6 fault cases.
 - Atomic local authoring work is independently accepted with 30 of 30 focused tests.
 - Root and app full dependency audits report zero findings. The required Node version is 22.19 or later.
-- The active legacy cyclic component is reduced from 12 modules and 23 internal edges to 9 modules and 15 internal edges.
+- The active legacy cyclic component is reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port.
 - Chromium performance has a stable mode-pass artifact. WebKit performance is environment-invalid, not a mode failure.
 - M07 passes all 40 states in `output/playwright/focus-contrast/results-2026-07-31T07-56-53-938Z-all-all-all-all.json`. The verified fixes are Playground light-mobile contrast and deterministic focus evidence through iframe animation freeze.
 - `A11Y-006` is resolved locally. The Portfolio gate foreground remains sharp over the independently blurred route.

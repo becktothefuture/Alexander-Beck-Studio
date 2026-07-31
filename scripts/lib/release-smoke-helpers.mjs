@@ -101,6 +101,38 @@ export function routeUrl(baseUrl, pathname) {
   return new URL(pathname, `${baseUrl.replace(/\/+$/, '')}/`).toString();
 }
 
+export function buildReleaseSmokeSuccessReport({
+  browser,
+  preview,
+  baseUrl,
+  viewport,
+  durationMs,
+  results,
+  completedAt = new Date().toISOString(),
+}) {
+  return {
+    schemaVersion: 1,
+    status: 'passed',
+    completedAt,
+    browser,
+    preview,
+    baseUrl,
+    viewport: { ...viewport },
+    durationMs,
+    diagnostics: {
+      pageErrors: 0,
+      consoleErrors: 0,
+      failedResponses: 0,
+      failedRequests: 0,
+    },
+    results: results.map(({ phase, routeId, durationMs: resultDurationMs }) => ({
+      phase,
+      routeId,
+      durationMs: resultDurationMs,
+    })),
+  };
+}
+
 async function responseMatchesProductionApp(url) {
   const response = await fetch(url, { method: 'GET' });
   if (!response.ok) {

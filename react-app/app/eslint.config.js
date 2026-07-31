@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
-// Measured legacy debt baseline (2026-07-31): 32 of 125 files, 84 violations.
+// Measured legacy debt baseline (2026-07-31): 32 of 126 files, 84 violations.
 // Keep this list explicit so new legacy files receive normal unused-variable checks.
 export const LEGACY_UNUSED_VARS_DEBT_FILES = [
   'src/legacy/modules/audio/sound-control-registry.js',
@@ -48,7 +48,6 @@ export const LEGACY_EMPTY_CATCH_DEBT = [
   { file: 'src/legacy/modules/audio/sound-engine.js', reason: 'Audio capability and cleanup failures are best effort.' },
   { file: 'src/legacy/modules/audio/sound-playground.js', reason: 'Audio node cleanup is best effort.' },
   { file: 'src/legacy/modules/core/state.js', reason: 'Persistence and observer compatibility fallbacks are best effort.' },
-  { file: 'src/legacy/modules/input/pointer.js', reason: 'Pointer capability cleanup is best effort.' },
   { file: 'src/legacy/modules/modes/mode-controller.js', reason: 'Mode teardown compatibility fallbacks are best effort.' },
   { file: 'src/legacy/modules/rendering/loop.js', reason: 'Frame-loop cleanup is best effort.' },
   { file: 'src/legacy/modules/rendering/renderer.js', reason: 'Rendering capability and teardown fallbacks are best effort.' },

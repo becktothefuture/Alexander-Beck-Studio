@@ -720,13 +720,13 @@ This section supersedes only current status. The milestone evidence above remain
 | Work item | Current status | Confirmed evidence or remaining condition |
 | --- | --- | --- |
 | M01 / `TEST-001` | Local implementation verified; external qualification pending | Five-route smoke and local workflow checks pass. Five qualifying Actions runs, blocking promotion, and branch protection are not confirmed. |
-| `TEST-003` | Resolved locally | Manifest-derived five-route smoke, route-aware focus, unexpected-console failure, and forced-failure probes pass. |
+| `TEST-003` | Resolved locally | Manifest-derived five-route smoke, route-aware focus, unexpected-console failure, forced-failure probes, and durable success-summary evidence pass. |
 | M07 / `A11Y-006` | Verified resolved locally | The coherent report passes all 40 states. Playground light-mobile contrast and WebKit gate foreground blur are fixed. |
 | M08 / `ARCH-003` | Resolved locally | Unknown paths preserve their URL, use the explicit Home fallback state, and pass fallback-host browser coverage. |
-| M10 / `DOC-002` | Current | 125 legacy JavaScript/JSX files; 84 unused-variable findings in 32 files; 137 empty catches in 28 files. Earlier inventories are historical. |
+| M10 / `DOC-002` | Current | 126 legacy JavaScript/JSX files; 84 unused-variable findings in 32 files; 136 empty catches in 27 files. Earlier inventories are historical. |
 | `TEST-002` | Resolved locally | Chromium/WebKit geometry and 6 of 6 lifecycle fault cases pass. |
 | `PERF-001` | Partially resolved | Chromium has a stable mode-pass; WebKit is environment-invalid, so cross-browser certification remains pending. |
-| `ARCH-004` | Partially resolved | Active cycle reduced from 12 modules/23 internal edges to 9 modules/15 internal edges; the remaining cycle is still debt. |
+| `ARCH-004` | Partially resolved | Active cycle reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port; the remaining cycle is still debt. |
 | `DEP-001` | Resolved locally | Node 22.19 or later; root and app full audits report zero findings. |
 | `OPS-003` | Resolved locally; independently accepted | Serialized journaled transactions pass 30 of 30 focused tests. |
 | M12 | Refreshed and accepted locally | 14/14 static checks, 8/8 browser states, and 24/24 inspected screenshots pass. |
