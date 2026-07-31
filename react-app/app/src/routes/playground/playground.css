@@ -18,7 +18,7 @@
   --playground-focus-offset: max(var(--abs-focus-ring-offset, 3px), 3px);
   --playground-periphery-veil-size: 20dvw;
   --playground-periphery-veil-core: 2dvw;
-  --playground-periphery-veil-opacity: 0.5;
+  --playground-periphery-veil-opacity: 0.8;
   --playground-copy-shadow: radial-gradient(
     ellipse at center,
     var(--studio-window-bg) 0%,
