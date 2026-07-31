@@ -39,11 +39,15 @@ test('timeline return contract is global and runtime-plan based', () => {
   assert.ok(source.includes('remapAboutNarrativeScrollTop'));
 });
 
-test('DOM geometry is isolated to diagnostic content-pressure collection', () => {
+test('DOM geometry is isolated to the cached content-measurement pass', () => {
   const geometryReads = [...source.matchAll(/getBoundingClientRect\(\)/g)];
-  assert.equal(geometryReads.length, 1);
+  assert.equal(geometryReads.length, 3);
   const pressureStart = source.indexOf('const collectContentPressure');
   const pressureEnd = source.indexOf('const cacheSemanticNodes');
   assert.ok(pressureStart >= 0 && pressureEnd > pressureStart);
-  assert.ok(geometryReads[0].index > pressureStart && geometryReads[0].index < pressureEnd);
+  geometryReads.forEach((read) => {
+    assert.ok(read.index > pressureStart && read.index < pressureEnd);
+  });
+  assert.ok(source.includes('getAboutNarrativeReadingOrderRevealMetrics'));
+  assert.ok(source.includes('editorialRevealMetrics'));
 });

@@ -9,6 +9,7 @@ import {
   getAboutNarrativeEditorialReveal,
 } from '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js';
 import {
+  getAboutNarrativeReadingOrderRevealMetrics,
   getAboutNarrativeSharedRevealProgress,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeReveal.js';
 import { validateAboutNarrativeTrackDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
@@ -1025,7 +1026,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.reveal, /ABOUT_NARRATIVE_REVEAL_TRAVEL_VIEWPORT = 0\.2/);
   assert.doesNotMatch(liveSources.timeline, /editorialIndex|logoStaggerWU|revealDelayWU/);
   assert.match(liveSources.timeline, /startScrollWU: Number\(span\.scrollBounds\.startWU\)/);
-  assert.match(liveSources.timeline, /editorialNode\.offsetTop - node\.offsetTop/);
+  assert.match(liveSources.timeline, /getAboutNarrativeReadingOrderRevealMetrics/);
   assert.match(liveSources.timeline, /about:editorial-lines-change/);
   assert.match(liveSources.timeline, /scrollWUFromStoryWU\(frame\.storyWU\)/);
   assert.doesNotMatch(liveSources.timeline, /sequentialPassage/);
@@ -1129,6 +1130,28 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
   assert.equal(getAboutNarrativeSharedRevealProgress(1, 1, 0.2, false), 0);
   assert.ok(Math.abs(getAboutNarrativeSharedRevealProgress(0.9, 1, 0.2, false) - 0.5) < 0.000001);
   assert.equal(getAboutNarrativeSharedRevealProgress(0.8, 1, 0.2, false), 1);
+  const readingOrderMetrics = getAboutNarrativeReadingOrderRevealMetrics([
+    { top: 0, height: 36 },
+    { top: 0, height: 36 },
+    { top: 0, height: 36 },
+    { top: 42, height: 36 },
+    { top: 42, height: 36 },
+    { top: 120, height: 36 },
+  ]);
+  assert.equal(readingOrderMetrics.length, 6);
+  readingOrderMetrics.forEach((metric, index) => {
+    assert.ok(metric.revealSoftnessPx >= 4 && metric.revealSoftnessPx <= 18);
+    if (index > 0) {
+      assert.ok(
+        metric.revealOffsetPx > readingOrderMetrics[index - 1].revealOffsetPx,
+        `reading-order marker ${index} must follow marker ${index - 1}`,
+      );
+    }
+  });
+  assert.ok(
+    readingOrderMetrics[5].revealOffsetPx - readingOrderMetrics[4].revealOffsetPx > 36,
+    'authored paragraph gaps must remain pauses in the reveal scan',
+  );
   for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
     const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
     const logos = plan.renderSpans.find((span) => span.fieldIds.includes('text-background-unit'));
@@ -1136,7 +1159,8 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
     const field = plan.textFields.find((item) => item.id === 'text-background-unit');
     const record = {
       startScrollWU,
-      layoutOffsetPx: 0,
+      revealOffsetPx: 0,
+      revealSoftnessPx: 8,
       field,
       editorialMotion: canonical.globals.editorialMotion,
     };
@@ -1148,16 +1172,18 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
       canonical.globals.editorialRevealThreshold,
       false,
     );
-    const halfway = getAboutNarrativeEditorialReveal(
+    const beforeCompletionLine = getAboutNarrativeEditorialReveal(
       record,
       startScrollWU + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
       viewportHeight,
       canonical.globals.editorialRevealThreshold,
       false,
     );
-    const trailingWordHalfway = getAboutNarrativeEditorialReveal(
-      { ...record, sequenceRatio: 1 },
-      startScrollWU + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
+    const softEdge = getAboutNarrativeEditorialReveal(
+      record,
+      startScrollWU
+        + canonical.globals.editorialMotion.fadeDurationWU
+        - (record.revealSoftnessPx / viewportHeight / 2),
       viewportHeight,
       canonical.globals.editorialRevealThreshold,
       false,
@@ -1169,23 +1195,20 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
       canonical.globals.editorialRevealThreshold,
       false,
     );
-    const trailingWordAtBandEnd = getAboutNarrativeEditorialReveal(
-      { ...record, sequenceRatio: 1 },
+    const nextWordAtBandEnd = getAboutNarrativeEditorialReveal(
+      { ...record, revealOffsetPx: 24 },
       startScrollWU + canonical.globals.editorialMotion.fadeDurationWU,
       viewportHeight,
       canonical.globals.editorialRevealThreshold,
       false,
     );
     assert.ok(atMarker <= 0.000001, `${layoutProfile} must start at the viewport bottom`);
-    assert.ok(halfway > 0 && halfway < 1, `${layoutProfile} must reveal inside the shared band`);
-    assert.ok(
-      trailingWordHalfway < halfway,
-      `${layoutProfile} words and logos must draw in sequentially inside the shared band`,
-    );
+    assert.ok(beforeCompletionLine <= 0.000001, `${layoutProfile} must stay quiet before the scan line`);
+    assert.ok(softEdge > 0 && softEdge < 1, `${layoutProfile} must keep a soft active edge`);
     assert.ok(atBandEnd >= 0.999999, `${layoutProfile} must finish twenty percent above the bottom`);
     assert.ok(
-      trailingWordAtBandEnd >= 0.999999,
-      `${layoutProfile} trailing words and logos must finish inside the same bottom-twenty-percent band`,
+      nextWordAtBandEnd <= 0.000001,
+      `${layoutProfile} later words and logos must remain quiet until their reading-order turn`,
     );
   }
 });

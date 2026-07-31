@@ -15,14 +15,16 @@ import {
   createAboutNarrativeTitleFieldSample,
   sampleAboutNarrativeTitleFieldInto,
 } from './aboutNarrativeRuntimePlan.js';
-import { getAboutNarrativeSharedRevealProgress } from './aboutNarrativeReveal.js';
+import {
+  getAboutNarrativeReadingOrderRevealMetrics,
+  getAboutNarrativeSharedRevealProgress,
+} from './aboutNarrativeReveal.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 const smooth01 = (value) => {
   const progress = clamp01(value);
   return progress * progress * (3 - (2 * progress));
 };
-const EDITORIAL_SEQUENCE_BAND_RATIO = 0.42;
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
@@ -78,18 +80,20 @@ export function getAboutNarrativeEditorialReveal(
   viewportThreshold,
   reducedMotion,
 ) {
-  const layoutOffsetWU = Number(record.layoutOffsetPx || 0) / Math.max(1, viewportHeight);
+  const revealOffsetWU = Number(record.revealOffsetPx || 0) / Math.max(1, viewportHeight);
   const viewportY = Number(viewportThreshold)
-    + layoutOffsetWU
+    + revealOffsetWU
     - (Number(scrollWU) - Number(record.startScrollWU));
   const revealTravel = Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0);
-  const sequenceDelay = revealTravel
-    * EDITORIAL_SEQUENCE_BAND_RATIO
-    * clamp01(Number(record.sequenceRatio) || 0);
+  const revealSoftnessWU = Math.max(
+    0.001,
+    Number(record.revealSoftnessPx || 0) / Math.max(1, viewportHeight),
+  );
+  const completionViewportY = Number(viewportThreshold) - revealTravel;
   return getAboutNarrativeSharedRevealProgress(
     viewportY,
-    Number(viewportThreshold) - sequenceDelay,
-    revealTravel - sequenceDelay,
+    completionViewportY + revealSoftnessWU,
+    revealSoftnessWU,
     reducedMotion,
   );
 }
@@ -211,7 +215,7 @@ export function useAboutNarrativeTimeline({
     const collectContentPressure = (viewportHeight) => {
       const pressure = {};
       const editorialFieldHeights = new Map();
-      const editorialOffsets = new Map();
+      const editorialRevealMetrics = new Map();
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
         const fieldId = node.dataset.textFieldId;
         if (!fieldId) return;
@@ -227,15 +231,20 @@ export function useAboutNarrativeTimeline({
         const editorialNodes = node.matches('[data-editorial-reveal]')
           ? [node]
           : Array.from(node.querySelectorAll('[data-editorial-reveal]'));
-        editorialNodes.forEach((editorialNode) => {
-          editorialOffsets.set(
-            editorialNode,
-            editorialNode === node ? 0 : Math.max(0, editorialNode.offsetTop - node.offsetTop),
-          );
+        const fieldRect = node.getBoundingClientRect();
+        const revealMetrics = getAboutNarrativeReadingOrderRevealMetrics(editorialNodes.map((editorialNode) => {
+          const rect = editorialNode.getBoundingClientRect();
+          return {
+            top: rect.top - fieldRect.top,
+            height: rect.height,
+          };
+        }));
+        editorialNodes.forEach((editorialNode, index) => {
+          editorialRevealMetrics.set(editorialNode, revealMetrics[index]);
         });
       });
       measurementsRef.current.editorialFieldHeights = editorialFieldHeights;
-      measurementsRef.current.editorialOffsets = editorialOffsets;
+      measurementsRef.current.editorialRevealMetrics = editorialRevealMetrics;
       return pressure;
     };
 
@@ -263,13 +272,14 @@ export function useAboutNarrativeTimeline({
         const isEditorialField = field?.kind === 'scroll-block'
           || (field?.kind === 'title' && field.movement === 'vertical');
         if (!isEditorialField || !span) return [];
+        const revealMetrics = measurementsRef.current.editorialRevealMetrics?.get(node);
         return [{
           node,
           field,
           editorialMotion: plan.model.globals.editorialMotion,
           startScrollWU: Number(span.scrollBounds.startWU),
-          layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
-          sequenceRatio: Number(node.dataset.editorialSequenceRatio) || 0,
+          revealOffsetPx: Number(revealMetrics?.revealOffsetPx) || 0,
+          revealSoftnessPx: Number(revealMetrics?.revealSoftnessPx) || 0,
           progress: 0,
         }];
       });
