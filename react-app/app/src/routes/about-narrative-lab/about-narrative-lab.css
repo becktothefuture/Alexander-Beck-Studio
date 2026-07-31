@@ -789,7 +789,10 @@ body.dark-mode .about-narrative-client-logos img {
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
   transform: translate3d(
-    var(--discipline-label-translate-x, var(--discipline-label-offset, 18px)),
+    calc(
+      var(--discipline-label-translate-x, var(--discipline-label-offset, 18px))
+      + var(--discipline-label-nudge, 0px)
+    ),
     var(--discipline-label-vertical-nudge, 0px),
     0
   );

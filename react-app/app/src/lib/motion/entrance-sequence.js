@@ -657,11 +657,11 @@ function settleTarget(target) {
       settleGlyphEntranceState(glyph);
     });
   } else if (target.variant === 'bookend-description') {
-    target.element.style.opacity = '1';
+    target.element.style.opacity = String(target.finalOpacity);
     target.element.style.filter = 'none';
     target.element.style.transform = 'translate3d(0, 0, 0)';
     target.descriptionLines.forEach((line) => {
-      line.style.opacity = String(target.finalOpacity);
+      line.style.opacity = '1';
     });
   } else {
     target.element.style.opacity = String(target.finalOpacity);
@@ -711,7 +711,7 @@ function stageTarget(target, blurPx) {
       glyph.style.willChange = 'color, transform';
     });
   } else if (target.variant === 'bookend-description') {
-    target.element.style.opacity = '1';
+    target.element.style.opacity = String(target.finalOpacity);
     target.element.style.filter = 'none';
     target.element.style.transform = 'translate3d(0, 0.35em, 0)';
     target.descriptionLines.forEach((line) => {
@@ -917,7 +917,7 @@ export function createEntranceSequence({
           const animation = line.animate(
             [
               { opacity: 0 },
-              { opacity: target.finalOpacity },
+              { opacity: 1 },
             ],
             {
               duration: target.durationMs,

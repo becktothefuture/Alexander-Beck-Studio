@@ -38,9 +38,7 @@ import {
   resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
 import {
-  getAboutNarrativeDisciplinePointMinX,
-  getAboutNarrativeDisciplinePointMaxX,
-  getAboutNarrativeHorizontalCorridorOverflow,
+  getAboutNarrativeDisciplineLabelNudge,
 } from './aboutNarrativeTextCorridor.js';
 import {
   createAboutNarrativePointFieldMotionSample,
@@ -1320,17 +1318,12 @@ function createPointFieldAdapter({
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
   const disciplineLabelSide = new Int8Array(6);
+  const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelWidth = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedViewportY = new Float64Array(6).fill(Number.NaN);
   const disciplinePointInFront = new Uint8Array(6);
-  const disciplinePointNeedsConstraint = new Uint8Array(6);
-  const disciplinePointMinimumX = new Float64Array(6);
-  const disciplinePointMaximumX = new Float64Array(6);
-  const disciplinePointBestOverflow = new Float64Array(6);
-  const disciplinePointBestDistance = new Float64Array(6);
-  const disciplinePointBestIndex = new Int32Array(6).fill(-1);
   const disciplinePointProjection = new Float64Array(4);
   const textCorridor = root.querySelector('[data-about-text-corridor]');
   let disciplineCorridorLeft = 16;
@@ -1432,6 +1425,7 @@ function createPointFieldAdapter({
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
       disciplineLabelSide[index] = 0;
+      disciplineLabelNudge[index] = Number.NaN;
       if (disciplineLabels[index]) {
         disciplineLabels[index].style.removeProperty('--discipline-label-nudge');
         disciplineLabels[index].style.removeProperty('--discipline-label-translate-x');
@@ -1482,6 +1476,15 @@ function createPointFieldAdapter({
         ? 'calc(-100% - var(--discipline-label-offset, 18px))'
         : 'var(--discipline-label-offset, 18px)',
     );
+    runtimeObserver.hotFrameDomWrite();
+  };
+
+  const writeDisciplineLabelNudge = (index, nudge) => {
+    if (disciplineLabelNudge[index] === nudge) return;
+    const label = disciplineLabels[index];
+    disciplineLabelNudge[index] = nudge;
+    if (!label) return;
+    label.style.setProperty('--discipline-label-nudge', `${nudge}px`);
     runtimeObserver.hotFrameDomWrite();
   };
 
@@ -2074,17 +2077,6 @@ function createPointFieldAdapter({
     target.livingColour.value = Number(colour?.strength || 0);
   };
 
-  const getDisciplineMaterialSlot = (pointIndex) => {
-    const seed = fixedAttributes.pointSeed.array[pointIndex];
-    const materialSeed = ((seed * 43.713) + 0.271) % 1;
-    if (materialSeed < uniforms.materialThreshold1.value) return 0;
-    if (materialSeed < uniforms.materialThreshold2.value) return 1;
-    if (materialSeed < uniforms.materialThreshold3.value) return 2;
-    if (materialSeed < uniforms.materialThreshold4.value) return 3;
-    if (materialSeed < uniforms.materialThreshold5.value) return 4;
-    return 5;
-  };
-
   const sampleDisciplinePointProjection = (pointIndex, frame, target) => {
     const pointOffset = pointIndex * 3;
     anchorFromPosition.x = fixedAttributes.position.array[pointOffset];
@@ -2137,37 +2129,11 @@ function createPointFieldAdapter({
     target[3] = inFront ? 1 : 0;
   };
 
-  const installConstrainedDisciplinePoint = (groupIndex, pointIndex) => {
-    const group = groupIndex + 1;
-    const previousFromIndex = fromDisciplineIndices[groupIndex];
-    const previousToIndex = toDisciplineIndices[groupIndex];
-    if (previousFromIndex >= 0) fixedAttributes.fromGroup.array[previousFromIndex] = 0;
-    if (previousToIndex >= 0) fixedAttributes.toGroup.array[previousToIndex] = 0;
-    fixedAttributes.fromGroup.array[pointIndex] = group;
-    fixedAttributes.toGroup.array[pointIndex] = group;
-    fixedAttributes.fromGroup.needsUpdate = true;
-    fixedAttributes.toGroup.needsUpdate = true;
-    fromDisciplineIndices[groupIndex] = pointIndex;
-    toDisciplineIndices[groupIndex] = pointIndex;
-    const pointOffset = pointIndex * 3;
-    const groupOffset = groupIndex * 3;
-    fromDisciplinePositions[groupOffset] = fixedAttributes.position.array[pointOffset];
-    fromDisciplinePositions[groupOffset + 1] = fixedAttributes.position.array[pointOffset + 1];
-    fromDisciplinePositions[groupOffset + 2] = fixedAttributes.position.array[pointOffset + 2];
-    toDisciplinePositions[groupOffset] = fixedAttributes.targetPosition.array[pointOffset];
-    toDisciplinePositions[groupOffset + 1] = fixedAttributes.targetPosition.array[pointOffset + 1];
-    toDisciplinePositions[groupOffset + 2] = fixedAttributes.targetPosition.array[pointOffset + 2];
-  };
-
-  const constrainDisciplinePointsToCorridor = (
+  const projectDisciplineAnchors = (
     frame,
     gridDisciplineIndices,
-    disciplineWorld,
-    toWorld,
     labelOffset,
   ) => {
-    disciplinePointNeedsConstraint.fill(0);
-    let needsConstraint = false;
     for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
       const pointIndex = gridDisciplineIndices[groupIndex];
       if (pointIndex < 0 || !disciplineLabels[groupIndex]) continue;
@@ -2179,81 +2145,14 @@ function createPointFieldAdapter({
       const side = disciplineProjectedX[groupIndex]
         > ((disciplineCorridorLeft + disciplineCorridorRight) / 2) ? -1 : 1;
       writeDisciplineLabelSide(groupIndex, side);
-      disciplinePointMinimumX[groupIndex] = getAboutNarrativeDisciplinePointMinX(
-        disciplineLabelWidth[groupIndex],
+      writeDisciplineLabelNudge(groupIndex, getAboutNarrativeDisciplineLabelNudge({
+        anchorX: disciplineProjectedX[groupIndex],
+        labelWidth: disciplineLabelWidth[groupIndex],
         labelOffset,
-        disciplineCorridorLeft,
-        disciplineCorridorRight,
+        corridorLeft: disciplineCorridorLeft,
+        corridorRight: disciplineCorridorRight,
         side,
-      );
-      disciplinePointMaximumX[groupIndex] = getAboutNarrativeDisciplinePointMaxX(
-        disciplineLabelWidth[groupIndex],
-        labelOffset,
-        disciplineCorridorLeft,
-        disciplineCorridorRight,
-        side,
-      );
-      const overflow = getAboutNarrativeHorizontalCorridorOverflow(
-        disciplineProjectedX[groupIndex],
-        disciplinePointMinimumX[groupIndex],
-        disciplinePointMaximumX[groupIndex],
-      );
-      if (overflow > 0.5) {
-        disciplinePointNeedsConstraint[groupIndex] = 1;
-        needsConstraint = true;
-      }
-    }
-    if (!needsConstraint) return;
-
-    disciplinePointBestOverflow.fill(Number.POSITIVE_INFINITY);
-    disciplinePointBestDistance.fill(Number.POSITIVE_INFINITY);
-    disciplinePointBestIndex.fill(-1);
-    const presence = disciplineWorld === toWorld
-      ? fixedAttributes.toPresence.array
-      : fixedAttributes.fromPresence.array;
-    for (let pointIndex = 0; pointIndex < pointCount; pointIndex += 1) {
-      if (presence[pointIndex] <= 0.001) continue;
-      const groupIndex = getDisciplineMaterialSlot(pointIndex);
-      if (!disciplinePointNeedsConstraint[groupIndex]) continue;
-      sampleDisciplinePointProjection(pointIndex, frame, disciplinePointProjection);
-      if (disciplinePointProjection[3] < 0.5) continue;
-      const overflow = getAboutNarrativeHorizontalCorridorOverflow(
-        disciplinePointProjection[0],
-        disciplinePointMinimumX[groupIndex],
-        disciplinePointMaximumX[groupIndex],
-      );
-      const deltaX = disciplinePointProjection[0] - disciplineProjectedX[groupIndex];
-      const deltaY = disciplinePointProjection[1] - disciplineProjectedY[groupIndex];
-      const distance = (deltaX * deltaX) + (deltaY * deltaY);
-      if (
-        overflow < disciplinePointBestOverflow[groupIndex] - 0.000001
-        || (
-          Math.abs(overflow - disciplinePointBestOverflow[groupIndex]) <= 0.000001
-          && distance < disciplinePointBestDistance[groupIndex]
-        )
-      ) {
-        disciplinePointBestOverflow[groupIndex] = overflow;
-        disciplinePointBestDistance[groupIndex] = distance;
-        disciplinePointBestIndex[groupIndex] = pointIndex;
-      }
-    }
-
-    let selectionChanged = false;
-    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
-      const pointIndex = disciplinePointBestIndex[groupIndex];
-      if (pointIndex < 0 || pointIndex === gridDisciplineIndices[groupIndex]) continue;
-      installConstrainedDisciplinePoint(groupIndex, pointIndex);
-      selectionChanged = true;
-    }
-    if (!selectionChanged) return;
-    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
-      const pointIndex = gridDisciplineIndices[groupIndex];
-      if (pointIndex < 0) continue;
-      sampleDisciplinePointProjection(pointIndex, frame, disciplinePointProjection);
-      disciplineProjectedX[groupIndex] = disciplinePointProjection[0];
-      disciplineProjectedY[groupIndex] = disciplinePointProjection[1];
-      disciplineProjectedViewportY[groupIndex] = disciplinePointProjection[2];
-      disciplinePointInFront[groupIndex] = disciplinePointProjection[3];
+      }));
     }
   };
 
@@ -2391,11 +2290,9 @@ function createPointFieldAdapter({
         anchorSampleInput.gridRipple.centerZ = uniforms.gridRippleCenter.value.y;
         const revealThreshold = Number(frame.globals.editorialRevealThreshold ?? 1);
         const revealDuration = Number(frame.globals.editorialMotion?.fadeDurationWU ?? 0.2);
-        constrainDisciplinePointsToCorridor(
+        projectDisciplineAnchors(
           frame,
           gridDisciplineIndices,
-          disciplineWorld,
-          toWorld,
           Number(reveal.labelOffsetPx ?? 18),
         );
         // Project every discipline through the same bottom-of-viewport reveal

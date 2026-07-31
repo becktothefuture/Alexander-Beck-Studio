@@ -221,6 +221,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
   assert.match(source, /const revealAvailable = effectAvailable[\s\S]*frame\.storyWU >= revealState\.startWU/);
   assert.match(source, /frame\.storyWU < revealState\.endWU/);
+  assert.match(source, /const projectDisciplineAnchors = \(/);
+  assert.match(source, /getAboutNarrativeDisciplineLabelNudge\(\{/);
+  assert.doesNotMatch(source, /installConstrainedDisciplinePoint|constrainDisciplinePointsToCorridor/);
   assert.match(source, /attributeFilter: \['data-editor-preview-layout', 'data-editor-preview-orientation'\]/);
   assert.match(source, /window\.addEventListener\('resize', resize, \{ passive: true \}\)/);
   assert.match(source, /window\.removeEventListener\('resize', resize\)/);

@@ -42,6 +42,7 @@ import {
 import {
   getAboutNarrativeDisciplinePointMinX,
   getAboutNarrativeDisciplinePointMaxX,
+  getAboutNarrativeDisciplineLabelNudge,
   getAboutNarrativeHorizontalCorridorOverflow,
   getAboutNarrativePositionMapCorridor,
   isAboutNarrativeRectInsideCorridor,
@@ -706,7 +707,7 @@ test('the global text corridor scales the Position map across its supported widt
   assert.ok(mobile.max <= 0.94);
 });
 
-test('discipline point bounds keep fixed-offset copy inside the full text corridor', () => {
+test('discipline label containment preserves authored anchors inside the text corridor', () => {
   assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, 1), 256);
   assert.equal(getAboutNarrativeDisciplinePointMaxX(262, 18, 256, 1184, 1), 904);
   assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, -1), 536);
@@ -717,6 +718,30 @@ test('discipline point bounds keep fixed-offset copy inside the full text corrid
   assert.equal(getAboutNarrativeHorizontalCorridorOverflow(90, 100, 300), 10);
   assert.equal(getAboutNarrativeHorizontalCorridorOverflow(220, 100, 300), 0);
   assert.equal(getAboutNarrativeHorizontalCorridorOverflow(315, 100, 300), 15);
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 960,
+    labelWidth: 262,
+    labelOffset: 18,
+    corridorLeft: 256,
+    corridorRight: 1184,
+    side: -1,
+  }), 0);
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 300,
+    labelWidth: 262,
+    labelOffset: 18,
+    corridorLeft: 256,
+    corridorRight: 1184,
+    side: -1,
+  }), 236);
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 1130,
+    labelWidth: 262,
+    labelOffset: 18,
+    corridorLeft: 256,
+    corridorRight: 1184,
+    side: 1,
+  }), -226);
   assert.equal(isAboutNarrativeRectInsideCorridor(
     { left: 255.5, right: 1184.5 },
     { left: 256, right: 1184 },

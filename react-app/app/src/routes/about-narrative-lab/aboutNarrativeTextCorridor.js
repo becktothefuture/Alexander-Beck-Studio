@@ -67,6 +67,27 @@ function getDisciplineCopyWidth(
   return clamp(finiteOr(labelWidth, 0), 0, Math.max(0, availableWidth - offset));
 }
 
+export function getAboutNarrativeDisciplineLabelNudge({
+  anchorX,
+  labelWidth,
+  labelOffset = 0,
+  corridorLeft,
+  corridorRight,
+  side = 1,
+}) {
+  const left = finiteOr(corridorLeft, 0);
+  const right = Math.max(left, finiteOr(corridorRight, left));
+  const availableWidth = right - left;
+  const offset = clamp(finiteOr(labelOffset, 0), 0, availableWidth);
+  const width = clamp(finiteOr(labelWidth, 0), 0, Math.max(0, availableWidth - offset));
+  const anchor = finiteOr(anchorX, left);
+  const proposedLeft = Number(side) < 0
+    ? anchor - offset - width
+    : anchor + offset;
+  const containedLeft = clamp(proposedLeft, left, Math.max(left, right - width));
+  return Math.round((containedLeft - proposedLeft) * 100) / 100;
+}
+
 export function getAboutNarrativeDisciplinePointMinX(
   labelWidth,
   labelOffset,
