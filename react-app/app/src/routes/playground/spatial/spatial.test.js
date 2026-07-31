@@ -7,6 +7,7 @@ import {
   applyPlaygroundResponsiveProfile,
   createPlaygroundResponsiveProfile,
   cellRectsOverlap,
+  findDirectionalPlaygroundItem,
   createPlaygroundSpatialDiagnostics,
   didPointerTravelExceedThreshold,
   forEachNeighbouringCopy,
@@ -35,9 +36,12 @@ test('responsive Lab profile preserves desktop intent and compacts continuously 
   assert.ok(tablet.projectSpacingScale < 1 && tablet.projectSpacingScale > phone.projectSpacingScale);
   assert.equal(phone.worldScale, 0.84);
   assert.ok(phone.titleScale > phone.worldScale);
-  assert.ok(Math.abs(phoneConfig.projectSpacing - 1.2) < 0.000001);
+  assert.ok(Math.abs(phoneConfig.projectSpacing - 1) < 0.000001);
+  assert.equal(phoneConfig.itemGapCells, 1);
   assert.equal(phoneConfig.dotRadiusPx, 1.96875);
   assert.equal(phone.minimumItemTargetPx, 44 / 0.84);
+  assert.ok(phone.captionTitleMinimumPx * phone.worldScale >= 12);
+  assert.ok(phone.captionDescriptionMinimumPx * phone.worldScale >= 12);
 });
 
 function createItems(count) {
@@ -74,6 +78,31 @@ test('positive modulo wraps only rendered camera coordinates', () => {
   const rendered = { x: 0, y: 0 };
   writeRenderedCamera(-1, 201, 100, 80, rendered);
   assert.deepEqual(rendered, { x: 99, y: 41 });
+});
+
+test('spatial project navigation selects the nearest directional toroidal neighbour', () => {
+  const placements = [
+    { id: 'centre', placementOrder: 1, xCell: 0, yCell: 0, footprintWidthCells: 2, footprintHeightCells: 2 },
+    { id: 'right-near', placementOrder: 2, xCell: 6, yCell: 1, footprintWidthCells: 2, footprintHeightCells: 2 },
+    { id: 'right-off-axis', placementOrder: 3, xCell: 4, yCell: 8, footprintWidthCells: 2, footprintHeightCells: 2 },
+    { id: 'left-seam', placementOrder: 4, xCell: 18, yCell: 0, footprintWidthCells: 2, footprintHeightCells: 2 },
+    { id: 'up', placementOrder: 5, xCell: 0, yCell: -7, footprintWidthCells: 2, footprintHeightCells: 2 },
+  ];
+  const world = { columns: 20, rows: 20 };
+
+  assert.equal(
+    findDirectionalPlaygroundItem(placements, 'centre', 'right', world)?.id,
+    'right-near',
+  );
+  assert.equal(
+    findDirectionalPlaygroundItem(placements, 'centre', 'left', world)?.id,
+    'left-seam',
+  );
+  assert.equal(
+    findDirectionalPlaygroundItem(placements, 'centre', 'up', world)?.id,
+    'up',
+  );
+  assert.equal(findDirectionalPlaygroundItem(placements, 'centre', 'invalid', world), null);
 });
 
 test('camera projection round trips and resize preserves an anchored world point', () => {

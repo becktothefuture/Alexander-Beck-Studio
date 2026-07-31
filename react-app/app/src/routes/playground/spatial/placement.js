@@ -99,6 +99,56 @@ export function cellRectsOverlap(left, right, gapCells = 0) {
   );
 }
 
+function wrapDirectionalDelta(delta, period) {
+  if (!Number.isFinite(period) || period <= 0) return delta;
+  return delta - (Math.round(delta / period) * period);
+}
+
+/**
+ * Finds the closest toroidal neighbour in one cardinal direction. This keeps
+ * keyboard movement spatial even when the nearest visual copy crosses a seam.
+ */
+export function findDirectionalPlaygroundItem(
+  placements,
+  currentId,
+  direction,
+  world = {},
+) {
+  if (!Array.isArray(placements) || !placements.length) return null;
+  const axis = {
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 },
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+  }[direction];
+  if (!axis) return null;
+  const current = placements.find((placement) => placement.id === currentId);
+  if (!current) return null;
+  const currentX = current.xCell + (current.footprintWidthCells / 2);
+  const currentY = current.yCell + (current.footprintHeightCells / 2);
+  let best = null;
+  let bestScore = Infinity;
+
+  placements.forEach((candidate) => {
+    if (candidate.id === currentId) return;
+    const candidateX = candidate.xCell + (candidate.footprintWidthCells / 2);
+    const candidateY = candidate.yCell + (candidate.footprintHeightCells / 2);
+    const deltaX = wrapDirectionalDelta(candidateX - currentX, Number(world.columns));
+    const deltaY = wrapDirectionalDelta(candidateY - currentY, Number(world.rows));
+    const forward = (deltaX * axis.x) + (deltaY * axis.y);
+    if (forward <= 0.001) return;
+    const cross = Math.abs((deltaX * axis.y) - (deltaY * axis.x));
+    const score = Math.hypot(deltaX, deltaY) + (cross * 1.5);
+    if (score < bestScore || (score === bestScore
+      && candidate.placementOrder < best?.placementOrder)) {
+      best = candidate;
+      bestScore = score;
+    }
+  });
+
+  return best;
+}
+
 export function resolveItemGridFootprint(item, options = {}) {
   const gridSpacingPx = toFiniteNumber(options.gridSpacingPx, 48);
   const itemScale = toFiniteNumber(options.itemScale, 1);
@@ -258,10 +308,12 @@ export function writePlacementCandidate({
     scratch.x = anchorX + (scratch.x * localStride * passScale);
     scratch.y = anchorY + (scratch.y * localStride * passScale);
   } else {
-    const orderOffset = Math.max(0, Math.floor(placementOrder)) * 7;
+    const orderOffset = preset === 'loose'
+      ? Math.max(0, Math.floor(placementOrder)) * 3
+      : 0;
     squareSpiralCoordinate(candidateIndex + orderOffset, scratch);
     rotateQuarterTurns(scratch.x, reflected ? -scratch.y : scratch.y, turns, scratch);
-    const stride = preset === 'loose' ? 4 : 2;
+    const stride = preset === 'loose' ? 3 : 1;
     scratch.x *= stride * passScale;
     scratch.y *= stride * passScale;
   }
@@ -340,8 +392,9 @@ function scaleBoundsFromOrigin(bounds, spacing) {
   const height = bounds.bottom - bounds.top;
   const centerX = (bounds.left + bounds.right) / 2;
   const centerY = (bounds.top + bounds.bottom) / 2;
-  const left = Math.round((centerX * spacing) - (width / 2));
-  const top = Math.round((centerY * spacing) - (height / 2));
+  const radialSpacing = 1 + ((spacing - 1) * 0.35);
+  const left = Math.round((centerX * radialSpacing) - (width / 2));
+  const top = Math.round((centerY * radialSpacing) - (height / 2));
   return {
     left,
     top,

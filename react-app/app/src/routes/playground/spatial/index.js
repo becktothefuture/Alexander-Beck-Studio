@@ -18,6 +18,7 @@ export {
   PLAYGROUND_PLACEMENT_PRESETS,
   PlaygroundPlacementError,
   cellRectsOverlap,
+  findDirectionalPlaygroundItem,
   hashPlacementValue,
   pixelRectToCellRect,
   placePlaygroundItems,

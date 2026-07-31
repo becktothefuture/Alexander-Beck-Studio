@@ -51,6 +51,7 @@ import {
   createPlaygroundDotFieldRenderer,
   createPlaygroundResponsiveProfile,
   createPlaygroundSpatialDiagnostics,
+  findDirectionalPlaygroundItem,
   forEachNeighbouringCopy,
   placePlaygroundItems,
 } from './spatial/index.js';
@@ -58,8 +59,14 @@ import './playground.css';
 
 const INITIAL_POSTER_TIMEOUT_MS = 2200;
 const SOUND_STOP_DELAY_MS = 90;
-const TITLE_SAFE_PADDING_CELLS = 3;
+const TITLE_SAFE_PADDING_CELLS = 0;
 const COPY_KEY_SEPARATOR = ':';
+const PROJECT_NAVIGATION_DIRECTIONS = Object.freeze({
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+});
 
 const LAYOUT_CONFIG_KEYS = Object.freeze([
   'layoutPreset',
@@ -265,6 +272,7 @@ export function PlaygroundExperience() {
   const [viewportNode, setViewportNodeState] = useState(null);
   const [viewportWidthPx, setViewportWidthPx] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
+  const [keyboardItemId, setKeyboardItemId] = useState(null);
   const [activeWorldMediaIds, setActiveWorldMediaIds] = useState(() => new Set());
   const [readyWorldMediaIds, setReadyWorldMediaIds] = useState(() => new Set());
   const [loadError, setLoadError] = useState('');
@@ -285,6 +293,17 @@ export function PlaygroundExperience() {
     [content, selectedId],
   );
   const ready = Boolean(model && readyModel === model && !loadError);
+  const defaultKeyboardItemId = useMemo(() => model?.placements.reduce((nearest, placement) => {
+    const centreX = placement.xCell + (placement.footprintWidthCells / 2);
+    const centreY = placement.yCell + (placement.footprintHeightCells / 2);
+    const distance = Math.hypot(centreX, centreY);
+    return !nearest || distance < nearest.distance
+      ? { id: placement.id, distance }
+      : nearest;
+  }, null)?.id || null, [model]);
+  const rovingKeyboardItemId = keyboardItemId && model?.placementById.has(keyboardItemId)
+    ? keyboardItemId
+    : defaultKeyboardItemId;
 
   useLayoutEffect(() => {
     configRef.current = runtimeConfig;
@@ -454,27 +473,35 @@ export function PlaygroundExperience() {
   }, []);
 
   const restoreItemFocus = useCallback((itemId) => {
+    setKeyboardItemId(itemId);
     focusItemNodesRef.current.get(itemId)?.focus({ preventScroll: true });
   }, []);
 
-  const focusLogicalItem = useCallback((itemId) => {
+  const focusLogicalItem = useCallback((itemId, { forceCenter = false } = {}) => {
     const placement = modelRef.current?.placementById.get(itemId);
     const camera = cameraRef.current;
     if (!placement || !camera) return;
     const snapshot = camera.getSnapshot();
     const spacing = configRef.current.gridSpacingPx;
     const worldScale = responsiveProfile.worldScale;
-    const itemCenterX = (placement.xCell + (placement.mediaWidthCells / 2)) * spacing;
-    const itemCenterY = (placement.yCell + (placement.mediaHeightCells / 2)) * spacing;
+    const itemCenterX = (placement.xCell + (placement.footprintWidthCells / 2)) * spacing;
+    const itemCenterY = (placement.yCell + (placement.footprintHeightCells / 2)) * spacing;
     const nearestColumn = Math.round((snapshot.renderedX - itemCenterX) / snapshot.worldWidthPx);
     const nearestRow = Math.round((snapshot.renderedY - itemCenterY) / snapshot.worldHeightPx);
     const targetX = itemCenterX + (nearestColumn * snapshot.worldWidthPx);
     const targetY = itemCenterY + (nearestRow * snapshot.worldHeightPx);
     const screenX = snapshot.viewportCenterX + ((targetX - snapshot.renderedX) * worldScale);
     const screenY = snapshot.viewportCenterY + ((targetY - snapshot.renderedY) * worldScale);
-    const margin = 80;
-    if (screenX < margin || screenX > snapshot.viewportWidthPx - margin
-      || screenY < margin || screenY > snapshot.viewportHeightPx - margin) {
+    const itemWidth = placement.footprintWidthCells * spacing * worldScale;
+    const itemHeight = placement.footprintHeightCells * spacing * worldScale;
+    const margin = Math.max(16, Math.min(40,
+      (snapshot.viewportWidthPx - itemWidth) / 2,
+      (snapshot.viewportHeightPx - itemHeight) / 2));
+    const clipped = screenX - (itemWidth / 2) < margin
+      || screenX + (itemWidth / 2) > snapshot.viewportWidthPx - margin
+      || screenY - (itemHeight / 2) < margin
+      || screenY + (itemHeight / 2) > snapshot.viewportHeightPx - margin;
+    if (forceCenter || clipped) {
       camera.setCamera(targetX, targetY, { immediate: true });
     }
     const resetViewportScroll = () => {
@@ -485,6 +512,26 @@ export function PlaygroundExperience() {
     resetViewportScroll();
     requestAnimationFrame(resetViewportScroll);
   }, [responsiveProfile.worldScale]);
+
+  const handleItemKeyDown = useCallback((event, itemId) => {
+    const direction = PROJECT_NAVIGATION_DIRECTIONS[event.key];
+    const activeModel = modelRef.current;
+    if (!direction || !activeModel) return;
+    const nextPlacement = findDirectionalPlaygroundItem(
+      activeModel.placements,
+      itemId,
+      direction,
+      activeModel.world,
+    );
+    if (!nextPlacement) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setKeyboardItemId(nextPlacement.id);
+    focusLogicalItem(nextPlacement.id, { forceCenter: true });
+    requestAnimationFrame(() => {
+      focusItemNodesRef.current.get(nextPlacement.id)?.focus({ preventScroll: true });
+    });
+  }, [focusLogicalItem]);
 
   useLayoutEffect(() => {
     if (!model || !content || !viewportNode || !canvasRef.current || !routeRef.current) {
@@ -979,6 +1026,8 @@ export function PlaygroundExperience() {
     '--playground-world-scale': String(responsiveProfile.worldScale),
     '--playground-title-scale': String(responsiveProfile.titleScale),
     '--playground-item-min-target-px': `${responsiveProfile.minimumItemTargetPx}px`,
+    '--playground-caption-title-min-px': `${responsiveProfile.captionTitleMinimumPx}px`,
+    '--playground-caption-description-min-px': `${responsiveProfile.captionDescriptionMinimumPx}px`,
   } : undefined;
 
   return (
@@ -1003,7 +1052,7 @@ export function PlaygroundExperience() {
         data-playground-viewport
         tabIndex={0}
         role="group"
-        aria-label="Lab spatial collection. Drag, use the arrow keys or WASD to explore. Press Home to return to the title."
+        aria-label="Lab spatial collection. Drag or use W, A, S, and D to explore. Tab into the projects, then use the arrow keys to move between them. Press Home to return to the title."
         aria-describedby="playground-spatial-instructions"
       >
         <canvas
@@ -1122,9 +1171,14 @@ export function PlaygroundExperience() {
                         else focusItemNodesRef.current.delete(item.id);
                       }}
                       type="button"
+                      tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
                       aria-label={accessibleName}
                       aria-haspopup="dialog"
-                      onFocus={() => focusLogicalItem(item.id)}
+                      onFocus={() => {
+                        setKeyboardItemId(item.id);
+                        focusLogicalItem(item.id);
+                      }}
+                      onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                       onClick={(event) => openItem(item.id, event)}
                     >
                       <PlaygroundMedia
@@ -1147,8 +1201,9 @@ export function PlaygroundExperience() {
         </div>
 
         <p id="playground-spatial-instructions" className="playground-sr-instructions">
-          Drag, use the arrow keys, or use W, A, S, and D to move in two dimensions.
-          Press Home to return to the Lab title. Select any item to open it in a dialog.
+          Drag or use W, A, S, and D to move in two dimensions. Tab into the project field,
+          then use the arrow keys to move to the nearest project in that direction.
+          Press Home to return to the Lab title. Select any project to open it in a dialog.
         </p>
 
         {loadError ? (

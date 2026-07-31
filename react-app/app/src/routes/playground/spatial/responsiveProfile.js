@@ -2,8 +2,13 @@ const PHONE_VIEWPORT_WIDTH_PX = 480;
 const DESKTOP_VIEWPORT_WIDTH_PX = 1024;
 const PHONE_WORLD_SCALE = 0.84;
 const PHONE_TITLE_SCALE = 0.94;
-const PHONE_PROJECT_SPACING_SCALE = 0.8;
+const PHONE_PROJECT_SPACING_SCALE = 2 / 3;
+const PHONE_ITEM_GAP_SCALE = 1 / 3;
 const PHONE_DOT_RADIUS_SCALE = 0.875;
+const DESKTOP_CAPTION_TITLE_MINIMUM_PX = 12;
+const PHONE_CAPTION_TITLE_MINIMUM_PX = 14.4;
+const DESKTOP_CAPTION_DESCRIPTION_MINIMUM_PX = 11.52;
+const PHONE_CAPTION_DESCRIPTION_MINIMUM_PX = 14.3;
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -40,8 +45,19 @@ export function createPlaygroundResponsiveProfile(viewportWidthPx = DESKTOP_VIEW
     worldScale,
     titleScale: lerp(1, PHONE_TITLE_SCALE, compactness),
     projectSpacingScale: lerp(1, PHONE_PROJECT_SPACING_SCALE, compactness),
+    itemGapScale: lerp(1, PHONE_ITEM_GAP_SCALE, compactness),
     dotRadiusScale: lerp(1, PHONE_DOT_RADIUS_SCALE, compactness),
     minimumItemTargetPx: 44 / worldScale,
+    captionTitleMinimumPx: lerp(
+      DESKTOP_CAPTION_TITLE_MINIMUM_PX,
+      PHONE_CAPTION_TITLE_MINIMUM_PX,
+      compactness,
+    ),
+    captionDescriptionMinimumPx: lerp(
+      DESKTOP_CAPTION_DESCRIPTION_MINIMUM_PX,
+      PHONE_CAPTION_DESCRIPTION_MINIMUM_PX,
+      compactness,
+    ),
   });
 }
 
@@ -54,9 +70,17 @@ export function applyPlaygroundResponsiveProfile(config, profile) {
       1,
       Number(source.projectSpacing || 1) * responsiveProfile.projectSpacingScale,
     ),
+    itemGapCells: Math.max(
+      1,
+      Math.round(Number(source.itemGapCells || 1) * responsiveProfile.itemGapScale),
+    ),
     dotRadiusPx: Math.max(
       0.25,
       Number(source.dotRadiusPx || 0.25) * responsiveProfile.dotRadiusScale,
     ),
+    labelFontSizePx: responsiveProfile.captionTitleMinimumPx,
+    labelLineHeightPx: responsiveProfile.captionTitleMinimumPx * 1.3,
+    labelDescriptionFontSizePx: responsiveProfile.captionDescriptionMinimumPx,
+    labelDescriptionLineHeightPx: responsiveProfile.captionDescriptionMinimumPx * 1.36,
   };
 }

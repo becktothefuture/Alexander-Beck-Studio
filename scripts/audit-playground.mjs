@@ -320,6 +320,7 @@ async function getPlaygroundState(page) {
         centerY: rect.top + (rect.height / 2),
       };
     };
+    const viewportBounds = viewportNode?.getBoundingClientRect() || null;
     const items = Array.from(document.querySelectorAll('[data-playground-item]')).map((item) => {
       const button = item.querySelector('button');
       const label = item.querySelector('.playground-item__label');
@@ -331,11 +332,24 @@ async function getPlaygroundState(page) {
         : new DOMMatrixReadOnly(itemTransform);
       const style = getComputedStyle(label);
       const descriptionStyle = getComputedStyle(description);
+      const titleStyle = getComputedStyle(item.querySelector('.playground-item__title'));
       const mediaStyle = getComputedStyle(media);
+      const itemRect = rectOf(item);
+      const intersectionWidth = itemRect && viewportBounds
+        ? Math.max(0, Math.min(itemRect.right, viewportBounds.right)
+          - Math.max(itemRect.left, viewportBounds.left))
+        : 0;
+      const intersectionHeight = itemRect && viewportBounds
+        ? Math.max(0, Math.min(itemRect.bottom, viewportBounds.bottom)
+          - Math.max(itemRect.top, viewportBounds.top))
+        : 0;
       return {
         id: item.dataset.playgroundItem,
         type: item.dataset.playgroundItemType,
-        rect: rectOf(item),
+        rect: itemRect,
+        visibleIntersectionRatio: itemRect?.width > 0 && itemRect?.height > 0
+          ? (intersectionWidth * intersectionHeight) / (itemRect.width * itemRect.height)
+          : 0,
         left: itemTransformMatrix.m41,
         top: itemTransformMatrix.m42,
         width: Number.parseFloat(item.style.getPropertyValue('--playground-item-width-px') || '0'),
@@ -343,6 +357,9 @@ async function getPlaygroundState(page) {
         buttonCount: item.querySelectorAll('button').length,
         labelText: label?.textContent?.replace(/\s+/g, ' ').trim() || '',
         labelFontSize: Number.parseFloat(style.fontSize || '0'),
+        titleFontSize: Number.parseFloat(titleStyle.fontSize || '0'),
+        descriptionFontSize: Number.parseFloat(descriptionStyle.fontSize || '0'),
+        buttonTabIndex: button?.tabIndex ?? null,
         labelVisibility: style.visibility,
         hasTypeTag: Boolean(item.querySelector('.playground-item__type')),
         descriptionFontFamily: descriptionStyle.fontFamily,
@@ -370,7 +387,9 @@ async function getPlaygroundState(page) {
       + '[data-playground-experience] iframe:not([tabindex="-1"]), '
       + '[data-playground-experience] video[controls]:not([tabindex="-1"]), '
       + '[data-playground-experience] [tabindex]:not([tabindex="-1"])',
-    )).filter((node) => !node.closest('[aria-hidden="true"]') && !node.closest('[inert]'));
+    )).filter((node) => node.tabIndex >= 0
+      && !node.closest('[aria-hidden="true"]')
+      && !node.closest('[inert]'));
     return {
       path: location.pathname,
       search: location.search,
@@ -497,7 +516,13 @@ function assertBaseline(state) {
   }, {});
   assert(typeCounts.image === 8 && typeCounts.video === 6 && typeCounts.code === 6, 'Media type split is incorrect', typeCounts);
   assert(state.semanticButtonCount === 20, 'Semantic collection must expose one button per logical item', state);
-  assert(state.tabStopCount === 21, 'Playground must expose only the viewport and 20 logical items as tab stops', state);
+  assert(state.tabStopCount === 2, 'Lab must expose the viewport and one roving project as tab stops', state);
+  assert(
+    state.items.filter((item) => item.buttonTabIndex === 0).length === 1
+      && state.items.filter((item) => item.buttonTabIndex === -1).length === 19,
+    'Lab project buttons do not implement one roving tab stop',
+    state.items,
+  );
   assert(state.decorativeInteractiveCount === 0, 'Decorative copies contain interactive media', state);
   assert(state.items.every((item) => item.buttonCount === 1 && item.accessibleName.length > 10), 'Logical items have incomplete accessible controls', state.items);
   assert(state.items.every((item) => item.labelText && item.labelFontSize >= 10 && item.labelVisibility !== 'hidden'), 'Labels are missing or unreadable', state.items);
@@ -517,6 +542,11 @@ function assertBaseline(state) {
     state.items.every((item) => item.mediaBorderWidth === 0 && item.mediaBorderRadius > 0),
     'Lab media must retain rounded corners without a visible border',
     state.items,
+  );
+  assert(
+    state.items.filter((item) => item.visibleIntersectionRatio >= 0.25).length >= 6,
+    'The initial desktop Lab composition is too sparse around the title',
+    state.items.map(({ id, visibleIntersectionRatio }) => ({ id, visibleIntersectionRatio })),
   );
   assert(state.snapshot?.diagnostics?.projectCount === 20, 'Runtime diagnostics do not report 20 projects', state.snapshot);
   assert(
@@ -562,6 +592,27 @@ function assertBaseline(state) {
 
 async function assertWorldMediaLifecycle(page, evidence) {
   const initial = await getPlaygroundState(page);
+  const posterLabelGeometry = await page.locator(
+    '.playground-semantic-collection [data-playground-item]',
+  ).evaluateAll((itemNodes) => itemNodes.map((itemNode) => {
+    const labelRect = itemNode.querySelector('.playground-item__label')?.getBoundingClientRect();
+    const mediaRect = itemNode.querySelector(':scope > button > .playground-media')?.getBoundingClientRect();
+    return {
+      itemId: itemNode.dataset.playgroundItem,
+      labelTop: labelRect?.top ?? null,
+      mediaBottom: mediaRect?.bottom ?? null,
+      gap: labelRect && mediaRect ? labelRect.top - mediaRect.bottom : null,
+    };
+  }));
+  posterLabelGeometry.forEach((geometry) => {
+    assert(
+      geometry.gap >= -0.25,
+      'A Lab label overlaps its thumbnail poster',
+      geometry,
+    );
+  });
+  evidence.posterLabelGeometry = posterLabelGeometry;
+
   const visitMedia = async (type) => {
     const item = initial.items.find((candidate) => candidate.type === type);
     const placement = initial.snapshot.placements.find((candidate) => candidate.id === item.id);
@@ -604,6 +655,28 @@ async function assertWorldMediaLifecycle(page, evidence) {
       'World video or iframe runtime is nested inside a native button',
       { interactiveMediaNestedInButton },
     );
+    const mediaLabelGeometry = await page.locator(
+      `[data-playground-item="${item.id}"]`,
+    ).evaluate((itemNode) => {
+      const label = itemNode.querySelector('.playground-item__label');
+      const mediaNodes = Array.from(itemNode.querySelectorAll(
+        ':scope > .playground-item__runtime, :scope > button > .playground-media',
+      ));
+      const labelRect = label?.getBoundingClientRect();
+      const mediaBottom = Math.max(
+        ...mediaNodes.map((node) => node.getBoundingClientRect().bottom),
+      );
+      return {
+        labelTop: labelRect?.top ?? null,
+        mediaBottom,
+        gap: labelRect ? labelRect.top - mediaBottom : null,
+      };
+    });
+    assert(
+      mediaLabelGeometry.gap >= -0.25,
+      'A Lab label overlaps its active thumbnail runtime',
+      { itemId: item.id, type, mediaLabelGeometry },
+    );
 
     if (type === 'video') {
       const hiddenPause = await page.evaluate(async () => {
@@ -636,6 +709,7 @@ async function assertWorldMediaLifecycle(page, evidence) {
       itemId: item.id,
       mountedVideoCount: active.worldVideoCount,
       mountedIframeCount: active.worldIframeCount,
+      mediaLabelGeometry,
       diagnostics: active.snapshot.diagnostics,
     };
   };
@@ -702,6 +776,59 @@ async function assertCameraInputs(page, evidence) {
     const camera = window.__ABS_PLAYGROUND__?.getSnapshot?.().camera;
     return camera?.logicalX === 0 && camera?.logicalY === 0;
   }, null, { timeout: timeoutMs, polling: 'raf' });
+}
+
+async function assertSpatialProjectNavigation(page, evidence) {
+  await page.evaluate(() => window.__ABS_PLAYGROUND__.recenter());
+  const viewport = page.locator('[data-playground-viewport]');
+  await viewport.focus();
+  await page.keyboard.press('Tab');
+  await page.waitForFunction(() => Boolean(
+    document.activeElement?.closest?.('[data-playground-item]'),
+  ), null, { timeout: timeoutMs, polling: 'raf' });
+  const first = await page.evaluate(() => ({
+    itemId: document.activeElement.closest('[data-playground-item]').dataset.playgroundItem,
+    camera: window.__ABS_PLAYGROUND__.getSnapshot().camera,
+  }));
+  await page.keyboard.press('ArrowRight');
+  await page.waitForFunction((previousId) => {
+    const item = document.activeElement?.closest?.('[data-playground-item]');
+    return item?.dataset.playgroundItem && item.dataset.playgroundItem !== previousId;
+  }, first.itemId, { timeout: timeoutMs, polling: 'raf' });
+  await page.evaluate(() => new Promise((resolvePaint) => requestAnimationFrame(resolvePaint)));
+  const next = await page.evaluate(() => {
+    const item = document.activeElement.closest('[data-playground-item]');
+    const itemRect = item.getBoundingClientRect();
+    const viewportRect = document.querySelector('[data-playground-viewport]').getBoundingClientRect();
+    return {
+      itemId: item.dataset.playgroundItem,
+      itemRect: {
+        left: itemRect.left,
+        top: itemRect.top,
+        right: itemRect.right,
+        bottom: itemRect.bottom,
+      },
+      viewportRect: {
+        left: viewportRect.left,
+        top: viewportRect.top,
+        right: viewportRect.right,
+        bottom: viewportRect.bottom,
+      },
+      camera: window.__ABS_PLAYGROUND__.getSnapshot().camera,
+    };
+  });
+  assert(
+    next.itemRect.left >= next.viewportRect.left - 0.5
+      && next.itemRect.top >= next.viewportRect.top - 0.5
+      && next.itemRect.right <= next.viewportRect.right + 0.5
+      && next.itemRect.bottom <= next.viewportRect.bottom + 0.5,
+    'Spatial keyboard navigation left the focused project clipped by the viewport',
+    next,
+  );
+  await page.keyboard.press('Shift+Tab');
+  assert(await viewport.evaluate((node) => document.activeElement === node), 'Shift+Tab did not leave the roving project focus at the Lab viewport');
+  evidence.input.spatialProjectNavigation = { first, next };
+  await page.evaluate(() => window.__ABS_PLAYGROUND__.recenter());
 }
 
 async function assertVisibleProjectsDoNotOverlap(page, label, evidence) {
@@ -1763,6 +1890,87 @@ async function assertTouchAndReducedMotion(browser, failures, evidence) {
   await context.close();
 }
 
+async function assertCompactLanding(browser, failures, evidence) {
+  const context = await browser.newContext({
+    viewport: { width: 320, height: 568 },
+    colorScheme: 'light',
+    deviceScaleFactor: 2,
+  });
+  const page = await context.newPage();
+  bindFailureCapture(page, failures);
+  await installAuditHooks(page);
+  await gotoPlayground(page);
+  const compact = await page.evaluate(() => {
+    const route = document.querySelector('[data-playground-experience]');
+    const worldScale = Number(route?.dataset.playgroundWorldScale || 1);
+    const items = Array.from(document.querySelectorAll('[data-playground-item]'), (item) => {
+      const rect = item.getBoundingClientRect();
+      const viewportRect = document.querySelector('[data-playground-viewport]').getBoundingClientRect();
+      const width = Math.max(0, Math.min(rect.right, viewportRect.right)
+        - Math.max(rect.left, viewportRect.left));
+      const height = Math.max(0, Math.min(rect.bottom, viewportRect.bottom)
+        - Math.max(rect.top, viewportRect.top));
+      return {
+        id: item.dataset.playgroundItem,
+        intersectionRatio: rect.width > 0 && rect.height > 0
+          ? (width * height) / (rect.width * rect.height)
+          : 0,
+      };
+    });
+    const titleSize = Number.parseFloat(getComputedStyle(
+      document.querySelector('.playground-item__title'),
+    ).fontSize);
+    const descriptionSize = Number.parseFloat(getComputedStyle(
+      document.querySelector('.playground-item__description'),
+    ).fontSize);
+    return {
+      items,
+      worldScale,
+      renderedTitleSize: titleSize * worldScale,
+      renderedDescriptionSize: descriptionSize * worldScale,
+      rovingTabStopCount: document.querySelectorAll('[data-playground-item] > button[tabindex="0"]').length,
+    };
+  });
+  assert(
+    compact.items.some((item) => item.intersectionRatio >= 0.4)
+      && compact.items.filter((item) => item.intersectionRatio >= 0.04).length >= 4,
+    'The initial 320 x 568 Lab view does not show one strong project peek and three supporting peeks',
+    compact.items,
+  );
+  assert(
+    compact.renderedTitleSize >= 12 && compact.renderedDescriptionSize >= 12,
+    'Compact Lab captions render below the 12px minimum',
+    compact,
+  );
+  assert(compact.rovingTabStopCount === 1, 'Compact Lab lost its roving project tab stop', compact);
+
+  const viewport = page.locator('[data-playground-viewport]');
+  await viewport.focus();
+  await page.keyboard.press('Tab');
+  const focusStyle = await page.evaluate(() => {
+    const button = document.activeElement;
+    const style = getComputedStyle(button);
+    const pseudo = getComputedStyle(button, '::after');
+    return {
+      outlineWidth: Number.parseFloat(style.outlineWidth),
+      outlineOffset: Number.parseFloat(style.outlineOffset),
+      pseudoContent: pseudo.content,
+    };
+  });
+  assert(
+    focusStyle.outlineWidth <= 2
+      && focusStyle.outlineOffset <= 2
+      && ['none', 'normal', ''].includes(focusStyle.pseudoContent.replaceAll('"', '')),
+    'Compact project focus still uses the oversized double-ring treatment',
+    focusStyle,
+  );
+  await page.keyboard.press('Shift+Tab');
+  await page.evaluate(() => window.__ABS_PLAYGROUND__.recenter());
+  await page.screenshot({ path: resolve(runRoot, 'compact-landing.png'), fullPage: true });
+  evidence.compactLanding = { ...compact, focusStyle };
+  await context.close();
+}
+
 async function main() {
   assert(browserType, `Unsupported ABS_BROWSER "${browserName}"`);
   assert(
@@ -1871,6 +2079,7 @@ async function main() {
     assert(state.path === '/playground', 'Extensionless Playground alias did not load', state);
 
     await assertCameraInputs(page, evidence);
+    await assertSpatialProjectNavigation(page, evidence);
     await assertDotColorWake(page, evidence);
     await assertHoverDoesNotMoveProjects(page, evidence);
     await assertDragGuard(page);
@@ -1931,6 +2140,7 @@ async function main() {
     await assertContentIsolationAndGrowth(browser, failures, evidence, growthBaseline);
     await assertSpaContract(page, evidence);
     await assertTouchAndReducedMotion(browser, failures, evidence);
+    await assertCompactLanding(browser, failures, evidence);
 
     assert(failures.consoleErrors.length === 0, 'Console errors were recorded', failures.consoleErrors);
     assert(failures.pageErrors.length === 0, 'Page errors were recorded', failures.pageErrors);
@@ -1949,6 +2159,9 @@ async function main() {
         'font-ready centred title geometry',
         'four-way explore cue uses the specified size and tighter lockup distance',
         'mouse drag, touch drag, wheel, diagonal wheel, keyboard, and Home recenter',
+        'one roving project tab stop with directional nearest-neighbour arrow navigation',
+        '320 x 568 landing keeps project material visible and rendered captions at 12px or larger',
+        'balanced placement fills nearest collision-free cells and avoids sparse placement-order rings',
         'projects remain fixed under pointer hover with no attraction transform',
         'enlarged project and caption bounds remain collision-free at every inspected world seam',
         'low-opacity grey dots wake into current-palette colours, persist, fade, and return the renderer to sleep',
@@ -1985,6 +2198,7 @@ async function main() {
       evidence,
       artifacts: [
         'opening-title.png',
+        'compact-landing.png',
         'dot-color-wake.png',
         'horizontal-seam.png',
         'vertical-seam.png',
