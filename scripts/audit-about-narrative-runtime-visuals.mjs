@@ -411,7 +411,7 @@ for (const checkpoint of checkpoints) {
       ?.getBoundingClientRect();
     const openerRect = document.querySelector('.about-narrative-opening-copy [data-primary-copy]')
       ?.getBoundingClientRect();
-    const visibleEditorialLines = [...document.querySelectorAll('[data-editorial-line]')]
+    const visibleEditorialLines = [...document.querySelectorAll('[data-editorial-reveal]')]
       .filter((node) => {
         const rect = node.getBoundingClientRect();
         return Number(getComputedStyle(node).opacity) > 0.05

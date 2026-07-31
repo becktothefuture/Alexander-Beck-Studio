@@ -495,20 +495,28 @@ async function auditEditor() {
   const editorialTrigger = await page.evaluate(() => {
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
     const passage = document.querySelector('[data-text-field-id="text-background-unit"]');
-    const firstLine = passage.matches('[data-editorial-line]')
+    const firstLine = passage.matches('[data-editorial-reveal]')
       ? passage
-      : passage.querySelector('[data-editorial-line]');
+      : passage.querySelector('[data-editorial-reveal]');
     const typographyNode = passage.querySelector('.about-narrative-editorial-copy') || passage;
     const stackNode = passage.querySelector('.about-narrative-editorial-stack') || passage;
+    const clientField = passage.querySelector('.about-narrative-client-field');
+    const precedingEditorial = clientField?.previousElementSibling;
+    const firstLogo = passage.querySelector('[data-editorial-reveal="logo"]');
     const passageStyle = getComputedStyle(typographyNode);
     const stackStyle = getComputedStyle(stackNode);
     return {
       firstLineTopRatio: (firstLine.getBoundingClientRect().top - viewport.top) / viewport.height,
       firstLineReveal: Number(firstLine.style.getPropertyValue('--editorial-reveal')),
+      firstWordOpacity: Number(getComputedStyle(firstLine).opacity),
+      firstLogoOpacity: Number(getComputedStyle(firstLogo).opacity),
       fontSize: Number.parseFloat(passageStyle.fontSize),
       rowGap: Number.parseFloat(stackStyle.rowGap),
+      editorialToLogoGap: clientField && precedingEditorial
+        ? clientField.getBoundingClientRect().top - precedingEditorial.getBoundingClientRect().bottom
+        : 0,
       visualLineCount: passage.querySelectorAll(
-        '.about-narrative-editorial-lines__output > [data-editorial-line]',
+        '.about-narrative-editorial-lines__output > [data-editorial-visual-line]',
       ).length,
     };
   });
@@ -516,25 +524,38 @@ async function auditEditor() {
     editorialTrigger.firstLineTopRatio - editorialContract.revealThreshold,
   ) < 0.025);
   assert.ok(editorialTrigger.firstLineReveal < 0.08);
+  assert.ok(Math.abs(editorialTrigger.firstWordOpacity - 0.2) < 0.01);
+  assert.ok(Math.abs(editorialTrigger.firstLogoOpacity - 0.2) < 0.01);
   assert.ok(editorialTrigger.fontSize >= 23);
   assert.ok(editorialTrigger.rowGap >= editorialTrigger.fontSize * 0.55);
+  assert.ok(Math.abs(editorialTrigger.editorialToLogoGap - (editorialTrigger.rowGap * 2)) < 1);
   assert.ok(editorialTrigger.visualLineCount >= 3, 'Desktop editorial prose must expose visual lines, not paragraph blocks.');
 
-  const editorialStaggerWU = editorialStartWU + 0.2;
+  const editorialStaggerWU = editorialStartWU
+    + (canonical.globals.editorialMotion.fadeDurationWU * 0.5);
   await setPlayhead(editorialStaggerWU);
   await page.waitForFunction((expectedWU) => Math.abs(
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
   ) < 0.01, editorialStaggerWU);
   const staggeredLineReveals = await page.locator(
-    '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy:first-child .about-narrative-editorial-lines__output > [data-editorial-line]',
-  ).evaluateAll((nodes) => nodes.map((node) => Number(
-    node.style.getPropertyValue('--editorial-reveal'),
+    '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy:first-child [data-editorial-visual-line]',
+  ).evaluateAll((lines) => lines.map((line) => (
+    [...line.querySelectorAll('[data-editorial-reveal="word"]')].map((node) => Number(
+      node.style.getPropertyValue('--editorial-reveal'),
+    ))
   )));
   assert.ok(staggeredLineReveals.length >= 3);
   assert.ok(
-    staggeredLineReveals.every((value, index) => index === 0 || value < staggeredLineReveals[index - 1]),
-    'Editorial prose must reveal in visual-line order instead of one paragraph opacity.',
+    staggeredLineReveals.every((line) => line.every((value, index) => (
+      index === 0 || value <= line[index - 1]
+    ))),
+    'Editorial prose must reveal in word order instead of one paragraph opacity.',
   );
+  assert.ok(
+    staggeredLineReveals.some((line) => Math.max(...line) - Math.min(...line) > 0.1),
+    'At least one visible line must show a meaningful word-by-word opacity progression.',
+  );
+  await page.screenshot({ path: `${outputDir}/${browserName}-editor-word-reveal-midpoint.png` });
 
   const editorialRevealWU = editorialStartWU + 0.5;
   await setPlayhead(editorialRevealWU);
@@ -542,7 +563,7 @@ async function auditEditor() {
     Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
   ) < 0.01, editorialRevealWU);
   const editorialReveals = await page.locator(
-    '[data-text-field-id="text-background-unit"][data-editorial-line], [data-text-field-id="text-background-unit"] [data-editorial-line]',
+    '[data-text-field-id="text-background-unit"][data-editorial-reveal], [data-text-field-id="text-background-unit"] [data-editorial-reveal]',
   ).evaluateAll((nodes) => nodes.map((node) => Number(
     node.style.getPropertyValue('--editorial-reveal'),
   )));
@@ -812,7 +833,7 @@ async function auditEditor() {
       fontSize: Number.parseFloat(style.fontSize),
       rowGap: Number.parseFloat(stackStyle.rowGap),
       visualLineCount: passage.querySelectorAll(
-        '.about-narrative-editorial-lines__output > [data-editorial-line]',
+        '.about-narrative-editorial-lines__output > [data-editorial-visual-line]',
       ).length,
       withinInlineViewport: bounds.left >= viewport.left && bounds.right <= viewport.right,
     };

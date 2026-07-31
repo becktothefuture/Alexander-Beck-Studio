@@ -22,6 +22,7 @@ const smooth01 = (value) => {
   const progress = clamp01(value);
   return progress * progress * (3 - (2 * progress));
 };
+const EDITORIAL_SEQUENCE_BAND_RATIO = 0.42;
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
@@ -81,26 +82,14 @@ export function getAboutNarrativeEditorialReveal(
   const viewportY = Number(viewportThreshold)
     + layoutOffsetWU
     - (Number(scrollWU) - Number(record.startScrollWU));
+  const revealTravel = Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0);
+  const sequenceDelay = revealTravel
+    * EDITORIAL_SEQUENCE_BAND_RATIO
+    * clamp01(Number(record.sequenceRatio) || 0);
   return getAboutNarrativeSharedRevealProgress(
     viewportY,
-    viewportThreshold,
-    record.editorialMotion?.fadeDurationWU,
-    reducedMotion,
-  );
-}
-
-export function getAboutNarrativeEditorialBlurReveal(
-  record,
-  scrollWU,
-  viewportHeight,
-  viewportThreshold,
-  reducedMotion,
-) {
-  return getAboutNarrativeEditorialReveal(
-    record,
-    scrollWU,
-    viewportHeight,
-    viewportThreshold,
+    Number(viewportThreshold) - sequenceDelay,
+    revealTravel - sequenceDelay,
     reducedMotion,
   );
 }
@@ -235,9 +224,9 @@ export function useAboutNarrativeTimeline({
         if (node.closest('.about-narrative-render-span--editorial')) {
           editorialFieldHeights.set(fieldId, measuredHeightPx);
         }
-        const editorialNodes = node.matches('[data-editorial-line]')
+        const editorialNodes = node.matches('[data-editorial-reveal]')
           ? [node]
-          : Array.from(node.querySelectorAll('[data-editorial-line]'));
+          : Array.from(node.querySelectorAll('[data-editorial-reveal]'));
         editorialNodes.forEach((editorialNode) => {
           editorialOffsets.set(
             editorialNode,
@@ -255,7 +244,7 @@ export function useAboutNarrativeTimeline({
       const spansByFieldId = new Map(plan.renderSpans.flatMap((span) => (
         span.fieldIds.map((fieldId) => [fieldId, span])
       )));
-      const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-line]'));
+      const editorialNodes = Array.from(content.querySelectorAll('[data-editorial-reveal]'));
       const editorialFields = plan.textFields.flatMap((field) => {
         if (field.kind !== 'scroll-block') return [];
         const span = spansByFieldId.get(field.id);
@@ -280,8 +269,8 @@ export function useAboutNarrativeTimeline({
           editorialMotion: plan.model.globals.editorialMotion,
           startScrollWU: Number(span.scrollBounds.startWU),
           layoutOffsetPx: measurementsRef.current.editorialOffsets?.get(node) || 0,
+          sequenceRatio: Number(node.dataset.editorialSequenceRatio) || 0,
           progress: 0,
-          blurProgress: 0,
         }];
       });
       const titleFields = [];
@@ -417,22 +406,17 @@ export function useAboutNarrativeTimeline({
           viewportThreshold,
           reducedMotion,
         );
-        record.blurProgress = getAboutNarrativeEditorialBlurReveal(
-          record,
-          scrollWU,
-          viewportHeight,
-          viewportThreshold,
-          reducedMotion,
-        );
       }
-      for (const { node, progress, blurProgress } of editorialLines) {
+      for (const { node, progress } of editorialLines) {
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
-        const editorialMotion = frame.globals.editorialMotion;
-        node.style.setProperty('--editorial-blur', `${((1 - blurProgress) * Number(editorialMotion.maxBlurPx)).toFixed(2)}px`);
-        node.style.setProperty('--editorial-y', `${((1 - progress) * Number(editorialMotion.travelPx)).toFixed(2)}px`);
-        const group = Number(node.dataset.worldGroup) || 0;
+        const group = Number(
+          node.dataset.worldGroup
+          || node.closest('[data-world-group]')?.dataset.worldGroup,
+        ) || 0;
         if (group > 0 && progress >= 0.24) disciplineFocus = group;
-        if (node.dataset.worldInfluence === 'true') gridInfluence = Math.max(gridInfluence, progress);
+        if (node.closest('[data-world-influence="true"]')) {
+          gridInfluence = Math.max(gridInfluence, progress);
+        }
       }
       frame.editorialSignals.disciplineFocus = disciplineFocus;
       frame.editorialSignals.gridInfluence = gridInfluence;

@@ -449,7 +449,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
       ref={figureRef}
       className="about-interactive-stack"
       aria-label={module.label || 'Project impressions'}
-      data-editorial-line
+      data-editorial-reveal="module"
     >
       <button
         ref={stageRef}

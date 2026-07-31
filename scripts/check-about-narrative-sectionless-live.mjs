@@ -39,7 +39,7 @@ const loadedCanonical = loadAboutNarrativeTrackSource(
 );
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v24.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v25.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -131,12 +131,12 @@ test('canonical v5 authors one consolidated camera, visibility, and four-World b
   assert.equal(visibilityKeys.at(-1).atWU, canonical.profiles.desktop.storyDurationWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
   assert.ok(visibilityKeys.some((key) => key.visibility === 1));
-  assert.equal(visibilityKeys.some((key) => key.atWU > 14 && key.atWU < 19.05), false);
+  assert.equal(visibilityKeys.some((key) => key.atWU > 15.141801 && key.atWU < 20.191801), false);
   assert.deepEqual(
     visibilityKeys.find((key) => key.id === 'visibility-discipline-read'),
     {
       id: 'visibility-discipline-read',
-      atWU: 10.95,
+      atWU: 12.091801,
       visibility: 0.86,
       easing: 'smoothstep',
       locked: false,
@@ -391,8 +391,6 @@ test('the Text row header exposes the global width and animation controls', () =
       'readingWidthRem',
       'editorialRevealThreshold',
       'fadeDurationWU',
-      'maxBlurPx',
-      'travelPx',
       'standardMaxWidthCh',
       'displayMaxWidthCh',
       'standardViewportY',
@@ -839,7 +837,7 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   const opener = titles.find((field) => field.id === 'text-promise-main');
   assert.equal(opener.text, 'About Me');
-  assert.equal(opener.description, 'I help shape complexity into compelling experiences.');
+  assert.equal(opener.description, 'I turn complexity into useful, human experiences.');
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
     ['text-promise-main', 'text-epilogue-invitation'],
@@ -878,10 +876,26 @@ test('mobile title roles retain their exact twenty-percent width reductions', ()
   );
 });
 
-test('title groups retain their authored pacing', () => {
+test('A to B doubles its travel while its titles divide the expanded passage evenly', () => {
+  const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
+  const complexity = canonical.tracks.worlds.objects.find((world) => world.id === 'world-complexity');
+  const titles = [
+    fieldsById.get('text-complexity-idea'),
+    fieldsById.get('text-complexity-conditions'),
+  ];
+  assert.equal(Number((complexity.transitionIn.endWU - complexity.transitionIn.startWU).toFixed(6)), 2.283602);
+  assert.deepEqual(titles.map((title) => Number((title.endWU - title.startWU).toFixed(6))), [0.8, 0.8]);
+  const gaps = [
+    titles[0].startWU - complexity.transitionIn.startWU,
+    titles[1].startWU - titles[0].endWU,
+    complexity.transitionIn.endWU - titles[1].endWU,
+  ];
+  gaps.forEach((gap) => assert.ok(Math.abs(gap - gaps[0]) <= 0.000001, 'A to B title gaps must match'));
+});
+
+test('later title groups retain their authored pacing', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titleSets = [
-    ['text-complexity-idea', 'text-complexity-conditions'],
     ['text-complexity-curiosity', 'text-complexity-listen'],
     ['text-life-momentum', 'text-life-form', 'text-life-character'],
   ];
@@ -906,11 +920,11 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
     [fields.get('text-life-character').endWU, emergent.startWU],
   ];
   handoffs.forEach(([outgoingEndWU, incomingStartWU]) => {
-    assert.ok(incomingStartWU - outgoingEndWU <= 0.25);
+    assert.ok(incomingStartWU - outgoingEndWU <= 0.5);
   });
   assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
   assert.ok(fields.get('text-epilogue-invitation').startWU - emergent.startWU <= 0.81);
-  assert.ok(canonical.profiles.desktop.storyDurationWU < 20);
+  assert.ok(canonical.profiles.desktop.storyDurationWU > 20);
 });
 
 test('the narrative uses the approved A-E title, editorial, logo, and discipline structure', () => {
@@ -992,11 +1006,14 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.experience, /EditorialMediaDeck/);
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
   assert.match(liveSources.styles, /--about-editorial-ink:/);
-  assert.match(liveSources.styles, /--about-editorial-strong-ink: var\(--text-primary\)/);
+  assert.doesNotMatch(liveSources.styles, /about-narrative-editorial-emphasis|about-editorial-strong-ink/);
+  assert.equal(canonicalSource.includes('"emphasis"'), false);
   assert.equal(canonical.globals.editorialRevealThreshold, 1);
   assert.equal(canonical.globals.editorialMotion.fadeDurationWU, 0.2);
+  assert.equal(canonical.globals.editorialMotion.maxBlurPx, 0);
+  assert.equal(canonical.globals.editorialMotion.travelPx, 0);
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialReveal\(/);
-  assert.match(liveSources.timeline, /getAboutNarrativeEditorialBlurReveal\(/);
+  assert.doesNotMatch(liveSources.timeline, /editorial-blur|editorial-y/);
   assert.match(liveSources.timeline, /getAboutNarrativeSharedRevealProgress/);
   assert.match(liveSources.world, /getAboutNarrativeSharedRevealProgress/);
   assert.doesNotMatch(liveSources.world, /revealState\?\.active/);
@@ -1013,6 +1030,10 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.timeline, /scrollWUFromStoryWU\(frame\.storyWU\)/);
   assert.doesNotMatch(liveSources.timeline, /sequentialPassage/);
   assert.match(liveSources.styles, /about-narrative-editorial-stack/);
+  assert.match(
+    liveSources.styles,
+    /about-narrative-editorial-stack > \.about-narrative-client-field \{[\s\S]*?margin-block-start: var\(--about-editorial-stack-gap/,
+  );
   assert.match(liveSources.styles, /\.about-narrative-client-field \{[^}]*width: 100%;[^}]*\}/);
   assert.match(liveSources.styles, /\.about-narrative-client-logos \{[^}]*width: 100%;[^}]*\}/);
   assert.match(liveSources.styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
@@ -1025,10 +1046,14 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
+  assert.match(liveSources.styles, /--about-editorial-resting-opacity: 0\.2/);
+  assert.match(liveSources.styles, /\[data-editorial-reveal\] \{[\s\S]*?opacity: calc\(/);
   assert.match(liveSources.styles, /--about-spatial-title-type-size: clamp\([\s\S]*?var\(--about-editorial-type-size\) \* 1\.55/);
   assert.match(liveSources.styles, /font-size: var\(--about-spatial-title-type-size\)/);
   assert.match(liveSources.experience, /function EditorialLineText/);
-  assert.match(liveSources.experience, /className="about-narrative-media-deck"[\s\S]*?data-editorial-line/);
+  assert.match(liveSources.experience, /className="about-narrative-media-deck"[\s\S]*?data-editorial-reveal="module"/);
+  assert.match(liveSources.experience, /data-editorial-reveal': 'word'/);
+  assert.match(liveSources.experience, /data-editorial-sequence-ratio/);
   assert.match(liveSources.experience, /new ResizeObserver\(scheduleMeasure\)/);
   assert.match(liveSources.experience, /data-editorial-line-count/);
   assert.match(liveSources.experience, /about:editorial-lines-change/);
@@ -1040,33 +1065,34 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /top: var\(--about-title-viewport-y/);
 });
 
-test('published narrative writing follows V24 with the authored finale CTA', () => {
+test('published narrative writing follows V25 with the authored finale CTA', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
   const normalizedScript = normalize(currentScriptSource);
-  const authoredCopy = canonical.tracks.text.fields.flatMap((field) => {
-    if (field.block?.kind === 'clients') return [];
-    return [
+  const authoredCopy = canonical.tracks.text.fields.flatMap((field) => [
       field.text,
       field.description,
       ...(field.block?.text?.split('\n') || []),
-      field.block?.label,
-      ...(field.block?.items || []),
-    ];
-  }).filter(Boolean);
+      ...(field.block?.modules || [])
+        .filter((module) => ['prose', 'list', 'quote'].includes(module.kind))
+        .flatMap((module) => [
+          module.text,
+          module.label,
+          ...(module.items || []),
+        ]),
+    ]).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    if (copy === 'Get in touch') return;
-    assert.ok(normalizedScript.includes(normalize(copy)), `V24 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `V25 is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V24 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `V25 is missing ${item.label}`);
   });
   assert.equal(
     canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
-    'Get in touch',
+    'Let’s make something awesome.',
   );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
@@ -1079,7 +1105,7 @@ test('the final title and actions share the closing frame with the persistent bu
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
-  assert.equal(finale.startWU, 16.95);
+  assert.equal(finale.startWU, 18.091801);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
   assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);
@@ -1129,6 +1155,13 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
       canonical.globals.editorialRevealThreshold,
       false,
     );
+    const trailingWordHalfway = getAboutNarrativeEditorialReveal(
+      { ...record, sequenceRatio: 1 },
+      startScrollWU + (canonical.globals.editorialMotion.fadeDurationWU * 0.5),
+      viewportHeight,
+      canonical.globals.editorialRevealThreshold,
+      false,
+    );
     const atBandEnd = getAboutNarrativeEditorialReveal(
       record,
       startScrollWU + canonical.globals.editorialMotion.fadeDurationWU,
@@ -1136,9 +1169,24 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
       canonical.globals.editorialRevealThreshold,
       false,
     );
+    const trailingWordAtBandEnd = getAboutNarrativeEditorialReveal(
+      { ...record, sequenceRatio: 1 },
+      startScrollWU + canonical.globals.editorialMotion.fadeDurationWU,
+      viewportHeight,
+      canonical.globals.editorialRevealThreshold,
+      false,
+    );
     assert.ok(atMarker <= 0.000001, `${layoutProfile} must start at the viewport bottom`);
     assert.ok(halfway > 0 && halfway < 1, `${layoutProfile} must reveal inside the shared band`);
+    assert.ok(
+      trailingWordHalfway < halfway,
+      `${layoutProfile} words and logos must draw in sequentially inside the shared band`,
+    );
     assert.ok(atBandEnd >= 0.999999, `${layoutProfile} must finish twenty percent above the bottom`);
+    assert.ok(
+      trailingWordAtBandEnd >= 0.999999,
+      `${layoutProfile} trailing words and logos must finish inside the same bottom-twenty-percent band`,
+    );
   }
 });
 

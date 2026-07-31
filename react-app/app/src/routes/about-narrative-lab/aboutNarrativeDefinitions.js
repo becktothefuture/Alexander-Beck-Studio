@@ -93,8 +93,8 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
 
 export const ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS = Object.freeze({
   fadeDurationWU: 0.2,
-  maxBlurPx: 3,
-  travelPx: 12,
+  maxBlurPx: 0,
+  travelPx: 0,
 });
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
@@ -173,8 +173,6 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     label: 'Shared content reveal',
     controls: Object.freeze([
       numberControl('fadeDurationWU', 'Reveal band', 0.05, 0.4, 0.01, '×H', 'text-editorial'),
-      numberControl('maxBlurPx', 'Maximum blur', 0, 12, 0.25, 'px', 'text-editorial'),
-      numberControl('travelPx', 'Entrance travel', 0, 48, 1, 'px', 'text-editorial'),
     ]),
   }),
   Object.freeze({

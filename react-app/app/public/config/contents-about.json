@@ -6,8 +6,8 @@
     "editorialRevealThreshold": 1,
     "editorialMotion": {
       "fadeDurationWU": 0.2,
-      "maxBlurPx": 3,
-      "travelPx": 12
+      "maxBlurPx": 0,
+      "travelPx": 0
     },
     "worldRail": {
       "originZ": 8,
@@ -48,8 +48,8 @@
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.05,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.191801,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -63,8 +63,8 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.05,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.191801,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -78,8 +78,8 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.73,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.871801,
       "overrides": {
         "camera": {
           "discipline-hold": {
@@ -172,7 +172,7 @@
         },
         {
           "id": "complexity-exit",
-          "atWU": 3.197041,
+          "atWU": 4.338842,
           "position": [
             0,
             0.1,
@@ -196,7 +196,7 @@
         },
         {
           "id": "complexity-exit-2",
-          "atWU": 3.526894,
+          "atWU": 4.668695,
           "position": [
             0,
             2.8,
@@ -220,7 +220,7 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 8.3,
+          "atWU": 9.441801,
           "position": [
             0,
             12,
@@ -244,7 +244,7 @@
         },
         {
           "id": "discipline-hold",
-          "atWU": 11.55,
+          "atWU": 12.691801,
           "position": [
             0,
             13,
@@ -268,7 +268,7 @@
         },
         {
           "id": "grid-return-centered",
-          "atWU": 13.7,
+          "atWU": 14.841801,
           "position": [
             0,
             11,
@@ -292,7 +292,7 @@
         },
         {
           "id": "ripple-overhead-hold",
-          "atWU": 16.15,
+          "atWU": 17.291801,
           "position": [
             0,
             11,
@@ -316,7 +316,7 @@
         },
         {
           "id": "finale-hold",
-          "atWU": 19.05,
+          "atWU": 20.191801,
           "position": [
             0.905215,
             0.239174,
@@ -351,70 +351,70 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 3.168302,
+          "atWU": 4.310103,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 3.772038,
+          "atWU": 4.913839,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 4.942727,
+          "atWU": 6.084528,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 5.551687,
+          "atWU": 6.693488,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 8.3,
+          "atWU": 9.441801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-discipline-read",
-          "atWU": 10.95,
+          "atWU": 12.091801,
           "visibility": 0.86,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 11.65,
+          "atWU": 12.791801,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-return-start",
-          "atWU": 13.7,
+          "atWU": 14.841801,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 14,
+          "atWU": 15.141801,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
-          "atWU": 19.05,
+          "atWU": 20.191801,
           "visibility": 1,
           "easing": "linear",
           "locked": true
@@ -639,32 +639,32 @@
         },
         {
           "id": "key-world-complexity-arrival",
-          "atWU": 1.864941,
+          "atWU": 3.006742,
           "stateId": "world-complexity"
         },
         {
           "id": "key-world-grid-departure",
-          "atWU": 4.1,
+          "atWU": 5.241801,
           "stateId": "world-complexity"
         },
         {
           "id": "key-world-grid-arrival",
-          "atWU": 4.505974,
+          "atWU": 5.647775,
           "stateId": "world-grid"
         },
         {
           "id": "key-world-emergent-departure",
-          "atWU": 16.15,
+          "atWU": 17.291801,
           "stateId": "world-grid"
         },
         {
           "id": "key-world-emergent-arrival",
-          "atWU": 18.45,
+          "atWU": 19.591801,
           "stateId": "world-emergent"
         },
         {
           "id": "key-world-emergent-final",
-          "atWU": 19.05,
+          "atWU": 20.191801,
           "stateId": "world-emergent",
           "protected": true
         }
@@ -700,7 +700,7 @@
           "transition": {
             "type": "morph",
             "easing": "smoothstep",
-            "correspondence": "spatial-nearest-v2",
+            "correspondence": "index-v1",
             "stagger": {
               "mode": "uniform",
               "amount": 0
@@ -846,14 +846,14 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "I help shape complexity into compelling experiences."
+          "description": "I turn complexity into useful, human experiences."
         },
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 0.65,
-          "focusWU": 1.05,
-          "endWU": 1.45,
+          "startWU": 0.951007,
+          "focusWU": 1.351007,
+          "endWU": 1.751007,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -861,14 +861,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I’ve always been drawn to the complexity."
+          "text": "I’ve always been drawn to complexity."
         },
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 1.55,
-          "focusWU": 1.95,
-          "endWU": 2.35,
+          "startWU": 1.978874,
+          "focusWU": 2.378874,
+          "endWU": 2.778874,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -876,14 +876,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "New technology. New behaviours. How to inspire trust."
+          "text": "New technology. New behaviour. A better way of seeing."
         },
         {
           "id": "text-background-unit",
           "kind": "scroll-block",
-          "startWU": 2.1,
-          "focusWU": 2.58,
-          "endWU": 5,
+          "startWU": 3.241801,
+          "focusWU": 3.721801,
+          "endWU": 6.141801,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -896,29 +896,17 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "The interesting part is where those things meet: when a powerful capability remains unfamiliar, its implications are unclear and a service must explain itself without overshadowing the experience."
+                "text": "I find complex problems fascinating. They can come from a new technology that people need to trust, a behaviour we want to encourage, or a better mental model that leaves an old way of doing things behind. I believe innovation should make life better for people. So when I encounter complexity, I see an opportunity: to make something clearer, more useful, and genuinely better."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "I studied Communication Design because I wanted to understand how ideas become clear through words, aesthetics, hierarchy, motion, systems and the interplay between them. Language taught me that meaning shifts with what is said and how it is carried.",
-                "emphasis": [
-                  {
-                    "text": "Communication Design",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "I studied Communication Design because I wanted to understand how ideas become clear—and how they travel: through words, images, aesthetics, hierarchy, motion, systems, and the interplay between them. I grew up bilingual, between Portugal and Germany, which gave me an early sense that meaning shifts from one cultural context to another. It made me interested in the things that remain: the universal, fundamentally human truths beneath the surface."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "Agency work sharpened my visual judgement, craft and pace. Product work showed me that behaviour, brand and trust often belong to the same problem.",
-                "emphasis": [
-                  {
-                    "text": "Product work",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "Working across startups and agencies sharpened my visual judgement, craft, and way of thinking. It also showed me that product design is rarely separate from brand design or communication strategy. They often belong to the same problem."
               },
               {
                 "id": "selected-clients",
@@ -1017,9 +1005,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 4.85,
-          "focusWU": 5.25,
-          "endWU": 5.65,
+          "startWU": 5.991801,
+          "focusWU": 6.391801,
+          "endWU": 6.791801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1027,14 +1015,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "No single discipline resolves complexity on its own."
+          "text": "No single discipline resolves a complex problem alone."
         },
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 5.75,
-          "focusWU": 6.15,
-          "endWU": 6.55,
+          "startWU": 6.891801,
+          "focusWU": 7.291801,
+          "endWU": 7.691801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1047,9 +1035,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 11.1,
-          "focusWU": 11.5,
-          "endWU": 13.7,
+          "startWU": 12.241801,
+          "focusWU": 12.641801,
+          "endWU": 14.841801,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -1062,22 +1050,12 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "Close attention comes first. I identify the organising idea, then give it a form the team can examine, question, test and develop. That is where useful disagreement begins."
+                "text": "I take an idea through the whole journey: from the first question and early concepts, through sketches, wireframes, stakeholder conversations and presentations, to the final designs, systems, and experiences that make it real."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "AI extends what I can explore and make. Its value depends on human judgement and recognising when the result has become generic.",
-                "emphasis": [
-                  {
-                    "text": "AI",
-                    "tone": "blue"
-                  },
-                  {
-                    "text": "judgement",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "Especially in the age of AI, I think ideas are the thing that endures. AI expands what I can explore and make. It helps me ideate, test, and sharpen a direction—but never replaces my judgement. That is what keeps the work from becoming generic, sloppy, or disconnected from the people it is for."
               },
               {
                 "id": "project-impressions",
@@ -1299,21 +1277,7 @@
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "I work with ambitious teams while the problem is still taking shape—especially where design, technology and AI must inform the direction from the outset.",
-                "emphasis": [
-                  {
-                    "text": "design",
-                    "tone": "blue"
-                  },
-                  {
-                    "text": "technology",
-                    "tone": "blue"
-                  },
-                  {
-                    "text": "AI",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "Ultimately, I want my work to bring disciplines together and extend what feels possible—creating something new, better, and useful."
               }
             ]
           }
@@ -1321,9 +1285,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 13.85,
-          "focusWU": 14.2,
-          "endWU": 14.6,
+          "startWU": 14.991801,
+          "focusWU": 15.341801,
+          "endWU": 15.741801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1331,14 +1295,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "When an idea begins to cohere…"
+          "text": "When disciplines come together…"
         },
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 14.65,
-          "focusWU": 15,
-          "endWU": 15.4,
+          "startWU": 15.791801,
+          "focusWU": 16.141801,
+          "endWU": 16.541801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1346,14 +1310,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…it finds rhythm, character and use…"
+          "text": "…possibility opens up…"
         },
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 15.45,
-          "focusWU": 15.75,
-          "endWU": 16.05,
+          "startWU": 16.591801,
+          "focusWU": 16.891801,
+          "endWU": 17.191801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1361,14 +1325,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…and something new emerges."
+          "text": "…and something new becomes real."
         },
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 16.95,
-          "focusWU": 17.52,
-          "endWU": 19.05,
+          "startWU": 18.091801,
+          "focusWU": 18.661801,
+          "endWU": 20.191801,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta"
@@ -1376,8 +1340,8 @@
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
-          "text": "Get in touch",
-          "description": "If you’re building something new and need it to make sense to people, let’s talk."
+          "text": "Let’s make something awesome.",
+          "description": "Have a challenge or problem worth solving? Let’s talk."
         }
       ]
     },
@@ -1386,9 +1350,9 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 6.8,
-          "activationWU": 6.8,
-          "endWU": 11.7,
+          "startWU": 7.941801,
+          "activationWU": 7.941801,
+          "endWU": 12.841801,
           "parameters": {
             "backgroundFadeWU": 0.38,
             "backgroundOpacity": 0.42,
@@ -1483,9 +1447,9 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 13.7,
-          "activationWU": 13.7,
-          "endWU": 16.15,
+          "startWU": 14.841801,
+          "activationWU": 14.841801,
+          "endWU": 17.291801,
           "parameters": {
             "amplitude": 1.05,
             "speed": 0.38,
@@ -1498,9 +1462,9 @@
         {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 16.15,
-          "activationWU": 16.75,
-          "endWU": 19.05,
+          "startWU": 17.291801,
+          "activationWU": 17.891801,
+          "endWU": 20.191801,
           "parameters": {
             "amplitude": 0.52,
             "speed": 0.16,

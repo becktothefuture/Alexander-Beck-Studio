@@ -100,9 +100,9 @@ async function readFrameState(page, requestedWU) {
       })
       .map((node) => node.textContent.trim());
     const visibleLogos = [...document.querySelectorAll('.about-narrative-client-logos li')]
-      .filter((node) => Number(getComputedStyle(node.closest('[data-editorial-line]') || node).opacity) > 0.05)
+      .filter((node) => Number(getComputedStyle(node.closest('[data-editorial-reveal]') || node).opacity) > 0.05)
       .length;
-    const visibleEditorial = [...document.querySelectorAll('[data-editorial-line]')]
+    const visibleEditorial = [...document.querySelectorAll('[data-editorial-reveal]')]
       .filter((node) => {
         const style = getComputedStyle(node);
         const rect = node.getBoundingClientRect();

@@ -8,6 +8,7 @@ import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefiniti
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
+import { withBasePath } from '../../lib/base-path.js';
 import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
 import {
   ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
@@ -89,20 +90,18 @@ function getEditorialTokens(text = '', emphasis = []) {
   return tokens;
 }
 
-function renderEditorialToken(token, tokenIndex, { measure = false } = {}) {
+function renderEditorialToken(token, tokenIndex, {
+  measure = false,
+  sequenceRatio = 0,
+} = {}) {
   if (token.whitespace) return token.text;
   const measureProps = measure
     ? { 'data-editorial-measure-word': true, 'data-token-index': tokenIndex }
-    : {};
-  return token.tone ? (
-    <strong
-      className="about-narrative-editorial-emphasis"
-      key={tokenIndex}
-      {...measureProps}
-    >
-      {token.text}
-    </strong>
-  ) : <span key={tokenIndex} {...measureProps}>{token.text}</span>;
+    : {
+      'data-editorial-reveal': 'word',
+      'data-editorial-sequence-ratio': sequenceRatio.toFixed(4),
+    };
+  return <span key={tokenIndex} {...measureProps}>{token.text}</span>;
 }
 
 function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
@@ -179,19 +178,26 @@ function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
         {tokens.map((token, tokenIndex) => renderEditorialToken(token, tokenIndex, { measure: true }))}
       </span>
       <span className="about-narrative-editorial-lines__output">
-        {lineRanges.map((range, lineIndex) => (
-          <span
-            data-editorial-line
-            data-editorial-line-index={lineIndex}
-            data-world-group={worldGroup || undefined}
-            key={`${range.start}-${range.end}`}
-          >
-            {tokens.slice(range.start, range.end + 1).map((token, rangeIndex) => (
-              renderEditorialToken(token, range.start + rangeIndex)
-            ))}
-            {lineIndex < lineRanges.length - 1 ? ' ' : null}
-          </span>
-        ))}
+        {lineRanges.map((range, lineIndex) => {
+          const lineTokens = tokens.slice(range.start, range.end + 1);
+          const wordCount = lineTokens.filter((token) => !token.whitespace).length;
+          let wordIndex = 0;
+          return (
+            <span
+              data-editorial-visual-line
+              data-editorial-line-index={lineIndex}
+              data-world-group={worldGroup || undefined}
+              key={`${range.start}-${range.end}`}
+            >
+              {lineTokens.map((token, rangeIndex) => {
+                const sequenceRatio = wordCount > 1 ? wordIndex / (wordCount - 1) : 0;
+                if (!token.whitespace) wordIndex += 1;
+                return renderEditorialToken(token, range.start + rangeIndex, { sequenceRatio });
+              })}
+              {lineIndex < lineRanges.length - 1 ? ' ' : null}
+            </span>
+          );
+        })}
       </span>
     </span>
   );
@@ -204,7 +210,7 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
-function ClientLogoItem({ item, reveal = false }) {
+function ClientLogoItem({ item, reveal = false, sequenceRatio = 0 }) {
   const record = typeof item === 'string'
     ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
     : item;
@@ -214,7 +220,8 @@ function ClientLogoItem({ item, reveal = false }) {
   return (
     <li
       data-client-logo={record.id}
-      data-editorial-line={reveal ? true : undefined}
+      data-editorial-reveal={reveal ? 'logo' : undefined}
+      data-editorial-sequence-ratio={reveal ? sequenceRatio.toFixed(4) : undefined}
       style={{
         '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
         '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
@@ -243,13 +250,18 @@ function ClientLogoItem({ item, reveal = false }) {
 function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
   return (
     <figure className="about-narrative-client-field">
-      {label ? <figcaption data-editorial-line>{label}</figcaption> : null}
+      {label ? (
+        <figcaption>
+          <EditorialLineText text={label} />
+        </figcaption>
+      ) : null}
       <ul className="about-narrative-client-logos" aria-label="Selected clients">
-        {items.map((item) => (
+        {items.map((item, itemIndex) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
             reveal
+            sequenceRatio={items.length > 1 ? itemIndex / (items.length - 1) : 0}
           />
         ))}
       </ul>
@@ -277,7 +289,7 @@ function EditorialMediaDeck({ module }) {
     <section
       className="about-narrative-media-deck"
       aria-label={module.label || 'Selected artefacts'}
-      data-editorial-line
+      data-editorial-reveal="module"
     >
       <p>{module.label || 'Selected artefacts'}</p>
       <button
@@ -381,11 +393,12 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   if (block.kind === 'clients') {
     return (
       <ul {...commonProps} className="about-narrative-client-logos" aria-label="Selected clients">
-        {(block.items || []).map((item) => (
+        {(block.items || []).map((item, itemIndex, items) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
             reveal
+            sequenceRatio={items.length > 1 ? itemIndex / (items.length - 1) : 0}
           />
         ))}
       </ul>
@@ -435,7 +448,11 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
         aria-labelledby={block.label ? labelId : undefined}
         aria-label={block.label ? undefined : 'About Alexander'}
       >
-        {block.label ? <p id={labelId} className="about-narrative-editorial-list__label" data-editorial-line>{block.label}</p> : null}
+        {block.label ? (
+          <p id={labelId} className="about-narrative-editorial-list__label">
+            <EditorialLineText text={block.label} />
+          </p>
+        ) : null}
         <ul>{(block.items || []).map((item) => (
           <li key={item}>
             <EditorialLineText text={item} emphasis={block.emphasis} />
@@ -467,13 +484,19 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
 function FinaleActions() {
   return (
     <div className="about-narrative-finale-cta is-actions-only">
-      <nav className="about-narrative-cta" aria-label="Contact Alexander">
+      <nav className="about-narrative-cta" aria-label="Explore Alexander’s work">
+        <a href={withBasePath('/playground.html')}>
+          <span className="about-narrative-cta__label">Explore the Lab</span>
+        </a>
+        <a href={withBasePath('/portfolio.html')}>
+          <span className="about-narrative-cta__label">See My Work</span>
+        </a>
         <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>
-          <span className="about-narrative-cta__label">Contact</span>
+          <span className="about-narrative-cta__label">Get in Touch</span>
         </a>
         <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">
           <i className="ti ti-brand-linkedin" aria-hidden="true" />
-          <span className="about-narrative-visually-hidden">LinkedIn</span>
+          <span className="about-narrative-visually-hidden">LinkedIn (opens in a new tab)</span>
         </a>
       </nav>
     </div>

@@ -15,7 +15,7 @@ test('live timeline hook consumes only the sectionless runtime contract', () => 
     'sampleAboutNarrativeTitleFieldInto',
     'getAboutNarrativeRendererPreparationRequest',
     'data-text-field-id',
-    'data-editorial-line',
+    'data-editorial-reveal',
     '--narrative-content-extent-wu',
   ].forEach((token) => assert.ok(source.includes(token), `missing ${token}`));
   [
