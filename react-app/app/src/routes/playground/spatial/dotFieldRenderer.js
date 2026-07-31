@@ -2,11 +2,6 @@ const DEFAULT_DPR_CAP = 2;
 const DEFAULT_MAX_VISIBLE_DOTS = 20000;
 const MAX_PALETTE_COLORS = 12;
 const COLOR_OPACITY_BUCKET_COUNT = 16;
-const COLOR_WAKE_HOLD_RATIO = 0.55;
-const COLOR_WAKE_RISE_MIN_MS = 220;
-const COLOR_WAKE_RISE_VARIANCE_MS = 260;
-const COLOR_WAKE_DELAY_MAX_MS = 120;
-const COLOR_WAKE_PEAK_MIN = 0.68;
 const COLOR_WAKE_RADIUS_SCALE_MIN = 0.82;
 const COLOR_WAKE_RADIUS_SCALE_MAX = 1.18;
 const MIN_TEMPORAL_FRAME_INTERVAL_MS = 1000 / 60;
@@ -96,7 +91,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let dotRadiusPx = clamp(finite(options.dotRadiusPx, 2.25), 0.25, gridSpacingPx * 0.45);
   let dotOpacity = clamp(finite(options.dotOpacity, 0.28), 0, 1);
   let colorWakeRadiusPx = clamp(finite(options.colorWakeRadiusPx, 168), 1, 2048);
-  let colorWakePersistenceMs = clamp(finite(options.colorWakePersistenceMs, 1200), 1, 10000);
+  let colorWakePersistenceMs = clamp(finite(options.colorWakePersistenceMs, 1000), 1000, 10000);
+  let colorWakeFadeMs = clamp(finite(options.colorWakeFadeMs, 2000), 1, 10000);
   let colorWakeOpacity = clamp(finite(options.colorWakeOpacity, 0.88), 0, 1);
   let colorWakeDensity = clamp(finite(options.colorWakeDensity, 1), 0, 1);
   let colorWakeEdgeSoftness = clamp(finite(options.colorWakeEdgeSoftness, 0), 0, 1);
@@ -136,7 +132,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let activationTimes = new Float64Array(0);
   let activationColorSamples = new Uint32Array(0);
   let activationStrengths = new Float32Array(0);
-  let activationStartStrengths = new Float32Array(0);
   let releaseStrengths = new Float32Array(0);
   let hoverPasses = new Uint32Array(0);
   let activeFlags = new Uint8Array(0);
@@ -153,7 +148,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     activationTimes = new Float64Array(dotCount);
     activationColorSamples = new Uint32Array(dotCount);
     activationStrengths = new Float32Array(dotCount);
-    activationStartStrengths = new Float32Array(dotCount);
     releaseStrengths = new Float32Array(dotCount);
     hoverPasses = new Uint32Array(dotCount);
     activeFlags = new Uint8Array(dotCount);
@@ -198,33 +192,15 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     context.fill();
   }
 
-  function resolveHoveredProgress(index, now) {
-    const sample = activationColorSamples[index];
-    const delayMs = (secondaryHash(sample ^ 0x3c6ef372) / 4294967296)
-      * COLOR_WAKE_DELAY_MAX_MS;
-    const durationMs = COLOR_WAKE_RISE_MIN_MS
-      + ((secondaryHash(sample ^ 0xbb67ae85) / 4294967296)
-        * COLOR_WAKE_RISE_VARIANCE_MS);
-    const startedAt = -activationTimes[index];
-    return clamp((now - startedAt - delayMs) / durationMs, 0, 1);
-  }
-
-  function resolveHoveredStrength(index, progress) {
-    const sample = activationColorSamples[index];
-    const peakStrength = COLOR_WAKE_PEAK_MIN
-      + ((secondaryHash(sample ^ 0xa54ff53a) / 4294967296) * (1 - COLOR_WAKE_PEAK_MIN));
-    const easedProgress = progress * progress * (3 - (2 * progress));
-    const startStrength = activationStartStrengths[index];
-    return startStrength + ((peakStrength - startStrength) * easedProgress);
-  }
-
   function resolveReleasedStrength(index, now) {
     const age = now - activationTimes[index];
     if (age <= 0) return releaseStrengths[index];
-    const holdMs = colorWakePersistenceMs * COLOR_WAKE_HOLD_RATIO;
-    if (age <= holdMs) return releaseStrengths[index];
-    const fadeMs = Math.max(1, colorWakePersistenceMs - holdMs);
-    return releaseStrengths[index] * clamp(1 - ((age - holdMs) / fadeMs), 0, 1);
+    if (age <= colorWakePersistenceMs) return releaseStrengths[index];
+    return releaseStrengths[index] * clamp(
+      1 - ((age - colorWakePersistenceMs) / colorWakeFadeMs),
+      0,
+      1,
+    );
   }
 
   function resolveInfluenceRadiusScale(deltaX, deltaY, coordinateHash) {
@@ -253,10 +229,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     for (let offset = 0; offset < activeCount; offset += 1) {
       const index = activeIndices[offset];
       if (activationTimes[index] >= 0 || hoverPasses[index] === currentPass) continue;
-      releaseStrengths[index] = resolveHoveredStrength(
-        index,
-        resolveHoveredProgress(index, now),
-      );
+      releaseStrengths[index] = 1;
       activationTimes[index] = now;
     }
   }
@@ -322,11 +295,9 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
             coordinateHash ^ activationSequence,
           );
           activationSequence = (activationSequence + 1) >>> 0;
-          activationStartStrengths[index] = 0;
           releaseStrengths[index] = 0;
           activationTimes[index] = -now;
         } else if (activationTimes[index] >= 0) {
-          activationStartStrengths[index] = resolveReleasedStrength(index, now);
           activationTimes[index] = -now;
         }
         hoverPasses[index] = currentPass;
@@ -377,7 +348,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       const activationTime = activationTimes[index];
       const hovered = activationTime < 0;
       const age = hovered ? 0 : now - activationTime;
-      if (!hovered && (age < 0 || age >= colorWakePersistenceMs)) {
+      if (!hovered && (age < 0 || age >= colorWakePersistenceMs + colorWakeFadeMs)) {
         activeFlags[index] = 0;
         activationTimes[index] = 0;
         continue;
@@ -388,9 +359,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       let temporalStrength;
       if (hovered) {
         hoveredDotCount += 1;
-        const hoverProgress = resolveHoveredProgress(index, now);
-        temporalStrength = resolveHoveredStrength(index, hoverProgress);
-        if (hoverProgress < 1) risingDotCount += 1;
+        temporalStrength = 1;
       } else {
         fadingDotCount += 1;
         temporalStrength = resolveReleasedStrength(index, now);
@@ -516,7 +485,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     renderDirty = false;
     lastTemporalDrawAt = now;
     completeDraw();
-    if (risingDotCount > 0 || fadingDotCount > 0) scheduleDraw();
+    if (fadingDotCount > 0) scheduleDraw();
   }
 
   function scheduleDraw() {
@@ -671,6 +640,11 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     );
     const nextColorWakePersistence = clamp(
       finite(nextOptions.colorWakePersistenceMs, colorWakePersistenceMs),
+      1000,
+      10000,
+    );
+    const nextColorWakeFade = clamp(
+      finite(nextOptions.colorWakeFadeMs, colorWakeFadeMs),
       1,
       10000,
     );
@@ -707,6 +681,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     dotOpacity = nextOpacity;
     colorWakeRadiusPx = nextColorWakeRadius;
     colorWakePersistenceMs = nextColorWakePersistence;
+    colorWakeFadeMs = nextColorWakeFade;
     colorWakeOpacity = nextColorWakeOpacity;
     colorWakeDensity = nextColorWakeDensity;
     colorWakeEdgeSoftness = nextColorWakeEdgeSoftness;
@@ -792,6 +767,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       dotOpacity,
       colorWakeRadiusPx,
       colorWakePersistenceMs,
+      colorWakeFadeMs,
       colorWakeOpacity,
       colorWakeDensity,
       colorWakeEdgeSoftness,

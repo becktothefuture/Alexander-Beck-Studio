@@ -513,6 +513,7 @@ export function PlaygroundExperience() {
       dotOpacity: configRef.current.dotOpacity,
       colorWakeRadiusPx: configRef.current.colorWakeRadiusPx,
       colorWakePersistenceMs: configRef.current.colorWakePersistenceMs,
+      colorWakeFadeMs: configRef.current.colorWakeFadeMs,
       colorWakeOpacity: configRef.current.colorWakeOpacity,
       colorWakeDensity: configRef.current.colorWakeDensity,
       colorWakeEdgeSoftness: configRef.current.colorWakeEdgeSoftness,
@@ -787,6 +788,7 @@ export function PlaygroundExperience() {
       dotOpacity: config.dotOpacity,
       colorWakeRadiusPx: config.colorWakeRadiusPx,
       colorWakePersistenceMs: config.colorWakePersistenceMs,
+      colorWakeFadeMs: config.colorWakeFadeMs,
       colorWakeOpacity: config.colorWakeOpacity,
       colorWakeDensity: config.colorWakeDensity,
       colorWakeEdgeSoftness: config.colorWakeEdgeSoftness,
@@ -796,6 +798,7 @@ export function PlaygroundExperience() {
     });
   }, [
     config.colorWakePersistenceMs,
+    config.colorWakeFadeMs,
     config.colorWakeRadiusPx,
     config.colorWakeOpacity,
     config.colorWakeDensity,

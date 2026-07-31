@@ -290,6 +290,7 @@ test('configuration normalization clamps every control and retains canonical def
     dotOpacity: -1,
     colorWakeRadiusPx: 999,
     colorWakePersistenceMs: -1,
+    colorWakeFadeMs: -1,
     colorWakeOpacity: 9,
     colorWakeDensity: -1,
     colorWakeEdgeSoftness: 9,

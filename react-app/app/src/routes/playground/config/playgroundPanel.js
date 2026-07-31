@@ -65,9 +65,13 @@ export const PLAYGROUND_PANEL_SCHEMA = deepFreeze([
         unit: 'px',
         hint: 'Area around the pointer that wakes the current ball palette.',
       }),
-      numericControl('colorWakePersistenceMs', 'Colour persistence', {
+      numericControl('colorWakePersistenceMs', 'Colour hold', {
         display: 'duration',
-        hint: 'How long colour remains after the pointer moves away.',
+        hint: 'How long colour stays at full strength after the pointer moves away.',
+      }),
+      numericControl('colorWakeFadeMs', 'Colour fade', {
+        display: 'duration',
+        hint: 'How long colour takes to fade back to neutral.',
       }),
       numericControl('colorWakeOpacity', 'Colour intensity', { display: 'percent' }),
       numericControl('colorWakeDensity', 'Colour density', {

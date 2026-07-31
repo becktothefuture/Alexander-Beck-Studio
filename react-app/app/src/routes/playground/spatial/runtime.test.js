@@ -380,7 +380,8 @@ test('dot renderer wakes palette colours around the pointer and lets them persis
     viewportCenterY: 120,
     dotOpacity: 0.28,
     colorWakeRadiusPx: 56,
-    colorWakePersistenceMs: 300,
+    colorWakePersistenceMs: 1000,
+    colorWakeFadeMs: 2000,
     colorWakeOpacity: 0.72,
     colorWakeDensity: 1,
     colorWakeEdgeSoftness: 0.5,
@@ -406,7 +407,9 @@ test('dot renderer wakes palette colours around the pointer and lets them persis
   const hovered = renderer.getSnapshot();
   assert.ok(hovered.activeColoredDotCount > 0);
   assert.equal(hovered.hoveredColoredDotCount, hovered.activeColoredDotCount);
-  assert.equal(hovered.risingColoredDotCount, hovered.activeColoredDotCount);
+  assert.equal(hovered.risingColoredDotCount, 0);
+  assert.equal(hovered.colorWakePersistenceMs, 1000);
+  assert.equal(hovered.colorWakeFadeMs, 2000);
   assert.equal(hovered.colorWakeOpacity, 0.72);
   assert.equal(hovered.colorWakeDensity, 1);
   assert.equal(hovered.colorWakeEdgeSoftness, 0.5);
@@ -415,37 +418,35 @@ test('dot renderer wakes palette colours around the pointer and lets them persis
   assert.ok(hovered.minimumInfluenceStrength < hovered.maximumInfluenceStrength);
   assert.ok(hovered.maximumInfluenceStrength > 0.9);
   assert.ok(hovered.minimumInfluenceStrength < 0.5);
-  assert.equal(windowObject.frames.size, 1, 'a stationary hover should animate its colour rise');
-
-  fills.length = 0;
-  windowObject.flushAnimationFrames(133.36);
-  const earlyColorAlpha = Math.max(0, ...fills
+  const immediateColorAlpha = Math.max(0, ...fills
     .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
     .map(({ alpha }) => alpha));
-  assert.ok(earlyColorAlpha > 0 && earlyColorAlpha < hovered.colorWakeOpacity);
-
-  fills.length = 0;
-  for (let timestamp = 166.7; timestamp <= 700.14; timestamp += 33.34) {
-    windowObject.flushAnimationFrames(timestamp);
-  }
-  const settled = renderer.getSnapshot();
-  const settledColorAlpha = Math.max(0, ...fills
-    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
-    .map(({ alpha }) => alpha));
-  assert.equal(settled.risingColoredDotCount, 0);
-  assert.ok(settledColorAlpha > earlyColorAlpha);
-  assert.equal(windowObject.frames.size, 0, 'a settled stationary hover should let the renderer sleep');
+  assert.equal(immediateColorAlpha, hovered.colorWakeOpacity);
+  assert.equal(windowObject.frames.size, 0, 'an immediate stationary hover should let the renderer sleep');
 
   renderer.setPointer(0, 0, false);
-  windowObject.flushAnimationFrames(733.48);
+  fills.length = 0;
+  windowObject.flushAnimationFrames(66.68);
   const released = renderer.getSnapshot();
   assert.equal(released.pointerActive, false);
   assert.ok(released.fadingColoredDotCount > 0);
   assert.equal(windowObject.frames.size, 1);
 
-  for (let timestamp = 766.82; timestamp <= 1066.88; timestamp += 33.34) {
-    windowObject.flushAnimationFrames(timestamp);
-  }
+  fills.length = 0;
+  windowObject.flushAnimationFrames(1066.68);
+  const heldColorAlpha = Math.max(0, ...fills
+    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
+    .map(({ alpha }) => alpha));
+  assert.equal(heldColorAlpha, immediateColorAlpha);
+
+  fills.length = 0;
+  windowObject.flushAnimationFrames(2066.68);
+  const fadingColorAlpha = Math.max(0, ...fills
+    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
+    .map(({ alpha }) => alpha));
+  assert.ok(fadingColorAlpha > 0 && fadingColorAlpha < heldColorAlpha);
+
+  windowObject.flushAnimationFrames(3066.68);
   assert.equal(renderer.getSnapshot().activeColoredDotCount, 0);
   assert.equal(windowObject.frames.size, 0);
   renderer.destroy();
