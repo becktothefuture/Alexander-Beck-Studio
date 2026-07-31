@@ -119,8 +119,8 @@ export function resolveItemGridFootprint(item, options = {}) {
   const labelGapCells = hasLabelBlock
     ? Math.max(0, Math.ceil(toFiniteNumber(options.labelGapPx, 8) / gridSpacingPx))
     : 0;
-  const labelFontSizePx = Math.max(1, toFiniteNumber(options.labelFontSizePx, 12));
-  const labelLineHeightPx = Math.max(labelFontSizePx, toFiniteNumber(options.labelLineHeightPx, 16));
+  const labelFontSizePx = Math.max(1, toFiniteNumber(options.labelFontSizePx, 14));
+  const labelLineHeightPx = Math.max(labelFontSizePx, toFiniteNumber(options.labelLineHeightPx, 18));
   const typeFontSizePx = Math.max(1, toFiniteNumber(options.labelTypeFontSizePx, 10));
   const typeLineHeightPx = Math.max(
     typeFontSizePx,
@@ -128,16 +128,16 @@ export function resolveItemGridFootprint(item, options = {}) {
   );
   const descriptionFontSizePx = Math.max(
     1,
-    toFiniteNumber(options.labelDescriptionFontSizePx, 12),
+    toFiniteNumber(options.labelDescriptionFontSizePx, 13),
   );
   const descriptionLineHeightPx = Math.max(
     descriptionFontSizePx,
-    toFiniteNumber(options.labelDescriptionLineHeightPx, 16),
+    toFiniteNumber(options.labelDescriptionLineHeightPx, 18),
   );
   const innerGapPx = Math.max(0, toFiniteNumber(options.labelInnerGapPx, 4));
   const labelMeasurePx = Math.max(gridSpacingPx, mediaWidthCells * gridSpacingPx);
   const estimatedLabelWidthPx = label.length * labelFontSizePx * 0.62;
-  const estimatedDescriptionWidthPx = description.length * descriptionFontSizePx * 0.54;
+  const estimatedDescriptionWidthPx = description.length * descriptionFontSizePx * 0.62;
   const labelLineCount = label
     ? clamp(Math.ceil(estimatedLabelWidthPx / labelMeasurePx), 1, 2)
     : 0;

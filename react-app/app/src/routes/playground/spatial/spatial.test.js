@@ -58,9 +58,9 @@ const PLACEMENT_OPTIONS = {
   layoutPreset: 'balanced',
   layoutSeed: 0xabecc1,
   gridSpacingPx: 48,
-  itemGapCells: 2,
+  itemGapCells: 3,
   projectSpacing: 1.5,
-  itemScale: 1,
+  itemScale: 1.5,
   sizeVariation: 0.28,
   labelGapPx: 8,
   titleSafePaddingCells: 2,
@@ -156,6 +156,10 @@ test('placement is deterministic, collision-free, and append-stable for every pr
     const first = placePlaygroundItems(initialItems, options);
     const repeated = placePlaygroundItems(initialItems, options);
     const appended = placePlaygroundItems(createItems(21), options);
+    const world = calculateContentWorld(first.placements, {
+      ...options,
+      titleSafeAreaCells: first.titleSafeArea,
+    });
     assert.deepEqual(repeated, first);
     assert.deepEqual(appended.placements.slice(0, 20), first.placements);
     for (let index = 0; index < first.placements.length; index += 1) {
@@ -168,6 +172,25 @@ test('placement is deterministic, collision-free, and append-stable for every pr
           cellRectsOverlap(placement.bounds, first.placements[previous].bounds, 2),
           false,
         );
+      }
+      for (let otherIndex = 0; otherIndex < first.placements.length; otherIndex += 1) {
+        for (let column = -1; column <= 1; column += 1) {
+          for (let row = -1; row <= 1; row += 1) {
+            if (column === 0 && row === 0) continue;
+            const other = first.placements[otherIndex];
+            const repeatedBounds = {
+              left: other.bounds.left + (column * world.columns),
+              top: other.bounds.top + (row * world.rows),
+              right: other.bounds.right + (column * world.columns),
+              bottom: other.bounds.bottom + (row * world.rows),
+            };
+            assert.equal(
+              cellRectsOverlap(placement.bounds, repeatedBounds, options.itemGapCells),
+              false,
+              `${layoutPreset} placement ${placement.id} overlaps ${other.id} across a world seam`,
+            );
+          }
+        }
       }
     }
   }

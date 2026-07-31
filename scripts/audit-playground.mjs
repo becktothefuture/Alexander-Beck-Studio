@@ -46,23 +46,6 @@ function round(value) {
   return Math.round(Number(value || 0) * 100) / 100;
 }
 
-function isIdentityTransform(transform) {
-  const value = String(transform || '').trim();
-  if (!value || value === 'none') return true;
-
-  const match = value.match(/^matrix(3d)?\(([^)]+)\)$/);
-  if (!match) return false;
-
-  const values = match[2].split(',').map((entry) => Number(entry.trim()));
-  const expected = match[1]
-    ? [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-    : [1, 0, 0, 1, 0, 0];
-  return values.length === expected.length
-    && values.every((entry, index) => (
-      Number.isFinite(entry) && Math.abs(entry - expected[index]) < 0.000001
-    ));
-}
-
 async function waitForServer() {
   const response = await fetch(`${baseUrl}/playground.html`);
   assert(response.ok, `Playground server is not ready at ${baseUrl}`, { status: response.status });
@@ -342,6 +325,10 @@ async function getPlaygroundState(page) {
       const label = item.querySelector('.playground-item__label');
       const description = item.querySelector('.playground-item__description');
       const media = item.querySelector('.playground-media, .playground-item__media');
+      const itemTransform = getComputedStyle(item).transform;
+      const itemTransformMatrix = itemTransform === 'none'
+        ? new DOMMatrixReadOnly()
+        : new DOMMatrixReadOnly(itemTransform);
       const style = getComputedStyle(label);
       const descriptionStyle = getComputedStyle(description);
       const mediaStyle = getComputedStyle(media);
@@ -349,8 +336,8 @@ async function getPlaygroundState(page) {
         id: item.dataset.playgroundItem,
         type: item.dataset.playgroundItemType,
         rect: rectOf(item),
-        left: Number.parseFloat(item.style.left || '0'),
-        top: Number.parseFloat(item.style.top || '0'),
+        left: itemTransformMatrix.m41,
+        top: itemTransformMatrix.m42,
         width: Number.parseFloat(item.style.getPropertyValue('--playground-item-width-px') || '0'),
         height: Number.parseFloat(item.style.getPropertyValue('--playground-item-height-px') || '0'),
         buttonCount: item.querySelectorAll('button').length,
@@ -717,6 +704,54 @@ async function assertCameraInputs(page, evidence) {
   }, null, { timeout: timeoutMs, polling: 'raf' });
 }
 
+async function assertVisibleProjectsDoNotOverlap(page, label, evidence) {
+  const result = await page.evaluate(() => {
+    const viewport = document.querySelector('[data-playground-viewport]')?.getBoundingClientRect();
+    if (!viewport) return { visible: [], overlaps: [] };
+    const visible = Array.from(document.querySelectorAll('[data-playground-item]')).flatMap((node) => {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      const isVisible = style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number(style.opacity) > 0
+        && rect.right > viewport.left
+        && rect.left < viewport.right
+        && rect.bottom > viewport.top
+        && rect.top < viewport.bottom;
+      if (!isVisible) return [];
+      return [{
+        id: node.dataset.playgroundItem,
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+      }];
+    });
+    const overlaps = [];
+    for (let index = 0; index < visible.length; index += 1) {
+      for (let otherIndex = index + 1; otherIndex < visible.length; otherIndex += 1) {
+        const left = visible[index];
+        const right = visible[otherIndex];
+        const overlapsHorizontally = left.rect.left < right.rect.right - 0.5
+          && right.rect.left < left.rect.right - 0.5;
+        const overlapsVertically = left.rect.top < right.rect.bottom - 0.5
+          && right.rect.top < left.rect.bottom - 0.5;
+        if (overlapsHorizontally && overlapsVertically) {
+          overlaps.push({ left, right });
+        }
+      }
+    }
+    return { visible, overlaps };
+  });
+  assert(result.overlaps.length === 0, `${label} contains overlapping Lab projects`, result.overlaps);
+  evidence.projectSeparation ??= {};
+  evidence.projectSeparation[label] = {
+    visibleItemCount: result.visible.length,
+  };
+}
+
 async function assertWrapping(page, evidence) {
   const baseline = await getPlaygroundState(page);
   const worldWidth = baseline.snapshot.camera.worldWidthPx;
@@ -758,6 +793,7 @@ async function assertWrapping(page, evidence) {
       camera: state.snapshot.camera,
       visibleItemIds,
     });
+    await assertVisibleProjectsDoNotOverlap(page, position.label, evidence);
     evidence.wrapping[position.label] = {
       camera: state.snapshot.camera,
       copies: state.copies,
@@ -1071,6 +1107,11 @@ async function assertHoverDoesNotMoveProjects(page, evidence) {
   const item = page.locator(`[data-playground-item="${itemId}"]`).first();
   const before = await item.boundingBox();
   assert(before, 'Visible project has no hover-stability geometry', itemId);
+  const beforeStyle = await item.evaluate((node) => ({
+    transform: getComputedStyle(node).transform,
+    attractionX: node.style.getPropertyValue('--playground-attraction-x-px'),
+    attractionY: node.style.getPropertyValue('--playground-attraction-y-px'),
+  }));
   await page.mouse.move(before.x + (before.width / 2), before.y + (before.height / 2));
   await page.waitForTimeout(350);
   const after = await item.boundingBox();
@@ -1091,11 +1132,13 @@ async function assertHoverDoesNotMoveProjects(page, evidence) {
     style,
   });
   assert(
-    isIdentityTransform(style.transform) && !style.attractionX && !style.attractionY,
+    style.transform === beforeStyle.transform
+      && !style.attractionX
+      && !style.attractionY,
     'Hover displacement styling is still present',
-    style,
+    { beforeStyle, style },
   );
-  evidence.hoverStability = { itemId, movement, style };
+  evidence.hoverStability = { itemId, movement, beforeStyle, style };
 }
 
 async function assertDotColorWake(page, evidence) {
@@ -1116,6 +1159,20 @@ async function assertDotColorWake(page, evidence) {
   await page.waitForTimeout(80);
   const hovered = (await getPlaygroundState(page)).snapshot.dotField;
   assert(hovered.frameScheduled === false, 'A stationary colour wake did not let the renderer sleep', hovered);
+
+  await page.mouse.move(box.x + (box.width * 0.82), box.y + (box.height / 2), { steps: 1 });
+  await page.waitForFunction((endpointCount) => {
+    const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
+    return field?.pointerSweepDistancePx > field.colorWakeRadiusPx
+      && field.influencedDotCount > endpointCount
+      && field.fadingColoredDotCount > 0;
+  }, hovered.hoveredColoredDotCount, { timeout: timeoutMs, polling: 'raf' });
+  const swept = (await getPlaygroundState(page)).snapshot.dotField;
+  assert(
+    swept.activeColoredDotCount > hovered.activeColoredDotCount,
+    'A coalesced pointer jump did not retain the travelled dot path',
+    { hovered, swept },
+  );
   await page.screenshot({ path: resolve(runRoot, 'dot-color-wake.png'), fullPage: true });
 
   const pageSize = page.viewportSize();
@@ -1138,7 +1195,7 @@ async function assertDotColorWake(page, evidence) {
     polling: 'raf',
   });
   const settled = (await getPlaygroundState(page)).snapshot.dotField;
-  evidence.dotColorWake = { config, hovered, fading, settled };
+  evidence.dotColorWake = { config, hovered, swept, fading, settled };
 }
 
 async function assertConfigAndPanels(page, evidence) {
@@ -1153,7 +1210,7 @@ async function assertConfigAndPanels(page, evidence) {
     diagnostics: Array.from(panel.querySelectorAll('[data-playground-diagnostic]'), (node) => node.dataset.playgroundDiagnostic),
   }));
   assert(dockSchema.folders.length === 5, 'Docked Playground panel must have five folders', dockSchema);
-  assert(dockSchema.controls.length === 15, 'Docked Playground panel must have fifteen controls', dockSchema);
+  assert(dockSchema.controls.length === 16, 'Docked Playground panel must have sixteen controls', dockSchema);
   assert(
     dockSchema.controls.includes('projectSpacing') && !dockSchema.controls.includes('targetDensity'),
     'Playground panel must expose direct project spacing instead of inverse target density',
@@ -1164,6 +1221,7 @@ async function assertConfigAndPanels(page, evidence) {
       'dotOpacity',
       'colorWakeRadiusPx',
       'colorWakePersistenceMs',
+      'colorWakeFadeMs',
       'colorWakeOpacity',
       'colorWakeDensity',
       'colorWakeEdgeSoftness',
@@ -1892,6 +1950,7 @@ async function main() {
         'four-way explore cue uses the specified size and tighter lockup distance',
         'mouse drag, touch drag, wheel, diagonal wheel, keyboard, and Home recenter',
         'projects remain fixed under pointer hover with no attraction transform',
+        'enlarged project and caption bounds remain collision-free at every inspected world seam',
         'low-opacity grey dots wake into current-palette colours, persist, fade, and return the renderer to sleep',
         'positive, negative, horizontal, vertical, and diagonal wrapping coverage',
         'dot phase movement and grid alignment',

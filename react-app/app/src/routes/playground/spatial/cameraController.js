@@ -11,7 +11,6 @@ const CLICK_SUPPRESSION_WINDOW_MS = 700;
 const WHEEL_RESPONSE_PER_FRAME = 0.3;
 const WHEEL_SETTLE_EPSILON_PX = 0.08;
 const DRAG_VELOCITY_RESPONSE = 0.38;
-const MIN_CAMERA_FRAME_INTERVAL_MS = 1000 / 90;
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -120,7 +119,6 @@ export function createPlaygroundCameraController({
   let pointerThreshold = POINTER_CLICK_DRAG_THRESHOLD_PX;
   let frameId = 0;
   let lastFrameAt = 0;
-  let lastProjectionAt = 0;
   let dirty = true;
   let inertiaActive = false;
   let wheelActive = false;
@@ -180,7 +178,6 @@ export function createPlaygroundCameraController({
     if (frameId) windowObject.cancelAnimationFrame(frameId);
     frameId = 0;
     lastFrameAt = 0;
-    lastProjectionAt = 0;
   }
 
   function scheduleFrame() {
@@ -205,11 +202,6 @@ export function createPlaygroundCameraController({
   function handleFrame(timestamp) {
     frameId = 0;
     if (disposed || paused) return;
-    const projectionElapsedMs = lastProjectionAt ? timestamp - lastProjectionAt : Infinity;
-    if (projectionElapsedMs >= 0 && projectionElapsedMs < MIN_CAMERA_FRAME_INTERVAL_MS) {
-      scheduleFrame();
-      return;
-    }
     if ((inertiaActive || wheelActive) && !reducedMotion && enabled) {
       const deltaMs = lastFrameAt
         ? clamp(timestamp - lastFrameAt, 1, 50)
@@ -240,9 +232,15 @@ export function createPlaygroundCameraController({
     }
     if (dirty) {
       updateProjection();
-      lastProjectionAt = timestamp;
     }
     if (inertiaActive || wheelActive) scheduleFrame();
+  }
+
+  function requestUpdate() {
+    if (disposed || paused) return false;
+    dirty = true;
+    scheduleFrame();
+    return true;
   }
 
   function cancelPointer() {
@@ -623,6 +621,7 @@ export function createPlaygroundCameraController({
     recenter,
     setWorldSize,
     resizeViewport,
+    requestUpdate,
     configure,
     setEnabled,
     setPaused,

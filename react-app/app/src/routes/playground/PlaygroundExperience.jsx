@@ -521,10 +521,10 @@ export function PlaygroundExperience() {
       layoutSeed: configRef.current.layoutSeed,
       neutralColor: getComputedStyle(route).getPropertyValue('--text-muted').trim() || '#777777',
       palette: paletteRef.current,
+      requestRenderFrame: () => cameraRef.current?.requestUpdate() || false,
       onDraw: () => tickSimulationAtmosphere(performance.now(), 'playground:dot-field'),
     });
     dotRendererRef.current = dotRenderer;
-    dotRenderer.start();
 
     let pointerRect = viewportRect;
     const handlePointerMove = (event) => {
@@ -592,10 +592,31 @@ export function PlaygroundExperience() {
       }
     };
 
+    let lastRenderedCameraX = Number.NaN;
+    let lastRenderedCameraY = Number.NaN;
+    let lastViewportCenterX = Number.NaN;
+    let lastViewportCenterY = Number.NaN;
+
     applyCameraFrameRef.current = (cameraState) => {
+      const cameraGeometryChanged = cameraState.renderedX !== lastRenderedCameraX
+        || cameraState.renderedY !== lastRenderedCameraY
+        || cameraState.viewportCenterX !== lastViewportCenterX
+        || cameraState.viewportCenterY !== lastViewportCenterY;
       cameraFrameRef.current = cameraState;
       lastLogicalCameraRef.current.x = cameraState.logicalX;
       lastLogicalCameraRef.current.y = cameraState.logicalY;
+      dotRenderer.setCamera(
+        cameraState.renderedX,
+        cameraState.renderedY,
+        cameraState.viewportCenterX,
+        cameraState.viewportCenterY,
+        true,
+      );
+      if (!cameraGeometryChanged) return;
+      lastRenderedCameraX = cameraState.renderedX;
+      lastRenderedCameraY = cameraState.renderedY;
+      lastViewportCenterX = cameraState.viewportCenterX;
+      lastViewportCenterY = cameraState.viewportCenterY;
       route.style.setProperty(
         '--playground-render-camera-x-px',
         `${cameraState.renderedX * worldScale}px`,
@@ -610,13 +631,6 @@ export function PlaygroundExperience() {
         viewport.scrollLeft = 0;
         viewport.scrollTop = 0;
       }
-      dotRenderer.setCamera(
-        cameraState.renderedX,
-        cameraState.renderedY,
-        cameraState.viewportCenterX,
-        cameraState.viewportCenterY,
-        true,
-      );
 
       const titleColumn = Math.round(cameraState.renderedX / model.world.widthPx);
       const titleRow = Math.round(cameraState.renderedY / model.world.heightPx);
@@ -642,8 +656,7 @@ export function PlaygroundExperience() {
           + (nearestRow * model.world.heightPx) - cameraState.renderedY) * worldScale);
         const node = semanticItemNodesRef.current.get(placement.id);
         if (node) {
-          node.style.left = `${screenX}px`;
-          node.style.top = `${screenY}px`;
+          node.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${worldScale})`;
         }
       }
 
@@ -689,6 +702,7 @@ export function PlaygroundExperience() {
     const firstFrame = camera.getSnapshot();
     syncCopies(firstFrame, true);
     applyCameraFrameRef.current(firstFrame);
+    dotRenderer.start();
 
     const unregisterAtmosphere = registerSimulationAtmosphereSource({
       id: 'playground:dot-field',
@@ -825,7 +839,14 @@ export function PlaygroundExperience() {
         hidden: null,
       }),
     );
-    if (cameraFrameRef.current) applyCameraFrameRef.current(cameraFrameRef.current);
+    decorativeInstancesRef.current.forEach((instance) => {
+      const placement = model.placementById.get(instance.itemId);
+      const hidden = Boolean(placement
+        && placement.nearestColumn === instance.column
+        && placement.nearestRow === instance.row);
+      instance.hidden = hidden;
+      instance.node.style.visibility = hidden ? 'hidden' : 'visible';
+    });
   }, [copies, model]);
 
   useEffect(() => {
@@ -1079,9 +1100,6 @@ export function PlaygroundExperience() {
                     style={{
                       '--playground-item-width-px': `${placement.mediaWidthCells * runtimeConfig.gridSpacingPx}px`,
                       '--playground-item-height-px': `${placement.mediaHeightCells * runtimeConfig.gridSpacingPx}px`,
-                      '--playground-semantic-item-transform': responsiveProfile.worldScale < 0.999
-                        ? `scale(${responsiveProfile.worldScale})`
-                        : 'none',
                     }}
                   >
                     {worldRuntimeActive ? (

@@ -21,6 +21,11 @@ function wrapInteger(value, period) {
   return remainder < 0 ? remainder + period : remainder;
 }
 
+function nearestPeriodicCoordinate(value, reference, period) {
+  if (!Number.isFinite(reference) || !Number.isFinite(period) || period <= 0) return value;
+  return value + (Math.round((reference - value) / period) * period);
+}
+
 export function hashDotCoordinate(column, row, seed = 1) {
   let hash = (Number(seed) >>> 0) ^ 0x9e3779b9;
   hash ^= Math.imul(Number(column) | 0, 0x85ebca6b);
@@ -62,6 +67,9 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   if (!canvas || !context) throw new TypeError('A Canvas 2D surface is required.');
   const windowObject = options.windowObject || globalThis.window;
   const documentObject = options.documentObject || globalThis.document;
+  const requestRenderFrame = typeof options.requestRenderFrame === 'function'
+    ? options.requestRenderFrame
+    : null;
   if (!windowObject?.requestAnimationFrame || !windowObject?.cancelAnimationFrame) {
     throw new TypeError('A window-like animation frame owner is required.');
   }
@@ -71,6 +79,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let paused = false;
   let hidden = documentObject?.visibilityState === 'hidden';
   let frameId = 0;
+  let externalFrameRequested = false;
   let width = 0;
   let height = 0;
   let dpr = 1;
@@ -118,6 +127,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let pointerActive = false;
   let pointerX = 0;
   let pointerY = 0;
+  let previousPointerWorldX = Number.NaN;
+  let previousPointerWorldY = Number.NaN;
+  let lastPointerSweepDistancePx = 0;
+  let lastInfluencedDotCount = 0;
   let lastTemporalDrawAt = 0;
   let activationSequence = 1;
   let activeCount = 0;
@@ -132,6 +145,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let activationTimes = new Float64Array(0);
   let activationColorSamples = new Uint32Array(0);
   let activationStrengths = new Float32Array(0);
+  let peakActivationStrengths = new Float32Array(0);
   let releaseStrengths = new Float32Array(0);
   let hoverPasses = new Uint32Array(0);
   let activeFlags = new Uint8Array(0);
@@ -148,6 +162,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     activationTimes = new Float64Array(dotCount);
     activationColorSamples = new Uint32Array(dotCount);
     activationStrengths = new Float32Array(dotCount);
+    peakActivationStrengths = new Float32Array(dotCount);
     releaseStrengths = new Float32Array(dotCount);
     hoverPasses = new Uint32Array(dotCount);
     activeFlags = new Uint8Array(dotCount);
@@ -164,6 +179,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     maximumInfluenceRadiusScale = 0;
     minimumInfluenceStrength = 0;
     maximumInfluenceStrength = 0;
+    previousPointerWorldX = Number.NaN;
+    previousPointerWorldY = Number.NaN;
+    lastPointerSweepDistancePx = 0;
+    lastInfluencedDotCount = 0;
     bucketHeads.fill(-1);
   }
 
@@ -229,7 +248,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     for (let offset = 0; offset < activeCount; offset += 1) {
       const index = activeIndices[offset];
       if (activationTimes[index] >= 0 || hoverPasses[index] === currentPass) continue;
-      releaseStrengths[index] = 1;
+      releaseStrengths[index] = peakActivationStrengths[index];
       activationTimes[index] = now;
     }
   }
@@ -248,18 +267,65 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       maximumInfluenceRadiusScale = 0;
       minimumInfluenceStrength = 0;
       maximumInfluenceStrength = 0;
+      previousPointerWorldX = Number.NaN;
+      previousPointerWorldY = Number.NaN;
+      lastPointerSweepDistancePx = 0;
+      lastInfluencedDotCount = 0;
       releaseUnvisitedHoveredDots(now, currentPass);
       return;
     }
 
-    const pointerWorldX = cameraX + ((pointerX - viewportCenterX) / worldScale);
-    const pointerWorldY = cameraY + ((pointerY - viewportCenterY) / worldScale);
+    const worldWidthPx = worldColumns * gridSpacingPx;
+    const worldHeightPx = worldRows * gridSpacingPx;
+    const rawPointerWorldX = cameraX + ((pointerX - viewportCenterX) / worldScale);
+    const rawPointerWorldY = cameraY + ((pointerY - viewportCenterY) / worldScale);
+    const pointerWorldX = nearestPeriodicCoordinate(
+      rawPointerWorldX,
+      previousPointerWorldX,
+      worldWidthPx,
+    );
+    const pointerWorldY = nearestPeriodicCoordinate(
+      rawPointerWorldY,
+      previousPointerWorldY,
+      worldHeightPx,
+    );
+    let sweepStartX = Number.isFinite(previousPointerWorldX)
+      ? previousPointerWorldX
+      : pointerWorldX;
+    let sweepStartY = Number.isFinite(previousPointerWorldY)
+      ? previousPointerWorldY
+      : pointerWorldY;
+    const sweepDeltaX = pointerWorldX - sweepStartX;
+    const sweepDeltaY = pointerWorldY - sweepStartY;
+    const sweepDistancePx = Math.hypot(sweepDeltaX, sweepDeltaY);
+    const maximumContinuousSweepPx = Math.hypot(width, height) * 1.5 / worldScale;
+    if (sweepDistancePx > maximumContinuousSweepPx) {
+      sweepStartX = pointerWorldX;
+      sweepStartY = pointerWorldY;
+      lastPointerSweepDistancePx = 0;
+    } else {
+      lastPointerSweepDistancePx = sweepDistancePx;
+    }
+    previousPointerWorldX = pointerWorldX;
+    previousPointerWorldY = pointerWorldY;
+    const segmentDeltaX = pointerWorldX - sweepStartX;
+    const segmentDeltaY = pointerWorldY - sweepStartY;
+    const segmentLengthSquared = (segmentDeltaX * segmentDeltaX)
+      + (segmentDeltaY * segmentDeltaY);
     const wakeRadiusPx = colorWakeRadiusPx / worldScale;
     const searchRadiusPx = wakeRadiusPx * COLOR_WAKE_RADIUS_SCALE_MAX;
-    const minimumColumn = Math.ceil((pointerWorldX - searchRadiusPx) / gridSpacingPx);
-    const maximumColumn = Math.floor((pointerWorldX + searchRadiusPx) / gridSpacingPx);
-    const minimumRow = Math.ceil((pointerWorldY - searchRadiusPx) / gridSpacingPx);
-    const maximumRow = Math.floor((pointerWorldY + searchRadiusPx) / gridSpacingPx);
+    const minimumColumn = Math.ceil(
+      (Math.min(sweepStartX, pointerWorldX) - searchRadiusPx) / gridSpacingPx,
+    );
+    const maximumColumn = Math.floor(
+      (Math.max(sweepStartX, pointerWorldX) + searchRadiusPx) / gridSpacingPx,
+    );
+    const minimumRow = Math.ceil(
+      (Math.min(sweepStartY, pointerWorldY) - searchRadiusPx) / gridSpacingPx,
+    );
+    const maximumRow = Math.floor(
+      (Math.max(sweepStartY, pointerWorldY) + searchRadiusPx) / gridSpacingPx,
+    );
     minimumInfluenceRadiusScale = COLOR_WAKE_RADIUS_SCALE_MAX;
     maximumInfluenceRadiusScale = COLOR_WAKE_RADIUS_SCALE_MIN;
     minimumInfluenceStrength = 1;
@@ -267,10 +333,22 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     let influencedDotCount = 0;
 
     for (let row = minimumRow; row <= maximumRow; row += 1) {
-      const deltaY = (row * gridSpacingPx) - pointerWorldY;
+      const dotWorldY = row * gridSpacingPx;
       const wrappedRow = wrapInteger(row, worldRows);
       for (let column = minimumColumn; column <= maximumColumn; column += 1) {
-        const deltaX = (column * gridSpacingPx) - pointerWorldX;
+        const dotWorldX = column * gridSpacingPx;
+        const projection = segmentLengthSquared > 0
+          ? clamp(
+            (((dotWorldX - sweepStartX) * segmentDeltaX)
+              + ((dotWorldY - sweepStartY) * segmentDeltaY)) / segmentLengthSquared,
+            0,
+            1,
+          )
+          : 1;
+        const closestX = sweepStartX + (segmentDeltaX * projection);
+        const closestY = sweepStartY + (segmentDeltaY * projection);
+        const deltaX = dotWorldX - closestX;
+        const deltaY = dotWorldY - closestY;
         const distanceSquared = (deltaX * deltaX) + (deltaY * deltaY);
         const wrappedColumn = wrapInteger(column, worldColumns);
         const coordinateHash = hashDotCoordinate(wrappedColumn, wrappedRow, layoutSeed);
@@ -284,8 +362,24 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
         const influenceRadiusPx = wakeRadiusPx * influenceRadiusScale;
         if (distanceSquared >= influenceRadiusPx * influenceRadiusPx) continue;
         const normalizedDistance = Math.sqrt(distanceSquared) / influenceRadiusPx;
-        const influenceStrength = resolveInfluenceStrength(normalizedDistance);
+        let influenceStrength = resolveInfluenceStrength(normalizedDistance);
         if (influenceStrength <= 0) continue;
+        const endpointDeltaX = dotWorldX - pointerWorldX;
+        const endpointDeltaY = dotWorldY - pointerWorldY;
+        const endpointDistanceSquared = (endpointDeltaX * endpointDeltaX)
+          + (endpointDeltaY * endpointDeltaY);
+        const endpointRadiusScale = resolveInfluenceRadiusScale(
+          endpointDeltaX,
+          endpointDeltaY,
+          coordinateHash,
+        );
+        const endpointRadiusPx = wakeRadiusPx * endpointRadiusScale;
+        const endpointHovered = endpointDistanceSquared < endpointRadiusPx * endpointRadiusPx;
+        if (endpointHovered) {
+          influenceStrength = resolveInfluenceStrength(
+            Math.sqrt(endpointDistanceSquared) / endpointRadiusPx,
+          );
+        }
         const index = (wrappedRow * worldColumns) + wrappedColumn;
         if (!activeFlags[index]) {
           activeFlags[index] = 1;
@@ -295,13 +389,24 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
             coordinateHash ^ activationSequence,
           );
           activationSequence = (activationSequence + 1) >>> 0;
+          peakActivationStrengths[index] = 0;
           releaseStrengths[index] = 0;
           activationTimes[index] = -now;
         } else if (activationTimes[index] >= 0) {
+          const retainedStrength = resolveReleasedStrength(index, now);
+          activationStrengths[index] = retainedStrength;
+          peakActivationStrengths[index] = retainedStrength;
           activationTimes[index] = -now;
         }
-        hoverPasses[index] = currentPass;
-        activationStrengths[index] = influenceStrength;
+        if (endpointHovered) hoverPasses[index] = currentPass;
+        activationStrengths[index] = Math.max(
+          activationStrengths[index],
+          influenceStrength,
+        );
+        peakActivationStrengths[index] = Math.max(
+          peakActivationStrengths[index],
+          activationStrengths[index],
+        );
         minimumInfluenceRadiusScale = Math.min(
           minimumInfluenceRadiusScale,
           influenceRadiusScale,
@@ -321,6 +426,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       minimumInfluenceStrength = 0;
       maximumInfluenceStrength = 0;
     }
+    lastInfluencedDotCount = influencedDotCount;
     releaseUnvisitedHoveredDots(now, currentPass);
   }
 
@@ -347,22 +453,25 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       const index = activeIndices[offset];
       const activationTime = activationTimes[index];
       const hovered = activationTime < 0;
-      const age = hovered ? 0 : now - activationTime;
-      if (!hovered && (age < 0 || age >= colorWakePersistenceMs + colorWakeFadeMs)) {
+      const age = hovered ? 0 : Math.max(0, now - activationTime);
+      if (!hovered && age >= colorWakePersistenceMs + colorWakeFadeMs) {
         activeFlags[index] = 0;
         activationTimes[index] = 0;
+        activationStrengths[index] = 0;
+        peakActivationStrengths[index] = 0;
+        releaseStrengths[index] = 0;
         continue;
       }
 
       activeIndices[retainedCount] = index;
       retainedCount += 1;
-      let temporalStrength;
+      let combinedStrength;
       if (hovered) {
         hoveredDotCount += 1;
-        temporalStrength = 1;
+        combinedStrength = activationStrengths[index];
       } else {
         fadingDotCount += 1;
-        temporalStrength = resolveReleasedStrength(index, now);
+        combinedStrength = resolveReleasedStrength(index, now);
       }
 
       const row = Math.floor(index / worldColumns);
@@ -381,7 +490,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
 
       const colorIndex = resolveColorIndex(activationColorSamples[index]);
       if (colorIndex < 0) continue;
-      const combinedStrength = activationStrengths[index] * temporalStrength;
       if (combinedStrength <= 0) continue;
       const opacityBucket = Math.min(
         COLOR_OPACITY_BUCKET_COUNT - 1,
@@ -396,14 +504,17 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     activeCount = retainedCount;
 
     const colorCount = Math.min(colors.length, MAX_PALETTE_COLORS);
-    const activeRadius = dotRadiusPx * worldScale * colorWakeDotScale;
+    const restingRadius = dotRadiusPx * worldScale;
     for (let colorIndex = 0; colorIndex < colorCount; colorIndex += 1) {
       context.fillStyle = colors[colorIndex];
       for (let opacityBucket = 0; opacityBucket < COLOR_OPACITY_BUCKET_COUNT; opacityBucket += 1) {
         let index = bucketHeads[(colorIndex * COLOR_OPACITY_BUCKET_COUNT) + opacityBucket];
         if (index < 0) continue;
-        context.globalAlpha = colorWakeOpacity
-          * (1 - (opacityBucket / COLOR_OPACITY_BUCKET_COUNT));
+        const bucketStrength = 1 - (opacityBucket / COLOR_OPACITY_BUCKET_COUNT);
+        const activeRadius = restingRadius * (
+          1 + ((colorWakeDotScale - 1) * bucketStrength)
+        );
+        context.globalAlpha = colorWakeOpacity * bucketStrength;
         context.beginPath();
         while (index >= 0) {
           const screenX = activeScreenX[index];
@@ -424,6 +535,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
 
   function draw(timestamp) {
     frameId = 0;
+    externalFrameRequested = false;
     if (!started || disposed || paused || hidden || !width || !height) return;
     const now = Number.isFinite(Number(timestamp))
       ? Number(timestamp)
@@ -489,7 +601,11 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   }
 
   function scheduleDraw() {
-    if (!started || disposed || paused || hidden || frameId) return;
+    if (!started || disposed || paused || hidden || frameId || externalFrameRequested) return;
+    if (requestRenderFrame) {
+      externalFrameRequested = requestRenderFrame() === true;
+      return;
+    }
     frameId = windowObject.requestAnimationFrame(draw);
   }
 
@@ -538,6 +654,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       || resolvedCenterX !== viewportCenterX || resolvedCenterY !== viewportCenterY;
     if (!changed) {
       if (renderImmediately && (frameId
+        || externalFrameRequested
         || lastDrawnCameraX !== cameraX
         || lastDrawnCameraY !== cameraY)) drawImmediately();
       return false;
@@ -620,6 +737,11 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     pointerActive = active;
     pointerX = resolvedX;
     pointerY = resolvedY;
+    if (!active) {
+      previousPointerWorldX = Number.NaN;
+      previousPointerWorldY = Number.NaN;
+      lastPointerSweepDistancePx = 0;
+    }
     pointerDirty = true;
     scheduleDraw();
     return true;
@@ -698,9 +820,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
 
   function handleVisibilityChange() {
     hidden = documentObject?.visibilityState === 'hidden';
-    if (hidden && frameId) {
-      windowObject.cancelAnimationFrame(frameId);
+    if (hidden) {
+      if (frameId) windowObject.cancelAnimationFrame(frameId);
       frameId = 0;
+      externalFrameRequested = false;
     } else if (!hidden) {
       renderDirty = true;
       scheduleDraw();
@@ -729,9 +852,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
 
   function setPaused(nextPaused) {
     paused = nextPaused === true;
-    if (paused && frameId) {
-      windowObject.cancelAnimationFrame(frameId);
+    if (paused) {
+      if (frameId) windowObject.cancelAnimationFrame(frameId);
       frameId = 0;
+      externalFrameRequested = false;
     } else if (!paused) {
       renderDirty = true;
       scheduleDraw();
@@ -744,7 +868,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       disposed,
       paused,
       hidden,
-      frameScheduled: frameId !== 0,
+      frameScheduled: frameId !== 0 || externalFrameRequested,
       drawCount,
       width,
       height,
@@ -777,6 +901,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       maximumInfluenceRadiusScale,
       minimumInfluenceStrength,
       maximumInfluenceStrength,
+      pointerSweepDistancePx: lastPointerSweepDistancePx,
+      influencedDotCount: lastInfluencedDotCount,
       activeColoredDotCount: activeCount,
       hoveredColoredDotCount: hoveredDotCount,
       risingColoredDotCount: risingDotCount,
@@ -797,6 +923,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     started = false;
     if (frameId) windowObject.cancelAnimationFrame(frameId);
     frameId = 0;
+    externalFrameRequested = false;
     resizeObserver?.disconnect();
     windowObject.removeEventListener?.('resize', handleWindowResize);
     documentObject?.removeEventListener?.('visibilitychange', handleVisibilityChange);
