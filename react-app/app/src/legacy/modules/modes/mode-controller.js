@@ -21,6 +21,21 @@ import { maybeAutoPickCursorColor, resetColorDistributionCoverage } from '../vis
 import { resetPhysicsAccumulator } from '../physics/engine.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
 import { CUBE_3D_DEFAULTS } from './cube3d-config.js';
+import {
+  getForceApplicator,
+  getModeBoundsHandler,
+  getModeCustomRenderer,
+  getModeCustomStep,
+  getModeDepthRenderer,
+  getModeRenderer,
+  getModeUpdater,
+  getRuntimeForCurrentMode,
+  hasModeRuntime,
+  readModeRuntime,
+  registerCurrentModeReader,
+  registerModeRuntimeLoader,
+  writeModeRuntime,
+} from './mode-runtime-bridge.js';
 
 export { MODES };
 
@@ -212,7 +227,6 @@ const MODE_REGISTRY = {
   }
 };
 
-const modeRuntimeCache = new Map();
 const modeLoadPromises = new Map();
 let preloadAllStarted = false;
 let modeChangeToken = 0;
@@ -246,8 +260,8 @@ async function ensureModeRuntime(mode) {
   const entry = MODE_REGISTRY[mode];
   if (!entry) return null;
 
-  if (modeRuntimeCache.has(mode)) {
-    return modeRuntimeCache.get(mode);
+  if (hasModeRuntime(mode)) {
+    return readModeRuntime(mode);
   }
 
   if (modeLoadPromises.has(mode)) {
@@ -257,7 +271,7 @@ async function ensureModeRuntime(mode) {
   const loadPromise = entry.load()
     .then((module) => {
       const runtime = buildModeRuntime(module, entry.hooks);
-      modeRuntimeCache.set(mode, runtime);
+      writeModeRuntime(mode, runtime);
       modeLoadPromises.delete(mode);
       return runtime;
     })
@@ -270,6 +284,11 @@ async function ensureModeRuntime(mode) {
   modeLoadPromises.set(mode, loadPromise);
   return loadPromise;
 }
+
+registerModeRuntimeLoader((mode) => {
+  void ensureModeRuntime(mode);
+});
+registerCurrentModeReader(() => getGlobals().currentMode);
 
 export async function prewarmModeRuntime(mode) {
   return ensureModeRuntime(mode);
@@ -393,18 +412,6 @@ function applyCrittersOverridesIfNeeded(globals, mode) {
   globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
 }
 
-function getRuntimeForCurrentMode() {
-  const globals = getGlobals();
-  const mode = globals.currentMode;
-  const runtime = modeRuntimeCache.get(mode);
-  if (runtime) return runtime;
-
-  if (!modeLoadPromises.has(mode)) {
-    void ensureModeRuntime(mode);
-  }
-  return null;
-}
-
 function ensureLegacyVisualTransition() {
   if (!legacyVisualTransition) {
     legacyVisualTransition = createIndexedSimulationVisualTransition({
@@ -456,7 +463,7 @@ export function disposeModeSystem() {
   modeChangeToken += 1;
   try {
     const currentMode = getGlobals()?.currentMode;
-    modeRuntimeCache.get(currentMode)?.cleanup?.();
+    readModeRuntime(currentMode)?.cleanup?.();
   } catch (e) {}
   if (unregisterLegacyVisualTransition) {
     unregisterLegacyVisualTransition();
@@ -494,7 +501,7 @@ export async function setMode(inputMode) {
   const prevMode = previousMode;
   try {
     // Reset stateful systems on mode switch to prevent accumulation artifacts.
-    modeRuntimeCache.get(previousMode)?.cleanup?.();
+    readModeRuntime(previousMode)?.cleanup?.();
     resetPhysicsAccumulator();
     resetAdaptiveThrottle();
     restoreCrittersOverridesIfNeeded(globals, mode);
@@ -583,41 +590,12 @@ export function resetCurrentMode() {
   return setMode(globals.currentMode);
 }
 
-export function getForceApplicator() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.force || null;
-}
-
-export function getModeUpdater() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.update || null;
-}
-
-export function getModeRenderer() {
-  const runtime = getRuntimeForCurrentMode();
-  if (!runtime?.preRender && !runtime?.postRender) return null;
-  return {
-    preRender: runtime.preRender || null,
-    postRender: runtime.postRender || null
-  };
-}
-
-export function getModeCustomRenderer() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.customRender || null;
-}
-
-export function getModeDepthRenderer() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.depthRender || null;
-}
-
-export function getModeCustomStep() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.customStep || null;
-}
-
-export function getModeBoundsHandler() {
-  const runtime = getRuntimeForCurrentMode();
-  return runtime?.bounds || null;
-}
+export {
+  getForceApplicator,
+  getModeBoundsHandler,
+  getModeCustomRenderer,
+  getModeCustomStep,
+  getModeDepthRenderer,
+  getModeRenderer,
+  getModeUpdater,
+};

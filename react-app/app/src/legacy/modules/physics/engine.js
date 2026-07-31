@@ -14,7 +14,7 @@ import {
   getModeCustomStep,
   getModeBoundsHandler,
   getModeDepthRenderer
-} from '../modes/mode-controller.js';
+} from '../modes/mode-runtime-bridge.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
