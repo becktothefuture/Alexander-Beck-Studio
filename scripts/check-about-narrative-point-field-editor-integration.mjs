@@ -67,12 +67,12 @@ test('preview profile and Point field edit scope remain independent controls', (
   assert.match(styles, /\.about-track-editor-preview > select,[\s\S]*?\.about-track-editor-preview > \.about-track-editor-edit-scope select \{ width: auto; \}/);
 });
 
-test('v6 persistence, recovery, export, and interaction labels target state IDs', () => {
+test('v6 persistence, recovery, local Save, export, and interaction labels target state IDs', () => {
   [
     '{ targetVersion: persistenceTargetVersion }',
     'targetVersion: persistenceTargetVersion',
     "'contents-about-v6.json'",
-    "'contents-about-v6-preview.json'",
+    'writeAboutNarrativeLocalSave(submission.document',
     "label={pointFieldV6 ? 'Target state ID' : 'Target World'}",
     'object.targetStateId',
     'snapshot.document.tracks.pointField.stateDefinitions',

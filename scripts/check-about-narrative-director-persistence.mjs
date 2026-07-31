@@ -4,14 +4,17 @@ import test from 'node:test';
 
 import {
   ABOUT_NARRATIVE_CHECKPOINTS_KEY,
+  ABOUT_NARRATIVE_LOCAL_SAVE_KEY,
   ABOUT_NARRATIVE_RECOVERY_KEY,
   classifyAboutNarrativeRecoveryDraft,
   deleteAboutNarrativeCheckpoint,
   flushAboutNarrativeRecoveryDraft,
   readAboutNarrativeCheckpointState,
+  readAboutNarrativeLocalSave,
   readAboutNarrativeRecoveryDraft,
   serializeAboutNarrativeDocumentForExport,
   writeAboutNarrativeCheckpoint,
+  writeAboutNarrativeLocalSave,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePersistence.js';
 import {
   createAboutNarrativePointFieldEditorStore,
@@ -79,6 +82,59 @@ test('synchronous recovery flush writes the latest revision for pagehide reuse',
     editorSource.indexOf('saveRef.current = save'),
   );
   assert.doesNotMatch(saveBlock, /replaceDocument/);
+});
+
+test('public Director Save persists and reloads one validated local baseline', () => {
+  const storage = new MemoryStorage();
+  const document = structuredClone(canonicalV6);
+  document.globals.readingWidthRem += 0.25;
+  const saved = writeAboutNarrativeLocalSave(document, {
+    targetVersion: 6,
+    savedAt: 1234,
+    storage,
+  });
+  assert.equal(saved.status, 'saved');
+  assert.match(saved.hash, /^local-v6:[0-9a-f]{8}$/);
+  assert.equal(saved.savedAt, 1234);
+
+  const stored = JSON.parse(storage.getItem(ABOUT_NARRATIVE_LOCAL_SAVE_KEY));
+  assert.equal(stored.kind, 'local-save');
+  assert.equal(stored.document.globals.readingWidthRem, document.globals.readingWidthRem);
+
+  const loaded = readAboutNarrativeLocalSave({ targetVersion: 6, storage });
+  assert.equal(loaded.status, 'saved');
+  assert.equal(loaded.hash, saved.hash);
+  assert.deepEqual(loaded.document, saved.document);
+  assert.equal(loaded.savedAt, 1234);
+
+  assert.match(editorSource, /writeAboutNarrativeLocalSave\(submission\.document/);
+  assert.match(editorSource, /readAboutNarrativeLocalSave\(\{/);
+  assert.doesNotMatch(editorSource, /'Export draft'/);
+});
+
+test('public Director Save reports unavailable, invalid, quota, and security storage', () => {
+  const empty = new MemoryStorage();
+  assert.deepEqual(
+    readAboutNarrativeLocalSave({ targetVersion: 6, storage: empty }),
+    { status: 'none', available: false },
+  );
+
+  const invalid = new MemoryStorage();
+  invalid.setItem(ABOUT_NARRATIVE_LOCAL_SAVE_KEY, '{broken');
+  assert.equal(readAboutNarrativeLocalSave({ targetVersion: 6, storage: invalid }).status, 'failed');
+
+  const quota = new MemoryStorage();
+  quota.failure = { operation: 'set', error: namedError('QuotaExceededError', 'quota full') };
+  assert.throws(
+    () => writeAboutNarrativeLocalSave(canonicalV6, { targetVersion: 6, storage: quota }),
+    (error) => error.name === 'AboutNarrativeStorageError' && error.code === 'quota',
+  );
+
+  const security = new MemoryStorage();
+  security.failure = { operation: 'get', error: namedError('SecurityError', 'storage denied') };
+  const protectedRead = readAboutNarrativeLocalSave({ targetVersion: 6, storage: security });
+  assert.equal(protectedRead.status, 'failed');
+  assert.equal(protectedRead.error.code, 'security');
 });
 
 test('recovery classifies stale, expired, invalid, future, unreadable, quota, and security failures', () => {

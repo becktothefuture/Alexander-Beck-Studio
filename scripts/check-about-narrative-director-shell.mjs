@@ -35,6 +35,8 @@ test('command bar exposes transport ownership, save state, and labelled menus', 
     'Create checkpoint',
     'Restore last saved',
   ].forEach((token) => assert.ok(shell.includes(token), `missing ${token}`));
+  assert.ok(shell.includes("snapshot.dirty ? 'Save' : 'Saved'"));
+  assert.equal(shell.includes("'Export draft'"), false);
 });
 
 test('dock states resize one stable Timeline instance', () => {

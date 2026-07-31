@@ -92,16 +92,16 @@
           },
           "finale-hold": {
             "position": [
-              0.45,
-              -0.2,
-              -14.2
+              0.741342,
+              0.24025,
+              -18.838811
             ],
             "lookAtTarget": [
               0,
-              -0.5,
+              -0.88,
               -7.035
             ],
-            "fov": 56
+            "fov": 35.775
           },
           "grid-birds-eye": {
             "position": [
@@ -282,7 +282,7 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -1.72,
+            -0.88,
             -7.035
           ],
           "lookAtRoll": 0,
@@ -306,21 +306,21 @@
           "aimEnabled": true,
           "lookAtTarget": [
             0,
-            -1.72,
+            -0.88,
             -7.035
           ],
           "lookAtRoll": 0,
           "fov": 56,
-          "easing": "linear",
+          "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "finale-hold",
           "atWU": 19.05,
           "position": [
-            0.55,
-            -0.2,
-            -14.2
+            0.905215,
+            0.239174,
+            -18.827478
           ],
           "rotation": [
             0,
@@ -334,7 +334,7 @@
             -7.035
           ],
           "lookAtRoll": 0,
-          "fov": 46,
+          "fov": 28.924,
           "easing": "cubic-bezier(0.22, 0, 0.12, 1)",
           "locked": true
         }

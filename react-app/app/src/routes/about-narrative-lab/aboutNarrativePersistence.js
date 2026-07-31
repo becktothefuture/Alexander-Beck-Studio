@@ -31,6 +31,7 @@ export {
 export const ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS = 14 * 86400000;
 export const ABOUT_NARRATIVE_RECOVERY_KEY = 'abs:about-narrative:recovery:v1';
 export const ABOUT_NARRATIVE_CHECKPOINTS_KEY = 'abs:about-narrative:checkpoints:v1';
+export const ABOUT_NARRATIVE_LOCAL_SAVE_KEY = 'abs:about-narrative:local-save:v1';
 
 const ENDPOINT = '/api/about-narrative/config';
 const MAX_CHECKPOINTS = 20;
@@ -121,6 +122,14 @@ function storageFailure(operation, error) {
   return wrapped;
 }
 
+function hashLocalDocument(serialized, targetVersion) {
+  let hash = 2166136261;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash = Math.imul(hash ^ serialized.charCodeAt(index), 16777619) >>> 0;
+  }
+  return `local-v${targetVersion}:${hash.toString(16).padStart(8, '0')}`;
+}
+
 export async function loadAboutNarrativeSource({
   targetVersion = ACTIVE_SCHEMA_VERSION,
 } = {}) {
@@ -198,6 +207,77 @@ export function serializeAboutNarrativeDocumentForExport(document, {
   if (preserveOriginal) return `${JSON.stringify(document, null, 2)}\n`;
   return boundary.serialize(document, {
     preflight: boundary.preflight,
+  });
+}
+
+export function readAboutNarrativeLocalSave({
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+} = {}) {
+  try {
+    const raw = resolveStorage(storage).getItem(ABOUT_NARRATIVE_LOCAL_SAVE_KEY);
+    if (raw == null) return Object.freeze({ status: 'none', available: false });
+    const envelope = JSON.parse(raw);
+    if (!envelope || envelope.kind !== 'local-save' || !envelope.document) {
+      throw new Error('The saved local document is invalid.');
+    }
+    const boundary = resolvePersistenceBoundary(targetVersion);
+    const loaded = parseAuthoredPayload(envelope.document, boundary);
+    const serialized = boundary.serialize(loaded.document, {
+      preflight: boundary.preflight,
+    });
+    assertDocumentSize(serialized);
+    return Object.freeze({
+      status: 'saved',
+      available: true,
+      document: clone(loaded.document),
+      hash: hashLocalDocument(serialized, targetVersion),
+      savedAt: Number(envelope.savedAt) || null,
+      migrations: Object.freeze(clone(loaded.migrations || [])),
+    });
+  } catch (error) {
+    const failure = error?.name === 'AboutNarrativeValidationError'
+      ? error
+      : storageFailure('Local save read', error);
+    return Object.freeze({
+      status: failure.code === 'future-schema' ? 'future' : 'failed',
+      available: true,
+      reason: failure.message,
+      error: failure,
+    });
+  }
+}
+
+export function writeAboutNarrativeLocalSave(document, {
+  targetVersion = ACTIVE_SCHEMA_VERSION,
+  storage = null,
+  savedAt = Date.now(),
+} = {}) {
+  const boundary = resolvePersistenceBoundary(targetVersion);
+  const serialized = boundary.serialize(document, {
+    preflight: boundary.preflight,
+  });
+  assertDocumentSize(serialized);
+  const normalized = JSON.parse(serialized);
+  const envelope = {
+    envelopeVersion: ABOUT_NARRATIVE_TRACK_ENVELOPE_VERSION,
+    kind: 'local-save',
+    savedAt: Number(savedAt),
+    document: normalized,
+  };
+  try {
+    resolveStorage(storage).setItem(
+      ABOUT_NARRATIVE_LOCAL_SAVE_KEY,
+      JSON.stringify(envelope),
+    );
+  } catch (error) {
+    throw storageFailure('Local save write', error);
+  }
+  return Object.freeze({
+    status: 'saved',
+    document: clone(normalized),
+    hash: hashLocalDocument(serialized, targetVersion),
+    savedAt: envelope.savedAt,
   });
 }
 

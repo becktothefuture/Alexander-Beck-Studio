@@ -64,8 +64,10 @@ import {
   flushAboutNarrativeRecoveryDraft,
   loadAboutNarrativeSource,
   readAboutNarrativeCheckpointState,
+  readAboutNarrativeLocalSave,
   readAboutNarrativeRecoveryDraft,
   saveAboutNarrativeSource,
+  writeAboutNarrativeLocalSave,
   writeAboutNarrativeCheckpoint,
 } from './aboutNarrativePersistence.js';
 import {
@@ -2737,8 +2739,7 @@ function hasUsefulInspectorSelection(document, selection) {
   return Boolean(getAboutNarrativeTrackObject(document, selection));
 }
 
-function getDirectorSaveLabel(snapshot, previewOnly) {
-  if (previewOnly) return snapshot.dirty ? 'Draft export ready' : 'Preview ready';
+function getDirectorSaveLabel(snapshot) {
   if (snapshot.sourceState.status === 'read-only') return 'Read only';
   if (snapshot.saveState.status === 'conflict') return 'Conflict';
   if (snapshot.saveState.status === 'saving') return 'Saving';
@@ -2901,6 +2902,9 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
     ? ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION
     : 5;
   const previewBaselineHash = publicPreviewBaselineHash(persistenceTargetVersion);
+  const [initialPreviewLocalSave] = useState(() => (previewOnly
+    ? readAboutNarrativeLocalSave({ targetVersion: persistenceTargetVersion })
+    : null));
   const [editorVisible, setEditorVisible] = useState(true);
   const [editScope, setEditScope] = useState('base');
   const [zoom, setZoom] = useState(1);
@@ -2911,9 +2915,16 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [phoneSheet, setPhoneSheet] = useState('timeline');
-  const [message, setMessage] = useState(previewOnly
-    ? 'Public preview: changes stay on this device until exported.'
-    : 'Loading canonical source…');
+  const [message, setMessage] = useState(() => {
+    if (!previewOnly) return 'Loading canonical source…';
+    if (initialPreviewLocalSave.status === 'saved') {
+      return 'Loaded the version saved on this device.';
+    }
+    if (initialPreviewLocalSave.status === 'none') {
+      return 'Ready. Save keeps changes on this device.';
+    }
+    return `${initialPreviewLocalSave.reason} Using the published version.`;
+  });
   const editorRef = useRef(null);
   const menuTriggerRef = useRef(null);
   const documentMenuTriggerRef = useRef(null);
@@ -2934,7 +2945,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   );
   const inspectorVisible = usefulInspectorSelection && inspectorOpen;
   const pointFieldSelection = POINT_FIELD_SELECTION_TYPES.has(snapshot.selection.type);
-  const saveStateLabel = getDirectorSaveLabel(snapshot, previewOnly);
+  const saveStateLabel = getDirectorSaveLabel(snapshot);
   const saveEligibility = store.getSaveEligibility();
   const saveBlockingReason = saveEligibility.allowed ? '' : saveEligibility.reason;
 
@@ -3000,18 +3011,46 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   }, [persistenceTargetVersion, store]);
 
   const save = useCallback(async () => {
-    const current = store.getSnapshot();
     const eligibility = store.getSaveEligibility();
     if (!eligibility.allowed) {
       setMessage(eligibility.reason);
       return;
     }
     if (previewOnly) {
-      const name = pointFieldV6 ? 'contents-about-v6-preview.json' : 'contents-about-preview.json';
-      exportAboutNarrativeDocument(current.document, name, {
-        targetVersion: persistenceTargetVersion,
-      });
-      setMessage(`Exported this phone preview as ${name}.`);
+      const submission = store.beginSave();
+      if (!submission) return;
+      setMessage('Saving on this device…');
+      try {
+        const persisted = writeAboutNarrativeLocalSave(submission.document, {
+          targetVersion: persistenceTargetVersion,
+        });
+        const reconciliation = store.markSaved(
+          persisted.document,
+          persisted.hash,
+          submission.revision,
+        );
+        if (reconciliation.clean) {
+          const cleared = clearAboutNarrativeRecoveryDraft();
+          store.setRecoveryState(cleared);
+          setMessage(cleared.status === 'failed'
+            ? 'Saved on this device. Local recovery cleanup needs attention.'
+            : 'Saved on this device.');
+        } else {
+          const latest = store.getSnapshot();
+          const recoveryResult = flushAboutNarrativeRecoveryDraft({
+            document: latest.document,
+            baselineHash: latest.baselineHash,
+            selection: latest.selection,
+            storyWU: latest.transport.storyWU,
+            targetVersion: persistenceTargetVersion,
+          });
+          store.setRecoveryState(recoveryResult);
+          setMessage('Saved the submitted revision. Newer edits remain unsaved.');
+        }
+      } catch (error) {
+        store.markSaveFailed(error);
+        setMessage(error.message);
+      }
       return;
     }
     const submission = store.beginSave();
@@ -3063,8 +3102,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         setMessage(error.message);
       }
     }
-  }, [persistenceTargetVersion, pointFieldV6, previewOnly, refreshConflictCanonical, store]);
-  saveRef.current = save;
+  }, [persistenceTargetVersion, previewOnly, refreshConflictCanonical, store]);
+
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
 
   useEffect(() => {
     const root = rootRef?.current;
@@ -3126,16 +3168,21 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
 
   useEffect(() => {
     if (previewOnly) {
-      const source = store.getSnapshot().document;
-      store.installSource(source, previewBaselineHash, { status: 'ready' });
+      const bundledSource = store.getSnapshot().document;
+      const localSave = initialPreviewLocalSave;
+      const source = localSave.status === 'saved' ? localSave.document : bundledSource;
+      const sourceHash = localSave.status === 'saved' ? localSave.hash : previewBaselineHash;
+      store.installSource(source, sourceHash, {
+        status: 'ready',
+        migrations: localSave.migrations || [],
+      });
       store.setRecoveryState(readAboutNarrativeRecoveryDraft({
-        baselineHash: previewBaselineHash,
+        baselineHash: sourceHash,
         targetVersion: persistenceTargetVersion,
       }) || { status: 'none', available: false });
       store.setCheckpointState(readAboutNarrativeCheckpointState({
         targetVersion: persistenceTargetVersion,
       }));
-      setMessage('Public preview: changes stay on this device until exported.');
       return undefined;
     }
     let active = true;
@@ -3174,7 +3221,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       }
     });
     return () => { active = false; };
-  }, [persistenceTargetVersion, previewBaselineHash, previewOnly, store]);
+  }, [initialPreviewLocalSave, persistenceTargetVersion, previewBaselineHash, previewOnly, store]);
 
   useEffect(() => {
     if (!snapshot.dirty || !baselineHash) return undefined;
@@ -3725,9 +3772,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
               save();
             }}
           >
-            {previewOnly
-              ? snapshot.dirty ? 'Export draft' : 'Preview ready'
-              : saving ? 'Saving…' : snapshot.dirty ? 'Save' : 'Saved'}
+            {saving ? 'Saving…' : snapshot.dirty ? 'Save' : 'Saved'}
           </button>
           {saveBlockingReason ? (
             <span

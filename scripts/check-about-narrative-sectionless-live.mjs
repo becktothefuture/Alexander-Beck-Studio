@@ -521,7 +521,7 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C flies straight into plan view before the authored ripple hold and direct bust landing', () => {
+test('World C flies into plan view before a constant-radius orbit into the bust', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   assert.ok(background);
@@ -563,16 +563,14 @@ test('World C flies straight into plan view before the authored ripple hold and 
   targetedKeys.forEach((key) => {
     assert.ok(key);
     assert.equal(key.aimEnabled, true);
-    assert.equal(key.lookAtTarget[0], target[0]);
-    assert.equal(key.lookAtTarget[2], target[2]);
+    assert.deepEqual(key.lookAtTarget, target);
     assert.equal(key.lookAtRoll, 0);
   });
-  targetedKeys.slice(0, 2).forEach((key) => assert.equal(key.lookAtTarget[1], background.shapeParameters.height));
-  assert.equal(targetedKeys.at(-1).lookAtTarget[1], -0.88);
+  assert.equal(target[1], -0.88);
   assert.deepEqual(keys.get('ripple-overhead-hold').position, keys.get('grid-return-centered').position);
   assert.ok(keys.get('finale-hold').position[1] < keys.get('ripple-overhead-hold').position[1]);
   assert.ok(keys.get('finale-hold').position[2] < keys.get('ripple-overhead-hold').position[2]);
-  assert.equal(keys.get('finale-hold').position[0], 0.55);
+  assert.equal(keys.get('ripple-overhead-hold').easing, 'smoothstep');
   const shift = keys.get('grid-birds-eye');
   const bridgeTitle = canonical.tracks.text.fields.find((field) => field.id === 'text-complexity-listen');
   assert.ok(shift.atWU > bridgeTitle.endWU);
@@ -599,9 +597,28 @@ test('World C flies straight into plan view before the authored ripple hold and 
     0,
   );
   assert.ok(
-    Math.abs(rippleBoundaryQuaternionDot) > 0.999,
+    Math.abs(rippleBoundaryQuaternionDot) > 0.999999,
     'The retained overhead camera must not roll when C → E starts.',
   );
+  for (const layoutProfile of ['desktop', 'tablet', 'mobile']) {
+    const orbitPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
+    const orbitKeys = new Map(orbitPlan.cameraKeys.map((key) => [key.id, key]));
+    const orbitStart = orbitKeys.get('ripple-overhead-hold');
+    const orbitEnd = orbitKeys.get('finale-hold');
+    assert.deepEqual(orbitStart.lookAtTarget, orbitEnd.lookAtTarget);
+    const radiusAt = (position) => Math.hypot(
+      position[0] - orbitStart.lookAtTarget[0],
+      position[1] - orbitStart.lookAtTarget[1],
+      position[2] - orbitStart.lookAtTarget[2],
+    );
+    const startRadius = radiusAt(orbitStart.position);
+    assertCameraValue(radiusAt(orbitEnd.position), startRadius, `${layoutProfile} orbit endpoint radius`);
+    const orbitMidpoint = sampleAboutNarrativeRuntimePlan(
+      orbitPlan,
+      (orbitStart.atWU + orbitEnd.atWU) * 0.5,
+    );
+    assertCameraValue(radiusAt(orbitMidpoint.camera.position), startRadius, `${layoutProfile} orbit midpoint radius`);
+  }
   const finaleFrame = sampleAboutNarrativeRuntimePlan(plan, keys.get('finale-hold').atWU);
   assert.notDeepEqual(finaleFrame.camera.quaternion, firstFrame.camera.quaternion);
   assert.ok(finaleFrame.camera.position[1] < keys.get('ripple-overhead-hold').position[1]);

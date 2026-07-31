@@ -10,6 +10,8 @@ import {
 } from './aboutNarrativeCameraRig.js';
 
 const CAMERA_TIME_EPSILON = 0.000001;
+const CAMERA_ORBIT_EPSILON = 0.000001;
+const CAMERA_ORBIT_TARGET_EPSILON = 0.00001;
 
 function mix(from, to, progress) {
   return from + ((to - from) * progress);
@@ -19,6 +21,87 @@ function writeVectorMix(target, from, to, progress) {
   target[0] = mix(from[0], to[0], progress);
   target[1] = mix(from[1], to[1], progress);
   target[2] = mix(from[2], to[2], progress);
+}
+
+function cameraTargetsMatch(from, to) {
+  return Math.abs(from[0] - to[0]) <= CAMERA_ORBIT_TARGET_EPSILON
+    && Math.abs(from[1] - to[1]) <= CAMERA_ORBIT_TARGET_EPSILON
+    && Math.abs(from[2] - to[2]) <= CAMERA_ORBIT_TARGET_EPSILON;
+}
+
+function writeCameraOrbitMix(target, from, to, center, progress) {
+  if (progress <= 0) {
+    target[0] = from[0];
+    target[1] = from[1];
+    target[2] = from[2];
+    return;
+  }
+  if (progress >= 1) {
+    target[0] = to[0];
+    target[1] = to[1];
+    target[2] = to[2];
+    return;
+  }
+
+  const fromX = from[0] - center[0];
+  const fromY = from[1] - center[1];
+  const fromZ = from[2] - center[2];
+  const toX = to[0] - center[0];
+  const toY = to[1] - center[1];
+  const toZ = to[2] - center[2];
+  const fromRadius = Math.hypot(fromX, fromY, fromZ);
+  const toRadius = Math.hypot(toX, toY, toZ);
+  if (fromRadius <= CAMERA_ORBIT_EPSILON || toRadius <= CAMERA_ORBIT_EPSILON) {
+    writeVectorMix(target, from, to, progress);
+    return;
+  }
+
+  const unitFromX = fromX / fromRadius;
+  const unitFromY = fromY / fromRadius;
+  const unitFromZ = fromZ / fromRadius;
+  const unitToX = toX / toRadius;
+  const unitToY = toY / toRadius;
+  const unitToZ = toZ / toRadius;
+  const dot = Math.min(1, Math.max(-1,
+    (unitFromX * unitToX) + (unitFromY * unitToY) + (unitFromZ * unitToZ)));
+  let directionX;
+  let directionY;
+  let directionZ;
+
+  if (dot < -1 + CAMERA_ORBIT_EPSILON) {
+    let orthogonalX = Math.abs(unitFromX) < 0.9 ? 0 : -unitFromY;
+    let orthogonalY = Math.abs(unitFromX) < 0.9 ? unitFromZ : unitFromX;
+    let orthogonalZ = Math.abs(unitFromX) < 0.9 ? -unitFromY : 0;
+    const orthogonalLength = Math.hypot(orthogonalX, orthogonalY, orthogonalZ) || 1;
+    orthogonalX /= orthogonalLength;
+    orthogonalY /= orthogonalLength;
+    orthogonalZ /= orthogonalLength;
+    const angle = Math.PI * progress;
+    directionX = (unitFromX * Math.cos(angle)) + (orthogonalX * Math.sin(angle));
+    directionY = (unitFromY * Math.cos(angle)) + (orthogonalY * Math.sin(angle));
+    directionZ = (unitFromZ * Math.cos(angle)) + (orthogonalZ * Math.sin(angle));
+  } else if (dot > 1 - CAMERA_ORBIT_EPSILON) {
+    directionX = mix(unitFromX, unitToX, progress);
+    directionY = mix(unitFromY, unitToY, progress);
+    directionZ = mix(unitFromZ, unitToZ, progress);
+    const directionLength = Math.hypot(directionX, directionY, directionZ) || 1;
+    directionX /= directionLength;
+    directionY /= directionLength;
+    directionZ /= directionLength;
+  } else {
+    const angle = Math.acos(dot);
+    const sine = Math.sin(angle);
+    const fromWeight = Math.sin((1 - progress) * angle) / sine;
+    const toWeight = Math.sin(progress * angle) / sine;
+    directionX = (unitFromX * fromWeight) + (unitToX * toWeight);
+    directionY = (unitFromY * fromWeight) + (unitToY * toWeight);
+    directionZ = (unitFromZ * fromWeight) + (unitToZ * toWeight);
+  }
+
+  const radius = mix(fromRadius, toRadius, progress);
+  target[0] = center[0] + (directionX * radius);
+  target[1] = center[1] + (directionY * radius);
+  target[2] = center[2] + (directionZ * radius);
 }
 
 function writeQuaternion(target, source) {
@@ -121,7 +204,11 @@ export function sampleAboutNarrativeCameraKeysInto(
     from.easingCurve,
     (storyWU - Number(from.atWU)) / spanWU,
   );
-  writeVectorMix(target.position, from.position, to.position, progress);
+  if (from.aimEnabled && to.aimEnabled && cameraTargetsMatch(from.lookAtTarget, to.lookAtTarget)) {
+    writeCameraOrbitMix(target.position, from.position, to.position, from.lookAtTarget, progress);
+  } else {
+    writeVectorMix(target.position, from.position, to.position, progress);
+  }
   writeVectorMix(target.lookAtTarget, from.lookAtTarget, to.lookAtTarget, progress);
   target.lookAtRoll = mix(from.lookAtRoll, to.lookAtRoll, progress);
   target.aimWeight = mix(from.aimEnabled ? 1 : 0, to.aimEnabled ? 1 : 0, progress);
