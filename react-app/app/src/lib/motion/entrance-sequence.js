@@ -25,6 +25,7 @@ const HOME_PHASE_CLASSES = Object.freeze([
 const styleCleanupGeneration = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
 const BOOKEND_TITLE_MOTION = Object.freeze({
+  delayMs: 500,
   colorCount: 5,
   durationMs: 280,
   overlapPercent: 84,
@@ -363,7 +364,7 @@ function sequenceTargets(targets, profile) {
     .sort((left, right) => left.order - right.order);
   if (identityTargets.length === 0) return targets;
 
-  const identityStartMs = readGroup(profile, 'identity').startMs;
+  const identityStartMs = profile.bookendTitle.delayMs;
   const identityTitles = identityTargets.filter((target) => target.variant === 'bookend-title');
   const lockupRuleTargets = targets.filter((target) => target.variant === 'lockup-rule');
   if (identityTitles.length === 0) return targets;

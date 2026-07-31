@@ -7624,8 +7624,8 @@ body.portfolio-page--locked #simulations {
       62.4px
     ) * var(--abs-font-headline-scale, 1)
   );
-  /* One optical size across the route identities, 20% larger than 1.32. */
-  --route-bookend-title-scale: 1.584;
+  /* One optical size across the route identities, 22.4% larger than 1.32. */
+  --route-bookend-title-scale: 1.61568;
   --route-bookend-title-size: calc(
     var(--route-entry-title-size) * var(--route-bookend-title-scale)
   );
