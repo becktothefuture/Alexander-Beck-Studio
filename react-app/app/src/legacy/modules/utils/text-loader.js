@@ -4,6 +4,8 @@
 // ║                 Guarantee: no dialog/text pop-in once visible                ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { withBasePath } from '../../../lib/base-path.js';
+
 let cachedText = null;
 let cachedTextPromise = null;
 
@@ -22,9 +24,9 @@ function readWindowText() {
 
 async function fetchTextJSON() {
   const paths = [
-    'config/contents-home.json',
-    'js/contents-home.json',
-    '../dist/js/contents-home.json',
+    withBasePath('/config/contents-home.json'),
+    withBasePath('/js/contents-home.json'),
+    withBasePath('/dist/js/contents-home.json'),
   ];
 
   for (const path of paths) {

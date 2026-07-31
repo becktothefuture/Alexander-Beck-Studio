@@ -51,7 +51,7 @@
   --editor-interaction: #63dda7;
   --editor-danger: #ff687a;
   position: fixed;
-  inset: 0;
+  inset: 0 0 calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom)) 0;
   z-index: 12000;
   color: var(--editor-ink);
   color-scheme: dark;
