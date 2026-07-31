@@ -25,6 +25,8 @@ test('command bar keeps primary actions visible and moves secondary actions into
     'data-director-panel="command-bar"',
     'className={`about-director-source-dot',
     'aria-label="Timeline playhead"',
+    'aria-keyshortcuts="Meta+Z Control+Z"',
+    '>Undo</button>',
     'aria-controls="about-director-document-menu"',
     '>More</button>',
     'about-director-quick-actions',

@@ -3691,6 +3691,16 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           ) : null}
           <button
             type="button"
+            disabled={!snapshot.history.canUndo}
+            aria-label={snapshot.history.canUndo
+              ? `Undo ${snapshot.history.undoLabel}`
+              : 'Undo'}
+            aria-keyshortcuts="Meta+Z Control+Z"
+            title={snapshot.history.undoLabel || 'Undo the last edit'}
+            onClick={() => store.undo()}
+          >Undo</button>
+          <button
+            type="button"
             className="is-save"
             aria-disabled={!saveEligibility.allowed}
             aria-describedby={saveBlockingReason ? 'about-director-save-errors' : undefined}
