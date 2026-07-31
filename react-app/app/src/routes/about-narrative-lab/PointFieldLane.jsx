@@ -11,20 +11,11 @@ import {
   getAboutNarrativePointFieldStateUseCount,
 } from './aboutNarrativePointFieldEditing.js';
 import {
-  ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
-  ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES,
-  ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS,
-  ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
-  ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES,
-  resolveAboutNarrativePointFieldTransitionMotion,
-} from './aboutNarrativePointFieldMotion.js';
-import {
   applyAboutNarrativePointFieldOverrides,
 } from './aboutNarrativePointFieldSchema.js';
 
 const PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
 const TRANSITION_TYPES = Object.freeze(['morph', 'dissolve-morph', 'hold', 'step-end']);
-const AXIS_LABELS = Object.freeze({ x: 'X axis', y: 'Y axis', z: 'Z axis' });
 const KEYBOARD_STEP_WU = 0.05;
 const KEYBOARD_LARGE_STEP_WU = 0.25;
 const TIME_EPSILON = 0.000001;
@@ -587,66 +578,23 @@ function KeyInspector({
   onMoveKey,
   onMakeUnique,
   onResetOverride,
+  onDuplicateState,
 }) {
-  const pointField = getPointField(document, editScope);
-  const resolvedKey = pointField.keys.find((item) => item.id === pointKey.id) || pointKey;
-  const state = pointField.stateDefinitions.find((item) => item.id === resolvedKey.stateId);
-  const uses = getAboutNarrativePointFieldStateUseCount(document, resolvedKey.stateId);
-  const protectedKey = pointKey.protected === true;
+  const state = document.tracks.pointField.stateDefinitions.find((item) => item.id === pointKey.stateId);
+  if (!state) return null;
   return (
-    <div className="about-track-editor-inspector__content">
-      <InspectorHeader
-        eyebrow="Point field key"
-        title={state?.label || resolvedKey.stateId}
-        id={pointKey.id}
-        protectedItem={protectedKey}
-        overridden={Boolean(getOverride(document, editScope, 'point-field-key', pointKey.id))}
-      />
-      <EditScopeSummary editScope={editScope} previewProfile={previewProfile} />
-      <div className="about-track-editor-fields">
-        <NumberField
-          label="Story WU"
-          value={resolvedKey.atWU}
-          disabled={protectedKey}
-          min={0}
-          step={0.01}
-          onCommit={(atWU) => onMoveKey?.({
-            phase: 'commit', keyId: pointKey.id, atWU, scope: editScope,
-          })}
-        />
-        <SelectField
-          label="State"
-          value={resolvedKey.stateId}
-          disabled={protectedKey || editScope !== 'base'}
-          wide
-          options={pointField.stateDefinitions.map((item) => ({ value: item.id, label: item.label }))}
-          onCommit={(stateId) => onEdit?.({
-            phase: 'commit',
-            scope: 'base',
-            type: 'point-field-key',
-            id: pointKey.id,
-            patch: { stateId },
-            label: 'Change point-field key state',
-          })}
-        />
-        <p className="about-track-editor-parameter-note is-wide">
-          This key references <b>{state?.label}</b>, used by {uses.keys} timeline key{uses.keys === 1 ? '' : 's'}.
-          Timing and state definition remain separate.
-        </p>
-        {uses.keys > 1 && !protectedKey && editScope === 'base' ? (
-          <button type="button" onClick={() => onMakeUnique?.({ keyId: pointKey.id })}>
-            Make this state unique
-          </button>
-        ) : null}
-        <ResetOverrideButton
-          document={document}
-          editScope={editScope}
-          type="point-field-key"
-          id={pointKey.id}
-          onResetOverride={onResetOverride}
-        />
-      </div>
-    </div>
+    <StateInspector
+      document={document}
+      state={state}
+      pointKey={pointKey}
+      editScope={editScope}
+      previewProfile={previewProfile}
+      onEdit={onEdit}
+      onMoveKey={onMoveKey}
+      onMakeUnique={onMakeUnique}
+      onResetOverride={onResetOverride}
+      onDuplicateState={onDuplicateState}
+    />
   );
 }
 
@@ -659,140 +607,6 @@ function transitionPatch(onEdit, editScope, segmentId, patch, label, phase = 'co
     patch: { transition: patch },
     label,
   });
-}
-
-function MotionFields({ segment, editScope, onEdit }) {
-  const motion = resolveAboutNarrativePointFieldTransitionMotion(segment.transition);
-  const disabled = ['hold', 'step-end'].includes(segment.transition.type);
-  const editMotion = (group, patch, label, phase = 'commit') => transitionPatch(
-    onEdit,
-    editScope,
-    segment.id,
-    { [group]: patch },
-    label,
-    phase,
-  );
-  return (
-    <>
-      <InspectorFolder label="Stagger" count={4}>
-        <div className="about-track-editor-folder__grid">
-          <SelectField
-            label="Mode"
-            value={motion.stagger.mode}
-            disabled={disabled}
-            options={ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES.map((value) => ({ value, label: titleCase(value) }))}
-            onCommit={(mode) => editMotion('stagger', { mode }, 'Change point stagger')}
-          />
-          <SelectField
-            label="Axis"
-            value={motion.stagger.axis}
-            disabled={disabled || motion.stagger.mode !== 'axis'}
-            options={ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES.map((value) => ({ value, label: AXIS_LABELS[value] }))}
-            onCommit={(axis) => editMotion('stagger', { axis }, 'Change stagger axis')}
-          />
-          <RangeField
-            label="Amount"
-            value={motion.stagger.amount}
-            min={0}
-            max={1}
-            step={0.01}
-            disabled={disabled || motion.stagger.mode === 'uniform'}
-            onEdit={({ phase, value }) => editMotion('stagger', { amount: value }, 'Shape point stagger', phase)}
-          />
-          <NumberField
-            label="Seed"
-            value={motion.stagger.seed}
-            min={0}
-            max={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.seed.max}
-            step={1}
-            disabled={disabled || motion.stagger.mode !== 'random'}
-            onCommit={(seed) => editMotion('stagger', { seed: Math.round(seed) }, 'Change stagger seed')}
-          />
-        </div>
-      </InspectorFolder>
-      <InspectorFolder label="Organic path" count={5}>
-        <div className="about-track-editor-folder__grid">
-          <SelectField
-            label="Path"
-            value={motion.path.mode}
-            disabled={disabled}
-            options={ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES.map((value) => ({ value, label: titleCase(value) }))}
-            onCommit={(mode) => editMotion('path', { mode }, 'Change point path')}
-          />
-          <SelectField
-            label="Axis"
-            value={motion.path.axis}
-            disabled={disabled || motion.path.mode === 'direct'}
-            options={ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES.map((value) => ({ value, label: AXIS_LABELS[value] }))}
-            onCommit={(axis) => editMotion('path', { axis }, 'Change path axis')}
-          />
-          <RangeField
-            label="Amount"
-            value={motion.path.amount}
-            min={0}
-            max={1}
-            step={0.01}
-            disabled={disabled || motion.path.mode === 'direct'}
-            onEdit={({ phase, value }) => editMotion('path', { amount: value }, 'Shape organic path', phase)}
-          />
-          <NumberField
-            label="Frequency"
-            value={motion.path.frequency}
-            min={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.frequency.min}
-            max={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.frequency.max}
-            step={0.05}
-            disabled={disabled || !['curl', 'noise'].includes(motion.path.mode)}
-            onCommit={(frequency) => editMotion('path', { frequency }, 'Change path frequency')}
-          />
-          <NumberField
-            label="Seed"
-            value={motion.path.seed}
-            min={0}
-            max={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.seed.max}
-            step={1}
-            disabled={disabled || !['curl', 'noise'].includes(motion.path.mode)}
-            onCommit={(seed) => editMotion('path', { seed: Math.round(seed) }, 'Change path seed')}
-          />
-        </div>
-      </InspectorFolder>
-      <InspectorFolder label="Plane motion" count={4}>
-        <div className="about-track-editor-folder__grid">
-          <SelectField
-            label="Mode"
-            value={motion.flatten.mode}
-            disabled={disabled}
-            options={ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES.map((value) => ({ value, label: titleCase(value) }))}
-            onCommit={(mode) => editMotion('flatten', { mode }, 'Change plane motion')}
-          />
-          <SelectField
-            label="Axis"
-            value={motion.flatten.axis}
-            disabled={disabled || motion.flatten.mode === 'none'}
-            options={ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES.map((value) => ({ value, label: AXIS_LABELS[value] }))}
-            onCommit={(axis) => editMotion('flatten', { axis }, 'Change plane axis')}
-          />
-          <RangeField
-            label="Amount"
-            value={motion.flatten.amount}
-            min={0}
-            max={1}
-            step={0.01}
-            disabled={disabled || motion.flatten.mode === 'none'}
-            onEdit={({ phase, value }) => editMotion('flatten', { amount: value }, 'Shape plane motion', phase)}
-          />
-          <NumberField
-            label="Plane position"
-            value={motion.flatten.offset}
-            min={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.planeOffset.min}
-            max={ABOUT_NARRATIVE_POINT_FIELD_MOTION_LIMITS.planeOffset.max}
-            step={0.05}
-            disabled={disabled || motion.flatten.mode === 'none'}
-            onCommit={(offset) => editMotion('flatten', { offset }, 'Move transition plane')}
-          />
-        </div>
-      </InspectorFolder>
-    </>
-  );
 }
 
 function SegmentInspector({
@@ -863,7 +677,6 @@ function SegmentInspector({
             'Change point correspondence',
           )}
         />
-        <MotionFields segment={segment} editScope={editScope} onEdit={onEdit} />
         <InspectorFolder label="Split transition" count={2}>
           <p className="about-track-editor-parameter-note">
             Split at the playhead and duplicate either endpoint state. The new opposite span becomes a hold.
@@ -909,12 +722,21 @@ function controlValue(state, control) {
   return value ?? (control.type === 'select' ? control.options[0] : control.min);
 }
 
+function formControlLabel(shapeId, control) {
+  if (control.id === 'density') return 'Density';
+  if (shapeId === 'discipline-grid-v1' && control.id === 'depthJitter') return 'Depth variation';
+  return control.label;
+}
+
 function StateInspector({
   document,
   state: baseState,
+  pointKey = null,
   editScope,
   previewProfile,
   onEdit,
+  onMoveKey,
+  onMakeUnique,
   onResetOverride,
   onDuplicateState,
   onDeleteState,
@@ -925,6 +747,20 @@ function StateInspector({
   const shape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[state.shapeId];
   const protectedState = baseState.protected === true;
   const baseOnly = editScope === 'base';
+  const resolvedKey = pointKey
+    ? pointField.keys.find((item) => item.id === pointKey.id) || pointKey
+    : null;
+  const protectedKey = pointKey?.protected === true;
+  const shapeControlGroups = shape ? [
+    {
+      label: 'Size',
+      controls: shape.parameters.filter((control) => control.group === 'shape-dimensions'),
+    },
+    {
+      label: 'Character',
+      controls: shape.parameters.filter((control) => control.group !== 'shape-dimensions'),
+    },
+  ].filter((group) => group.controls.length) : [];
   const edit = (patch, label, phase = 'commit') => statePatch(
     onEdit, editScope, state.id, patch, label, phase,
   );
@@ -936,48 +772,118 @@ function StateInspector({
   return (
     <div className="about-track-editor-inspector__content">
       <InspectorHeader
-        eyebrow="Point field state"
+        eyebrow={pointKey ? 'Point field form' : 'Point field state'}
         title={state.label}
-        id={state.id}
-        protectedItem={protectedState}
-        overridden={Boolean(getOverride(document, editScope, 'point-field-state', state.id))}
+        id={pointKey?.id || state.id}
+        protectedItem={protectedState || protectedKey}
+        overridden={Boolean(pointKey
+          ? getOverride(document, editScope, 'point-field-key', pointKey.id)
+          : getOverride(document, editScope, 'point-field-state', state.id))}
       />
       <EditScopeSummary editScope={editScope} previewProfile={previewProfile} />
       <p className="about-track-editor-parameter-note about-point-field-use-note">
-        Used by {uses.keys} key{uses.keys === 1 ? '' : 's'} and {uses.interactions} interaction{uses.interactions === 1 ? '' : 's'}.
-        State changes apply to every use.
+        {pointKey ? 'This key uses ' : 'Used by '}
+        <b>{state.label}</b>, used by {uses.keys} timeline key{uses.keys === 1 ? '' : 's'} and {uses.interactions} interaction{uses.interactions === 1 ? '' : 's'}.
+        Form edits apply to every use.
       </p>
       <div className="about-track-editor-fields">
+        {resolvedKey ? (
+          <InspectorFolder label="Key" count={2} defaultOpen>
+            <div className="about-track-editor-folder__grid">
+              <NumberField
+                label="Story WU"
+                value={resolvedKey.atWU}
+                disabled={protectedKey}
+                min={0}
+                step={0.01}
+                onCommit={(atWU) => onMoveKey?.({
+                  phase: 'commit', keyId: pointKey.id, atWU, scope: editScope,
+                })}
+              />
+              <SelectField
+                label="Form"
+                value={resolvedKey.stateId}
+                disabled={protectedKey || !baseOnly}
+                options={pointField.stateDefinitions.map((item) => ({ value: item.id, label: item.label }))}
+                onCommit={(stateId) => onEdit?.({
+                  phase: 'commit',
+                  scope: 'base',
+                  type: 'point-field-key',
+                  id: pointKey.id,
+                  patch: { stateId },
+                  label: 'Change point-field key state',
+                })}
+              />
+            </div>
+            {uses.keys > 1 && !protectedKey && baseOnly ? (
+              <button type="button" onClick={() => onMakeUnique?.({ keyId: pointKey.id })}>
+                Make this form unique
+              </button>
+            ) : null}
+          </InspectorFolder>
+        ) : null}
         {baseOnly ? (
-          <>
-            <TextField label="Label" value={state.label} onCommit={(label) => edit({ label }, 'Rename point-field state')} />
-            <SelectField
-              label="Shape"
-              value={state.shapeId}
-              disabled={protectedState}
-              wide
-              options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS)
-                .map((item) => ({ value: item.id, label: item.label }))}
-              onCommit={(shapeId) => {
-                const definition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[shapeId];
-                const shapeParameters = Object.fromEntries(definition.parameters.map((control) => [
-                  control.id,
-                  control.type === 'select' ? control.options[0] : control.min,
-                ]));
-                edit({ shapeId, adapterId: definition.adapterId, shapeParameters }, 'Change point-field shape');
-              }}
-            />
-            <NumberField label="Seed" value={state.seed} min={0} step={1} onCommit={(seed) => edit({ seed: Math.round(seed) }, 'Change state seed')} />
-            <NumberField label="Entry distance" value={state.entryDistanceWU} step={0.01} onCommit={(entryDistanceWU) => edit({ entryDistanceWU }, 'Change state entry distance')} />
-          </>
+          <InspectorFolder label="Form" count={3} defaultOpen>
+            <div className="about-track-editor-folder__grid">
+              <TextField label="Name" value={state.label} onCommit={(label) => edit({ label }, 'Rename point-field state')} />
+              <SelectField
+                label="Shape"
+                value={state.shapeId}
+                disabled={protectedState}
+                wide
+                options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS)
+                  .map((item) => ({ value: item.id, label: item.label }))}
+                onCommit={(shapeId) => {
+                  const definition = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[shapeId];
+                  const shapeParameters = Object.fromEntries(definition.parameters.map((control) => [
+                    control.id,
+                    control.type === 'select' ? control.options[0] : control.min,
+                  ]));
+                  edit({ shapeId, adapterId: definition.adapterId, shapeParameters }, 'Change point-field shape');
+                }}
+              />
+              <NumberField label="Seed" value={state.seed} min={0} step={1} onCommit={(seed) => edit({ seed: Math.round(seed) }, 'Change state seed')} />
+            </div>
+          </InspectorFolder>
         ) : (
           <p className="about-track-editor-parameter-note is-wide">
             Shape, seed, parameters, and modifiers inherit from Base. This profile owns placement only.
           </p>
         )}
-        <NumberField label="Rail anchor WU" value={state.railAnchorWU} step={0.01} onCommit={(railAnchorWU) => edit({ railAnchorWU }, 'Move state rail anchor')} />
-        <InspectorFolder label="Transform" count={8} defaultOpen>
+        {baseOnly && shapeControlGroups.map((group) => (
+          <InspectorFolder key={group.label} label={group.label} count={group.controls.length} defaultOpen={group.label === 'Size'}>
+            <div className="about-track-editor-folder__grid">
+              {group.controls.map((control) => (control.type === 'select' ? (
+                <SelectField
+                  key={control.id}
+                  label={formControlLabel(state.shapeId, control)}
+                  value={controlValue(state, control)}
+                  options={control.options.map((value) => ({ value, label: titleCase(value) }))}
+                  onCommit={(value) => edit({
+                    shapeParameters: { ...state.shapeParameters, [control.id]: value },
+                  }, `Change ${control.label}`)}
+                />
+              ) : (
+                <RangeField
+                  key={control.id}
+                  label={formControlLabel(state.shapeId, control)}
+                  value={controlValue(state, control)}
+                  min={control.min}
+                  max={control.max}
+                  step={control.step}
+                  unit={control.unit}
+                  onEdit={({ phase, value }) => edit({
+                    shapeParameters: { ...state.shapeParameters, [control.id]: value },
+                  }, `Shape ${control.label}`, phase)}
+                />
+              )))}
+            </div>
+          </InspectorFolder>
+        ))}
+        <InspectorFolder label="Placement" count={baseOnly ? 10 : 9} defaultOpen>
           <div className="about-track-editor-folder__grid">
+            <NumberField label="Rail anchor WU" value={state.railAnchorWU} step={0.01} onCommit={(railAnchorWU) => edit({ railAnchorWU }, 'Move state rail anchor')} />
+            {baseOnly ? <NumberField label="Entry distance" value={state.entryDistanceWU} step={0.01} onCommit={(entryDistanceWU) => edit({ entryDistanceWU }, 'Change state entry distance')} /> : null}
             {['position', 'rotation'].flatMap((field) => [0, 1, 2].map((axis) => (
               <NumberField
                 key={`${field}-${axis}`}
@@ -991,36 +897,6 @@ function StateInspector({
             <NumberField label="Point size" value={state.transform.pointSizeScale ?? 1} min={0.01} step={0.01} onCommit={(pointSizeScale) => edit({ transform: { pointSizeScale } }, 'Change state point size')} />
           </div>
         </InspectorFolder>
-        {baseOnly && shape ? (
-          <InspectorFolder label={`Shape · ${shape.label}`} count={shape.parameters.length}>
-            <div className="about-track-editor-folder__grid">
-              {shape.parameters.map((control) => (control.type === 'select' ? (
-                <SelectField
-                  key={control.id}
-                  label={control.label}
-                  value={controlValue(state, control)}
-                  options={control.options.map((value) => ({ value, label: titleCase(value) }))}
-                  onCommit={(value) => edit({
-                    shapeParameters: { ...state.shapeParameters, [control.id]: value },
-                  }, `Change ${control.label}`)}
-                />
-              ) : (
-                <RangeField
-                  key={control.id}
-                  label={control.label}
-                  value={controlValue(state, control)}
-                  min={control.min}
-                  max={control.max}
-                  step={control.step}
-                  unit={control.unit}
-                  onEdit={({ phase, value }) => edit({
-                    shapeParameters: { ...state.shapeParameters, [control.id]: value },
-                  }, `Shape ${control.label}`, phase)}
-                />
-              )))}
-            </div>
-          </InspectorFolder>
-        ) : null}
         {baseOnly && state.modifiers.map((modifier, modifierIndex) => {
           const definition = ABOUT_NARRATIVE_MODIFIER_DEFINITIONS[modifier.id];
           if (!definition) return null;
@@ -1076,8 +952,8 @@ function StateInspector({
         <ResetOverrideButton
           document={document}
           editScope={editScope}
-          type="point-field-state"
-          id={state.id}
+          type={pointKey ? 'point-field-key' : 'point-field-state'}
+          id={pointKey?.id || state.id}
           onResetOverride={onResetOverride}
         />
       </div>
@@ -1121,6 +997,7 @@ export function PointFieldInspector({
         onMoveKey={onMoveKey}
         onMakeUnique={onMakeUnique}
         onResetOverride={onResetOverride}
+        onDuplicateState={onDuplicateState}
       />
     );
   }

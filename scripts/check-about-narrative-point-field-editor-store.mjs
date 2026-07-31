@@ -224,6 +224,46 @@ test('state transform and shape patch previews cancel back to exact source bytes
   assert.equal(store.cancelGesture(), true);
 });
 
+test('a selected Forms key edits its shared form until Make unique isolates it', () => {
+  const store = createStore();
+  const sourceKey = store.getSnapshot().document.tracks.pointField.keys
+    .find((key) => key.id === 'key-world-complexity-arrival');
+  const sharedStateId = sourceKey.stateId;
+  const sharedKeyIds = store.getSnapshot().document.tracks.pointField.keys
+    .filter((key) => key.stateId === sharedStateId)
+    .map((key) => key.id);
+  const sharedState = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((state) => state.id === sharedStateId);
+  const sharedDensity = sharedState.shapeParameters.density + 0.01;
+
+  store.pointField.select('point-field-key', sourceKey.id);
+  assert.deepEqual(store.getSnapshot().selection, { type: 'point-field-key', id: sourceKey.id });
+  assert.equal(store.pointField.patchState({
+    id: sharedStateId,
+    scope: 'base',
+    patch: { shapeParameters: { ...sharedState.shapeParameters, density: sharedDensity } },
+  }), true);
+  assert.equal(store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((state) => state.id === sharedStateId).shapeParameters.density, sharedDensity);
+  assert.deepEqual(store.getSnapshot().document.tracks.pointField.keys
+    .filter((key) => sharedKeyIds.includes(key.id))
+    .map((key) => key.stateId), [sharedStateId, sharedStateId]);
+
+  assert.equal(store.pointField.makeKeyStateUnique({ keyId: sourceKey.id }), true);
+  const uniqueKey = store.getSnapshot().document.tracks.pointField.keys
+    .find((key) => key.id === sourceKey.id);
+  assert.notEqual(uniqueKey.stateId, sharedStateId);
+  const uniqueState = store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((state) => state.id === uniqueKey.stateId);
+  assert.equal(store.pointField.patchState({
+    id: uniqueState.id,
+    scope: 'base',
+    patch: { shapeParameters: { ...uniqueState.shapeParameters, density: sharedDensity + 0.01 } },
+  }), true);
+  assert.equal(store.getSnapshot().document.tracks.pointField.stateDefinitions
+    .find((state) => state.id === sharedStateId).shapeParameters.density, sharedDensity);
+});
+
 test('state topology actions use guarded reusable-state operations', () => {
   const store = createStore();
   const source = store.getSnapshot().document.tracks.pointField.stateDefinitions
