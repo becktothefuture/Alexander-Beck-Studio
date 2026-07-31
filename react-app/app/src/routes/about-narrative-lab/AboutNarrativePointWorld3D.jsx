@@ -37,7 +37,11 @@ import {
   isAboutNarrativeShortLandscape,
   resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
-import { getAboutNarrativeDisciplineLabelNudge } from './aboutNarrativeTextCorridor.js';
+import {
+  getAboutNarrativeDisciplinePointMinX,
+  getAboutNarrativeDisciplinePointMaxX,
+  getAboutNarrativeHorizontalCorridorOverflow,
+} from './aboutNarrativeTextCorridor.js';
 import {
   createAboutNarrativePointFieldMotionSample,
   sampleAboutNarrativePointFieldMotionInto,
@@ -1309,14 +1313,27 @@ function createPointFieldAdapter({
   const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   const disciplineLabelPositionUnit = new Uint8Array(6);
-  const disciplineLabelNudge = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelSide = new Int8Array(6);
   const disciplineLabelWidth = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
+  const disciplineProjectedViewportY = new Float64Array(6).fill(Number.NaN);
+  const disciplinePointInFront = new Uint8Array(6);
+  const disciplinePointNeedsConstraint = new Uint8Array(6);
+  const disciplinePointMinimumX = new Float64Array(6);
+  const disciplinePointMaximumX = new Float64Array(6);
+  const disciplinePointBestOverflow = new Float64Array(6);
+  const disciplinePointBestDistance = new Float64Array(6);
+  const disciplinePointBestIndex = new Int32Array(6).fill(-1);
+  const disciplinePointProjection = new Float64Array(4);
   const textCorridor = root.querySelector('[data-about-text-corridor]');
   let disciplineCorridorLeft = 16;
   let disciplineCorridorRight = 16;
   let disciplineCorridorWidth = 0;
+  let disciplineOverlayScaleX = 1;
+  let disciplineOverlayScaleY = 1;
+  let disciplineCanvasToOverlayX = 0;
+  let disciplineCanvasToOverlayY = 0;
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -1342,13 +1359,22 @@ function createPointFieldAdapter({
   const measureDisciplineCorridor = () => {
     const positioningRect = cachedDisciplineOverlay?.getBoundingClientRect()
       || root.getBoundingClientRect();
+    const positioningWidth = cachedDisciplineOverlay?.offsetWidth || positioningRect.width;
+    const positioningHeight = cachedDisciplineOverlay?.offsetHeight || positioningRect.height;
+    const canvasRect = canvas.getBoundingClientRect();
     const corridorRect = textCorridor?.getBoundingClientRect();
+    disciplineOverlayScaleX = positioningRect.width / Math.max(1, positioningWidth);
+    disciplineOverlayScaleY = positioningRect.height / Math.max(1, positioningHeight);
+    disciplineCanvasToOverlayX = (canvasRect.left - positioningRect.left)
+      / Math.max(0.000001, disciplineOverlayScaleX);
+    disciplineCanvasToOverlayY = (canvasRect.top - positioningRect.top)
+      / Math.max(0.000001, disciplineOverlayScaleY);
     disciplineCorridorLeft = corridorRect
-      ? corridorRect.left - positioningRect.left
+      ? (corridorRect.left - positioningRect.left) / Math.max(0.000001, disciplineOverlayScaleX)
       : 16;
     disciplineCorridorRight = corridorRect
-      ? corridorRect.right - positioningRect.left
-      : Math.max(disciplineCorridorLeft, positioningRect.width - 16);
+      ? (corridorRect.right - positioningRect.left) / Math.max(0.000001, disciplineOverlayScaleX)
+      : Math.max(disciplineCorridorLeft, positioningWidth - 16);
     const nextWidth = Math.max(1, disciplineCorridorRight - disciplineCorridorLeft);
     if (nextWidth !== disciplineCorridorWidth) {
       disciplineCorridorWidth = nextWidth;
@@ -1399,8 +1425,12 @@ function createPointFieldAdapter({
       disciplineLabelX[index] = Number.NaN;
       disciplineLabelY[index] = Number.NaN;
       disciplineLabelPositionUnit[index] = 0;
-      disciplineLabelNudge[index] = Number.NaN;
-      if (disciplineLabels[index]) disciplineLabelResizeObserver.observe(disciplineLabels[index]);
+      disciplineLabelSide[index] = 0;
+      if (disciplineLabels[index]) {
+        disciplineLabels[index].style.removeProperty('--discipline-label-nudge');
+        disciplineLabels[index].style.removeProperty('--discipline-label-translate-x');
+        disciplineLabelResizeObserver.observe(disciplineLabels[index]);
+      }
     }
     measureDisciplineLabels();
   };
@@ -1435,27 +1465,23 @@ function createPointFieldAdapter({
     runtimeObserver.hotFrameDomWrite(2);
   };
 
-  const writeDisciplineNudge = (index, value) => {
-    if (disciplineLabelNudge[index] === value) return;
+  const writeDisciplineLabelSide = (index, side) => {
+    if (disciplineLabelSide[index] === side) return;
     const label = disciplineLabels[index];
-    disciplineLabelNudge[index] = value;
+    disciplineLabelSide[index] = side;
     if (!label) return;
-    label.style.setProperty('--discipline-label-nudge', `${value}px`);
+    label.style.setProperty(
+      '--discipline-label-translate-x',
+      side < 0
+        ? 'calc(-100% - var(--discipline-label-offset, 18px))'
+        : 'var(--discipline-label-offset, 18px)',
+    );
     runtimeObserver.hotFrameDomWrite();
   };
 
-  const placeDisciplineLabels = (offset) => {
+  const placeDisciplineLabels = () => {
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
-      const localX = disciplineProjectedX[index] - viewportOffsetX;
-      const nudge = getAboutNarrativeDisciplineLabelNudge({
-        anchorX: localX,
-        labelWidth: disciplineLabelWidth[index],
-        labelOffset: offset,
-        corridorLeft: disciplineCorridorLeft,
-        corridorRight: disciplineCorridorRight,
-      });
-      writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
       writeDisciplinePosition(
         index,
         disciplineProjectedX[index],
@@ -2041,6 +2067,189 @@ function createPointFieldAdapter({
     target.livingColour.value = Number(colour?.strength || 0);
   };
 
+  const getDisciplineMaterialSlot = (pointIndex) => {
+    const seed = fixedAttributes.pointSeed.array[pointIndex];
+    const materialSeed = ((seed * 43.713) + 0.271) % 1;
+    if (materialSeed < uniforms.materialThreshold1.value) return 0;
+    if (materialSeed < uniforms.materialThreshold2.value) return 1;
+    if (materialSeed < uniforms.materialThreshold3.value) return 2;
+    if (materialSeed < uniforms.materialThreshold4.value) return 3;
+    if (materialSeed < uniforms.materialThreshold5.value) return 4;
+    return 5;
+  };
+
+  const sampleDisciplinePointProjection = (pointIndex, frame, target) => {
+    const pointOffset = pointIndex * 3;
+    anchorFromPosition.x = fixedAttributes.position.array[pointOffset];
+    anchorFromPosition.y = fixedAttributes.position.array[pointOffset + 1];
+    anchorFromPosition.z = fixedAttributes.position.array[pointOffset + 2];
+    anchorToPosition.x = fixedAttributes.targetPosition.array[pointOffset];
+    anchorToPosition.y = fixedAttributes.targetPosition.array[pointOffset + 1];
+    anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
+    anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
+    if (frame.world?.parametricMotion) {
+      const spatialPhaseOffset = pointIndex * 4;
+      pointMotionInput.seed = anchorSampleInput.pointSeed;
+      pointMotionInput.radialPhase = fixedAttributes.motionSpatialPhases.array[spatialPhaseOffset];
+      pointMotionInput.xPhase = fixedAttributes.motionSpatialPhases.array[spatialPhaseOffset + 1];
+      pointMotionInput.yPhase = fixedAttributes.motionSpatialPhases.array[spatialPhaseOffset + 2];
+      pointMotionInput.zPhase = fixedAttributes.motionSpatialPhases.array[spatialPhaseOffset + 3];
+      pointMotionInput.axisPhase = pointMotionInput.yPhase;
+      pointMotionOptions.reducedMotion = frame.reducedMotion;
+      sampleAboutNarrativePointFieldMotionInto(
+        frame.world.transition,
+        frame.world.visualProgress,
+        pointMotionInput,
+        pointMotionSample,
+        pointMotionOptions,
+      );
+      anchorSampleInput.morphProgress = pointMotionSample.progress;
+    } else {
+      anchorSampleInput.morphProgress = uniforms.morphProgress.value;
+    }
+    sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
+    if (frame.world?.parametricMotion) {
+      applyAboutNarrativePointFieldMotionToPosition(anchorSampleTarget, pointMotionSample);
+    }
+    disciplinePointScratch.set(
+      anchorSampleTarget.x,
+      anchorSampleTarget.y,
+      anchorSampleTarget.z,
+    );
+    const inFront = disciplineViewPointScratch
+      .copy(disciplinePointScratch)
+      .applyMatrix4(camera.matrixWorldInverse).z < 0;
+    disciplinePointScratch.project(camera);
+    const canvasX = viewportOffsetX + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
+    const canvasY = viewportOffsetY + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
+    target[0] = disciplineCanvasToOverlayX
+      + ((canvasX - viewportOffsetX) / Math.max(0.000001, disciplineOverlayScaleX));
+    target[1] = disciplineCanvasToOverlayY
+      + ((canvasY - viewportOffsetY) / Math.max(0.000001, disciplineOverlayScaleY));
+    target[2] = (canvasY - viewportOffsetY) / height;
+    target[3] = inFront ? 1 : 0;
+  };
+
+  const installConstrainedDisciplinePoint = (groupIndex, pointIndex) => {
+    const group = groupIndex + 1;
+    const previousFromIndex = fromDisciplineIndices[groupIndex];
+    const previousToIndex = toDisciplineIndices[groupIndex];
+    if (previousFromIndex >= 0) fixedAttributes.fromGroup.array[previousFromIndex] = 0;
+    if (previousToIndex >= 0) fixedAttributes.toGroup.array[previousToIndex] = 0;
+    fixedAttributes.fromGroup.array[pointIndex] = group;
+    fixedAttributes.toGroup.array[pointIndex] = group;
+    fixedAttributes.fromGroup.needsUpdate = true;
+    fixedAttributes.toGroup.needsUpdate = true;
+    fromDisciplineIndices[groupIndex] = pointIndex;
+    toDisciplineIndices[groupIndex] = pointIndex;
+    const pointOffset = pointIndex * 3;
+    const groupOffset = groupIndex * 3;
+    fromDisciplinePositions[groupOffset] = fixedAttributes.position.array[pointOffset];
+    fromDisciplinePositions[groupOffset + 1] = fixedAttributes.position.array[pointOffset + 1];
+    fromDisciplinePositions[groupOffset + 2] = fixedAttributes.position.array[pointOffset + 2];
+    toDisciplinePositions[groupOffset] = fixedAttributes.targetPosition.array[pointOffset];
+    toDisciplinePositions[groupOffset + 1] = fixedAttributes.targetPosition.array[pointOffset + 1];
+    toDisciplinePositions[groupOffset + 2] = fixedAttributes.targetPosition.array[pointOffset + 2];
+  };
+
+  const constrainDisciplinePointsToCorridor = (
+    frame,
+    gridDisciplineIndices,
+    disciplineWorld,
+    toWorld,
+    labelOffset,
+  ) => {
+    disciplinePointNeedsConstraint.fill(0);
+    let needsConstraint = false;
+    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
+      const pointIndex = gridDisciplineIndices[groupIndex];
+      if (pointIndex < 0 || !disciplineLabels[groupIndex]) continue;
+      sampleDisciplinePointProjection(pointIndex, frame, disciplinePointProjection);
+      disciplineProjectedX[groupIndex] = disciplinePointProjection[0];
+      disciplineProjectedY[groupIndex] = disciplinePointProjection[1];
+      disciplineProjectedViewportY[groupIndex] = disciplinePointProjection[2];
+      disciplinePointInFront[groupIndex] = disciplinePointProjection[3];
+      const side = disciplineProjectedX[groupIndex]
+        > ((disciplineCorridorLeft + disciplineCorridorRight) / 2) ? -1 : 1;
+      writeDisciplineLabelSide(groupIndex, side);
+      disciplinePointMinimumX[groupIndex] = getAboutNarrativeDisciplinePointMinX(
+        disciplineLabelWidth[groupIndex],
+        labelOffset,
+        disciplineCorridorLeft,
+        disciplineCorridorRight,
+        side,
+      );
+      disciplinePointMaximumX[groupIndex] = getAboutNarrativeDisciplinePointMaxX(
+        disciplineLabelWidth[groupIndex],
+        labelOffset,
+        disciplineCorridorLeft,
+        disciplineCorridorRight,
+        side,
+      );
+      const overflow = getAboutNarrativeHorizontalCorridorOverflow(
+        disciplineProjectedX[groupIndex],
+        disciplinePointMinimumX[groupIndex],
+        disciplinePointMaximumX[groupIndex],
+      );
+      if (overflow > 0.5) {
+        disciplinePointNeedsConstraint[groupIndex] = 1;
+        needsConstraint = true;
+      }
+    }
+    if (!needsConstraint) return;
+
+    disciplinePointBestOverflow.fill(Number.POSITIVE_INFINITY);
+    disciplinePointBestDistance.fill(Number.POSITIVE_INFINITY);
+    disciplinePointBestIndex.fill(-1);
+    const presence = disciplineWorld === toWorld
+      ? fixedAttributes.toPresence.array
+      : fixedAttributes.fromPresence.array;
+    for (let pointIndex = 0; pointIndex < pointCount; pointIndex += 1) {
+      if (presence[pointIndex] <= 0.001) continue;
+      const groupIndex = getDisciplineMaterialSlot(pointIndex);
+      if (!disciplinePointNeedsConstraint[groupIndex]) continue;
+      sampleDisciplinePointProjection(pointIndex, frame, disciplinePointProjection);
+      if (disciplinePointProjection[3] < 0.5) continue;
+      const overflow = getAboutNarrativeHorizontalCorridorOverflow(
+        disciplinePointProjection[0],
+        disciplinePointMinimumX[groupIndex],
+        disciplinePointMaximumX[groupIndex],
+      );
+      const deltaX = disciplinePointProjection[0] - disciplineProjectedX[groupIndex];
+      const deltaY = disciplinePointProjection[1] - disciplineProjectedY[groupIndex];
+      const distance = (deltaX * deltaX) + (deltaY * deltaY);
+      if (
+        overflow < disciplinePointBestOverflow[groupIndex] - 0.000001
+        || (
+          Math.abs(overflow - disciplinePointBestOverflow[groupIndex]) <= 0.000001
+          && distance < disciplinePointBestDistance[groupIndex]
+        )
+      ) {
+        disciplinePointBestOverflow[groupIndex] = overflow;
+        disciplinePointBestDistance[groupIndex] = distance;
+        disciplinePointBestIndex[groupIndex] = pointIndex;
+      }
+    }
+
+    let selectionChanged = false;
+    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
+      const pointIndex = disciplinePointBestIndex[groupIndex];
+      if (pointIndex < 0 || pointIndex === gridDisciplineIndices[groupIndex]) continue;
+      installConstrainedDisciplinePoint(groupIndex, pointIndex);
+      selectionChanged = true;
+    }
+    if (!selectionChanged) return;
+    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
+      const pointIndex = gridDisciplineIndices[groupIndex];
+      if (pointIndex < 0) continue;
+      sampleDisciplinePointProjection(pointIndex, frame, disciplinePointProjection);
+      disciplineProjectedX[groupIndex] = disciplinePointProjection[0];
+      disciplineProjectedY[groupIndex] = disciplinePointProjection[1];
+      disciplineProjectedViewportY[groupIndex] = disciplinePointProjection[2];
+      disciplinePointInFront[groupIndex] = disciplinePointProjection[3];
+    }
+  };
+
   const updateDisciplineReveal = (frame, fromWorld, toWorld) => {
     const revealState = frame.disciplineReveal;
     const reveal = revealState?.config;
@@ -2175,6 +2384,13 @@ function createPointFieldAdapter({
         anchorSampleInput.gridRipple.centerZ = uniforms.gridRippleCenter.value.y;
         const revealThreshold = Number(frame.globals.editorialRevealThreshold ?? 1);
         const revealDuration = Number(frame.globals.editorialMotion?.fadeDurationWU ?? 0.2);
+        constrainDisciplinePointsToCorridor(
+          frame,
+          gridDisciplineIndices,
+          disciplineWorld,
+          toWorld,
+          Number(reveal.labelOffsetPx ?? 18),
+        );
         // Use the editorial reading line as the only reveal clock. Each anchor
         // accumulates independently; forward travel never clears an earlier one.
         for (let group = 1; group <= 6; group += 1) {
@@ -2182,69 +2398,10 @@ function createPointFieldAdapter({
           if (!label) continue;
           const offset = (group - 1) * 3;
           if (!Number.isFinite(gridDisciplinePositions[offset])) continue;
-          const pointIndex = gridDisciplineIndices[group - 1];
-          if (pointIndex < 0) continue;
-          const pointOffset = pointIndex * 3;
-          anchorFromPosition.x = fixedAttributes.position.array[pointOffset];
-          anchorFromPosition.y = fixedAttributes.position.array[pointOffset + 1];
-          anchorFromPosition.z = fixedAttributes.position.array[pointOffset + 2];
-          anchorToPosition.x = fixedAttributes.targetPosition.array[pointOffset];
-          anchorToPosition.y = fixedAttributes.targetPosition.array[pointOffset + 1];
-          anchorToPosition.z = fixedAttributes.targetPosition.array[pointOffset + 2];
-          anchorSampleInput.pointSeed = fixedAttributes.pointSeed.array[pointIndex];
-          if (frame.world?.parametricMotion) {
-            const spatialPhaseOffset = pointIndex * 4;
-            pointMotionInput.seed = anchorSampleInput.pointSeed;
-            pointMotionInput.radialPhase = fixedAttributes.motionSpatialPhases.array[
-              spatialPhaseOffset
-            ];
-            pointMotionInput.xPhase = fixedAttributes.motionSpatialPhases.array[
-              spatialPhaseOffset + 1
-            ];
-            pointMotionInput.yPhase = fixedAttributes.motionSpatialPhases.array[
-              spatialPhaseOffset + 2
-            ];
-            pointMotionInput.zPhase = fixedAttributes.motionSpatialPhases.array[
-              spatialPhaseOffset + 3
-            ];
-            pointMotionInput.axisPhase = pointMotionInput.yPhase;
-            pointMotionOptions.reducedMotion = frame.reducedMotion;
-            sampleAboutNarrativePointFieldMotionInto(
-              frame.world.transition,
-              frame.world.visualProgress,
-              pointMotionInput,
-              pointMotionSample,
-              pointMotionOptions,
-            );
-            anchorSampleInput.morphProgress = pointMotionSample.progress;
-          } else {
-            anchorSampleInput.morphProgress = uniforms.morphProgress.value;
-          }
-          sampleAboutNarrativeAnchorPosition(anchorSampleInput, anchorSampleTarget);
-          if (frame.world?.parametricMotion) {
-            applyAboutNarrativePointFieldMotionToPosition(
-              anchorSampleTarget,
-              pointMotionSample,
-            );
-          }
-          disciplinePointScratch.set(
-            anchorSampleTarget.x,
-            anchorSampleTarget.y,
-            anchorSampleTarget.z,
-          );
-          const anchorInFrontOfCamera = disciplineViewPointScratch
-            .copy(disciplinePointScratch)
-            .applyMatrix4(camera.matrixWorldInverse).z < 0;
-          disciplinePointScratch.project(camera);
-          disciplineProjectedX[group - 1] = viewportOffsetX
-            + (((disciplinePointScratch.x * 0.5) + 0.5) * width);
-          disciplineProjectedY[group - 1] = viewportOffsetY
-            + (((-disciplinePointScratch.y * 0.5) + 0.5) * height);
-          const viewportY = (disciplineProjectedY[group - 1] - viewportOffsetY) / height;
-          const revealProgress = !anchorInFrontOfCamera
+          const revealProgress = !disciplinePointInFront[group - 1]
             ? 0
             : getAboutNarrativeSharedRevealProgress(
-              viewportY,
+              disciplineProjectedViewportY[group - 1],
               revealThreshold,
               revealDuration,
               frame.reducedMotion,
@@ -2256,7 +2413,7 @@ function createPointFieldAdapter({
           );
           if (revealProgress > 0.05) visibleLabels += 1;
         }
-        placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
+        placeDisciplineLabels();
       } else if (revealAvailable) {
         for (let group = 1; group <= 6; group += 1) {
           const labelReveal = uniforms.simulationVisibility.value;
@@ -2268,7 +2425,7 @@ function createPointFieldAdapter({
           disciplineProjectedY[group - 1] = viewportOffsetY
             + (height * ((14 + (group * 11)) / 100));
         }
-        placeDisciplineLabels(Number(reveal.labelOffsetPx ?? 18));
+        placeDisciplineLabels();
       } else {
         for (let group = 1; group <= 6; group += 1) {
           writeDisciplineRevealStyles(group - 1, 0);

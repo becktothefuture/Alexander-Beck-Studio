@@ -419,9 +419,27 @@ for (const checkpoint of checkpoints) {
           && rect.top < window.innerHeight;
       });
     const visibleEditorialRects = visibleEditorialLines.map((node) => node.getBoundingClientRect());
-    const visibleDisciplineRects = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
+    const disciplineOverlay = document.querySelector('.about-narrative-discipline-reveal');
+    const disciplineOverlayRect = disciplineOverlay?.getBoundingClientRect();
+    const disciplineOverlayScaleX = disciplineOverlayRect
+      ? disciplineOverlayRect.width / Math.max(1, disciplineOverlay.offsetWidth)
+      : 1;
+    const visibleDisciplines = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
-      .map((node) => node.getBoundingClientRect());
+      .map((node) => {
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        const anchorX = disciplineOverlayRect
+          ? disciplineOverlayRect.left + (Number.parseFloat(style.left) * disciplineOverlayScaleX)
+          : Number.NaN;
+        const gap = anchorX < rect.left
+          ? rect.left - anchorX
+          : anchorX > rect.right ? anchorX - rect.right : -1;
+        const expectedGap = Number.parseFloat(style.getPropertyValue('--discipline-label-offset'))
+          * disciplineOverlayScaleX;
+        return { rect, anchorX, gap, expectedGap };
+      });
+    const visibleDisciplineRects = visibleDisciplines.map(({ rect }) => rect);
     const visibleSpatialTitles = [...document.querySelectorAll('.about-narrative-spatial-fragment')]
       .filter((node) => {
         const rect = node.getBoundingClientRect();
@@ -489,6 +507,17 @@ for (const checkpoint of checkpoints) {
       disciplineWithinTextCorridor: textCorridorRect && disciplineBounds
         ? isInsideTextCorridor(disciplineBounds)
         : null,
+      disciplinePointsWithinTextCorridor: textCorridorRect && visibleDisciplines.length > 0
+        ? visibleDisciplines.every(({ anchorX }) => (
+          anchorX >= textCorridorRect.left - 1 && anchorX <= textCorridorRect.right + 1
+        ))
+        : null,
+      disciplineLabelsAttachedToPoints: visibleDisciplines.length > 0
+        ? visibleDisciplines.every(({ gap, expectedGap }) => (
+          gap >= 0 && Math.abs(gap - expectedGap) <= 1
+        ))
+        : null,
+      disciplineAnchorGaps: visibleDisciplines.map(({ gap }) => gap),
       spatialTitlesWithinTextCorridor: textCorridorRect && visibleSpatialTitleBounds.length > 0
         ? visibleSpatialTitleBounds.every(isInsideTextCorridor)
         : null,
@@ -536,6 +565,16 @@ for (const checkpoint of checkpoints) {
   assert.equal(state.resourceDiagnosticCount, 0);
   if (checkpoint.expectExactAnchor) {
     assert.equal(state.anchorSampling, 'exact');
+    assert.equal(
+      state.disciplinePointsWithinTextCorridor,
+      true,
+      `${checkpoint.id}: highlighted discipline points must remain inside the text corridor.`,
+    );
+    assert.equal(
+      state.disciplineLabelsAttachedToPoints,
+      true,
+      `${checkpoint.id}: discipline labels must retain their fixed gap from highlighted points.`,
+    );
     assert.equal(
       state.disciplineWithinTextCorridor,
       true,

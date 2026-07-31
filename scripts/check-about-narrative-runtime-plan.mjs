@@ -40,7 +40,9 @@ import {
   applyAboutNarrativeWorldTransitionEasing,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.js';
 import {
-  getAboutNarrativeDisciplineLabelNudge,
+  getAboutNarrativeDisciplinePointMinX,
+  getAboutNarrativeDisciplinePointMaxX,
+  getAboutNarrativeHorizontalCorridorOverflow,
   getAboutNarrativePositionMapCorridor,
   isAboutNarrativeRectInsideCorridor,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTextCorridor.js';
@@ -704,28 +706,17 @@ test('the global text corridor scales the Position map across its supported widt
   assert.ok(mobile.max <= 0.94);
 });
 
-test('discipline label nudges use the smallest move that contains the full text block', () => {
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 200,
-    labelWidth: 262,
-    labelOffset: 18,
-    corridorLeft: 256,
-    corridorRight: 1184,
-  }), 38);
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 985,
-    labelWidth: 262,
-    labelOffset: 18,
-    corridorLeft: 256,
-    corridorRight: 1184,
-  }), -81);
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 102,
-    labelWidth: 500,
-    labelOffset: 18,
-    corridorLeft: 100,
-    corridorRight: 400,
-  }), -20);
+test('discipline point bounds keep fixed-offset copy inside the full text corridor', () => {
+  assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, 1), 256);
+  assert.equal(getAboutNarrativeDisciplinePointMaxX(262, 18, 256, 1184, 1), 904);
+  assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, -1), 536);
+  assert.equal(getAboutNarrativeDisciplinePointMaxX(262, 18, 256, 1184, -1), 1184);
+  assert.equal(getAboutNarrativeDisciplinePointMaxX(224, 22, 34, 356, 1), 110);
+  assert.equal(getAboutNarrativeDisciplinePointMinX(224, 22, 34, 356, -1), 280);
+  assert.equal(getAboutNarrativeDisciplinePointMaxX(500, 18, 100, 400, 1), 100);
+  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(90, 100, 300), 10);
+  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(220, 100, 300), 0);
+  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(315, 100, 300), 15);
   assert.equal(isAboutNarrativeRectInsideCorridor(
     { left: 255.5, right: 1184.5 },
     { left: 256, right: 1184 },

@@ -54,20 +54,54 @@ export function getAboutNarrativePositionMapCorridor(
   });
 }
 
-export function getAboutNarrativeDisciplineLabelNudge({
-  anchorX,
+function getDisciplineCopyWidth(
   labelWidth,
-  labelOffset = 0,
+  labelOffset,
   corridorLeft,
   corridorRight,
-}) {
+) {
   const left = finiteOr(corridorLeft, 0);
   const right = Math.max(left, finiteOr(corridorRight, left));
   const availableWidth = right - left;
-  const width = clamp(finiteOr(labelWidth, 0), 0, availableWidth);
-  const proposedLeft = finiteOr(anchorX, left) + finiteOr(labelOffset, 0);
-  const containedLeft = clamp(proposedLeft, left, Math.max(left, right - width));
-  return Math.round((containedLeft - proposedLeft) * 100) / 100;
+  const offset = clamp(finiteOr(labelOffset, 0), 0, availableWidth);
+  return clamp(finiteOr(labelWidth, 0), 0, Math.max(0, availableWidth - offset));
+}
+
+export function getAboutNarrativeDisciplinePointMinX(
+  labelWidth,
+  labelOffset,
+  corridorLeft,
+  corridorRight,
+  side = 1,
+) {
+  const left = finiteOr(corridorLeft, 0);
+  const right = Math.max(left, finiteOr(corridorRight, left));
+  const offset = clamp(finiteOr(labelOffset, 0), 0, right - left);
+  const width = getDisciplineCopyWidth(labelWidth, offset, left, right);
+  return Number(side) < 0 ? Math.min(right, left + offset + width) : left;
+}
+
+export function getAboutNarrativeDisciplinePointMaxX(
+  labelWidth,
+  labelOffset,
+  corridorLeft,
+  corridorRight,
+  side = 1,
+) {
+  const left = finiteOr(corridorLeft, 0);
+  const right = Math.max(left, finiteOr(corridorRight, left));
+  const offset = clamp(finiteOr(labelOffset, 0), 0, right - left);
+  const width = getDisciplineCopyWidth(labelWidth, offset, left, right);
+  return Number(side) < 0 ? right : Math.max(left, right - offset - width);
+}
+
+export function getAboutNarrativeHorizontalCorridorOverflow(value, min, max) {
+  const left = finiteOr(min, 0);
+  const right = Math.max(left, finiteOr(max, left));
+  const position = finiteOr(value, left);
+  if (position < left) return left - position;
+  if (position > right) return position - right;
+  return 0;
 }
 
 export function isAboutNarrativeRectInsideCorridor(rect, corridor, tolerance = 1) {

@@ -772,18 +772,26 @@ body.dark-mode .about-narrative-client-logos img {
   --discipline-reveal: 0;
   --discipline-x: -20vw;
   --discipline-y: -20vh;
-  --discipline-label-nudge: 0px;
   position: absolute;
   top: var(--discipline-y);
   left: var(--discipline-x);
   display: block;
   width: max-content;
-  max-width: min(30rem, var(--about-discipline-corridor-width, calc(100% - 2rem)));
+  max-width: min(
+    30rem,
+    max(
+      1px,
+      calc(
+        var(--about-discipline-corridor-width, calc(100% - 2rem))
+        - var(--discipline-label-offset, 18px)
+      )
+    )
+  );
   opacity: var(--discipline-reveal);
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
   transform: translate3d(
-    calc(var(--discipline-label-offset, 18px) + var(--discipline-label-nudge)),
+    var(--discipline-label-translate-x, var(--discipline-label-offset, 18px)),
     var(--discipline-label-vertical-nudge, 0px),
     0
   );
