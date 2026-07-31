@@ -838,7 +838,7 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   const opener = titles.find((field) => field.id === 'text-promise-main');
   assert.equal(opener.text, 'About Me');
-  assert.equal(opener.description, 'I turn complexity into useful, human experiences.');
+  assert.equal(opener.description, 'Creative & Technologist shaping products, interfaces and interactive moments.');
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
     ['text-promise-main', 'text-epilogue-invitation'],
@@ -968,7 +968,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(logoGrid.items.filter((item) => item.src.endsWith('.svg')).length, 13);
   assert.equal(disciplineEditorial.presentation.layout, 'disciplines');
   assert.equal(disciplineEditorial.block.kind, 'stack');
-  assert.equal(disciplineEditorial.block.modules.filter((module) => module.kind === 'prose').length, 3);
+  assert.equal(disciplineEditorial.block.modules.filter((module) => module.kind === 'prose').length, 4);
   assert.equal(
     disciplineEditorial.block.modules.some((module) => module.kind === 'media-deck'),
     false,
@@ -1093,7 +1093,7 @@ test('published narrative writing follows V25 with the authored finale CTA', () 
   });
   assert.equal(
     canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
-    'Let’s make something awesome.',
+    'Let’s talk.',
   );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

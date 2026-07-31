@@ -846,7 +846,7 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "I turn complexity into useful, human experiences."
+          "description": "Creative & Technologist shaping products, interfaces and interactive moments."
         },
         {
           "id": "text-complexity-idea",
@@ -876,7 +876,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "New technology. New behaviour. A better way of seeing."
+          "text": "Especially when something new is changing how we think or behave."
         },
         {
           "id": "text-background-unit",
@@ -896,17 +896,17 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "I find complex problems fascinating. They can come from a new technology that people need to trust, a behaviour we want to encourage, or a better mental model that leaves an old way of doing things behind. I believe innovation should make life better for people. So when I encounter complexity, I see an opportunity: to make something clearer, more useful, and genuinely better."
+                "text": "These projects rarely arrive as clean design problems. A brief may describe the most visible issue while the harder questions sit beneath it: what the organisation needs, what the product can do and what will make sense to the people using it. Sometimes progress begins by reframing the question itself."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "I studied Communication Design because I wanted to understand how ideas become clear—and how they travel: through words, images, aesthetics, hierarchy, motion, systems, and the interplay between them. I grew up bilingual, between Portugal and Germany, which gave me an early sense that meaning shifts from one cultural context to another. It made me interested in the things that remain: the universal, fundamentally human truths beneath the surface."
+                "text": "Communication Design taught me to explore those questions through language, image, structure and motion. I became interested in how these elements influence one another—and in finding clarity without simplifying away what matters."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "Working across startups and agencies sharpened my visual judgement, craft, and way of thinking. It also showed me that product design is rarely separate from brand design or communication strategy. They often belong to the same problem."
+                "text": "Consultancy showed me how business needs, user needs and practical constraints can pull the same project in different directions. In startups, I learned to work while both the problem and the product were still evolving. I now treat product, brand and communication as one connected experience."
               },
               {
                 "id": "selected-clients",
@@ -1015,7 +1015,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "No single discipline resolves a complex problem alone."
+          "text": "No single discipline resolves complexity on its own."
         },
         {
           "id": "text-complexity-listen",
@@ -1050,12 +1050,17 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "I take an idea through the whole journey: from the first question and early concepts, through sketches, wireframes, stakeholder conversations and presentations, to the final designs, systems, and experiences that make it real."
+                "text": "My way into a project is practical. I speak with the people closest to it, gather references and test the assumptions in front of us. Once the question is clearer, I give the thinking a form. This could be a sketch, a wireframe, a prototype, a presentation or something working—whatever gives the team something concrete to respond to."
+              },
+              {
+                "id": "language-context",
+                "kind": "prose",
+                "text": "Growing up bilingual, between Portugal and Germany, made me aware that the same message can land differently depending on its context. That is why language is part of my design process, rather than something added at the end. I pay attention to how an idea is named, explained and understood, because those choices can change the experience as much as its visual form."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "Especially in the age of AI, I think ideas are the thing that endures. AI expands what I can explore and make. It helps me ideate, test, and sharpen a direction—but never replaces my judgement. That is what keeps the work from becoming generic, sloppy, or disconnected from the people it is for."
+                "text": "AI has expanded how I explore these questions and how early I can make an idea visible. It also creates more possible directions to assess. I still decide what is relevant, what has character and what deserves to be developed. That judgement keeps the work connected to its purpose and to the people it is for."
               },
               {
                 "id": "project-impressions",
@@ -1277,7 +1282,7 @@
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "Ultimately, I want my work to bring disciplines together and extend what feels possible—creating something new, better, and useful."
+                "text": "I want to keep working where the direction is still open: on products, services and experiences shaped by new technologies, changing behaviours and emerging ways of thinking. This could mean defining how an unfamiliar technology behaves, how a service earns trust, or how a new capability becomes useful in everyday life. These are the situations where I find design most valuable—while the important decisions are still open and there is room to shape them well."
               }
             ]
           }
@@ -1295,7 +1300,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "When disciplines come together…"
+          "text": "I bring different disciplines together"
         },
         {
           "id": "text-life-form",
@@ -1310,7 +1315,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…possibility opens up…"
+          "text": "to make complex ideas clearer"
         },
         {
           "id": "text-life-character",
@@ -1325,7 +1330,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…and something new becomes real."
+          "text": "and move them forward into something new."
         },
         {
           "id": "text-epilogue-invitation",
@@ -1340,8 +1345,8 @@
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
-          "text": "Let’s make something awesome.",
-          "description": "Have a challenge or problem worth solving? Let’s talk."
+          "text": "Let’s talk.",
+          "description": "If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note."
         }
       ]
     },
