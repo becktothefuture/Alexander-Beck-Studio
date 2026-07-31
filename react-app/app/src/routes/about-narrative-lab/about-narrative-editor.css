@@ -63,6 +63,9 @@
 
 .about-track-editor[data-timeline-dock='minimized'] { --about-director-timeline-height: 42px; }
 .about-track-editor[data-timeline-dock='expanded'] { --about-director-timeline-height: min(40vh, 360px); }
+.about-track-editor[data-timeline-dock='expanded'][data-timeline-all-tracks='true'] {
+  --about-director-timeline-height: min(52vh, 360px);
+}
 
 .about-track-editor *,
 .about-track-editor *::before,
@@ -479,6 +482,11 @@
   overflow: auto hidden;
   overscroll-behavior-x: contain;
   touch-action: pan-x;
+}
+
+.about-track-editor-timeline[data-show-all-tracks='true'] .about-track-editor-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .about-track-editor-canvas {

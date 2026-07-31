@@ -1876,6 +1876,8 @@ function Timeline({
   setZoom,
   dockMode,
   setDockMode,
+  showAllTracks,
+  setShowAllTracks,
   textMenu,
   setTextMenu,
   interactionMenu,
@@ -1895,6 +1897,7 @@ function Timeline({
     ? trackFocus.id
     : selectedTrackId;
   const activeTrack = tracks.find((track) => track.id === activeTrackId) || tracks[0];
+  const visibleTracks = showAllTracks ? tracks : [activeTrack];
   const scrollRef = useRef(null);
   const scrubRef = useRef(null);
   const durationWU = Number(snapshot.compiledPlan?.durationWU
@@ -2005,6 +2008,7 @@ function Timeline({
       aria-label="About narrative global timeline"
       data-director-panel="timeline"
       data-director-dock-state={dockMode}
+      data-show-all-tracks={showAllTracks ? 'true' : 'false'}
     >
       <header className="about-track-editor-timeline__toolbar">
         <div className="about-director-track-tabs" role="tablist" aria-label="Timeline track">
@@ -2020,6 +2024,18 @@ function Timeline({
           ))}
         </div>
         <div className="about-director-timeline-tools">
+          <button
+            type="button"
+            className={showAllTracks ? 'is-active' : ''}
+            aria-pressed={showAllTracks}
+            aria-label="Show all timeline tracks"
+            title="Show every track at once"
+            onClick={() => {
+              const next = !showAllTracks;
+              setShowAllTracks(next);
+              if (next) setDockMode('expanded');
+            }}
+          >All tracks</button>
           {activeTrack.id !== 'point-field' ? (
             <div className="about-director-add-menu">
               <button
@@ -2078,9 +2094,13 @@ function Timeline({
         </div>
       </header>
       <div className="about-track-editor-timeline__body">
-        <div className="about-track-editor-headers" aria-hidden="false">
+        <div
+          className="about-track-editor-headers"
+          aria-hidden="false"
+          style={{ gridTemplateRows: `28px repeat(${visibleTracks.length}, 54px)` }}
+        >
           <div className="about-track-editor-ruler-corner">Time</div>
-          {[activeTrack].map((track) => (
+          {visibleTracks.map((track) => (
             <div
               className={`about-track-editor-row-head is-${track.colour}`}
               key={track.id}
@@ -2092,7 +2112,11 @@ function Timeline({
         <div className="about-track-editor-scroll" ref={scrollRef}>
           <div
             className="about-track-editor-canvas"
-            style={{ width: timelineWidth }}
+            style={{
+              width: timelineWidth,
+              height: 28 + (visibleTracks.length * 54),
+              gridTemplateRows: `28px repeat(${visibleTracks.length}, 54px)`,
+            }}
             onPointerDown={beginScrub}
             onPointerMove={updateScrub}
             onPointerUp={endScrub}
@@ -2103,7 +2127,7 @@ function Timeline({
                 <span key={mark} style={{ left: mark * pixelsPerWU }}><i />{mark}</span>
               ))}
             </div>
-            {!pointFieldV6 && activeTrack.id === 'world' ? worlds.map((world) => (
+            {!pointFieldV6 && !showAllTracks && activeTrack.id === 'world' ? worlds.map((world) => (
               <i
                 className="about-track-editor-world-guide"
                 key={world.id}
@@ -2111,7 +2135,7 @@ function Timeline({
                 aria-hidden="true"
               />
             )) : null}
-            {[activeTrack].map((track) => (
+            {visibleTracks.map((track) => (
               <div className={`about-track-editor-lane is-${track.colour}`} key={track.id} data-track-lane={track.id}>
                 {track.id === 'point-field' ? (
                   <PointFieldLane
@@ -3038,6 +3062,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const [editScope, setEditScope] = useState('base');
   const [zoom, setZoom] = useState(1);
   const [timelineDock, setTimelineDock] = useState('compact');
+  const [showAllTracks, setShowAllTracks] = useState(false);
   const [textMenu, setTextMenu] = useState(false);
   const [interactionMenu, setInteractionMenu] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
@@ -3640,6 +3665,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       data-source-state={snapshot.sourceState.status}
       data-save-state={snapshot.saveState.status}
       data-timeline-dock={timelineDock}
+      data-timeline-all-tracks={showAllTracks ? 'true' : 'false'}
       data-inspector-open={inspectorVisible ? 'true' : 'false'}
       data-phone-sheet={phoneSheet}
       data-mobile-inspector-open={phoneSheet === 'inspector' ? 'true' : 'false'}
@@ -4008,6 +4034,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         setZoom={setZoom}
         dockMode={timelineDock}
         setDockMode={setTimelineDock}
+        showAllTracks={showAllTracks}
+        setShowAllTracks={setShowAllTracks}
         textMenu={textMenu}
         setTextMenu={setTextMenu}
         interactionMenu={interactionMenu}

@@ -55,6 +55,20 @@ test('dock states resize one stable Timeline instance', () => {
   assert.ok(styles.includes(".about-track-editor[data-timeline-dock='expanded']"));
 });
 
+test('all-tracks mode expands the stable timeline without changing the active editing track', () => {
+  [
+    'const [showAllTracks, setShowAllTracks] = useState(false)',
+    'showAllTracks={showAllTracks}',
+    'setShowAllTracks={setShowAllTracks}',
+    'const visibleTracks = showAllTracks ? tracks : [activeTrack]',
+    'aria-label="Show all timeline tracks"',
+    'data-show-all-tracks={showAllTracks ? \'true\' : \'false\'}',
+    'visibleTracks.map((track) => (',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+  assert.ok(styles.includes("[data-timeline-all-tracks='true']"));
+  assert.ok(styles.includes("[data-show-all-tracks='true'] .about-track-editor-scroll"));
+});
+
 test('inspector is contextual and exposes durable panel state', () => {
   [
     'hasUsefulInspectorSelection(',
