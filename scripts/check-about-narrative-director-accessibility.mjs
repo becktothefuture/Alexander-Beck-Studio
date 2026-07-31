@@ -55,7 +55,7 @@ test('save errors, inline errors, visible focus, effective targets, and reflow a
     "aria-describedby={saveBlockingReason ? 'about-director-save-errors'",
     'data-save-allowed=',
     'setMessage(saveBlockingReason)',
-    'className="about-director-save-block-reason"',
+    'className="about-director-save-block-reason about-director-visually-hidden"',
     'aria-live="polite"',
     "aria-invalid={error ? 'true'",
   ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
@@ -86,7 +86,8 @@ test('timeline clips expose direct keyboard selection and guarded movement', () 
 
 test('add disclosures use ordinary controls and conflict focus return is refreshed', () => {
   [
-    'aria-controls={track.id === \'text\'',
+    "aria-controls={activeTrack.id === 'text'",
+    'className="about-director-add-trigger"',
     'id="about-director-add-text"',
     'id="about-director-add-motion"',
     'menuTriggerRef.current = document.activeElement instanceof HTMLElement',

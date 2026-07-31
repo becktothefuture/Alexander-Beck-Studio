@@ -105,7 +105,7 @@ const LEGACY_TRACKS = Object.freeze([
 const POINT_FIELD_TRACKS = Object.freeze([
   { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
   { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
-  { id: 'point-field', label: 'Point field', type: 'point-field-key', colour: 'world' },
+  { id: 'point-field', label: 'Forms', type: 'point-field-key', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
   { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
 ]);
@@ -192,6 +192,45 @@ function clamp(value, min, max) {
 
 function cleanWU(value) {
   return Number(Number(value).toFixed(4));
+}
+
+function getSelectionTrackId(selection, pointFieldV6 = true) {
+  if (selection?.type === 'track') return selection.id;
+  if (selection?.type === 'camera-key') return 'camera';
+  if (selection?.type === 'visibility-key') return 'visibility';
+  if (selection?.type === 'world') return 'world';
+  if (selection?.type === 'text-field') return 'text';
+  if (selection?.type === 'interaction') return 'interaction';
+  if (POINT_FIELD_SELECTION_TYPES.has(selection?.type)) return pointFieldV6 ? 'point-field' : 'world';
+  return pointFieldV6 ? 'point-field' : 'world';
+}
+
+function getCameraOrbit(object) {
+  const position = object.position || [0, 0, 1];
+  const target = object.lookAtTarget || [0, 0, 0];
+  const x = Number(position[0]) - Number(target[0]);
+  const y = Number(position[1]) - Number(target[1]);
+  const z = Number(position[2]) - Number(target[2]);
+  const distance = Math.max(0.001, Math.hypot(x, y, z));
+  return {
+    azimuth: Math.atan2(x, z) * (180 / Math.PI),
+    elevation: Math.asin(clamp(y / distance, -1, 1)) * (180 / Math.PI),
+    distance,
+  };
+}
+
+function writeCameraOrbit(target, patch) {
+  const orbit = { ...getCameraOrbit(target), ...patch };
+  const azimuth = orbit.azimuth * (Math.PI / 180);
+  const elevation = clamp(orbit.elevation, -90, 90) * (Math.PI / 180);
+  const distance = Math.max(0.25, orbit.distance);
+  const focus = target.lookAtTarget || [0, 0, 0];
+  const horizontal = Math.cos(elevation) * distance;
+  target.position = [
+    Number(focus[0]) + (Math.sin(azimuth) * horizontal),
+    Number(focus[1]) + (Math.sin(elevation) * distance),
+    Number(focus[2]) + (Math.cos(azimuth) * horizontal),
+  ];
 }
 
 function targetMatchesClosest(target, selector) {
@@ -1846,6 +1885,16 @@ function Timeline({
   const pointFieldV6 = Number(snapshot.document.schemaVersion)
     === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
   const tracks = pointFieldV6 ? POINT_FIELD_TRACKS : LEGACY_TRACKS;
+  const selectedTrackId = getSelectionTrackId(snapshot.selection, pointFieldV6);
+  const timelineSelectionKey = `${snapshot.selection.type || 'none'}:${snapshot.selection.id || ''}`;
+  const [trackFocus, setTrackFocus] = useState({
+    id: selectedTrackId,
+    selectionKey: timelineSelectionKey,
+  });
+  const activeTrackId = trackFocus.selectionKey === timelineSelectionKey
+    ? trackFocus.id
+    : selectedTrackId;
+  const activeTrack = tracks.find((track) => track.id === activeTrackId) || tracks[0];
   const scrollRef = useRef(null);
   const scrubRef = useRef(null);
   const durationWU = Number(snapshot.compiledPlan?.durationWU
@@ -1902,6 +1951,24 @@ function Timeline({
     setInteractionMenu(false);
   };
 
+  const selectTrack = (trackId) => {
+    const selectionKey = `track:${trackId}`;
+    store.setSelection({ type: 'track', id: trackId });
+    setTrackFocus({ id: trackId, selectionKey });
+    setTextMenu(false);
+    setInteractionMenu(false);
+  };
+
+  const fitTimeline = () => {
+    const available = Math.max(1, Number(scrollRef.current?.clientWidth || 1) - 24);
+    setZoom(clamp(available / Math.max(1, durationWU * BASE_PIXELS_PER_WU), 0.55, 2.5));
+  };
+
+  const cycleDockMode = () => {
+    const next = dockMode === 'minimized' ? 'compact' : dockMode === 'compact' ? 'expanded' : 'minimized';
+    setDockMode(next);
+  };
+
   const movePointFieldKey = ({ phase, keyId, atWU, scope }) => {
     const selection = { type: 'point-field-key', id: keyId };
     if (phase === 'begin') {
@@ -1940,91 +2007,85 @@ function Timeline({
       data-director-dock-state={dockMode}
     >
       <header className="about-track-editor-timeline__toolbar">
-        <div>
-          <strong>Global Story WU</strong>
-          <span>{pointFieldV6
-            ? 'Point field keys set form timing · transition bands shape movement'
-            : 'Drag clip edges to set duration · World ends ripple with no gaps'}</span>
+        <div className="about-director-track-tabs" role="tablist" aria-label="Timeline track">
+          {tracks.map((track) => (
+            <button
+              type="button"
+              role="tab"
+              key={track.id}
+              className={`is-${track.colour}${activeTrack.id === track.id ? ' is-active' : ''}`}
+              aria-selected={activeTrack.id === track.id}
+              onClick={() => selectTrack(track.id)}
+            >{track.label}</button>
+          ))}
         </div>
         <div className="about-director-timeline-tools">
-          <label>
-            Zoom
-            <input
-              type="range"
-              min="0.55"
-              max="2.5"
-              step="0.05"
-              value={zoom}
-              onChange={(event) => setZoom(Number(event.target.value))}
-            />
-          </label>
-          <div className="about-director-dock-modes" role="group" aria-label="Timeline dock height">
-            {DIRECTOR_DOCK_MODES.map((mode) => (
+          {activeTrack.id !== 'point-field' ? (
+            <div className="about-director-add-menu">
               <button
                 type="button"
-                key={mode.id}
-                className={dockMode === mode.id ? 'is-active' : ''}
-                aria-label={mode.label}
-                aria-pressed={dockMode === mode.id}
-                onClick={() => setDockMode(mode.id)}
-              >{mode.id[0].toUpperCase()}</button>
-            ))}
-          </div>
-        </div>
-      </header>
-      <div className="about-track-editor-timeline__body">
-        <div className="about-track-editor-headers" aria-hidden="false">
-          <div className="about-track-editor-ruler-corner">WU</div>
-          {tracks.map((track) => (
-            <div
-              className={`about-track-editor-row-head is-${track.colour}${snapshot.selection.type === 'track' && snapshot.selection.id === track.id ? ' is-selected' : ''}`}
-              key={track.id}
-            >
-              <button
-                type="button"
-                aria-pressed={snapshot.selection.type === 'track' && snapshot.selection.id === track.id}
-                onClick={() => store.setSelection({ type: 'track', id: track.id })}
-              >
-                {track.label}
-              </button>
-              {track.id === 'point-field' ? <span aria-hidden="true" /> : (
-                <button
-                  type="button"
-                  className="about-track-editor-add"
-                  aria-label={`Add ${track.label} object at playhead`}
-                  aria-expanded={track.id === 'text'
-                    ? textMenu
-                    : track.id === 'interaction' ? interactionMenu : undefined}
-                  aria-controls={track.id === 'text'
-                    ? 'about-director-add-text'
-                    : track.id === 'interaction' ? 'about-director-add-motion' : undefined}
-                  onClick={() => {
-                    if (track.id === 'text') {
-                      setInteractionMenu(false);
-                      setTextMenu((open) => !open);
-                    } else if (track.id === 'interaction') {
-                      setTextMenu(false);
-                      setInteractionMenu((open) => !open);
-                    }
-                    else createAtPlayhead(track.id);
-                  }}
-                >+</button>
-              )}
-              {track.id === 'text' && textMenu ? (
+                className="about-director-add-trigger"
+                aria-label={`Add ${activeTrack.label} object at playhead`}
+                aria-expanded={activeTrack.id === 'text'
+                  ? textMenu
+                  : activeTrack.id === 'interaction' ? interactionMenu : undefined}
+                aria-controls={activeTrack.id === 'text'
+                  ? 'about-director-add-text'
+                  : activeTrack.id === 'interaction' ? 'about-director-add-motion' : undefined}
+                onClick={() => {
+                  if (activeTrack.id === 'text') {
+                    setInteractionMenu(false);
+                    setTextMenu((open) => !open);
+                  } else if (activeTrack.id === 'interaction') {
+                    setTextMenu(false);
+                    setInteractionMenu((open) => !open);
+                  } else createAtPlayhead(activeTrack.id);
+                }}
+              >+ Add</button>
+              {activeTrack.id === 'text' && textMenu ? (
                 <div id="about-director-add-text" className="about-track-editor-create-menu" aria-label="Create Text field">
                   <button type="button" onClick={() => createAtPlayhead('text', 'title')}>Title</button>
                   <button type="button" onClick={() => createAtPlayhead('text', 'scroll-block')}>Scroll block</button>
-                  <button type="button" onClick={() => createAtPlayhead('text', 'stub')}>
-                    Third type <span>Stub · Draft</span>
-                  </button>
+                  <button type="button" onClick={() => createAtPlayhead('text', 'stub')}>Third type <span>Stub · Draft</span></button>
                 </div>
               ) : null}
-              {track.id === 'interaction' && interactionMenu ? (
+              {activeTrack.id === 'interaction' && interactionMenu ? (
                 <div id="about-director-add-motion" className="about-track-editor-create-menu" aria-label="Create Motion clip">
                   <button type="button" onClick={() => createAtPlayhead('interaction', null, 'grid-ripple')}>Wave generator</button>
                   <button type="button" onClick={() => createAtPlayhead('interaction', null, 'horizontal-spin')}>Horizontal spin</button>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+          <button type="button" onClick={fitTimeline}>Fit</button>
+          <details className="about-director-zoom-menu">
+            <summary aria-label="Timeline zoom">{Math.round(zoom * 100)}%</summary>
+            <label>
+              Zoom
+              <input
+                type="range"
+                min="0.55"
+                max="2.5"
+                step="0.05"
+                value={zoom}
+                onChange={(event) => setZoom(Number(event.target.value))}
+              />
+            </label>
+          </details>
+          <button type="button" aria-label={DIRECTOR_DOCK_MODES.find((mode) => mode.id === dockMode)?.label} onClick={cycleDockMode}>
+            {dockMode[0].toUpperCase() + dockMode.slice(1)}
+          </button>
+        </div>
+      </header>
+      <div className="about-track-editor-timeline__body">
+        <div className="about-track-editor-headers" aria-hidden="false">
+          <div className="about-track-editor-ruler-corner">Time</div>
+          {[activeTrack].map((track) => (
+            <div
+              className={`about-track-editor-row-head is-${track.colour}`}
+              key={track.id}
+            >
+              <span className="about-track-editor-row-label">{track.label}</span>
             </div>
           ))}
         </div>
@@ -2042,7 +2103,7 @@ function Timeline({
                 <span key={mark} style={{ left: mark * pixelsPerWU }}><i />{mark}</span>
               ))}
             </div>
-            {!pointFieldV6 ? worlds.map((world) => (
+            {!pointFieldV6 && activeTrack.id === 'world' ? worlds.map((world) => (
               <i
                 className="about-track-editor-world-guide"
                 key={world.id}
@@ -2050,7 +2111,7 @@ function Timeline({
                 aria-hidden="true"
               />
             )) : null}
-            {tracks.map((track) => (
+            {[activeTrack].map((track) => (
               <div className={`about-track-editor-lane is-${track.colour}`} key={track.id} data-track-lane={track.id}>
                 {track.id === 'point-field' ? (
                   <PointFieldLane
@@ -2200,8 +2261,8 @@ function ObjectInspector({ snapshot, store, editScope }) {
     const target = getAboutNarrativeTrackObject(draft, selection);
     if (target) mutate(target, draft);
   }, { selectionAfter: selection, requireValid: true });
-  const number = (path, value, disabled = locked) => NumberField({
-    label: path,
+  const number = (path, value, disabled = locked, label = path) => NumberField({
+    label,
     value,
     disabled,
     onCommit: (next) => commit(`Edit ${path}`, (target) => { target[path] = cleanWU(next); }),
@@ -2218,6 +2279,14 @@ function ObjectInspector({ snapshot, store, editScope }) {
   });
   const cameraAimEnabled = selection.type === 'camera-key'
     && (object.aimEnabled ?? Array.isArray(object.lookAtTarget));
+  const cameraOrbit = selection.type === 'camera-key' ? getCameraOrbit(object) : null;
+  const inspectorTypeLabel = {
+    'camera-key': 'camera shot',
+    'visibility-key': 'visibility change',
+    'text-field': 'text',
+    interaction: 'motion',
+    world: 'form',
+  }[selection.type] || selection.type;
   const interactiveStackModule = object.kind === 'scroll-block'
     ? object.block?.modules?.find((module) => module.kind === ABOUT_INTERACTIVE_STACK_KIND)
     : null;
@@ -2238,7 +2307,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
   return (
     <div className="about-track-editor-inspector__content">
       <header>
-        <span>{selection.type === 'interaction' ? 'motion' : selection.type}</span>
+        <span>{inspectorTypeLabel}</span>
         <h2>{getObjectLabel(object, selection.type)}</h2>
         <code>{object.id}</code>
         {boundaryCamera ? <b>Timing fixed · Pose editable</b> : null}
@@ -2247,13 +2316,9 @@ function ObjectInspector({ snapshot, store, editScope }) {
 
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
-          {number('atWU', object.atWU, boundaryCamera)}
-          <p className="about-track-editor-parameter-note is-wide">This is a shot key. Its pose is the camera at this exact Story WU; the curve below shapes its travel <b>to the next key</b>.</p>
-          {boundaryCamera ? <p className="about-track-editor-parameter-note is-wide">This boundary key stays at its Story WU. Position, rotation and field of view are fully editable.</p> : null}
-          <InspectorFolder group={{ id: 'camera-rig', label: 'Camera rig' }} count={11} defaultOpen>
-            <p className="about-track-editor-parameter-note">
-              Position and Rotation author the manual pose. Focus on 3D anchor makes the camera look at the red world-space cross instead.
-            </p>
+          {number('atWU', object.atWU, boundaryCamera, 'Time')}
+          <p className="about-track-editor-parameter-note is-wide">This shot defines the camera at this exact time. Travel easing shapes the move to the next shot.</p>
+          <InspectorFolder group={{ id: 'camera-essentials', label: 'Essentials' }} count={cameraAimEnabled ? 5 : 7} defaultOpen>
             <label className="about-track-editor-check">
               <input
                 type="checkbox"
@@ -2288,24 +2353,89 @@ function ObjectInspector({ snapshot, store, editScope }) {
               Focus on 3D anchor
             </label>
             {cameraAimEnabled ? (
-              <p className="about-track-editor-parameter-note is-wide">
-                Focus owns orientation. Moving Position around the anchor creates an orbit; Horizon roll is the only rotational offset.
-              </p>
+              <div className="about-track-editor-camera-rig">
+                <section className="about-track-editor-camera-rig__group">
+                  <span>Orbit</span>
+                  <RangeParameterField
+                    label="Angle"
+                    ariaLabel="Camera orbit angle"
+                    value={cameraOrbit.azimuth}
+                    control={{ id: 'orbitAzimuth', min: -180, max: 180, step: 0.1, unit: '°' }}
+                    {...bindObjectRange('Orbit Camera horizontally', (target, value) => writeCameraOrbit(target, { azimuth: value }))}
+                  />
+                  <RangeParameterField
+                    label="Elevation"
+                    ariaLabel="Camera orbit elevation"
+                    value={cameraOrbit.elevation}
+                    control={{ id: 'orbitElevation', min: -90, max: 90, step: 0.1, unit: '°' }}
+                    {...bindObjectRange('Orbit Camera vertically', (target, value) => writeCameraOrbit(target, { elevation: value }))}
+                  />
+                  <RangeParameterField
+                    label="Distance"
+                    ariaLabel="Camera orbit distance"
+                    value={cameraOrbit.distance}
+                    control={{ id: 'orbitDistance', min: 0.25, max: 80, step: 0.01, unit: 'WU' }}
+                    {...bindObjectRange('Change Camera orbit distance', (target, value) => writeCameraOrbit(target, { distance: value }))}
+                  />
+                </section>
+                <section className="about-track-editor-camera-rig__group">
+                  <span>Finish</span>
+                  {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
+                    .filter((control) => control.id === 'lookAtRoll' || control.group === 'lens')
+                    .map((control) => (
+                      <RangeParameterField
+                        key={control.id}
+                        label={control.label}
+                        ariaLabel={`Camera ${control.label}`}
+                        value={object[control.id]}
+                        control={control}
+                        {...bindObjectRange(`Edit Camera ${control.label}`, (target, value) => { target[control.id] = value; })}
+                      />
+                    ))}
+                </section>
+              </div>
             ) : (
-              <p className="about-track-editor-parameter-note is-wide">
-                Manual Rotation owns orientation. The anchor still exists in the 3D world and eases towards its next keyed position, ready to be focused again.
-              </p>
+              <div className="about-track-editor-camera-rig">
+                {['position', 'rotation', 'lens'].map((groupId) => (
+                  <section className="about-track-editor-camera-rig__group" key={groupId}>
+                    <span>{groupId[0].toUpperCase() + groupId.slice(1)}</span>
+                    {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
+                      .filter((control) => control.group === groupId)
+                      .map((control) => {
+                        const [field, axisText] = control.id.split('.');
+                        const axis = axisText == null ? null : Number(axisText);
+                        const value = axis == null ? object[field] : object[field]?.[axis] ?? 0;
+                        return (
+                          <RangeParameterField
+                            key={control.id}
+                            label={control.label}
+                            ariaLabel={`Camera ${control.label}`}
+                            value={value}
+                            control={control}
+                            {...bindObjectRange(`Edit Camera ${control.label}`, (target, next) => {
+                              if (axis == null) target[field] = next;
+                              else target[field][axis] = next;
+                            })}
+                          />
+                        );
+                      })}
+                  </section>
+                ))}
+              </div>
             )}
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-advanced', label: 'Advanced coordinates' }} count={cameraAimEnabled ? 6 : 3}>
             <div className="about-track-editor-camera-rig">
-              {['position', 'rotation', 'target', 'lens'].map((groupId) => (
+              {(cameraAimEnabled ? ['position', 'target'] : ['target']).map((groupId) => (
                 <section className="about-track-editor-camera-rig__group" key={groupId}>
-                  <span>{groupId === 'lens' ? 'Lens' : groupId === 'target' ? 'Focus anchor' : groupId[0].toUpperCase() + groupId.slice(1)}</span>
+                  <span>{groupId === 'target' ? 'Focus anchor' : 'Position'}</span>
                   {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
                     .filter((control) => control.group === groupId)
+                    .filter((control) => control.id !== 'lookAtRoll')
                     .map((control) => {
                       const [field, axisText] = control.id.split('.');
                       const axis = axisText == null ? null : Number(axisText);
-                      const value = axis == null ? object[field] : object[field][axis];
+                      const value = axis == null ? object[field] : object[field]?.[axis] ?? 0;
                       return (
                         <RangeParameterField
                           key={control.id}
@@ -2313,7 +2443,6 @@ function ObjectInspector({ snapshot, store, editScope }) {
                           ariaLabel={`Camera ${control.label}`}
                           value={value}
                           control={control}
-                          disabled={cameraAimEnabled && groupId === 'rotation'}
                           {...bindObjectRange(`Edit Camera ${control.label}`, (target, next) => {
                             if (axis == null) target[field] = next;
                             else target[field][axis] = next;
@@ -2913,7 +3042,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const [interactionMenu, setInteractionMenu] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [phoneSheet, setPhoneSheet] = useState('timeline');
   const [message, setMessage] = useState(() => {
     if (!previewOnly) return 'Loading canonical source…';
@@ -2948,6 +3077,23 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
   const saveStateLabel = getDirectorSaveLabel(snapshot);
   const saveEligibility = store.getSaveEligibility();
   const saveBlockingReason = saveEligibility.allowed ? '' : saveEligibility.reason;
+  const showStatus = Boolean(
+    errors.length
+    || snapshot.rejectedEdit?.reason
+    || snapshot.previewDocumentState.status === 'last-valid-fallback'
+    || ['saving', 'failed', 'conflict'].includes(snapshot.saveState.status)
+    || recovery?.status === 'failed'
+    || (snapshot.dirty && saveBlockingReason),
+  );
+  const selectionKey = `${snapshot.selection.type || 'none'}:${snapshot.selection.id || ''}`;
+  const previousSelectionKeyRef = useRef(selectionKey);
+
+  useEffect(() => {
+    if (selectionKey !== previousSelectionKeyRef.current && usefulInspectorSelection) {
+      setInspectorOpen(true);
+    }
+    previousSelectionKeyRef.current = selectionKey;
+  }, [selectionKey, usefulInspectorSelection]);
 
   useEffect(() => {
     const next = announcementDeduperRef.current(
@@ -3505,7 +3651,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
       <header className="about-track-editor-topbar" data-director-panel="command-bar">
         <div className="about-track-editor-brand">
           <strong>About Director <sup>3.0</sup></strong>
-          <span>Schema v{schemaVersion} · {snapshot.sourceState.status}</span>
+          <span
+            className={`about-director-source-dot is-${snapshot.sourceState.status}`}
+            aria-label={`Schema v${schemaVersion}, source ${snapshot.sourceState.status}`}
+            title={`Schema v${schemaVersion} · ${snapshot.sourceState.status}`}
+          />
         </div>
         <div className="about-track-editor-transport" aria-label="Timeline transport">
           <button
@@ -3517,9 +3667,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
               playing: !snapshot.transport.playing,
             })}
           >{snapshot.transport.playing ? 'Pause' : 'Play'}</button>
-          <button type="button" className={snapshot.transport.loop ? 'is-active' : ''} onClick={toggleLoop}>Loop</button>
           <input
-            aria-label="Story WU playhead"
+            aria-label="Timeline playhead"
             type="range"
             min="0"
             max={durationWU}
@@ -3527,31 +3676,36 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
             value={snapshot.transport.storyWU}
             onChange={(event) => store.setTransport({ owner: 'timeline', playing: false, storyWU: Number(event.target.value) })}
           />
-          <output>{snapshot.transport.storyWU.toFixed(3)} WU</output>
-          <span className="about-director-transport-owner">Owner · {snapshot.transport.owner || 'timeline'}</span>
+          <output aria-label={`${snapshot.transport.storyWU.toFixed(3)} story units`}>{snapshot.transport.storyWU.toFixed(2)}</output>
         </div>
         <div className="about-track-editor-actions">
+          {diagnostics.length ? (
+            <button
+              type="button"
+              ref={diagnosticsTriggerRef}
+              className={errors.length ? 'has-errors' : ''}
+              aria-controls="about-director-diagnostics"
+              aria-expanded={diagnosticsOpen}
+              onClick={() => setDiagnosticsOpen((open) => !open)}
+            >Issues · {diagnostics.length}</button>
+          ) : null}
           <button
             type="button"
-            className="about-track-editor-inspector-toggle"
-            aria-controls="about-director-inspector"
-            aria-expanded={inspectorVisible}
-            disabled={!usefulInspectorSelection}
-            onClick={() => {
-              setInspectorOpen((open) => !open);
-              setPhoneSheet('inspector');
+            className="is-save"
+            aria-disabled={!saveEligibility.allowed}
+            aria-describedby={saveBlockingReason ? 'about-director-save-errors' : undefined}
+            data-save-allowed={saveEligibility.allowed ? 'true' : 'false'}
+            onClick={(event) => {
+              if (!saveEligibility.allowed) {
+                event.preventDefault();
+                setMessage(saveBlockingReason);
+                return;
+              }
+              save();
             }}
-          >Inspector</button>
-          <button
-            type="button"
-            ref={diagnosticsTriggerRef}
-            className={errors.length ? 'has-errors' : ''}
-            aria-controls="about-director-diagnostics"
-            aria-expanded={diagnosticsOpen}
-            onClick={() => setDiagnosticsOpen((open) => !open)}
-          >Diagnostics {diagnostics.length ? `· ${diagnostics.length}` : ''}</button>
-          <button type="button" disabled={!snapshot.history.canUndo} onClick={() => store.undo()} title={snapshot.history.undoLabel}>Undo</button>
-          <button type="button" disabled={!snapshot.history.canRedo} onClick={() => store.redo()} title={snapshot.history.redoLabel}>Redo</button>
+          >
+            {saving ? 'Saving…' : snapshot.dirty ? 'Save' : 'Saved'}
+          </button>
           <div className="about-director-menu-root" data-director-menu-root>
             <button
               type="button"
@@ -3560,21 +3714,38 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
               aria-controls="about-director-document-menu"
               aria-expanded={activeMenu === 'document'}
               onClick={(event) => toggleDirectorMenu('document', event.currentTarget)}
-            >Document</button>
+            >More</button>
             {activeMenu === 'document' ? (
               <section
                 id="about-director-document-menu"
                 className="about-director-menu-panel"
                 role="dialog"
                 aria-modal="false"
-                aria-label="Document actions"
+                aria-label="Director actions"
                 data-director-menu-panel="document"
                 data-director-panel="document-menu"
               >
                 <header>
-                  <div><strong>Document</strong><span>Schema v{schemaVersion}</span></div>
-                  <button type="button" aria-label="Close document menu" onClick={() => closeDirectorMenu()}>Close</button>
+                  <div><strong>About Director</strong><span>Schema v{schemaVersion} · {snapshot.sourceState.status}</span></div>
+                  <button type="button" aria-label="Close Director menu" onClick={() => closeDirectorMenu()}>Close</button>
                 </header>
+                <div className="about-director-quick-actions">
+                  <button
+                    type="button"
+                    disabled={!usefulInspectorSelection}
+                    onClick={() => {
+                      setInspectorOpen((open) => !open);
+                      setPhoneSheet('inspector');
+                      closeDirectorMenu({ restoreFocus: false });
+                    }}
+                  >{inspectorVisible ? 'Close inspector' : 'Open inspector'}</button>
+                  <button type="button" className={snapshot.transport.loop ? 'is-active' : ''} onClick={toggleLoop}>
+                    {snapshot.transport.loop ? 'Loop on' : 'Loop selection'}
+                  </button>
+                  <button type="button" disabled={!snapshot.history.canUndo} onClick={() => store.undo()} title={snapshot.history.undoLabel}>Undo</button>
+                  <button type="button" disabled={!snapshot.history.canRedo} onClick={() => store.redo()} title={snapshot.history.redoLabel}>Redo</button>
+                </div>
+                <h3 className="about-director-menu-heading">Document</h3>
                 <div className="about-director-document-actions">
                   <button type="button" onClick={() => exportAboutNarrativeDocument(
                     snapshot.document,
@@ -3717,67 +3888,25 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
                     </div>
                   </section>
                 ) : null}
+                <details className="about-director-help-panel">
+                  <summary>Keyboard shortcuts</summary>
+                  <dl>
+                    <div><dt>/</dt><dd>Show or hide Director</dd></div>
+                    <div><dt>Space</dt><dd>Play or pause when Director has focus</dd></div>
+                    <div><dt>⌘ S</dt><dd>Save the current draft</dd></div>
+                    <div><dt>⌘ Z</dt><dd>Undo</dd></div>
+                    <div><dt>⇧ ⌘ Z</dt><dd>Redo</dd></div>
+                    <div><dt>← →</dt><dd>Move the selection or playhead</dd></div>
+                    <div><dt>Esc</dt><dd>Cancel the active gesture or close a panel</dd></div>
+                  </dl>
+                </details>
               </section>
             ) : null}
           </div>
-          <div className="about-director-menu-root" data-director-menu-root>
-            <button
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="about-director-help-menu"
-              aria-expanded={activeMenu === 'help'}
-              onClick={(event) => toggleDirectorMenu('help', event.currentTarget)}
-            >Help</button>
-            {activeMenu === 'help' ? (
-              <section
-                id="about-director-help-menu"
-                className="about-director-menu-panel about-director-help-panel"
-                role="dialog"
-                aria-modal="false"
-                aria-label="Keyboard help"
-                data-director-menu-panel="help"
-                data-director-panel="keyboard-help"
-              >
-                <header>
-                  <div><strong>Keyboard</strong><span>Director shortcuts</span></div>
-                  <button type="button" aria-label="Close keyboard help" onClick={() => closeDirectorMenu()}>Close</button>
-                </header>
-                <dl>
-                  <div><dt>/</dt><dd>Show or hide Director</dd></div>
-                  <div><dt>Space</dt><dd>Play or pause when Director has focus</dd></div>
-                  <div><dt>⌘ S</dt><dd>Save the current draft</dd></div>
-                  <div><dt>⌘ Z</dt><dd>Undo</dd></div>
-                  <div><dt>⇧ ⌘ Z</dt><dd>Redo</dd></div>
-                  <div><dt>← →</dt><dd>Move the selection or playhead</dd></div>
-                  <div><dt>Esc</dt><dd>Cancel the active gesture or close a panel</dd></div>
-                </dl>
-              </section>
-            ) : null}
-          </div>
-          <output className={`about-director-save-state is-${snapshot.saveState.status}`} aria-label={`Save state: ${saveStateLabel}`}>
-            {saveStateLabel}
-          </output>
-          <button
-            type="button"
-            className="is-save"
-            aria-disabled={!saveEligibility.allowed}
-            aria-describedby={saveBlockingReason ? 'about-director-save-errors' : undefined}
-            data-save-allowed={saveEligibility.allowed ? 'true' : 'false'}
-            onClick={(event) => {
-              if (!saveEligibility.allowed) {
-                event.preventDefault();
-                setMessage(saveBlockingReason);
-                return;
-              }
-              save();
-            }}
-          >
-            {saving ? 'Saving…' : snapshot.dirty ? 'Save' : 'Saved'}
-          </button>
           {saveBlockingReason ? (
             <span
               id="about-director-save-errors"
-              className="about-director-save-block-reason"
+              className="about-director-save-block-reason about-director-visually-hidden"
               role="status"
               aria-live="polite"
             >{saveBlockingReason}</span>
@@ -3785,48 +3914,62 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         </div>
       </header>
 
-      <div className="about-track-editor-preview" aria-label="Responsive preview profile" data-director-panel="preview-controls">
-        <span className="about-track-editor-preview__label">Preview</span>
-        {['desktop', 'tablet', 'mobile'].map((profile) => (
-          <button
-            type="button"
-            key={profile}
-            className={snapshot.previewState.layoutProfile === profile ? 'is-active' : ''}
-            onClick={() => store.setPreviewState({ layoutProfile: profile })}
-          >{profile[0].toUpperCase() + profile.slice(1)}</button>
-        ))}
-        <select
-          aria-label="Preview orientation"
-          value={snapshot.previewState.orientation}
-          onChange={(event) => store.setPreviewState({ orientation: event.target.value })}
-        >
-          <option value="landscape">Landscape</option>
-          <option value="portrait">Portrait</option>
-        </select>
-        <label>
-          <input
-            type="checkbox"
-            checked={snapshot.previewState.motionProfile === 'reduced'}
-            onChange={(event) => store.setPreviewState({ motionProfile: event.target.checked ? 'reduced' : 'full' })}
-          />
-          Reduced Motion
-        </label>
-        {pointFieldV6 ? (
-          <label className="about-track-editor-edit-scope">
-            Edit Point field
+      <details className="about-track-editor-preview" data-director-panel="preview-controls">
+        <summary>
+          <span>Preview</span>
+          <strong>
+            {snapshot.previewState.layoutProfile[0].toUpperCase() + snapshot.previewState.layoutProfile.slice(1)}
+            {' · '}{snapshot.previewState.orientation[0].toUpperCase() + snapshot.previewState.orientation.slice(1)}
+            {snapshot.previewState.motionProfile === 'reduced' ? ' · Reduced' : ''}
+          </strong>
+        </summary>
+        <div className="about-track-editor-preview__panel" aria-label="Responsive preview profile">
+          <div className="about-track-editor-preview__profiles" role="group" aria-label="Preview device">
+            {['desktop', 'tablet', 'mobile'].map((profile) => (
+              <button
+                type="button"
+                key={profile}
+                className={snapshot.previewState.layoutProfile === profile ? 'is-active' : ''}
+                onClick={() => store.setPreviewState({ layoutProfile: profile })}
+              >{profile[0].toUpperCase() + profile.slice(1)}</button>
+            ))}
+          </div>
+          <label>
+            Orientation
             <select
-              aria-label="Point field edit scope"
-              value={editScope}
-              onChange={(event) => setEditScope(event.target.value)}
+              aria-label="Preview orientation"
+              value={snapshot.previewState.orientation}
+              onChange={(event) => store.setPreviewState({ orientation: event.target.value })}
             >
-              <option value="base">Base</option>
-              <option value="desktop">Desktop override</option>
-              <option value="tablet">Tablet override</option>
-              <option value="mobile">Mobile override</option>
+              <option value="landscape">Landscape</option>
+              <option value="portrait">Portrait</option>
             </select>
           </label>
-        ) : null}
-      </div>
+          <label className="about-track-editor-check">
+            <input
+              type="checkbox"
+              checked={snapshot.previewState.motionProfile === 'reduced'}
+              onChange={(event) => store.setPreviewState({ motionProfile: event.target.checked ? 'reduced' : 'full' })}
+            />
+            Reduced Motion
+          </label>
+          {pointFieldV6 && pointFieldSelection ? (
+            <label className="about-track-editor-edit-scope">
+              Forms editing
+              <select
+                aria-label="Forms edit scope"
+                value={editScope}
+                onChange={(event) => setEditScope(event.target.value)}
+              >
+                <option value="base">Base</option>
+                <option value="desktop">Desktop override</option>
+                <option value="tablet">Tablet override</option>
+                <option value="mobile">Mobile override</option>
+              </select>
+            </label>
+          ) : null}
+        </div>
+      </details>
 
       <div className="about-director-sheet-switcher" role="group" aria-label="Phone authoring panel">
         <button
@@ -3873,21 +4016,31 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
           type="button"
           className="about-track-editor-inspector-close"
           aria-label="Close inspector"
-          onClick={() => setPhoneSheet('timeline')}
+          onClick={() => {
+            setInspectorOpen(false);
+            setPhoneSheet('timeline');
+          }}
         >Close</button>
         <ObjectInspector
           snapshot={snapshot}
           store={store}
           editScope={editScope}
         />
-        <footer>
-          <button type="button" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.copySelection()}>Copy</button>
-          <button type="button" disabled={!snapshot.clipboard || pointFieldSelection} onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button>
-          <button type="button" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.duplicateSelection()}>Duplicate</button>
-          <button type="button" className="is-danger" disabled={snapshot.selection.type === 'track' || pointFieldSelection} onClick={() => store.deleteSelection()}>
-            {snapshot.selection.type === 'camera-key' ? 'Delete camera keyframe' : 'Delete'}
-          </button>
-        </footer>
+        {snapshot.selection.type !== 'track' && !pointFieldSelection ? (
+          <footer>
+            <details className="about-director-object-menu">
+              <summary>Object actions</summary>
+              <div>
+                <button type="button" onClick={() => store.copySelection()}>Copy</button>
+                {snapshot.clipboard ? <button type="button" onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button> : null}
+                <button type="button" onClick={() => store.duplicateSelection()}>Duplicate</button>
+                <button type="button" className="is-danger" onClick={() => store.deleteSelection()}>
+                  {snapshot.selection.type === 'camera-key' ? 'Delete camera shot' : 'Delete'}
+                </button>
+              </div>
+            </details>
+          </footer>
+        ) : null}
       </section>
 
       {diagnosticsOpen ? (
@@ -3901,16 +4054,18 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
         </div>
       ) : null}
 
-      <div className="about-track-editor-status" data-director-panel="status">
-        <span className={snapshot.dirty ? 'is-dirty' : 'is-clean'}>
-          {snapshot.dirty ? 'Unsaved' : previewOnly ? 'Preview' : 'Canonical'}
-        </span>
-        <p>{snapshot.rejectedEdit?.reason || message}</p>
-        {diagnostics.length ? <b>{errors.length} errors · {diagnostics.length - errors.length} notices</b> : <b>Plan valid</b>}
-        {snapshot.previewDocumentState.status === 'last-valid-fallback' ? (
-          <b>Draft differs from preview · showing the last valid plan</b>
-        ) : null}
-      </div>
+      {showStatus ? (
+        <div className="about-track-editor-status" data-director-panel="status">
+          <span className={snapshot.dirty ? 'is-dirty' : 'is-clean'}>
+            {snapshot.dirty ? 'Unsaved' : previewOnly ? 'Preview' : 'Canonical'}
+          </span>
+          <p>{snapshot.rejectedEdit?.reason || saveBlockingReason || message}</p>
+          {diagnostics.length ? <b>{errors.length} errors · {diagnostics.length - errors.length} notices</b> : null}
+          {snapshot.previewDocumentState.status === 'last-valid-fallback' ? (
+            <b>Draft differs from preview · showing the last valid plan</b>
+          ) : null}
+        </div>
+      ) : null}
 
       <p className="about-director-visually-hidden" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
 

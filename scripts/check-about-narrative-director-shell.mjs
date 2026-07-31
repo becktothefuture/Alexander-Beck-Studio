@@ -20,17 +20,17 @@ test('Director product identity stays separate from the document schema', () => 
   assert.equal(shell.includes('Save v${persistenceTargetVersion}'), false);
 });
 
-test('command bar exposes transport ownership, save state, and labelled menus', () => {
+test('command bar keeps primary actions visible and moves secondary actions into More', () => {
   [
     'data-director-panel="command-bar"',
-    'Owner · {snapshot.transport.owner',
-    'className={`about-director-save-state',
-    'aria-label={`Save state:',
+    'className={`about-director-source-dot',
+    'aria-label="Timeline playhead"',
     'aria-controls="about-director-document-menu"',
-    'aria-controls="about-director-help-menu"',
+    '>More</button>',
+    'about-director-quick-actions',
     'role="dialog"',
-    'aria-label="Document actions"',
-    'aria-label="Keyboard help"',
+    'aria-label="Director actions"',
+    '<summary>Keyboard shortcuts</summary>',
     'Export current draft',
     'Create checkpoint',
     'Restore last saved',
@@ -66,7 +66,7 @@ test('inspector is contextual and exposes durable panel state', () => {
 
 test('tablet inspector overlays without reducing preview geometry', () => {
   assert.match(styles, /@media \(max-width: 1199px\)[\s\S]*?--about-track-editor-inspector-width: 0px/);
-  assert.match(styles, /@media \(max-width: 1199px\)[\s\S]*?\.about-track-editor-inspector \{[\s\S]*?right: 8px;[\s\S]*?bottom: calc\(var\(--about-director-timeline-height\) \+ 50px\);[\s\S]*?width: 316px;/);
+  assert.match(styles, /@media \(max-width: 1199px\)[\s\S]*?\.about-track-editor-inspector \{[\s\S]*?right: 8px;[\s\S]*?bottom: calc\(var\(--about-director-timeline-height\) \+ 8px\);[\s\S]*?width: 316px;/);
 });
 
 test('phone and short landscape use mutually exclusive Timeline and Inspector sheets', () => {
@@ -79,8 +79,8 @@ test('phone and short landscape use mutually exclusive Timeline and Inspector sh
   assert.match(styles, /@media \(max-width: 700px\), \(max-height: 520px\) and \(orientation: landscape\)/);
   assert.ok(styles.includes(".about-track-editor[data-phone-sheet='timeline'] .about-track-editor-inspector"));
   assert.ok(styles.includes(".about-track-editor[data-phone-sheet='inspector'] .about-track-editor-timeline"));
-  assert.match(styles, /@media \(max-height: 520px\) and \(orientation: landscape\)[\s\S]*?--about-director-timeline-height: min\(48vh, calc\(100vh - 206px\)\)/);
-  assert.match(styles, /@media \(max-height: 520px\) and \(orientation: landscape\)[\s\S]*?data-phone-sheet='inspector'[\s\S]*?height: calc\(100vh - 146px\)/);
+  assert.match(styles, /@media \(max-height: 520px\) and \(orientation: landscape\)[\s\S]*?--about-director-timeline-height: min\(42vh, calc\(100vh - 118px\)\)/);
+  assert.match(styles, /@media \(max-height: 520px\) and \(orientation: landscape\)[\s\S]*?data-phone-sheet='inspector'[\s\S]*?height: calc\(100vh - 98px\)/);
 });
 
 test('preview and authoring profiles remain separate Director controls', () => {

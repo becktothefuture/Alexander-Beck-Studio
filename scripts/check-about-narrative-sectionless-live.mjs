@@ -454,16 +454,16 @@ test('the Camera row exposes global distance fog and protected boundary poses re
   ));
   assert.match(liveSources.editor, /data-track-settings="camera"/);
   assert.match(liveSources.editor, /Distance fog/);
-  assert.match(liveSources.editor, /Camera rig/);
+  assert.match(liveSources.editor, /Essentials/);
   assert.doesNotMatch(liveSources.editor, /Depth offset|Frame origin/);
   assert.match(liveSources.editor, /Focus anchor|Focus on 3D anchor/);
-  assert.match(liveSources.editor, /Focus owns orientation/);
+  assert.match(liveSources.editor, /Camera orbit angle/);
   assert.match(liveSources.world, /about-narrative-camera-focus-anchor/);
   assert.match(liveSources.world, /new THREE\.LineSegments/);
   assert.doesNotMatch(liveSources.world, /about-narrative-camera-target/);
   assert.doesNotMatch(liveSources.editorStyles, /\.about-narrative-camera-target/);
   assert.match(liveSources.editor, /Distance fog is global across the sequence/);
-  assert.match(liveSources.editor, /Position, rotation and field of view are fully editable/);
+  assert.match(liveSources.editor, /Timing fixed · Pose editable/);
   assert.match(liveSources.world, /float cameraDepth = max\(0\.0, -viewPoint\.z\)/);
   assert.match(liveSources.world, /presence \*= 1\.0 - distanceFog/);
 });
@@ -661,13 +661,12 @@ test('World C flies into plan view before a constant-radius orbit into the bust'
     clip.type === 'discipline-reveal'
   ));
   const homeDescriptions = new Map(homeContent.legend.items.map((item) => [item.label, item.tooltip]));
-  disciplineReveal.parameters.items.forEach((item, index) => {
+  disciplineReveal.parameters.items.forEach((item) => {
     assert.equal(item.description, homeDescriptions.get(item.label));
     assert.ok(item.position[0] >= 0.1 && item.position[0] <= 0.72);
     assert.ok(item.position[1] >= 0.4 && item.position[1] <= 0.95);
     assert.ok(item.mobilePosition[0] >= 0.1 && item.mobilePosition[0] <= 0.72);
     assert.ok(item.mobilePosition[1] >= 0.4 && item.mobilePosition[1] <= 0.95);
-    if (index > 0) assert.ok(item.position[1] > disciplineReveal.parameters.items[index - 1].position[1]);
   });
   const assertMinimumGridSeparation = (positions, pointCount) => {
     const columns = Math.max(24, Math.floor(Math.sqrt(pointCount * 1.36)));

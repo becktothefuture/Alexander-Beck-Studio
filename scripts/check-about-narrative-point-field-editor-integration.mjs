@@ -24,7 +24,7 @@ test('schema v6 renders a Point field keyframe lane while v5 retains recovery fa
     'const LEGACY_TRACKS',
     'const POINT_FIELD_TRACKS',
     "{ id: 'world', label: 'World', type: 'world'",
-    "{ id: 'point-field', label: 'Point field', type: 'point-field-key'",
+    "{ id: 'point-field', label: 'Forms', type: 'point-field-key'",
     'pointFieldV6 ? POINT_FIELD_TRACKS : LEGACY_TRACKS',
     '<PointFieldLane',
     "track.id === 'point-field'",
@@ -55,7 +55,7 @@ test('Point field inspector callbacks use only the nested transactional store AP
 test('preview profile and Point field edit scope remain independent controls', () => {
   [
     'const [editScope, setEditScope]',
-    'aria-label="Point field edit scope"',
+    'aria-label="Forms edit scope"',
     'snapshot.previewState.layoutProfile',
     '<option value="base">Base</option>',
     '<option value="desktop">Desktop override</option>',
@@ -64,7 +64,7 @@ test('preview profile and Point field edit scope remain independent controls', (
     'editScope={editScope}',
   ].forEach((token) => assert.ok(source.includes(token), `missing ${token}`));
   assert.ok(styles.includes('.about-track-editor-edit-scope'));
-  assert.match(styles, /\.about-track-editor-preview > select,[\s\S]*?\.about-track-editor-preview > \.about-track-editor-edit-scope select \{ width: auto; \}/);
+  assert.match(styles, /\.about-track-editor-edit-scope \{[\s\S]*?border-top: 1px solid var\(--editor-line\)/);
 });
 
 test('v6 persistence, recovery, local Save, export, and interaction labels target state IDs', () => {

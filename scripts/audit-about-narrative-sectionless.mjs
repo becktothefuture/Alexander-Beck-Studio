@@ -194,7 +194,7 @@ async function auditEditor() {
   ));
 
   const editor = page.locator('.about-track-editor');
-  const shortcutInputProbe = page.getByRole('slider', { name: 'Story WU playhead' });
+  const shortcutInputProbe = page.getByRole('slider', { name: 'Timeline playhead' });
   await shortcutInputProbe.focus();
   await page.keyboard.press('Slash');
   assert.equal(await editor.isVisible(), true, 'Slash must not hide the editor while an input is focused.');
@@ -217,6 +217,19 @@ async function auditEditor() {
     'The restored editor must reapply its preview geometry.',
   );
 
+  const selectTrack = async (name) => {
+    await page.getByRole('tab', { name, exact: true }).click();
+  };
+  const runMoreAction = async (name) => {
+    const more = page.getByRole('button', { name: 'More', exact: true });
+    if (await more.getAttribute('aria-expanded') !== 'true') await more.click();
+    const menu = page.getByRole('dialog', { name: 'Director actions' });
+    await menu.getByRole('button', { name, exact: true }).click();
+    if (await menu.isVisible()) {
+      await menu.getByRole('button', { name: 'Close Director menu' }).click();
+    }
+  };
+
   const initial = await page.evaluate(() => ({
     editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
     lanes: [...document.querySelectorAll('[data-track-lane]')].map((lane) => lane.dataset.trackLane),
@@ -225,15 +238,33 @@ async function auditEditor() {
     semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
   }));
   assert.equal(initial.editorVersion, 'point-field-v6');
-  assert.deepEqual(initial.lanes, ['camera', 'visibility', 'point-field', 'text', 'interaction']);
+  assert.deepEqual(initial.lanes, ['point-field']);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.deepEqual(initial.plusLabels, [
-    'Add Camera object at playhead',
-    'Add Visibility object at playhead',
-    'Add Text object at playhead',
-    'Add Motion object at playhead',
-  ]);
+  assert.deepEqual(initial.plusLabels, []);
   assert.equal(initial.semanticFieldCount, 11);
+  assert.deepEqual(
+    await page.getByRole('tablist', { name: 'Timeline track' }).getByRole('tab').allTextContents(),
+    ['Camera', 'Visibility', 'Forms', 'Text', 'Motion'],
+  );
+  for (const [name, lane, addLabel] of [
+    ['Camera', 'camera', 'Add Camera object at playhead'],
+    ['Visibility', 'visibility', 'Add Visibility object at playhead'],
+    ['Forms', 'point-field', null],
+    ['Text', 'text', 'Add Text object at playhead'],
+    ['Motion', 'interaction', 'Add Motion object at playhead'],
+  ]) {
+    await selectTrack(name);
+    assert.deepEqual(
+      await page.locator('[data-track-lane]').evaluateAll((nodes) => nodes.map((node) => node.dataset.trackLane)),
+      [lane],
+      `${name} must be the only mounted timeline lane after it is selected.`,
+    );
+    assert.equal(
+      await page.getByRole('button', { name: addLabel || 'Unused add control' }).count(),
+      addLabel ? 1 : 0,
+    );
+  }
+  await selectTrack('Forms');
 
   assert.equal(
     await page.getByRole('button', { name: /^Resize World .+ end$/ }).count(),
@@ -271,7 +302,14 @@ async function auditEditor() {
   assert.equal(await saveButton.getAttribute('aria-disabled'), 'true');
   await saveButton.focus();
   assert.equal(await saveButton.evaluate((node) => document.activeElement === node), true, 'Blocked Save must remain focusable.');
-  assert.equal(await page.locator('#about-director-save-errors[role="status"]').isVisible(), true, 'Blocked Save needs a visible live reason.');
+  const cleanSaveStatus = page.locator('#about-director-save-errors[role="status"]');
+  assert.equal(await cleanSaveStatus.count(), 1, 'The saved state must keep an accessible explanation.');
+  assert.match(
+    await cleanSaveStatus.getAttribute('class'),
+    /about-director-visually-hidden/u,
+    'The routine saved state must not add visible chrome.',
+  );
+  await selectTrack('Text');
   await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
   assert.equal(await page.locator('#about-director-add-text [role="menuitem"]').count(), 0, 'Add Text disclosure must use ordinary buttons.');
   await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
@@ -285,6 +323,7 @@ async function auditEditor() {
     0,
     'Titles must use shared timing and expose no individual duration handles.',
   );
+  await selectTrack('Motion');
   const motionResizeHandles = page.getByRole('button', { name: /^Resize Motion .+ (start|end)$/ });
   assert.equal(await motionResizeHandles.count(), 6, 'Every editable Motion clip needs start and end duration handles.');
   assert.equal(
@@ -292,8 +331,6 @@ async function auditEditor() {
     0,
     'Protected finale Motion must not expose duration handles.',
   );
-  const textReference = page.locator('[data-track-object-id="text-background-unit"]');
-
   const motionClip = page.locator('[data-track-object-id="motion-discipline-reveal"]');
   const motionRectBefore = await motionClip.boundingBox();
   const motionStartHandle = page.getByRole('button', { name: 'Resize Motion Discipline reveal start' });
@@ -320,12 +357,14 @@ async function auditEditor() {
     ) < 0.6,
     'Motion start resize must preserve its end.',
   );
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   await page.waitForFunction((beforeWidth) => {
     const rect = document.querySelector('[data-track-object-id="motion-discipline-reveal"]')?.getBoundingClientRect();
     return rect && Math.abs(rect.width - beforeWidth) < 0.6;
   }, motionRectBefore.width);
 
+  await selectTrack('Text');
+  const textReference = page.locator('[data-track-object-id="text-background-unit"]');
   const textRectBefore = await textReference.boundingBox();
   const textEndHandle = textReference.locator('xpath=..').locator('[data-duration-edge="end"]');
   const textHandleBox = await textEndHandle.boundingBox();
@@ -346,7 +385,7 @@ async function auditEditor() {
   }, textRectBefore.width);
   const textRectAfter = await textReference.boundingBox();
   assert.ok(Math.abs(textRectAfter.x - textRectBefore.x) < 0.6, 'Text end resize must preserve its start.');
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   await page.waitForFunction((beforeWidth) => {
     const rect = document.querySelector('[data-track-object-id="text-background-unit"]')?.getBoundingClientRect();
     return rect && Math.abs(rect.width - beforeWidth) < 0.6;
@@ -368,26 +407,30 @@ async function auditEditor() {
     cLogos: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
     dTitles: ['text-complexity-curiosity', 'text-complexity-listen']
       .filter((id) => document.querySelector(`[data-track-object-id="${id}"]`)).length,
-    disciplines: document.querySelectorAll('[data-track-object-id="motion-discipline-reveal"][data-track-object-type="interaction"]').length,
     dEditorial: document.querySelectorAll('[data-track-object-id="text-disciplines-title"]').length,
     eTitles: document.querySelectorAll('[data-track-object-id^="text-life-"][data-track-object-type="text-field"]').length,
     finalTitles: document.querySelectorAll('[data-track-object-id="text-epilogue-invitation"]').length,
     continuousPassages: document.querySelectorAll('p.about-narrative-editorial-copy[data-text-field-id]').length,
   }));
+  await selectTrack('Motion');
+  const disciplineCount = await page.locator(
+    '[data-track-object-id="motion-discipline-reveal"][data-track-object-type="interaction"]',
+  ).count();
+  await selectTrack('Text');
   assert.deepEqual(authoredStructure, {
     aTitles: 1,
     bTitles: 1,
     cEditorial: 1,
     cLogos: 0,
     dTitles: 2,
-    disciplines: 1,
     dEditorial: 1,
     eTitles: 3,
     finalTitles: 1,
     continuousPassages: 0,
   });
+  assert.equal(disciplineCount, 1);
 
-  const playhead = page.getByRole('slider', { name: 'Story WU playhead' });
+  const playhead = page.getByRole('slider', { name: 'Timeline playhead' });
   const setPlayhead = (value) => playhead.evaluate((node, nextValue) => {
     const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     valueSetter.call(node, String(nextValue));
@@ -559,9 +602,11 @@ async function auditEditor() {
   });
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-desktop.png` });
 
-  await page.getByRole('button', { name: 'Document', exact: true }).click();
-  await page.getByRole('button', { name: 'Create checkpoint' }).click();
-  await page.waitForFunction(() => document.querySelector('.about-track-editor-status p')?.textContent === 'Checkpoint saved locally.');
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Director actions' })
+    .getByRole('button', { name: 'Create checkpoint' })
+    .click();
+  await page.getByRole('button', { name: 'Close Director menu' }).click();
   const checkpoint = await page.evaluate(() => {
     const stored = JSON.parse(localStorage.getItem('abs:about-narrative:checkpoints:v1') || '[]');
     return { count: stored.length, id: stored[0]?.id, name: stored[0]?.name };
@@ -570,6 +615,7 @@ async function auditEditor() {
   assert.match(checkpoint.id, /^checkpoint-\d+$/);
   assert.match(checkpoint.name, /^Manual checkpoint · /);
 
+  await selectTrack('Text');
   await page.getByRole('button', { name: 'Add Text object at playhead' }).click();
   const addTextPanel = page.getByLabel('Create Text field');
   assert.deepEqual(
@@ -585,37 +631,40 @@ async function auditEditor() {
   assert.equal(draft.clipCount, 1);
   assert.equal(draft.semanticFieldCount, 11);
   assert.equal(draft.status, 'Draft · Not published');
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
 
+  await selectTrack('Camera');
   await page.locator('[data-track-object-type="camera-key"]').first().click();
   const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
   assert.deepEqual(cameraFolderLabels, [
-    'Camera rig',
+    'Essentials',
+    'Advanced coordinates',
     'Travel easing',
   ]);
   assert.equal(await page.getByText('Timing fixed · Pose editable', { exact: true }).count(), 1);
   const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
-  assert.equal(await cameraFolders.count(), 2);
-  assert.equal(await page.locator('[data-inspector-group="camera-rig"]').evaluate((folder) => folder.open), true);
+  assert.equal(await cameraFolders.count(), 3);
+  assert.equal(await page.locator('[data-inspector-group="camera-essentials"]').evaluate((folder) => folder.open), true);
+  assert.equal(await page.locator('[data-inspector-group="camera-advanced"]').evaluate((folder) => folder.open), false);
   assert.equal(await page.locator('[data-inspector-group="camera-easing"]').evaluate((folder) => folder.open), false);
   for (const axis of ['X', 'Y', 'Z']) {
     assert.equal(await page.getByRole('spinbutton', { name: `Camera Position ${axis} exact value` }).getAttribute('step'), '0.01');
     assert.equal(await page.getByRole('spinbutton', { name: `Camera Rotation ${axis} exact value` }).getAttribute('step'), '0.1');
   }
   assert.equal(await page.getByRole('spinbutton', { name: 'Camera Field of view exact value' }).getAttribute('step'), '1');
-  assert.equal(await page.getByText(/Position and Rotation author the manual pose/i).count(), 1);
   const cameraAim = page.getByRole('checkbox', { name: 'Focus on 3D anchor' });
   assert.equal(await cameraAim.count(), 1);
-  assert.equal(await page.getByRole('spinbutton', { name: 'Camera Anchor X exact value' }).count(), 1);
   assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isEnabled(), true);
   await cameraAim.check();
-  assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isDisabled(), true);
+  assert.equal(await page.getByRole('slider', { name: 'Camera orbit angle slider' }).isEnabled(), true);
+  assert.equal(await page.getByRole('slider', { name: 'Camera orbit distance slider' }).isEnabled(), true);
+  assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).count(), 0);
   await cameraAim.uncheck();
   assert.equal(await page.getByRole('slider', { name: 'Camera Rotation X slider' }).isEnabled(), true);
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(await cameraAim.isChecked(), true);
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(await cameraAim.isChecked(), false);
   const openingPositionZ = page.getByRole('slider', { name: 'Camera Position Z slider' });
   assert.equal(await openingPositionZ.isEnabled(), true);
@@ -624,10 +673,10 @@ async function auditEditor() {
   await openingPositionZ.press('ArrowRight');
   await openingPositionZ.press('Tab');
   assert.equal(await openingPositionZ.inputValue(), '5.91');
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(await openingPositionZ.inputValue(), '5.9');
 
-  await page.getByRole('button', { name: 'Camera', exact: true }).click();
+  await selectTrack('Camera');
   const globalCameraSettings = page.locator('[data-track-settings="camera"]');
   await globalCameraSettings.waitFor();
   assert.equal(await page.getByRole('heading', { name: 'Global camera' }).count(), 1);
@@ -643,10 +692,10 @@ async function auditEditor() {
   await fogStart.press('ArrowRight');
   await fogStart.press('Tab');
   assert.equal(await fogStart.inputValue(), '10.1');
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(await fogStart.inputValue(), '10');
 
-  await page.getByRole('button', { name: 'Visibility', exact: true }).click();
+  await selectTrack('Visibility');
   const globalVisibilitySettings = page.locator('[data-track-settings="visibility"]');
   await globalVisibilitySettings.waitFor();
   assert.equal(await globalVisibilitySettings.getByRole('heading', { name: 'Simulation visibility' }).count(), 1);
@@ -657,6 +706,7 @@ async function auditEditor() {
     '0',
   );
 
+  await selectTrack('Forms');
   await page.locator('[data-point-field-id="segment-key-world-grid-departure-to-key-world-grid-arrival"]').click();
   const pointFieldInspector = page.getByRole('region', { name: 'Selected object inspector' });
   for (const label of ['Type', 'Easing', 'Correspondence']) {
@@ -670,7 +720,7 @@ async function auditEditor() {
     await pointFieldInspector.locator('details > summary span').allTextContents(),
     ['Stagger', 'Organic path', 'Plane motion', 'Split transition'],
   );
-  await page.getByRole('button', { name: 'Point field', exact: true }).click();
+  await selectTrack('Forms');
   await page.locator('[aria-label="Point field state library"] > button').nth(2).click();
   assert.equal(await pointFieldInspector.locator('code').textContent(), 'world-grid');
   for (const label of ['Position X', 'Rotation Z', 'Scale', 'Point size']) {
@@ -681,7 +731,7 @@ async function auditEditor() {
     );
   }
 
-  await page.getByRole('button', { name: 'Text', exact: true }).click();
+  await selectTrack('Text');
   assert.equal(await page.getByRole('heading', { name: 'Global text animation' }).count(), 1);
   assert.equal(await page.locator('[data-track-settings="text"] details').count(), 5);
   await page.locator('[data-inspector-group="text-editorial"] > summary').click();
@@ -697,25 +747,30 @@ async function auditEditor() {
         .getPropertyValue('--about-editorial-reveal-threshold'),
     ) - expected) < 0.001
   ), steppedRevealThreshold);
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await runMoreAction('Undo');
   assert.equal(Number(await revealSlider.inputValue()), initialRevealThreshold);
 
   const diagnosticsTrigger = page.getByRole('button', { name: /^Diagnostics/ });
-  await diagnosticsTrigger.click();
-  await page.getByRole('button', { name: 'Play timeline' }).focus();
-  await page.keyboard.press('Escape');
-  await assert.doesNotReject(() => page.locator('.about-director-diagnostics').waitFor({ state: 'hidden' }));
-  await page.waitForFunction(() => (
-    document.activeElement === document.querySelector(
-      '.about-track-editor-actions button[aria-controls="about-director-diagnostics"]',
-    )
-  ));
-  assert.equal(
-    await diagnosticsTrigger.evaluate((node) => document.activeElement === node),
-    true,
-    'Escape must close Diagnostics and restore its trigger after focus leaves the drawer.',
-  );
+  if (await diagnosticsTrigger.count()) {
+    await diagnosticsTrigger.click();
+    await page.getByRole('button', { name: 'Play timeline' }).focus();
+    await page.keyboard.press('Escape');
+    await assert.doesNotReject(() => page.locator('.about-director-diagnostics').waitFor({ state: 'hidden' }));
+    await page.waitForFunction(() => (
+      document.activeElement === document.querySelector(
+        '.about-track-editor-actions button[aria-controls="about-director-diagnostics"]',
+      )
+    ));
+    assert.equal(
+      await diagnosticsTrigger.evaluate((node) => document.activeElement === node),
+      true,
+      'Escape must close Diagnostics and restore its trigger after focus leaves the drawer.',
+    );
+  } else {
+    assert.equal(await page.locator('.about-director-diagnostics').count(), 0);
+  }
 
+  await page.locator('details.about-track-editor-preview > summary').click();
   await page.getByRole('button', { name: 'Tablet' }).click();
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile === 'tablet');
   await selectPreviewOrientation('portrait');
@@ -828,6 +883,7 @@ async function auditEditor() {
   });
   assert.equal(await page.locator('.about-narrative-world__canvas').count(), 1);
 
+  await page.locator('details.about-track-editor-preview > summary').click();
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileDurationHandle = await page.locator('.about-track-editor-duration-resize').first().boundingBox();
   assert.ok(mobileDurationHandle.width >= 18, `Mobile duration handle was ${mobileDurationHandle.width}px wide.`);
