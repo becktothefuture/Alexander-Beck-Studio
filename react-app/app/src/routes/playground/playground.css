@@ -281,8 +281,7 @@
   font-weight: 450;
   line-height: 1.485;
   letter-spacing: var(--route-description-letter-spacing, -0.012em);
-  /* Keep body copy fully opaque so WebKit glyph antialiasing retains 4.5:1 contrast. */
-  opacity: 1;
+  opacity: var(--supporting-description-opacity);
   text-wrap: balance;
 }
 

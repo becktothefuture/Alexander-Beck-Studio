@@ -22,10 +22,25 @@ const routes = Object.freeze([
     selector: BOOKEND_TITLE_SELECTOR,
     canvasTitle: true,
   }),
-  Object.freeze({ id: 'portfolio', path: '/portfolio.html', selector: BOOKEND_TITLE_SELECTOR }),
+  Object.freeze({
+    id: 'portfolio',
+    path: '/portfolio.html',
+    selector: BOOKEND_TITLE_SELECTOR,
+    descriptionSelector: '[data-route-enter-variant="bookend-description"]',
+  }),
   Object.freeze({ id: 'about', path: '/about.html', selector: BOOKEND_TITLE_SELECTOR }),
-  Object.freeze({ id: 'contact', path: '/contact.html', selector: BOOKEND_TITLE_SELECTOR }),
-  Object.freeze({ id: 'playground', path: '/playground.html', selector: BOOKEND_TITLE_SELECTOR }),
+  Object.freeze({
+    id: 'contact',
+    path: '/contact.html',
+    selector: BOOKEND_TITLE_SELECTOR,
+    descriptionSelector: '[data-route-enter-variant="bookend-description"]',
+  }),
+  Object.freeze({
+    id: 'playground',
+    path: '/playground.html',
+    selector: BOOKEND_TITLE_SELECTOR,
+    descriptionSelector: '[data-route-enter-variant="bookend-description"]',
+  }),
 ]);
 
 function url(pathname) {
@@ -117,6 +132,20 @@ async function readGlyphState(page, selector) {
   }, selector);
 }
 
+async function readDescriptionState(page, selector) {
+  if (!selector) return null;
+  return page.evaluate((descriptionSelector) => {
+    const description = document.querySelector(descriptionSelector);
+    if (!description) return null;
+    const style = getComputedStyle(description);
+    return {
+      opacity: Number.parseFloat(style.opacity),
+      inlineOpacity: description.style.opacity,
+      animationCount: description.getAnimations({ subtree: true }).length,
+    };
+  }, selector);
+}
+
 function rectDelta(before, after) {
   return {
     x: after.x - before.x,
@@ -177,6 +206,7 @@ async function auditRoute(page, route) {
   }));
   const settled = await readGlyphState(page, route.selector);
   assert(settled, `${route.id}: settled glyph state was unavailable`);
+  const description = await readDescriptionState(page, route.descriptionSelector);
 
   const titleDelta = rectDelta(animated.titleRect, settled.titleRect);
   const glyphDelta = rectDelta(animated.glyphRect, settled.glyphRect);
@@ -187,6 +217,16 @@ async function auditRoute(page, route) {
   assert(settled.glyphColor === settled.titleColor, `${route.id}: settled glyph does not inherit title colour`, details);
   assert(settled.glyphWillChange === 'auto', `${route.id}: glyph kept a compositor hint after cleanup`, details);
   assert(settled.animationCount === 0, `${route.id}: glyph animations remained attached after cleanup`, details);
+  if (route.descriptionSelector) {
+    assert(description, `${route.id}: settled description state was unavailable`);
+    assert(
+      Number.isFinite(description.opacity) && description.opacity > 0 && description.opacity < 1,
+      `${route.id}: settled description must remain visibly subordinate to its title`,
+      description,
+    );
+    assert(description.inlineOpacity === '', `${route.id}: description kept an inline opacity`, description);
+    assert(description.animationCount === 0, `${route.id}: description animations remained attached`, description);
+  }
   Object.entries(titleDelta).forEach(([metric, value]) => {
     assert(Math.abs(value) <= 1 / 64, `${route.id}: title ${metric} changed during cleanup`, details);
   });
@@ -195,7 +235,13 @@ async function auditRoute(page, route) {
   });
 
   await page.screenshot({ path: resolve(outputRoot, `${route.id}-settled.png`) });
-  return { id: route.id, titleDelta, glyphDelta, color: settled.glyphColor };
+  return {
+    id: route.id,
+    titleDelta,
+    glyphDelta,
+    color: settled.glyphColor,
+    descriptionOpacity: description?.opacity ?? null,
+  };
 }
 
 async function main() {
