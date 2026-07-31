@@ -16,6 +16,8 @@
   --playground-overlay-inset: clamp(18px, 3.2vw, 48px);
   --playground-focus-width: var(--abs-focus-ring-width, 2px);
   --playground-focus-offset: max(var(--abs-focus-ring-offset, 3px), 3px);
+  --playground-periphery-veil-size: 10dvw;
+  --playground-periphery-veil-opacity: 0.4;
   --playground-copy-shadow: radial-gradient(
     ellipse at center,
     var(--studio-window-bg) 0%,
@@ -41,6 +43,17 @@
   pointer-events: auto;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.playground-route::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  box-shadow: inset 0 0 var(--playground-periphery-veil-size)
+    var(--studio-window-bg);
+  opacity: var(--playground-periphery-veil-opacity);
+  pointer-events: none;
 }
 
 .playground-route[data-playground-ready='false'] {
