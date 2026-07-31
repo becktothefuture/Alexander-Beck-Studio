@@ -94,7 +94,7 @@ export function ContactRouteContent() {
       : 'ti ti-copy';
 
   return (
-    <div className="route-centered-page contact-route" data-route-content="contact">
+    <div className="route-centered-page contact-route">
       <section id="contact-route-content" className="route-centered-page__inner route-title-lockup contact-route__inner" aria-labelledby="contact-route-title">
         <h1
           id="contact-route-title"

@@ -12,7 +12,7 @@ const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const viewportFilter = String(process.env.ABS_THEME_WALL_VIEWPORT || '').trim().toLowerCase();
 const NAVIGATION_TIMEOUT_MS = 60_000;
-const routes = ['/', '/portfolio.html', '/about.html', '/contact.html'];
+const routes = ['/', '/portfolio.html', '/about.html', '/contact.html', '/playground.html'];
 const viewports = [
   { name: 'mobile-min-320', width: 320, height: 720, deviceScaleFactor: 2, isMobile: true },
   { name: 'mobile-edge-340', width: 340, height: 760, deviceScaleFactor: 2, isMobile: true },
@@ -62,11 +62,16 @@ const geometryKeys = new Set([
   'wallX', 'wallY', 'wallWidth', 'wallHeight',
   'canvasX', 'canvasY', 'canvasWidth', 'canvasHeight',
   'physicsBoundaryX', 'physicsBoundaryY', 'physicsBoundaryWidth', 'physicsBoundaryHeight',
+  'activePrimaryTabX', 'activePrimaryTabWidth', 'activePrimaryTabHeight',
+  'activePrimaryContentWidth', 'activePrimaryInlinePadding',
+  'activePrimaryPillX', 'activePrimaryPillWidth', 'activePrimaryPillHeight',
 ]);
 const physicalBoundaryKeys = new Set([
   'canvasX', 'canvasY', 'canvasWidth', 'canvasHeight',
   'physicsBoundaryX', 'physicsBoundaryY', 'physicsBoundaryWidth', 'physicsBoundaryHeight',
-  'physicsBoundaryRadius', 'rimX', 'rimY', 'rimWidth', 'rimHeight',
+  'physicsBoundaryRadius', 'physicsBoundaryAuthoredInset', 'physicsBoundaryInset',
+  'physicsBoundaryOuterRadius', 'physicsBoundaryCornerShape', 'physicsCanvasGeneration',
+  'rimX', 'rimY', 'rimWidth', 'rimHeight',
 ]);
 const themeVariantKeys = new Set([
   'theme',
@@ -768,7 +773,10 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
   const expectedHeight = Number(state.activePrimaryTabHeight) * 0.8;
   const expectedWidth = Math.min(
     Number(state.activePrimaryTabWidth),
-    Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
+    Math.max(
+      44,
+      Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
+    ),
   );
   const expectedX = Number(state.activePrimaryTabX)
     + ((Number(state.activePrimaryTabWidth) - Number(state.activePrimaryPillWidth)) / 2);
@@ -822,7 +830,6 @@ async function auditRoute(browser, route, viewport) {
     await page.waitForFunction(() => Boolean(window.__ABS_FRAME_RADIUS_AUDIT__?.getSnapshot), undefined, {
       timeout: 15000,
     });
-
     const lightState = await readInvariantState(page);
     assertExactRadiusContract(lightState, route, viewport);
     assertExactSimulationRadiusContract(lightState, route, viewport);

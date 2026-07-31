@@ -118,7 +118,6 @@ reportMatches('react-app/app/src/legacy/modules/modes/pressure-crucible.js', pre
 ]);
 
 const opaqueDefaultFiles = [
-  'react-app/app/public/config/design-system.json',
   'react-app/app/public/config/napoleon-point-cloud-demo.json',
   'react-app/app/public/config/spatial-scan-demo.json',
   'react-app/app/src/legacy/modules/core/state.js',
@@ -137,6 +136,17 @@ const softDefaultPatterns = [
 for (const relativePath of opaqueDefaultFiles) {
   reportMatches(relativePath, readFileSync(resolve(root, relativePath), 'utf8'), softDefaultPatterns);
 }
+
+// The authored design config also owns the unrelated 2D Playground dot field,
+// whose dots may intentionally use partial opacity. Keep enforcing the 3D
+// Continuity material contract here without treating every `dotOpacity` key as
+// a point-cloud default.
+const designSystemConfigPath = 'react-app/app/public/config/design-system.json';
+reportMatches(
+  designSystemConfigPath,
+  readFileSync(resolve(root, designSystemConfigPath), 'utf8'),
+  softDefaultPatterns.filter(({ label }) => label !== 'point-cloud front/default opacity must be 1'),
+);
 
 walkMarkdown(resolve(root, 'docs'));
 

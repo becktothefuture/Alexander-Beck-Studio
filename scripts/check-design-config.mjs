@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,6 +52,42 @@ async function main() {
   const designSystem = normalizeDesignSystemConfig(currentDesignSystem);
   const derived = deriveLegacyConfigFiles(designSystem);
   const stale = [];
+
+  assert.ok(
+    currentDesignSystem.playground && typeof currentDesignSystem.playground === 'object',
+    'design-system.json must include the canonical playground namespace',
+  );
+  assert.deepEqual(
+    designSystem.playground,
+    currentDesignSystem.playground,
+    'canonical Playground values must survive normalization',
+  );
+
+  const playgroundSentinel = {
+    ...currentDesignSystem.playground,
+    layoutPreset: 'clustered',
+    layoutSeed: 314159,
+    minimumWorldColumns: 152,
+    projectSpacing: 2.15,
+    dotRadiusPx: 3.25,
+  };
+  const normalizedSentinel = normalizeDesignSystemConfig({
+    ...currentDesignSystem,
+    playground: {
+      ...playgroundSentinel,
+      diagnostics: { projectCount: 999 },
+    },
+  });
+  assert.deepEqual(
+    normalizedSentinel.playground,
+    playgroundSentinel,
+    'nested Playground values must survive a synthetic normalization round trip',
+  );
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(normalizedSentinel.playground, 'diagnostics'),
+    false,
+    'read-only Playground diagnostics must not enter canonical config',
+  );
 
   for (const file of CONFIG_FILES) {
     const actual = await readJson(file.path);

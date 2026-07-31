@@ -2,7 +2,7 @@
 
 I help shape complexity into compelling experiences.
 
-I’ve always been drawn to the complicated bit.
+I’ve always been drawn to the complexity.
 
 New technology. New behaviours. How to inspire trust.
 

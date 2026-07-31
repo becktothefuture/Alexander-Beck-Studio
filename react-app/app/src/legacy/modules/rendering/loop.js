@@ -7,6 +7,7 @@ import { updatePhysics, render } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
 import { getGlobals } from '../core/state.js';
 import { isPitLikeMode, MODES } from '../core/constants.js';
+import { advanceFrameScheduler } from './frame-scheduler.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Frame timing and throttling state
@@ -19,10 +20,6 @@ let frameId = null;
 let frameCounter = 0;
 let visibilityListenerBound = false;
 let cachedTargetFPS = 60;
-// A real 60 Hz display commonly reports frame intervals just below 16.667 ms.
-// Without this tolerance, the scheduler can reject every other frame and turn a
-// healthy mobile 60 Hz cadence into a visibly sluggish 30 FPS cadence.
-const FRAME_INTERVAL_TOLERANCE_MS = 0.75;
 /** When true, visibility resume must not restart the loop (SPA left sim route). */
 let mainLoopStopped = false;
 /** Latest `frame` callback from `startMainLoop` (visibility handler registers only once). */
@@ -243,20 +240,19 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
       return;
     }
 
-    frameCounter++;
     const globals = getGlobals();
     const targetFPS = resolveTargetFPS(globals);
     cachedTargetFPS = targetFPS;
     const minFrameInterval = 1000 / targetFPS;
-    
-    const elapsed = nowMs - lastFrameTime;
-    if (elapsed + FRAME_INTERVAL_TOLERANCE_MS < minFrameInterval) {
+
+    const nextFrameTime = advanceFrameScheduler(lastFrameTime, nowMs, targetFPS);
+    if (nextFrameTime === null) {
       frameId = requestAnimationFrame(frame);
       return;
     }
-    // Maintain timing accuracy without drift while allowing dynamic target FPS.
-    lastFrameTime = nowMs - (elapsed % minFrameInterval);
-    
+    lastFrameTime = nextFrameTime;
+    frameCounter++;
+
     // Measure accepted render frames, not the scheduler's drift-corrected gate.
     // Using `elapsed` here makes a healthy 60 Hz loop look artificially slow
     // whenever the gate carries a small remainder into the next rAF callback.

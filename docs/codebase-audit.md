@@ -94,7 +94,7 @@ This matrix records the file-level review at the narrowest useful group boundary
 | `public/config/`, config loaders, flatteners, and `vite.dev-admin-plugin.js` | Own authored design/content and safe local persistence. | Load, validate, normalize, save, migrate, flatten, and compare canonical data. | JSON schemas/contracts, Vite virtual modules, local HTTP routes; generated config is a build interface. | Local file reads/writes, ETags, atomic rename/fsync for About, browser fetch. | Acceptable. Ownership is clear; request guards are inconsistent. |
 | `public/css/main.css`, `portfolio.css`, tokens, and component CSS | Apply the visual constitution and responsive behavior. | Shell, route, overlay, interaction, state, theme, and breakpoint presentation. | Canonical tokens and DOM class/data contracts; the cascade is an implicit interface. | Visual/layout behavior, focus visibility, text selection. | Difficult to maintain in global/Portfolio areas because ownership overlaps. |
 | `scripts/`, app scripts, and Node tests | Enforce project-specific source and runtime contracts. | Catalog/schema validation, geometry/transition tests, build checks, browser audits, screenshots, Studio operations. | Node, Playwright, app source/config; public interface is the root command set. | Builds, local servers, browser sessions, screenshots, generated reports. | Acceptable. Broad and purposeful, but the release subset is incomplete. |
-| `.github/workflows/gh-pages.yml` | Build and deploy committed `main`. | Install app dependencies, run canonical gate, build preview artifact, upload and deploy. | GitHub Actions, Node 20.19, Pages; workflow triggers on `main`. | Production deployment. | Very clear. Browser smoke coverage is the main gap. |
+| `.github/workflows/gh-pages.yml` | Validate and deploy committed `main`. | Install root/app dependencies, run the canonical gate, build and retain the preview artifact, run advisory smoke on `main`, then deploy only after validation. | GitHub Actions, Node 22.19, Pages; pull requests validate and `main` can deploy. | CI validation and production deployment. | Clear locally; remote qualification and branch protection remain unverified. |
 
 ### Comment opportunities
 
@@ -104,23 +104,26 @@ Most performance and compatibility hotspots already explain why they exist. The 
 
 | ID | Title | Status | Severity | Confidence | Effort | Change risk |
 | --- | --- | --- | --- | --- | --- | --- |
-| `OPS-001` | Ignored generated artifacts remain tracked | Planned | High | High | M for current tree; XL for history | High |
+| `OPS-001` | Ignored generated artifacts remain tracked | Resolved | High | High | M for current tree; XL for history | High |
 | `A11Y-001` | Global focus styling removes a reliable keyboard indicator | Planned | High | High | M | Medium |
-| `A11Y-002` | Home legend filters are click-only | Planned | Medium | High | S | Low |
-| `A11Y-003` | Primary landmarks and heading hierarchy are inconsistent | Planned | Medium | High | M | Medium |
+| `A11Y-002` | Home legend filters are click-only | Resolved | Medium | High | S | Low |
+| `A11Y-003` | Primary landmarks and heading hierarchy are inconsistent | Resolved | Medium | High | M | Medium |
 | `A11Y-004` | Light-theme supporting text misses the normal-text contrast target | Planned | Medium | Medium | S | Low |
-| `A11Y-005` | Portfolio reading text inherits disabled selection | Planned | Low | High | XS | Low |
-| `ARCH-001` | Route metadata is duplicated and already drifting | Planned | Medium | High | M | Medium |
-| `MAINT-001` | Central orchestrators concentrate too many responsibilities | Planned | Medium | High | L-XL, phased | High |
-| `MAINT-002` | Active legacy runtime has broad lint exemptions | Planned | Medium | High | M, phased | Medium |
+| `A11Y-005` | Portfolio reading text inherits disabled selection | Resolved | Low | High | XS | Low |
+| `ARCH-001` | Route metadata is duplicated and already drifting | Resolved | Medium | High | M | Medium |
+| `ARCH-002` | Standalone routes can be accepted by the SPA bridge but fail to settle | Resolved | Low | High | S-M | Medium |
+| `MAINT-001` | Central orchestrators concentrate too many responsibilities | Resolved | Medium | High | L-XL, phased | High |
+| `MAINT-002` | Active legacy runtime has broad lint exemptions | Resolved | Medium | High | M, phased | Medium |
 | `MAINT-003` | Global and Portfolio CSS ownership overlaps | Planned | Medium | High | L, phased | High |
-| `TEST-001` | Deploy validation does not exercise a browser or accessibility rules | Planned | Medium | High | M | Medium |
-| `DOC-001` | About and test documentation contradicts current code | Planned | Medium | High | S | Low |
-| `SEC-001` | Local write endpoints have inconsistent request hardening | Planned | Low | Medium | S-M | Low |
+| `TEST-001` | Deploy validation needs a qualified blocking browser signal | In progress | Medium | High | M | Medium |
+| `TEST-002` | Simulation lifecycle fault and WebKit geometry cases were not fully green | Resolved locally | Medium | High | S-M | Medium |
+| `PERF-001` | Runtime performance certification was unstable and red at baseline | Partially resolved | Medium | Medium | M | Medium |
+| `DOC-001` | About and test documentation contradicts current code | Resolved | Medium | High | S | Low |
+| `SEC-001` | Local write endpoints have inconsistent request hardening | Resolved | Low | Medium | S-M | Low |
 
 ## OPS-001 — Ignored generated artifacts remain tracked
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-04`, `MILESTONE-09`
 - **Severity:** High
 - **Confidence:** High
@@ -178,7 +181,9 @@ High for repository bloat and tracking drift; medium for privacy exposure becaus
 Run an ignored-but-tracked inventory, measure Git object size, test a fresh clone/install, and run `npm run check:site` after the current-tree cleanup.
 
 ### Notes
-Current-tree inventory and cleanup are planned in `MILESTONE-04` and decision-gated `MILESTONE-09`. Git history rewriting is deferred under `ADR-005` because it invalidates hashes, disrupts collaborators, and is not required to repair current hygiene. Current trace sampling found no authorization or cookie-key match, but that does not prove every historical capture is free of sensitive data.
+Current-tree inventory and cleanup were completed through `MILESTONE-04` and `MILESTONE-09`. Git history rewriting remains deferred under `ADR-005` because it invalidates hashes, disrupts collaborators, and is not required to repair current hygiene. Current trace sampling found no authorization or cookie-key match, but that does not prove every historical capture is free of sensitive data.
+
+`MILESTONE-04` was verified on 2026-07-30. Its deterministic policy-effective inventory contained 13,776 ignored tracked paths and 1,099,684,630 indexed bytes, and pre-commit enforcement rejects new staged `.playwright-*`, `node_modules`, `output`, and temporary artifacts by default. After `HD-02` approval, `MILESTONE-09` removed those exact paths from the index only. Independent review found zero staged source paths, verified all local copies remain present, and confirmed the ignored-tracked inventory is zero. No history rewrite occurred.
 
 ## A11Y-001 — Global focus styling removes a reliable keyboard indicator
 
@@ -241,7 +246,7 @@ The dominant Button Bar stylesheet has a specific outline, so the defect is not 
 
 ## A11Y-002 — Home legend filters are click-only
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-06`
 - **Severity:** Medium
 - **Confidence:** High
@@ -297,9 +302,11 @@ Use keyboard-only operation on Home, assert button semantics and selected state 
 ### Notes
 Changing the element to a semantic button is preferable to adding a custom button role and key handler to a `div`.
 
+Resolved in `MILESTONE-06`. The legend now uses native buttons with `aria-pressed`, an explicitly controlled live status region, and an idempotent runtime disposer. Desktop and mobile activation, clearing, and Canvas SPA remount behavior passed browser verification.
+
 ## A11Y-003 — Primary landmarks and heading hierarchy are inconsistent
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-06`
 - **Severity:** Medium
 - **Confidence:** High
@@ -353,10 +360,12 @@ Medium because route mounts, style selectors, and transition surfaces may depend
 High.
 
 ### Verification
-Inspect the accessibility tree for all four primary routes, assert one meaningful `main` and one route `h1`, and run route-transition checks to confirm wrapper changes do not affect lifecycle selectors.
+Inspect the accessibility tree for all five primary routes, assert one meaningful `main` and one route `h1`, and run route-transition checks to confirm wrapper changes do not affect lifecycle selectors.
 
 ### Notes
 The semantic heading can remain visually hidden where the Canvas owns presentation. This finding does not recommend moving Canvas content into the DOM.
+
+Resolved in `MILESTONE-06`. `SiteApp` now supplies explicit route landmark metadata to a stable `#simulations` shell node, so primary routes expose one labelled main landmark without changing the node across SPA transitions. Direct and SPA semantic checks cover Home, Portfolio, production About, and Contact; development About retains its internal landmark contract.
 
 ## A11Y-004 — Light-theme supporting text misses the normal-text contrast target
 
@@ -420,7 +429,7 @@ The issue metadata uses Medium confidence because the user-visible pixel result 
 
 ## A11Y-005 — Portfolio reading text inherits disabled selection
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-06`
 - **Severity:** Low
 - **Confidence:** High
@@ -465,6 +474,10 @@ Extra small.
 ### Change risk
 Low.
 
+### Resolution
+
+Resolved in `MILESTONE-06`. Text selection is restored only for headings, paragraphs, captions, and links inside the Portfolio project reading surface. The orbital deck remains non-selectable, and all six drawers plus desktop, tablet, mobile, stress, remount, and reduced-motion carousel paths passed.
+
 ### Confidence
 High.
 
@@ -476,7 +489,7 @@ Limit the override to reading content. Selection should remain disabled on drag-
 
 ## ARCH-001 — Route metadata is duplicated and already drifting
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-05`, `MILESTONE-08`
 - **Severity:** Medium
 - **Confidence:** High
@@ -489,7 +502,7 @@ Limit the override to reading content. Selection should remain disabled on drag-
 - **Change risk:** Medium
 
 ### Summary
-Route identity is repeated across Vite inputs, HTML files, entry modules, `routes.js`, `SiteApp` descriptors, `StudioShell` route-scene metadata, the simulation catalog, and validators. `StudioShell` currently omits explicit scene cases for `rift-rings` and `loader-playground`, so both fall through to the Home scene metadata wrapper. Unknown same-origin paths also resolve as Home, which makes `isInternalRouteHref` accept them as valid internal routes.
+Route identity is repeated across Vite inputs, HTML files, entry modules, `routes.js`, `SiteApp` descriptors, `StudioShell` route-scene metadata, the simulation catalog, and validators. The baseline audit correctly found that `rift-rings` lacked an explicit shared-shell scene, but incorrectly classified standalone `loader-playground` as another shell omission. M05 corrected that assumption, repaired Rift Rings, removed the unreachable standalone Simulations scene, and added fail-closed relationship validation. Unknown same-origin paths still resolve as Home, which makes `isInternalRouteHref` accept them as valid internal routes.
 
 ### Why it matters
 Adding or renaming a route requires synchronized edits across several registries. Drift can produce correct-looking content with incorrect route metadata, diagnostics, structured identifiers, prewarming, or transition behavior. Unknown links can be intercepted as Home instead of receiving a normal missing-page response.
@@ -508,17 +521,19 @@ Adding or renaming a route requires synchronized edits across several registries
 ### Evidence
 
 - The same route identifiers are manually declared at multiple layers.
-- `rift-rings` and `loader-playground` exist in Vite, `routes.js`, and `SiteApp`, but not in `StudioShell`’s explicit scene switch.
-- Current validators check only subsets of the full registry relationship.
-- `resolveRouteFromPathname` falls back to Home for no match.
+- Before M05, `rift-rings` fell through to the Home scene wrapper, while `loader-playground` and `simulations` were standalone views that bypassed `StudioShell`; the Simulations switch case was unreachable.
+- M05 now derives route-view ownership and standalone/shared-shell applicability from the authored `SiteApp` imports and view functions.
+- `npm run validate:route-registry:fixtures` proves 36 omission and drift classes fail closed; the normal validator reconciles 29 Vite inputs, 24 entry modules, 21 `SiteApp` routes, and 15 reachable shell scenes.
+- `resolveRouteFromPathname` still falls back to Home for no match.
 
 ### Suggested direction
 Create one source-readable route manifest that generates or validates the route definitions that can share metadata. Keep view/runtime imports explicit if needed for bundling, but make omission detectable. Distinguish an unknown route from Home at the resolver boundary.
 
 ### Acceptance criteria
 
-- Every built route has one validated ID, path, aliases, entry, view descriptor, shell metadata, and catalog relationship where applicable.
-- `rift-rings` and `loader-playground` expose their own route scene metadata.
+- Every built route has one validated ID, path, aliases, entry, view descriptor, route-view kind, and catalog relationship where applicable.
+- Every shared-shell route has reachable shell metadata; standalone routes cannot add dead shell scenes.
+- `rift-rings` exposes its own exact scene identity and literal route-view metadata.
 - Unknown same-origin paths are not reported as valid Home links.
 - A validator fails when any supported registry drifts.
 - Primary route transitions and all lab direct loads still pass.
@@ -533,27 +548,66 @@ Medium because Vite inputs, lazy imports, history handling, and browser audits d
 High.
 
 ### Verification
-Extend the registry validator, direct-load every built entry, test unknown same-origin links, and run SPA history/transition audits.
+M05 passed the 36-fixture route validator, HTML and simulation validation, the canonical site gate, release smoke, direct Loader/Simulations/Rift checks, and a Home-to-Rift SPA check. M08 must test unknown same-origin links and repeat the complete SPA history/transition matrix if `HD-01` is approved.
 
 ### Notes
-The current lab-route mismatch mainly affects shell metadata because `data-shell-route-view` still receives the real route key. That limits current impact but confirms the structural drift. Full consolidation is decision-gated on `HD-01`; validation and the current mismatch repair can proceed independently in `MILESTONE-05`.
+M05 completed phase 1 on 2026-07-30. The original Loader shell requirement was a false assumption: its view declares `layout: 'standalone'`, and `SiteApp` renders it without `StudioShell`. After `HD-01` approval, M08 created one source-readable manifest for route identity, removed unknown-route Home fallback, preserved explicit view/runtime imports, expanded fail-closed validation to 53 fixtures, and passed independent review.
+
+## ARCH-002 — Standalone routes can be accepted by the SPA bridge but fail to settle
+
+- **Status:** Resolved
+- **Roadmap milestones:** None; candidate follow-up after M08 or a dedicated transition milestone
+- **Severity:** Low
+- **Confidence:** High
+- **Category:** Architecture
+- **Files:** `react-app/app/src/hooks/useShellRouteTransition.js`, `react-app/app/src/lib/spa-navigation.js`, `react-app/app/src/routes/loader-playground/LoaderPlaygroundRoute.jsx`
+- **Related issues:** `ARCH-001`, `MAINT-001`
+- **Blocked by:** Route-type ownership decision
+- **Blocks:** None
+- **Estimated effort:** S-M
+- **Change risk:** Medium
+
+### Summary
+The internal SPA bridge accepts the known Loader Playground URL and returns `true`, but a Rift-to-Loader probe remained on Rift after the transition rolled back. Loader is a standalone route and its supported catalogue launch opens a new tab, so this is not an M05 shell-metadata defect.
+
+### Why it matters
+An internal caller can interpret `true` as a completed SPA handoff even though the standalone destination cannot settle through the shared-shell readiness path.
+
+### Evidence
+
+- `LoaderPlaygroundRoute.jsx` declares `layout: 'standalone'`.
+- `SiteApp` renders standalone `mainContent` directly instead of `StudioShell`.
+- `__ABS_SPA_NAVIGATE__('/lab/loader-playground.html')` returned `true`, but the route remained Rift Rings after the bounded readiness window with no console or page error.
+- The relevant transition and route-type code was unchanged by M05, so the behavior is pre-existing.
+
+### Suggested direction
+Make route type explicit at the navigation boundary. Either return `false` so standalone destinations use hard navigation, or add a separately characterized standalone transition path. Do not make standalone views pretend to be shared-shell scenes.
+
+### Acceptance criteria
+
+- A standalone destination either performs a documented hard navigation or settles through an explicitly supported transition path.
+- The bridge return value accurately reports whether it handled the destination.
+- Shared-shell route transitions, history, readiness, and failure recovery remain unchanged.
+
+### Verification
+M08 makes the shared-shell navigation bridge accept only manifest routes with `layout: 'shared-shell'`. Focused Chromium and WebKit probes confirmed Loader and Simulations return `false`, leave the Home URL and shell identity unchanged, and create no route-transition marker. Normal browser/direct-load behavior now owns standalone destinations.
 
 ## MAINT-001 — Central orchestrators concentrate too many responsibilities
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-11`, `MILESTONE-13`, `MILESTONE-14`, `MILESTONE-15`
 - **Severity:** Medium
 - **Confidence:** High
 - **Category:** Maintainability
 - **Files:** `react-app/app/src/hooks/useShellRouteTransition.js`, `react-app/app/src/legacy/modules/ui/control-registry.js`, `react-app/app/src/legacy/modules/portfolio/app.js`
 - **Related issues:** `ARCH-001`, `MAINT-002`, `MAINT-003`
-- **Blocked by:** Characterization coverage for each extraction
+- **Blocked by:** None
 - **Blocks:** None
 - **Estimated effort:** L-XL, phased
 - **Change risk:** High
 
 ### Summary
-Several modules have grown into broad orchestration surfaces: `src/hooks/useShellRouteTransition.js` is about 3,175 lines, `src/legacy/modules/ui/control-registry.js` about 6,753 lines, and `src/legacy/modules/portfolio/app.js` about 4,109 lines. Each mixes multiple forms of policy, state, rendering, event binding, timing, recovery, and persistence.
+Several modules grew into broad orchestration surfaces: before M13, `src/hooks/useShellRouteTransition.js` was about 3,175 lines; before M14, `src/legacy/modules/ui/control-registry.js` was about 6,753 lines; and before M15, `src/legacy/modules/portfolio/app.js` was about 4,109 lines. Each mixed multiple forms of policy, state, rendering, event binding, timing, recovery, and persistence. M13 reduced the hook to about 2,864 lines by extracting the complete route-readiness observation boundary without moving transaction mutation. M14 reduced the registry to about 6,573 lines by extracting the simulation-atmosphere definition family without moving panel behavior. M15 reduced Portfolio `app.js` to about 3,893 lines and moved data/config/content normalization plus thumbnail prewarming behind focused ownership boundaries without touching orbital interaction.
 
 ### Why it matters
 The issue is responsibility density, not line count alone. Changes require large context, unrelated contracts can interact through private state, and focused unit testing is difficult. These files sit on animation, route, or authoring hot paths, so broad rewrites have high regression risk.
@@ -570,6 +624,11 @@ The issue is responsibility density, not line count alone. Changes require large
 - The transition hook owns URL/history, transaction state, prewarming, route/simulation transitions, readiness, failure recovery, atmosphere coordination, and focus settlement.
 - The control registry owns control schemas, visibility persistence, grouping, preset behavior, HTML generation, event binding, and UI synchronization.
 - Portfolio’s application class owns configuration, rendering, input, geometry, animation, selection, accessibility, drawer handoff, and lifecycle.
+- M13 moved route-specific readiness predicates, generation-qualified events, polling, timeout, failure, cancellation, and cleanup into `src/lib/motion/route-transition-readiness.js`. The hook retains when observation begins and how the result advances or recovers the transaction. Deterministic tests pass 28/28, the hotspot suite passes 12/12, and Chromium/WebKit transition/runtime audits passed independent review.
+- M14 moved four simulation-atmosphere sections containing 11 controls into `src/legacy/modules/ui/control-definitions/simulation-atmosphere-controls.js`. The exact 37-section/336-control contract, public exports, rendering, binding, persistence, metadata, parse/format behavior, and representative runtime apply/hydration callbacks passed characterization. The final control suite passes 6/6, the combined hotspot suite passes 14/14, and independent review found no remaining issue.
+- M15 moved cached loading and project normalization to `portfolio-data.js`/`portfolio-content.js`, runtime normalization to `portfolio-config.js`, and thumbnail prewarming to `portfolio-prewarm.js`. Its exact-one DOM contract now drives real Chromium/WebKit direct, SPA, and remount assertions. Full Portfolio interaction, drawer, reversal, focus, reduced-motion, and transition evidence passed; independent review accepted the final corrected boundaries.
+
+The planned M11/M13/M14/M15 programme is complete. The remaining large modules are intentional active orchestrators; further extraction requires a new measured issue rather than silently extending this scope.
 
 ### Suggested direction
 Do not rewrite these systems. Add characterization tests around the existing public behavior, then extract one stable responsibility at a time behind current interfaces. Good first seams are declarative control definitions versus panel rendering, Portfolio content/data normalization versus runtime interaction, and transition observation/diagnostics versus transaction mutation.
@@ -599,7 +658,7 @@ Large files are not defects by themselves. Keep the current approach until a tes
 
 ## MAINT-002 — Active legacy runtime has broad lint exemptions
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-10`
 - **Severity:** Medium
 - **Confidence:** High
@@ -651,6 +710,8 @@ Enable each rule on a narrow file set, review every new diagnostic, run lint and
 
 ### Notes
 Compatibility fields and intentionally swallowed optional-capability errors need targeted documentation or suppressions, not mechanical deletion.
+
+Resolved in `MILESTONE-10` with a measured, behavior-neutral ratchet. Normal unused-variable checking now applies to 85 of 118 legacy files; 85 existing findings in 33 files are tracked by exact reviewed signatures. Strict empty-block checking records 138 existing catches in 28 explicitly reasoned best-effort files. Added, removed, shifted, substituted, aliased, traversing, or out-of-tree debt fails the canonical check and requires an explicit baseline review.
 
 ## MAINT-003 — Global and Portfolio CSS ownership overlaps
 
@@ -711,9 +772,9 @@ Compare computed styles and approved screenshots before and after every selector
 ### Notes
 Treat source order as current behavior. This is an ownership cleanup, not authorization for visual redesign or global CSS-module conversion.
 
-## TEST-001 — Deploy validation does not exercise a browser or accessibility rules
+## TEST-001 — Deploy validation needs a qualified blocking browser signal
 
-- **Status:** Planned
+- **Status:** In progress
 - **Roadmap milestones:** `MILESTONE-01`
 - **Severity:** Medium
 - **Confidence:** High
@@ -726,7 +787,7 @@ Treat source order as current behavior. This is an ownership cleanup, not author
 - **Change risk:** Medium
 
 ### Summary
-The repository has 48 Playwright-related audit scripts, but the GitHub Pages workflow runs only the canonical source/lint/config/build gate. It does not start a production preview, load a primary route, validate Canvas/runtime readiness in a browser, or run an accessibility rule set.
+At baseline, the GitHub Pages workflow ran only the canonical source/lint/config/build gate. The current local workflow adds a bounded production-preview smoke, but remote qualification and blocking enforcement are still pending.
 
 ### Why it matters
 The site depends on browser layout, Canvas backing stores, animation lifecycle, focus, computed CSS, history transitions, and browser-family behavior. A green build can still deploy a broken interaction or inaccessible route.
@@ -746,12 +807,12 @@ The site depends on browser layout, Canvas backing stores, animation lifecycle, 
 - Existing browser audits are extensive but optional and can be expensive.
 
 ### Suggested direction
-Add a small, stable production-preview smoke gate rather than running the full matrix on every deploy. Cover direct load and navigation for the four primary routes, runtime readiness, one Canvas backing-store assertion, and representative keyboard/focus semantics. Keep deep Chromium/WebKit matrices targeted or scheduled.
+Add a small, stable production-preview smoke gate rather than running the full matrix on every deploy. Cover direct load and navigation for the five manifest-derived primary routes, runtime readiness, one Canvas backing-store assertion, and representative keyboard/focus semantics. Keep deep Chromium/WebKit matrices targeted or scheduled.
 
 ### Acceptance criteria
 
 - CI builds and serves the production output before deploy.
-- A browser loads Home, Portfolio, About, and Contact without runtime failure.
+- A browser loads Home, Portfolio, About, Contact, and Playground without runtime failure.
 - Primary navigation and one SPA return path pass.
 - Representative focus/landmark assertions fail on regressions.
 - The smoke gate has a documented time budget and low flake rate.
@@ -772,9 +833,63 @@ Run the proposed smoke job repeatedly on pull requests or a test branch, record 
 ### Notes
 The repository already has deep browser audits. The gap is a small required release signal, not a lack of browser tooling.
 
+`MILESTONE-01` was implemented locally on 2026-07-30 and hardened on 2026-07-31. The current smoke derives all five routes from the manifest, uses route-aware focus discovery, rejects unexpected console errors, covers unknown-path fallback, and retains failure artifacts. The local workflow remains advisory until five stable GitHub Actions runs satisfy the eight-minute budget and branch protection is confirmed. This external part of the issue remains open.
+
+## TEST-002 — Simulation lifecycle fault and WebKit geometry cases were not fully green
+
+- **Status:** Resolved locally on 2026-07-31
+- **Roadmap milestones:** None; discovered during `MILESTONE-14` integration
+- **Severity:** Medium
+- **Confidence:** High
+- **Category:** Testing and runtime recovery
+- **Files:** simulation-switch lifecycle audits and the route/simulation transition runtime
+- **Related issues:** `TEST-001`, `PERF-001`
+- **Blocked by:** A focused fault-recovery investigation and an evidence-based geometry tolerance decision
+- **Blocks:** Release-grade simulation lifecycle certification; does not block the definition-only M14 extraction
+- **Estimated effort:** S-M
+- **Change risk:** Medium
+
+### Summary
+
+At discovery, Chromium and WebKit preload-fault cases reported `failure-did-not-recover-outgoing:repel-room`. Separate WebKit reduced-motion runs reproduced title-centre drift just above the former threshold.
+
+### Evidence and decision
+
+The corrected focused browser evidence passes Chromium/WebKit geometry and all 6 fault cases. The fault injector proves the intercepted preload request and the loading, retrying, and failed states while preserving the outgoing pit and preventing commit/publication. No production geometry or lifecycle change was required.
+
+### Suggested direction and verification
+
+Keep the analysis contract and focused browser matrix in the canonical local gate. Re-run the broader lifecycle and transition suites when lifecycle production code changes.
+
+## PERF-001 — Runtime performance certification was unstable and red at baseline
+
+- **Status:** Partially resolved on 2026-07-31
+- **Roadmap milestones:** None; discovered during `MILESTONE-14` integration
+- **Severity:** Medium
+- **Confidence:** Medium
+- **Category:** Performance testing
+- **Files:** runtime-performance audit and simulation frame loops
+- **Related issues:** `MAINT-001`, `TEST-002`
+- **Blocked by:** A stable warm-up, sampling, and comparison contract
+- **Blocks:** Release-grade performance certification; does not block the definition-only M14 extraction
+- **Estimated effort:** M
+- **Change risk:** Medium
+
+### Summary
+
+At discovery, runtime-performance samples missed the frame-time gate and varied enough that optimization would have been premature. The current contract separates cold and warm repeats, records the environment and exact artifact, caps measured cadence at the observed refresh ceiling, and fails every invalid repeat.
+
+### Evidence and decision
+
+The stable Chromium artifact is a mode-pass. The current WebKit artifact is environment-invalid, not a mode failure. This supports Chromium confidence but does not establish cross-browser release certification.
+
+### Suggested direction and verification
+
+Re-run WebKit in a stable host environment without changing the threshold. Keep the raw and classified artifacts together so an environment-invalid sample cannot be reported as a production performance failure or pass.
+
 ## DOC-001 — About and test documentation contradicts current code
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-03`
 - **Severity:** Medium
 - **Confidence:** High
@@ -833,9 +948,11 @@ Check every changed command against `package.json`, every referenced path agains
 ### Notes
 `MILESTONE-03` documents current behavior without requiring a launch decision. A future public About launch is deferred to separate product work under `HD-05`; if that decision changes, update code and all canonical documents together instead of only rewriting prose.
 
+Resolved by `MILESTONE-03` on 2026-07-30. `README.md`, `DESIGN.md`, `docs/reference/SYSTEM-ARCHITECTURE.md`, and `docs/development/DEV-WORKFLOW.md` now agree that production renders `AboutComingSoon`, the spatial narrative/editor is development-only, and the repository has source/configuration, Node, and Playwright verification layers. Command, path, malformed-token, focused diff, and integrated site-gate checks passed.
+
 ## SEC-001 — Local write endpoints have inconsistent request hardening
 
-- **Status:** Planned
+- **Status:** Resolved
 - **Roadmap milestones:** `MILESTONE-02`
 - **Severity:** Low
 - **Confidence:** Medium
@@ -892,12 +1009,14 @@ Add endpoint tests for origin, content type, payload size, invalid JSON, path co
 ### Notes
 This is defense in depth for a local-only surface. The audit found no production write server and does not classify the client-side gate as security.
 
+Resolved by `MILESTONE-02` on 2026-07-30. Every local POST authoring route now uses one strict origin, JSON media-type, declared/streamed size, parse, endpoint-validation, and real-path containment contract. The focused 8-test contract is part of `npm run check:site`; it preserves valid temporary saves, About ETag/conflict/diagnostics, and the public mirror's `/api/*` and `/@fs/*` 404 boundary. Independent review findings were fixed and re-reviewed with no remaining findings.
+
 ## Simplification assessment
 
 ### Route metadata (`ARCH-001`)
 
 **Current approach**
-Route identity is repeated in Vite inputs, HTML/entry modules, route definitions, app descriptors, shell metadata, catalogs, and partial validators.
+Route identity is repeated in Vite inputs, HTML/entry modules, route definitions, app descriptors, shell metadata, and catalogs. M05 now validates the relationships completely, but it does not remove the authored duplication.
 
 **Simpler approach**
 Use one source-readable manifest for shared route identity and make bundler-specific imports explicit consumers of that manifest. Add complete validation before removing any declaration.
@@ -912,7 +1031,7 @@ A generated or shared manifest can obscure bundler imports if it becomes too dyn
 Runtime behavior should remain unchanged, except that unknown paths should stop resolving as valid Home routes.
 
 **Recommendation**
-Simplify later. Add complete drift validation first.
+Simplify later. Complete drift validation is now in place; consolidation and unknown-route behavior remain gated by M08 and `HD-01`.
 
 ### Central orchestrators (`MAINT-001`)
 
@@ -1324,7 +1443,7 @@ The audit inspected the root/tooling boundary, all entry and route registries, p
 
 1. `A11Y-001` — a global focus fallback is suppressed.
 2. `OPS-001` — ignored generated artifacts remain tracked and make repository cleanup sensitive.
-3. `ARCH-001` — repeated route metadata has confirmed current drift.
+3. `ARCH-001` — repeated route metadata remains coupled even though M05 repaired and now detects current drift.
 4. `TEST-001` — the deploy gate does not exercise a browser or accessibility rules.
 5. `MAINT-001` and `MAINT-003` — high change risk if treated as rewrites instead of phased, characterized work.
 
@@ -1333,7 +1452,7 @@ The audit inspected the root/tooling boundary, all entry and route registries, p
 1. Make Home legend filters semantic and keyboard-operable (`A11Y-002`).
 2. Restore text selection only in Portfolio reading content (`A11Y-005`).
 3. Reconcile About and test documentation (`DOC-001`).
-4. Make route validation fail on the two current shell-metadata omissions before registry consolidation (`ARCH-001`).
+4. Keep the completed route validator as the prerequisite for any later registry consolidation (`ARCH-001`).
 5. Add one bounded production-preview browser smoke job (`TEST-001`).
 
 ### Areas that should not be changed casually
@@ -1358,3 +1477,103 @@ Scores describe the repository at this baseline, including both production code 
 ## Readiness statement
 
 The codebase is ready for roadmap planning. Use the permanent issue IDs in this document as the backlog keys. Start with accessibility, route-registry validation, documentation truth, and a small browser release smoke. Treat large orchestrator, CSS, and repository-history work as separate, characterization-first programs with explicit rollback and browser evidence.
+
+## Independent verification update — 2026-07-30
+
+This update preserves the baseline audit above. `docs/refactoring-review.md` contains the full evidence, architecture comparison, milestone verdicts, and scores.
+
+### Superseding status table
+
+| Issue | Independent status | Evidence |
+| --- | --- | --- |
+| `OPS-001` | Verified resolved | M09 commit `7fdb9ec6`; current ignored-tracked inventory is zero. |
+| `A11Y-001` | Verified resolved locally | The final coherent M07 report passes all 40 route/browser/theme/viewport states. |
+| `A11Y-002` | Verified resolved | Native pressed controls and state synchronization are present. |
+| `A11Y-003` | Verified resolved | Five primary direct loads passed landmark and heading checks. |
+| `A11Y-004` | Verified resolved locally | M07 rendered-pixel and focus evidence passes all 40 states. |
+| `A11Y-005` | Verified resolved | Portfolio reading content is selectable while interaction surfaces remain protected. |
+| `ARCH-001` | Verified resolved | Manifest ownership and 55 fail-closed drift fixtures pass. |
+| `ARCH-002` | Verified resolved | Standalone destinations decline shared-shell SPA handling. |
+| `MAINT-001` | Partially resolved; reopened | Stable seams landed, but the three central orchestrators remain 2,874, 6,573, and 3,915 lines. |
+| `MAINT-002` | Verified resolved | Exact lint ratchet and mutation fixtures pass. |
+| `MAINT-003` | Verified resolved locally for approved M16 scope | Fourteen approved Portfolio blocks moved ownership. Rule counts changed 1605/483 to 1589/499, overlaps 428 to 413, exact overlaps 36 to 16, and both approved residual-conflict counts are zero. M12/M16 browser evidence retained computed signature `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`. |
+| `TEST-001` | Partially resolved | The local five-route smoke and CI workflow pass source checks. Remote qualification, blocking promotion, and branch protection remain pending. |
+| `TEST-002` | Verified resolved locally | Chromium/WebKit geometry and all 6 lifecycle fault cases pass. |
+| `PERF-001` | Partially resolved | Chromium has a stable mode-pass artifact. WebKit is environment-invalid, not a mode failure; cross-browser certification remains incomplete. |
+| `DOC-001` | Verified resolved | About production/development truth is consistent; later programme-record drift is tracked as `DOC-002`. |
+| `SEC-001` | Verified resolved | Shared local-write hardening passes 12/12 focused checks. |
+
+### New issue register
+
+#### ARCH-003 — Unknown direct URLs can crash initial route state
+
+- **Category:** Architecture / correctness
+- **Severity:** Medium
+- **Status:** Verified resolved locally on 2026-07-31
+- **Evidence:** Null-route startup now preserves the unknown URL and uses an explicit Home fallback state. The production fallback-host browser audit and route-transition tests pass.
+- **Acceptance:** Define explicit null-route startup behavior and pass a browser integration test in which the host returns the app shell for an unknown path.
+- **Effort/risk:** Small / low.
+
+#### ARCH-004 — Active legacy runtime retains a cyclic component
+
+- **Category:** Architecture
+- **Severity:** Medium
+- **Status:** Partially resolved; remaining cycle is characterized
+- **Evidence:** A focused mode-button seam reduced the active component from 12 modules and 23 internal edges to 9 modules and 15 internal edges. The fail-closed cycle check passes; the remaining component is still architecture debt.
+- **Acceptance:** Document the cycle and select at most one stable dependency-inversion seam before implementation.
+- **Effort/risk:** Small audit; medium implementation / high if broadened.
+
+#### A11Y-006 — WebKit Portfolio gate can blur its own content
+
+- **Category:** Accessibility / visual correctness
+- **Severity:** Medium
+- **Status:** Verified resolved locally on 2026-07-31
+- **Evidence:** The initial M12 WebKit capture reproduced foreground blur. Removing foreground gate blur/scale animation keeps the gate title, instructions, and code cells sharp over the independently blurred route. The final 40-state M07 report and refreshed M12 browser evidence pass.
+- **Acceptance:** Focused WebKit diagnosis plus accepted desktop/mobile light/dark evidence before M12 refresh and M16.
+- **Effort/risk:** Small-medium / medium visual risk.
+
+#### DEP-001 — Development and build dependencies have known advisories
+
+- **Category:** Dependencies / security
+- **Severity:** High for authoring/build exposure; low for shipped runtime
+- **Status:** Verified resolved locally on 2026-07-31
+- **Evidence:** Controlled supported updates raised the Node baseline to 22.19 or later. Root and app full and production-only audits report zero findings. Dependency trees, lint, build, and the canonical site gate pass.
+- **Primary advisory records:** [Vite](https://github.com/advisories/GHSA-4w7w-66w2-5vf9), [Rollup](https://github.com/advisories/GHSA-mw96-cpmx-2vgc), [basic-ftp](https://github.com/advisories/GHSA-5rq4-664w-9x2c), and [sharp](https://github.com/advisories/GHSA-f88m-g3jw-g9cj).
+- **Acceptance:** Apply controlled supported updates, document any reviewed exceptions, and rerun the full canonical and browser gates. Do not apply a blind forced audit fix.
+- **Effort/risk:** Medium / medium update churn.
+
+#### DOC-002 — Programme evidence drifted from the current tree
+
+- **Category:** Documentation
+- **Severity:** Medium
+- **Status:** Resolved for the current programme records on 2026-07-31
+- **Evidence:** Current summaries now record 30/25/22/16 route ownership and 125 files with 84 unused-variable findings in 32 files and 137 empty catches in 28 files. Earlier values remain only as labelled historical snapshots.
+- **Acceptance:** Label historical counts as snapshots and derive volatile current counts from executable checks where practical.
+- **Effort/risk:** Small / low.
+
+#### OPS-002 — Refactor work has no isolated integration boundary
+
+- **Category:** Operations / release process
+- **Severity:** High
+- **Status:** Open; blocks release approval
+- **Evidence:** Only M09 has a dedicated commit. The pre-review snapshot contained 68 modified and 37 untracked status entries, including central refactor source mixed with About Director and Playground work.
+- **Acceptance:** Preserve all user work, create reviewable commit boundaries, reconcile local/remote commit topology, and reproduce the integrated checks from that state.
+- **Effort/risk:** Medium / medium due overlapping files.
+
+#### OPS-003 — Multi-file local authoring writes are not atomic
+
+- **Category:** Operations / local data integrity
+- **Severity:** Medium
+- **Status:** Verified resolved locally and independently accepted on 2026-07-31
+- **Evidence:** A serialized, journaled transaction boundary now covers design writes, simulation writes/deletion, and stage/review/issues writes. All 30 focused containment, failure, rollback, recovery, cleanup, and concurrency checks pass.
+- **Acceptance:** Serialize affected operations, use temporary-file atomic replacement where practical, and add injected failure/concurrency tests.
+- **Effort/risk:** Medium / medium.
+
+#### TEST-003 — Release-smoke focus helper drifted from route contracts
+
+- **Category:** Testing / release confidence
+- **Severity:** High
+- **Status:** Verified resolved locally on 2026-07-31
+- **Evidence:** The smoke derives five routes from the manifest, uses route-aware focus discovery and a DOM-derived traversal limit, rejects unexpected console errors, and passes the production smoke plus forced-failure contract probes.
+- **Acceptance:** Parameterize focus expectations by route, reject unexpected console errors, pass normal and forced-failure smoke runs, and add the current five-route smoke to reviewable CI.
+- **Effort/risk:** Small / low.

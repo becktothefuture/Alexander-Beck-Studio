@@ -11,6 +11,7 @@ Exact current values belong in JSON and normalizer code, not copied into Markdow
 - `runtime`: shared Canvas/runtime behavior and global tokens
 - `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, and the production simulation atmosphere
 - `portfolio`: active orbital deck, drawer, handoff motion, and route-specific composition
+- `playground`: deterministic layout, work sizing, dot-field appearance, and camera response for the production Playground route
 - `cv`: retained generated-schema compatibility only; it is not a live CV route
 
 ## Complete control path
@@ -39,7 +40,15 @@ The root build checks the shared HTML entry shell before flattening and Vite. A 
 
 Shared visual finish belongs in `shell`. Page namespaces own composition, page-specific motion, and content geometry. When one value renders through multiple paths—such as DOM plus Canvas—update and verify every path.
 
-`shell.layout.routeTitleDescriptionGap` owns the shared spacing between the title rule and description in the Work, Contact, and both About Me bookend lockups. The development panel exposes it as **Title / Copy Gap**.
+`shell.layout.routeTitleDescriptionGap` owns the shared spacing between the title rule and description in the Work, Contact, Playground, and both About Me bookend lockups. The development panel exposes it as **Title / Copy Gap**.
+
+### Playground controls
+
+`src/routes/playground/config/playgroundConfig.js` owns Playground defaults, bounds, normalization, subscriptions, and seed generation. `playgroundPanel.js` owns the single control schema used by docked and detached hosts. Shift-click the development settings launcher to open the detached host. Both hosts apply the same runtime values and use the same canonical save path.
+
+The panel groups controls under **World**, **Work**, **Dot field**, and **Motion**. It also provides recenter, deliberate seed generation, reset, and save actions. Diagnostics are read-only and must not enter `design-system.json`. Exact current fields, ranges, and content-authoring rules are recorded in [`PLAYGROUND.md`](PLAYGROUND.md) and enforced by the route normalizer.
+
+Live changes are provisional. **Generate new seed** deliberately recomposes the whole field. **Save design configuration** writes the normalized `playground` snapshot through `performDesignSystemSave()`. When the write-capable local endpoint is unavailable, the established save flow downloads the JSON instead. Reload, root build flattening, and preview must preserve every Playground field.
 
 ### Production simulation atmosphere
 
@@ -57,7 +66,7 @@ The Crisp + Glow lab remains the focused visual comparison surface and samples t
 
 `atmosphere-lab.json` owns only the WebGL Post, Instanced Density, and Canvas Feedback experiments. It must not persist or regenerate a `crispGlow` profile or any title-position state. Exact atmosphere values remain in canonical JSON and normalizer code, consistent with the general authority rule above.
 
-The production ball palette is resolved once by the shared shell from the visitor's local time of day. Eight palettes fill the 24-hour cycle in three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00. Home, Portfolio, About, and Contact consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
+The production ball palette is resolved once by the shared shell from the visitor's local time of day. Eight palettes fill the 24-hour cycle in three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00. Home, Portfolio, About, Contact, and Playground consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
 
 Loaders and normalizers live under `src/legacy/modules/utils/` and route-specific runtime folders. Flattening is implemented in `scripts/lib/flatten-design-config.mjs`; the no-write comparison is `scripts/check-design-config.mjs`.
 

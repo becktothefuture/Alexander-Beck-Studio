@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ROOT = path.join(ROOT, 'react-app', 'app');
-const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html', 'styleguide.html', 'palette-lab.html'];
+const ENTRY_FILES = ['index.html', 'portfolio.html', 'about.html', 'contact.html', 'playground.html', 'styleguide.html', 'palette-lab.html'];
 const INSTRUMENT_FONT_PATH = path.join(APP_ROOT, 'public', 'fonts', 'instrument-serif', 'InstrumentSerif-Regular.woff2');
 const INSTRUMENT_FONT_HREF = '%BASE_URL%fonts/instrument-serif/InstrumentSerif-Regular.woff2';
 const CHECK_ONLY = process.argv.includes('--check');

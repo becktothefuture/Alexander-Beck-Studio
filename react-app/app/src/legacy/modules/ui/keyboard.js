@@ -6,7 +6,7 @@
 import { setMode, MODES, resetCurrentMode } from '../modes/mode-controller.js';
 import { NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
-import { updateModeButtonsUI } from './controls.js';
+import { updateModeButtonsUI } from './mode-buttons.js';
 
 let isKeyboardWired = false;
 

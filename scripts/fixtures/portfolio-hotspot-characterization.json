@@ -1,0 +1,22 @@
+{
+  "minimumProjectCount": 1,
+  "directReadinessStages": [
+    "start",
+    "content-ready",
+    "runtime-config-ready",
+    "page-barrier-ready",
+    "host-ready",
+    "app-ready",
+    "presentation-ready"
+  ],
+  "spaReadinessStages": [
+    "start",
+    "content-ready",
+    "runtime-config-ready",
+    "page-barrier-ready",
+    "host-ready",
+    "app-ready",
+    "presentation-ready",
+    "route-ready"
+  ]
+}

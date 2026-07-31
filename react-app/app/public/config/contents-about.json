@@ -861,7 +861,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I’ve always been drawn to the complicated bit."
+          "text": "I’ve always been drawn to the complexity."
         },
         {
           "id": "text-complexity-conditions",
@@ -1403,8 +1403,8 @@
                 "label": "Product Design",
                 "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
-                  0.14,
-                  0.5
+                  0.29,
+                  0.47
                 ],
                 "mobilePosition": [
                   0.16,
@@ -1416,8 +1416,8 @@
                 "label": "Experience Design",
                 "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
-                  0.42,
-                  0.58
+                  0.4,
+                  0.63
                 ],
                 "mobilePosition": [
                   0.62,
@@ -1429,8 +1429,8 @@
                 "label": "Art Direction",
                 "description": "I define the visual point of view that gives the work character, clarity, and intent.",
                 "position": [
-                  0.7,
-                  0.66
+                  0.58,
+                  0.56
                 ],
                 "mobilePosition": [
                   0.16,
@@ -1442,8 +1442,8 @@
                 "label": "Motion & 3D",
                 "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
-                  0.14,
-                  0.76
+                  0.32,
+                  0.77
                 ],
                 "mobilePosition": [
                   0.62,
@@ -1455,8 +1455,8 @@
                 "label": "Creative Engineering",
                 "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
-                  0.42,
-                  0.85
+                  0.55,
+                  0.82
                 ],
                 "mobilePosition": [
                   0.16,
@@ -1468,8 +1468,8 @@
                 "label": "Parametric Systems",
                 "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
-                  0.7,
-                  0.94
+                  0.39,
+                  0.95
                 ],
                 "mobilePosition": [
                   0.62,

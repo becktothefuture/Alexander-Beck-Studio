@@ -459,7 +459,9 @@ export function RouteBallTransitionLab() {
     }
   }, [prefersReducedMotion]);
 
-  transitionRunnerRef.current = performTransition;
+  useEffect(() => {
+    transitionRunnerRef.current = performTransition;
+  }, [performTransition]);
 
   const requestRoute = useCallback((routeId) => {
     if (!ROUTE_BY_ID[routeId]) return;

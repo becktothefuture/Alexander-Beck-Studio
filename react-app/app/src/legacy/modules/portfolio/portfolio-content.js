@@ -11,3 +11,13 @@ export function resolvePortfolioLabelContent(project, fallbackTitle = 'Untitled 
 
   return { eyebrow, title };
 }
+
+export function getProjectContentBlocks(project) {
+  if (Array.isArray(project?.contentBlocks) && project.contentBlocks.length) {
+    return project.contentBlocks;
+  }
+  if (Array.isArray(project?.gallery) && project.gallery.length) {
+    return project.gallery.map((src) => ({ type: 'image', src }));
+  }
+  return [];
+}

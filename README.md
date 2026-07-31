@@ -65,7 +65,7 @@ The `legacy/` name does not mean unused: it contains the active simulation engin
 
 - Home — interactive simulation wall and Daily Simulation focus
 - Portfolio — orbital project deck, in-window access gate, detail drawer
-- About Me — current About route
+- About Me — `AboutComingSoon` in production; the spatial narrative and editor are development-only
 - Contact — current contact route
 
 The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
@@ -75,6 +75,7 @@ The persistent Button Bar owns primary navigation. Route top bars are utility/ba
 - Routes and Button Bar labels: `react-app/app/src/lib/routes.js`
 - Shared shell: `react-app/app/src/components/app/StudioShell.jsx`
 - Editorial copy: `react-app/app/public/config/contents-home.json` and `contents-portfolio.json`
+- Development About narrative content: `react-app/app/public/config/contents-about.json`
 - Authored design values: `react-app/app/public/config/design-system.json`
 - Generated configs: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 
@@ -82,7 +83,7 @@ See `docs/reference/GENERATED-CONFIG.md` for the compatibility-output boundary.
 
 ## Verification
 
-`npm run check:site` is the canonical non-browser gate. Browser coverage is supplied by focused Playwright audits, including screen certification, Portfolio gate/carousel/drawer, Canvas SPA stability, boot overlay, performance, and route transitions. There is no unit-test suite; do not describe the project as manual-only.
+Verification has three layers. `npm run check:site` is the canonical source/configuration and production-build gate. It includes substantial Node test coverage through the built-in `node:test` runner, including the About narrative, geometry, and route/simulation transaction suites. Focused Playwright audits supply the browser layer, including screen certification, Portfolio gate/carousel/drawer, Canvas SPA stability, boot overlay, performance, and route transitions.
 
 Current architecture and behavior are documented in:
 

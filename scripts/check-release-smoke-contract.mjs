@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { ROUTE_MANIFEST } from '../react-app/app/src/lib/route-manifest.js';
+import {
+  RELEASE_SMOKE_ROUTES,
+  assertRepresentativeKeyboardFocus,
+} from './lib/release-smoke-helpers.mjs';
+
+const routeIds = RELEASE_SMOKE_ROUTES.map((route) => route.id);
+const primaryRouteIds = Object.values(ROUTE_MANIFEST)
+  .filter((route) => route.shellTab)
+  .sort((left, right) => left.shellTab.order - right.shellTab.order)
+  .map((route) => route.id);
+assert.deepEqual(routeIds, primaryRouteIds);
+
+const focusRoutes = RELEASE_SMOKE_ROUTES.filter((route) => route.representativeFocus);
+assert.deepEqual(focusRoutes.map((route) => route.id), ['about', 'playground']);
+for (const route of focusRoutes) {
+  assert.equal(typeof route.representativeFocus.selector, 'string');
+  assert.ok(route.representativeFocus.selector.length > 0);
+}
+
+const createFocusPage = ({ targetSelector, focusSequence, styles = {} }) => {
+  let activeSelector = '';
+  let pressCount = 0;
+  return {
+    keyboard: {
+      async press(key) {
+        assert.equal(key, 'Tab');
+        activeSelector = focusSequence[Math.min(pressCount, focusSequence.length - 1)] || '';
+        pressCount += 1;
+      },
+    },
+    async evaluate() {
+      return focusSequence.length + 1;
+    },
+    locator(selector) {
+      assert.equal(selector, targetSelector);
+      return {
+        async evaluate(callback) {
+          if (String(callback).includes('getComputedStyle')) {
+            return {
+              active: activeSelector === targetSelector,
+              focusVisible: true,
+              outlineStyle: 'solid',
+              outlineWidth: 2,
+              outlineColor: 'rgb(0, 0, 0)',
+              outlineVisible: true,
+              inViewport: true,
+              ...styles,
+            };
+          }
+          return activeSelector === targetSelector;
+        },
+      };
+    },
+  };
+};
+
+for (const route of focusRoutes) {
+  const targetSelector = route.representativeFocus.selector;
+  const page = createFocusPage({
+    targetSelector,
+    focusSequence: ['[data-fixture-before-target]', targetSelector],
+  });
+  const result = await assertRepresentativeKeyboardFocus(page, route);
+  assert.equal(result.active, true);
+  assert.equal(result.outlineVisible, true);
+}
+
+const playground = focusRoutes.find((route) => route.id === 'playground');
+await assert.rejects(
+  assertRepresentativeKeyboardFocus(
+    createFocusPage({
+      targetSelector: playground.representativeFocus.selector,
+      focusSequence: ['[data-fixture-never-target]'],
+    }),
+    playground,
+  ),
+  (error) => error.routeId === 'playground'
+    && error.assertion === 'representative-keyboard-focus-target',
+);
+
+console.log('PASS: release smoke route-aware focus contract and failure fixture.');

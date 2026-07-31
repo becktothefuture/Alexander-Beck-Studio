@@ -1,4 +1,5 @@
-import { resolvePortfolioLabelContent } from './portfolio-content.js';
+import { getProjectContentBlocks, resolvePortfolioLabelContent } from './portfolio-content.js';
+export { getProjectContentBlocks } from './portfolio-content.js';
 import { createScrollPresence } from '../utils/scroll-presence.js';
 import {
   createSmoothScroll,
@@ -233,16 +234,6 @@ function resolveBlockAspectRatio(block) {
     return String(customRatio);
   }
   return '';
-}
-
-export function getProjectContentBlocks(project) {
-  if (Array.isArray(project?.contentBlocks) && project.contentBlocks.length) {
-    return project.contentBlocks;
-  }
-  if (Array.isArray(project?.gallery) && project.gallery.length) {
-    return project.gallery.map((src) => ({ type: 'image', src }));
-  }
-  return [];
 }
 
 function hashString(value) {

@@ -36,6 +36,9 @@ Portfolio deliberately separates the route voice from the project-information vo
 - React route/window: `src/routes/portfolio/PortfolioRoute.jsx`
 - Protected-project gate: `src/routes/portfolio/PortfolioGateRoute.jsx`
 - Deck and route lifecycle: `src/legacy/modules/portfolio/app.js`
+- Project data, asset paths, access defaults, and cached configuration loading: `src/legacy/modules/portfolio/portfolio-data.js`
+- Route data/media prewarming and its audit diagnostics: `src/legacy/modules/portfolio/portfolio-prewarm.js`
+- Stable selector and state-marker vocabulary: `src/legacy/modules/portfolio/portfolio-dom-contract.js`
 - Persistent particle field: `src/legacy/modules/portfolio/portfolio-speed-field.js`
 - Drawer: `project-drawer.js`
 - Media handoff: `project-handoff.js`
@@ -63,6 +66,10 @@ The real route bootstrap reuses those exact decoded-image promises. Readiness-cr
 `window.__ABS_PORTFOLIO_PREWARM__` is an audit-only snapshot of prewarm status and critical/ready source counts. It is output, never product or design truth.
 
 During a route transition, the runtime may publish the first valid measured deck geometry as its readiness boundary because the Portfolio route participant then confirms that geometry across two painted frames before the shell begins route-in. Direct loads retain their self-contained two-pass geometry check.
+
+## Stable DOM contract
+
+`portfolio-dom-contract.js` is the explicit selector and state-marker boundary for CSS ownership work. M16 may consolidate existing CSS against that vocabulary, but it must not rename, duplicate, or move those nodes and markers. The frozen contract covers the route scene/frame/wall/canvas/title/top bar, deck mount/cards/labels, drawer host/view, and the load, entrance, media-ready, and active-project attributes. `check-portfolio-characterization.mjs` fails if that contract drifts.
 
 ## Project-triggered access gate
 

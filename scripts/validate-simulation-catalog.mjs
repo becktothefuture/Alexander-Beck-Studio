@@ -2,6 +2,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   SIMULATION_ADMIN_PATHS,
   SIMULATION_STAGES,
@@ -46,15 +47,6 @@ const ALLOWED_SIMULATION_SURFACES = new Set([
   'home-mode',
   'lab-route',
   'route-runtime',
-]);
-
-const BASE_SHELL_ROUTE_PATHS = new Map([
-  ['home', '/index.html'],
-  ['portfolio', '/portfolio.html'],
-  ['about', '/about.html'],
-  ['styleguide', '/styleguide.html'],
-  ['simulations', '/simulations.html'],
-  ['palette-lab', '/palette-lab.html'],
 ]);
 
 async function readSource(path) {
@@ -121,12 +113,10 @@ function extractObjectKeys(source, constName) {
   );
 }
 
-function getExpectedShellRoutePaths(simulations) {
-  const expected = new Map(BASE_SHELL_ROUTE_PATHS);
-  simulations
+function getExpectedCatalogRoutePaths(simulations) {
+  return new Map(simulations
     .filter((entry) => entry.surface === 'lab-route')
-    .forEach((entry) => expected.set(entry.id, stripQuery(entry.launchPath)));
-  return expected;
+    .map((entry) => [entry.id, stripQuery(entry.launchPath)]));
 }
 
 function getRouteBackedDailyIds(simulations) {
@@ -146,12 +136,12 @@ function getRequiredLegacyLabelIds(simulations) {
     .map((entry) => entry.id);
 }
 
-function addRouteSourceValidationErrors(errors, simulations, {
+export function addRouteSourceValidationErrors(errors, simulations, {
   routesSource,
   viteSource,
   siteAppSource,
 }) {
-  const expectedRoutes = getExpectedShellRoutePaths(simulations);
+  const expectedRoutes = getExpectedCatalogRoutePaths(simulations);
   const routeRegistryEntries = extractRouteRegistryEntries(routesSource);
   const viteInputPaths = extractViteInputHtmlPaths(viteSource);
   const routeDescriptorIds = extractObjectKeys(siteAppSource, 'ROUTE_DESCRIPTORS');
@@ -163,9 +153,9 @@ function addRouteSourceValidationErrors(errors, simulations, {
   expectedRoutes.forEach((expectedPath, id) => {
     const registryPath = routeRegistryEntries.get(id);
     if (!registryPath) {
-      errors.push(`${id}: missing route registry entry in routes.js`);
+      errors.push(`${id}: missing route manifest entry in route-manifest.js`);
     } else if (registryPath !== expectedPath) {
-      errors.push(`${id}: route registry path "${registryPath}" does not match expected "${expectedPath}"`);
+      errors.push(`${id}: route manifest path "${registryPath}" does not match catalog launchPath "${expectedPath}"`);
     }
 
     if (!viteInputPaths.has(expectedPath)) {
@@ -282,9 +272,9 @@ async function main() {
     SIMULATION_ADMIN_PATHS.reactAppRoot,
     'src/legacy/modules/modes/mode-controller.js',
   ));
-  const controlsSource = await readSource(resolve(
+  const modeButtonsSource = await readSource(resolve(
     SIMULATION_ADMIN_PATHS.reactAppRoot,
-    'src/legacy/modules/ui/controls.js',
+    'src/legacy/modules/ui/mode-buttons.js',
   ));
   const controlRegistrySource = await readSource(resolve(
     SIMULATION_ADMIN_PATHS.reactAppRoot,
@@ -412,9 +402,9 @@ async function main() {
     simulations,
     await readSource(resolve(
       SIMULATION_ADMIN_PATHS.reactAppRoot,
-      'src/hooks/useShellRouteTransition.js',
+      'src/lib/motion/route-transition-readiness.js',
     )),
-    'useShellRouteTransition.js',
+    'route-transition-readiness.js',
   );
   addLabelDriftErrors(
     errors,
@@ -425,8 +415,8 @@ async function main() {
   addLabelDriftErrors(
     errors,
     simulations,
-    extractStringObjectMaps(controlsSource, 'modeNames'),
-    'controls modeNames',
+    extractStringObjectMaps(modeButtonsSource, 'modeNames'),
+    'mode-buttons modeNames',
   );
   addLabelDriftErrors(
     errors,
@@ -453,7 +443,11 @@ async function main() {
   console.log(`Simulation catalog validation passed (${simulations.length} simulations, ${dailyCount} daily, ${candidateCount} candidates).`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+const isDirectRun = process.argv[1]
+  && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

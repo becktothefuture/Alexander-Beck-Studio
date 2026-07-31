@@ -2,13 +2,13 @@
 
 ## Scope
 
-The production design intent and responsive rules live in [`DESIGN.md`](../../DESIGN.md). This pattern index covers Home, Portfolio, About Me, Contact, the persistent shell, Portfolio gate/drawer, and lab utility chrome; lab patterns are not evidence for the production design constitution.
+The production design intent and responsive rules live in [`DESIGN.md`](../../DESIGN.md). This pattern index covers Home, Portfolio, About Me, Contact, Playground, the persistent shell, Portfolio gate/drawer, and lab utility chrome; lab patterns are not evidence for the production design constitution.
 
 ## Navigation
 
 The bottom Button Bar is the primary navigation object. Its labels come from `SHELL_ROUTE_TABS`; visible casing is `About Me`. Route top bars are optional back/utility strips only.
 
-The dark outer shell owns the Button Bar’s resting material. All four primary cells are content-sized from their rendered label plus inline padding; the active shared rounded-rectangle pill matches that padded cell and uses the same flat light-neutral surface with opaque dark ink in both site themes. Unselected labels stay visibly faded but readable; hover/focus and pressed states remain clear without recolouring the shell. The divider stays visually grouped with the flat-charcoal sound and theme controls, leaving a deliberate breathing gap after the primary navigation.
+The dark outer shell owns the Button Bar’s resting material. All five primary cells are content-sized from their rendered label plus inline padding; the active shared rounded-rectangle pill matches that padded cell and uses the same flat light-neutral surface with opaque dark ink in both site themes. Unselected labels stay visibly faded but readable; hover/focus and pressed states remain clear without recolouring the shell. The divider stays visually grouped with the flat-charcoal sound and theme controls, leaving a deliberate breathing gap after the primary navigation.
 
 ## Shell and surfaces
 
@@ -19,6 +19,7 @@ Preserve visible separation between browser frame, outer wall, inner wall, canva
 - Home: simulation material, semantic title source, expertise legend, supporting philosophy copy
 - Portfolio: orbital deck, media-first handoff, editorial drawer, in-window gate
 - About Me and Contact: centered route content inside the same physical window
+- Playground: pannable dot-aligned catalogue, restrained work labels, and in-window selected-work dialog
 - Labs: local back/utility top chrome when needed
 
 ## Typography and voice
@@ -30,9 +31,9 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Geist Mono remains the operational voice for metadata and compact technical labels.
 - The London script is a small signature moment, not another general-purpose display style.
 
-Instrument Serif is limited to the Home canvas title and route-level titles using `.route-centered-page__title`, including the Portfolio intro and gate. The production tokens are:
+Instrument Serif is limited to the Home canvas title and route-level titles using `.route-centered-page__title`, including the Portfolio intro, gate, and Playground opening. The production tokens are:
 
-Work, Contact, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`.
+Work, Contact, Playground, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`.
 
 - `--abs-font-headline: "Instrument Serif", ...`
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles
@@ -50,4 +51,4 @@ Instrument Serif's finer strokes are more vulnerable to visual interruption than
 
 ## Verification matrix
 
-Visual changes require a fresh root build and coverage of Home, Portfolio, About Me, and Contact at desktop/mobile and light/dark. Motion/routing changes also require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with production markup.
+Visual changes require a fresh root build and coverage of Home, Portfolio, About Me, Contact, and Playground at desktop/mobile and light/dark. Playground also requires its selected-work dialog at desktop, tablet, and mobile sizes. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with production markup.

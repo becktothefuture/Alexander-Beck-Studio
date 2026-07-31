@@ -196,8 +196,6 @@ function repairSpatialOutliers(sourceOrder, mapping, fromPositions, toPositions)
     if (best) {
       mapping[sourceA] = best.targetB;
       mapping[best.sourceB] = targetA;
-      targetA = mapping[sourceA];
-      costA = squaredDistance(fromPositions, sourceA, toPositions, targetA);
     }
   }
 }

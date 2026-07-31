@@ -6,11 +6,11 @@ The live reference is `/styleguide.html`. It must describe production components
 
 `ShellButtonBar.jsx` renders the persistent bottom navigation from `SHELL_ROUTE_TABS` in `src/lib/routes.js`.
 
-- Route buttons: Home, Work (Portfolio route), About Me, Contact
+- Route buttons: Home, Work (Portfolio route), About Me, Lab, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: sound and theme
 - Active geometry: all content-sized tab cells use label width plus inline padding; one shared rounded-rectangle pill matches the selected padded cell
-- Mobile: all four route labels remain visible; all controls remain keyboard and touch accessible
+- Mobile: all five route labels remain visible; all controls remain keyboard and touch accessible
 - Primary navigation never moves into a route top bar
 
 ## Utility icon buttons
@@ -27,17 +27,23 @@ Use `header.ui-top > .ui-top-main.route-topbar` only when a route or lab needs a
 
 ## Typography and content specimens
 
-The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, Portfolio gate, Portfolio drawer, and centered About/Contact route copy. Exact values come from tokens and production CSS rather than this document.
+The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, Portfolio gate, Portfolio drawer, centered About/Contact route copy, and the Lab route-entry family. Exact values come from tokens and production CSS rather than this document.
 
 ### Headline contract
 
 Top-level route headlines use Instrument Serif through `--abs-font-headline`, optically scaled by `--abs-font-headline-scale`, with headline-specific leading and tracking tokens. The contrast with Geist is intentional: the serif creates a warmer, more editorial arrival while the rest of the interface stays precise and system-led.
 
-- Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, and the Portfolio gate.
+- Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, Lab, and the Portfolio gate.
 - Not allowed: navigation, descriptions, Portfolio card titles, project-detail titles, controls, metadata, or general section headings.
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
 - Implementation: consume the resolved `--route-entry-title-size` with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The optical scale is already included in the resolved size; do not repeat it in component CSS.
 
-Work, About Me, and Contact pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, and balanced wrapping; route CSS owns only placement. The Portfolio access gate deliberately keeps the narrower base description measure.
+Work, About Me, Contact, and Lab pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, and balanced wrapping; route CSS owns only placement. The Portfolio access gate deliberately keeps the narrower base description measure.
+
+## Lab work item and dialog
+
+Lab renders one semantic ordered collection. Each work item is one button with a minimum 44px target, visible keyboard focus, a unique accessible name, and its media label below the preview. Repeated spatial copies are presentation only and must stay `aria-hidden` and non-interactive.
+
+The selected-work surface is a named `role="dialog"` inside the studio window. It uses one close control, traps focus, makes the world inert, and restores focus to the exact logical item. Image, video, and local code media keep their intrinsic aspect ratio. The field uses posters; only the selected media can own an active video or sandboxed code iframe. See [`PLAYGROUND.md`](PLAYGROUND.md).
 
 Resolved values come from the headline tokens. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.

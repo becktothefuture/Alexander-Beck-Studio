@@ -119,6 +119,7 @@ export default defineConfig(({ mode }) => ({
         contact: resolve(__dirname, 'contact.html'),
         about: resolve(__dirname, 'about.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
+        playground: resolve(__dirname, 'playground.html'),
         styleguide: resolve(__dirname, 'styleguide.html'),
         simulations: resolve(__dirname, 'simulations.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),

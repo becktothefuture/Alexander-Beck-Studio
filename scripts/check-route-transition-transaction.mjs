@@ -24,6 +24,14 @@ import {
   createRouteTransitionParticipantGeneration,
   registerRouteTransitionParticipant,
 } from '../react-app/app/src/lib/motion/route-transition-participants.js';
+import {
+  isDailyLabRouteId,
+  observeRouteBaselineReady,
+  waitForObservedRouteReady,
+} from '../react-app/app/src/lib/motion/route-transition-readiness.js';
+import {
+  registerSimulationVisualTransition,
+} from '../react-app/app/src/lib/simulationVisualTransition.js';
 
 function createTransaction(overrides = {}) {
   return createRouteTransitionTransaction({
@@ -66,6 +74,122 @@ function createFakeClock() {
       return timers.size;
     },
   };
+}
+
+function createFakeClassList(initial = []) {
+  const values = new Set(initial);
+  return {
+    add: (...names) => names.forEach((name) => values.add(name)),
+    remove: (...names) => names.forEach((name) => values.delete(name)),
+    contains: (name) => values.has(name),
+  };
+}
+
+function createFakeElement({
+  classes = [],
+  dataset = {},
+  rect = { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 },
+  styles = { display: 'block', visibility: 'visible', opacity: '1' },
+  width = 0,
+  height = 0,
+} = {}) {
+  return {
+    classList: createFakeClassList(classes),
+    dataset: { ...dataset },
+    width,
+    height,
+    clientWidth: rect.width,
+    clientHeight: rect.height,
+    styles,
+    getBoundingClientRect: () => ({ ...rect }),
+    querySelector: () => null,
+    querySelectorAll: () => [],
+  };
+}
+
+function createReadinessHarness({ hostname = 'example.test' } = {}) {
+  const clock = createFakeClock();
+  const listeners = new Map();
+  const elementsById = new Map();
+  const selectors = new Map();
+  const root = createFakeElement();
+  const body = createFakeElement();
+  let runtimeSnapshot = { generation: 7, routeId: null, status: 'idle' };
+  const fakeWindow = {
+    location: { hostname },
+    devicePixelRatio: 1,
+    setTimeout: clock.setTimer,
+    clearTimeout: clock.clearTimer,
+    addEventListener(type, listener) {
+      if (!listeners.has(type)) listeners.set(type, new Set());
+      listeners.get(type).add(listener);
+    },
+    removeEventListener(type, listener) {
+      listeners.get(type)?.delete(listener);
+      if (listeners.get(type)?.size === 0) listeners.delete(type);
+    },
+    dispatchEvent(event) {
+      [...(listeners.get(event.type) || [])].forEach((listener) => listener(event));
+      return true;
+    },
+    getComputedStyle(element) {
+      return element?.styles || { display: 'block', visibility: 'visible', opacity: '1' };
+    },
+  };
+  const fakeDocument = {
+    body,
+    documentElement: root,
+    getElementById: (id) => elementsById.get(id) || null,
+    querySelector: (selector) => selectors.get(selector) || null,
+    querySelectorAll: (selector) => selectors.get(selector) || [],
+  };
+  const previousDescriptors = {
+    window: Object.getOwnPropertyDescriptor(globalThis, 'window'),
+    document: Object.getOwnPropertyDescriptor(globalThis, 'document'),
+    performance: Object.getOwnPropertyDescriptor(globalThis, 'performance'),
+  };
+  Object.defineProperties(globalThis, {
+    window: { configurable: true, writable: true, value: fakeWindow },
+    document: { configurable: true, writable: true, value: fakeDocument },
+    performance: { configurable: true, writable: true, value: { now: clock.now } },
+  });
+
+  const restoreProperty = (name, descriptor) => {
+    if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+    else delete globalThis[name];
+  };
+
+  return {
+    body,
+    clock,
+    document: fakeDocument,
+    elementsById,
+    getRuntimeSnapshot: () => runtimeSnapshot,
+    listenerCount: () => [...listeners.values()].reduce((count, group) => count + group.size, 0),
+    root,
+    selectors,
+    setRuntimeSnapshot(next) {
+      runtimeSnapshot = { ...next };
+    },
+    dispatch(type, detail = {}) {
+      fakeWindow.dispatchEvent({ type, detail });
+    },
+    restore() {
+      restoreProperty('window', previousDescriptors.window);
+      restoreProperty('document', previousDescriptors.document);
+      restoreProperty('performance', previousDescriptors.performance);
+    },
+  };
+}
+
+async function flushPromiseJobs() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+function assertReadinessWaiterClean(harness) {
+  assert.equal(harness.listenerCount(), 0);
+  assert.equal(harness.clock.pendingCount, 0);
 }
 
 test('normal route transaction follows the only legal phase order', () => {
@@ -441,5 +565,277 @@ test('participant restoration and cancellation are generation scoped and idempot
     assert.deepEqual(calls, ['exit', 'restore', 'cancel:8:preload-failed:true']);
   } finally {
     unregister();
+  }
+});
+
+test('readiness observes only the incoming route and shared participants', async () => {
+  const calls = [];
+  const unregister = [
+    registerRouteTransitionParticipant({
+      id: 'transaction-test-readiness-home',
+      routeId: 'home',
+      waitUntilReady: () => calls.push('unexpected-home-ready'),
+      complete: ({ status }) => calls.push(`home-complete:${status}`),
+    }),
+    registerRouteTransitionParticipant({
+      id: 'transaction-test-readiness-portfolio',
+      routeId: 'portfolio',
+      waitUntilReady: () => calls.push('portfolio-ready'),
+      complete: ({ status }) => calls.push(`portfolio-complete:${status}`),
+    }),
+    registerRouteTransitionParticipant({
+      id: 'transaction-test-readiness-shared',
+      routeId: '*',
+      waitUntilReady: () => calls.push('shared-ready'),
+      complete: ({ status }) => calls.push(`shared-complete:${status}`),
+    }),
+  ];
+  try {
+    const participantGeneration = createRouteTransitionParticipantGeneration({
+      generation: 9,
+      fromRouteId: 'home',
+      toRouteId: 'portfolio',
+      signal: new AbortController().signal,
+    });
+    await participantGeneration.waitUntilReady();
+    participantGeneration.complete('ready');
+    assert.deepEqual(calls.slice(0, 2), ['portfolio-ready', 'shared-ready']);
+    assert.deepEqual(calls.slice(2).sort(), [
+      'home-complete:ready',
+      'portfolio-complete:ready',
+      'shared-complete:ready',
+    ]);
+  } finally {
+    unregister.forEach((dispose) => dispose());
+  }
+});
+
+test('route readiness observation keeps canonical daily route identities explicit', () => {
+  assert.equal(isDailyLabRouteId('repel-room'), true);
+  assert.equal(isDailyLabRouteId('flock-of-birds'), true);
+  assert.equal(isDailyLabRouteId('rift-rings'), true);
+  assert.equal(isDailyLabRouteId('home'), false);
+  assert.equal(isDailyLabRouteId('beach-ball-room'), false);
+});
+
+test('route readiness accepts only matching route and runtime-generation events', async () => {
+  const harness = createReadinessHarness();
+  try {
+    let settlement = null;
+    const waiter = waitForObservedRouteReady(
+      'standalone-tool',
+      50,
+      {},
+      harness.getRuntimeSnapshot,
+    );
+    waiter.promise.then((status) => { settlement = status; });
+    harness.elementsById.set('app-frame', createFakeElement());
+
+    harness.dispatch('abs:route-ready', { routeId: 'portfolio', generation: 7 });
+    harness.dispatch('abs:route-ready', { routeId: 'standalone-tool', generation: 6 });
+    await flushPromiseJobs();
+    assert.equal(settlement, null);
+    assert.equal(harness.listenerCount(), 3);
+
+    harness.dispatch('abs:route-ready', { routeId: 'standalone-tool', generation: 7 });
+    assert.equal(await waiter.promise, 'ready');
+    assertReadinessWaiterClean(harness);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('route readiness failure ignores other routes and cleans up deterministically', async () => {
+  const harness = createReadinessHarness();
+  try {
+    let settlement = null;
+    const waiter = waitForObservedRouteReady(
+      'portfolio',
+      50,
+      {},
+      harness.getRuntimeSnapshot,
+    );
+    waiter.promise.then((status) => { settlement = status; });
+    harness.dispatch('abs:route-failed', { routeId: 'home' });
+    await flushPromiseJobs();
+    assert.equal(settlement, null);
+
+    harness.dispatch('abs:daily-focus-failed', { routeId: 'portfolio' });
+    assert.equal(await waiter.promise, 'failed');
+    assertReadinessWaiterClean(harness);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('route readiness timeout and cancellation each remove listeners and timers', async () => {
+  const timeoutHarness = createReadinessHarness();
+  try {
+    const waiter = waitForObservedRouteReady(
+      'portfolio',
+      40,
+      {},
+      timeoutHarness.getRuntimeSnapshot,
+    );
+    timeoutHarness.clock.tick(40);
+    assert.equal(await waiter.promise, 'timeout');
+    assertReadinessWaiterClean(timeoutHarness);
+  } finally {
+    timeoutHarness.restore();
+  }
+
+  const cancellationHarness = createReadinessHarness();
+  try {
+    const waiter = waitForObservedRouteReady(
+      'portfolio',
+      40,
+      {},
+      cancellationHarness.getRuntimeSnapshot,
+    );
+    waiter.cancel();
+    waiter.cancel('ignored-second-settlement');
+    assert.equal(await waiter.promise, 'cancelled');
+    assertReadinessWaiterClean(cancellationHarness);
+  } finally {
+    cancellationHarness.restore();
+  }
+});
+
+test('local route-readiness delay holds an otherwise ready route until its boundary', async () => {
+  const harness = createReadinessHarness({ hostname: 'localhost' });
+  try {
+    harness.elementsById.set('app-frame', createFakeElement());
+    window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ = 40;
+    let settlement = null;
+    const waiter = waitForObservedRouteReady(
+      'standalone-tool',
+      100,
+      { readinessStartedAt: 1 },
+      harness.getRuntimeSnapshot,
+    );
+    waiter.promise.then((status) => { settlement = status; });
+
+    harness.clock.tick(40);
+    harness.dispatch('abs:route-ready', { routeId: 'standalone-tool', generation: 7 });
+    await flushPromiseJobs();
+    assert.equal(settlement, null);
+
+    harness.clock.tick(1);
+    harness.dispatch('abs:route-ready', { routeId: 'standalone-tool', generation: 7 });
+    assert.equal(await waiter.promise, 'ready');
+    assertReadinessWaiterClean(harness);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('Home readiness requires the prepared Canvas, runtime, shell, and title contract', () => {
+  const harness = createReadinessHarness();
+  try {
+    const canvas = createFakeElement({
+      rect: { top: 0, left: 0, right: 640, bottom: 360, width: 640, height: 360 },
+      width: 642,
+      height: 362,
+    });
+    const hero = createFakeElement();
+    hero.querySelector = (selector) => (
+      selector === '.hero-title__name' ? { textContent: 'Alexander Beck' } : null
+    );
+    hero.querySelectorAll = (selector) => (
+      selector === '.hero-title__role'
+        ? [{ textContent: 'Designer' }, { textContent: 'Engineer' }]
+        : []
+    );
+    harness.elementsById.set('c', canvas);
+    harness.elementsById.set('hero-title', hero);
+    harness.document.querySelectorAll = (selector) => (
+      selector === '[data-route-tab]' ? [{}, {}, {}, {}, {}] : []
+    );
+    harness.root.dataset.absBootState = 'ready';
+    harness.root.dataset.absHomeRouteReady = 'true';
+    harness.root.dataset.absHomeCanvasTitleReady = 'true';
+    harness.setRuntimeSnapshot({ generation: 7, routeId: 'home', status: 'ready' });
+
+    assert.equal(observeRouteBaselineReady('home', {}, harness.getRuntimeSnapshot), true);
+    canvas.width = 32;
+    assert.equal(observeRouteBaselineReady('home', {}, harness.getRuntimeSnapshot), false);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('Portfolio readiness supports gate, prepared deck, and visible geometry contracts', () => {
+  const harness = createReadinessHarness();
+  try {
+    harness.body.classList.add('portfolio-page');
+    const gate = createFakeElement();
+    harness.selectors.set('[data-route-content="portfolio-gate"]', gate);
+    assert.equal(observeRouteBaselineReady(
+      'portfolio',
+      { lockedGateId: 'portfolio' },
+      harness.getRuntimeSnapshot,
+    ), true);
+
+    harness.selectors.delete('[data-route-content="portfolio-gate"]');
+    const mount = createFakeElement({ classes: ['is-portfolio-boot-preparing'] });
+    harness.elementsById.set('portfolioProjectMount', mount);
+    harness.setRuntimeSnapshot({ generation: 8, routeId: 'portfolio', status: 'ready' });
+    assert.equal(observeRouteBaselineReady(
+      'portfolio',
+      { lockedGateId: null },
+      harness.getRuntimeSnapshot,
+    ), true);
+
+    mount.classList.remove('is-portfolio-boot-preparing');
+    const wall = createFakeElement({
+      rect: { top: 0, left: 0, right: 800, bottom: 600, width: 800, height: 600 },
+    });
+    const card = createFakeElement({
+      rect: { top: 100, left: 100, right: 500, bottom: 400, width: 400, height: 300 },
+    });
+    mount.querySelector = () => card;
+    harness.elementsById.set('simulations', wall);
+    harness.selectors.set('.portfolio-deck-card.is-active, .portfolio-project-label', card);
+    assert.equal(observeRouteBaselineReady(
+      'portfolio',
+      { lockedGateId: null },
+      harness.getRuntimeSnapshot,
+    ), true);
+
+    card.styles.opacity = '0';
+    assert.equal(observeRouteBaselineReady(
+      'portfolio',
+      { lockedGateId: null },
+      harness.getRuntimeSnapshot,
+    ), false);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('Daily readiness requires both a prepared Canvas and the matching visual source', () => {
+  const harness = createReadinessHarness();
+  let unregister = () => {};
+  let unregisterOther = () => {};
+  try {
+    unregister = registerSimulationVisualTransition('repel-room');
+    const canvas = createFakeElement({
+      rect: { top: 0, left: 0, right: 640, bottom: 360, width: 640, height: 360 },
+      width: 640,
+      height: 360,
+    });
+    harness.selectors.set('#repel-room-canvas', canvas);
+    assert.equal(observeRouteBaselineReady('repel-room', {}, harness.getRuntimeSnapshot), true);
+
+    unregister();
+    unregister = () => {};
+    assert.equal(observeRouteBaselineReady('repel-room', {}, harness.getRuntimeSnapshot), false);
+
+    unregisterOther = registerSimulationVisualTransition('flock-of-birds');
+    assert.equal(observeRouteBaselineReady('repel-room', {}, harness.getRuntimeSnapshot), false);
+  } finally {
+    unregister();
+    unregisterOther();
+    harness.restore();
   }
 });

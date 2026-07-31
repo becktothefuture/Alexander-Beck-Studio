@@ -2,6 +2,9 @@ import { withBasePath } from '../../../lib/base-path.js';
 import {
   normalizeSimulationAtmosphereConfig,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
+import {
+  normalizePlaygroundConfig,
+} from '../../../routes/playground/config/playgroundConfig.js';
 
 const DESIGN_SYSTEM_PATHS = [
   withBasePath('/config/design-system.json'),
@@ -545,13 +548,15 @@ export function normalizeDesignSystemConfig(raw = {}) {
 
   const contact = isPlainObject(source.contact) ? clone(source.contact) : {};
 
+  const playground = normalizePlaygroundConfig(source.playground);
+
   const cv = isPlainObject(source.cv)
     ? clone(source.cv)
     : (looksLikeCvConfig(source) ? clone(source) : clone(DEFAULT_CV_CONFIG));
 
   const version = Number.isFinite(Number(source.version)) ? Number(source.version) : 1;
 
-  return { version, runtime, shell, portfolio, contact, cv };
+  return { version, runtime, shell, portfolio, contact, playground, cv };
 }
 
 async function loadFallbackDesignSystem() {
@@ -568,6 +573,7 @@ async function loadFallbackDesignSystem() {
     shell: shell || {},
     portfolio: portfolio || {},
     contact: {},
+    playground: {},
     cv: cv || DEFAULT_CV_CONFIG,
   });
 }
@@ -605,6 +611,10 @@ export function derivePortfolioConfig(designSystem = {}) {
 
 export function deriveContactConfig(designSystem = {}) {
   return clone(normalizeDesignSystemConfig(designSystem).contact);
+}
+
+export function derivePlaygroundConfig(designSystem = {}) {
+  return clone(normalizeDesignSystemConfig(designSystem).playground);
 }
 
 export function deriveCvConfig(designSystem = {}) {

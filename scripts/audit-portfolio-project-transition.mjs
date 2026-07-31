@@ -278,7 +278,7 @@ function validateCloseSamples(samples, label, failures) {
   }
 }
 
-async function assertCleanClosedState(page, label, failures) {
+async function assertCleanClosedState(page, label, failures, expectedFocusIndex = null) {
   const state = await page.evaluate(() => {
     const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
     return {
@@ -297,6 +297,9 @@ async function assertCleanClosedState(page, label, failures) {
   if (state.drawerCount !== 1 || state.drawerHidden !== 'true') failures.push(`${label}: drawer cleanup mismatch`);
   if (state.deckInert) failures.push(`${label}: deck remained inert after close`);
   if (state.phase !== 'closed') failures.push(`${label}: phase remained ${state.phase}`);
+  if (expectedFocusIndex !== null && state.focusedProjectIndex !== expectedFocusIndex) {
+    failures.push(`${label}: focus returned to project ${state.focusedProjectIndex}, expected ${expectedFocusIndex}`);
+  }
   return state;
 }
 
@@ -479,7 +482,12 @@ async function main() {
       failures.push(`${viewport.name}/keyboard: shared-media handoff did not run`);
     }
     await closeProject(page, 'escape');
-    await assertCleanClosedState(page, `${viewport.name}/keyboard`, failures);
+    await assertCleanClosedState(
+      page,
+      `${viewport.name}/keyboard`,
+      failures,
+      Math.min(1, projectCount - 1),
+    );
 
     await selectProject(page, Math.min(1, projectCount - 1));
     await page.locator('.portfolio-project-card.is-active').click({ timeout: WAIT_MS });

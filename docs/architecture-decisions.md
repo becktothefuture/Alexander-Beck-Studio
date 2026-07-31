@@ -100,7 +100,7 @@ Some explicit mapping remains. The result is not the minimum number of lines, bu
 
 ### Consequences
 
-`MILESTONE-05` must land before `MILESTONE-08`. Known URLs and aliases remain stable. Unknown-path behavior is resolved separately through `HD-01`.
+`MILESTONE-05` landed first and validated authored view ownership plus standalone/shared-shell applicability. It also corrected the earlier false Loader shell assumption. `HD-01` was then approved, and M08 established one source-readable route manifest while preserving explicit SiteApp imports. Known URLs and aliases remain stable; unknown and standalone destinations decline shared-shell SPA handling so normal browser/host navigation owns them.
 
 ## ADR-004 — Use a bounded required browser smoke, not the full audit matrix
 
@@ -113,7 +113,7 @@ The repository has many deep Playwright audits, but Pages deployment does not la
 
 ### Decision
 
-Create one Chromium production-preview smoke for the four primary routes, SPA navigation, runtime readiness, Canvas sizing, semantics, and representative focus. Make it blocking after five stable runs within an eight-minute budget. Keep Chromium/WebKit visual and transition matrices targeted.
+Create one Chromium production-preview smoke for the five manifest-derived primary routes, SPA navigation, runtime readiness, Canvas sizing, semantics, and representative focus. Make it blocking after five stable runs within an eight-minute budget. Keep Chromium/WebKit visual and transition matrices targeted.
 
 ### Reasons
 
@@ -133,7 +133,7 @@ Deployment takes longer and can be blocked by browser infrastructure. The smoke 
 
 ### Consequences
 
-M01 owns the workflow step and failure artifacts. CI budget may be overridden through `HD-04`, but later milestones must still run the smoke locally.
+M01 owns the workflow step and failure artifacts. Its implementation was verified locally on 2026-07-30 and is staged as advisory while five stable Actions runs are collected. `HD-04` was approved on 2026-07-30, so the fifth in-budget pass authorizes one focused change to make the smoke blocking. The initial semantic assertion is representative on About; M06 expands the same contract to all primary routes after repairing their known markup defects. Later milestones must run the smoke locally.
 
 ## ADR-005 — Separate current-tree artifact hygiene from Git history rewriting
 
@@ -166,7 +166,7 @@ The Git pack remains large after current-tree cleanup. Clone-size benefits are l
 
 ### Consequences
 
-M04 is non-destructive. M09 requires `HD-02`. No roadmap agent may rewrite history under `OPS-001`.
+M04 was non-destructive. `HD-02` was approved on 2026-07-30, and M09 applied exact index-only removals while preserving local files. No roadmap agent may rewrite history under `OPS-001`.
 
 ## ADR-006 — Preserve CSS behavior while clarifying ownership
 
@@ -200,3 +200,51 @@ The work requires an inventory and browser baselines before line count falls. So
 ### Consequences
 
 M12 cannot change production CSS. M16 occurs after route semantics, visual accessibility, and Portfolio DOM seams are stable.
+
+## ADR-007 — Programme completion requires a reproducible integration boundary
+
+**Status:** Accepted by independent review on 2026-07-30
+
+### Context
+
+Most refactor source, tests, and programme records are uncommitted or untracked and overlap later About Director and Playground work. Only M09 has a dedicated refactoring commit. Local and remote `main` trees are patch-equivalent but have divergent commit identities.
+
+### Decision
+
+Do not call the refactoring programme complete, release-ready, or independently reproducible until its intended files are captured in reviewable commit boundaries and the integrated gates pass from that state. Preserve all user work. Do not reset, discard, or rewrite history to manufacture clean attribution.
+
+### Reasons
+
+- Release evidence must identify the exact source under test.
+- Rollback instructions require real integration boundaries.
+- Untracked central modules can be lost and do not exist in a clean checkout.
+- About and Playground work must remain intact while refactor ownership is established.
+
+### Trade-offs
+
+Creating boundaries across overlapping files requires deliberate review and may not reproduce one commit per historical milestone. The goal is a truthful integrated state, not retroactive history.
+
+### Consequences
+
+- `OPS-002` blocks release approval.
+- M01 workflow evidence does not count until its scripts and configuration are integrated.
+- The corrective fixes for `TEST-003` and `ARCH-003` should land before final integration verification.
+- Git history rewriting remains outside scope and requires separate authorization.
+
+## Historical independent architecture review note — 2026-07-30
+
+The route manifest, transition-readiness seam, lint ratchet, local-write request boundary, control-definition seam, and Portfolio data/prewarm seams should be retained. They improve ownership and testability even where total line count increased.
+
+Do not interpret the programme as a net-complexity reduction. Across the four measured refactor scopes, source grew from 14,570 to 14,810 lines. Central responsibility density, a 12-module active legacy cycle, shared mutable browser/runtime state, and 428 CSS overlaps remain. M16 must stay behind completed M07 and a refreshed M12 baseline.
+
+## Architecture verification amendment — 2026-07-31
+
+The 2026-07-30 note above is a historical snapshot. Current evidence changes these consequences without changing the accepted architecture:
+
+- The null-route startup defect from `ARCH-003` is locally resolved through an explicit fallback state. Unknown URLs remain host-owned and are not rewritten to Home.
+- Multi-file local authoring now uses a serialized, journaled transaction boundary with an explicit durable commit point, rollback, recovery, containment, and cleanup-pending behavior. Independent review accepted the boundary after 30 focused tests.
+- A focused mode-button dependency seam reduced the active legacy cyclic component from 12 modules and 23 internal edges to 9 modules and 15 internal edges. The remaining cycle stays documented; this is not approval for a broad runtime rewrite.
+- The supported development/build runtime is Node 22.19 or later. Root and app full dependency audits are clean after controlled updates.
+- The renderer uses an allocation-free cadence helper that accepts bounded jitter and carries genuinely late callbacks by modulo. This keeps frame accounting aligned with accepted render work.
+
+The sequencing decision was satisfied locally: M07 and `A11Y-006` passed before the M12 refresh, and M16 followed the accepted baseline. M16 moved only the approved Portfolio hero/title and locked-overlay ownership families. The computed signature stayed `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`, and both approved residual-conflict counts are zero. `OPS-002` still blocks reproducible release review until an authorized commit boundary exists. `TEST-001` still needs remote run history and branch-protection evidence. No commit, push, cross-browser performance certification, or production decision is implied.

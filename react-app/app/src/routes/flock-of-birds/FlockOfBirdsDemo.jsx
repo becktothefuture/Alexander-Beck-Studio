@@ -204,7 +204,10 @@ export function FlockOfBirdsDemo() {
   const colorsRef = useRef(DEFAULT_THEME_COLORS);
   const [config, setConfig] = useState(DEFAULT_FLOCK_OF_BIRDS_CONFIG);
   const [designSystem, setDesignSystem] = useState(null);
-  const [themeColors, setThemeColors] = useState(() => resolveFlockTheme(null, isDark));
+  const themeColors = useMemo(
+    () => resolveFlockTheme(designSystem, isDark),
+    [designSystem, isDark],
+  );
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
   const showControlPanel = useMemo(() => shouldShowControlPanel(), []);
@@ -236,10 +239,6 @@ export function FlockOfBirdsDemo() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    setThemeColors(resolveFlockTheme(designSystem, isDark));
-  }, [designSystem, isDark]);
 
   useEffect(() => {
     configRef.current = config;

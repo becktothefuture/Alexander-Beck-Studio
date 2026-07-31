@@ -9,7 +9,7 @@ import { setMode } from '../modes/mode-controller.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
-import { updateModeButtonsUI } from '../ui/controls.js';
+import { updateModeButtonsUI } from '../ui/mode-buttons.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;

@@ -49,6 +49,11 @@ const ROUTE_DEFINITIONS = Object.freeze({
   home: Object.freeze({ id: 'home', href: '/index.html', ready: '#c, #simulation-stage' }),
   about: Object.freeze({ id: 'about', href: '/about.html', ready: '[data-route-content="about"]' }),
   contact: Object.freeze({ id: 'contact', href: '/contact.html', ready: '[data-route-content="contact"]' }),
+  playground: Object.freeze({
+    id: 'playground',
+    href: '/playground.html',
+    ready: '[data-playground-experience][data-playground-ready="true"]',
+  }),
 });
 const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
   'repel-room',
@@ -58,7 +63,7 @@ const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
 const requestedSequence = String(process.env.ABS_TRANSITION_SEQUENCE || '').trim();
 const ROUTE_STEPS = (requestedSequence
   ? requestedSequence.split(',').map((routeId) => routeId.trim()).filter(Boolean)
-  : ['portfolio', 'home', 'about', 'home', 'contact', 'home']
+  : ['portfolio', 'home', 'about', 'home', 'contact', 'home', 'playground', 'home']
 ).map((routeId) => {
   const step = ROUTE_DEFINITIONS[routeId];
   if (!step) throw new Error(`Unknown ABS_TRANSITION_SEQUENCE route "${routeId}".`);
@@ -358,6 +363,18 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
             body?.classList.contains('contact-page')
             && document.querySelector('[data-route-content="contact"]')
           ),
+        };
+      }
+      if (routeId === 'playground') {
+        const experience = document.querySelector('[data-playground-experience]');
+        return {
+          ready: Boolean(
+            body?.classList.contains('playground-page')
+            && experience?.dataset.playgroundReady === 'true'
+            && window.__ABS_PLAYGROUND__
+          ),
+          routeReady: experience?.dataset.playgroundReady || '',
+          projectCount: Number(experience?.dataset.playgroundProjectCount || 0),
         };
       }
       return { ready: Boolean(document.getElementById('app-frame')) };

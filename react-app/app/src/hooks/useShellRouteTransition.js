@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { hasGateAccess } from '../lib/access-gates.js';
-import { buildRouteHref, getRouteById, resolveRouteFromHref, resolveRouteFromPathname } from '../lib/routes.js';
+import {
+  buildRouteHref,
+  getRouteById,
+  isSharedShellRoute,
+  resolveRouteFromHref,
+  resolveRouteFromPathname,
+} from '../lib/routes.js';
 import { installSpaNavigationBridge } from '../lib/spa-navigation.js';
 import {
   getResolvedSimulationFocus,
@@ -14,7 +20,6 @@ import {
   loadRouteRuntimeModule,
 } from './useLegacyRouteRuntime.js';
 import {
-  isSimulationVisualTransitionSourceActive,
   recordSimulationVisualTransitionEvent,
   runSimulationVisualTransition,
 } from '../lib/simulationVisualTransition.js';
@@ -36,6 +41,11 @@ import {
 } from '../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
 import { createRouteLoaderTimingDriver } from '../lib/motion/route-transition-loader-timing.js';
+import {
+  isDailyLabRouteId,
+  observeRouteBaselineReady,
+  waitForObservedRouteReady,
+} from '../lib/motion/route-transition-readiness.js';
 import {
   createRouteHistoryCoordinator,
   createRouteHistoryDriver,
@@ -116,13 +126,28 @@ function computeRouteState(href) {
   }
 
   const requestedRoute = resolveRouteFromPathname(url.pathname);
+  if (!requestedRoute) {
+    // Some fallback hosts serve the Home entry shell for every pathname. Keep
+    // that shell bootable without claiming the unknown URL as an internal
+    // route; the SPA bridge still declines unknown navigation for the host.
+    return {
+      route: getRouteById('home'),
+      requestedRouteId: null,
+      canonicalHref: `${url.pathname}${url.search}${url.hash}`,
+      redirectGateId: null,
+      dailyFocusRouteId: null,
+      focusSimulationId: null,
+      lockedGateId: null,
+      hostFallback: true,
+    };
+  }
   const homeFocusSimulationId = requestedRoute.id === 'home'
     ? readHomeFocusSimulationId(url.searchParams)
     : null;
-  const homeRouteBackedFocusId = DAILY_LAB_ROUTE_IDS.has(homeFocusSimulationId)
+  const homeRouteBackedFocusId = isDailyLabRouteId(homeFocusSimulationId)
     ? homeFocusSimulationId
     : null;
-  const labDailyFocusRouteId = DAILY_LAB_ROUTE_IDS.has(requestedRoute.id)
+  const labDailyFocusRouteId = isDailyLabRouteId(requestedRoute.id)
     && url.searchParams.get('daily') === '1'
     ? requestedRoute.id
     : null;
@@ -181,6 +206,10 @@ function buildCanonicalRouteHref(route, url) {
   if (__DEV__ && route.id === 'about-narrative-lab' && url.searchParams.get('edit') === '1') {
     canonical.searchParams.set('edit', '1');
   }
+  if (route.id === 'playground') {
+    const workId = url.searchParams.get('work');
+    if (workId) canonical.searchParams.set('work', workId);
+  }
   if (route.id.startsWith('atmosphere-')) {
     ['mode', 'panel', 'absAudit'].forEach((key) => {
       const value = url.searchParams.get(key);
@@ -238,11 +267,6 @@ const SIMULATION_FOCUS_EXIT_LOCAL_MS = 240;
 const SIMULATION_FOCUS_ENTER_LOCAL_MS = 280;
 const SIMULATION_FOCUS_EASE_OUT = 'cubic-bezier(0.72, 0, 0.86, 0.32)';
 const SIMULATION_FOCUS_EASE_IN = 'cubic-bezier(0.16, 1, 0.3, 1)';
-const DAILY_LAB_ROUTE_IDS = new Set([
-  'repel-room',
-  'flock-of-birds',
-  'rift-rings',
-]);
 
 function createAnimationRegistry() {
   const registry = {
@@ -926,327 +950,17 @@ function waitWithTransitionTimeout(promise, timeoutMs, signal = null) {
   });
 }
 
-/* ── route ready ──────────────────────────────────────────────────────────── */
-
-function hasCanvasBufferReady() {
-  const canvas = document.getElementById('c');
-  if (!canvas) return false;
-  const cssW = canvas.clientWidth || 0;
-  const cssH = canvas.clientHeight || 0;
-  if (cssW < 64 || cssH < 64) return false;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const minW = Math.ceil((cssW + 2) * dpr) - 2;
-  const minH = Math.ceil((cssH + 2) * dpr) - 2;
-  return canvas.width >= minW && canvas.height >= minH;
-}
-
-function isRectUsable(rect) {
-  return Boolean(rect && rect.width > 0 && rect.height > 0);
-}
-
-function rectHasUsableVisibleArea(innerRect, outerRect) {
-  if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
-  const visibleWidth = Math.max(0, Math.min(innerRect.right, outerRect.right) - Math.max(innerRect.left, outerRect.left));
-  const visibleHeight = Math.max(0, Math.min(innerRect.bottom, outerRect.bottom) - Math.max(innerRect.top, outerRect.top));
-  return (
-    visibleWidth >= Math.min(240, outerRect.width * 0.5)
-    && visibleHeight >= Math.min(96, innerRect.height * 0.5)
-  );
-}
-
-function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
-  if (!isRectUsable(previous) || !isRectUsable(next)) return false;
-  return (
-    Math.abs(previous.top - next.top) <= thresholdPx
-    && Math.abs(previous.left - next.left) <= thresholdPx
-    && Math.abs(previous.width - next.width) <= thresholdPx
-    && Math.abs(previous.height - next.height) <= thresholdPx
-  );
-}
-
-function isElementVisiblyRevealed(element) {
-  if (!element) return false;
-  const styles = window.getComputedStyle(element);
-  return (
-    styles.display !== 'none'
-    && styles.visibility !== 'hidden'
-    && Number(styles.opacity) > 0.9
-  );
-}
-
-function isCanvasSurfacePrepared(selector) {
-  const canvas = document.querySelector(selector);
-  if (!canvas) return false;
-  const rect = canvas.getBoundingClientRect();
-  return rect.width >= 64
-    && rect.height >= 64
-    && canvas.width >= 64
-    && canvas.height >= 64;
-}
-
-function isPortfolioScrollRailReady() {
-  const wall = document.getElementById('simulations');
-  const mount = document.getElementById('portfolioProjectMount');
-  const firstCard = mount?.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label');
-  if (!wall || !mount || !firstCard) return false;
-  const wallRect = wall.getBoundingClientRect();
-  const cardRect = firstCard.getBoundingClientRect();
-  const deckPrepared = mount.classList.contains('is-portfolio-boot-preparing');
-  const hasUsableGeometry = (
-    isRectUsable(wallRect)
-    && isRectUsable(cardRect)
-    && cardRect.width >= Math.min(240, wallRect.width * 0.5)
-    && cardRect.height >= 96
-    && rectHasUsableVisibleArea(cardRect, wallRect)
-  );
-  return (
-    hasUsableGeometry
-    && (
-      deckPrepared
-      || (isElementVisiblyRevealed(mount) && isElementVisiblyRevealed(firstCard))
-    )
-  );
-}
-
-function isDailyLabRouteReady(routeId) {
-  const isLocalAuditHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isLocalAuditHost && window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ === routeId) return false;
-  switch (routeId) {
-    case 'repel-room':
-      return isCanvasSurfacePrepared('#repel-room-canvas')
-        && isSimulationVisualTransitionSourceActive(routeId);
-    case 'flock-of-birds':
-      return isCanvasSurfacePrepared('#flock-of-birds-canvas')
-        && isSimulationVisualTransitionSourceActive(routeId);
-    case 'rift-rings':
-      return isCanvasSurfacePrepared('#rift-rings-canvas')
-        && isSimulationVisualTransitionSourceActive(routeId);
-    case 'beach-ball-room': {
-      const container = document.querySelector('.beach-ball-room-simulation');
-      const loadState = container?.dataset?.beachBallRoomLoadState;
-      return Boolean(
-        loadState === 'ready'
-          && isCanvasSurfacePrepared('.beach-ball-room-canvas')
-          && isSimulationVisualTransitionSourceActive(routeId)
-      );
-    }
-    default:
-      return false;
-  }
-}
-
-function isDailyLabRouteId(routeId) {
-  return DAILY_LAB_ROUTE_IDS.has(routeId);
-}
-
-function readRouteReadySnapshot(routeId) {
-  if (routeId === 'portfolio') {
-    return {
-      wallRect: document.getElementById('simulations')?.getBoundingClientRect() || null,
-      heroRect: document.getElementById('hero-title')?.getBoundingClientRect() || null,
-      cardRect: document.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label')?.getBoundingClientRect() || null,
-      topbarRect: document.querySelector('.ui-top-main.route-topbar')?.getBoundingClientRect() || null,
-    };
-  }
-
-  return null;
-}
-
-function isRouteReadySnapshotStable(routeId, previous, next, options = {}) {
-  if (routeId !== 'portfolio') return true;
-  if (options.lockedGateId === 'portfolio') return true;
-  if (!previous || !next) return false;
-  const deckFailed = document.body?.classList.contains('portfolio-deck-failed');
-  const deckPrepared = document.getElementById('portfolioProjectMount')
-    ?.classList.contains('is-portfolio-boot-preparing');
-  if (deckPrepared) {
-    return (
-      rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
-      && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
-    );
-  }
-  return (
-    rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
-    && (!previous.heroRect || !next.heroRect || rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2))
-    && (deckFailed || rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2))
-    && rectsMatchWithinThreshold(previous.topbarRect, next.topbarRect, 2)
-  );
-}
-
 function isRouteBaselineReady(routeId, options = {}) {
-  const body = document.body;
-  if (!body) return false;
-
-  if (routeId === 'home') {
-    const isHomeRoute = !body.classList.contains('portfolio-page') && !body.classList.contains('cv-page');
-    const root = document.documentElement;
-    const hero = document.getElementById('hero-title');
-    const routeTabs = document.querySelectorAll('[data-route-tab]');
-    const bootOverlay = document.getElementById('abs-boot-overlay');
-    const bootState = document.documentElement.dataset.absBootState || '';
-    const runtime = getActiveLegacyRuntimeSnapshot();
-    const semanticTitleReady = Boolean(
-      hero?.querySelector('.hero-title__name')?.textContent?.trim()
-      && hero?.querySelectorAll('.hero-title__role').length >= 2
-      && [...hero.querySelectorAll('.hero-title__role')]
-        .every((line) => line.textContent?.trim())
-    );
-    return Boolean(
-      isHomeRoute
-      && hero
-      && routeTabs.length >= 4
-      && hasCanvasBufferReady()
-      && !bootOverlay
-      && bootState !== 'booting'
-      && runtime.routeId === 'home'
-      && runtime.status === 'ready'
-      && root.dataset.absHomeRouteReady === 'true'
-      && (root.dataset.absHomeCanvasTitleReady === 'true' || semanticTitleReady)
-    );
-  }
-
-  if (routeId === 'portfolio') {
-    const deckFailed = body.classList.contains('portfolio-deck-failed');
-    const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
-    const portfolioMount = document.getElementById('portfolioProjectMount');
-    const deckPrepared = portfolioMount?.classList.contains('is-portfolio-boot-preparing');
-    const runtime = getActiveLegacyRuntimeSnapshot();
-    if (options.lockedGateId === 'portfolio') {
-      return Boolean(body.classList.contains('portfolio-page') && lockedGate);
-    }
-    if (options.lockedGateId === null && lockedGate) {
-      return false;
-    }
-    return Boolean(
-      body.classList.contains('portfolio-page')
-      && (
-        lockedGate
-        || (
-          runtime.routeId === 'portfolio'
-          && runtime.status === 'ready'
-          && (
-            portfolioMount
-            && (deckFailed || deckPrepared || isPortfolioScrollRailReady())
-          )
-        )
-      )
-    );
-  }
-
-  if (routeId === 'about') {
-    const aboutRoute = document.querySelector('[data-route-content="about"]');
-    return Boolean(
-      body.classList.contains('about-page')
-      && aboutRoute
-      && (
-        aboutRoute.dataset.aboutSceneReady === 'true'
-        || !body.classList.contains('about-narrative-page')
-      )
-    );
-  }
-
-  if (routeId === 'contact') {
-    return Boolean(
-      body.classList.contains('contact-page')
-      && document.querySelector('[data-route-content="contact"]')
-    );
-  }
-
-  if (isDailyLabRouteId(routeId)) {
-    return isDailyLabRouteReady(routeId);
-  }
-
-  return Boolean(document.getElementById('app-frame'));
+  return observeRouteBaselineReady(routeId, options, getActiveLegacyRuntimeSnapshot);
 }
 
 function waitForRouteReady(routeId, timeoutMs, options = {}) {
-  let settle = () => {};
-  const promise = new Promise((resolve) => {
-    let settled = false;
-    let pollId = 0;
-    let timeoutId = 0;
-    let previousSnapshot = null;
-    let stableReadyFrames = 0;
-    const POLL_MS = 16;
-    const isLocalAuditHost = window.location.hostname === 'localhost'
-      || window.location.hostname === '127.0.0.1';
-    const auditDelayMs = isLocalAuditHost
-      ? Math.max(0, Number(window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ || 0))
-      : 0;
-    const readinessStartedAt = Number(options.readinessStartedAt) || performance.now();
-    const auditReadyNotBefore = readinessStartedAt + auditDelayMs;
-    // Portfolio's runtime and participant each own painted-geometry barriers;
-    // repeating them in the shell delayed a fully prepared deck by three more
-    // frames without adding a stronger invariant.
-    const REQUIRED_STABLE_FRAMES = 0;
-    const maybeSettleReady = () => {
-      if (!isRouteBaselineReady(routeId, options)) {
-        stableReadyFrames = 0;
-        previousSnapshot = null;
-        return false;
-      }
-      if (auditDelayMs > 0 && performance.now() < auditReadyNotBefore) return false;
-      if (REQUIRED_STABLE_FRAMES === 0) {
-        settle('ready');
-        return true;
-      }
-
-      const snapshot = readRouteReadySnapshot(routeId);
-      if (snapshot && previousSnapshot && isRouteReadySnapshotStable(routeId, previousSnapshot, snapshot, options)) {
-        stableReadyFrames += 1;
-      } else {
-        stableReadyFrames = 0;
-      }
-      previousSnapshot = snapshot;
-
-      if (stableReadyFrames >= REQUIRED_STABLE_FRAMES) {
-        settle('ready');
-        return true;
-      }
-      return false;
-    };
-
-    settle = (status = 'cancelled') => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener('abs:route-ready', onReady);
-      window.removeEventListener('abs:daily-focus-failed', onFailed);
-      window.removeEventListener('abs:route-failed', onFailed);
-      if (pollId) clearStableTimeout(pollId);
-      if (timeoutId) clearStableTimeout(timeoutId);
-      resolve(status);
-    };
-    const onReady = (e) => {
-      if ((e?.detail?.routeId || '') !== routeId) return;
-      const eventGeneration = Number(e?.detail?.generation || 0);
-      const currentGeneration = getActiveLegacyRuntimeSnapshot().generation;
-      if (eventGeneration && eventGeneration !== currentGeneration) return;
-      maybeSettleReady();
-    };
-    const onFailed = (event) => {
-      if ((event?.detail?.routeId || '') !== routeId) return;
-      settle('failed');
-    };
-    window.addEventListener('abs:route-ready', onReady);
-    window.addEventListener('abs:daily-focus-failed', onFailed);
-    window.addEventListener('abs:route-failed', onFailed);
-    timeoutId = setStableTimeout(() => settle('timeout'), timeoutMs);
-
-    if (maybeSettleReady()) {
-      return;
-    }
-
-    const tick = () => {
-      if (settled) return;
-      if (maybeSettleReady()) return;
-      pollId = setStableTimeout(tick, POLL_MS);
-    };
-    pollId = setStableTimeout(tick, POLL_MS);
-  });
-  return {
-    promise,
-    cancel: settle,
-  };
+  return waitForObservedRouteReady(
+    routeId,
+    timeoutMs,
+    options,
+    getActiveLegacyRuntimeSnapshot,
+  );
 }
 
 /* ── staggered entrance ───────────────────────────────────────────────────── */
@@ -2152,7 +1866,7 @@ export function useShellRouteTransition({
 
   const navigate = useCallback((href, options = {}) => {
     const route = resolveRouteFromHref(href, window.location.href);
-    if (!route) return false;
+    if (!isSharedShellRoute(route)) return false;
 
     const targetUrl = new URL(href, window.location.href);
     const nextState = computeRouteState(targetUrl.toString());

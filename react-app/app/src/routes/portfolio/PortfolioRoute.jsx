@@ -40,6 +40,7 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
 
   return {
     bodyClass: 'body portfolio-page',
+    mainLandmarkHeadingId: 'hero-title',
     studioWindowClassName: 'portfolio-simulation w-embed',
     windowOverlayContent: <PortfolioGateRoute />,
     simulationLayer: (
@@ -79,9 +80,9 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
       secondary: (
         <>
           <div className="portfolio-route-title-ui">
-            <h2
+            <h1
               id="hero-title"
-              className="hero-title hero-title--portfolio"
+              className="hero-title hero-title--portfolio screen-reader"
               aria-label={portfolioHeroAria}
             >
               <span className="hero-title__eyebrow" data-route-enter="identity" data-route-enter-order="0">{portfolioHeroEyebrow}</span>
@@ -89,9 +90,9 @@ export function getPortfolioRouteView(canonicalHref, routeState = {}) {
               {portfolioHeroSecondary ? (
                 <span className="hero-title__line hero-title__line--secondary" data-route-enter="identity" data-route-enter-order="2">{portfolioHeroSecondary}</span>
               ) : null}
-            </h2>
+            </h1>
           </div>
-          <main className="ui-center-spacer" aria-hidden="true" />
+          <div className="ui-center-spacer" aria-hidden="true" />
         </>
       )
     }

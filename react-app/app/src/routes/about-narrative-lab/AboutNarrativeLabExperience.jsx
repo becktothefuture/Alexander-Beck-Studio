@@ -741,7 +741,11 @@ export function AboutNarrativeLabExperience({
   }, [routeContentId]);
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
-  const [indicatorHost, setIndicatorHost] = useState(null);
+  const indicatorHost = useMemo(() => (
+    showIndicator && typeof document !== 'undefined'
+      ? document.getElementById('shell-persistent-route-ui-host')
+      : null
+  ), [showIndicator]);
   const [playbackDocument, setPlaybackDocument] = useState(INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
@@ -749,12 +753,6 @@ export function AboutNarrativeLabExperience({
   const worldRuntimeRef = useRef(null);
   const worldInteractionRef = useRef(null);
   const disciplineOverlayRef = useRef(null);
-
-  useLayoutEffect(() => {
-    if (!showIndicator || typeof document === 'undefined') return undefined;
-    setIndicatorHost(document.getElementById('shell-persistent-route-ui-host'));
-    return undefined;
-  }, [routeContentId, showIndicator]);
 
   useEffect(() => {
     if ((!__DEV__ && !__CERTIFY__) || !editorRequested) return undefined;

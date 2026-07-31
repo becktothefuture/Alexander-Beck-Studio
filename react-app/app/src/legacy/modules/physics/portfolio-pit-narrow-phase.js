@@ -184,7 +184,7 @@ export function portfolioPitNarrowPhase(A, B, globals) {
   const dx = B.x - A.x;
   const dy = B.y - A.y;
 
-  let ok = false;
+  let ok;
   if (nA === 0) {
     ok = satCirclePoly(A.x, A.y, A.r, _wxB, _wyB, nB, dx, dy, _satOut);
   } else if (nB === 0) {
@@ -235,7 +235,7 @@ export function portfolioPitKinematicOverlap(kinematicBall, B, globals) {
   const dx = B.x - kinematicBall.x;
   const dy = B.y - kinematicBall.y;
 
-  let ok = false;
+  let ok;
   if (nK === 0 && nB === 0) {
     const spacingRatio = globals.ballSpacing || 0;
     const avgRadius = (kinematicBall.r + B.r) * 0.5;

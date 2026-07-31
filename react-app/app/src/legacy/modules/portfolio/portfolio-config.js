@@ -262,6 +262,14 @@ export function normalizePortfolioConfig(rawConfig) {
   };
 }
 
+export function normalizePortfolioRuntime(runtime) {
+  return normalizePortfolioConfig({ runtime }).runtime;
+}
+
+export function createNormalizedPortfolioRuntimeListener(onRuntimeChange) {
+  return (runtime) => onRuntimeChange(normalizePortfolioRuntime(runtime));
+}
+
 export async function loadPortfolioConfig() {
   try {
     if (shouldUseCanonicalDesignConfig()) {

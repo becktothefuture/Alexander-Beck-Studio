@@ -1172,7 +1172,7 @@ export function sampleAboutNarrativePointField(pointField, storyWU, durationWU) 
   ));
   const transition = segment?.transition;
   const spanWU = Math.max(0.00001, Number(toKey.atWU) - Number(fromKey.atWU));
-  let transitionProgress = 1;
+  let transitionProgress;
   if (transition?.type === 'step-end') transitionProgress = 0;
   else if (!transition || transition.type === 'hold') transitionProgress = 1;
   else transitionProgress = applyAboutNarrativeWorldTransitionEasing(

@@ -319,6 +319,10 @@ export function SpatialScanPointCloud({
   const [cameraPath, setCameraPath] = useState(null);
   const [error, setError] = useState('');
   const resolvedQuality = resolveQuality(quality, mobileQuality);
+  const resolvedAsset = meta?.lods?.[resolvedQuality] || meta?.lods?.medium || meta?.lods?.low;
+  const displayError = error || (meta && !resolvedAsset?.file
+    ? `No ${resolvedQuality} spatial scan point-cloud asset is defined`
+    : '');
   const groupColors = useMemo(() => buildGroupColors(theme, colourMode), [theme, colourMode]);
 
   useEffect(() => {
@@ -408,7 +412,6 @@ export function SpatialScanPointCloud({
 
     const asset = meta.lods?.[resolvedQuality] || meta.lods?.medium || meta.lods?.low;
     if (!asset?.file) {
-      setError(`No ${resolvedQuality} spatial scan point-cloud asset is defined`);
       return undefined;
     }
 
@@ -432,8 +435,10 @@ export function SpatialScanPointCloud({
       });
     } catch {
       renderer?.dispose();
-      setError('WebGL is unavailable, so the spatial scan cannot render in this browser.');
-      return undefined;
+      const errorTimer = window.setTimeout(() => {
+        setError('WebGL is unavailable, so the spatial scan cannot render in this browser.');
+      }, 0);
+      return () => window.clearTimeout(errorTimer);
     }
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -763,9 +768,9 @@ export function SpatialScanPointCloud({
       <figcaption className="spatial-scan-point-cloud__credit">
         {attribution}
       </figcaption>
-      {error ? (
+      {displayError ? (
         <p className="spatial-scan-point-cloud__status" role="status">
-          {error}
+          {displayError}
         </p>
       ) : null}
     </figure>

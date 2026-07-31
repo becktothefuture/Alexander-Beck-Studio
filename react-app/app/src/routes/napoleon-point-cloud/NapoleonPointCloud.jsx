@@ -454,6 +454,10 @@ export function NapoleonPointCloud({
   const [meta, setMeta] = useState(null);
   const [error, setError] = useState('');
   const resolvedQuality = resolveQuality(quality, mobileQuality);
+  const resolvedAsset = meta?.lods?.[resolvedQuality] || meta?.lods?.medium || meta?.lods?.low;
+  const displayError = error || (meta && !resolvedAsset?.file
+    ? `No ${resolvedQuality} point-cloud asset is defined`
+    : '');
   const groupColors = useMemo(() => buildGroupColors(theme, colourMode), [theme, colourMode]);
 
   useEffect(() => {
@@ -541,7 +545,6 @@ export function NapoleonPointCloud({
     const asset = meta.lods?.[resolvedQuality] || meta.lods?.medium || meta.lods?.low;
     if (!asset?.file) {
       root.dataset.pointCloudLoadState = 'error';
-      setError(`No ${resolvedQuality} point-cloud asset is defined`);
       return undefined;
     }
 
@@ -1041,9 +1044,9 @@ export function NapoleonPointCloud({
         className="napoleon-point-cloud__canvas napoleon-point-cloud__canvas--front"
         aria-hidden="true"
       />
-      {error && showDiagnostics ? (
+      {displayError && showDiagnostics ? (
         <p className="napoleon-point-cloud__status" role="status">
-          {error}
+          {displayError}
         </p>
       ) : null}
     </figure>

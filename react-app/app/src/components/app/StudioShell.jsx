@@ -19,12 +19,12 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/contact" data-shell-route-view="contact">{children}</div>;
     case 'about':
       return <div data-sfid="sfid:shell/about" data-shell-route-view="about">{children}</div>;
+    case 'playground':
+      return <div data-sfid="sfid:shell/playground" data-shell-route-view="playground">{children}</div>;
     case 'about-narrative-lab':
       return <div data-sfid="sfid:shell/about-narrative-lab">{children}</div>;
     case 'styleguide':
       return <div data-sfid="sfid:shell/styleguide">{children}</div>;
-    case 'simulations':
-      return <div data-sfid="sfid:shell/simulations">{children}</div>;
     case 'palette-lab':
       return <div data-sfid="sfid:shell/palette-lab">{children}</div>;
     case 'beach-ball-room':
@@ -39,6 +39,8 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/confluence-bridges">{children}</div>;
     case 'napoleon-point-cloud':
       return <div data-sfid="sfid:shell/napoleon-point-cloud">{children}</div>;
+    case 'rift-rings':
+      return <div data-sfid="sfid:shell/rift-rings" data-shell-route-view="rift-rings">{children}</div>;
     case 'spatial-scan':
       return <div data-sfid="sfid:shell/spatial-scan">{children}</div>;
     case 'home':
@@ -83,6 +85,7 @@ export function StudioShell({
   transitionState,
   atmosphereHostScope = null,
   routeRenderKey,
+  mainLandmarkHeadingId = '',
   contentRenderKey = routeRenderKey,
   studioWindowClassName,
   wallClassName,
@@ -111,7 +114,6 @@ export function StudioShell({
   const routeSimulationLayer = simulationLayer ?? studioWindowContent ?? wallContent;
   const routeHeroLayer = heroLayer ?? heroTitle;
   const routeUiLayer = normalizeRouteUiLayer(uiLayer, headerContent, mainContent);
-
   useLayoutEffect(() => {
     if (!atmosphereHostScope) return undefined;
     try {
@@ -143,6 +145,9 @@ export function StudioShell({
           <div
             id="simulations"
             className={windowLayerClassName}
+            role={mainLandmarkHeadingId ? 'main' : undefined}
+            data-route-content={mainLandmarkHeadingId ? routeRenderKey : undefined}
+            aria-labelledby={mainLandmarkHeadingId || undefined}
             aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
           >
             <div id="scene-effects" className="scene-effects" aria-hidden="true">

@@ -99,16 +99,205 @@ async function openViewport(page, viewport) {
   await waitForCarousel(page);
 }
 
-async function getActiveCardCenter(page) {
-  return page.locator('.portfolio-project-card.is-active').evaluate((card) => {
-    const rect = card.getBoundingClientRect();
+async function collectActiveCardReadiness(page) {
+  return page.evaluate(() => {
+    const describe = (element) => {
+      if (!element) return null;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        className: element.className,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number.parseFloat(style.opacity || '0'),
+        pointerEvents: style.pointerEvents,
+        projectIndex: Number.parseInt(element.dataset.projectIndex || '-1', 10),
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      };
+    };
+    const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+    const activeCards = Array.from(document.querySelectorAll('.portfolio-project-card.is-active'));
     return {
-      x: rect.left + (rect.width / 2),
-      y: rect.top + (rect.height / 2),
-      width: rect.width,
-      height: rect.height,
+      url: location.href,
+      theme: document.documentElement.dataset.absTheme || '',
+      viewport: { width: innerWidth, height: innerHeight },
+      readyState: document.readyState,
+      loadState: document.body.dataset.portfolioLoadState || '',
+      entrancePhase: document.getElementById('portfolioProjectMount')?.dataset.portfolioEntrancePhase || '',
+      mediaReady: document.getElementById('portfolioProjectMount')?.dataset.portfolioMediaReady || '',
+      activeCardCount: activeCards.length,
+      activeCards: activeCards.map(describe),
+      cardContainedByDeck: Boolean(
+        document.querySelector('.portfolio-deck-stage')?.contains(activeCards[0])
+      ),
+      deck: describe(document.querySelector('.portfolio-deck-stage')),
+      deckDebug: app?.getDeckDebugSnapshot?.() || null,
+      gate: {
+        count: document.querySelectorAll('.portfolio-access-gate').length,
+        phase: document.documentElement.dataset.absPortfolioAccessGatePhase || '',
+      },
+      drawer: {
+        bodyOpen: document.body.classList.contains('portfolio-project-open'),
+        count: document.querySelectorAll('#portfolioProjectView.is-open').length,
+      },
     };
   });
+}
+
+function activeCardReadinessIsHealthy(diagnostic, expectedIndex = null) {
+  const [card] = diagnostic?.activeCards || [];
+  const deck = diagnostic?.deck;
+  const snapshot = diagnostic?.deckDebug;
+  return diagnostic?.activeCardCount === 1
+    && diagnostic?.cardContainedByDeck === true
+    && deck?.display !== 'none'
+    && deck?.visibility === 'visible'
+    && deck?.opacity > 0.02
+    && deck?.pointerEvents !== 'none'
+    && deck?.rect?.width > 0
+    && deck?.rect?.height > 0
+    && card?.display !== 'none'
+    && card?.visibility === 'visible'
+    && card?.opacity > 0.02
+    && card?.pointerEvents !== 'none'
+    && card?.rect?.width > 0
+    && card?.rect?.height > 0
+    && snapshot?.isSettled === true
+    && snapshot?.inputState === 'idle'
+    && (expectedIndex === null || snapshot?.activeIndex === expectedIndex)
+    && (expectedIndex === null || card?.projectIndex === expectedIndex)
+    && diagnostic?.loadState === 'loaded'
+    && diagnostic?.entrancePhase === 'complete'
+    && diagnostic?.mediaReady === 'true'
+    && diagnostic?.gate?.count === 0
+    && diagnostic?.drawer?.bodyOpen === false
+    && diagnostic?.drawer?.count === 0;
+}
+
+function runActiveCardReadinessSelfCheck() {
+  const healthy = {
+    activeCardCount: 1,
+    cardContainedByDeck: true,
+    activeCards: [{
+      display: 'block', visibility: 'visible', opacity: 1, pointerEvents: 'auto', projectIndex: 0,
+      rect: { width: 10, height: 10 },
+    }],
+    deck: {
+      display: 'block', visibility: 'visible', opacity: 1, pointerEvents: 'auto',
+      rect: { width: 100, height: 100 },
+    },
+    deckDebug: { isSettled: true, inputState: 'idle', activeIndex: 0 },
+    loadState: 'loaded', entrancePhase: 'complete', mediaReady: 'true',
+    gate: { count: 0 }, drawer: { bodyOpen: false, count: 0 },
+  };
+  if (!activeCardReadinessIsHealthy(healthy, 0)) throw new Error('Active-card readiness rejected a healthy fixture.');
+  if (activeCardReadinessIsHealthy({ ...healthy, activeCardCount: 0, activeCards: [] }, 0)) {
+    throw new Error('Active-card readiness accepted a missing-card fixture.');
+  }
+  if (activeCardReadinessIsHealthy({ ...healthy, activeCards: [{ ...healthy.activeCards[0], visibility: 'hidden' }] }, 0)) {
+    throw new Error('Active-card readiness accepted a hidden-card fixture.');
+  }
+  if (activeCardReadinessIsHealthy({ ...healthy, deck: { ...healthy.deck, opacity: 0 } }, 0)) {
+    throw new Error('Active-card readiness accepted a paint-suppressed deck fixture.');
+  }
+  if (activeCardReadinessIsHealthy({ ...healthy, cardContainedByDeck: false }, 0)) {
+    throw new Error('Active-card readiness accepted an escaped-card fixture.');
+  }
+  if (activeCardReadinessIsHealthy({ ...healthy, activeCards: [{ ...healthy.activeCards[0], pointerEvents: 'none' }] }, 0)) {
+    throw new Error('Active-card readiness accepted disabled card pointer readiness.');
+  }
+  if (activeCardReadinessIsHealthy({
+    ...healthy,
+    activeCardCount: 2,
+    activeCards: [healthy.activeCards[0], { ...healthy.activeCards[0] }],
+  }, 0)) {
+    throw new Error('Active-card readiness accepted multiple active cards.');
+  }
+  if (activeCardReadinessIsHealthy({
+    ...healthy,
+    activeCards: [{ ...healthy.activeCards[0], projectIndex: 1 }],
+  }, 0)) {
+    throw new Error('Active-card readiness accepted a wrong DOM project index.');
+  }
+}
+
+async function restoreKnownActiveCardState(page, projectIndex = 0) {
+  await page.evaluate((index) => {
+    window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.setActiveProject?.(index, { immediate: true });
+  }, projectIndex);
+  try {
+    await page.waitForFunction((index) => {
+      const app = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.();
+      const snapshot = app?.getDeckDebugSnapshot?.();
+      const cards = Array.from(document.querySelectorAll('.portfolio-project-card.is-active'));
+      const card = cards[0];
+      const deck = document.querySelector('.portfolio-deck-stage');
+      const style = card ? getComputedStyle(card) : null;
+      const deckStyle = deck ? getComputedStyle(deck) : null;
+      const rect = card?.getBoundingClientRect();
+      const deckRect = deck?.getBoundingClientRect();
+      return snapshot?.isSettled === true
+        && snapshot?.inputState === 'idle'
+        && snapshot?.activeIndex === index
+        && document.body.dataset.portfolioLoadState === 'loaded'
+        && document.getElementById('portfolioProjectMount')?.dataset.portfolioEntrancePhase === 'complete'
+        && document.getElementById('portfolioProjectMount')?.dataset.portfolioMediaReady === 'true'
+        && cards.length === 1
+        && deck?.contains(card)
+        && deckStyle?.display !== 'none'
+        && deckStyle?.visibility === 'visible'
+        && Number.parseFloat(deckStyle?.opacity || '0') > 0.02
+        && deckStyle?.pointerEvents !== 'none'
+        && deckRect?.width > 0 && deckRect?.height > 0
+        && style?.display !== 'none'
+        && style?.visibility === 'visible'
+        && Number.parseFloat(style?.opacity || '0') > 0.02
+        && style?.pointerEvents !== 'none'
+        && Number.parseInt(card?.dataset.projectIndex || '-1', 10) === index
+        && rect?.width > 0 && rect?.height > 0
+        && document.querySelectorAll('.portfolio-access-gate').length === 0
+        && !document.body.classList.contains('portfolio-project-open')
+        && document.querySelectorAll('#portfolioProjectView.is-open').length === 0;
+    }, projectIndex, { timeout: WAIT_MS, polling: 50 });
+  } catch (error) {
+    const diagnostic = await collectActiveCardReadiness(page).catch((diagnosticError) => ({
+      diagnosticError: String(diagnosticError),
+    }));
+    throw new Error(`Could not restore active project ${projectIndex}.\n${JSON.stringify({ diagnostic, cause: String(error) }, null, 2)}`);
+  }
+  const diagnostic = await collectActiveCardReadiness(page);
+  if (!activeCardReadinessIsHealthy(diagnostic, projectIndex)) {
+    throw new Error(`Restored active-card state failed readiness.\n${JSON.stringify(diagnostic, null, 2)}`);
+  }
+}
+
+async function getActiveCardCenter(page, label = 'active-card-center') {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await page.locator('.portfolio-project-card.is-active').evaluate((card) => {
+        const rect = card.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) throw new Error('Active card has empty geometry.');
+        return {
+          x: rect.left + (rect.width / 2),
+          y: rect.top + (rect.height / 2),
+          width: rect.width,
+          height: rect.height,
+        };
+      }, undefined, { timeout: Math.min(WAIT_MS, 5000) });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) await page.waitForTimeout(150);
+    }
+  }
+  const diagnostic = await collectActiveCardReadiness(page).catch((error) => ({ diagnosticError: String(error) }));
+  const artifactPath = path.join(ARTIFACT_ROOT, `${label}-readiness-failure.png`);
+  await page.screenshot({ path: artifactPath }).catch(() => undefined);
+  throw new Error(`${label}: active-card center unavailable after 3 bounded attempts.\n${JSON.stringify({
+    artifactPath,
+    diagnostic,
+    lastError: String(lastError),
+  }, null, 2)}`);
 }
 
 async function collectGeometry(page) {
@@ -1114,6 +1303,8 @@ async function main() {
       if (viewport.name === 'desktop') {
         markAuditStep('checking desktop permanent ring');
         summary.permanentRing = await auditPermanentRing(page);
+        markAuditStep('restoring desktop active-card readiness');
+        await restoreKnownActiveCardState(page, 0);
         markAuditStep('checking desktop pointer and wheel input');
         summary.viewports.desktop.cursor = await auditCursor(page);
         await page.screenshot({ path: path.join(ARTIFACT_ROOT, 'desktop-hover.png') });
@@ -1368,7 +1559,17 @@ async function runWithAuditTimeout() {
   }
 }
 
-runWithAuditTimeout().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.env.ABS_CAROUSEL_READINESS_SELF_CHECK === '1') {
+  try {
+    runActiveCardReadinessSelfCheck();
+    console.error('PASS: carousel active-card readiness self-check');
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
+} else {
+  runWithAuditTimeout().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

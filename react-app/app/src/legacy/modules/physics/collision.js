@@ -263,7 +263,6 @@ export function resolveCollisions(iterations = 10) {
         nx = narrow.nx;
         ny = narrow.ny;
         overlap = narrow.overlap;
-        dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
       } else if (narrow && !narrow.useCircle && !narrow.hasContact) {
         // SAT says polygon hulls do not overlap — skip this pair.
         // Falling back to circle collision here would force squircles apart

@@ -39,7 +39,7 @@ import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
 import { setApplyVisualCSSVars, setUpdateTactileLayer } from './modules/ui/control-registry.js';
-import { updateModeButtonsUI } from './modules/ui/controls.js';
+import { updateModeButtonsUI } from './modules/ui/mode-buttons.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
@@ -306,6 +306,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   let rendererOwner = null;
   let atmosphereOwner = null;
   let atmosphereSourceCleanup = null;
+  let legendFilterCleanup = null;
   let directEntrance = null;
   let routeReturnVisualPromise = null;
   const isCurrent = () => (
@@ -318,6 +319,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     disposed = true;
     atmosphereSourceCleanup?.();
     atmosphereSourceCleanup = null;
+    legendFilterCleanup?.();
+    legendFilterCleanup = null;
     directEntrance?.cancel({ clearPhase: true });
     clearHomeEntrancePhase();
     try {
@@ -486,7 +489,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // Legend dots: assign discipline colors (palette-driven + story overrides)
     applyExpertiseLegendColors();
     // Interactive legend: hover + click filtering (shared module; must run in prod too)
-    initLegendFilterSystem();
+    legendFilterCleanup = initLegendFilterSystem();
     log('✓ Legend filter system configured');
 
     setupKeyboardShortcuts();

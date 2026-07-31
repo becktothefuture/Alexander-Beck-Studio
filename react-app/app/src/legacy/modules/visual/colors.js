@@ -59,7 +59,7 @@ function hsvToRgb01({ h, s, v }) {
   const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
   const m = vv - c;
 
-  let rr = 0, gg = 0, bb = 0;
+  let rr, gg, bb;
   if (hh < 60) { rr = c; gg = x; bb = 0; }
   else if (hh < 120) { rr = x; gg = c; bb = 0; }
   else if (hh < 180) { rr = 0; gg = c; bb = x; }
@@ -175,6 +175,7 @@ const ROUTE_CURSOR_ACCENT_INDEXES = Object.freeze({
   portfolio: 5,
   about: 6,
   contact: 7,
+  playground: 2,
 });
 
 function clampInt(v, min, max) {

@@ -85,7 +85,12 @@ function ensureLauncherButton() {
   if (button.dataset.panelPopupBound !== 'true') {
     button.dataset.panelPopupBound = 'true';
     button.setAttribute('aria-label', 'Toggle design panel');
-    button.addEventListener('click', () => {
+    button.dataset.panelDetachSupported = 'true';
+    button.addEventListener('click', (event) => {
+      if (event.shiftKey) {
+        openDetachedPanelWindow();
+        return;
+      }
       toggleDevPanelSurface();
     });
   }
@@ -215,6 +220,15 @@ export function registerDevPanelRoute(options = {}) {
   }
 }
 
+export function unregisterDevPanelRoute(page = '') {
+  if (page && currentRouteOptions?.page !== page) return false;
+  currentRouteOptions = null;
+  hideDock();
+  closeDetachedPanelWindow();
+  setLauncherActive(false);
+  return true;
+}
+
 export function toggleDevPanelSurface() {
   ensureLauncherButton();
 
@@ -241,6 +255,11 @@ export function toggleDevPanelSurface() {
     });
   }
   setLauncherActive(true);
+}
+
+export function openDetachedDevPanelSurface() {
+  ensureLauncherButton();
+  return openDetachedPanelWindow();
 }
 
 export function closeDetachedPanelWindow() {

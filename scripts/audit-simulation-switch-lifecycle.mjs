@@ -11,19 +11,26 @@
 //   ABS_LIFECYCLE_FLOW=foundation-to-scaffold,...|all
 // Harness controls: ABS_DEV_URL, ABS_LIFECYCLE_WAIT_MS,
 // ABS_LIFECYCLE_HEADED=1, ABS_LIFECYCLE_SKIP_RAPID=1,
-// ABS_LIFECYCLE_SKIP_FAULTS=1.
+// ABS_LIFECYCLE_SKIP_FAULTS=1, ABS_LIFECYCLE_SKIP_CORE=1.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
+import {
+  aggregateGeometrySamples,
+  analyzeFaultEvidence,
+} from './simulation-switch-lifecycle-analysis.mjs';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const outputRoot = resolve(repoRoot, 'output/playwright/simulation-switch-lifecycle');
+const runId = safeName(`run-${new Date().toISOString()}-${process.pid}`);
+const runOutputDir = resolve(outputRoot, runId);
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
 const baseUrl = String(process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').replace(/\/$/, '');
 const waitMs = Number(process.env.ABS_LIFECYCLE_WAIT_MS || 30000);
 const headed = process.env.ABS_LIFECYCLE_HEADED === '1';
 const skipFaults = process.env.ABS_LIFECYCLE_SKIP_FAULTS === '1';
+const skipCore = process.env.ABS_LIFECYCLE_SKIP_CORE === '1';
 const skipRapid = process.env.ABS_LIFECYCLE_SKIP_RAPID === '1';
 const expectedPhases = Object.freeze(['idle', 'prepare', 'out', 'commit', 'prime', 'in', 'idle']);
 const blockedUrlParams = Object.freeze(['daily', 'focus', 'mode', 'simulation']);
@@ -138,6 +145,8 @@ function instrumentation() {
       opacity: Number.parseFloat(style.opacity || '1'),
       visibility: style.visibility,
       display: style.display,
+      transform: style.transform,
+      transformOrigin: style.transformOrigin,
     };
   };
   const runtimeId = () => {
@@ -179,6 +188,7 @@ function instrumentation() {
       href: location.href,
       runtimeId: runtimeId(),
       runtime: window.__ABS_RUNTIME_LIFECYCLE__ || null,
+      dailyRuntimeLoad: window.__ABS_DAILY_RUNTIME_LOAD__ || null,
       transaction,
       atmosphere,
       visual: visual ? {
@@ -199,6 +209,8 @@ function instrumentation() {
         identity: title?.dataset.titlePlaneIdentity || '',
         ready: title?.dataset.titlePlaneReady || '',
         renderRevision: Number(title?.dataset.titlePlaneRenderRevision || 0),
+        devicePixelRatio: Number(window.devicePixelRatio || 1),
+        computedTransform: title ? getComputedStyle(title).transform : 'none',
       },
       shell: {
         simulations: rect(document.getElementById('simulations')),
@@ -342,15 +354,41 @@ async function stableBaseline(page) {
     const box = (element) => {
       if (!element) return null;
       const rect = element.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2 };
+      const style = getComputedStyle(element);
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+        transform: style.transform,
+        transformOrigin: style.transformOrigin,
+      };
     };
     return {
       title: box(title),
       buttonBar: box(document.querySelector('[data-button-bar]')),
       simulations: box(document.getElementById('simulations')),
       titleIdentity: title?.dataset.titlePlaneIdentity || '',
+      devicePixelRatio: Number(window.devicePixelRatio || 1),
     };
   });
+}
+
+async function repeatedBaseline(page, count = 7) {
+  const samples = [];
+  for (let index = 0; index < count; index += 1) {
+    const sample = await stableBaseline(page);
+    samples.push({
+      at: Date.now(),
+      rect: sample.title,
+      transform: sample.title?.transform || 'none',
+      devicePixelRatio: sample.devicePixelRatio,
+    });
+    if (index < count - 1) await page.waitForTimeout(16);
+  }
+  return samples;
 }
 
 function maxRectDelta(rect, baseline) {
@@ -365,7 +403,7 @@ function nearestFrame(frames, at, preferBefore = false) {
   ), null);
 }
 
-function analyzeSuccessfulTrace(trace, baseline, flow) {
+function analyzeSuccessfulTrace(trace, baseline, baselineSamples, flow) {
   const issues = [];
   const phases = trace.phaseEvents.map((event) => event.phase).filter((phase, index, values) => phase !== values[index - 1]);
   const firstPrepareFrameIndex = trace.frames.findIndex((frame) => frame.phase === 'prepare');
@@ -388,14 +426,20 @@ function analyzeSuccessfulTrace(trace, baseline, flow) {
     || frame.shell.simulations.opacity < 0.98
   ))) issues.push('persistent-shell-not-visible');
 
-  const titleReference = lifecycleFrames.find((frame) => frame.title.rect)?.title.rect || baseline.title;
-  const titleCenters = lifecycleFrames.map((frame) => frame.title.rect).filter(Boolean);
-  const titleDrift = titleCenters.reduce((max, rect) => Math.max(
-    max,
-    Math.abs(rect.centerX - titleReference.centerX),
-    Math.abs(rect.centerY - titleReference.centerY),
-  ), 0);
-  if (titleDrift > 1) issues.push(`title-centre-drift:${titleDrift.toFixed(3)}px`);
+  const titleGeometrySamples = lifecycleFrames.map((frame) => ({
+    at: frame.at,
+    rect: frame.title.rect,
+    transform: frame.title.computedTransform,
+    devicePixelRatio: frame.title.devicePixelRatio,
+  }));
+  const lifecycleBaselineSamples = titleGeometrySamples.filter((sample) => sample.rect).slice(0, 7);
+  const titleGeometry = aggregateGeometrySamples(titleGeometrySamples, lifecycleBaselineSamples);
+  titleGeometry.preSwitchComparison = aggregateGeometrySamples(titleGeometrySamples, baselineSamples);
+  const titleDrift = titleGeometry.maxRawCssDelta;
+  if (!titleGeometry.valid) issues.push('title-geometry-evidence-invalid');
+  else if (!titleGeometry.pass) {
+    issues.push(`title-device-pixel-drift:${titleGeometry.maxSnappedDeviceDelta.toFixed(3)}px`);
+  }
   const shellReferenceFrame = lifecycleFrames.find((frame) => (
     frame.shell.buttonBar && frame.shell.simulations
   ));
@@ -478,7 +522,7 @@ function analyzeSuccessfulTrace(trace, baseline, flow) {
   if (lifecycleFrames.some((frame) => frame.transaction?.generation && frame.transaction.generation < (finalTransaction?.generation || 0))) {
     issues.push('stale-transaction-generation-visible');
   }
-  return { issues: [...new Set(issues)], phases, titleDrift, shellDrift, finalTransaction };
+  return { issues: [...new Set(issues)], phases, titleDrift, titleGeometry, shellDrift, finalTransaction };
 }
 
 async function runCoreTrace(browser, profile, flow, entries) {
@@ -504,6 +548,7 @@ async function runCoreTrace(browser, profile, flow, entries) {
     await page.goto(entryUrl(entries.get(flow.from)), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForSettledSimulation(page, flow.from);
     const baseline = await stableBaseline(page);
+    const baselineSamples = await repeatedBaseline(page);
     await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.start());
     const phaseCaptures = ['commit', 'in'].map(async (phase) => {
       await page.waitForFunction((expectedPhase) => (
@@ -511,13 +556,13 @@ async function runCoreTrace(browser, profile, flow, entries) {
           (event) => event.detail?.phase === expectedPhase,
         )
       ), phase, { timeout: waitMs, polling: 10 });
-      await page.screenshot({ path: resolve(outputRoot, `${id}-${phase}.png`) });
+      await page.screenshot({ path: resolve(runOutputDir, `${id}-${phase}.png`) });
     });
     const tapState = await openAndSelect(page, flow.to);
     await waitForSettledSimulation(page, flow.to);
     await Promise.all(phaseCaptures);
     trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.stop());
-    analysis = analyzeSuccessfulTrace(trace, baseline, flow);
+    analysis = analyzeSuccessfulTrace(trace, baseline, baselineSamples, flow);
     if (
       tapState.switcherId !== tapState.expectedId
       || !tapState.switcherText.includes(tapState.expectedName)
@@ -528,11 +573,11 @@ async function runCoreTrace(browser, profile, flow, entries) {
     }
     if (consoleErrors.length) analysis.issues.push(`console-errors:${consoleErrors.length}`);
     if (pageErrors.length) analysis.issues.push(`page-errors:${pageErrors.length}`);
-    if (analysis.issues.length) await page.screenshot({ path: resolve(outputRoot, `${id}-failure.png`) });
-    else await page.screenshot({ path: resolve(outputRoot, `${id}-settled.png`) });
+    if (analysis.issues.length) await page.screenshot({ path: resolve(runOutputDir, `${id}-failure.png`) });
+    else await page.screenshot({ path: resolve(runOutputDir, `${id}-settled.png`) });
   } catch (error) {
     analysis = { issues: [`harness:${compactError(error)}`], phases: [], titleDrift: null, shellDrift: null };
-    await page.screenshot({ path: resolve(outputRoot, `${id}-failure.png`) }).catch(() => undefined);
+    await page.screenshot({ path: resolve(runOutputDir, `${id}-failure.png`) }).catch(() => undefined);
     if (!trace) trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__?.stop?.() || null).catch(() => null);
   } finally {
     await context.close();
@@ -628,7 +673,7 @@ async function runRapidProbe(browser, profile, entries) {
   } catch (error) {
     issues.push(`harness:${compactError(error)}`);
   }
-  if (issues.length) await page.screenshot({ path: resolve(outputRoot, `${id}-failure.png`) }).catch(() => undefined);
+  if (issues.length) await page.screenshot({ path: resolve(runOutputDir, `${id}-failure.png`) }).catch(() => undefined);
   await context.close();
   return { kind: 'rapid', id, profile, issues, trace };
 }
@@ -636,52 +681,120 @@ async function runRapidProbe(browser, profile, entries) {
 async function runFaultProbe(browser, browserName, type, entries) {
   const context = await browser.newContext({ viewport: viewports.desktop, colorScheme: 'light' });
   await context.addInitScript(instrumentation);
-  if (type === 'runtime-readiness') {
-    await context.addInitScript(() => { window.__ABS_AUDIT_FORCE_DAILY_NOT_READY__ = 'repel-room'; });
-  }
-  if (type === 'atmosphere-first-frame') {
-    await context.addInitScript(() => { window.__ABS_AUDIT_FORCE_ATMOSPHERE_FIRST_FRAME_FAILURE__ = true; });
-  }
+  await context.addInitScript((fault) => {
+    const state = { fault, activationCount: 0 };
+    window.__ABS_LIFECYCLE_FAULT_INJECTION__ = state;
+    if (fault === 'runtime-readiness') {
+      Object.defineProperty(window, '__ABS_AUDIT_FORCE_DAILY_NOT_READY__', {
+        configurable: true,
+        get() {
+          state.activationCount += 1;
+          return 'repel-room';
+        },
+      });
+    }
+    if (fault === 'atmosphere-first-frame') {
+      Object.defineProperty(window, '__ABS_AUDIT_FORCE_ATMOSPHERE_FIRST_FRAME_FAILURE__', {
+        configurable: true,
+        get() {
+          state.activationCount += 1;
+          return true;
+        },
+      });
+    }
+  }, type);
+  const interception = { interceptionCount: 0, abortedCount: 0, urls: [], failedRequestUrls: [] };
   if (type === 'preload') {
-    await context.route(/RepelRoomRuntime\.jsx(?:\?|$)/, (route) => route.abort('failed'));
+    await context.route('**/*', async (route) => {
+      const url = route.request().url();
+      let matchesRuntime = false;
+      try {
+        matchesRuntime = new URL(url).pathname.endsWith('/RepelRoomRuntime.jsx');
+      } catch {
+        matchesRuntime = url.includes('/RepelRoomRuntime.jsx');
+      }
+      if (!matchesRuntime) return route.continue();
+      interception.interceptionCount += 1;
+      interception.urls.push(url);
+      await route.abort('failed');
+      interception.abortedCount += 1;
+    });
   }
   const page = await context.newPage();
+  page.on('requestfailed', (request) => {
+    if (request.url().includes('/RepelRoomRuntime.jsx')) interception.failedRequestUrls.push(request.url());
+  });
   const id = safeName(`${browserName}-fault-${type}`);
-  const issues = [];
   let trace = null;
+  let evidence = null;
   try {
     await page.goto(entryUrl(entries.get('pit')), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForSettledSimulation(page, 'pit');
+    const activationBaseline = await page.evaluate(() => (
+      Number(window.__ABS_LIFECYCLE_FAULT_INJECTION__?.activationCount || 0)
+    ));
     await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.start());
     await openAndSelect(page, 'repel-room');
     await page.waitForFunction(() => (
+      window.__ABS_SIMULATION_LIFECYCLE_AUDIT__?.switchEvents?.some(
+        (event) => event.detail?.phase && event.detail.phase !== 'idle',
+      )
+    ), null, { timeout: waitMs, polling: 10 });
+    await page.waitForFunction(() => (
       (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
       && !document.querySelector('.simulation-focus-modal.active')
+      && window.__ABS_SIMULATION_LIFECYCLE_AUDIT__?.switchEvents?.some(
+        (event) => event.detail?.phase === 'idle' && event.detail?.busy === false,
+      )
     ), null, { timeout: waitMs * 2, polling: 30 });
     await page.waitForTimeout(100);
     trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.stop());
     const final = trace.frames.at(-1);
     const finalTx = [...trace.switchEvents].reverse().find((event) => event.detail?.phase === 'idle')?.detail;
+    const browserInjection = await page.evaluate(() => window.__ABS_LIFECYCLE_FAULT_INJECTION__ || null);
+    const injection = {
+      ...interception,
+      activationCount: Math.max(0, Number(browserInjection?.activationCount || 0) - activationBaseline),
+    };
+    evidence = analyzeFaultEvidence({
+      fault: type,
+      injection,
+      trace,
+      finalRuntimeId: final?.runtimeId || '',
+      finalTransaction: finalTx,
+    });
+    evidence.injection = injection;
+    evidence.finalRuntimeLoadState = final?.dailyRuntimeLoad || null;
+    evidence.finalAtmosphereState = final?.atmosphere || null;
     if (type === 'atmosphere-first-frame') {
-      if (final?.runtimeId !== 'repel-room') issues.push(`fail-open-did-not-preserve-target:${final?.runtimeId}`);
-      if (!['failed-open', 'ready'].includes(final?.atmosphere?.status)) issues.push(`invalid-atmosphere-status:${final?.atmosphere?.status}`);
-    } else if (final?.runtimeId !== 'pit') {
-      issues.push(`failure-did-not-recover-outgoing:${final?.runtimeId}`);
+      if (final?.atmosphere?.status !== 'failed-open') {
+        evidence.issues.push(`invalid-test:atmosphere-failure-state-missing:${final?.atmosphere?.status || 'none'}`);
+      }
     }
-    if (finalTx?.busy) issues.push('transaction-left-busy');
-    if (trace.frames.some((frame) => !frame.title.present || !frame.title.sameNode)) issues.push('title-node-replaced');
-    if (trace.frames.some((frame) => new Set(frame.canvases.map((canvas) => canvas.owner || canvas.id)).size > 1 && Number(frame.visual?.maxScale ?? 1) > 0.035)) issues.push('visible-overlap');
+    if (trace.frames.some((frame) => !frame.title.present || !frame.title.sameNode)) {
+      evidence.issues.push('product-failure:title-node-replaced');
+    }
+    if (trace.frames.some((frame) => new Set(frame.canvases.map((canvas) => canvas.owner || canvas.id)).size > 1 && Number(frame.visual?.maxScale ?? 1) > 0.035)) {
+      evidence.issues.push('product-failure:visible-overlap');
+    }
+    evidence.classification = evidence.issues.some((issue) => issue.startsWith('invalid-test:'))
+      ? 'invalid-test'
+      : (evidence.issues.some((issue) => issue.startsWith('product-failure:')) ? 'product-failure' : 'pass');
   } catch (error) {
-    issues.push(`harness:${compactError(error)}`);
+    evidence = {
+      classification: 'invalid-test',
+      injection: interception,
+      issues: [`invalid-test:harness:${compactError(error)}`],
+    };
   }
-  await page.screenshot({ path: resolve(outputRoot, `${id}-${issues.length ? 'failure' : 'settled'}.png`) }).catch(() => undefined);
+  await page.screenshot({ path: resolve(runOutputDir, `${id}-${evidence.issues.length ? 'failure' : 'settled'}.png`) }).catch(() => undefined);
   await context.close();
-  return { kind: 'fault', id, browser: browserName, fault: type, issues, trace };
+  return { kind: 'fault', id, browser: browserName, fault: type, issues: evidence.issues, evidence, trace };
 }
 
 async function main() {
   await waitForServer();
-  await mkdir(outputRoot, { recursive: true });
+  await mkdir(runOutputDir, { recursive: true });
   const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   const entries = new Map(catalog.simulations.map((entry) => [entry.id, entry]));
   const browserNames = csvFilter(
@@ -704,10 +817,12 @@ async function main() {
         for (const theme of themes) {
           for (const motion of motions) {
             const profile = { browser: browserName, viewport, theme, motion };
-            for (const flow of flows) {
-              const result = await runCoreTrace(browser, profile, flow, entries);
-              results.push(result);
-              process.stdout.write(`${result.analysis.issues.length ? 'FAIL' : 'PASS'} ${result.id}\n`);
+            if (!skipCore) {
+              for (const flow of flows) {
+                const result = await runCoreTrace(browser, profile, flow, entries);
+                results.push(result);
+                process.stdout.write(`${result.analysis.issues.length ? 'FAIL' : 'PASS'} ${result.id}\n`);
+              }
             }
             if (!skipRapid) {
               const rapid = await runRapidProbe(browser, profile, entries);
@@ -732,6 +847,8 @@ async function main() {
   const failures = results.filter((result) => (result.analysis?.issues || result.issues || []).length > 0);
   const report = {
     ok: failures.length === 0,
+    runId,
+    outputDirectory: runOutputDir,
     generatedAt: new Date().toISOString(),
     durationMs: Date.now() - startedAt,
     baseUrl,
@@ -742,16 +859,18 @@ async function main() {
       motions,
       flows: flows.map((flow) => flow.name),
       faults: skipFaults ? [] : ['preload', 'runtime-readiness', 'atmosphere-first-frame'],
+      core: !skipCore,
       rapid: !skipRapid,
     },
-    expectedCoreTraceCount: browserNames.length * viewportNames.length * themes.length * motions.length * flows.length,
+    expectedCoreTraceCount: skipCore ? 0 : browserNames.length * viewportNames.length * themes.length * motions.length * flows.length,
     coreTraceCount: results.filter((result) => result.kind === 'core').length,
     failureCount: failures.length,
     results,
   };
-  await writeFile(resolve(outputRoot, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  const reportPath = resolve(runOutputDir, 'report.json');
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
   process.stdout.write(`\nSimulation lifecycle: ${report.coreTraceCount} core trace(s), ${failures.length} failure(s).\n`);
-  process.stdout.write(`Report: ${resolve(outputRoot, 'report.json')}\n`);
+  process.stdout.write(`Report: ${reportPath}\n`);
   if (failures.length) process.exitCode = 1;
 }
 

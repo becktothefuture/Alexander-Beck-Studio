@@ -5,12 +5,14 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import process from 'node:process';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { PNG } from 'pngjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
-const outputDir = resolve(repoRoot, 'output/playwright/screens-certification');
+const screenshotBrowser = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
+const browserType = screenshotBrowser === 'webkit' ? webkit : chromium;
+const outputDir = resolve(repoRoot, 'output/playwright/screens-certification', screenshotBrowser);
 const homeContent = JSON.parse(readFileSync(
   resolve(repoRoot, 'react-app/app/public/config/contents-home.json'),
   'utf8',
@@ -23,7 +25,6 @@ const previewHost = process.env.ABS_CERT_HOST || '127.0.0.1';
 const configuredPreviewPort = Number(process.env.ABS_CERT_PORT || 0);
 let previewPort = configuredPreviewPort || 8014;
 let baseUrl = `http://${previewHost}:${previewPort}`;
-const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 const routeBackedDailySurfaceSelector = [
@@ -46,9 +47,9 @@ const matrix = [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       {
         selector: '[data-route-tab]',
-        minCount: 4,
+        minCount: 5,
         minArea: 400,
-        requiredText: ['Home', 'About Me', 'Contact', 'Work']
+        requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -72,9 +73,9 @@ const matrix = [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
           selector: '[data-route-tab]',
-          minCount: 4,
+          minCount: 5,
           minArea: 400,
-          requiredText: ['Home', 'About Me', 'Contact', 'Work']
+          requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab']
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -104,7 +105,7 @@ const matrix = [
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] }
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] }
     ]
   },
   {
@@ -116,7 +117,7 @@ const matrix = [
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] },
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
       { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   },
@@ -132,16 +133,38 @@ const matrix = [
     minReadySelectors: 4,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work'] },
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
       { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: contactRequiredText },
       { selector: '[data-contact-ripple-canvas]', minArea: 60000, requiredText: [] }
+    ]
+  },
+  {
+    page: 'playground',
+    path: '/playground.html',
+    requireBootState: true,
+    readySettleMs: 500,
+    readySelectors: [
+      '#app-frame',
+      '[data-route-tab="playground"][aria-current="page"]',
+      '[data-playground-experience][data-playground-ready="true"]',
+      '[data-playground-dot-field]',
+      '[data-playground-item]'
+    ],
+    minReadySelectors: 5,
+    selectors: [
+      { selector: '#app-frame', minArea: 200000, requiredText: [] },
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-playground-experience][data-playground-ready="true"]', minArea: 60000, requiredText: ['Lab', 'Drag to explore.'] },
+      { selector: '[data-playground-dot-field]', minArea: 60000, requiredText: [] },
+      { selector: '[data-playground-item]', minCount: 20, minArea: 2400, requiredText: [] }
     ]
   }
 ];
 
 const viewports = [
-  { label: 'mobile', width: 375, height: 812 },
-  { label: 'desktop', width: 1440, height: 900 }
+  { label: 'mobile', width: 390, height: 844 },
+  { label: 'tablet', width: 834, height: 1194 },
+  { label: 'desktop', width: 1440, height: 1000 }
 ];
 
 const themes = ['light', 'dark'];
@@ -733,7 +756,7 @@ async function certifyEntryWithRetry(entry, viewport, theme, maxAttempts = 3) {
   let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await browserType.launch({ headless: true });
 
     try {
       const result = await certifyEntry(browser, entry, viewport, theme);

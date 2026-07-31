@@ -11,7 +11,10 @@ import { applyChromeHarmony } from '../visual/chrome-harmony.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
-import { registerPanelUiDocument, resolvePanelUiDocument, forEachPanelUiDocument } from './panel-ui-context.js';
+import { updateModeButtonsUI } from './mode-buttons.js';
+import { registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
+
+export { updateModeButtonsUI };
 
 function getUiDocument(uiDocument) {
   return resolvePanelUiDocument(uiDocument);
@@ -90,73 +93,4 @@ export function setupIndexControls(options = {}) {
 // Backwards compatibility: the index page historically called `setupControls()`.
 export function setupControls() {
   setupIndexControls();
-}
-
-/**
- * Update mode button UI to reflect active mode
- */
-export function updateModeButtonsUI(activeMode, options = {}) {
-  const modeNames = {
-    'critters': 'Critter Swarm',
-    'pit': 'Foundation',
-    'flies': 'Attention',
-    'weightless': 'Weightless Drift',
-    'water': 'Flow',
-    'magnetic': 'Magnetic Field',
-    'bubbles': 'Emergence',
-    'kaleidoscope-3': 'Refraction',
-    'kaleidoscope-rift': 'Multiplicity',
-    'rift-rings': 'Depth',
-    'parallax-float': 'Parallax Drift',
-    '3d-sphere': 'Continuity',
-    '3d-cube': 'Scaffold',
-    'starfield-3d': 'Perspective',
-    'elastic-center': 'Elastic Loom',
-    'flock-of-birds': 'Convergence',
-    'repel-room': 'Tension',
-    'wall-repel': 'Tension',
-    'aperture-bloom': 'Aperture Bloom',
-    'flubber-blob': 'Cohesion',
-    'weave-field': 'Juxtaposition',
-    'pressure-crucible': 'Pressure Field',
-    'particle-fountain': 'Fountain A',
-    'particle-fountain-b': 'Fountain B',
-    'napoleon-point-cloud': 'Impression'
-  };
-
-  const applyModeUi = (uiDocument) => {
-    const buttons = uiDocument.querySelectorAll('.mode-button');
-    buttons.forEach(btn => {
-      const isActive = btn.getAttribute('data-mode') === activeMode;
-      btn.classList.toggle('active', isActive);
-    });
-
-    uiDocument.querySelectorAll('.mode-controls').forEach(el => el.classList.remove('active'));
-    const controlId = activeMode + 'Controls';
-    const activeControls = uiDocument.getElementById(controlId);
-    if (activeControls) activeControls.classList.add('active');
-
-    const announcer = uiDocument.getElementById('announcer');
-    if (announcer) {
-      announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
-    }
-  };
-
-  if (options.uiDocument) {
-    const explicitDocument = getUiDocument(options.uiDocument);
-    if (explicitDocument) {
-      applyModeUi(explicitDocument);
-      return;
-    }
-  }
-
-  let applied = false;
-  forEachPanelUiDocument((uiDocument) => {
-    applyModeUi(uiDocument);
-    applied = true;
-  });
-  if (!applied) {
-    const fallbackDocument = getUiDocument();
-    if (fallbackDocument) applyModeUi(fallbackDocument);
-  }
 }

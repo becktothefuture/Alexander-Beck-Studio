@@ -16,10 +16,18 @@ export const HOME_ROUTE_RUNTIME = {
 
 function renderLegendItem(item) {
   return (
-    <div key={item.label} className="w-layout-hflex legend__item" data-tooltip={item.tooltip} data-route-enter="legend">
+    <button
+      key={item.label}
+      type="button"
+      className="w-layout-hflex legend__item"
+      data-tooltip={item.tooltip}
+      data-route-enter="legend"
+      aria-pressed="false"
+      aria-controls="legend-details-status"
+    >
       <div className={`circle ${item.colorClass}`} aria-hidden="true" />
       <span>{item.label}</span>
-    </div>
+    </button>
   );
 }
 
@@ -48,6 +56,7 @@ export function getHomeRouteView(canonicalHref = '') {
 
   return {
     bodyClass: atmosphereVariant ? `body atmosphere-lab-page atmosphere-lab-page--${atmosphereVariant}` : 'body',
+    mainLandmarkHeadingId: 'hero-title',
     contentRenderKey: 'home-shell',
     showFooter: true,
     studioWindowClassName: 'ball-simulation w-embed',
@@ -86,6 +95,13 @@ export function getHomeRouteView(canonicalHref = '') {
                 {homeContent.legend.items.map(renderLegendItem)}
               </nav>
               <div id="legend-tooltip-output" className="legend-tooltip-output" aria-hidden="true" />
+              <div
+                id="legend-details-status"
+                className="screen-reader"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              />
             </div>
 
             <div className="ui-top-right">
@@ -113,12 +129,7 @@ export function getHomeRouteView(canonicalHref = '') {
           <div id="top-elements-soundRow" className="ui-top-soundRow" />
         </header>
       ),
-      secondary: (
-        <>
-          <main className="ui-center">
-          </main>
-        </>
-      )
+      secondary: null,
     }
   };
 }

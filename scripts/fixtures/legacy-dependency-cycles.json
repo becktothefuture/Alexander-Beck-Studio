@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "scope": {
+    "root": "react-app/app/src",
+    "entries": [
+      "src/entries/about.jsx",
+      "src/entries/contact.jsx",
+      "src/entries/index.jsx",
+      "src/entries/playground.jsx",
+      "src/entries/portfolio.jsx"
+    ],
+    "imports": "relative static imports, re-exports, and literal dynamic imports"
+  },
+  "components": [
+    {
+      "members": [
+        "src/legacy/modules/input/pointer.js",
+        "src/legacy/modules/modes/3d-sphere.js",
+        "src/legacy/modules/modes/elastic-center.js",
+        "src/legacy/modules/modes/flubber-blob.js",
+        "src/legacy/modules/modes/mode-controller.js",
+        "src/legacy/modules/physics/engine.js",
+        "src/legacy/modules/portfolio/pit-mode.js",
+        "src/legacy/modules/rendering/loop.js",
+        "src/legacy/modules/rendering/renderer.js"
+      ],
+      "edges": [
+        "src/legacy/modules/input/pointer.js -> src/legacy/modules/modes/mode-controller.js",
+        "src/legacy/modules/modes/3d-sphere.js -> src/legacy/modules/input/pointer.js",
+        "src/legacy/modules/modes/elastic-center.js -> src/legacy/modules/input/pointer.js",
+        "src/legacy/modules/modes/flubber-blob.js -> src/legacy/modules/input/pointer.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/3d-sphere.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/elastic-center.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/modes/flubber-blob.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/physics/engine.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/portfolio/pit-mode.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/rendering/loop.js",
+        "src/legacy/modules/modes/mode-controller.js -> src/legacy/modules/rendering/renderer.js",
+        "src/legacy/modules/physics/engine.js -> src/legacy/modules/modes/mode-controller.js",
+        "src/legacy/modules/portfolio/pit-mode.js -> src/legacy/modules/rendering/renderer.js",
+        "src/legacy/modules/rendering/loop.js -> src/legacy/modules/physics/engine.js",
+        "src/legacy/modules/rendering/renderer.js -> src/legacy/modules/rendering/loop.js"
+      ]
+    }
+  ]
+}

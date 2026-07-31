@@ -1,22 +1,22 @@
-name: Deploy to GitHub Pages (React app)
+name: Validate and deploy GitHub Pages (React app)
 
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  validate_build:
+    name: Canonical validation and build
     runs-on: ubuntu-latest
-    concurrency:
-      group: pages
-      cancel-in-progress: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,27 +26,52 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.0'
+          node-version: '22.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            react-app/app/package-lock.json
 
-      - name: Install React dependencies
+      - name: Install dependencies
         run: |
-          cd react-app/app
           npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund --prefix react-app/app
 
       - name: Enforce node_modules hygiene
         run: |
-          NODE_MODULES_DIFF="$(git diff --name-only | grep '^node_modules/' || true)"
+          NODE_MODULES_DIFF="$(git diff --name-only | grep -E '(^|/)node_modules/' || true)"
           if [ -n "$NODE_MODULES_DIFF" ]; then
             echo "node_modules diffs are not allowed:"
             echo "$NODE_MODULES_DIFF"
             exit 1
           fi
-          NODE_MODULES_DIFF_STAGED="$(git diff --name-only --staged | grep '^node_modules/' || true)"
-          if [ -n "$NODE_MODULES_DIFF_STAGED" ]; then
-            echo "staged node_modules diffs are not allowed:"
-            echo "$NODE_MODULES_DIFF_STAGED"
-            exit 1
-          fi
+
+      - name: Enforce repository-artifact policy
+        run: |
+          node scripts/check-repository-artifacts.mjs check-staged
+          INVENTORY_PATH="${RUNNER_TEMP}/repository-artifacts.json"
+          node scripts/check-repository-artifacts.mjs inventory --details --json > "$INVENTORY_PATH"
+          node - "$INVENTORY_PATH" <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const inventory = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+          if (inventory.totals.files !== 0) {
+            console.error(`Tracked ignored artifacts are not allowed: ${inventory.totals.files} file(s), ${inventory.totals.bytes} byte(s).`);
+            console.error(inventory.groups);
+            process.exit(1);
+          }
+          console.log('PASS: tracked ignored repository-artifact inventory is empty.');
+          NODE
+
+      - name: Run mutation fixtures
+        run: |
+          npm run validate:route-registry:fixtures
+          npm run check:legacy-lint-ratchet:fixtures
+          npm run check:legacy-dependency-cycles:fixtures
+
+      - name: Audit all dependencies
+        run: |
+          npm audit
+          npm audit --prefix react-app/app
 
       - name: Run canonical site gate and build
         run: npm run check:site
@@ -66,13 +91,56 @@ jobs:
           echo "Build output verified:"
           ls -la react-app/app/dist/
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      # HD-04 promotion rule: after five qualifying main-push runs complete with
+      # both advisory steps successful and the smoke below eight minutes, remove
+      # continue-on-error from both steps in one focused workflow change.
+      - name: Install Chromium for release smoke (advisory)
+        id: install_release_smoke_browser
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          mkdir -p output/playwright/release-smoke
+          npx playwright install --with-deps chromium 2>&1 | tee output/playwright/release-smoke/browser-install.log
 
-      - name: Upload dist artifact
+      - name: Run production release smoke (advisory)
+        id: release_smoke
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.install_release_smoke_browser.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 8
+        run: npm run audit:release-smoke 2>&1 | tee output/playwright/release-smoke/smoke.log
+
+      - name: Upload release-smoke evidence
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-evidence-${{ github.run_id }}
+          path: output/playwright/release-smoke/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: react-app/app/dist
+
+  deploy:
+    name: Deploy GitHub Pages
+    needs: validate_build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.validate_build.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
       - name: Deploy to GitHub Pages
         id: deployment

@@ -203,7 +203,10 @@ export function RepelRoomDemo() {
   const colorsRef = useRef(DEFAULT_THEME_COLORS);
   const [config, setConfig] = useState(DEFAULT_REPEL_ROOM_CONFIG);
   const [designSystem, setDesignSystem] = useState(null);
-  const [themeColors, setThemeColors] = useState(() => resolveRepelRoomTheme(null, isDark));
+  const themeColors = useMemo(
+    () => resolveRepelRoomTheme(designSystem, isDark),
+    [designSystem, isDark],
+  );
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
   const showControlPanel = useMemo(() => shouldShowControlPanel(), []);
@@ -235,10 +238,6 @@ export function RepelRoomDemo() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    setThemeColors(resolveRepelRoomTheme(designSystem, isDark));
-  }, [designSystem, isDark]);
 
   useEffect(() => {
     configRef.current = config;

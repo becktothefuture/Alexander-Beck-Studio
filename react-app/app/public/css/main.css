@@ -364,9 +364,11 @@ body.body.dark-mode {
   gap: 0;
   text-align: center;
   padding: 8px;
+  border-radius: var(--abs-radius-pill);
+  background: color-mix(in srgb, var(--studio-window-bg) 88%, transparent);
   max-width: min(800px, calc(100% - (var(--content-padding-x) * 2)));
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
-  opacity: 0.52;
+  opacity: 1;
 }
 
 .edge-caption__line {
@@ -379,7 +381,7 @@ body.body.dark-mode {
   max-width: 100%;
   white-space: normal; /* Allow wrapping */
   /* Same colour and opacity (on parent) in light and dark; no overrides */
-  color: #6f6f6f;
+  color: var(--supporting-description-color);
   /* Subtle engraved treatment: tiny light lift + recessed dark edge */
   text-shadow:
     0 0.5px 0 rgba(var(--abs-rgb-white), 0.16),
@@ -1923,6 +1925,12 @@ body.styleguide-page .styleguide-type-sample--cv-body {
 }
 
 .legend__item {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   font-family: var(--abs-font-sans);
   font-weight: var(--legend-font-weight);
   letter-spacing: var(--legend-letter-spacing);
@@ -2303,6 +2311,17 @@ html[data-shell-route='home'] body:not(.detail-open) #expertise-legend {
   --home-legibility-field-inset: -10px -16px;
 }
 
+/* Keep a keyboard-focused legend ring above the adjacent mobile copy field. */
+html[data-shell-route='home'] body:not(.detail-open) #expertise-legend:focus-within {
+  z-index: 1;
+}
+
+/* Lift footer controls above the centered edge caption while keyboard focus is inside. */
+html[data-shell-route='home'] body:not(.detail-open) .home-footer:focus-within {
+  position: relative;
+  z-index: 4;
+}
+
 html[data-shell-route='home'] body:not(.detail-open) .ui-top-right .decorative-script {
   --home-legibility-field-inset: -18px -28px;
 }
@@ -2357,7 +2376,19 @@ html[data-shell-route='home'] body:not(.detail-open) .decorative-script:focus-wi
 
 @media (max-width: 600px) {
   html[data-shell-route='home'] body:not(.detail-open) .ui-top-right .decorative-script {
-    --home-legibility-field-inset: -18px 0;
+    --home-legibility-field-inset: -24px -18px;
+    --home-text-hover-field-opacity: 1;
+    --home-text-hover-field-blur: 16px;
+    background: color-mix(in srgb, var(--studio-window-bg) 94%, transparent);
+    opacity: 1;
+  }
+
+  html[data-shell-route='home'] body:not(.detail-open) .ui-top-right .decorative-script p {
+    opacity: var(--supporting-description-opacity);
+  }
+
+  html[data-shell-route='home'] body:not(.detail-open) .ui-top-right .decorative-script:is(:hover, :focus-within) p {
+    opacity: 1;
   }
 
   html[data-shell-route='home'] body:not(.detail-open) #expertise-legend {
@@ -2729,8 +2760,8 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 }
 
 .simulation-focus-pill.simulation-focus-switcher:focus-visible {
-  outline: none;
-  outline-offset: 0;
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
 }
 
 .simulation-focus-pill__label {
@@ -3452,11 +3483,6 @@ html[data-abs-transition-phase='modal-open'] .hero-title {
   transition-timing-function: var(--ui-ease-out);
 }
 
-/* Hide the default home hero on portfolio; a dedicated portfolio variant opts back in. */
-body.portfolio-page .hero-title:not(.hero-title--portfolio) {
-  display: none;
-}
-
 /* Route title lines remain at settled geometry. entrance-sequence.js owns the
    internal glyph reveal after the route surface has finished entering. */
 
@@ -3505,34 +3531,6 @@ body.portfolio-page .hero-title:not(.hero-title--portfolio) {
 
 .route-entrance-description-line {
   display: block;
-}
-
-body.portfolio-page .hero-title.hero-title--portfolio {
-  display: grid;
-  gap: clamp(0.32rem, 0.85vw, 0.72rem);
-  width: min(72vw, var(--portfolio-intro-title-max-width, 38ch));
-  max-width: 38ch;
-  white-space: normal;
-  text-wrap: balance;
-}
-
-body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
-  font-size: var(--portfolio-intro-title-size, clamp(1.77rem, 2.925vw, 2.85rem));
-  line-height: var(--portfolio-intro-title-line-height, 1.08);
-  letter-spacing: var(--portfolio-intro-title-letter-spacing, -0.034em);
-  color: var(--text-logo);
-  text-shadow: none;
-  text-wrap: balance;
-}
-
-body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
-  font-size: clamp(0.62rem, 0.5rem + 0.42vw, 0.76rem);
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-logo) 70%, transparent);
-  margin-block-end: clamp(0.2rem, 0.45vw, 0.5rem);
 }
 
 /* Legacy #brand-logo — no longer rendered */
@@ -3893,6 +3891,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   --button-bar-accent-portfolio: var(--ball-6, #d7ff2f);
   --button-bar-accent-about: var(--ball-7, #0d5cb6);
   --button-bar-accent-contact: var(--ball-8, #ffa000);
+  --button-bar-accent-playground: var(--ball-3, #f04f77);
   --button-bar-accent-sound: var(--button-bar-accent-home);
   --button-bar-figma-selected-ink: #ff4013;
   --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);
@@ -3921,7 +3920,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .shell-tab-nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--shell-tab-gap, 12px);
   width: 100%;
@@ -4232,6 +4231,11 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border-radius: var(--abs-radius-pill);
 }
 
+.button-bar__primary-buttons .shell-tab[data-route-tab='playground'] {
+  --shell-tab-text-active: rgba(var(--abs-rgb-black), 0.94);
+  border-radius: var(--abs-radius-pill);
+}
+
 @supports (corner-shape: round) {
   html.abs-corner-shape-squircle .button-bar,
   html.abs-corner-shape-squircle .button-bar *,
@@ -4317,6 +4321,10 @@ svg.shell-tab__icon {
 
 .shell-tab[data-route-tab='about'] {
   --shell-tab-route-accent: var(--button-bar-accent-about);
+}
+
+.shell-tab[data-route-tab='playground'] {
+  --shell-tab-route-accent: var(--button-bar-accent-playground);
 }
 
 .shell-tab:hover,
@@ -4660,13 +4668,13 @@ svg.shell-tab__icon {
   }
 
   .shell-tab-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: var(--shell-tab-gap, 10px);
     min-height: var(--shell-tab-height, 48px);
   }
 
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     --button-bar-primary-inner-gap: 2px;
     gap: var(--button-bar-primary-inner-gap);
   }
@@ -4767,7 +4775,7 @@ svg.shell-tab__icon {
 
 @media (max-width: 480px) {
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .button-bar__primary-buttons .shell-tab {
@@ -4784,7 +4792,7 @@ svg.shell-tab__icon {
 
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 2px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .button-bar__divider {
@@ -4802,7 +4810,7 @@ svg.shell-tab__icon {
 @media (min-width: 601px) and (max-width: 680px) {
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 8px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: var(--button-bar-primary-inner-gap);
   }
 
@@ -4958,32 +4966,19 @@ html[data-abs-instrument-wake] #simulations::after {
   pointer-events: none;
 }
 
-html.simulation-focus-modal-open .window-overlay-layer,
-body.portfolio-page--locked .window-overlay-layer {
+html.simulation-focus-modal-open .window-overlay-layer {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
 }
 
-html.simulation-focus-modal-open .window-overlay-blur-layer,
-body.portfolio-page--locked .window-overlay-blur-layer {
+html.simulation-focus-modal-open .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
 }
 
-body.portfolio-page--locked .window-overlay-blur-layer {
-  background-color: rgba(var(--abs-rgb-white), 0.24);
-}
-
-body.portfolio-page--locked.dark-mode .window-overlay-blur-layer,
-body.portfolio-page--locked[data-abs-theme='dark'] .window-overlay-blur-layer,
-html[data-abs-theme='dark'] body.portfolio-page--locked .window-overlay-blur-layer {
-  background-color: rgba(var(--abs-rgb-black), 0.26);
-}
-
-html.simulation-focus-modal-open .window-overlay-content-layer,
-body.portfolio-page--locked .window-overlay-content-layer {
+html.simulation-focus-modal-open .window-overlay-content-layer {
   pointer-events: auto;
 }
 
@@ -5019,8 +5014,7 @@ html.portfolio-access-gate-closing #modal-content-layer {
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
-  html.simulation-focus-modal-open .window-overlay-blur-layer,
-  body.portfolio-page--locked .window-overlay-blur-layer {
+  html.simulation-focus-modal-open .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
     backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
   }
@@ -5464,10 +5458,6 @@ html.is-safari .noise::before {
     opacity: var(--brand-logo-secondary-opacity, 0.58);
   }
 
-  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
-    font-size: calc(clamp(1.8rem, 6.12vw, 2.415rem) * var(--mobile-type-scale));
-  }
-
   .ui-top {
     gap: var(--gap-md);
   }
@@ -5693,13 +5683,36 @@ a:active {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   FOCUS STYLES — DISABLED (per request)
-   Removes all focus outlines / rings across the site.
+   KEYBOARD FOCUS CONTRACT
+   One layout-neutral ring for window controls; the Button Bar consumes the
+   shell-specific ring token on its invariant black surface.
    ═══════════════════════════════════════════════════════════════════════════════ */
-*:focus,
-*:focus-visible {
+:root {
+  --abs-focus-ring-width: 2px;
+  --abs-focus-ring-offset: 3px;
+  --abs-focus-ring-window: var(--text-primary);
+  --abs-focus-ring-counter: rgb(var(--abs-rgb-white));
+  --abs-focus-ring-shell: rgba(var(--abs-rgb-white), 0.82);
+}
+
+body.dark-mode {
+  --abs-focus-ring-counter: rgb(var(--abs-rgb-black));
+}
+
+*:focus:not(:focus-visible) {
   outline: none;
-  box-shadow: none;
+}
+
+:where(
+  a[href],
+  button:not(:disabled),
+  input:not(:disabled),
+  select:not(:disabled),
+  textarea:not(:disabled),
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
 }
 
 /* Custom Cursor */
@@ -6464,8 +6477,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .simulation-focus-row:focus-visible {
-  outline: none;
-  outline-offset: 0;
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
 }
 
 .simulation-focus-row[aria-current='true'] {
@@ -6718,8 +6731,13 @@ body.cv-page .route-topbar .gate-back {
 }
 
 .gate-back:focus-visible {
-  outline: none;
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
   box-shadow: none;
+}
+
+#simulation-focus-modal :is(.gate-back, .simulation-focus-row):focus-visible {
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) var(--abs-focus-ring-counter);
 }
 
 .gate-title {
@@ -6879,10 +6897,15 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
 .contact-email-row:focus,
 .contact-email-row:focus-visible,
 .contact-email-row:focus-within {
-  outline: none;
   border-color: var(--abs-soft-control-outline-active);
   background: var(--abs-soft-control-emphasis-fill);
   box-shadow: none;
+}
+
+.contact-email-row:focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
+  outline-offset: var(--abs-focus-ring-offset);
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
 }
 
 .contact-email-row:focus .contact-email-text,
@@ -7007,6 +7030,39 @@ body.dark-mode .contact-email-row:not(.pulse-energy):focus-within {
   box-shadow: none;
 }
 
+body.dark-mode .contact-email-row:not(.pulse-energy):focus-visible {
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
+}
+
+/* Home controls sit over moving simulation material, so a complementary ring
+   preserves keyboard visibility against both light and dark local pixels. */
+html[data-shell-route='home'] body:not(.detail-open) :is(
+  #expertise-legend .legend__item--interactive,
+  #contact-route-inline,
+  #social-links a,
+  .simulation-focus-switcher
+):focus-visible {
+  outline-color: rgb(var(--abs-rgb-white));
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgb(var(--abs-rgb-black));
+}
+
+/* The first legend control meets the rounded window corner. Keep its keyboard
+   indicator on the label so the clipped surface cannot hide an outer edge. */
+html[data-shell-route='home'] body:not(.detail-open)
+  #expertise-legend .legend__item--interactive:first-child:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+html[data-shell-route='home'] body:not(.detail-open)
+  #expertise-legend .legend__item--interactive:first-child:focus-visible span {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+}
+
 body.dark-mode .contact-email-copy {
   border-left-color: var(--abs-soft-control-outline);
 }
@@ -7119,6 +7175,12 @@ body.dark-mode .contact-email-copy {
   border-color: rgba(var(--abs-rgb-black), 0.1);
   background: rgba(var(--abs-rgb-white), 0.5);
   transform: none;
+}
+
+.cv-digit:focus-visible,
+.portfolio-digit:focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
 }
 
 @media (max-width: 768px) {
@@ -8115,19 +8177,6 @@ body.dark-mode .cv-photo {
     grid-area: right;
     justify-self: end;
     align-self: start;
-  }
-
-  body.portfolio-page .hero-title.hero-title--portfolio {
-    width: min(82vw, 18ch);
-  }
-
-  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
-    font-size: clamp(0.58rem, 2.3vw, 0.7rem);
-  }
-
-  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
-    font-size: clamp(1.35rem, 6.2vw, 1.85rem);
-    line-height: 1.04;
   }
 
   html[data-shell-route='home'] body .ui-top-left,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_LONDON_WEATHER_PALETTE_ID,
   getLondonWeatherPalette,
@@ -468,7 +468,10 @@ export function ConceptSimulationDemo({ simulationId }) {
   const themeRef = useRef(DEFAULT_THEME_COLORS);
   const [ready, setReady] = useState(false);
   const [designSystem, setDesignSystem] = useState(null);
-  const [themeColors, setThemeColors] = useState(() => resolveConceptTheme(null, isDark));
+  const themeColors = useMemo(
+    () => resolveConceptTheme(designSystem, isDark),
+    [designSystem, isDark],
+  );
   const [reducedMotion, setReducedMotion] = useState(false);
   const surfaceStyle = isNapoleonPointCloud
     ? undefined
@@ -517,10 +520,6 @@ export function ConceptSimulationDemo({ simulationId }) {
       cancelled = true;
     };
   }, [entry.configPath, entry.defaults, simulationId]);
-
-  useEffect(() => {
-    setThemeColors(resolveConceptTheme(designSystem, isDark));
-  }, [designSystem, isDark]);
 
   useEffect(() => {
     configRef.current = config;

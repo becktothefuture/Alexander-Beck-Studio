@@ -96,6 +96,7 @@
     max-content
     max-content
     max-content
+    max-content
     max-content;
   flex: 0 0 auto;
   inline-size: max-content;
@@ -427,22 +428,35 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .shell-tab:focus-visible {
-  outline: 1px solid rgba(var(--abs-rgb-white), 0.52);
-  outline-offset: 3px;
+  z-index: 2;
+  outline: var(--abs-focus-ring-width, 2px) solid var(--abs-focus-ring-shell, rgba(var(--abs-rgb-white), 0.82));
+  outline-offset: var(--abs-focus-ring-offset, 3px);
+}
+
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab[aria-current='page']:focus-visible,
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:not([aria-current='page']):focus-visible:not(:active) {
+  outline-color: rgb(var(--abs-rgb-black));
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset, 3px) rgb(var(--abs-rgb-white));
 }
 
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --dominant-primary-control-height: var(--button-bar-mobile-primary-height);
     --dominant-primary-tab-padding-inline: clamp(5px, 1.5vw, 8px);
-    --dominant-primary-tab-gap: clamp(4px, 1.75vw, 8px);
-    --dominant-group-separation: clamp(10px, 2.5vw, 16px);
+    --dominant-primary-tab-font-size: clamp(9px, 1.35vw, 11.2px);
+    --dominant-primary-tab-gap: clamp(2px, 0.9vw, 7px);
+    --dominant-group-separation: clamp(8px, 2vw, 14px);
     justify-content: center;
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__primary-buttons.shell-tab-nav {
     grid-template-columns:
+      max-content
       max-content
       max-content
       max-content
@@ -484,6 +498,9 @@
 @media (max-width: 480px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --dominant-primary-tab-padding-inline: clamp(5px, 1.5vw, 7px);
+    --dominant-primary-tab-font-size: 9px;
+    --dominant-primary-tab-gap: 2px;
+    --dominant-group-separation: 8px;
   }
 }
 

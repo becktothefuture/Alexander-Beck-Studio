@@ -978,16 +978,9 @@ function SimulationDashboard() {
     () => sortSimulationsByPriority(filterSimulations(viewModels, activeFilter, query)),
     [viewModels, activeFilter, query],
   );
-
-  useEffect(() => {
-    if (!filteredSimulations.length) {
-      if (expandedId) setExpandedId('');
-      return;
-    }
-    if (expandedId && !filteredSimulations.some((entry) => entry.id === expandedId)) {
-      setExpandedId('');
-    }
-  }, [expandedId, filteredSimulations]);
+  const visibleExpandedId = filteredSimulations.some((entry) => entry.id === expandedId)
+    ? expandedId
+    : '';
 
   function handleStageChange(nextEntry) {
     if (!nextEntry?.id) return;
@@ -1114,7 +1107,7 @@ function SimulationDashboard() {
       <SimulationList
         activeFilter={activeFilter}
         adminApi={adminApi}
-        expandedId={expandedId}
+        expandedId={visibleExpandedId}
         notice={notice}
         simulations={filteredSimulations}
         onDelete={handleDeleteRequest}

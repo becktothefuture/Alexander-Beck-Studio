@@ -9,6 +9,10 @@ import {
   getAboutNarrativeLabRouteView,
 } from '../../routes/about-narrative-lab/AboutNarrativeLabRoute.jsx';
 import { CONTACT_ROUTE_RUNTIME, getContactRouteView } from '../../routes/contact/ContactRoute.jsx';
+import {
+  getPlaygroundRouteView,
+  PLAYGROUND_ROUTE_RUNTIME,
+} from '../../routes/playground/PlaygroundRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import {
   getSimulationLaunchpadRouteView,
@@ -66,12 +70,15 @@ import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
 import { setSimulationAtmosphereConfig } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
-import { getRouteById } from '../../lib/routes.js';
+import { getRouteById, SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../../lib/motion/route-entrance-events.js';
+import { waitForObservedRouteReady } from '../../lib/motion/route-transition-readiness.js';
 
 function defineRouteDescriptor(routeId, definition) {
-  return Object.freeze({ ...getRouteById(routeId), ...definition });
+  const route = getRouteById(routeId);
+  if (!route) throw new Error(`SiteApp descriptor references unknown route "${routeId}".`);
+  return Object.freeze({ ...route, ...definition });
 }
 
 function getAtmosphereLabHomeView(canonicalHref) {
@@ -89,32 +96,31 @@ function getAtmosphereLabHomeView(canonicalHref) {
 }
 
 const ROUTE_DESCRIPTORS = Object.freeze({
-  home: defineRouteDescriptor('home', { title: 'Alexander Beck — Designer and Technologist', getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
+  home: defineRouteDescriptor('home', { getView: getHomeRouteView, runtime: HOME_ROUTE_RUNTIME }),
   'atmosphere-webgl-post': defineRouteDescriptor('atmosphere-webgl-post', {
-    title: 'Atmosphere Lab — WebGL Post',
     getView: getAtmosphereLabHomeView,
     runtime: HOME_ROUTE_RUNTIME,
   }),
   'atmosphere-density': defineRouteDescriptor('atmosphere-density', {
-    title: 'Atmosphere Lab — Instanced Density',
     getView: getAtmosphereLabHomeView,
     runtime: HOME_ROUTE_RUNTIME,
   }),
   'atmosphere-feedback': defineRouteDescriptor('atmosphere-feedback', {
-    title: 'Atmosphere Lab — Canvas Feedback',
     getView: getAtmosphereLabHomeView,
     runtime: HOME_ROUTE_RUNTIME,
   }),
   'atmosphere-crisp-glow': defineRouteDescriptor('atmosphere-crisp-glow', {
-    title: 'Atmosphere Lab — Crisp + Glow',
     getView: getAtmosphereLabHomeView,
     runtime: HOME_ROUTE_RUNTIME,
   }),
-  contact: defineRouteDescriptor('contact', { title: 'Contact - Alexander Beck Studio', getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
-  portfolio: defineRouteDescriptor('portfolio', { title: 'Portfolio - Alexander Beck', getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
-  about: defineRouteDescriptor('about', { title: 'About Me - Alexander Beck Studio', getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
+  contact: defineRouteDescriptor('contact', { getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
+  portfolio: defineRouteDescriptor('portfolio', { getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
+  about: defineRouteDescriptor('about', { getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
+  playground: defineRouteDescriptor('playground', {
+    getView: getPlaygroundRouteView,
+    runtime: PLAYGROUND_ROUTE_RUNTIME,
+  }),
   'about-narrative-lab': defineRouteDescriptor('about-narrative-lab', {
-    title: 'About Narrative Lab - Alexander Beck Studio',
     getView: getAboutNarrativeLabRouteView,
     runtime: ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME,
   }),
@@ -132,7 +138,13 @@ const ROUTE_DESCRIPTORS = Object.freeze({
   'loader-playground': defineRouteDescriptor('loader-playground', { getView: getLoaderPlaygroundRouteView, runtime: LOADER_PLAYGROUND_ROUTE_RUNTIME }),
 });
 
-const PRIMARY_ROUTE_IDS = Object.freeze(['home', 'portfolio', 'about', 'contact']);
+function getRouteDescriptor(routeId) {
+  const descriptor = ROUTE_DESCRIPTORS[routeId];
+  if (!descriptor) throw new Error(`No SiteApp descriptor exists for route "${routeId}".`);
+  return descriptor;
+}
+
+const PRIMARY_ROUTE_IDS = Object.freeze(SHELL_ROUTE_TABS.map((tab) => tab.routeId));
 const PRODUCTION_ATMOSPHERE_ROUTE_IDS = new Set([
   ...PRIMARY_ROUTE_IDS,
   'repel-room',
@@ -216,7 +228,7 @@ function getRouteViewForId(routeId, canonicalHref, routeState, focusRevision = 0
     const dailyFocusRouteId = getHomeDailyFocusRouteId(canonicalHref, routeState);
     if (dailyFocusRouteId) return getDailyFocusRouteView(dailyFocusRouteId);
   }
-  return (ROUTE_DESCRIPTORS[routeId] || ROUTE_DESCRIPTORS.home).getView(canonicalHref, routeState);
+  return getRouteDescriptor(routeId).getView(canonicalHref, routeState);
 }
 
 function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision = 0) {
@@ -235,7 +247,7 @@ function getRouteRuntimeForId(routeId, canonicalHref, routeState, focusRevision 
   ) {
     return {};
   }
-  return (ROUTE_DESCRIPTORS[routeId] || ROUTE_DESCRIPTORS.home).runtime;
+  return getRouteDescriptor(routeId).runtime;
 }
 
 function readProjectFixture(routeId) {
@@ -271,6 +283,7 @@ function shouldDeferBootStateForHold() {
 
 const ABOUT_SCENE_READY_EVENT = 'abs:about-scene-ready';
 const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
+const PLAYGROUND_ROUTE_READY_TIMEOUT_MS = 3200;
 
 function isAboutNarrativeSceneReady() {
   return document.querySelector('[data-route-content="about"], [data-route-content="about-narrative-lab"]')
@@ -293,6 +306,16 @@ function waitForAboutNarrativeSceneReady(isCancelled) {
     timeoutId = window.setTimeout(() => finish(false), ABOUT_SCENE_READY_TIMEOUT_MS);
     window.addEventListener(ABOUT_SCENE_READY_EVENT, handleReady);
   });
+}
+
+async function waitForPlaygroundRouteReady() {
+  const waiter = waitForObservedRouteReady(
+    'playground',
+    PLAYGROUND_ROUTE_READY_TIMEOUT_MS,
+    {},
+    () => ({ generation: 0 }),
+  );
+  return waiter.promise;
 }
 
 async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {}) {
@@ -331,9 +354,17 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;
   }
+  if (routeId === 'playground') {
+    await waitForPlaygroundRouteReady();
+    if (options.isCancelled?.()) return;
+  }
 
   const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
-  const directEntrance = (isAboutNarrativeRoute || routeId === 'contact') && routeContent
+  const directEntrance = (
+    isAboutNarrativeRoute
+    || routeId === 'contact'
+    || routeId === 'playground'
+  ) && routeContent
     ? createEntranceSequence({ scopes: routeContent, profile: 'direct' })
     : null;
   directEntrance?.stage();
@@ -519,7 +550,7 @@ export function SiteApp() {
   }, [isStandaloneRoute]);
 
   useEffect(() => {
-    const nextTitle = ROUTE_DESCRIPTORS[routeState.route.id]?.title;
+    const nextTitle = getRouteDescriptor(routeState.route.id).title;
     if (nextTitle && document.title !== nextTitle) {
       document.title = nextTitle;
     }
@@ -609,6 +640,7 @@ export function SiteApp() {
             transitionState={transitionState}
             atmosphereHostScope={resolveAtmosphereHostScope(routeState.route.id, routeView)}
             routeRenderKey={routeView.routeRenderKey || routeState.route.id}
+            mainLandmarkHeadingId={routeView.mainLandmarkHeadingId}
             contentRenderKey={routeView.contentRenderKey || routeState.route.id}
             studioWindowClassName={routeView.studioWindowClassName || routeView.wallClassName}
             simulationLayer={routeView.simulationLayer}

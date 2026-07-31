@@ -25,10 +25,15 @@ There is no second static page/template pipeline.
 |---|---|---|
 | Home | `routes/home/HomeRoute.jsx` | `legacy/main.js` + simulation modules |
 | Portfolio | `routes/portfolio/PortfolioRoute.jsx` | `legacy/modules/portfolio/app.js`, drawer, handoff |
-| About Me | `routes/about/AboutRoute.jsx` + shared About narrative components | React-owned Three.js point world |
+| About Me | `routes/about/AboutRoute.jsx` + `routes/about/AboutComingSoon.jsx` | none in production; React-owned Three.js point world in development only |
 | Contact | `routes/contact/ContactRoute.jsx` | none |
+| Playground | `routes/playground/PlaygroundRoute.jsx` + `PlaygroundExperience.jsx` | React lifecycle with imperative camera and Canvas 2D dot renderer under `routes/playground/spatial/` |
 
-`src/lib/routes.js` owns canonical paths, aliases, Button Bar labels, and ARIA labels. `SiteApp.jsx` owns route descriptors and document titles.
+`src/lib/route-manifest.js` is the source-readable owner for route IDs, canonical paths, aliases, shared-shell versus standalone applicability, document titles, and Button Bar metadata. `src/lib/routes.js` provides normalized lookup and URL helpers from that manifest. `SiteApp.jsx` keeps view/runtime imports explicit so bundler boundaries remain readable. Unknown same-origin paths return no internal route match and fall through to normal browser navigation and the host's 404 handling.
+
+### About environment boundary
+
+`src/routes/about/AboutRoute.jsx` branches on `import.meta.env.DEV`. Production renders `AboutComingSoon` and does not mount the spatial narrative. Development lazy-loads `routes/about-narrative-lab/AboutNarrativeLabExperience.jsx`; its narrative and editor use `public/config/contents-about.json`. A future public narrative launch is separate product work, not part of the current architecture contract.
 
 ## Shared shell
 
@@ -45,8 +50,9 @@ See `CANVAS-RUNTIME.md` and `TRANSITION-ORCHESTRATION.md`.
 ## Data and configuration
 
 - `contents-home.json`: Home, footer/social, Contact, and Portfolio-gate editorial content
-- `contents-about.json`: About copy, Section order, WU extents, Camera keys, World Shapes/modifiers, and interactions
+- `contents-about.json`: canonical content and choreography for the development-only About narrative and editor
 - `contents-portfolio.json`: project cards, detail copy, and media
+- `contents-playground.json`: Playground catalogue labels, local media references, stable placement order, and grid spans
 - `design-system.json`: only authored design configuration
 - generated config JSON: runtime compatibility outputs created by flattening
 
@@ -62,3 +68,13 @@ The root `npm run build` is canonical:
 4. verify that the development-only About editor and Save client did not enter production assets.
 
 Direct app builds can bypass configuration flattening and are not release-equivalent.
+
+## Verification layers
+
+- Source and configuration checks: the validation, lint, config-parity, and production-build stages in root `npm run check:site`.
+- Node tests: built-in `node:test` suites, including the About narrative, geometry, and route/simulation transaction checks run by `npm run check:site`.
+- Browser checks: focused Playwright audits and `npm run certify:screens`, run against a current development server or fresh production preview as required by each script.
+
+## Playground boundary
+
+Playground is a primary shared-shell route, not the standalone Loader Playground lab. Its semantic content, active media ownership, and dialog live under `src/routes/playground/media/`. Its placement, unbounded logical camera, toroidal copy coverage, and dot renderer live under `src/routes/playground/spatial/`. React owns loading, selection, accessibility, and disposal; high-frequency camera and Canvas work stays outside React state. See [`PLAYGROUND.md`](PLAYGROUND.md).

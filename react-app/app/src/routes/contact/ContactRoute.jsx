@@ -16,6 +16,7 @@ export const CONTACT_ROUTE_RUNTIME = {
 export function getContactRouteView() {
   return {
     bodyClass: 'body contact-page',
+    mainLandmarkHeadingId: 'contact-route-title',
     legacyRuntime: false,
     studioWindowClassName: 'contact-simulation route-page-window w-embed',
     simulationLayer: <ContactRippleSimulation />,

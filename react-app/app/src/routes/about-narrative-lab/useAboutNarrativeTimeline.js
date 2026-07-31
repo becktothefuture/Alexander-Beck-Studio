@@ -113,11 +113,8 @@ export function useAboutNarrativeTimeline({
   scrollportRef,
   contentRef,
 }) {
-  const initialPlanRef = useRef(null);
-  if (initialPlanRef.current == null) {
-    initialPlanRef.current = createInitialPlan(document, editorStore);
-  }
-  const [runtimePlan, setRuntimePlan] = useState(initialPlanRef.current);
+  const [initialPlan] = useState(() => createInitialPlan(document, editorStore));
+  const [runtimePlan, setRuntimePlan] = useState(initialPlan);
   const [storyWU, setStoryWU] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
   const [activeIndicatorStartIndex, setActiveIndicatorStartIndex] = useState(0);
@@ -125,7 +122,7 @@ export function useAboutNarrativeTimeline({
   const storyProgressRef = useRef(0);
   const activeIndicatorStartIndexRef = useRef(0);
   const documentRef = useRef(document);
-  const planRef = useRef(initialPlanRef.current);
+  const planRef = useRef(initialPlan);
   const frameSampleRef = useRef(null);
   const frameSampleOptionsRef = useRef(null);
   const titleSampleByIdRef = useRef(new Map());

@@ -1,7 +1,11 @@
-import { appendFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  applyLocalFileTransaction,
+  runSerializedLocalFileOperation,
+} from './local-file-transaction.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '../..');
@@ -41,7 +45,7 @@ export const SIMULATION_ADMIN_PATHS = Object.freeze({
   simulationRoutesDir: resolve(reactAppRoot, 'src/routes'),
   simulationPublicConfigDir: resolve(reactAppRoot, 'public/config'),
   siteAppPath: resolve(reactAppRoot, 'src/components/app/SiteApp.jsx'),
-  routeRegistryPath: resolve(reactAppRoot, 'src/lib/routes.js'),
+  routeRegistryPath: resolve(reactAppRoot, 'src/lib/route-manifest.js'),
   viteConfigPath: resolve(reactAppRoot, 'vite.config.js'),
   viteDevAdminPluginPath: resolve(reactAppRoot, 'vite.dev-admin-plugin.js'),
   constantsPath: resolve(reactAppRoot, 'src/legacy/modules/core/constants.js'),
@@ -131,8 +135,8 @@ function createStoreError(message, statusCode, details = {}) {
   return error;
 }
 
-function toRepoRelative(filePath) {
-  return relative(repoRoot, filePath).replace(/\\/g, '/') || '.';
+function toRepoRelative(filePath, rootPath = repoRoot) {
+  return relative(rootPath, filePath).replace(/\\/g, '/') || '.';
 }
 
 function isWithinPath(parentPath, childPath) {
@@ -166,25 +170,25 @@ function buildSimulationCleanupPrompt(simulation, plan) {
   ].join('\n');
 }
 
-function addDeleteTarget(plan, kind, filePath, label) {
-  if (!filePath || !isWithinPath(repoRoot, filePath)) return;
+function addDeleteTarget(plan, kind, filePath, label, rootPath = repoRoot) {
+  if (!filePath || !isWithinPath(rootPath, filePath)) return;
   plan.deleteTargets.push({
     kind,
-    path: toRepoRelative(filePath),
+    path: toRepoRelative(filePath, rootPath),
     label,
     exists: pathExists(filePath),
   });
 }
 
-function addSourceEdit(plan, filePath, description) {
-  if (!filePath || !isWithinPath(repoRoot, filePath)) return;
+function addSourceEdit(plan, filePath, description, rootPath = repoRoot) {
+  if (!filePath || !isWithinPath(rootPath, filePath)) return;
   plan.sourceEdits.push({
-    path: toRepoRelative(filePath),
+    path: toRepoRelative(filePath, rootPath),
     description,
   });
 }
 
-async function appendSimulationActivity(
+async function prepareSimulationActivityAppend(
   event,
   {
     now = new Date(),
@@ -195,9 +199,27 @@ async function appendSimulationActivity(
     at: now.toISOString(),
     ...event,
   };
-  await mkdir(dirname(activityPath), { recursive: true });
-  await appendFile(activityPath, `${JSON.stringify(activity)}\n`, 'utf8');
-  return activity;
+  const current = await readFile(activityPath, 'utf8').catch((error) => {
+    if (error?.code === 'ENOENT') return '';
+    throw error;
+  });
+  const prefix = current && !current.endsWith('\n') ? `${current}\n` : current;
+  return {
+    activity,
+    replacement: {
+      path: activityPath,
+      content: `${prefix}${JSON.stringify(activity)}\n`,
+    },
+  };
+}
+
+function serializeSimulationCatalog(catalog, now, touchUpdatedAt = true) {
+  const nextCatalog = { ...catalog };
+  if (touchUpdatedAt) nextCatalog.updatedAt = now.toISOString().slice(0, 10);
+  return {
+    nextCatalog,
+    content: `${JSON.stringify(nextCatalog, null, 2)}\n`,
+  };
 }
 
 async function readSimulationActivity(
@@ -239,30 +261,42 @@ export async function updateSimulationStage({
   stage,
   now = new Date(),
   catalogPath = SIMULATION_ADMIN_PATHS.simulationCatalogPath,
+  activityPath = SIMULATION_ADMIN_PATHS.simulationActivityPath,
+  transactionRoot = repoRoot,
+  transactionIo,
 } = {}) {
-  const catalog = await readSimulationCatalog(catalogPath);
-  const simulation = findSimulation(catalog, id);
-  validateStageTransition(simulation, stage);
+  return runSerializedLocalFileOperation(async () => {
+    const catalog = await readSimulationCatalog(catalogPath);
+    const simulation = findSimulation(catalog, id);
+    validateStageTransition(simulation, stage);
 
-  if (simulation.stage === stage) {
-    return { catalog, simulation, changed: false };
-  }
+    if (simulation.stage === stage) {
+      return { catalog, simulation, changed: false };
+    }
 
-  const previousStage = simulation.stage;
-  simulation.stage = stage;
-  simulation.reviewStatus = stage === SIMULATION_STAGES.DAILY_ROTATION
-    ? 'stable'
-    : simulation.reviewStatus || 'watch';
-  simulation.lastReviewedAt = now.toISOString().slice(0, 10);
+    const previousStage = simulation.stage;
+    simulation.stage = stage;
+    simulation.reviewStatus = stage === SIMULATION_STAGES.DAILY_ROTATION
+      ? 'stable'
+      : simulation.reviewStatus || 'watch';
+    simulation.lastReviewedAt = now.toISOString().slice(0, 10);
 
-  const nextCatalog = await writeSimulationCatalog(catalog, { catalogPath, now });
-  await appendSimulationActivity({
-    type: 'stage-change',
-    id,
-    from: previousStage,
-    to: stage,
-  }, { now });
-  return { catalog: nextCatalog, simulation, changed: true };
+    const { nextCatalog, content } = serializeSimulationCatalog(catalog, now);
+    const { replacement: activityReplacement } = await prepareSimulationActivityAppend({
+      type: 'stage-change',
+      id,
+      from: previousStage,
+      to: stage,
+    }, { now, activityPath });
+    await applyLocalFileTransaction({
+      rootPath: transactionRoot,
+      replacements: [
+        { path: catalogPath, content },
+        activityReplacement,
+      ],
+    }, { io: transactionIo });
+    return { catalog: nextCatalog, simulation, changed: true };
+  });
 }
 
 export async function updateSimulationReviewStatus({
@@ -270,32 +304,44 @@ export async function updateSimulationReviewStatus({
   reviewStatus,
   now = new Date(),
   catalogPath = SIMULATION_ADMIN_PATHS.simulationCatalogPath,
+  activityPath = SIMULATION_ADMIN_PATHS.simulationActivityPath,
+  transactionRoot = repoRoot,
+  transactionIo,
 } = {}) {
-  const catalog = await readSimulationCatalog(catalogPath);
-  const simulation = findSimulation(catalog, id);
-  if (!simulation) {
-    throw createStoreError('Unknown simulation id', 404);
-  }
-  if (!isAllowedSimulationReviewStatus(reviewStatus)) {
-    throw createStoreError('Invalid simulation review status', 400);
-  }
+  return runSerializedLocalFileOperation(async () => {
+    const catalog = await readSimulationCatalog(catalogPath);
+    const simulation = findSimulation(catalog, id);
+    if (!simulation) {
+      throw createStoreError('Unknown simulation id', 404);
+    }
+    if (!isAllowedSimulationReviewStatus(reviewStatus)) {
+      throw createStoreError('Invalid simulation review status', 400);
+    }
 
-  if (simulation.reviewStatus === reviewStatus) {
-    return { catalog, simulation, changed: false };
-  }
+    if (simulation.reviewStatus === reviewStatus) {
+      return { catalog, simulation, changed: false };
+    }
 
-  const previousReviewStatus = simulation.reviewStatus;
-  simulation.reviewStatus = reviewStatus;
-  simulation.lastReviewedAt = now.toISOString().slice(0, 10);
+    const previousReviewStatus = simulation.reviewStatus;
+    simulation.reviewStatus = reviewStatus;
+    simulation.lastReviewedAt = now.toISOString().slice(0, 10);
 
-  const nextCatalog = await writeSimulationCatalog(catalog, { catalogPath, now });
-  await appendSimulationActivity({
-    type: 'review-status-change',
-    id,
-    from: previousReviewStatus,
-    to: reviewStatus,
-  }, { now });
-  return { catalog: nextCatalog, simulation, changed: true };
+    const { nextCatalog, content } = serializeSimulationCatalog(catalog, now);
+    const { replacement: activityReplacement } = await prepareSimulationActivityAppend({
+      type: 'review-status-change',
+      id,
+      from: previousReviewStatus,
+      to: reviewStatus,
+    }, { now, activityPath });
+    await applyLocalFileTransaction({
+      rootPath: transactionRoot,
+      replacements: [
+        { path: catalogPath, content },
+        activityReplacement,
+      ],
+    }, { io: transactionIo });
+    return { catalog: nextCatalog, simulation, changed: true };
+  });
 }
 
 export async function createSimulationIssue({
@@ -306,47 +352,62 @@ export async function createSimulationIssue({
   now = new Date(),
   catalogPath = SIMULATION_ADMIN_PATHS.simulationCatalogPath,
   issuesDir = SIMULATION_ADMIN_PATHS.simulationIssuesDir,
+  activityPath = SIMULATION_ADMIN_PATHS.simulationActivityPath,
+  transactionRoot = repoRoot,
+  transactionIo,
 } = {}) {
-  const catalog = await readSimulationCatalog(catalogPath);
-  const simulation = findSimulation(catalog, id);
-  if (!simulation) {
-    throw createStoreError('Unknown simulation id', 404);
-  }
+  return runSerializedLocalFileOperation(async () => {
+    const catalog = await readSimulationCatalog(catalogPath);
+    const simulation = findSimulation(catalog, id);
+    if (!simulation) {
+      throw createStoreError('Unknown simulation id', 404);
+    }
 
-  const reportedAt = now.toISOString();
-  const issueTitle = markdownEscape(title || 'Untitled simulation issue');
-  const issueSeverity = slugify(severity || 'medium');
-  const issueNote = markdownEscape(note || '');
-  const fileName = `${reportedAt.slice(0, 10)}-${slugify(simulation.id)}-${slugify(issueTitle)}.md`;
-  const filePath = resolve(issuesDir, fileName);
-  const relativePath = `docs/simulations/issues/${fileName}`;
-  const content = [
-    `# ${issueTitle}`,
-    '',
-    `- Simulation: ${simulation.name}`,
-    `- ID: \`${simulation.id}\``,
-    `- Severity: ${issueSeverity}`,
-    '- Status: open',
-    `- Reported: ${reportedAt}`,
-    `- Launch path: ${simulation.launchPath || 'n/a'}`,
-    '',
-    '## Note',
-    '',
-    issueNote || 'No note provided.',
-    '',
-  ].join('\n');
+    const reportedAt = now.toISOString();
+    const issueTitle = markdownEscape(title || 'Untitled simulation issue');
+    const issueSeverity = slugify(severity || 'medium');
+    const issueNote = markdownEscape(note || '');
+    const fileNameBase = `${reportedAt.slice(0, 10)}-${slugify(simulation.id)}-${slugify(issueTitle)}`;
+    let fileName = `${fileNameBase}.md`;
+    let filePath = resolve(issuesDir, fileName);
+    for (let suffix = 2; pathExists(filePath); suffix += 1) {
+      fileName = `${fileNameBase}-${suffix}.md`;
+      filePath = resolve(issuesDir, fileName);
+    }
+    const relativePath = `docs/simulations/issues/${fileName}`;
+    const content = [
+      `# ${issueTitle}`,
+      '',
+      `- Simulation: ${simulation.name}`,
+      `- ID: \`${simulation.id}\``,
+      `- Severity: ${issueSeverity}`,
+      '- Status: open',
+      `- Reported: ${reportedAt}`,
+      `- Launch path: ${simulation.launchPath || 'n/a'}`,
+      '',
+      '## Note',
+      '',
+      issueNote || 'No note provided.',
+      '',
+    ].join('\n');
+    const { replacement: activityReplacement } = await prepareSimulationActivityAppend({
+      type: 'issue-created',
+      id: simulation.id,
+      issue: fileName,
+      title: issueTitle,
+      severity: issueSeverity,
+    }, { now, activityPath });
 
-  await mkdir(issuesDir, { recursive: true });
-  await writeFile(filePath, content, 'utf8');
-  await appendSimulationActivity({
-    type: 'issue-created',
-    id: simulation.id,
-    issue: fileName,
-    title: issueTitle,
-    severity: issueSeverity,
-  }, { now });
+    await applyLocalFileTransaction({
+      rootPath: transactionRoot,
+      replacements: [
+        { path: filePath, content },
+        activityReplacement,
+      ],
+    }, { io: transactionIo });
 
-  return { filePath, relativePath, simulation };
+    return { filePath, relativePath, simulation };
+  });
 }
 
 export function getSimulationPreviewPaths(entry) {
@@ -419,6 +480,9 @@ export async function updateSimulationIssueStatus({
   status,
   now = new Date(),
   issuesDir = SIMULATION_ADMIN_PATHS.simulationIssuesDir,
+  activityPath = SIMULATION_ADMIN_PATHS.simulationActivityPath,
+  transactionRoot = repoRoot,
+  transactionIo,
 } = {}) {
   const cleanFileName = basename(String(fileName || ''));
   if (!cleanFileName.endsWith('.md') || cleanFileName !== fileName) {
@@ -428,109 +492,147 @@ export async function updateSimulationIssueStatus({
     throw createStoreError('Invalid issue status', 400);
   }
 
-  const filePath = resolve(issuesDir, cleanFileName);
-  const current = await readFile(filePath, 'utf8').catch(() => null);
-  if (!current) {
-    throw createStoreError('Unknown issue file', 404);
-  }
+  return runSerializedLocalFileOperation(async () => {
+    const filePath = resolve(issuesDir, cleanFileName);
+    const current = await readFile(filePath, 'utf8').catch(() => null);
+    if (!current) {
+      throw createStoreError('Unknown issue file', 404);
+    }
 
-  const next = current.includes('- Status:')
-    ? current.replace(/^- Status:.*$/m, `- Status: ${status}`)
-    : current.replace(/^(# .+\n)/, `$1\n- Status: ${status}\n`);
-  await writeFile(filePath, next, 'utf8');
-  const issue = parseIssueFile({ fileName: cleanFileName, content: next });
-  await appendSimulationActivity({
-    type: 'issue-status-change',
-    id: issue.id,
-    issue: cleanFileName,
-    status,
-  }, { now });
-  return { filePath, relativePath: `docs/simulations/issues/${cleanFileName}`, status };
+    const next = current.includes('- Status:')
+      ? current.replace(/^- Status:.*$/m, `- Status: ${status}`)
+      : current.replace(/^(# .+\n)/, `$1\n- Status: ${status}\n`);
+    const issue = parseIssueFile({ fileName: cleanFileName, content: next });
+    const { replacement: activityReplacement } = await prepareSimulationActivityAppend({
+      type: 'issue-status-change',
+      id: issue.id,
+      issue: cleanFileName,
+      status,
+    }, { now, activityPath });
+    await applyLocalFileTransaction({
+      rootPath: transactionRoot,
+      replacements: [
+        { path: filePath, content: next },
+        activityReplacement,
+      ],
+    }, { io: transactionIo });
+    return { filePath, relativePath: `docs/simulations/issues/${cleanFileName}`, status };
+  });
 }
 
-function resolveRepoOwnedPitchPath(pitchPath) {
+function resolveRepoOwnedPitchPath(pitchPath, paths = SIMULATION_ADMIN_PATHS) {
   if (!pitchPath) return null;
-  const filePath = resolve(repoRoot, pitchPath);
-  return isWithinPath(SIMULATION_ADMIN_PATHS.simulationPitchesDir, filePath) ? filePath : null;
+  const filePath = resolve(paths.repoRoot, pitchPath);
+  return isWithinPath(paths.simulationPitchesDir, filePath) ? filePath : null;
 }
 
-function resolveSimulationConfigPath(configPath) {
+function resolveSimulationConfigPath(configPath, paths = SIMULATION_ADMIN_PATHS) {
   if (!configPath || !String(configPath).startsWith('/config/')) return null;
   const filePath = resolve(
-    SIMULATION_ADMIN_PATHS.simulationPublicConfigDir,
+    paths.simulationPublicConfigDir,
     String(configPath).replace(/^\/config\//, ''),
   );
-  return isWithinPath(SIMULATION_ADMIN_PATHS.simulationPublicConfigDir, filePath) ? filePath : null;
+  return isWithinPath(paths.simulationPublicConfigDir, filePath) ? filePath : null;
 }
 
-function resolveSimulationLabHtmlPath(simulation) {
+function resolveSimulationLabHtmlPath(simulation, paths = SIMULATION_ADMIN_PATHS) {
   const launchPath = String(simulation?.launchPath || '');
   if (!launchPath.startsWith('/lab/') || !launchPath.endsWith('.html')) return null;
-  const filePath = resolve(reactAppRoot, launchPath.replace(/^\//, ''));
-  return isWithinPath(SIMULATION_ADMIN_PATHS.simulationLabDir, filePath) ? filePath : null;
+  const filePath = resolve(paths.reactAppRoot, launchPath.replace(/^\//, ''));
+  return isWithinPath(paths.simulationLabDir, filePath) ? filePath : null;
 }
 
-async function resolveSimulationEntryPath(htmlPath) {
+async function resolveSimulationEntryPath(htmlPath, paths = SIMULATION_ADMIN_PATHS) {
   if (!htmlPath || !pathExists(htmlPath)) return null;
   const html = await readFile(htmlPath, 'utf8');
   const entryMatch = html.match(/<script\s+type="module"\s+src="\/src\/entries\/([^"]+\.jsx)">/);
   if (!entryMatch) return null;
-  const filePath = resolve(SIMULATION_ADMIN_PATHS.simulationEntriesDir, entryMatch[1]);
-  return isWithinPath(SIMULATION_ADMIN_PATHS.simulationEntriesDir, filePath) ? filePath : null;
+  const filePath = resolve(paths.simulationEntriesDir, entryMatch[1]);
+  return isWithinPath(paths.simulationEntriesDir, filePath) ? filePath : null;
 }
 
-async function replaceRequiredText(filePath, pattern, replacement, description) {
-  const current = await readFile(filePath, 'utf8');
+function replaceRequiredText(current, pattern, replacement, description) {
   const next = current.replace(pattern, replacement);
   if (next === current) {
     throw createStoreError(`Could not apply delete edit: ${description}`, 409);
   }
-  await writeFile(filePath, next, 'utf8');
+  return next;
 }
 
-async function removeRouteRegistryEntry(id) {
-  await replaceRequiredText(
-    SIMULATION_ADMIN_PATHS.routeRegistryPath,
+async function prepareSimulationRouteDeletionSourceEdits({
+  id,
+  routeRegistryPath = SIMULATION_ADMIN_PATHS.routeRegistryPath,
+  viteConfigPath = SIMULATION_ADMIN_PATHS.viteConfigPath,
+  siteAppPath = SIMULATION_ADMIN_PATHS.siteAppPath,
+}) {
+  const rule = DEDICATED_LAB_ROUTE_DELETION_RULES[id];
+  if (!rule) {
+    throw createStoreError(`No dedicated lab-route deletion rule exists for ${id}`, 409);
+  }
+
+  const [routeRegistrySource, viteConfigSource, siteAppSource] = await Promise.all([
+    readFile(routeRegistryPath, 'utf8'),
+    readFile(viteConfigPath, 'utf8'),
+    readFile(siteAppPath, 'utf8'),
+  ]);
+  const nextRouteRegistrySource = replaceRequiredText(
+    routeRegistrySource,
     new RegExp(`\\n  '${escapeRegExp(id)}': \\{[\\s\\S]*?\\n  \\},`),
     '',
-    `remove ${id} from route registry`,
+    `remove ${id} from route manifest`,
   );
-}
-
-async function removeViteInputEntry(id) {
-  await replaceRequiredText(
-    SIMULATION_ADMIN_PATHS.viteConfigPath,
+  const nextViteConfigSource = replaceRequiredText(
+    viteConfigSource,
     new RegExp(`\\n\\s+'lab/${escapeRegExp(id)}': resolve\\(__dirname, 'lab/${escapeRegExp(id)}\\.html'\\),`),
     '',
     `remove ${id} from Vite inputs`,
   );
-}
-
-async function removeSiteAppRouteEntries(id, rule) {
-  await replaceRequiredText(
-    SIMULATION_ADMIN_PATHS.siteAppPath,
-    new RegExp(`\\nimport \\{ ${escapeRegExp(rule.routeView)}, ${escapeRegExp(rule.routeRuntime)} \\} from '${escapeRegExp(rule.importPath)}';`),
+  const withoutRouteImport = replaceRequiredText(
+    siteAppSource,
+    new RegExp(`\\nimport\\s+\\{\\s*${escapeRegExp(rule.routeView)}\\s*,\\s*${escapeRegExp(rule.routeRuntime)}\\s*\\}\\s+from\\s+'${escapeRegExp(rule.importPath)}';`),
     '',
     `remove ${id} route import`,
   );
-  await replaceRequiredText(
-    SIMULATION_ADMIN_PATHS.siteAppPath,
-    new RegExp(`\\n  '${escapeRegExp(id)}': ${escapeRegExp(rule.routeView)},?`),
+  const nextSiteAppSource = replaceRequiredText(
+    withoutRouteImport,
+    new RegExp(`\\n  '${escapeRegExp(id)}':\\s*defineRouteDescriptor\\(\\s*'${escapeRegExp(id)}'\\s*,\\s*\\{\\s*getView:\\s*${escapeRegExp(rule.routeView)}\\s*,\\s*runtime:\\s*${escapeRegExp(rule.routeRuntime)}\\s*,?\\s*\\}\\s*\\),`),
     '',
-    `remove ${id} route view map entry`,
+    `remove ${id} SiteApp descriptor`,
   );
-  await replaceRequiredText(
-    SIMULATION_ADMIN_PATHS.siteAppPath,
-    new RegExp(`\\n  '${escapeRegExp(id)}': ${escapeRegExp(rule.routeRuntime)},?`),
-    '',
-    `remove ${id} route runtime map entry`,
-  );
+
+  return [
+    { path: routeRegistryPath, content: nextRouteRegistrySource },
+    { path: viteConfigPath, content: nextViteConfigSource },
+    { path: siteAppPath, content: nextSiteAppSource },
+  ];
 }
 
-async function removeSimulationActivityEntries(id) {
-  const activityPath = SIMULATION_ADMIN_PATHS.simulationActivityPath;
+export async function applySimulationRouteDeletionSourceEdits(options) {
+  const {
+    transactionIo,
+  } = options || {};
+  const editPaths = [
+    options?.routeRegistryPath || SIMULATION_ADMIN_PATHS.routeRegistryPath,
+    options?.viteConfigPath || SIMULATION_ADMIN_PATHS.viteConfigPath,
+    options?.siteAppPath || SIMULATION_ADMIN_PATHS.siteAppPath,
+  ];
+  const rootPath = options?.rootPath
+    || (editPaths.every((filePath) => isWithinPath(repoRoot, filePath))
+      ? repoRoot
+      : dirname(editPaths[0]));
+  return runSerializedLocalFileOperation(async () => {
+    const edits = await prepareSimulationRouteDeletionSourceEdits(options);
+    await applyLocalFileTransaction({
+      rootPath,
+      replacements: edits,
+    }, { io: transactionIo });
+    return edits.map((edit) => edit.path);
+  });
+}
+
+async function prepareSimulationActivityReplacement(id, activityPath) {
   const raw = await readFile(activityPath, 'utf8').catch(() => '');
-  if (!raw) return;
+  if (!raw) return null;
 
   const retainedLines = raw
     .split('\n')
@@ -544,26 +646,17 @@ async function removeSimulationActivityEntries(id) {
         return true;
       }
     });
-  await writeFile(activityPath, retainedLines.length ? `${retainedLines.join('\n')}\n` : '', 'utf8');
-}
-
-async function removeDeleteTargets(deleteTargets) {
-  for (const target of deleteTargets) {
-    const filePath = resolve(repoRoot, target.path);
-    if (!isWithinPath(repoRoot, filePath)) {
-      throw createStoreError(`Refusing to delete outside repo: ${target.path}`, 409);
-    }
-    await rm(filePath, {
-      recursive: target.kind === 'directory',
-      force: true,
-    });
-  }
+  return {
+    path: activityPath,
+    content: retainedLines.length ? `${retainedLines.join('\n')}\n` : '',
+  };
 }
 
 export async function createSimulationDeletionPlan({
   id,
-  catalogPath = SIMULATION_ADMIN_PATHS.simulationCatalogPath,
-  issuesDir = SIMULATION_ADMIN_PATHS.simulationIssuesDir,
+  paths = SIMULATION_ADMIN_PATHS,
+  catalogPath = paths.simulationCatalogPath,
+  issuesDir = paths.simulationIssuesDir,
 } = {}) {
   const simulationId = String(id || '').trim();
   if (!simulationId) {
@@ -615,17 +708,17 @@ export async function createSimulationDeletionPlan({
   }
 
   const routeDir = routeRule
-    ? resolve(SIMULATION_ADMIN_PATHS.simulationRoutesDir, routeRule.routeDir)
+    ? resolve(paths.simulationRoutesDir, routeRule.routeDir)
     : null;
   if (routeRule && !pathExists(routeDir)) {
-    block(`Expected owned route folder is missing: ${toRepoRelative(routeDir)}`);
+    block(`Expected owned route folder is missing: ${toRepoRelative(routeDir, paths.repoRoot)}`);
   }
 
-  const labHtmlPath = resolveSimulationLabHtmlPath(simulation);
+  const labHtmlPath = resolveSimulationLabHtmlPath(simulation, paths);
   if (routeRule && !labHtmlPath) {
     block('Could not resolve a repo-owned lab HTML file from launchPath.');
   }
-  const entryPath = await resolveSimulationEntryPath(labHtmlPath);
+  const entryPath = await resolveSimulationEntryPath(labHtmlPath, paths);
   if (routeRule && labHtmlPath && !entryPath) {
     block('Could not resolve the lab entry file from the lab HTML file.');
   }
@@ -635,29 +728,30 @@ export async function createSimulationDeletionPlan({
     return plan;
   }
 
-  addSourceEdit(plan, SIMULATION_ADMIN_PATHS.simulationCatalogPath, 'Remove catalog entry and update catalog timestamp.');
-  addSourceEdit(plan, SIMULATION_ADMIN_PATHS.routeRegistryPath, 'Remove route registry entry and aliases.');
-  addSourceEdit(plan, SIMULATION_ADMIN_PATHS.viteConfigPath, 'Remove Vite build input for the lab page.');
-  addSourceEdit(plan, SIMULATION_ADMIN_PATHS.siteAppPath, 'Remove SiteApp route import, view map, and runtime map entries.');
-  if (pathExists(SIMULATION_ADMIN_PATHS.simulationActivityPath)) {
-    addSourceEdit(plan, SIMULATION_ADMIN_PATHS.simulationActivityPath, 'Remove matching activity lines.');
+  addSourceEdit(plan, catalogPath, 'Remove catalog entry and update catalog timestamp.', paths.repoRoot);
+  addSourceEdit(plan, paths.routeRegistryPath, 'Remove route manifest entry and aliases.', paths.repoRoot);
+  addSourceEdit(plan, paths.viteConfigPath, 'Remove Vite build input for the lab page.', paths.repoRoot);
+  addSourceEdit(plan, paths.siteAppPath, 'Remove the SiteApp route import and combined descriptor.', paths.repoRoot);
+  if (pathExists(paths.simulationActivityPath)) {
+    addSourceEdit(plan, paths.simulationActivityPath, 'Remove matching activity lines.', paths.repoRoot);
   }
 
   addDeleteTarget(
     plan,
     'directory',
-    resolve(SIMULATION_ADMIN_PATHS.simulationPreviewsDir, simulation.id),
+    resolve(paths.simulationPreviewsDir, simulation.id),
     'Preview poster and hover GIF directory.',
+    paths.repoRoot,
   );
-  addDeleteTarget(plan, 'file', labHtmlPath, 'Lab HTML entry.');
-  addDeleteTarget(plan, 'file', entryPath, 'React entry file.');
-  addDeleteTarget(plan, 'directory', routeDir, 'Dedicated route source folder.');
+  addDeleteTarget(plan, 'file', labHtmlPath, 'Lab HTML entry.', paths.repoRoot);
+  addDeleteTarget(plan, 'file', entryPath, 'React entry file.', paths.repoRoot);
+  addDeleteTarget(plan, 'directory', routeDir, 'Dedicated route source folder.', paths.repoRoot);
 
-  const pitchPath = resolveRepoOwnedPitchPath(simulation.pitchPath);
-  if (pitchPath) addDeleteTarget(plan, 'file', pitchPath, 'Repo-owned pitch document.');
+  const pitchPath = resolveRepoOwnedPitchPath(simulation.pitchPath, paths);
+  if (pitchPath) addDeleteTarget(plan, 'file', pitchPath, 'Repo-owned pitch document.', paths.repoRoot);
 
-  const configPath = resolveSimulationConfigPath(simulation.configPath);
-  if (configPath) addDeleteTarget(plan, 'file', configPath, 'Simulation config file.');
+  const configPath = resolveSimulationConfigPath(simulation.configPath, paths);
+  if (configPath) addDeleteTarget(plan, 'file', configPath, 'Simulation config file.', paths.repoRoot);
 
   const issueFiles = getIssuesForSimulation(await readIssueFiles(issuesDir), simulation.id);
   issueFiles.forEach((issue) => {
@@ -666,6 +760,7 @@ export async function createSimulationDeletionPlan({
       'file',
       resolve(issuesDir, issue.fileName),
       `Issue note: ${issue.title}`,
+      paths.repoRoot,
     );
   });
 
@@ -676,31 +771,53 @@ export async function deleteSimulation({
   id,
   confirmId,
   now = new Date(),
-  catalogPath = SIMULATION_ADMIN_PATHS.simulationCatalogPath,
+  paths = SIMULATION_ADMIN_PATHS,
+  catalogPath = paths.simulationCatalogPath,
+  transactionIo,
 } = {}) {
-  const plan = await createSimulationDeletionPlan({ id, catalogPath });
-  if (plan.blocked) {
-    throw createStoreError(plan.blockers[0] || 'Simulation deletion is blocked', 409, { plan });
-  }
-  if (String(confirmId || '').trim() !== plan.id) {
-    throw createStoreError('Typed confirmation does not match simulation id', 400, { plan });
-  }
+  return runSerializedLocalFileOperation(async () => {
+    const plan = await createSimulationDeletionPlan({ id, catalogPath, paths });
+    if (plan.blocked) {
+      throw createStoreError(plan.blockers[0] || 'Simulation deletion is blocked', 409, { plan });
+    }
+    if (String(confirmId || '').trim() !== plan.id) {
+      throw createStoreError('Typed confirmation does not match simulation id', 400, { plan });
+    }
 
-  const routeRule = DEDICATED_LAB_ROUTE_DELETION_RULES[plan.id];
-  await removeRouteRegistryEntry(plan.id);
-  await removeViteInputEntry(plan.id);
-  await removeSiteAppRouteEntries(plan.id, routeRule);
+    const routeEdits = await prepareSimulationRouteDeletionSourceEdits({
+      id: plan.id,
+      routeRegistryPath: paths.routeRegistryPath,
+      viteConfigPath: paths.viteConfigPath,
+      siteAppPath: paths.siteAppPath,
+    });
+    const catalog = await readSimulationCatalog(catalogPath);
+    const nextCatalog = {
+      ...catalog,
+      updatedAt: now.toISOString().slice(0, 10),
+      simulations: (catalog.simulations || []).filter((entry) => entry.id !== plan.id),
+    };
+    const activityReplacement = await prepareSimulationActivityReplacement(
+      plan.id,
+      paths.simulationActivityPath,
+    );
+    const replacements = [
+      ...routeEdits,
+      { path: catalogPath, content: `${JSON.stringify(nextCatalog, null, 2)}\n` },
+      ...(activityReplacement ? [activityReplacement] : []),
+    ];
+    const deletions = plan.deleteTargets.map((target) => ({
+      ...target,
+      path: resolve(paths.repoRoot, target.path),
+    }));
 
-  const catalog = await readSimulationCatalog(catalogPath);
-  const nextCatalog = {
-    ...catalog,
-    simulations: (catalog.simulations || []).filter((entry) => entry.id !== plan.id),
-  };
-  await writeSimulationCatalog(nextCatalog, { catalogPath, now });
-  await removeSimulationActivityEntries(plan.id);
-  await removeDeleteTargets(plan.deleteTargets);
+    await applyLocalFileTransaction({
+      rootPath: paths.repoRoot,
+      replacements,
+      deletions,
+    }, { io: transactionIo });
 
-  return { plan, deletedId: plan.id };
+    return { plan, deletedId: plan.id };
+  });
 }
 
 export async function getSimulationDashboardStatus({

@@ -10,9 +10,8 @@ import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 
 export async function bootstrapPaletteLab() {
-  let runtime = null;
   try {
-    runtime = await loadRuntimeConfig();
+    const runtime = await loadRuntimeConfig();
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
   } catch {
     syncCornerShapeSquircleClass(true);

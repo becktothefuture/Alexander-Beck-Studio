@@ -1,6 +1,25 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
-import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
-import { resolvePortfolioLabelContent } from './portfolio-content.js';
+import {
+  applyPortfolioConfig,
+  createNormalizedPortfolioRuntimeListener,
+} from './portfolio-config.js';
+import { getProjectContentBlocks, resolvePortfolioLabelContent } from './portfolio-content.js';
+import {
+  getPortfolioCoverFallback,
+  getPortfolioVideoMimeType,
+  getProjectAccessMode,
+  getProjectImageSrc,
+  getProjectTags,
+  getProjectVideoSrc,
+  loadPortfolioData,
+  loadPortfolioRuntimeConfig,
+  resolvePortfolioAsset as resolveAsset,
+} from './portfolio-data.js';
+import {
+  PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS,
+  warmPortfolioThumbnail,
+} from './portfolio-prewarm.js';
+export { preloadPortfolioRoute } from './portfolio-prewarm.js';
 import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
@@ -26,11 +45,10 @@ import { destroyQuoteDisplay } from '../ui/quote-display.js';
 import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
 import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
-import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
+import { PortfolioProjectDrawer } from './project-drawer.js';
 import { PortfolioProjectHandoff } from './project-handoff.js';
 import { PortfolioParticleField } from './portfolio-speed-field.js';
 import { registerSimulationAtmosphereSource } from '../rendering/atmosphere/simulation-atmosphere.js';
-import { getBasePathWithTrailingSlash } from '../../../lib/base-path.js';
 import { hasGateAccess } from '../../../lib/access-gates.js';
 import { triggerHaptic } from '../../../lib/haptics.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
@@ -42,35 +60,7 @@ import {
 import { getShellRouteTransitionConfig } from '../visual/site-shell.js';
 import { registerRouteTransitionParticipant } from '../../../lib/motion/route-transition-participants.js';
 
-const BASE_PATH = (() => {
-  try {
-    const base = window.PORTFOLIO_BASE || '';
-    if (base) return base.endsWith('/') ? base : `${base}/`;
-    return getBasePathWithTrailingSlash();
-  } catch (error) {
-    return getBasePathWithTrailingSlash();
-  }
-})();
-
-const CONFIG = {
-  basePath: BASE_PATH,
-  assetBasePath: `${BASE_PATH}images/portfolio/pages/`,
-  dataPath: `${BASE_PATH}config/contents-portfolio.json`,
-  coverFallback: `${BASE_PATH}images/portfolio/folio-cover/cover-default.webp`,
-};
-
 let activePortfolioBootstrapRunId = 0;
-let portfolioDataPromise = null;
-let portfolioConfigPromise = null;
-let portfolioThumbnailPreloadPromise = null;
-const portfolioThumbnailPromises = new Map();
-const portfolioPrewarmState = {
-  status: 'idle',
-  startedAt: 0,
-  settledAt: 0,
-  criticalSourceCount: 0,
-  readySourceCount: 0,
-};
 
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
@@ -81,13 +71,13 @@ const PORTFOLIO_CAROUSEL_DETENT_GAIN = 0.032;
 const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
-const PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS = 1800;
 const PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS = 300;
 const PORTFOLIO_BOOKEND_FALLBACK_REVEAL_DELAY_MS = 300;
-const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
-const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
-const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
 
+// The shared entrance executor owns title, rule, and description timings.
+// Portfolio only needs the resolved endpoint so cards do not compete with the
+// readable lockup. Keep that endpoint mirrored as one local CSS value for the
+// existing card reveal system. The shell config read is only a fallback.
 function resolvePortfolioTitleTiming(sequence) {
   const totalMs = Number(sequence?.totalMs);
   if (Number.isFinite(totalMs) && totalMs >= 0) return totalMs;
@@ -100,9 +90,15 @@ function resolvePortfolioTitleTiming(sequence) {
 
 function applyPortfolioTitleTiming(mount, sequence) {
   const revealDelayMs = resolvePortfolioTitleTiming(sequence);
-  mount?.style.setProperty('--portfolio-content-reveal-delay', `${revealDelayMs}ms`);
+  mount?.style.setProperty(
+    '--portfolio-content-reveal-delay',
+    `${revealDelayMs}ms`,
+  );
   return revealDelayMs;
 }
+const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
+const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
+const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
 
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
@@ -184,8 +180,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
 });
 
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
-  title: 'Work',
-  body: 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.',
+  title: 'Selected Work',
+  body: 'Projects from early concepts to shipped websites, apps, tools, and platforms.',
 });
 const PORTFOLIO_CARD_DARK_INK = Object.freeze({
   css: '#111111',
@@ -198,17 +194,6 @@ const PORTFOLIO_CARD_LIGHT_INK = Object.freeze({
 
 const DRAG_SAMPLE_LIMIT = 5;
 const DRAG_SAMPLE_MAX_AGE_MS = 140;
-let CACHE_BUST_VALUE = null;
-
-function getCacheBustValue() {
-  if (CACHE_BUST_VALUE !== null) return CACHE_BUST_VALUE;
-  if (typeof window !== 'undefined' && typeof window.__BUILD_TIMESTAMP__ !== 'undefined') {
-    CACHE_BUST_VALUE = String(window.__BUILD_TIMESTAMP__);
-  } else {
-    CACHE_BUST_VALUE = String(Date.now());
-  }
-  return CACHE_BUST_VALUE;
-}
 
 function serializeRect(rect) {
   if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
@@ -386,204 +371,8 @@ function shouldRotatePortfolioLabels() {
   return true;
 }
 
-async function loadPortfolioData() {
-  // Portfolio remains runtime-fetched because the legacy deck/drawer runtime
-  // consumes project data outside the Vite virtual content path.
-  if (portfolioDataPromise) return portfolioDataPromise;
-  const paths = [
-    CONFIG.dataPath,
-    `${CONFIG.basePath}js/contents-portfolio.json`,
-    '../dist/js/contents-portfolio.json',
-  ];
-
-  portfolioDataPromise = (async () => {
-    for (const path of paths) {
-      try {
-        const response = await fetch(path, { cache: 'no-cache' });
-        if (!response.ok) continue;
-        return await response.json();
-      } catch (error) {
-        continue;
-      }
-    }
-    throw new Error('No portfolio data found');
-  })().catch((error) => {
-    portfolioDataPromise = null;
-    throw error;
-  });
-
-  return portfolioDataPromise;
-}
-
-async function fetchPortfolioData(signal) {
-  const data = await loadPortfolioData();
-  if (signal?.aborted) throw new DOMException('Portfolio load aborted', 'AbortError');
-  return data;
-}
-
-function loadPortfolioRuntimeConfig() {
-  if (!portfolioConfigPromise) portfolioConfigPromise = loadPortfolioConfig();
-  return portfolioConfigPromise;
-}
-
-function publishPortfolioPrewarmState() {
-  if (typeof window === 'undefined') return;
-  window.__ABS_PORTFOLIO_PREWARM__ = { ...portfolioPrewarmState };
-}
-
-function getCriticalPortfolioThumbnailSources(data, activeProjectIndex = 0) {
-  const projects = Array.isArray(data?.projects) ? data.projects : [];
-  const count = projects.length;
-  if (!count) return [];
-  const wrap = (index) => ((index % count) + count) % count;
-  return Array.from(new Set(
-    [0, 1, -1, 2, -2]
-      .map((offset) => projects[wrap(activeProjectIndex + offset)])
-      .map((project) => getProjectImageSrc(project))
-      .filter(Boolean)
-      .map((src) => resolveAsset(src))
-  ));
-}
-
-function warmPortfolioThumbnail(src) {
-  const cached = portfolioThumbnailPromises.get(src);
-  if (cached) return cached;
-
-  const pending = new Promise((resolve) => {
-    const image = new Image();
-    let settled = false;
-    let timeoutId = 0;
-    const finish = (ready) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeoutId);
-      image.onload = null;
-      image.onerror = null;
-      resolve({ src, ready });
-    };
-    const decode = async () => {
-      try {
-        if (typeof image.decode === 'function') await image.decode();
-        finish(image.naturalWidth > 0);
-      } catch {
-        finish(image.naturalWidth > 0);
-      }
-    };
-    image.onload = decode;
-    image.onerror = () => finish(false);
-    image.decoding = 'async';
-    image.src = src;
-    timeoutId = window.setTimeout(() => finish(false), PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS);
-    if (image.complete) {
-      if (image.naturalWidth > 0) void decode();
-      else finish(false);
-    }
-  });
-
-  portfolioThumbnailPromises.set(src, pending);
-  void pending.then((result) => {
-    if (!result.ready && portfolioThumbnailPromises.get(src) === pending) {
-      portfolioThumbnailPromises.delete(src);
-    }
-  });
-  return pending;
-}
-
-export async function preloadPortfolioRoute({
-  signal = null,
-  includeMedia = true,
-  waitForMedia = false,
-} = {}) {
-  portfolioPrewarmState.status = 'loading';
-  portfolioPrewarmState.startedAt = performance.now();
-  portfolioPrewarmState.settledAt = 0;
-  publishPortfolioPrewarmState();
-  try {
-    const [data] = await Promise.all([loadPortfolioData(), loadPortfolioRuntimeConfig()]);
-    if (signal?.aborted) throw new DOMException('Portfolio prewarm aborted.', 'AbortError');
-    if (!includeMedia) {
-      portfolioPrewarmState.status = 'prepared';
-      portfolioPrewarmState.settledAt = performance.now();
-      publishPortfolioPrewarmState();
-      return true;
-    }
-    if (!portfolioThumbnailPreloadPromise) {
-      const sources = getCriticalPortfolioThumbnailSources(data);
-      portfolioPrewarmState.criticalSourceCount = sources.length;
-      portfolioThumbnailPreloadPromise = Promise.all(sources.map(warmPortfolioThumbnail))
-        .then((results) => {
-          portfolioPrewarmState.readySourceCount = results.filter((result) => result.ready).length;
-          portfolioPrewarmState.status = 'ready';
-          portfolioPrewarmState.settledAt = performance.now();
-          publishPortfolioPrewarmState();
-          return results;
-        })
-        .finally(() => {
-          portfolioThumbnailPreloadPromise = null;
-        });
-    }
-    const settledWithinBudget = waitForMedia
-      ? await portfolioThumbnailPreloadPromise.then(() => true)
-      : await Promise.race([
-          portfolioThumbnailPreloadPromise.then(() => true),
-          new Promise((resolve) => window.setTimeout(() => resolve(false), 650)),
-        ]);
-    if (signal?.aborted) throw new DOMException('Portfolio prewarm aborted.', 'AbortError');
-    if (!settledWithinBudget) {
-      portfolioPrewarmState.status = 'warming';
-      publishPortfolioPrewarmState();
-    }
-    return true;
-  } catch (error) {
-    portfolioPrewarmState.status = 'failed';
-    portfolioPrewarmState.settledAt = performance.now();
-    publishPortfolioPrewarmState();
-    return false;
-  }
-}
-
-function resolveAsset(src) {
-  if (!src) return '';
-  if (/^https?:\/\//.test(src)) return src;
-  const trimmed = src.replace(/^\/+/, '');
-  const baseUrl = /^(?:images|video)\//.test(trimmed)
-    ? `${CONFIG.basePath}${trimmed}`
-    : `${CONFIG.assetBasePath}${trimmed}`;
-  const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}v=${getCacheBustValue()}`;
-}
-
 function getProjectAccentColor(projectIndex, projectCount) {
   return getPortfolioProjectPaletteColor(projectIndex, Math.max(1, projectCount || 1));
-}
-
-function getProjectTags(project) {
-  return Array.isArray(project?.tags) ? project.tags.slice(0, 3) : [];
-}
-
-function getProjectAccessMode(project) {
-  return project?.access === 'public' ? 'public' : 'protected';
-}
-
-function getProjectImageSrc(project) {
-  if (project?.image) return project.image;
-  const imageBlock = getProjectContentBlocks(project).find((block) => {
-    const src = String(block?.src || '');
-    return block?.type === 'image' || /\.(avif|jpe?g|png|webp)$/i.test(src);
-  });
-  return imageBlock?.src || '';
-}
-
-function getProjectVideoSrc(project) {
-  if (project?.thumbnailVideo) return project.thumbnailVideo;
-  if (project?.video) return project.video;
-  return '';
-}
-
-function getPortfolioVideoMimeType(src) {
-  if (/\.webm(\?|#|$)/i.test(src)) return 'video/webm';
-  if (/\.mp4(\?|#|$)/i.test(src)) return 'video/mp4';
-  return '';
 }
 
 function shouldReducePortfolioMotion() {
@@ -641,7 +430,7 @@ function waitForBoundedPromise(promise, timeoutMs, signal) {
 
 class PortfolioScrollApp {
   constructor({ config, projects }) {
-    this.config = normalizePortfolioConfig(config);
+    this.config = config;
     this.projects = Array.isArray(projects) ? projects : [];
     this.canvas = document.getElementById('c');
     this.mount = document.getElementById('portfolioProjectMount');
@@ -1159,8 +948,8 @@ class PortfolioScrollApp {
     globals.__portfolioDrawerOpen = false;
   }
 
-  applyRuntimeConfig(runtime) {
-    this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
+  applyRuntimeConfig(normalizedRuntime) {
+    this.config.runtime = normalizedRuntime;
     this.applyDeckTuning();
     this.updateDeckSlots({ force: true });
     if (this.isProjectOpen && this.selectedProjectIndex >= 0 && this.projectHandoff?.state === 'open') {
@@ -1298,7 +1087,7 @@ class PortfolioScrollApp {
     this.projectDrawerView = new PortfolioProjectDrawer({
       host,
       resolveAsset,
-      coverFallback: CONFIG.coverFallback,
+      coverFallback: getPortfolioCoverFallback(),
       onRequestClose: () => {
         this.closeProject();
       },
@@ -2715,7 +2504,7 @@ class PortfolioScrollApp {
   rebaseDeckPosition({ allowInFlight = false } = {}) {
     const projectCount = this.projects.length;
     if (!projectCount) return false;
-    let shift = 0;
+    let shift;
     if (allowInFlight) {
       const referencePosition = Number.isFinite(this.deckTargetPosition)
         ? this.deckTargetPosition
@@ -3460,7 +3249,11 @@ class PortfolioScrollApp {
     this.syncProjectButtonStates();
     this.resumeVisibleVideos();
     announceToScreenReader('Closed project view');
-    if (this.lastFocusedElement?.focus) {
+    if (
+      this.lastFocusedElement?.isConnected
+      && this.lastFocusedElement !== document.body
+      && this.lastFocusedElement?.focus
+    ) {
       this.lastFocusedElement.focus();
     } else if (restoredIndex >= 0) {
       this.getActiveProjectCard(restoredIndex)?.focus();
@@ -3941,7 +3734,7 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
   const loadedPortfolioConfig = await loadPortfolioRuntimeConfig();
   if (!isCurrentBootstrapRun()) return cleanup;
   const portfolioConfig = applyPortfolioConfig(loadedPortfolioConfig);
-  const data = await fetchPortfolioData(signal);
+  const data = await loadPortfolioData(signal);
   if (!isCurrentBootstrapRun()) return cleanup;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
 
@@ -4078,7 +3871,9 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
         setupPageControls: (_panel, panelOptions = {}) => {
           setupControls(portfolioConfig, {
             onMetricsChange: () => app.refreshPitBodies(),
-            onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
+            onRuntimeChange: createNormalizedPortfolioRuntimeListener(
+              (normalizedRuntime) => app.applyRuntimeConfig(normalizedRuntime)
+            ),
             uiDocument: panelOptions.uiDocument,
           });
           setupBuildControls(portfolioConfig, panelOptions);

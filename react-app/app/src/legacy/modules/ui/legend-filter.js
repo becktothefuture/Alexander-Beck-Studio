@@ -23,24 +23,32 @@ export function initLegendFilterSystem() {
     }
   } catch (e) {}
 
+  let dispose = () => {};
+
   // Attach tooltip behavior.
   try {
-    const legend = document.getElementById('expertise-legend');
+    let legend = document.getElementById('expertise-legend');
     let tooltipOutput = document.getElementById('legend-tooltip-output');
-    if (!legend) return;
+    let detailsStatus = document.getElementById('legend-details-status');
+    if (!legend) return dispose;
+
+    const tooltipOriginalParent = tooltipOutput?.parentNode || null;
+    const tooltipOriginalNextSibling = tooltipOutput?.nextSibling || null;
 
     // Move tooltip to body so position:fixed is viewport-relative (not affected by parent transform/scroll).
     if (tooltipOutput && tooltipOutput.parentNode !== document.body) {
       document.body.appendChild(tooltipOutput);
     }
 
-    const legendItems = Array.from(legend.querySelectorAll('.legend__item'));
-    const mobileDetailTarget = document.querySelector('.ui-top-right .decorative-script p');
-    const originalMobileDetailNodes = mobileDetailTarget
+    let legendItems = Array.from(legend.querySelectorAll('.legend__item'));
+    let mobileDetailTarget = document.querySelector('.ui-top-right .decorative-script p');
+    let originalMobileDetailNodes = mobileDetailTarget
       ? Array.from(mobileDetailTarget.childNodes)
       : [];
-    const mobileDetailMedia = window.matchMedia?.('(max-width: 600px)');
+    let mobileDetailMedia = window.matchMedia?.('(max-width: 600px)') || null;
     let activeMobileDetailItem = null;
+    let disposed = false;
+    const itemClickHandlers = new Map();
     const TOOLTIP_GAP = 8;
     const TOOLTIP_MAX_WIDTH = 260;
     const VIEWPORT_PAD = 16;
@@ -49,10 +57,15 @@ export function initLegendFilterSystem() {
       return !!mobileDetailTarget && !!mobileDetailMedia?.matches;
     }
 
+    function setDetailsStatus(text = '') {
+      if (detailsStatus) detailsStatus.textContent = String(text || '');
+    }
+
     function setLegendActive(item) {
       for (const legendItem of legendItems) {
         const isActive = !!item && legendItem === item;
         legendItem.classList.toggle('legend__item--active', isActive);
+        legendItem.setAttribute('aria-pressed', String(isActive));
       }
     }
 
@@ -71,13 +84,17 @@ export function initLegendFilterSystem() {
 
     function hideTooltip() {
       if (tooltipOutput) tooltipOutput.classList.remove('is-visible');
+      setDetailsStatus('');
+      setLegendActive(null);
     }
 
     function hideMobileDetail() {
-      if (!mobileDetailTarget || !activeMobileDetailItem) return;
-      activeMobileDetailItem = null;
-      mobileDetailTarget.replaceChildren(...originalMobileDetailNodes);
-      mobileDetailTarget.closest('.decorative-script')?.classList.remove('is-legend-detail-active');
+      if (mobileDetailTarget && activeMobileDetailItem) {
+        activeMobileDetailItem = null;
+        mobileDetailTarget.replaceChildren(...originalMobileDetailNodes);
+        mobileDetailTarget.closest('.decorative-script')?.classList.remove('is-legend-detail-active');
+      }
+      setDetailsStatus('');
       setLegendActive(null);
     }
 
@@ -87,6 +104,8 @@ export function initLegendFilterSystem() {
       tooltipOutput.textContent = tooltipText;
       positionTooltip(tooltipOutput, item);
       tooltipOutput.classList.add('is-visible');
+      setDetailsStatus(tooltipText);
+      setLegendActive(item);
     }
 
     function isTooltipOpenFor(item) {
@@ -101,7 +120,19 @@ export function initLegendFilterSystem() {
       activeMobileDetailItem = item;
       mobileDetailTarget.textContent = tooltipText;
       mobileDetailTarget.closest('.decorative-script')?.classList.add('is-legend-detail-active');
+      setDetailsStatus(tooltipText);
       setLegendActive(item);
+    }
+
+    function handleDocumentClick(event) {
+      if (!legend?.contains(event.target)) {
+        hideTooltip();
+        hideMobileDetail();
+      }
+    }
+
+    function handleMobileDetailChange() {
+      if (!shouldUseMobileDetail()) hideMobileDetail();
     }
 
     for (const item of legendItems) {
@@ -109,9 +140,9 @@ export function initLegendFilterSystem() {
 
       item.classList.add('legend__item--interactive');
 
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      const handleItemClick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         if (shouldUseMobileDetail()) {
           if (activeMobileDetailItem === item) {
             hideMobileDetail();
@@ -127,25 +158,58 @@ export function initLegendFilterSystem() {
         } else {
           showTooltip(item);
         }
-      });
+      };
+      itemClickHandlers.set(item, handleItemClick);
+      item.addEventListener('click', handleItemClick);
     }
 
-    document.addEventListener('click', (e) => {
-      const isLegendClick = legend && legend.contains(e.target);
-      if (!isLegendClick) {
-        hideTooltip();
-        hideMobileDetail();
-      }
-    });
-
-    mobileDetailMedia?.addEventListener?.('change', () => {
-      if (!shouldUseMobileDetail()) hideMobileDetail();
-    });
+    document.addEventListener('click', handleDocumentClick);
+    mobileDetailMedia?.addEventListener?.('change', handleMobileDetailChange);
 
     if (tooltipOutput) {
       tooltipOutput.classList.remove('is-visible');
     }
+    setDetailsStatus('');
+    setLegendActive(null);
+
+    dispose = () => {
+      if (disposed) return;
+      disposed = true;
+
+      hideTooltip();
+      hideMobileDetail();
+      for (const [item, handleItemClick] of itemClickHandlers) {
+        item.removeEventListener('click', handleItemClick);
+        item.classList.remove('legend__item--interactive', 'legend__item--active');
+      }
+      itemClickHandlers.clear();
+      document.removeEventListener('click', handleDocumentClick);
+      mobileDetailMedia?.removeEventListener?.('change', handleMobileDetailChange);
+
+      if (tooltipOutput?.parentNode === document.body) {
+        if (tooltipOriginalParent?.isConnected) {
+          tooltipOriginalParent.insertBefore(
+            tooltipOutput,
+            tooltipOriginalNextSibling?.parentNode === tooltipOriginalParent
+              ? tooltipOriginalNextSibling
+              : null,
+          );
+        } else {
+          tooltipOutput.remove();
+        }
+      }
+
+      legendItems.length = 0;
+      originalMobileDetailNodes.length = 0;
+      activeMobileDetailItem = null;
+      legend = null;
+      tooltipOutput = null;
+      detailsStatus = null;
+      mobileDetailTarget = null;
+      mobileDetailMedia = null;
+    };
   } catch (e) {
     // Never allow legend setup to crash boot.
   }
+  return dispose;
 }

@@ -797,8 +797,8 @@ export function render() {
   }
   const isPitMode = isPitLikeMode(globals.currentMode);
   const renderStart = isPitMode ? performance.now() : 0;
-  let postFxMs = 0;
-  
+
+
   // ═══════════════════════════════════════════════════════════════════════════════
   // LOGO: Update size (early-exits if no changes)
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -937,7 +937,7 @@ export function render() {
   });
   renderActiveAtmosphereFrame(globals);
   if (isPitMode) {
-    postFxMs = performance.now() - postFxStart;
+    const postFxMs = performance.now() - postFxStart;
     finalizePitPerfSample(globals, performance.now() - renderStart, postFxMs);
   }
 }

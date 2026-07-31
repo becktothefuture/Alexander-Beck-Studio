@@ -463,12 +463,43 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene--transition-brid
 
 /* The locked deck deliberately uses the same static poster frames as the live
    cards. It never starts the live deck, title/copy, JSON, or video runtime. */
+body.portfolio-page--locked .window-overlay-layer {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+body.portfolio-page--locked .window-overlay-blur-layer {
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
+  background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
+}
+
+body.portfolio-page--locked .window-overlay-blur-layer {
+  background-color: rgba(var(--abs-rgb-white), 0.24);
+}
+
+body.portfolio-page--locked.dark-mode .window-overlay-blur-layer,
+body.portfolio-page--locked[data-abs-theme='dark'] .window-overlay-blur-layer,
+html[data-abs-theme='dark'] body.portfolio-page--locked .window-overlay-blur-layer {
+  background-color: rgba(var(--abs-rgb-black), 0.26);
+}
+
+body.portfolio-page--locked .window-overlay-content-layer {
+  pointer-events: auto;
+}
+
 body.portfolio-page--locked .window-overlay-blur-layer {
   -webkit-backdrop-filter: blur(17.16px);
   backdrop-filter: blur(17.16px);
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
+  body.portfolio-page--locked .window-overlay-blur-layer {
+    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
+    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
+  }
+
   body.portfolio-page--locked .window-overlay-blur-layer {
     -webkit-backdrop-filter: blur(31.2px);
     backdrop-filter: blur(31.2px);
@@ -533,24 +564,18 @@ html.portfolio-access-gate-open .window-overlay-layer {
   z-index: 1;
   color: var(--text-primary);
   opacity: 0;
-  filter: blur(3px);
-  transform: scale(0.992);
-  transition:
-    opacity 220ms var(--ease-gate-motion),
-    filter 220ms var(--ease-gate-motion),
-    transform 220ms var(--ease-gate-motion);
+  /* Keep foreground text out of WebKit's animated backdrop-filter bitmap. */
+  filter: none;
+  transform: none;
+  transition: opacity 220ms var(--ease-gate-motion);
 }
 
 .portfolio-access-gate.is-open {
   opacity: 1;
-  filter: blur(0);
-  transform: scale(1);
 }
 
 .portfolio-access-gate.is-closing {
   opacity: 0;
-  filter: blur(2px);
-  transform: scale(0.996);
   pointer-events: none;
 }
 
@@ -578,8 +603,8 @@ html.portfolio-access-gate-open .window-overlay-layer {
 .portfolio-access-gate__close {
   position: absolute;
   z-index: 2;
-  top: max(var(--gap-md), env(safe-area-inset-top, 0px));
-  right: max(var(--gap-md), env(safe-area-inset-right, 0px));
+  top: max(var(--gap-lg), env(safe-area-inset-top, 0px));
+  right: max(var(--gap-lg), env(safe-area-inset-right, 0px));
   display: grid;
   place-items: center;
   width: 44px;
@@ -597,8 +622,12 @@ html.portfolio-access-gate-open .window-overlay-layer {
 .portfolio-access-gate__close.abs-icon-btn:active {
   position: absolute;
   background: var(--abs-soft-control-emphasis-fill);
-  outline: 1px solid var(--abs-soft-control-outline-active);
-  outline-offset: 0;
+}
+
+.portfolio-access-gate__close.abs-icon-btn:focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: calc(-1 * var(--abs-focus-ring-offset));
+  box-shadow: inset 0 0 0 calc(var(--abs-focus-ring-offset) + var(--abs-focus-ring-width)) var(--abs-focus-ring-counter);
 }
 
 .portfolio-access-gate__close:disabled {
@@ -854,6 +883,61 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-carousel-dot-radius: 2050px;
 }
 
+/* Portfolio owns every Portfolio-qualified hero rule. Keep these declarations
+   before the established Portfolio overrides so the effective cascade stays unchanged. */
+body.portfolio-page .hero-title:not(.hero-title--portfolio) {
+  display: none;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio {
+  display: grid;
+  gap: clamp(0.32rem, 0.85vw, 0.72rem);
+  width: min(72vw, var(--portfolio-intro-title-max-width, 38ch));
+  max-width: 38ch;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+  font-size: var(--portfolio-intro-title-size, clamp(1.77rem, 2.925vw, 2.85rem));
+  line-height: var(--portfolio-intro-title-line-height, 1.08);
+  letter-spacing: var(--portfolio-intro-title-letter-spacing, -0.034em);
+  color: var(--text-logo);
+  text-shadow: none;
+  text-wrap: balance;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
+  font-size: clamp(0.62rem, 0.5rem + 0.42vw, 0.76rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-logo) 70%, transparent);
+  margin-block-end: clamp(0.2rem, 0.45vw, 0.5rem);
+}
+
+@media (max-width: 600px) {
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+    font-size: calc(clamp(1.8rem, 6.12vw, 2.415rem) * var(--mobile-type-scale));
+  }
+}
+
+@media (max-width: 767px) {
+  body.portfolio-page .hero-title.hero-title--portfolio {
+    width: min(82vw, 18ch);
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
+    font-size: clamp(0.58rem, 2.3vw, 0.7rem);
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+    font-size: clamp(1.35rem, 6.2vw, 1.85rem);
+    line-height: 1.04;
+  }
+}
+
 .portfolio-route-title-ui {
   position: fixed;
   top: var(--safari-tint-inset-y, var(--safari-tint-inset));
@@ -865,6 +949,10 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 
 body.portfolio-page .hero-title.hero-title--portfolio {
   display: none;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio.screen-reader {
+  display: block;
 }
 
 body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
@@ -1230,9 +1318,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount .portfolio-project-card:focus-visible .portfolio-project-card__title {
   text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: var(--abs-focus-ring-width);
   text-underline-offset: 0.14em;
-  text-decoration-color: color-mix(in srgb, var(--portfolio-card-ink) 42%, transparent);
+  text-decoration-color: var(--portfolio-card-ink);
 }
 
 .portfolio-deck-mount .portfolio-project-card.is-handoff-source-hidden {
@@ -1638,6 +1726,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
 }
 
+.portfolio-project-view__drawer:has(.portfolio-project-view__scroll:focus-visible)::after {
+  box-shadow:
+    inset 0 0 0 var(--abs-focus-ring-width) var(--abs-focus-ring-shell),
+    inset 0 0 0 calc(var(--abs-focus-ring-width) + var(--abs-focus-ring-offset)) rgba(var(--abs-rgb-black), 0.84);
+}
+
 .portfolio-project-view.is-open .portfolio-project-view__drawer {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
@@ -1722,9 +1816,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible {
-  outline: none;
-  outline-offset: 0;
-  box-shadow: none;
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
+  outline-offset: var(--abs-focus-ring-offset);
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
 }
 
 .portfolio-project-view__scroll {
@@ -1744,6 +1838,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   pointer-events: none;
 }
 
+.portfolio-project-view__scroll:focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
+  outline-offset: calc(-1 * var(--abs-focus-ring-offset));
+  box-shadow: inset 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
+}
+
 .portfolio-project-view__scroll::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -1751,6 +1851,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-project-view.is-open .portfolio-project-view__scroll {
   pointer-events: auto;
+}
+
+.portfolio-project-view__scroll :is(h1, h2, h3, h4, h5, h6, p, figcaption, a) {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Hero fills first viewport of scrollport; CQ ties height to visible drawer when possible. */
@@ -2181,8 +2286,8 @@ body.portfolio-project-open .ui-bottom {
 }
 
 .portfolio-project-view__links a:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--portfolio-drawer-ink) 42%, transparent);
-  outline-offset: 2px;
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
+  outline-offset: var(--abs-focus-ring-offset);
 }
 
 .portfolio-project-view__stack {

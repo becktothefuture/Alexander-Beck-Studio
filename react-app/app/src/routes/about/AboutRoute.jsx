@@ -15,6 +15,7 @@ export function getAboutRouteView() {
   if (!import.meta.env.DEV) {
     return {
       bodyClass: 'body about-page',
+      mainLandmarkHeadingId: 'about-coming-soon-title',
       legacyRuntime: false,
       surfaceRouteId: 'about',
       routeRenderKey: 'about',

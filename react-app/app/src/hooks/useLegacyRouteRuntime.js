@@ -77,7 +77,10 @@ export function useLegacyRouteRuntime({
   runtimeContext = null,
 }) {
   const runtimeContextRef = useRef(runtimeContext);
-  runtimeContextRef.current = runtimeContext;
+
+  useEffect(() => {
+    runtimeContextRef.current = runtimeContext;
+  }, [runtimeContext]);
 
   useEffect(() => {
     if (!active || typeof loadModule !== 'function' || !exportName) return undefined;

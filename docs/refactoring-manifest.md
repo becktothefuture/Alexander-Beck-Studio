@@ -4,6 +4,8 @@ Last planned: 2026-07-30
 Roadmap: `docs/refactoring-roadmap.md`
 Audit: `docs/codebase-audit.md`
 
+Execution update: Parallel group A was integrated and verified locally on 2026-07-30. `HD-04` is approved, but M01's advisory workflow is not yet on `origin/main`, so the qualifying CI-run count is zero. M02-M05 are verified. M05 corrected the audit's Loader shell assumption and completed route-registry validation without changing unknown-route behavior. See `docs/refactoring-progress.md` for acceptance and validation evidence.
+
 ## Global rules
 
 - Preserve existing behavior unless a milestone explicitly names the intended accessibility or unknown-route change.
@@ -37,13 +39,13 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-01
 
-- Status: Ready
+- Status: Verified locally; advisory workflow is not yet on `origin/main`, so CI enforcement awaits five qualifying runs after publication
 - Outcome: Bounded production-browser release smoke
 - Priority: High
 - Parallel group: A
 - Depends on: None
 - Blocks: M05, M06, M11
-- Owner: Unassigned
+- Owner: `/root/m01_release_smoke`
 - Issues:
   - `TEST-001`
 - Files:
@@ -74,13 +76,13 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-02
 
-- Status: Ready
+- Status: Verified
 - Outcome: Shared safeguards for every local JSON write route
 - Priority: High
 - Parallel group: A
 - Depends on: None
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root/m02_api_guards`
 - Issues:
   - `SEC-001`
 - Files:
@@ -110,13 +112,13 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-03
 
-- Status: Ready
+- Status: Verified
 - Outcome: Current About and test documentation agrees with code
 - Priority: Medium
 - Parallel group: A
 - Depends on: None
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root/m03_docs_truth`
 - Issues:
   - `DOC-001`
 - Files:
@@ -143,13 +145,13 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-04
 
-- Status: Ready
+- Status: Verified
 - Outcome: Measured artifact-retention policy and prevention check
 - Priority: High
 - Parallel group: A
 - Depends on: None
 - Blocks: M09
-- Owner: Unassigned
+- Owner: `/root/m04_artifact_policy`
 - Issues:
   - `OPS-001` phase 1
 - Files:
@@ -180,13 +182,13 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-05
 
-- Status: Ready
+- Status: Verified
 - Outcome: Complete route-registry drift validation and current mismatch repair
 - Priority: High
 - Parallel group: B
 - Depends on: M01
 - Blocks: M06, M08, M11
-- Owner: Unassigned
+- Owner: `/root/m05_route_registry`
 - Issues:
   - `ARCH-001` phase 1
 - Files:
@@ -210,22 +212,26 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - `npm run sim:validate`
   - `npm run check:site`
 - Manual evidence:
-  - direct load and SPA navigation for `rift-rings` and `loader-playground`
+  - direct load for standalone Loader/Simulations and shared-shell Rift Rings
+  - Home-to-Rift SPA navigation with document preservation
 - Acceptance criteria:
   - every supported registry relationship is validated
-  - both missing shell identities are corrected
+  - Rift Rings has exact shell identity
+  - standalone routes cannot own unreachable shell scenes
   - omission fixtures fail deterministically
-- Rollback: Revert validator and two metadata additions together.
+- Deviation: Loader Playground is standalone and never rendered through `StudioShell`; the original second shell-identity requirement was false.
+- Verification: 36 fixtures, 29 Vite inputs, 24 entry modules, 21 routes, 15 shell scenes, full gate, release smoke, and affected-route browser checks passed.
+- Rollback: Revert validator, Rift metadata addition, and unreachable Simulations-case removal together.
 
 ### MILESTONE-06
 
-- Status: Ready
+- Status: Verified
 - Outcome: Operable and semantically correct primary routes
 - Priority: High
 - Parallel group: C
 - Depends on: M01, M05
 - Blocks: M07, M08, M10
-- Owner: Unassigned
+- Owner: `/root/m06_accessibility`
 - Issues:
   - `A11Y-002`
   - `A11Y-003`
@@ -261,16 +267,18 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - native semantic Home filter buttons with selected state
   - Portfolio reading text selectable without deck regression
 - Rollback: Separate semantic wrapper, Home controls, and selection commits.
+- Evidence: Targeted ESLint, build, strict release smoke, Canvas SPA, Portfolio carousel/drawer, desktop/mobile legend, and development About semantic checks passed. Independent review accepted the final stable-node landmark contract.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-07
 
-- Status: Ready
+- Status: Deferred by user — targeted checks pass; full matrix and final review remain
 - Outcome: Reliable global focus and compliant supporting-copy contrast
 - Priority: High
 - Parallel group: D
 - Depends on: M01, M06
 - Blocks: M12, M16
-- Owner: Unassigned
+- Owner: `/root/m07_focus_contrast`
 - Issues:
   - `A11Y-001`
   - `A11Y-004`
@@ -306,14 +314,14 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ### MILESTONE-08
 
-- Status: Needs decision
-- Decision gate: `HD-01`
+- Status: Verified
+- Decision gate: `HD-01` approved 2026-07-30
 - Outcome: One validated route identity manifest and explicit unknown-route behavior
 - Priority: Medium
 - Parallel group: D after decision
 - Depends on: M05, M06, HD-01
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root/m08_route_manifest`
 - Issues:
   - `ARCH-001` phase 2
 - Files:
@@ -344,17 +352,18 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - known routes preserve behavior
   - unknown routes follow `HD-01`
 - Rollback: Keep old registry until parity passes; revert migration without URL changes.
+- Evidence: One source-readable manifest owns 21 route IDs, paths, aliases, titles, layouts, and shell-tab metadata while SiteApp retains explicit view/runtime imports. Unknown paths and standalone Loader/Simulations decline shared-shell SPA handling. The validator reconciles 29 Vite inputs, 24 entries, 21 descriptors, and 15 shell scenes through 53 fail-closed fixtures, including exact direct and local-wrapper runtime ownership. Simulation validation/deletion planning consumes the manifest and preflights every multi-source transform before writing. Full `check:site`, release smoke, route/simulation/HTML checks, deletion tests, 28 transition tests, lint/build, and Chromium/WebKit direct/SPA/history/unknown/standalone/Canvas/transition evidence passed. Independent review accepted Revision 2 with no findings.
 
 ### MILESTONE-09
 
-- Status: Needs decision
-- Decision gate: `HD-02`
+- Status: Verified
+- Decision gate: `HD-02` approved 2026-07-30
 - Outcome: Ignored generated artifacts are no longer tracked in the current tree
 - Priority: High
 - Parallel group: B after decision
 - Depends on: M04, HD-02
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root`
 - Issues:
   - `OPS-001` phase 2
 - Files:
@@ -382,16 +391,17 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - fresh install and gate pass
   - no history rewrite occurs
 - Rollback: One focused commit restores index entries and evidence moves.
+- Evidence: 13,776 policy-approved ignored generated/vendor/temp paths representing 1,099,684,630 indexed bytes were removed from the Git index only. Independent review confirmed all staged entries are deletions, every path matches current ignore policy and one of the six M04 groups, no authored/non-ignored path is staged, every local path still exists, the ignored-tracked inventory is zero, `.vscode/settings.json` remains tracked, and artifact plus full pre-commit checks pass. No history rewrite, commit, push, publication, or local file deletion occurred.
 
 ### MILESTONE-10
 
-- Status: Ready
+- Status: Verified
 - Outcome: Measured legacy lint ratchet
 - Priority: Medium
 - Parallel group: E
 - Depends on: M01, M06
 - Blocks: M13, M14, M15
-- Owner: Unassigned
+- Owner: `/root/m10_lint_ratchet`
 - Issues:
   - `MAINT-002`
 - Files:
@@ -417,16 +427,18 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - new/modified legacy files receive normal checks
   - every retained suppression has a reason
 - Rollback: Revert module-family slices independently.
+- Evidence: Exact strict baseline covers 85 unused-variable findings in 33 files and 138 empty catches in 28 reasoned files. Mutation fixtures, app lint, syntax, and diff checks passed; corrected implementation received independent acceptance.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-11
 
-- Status: Ready
+- Status: Verified
 - Outcome: Stable characterization contracts for all three hotspots
 - Priority: High
 - Parallel group: E
 - Depends on: M01, M05
 - Blocks: M13, M14, M15
-- Owner: Unassigned
+- Owner: `/root/m11_characterization`
 - Issues:
   - `MAINT-001` phase 1
 - Files:
@@ -452,16 +464,20 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - tests avoid brittle full-markup snapshots
   - no test-only production global is introduced
 - Rollback: Revert tests and any narrow test seam together.
+- Implemented evidence: Route transactions 20/20; hotspot characterization 7/7; six-project content check; 37 sections and 336/336 control semantics; Chromium and WebKit direct plus SPA Portfolio lifecycle; release smoke, lint, build, invalid-input probes, syntax, and diff checks.
+- Audit correction: The apparent keyboard route rebound was caused by beginning the SPA case before canonical Home readiness. The corrected audit waits for the overlay, transition, boot state, active tab, pending-route state, and the legacy-runtime or Daily-Focus readiness boundary. Both browser families pass with no production change.
+- M14 prerequisite: Add representative parse/format and runtime-apply behavior probes for each definition family before moving it; do not freeze callback source text.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-12
 
-- Status: Ready
+- Status: Accepted provisionally — refresh after M07 before M16
 - Outcome: Complete CSS ownership inventory and cascade assertions
 - Priority: Medium
 - Parallel group: E
 - Depends on: M01, M07
 - Blocks: M16
-- Owner: Unassigned
+- Owner: `/root/m15_portfolio_extraction`
 - Issues:
   - `MAINT-003` phase 1
 - Files:
@@ -486,16 +502,17 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - high-risk computed styles are asserted
   - report is sufficient for M16 allocation
 - Rollback: Revert analysis, docs, and tests; production CSS is untouched.
+- Evidence: 14/14 ownership tests; 8/8 Chromium/WebKit desktop/mobile light/dark states; 24/24 screenshots; ownership signature `a5530a077589a59db6a6d9987937b904eca620fbd99dccaf7b850c0466dc70af`; computed/provenance signature `19c107e25a501b8e66b2fc5aaacb58f878926dc5601a5dc5e9fc6aedccbdd4c7`; independent Revision 3 review accepted provisionally pending M07.
 
 ### MILESTONE-13
 
-- Status: Ready
+- Status: Verified
 - Outcome: One transition observation/prewarm-readiness responsibility extracted
 - Priority: Medium
 - Parallel group: F
 - Depends on: M10, M11
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root/m13_transition_extraction`
 - Issues:
   - `MAINT-001` transition hotspot
 - Files:
@@ -522,16 +539,18 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - public contract and legal phase order remain unchanged
   - no new global state or cycle
 - Rollback: Revert one extraction commit and inline the helper.
+- Evidence: Route-readiness observation moved to one stateless motion module with the active runtime snapshot injected by the hook. Route checks pass 28/28; hotspot checks 12/12; build, lint, Canvas SPA, simulation lifecycle, route loader, and strict Chromium/WebKit transition evidence passed. Independent review accepted the final expanded event/timer/route-predicate coverage with no findings.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-14
 
-- Status: Ready
+- Status: Verified
 - Outcome: Control definitions separated from rendering/binding
 - Priority: Medium
 - Parallel group: F
 - Depends on: M10, M11
 - Blocks: None
-- Owner: Unassigned
+- Owner: `/root/m14_control_definitions`
 - Issues:
   - `MAINT-001` control-registry hotspot
 - Files:
@@ -559,16 +578,19 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - all public control behavior matches baseline
   - no cycle, saved-state loss, or hot-path allocation appears
 - Rollback: One definition-family commit at a time.
+- Evidence: Four simulation-atmosphere sections containing 11 controls moved to `control-definitions/simulation-atmosphere-controls.js`; rendering, binding, persistence, public exports, and the other definition families remain owned by `control-registry.js`. The registry reduced from about 6,753 to 6,573 lines while the exact 37-section/336-control contract stayed stable. Control characterization passes 6/6, the combined hotspot suite passes 14/14, parse/format is exercised for every control, representative state/CSS/runtime/atmosphere/theme-profile callbacks and hydration pass, and deliberate metadata drift rejects. App lint, build, the exact lint ratchet and fixtures, Canvas SPA, manual panel save/reload, syntax, and diff checks passed. Independent review accepted the production boundary and final test hardening with no findings.
+- Deferred evidence: Broad lifecycle fault injection and runtime-performance certification exposed unrelated existing risks now recorded as `TEST-002` and `PERF-001`. M14 adds no per-frame work or new production chunk.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-15
 
-- Status: Ready
+- Status: Verified
 - Outcome: Portfolio data/config and boot seams extracted
 - Priority: Medium
 - Parallel group: F
 - Depends on: M10, M11
 - Blocks: M16
-- Owner: Unassigned
+- Owner: `/root/m15_portfolio_extraction`
 - Issues:
   - `MAINT-001` Portfolio hotspot
 - Files:
@@ -600,10 +622,12 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
   - cleanup stays idempotent
   - Portfolio interaction/handoff/focus behavior passes
 - Rollback: Separate data and boot extraction commits.
+- Evidence: Data/config/asset/project normalization moved to focused data/config/content modules; thumbnail prewarm caching, decoding, budgeting, retry, and diagnostics moved to `portfolio-prewarm.js`; `app.js` retains stable preload/bootstrap exports and the orbital/input core. `PORTFOLIO_DOM_CONTRACT` drives exact-one rendered selector assertions in Chromium/WebKit direct, SPA, and remount coverage. Hotspot checks pass 12/12, build/lint/content/cycle checks pass, and the full Portfolio browser matrix plus post-review focused reruns passed. Independent review accepted the corrected final delta with no findings.
+- Integration update: The authored collision value was restored later and `npm run studio:check` now passes; this earlier external limitation is resolved.
 
 ### MILESTONE-16
 
-- Status: Ready
+- Status: Held — waits for M07 and M12; M15 is verified
 - Outcome: One owner for global versus Portfolio CSS
 - Priority: Medium
 - Parallel group: G
@@ -642,10 +666,10 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 
 ## Human decisions
 
-- `HD-01`: Unknown same-origin routes. Recommended: return no internal match and allow host 404. Blocks M08 only.
-- `HD-02`: Durable generated evidence. Recommended: retain only named compressed evidence with reproduction notes. Blocks M09 only.
+- `HD-01`: Approved and applied. Unknown same-origin and standalone destinations decline shared-shell SPA handling so normal browser/host navigation owns them. M08 is verified.
+- `HD-02`: Approved and applied. Retain none of the current ignored generated/vendor/temp paths in place; future durable evidence requires a named documented source location. M09 is verified.
 - `HD-03`: Git history rewrite. Recommended: defer to a separate measured programme. Blocks nothing.
-- `HD-04`: CI smoke enforcement. Recommended: blocking after five stable runs within eight minutes. Local/advisory M01 work can proceed.
+- `HD-04`: Approved. Promote the CI smoke to blocking after five stable GitHub Actions runs within eight minutes. It remains advisory until that external evidence exists.
 - `HD-05`: Future public About launch. Recommended: keep current production behavior and plan launch separately. Blocks no refactoring milestone.
 
 ## Integration checklist
@@ -657,3 +681,56 @@ Critical path: `M01 -> M05 -> M06 -> M07 -> M12 -> M16`.
 - Update issue and milestone statuses only after integration evidence passes.
 - At programme close, run `npm run studio:check`, the release smoke, required Chromium/WebKit matrices, and screenshot/benchmark review.
 - Production publication remains a separate explicitly authorized action.
+
+## Independent milestone verdicts — 2026-07-30
+
+These verdicts supersede completion labels for release planning while preserving milestone evidence above. Full acceptance-criteria reviews are in `docs/refactoring-review.md`.
+
+| Milestone | Independent verdict | Required follow-up |
+| --- | --- | --- |
+| M01 | Changes required | Fix five-route smoke, integrate CI, collect five qualifying advisory runs. |
+| M02 | Approved with follow-up | Address non-atomic multi-file writes under `OPS-003`. |
+| M03 | Approved with follow-up | Keep live schema/route/count claims current under `DOC-002`. |
+| M04 | Approved | Add the artifact check to integrated CI. |
+| M05 | Approved | Run mutation fixtures in CI. |
+| M06 | Approved with follow-up | Carry semantics into the completed M07 matrix. |
+| M07 | Changes required | Complete the current five-route/40-state evidence and resolve or accept `A11Y-006`. |
+| M08 | Changes required | Fix null-route boot regression `ARCH-003`. |
+| M09 | Approved with follow-up | Dedicated commit verified; fresh integrated checkout still needed. |
+| M10 | Approved with follow-up | At the 2026-07-30 review, the executable inventory was 122/84/32 rather than the earlier 118/85/33. |
+| M11 | Approved | Retain explicit fixture review. |
+| M12 | Changes required | Provisional only; refresh after M07. |
+| M13 | Approved with follow-up | Repeat long transition browser matrix after integration. |
+| M14 | Approved with follow-up | Do not continue line-count-driven extraction; `TEST-002`/`PERF-001` remain separate. |
+| M15 | Approved with follow-up | Repeat long Portfolio browser audits after integration. |
+| M16 | Unable to verify | No implementation; remains held behind M07 and refreshed M12. |
+
+M09 does have a dedicated commit (`7fdb9ec6`). Earlier M09 wording that no refactor commit existed describes the pre-commit review checkpoint, not current history.
+
+### New audit dependencies
+
+- Release approval now depends on `TEST-003`, `ARCH-003`, `OPS-002`, and completion of the M01/`TEST-001` advisory-run and blocking-promotion decision recorded in `HD-04`.
+- M12/M16 depend on M07 plus `A11Y-006` disposition.
+- `DEP-001`, `OPS-003`, `TEST-002`, `PERF-001`, and `ARCH-004` belong to the next measured cycle unless their risk becomes release-critical.
+
+## Current manifest status — 2026-07-31
+
+This section supersedes only current status. The milestone evidence above remains a historical record.
+
+| Work item | Current status | Confirmed evidence or remaining condition |
+| --- | --- | --- |
+| M01 / `TEST-001` | Local implementation verified; external qualification pending | Five-route smoke and local workflow checks pass. Five qualifying Actions runs, blocking promotion, and branch protection are not confirmed. |
+| `TEST-003` | Resolved locally | Manifest-derived five-route smoke, route-aware focus, unexpected-console failure, and forced-failure probes pass. |
+| M07 / `A11Y-006` | Verified resolved locally | The coherent report passes all 40 states. Playground light-mobile contrast and WebKit gate foreground blur are fixed. |
+| M08 / `ARCH-003` | Resolved locally | Unknown paths preserve their URL, use the explicit Home fallback state, and pass fallback-host browser coverage. |
+| M10 / `DOC-002` | Current | 125 legacy JavaScript/JSX files; 84 unused-variable findings in 32 files; 137 empty catches in 28 files. Earlier inventories are historical. |
+| `TEST-002` | Resolved locally | Chromium/WebKit geometry and 6 of 6 lifecycle fault cases pass. |
+| `PERF-001` | Partially resolved | Chromium has a stable mode-pass; WebKit is environment-invalid, so cross-browser certification remains pending. |
+| `ARCH-004` | Partially resolved | Active cycle reduced from 12 modules/23 internal edges to 9 modules/15 internal edges; the remaining cycle is still debt. |
+| `DEP-001` | Resolved locally | Node 22.19 or later; root and app full audits report zero findings. |
+| `OPS-003` | Resolved locally; independently accepted | Serialized journaled transactions pass 30 of 30 focused tests. |
+| M12 | Refreshed and accepted locally | 14/14 static checks, 8/8 browser states, and 24/24 inspected screenshots pass. |
+| M16 | Completed locally | 8 hero/title and 6 locked-overlay blocks moved; 1605/483 rules became 1589/499, 428 overlaps became 413, 36 exact overlaps became 16, and both approved residual-conflict counts are zero. The computed signature remains `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`. |
+| `OPS-002` | Open | Requires an authorized, reviewable commit boundary and reproduced integrated checks. |
+
+No commit, push, remote CI qualification, branch-protection change, or production publication is part of this status update.
