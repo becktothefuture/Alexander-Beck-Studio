@@ -263,7 +263,7 @@ export const SOUND_CONTROLS = {
 export function generateSoundControlsHTML() {
   let html = '';
   
-  for (const [sectionKey, section] of Object.entries(SOUND_CONTROLS)) {
+  for (const section of Object.values(SOUND_CONTROLS)) {
     html += `<div class="sound-dock__section">`;
     html += `<div class="sound-dock__section-title">${section.title}</div>`;
     html += `<div class="sound-dock__group">`;
@@ -373,4 +373,3 @@ export function syncSoundControlsToConfig(panel, getSoundConfig) {
     }
   }
 }
-

@@ -5,16 +5,12 @@
 
 import { Ball } from './Ball.js';
 import { getGlobals } from '../core/state.js';
-import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
+import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
 function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
-}
-
-function randBetween(min, max) {
-  return min + Math.random() * (max - min);
 }
 
 export function spawnBall(x, y, color, distributionIndex) {

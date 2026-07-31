@@ -555,6 +555,9 @@ export function createRepelRoomRenderer({
   let lastUpdateAt = 0;
   let lastRenderMs = 0;
   let stateBuildCount = 0;
+  let lastConfigSource = null;
+  let lastThemeSource = null;
+  let stateSyncRequested = true;
   let unregisterVisualTransition = null;
   const visualTransition = createIndexedSimulationVisualTransition({
     sourceId: 'repel-room',
@@ -601,7 +604,8 @@ export function createRepelRoomRenderer({
     }
   }
 
-  function ensureState(config, theme) {
+  function ensureState(config, theme, forceCheck = false) {
+    if (!forceCheck && state) return;
     const count = resolveBallCount(config, metrics, reducedMotion);
     const key = getConfigKey(config, count, theme, metrics);
     if (!state || state.configKey !== key) {
@@ -616,7 +620,11 @@ export function createRepelRoomRenderer({
     const theme = getTheme();
     const dpr = resolveDpr(config);
     metrics = resizeCanvasToDisplaySize(canvas, dpr);
-    ensureState(config, theme);
+    const sourcesChanged = config !== lastConfigSource || theme !== lastThemeSource;
+    ensureState(config, theme, stateSyncRequested || metrics.changed || sourcesChanged);
+    lastConfigSource = config;
+    lastThemeSource = theme;
+    stateSyncRequested = false;
     canvas.dataset.mobileSimulationBodyScale = state.mobileSimulationBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = state.baseRadius.toFixed(2);
     canvas.dataset.simulationBodyCount = String(state.count);
@@ -675,6 +683,7 @@ export function createRepelRoomRenderer({
 
   function start() {
     const config = getConfig();
+    stateSyncRequested = true;
     metrics = resizeCanvasToDisplaySize(canvas, resolveDpr(config));
     if (!running) {
       running = true;

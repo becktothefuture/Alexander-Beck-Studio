@@ -24,8 +24,6 @@ const HIVE_WAYPOINT_COLOR_INDEX = 1;
 const SPATIAL_GRID_SIZE = 8; // 8×8 = 64 cells
 const SPATIAL_CELLS = SPATIAL_GRID_SIZE * SPATIAL_GRID_SIZE;
 let spatialGrid = []; // Array of arrays (buckets)
-let spatialCellWidth = 0;
-let spatialCellHeight = 0;
 let neighborCacheFrameId = 0;
 
 function resetSpatialGrid() {
@@ -40,9 +38,6 @@ function buildSpatialGrid(balls, canvasW, canvasH) {
   for (let i = 0; i < SPATIAL_CELLS; i++) {
     spatialGrid[i].length = 0;
   }
-  
-  spatialCellWidth = canvasW / SPATIAL_GRID_SIZE;
-  spatialCellHeight = canvasH / SPATIAL_GRID_SIZE;
   
   // Bucket each ball
   for (let i = 0; i < balls.length; i++) {

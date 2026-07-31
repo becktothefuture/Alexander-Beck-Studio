@@ -315,7 +315,7 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
   assert.equal(store.getSnapshot().selection.type, 'visibility-key');
   assert.equal(store.createObject({
     track: 'interaction',
-    atWU: 5,
+    atWU: 6,
     targetStateId: 'world-grid',
   }), true);
   const createdInteraction = store.getSnapshot().document.tracks.interactions.clips

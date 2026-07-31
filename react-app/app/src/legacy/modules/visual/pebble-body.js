@@ -177,7 +177,6 @@ function getPebbleGeometry(ball, radius, globals) {
   for (let i = 0; i < pointCount; i += 1) {
     const t = template.phase + ((i / pointCount) * TAU);
     const c1 = Math.cos(t);
-    const s1 = Math.sin(t);
     const c2 = Math.cos((2 * t) + template.phase * 0.37);
     const s2 = Math.sin((2 * t) - template.phase * 0.29);
     const c3 = Math.cos((3 * t) + template.phase * 0.22);

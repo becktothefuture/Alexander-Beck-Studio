@@ -18,6 +18,7 @@ import {
   syncPitPortfolioRadiusStatsFromBalls
 } from '../core/state.js';
 import { applyCanvasShadow } from './effects.js';
+import { removeDepthTitleLayerClass } from './depth-title-layer-state.js';
 import { stopMainLoop } from './loop.js';
 import { isDev } from '../utils/logger.js';
 import {
@@ -206,7 +207,7 @@ function disposeDepthTitleCanvas() {
   }
   frontCanvas?.remove?.();
   const container = globals.container || document.getElementById('simulations');
-  container?.classList?.remove('simulation-depth-title-layer-active');
+  removeDepthTitleLayerClass(container);
   globals.depthTitleFrontCanvas = null;
   globals.depthTitleFrontCtx = null;
 }
@@ -256,13 +257,12 @@ function bindLiveSimulationCanvas() {
   const live = document.getElementById('c');
   if (!live) return false;
   if (live !== canvas) {
+    const liveContext = acquireSimulation2dContext(live);
+    detectOptimalDPR();
     canvas = live;
-    ctx = acquireSimulation2dContext(live);
+    ctx = liveContext;
     prevCanvasWidth = 0;
     prevCanvasHeight = 0;
-    try {
-      detectOptimalDPR();
-    } catch (e) {}
   }
   return Boolean(canvas && ctx);
 }
@@ -422,22 +422,18 @@ export function resize() {
     rootStyle?.setProperty('--abs-vv-w', `${vwPx}px`);
     rootStyle?.setProperty('--abs-vv-center-x', `${centerXPx}px`);
     rootStyle?.setProperty('--abs-vv-center-y', `${centerYPx}px`);
-  } catch (e) {}
+  } catch (e) { /* Visual-viewport CSS diagnostics are optional to backing-store resize. */ }
 
   // Keep vw-based layout responsive: on any resize we recompute derived px and
   // restamp CSS vars before measuring container dimensions.
-  try {
-    applyLayoutFromVwToPx();
-    applyLayoutCSSVars();
-  } catch (e) {}
+  applyLayoutFromVwToPx();
+  applyLayoutCSSVars();
 
   // Keep "mobile scaling" responsive to viewport width (safe: early-outs unless breakpoint changes).
-  try { detectResponsiveScale(); } catch (e) {}
+  detectResponsiveScale();
 
   // Re-evaluate DPR when body class / route DOM appears (SPA transitions).
-  try {
-    detectOptimalDPR();
-  } catch (e) {}
+  detectOptimalDPR();
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('simulations');
@@ -601,7 +597,7 @@ export function resize() {
   if (shouldRelayoutPortfolioLabels) {
     try {
       globals.portfolioRelayoutLabels?.();
-    } catch (e) {}
+    } catch (e) { /* Portfolio label relayout is optional after the core canvas resize. */ }
   }
   
   if (needsUpdate) {

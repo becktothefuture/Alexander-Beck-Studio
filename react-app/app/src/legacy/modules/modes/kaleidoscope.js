@@ -248,7 +248,6 @@ function initializeKaleidoscopeWithCount(count, mode) {
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
   const maxAttemptsPerBall = 90;
-  const margin = Math.max(2, getSimulationCollisionInsetPx(g));
 
   const palette = Array.isArray(g.currentColors) ? g.currentColors : [];
   const distribution = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];

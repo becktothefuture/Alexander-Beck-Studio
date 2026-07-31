@@ -710,22 +710,26 @@ This amendment updates the current status only. The 2026-07-30 findings, verdict
 | Issue | Current status | Evidence |
 | --- | --- | --- |
 | `TEST-003` | Resolved locally | Five manifest-derived routes pass the production smoke. Focus discovery is route-aware, its traversal bound is DOM-derived, unexpected console errors fail, forced-failure probes pass, and successful runs retain a schema-versioned summary. |
+| `TEST-004` | Resolved locally | The canonical gate now includes About hardening, simulation-switch transactions, and Portfolio CSS ownership. Focused results pass 398/398 plus 55/55, 14/14, and 14/14. |
 | `ARCH-003` | Resolved locally | Unknown URLs preserve their location, receive the explicit Home fallback state, and pass the fallback-host browser audit. |
 | `TEST-002` | Resolved locally | Chromium/WebKit geometry and all 6 lifecycle fault cases pass. |
 | `DEP-001` | Resolved locally | Node 22.19 or later is required; root and app full audits report zero findings. |
 | `OPS-003` | Resolved locally; independently accepted | Serialized journaled authoring transactions pass 30 of 30 focused tests. |
-| `DOC-002` | Resolved for current records | Current counts are 30 inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 126 legacy JavaScript/JSX files with 84 unused findings in 32 files and 136 empty catches in 27 files. |
-| `ARCH-004` | Partially resolved | The active cycle is reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port. The remaining cycle is documented debt. |
-| `PERF-001` | Partially resolved | Chromium has a stable mode-pass artifact. WebKit is environment-invalid, not a mode failure, so cross-browser certification remains incomplete. |
+| `DOC-002` | Resolved for current records | Current counts are 30 inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 129 legacy JavaScript/JSX files with zero unused findings and zero empty catches. Strict mutation probes preserve the zero-debt boundary. |
+| `ARCH-004` | Resolved locally | The active cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then 5/8 through the scene-pointer event port, then zero through the mode-runtime bridge. Mutation coverage rejects a new cycle. |
+| `PERF-001` | Open | Chromium has a stable mode-pass artifact. The valid WebKit schema-v5 baseline measured all 27 launchable entries; release scope is 17 live Daily modes. The four live baseline failures now pass a focused 24/24-repeat WebKit certificate with valid controls. A full 17-mode recertification remains pending because the next attempt detected an invalid host control and was discarded. |
 | M07 / `A11Y-006` | Verified resolved locally | The coherent M07 report passes all 40 states. Playground light-mobile contrast and WebKit gate foreground blur are fixed. |
 | M12 | Refreshed and accepted locally | 14/14 static checks, 8/8 browser states, and all 24 screenshots pass inspection. |
 | M16 | Completed locally | Fourteen approved blocks moved; rules are 1589/499, overlaps 413, exact overlaps 16, both approved residual-conflict counts zero, and the accepted computed signature is unchanged. |
+| Modal import ownership | Resolved locally | The redundant dynamic gate-modal edge is now static, the mixed-import warning is absent, and Chromium/WebKit modal plus transition-flow audits pass. |
+| Portfolio presentation readiness | Resolved locally | The measured 0×0 geometry boundary moved to a focused module. Six new deterministic cases pass within the 22/22 hotspot suite, and Chromium/WebKit Portfolio characterization passes. |
+| Three.js vendor chunk | Assessed; non-blocking advisory | The 505,198-byte chunk is 126,649 bytes with gzip and is absent from the static import graph of the four primary entries. Lazy simulation and development About-lab modules share it. Splitting it or raising the warning limit has no demonstrated primary-route benefit. |
 
 ### Remaining release conditions
 
 - Final integrated local gates must run after the accepted M07, M12, and M16 work.
 - `OPS-002` remains open. The integrated changes do not yet have an authorized reviewable commit boundary.
-- `TEST-001` remains partially resolved. The workflow is local only; five qualifying Actions runs, blocking promotion, and branch protection are not confirmed.
+- `TEST-001` remains partially resolved. The workflow is published; run `30616987233` is the first qualifying smoke, while five later main runs fail before smoke at the published lint-ratchet baseline. Four more qualifying runs, blocking promotion, and branch protection remain outstanding.
 - No commit, push, remote workflow qualification, branch-protection change, or production publication is claimed.
 
-The current release recommendation remains **requires targeted fixes before release**. The remaining path is final integrated local validation, an authorized reviewable commit boundary, and external CI enforcement evidence. Cross-browser performance certification also remains incomplete because the WebKit control result is environment-invalid.
+The current release recommendation remains **requires final certification before release**. The current tree passes the canonical gate and targeted browser matrices, and the four corrected live modes pass a focused WebKit certificate. One uncontended full 17-mode WebKit pass is still required; the latest full attempt was discarded after an adjacent blank-page control became invalid. An authorized reviewable commit boundary and external CI enforcement evidence are also still required.

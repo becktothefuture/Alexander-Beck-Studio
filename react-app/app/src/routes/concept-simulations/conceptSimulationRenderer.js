@@ -793,6 +793,9 @@ export function createConceptSimulationRenderer({
   let lastTime = 0;
   let started = false;
   let layoutKey = '';
+  let lastConfigSource = null;
+  let lastThemeSource = null;
+  let layoutSyncRequested = true;
   let paletteGeneration = 0;
   let stateBuildCount = 0;
   let riftMotionState = {
@@ -904,10 +907,16 @@ export function createConceptSimulationRenderer({
       pointer.y = metrics.cssHeight * 0.5;
     }
 
-    const nextLayoutKey = getLayoutKey(config, theme);
-    if (metrics.changed || nextLayoutKey !== layoutKey) {
-      layoutKey = nextLayoutKey;
-      rebuildBodies(config, theme);
+    const sourcesChanged = config !== lastConfigSource || theme !== lastThemeSource;
+    if (layoutSyncRequested || metrics.changed || sourcesChanged || !layoutKey) {
+      const nextLayoutKey = getLayoutKey(config, theme);
+      if (metrics.changed || nextLayoutKey !== layoutKey) {
+        layoutKey = nextLayoutKey;
+        rebuildBodies(config, theme);
+      }
+      lastConfigSource = config;
+      lastThemeSource = theme;
+      layoutSyncRequested = false;
     }
     if (paletteGeneration !== Number(theme?.paletteGeneration || 0)) {
       paletteGeneration = Number(theme?.paletteGeneration || 0);
@@ -1046,6 +1055,7 @@ export function createConceptSimulationRenderer({
   }
 
   function start() {
+    layoutSyncRequested = true;
     syncLayout();
     render();
     if (started) return;

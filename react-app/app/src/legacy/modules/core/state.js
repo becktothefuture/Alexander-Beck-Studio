@@ -38,20 +38,6 @@ import {
 const initialSimulationPalette = getSimulationPaletteSnapshot();
 const timeOfDayAccents = getLondonWeatherPaletteAccents(initialSimulationPalette.paletteId) || {};
 
-// Helper: Convert hex color to "r, g, b" string for CSS rgba()
-function hexToRgbString(hex) {
-  if (!hex) return '255, 255, 255';
-  hex = hex.replace(/^#/, '');
-  if (hex.length === 3) {
-    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  }
-  const num = parseInt(hex, 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  return `${r}, ${g}, ${b}`;
-}
-
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
 // The renderer can reduce DPR on weak devices for better performance
@@ -1024,7 +1010,7 @@ export function getLayoutViewportHeightPx() {
     if (vv && typeof vv.height === 'number' && vv.height > 0) {
       return Math.max(1, vv.height);
     }
-  } catch (e) {}
+  } catch (e) { /* Fall back to the layout viewport when visualViewport is unavailable. */ }
   return Math.max(1, window.innerHeight || 1);
 }
 
@@ -1067,7 +1053,6 @@ export function vwToPx(vw, viewportWidthPx) {
 export function applyLayoutFromVwToPx() {
   // Derive px values once, then everything downstream remains px-based.
   const w = getLayoutViewportWidthPx();
-  const h = getLayoutViewportHeightPx();
 
   // One responsive frame size owns the visible outer inset and the collision
   // clearance. The old vw wall size, mobile multiplier, area multiplier, and
@@ -1104,7 +1089,6 @@ export function applyLayoutFromVwToPx() {
   state.frameRadiusMobilePx = frameRadiusMobilePx;
   state.frameRadiusDesktopPx = frameRadiusDesktopPx;
 
-  const isMobileLayout = state.isMobile || state.isMobileViewport;
   state.containerBorder = canonicalFrameInsetPx;
   state.containerBorderX = canonicalFrameInsetPx;
   state.simulationPadding = 0;
@@ -1150,9 +1134,8 @@ export function applyLayoutFromVwToPx() {
  * Apply CSS `corner-shape: squircle` globally via `tokens.css` when class is set (see @supports).
  */
 export function syncCornerShapeSquircleClass(enabled) {
-  try {
-    document.documentElement.classList.toggle('abs-corner-shape-squircle', Boolean(enabled));
-  } catch (e) {}
+  if (typeof document === 'undefined') return;
+  document.documentElement?.classList.toggle('abs-corner-shape-squircle', Boolean(enabled));
 }
 
 export function applyLayoutCSSVars() {
@@ -1251,7 +1234,7 @@ export function applyLayoutCSSVars() {
         }),
       };
     }
-  } catch (e) {}
+  } catch (e) { /* Collision diagnostics are optional to CSS layout publication. */ }
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {
     const w = getLayoutViewportWidthPx();
@@ -1261,7 +1244,7 @@ export function applyLayoutCSSVars() {
     root.style.setProperty('--layout-viewport-area-px', String(Math.round(area)));
     root.style.setProperty('--layout-viewport-size-px', `${Math.round(size)}px`);
     root.style.setProperty('--layout-viewport-width-px', `${Math.round(w)}px`);
-  } catch (e) {}
+  } catch (e) { /* Viewport diagnostics are optional to the authored layout variables. */ }
   
   // Also update vw-based vars for CSS calc fallbacks
   const resolvedFrameVw = pxToVw(state.frameInsetPx, getLayoutViewportWidthPx());
@@ -2580,7 +2563,7 @@ export function detectResponsiveScale() {
     const measuredWidth = widthCandidates.length ? Math.min(...widthCandidates) : null;
     const widthMatch = Number.isFinite(measuredWidth) ? measuredWidth <= 600 : false;
     isMobileViewport = mediaMatch || widthMatch;
-  } catch (e) {}
+  } catch (e) { /* Device flags still provide a safe fallback when viewport probes fail. */ }
 
   const isMobileDevice = Boolean(isIPad || isIPhone);
   const nextMobileViewport = isMobileViewport;
@@ -2620,19 +2603,20 @@ export function detectResponsiveScale() {
     return;
   }
 
-  // Update existing balls only if size actually changed
+  // Update existing balls when the target changed or a prior write stopped mid-sync.
   const newSize = state.R_MED;
-  if (Math.abs(newSize - prevSize) > 0.1) {
-    try {
-      if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
-        for (let i = 0; i < state.balls.length; i++) {
-          const b = state.balls[i];
-          if (!b) continue;
-          b.r = newSize;
-          b.rBase = newSize;
-        }
+  if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
+    const needsRadiusSync =
+      Math.abs(newSize - prevSize) > 0.1 ||
+      state.balls.some((ball) => ball && (ball.r !== newSize || ball.rBase !== newSize));
+    if (needsRadiusSync) {
+      for (let i = 0; i < state.balls.length; i++) {
+        const b = state.balls[i];
+        if (!b) continue;
+        b.r = newSize;
+        b.rBase = newSize;
       }
-    } catch (e) {}
+    }
   }
 }
 

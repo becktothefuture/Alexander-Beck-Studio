@@ -73,7 +73,7 @@ function rgbToHsl({ r, g, b }) {
   return { h: hue * 60, s: saturation, l: lightness };
 }
 
-function buildCueColor(sampleRgb, fallbackColor) {
+export function buildPortfolioCueColor(sampleRgb, fallbackColor) {
   const fallbackRgb = parseColorToRgb(fallbackColor);
   const sampleHsl = sampleRgb ? rgbToHsl(sampleRgb) : null;
   const fallbackHsl = fallbackRgb ? rgbToHsl(fallbackRgb) : null;
@@ -93,7 +93,7 @@ function buildCueColor(sampleRgb, fallbackColor) {
   } else {
     lightness = clamp(lightness + 0.08, 0.44, 0.72);
   }
-  return `var(--color-detected-hslmathroundhue)}deg ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%)`;
+  return `hsl(${Math.round(hue)}deg ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%)`;
 }
 
 function sampleImageCueColor(image) {
@@ -702,7 +702,7 @@ export class PortfolioProjectDrawer {
   updateScrollCueColor(fallbackColor) {
     if (!this.root) return;
     const sampledRgb = sampleImageCueColor(this.image);
-    const cueColor = buildCueColor(sampledRgb, fallbackColor);
+    const cueColor = buildPortfolioCueColor(sampledRgb, fallbackColor);
     this.root.style.setProperty('--portfolio-scroll-cue-color', cueColor);
   }
 

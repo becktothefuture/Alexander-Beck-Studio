@@ -70,10 +70,6 @@ function hsvToRgb01({ h, s, v }) {
   return { r: rr + m, g: gg + m, b: bb + m };
 }
 
-function lerp255(a, b, t) {
-  return Math.round(a + (b - a) * t);
-}
-
 function clamp255(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return 0;
@@ -481,6 +477,7 @@ export function applyActiveRouteCursorColor(routeId = getActiveProductionRouteId
 }
 
 export function maybeAutoPickCursorColor(reason = 'auto') {
+  void reason; // Preserve caller provenance in the public compatibility signature.
   const g = getGlobals();
   const routePick = applyActiveRouteCursorColor();
   if (routePick) return true;

@@ -48,8 +48,8 @@
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.05,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.191801,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -59,8 +59,8 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.05,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.191801,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -70,8 +70,8 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 19.05,
-      "scrollDurationWU": 19.73,
+      "storyDurationWU": 20.191801,
+      "scrollDurationWU": 20.871801,
       "overrides": {
         "camera": {
           "discipline-hold": {
@@ -184,7 +184,7 @@
         },
         {
           "id": "complexity-exit",
-          "atWU": 3.197041,
+          "atWU": 4.338842,
           "position": [
             0,
             0.1,
@@ -208,7 +208,7 @@
         },
         {
           "id": "complexity-exit-2",
-          "atWU": 3.526894,
+          "atWU": 4.668695,
           "position": [
             0,
             2.8,
@@ -232,7 +232,7 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 8.3,
+          "atWU": 9.441801,
           "position": [
             0,
             12,
@@ -256,7 +256,7 @@
         },
         {
           "id": "discipline-hold",
-          "atWU": 11.55,
+          "atWU": 12.691801,
           "position": [
             0,
             13,
@@ -280,7 +280,7 @@
         },
         {
           "id": "grid-return-centered",
-          "atWU": 13.7,
+          "atWU": 14.841801,
           "position": [
             0,
             11,
@@ -304,7 +304,7 @@
         },
         {
           "id": "ripple-overhead-hold",
-          "atWU": 16.15,
+          "atWU": 17.291801,
           "position": [
             0,
             11,
@@ -328,7 +328,7 @@
         },
         {
           "id": "emergent-orbit-quarter",
-          "atWU": 16.75,
+          "atWU": 17.891801,
           "position": [
             8,
             3,
@@ -352,7 +352,7 @@
         },
         {
           "id": "emergent-orbit-rear",
-          "atWU": 17.3,
+          "atWU": 18.441801,
           "position": [
             0,
             2.7,
@@ -376,7 +376,7 @@
         },
         {
           "id": "emergent-orbit-three-quarter",
-          "atWU": 17.85,
+          "atWU": 18.991801,
           "position": [
             -8,
             3,
@@ -400,7 +400,7 @@
         },
         {
           "id": "finale-hold",
-          "atWU": 19.05,
+          "atWU": 20.191801,
           "position": [
             0.55,
             -0.2,
@@ -435,112 +435,112 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 3.168302,
+          "atWU": 4.310103,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 3.772038,
+          "atWU": 4.913839,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 4.942727,
+          "atWU": 6.084528,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 5.551687,
+          "atWU": 6.693488,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 8.3,
+          "atWU": 9.441801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-discipline-read",
-          "atWU": 10.95,
+          "atWU": 12.091801,
           "visibility": 0.86,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 11.65,
+          "atWU": 12.791801,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-return-start",
-          "atWU": 13.7,
+          "atWU": 14.841801,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 14,
+          "atWU": 15.141801,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-start",
-          "atWU": 15.65,
+          "atWU": 16.791801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-low",
-          "atWU": 15.9,
+          "atWU": 17.041801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-title-hold",
-          "atWU": 16.15,
+          "atWU": 17.291801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-reveal",
-          "atWU": 16.3,
+          "atWU": 17.441801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-emergent-pass",
-          "atWU": 16.5,
+          "atWU": 17.641801,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-open-space",
-          "atWU": 16.95,
+          "atWU": 18.091801,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
-          "atWU": 19.05,
+          "atWU": 20.191801,
           "visibility": 1,
           "easing": "linear",
           "locked": true
@@ -619,7 +619,7 @@
           },
           "transitionIn": {
             "startWU": 0.72314,
-            "endWU": 1.864941,
+            "endWU": 3.006742,
             "type": "morph",
             "easing": "smoothstep",
             "correspondence": "spatial-nearest-v2"
@@ -647,7 +647,7 @@
         {
           "id": "world-grid",
           "label": "C",
-          "startWU": 4.1,
+          "startWU": 5.241801,
           "anchorWU": 4.059751,
           "adapterId": "point-field-v1",
           "shapeId": "calm-field-v1",
@@ -671,8 +671,8 @@
             "mobileYOffset": 0.345
           },
           "transitionIn": {
-            "startWU": 4.1,
-            "endWU": 4.505974,
+            "startWU": 5.241801,
+            "endWU": 5.647775,
             "type": "morph",
             "easing": "ease-out",
             "correspondence": "spatial-nearest-v2"
@@ -699,7 +699,7 @@
         {
           "id": "world-emergent",
           "label": "E",
-          "startWU": 16.15,
+          "startWU": 17.291801,
           "anchorWU": 4.059751,
           "adapterId": "point-field-v1",
           "shapeId": "bust-v1",
@@ -727,8 +727,8 @@
             "mobileLandscapeZOffset": 0
           },
           "transitionIn": {
-            "startWU": 16.15,
-            "endWU": 18.45,
+            "startWU": 17.291801,
+            "endWU": 19.591801,
             "type": "morph",
             "easing": "linear",
             "correspondence": "radial-emergence-v1"
@@ -805,9 +805,9 @@
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 0.65,
-          "focusWU": 1.05,
-          "endWU": 1.45,
+          "startWU": 0.951007,
+          "focusWU": 1.351007,
+          "endWU": 1.751007,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -820,9 +820,9 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 1.55,
-          "focusWU": 1.95,
-          "endWU": 2.35,
+          "startWU": 1.978874,
+          "focusWU": 2.378874,
+          "endWU": 2.778874,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -835,9 +835,9 @@
         {
           "id": "text-background-unit",
           "kind": "scroll-block",
-          "startWU": 2.1,
-          "focusWU": 2.58,
-          "endWU": 5,
+          "startWU": 3.241801,
+          "focusWU": 3.721801,
+          "endWU": 6.141801,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -971,9 +971,9 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 4.85,
-          "focusWU": 5.25,
-          "endWU": 5.65,
+          "startWU": 5.991801,
+          "focusWU": 6.391801,
+          "endWU": 6.791801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -986,9 +986,9 @@
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 5.75,
-          "focusWU": 6.15,
-          "endWU": 6.55,
+          "startWU": 6.891801,
+          "focusWU": 7.291801,
+          "endWU": 7.691801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1001,9 +1001,9 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 11.1,
-          "focusWU": 11.5,
-          "endWU": 13.7,
+          "startWU": 12.241801,
+          "focusWU": 12.641801,
+          "endWU": 14.841801,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -1275,9 +1275,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 13.85,
-          "focusWU": 14.2,
-          "endWU": 14.6,
+          "startWU": 14.991801,
+          "focusWU": 15.341801,
+          "endWU": 15.741801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1290,9 +1290,9 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 14.65,
-          "focusWU": 15,
-          "endWU": 15.4,
+          "startWU": 15.791801,
+          "focusWU": 16.141801,
+          "endWU": 16.541801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1305,9 +1305,9 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 15.45,
-          "focusWU": 15.75,
-          "endWU": 16.05,
+          "startWU": 16.591801,
+          "focusWU": 16.891801,
+          "endWU": 17.191801,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1320,9 +1320,9 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 16.95,
-          "focusWU": 17.52,
-          "endWU": 19.05,
+          "startWU": 18.091801,
+          "focusWU": 18.661801,
+          "endWU": 20.191801,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta"
@@ -1340,9 +1340,9 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 6.8,
-          "activationWU": 6.8,
-          "endWU": 11.7,
+          "startWU": 7.941801,
+          "activationWU": 7.941801,
+          "endWU": 12.841801,
           "targetWorldId": "world-grid",
           "parameters": {
             "backgroundFadeWU": 0.38,
@@ -1437,9 +1437,9 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 13.7,
-          "activationWU": 13.7,
-          "endWU": 16.15,
+          "startWU": 14.841801,
+          "activationWU": 14.841801,
+          "endWU": 17.291801,
           "targetWorldId": "world-grid",
           "parameters": {
             "amplitude": 1.05,
@@ -1452,9 +1452,9 @@
         {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 16.15,
-          "activationWU": 16.25,
-          "endWU": 19.05,
+          "startWU": 17.291801,
+          "activationWU": 17.391801,
+          "endWU": 20.191801,
           "targetWorldId": "world-emergent",
           "parameters": {
             "amplitude": 0.52,

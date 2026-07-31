@@ -33,14 +33,18 @@ let lastSnapshot = {
 function isDevBuild() {
   try {
     if (typeof __DEV__ === 'boolean') return __DEV__;
-  } catch (e) {}
+  } catch (e) {
+    // The compile-time development flag is optional.
+  }
 
   try {
     const port = String(globalThis?.location?.port ?? '');
     if (port === '8001' || port === '8012' || port === '8013') return true;
     const host = String(globalThis?.location?.hostname ?? '');
     if ((host === 'localhost' || host === '127.0.0.1') && port !== '') return true;
-  } catch (e) {}
+  } catch (e) {
+    // Location inspection is optional outside a browser.
+  }
 
   try {
     const scripts = Array.from(document?.scripts || []);
@@ -84,7 +88,9 @@ function removeHud() {
   if (!hudEl) return;
   try {
     hudEl.remove();
-  } catch (e) {}
+  } catch (e) {
+    // The optional diagnostics HUD may already be detached.
+  }
   hudEl = null;
 }
 

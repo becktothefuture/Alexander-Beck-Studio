@@ -159,9 +159,9 @@ function applyDarkModeToDOM(isDark) {
   syncChromeColor();
   
   // Re-apply noise system so SVG noise can re-tint to the active theme.
-  try {
-    import('./noise-system.js').then(({ applyNoiseSystem }) => applyNoiseSystem({}));
-  } catch (e) {}
+  void import('./noise-system.js')
+    .then(({ applyNoiseSystem }) => applyNoiseSystem({}))
+    .catch(() => undefined);
 
   try {
     import('../portfolio/pit-mode.js').then((m) => {
@@ -255,7 +255,7 @@ function applyTheme(theme, { persist = true } = {}) {
         isDark: shouldBeDark,
       },
     }));
-  } catch (e) {}
+  } catch (e) { /* Theme state remains applied when optional observers cannot be notified. */ }
   
   devLog(`🎨 Theme set to: ${currentTheme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }

@@ -300,7 +300,7 @@ async function commitNoiseTextureUrl(url, { genId, objectUrl = false } = {}) {
   await decodeTextureUrl(url);
   if (genId !== pendingGenerateId) {
     if (objectUrl && url) {
-      try { URL.revokeObjectURL(url); } catch (e) {}
+      try { URL.revokeObjectURL(url); } catch (e) { /* Object URL cleanup is best effort. */ }
     }
     return false;
   }
@@ -313,7 +313,7 @@ async function commitNoiseTextureUrl(url, { genId, objectUrl = false } = {}) {
     activeObjectUrl = objectUrl ? url : null;
 
     if (previousObjectUrl && previousObjectUrl !== url) {
-      try { URL.revokeObjectURL(previousObjectUrl); } catch (e) {}
+      try { URL.revokeObjectURL(previousObjectUrl); } catch (e) { /* Object URL cleanup is best effort. */ }
     }
 
     await waitForNextFrame();
@@ -322,7 +322,7 @@ async function commitNoiseTextureUrl(url, { genId, objectUrl = false } = {}) {
     return true;
   } catch (e) {
     if (objectUrl && url) {
-      try { URL.revokeObjectURL(url); } catch (err) {}
+      try { URL.revokeObjectURL(url); } catch (err) { /* Object URL cleanup is best effort. */ }
     }
     return false;
   }
@@ -667,9 +667,11 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
       root.style.setProperty('--abs-noise-texture', 'none');
       // Remove noise-ready class when disabled
       setNoiseReady(false);
-    } catch (e) {}
+    } catch (e) {
+      // Noise presentation is optional.
+    }
     if (activeObjectUrl) {
-      try { URL.revokeObjectURL(activeObjectUrl); } catch (e) {}
+      try { URL.revokeObjectURL(activeObjectUrl); } catch (e) { /* Object URL cleanup is best effort. */ }
     }
     activeObjectUrl = null;
     return;
@@ -778,12 +780,16 @@ export function destroyNoiseSystem() {
   try {
     const root = document.documentElement;
     root.style.removeProperty('--abs-noise-texture');
-  } catch (e) {}
+  } catch (e) {
+    // Noise presentation is optional.
+  }
 
   if (activeObjectUrl) {
     try {
       URL.revokeObjectURL(activeObjectUrl);
-    } catch (e) {}
+    } catch (e) {
+      // Object URL cleanup is best effort.
+    }
   }
 
   activeObjectUrl = null;

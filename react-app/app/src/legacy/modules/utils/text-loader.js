@@ -60,7 +60,9 @@ export async function loadRuntimeText() {
       cachedText = fetched;
       try {
         if (typeof window !== 'undefined') window.__TEXT__ = fetched;
-      } catch (e) {}
+      } catch (e) {
+        // Publishing the compatibility cache is optional.
+      }
       return cachedText;
     })
     .catch((error) => {

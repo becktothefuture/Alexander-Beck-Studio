@@ -162,7 +162,6 @@ export function renderStarfield3D(ctx) {
   // Update and draw each star
   for (let i = 0; i < _stars.length; i++) {
     const star = _stars[i];
-    const wasRecycled = star.z < zNear;
 
     // Advance toward camera
     star.z -= speed * dt;
@@ -245,7 +244,12 @@ export function renderStarfield3D(ctx) {
 }
 
 // No-op force applicator (we don't use balls)
-export function applyStarfield3DForces(ball, dt) {}
+export function applyStarfield3DForces(ball, dt) {
+  void ball;
+  void dt;
+}
 
 // No-op updater
-export function updateStarfield3D(renderDt) {}
+export function updateStarfield3D(renderDt) {
+  void renderDt;
+}

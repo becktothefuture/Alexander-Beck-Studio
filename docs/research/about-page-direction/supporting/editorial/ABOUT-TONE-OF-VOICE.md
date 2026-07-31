@@ -6,9 +6,9 @@
 
 The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, a personal-brand campaign or an agency pitch. The editorial passages should carry the restraint, observation and sentence craft of a well-edited magazine profile without imitating a publication or becoming literary for its own sake.
 
-## Structural anchor: V24; refined editorial register
+## Structural anchor: V25; refined editorial register
 
-V24 establishes the approved structural spine and editorial register:
+V25 establishes the approved structural spine and editorial register:
 
 1. It begins with a concise service promise, then a short personal observation: “I’ve always been drawn to the complicated bit.”
 2. It makes the territory concrete without over-explaining complexity: “New technology. New behaviours. How to inspire trust.”

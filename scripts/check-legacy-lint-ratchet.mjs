@@ -259,6 +259,7 @@ function expectFailure(label, callback) {
 
 function runMutationProbes(currentViolations) {
   const existingPath = 'src/legacy/modules/core/constants.js'
+  const unusedProbeFile = LEGACY_UNUSED_VARS_DEBT_FILES[0] ?? existingPath
   expectFailure('path traversal', () => validateInventory('probe', ['src/legacy/../main.js']))
   expectFailure('a canonical path alias', () => validateInventory('probe', [
     existingPath,
@@ -267,7 +268,7 @@ function runMutationProbes(currentViolations) {
   expectFailure('a duplicate resolved path', () => validateInventory('probe', [existingPath, existingPath]))
 
   const syntheticUnused = {
-    file: LEGACY_UNUSED_VARS_DEBT_FILES[0],
+    file: unusedProbeFile,
     ruleId: 'no-unused-vars',
     line: 999999,
     column: 1,
@@ -275,20 +276,40 @@ function runMutationProbes(currentViolations) {
     endColumn: 25,
     message: "'lintRatchetUnusedProbe' is assigned a value but never used.",
   }
+  const syntheticEmpty = {
+    file: unusedProbeFile,
+    ruleId: 'no-empty',
+    line: 999998,
+    column: 1,
+    endLine: 999998,
+    endColumn: 15,
+    message: 'Empty block statement.',
+  }
   expectFailure('a new violation', () => assertExactBaseline(currentViolations, [
     ...currentViolations,
     syntheticUnused,
   ]))
-  expectFailure('a stale baseline after debt removal', () => assertExactBaseline(
-    currentViolations,
-    currentViolations.slice(1),
-  ))
-  expectFailure('same-size debt substitution', () => assertExactBaseline(currentViolations, [
-    ...currentViolations.slice(1),
-    syntheticUnused,
-  ]))
+  if (currentViolations.length > 0) {
+    expectFailure('a stale baseline after debt removal', () => assertExactBaseline(
+      currentViolations,
+      currentViolations.slice(1),
+    ))
+    expectFailure('same-size debt substitution', () => assertExactBaseline(currentViolations, [
+      ...currentViolations.slice(1),
+      syntheticUnused,
+    ]))
+  } else {
+    expectFailure('a stale baseline after debt removal', () => assertExactBaseline(
+      [syntheticUnused],
+      [],
+    ))
+    expectFailure('same-size debt substitution', () => assertExactBaseline(
+      [syntheticUnused],
+      [syntheticEmpty],
+    ))
+  }
 
-  const probeFile = LEGACY_UNUSED_VARS_DEBT_FILES[0]
+  const probeFile = unusedProbeFile
   const probeSource = readFileSync(join(APP_ROOT, probeFile), 'utf8')
   const unusedMessages = lintTextStrict(
     probeFile,

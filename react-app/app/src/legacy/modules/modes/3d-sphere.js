@@ -323,7 +323,14 @@ export function initialize3DSphere() {
     dragPointerId: null,
     lastPointerTime: 0,
     pointerWasInCanvas: false,
-    audioAngle: 0
+    audioAngle: 0,
+    motionScale: resolveReducedMotionScale(g),
+    idleSpeed: resolveSpinIdleSpeed(g),
+    focal: Math.max(80, g.sphere3dFocalLength ?? 600),
+    minDotRadius: Math.max(0, g.sphere3dMinDotRadiusPx ?? DEFAULT_MIN_DOT_RADIUS_PX) * (g.DPR || 1),
+    alphaMax: clampNumber(g.sphere3dAlphaMax ?? DEFAULT_ALPHA_MAX, 0.2, 1),
+    fogStart: g.sphere3dFogStart ?? 0.9,
+    fogMin: g.sphere3dFogMin ?? 0.42,
   };
 
   const pts = fibonacciSphere(count);
@@ -347,13 +354,21 @@ export function apply3DSphereForces(ball, dt) {
   const state = g.sphere3dState;
   if (!canvas || !state || !ball || !ball._sphere3d) return;
 
-  // Read runtime params for real-time updates
-  const idleSpeed = resolveSpinIdleSpeed(g);
   const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
-  const motionScale = resolveReducedMotionScale(g);
 
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {
+    // Resolve shared configuration once per frame, not once per particle.
+    state.motionScale = resolveReducedMotionScale(g);
+    state.idleSpeed = resolveSpinIdleSpeed(g);
+    state.focal = Math.max(80, g.sphere3dFocalLength ?? 600);
+    state.minDotRadius = Math.max(0, g.sphere3dMinDotRadiusPx ?? DEFAULT_MIN_DOT_RADIUS_PX) * (g.DPR || 1);
+    state.alphaMax = clampNumber(g.sphere3dAlphaMax ?? DEFAULT_ALPHA_MAX, 0.2, 1);
+    state.fogStart = g.sphere3dFogStart ?? 0.9;
+    state.fogMin = g.sphere3dFogMin ?? 0.42;
+
+    const motionScale = state.motionScale;
+    const idleSpeed = state.idleSpeed;
     const titleCenter = getHeroTitleCanvasCenter(g);
 
     const radiusVw = g.sphere3dRadiusVw ?? 72;
@@ -465,7 +480,7 @@ export function apply3DSphereForces(ball, dt) {
   const rotatedX = matrix[0] * localX + matrix[1] * localY + matrix[2] * localZ;
   const rotatedY = matrix[3] * localX + matrix[4] * localY + matrix[5] * localZ;
   const rotatedZ = matrix[6] * localX + matrix[7] * localY + matrix[8] * localZ;
-  const focal = Math.max(80, g.sphere3dFocalLength ?? 600);
+  const focal = state.focal;
   
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -r (back, away from viewer) to +r (front, toward viewer)
@@ -485,8 +500,7 @@ export function apply3DSphereForces(ball, dt) {
   // This enhances the 3D effect significantly
   const perspectiveSize = 0.6 + depth * 0.8; // 0.6x to 1.4x scale
   
-  const minDotRadius = Math.max(0, g.sphere3dMinDotRadiusPx ?? DEFAULT_MIN_DOT_RADIUS_PX) * (g.DPR || 1);
-  ball.r = Math.max(minDotRadius, clampRadiusToGlobalBounds(g, rawR * perspectiveSize));
+  ball.r = Math.max(state.minDotRadius, clampRadiusToGlobalBounds(g, rawR * perspectiveSize));
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;
@@ -498,11 +512,10 @@ export function apply3DSphereForces(ball, dt) {
   // rotated.z ranges from -r to +r, so zShift (rotated.z + r) ranges from 0 to 2r
   // ball.z = 0 means BACK (fogged), ball.z = 1 means FRONT (clear)
   ball.z = depth;
-  const alphaMax = clampNumber(g.sphere3dAlphaMax ?? DEFAULT_ALPHA_MAX, 0.2, 1);
   ball.alpha = resolveDistanceFogOpacity(depth, {
-    fogStart: g.sphere3dFogStart ?? 0.9,
-    fogMin: g.sphere3dFogMin ?? 0.42,
-  }) * alphaMax;
+    fogStart: state.fogStart,
+    fogMin: state.fogMin,
+  }) * state.alphaMax;
 }
 
 export function render3DSphereDepthLayer(ctx, options = {}) {
@@ -516,21 +529,23 @@ export function render3DSphereDepthLayer(ctx, options = {}) {
   const canvasHeight = Number(options.canvasHeight) || Number.POSITIVE_INFINITY;
   const band = Math.max(0.001, Number(g.sphere3dDepthBlendBand ?? DEPTH_BLEND_BAND));
 
-  depthRenderScratch.length = 0;
-  for (let i = 0; i < balls.length; i += 1) {
-    const ball = balls[i];
-    if (!ball || ball._cloudMode !== 'sphere') continue;
-    const z = Number.isFinite(ball.z) ? ball.z : 1;
-    if (layer === 'behind' && z > depthPlane + band) continue;
-    if (layer === 'front' && z < depthPlane - band) continue;
-    depthRenderScratch.push(ball);
+  // The engine always renders the behind layer first. Build and sort the full
+  // depth list once there, then reuse the identical order for the front layer.
+  if (layer === 'behind' || depthRenderScratch.length === 0) {
+    depthRenderScratch.length = 0;
+    for (let i = 0; i < balls.length; i += 1) {
+      const ball = balls[i];
+      if (ball?._cloudMode === 'sphere') depthRenderScratch.push(ball);
+    }
+    depthRenderScratch.sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
   }
-  depthRenderScratch.sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 
   ctx.save();
   for (let i = 0; i < depthRenderScratch.length; i += 1) {
     const ball = depthRenderScratch[i];
     const z = Number.isFinite(ball.z) ? ball.z : 1;
+    if (layer === 'behind' && z > depthPlane + band) continue;
+    if (layer === 'front' && z < depthPlane - band) continue;
     const radius = typeof ball.getDisplayRadius === 'function'
       ? ball.getDisplayRadius()
       : (Number(ball.r) || 0);

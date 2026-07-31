@@ -58,7 +58,9 @@ function detectDevMode() {
     if (port === '8001' || port === '8012' || port === '8013') return true;
     const host = String(globalThis?.location?.hostname ?? '');
     if ((host === 'localhost' || host === '127.0.0.1') && port !== '') return true;
-  } catch (e) {}
+  } catch (e) {
+    // Location inspection is optional outside a browser.
+  }
 
   try {
     // Docs: DEV if page contains `<script type="module" src="main.js">`
@@ -70,7 +72,9 @@ function detectDevMode() {
       return /(^|\/)main\.js(\?|#|$)/.test(src);
     });
     if (hasModuleMain) return true;
-  } catch (e) {}
+  } catch (e) {
+    // Script inspection is optional outside a document.
+  }
 
   return false;
 }
@@ -185,7 +189,7 @@ function buildColorMap(ascii, clusterSize = 3) {
 }
 
 function colorizeAsciiLines(ascii, clusterSize = 3) {
-  const { clusters, colorAssignments } = buildColorMap(ascii, clusterSize);
+  const { colorAssignments } = buildColorMap(ascii, clusterSize);
   const results = [];
   let clusterIdx = 0;
   
@@ -263,7 +267,9 @@ export function printConsoleBanner({
     console.group = () => {};
     console.groupCollapsed = () => {};
     console.groupEnd = () => {};
-  } catch (e) {}
+  } catch (e) {
+    // Console policy must never interrupt the application.
+  }
 }
 
 export function initConsolePolicy({
@@ -319,7 +325,9 @@ export function mark(name) {
   if (!isDev()) return;
   try {
     performance.mark(name);
-  } catch (e) {}
+  } catch (e) {
+    // Performance marks are optional diagnostics.
+  }
 }
 
 export function measure(name, startMark, endMark) {
@@ -338,5 +346,7 @@ export function table(rows) {
   if (!isDev()) return;
   try {
     rawConsole.table(rows);
-  } catch (e) {}
+  } catch (e) {
+    // Console tables are optional diagnostics.
+  }
 }

@@ -22,6 +22,7 @@ import {
   TITLE_DEPTH_PLANE_Z,
   modeUsesDepthTitlePlane,
 } from '../rendering/title-depth.js';
+import { removeDepthTitleLayerClass } from '../rendering/depth-title-layer-state.js';
 import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
 import {
   renderActiveAtmosphereFrame,
@@ -92,7 +93,7 @@ function disposeDepthTitleCanvas(globals) {
     /* ignore */
   }
   frontCanvas?.remove?.();
-  container?.classList?.remove('simulation-depth-title-layer-active');
+  removeDepthTitleLayerClass(container);
   if (globals) {
     globals.depthTitleFrontCanvas = null;
     globals.depthTitleFrontCtx = null;
@@ -1117,6 +1118,7 @@ export function getBalls() {
 }
 
 function drawWaterRipples(ctx) {
+  void ctx;
   // Visual ripple rendering intentionally disabled (invisible ripples).
   // Physics ripples are still applied inside the Water mode force hook.
 }

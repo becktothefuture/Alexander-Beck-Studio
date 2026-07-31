@@ -716,25 +716,31 @@ No production publish, push, or new commit was performed by this review.
 
 ### Confirmed local results
 
-- `npm run check:site` passes on the integrated local tree.
+- `npm run studio:check` passes on the current shared branch after the final modal-ownership and Portfolio-readiness changes.
 - The production release smoke covers five manifest-derived routes, rejects unexpected console errors, and passes. Its unknown-path fallback-host audit also passes. Passing runs retain a schema-versioned `summary.json`; the verified 2026-07-31 run recorded nine route phases and zero page, console, response, or request failures.
 - Route ownership is 30 Vite inputs, 25 entry modules, 22 `SiteApp` routes, and 16 shell scenes.
-- The active legacy inventory is 126 JavaScript/JSX files, with 84 unused-variable findings in 32 files and 136 empty catches in 27 files.
+- The active legacy inventory is 129 JavaScript/JSX files, with zero unused-variable findings and zero empty catches. Strict mutation probes preserve the zero-debt boundary.
 - The simulation lifecycle evidence passes in Chromium and WebKit, including geometry and all 6 fault cases.
 - Atomic local authoring work is independently accepted with 30 of 30 focused tests.
 - Root and app full dependency audits report zero findings. The required Node version is 22.19 or later.
-- The active legacy cyclic component is reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port.
-- Chromium performance has a stable mode-pass artifact. WebKit performance is environment-invalid, not a mode failure.
+- `ARCH-004` is locally resolved. The active legacy cyclic component moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then 5/8 through the scene-pointer event port, then zero through the mode-runtime bridge. The mutation probe still rejects an injected cycle.
+- Chromium performance has a stable mode-pass artifact. The 2026-07-31 uncontended WebKit schema-v5 baseline measured all 27 launchable entries with valid global and adjacent controls. Release scoring now follows the catalog's 17 live `daily-rotation` entries. The four live baseline failures—`repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`—pass a focused 24/24-repeat post-fix certificate with valid controls. The canonical site gate passes. A full 17-mode recertification remains required after an invalid-host attempt was discarded.
+- The geometry fault contract passes 7 of 7 cases and found one corrected responsive-ball retry defect: a partial write can now converge on the next call.
 - M07 passes all 40 states in `output/playwright/focus-contrast/results-2026-07-31T07-56-53-938Z-all-all-all-all.json`. The verified fixes are Playground light-mobile contrast and deterministic focus evidence through iframe animation freeze.
 - `A11Y-006` is resolved locally. The Portfolio gate foreground remains sharp over the independently blurred route.
 - Refreshed M12 passes 14 of 14 static checks, 8 of 8 browser states, and all 24 inspected screenshots.
 - M16 moved 8 hero/title and 6 locked-overlay blocks to `portfolio.css`. Rule counts are 1589/499, overlaps are 413, exact overlaps are 16, and both approved residual-conflict counts are zero. Update and normal audits pass with computed signature `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`.
+- The historical mixed `gate-modal-shared.js` ownership warning is resolved. One static owner preserves microtask cleanup and the direct-DOM fallback; serial Chromium/WebKit modal and transition-flow audits pass.
+- Portfolio presentation readiness moved from `portfolio/app.js` to a focused 197-line module. Six new fault/geometry cases bring hotspot characterization to 22/22, and Chromium/WebKit Portfolio characterization passes.
+- The only remaining Vite size advisory is the approximately 505.20 kB Three.js vendor chunk (126,649 bytes with gzip). The primary Home, Portfolio, About, and Contact entry graph does not statically import it; `SiteApp` reaches it only through lazy simulation/About-lab modules. It remains one shared cacheable chunk, so this review does not hide the warning or split the dependency without route-transfer evidence.
+- `TEST-004` is resolved locally. The canonical gate now includes About runtime hardening, simulation-switch transactions, and Portfolio CSS ownership. Their focused results pass 398/398 plus 55/55, 14/14, and 14/14 respectively.
 
 ### Issue status changes
 
-- Resolved locally: `TEST-002`, `TEST-003`, `ARCH-003`, `DEP-001`, and `OPS-003`.
+- Resolved locally: `TEST-002`, `TEST-003`, `TEST-004`, `ARCH-003`, `DEP-001`, and `OPS-003`.
 - Resolved for current documentation: `DOC-002`.
-- Partially resolved: `ARCH-004` and `PERF-001`.
+- Resolved locally: `ARCH-004`.
+- Partially resolved: `PERF-001`.
 - Verified resolved locally: `A11Y-006` and M07.
 - Refreshed/accepted locally: M12.
 - Completed locally: M16.
@@ -742,6 +748,6 @@ No production publish, push, or new commit was performed by this review.
 
 ### Pending evidence
 
-- Final integrated local gates must run after these documentation edits.
-- The CI workflow exists only in the local working tree. It has no qualifying remote-run history and no confirmed branch-protection enforcement.
+- Final integrated local gates pass; documentation-only consistency checks remain part of final diff review.
+- The CI workflow is published on `origin/main`. Run `30616987233` is one qualifying smoke; five later main runs fail before smoke at the published lint-ratchet baseline. The local zero-debt cleanup passes, but it is not yet integrated. `main` has no branch protection or ruleset.
 - The integrated work has no authorized reviewable commit boundary. Nothing in this checkpoint was committed, pushed, or published.

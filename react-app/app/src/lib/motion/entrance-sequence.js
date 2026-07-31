@@ -577,6 +577,26 @@ function settleGlyphEntranceState(glyph) {
   state.finalRect = null;
 }
 
+function refreshBookendTitleEndpoint(target) {
+  if (target.variant !== 'bookend-title' || !target.element?.isConnected) return;
+  const finalColor = getComputedStyle(target.element).color;
+  if (!finalColor) return;
+  target.finalColor = finalColor;
+  target.glyphs.forEach((glyph) => {
+    if (glyph.__absRouteEntranceState) {
+      glyph.__absRouteEntranceState.finalColor = finalColor;
+    }
+  });
+}
+
+function settleFinishedGlyphColor(glyph, animation, finalColor, entranceState) {
+  void animation.finished.then(() => {
+    if (glyph.__absRouteEntranceState !== entranceState || entranceState?.settled) return;
+    glyph.style.color = finalColor;
+    animation.cancel();
+  }, () => undefined);
+}
+
 function clearTargetStyles(target) {
   const { element } = target;
   const generation = (styleCleanupGeneration.get(element) || 0) + 1;
@@ -798,6 +818,7 @@ export function createEntranceSequence({
       stageTarget(target, reducedMotion ? 0 : target.blurPx);
     });
     targets = sequenceTargets(targets, profile);
+    targets.forEach(refreshBookendTitleEndpoint);
 
     if (reducedMotion || targets.length === 0 || typeof Element.prototype.animate !== 'function') {
       finish();
@@ -847,6 +868,12 @@ export function createEntranceSequence({
               delay: delayMs,
               fill: 'forwards',
             },
+          );
+          settleFinishedGlyphColor(
+            glyph,
+            colorAnimation,
+            target.finalColor,
+            glyph.__absRouteEntranceState,
           );
           const movementAnimation = glyph.animate(
             [

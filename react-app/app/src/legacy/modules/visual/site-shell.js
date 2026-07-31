@@ -437,18 +437,16 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-frame-radius-mobile', `${frameRadius.mobile}px`);
   root.style.setProperty('--abs-frame-radius-value', buildResponsiveFrameRadiusCss(frameRadius));
   root.style.removeProperty('--abs-frame-radius-tablet');
-  try {
-    const globals = getGlobals();
-    globals.frameInsetMobilePx = frameInset.mobile;
-    globals.frameInsetDesktopPx = frameInset.desktop;
-    globals.frameRadiusMobilePx = frameRadius.mobile;
-    globals.frameRadiusDesktopPx = frameRadius.desktop;
-    // Keep every JS geometry consumer synchronized when authored shell values
-    // arrive asynchronously. Home's renderer also does this on resize, but
-    // non-rendering routes otherwise retained the previous/default radius.
-    applyLayoutFromVwToPx();
-    applyLayoutCSSVars();
-  } catch (e) {}
+  const globals = getGlobals();
+  globals.frameInsetMobilePx = frameInset.mobile;
+  globals.frameInsetDesktopPx = frameInset.desktop;
+  globals.frameRadiusMobilePx = frameRadius.mobile;
+  globals.frameRadiusDesktopPx = frameRadius.desktop;
+  // Keep every JS geometry consumer synchronized when authored shell values
+  // arrive asynchronously. Home's renderer also does this on resize, but
+  // non-rendering routes otherwise retained the previous/default radius.
+  applyLayoutFromVwToPx();
+  applyLayoutCSSVars();
   root.style.setProperty('--decorative-script-max-width', layout.decorativeScriptMaxWidth);
   root.style.setProperty('--decorative-script-padding-left', layout.decorativeScriptPaddingX);
   root.style.setProperty('--decorative-script-padding-vertical', layout.decorativeScriptPaddingY);
@@ -570,13 +568,9 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--quote-button-color-light', quoteBtnLight);
   root.style.setProperty('--quote-button-color-dark', quoteBtnDark);
   root.style.setProperty('--quote-button-color', isDark ? quoteBtnDark : quoteBtnLight);
-  try {
-    const g = getGlobals();
-    if (g) {
-      g.quoteButtonColorLight = quoteBtnLight;
-      g.quoteButtonColorDark = quoteBtnDark;
-    }
-  } catch (e) {}
+  const g = getGlobals();
+  g.quoteButtonColorLight = quoteBtnLight;
+  g.quoteButtonColorDark = quoteBtnDark;
 
   applySiteFramePalette({ active: theme.siteFrame || getDefaultFrameColor() });
   root.style.setProperty('--frame-border-gradient-edge-opacity', String(theme.frameBorderEdgeOpacity));

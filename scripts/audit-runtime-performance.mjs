@@ -12,6 +12,7 @@ import {
   aggregateProfile,
   aggregateRafControlProfile,
   evaluateEnvironmentCalibration,
+  evaluateLocalEnvironmentCalibration,
   evaluateMode,
   evaluateRafControlRepeat,
   evaluateRepeat,
@@ -54,9 +55,10 @@ const catalogText = await readFile(catalogPath, 'utf8');
 const catalog = JSON.parse(catalogText);
 const requestedIds = String(process.env.ABS_PERF_MODES || '').split(',').map((id) => id.trim()).filter(Boolean);
 const catalogEntries = catalog.simulations.filter((entry) => entry.launchPath || entry.dailyHref);
+const liveDailyEntries = catalogEntries.filter((entry) => entry.stage === 'daily-rotation');
 const entries = requestedIds.length
   ? requestedIds.map((id) => catalogEntries.find((entry) => entry.id === id)).filter(Boolean)
-  : catalogEntries;
+  : liveDailyEntries;
 const missingRequestedIds = requestedIds.filter((id) => !entries.some((entry) => entry.id === id));
 if (missingRequestedIds.length) throw new Error(`Unknown ABS_PERF_MODES simulation IDs: ${missingRequestedIds.join(', ')}`);
 
@@ -368,6 +370,53 @@ function summarizeRafControl(sample, consoleErrors, pageErrors) {
   };
 }
 
+async function sampleLocalRafControl(browser, entryId, phase) {
+  const context = await browser.newContext({
+    ...deviceProfile,
+    reducedMotion: 'no-preference',
+    colorScheme: process.env.ABS_COLOR_SCHEME === 'dark' ? 'dark' : 'light',
+  });
+  const page = await context.newPage();
+  const consoleErrors = [];
+  const pageErrors = [];
+  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  process.stdout.write(`Checking local static rAF ${entryId} ${phase}... `);
+  try {
+    await page.goto('about:blank');
+    await page.waitForTimeout(CONTRACT.localEnvironmentControls.preSampleDelayMs);
+    const repeat = summarizeRafControl(
+      await measureStaticRaf(page, CONTRACT.localEnvironmentControls.sampleMs),
+      consoleErrors,
+      pageErrors,
+    );
+    Object.assign(repeat, evaluateRafControlRepeat(repeat, CONTRACT, {
+      minimumDurationMs: CONTRACT.localEnvironmentControls.sampleMs,
+    }));
+    console.log(`${repeat.rafFps} rAF FPS, p95 ${repeat.p95Ms}ms, p99 ${repeat.p99Ms}ms, ${repeat.passed ? 'PASS' : 'INVALID'}`);
+    return repeat;
+  } catch (error) {
+    const repeat = {
+      actualDurationMs: 0,
+      rafFps: null,
+      observedRefreshHz: null,
+      p95Ms: null,
+      p99Ms: null,
+      longestGapMs: null,
+      consoleErrors,
+      pageErrors,
+      error: error?.stack || String(error),
+    };
+    Object.assign(repeat, evaluateRafControlRepeat(repeat, CONTRACT, {
+      minimumDurationMs: CONTRACT.localEnvironmentControls.sampleMs,
+    }));
+    console.log(`INVALID: ${error?.message || error}`);
+    return repeat;
+  } finally {
+    await context.close();
+  }
+}
+
 function summarizeSample(sample, consoleErrors, pageErrors) {
   const intervals = sample.intervals.filter(Number.isFinite);
   const renderedIntervals = sample.renderedIntervals.filter(Number.isFinite);
@@ -503,7 +552,12 @@ try {
       continue;
     }
 
-    for (const profileName of CONTRACT.profiles) {
+    const localControls = {
+      pre: await sampleLocalRafControl(browser, entry.id, 'pre'),
+      post: null,
+    };
+
+    for (const profileName of localControls.pre.passed ? CONTRACT.profiles : []) {
       const repeats = [];
       for (let repeatIndex = 0; repeatIndex < CONTRACT.repeatCount; repeatIndex += 1) {
         const context = await browser.newContext({
@@ -558,7 +612,21 @@ try {
       }
       result.profiles[profileName] = { definition: CONTRACT.profileDefinitions[profileName], repeats, ...aggregateProfile(repeats, CONTRACT) };
     }
-    Object.assign(result, evaluateMode(result.profiles, CONTRACT, environmentCalibration));
+    localControls.post = await sampleLocalRafControl(browser, entry.id, 'post');
+    result.localEnvironmentCalibration = {
+      surface: CONTRACT.localEnvironmentControls.surface,
+      placement: CONTRACT.localEnvironmentControls.placement,
+      sampleMs: CONTRACT.localEnvironmentControls.sampleMs,
+      preSampleDelayMs: CONTRACT.localEnvironmentControls.preSampleDelayMs,
+      controls: localControls,
+      ...evaluateLocalEnvironmentCalibration(localControls),
+    };
+    Object.assign(result, evaluateMode(
+      result.profiles,
+      CONTRACT,
+      environmentCalibration,
+      result.localEnvironmentCalibration,
+    ));
     results.push(result);
   }
 } finally {
@@ -589,7 +657,12 @@ if (certificationSurface.owned) {
         },
       ],
     };
-    for (const result of results) Object.assign(result, evaluateMode(result.profiles, CONTRACT, environmentCalibration));
+    for (const result of results) Object.assign(result, evaluateMode(
+      result.profiles,
+      CONTRACT,
+      environmentCalibration,
+      result.localEnvironmentCalibration,
+    ));
   }
 }
 
@@ -621,6 +694,10 @@ const output = {
     simulationsMeasured: results.length,
     environmentValid: environmentCalibration?.valid === true,
     environmentFailures: environmentCalibration?.failures || [],
+    localEnvironmentFailures: results.filter((result) => result.localEnvironmentCalibration?.valid === false).map((result) => ({
+      id: result.id,
+      failures: result.localEnvironmentCalibration.failures,
+    })),
     performanceGateFailures: failures.filter((result) => result.classification === 'mode-failure').map((result) => ({
       id: result.id,
       failures: result.failures,

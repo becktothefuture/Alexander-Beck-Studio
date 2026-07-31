@@ -306,11 +306,11 @@ function renderReport(graph, current) {
     ...component.edges.map((edge) => `- \`${edge}\``),
   ].join('\n'))
   const status = current.components.length > 0 ? [
-    '## Candidate inversion seam (no production change approved)',
+    '## Candidate inversion seam (evidence required)',
     '',
-    'Treat scene-pointer subscription as the candidate seam. The three mode modules `3d-sphere.js`, `elastic-center.js`, and `flubber-blob.js` import `subscribeScenePointer` from `input/pointer.js`; `pointer.js` imports `mode-controller.js`; and `mode-controller.js` loads those mode modules. A narrow pointer-subscription port supplied by the runtime composition root could invert the three mode-to-input edges without moving frame-frequency state into React.',
+    'Use the recorded members and internal edges to identify the narrowest ownership boundary that can invert at least one dependency without moving frame-frequency state into React.',
     '',
-    'This is only a hypothesis from the recorded edges. Characterize subscription timing, disposal, route remounts, pointer identity, reduced motion, and frame cost before any split. Proceed only if that evidence shows a concrete lifecycle-test or ownership benefit.',
+    'Treat any proposed seam as a hypothesis. Characterize initialization order, disposal, route remounts, shared-state identity, reduced motion, lazy loading, and frame cost before changing production code. Proceed only when the evidence shows a concrete ownership or lifecycle-test benefit.',
     '',
     'Do not split modules to reduce line counts or cycle size alone. The active imperative runtime and its frame-frequency ownership remain production constraints.',
     '',

@@ -3,15 +3,6 @@
 // ║   Chunky grid-led silhouettes for the portfolio pit.                        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function toNumber(value, fallback) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-}
-
 const PORTFOLIO_BLOCK_SHAPE_SEQUENCE = [
   'block-square',
   'block-chamfer',
@@ -158,6 +149,7 @@ export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, glob
 }
 
 export function appendPortfolioBodyPath(ctx, shape, r, config) {
+  void config; // Reserved for shape-specific geometry settings.
   if (!shape || shape === 'circle') {
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     return;

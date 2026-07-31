@@ -1,4 +1,4 @@
-export const RUNTIME_PERFORMANCE_SCHEMA_VERSION = 4;
+export const RUNTIME_PERFORMANCE_SCHEMA_VERSION = 5;
 export const MINIMUM_SAMPLE_MS = 5_000;
 export const MINIMUM_REPEAT_COUNT = 3;
 export const DEFAULT_PROFILES = Object.freeze(['cold', 'warm']);
@@ -91,6 +91,8 @@ export function parsePerformanceContract(env = process.env) {
 
   const coldSettleMs = Math.max(500, finiteNumber(env.ABS_PERF_COLD_SETTLE_MS ?? env.ABS_PERF_SETTLE_MS) ?? 2_000);
   const warmupMs = Math.max(coldSettleMs, finiteNumber(env.ABS_PERF_WARMUP_MS) ?? 10_000);
+  const localControlSampleMs = Math.max(1_000, finiteNumber(env.ABS_PERF_LOCAL_CONTROL_SAMPLE_MS) ?? 2_000);
+  const localControlSettleMs = Math.max(0, finiteNumber(env.ABS_PERF_LOCAL_CONTROL_SETTLE_MS) ?? 250);
   return {
     profiles: [...new Set(profiles)],
     sampleMs: requestedSampleMs,
@@ -106,6 +108,13 @@ export function parsePerformanceContract(env = process.env) {
         start: `sample ${warmupMs}ms after the owned runtime reports ready`,
         preSampleDelayMs: warmupMs,
       },
+    },
+    localEnvironmentControls: {
+      surface: 'about:blank static requestAnimationFrame control',
+      placement: 'one fresh-context control immediately before and after each mode block',
+      sampleMs: localControlSampleMs,
+      preSampleDelayMs: localControlSettleMs,
+      thresholds: 'same refresh, p95, p99, and browser-error thresholds as the certification contract',
     },
     thresholds: {
       minimumFps: Math.max(1, finiteNumber(env.ABS_PERF_MIN_FPS) ?? 58),
@@ -235,7 +244,7 @@ export function aggregateProfile(repeats, contract) {
   return { repeatCount: repeats.length, aggregate, passed: failures.length === 0, failures };
 }
 
-export function evaluateMode(profiles, contract, environmentCalibration = null) {
+export function evaluateMode(profiles, contract, environmentCalibration = null, localEnvironmentCalibration = null) {
   if (environmentCalibration?.valid === false) {
     return {
       passed: false,
@@ -246,6 +255,20 @@ export function evaluateMode(profiles, contract, environmentCalibration = null) 
         actual: environmentCalibration.failures,
         expected: 'valid static rAF control for every selected profile',
         reason: 'The host/browser cadence was invalid, so the audit does not attribute a performance failure to the mode.',
+      }],
+      overRenderFollowUp: null,
+    };
+  }
+  if (localEnvironmentCalibration?.valid !== true) {
+    return {
+      passed: false,
+      classification: 'environment-invalid',
+      warmDecayPercent: null,
+      failures: [{
+        predicate: 'local-environment-calibration',
+        actual: localEnvironmentCalibration?.failures || 'missing',
+        expected: 'valid pre and post static rAF controls adjacent to this mode block',
+        reason: 'The local host/browser cadence was invalid, so the audit does not attribute a performance failure to the mode.',
       }],
       overRenderFollowUp: null,
     };
@@ -302,11 +325,11 @@ export function evaluateMode(profiles, contract, environmentCalibration = null) 
   };
 }
 
-export function evaluateRafControlRepeat(sample, contract) {
+export function evaluateRafControlRepeat(sample, contract, { minimumDurationMs = contract.sampleMs } = {}) {
   const failures = [];
   const add = (predicate, actual, expected, reason) => failures.push({ predicate, actual, expected, reason });
-  if (sample.actualDurationMs < contract.sampleMs) {
-    add('control-minimum-sample-duration', sample.actualDurationMs, `>= ${contract.sampleMs}`, 'The static rAF control was shorter than the certified minimum.');
+  if (sample.actualDurationMs < minimumDurationMs) {
+    add('control-minimum-sample-duration', sample.actualDurationMs, `>= ${minimumDurationMs}`, 'The static rAF control was shorter than its declared measurement window.');
   }
   if (sample.observedRefreshHz === null || sample.observedRefreshHz < contract.thresholds.minimumObservedRefreshHz) {
     add('control-refresh-calibration', sample.observedRefreshHz, `>= ${contract.thresholds.minimumObservedRefreshHz}Hz`, 'Static rAF cadence cannot support certification.');
@@ -321,6 +344,26 @@ export function evaluateRafControlRepeat(sample, contract) {
     add('control-error-free', { consoleErrors: sample.consoleErrors, pageErrors: sample.pageErrors }, 'no browser errors', 'The static rAF control emitted a browser error.');
   }
   return { passed: failures.length === 0, failures };
+}
+
+export function evaluateLocalEnvironmentCalibration(controls) {
+  const failures = [];
+  for (const phase of ['pre', 'post']) {
+    const control = controls?.[phase];
+    if (!control || control.passed !== true) {
+      failures.push({
+        predicate: `local-static-raf-${phase}`,
+        actual: control?.failures || 'missing',
+        expected: 'passing',
+        reason: `The ${phase}-mode static rAF control did not establish a valid local environment.`,
+      });
+    }
+  }
+  return {
+    valid: failures.length === 0,
+    classification: failures.length ? 'environment-invalid' : 'environment-valid',
+    failures,
+  };
 }
 
 export function aggregateRafControlProfile(repeats, contract) {

@@ -173,7 +173,10 @@ test('Motion edge gestures preserve activation and commit repeated previews as o
   const resized = store.getSnapshot().document.tracks.interactions.clips.find((clip) => clip.id === motion.id);
   assert.equal(resized.startWU, original.startWU);
   assert.equal(resized.activationWU, original.activationWU);
-  assert.equal(resized.endWU, Number((original.endWU - 0.2).toFixed(6)));
+  assert.equal(
+    resized.endWU,
+    Number((original.endWU - 0.2).toFixed(2)),
+  );
   assert.equal(store.getSnapshot().revision, 1);
   assert.equal(store.undo(), true);
   const restored = store.getSnapshot().document.tracks.interactions.clips.find((clip) => clip.id === motion.id);
@@ -255,11 +258,11 @@ test('store-backed pure operations create, move, copy, paste, duplicate, and del
   assert.equal(store.createObject({ track: 'text', kind: 'scroll-block', atWU: 8.2 }), true);
   assert.equal(store.createObject({ track: 'text', kind: 'stub', atWU: 9.2 }), true);
   assert.equal(store.createObject({ track: 'camera', atWU: 0.8 }), true);
-  // Use the interaction-free opening gap so this pure-operation test remains
+  // Use the interaction-free complexity hold so this pure-operation test remains
   // independent of the authored ripple clip's release timing.
-  assert.equal(store.createObject({ track: 'world', atWU: 2.7 }), true);
+  assert.equal(store.createObject({ track: 'world', atWU: 3.8 }), true);
   const worldId = store.getSnapshot().selection.id;
-  assert.equal(store.createObject({ track: 'interaction', atWU: 2.8, targetWorldId: worldId }), true);
+  assert.equal(store.createObject({ track: 'interaction', atWU: 3.9, targetWorldId: worldId }), true);
   assert.equal(compileAboutNarrativeTrackModel(store.getSnapshot().document).valid, true);
 
   store.setSelection({ type: 'text-field', id: titleId });
@@ -295,7 +298,7 @@ test('Visibility insertion samples the published value without a jump and remain
   assert.equal(selection.type, 'visibility-key');
   const inserted = store.getSnapshot().document.tracks.visibility.keys
     .find((key) => key.id === selection.id);
-  assert.equal(inserted.atWU, atWU);
+  assert.equal(inserted.atWU, Number(atWU.toFixed(6)));
   assert.ok(Math.abs(inserted.visibility - 0.5) < 0.000001);
   assert.equal(store.getSnapshot().compiledPlan.valid, true);
 

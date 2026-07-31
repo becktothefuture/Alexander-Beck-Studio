@@ -214,7 +214,7 @@ test('final hold and final frame remain settled without inferring a World end', 
 test('incoming emergent segment owns its absolute-target interaction', () => {
   const plan = compileAboutNarrativePointFieldRuntime(canonicalV6);
   const interaction = plan.interactions.find((clip) => clip.id === 'interaction-emergent-ripple');
-  const atStart = sampleAboutNarrativePointFieldRuntime(plan, 16.15);
+  const atStart = sampleAboutNarrativePointFieldRuntime(plan, 17.291801);
   const beforeActivation = sampleAboutNarrativePointFieldRuntime(plan, interaction.activationWU - 0.000001);
   const afterActivation = sampleAboutNarrativePointFieldRuntime(plan, interaction.activationWU);
 
@@ -239,7 +239,7 @@ test('absolute interactions may begin before their target state becomes the segm
   assert.ok(preparedEarly.interactions.activeClipIds.includes(interaction.id));
   assert.notEqual(preparedEarly.interactions.activeInteraction?.id, interaction.id);
 
-  const targetIncoming = sampleAboutNarrativePointFieldRuntime(plan, 16.15);
+  const targetIncoming = sampleAboutNarrativePointFieldRuntime(plan, 17.291801);
   assert.equal(targetIncoming.world.to.stateId, interaction.targetStateId);
   assert.equal(targetIncoming.interactions.activeInteraction?.id, interaction.id);
 });

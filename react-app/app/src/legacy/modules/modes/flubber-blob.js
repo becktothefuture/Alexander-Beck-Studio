@@ -19,6 +19,7 @@ const OVERLAP_EPS = 1e-6;
 const GEL_TARGET_NEIGHBORS = 7;
 const GEL_MAX_NEIGHBORS = 10;
 const WALL_SOUND_MIN_INTERVAL_MS = 58;
+const AUDIT_METRICS_INTERVAL_FRAMES = 12;
 
 let spawnX = new Float32Array(0);
 let spawnY = new Float32Array(0);
@@ -1350,8 +1351,10 @@ export function stepFlubberBlob(dtSeconds) {
 
   creepGelLinks(dt, materialFlow, shapeMemory, maxStretchRatio);
   reconstructVelocities(dt, viscosity, speedLimit);
-  measureGelConnectivity(maxStretchRatio);
-  updateAuditMetrics();
+  if (blob.frame % AUDIT_METRICS_INTERVAL_FRAMES === 0) {
+    measureGelConnectivity(maxStretchRatio);
+    updateAuditMetrics();
+  }
 }
 
 export function renderFlubberBlob(ctx) {

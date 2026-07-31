@@ -719,14 +719,18 @@ This section supersedes only current status. The milestone evidence above remain
 
 | Work item | Current status | Confirmed evidence or remaining condition |
 | --- | --- | --- |
-| M01 / `TEST-001` | Local implementation verified; external qualification pending | Five-route smoke and local workflow checks pass. Five qualifying Actions runs, blocking promotion, and branch protection are not confirmed. |
+| M01 / `TEST-001` | Published; external qualification incomplete | The five-route smoke has one qualifying remote pass. Five later main runs fail at the published lint-ratchet baseline; four more qualifying runs, blocking promotion, and branch protection remain outstanding. |
 | `TEST-003` | Resolved locally | Manifest-derived five-route smoke, route-aware focus, unexpected-console failure, forced-failure probes, and durable success-summary evidence pass. |
+| `TEST-004` | Resolved locally | The canonical gate includes About hardening, simulation-switch transactions, and Portfolio CSS ownership; focused results pass 398/398 plus 55/55, 14/14, and 14/14. |
 | M07 / `A11Y-006` | Verified resolved locally | The coherent report passes all 40 states. Playground light-mobile contrast and WebKit gate foreground blur are fixed. |
 | M08 / `ARCH-003` | Resolved locally | Unknown paths preserve their URL, use the explicit Home fallback state, and pass fallback-host browser coverage. |
-| M10 / `DOC-002` | Current | 126 legacy JavaScript/JSX files; 84 unused-variable findings in 32 files; 136 empty catches in 27 files. Earlier inventories are historical. |
+| M10 / `DOC-002` | Current | 129 legacy JavaScript/JSX files; zero unused-variable findings; zero empty catches. Strict mutation probes preserve the zero-debt boundary; earlier inventories are historical. |
 | `TEST-002` | Resolved locally | Chromium/WebKit geometry and 6 of 6 lifecycle fault cases pass. |
-| `PERF-001` | Partially resolved | Chromium has a stable mode-pass; WebKit is environment-invalid, so cross-browser certification remains pending. |
-| `ARCH-004` | Partially resolved | Active cycle reduced from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port; the remaining cycle is still debt. |
+| `PERF-001` | Open | Chromium has a stable mode-pass. The four live WebKit baseline failures now pass a focused 24/24-repeat post-fix certificate with valid controls. The canonical site gate passes. A full 17-mode certificate remains pending after an invalid-host attempt was discarded. |
+| `ARCH-004` | Resolved locally | Active cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then 5/8 through the scene-pointer event port, then zero through the mode-runtime bridge; mutation coverage rejects a new cycle. |
+| Modal import ownership | Resolved locally | The lone historical dynamic gate-modal import now shares the existing static owner. Vite no longer reports mixed ownership; modal and transition audits pass in Chromium and WebKit. |
+| Portfolio presentation readiness | Resolved locally | Host, backing-store, geometry, stable-pass, timeout, and diagnostic readiness moved into one focused module with 6 new deterministic cases; hotspot characterization passes 22/22. |
+| Three.js vendor chunk | Assessed; no change justified | 505,198 bytes raw and 126,649 bytes with gzip. It is shared only by lazy simulation/development About-lab modules and is absent from the primary-entry static graph; the warning remains visible. |
 | `DEP-001` | Resolved locally | Node 22.19 or later; root and app full audits report zero findings. |
 | `OPS-003` | Resolved locally; independently accepted | Serialized journaled transactions pass 30 of 30 focused tests. |
 | M12 | Refreshed and accepted locally | 14/14 static checks, 8/8 browser states, and 24/24 inspected screenshots pass. |

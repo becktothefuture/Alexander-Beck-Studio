@@ -48,8 +48,7 @@ function computeEffectiveImpactMul(g) {
 
 function applyImpactMulFromGlobals() {
   if (!el) return;
-  let g = null;
-  try { g = getGlobals(); } catch (e) {}
+  const g = getGlobals();
   if (!g) return;
   const eff = computeEffectiveImpactMul(g);
   el.style.setProperty(CSS_VAR_IMPACT_MUL, String(eff));
@@ -109,9 +108,6 @@ function clearTimers() {
 export function initSceneImpactReact() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  let g = null;
-  try { g = getGlobals(); } catch (e) {}
-
   el = resolveTarget();
   if (!el) return;
 
@@ -134,9 +130,7 @@ export function initSceneImpactReact() {
 
   // Keep multiplier responsive across mobile breakpoints (resize-driven).
   // Cheap: only a single style write per resize.
-  try {
-    window.addEventListener('resize', applyImpactMulFromGlobals, { passive: true });
-  } catch (e) {}
+  window.addEventListener('resize', applyImpactMulFromGlobals, { passive: true });
 
   // Mode change pulse (dispatched from mode-controller.js).
   window.addEventListener('bb:modeChanged', (e) => {
@@ -264,6 +258,7 @@ export function sceneImpactPress(strength = 1, opts = {}) {
  * @param {number} strength 0..1
  */
 export function sceneImpactRelease(strength = 1) {
+  void strength; // Release always returns to the neutral state.
   if (!enabled || !el) return;
   const g = getGlobals();
   if (g?.sceneImpactEnabled === false) return;
@@ -297,5 +292,3 @@ function applySceneImpactRelease({ token, releaseMs }) {
     el.classList.remove('abs-scene--animating');
   }, Math.max(0, Math.round(releaseMs) + 80));
 }
-
-

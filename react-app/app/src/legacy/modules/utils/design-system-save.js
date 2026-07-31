@@ -39,20 +39,18 @@ export function buildRuntimeConfigSnapshot() {
   const g = getGlobals();
   const config = {};
 
-  try {
-    const controls = getAllControls();
-    for (const control of controls) {
-      if (!control?.stateKey) continue;
-      if (
-        control.designScope === 'shellTheme'
-        || control.designScope === 'shellLayout'
-        || control.designScope === 'simulationAtmosphere'
-      ) continue;
-      const value = g[control.stateKey];
-      if (value === undefined) continue;
-      config[control.stateKey] = value;
-    }
-  } catch (e) {}
+  const controls = getAllControls();
+  for (const control of controls) {
+    if (!control?.stateKey) continue;
+    if (
+      control.designScope === 'shellTheme'
+      || control.designScope === 'shellLayout'
+      || control.designScope === 'simulationAtmosphere'
+    ) continue;
+    const value = g[control.stateKey];
+    if (value === undefined) continue;
+    config[control.stateKey] = value;
+  }
 
   config.gravityMultiplier = g.gravityMultiplierPit;
   config.restitution = g.REST;
@@ -69,10 +67,8 @@ export function buildRuntimeConfigSnapshot() {
   config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
   config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
 
-  try {
-    config.soundPreset = getCurrentPreset();
-    config.soundConfig = getSoundConfig();
-  } catch (e) {}
+  config.soundPreset = getCurrentPreset();
+  config.soundConfig = getSoundConfig();
 
   config.cornerShapeSquircleEnabled = g.cornerShapeSquircleEnabled !== false;
   config.enableLOD = false;

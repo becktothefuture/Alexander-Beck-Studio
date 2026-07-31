@@ -106,7 +106,6 @@ export function initializeParallaxFloat() {
   const centerX = w * 0.5;
   const centerY = h * 0.5;
 
-  let idx = 0;
   // Render back-to-front: start with far (iz=gridZ-1) so near dots draw last (on top)
   for (let iz = gridZ - 1; iz >= 0; iz--) {
     const z = zNear + iz * zStep;
@@ -165,7 +164,6 @@ export function initializeParallaxFloat() {
         ball._isParallax = true; // Skip all standard physics
         // Z-depth for logo layering: invert depthFactor (0=far becomes back, 1=near becomes front)
         ball.z = 1 - depthFactor;
-        idx++;
       }
     }
   }

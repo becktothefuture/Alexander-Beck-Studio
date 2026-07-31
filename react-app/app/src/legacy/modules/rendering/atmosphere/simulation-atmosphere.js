@@ -466,7 +466,7 @@ function copyCanvasSource(source) {
   return true;
 }
 
-function copyEmitterSource(source, nowMs) {
+function copyEmitterSource(source) {
   const emitters = source.getEmitters();
   const count = Array.isArray(emitters) ? emitters.length : 0;
   if (count === 0) return copyCanvasSource(source);
@@ -482,7 +482,7 @@ function copyActiveSource(nowMs) {
     updateAmbientSource(nowMs);
     return true;
   }
-  if (activeSource.kind === 'emitters') return copyEmitterSource(activeSource, nowMs);
+  if (activeSource.kind === 'emitters') return copyEmitterSource(activeSource);
   return copyCanvasSource(activeSource);
 }
 

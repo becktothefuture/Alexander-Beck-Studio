@@ -31,12 +31,16 @@ function getNearestAction(target) {
   if (el.closest('[data-button-bar]')) return null;
 
   // Exclude portfolio carousel slides
-  try {
-    if (el.classList?.contains?.('slide')) return null;
-    if (el.closest?.('.slide')) return null;
-  } catch (e) {}
+  if (el.classList.contains('slide')) return null;
+  if (el.closest('.slide')) return null;
 
   return el;
+}
+
+function clearActionHoverState() {
+  currentHoveredElement = null;
+  document.body?.classList.remove(HOVER_CLASS);
+  document.body?.classList.remove(ACTION_HOVER_CLASS);
 }
 
 function onPointerOver(e) {
@@ -46,12 +50,12 @@ function onPointerOver(e) {
   const from = e.relatedTarget;
   if ((from && link.contains(from)) || currentHoveredElement === link) return;
 
-  try {
-    currentHoveredElement = link;
-    document.body.classList.add(HOVER_CLASS);
-    document.body.classList.add(ACTION_HOVER_CLASS);
+  currentHoveredElement = link;
+  document.body?.classList.add(HOVER_CLASS);
+  document.body?.classList.add(ACTION_HOVER_CLASS);
+  if (typeof CustomEvent === 'function') {
     document.body.dispatchEvent(new CustomEvent('abs-link-hover', { detail: { element: link } }));
-  } catch (e) {}
+  }
 }
 
 function onPointerOut(e) {
@@ -61,11 +65,7 @@ function onPointerOut(e) {
   const to = e.relatedTarget;
   if (to && link.contains(to)) return; // Still within same link
 
-  try {
-    currentHoveredElement = null;
-    document.body.classList.remove(HOVER_CLASS);
-    document.body.classList.remove(ACTION_HOVER_CLASS);
-  } catch (e) {}
+  clearActionHoverState();
 }
 
 export function initLinkCursorHop() {
@@ -73,11 +73,7 @@ export function initLinkCursorHop() {
   isInitialized = true;
 
   // Clean baseline
-  try {
-    currentHoveredElement = null;
-    document.body.classList.remove(HOVER_CLASS);
-    document.body.classList.remove(ACTION_HOVER_CLASS);
-  } catch (e) {}
+  clearActionHoverState();
 
   // Pointer events
   document.addEventListener('pointerover', onPointerOver, true);
@@ -91,11 +87,7 @@ export function initLinkCursorHop() {
 
   // Cleanup on blur
   window.addEventListener('blur', () => {
-    try {
-      currentHoveredElement = null;
-      document.body.classList.remove(HOVER_CLASS);
-      document.body.classList.remove(ACTION_HOVER_CLASS);
-    } catch (e) {}
+    clearActionHoverState();
   }, { passive: true });
 
   // Cleanup when mouse leaves viewport
@@ -103,11 +95,7 @@ export function initLinkCursorHop() {
     'mouseout',
     (event) => {
       if (!event.relatedTarget && !event.toElement) {
-        try {
-          currentHoveredElement = null;
-          document.body.classList.remove(HOVER_CLASS);
-          document.body.classList.remove(ACTION_HOVER_CLASS);
-        } catch (e) {}
+        clearActionHoverState();
       }
     },
     { passive: true }

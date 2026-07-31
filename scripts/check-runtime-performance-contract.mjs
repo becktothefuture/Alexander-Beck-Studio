@@ -5,6 +5,7 @@ import {
   aggregateProfile,
   aggregateRafControlProfile,
   evaluateEnvironmentCalibration,
+  evaluateLocalEnvironmentCalibration,
   evaluateMode,
   evaluateRafControlRepeat,
   evaluateRepeat,
@@ -25,6 +26,19 @@ test('contract rejects contradictory short or single-sample configurations', () 
   assert.throws(() => parsePerformanceContract({ ABS_PERF_SAMPLE_MS: '1000' }), /at least 5000ms/);
   assert.throws(() => parsePerformanceContract({ ABS_PERF_REPEAT_COUNT: '1' }), /at least 3/);
   assert.throws(() => parsePerformanceContract({ ABS_PERF_PROFILES: 'mystery' }), /cold,warm/);
+});
+
+test('contract declares short adjacent controls without changing performance thresholds', () => {
+  const contract = parsePerformanceContract({});
+  assert.deepEqual(contract.localEnvironmentControls, {
+    surface: 'about:blank static requestAnimationFrame control',
+    placement: 'one fresh-context control immediately before and after each mode block',
+    sampleMs: 2_000,
+    preSampleDelayMs: 250,
+    thresholds: 'same refresh, p95, p99, and browser-error thresholds as the certification contract',
+  });
+  assert.equal(contract.thresholds.maximumP95Ms, 20);
+  assert.equal(contract.thresholds.maximumP99Ms, 33.4);
 });
 
 test('certification defaults to an owned production preview', () => {
@@ -73,6 +87,37 @@ function passingRepeat(overrides = {}) {
     pageErrors: [],
     ...overrides,
   };
+}
+
+function passingLocalControl(contract, overrides = {}) {
+  const control = {
+    actualDurationMs: contract.localEnvironmentControls.sampleMs + 10,
+    observedRefreshHz: 60,
+    rafFps: 60,
+    p95Ms: 17,
+    p99Ms: 20,
+    longestGapMs: 22,
+    consoleErrors: [],
+    pageErrors: [],
+    ...overrides,
+  };
+  return Object.assign(control, evaluateRafControlRepeat(control, contract, {
+    minimumDurationMs: contract.localEnvironmentControls.sampleMs,
+  }));
+}
+
+function passingProfiles() {
+  return {
+    cold: { passed: true, aggregate: { cappedMeasuredFps: 59, renderInvocationFps: 59 } },
+    warm: { passed: true, aggregate: { cappedMeasuredFps: 59, renderInvocationFps: 59 } },
+  };
+}
+
+function passingLocalEnvironment(contract) {
+  return evaluateLocalEnvironmentCalibration({
+    pre: passingLocalControl(contract),
+    post: passingLocalControl(contract),
+  });
 }
 
 test('repeat failures name every failed predicate and reason', () => {
@@ -140,7 +185,7 @@ test('mode gate requires named profiles and catches warm decay', () => {
     passingRepeat({ measuredFps: 55, cappedMeasuredFps: 55 }),
   ];
   const warm = aggregateProfile(warmRepeats.map(certify), contract);
-  const result = evaluateMode({ cold, warm }, contract);
+  const result = evaluateMode({ cold, warm }, contract, { valid: true }, passingLocalEnvironment(contract));
   assert.equal(result.passed, false);
   assert.ok(result.failures.some((failure) => failure.predicate === 'required-profile-warm'));
   assert.ok(result.failures.some((failure) => failure.predicate === 'cold-to-warm-decay'));
@@ -153,7 +198,7 @@ test('cold 70.58 to warm 60.17 at target 60 normalizes to zero decay and passes'
   const result = evaluateMode({
     cold: { passed: true, aggregate: { ...coldCadence, renderInvocationFps: 70.58 } },
     warm: { passed: true, aggregate: { ...warmCadence, renderInvocationFps: 60.17 } },
-  }, contract, { valid: true });
+  }, contract, { valid: true }, passingLocalEnvironment(contract));
   assert.equal(result.warmDecayPercent, 0);
   assert.equal(result.passed, true);
   assert.equal(result.overRenderFollowUp.classification, 'non-gating-render-invocation-follow-up');
@@ -164,7 +209,7 @@ test('cold 60 to warm 55 remains 8.33 percent decay and fails', () => {
   const result = evaluateMode({
     cold: { passed: true, aggregate: { cappedMeasuredFps: 60, renderInvocationFps: 60 } },
     warm: { passed: true, aggregate: { cappedMeasuredFps: 55, renderInvocationFps: 55 } },
-  }, contract, { valid: true });
+  }, contract, { valid: true }, passingLocalEnvironment(contract));
   assert.equal(Number(result.warmDecayPercent.toFixed(2)), 8.33);
   assert.equal(result.passed, false);
   assert.ok(result.failures.some((failure) => failure.predicate === 'cold-to-warm-decay'));
@@ -181,4 +226,56 @@ test('failed static rAF control classifies the environment instead of the mode',
   assert.equal(result.classification, 'environment-invalid');
   assert.deepEqual(result.failures.map((failure) => failure.predicate), ['environment-calibration']);
   assert.ok(!result.failures.some((failure) => failure.predicate.startsWith('required-profile-')));
+});
+
+test('valid adjacent controls permit normal mode evaluation', () => {
+  const contract = parsePerformanceContract({});
+  const localEnvironment = evaluateLocalEnvironmentCalibration({
+    pre: passingLocalControl(contract),
+    post: passingLocalControl(contract),
+  });
+  const result = evaluateMode(passingProfiles(), contract, { valid: true }, localEnvironment);
+  assert.equal(localEnvironment.valid, true);
+  assert.equal(result.classification, 'mode-pass');
+  assert.equal(result.passed, true);
+});
+
+test('missing adjacent controls fail closed as an invalid environment', () => {
+  const contract = parsePerformanceContract({});
+  const result = evaluateMode(passingProfiles(), contract, { valid: true });
+  assert.equal(result.passed, false);
+  assert.equal(result.classification, 'environment-invalid');
+  assert.deepEqual(result.failures.map((failure) => failure.predicate), ['local-environment-calibration']);
+  assert.equal(result.failures[0].actual, 'missing');
+});
+
+test('an invalid adjacent pre or post control makes the mode window environment-invalid', () => {
+  const contract = parsePerformanceContract({});
+  for (const phase of ['pre', 'post']) {
+    const controls = {
+      pre: passingLocalControl(contract),
+      post: passingLocalControl(contract),
+    };
+    controls[phase] = passingLocalControl(contract, { p99Ms: 40 });
+    const localEnvironment = evaluateLocalEnvironmentCalibration(controls);
+    const result = evaluateMode(passingProfiles(), contract, { valid: true }, localEnvironment);
+    assert.equal(localEnvironment.valid, false);
+    assert.equal(result.classification, 'environment-invalid');
+    assert.deepEqual(result.failures.map((failure) => failure.predicate), ['local-environment-calibration']);
+    assert.ok(!result.failures.some((failure) => failure.predicate.startsWith('required-profile-')));
+  }
+});
+
+test('real mode failures remain product failures when adjacent controls pass', () => {
+  const contract = parsePerformanceContract({});
+  const localEnvironment = evaluateLocalEnvironmentCalibration({
+    pre: passingLocalControl(contract),
+    post: passingLocalControl(contract),
+  });
+  const profiles = passingProfiles();
+  profiles.warm = { passed: false, aggregate: { cappedMeasuredFps: 40, renderInvocationFps: 40 } };
+  const result = evaluateMode(profiles, contract, { valid: true }, localEnvironment);
+  assert.equal(result.classification, 'mode-failure');
+  assert.ok(result.failures.some((failure) => failure.predicate === 'required-profile-warm'));
+  assert.ok(result.failures.some((failure) => failure.predicate === 'cold-to-warm-decay'));
 });

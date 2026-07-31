@@ -109,7 +109,7 @@ function setBootLifecycleState(state) {
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.absBootState = String(state || '');
     }
-  } catch (e) {}
+  } catch (e) { /* Best effort: lifecycle diagnostics must not block runtime boot. */ }
 }
 
 function setHomeRouteReadyState(ready) {
@@ -117,7 +117,7 @@ function setHomeRouteReadyState(ready) {
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.absHomeRouteReady = ready ? 'true' : 'false';
     }
-  } catch (e) {}
+  } catch (e) { /* Best effort: lifecycle diagnostics must not block runtime boot. */ }
 }
 
 function setHomeSimulationReadyState(state) {
@@ -125,7 +125,7 @@ function setHomeSimulationReadyState(state) {
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.absHomeSimulationReady = String(state || 'false');
     }
-  } catch (e) {}
+  } catch (e) { /* Best effort: lifecycle diagnostics must not block runtime boot. */ }
 }
 
 function setHomeCanvasTitlePreparedState(ready) {
@@ -133,7 +133,7 @@ function setHomeCanvasTitlePreparedState(ready) {
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.absHomeCanvasTitlePrepared = ready ? 'true' : 'false';
     }
-  } catch (e) {}
+  } catch (e) { /* Best effort: lifecycle diagnostics must not block runtime boot. */ }
 }
 
 function isCanvasHomeTitlePrepared() {
@@ -224,21 +224,19 @@ export function applyVisualCSSVars(config) {
 }
 
 function applyHomeHeroRuntimeConfig() {
-  try {
-    const globals = getGlobals();
-    const hero = getShellConfig()?.hero || {};
-    globals.homeHeroKeepClear = {
-      enabled: true,
-      centerWidthRatio: Number(hero.centerKeepClearWidthRatio),
-      centerHeightRatio: Number(hero.centerKeepClearHeightRatio),
-      navWidthRatio: Number(hero.navKeepClearWidthRatio),
-      navHeightRatio: Number(hero.navKeepClearHeightRatio),
-      navOffsetRatio: Number(hero.navKeepClearOffsetRatio),
-      force: Number(hero.centerKeepClearForce),
-      spawnBiasX: Number(hero.pitSpawnBiasX),
-      spawnBandWidthRatio: Number(hero.pitSpawnBandWidthRatio),
-    };
-  } catch (e) {}
+  const globals = getGlobals();
+  const hero = getShellConfig()?.hero || {};
+  globals.homeHeroKeepClear = {
+    enabled: true,
+    centerWidthRatio: Number(hero.centerKeepClearWidthRatio),
+    centerHeightRatio: Number(hero.centerKeepClearHeightRatio),
+    navWidthRatio: Number(hero.navKeepClearWidthRatio),
+    navHeightRatio: Number(hero.navKeepClearHeightRatio),
+    navOffsetRatio: Number(hero.navKeepClearOffsetRatio),
+    force: Number(hero.centerKeepClearForce),
+    spawnBiasX: Number(hero.pitSpawnBiasX),
+    spawnBandWidthRatio: Number(hero.pitSpawnBandWidthRatio),
+  };
 }
 
 const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
@@ -372,7 +370,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   try {
     await loadRuntimeText();
     runtimeTextLoaded = true;
-  } catch (e) {}
+  } catch (e) { /* Runtime copy has an authored DOM fallback when loading fails. */ }
   if (!isCurrent()) return cleanup;
   if (runtimeTextLoaded) applyRuntimeTextToDOM();
 
@@ -384,7 +382,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     try {
       setApplyVisualCSSVars?.(applyVisualCSSVars);
       setUpdateTactileLayer?.(updateTactileLayer);
-    } catch (e) {}
+    } catch (e) { /* The development panel is optional to the production runtime. */ }
   }
 
   try {
@@ -408,7 +406,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         window.repelRadius = g.repelRadius;
         window.repelPower = g.repelPower;
       }
-    } catch (e) {}
+    } catch (e) { /* Test-only window diagnostics must not block simulation startup. */ }
 
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
@@ -426,12 +424,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
 
     // Accessibility: the canvas is an interactive surface (keyboard + pointer).
     // Ensure we expose it as an application-like region for AT.
-    try {
-      canvas.setAttribute('role', 'application');
-      if (!canvas.getAttribute('aria-label')) {
-        canvas.setAttribute('aria-label', 'Interactive bouncy balls physics simulation');
-      }
-    } catch (e) {}
+    canvas.setAttribute('role', 'application');
+    if (!canvas.getAttribute('aria-label')) {
+      canvas.setAttribute('aria-label', 'Interactive bouncy balls physics simulation');
+    }
 
     // Set canvas reference in state (needed for container-relative sizing)
     setCanvas(canvas, ctx, container);
@@ -480,7 +476,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // Apply sound settings from runtime config (so panel + exports round-trip).
     try {
       applySoundConfigFromRuntimeConfig(config);
-    } catch (e) {}
+    } catch (e) { /* Sound remains gesture-locked and can use its internal defaults. */ }
     log('✓ Sound engine primed (awaiting user unlock)');
 
     // Scene change SFX (soothing “pebble-like” tick on mode change)
@@ -666,7 +662,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             page: 'home',
             pageLabel: 'Home',
             panelTitle: 'Settings',
-            modeLabel: 'BUILD MODE',
             skipToggleButton: true,
             footerHint: '<kbd>R</kbd> reset · local build panel',
           });
@@ -675,7 +670,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         if (!isCurrent()) return cleanup;
         colors.populateColorSelect?.();
         updateModeButtonsUI?.(startMode);
-      } catch (e) {}
+      } catch (e) { /* The local preview panel is optional to Home runtime readiness. */ }
     }
     if (!isCurrent()) return cleanup;
     mark('bb:ui');

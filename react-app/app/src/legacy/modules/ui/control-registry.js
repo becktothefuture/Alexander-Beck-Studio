@@ -4,7 +4,7 @@
 // ║        Supports visibility toggling and dynamic HTML generation              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { applyLayoutCSSVars, applyLayoutFromVwToPx, getGlobals } from '../core/state.js';
+import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
   DEV_ONLY_MODES,
   NARRATIVE_MODE_SEQUENCE,
@@ -16,10 +16,9 @@ import { getReloadSimulationId } from '../../../data/simulationCatalog.js';
 import { resetCurrentMode, setMode } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { updateCursorSize } from '../rendering/cursor.js';
-import { invalidateHomepageCanvasTitleGeometry } from '../rendering/title-depth.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
+import { updateWallShadowCSS } from '../visual/wall-shadow.js';
 import { initQuotePuck } from './quote-puck.js';
 import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
 import { forEachPanelUiDocument, registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
@@ -59,11 +58,6 @@ export function setUpdateTactileLayer(fn) {
 
 function getUiDocument(uiDocument) {
   return resolvePanelUiDocument(uiDocument);
-}
-
-function getUiElementById(id, uiDocument) {
-  const doc = getUiDocument(uiDocument);
-  return doc ? doc.getElementById(id) : null;
 }
 
 function forEachUiElementById(id, callback) {
@@ -245,7 +239,7 @@ function loadVisibility() {
 function saveVisibility() {
   try {
     localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(controlVisibility));
-  } catch (e) {}
+  } catch (e) { /* Storage can be unavailable; in-memory visibility remains authoritative. */ }
 }
 
 export function setControlVisible(id, visible) {
@@ -670,7 +664,7 @@ export function applyWallShadowPreset(presetName) {
   updateWallShadowCSS(g);
   
   // Sync sliders to reflect new values
-  try { syncSlidersToState(); } catch (e) {}
+  syncSlidersToState({ runOnChange: false });
   console.log(`Applied wall shadow preset: ${preset.label}`);
 }
 
@@ -692,7 +686,7 @@ function warmupFramesControl(stateKey) {
 function safeFormat(control, value) {
   try {
     if (typeof control?.format === 'function') return control.format(value);
-  } catch (e) {}
+  } catch (e) { /* A malformed optional formatter falls back to plain text. */ }
   return String(value ?? '');
 }
 
@@ -745,7 +739,7 @@ function getColorInputValue(value, uiDocument = null) {
       const resolved = view.getComputedStyle(doc.documentElement).getPropertyValue(varName).trim();
       const resolvedHex = normalizeHexColor(resolved);
       if (resolvedHex) return resolvedHex;
-    } catch (e) {}
+    } catch (e) { /* An unresolved optional CSS variable can still use its declared fallback. */ }
 
     const fallbackHex = normalizeHexColor(fallback);
     if (fallbackHex) return fallbackHex;
@@ -1058,6 +1052,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Scales object counts on mobile (0% = none). Resets the current mode.',
         onChange: (g, _val) => {
+          void _val;
           setMode(g.currentMode);
         }
       },
@@ -1072,6 +1067,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Scales simulation body radii on mobile after responsive sizing. Resets the current mode.',
         onChange: (g, _val) => {
+          void _val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             setMode(g.currentMode);
@@ -1155,6 +1151,8 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Global multiplier for per-mode size variation',
         onChange: (g, _val) => {
+          void g;
+          void _val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
           });
@@ -1171,6 +1169,8 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Max radius deviation from medium (100% = ±100% of cap scale)',
         onChange: (g, _val) => {
+          void g;
+          void _val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
           });
@@ -1241,10 +1241,10 @@ export const CONTROL_SECTIONS = {
                forEachUiElementById('contentPaddingRatioVal', (el) => {
                  el.textContent = text;
                });
-             } catch (e) {}
-             try { document.dispatchEvent(new CustomEvent('layout-updated')); } catch (e) {}
+             } catch (e) { /* The numeric setting remains applied if its readout cannot update. */ }
+             try { document.dispatchEvent(new CustomEvent('layout-updated')); } catch (e) { /* Optional overlay notification. */ }
            }).catch(() => {});
-           try { resize(); } catch (e) {}
+           resize();
          }
        },
        {
@@ -1267,7 +1267,7 @@ export const CONTROL_SECTIONS = {
               forEachUiElementById('contentPaddingHorizontalRatioVal', (el) => {
                 el.textContent = text;
               });
-            } catch (e) {}
+            } catch (e) { /* The numeric setting remains applied if its readout cannot update. */ }
           }).catch(() => {});
         }
        },
@@ -2187,6 +2187,7 @@ export const CONTROL_SECTIONS = {
         default: false,
         hint: 'Enable Unicorn Studio WebGL layer',
         onChange: (g, val) => {
+          void val;
           if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2198,6 +2199,7 @@ export const CONTROL_SECTIONS = {
         default: 'qBFxB3kkFBqgLxFNFleF',
         hint: 'Unicorn Studio Project ID',
         onChange: (g, val) => {
+          void val;
           if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2210,6 +2212,7 @@ export const CONTROL_SECTIONS = {
         default: 1.0,
         hint: 'Resolution scale (lower for performance)',
         onChange: (g, val) => {
+          void val;
            if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2222,6 +2225,7 @@ export const CONTROL_SECTIONS = {
         default: 1.0,
         hint: 'Device Pixel Ratio (Keep low for performance)',
         onChange: (g, val) => {
+          void val;
            if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2235,6 +2239,7 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         onChange: (g, val) => {
+          void val;
            if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2246,6 +2251,7 @@ export const CONTROL_SECTIONS = {
         options: ['normal', 'overlay', 'screen', 'multiply', 'color-burn', 'linear-burn', 'soft-light', 'hard-light', 'lighten', 'difference'],
         default: 'overlay',
         onChange: (g, val) => {
+          void val;
            if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       },
@@ -2257,6 +2263,7 @@ export const CONTROL_SECTIONS = {
         default: false,
         hint: 'If true, blocks underlying elements. Enable if visual requires direct interaction.',
         onChange: (g, val) => {
+          void val;
            if (updateTactileLayerFn) updateTactileLayerFn(g);
         }
       }
@@ -4580,6 +4587,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Radius of mouse repulsion (viewport width percentage)',
         onChange: (g) => {
+          void g;
           // Update derived px value when vw changes
           import('../core/state.js').then(({ applyLayoutFromVwToPx }) => {
             applyLayoutFromVwToPx();
@@ -5379,7 +5387,6 @@ function generateSectionHTML(key, section) {
   
   // Group controls by 'group' property
   let currentGroup = null;
-  let currentGroupLayout = null;
   let html = '';
   
   for (const control of visibleControls) {
@@ -5389,11 +5396,9 @@ function generateSectionHTML(key, section) {
       const groupLayout = control.groupLayout || '';
       html += `<div class="section-title">${control.group}</div><div class="group ${groupLayout}">`;
       currentGroup = control.group;
-      currentGroupLayout = groupLayout;
     } else if (!control.group && currentGroup !== null) {
       html += '</div>'; // Close group content
       currentGroup = null;
-      currentGroupLayout = null;
     }
     
     html += generateControlHTML(control);
@@ -5981,7 +5986,7 @@ export function generatePanelHTML() {
       const n = Array.isArray(section.controls) ? section.controls.length : 0;
       if (n < 4) console.warn(`[panel] Mode "${section.mode}" has only ${n} controls; add at least 4 parameters.`);
     }
-  } catch (e) {}
+  } catch (e) { /* Development diagnostics must not prevent panel markup generation. */ }
 
   // Backwards compatibility: preserve the original full-panel HTML for any legacy code paths.
   return `
@@ -6006,7 +6011,7 @@ export function bindRegisteredControls(options = {}) {
   registerPanelUiDocument(uiDocument);
   hydrateSimulationAtmosphereControlState(g);
 
-  for (const [sectionKey, section] of Object.entries(CONTROL_SECTIONS)) {
+  for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
       const valId = control.id + 'Val';
       const valEl = uiDocument.getElementById(valId);

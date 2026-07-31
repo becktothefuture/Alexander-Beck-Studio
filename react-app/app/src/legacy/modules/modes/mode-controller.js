@@ -464,7 +464,9 @@ export function disposeModeSystem() {
   try {
     const currentMode = getGlobals()?.currentMode;
     readModeRuntime(currentMode)?.cleanup?.();
-  } catch (e) {}
+  } catch (e) {
+    // Mode cleanup is optional during teardown.
+  }
   if (unregisterLegacyVisualTransition) {
     unregisterLegacyVisualTransition();
     unregisterLegacyVisualTransition = null;
@@ -510,7 +512,7 @@ export async function setMode(inputMode) {
 
     // Cursor color: only auto-cycle when switching to a different mode.
     if (mode !== prevMode) {
-      try { maybeAutoPickCursorColor?.('mode'); } catch (e) {}
+      try { maybeAutoPickCursorColor?.('mode'); } catch (e) { /* Cursor colour is optional. */ }
     }
 
     console.log(`Switching to mode: ${mode}`);
@@ -557,7 +559,9 @@ export async function setMode(inputMode) {
     if (typeof window !== 'undefined' && mode !== prevMode) {
       try {
         window.dispatchEvent(new CustomEvent('bb:modeChanged', { detail: { prevMode, mode } }));
-      } catch (e) {}
+      } catch (e) {
+        // The compatibility event is optional.
+      }
     }
 
     return true;
@@ -586,7 +590,7 @@ export async function setMode(inputMode) {
 
 export function resetCurrentMode() {
   const globals = getGlobals();
-  try { maybeAutoPickCursorColor?.('reset'); } catch (e) {}
+  try { maybeAutoPickCursorColor?.('reset'); } catch (e) { /* Cursor colour is optional. */ }
   return setMode(globals.currentMode);
 }
 

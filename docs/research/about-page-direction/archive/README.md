@@ -2,7 +2,7 @@
 
 These files are retained as historical working material. They are not current instructions for writing, storyboarding or implementing the About Me page.
 
-The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v24.md`. Current visual allocation lives in the canonical content configuration and implementation files. Interviews, source material and tone guidance remain in `../supporting/`.
+The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v25.md`. Current visual allocation lives in the canonical content configuration and implementation files. Interviews, source material and tone guidance remain in `../supporting/`.
 
 ## Narrative explorations
 
@@ -18,7 +18,7 @@ The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v24.md`. Current visual al
 - the original narrative-lab implementation brief;
 - the V2 through V23 scripts and storyboards, plus the V3 story-led draft.
 
-These files contain useful ideas and phrases, but their architecture and copy predate the active V24 prose.
+These files contain useful ideas and phrases, but their architecture and copy predate the active V25 prose.
 
 The related [FigJam narrative map](https://www.figma.com/board/uVSfMQrdagYNTMFvIIDrsq) should also be treated as a historical discussion board.
 

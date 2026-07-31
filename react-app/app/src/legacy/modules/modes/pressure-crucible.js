@@ -75,7 +75,6 @@ function clampPointToInterior(g, canvas, x, y, pad = 0) {
 function getFluxAnchor(g, canvas, compact) {
   const center = getCanvasCenter(canvas);
   const dpr = Math.max(1, g.DPR || 1);
-  const minDim = Math.min(canvas.width, canvas.height);
   const x = compact ? center.x : center.x + canvas.width * 0.06;
   const y = compact ? center.y - canvas.height * 0.235 : center.y - canvas.height * 0.16;
   return clampPointToInterior(g, canvas, x, y, 88 * dpr);

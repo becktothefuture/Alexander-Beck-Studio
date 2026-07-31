@@ -21,7 +21,6 @@ let contentLayerElement = null; // #modal-content-layer - holds modals, no blur
 let modalHostElement = null;    // #modal-modal-host - inside content layer
 
 let isEnabled = true;
-let isInitialized = false;
 const modalOriginalPlacement = new WeakMap();
 let blurExplicitlySet = false; // Track if blur was set from config
 let configuredOverlayBlurPx = null;
@@ -84,13 +83,11 @@ export function unmountModalFromOverlay(modalEl) {
     if (!modalEl) return;
     const rec = modalOriginalPlacement.get(modalEl);
     if (!rec || !rec.parent) return;
-    try {
-        if (rec.nextSibling && rec.nextSibling.parentNode === rec.parent) {
-            rec.parent.insertBefore(modalEl, rec.nextSibling);
-        } else {
-            rec.parent.appendChild(modalEl);
-        }
-    } catch (e) {}
+    if (rec.nextSibling && rec.nextSibling.parentNode === rec.parent) {
+        rec.parent.insertBefore(modalEl, rec.nextSibling);
+    } else {
+        rec.parent.appendChild(modalEl);
+    }
 }
 
 export function getModalCloseDurationMs(fallback = 700) {
@@ -102,7 +99,7 @@ export function getModalCloseDurationMs(fallback = 700) {
         if (Number.isFinite(parsed) && parsed >= 0) {
             return parsed;
         }
-    } catch (e) {}
+    } catch (e) { /* Invalid or unavailable CSS duration uses the supplied fallback. */ }
     return fallback;
 }
 
@@ -118,7 +115,7 @@ export function getGateHandoffDurationMs(fallback = 220) {
         if (Number.isFinite(parsed) && parsed >= 0) {
             return parsed;
         }
-    } catch (e) {}
+    } catch (e) { /* Invalid or unavailable CSS duration uses the supplied fallback. */ }
     return fallback;
 }
 
@@ -131,7 +128,7 @@ export function getModalReturnDurationMs(fallback = 240) {
         if (Number.isFinite(parsed) && parsed >= 0) {
             return parsed;
         }
-    } catch (e) {}
+    } catch (e) { /* Invalid or unavailable CSS duration uses the supplied fallback. */ }
     return fallback;
 }
 
@@ -179,6 +176,7 @@ function getWallThickness() {
  * Only falls back to wall thickness if configured desktop/mobile blur is absent.
  */
 export function updateBlurFromWallThickness(reason = 'direct') {
+    void reason; // Preserve lifecycle call provenance for future diagnostics.
     if (!blurLayerElement) return;
 
     const configuredBlurPx = resolveOverlayBlurPx();
@@ -287,7 +285,6 @@ export function initModalOverlay(config) {
     // SPA: `createLegacyRuntimeScope` removes ALL listeners added during the
     // previous route's bootstrap — including handlers on persistent overlay DOM.
     // Always re-initialize so overlay click, resize, and layout listeners are restored.
-    isInitialized = true;
 
     // Set CSS variables on root for global access (modals, blur layer, etc.)
     root.style.setProperty('--modal-overlay-opacity', opacity);

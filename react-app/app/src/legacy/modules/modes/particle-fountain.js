@@ -342,7 +342,6 @@ export function updateParticleFountain(dt) {
   updateFountainAim(g, canvas, dt);
   
   const DPR = g.DPR || 1;
-  const w = canvas.width;
   const h = canvas.height;
   const bottomThreshold = h - getSimulationCollisionInsetPx(g);
   const velocityThreshold = 20 * DPR; // Very slow upward velocity

@@ -320,7 +320,9 @@ function emitSoundStateChange() {
     if (typeof window !== 'undefined' && window.dispatchEvent) {
       window.dispatchEvent(new CustomEvent(SOUND_STATE_EVENT, { detail: getSoundState() }));
     }
-  } catch (e) {}
+  } catch (e) {
+    // Audio capability setup is best effort.
+  }
 }
 
 function recordSoundDebugEvent(type, id, detail = {}) {
@@ -372,7 +374,6 @@ let wheelSwishBuffer = null;
 let wheelSwishSource = null;
 let wheelSwishGain = null;
 let wheelSwishFilter = null;
-let wheelWhooshBuffer = null;
 let wheelStopTimer = null;
 
 let isSoundEngineInitialized = false;
@@ -624,7 +625,7 @@ function ensureWheelBus() {
     wheelBus = audioContext.createGain();
     wheelBus.gain.value = 1;
   } else {
-    try { wheelBus.disconnect(); } catch (e) {}
+    try { wheelBus.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
   }
   if (limiter) {
     wheelBus.connect(limiter);
@@ -668,19 +669,6 @@ function createWheelSwishBuffer() {
   }
 }
 
-function createWheelWhooshBuffer() {
-  if (wheelWhooshBuffer || !audioContext) return;
-  const sampleRate = audioContext.sampleRate;
-  const duration = 0.12;
-  const length = Math.floor(sampleRate * duration);
-  wheelWhooshBuffer = audioContext.createBuffer(1, length, sampleRate);
-  const data = wheelWhooshBuffer.getChannelData(0);
-  for (let i = 0; i < length; i++) {
-    const decay = Math.exp(-4.5 * i / length);
-    data[i] = (Math.random() * 2 - 1) * decay;
-  }
-}
-
 function startWheelLoops() {
   if (!audioContext) return;
   if (wheelTickSource && wheelSwishSource) return;
@@ -717,14 +705,14 @@ function stopWheelLoops() {
     wheelStopTimer = null;
   }
   if (wheelTickSource) {
-    try { wheelTickSource.stop(); } catch (e) {}
+    try { wheelTickSource.stop(); } catch (e) { /* Audio cleanup is best effort. */ }
     wheelTickSource.disconnect();
     wheelTickGain.disconnect();
     wheelTickFilter.disconnect();
     wheelTickSource = wheelTickGain = wheelTickFilter = null;
   }
   if (wheelSwishSource) {
-    try { wheelSwishSource.stop(); } catch (e) {}
+    try { wheelSwishSource.stop(); } catch (e) { /* Audio cleanup is best effort. */ }
     wheelSwishSource.disconnect();
     wheelSwishGain.disconnect();
     wheelSwishFilter.disconnect();
@@ -753,22 +741,6 @@ function playWheelClick(gain, filterHz) {
 export function playDetentClick({ gain = 0.05, filterHz = 3200 } = {}) {
   recordSoundDebugEvent('detent-playback', 'sound-engine:detent', { gain, filterHz });
   playWheelClick(gain, filterHz);
-}
-
-function playWheelWhoosh(gain, filterHz) {
-  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  ensureWheelBus();
-  createWheelWhooshBuffer();
-  const src = audioContext.createBufferSource();
-  src.buffer = wheelWhooshBuffer;
-  const g = audioContext.createGain();
-  g.gain.value = gain;
-  const bp = audioContext.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = filterHz;
-  bp.Q.value = 0.9;
-  src.connect(bp).connect(g).connect(wheelBus);
-  src.start();
 }
 
 export function updateWheelSfx(velocityPxPerSec = 0) {
@@ -910,9 +882,9 @@ export function playSoundEnabledMotif() {
 
     osc.connect(filter).connect(gain).connect(wheelBus);
     osc.onended = () => {
-      try { osc.disconnect(); } catch (e) {}
-      try { filter.disconnect(); } catch (e) {}
-      try { gain.disconnect(); } catch (e) {}
+      try { osc.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+      try { filter.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+      try { gain.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     };
     osc.start(start);
     osc.stop(stop);
@@ -922,10 +894,10 @@ export function playSoundEnabledMotif() {
 function stopContactRippleMotif() {
   for (const voice of contactMotifVoices) {
     for (const oscillator of voice.oscillators) {
-      try { oscillator.stop(); } catch (e) {}
+      try { oscillator.stop(); } catch (e) { /* Audio cleanup is best effort. */ }
     }
     for (const node of voice.nodes) {
-      try { node.disconnect(); } catch (e) {}
+      try { node.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     }
   }
   contactMotifVoices.clear();
@@ -938,7 +910,7 @@ function registerContactMotifVoice({ sources, nodes, primary = sources[0] }) {
     primary.onended = () => {
       if (!contactMotifVoices.delete(voice)) return;
       for (const node of voice.nodes) {
-        try { node.disconnect(); } catch (e) {}
+        try { node.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
       }
     };
   }
@@ -1356,7 +1328,7 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
     }
   }
   
-  const voice = acquireVoice(now);
+  const voice = acquireVoice();
   if (!voice) return;
   
   const frequency = radiusToFrequency(ballRadius);
@@ -1430,7 +1402,7 @@ export function playTestSound({ intensity = 0.82, radius = 18, xPosition = 0.72 
 }
 
 /** Acquire a voice from the pool (with voice stealing) */
-function acquireVoice(now) {
+function acquireVoice() {
   // Look for free voice
   for (let i = 0; i < VOICE_POOL_SIZE; i++) {
     if (!voicePool[i].inUse) return voicePool[i];
@@ -1451,19 +1423,19 @@ function acquireVoice(now) {
 /** Release a voice (stop oscillators, mark as free) */
 function releaseVoice(voice) {
   if (voice.osc) {
-    try { voice.osc.stop(); voice.osc.disconnect(); } catch (e) {}
+    try { voice.osc.stop(); voice.osc.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     voice.osc = null;
   }
   if (voice.harmonicOsc) {
-    try { voice.harmonicOsc.stop(); voice.harmonicOsc.disconnect(); } catch (e) {}
+    try { voice.harmonicOsc.stop(); voice.harmonicOsc.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     voice.harmonicOsc = null;
   }
   if (voice.sparkleOsc) {
-    try { voice.sparkleOsc.stop(); voice.sparkleOsc.disconnect(); } catch (e) {}
+    try { voice.sparkleOsc.stop(); voice.sparkleOsc.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     voice.sparkleOsc = null;
   }
   if (voice.noiseSource) {
-    try { voice.noiseSource.stop(); voice.noiseSource.disconnect(); } catch (e) {}
+    try { voice.noiseSource.stop(); voice.noiseSource.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     voice.noiseSource = null;
   }
   voice.inUse = false;
@@ -1533,7 +1505,7 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
     harmonicOsc.connect(harmonicEnv);
     harmonicEnv.connect(voice.filter);
     harmonicOsc.onended = () => {
-      try { harmonicEnv.disconnect(); } catch (e) {}
+      try { harmonicEnv.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     };
     harmonicOsc.start(now);
     harmonicOsc.stop(now + duration);
@@ -1564,7 +1536,7 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
     sparkleOsc.connect(sparkleEnv);
     sparkleEnv.connect(voice.filter);
     sparkleOsc.onended = () => {
-      try { sparkleEnv.disconnect(); } catch (e) {}
+      try { sparkleEnv.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
     };
     sparkleOsc.start(now);
     sparkleOsc.stop(now + duration);
@@ -1735,6 +1707,8 @@ export function applySoundPreset(presetName) {
   if (!preset) return false;
   currentPreset = presetName;
   const { label, description, ...values } = preset;
+  void label;
+  void description;
   updateSoundConfig(values);
   return true;
 }

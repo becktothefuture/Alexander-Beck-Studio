@@ -94,7 +94,7 @@ This matrix records the file-level review at the narrowest useful group boundary
 | `public/config/`, config loaders, flatteners, and `vite.dev-admin-plugin.js` | Own authored design/content and safe local persistence. | Load, validate, normalize, save, migrate, flatten, and compare canonical data. | JSON schemas/contracts, Vite virtual modules, local HTTP routes; generated config is a build interface. | Local file reads/writes, ETags, atomic rename/fsync for About, browser fetch. | Acceptable. Ownership is clear; request guards are inconsistent. |
 | `public/css/main.css`, `portfolio.css`, tokens, and component CSS | Apply the visual constitution and responsive behavior. | Shell, route, overlay, interaction, state, theme, and breakpoint presentation. | Canonical tokens and DOM class/data contracts; the cascade is an implicit interface. | Visual/layout behavior, focus visibility, text selection. | Difficult to maintain in global/Portfolio areas because ownership overlaps. |
 | `scripts/`, app scripts, and Node tests | Enforce project-specific source and runtime contracts. | Catalog/schema validation, geometry/transition tests, build checks, browser audits, screenshots, Studio operations. | Node, Playwright, app source/config; public interface is the root command set. | Builds, local servers, browser sessions, screenshots, generated reports. | Acceptable. Broad and purposeful, but the release subset is incomplete. |
-| `.github/workflows/gh-pages.yml` | Validate and deploy committed `main`. | Install root/app dependencies, run the canonical gate, build and retain the preview artifact, run advisory smoke on `main`, then deploy only after validation. | GitHub Actions, Node 22.19, Pages; pull requests validate and `main` can deploy. | CI validation and production deployment. | Clear locally; remote qualification and branch protection remain unverified. |
+| `.github/workflows/gh-pages.yml` | Validate and deploy committed `main`. | Install root/app dependencies, run mutation and dependency checks plus the canonical gate, build and retain the preview artifact, run advisory smoke on `main`, then deploy only after validation. | GitHub Actions, Node 22.19, Pages; pull requests validate and `main` can deploy. | CI validation and production deployment. | Published; one qualifying smoke exists, five later lint-ratchet failures are unresolved remotely, and `main` is unprotected. |
 
 ### Comment opportunities
 
@@ -787,7 +787,7 @@ Treat source order as current behavior. This is an ownership cleanup, not author
 - **Change risk:** Medium
 
 ### Summary
-At baseline, the GitHub Pages workflow ran only the canonical source/lint/config/build gate. The current local workflow adds a bounded production-preview smoke, but remote qualification and blocking enforcement are still pending.
+At baseline, the GitHub Pages workflow ran only the canonical source/lint/config/build gate. The strengthened workflow is now published and includes pull-request validation plus a bounded production-preview smoke on main pushes. One run qualifies; five later runs fail before smoke at the published lint-ratchet baseline. Blocking promotion and branch protection remain pending.
 
 ### Why it matters
 The site depends on browser layout, Canvas backing stores, animation lifecycle, focus, computed CSS, history transitions, and browser-family behavior. A green build can still deploy a broken interaction or inaccessible route.
@@ -833,7 +833,7 @@ Run the proposed smoke job repeatedly on pull requests or a test branch, record 
 ### Notes
 The repository already has deep browser audits. The gap is a small required release signal, not a lack of browser tooling.
 
-`MILESTONE-01` was implemented locally on 2026-07-30 and hardened on 2026-07-31. The current smoke derives all five routes from the manifest, uses route-aware focus discovery, rejects unexpected console errors, covers unknown-path fallback, and retains failure artifacts. The local workflow remains advisory until five stable GitHub Actions runs satisfy the eight-minute budget and branch protection is confirmed. This external part of the issue remains open.
+`MILESTONE-01` was implemented locally on 2026-07-30 and hardened on 2026-07-31. The current smoke derives all five routes from the manifest, uses route-aware focus discovery, rejects unexpected console errors, covers unknown-path fallback, and retains failure artifacts. The published workflow remains advisory. Run `30616987233` is the first qualifying pass; five later main runs fail before smoke at the published lint-ratchet baseline. Four more qualifying runs plus blocking promotion and branch protection are still required.
 
 ## TEST-002 — Simulation lifecycle fault and WebKit geometry cases were not fully green
 
@@ -881,11 +881,11 @@ At discovery, runtime-performance samples missed the frame-time gate and varied 
 
 ### Evidence and decision
 
-The stable Chromium artifact is a mode-pass. The current WebKit artifact is environment-invalid, not a mode failure. This supports Chromium confidence but does not establish cross-browser release certification.
+The stable Chromium artifact is a mode-pass. The 2026-07-31 uncontended WebKit schema-v5 baseline measured all 27 launchable entries with valid global and adjacent controls. Production release scoring follows the catalog's 17 `daily-rotation` entries, not collection or hidden lab surfaces. Four live modes failed that baseline: `repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`. After focused hot-path corrections, those four modes passed 24 of 24 cold/warm repeats in `output/playwright/runtime-performance/targeted-live-webkit.json`, with valid global and adjacent controls and zero performance-gate failures.
 
 ### Suggested direction and verification
 
-Re-run WebKit in a stable host environment without changing the threshold. Keep the raw and classified artifacts together so an environment-invalid sample cannot be reported as a production performance failure or pass.
+Keep the thresholds unchanged. The focused four-mode rerun now passes. Run the default 17-mode WebKit certificate once the host is uncontended. The first post-fix full attempt was stopped after the `magnetic` post-control fell to 41.79 rAF FPS with p95 73 ms and p99 127 ms; no artifact from that invalid attempt is accepted. The schema-v5 audit retains start calibration and fresh static rAF controls immediately before and after every mode block. Use `ABS_PERF_MODES` only for explicit lab diagnostics.
 
 ## DOC-001 — About and test documentation contradicts current code
 
@@ -1494,12 +1494,12 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 | `A11Y-005` | Verified resolved | Portfolio reading content is selectable while interaction surfaces remain protected. |
 | `ARCH-001` | Verified resolved | Manifest ownership and 55 fail-closed drift fixtures pass. |
 | `ARCH-002` | Verified resolved | Standalone destinations decline shared-shell SPA handling. |
-| `MAINT-001` | Partially resolved; reopened | Stable seams landed, but the three central orchestrators remain 2,874, 6,573, and 3,915 lines. |
+| `MAINT-001` | Partially resolved; reopened | Stable seams landed. The current hook, registry, and Portfolio orchestrator are 2,892, 6,269, and 3,707 lines. Portfolio presentation readiness now has focused ownership and fault coverage; the remaining large surfaces still require failure-driven boundaries rather than line-count splitting. |
 | `MAINT-002` | Verified resolved | Exact lint ratchet and mutation fixtures pass. |
 | `MAINT-003` | Verified resolved locally for approved M16 scope | Fourteen approved Portfolio blocks moved ownership. Rule counts changed 1605/483 to 1589/499, overlaps 428 to 413, exact overlaps 36 to 16, and both approved residual-conflict counts are zero. M12/M16 browser evidence retained computed signature `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`. |
-| `TEST-001` | Partially resolved | The local five-route smoke and CI workflow pass source checks. Remote qualification, blocking promotion, and branch protection remain pending. |
+| `TEST-001` | Partially resolved | The workflow is published and has one qualifying smoke. Five later main runs fail at the published lint-ratchet baseline; four more qualifying runs, blocking promotion, and branch protection remain pending. |
 | `TEST-002` | Verified resolved locally | Chromium/WebKit geometry and all 6 lifecycle fault cases pass. |
-| `PERF-001` | Partially resolved | Chromium has a stable mode-pass artifact. WebKit is environment-invalid, not a mode failure; cross-browser certification remains incomplete. |
+| `PERF-001` | Partially resolved | Chromium has a stable mode-pass artifact. The four live WebKit baseline failures pass their focused 24/24-repeat post-fix certificate with valid controls. The canonical site gate passes. A full 17-mode certificate remains pending after an invalid-host attempt was discarded. |
 | `DOC-001` | Verified resolved | About production/development truth is consistent; later programme-record drift is tracked as `DOC-002`. |
 | `SEC-001` | Verified resolved | Shared local-write hardening passes 12/12 focused checks. |
 
@@ -1518,8 +1518,8 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 
 - **Category:** Architecture
 - **Severity:** Medium
-- **Status:** Partially resolved; remaining cycle is characterized
-- **Evidence:** A focused mode-button seam reduced the active component from 12 modules/23 internal edges to 9/15. A route-neutral scene-pointer event port then reduced it to 5 modules/8 edges. The fail-closed cycle and event-port contracts pass; the remaining component is still architecture debt.
+- **Status:** Resolved locally
+- **Evidence:** A focused mode-button seam reduced the active component from 12 modules/23 internal edges to 9/15. A route-neutral scene-pointer event port reduced it to 5/8. A mode-runtime bridge then removed the final physics-to-controller dependency and reduced the active graph to zero cyclic components. Event-port, runtime-hook, graph, and mutation contracts pass.
 - **Acceptance:** Document the cycle and select at most one stable dependency-inversion seam before implementation.
 - **Effort/risk:** Small audit; medium implementation / high if broadened.
 
@@ -1547,7 +1547,7 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 - **Category:** Documentation
 - **Severity:** Medium
 - **Status:** Resolved for the current programme records on 2026-07-31
-- **Evidence:** Current summaries now record 30/25/22/16 route ownership and 126 files with 84 unused-variable findings in 32 files and 136 empty catches in 27 files. Earlier values remain only as labelled historical snapshots.
+- **Evidence:** Current summaries now record 30/25/22/16 route ownership and 129 files with zero unused-variable findings and zero empty catches. Strict mutation probes preserve the zero-debt boundary; earlier values remain only as labelled historical snapshots.
 - **Acceptance:** Label historical counts as snapshots and derive volatile current counts from executable checks where practical.
 - **Effort/risk:** Small / low.
 
@@ -1577,3 +1577,12 @@ This update preserves the baseline audit above. `docs/refactoring-review.md` con
 - **Evidence:** The smoke derives five routes from the manifest, uses route-aware focus discovery and a DOM-derived traversal limit, rejects unexpected console errors, and passes the production smoke plus forced-failure contract probes.
 - **Acceptance:** Parameterize focus expectations by route, reject unexpected console errors, pass normal and forced-failure smoke runs, and add the current five-route smoke to reviewable CI.
 - **Effort/risk:** Small / low.
+
+#### TEST-004 — Canonical local gate omitted stronger runtime contracts
+
+- **Category:** Testing / developer confidence
+- **Severity:** Medium
+- **Status:** Resolved locally on 2026-07-31
+- **Evidence:** `studio:check` previously ran the base About suite but not `check:about-narrative-hardening`; the omitted suite exposed one stale surface-rise assertion after the deliberate grid-preserving handoff change. The assertion now matches that authored behavior, and About passes 398/398 plus hardening 55/55. The canonical gate also now includes the already-passing simulation-switch transaction contract (14/14) and Portfolio CSS ownership contract (14/14).
+- **Acceptance:** A visitor-affecting runtime, transition-recovery, or accepted CSS-ownership contract cannot fail while the canonical local gate passes.
+- **Effort/risk:** Small / low; about nine seconds of additional deterministic local checks.

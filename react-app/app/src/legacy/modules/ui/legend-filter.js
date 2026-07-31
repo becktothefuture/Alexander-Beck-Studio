@@ -21,7 +21,9 @@ export function initLegendFilterSystem() {
       if (!window.legendFilter) window.legendFilter = {};
       window.legendFilter.syncAllBalls = () => {}; // No-op (filtering removed)
     }
-  } catch (e) {}
+  } catch (e) {
+    // The backwards-compatibility hook is optional.
+  }
 
   let dispose = () => {};
 

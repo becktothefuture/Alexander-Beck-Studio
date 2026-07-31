@@ -34,12 +34,12 @@ const clone = (value) => structuredClone(value);
 const EXPECTED_KEY_TIMES = Object.freeze([
   0,
   0.72314,
-  1.864941,
-  4.1,
-  4.505974,
-  16.15,
-  18.45,
-  19.05,
+  3.006742,
+  5.241801,
+  5.647775,
+  17.291801,
+  19.591801,
+  20.191801,
 ]);
 
 function assertClose(actual, expected, message, tolerance = 0.0000001) {
@@ -204,7 +204,7 @@ test('point-field boundaries are half-open and the final key is inclusive and se
   assert.equal(transitionStart.fromStateId, 'world-promise');
   assert.equal(transitionStart.toStateId, 'world-complexity');
   assert.equal(transitionStart.transitionProgress, 0);
-  const arrival = sampleAboutNarrativePointField(pointField, 1.864941, durationWU);
+  const arrival = sampleAboutNarrativePointField(pointField, 3.006742, durationWU);
   assert.equal(arrival.fromStateId, 'world-complexity');
   assert.equal(arrival.toStateId, 'world-complexity');
   assert.equal(arrival.transitionProgress, 1);
@@ -273,10 +273,10 @@ test('profile migration resolves partial timing and geometry overrides before th
 test('profile timing collapse preserves the base point-field IDs and validates cleanly', () => {
   const source = clone(canonicalV5);
   source.profiles.mobile.overrides.worlds['world-grid'] = {
-    startWU: 1.864941,
+    startWU: 3.006742,
     transitionIn: {
-      startWU: 1.864941,
-      endWU: 2.2,
+      startWU: 3.006742,
+      endWU: 3.4,
     },
   };
   assert.equal(validateAboutNarrativeTrackDocument(source).some((item) => item.level === 'error'), false);
@@ -290,14 +290,14 @@ test('profile timing collapse preserves the base point-field IDs and validates c
   ]);
   Object.keys(overrides.keys).forEach((id) => assert.equal(baseKeyIds.has(id), true));
   Object.keys(overrides.segments).forEach((id) => assert.equal(baseSegmentIds.has(id), true));
-  assert.equal(overrides.keys['key-world-grid-departure'].atWU, 1.864941);
-  assert.equal(overrides.keys['key-world-grid-arrival'].atWU, 2.2);
+  assert.equal(overrides.keys['key-world-grid-departure'].atWU, 3.006742);
+  assert.equal(overrides.keys['key-world-grid-arrival'].atWU, 3.4);
   assert.deepEqual(validateAboutNarrativePointFieldDocument(migrated), []);
   const resolved = applyAboutNarrativePointFieldOverrides(
     migrated.tracks.pointField,
     overrides,
   );
-  assert.equal(resolved.keys.find((key) => key.id === 'key-world-grid-departure').atWU, 1.864941);
+  assert.equal(resolved.keys.find((key) => key.id === 'key-world-grid-departure').atWU, 3.006742);
 });
 
 test('a noncanonical World start before transition start maps motion to departure and arrival keys', () => {
@@ -335,7 +335,7 @@ test('interaction targets migrate by stable state ID and may begin during an inc
     clip.id === 'interaction-emergent-ripple'
   ));
   assert.equal(emergent.targetStateId, 'world-emergent');
-  assert.equal(emergent.startWU, 16.15);
+  assert.equal(emergent.startWU, 17.291801);
   const incoming = sampleAboutNarrativePointField(
     migrated.tracks.pointField,
     emergent.startWU,

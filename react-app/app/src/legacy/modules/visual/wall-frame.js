@@ -44,7 +44,7 @@ export function applyWallFrameFromConfig(config) {
 
 export function applyWallFrameLayout() {
   // Keep vw-based layout vars synced to the current viewport.
-  try { detectResponsiveScale(); } catch (e) {}
-  try { applyLayoutFromVwToPx(); } catch (e) {}
-  try { applyLayoutCSSVars(); } catch (e) {}
+  try { detectResponsiveScale(); } catch (e) { /* Optional responsive state is best effort. */ }
+  try { applyLayoutFromVwToPx(); } catch (e) { /* Optional viewport conversion is best effort. */ }
+  try { applyLayoutCSSVars(); } catch (e) { /* Optional layout publication is best effort. */ }
 }

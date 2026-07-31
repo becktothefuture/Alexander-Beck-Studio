@@ -27,7 +27,6 @@ const radii = new Float32Array(PARTICLE_POOL_SIZE);
 const colors = new Array(PARTICLE_POOL_SIZE); // Hex strings (not numeric)
 
 // Mouse velocity tracking for impact-based parameters
-let lastMouseVelocity = 0;
 let lastMouseDirX = 0;
 let lastMouseDirY = 0;
 
@@ -67,7 +66,6 @@ function variateColor(hex, variance = 0.15) {
  */
 export function updateMouseVelocity(velocity, dirX, dirY) {
   if (velocity > 0) {
-    lastMouseVelocity = velocity;
     const len = Math.sqrt(dirX * dirX + dirY * dirY);
     if (len > 0.01) {
       lastMouseDirX = dirX / len;

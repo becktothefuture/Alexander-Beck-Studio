@@ -10,10 +10,6 @@ const CANDIDATE_IDS = Object.freeze([
   'elastic-ping',
 ]);
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
 function getAudioContextConstructor() {
   if (typeof window === 'undefined') return null;
   return window.AudioContext || window.webkitAudioContext || null;
@@ -43,8 +39,8 @@ function createNoiseBuffer(duration = 0.06) {
 
 function finishNode(node, source, stopAt) {
   source.onended = () => {
-    try { source.disconnect(); } catch {}
-    try { node.disconnect(); } catch {}
+    try { source.disconnect(); } catch { /* Audio cleanup is best effort. */ }
+    try { node.disconnect(); } catch { /* Audio cleanup is best effort. */ }
   };
   source.start();
   source.stop(stopAt);
@@ -125,8 +121,8 @@ function playMagneticHalo() {
   scheduleEnvelope(gain, start, 0.8, 0.018, 0.17);
   connectToOutput(gain.connect(filter));
   oscillators[0].onended = () => {
-    try { gain.disconnect(); } catch {}
-    try { filter.disconnect(); } catch {}
+    try { gain.disconnect(); } catch { /* Audio cleanup is best effort. */ }
+    try { filter.disconnect(); } catch { /* Audio cleanup is best effort. */ }
   };
 }
 

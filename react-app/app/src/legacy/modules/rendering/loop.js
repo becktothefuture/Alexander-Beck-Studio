@@ -51,7 +51,9 @@ function getFrameDtCap(globals) {
 function isDevRuntime() {
   try {
     if (typeof __DEV__ === 'boolean') return __DEV__;
-  } catch (e) {}
+  } catch (e) {
+    // The compile-time development flag is optional.
+  }
   try {
     const port = String(globalThis?.location?.port ?? '');
     if (port === '8001' || port === '8012' || port === '8013') return true;

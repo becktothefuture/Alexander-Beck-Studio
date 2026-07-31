@@ -24,6 +24,8 @@ body.body.title-entrance-lab-page {
   --title-lab-surface: #f1f0eb;
   --title-lab-ink: #000000;
   --title-lab-muted: rgba(0, 0, 0, 0.56);
+  --title-lab-description-color: var(--text-color-light-muted, #454545);
+  --title-lab-description-opacity: var(--supporting-description-opacity, 0.75);
   --title-lab-rule: rgba(0, 0, 0, 0.13);
   --title-final-ink: #000000;
   min-height: 100dvh;
@@ -40,6 +42,7 @@ body.body.title-entrance-lab-page {
   --title-lab-surface: #0e0e0e;
   --title-lab-ink: #ffffff;
   --title-lab-muted: rgba(255, 255, 255, 0.58);
+  --title-lab-description-color: var(--text-color-dark-muted, #c8c8c8);
   --title-lab-rule: rgba(255, 255, 255, 0.14);
   --title-final-ink: #ffffff;
 }
@@ -499,7 +502,7 @@ body.title-entrance-lab-page .title-entrance-specimen__title {
 .title-entrance-specimen__description {
   max-width: 50.4ch;
   margin: var(--route-title-description-gap, 16px) 0 0;
-  color: var(--title-lab-muted);
+  color: var(--title-lab-description-color);
   font-family: var(--abs-font-sans);
   font-size: var(--route-description-font-size, clamp(0.875rem, 0.76rem + 0.32vw, 1rem));
   font-weight: 450;
@@ -551,7 +554,7 @@ body.title-entrance-lab-page .title-entrance-specimen__title {
   }
 
   to {
-    opacity: 1;
+    opacity: var(--title-lab-description-opacity);
   }
 }
 
@@ -891,7 +894,7 @@ body.title-entrance-lab-page .title-entrance-specimen__title {
 
   .title-entrance-specimen__description-line,
   .title-entrance-specimen__description.is-playing .title-entrance-specimen__description-line {
-    opacity: 1;
+    opacity: var(--title-lab-description-opacity);
     transform: none;
     animation: none !important;
     will-change: auto;

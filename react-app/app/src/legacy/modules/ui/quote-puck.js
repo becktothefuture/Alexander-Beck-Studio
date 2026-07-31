@@ -272,7 +272,7 @@ export function initQuotePuck() {
 
     try {
       el.setPointerCapture(e.pointerId);
-    } catch {}
+    } catch { /* Pointer capture is optional on unsupported or detached targets. */ }
     e.preventDefault();
   }
 
@@ -321,7 +321,7 @@ export function initQuotePuck() {
     prevHeading = null;
     try {
       if (p !== null && el.hasPointerCapture(p)) el.releasePointerCapture(p);
-    } catch {}
+    } catch { /* Pointer release is optional after capture has already been lost. */ }
 
     if (!withMomentum || prefersReducedMotion.matches) {
       samples = [];
@@ -415,14 +415,14 @@ export function initQuotePuck() {
   writePos();
   destroyQuotePuckFn = () => {
     stopLoop();
-    try { el.removeEventListener('pointerdown', onDown); } catch (e) {}
-    try { el.removeEventListener('pointermove', onMove); } catch (e) {}
-    try { el.removeEventListener('pointerup', onUp); } catch (e) {}
-    try { el.removeEventListener('pointercancel', onCancel); } catch (e) {}
-    try { el.removeEventListener('lostpointercapture', onLostCapture); } catch (e) {}
-    try { window.removeEventListener('resize', onResize); } catch (e) {}
-    try { window.removeEventListener('blur', onBlur); } catch (e) {}
-    try { document.removeEventListener('visibilitychange', onVisChange); } catch (e) {}
+    el.removeEventListener('pointerdown', onDown);
+    el.removeEventListener('pointermove', onMove);
+    el.removeEventListener('pointerup', onUp);
+    el.removeEventListener('pointercancel', onCancel);
+    el.removeEventListener('lostpointercapture', onLostCapture);
+    window.removeEventListener('resize', onResize);
+    window.removeEventListener('blur', onBlur);
+    document.removeEventListener('visibilitychange', onVisChange);
   };
 }
 

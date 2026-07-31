@@ -1808,18 +1808,21 @@ The 2026-07-30 amendment above is a historical checkpoint. The current local tre
 - `TEST-002` is locally resolved by a passing Chromium/WebKit geometry matrix and 6 of 6 lifecycle fault cases.
 - `OPS-003` is locally resolved and independently accepted with 30 of 30 focused transaction tests.
 - `DEP-001` is locally resolved. Root and app full audits report zero findings; Node 22.19 or later is required.
-- `ARCH-004` is reduced and characterized. The active cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then to 5/8 through the scene-pointer event port.
-- `PERF-001` has a stable Chromium mode-pass. WebKit is environment-invalid, not a mode failure, so cross-browser certification remains open.
-- Current executable inventories are 30 Vite inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 126 legacy JavaScript/JSX files. The lint ratchet records 84 unused-variable findings in 32 files and 136 empty catches in 27 files.
+- `ARCH-004` is locally resolved. The active cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then 5/8 through the scene-pointer event port, then zero through the mode-runtime bridge. The graph mutation probe rejects a new cycle.
+- `PERF-001` has a stable Chromium mode-pass. The 2026-07-31 uncontended WebKit schema-v5 baseline measured all 27 launchable entries with valid global and adjacent controls. Production release scope is the 17 catalog entries marked `daily-rotation`. The four live baseline failures—`repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`—now pass a focused 24/24-repeat WebKit certificate with valid controls. The canonical site gate also passes. A full 17-mode recertification remains open because the next attempt detected an invalid adjacent host control and was discarded.
+- Current executable inventories are 30 Vite inputs, 25 entries, 22 `SiteApp` routes, 16 shell scenes, and 129 legacy JavaScript/JSX files. The lint ratchet records zero unused-variable findings and zero empty catches, with mutation probes preserving that boundary.
 - M07 and `A11Y-006` are verified resolved locally. The coherent M07 report passes all 40 states after the Playground light-mobile contrast fix and focus-evidence stabilization.
 - M12 is refreshed and accepted with 14 of 14 static checks, 8 of 8 browser states, and all 24 screenshots inspected.
 - M16 is completed locally. Eight Portfolio hero/title blocks and six locked-overlay blocks moved to `portfolio.css`. Global/Portfolio rule counts changed from 1605/483 to 1589/499; overlaps changed from 428 to 413 and exact overlaps from 36 to 16. Approved-family same-context conflicts and approved Portfolio-only blocks left in `main.css` are both zero.
+- The historical mixed gate-modal import boundary is resolved through one static owner while preserving deferred cleanup and fallback behavior. The Vite warning is gone, and serial Chromium/WebKit modal and transition audits pass.
+- Portfolio presentation readiness is a focused producer-side module with deterministic 0×0 recovery, observer/timer cleanup, DPR, geometry, stable-pass, timeout, and diagnostic coverage. No further orchestrator split is planned without another measured failure boundary.
+- The remaining 505,198-byte Three.js build advisory is assessed, not suppressed. It compresses to 126,649 bytes and is reached only through lazy simulation or development About-lab modules, not the static graph of the four primary entries. Preserve the shared cache boundary until route-transfer measurements justify a different split.
 
 The remaining dependency path is:
 
 1. Run the final integrated local gates and inspect their artifacts.
 2. Create the authorized reviewable integration boundary required by `OPS-002`.
 3. Reproduce the integrated local gates from that boundary.
-4. Push only with explicit authorization, collect five qualifying Actions runs, confirm branch protection, and then decide whether the smoke can become blocking under `TEST-001` and `HD-04`.
+4. Push only with explicit authorization, restore remote CI from the local passing lint state, collect four additional qualifying Actions runs, confirm branch protection, and then decide whether the smoke can become blocking under `TEST-001` and `HD-04`.
 
 No commit, push, branch-protection, remote-CI, cross-browser performance certification, or production completion is claimed by this update.

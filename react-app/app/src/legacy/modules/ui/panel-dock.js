@@ -53,27 +53,9 @@ const STORAGE_KEYS = {
   // v2: avoid inheriting old "too low" positions
   position: 'panel_dock_position_v2',
   dockHidden: 'panel_dock_hidden',
-  panelCollapsed: 'master_panel_collapsed',
   // v3: separate dev/prod panel sizes (they have different contexts)
   panelSize: isDev() ? 'panel_dock_size_dev_v3' : 'panel_dock_size_prod_v3'
 };
-
-function loadPanelCollapsed() {
-  try {
-    const v = localStorage.getItem(STORAGE_KEYS.panelCollapsed);
-    // Default: OPEN in dev mode, collapsed in production
-    if (v === null) return !isDev();
-    return v === 'true';
-  } catch (e) {
-    return !isDev();
-  }
-}
-
-function savePanelCollapsed(collapsed) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.panelCollapsed, String(collapsed));
-  } catch (e) {}
-}
 
 function loadDockHiddenState({ defaultHidden = true } = {}) {
   try {
@@ -88,7 +70,7 @@ function loadDockHiddenState({ defaultHidden = true } = {}) {
 function saveDockHiddenState(hidden) {
   try {
     localStorage.setItem(STORAGE_KEYS.dockHidden, String(hidden));
-  } catch (e) {}
+  } catch (e) { /* Storage can be unavailable; the current dock state still applies. */ }
 }
 
 function loadPanelSize() {
@@ -133,7 +115,7 @@ function savePanelSizeFromElement(el) {
       }
     }
     localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify({ width, height }));
-  } catch (e) {}
+  } catch (e) { /* Size persistence is optional to panel operation. */ }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -141,7 +123,6 @@ function savePanelSizeFromElement(el) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 let isDragging = false;
-let hasDragged = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let elementStartX = 0;
@@ -159,10 +140,10 @@ function destroyPanelElement(panel) {
   if (!panel) return;
   try {
     panel.__cleanupPanel?.();
-  } catch (e) {}
+  } catch (e) { /* Continue teardown even if one panel cleanup hook fails. */ }
   try {
     panel.remove();
-  } catch (e) {}
+  } catch (e) { /* The stale panel may already be detached. */ }
 }
 
 export function syncPanelHostDocument(uiDocument) {
@@ -411,12 +392,12 @@ function revealRequestedPanelSection() {
 
   try {
     ensureDockOnscreen();
-  } catch (e) {}
+  } catch (e) { /* Revealing the section remains useful if repositioning is unavailable. */ }
 
   window.requestAnimationFrame(() => {
     try {
       section.scrollIntoView({ block: 'start', inline: 'nearest' });
-    } catch (e) {}
+    } catch (e) { /* Scrolling is optional after the requested section is opened. */ }
   });
 }
 
@@ -439,7 +420,6 @@ export function createPanelDock(options = {}) {
     ? '<kbd>/</kbd> panel'
     : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
   const panelTitle = options.panelTitle || 'Settings';
-  const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
   const pageHTML = options.pageHTML || '';
   const portfolioPanelConfig = options.portfolioPanelConfig ?? null;
@@ -458,7 +438,7 @@ export function createPanelDock(options = {}) {
     if (existingControl) existingControl.remove();
     const existingSound = document.getElementById('soundPanel');
     if (existingSound) existingSound.remove();
-  } catch (e) {}
+  } catch (e) { /* Legacy placeholders may already be detached during SPA cleanup. */ }
 
   // SPA route changes: replace any previous dock/toggle so IDs stay unique and listeners attach cleanly.
   try {
@@ -472,7 +452,7 @@ export function createPanelDock(options = {}) {
     }
     dockElement = null;
     masterPanelElement = null;
-  } catch (e) {}
+  } catch (e) { /* Replacement can continue by creating a fresh panel host. */ }
   
   // Create dock container
   dockElement = document.createElement('div');
@@ -487,9 +467,7 @@ export function createPanelDock(options = {}) {
   // - Production: hidden by default, use gear button to open
   let defaultHidden = !isDev();
   let isHidden = loadDockHiddenState({ defaultHidden });
-  try {
-    if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
-  } catch (e) {}
+  if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
   if (typeof options.initiallyVisible === 'boolean') {
     isHidden = !options.initiallyVisible;
   }
@@ -501,7 +479,6 @@ export function createPanelDock(options = {}) {
   masterPanelElement = createMasterPanel({
     page,
     panelTitle,
-    modeLabel,
     pageLabel,
     pageHTML,
     masterGroupIds,
@@ -537,7 +514,6 @@ export function createPanelDock(options = {}) {
 function createMasterPanel({
   page,
   panelTitle,
-  modeLabel,
   pageLabel,
   pageHTML,
   masterGroupIds,
@@ -559,7 +535,6 @@ function createMasterPanel({
   page = page || 'home';
   pageLabel = pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
   panelTitle = panelTitle || 'Settings';
-  modeLabel = modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   pageSectionTitle = pageSectionTitle || pageLabel;
   pageSectionIcon = pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
   includePageSaveButton = includePageSaveButton !== false;
@@ -620,7 +595,7 @@ function createMasterPanel({
     if (isDev() && restoreH < getDevPanelMinHeightPx()) {
       try {
         localStorage.removeItem(STORAGE_KEYS.panelSize);
-      } catch (e) {}
+      } catch (e) { /* Invalid persisted size can be ignored after local correction. */ }
       restoreH = Math.max(restoreH, getDevPanelMinHeightPx());
     }
     const widthDiff = Math.abs(restoreW - cssDefaultWidth);
@@ -673,7 +648,14 @@ function createMasterPanel({
     try {
       const pageControlsCleanup = setupPageControls?.(panel, { uiDocument: targetDocument });
       if (typeof pageControlsCleanup === 'function') cleanupFns.push(pageControlsCleanup);
-    } catch (e) {}
+    } catch (error) {
+      panel.dataset.pageControlsStatus = 'error';
+      if (typeof CustomEvent === 'function') {
+        panel.dispatchEvent(new CustomEvent('abs:panel-page-controls-error', {
+          detail: { page, error },
+        }));
+      }
+    }
 
     // `.mode-controls` blocks stay hidden until `.active`; home toggles via mode buttons.
     // Other routes: show the accordion for the current simulation mode (incl. portfolio-pit → pit).
@@ -684,7 +666,7 @@ function createMasterPanel({
           const modeKey = m === 'portfolio-pit' ? 'pit' : m;
           targetDocument.getElementById(`${modeKey}Controls`)?.classList.add('active');
         }
-      } catch (e) {}
+      } catch (e) { /* Page-specific mode highlighting is optional to shared controls. */ }
     }
   }, 0);
 
@@ -692,7 +674,7 @@ function createMasterPanel({
     cleanupFns.splice(0).forEach((fn) => {
       try {
         fn();
-      } catch (e) {}
+      } catch (e) { /* Continue cleanup so one optional binding cannot leak the rest. */ }
     });
   };
   
@@ -727,7 +709,7 @@ function setupParentAccordionBehavior(panel) {
         if (groupRect.top < contentRect.top || groupRect.bottom > contentRect.bottom) {
           group.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         }
-      } catch (e) {}
+      } catch (e) { /* Accordion scrolling is an optional viewport convenience. */ }
     });
   };
 
@@ -816,7 +798,7 @@ function setupResizePersistence() {
 
   try {
     ro.observe(masterPanelElement);
-  } catch (e) {}
+  } catch (e) { /* Resize persistence is optional when observation is unsupported. */ }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -865,7 +847,6 @@ function handleDragStart(e) {
   elementStartX = rect.left;
   elementStartY = rect.top;
   isDragging = false;
-  hasDragged = false;
 }
 
 function handleDragMove(e) {
@@ -881,7 +862,6 @@ function handleDragMove(e) {
   
   if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
     isDragging = true;
-    hasDragged = true;
     dockElement.classList.add('dragging');
     dockElement.style.position = 'fixed';
     dockElement.style.top = `${elementStartY}px`;
@@ -912,8 +892,6 @@ function handleDragEnd() {
   
   dragStartX = 0;
   dragStartY = 0;
-  
-  setTimeout(() => { hasDragged = false; }, 10);
 }
 
 function savePanelPosition() {
@@ -925,7 +903,7 @@ function savePanelPosition() {
       custom: true
     };
     localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
-  } catch (e) {}
+  } catch (e) { /* Position persistence is optional to dragging. */ }
 }
 
 function loadPanelPosition() {
@@ -938,7 +916,7 @@ function loadPanelPosition() {
       dockElement.style.top = pos.top;
       dockElement.style.right = 'auto';
     }
-  } catch (e) {}
+  } catch (e) { /* Invalid persisted position falls back to CSS placement. */ }
 }
 
 export function resetPanelPositions() {
@@ -949,19 +927,10 @@ export function resetPanelPositions() {
   dockElement.style.right = '';
   try {
     localStorage.removeItem(STORAGE_KEYS.position);
-  } catch (e) {}
+  } catch (e) { /* Reset remains effective in memory when storage is unavailable. */ }
 }
 
 export const resetDockPosition = resetPanelPositions;
-
-// ════════════════════════════════════════════════════════════════════════════════
-// PANEL COLLAPSE
-// ════════════════════════════════════════════════════════════════════════════════
-
-function togglePanelCollapse(panel) {
-  panel.classList.toggle('collapsed');
-  savePanelCollapsed(panel.classList.contains('collapsed'));
-}
 
 export function expandPanel() {
   if (masterPanelElement) masterPanelElement.classList.remove('collapsed');
@@ -993,7 +962,7 @@ export function toggleDock() {
   if (!isHidden) {
     try {
       ensureDockOnscreen();
-    } catch (e) {}
+    } catch (e) { /* The panel remains usable if stale-position correction fails. */ }
   }
 }
 
@@ -1208,7 +1177,7 @@ function setupLayoutControls(panel) {
       viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
     }
     if (triggerResize) {
-      try { resize(); } catch (e) {}
+      resize();
     }
     
     // Notify overlay system that layout changed (blur needs recalculation)

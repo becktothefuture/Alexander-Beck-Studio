@@ -57,7 +57,7 @@ test('selection helpers resolve keys, segments, states, labels, ranges, and use 
   assert.equal(getAboutNarrativePointFieldSelectionObject(document, selected).id, selected.id);
   assert.deepEqual(getAboutNarrativePointFieldItemRange(document, selected), {
     startWU: 0.72314,
-    endWU: 1.864941,
+    endWU: 3.006742,
   });
   assert.equal(getAboutNarrativePointFieldItemLabel(document, selected), 'A → B');
   assert.equal(
@@ -111,15 +111,15 @@ test('base key movement clamps at neighbouring keys and preserves equal-time bou
 
 test('base key bounds intersect every profile whose key inherits base timing', () => {
   const document = fixture();
-  document.profiles.mobile.overrides.pointField.keys[IDS.gridDeparture] = { atWU: 3 };
+  document.profiles.mobile.overrides.pointField.keys[IDS.gridDeparture] = { atWU: 4 };
   assert.equal(validateAboutNarrativePointFieldDocument(document).length, 0);
   const result = moveAboutNarrativePointFieldKey(document, {
     keyId: IDS.complexityArrival,
-    atWU: 4,
+    atWU: 5,
   });
   assert.equal(result.valid, true);
-  assert.equal(result.appliedAtWU, 3);
-  assert.equal(key(result.document, IDS.complexityArrival, 'mobile').atWU, 3);
+  assert.equal(result.appliedAtWU, 4);
+  assert.equal(key(result.document, IDS.complexityArrival, 'mobile').atWU, 4);
   assert.equal(validateAboutNarrativePointFieldDocument(result.document).length, 0);
 });
 
@@ -140,15 +140,15 @@ test('profile key timing writes are ID-addressed, validated, and reset cleanly',
   const document = fixture();
   const moved = moveAboutNarrativePointFieldKey(document, {
     keyId: IDS.gridArrival,
-    atWU: 4.8,
+    atWU: 6,
     scope: 'mobile',
   });
   assert.equal(moved.valid, true);
-  assert.equal(key(moved.document, IDS.gridArrival).atWU, 4.505974);
-  assert.equal(key(moved.document, IDS.gridArrival, 'mobile').atWU, 4.8);
+  assert.equal(key(moved.document, IDS.gridArrival).atWU, 5.647775);
+  assert.equal(key(moved.document, IDS.gridArrival, 'mobile').atWU, 6);
   assert.deepEqual(
     moved.document.profiles.mobile.overrides.pointField.keys[IDS.gridArrival],
-    { atWU: 4.8 },
+    { atWU: 6 },
   );
   const reset = resetAboutNarrativePointFieldOverride(moved.document, {
     profileId: 'mobile',
@@ -156,7 +156,7 @@ test('profile key timing writes are ID-addressed, validated, and reset cleanly',
     id: IDS.gridArrival,
   });
   assert.equal(reset.valid, true);
-  assert.equal(key(reset.document, IDS.gridArrival, 'mobile').atWU, 4.505974);
+  assert.equal(key(reset.document, IDS.gridArrival, 'mobile').atWU, 5.647775);
   assert.equal(validateAboutNarrativePointFieldDocument(reset.document).length, 0);
 });
 
@@ -171,7 +171,7 @@ test('segment movement shifts both boundaries, clamps against holds, and is one 
   assert.equal(result.clamped, true);
   assert.equal(result.appliedDeltaWU, 2.235059);
   assert.equal(key(result.document, IDS.complexityDeparture).atWU, 2.958199);
-  assert.equal(key(result.document, IDS.complexityArrival).atWU, 4.1);
+  assert.equal(key(result.document, IDS.complexityArrival).atWU, 5.241801);
   assert.deepEqual(result.selection, {
     type: 'point-field-segment',
     id: IDS.complexityTransition,

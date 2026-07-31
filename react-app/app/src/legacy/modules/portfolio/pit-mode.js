@@ -458,7 +458,6 @@ function seedProjectBodies(globals) {
     18 * dpr,
     toNumber(config.layout?.headerTopSpacing, 24) * dpr * 1.6
   );
-  const vxBase = (isMobile ? 40 : 65) * dpr;
   const vyBase = (isMobile ? 120 : 180) * dpr;
 
   for (let index = 0; index < projects.length; index += 1) {

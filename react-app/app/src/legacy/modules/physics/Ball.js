@@ -3,7 +3,7 @@
 // ║                   Extracted from balls-source.html lines 1823-2234           ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getConfig, getGlobals } from '../core/state.js';
+import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
@@ -451,9 +451,6 @@ export class Ball {
       
       // Determine wall classification for effects
       const isFloor = ny > 0.7;  // Mostly downward-facing = floor
-      const isCeiling = ny < -0.7;
-      const isLeftWall = nx < -0.7;
-      const isRightWall = nx > 0.7;
       
       // Calculate impact strength
       const impactSpeed = Math.abs(preVn);

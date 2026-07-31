@@ -16,6 +16,9 @@ import {
 } from '../data/simulationCatalog.js';
 import { clearStableTimeout, setStableTimeout } from '../lib/legacy-runtime-scope.js';
 import {
+  dismissGateBackdrop as dismissSharedGateBackdrop,
+} from '../legacy/modules/ui/gate-modal-shared.js';
+import {
   getActiveLegacyRuntimeSnapshot,
   loadRouteRuntimeModule,
 } from './useLegacyRouteRuntime.js';
@@ -520,8 +523,8 @@ function dismissGateBackdrop(options = {}) {
   if (options.instant) {
     forceBackdropDismiss(options);
   }
-  import('../legacy/modules/ui/gate-modal-shared.js')
-    .then((m) => m.dismissGateBackdrop(options))
+  Promise.resolve()
+    .then(() => dismissSharedGateBackdrop(options))
     .catch(() => forceBackdropDismiss(options));
 }
 

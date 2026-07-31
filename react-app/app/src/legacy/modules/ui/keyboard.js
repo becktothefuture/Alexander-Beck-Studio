@@ -3,25 +3,11 @@
 // ║              Panel dock toggle and mode switching (1-9)                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { setMode, MODES, resetCurrentMode } from '../modes/mode-controller.js';
-import { NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
+import { resetCurrentMode } from '../modes/mode-controller.js';
 import { getGlobals } from '../core/state.js';
 import { updateModeButtonsUI } from './mode-buttons.js';
 
 let isKeyboardWired = false;
-
-function navigateNarrative(delta) {
-  const g = getGlobals();
-  const mode = g?.currentMode || MODES.PIT;
-  const seq = NARRATIVE_MODE_SEQUENCE;
-  if (!seq || !seq.length) return;
-  const idx = seq.indexOf(mode);
-  const base = (idx >= 0) ? idx : 0;
-  const next = (base + delta + seq.length) % seq.length;
-  const nextMode = seq[next];
-  setMode(nextMode);
-  updateModeButtonsUI(nextMode);
-}
 
 export function setupKeyboardShortcuts() {
   if (isKeyboardWired) return;
@@ -42,7 +28,7 @@ export function setupKeyboardShortcuts() {
       if (!import.meta.env.DEV) return;
       import('./panel-popup-manager.js')
         .then((mod) => {
-          try { mod.toggleDevPanelSurface?.(); } catch (err) {}
+          try { mod.toggleDevPanelSurface?.(); } catch (err) { /* The dev panel is optional to keyboard control. */ }
         })
         .catch(() => {});
       return;
@@ -52,10 +38,7 @@ export function setupKeyboardShortcuts() {
     if (k === 'r') {
       e.preventDefault();
       resetCurrentMode();
-      try {
-        const g = getGlobals();
-        updateModeButtonsUI(g.currentMode);
-      } catch (e) {}
+      updateModeButtonsUI(getGlobals().currentMode);
       return;
     }
 

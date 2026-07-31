@@ -188,7 +188,7 @@ test('bust correspondence resolves progressively from its lowest points upward',
   assert.ok(Math.abs(low.y + 0.75) < Math.abs(high.y - 0.75));
 });
 
-test('surface-rise keeps submerged points in the field while the crown emerges first', () => {
+test('surface-rise preserves the field through handoff while the crown departs first', () => {
   const crown = { x: 0, y: 0, z: 0 };
   const base = { x: 0, y: 0, z: 0 };
   const input = {
@@ -214,8 +214,9 @@ test('surface-rise keeps submerged points in the field while the crown emerges f
     ...input,
     toPosition: [0, -1.5, 0],
   }), base);
-  assert.ok(crown.x < 0.1, 'The crown should already occupy its bust footprint.');
+  assert.ok(Math.abs(crown.x - 2) < 1e-12, 'The crown should be halfway from the field to its bust footprint.');
   assert.ok(base.x > 3.9, 'The submerged base should remain part of the broad field.');
+  assert.ok(crown.x < base.x, 'The crown must depart the field before the submerged base.');
   assert.ok(crown.y > base.y, 'Emergence must read from crown to base.');
 });
 

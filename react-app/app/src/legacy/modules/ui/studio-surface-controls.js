@@ -226,15 +226,13 @@ function formatValue(control, value) {
 }
 
 function syncStudioRuntimeState(config) {
-  try {
-    const globals = getGlobals();
-    if (!globals || typeof globals !== 'object') return;
+  const globals = getGlobals();
+  if (!globals || typeof globals !== 'object') return;
 
-    globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
-    globals.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
+  globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
+  globals.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 
-    applyLayoutCSSVars();
-  } catch (e) {}
+  applyLayoutCSSVars();
 }
 
 export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {}) {

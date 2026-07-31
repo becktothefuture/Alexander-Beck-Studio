@@ -16,7 +16,9 @@ function setAttr(el, name, value) {
   if (value === undefined || value === null) return;
   try {
     el.setAttribute(name, String(value));
-  } catch (e) {}
+  } catch (e) {
+    // Ignore optional attribute writes that the host element rejects.
+  }
 }
 
 function applyLegend() {

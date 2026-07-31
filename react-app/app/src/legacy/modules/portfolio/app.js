@@ -19,6 +19,10 @@ import {
   PORTFOLIO_THUMBNAIL_READY_TIMEOUT_MS,
   warmPortfolioThumbnail,
 } from './portfolio-prewarm.js';
+import {
+  waitForPitSimulationHostReady,
+  waitForStablePortfolioPresentation,
+} from './portfolio-presentation-readiness.js';
 export { preloadPortfolioRoute } from './portfolio-prewarm.js';
 import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
@@ -217,11 +221,6 @@ function lerp(start, end, amount) {
   return start + ((end - start) * amount);
 }
 
-function easeInCubic(value) {
-  const t = clamp(value, 0, 1);
-  return t * t * t;
-}
-
 function smoothstep(edge0, edge1, value) {
   if (edge0 === edge1) return value >= edge1 ? 1 : 0;
   const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
@@ -233,13 +232,6 @@ function toNumber(value, fallback) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function normalizeWheelDeltaY(event) {
-  const deltaY = Number(event?.deltaY) || 0;
-  if (event?.deltaMode === 1) return deltaY * 16;
-  if (event?.deltaMode === 2) return deltaY * (window.innerHeight || 900);
-  return deltaY;
-}
-
 function normalizeWheelDelta(event) {
   const multiplier = event?.deltaMode === 1
     ? 16
@@ -248,15 +240,6 @@ function normalizeWheelDelta(event) {
   const deltaY = (Number(event?.deltaY) || 0) * multiplier;
   if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return 0;
   return Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function installPortfolioAuditBridge(app) {
@@ -312,16 +295,6 @@ function getRelativeLuminance({ r, g, b }) {
   return (0.2126 * toLinear(r)) + (0.7152 * toLinear(g)) + (0.0722 * toLinear(b));
 }
 
-function getReadableLabelRotation(rotationRad) {
-  if (!Number.isFinite(rotationRad)) return 0;
-  let normalized = rotationRad % (Math.PI * 2);
-  if (normalized > Math.PI) normalized -= Math.PI * 2;
-  if (normalized < -Math.PI) normalized += Math.PI * 2;
-  if (normalized > Math.PI * 0.5) normalized -= Math.PI;
-  if (normalized < -Math.PI * 0.5) normalized += Math.PI;
-  return normalized;
-}
-
 function getProjectCardTheme(project, projectIndex, projectCount) {
   const accent = resolveThumbnailAccent(project, projectIndex, projectCount);
   return {
@@ -363,12 +336,6 @@ function setPortfolioSheetHostHidden(hidden) {
   } else {
     host.removeAttribute('aria-hidden');
   }
-}
-
-function shouldRotatePortfolioLabels() {
-  // Portfolio bodies have their own render silhouette and should keep the label
-  // attached to the body rotation even when the global home pit pebble controls are off.
-  return true;
 }
 
 function getProjectAccentColor(projectIndex, projectCount) {
@@ -3342,180 +3309,6 @@ class PortfolioScrollApp {
   }
 }
 
-/**
- * Wait until `#simulations` has a real layout box (gate transitions / SPA can report 0×0
- * for several frames). Without this, `resize()` no-ops and the pit seeds against a default buffer.
- */
-async function waitForPitSimulationHostReady(options = {}) {
-  const minPx = Math.max(24, Number(options.minEdgePx) || 48);
-  const timeoutMs = Math.max(250, Number(options.timeoutMs) || 8000);
-
-  const measure = () => {
-    const host = document.getElementById('simulations');
-    const w = host?.clientWidth ?? 0;
-    const h = host?.clientHeight ?? 0;
-    return Boolean(host && w >= minPx && h >= minPx);
-  };
-
-  if (measure()) return true;
-
-  return new Promise((resolve) => {
-    let done = false;
-    let ro = null;
-    let iv = 0;
-    const finish = (ok) => {
-      if (done) return;
-      done = true;
-      try {
-        ro?.disconnect();
-      } catch (_) {
-        /* ignore */
-      }
-      clearInterval(iv);
-      clearTimeout(tid);
-      resolve(ok);
-    };
-
-    const host = document.getElementById('simulations');
-    if (host && typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => {
-        if (measure()) finish(true);
-      });
-      ro.observe(host);
-    }
-
-    iv = window.setInterval(() => {
-      if (measure()) finish(true);
-    }, 24);
-
-    const tid = window.setTimeout(() => finish(measure()), timeoutMs);
-  });
-}
-
-function isCanvasBackingStoreReady(canvas) {
-  if (!canvas) return false;
-  const cssW = canvas.clientWidth || 0;
-  const cssH = canvas.clientHeight || 0;
-  if (cssW < 64 || cssH < 64) return false;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const minW = Math.ceil((cssW + 2) * dpr) - 2;
-  const minH = Math.ceil((cssH + 2) * dpr) - 2;
-  return canvas.width >= minW && canvas.height >= minH;
-}
-
-function rectIsUsable(rect) {
-  return Boolean(rect && rect.width > 0 && rect.height > 0);
-}
-
-function rectHasUsableVisibleArea(rect, outerRect) {
-  if (!rectIsUsable(rect) || !rectIsUsable(outerRect)) return false;
-  const visibleWidth = Math.max(0, Math.min(rect.right, outerRect.right) - Math.max(rect.left, outerRect.left));
-  const visibleHeight = Math.max(0, Math.min(rect.bottom, outerRect.bottom) - Math.max(rect.top, outerRect.top));
-  return (
-    visibleWidth >= Math.min(240, outerRect.width * 0.5)
-    && visibleHeight >= Math.min(96, rect.height * 0.5)
-  );
-}
-
-function readPortfolioPresentationSnapshot() {
-  const wall = document.getElementById('simulations');
-  const hero = document.getElementById('hero-title');
-  const topbar = document.querySelector('.ui-top-main.route-topbar');
-  const labelMount = document.getElementById('portfolioProjectMount');
-  const nearestLabels = Array.from(
-    labelMount?.querySelectorAll('.portfolio-project-label[data-ring-nearest="true"]') || []
-  );
-  const firstLabel = labelMount?.querySelector('.portfolio-deck-card.is-active')
-    || nearestLabels.sort((labelA, labelB) => (
-      Math.abs(Number(labelA.dataset.orbitOffset) || 0)
-      - Math.abs(Number(labelB.dataset.orbitOffset) || 0)
-    ))[0]
-    || null;
-  const canvas = document.getElementById('c');
-
-  const wallRect = wall?.getBoundingClientRect() || null;
-  const heroRect = hero?.getBoundingClientRect() || null;
-  const topbarRect = topbar?.getBoundingClientRect() || null;
-  const firstLabelRect = firstLabel?.getBoundingClientRect() || null;
-  const labelCount = labelMount?.querySelectorAll('.portfolio-deck-card, .portfolio-project-label').length || 0;
-  const heroInsideWall = rectIsUsable(heroRect) && rectIsUsable(wallRect)
-    && heroRect.left >= wallRect.left - 4
-    && heroRect.right <= wallRect.right + 4
-    && heroRect.top >= wallRect.top - 4
-    && heroRect.bottom <= wallRect.bottom + 4;
-  const heroReady = !hero || !rectIsUsable(heroRect) || heroInsideWall;
-  const firstLabelReady = rectIsUsable(firstLabelRect)
-    && rectIsUsable(wallRect)
-    && firstLabelRect.width >= Math.min(240, wallRect.width * 0.5)
-    && firstLabelRect.height >= 96
-    && firstLabelRect.left >= wallRect.left - 8
-    && firstLabelRect.right <= wallRect.right + 8
-    && rectHasUsableVisibleArea(firstLabelRect, wallRect);
-
-  return {
-    wallRect,
-    heroRect,
-    topbarRect,
-    firstLabelRect,
-    canvasReady: isCanvasBackingStoreReady(canvas),
-    labelCount,
-    heroReady,
-    firstLabelReady,
-    topbarReady: rectIsUsable(topbarRect),
-    ready: Boolean(
-      rectIsUsable(wallRect)
-      && rectIsUsable(topbarRect)
-      && heroReady
-      && labelCount > 0
-      && firstLabelReady
-    ),
-  };
-}
-
-async function waitForStablePortfolioPresentation(options = {}) {
-  const timeoutMs = Math.max(400, Number(options.timeoutMs) || 2000);
-  const requiredReadyPasses = Math.max(1, Math.round(Number(options.requiredReadyPasses) || 2));
-
-  return new Promise((resolve) => {
-    const startedAt = performance.now();
-    let stablePasses = 0;
-
-    const tick = () => {
-      const snapshot = readPortfolioPresentationSnapshot();
-      if (snapshot.ready) {
-        stablePasses += 1;
-      } else {
-        stablePasses = 0;
-      }
-
-      if (stablePasses >= requiredReadyPasses) {
-        window.__ABS_PORTFOLIO_PRESENTATION__ = {
-          ...snapshot,
-          elapsedMs: performance.now() - startedAt,
-          stablePasses,
-        };
-        resolve(true);
-        return;
-      }
-
-      if ((performance.now() - startedAt) >= timeoutMs) {
-        window.__ABS_PORTFOLIO_PRESENTATION__ = {
-          ...snapshot,
-          elapsedMs: performance.now() - startedAt,
-          stablePasses,
-        };
-        resolve(snapshot.ready);
-        return;
-      }
-
-      requestAnimationFrame(tick);
-    };
-
-    if (requiredReadyPasses === 1) tick();
-    else requestAnimationFrame(tick);
-  });
-}
-
 export async function bootstrapPortfolio(runtimeContext = {}) {
   const {
     signal,
@@ -3867,7 +3660,6 @@ export async function bootstrapPortfolio(runtimeContext = {}) {
         includePageSaveButton: true,
         pageSaveButtonId: 'savePortfolioConfigBtn',
         panelTitle: 'Settings',
-        modeLabel: 'DEV MODE',
         setupPageControls: (_panel, panelOptions = {}) => {
           setupControls(portfolioConfig, {
             onMetricsChange: () => app.refreshPitBodies(),

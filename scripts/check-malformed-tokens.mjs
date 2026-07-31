@@ -19,6 +19,10 @@ const FIXED_CHECKS = [
     label: 'Malformed token join `0var(`',
     needle: '0var(',
   },
+  {
+    label: 'Malformed detected-colour HSL token',
+    needle: 'var(--color-detected-hsl',
+  },
 ];
 
 const MALFORMED_DETECTED_COLOR_PATTERN = String.raw`var\(--color-detected-rgb(?!a?\d+\b)[^\s),]*`;

@@ -4,12 +4,9 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
-import { setMode } from '../modes/mode-controller.js';
+import { CONSTANTS, MODES } from '../core/constants.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
-import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
-import { updateModeButtonsUI } from '../ui/mode-buttons.js';
 import { emitScenePointer } from './scene-pointer.js';
 
 let createWaterRippleFn = null;
@@ -43,23 +40,6 @@ let lastMoveTime = 0;
 let mouseVelocity = 0;
 let mouseDirX = 0; // Normalized direction X (-1 to 1)
 let mouseDirY = 0; // Normalized direction Y (-1 to 1)
-let lastTapTime = 0;
-// Simple click tracking - just debounce to prevent rapid clicks
-let lastClickTime = 0;
-const CLICK_DEBOUNCE_MS = 150; // Prevent duplicate clicks within 150ms
-
-function cycleMode() {
-  const globals = getGlobals();
-  const current = globals.currentMode;
-  const seq = NARRATIVE_MODE_SEQUENCE;
-  const idx = seq.indexOf(current);
-  const base = idx >= 0 ? idx : 0;
-  const next = seq[(base + 1) % seq.length];
-
-  setMode(next);
-  updateModeButtonsUI(next);
-}
-
 // Throttle for water ripple creation
 let lastRippleTime = 0;
 const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max

@@ -3521,11 +3521,14 @@ html[data-abs-transition-phase='modal-open'] .hero-title {
 .route-entrance-glyph {
   margin-inline-start: var(--route-entrance-glyph-kern, 0em);
   /* Per-glyph colour and travel stay outside layout. The small overscan keeps
-     fine serif ink intact while each glyph owns its paint layer. */
+     fine serif ink intact while each glyph owns its paint layer. Keep the
+     settled identity transform after animation cleanup so fractional glyph
+     positions retain the same text rasterization instead of snapping. */
   --route-entrance-glyph-overscan: 0.08em;
   --route-entrance-glyph-overscan-negative: -0.08em;
   padding-block: var(--route-entrance-glyph-overscan);
   margin-block: var(--route-entrance-glyph-overscan-negative);
+  transform: translate3d(0, 0, 0);
   transform-origin: 50% 50%;
 }
 

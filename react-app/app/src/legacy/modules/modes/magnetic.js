@@ -5,21 +5,17 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
+import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
 // Explosion timer state (kept for compatibility, but explosions disabled)
 let explosionTimer = 0;
-const EXPLOSION_INTERVAL = 10; // unused now
-const COUNTDOWN_START = 5; // unused now
-let flashPhase = 0;
 
 export function initializeMagnetic() {
   const g = getGlobals();
   clearBalls();
   explosionTimer = 0;
-  flashPhase = 0;
   const canvas = g.canvas;
   if (!canvas) return;
 
@@ -58,36 +54,6 @@ export function initializeMagnetic() {
     b.vy = (Math.random() - 0.5) * initSpeed;
     b.baseAlpha = 1;
     g.balls.push(b);
-  }
-}
-
-/**
- * Trigger automatic explosion from center
- */
-function triggerAutoExplosion() {
-  const g = getGlobals();
-  const canvas = g.canvas;
-  if (!canvas) return;
-  
-  // Explode from canvas center
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const force = g.magneticStrength || 50000;
-  const DPR = g.DPR || 1;
-  
-  for (let i = 0; i < g.balls.length; i++) {
-    const ball = g.balls[i];
-    const dx = ball.x - cx;
-    const dy = ball.y - cy;
-    const dist = Math.max(30 * DPR, Math.sqrt(dx * dx + dy * dy));
-    const nx = dx / dist;
-    const ny = dy / dist;
-    
-    // Strong outward explosion (DPR-scaled distance reference)
-    const strength = (force / 50) * Math.min(1, (400 * DPR) / dist);
-    ball.vx += nx * strength;
-    ball.vy += ny * strength;
-    ball.omega += (Math.random() - 0.5) * 15;
   }
 }
 
@@ -146,6 +112,7 @@ export function applyMagneticForces(ball, dt) {
  * Update magnetic mode per-frame
  */
 export function updateMagnetic(dt) {
+  void dt; // The registered mode hook currently maintains alpha only.
   const g = getGlobals();
   if (g.currentMode !== MODES.MAGNETIC) return;
 

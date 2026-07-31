@@ -194,7 +194,9 @@ function openDetachedPanelWindow() {
   popupReady = false;
   try {
     popupWindow.focus();
-  } catch (error) {}
+  } catch (error) {
+    // Popup focus can be denied by the browser.
+  }
   setLauncherActive(true);
   return popupWindow;
 }
@@ -266,7 +268,9 @@ export function closeDetachedPanelWindow() {
   if (!isPopupOpen()) return;
   try {
     popupWindowRef.close();
-  } catch (error) {}
+  } catch (error) {
+    // The browser may already have closed the popup.
+  }
 }
 
 if (typeof window !== 'undefined') {

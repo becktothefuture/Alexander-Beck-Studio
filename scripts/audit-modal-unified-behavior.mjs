@@ -278,32 +278,23 @@ async function main() {
         about: await openAndAssert(browser, '/about.html', 'about', (state) => state.aboutRoute, viewport),
         portfolio: await openAndAssert(
           browser,
-          '/portfolio.html?gate=portfolio',
+          '/portfolio.html',
           'portfolio',
-          (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioGate,
+          (state) => state.path === '/portfolio.html' && state.search === '' && state.portfolioDeck,
           viewport,
-          { expectNoise: false },
         ),
       };
       results.routeBreakpoints[viewport.name] = states;
-      for (const key of ['container', 'socials', 'london']) {
-        const baselineRect = JSON.stringify(states.home.footer[key]);
-        const baselineStyle = JSON.stringify(states.home.footer.styles[key]);
+      for (const key of ['container', 'socials', 'london', 'middle']) {
+        assert(states.home.footer[key], `Home footer ${key} is missing on ${viewport.name}`, states.home);
         for (const routeId of ['contact', 'about', 'portfolio']) {
           assert(
-            JSON.stringify(states[routeId].footer[key]) === baselineRect,
-            `Shared footer ${key} geometry differs on ${viewport.name}`,
-            states,
-          );
-          assert(
-            JSON.stringify(states[routeId].footer.styles[key]) === baselineStyle,
-            `Shared footer ${key} styles differ on ${viewport.name}`,
-            states,
+            states[routeId].footer[key] === null,
+            `Home-only footer ${key} unexpectedly renders on ${routeId} at ${viewport.name}`,
+            states[routeId],
           );
         }
       }
-      assert(states.home.footer.middle && states.contact.footer.middle && states.about.footer.middle, `Standard footer middle caption is missing on ${viewport.name}`, states);
-      assert(states.portfolio.footer.middle === null, `Portfolio footer unexpectedly renders the middle caption on ${viewport.name}`, states.portfolio);
     }
     results.simulationChooser = {
       desktop: await assertSimulationChooser(browser, VIEWPORTS[2]),

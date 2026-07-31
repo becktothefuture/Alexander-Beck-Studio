@@ -331,6 +331,7 @@ Primary commands:
 - `npm run studio:status` — inspect managed runtimes and Git production-sync state.
 - `npm run studio:check` — canonical local readiness gate.
 - `npm run check:site` — tokens, entries, catalogs, lint, config parity, and build.
+- `npm run check:geometry-fault-contract` — failure visibility, pre-commit abort, and retry convergence for responsive ball, renderer, studio-surface, and shell geometry.
 - `npm run audit:release-smoke` — bounded Chromium production-preview checks for primary routes, SPA return, readiness, Canvas sizing, representative semantics, and focus.
 - `npm run certify:screens` — route/theme/viewport screenshot matrix.
 - `npm run audit:canvas-spa` — Canvas backing-store and SPA route-generation checks.
@@ -357,10 +358,10 @@ The deploy workflow installs root and app dependencies, runs `npm run check:site
 
 ## Known remaining uncertainty and debt
 
-- The bounded browser smoke is staged in the release workflow, but remote qualification, five stable Actions runs, and branch protection are not yet proven.
+- The bounded browser smoke is published in the release workflow. One qualifying run exists; five later main runs fail at the published lint-ratchet baseline, and branch protection is absent.
 - Most programme changes still lack an authorized, reviewable commit boundary, so clean-checkout reproducibility remains unproven under `OPS-002`.
-- The active imperative runtime retains one reviewed dependency cycle with 5 modules and 8 internal edges.
-- Chromium performance evidence is valid and passes; the current WebKit environment is invalid for performance certification, so cross-browser confidence remains incomplete.
+- The active imperative runtime graph has no relative-import dependency cycle. The fail-closed graph checker and mutation probe remain canonical.
+- Chromium performance evidence is valid and passes. The 2026-07-31 uncontended WebKit schema-v5 baseline measured all 27 launchable entries with valid global and per-mode controls. The release certificate now defaults to the 17 live `daily-rotation` entries. The four live baseline failures—`repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`—pass a focused 24/24-repeat post-fix certificate with valid controls. A full 17-mode pass remains pending after an invalid-host attempt was discarded.
 - The client-side gate can be mistaken for security unless its UX-only role stays explicit.
 
 See `docs/codebase-audit.md` for evidence, issue IDs, priorities, and acceptance criteria.
@@ -409,7 +410,7 @@ Current independent-review issues are recorded as `ARCH-003`, `ARCH-004`, `A11Y-
 ## Current verification snapshot — 2026-07-31
 
 - The route registry has 30 Vite inputs, 25 entry modules, 22 `SiteApp` route descriptors, and 16 shell scenes.
-- The active legacy lint inventory has 126 JavaScript/JSX files, 84 unused-variable findings in 32 files, and 136 empty catches in 27 files.
+- The active legacy lint inventory has 129 JavaScript/JSX files, zero unused-variable findings, and zero empty catches. Strict mutation probes preserve the zero-debt boundary.
 - `TEST-003` is locally resolved. The five-route production smoke derives its route list from the manifest, uses route-aware focus discovery, fails on unexpected console errors, and passes normal and forced-failure contract checks.
 - Passing release-smoke runs now retain a schema-versioned `summary.json` with route timings and zero-error resource diagnostics; failures retain diagnostics, screenshot, and trace artifacts.
 - The complete Playground audit passes serially in Chromium and WebKit, including input, wrapping, media ownership, lightboxes, live configuration, save/restore, routing, and cleanup contracts.
@@ -417,10 +418,13 @@ Current independent-review issues are recorded as `ARCH-003`, `ARCH-004`, `A11Y-
 - `TEST-002` is locally resolved. The Chromium/WebKit geometry matrix and all 6 fault cases pass.
 - `OPS-003` is locally resolved and independently accepted. Serialized transactional authoring operations pass 30 of 30 failure, rollback, recovery, containment, and concurrency checks.
 - `DEP-001` is locally resolved. Root and app full dependency audits report zero findings, and the supported Node baseline is 22.19 or later.
-- The characterized active legacy cycle is smaller: 12 modules/23 internal edges became 9/15 through the mode-button seam, then 5/8 through the route-neutral scene-pointer event port. The remaining cycle is still documented debt.
-- `PERF-001` is partially resolved. Chromium has a stable mode-pass artifact. The current WebKit result is environment-invalid, not a mode failure, so cross-browser performance certification is still incomplete.
+- `ARCH-004` is locally resolved. The characterized active legacy cycle moved from 12 modules/23 internal edges to 9/15 through the mode-button seam, then 5/8 through the route-neutral scene-pointer event port, then zero through the mode-runtime bridge.
+- `PERF-001` remains open. Chromium has a stable mode-pass artifact. The valid WebKit baseline identified four failures in the 17-mode live scope; all four now pass their focused post-fix certificate. The default certificate excludes collection and hidden lab entries unless `ABS_PERF_MODES` explicitly selects them. One uncontended full live-mode pass remains required.
+- Modal cleanup now has one static ownership path. The historical mixed static/dynamic `gate-modal-shared.js` warning is removed without changing deferred cleanup timing or the direct-DOM recovery fallback.
+- Portfolio presentation readiness now owns host geometry, DPR backing-store, stable-pass, timeout, and diagnostic publication outside `portfolio/app.js`; its deterministic characterization covers the temporary 0×0 SPA/gate failure boundary.
+- The approximately 505.20 kB Three.js vendor chunk is a lazy shared dependency for simulation and development About-lab routes. It is not in the static import chain for Home, Portfolio, production About, or Contact; its gzip size is 126,649 bytes. The build warning remains visible until transfer measurements justify a different boundary.
 - M07 is verified locally across all 40 browser/theme/viewport/route states. `A11Y-006` is resolved locally: the Portfolio gate foreground stays sharp while the route behind it blurs independently.
 - M12 is refreshed and accepted: 14 of 14 static checks, 8 of 8 browser states, and all 24 inspected screenshots pass.
 - M16 is completed locally. Fourteen approved Portfolio rule blocks moved from `main.css` to `portfolio.css`; overlap and ownership checks pass without changing the accepted computed-style signature.
-- The local CI workflow is not yet qualified by five remote runs, branch protection is not confirmed, and no commit, push, or production update is claimed.
+- The published CI workflow has one of five qualifying smoke runs. Five later main runs fail before smoke at the published lint-ratchet baseline; the local zero-debt cleanup passes but is not yet integrated, and `main` has no protection or ruleset.
 - `OPS-002` remains open until the integrated work has an authorized, reviewable commit boundary and the checks are reproduced from it.
