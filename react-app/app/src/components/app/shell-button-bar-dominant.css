@@ -434,9 +434,10 @@
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --dominant-primary-control-height: var(--button-bar-mobile-primary-height);
-    --dominant-primary-tab-padding-inline: clamp(4px, 1.5vw, 8px);
+    --dominant-primary-tab-padding-inline: clamp(5px, 1.5vw, 8px);
     --dominant-primary-tab-gap: clamp(4px, 1.75vw, 8px);
     --dominant-group-separation: clamp(10px, 2.5vw, 16px);
+    justify-content: center;
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
@@ -448,6 +449,12 @@
       max-content;
     flex: 0 0 auto;
     inline-size: max-content;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab:not(.shell-tab--icon-only) {
+    min-inline-size: 0;
   }
 
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
@@ -476,19 +483,19 @@
 
 @media (max-width: 480px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: clamp(6px, 1.7vw, 8px);
+    --dominant-primary-tab-padding-inline: clamp(5px, 1.5vw, 7px);
   }
 }
 
 @media (max-width: 360px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: 5px;
+    --dominant-primary-tab-padding-inline: 3px;
   }
 }
 
 @media (max-width: 340px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --dominant-primary-tab-padding-inline: 1px;
+    --dominant-primary-tab-padding-inline: 2px;
     --dominant-primary-tab-font-size: 9px;
     --dominant-primary-tab-gap: 2px;
     --dominant-group-separation: 4px;
