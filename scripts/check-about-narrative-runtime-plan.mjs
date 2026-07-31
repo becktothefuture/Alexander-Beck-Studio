@@ -39,6 +39,11 @@ import { applyAboutNarrativeCameraEasing } from '../react-app/app/src/routes/abo
 import {
   applyAboutNarrativeWorldTransitionEasing,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.js';
+import {
+  getAboutNarrativeDisciplineLabelNudge,
+  getAboutNarrativePositionMapCorridor,
+  isAboutNarrativeRectInsideCorridor,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTextCorridor.js';
 import '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.test.js';
 const canonicalSource = JSON.parse(await readFile(
   new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
@@ -679,6 +684,56 @@ test('Discipline positions stay separated in both responsive profiles', () => {
     constrained[0] - requested[0],
     constrained[1] - requested[1],
   ) >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001);
+});
+
+test('the global text corridor scales the Position map across its supported width range', () => {
+  const narrow = getAboutNarrativePositionMapCorridor(30, 'desktop');
+  const canonicalWidth = getAboutNarrativePositionMapCorridor(58, 'desktop');
+  const wide = getAboutNarrativePositionMapCorridor(90, 'desktop');
+  const mobile = getAboutNarrativePositionMapCorridor(58, 'mobile');
+
+  assertClose(narrow.corridorWidthPx, 480, '30rem desktop corridor');
+  assertClose(canonicalWidth.corridorWidthPx, 928, '58rem desktop corridor');
+  assertClose(wide.corridorWidthPx, 1160.8, '90rem desktop available corridor');
+  assert.ok(wide.corridorWidthPx > canonicalWidth.corridorWidthPx);
+  assert.ok(wide.corridorWidthPx < wide.viewportWidthPx);
+  assert.ok(narrow.min > canonicalWidth.min);
+  assert.ok(canonicalWidth.min > wide.min);
+  assertClose(mobile.corridorWidthPx, 322, 'mobile corridor available width');
+  assert.ok(mobile.min >= 0.06);
+  assert.ok(mobile.max <= 0.94);
+});
+
+test('discipline label nudges use the smallest move that contains the full text block', () => {
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 200,
+    labelWidth: 262,
+    labelOffset: 18,
+    corridorLeft: 256,
+    corridorRight: 1184,
+  }), 38);
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 985,
+    labelWidth: 262,
+    labelOffset: 18,
+    corridorLeft: 256,
+    corridorRight: 1184,
+  }), -81);
+  assert.equal(getAboutNarrativeDisciplineLabelNudge({
+    anchorX: 102,
+    labelWidth: 500,
+    labelOffset: 18,
+    corridorLeft: 100,
+    corridorRight: 400,
+  }), -20);
+  assert.equal(isAboutNarrativeRectInsideCorridor(
+    { left: 255.5, right: 1184.5 },
+    { left: 256, right: 1184 },
+  ), true);
+  assert.equal(isAboutNarrativeRectInsideCorridor(
+    { left: 254, right: 1184 },
+    { left: 256, right: 1184 },
+  ), false);
 });
 
 test('Reduced Motion keeps the discipline clip active without a separate restore clock', () => {

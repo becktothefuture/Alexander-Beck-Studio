@@ -93,6 +93,7 @@ import {
   getAboutNarrativeDisciplineMinimumSeparation,
   getAboutNarrativeDisciplinePosition,
 } from './aboutNarrativeDisciplinePositions.js';
+import { getAboutNarrativePositionMapCorridor } from './aboutNarrativeTextCorridor.js';
 import './about-narrative-editor.css';
 
 const LEGACY_TRACKS = Object.freeze([
@@ -673,6 +674,7 @@ function InspectorFolder({ group, count, defaultOpen = false, children }) {
 
 function DisciplinePositionEditor({
   items,
+  corridorWidthRem = 58,
   disabled = false,
   onBegin,
   onPreview,
@@ -685,18 +687,28 @@ function DisciplinePositionEditor({
   const gestureRef = useRef(null);
   const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
   const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
+  const mapCorridor = getAboutNarrativePositionMapCorridor(corridorWidthRem, profile);
   const minimumGap = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
-  const toPercent = (value, bounds) => (
-    6 + (((Number(value) - Number(bounds.min)) / (Number(bounds.max) - Number(bounds.min))) * 88)
+  const toXPercent = (value) => (
+    (mapCorridor.min * 100)
+    + (((Number(value) - Number(xBounds.min)) / (Number(xBounds.max) - Number(xBounds.min)))
+      * mapCorridor.width * 100)
+  );
+  const toYPercent = (value) => (
+    6 + (((Number(value) - Number(yBounds.min)) / (Number(yBounds.max) - Number(yBounds.min))) * 88)
   );
   const pointerPosition = (event) => {
     const bounds = mapRef.current?.getBoundingClientRect();
     if (!bounds) return null;
-    const normalizedX = clamp((event.clientX - bounds.left) / Math.max(1, bounds.width), 0.06, 0.94);
+    const normalizedX = clamp(
+      (event.clientX - bounds.left) / Math.max(1, bounds.width),
+      mapCorridor.min,
+      mapCorridor.max,
+    );
     const normalizedY = clamp((event.clientY - bounds.top) / Math.max(1, bounds.height), 0.06, 0.94);
     return [
       normalizeControlValue(
-        xBounds.min + (((normalizedX - 0.06) / 0.88)
+        xBounds.min + (((normalizedX - mapCorridor.min) / mapCorridor.width)
           * (xBounds.max - xBounds.min)),
         DISCIPLINE_POSITION_X_CONTROL,
       ),
@@ -771,7 +783,14 @@ function DisciplinePositionEditor({
         ref={mapRef}
         className="about-track-editor-discipline-map"
         aria-label={`${profile} Discipline anchor map`}
+        style={{
+          '--discipline-editor-corridor-left': `${mapCorridor.min * 100}%`,
+          '--discipline-editor-corridor-right': `${mapCorridor.max * 100}%`,
+        }}
       >
+        <div className="about-track-editor-discipline-map__corridor" aria-hidden="true">
+          <span>Text corridor</span>
+        </div>
         {(items || []).map((item) => {
           const position = getAboutNarrativeDisciplinePosition(item, profile);
           return (
@@ -780,8 +799,8 @@ function DisciplinePositionEditor({
               type="button"
               className="about-track-editor-discipline-map__anchor"
               style={{
-                '--discipline-editor-x': `${toPercent(position[0], xBounds)}%`,
-                '--discipline-editor-y': `${toPercent(position[1], yBounds)}%`,
+                '--discipline-editor-x': `${toXPercent(position[0])}%`,
+                '--discipline-editor-y': `${toYPercent(position[1])}%`,
                 '--discipline-editor-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
               }}
               disabled={disabled}
@@ -800,7 +819,7 @@ function DisciplinePositionEditor({
         })}
       </div>
       <p className="about-track-editor-discipline-gap">
-        Minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
+        Corridor {Number(corridorWidthRem).toFixed(0)}rem · minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
       </p>
       <div className="about-track-editor-discipline-coordinates">
         {(items || []).map((item) => {
@@ -1284,12 +1303,12 @@ function TextTrackInspector({ snapshot, store }) {
     <div className="about-track-editor-inspector__content" data-track-settings="text">
       <header>
         <span>Track settings</span>
-        <h2>Global text animation</h2>
-        <code>globals.textMotion</code>
+        <h2>Global text</h2>
+        <code>globals</code>
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          Text windows define the narrative cadence and Story length. Drag any Text clip to move its complete animation, or restore equal breathing room between animations with the action below.
+          The text corridor contains every text role. Editorial copy can use its full width; title widths remain narrower caps. Text windows define the narrative cadence and Story length.
         </p>
         <button type="button" onClick={() => store.distributeTextEvenly()}>Space text evenly</button>
         {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
@@ -2782,6 +2801,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
               </p>
               <DisciplinePositionEditor
                 items={object.parameters?.items || []}
+                corridorWidthRem={snapshot.document.globals.readingWidthRem}
                 disabled={locked}
                 onBegin={(group, profile) => store.beginGesture(
                   `Move Discipline ${group} ${profile} position`,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import sharp from 'sharp';
 import {
   compileAboutNarrativeRuntimePlan,
@@ -10,15 +10,28 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
-const outputDir = 'output/playwright/about-narrative-hardening/runtime';
-const browser = await chromium.launch({
-  headless: true,
-  args: [
-    '--use-gl=angle',
-    '--use-angle=swiftshader-webgl',
-    '--enable-unsafe-swiftshader',
-    '--disable-gpu-sandbox',
-  ],
+const browserName = String(process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
+assert.ok(
+  browserName === 'chromium' || browserName === 'webkit',
+  `Unsupported About Narrative visual-audit browser: ${browserName}`,
+);
+const outputDir = browserName === 'chromium'
+  ? 'output/playwright/about-narrative-hardening/runtime'
+  : `output/playwright/about-narrative-hardening/runtime-${browserName}`;
+const browserType = browserName === 'webkit' ? webkit : chromium;
+const browserLaunchOptions = browserName === 'chromium'
+  ? {
+    headless: true,
+    args: [
+      '--use-gl=angle',
+      '--use-angle=swiftshader-webgl',
+      '--enable-unsafe-swiftshader',
+      '--disable-gpu-sandbox',
+    ],
+  }
+  : { headless: true };
+const browser = await browserType.launch({
+  ...browserLaunchOptions,
 });
 
 await mkdir(outputDir, { recursive: true });
@@ -394,6 +407,8 @@ for (const checkpoint of checkpoints) {
     const canvas = document.querySelector('.about-narrative-world__canvas');
     const metrics = window.__aboutNarrativeRuntime.getMetrics();
     const rootRect = root?.getBoundingClientRect();
+    const textCorridorRect = document.querySelector('[data-about-text-corridor]')
+      ?.getBoundingClientRect();
     const openerRect = document.querySelector('.about-narrative-opening-copy [data-primary-copy]')
       ?.getBoundingClientRect();
     const visibleEditorialLines = [...document.querySelectorAll('[data-editorial-line]')]
@@ -403,6 +418,7 @@ for (const checkpoint of checkpoints) {
           && rect.bottom > 0
           && rect.top < window.innerHeight;
       });
+    const visibleEditorialRects = visibleEditorialLines.map((node) => node.getBoundingClientRect());
     const visibleDisciplineRects = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
       .map((node) => node.getBoundingClientRect());
@@ -430,6 +446,9 @@ for (const checkpoint of checkpoints) {
       top: Math.min(...visibleDisciplineRects.map((rect) => rect.top)),
       bottom: Math.max(...visibleDisciplineRects.map((rect) => rect.bottom)),
     } : null;
+    const isInsideTextCorridor = (rect) => Boolean(textCorridorRect)
+      && rect.left >= textCorridorRect.left - 1
+      && rect.right <= textCorridorRect.right + 1;
     return {
       storyWU: Number(root?.dataset.narrativeStoryWu),
       visibility: Number(root?.dataset.worldVisibility),
@@ -451,6 +470,11 @@ for (const checkpoint of checkpoints) {
         right: rootRect.right,
         bottom: rootRect.bottom,
       } : null,
+      textCorridorRect: textCorridorRect ? {
+        left: textCorridorRect.left,
+        right: textCorridorRect.right,
+        width: textCorridorRect.width,
+      } : null,
       openerCenterOffsetRatio: rootRect && openerRect
         ? Math.abs((openerRect.left + (openerRect.width / 2)) - (rootRect.left + (rootRect.width / 2)))
           / rootRect.width
@@ -462,9 +486,14 @@ for (const checkpoint of checkpoints) {
         ? Math.abs(((disciplineBounds.left + disciplineBounds.right) / 2)
           - (rootRect.left + (rootRect.width / 2))) / rootRect.width
         : null,
-      disciplineWithinHorizontalSafeArea: rootRect && disciplineBounds
-        ? disciplineBounds.left >= rootRect.left + 12
-          && disciplineBounds.right <= rootRect.right - 12
+      disciplineWithinTextCorridor: textCorridorRect && disciplineBounds
+        ? isInsideTextCorridor(disciplineBounds)
+        : null,
+      spatialTitlesWithinTextCorridor: textCorridorRect && visibleSpatialTitleBounds.length > 0
+        ? visibleSpatialTitleBounds.every(isInsideTextCorridor)
+        : null,
+      editorialWithinTextCorridor: textCorridorRect && visibleEditorialRects.length > 0
+        ? visibleEditorialRects.every(isInsideTextCorridor)
         : null,
     };
   });
@@ -508,9 +537,23 @@ for (const checkpoint of checkpoints) {
   if (checkpoint.expectExactAnchor) {
     assert.equal(state.anchorSampling, 'exact');
     assert.equal(
-      state.disciplineWithinHorizontalSafeArea,
+      state.disciplineWithinTextCorridor,
       true,
-      `${checkpoint.id}: discipline labels must remain inside the horizontal safe area.`,
+      `${checkpoint.id}: discipline labels must remain inside the global text corridor.`,
+    );
+  }
+  if (state.spatialTitlesWithinTextCorridor !== null) {
+    assert.equal(
+      state.spatialTitlesWithinTextCorridor,
+      true,
+      `${checkpoint.id}: visible spatial titles must remain inside the global text corridor.`,
+    );
+  }
+  if (state.editorialWithinTextCorridor !== null) {
+    assert.equal(
+      state.editorialWithinTextCorridor,
+      true,
+      `${checkpoint.id}: visible editorial text must remain inside the global text corridor.`,
     );
   }
   if (checkpoint.minimumLabels !== undefined) {
@@ -616,6 +659,7 @@ await writeFile(
   `${outputDir}/visual-checkpoints.json`,
   `${JSON.stringify({
     baseUrl,
+    browserName,
     recordedAt: new Date().toISOString(),
     contactSheets,
     checkpoints: evidence,

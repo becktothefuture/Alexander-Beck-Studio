@@ -378,10 +378,10 @@ test('every World exposes grouped live sliders instead of raw Shape and Modifier
   assert.match(liveSources.editorStyles, /\.about-track-editor-parameter__slider/);
 });
 
-test('the Text row header exposes only native-v5 global animation controls', () => {
+test('the Text row header exposes the global width and animation controls', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group) => group.id),
-    ['text-layout', 'text-path', 'text-clarity', 'text-depth', 'text-editorial'],
+    ['text-widths', 'text-layout', 'text-path', 'text-clarity', 'text-depth', 'text-editorial'],
   );
   const exposedControls = ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((group) => group.controls)
     .filter((control) => control.group?.startsWith('text-'));
@@ -866,15 +866,15 @@ test('only the opener and finale Titles may carry supporting descriptions', () =
 test('mobile title roles retain their exact twenty-percent width reductions', () => {
   assert.match(
     liveSources.styles,
-    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-title \{\s*max-width:\s*14\.08ch;/,
+    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-title \{\s*max-width:\s*min\(14\.08ch, var\(--about-title-standard-max-width/,
   );
   assert.match(
     liveSources.styles,
-    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-copy\[data-title-style='display'\] \.about-narrative-spatial-title \{\s*max-width:\s*10\.88ch;/,
+    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-copy\[data-title-style='display'\] \.about-narrative-spatial-title \{\s*max-width:\s*min\(10\.88ch, var\(--about-title-display-max-width/,
   );
   assert.match(
     liveSources.styles,
-    /@media \(max-height: 600px\)[\s\S]*?data-title-style='display'[\s\S]*?max-width:\s*12\.16ch;/,
+    /@media \(max-height: 600px\)[\s\S]*?data-title-style='display'[\s\S]*?max-width:\s*min\(12\.16ch, var\(--about-title-display-max-width/,
   );
 });
 

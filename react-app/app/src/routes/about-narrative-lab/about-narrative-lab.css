@@ -7,6 +7,8 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-lab {
   --about-reading-width: 58rem;
+  --about-text-corridor-inset-left: max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-left));
+  --about-text-corridor-inset-right: max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-right));
   --about-editorial-type-size: clamp(1.4375rem, calc(1.29375rem + 0.7705vw), 1.725rem);
   --about-spatial-title-type-size: clamp(
     calc(var(--about-editorial-type-size) * 1.55),
@@ -26,6 +28,19 @@ body.about-narrative-page .route-simulation-layer {
   pointer-events: auto;
   isolation: isolate;
   container-type: size;
+}
+
+.about-narrative-text-corridor {
+  position: absolute;
+  inset-block: 0;
+  right: var(--about-text-corridor-inset-right);
+  left: var(--about-text-corridor-inset-left);
+  z-index: 0;
+  width: auto;
+  max-width: var(--about-reading-width);
+  margin-inline: auto;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .about-narrative-world {
@@ -126,9 +141,9 @@ body.about-narrative-page .route-simulation-layer {
   box-sizing: border-box;
   padding:
     max(clamp(4.5rem, 9vw, 8.5rem), env(safe-area-inset-top))
-    max(clamp(1.25rem, 7vw, 7rem), env(safe-area-inset-right))
+    var(--about-text-corridor-inset-right)
     max(clamp(4.5rem, 9vw, 8.5rem), env(safe-area-inset-bottom))
-    max(clamp(1.25rem, 7vw, 7rem), env(safe-area-inset-left));
+    var(--about-text-corridor-inset-left);
   overflow: hidden;
   perspective: var(--about-text-perspective, 1600px);
   perspective-origin: 50% 46%;
@@ -137,16 +152,20 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-spatial-copy {
   position: relative;
-  width: min(100%, 70rem);
+  width: min(100%, var(--about-reading-width));
   text-align: center;
   transform-style: preserve-3d;
 }
 
 .about-narrative-spatial-copy[data-title-viewport-y] {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  inset-block: 0;
+  right: var(--about-text-corridor-inset-right);
+  left: var(--about-text-corridor-inset-left);
+  width: auto;
+  max-width: var(--about-reading-width);
   height: 100%;
+  margin-inline: auto;
 }
 
 .about-narrative-spatial-copy[data-title-viewport-y][data-title-style='standard'] {
@@ -197,7 +216,7 @@ body.about-narrative-page .route-simulation-layer {
   grid-area: 1 / 1;
   place-items: center;
   width: 100%;
-  max-width: var(--about-title-standard-max-width, 28ch);
+  max-width: min(var(--about-title-standard-max-width, 28ch), 100%);
   padding-block: 0.2em;
   margin: -0.2em auto -0.1em;
   overflow: visible;
@@ -224,7 +243,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
-  max-width: var(--about-title-display-max-width, 22ch);
+  max-width: min(var(--about-title-display-max-width, 22ch), 100%);
   font-family: var(--abs-font-headline);
   font-kerning: normal;
   font-size: clamp(2.4rem, 6.7vw, 7.8rem);
@@ -261,8 +280,8 @@ body.about-narrative-page .route-simulation-layer {
     * var(--narrative-viewport-height, 100svh)
   );
   padding-inline:
-    max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-left))
-    max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-right));
+    var(--about-text-corridor-inset-left)
+    var(--about-text-corridor-inset-right);
   pointer-events: auto;
 }
 
@@ -759,7 +778,7 @@ body.dark-mode .about-narrative-client-logos img {
   left: var(--discipline-x);
   display: block;
   width: max-content;
-  max-width: min(30rem, calc(100% - 2rem));
+  max-width: min(30rem, var(--about-discipline-corridor-width, calc(100% - 2rem)));
   opacity: var(--discipline-reveal);
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
@@ -789,7 +808,8 @@ body.dark-mode .about-narrative-client-logos img {
   font-weight: 580;
   letter-spacing: -0.025em;
   line-height: 1.05;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
   filter: none;
   text-shadow: none;
   transform: none;
@@ -821,7 +841,7 @@ body.dark-mode .about-narrative-client-logos img {
 
 .about-narrative-spatial-copy.is-finale .about-narrative-spatial-title.route-bookend-title {
   display: block;
-  max-width: 13ch;
+  max-width: min(13ch, var(--about-title-display-max-width, 22ch), 100%);
   padding-block: 0;
   margin: 0 auto;
   opacity: var(--fragment-opacity, 0);
@@ -1049,7 +1069,8 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-lab[data-about-layout-profile='tablet'] {
-  --about-reading-width: min(52rem, calc(100vw - 8rem));
+  --about-text-corridor-inset-left: max(clamp(3.5rem, 8vw, 6rem), env(safe-area-inset-left));
+  --about-text-corridor-inset-right: max(clamp(3.5rem, 8vw, 6rem), env(safe-area-inset-right));
   --about-editorial-type-size: clamp(1.2995rem, 2.415vw, 1.61rem);
 }
 
@@ -1065,27 +1086,22 @@ body.dark-mode .about-narrative-client-logos img {
   font-size: var(--route-bookend-title-size);
 }
 
-.about-narrative-lab[data-about-layout-profile='tablet'] .about-narrative-render-span--editorial {
-  padding-inline:
-    max(clamp(3.5rem, 8vw, 6rem), env(safe-area-inset-left))
-    max(clamp(3.5rem, 8vw, 6rem), env(safe-area-inset-right));
-}
-
 .about-narrative-lab[data-about-layout-profile='mobile'] {
-  --about-reading-width: 100%;
+  --about-text-corridor-inset-left: max(1.5rem, env(safe-area-inset-left));
+  --about-text-corridor-inset-right: max(1.5rem, env(safe-area-inset-right));
   --about-editorial-type-size: clamp(1.219rem, 5.29vw, 1.4375rem);
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-stage {
   padding:
     max(4.25rem, env(safe-area-inset-top))
-    max(1.75rem, env(safe-area-inset-right))
+    var(--about-text-corridor-inset-right)
     max(5rem, env(safe-area-inset-bottom))
-    max(1.75rem, env(safe-area-inset-left));
+    var(--about-text-corridor-inset-left);
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-title {
-  max-width: 14.08ch;
+  max-width: min(14.08ch, var(--about-title-standard-max-width, 28ch), 100%);
   line-height: 1.1;
 }
 
@@ -1094,21 +1110,15 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
-  max-width: 10.88ch;
+  max-width: min(10.88ch, var(--about-title-display-max-width, 22ch), 100%);
   font-size: clamp(2.25rem, 11vw, 4.5rem);
   line-height: calc(1.18 * var(--abs-font-headline-line-height-scale, 1));
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale[data-title-style='display'] .about-narrative-spatial-title {
-  max-width: 13ch;
+  max-width: min(13ch, var(--about-title-display-max-width, 22ch), 100%);
   font-size: var(--route-bookend-title-size);
   line-height: calc(1.15 * var(--abs-font-headline-line-height-scale, 1));
-}
-
-.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-render-span--editorial {
-  padding-inline:
-    max(1.5rem, env(safe-area-inset-left))
-    max(1.5rem, env(safe-area-inset-right));
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-editorial-title,
@@ -1173,7 +1183,8 @@ body.dark-mode .about-narrative-client-logos img {
 
 @media (max-height: 600px) and (max-width: 900px) {
   .about-narrative-lab[data-about-layout-profile='mobile'] {
-    --about-reading-width: min(46rem, calc(100vw - 8rem));
+    --about-text-corridor-inset-left: max(4rem, env(safe-area-inset-left));
+    --about-text-corridor-inset-right: max(4rem, env(safe-area-inset-right));
     --about-editorial-type-size: clamp(0.78rem, 2.8vh, 1rem);
   }
 
@@ -1245,7 +1256,7 @@ body.dark-mode .about-narrative-client-logos img {
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy[data-title-style='display'] .about-narrative-spatial-title {
-    max-width: 12.16ch;
+    max-width: min(12.16ch, var(--about-title-display-max-width, 22ch), 100%);
     font-size: clamp(1.25rem, 5.2vh, 2rem);
   }
 
@@ -1257,7 +1268,7 @@ body.dark-mode .about-narrative-client-logos img {
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-copy.is-finale[data-title-style='display'] .about-narrative-spatial-title {
-    max-width: 28ch;
+    max-width: min(28ch, var(--about-title-display-max-width, 22ch), 100%);
     font-size: clamp(2rem, 10vh, 3rem);
     line-height: 1.08;
   }

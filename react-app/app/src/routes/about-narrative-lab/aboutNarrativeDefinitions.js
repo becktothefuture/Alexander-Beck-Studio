@@ -83,6 +83,7 @@ export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'text-widths', label: 'Text · Widths' }),
   Object.freeze({ id: 'text-layout', label: 'Titles · Layout' }),
   Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
   Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
@@ -163,7 +164,7 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     label: 'Sequence',
     controls: Object.freeze([
       numberControl('scrollSmoothing', 'Scroll smoothing', 0, 1, 0.01),
-      numberControl('readingWidthRem', 'Reading width', 30, 90, 1, 'rem', 'text-editorial'),
+      numberControl('readingWidthRem', 'Text corridor width', 30, 90, 1, 'rem', 'text-widths'),
       numberControl('editorialRevealThreshold', 'Reveal starts', 0.8, 1, 0.01, '×H', 'text-editorial'),
     ]),
   }),
@@ -207,8 +208,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'textMotion',
     label: 'Spatial titles',
     controls: Object.freeze([
-      numberControl('standardMaxWidthCh', 'Standard max width', 8, 60, 1, 'ch', 'text-layout'),
-      numberControl('displayMaxWidthCh', 'Display max width', 8, 60, 1, 'ch', 'text-layout'),
+      numberControl('standardMaxWidthCh', 'Standard title width', 8, 60, 1, 'ch', 'text-widths'),
+      numberControl('displayMaxWidthCh', 'Display title width', 8, 60, 1, 'ch', 'text-widths'),
       numberControl('standardViewportY', 'Travelling title Y', 0, 100, 1, '%', 'text-layout'),
       numberControl('bookendViewportY', 'Opener and finale Y', 0, 100, 1, '%', 'text-layout'),
       numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),

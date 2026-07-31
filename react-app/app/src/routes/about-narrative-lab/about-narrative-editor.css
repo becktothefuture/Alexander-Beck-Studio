@@ -1135,6 +1135,28 @@
   touch-action: none;
 }
 
+.about-track-editor-discipline-map__corridor {
+  position: absolute;
+  inset-block: 6%;
+  right: calc(100% - var(--discipline-editor-corridor-right, 94%));
+  left: var(--discipline-editor-corridor-left, 6%);
+  border-inline: 1px solid color-mix(in srgb, var(--editor-interaction) 46%, transparent);
+  background: color-mix(in srgb, var(--editor-interaction) 5%, transparent);
+  pointer-events: none;
+}
+
+.about-track-editor-discipline-map__corridor span {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  color: color-mix(in srgb, var(--editor-interaction) 74%, var(--editor-muted));
+  font-family: var(--abs-font-mono);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .about-track-editor .about-track-editor-discipline-map__anchor {
   position: absolute;
   top: var(--discipline-editor-y);

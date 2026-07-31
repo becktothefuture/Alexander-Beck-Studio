@@ -37,6 +37,7 @@ import {
   isAboutNarrativeShortLandscape,
   resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
+import { getAboutNarrativeDisciplineLabelNudge } from './aboutNarrativeTextCorridor.js';
 import {
   createAboutNarrativePointFieldMotionSample,
   sampleAboutNarrativePointFieldMotionInto,
@@ -1312,6 +1313,10 @@ function createPointFieldAdapter({
   const disciplineLabelWidth = new Float64Array(6);
   const disciplineProjectedX = new Float64Array(6).fill(Number.NaN);
   const disciplineProjectedY = new Float64Array(6).fill(Number.NaN);
+  const textCorridor = root.querySelector('[data-about-text-corridor]');
+  let disciplineCorridorLeft = 16;
+  let disciplineCorridorRight = 16;
+  let disciplineCorridorWidth = 0;
   let cachedDisciplineOverlay = null;
   let cachedDisciplineChildCount = -1;
   let lastDisciplineVisibleCount = Number.NaN;
@@ -1332,6 +1337,25 @@ function createPointFieldAdapter({
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       const label = disciplineLabels[index];
       disciplineLabelWidth[index] = label?.offsetWidth || 0;
+    }
+  };
+  const measureDisciplineCorridor = () => {
+    const positioningRect = cachedDisciplineOverlay?.getBoundingClientRect()
+      || root.getBoundingClientRect();
+    const corridorRect = textCorridor?.getBoundingClientRect();
+    disciplineCorridorLeft = corridorRect
+      ? corridorRect.left - positioningRect.left
+      : 16;
+    disciplineCorridorRight = corridorRect
+      ? corridorRect.right - positioningRect.left
+      : Math.max(disciplineCorridorLeft, positioningRect.width - 16);
+    const nextWidth = Math.max(1, disciplineCorridorRight - disciplineCorridorLeft);
+    if (nextWidth !== disciplineCorridorWidth) {
+      disciplineCorridorWidth = nextWidth;
+      cachedDisciplineOverlay?.style.setProperty(
+        '--about-discipline-corridor-width',
+        `${disciplineCorridorWidth}px`,
+      );
     }
   };
   const disciplineLabelResizeObserver = new ResizeObserver(measureDisciplineLabels);
@@ -1361,6 +1385,11 @@ function createPointFieldAdapter({
     if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
     cachedDisciplineOverlay = overlay || null;
     cachedDisciplineChildCount = childCount;
+    cachedDisciplineOverlay?.style.setProperty(
+      '--about-discipline-corridor-width',
+      `${Math.max(1, disciplineCorridorWidth)}px`,
+    );
+    measureDisciplineCorridor();
     disciplineLabelResizeObserver.disconnect();
     runtimeObserver.hotFrameOwnedAllocation();
     for (let index = 0; index < disciplineLabels.length; index += 1) {
@@ -1416,20 +1445,16 @@ function createPointFieldAdapter({
   };
 
   const placeDisciplineLabels = (offset) => {
-    // On a phone the travelling labels need the same composed reading column
-    // as editorial copy, rather than hugging whichever edge their projected
-    // point reaches first.
-    const safeInset = layoutProfile === 'mobile' ? 48 : compact ? 12 : 16;
     for (let index = 0; index < disciplineLabels.length; index += 1) {
       if (!Number.isFinite(disciplineProjectedX[index])) continue;
-      const labelWidth = disciplineLabelWidth[index];
       const localX = disciplineProjectedX[index] - viewportOffsetX;
-      const proposedLeft = localX + offset;
-      const proposedRight = localX + offset + labelWidth;
-      const maximumNudge = Math.min(0, (width - safeInset) - proposedRight);
-      const nudge = proposedLeft < safeInset
-        ? safeInset - proposedLeft
-        : maximumNudge;
+      const nudge = getAboutNarrativeDisciplineLabelNudge({
+        anchorX: localX,
+        labelWidth: disciplineLabelWidth[index],
+        labelOffset: offset,
+        corridorLeft: disciplineCorridorLeft,
+        corridorRight: disciplineCorridorRight,
+      });
       writeDisciplineNudge(index, Math.round(nudge * 100) / 100);
       writeDisciplinePosition(
         index,
@@ -1466,6 +1491,7 @@ function createPointFieldAdapter({
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     uniforms.pixelRatio.value = ratio;
+    measureDisciplineCorridor();
     measureDisciplineLabels();
     if (wasShortLandscape !== shortLandscape && lastPreparationRequest) {
       preparePlan(lastPreparationRequest);
@@ -2613,6 +2639,7 @@ function createPointFieldAdapter({
   const themeObserver = new MutationObserver(updateTheme);
   resizeObserver.observe(root);
   resizeObserver.observe(canvas);
+  if (textCorridor) resizeObserver.observe(textCorridor);
   responsivePreviewObserver.observe(root, {
     attributes: true,
     attributeFilter: ['data-editor-preview-layout', 'data-editor-preview-orientation'],

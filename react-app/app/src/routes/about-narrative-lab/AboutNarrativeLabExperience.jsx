@@ -893,6 +893,11 @@ export function AboutNarrativeLabExperience({
       data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}
       style={rootStyle}
     >
+      <div
+        className="about-narrative-text-corridor"
+        data-about-text-corridor
+        aria-hidden="true"
+      />
       <AboutNarrativeWorld
         rendererId="three-point-world-v1"
         rootRef={rootRef}
