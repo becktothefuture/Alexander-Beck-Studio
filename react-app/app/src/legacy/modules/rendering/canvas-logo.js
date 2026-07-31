@@ -12,7 +12,7 @@ import { getShellConfig } from '../visual/site-shell.js';
 const LOGO_VIEWBOX_W = 511;
 const LOGO_VIEWBOX_H = 101;
 const LOGO_ASPECT = LOGO_VIEWBOX_W / LOGO_VIEWBOX_H;
-const LOGO_SECONDARY_OPACITY_DEFAULT = 0.66;
+const LOGO_SECONDARY_OPACITY_DEFAULT = 0.72;
 
 // Theme colors (from tokens.css)
 const LOGO_COLOR_LIGHT = "var(--color-detected-161616)";

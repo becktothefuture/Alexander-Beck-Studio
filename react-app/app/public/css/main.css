@@ -1603,7 +1603,7 @@ body.styleguide-page .styleguide-type-sample--hero-role {
 
 body.styleguide-page .styleguide-type-sample--hero-role {
   margin-top: 0;
-  opacity: var(--brand-logo-secondary-opacity, 0.58);
+  opacity: var(--brand-logo-secondary-opacity, 0.72);
 }
 
 body.styleguide-page .styleguide-type-sample--legend {
@@ -3504,7 +3504,7 @@ html[data-abs-transition-phase='modal-open'] .hero-title {
   margin-top: 0;
   color: inherit;
   text-shadow: none;
-  opacity: var(--brand-logo-secondary-opacity, 0.58);
+  opacity: var(--brand-logo-secondary-opacity, 0.72);
 }
 
 .route-entrance-word {
@@ -3604,7 +3604,7 @@ html.abs-direct-boot-ready .hero-title__eyebrow {
 
 html.abs-direct-boot-ready .hero-title__role,
 html.abs-direct-boot-ready .hero-title__line--secondary {
-  opacity: var(--brand-logo-secondary-opacity, 0.58);
+  opacity: var(--brand-logo-secondary-opacity, 0.72);
 }
 
 html.abs-direct-boot-staging .ui-main-nav .footer_link {
@@ -3645,7 +3645,7 @@ html.abs-direct-boot-staging .ui-main-nav .footer_link {
   }
   .hero-title__role,
   .hero-title__line--secondary {
-    opacity: var(--brand-logo-secondary-opacity, 0.58);
+    opacity: var(--brand-logo-secondary-opacity, 0.72);
   }
 
   .route-entrance-glyph {
@@ -5455,7 +5455,7 @@ html.is-safari .noise::before {
   html[data-shell-route='home'] body .hero-title__role,
   html[data-shell-route='home'] body .hero-title__line--secondary {
     color: inherit;
-    opacity: var(--brand-logo-secondary-opacity, 0.58);
+    opacity: var(--brand-logo-secondary-opacity, 0.72);
   }
 
   .ui-top {

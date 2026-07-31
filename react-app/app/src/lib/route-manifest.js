@@ -5,7 +5,7 @@ export const ROUTE_MANIFEST = Object.freeze({
     aliases: ['/', '/index.html', '/index'],
     gated: false,
     layout: 'shared-shell',
-    title: 'Alexander Beck — Designer and Technologist',
+    title: 'Alexander Beck — Creative & Technologist',
     shellTab: {
       order: 0,
       label: 'Home',

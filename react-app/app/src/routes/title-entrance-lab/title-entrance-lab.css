@@ -198,7 +198,7 @@ body.title-entrance-lab-page .title-entrance-specimen__title {
 }
 
 .title-entrance-specimen__line[data-title-tone='secondary'] {
-  --glyph-final-opacity: var(--brand-logo-secondary-opacity, 0.58);
+  --glyph-final-opacity: var(--brand-logo-secondary-opacity, 0.72);
 }
 
 .title-entrance-specimen__glyph {

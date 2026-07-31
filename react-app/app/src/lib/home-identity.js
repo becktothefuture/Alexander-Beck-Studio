@@ -1,10 +1,10 @@
 import homeContent from 'virtual:abs-content/home';
 
 const DEFAULT_HOME_IDENTITY = Object.freeze({
-  name: 'Alexander Beck.',
-  role: 'Designer and Technologist.',
-  roleLines: Object.freeze(['Designer and', 'Technologist.']),
-  ariaLabel: 'Alexander Beck. Designer and technologist.',
+  name: 'Alexander Beck',
+  role: 'Creative & Technologist.',
+  roleLines: Object.freeze(['Creative &', 'Technologist.']),
+  ariaLabel: 'Alexander Beck. Creative and technologist.',
 });
 
 function resolveRoleLines(value, fallback) {
