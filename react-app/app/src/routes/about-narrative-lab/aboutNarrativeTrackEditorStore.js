@@ -775,17 +775,11 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
       if (gesture || tryState) return rejectBusyEdit('Edit Text timing');
       if (!['startWU', 'endWU'].includes(field) || !Number.isFinite(Number(value))) return false;
       const previousDurationWU = Number(snapshot.document.profiles?.desktop?.storyDurationWU);
-      const previousTextDurationWU = Math.max(
-        0,
-        ...snapshot.document.tracks.text.fields.map((item) => Number(item.endWU)).filter(Number.isFinite),
-      );
       return store.commit('Edit Text timing', (draft) => {
         const target = getAboutNarrativeTrackObject(draft, { type: 'text-field', id });
         if (!target) return;
         target[field] = Number(value);
-        synchronizeAboutNarrativeDurationToText(draft, previousDurationWU, {
-          allowShrink: Math.abs(previousTextDurationWU - previousDurationWU) <= 0.000001,
-        });
+        synchronizeAboutNarrativeDurationToText(draft, previousDurationWU);
       }, { selectionAfter: { type: 'text-field', id }, requireValid: true });
     },
     deleteSelection() {

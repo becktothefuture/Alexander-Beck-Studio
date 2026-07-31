@@ -466,8 +466,8 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
     const atWU = Number(overrides.camera?.[key.id]?.atWU ?? key.atWU);
     if (atWU <= previousCameraWU) diagnostic(diagnostics, 'profile-camera-order', `${path}.camera.${key.id}.atWU`, 'Profile Camera keys must remain strictly ordered.');
     previousCameraWU = atWU;
-    if ((index === 0 && atWU !== 0) || (index === cameraKeys.length - 1 && Math.abs(atWU - durationWU) > 0.000001)) {
-      diagnostic(diagnostics, 'profile-camera-endpoint', `${path}.camera.${key.id}.atWU`, 'Profile Camera overrides must preserve Story WU start and end keys.');
+    if (index === 0 && atWU !== 0) {
+      diagnostic(diagnostics, 'profile-camera-endpoint', `${path}.camera.${key.id}.atWU`, 'Profile Camera overrides must preserve the Story WU start key.');
     }
   });
 
@@ -478,8 +478,8 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
       const atWU = Number(overrides.visibility?.[key.id]?.atWU ?? key.atWU);
       if (atWU <= previousVisibilityWU) diagnostic(diagnostics, 'profile-visibility-order', `${path}.visibility.${key.id}.atWU`, 'Profile Visibility keys must remain strictly ordered.');
       previousVisibilityWU = atWU;
-      if ((index === 0 && atWU !== 0) || (index === visibilityKeys.length - 1 && Math.abs(atWU - durationWU) > 0.000001)) {
-        diagnostic(diagnostics, 'profile-visibility-endpoint', `${path}.visibility.${key.id}.atWU`, 'Profile Visibility overrides must preserve Story WU start and end keys.');
+      if (index === 0 && atWU !== 0) {
+        diagnostic(diagnostics, 'profile-visibility-endpoint', `${path}.visibility.${key.id}.atWU`, 'Profile Visibility overrides must preserve the Story WU start key.');
       }
     });
   }
@@ -992,7 +992,7 @@ export function validateAboutNarrativeTrackDocument(input, {
     if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'camera-locked', `${path}.locked`, 'Camera locked must be boolean.');
     if (key.locked !== (index === 0 || index === cameraKeys.length - 1)) diagnostic(diagnostics, 'camera-boundary-lock', `${path}.locked`, 'Only story start and story end Camera keys may be locked.');
   });
-  if (cameraKeys?.length && (Number(cameraKeys[0].atWU) !== 0 || Math.abs(Number(cameraKeys.at(-1).atWU) - durationWU) > 0.000001)) diagnostic(diagnostics, 'camera-endpoints', 'tracks.camera.keys', 'Camera keys must cover Story WU 0 through the story duration.');
+  if (cameraKeys?.length && Number(cameraKeys[0].atWU) !== 0) diagnostic(diagnostics, 'camera-endpoints', 'tracks.camera.keys', 'Camera keys must begin at Story WU 0.');
 
   if (currentSchema) {
     let previousVisibilityWU = -1;
@@ -1009,7 +1009,7 @@ export function validateAboutNarrativeTrackDocument(input, {
       if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'visibility-locked', `${path}.locked`, 'Visibility locked must be boolean.');
       if (key.locked !== (index === 0 || index === visibilityKeys.length - 1)) diagnostic(diagnostics, 'visibility-boundary-lock', `${path}.locked`, 'Only story start and story end Visibility keys may be locked.');
     });
-    if (visibilityKeys?.length && (Number(visibilityKeys[0].atWU) !== 0 || Math.abs(Number(visibilityKeys.at(-1).atWU) - durationWU) > 0.000001)) diagnostic(diagnostics, 'visibility-endpoints', 'tracks.visibility.keys', 'Visibility keys must cover Story WU 0 through the story duration.');
+    if (visibilityKeys?.length && Number(visibilityKeys[0].atWU) !== 0) diagnostic(diagnostics, 'visibility-endpoints', 'tracks.visibility.keys', 'Visibility keys must begin at Story WU 0.');
   }
 
   let previousWorldWU = -1;
@@ -1068,13 +1068,6 @@ export function validateAboutNarrativeTrackDocument(input, {
     if (Number(field?.startWU) < previousTextWU) diagnostic(diagnostics, 'text-track-order', `tracks.text.fields.${index}.startWU`, 'Text fields must be ordered by startWU.');
     previousTextWU = Number(field?.startWU);
   });
-  if (currentSchema && textFields?.length) {
-    const textDurationWU = Math.max(...textFields.map((field) => Number(field?.endWU)).filter(Number.isFinite));
-    if (Math.abs(textDurationWU - durationWU) > 0.000001) {
-      diagnostic(diagnostics, 'text-story-duration', 'tracks.text.fields', 'The final Text element must define the Story WU duration.');
-    }
-  }
-
   let previousClipWU = -1;
   (clips || []).forEach((clip, index) => {
     const path = `tracks.interactions.clips.${index}`;

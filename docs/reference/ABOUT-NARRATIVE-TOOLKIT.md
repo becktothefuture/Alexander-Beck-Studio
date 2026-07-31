@@ -90,6 +90,10 @@ Visibility, Point Field, Text, and Motion objects all use absolute Story WU, so 
 silently retimes another. The profile resolver maps physical scroll distance to the same authored
 Story WU without measuring DOM content into the creative timing model.
 
+Moving or resizing Text never scales Camera, Visibility, Point Field, or Motion timing. If Text extends
+beyond the current ending, the Story boundary grows and the other tracks hold their last authored
+state. Moving Text earlier can remove only unused ending space; it never compresses another lane.
+
 ## One global playhead
 
 The runtime has one `storyWU` value. Three sources can own it:
@@ -192,17 +196,19 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 ### Current camera choreography
 
-- `0–6.55 WU`: establish the opener, travel through the turbulent field, pass the first editorial
+- `0–5.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
   interval, and bridge directly into the calm grid.
-- `6.55–11.65 WU`: pitch into the grid flyover, reveal the six disciplines in sequence, and fade the
-  material only after the final label has passed.
-- `11.65–13.70 WU`: hold true editorial space for the second reading block while the camera repositions.
-- `13.70–16.15 WU`: return to the same centered surface, sustain the scroll-authored ripple beneath
-  the three travelling titles, and begin the sideways descent around its fixed center.
-- `16.15–18.45 WU`: gather the fixed point pool onto the footprint plane and build the bust from its
-  lower layers into the head while the final invitation begins over the forming material.
-- `18.45–19.05 WU`: continue a small aimed orbit and gentle bust motion behind the complete invitation,
-  description, and actions rather than freezing the last frame.
+- `5.35–7.30 WU`: keep the complete field visible behind the two discipline headings and move
+  directly into the reveal.
+- `7.30–11.10 WU`: pitch through the grid flyover, reveal the six disciplines in sequence, and begin
+  the second editorial block before the final discipline motion has fully cleared.
+- `11.10–13.15 WU`: hold focused editorial space while the camera repositions without an empty run.
+- `13.15–15.27 WU`: return to the centered surface and sustain the scroll-authored ripple beneath
+  the three travelling titles.
+- `15.27–16.07 WU`: begin gathering the fixed point pool while the third title exits, then build the
+  bust from its lower layers into the head.
+- `15.91–17.81 WU`: start the final invitation when the bust is 80% formed, then continue a small
+  aimed orbit and gentle bust motion behind the complete invitation, description, and actions.
 
 ## How Point Field states stay connected
 
@@ -329,6 +335,10 @@ point emphasis. Each projected label uses the shared editorial reading line as i
 and remains revealed during forward travel. The clip never owns camera, fog, or whole-system visibility.
 **Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
 Reorder the six labels without remapping their stable point groups.
+
+The Discipline reveal stays authored in Motion, but the Text lane shows its complete interval as a
+read-only flow reservation. This makes the occupied reading interval visible between the preceding
+titles and the following editorial block without creating a second timing owner.
 
 The clip is one draggable timing object. The native DOM labels project from their corresponding
 Three.js points and pack inside the viewport on desktop, portrait mobile, and short landscape. Their

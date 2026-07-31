@@ -13,14 +13,13 @@ import {
   sampleAboutNarrativePointFieldRuntimeInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldRuntime.js';
 import {
+  projectAboutNarrativePointFieldDocumentToVersion5,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
+import {
   compileAboutNarrativeRuntimePlan,
   sampleAboutNarrativeRuntimePlan,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 
-const canonicalV5 = JSON.parse(await readFile(
-  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
-  'utf8',
-));
 const canonicalV6 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
@@ -72,8 +71,9 @@ test('v6 point-field compiler produces immutable states and interpolated prepara
   assert.equal('endWU' in plan.rendererStates[0], false);
 });
 
-test('v6 point-field sampling preserves canonical v5 destination and visual progress', () => {
-  const legacyPlan = compileAboutNarrativeRuntimePlan(canonicalV5);
+test('v6 point-field sampling preserves projected v5 destination and visual progress', () => {
+  const projectedV5 = projectAboutNarrativePointFieldDocumentToVersion5(canonicalV6);
+  const legacyPlan = compileAboutNarrativeRuntimePlan(projectedV5);
   const plan = compileAboutNarrativePointFieldRuntime(canonicalV6);
   assert.equal(legacyPlan.valid, true);
   assert.equal(plan.valid, true);
@@ -214,7 +214,7 @@ test('final hold and final frame remain settled without inferring a World end', 
 test('incoming emergent segment owns its absolute-target interaction', () => {
   const plan = compileAboutNarrativePointFieldRuntime(canonicalV6);
   const interaction = plan.interactions.find((clip) => clip.id === 'interaction-emergent-ripple');
-  const atStart = sampleAboutNarrativePointFieldRuntime(plan, 17.291801);
+  const atStart = sampleAboutNarrativePointFieldRuntime(plan, interaction.startWU);
   const beforeActivation = sampleAboutNarrativePointFieldRuntime(plan, interaction.activationWU - 0.000001);
   const afterActivation = sampleAboutNarrativePointFieldRuntime(plan, interaction.activationWU);
 
@@ -231,15 +231,18 @@ test('absolute interactions may begin before their target state becomes the segm
   const interaction = source.tracks.interactions.clips.find((clip) => (
     clip.id === 'interaction-emergent-ripple'
   ));
-  interaction.startWU = 15.5;
+  const emergentDeparture = source.tracks.pointField.keys.find((key) => (
+    key.id === 'key-world-emergent-departure'
+  )).atWU;
+  interaction.startWU = emergentDeparture - 0.5;
   const plan = compileAboutNarrativePointFieldRuntime(source);
   assert.equal(plan.valid, true);
 
-  const preparedEarly = sampleAboutNarrativePointFieldRuntime(plan, 15.75);
+  const preparedEarly = sampleAboutNarrativePointFieldRuntime(plan, interaction.startWU + 0.25);
   assert.ok(preparedEarly.interactions.activeClipIds.includes(interaction.id));
   assert.notEqual(preparedEarly.interactions.activeInteraction?.id, interaction.id);
 
-  const targetIncoming = sampleAboutNarrativePointFieldRuntime(plan, 17.291801);
+  const targetIncoming = sampleAboutNarrativePointFieldRuntime(plan, emergentDeparture);
   assert.equal(targetIncoming.world.to.stateId, interaction.targetStateId);
   assert.equal(targetIncoming.interactions.activeInteraction?.id, interaction.id);
 });
@@ -287,9 +290,12 @@ test('compiler rejects missing targets and discipline-incompatible destination s
 
   const incompatible = structuredClone(canonicalV6);
   const discipline = incompatible.tracks.interactions.clips[0];
-  discipline.startWU = 18.5;
-  discipline.activationWU = 18.5;
-  discipline.endWU = 18.8;
+  const emergentArrival = incompatible.tracks.pointField.keys.find((key) => (
+    key.id === 'key-world-emergent-arrival'
+  )).atWU;
+  discipline.startWU = emergentArrival + 0.1;
+  discipline.activationWU = emergentArrival + 0.1;
+  discipline.endWU = emergentArrival + 0.4;
   discipline.targetStateId = 'world-emergent';
   const incompatiblePlan = compileAboutNarrativePointFieldRuntime(incompatible);
   assert.equal(incompatiblePlan.valid, false);

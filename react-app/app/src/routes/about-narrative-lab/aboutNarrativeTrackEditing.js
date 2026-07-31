@@ -65,98 +65,63 @@ function getStoryDurationWU(model) {
   return Math.max(0, ...times);
 }
 
-function scaleTime(value, scale) {
-  return finite(value) ? cleanWU(Number(value) * scale) : value;
-}
-
-function scaleTransition(transition, scale) {
-  if (!transition) return;
-  transition.startWU = scaleTime(transition.startWU, scale);
-  transition.endWU = scaleTime(transition.endWU, scale);
-}
-
-function scaleTimingParameters(parameters, scale) {
-  if (!parameters || typeof parameters !== 'object') return;
-  Object.entries(parameters).forEach(([key, value]) => {
-    if (key.endsWith('WU') && finite(value)) parameters[key] = scaleTime(value, scale);
-  });
-}
-
-function preserveStoryTimedMotion(parameters, scale) {
-  if (!parameters || parameters.timeMode !== 'story' || !finite(parameters.speed)) return;
-  parameters.speed = cleanWU(Number(parameters.speed) / scale);
-}
-
-function scaleNonTextTiming(model, scale) {
-  (model.tracks?.camera?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
-  (model.tracks?.visibility?.keys || []).forEach((key) => { key.atWU = scaleTime(key.atWU, scale); });
-  (model.tracks?.worlds?.objects || []).forEach((world) => {
-    world.startWU = scaleTime(world.startWU, scale);
-    scaleTransition(world.transitionIn, scale);
-    (world.modifiers || []).forEach((modifier) => preserveStoryTimedMotion(modifier.parameters, scale));
-  });
-  (model.tracks?.pointField?.keys || []).forEach((key) => {
-    key.atWU = scaleTime(key.atWU, scale);
-  });
-  (model.tracks?.pointField?.stateDefinitions || []).forEach((state) => {
-    (state.modifiers || []).forEach((modifier) => {
-      preserveStoryTimedMotion(modifier.parameters, scale);
-    });
-  });
-  (model.tracks?.interactions?.clips || []).forEach((clip) => {
-    clip.startWU = scaleTime(clip.startWU, scale);
-    clip.activationWU = scaleTime(clip.activationWU, scale);
-    clip.endWU = scaleTime(clip.endWU, scale);
-    scaleTimingParameters(clip.parameters, scale);
-    preserveStoryTimedMotion(clip.parameters, scale);
-  });
-
+function getNonTextBoundaryWU(model) {
+  const times = [
+    ...(model.tracks?.camera?.keys || []).map((item) => item.atWU),
+    ...(model.tracks?.visibility?.keys || []).map((item) => item.atWU),
+    ...(model.tracks?.worlds?.objects || []).flatMap((item) => [
+      item.startWU,
+      item.anchorWU,
+      item.transitionIn?.startWU,
+      item.transitionIn?.endWU,
+    ]),
+    ...(model.tracks?.pointField?.keys || []).map((item) => item.atWU),
+    ...(model.tracks?.interactions?.clips || []).flatMap((item) => [
+      item.startWU,
+      item.activationWU,
+      item.endWU,
+    ]),
+  ];
   Object.values(model.profiles || {}).forEach((profile) => {
-    if (finite(profile.storyDurationWU)) {
-      const scrollRatio = finite(profile.scrollDurationWU)
-        ? Number(profile.scrollDurationWU) / Number(profile.storyDurationWU)
-        : 1;
-      profile.storyDurationWU = scaleTime(profile.storyDurationWU, scale);
-      if (finite(profile.scrollDurationWU)) {
-        profile.scrollDurationWU = cleanWU(profile.storyDurationWU * scrollRatio);
-      }
-    }
-    Object.values(profile.overrides?.camera || {}).forEach((override) => {
-      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
-    });
-    Object.values(profile.overrides?.visibility || {}).forEach((override) => {
-      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
-    });
-    Object.values(profile.overrides?.worlds || {}).forEach((override) => {
-      if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
-      scaleTransition(override.transitionIn, scale);
-    });
-    Object.values(profile.overrides?.pointField?.keys || {}).forEach((override) => {
-      if (finite(override.atWU)) override.atWU = scaleTime(override.atWU, scale);
-    });
-    Object.values(profile.overrides?.interactions || {}).forEach((override) => {
-      if (finite(override.startWU)) override.startWU = scaleTime(override.startWU, scale);
-      if (finite(override.activationWU)) override.activationWU = scaleTime(override.activationWU, scale);
-      if (finite(override.endWU)) override.endWU = scaleTime(override.endWU, scale);
-      scaleTimingParameters(override.parameters, scale);
-      preserveStoryTimedMotion(override.parameters, scale);
-    });
+    const overrides = profile?.overrides;
+    Object.values(overrides?.camera || {}).forEach((item) => times.push(item.atWU));
+    Object.values(overrides?.visibility || {}).forEach((item) => times.push(item.atWU));
+    Object.values(overrides?.worlds || {}).forEach((item) => times.push(
+      item.startWU,
+      item.anchorWU,
+      item.transitionIn?.startWU,
+      item.transitionIn?.endWU,
+    ));
+    Object.values(overrides?.pointField?.keys || {}).forEach((item) => times.push(item.atWU));
+    Object.values(overrides?.interactions || {}).forEach((item) => times.push(
+      item.startWU,
+      item.activationWU,
+      item.endWU,
+    ));
   });
+  return Math.max(0, ...times.filter(finite).map(Number));
 }
 
 export function synchronizeAboutNarrativeDurationToText(
   model,
   previousDurationWU = getStoryDurationWU(model),
-  { allowShrink = false } = {},
 ) {
   const textDurationWU = Math.max(
     0,
     ...(model.tracks?.text?.fields || []).map((field) => Number(field.endWU)).filter(Number.isFinite),
   );
-  if (!(textDurationWU > 0) || !(Number(previousDurationWU) > 0)) return model;
-  if (!allowShrink && textDurationWU < Number(previousDurationWU)) return model;
-  const scale = textDurationWU / Number(previousDurationWU);
-  if (Math.abs(scale - 1) > 0.0000005) scaleNonTextTiming(model, scale);
+  const nextDurationWU = cleanWU(Math.max(textDurationWU, getNonTextBoundaryWU(model)));
+  if (!(nextDurationWU > 0) || !(Number(previousDurationWU) > 0)) return model;
+  Object.values(model.profiles || {}).forEach((profile) => {
+    if (!finite(profile.storyDurationWU)) return;
+    const scrollRatio = finite(profile.scrollDurationWU)
+      ? Number(profile.scrollDurationWU) / Number(profile.storyDurationWU)
+      : 1;
+    profile.storyDurationWU = nextDurationWU;
+    if (finite(profile.scrollDurationWU)) {
+      profile.scrollDurationWU = cleanWU(nextDurationWU * scrollRatio);
+    }
+  });
   return model;
 }
 
@@ -562,10 +527,6 @@ export function moveAboutNarrativeTrackObjectsByWU({
   if (!finite(deltaWU)) return resultError('Movement requires a finite WU delta.', 'movement-delta');
   if (resolved.objects.some((object) => object.locked)) return resultError('A protected track object cannot be moved.', 'protected-object');
   const durationWU = getStoryDurationWU(model);
-  const previousTextDurationWU = Math.max(
-    0,
-    ...(model.tracks?.text?.fields || []).map((field) => Number(field.endWU)).filter(Number.isFinite),
-  );
   const times = resolved.objects.flatMap((object) => objectMovableTimes(object, resolved.type));
   const minimumDeltaWU = -Math.min(...times);
   const maximumDeltaWU = resolved.type === 'text-field'
@@ -588,9 +549,7 @@ export function moveAboutNarrativeTrackObjectsByWU({
   });
   sortTrack(candidate, resolved.track);
   if (resolved.type === 'text-field') {
-    synchronizeAboutNarrativeDurationToText(candidate, durationWU, {
-      allowShrink: Math.abs(previousTextDurationWU - durationWU) <= 0.000001,
-    });
+    synchronizeAboutNarrativeDurationToText(candidate, durationWU);
   }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
@@ -630,9 +589,7 @@ export function distributeAboutNarrativeTextFieldsEvenly({ model }) {
     cursorWU = Number(target.endWU) + (index < fields.length - 1 ? gapWU : 0);
   });
   sortTrack(candidate, 'text');
-  synchronizeAboutNarrativeDurationToText(candidate, durationWU, {
-    allowShrink: Math.abs(Number(fields.at(-1).endWU) - durationWU) <= 0.000001,
-  });
+  synchronizeAboutNarrativeDurationToText(candidate, durationWU);
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return {
@@ -659,9 +616,10 @@ export function resizeAboutNarrativeTextFieldEdge({
   const requestedWU = snap ? snapWU(atWU) : cleanWU(atWU);
   const nextWU = edge === 'start'
     ? clamp(requestedWU, 0, Number(field.focusWU))
-    : clamp(requestedWU, Number(field.focusWU), durationWU);
+    : clamp(requestedWU, Number(field.focusWU), 80);
   const candidate = clone(model);
   getAboutNarrativeTrackObject(candidate, { type: 'text-field', id })[`${edge}WU`] = cleanWU(nextWU);
+  synchronizeAboutNarrativeDurationToText(candidate, durationWU);
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return { valid: true, model: candidate, object: getAboutNarrativeTrackObject(candidate, { type: 'text-field', id }), clamped: nextWU !== requestedWU };

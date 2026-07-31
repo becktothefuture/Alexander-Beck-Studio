@@ -1308,7 +1308,7 @@ function TextTrackInspector({ snapshot, store }) {
       </header>
       <div className="about-track-editor-world-folders about-track-editor-global-folders">
         <p className="about-track-editor-parameter-note">
-          The text corridor contains every text role. Editorial copy can use its full width; title widths remain narrower caps. Text windows define the narrative cadence and Story length.
+          The text corridor contains every text role. Editorial copy can use its full width; title widths remain narrower caps. Text windows move independently, and the Discipline reveal appears here as a read-only Motion reservation.
         </p>
         <button type="button" onClick={() => store.distributeTextEvenly()}>Space text evenly</button>
         {ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group, index) => {
@@ -1887,6 +1887,36 @@ function TrackObject({
   );
 }
 
+function TextFlowReservation({ clip, pixelsPerWU, selected, store }) {
+  const startWU = Number(clip.startWU);
+  const endWU = Number(clip.endWU);
+  const left = startWU * pixelsPerWU;
+  const width = Math.max(18, (endWU - startWU) * pixelsPerWU);
+  const selectReservation = (event) => {
+    event.stopPropagation();
+    store.setSelection({ type: 'interaction', id: clip.id });
+    store.setTransport({ owner: 'timeline', playing: false, storyWU: startWU });
+  };
+  return (
+    <div
+      className="about-track-editor-object is-text-flow-reservation"
+      style={{ left, width }}
+    >
+      <button
+        type="button"
+        className={`about-track-editor-flow-reservation${selected ? ' is-selected' : ''}`}
+        data-text-flow-reservation={clip.id}
+        aria-label={`Text flow: Discipline reveal from ${startWU.toFixed(3)} to ${endWU.toFixed(3)} WU`}
+        title={`Discipline reveal · Motion · ${startWU.toFixed(3)}–${endWU.toFixed(3)} WU`}
+        onClick={selectReservation}
+      >
+        <span>Discipline reveal</span>
+        <small>Motion</small>
+      </button>
+    </div>
+  );
+}
+
 function Timeline({
   snapshot,
   store,
@@ -1930,6 +1960,11 @@ function Timeline({
   const worlds = snapshot.document.tracks.worlds?.objects || [];
   const editorialTextConnections = useMemo(
     () => getEditorialTextConnections(snapshot.document.tracks.text.fields),
+    [snapshot.document],
+  );
+  const textFlowReservations = useMemo(
+    () => (snapshot.document.tracks.interactions?.clips || [])
+      .filter((clip) => clip.type === 'discipline-reveal'),
     [snapshot.document],
   );
 
@@ -2167,25 +2202,38 @@ function Timeline({
                     onMoveKey={movePointFieldKey}
                     onMoveSegment={movePointFieldSegment}
                   />
-                ) : getTrackItems(snapshot.document, track.id).map((object) => {
-                  const connection = track.id === 'text'
-                    ? editorialTextConnections.get(object.id)
-                    : null;
-                  return (
-                    <TrackObject
-                      key={object.id}
-                      document={snapshot.document}
-                      object={object}
-                      track={track}
-                      pixelsPerWU={pixelsPerWU}
-                      selected={snapshot.selection.type === track.type && snapshot.selection.id === object.id}
-                      store={store}
-                      onOpenTextEditor={onOpenTextEditor}
-                      connectedBefore={connection?.before}
-                      connectedAfter={connection?.after}
-                    />
-                  );
-                })}
+                ) : (
+                  <>
+                    {getTrackItems(snapshot.document, track.id).map((object) => {
+                      const connection = track.id === 'text'
+                        ? editorialTextConnections.get(object.id)
+                        : null;
+                      return (
+                        <TrackObject
+                          key={object.id}
+                          document={snapshot.document}
+                          object={object}
+                          track={track}
+                          pixelsPerWU={pixelsPerWU}
+                          selected={snapshot.selection.type === track.type && snapshot.selection.id === object.id}
+                          store={store}
+                          onOpenTextEditor={onOpenTextEditor}
+                          connectedBefore={connection?.before}
+                          connectedAfter={connection?.after}
+                        />
+                      );
+                    })}
+                    {track.id === 'text' ? textFlowReservations.map((clip) => (
+                      <TextFlowReservation
+                        key={`text-flow-${clip.id}`}
+                        clip={clip}
+                        pixelsPerWU={pixelsPerWU}
+                        selected={snapshot.selection.type === 'interaction' && snapshot.selection.id === clip.id}
+                        store={store}
+                      />
+                    )) : null}
+                  </>
+                )}
               </div>
             ))}
             <div

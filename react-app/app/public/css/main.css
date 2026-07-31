@@ -5155,7 +5155,8 @@ html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
 
 /* The About point world has its own opaque route ground. The physical window
    remains the ground while the registered field lets shell glow show through. */
-body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab {
+body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab,
+body.about-narrative-page #simulations[data-atmosphere-active='true'] .about-narrative-lab {
   background: transparent;
 }
 
@@ -7623,9 +7624,8 @@ body.portfolio-page--locked #simulations {
       62.4px
     ) * var(--abs-font-headline-scale, 1)
   );
-  /* One optical size across the four route identities: approximately 15%
-     smaller than the previous Home (1.56) and centered-route (1.55) scales. */
-  --route-bookend-title-scale: 1.32;
+  /* One optical size across the route identities, 20% larger than 1.32. */
+  --route-bookend-title-scale: 1.584;
   --route-bookend-title-size: calc(
     var(--route-entry-title-size) * var(--route-bookend-title-scale)
   );

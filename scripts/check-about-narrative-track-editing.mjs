@@ -158,7 +158,7 @@ test('one or many Text fields move in absolute WU and leave every unrelated trac
   assert.equal(bytes(model.tracks.text), bytes(createFixture().tracks.text), 'The input model remains immutable.');
 });
 
-test('Text animation windows keep their duration, distribute with equal gaps, and define Story length', () => {
+test('Text animation windows keep their duration, distribute evenly, and extend Story without retiming other tracks', () => {
   const model = createFixture();
   const durations = new Map(model.tracks.text.fields.map((field) => [
     field.id,
@@ -189,10 +189,10 @@ test('Text animation windows keep their duration, distribute with equal gaps, an
   assert.equal(extended.model.profiles.desktop.storyDurationWU, 12);
   assert.equal(extended.model.profiles.tablet.storyDurationWU, 12);
   assert.equal(extended.model.profiles.mobile.scrollDurationWU, 14.4);
-  assert.equal(extended.model.tracks.camera.keys.at(-1).atWU, 12);
-  assert.equal(extended.model.tracks.visibility.keys.at(-1).atWU, 12);
+  assert.equal(extended.model.tracks.camera.keys.at(-1).atWU, 10);
+  assert.equal(extended.model.tracks.visibility.keys.at(-1).atWU, 10);
   assert.equal(extended.model.tracks.worlds.objects[1].anchorWU, 4.1);
-  assert.equal(extended.model.tracks.interactions.clips[0].parameters.releaseWU, 0.6);
+  assert.equal(extended.model.tracks.interactions.clips[0].parameters.releaseWU, 0.5);
   assert.equal(extended.model.tracks.interactions.clips[0].parameters.speed, 1);
   assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
 });

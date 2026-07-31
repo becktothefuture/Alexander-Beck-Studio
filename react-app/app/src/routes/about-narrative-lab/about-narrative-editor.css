@@ -554,6 +554,51 @@
 .about-track-editor-object.is-text { --lane-colour: var(--editor-text); }
 .about-track-editor-object.is-interaction { --lane-colour: var(--editor-interaction); }
 
+.about-track-editor-object.is-text-flow-reservation {
+  z-index: 1;
+  top: 11px;
+  height: 32px;
+  min-height: 32px;
+}
+
+.about-track-editor-flow-reservation {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 8px;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--editor-interaction) 76%, var(--editor-ink));
+  border: 1px dashed color-mix(in srgb, var(--editor-interaction) 58%, var(--editor-line));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--editor-interaction) 7%, var(--editor-field));
+  text-align: left;
+}
+
+.about-track-editor-flow-reservation span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-track-editor-flow-reservation small {
+  flex: 0 0 auto;
+  color: var(--editor-muted);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.about-track-editor-flow-reservation:is(:hover, :focus-visible, .is-selected) {
+  border-style: solid;
+  outline: 2px solid color-mix(in srgb, var(--editor-interaction) 72%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--editor-interaction) 13%, var(--editor-field));
+}
+
 .about-track-editor-clip {
   position: absolute;
   z-index: 3;
@@ -1652,6 +1697,8 @@
   .about-track-editor-timeline__toolbar .about-director-timeline-tools { width: 100%; justify-content: flex-end; }
   .about-track-editor-timeline__body { grid-template-columns: 96px minmax(0, 1fr); height: calc(100% - 76px); }
   .about-track-editor-object { top: 5px; height: 44px; min-height: 44px; }
+  .about-track-editor-object.is-text-flow-reservation { top: 5px; height: 44px; min-height: 44px; }
+  .about-track-editor-flow-reservation { min-height: 44px; }
   .about-track-editor-clip { min-height: 44px !important; }
   .about-point-field-lane { min-height: 47px; }
   .about-point-field-segment { top: 7px; height: 34px; min-height: 34px !important; }

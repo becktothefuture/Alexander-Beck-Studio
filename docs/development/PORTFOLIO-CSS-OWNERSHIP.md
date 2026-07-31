@@ -32,9 +32,9 @@ The overlap detector is deliberately conservative. It records an exact selector 
 
 | Measure | Post-M07/M16 count |
 | --- | ---: |
-| `main.css` selector rules | 1,589 |
+| `main.css` selector rules | 1,590 |
 | `portfolio.css` selector rules | 499 |
-| Portfolio-relevant `main.css` rules | 458 |
+| Portfolio-relevant `main.css` rules | 459 |
 | Conservative overlap records | 413 |
 | Exact-selector overlaps | 16 |
 | Conditional overlap records | 93 |

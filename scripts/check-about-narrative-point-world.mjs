@@ -291,6 +291,41 @@ test('PointWorld recomputes responsive preparation identity across orientation c
   assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)[\s\S]*sequenceCache\.get\(responsiveSequenceKey\)/);
 });
 
+test('About Director previews the point world through the production atmosphere compositor', () => {
+  const pointWorld = readFileSync(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+    import.meta.url,
+  ), 'utf8');
+  const siteApp = readFileSync(new URL(
+    '../react-app/app/src/components/app/SiteApp.jsx',
+    import.meta.url,
+  ), 'utf8');
+  const atmosphere = readFileSync(new URL(
+    '../react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
+    import.meta.url,
+  ), 'utf8');
+  const shellStyles = readFileSync(new URL(
+    '../react-app/app/public/css/main.css',
+    import.meta.url,
+  ), 'utf8');
+
+  assert.match(siteApp, /routeId === 'about-narrative-lab'\) return 'production'/);
+  assert.match(pointWorld, /viewportElement: canvasSource \? canvas : null/);
+  assert.match(
+    pointWorld,
+    /const nextKind = !contextAvailable[\s\S]*visibility > 0\.001 \? 'canvas' : 'none'/,
+  );
+  assert.match(pointWorld, /if \(nextKind === 'none'\) return/);
+  assert.match(pointWorld, /invalidateSimulationAtmosphereGeometry\(\)/);
+  assert.match(atmosphere, /function syncSourceViewportGeometry\(source\)/);
+  assert.match(atmosphere, /rect\.left - host\.geometry\.left/);
+  assert.match(atmosphere, /destination\.x,[\s\S]*destination\.height/);
+  assert.match(
+    shellStyles,
+    /body\.about-narrative-page #simulations\[data-atmosphere-active='true'\] \.about-narrative-lab/,
+  );
+});
+
 test('runtime visual certification derives moving World boundaries from the canonical plan', () => {
   const source = readFileSync(new URL(
     './audit-about-narrative-runtime-visuals.mjs',

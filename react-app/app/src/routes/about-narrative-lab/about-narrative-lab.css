@@ -858,26 +858,6 @@ body.dark-mode .about-narrative-client-logos img {
   will-change: opacity, filter;
 }
 
-.about-narrative-spatial-copy.is-finale[data-bookend-entrance-state]
-  .about-narrative-spatial-title.route-bookend-title {
-  opacity: 1;
-  filter: none;
-  will-change: auto;
-}
-
-.about-narrative-spatial-copy.is-finale[data-bookend-entrance-state='complete']
-  .route-title-lockup__rule {
-  transform: scaleX(1);
-}
-
-.about-narrative-spatial-copy.is-finale:is(
-  [data-bookend-entrance-state='playing'],
-  [data-bookend-entrance-state='complete']
-) .about-narrative-finale-description {
-  opacity: 1;
-  transform: none;
-}
-
 .about-narrative-finale-content {
   position: relative;
   z-index: 3;

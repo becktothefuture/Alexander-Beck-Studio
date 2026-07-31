@@ -16,6 +16,14 @@
   --playground-overlay-inset: clamp(18px, 3.2vw, 48px);
   --playground-focus-width: var(--abs-focus-ring-width, 2px);
   --playground-focus-offset: max(var(--abs-focus-ring-offset, 3px), 3px);
+  --playground-copy-shadow: radial-gradient(
+    ellipse at center,
+    var(--studio-window-bg) 0%,
+    color-mix(in srgb, var(--studio-window-bg) 88%, transparent) 38%,
+    color-mix(in srgb, var(--studio-window-bg) 52%, transparent) 58%,
+    transparent 76%
+  );
+  --playground-copy-shadow-opacity: 0.5;
 
   position: absolute;
   inset: 0;
@@ -100,18 +108,18 @@
 }
 
 .playground-route .playground-world-viewport:focus-visible {
-  outline: calc(var(--playground-focus-width) * 2) solid #000000;
-  outline-offset: calc((var(--playground-focus-offset) + (var(--playground-focus-width) * 2)) * -1);
-  box-shadow: inset 0 0 0 calc(var(--playground-focus-width) * 2) #ffffff;
+  outline: none;
+  box-shadow: none;
 }
 
 .playground-route .playground-world-viewport:focus-visible::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  border: calc(var(--playground-focus-width) * 2) solid #ffffff;
-  pointer-events: none;
+  content: none;
+}
+
+.playground-route .playground-world-viewport:focus-visible .playground-drag-instruction__icon {
+  border-radius: var(--abs-radius-pill);
+  outline: var(--playground-focus-width) solid currentColor;
+  outline-offset: var(--playground-focus-offset);
 }
 
 #simulations .playground-route .playground-dot-field,
@@ -198,25 +206,10 @@
   z-index: -1;
   inline-size: clamp(36rem, 72vw, 76rem);
   block-size: clamp(24rem, 56svh, 44rem);
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in srgb, var(--studio-window-bg) 96%, transparent) 0%,
-    color-mix(in srgb, var(--studio-window-bg) 88%, transparent) 38%,
-    color-mix(in srgb, var(--studio-window-bg) 52%, transparent) 58%,
-    transparent 76%
-  );
+  background: var(--playground-copy-shadow);
+  opacity: var(--playground-copy-shadow-opacity);
   transform: translate(-50%, -50%);
   pointer-events: none;
-}
-
-body.dark-mode .playground-route .playground-title-lockup::before {
-  background: radial-gradient(
-    ellipse at center,
-    rgb(0 0 0 / 78%) 0%,
-    rgb(0 0 0 / 58%) 38%,
-    rgb(0 0 0 / 26%) 58%,
-    transparent 76%
-  );
 }
 
 .playground-route .playground-title-lockup h1 {
@@ -490,6 +483,8 @@ body.dark-mode .playground-route .playground-title-lockup::before {
 }
 
 .playground-route .playground-item__label {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
@@ -501,6 +496,16 @@ body.dark-mode .playground-route .playground-title-lockup::before {
   margin-block-start: var(--playground-label-gap);
   color: var(--text-primary);
   text-align: start;
+}
+
+.playground-route .playground-item__label::before {
+  content: '';
+  position: absolute;
+  inset: clamp(-24px, -1.6vw, -16px);
+  z-index: -1;
+  background: var(--playground-copy-shadow);
+  opacity: var(--playground-copy-shadow-opacity);
+  pointer-events: none;
 }
 
 .playground-route .playground-item__title {

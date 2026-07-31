@@ -60,6 +60,7 @@ import {
 } from './aboutNarrativeWorldIdentity.js';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
+  invalidateSimulationAtmosphereGeometry,
   registerSimulationAtmosphereSource,
   tickSimulationAtmosphere,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
@@ -1171,19 +1172,24 @@ function createPointFieldAdapter({
   const syncAtmosphereSource = () => {
     if (!atmosphereEligible || disposed) return;
     const visibility = Number(latestFrame?.simulation?.visibility ?? 0);
-    const nextKind = contextAvailable && visibility > 0.001
-      ? 'canvas'
-      : 'ambient';
+    const nextKind = !contextAvailable
+      ? 'ambient'
+      : visibility > 0.001 ? 'canvas' : 'none';
     if (nextKind === atmosphereSourceKind) return;
     atmosphereSourceCleanup?.();
     atmosphereSourceCleanup = null;
     atmosphereSourceKind = nextKind;
+    // Visibility is authoritative for the complete point material. Leaving an
+    // ambient source active here creates unrelated coloured light after the
+    // authored point world has reached zero.
+    if (nextKind === 'none') return;
     const canvasSource = nextKind === 'canvas';
     atmosphereSourceCleanup = registerSimulationAtmosphereSource({
       id: canvasSource ? 'about:narrative-world' : 'about:ambient',
       routeId: 'about',
       kind: canvasSource ? 'canvas' : 'ambient',
       canvas: canvasSource ? canvas : null,
+      viewportElement: canvasSource ? canvas : null,
       scheduler: canvasSource ? 'renderer-coupled' : 'internal',
       opacityElement: canvasSource ? canvas : null,
     });
@@ -1516,6 +1522,7 @@ function createPointFieldAdapter({
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    invalidateSimulationAtmosphereGeometry();
     uniforms.pixelRatio.value = ratio;
     measureDisciplineCorridor();
     measureDisciplineLabels();
@@ -2391,14 +2398,22 @@ function createPointFieldAdapter({
           toWorld,
           Number(reveal.labelOffsetPx ?? 18),
         );
-        // Use the editorial reading line as the only reveal clock. Each anchor
-        // accumulates independently; forward travel never clears an earlier one.
+        // Project every discipline through the same bottom-of-viewport reveal
+        // corridor as editorial content. The activation envelope prevents a
+        // late-edited Motion clip from turning an already-past anchor on in one
+        // frame, while the spatial progress remains reversible with scroll.
+        const activationRevealProgress = getAboutNarrativeSharedRevealProgress(
+          revealThreshold - Math.max(0, frame.storyWU - revealState.startWU),
+          revealThreshold,
+          revealDuration,
+          frame.reducedMotion,
+        );
         for (let group = 1; group <= 6; group += 1) {
           const label = disciplineLabels[group - 1];
           if (!label) continue;
           const offset = (group - 1) * 3;
           if (!Number.isFinite(gridDisciplinePositions[offset])) continue;
-          const revealProgress = !disciplinePointInFront[group - 1]
+          const spatialRevealProgress = !disciplinePointInFront[group - 1]
             ? 0
             : getAboutNarrativeSharedRevealProgress(
               disciplineProjectedViewportY[group - 1],
@@ -2406,6 +2421,10 @@ function createPointFieldAdapter({
               revealDuration,
               frame.reducedMotion,
             );
+          const revealProgress = Math.min(
+            spatialRevealProgress,
+            activationRevealProgress,
+          );
           disciplineWeights[group - 1] = revealProgress;
           writeDisciplineRevealStyles(
             group - 1,

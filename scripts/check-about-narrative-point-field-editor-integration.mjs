@@ -93,13 +93,13 @@ test('ripple timing can start when its target state first participates in a tran
   const clip = canonical.tracks.interactions.clips.find((item) => (
     item.id === 'interaction-emergent-ripple'
   ));
-  assert.equal(clip.startWU, 17.291801);
+  assert.equal(clip.startWU, 15.27);
   assert.equal(
     getAboutNarrativePointFieldStateParticipationStartWU(
       canonical.tracks.pointField,
       clip.targetStateId,
     ),
-    17.291801,
+    15.27,
   );
   assert.ok(source.includes('getAboutNarrativePointFieldStateParticipationStartWU'));
 });

@@ -1,8 +1,8 @@
 {
   "status": "m16-two-family-consolidated",
-  "mainRuleCount": 1589,
+  "mainRuleCount": 1590,
   "portfolioRuleCount": 499,
-  "relevantMainRuleCount": 458,
+  "relevantMainRuleCount": 459,
   "overlapCount": 413,
   "exactOverlapCount": 16,
   "intentionalOverrideCount": 44,

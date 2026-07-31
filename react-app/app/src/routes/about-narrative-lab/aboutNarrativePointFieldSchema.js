@@ -352,9 +352,6 @@ function validatePointFieldTrack(pointField, diagnostics, path, durationWU) {
   if (keys.length && Number(keys[0].atWU) !== 0) diagnostic(diagnostics, 'key-origin', `${path}.keys.0.atWU`, 'The first point-field key must be at WU 0.');
   if (keys.length && keys[0].protected !== true) diagnostic(diagnostics, 'key-start-protected', `${path}.keys.0.protected`, 'The first point-field key must be protected.');
   if (keys.length && keys.at(-1).protected !== true) diagnostic(diagnostics, 'key-end-protected', `${path}.keys.${keys.length - 1}.protected`, 'The final point-field key must be protected.');
-  if (keys.length && Math.abs(Number(keys.at(-1).atWU) - durationWU) > TIME_EPSILON) {
-    diagnostic(diagnostics, 'key-duration', `${path}.keys.${keys.length - 1}.atWU`, 'The final point-field key must be at the Story duration.');
-  }
   const finalState = states.find((state) => state.id === keys.at(-1)?.stateId);
   if (finalState?.protected !== true) diagnostic(diagnostics, 'final-state-protected', `${path}.stateDefinitions`, 'The final point-field state must remain protected.');
 

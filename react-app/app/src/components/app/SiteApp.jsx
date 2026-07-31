@@ -154,6 +154,7 @@ const PRODUCTION_ATMOSPHERE_ROUTE_IDS = new Set([
 
 function resolveAtmosphereHostScope(routeId, routeView) {
   if (routeId === 'atmosphere-crisp-glow') return 'lab';
+  if (routeId === 'about-narrative-lab') return 'production';
   if (String(routeId || '').startsWith('atmosphere-')) return null;
   if (PRIMARY_ROUTE_IDS.includes(routeId)) return 'production';
   const dailyRuntimeRouteId = routeView?.runtimeRouteId || '';

@@ -70,8 +70,17 @@ let staleCleanupCount = 0;
 let compositedFrameCount = 0;
 let skippedFrameCount = 0;
 let geometryReadCount = 0;
+let sourceViewportGeometryReadCount = 0;
 let firstCompositeAt = 0;
 let failureReason = '';
+let sourceViewportGeometryDirty = true;
+const sourceViewportGeometry = {
+  mapped: false,
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+};
 let ambientPaletteSnapshot = getSimulationPaletteSnapshot();
 let ambientColours = createSimulationMaterialSequence(
   AMBIENT_COUNT,
@@ -376,8 +385,41 @@ function syncGeometry() {
   host.geometry.top = rect.top;
   host.geometry.width = rect.width;
   host.geometry.height = rect.height;
+  sourceViewportGeometryDirty = true;
   geometryDirty = false;
   return true;
+}
+
+function syncSourceViewportGeometry(source) {
+  if (!host) return null;
+  const candidate = typeof source?.viewportElement === 'function'
+    ? source.viewportElement()
+    : source?.viewportElement;
+  if (!(candidate instanceof HTMLElement)) {
+    sourceViewportGeometry.mapped = false;
+    sourceViewportGeometry.x = 0;
+    sourceViewportGeometry.y = 0;
+    sourceViewportGeometry.width = host.sourceCanvas.width;
+    sourceViewportGeometry.height = host.sourceCanvas.height;
+    sourceViewportGeometryDirty = false;
+    return sourceViewportGeometry;
+  }
+  if (!candidate.isConnected) return null;
+  if (!sourceViewportGeometryDirty) return sourceViewportGeometry;
+  const rect = candidate.getBoundingClientRect();
+  sourceViewportGeometryReadCount += 1;
+  if (rect.width <= 1 || rect.height <= 1 || host.geometry.width <= 1 || host.geometry.height <= 1) {
+    return null;
+  }
+  const scaleX = host.sourceCanvas.width / host.geometry.width;
+  const scaleY = host.sourceCanvas.height / host.geometry.height;
+  sourceViewportGeometry.mapped = true;
+  sourceViewportGeometry.x = (rect.left - host.geometry.left) * scaleX;
+  sourceViewportGeometry.y = (rect.top - host.geometry.top) * scaleY;
+  sourceViewportGeometry.width = rect.width * scaleX;
+  sourceViewportGeometry.height = rect.height * scaleY;
+  sourceViewportGeometryDirty = false;
+  return sourceViewportGeometry;
 }
 
 function updateAmbientSource(nowMs) {
@@ -458,8 +500,16 @@ function copyCanvasSource(source) {
   const layers = resolveCanvasLayers(source);
   lastSourceLayerCount = layers.length;
   if (layers.length === 0) return false;
+  const destination = syncSourceViewportGeometry(source);
+  if (!destination) return false;
   for (let index = 0; index < layers.length; index += 1) {
-    context.drawImage(layers[index], 0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      layers[index],
+      destination.x,
+      destination.y,
+      destination.width,
+      destination.height,
+    );
   }
   lastSourceLightCount = Math.max(0, Number(source.canvas?.dataset.simulationBodyCount) || 0);
   lastSampledEmitterCount = 0;
@@ -615,6 +665,7 @@ function activateCurrentSource({ resetOutput = true } = {}) {
   failureReason = '';
   consecutiveErrors = 0;
   geometryDirty = true;
+  sourceViewportGeometryDirty = true;
   staticFrameDirty = true;
   frameSchedule.nextFrameAt = 0;
   rebuildProfile({ resetQuality: true });
@@ -646,6 +697,8 @@ function deactivateSource(source, { preserveOutput = false } = {}) {
   if (source.firstFrameTimeoutId) window.clearTimeout(source.firstFrameTimeoutId);
   source.firstFrameTimeoutId = 0;
   markSourceElement(source, false);
+  sourceViewportGeometryDirty = true;
+  sourceViewportGeometry.mapped = false;
   if (!source.firstFrame.settled) {
     source.firstFrame.settled = true;
     source.firstFrame.resolve({ status: 'cancelled', generation: source.generation });
@@ -740,6 +793,12 @@ function getDiagnosticSnapshot() {
     clearCount,
     staleCleanupCount,
     geometryReadCount,
+    sourceViewportGeometryReadCount,
+    sourceViewportMapped: sourceViewportGeometry.mapped,
+    sourceViewportX: sourceViewportGeometry.x,
+    sourceViewportY: sourceViewportGeometry.y,
+    sourceViewportWidth: sourceViewportGeometry.width,
+    sourceViewportHeight: sourceViewportGeometry.height,
     sampledEmitterCount: lastSampledEmitterCount,
     sourceLightCount: lastSourceLightCount,
     sourceLayerCount: lastSourceLayerCount,
@@ -1272,6 +1331,7 @@ export function tickSimulationAtmosphere(now = performance.now(), sourceId = '')
 
 export function invalidateSimulationAtmosphereGeometry() {
   geometryDirty = true;
+  sourceViewportGeometryDirty = true;
   staticFrameDirty = true;
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }

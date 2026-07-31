@@ -2,7 +2,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { cpus } from 'node:os';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { relative, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -31,6 +31,7 @@ const ORIENTATION = String(process.env.ABS_ORIENTATION || 'portrait').toLowerCas
 const HEADLESS = process.env.ABS_HEADED !== '1';
 const RUN_ID = `${new Date().toISOString().replace(/[:.]/g, '-')}-${BROWSER_NAME}-${randomUUID().slice(0, 8)}`;
 const OUTPUT_PATH = resolve(process.env.ABS_PERF_OUTPUT || `output/playwright/runtime-performance/${RUN_ID}.json`);
+const OWNED_ARTIFACT_ROOT = resolve(`output/playwright/runtime-performance/artifacts/${RUN_ID}/dist`);
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 let origin = SURFACE_SELECTION.baseUrl;
 let ownedPreview = null;
@@ -149,10 +150,32 @@ async function openPort() {
   });
 }
 
-async function startProductionPreview() {
+async function createOwnedArtifactSnapshot() {
+  await mkdir(resolve(OWNED_ARTIFACT_ROOT, '..'), { recursive: true });
+  await cp(resolve('react-app/app/dist'), OWNED_ARTIFACT_ROOT, {
+    recursive: true,
+    force: true,
+  });
+  return OWNED_ARTIFACT_ROOT;
+}
+
+async function startProductionPreview(artifactRoot) {
   const port = await openPort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const args = ['run', 'preview', '--prefix', 'react-app/app', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'];
+  const args = [
+    'run',
+    'preview',
+    '--prefix',
+    'react-app/app',
+    '--',
+    '--host',
+    '127.0.0.1',
+    '--port',
+    String(port),
+    '--strictPort',
+    '--outDir',
+    artifactRoot,
+  ];
   const child = spawn('npm', args, {
     cwd: resolve('.'),
     env: process.env,
@@ -199,9 +222,10 @@ async function prepareCertificationSurface() {
   const build = SURFACE_SELECTION.buildRequired
     ? buildProductionArtifact()
     : { command: null, reused: true, durationMs: 0 };
-  const artifact = await artifactIdentity(resolve('react-app/app/dist'));
+  const artifactRoot = await createOwnedArtifactSnapshot();
+  const artifact = await artifactIdentity(artifactRoot);
   buildEvidence = { ...build, artifact };
-  ownedPreview = await startProductionPreview();
+  ownedPreview = await startProductionPreview(artifactRoot);
   origin = ownedPreview.baseUrl;
   return {
     type: SURFACE_SELECTION.type,
@@ -635,7 +659,7 @@ try {
 }
 
 if (certificationSurface.owned) {
-  const artifactAfterRun = await artifactIdentity(resolve('react-app/app/dist'));
+  const artifactAfterRun = await artifactIdentity(OWNED_ARTIFACT_ROOT);
   const artifactBeforeRun = certificationSurface.buildIdentity.artifact;
   certificationSurface.buildIntegrity = {
     beforeSha256: artifactBeforeRun.sha256,
