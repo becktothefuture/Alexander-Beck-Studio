@@ -271,7 +271,7 @@ function PointKey({
   const begin = (event) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    onSelect?.(selection);
+    onSelect?.(selection, Number(pointKey.atWU));
     if (protectedKey) return;
     gestureRef.current = {
       pointerId: event.pointerId,
@@ -295,7 +295,7 @@ function PointKey({
     onMoveKey?.({
       phase: cancelled ? 'cancel' : 'commit',
       keyId: pointKey.id,
-      atWU: gesture.latestWU,
+      atWU: cancelled ? gesture.startWU : gesture.latestWU,
       scope: editScope,
     });
   };

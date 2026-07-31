@@ -2,8 +2,8 @@
   "schemaVersion": 6,
   "globals": {
     "scrollSmoothing": 0.82,
-    "readingWidthRem": 58,
-    "editorialRevealThreshold": 1,
+    "readingWidthRem": 54,
+    "editorialRevealThreshold": 0.8,
     "editorialMotion": {
       "fadeDurationWU": 0.2,
       "maxBlurPx": 0,

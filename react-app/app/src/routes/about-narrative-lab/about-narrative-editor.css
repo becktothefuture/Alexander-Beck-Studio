@@ -846,6 +846,7 @@
   width: 1px;
   background: var(--editor-accent);
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .about-track-editor-playhead i {

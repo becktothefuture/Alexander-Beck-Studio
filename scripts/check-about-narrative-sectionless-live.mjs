@@ -1076,7 +1076,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /--about-editorial-ink:/);
   assert.doesNotMatch(liveSources.styles, /about-narrative-editorial-emphasis|about-editorial-strong-ink/);
   assert.equal(canonicalSource.includes('"emphasis"'), false);
-  assert.equal(canonical.globals.editorialRevealThreshold, 1);
+  assert.equal(canonical.globals.editorialRevealThreshold, 0.8);
   assert.equal(canonical.globals.editorialMotion.fadeDurationWU, 0.2);
   assert.equal(canonical.globals.editorialMotion.maxBlurPx, 0);
   assert.equal(canonical.globals.editorialMotion.travelPx, 0);

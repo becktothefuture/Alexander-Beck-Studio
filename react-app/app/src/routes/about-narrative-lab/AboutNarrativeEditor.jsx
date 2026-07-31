@@ -36,6 +36,7 @@ import {
 } from './aboutNarrativePointFieldEditing.js';
 import {
   ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+  applyAboutNarrativePointFieldOverrides,
 } from './aboutNarrativePointFieldSchema.js';
 import {
   PointFieldInspector,
@@ -1967,12 +1968,36 @@ function Timeline({
       .filter((clip) => clip.type === 'discipline-reveal'),
     [snapshot.document],
   );
+  const selectedPointFieldKeyWU = useMemo(() => {
+    if (snapshot.selection.type !== 'point-field-key') return null;
+    const pointField = editScope === 'base'
+      ? snapshot.document.tracks.pointField
+      : applyAboutNarrativePointFieldOverrides(
+        snapshot.document.tracks.pointField,
+        snapshot.document.profiles[editScope].overrides.pointField,
+      );
+    const pointKey = pointField.keys.find((key) => key.id === snapshot.selection.id);
+    return Number.isFinite(Number(pointKey?.atWU)) ? Number(pointKey.atWU) : null;
+  }, [editScope, snapshot.document, snapshot.selection.id, snapshot.selection.type]);
 
   const seekFromEvent = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const nextWU = clamp((event.clientX - rect.left) / pixelsPerWU, 0, durationWU);
     store.setTransport({ owner: 'timeline', playing: false, storyWU: cleanWU(nextWU) });
   };
+
+  const syncPointFieldPlayhead = useCallback((atWU) => {
+    if (!Number.isFinite(Number(atWU))) return;
+    store.setTransport({
+      owner: 'timeline',
+      playing: false,
+      storyWU: cleanWU(clamp(Number(atWU), 0, durationWU)),
+    });
+  }, [durationWU, store]);
+
+  useEffect(() => {
+    syncPointFieldPlayhead(selectedPointFieldKeyWU);
+  }, [selectedPointFieldKeyWU, syncPointFieldPlayhead]);
 
   const beginScrub = (event) => {
     if (event.button !== 0 || event.target.closest('[data-track-object-id]')) return;
@@ -2037,8 +2062,11 @@ function Timeline({
     } else if (store.getSnapshot().gestureState) {
       store.pointField.commitGesture({ selectionAfter: selection, requireValid: true });
     } else {
-      store.pointField.moveKey({ keyId, atWU, scope });
+      const result = store.pointField.moveKey({ keyId, atWU, scope });
+      syncPointFieldPlayhead(result?.valid ? result.appliedAtWU : atWU);
+      return;
     }
+    syncPointFieldPlayhead(atWU);
   };
 
   const movePointFieldSegment = ({ phase, segmentId, deltaWU, scope }) => {
@@ -2198,7 +2226,10 @@ function Timeline({
                     pixelsPerWU={pixelsPerWU}
                     editScope={editScope}
                     previewProfile={snapshot.previewState.layoutProfile}
-                    onSelect={(selection) => store.pointField.select(selection)}
+                    onSelect={(selection, atWU) => {
+                      store.pointField.select(selection);
+                      syncPointFieldPlayhead(atWU);
+                    }}
                     onMoveKey={movePointFieldKey}
                     onMoveSegment={movePointFieldSegment}
                   />

@@ -52,6 +52,22 @@ test('Point field inspector callbacks use only the nested transactional store AP
   assert.equal(source.includes('writeAboutNarrativePointFieldTarget'), false);
 });
 
+test('Point field keys keep the timeline playhead aligned during selection and movement', async () => {
+  const laneSource = await readFile(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/PointFieldLane.jsx',
+    import.meta.url,
+  ), 'utf8');
+  [
+    'const syncPointFieldPlayhead = useCallback((atWU) => {',
+    'syncPointFieldPlayhead(result?.valid ? result.appliedAtWU : atWU);',
+    'onSelect={(selection, atWU) => {',
+    'syncPointFieldPlayhead(selectedPointFieldKeyWU);',
+  ].forEach((token) => assert.ok(source.includes(token), `missing ${token}`));
+  assert.ok(laneSource.includes('onSelect?.(selection, Number(pointKey.atWU));'));
+  assert.ok(laneSource.includes("atWU: cancelled ? gesture.startWU : gesture.latestWU"));
+  assert.match(styles, /\.about-track-editor-playhead \{[\s\S]*?transform: translateX\(-50%\);/);
+});
+
 test('preview profile and Point field edit scope remain independent controls', () => {
   [
     'const [editScope, setEditScope]',
