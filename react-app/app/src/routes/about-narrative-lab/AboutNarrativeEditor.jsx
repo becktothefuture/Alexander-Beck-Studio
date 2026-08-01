@@ -89,10 +89,13 @@ import {
 import {
   ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
   ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
-  ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
   constrainAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplineGridCell,
+  getAboutNarrativeDisciplineGridCellBounds,
+  getAboutNarrativeDisciplineGridDimensions,
   getAboutNarrativeDisciplineMinimumSeparation,
   getAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplinePositionForGridCell,
 } from './aboutNarrativeDisciplinePositions.js';
 import { getAboutNarrativePositionMapCorridor } from './aboutNarrativeTextCorridor.js';
 import './about-narrative-editor.css';
@@ -136,18 +139,6 @@ const EDITOR_OWNED_KEYBOARD_TARGET_SELECTOR = [
   '[role="button"]',
   '[role="slider"]',
 ].join(', ');
-const DISCIPLINE_POSITION_X_CONTROL = Object.freeze({
-  min: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.min,
-  max: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.max,
-  step: ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
-  unit: '× grid',
-});
-const DISCIPLINE_POSITION_Y_CONTROL = Object.freeze({
-  min: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.min,
-  max: ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.max,
-  step: ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP,
-  unit: '× grid',
-});
 const EDITORIAL_MODULE_GAP_CONTROL = Object.freeze({
   id: 'moduleGapRem',
   min: 0.5,
@@ -688,6 +679,8 @@ function DisciplinePositionEditor({
   const gestureRef = useRef(null);
   const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
   const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
+  const gridDimensions = getAboutNarrativeDisciplineGridDimensions(profile);
+  const gridCellBounds = getAboutNarrativeDisciplineGridCellBounds(profile);
   const mapCorridor = getAboutNarrativePositionMapCorridor(corridorWidthRem, profile);
   const minimumGap = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
   const toXPercent = (value) => (
@@ -708,16 +701,10 @@ function DisciplinePositionEditor({
     );
     const normalizedY = clamp((event.clientY - bounds.top) / Math.max(1, bounds.height), 0.06, 0.94);
     return [
-      normalizeControlValue(
-        xBounds.min + (((normalizedX - mapCorridor.min) / mapCorridor.width)
-          * (xBounds.max - xBounds.min)),
-        DISCIPLINE_POSITION_X_CONTROL,
-      ),
-      normalizeControlValue(
-        yBounds.min + (((normalizedY - 0.06) / 0.88)
-          * (yBounds.max - yBounds.min)),
-        DISCIPLINE_POSITION_Y_CONTROL,
-      ),
+      xBounds.min + (((normalizedX - mapCorridor.min) / mapCorridor.width)
+        * (xBounds.max - xBounds.min)),
+      yBounds.min + (((normalizedY - 0.06) / 0.88)
+        * (yBounds.max - yBounds.min)),
     ];
   };
   const previewPointer = (event) => {
@@ -751,12 +738,13 @@ function DisciplinePositionEditor({
     }[event.key];
     if (!direction || disabled) return;
     event.preventDefault();
-    const amount = ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP * (event.shiftKey ? 5 : 1);
     const current = getAboutNarrativeDisciplinePosition(item, profile);
-    onCommit?.(item.group, profile, [
-      current[0] + (direction[0] * amount),
-      current[1] + (direction[1] * amount),
-    ]);
+    const cell = getAboutNarrativeDisciplineGridCell(current, profile);
+    const amount = event.shiftKey ? 5 : 1;
+    onCommit?.(item.group, profile, getAboutNarrativeDisciplinePositionForGridCell([
+      cell[0] + (direction[0] * amount),
+      cell[1] + (direction[1] * amount),
+    ], profile));
   };
 
   return (
@@ -764,7 +752,7 @@ function DisciplinePositionEditor({
       <header>
         <div>
           <strong>Position map</strong>
-          <small>Drag anchors or enter exact grid coordinates.</small>
+          <small>Select an exact column and row in the {gridDimensions.columns} × {gridDimensions.rows} grid.</small>
         </div>
         <div className="about-track-editor-discipline-profile" aria-label="Position profile">
           {['desktop', 'mobile'].map((value) => (
@@ -794,6 +782,7 @@ function DisciplinePositionEditor({
         </div>
         {(items || []).map((item) => {
           const position = getAboutNarrativeDisciplinePosition(item, profile);
+          const cell = getAboutNarrativeDisciplineGridCell(position, profile);
           return (
             <button
               key={item.group}
@@ -805,7 +794,7 @@ function DisciplinePositionEditor({
                 '--discipline-editor-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
               }}
               disabled={disabled}
-              aria-label={`${item.label} position, X ${position[0]}, Y ${position[1]}`}
+              aria-label={`${item.label} position, column ${cell[0]}, row ${cell[1]}`}
               onPointerDown={(event) => beginPointer(event, item.group)}
               onPointerMove={(event) => {
                 if (gestureRef.current?.pointerId === event.pointerId) previewPointer(event);
@@ -820,15 +809,20 @@ function DisciplinePositionEditor({
         })}
       </div>
       <p className="about-track-editor-discipline-gap">
-        Corridor {Number(corridorWidthRem).toFixed(0)}rem · minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
+        {gridDimensions.columns} columns × {gridDimensions.rows} rows · minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
       </p>
       <div className="about-track-editor-discipline-coordinates">
         {(items || []).map((item) => {
           const position = getAboutNarrativeDisciplinePosition(item, profile);
-          const commitAxis = (axis, value) => {
-            const next = [...position];
-            next[axis] = value;
-            onCommit?.(item.group, profile, next);
+          const cell = getAboutNarrativeDisciplineGridCell(position, profile);
+          const commitCell = (axis, value) => {
+            const next = [...cell];
+            next[axis] = Math.round(value);
+            onCommit?.(
+              item.group,
+              profile,
+              getAboutNarrativeDisciplinePositionForGridCell(next, profile),
+            );
           };
           return (
             <div className="about-track-editor-discipline-coordinate" key={item.group}>
@@ -840,38 +834,38 @@ function DisciplinePositionEditor({
                 {item.group}. {item.label}
               </span>
               <label>
-                <span>X</span>
+                <span>Col</span>
                 <input
-                  key={`${profile}-${item.group}-x-${position[0]}`}
+                  key={`${profile}-${item.group}-column-${cell[0]}`}
                   type="number"
-                  defaultValue={position[0]}
-                  min={xBounds.min}
-                  max={xBounds.max}
-                  step={ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP}
+                  defaultValue={cell[0]}
+                  min={gridCellBounds.minColumn}
+                  max={gridCellBounds.maxColumn}
+                  step={1}
                   disabled={disabled}
-                  aria-label={`${item.label} ${profile} X`}
+                  aria-label={`${item.label} ${profile} column`}
                   onBlur={(event) => {
                     const value = Number(event.currentTarget.value);
-                    if (Number.isFinite(value) && value !== position[0]) commitAxis(0, value);
-                    else event.currentTarget.value = String(position[0]);
+                    if (Number.isFinite(value) && Math.round(value) !== cell[0]) commitCell(0, value);
+                    else event.currentTarget.value = String(cell[0]);
                   }}
                 />
               </label>
               <label>
-                <span>Y</span>
+                <span>Row</span>
                 <input
-                  key={`${profile}-${item.group}-y-${position[1]}`}
+                  key={`${profile}-${item.group}-row-${cell[1]}`}
                   type="number"
-                  defaultValue={position[1]}
-                  min={yBounds.min}
-                  max={yBounds.max}
-                  step={ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP}
+                  defaultValue={cell[1]}
+                  min={gridCellBounds.minRow}
+                  max={gridCellBounds.maxRow}
+                  step={1}
                   disabled={disabled}
-                  aria-label={`${item.label} ${profile} Y`}
+                  aria-label={`${item.label} ${profile} row`}
                   onBlur={(event) => {
                     const value = Number(event.currentTarget.value);
-                    if (Number.isFinite(value) && value !== position[1]) commitAxis(1, value);
-                    else event.currentTarget.value = String(position[1]);
+                    if (Number.isFinite(value) && Math.round(value) !== cell[1]) commitCell(1, value);
+                    else event.currentTarget.value = String(cell[1]);
                   }}
                 />
               </label>

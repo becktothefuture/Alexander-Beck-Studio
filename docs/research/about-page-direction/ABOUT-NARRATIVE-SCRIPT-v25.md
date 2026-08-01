@@ -1,22 +1,22 @@
 # About Me narrative script v25
 
-Creative & Technologist shaping products, interfaces and interactive moments.
+I’m a designer and technologist. Most of my projects involve products, systems and interactive experiences, often all three at once.
 
-I’ve always been drawn to complexity.
+I speak several languages.
 
-Especially when something new is changing how we think or behave.
+They rarely say things in quite the same way.
 
-These projects rarely arrive as clean design problems. A brief may describe the most visible issue while the harder questions sit beneath it: what the organisation needs, what the product can do and what will make sense to the people using it. Sometimes progress begins by reframing the question itself.
+That difference drew me to Communication Design. I could explore an idea through type, image and motion, and see how each medium changed it.
 
-Communication Design taught me to explore those questions through language, image, structure and motion. I became interested in how these elements influence one another—and in finding clarity without simplifying away what matters.
+I’ve moved between agency, startup and independent work throughout my career. The projects have ranged from print and cultural work to interfaces, icon systems and motion. At Denaline, I often worked alongside developers, which made me think about what screens did, not only how they looked.
 
-Consultancy showed me how business needs, user needs and practical constraints can pull the same project in different directions. In startups, I learned to work while both the problem and the product were still evolving. I now treat product, brand and communication as one connected experience.
+At Yoti, product, brand and trust were difficult to separate. The anti-spoof hologram is a good example: the way it looked and moved was part of how the interaction communicated trust.
 
 [Client logos]
 
-No single discipline resolves complexity on its own.
+Different projects ask for different things.
 
-So I move between several.
+Most of mine involve several disciplines.
 
 Product Design
 
@@ -30,27 +30,25 @@ Creative Engineering
 
 Parametric Systems
 
-My way into a project is practical. I speak with the people closest to it, gather references and test the assumptions in front of us. Once the question is clearer, I give the thinking a form. This could be a sketch, a wireframe, a prototype, a presentation or something working—whatever gives the team something concrete to respond to.
+Before deciding what to make, I spend time with the people closest to the problem and test the assumptions in the brief. Then I make something—a sketch, prototype, motion study or sometimes code—so the team has something real to respond to.
 
-Growing up bilingual, between Portugal and Germany, made me aware that the same message can land differently depending on its context. That is why language is part of my design process, rather than something added at the end. I pay attention to how an idea is named, explained and understood, because those choices can change the experience as much as its visual form.
+I often help set the creative direction, but I prefer to do it in the open. Once something is on the table, people can question it and improve it. I do not want collaborators invited in at the end, after the interesting choices have already been made.
 
-AI has expanded how I explore these questions and how early I can make an idea visible. It also creates more possible directions to assess. I still decide what is relevant, what has character and what deserves to be developed. That judgement keeps the work connected to its purpose and to the people it is for.
+On a financial index-building project, complexity needed to be layered rather than hidden. Some interaction nuance was lost in the final build, which changed how closely I stay involved with implementation.
 
 [Project impressions]
 
-I want to keep working where the direction is still open: on products, services and experiences shaped by new technologies, changing behaviours and emerging ways of thinking.
+Unfinished questions tend to follow me home. Some involve AI, trust, privacy or robotics. One involved the iOS keyboard. It bothered me enough to become a side project.
 
-This could mean defining how an unfamiliar technology behaves, how a service earns trust, or how a new capability becomes useful in everyday life. These are the situations where I find design most valuable—while the important decisions are still open and there is room to shape them well.
+I do not know what the next question will be.
 
-I bring different disciplines together
+I like that.
 
-to make complex ideas clearer
-
-and move them forward into something new.
+I still have plenty to learn.
 
 Let’s talk.
 
-If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note.
+If you are working through an unfamiliar problem, I’d be glad to hear about it.
 
 Explore the Lab
 

@@ -40,6 +40,7 @@ import {
 import {
   getAboutNarrativeDisciplineLabelNudge,
 } from './aboutNarrativeTextCorridor.js';
+import { getAboutNarrativeDisciplinePosition } from './aboutNarrativeDisciplinePositions.js';
 import {
   createAboutNarrativePointFieldMotionSample,
   sampleAboutNarrativePointFieldMotionInto,
@@ -338,6 +339,15 @@ const VERTEX_SHADER = `
     return materialColor6;
   }
 
+  vec3 disciplineMaterialColor(float group) {
+    if (group < 1.5) return materialColor1;
+    if (group < 2.5) return materialColor2;
+    if (group < 3.5) return materialColor3;
+    if (group < 4.5) return materialColor4;
+    if (group < 5.5) return materialColor5;
+    return materialColor6;
+  }
+
   float motionAxisPhase(float axis) {
     if (axis < 0.5) return motionSpatialPhases.y;
     if (axis > 1.5) return motionSpatialPhases.w;
@@ -611,9 +621,10 @@ const VERTEX_SHADER = `
       colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
     // During the camera pass every point is monochrome until its exact semantic
-    // anchor enters the scroll-authored reveal. The selected anchor then regains
-    // the material colour it already owned; no colour is reassigned at reveal time.
+    // anchor enters the scroll-authored reveal. The authored grid cell owns the
+    // semantic colour, regardless of the material that occupied it beforehand.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
+    pointTint = mix(pointTint, disciplineMaterialColor(group), revealedGroupWeight);
 
     worldPoint += resolveParametricPath(globalMorph);
     float planeProgress = resolvePlaneProgress(globalMorph);
@@ -644,6 +655,9 @@ const VERTEX_SHADER = `
       toPresence * step(0.001, entryProgress),
       enteringPoint
     );
+    // Exact authored anchor cells remain present as ordinary grey grid points,
+    // then grow and colourise with the same scroll reveal as their labels.
+    presence = max(presence, groupExists * disciplineRevealActive);
     presence *= mix(1.0, clamp(bustSurfaceCarry, 0.0, 1.0), surfaceTransit);
     float bustFragmentKeep = step(
       fract((pointSeed * 131.71) + 0.27),
@@ -688,7 +702,7 @@ const VERTEX_SHADER = `
       * gridRippleEmphasis
       * perspectiveScale;
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 18.0) * entranceScale) * pixelRatio;
+    gl_PointSize = max(0.01, clamp(cssPointSize, 5.25, 21.6) * entranceScale) * pixelRatio;
     gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
     pointAlpha = presence * entranceScale;
   }
@@ -1329,6 +1343,8 @@ function createPointFieldAdapter({
   let disciplineCorridorLeft = 16;
   let disciplineCorridorRight = 16;
   let disciplineCorridorWidth = 0;
+  let disciplineLabelBoundaryLeft = 8;
+  let disciplineLabelBoundaryRight = 8;
   let disciplineOverlayScaleX = 1;
   let disciplineOverlayScaleY = 1;
   let disciplineCanvasToOverlayX = 0;
@@ -1374,6 +1390,11 @@ function createPointFieldAdapter({
     disciplineCorridorRight = corridorRect
       ? (corridorRect.right - positioningRect.left) / Math.max(0.000001, disciplineOverlayScaleX)
       : Math.max(disciplineCorridorLeft, positioningWidth - 16);
+    disciplineLabelBoundaryLeft = 8;
+    disciplineLabelBoundaryRight = Math.max(
+      disciplineLabelBoundaryLeft,
+      positioningWidth - 8,
+    );
     const nextWidth = Math.max(1, disciplineCorridorRight - disciplineCorridorLeft);
     if (nextWidth !== disciplineCorridorWidth) {
       disciplineCorridorWidth = nextWidth;
@@ -1594,8 +1615,16 @@ function createPointFieldAdapter({
       materialThresholds,
       anchors,
     }) || emptyGroup;
+    fixedAttributes.position.array.set(pair.fromOutput.positions);
+    fixedAttributes.targetPosition.array.set(pair.toOutput.positions);
+    fixedAttributes.fromPresence.array.set(pair.fromOutput.presence);
+    fixedAttributes.toPresence.array.set(pair.toOutput.presence);
     fixedAttributes.fromGroup.array.set(fromGroup);
     fixedAttributes.toGroup.array.set(toGroup);
+    fixedAttributes.position.needsUpdate = true;
+    fixedAttributes.targetPosition.needsUpdate = true;
+    fixedAttributes.fromPresence.needsUpdate = true;
+    fixedAttributes.toPresence.needsUpdate = true;
     fixedAttributes.fromGroup.needsUpdate = true;
     fixedAttributes.toGroup.needsUpdate = true;
     captureDisciplinePositions(
@@ -2143,14 +2172,14 @@ function createPointFieldAdapter({
       disciplineProjectedViewportY[groupIndex] = disciplinePointProjection[2];
       disciplinePointInFront[groupIndex] = disciplinePointProjection[3];
       const side = disciplineProjectedX[groupIndex]
-        > ((disciplineCorridorLeft + disciplineCorridorRight) / 2) ? -1 : 1;
+        > ((disciplineLabelBoundaryLeft + disciplineLabelBoundaryRight) / 2) ? -1 : 1;
       writeDisciplineLabelSide(groupIndex, side);
       writeDisciplineLabelNudge(groupIndex, getAboutNarrativeDisciplineLabelNudge({
         anchorX: disciplineProjectedX[groupIndex],
         labelWidth: disciplineLabelWidth[groupIndex],
         labelOffset,
-        corridorLeft: disciplineCorridorLeft,
-        corridorRight: disciplineCorridorRight,
+        corridorLeft: disciplineLabelBoundaryLeft,
+        corridorRight: disciplineLabelBoundaryRight,
         side,
       }));
     }
@@ -2164,8 +2193,10 @@ function createPointFieldAdapter({
     if (reveal !== lastDisciplineConfig || frame.layoutProfile !== lastDisciplineLayoutProfile) {
       const mobile = frame.layoutProfile === 'mobile';
       resolvedDisciplineAnchors = reveal?.items?.map((item) => {
-        const fallback = item.position || [0.5, 0.5];
-        const position = mobile ? item.mobilePosition || fallback : fallback;
+        const position = getAboutNarrativeDisciplinePosition(
+          item,
+          mobile ? 'mobile' : 'desktop',
+        );
         return { group: item.group, x: position[0], y: position[1] };
       }) || null;
       lastDisciplineConfig = reveal || null;

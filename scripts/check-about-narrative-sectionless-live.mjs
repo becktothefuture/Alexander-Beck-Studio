@@ -579,7 +579,7 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   assert.ok(keys.get('ripple-overhead-hold').position[2] < keys.get('grid-return-centered').position[2]);
   assert.ok(keys.get('finale-hold').position[1] < keys.get('ripple-overhead-hold').position[1]);
   assert.ok(keys.get('finale-hold').position[2] > keys.get('ripple-overhead-hold').position[2]);
-  assert.equal(keys.get('ripple-overhead-hold').easing, 'smoothstep');
+  assert.equal(keys.get('ripple-overhead-hold').easing, 'cubic-bezier(0.32, 0, 0.82, 1)');
   const shift = keys.get('grid-birds-eye');
   const bridgeTitle = canonical.tracks.text.fields.find((field) => field.id === 'text-complexity-listen');
   assert.ok(shift.atWU > bridgeTitle.endWU);
@@ -856,7 +856,10 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   const titles = canonical.tracks.text.fields.filter((field) => field.kind === 'title');
   const opener = titles.find((field) => field.id === 'text-promise-main');
   assert.equal(opener.text, 'About Me');
-  assert.equal(opener.description, 'Creative & Technologist shaping products, interfaces and interactive moments.');
+  assert.equal(
+    opener.description,
+    'I’m a designer and technologist. Most of my projects involve products, systems and interactive experiences, often all three at once.',
+  );
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
     ['text-promise-main', 'text-epilogue-invitation'],
@@ -895,7 +898,7 @@ test('mobile title roles retain their exact twenty-percent width reductions', ()
   );
 });
 
-test('A to B doubles its travel while its titles divide the expanded passage evenly', () => {
+test('A to B keeps its expanded travel and authored title pacing', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const complexity = canonical.tracks.worlds.objects.find((world) => world.id === 'world-complexity');
   const titles = [
@@ -904,25 +907,32 @@ test('A to B doubles its travel while its titles divide the expanded passage eve
   ];
   assert.equal(Number((complexity.transitionIn.endWU - complexity.transitionIn.startWU).toFixed(6)), 2.05);
   assert.deepEqual(titles.map((title) => Number((title.endWU - title.startWU).toFixed(6))), [0.8, 0.8]);
-  const gaps = [
-    titles[0].startWU - complexity.transitionIn.startWU,
-    titles[1].startWU - titles[0].endWU,
-    complexity.transitionIn.endWU - titles[1].endWU,
-  ];
-  gaps.forEach((gap) => assert.ok(Math.abs(gap - gaps[0]) <= 0.000001, 'A to B title gaps must match'));
+  assert.deepEqual(
+    titles.map((title) => [title.startWU, title.focusWU, title.endWU]),
+    [[1.3, 1.7, 2.1], [2.42, 2.82, 3.22]],
+  );
 });
 
-test('later title groups retain their authored pacing', () => {
+test('later title groups retain their authored breathing gaps', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titleSets = [
-    ['text-complexity-curiosity', 'text-complexity-listen'],
-    ['text-life-momentum', 'text-life-form', 'text-life-character'],
+    {
+      ids: ['text-complexity-curiosity', 'text-complexity-listen'],
+      gaps: [0.1],
+    },
+    {
+      ids: ['text-life-momentum', 'text-life-form', 'text-life-character'],
+      gaps: [0.5, 0.33],
+    },
   ];
-  titleSets.forEach((ids) => ids.slice(1).forEach((id, index) => {
+  titleSets.forEach(({ ids, gaps }) => ids.slice(1).forEach((id, index) => {
     const previous = fieldsById.get(ids[index]);
     const current = fieldsById.get(id);
     assert.ok(current.startWU > previous.endWU, `${id} must follow the previous title without overlap`);
-    assert.ok(current.startWU - previous.endWU <= 0.15, `${id} must not introduce dead air`);
+    assert.ok(
+      Math.abs((current.startWU - previous.endWU) - gaps[index]) <= 0.000001,
+      `${id} must preserve its authored breathing gap`,
+    );
   }));
 });
 
@@ -943,7 +953,7 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
     [fields.get('text-life-character').endWU, emergent.startWU],
   ];
   handoffs.forEach(([outgoingEndWU, incomingStartWU]) => {
-    assert.ok(incomingStartWU - outgoingEndWU <= 0.5);
+    assert.ok(incomingStartWU - outgoingEndWU <= 0.65);
   });
   assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
   assert.ok(finale.startWU - emergent.startWU <= 0.81);
@@ -956,7 +966,7 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
         - pointKeys.get('key-world-emergent-departure').atWU
       )
     ).toFixed(6)),
-    0.8,
+    0.310284,
   );
   assert.equal(canonical.profiles.desktop.storyDurationWU, 17.81);
 });
@@ -1052,7 +1062,8 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
   ));
-  assert.ok(firstBridgeTitle.startWU >= backgroundUnit.endWU - 0.25);
+  assert.ok(firstBridgeTitle.startWU < backgroundUnit.endWU);
+  assert.ok(backgroundUnit.endWU - firstBridgeTitle.startWU <= 0.8);
   assert.ok(finalBridgeTitle.startWU > firstBridgeTitle.endWU);
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
   assert.equal(firstBridgeTitle.presentation.viewportY, undefined);
@@ -1060,8 +1071,8 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.ok(disciplineReveal.startWU <= firstBridgeTitle.startWU);
   assert.equal(disciplineReveal.activationWU, disciplineReveal.startWU);
   assert.ok(disciplineReveal.endWU > finalBridgeTitle.endWU);
-  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.65);
-  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.25);
+  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.8);
+  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.4);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields
     .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))
@@ -1073,7 +1084,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.experience, /EditorialStack/);
   assert.match(liveSources.experience, /EditorialMediaDeck/);
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
-  assert.match(liveSources.styles, /--about-editorial-ink:/);
+  assert.match(liveSources.styles, /--about-editorial-ink:\s*var\(--text-primary\);/);
   assert.doesNotMatch(liveSources.styles, /about-narrative-editorial-emphasis|about-editorial-strong-ink/);
   assert.equal(canonicalSource.includes('"emphasis"'), false);
   assert.equal(canonical.globals.editorialRevealThreshold, 0.8);

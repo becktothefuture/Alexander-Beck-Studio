@@ -2,6 +2,7 @@ import {
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   getAboutNarrativeShapeDefinition,
 } from './aboutNarrativeDefinitions.js';
+import { getAboutNarrativeDisciplineGridDimensions } from './aboutNarrativeDisciplinePositions.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -22,11 +23,6 @@ export function createAboutNarrativeSeeds(count, seed = 0x1e35a7bd) {
     values[index] = (state >>> 0) / 4294967296;
   }
   return values;
-}
-
-function getFieldDimensions(count) {
-  const columns = Math.max(24, Math.floor(Math.sqrt(count * 1.36)));
-  return { columns, rows: Math.ceil(count / columns) };
 }
 
 function createPresence(count, seeds, density = 1) {
@@ -180,7 +176,7 @@ function createTurbulentField(count, seeds, parameters) {
 
 function createCalmField(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
-  const { columns, rows } = getFieldDimensions(count);
+  const { columns, rows } = getAboutNarrativeDisciplineGridDimensions(count);
   const width = Number(parameters.width ?? 13);
   const depth = Number(parameters.depth ?? 17);
   const height = Number(parameters.height ?? -1.72);
@@ -197,12 +193,25 @@ function createCalmField(count, seeds, parameters) {
     positions[offset + 1] = height;
     positions[offset + 2] = z + ((((seeds[index] * 13) % 1) - 0.5) * jitter);
   }
-  return { positions, attributes: { disciplineGroup: createDisciplineGroups(count) } };
+  const disciplineGridX = new Float32Array(count);
+  const disciplineGridZ = new Float32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    disciplineGridX[index] = positions[index * 3];
+    disciplineGridZ[index] = positions[(index * 3) + 2];
+  }
+  return {
+    positions,
+    attributes: {
+      disciplineGroup: createDisciplineGroups(count),
+      disciplineGridX,
+      disciplineGridZ,
+    },
+  };
 }
 
 function createDisciplineGroups(count) {
   const groups = new Float32Array(count);
-  const { columns, rows } = getFieldDimensions(count);
+  const { columns, rows } = getAboutNarrativeDisciplineGridDimensions(count);
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.forEach(({ group, x, y }) => {
     const column = Math.round(x * (columns - 1));
     const row = Math.round(y * (rows - 1));
@@ -237,18 +246,27 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
 
   const groups = new Float32Array(pointCount);
   const used = new Uint8Array(pointCount);
+  const gridX = output?.attributes?.disciplineGridX;
+  const gridZ = output?.attributes?.disciplineGridZ;
+  const hasExactGrid = Array.isArray(anchors)
+    && gridX instanceof Float32Array
+    && gridX.length === pointCount
+    && gridZ instanceof Float32Array
+    && gridZ.length === pointCount;
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
   let maxZ = -Infinity;
   if (Array.isArray(anchors)) {
     for (let index = 0; index < pointCount; index += 1) {
-      if (output.presence[index] <= 0.001) continue;
+      if (!hasExactGrid && output.presence[index] <= 0.001) continue;
       const offset = index * 3;
-      minX = Math.min(minX, output.positions[offset]);
-      maxX = Math.max(maxX, output.positions[offset]);
-      minZ = Math.min(minZ, output.positions[offset + 2]);
-      maxZ = Math.max(maxZ, output.positions[offset + 2]);
+      const pointX = hasExactGrid ? gridX[index] : output.positions[offset];
+      const pointZ = hasExactGrid ? gridZ[index] : output.positions[offset + 2];
+      minX = Math.min(minX, pointX);
+      maxX = Math.max(maxX, pointX);
+      minZ = Math.min(minZ, pointZ);
+      maxZ = Math.max(maxZ, pointZ);
     }
   }
   for (let group = 1; group <= 6; group += 1) {
@@ -273,12 +291,14 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
     let bestIndex = -1;
     let bestDistance = Infinity;
     for (let index = 0; index < pointCount; index += 1) {
-      if (used[index] || output.presence[index] <= 0.001) continue;
-      if (getMaterialSlot(pointSeeds[index], materialThresholds) !== group - 1) continue;
+      if (used[index] || (!hasExactGrid && output.presence[index] <= 0.001)) continue;
+      if (!hasExactGrid && getMaterialSlot(pointSeeds[index], materialThresholds) !== group - 1) continue;
       const offset = index * 3;
-      const dx = output.positions[offset] - (Number.isFinite(targetX) ? targetX : output.positions[anchorOffset]);
+      const pointX = hasExactGrid ? gridX[index] : output.positions[offset];
+      const pointZ = hasExactGrid ? gridZ[index] : output.positions[offset + 2];
+      const dx = pointX - (Number.isFinite(targetX) ? targetX : output.positions[anchorOffset]);
       const dy = Number.isFinite(targetX) ? 0 : output.positions[offset + 1] - output.positions[anchorOffset + 1];
-      const dz = output.positions[offset + 2] - (Number.isFinite(targetZ) ? targetZ : output.positions[anchorOffset + 2]);
+      const dz = pointZ - (Number.isFinite(targetZ) ? targetZ : output.positions[anchorOffset + 2]);
       const distance = (dx * dx) + (dy * dy) + (dz * dz);
       if (distance < bestDistance) {
         bestIndex = index;
@@ -288,6 +308,12 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
 
     if (bestIndex < 0) bestIndex = anchorIndex;
     if (bestIndex < 0) continue;
+    if (hasExactGrid) {
+      const offset = bestIndex * 3;
+      output.positions[offset] = gridX[bestIndex];
+      output.positions[offset + 2] = gridZ[bestIndex];
+      output.presence[bestIndex] = 1;
+    }
     groups[bestIndex] = group;
     used[bestIndex] = 1;
   }
@@ -296,7 +322,7 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
 
 function createDisciplineGrid(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
-  const { columns, rows } = getFieldDimensions(count);
+  const { columns, rows } = getAboutNarrativeDisciplineGridDimensions(count);
   const width = Number(parameters.width ?? 12.5);
   const height = Number(parameters.height ?? 7.5);
   const depthJitter = Number(parameters.depthJitter ?? 0.04);
@@ -313,7 +339,7 @@ function createDisciplineGrid(count, seeds, parameters) {
 
 function createLivingField(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
-  const { columns, rows } = getFieldDimensions(count);
+  const { columns, rows } = getAboutNarrativeDisciplineGridDimensions(count);
   const width = Number(parameters.width ?? 13.5);
   const depth = Number(parameters.depth ?? 18);
   const baseY = Number(parameters.baseY ?? -1.58);

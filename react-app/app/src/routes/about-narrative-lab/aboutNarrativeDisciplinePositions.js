@@ -1,9 +1,10 @@
+import { ABOUT_NARRATIVE_POINT_PROFILES } from './aboutNarrativeRuntimeConstants.js';
+
 export const ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS = Object.freeze({
   x: Object.freeze({ min: 0.1, max: 0.72 }),
   y: Object.freeze({ min: 0.4, max: 0.95 }),
 });
 
-export const ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP = 0.01;
 export const ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION = 0.16;
 
 export const ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS = Object.freeze([
@@ -30,7 +31,62 @@ function clamp(value, min, max) {
 }
 
 function clean(value) {
-  return Number(Number(value).toFixed(2));
+  return Number(Number(value).toFixed(6));
+}
+
+export function getAboutNarrativeDisciplineGridDimensions(profileOrPointCount = 'desktop') {
+  const pointCount = typeof profileOrPointCount === 'number'
+    ? profileOrPointCount
+    : ABOUT_NARRATIVE_POINT_PROFILES[profileOrPointCount]?.pointCount
+      || ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount;
+  const columns = Math.max(24, Math.floor(Math.sqrt(pointCount * 1.36)));
+  return Object.freeze({ columns, rows: Math.ceil(pointCount / columns), pointCount });
+}
+
+function getCellBounds(profile) {
+  const dimensions = getAboutNarrativeDisciplineGridDimensions(profile);
+  return {
+    columns: dimensions.columns,
+    rows: dimensions.rows,
+    minColumn: Math.ceil(ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.min * (dimensions.columns - 1)),
+    maxColumn: Math.floor(ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.max * (dimensions.columns - 1)),
+    minRow: Math.ceil(ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.min * (dimensions.rows - 1)),
+    maxRow: Math.floor(ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.max * (dimensions.rows - 1)),
+  };
+}
+
+export function getAboutNarrativeDisciplineGridCell(position, profile = 'desktop') {
+  const bounds = getCellBounds(profile);
+  return [
+    Math.min(bounds.maxColumn, Math.max(
+      bounds.minColumn,
+      Math.round(clamp(position?.[0], 0, 1) * (bounds.columns - 1)),
+    )),
+    Math.min(bounds.maxRow, Math.max(
+      bounds.minRow,
+      Math.round(clamp(position?.[1], 0, 1) * (bounds.rows - 1)),
+    )),
+  ];
+}
+
+export function getAboutNarrativeDisciplinePositionForGridCell(cell, profile = 'desktop') {
+  const bounds = getCellBounds(profile);
+  const requestedColumn = Number(cell?.[0]);
+  const requestedRow = Number(cell?.[1]);
+  const column = Number.isFinite(requestedColumn)
+    ? Math.min(bounds.maxColumn, Math.max(bounds.minColumn, Math.round(requestedColumn)))
+    : bounds.minColumn;
+  const row = Number.isFinite(requestedRow)
+    ? Math.min(bounds.maxRow, Math.max(bounds.minRow, Math.round(requestedRow)))
+    : bounds.minRow;
+  return [
+    clean(column / Math.max(1, bounds.columns - 1)),
+    clean(row / Math.max(1, bounds.rows - 1)),
+  ];
+}
+
+export function getAboutNarrativeDisciplineGridCellBounds(profile = 'desktop') {
+  return Object.freeze(getCellBounds(profile));
 }
 
 export function getAboutNarrativeDisciplinePosition(item, profile = 'desktop') {
@@ -42,10 +98,10 @@ export function getAboutNarrativeDisciplinePosition(item, profile = 'desktop') {
   const candidate = profile === 'mobile'
     ? item?.mobilePosition || item?.position || fallback
     : item?.position || fallback;
-  return [
-    clean(clamp(candidate?.[0], ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.min, ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x.max)),
-    clean(clamp(candidate?.[1], ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.min, ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y.max)),
-  ];
+  return getAboutNarrativeDisciplinePositionForGridCell(
+    getAboutNarrativeDisciplineGridCell(candidate, profile),
+    profile,
+  );
 }
 
 export function getAboutNarrativeDisciplineMinimumSeparation(items, profile = 'desktop') {
@@ -73,12 +129,9 @@ function clearsOtherPositions(items, group, profile, position) {
 }
 
 export function constrainAboutNarrativeDisciplinePosition(items, group, profile, requested) {
-  const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
-  const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
-  const target = [
-    clean(clamp(requested?.[0], xBounds.min, xBounds.max)),
-    clean(clamp(requested?.[1], yBounds.min, yBounds.max)),
-  ];
+  const cellBounds = getCellBounds(profile);
+  const targetCell = getAboutNarrativeDisciplineGridCell(requested, profile);
+  const target = getAboutNarrativeDisciplinePositionForGridCell(targetCell, profile);
   if (clearsOtherPositions(items, group, profile, target)) return target;
 
   const currentItem = items.find((item) => Number(item?.group) === Number(group));
@@ -89,9 +142,9 @@ export function constrainAboutNarrativeDisciplinePosition(items, group, profile,
     : Number.POSITIVE_INFINITY;
   let bestCurrentDistance = best ? 0 : Number.POSITIVE_INFINITY;
 
-  for (let x = xBounds.min; x <= xBounds.max + 0.000001; x += ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP) {
-    for (let y = yBounds.min; y <= yBounds.max + 0.000001; y += ABOUT_NARRATIVE_DISCIPLINE_POSITION_STEP) {
-      const candidate = [clean(x), clean(y)];
+  for (let column = cellBounds.minColumn; column <= cellBounds.maxColumn; column += 1) {
+    for (let row = cellBounds.minRow; row <= cellBounds.maxRow; row += 1) {
+      const candidate = getAboutNarrativeDisciplinePositionForGridCell([column, row], profile);
       if (!clearsOtherPositions(items, group, profile, candidate)) continue;
       const distance = Math.hypot(candidate[0] - target[0], candidate[1] - target[1]);
       const currentDistance = Math.hypot(candidate[0] - current[0], candidate[1] - current[1]);

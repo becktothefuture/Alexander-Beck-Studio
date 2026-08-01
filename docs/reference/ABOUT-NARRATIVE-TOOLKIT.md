@@ -341,7 +341,12 @@ read-only flow reservation. This makes the occupied reading interval visible bet
 titles and the following editorial block without creating a second timing owner.
 
 The clip is one draggable timing object. The native DOM labels project from their corresponding
-Three.js points and pack inside the viewport on desktop, portrait mobile, and short landscape. Their
+Three.js points, stay beside those points, and pack inside the viewport on desktop, portrait mobile,
+and short landscape. The Position map exposes the real desktop and mobile point grids as integer
+columns and rows; dragging, arrow keys, and direct entry all resolve to one exact grid cell. A selected
+cell starts as an ordinary grey grid point, then grows smoothly to the authored discipline size as its
+label reveals. The canonical discipline size is 20% larger than the previous setting. Its previous
+material colour does not affect the selection because the semantic group assigns the reveal colour. Their
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
 After the final labels pass and the grid restoration completes, Visibility hides the complete simulation

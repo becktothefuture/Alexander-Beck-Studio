@@ -18,7 +18,7 @@ body.about-narrative-page .route-simulation-layer {
   --about-editorial-type-weight: 300;
   --about-editorial-reveal-threshold: 1;
   --about-editorial-resting-opacity: 0.2;
-  --about-editorial-ink: color-mix(in srgb, var(--text-primary) 72%, var(--studio-window-bg) 28%);
+  --about-editorial-ink: var(--text-primary);
   --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
   position: absolute;
   inset: 0;

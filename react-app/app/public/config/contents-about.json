@@ -172,7 +172,7 @@
         },
         {
           "id": "complexity-exit",
-          "atWU": 4.872,
+          "atWU": 5.067,
           "position": [
             0,
             0.1,
@@ -196,7 +196,7 @@
         },
         {
           "id": "complexity-exit-2",
-          "atWU": 5.191,
+          "atWU": 5.221,
           "position": [
             0,
             2,
@@ -296,7 +296,7 @@
           "position": [
             1.4261778213356697e-15,
             1.468170035595036,
-            -18.680625680225763
+            -16.83
           ],
           "rotation": [
             -90,
@@ -311,7 +311,7 @@
           ],
           "lookAtRoll": 0,
           "fov": 56,
-          "easing": "smoothstep",
+          "easing": "cubic-bezier(0.32, 0, 0.82, 1)",
           "locked": false
         },
         {
@@ -358,7 +358,7 @@
         },
         {
           "id": "visibility-void-off",
-          "atWU": 4.774,
+          "atWU": 4.999,
           "visibility": 0,
           "easing": "linear",
           "locked": false
@@ -659,7 +659,7 @@
         },
         {
           "id": "key-world-emergent-arrival",
-          "atWU": 16.07,
+          "atWU": 17.332626,
           "stateId": "world-emergent"
         },
         {
@@ -846,14 +846,14 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "Creative & Technologist shaping products, interfaces and interactive moments."
+          "description": "I’m a designer and technologist. Most of my projects involve products, systems and interactive experiences, often all three at once."
         },
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 0.85,
-          "focusWU": 1.25,
-          "endWU": 1.65,
+          "startWU": 1.3,
+          "focusWU": 1.7,
+          "endWU": 2.1,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -861,14 +861,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I’ve always been drawn to complexity."
+          "text": "I speak several languages."
         },
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 1.8,
-          "focusWU": 2.2,
-          "endWU": 2.6,
+          "startWU": 2.42,
+          "focusWU": 2.82,
+          "endWU": 3.22,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -876,14 +876,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Especially when something new is changing how we think or behave."
+          "text": "They rarely say things in quite the same way."
         },
         {
           "id": "text-background-unit",
           "kind": "scroll-block",
-          "startWU": 2.85,
-          "focusWU": 3.33,
-          "endWU": 5.6,
+          "startWU": 3.465,
+          "focusWU": 3.945,
+          "endWU": 6.215,
           "publishable": true,
           "presentation": {
             "layout": "reading"
@@ -896,17 +896,17 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "These projects rarely arrive as clean design problems. A brief may describe the most visible issue while the harder questions sit beneath it: what the organisation needs, what the product can do and what will make sense to the people using it. Sometimes progress begins by reframing the question itself."
+                "text": "That difference drew me to Communication Design. I could explore an idea through type, image and motion, and see how each medium changed it."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "Communication Design taught me to explore those questions through language, image, structure and motion. I became interested in how these elements influence one another—and in finding clarity without simplifying away what matters."
+                "text": "I’ve moved between agency, startup and independent work throughout my career. The projects have ranged from print and cultural work to interfaces, icon systems and motion. At Denaline, I often worked alongside developers, which made me think about what screens did, not only how they looked."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "Consultancy showed me how business needs, user needs and practical constraints can pull the same project in different directions. In startups, I learned to work while both the problem and the product were still evolving. I now treat product, brand and communication as one connected experience."
+                "text": "At Yoti, product, brand and trust were difficult to separate. The anti-spoof hologram is a good example: the way it looked and moved was part of how the interaction communicated trust."
               },
               {
                 "id": "selected-clients",
@@ -1015,7 +1015,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "No single discipline resolves complexity on its own."
+          "text": "Different projects ask for different things."
         },
         {
           "id": "text-complexity-listen",
@@ -1030,14 +1030,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "So I move between several."
+          "text": "Most of mine involve several disciplines."
         },
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 10.75,
-          "focusWU": 11.15,
-          "endWU": 13.15,
+          "startWU": 10.355,
+          "focusWU": 10.755,
+          "endWU": 12.755,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -1050,17 +1050,17 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "My way into a project is practical. I speak with the people closest to it, gather references and test the assumptions in front of us. Once the question is clearer, I give the thinking a form. This could be a sketch, a wireframe, a prototype, a presentation or something working—whatever gives the team something concrete to respond to."
+                "text": "Before deciding what to make, I spend time with the people closest to the problem and test the assumptions in the brief. Then I make something—a sketch, prototype, motion study or sometimes code—so the team has something real to respond to."
               },
               {
                 "id": "language-context",
                 "kind": "prose",
-                "text": "Growing up bilingual, between Portugal and Germany, made me aware that the same message can land differently depending on its context. That is why language is part of my design process, rather than something added at the end. I pay attention to how an idea is named, explained and understood, because those choices can change the experience as much as its visual form."
+                "text": "I often help set the creative direction, but I prefer to do it in the open. Once something is on the table, people can question it and improve it. I do not want collaborators invited in at the end, after the interesting choices have already been made."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "AI has expanded how I explore these questions and how early I can make an idea visible. It also creates more possible directions to assess. I still decide what is relevant, what has character and what deserves to be developed. That judgement keeps the work connected to its purpose and to the people it is for."
+                "text": "On a financial index-building project, complexity needed to be layered rather than hidden. Some interaction nuance was lost in the final build, which changed how closely I stay involved with implementation."
               },
               {
                 "id": "project-impressions",
@@ -1282,7 +1282,7 @@
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "I want to keep working where the direction is still open: on products, services and experiences shaped by new technologies, changing behaviours and emerging ways of thinking. This could mean defining how an unfamiliar technology behaves, how a service earns trust, or how a new capability becomes useful in everyday life. These are the situations where I find design most valuable—while the important decisions are still open and there is room to shape them well."
+                "text": "Unfinished questions tend to follow me home. Some involve AI, trust, privacy or robotics. One involved the iOS keyboard. It bothered me enough to become a side project."
               }
             ]
           }
@@ -1290,9 +1290,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 13.27,
-          "focusWU": 13.62,
-          "endWU": 14.02,
+          "startWU": 12.765,
+          "focusWU": 13.115,
+          "endWU": 13.515,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1300,14 +1300,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I bring different disciplines together"
+          "text": "I do not know what the next question will be."
         },
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 14.07,
-          "focusWU": 14.42,
-          "endWU": 14.82,
+          "startWU": 14.015,
+          "focusWU": 14.365,
+          "endWU": 14.765,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1315,14 +1315,14 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "to make complex ideas clearer"
+          "text": "I like that."
         },
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 14.87,
-          "focusWU": 15.17,
-          "endWU": 15.47,
+          "startWU": 15.095,
+          "focusWU": 15.395,
+          "endWU": 15.695,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1330,7 +1330,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "and move them forward into something new."
+          "text": "I still have plenty to learn."
         },
         {
           "id": "text-epilogue-invitation",
@@ -1346,7 +1346,7 @@
           "preset": "finale-v1",
           "titleStyle": "display",
           "text": "Let’s talk.",
-          "description": "If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note."
+          "description": "If you are working through an unfamiliar problem, I’d be glad to hear about it."
         }
       ]
     },
@@ -1362,21 +1362,21 @@
             "backgroundFadeWU": 0.38,
             "backgroundOpacity": 0.25,
             "reconnectOpacity": 0.3,
-            "pointScale": 5.2,
+            "pointScale": 6.24,
             "restoreDurationWU": 0.3,
             "labelOffsetPx": 22,
-            "labelScale": 1.28,
+            "labelScale": 1.18,
             "items": [
               {
                 "group": 1,
                 "label": "Product Design",
                 "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
                 "position": [
-                  0.31,
-                  0.47
+                  0.380952,
+                  0.468085
                 ],
                 "mobilePosition": [
-                  0.16,
+                  0.160494,
                   0.5
                 ]
               },
@@ -1385,12 +1385,12 @@
                 "label": "Experience Design",
                 "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
                 "position": [
-                  0.4,
-                  0.63
+                  0.396825,
+                  0.62766
                 ],
                 "mobilePosition": [
-                  0.62,
-                  0.59
+                  0.617284,
+                  0.583333
                 ]
               },
               {
@@ -1398,12 +1398,12 @@
                 "label": "Art Direction",
                 "description": "I define the visual point of view that gives the work character, clarity, and intent.",
                 "position": [
-                  0.55,
-                  0.56
+                  0.547619,
+                  0.56383
                 ],
                 "mobilePosition": [
-                  0.16,
-                  0.68
+                  0.160494,
+                  0.683333
                 ]
               },
               {
@@ -1411,12 +1411,12 @@
                 "label": "Motion & 3D",
                 "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
                 "position": [
-                  0.32,
-                  0.77
+                  0.333333,
+                  0.776596
                 ],
                 "mobilePosition": [
-                  0.62,
-                  0.77
+                  0.617284,
+                  0.766667
                 ]
               },
               {
@@ -1424,12 +1424,12 @@
                 "label": "Creative Engineering",
                 "description": "I prototype with code and AI to move decisions from discussion into working form.",
                 "position": [
-                  0.55,
-                  0.82
+                  0.563492,
+                  0.734043
                 ],
                 "mobilePosition": [
-                  0.16,
-                  0.86
+                  0.160494,
+                  0.866667
                 ]
               },
               {
@@ -1437,11 +1437,11 @@
                 "label": "Parametric Systems",
                 "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
                 "position": [
-                  0.39,
-                  0.95
+                  0.579365,
+                  0.893617
                 ],
                 "mobilePosition": [
-                  0.62,
+                  0.617284,
                   0.95
                 ]
               }

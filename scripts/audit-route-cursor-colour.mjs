@@ -157,8 +157,15 @@ function assertRouteCursorState(state) {
   if (state.cursorDisplay !== 'block') {
     throw new Error(`${state.routeId}: expected standard cursor to be visible, got ${state.cursorDisplay || '(empty)'}`);
   }
-  if (state.cursorWidth !== '48px' || state.cursorHeight !== '48px') {
-    throw new Error(`${state.routeId}: expected 48px standard lens, got ${state.cursorWidth} × ${state.cursorHeight}`);
+  const cursorWidth = Number.parseFloat(state.cursorWidth);
+  const cursorHeight = Number.parseFloat(state.cursorHeight);
+  if (
+    !Number.isFinite(cursorWidth)
+    || !Number.isFinite(cursorHeight)
+    || Math.abs(cursorWidth - 57.6) > 0.02
+    || Math.abs(cursorHeight - 57.6) > 0.02
+  ) {
+    throw new Error(`${state.routeId}: expected 57.6px standard lens, got ${state.cursorWidth} × ${state.cursorHeight}`);
   }
   if (/abs-cursor-(?:tap|action-hover|project-hover)/.test(state.cursorClass)) {
     throw new Error(`${state.routeId}: legacy cursor mode remained active: "${state.cursorClass}"`);
@@ -203,8 +210,42 @@ function assertClickableCursorState(state, label) {
     throw new Error(`${label} cursor opacity was ${state.cursorOpacity}, expected 0.72`);
   }
   const interactiveScale = Number(state.cursorTransform.match(/^matrix\(([^,]+)/)?.[1]);
-  if (!Number.isFinite(interactiveScale) || Math.abs(interactiveScale * 48 - 20) > 0.01) {
+  if (!Number.isFinite(interactiveScale) || Math.abs(interactiveScale * 57.6 - 20) > 0.01) {
     throw new Error(`${label} cursor transform was ${state.cursorTransform}, expected a 20px rendered lens`);
+  }
+}
+
+async function assertPlaygroundCursorStates(page) {
+  const viewport = page.locator('[data-playground-viewport]');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('playground: drag surface was unavailable for cursor checks');
+  const start = { x: Math.round(box.x + 12), y: Math.round(box.y + 12) };
+  const end = { x: start.x + 36, y: start.y + 20 };
+
+  await page.mouse.move(start.x, start.y);
+  await page.waitForTimeout(260);
+  let state = await readRouteCursorState(page, 'playground');
+  if (state.cursorClass.split(/\s+/).includes('abs-cursor-interactive')) {
+    throw new Error('playground: resting drag surface activated the smaller cursor');
+  }
+
+  const item = page.locator('[data-playground-item] button').first();
+  await item.hover();
+  await page.waitForTimeout(260);
+  assertClickableCursorState(
+    await readRouteCursorState(page, 'playground'),
+    'playground: project item',
+  );
+
+  await page.mouse.move(start.x, start.y);
+  await page.waitForTimeout(260);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 3 });
+  await page.waitForTimeout(80);
+  state = await readRouteCursorState(page, 'playground');
+  await page.mouse.up();
+  if (state.cursorClass.split(/\s+/).includes('abs-cursor-interactive')) {
+    throw new Error('playground: canvas drag activated the smaller cursor');
   }
 }
 
@@ -263,6 +304,7 @@ async function directLoadChecks(browser) {
     await assertInactiveHoverDoesNotPreview(page, routeId);
     await assertOuterShellKeepsCustomCursor(page, routeId);
     if (routeId === 'home') await assertHomeOverlayCursor(page);
+    if (routeId === 'playground') await assertPlaygroundCursorStates(page);
     log(`direct ${routeId}: ${state.cursorWidth} neutral lens`);
     await context.close();
   }
@@ -304,7 +346,7 @@ async function run() {
     await browser.close();
     await server?.stop();
   }
-  log('PASS: one 48px neutral lens persists across routes and the outer shell, with one smaller/quieter clickable state.');
+  log('PASS: one 57.6px neutral lens persists across routes and the outer shell, with one smaller/quieter clickable state.');
 }
 
 run().catch((error) => {

@@ -61,7 +61,9 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 import {
   ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
+  getAboutNarrativeDisciplineGridDimensions,
   getAboutNarrativeDisciplineMinimumSeparation,
+  getAboutNarrativeDisciplinePositionForGridCell,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplinePositions.js';
 import {
   createAboutNarrativeIndependentWorldClip,
@@ -1382,6 +1384,39 @@ test('discipline anchors select one existing point from every material colour sl
   anchors.sort((a, b) => a.group - b.group);
   assert.deepEqual(anchors.map(({ group }) => group), [1, 2, 3, 4, 5, 6]);
   assert.deepEqual(anchors.map(({ slot }) => slot), [0, 1, 2, 3, 4, 5]);
+});
+
+test('authored discipline anchors occupy their exact grid cells regardless of prior colour or density', async () => {
+  const pointCount = 5000;
+  const pointSeeds = createAboutNarrativeSeeds(pointCount, 506832829);
+  const output = await generateAboutNarrativeShape({
+    shapeId: 'calm-field-v1',
+    pointCount,
+    seeds: pointSeeds,
+    quality: 'mobile',
+    parameters: { width: 13, depth: 17, height: -1.72, jitter: 0, density: 0.02 },
+  });
+  const dimensions = getAboutNarrativeDisciplineGridDimensions(pointCount);
+  const cells = Array.from({ length: 6 }, (_, index) => [19 + (index * 7), 30 + (index * 5)]);
+  const anchors = cells.map((cell, index) => {
+    const [x, y] = getAboutNarrativeDisciplinePositionForGridCell(cell, 'mobile');
+    return { group: index + 1, x, y };
+  });
+  const groups = createAboutNarrativeColourMatchedDisciplineGroups({
+    output,
+    pointSeeds,
+    materialThresholds: [0.31, 0.44, 0.6, 0.8, 0.9],
+    anchors,
+  });
+
+  cells.forEach(([column, row], index) => {
+    const pointIndex = (row * dimensions.columns) + column;
+    const offset = pointIndex * 3;
+    assert.equal(groups[pointIndex], index + 1);
+    assert.equal(output.presence[pointIndex], 1);
+    assertClose(output.positions[offset], output.attributes.disciplineGridX[pointIndex]);
+    assertClose(output.positions[offset + 2], output.attributes.disciplineGridZ[pointIndex]);
+  });
 });
 
 test('turbulent field creates uneven volumetric density rather than a uniform random fill', async () => {

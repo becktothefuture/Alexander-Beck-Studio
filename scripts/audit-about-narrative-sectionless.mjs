@@ -193,6 +193,35 @@ async function auditEditor() {
     document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete'
   ));
 
+  const scrollport = page.locator('.about-narrative-scrollport');
+  assert.equal(
+    await scrollport.getAttribute('data-cursor-default-surface'),
+    'true',
+    'The focusable About scrollport must keep the resting cursor.',
+  );
+  const restingCursorPoint = await page.evaluate(() => {
+    const node = document.querySelector('.about-narrative-scrollport');
+    const rect = node.getBoundingClientRect();
+    const ratios = [0.25, 0.5, 0.75];
+    for (const yRatio of ratios) {
+      for (const xRatio of ratios) {
+        const x = rect.left + (rect.width * xRatio);
+        const y = rect.top + (rect.height * yRatio);
+        const target = document.elementFromPoint(x, y);
+        if (node.contains(target) && !target.closest('.about-track-editor')) return { x, y };
+      }
+    }
+    return null;
+  });
+  assert.ok(restingCursorPoint, 'The About preview must expose a non-editor pointer target.');
+  await page.mouse.move(restingCursorPoint.x, restingCursorPoint.y);
+  await page.waitForTimeout(120);
+  assert.equal(
+    await page.locator('#custom-cursor').evaluate((node) => node.classList.contains('abs-cursor-interactive')),
+    false,
+    'Non-clickable About content must not shrink the cursor.',
+  );
+
   const editor = page.locator('.about-track-editor');
   const shortcutInputProbe = page.getByRole('slider', { name: 'Timeline playhead' });
   await shortcutInputProbe.focus();
@@ -207,6 +236,13 @@ async function auditEditor() {
     await page.locator('.about-narrative-lab').getAttribute('data-editor-active'),
     null,
     'The hidden editor must release the full preview viewport.',
+  );
+  await page.getByRole('link', { name: 'About Me', exact: true }).hover();
+  await page.waitForTimeout(120);
+  assert.equal(
+    await page.locator('#custom-cursor').evaluate((node) => node.classList.contains('abs-cursor-interactive')),
+    true,
+    'Clickable About controls must still shrink the cursor.',
   );
   await page.keyboard.press('Slash');
   assert.equal(await editor.isVisible(), true, 'Slash should restore the editor chrome.');

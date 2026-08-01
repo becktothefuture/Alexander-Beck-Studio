@@ -1244,7 +1244,7 @@
 .about-track-editor-discipline-coordinates { display: grid; gap: 4px; }
 .about-track-editor-discipline-coordinate {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 60px 60px;
+  grid-template-columns: minmax(0, 1fr) 68px 68px;
   align-items: center;
   gap: 5px;
   min-height: 28px;
@@ -1271,7 +1271,7 @@
 
 .about-track-editor-discipline-coordinate label {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
   gap: 3px;
   color: var(--editor-muted);

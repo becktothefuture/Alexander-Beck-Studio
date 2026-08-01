@@ -5739,14 +5739,14 @@ body.dark-mode {
   transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
   will-change: transform, opacity;
-  width: 48px;
-  height: 48px;
+  width: 57.6px;
+  height: 57.6px;
   border-radius: 50%;
 }
 
 /* The sole cursor response: smaller and quieter over any clickable target. */
 #custom-cursor.abs-cursor-interactive {
-  --abs-cursor-scale: 0.4166667;
+  --abs-cursor-scale: 0.3472222;
   opacity: 0.72;
   transform: translate(-50%, -50%) scale(var(--abs-cursor-scale));
 }

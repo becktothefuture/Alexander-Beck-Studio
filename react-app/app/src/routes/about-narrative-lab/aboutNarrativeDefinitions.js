@@ -467,10 +467,10 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       backgroundFadeWU: 0.12,
       backgroundOpacity: 0.42,
       reconnectOpacity: 0.38,
-      pointScale: 5.2,
+      pointScale: 6.24,
       restoreDurationWU: 0.1,
       labelOffsetPx: 22,
-      labelScale: 1.65,
+      labelScale: 1.18,
       items: Object.freeze([
         Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[0] }),
         Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[1] }),

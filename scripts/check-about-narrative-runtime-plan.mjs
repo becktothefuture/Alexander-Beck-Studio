@@ -26,8 +26,11 @@ import {
 import {
   ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
   constrainAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplineGridCell,
+  getAboutNarrativeDisciplineGridDimensions,
   getAboutNarrativeDisciplineMinimumSeparation,
   getAboutNarrativeDisciplinePosition,
+  getAboutNarrativeDisciplinePositionForGridCell,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplinePositions.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
@@ -687,6 +690,27 @@ test('Discipline positions stay separated in both responsive profiles', () => {
     constrained[0] - requested[0],
     constrained[1] - requested[1],
   ) >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001);
+});
+
+test('Discipline positions resolve to exact point-grid cells in both profiles', () => {
+  ['desktop', 'mobile'].forEach((profile) => {
+    const dimensions = getAboutNarrativeDisciplineGridDimensions(profile);
+    const requestedCell = profile === 'desktop' ? [39, 51] : [24, 33];
+    const position = getAboutNarrativeDisciplinePositionForGridCell(requestedCell, profile);
+    assert.deepEqual(getAboutNarrativeDisciplineGridCell(position, profile), requestedCell);
+    assertClose(
+      position[0],
+      requestedCell[0] / (dimensions.columns - 1),
+      `${profile} exact column`,
+      0.000001,
+    );
+    assertClose(
+      position[1],
+      requestedCell[1] / (dimensions.rows - 1),
+      `${profile} exact row`,
+      0.000001,
+    );
+  });
 });
 
 test('the global text corridor scales the Position map across its supported width range', () => {

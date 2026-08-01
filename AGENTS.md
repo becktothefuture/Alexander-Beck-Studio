@@ -99,7 +99,7 @@ Read `DESIGN.md` before changing the production visual system, then read the foc
 - Manual light/dark theme affects the studio-window interior only: `--studio-window-bg`, `--frame-inner-surface`, in-window finish, route content, simulations, gates, and overlays. Never alias those surfaces to `--abs-wall-base`.
 - The exposed band and physical frame are invariant opaque black (`#000000`) across browser families, browser/OS schemes, site themes, and display gamuts. Preserve `chromeHarmonyMode: auto` only as a compatibility sentinel; no production path may approximate browser chrome or change the frame away from black.
 - The Button Bar belongs to the stable outer shell. Do not derive its ink/material from `--text-primary` or `--text-muted`, and verify all four route tabs remain legible and selected correctly in both site themes.
-- The custom cursor is one fixed 48px adaptive neutral lens across every production route, outer-shell surface, Button Bar, gate, drawer, and modal. Its only interactive state is `scale(0.84)` with `opacity: 0.72`; it never switches colour, size family, or overlay-specific form.
+- The custom cursor is one fixed 57.6px adaptive neutral lens across every production route, outer-shell surface, Button Bar, gate, drawer, and modal. Its only interactive state resolves to 20px (`scale(0.3472222)`) with `opacity: 0.72`; it never switches colour, size family, or overlay-specific form. Lab keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state for nested project items and other true actions.
 - Quote puck behavior includes the current air-hockey-style drag/throw response. Do not describe it as drag-only.
 - Public Daily Simulation state settles on the clean Home URL.
 

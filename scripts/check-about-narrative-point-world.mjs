@@ -200,7 +200,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 18\.0\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 21\.6\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /presence = max\(presence, groupExists \* disciplineRevealActive\)/);
+  assert.match(source, /pointTint = mix\(pointTint, disciplineMaterialColor\(group\), revealedGroupWeight\)/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
   assert.match(
     source,

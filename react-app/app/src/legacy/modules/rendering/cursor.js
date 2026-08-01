@@ -14,7 +14,7 @@ let linkHoverListening = false;
 /** Keeps the custom cursor available on React route runtimes that do not boot legacy pointer.js. */
 let documentCursorTracking = false;
 let isCustomCursorActive = false;
-const STANDARD_CURSOR_CSS_PX = 48;
+const STANDARD_CURSOR_CSS_PX = 57.6;
 const STANDARD_CURSOR_Z_INDEX = 19990;
 const MODAL_CURSOR_Z_INDEX = 20000;
 let lastClientX = 0;
@@ -100,6 +100,8 @@ function isClickableCursorTarget(target) {
     '[role="link"]:not([aria-disabled="true"])',
     '[tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])',
   ].join(','));
+  const defaultSurface = target.closest('[data-cursor-default-surface]');
+  if (defaultSurface && action === defaultSurface) return false;
   return Boolean(action);
 }
 

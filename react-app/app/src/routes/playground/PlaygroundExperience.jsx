@@ -1050,6 +1050,7 @@ export function PlaygroundExperience() {
         ref={bindViewportNode}
         className="playground-world-viewport"
         data-playground-viewport
+        data-cursor-default-surface
         tabIndex={0}
         role="group"
         aria-label="Lab spatial collection. Drag or use W, A, S, and D to explore. Tab into the projects, then use the arrow keys to move between them. Press Home to return to the title."

@@ -863,6 +863,7 @@ export function AboutNarrativeLabExperience({
       <div
         ref={scrollportRef}
         className="about-narrative-scrollport"
+        data-cursor-default-surface
         data-lenis-prevent-touch
         tabIndex={0}
         aria-label="About Alexander narrative"
