@@ -23,7 +23,7 @@ const QUALITY_LEVELS = Object.freeze({
   low: Object.freeze({ id: 'low', scale: 0.25, emitterBudget: 64 }),
 });
 const COST_SAMPLE_CAPACITY = 120;
-const FIRST_FRAME_TIMEOUT_MS = 1200;
+const FIRST_FRAME_TIMEOUT_MS = 2500;
 const GLOW_RADIUS_MIN_CSS_PX = 36;
 const GLOW_RADIUS_MAX_CSS_PX = 180;
 const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
@@ -123,6 +123,11 @@ function getQualityById(id) {
 function resolveQuality() {
   const resolved = resolveSimulationAtmosphereQualityScale('auto');
   return getQualityById(resolved.id);
+}
+
+function resolveCadenceForQuality() {
+  const baseCadence = resolveSimulationAtmosphereCadence('auto');
+  return dynamicQuality.id === 'low' ? Math.min(20, baseCadence) : baseCadence;
 }
 
 function validateSource(definition) {
@@ -320,7 +325,7 @@ function rebuildProfile({ resetQuality = false } = {}) {
   }
   renderProfile = resolveSimulationAtmosphereRenderProfile(configuration, themeMode);
   if (reducedMotion) renderProfile.memoryMs = 0;
-  cadence = resolveSimulationAtmosphereCadence('auto');
+  cadence = resolveCadenceForQuality();
   geometryDirty = true;
   staticFrameDirty = true;
   applyPresentationState();
@@ -344,7 +349,6 @@ function applyPresentationState() {
 function syncGeometry() {
   if (!host) return false;
   if (!geometryDirty) return host.sourceCanvas.width > 1 && host.sourceCanvas.height > 1;
-  cadence = resolveSimulationAtmosphereCadence('auto');
   const nextAutomaticQuality = resolveQuality();
   if (nextAutomaticQuality.id !== automaticQuality.id) {
     automaticQuality = nextAutomaticQuality;
@@ -353,6 +357,7 @@ function syncGeometry() {
     resetCostMetrics();
     frameSchedule.nextFrameAt = 0;
   }
+  cadence = resolveCadenceForQuality();
   const rect = host.root.getBoundingClientRect();
   geometryReadCount += 1;
   if (rect.width <= 1 || rect.height <= 1) return false;
@@ -567,6 +572,7 @@ function applyPendingQuality() {
   if (!pendingQuality) return;
   dynamicQuality = pendingQuality;
   pendingQuality = null;
+  cadence = resolveCadenceForQuality();
   resetCostMetrics();
   geometryDirty = true;
   staticFrameDirty = true;
@@ -591,6 +597,7 @@ function renderComposite(now) {
   const start = performance.now();
   if (!copyActiveSource(now)) return false;
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
+  renderProfile.cadenceFps = cadence;
   effectRenderArgs.config = renderProfile;
   effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
@@ -684,7 +691,14 @@ function activateCurrentSource({ resetOutput = true } = {}) {
 }
 
 function armSourceFirstFrameTimeout(source) {
-  if (!source || source !== activeSource || source.firstFrame.settled || source.firstFrameTimeoutId) return;
+  if (
+    !source
+    || source !== activeSource
+    || source.firstFrame.settled
+    || source.firstFrameTimeoutId
+    || transitionPhase !== 'idle'
+    || document.hidden
+  ) return;
   const generation = source.generation;
   source.firstFrameTimeoutId = window.setTimeout(() => {
     if (activeSource?.generation !== generation || source.firstFrame.settled) return;
@@ -714,6 +728,7 @@ function handleVisibilityChange() {
   }
   frameSchedule.nextFrameAt = 0;
   staticFrameDirty = true;
+  armSourceFirstFrameTimeout(activeSource);
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
@@ -770,6 +785,7 @@ function getDiagnosticSnapshot() {
     schedulerActive: activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource),
     internalRafCount: internalFrameId ? 1 : 0,
     cadence,
+    glowRenderMode: host?.effect?.renderMode || '',
     automaticQuality: automaticQuality.id,
     quality: dynamicQuality.id,
     scale: dynamicQuality.scale,
@@ -1357,6 +1373,7 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   }
   host.edgeCanvas.hidden = !firstCompositeAt || renderProfile.edgeStrength <= 0;
   staticFrameDirty = true;
+  armSourceFirstFrameTimeout(activeSource);
   if (activeSource.scheduler === 'internal') scheduleInternalFrame();
 }
 

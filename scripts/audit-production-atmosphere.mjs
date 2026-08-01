@@ -156,6 +156,24 @@ async function waitForSettledAtmosphere(page, scenario) {
 
 async function readAtmosphereState(page) {
   return page.evaluate(() => {
+    const sampleAlpha = (canvas) => {
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width <= 1 || canvas.height <= 1) return null;
+      const probe = document.createElement('canvas');
+      probe.width = 64;
+      probe.height = 36;
+      const context = probe.getContext('2d', { alpha: true });
+      if (!context) return null;
+      context.drawImage(canvas, 0, 0, probe.width, probe.height);
+      const pixels = context.getImageData(0, 0, probe.width, probe.height).data;
+      let covered = 0;
+      let alpha = 0;
+      for (let index = 3; index < pixels.length; index += 4) {
+        alpha += pixels[index];
+        if (pixels[index] > 1) covered += 1;
+      }
+      const count = pixels.length / 4;
+      return { coverage: covered / count, meanAlpha: alpha / count };
+    };
     const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null;
     const wall = document.getElementById('simulations');
     const wallRect = wall?.getBoundingClientRect() || null;
@@ -168,6 +186,7 @@ async function readAtmosphereState(page) {
     const edgeStyle = edge ? getComputedStyle(edge) : null;
     const edgeLayerStyle = edgeLayer ? getComputedStyle(edgeLayer) : null;
     const edgeLayerRect = edgeLayer?.getBoundingClientRect() || null;
+    const homeSource = document.getElementById('c');
     return {
       snapshot,
       pathname: location.pathname,
@@ -197,6 +216,8 @@ async function readAtmosphereState(page) {
         } : null,
         glowFilter: glow ? getComputedStyle(glow).filter : '',
         edgeFilter: edge ? getComputedStyle(edge).filter : '',
+        glowAlpha: sampleAlpha(glow),
+        homeSourceAlpha: sampleAlpha(homeSource),
       },
     };
   });
@@ -213,6 +234,11 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.activeSourceCount === 1, `${scenario.id}: expected one active source`, state);
   assert(snapshot.glowCanvasCount === 1 && state.dom.glowCount === 1, `${scenario.id}: glow canvas count is wrong`, state);
   assert(snapshot.edgeCanvasCount === 1 && state.dom.edgeCount === 1, `${scenario.id}: edge canvas count is wrong`, state);
+  assert(
+    ['native-filter', 'pyramid-fallback'].includes(snapshot.glowRenderMode),
+    `${scenario.id}: glow render mode is missing`,
+    state,
+  );
   assert(snapshot.glowCanvasId === 'simulation-atmosphere-glow-canvas', `${scenario.id}: glow canvas identity is wrong`, state);
   assert(snapshot.edgeCanvasId === 'simulation-atmosphere-edge-light-canvas', `${scenario.id}: edge canvas identity is wrong`, state);
   assert(state.dom.glowPointerEvents === 'none', `${scenario.id}: glow canvas captures pointer input`, state);
@@ -272,6 +298,11 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   if (scenario.id === 'home') {
     assert(snapshot.sourceKind === 'canvas', 'home: atmosphere does not sample the final rendered frame', state);
     assert(snapshot.sourceLayerCount >= 1, 'home: final-frame source has no visible layers', state);
+    assert(
+      state.dom.glowAlpha?.coverage > (state.dom.homeSourceAlpha?.coverage || 0) + 0.05,
+      'home: glow pixels do not spread beyond the crisp source frame',
+      state,
+    );
   }
   const expectedWidth = Math.round(state.wallRect.width * snapshot.scale);
   const expectedHeight = Math.round(state.wallRect.height * snapshot.scale);
@@ -287,7 +318,8 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
       `${scenario.id}: responsive scale is wrong`,
       state,
     );
-    assert(snapshot.cadence === expectedResponsive.cadence, `${scenario.id}: responsive cadence is wrong`, state);
+    const expectedCadence = snapshot.quality === 'low' ? 20 : expectedResponsive.cadence;
+    assert(snapshot.cadence === expectedCadence, `${scenario.id}: responsive cadence is wrong`, state);
     if (Number.isFinite(expectedResponsive.resolvedGlowRadiusCss)) {
       assert(
         Math.abs(snapshot.resolvedGlowRadiusCss - expectedResponsive.resolvedGlowRadiusCss) <= 0.25,
@@ -974,8 +1006,9 @@ async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeom
       ) return false;
       const expectedWidth = Math.round(wallRect.width * snapshot.scale);
       const expectedHeight = Math.round(wallRect.height * snapshot.scale);
+      const resolvedCadence = snapshot.quality === 'low' ? 20 : expectedCadence;
       return snapshot.routeId === expectedRouteId
-        && snapshot.cadence === expectedCadence
+        && snapshot.cadence === resolvedCadence
         && snapshot.geometryReadCount > minimumGeometryReads
         && Math.abs(snapshot.outputWidth - expectedWidth) <= 2
         && Math.abs(snapshot.outputHeight - expectedHeight) <= 2

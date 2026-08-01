@@ -116,7 +116,7 @@ Scheduling and performance are part of the contract:
 - only one host, source, internal animation frame, glow Canvas, and edge Canvas may exist at once;
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
 - the large atmospheric field and small colour-reflection field each resolve from their authored proportion of the studio window's shortest side, with separate bounded CSS-pixel endpoints; backing-store quality changes resolution only and cannot change either apparent spread;
-- automatic atmosphere cadence is 30 FPS across desktop, coarse-pointer, narrow, and short viewports; source physics/renderers retain their own cadence;
+- High and Balanced atmosphere cadence is 30 FPS. Low quality uses 20 FPS to free frame time on constrained or over-budget surfaces; source physics/renderers retain their own cadence;
 - each compositor frame samples the current completed source frame, applies a broad atmosphere blur plus a tighter colour-preserving blur across the complete wall, then preserves only the previous clean field behind the current one. That one-frame blend is deterministic rather than frame-time-weighted, so deadline jitter cannot pulse its brightness; it is primed from the first clean field, resets on source/mode/theme/geometry changes, and is disabled for Reduced Motion. There is no content mask, recursive feedback, multi-buffer diffusion, unbounded accumulation, or mode-to-mode trail;
 - the wall `ResizeObserver` must update glow and edge backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
 - Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
@@ -125,6 +125,7 @@ Scheduling and performance are part of the contract:
 - automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
 - internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep an ambient loop alive;
 - two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.
+- source startup gets a bounded 2.5-second first-frame window before fail-open so a busy route transition cannot permanently hide a healthy glow source.
 
 `window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot()` is diagnostic output only. It reports ownership, source, scheduler, scale, cadence, geometry reads, sampled emitters, and rolling cost; it must not become configuration truth.
 
