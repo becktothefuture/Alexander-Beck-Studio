@@ -6,6 +6,15 @@ const COLOUR_BRIGHTNESS = 1.08;
 const COLOUR_SATURATION_MULTIPLIER = 1.6;
 const DEFAULT_CADENCE_FPS = 30;
 const BLUR_PYRAMID_LEVELS = 6;
+// A low-resolution nine-tap kernel keeps Safari's filter-free path broad and
+// isotropic without scaling nine full-size draws on every compositor frame.
+const SPREAD_CENTER_WEIGHT = 0.2;
+const SPREAD_CARDINAL_WEIGHT = 0.12;
+const SPREAD_DIAGONAL_WEIGHT = 0.08;
+const SPREAD_CARDINAL_RADIUS_SHARE = 0.7;
+const SPREAD_DIAGONAL_RADIUS_SHARE = 0.5;
+// Match the native path after its brightness and saturation filters are applied.
+const FALLBACK_ALPHA_SCALE = 0.54;
 let reliableCanvasFilter = null;
 
 function supportsReliableCanvasFilter() {
@@ -40,6 +49,28 @@ function createBlurLevel() {
   return { canvas, context };
 }
 
+function drawSpreadLayer(context, sourceCanvas, width, height, radiusX, radiusY, alpha) {
+  const cardinalOffsetX = radiusX * SPREAD_CARDINAL_RADIUS_SHARE;
+  const cardinalOffsetY = radiusY * SPREAD_CARDINAL_RADIUS_SHARE;
+  const diagonalOffsetX = radiusX * SPREAD_DIAGONAL_RADIUS_SHARE;
+  const diagonalOffsetY = radiusY * SPREAD_DIAGONAL_RADIUS_SHARE;
+
+  context.globalAlpha = alpha * SPREAD_CENTER_WEIGHT;
+  context.drawImage(sourceCanvas, 0, 0, width, height);
+
+  context.globalAlpha = alpha * SPREAD_CARDINAL_WEIGHT;
+  context.drawImage(sourceCanvas, cardinalOffsetX, 0, width, height);
+  context.drawImage(sourceCanvas, -cardinalOffsetX, 0, width, height);
+  context.drawImage(sourceCanvas, 0, cardinalOffsetY, width, height);
+  context.drawImage(sourceCanvas, 0, -cardinalOffsetY, width, height);
+
+  context.globalAlpha = alpha * SPREAD_DIAGONAL_WEIGHT;
+  context.drawImage(sourceCanvas, diagonalOffsetX, diagonalOffsetY, width, height);
+  context.drawImage(sourceCanvas, diagonalOffsetX, -diagonalOffsetY, width, height);
+  context.drawImage(sourceCanvas, -diagonalOffsetX, diagonalOffsetY, width, height);
+  context.drawImage(sourceCanvas, -diagonalOffsetX, -diagonalOffsetY, width, height);
+}
+
 export class DiffuseGlowEffect {
   constructor(outputCanvas) {
     this.outputCanvas = outputCanvas;
@@ -58,8 +89,9 @@ export class DiffuseGlowEffect {
     this.historyContext = this.historyCanvas.getContext('2d', { alpha: true });
     if (!this.historyContext) throw new Error('Canvas 2D atmosphere history context unavailable');
     this.useNativeFilter = supportsReliableCanvasFilter();
-    this.renderMode = this.useNativeFilter ? 'native-filter' : 'pyramid-fallback';
+    this.renderMode = this.useNativeFilter ? 'native-filter' : 'spread-pyramid-fallback';
     this.blurPyramid = Array.from({ length: BLUR_PYRAMID_LEVELS }, createBlurLevel);
+    this.spreadPyramid = Array.from({ length: BLUR_PYRAMID_LEVELS }, createBlurLevel);
     this.hasHistory = false;
     this.temporalMemoryFrames = 0;
     this.cachedLargeBlurRadius = -1;
@@ -77,10 +109,15 @@ export class DiffuseGlowEffect {
       levelWidth = Math.max(2, Math.ceil(levelWidth / 2));
       levelHeight = Math.max(2, Math.ceil(levelHeight / 2));
       const level = this.blurPyramid[index];
+      const spreadLevel = this.spreadPyramid[index];
       if (level.canvas.width !== levelWidth) level.canvas.width = levelWidth;
       if (level.canvas.height !== levelHeight) level.canvas.height = levelHeight;
+      if (spreadLevel.canvas.width !== levelWidth) spreadLevel.canvas.width = levelWidth;
+      if (spreadLevel.canvas.height !== levelHeight) spreadLevel.canvas.height = levelHeight;
       level.context.imageSmoothingEnabled = true;
       level.context.imageSmoothingQuality = 'high';
+      spreadLevel.context.imageSmoothingEnabled = true;
+      spreadLevel.context.imageSmoothingQuality = 'high';
     }
   }
 
@@ -106,6 +143,26 @@ export class DiffuseGlowEffect {
     this.cachedSmallBlurRadius = -1;
   }
 
+  prepareSpreadLevel(index, source, radius, alpha, outputWidth, outputHeight) {
+    const level = this.spreadPyramid[index];
+    const levelWidth = level.canvas.width;
+    const levelHeight = level.canvas.height;
+    level.context.setTransform(1, 0, 0, 1, 0, 0);
+    level.context.globalCompositeOperation = 'source-over';
+    level.context.clearRect(0, 0, levelWidth, levelHeight);
+    drawSpreadLayer(
+      level.context,
+      source,
+      levelWidth,
+      levelHeight,
+      radius * (levelWidth / outputWidth),
+      radius * (levelHeight / outputHeight),
+      alpha,
+    );
+    level.context.globalAlpha = 1;
+    return level.canvas;
+  }
+
   clear() {
     this.outputContext.clearRect(0, 0, this.outputCanvas.width, this.outputCanvas.height);
     this.freshContext.clearRect(0, 0, this.freshCanvas.width, this.freshCanvas.height);
@@ -113,6 +170,8 @@ export class DiffuseGlowEffect {
     for (let index = 0; index < this.blurPyramid.length; index += 1) {
       const level = this.blurPyramid[index];
       level.context.clearRect(0, 0, level.canvas.width, level.canvas.height);
+      const spreadLevel = this.spreadPyramid[index];
+      spreadLevel.context.clearRect(0, 0, spreadLevel.canvas.width, spreadLevel.canvas.height);
     }
     this.hasHistory = false;
     this.temporalMemoryFrames = 0;
@@ -176,7 +235,7 @@ export class DiffuseGlowEffect {
       context.globalCompositeOperation = 'source-over';
       context.filter = 'none';
     } else {
-      this.renderFilterFallback({
+      this.renderSpreadFallback(
         context,
         sourceCanvas,
         width,
@@ -185,7 +244,7 @@ export class DiffuseGlowEffect {
         colourStrength,
         largeBlurRadius,
         smallBlurRadius,
-      });
+      );
     }
 
     const outputContext = this.outputContext;
@@ -239,7 +298,7 @@ export class DiffuseGlowEffect {
     }
   }
 
-  renderFilterFallback({
+  renderSpreadFallback(
     context,
     sourceCanvas,
     width,
@@ -248,7 +307,7 @@ export class DiffuseGlowEffect {
     colourStrength,
     largeBlurRadius,
     smallBlurRadius,
-  }) {
+  ) {
     const firstLevel = this.blurPyramid[0];
     firstLevel.context.setTransform(1, 0, 0, 1, 0, 0);
     firstLevel.context.globalCompositeOperation = 'source-over';
@@ -269,20 +328,48 @@ export class DiffuseGlowEffect {
     const smallIndex = resolveBlurLevelIndex(smallBlurRadius, this.blurPyramid.length);
     const broadLevel = this.blurPyramid[broadIndex];
     const smallLevel = this.blurPyramid[smallIndex];
-    const fineLevel = this.blurPyramid[Math.max(0, smallIndex - 1)];
+    const fineIndex = Math.max(0, smallIndex - 1);
+    const fineLevel = this.blurPyramid[fineIndex];
 
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    context.globalAlpha = intensity * BROAD_ALPHA_SHARE * BROAD_BRIGHTNESS;
-    context.drawImage(broadLevel.canvas, 0, 0, width, height);
-    context.globalCompositeOperation = 'screen';
-    context.globalAlpha = Math.min(
-      1,
-      intensity * COLOUR_ALPHA_SHARE * COLOUR_BRIGHTNESS * colourStrength,
+    const broadSpread = this.prepareSpreadLevel(
+      broadIndex,
+      broadLevel.canvas,
+      largeBlurRadius,
+      intensity * BROAD_ALPHA_SHARE * BROAD_BRIGHTNESS * FALLBACK_ALPHA_SCALE,
+      width,
+      height,
     );
-    context.drawImage(smallLevel.canvas, 0, 0, width, height);
-    context.globalAlpha *= 0.5 * Math.min(1.25, COLOUR_SATURATION_MULTIPLIER);
-    context.drawImage(fineLevel.canvas, 0, 0, width, height);
+    context.globalAlpha = 1;
+    context.drawImage(broadSpread, 0, 0, width, height);
+    context.globalCompositeOperation = 'screen';
+    const colourAlpha = Math.min(
+      1,
+      intensity
+        * COLOUR_ALPHA_SHARE
+        * COLOUR_BRIGHTNESS
+        * colourStrength
+        * FALLBACK_ALPHA_SCALE,
+    );
+    const smallSpread = this.prepareSpreadLevel(
+      smallIndex,
+      smallLevel.canvas,
+      smallBlurRadius,
+      colourAlpha,
+      width,
+      height,
+    );
+    context.drawImage(smallSpread, 0, 0, width, height);
+    const fineSpread = this.prepareSpreadLevel(
+      fineIndex,
+      fineLevel.canvas,
+      smallBlurRadius * 0.5,
+      colourAlpha * 0.5 * Math.min(1.25, COLOUR_SATURATION_MULTIPLIER),
+      width,
+      height,
+    );
+    context.drawImage(fineSpread, 0, 0, width, height);
     context.globalCompositeOperation = 'source-over';
   }
 

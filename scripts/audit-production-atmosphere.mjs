@@ -235,7 +235,7 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.glowCanvasCount === 1 && state.dom.glowCount === 1, `${scenario.id}: glow canvas count is wrong`, state);
   assert(snapshot.edgeCanvasCount === 1 && state.dom.edgeCount === 1, `${scenario.id}: edge canvas count is wrong`, state);
   assert(
-    ['native-filter', 'pyramid-fallback'].includes(snapshot.glowRenderMode),
+    ['native-filter', 'spread-pyramid-fallback'].includes(snapshot.glowRenderMode),
     `${scenario.id}: glow render mode is missing`,
     state,
   );
@@ -298,9 +298,25 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   if (scenario.id === 'home') {
     assert(snapshot.sourceKind === 'canvas', 'home: atmosphere does not sample the final rendered frame', state);
     assert(snapshot.sourceLayerCount >= 1, 'home: final-frame source has no visible layers', state);
+    const sourceCoverage = state.dom.homeSourceAlpha?.coverage || 0;
+    const glowCoverage = state.dom.glowAlpha?.coverage || 0;
+    const glowCoverageRatio = sourceCoverage > 0 ? glowCoverage / sourceCoverage : 0;
+    const coverageSpreadIsVisible = sourceCoverage >= 0.2
+      ? glowCoverage > sourceCoverage + 0.125
+      : glowCoverage > sourceCoverage + 0.15
+        && (glowCoverage > sourceCoverage + 0.25 || glowCoverageRatio >= 2.75);
     assert(
-      state.dom.glowAlpha?.coverage > (state.dom.homeSourceAlpha?.coverage || 0) + 0.05,
+      coverageSpreadIsVisible,
       'home: glow pixels do not spread beyond the crisp source frame',
+      state,
+    );
+    const sourceMeanAlpha = state.dom.homeSourceAlpha?.meanAlpha || 0;
+    const glowEnergyRatio = sourceMeanAlpha > 0
+      ? state.dom.glowAlpha?.meanAlpha / sourceMeanAlpha
+      : 0;
+    assert(
+      glowEnergyRatio >= 0.65 && glowEnergyRatio <= 1.5,
+      'home: glow energy does not match the crisp source frame',
       state,
     );
   }
