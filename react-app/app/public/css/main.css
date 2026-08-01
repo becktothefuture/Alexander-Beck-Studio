@@ -363,9 +363,9 @@ body.body.dark-mode {
   justify-content: center;
   gap: 0;
   text-align: center;
-  padding: 8px;
-  border-radius: var(--abs-radius-pill);
-  background: color-mix(in srgb, var(--studio-window-bg) 88%, transparent);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   max-width: min(800px, calc(100% - (var(--content-padding-x) * 2)));
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
   opacity: 1;
@@ -2293,8 +2293,7 @@ html[data-shell-route='home'] body:not(.detail-open) :is(
   #expertise-legend,
   .ui-top-right .decorative-script,
   #social-links,
-  #site-year,
-  #edge-caption
+  #site-year
 )::before {
   content: '';
   position: absolute;
@@ -2334,8 +2333,8 @@ html[data-shell-route='home'] body:not(.detail-open) #site-year {
   --home-legibility-field-inset: -8px -14px;
 }
 
-html[data-shell-route='home'] body:not(.detail-open) #edge-caption {
-  --home-legibility-field-inset: -8px -20px;
+html[data-shell-route='home'] body:not(.detail-open) #edge-caption::before {
+  content: none;
 }
 
 html[data-shell-route='home'] body:not(.detail-open) .legend__item span {
