@@ -234,11 +234,17 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   if (routeId === 'playground') {
     const routeContent = document.querySelector('[data-route-content="playground"]');
     const experience = routeContent?.querySelector('[data-playground-experience]');
+    const comingSoonTitle = document.getElementById('playground-coming-soon-title');
     return Boolean(
       body.classList.contains('playground-page')
       && routeContent
-      && document.getElementById('playground-route-title')
-      && experience?.dataset.playgroundReady === 'true'
+      && (
+        comingSoonTitle
+        || (
+          document.getElementById('playground-route-title')
+          && experience?.dataset.playgroundReady === 'true'
+        )
+      )
     );
   }
 

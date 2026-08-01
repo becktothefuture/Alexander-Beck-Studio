@@ -76,7 +76,7 @@ export function getStyleguideRouteView() {
           <h1 className="styleguide-doc__title">Component library</h1>
           <p className="styleguide-doc__lede">
             The persistent Button Bar owns primary navigation. Route top bars are optional utility strips; icon actions use{' '}
-            <code className="styleguide-doc__code">.abs-icon-btn</code>. Keep About Me title-cased.
+            <code className="styleguide-doc__code">.abs-icon-btn</code>. Use the concise About label.
           </p>
 
           <StyleguideTypographySection />

@@ -37,18 +37,37 @@ function getRouteTabById(routeId) {
   return SHELL_ROUTE_TABS.find((tab) => tab.routeId === routeId);
 }
 
+function keepActiveTabVisible(primaryNav, activeTab) {
+  const maxScrollLeft = primaryNav.scrollWidth - primaryNav.clientWidth;
+  if (maxScrollLeft <= 0) return;
+
+  const tabStart = activeTab.offsetLeft;
+  const tabEnd = tabStart + activeTab.offsetWidth;
+  const visibleStart = primaryNav.scrollLeft;
+  const visibleEnd = visibleStart + primaryNav.clientWidth;
+  const edgeGap = 2;
+
+  if (tabStart < visibleStart) {
+    primaryNav.scrollLeft = Math.max(0, tabStart - edgeGap);
+  } else if (tabEnd > visibleEnd) {
+    primaryNav.scrollLeft = Math.min(maxScrollLeft, tabEnd - primaryNav.clientWidth + edgeGap);
+  }
+}
+
 function syncActivePillGeometry(primaryNav, activeRouteId) {
   const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
     .find((tab) => tab.dataset.routeTab === activeRouteId);
   const activePill = primaryNav.querySelector('.button-bar__active-pill');
   if (!activeTab || !activePill) return;
 
+  keepActiveTabVisible(primaryNav, activeTab);
+
   const primaryNavRect = primaryNav.getBoundingClientRect();
   const activeTabRect = activeTab.getBoundingClientRect();
   if (!primaryNavRect.width || !activeTabRect.width) return;
 
   const width = activeTabRect.width;
-  const x = activeTabRect.left - primaryNavRect.left;
+  const x = activeTabRect.left - primaryNavRect.left + primaryNav.scrollLeft;
 
   primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
   primaryNav.style.setProperty('--button-bar-active-pill-width', `${width.toFixed(3)}px`);

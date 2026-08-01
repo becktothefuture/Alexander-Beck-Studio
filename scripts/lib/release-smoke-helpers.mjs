@@ -48,14 +48,14 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     }),
   }),
   playground: Object.freeze({
-    identitySelector: '[data-playground-experience][data-playground-ready="true"]',
+    identitySelector: '#simulations[role="main"][data-route-content="playground"]',
     runtime: false,
     representativeFocus: Object.freeze({
-      selector: '[data-playground-viewport]',
+      selector: '[data-route-tab="portfolio"]',
     }),
     semanticContract: Object.freeze({
       mainSelector: '#simulations[role="main"][data-route-content="playground"]',
-      headingSelector: 'h1#playground-route-title[data-route-focus-target]',
+      headingSelector: 'h1#playground-coming-soon-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
   }),

@@ -350,19 +350,21 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     return;
   }
 
-  const isAboutNarrativeRoute = routeId === 'about' || routeId === 'about-narrative-lab';
-  if (isAboutNarrativeRoute) {
+  const isAboutRoute = routeId === 'about' || routeId === 'about-narrative-lab';
+  const waitsForAboutNarrativeScene = routeId === 'about-narrative-lab'
+    || (routeId === 'about' && import.meta.env.DEV);
+  if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;
   }
-  if (routeId === 'playground') {
+  if (routeId === 'playground' && import.meta.env.DEV) {
     await waitForPlaygroundRouteReady();
     if (options.isCancelled?.()) return;
   }
 
   const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
   const directEntrance = (
-    isAboutNarrativeRoute
+    isAboutRoute
     || routeId === 'contact'
     || routeId === 'playground'
   ) && routeContent

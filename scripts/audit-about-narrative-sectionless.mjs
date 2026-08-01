@@ -237,7 +237,7 @@ async function auditEditor() {
     null,
     'The hidden editor must release the full preview viewport.',
   );
-  await page.getByRole('link', { name: 'About Me', exact: true }).hover();
+  await page.getByRole('link', { name: 'About', exact: true }).hover();
   await page.waitForTimeout(120);
   assert.equal(
     await page.locator('#custom-cursor').evaluate((node) => node.classList.contains('abs-cursor-interactive')),

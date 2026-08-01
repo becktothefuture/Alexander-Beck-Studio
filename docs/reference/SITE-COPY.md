@@ -15,4 +15,4 @@ This document is an index, not a duplicate copy deck. Edit the source named belo
 | About Me narrative copy, timing, and labels | `public/config/contents-about.json` |
 | About Me contact destinations | `contents-home.json.contact` and `contents-home.json.socials` |
 
-Visible casing is `About Me`. Structural UI labels belong in code; editable editorial prose belongs in the content JSON. Do not copy full project prose into Markdown—link to the source instead.
+Visible casing is `About`. Structural UI labels belong in code; editable editorial prose belongs in the content JSON. Do not copy full project prose into Markdown—link to the source instead.

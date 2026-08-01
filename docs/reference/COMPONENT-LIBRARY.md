@@ -6,7 +6,7 @@ The live reference is `/styleguide.html`. It must describe production components
 
 `ShellButtonBar.jsx` renders the persistent bottom navigation from `SHELL_ROUTE_TABS` in `src/lib/routes.js`.
 
-- Route buttons: Home, Work (Portfolio route), About Me, Lab, Contact
+- Route buttons: Home, Work (Portfolio route), About, Lab, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: sound and theme
 - Active geometry: all content-sized tab cells use label width plus inline padding; one shared rounded-rectangle pill matches the selected padded cell

@@ -502,6 +502,24 @@
     --dominant-primary-tab-gap: 2px;
     --dominant-group-separation: 8px;
   }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons.shell-tab-nav {
+    flex: 1 1 0;
+    inline-size: auto;
+    max-inline-size: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons.shell-tab-nav::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (max-width: 360px) {

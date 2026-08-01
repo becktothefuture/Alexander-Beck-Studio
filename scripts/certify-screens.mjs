@@ -49,7 +49,7 @@ const matrix = [
         selector: '[data-route-tab]',
         minCount: 5,
         minArea: 400,
-        requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab']
+        requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -75,7 +75,7 @@ const matrix = [
           selector: '[data-route-tab]',
           minCount: 5,
           minArea: 400,
-          requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab']
+          requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab']
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -105,7 +105,7 @@ const matrix = [
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] }
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] }
     ]
   },
   {
@@ -117,7 +117,7 @@ const matrix = [
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
       { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   },
@@ -133,7 +133,7 @@ const matrix = [
     minReadySelectors: 4,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
       { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: contactRequiredText },
       { selector: '[data-contact-ripple-canvas]', minArea: 60000, requiredText: [] }
     ]
@@ -146,17 +146,13 @@ const matrix = [
     readySelectors: [
       '#app-frame',
       '[data-route-tab="playground"][aria-current="page"]',
-      '[data-playground-experience][data-playground-ready="true"]',
-      '[data-playground-dot-field]',
-      '[data-playground-item]'
+      '[data-route-content="playground"]'
     ],
-    minReadySelectors: 5,
+    minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About Me', 'Contact', 'Work', 'Lab'] },
-      { selector: '[data-playground-experience][data-playground-ready="true"]', minArea: 60000, requiredText: ['Lab', 'Drag to explore.'] },
-      { selector: '[data-playground-dot-field]', minArea: 60000, requiredText: [] },
-      { selector: '[data-playground-item]', minCount: 20, minArea: 2400, requiredText: [] }
+      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-route-content="playground"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   }
 ];

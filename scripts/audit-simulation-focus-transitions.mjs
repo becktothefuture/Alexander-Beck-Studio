@@ -830,7 +830,7 @@ async function exerciseCrossRouteInterruptions(page) {
     polling: 25,
   });
   await page.getByRole('link', { name: 'Contact' }).click({ timeout: WAIT_MS });
-  await page.getByRole('link', { name: 'About Me' }).click({ timeout: WAIT_MS });
+  await page.getByRole('link', { name: 'About' }).click({ timeout: WAIT_MS });
   await page.waitForFunction(() => document.documentElement.dataset.shellRoute === 'about', null, {
     timeout: WAIT_MS,
     polling: 50,
@@ -859,7 +859,7 @@ async function exerciseCrossRouteInterruptions(page) {
   await page.goBack({ waitUntil: 'domcontentloaded', timeout: WAIT_MS });
   proof.historyInterruption = await assertSimulationOverlayReleased(page, 'History interruption');
   if (proof.historyInterruption.route !== 'about') {
-    await page.getByRole('link', { name: 'About Me' }).click({ timeout: WAIT_MS });
+    await page.getByRole('link', { name: 'About' }).click({ timeout: WAIT_MS });
     await page.waitForFunction(() => document.documentElement.dataset.shellRoute === 'about', null, {
       timeout: WAIT_MS,
       polling: 50,

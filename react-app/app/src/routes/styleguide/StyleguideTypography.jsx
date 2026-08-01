@@ -192,7 +192,7 @@ export function StyleguideTypographySection() {
             <code className="styleguide-doc__code">.button-bar__label</code> · primary route labels
           </div>
           <div className="styleguide-type-role__sample">
-            <span className="styleguide-type-sample styleguide-type-sample--main-nav">About Me</span>
+            <span className="styleguide-type-sample styleguide-type-sample--main-nav">About</span>
           </div>
         </li>
 

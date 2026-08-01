@@ -3,7 +3,7 @@ const DEFAULT_FONT_FACES = [
   '1em "tabler-icons"',
 ];
 
-export async function waitForFonts({ timeoutMs = 4000, fontFaces = DEFAULT_FONT_FACES } = {}) {
+export async function waitForFonts({ timeoutMs = 5000, fontFaces = DEFAULT_FONT_FACES } = {}) {
   const root = document.documentElement;
   if (root) root.classList.add('fonts-loading');
 
@@ -13,8 +13,10 @@ export async function waitForFonts({ timeoutMs = 4000, fontFaces = DEFAULT_FONT_
   }
 
   let timeoutId;
+  const startedAt = performance.now();
+  const facesAreReady = () => fontFaces.every((face) => document.fonts.check(face));
   const timeoutPromise = new Promise((resolve) => {
-    timeoutId = window.setTimeout(() => resolve(false), timeoutMs);
+    timeoutId = window.setTimeout(() => resolve(facesAreReady()), timeoutMs);
   });
 
   const loadPromise = Promise.all(fontFaces.map(async (face) => {
@@ -26,8 +28,13 @@ export async function waitForFonts({ timeoutMs = 4000, fontFaces = DEFAULT_FONT_
     }
   }))
     .then(async (results) => {
-      await document.fonts.ready;
-      return results.every(Boolean) && fontFaces.every((face) => document.fonts.check(face));
+      if (results.every(Boolean) && facesAreReady()) return true;
+
+      while ((performance.now() - startedAt) < timeoutMs) {
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+        if (facesAreReady()) return true;
+      }
+      return false;
     })
     .catch(() => false);
 

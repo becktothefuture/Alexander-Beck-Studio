@@ -4,7 +4,7 @@ import { LoaderSpinner } from './LoaderSpinner.jsx';
 const ROUTE_LABELS = Object.freeze({
   home: 'Home',
   portfolio: 'Work',
-  about: 'About Me',
+  about: 'About',
   contact: 'Contact',
   playground: 'Lab',
 });
