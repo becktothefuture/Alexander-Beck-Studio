@@ -105,9 +105,9 @@ const CONTROL_SECTIONS = {
         title: 'Card Size',
         controls: [
           { id: 'carouselCardWidthPercent', label: 'Desktop width', configKey: 'runtime.carousel.cardWidthPercent', type: 'range', min: 16, max: 42, step: 0.5, unit: '%', default: 24, refresh: true },
-          { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 316, refresh: true },
+          { id: 'carouselCardMaxWidthPx', label: 'Desktop max width', configKey: 'runtime.carousel.cardMaxWidthPx', type: 'range', min: 220, max: 620, step: 2, unit: 'px', default: 262, refresh: true },
           { id: 'carouselCardHeightCqh', label: 'Desktop height', configKey: 'runtime.carousel.cardHeightCqh', type: 'range', min: 36, max: 68, step: 0.5, unit: 'cqh', default: 58, refresh: true },
-          { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 461, refresh: true },
+          { id: 'carouselCardMaxHeightPx', label: 'Desktop max height', configKey: 'runtime.carousel.cardMaxHeightPx', type: 'range', min: 340, max: 620, step: 2, unit: 'px', default: 378, refresh: true },
           { id: 'carouselMobileCardWidthPercent', label: 'Mobile width', configKey: 'runtime.carousel.mobileCardWidthPercent', type: 'range', min: 60, max: 92, step: 0.5, unit: '%', default: 64, refresh: true },
           { id: 'carouselMobileCardMaxWidthPx', label: 'Mobile max width', configKey: 'runtime.carousel.mobileCardMaxWidthPx', type: 'range', min: 240, max: 520, step: 2, unit: 'px', default: 300, refresh: true },
         ],

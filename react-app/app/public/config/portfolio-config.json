@@ -45,9 +45,9 @@
     },
     "carousel": {
       "cardWidthPercent": 24,
-      "cardMaxWidthPx": 316,
+      "cardMaxWidthPx": 262,
       "cardHeightCqh": 58,
-      "cardMaxHeightPx": 461,
+      "cardMaxHeightPx": 378,
       "mobileCardWidthPercent": 64,
       "mobileCardMaxWidthPx": 300,
       "sliderYOffsetDvh": 0,
