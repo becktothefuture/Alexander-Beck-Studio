@@ -427,7 +427,8 @@ test('the Text row header exposes the global width and animation controls', () =
   assert.equal(exposedControls.find((control) => control.id === 'titleShadowBlurPx')?.label, 'Background shadow blur');
   assert.match(liveSources.experience, /--about-title-shadow-opacity/);
   assert.match(liveSources.experience, /--about-title-shadow-blur/);
-  assert.match(liveSources.styles, /text-shadow: 0 0 var\(--about-title-shadow-blur, 50px\) color-mix\(in srgb, var\(--studio-window-bg\) var\(--about-title-shadow-opacity, 80%\), transparent\)/);
+  assert.match(liveSources.styles, /--about-title-shadow:[\s\S]*?min\(var\(--about-title-shadow-blur, 50px\), 11px\)[\s\S]*?min\(var\(--about-title-shadow-blur, 50px\), 28px\)[\s\S]*?var\(--about-title-shadow-blur, 50px\)/);
+  assert.equal((liveSources.styles.match(/text-shadow: var\(--about-title-shadow\)/g) || []).length, 2);
   assert.match(liveSources.editor, /data-text-flow-reservation/);
   assert.match(liveSources.editor, /object\.kind !== 'title'/);
 });

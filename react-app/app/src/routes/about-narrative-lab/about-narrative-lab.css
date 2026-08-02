@@ -20,6 +20,15 @@ body.about-narrative-page .route-simulation-layer {
   --about-editorial-resting-opacity: 0.2;
   --about-editorial-ink: var(--text-primary);
   --route-intro-description-max-width: 42ch;
+  --about-title-shadow-color: color-mix(
+    in srgb,
+    var(--studio-window-bg) var(--about-title-shadow-opacity, 80%),
+    transparent
+  );
+  --about-title-shadow:
+    0 0 min(var(--about-title-shadow-blur, 50px), 11px) var(--about-title-shadow-color),
+    0 0 min(var(--about-title-shadow-blur, 50px), 28px) var(--about-title-shadow-color),
+    0 0 var(--about-title-shadow-blur, 50px) var(--about-title-shadow-color);
   --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
   position: absolute;
   inset: 0;
@@ -204,7 +213,7 @@ body.about-narrative-page .route-simulation-layer {
 .about-narrative-opening-copy > .route-bookend-title {
   opacity: 1;
   filter: none;
-  text-shadow: 0 0 var(--about-title-shadow-blur, 50px) color-mix(in srgb, var(--studio-window-bg) var(--about-title-shadow-opacity, 80%), transparent);
+  text-shadow: var(--about-title-shadow);
   will-change: auto;
 }
 
@@ -220,7 +229,7 @@ body.about-narrative-page .route-simulation-layer {
   opacity: var(--fragment-opacity, 0);
   color: var(--text-primary);
   filter: blur(var(--fragment-blur, 22px));
-  text-shadow: 0 0 var(--about-title-shadow-blur, 50px) color-mix(in srgb, var(--studio-window-bg) var(--about-title-shadow-opacity, 80%), transparent);
+  text-shadow: var(--about-title-shadow);
   text-wrap: balance;
   transform:
     translate3d(
