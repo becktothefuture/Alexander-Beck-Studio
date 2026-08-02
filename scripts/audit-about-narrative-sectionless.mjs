@@ -148,9 +148,10 @@ async function auditProduction(viewport, label, expectedProfile) {
     const indicator = document.querySelector('.about-narrative-indicator');
     const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
     const title = document.querySelector('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title');
-    const actions = document.querySelector('.about-narrative-finale-cta');
+    const description = document.querySelector('[data-text-field-id="text-epilogue-invitation"] .about-narrative-finale-description');
+    const emailLink = description.querySelector('.about-narrative-finale-description__link');
     const titleRect = title.getBoundingClientRect();
-    const actionsRect = actions.getBoundingClientRect();
+    const descriptionRect = description.getBoundingClientRect();
     const withinViewport = (rect) => rect.top >= viewport.top - 1
       && rect.bottom <= viewport.bottom + 1
       && rect.left >= viewport.left - 1
@@ -162,8 +163,9 @@ async function auditProduction(viewport, label, expectedProfile) {
       titleCenterX: titleRect.left + (titleRect.width / 2),
       landscapeTitleTargetX: viewport.left + (viewport.width * 0.75),
       titleOpacity: Number(getComputedStyle(title).opacity),
-      actionsBelowTitle: actionsRect.top >= titleRect.bottom - 2,
-      finaleWithinViewport: [titleRect, actionsRect].every(withinViewport),
+      descriptionBelowTitle: descriptionRect.top >= titleRect.bottom - 2,
+      inlineEmailHref: emailLink.getAttribute('href'),
+      finaleWithinViewport: [titleRect, descriptionRect].every(withinViewport),
       simulationVisibility: Number(document.querySelector('.about-narrative-lab')?.dataset.worldVisibility),
     };
   });
@@ -174,7 +176,8 @@ async function auditProduction(viewport, label, expectedProfile) {
     : initial.openerCenterX;
   assert.ok(Math.abs(endState.titleCenterX - expectedTitleCenterX) <= 30);
   assert.ok(endState.titleOpacity > 0.99);
-  assert.equal(endState.actionsBelowTitle, true);
+  assert.equal(endState.descriptionBelowTitle, true);
+  assert.equal(endState.inlineEmailHref, 'mailto:alexander@beck.fyi');
   assert.equal(endState.finaleWithinViewport, true, `${label} finale must remain within the studio viewport.`);
   assert.equal(endState.simulationVisibility, 1, `${label} finale must retain the bust.`);
   assert.deepEqual(errors, []);

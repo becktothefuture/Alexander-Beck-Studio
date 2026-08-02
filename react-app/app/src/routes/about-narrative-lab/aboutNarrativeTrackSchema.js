@@ -83,7 +83,7 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
 ]);
 const POINT_MATERIAL_KEYS = new Set(['opacity', 'pointSize']);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
-const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'titleShadowOpacity', 'titleShadowBlurPx', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
 const EDITORIAL_MOTION_KEYS = new Set([...Object.keys(ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS)]);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
@@ -285,6 +285,15 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
       diagnostic(diagnostics, 'title-viewport-y', `globals.textMotion.${key}`, 'Global title viewport Y must stay between 0 and 100 percent.');
     }
   });
+  [
+    ['titleShadowOpacity', 0, 1, 'Global title shadow opacity must stay between 0 and 1.'],
+    ['titleShadowBlurPx', 0, 120, 'Global title shadow blur must stay between 0 and 120 pixels.'],
+  ].forEach(([key, minimum, maximum, message]) => {
+    const value = globals.textMotion?.[key];
+    if (value != null && (!finite(value) || Number(value) < minimum || Number(value) > maximum)) {
+      diagnostic(diagnostics, 'title-shadow-range', `globals.textMotion.${key}`, message);
+    }
+  });
   if (!legacy) {
     if (!finite(globals.worldRail?.originZ) || Number(globals.worldRail.originZ) < -100 || Number(globals.worldRail.originZ) > 100) {
       diagnostic(diagnostics, 'world-rail-origin', 'globals.worldRail.originZ', 'World rail origin Z must stay between -100 and 100.');
@@ -311,6 +320,8 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   const legacyCompatibleTextMotion = { ...(legacyCompatibleGlobals.textMotion || {}) };
   delete legacyCompatibleTextMotion.standardViewportY;
   delete legacyCompatibleTextMotion.bookendViewportY;
+  delete legacyCompatibleTextMotion.titleShadowOpacity;
+  delete legacyCompatibleTextMotion.titleShadowBlurPx;
   // Reuse the established v2 global contract without allowing the legacy
   // validator to see or normalize any authored track data.
   const shim = {
@@ -1221,6 +1232,8 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       ...source.globals.textMotion,
       standardViewportY: Number(source.globals.textMotion?.standardViewportY ?? standardViewportY ?? 50),
       bookendViewportY: Number(source.globals.textMotion?.bookendViewportY ?? openerViewportY ?? 70),
+      titleShadowOpacity: Number(source.globals.textMotion?.titleShadowOpacity ?? 0.8),
+      titleShadowBlurPx: Number(source.globals.textMotion?.titleShadowBlurPx ?? 50),
     },
   };
   return {

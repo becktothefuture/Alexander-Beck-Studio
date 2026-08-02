@@ -1,7 +1,6 @@
 const PHONE_VIEWPORT_WIDTH_PX = 480;
 const DESKTOP_VIEWPORT_WIDTH_PX = 1024;
 const PHONE_WORLD_SCALE = 0.84;
-const PHONE_TITLE_SCALE = 0.94;
 const PHONE_PROJECT_SPACING_SCALE = 2 / 3;
 const PHONE_ITEM_GAP_SCALE = 1 / 3;
 const PHONE_DOT_RADIUS_SCALE = 0.875;
@@ -43,7 +42,7 @@ export function createPlaygroundResponsiveProfile(viewportWidthPx = DESKTOP_VIEW
     viewportWidthPx: normalizedWidth,
     compactness,
     worldScale,
-    titleScale: lerp(1, PHONE_TITLE_SCALE, compactness),
+    titleScale: 1,
     projectSpacingScale: lerp(1, PHONE_PROJECT_SPACING_SCALE, compactness),
     itemGapScale: lerp(1, PHONE_ITEM_GAP_SCALE, compactness),
     dotRadiusScale: lerp(1, PHONE_DOT_RADIUS_SCALE, compactness),

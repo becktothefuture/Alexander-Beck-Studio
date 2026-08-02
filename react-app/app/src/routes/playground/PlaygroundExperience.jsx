@@ -1095,14 +1095,12 @@ export function PlaygroundExperience() {
                 {content?.title || 'Lab'}
               </h1>
               <span
-                className="playground-title-lockup__rule route-title-lockup__rule"
-                data-playground-title-rule
+                className="route-title-lockup__rule"
                 aria-hidden="true"
               />
               <p
                 id="playground-route-description"
-                className="playground-title-lockup__description route-centered-page__description route-intro-description"
-                data-playground-description
+                className="route-centered-page__description route-intro-description"
                 data-route-enter="context"
                 data-route-enter-variant="bookend-description"
               >

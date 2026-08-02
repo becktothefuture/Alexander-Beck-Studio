@@ -1007,22 +1007,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   left: 50%;
   box-sizing: border-box;
   display: grid;
-  gap: clamp(10px, 1.6vmin, 18px);
   width: min(760px, 76%);
   transform: translate3d(-50%, 0, 0);
   text-align: center;
   color: var(--text-primary);
   pointer-events: none;
-}
-
-.portfolio-deck-intro.route-title-lockup {
-  gap: 0;
-}
-
-.portfolio-deck-intro__title,
-.portfolio-deck-intro__body {
-  margin: 0;
-  text-wrap: balance;
 }
 
 .portfolio-deck-intro__body {
@@ -1057,7 +1046,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-deck-intro__body,
 .portfolio-deck-mount.is-portfolio-deck-revealing .portfolio-deck-intro__body {
-  opacity: 0.64;
+  opacity: var(--route-intro-description-opacity);
 }
 
 .portfolio-deck-mount.is-portfolio-deck-visible:not(.is-portfolio-deck-revealing)

@@ -31,9 +31,9 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Geist Mono remains the operational voice for metadata and compact technical labels.
 - The London script is a small signature moment, not another general-purpose display style.
 
-Instrument Serif is limited to the Home canvas title and route-level titles using `.route-centered-page__title`, including the Portfolio intro, gate, and Playground opening. The production tokens are:
+Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Portfolio intro, gate, and Playground opening. The production tokens are:
 
-Work, Contact, Playground, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`.
+Work, Contact, Playground, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`. About's opening and finale lockups remain vertically centred. The finale keeps its contact action as an inline text link inside the description, not a separate button row.
 
 - `--abs-font-headline: "Instrument Serif", ...`
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles

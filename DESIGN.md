@@ -182,7 +182,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   gathers that same material into one suspended spatial form. These are transformations of one
   material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral; internal module spacing remains authorable from the Text inspector. The quieter artefact stack remains a supporting, scroll-safe image module rather than a new chapter.
-- Spatial titles use two explicit roles: standard Geist titles bridge the editorial passages, while Instrument Serif display titles punctuate the opening and finale bookends.
+- Spatial titles use one Instrument Serif family at two explicit scales: medium travelling titles stay vertically centred while bridging the editorial passages, while larger display titles punctuate the opening and finale bookends. Both bookend lockups share an authored 70% viewport position in the lower half, keep the same screen-space centre while visible, and use one narrower supporting-description measure. The opening cluster and final bust share one upper-field visual centre.
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV, with an optional
   Look-at Target XYZ and horizon roll for shots that must keep one material event framed. Authored
   positions create an orbit; there is no hidden frame origin, depth offset, or secondary dolly system.
@@ -203,9 +203,11 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   bottom-up from that still-moving surface: the fragmented base and shoulders appear first, then the
   neck and coherent head resolve. The anchored camera eases out of its orbit and holds while the settled
   form begins its final rotation.
-- The bust remains large and horizontally centered through the final invitation. The centered bottom
-  stack reads “Get in touch”, then the smaller invitation sentence, then the email, social, and LinkedIn
-  actions; it must not displace the bust or leave the studio viewport.
+- The bust remains large and horizontally centred through the final invitation. The lower-half stack
+  reads “Get in Touch”, then the smaller invitation sentence with one inline email link. It has no
+  separate action buttons and must not displace the bust or leave the studio viewport.
+- Mobile portrait frames the final bust slightly higher and closer than the previous endpoint while
+  retaining the same material/text centre relationship as desktop.
 - Short mobile landscape is the deliberate exception to the stacked finale: the bust and invitation
   recompose as equal left/right fields so both remain materially present within the shallow studio
   window. World controls expose the short-landscape scale and XYZ offsets; this is not a hidden camera.

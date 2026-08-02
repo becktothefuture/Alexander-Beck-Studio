@@ -7634,6 +7634,9 @@ body.portfolio-page--locked #simulations {
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
   --route-description-letter-spacing: -0.012em;
+  --route-intro-description-max-width: 50.4ch;
+  --route-intro-description-line-height: 1.485;
+  --route-intro-description-opacity: 0.64;
   --route-title-rule-width: 2rem;
   --route-title-rule-thickness: 2px;
   --route-title-rule-offset: clamp(8px, 0.8vw, 12px);
@@ -7737,8 +7740,9 @@ body.portfolio-page--locked #simulations {
 }
 
 .route-centered-page__description.route-intro-description {
-  max-width: 50.4ch;
-  line-height: 1.485;
+  max-width: min(var(--route-intro-description-max-width), 100%);
+  line-height: var(--route-intro-description-line-height);
+  opacity: var(--route-intro-description-opacity);
   text-wrap: balance;
 }
 

@@ -387,7 +387,7 @@ test('every World exposes grouped live sliders instead of raw Shape and Modifier
 test('the Text row header exposes the global width and animation controls', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.map((group) => group.id),
-    ['text-widths', 'text-layout', 'text-path', 'text-clarity', 'text-depth', 'text-editorial'],
+    ['text-widths', 'text-layout', 'text-path', 'text-clarity', 'text-shadow', 'text-depth', 'text-editorial'],
   );
   const exposedControls = ABOUT_NARRATIVE_GLOBAL_CONTROLS.flatMap((group) => group.controls)
     .filter((control) => control.group?.startsWith('text-'));
@@ -407,6 +407,8 @@ test('the Text row header exposes the global width and animation controls', () =
       'readableStart',
       'readableEnd',
       'maxBlur',
+      'titleShadowOpacity',
+      'titleShadowBlurPx',
       'perspective',
       'entryDepth',
       'exitDepth',
@@ -421,6 +423,11 @@ test('the Text row header exposes the global width and animation controls', () =
   assert.match(liveSources.editor, /data-track-settings="text"/);
   assert.match(liveSources.editor, /Text windows move independently/);
   assert.match(liveSources.editor, /read-only Motion reservation/);
+  assert.equal(exposedControls.find((control) => control.id === 'titleShadowOpacity')?.label, 'Background shadow opacity');
+  assert.equal(exposedControls.find((control) => control.id === 'titleShadowBlurPx')?.label, 'Background shadow blur');
+  assert.match(liveSources.experience, /--about-title-shadow-opacity/);
+  assert.match(liveSources.experience, /--about-title-shadow-blur/);
+  assert.match(liveSources.styles, /text-shadow: 0 0 var\(--about-title-shadow-blur, 50px\) color-mix\(in srgb, var\(--studio-window-bg\) var\(--about-title-shadow-opacity, 80%\), transparent\)/);
   assert.match(liveSources.editor, /data-text-flow-reservation/);
   assert.match(liveSources.editor, /object\.kind !== 'title'/);
 });
@@ -574,7 +581,7 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   });
   assert.deepEqual(keys.get('ripple-overhead-hold').lookAtTarget, gridTarget);
   assert.equal(gridTarget[1], -0.88);
-  assert.deepEqual(finaleTarget, [0, -1.5, 0]);
+  assert.deepEqual(finaleTarget, [-0.5, -3.85, 0]);
   assert.ok(keys.get('ripple-overhead-hold').position[1] < keys.get('grid-return-centered').position[1]);
   assert.ok(keys.get('ripple-overhead-hold').position[2] < keys.get('grid-return-centered').position[2]);
   assert.ok(keys.get('finale-hold').position[1] < keys.get('ripple-overhead-hold').position[1]);
@@ -613,10 +620,11 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
     const descentKeys = new Map(descentPlan.cameraKeys.map((key) => [key.id, key]));
     const descentStart = descentKeys.get('ripple-overhead-hold');
     const descentEnd = descentKeys.get('finale-hold');
+    assert.ok(descentEnd.lookAtTarget[1] < descentStart.lookAtTarget[1]);
     if (layoutProfile === 'mobile') {
-      assert.deepEqual(descentEnd.lookAtTarget, descentStart.lookAtTarget);
+      assert.equal(descentEnd.lookAtTarget[2], descentStart.lookAtTarget[2]);
+      assert.deepEqual(descentEnd.position, [0.741342, 0.84025, -17.25]);
     } else {
-      assert.ok(descentEnd.lookAtTarget[1] < descentStart.lookAtTarget[1]);
       assert.ok(descentEnd.lookAtTarget[2] > descentStart.lookAtTarget[2]);
     }
     const descentMidpoint = sampleAboutNarrativeRuntimePlan(
@@ -734,7 +742,8 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
     });
     assert.deepEqual(compactKeys.get('ripple-overhead-hold').lookAtTarget, compactTarget);
     if (profileId === 'mobile') {
-      assert.deepEqual(compactKeys.get('finale-hold').lookAtTarget, compactTarget);
+      assert.deepEqual(compactKeys.get('finale-hold').lookAtTarget, [-0.23, -0.95, -7.035]);
+      assert.ok(compactKeys.get('finale-hold').lookAtTarget[1] < compactTarget[1]);
     } else {
       assert.ok(compactKeys.get('finale-hold').lookAtTarget[2] > compactTarget[2]);
     }
@@ -743,6 +752,10 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
     assert.equal(compactBackground.shapeId, 'calm-field-v1');
   }
   const emergentWorld = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
+  assert.equal(emergentWorld.transform.mobileLandscapeScale, 1.8);
+  assert.equal(emergentWorld.transform.mobileLandscapeXScale, 1.8);
+  assert.equal(emergentWorld.transform.mobileLandscapeXOffset, 3.8);
+  assert.equal(emergentWorld.transform.mobileLandscapeYOffset, -2);
   const mobileBustBottomY = emergentWorld.transform.position[1]
     + emergentWorld.transform.mobileYOffset
     - (0.858 * emergentWorld.transform.mobileScale);
@@ -886,11 +899,11 @@ test('only the opener and finale Titles may carry supporting descriptions', () =
 test('mobile title roles retain their exact twenty-percent width reductions', () => {
   assert.match(
     liveSources.styles,
-    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-title \{\s*max-width:\s*min\(14\.08ch, var\(--about-title-standard-max-width/,
+    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-title:not\(\.route-centered-page__title\) \{\s*max-width:\s*min\(14\.08ch, var\(--about-title-standard-max-width/,
   );
   assert.match(
     liveSources.styles,
-    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-copy\[data-title-style='display'\] \.about-narrative-spatial-title \{\s*max-width:\s*min\(10\.88ch, var\(--about-title-display-max-width/,
+    /data-about-layout-profile='mobile'\] \.about-narrative-spatial-copy\[data-title-style='display'\] \.about-narrative-spatial-title:not\(\.route-centered-page__title\) \{\s*max-width:\s*min\(10\.88ch, var\(--about-title-display-max-width/,
   );
   assert.match(
     liveSources.styles,
@@ -1171,13 +1184,13 @@ test('published narrative writing follows V25 with the authored finale CTA', () 
   });
   assert.equal(
     canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
-    'Let’s talk.',
+    'Get in Touch',
   );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);
 });
 
-test('the final title and actions share the closing frame with the persistent bust', () => {
+test('the lower-half final title and inline email link share the closing frame with the persistent bust', () => {
   const finale = canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1');
   const emergent = canonical.tracks.worlds.objects.find((world) => world.shapeId === 'bust-v1');
   const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
@@ -1199,8 +1212,16 @@ test('the final title and actions share the closing frame with the persistent bu
   assert.equal(finalHold.aimEnabled, true);
   assert.match(liveSources.experience, /about-narrative-finale-content/);
   assert.match(liveSources.styles, /\.about-narrative-finale-content/);
-  assert.match(liveSources.styles, /about-narrative-finale-content \{[\s\S]*?transform: none;/);
-  assert.match(liveSources.styles, /\.about-narrative-finale-cta \{[\s\S]*position: relative/);
+  assert.match(liveSources.styles, /about-narrative-finale-content \{[\s\S]*?top: var\(--about-finale-lockup-y, var\(--about-title-viewport-y, 70%\)\);[\s\S]*?translate3d\(0, -50%, 0\)/);
+  assert.match(liveSources.styles, /--route-intro-description-max-width: 42ch/);
+  assert.match(liveSources.styles, /--route-intro-description-max-width: 32ch/);
+  assert.match(liveSources.styles, /about-narrative-opening-copy \{[\s\S]*?translate3d\(-50%, -50%, 0\)/);
+  assert.match(liveSources.experience, /route-centered-page__title route-bookend-title route-title-lockup__title/);
+  const finaleTitleRule = liveSources.styles.match(/about-narrative-spatial-copy\.is-finale[\s\S]*?route-bookend-title \{([^}]*)\}/)?.[1] || '';
+  assert.doesNotMatch(finaleTitleRule, /font-(?:family|size|weight)|letter-spacing|line-height/);
+  assert.match(liveSources.styles, /about-narrative-finale-description \{[\s\S]*?var\(--route-intro-description-opacity\)[\s\S]*?var\(--spatial-description-opacity/);
+  assert.match(liveSources.experience, /about-narrative-finale-description__link/);
+  assert.doesNotMatch(liveSources.experience, /about-narrative-cta/);
   assert.match(liveSources.styles, /max-height: 600px/);
 });
 

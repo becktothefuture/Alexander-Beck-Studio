@@ -40,6 +40,8 @@
       "endY": -50,
       "readableStart": 0.4,
       "readableEnd": 0.69,
+      "titleShadowOpacity": 0.8,
+      "titleShadowBlurPx": 50,
       "perspective": 1600,
       "entryDepth": 360,
       "exitDepth": 220,
@@ -93,15 +95,15 @@
           "finale-hold": {
             "position": [
               0.741342,
-              0.24025,
-              -18.838811
+              0.84025,
+              -17.25
             ],
             "lookAtTarget": [
-              0,
-              -0.88,
+              -0.23,
+              -0.95,
               -7.035
             ],
-            "fov": 35.775
+            "fov": 33
           },
           "grid-birds-eye": {
             "position": [
@@ -320,7 +322,7 @@
           "position": [
             1.5979747521404943e-15,
             0.13105675984809606,
-            -13.04845407878473
+            -15.95
           ],
           "rotation": [
             0,
@@ -329,12 +331,12 @@
           ],
           "aimEnabled": true,
           "lookAtTarget": [
-            0,
-            -1.5,
+            -0.5,
+            -3.85,
             0
           ],
           "lookAtRoll": 0,
-          "fov": 56,
+          "fov": 52,
           "easing": "cubic-bezier(0.22, 0, 0.12, 1)",
           "locked": true
         }
@@ -488,10 +490,10 @@
             "pointSizeScale": 1,
             "mobileScale": 1.38,
             "mobileYOffset": 0.2,
-            "mobileLandscapeScale": 1.65,
-            "mobileLandscapeXScale": 1.65,
-            "mobileLandscapeXOffset": -4.2,
-            "mobileLandscapeYOffset": -0.9,
+            "mobileLandscapeScale": 1.8,
+            "mobileLandscapeXScale": 1.8,
+            "mobileLandscapeXOffset": 3.8,
+            "mobileLandscapeYOffset": -2,
             "mobileLandscapeZOffset": 0
           },
           "shapeParameters": {
@@ -1345,7 +1347,7 @@
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
-          "text": "Let’s talk.",
+          "text": "Get in Touch",
           "description": "If you are working through an unfamiliar problem, I’d be glad to hear about it."
         }
       ]

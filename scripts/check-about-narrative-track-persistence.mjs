@@ -103,12 +103,16 @@ test('shared title viewport placement survives validation and serialization', ()
   const source = migrateAboutNarrativeVersion2To5(canonicalV2);
   source.globals.textMotion.bookendViewportY = 76;
   source.globals.textMotion.standardViewportY = 55;
+  source.globals.textMotion.titleShadowOpacity = 0.65;
+  source.globals.textMotion.titleShadowBlurPx = 72;
 
   const serialized = serializeAboutNarrativeTrackSource(source);
   const loaded = loadAboutNarrativeTrackSource(serialized);
   assert.equal(loaded.status, 'current');
   assert.equal(loaded.document.globals.textMotion.bookendViewportY, 76);
   assert.equal(loaded.document.globals.textMotion.standardViewportY, 55);
+  assert.equal(loaded.document.globals.textMotion.titleShadowOpacity, 0.65);
+  assert.equal(loaded.document.globals.textMotion.titleShadowBlurPx, 72);
   loaded.document.tracks.text.fields.filter((field) => field.kind === 'title').forEach((field) => {
     assert.equal(field.presentation.viewportY, undefined);
   });
@@ -118,6 +122,12 @@ test('shared title viewport placement survives validation and serialization', ()
   source.globals.textMotion.bookendViewportY = 76;
   source.globals.textMotion.standardViewportY = 101;
   assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
+  source.globals.textMotion.standardViewportY = 55;
+  source.globals.textMotion.titleShadowOpacity = 1.01;
+  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|shadow/i);
+  source.globals.textMotion.titleShadowOpacity = 0.65;
+  source.globals.textMotion.titleShadowBlurPx = 121;
+  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|shadow/i);
 });
 
 test('v5 Visibility keys and profile overrides roundtrip without loss', () => {

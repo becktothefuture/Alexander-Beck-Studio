@@ -35,7 +35,8 @@ test('responsive Lab profile preserves desktop intent and compacts continuously 
   assert.ok(tablet.worldScale < 1 && tablet.worldScale > phone.worldScale);
   assert.ok(tablet.projectSpacingScale < 1 && tablet.projectSpacingScale > phone.projectSpacingScale);
   assert.equal(phone.worldScale, 0.84);
-  assert.ok(phone.titleScale > phone.worldScale);
+  assert.equal(tablet.titleScale, 1);
+  assert.equal(phone.titleScale, 1);
   assert.ok(Math.abs(phoneConfig.projectSpacing - 1) < 0.000001);
   assert.equal(phoneConfig.itemGapCells, 1);
   assert.equal(phoneConfig.dotRadiusPx, 1.96875);

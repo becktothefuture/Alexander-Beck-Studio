@@ -38,7 +38,7 @@ Top-level route headlines use Instrument Serif through `--abs-font-headline`, op
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
 - Implementation: consume the resolved `--route-entry-title-size` with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The optical scale is already included in the resolved size; do not repeat it in component CSS.
 
-Work, About Me, Contact, and Lab pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, and balanced wrapping; route CSS owns only placement. The Portfolio access gate deliberately keeps the narrower base description measure.
+Work, About Me, Contact, and Lab pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, settled opacity, and balanced wrapping; route CSS owns only placement, animation progress, or an explicit responsive measure override. The Portfolio access gate deliberately keeps the narrower base description measure.
 
 ## Lab work item and dialog
 

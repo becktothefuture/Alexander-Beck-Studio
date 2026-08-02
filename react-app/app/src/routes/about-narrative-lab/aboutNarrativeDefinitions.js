@@ -87,6 +87,7 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'text-layout', label: 'Titles · Layout' }),
   Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
   Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
+  Object.freeze({ id: 'text-shadow', label: 'Titles · Background shadow' }),
   Object.freeze({ id: 'text-depth', label: 'Titles · Depth' }),
   Object.freeze({ id: 'text-editorial', label: 'Content · Shared reveal' }),
 ]);
@@ -217,6 +218,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
       numberControl('readableStart', 'Clear-in point', 0, 1, 0.01, '', 'text-clarity'),
       numberControl('readableEnd', 'Clear-out point', 0, 1, 0.01, '', 'text-clarity'),
       numberControl('maxBlur', 'Maximum blur', 0, 100, 1, 'px', 'text-clarity'),
+      numberControl('titleShadowOpacity', 'Background shadow opacity', 0, 1, 0.01, '', 'text-shadow'),
+      numberControl('titleShadowBlurPx', 'Background shadow blur', 0, 120, 1, 'px', 'text-shadow'),
       numberControl('perspective', 'Perspective', 1400, 3200, 20, 'px', 'text-depth'),
       numberControl('entryDepth', 'Entry depth (−Z)', 0, 3000, 10, 'px', 'text-depth'),
       numberControl('exitDepth', 'Exit depth (+Z)', 0, 3000, 10, 'px', 'text-depth'),

@@ -8,7 +8,6 @@ import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefiniti
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
-import { withBasePath } from '../../lib/base-path.js';
 import {
   ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
   ABOUT_SCROLL_INDICATOR_TICK_COUNT,
@@ -480,28 +479,6 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   );
 }
 
-function FinaleActions() {
-  return (
-    <div className="about-narrative-finale-cta is-actions-only">
-      <nav className="about-narrative-cta" aria-label="Explore Alexander’s work">
-        <a href={withBasePath('/playground.html')}>
-          <span className="about-narrative-cta__label">Explore the Lab</span>
-        </a>
-        <a href={withBasePath('/portfolio.html')}>
-          <span className="about-narrative-cta__label">See My Work</span>
-        </a>
-        <a href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}>
-          <span className="about-narrative-cta__label">Get in Touch</span>
-        </a>
-        <a href={ABOUT_NARRATIVE_CONTACT.linkedin} target="_blank" rel="noreferrer">
-          <i className="ti ti-brand-linkedin" aria-hidden="true" />
-          <span className="about-narrative-visually-hidden">LinkedIn (opens in a new tab)</span>
-        </a>
-      </nav>
-    </div>
-  );
-}
-
 function TitleField({
   field,
   textMotion,
@@ -541,7 +518,7 @@ function TitleField({
           <div className="about-narrative-finale-lockup route-title-lockup">
             <Heading
               id={headingId}
-              className="about-narrative-spatial-title about-narrative-spatial-fragment route-bookend-title route-title-lockup__title"
+              className="about-narrative-spatial-title about-narrative-spatial-fragment route-centered-page__title route-bookend-title route-title-lockup__title"
               data-primary-copy
               data-route-enter-variant="bookend-title"
             >
@@ -551,14 +528,19 @@ function TitleField({
             {field.description ? (
               <p
                 id={descriptionId}
-                className="about-narrative-finale-description route-centered-page__description route-intro-description route-title-lockup__description"
+                className="about-narrative-finale-description route-centered-page__description route-intro-description"
                 data-route-enter-variant="bookend-description"
               >
-                {field.description}
+                {field.description}{' '}
+                <a
+                  className="about-narrative-finale-description__link"
+                  href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
+                >
+                  Send me an email.
+                </a>
               </p>
             ) : null}
           </div>
-          <FinaleActions />
         </div>
       ) : isOpener ? (
         <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner route-title-lockup">
@@ -823,12 +805,16 @@ export function AboutNarrativeLabExperience({
     : null;
   const Editor = editorModule;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
+  const titleShadowOpacity = Number(globals.textMotion.titleShadowOpacity);
+  const titleShadowBlurPx = Number(globals.textMotion.titleShadowBlurPx);
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
+    '--about-title-shadow-opacity': `${(Number.isFinite(titleShadowOpacity) ? Math.min(1, Math.max(0, titleShadowOpacity)) : 0.8) * 100}%`,
+    '--about-title-shadow-blur': `${Number.isFinite(titleShadowBlurPx) ? Math.min(120, Math.max(0, titleShadowBlurPx)) : 50}px`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 1,
   };
