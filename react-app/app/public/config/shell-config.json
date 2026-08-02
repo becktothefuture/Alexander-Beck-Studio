@@ -46,19 +46,19 @@
     "shadowOffsetY": "6px",
     "simulationAtmosphere": {
       "enabled": true,
-      "largeSpread": 0.2,
-      "smallSpread": 0.031,
-      "memoryMs": 75,
+      "largeSpread": 0.08,
+      "smallSpread": 0.02,
+      "memoryMs": 400,
       "edgeStrength": 1,
       "edgeWidthPx": 3.5,
       "edgeInsetPx": 0,
       "light": {
-        "intensity": 0.64,
-        "colourStrength": 1.3
+        "intensity": 0.43,
+        "colourStrength": 0.96
       },
       "dark": {
-        "intensity": 0.87,
-        "colourStrength": 1.6
+        "intensity": 0.46,
+        "colourStrength": 1.24
       }
     }
   },
