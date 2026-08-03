@@ -668,7 +668,7 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
   assert.equal(new Set(verticalPositions).size, 6);
   assert.equal(new Set(horizontalPositions).size, 1);
-  assert.equal(horizontalPositions[0], 0.3);
+  assert.equal(horizontalPositions[0], 0.32);
   const laneIntervals = verticalPositions.slice(1).map((value, index) => (
     Number((value - verticalPositions[index]).toFixed(6))
   ));

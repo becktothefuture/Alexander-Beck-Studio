@@ -557,7 +557,7 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and one 
   const sortedVerticalPositions = [...verticalPositions].sort((left, right) => left - right);
   const verticalGaps = sortedVerticalPositions.slice(1).map((value, index) => value - sortedVerticalPositions[index]);
   assert.equal(new Set(horizontalPositions).size, 1);
-  assert.equal(horizontalPositions[0], 0.3);
+  assert.equal(horizontalPositions[0], 0.32);
   assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.56);
   assert.ok(Math.min(...verticalGaps) >= 0.1);
   assert.ok(Math.min(...verticalPositions) >= 0.3);
