@@ -359,25 +359,62 @@ export function PlaygroundExperience() {
   useLayoutEffect(() => {
     const route = routeRef.current;
     if (!route) return undefined;
-    const getVisibleItems = () => {
+    let materialLayoutSnapshot = null;
+    const invalidateMaterialLayoutSnapshot = () => {
+      materialLayoutSnapshot = null;
+    };
+    const getMaterialLayoutSnapshot = () => {
+      const items = [...route.querySelectorAll('.playground-item')];
+      const reusable = materialLayoutSnapshot
+        && materialLayoutSnapshot.items.length === items.length
+        && items.every((item, index) => materialLayoutSnapshot.items[index] === item)
+        && items.every((item) => item.isConnected);
+      if (reusable) return materialLayoutSnapshot;
+
       const viewport = route.querySelector('[data-playground-viewport]');
       const viewportRect = viewport?.getBoundingClientRect();
-      if (!viewportRect?.width || !viewportRect?.height) return [];
+      if (!viewportRect?.width || !viewportRect?.height) {
+        materialLayoutSnapshot = {
+          items,
+          targets: [dotMaterialTargetRef.current],
+          delayRatios: new WeakMap(),
+        };
+        return materialLayoutSnapshot;
+      }
       const margin = 80;
-      return [...route.querySelectorAll('.playground-item')].filter((item) => {
+      const visibleItems = [];
+      const delayRatios = new WeakMap();
+      const viewportCenterX = viewportRect.left + (viewportRect.width / 2);
+      const viewportCenterY = viewportRect.top + (viewportRect.height / 2);
+      const radius = Math.max(1, Math.hypot(viewportRect.width, viewportRect.height) * 0.5);
+      items.forEach((item) => {
         const rect = item.getBoundingClientRect();
-        return rect.right >= viewportRect.left - margin
+        const visible = rect.right >= viewportRect.left - margin
           && rect.left <= viewportRect.right + margin
           && rect.bottom >= viewportRect.top - margin
           && rect.top <= viewportRect.bottom + margin;
+        if (!visible) return;
+        visibleItems.push(item);
+        const dx = (rect.left + (rect.width / 2)) - viewportCenterX;
+        const dy = (rect.top + (rect.height / 2)) - viewportCenterY;
+        delayRatios.set(
+          item,
+          0.35 + (Math.min(1, Math.hypot(dx, dy) / radius) * 0.65),
+        );
       });
+      materialLayoutSnapshot = {
+        items,
+        targets: [dotMaterialTargetRef.current, ...visibleItems],
+        delayRatios,
+      };
+      return materialLayoutSnapshot;
     };
     const cardMotionFrame = {};
     const controller = createRouteMaterialEntranceController({
       id: 'playground-view-material',
       routeId: 'playground',
       diagnosticRoot: route,
-      getTargets: () => [dotMaterialTargetRef.current, ...getVisibleItems()],
+      getTargets: () => getMaterialLayoutSnapshot().targets,
       setTargetScale: (target, progress, index, detail) => {
         if (target === dotMaterialTargetRef.current) {
           dotMaterialScaleRef.current = progress;
@@ -395,16 +432,7 @@ export function PlaygroundExperience() {
       getDelayRatio: (item, index, targets, direction) => {
         if (item === dotMaterialTargetRef.current) return direction === 'out' ? 1 : 0;
         if (direction === 'out') return 0;
-        const viewport = route.querySelector('[data-playground-viewport]');
-        const viewportRect = viewport?.getBoundingClientRect();
-        const itemRect = item.getBoundingClientRect();
-        if (!viewportRect?.width || !viewportRect?.height) return 0.35;
-        const dx = (itemRect.left + (itemRect.width / 2))
-          - (viewportRect.left + (viewportRect.width / 2));
-        const dy = (itemRect.top + (itemRect.height / 2))
-          - (viewportRect.top + (viewportRect.height / 2));
-        const radius = Math.max(1, Math.hypot(viewportRect.width, viewportRect.height) * 0.5);
-        return 0.35 + (Math.min(1, Math.hypot(dx, dy) / radius) * 0.65);
+        return getMaterialLayoutSnapshot().delayRatios.get(item) ?? 0.35;
       },
       requestRender: () => dotRendererRef.current?.drawImmediately(),
       getReducedMotion: () => reducedMotion,
@@ -414,8 +442,14 @@ export function PlaygroundExperience() {
     const unregisterParticipant = registerRouteTransitionParticipant({
       id: 'playground-view-material',
       routeId: 'playground',
-      prepare: ({ signal }) => controller.prepare({ signal, reducedMotion }),
-      exit: ({ signal }) => controller.exit({ signal, reducedMotion }),
+      prepare: ({ signal }) => {
+        invalidateMaterialLayoutSnapshot();
+        return controller.prepare({ signal, reducedMotion });
+      },
+      exit: ({ signal }) => {
+        invalidateMaterialLayoutSnapshot();
+        return controller.exit({ signal, reducedMotion });
+      },
       waitUntilReady: ({ signal }) => waitForPlaygroundRouteReady(route, signal),
       enter: async ({ signal }) => {
         const readyForMaterial = await waitForPlaygroundRouteReady(route, signal);
@@ -427,6 +461,7 @@ export function PlaygroundExperience() {
     });
     const handleDirectRouteEntrance = (event) => {
       if (event.detail?.routeId !== 'playground' || event.detail?.mode !== 'direct') return;
+      invalidateMaterialLayoutSnapshot();
       void controller.enter({ reducedMotion });
     };
     window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
@@ -435,6 +470,7 @@ export function PlaygroundExperience() {
       window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
       unregisterParticipant();
       controller.destroy({ settleTargets: false });
+      materialLayoutSnapshot = null;
       if (materialEntranceRef.current === controller) materialEntranceRef.current = null;
     };
   }, [reducedMotion]);

@@ -9,7 +9,6 @@ import {
   getPortfolioVideoMimeType,
   getProjectAccessMode,
   getProjectImageSrc,
-  getProjectTags,
   getProjectVideoSrc,
   loadPortfolioData,
   loadPortfolioRuntimeConfig,
@@ -67,6 +66,7 @@ import {
   createRouteMaterialEntranceController,
   getRouteCardMotionFrame,
 } from '../../../lib/motion/route-material-entrance.js';
+import { getSimulationPaletteSnapshot } from '../../../palette/simulationPaletteController.js';
 
 let activePortfolioBootstrapRunId = 0;
 
@@ -468,6 +468,7 @@ class PortfolioScrollApp {
     this.cardObserver = null;
     this.portfolioWheelSfxPreviousConfig = null;
     this.portfolioWheelSfxConfigured = false;
+    this.cardPaletteGeneration = -1;
     this.portfolioSfxLastFrameAt = 0;
     this.portfolioSfxLastPosition = 0;
     this.portfolioSfxLastCenterPosition = 0;
@@ -506,7 +507,7 @@ class PortfolioScrollApp {
       this.particleField?.resize();
     };
     this.boundPaletteChange = () => {
-      this.applyProjectPalette();
+      this.applyProjectPalette({ force: true });
       this.particleField?.refreshPalette();
     };
   }
@@ -1236,6 +1237,7 @@ class PortfolioScrollApp {
     mist.setAttribute('aria-hidden', 'true');
 
     this.cards = [];
+    const renderedPaletteGeneration = getSimulationPaletteSnapshot().generation;
     let instanceIndex = 0;
     for (let cycleIndex = -this.ringCopyRadius; cycleIndex <= this.ringCopyRadius; cycleIndex += 1) {
       for (let projectIndex = 0; projectIndex < this.projects.length; projectIndex += 1) {
@@ -1250,6 +1252,7 @@ class PortfolioScrollApp {
         instanceIndex += 1;
       }
     }
+    this.cardPaletteGeneration = renderedPaletteGeneration;
 
     const dotDial = this.createDotDial();
 
@@ -1308,18 +1311,7 @@ class PortfolioScrollApp {
     titleText.textContent = project?.displayTitle || project?.title || labelContent.title;
     title.append(titleText);
 
-    const tags = document.createElement('ul');
-    tags.className = 'portfolio-project-card__tags';
-    tags.setAttribute('aria-label', 'Project tags');
-    tags.hidden = true;
-    getProjectTags(project).forEach((tag) => {
-      const item = document.createElement('li');
-      item.textContent = tag;
-      tags.appendChild(item);
-    });
-
     copy.append(client, title);
-    if (tags.childElementCount) copy.appendChild(tags);
 
     const media = this.createProjectCardMedia(project, projectIndex, {
       attachVideo: Boolean(getProjectVideoSrc(project) && !shouldReducePortfolioMotion()),
@@ -1509,11 +1501,15 @@ class PortfolioScrollApp {
     this.deckStage.removeEventListener('pointercancel', this.boundDeckPointerCancel);
   }
 
-  applyProjectPalette() {
+  applyProjectPalette({ force = false } = {}) {
+    const paletteGeneration = getSimulationPaletteSnapshot().generation;
+    if (!force && paletteGeneration === this.cardPaletteGeneration) return false;
     this.cards.forEach((card) => {
       const index = this.getCardProjectIndex(card);
       applyProjectCardTheme(card, this.projects[index], index, this.projects.length);
     });
+    this.cardPaletteGeneration = paletteGeneration;
+    return true;
   }
 
   updateCardMetrics() {

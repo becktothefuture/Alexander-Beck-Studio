@@ -9,14 +9,13 @@ import {
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
-import { createAboutNarrativeBufferLru } from './aboutNarrativeBufferLru.js';
 import {
   ABOUT_NARRATIVE_BUST_STATES,
   createAboutNarrativeBustController,
 } from './aboutNarrativeBustController.js';
+import { createAboutNarrativePersistentCacheLease } from './aboutNarrativePersistentCaches.js';
 import { createAboutNarrativePreparationController } from './aboutNarrativePreparationController.js';
 import {
-  ABOUT_NARRATIVE_CACHE_LIMITS,
   ABOUT_NARRATIVE_POINT_PROFILES,
 } from './aboutNarrativeRuntimeConstants.js';
 import {
@@ -1151,17 +1150,9 @@ function createPointFieldAdapter({
 
   resourceLedger?.retain('fixed-attributes', fixedAttributes);
   if (resourceLedger) diagnostics.recordLifecycle('resource-ledger-ready');
-  const recordCacheEvent = () => {};
-  const shapeCache = createAboutNarrativeBufferLru({
-    name: 'about-shapes',
-    ...ABOUT_NARRATIVE_CACHE_LIMITS.shape,
-    onEvent: recordCacheEvent,
-  });
-  const sequenceCache = createAboutNarrativeBufferLru({
-    name: 'about-sequences',
-    ...ABOUT_NARRATIVE_CACHE_LIMITS.sequence,
-    onEvent: recordCacheEvent,
-  });
+  const persistentCache = createAboutNarrativePersistentCacheLease();
+  const shapeCache = persistentCache.shapeDiagnostics;
+  const sequenceCache = persistentCache.sequenceDiagnostics;
   const runtimeObserver = createAboutNarrativeRuntimeObserver({
     root,
     diagnostics,
@@ -1187,6 +1178,7 @@ function createPointFieldAdapter({
   let disposed = false;
   let contextAvailable = true;
   let sceneReady = false;
+  let rendererPrepared = false;
   let width = 1;
   let height = 1;
   let latestFrame = null;
@@ -1394,10 +1386,13 @@ function createPointFieldAdapter({
     }
   };
 
+  const pendingShapePreparations = new Map();
   const getShape = async (world, signal) => {
     const key = shapeCacheKey(world, quality);
-    const cached = shapeCache.get(key);
+    const cached = persistentCache.getShape(key);
     if (cached) return cached;
+    const pending = pendingShapePreparations.get(key);
+    if (pending) return pending;
     const worldSeeds = createAboutNarrativeSeeds(pointCount, world.seed);
     const promise = generateAboutNarrativeShape({
       shapeId: world.shapeId,
@@ -1407,14 +1402,15 @@ function createPointFieldAdapter({
       parameters: world.shapeParameters,
       signal,
     });
-    return shapeCache.trackPromise(key, promise, {
-      owner: 'shape-cache',
-      pinOwner: 'bootstrap-pending',
-      dispose: (value) => resourceLedger?.release('shape-cache', value),
-    }).then((output) => {
-      if (!disposed) resourceLedger?.retain('shape-cache', output);
-      return output;
+    const tracked = promise.then((output) => (
+      disposed ? output : persistentCache.storeShape(key, output)
+    )).finally(() => {
+      if (pendingShapePreparations.get(key) === tracked) {
+        pendingShapePreparations.delete(key);
+      }
     });
+    pendingShapePreparations.set(key, tracked);
+    return tracked;
   };
 
   const assertInstallOutput = (output, label) => {
@@ -1747,17 +1743,7 @@ function createPointFieldAdapter({
           response.timings,
           request.startedAt,
         );
-        if (readySequence?.key && readySequence.key !== request.sequenceKey) {
-          sequenceCache.unpin(readySequence.key, 'ready-sequence');
-        }
-        resourceLedger?.retain('sequence-cache', prepared);
-        sequenceCache.set(request.sequenceKey, prepared, {
-          owner: 'sequence-cache',
-          pins: ['ready-sequence'],
-          active: true,
-          dispose: (value) => resourceLedger?.release('sequence-cache', value),
-        });
-        readySequence = prepared;
+        readySequence = persistentCache.storeSequence(request.sequenceKey, prepared);
         sequenceState = 'ready';
         root.dataset.worldPrepare = 'ready';
         root.dataset.worldShapeGenerationMs = prepared.generationDurationMs.toFixed(2);
@@ -1834,14 +1820,9 @@ function createPointFieldAdapter({
       return false;
     }
     if (readySequence?.key === responsiveSequenceKey) return true;
-    const cached = sequenceCache.get(responsiveSequenceKey);
+    const cached = persistentCache.getSequence(responsiveSequenceKey);
     if (cached) {
-      if (readySequence?.key && readySequence.key !== responsiveSequenceKey) {
-        sequenceCache.unpin(readySequence.key, 'ready-sequence');
-      }
       readySequence = cached;
-      sequenceCache.pin(responsiveSequenceKey, 'ready-sequence');
-      sequenceCache.activate(responsiveSequenceKey);
       sequenceState = 'ready';
       root.dataset.worldPrepare = 'ready';
       return true;
@@ -2032,6 +2013,7 @@ function createPointFieldAdapter({
     syncAtmosphereSource();
     if (routeMaterialOnly) return;
     if (!frame || !contextAvailable || document.hidden) return;
+    if (!rendererPrepared) return;
     if (frame.pointProfile && frame.pointProfile !== quality) {
       if (lastInteractionEnabled !== false) {
         interaction.dataset.active = 'false';
@@ -2364,9 +2346,59 @@ function createPointFieldAdapter({
   window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
   resize();
   updateTheme();
-  renderer.compile(scene, camera);
-  renderer.render(scene, camera);
-  root.dataset.pointWorldState = 'ready';
+  const rendererPreparationStartedAt = performance.now();
+  const markRendererPrepared = () => {
+    if (disposed || !contextAvailable || rendererPrepared) return;
+    renderer.render(scene, camera);
+    rendererPrepared = true;
+    root.dataset.pointWorldState = 'ready';
+    root.dataset.worldRendererPrepareMs = (
+      performance.now() - rendererPreparationStartedAt
+    ).toFixed(2);
+    if (latestFrame) render(latestFrame);
+  };
+  const markRendererUnavailable = (error) => {
+    if (disposed) return;
+    contextAvailable = false;
+    syncAtmosphereSource();
+    root.dataset.pointWorldState = 'unavailable';
+    root.dataset.aboutSceneReady = 'true';
+    window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+    console.warn('[About narrative] Point-world shader preparation failed; using the ambient fallback.', error);
+  };
+  const prepareRendererSynchronously = () => {
+    renderer.compile(scene, camera);
+    markRendererPrepared();
+  };
+  root.dataset.pointWorldState = 'preparing';
+  if (typeof renderer.compileAsync === 'function') {
+    root.dataset.worldRendererPreparation = 'async';
+    try {
+      void renderer.compileAsync(scene, camera).then(markRendererPrepared).catch((error) => {
+        if (disposed) return;
+        try {
+          root.dataset.worldRendererPreparation = 'sync-fallback';
+          prepareRendererSynchronously();
+        } catch (fallbackError) {
+          markRendererUnavailable(fallbackError || error);
+        }
+      });
+    } catch (error) {
+      try {
+        root.dataset.worldRendererPreparation = 'sync-fallback';
+        prepareRendererSynchronously();
+      } catch (fallbackError) {
+        markRendererUnavailable(fallbackError || error);
+      }
+    }
+  } else {
+    root.dataset.worldRendererPreparation = 'sync';
+    try {
+      prepareRendererSynchronously();
+    } catch (error) {
+      markRendererUnavailable(error);
+    }
+  }
   root.dataset.worldAnchorSampling = 'native-grid-cell';
   let cachedRuntimeDiagnosticsSnapshot = null;
   let cachedRuntimeLifecycle = null;
@@ -2466,8 +2498,8 @@ function createPointFieldAdapter({
     bootstrapController?.abort();
     bootstrapRequestId += 1;
     bustController.cancelInteraction();
-    shapeCache.dispose();
-    sequenceCache.dispose();
+    pendingShapePreparations.clear();
+    persistentCache.release();
     diagnostics.dispose({ emit: false });
     runtimeRef.current = null;
     if (RUNTIME_DIAGNOSTICS_ENABLED && window.__aboutNarrativeRuntime === runtimeApi) {
@@ -2527,6 +2559,8 @@ function createPointFieldAdapter({
     delete root.dataset.worldCorrespondenceWorkerMs;
     delete root.dataset.worldCorrespondencePrepareMs;
     delete root.dataset.worldCorrespondenceApplyMs;
+    delete root.dataset.worldRendererPreparation;
+    delete root.dataset.worldRendererPrepareMs;
     delete root.dataset.worldBufferRebuilds;
     delete root.dataset.worldBustShaderYaw;
     delete root.dataset.worldDisciplineVisible;

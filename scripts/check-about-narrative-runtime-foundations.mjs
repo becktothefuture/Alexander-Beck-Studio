@@ -4,6 +4,9 @@ import {
   collectAboutNarrativeArrayBuffers,
   createAboutNarrativeBufferLru,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeBufferLru.js';
+import {
+  createAboutNarrativePersistentCacheStore,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePersistentCaches.js';
 import { createAboutNarrativePreparationController } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePreparationController.js';
 import {
   createAboutNarrativeRuntimeDiagnostics,
@@ -185,6 +188,59 @@ test('buffer LRU rejects unknown owners and disposes entries deterministically',
   assert.equal(cache.getSnapshot().entries, 0);
   assert.equal(cache.getSnapshot().uniqueBytes, 0);
   assert.throws(() => cache.get('a'), /disposed/);
+});
+
+test('document cache reuses resolved shape buffers across adapter leases', () => {
+  const store = createAboutNarrativePersistentCacheStore({
+    shapeLimits: { maxEntries: 2, maxBytes: 256 },
+    sequenceLimits: { maxEntries: 2, maxBytes: 512 },
+  });
+  const shape = { positions: new Float32Array([1, 2, 3]) };
+  const first = store.createLease();
+  assert.equal(first.getShape('shape-a'), undefined);
+  assert.equal(first.storeShape('shape-a', shape), shape);
+  first.release();
+
+  const second = store.createLease();
+  assert.equal(second.getShape('shape-a'), shape);
+  assert.equal(store.getShapeSnapshot().entries, 1);
+  assert.equal(store.getShapeSnapshot().hits, 1);
+  second.release();
+  store.clear();
+});
+
+test('document cache returns mutable sequence wrappers over immutable cached preparation', () => {
+  const store = createAboutNarrativePersistentCacheStore({
+    shapeLimits: { maxEntries: 2, maxBytes: 256 },
+    sequenceLimits: { maxEntries: 2, maxBytes: 2048 },
+  });
+  const positions = new Float32Array([1, 2, 3]);
+  const prepared = {
+    key: 'sequence-a',
+    pairs: new Map([['world-a', {
+      key: 'pair-a',
+      fromWorld: { id: 'cached-from' },
+      toWorld: { id: 'cached-to' },
+      fromOutput: { positions },
+      toOutput: { positions },
+    }]]),
+  };
+  const first = store.createLease();
+  const firstRuntime = first.storeSequence('sequence-a', prepared);
+  firstRuntime.pairs.get('world-a').fromWorld = { id: 'runtime-from' };
+  first.release();
+
+  const second = store.createLease();
+  const secondRuntime = second.getSequence('sequence-a');
+  assert.notEqual(secondRuntime, firstRuntime);
+  assert.notEqual(secondRuntime.pairs.get('world-a'), firstRuntime.pairs.get('world-a'));
+  assert.equal(secondRuntime.pairs.get('world-a').fromWorld.id, 'cached-from');
+  assert.equal(secondRuntime.pairs.get('world-a').fromOutput.positions, positions);
+  assert.equal(store.getSequenceSnapshot().entries, 1);
+  assert.equal(store.getSequenceSnapshot().pinnedEntries, 1);
+  second.release();
+  assert.equal(store.getSequenceSnapshot().pinnedEntries, 0);
+  store.clear();
 });
 
 test('diagnostics snapshots stay stable between lifecycle emissions while metrics remain pull-based', () => {
