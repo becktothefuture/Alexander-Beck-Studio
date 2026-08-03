@@ -8,10 +8,9 @@ import {
   toggleSound,
   unlockAudio,
 } from '../../legacy/modules/audio/sound-engine.js';
-import { getCurrentTheme, setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
+import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
-import { THEME_CHANGE_EVENT } from '../../lib/theme-state.js';
 import './shell-button-bar-dominant.css';
 
 function readSoundButtonState() {
@@ -206,19 +205,6 @@ function MoonIcon() {
   );
 }
 
-function useCurrentThemePreference() {
-  const [preference, setPreference] = useState(() => getCurrentTheme());
-  useEffect(() => {
-    const syncPreference = (event) => {
-      setPreference(event?.detail?.theme || getCurrentTheme());
-    };
-    window.addEventListener(THEME_CHANGE_EVENT, syncPreference);
-    syncPreference();
-    return () => window.removeEventListener(THEME_CHANGE_EVENT, syncPreference);
-  }, []);
-  return preference;
-}
-
 function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
   const renderedThemeIsDark = useRenderedThemeIsDark();
   const isDark = previewTheme ? previewTheme === 'dark' : renderedThemeIsDark;
@@ -340,27 +326,7 @@ function BottomSoundToggle({ decoration }) {
   );
 }
 
-function BottomMobileThemeReset() {
-  const preference = useCurrentThemePreference();
-  const isDark = useRenderedThemeIsDark();
-  if (preference === 'auto') return null;
-
-  return (
-    <button
-      type="button"
-      className="button-bar__secondary-button button-bar__mobile-theme-reset shell-tab shell-tab--icon-only"
-      aria-label={`Use device theme instead of manual ${preference} mode`}
-      data-state={isDark ? 'dark' : 'light'}
-      onClick={() => setTheme('auto')}
-    >
-      {isDark ? <MoonIcon /> : <SunIcon />}
-      <span className="screen-reader">Use device theme</span>
-    </button>
-  );
-}
-
 function SecondaryButtons({
-  preview,
   previewTheme,
   onPreviewThemeChange,
   renderDecoration,
@@ -373,7 +339,6 @@ function SecondaryButtons({
         previewTheme={previewTheme}
         onPreviewThemeChange={onPreviewThemeChange}
       />
-      {!preview ? <BottomMobileThemeReset /> : null}
     </div>
   );
 }
@@ -583,7 +548,6 @@ export function ShellButtonBar({
       </nav>
       <span className="button-bar__divider button-bar__divider--utility" aria-hidden="true" />
       <SecondaryButtons
-        preview={preview}
         previewTheme={previewTheme}
         onPreviewThemeChange={onPreviewThemeChange}
         renderDecoration={renderSecondaryButtonDecoration}

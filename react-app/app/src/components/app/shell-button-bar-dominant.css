@@ -351,26 +351,17 @@
   block-size: 16px;
 }
 
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__mobile-theme-reset.shell-tab {
-  display: none;
-}
-
 @media (max-width: 767px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --button-bar-route-padding-inline: var(--button-bar-mobile-padding-inline);
     --button-bar-route-font-size: var(--button-bar-mobile-font-size);
   }
+}
 
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset)
-    .button-bar__sound-toggle {
-    display: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__mobile-theme-reset.shell-tab {
-    display: inline-flex;
+@media (min-width: 360px) and (max-width: 389px) {
+  .button-bar[data-button-bar-material='dominant-tab'] {
+    --button-bar-gap: 4px;
+    --button-bar-route-gap: 0px;
   }
 }
 

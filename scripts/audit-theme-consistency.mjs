@@ -349,7 +349,7 @@ async function auditLegacyPreferenceMigration(browser, viewport) {
   }
 }
 
-async function auditMobileThemeReset(browser, viewport) {
+async function auditMobileUtilityPersistence(browser, viewport) {
   if (viewport.name !== 'mobile') return;
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
@@ -364,14 +364,17 @@ async function auditMobileThemeReset(browser, viewport) {
 
   try {
     await page.goto(url('/'), { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await assertTheme(page, 'light', `${viewport.name}/manual-light-before-device-reset`);
-    const reset = page.locator('.button-bar__mobile-theme-reset');
-    await reset.waitFor({ state: 'visible', timeout: waitMs });
-    await reset.click();
-    const state = await assertTheme(page, 'dark', `${viewport.name}/device-reset-follows-system-dark`);
-    assert(state.storedPreference === 'auto', `${viewport.name}: device reset did not persist Auto`, state);
-    assert(!(await reset.isVisible()), `${viewport.name}: device reset remained visible in Auto`);
-    assert(await page.locator('.button-bar__sound-toggle').isVisible(), `${viewport.name}: sound control did not return after reset`);
+    await assertTheme(page, 'light', `${viewport.name}/manual-light-before-toggle`);
+    const sound = page.locator('.button-bar__sound-toggle');
+    const theme = page.locator('.button-bar__theme-toggle');
+    assert(await sound.isVisible(), `${viewport.name}: sound control was not visible before theme toggle`);
+    assert(await theme.isVisible(), `${viewport.name}: theme control was not visible before theme toggle`);
+    assert(await page.locator('.button-bar__mobile-theme-reset').count() === 0, `${viewport.name}: retired device-theme reset remains mounted`);
+    await theme.click();
+    const state = await assertTheme(page, 'dark', `${viewport.name}/manual-dark-after-toggle`);
+    assert(state.storedPreference === 'dark', `${viewport.name}: theme toggle did not persist Dark`, state);
+    assert(await sound.isVisible(), `${viewport.name}: sound control disappeared after theme toggle`);
+    assert(await theme.isVisible(), `${viewport.name}: theme control disappeared after theme toggle`);
   } finally {
     await context.close();
   }
@@ -383,7 +386,7 @@ async function main() {
   try {
     for (const viewport of viewports) {
       await auditLegacyPreferenceMigration(browser, viewport);
-      await auditMobileThemeReset(browser, viewport);
+      await auditMobileUtilityPersistence(browser, viewport);
       await auditManualAndTabs(browser, viewport);
       await auditAutomaticPreference(browser, viewport);
       console.log(`[theme-consistency] PASS ${browserName}/${viewport.name}`);

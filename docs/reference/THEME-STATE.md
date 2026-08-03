@@ -56,7 +56,7 @@ Site theme, browser scheme, browser family, and display gamut are not inputs to 
 
 ## Button Bar
 
-The Button Bar crosses the studio window's bottom edge but remains owned by the dark outer shell. Its `#141414` to black capsule, inset highlights, inactive labels, dividers, and sound/theme/reset controls are invariant across site themes. Sound and theme remain plain icon-only toggle buttons: sound swaps volume-off/volume-on, while theme swaps sun/moon. There is no slider track. The selected route uses a white label and the one shared white dot; tabs never borrow `--studio-window-bg` or add a selected surface. Theme changes may change behavior and accessible labels, but must not recolour or resize the capsule, utility slots, dividers, dot, or focus treatment.
+The Button Bar crosses the studio window's bottom edge but remains owned by the dark outer shell. Its `#141414` to black capsule, inset highlights, inactive labels, dividers, and sound/theme controls are invariant across site themes. Sound and theme remain the only two plain icon-only toggle buttons: sound swaps volume-off/volume-on, while theme swaps sun/moon. There is no slider track or separate automatic-theme reset control. The selected route uses a white label and the one shared white dot; tabs never borrow `--studio-window-bg` or add a selected surface. Theme changes may change behavior and accessible labels, but must not recolour or resize the capsule, utility slots, dividers, dot, or focus treatment.
 
 ## Portfolio Gate
 

@@ -3996,10 +3996,6 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   border-radius: 50%;
 }
 
-.button-bar__mobile-theme-reset.shell-tab {
-  display: none;
-}
-
 .button-bar__sound-toggle.shell-tab[data-state='idle']:not(:hover):not(:focus-visible):not(:active) {
   color: var(--button-bar-figma-muted-ink);
   background: transparent;
@@ -4680,21 +4676,6 @@ svg.shell-tab__icon {
 
   .button-bar__theme-toggle.shell-tab {
     display: inline-flex;
-  }
-
-  .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset) .button-bar__sound-toggle {
-    display: none;
-  }
-
-  .button-bar__mobile-theme-reset.shell-tab {
-    display: inline-flex;
-    flex: 0 0 var(--button-bar-mobile-secondary-height);
-    inline-size: var(--button-bar-mobile-secondary-height);
-    block-size: var(--button-bar-mobile-secondary-height);
-    min-width: var(--button-bar-mobile-secondary-height);
-    min-height: var(--button-bar-mobile-secondary-height);
-    padding: 0;
-    border-radius: 50%;
   }
 
   .shell-tab {

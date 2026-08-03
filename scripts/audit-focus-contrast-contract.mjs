@@ -88,16 +88,9 @@ function getFocusContract(routeId, profile) {
     {
       selector: '.button-bar__sound-toggle',
       count: 1,
-      exposedCount: profile.id === 'mobile-reduced' ? 0 : 1,
       minimumPassingEdges: 3,
     },
     { selector: '.button-bar__theme-toggle', count: 1, minimumPassingEdges: 3 },
-    {
-      selector: '.button-bar__mobile-theme-reset',
-      count: 1,
-      exposedCount: profile.id === 'mobile-reduced' ? 1 : 0,
-      minimumPassingEdges: 3,
-    },
   ];
   const routeExpectations = {
     home: [
