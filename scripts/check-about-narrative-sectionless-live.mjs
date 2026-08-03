@@ -40,7 +40,7 @@ const loadedCanonical = loadAboutNarrativeTrackSource(
 );
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
-const currentScriptSource = await read('../docs/research/about-page-direction/ABOUT-NARRATIVE-SCRIPT-v25.md');
+const currentScriptSource = await read('../docs/research/about-page-direction/archive/narrative-explorations/ABOUT-NARRATIVE-SCRIPT-v25.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],

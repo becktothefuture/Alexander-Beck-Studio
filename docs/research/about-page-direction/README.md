@@ -1,12 +1,12 @@
 # About Me narrative direction
 
-This folder contains the current narrative source for the `beck.fyi` About Me page.
+This folder contains the narrative research, editorial direction and review material for the `beck.fyi` About Me page.
 
 ## Current source of truth
 
-`ABOUT-NARRATIVE-SCRIPT-v25.md` is the current editable prose script.
+The canonical content configuration defines the current implemented copy and visual allocation. Do not infer approval from an experimental script or Lab query.
 
-`ABOUT-NARRATIVE-SCRIPT-v25.md` is the approved clean narrative. The canonical content configuration and implementation files define its current visual allocation and global-track story beats.
+The current editorial candidate is `preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md`. It is a review draft written under the guardrails in `supporting/editorial/ABOUT-TONE-OF-VOICE.md`; it is not approved production copy. The matching Lab query is `?copy=current`.
 
 The current production route still uses the legacy section model while the lab migrates to independently authored Camera, World, Text and Interaction tracks. V25 is written for the target continuous journey: World starts are visual anchors, not containers for the narrative.
 
@@ -19,8 +19,8 @@ The production route and narrative lab share the same current experience. The la
 
 ## Supporting material
 
-`supporting/` contains the interviews, questionnaire answers, source matrix, tone guidance and 40-site creative-direction research that informed V4. These are evidence and reference material rather than alternative narrative versions.
+`supporting/` contains the interviews, questionnaire answers, tone guidance and creative-direction research. These are evidence and reference material rather than alternative narrative versions.
 
 ## Archive
 
-`archive/` contains every superseded script, framework, implementation brief, QA record and storyboard asset. V25 is the only active prose script outside the archive.
+`archive/` contains every superseded script, copy option, framework, implementation brief, QA record and storyboard asset. The dated copy archives record the 2 August alternatives and the 3 August spoken-copy convergence.

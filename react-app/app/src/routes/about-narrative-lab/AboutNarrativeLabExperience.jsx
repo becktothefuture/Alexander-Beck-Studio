@@ -4,6 +4,10 @@ import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
+import {
+  createAboutNarrativeCopyVariantDocument,
+  getAboutNarrativeCopyVariant,
+} from './aboutNarrativeCopyVariants.js';
 import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
@@ -731,13 +735,23 @@ export function AboutNarrativeLabExperience({
   routeContentId = 'about-narrative-lab',
   showIndicator = true,
 }) {
+  const copyVariant = useMemo(() => {
+    if (typeof window === 'undefined' || routeContentId !== 'about-narrative-lab') return null;
+    return getAboutNarrativeCopyVariant(new URLSearchParams(window.location.search));
+  }, [routeContentId]);
+  const initialDocument = useMemo(() => (
+    copyVariant
+      ? createAboutNarrativeCopyVariantDocument(ABOUT_NARRATIVE_DOCUMENT, copyVariant.id)
+      : INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT
+  ), [copyVariant]);
   const editorRequested = useMemo(() => {
     if (typeof window === 'undefined' || routeContentId !== 'about-narrative-lab') return false;
+    if (copyVariant) return false;
     const queryRequested = new URLSearchParams(window.location.search).get('edit') === '1';
     const publicPreviewRequested = __CERTIFY__
       && window.location.pathname.startsWith('/editor-preview/');
     return queryRequested || publicPreviewRequested;
-  }, [routeContentId]);
+  }, [copyVariant, routeContentId]);
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
   const indicatorHost = useMemo(() => (
@@ -745,7 +759,7 @@ export function AboutNarrativeLabExperience({
       ? document.getElementById('shell-persistent-route-ui-host')
       : null
   ), [showIndicator]);
-  const [playbackDocument, setPlaybackDocument] = useState(INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT);
+  const [playbackDocument, setPlaybackDocument] = useState(initialDocument);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
@@ -762,13 +776,13 @@ export function AboutNarrativeLabExperience({
     ]).then(([editor, storeModule]) => {
       if (!active) return;
       const store = storeModule.createAboutNarrativePointFieldEditorStore(
-        INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT,
+        initialDocument,
       );
       setEditorStore(store);
       setEditorModule(() => editor.default);
     }).catch((error) => console.error('[About narrative] Could not load the development editor.', error));
     return () => { active = false; };
-  }, [editorRequested]);
+  }, [editorRequested, initialDocument]);
 
   useEffect(() => {
     if (!editorStore) return undefined;
@@ -827,6 +841,7 @@ export function AboutNarrativeLabExperience({
       ref={rootRef}
       className="about-narrative-lab"
       data-route-content={routeContentId}
+      data-about-copy-variant={copyVariant?.id || undefined}
       data-about-layout-profile={runtimePlan?.layoutProfile || 'desktop'}
       data-about-motion-profile={runtimePlan?.motionProfile || 'full'}
       data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}

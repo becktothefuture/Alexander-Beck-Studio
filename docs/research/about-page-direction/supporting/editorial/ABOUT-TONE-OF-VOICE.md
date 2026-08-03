@@ -1,182 +1,341 @@
 # About Me tone of voice
 
-## The voice
+Status: editorial direction for the next script pass
+Revised: 2026-08-02
 
-**A clear point of view, stated plainly, then developed with editorial precision and earned through evidence.**
+## The voice in one sentence
 
-The page should sound like a thoughtful designer explaining how he sees the work—not a manifesto generator, a résumé, a personal-brand campaign or an agency pitch. The editorial passages should carry the restraint, observation and sentence craft of a well-edited magazine profile without imitating a publication or becoming literary for its own sake.
+A warm first-person story, told by a thoughtful designer who is still curious: clear about what he does, honest about how he got here, and optimistic about what design can make understandable and possible.
 
-## Structural anchor: V25; refined editorial register
+## Primary calibration: Alex's rough sample
 
-V25 establishes the approved structural spine and editorial register:
+The closest source for the voice is Alex's own unfinished direction:
 
-1. It begins with a concise service promise, then a short personal observation: “I’ve always been drawn to the complicated bit.”
-2. It makes the territory concrete without over-explaining complexity: “New technology. New behaviours. How to inspire trust.”
-3. It turns biography into evidence: Communication Design, aesthetics, agency craft and product questions explain the present practice.
-4. It gives the six disciplines one visual inventory, then describes the judgement that connects them rather than explaining each one again.
-5. It treats AI as an extension of exploration whose value remains governed by human judgement.
-6. It ends with the kind of unresolved problem Alexander wants to help shape, followed by direct Contact and LinkedIn actions.
+> I've been fascinated by complex problems… that require multidisciplinary thinking. Hi, I'm Alex. I'm a designer by heart and I love what I do. We live in a time where […] I started my career 13 years ago designing […] which led me to expand my horizons into new areas, new technology, purposeful use of AI […] You might be wondering […] I have always been drawn to visual communication and the positive effect it can have on people. More than ever we live in a time where we're surrounded by complexity that we don't understand. That we perhaps at times even fear. But I see the potential for innovation and demystification […]
 
-The refined direction adds up to roughly 15% to the editorial passages, not the spatial titles. Those additional words must introduce a personal lens, an observed detail, a working behaviour or a meaningful consequence. They must not restore sector lists, deliverable inventories, discipline explanations or generic personality claims.
+This is rough source material, not text to correct into a polished biography. Its character matters:
 
-Future About edits should preserve that spine. They can refine wording, pacing and emphasis, but they should not return to abstract claims about complexity, generic “the work” phrasing, casual agency shorthand or personal observations that do not quickly become concrete.
+- the thought develops while Alex is speaking;
+- direct statements such as “I love what I do” are allowed to stand without explanation;
+- phrases such as “perhaps, at times” show reflection rather than certainty;
+- a broad observation returns quickly to Alex's own experience;
+- the tone is thoughtful and slightly formal, but still conversational;
+- the language does not try to turn every idea into a memorable quotation.
 
-## Eight rules
+Keep the grammar clear, but do not translate this voice into generic American portfolio copy. Preserve Alex's natural directness, qualifications and slightly European sentence rhythm where they remain easy to understand.
 
-### 1. Start with a tension worth following
+## The person we should hear
 
-Open with an observation or difficult judgement that creates a question for the page to answer. Introduce “I” only when the story needs origin, action or responsibility.
+The page should sound like Alex telling one person a short story about himself. It should not sound like a résumé, a keynote, an agency pitch, or a magazine profile written about him.
 
-**Use:** “I’ve always been drawn to the complicated bit.”
-**Avoid:** “Digital experiences are often asked to make complicated things feel simple.”
+Alex is:
 
-### 2. State the point directly
+- a designer at heart who genuinely enjoys the work;
+- fascinated by complex problems and the different disciplines needed to understand them;
+- curious before authoritative;
+- experienced, but not self-important;
+- precise without sounding over-composed;
+- optimistic about technology without being naïve about it;
+- interested in the human effect of visual communication, products, and systems;
+- willing to admit uncertainty, lessons, and unfinished questions.
 
-Remove throat-clearing such as “I think”, “I believe”, “for me” and “I have always felt”. If a sentence is the page’s argument, let it stand on its own.
+The reader should feel that Alex is open, reflective, and easy to work with. His confidence comes from specific choices and experience, not from grand claims.
 
-**Use:** “Making something clearer should not make it anonymous.”
-**Avoid:** “I think clarity should do something harder.”
+## The emotional centre
 
-### 3. Prefer concrete tensions to universal claims
+The story is not simply that Alex can work across many disciplines. It is that one interest has kept expanding:
 
-Talk about screens, systems, interactions, brands, constraints and users. Avoid vague statements about “the world”, “people” or “humanity” unless the next line makes them observable.
+> He has always been drawn to how ideas become understandable and meaningful to people. That interest began with visual communication, led him into products and systems, and now shapes how he works with emerging technology and AI.
 
-**Use:** “A perfect grid can still feel lifeless.”
-**Avoid:** “People carry context, contradiction, memory and feeling.”
+Complexity is not an enemy that Alex claims to defeat. It is material to explore carefully. The page can acknowledge that people are surrounded by systems and technology they do not always understand, and may sometimes fear. Alex’s response is hopeful and practical: design can help people find a way in without removing the nuance, character, or humanity that made the subject worth understanding.
 
-### 4. Let proof follow the claim
+## How the voice should feel
 
-After a belief, name the discipline, method, client or decision that makes it credible. Do not interrupt the opening with a biography, but do not leave the page floating in abstraction.
+### Personal before polished
 
-For the current direction, proof means selective career trajectory, project domains, disciplines, tools, AI as working material, and the kind of decision or outcome a team can use. Avoid proving a claim with more claims.
+Use natural first-person language. “Hi, I’m Alex” is welcome. So are small admissions, changes of mind, and sentences that show why something mattered to him.
 
-### 5. Use plain language with visual rhythm
+Do not polish away all personality. A sentence may be reflective or slightly informal if it still reads clearly.
 
-Short statements can be spatial and emphatic. Editorial prose should remain natural but more composed: vary sentence length, let one observation lead to one implication, and use a short sentence to reset the cadence when needed. Use repetition only when the animation gives it a reason.
+### Conversational, not casual
 
-Sophistication comes from precision and rhythm, not from longer words. Prefer “Close attention comes first” to inflated language about rigour, mastery or strategic depth.
+Write as if Alex is speaking to one interested person. Use contractions. Mix a longer reflective sentence with a short sentence that lets the thought land.
 
-### 6. Be confident without closing the subject
+The copy may speak to the reader once, or ask one genuine question, if it helps the conversation. Do not turn this into a recurring device.
 
-Describe what the work tries to do and how Alexander tests it. End with curiosity and direction, not mastery or self-congratulation.
+### Curious before certain
 
-Confidence should come from sentence shape: judgement → consequence → evidence. Avoid announcing taste or superiority.
+Alex can say “I think” or “I believe” when the phrase shows honest ownership or uncertainty. Do not remove those phrases only to make him sound more authoritative.
 
-### 7. Distinguish warmth from casual shorthand
+“I’ve always been drawn to…” and “I’ve been fascinated by…” are also valid when the next words explain what, why, or where that interest led.
 
-One conversational phrase can make the voice human. “I’ve always been drawn to the complicated bit” works because it is brief, memorable and immediately followed by concrete territory. It is a deliberate tonal counterpoint, not permission for the rest of the page to become chatty.
+### Affectionate about design
 
-Avoid compressed agency language such as “I go deep”, “dive into”, “move fast”, “move the needle” or “get under the skin of the problem”. Replace it with an observable professional behaviour.
+It is useful to say that Alex is a designer at heart and loves what he does. This warmth should be supported by the story that follows. Avoid generic claims about “passion” or “changing the world.”
 
-**Use:** “Close attention comes first. I identify the organising idea, then give it a form the team can examine, question, test and develop.”
+### Modestly optimistic
 
-**Avoid:** “I go deep into the problem and make something tangible.”
+The page can name uncertainty, fear, or difficulty. It should then show what Alex finds promising: a way to understand, demystify, invent, or make something new.
 
-### 8. Add intimacy through relevance
+Do not claim that design solves every complex problem. Show the contribution it can make.
 
-Personal flavour should explain the practice rather than decorate it. Language is relevant because it shaped Alexander’s understanding of meaning and communication. A prototype is relevant when it changes a conversation. Music, objects or side projects belong only when a specific detail reveals a working principle.
+## The storytelling voice
 
-Do not add a paragraph of hobbies or self-describing adjectives. One consequential observation is more memorable than a list of interests.
+Write one continuous personal story before splitting it into page sections. It should have a recognisable direction, but it should not make the career look more planned or causally perfect than it was.
 
-## Tone characteristics
+The story should move by cause and consequence:
 
-| Characteristic | Meaning in practice |
-| --- | --- |
-| Direct | The sentence begins with the point. |
-| Observant | Claims describe something readers can recognise. |
-| Specific | Disciplines, methods and clients provide evidence. |
-| Warm | The language respects the reader and leaves room for curiosity. |
-| Precise | One idea per sentence; no inflated adjectives. |
-| Composed | The prose has deliberate cadence without sounding rehearsed. |
-| Sophisticated | Judgement appears through distinctions and consequences, not status language. |
-| Practical | Abstract ambition resolves into form, behaviour, trust and use. |
+1. What Alex is fascinated by now.
+2. Who he is and what design means to him.
+3. Where that interest began.
+4. Which changes of medium, place or responsibility genuinely mattered.
+5. What those changes taught him about complexity, collaboration, and character.
+6. Why emerging technology and purposeful AI now interest him.
+7. What kind of question he hopes to explore next.
 
-## Sentence patterns
+This is a selective story, not a complete chronology. Use no more than two or three career moments. Include the accidents, uncertain choices or gradual changes where those are more truthful than a neat progression. Client logos and project impressions already provide wider proof; the prose does not need to list every employer, sector, medium, or capability.
 
-Use these patterns repeatedly without making them formulaic:
+## Titles are part of the voice
 
-- **Judgement → practical consequence:** “I’ve always been drawn to the complicated bit. New technology. New behaviours. How to inspire trust.”
-- **Principle → consequence:** “Structure makes decisions legible. Character gives people a reason to care.”
-- **Origin → transferable lesson:** “Learning composition, form and shape taught me that small decisions can change the whole experience.”
-- **Personal lens → professional judgement:** “Language taught me that meaning shifts with what is said and how it is carried.”
-- **Claim → proof:** “My work moves between product design, art direction and creative engineering. That has included…”
-- **Method → shared examination:** “I identify the organising idea, then give it a form the team can examine, question, test and develop.”
-- **Capability → editorial judgement:** “AI extends what I can explore and make. Its value depends on human judgement and recognising when the result has become generic.”
+Most full-screen titles are not chapter headings. They are spoken sentence beats inside the same monologue.
 
-## Words to favour
+A linked pair or trio may divide one sentence across the scroll. An ellipsis can show that the thought continues:
 
-clear, structure, character, respond, rhythm, test, build, use, attention, movement, curiosity, constraint, system, interaction, implication, judgement, examine, cohere
+> I’ve always been fascinated by problems that refuse to stay in one discipline…
+>
+> …because the interesting part is often found between them.
 
-Also favour the established vocabulary: form, behaviour, trust, aesthetics, interplay, organising idea, useful, understand.
+This is a structural example, not approved final copy.
 
-## Words and habits to avoid
+Rules for travelling titles:
 
-### Language and sentence habits
+- Reassemble the fragments on one line during editing. The complete sentence must still be grammatical and natural.
+- Let each fragment carry enough meaning to justify a full-screen moment.
+- Use an ellipsis only when a thought genuinely continues.
+- Use no more than one linked title sequence in a chapter.
+- Avoid a run of two-to-four-word dramatic headings such as “Possibility.”, “Stay curious.”, or “The future.”
+- Keep concise bookends, such as “About Me” and “Let’s talk.”, when they serve a clear interface function.
 
-- “I think”, “I believe”, “for me” before a clear claim;
-- vague universals such as “the world is…”;
-- context, contradiction, nuance and humanity clustered as abstract nouns;
-- world-class, high-impact, innovative, cutting-edge or unique;
-- overly polished slogan chains;
-- “the work” when the sentence needs to name the actual project, product, service, experience or decision;
-- “drawn to”, “I enjoy” and “I like” when they weaken the professional claim or stay abstract;
-- casual agency shorthand such as “I go deep”, “dive in”, “move fast”, “move the needle” or “get under the skin”;
-- generic productivity claims such as “AI helps me work faster” when the sentence should explain what AI extends and where judgement remains necessary;
-- vague conversational endings such as “not neatly defined yet” or “getting in the way” when the actual condition or consequence can be named;
-- mixed idioms or translated constructions such as “never losing judgement out of sight”, “questions revolving users” or “the answer to resolve complexity”;
-- using ellipses, fragments or spatial formatting to conceal weak grammar rather than create intentional rhythm;
-- vague transitional scaffolding such as “then it starts to”, “something begins to” or “in this way” when the actual change can be named;
-- redundant pairs whose meanings overlap, such as “visceral and tangible”, unless each word contributes a distinct idea;
-- replacing a precise verb with an abstract noun phrase, such as “innovation capability” instead of explaining what AI makes possible;
-- announcing taste, sophistication, humanity or strategic depth instead of allowing the decisions and distinctions to demonstrate them;
-- repeatedly using complexity, trust, idea, work, make or direction within a short passage when the repetition does not carry structural meaning;
-- sophistication performed through long words, stacked abstractions or ornate metaphors;
-- borrowed editorial mannerisms, conspicuous publication mimicry or sentences that sound written to resemble a named magazine rather than Alexander;
-- metaphors that have no visible counterpart in the experience.
+The animation supplies scale and drama. The words do not need to perform that job by themselves.
 
-### Structural habits
+## Sentence rhythm
 
-- stacking capability, sector, medium, tool and deliverable inventories in the same narrative;
-- explaining the six discipline labels again after the reader has already seen them;
-- repeating the same proposition in successive forms—for example, naming the disciplines, explaining each one, listing how they interact, then listing their outputs;
-- relying on repeated triads in every paragraph. A three-part cadence is effective once; used continuously, it becomes a catalogue;
-- making every sentence perform the same claim → list → conclusion pattern;
-- allowing the final third to become a summary of everything already said instead of advancing towards a specific working relationship and invitation;
-- using client logos as a substitute for contribution, or adding sector names merely to enlarge the apparent range;
-- turning the About page into a miniature CV, service menu, portfolio index or chronology;
-- placing production notes, section numbers, delivery labels or editorial commentary inside the clean reader-facing script;
-- leaving generic placeholders such as “[CTAs]” when the intended actions are already known. Name Contact and LinkedIn directly.
+- Prefer clear spoken English and contractions.
+- Put one main idea in each sentence.
+- Mix reflective sentences with short resets.
+- Use concrete verbs: make, test, notice, shape, explain, learn, build.
+- Use abstract nouns only when a concrete example follows.
+- Read every passage aloud. If it sounds written for a case study, simplify it.
+- Do not make every paragraph follow the same claim–list–conclusion pattern.
 
-### Evidence and identity habits
+## Anti-synthetic guardrails
 
-- presenting a brief or marginal experience as a defining credential because it makes the biography sound more complete. Two semesters of Computer Science do not belong in the public narrative;
-- treating polished wording as evidence. Client contribution, outcomes and enduring use still require verification;
-- claiming responsibility for a team outcome without separating Alexander’s contribution from the wider team, agency or implementation context;
-- adding a project anecdote because it is vivid when it does not support the page’s central argument;
-- using hobbies as personality decoration. Music, objects, games or side projects need a specific causal connection to the practice;
-- converting a preference into a universal philosophy. “The complicated bit” describes Alexander’s professional attention; it is not a claim that all design should preserve complexity;
-- compressing away the personally meaningful aesthetics and interplay material merely to reach a lower word count;
-- implying certainty, infallibility or solitary authorship through phrases such as “the right solution” or “my vision” when the practice is collaborative and investigative.
+“Personal before polished” is not enough on its own. A draft can use first-person language and still feel generated. Apply these rules mechanically.
 
-### Editing habits
+### Begin with source material, not a theme
 
-- solving repetition with synonyms while leaving the duplicated narrative function intact;
-- expanding every editorial paragraph evenly. Spend additional words only where they add a personal lens, working behaviour, consequence or evidence;
-- changing an approved phrase simply because an alternative sounds more polished. Preserve the accepted intention unless the phrase causes a real problem in grammar, clarity, tone or evidence;
-- reverting Alexander’s direct rewrites to earlier copy without identifying what the earlier wording restores;
-- confusing tighter writing with universally shorter writing. Protect distinctive material and remove explanatory duplication first;
-- changing spatial titles during an editorial-only expansion unless a title has a clear grammatical or tonal defect and the change is explicitly identified;
-- treating one successful conversational phrase as a general licence for colloquial prose;
-- making the voice more formal after feedback asks for sophistication. The target is composed and precise, not institutional or distant.
+Each paragraph must contain at least one of these:
 
-## Publishing check
+- a phrase Alex has used himself;
+- a confirmed career fact;
+- a named place, employer, project or everyday interest;
+- an observable working habit;
+- an honest uncertainty or opinion Alex can defend.
 
-- Does the opening create a recognisable tension or promise without beginning the biography?
-- Does “I” arrive only when it adds origin, action or accountability?
-- Does each additional sentence reveal a personal lens, working behaviour or consequence rather than another capability?
-- Is the conversational language deliberate and scarce?
-- Could any phrase be mistaken for agency shorthand or generic AI copy?
-- Can each abstract claim be seen in the animation or supported by evidence?
-- Does every client or discipline name prove something rather than decorate the page?
-- Does the editorial prose feel composed and sophisticated when read aloud, without sounding formal or self-important?
-- Would the copy still sound natural if read aloud without the visuals?
+Do not write a paragraph only to connect abstract themes. If its meaning could survive unchanged on another multidisciplinary designer's website, remove it.
+
+### Let the thought remain slightly uneven
+
+Spoken language does not resolve every idea into a perfectly balanced sentence. Do not make all paragraphs the same length or finish each one with a lesson.
+
+Avoid or severely limit:
+
+- “not X, but Y” and “not only X, but also Y” constructions;
+- groups of three abstract nouns used for rhetorical effect;
+- mirrored clauses with identical rhythm;
+- a sequence of sentences in which every career stage “taught,” “opened,” or “led” neatly to the next;
+- three-part climaxes that sound written for a speech;
+- aphorisms that could be pulled out as inspirational quotations.
+
+One balanced contrast may appear in the whole page when it is the clearest way to express a real distinction. It must not become the default rhythm.
+
+### Keep people as the grammatical subject
+
+Prefer “I became interested in…” or “the team needed…” over giving abstract ideas a personality.
+
+Use with caution:
+
+- “the problem asked”;
+- “the work wanted”;
+- “the question followed”;
+- “complexity revealed”;
+- “the practice widened.”
+
+These constructions make the prose sound composed from themes instead of remembered experience.
+
+### Use ordinary punctuation
+
+Prefer full stops, commas and occasional parentheses. Do not use em dashes in the About script. Use an ellipsis only for a genuine travelling-title continuation. Avoid semicolons unless Alex would naturally pause that way when speaking.
+
+### Allow qualification
+
+Words such as “perhaps,” “I think,” “I suppose,” “quite,” “at times” and “I’m not entirely sure” can remain when they carry real meaning. Do not delete them to make the voice more decisive. Do not scatter them artificially to perform humility.
+
+### Do not polish distinctive wording into portfolio language
+
+Prefer a direct line such as “I love what I do” over “I remain energised by the possibilities of design.” Prefer “I started my career 13 years ago” over “my practice has evolved over more than a decade.”
+
+The following phrases need a concrete reason to survive and will usually be removed:
+
+- “the human shape of complexity”;
+- “find a way through complexity”;
+- “where ideas and technology meet”;
+- “make the question tangible”;
+- “what the problem asks of me”;
+- “the work widened”;
+- “carry enough character”;
+- “an unfamiliar problem”;
+- “make something new together”;
+- “without pretending the complexity has disappeared.”
+
+### Run the anti-AI read before approval
+
+1. **Swap-name test:** Could “Alex” be replaced with another designer's name without changing the paragraph? If yes, rewrite it from evidence.
+2. **Say-it test:** Would Alex comfortably say the sentence in a conversation without rehearsing it? If not, simplify it.
+3. **Symmetry test:** Mark every contrast, pair and set of three. Remove most of them.
+4. **Abstraction test:** Circle words such as complexity, clarity, character, trust, purpose and judgement. Keep only the ones made specific nearby.
+5. **Lesson test:** Remove the final sentence of each paragraph temporarily. If every paragraph loses a polished moral, the structure is too engineered.
+6. **Source test:** Trace every career fact, feeling and claimed lesson to Alex's sample, an interview answer or confirmed evidence.
+7. **Animation test:** Read the titles and prose aloud in their rendered order. The animation may provide drama; the writing should still sound like a person.
+
+## Closing direction
+
+The last three travelling titles should complete the page’s argument rather than summarise Alex’s qualities. The disciplines are not a collection of credentials. Their value is that they change one another as the work develops, allowing the combination to become something of its own.
+
+Keep the ending:
+
+- about creating something new;
+- centred on the interaction between disciplines, not collaboration or other people;
+- modest about Alex;
+- short enough to remain one spoken thought across three screens.
+
+The finale title should continue this thought with “Let’s make something new.” Do not return to a generic “Get in Touch” heading after the narrative has resolved.
+
+## Evidence and specificity
+
+Lead with the human reason or realisation. Add proof after it.
+
+Good proof explains a consequence:
+
+- visual communication opened a wider interest in how different media carry meaning;
+- working with developers changed how Alex thought about interfaces;
+- work involving identity and trust showed that interaction and appearance cannot always be separated;
+- an implementation lesson changed how closely Alex stays involved when work is built;
+- a persistent frustration with the iOS keyboard became a side project.
+
+Use only facts that the project evidence supports. Mark any date, employer spelling, contribution, public outcome, or current-use claim that still needs verification. Do not turn an attractive phrase from old copy into a fact.
+
+## Writing about technology and AI
+
+AI belongs in the story as one part of a broader interest in emerging technology and difficult human questions.
+
+Say what Alex uses it to do or what it helps him examine. Keep human judgement, authorship, and purpose visible. The most useful angle is not that AI is new; it is that its growth makes clarity, character, trust, and responsible choices more important.
+
+Avoid:
+
+- “cutting-edge”;
+- “AI-powered” without a concrete meaning;
+- treating speed as the only value;
+- claiming that AI replaces thinking or craft;
+- predicting the future with certainty.
+
+## Language permissions
+
+These phrases are allowed when they earn their place:
+
+- “I think…” or “I believe…” for a genuine point of view;
+- “I’ve always been drawn to…” when the reason follows;
+- “I’ve been fascinated by…” when the fascination drives the story;
+- “We live in a time…” once, if it quickly names the real shared condition and returns to Alex’s response;
+- one direct reader aside, such as “You might be wondering…”, if it answers a question the page has actually created.
+
+Do not repeat these devices. They should make the page feel spoken, not mannered.
+
+## What to avoid
+
+- A role stack as a personality: “designer, technologist, strategist, engineer…”
+- A chronological CV.
+- A list of clients, sectors, software, or disciplines in prose.
+- Agency language such as “I deliver innovative end-to-end solutions.”
+- Manifesto language that speaks for everyone.
+- Unqualified superlatives or claims of uniqueness.
+- Abstract noun stacks such as “multidisciplinary innovation at the intersection of…”
+- False certainty about complex social or technical questions.
+- Humility as a scripted pose, especially a closing claim about having “plenty to learn.”
+- A sequence of dramatic micro-headings.
+- AI hype.
+
+## Calibration examples
+
+### Too corporate
+
+> I work across product design, experience design, art direction, motion, creative engineering, and parametric systems.
+
+Warmer direction:
+
+> I started in visual communication. Over time, the work became more digital and I began working on products, systems, motion and code.
+
+### Too self-important
+
+> I demystify complexity and turn it into transformative experiences.
+
+Warmer direction:
+
+> I become suspicious when simplifying something starts to remove the part that made it useful or interesting.
+
+### Too factual
+
+> I moved from agency work to Denaline, then Yoti, then MRM.
+
+Warmer direction:
+
+> At Denaline I started working more closely with developers. I began paying as much attention to how an interface behaved as to how it looked.
+
+### Too dramatic for a travelling title
+
+> Possibility.
+
+Warmer direction:
+
+> …and that is usually where I begin to see what else might be possible.
+
+### Too much AI hype
+
+> I use AI to accelerate innovation and stay at the cutting edge.
+
+Warmer direction:
+
+> I use AI most days to explore ideas and make prototypes. It is useful, although I still decide what the work is for and whether the result is good enough.
+
+All examples show direction only. They are not approved page copy.
+
+## Final editorial test
+
+Before a script moves into the page, check that:
+
+- it sounds like Alex speaking to one person;
+- it says what he does without turning him into a list of roles;
+- it includes an emotional reason for choosing design;
+- the career turns form one causal story;
+- the philosophy grows from experience instead of appearing as a slogan;
+- complexity is treated with curiosity and care;
+- AI is purposeful, specific, and subordinate to human judgement;
+- titles work as sentence beats and reassemble cleanly;
+- the ending shows disciplines changing one another to make something new;
+- the finale continues that thought rather than reverting to a generic contact heading;
+- every public fact is confirmed or marked for verification;
+- the whole script works as plain text before animation is added;
+- it contains no em dashes and no repeated rhetorical formula;
+- at least one sentence retains Alex's direct, unpolished wording;
+- no paragraph could move unchanged to another designer's About page;
+- the final read passes the swap-name, say-it, symmetry, abstraction, lesson and source tests.

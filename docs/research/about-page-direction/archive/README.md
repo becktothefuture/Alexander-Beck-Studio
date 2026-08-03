@@ -2,7 +2,15 @@
 
 These files are retained as historical working material. They are not current instructions for writing, storyboarding or implementing the About Me page.
 
-The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v25.md`. Current visual allocation lives in the canonical content configuration and implementation files. Interviews, source material and tone guidance remain in `../supporting/`.
+Current visual allocation lives in the canonical content configuration and implementation files. Interviews, source material and tone guidance remain in `../supporting/`. The current editorial candidate, when one exists, remains in `../preparation/` until it is reviewed and approved.
+
+## Copy options from 2 August 2026
+
+`copy-options-2026-08-02/` contains the twelve prose, skimmable, purpose-led and literary-role alternatives produced during the current critique cycle. They were archived after the writing was judged too composed and AI-written. Its README maps every version and the retained Lab comparison queries.
+
+## Copy convergence from 3 August 2026
+
+`copy-convergence-2026-08-03/` contains the three spoken drafts and the late closing-title exploration. It records the shift from fear to curiosity, the rejection of self-important and people-led endings, and the selected transformative-disciplinary direction.
 
 ## Narrative explorations
 
@@ -18,7 +26,7 @@ The active prose source is `../ABOUT-NARRATIVE-SCRIPT-v25.md`. Current visual al
 - the original narrative-lab implementation brief;
 - the V2 through V23 scripts and storyboards, plus the V3 story-led draft.
 
-These files contain useful ideas and phrases, but their architecture and copy predate the active V25 prose.
+These files contain useful ideas and phrases, but their architecture and copy are superseded.
 
 The related [FigJam narrative map](https://www.figma.com/board/uVSfMQrdagYNTMFvIIDrsq) should also be treated as a historical discussion board.
 
