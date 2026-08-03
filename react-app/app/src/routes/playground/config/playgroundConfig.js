@@ -1,22 +1,23 @@
 export const PLAYGROUND_CONFIG_EVENT = 'abs:playground-config';
 
 export const PLAYGROUND_LAYOUT_PRESETS = Object.freeze([
+  'salon',
   'balanced',
   'loose',
   'clustered',
 ]);
 
 export const DEFAULT_PLAYGROUND_CONFIG = Object.freeze({
-  layoutPreset: 'balanced',
+  layoutPreset: 'salon',
   layoutSeed: 271828,
   gridSpacingPx: 24,
   minimumWorldColumns: 80,
   minimumWorldRows: 56,
   worldPaddingCells: 1,
-  projectSpacing: 1.5,
-  itemGapCells: 3,
-  itemScale: 1.5,
-  sizeVariation: 0.24,
+  projectSpacing: 1,
+  itemGapCells: 1,
+  itemScale: 1.35,
+  sizeVariation: 0.5,
   labelGapPx: 8,
   dotRadiusPx: 2,
   dotOpacity: 0.16,

@@ -3422,7 +3422,7 @@ button.abs-meta-btn,
     52px
   );
   position: absolute;
-  top: 50%;
+  top: var(--home-hero-title-anchor-y, 50%);
   left: calc(50% + var(--home-hero-title-optical-offset-x, 0px));
   /* Slightly above geometric center: −4vh + existing downward bias clamp */
   transform:
@@ -3462,9 +3462,13 @@ button.abs-meta-btn,
 
 html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-scale: var(--route-bookend-title-scale);
+  --home-hero-title-size-scale: 0.9;
   --home-hero-title-font-size: calc(
-    var(--route-entry-title-size) * var(--home-hero-title-scale)
+    var(--route-entry-title-size) *
+    var(--home-hero-title-scale) *
+    var(--home-hero-title-size-scale)
   );
+  --home-hero-title-anchor-y: 55%;
   --home-hero-title-offset-y: clamp(-36px, -4svh, -16px);
   --hero-title-line-height: calc(
     var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1)

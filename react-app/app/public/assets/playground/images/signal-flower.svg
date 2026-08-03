@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-labelledby="signal-flower-title signal-flower-desc">
+  <title id="signal-flower-title">Signal Flower</title>
+  <desc id="signal-flower-desc">Six rounded coloured forms radiate from a black centre on a warm square field.</desc>
+  <defs>
+    <linearGradient id="signal-flower-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff9e9"/>
+      <stop offset="1" stop-color="#f2e5c8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="url(#signal-flower-bg)"/>
+  <ellipse cx="500" cy="248" rx="118" ry="210" fill="#6f55ca"/>
+  <ellipse cx="500" cy="752" rx="118" ry="210" fill="#64a49b"/>
+  <ellipse cx="284" cy="374" rx="118" ry="210" fill="#ff765a" transform="rotate(-60 284 374)"/>
+  <ellipse cx="716" cy="374" rx="118" ry="210" fill="#ffd750" transform="rotate(60 716 374)"/>
+  <ellipse cx="284" cy="626" rx="118" ry="210" fill="#5c9edf" transform="rotate(60 284 626)"/>
+  <ellipse cx="716" cy="626" rx="118" ry="210" fill="#ef5a76" transform="rotate(-60 716 626)"/>
+  <circle cx="500" cy="500" r="132" fill="#171717"/>
+</svg>

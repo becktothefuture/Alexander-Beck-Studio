@@ -1,4 +1,4 @@
-const PLACEMENT_PRESETS = new Set(['balanced', 'loose', 'clustered']);
+const PLACEMENT_PRESETS = new Set(['salon', 'balanced', 'loose', 'clustered']);
 const MAX_DIAGNOSTIC_ISSUES = 12;
 const DEFAULT_MAX_CANDIDATES_PER_PASS = 4096;
 const DEFAULT_MAX_PASSES = 4;
@@ -268,8 +268,25 @@ function rotateQuarterTurns(x, y, turns, target) {
   return target;
 }
 
+function quantizeSalonCoordinate(value) {
+  return Math.round(value * 4) / 4;
+}
+
+function radicalInverse(index, base) {
+  let value = Math.max(0, Math.floor(index));
+  let fraction = 1 / base;
+  let result = 0;
+  while (value > 0) {
+    result += (value % base) * fraction;
+    value = Math.floor(value / base);
+    fraction /= base;
+  }
+  return result;
+}
+
 /**
- * Generates one deterministic integer-cell candidate. The caller owns target.
+ * Generates one deterministic cell candidate. Salon uses quarter-cells; the
+ * other presets use integer cells. The caller owns target.
  * Later passes expand the same stable search rather than using unbounded retries.
  */
 export function writePlacementCandidate({
@@ -281,6 +298,9 @@ export function writePlacementCandidate({
   passIndex = 0,
   footprintWidthCells = 1,
   footprintHeightCells = 1,
+  salonColumns = 128,
+  salonRows = 96,
+  salonEdgeInsetCells = 2,
 }, target) {
   if (!target || typeof target !== 'object') {
     throw new TypeError('A target object is required.');
@@ -293,6 +313,28 @@ export function writePlacementCandidate({
   const turns = phaseHash & 3;
   const reflected = ((phaseHash >>> 2) & 1) === 1;
   const scratch = target;
+
+  if (preset === 'salon') {
+    const columns = Math.max(1, Number(salonColumns) * passScale);
+    const rows = Math.max(1, Number(salonRows) * passScale);
+    const edgeInset = Math.max(0, Number(salonEdgeInsetCells));
+    const minimumX = (-columns / 2) + edgeInset;
+    const minimumY = (-rows / 2) + edgeInset;
+    const maximumX = (columns / 2) - edgeInset - footprintWidthCells;
+    const maximumY = (rows / 2) - edgeInset - footprintHeightCells;
+    const phaseX = placementRandomUnit(seed, itemId, 0x5a10);
+    const phaseY = placementRandomUnit(seed, itemId, 0x7319);
+    const sequenceIndex = candidateIndex + 1;
+    const unitX = (radicalInverse(sequenceIndex, 2) + phaseX) % 1;
+    const unitY = (radicalInverse(sequenceIndex, 3) + phaseY) % 1;
+    scratch.x = quantizeSalonCoordinate(
+      minimumX + (Math.max(0, maximumX - minimumX) * unitX),
+    );
+    scratch.y = quantizeSalonCoordinate(
+      minimumY + (Math.max(0, maximumY - minimumY) * unitY),
+    );
+    return scratch;
+  }
 
   if (preset === 'clustered') {
     const clusterCount = 5;
@@ -436,6 +478,12 @@ export function placePlaygroundItems(items, options = {}) {
     options.maxCandidatesPerPass ?? DEFAULT_MAX_CANDIDATES_PER_PASS,
   ));
   const maxPasses = Math.floor(Number(options.maxPasses ?? DEFAULT_MAX_PASSES));
+  const salonColumns = Math.max(128, Math.ceil(Number(options.minimumWorldColumns ?? 80)));
+  const salonRows = Math.max(96, Math.ceil(Number(options.minimumWorldRows ?? 56)));
+  const salonEdgeInsetCells = Math.max(
+    0,
+    Math.ceil(Number(options.worldPaddingCells ?? 1)) + gapCells,
+  );
   const placements = [];
   const basePlacements = [];
   const candidate = { x: 0, y: 0 };
@@ -460,6 +508,9 @@ export function placePlaygroundItems(items, options = {}) {
           passIndex,
           footprintWidthCells: footprint.footprintWidthCells,
           footprintHeightCells: footprint.footprintHeightCells,
+          salonColumns,
+          salonRows,
+          salonEdgeInsetCells,
         }, candidate);
         const bounds = createCandidateBounds(candidate.x, candidate.y, footprint);
         if (!collides(bounds, basePlacements, titleSafeArea, gapCells)) {

@@ -68,7 +68,7 @@ function buildWorld(items, options = PLACEMENT_OPTIONS) {
   return { placed, world };
 }
 
-test('canonical content validates the exact catalogue and accepts project 21 without code changes', async () => {
+test('canonical content validates the exact catalogue and accepts project 31 without code changes', async () => {
   const source = await readContent();
   const content = validatePlaygroundContent(source);
   const typeCounts = content.items.reduce((counts, item) => {
@@ -76,15 +76,15 @@ test('canonical content validates the exact catalogue and accepts project 21 wit
     return counts;
   }, { image: 0, video: 0, code: 0 });
 
-  assert.equal(content.items.length, 20);
-  assert.deepEqual(typeCounts, { image: 8, video: 6, code: 6 });
+  assert.equal(content.items.length, 30);
+  assert.deepEqual(typeCounts, { image: 18, video: 6, code: 6 });
 
-  const withProject21 = validatePlaygroundContent({
+  const withProject31 = validatePlaygroundContent({
     ...source,
-    items: [...source.items, makeAddedItem(source.items[0], 21)],
+    items: [...source.items, makeAddedItem(source.items[0], 31)],
   });
-  assert.equal(withProject21.items.length, 21);
-  assert.equal(withProject21.items.at(-1).id, 'temporary-project-21');
+  assert.equal(withProject31.items.length, 31);
+  assert.equal(withProject31.items.at(-1).id, 'temporary-project-31');
 });
 
 test('content validation isolates duplicate IDs, unsafe assets, and invalid code source fields', async () => {
@@ -115,7 +115,7 @@ test('runtime content validation omits one invalid item without hiding the valid
   invalid.items[7].poster = '../outside-playground.png';
 
   const content = validatePlaygroundContentForRuntime(invalid);
-  assert.equal(content.items.length, 19);
+  assert.equal(content.items.length, 29);
   assert.equal(content.items.some((item) => item.id === source.items[7].id), false);
   assert.ok(content.validationIssues.some((issue) => issue.includes('items[7].poster')));
   assert.throws(() => validatePlaygroundContent(invalid), PlaygroundContentValidationError);
@@ -124,19 +124,19 @@ test('runtime content validation omits one invalid item without hiding the valid
 test('world growth is append-stable, content-sized, repeatable, and has no catalogue limit', async () => {
   const source = await readContent();
   const baseItems = source.items;
-  const project21 = makeAddedItem(source.items[0], 21);
+  const project31 = makeAddedItem(source.items[0], 31);
   const base = buildWorld(baseItems);
-  const appended = buildWorld([...baseItems, project21]);
+  const appended = buildWorld([...baseItems, project31]);
 
   assert.ok(base.world.widthPx > 2000);
   assert.ok(base.world.heightPx > 1400);
   assert.ok(base.world.columns >= 80);
   assert.ok(base.world.rows >= 56);
-  assert.deepEqual(appended.placed.placements.slice(0, 20), base.placed.placements);
-  assert.deepEqual(buildWorld([...baseItems, project21]), appended);
+  assert.deepEqual(appended.placed.placements.slice(0, baseItems.length), base.placed.placements);
+  assert.deepEqual(buildWorld([...baseItems, project31]), appended);
 
   const expandedItems = [...baseItems];
-  for (let placementOrder = 21; placementOrder <= 80; placementOrder += 1) {
+  for (let placementOrder = 31; placementOrder <= 90; placementOrder += 1) {
     expandedItems.push(makeAddedItem(
       source.items[placementOrder % source.items.length],
       placementOrder,
@@ -147,7 +147,7 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(expanded.world.columns > base.world.columns);
   assert.ok(expanded.world.rows > base.world.rows);
   assert.ok(expanded.world.occupiedCellArea > base.world.occupiedCellArea);
-  assert.deepEqual(expanded.placed.placements.slice(0, 20), base.placed.placements);
+  assert.deepEqual(expanded.placed.placements.slice(0, baseItems.length), base.placed.placements);
   assert.deepEqual(expanded.placed.titleSafeArea, base.placed.titleSafeArea);
 
   const seamCoverage = calculateNeighbouringCopyCoverage({
@@ -169,7 +169,7 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(offsets.some(([, y]) => Math.abs(y) === expanded.world.heightPx));
 });
 
-test('larger item spans expand the calculated world and a seed change regenerates deterministically', async () => {
+test('larger item spans expand their footprint and a seed change regenerates deterministically', async () => {
   const source = await readContent();
   const base = buildWorld(source.items);
   const largerItems = source.items.map((item, index) => (
@@ -178,13 +178,9 @@ test('larger item spans expand the calculated world and a seed change regenerate
       : item
   ));
   const larger = buildWorld(largerItems);
-  assert.ok(
-    larger.world.columns > base.world.columns
-      || larger.world.rows > base.world.rows,
-  );
-  assert.ok(
-    larger.world.columns * larger.world.rows > base.world.columns * base.world.rows,
-  );
+  assert.ok(larger.world.largestItemWidthPx > base.world.largestItemWidthPx);
+  assert.ok(larger.world.largestItemHeightPx > base.world.largestItemHeightPx);
+  assert.ok(larger.world.occupiedCellArea > base.world.occupiedCellArea);
 
   const changedSeedOptions = { ...PLACEMENT_OPTIONS, layoutSeed: PLACEMENT_OPTIONS.layoutSeed + 1 };
   const changedA = buildWorld(source.items, changedSeedOptions);

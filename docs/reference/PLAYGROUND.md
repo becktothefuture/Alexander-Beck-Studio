@@ -4,7 +4,7 @@
 
 Lab is the fourth primary production route, immediately before Contact. Its canonical entry remains `/playground.html`; `/playground` is the extensionless alias. The internal route ID and source namespace remain `playground` for compatibility. It renders inside the persistent `StudioShell`, and its Button Bar label is **Lab**.
 
-The route is a two-axis, dot-aligned catalogue. Visitors can pan with pointer drag, touch, wheel, trackpad, arrow keys while the viewport is focused, or WASD. `Home` recentres the title. Tab enters one roving project focus, then the arrow keys move to the nearest project in that direction and centre its complete media-and-caption footprint. The logical camera is unbounded, while repeated visual copies make the finite authored world feel continuous. Wheel input eases toward its destination and drag release uses filtered velocity for a smoother stop. Drag work is frame-coalesced and bounded on high-refresh displays so the camera retains a stable 60fps-or-better cadence without running the complete render path at 120–240Hz. The Canvas dot field and the project layer commit the same camera sample before each paint, so neither layer trails the other. On narrower usable widths, one derived responsive profile modestly scales the shared world, tightens project placement, maintains a 12px minimum rendered caption size, reduces dot radius, and compensates input so touch remains direct; it never creates a second saved mobile configuration. The atmosphere compositor is renderer-coupled and sleeps when the field is idle. Every dot is a true circle; the Canvas backing store calibrates both CSS axes independently to preserve that shape at fractional sizes and high pixel densities. The resting field uses low-opacity grey. A mouse pointer wakes nearby dots immediately into randomly distributed colours from the current shared ball palette. The influence field has a stable organic boundary rather than a perfect circle, and its strength eases continuously from the pointer centre to each locally varied outer edge. Once a dot is lit, later pointer samples can only increase its strength; mouse movement never dims it. Coalesced pointer positions are joined by one bounded swept activation, so fast movement retains a continuous trail instead of isolated islands. Each released dot keeps its strongest sampled colour through the hold, then fades and returns to grey. The wake renderer coalesces pointer work and sleeps after a stationary hover has settled and has no fading trail. Projects stay fixed under pointer hover. Fine-pointer devices hide the native cursor inside the Lab route so only the shared custom lens is visible; the detached parameter panel retains its native editor cursor. The route does not add application zoom and does not intercept Ctrl-wheel or Command-wheel browser zoom.
+The route is a two-axis spatial catalogue arranged as an eclectic Petersburger or salon hanging. Visitors can pan with pointer drag, touch, wheel, trackpad, arrow keys while the viewport is focused, or WASD. Panning becomes active when the camera is mounted, including while the title entrance is still playing. `Home` recentres the title. Tab enters one roving project focus, then the arrow keys move to the nearest project in that direction and centre its complete media-and-caption footprint. The logical camera is unbounded, while repeated visual copies make the finite authored world feel continuous. Wheel input eases toward its destination and drag release uses filtered velocity for a smoother stop. Drag work is frame-coalesced and bounded on high-refresh displays so the camera retains a stable 60fps-or-better cadence without running the complete render path at 120–240Hz. The Canvas dot field and the project layer commit the same camera sample before each paint, so neither layer trails the other. On narrower usable widths, one derived responsive profile modestly scales the shared world, tightens project placement, maintains a 12px minimum rendered caption size, reduces dot radius, and compensates input so touch remains direct; it never creates a second saved mobile configuration. The atmosphere compositor is renderer-coupled and sleeps when the field is idle. Every dot is a true circle; the Canvas backing store calibrates both CSS axes independently to preserve that shape at fractional sizes and high pixel densities. The resting field uses low-opacity grey. A mouse pointer wakes nearby dots immediately into randomly distributed colours from the current shared ball palette. The influence field has a stable organic boundary rather than a perfect circle, and its strength eases continuously from the pointer centre to each locally varied outer edge. Once a dot is lit, later pointer samples can only increase its strength; mouse movement never dims it. Coalesced pointer positions are joined by one bounded swept activation, so fast movement retains a continuous trail instead of isolated islands. Each released dot keeps its strongest sampled colour through the hold, then fades and returns to grey. The wake renderer coalesces pointer work and sleeps after a stationary hover has settled and has no fading trail. Projects stay fixed under pointer hover. Fine-pointer devices hide the native cursor inside the Lab route so only the shared custom lens is visible; the detached parameter panel retains its native editor cursor. The route does not add application zoom and does not intercept Ctrl-wheel or Command-wheel browser zoom.
 
 The opening title is part of the pannable world. Instrument Serif is limited to its H1 and the description uses Geist with the shared supporting-description colour. The dot field remains continuous behind the complete title lockup; a broad, theme-aware shadow darkens the field without cutting a hole in the grid. The title keeps a project-collision safe area. A centered four-way Tabler move icon replaces the visible movement sentence; it retains the About opening arrow's compact scale but sits closer to the description. “Drag to explore.” remains available to assistive technology. The ordered entrance remains identity, context, action, then support. Each entrance transaction measures the viewport and current project-card geometry once, then reuses that immutable snapshot for visibility and distance staggering until the transaction is reset.
 
@@ -24,7 +24,7 @@ Each logical item appears once in the semantic ordered list. One roving project 
 | Authored design values | `react-app/app/public/config/design-system.json` under `playground` |
 | Control schema and canonical save | `react-app/app/src/routes/playground/config/playgroundPanel.js` |
 
-The initial catalogue contains 20 explicit placeholders: 8 image, 6 video, and 6 code items. Their labels, descriptions, and visual assets are temporary. They are not portfolio facts, client claims, contribution claims, or outcome claims. Replace them only with reviewed content and local media.
+The initial catalogue contains 30 explicit placeholders: 18 image, 6 video, and 6 code items. Their labels, descriptions, and visual assets are temporary. They are not portfolio facts, client claims, contribution claims, or outcome claims. Replace them only with reviewed content and local media.
 
 ## Content schema
 
@@ -41,16 +41,16 @@ The initial catalogue contains 20 explicit placeholders: 8 image, 6 video, and 6
 
 Image and video items also require a safe root-relative `source` and must omit `demoId`. Code items require a lower-kebab-case `demoId` and must omit `source`. URLs must begin with one `/`, must not contain a backslash, and must not traverse through `..` path segments.
 
-### Add item 21
+### Add item 31
 
-Append the new object to `items`. Do not insert it between existing objects. Give it a new stable ID and `placementOrder: 21`. Keep every earlier item's `id`, `placementOrder`, dimensions, and preferred span unchanged if their placement must remain unchanged.
+Append the new object to `items`. Do not insert it between existing objects. Give it a new stable ID and `placementOrder: 31`. Keep every earlier item's `id`, `placementOrder`, dimensions, and preferred span unchanged if their placement must remain unchanged.
 
 Example image entry:
 
 ```json
 {
   "id": "image-new-study",
-  "placementOrder": 21,
+  "placementOrder": 31,
   "type": "image",
   "label": "New Study",
   "description": "Reviewed description of the work.",
@@ -72,7 +72,7 @@ Replace each placeholder as one complete unit: reviewed copy, accurate accessibi
 
 ## Deterministic placement
 
-Placement is derived from stable item identity, `placementOrder`, the selected preset, `projectSpacing`, and `layoutSeed`. The balanced preset searches the nearest collision-free grid cells first, producing an even field around the title instead of placement-order rings. Higher project spacing still expands the deterministic composition, but with a restrained radial curve that avoids large unused bands. The narrower responsive profile tightens this expansion and reduces the inter-item safety gap to one grid cell so several projects peek into the initial 320 × 568 view. The exact title exclusion remains intact. The modulo period is then calculated from the resulting project extents, so the repeat area grows with the composition instead of clipping or repeating projects too soon. Existing placements are append-stable when new items are appended and earlier placement inputs stay unchanged. The world remains quantized to the grid.
+Placement is derived from stable item identity, `placementOrder`, the selected preset, `projectSpacing`, and `layoutSeed`. The default salon preset distributes work across a wide low-discrepancy field and accepts collision-free quarter-cell positions. Mixed media spans and off-axis origins create an eclectic wall without rotating the work, changing the layout randomly, or leaving a sparse opposite corner in the repeating world. The balanced preset remains available when strict dot alignment is required. Higher project spacing still expands the deterministic composition, but with a restrained radial curve that avoids large unused bands. The narrower responsive profile tightens this expansion and keeps the inter-item safety gap at one grid cell so several projects peek into the initial 320 × 568 view. The exact title exclusion remains intact. The modulo period is then calculated from the resulting project extents, so the repeat area grows with the composition instead of clipping or repeating projects too soon. Existing placements are append-stable when new items are appended and earlier placement inputs stay unchanged. The world period remains grid-quantized while salon item origins use quarter-cells.
 
 Do not regenerate the seed as part of routine content editing. Use **Generate new seed** only for a deliberate full-layout re-composition. Review the complete field after regeneration, then use **Save design configuration** to write the chosen seed to the canonical `playground` namespace. Changing an existing item ID, placement order, span, scale, label footprint, preset, or seed can move work and requires a new full-field review.
 
@@ -92,16 +92,16 @@ The canonical values below include the visible panel controls and the implementa
 
 | Field | Default | Allowed values |
 | --- | ---: | --- |
-| `layoutPreset` | `balanced` | `balanced`, `loose`, `clustered` |
+| `layoutPreset` | `salon` | `salon`, `balanced`, `loose`, `clustered` |
 | `layoutSeed` | `271828` | unsigned 32-bit integer |
 | `gridSpacingPx` | `24` | 24–72, step 4 |
 | `minimumWorldColumns` | `80` | 56–160, step 8 |
 | `minimumWorldRows` | `56` | 40–112, step 8 |
 | `worldPaddingCells` | `1` | 1–20, step 1 |
-| `projectSpacing` | `1.5` | 1–2.5, step 0.05 |
-| `itemGapCells` | `3` | 1–6, step 1 |
-| `itemScale` | `1.5` | 0.75–2, step 0.01 |
-| `sizeVariation` | `0.24` | 0–0.5, step 0.01 |
+| `projectSpacing` | `1` | 1–2.5, step 0.05 |
+| `itemGapCells` | `1` | 1–6, step 1 |
+| `itemScale` | `1.35` | 0.75–2, step 0.01 |
+| `sizeVariation` | `0.5` | 0–0.5, step 0.01 |
 | `labelGapPx` | `8` | 4–16, step 1 |
 | `dotRadiusPx` | `2` | 2–7, step 0.25 |
 | `dotOpacity` | `0.16` | 0.12–0.6, step 0.01 |

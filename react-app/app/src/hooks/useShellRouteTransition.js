@@ -2451,6 +2451,9 @@ export function useShellRouteTransition({
             onPrepared: () => {
               finalizeHistory();
               publishTransitionPhase(TRANSITION_PHASES.ROUTE_IN, token, nextRouteId, activation);
+              if (nextRouteId === 'playground' && surfaceRefs.wall.current) {
+                inertRegistry.restore([surfaceRefs.wall.current]);
+              }
               participantEnterPromise = waitWithTransitionTimeout(
                 participants.enter(),
                 routeTimings.ready,

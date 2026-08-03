@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 700" role="img" aria-labelledby="acid-loop-title acid-loop-desc">
+  <title id="acid-loop-title">Acid Loop</title>
+  <desc id="acid-loop-desc">Acid yellow loop crossing a black field with a small coral counterweight.</desc>
+  <defs>
+    <linearGradient id="acid-loop-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101010"/>
+      <stop offset="1" stop-color="#343434"/>
+    </linearGradient>
+    <linearGradient id="acid-loop-band" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f3ff43"/>
+      <stop offset="1" stop-color="#d1df00"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="700" fill="url(#acid-loop-bg)"/>
+  <path d="M178 438C252 116 582 94 720 292c119 171 267 220 496 40" fill="none" stroke="url(#acid-loop-band)" stroke-width="132" stroke-linecap="round"/>
+  <circle cx="1024" cy="458" r="86" fill="#ff6f5b"/>
+  <circle cx="330" cy="242" r="48" fill="#f5f0e8"/>
+</svg>

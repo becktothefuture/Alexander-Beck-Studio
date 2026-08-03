@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="soft-machine-title soft-machine-desc">
+  <title id="soft-machine-title">Soft Machine</title>
+  <desc id="soft-machine-desc">Interlocking green, blue, coral, and black rounded forms on a cream landscape field.</desc>
+  <defs>
+    <linearGradient id="soft-machine-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff9ee"/>
+      <stop offset="1" stop-color="#e9dfd0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#soft-machine-bg)"/>
+  <rect x="92" y="166" width="490" height="186" rx="93" fill="#6aa59a"/>
+  <rect x="334" y="106" width="204" height="528" rx="102" fill="#5b95d1"/>
+  <rect x="506" y="392" width="536" height="182" rx="91" fill="#ff755c"/>
+  <circle cx="816" cy="286" r="174" fill="#ffd44b"/>
+  <circle cx="816" cy="286" r="84" fill="#1b1b1b"/>
+  <rect x="104" y="492" width="258" height="126" rx="63" fill="#222"/>
+</svg>

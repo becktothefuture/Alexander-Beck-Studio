@@ -238,6 +238,52 @@ async function readCanvasTitlePixelMetrics(page) {
   });
 }
 
+async function readRetainedTitlePixelMetrics(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('simulation-title-canvas');
+    const context = canvas?.getContext('2d', { alpha: true, willReadFrequently: true });
+    if (!canvas || !context || canvas.width <= 0 || canvas.height <= 0) return null;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        if (pixels[((y * canvas.width + x) * 4) + 3] <= 8) continue;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    if (maxX < minX || maxY < minY) return null;
+
+    const scaleX = canvasRect.width / canvas.width;
+    const scaleY = canvasRect.height / canvas.height;
+    const width = (maxX - minX + 1) * scaleX;
+    const height = (maxY - minY + 1) * scaleY;
+    const centerX = canvasRect.left + ((minX + maxX + 1) * 0.5 * scaleX);
+    const centerY = canvasRect.top + ((minY + maxY + 1) * 0.5 * scaleY);
+    return {
+      width,
+      height,
+      aspectRatio: width / height,
+      canvasCssWidth: canvasRect.width,
+      canvasCssHeight: canvasRect.height,
+      centerX,
+      centerY,
+      normalizedCenterX: (centerX - canvasRect.left) / canvasRect.width,
+      normalizedCenterY: (centerY - canvasRect.top) / canvasRect.height,
+      sourceConnected: canvas.dataset.titlePlaneSourceConnected === 'true',
+      retainedPixels: canvas.dataset.titlePlaneRetainedPixels === 'true',
+      renderRevision: Number(canvas.dataset.titlePlaneRenderRevision) || 0,
+    };
+  });
+}
+
 function compareResizeMetrics(resized, fresh, label) {
   assert(resized && fresh, `${label}: title pixel metrics unavailable`, { resized, fresh });
   assert(resized.sameNode, `${label}: stable title plane node was replaced`, resized);
@@ -289,6 +335,10 @@ async function auditStableTitleResize(browser) {
           && rect?.height > 0
           && revision > previous;
       }, { ...target, previous: previousRevision }, { timeout: waitMs, polling: 'raf' });
+      // Shell geometry deliberately eases to its responsive endpoint. Compare
+      // the live resize with a fresh load only after that movement settles;
+      // the continuous-resize audit below owns the intermediate-frame checks.
+      await page.waitForTimeout(700);
       await page.evaluate(() => new Promise((resolveFrame) => {
         requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
       }));
@@ -334,11 +384,83 @@ async function auditStableTitleResize(browser) {
   }
 }
 
+async function auditRetainedTitleResize(browser) {
+  const portrait = { width: 1100, height: 1500 };
+  const landscape = { width: 1600, height: 900 };
+  const context = await browser.newContext({
+    viewport: portrait,
+    colorScheme: 'light',
+    reducedMotion: 'reduce',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(pageUrl('/index.html?mode=water&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await waitForSettledHomeTitle(page);
+    const before = await readRetainedTitlePixelMetrics(page);
+    assert(before, 'retained-resize: portrait title pixels are unavailable');
+    await page.screenshot({ path: resolve(outputRoot, 'retained-resize-portrait.png') });
+
+    await page.evaluate(() => document.getElementById('hero-title')?.remove());
+    await page.waitForFunction(() => (
+      document.getElementById('simulation-title-canvas')?.dataset.titlePlaneSourceConnected === 'false'
+    ), null, { timeout: waitMs, polling: 'raf' });
+    await page.setViewportSize(landscape);
+    await page.waitForFunction(({ width, height }) => {
+      const canvas = document.getElementById('simulation-title-canvas');
+      const rect = canvas?.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      return innerWidth === width
+        && innerHeight === height
+        && canvas?.dataset.titlePlaneRetainedPixels === 'true'
+        && Math.abs(canvas.width - Math.round((rect?.width || 0) * dpr)) <= 1
+        && Math.abs(canvas.height - Math.round((rect?.height || 0) * dpr)) <= 1;
+    }, landscape, { timeout: waitMs, polling: 'raf' });
+    const after = await readRetainedTitlePixelMetrics(page);
+    assert(after, 'retained-resize: landscape title pixels are unavailable');
+    assert(!after.sourceConnected && after.retainedPixels,
+      'retained-resize: the test did not exercise the retained title path', after);
+    compareMetric(after.width, before.width, 'retained painted title width', 1.5, 'retained-resize');
+    compareMetric(after.height, before.height, 'retained painted title height', 1.5, 'retained-resize');
+    compareMetric(after.aspectRatio, before.aspectRatio, 'retained title aspect ratio', 0.01, 'retained-resize');
+    compareMetric(
+      after.normalizedCenterX,
+      before.normalizedCenterX,
+      'retained title normalized center x',
+      4 / after.canvasCssWidth,
+      'retained-resize',
+    );
+    compareMetric(
+      after.normalizedCenterY,
+      before.normalizedCenterY,
+      'retained title normalized center y',
+      4 / after.canvasCssHeight,
+      'retained-resize',
+    );
+    await page.screenshot({ path: resolve(outputRoot, 'retained-resize-landscape.png') });
+    return { portrait, landscape, before, after };
+  } catch (error) {
+    await page.screenshot({ path: resolve(outputRoot, 'retained-resize-failure.png'), fullPage: true })
+      .catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
+  }
+}
+
 async function readContinuousResizeMetrics(page) {
-  return page.evaluate(async () => {
-    const { getHomepageCanvasTitleSnapshot } = await import('/src/legacy/modules/rendering/title-depth.js');
-    const titleSnapshot = getHomepageCanvasTitleSnapshot();
+  return page.evaluate(() => {
     const titleCanvas = document.getElementById('simulation-title-canvas');
+    const homeSnapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || {};
+    const titleSnapshot = {
+      renderRevision: Number(titleCanvas?.dataset.titlePlaneRenderRevision) || 0,
+      sourceConnected: titleCanvas?.dataset.titlePlaneSourceConnected === 'true',
+      visible: homeSnapshot.canvasTitleVisible === true,
+      firstLineX: Number(homeSnapshot.canvasTitleFirstLineX) || 0,
+      firstLineY: Number(homeSnapshot.canvasTitleFirstLineY) || 0,
+    };
     const titleLine = document.querySelector('#hero-title .hero-title__name');
     const materialCanvas = document.getElementById('c');
     const titleCanvasRect = titleCanvas?.getBoundingClientRect();
@@ -1061,6 +1183,7 @@ async function main() {
     const homeCanvasEntrance = resizeOnly ? null : await auditHomeCanvasTitleEntrance(browser);
     const stableTitleHandoffs = resizeOnly ? [] : await auditStableTitleHandoffs(browser);
     const stableTitleResize = await auditStableTitleResize(browser);
+    const retainedTitleResize = await auditRetainedTitleResize(browser);
     const continuousHomeResize = await auditContinuousHomeResize(browser);
     if (resizeOnly || process.env.ABS_TITLE_ENTRANCE_ONLY === '1') {
       const entranceOutput = {
@@ -1071,6 +1194,7 @@ async function main() {
         homeCanvasEntrance,
         stableTitleHandoffs,
         stableTitleResize,
+        retainedTitleResize,
         continuousHomeResize,
       };
       await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(entranceOutput, null, 2)}\n`);
@@ -1117,6 +1241,7 @@ async function main() {
       homeCanvasEntrance,
       stableTitleHandoffs,
       stableTitleResize,
+      retainedTitleResize,
       continuousHomeResize,
       titleThemeSwitch,
     };

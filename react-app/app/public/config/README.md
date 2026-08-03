@@ -20,7 +20,7 @@ These generated files exist for runtime compatibility and build output. Do not t
 - `contents-playground.json` — the production Playground catalogue, including stable placement order, local media references, intrinsic dimensions, and preferred grid spans.
 - Do not add a parallel `portfolio-data.json` content source. `contents-portfolio.json` is the only live portfolio content file.
 
-Playground starts with 20 explicit placeholders: 8 image, 6 video, and 6 local code studies. They are not evidence for portfolio claims. Replace each placeholder with reviewed copy and local media. Append item 21 with a new stable lower-kebab-case `id` and `placementOrder: 21`; do not reorder earlier items if their deterministic positions must stay unchanged. See `docs/reference/PLAYGROUND.md` from the repository root for the full schema, asset, code-demo, placement, and verification contract.
+Playground starts with 30 explicit placeholders: 18 image, 6 video, and 6 local code studies. They are not evidence for portfolio claims. Replace each placeholder with reviewed copy and local media. Append item 31 with a new stable lower-kebab-case `id` and `placementOrder: 31`; do not reorder earlier items if their deterministic positions must stay unchanged. See `docs/reference/PLAYGROUND.md` from the repository root for the full schema, asset, code-demo, placement, and verification contract.
 
 ## Workflow
 

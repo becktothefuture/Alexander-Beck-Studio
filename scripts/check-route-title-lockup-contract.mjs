@@ -36,7 +36,10 @@ test('every production route lockup consumes the shared title, rule, and descrip
   assert.equal((sources.about.match(/route-centered-page__description route-intro-description/g) || []).length, 2);
 
   assert.match(sources.home, /--home-hero-title-scale: var\(--route-bookend-title-scale\)/);
-  assert.match(sources.home, /var\(--route-entry-title-size\) \* var\(--home-hero-title-scale\)/);
+  assert.match(sources.home, /--home-hero-title-size-scale: 0\.9/);
+  assert.match(sources.home, /--home-hero-title-anchor-y: 55%/);
+  assert.match(sources.home, /var\(--route-entry-title-size\)\s*\*\s*var\(--home-hero-title-scale\)/);
+  assert.match(sources.home, /var\(--home-hero-title-size-scale\)/);
   assert.match(sources.home, /var\(--route-title-line-height\) \* var\(--abs-font-headline-line-height-scale, 1\)/);
 });
 

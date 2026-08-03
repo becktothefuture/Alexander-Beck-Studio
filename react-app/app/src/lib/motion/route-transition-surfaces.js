@@ -53,16 +53,19 @@ export function createRouteSurfaceInertRegistry() {
         if ('inert' in element) element.inert = true;
       });
     },
-    restore() {
-      states.forEach((state, element) => {
+    restore(elements = null) {
+      const targets = elements ? [...elements] : [...states.keys()];
+      targets.forEach((element) => {
+        const state = states.get(element);
+        if (!state) return;
         if (state.hadAttribute) {
           element.setAttribute('inert', state.attributeValue ?? '');
         } else {
           element.removeAttribute('inert');
         }
         if ('inert' in element) element.inert = state.propertyValue;
+        states.delete(element);
       });
-      states.clear();
     },
   };
 }

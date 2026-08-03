@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-labelledby="night-bloom-title night-bloom-desc">
+  <title id="night-bloom-title">Night Bloom</title>
+  <desc id="night-bloom-desc">A layered blue, purple, and yellow bloom opens from a dark square field.</desc>
+  <defs>
+    <radialGradient id="night-bloom-bg" cx="50%" cy="44%" r="72%">
+      <stop stop-color="#31313a"/>
+      <stop offset="1" stop-color="#0c0c0e"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="url(#night-bloom-bg)"/>
+  <ellipse cx="500" cy="300" rx="152" ry="266" fill="#6d55c7"/>
+  <ellipse cx="500" cy="700" rx="152" ry="266" fill="#4a8fc8"/>
+  <ellipse cx="322" cy="500" rx="152" ry="266" fill="#78aaa0" transform="rotate(90 322 500)"/>
+  <ellipse cx="678" cy="500" rx="152" ry="266" fill="#ee5f76" transform="rotate(90 678 500)"/>
+  <circle cx="500" cy="500" r="178" fill="#ffd64c"/>
+  <circle cx="500" cy="500" r="82" fill="#171717"/>
+</svg>

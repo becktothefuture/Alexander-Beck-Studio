@@ -60,7 +60,7 @@
   pointer-events: none;
 }
 
-.playground-route[data-playground-ready='false'] {
+.playground-route[data-playground-interactive='false'] {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -76,7 +76,7 @@
   visibility: hidden;
 }
 
-.playground-route[data-playground-ready='true'] {
+.playground-route[data-playground-interactive='true'] {
   visibility: visible;
   opacity: 1;
 }
@@ -334,7 +334,6 @@
   min-inline-size: 0;
   transform:
     translateY(var(--playground-route-card-y, 0px))
-    rotate(var(--playground-route-card-rotate, 0deg))
     scale(var(--playground-route-card-scale, 1));
   transform-origin: 50% 50%;
   backface-visibility: hidden;

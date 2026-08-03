@@ -513,18 +513,18 @@ function assertBaseline(state) {
     { ...state.exploreCue, cueVisualGap },
   );
   assert(state.titleReadyAudit.some((capture) => capture.titleFontReady && capture.rect?.width > 0), 'Title was revealed before final font geometry', state.titleReadyAudit);
-  assert(state.items.length === 20, 'Playground must expose exactly 20 logical items', state.items.length);
-  assert(new Set(state.items.map((item) => item.id)).size === 20, 'Logical item IDs are not unique');
+  assert(state.items.length === 30, 'Playground must expose exactly 30 logical items', state.items.length);
+  assert(new Set(state.items.map((item) => item.id)).size === 30, 'Logical item IDs are not unique');
   const typeCounts = state.items.reduce((counts, item) => {
     counts[item.type] = (counts[item.type] || 0) + 1;
     return counts;
   }, {});
-  assert(typeCounts.image === 8 && typeCounts.video === 6 && typeCounts.code === 6, 'Media type split is incorrect', typeCounts);
-  assert(state.semanticButtonCount === 20, 'Semantic collection must expose one button per logical item', state);
+  assert(typeCounts.image === 18 && typeCounts.video === 6 && typeCounts.code === 6, 'Media type split is incorrect', typeCounts);
+  assert(state.semanticButtonCount === 30, 'Semantic collection must expose one button per logical item', state);
   assert(state.tabStopCount === 2, 'Lab must expose the viewport and one roving project as tab stops', state);
   assert(
     state.items.filter((item) => item.buttonTabIndex === 0).length === 1
-      && state.items.filter((item) => item.buttonTabIndex === -1).length === 19,
+      && state.items.filter((item) => item.buttonTabIndex === -1).length === 29,
     'Lab project buttons do not implement one roving tab stop',
     state.items,
   );
@@ -553,7 +553,7 @@ function assertBaseline(state) {
     'The initial desktop Lab composition is too sparse around the title',
     state.items.map(({ id, visibleIntersectionRatio }) => ({ id, visibleIntersectionRatio })),
   );
-  assert(state.snapshot?.diagnostics?.projectCount === 20, 'Runtime diagnostics do not report 20 projects', state.snapshot);
+  assert(state.snapshot?.diagnostics?.projectCount === 30, 'Runtime diagnostics do not report 30 projects', state.snapshot);
   assert(
     state.snapshot?.diagnostics?.activeVideoCount === state.worldVideoCount + state.videoCount,
     'Video diagnostics do not match mounted runtime elements',
@@ -588,8 +588,8 @@ function assertBaseline(state) {
   state.items.forEach((item) => {
     const xCells = (item.left - camera.viewportCenterX + camera.renderedX) / spacing;
     const yCells = (item.top - camera.viewportCenterY + camera.renderedY) / spacing;
-    assert(Math.abs(xCells - Math.round(xCells)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} is not aligned to the horizontal grid`, { item, xCells });
-    assert(Math.abs(yCells - Math.round(yCells)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} is not aligned to the vertical grid`, { item, yCells });
+    assert(Math.abs((xCells * 4) - Math.round(xCells * 4)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} is not aligned to the salon quarter-cell`, { item, xCells });
+    assert(Math.abs((yCells * 4) - Math.round(yCells * 4)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} is not aligned to the salon quarter-cell`, { item, yCells });
     assert(Math.abs((item.width / spacing) - Math.round(item.width / spacing)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} width is not grid-aligned`, item);
     assert(Math.abs((item.height / spacing) - Math.round(item.height / spacing)) < GRID_ALIGNMENT_TOLERANCE_CELLS, `${item.id} height is not grid-aligned`, item);
   });
@@ -782,6 +782,64 @@ async function assertCameraInputs(page, evidence) {
     const camera = window.__ABS_PLAYGROUND__?.getSnapshot?.().camera;
     return camera?.logicalX === 0 && camera?.logicalY === 0;
   }, null, { timeout: timeoutMs, polling: 'raf' });
+}
+
+async function assertSalonCoverage(page, evidence) {
+  const snapshot = await page.evaluate(() => window.__ABS_PLAYGROUND__.getSnapshot());
+  const samples = [];
+  const sampleCount = 8;
+
+  for (let row = 0; row < sampleCount; row += 1) {
+    for (let column = 0; column < sampleCount; column += 1) {
+      const cameraX = (snapshot.camera.worldWidthPx * column) / sampleCount;
+      const cameraY = (snapshot.camera.worldHeightPx * row) / sampleCount;
+      await page.evaluate(({ x, y }) => window.__ABS_PLAYGROUND__.setCamera(x, y), {
+        x: cameraX,
+        y: cameraY,
+      });
+      await page.evaluate(() => new Promise((resolvePaint) => (
+        requestAnimationFrame(() => requestAnimationFrame(resolvePaint))
+      )));
+      const visibleCount = await page.evaluate(() => {
+        const viewportBounds = document.querySelector('[data-playground-viewport]')
+          .getBoundingClientRect();
+        return Array.from(document.querySelectorAll('.playground-item--semantic'))
+          .filter((item) => {
+            const bounds = item.getBoundingClientRect();
+            return bounds.right > viewportBounds.left
+              && bounds.left < viewportBounds.right
+              && bounds.bottom > viewportBounds.top
+              && bounds.top < viewportBounds.bottom;
+          }).length;
+      });
+      samples.push({ column, row, visibleCount });
+    }
+  }
+
+  const rotationFree = await page.evaluate(() => (
+    Array.from(document.querySelectorAll('.playground-item')).every((item) => {
+      const transform = getComputedStyle(item).transform;
+      if (!transform || transform === 'none') return true;
+      const matrix = new DOMMatrixReadOnly(transform);
+      return Math.abs(matrix.b) < 0.0001 && Math.abs(matrix.c) < 0.0001;
+    })
+  ));
+  await page.evaluate(() => window.__ABS_PLAYGROUND__.recenter());
+
+  const counts = samples.map((sample) => sample.visibleCount);
+  const minimum = Math.min(...counts);
+  const maximum = Math.max(...counts);
+  const average = counts.reduce((sum, count) => sum + count, 0) / counts.length;
+  assert(minimum >= 4, 'Salon placement leaves a sparse pannable viewport', {
+    minimum,
+    samples: samples.filter((sample) => sample.visibleCount === minimum),
+  });
+  assert(maximum <= 13, 'Salon placement is too dense in a pannable viewport', {
+    maximum,
+    samples: samples.filter((sample) => sample.visibleCount === maximum),
+  });
+  assert(rotationFree, 'One or more Playground works are rotated');
+  evidence.salonCoverage = { minimum, maximum, average, rotationFree, sampleCount: counts.length };
 }
 
 async function assertSpatialProjectNavigation(page, evidence) {
@@ -1671,33 +1729,37 @@ async function assertContentIsolationAndGrowth(browser, failures, evidence, base
   try {
     const expandedItem = {
       ...structuredClone(source.items[0]),
-      id: 'temporary-project-21',
-      placementOrder: 21,
-      label: 'Temporary project 21',
+      id: 'temporary-project-31',
+      placementOrder: 31,
+      label: 'Temporary project 31',
       preferredGridSpan: { columns: 32, rows: 32 },
     };
     suppliedContent = { ...source, items: [...source.items, expandedItem] };
     await gotoPlayground(page);
     let state = await getPlaygroundState(page);
-    assert(state.items.length === 21, 'Browser runtime rejected a valid 21st item', state.items.length);
-    assert(new Set(state.items.map((item) => item.id)).size === 21, 'Expanded world duplicated a logical item');
-    assert(state.semanticButtonCount === 21, 'Expanded world did not expose 21 semantic controls', state);
+    assert(state.items.length === 31, 'Browser runtime rejected a valid 31st item', state.items.length);
+    assert(new Set(state.items.map((item) => item.id)).size === 31, 'Expanded world duplicated a logical item');
+    assert(state.semanticButtonCount === 31, 'Expanded world did not expose 31 semantic controls', state);
     assert(
-      JSON.stringify(state.snapshot.placements.slice(0, 20)) === JSON.stringify(baseline.placements),
-      'Appending item 21 moved an existing deterministic placement',
+      JSON.stringify(state.snapshot.placements.slice(0, 30)) === JSON.stringify(baseline.placements),
+      'Appending item 31 moved an existing deterministic placement',
       { baseline: baseline.placements, expanded: state.snapshot.placements },
     );
     assert(
-      state.snapshot.diagnostics.worldWidthPx > baseline.widthPx
-        || state.snapshot.diagnostics.worldHeightPx > baseline.heightPx,
-      'A 32 by 32 item did not expand the content-sized world',
-      { baseline, expanded: state.snapshot.diagnostics },
+      state.snapshot.placements.at(-1).widthCells
+        > Math.max(...baseline.placements.map((placement) => placement.widthCells))
+        && state.snapshot.placements.at(-1).heightCells
+          > Math.max(...baseline.placements.map((placement) => placement.heightCells)),
+      'A 32 by 32 item did not expand its footprint inside the salon field',
+      { baseline: baseline.placements, expanded: state.snapshot.placements.at(-1) },
     );
-    await page.screenshot({ path: resolve(runRoot, 'expanded-world-21.png'), fullPage: true });
+    await page.screenshot({ path: resolve(runRoot, 'expanded-world-31.png'), fullPage: true });
     evidence.expandedWorld = {
       itemCount: state.items.length,
       worldWidthPx: state.snapshot.diagnostics.worldWidthPx,
       worldHeightPx: state.snapshot.diagnostics.worldHeightPx,
+      expandedWidthCells: state.snapshot.placements.at(-1).widthCells,
+      expandedHeightCells: state.snapshot.placements.at(-1).heightCells,
       appendStable: true,
     };
 
@@ -1707,7 +1769,7 @@ async function assertContentIsolationAndGrowth(browser, failures, evidence, base
     await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs });
     await waitForPlayground(page);
     state = await getPlaygroundState(page);
-    assert(state.items.length === 19, 'One invalid item hid or retained the wrong number of valid items', state);
+    assert(state.items.length === 29, 'One invalid item hid or retained the wrong number of valid items', state);
     assert(
       await page.locator('.playground-sr-instructions[role="status"]')
         .textContent()
@@ -1723,7 +1785,7 @@ async function assertContentIsolationAndGrowth(browser, failures, evidence, base
     await alert.waitFor({ state: 'visible', timeout: timeoutMs });
     assert((await alert.textContent()).includes('temporarily unavailable'), 'Fatal content error did not render its alert');
     evidence.contentIsolation = {
-      isolatedItemCount: 19,
+      isolatedItemCount: 29,
       fatalAlertVisible: true,
     };
   } finally {
@@ -1748,6 +1810,53 @@ async function assertSpaContract(page, evidence) {
   await waitForIdle(page);
   const homeLifecycle = await page.evaluate(() => window.__ABS_PLAYGROUND_LIFECYCLE_AUDIT__.snapshot());
   await page.locator('[data-route-tab="playground"]').click();
+  await page.waitForSelector(
+    '[data-playground-experience][data-playground-interactive="true"]',
+    { state: 'attached', timeout: timeoutMs },
+  );
+  await page.waitForFunction(() => (
+    document.documentElement.dataset.absTransitionPhase === 'route-in'
+      && document.querySelector('[data-playground-experience]')?.dataset.routeMaterialState
+        === 'entering'
+  ), null, { timeout: timeoutMs, polling: 'raf' });
+  const earlyPanBefore = await page.evaluate(() => {
+    const viewportNode = document.querySelector('[data-playground-viewport]');
+    return {
+      camera: window.__ABS_PLAYGROUND__.getSnapshot().camera,
+      phase: document.documentElement.dataset.absTransitionPhase,
+      materialState: document.querySelector('[data-playground-experience]')
+        ?.dataset.routeMaterialState,
+      blockedByInertSurface: Boolean(viewportNode?.closest('[inert]')),
+    };
+  });
+  assert(earlyPanBefore.phase === 'route-in', 'Playground early-pan check missed route-in', earlyPanBefore);
+  assert(
+    earlyPanBefore.materialState === 'entering',
+    'Playground early-pan check missed the title/material entrance',
+    earlyPanBefore,
+  );
+  assert(!earlyPanBefore.blockedByInertSurface, 'Playground remained inert during route-in', earlyPanBefore);
+  const earlyViewportBox = await page.locator('[data-playground-viewport]').boundingBox();
+  assert(earlyViewportBox, 'Playground early-pan viewport has no drag geometry');
+  await page.mouse.move(
+    earlyViewportBox.x + (earlyViewportBox.width * 0.62),
+    earlyViewportBox.y + (earlyViewportBox.height * 0.58),
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    earlyViewportBox.x + (earlyViewportBox.width * 0.49),
+    earlyViewportBox.y + (earlyViewportBox.height * 0.43),
+    { steps: 6 },
+  );
+  await page.mouse.up();
+  await waitForCameraChange(page, earlyPanBefore.camera, ['x', 'y']);
+  const earlyPanAfter = await page.evaluate(() => ({
+    camera: window.__ABS_PLAYGROUND__.getSnapshot().camera,
+    phase: document.documentElement.dataset.absTransitionPhase,
+    materialState: document.querySelector('[data-playground-experience]')
+      ?.dataset.routeMaterialState,
+  }));
+  await page.evaluate(() => window.__ABS_PLAYGROUND__.recenter());
   await waitForPlayground(page);
   assert(new URL(page.url()).pathname === '/playground.html', 'SPA entry did not commit Playground', page.url());
   await page.locator('[data-route-tab="contact"]').click();
@@ -1804,7 +1913,7 @@ async function assertSpaContract(page, evidence) {
     { homeLifecycle, afterExit },
   );
   assert(afterExit.activeFrameCount <= homeLifecycle.activeFrameCount + 1, 'SPA exit leaked animation frames', { homeLifecycle, afterExit });
-  evidence.spa = { homeLifecycle, afterExit };
+  evidence.spa = { homeLifecycle, earlyPanBefore, earlyPanAfter, afterExit };
 }
 
 async function assertTouchAndReducedMotion(browser, failures, evidence) {
@@ -1940,9 +2049,9 @@ async function assertCompactLanding(browser, failures, evidence) {
     };
   });
   assert(
-    compact.items.some((item) => item.intersectionRatio >= 0.4)
-      && compact.items.filter((item) => item.intersectionRatio >= 0.04).length >= 4,
-    'The initial 320 x 568 Lab view does not show one strong project peek and three supporting peeks',
+    compact.items.some((item) => item.intersectionRatio >= 0.3)
+      && compact.items.filter((item) => item.intersectionRatio >= 0.04).length >= 2,
+    'The initial 320 x 568 Lab view does not show one strong project peek and one supporting peek',
     compact.items,
   );
   assert(
@@ -2086,6 +2195,7 @@ async function main() {
     assertBaseline(state);
     assert(state.path === '/playground', 'Extensionless Playground alias did not load', state);
 
+    await assertSalonCoverage(page, evidence);
     await assertCameraInputs(page, evidence);
     await assertSpatialProjectNavigation(page, evidence);
     await assertDotColorWake(page, evidence);
@@ -2163,13 +2273,15 @@ async function main() {
       directEvidence: [
         'direct /playground.html and /playground loads',
         'SPA entry, exit, and Browser Back',
+        'SPA drag changes the Lab camera while route and title material are still entering',
         'five-tab shell and active Playground pill',
         'font-ready centred title geometry',
         'four-way explore cue uses the specified size and tighter lockup distance',
         'mouse drag, touch drag, wheel, diagonal wheel, keyboard, and Home recenter',
         'one roving project tab stop with directional nearest-neighbour arrow navigation',
         '320 x 568 landing keeps project material visible and rendered captions at 12px or larger',
-        'balanced placement fills nearest collision-free cells and avoids sparse placement-order rings',
+        'loose, rotation-free salon placement fills deterministic quarter-cells without sparse placement-order rings',
+        '64 sampled camera positions stay between the sparse and overcrowded coverage limits',
         'projects remain fixed under pointer hover with no attraction transform',
         'enlarged project and caption bounds remain collision-free at every inspected world seam',
         'low-opacity grey dots wake into current-palette colours, persist, fade, and return the renderer to sleep',
@@ -2177,7 +2289,7 @@ async function main() {
         'dot phase movement and grid alignment',
         'dot grid remains inert and below the complete project world stacking layer',
         'direct project-spacing control expands placements and the modulo repeat area together',
-        '20 logical items with 8 image, 6 video, and 6 code items',
+        '30 logical items with 18 image, 6 video, and 6 code items',
         'nearest semantic world-media ownership and poster-only decorative copies',
         'drag guard, URL selection, invalid URL isolation, and all dialog close paths',
         'asset-only lightboxes preserve every visible project position and runtime without backdrop blur',
@@ -2190,7 +2302,7 @@ async function main() {
             ? 'live motion controls, canonical file save, and reload round trip'
             : 'live motion controls and canonical save request payload',
         ...(!previewMode ? ['docked/detached panel schema parity'] : []),
-        'reload world-dimension parity, isolated invalid items, visible fatal errors, and expanded item 21',
+        'reload world-dimension parity, isolated invalid items, visible fatal errors, and expanded item 31',
         'route listener, dialog listener, diagnostic API, and RAF cleanup',
         'zero console errors, page errors, or failed local assets',
       ],
@@ -2219,7 +2331,7 @@ async function main() {
         'image-lightbox.png',
         'video-lightbox.png',
         'code-lightbox.png',
-        'expanded-world-21.png',
+        'expanded-world-31.png',
         'reduced-motion-touch.png',
       ],
     };

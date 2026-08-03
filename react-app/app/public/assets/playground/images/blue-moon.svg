@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" role="img" aria-labelledby="blue-moon-title blue-moon-desc">
+  <title id="blue-moon-title">Blue Moon</title>
+  <desc id="blue-moon-desc">A blue circle sits inside a coral ring above a black base on a pale portrait field.</desc>
+  <defs>
+    <linearGradient id="blue-moon-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fffaf1"/>
+      <stop offset="1" stop-color="#ded7cc"/>
+    </linearGradient>
+    <linearGradient id="blue-moon-core" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#81bce6"/>
+      <stop offset="1" stop-color="#326ebc"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#blue-moon-bg)"/>
+  <circle cx="400" cy="430" r="278" fill="#ff745e"/>
+  <circle cx="400" cy="430" r="178" fill="url(#blue-moon-core)"/>
+  <rect x="184" y="766" width="432" height="224" rx="112" fill="#171717"/>
+  <circle cx="590" cy="790" r="72" fill="#ffd34c"/>
+</svg>

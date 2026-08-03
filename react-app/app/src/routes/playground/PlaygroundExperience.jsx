@@ -319,6 +319,7 @@ export function PlaygroundExperience() {
   const [activeWorldMediaIds, setActiveWorldMediaIds] = useState(() => new Set());
   const [readyWorldMediaIds, setReadyWorldMediaIds] = useState(() => new Set());
   const [loadError, setLoadError] = useState('');
+  const [interactiveModel, setInteractiveModel] = useState(null);
   const [readyModel, setReadyModel] = useState(null);
   const palette = useSimulationPalette();
   const reducedMotion = useDailyFocusReducedMotion();
@@ -336,6 +337,7 @@ export function PlaygroundExperience() {
     [content, selectedId],
   );
   const ready = Boolean(model && readyModel === model && !loadError);
+  const interactive = Boolean(model && interactiveModel === model && !loadError);
   const defaultKeyboardItemId = useMemo(() => model?.placements.reduce((nearest, placement) => {
     const centreX = placement.xCell + (placement.footprintWidthCells / 2);
     const centreY = placement.yCell + (placement.footprintHeightCells / 2);
@@ -427,7 +429,6 @@ export function PlaygroundExperience() {
         }, cardMotionFrame);
         target.style.setProperty('--playground-route-card-scale', String(frame.scale));
         target.style.setProperty('--playground-route-card-y', `${frame.translateY}px`);
-        target.style.setProperty('--playground-route-card-rotate', `${frame.rotate}deg`);
       },
       getDelayRatio: (item, index, targets, direction) => {
         if (item === dotMaterialTargetRef.current) return direction === 'out' ? 1 : 0;
@@ -909,6 +910,7 @@ export function PlaygroundExperience() {
     });
     cameraRef.current = camera;
     camera.setEnabled(!selectedIdRef.current);
+    setInteractiveModel(model);
     const firstFrame = camera.getSnapshot();
     syncCopies(firstFrame, true);
     applyCameraFrameRef.current(firstFrame);
@@ -1199,6 +1201,7 @@ export function PlaygroundExperience() {
       className="playground-route"
       data-playground-experience
       data-playground-ready={ready ? 'true' : 'false'}
+      data-playground-interactive={interactive ? 'true' : 'false'}
       data-playground-error={loadError ? 'true' : 'false'}
       data-playground-reduced-motion={reducedMotion ? 'true' : 'false'}
       data-playground-project-count={content?.items.length || 0}

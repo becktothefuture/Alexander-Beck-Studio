@@ -181,7 +181,7 @@ test('item footprint includes the complete unclamped caption and label gap witho
 
 test('placement is deterministic, collision-free, and append-stable for every preset', () => {
   const initialItems = createItems(20);
-  for (const layoutPreset of ['balanced', 'loose', 'clustered']) {
+  for (const layoutPreset of ['salon', 'balanced', 'loose', 'clustered']) {
     const options = { ...PLACEMENT_OPTIONS, layoutPreset };
     const first = placePlaygroundItems(initialItems, options);
     const repeated = placePlaygroundItems(initialItems, options);
@@ -194,8 +194,9 @@ test('placement is deterministic, collision-free, and append-stable for every pr
     assert.deepEqual(appended.placements.slice(0, 20), first.placements);
     for (let index = 0; index < first.placements.length; index += 1) {
       const placement = first.placements[index];
-      assert.equal(Number.isInteger(placement.xCell), true);
-      assert.equal(Number.isInteger(placement.yCell), true);
+      const alignmentDivisor = layoutPreset === 'salon' ? 4 : 1;
+      assert.equal(Number.isInteger(placement.xCell * alignmentDivisor), true);
+      assert.equal(Number.isInteger(placement.yCell * alignmentDivisor), true);
       assert.equal(cellRectsOverlap(placement.bounds, first.titleSafeArea, 2), false);
       for (let previous = 0; previous < index; previous += 1) {
         assert.equal(

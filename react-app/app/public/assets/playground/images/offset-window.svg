@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 800" role="img" aria-labelledby="offset-window-title offset-window-desc">
+  <title id="offset-window-title">Offset Window</title>
+  <desc id="offset-window-desc">An off-centre pale window cuts through a purple field with green and black forms.</desc>
+  <defs>
+    <linearGradient id="offset-window-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5f45b4"/>
+      <stop offset="1" stop-color="#9b75d6"/>
+    </linearGradient>
+    <linearGradient id="offset-window-pane" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fffaf1"/>
+      <stop offset="1" stop-color="#e9e2d8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1500" height="800" fill="url(#offset-window-bg)"/>
+  <rect x="164" y="108" width="756" height="584" rx="70" fill="url(#offset-window-pane)"/>
+  <circle cx="918" cy="288" r="178" fill="#72aa86"/>
+  <rect x="758" y="428" width="560" height="156" rx="78" fill="#171717"/>
+  <circle cx="286" cy="510" r="94" fill="#ff765b"/>
+</svg>
