@@ -860,7 +860,7 @@ body.dark-mode .about-narrative-client-logos img {
   letter-spacing: -0.01em;
   line-height: 1.38;
   opacity: var(--discipline-beat-opacity);
-  text-wrap: balance;
+  text-wrap: pretty;
   white-space: normal;
   transform: translate3d(0, var(--discipline-description-y), 0);
   will-change: opacity, transform;

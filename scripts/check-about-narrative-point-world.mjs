@@ -215,7 +215,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /stationaryRevealWeight/);
   assert.match(source, /uniforms\.disciplineReducedMotion\.value = frame\.reducedMotion \? 1 : 0/);
   assert.match(source, /presence = mix\([\s\S]*revealedGroupWeight/);
-  assert.match(source, /max\(cssPointSize, 12\.0\)/);
+  assert.match(source, /max\(cssPointSize, 21\.6\)/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
   assert.match(
     source,

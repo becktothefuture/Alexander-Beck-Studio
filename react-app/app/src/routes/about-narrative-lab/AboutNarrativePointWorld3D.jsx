@@ -734,7 +734,7 @@ const VERTEX_SHADER = `
       * perspectiveScale;
     float renderedPointSize = mix(
       cssPointSize,
-      max(cssPointSize, 12.0),
+      max(cssPointSize, 21.6),
       revealedGroupWeight
     );
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
