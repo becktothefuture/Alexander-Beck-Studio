@@ -330,13 +330,14 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
   assert.ok(reveal.startWU >= background.startWU && reveal.endWU <= ripple.startWU);
   assert.ok(ripple.endWU <= nextWorld.startWU);
   assert.ok(reveal.parameters.backgroundOpacity > 0);
-  assert.ok(reveal.parameters.reconnectOpacity > 0);
+  assert.equal(reveal.parameters.settleDurationWU, 0.5);
+  assert.equal(reveal.parameters.beatDurationWU, 0.7);
   assert.ok(reveal.parameters.restoreDurationWU > 0);
   assert.equal(canonical.tracks.text.fields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.doesNotMatch(liveSources.world, /worldDisciplineRise|resolveDisciplineStoryOffset|storyOffset/);
   assert.match(liveSources.world, /camera\.position\.fromArray\(frame\.camera\.position\)/);
-  assert.match(liveSources.world, /uniforms\.fromDisciplineIsolation\.value = isolationWeight/);
-  assert.doesNotMatch(liveSources.world, /writeDisciplineSide|packDisciplineOrder/);
+  assert.match(liveSources.world, /uniforms\.fromDisciplineIsolation\.value = backgroundWeight/);
+  assert.doesNotMatch(liveSources.world, /writeDisciplineSide|packDisciplineOrder|projectDisciplineAnchors/);
   assert.match(liveSources.experience, /data-motion-clip-id/);
   assert.doesNotMatch(liveSources.styles, /data-label-side='left'/);
   assert.match(liveSources.editorStyles, /\.about-narrative-motion-layer/);
@@ -566,12 +567,12 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
     assert.equal(key.rotation[2], 0);
     assert.equal(key.lookAtRoll, 0);
   });
-  assert.deepEqual(gridFlightKeys.map((key) => key.rotation[0]), [-82, -90]);
+  assert.deepEqual(gridFlightKeys.map((key) => key.rotation[0]), [-90, -90]);
   const flyoverKeys = [keys.get('complexity-exit-2'), ...gridFlightKeys];
   flyoverKeys.slice(1).forEach((key, index) => {
     assert.ok(key.position[2] > flyoverKeys[index].position[2], 'World C camera must move forward continuously');
     assert.ok(key.position[1] >= flyoverKeys[index].position[1], 'World C camera must rise continuously');
-    assert.ok(key.rotation[0] < flyoverKeys[index].rotation[0], 'World C camera must tilt downward continuously');
+    assert.ok(key.rotation[0] <= flyoverKeys[index].rotation[0], 'World C camera must hold or deepen its downward pitch');
   });
   const targetedKeys = targetedIds.map((id) => keys.get(id));
   const gridTarget = keys.get('grid-return-centered').lookAtTarget;
@@ -591,7 +592,7 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   assert.equal(keys.get('ripple-overhead-hold').easing, 'cubic-bezier(0.32, 0, 0.82, 1)');
   const shift = keys.get('grid-birds-eye');
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
-  assert.ok(shift.atWU > reveal.startWU);
+  assert.equal(shift.atWU, reveal.startWU + reveal.parameters.settleDurationWU);
   assert.ok(shift.atWU < reveal.endWU);
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const firstFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
@@ -665,12 +666,13 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
   assert.equal(new Set(verticalPositions).size, 6);
-  assert.ok(Math.max(...horizontalPositions) - Math.min(...horizontalPositions) >= 0.5);
-  assert.ok(Math.min(...horizontalPositions) >= 0.1);
-  assert.ok(Math.max(...horizontalPositions) <= 0.72);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.45);
-  assert.ok(Math.min(...verticalPositions) >= 0.5);
-  assert.ok(Math.max(...verticalPositions) <= 0.95);
+  assert.equal(new Set(horizontalPositions).size, 1);
+  assert.equal(horizontalPositions[0], 0.3);
+  const laneIntervals = verticalPositions.slice(1).map((value, index) => (
+    Number((value - verticalPositions[index]).toFixed(6))
+  ));
+  assert.equal(new Set(laneIntervals).size, 1);
+  assert.equal(laneIntervals[0], 0.11);
   assert.ok(verticalPositions.at(-1) > verticalPositions[0]);
 
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
@@ -686,42 +688,32 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   ]);
   disciplineReveal.parameters.items.forEach((item) => {
     assert.equal(item.description, acceptedDescriptions.get(item.label));
-    assert.ok(item.position[0] >= 0.1 && item.position[0] <= 0.72);
-    assert.ok(item.position[1] >= 0.4 && item.position[1] <= 0.95);
-    assert.ok(item.mobilePosition[0] >= 0.1 && item.mobilePosition[0] <= 0.72);
-    assert.ok(item.mobilePosition[1] >= 0.4 && item.mobilePosition[1] <= 0.95);
+    assert.equal(item.position, undefined);
+    assert.equal(item.mobilePosition, undefined);
   });
-  const assertMinimumGridSeparation = (positions, pointCount) => {
-    const columns = Math.max(24, Math.floor(Math.sqrt(pointCount * 1.36)));
-    const rows = Math.ceil(pointCount / columns);
-    positions.forEach((position, index) => positions.slice(index + 1).forEach((other, offset) => {
-      const dotDistance = Math.hypot(
-        (position[0] - other[0]) * (columns - 1),
-        (position[1] - other[1]) * (rows - 1),
-      );
-      const otherIndex = index + offset + 1;
-      assert.ok(dotDistance >= 4.5, `Discipline anchors ${index + 1} and ${otherIndex + 1} are only ${dotDistance.toFixed(2)} grid dots apart.`);
-    }));
-  };
-  const assertMinimumVerticalGridSeparation = (positions, pointCount) => {
-    const columns = Math.max(24, Math.floor(Math.sqrt(pointCount * 1.36)));
-    const rows = Math.ceil(pointCount / columns);
-    const orderedRows = positions
-      .map((position) => Math.round(position[1] * (rows - 1)))
-      .sort((a, b) => a - b);
-    orderedRows.slice(1).forEach((row, index) => {
-      assert.ok(row - orderedRows[index] >= 4, `Discipline rows ${index + 1} and ${index + 2} are fewer than 4 grid dots apart.`);
-    });
-  };
-  assertMinimumGridSeparation(disciplineReveal.parameters.items.map((item) => item.position), 12000);
-  assertMinimumGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
-  assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.position), 12000);
-  assertMinimumVerticalGridSeparation(disciplineReveal.parameters.items.map((item) => item.mobilePosition), 5000);
+  assert.equal(disciplineReveal.parameters.settleDurationWU, 0.5);
+  assert.equal(disciplineReveal.parameters.beatDurationWU, 0.7);
+  assert.equal(
+    disciplineReveal.startWU
+      + disciplineReveal.parameters.settleDurationWU
+      + (disciplineReveal.parameters.items.length * disciplineReveal.parameters.beatDurationWU),
+    9.75,
+  );
+  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.forEach((anchor, index) => {
+    const beatMidpointWU = 5.55 + ((index + 0.5) * disciplineReveal.parameters.beatDurationWU);
+    const frame = sampleAboutNarrativeRuntimePlan(plan, beatMidpointWU);
+    const gridWorld = canonical.tracks.worlds.objects.find((world) => world.id === 'world-grid');
+    const gridRailZ = canonical.globals.worldRail.originZ
+      - (gridWorld.anchorWU * canonical.globals.worldRail.unitsPerWU)
+      - gridWorld.entryDistanceWU
+      + gridWorld.transform.position[2];
+    const expectedGridZ = gridRailZ - 28 + (anchor.y * 56);
+    assert.ok(
+      Math.abs(frame.camera.position[2] - expectedGridZ) < 0.25,
+      `Discipline ${index + 1} must cross the reading line on its native grid row.`,
+    );
+  });
   assert.ok(keys.get('grid-birds-eye').position[1] <= keys.get('discipline-hold').position[1]);
-  const mobileVerticalPositions = disciplineReveal.parameters.items.map((item) => item.mobilePosition[1]);
-  assert.ok(new Set(mobileVerticalPositions).size >= 5);
-  assert.ok(Math.max(...mobileVerticalPositions) - Math.min(...mobileVerticalPositions) <= 0.45);
-  assert.ok(Math.min(...mobileVerticalPositions) >= 0.5);
   [
     'labelWindowWU',
     'staggerWU',
@@ -731,6 +723,9 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
     'mobileReadingLineY',
     'approachBandY',
     'exitLineY',
+    'labelOffsetPx',
+    'labelScale',
+    'reconnectOpacity',
   ].forEach((key) => assert.equal(key in disciplineReveal.parameters, false));
   const mobileRippleCenter = [
     rippleCenter[0],
@@ -812,11 +807,13 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.match(liveSources.world, /worldPoint\.y \+= gatheringWeight \* perpetualRipple/);
   assert.match(liveSources.world, /worldPoint\.xz \+= rippleDirection[\s\S]*?radialRipple/);
   assert.doesNotMatch(liveSources.world, /rippleScale/);
-  assert.match(liveSources.world, /const isolationWeight = Number\(revealState\.backgroundProgress \|\| 0\)[\s\S]*?\* \(1 - Number\(revealState\.restoreProgress \|\| 0\)\)/);
-  assert.match(liveSources.world, /frame\.globals\.editorialRevealThreshold[\s\S]*?frame\.globals\.editorialMotion\?\.fadeDurationWU/);
-  assert.match(liveSources.world, /disciplineWeights\[group - 1\] = revealProgress/);
-  assert.match(liveSources.world, /const activationRevealProgress = getAboutNarrativeSharedRevealProgress/);
-  assert.match(liveSources.world, /const revealProgress = Math.min/);
+  assert.match(liveSources.world, /const backgroundWeight = effectAvailable[\s\S]*?revealState\.backgroundProgress[\s\S]*?restoreWeight/);
+  assert.match(liveSources.world, /disciplineWeights\[activeIndex\] = activeReveal/);
+  assert.doesNotMatch(liveSources.world, /disciplineReadingAnchor/);
+  assert.match(liveSources.world, /worldAnchorSampling = 'native-grid-cell'/);
+  assert.match(liveSources.world, /anchors: pair\.toWorld\.shapeId === 'calm-field-v1'[\s\S]*?ABOUT_NARRATIVE_DISCIPLINE_ANCHORS/);
+  assert.match(liveSources.world, /overlay\.style\.setProperty\('--discipline-beat-progress'/);
+  assert.doesNotMatch(liveSources.world, /querySelector\(DISCIPLINE_LABEL|disciplineLabelResizeObserver|getAboutNarrativeDisciplineLabelNudge|projectDisciplineAnchors/);
   assert.doesNotMatch(liveSources.world, /activeLabelIndex|departureReveal|disciplineSpatialReveal/);
   assert.doesNotMatch(liveSources.world, /disciplineArrivalHold/);
   assert.match(liveSources.world, /float disciplineMonochrome = disciplineIsolation \* \(1\.0 - revealedGroupWeight\)/);
@@ -971,12 +968,12 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   handoffs.forEach(([outgoingEndWU, incomingStartWU]) => {
     assert.ok(incomingStartWU - outgoingEndWU <= 0.65);
   });
-  assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
-  assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.8);
+  assert.ok(fields.get('text-disciplines-title').startWU >= reveal.endWU);
+  assert.ok(fields.get('text-disciplines-title').startWU - reveal.endWU <= 0.25);
   assert.ok(finale.startWU - emergent.startWU <= 0.81);
   assert.ok(
     visibilityKeys.get('visibility-grid-visible').atWU
-      <= fields.get('text-background-unit').endWU,
+      <= reveal.startWU + reveal.parameters.settleDurationWU,
   );
   assert.equal(
     Number((
@@ -1081,6 +1078,11 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
   assert.equal(disciplineReveal.activationWU, disciplineReveal.startWU);
   assert.equal(disciplineReveal.parameters.items.length, 6);
+  assert.equal(disciplineReveal.endWU, 10.15);
+  disciplineReveal.parameters.items.forEach((item) => {
+    assert.equal(item.position, undefined);
+    assert.equal(item.mobilePosition, undefined);
+  });
   assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.8);
   assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.4);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
@@ -1104,7 +1106,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.timeline, /getAboutNarrativeEditorialReveal\(/);
   assert.doesNotMatch(liveSources.timeline, /editorial-blur|editorial-y/);
   assert.match(liveSources.timeline, /getAboutNarrativeSharedRevealProgress/);
-  assert.match(liveSources.world, /getAboutNarrativeSharedRevealProgress/);
+  assert.doesNotMatch(liveSources.world, /getAboutNarrativeSharedRevealProgress/);
   assert.doesNotMatch(liveSources.world, /revealState\?\.active/);
   assert.doesNotMatch(
     liveSources.styles,

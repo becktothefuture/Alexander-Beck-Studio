@@ -86,18 +86,6 @@ import {
   createAnnouncementDeduper,
   describeAboutDirectorDiagnostic,
 } from './aboutNarrativeDirectorDiagnostics.js';
-import {
-  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
-  ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
-  constrainAboutNarrativeDisciplinePosition,
-  getAboutNarrativeDisciplineGridCell,
-  getAboutNarrativeDisciplineGridCellBounds,
-  getAboutNarrativeDisciplineGridDimensions,
-  getAboutNarrativeDisciplineMinimumSeparation,
-  getAboutNarrativeDisciplinePosition,
-  getAboutNarrativeDisciplinePositionForGridCell,
-} from './aboutNarrativeDisciplinePositions.js';
-import { getAboutNarrativePositionMapCorridor } from './aboutNarrativeTextCorridor.js';
 import './about-narrative-editor.css';
 
 const LEGACY_TRACKS = Object.freeze([
@@ -661,219 +649,6 @@ function InspectorFolder({ group, count, defaultOpen = false, children }) {
       </summary>
       <div className="about-track-editor-folder__body">{children}</div>
     </details>
-  );
-}
-
-function DisciplinePositionEditor({
-  items,
-  corridorWidthRem = 58,
-  disabled = false,
-  onBegin,
-  onPreview,
-  onFinish,
-  onCancel,
-  onCommit,
-}) {
-  const [profile, setProfile] = useState('desktop');
-  const mapRef = useRef(null);
-  const gestureRef = useRef(null);
-  const xBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.x;
-  const yBounds = ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS.y;
-  const gridDimensions = getAboutNarrativeDisciplineGridDimensions(profile);
-  const gridCellBounds = getAboutNarrativeDisciplineGridCellBounds(profile);
-  const mapCorridor = getAboutNarrativePositionMapCorridor(corridorWidthRem, profile);
-  const minimumGap = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
-  const toXPercent = (value) => (
-    (mapCorridor.min * 100)
-    + (((Number(value) - Number(xBounds.min)) / (Number(xBounds.max) - Number(xBounds.min)))
-      * mapCorridor.width * 100)
-  );
-  const toYPercent = (value) => (
-    6 + (((Number(value) - Number(yBounds.min)) / (Number(yBounds.max) - Number(yBounds.min))) * 88)
-  );
-  const pointerPosition = (event) => {
-    const bounds = mapRef.current?.getBoundingClientRect();
-    if (!bounds) return null;
-    const normalizedX = clamp(
-      (event.clientX - bounds.left) / Math.max(1, bounds.width),
-      mapCorridor.min,
-      mapCorridor.max,
-    );
-    const normalizedY = clamp((event.clientY - bounds.top) / Math.max(1, bounds.height), 0.06, 0.94);
-    return [
-      xBounds.min + (((normalizedX - mapCorridor.min) / mapCorridor.width)
-        * (xBounds.max - xBounds.min)),
-      yBounds.min + (((normalizedY - 0.06) / 0.88)
-        * (yBounds.max - yBounds.min)),
-    ];
-  };
-  const previewPointer = (event) => {
-    const gesture = gestureRef.current;
-    if (!gesture) return;
-    const position = pointerPosition(event);
-    if (position) onPreview?.(gesture.group, profile, position);
-  };
-  const beginPointer = (event, group) => {
-    if (disabled || onBegin?.(group, profile) === false) return;
-    gestureRef.current = { group, pointerId: event.pointerId };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    previewPointer(event);
-  };
-  const finishPointer = () => {
-    if (!gestureRef.current) return;
-    gestureRef.current = null;
-    onFinish?.();
-  };
-  const cancelPointer = () => {
-    if (!gestureRef.current) return;
-    gestureRef.current = null;
-    onCancel?.();
-  };
-  const adjustWithKeyboard = (event, item) => {
-    const direction = {
-      ArrowLeft: [-1, 0],
-      ArrowRight: [1, 0],
-      ArrowUp: [0, -1],
-      ArrowDown: [0, 1],
-    }[event.key];
-    if (!direction || disabled) return;
-    event.preventDefault();
-    const current = getAboutNarrativeDisciplinePosition(item, profile);
-    const cell = getAboutNarrativeDisciplineGridCell(current, profile);
-    const amount = event.shiftKey ? 5 : 1;
-    onCommit?.(item.group, profile, getAboutNarrativeDisciplinePositionForGridCell([
-      cell[0] + (direction[0] * amount),
-      cell[1] + (direction[1] * amount),
-    ], profile));
-  };
-
-  return (
-    <section className="about-track-editor-discipline-position-editor" aria-label="Discipline positions">
-      <header>
-        <div>
-          <strong>Position map</strong>
-          <small>Select an exact column and row in the {gridDimensions.columns} × {gridDimensions.rows} grid.</small>
-        </div>
-        <div className="about-track-editor-discipline-profile" aria-label="Position profile">
-          {['desktop', 'mobile'].map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={profile === value ? 'is-active' : ''}
-              aria-pressed={profile === value}
-              onClick={() => setProfile(value)}
-            >
-              {value === 'desktop' ? 'Desktop' : 'Mobile'}
-            </button>
-          ))}
-        </div>
-      </header>
-      <div
-        ref={mapRef}
-        className="about-track-editor-discipline-map"
-        aria-label={`${profile} Discipline anchor map`}
-        style={{
-          '--discipline-editor-corridor-left': `${mapCorridor.min * 100}%`,
-          '--discipline-editor-corridor-right': `${mapCorridor.max * 100}%`,
-        }}
-      >
-        <div className="about-track-editor-discipline-map__corridor" aria-hidden="true">
-          <span>Text corridor</span>
-        </div>
-        {(items || []).map((item) => {
-          const position = getAboutNarrativeDisciplinePosition(item, profile);
-          const cell = getAboutNarrativeDisciplineGridCell(position, profile);
-          return (
-            <button
-              key={item.group}
-              type="button"
-              className="about-track-editor-discipline-map__anchor"
-              style={{
-                '--discipline-editor-x': `${toXPercent(position[0])}%`,
-                '--discipline-editor-y': `${toYPercent(position[1])}%`,
-                '--discipline-editor-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
-              }}
-              disabled={disabled}
-              aria-label={`${item.label} position, column ${cell[0]}, row ${cell[1]}`}
-              onPointerDown={(event) => beginPointer(event, item.group)}
-              onPointerMove={(event) => {
-                if (gestureRef.current?.pointerId === event.pointerId) previewPointer(event);
-              }}
-              onPointerUp={finishPointer}
-              onPointerCancel={cancelPointer}
-              onKeyDown={(event) => adjustWithKeyboard(event, item)}
-            >
-              {item.group}
-            </button>
-          );
-        })}
-      </div>
-      <p className="about-track-editor-discipline-gap">
-        {gridDimensions.columns} columns × {gridDimensions.rows} rows · minimum gap <b>{minimumGap.toFixed(2)}</b> · protected at {ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION.toFixed(2)}
-      </p>
-      <div className="about-track-editor-discipline-coordinates">
-        {(items || []).map((item) => {
-          const position = getAboutNarrativeDisciplinePosition(item, profile);
-          const cell = getAboutNarrativeDisciplineGridCell(position, profile);
-          const commitCell = (axis, value) => {
-            const next = [...cell];
-            next[axis] = Math.round(value);
-            onCommit?.(
-              item.group,
-              profile,
-              getAboutNarrativeDisciplinePositionForGridCell(next, profile),
-            );
-          };
-          return (
-            <div className="about-track-editor-discipline-coordinate" key={item.group}>
-              <span title={item.label}>
-                <i
-                  style={{ backgroundColor: `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})` }}
-                  aria-hidden="true"
-                />
-                {item.group}. {item.label}
-              </span>
-              <label>
-                <span>Col</span>
-                <input
-                  key={`${profile}-${item.group}-column-${cell[0]}`}
-                  type="number"
-                  defaultValue={cell[0]}
-                  min={gridCellBounds.minColumn}
-                  max={gridCellBounds.maxColumn}
-                  step={1}
-                  disabled={disabled}
-                  aria-label={`${item.label} ${profile} column`}
-                  onBlur={(event) => {
-                    const value = Number(event.currentTarget.value);
-                    if (Number.isFinite(value) && Math.round(value) !== cell[0]) commitCell(0, value);
-                    else event.currentTarget.value = String(cell[0]);
-                  }}
-                />
-              </label>
-              <label>
-                <span>Row</span>
-                <input
-                  key={`${profile}-${item.group}-row-${cell[1]}`}
-                  type="number"
-                  defaultValue={cell[1]}
-                  min={gridCellBounds.minRow}
-                  max={gridCellBounds.maxRow}
-                  step={1}
-                  disabled={disabled}
-                  aria-label={`${item.label} ${profile} row`}
-                  onBlur={(event) => {
-                    const value = Number(event.currentTarget.value);
-                    if (Number.isFinite(value) && Math.round(value) !== cell[1]) commitCell(1, value);
-                    else event.currentTarget.value = String(cell[1]);
-                  }}
-                />
-              </label>
-            </div>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 
@@ -2412,14 +2187,6 @@ function ObjectInspector({ snapshot, store, editScope }) {
     module.parameters = { ...ABOUT_INTERACTIVE_STACK_DEFAULTS, ...module.parameters };
     module.parameters[id] = value;
   };
-  const mutateDisciplinePosition = (target, group, profile, requested) => {
-    const items = target.parameters?.items || [];
-    const targetItem = items.find((candidate) => Number(candidate.group) === Number(group));
-    if (!targetItem) return;
-    const position = constrainAboutNarrativeDisciplinePosition(items, group, profile, requested);
-    const key = profile === 'mobile' ? 'mobilePosition' : 'position';
-    targetItem[key] = position;
-  };
   return (
     <div className="about-track-editor-inspector__content">
       <header>
@@ -2870,27 +2637,8 @@ function ObjectInspector({ snapshot, store, editScope }) {
           {object.type === 'discipline-reveal' ? (
             <>
               <p className="about-track-editor-parameter-note is-wide">
-                Each label is pinned to a real grid point and reveals as the camera passes it. Colour is locked to its unique simulation group.
+                One ordered reading line presents a single discipline at a time. Timing and point emphasis are shared across all six items.
               </p>
-              <DisciplinePositionEditor
-                items={object.parameters?.items || []}
-                corridorWidthRem={snapshot.document.globals.readingWidthRem}
-                disabled={locked}
-                onBegin={(group, profile) => store.beginGesture(
-                  `Move Discipline ${group} ${profile} position`,
-                  { selection },
-                )}
-                onPreview={(group, profile, position) => store.updateGesture((draft) => {
-                  const target = getAboutNarrativeTrackObject(draft, selection);
-                  if (target) mutateDisciplinePosition(target, group, profile, position);
-                }, { selection })}
-                onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
-                onCancel={() => store.cancelGesture()}
-                onCommit={(group, profile, position) => commit(
-                  `Move Discipline ${group} ${profile} position`,
-                  (target) => mutateDisciplinePosition(target, group, profile, position),
-                )}
-              />
               <div className="about-track-editor-discipline-layout is-wide">
                 {(object.parameters?.items || []).map((item) => {
                   return (

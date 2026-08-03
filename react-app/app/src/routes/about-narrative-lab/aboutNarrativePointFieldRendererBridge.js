@@ -165,7 +165,10 @@ function compileDisciplineReveal(interactions, fallback) {
   const effectStartWU = Number(clip.startWU);
   const startWU = Number(clip.activationWU);
   const endWU = Number(clip.endWU);
-  const backgroundFadeWU = Number(parameters.backgroundFadeWU);
+  const settleDurationWU = Number(parameters.settleDurationWU);
+  const beatDurationWU = Number(parameters.beatDurationWU);
+  const sequenceStartWU = effectStartWU + settleDurationWU;
+  const sequenceEndWU = sequenceStartWU + (parameters.items.length * beatDurationWU);
   return deepFreeze({
     id: clip.id,
     startWU,
@@ -173,14 +176,16 @@ function compileDisciplineReveal(interactions, fallback) {
     endWU,
     effectStartWU,
     effectEndWU: endWU,
-    backgroundFadeWU,
-    backgroundFadeEndWU: effectStartWU + backgroundFadeWU,
+    settleDurationWU,
+    beatDurationWU,
+    sequenceStartWU,
+    sequenceEndWU,
+    backgroundFadeWU: settleDurationWU,
+    backgroundFadeEndWU: sequenceStartWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
-    reconnectOpacity: Number(parameters.reconnectOpacity),
+    reconnectOpacity: 1,
     pointScale: Number(parameters.pointScale),
     restoreDurationWU: Number(parameters.restoreDurationWU),
-    labelOffsetPx: Number(parameters.labelOffsetPx),
-    labelScale: Number(parameters.labelScale ?? 1),
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -353,19 +358,39 @@ function writeV6DisciplineReveal(frame, config) {
   target.endWU = config.endWU;
   target.backgroundFadeWU = config.backgroundFadeWU;
   target.restoreDurationWU = config.restoreDurationWU;
+  target.sequenceStartWU = config.sequenceStartWU;
+  target.sequenceEndWU = config.sequenceEndWU;
   target.active = frame.storyWU >= config.effectStartWU && frame.storyWU < config.effectEndWU;
   target.backgroundProgress = !target.active
     ? 0
     : frame.reducedMotion
       ? 1
       : smoothRange(frame.storyWU, config.effectStartWU, config.backgroundFadeEndWU);
-  const restoreStartWU = Math.max(
-    config.startWU,
-    config.effectEndWU - Math.max(0, config.restoreDurationWU),
-  );
+  const restoreStartWU = config.sequenceEndWU;
   target.restoreProgress = frame.reducedMotion
     ? 0
     : smoothRange(frame.storyWU, restoreStartWU, config.effectEndWU);
+  target.activeIndex = -1;
+  target.activeGroup = 0;
+  target.beatProgress = 0;
+  target.activeReveal = 0;
+  target.copyOffsetY = 0;
+  if (frame.storyWU >= config.sequenceStartWU && frame.storyWU < config.sequenceEndWU) {
+    const sequenceWU = frame.storyWU - config.sequenceStartWU;
+    const activeIndex = Math.min(
+      config.items.length - 1,
+      Math.floor(sequenceWU / config.beatDurationWU),
+    );
+    const beatProgress = (sequenceWU - (activeIndex * config.beatDurationWU))
+      / config.beatDurationWU;
+    const entrance = frame.reducedMotion ? 1 : smoothRange(beatProgress, 0, 0.2);
+    const exit = frame.reducedMotion ? 0 : smoothRange(beatProgress, 0.8, 1);
+    target.activeIndex = activeIndex;
+    target.activeGroup = Number(config.items[activeIndex]?.group || 0);
+    target.beatProgress = beatProgress;
+    target.activeReveal = frame.reducedMotion ? 1 : Math.min(entrance, 1 - exit);
+    target.copyOffsetY = frame.reducedMotion ? 0 : ((1 - entrance) * 18) - (exit * 18);
+  }
 }
 
 export function sampleAboutNarrativeRendererRuntimePlanInto(

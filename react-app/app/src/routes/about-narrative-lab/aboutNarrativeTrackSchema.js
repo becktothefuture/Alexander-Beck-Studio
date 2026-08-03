@@ -869,6 +869,11 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
   if (Number(parameters.restoreDurationWU) > Number(clip.endWU) - Number(clip.startWU) + 0.000001) {
     diagnostic(diagnostics, 'discipline-motion-restore-window', `${path}.parameters.restoreDurationWU`, 'Grid restore duration must fit inside the Discipline reveal Motion clip.');
   }
+  ['backgroundFadeWU', 'reconnectOpacity', 'labelOffsetPx', 'labelScale'].forEach((key) => {
+    if (parameters[key] != null && !finite(parameters[key])) {
+      diagnostic(diagnostics, 'discipline-motion-number', `${path}.parameters.${key}`, 'Legacy Discipline Motion values must be finite.');
+    }
+  });
   const items = parameters.items;
   if (!Array.isArray(items) || items.length !== 6) {
     diagnostic(diagnostics, 'discipline-motion-items', `${path}.parameters.items`, 'Discipline reveal Motion requires exactly six labelled items.');
@@ -889,7 +894,23 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
     if (item?.position != null) validateDisciplinePosition(item.position, diagnostics, `${itemPath}.position`);
     if (item?.mobilePosition != null) validateDisciplinePosition(item.mobilePosition, diagnostics, `${itemPath}.mobilePosition`);
   });
-  if (items.length === 6 && groups.size === 6) {
+  if (schemaVersion >= 5
+    && finite(parameters.settleDurationWU)
+    && finite(parameters.beatDurationWU)) {
+    const sequenceDurationWU = Number(parameters.settleDurationWU)
+      + (items.length * Number(parameters.beatDurationWU))
+      + Number(parameters.restoreDurationWU);
+    const clipDurationWU = Number(clip.endWU) - Number(clip.startWU);
+    if (sequenceDurationWU > clipDurationWU + 0.000001) {
+      diagnostic(
+        diagnostics,
+        'discipline-sequence-window',
+        `${path}.parameters`,
+        'Lane settle, six discipline beats, and grid restore must fit inside the Discipline reveal Motion clip.',
+      );
+    }
+  }
+  if (schemaVersion <= 4 && items.length === 6 && groups.size === 6) {
     ['desktop', 'mobile'].forEach((profile) => {
       const minimum = getAboutNarrativeDisciplineMinimumSeparation(items, profile);
       if (minimum < ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001) {
@@ -1106,7 +1127,8 @@ export function validateAboutNarrativeTrackDocument(input, {
       const allowedParameterIds = new Set(interactionDefinition.parameters.map((control) => control.id));
       if (clip.type === 'discipline-reveal') {
         allowedParameterIds.add('items');
-        if (schemaVersion <= 4) RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
+        RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
+        ['backgroundFadeWU', 'reconnectOpacity', 'labelOffsetPx', 'labelScale'].forEach((key) => allowedParameterIds.add(key));
       }
       if (clip.type === 'grid-ripple' && schemaVersion <= 4) {
         REMOVED_GRID_RIPPLE_PARAMETER_KEYS.forEach((key) => allowedParameterIds.add(key));
@@ -1118,6 +1140,7 @@ export function validateAboutNarrativeTrackDocument(input, {
         `${path}.parameters`,
       );
       interactionDefinition.parameters.forEach((control) => {
+        if (clip.type === 'discipline-reveal' && clip.parameters[control.id] == null) return;
         validateControlValue(
           clip.parameters[control.id],
           control,
@@ -1837,6 +1860,15 @@ function stripRemovedDisciplineParameters(parameters) {
 function upgradeDisciplineMotionParameters(parameters) {
   const next = cloneAboutNarrativeDocument(parameters || {});
   RETIRED_DISCIPLINE_MOTION_PARAMETER_KEYS.forEach((key) => delete next[key]);
+  ['backgroundFadeWU', 'reconnectOpacity', 'labelOffsetPx', 'labelScale'].forEach((key) => delete next[key]);
+  if (!finite(next.settleDurationWU)) next.settleDurationWU = 0.3;
+  if (!finite(next.beatDurationWU)) next.beatDurationWU = 0.7;
+  next.items = (next.items || []).map((item) => {
+    const migrated = cloneAboutNarrativeDocument(item);
+    delete migrated.position;
+    delete migrated.mobilePosition;
+    return migrated;
+  });
   return next;
 }
 

@@ -200,9 +200,14 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(cssPointSize, 5\.25, 21\.6\) \* entranceScale\) \* pixelRatio/);
+  assert.match(source, /gl_PointSize = max\(0\.01, clamp\(renderedPointSize, 5\.25, 21\.6\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /presence = max\(presence, groupExists \* disciplineRevealActive\)/);
-  assert.match(source, /pointTint = mix\(pointTint, disciplineMaterialColor\(group\), revealedGroupWeight\)/);
+  assert.match(source, /disciplineMaterialColor\(disciplineColourGroup\)/);
+  assert.match(source, /float group = toGroup >= 0\.5 \? toGroup : fromGroup/);
+  assert.match(source, /stationaryRevealWeight/);
+  assert.match(source, /uniforms\.disciplineReducedMotion\.value = frame\.reducedMotion \? 1 : 0/);
+  assert.match(source, /presence = mix\([\s\S]*revealedGroupWeight/);
+  assert.match(source, /max\(cssPointSize, 12\.0\)/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
   assert.match(
     source,
@@ -221,10 +226,11 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
   assert.match(source, /inputFingerprint: pair\.inputFingerprint/);
   assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
-  assert.match(source, /const revealAvailable = effectAvailable[\s\S]*frame\.storyWU >= revealState\.startWU/);
-  assert.match(source, /frame\.storyWU < revealState\.endWU/);
-  assert.match(source, /const projectDisciplineAnchors = \(/);
-  assert.match(source, /getAboutNarrativeDisciplineLabelNudge\(\{/);
+  assert.match(source, /const activeIndex = effectAvailable \? Number\(revealState\.activeIndex\) : -1/);
+  assert.match(source, /frame\.storyWU < reveal\.effectEndWU/);
+  assert.match(source, /disciplineWeights\[activeIndex\] = activeReveal/);
+  assert.match(source, /overlay\.style\.setProperty\('--discipline-beat-progress'/);
+  assert.doesNotMatch(source, /projectDisciplineAnchors|getAboutNarrativeDisciplineLabelNudge|disciplineLabelResizeObserver/);
   assert.doesNotMatch(source, /installConstrainedDisciplinePoint|constrainDisciplinePointsToCorridor/);
   assert.match(source, /attributeFilter: \['data-editor-preview-layout', 'data-editor-preview-orientation'\]/);
   assert.match(source, /window\.addEventListener\('resize', resize, \{ passive: true \}\)/);
@@ -257,10 +263,8 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /vec3 submergedBust = toWorld/);
   assert.match(source, /float surfaceTransit = max\(0\.0, surfaceDeparture - surfaceArrival\)/);
   assert.match(source, /presence \*= mix\(1\.0, clamp\(bustSurfaceCarry/);
-  assert.match(
-    source,
-    /else \{[\s\S]*uniforms\.fromDisciplineIsolation\.value = 0;[\s\S]*uniforms\.toDisciplineIsolation\.value = 0;/,
-  );
+  assert.match(source, /uniforms\.fromDisciplineIsolation\.value = backgroundWeight/);
+  assert.match(source, /uniforms\.toDisciplineIsolation\.value = backgroundWeight/);
   assert.match(source, /uniform float bustFragmentSpread/);
   assert.match(source, /bustFragmentProgress[\s\S]*bustAssemblyWeight/);
   assert.match(source, /float rippleClock = mix\([\s\S]*?ambientTime/);
@@ -281,7 +285,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.doesNotMatch(source, /--narrative-camera-fov/);
   assert.match(
     styles,
-    /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*opacity: var\(--discipline-reveal\)/,
+    /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*transform: none/,
   );
 });
 

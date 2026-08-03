@@ -1067,6 +1067,32 @@ function migrateV5Interaction(clip) {
   const next = clone(clip);
   next.targetStateId = next.targetWorldId;
   delete next.targetWorldId;
+  if (next.type === 'discipline-reveal') {
+    const parameters = next.parameters || {};
+    const clipDurationWU = Math.max(0, Number(next.endWU) - Number(next.startWU));
+    const restoreDurationWU = Number.isFinite(Number(parameters.restoreDurationWU))
+      ? Number(parameters.restoreDurationWU)
+      : 0.3;
+    const settleDurationWU = Number.isFinite(Number(parameters.settleDurationWU))
+      ? Number(parameters.settleDurationWU)
+      : Math.min(0.5, Math.max(0.05, clipDurationWU - restoreDurationWU - 1.2));
+    const availableBeatWU = Math.max(1.2, clipDurationWU - settleDurationWU - restoreDurationWU);
+    next.parameters = {
+      settleDurationWU,
+      beatDurationWU: Number.isFinite(Number(parameters.beatDurationWU))
+        ? Number(parameters.beatDurationWU)
+        : availableBeatWU / 6,
+      backgroundOpacity: parameters.backgroundOpacity,
+      pointScale: parameters.pointScale,
+      restoreDurationWU,
+      items: (parameters.items || []).map((item) => {
+        const migrated = clone(item);
+        delete migrated.position;
+        delete migrated.mobilePosition;
+        return migrated;
+      }),
+    };
+  }
   return next;
 }
 

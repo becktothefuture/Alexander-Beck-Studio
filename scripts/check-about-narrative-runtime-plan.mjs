@@ -24,14 +24,8 @@ import {
   validateAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
-  constrainAboutNarrativeDisciplinePosition,
-  getAboutNarrativeDisciplineGridCell,
-  getAboutNarrativeDisciplineGridDimensions,
-  getAboutNarrativeDisciplineMinimumSeparation,
-  getAboutNarrativeDisciplinePosition,
-  getAboutNarrativeDisciplinePositionForGridCell,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplinePositions.js';
+  projectAboutNarrativePointFieldDocumentToVersion5,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
   migrateLegacyAboutNarrativeCameraPose,
@@ -42,19 +36,12 @@ import { applyAboutNarrativeCameraEasing } from '../react-app/app/src/routes/abo
 import {
   applyAboutNarrativeWorldTransitionEasing,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.js';
-import {
-  getAboutNarrativeDisciplinePointMinX,
-  getAboutNarrativeDisciplinePointMaxX,
-  getAboutNarrativeDisciplineLabelNudge,
-  getAboutNarrativeHorizontalCorridorOverflow,
-  getAboutNarrativePositionMapCorridor,
-  isAboutNarrativeRectInsideCorridor,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTextCorridor.js';
 import '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeMotionMath.test.js';
-const canonicalSource = JSON.parse(await readFile(
-  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
+const canonicalPointFieldSource = JSON.parse(await readFile(
+  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const canonicalSource = projectAboutNarrativePointFieldDocumentToVersion5(canonicalPointFieldSource);
 const legacy = JSON.parse(await readFile(
   new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url),
   'utf8',
@@ -583,7 +570,7 @@ test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion
   assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU).simulation.visibility, 1);
 });
 
-test('Discipline reveal keeps one clip clock and delegates accumulated reveal to viewport sampling', () => {
+test('Discipline reading line compiles one shared six-beat sequence', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
   assert.ok(reveal);
@@ -591,189 +578,66 @@ test('Discipline reveal keeps one clip clock and delegates accumulated reveal to
   assert.equal(reveal.motion.type, 'discipline-reveal');
   assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.equal(reveal.motion.targetWorldId, 'world-grid');
-  assert.ok(reveal.backgroundFadeWU > 0);
-  assert.ok(reveal.restoreDurationWU > 0);
-  assert.equal('fieldTravelStartWU' in reveal, false);
-  assert.equal('fieldTravelEndWU' in reveal, false);
-  [
-    'fieldTravelDurationWU',
-    'fieldTravelWU',
-    'fieldFogStartWU',
-    'fieldFogEndWU',
-    'fieldFogStrength',
-    'backgroundScale',
-    'labelWindowWU',
-    'staggerWU',
-    'labelDurationWU',
-    'holdWU',
-    'readingLineY',
-    'mobileReadingLineY',
-    'approachBandY',
-    'exitLineY',
-  ]
-    .forEach((key) => assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`));
+  assert.equal(reveal.settleDurationWU, 0.5);
+  assert.equal(reveal.beatDurationWU, 0.7);
+  assert.equal(reveal.sequenceStartWU, 5.55);
+  assert.equal(reveal.sequenceEndWU, 9.75);
+  assert.equal(reveal.effectEndWU, 10.15);
+  assert.equal(reveal.items.length, 6);
+  reveal.items.forEach((item) => {
+    assert.equal('position' in item, false);
+    assert.equal('mobilePosition' in item, false);
+  });
+  ['reconnectOpacity', 'labelOffsetPx', 'labelScale'].forEach((key) => {
+    assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`);
+  });
 
-  const entering = sampleAboutNarrativeRuntimePlan(plan, reveal.effectStartWU + 0.000001).disciplineReveal;
-  assert.equal('fieldTravelProgress' in entering, false);
-  const restoring = sampleAboutNarrativeRuntimePlan(
-    plan,
-    reveal.effectEndWU - (reveal.restoreDurationWU * 0.5),
-  ).disciplineReveal;
-  const restored = sampleAboutNarrativeRuntimePlan(plan, reveal.effectEndWU - 0.000001).disciplineReveal;
-  const handoff = sampleAboutNarrativeRuntimePlan(plan, reveal.endWU + 0.000001).disciplineReveal;
-  assert.equal(entering.active, true);
+  const settling = sampleAboutNarrativeRuntimePlan(plan, 5.3).disciplineReveal;
+  assert.equal(settling.active, true);
+  assert.equal(settling.activeIndex, -1);
+  assert.ok(settling.backgroundProgress > 0 && settling.backgroundProgress < 1);
+
+  reveal.items.forEach((item, index) => {
+    const midpointWU = reveal.sequenceStartWU + ((index + 0.5) * reveal.beatDurationWU);
+    const frame = sampleAboutNarrativeRuntimePlan(plan, midpointWU).disciplineReveal;
+    assert.equal(frame.activeIndex, index);
+    assert.equal(frame.activeGroup, item.group);
+    assert.equal(frame.activeReveal, 1);
+    assert.ok(frame.beatProgress > 0.49 && frame.beatProgress < 0.51);
+  });
+
+  const restoring = sampleAboutNarrativeRuntimePlan(plan, 9.95).disciplineReveal;
+  const restored = sampleAboutNarrativeRuntimePlan(plan, 10.149999).disciplineReveal;
+  const handoff = sampleAboutNarrativeRuntimePlan(plan, 10.150001).disciplineReveal;
+  assert.equal(restoring.activeIndex, -1);
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);
   assert.equal(handoff.active, false);
 });
 
-test('Discipline reveal separates effect availability from label activation without snapping or leaking', () => {
-  const document = structuredClone(canonical);
-  const clip = document.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
-  clip.activationWU = clip.startWU + 0.8;
-  const plan = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
-  assert.equal(plan.valid, true);
+test('Reduced Motion switches disciplines at the same beat boundaries without spatial travel', () => {
+  const plan = compileAboutNarrativeRuntimePlan(canonical, {
+    layoutProfile: 'desktop',
+    motionProfile: 'reduced',
+  });
   const reveal = plan.disciplineReveal;
-  assert.ok(reveal.effectStartWU < reveal.startWU);
-
-  const beforeEffect = sampleAboutNarrativeRuntimePlan(
-    plan,
-    reveal.effectStartWU - 0.000001,
-  ).disciplineReveal;
-  const preparing = sampleAboutNarrativeRuntimePlan(
-    plan,
-    reveal.effectStartWU + (reveal.backgroundFadeWU * 0.5),
-  ).disciplineReveal;
-  const activation = sampleAboutNarrativeRuntimePlan(plan, reveal.startWU).disciplineReveal;
-  const afterEnd = sampleAboutNarrativeRuntimePlan(
-    plan,
-    reveal.effectEndWU,
-  ).disciplineReveal;
-
-  assert.equal(beforeEffect.active, false);
-  assert.equal(beforeEffect.backgroundProgress, 0);
-  assert.equal(preparing.active, true);
-  assert.ok(preparing.storyWU < preparing.startWU, 'labels must remain gated before activation');
-  assert.ok(preparing.backgroundProgress > 0 && preparing.backgroundProgress < 1);
-  assert.equal(activation.backgroundProgress, 1, 'activation must not restart the background fade');
-  assert.equal(afterEnd.active, false);
-  assert.equal(afterEnd.backgroundProgress, 0);
+  const first = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 0.35).disciplineReveal;
+  const second = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 1.05).disciplineReveal;
+  assert.equal(first.activeIndex, 0);
+  assert.equal(second.activeIndex, 1);
+  assert.equal(first.activeReveal, 1);
+  assert.equal(second.activeReveal, 1);
+  assert.equal(first.copyOffsetY, 0);
+  assert.equal(second.copyOffsetY, 0);
 });
 
-test('Discipline positions stay separated in both responsive profiles', () => {
-  const clip = canonical.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
-  const items = clip.parameters.items;
-  ['desktop', 'mobile'].forEach((profile) => {
-    assert.ok(
-      getAboutNarrativeDisciplineMinimumSeparation(items, profile)
-        >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION,
-      `${profile} anchors must preserve the authored minimum gap`,
-    );
-  });
-
+test('Discipline sequence timing must fit inside the Motion clip', () => {
   const invalid = structuredClone(canonical);
-  const invalidItems = invalid.tracks.interactions.clips
-    .find((item) => item.type === 'discipline-reveal').parameters.items;
-  invalidItems[1].position = [...invalidItems[0].position];
+  const clip = invalid.tracks.interactions.clips.find((item) => item.type === 'discipline-reveal');
+  clip.parameters.beatDurationWU = 1;
   assert.ok(validateAboutNarrativeTrackDocument(invalid).some((item) => (
-    item.code === 'discipline-position-spacing'
+    item.code === 'discipline-sequence-window'
   )));
-
-  const requested = getAboutNarrativeDisciplinePosition(items[0], 'desktop');
-  const constrained = constrainAboutNarrativeDisciplinePosition(
-    items,
-    items[1].group,
-    'desktop',
-    requested,
-  );
-  assert.ok(Math.hypot(
-    constrained[0] - requested[0],
-    constrained[1] - requested[1],
-  ) >= ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION - 0.000001);
-});
-
-test('Discipline positions resolve to exact point-grid cells in both profiles', () => {
-  ['desktop', 'mobile'].forEach((profile) => {
-    const dimensions = getAboutNarrativeDisciplineGridDimensions(profile);
-    const requestedCell = profile === 'desktop' ? [39, 51] : [24, 33];
-    const position = getAboutNarrativeDisciplinePositionForGridCell(requestedCell, profile);
-    assert.deepEqual(getAboutNarrativeDisciplineGridCell(position, profile), requestedCell);
-    assertClose(
-      position[0],
-      requestedCell[0] / (dimensions.columns - 1),
-      `${profile} exact column`,
-      0.000001,
-    );
-    assertClose(
-      position[1],
-      requestedCell[1] / (dimensions.rows - 1),
-      `${profile} exact row`,
-      0.000001,
-    );
-  });
-});
-
-test('the global text corridor scales the Position map across its supported width range', () => {
-  const narrow = getAboutNarrativePositionMapCorridor(30, 'desktop');
-  const canonicalWidth = getAboutNarrativePositionMapCorridor(58, 'desktop');
-  const wide = getAboutNarrativePositionMapCorridor(90, 'desktop');
-  const mobile = getAboutNarrativePositionMapCorridor(58, 'mobile');
-
-  assertClose(narrow.corridorWidthPx, 480, '30rem desktop corridor');
-  assertClose(canonicalWidth.corridorWidthPx, 928, '58rem desktop corridor');
-  assertClose(wide.corridorWidthPx, 1160.8, '90rem desktop available corridor');
-  assert.ok(wide.corridorWidthPx > canonicalWidth.corridorWidthPx);
-  assert.ok(wide.corridorWidthPx < wide.viewportWidthPx);
-  assert.ok(narrow.min > canonicalWidth.min);
-  assert.ok(canonicalWidth.min > wide.min);
-  assertClose(mobile.corridorWidthPx, 322, 'mobile corridor available width');
-  assert.ok(mobile.min >= 0.06);
-  assert.ok(mobile.max <= 0.94);
-});
-
-test('discipline label containment preserves authored anchors inside the text corridor', () => {
-  assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, 1), 256);
-  assert.equal(getAboutNarrativeDisciplinePointMaxX(262, 18, 256, 1184, 1), 904);
-  assert.equal(getAboutNarrativeDisciplinePointMinX(262, 18, 256, 1184, -1), 536);
-  assert.equal(getAboutNarrativeDisciplinePointMaxX(262, 18, 256, 1184, -1), 1184);
-  assert.equal(getAboutNarrativeDisciplinePointMaxX(224, 22, 34, 356, 1), 110);
-  assert.equal(getAboutNarrativeDisciplinePointMinX(224, 22, 34, 356, -1), 280);
-  assert.equal(getAboutNarrativeDisciplinePointMaxX(500, 18, 100, 400, 1), 100);
-  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(90, 100, 300), 10);
-  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(220, 100, 300), 0);
-  assert.equal(getAboutNarrativeHorizontalCorridorOverflow(315, 100, 300), 15);
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 960,
-    labelWidth: 262,
-    labelOffset: 18,
-    corridorLeft: 256,
-    corridorRight: 1184,
-    side: -1,
-  }), 0);
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 300,
-    labelWidth: 262,
-    labelOffset: 18,
-    corridorLeft: 256,
-    corridorRight: 1184,
-    side: -1,
-  }), 236);
-  assert.equal(getAboutNarrativeDisciplineLabelNudge({
-    anchorX: 1130,
-    labelWidth: 262,
-    labelOffset: 18,
-    corridorLeft: 256,
-    corridorRight: 1184,
-    side: 1,
-  }), -226);
-  assert.equal(isAboutNarrativeRectInsideCorridor(
-    { left: 255.5, right: 1184.5 },
-    { left: 256, right: 1184 },
-  ), true);
-  assert.equal(isAboutNarrativeRectInsideCorridor(
-    { left: 254, right: 1184 },
-    { left: 256, right: 1184 },
-  ), false);
 });
 
 test('Reduced Motion keeps the discipline clip active without a separate restore clock', () => {

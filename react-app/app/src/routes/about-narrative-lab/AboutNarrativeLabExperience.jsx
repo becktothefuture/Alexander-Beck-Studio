@@ -585,34 +585,35 @@ function TitleField({
 function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = 'interaction' }) {
   const selectReveal = selectionType === 'text-field' ? selectTextField : selectMotionClip;
   return (
-    <ol
-      ref={overlayRef}
-      className="about-narrative-discipline-reveal"
-      data-motion-clip-id={selectionType === 'interaction' ? reveal.id : undefined}
-      data-text-field-id={selectionType === 'text-field' ? reveal.id : undefined}
-      data-discipline-reveal={reveal.id}
-      aria-label="Six connected disciplines"
-      onClick={(event) => selectReveal(onSelect, reveal.id, event)}
-    >
-      {(reveal.items || []).map((item) => (
-        <li
-          key={item.group}
-          data-discipline-group={item.group}
-          style={{
-            '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
-            '--discipline-label-offset': `${reveal.labelOffsetPx}px`,
-            '--discipline-label-scale': reveal.labelScale,
-          }}
-        >
-          <span className="about-narrative-discipline-reveal__copy">
-            <span className="about-narrative-discipline-reveal__label">{item.label}</span>
-            {item.description ? (
-              <span className="about-narrative-discipline-reveal__description">{item.description}</span>
-            ) : null}
-          </span>
-        </li>
-      ))}
-    </ol>
+    <>
+      <h2 id="about-disciplines-heading" className="about-narrative-visually-hidden">Disciplines</h2>
+      <ol
+        ref={overlayRef}
+        className="about-narrative-discipline-reveal"
+        data-motion-clip-id={selectionType === 'interaction' ? reveal.id : undefined}
+        data-text-field-id={selectionType === 'text-field' ? reveal.id : undefined}
+        data-discipline-reveal={reveal.id}
+        aria-labelledby="about-disciplines-heading"
+        onClick={(event) => selectReveal(onSelect, reveal.id, event)}
+      >
+        {(reveal.items || []).map((item) => (
+          <li
+            key={item.group}
+            data-discipline-group={item.group}
+            style={{
+              '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
+            }}
+          >
+            <span className="about-narrative-discipline-reveal__copy">
+              <span className="about-narrative-discipline-reveal__label">{item.label}</span>
+              {item.description ? (
+                <span className="about-narrative-discipline-reveal__description">{item.description}</span>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 

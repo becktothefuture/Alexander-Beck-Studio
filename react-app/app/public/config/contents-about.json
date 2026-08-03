@@ -68,7 +68,22 @@
       "storyDurationWU": 17.81,
       "scrollDurationWU": 17.81,
       "overrides": {
-        "camera": {},
+        "camera": {
+          "discipline-hold": {
+            "position": [
+              -6.2,
+              13,
+              14.660249
+            ]
+          },
+          "grid-birds-eye": {
+            "position": [
+              -6.2,
+              13,
+              -22.409751
+            ]
+          }
+        },
         "visibility": {},
         "pointField": {
           "stateDefinitions": {},
@@ -86,9 +101,9 @@
         "camera": {
           "discipline-hold": {
             "position": [
-              0,
+              -6.9,
               13,
-              30
+              14.660249
             ],
             "fov": 60
           },
@@ -107,11 +122,11 @@
           },
           "grid-birds-eye": {
             "position": [
-              0,
-              12,
-              2
+              -6.9,
+              13,
+              -22.409751
             ],
-            "fov": 62
+            "fov": 60
           },
           "grid-return-centered": {
             "position": [
@@ -202,7 +217,7 @@
           "position": [
             0,
             2,
-            -20
+            -23
           ],
           "rotation": [
             0,
@@ -222,35 +237,11 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 8.463,
+          "atWU": 5.55,
           "position": [
-            0,
-            12,
-            2
-          ],
-          "rotation": [
-            -82,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            -1.72,
-            0
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "discipline-hold",
-          "atWU": 10.984,
-          "position": [
-            0,
+            -5,
             13,
-            30
+            -22.409751
           ],
           "rotation": [
             -90,
@@ -259,9 +250,33 @@
           ],
           "aimEnabled": false,
           "lookAtTarget": [
-            0,
+            -5,
             -1.72,
-            30
+            -22.409751
+          ],
+          "lookAtRoll": 0,
+          "fov": 56,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "discipline-hold",
+          "atWU": 9.75,
+          "position": [
+            -5,
+            13,
+            14.660249
+          ],
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "aimEnabled": false,
+          "lookAtTarget": [
+            -5,
+            -1.72,
+            14.660249
           ],
           "lookAtRoll": 0,
           "fov": 56,
@@ -1329,93 +1344,43 @@
           "type": "discipline-reveal",
           "startWU": 5.05,
           "activationWU": 5.05,
-          "endWU": 11.1,
+          "endWU": 10.15,
           "parameters": {
-            "backgroundFadeWU": 0.38,
-            "backgroundOpacity": 0.25,
-            "reconnectOpacity": 0.3,
-            "pointScale": 6.24,
-            "restoreDurationWU": 0.3,
-            "labelOffsetPx": 22,
-            "labelScale": 1.18,
+            "settleDurationWU": 0.5,
+            "beatDurationWU": 0.7,
+            "backgroundOpacity": 0.28,
+            "pointScale": 4.4,
+            "restoreDurationWU": 0.4,
             "items": [
               {
                 "group": 1,
                 "label": "Product Design",
-                "description": "Understanding what people need, then working out what the product should do.",
-                "position": [
-                  0.380952,
-                  0.468085
-                ],
-                "mobilePosition": [
-                  0.160494,
-                  0.5
-                ]
+                "description": "Understanding what people need, then working out what the product should do."
               },
               {
                 "group": 2,
                 "label": "Experience Design",
-                "description": "Looking at the whole journey, including the parts no one owns yet.",
-                "position": [
-                  0.396825,
-                  0.62766
-                ],
-                "mobilePosition": [
-                  0.617284,
-                  0.583333
-                ]
+                "description": "Looking at the whole journey, including the parts no one owns yet."
               },
               {
                 "group": 3,
                 "label": "Art Direction",
-                "description": "Finding a visual idea that gives the work its own character.",
-                "position": [
-                  0.547619,
-                  0.56383
-                ],
-                "mobilePosition": [
-                  0.160494,
-                  0.683333
-                ]
+                "description": "Finding a visual idea that gives the work its own character."
               },
               {
                 "group": 4,
                 "label": "Motion & 3D",
-                "description": "Using movement and space when a flat explanation is not enough.",
-                "position": [
-                  0.333333,
-                  0.776596
-                ],
-                "mobilePosition": [
-                  0.617284,
-                  0.766667
-                ]
+                "description": "Using movement and space when a flat explanation is not enough."
               },
               {
                 "group": 5,
                 "label": "Creative Engineering",
-                "description": "Making ideas in code so I can see how they really behave.",
-                "position": [
-                  0.563492,
-                  0.734043
-                ],
-                "mobilePosition": [
-                  0.160494,
-                  0.866667
-                ]
+                "description": "Making ideas in code so I can see how they really behave."
               },
               {
                 "group": 6,
                 "label": "Parametric Systems",
-                "description": "Creating rules that allow variety without becoming chaotic.",
-                "position": [
-                  0.579365,
-                  0.893617
-                ],
-                "mobilePosition": [
-                  0.617284,
-                  0.95
-                ]
+                "description": "Creating rules that allow variety without becoming chaotic."
               }
             ]
           },

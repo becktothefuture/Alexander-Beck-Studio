@@ -63,15 +63,15 @@ const checkpointSpecs = [
   { id: 'desktop-turbulent', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-void', storyWU: 3.78, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'desktop-client-logos', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
-  { id: 'desktop-grid-flyover', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
-  { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 3, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 5, maximumSpatialTitles: 0 },
-  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
-  { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'desktop-client-logos', storyWU: 5.25, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-grid-flyover', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
+  { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-gathering-close', storyWU: 12.5, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
   { id: 'desktop-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
@@ -87,14 +87,14 @@ const checkpointSpecs = [
   { id: 'mobile-complexity-inside', storyWU: 2.6, stage: 'turbulent-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-void', storyWU: 3.78, stage: 'turbulent-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'mobile-client-logos', storyWU: 5.25, stage: 'calm-field-v1', visibility: 0.507, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
-  { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'mobile-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 3, maximumSpatialTitles: 0 },
-  { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
-  { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 5, maximumSpatialTitles: 0 },
-  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
-  { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
+  { id: 'mobile-client-logos', storyWU: 5.25, stage: 'calm-field-v1', visibility: 0.507, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
+  { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
+  { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-gathering-wide', storyWU: 13.2, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-bust-base', storyWU: bustWU(0.05), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
@@ -104,14 +104,14 @@ const checkpointSpecs = [
   { id: 'mobile-bust-resolved', storyWU: bustWU(0.85), stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumChromaticWidthRatio: 0.3, minimumChromaticHeightRatio: 0.2 },
   { id: 'mobile-bust-hold', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
   { id: 'mobile-finale-bust', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
-  { id: 'compact-landscape-discipline', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, expectExactAnchor: true, minimumLabels: 1, maximumLabels: 4, maximumSpatialTitles: 0 },
+  { id: 'compact-landscape-discipline', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'compact-landscape-bust-hold', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2 },
   { id: 'compact-landscape-finale', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'compact-landscape', viewport: { width: 844, height: 390 }, minimumChromaticWidthRatio: 0.08, minimumChromaticHeightRatio: 0.2 },
   { id: 'reduced-motion-orb', storyWU: 0.35, stage: 'cluster-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectCenteredOpener: true },
   { id: 'reduced-motion-background-editorial', storyWU: 4.3, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumVisibleEditorialLines: 1, maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'reduced-motion-client-logos', storyWU: 6.15, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, minimumSpatialTitles: 1, maximumSpatialTitles: 1 },
-  { id: 'reduced-motion-bridge', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', maximumLabels: 0, maximumSpatialTitles: 0 },
-  { id: 'reduced-motion-discipline', storyWU: 8.9, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', expectExactAnchor: true, minimumLabels: 4, maximumLabels: 4, maximumSpatialTitles: 0, expectCenteredDiscipline: true },
+  { id: 'reduced-motion-client-logos', storyWU: 6.15, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-bridge', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'reduced-motion-discipline', storyWU: 8.9, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'reduced-motion-bust', storyWU: bustEndWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', minimumChromaticWidthRatio: 0.3 },
   { id: 'reduced-motion-finale', storyWU: finaleWU, stage: 'bust-v1', visibility: 1, reviewGroup: 'reduced-motion', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' },
 ];
@@ -419,27 +419,15 @@ for (const checkpoint of checkpoints) {
           && rect.top < window.innerHeight;
       });
     const visibleEditorialRects = visibleEditorialLines.map((node) => node.getBoundingClientRect());
-    const disciplineOverlay = document.querySelector('.about-narrative-discipline-reveal');
-    const disciplineOverlayRect = disciplineOverlay?.getBoundingClientRect();
-    const disciplineOverlayScaleX = disciplineOverlayRect
-      ? disciplineOverlayRect.width / Math.max(1, disciplineOverlay.offsetWidth)
-      : 1;
     const visibleDisciplines = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
-      .filter((node) => Number(getComputedStyle(node).opacity) > 0.05)
-      .map((node) => {
-        const style = getComputedStyle(node);
-        const rect = node.getBoundingClientRect();
-        const anchorX = disciplineOverlayRect
-          ? disciplineOverlayRect.left + (Number.parseFloat(style.left) * disciplineOverlayScaleX)
-          : Number.NaN;
-        const gap = anchorX < rect.left
-          ? rect.left - anchorX
-          : anchorX > rect.right ? anchorX - rect.right : -1;
-        const expectedGap = Number.parseFloat(style.getPropertyValue('--discipline-label-offset'))
-          * disciplineOverlayScaleX;
-        return { rect, anchorX, gap, expectedGap };
-      });
-    const visibleDisciplineRects = visibleDisciplines.map(({ rect }) => rect);
+      .filter((node) => Number(getComputedStyle(node).opacity) > 0.05);
+    const visibleDisciplineRects = visibleDisciplines.map((node) => node.getBoundingClientRect());
+    const disciplineTypeSizesMatch = visibleDisciplines.every((node) => {
+      const title = node.querySelector('.about-narrative-discipline-reveal__label');
+      const description = node.querySelector('.about-narrative-discipline-reveal__description');
+      return title && description
+        && getComputedStyle(title).fontSize === getComputedStyle(description).fontSize;
+    });
     const visibleSpatialTitles = [...document.querySelectorAll('.about-narrative-spatial-fragment')]
       .filter((node) => {
         const rect = node.getBoundingClientRect();
@@ -507,17 +495,7 @@ for (const checkpoint of checkpoints) {
       disciplineWithinTextCorridor: textCorridorRect && disciplineBounds
         ? isInsideTextCorridor(disciplineBounds)
         : null,
-      disciplinePointsWithinTextCorridor: textCorridorRect && visibleDisciplines.length > 0
-        ? visibleDisciplines.every(({ anchorX }) => (
-          anchorX >= textCorridorRect.left - 1 && anchorX <= textCorridorRect.right + 1
-        ))
-        : null,
-      disciplineLabelsAttachedToPoints: visibleDisciplines.length > 0
-        ? visibleDisciplines.every(({ gap, expectedGap }) => (
-          gap >= 0 && Math.abs(gap - expectedGap) <= 1
-        ))
-        : null,
-      disciplineAnchorGaps: visibleDisciplines.map(({ gap }) => gap),
+      disciplineTypeSizesMatch,
       spatialTitlesWithinTextCorridor: textCorridorRect && visibleSpatialTitleBounds.length > 0
         ? visibleSpatialTitleBounds.every(isInsideTextCorridor)
         : null,
@@ -563,22 +541,17 @@ for (const checkpoint of checkpoints) {
   assert.equal(state.drawCalls, state.visibility > 0.001 ? 1 : 0);
   assert.equal(state.fixedAttributeIdentityStable, true);
   assert.equal(state.resourceDiagnosticCount, 0);
-  if (checkpoint.expectExactAnchor) {
-    assert.equal(state.anchorSampling, 'exact');
-    assert.equal(
-      state.disciplinePointsWithinTextCorridor,
-      true,
-      `${checkpoint.id}: highlighted discipline points must remain inside the text corridor.`,
-    );
-    assert.equal(
-      state.disciplineLabelsAttachedToPoints,
-      true,
-      `${checkpoint.id}: discipline labels must retain their fixed gap from highlighted points.`,
-    );
+  if ((checkpoint.minimumLabels ?? 0) > 0) {
+    assert.equal(state.anchorSampling, 'native-grid-cell');
     assert.equal(
       state.disciplineWithinTextCorridor,
       true,
-      `${checkpoint.id}: discipline labels must remain inside the global text corridor.`,
+      `${checkpoint.id}: the discipline reading line must remain inside the global text corridor.`,
+    );
+    assert.equal(
+      state.disciplineTypeSizesMatch,
+      true,
+      `${checkpoint.id}: discipline names and descriptions must share the editorial font size.`,
     );
   }
   if (state.spatialTitlesWithinTextCorridor !== null) {
@@ -623,12 +596,6 @@ for (const checkpoint of checkpoints) {
     assert.ok(
       state.openerCenterOffsetRatio <= 0.01,
       `${checkpoint.id}: opener center offset ${(state.openerCenterOffsetRatio * 100).toFixed(2)}% exceeds 1%.`,
-    );
-  }
-  if (checkpoint.expectCenteredDiscipline) {
-    assert.ok(
-      state.disciplineCenterOffsetRatio <= 0.2,
-      `${checkpoint.id}: discipline center offset ${(state.disciplineCenterOffsetRatio * 100).toFixed(2)}% exceeds 20%.`,
     );
   }
   if (checkpoint.minimumVisibleEditorialLines !== undefined) {

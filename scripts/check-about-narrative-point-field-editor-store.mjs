@@ -323,7 +323,8 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
   assert.equal(createdInteraction.targetStateId, 'world-grid');
   assert.equal('targetWorldId' in createdInteraction, false);
 
-  const interaction = store.getSnapshot().document.tracks.interactions.clips[0];
+  const interaction = store.getSnapshot().document.tracks.interactions.clips
+    .find((clip) => clip.type === 'grid-ripple');
   assert.equal(typeof interaction.targetStateId, 'string');
   store.setSelection({ type: 'interaction', id: interaction.id });
   assert.equal(store.beginGesture('Resize v6 interaction'), true);

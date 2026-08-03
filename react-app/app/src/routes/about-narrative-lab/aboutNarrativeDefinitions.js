@@ -1,11 +1,6 @@
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
 } from './aboutNarrativeCorrespondenceRegistry.js';
-import {
-  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
-  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
-} from './aboutNarrativeDisciplinePositions.js';
-
 export { ABOUT_NARRATIVE_CORRESPONDENCE_MODES };
 
 export const ABOUT_NARRATIVE_SCHEMA_VERSION = 2;
@@ -35,9 +30,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  ...ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS.map(([x, y], index) => (
-    Object.freeze({ group: index + 1, x, y })
-  )),
+  Object.freeze({ group: 1, x: 0.3, y: 0.3 }),
+  Object.freeze({ group: 2, x: 0.3, y: 0.41 }),
+  Object.freeze({ group: 3, x: 0.3, y: 0.52 }),
+  Object.freeze({ group: 4, x: 0.3, y: 0.63 }),
+  Object.freeze({ group: 5, x: 0.3, y: 0.74 }),
+  Object.freeze({ group: 6, x: 0.3, y: 0.85 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -467,30 +465,26 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'discipline-reveal',
     label: 'Discipline reveal',
     defaultParameters: Object.freeze({
-      backgroundFadeWU: 0.12,
-      backgroundOpacity: 0.42,
-      reconnectOpacity: 0.38,
-      pointScale: 6.24,
-      restoreDurationWU: 0.1,
-      labelOffsetPx: 22,
-      labelScale: 1.18,
+      settleDurationWU: 0.5,
+      beatDurationWU: 0.7,
+      backgroundOpacity: 0.28,
+      pointScale: 4.4,
+      restoreDurationWU: 0.4,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[0] }),
-        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[1] }),
-        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[2] }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[3] }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[4] }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[5] }),
+        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.' }),
+        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.' }),
+        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.' }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.' }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.' }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.' }),
       ]),
     }),
     parameters: Object.freeze([
-      numberControl('backgroundFadeWU', 'Grid fade duration', 0.01, 1.5, 0.005, 'WU', 'modifier-timing'),
+      numberControl('settleDurationWU', 'Lane settle duration', 0.05, 2, 0.01, 'WU', 'modifier-timing'),
+      numberControl('beatDurationWU', 'Discipline beat duration', 0.2, 2, 0.01, 'WU', 'modifier-timing'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
-      numberControl('reconnectOpacity', 'Editorial grid opacity', 0, 0.8, 0.01, '', 'modifier-appearance'),
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),
-      numberControl('labelOffsetPx', 'Label offset', 0, 64, 1, 'px', 'modifier-appearance'),
-      numberControl('labelScale', 'Label size', 0.5, 2, 0.05, '×', 'modifier-appearance'),
     ]),
   }),
   'grid-ripple': Object.freeze({
