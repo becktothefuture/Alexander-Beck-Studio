@@ -425,9 +425,11 @@ test('the Text row header exposes the global width and animation controls', () =
   assert.match(liveSources.editor, /read-only Motion reservation/);
   assert.equal(exposedControls.find((control) => control.id === 'titleShadowOpacity')?.label, 'Background shadow opacity');
   assert.equal(exposedControls.find((control) => control.id === 'titleShadowBlurPx')?.label, 'Background shadow blur');
+  assert.equal(canonical.globals.textMotion.titleShadowOpacity, 0.3);
+  assert.equal(canonical.globals.textMotion.titleShadowBlurPx, 28);
   assert.match(liveSources.experience, /--about-title-shadow-opacity/);
   assert.match(liveSources.experience, /--about-title-shadow-blur/);
-  assert.match(liveSources.styles, /--about-title-shadow:[\s\S]*?min\(var\(--about-title-shadow-blur, 50px\), 11px\)[\s\S]*?min\(var\(--about-title-shadow-blur, 50px\), 28px\)[\s\S]*?var\(--about-title-shadow-blur, 50px\)/);
+  assert.match(liveSources.styles, /--about-title-shadow:\s*0 0 var\(--about-title-shadow-blur, 28px\) var\(--about-title-shadow-color\);/);
   assert.equal((liveSources.styles.match(/text-shadow: var\(--about-title-shadow\)/g) || []).length, 2);
   assert.match(liveSources.editor, /data-text-flow-reservation/);
   assert.match(liveSources.editor, /object\.kind !== 'title'/);

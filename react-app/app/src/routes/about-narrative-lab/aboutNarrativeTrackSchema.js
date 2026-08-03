@@ -1232,8 +1232,8 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       ...source.globals.textMotion,
       standardViewportY: Number(source.globals.textMotion?.standardViewportY ?? standardViewportY ?? 50),
       bookendViewportY: Number(source.globals.textMotion?.bookendViewportY ?? openerViewportY ?? 70),
-      titleShadowOpacity: Number(source.globals.textMotion?.titleShadowOpacity ?? 0.8),
-      titleShadowBlurPx: Number(source.globals.textMotion?.titleShadowBlurPx ?? 50),
+      titleShadowOpacity: Number(source.globals.textMotion?.titleShadowOpacity ?? 0.3),
+      titleShadowBlurPx: Number(source.globals.textMotion?.titleShadowBlurPx ?? 28),
     },
   };
   return {

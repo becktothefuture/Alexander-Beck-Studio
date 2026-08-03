@@ -827,8 +827,8 @@ export function AboutNarrativeLabExperience({
     '--about-reading-width': `${globals.readingWidthRem}rem`,
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
-    '--about-title-shadow-opacity': `${(Number.isFinite(titleShadowOpacity) ? Math.min(1, Math.max(0, titleShadowOpacity)) : 0.8) * 100}%`,
-    '--about-title-shadow-blur': `${Number.isFinite(titleShadowBlurPx) ? Math.min(120, Math.max(0, titleShadowBlurPx)) : 50}px`,
+    '--about-title-shadow-opacity': `${(Number.isFinite(titleShadowOpacity) ? Math.min(1, Math.max(0, titleShadowOpacity)) : 0.3) * 100}%`,
+    '--about-title-shadow-blur': `${Number.isFinite(titleShadowBlurPx) ? Math.min(120, Math.max(0, titleShadowBlurPx)) : 28}px`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 1,
   };

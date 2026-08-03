@@ -22,13 +22,11 @@ body.about-narrative-page .route-simulation-layer {
   --route-intro-description-max-width: 42ch;
   --about-title-shadow-color: color-mix(
     in srgb,
-    var(--studio-window-bg) var(--about-title-shadow-opacity, 80%),
+    var(--studio-window-bg) var(--about-title-shadow-opacity, 30%),
     transparent
   );
   --about-title-shadow:
-    0 0 min(var(--about-title-shadow-blur, 50px), 11px) var(--about-title-shadow-color),
-    0 0 min(var(--about-title-shadow-blur, 50px), 28px) var(--about-title-shadow-color),
-    0 0 var(--about-title-shadow-blur, 50px) var(--about-title-shadow-color);
+    0 0 var(--about-title-shadow-blur, 28px) var(--about-title-shadow-color);
   --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #0d5cb6));
   position: absolute;
   inset: 0;
