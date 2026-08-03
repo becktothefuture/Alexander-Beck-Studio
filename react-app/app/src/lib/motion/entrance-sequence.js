@@ -304,20 +304,30 @@ function resolveProfile(name, timingMode = 'repeat') {
   const baseProfile = PROFILES[name] || PROFILES.route;
   const config = getShellRouteTransitionConfig();
   const reduced = timingMode === 'reduced';
-  const timingScale = timingMode === 'repeat' ? config.repeatTimingScale : 1;
-  const staggerScale = timingMode === 'repeat' ? config.repeatStaggerScale : 1;
-  const duration = (value) => reduced ? 120 : Math.round(value * timingScale);
-  const step = reduced ? 0 : Math.round(config.itemStepMs * staggerScale);
+  // Every route visit replays the same authored choreography. Compressing
+  // repeat visits made material and typography drift out of phase.
+  const duration = (value) => reduced ? 120 : Math.round(value);
+  const step = reduced ? 0 : Math.round(config.itemStepMs);
+  const routeTypographyOffsetMs = reduced || name !== 'route'
+    ? 0
+    : config.typographyDelayMs;
+  const group = (groupName, durationMs, stepMs = step) => ({
+    ...baseProfile.groups[groupName],
+    startMs: reduced ? 0 : baseProfile.groups[groupName].startMs + routeTypographyOffsetMs,
+    stepMs,
+    durationMs: duration(durationMs),
+  });
   return {
     ...baseProfile,
     compactFlow: name === 'route',
-    identityLineStepMs: reduced ? 0 : Math.round(50 * staggerScale),
-    contextGapMs: reduced ? 0 : Math.round(40 * timingScale),
-    actionGapMs: reduced ? 0 : Math.round(60 * timingScale),
-    footerStepMs: reduced ? 0 : Math.round(20 * staggerScale),
+    identityLineStepMs: reduced ? 0 : 50,
+    contextGapMs: reduced ? 0 : 40,
+    actionGapMs: reduced ? 0 : 60,
+    footerStepMs: reduced ? 0 : 20,
     blurPx: reduced ? 0 : baseProfile.blurPx,
     bookendTitle: {
       ...baseProfile.bookendTitle,
+      delayMs: reduced ? 0 : config.typographyDelayMs,
       colorCount: config.routeBookendColorCount,
       durationMs: reduced ? 0 : config.routeBookendDurationMs,
       overlapPercent: config.routeBookendOverlapPercent,
@@ -330,12 +340,12 @@ function resolveProfile(name, timingMode = 'repeat') {
       travelPercent: reduced ? 0 : config.routeBookendTravelPercent,
     },
     groups: {
-      identity: { ...baseProfile.groups.identity, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      legend: { ...baseProfile.groups.legend, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      context: { ...baseProfile.groups.context, stepMs: step, durationMs: duration(config.contextDurationMs) },
-      action: { ...baseProfile.groups.action, stepMs: step, durationMs: duration(config.actionDurationMs) },
-      footer: { ...baseProfile.groups.footer, stepMs: step, durationMs: duration(config.supportDurationMs) },
-      control: { ...baseProfile.groups.control, stepMs: 0, durationMs: duration(config.supportDurationMs) },
+      identity: group('identity', config.supportDurationMs),
+      legend: group('legend', config.supportDurationMs),
+      context: group('context', config.contextDurationMs),
+      action: group('action', config.actionDurationMs),
+      footer: group('footer', config.supportDurationMs),
+      control: group('control', config.supportDurationMs, 0),
     },
   };
 }
@@ -810,15 +820,12 @@ export function createEntranceSequence({
     if (settled) return false;
     if (!staged) stage();
 
-    // Include controls or runtime-owned footer elements mounted while the cover
-    // was still visible, then give the hidden state one paint before revealing.
-    const known = new Set(targets.map((target) => target.element));
-    collectTargets(scopes, profile, { trigger, sequenceSeed }).forEach((target) => {
-      if (known.has(target.element)) return;
-      targets.push(target);
-      stageTarget(target, reducedMotion ? 0 : target.blurPx);
-    });
-    targets = sequenceTargets(targets, profile);
+    // React may re-render measured copy while the cover is visible, replacing
+    // staged glyph/line children without replacing their known parent element.
+    // Recollect and restage every live target so playback never holds detached
+    // child references or exposes newly mounted text at its CSS endpoint.
+    targets = collectTargets(scopes, profile, { trigger, sequenceSeed });
+    targets.forEach((target) => stageTarget(target, reducedMotion ? 0 : target.blurPx));
     targets.forEach(refreshBookendTitleEndpoint);
 
     if (reducedMotion || targets.length === 0 || typeof Element.prototype.animate !== 'function') {
@@ -826,7 +833,12 @@ export function createEntranceSequence({
       return true;
     }
 
-    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    // A single RAF callback can still run before the browser presents the
+    // staged opacity-zero state. Hold typography for a full painted frame so
+    // route material always gets the first visible movement, even under load.
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+    });
     if (settled) return false;
     if (diagnosticRoot) setHomePhase(diagnosticRoot, 'enter');
 
@@ -964,6 +976,111 @@ export function createEntranceSequence({
       return totalMs();
     },
   };
+}
+
+function collectExitElements(scopes) {
+  const seen = new Set();
+  const elements = [];
+  asScopeElements(scopes).forEach((scope) => {
+    const candidates = [
+      ...(scope.matches?.(ENTRANCE_SELECTOR) ? [scope] : []),
+      ...Array.from(scope.querySelectorAll?.(ENTRANCE_SELECTOR) || []),
+    ];
+    candidates.forEach((element) => {
+      if (!element || seen.has(element)) return;
+      seen.add(element);
+      elements.push(element);
+      const rule = element.dataset.routeEnterVariant === 'bookend-title'
+        ? element.closest?.(LOCKUP_SELECTOR)?.querySelector?.(`:scope > ${LOCKUP_RULE_SELECTOR}`)
+        : null;
+      if (!rule || seen.has(rule)) return;
+      seen.add(rule);
+      elements.push(rule);
+    });
+  });
+  return elements;
+}
+
+/**
+ * Creates the shared, deliberately quiet route-out typography motion.
+ * Material exits are owned by route participants; this function only removes
+ * marked copy and controls so wall content never jumps beneath the cover.
+ */
+export function createExitSequence({
+  scopes = document,
+  reducedMotion = prefersReducedMotion(),
+  onAnimation,
+} = {}) {
+  const config = getShellRouteTransitionConfig();
+  const durationMs = reducedMotion ? 0 : config.typographyExitDurationMs;
+  const totalStaggerMs = reducedMotion ? 0 : config.typographyExitStaggerMs;
+  const elements = collectExitElements(scopes).reverse();
+  let cancelled = false;
+  let animations = [];
+
+  const clearFallbackStyles = () => {
+    elements.forEach((element) => {
+      element.style.removeProperty('opacity');
+      element.style.removeProperty('filter');
+      element.style.removeProperty('transform');
+    });
+  };
+
+  const cancel = ({ restore = true } = {}) => {
+    cancelled = true;
+    animations.forEach((animation) => {
+      try {
+        animation.cancel();
+      } catch {
+        /* The outgoing route may already be detached. */
+      }
+    });
+    animations = [];
+    if (restore) clearFallbackStyles();
+  };
+
+  const play = () => {
+    if (cancelled || elements.length === 0) return Promise.resolve(false);
+    const hasWaapi = typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function';
+    if (durationMs <= 0 || !hasWaapi) {
+      elements.forEach((element) => {
+        if (element.matches?.(LOCKUP_RULE_SELECTOR)) element.style.transform = 'scaleX(0)';
+        else element.style.opacity = '0';
+      });
+      return Promise.resolve(true);
+    }
+
+    animations = elements.map((element, index) => {
+      const delay = elements.length > 1
+        ? (index / (elements.length - 1)) * totalStaggerMs
+        : 0;
+      const isRule = element.matches?.(LOCKUP_RULE_SELECTOR);
+      const resolvedOpacity = Number.parseFloat(getComputedStyle(element).opacity);
+      const startOpacity = Number.isFinite(resolvedOpacity) ? resolvedOpacity : 1;
+      const keyframes = isRule
+        ? [{ transform: 'scaleX(1)', opacity: 1 }, { transform: 'scaleX(0)', opacity: 0.6 }]
+        : [
+            { opacity: startOpacity, transform: 'translate3d(0, 0, 0)', filter: 'blur(0)' },
+            { opacity: 0, transform: 'translate3d(0, -4px, 0)', filter: 'blur(0.75px)' },
+          ];
+      const animation = element.animate(keyframes, {
+        duration: durationMs,
+        delay,
+        easing: 'cubic-bezier(0.4, 0, 1, 1)',
+        fill: 'forwards',
+      });
+      onAnimation?.(animation);
+      return animation;
+    });
+    return Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)))
+      .then(() => !cancelled);
+  };
+
+  return Object.freeze({
+    play,
+    cancel,
+    totalMs: durationMs + totalStaggerMs,
+  });
 }
 
 export function resetEntranceTargets(scopes = document) {

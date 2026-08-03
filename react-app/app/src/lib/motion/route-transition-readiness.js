@@ -1,5 +1,6 @@
 import { clearStableTimeout, setStableTimeout } from '../legacy-runtime-scope.js';
 import { isSimulationVisualTransitionSourceActive } from '../simulationVisualTransition.js';
+import { isCanvasBackingStoreUsable } from '../canvas-backing-store-readiness.js';
 
 const DAILY_LAB_ROUTE_IDS = new Set([
   'repel-room',
@@ -9,14 +10,10 @@ const DAILY_LAB_ROUTE_IDS = new Set([
 
 function hasCanvasBufferReady() {
   const canvas = document.getElementById('c');
-  if (!canvas) return false;
-  const cssW = canvas.clientWidth || 0;
-  const cssH = canvas.clientHeight || 0;
-  if (cssW < 64 || cssH < 64) return false;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const minW = Math.ceil((cssW + 2) * dpr) - 2;
-  const minH = Math.ceil((cssH + 2) * dpr) - 2;
-  return canvas.width >= minW && canvas.height >= minH;
+  return isCanvasBackingStoreUsable(canvas, {
+    minCssWidth: 64,
+    minCssHeight: 64,
+  });
 }
 
 function isRectUsable(rect) {

@@ -63,6 +63,10 @@ import {
 } from '../../../lib/motion/entrance-sequence.js';
 import { getShellRouteTransitionConfig } from '../visual/site-shell.js';
 import { registerRouteTransitionParticipant } from '../../../lib/motion/route-transition-participants.js';
+import {
+  createRouteMaterialEntranceController,
+  getRouteCardMotionFrame,
+} from '../../../lib/motion/route-material-entrance.js';
 
 let activePortfolioBootstrapRunId = 0;
 
@@ -474,6 +478,7 @@ class PortfolioScrollApp {
     this.entrancePromise = null;
     this.entranceAbortController = null;
     this.entranceRankedCards = [];
+    this.materialEntrance = null;
     this.routeCompletionObserver = null;
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
     this.boundDeckWheel = (event) => this.handleDeckWheel(event);
@@ -521,6 +526,9 @@ class PortfolioScrollApp {
         onSuspensionChange: (suspended) => this.syncAtmosphereSource(suspended),
       }
     );
+    this.particleField.start();
+    this.createMaterialEntranceController();
+    this.materialEntrance.prepare({ reducedMotion: shouldReducePortfolioMotion() });
     this.syncAtmosphereSource(true);
     this.thumbnailReadinessPromise = this.prepareProjectThumbnails();
     await this.thumbnailReadinessPromise;
@@ -532,7 +540,6 @@ class PortfolioScrollApp {
       if (signal?.aborted) return false;
     }
     this.updateCardMetrics();
-    this.particleField.start();
     this.syncAtmosphereSource(false);
     this.setActiveProject(0, { immediate: true });
     this.setupVideoObserver();
@@ -591,9 +598,57 @@ class PortfolioScrollApp {
     return this.config?.runtime?.entrance || {};
   }
 
+  createMaterialEntranceController() {
+    this.materialEntrance?.destroy({ settleTargets: false });
+    const cardMotionFrame = {};
+    this.materialEntrance = createRouteMaterialEntranceController({
+      id: 'portfolio-view-material',
+      routeId: 'portfolio',
+      diagnosticRoot: this.mount,
+      getTargets: () => [
+        ...(this.particleField?.particles || []),
+        ...this.entranceRankedCards,
+      ],
+      setTargetScale: (target, progress, index, detail) => {
+        if (!target?.nodeType) {
+          target.routeEntranceScale = progress;
+          return;
+        }
+        const frame = getRouteCardMotionFrame(progress, {
+          direction: target.dataset.portfolioRevealSide === 'left' ? -1 : 1,
+          timing: detail?.timing,
+        }, cardMotionFrame);
+        target.style.setProperty('--portfolio-card-route-entrance-scale', String(frame.scale));
+        target.style.setProperty('--portfolio-card-route-y', `${frame.translateY}px`);
+        target.style.setProperty('--portfolio-card-route-tilt', `${frame.rotate}deg`);
+      },
+      getDelayRatio: (target, index, targets, direction) => {
+        if (target?.nodeType) {
+          if (direction === 'out') return 0;
+          const rank = Number(target.dataset.portfolioRevealRank) || 0;
+          const cardCount = Math.max(1, this.entranceRankedCards.length - 1);
+          return 0.4 + ((rank / cardCount) * 0.6);
+        }
+        const particleCount = Math.max(1, this.particleField?.particles.length || 1);
+        const particleIndex = Math.min(index, particleCount - 1);
+        const ratio = particleIndex / Math.max(1, particleCount - 1);
+        return direction === 'out' ? 0.25 + (ratio * 0.75) : ratio * 0.45;
+      },
+      requestRender: () => this.particleField?.drawStaticFrame(),
+      getReducedMotion: shouldReducePortfolioMotion,
+    });
+    return this.materialEntrance;
+  }
+
   prepareDeckIntroEntrance({ routeTransition = false, force = false } = {}) {
     const intro = this.mount?.querySelector('.portfolio-deck-intro');
     if (!intro) return null;
+    if (routeTransition) {
+      this.deckIntroEntrance?.cancel();
+      this.deckIntroEntrance = null;
+      this.deckIntroEntranceMode = '';
+      return null;
+    }
     const mode = routeTransition ? 'route' : 'direct';
     if (!force && this.deckIntroEntrance && this.deckIntroEntranceMode === mode) {
       return this.deckIntroEntrance;
@@ -617,21 +672,27 @@ class PortfolioScrollApp {
   applyEntranceConfiguration({ routeTransition = false } = {}) {
     if (!this.mount) return [];
     const entrance = this.getEntranceOptions();
-    const baseDelayMs = routeTransition
-      ? Math.max(entrance.cardStartDelayMs, this.deckContentRevealDelayMs)
+    const routeMaterial = getShellRouteTransitionConfig();
+    const reducedRouteMotion = routeTransition && shouldReducePortfolioMotion();
+    const baseDelayMs = reducedRouteMotion
+      ? 0
+      : routeTransition
+      ? routeMaterial.materialDelayMs
       : this.deckContentRevealDelayMs;
-    const stepMs = routeTransition ? entrance.cardStepMs : 40;
     if (routeTransition) {
-      this.mount.style.setProperty('--portfolio-card-reveal-opacity-duration', `${entrance.cardOpacityDurationMs}ms`);
-      this.mount.style.setProperty('--portfolio-card-reveal-media-duration', `${entrance.mediaBlurDurationMs}ms`);
-      this.mount.style.setProperty('--portfolio-card-entrance-blur', `${entrance.mediaBlurPx}px`);
-      this.mount.style.setProperty('--portfolio-indicator-reveal-duration', `${entrance.indicatorDurationMs}ms`);
-      this.mount.style.setProperty('--portfolio-indicator-reveal-delay', `${entrance.indicatorDelayMs}ms`);
+      const durationMs = reducedRouteMotion ? 0 : routeMaterial.materialDurationMs;
+      this.mount.style.setProperty('--portfolio-card-reveal-opacity-duration', `${durationMs}ms`);
+      this.mount.style.setProperty('--portfolio-card-reveal-media-duration', `${durationMs}ms`);
+      this.mount.style.setProperty('--portfolio-card-entrance-blur', `${reducedRouteMotion ? 0 : entrance.mediaBlurPx}px`);
+      this.mount.style.setProperty('--portfolio-card-route-entrance-duration', `${durationMs}ms`);
+      this.mount.style.setProperty('--portfolio-indicator-reveal-duration', `${reducedRouteMotion ? 0 : entrance.indicatorDurationMs}ms`);
+      this.mount.style.setProperty('--portfolio-indicator-reveal-delay', `${reducedRouteMotion ? 0 : entrance.indicatorDelayMs}ms`);
     } else {
       [
         '--portfolio-card-reveal-opacity-duration',
         '--portfolio-card-reveal-media-duration',
         '--portfolio-card-entrance-blur',
+        '--portfolio-card-route-entrance-duration',
         '--portfolio-indicator-reveal-duration',
         '--portfolio-indicator-reveal-delay',
       ].forEach((property) => this.mount.style.removeProperty(property));
@@ -653,6 +714,11 @@ class PortfolioScrollApp {
         return offsetA > offsetB ? -1 : 1;
       })
       .slice(0, 5);
+    const stepMs = reducedRouteMotion
+      ? 0
+      : routeTransition && candidates.length > 1
+      ? routeMaterial.materialStaggerMs / (candidates.length - 1)
+      : 40;
 
     this.cards.forEach((card) => {
       delete card.dataset.portfolioRevealRank;
@@ -679,10 +745,12 @@ class PortfolioScrollApp {
     this.cancelEntrancePromise({ preservePreparedState: true });
     this.stopDeckAnimation();
     this.pauseAllVideos();
-    this.particleField?.setSuspended(true);
+    this.particleField?.setSuspended(false);
     this.updateCardMetrics();
     this.prepareDeckIntroEntrance({ routeTransition: true, force: true });
     this.applyEntranceConfiguration({ routeTransition: true });
+    this.materialEntrance?.prepare({ signal, reducedMotion: shouldReducePortfolioMotion() });
+    this.mount.classList.remove('is-portfolio-route-transition-exit');
     this.mount.classList.add('is-portfolio-boot-preparing', 'is-portfolio-route-transition-entrance');
     this.mount.classList.remove('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
     this.mount.dataset.portfolioEntrancePhase = 'preparing';
@@ -706,12 +774,15 @@ class PortfolioScrollApp {
     await waitForAnimationFrame(signal);
   }
 
-  prepareRouteExit({ signal } = {}) {
+  async prepareRouteExit({ signal } = {}) {
     if (signal?.aborted || this.destroyed) return;
     this.atmosphereRouteExiting = true;
     this.stopDeckAnimation();
     this.clearDeckSettleTimer();
     this.pauseAllVideos();
+    this.mount?.classList.add('is-portfolio-route-transition-exit');
+    await this.materialEntrance?.exit({ signal, reducedMotion: shouldReducePortfolioMotion() });
+    if (signal?.aborted || this.destroyed) return;
     this.particleField?.setSuspended(true);
     if (this.pendingProjectIntent) {
       this.clearPendingProjectIntent({ restoreFocus: false, resume: false });
@@ -731,13 +802,15 @@ class PortfolioScrollApp {
     this.mount.classList.remove(
       'is-portfolio-boot-preparing',
       'is-portfolio-deck-revealing',
-      'is-portfolio-route-transition-entrance'
+      'is-portfolio-route-transition-entrance',
+      'is-portfolio-route-transition-exit'
     );
     this.mount.classList.add('is-portfolio-deck-visible');
     this.mount.dataset.portfolioEntrancePhase = 'complete';
     this.mount.dataset.portfolioEntranceReason = 'route-exit-restored';
     this.mount.inert = false;
     this.mount.removeAttribute('aria-busy');
+    this.materialEntrance?.settle('route-exit-restored');
     this.setDeckInputState(this.isProjectOpen ? 'drawer-open' : 'idle');
     const shouldSuspend = this.isProjectOpen || Boolean(this.pendingProjectIntent);
     const suspensionChanged = this.particleField?.suspended !== shouldSuspend;
@@ -812,7 +885,11 @@ class PortfolioScrollApp {
 
     const finish = () => {
       if (controller.signal.aborted || this.destroyed || !this.mount) return false;
-      this.mount.classList.remove('is-portfolio-deck-revealing', 'is-portfolio-route-transition-entrance');
+      this.mount.classList.remove(
+        'is-portfolio-deck-revealing',
+        'is-portfolio-route-transition-entrance',
+        'is-portfolio-route-transition-exit',
+      );
       this.mount.dataset.portfolioEntrancePhase = 'complete';
       this.mount.inert = false;
       this.mount.removeAttribute('aria-busy');
@@ -833,6 +910,10 @@ class PortfolioScrollApp {
 
     this.entrancePromise = Promise.all([
       deckIntroEntrance?.play(),
+      this.materialEntrance?.enter({
+        signal: controller.signal,
+        reducedMotion: shouldReducePortfolioMotion(),
+      }),
       this.waitForEssentialEntranceAnimations(controller.signal),
     ]).then(finish);
     return this.entrancePromise;
@@ -844,9 +925,14 @@ class PortfolioScrollApp {
     this.cancelEntrancePromise({ preservePreparedState: true });
     this.pauseAllVideos();
     this.particleField?.setSuspended(true);
+    this.materialEntrance?.cancel(reason);
     if (!this.mount || this.destroyed) return;
     this.mount.classList.add('is-portfolio-boot-preparing');
-    this.mount.classList.remove('is-portfolio-deck-visible', 'is-portfolio-deck-revealing');
+    this.mount.classList.remove(
+      'is-portfolio-deck-visible',
+      'is-portfolio-deck-revealing',
+      'is-portfolio-route-transition-exit',
+    );
     this.mount.dataset.portfolioEntrancePhase = 'cancelled';
     this.mount.dataset.portfolioEntranceReason = reason;
     this.mount.inert = true;
@@ -900,12 +986,14 @@ class PortfolioScrollApp {
     this.unregisterRouteTransitionParticipant = null;
     this.particleField?.destroy();
     this.particleField = null;
+    this.materialEntrance?.destroy({ settleTargets: false });
+    this.materialEntrance = null;
     this.projectDrawerView?.destroy();
     this.restoreBackgroundInteractivity();
     this.clearPendingProjectIntent({ restoreFocus: false, resume: false });
     if (this.mount) {
       delete this.mount.dataset.portfolioMediaReady;
-      this.mount.classList.remove('is-ring-rebasing');
+      this.mount.classList.remove('is-ring-rebasing', 'is-portfolio-route-transition-exit');
     }
 
     const globals = getGlobals();

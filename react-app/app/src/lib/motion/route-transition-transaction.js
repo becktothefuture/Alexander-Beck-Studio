@@ -154,10 +154,15 @@ export function classifyRouteNavigationIntent({
   if (repeatsActive || repeatsQueued) return ROUTE_NAVIGATION_DECISIONS.IGNORE;
   if (!transitionActive) return ROUTE_NAVIGATION_DECISIONS.START;
   if (activeRecovering || gateActive) return ROUTE_NAVIGATION_DECISIONS.QUEUE;
+  // The outgoing route is still visible during route-out. Keep the latest
+  // intent queued until its departure has finished and the cover is real.
+  if (phase === ROUTE_TRANSACTION_PHASES.ROUTE_OUT) {
+    return ROUTE_NAVIGATION_DECISIONS.QUEUE;
+  }
   if (activeCommitted && phase === ROUTE_TRANSACTION_PHASES.ROUTE_IN) {
     return ROUTE_NAVIGATION_DECISIONS.RECOVER_ROUTE_IN;
   }
-  if (!activeCommitted || phase === ROUTE_TRANSACTION_PHASES.ROUTE_LOADING) {
+  if (phase === ROUTE_TRANSACTION_PHASES.ROUTE_LOADING) {
     return ROUTE_NAVIGATION_DECISIONS.RETARGET_COVERED;
   }
   if (allowPreempt) return ROUTE_NAVIGATION_DECISIONS.PREEMPT;

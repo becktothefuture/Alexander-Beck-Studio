@@ -325,6 +325,22 @@
   touch-action: none;
 }
 
+.playground-route .playground-item__route-surface {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  inline-size: 100%;
+  min-inline-size: 0;
+  transform:
+    translateY(var(--playground-route-card-y, 0px))
+    rotate(var(--playground-route-card-rotate, 0deg))
+    scale(var(--playground-route-card-scale, 1));
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
 .playground-route .playground-item__runtime {
   position: absolute;
   inset: 0 0 auto;
@@ -344,7 +360,7 @@
   z-index: 1;
 }
 
-.playground-route .playground-item
+.playground-route .playground-item__route-surface
   > button
   > .playground-media {
   opacity: 1;
@@ -359,7 +375,7 @@
 }
 
 .playground-route .playground-item:is(button, a, [role='button']),
-.playground-route .playground-item > :is(button, a, [role='button']) {
+.playground-route .playground-item__route-surface > :is(button, a, [role='button']) {
   position: relative;
   z-index: 1;
   display: grid;
@@ -387,19 +403,19 @@
 }
 
 .playground-route .playground-item:is(button, a, [role='button']):focus,
-.playground-route .playground-item > :is(button, a, [role='button']):focus {
+.playground-route .playground-item__route-surface > :is(button, a, [role='button']):focus {
   outline: none;
 }
 
 .playground-route .playground-item:is(button, a, [role='button']):focus-visible,
-.playground-route .playground-item > :is(button, a, [role='button']):focus-visible {
+.playground-route .playground-item__route-surface > :is(button, a, [role='button']):focus-visible {
   outline: var(--playground-focus-width) solid #ffffff;
   outline-offset: 2px;
   box-shadow: 0 0 0 calc(2px + var(--playground-focus-width)) #000000;
 }
 
 .playground-route .playground-item:is(button, a, [role='button']):focus-visible::after,
-.playground-route .playground-item > :is(button, a, [role='button']):focus-visible::after {
+.playground-route .playground-item__route-surface > :is(button, a, [role='button']):focus-visible::after {
   content: none;
 }
 

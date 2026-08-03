@@ -21,6 +21,11 @@ import {
   createEntranceSequence,
 } from '../../lib/motion/entrance-sequence.js';
 import {
+  getRouteMaterialEntranceTiming,
+  getRouteMaterialExitTiming,
+} from '../../lib/motion/route-material-entrance.js';
+import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
+import {
   isSimulationAtmosphereSourceFrameReady,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 
@@ -178,6 +183,22 @@ function signalDailyFocusRouteFailed(simulationId, reason = 'runtime-not-ready')
   }));
 }
 
+function waitForMaterialDelay(delayMs, signal) {
+  return new Promise((resolve) => {
+    if (delayMs <= 0 || signal?.aborted) {
+      resolve();
+      return;
+    }
+    const timerId = window.setTimeout(finish, delayMs);
+    function finish() {
+      window.clearTimeout(timerId);
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    }
+    signal?.addEventListener('abort', finish, { once: true });
+  });
+}
+
 async function registerDailyFocusDevPanelRoute() {
   if (!import.meta.env.DEV) return;
 
@@ -204,10 +225,70 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
     let modalSystemsInitialized = false;
     let directEntrance = null;
     let runtimeWasReady = false;
-    const directBoot = Boolean(
+    let unregisterRouteMaterialParticipant = null;
+    const shellRouteTransitionActive = document.documentElement.dataset.absRouteTransition === 'active';
+    const directBoot = !shellRouteTransitionActive && Boolean(
       document.getElementById('abs-boot-overlay')
       || document.documentElement.dataset.absBootState === 'booting'
     );
+
+    const ensureMaterialRuntimeReady = async (signal = null) => {
+      if (runtimeWasReady) return true;
+      const ready = await waitForDailyFocusRuntimeReady(simulationId, {
+        timeoutMs: DAILY_FOCUS_READY_TIMEOUT_MS,
+      });
+      if (cancelled || signal?.aborted) return false;
+      runtimeWasReady = ready;
+      return ready;
+    };
+
+    const runMaterialEntrance = async ({ signal = null, reason }) => {
+      const timing = getRouteMaterialEntranceTiming();
+      if (timing.reducedMotion) {
+        setInitialSimulationVisualScale(1);
+        return;
+      }
+      setInitialSimulationVisualScale(timing.startScale);
+      const ready = await ensureMaterialRuntimeReady(signal);
+      if (!ready) {
+        setInitialSimulationVisualScale(1);
+        return;
+      }
+      await waitForMaterialDelay(timing.delayMs, signal);
+      if (cancelled || signal?.aborted) return;
+      await runSimulationVisualTransition('in', {
+        durationMs: timing.durationMs + timing.staggerMs,
+        localDurationMs: timing.durationMs,
+        startScale: timing.startScale,
+        easing: timing.easing,
+        reason,
+      });
+    };
+
+    unregisterRouteMaterialParticipant = registerRouteTransitionParticipant({
+      id: `daily-focus-${simulationId}-material`,
+      routeId: 'home',
+      prepare: () => {
+        const timing = getRouteMaterialEntranceTiming();
+        setInitialSimulationVisualScale(timing.startScale);
+      },
+      exit: async () => {
+        const timing = getRouteMaterialExitTiming();
+        await runSimulationVisualTransition('out', {
+          durationMs: timing.durationMs + timing.staggerMs,
+          localDurationMs: timing.durationMs,
+          easing: timing.easing,
+          reason: `daily-focus-${simulationId}-route-material-exit`,
+        });
+      },
+      waitUntilReady: ({ signal }) => ensureMaterialRuntimeReady(signal),
+      enter: ({ signal }) => runMaterialEntrance({
+        signal,
+        reason: `daily-focus-${simulationId}-route-material`,
+      }),
+      restore: () => setInitialSimulationVisualScale(1),
+      cancel: () => setInitialSimulationVisualScale(1),
+    });
 
     const stageHomeEntrance = () => {
       directEntrance?.cancel({ clearPhase: true });
@@ -226,15 +307,7 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     const startMaterialEntrance = () => {
       if (cancelled) return;
-      if (!runtimeWasReady || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-        setInitialSimulationVisualScale(1);
-        return;
-      }
-      setInitialSimulationVisualScale(0);
-      void runSimulationVisualTransition('in', {
-        durationMs: 760,
-        localDurationMs: 420,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      void runMaterialEntrance({
         reason: 'daily-focus-direct-boot',
       });
     };
@@ -292,9 +365,11 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
       document.documentElement.dataset.absHomeSimulationReady = runtimeReady ? 'true' : 'failed';
 
       const bootState = document.documentElement.dataset.absBootState || '';
-      const shouldCompleteDirectBoot = directBoot
+      const shouldCompleteDirectBoot = !shellRouteTransitionActive && (
+        directBoot
         || Boolean(document.getElementById('abs-boot-overlay'))
-        || bootState === 'booting';
+        || bootState === 'booting'
+      );
       if (shouldCompleteDirectBoot && runtimeReady) setInitialSimulationVisualScale(1);
       if (shouldCompleteDirectBoot) {
         if (!directBoot) stageHomeEntrance();
@@ -336,6 +411,7 @@ export function DailyFocusShellBridge({ simulationId = '' }) {
 
     return () => {
       cancelled = true;
+      unregisterRouteMaterialParticipant?.();
       directEntrance?.cancel({ clearPhase: true });
       clearHomeEntrancePhase();
       delete document.documentElement.dataset.absDailyFocusStatus;

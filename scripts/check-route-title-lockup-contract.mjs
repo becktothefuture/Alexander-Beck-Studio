@@ -12,7 +12,9 @@ const sources = Object.fromEntries(await Promise.all([
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
+  ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
   ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
+  ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
   ['home', '../react-app/app/public/css/main.css'],
 ].map(async ([key, path]) => [key, await read(path)])));
 
@@ -56,4 +58,20 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.doesNotMatch(sources.aboutStyles, /--about-bookend-description-max-width/);
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 42ch/);
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 32ch/);
+});
+
+test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {
+  assert.match(sources.aboutRoute, /prewarm: \(\{ stage \} = \{\}\) => \{/);
+  assert.match(sources.aboutRoute, /stage === 'data'/);
+  assert.match(sources.aboutRoute, /return loadAboutNarrativeExperience\(\)/);
+  assert.match(sources.about, /data-about-route-entry-rule/);
+  assert.match(sources.entranceEvents, /routeContent\.dataset\.routeEntranceStarted = 'true'/);
+  assert.match(
+    sources.main,
+    /\.about-narrative-lab:not\(\[data-route-entrance-started='true'\]\)[\s\S]*?visibility: hidden/,
+  );
+  assert.match(
+    sources.main,
+    /data-abs-transition-phase='route-loading'[\s\S]*?\.about-narrative-indicator-layer[\s\S]*?visibility: hidden/,
+  );
 });

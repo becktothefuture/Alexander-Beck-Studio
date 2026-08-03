@@ -30,8 +30,13 @@ import {
   waitForObservedRouteReady,
 } from '../react-app/app/src/lib/motion/route-transition-readiness.js';
 import {
+  createIndexedSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../react-app/app/src/lib/simulationVisualTransition.js';
+import {
+  isCanvasBackingStoreUsable,
+  resolveCanvasBackingStoreReadinessScale,
+} from '../react-app/app/src/lib/canvas-backing-store-readiness.js';
 
 function createTransaction(overrides = {}) {
   return createRouteTransitionTransaction({
@@ -246,7 +251,7 @@ test('navigation intent decisions are deterministic', () => {
     transitionActive: true,
     activeCommitted: false,
     phase: ROUTE_TRANSACTION_PHASES.ROUTE_OUT,
-  }), ROUTE_NAVIGATION_DECISIONS.RETARGET_COVERED);
+  }), ROUTE_NAVIGATION_DECISIONS.QUEUE);
   assert.equal(classifyRouteNavigationIntent({
     transitionActive: true,
     activeCommitted: true,
@@ -262,7 +267,7 @@ test('navigation intent decisions are deterministic', () => {
     activeCommitted: true,
     phase: ROUTE_TRANSACTION_PHASES.ROUTE_OUT,
     allowPreempt: true,
-  }), ROUTE_NAVIGATION_DECISIONS.PREEMPT);
+  }), ROUTE_NAVIGATION_DECISIONS.QUEUE);
 });
 
 test('pre-commit failure restores the outgoing route from a covered phase', () => {
@@ -761,6 +766,73 @@ test('Home readiness requires the prepared Canvas, runtime, shell, and title con
     assert.equal(observeRouteBaselineReady('home', {}, harness.getRuntimeSnapshot), false);
   } finally {
     harness.restore();
+  }
+});
+
+test('Canvas readiness follows renderer DPR below one and intentional performance caps', () => {
+  const canvas = {
+    dataset: { renderedDpr: '0.9' },
+    width: 576,
+    height: 324,
+    getBoundingClientRect: () => ({ width: 640, height: 360 }),
+  };
+  assert.equal(resolveCanvasBackingStoreReadinessScale(canvas, { devicePixelRatio: 0.9 }), 0.9);
+  assert.equal(isCanvasBackingStoreUsable(canvas, { devicePixelRatio: 0.9 }), true);
+  assert.equal(
+    isCanvasBackingStoreUsable({ ...canvas, width: 573 }, { devicePixelRatio: 0.9 }),
+    false,
+  );
+
+  const cappedCanvas = {
+    ...canvas,
+    dataset: { renderedDpr: '1.25' },
+    width: 800,
+    height: 450,
+  };
+  assert.equal(resolveCanvasBackingStoreReadinessScale(cappedCanvas, { devicePixelRatio: 3 }), 1.25);
+  assert.equal(isCanvasBackingStoreUsable(cappedCanvas, { devicePixelRatio: 3 }), true);
+});
+
+test('superseded Canvas material transitions settle without waiting for a timeout', async () => {
+  const previousWindow = globalThis.window;
+  let nextFrameId = 1;
+  const frames = new Map();
+  globalThis.window = {
+    requestAnimationFrame(callback) {
+      const id = nextFrameId++;
+      frames.set(id, callback);
+      return id;
+    },
+    cancelAnimationFrame(id) {
+      frames.delete(id);
+    },
+    matchMedia: () => ({ matches: false }),
+  };
+
+  try {
+    const controller = createIndexedSimulationVisualTransition({
+      sourceId: 'test-material',
+      getCount: () => 3,
+      setScaleAt: () => {},
+      requestRender: () => {},
+      getSeed: () => 1,
+    });
+    const first = controller.transitionOut({ durationMs: 210, localDurationMs: 140 });
+    const second = controller.transitionOut({ durationMs: 210, localDurationMs: 140 });
+    assert.equal(await Promise.race([
+      first.then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 25)),
+    ]), true);
+
+    controller.destroy();
+    assert.equal(await Promise.race([
+      second.then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 25)),
+    ]), true);
+    assert.equal(frames.size, 0);
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
   }
 });
 

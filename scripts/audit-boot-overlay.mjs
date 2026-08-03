@@ -978,6 +978,15 @@ async function auditRoute(browser, route, profile) {
   const page = await context.newPage();
   const url = buildRouteUrl(route.path);
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.waitForFunction(
+    () => typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function',
+    null,
+    { timeout: timeoutMs },
+  );
+  const held = await readBootSnapshot(page);
+  assert(held.overlayVisible, `${routeLabel}: held boot overlay was not visible`);
+  assert(held.rootHidden, `${routeLabel}: route content was visible before the held overlay released`);
+  await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__?.());
   await page.waitForSelector(route.readySelector, { state: 'visible', timeout: timeoutMs });
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
@@ -1089,6 +1098,12 @@ async function auditHomeReducedMotion(browser, profile) {
   const page = await context.newPage();
   const url = buildRouteUrl('/index.html');
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await page.waitForFunction(
+    () => typeof window.__ABS_RELEASE_BOOT_OVERLAY__ === 'function',
+    null,
+    { timeout: timeoutMs },
+  );
+  await page.evaluate(() => window.__ABS_RELEASE_BOOT_OVERLAY__?.());
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
   await page.waitForSelector('#app-frame', { state: 'visible', timeout: timeoutMs });
@@ -1165,6 +1180,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`FAIL: ${error.message}`);
+  console.error(`FAIL: ${error?.stack || error?.message || error}`);
   process.exitCode = 1;
 });

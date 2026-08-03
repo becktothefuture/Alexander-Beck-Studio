@@ -13,6 +13,10 @@ import {
 import { CONTACT_RIPPLE_BURST_EVENT } from './contactRippleEvents.js';
 import { createContactRippleRenderer } from './contactRippleRenderer.js';
 import { registerSimulationAtmosphereSource } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
+import {
+  ROUTE_ENTRANCE_START_EVENT,
+} from '../../lib/motion/route-entrance-events.js';
 import './contact-route.css';
 
 export function ContactRippleSimulation() {
@@ -62,7 +66,7 @@ export function ContactRippleSimulation() {
         pageSectionIcon: '✉',
         pageHTML: contactPanel.generateContactRipplePanelHTML(),
         setupPageControls: contactPanel.bindContactRipplePanel,
-        masterGroupIds: ['audio'],
+        masterGroupIds: ['motion', 'audio'],
         footerHint: '<kbd>/</kbd> panel · live apply · save to design JSON',
         syncInitialControlSideEffects: false,
       });
@@ -90,7 +94,17 @@ export function ContactRippleSimulation() {
       getConfig: getContactRippleConfig,
     });
     rendererRef.current = renderer;
+    renderer.prepareRouteEntrance();
     renderer.start();
+    const unregisterRouteParticipant = registerRouteTransitionParticipant({
+      id: 'contact-ripple-material',
+      routeId: 'contact',
+      prepare: ({ signal }) => renderer.prepareRouteEntrance({ signal }),
+      exit: ({ signal }) => renderer.exitRoute({ signal }),
+      enter: ({ signal }) => renderer.enterRoute({ signal }),
+      restore: () => renderer.settleRouteEntrance('route-restored'),
+      cancel: ({ reason }) => renderer.settleRouteEntrance(reason),
+    });
     const unregisterAtmosphereSource = registerSimulationAtmosphereSource({
       id: sourceContextAvailable ? 'contact:ripple' : 'contact:ambient',
       routeId: 'contact',
@@ -104,12 +118,19 @@ export function ContactRippleSimulation() {
       renderer.updateConfig?.(event.detail?.config || getContactRippleConfig());
     };
     const handleBurstRequest = () => renderer.burst();
+    const handleDirectRouteEntrance = (event) => {
+      if (event.detail?.routeId !== 'contact' || event.detail?.mode !== 'direct') return;
+      void renderer.enterRoute();
+    };
     window.addEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
     window.addEventListener(CONTACT_RIPPLE_BURST_EVENT, handleBurstRequest);
+    window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
 
     return () => {
       window.removeEventListener(CONTACT_RIPPLE_CONFIG_EVENT, handleConfigChange);
       window.removeEventListener(CONTACT_RIPPLE_BURST_EVENT, handleBurstRequest);
+      window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
+      unregisterRouteParticipant();
       unregisterAtmosphereSource();
       renderer.destroy();
       if (rendererRef.current === renderer) rendererRef.current = null;

@@ -201,6 +201,7 @@ export class PortfolioParticleField {
           distributionIndex: materialSequence[this.particles.length]?.distributionIndex || 0,
           colorIndex: materialSequence[this.particles.length]?.colorIndex || 0,
           layerIndex,
+          routeEntranceScale: 1,
         });
       }
     });
@@ -423,8 +424,14 @@ export class PortfolioParticleField {
       for (let index = 0; index < this.particles.length; index += 1) {
         const particle = this.particles[index];
         if (particle.colorIndex !== colorIndex) continue;
-        this.ctx.moveTo(particle.x + particle.radius, particle.y);
-        this.ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        const radius = particle.radius * clamp(
+          toNumber(particle.routeEntranceScale, 1),
+          0,
+          1,
+        );
+        if (radius <= 0.01) continue;
+        this.ctx.moveTo(particle.x + radius, particle.y);
+        this.ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
       }
       this.ctx.fill();
     }
@@ -444,6 +451,8 @@ export class PortfolioParticleField {
     const roleCounts = Object.fromEntries(
       this.colorDistribution.map((row) => [row.roleId, 0]),
     );
+    let routeMaterialMinScale = 1;
+    let routeMaterialMaxScale = 0;
     for (let index = 0; index < this.particles.length; index += 1) {
       const particle = this.particles[index];
       const colorIndex = particle?.colorIndex;
@@ -453,6 +462,9 @@ export class PortfolioParticleField {
       if (particle?.roleId && roleCounts[particle.roleId] !== undefined) {
         roleCounts[particle.roleId] += 1;
       }
+      const routeScale = clamp(toNumber(particle?.routeEntranceScale, 1), 0, 1);
+      routeMaterialMinScale = Math.min(routeMaterialMinScale, routeScale);
+      routeMaterialMaxScale = Math.max(routeMaterialMaxScale, routeScale);
     }
     return {
       active: this.started && !this.isLifecycleSuspended(),
@@ -481,6 +493,8 @@ export class PortfolioParticleField {
           || Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON ? 'motion' : 'idle'),
       scheduled: Boolean(this.animationFrame || this.frameTimer),
       particleCount: this.particles.length,
+      routeMaterialMinScale: this.particles.length ? routeMaterialMinScale : 1,
+      routeMaterialMaxScale: this.particles.length ? routeMaterialMaxScale : 1,
       palette: this.colors.slice(),
       paletteId: this.paletteId,
       paletteGeneration: this.paletteGeneration,

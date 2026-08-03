@@ -338,6 +338,9 @@ const SHELL_ROUTE_TRANSITION_NUMBER_KEYS = Object.freeze([
   'plateExitDelayMs',
   'plateExitDurationMs',
   'surfaceEnterDurationMs',
+  'typographyDelayMs',
+  'typographyExitDurationMs',
+  'typographyExitStaggerMs',
   'routeBookendColorCount', 'routeBookendDurationMs', 'routeBookendOverlapPercent',
   'routeBookendLineOverlapMs', 'routeBookendLineDurationMs',
   'routeBookendDescriptionDelayMs', 'routeBookendDescriptionDurationMs',
@@ -346,8 +349,13 @@ const SHELL_ROUTE_TRANSITION_NUMBER_KEYS = Object.freeze([
   'actionDurationMs',
   'supportDurationMs',
   'itemStepMs',
-  'repeatTimingScale',
-  'repeatStaggerScale',
+  'materialDurationMs',
+  'materialStaggerMs',
+  'materialDelayMs',
+  'materialExitDurationMs',
+  'materialExitStaggerMs',
+  'cardTravelPx',
+  'cardTiltDeg',
 ]);
 
 function isPlainObject(value) {

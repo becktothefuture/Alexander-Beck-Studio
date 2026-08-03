@@ -3,7 +3,12 @@ import {
   applyLayoutFromVwToPx,
   getGlobals,
 } from '../core/state.js';
-import { applyShellLayoutVars, patchShellLayout } from '../visual/site-shell.js';
+import {
+  applyShellLayoutVars,
+  getShellRouteTransitionConfig,
+  patchShellLayout,
+  patchShellMotion,
+} from '../visual/site-shell.js';
 import { resize } from '../rendering/renderer.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
@@ -20,9 +25,37 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   frameInsetDesktopPx: 16,
   frameRadiusMobilePx: 32,
   frameRadiusDesktopPx: 72,
+  materialDurationMs: 1200,
+  materialStaggerMs: 720,
+  materialDelayMs: 80,
+  typographyDelayMs: 1100,
+  routeBookendDurationMs: 560,
+  materialExitDurationMs: 140,
+  materialExitStaggerMs: 70,
+  typographyExitDurationMs: 100,
+  cardTravelPx: 16,
+  cardTiltDeg: 1.2,
 };
 
 const SHELL_OBJECT_CONTROL_SECTIONS = [
+  {
+    key: 'routeEntrance',
+    title: 'View Entrances',
+    icon: '🎬',
+    defaultOpen: true,
+    controls: [
+      { id: 'materialDurationMs', label: 'Scene Grow', min: 300, max: 1800, step: 10, unit: 'ms' },
+      { id: 'materialStaggerMs', label: 'Scene Cascade', min: 0, max: 1200, step: 10, unit: 'ms' },
+      { id: 'materialDelayMs', label: 'Scene Delay', min: 0, max: 600, step: 10, unit: 'ms' },
+      { id: 'typographyDelayMs', label: 'Type Start', min: 200, max: 1800, step: 10, unit: 'ms' },
+      { id: 'routeBookendDurationMs', label: 'Title Reveal', min: 120, max: 1200, step: 10, unit: 'ms' },
+      { id: 'materialExitDurationMs', label: 'Circle Exit', min: 60, max: 500, step: 10, unit: 'ms' },
+      { id: 'materialExitStaggerMs', label: 'Exit Cascade', min: 0, max: 300, step: 10, unit: 'ms' },
+      { id: 'typographyExitDurationMs', label: 'Type Exit', min: 40, max: 400, step: 10, unit: 'ms' },
+      { id: 'cardTravelPx', label: 'Card Lift', min: 0, max: 48, step: 1, unit: 'px' },
+      { id: 'cardTiltDeg', label: 'Card Tilt', min: 0, max: 4, step: 0.1, unit: '°' },
+    ],
+  },
   {
     key: 'frame',
     title: 'Wall Shape',
@@ -137,6 +170,7 @@ function readNumber(rootStyle, name, fallback) {
 
 function readCurrentConfig() {
   const rootStyle = getComputedStyle(document.documentElement);
+  const routeTransition = getShellRouteTransitionConfig();
 
   return {
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
@@ -168,6 +202,16 @@ function readCurrentConfig() {
       const v = g?.frameRadiusDesktopPx;
       return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameRadiusDesktopPx;
     })(),
+    materialDurationMs: routeTransition.materialDurationMs,
+    materialStaggerMs: routeTransition.materialStaggerMs,
+    materialDelayMs: routeTransition.materialDelayMs,
+    typographyDelayMs: routeTransition.typographyDelayMs,
+    routeBookendDurationMs: routeTransition.routeBookendDurationMs,
+    materialExitDurationMs: routeTransition.materialExitDurationMs,
+    materialExitStaggerMs: routeTransition.materialExitStaggerMs,
+    typographyExitDurationMs: routeTransition.typographyExitDurationMs,
+    cardTravelPx: routeTransition.cardTravelPx,
+    cardTiltDeg: routeTransition.cardTiltDeg,
   };
 }
 
@@ -248,6 +292,16 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
   const frameInset = normalizeFrameInsetEndpoints(config);
   const frameRadius = normalizeFrameRadiusEndpoints(config);
+  const materialDurationMs = Math.round(clamp(config.materialDurationMs, 300, 1800, DEFAULT_STUDIO_SURFACE_CONFIG.materialDurationMs));
+  const materialStaggerMs = Math.round(clamp(config.materialStaggerMs, 0, 1200, DEFAULT_STUDIO_SURFACE_CONFIG.materialStaggerMs));
+  const materialDelayMs = Math.round(clamp(config.materialDelayMs, 0, 600, DEFAULT_STUDIO_SURFACE_CONFIG.materialDelayMs));
+  const typographyDelayMs = Math.round(clamp(config.typographyDelayMs, 200, 1800, DEFAULT_STUDIO_SURFACE_CONFIG.typographyDelayMs));
+  const routeBookendDurationMs = Math.round(clamp(config.routeBookendDurationMs, 120, 1200, DEFAULT_STUDIO_SURFACE_CONFIG.routeBookendDurationMs));
+  const materialExitDurationMs = Math.round(clamp(config.materialExitDurationMs, 60, 500, DEFAULT_STUDIO_SURFACE_CONFIG.materialExitDurationMs));
+  const materialExitStaggerMs = Math.round(clamp(config.materialExitStaggerMs, 0, 300, DEFAULT_STUDIO_SURFACE_CONFIG.materialExitStaggerMs));
+  const typographyExitDurationMs = Math.round(clamp(config.typographyExitDurationMs, 40, 400, DEFAULT_STUDIO_SURFACE_CONFIG.typographyExitDurationMs));
+  const cardTravelPx = clamp(config.cardTravelPx, 0, 48, DEFAULT_STUDIO_SURFACE_CONFIG.cardTravelPx);
+  const cardTiltDeg = clamp(config.cardTiltDeg, 0, 4, DEFAULT_STUDIO_SURFACE_CONFIG.cardTiltDeg);
 
   syncStudioRuntimeState({
     edgeCaptionDistanceMin,
@@ -268,6 +322,16 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     frameInsetDesktopPx: frameInset.desktop,
     frameRadiusMobilePx: frameRadius.mobile,
     frameRadiusDesktopPx: frameRadius.desktop,
+    materialDurationMs,
+    materialStaggerMs,
+    materialDelayMs,
+    typographyDelayMs,
+    routeBookendDurationMs,
+    materialExitDurationMs,
+    materialExitStaggerMs,
+    typographyExitDurationMs,
+    cardTravelPx,
+    cardTiltDeg,
   };
   window.__ABS_STUDIO_SURFACE_CONFIG__ = studioSurfaceSnapshot;
 
@@ -283,6 +347,20 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
       frameRadiusMobile: `${frameRadius.mobile}px`,
       frameRadiusDesktop: `${frameRadius.desktop}px`,
       routeTitleDescriptionGap: `${routeTitleDescriptionGap}px`,
+    });
+    patchShellMotion({
+      routeTransition: {
+        materialDurationMs,
+        materialStaggerMs,
+        materialDelayMs,
+        typographyDelayMs,
+        routeBookendDurationMs,
+        materialExitDurationMs,
+        materialExitStaggerMs,
+        typographyExitDurationMs,
+        cardTravelPx,
+        cardTiltDeg,
+      },
     });
     applyShellLayoutVars();
     applyLayoutFromVwToPx();
@@ -446,6 +524,19 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   delete nextShell.layout.quoteMaxWidth;
   delete nextShell.surface.quoteButtonFillOpacity;
   nextShell.motion = { ...(baseShell?.motion || {}) };
+  nextShell.motion.routeTransition = {
+    ...(baseShell?.motion?.routeTransition || {}),
+    materialDurationMs: Math.round(config.materialDurationMs),
+    materialStaggerMs: Math.round(config.materialStaggerMs),
+    materialDelayMs: Math.round(config.materialDelayMs),
+    typographyDelayMs: Math.round(config.typographyDelayMs),
+    routeBookendDurationMs: Math.round(config.routeBookendDurationMs),
+    materialExitDurationMs: Math.round(config.materialExitDurationMs),
+    materialExitStaggerMs: Math.round(config.materialExitStaggerMs),
+    typographyExitDurationMs: Math.round(config.typographyExitDurationMs),
+    cardTravelPx: Number(config.cardTravelPx),
+    cardTiltDeg: Number(config.cardTiltDeg),
+  };
   delete nextShell.motion.puckRestitution;
   delete nextShell.motion.puckFriction;
   delete nextShell.motion.puckWallInset;

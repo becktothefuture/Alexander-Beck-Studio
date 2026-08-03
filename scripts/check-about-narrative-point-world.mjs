@@ -182,19 +182,27 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
     '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeModifierSampling.js',
     import.meta.url,
   ), 'utf8');
+  const atmosphereSource = readFileSync(new URL(
+    '../react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
+    import.meta.url,
+  ), 'utf8');
   assert.match(source, /presence \*= clamp\(simulationVisibility, 0\.0, 1\.0\)/);
   assert.match(source, /points\.visible = simulationVisibility > 0\.001/);
   assert.match(source, /uniform float sceneEntranceScale/);
-  assert.match(source, /pointAlpha = presence \* entranceScale/);
+  assert.match(source, /pointAlpha = presence;/);
+  assert.doesNotMatch(source, /pointAlpha = presence \* entranceScale/);
   assert.match(source, /float enteringPoint = \(1\.0 - step\(0\.5, fromPresence\)\) \* step\(0\.5, toPresence\)/);
   assert.match(source, /gl_Position\.z \+= enteringPoint/);
   assert.match(source, /gl_PointSize \*= mix\(1\.0, max\(0\.01, entryProgress\), enteringPoint\)/);
   assert.match(source, /ROUTE_ENTRANCE_START_EVENT/);
   assert.match(source, /entranceAlreadyComplete = root\.dataset\.aboutEntranceState === 'complete'/);
-  assert.match(source, /root\.dataset\.aboutEntranceRequested === 'true'/);
-  assert.match(source, /root\.dataset\.aboutEntranceRequested = 'true'/);
   assert.match(source, /aboutSceneReady = 'true'/);
-  assert.match(source, /easeSimulationVisualProgress\([\s\S]*cubic-bezier\(0\.22, 0, 0\.16, 1\)/);
+  assert.match(source, /createRouteMaterialEntranceController\(\{/);
+  assert.match(source, /uniforms\.sceneEntranceScale\.value = scale/);
+  assert.match(source, /exit: \(\{ signal \}\) => routeMaterial\.exit\(\{ signal/);
+  assert.match(source, /getVisualScale: \(\) => ambientScale/);
+  assert.match(atmosphereSource, /ball\.r = shortest \* \(0\.026 \+ \(index % 3\) \* 0\.006\) \* visualScale/);
+  assert.match(atmosphereSource, /activeSource\.generation !== transitionSourceGeneration/);
   assert.match(source, /pointAlpha <= 0\.001 \|\| fieldOpacity <= 0\.001/);
   assert.match(source, /globalCamera\?\.distanceFogStartWU \?\? 8/);
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
@@ -319,7 +327,7 @@ test('About Director previews the point world through the production atmosphere 
   ), 'utf8');
 
   assert.doesNotMatch(siteApp, /about-narrative-lab/);
-  assert.match(siteApp, /PRIMARY_ROUTE_IDS/);
+  assert.match(siteApp, /PRIMARY_ROUTE_IDS\.includes\(routeId\)\) return 'production'/);
   assert.match(pointWorld, /viewportElement: canvasSource \? canvas : null/);
   assert.match(
     pointWorld,

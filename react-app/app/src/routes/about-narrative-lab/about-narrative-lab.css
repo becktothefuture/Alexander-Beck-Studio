@@ -433,6 +433,22 @@ body.about-narrative-page .route-simulation-layer {
   border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
 }
 
+.about-narrative-editorial-stack > .about-narrative-editorial-list li {
+  display: grid;
+  grid-template-columns: 0.55rem minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.about-narrative-editorial-stack > .about-narrative-editorial-list li::before {
+  width: 0.34rem;
+  height: 0.34rem;
+  margin-top: 0.54em;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+  opacity: 0.54;
+}
+
 .about-narrative-client-field {
   display: grid;
   gap: clamp(2rem, 4vw, 3rem);
@@ -965,6 +981,8 @@ body.dark-mode .about-narrative-client-logos img {
   border-radius: 999px;
   background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
   opacity: var(--abs-indicator-rest-opacity, 0.22);
+  transform: scaleX(var(--about-indicator-route-scale, 1));
+  transform-origin: 0 50%;
   transition: opacity 140ms ease-out;
 }
 

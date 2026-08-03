@@ -290,6 +290,9 @@ async function waitForPlayground(page) {
       && !viewportNode?.closest('[inert], [aria-hidden="true"]')
       && (lightbox || !firstButton?.closest('[inert], [aria-hidden="true"]'));
   }, null, { timeout: timeoutMs, polling: 'raf' });
+  await page.waitForFunction(() => (
+    document.querySelector('[data-playground-experience]')?.dataset.routeMaterialState === 'complete'
+  ), null, { timeout: timeoutMs, polling: 'raf' });
   await waitForRuntimeDiagnostics(page);
 }
 
@@ -419,7 +422,9 @@ async function getPlaygroundState(page) {
       gridSpacing: Number.parseFloat(getComputedStyle(route).getPropertyValue('--playground-grid-spacing-px') || '0'),
       items,
       copies,
-      semanticButtonCount: document.querySelectorAll('[data-playground-item] > button').length,
+      semanticButtonCount: document.querySelectorAll(
+        '[data-playground-item] > .playground-item__route-surface > button',
+      ).length,
       decorativeItemCount: document.querySelectorAll('[data-playground-decorative-item]').length,
       visibleTypeTagCount: document.querySelectorAll('.playground-item__type').length,
       decorativeInteractiveCount: document.querySelectorAll(
@@ -660,7 +665,8 @@ async function assertWorldMediaLifecycle(page, evidence) {
     ).evaluate((itemNode) => {
       const label = itemNode.querySelector('.playground-item__label');
       const mediaNodes = Array.from(itemNode.querySelectorAll(
-        ':scope > .playground-item__runtime, :scope > button > .playground-media',
+        ':scope > .playground-item__route-surface > .playground-item__runtime, '
+        + ':scope > .playground-item__route-surface > button > .playground-media',
       ));
       const labelRect = label?.getBoundingClientRect();
       const mediaBottom = Math.max(
@@ -1928,7 +1934,9 @@ async function assertCompactLanding(browser, failures, evidence) {
       worldScale,
       renderedTitleSize: titleSize * worldScale,
       renderedDescriptionSize: descriptionSize * worldScale,
-      rovingTabStopCount: document.querySelectorAll('[data-playground-item] > button[tabindex="0"]').length,
+      rovingTabStopCount: document.querySelectorAll(
+        '[data-playground-item] > .playground-item__route-surface > button[tabindex="0"]',
+      ).length,
     };
   });
   assert(

@@ -1,5 +1,7 @@
 const NATIVE_SET_TIMEOUT_KEY = '__ABS_NATIVE_SET_TIMEOUT__';
 const NATIVE_CLEAR_TIMEOUT_KEY = '__ABS_NATIVE_CLEAR_TIMEOUT__';
+const NATIVE_REQUEST_ANIMATION_FRAME_KEY = '__ABS_NATIVE_REQUEST_ANIMATION_FRAME__';
+const NATIVE_CANCEL_ANIMATION_FRAME_KEY = '__ABS_NATIVE_CANCEL_ANIMATION_FRAME__';
 
 function ensureNativeTimerRefs() {
   if (typeof window === 'undefined') {
@@ -33,6 +35,45 @@ export function clearStableTimeout(timeoutId) {
   const { nativeClearTimeout } = ensureNativeTimerRefs();
   const cancel = nativeClearTimeout || window.clearTimeout.bind(window);
   return cancel(timeoutId);
+}
+
+function ensureNativeAnimationFrameRefs() {
+  if (typeof window === 'undefined') {
+    return {
+      nativeRequestAnimationFrame: null,
+      nativeCancelAnimationFrame: null,
+    };
+  }
+
+  if (
+    typeof window[NATIVE_REQUEST_ANIMATION_FRAME_KEY] !== 'function'
+    && typeof window.requestAnimationFrame === 'function'
+  ) {
+    window[NATIVE_REQUEST_ANIMATION_FRAME_KEY] = window.requestAnimationFrame.bind(window);
+  }
+  if (
+    typeof window[NATIVE_CANCEL_ANIMATION_FRAME_KEY] !== 'function'
+    && typeof window.cancelAnimationFrame === 'function'
+  ) {
+    window[NATIVE_CANCEL_ANIMATION_FRAME_KEY] = window.cancelAnimationFrame.bind(window);
+  }
+
+  return {
+    nativeRequestAnimationFrame: window[NATIVE_REQUEST_ANIMATION_FRAME_KEY] || null,
+    nativeCancelAnimationFrame: window[NATIVE_CANCEL_ANIMATION_FRAME_KEY] || null,
+  };
+}
+
+export function requestStableAnimationFrame(handler) {
+  const { nativeRequestAnimationFrame } = ensureNativeAnimationFrameRefs();
+  if (nativeRequestAnimationFrame) return nativeRequestAnimationFrame(handler);
+  return setStableTimeout(() => handler(performance.now()), 16);
+}
+
+export function cancelStableAnimationFrame(frameId) {
+  const { nativeCancelAnimationFrame } = ensureNativeAnimationFrameRefs();
+  if (nativeCancelAnimationFrame) return nativeCancelAnimationFrame(frameId);
+  return clearStableTimeout(frameId);
 }
 
 function createCancelableSet() {
@@ -81,6 +122,7 @@ export function createLegacyRuntimeScope() {
   let restored = false;
 
   ensureNativeTimerRefs();
+  ensureNativeAnimationFrameRefs();
 
   const restoreGlobals = () => {
     if (restored) return;

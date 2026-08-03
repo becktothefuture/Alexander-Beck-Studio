@@ -190,9 +190,13 @@ async function auditProductionIndicator(viewport, label) {
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-indicator__line[data-line-index="16"]')?.dataset.active === 'true'
     && document.querySelector('.about-narrative-indicator__line[data-line-index="17"]')?.dataset.active === 'true'
+    && document.querySelector('.about-narrative-indicator')?.getAttribute('aria-valuenow') === '100'
   ));
   assert.equal(await indicator.getAttribute('aria-valuenow'), '100');
-  assert.match(await page.locator('.about-narrative-visually-hidden[role="status"]').textContent(), /Section 8 of 8/);
+  assert.equal(
+    await indicator.getAttribute('aria-valuetext'),
+    '100% through the About narrative',
+  );
 
   await page.evaluate(() => {
     document.documentElement.classList.add('dark-mode');

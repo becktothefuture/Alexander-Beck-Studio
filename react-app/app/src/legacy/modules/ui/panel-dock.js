@@ -308,6 +308,7 @@ function getMasterPanelContent({
     },
     append: {
       layout: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
+      motion: generateStudioShellControlsHTML({ sectionKeys: ['routeEntrance'] }),
       puck: generateStudioShellControlsHTML({
         sectionKeys: ['puck'],
         puckPrependHTML: getPuckColorControlsHTML(),
@@ -431,6 +432,7 @@ export function createPanelDock(options = {}) {
   const pageSectionIcon = options.pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
   const preserveLauncherButton = options.preserveLauncherButton === true;
   const skipToggleButton = options.skipToggleButton === true;
+  const syncInitialControlSideEffects = options.syncInitialControlSideEffects !== false;
 
   // Remove any legacy placeholders
   try {
@@ -490,6 +492,7 @@ export function createPanelDock(options = {}) {
     footerHint,
     setupPageControls,
     portfolioPanelConfig,
+    syncInitialControlSideEffects,
   });
   dockElement.appendChild(masterPanelElement);
 

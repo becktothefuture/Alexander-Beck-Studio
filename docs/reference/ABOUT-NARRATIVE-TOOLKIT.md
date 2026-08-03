@@ -60,7 +60,7 @@ About Narrative
 - A **modifier** adds deterministic or ambient movement to a Shape.
 - A **Title** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
-- A **Discipline reveal** is one movable Motion clip that isolates six existing points and projects their labels from exact Three.js anchors without creating another Form or six ordinary title keyframes.
+- A **Discipline reveal** is one movable Motion clip that moves six existing points through one stable grid reading line without creating another Form or six ordinary title keyframes.
 
 “Stage” is not part of the authored vocabulary.
 
@@ -198,11 +198,10 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 - `0–5.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
   interval, and bridge directly into the calm grid.
-- `5.35–7.30 WU`: keep the complete field visible behind the two discipline headings and move
-  directly into the reveal.
-- `7.30–11.10 WU`: pitch through the grid flyover, reveal the six disciplines in sequence, and begin
-  the second editorial block before the final discipline motion has fully cleared.
-- `11.10–13.15 WU`: hold focused editorial space while the camera repositions without an empty run.
+- `5.05–5.55 WU`: settle the complete field into its overhead reading lane.
+- `5.55–9.75 WU`: pass six equal discipline beats through one stable reading line.
+- `9.75–10.15 WU`: reconnect the final point and restore the full-colour grid.
+- `10.15–13.15 WU`: hand off cleanly to focused editorial space while the camera repositions.
 - `13.15–15.27 WU`: return to the centered surface and sustain the scroll-authored ripple beneath
   the three travelling titles.
 - `15.27–16.07 WU`: begin gathering the fixed point pool while the third title exits, then build the
@@ -331,22 +330,21 @@ into hundreds of keyframes.
 
 Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field Form for the
 complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
-point emphasis. Each projected label uses the shared editorial reading line as its single reveal clock
-and remains revealed during forward travel. The clip never owns camera, fog, or whole-system visibility.
+point emphasis. One shared beat clock selects a single item at the stable editorial reading position.
+The clip never owns camera, fog, or whole-system visibility.
 **Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
-Reorder the six labels without remapping their stable point groups.
+Reorder the six labels without remapping their stable point groups or authoring responsive positions.
 
 The Discipline reveal stays authored in Motion, but the Text lane shows its complete interval as a
 read-only flow reservation. This makes the occupied reading interval visible between the preceding
 titles and the following editorial block without creating a second timing owner.
 
-The clip is one draggable timing object. The native DOM labels project from their corresponding
-Three.js points, stay beside those points, and pack inside the viewport on desktop, portrait mobile,
-and short landscape. The Position map exposes the real desktop and mobile point grids as integer
-columns and rows; dragging, arrow keys, and direct entry all resolve to one exact grid cell. A selected
-cell starts as an ordinary grey grid point, then grows smoothly to the authored discipline size as its
-label reveals. The canonical discipline size is 20% larger than the previous setting. Its previous
-material colour does not affect the selection because the semantic group assigns the reveal colour. Their
+The clip is one draggable timing object. Six equally spaced cells in one grid column feed the same
+reading position on desktop, portrait mobile, and short landscape. The runtime updates one CSS beat
+progress value and existing shader uniforms; it does not measure, project, pack, or resize-observe
+discipline labels during playback. A selected cell starts as an ordinary grey grid point, grows at the
+reading line, and reconnects with the moving grid as its copy exits. Its previous material colour does
+not affect the selection because the semantic group assigns the reveal colour. Their
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
 After the final labels pass and the grid restoration completes, Visibility hides the complete simulation

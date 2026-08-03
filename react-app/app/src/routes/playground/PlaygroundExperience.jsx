@@ -9,6 +9,14 @@ import {
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 import { triggerHaptic } from '../../lib/haptics.js';
 import {
+  createRouteMaterialEntranceController,
+  getRouteCardMotionFrame,
+} from '../../lib/motion/route-material-entrance.js';
+import {
+  ROUTE_ENTRANCE_START_EVENT,
+} from '../../lib/motion/route-entrance-events.js';
+import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
+import {
   playButtonPressSound,
   playWheelClose,
   playWheelOpen,
@@ -162,6 +170,36 @@ function waitForPaint() {
   });
 }
 
+function waitForPlaygroundRouteReady(root, signal) {
+  return new Promise((resolve) => {
+    let observer = null;
+    const finish = (ready) => {
+      observer?.disconnect();
+      signal?.removeEventListener('abort', handleAbort);
+      resolve(ready);
+    };
+    const inspect = () => {
+      if (signal?.aborted || !root?.isConnected) {
+        finish(false);
+        return;
+      }
+      if (root.dataset.playgroundReady === 'true') {
+        finish(true);
+        return;
+      }
+      if (root.dataset.playgroundError === 'true') finish(false);
+    };
+    const handleAbort = () => finish(false);
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    observer = new MutationObserver(inspect);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-playground-ready', 'data-playground-error'],
+    });
+    inspect();
+  });
+}
+
 async function waitForInitialPosters(root, timeoutMs = INITIAL_POSTER_TIMEOUT_MS) {
   await waitForPaint();
   if (!root) return;
@@ -220,10 +258,12 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
                 '--playground-item-height-px': `${placement.mediaHeightCells * config.gridSpacingPx}px`,
               }}
             >
-              <PlaygroundPoster item={item} decorative />
-              <div className="playground-item__label" aria-hidden="true">
-                <p className="playground-item__title">{item.label}</p>
-                <p className="playground-item__description">{item.description}</p>
+              <div className="playground-item__route-surface">
+                <PlaygroundPoster item={item} decorative />
+                <div className="playground-item__label" aria-hidden="true">
+                  <p className="playground-item__title">{item.label}</p>
+                  <p className="playground-item__description">{item.description}</p>
+                </div>
               </div>
             </div>
           );
@@ -262,6 +302,9 @@ export function PlaygroundExperience() {
   const applyCameraFrameRef = useRef(() => {});
   const returnFocusIdRef = useRef(null);
   const paletteRef = useRef(null);
+  const materialEntranceRef = useRef(null);
+  const dotMaterialTargetRef = useRef(Object.freeze({ kind: 'dot-field' }));
+  const dotMaterialScaleRef = useRef(0);
 
   const [content, setContent] = useState(null);
   const [config, setConfigState] = useState(() => getPlaygroundConfigSnapshot());
@@ -312,6 +355,89 @@ export function PlaygroundExperience() {
     selectedIdRef.current = selectedId;
     paletteRef.current = palette;
   }, [content, model, palette, runtimeConfig, selectedId]);
+
+  useLayoutEffect(() => {
+    const route = routeRef.current;
+    if (!route) return undefined;
+    const getVisibleItems = () => {
+      const viewport = route.querySelector('[data-playground-viewport]');
+      const viewportRect = viewport?.getBoundingClientRect();
+      if (!viewportRect?.width || !viewportRect?.height) return [];
+      const margin = 80;
+      return [...route.querySelectorAll('.playground-item')].filter((item) => {
+        const rect = item.getBoundingClientRect();
+        return rect.right >= viewportRect.left - margin
+          && rect.left <= viewportRect.right + margin
+          && rect.bottom >= viewportRect.top - margin
+          && rect.top <= viewportRect.bottom + margin;
+      });
+    };
+    const cardMotionFrame = {};
+    const controller = createRouteMaterialEntranceController({
+      id: 'playground-view-material',
+      routeId: 'playground',
+      diagnosticRoot: route,
+      getTargets: () => [dotMaterialTargetRef.current, ...getVisibleItems()],
+      setTargetScale: (target, progress, index, detail) => {
+        if (target === dotMaterialTargetRef.current) {
+          dotMaterialScaleRef.current = progress;
+          dotRendererRef.current?.setRouteVisualScale(progress, { immediate: true });
+          return;
+        }
+        const frame = getRouteCardMotionFrame(progress, {
+          direction: index % 2 === 0 ? -1 : 1,
+          timing: detail?.timing,
+        }, cardMotionFrame);
+        target.style.setProperty('--playground-route-card-scale', String(frame.scale));
+        target.style.setProperty('--playground-route-card-y', `${frame.translateY}px`);
+        target.style.setProperty('--playground-route-card-rotate', `${frame.rotate}deg`);
+      },
+      getDelayRatio: (item, index, targets, direction) => {
+        if (item === dotMaterialTargetRef.current) return direction === 'out' ? 1 : 0;
+        if (direction === 'out') return 0;
+        const viewport = route.querySelector('[data-playground-viewport]');
+        const viewportRect = viewport?.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        if (!viewportRect?.width || !viewportRect?.height) return 0.35;
+        const dx = (itemRect.left + (itemRect.width / 2))
+          - (viewportRect.left + (viewportRect.width / 2));
+        const dy = (itemRect.top + (itemRect.height / 2))
+          - (viewportRect.top + (viewportRect.height / 2));
+        const radius = Math.max(1, Math.hypot(viewportRect.width, viewportRect.height) * 0.5);
+        return 0.35 + (Math.min(1, Math.hypot(dx, dy) / radius) * 0.65);
+      },
+      requestRender: () => dotRendererRef.current?.drawImmediately(),
+      getReducedMotion: () => reducedMotion,
+    });
+    materialEntranceRef.current = controller;
+    controller.prepare({ reducedMotion });
+    const unregisterParticipant = registerRouteTransitionParticipant({
+      id: 'playground-view-material',
+      routeId: 'playground',
+      prepare: ({ signal }) => controller.prepare({ signal, reducedMotion }),
+      exit: ({ signal }) => controller.exit({ signal, reducedMotion }),
+      waitUntilReady: ({ signal }) => waitForPlaygroundRouteReady(route, signal),
+      enter: async ({ signal }) => {
+        const readyForMaterial = await waitForPlaygroundRouteReady(route, signal);
+        if (!readyForMaterial) return false;
+        return controller.enter({ signal, reducedMotion });
+      },
+      restore: () => controller.settle('route-restored'),
+      cancel: ({ reason }) => controller.cancel(reason),
+    });
+    const handleDirectRouteEntrance = (event) => {
+      if (event.detail?.routeId !== 'playground' || event.detail?.mode !== 'direct') return;
+      void controller.enter({ reducedMotion });
+    };
+    window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
+
+    return () => {
+      window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectRouteEntrance);
+      unregisterParticipant();
+      controller.destroy({ settleTargets: false });
+      if (materialEntranceRef.current === controller) materialEntranceRef.current = null;
+    };
+  }, [reducedMotion]);
 
   const publishDiagnostics = useCallback((patch = {}) => {
     diagnosticsRef.current = Object.freeze({
@@ -556,6 +682,7 @@ export function PlaygroundExperience() {
       worldScale,
       worldColumns: model.world.columns,
       worldRows: model.world.rows,
+      routeVisualScale: dotMaterialScaleRef.current,
       dotRadiusPx: configRef.current.dotRadiusPx,
       dotOpacity: configRef.current.dotOpacity,
       colorWakeRadiusPx: configRef.current.colorWakeRadiusPx,
@@ -964,14 +1091,7 @@ export function PlaygroundExperience() {
     };
   }, [content, loadError, model]);
 
-  useEffect(() => {
-    if (!ready) return;
-    window.dispatchEvent(new CustomEvent('abs:route-ready', {
-      detail: { routeId: 'playground' },
-    }));
-  }, [ready]);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ready || !routeRef.current || !model) return undefined;
     const isLocalAuditHost = import.meta.env.DEV
       || window.location.hostname === 'localhost'
@@ -1005,6 +1125,13 @@ export function PlaygroundExperience() {
       if (window.__ABS_PLAYGROUND__ === diagnosticApi) delete window.__ABS_PLAYGROUND__;
     };
   }, [model, ready, recenter]);
+
+  useLayoutEffect(() => {
+    if (!ready) return;
+    window.dispatchEvent(new CustomEvent('abs:route-ready', {
+      detail: { routeId: 'playground' },
+    }));
+  }, [ready]);
 
   useEffect(() => {
     const route = routeRef.current;
@@ -1151,48 +1278,50 @@ export function PlaygroundExperience() {
                       '--playground-item-height-px': `${placement.mediaHeightCells * runtimeConfig.gridSpacingPx}px`,
                     }}
                   >
-                    {worldRuntimeActive ? (
-                      <div className="playground-item__runtime" aria-hidden="true">
+                    <div className="playground-item__route-surface">
+                      {worldRuntimeActive ? (
+                        <div className="playground-item__runtime" aria-hidden="true">
+                          <PlaygroundMedia
+                            item={item}
+                            renderMode="active"
+                            active
+                            visible
+                            motionAllowed={!reducedMotion}
+                            decorative
+                            runtimeOwnerId={`world:${item.id}`}
+                            onRuntimeStateChange={handleMediaRuntimeStateChange}
+                          />
+                        </div>
+                      ) : null}
+                      <button
+                        ref={(node) => {
+                          if (node) focusItemNodesRef.current.set(item.id, node);
+                          else focusItemNodesRef.current.delete(item.id);
+                        }}
+                        type="button"
+                        tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
+                        aria-label={accessibleName}
+                        aria-haspopup="dialog"
+                        onFocus={() => {
+                          setKeyboardItemId(item.id);
+                          focusLogicalItem(item.id);
+                        }}
+                        onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                        onClick={(event) => openItem(item.id, event)}
+                      >
                         <PlaygroundMedia
                           item={item}
-                          renderMode="active"
-                          active
+                          renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
+                          active={item.type === 'image' && worldMediaActive}
                           visible
-                          motionAllowed={!reducedMotion}
                           decorative
-                          runtimeOwnerId={`world:${item.id}`}
-                          onRuntimeStateChange={handleMediaRuntimeStateChange}
                         />
-                      </div>
-                    ) : null}
-                    <button
-                      ref={(node) => {
-                        if (node) focusItemNodesRef.current.set(item.id, node);
-                        else focusItemNodesRef.current.delete(item.id);
-                      }}
-                      type="button"
-                      tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
-                      aria-label={accessibleName}
-                      aria-haspopup="dialog"
-                      onFocus={() => {
-                        setKeyboardItemId(item.id);
-                        focusLogicalItem(item.id);
-                      }}
-                      onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                      onClick={(event) => openItem(item.id, event)}
-                    >
-                      <PlaygroundMedia
-                        item={item}
-                        renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
-                        active={item.type === 'image' && worldMediaActive}
-                        visible
-                        decorative
-                      />
-                      <span className="playground-item__label" aria-hidden="true">
-                        <span className="playground-item__title">{item.label}</span>
-                        <span className="playground-item__description">{item.description}</span>
-                      </span>
-                    </button>
+                        <span className="playground-item__label" aria-hidden="true">
+                          <span className="playground-item__title">{item.label}</span>
+                          <span className="playground-item__description">{item.description}</span>
+                        </span>
+                      </button>
+                    </div>
                   </li>
                 );
               })}

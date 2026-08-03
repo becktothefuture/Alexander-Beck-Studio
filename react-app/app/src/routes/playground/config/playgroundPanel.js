@@ -394,7 +394,7 @@ export function createPlaygroundPanelRouteOptions(options = {}) {
     includePageSaveButton: true,
     pageSaveButtonId: 'savePlaygroundConfigBtn',
     pageSaveButtonLabel: '💾 Save Design JSON',
-    masterGroupIds: ['audio'],
+    masterGroupIds: ['motion', 'audio'],
     footerHint: '<kbd>/</kbd> panel · <kbd>Shift</kbd> + settings opens detached · canonical save',
     syncInitialControlSideEffects: false,
     setupPageControls: (panel) => bindPlaygroundPanel(panel, options),

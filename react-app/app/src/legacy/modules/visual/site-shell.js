@@ -100,7 +100,7 @@ const DEFAULT_SHELL_CONFIG = {
     modalDepthScale: 0.943,
     modalDepthTranslateY: 1,
     routeTransition: {
-      exitDurationMs: 130,
+      exitDurationMs: 100,
       loaderEnterDurationMs: 70,
       spinnerDelayMs: 120,
       spinnerMinimumMs: 140,
@@ -108,17 +108,25 @@ const DEFAULT_SHELL_CONFIG = {
       spinnerExitDurationMs: 160,
       plateExitDelayMs: 40,
       plateExitDurationMs: 160,
-      surfaceEnterDurationMs: 220,
-      routeBookendColorCount: 5, routeBookendDurationMs: 280, routeBookendOverlapPercent: 84,
-      routeBookendLineOverlapMs: 0, routeBookendLineDurationMs: 520,
-      routeBookendDescriptionDelayMs: 260, routeBookendDescriptionDurationMs: 900,
-      routeBookendDescriptionLineStaggerMs: 180, routeBookendMovementEnabled: true, routeBookendTravelPercent: 10,
-      contextDurationMs: 240,
-      actionDurationMs: 220,
-      supportDurationMs: 240,
-      itemStepMs: 22,
-      repeatTimingScale: 0.78,
-      repeatStaggerScale: 0.65
+      surfaceEnterDurationMs: 330,
+      typographyDelayMs: 1100,
+      typographyExitDurationMs: 100,
+      typographyExitStaggerMs: 24,
+      routeBookendColorCount: 5, routeBookendDurationMs: 560, routeBookendOverlapPercent: 84,
+      routeBookendLineOverlapMs: 0, routeBookendLineDurationMs: 780,
+      routeBookendDescriptionDelayMs: 390, routeBookendDescriptionDurationMs: 1350,
+      routeBookendDescriptionLineStaggerMs: 270, routeBookendMovementEnabled: true, routeBookendTravelPercent: 10,
+      contextDurationMs: 360,
+      actionDurationMs: 330,
+      supportDurationMs: 360,
+      itemStepMs: 33,
+      materialDurationMs: 1200,
+      materialStaggerMs: 720,
+      materialDelayMs: 80,
+      materialExitDurationMs: 140,
+      materialExitStaggerMs: 70,
+      cardTravelPx: 16,
+      cardTiltDeg: 1.2
     }
   },
   hero: {
@@ -186,6 +194,9 @@ export function getShellRouteTransitionConfig(config = currentShellConfig) {
     plateExitDelayMs: roundedNumberInRange(source.plateExitDelayMs, 0, 2000, defaults.plateExitDelayMs),
     plateExitDurationMs: roundedNumberInRange(source.plateExitDurationMs, 0, 2000, defaults.plateExitDurationMs),
     surfaceEnterDurationMs: roundedNumberInRange(source.surfaceEnterDurationMs, 0, 3000, defaults.surfaceEnterDurationMs),
+    typographyDelayMs: roundedNumberInRange(source.typographyDelayMs, 0, 3000, defaults.typographyDelayMs),
+    typographyExitDurationMs: roundedNumberInRange(source.typographyExitDurationMs, 0, 1000, defaults.typographyExitDurationMs),
+    typographyExitStaggerMs: roundedNumberInRange(source.typographyExitStaggerMs, 0, 500, defaults.typographyExitStaggerMs),
     routeBookendColorCount: roundedNumberInRange(source.routeBookendColorCount, 2, 8, defaults.routeBookendColorCount), routeBookendDurationMs: roundedNumberInRange(source.routeBookendDurationMs, 0, 3000, defaults.routeBookendDurationMs), routeBookendOverlapPercent: numberInRange(source.routeBookendOverlapPercent, 0, 99, defaults.routeBookendOverlapPercent),
     routeBookendLineOverlapMs: roundedNumberInRange(source.routeBookendLineOverlapMs, 0, 1000, defaults.routeBookendLineOverlapMs), routeBookendLineDurationMs: roundedNumberInRange(source.routeBookendLineDurationMs, 0, 3000, defaults.routeBookendLineDurationMs),
     routeBookendDescriptionDelayMs: roundedNumberInRange(source.routeBookendDescriptionDelayMs, 0, 3000, defaults.routeBookendDescriptionDelayMs), routeBookendDescriptionDurationMs: roundedNumberInRange(source.routeBookendDescriptionDurationMs, 0, 3000, defaults.routeBookendDescriptionDurationMs),
@@ -194,8 +205,13 @@ export function getShellRouteTransitionConfig(config = currentShellConfig) {
     actionDurationMs: roundedNumberInRange(source.actionDurationMs, 0, 3000, defaults.actionDurationMs),
     supportDurationMs: roundedNumberInRange(source.supportDurationMs, 0, 3000, defaults.supportDurationMs),
     itemStepMs: roundedNumberInRange(source.itemStepMs, 0, 500, defaults.itemStepMs),
-    repeatTimingScale: numberInRange(source.repeatTimingScale, 0.1, 2, defaults.repeatTimingScale),
-    repeatStaggerScale: numberInRange(source.repeatStaggerScale, 0.1, 2, defaults.repeatStaggerScale)
+    materialDurationMs: roundedNumberInRange(source.materialDurationMs, 0, 3000, defaults.materialDurationMs),
+    materialStaggerMs: roundedNumberInRange(source.materialStaggerMs, 0, 2000, defaults.materialStaggerMs),
+    materialDelayMs: roundedNumberInRange(source.materialDelayMs, 0, 2000, defaults.materialDelayMs),
+    materialExitDurationMs: roundedNumberInRange(source.materialExitDurationMs, 0, 1000, defaults.materialExitDurationMs),
+    materialExitStaggerMs: roundedNumberInRange(source.materialExitStaggerMs, 0, 1000, defaults.materialExitStaggerMs),
+    cardTravelPx: numberInRange(source.cardTravelPx, 0, 80, defaults.cardTravelPx),
+    cardTiltDeg: numberInRange(source.cardTiltDeg, 0, 8, defaults.cardTiltDeg)
   };
 }
 
@@ -209,6 +225,13 @@ export function patchShellTheme(themePatch = {}) {
 export function patchShellLayout(layoutPatch = {}) {
   currentShellConfig = mergeShellConfig(currentShellConfig, {
     layout: layoutPatch,
+  });
+  return currentShellConfig;
+}
+
+export function patchShellMotion(motionPatch = {}) {
+  currentShellConfig = mergeShellConfig(currentShellConfig, {
+    motion: motionPatch,
   });
   return currentShellConfig;
 }
@@ -478,6 +501,9 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-route-plate-exit-delay', `${routeTransition.plateExitDelayMs}ms`);
   root.style.setProperty('--abs-route-plate-exit-duration', `${routeTransition.plateExitDurationMs}ms`);
   root.style.setProperty('--abs-route-surface-enter-duration', `${routeTransition.surfaceEnterDurationMs}ms`);
+  root.style.setProperty('--abs-route-typography-delay', `${routeTransition.typographyDelayMs}ms`);
+  root.style.setProperty('--abs-route-typography-exit-duration', `${routeTransition.typographyExitDurationMs}ms`);
+  root.style.setProperty('--abs-route-typography-exit-stagger', `${routeTransition.typographyExitStaggerMs}ms`);
   root.style.setProperty('--abs-route-bookend-duration', `${routeTransition.routeBookendDurationMs}ms`);
   root.style.setProperty('--abs-route-bookend-overlap', `${routeTransition.routeBookendOverlapPercent}%`);
   root.style.setProperty('--abs-route-bookend-line-duration', `${routeTransition.routeBookendLineDurationMs}ms`);
@@ -486,8 +512,13 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-route-action-duration', `${routeTransition.actionDurationMs}ms`);
   root.style.setProperty('--abs-route-support-duration', `${routeTransition.supportDurationMs}ms`);
   root.style.setProperty('--abs-route-item-step', `${routeTransition.itemStepMs}ms`);
-  root.style.setProperty('--abs-route-repeat-timing-scale', String(routeTransition.repeatTimingScale));
-  root.style.setProperty('--abs-route-repeat-stagger-scale', String(routeTransition.repeatStaggerScale));
+  root.style.setProperty('--abs-route-material-duration', `${routeTransition.materialDurationMs}ms`);
+  root.style.setProperty('--abs-route-material-stagger', `${routeTransition.materialStaggerMs}ms`);
+  root.style.setProperty('--abs-route-material-delay', `${routeTransition.materialDelayMs}ms`);
+  root.style.setProperty('--abs-route-material-exit-duration', `${routeTransition.materialExitDurationMs}ms`);
+  root.style.setProperty('--abs-route-material-exit-stagger', `${routeTransition.materialExitStaggerMs}ms`);
+  root.style.setProperty('--abs-route-card-travel', `${routeTransition.cardTravelPx}px`);
+  root.style.setProperty('--abs-route-card-tilt', `${routeTransition.cardTiltDeg}deg`);
   root.style.setProperty('--abs-home-mobile-nav-bottom-offset', hero.mobileNavBottomOffset);
   root.style.setProperty('--abs-home-logo-width-vw', String(Number.isFinite(Number(hero.desktopLogoWidthVw)) ? hero.desktopLogoWidthVw : 52));
   root.style.setProperty('--abs-home-logo-min-px', `${Number.isFinite(Number(hero.desktopLogoMinPx)) ? hero.desktopLogoMinPx : 340}px`);

@@ -19,6 +19,7 @@ const outputDir = browserName === 'chromium'
   ? 'output/playwright/about-narrative-hardening/runtime'
   : `output/playwright/about-narrative-hardening/runtime-${browserName}`;
 const browserType = browserName === 'webkit' ? webkit : chromium;
+const browserExecutablePath = String(process.env.ABS_BROWSER_EXECUTABLE_PATH || '').trim();
 const browserLaunchOptions = browserName === 'chromium'
   ? {
     headless: true,
@@ -32,6 +33,7 @@ const browserLaunchOptions = browserName === 'chromium'
   : { headless: true };
 const browser = await browserType.launch({
   ...browserLaunchOptions,
+  ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
 });
 
 await mkdir(outputDir, { recursive: true });
@@ -346,6 +348,11 @@ for (const checkpoint of checkpoints) {
 
   await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab', { timeout: 20_000 });
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('abs:route-entrance-start', {
+      detail: { routeId: 'about', mode: 'direct' },
+    }));
+  });
   await page.evaluate(({ storyWU, storyDurationWU }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
     if (!scrollport) return;

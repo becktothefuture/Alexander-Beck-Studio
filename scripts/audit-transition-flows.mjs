@@ -15,6 +15,7 @@ const DELAYED_READINESS_MODE = process.env.ABS_TRANSITION_DELAYED_READINESS === 
 const PRELOAD_FAILURE_MODE = process.env.ABS_TRANSITION_PRELOAD_FAILURE === '1';
 const CPU_THROTTLE_RATE = Math.max(1, Number(process.env.ABS_TRANSITION_CPU_THROTTLE_RATE || 1));
 const READINESS_DELAY_MS = Math.max(0, Number(process.env.ABS_TRANSITION_READINESS_DELAY_MS || 0));
+const DWELL_MS = Math.max(0, Number(process.env.ABS_TRANSITION_DWELL_MS || 0));
 const ROUTE_BACKED_HOME_ID = String(process.env.ABS_TRANSITION_ROUTE_BACKED_HOME || '').trim();
 const VIEWPORT_MATCH = String(process.env.ABS_TRANSITION_VIEWPORT || '1280x900').match(/^(\d+)x(\d+)$/i);
 const VIEWPORT = VIEWPORT_MATCH
@@ -41,6 +42,7 @@ const runStem = [
   PRELOAD_FAILURE_MODE ? 'preload-failure' : '',
   CPU_THROTTLE_RATE > 1 ? `cpu-${CPU_THROTTLE_RATE}x` : '',
   READINESS_DELAY_MS > 0 ? `readiness-${READINESS_DELAY_MS}ms` : '',
+  DWELL_MS > 0 ? `dwell-${DWELL_MS}ms` : '',
   HEADED ? 'headed' : '',
 ].filter(Boolean).join('-');
 
@@ -52,7 +54,7 @@ const ROUTE_DEFINITIONS = Object.freeze({
   playground: Object.freeze({
     id: 'playground',
     href: '/playground.html',
-    ready: '[data-playground-experience][data-playground-ready="true"]',
+    ready: '[data-playground-experience][data-playground-ready="true"], #playground-coming-soon-title',
   }),
 });
 const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
@@ -172,6 +174,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       samples: [],
       readyEvents: [],
       failureEvents: [],
+      indicatorTransitions: [],
       longTasks: [],
       rafId: 0,
       running: true,
@@ -207,6 +210,16 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       if (!Number.isFinite(value)) return 0;
       const scale = 10 ** precision;
       return Math.round(value * scale) / scale;
+    };
+    const elementIdentities = new WeakMap();
+    let nextElementIdentity = 1;
+    const identifyElement = (element) => {
+      if (!element) return 0;
+      if (!elementIdentities.has(element)) {
+        elementIdentities.set(element, nextElementIdentity);
+        nextElementIdentity += 1;
+      }
+      return elementIdentities.get(element);
     };
     const rectOf = (element) => {
       if (!element) return null;
@@ -367,14 +380,23 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       }
       if (routeId === 'playground') {
         const experience = document.querySelector('[data-playground-experience]');
+        const productionFallback = Boolean(
+          document.getElementById('playground-coming-soon-title') && !experience
+        );
         return {
           ready: Boolean(
             body?.classList.contains('playground-page')
-            && experience?.dataset.playgroundReady === 'true'
-            && window.__ABS_PLAYGROUND__
+            && (
+              productionFallback
+              || (
+                experience?.dataset.playgroundReady === 'true'
+                && window.__ABS_PLAYGROUND__
+              )
+            )
           ),
           routeReady: experience?.dataset.playgroundReady || '',
           projectCount: Number(experience?.dataset.playgroundProjectCount || 0),
+          productionFallback,
         };
       }
       return { ready: Boolean(document.getElementById('app-frame')) };
@@ -407,13 +429,27 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
     const readChildren = () => Array.from(document.querySelectorAll('[data-route-enter]')).map((element, index) => {
       const routeId = element.closest('[data-route-view]')?.dataset.routeView || '';
       const effective = readEffective(element);
+      const visualParts = Array.from(element.querySelectorAll(
+        '[data-route-enter-glyph], [data-route-enter-description-line]'
+      ));
+      const readVisualPartOpacity = (part) => {
+        const partOpacity = readEffective(part)?.effectiveOpacity || 0;
+        if (!part.matches('[data-route-enter-glyph]')) return partOpacity;
+        const color = getComputedStyle(part).color.trim().toLowerCase();
+        if (color === 'transparent') return 0;
+        const alpha = color.match(/^rgba\([^)]*,\s*([\d.]+)\)$/i);
+        return partOpacity * (alpha ? Number(alpha[1]) : 1);
+      };
+      const visualOpacity = visualParts.length
+        ? Math.max(0, ...visualParts.map(readVisualPartOpacity))
+        : effective?.effectiveOpacity || 0;
       return {
         routeId,
         group: element.dataset.routeEnter || '',
         order: element.dataset.routeEnterOrder || String(index),
         id: element.id || '',
         className: typeof element.className === 'string' ? element.className.slice(0, 120) : '',
-        effectiveOpacity: effective?.effectiveOpacity || 0,
+        effectiveOpacity: round(visualOpacity),
         inert: effective?.inert || false,
         pointerEvents: effective?.pointerEvents || '',
       };
@@ -437,6 +473,142 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         inert: Boolean(active.inert || active.closest('[inert]')),
       };
     };
+    const readMaterialSnapshot = (routeId) => {
+      if (routeId === 'home') {
+        const snapshot = window.__ABS_SIMULATION_VISUAL_TRANSITION__;
+        return snapshot ? {
+          id: 'home-simulation-material',
+          state: snapshot.phase || '',
+          minScale: round(Number(snapshot.minScale)),
+          maxScale: round(Number(snapshot.maxScale)),
+          targetCount: Number(snapshot.count || 0),
+        } : null;
+      }
+      if (routeId === 'contact' || routeId === 'playground' || routeId === 'portfolio' || routeId === 'about') {
+        const id = {
+          contact: 'contact-ripple-material',
+          playground: 'playground-view-material',
+          portfolio: 'portfolio-view-material',
+          about: 'about-point-field-material',
+        }[routeId];
+        const root = document.querySelector(`[data-route-material-id="${id}"]`);
+        if (root) {
+          const liveAboutScale = routeId === 'about'
+            ? Number(root.dataset.aboutEntranceScale)
+            : Number.NaN;
+          const materialMinScale = Number(root.dataset.routeMaterialMinScale);
+          const materialMaxScale = Number(root.dataset.routeMaterialMaxScale);
+          return {
+            id,
+            elementIdentity: identifyElement(root),
+            state: root.dataset.routeMaterialState || '',
+            reason: root.dataset.routeMaterialReason || '',
+            minScale: round(Number.isFinite(liveAboutScale) ? liveAboutScale : materialMinScale),
+            maxScale: round(Number.isFinite(liveAboutScale) ? liveAboutScale : materialMaxScale),
+            progress: round(Number(root.dataset.routeMaterialProgress)),
+            targetCount: Number(root.dataset.routeMaterialTargetCount || 0),
+            ...(routeId === 'about' ? {
+              canvasIdentity: identifyElement(root.querySelector('.about-narrative-world__canvas')),
+              entranceState: root.dataset.aboutEntranceState || '',
+              entranceScale: round(Number(root.dataset.aboutEntranceScale)),
+              sceneReady: root.dataset.aboutSceneReady || '',
+              worldState: root.dataset.pointWorldState || '',
+              worldStage: root.dataset.worldStage || '',
+              worldBootstrapGenerationMs: round(Number(root.dataset.worldBootstrapGenerationMs), 2),
+            } : null),
+          };
+        }
+        if (routeId === 'about') {
+          const aboutRoot = document.querySelector('[data-about-entrance-state]');
+          if (aboutRoot) return {
+            id: 'about-point-material',
+            state: aboutRoot.dataset.aboutEntranceState || '',
+            available: aboutRoot.dataset.aboutEntranceState !== 'fallback',
+            minScale: round(Number(aboutRoot.dataset.aboutEntranceScale)),
+            maxScale: round(Number(aboutRoot.dataset.aboutEntranceScale)),
+            targetCount: 1,
+          };
+          if (document.getElementById('about-coming-soon-title')) return {
+            id: 'about-production-placeholder',
+            state: 'placeholder',
+            available: false,
+            targetCount: 0,
+          };
+          return null;
+        }
+        if (routeId === 'playground' && document.getElementById('playground-coming-soon-title')) {
+          return {
+            id: 'playground-production-placeholder',
+            state: 'placeholder',
+            available: false,
+            targetCount: 0,
+          };
+        }
+        return null;
+      }
+      return null;
+    };
+    const readCardEntrance = (routeId) => {
+      const definition = routeId === 'portfolio'
+        ? {
+            selector: '.portfolio-project-card[data-portfolio-reveal-rank]',
+            opacityOverride: '--portfolio-card-route-opacity',
+            scale: '--portfolio-card-route-entrance-scale',
+            travel: '--portfolio-card-route-y',
+            tilt: '--portfolio-card-route-tilt',
+            surface: '.portfolio-project-card__surface',
+          }
+        : routeId === 'playground'
+        ? {
+            selector: '.playground-item[style*="--playground-route-card-scale"]',
+            opacityOverride: '--playground-route-card-opacity',
+            scale: '--playground-route-card-scale',
+            travel: '--playground-route-card-y',
+            tilt: '--playground-route-card-rotate',
+            surface: '.playground-item__route-surface',
+          }
+        : null;
+      if (!definition) return null;
+      const values = Array.from(document.querySelectorAll(definition.selector)).map((element) => {
+        const read = (property, fallback) => {
+          const parsed = Number.parseFloat(element.style.getPropertyValue(property));
+          return Number.isFinite(parsed) ? parsed : fallback;
+        };
+        const surface = element.querySelector(definition.surface);
+        const surfaceStyle = surface ? getComputedStyle(surface) : null;
+        const originValues = String(surfaceStyle?.transformOrigin || '')
+          .split(/\s+/)
+          .map((value) => Number.parseFloat(value));
+        const originDelta = surface && originValues.length >= 2
+          ? Math.max(
+              Math.abs(originValues[0] - (surface.offsetWidth / 2)),
+              Math.abs(originValues[1] - (surface.offsetHeight / 2)),
+            )
+          : Number.POSITIVE_INFINITY;
+        return {
+          hasOpacityOverride: element.style
+            .getPropertyValue(definition.opacityOverride)
+            .trim().length > 0,
+          computedOpacity: Number.parseFloat(getComputedStyle(element).opacity || '1'),
+          scale: read(definition.scale, 1),
+          travel: Math.abs(read(definition.travel, 0)),
+          tilt: Math.abs(read(definition.tilt, 0)),
+          originDelta,
+        };
+      });
+      if (!values.length) return null;
+      return {
+        targetCount: values.length,
+        opacityOverrideCount: values.filter((value) => value.hasOpacityOverride).length,
+        minComputedOpacity: round(Math.min(...values.map((value) => value.computedOpacity))),
+        maxComputedOpacity: round(Math.max(...values.map((value) => value.computedOpacity))),
+        minScale: round(Math.min(...values.map((value) => value.scale))),
+        maxScale: round(Math.max(...values.map((value) => value.scale))),
+        maxTravel: round(Math.max(...values.map((value) => value.travel)), 2),
+        maxTilt: round(Math.max(...values.map((value) => value.tilt)), 3),
+        maxOriginDelta: round(Math.max(...values.map((value) => value.originDelta)), 2),
+      };
+    };
     const sample = (now) => {
       const sampleStartedAt = performance.now();
       const root = document.documentElement;
@@ -445,9 +617,24 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const spinnerDots = Array.from(spinner?.querySelectorAll('.abs-loader-spinner__dot') || []);
       const routeTabs = document.querySelector('[data-route-tabs]');
       const currentTab = document.querySelector('[data-route-tab][aria-current="page"]');
+      const buttonBar = document.querySelector('[data-button-bar]');
+      const activeIndicator = buttonBar?.querySelector('.button-bar__active-indicator');
+      const visualTab = routeTabs?.querySelector(`[data-route-tab="${routeTabs?.dataset.activeRoute || ''}"]`);
+      const activeIndicatorRect = activeIndicator?.getBoundingClientRect();
+      const visualTabRect = visualTab?.getBoundingClientRect();
+      const activeIndicatorStyle = activeIndicator ? getComputedStyle(activeIndicator) : null;
+      let activeIndicatorTranslateX = 0;
+      try {
+        activeIndicatorTranslateX = activeIndicatorStyle?.transform === 'none'
+          ? 0
+          : new DOMMatrixReadOnly(activeIndicatorStyle?.transform).m41;
+      } catch {
+        activeIndicatorTranslateX = 0;
+      }
       const shellRoute = document.querySelector('[data-shell-route-view]');
       const children = readChildren();
       const loaderState = readEffective(loader);
+      const atmosphereSnapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null;
       state.samples.push({
         elapsedMs: round(now - state.startedAt, 2),
         path: location.pathname,
@@ -486,7 +673,19 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         },
         studioWindow: readEffective(document.getElementById('simulations')),
         studioWindowBackgroundColor: getComputedStyle(document.getElementById('simulations')).backgroundColor,
-        buttonBar: readEffective(document.querySelector('[data-button-bar]')),
+        buttonBar: readEffective(buttonBar),
+        buttonBarIndicator: activeIndicator ? {
+          ...readEffective(activeIndicator),
+          transform: activeIndicatorStyle?.transform || '',
+          translateX: round(activeIndicatorTranslateX, 3),
+          targetCenterDelta: activeIndicatorRect && visualTabRect
+            ? round(
+              (activeIndicatorRect.left + (activeIndicatorRect.width / 2))
+              - (visualTabRect.left + (visualTabRect.width / 2)),
+              3,
+            )
+            : null,
+        } : null,
         surfaces: readSurfaces(),
         routeViews: readRouteViews(),
         children,
@@ -504,6 +703,19 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           ui: document.querySelector('[data-route-surface="ui"]')?.getAttribute('aria-busy') || '',
         },
         focus: readFocus(),
+        materialEntrance: readMaterialSnapshot(target),
+        materialExit: readMaterialSnapshot(source),
+        cardEntrance: readCardEntrance(target),
+        cardExit: readCardEntrance(source),
+        atmosphere: atmosphereSnapshot ? {
+          sourceId: atmosphereSnapshot.activeSourceId || '',
+          sourceKind: atmosphereSnapshot.sourceKind || '',
+          sourceGeneration: Number(atmosphereSnapshot.sourceGeneration || 0),
+          outputSourceGeneration: Number(atmosphereSnapshot.outputSourceGeneration || 0),
+          compositedFrameCount: Number(atmosphereSnapshot.compositedFrameCount || 0),
+          schedulerActive: atmosphereSnapshot.schedulerActive === true,
+          transitioning: atmosphereSnapshot.transitioning === true,
+        } : null,
         portfolioPrewarm: window.__ABS_PORTFOLIO_PREWARM__
           ? { ...window.__ABS_PORTFOLIO_PREWARM__ }
           : null,
@@ -556,6 +768,15 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       elapsedMs: round(performance.now() - state.startedAt, 2),
       detail: event?.detail ? { ...event.detail } : null,
     });
+    const activeIndicator = document.querySelector('.button-bar__active-indicator');
+    const onIndicatorTransition = (event) => {
+      if (event.target !== activeIndicator || event.propertyName !== 'transform') return;
+      state.indicatorTransitions.push({
+        type: event.type,
+        elapsedMs: round(performance.now() - state.startedAt, 2),
+        elapsedTimeMs: round(Number(event.elapsedTime || 0) * 1000, 2),
+      });
+    };
     const tick = (now) => {
       if (!state.running) return;
       sample(now);
@@ -568,11 +789,17 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       window.removeEventListener('abs:route-ready', onReady);
       window.removeEventListener('abs:route-failed', onFailed);
       window.removeEventListener('abs:daily-focus-failed', onFailed);
+      ['transitionrun', 'transitionend', 'transitioncancel'].forEach((type) => {
+        activeIndicator?.removeEventListener(type, onIndicatorTransition);
+      });
       longTaskObserver?.disconnect();
     };
     window.addEventListener('abs:route-ready', onReady);
     window.addEventListener('abs:route-failed', onFailed);
     window.addEventListener('abs:daily-focus-failed', onFailed);
+    ['transitionrun', 'transitionend', 'transitioncancel'].forEach((type) => {
+      activeIndicator?.addEventListener(type, onIndicatorTransition);
+    });
     sample(performance.now());
     state.rafId = nativeRequestAnimationFrame(tick);
     window.__ABS_TRANSITION_FLOW_RECORDER__ = state;
@@ -614,6 +841,7 @@ async function stopRafRecorder(page) {
       samples: state.samples,
       readyEvents: state.readyEvents,
       failureEvents: state.failureEvents,
+      indicatorTransitions: state.indicatorTransitions,
       longTasks: state.longTasks,
       spinnerDelayMs: state.spinnerDelayMs,
       spinnerMinimumMs: state.spinnerMinimumMs,
@@ -645,7 +873,10 @@ function rectCoversWindow(loaderRect, windowRect) {
   );
 }
 
-function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
+function assertTransitionTrace(trace, {
+  requireRouteOut = true,
+  allowIndicatorReversal = false,
+} = {}) {
   assert(trace?.samples?.length > 2, `${trace?.label || 'transition'} did not record enough RAF samples`, trace);
   const samples = trace.samples;
   const phases = compress(samples.map((sample) => sample.phase));
@@ -653,6 +884,19 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
   const loadingIndex = samples.findIndex((sample) => sample.phase === 'route-loading');
   const routeInIndex = samples.findIndex((sample) => sample.phase === 'route-in');
   const finalIdleIndex = samples.findLastIndex((sample) => sample.phase === 'idle');
+  const materialRoutes = new Set(['home', 'portfolio', 'about', 'contact', 'playground']);
+  const initialButtonBarRect = samples.find((sample) => sample.buttonBar?.rect)?.buttonBar?.rect;
+
+  samples.forEach((sample, index) => {
+    if (!initialButtonBarRect || !sample.buttonBar?.rect) return;
+    for (const edge of ['left', 'top', 'right', 'bottom']) {
+      assert(
+        Math.abs(sample.buttonBar.rect[edge] - initialButtonBarRect[edge]) <= GEOMETRY_TOLERANCE_PX,
+        `${trace.label}: Button Bar ${edge} moved during the route transition`,
+        traceExcerpt(trace, index),
+      );
+    }
+  });
 
   if (requireRouteOut) {
     assert(routeOutIndex >= 0, `${trace.label}: route-out was not observed`, { phases });
@@ -715,8 +959,8 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
       sample,
     );
     assert(
-      sample.loader.rect.bottom <= (sample.buttonBar?.rect?.top ?? Infinity) + GEOMETRY_TOLERANCE_PX,
-      `${trace.label}: loader overlapped the Button Bar`,
+      Math.abs((sample.studioWindow?.rect?.bottom - sample.buttonBar?.rect?.top) - 15.5) <= GEOMETRY_TOLERANCE_PX,
+      `${trace.label}: Button Bar lost its intentional 15.5px studio-window overlap`,
       sample,
     );
     assert(
@@ -725,8 +969,123 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
       sample.loader,
     );
   });
+
+  const indicatorSamples = samples.filter((sample) => Number.isFinite(sample.buttonBarIndicator?.rect?.left));
+  const finalIndicator = indicatorSamples.at(-1)?.buttonBarIndicator;
+  assert(
+    finalIndicator && Math.abs(finalIndicator.targetCenterDelta) <= 0.5,
+    `${trace.label}: active indicator did not finish within 0.5px of the destination tab centre`,
+    finalIndicator,
+  );
+  if (trace.fromRouteId !== trace.toRouteId) {
+    const positions = indicatorSamples.map((sample) => sample.buttonBarIndicator.rect.left);
+    const uniquePositions = [...new Set(positions.map((value) => Math.round(value * 10) / 10))];
+    if (REDUCED_MOTION) {
+      assert(uniquePositions.length <= 2, `${trace.label}: reduced motion retained indicator travel`, { uniquePositions });
+    } else {
+      const compositorTransitionCompleted = (
+        trace.indicatorTransitions?.some((event) => event.type === 'transitionrun')
+        && trace.indicatorTransitions?.some((event) => (
+          event.type === 'transitionend' && event.elapsedTimeMs >= 250
+        ))
+      );
+      assert(
+        uniquePositions.length >= 3 || compositorTransitionCompleted,
+        `${trace.label}: indicator produced no sampled or compositor-confirmed motion sequence`,
+        { uniquePositions, indicatorTransitions: trace.indicatorTransitions },
+      );
+      const direction = Math.sign(positions.at(-1) - positions[0]);
+      if (direction) {
+        const signedDeltas = positions.slice(1).map((position, index) => (
+          (position - positions[index]) * direction
+        ));
+        if (allowIndicatorReversal) {
+          assert(
+            signedDeltas.some((delta) => delta > 1)
+              && signedDeltas.some((delta) => delta < -1),
+            `${trace.label}: retargeted indicator did not preserve its expected reversal`,
+            { positions, signedDeltas },
+          );
+        } else {
+          signedDeltas.forEach((signedDelta, index) => {
+            assert(signedDelta >= -1, `${trace.label}: indicator travel was not monotonic`, {
+              index: index + 1,
+              previous: positions[index],
+              current: positions[index + 1],
+            });
+          });
+        }
+      }
+      if (uniquePositions.length >= 3) {
+        assert(
+          Math.abs(positions.at(-1) - positions.at(-2)) <= 1,
+          `${trace.label}: indicator snapped by more than 1px at settlement`,
+          { finalPositions: positions.slice(-3) },
+        );
+      }
+    }
+  }
   const loadingStart = samples[loadingIndex]?.elapsedMs || 0;
   const routeInStart = samples[routeInIndex]?.elapsedMs || 0;
+  if (requireRouteOut && !REDUCED_MOTION && CPU_THROTTLE_RATE === 1) {
+    const routeOutStart = samples[routeOutIndex]?.elapsedMs || 0;
+    assert(
+      loadingStart - routeOutStart <= 500 + FRAME_TOLERANCE_MS,
+      `${trace.label}: outgoing motion exceeded its quick-exit budget`,
+      {
+        routeOutDurationMs: loadingStart - routeOutStart,
+        frameToleranceMs: FRAME_TOLERANCE_MS,
+      },
+    );
+  }
+
+  if (requireRouteOut && materialRoutes.has(trace.fromRouteId)) {
+    const observedExitSamples = samples
+      .slice(routeOutIndex, loadingIndex + 1)
+      .map((sample) => ({ elapsedMs: sample.elapsedMs, phase: sample.phase, ...sample.materialExit }));
+    const exitUnavailable = observedExitSamples.some((sample) => sample.available === false);
+    const materialExitSamples = observedExitSamples.filter((sample) => (
+      sample.available !== false
+      && sample.targetCount > 0
+      && Number.isFinite(sample.minScale)
+      && Number.isFinite(sample.maxScale)
+    ));
+    if (exitUnavailable) {
+      assert(
+        observedExitSamples.some((sample) => (
+          sample.state === 'placeholder'
+          || (trace.fromRouteId === 'about' && sample.state === 'fallback')
+        )),
+        `${trace.label}: unavailable route material lost its explicit fallback state`,
+        { observedExitSamples },
+      );
+    } else {
+      assert(
+        materialExitSamples.length > 0,
+        `${trace.label}: ${trace.fromRouteId} material exit was not observable`,
+        { observedExitSamples },
+      );
+      if (!REDUCED_MOTION) {
+        const highestScale = Math.max(...materialExitSamples.map((sample) => sample.maxScale));
+        const lowestScale = Math.min(...materialExitSamples.map((sample) => sample.maxScale));
+        const progressiveSamples = materialExitSamples.filter((sample) => (
+          (sample.minScale > 0.02 && sample.minScale < 0.98)
+          || (sample.maxScale > 0.02 && sample.maxScale < 0.98)
+        ));
+        assert(
+          highestScale >= 0.95 && lowestScale <= 0.02,
+          `${trace.label}: ${trace.fromRouteId} material did not shrink from full size to zero`,
+          { highestScale, lowestScale, materialExitSamples },
+        );
+        assert(
+          progressiveSamples.length > 0,
+          `${trace.label}: ${trace.fromRouteId} material popped out instead of shrinking`,
+          { materialExitSamples },
+        );
+      }
+    }
+  }
+
   const spinnerSamples = samples.filter((sample) => (
     (sample.phase === 'route-loading' || sample.phase === 'route-in')
     && sample.loader?.effectiveOpacity >= FULL_COVER_OPACITY
@@ -806,6 +1165,152 @@ function assertTransitionTrace(trace, { requireRouteOut = true } = {}) {
     `${trace.label}: pending-route diagnostic never identified the destination`,
     { phases },
   );
+  if (!REDUCED_MOTION) {
+    assert(
+      firstRouteIn.incoming.childMaxOpacity <= VISIBILITY_EPSILON,
+      `${trace.label}: typography was visible on the first destination frame`,
+      traceExcerpt(trace, routeInIndex),
+    );
+  }
+
+  if (materialRoutes.has(trace.toRouteId)) {
+    const observedMaterialSamples = samples
+      .slice(routeInIndex, finalIdleIndex + 1)
+      .map((sample) => ({ elapsedMs: sample.elapsedMs, phase: sample.phase, ...sample.materialEntrance }));
+    const materialUnavailable = observedMaterialSamples.some((sample) => sample.available === false);
+    const materialSamples = observedMaterialSamples
+      .filter((sample) => (
+        sample.available !== false
+        && sample.targetCount > 0
+        && Number.isFinite(sample.minScale)
+        && Number.isFinite(sample.maxScale)
+      ));
+    if (materialUnavailable) {
+      const unavailableState = observedMaterialSamples.at(-1)?.state;
+      assert(
+        unavailableState === 'placeholder'
+          || (trace.toRouteId === 'about' && unavailableState === 'fallback'),
+        `${trace.label}: unavailable route material did not settle explicitly`,
+        { observedMaterialSamples },
+      );
+    } else {
+      assert(
+        materialSamples.length > 1,
+        `${trace.label}: ${trace.toRouteId} material entrance was not observable`,
+        { phases, materialSamples },
+      );
+      const settledMaterial = materialSamples.at(-1);
+      assert(
+        settledMaterial.minScale >= 0.98 && settledMaterial.maxScale >= 0.98,
+        `${trace.label}: ${trace.toRouteId} material did not settle at full size`,
+        { settledMaterial, materialSamples },
+      );
+      if (!REDUCED_MOTION) {
+        const firstMaterial = materialSamples[0];
+        const lowestScale = Math.min(...materialSamples.map((sample) => sample.minScale));
+        const progressiveSamples = materialSamples.filter((sample) => (
+          sample.maxScale > lowestScale + 0.02
+          && sample.maxScale < 0.98
+        ));
+        assert(
+          firstMaterial.maxScale <= 0.02 && lowestScale <= 0.02,
+          `${trace.label}: ${trace.toRouteId} material was not blank on its first frame`,
+          { firstMaterial, lowestScale, materialSamples },
+        );
+        assert(
+          progressiveSamples.length > 0,
+          `${trace.label}: ${trace.toRouteId} material popped instead of growing`,
+          { lowestScale, materialSamples },
+        );
+        const firstMaterialGrowth = materialSamples.find((sample) => sample.maxScale > 0.02);
+        const firstTypography = samples
+          .slice(routeInIndex, finalIdleIndex + 1)
+          .find((sample) => sample.incoming.childMaxOpacity > 0.02);
+        assert(
+          firstMaterialGrowth && firstTypography
+            && firstMaterialGrowth.elapsedMs <= firstTypography.elapsedMs,
+          `${trace.label}: typography began before the material field`,
+          { firstMaterialGrowth, firstTypography },
+        );
+      }
+    }
+  }
+
+  const destinationUsesProductionFallback = samples.some((sample) => (
+    sample.readiness?.productionFallback === true
+  ));
+  if (
+    !REDUCED_MOTION
+    && !destinationUsesProductionFallback
+    && (trace.toRouteId === 'portfolio' || trace.toRouteId === 'playground')
+  ) {
+    const cardSamples = samples
+      .slice(routeInIndex, finalIdleIndex + 1)
+      .map((sample) => ({ elapsedMs: sample.elapsedMs, ...sample.cardEntrance }))
+      .filter((sample) => sample.targetCount > 0);
+    assert(cardSamples.length > 1, `${trace.label}: card entrance was not observable`, { cardSamples });
+    const firstCards = cardSamples[0];
+    const settledCards = cardSamples.at(-1);
+    const progressiveCards = cardSamples.filter((sample) => (
+      sample.maxScale > 0.02
+      && sample.minScale < 0.98
+      && (sample.maxTravel > 0.5 || sample.maxTilt > 0.05)
+    ));
+    assert(
+      cardSamples.every((sample) => sample.opacityOverrideCount === 0),
+      `${trace.label}: cards used a route-owned opacity fade`,
+      { firstCards, cardSamples },
+    );
+    if (trace.toRouteId === 'playground') {
+      assert(
+        cardSamples.every((sample) => sample.minComputedOpacity >= 0.98),
+        `${trace.label}: Lab cards faded through computed opacity`,
+        { cardSamples },
+      );
+    }
+    assert(
+      firstCards.minScale <= 0.003 && firstCards.maxScale <= 0.003,
+      `${trace.label}: cards did not start at scale zero`,
+      { firstCards, cardSamples },
+    );
+    assert(
+      cardSamples.every((sample) => sample.maxOriginDelta <= 1.5),
+      `${trace.label}: cards did not grow from their centre`,
+      { cardSamples },
+    );
+    assert(
+      progressiveCards.length > 0,
+      `${trace.label}: cards popped instead of using the shared lift and tilt`,
+      { cardSamples },
+    );
+    assert(
+      settledCards.minScale >= 0.995,
+      `${trace.label}: cards did not settle cleanly`,
+      { settledCards, cardSamples },
+    );
+  }
+
+  if (!REDUCED_MOTION && trace.toRouteId === 'about') {
+    const routeInSamples = samples.slice(routeInIndex, finalIdleIndex + 1);
+    const ambientSamples = routeInSamples.filter((sample) => (
+      sample.phase === 'route-in'
+      && sample.atmosphere?.sourceId === 'about:ambient'
+      && sample.atmosphere?.sourceKind === 'ambient'
+    ));
+    if (ambientSamples.length > 0) {
+      const firstTypography = routeInSamples.find((sample) => sample.incoming.childMaxOpacity > 0.02);
+      const preTypographyAmbient = ambientSamples.filter((sample) => (
+        !firstTypography || sample.elapsedMs <= firstTypography.elapsedMs
+      ));
+      const frameCounts = preTypographyAmbient.map((sample) => sample.atmosphere.compositedFrameCount);
+      assert(
+        preTypographyAmbient.some((sample) => sample.atmosphere.schedulerActive)
+          && Math.max(...frameCounts) > Math.min(...frameCounts),
+        `${trace.label}: About ambient fallback did not render its growth before typography`,
+        { firstTypography, preTypographyAmbient },
+      );
+    }
+  }
 
   const settled = samples.at(-1);
   assert(settled.phase === 'idle', `${trace.label}: transition did not settle to idle`, settled);
@@ -871,22 +1376,36 @@ async function clickRouteTab(page, routeId) {
   await page.locator(`[data-route-tab="${routeId}"]`).click({ timeout: WAIT_MS });
 }
 
+async function waitForTransitionObserved(page) {
+  await page.waitForFunction(() => {
+    const phase = document.documentElement.dataset.absTransitionPhase || 'idle';
+    const recorder = window.__ABS_TRANSITION_FLOW_RECORDER__;
+    return phase !== 'idle'
+      || recorder?.samples?.some((sample) => sample.phase !== 'idle');
+  }, null, { timeout: WAIT_MS, polling: 'raf' });
+}
+
 async function runTransition(page, {
   fromRouteId,
   step,
   label,
   activate,
   requireRouteOut = true,
+  allowIndicatorReversal = false,
   afterActivate,
 }) {
   await startRafRecorder(page, { fromRouteId, toRouteId: step.id, label });
   let trace = null;
   try {
     await activate();
+    // A destination can commit in the same task that schedules the shell phase.
+    // Do not let the settled-state waiter accept that narrow idle gap and stop
+    // the RAF recorder while the visible transition is only just beginning.
+    await waitForTransitionObserved(page);
     await afterActivate?.();
     await waitForTargetSettled(page, step);
     trace = await stopRafRecorder(page);
-    assertTransitionTrace(trace, { requireRouteOut });
+    assertTransitionTrace(trace, { requireRouteOut, allowIndicatorReversal });
     return trace;
   } catch (error) {
     trace ||= await stopRafRecorder(page).catch(() => null);
@@ -945,6 +1464,7 @@ async function runStressProbe(page, traces, nextIndex) {
     fromRouteId: 'home',
     step: aboutStep,
     label: `${String(nextIndex).padStart(2, '0')}-stress-home-to-contact-to-about`,
+    allowIndicatorReversal: true,
     activate: async () => {
       await clickRouteTab(page, contactStep.id);
       await page.waitForFunction(() => (
@@ -1046,6 +1566,7 @@ async function main() {
   }
   const consoleErrors = [];
   const pageErrors = [];
+  const httpErrors = [];
   const traces = [];
   let activeLabel = 'initial';
   let delayedDependency = null;
@@ -1059,6 +1580,14 @@ async function main() {
   });
   page.on('pageerror', (error) => {
     pageErrors.push(String(error?.stack || error));
+  });
+  page.on('response', (response) => {
+    if (response.status() < 400) return;
+    httpErrors.push({
+      status: response.status(),
+      url: response.url(),
+      activeLabel,
+    });
   });
 
   try {
@@ -1143,6 +1672,7 @@ async function main() {
         delayedDependency = null;
       }
       currentRouteId = step.id;
+      if (DWELL_MS > 0) await page.waitForTimeout(DWELL_MS);
     }
 
     if (STRESS_MODE) {
@@ -1175,9 +1705,11 @@ async function main() {
       preloadFailure: PRELOAD_FAILURE_MODE,
       cpuThrottleRate: CPU_THROTTLE_RATE,
       readinessDelayMs: READINESS_DELAY_MS,
+      dwellMs: DWELL_MS,
       traces,
       consoleErrors,
       pageErrors,
+      httpErrors,
       failure: failure ? {
         message: failure.message,
         stack: failure.stack,

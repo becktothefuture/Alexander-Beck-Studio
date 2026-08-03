@@ -129,7 +129,8 @@ function getFocusContract(routeId, profile) {
         minimumPassingEdges: 2,
       },
       {
-        selector: '.playground-semantic-collection [data-playground-item] > button',
+        selector: '.playground-semantic-collection '
+          + '[data-playground-item] > .playground-item__route-surface > button',
         count: 20,
         indicator: 'dual-ring',
         allowFocusReposition: true,
@@ -1131,10 +1132,10 @@ function validateFocusPixelEvidence(observation, target, label) {
     }
   }
   assert(
-      observation.passes,
-      `${label}: ${target.label} had insufficient high-contrast rendered focus-edge coverage`,
-      { ...target, ...observation },
-    );
+    observation.passes,
+    `${label}: ${target.label} had insufficient high-contrast rendered focus-edge coverage`,
+    { ...target, ...observation },
+  );
 }
 
 async function attachFocusIndicatorEvidence(page, focus, contract, label) {

@@ -13,6 +13,9 @@ import {
   ABOUT_SCROLL_INDICATOR_TICK_COUNT,
   useAboutNarrativeTimeline,
 } from './useAboutNarrativeTimeline.js';
+import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
+import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
+import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
 import './about-narrative-lab.css';
 
 const INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT = ABOUT_NARRATIVE_DOCUMENT;
@@ -329,6 +332,34 @@ function EditorialMediaDeck({ module }) {
   );
 }
 
+function EditorialList({
+  items = [],
+  label = '',
+  emphasis = [],
+  labelId = undefined,
+  containerProps = {},
+}) {
+  return (
+    <section
+      {...containerProps}
+      className="about-narrative-editorial-list"
+      aria-labelledby={label && labelId ? labelId : undefined}
+      aria-label={label ? undefined : 'About Alexander'}
+    >
+      {label ? (
+        <p id={labelId} className="about-narrative-editorial-list__label">
+          <EditorialLineText text={label} />
+        </p>
+      ) : null}
+      <ul>{items.map((item) => (
+        <li key={item}>
+          <EditorialLineText text={item} emphasis={emphasis} />
+        </li>
+      ))}</ul>
+    </section>
+  );
+}
+
 function EditorialStack({ block, motionProfile, scrollportRef }) {
   const moduleGapRem = Number(block.moduleGapRem);
   return (
@@ -344,6 +375,17 @@ function EditorialStack({ block, motionProfile, scrollportRef }) {
         }
         if (module.kind === 'media-deck') {
           return <EditorialMediaDeck key={module.id} module={module} />;
+        }
+        if (module.kind === 'list') {
+          return (
+            <EditorialList
+              key={module.id}
+              items={module.items}
+              label={module.label}
+              labelId={`${block.id}-${module.id}-label`}
+              emphasis={module.emphasis}
+            />
+          );
         }
         if (module.kind === ABOUT_INTERACTIVE_STACK_KIND) {
           return (
@@ -440,23 +482,13 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   if (block.kind === 'list') {
     const labelId = `${field.id}-label`;
     return (
-      <section
-        {...commonProps}
-        className="about-narrative-editorial-list"
-        aria-labelledby={block.label ? labelId : undefined}
-        aria-label={block.label ? undefined : 'About Alexander'}
-      >
-        {block.label ? (
-          <p id={labelId} className="about-narrative-editorial-list__label">
-            <EditorialLineText text={block.label} />
-          </p>
-        ) : null}
-        <ul>{(block.items || []).map((item) => (
-          <li key={item}>
-            <EditorialLineText text={item} emphasis={block.emphasis} />
-          </li>
-        ))}</ul>
-      </section>
+      <EditorialList
+        items={block.items}
+        label={block.label}
+        labelId={labelId}
+        emphasis={block.emphasis}
+        containerProps={commonProps}
+      />
     );
   }
   const lines = getEditorialLines(block.text);
@@ -554,7 +586,11 @@ function TitleField({
           >
             {field.text}
           </Heading>
-          <span className="route-title-lockup__rule" aria-hidden="true" />
+          <span
+            className="route-title-lockup__rule"
+            data-about-route-entry-rule
+            aria-hidden="true"
+          />
           {field.description ? (
             <p
               id={descriptionId}
@@ -753,6 +789,7 @@ export function AboutNarrativeLabExperience({
   const worldRuntimeRef = useRef(null);
   const worldInteractionRef = useRef(null);
   const disciplineOverlayRef = useRef(null);
+  const indicatorLayerRef = useRef(null);
 
   useEffect(() => {
     if ((!__DEV__ && !__CERTIFY__) || !editorRequested) return undefined;
@@ -791,6 +828,71 @@ export function AboutNarrativeLabExperience({
     scrollportRef,
     contentRef,
   });
+
+  useLayoutEffect(() => {
+    const layer = indicatorLayerRef.current;
+    if (!showIndicator || !indicatorHost || !layer) return undefined;
+
+    const revealAccessibility = () => layer.removeAttribute('aria-hidden');
+    const hideAccessibility = () => layer.setAttribute('aria-hidden', 'true');
+    const controller = createRouteMaterialEntranceController({
+      id: 'about-progress-indicator-material',
+      routeId: 'about',
+      diagnosticRoot: layer,
+      getTargets: () => layer.querySelectorAll('.about-narrative-indicator__line'),
+      setTargetScale: (line, scale) => {
+        line.style.setProperty('--about-indicator-route-scale', scale.toFixed(4));
+      },
+      getDelayRatio: (line, index, targets, direction) => {
+        const lineIndex = Number(line.dataset.lineIndex);
+        const ratio = targets.length > 1
+          ? (Number.isFinite(lineIndex) ? lineIndex : index) / (targets.length - 1)
+          : 0;
+        return direction === 'out' ? 1 - ratio : 0.45 + (ratio * 0.55);
+      },
+    });
+    const prepare = (options) => {
+      hideAccessibility();
+      return controller.prepare(options);
+    };
+    const enter = async (options) => {
+      const completed = await controller.enter(options);
+      if (completed) revealAccessibility();
+      return completed;
+    };
+    const settle = (reason) => {
+      const settled = controller.settle(reason);
+      revealAccessibility();
+      return settled;
+    };
+
+    prepare();
+    const unregister = registerRouteTransitionParticipant({
+      id: `about-progress-indicator-material-${routeContentId}`,
+      routeId: 'about',
+      prepare: ({ signal }) => prepare({ signal }),
+      exit: ({ signal }) => {
+        hideAccessibility();
+        return controller.exit({ signal });
+      },
+      enter: ({ signal }) => enter({ signal }),
+      restore: () => settle('route-restored'),
+      cancel: ({ reason }) => settle(reason),
+    });
+    const handleDirectEntrance = (event) => {
+      const routeId = event?.detail?.routeId || '';
+      if (event?.detail?.mode !== 'direct') return;
+      if (routeId !== 'about') return;
+      void enter();
+    };
+    window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectEntrance);
+
+    return () => {
+      window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleDirectEntrance);
+      unregister();
+      controller.destroy({ settleTargets: false });
+    };
+  }, [indicatorHost, routeContentId, showIndicator]);
 
   const textFieldsById = useMemo(() => new Map(
     (runtimePlan?.textFields || []).map((field) => [field.id, field]),
@@ -838,15 +940,17 @@ export function AboutNarrativeLabExperience({
         data-about-text-corridor
         aria-hidden="true"
       />
-      <AboutNarrativeWorld
-        rendererId="three-point-world-v1"
-        rootRef={rootRef}
-        interactionRef={worldInteractionRef}
-        disciplineOverlayRef={disciplineOverlayRef}
-        runtimeRef={worldRuntimeRef}
-        pointProfile={runtimePlan?.pointProfile}
-        showCameraFocusAnchor={editorRequested && __DEV__}
-      />
+      {runtimePlan ? (
+        <AboutNarrativeWorld
+          rendererId="three-point-world-v1"
+          rootRef={rootRef}
+          interactionRef={worldInteractionRef}
+          disciplineOverlayRef={disciplineOverlayRef}
+          runtimeRef={worldRuntimeRef}
+          pointProfile={runtimePlan.pointProfile}
+          showCameraFocusAnchor={editorRequested && __DEV__}
+        />
+      ) : null}
       <div
         ref={scrollportRef}
         className="about-narrative-scrollport"
@@ -886,7 +990,11 @@ export function AboutNarrativeLabExperience({
       ) : null}
       {showIndicator && indicatorHost
         ? createPortal(
-          <div className="about-narrative-indicator-layer" data-about-indicator-host="shell-persistent">
+          <div
+            ref={indicatorLayerRef}
+            className="about-narrative-indicator-layer"
+            data-about-indicator-host="shell-persistent"
+          >
             <ScrollProgressIndicator
               activeStartIndex={activeIndicatorStartIndex}
               progress={storyProgress}

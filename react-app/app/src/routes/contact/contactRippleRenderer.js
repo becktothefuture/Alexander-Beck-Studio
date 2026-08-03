@@ -9,7 +9,11 @@ import {
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 import { createSimulationMaterialSequence } from '../../palette/simulationPaletteController.js';
-import { getTransitionPhase, isRouteTransitionPhase } from '../../lib/transition-phase.js';
+import {
+  getTransitionPhase,
+  TRANSITION_PHASES,
+} from '../../lib/transition-phase.js';
+import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
@@ -23,6 +27,12 @@ const KALEIDOSCOPE_DOT_SIZE_VARIANCE = 0.38;
 const CONFIRMATION_PALETTE_INDEX = 7;
 const COLOR_WAVE_PEAK = 0.94;
 let rendererInstanceId = 0;
+
+function shouldPauseForRouteTransition() {
+  const phase = getTransitionPhase();
+  return phase === TRANSITION_PHASES.ROUTE_OUT
+    || phase === TRANSITION_PHASES.ROUTE_LOADING;
+}
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -139,6 +149,10 @@ export function createContactRippleRenderer({
   const context = canvas?.getContext('2d', { alpha: true });
   if (!canvas || !stage || !context) {
     return {
+      prepareRouteEntrance() { return false; },
+      enterRoute() { return Promise.resolve(false); },
+      exitRoute() { return Promise.resolve(false); },
+      settleRouteEntrance() { return false; },
       start() {},
       burst() {},
       updateConfig() {},
@@ -181,6 +195,7 @@ export function createContactRippleRenderer({
   let layoutKey = '';
   let lastMotionFrameAt = 0;
   let driftRotation = 0;
+  let routeEntrance = null;
 
   stage.dataset.contactRippleState = reducedMotion ? 'reduced-idle' : 'idle';
   stage.dataset.contactRippleBurstCount = '0';
@@ -379,6 +394,7 @@ export function createContactRippleRenderer({
           distributionIndex: material?.distributionIndex || 0,
           colorIndex: material?.colorIndex || 0,
           radius: getBodyRadius(ringIndex, beadIndex),
+          routeEntranceScale: 1,
           phase: ringIndex * 0.12,
         });
       }
@@ -386,6 +402,10 @@ export function createContactRippleRenderer({
     }
 
     bodies = nextBodies;
+    // A resize or live configuration save can rebuild the field while its
+    // route entrance is running. Adopt the new bodies at the current timeline
+    // position before this frame paints, so they never appear at full scale.
+    routeEntrance?.refreshTargets({ requestPaint: false });
     stage.dataset.contactRippleBodyCount = String(bodies.length);
     stage.dataset.contactRippleRingCount = String(
       Math.max(0, ringIndex - config.innerRingSkipCount),
@@ -567,7 +587,7 @@ export function createContactRippleRenderer({
       drawBall(
         x,
         y,
-        body.radius || metrics.bodyRadius,
+        (body.radius || metrics.bodyRadius) * body.routeEntranceScale,
         getRingAlpha(body.baseRadius, energy),
         body.colorIndex,
         clamp((burstField.colorSignal || 0) * COLOR_WAVE_PEAK, 0, COLOR_WAVE_PEAK),
@@ -613,13 +633,13 @@ export function createContactRippleRenderer({
   }
 
   function requestFrame() {
-    if (destroyed || frameId || document.hidden || isRouteTransitionPhase(getTransitionPhase())) return;
+    if (destroyed || frameId || document.hidden || shouldPauseForRouteTransition()) return;
     frameId = window.requestAnimationFrame(step);
   }
 
   function step() {
     frameId = 0;
-    if (destroyed || document.hidden || isRouteTransitionPhase(getTransitionPhase())) {
+    if (destroyed || document.hidden || shouldPauseForRouteTransition()) {
       if (!destroyed && !document.hidden) setState('paused');
       return;
     }
@@ -646,7 +666,7 @@ export function createContactRippleRenderer({
   }
 
   function handleRouteTransitionChange() {
-    if (isRouteTransitionPhase(getTransitionPhase())) {
+    if (shouldPauseForRouteTransition()) {
       if (frameId) window.cancelAnimationFrame(frameId);
       frameId = 0;
       setState('paused');
@@ -655,6 +675,28 @@ export function createContactRippleRenderer({
     needsRender = true;
     requestFrame();
   }
+
+  routeEntrance = createRouteMaterialEntranceController({
+    id: 'contact-ripple-material',
+    routeId: 'contact',
+    diagnosticRoot: stage,
+    getTargets: () => bodies,
+    setTargetScale: (body, scale) => {
+      body.routeEntranceScale = scale;
+    },
+    getDelayRatio: (body) => {
+      const span = Math.max(1, metrics.maxRadius - metrics.coreFadeEnd);
+      return clamp((body.baseRadius - metrics.coreFadeEnd) / span, 0, 1);
+    },
+    requestRender: () => {
+      needsRender = true;
+      // The normal loop pauses during route-out. Draw the scale-only exit
+      // frames synchronously so the shrinking material remains visible.
+      if (shouldPauseForRouteTransition()) render(performance.now());
+      else requestFrame();
+    },
+    getReducedMotion: () => reducedMotion,
+  });
 
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(handleResize)
@@ -673,6 +715,24 @@ export function createContactRippleRenderer({
   });
 
   return {
+    prepareRouteEntrance(options = {}) {
+      if (destroyed) return false;
+      syncTheme();
+      syncMetrics();
+      return routeEntrance.prepare(options);
+    },
+    enterRoute(options = {}) {
+      if (destroyed) return Promise.resolve(false);
+      return routeEntrance.enter(options);
+    },
+    exitRoute(options = {}) {
+      if (destroyed) return Promise.resolve(false);
+      return routeEntrance.exit(options);
+    },
+    settleRouteEntrance(reason = 'settled') {
+      if (destroyed) return false;
+      return routeEntrance.settle(reason);
+    },
     start() {
       if (destroyed) return;
       needsRender = true;
@@ -727,6 +787,7 @@ export function createContactRippleRenderer({
     },
     destroy() {
       if (destroyed) return;
+      routeEntrance.destroy({ settleTargets: false });
       destroyed = true;
       activeBursts = [];
       if (frameId) window.cancelAnimationFrame(frameId);

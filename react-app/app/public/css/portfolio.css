@@ -1080,6 +1080,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   --portfolio-card-press-y: 0px;
   --portfolio-card-press-z: 0px;
   --portfolio-card-press-scale: 1;
+  --portfolio-card-route-entrance-scale: 1;
+  --portfolio-card-route-y: 0px;
+  --portfolio-card-route-tilt: 0deg;
   --portfolio-card-pose-blur: 9px;
   --portfolio-card-pose-saturate: 0.76;
   position: absolute;
@@ -1132,11 +1135,17 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   background-color: #101010;
   box-shadow: var(--portfolio-card-contact-shadow);
   overflow: hidden;
-  transform: scale(var(--portfolio-card-press-scale, 1));
+  transform:
+    translateY(var(--portfolio-card-route-y, 0px))
+    rotateZ(var(--portfolio-card-route-tilt, 0deg))
+    scale(var(--portfolio-card-press-scale, 1))
+    scale(var(--portfolio-card-route-entrance-scale, 1));
   transform-origin: 50% 50%;
   pointer-events: none;
   transition:
-    transform 420ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--portfolio-card-surface-transform-duration, 420ms)
+      var(--portfolio-card-surface-transform-easing, var(--ease-settle, cubic-bezier(0.215, 0.61, 0.355, 1)))
+      var(--portfolio-card-surface-transform-delay, 0ms),
     box-shadow 300ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
@@ -1272,10 +1281,17 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-project-card {
   --portfolio-card-reveal-opacity: 1;
   --portfolio-card-reveal-blur: 0px;
+  --portfolio-card-route-entrance-scale: 1;
 }
 
 .portfolio-deck-mount.is-portfolio-deck-revealing
   .portfolio-project-card[data-portfolio-reveal-rank] {
+  --portfolio-card-surface-transform-duration: var(
+    --portfolio-card-route-entrance-duration,
+    var(--abs-route-material-duration, 620ms)
+  );
+  --portfolio-card-surface-transform-easing: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --portfolio-card-surface-transform-delay: var(--portfolio-card-reveal-delay, 40ms);
   transition: opacity var(--portfolio-card-reveal-opacity-duration, 440ms)
     var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 80ms);
 }
@@ -1284,6 +1300,30 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   .portfolio-project-card[data-portfolio-reveal-rank] .portfolio-project-card__media {
   transition: filter var(--portfolio-card-reveal-media-duration, 560ms)
     var(--ease-organic, ease) var(--portfolio-card-reveal-delay, 80ms);
+}
+
+.portfolio-deck-mount:is(
+    .is-portfolio-route-transition-entrance,
+    .is-portfolio-route-transition-exit
+  )
+  .portfolio-project-card[data-portfolio-reveal-rank] {
+  transition: none;
+}
+
+.portfolio-deck-mount:is(
+    .is-portfolio-route-transition-entrance,
+    .is-portfolio-route-transition-exit
+  )
+  .portfolio-project-card__surface {
+  transition: box-shadow 300ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.portfolio-deck-mount:is(
+    .is-portfolio-route-transition-entrance,
+    .is-portfolio-route-transition-exit
+  )
+  .portfolio-project-card__media {
+  transition: none;
 }
 
 .portfolio-deck-mount.is-portfolio-deck-visible .portfolio-carousel-dot-dial {

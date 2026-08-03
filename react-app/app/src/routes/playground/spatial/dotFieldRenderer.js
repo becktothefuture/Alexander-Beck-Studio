@@ -99,6 +99,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let worldRows = Math.max(1, Math.round(finite(options.worldRows, 56)));
   let dotRadiusPx = clamp(finite(options.dotRadiusPx, 2.25), 0.25, gridSpacingPx * 0.45);
   let dotOpacity = clamp(finite(options.dotOpacity, 0.28), 0, 1);
+  let routeVisualScale = clamp(finite(options.routeVisualScale, 1), 0, 1);
   let colorWakeRadiusPx = clamp(finite(options.colorWakeRadiusPx, 168), 1, 2048);
   let colorWakePersistenceMs = clamp(finite(options.colorWakePersistenceMs, 1000), 1000, 10000);
   let colorWakeFadeMs = clamp(finite(options.colorWakeFadeMs, 2000), 1, 10000);
@@ -198,7 +199,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     maximumRow,
     samplingStride,
   ) {
-    const visibleRadius = dotRadiusPx * worldScale;
+    const visibleRadius = dotRadiusPx * worldScale * routeVisualScale;
+    if (visibleRadius <= 0.01) return;
     context.beginPath();
     for (let row = minimumRow; row <= maximumRow; row += samplingStride) {
       const screenY = viewportCenterY + (((row * gridSpacingPx) - cameraY) * worldScale);
@@ -484,7 +486,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
         * worldScale);
       const screenY = viewportCenterY + ((baseY + (copyRow * worldHeightPx) - cameraY)
         * worldScale);
-      const visibleRadius = dotRadiusPx * worldScale;
+      const visibleRadius = dotRadiusPx * worldScale * routeVisualScale;
       if (screenX < -visibleRadius || screenX > width + visibleRadius
         || screenY < -visibleRadius || screenY > height + visibleRadius) continue;
 
@@ -504,7 +506,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     activeCount = retainedCount;
 
     const colorCount = Math.min(colors.length, MAX_PALETTE_COLORS);
-    const restingRadius = dotRadiusPx * worldScale;
+    const restingRadius = dotRadiusPx * worldScale * routeVisualScale;
     for (let colorIndex = 0; colorIndex < colorCount; colorIndex += 1) {
       context.fillStyle = colors[colorIndex];
       for (let opacityBucket = 0; opacityBucket < COLOR_OPACITY_BUCKET_COUNT; opacityBucket += 1) {
@@ -550,7 +552,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     lastDrawnCameraX = cameraX;
     lastDrawnCameraY = cameraY;
     clear();
-    if (dotOpacity <= 0 || dotRadiusPx <= 0) {
+    if (dotOpacity <= 0 || dotRadiusPx <= 0 || routeVisualScale <= 0.001) {
       completeDraw();
       lastVisibleDotCount = 0;
       lastDrawnDotCount = 0;
@@ -747,6 +749,16 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     return true;
   }
 
+  function setRouteVisualScale(nextScale, { immediate = true } = {}) {
+    const scale = clamp(finite(nextScale, routeVisualScale), 0, 1);
+    if (scale === routeVisualScale) return false;
+    routeVisualScale = scale;
+    renderDirty = true;
+    if (immediate) drawImmediately();
+    else scheduleDraw();
+    return true;
+  }
+
   function configure(nextOptions = {}) {
     const nextRadius = clamp(
       finite(nextOptions.dotRadiusPx, dotRadiusPx),
@@ -889,6 +901,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       worldRows,
       dotRadiusPx,
       dotOpacity,
+      routeVisualScale,
       colorWakeRadiusPx,
       colorWakePersistenceMs,
       colorWakeFadeMs,
@@ -941,6 +954,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     setPointer,
     setPalette,
     configure,
+    setRouteVisualScale,
+    drawImmediately,
     setPaused,
     getSnapshot,
     destroy,

@@ -1,5 +1,6 @@
 import { getShellConfig, getSimulationWarmupMs } from './site-shell.js';
 import { getTransitionPhase, isRouteTransitionPhase } from '../../../lib/transition-phase.js';
+import { isCanvasBackingStoreUsable } from '../../../lib/canvas-backing-store-readiness.js';
 
 const DEFAULT_BOOT_SELECTORS = ['#abs-scene', '#app-frame'];
 const BOOT_READY_STATES = new Set(['revealing', 'ready', 'failed']);
@@ -259,13 +260,7 @@ function rectIsUsable(rect) {
 }
 
 function isCanvasBackingStoreReady(canvas) {
-  if (!canvas) return false;
-  const rect = canvas.getBoundingClientRect();
-  if (!rectIsUsable(rect)) return false;
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const minWidth = Math.max(1, Math.floor(rect.width * dpr) - 2);
-  const minHeight = Math.max(1, Math.floor(rect.height * dpr) - 2);
-  return canvas.width >= minWidth && canvas.height >= minHeight;
+  return isCanvasBackingStoreUsable(canvas);
 }
 
 export function waitForCanvasReady(options = {}) {

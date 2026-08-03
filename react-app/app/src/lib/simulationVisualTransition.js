@@ -155,9 +155,17 @@ function isDailySimulationLayerPresent() {
   return Boolean(doc?.querySelector?.('.daily-simulation-layer'));
 }
 
-function isSimulationFocusShellTransitionActive() {
+function isShellTransitionActive() {
   const doc = getDocument();
-  return Boolean(doc?.documentElement?.dataset?.absSimulationFocusTransition);
+  const root = doc?.documentElement;
+  const routePhase = root?.dataset?.absTransitionPhase || 'idle';
+  return Boolean(
+    root?.dataset?.absSimulationFocusTransition
+    || root?.dataset?.absRouteTransition === 'active'
+    || routePhase === 'route-out'
+    || routePhase === 'route-loading'
+    || routePhase === 'route-in'
+  );
 }
 
 function resolveInitialVisualScaleForRegistration() {
@@ -166,7 +174,7 @@ function resolveInitialVisualScaleForRegistration() {
   if (
     firstDailyRegistrationPending
     && isDailySimulationLayerPresent()
-    && !isSimulationFocusShellTransitionActive()
+    && !isShellTransitionActive()
   ) {
     return 0;
   }
@@ -175,7 +183,7 @@ function resolveInitialVisualScaleForRegistration() {
 
 async function maybeRunDirectDailyBootEnter(sourceId, scale) {
   if (scale > 0.001) return;
-  if (!isDailySimulationLayerPresent() || isSimulationFocusShellTransitionActive()) return;
+  if (!isDailySimulationLayerPresent() || isShellTransitionActive()) return;
 
   const token = ++directBootEnterToken;
   for (let i = 0; i < 120; i += 1) {
@@ -189,7 +197,7 @@ async function maybeRunDirectDailyBootEnter(sourceId, scale) {
   if (
     token !== directBootEnterToken
     || !registry.has(sourceId)
-    || isSimulationFocusShellTransitionActive()
+    || isShellTransitionActive()
   ) {
     return;
   }
@@ -276,6 +284,7 @@ function normalizeTimings(direction, timings = {}) {
       ? Math.max(0, localDurationMs)
       : (isOut ? DEFAULT_EXIT_LOCAL_MS : DEFAULT_ENTER_LOCAL_MS),
     easing: timings.easing || timings[isOut ? 'exitEasing' : 'enterEasing'] || (isOut ? DEFAULT_EXIT_EASING : DEFAULT_ENTER_EASING),
+    startScale: clamp01(Number.isFinite(Number(timings.startScale)) ? Number(timings.startScale) : 0),
     reason: timings.reason || '',
   };
 }
@@ -439,6 +448,7 @@ export function createIndexedSimulationVisualTransition({
   let currentScale = initialVisualScale;
   let frameId = 0;
   let token = 0;
+  let settleActiveTransition = null;
   let snapshot = {
     count: 0,
     minScale: currentScale,
@@ -453,6 +463,13 @@ export function createIndexedSimulationVisualTransition({
       win.cancelAnimationFrame(frameId);
     }
     frameId = 0;
+  };
+
+  const cancelActiveTransition = () => {
+    cancelFrame();
+    const settle = settleActiveTransition;
+    settleActiveTransition = null;
+    settle?.();
   };
 
   const getResolvedCount = () => {
@@ -512,7 +529,7 @@ export function createIndexedSimulationVisualTransition({
   };
 
   const setVisualScale = (scale) => {
-    cancelFrame();
+    cancelActiveTransition();
     token += 1;
     currentScale = clamp01(Number(scale));
     const count = ensureCount(currentScale);
@@ -524,7 +541,7 @@ export function createIndexedSimulationVisualTransition({
   };
 
   const transition = (direction, timings = {}) => new Promise((resolve) => {
-    cancelFrame();
+    cancelActiveTransition();
     const win = getWindow();
     const localToken = ++token;
     const count = ensureCount(direction === 'in' ? 0 : currentScale);
@@ -532,18 +549,27 @@ export function createIndexedSimulationVisualTransition({
     const localDurationMs = Math.max(1, Number(timings.localDurationMs) || (direction === 'out' ? DEFAULT_EXIT_LOCAL_MS : DEFAULT_ENTER_LOCAL_MS));
     const easing = timings.easing || (direction === 'out' ? DEFAULT_EXIT_EASING : DEFAULT_ENTER_EASING);
     const staggerWindow = Math.max(0, durationMs - localDurationMs);
-    const from = direction === 'out' ? 1 : 0;
+    const from = direction === 'out' ? 1 : clamp01(Number(timings.startScale) || 0);
     const to = direction === 'out' ? 0 : 1;
     const seed = Number(getSeed?.()) || timings.sequence || transitionSequence || 1;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      if (settleActiveTransition === finish) settleActiveTransition = null;
+      resolve();
+    };
 
     if (!win?.requestAnimationFrame || count <= 0 || durationMs <= 0) {
       currentScale = to;
       for (let i = 0; i < count; i += 1) applyScale(i, to);
       updateSnapshot(direction);
       render();
-      resolve();
+      finish();
       return;
     }
+
+    settleActiveTransition = finish;
 
     for (let i = 0; i < count; i += 1) {
       delays[i] = hashUnit(seed, i) * staggerWindow;
@@ -553,13 +579,28 @@ export function createIndexedSimulationVisualTransition({
     render();
 
     const startedAt = now();
+    let renderedIntermediateFrame = false;
+    let forcedIntermediateFrame = false;
     const step = () => {
       if (localToken !== token) {
-        resolve();
+        finish();
         return;
       }
 
-      const elapsed = now() - startedAt;
+      const rawElapsed = now() - startedAt;
+      // Under a long main-thread stall the first RAF can arrive after the whole
+      // timeline. Stretch by one paint in that case so geometry never jumps
+      // directly between its endpoints.
+      const shouldForceIntermediate = (
+        !renderedIntermediateFrame
+        && !forcedIntermediateFrame
+        && rawElapsed >= durationMs
+        && durationMs > 2
+      );
+      const elapsed = shouldForceIntermediate
+        ? Math.min(durationMs - 1, Math.max(1, localDurationMs * 0.62))
+        : rawElapsed;
+      if (shouldForceIntermediate) forcedIntermediateFrame = true;
       let done = true;
       let sum = 0;
       for (let i = 0; i < count; i += 1) {
@@ -572,14 +613,22 @@ export function createIndexedSimulationVisualTransition({
       }
       currentScale = count > 0 ? sum / count : to;
       updateSnapshot(direction);
+      renderedIntermediateFrame ||= (
+        (snapshot.minScale > 0.02 && snapshot.minScale < 0.98)
+        || (snapshot.maxScale > 0.02 && snapshot.maxScale < 0.98)
+      );
       render();
 
-      if (done || elapsed >= durationMs + 32) {
+      if (
+        !shouldForceIntermediate
+        && (done || rawElapsed >= durationMs + 32)
+        && (renderedIntermediateFrame || forcedIntermediateFrame)
+      ) {
         for (let i = 0; i < count; i += 1) applyScale(i, to);
         currentScale = to;
         updateSnapshot(direction);
         render();
-        resolve();
+        finish();
         return;
       }
       frameId = win.requestAnimationFrame(step);
@@ -594,6 +643,9 @@ export function createIndexedSimulationVisualTransition({
     transitionIn: (timings) => transition('in', timings),
     getScaleAt: (index) => scales[index] ?? currentScale,
     getSnapshot: () => ({ ...snapshot }),
-    destroy: cancelFrame,
+    destroy() {
+      cancelActiveTransition();
+      token += 1;
+    },
   };
 }

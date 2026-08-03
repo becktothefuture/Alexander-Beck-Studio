@@ -739,6 +739,25 @@ html[data-abs-transition-phase='route-loading'] [data-route-enter] {
   pointer-events: none;
 }
 
+/* The About experience is code-split in development. Keep its authored opener
+   unpainted until the shell has staged every entrance target and publishes the
+   shared start boundary. This is a paint guard, not a second animation owner. */
+body.about-narrative-page
+  .about-narrative-lab:not([data-route-entrance-started='true'])
+  :is(
+    [data-route-enter],
+    [data-about-route-entry-rule]
+  ) {
+  visibility: hidden;
+}
+
+/* The progress instrument lives in the persistent shell host, outside the
+   registered route surfaces. Do not let it appear through the loading plate. */
+html[data-abs-transition-phase='route-loading'] .about-narrative-indicator-layer {
+  opacity: 0;
+  visibility: hidden;
+}
+
 /* The active pill may lead navigation while aria-current continues to describe
    the route that is actually committed. Keep those visual/semantic states distinct. */
 .button-bar[data-button-bar-material='dominant-tab']

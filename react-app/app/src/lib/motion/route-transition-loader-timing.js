@@ -1,4 +1,8 @@
-import { clearStableTimeout, setStableTimeout } from '../legacy-runtime-scope.js';
+import {
+  clearStableTimeout,
+  requestStableAnimationFrame,
+  setStableTimeout,
+} from '../legacy-runtime-scope.js';
 
 function waitForPaintFrames(count = 2) {
   if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
@@ -8,7 +12,10 @@ function waitForPaintFrames(count = 2) {
   return new Promise((resolve) => {
     let settled = false;
     let remaining = Math.max(1, count);
-    const fallbackId = setStableTimeout(finish, Math.max(80, remaining * 34));
+    // WebKit can defer RAF while a code-split route compiles. Keep a bounded
+    // escape hatch, but do not let an ordinary 100–250 ms main-thread pause
+    // skip the covered paint barrier entirely.
+    const fallbackId = setStableTimeout(finish, Math.max(500, remaining * 50));
     function finish() {
       if (settled) return;
       settled = true;
@@ -22,9 +29,9 @@ function waitForPaintFrames(count = 2) {
         finish();
         return;
       }
-      window.requestAnimationFrame(tick);
+      requestStableAnimationFrame(tick);
     };
-    window.requestAnimationFrame(tick);
+    requestStableAnimationFrame(tick);
   });
 }
 

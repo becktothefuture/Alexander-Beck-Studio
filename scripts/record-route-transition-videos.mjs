@@ -8,7 +8,11 @@ import { chromium } from 'playwright';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_ROOT = resolve(__dirname, '..', 'output', 'playwright', 'route-transition-videos');
 const BASE_URL = new URL(String(process.env.ABS_DEV_URL || 'http://127.0.0.1:8013')).origin;
-const VIEWPORT = Object.freeze({ width: 1280, height: 900 });
+const VIEWPORT_MATCH = String(process.env.ABS_TRANSITION_VIEWPORT || '1280x900')
+  .match(/^(\d+)x(\d+)$/i);
+const VIEWPORT = Object.freeze(VIEWPORT_MATCH
+  ? { width: Number(VIEWPORT_MATCH[1]), height: Number(VIEWPORT_MATCH[2]) }
+  : { width: 1280, height: 900 });
 const WAIT_MS = 60000;
 const RUN_STAMP = new Date().toISOString().replace(/[:.]/g, '-');
 
@@ -18,6 +22,8 @@ const NORMAL_SEQUENCE = Object.freeze([
   'about',
   'home',
   'contact',
+  'home',
+  'playground',
   'home',
 ]);
 
@@ -377,6 +383,7 @@ async function recordScenario(browser, name, runScenario) {
   await createContactSheet(videoPath, contactSheetPath, durationSeconds);
   const report = {
     scenario: name,
+    viewport: VIEWPORT,
     videoPath,
     rawVideoPath,
     contactSheetPath,

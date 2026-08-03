@@ -473,6 +473,9 @@ export function resize() {
   
   // Use adaptive DPR for performance (may be lower than device DPR on weak hardware)
   const DPR = effectiveDPR;
+  if (canvas.dataset) {
+    canvas.dataset.renderedDpr = String(DPR);
+  }
   
   // Calculate new buffer dimensions (ceil to prevent sub-pixel gaps at edges)
   const newWidth = Math.ceil(canvasWidth * DPR);

@@ -637,7 +637,7 @@ async function studioAboutEditor() {
   try {
     await ensureDependencies();
     await ensureLocalDev();
-    const editorUrl = `${LOCAL_DEV_URL}/lab/about-narrative.html?edit=1`;
+    const editorUrl = `${LOCAL_DEV_URL}/about.html`;
     await openInBrowser(editorUrl);
     console.log(`${good('About Me editor opened.')}
 Local authoring: ${editorUrl}

@@ -478,11 +478,11 @@
         "edgeWidthPx": 3.5,
         "edgeInsetPx": 0,
         "light": {
-          "intensity": 0.43,
+          "intensity": 0.34,
           "colourStrength": 0.96
         },
         "dark": {
-          "intensity": 0.46,
+          "intensity": 0.36,
           "colourStrength": 1.24
         }
       }
@@ -501,7 +501,7 @@
       "modalDepthScale": 0.943,
       "modalDepthTranslateY": 1,
       "routeTransition": {
-        "exitDurationMs": 130,
+        "exitDurationMs": 100,
         "loaderEnterDurationMs": 70,
         "spinnerDelayMs": 120,
         "spinnerMinimumMs": 140,
@@ -509,23 +509,31 @@
         "spinnerExitDurationMs": 160,
         "plateExitDelayMs": 40,
         "plateExitDurationMs": 160,
-        "surfaceEnterDurationMs": 220,
+        "surfaceEnterDurationMs": 330,
+        "typographyDelayMs": 1100,
+        "typographyExitDurationMs": 100,
+        "typographyExitStaggerMs": 24,
         "routeBookendColorCount": 5,
-        "routeBookendDurationMs": 280,
+        "routeBookendDurationMs": 560,
         "routeBookendOverlapPercent": 84,
         "routeBookendLineOverlapMs": 0,
-        "routeBookendLineDurationMs": 520,
-        "routeBookendDescriptionDelayMs": 260,
-        "routeBookendDescriptionDurationMs": 900,
-        "routeBookendDescriptionLineStaggerMs": 180,
+        "routeBookendLineDurationMs": 780,
+        "routeBookendDescriptionDelayMs": 390,
+        "routeBookendDescriptionDurationMs": 1350,
+        "routeBookendDescriptionLineStaggerMs": 270,
         "routeBookendMovementEnabled": true,
         "routeBookendTravelPercent": 10,
-        "contextDurationMs": 240,
-        "actionDurationMs": 220,
-        "supportDurationMs": 240,
-        "itemStepMs": 22,
-        "repeatTimingScale": 0.78,
-        "repeatStaggerScale": 0.65
+        "contextDurationMs": 360,
+        "actionDurationMs": 330,
+        "supportDurationMs": 360,
+        "itemStepMs": 33,
+        "materialDurationMs": 1200,
+        "materialStaggerMs": 720,
+        "materialDelayMs": 80,
+        "materialExitDurationMs": 140,
+        "materialExitStaggerMs": 70,
+        "cardTravelPx": 16,
+        "cardTiltDeg": 1.2
       }
     },
     "hero": {

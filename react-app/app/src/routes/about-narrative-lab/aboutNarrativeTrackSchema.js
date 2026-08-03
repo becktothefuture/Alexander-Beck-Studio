@@ -136,7 +136,7 @@ const INTERACTIVE_STACK_PARAMETER_KEYS = new Set([
   ABOUT_INTERACTIVE_STACK_SEED_CONTROL.id,
   ...ABOUT_INTERACTIVE_STACK_CONTROLS.map((control) => control.id),
 ]);
-const MODULE_KINDS = new Set(['prose', 'logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND]);
+const MODULE_KINDS = new Set(['prose', 'list', 'logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND]);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'description', 'position', 'mobilePosition']);
@@ -644,6 +644,13 @@ function validateEditorialModule(module, diagnostics, path) {
   if (!MODULE_KINDS.has(module.kind)) diagnostic(diagnostics, 'module-kind', `${path}.kind`, 'Unsupported editorial module kind.');
   if (module.kind === 'prose') validateSafeText(module.text, diagnostics, `${path}.text`, { required: true });
   if (module.label != null) validateSafeText(module.label, diagnostics, `${path}.label`, { maximum: 120 });
+  if (module.kind === 'list') {
+    if (!Array.isArray(module.items) || module.items.length === 0) {
+      diagnostic(diagnostics, 'module-items-required', `${path}.items`, 'Editorial lists require at least one item.');
+    } else {
+      module.items.forEach((item, index) => validateSafeText(item, diagnostics, `${path}.items.${index}`, { required: true, maximum: 240 }));
+    }
+  }
   if (module.kind === 'logo-grid') {
     if (!Array.isArray(module.items) || module.items.length === 0) diagnostic(diagnostics, 'module-items-required', `${path}.items`, 'Logo grids require at least one item.');
     else module.items.forEach((item, index) => validateEditorialModuleItem(item, diagnostics, `${path}.items.${index}`, { requireLabel: true }));

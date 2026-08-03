@@ -50,8 +50,9 @@ import {
   tickSimulationAtmosphere,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
-import { easeSimulationVisualProgress } from '../../lib/simulationVisualTransition.js';
+import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
+import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
 import {
   resolveSimulationColorDistribution,
 } from '../../palette/simulationPaletteContract.js';
@@ -66,6 +67,38 @@ const MATERIAL_SLOT_COUNT = 6;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 let nextRuntimeInstanceId = 1;
 let nextGeometryInstanceId = 1;
+const pendingContextLossByCanvas = new WeakMap();
+
+function cancelPendingContextLoss(canvas) {
+  const pending = pendingContextLossByCanvas.get(canvas);
+  if (!pending) return;
+  window.clearTimeout(pending.timeoutId);
+  pendingContextLossByCanvas.delete(canvas);
+}
+
+function scheduleContextLoss(canvas, renderer) {
+  cancelPendingContextLoss(canvas);
+  const pending = {
+    renderer,
+    timeoutId: window.setTimeout(() => {
+      if (pendingContextLossByCanvas.get(canvas) !== pending) return;
+      pendingContextLossByCanvas.delete(canvas);
+      renderer.forceContextLoss();
+      canvas.width = 1;
+      canvas.height = 1;
+    }, 0),
+  };
+  pendingContextLossByCanvas.set(canvas, pending);
+}
+
+function isAboutRouteEntering(root) {
+  const documentRoot = root?.ownerDocument?.documentElement;
+  const pendingRoute = root?.ownerDocument
+    ?.querySelector?.('[data-route-tabs]')
+    ?.dataset?.pendingRoute || '';
+  return documentRoot?.dataset?.absTransitionPhase === 'route-in'
+    && (pendingRoute === 'about' || Boolean(root?.closest?.('[data-shell-route-view="about"]')));
+}
 const DEFAULT_BUST_ASSEMBLY = Object.freeze({
   formationMode: 'gather',
   baseStart: 0.04,
@@ -708,7 +741,7 @@ const VERTEX_SHADER = `
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
     gl_PointSize = max(0.01, clamp(renderedPointSize, 5.25, 21.6) * entranceScale) * pixelRatio;
     gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
-    pointAlpha = presence * entranceScale;
+    pointAlpha = presence;
   }
 `;
 
@@ -858,6 +891,10 @@ function createPointFieldAdapter({
   pointProfile: explicitPointProfile,
   showCameraFocusAnchor = false,
 }) {
+  // React can recreate this effect synchronously when the measured point
+  // profile changes. Reuse that canvas context instead of destroying it
+  // between the cleanup and replacement setup.
+  cancelPendingContextLoss(canvas);
   const runtimeInstanceId = nextRuntimeInstanceId;
   nextRuntimeInstanceId += 1;
   const initialBounds = root.getBoundingClientRect();
@@ -947,7 +984,9 @@ function createPointFieldAdapter({
     toPointSizeScale: { value: 1 },
     pixelRatio: { value: 1 },
     simulationVisibility: { value: 1 },
-    sceneEntranceScale: { value: entranceAlreadyComplete ? 1 : 0 },
+    sceneEntranceScale: {
+      value: entranceAlreadyComplete ? 1 : 0,
+    },
     distanceFogStartWU: { value: 8 },
     distanceFogEndWU: { value: 18 },
     fromDriftAmplitude: { value: 0 },
@@ -1148,16 +1187,10 @@ function createPointFieldAdapter({
   let disposed = false;
   let contextAvailable = true;
   let sceneReady = false;
-  // The editor can change point quality after the direct route entrance has
-  // started, which recreates this adapter. Keep the one-shot entrance request
-  // on the route root so the replacement renderer does not return to scale 0.
-  let entranceRequested = entranceAlreadyComplete
-    || root.dataset.aboutEntranceRequested === 'true';
-  let entranceStartedAt = -1;
-  let entranceComplete = entranceAlreadyComplete;
   let width = 1;
   let height = 1;
   let latestFrame = null;
+  let routeMaterialOnly = false;
   const atmosphereEligible = Boolean(document.getElementById('simulation-atmosphere-glow-canvas'));
   let atmosphereSourceCleanup = null;
   let atmosphereSourceKind = '';
@@ -1187,49 +1220,81 @@ function createPointFieldAdapter({
     });
   };
   syncAtmosphereSource();
-  root.dataset.aboutEntranceState = entranceComplete ? 'complete' : 'staged';
+  root.dataset.aboutEntranceState = entranceAlreadyComplete ? 'complete' : 'staged';
+  root.dataset.aboutEntranceScale = entranceAlreadyComplete ? '1.0000' : '0.0000';
   delete root.dataset.aboutSceneReady;
 
-  const completeSceneEntrance = () => {
-    uniforms.sceneEntranceScale.value = 1;
-    if (entranceComplete) return;
-    entranceComplete = true;
-    root.dataset.aboutEntranceState = 'complete';
-  };
+  const routeMaterialTarget = Object.freeze({ kind: 'about-point-field' });
+  const routeMaterial = createRouteMaterialEntranceController({
+    id: 'about-point-field-material',
+    routeId: 'about',
+    diagnosticRoot: root,
+    getTargets: () => [routeMaterialTarget],
+    setTargetScale: (target, scale, index, detail) => {
+      uniforms.sceneEntranceScale.value = scale;
+      root.dataset.aboutEntranceScale = scale.toFixed(4);
+      root.dataset.aboutEntranceState = detail?.phase === 'exiting'
+        ? 'exiting'
+        : (scale >= 0.999 ? 'complete' : detail?.phase || 'staged');
+    },
+    requestRender: () => {
+      if (!contextAvailable || !sceneReady || document.hidden) return;
+      renderer.render(scene, camera);
+      if (atmosphereSourceKind === 'canvas') {
+        tickSimulationAtmosphere(performance.now(), 'about:narrative-world');
+      }
+    },
+    getReducedMotion: () => Boolean(latestFrame?.reducedMotion),
+  });
+  const resumeRouteEntrance = !entranceAlreadyComplete && isAboutRouteEntering(root);
+  if (entranceAlreadyComplete) routeMaterial.settle('adapter-restored');
+  else routeMaterial.prepare();
+  const unregisterRouteMaterialParticipant = registerRouteTransitionParticipant({
+    id: `about-point-field-material-${runtimeInstanceId}`,
+    routeId: 'about',
+    prepare: ({ signal }) => {
+      routeMaterialOnly = false;
+      return routeMaterial.prepare({
+        signal,
+        reducedMotion: Boolean(latestFrame?.reducedMotion),
+      });
+    },
+    exit: ({ signal }) => {
+      // During route-out the shared material controller is the only visual
+      // owner. Suspending the full narrative hot frame keeps its short shrink
+      // animation responsive even after a long About session.
+      routeMaterialOnly = true;
+      return routeMaterial.exit({
+        signal,
+        reducedMotion: Boolean(latestFrame?.reducedMotion),
+      });
+    },
+    enter: ({ signal }) => {
+      routeMaterialOnly = false;
+      return routeMaterial.enter({
+        signal,
+        reducedMotion: Boolean(latestFrame?.reducedMotion),
+      });
+    },
+    restore: () => {
+      routeMaterialOnly = false;
+      return routeMaterial.settle('route-restored');
+    },
+    cancel: ({ reason }) => {
+      routeMaterialOnly = false;
+      return routeMaterial.cancel(reason);
+    },
+  });
+  if (resumeRouteEntrance) {
+    void routeMaterial.enter({ reducedMotion: Boolean(latestFrame?.reducedMotion) });
+  }
 
   const handleRouteEntranceStart = (event) => {
     const routeId = event?.detail?.routeId || '';
     if (routeId !== 'about') return;
-    entranceRequested = true;
-    root.dataset.aboutEntranceRequested = 'true';
-    if (sceneReady && latestFrame?.reducedMotion) completeSceneEntrance();
-  };
-
-  const updateSceneEntrance = (frame) => {
-    if (entranceComplete) {
-      uniforms.sceneEntranceScale.value = 1;
-      return;
-    }
-    if (!entranceRequested || !sceneReady) {
-      uniforms.sceneEntranceScale.value = 0;
-      return;
-    }
-    if (frame.reducedMotion) {
-      completeSceneEntrance();
-      return;
-    }
-    const now = performance.now();
-    if (entranceStartedAt < 0) {
-      entranceStartedAt = now;
-      root.dataset.aboutEntranceState = 'entering';
-    }
-    const progress = Math.min(1, Math.max(0, (now - entranceStartedAt) / 480));
-    uniforms.sceneEntranceScale.value = easeSimulationVisualProgress(
-      'cubic-bezier(0.22, 0, 0.16, 1)',
-      progress,
-      'in',
-    );
-    if (progress >= 1) completeSceneEntrance();
+    if (event?.detail?.mode !== 'direct') return;
+    routeMaterialOnly = false;
+    void routeMaterial.enter({ reducedMotion: Boolean(latestFrame?.reducedMotion) });
   };
 
   const markSceneReady = () => {
@@ -1965,6 +2030,7 @@ function createPointFieldAdapter({
   const render = (frame) => {
     latestFrame = frame;
     syncAtmosphereSource();
+    if (routeMaterialOnly) return;
     if (!frame || !contextAvailable || document.hidden) return;
     if (frame.pointProfile && frame.pointProfile !== quality) {
       if (lastInteractionEnabled !== false) {
@@ -2073,7 +2139,6 @@ function createPointFieldAdapter({
       : 1;
     uniforms.simulationVisibility.value = simulationVisibility;
     points.visible = simulationVisibility > 0.001;
-    updateSceneEntrance(frame);
     const globalCamera = frame.globals?.camera;
     uniforms.distanceFogStartWU.value = Number(
       globalCamera?.distanceFogStartWU ?? 8,
@@ -2422,6 +2487,8 @@ function createPointFieldAdapter({
     unsubscribePalette();
     window.removeEventListener('abs:theme-changed', updateTheme);
     window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
+    unregisterRouteMaterialParticipant();
+    routeMaterial.destroy({ settleTargets: false });
     geometry.dispose();
     material.dispose();
     renderer.dispose();
@@ -2431,6 +2498,10 @@ function createPointFieldAdapter({
       cameraFocusAnchor.material.dispose();
     }
     webglTracker?.dispose();
+    // Route views remount this renderer. Release a genuinely detached browser
+    // context on the next task, while allowing a synchronous React effect
+    // replacement to cancel the loss and reuse the same canvas safely.
+    scheduleContextLoss(canvas, renderer);
     if (resourceLedger) {
       resourceLedger.releaseOwner('installed-pair');
       resourceLedger.releaseOwner('fixed-attributes');
@@ -2481,44 +2552,102 @@ export function AboutNarrativePointWorld3D({
     const root = rootRef.current;
     const interaction = interactionRef?.current || canvas;
     if (!canvas || !root) return undefined;
-    try {
-      return createPointFieldAdapter({
-        canvas,
-        root,
-        interaction,
-        disciplineOverlayRef,
-        runtimeRef,
-        pointProfile,
-        showCameraFocusAnchor,
-      });
-    } catch (error) {
-      root.dataset.pointWorldState = 'unavailable';
-      root.dataset.aboutSceneReady = 'true';
-      let atmosphereCleanup = null;
-      if (document.getElementById('simulation-atmosphere-glow-canvas')) {
-        try {
-          atmosphereCleanup = registerSimulationAtmosphereSource({
-            id: 'about:ambient',
-            routeId: 'about',
-            kind: 'ambient',
-            scheduler: 'internal',
-          });
-        } catch {
-          // The route remains usable even when both renderers are unavailable.
+    let active = true;
+    let disposeAdapter = null;
+    // Defer one task so React Strict Mode's development setup probe can cancel
+    // before allocating and compiling a duplicate WebGL world.
+    const setupTimer = window.setTimeout(() => {
+      if (!active) return;
+      try {
+        disposeAdapter = createPointFieldAdapter({
+          canvas,
+          root,
+          interaction,
+          disciplineOverlayRef,
+          runtimeRef,
+          pointProfile,
+          showCameraFocusAnchor,
+        });
+      } catch (error) {
+        // The fallback can be rebuilt when the measured point profile changes.
+        // Preserve a completed route entrance across that renderer handoff; a
+        // fresh route mount has no marker and still starts from scale zero.
+        const entranceAlreadyComplete = root.dataset.aboutEntranceState === 'complete'
+          || Number(root.dataset.aboutEntranceScale) >= 0.999;
+        root.dataset.pointWorldState = 'unavailable';
+        root.dataset.aboutSceneReady = 'true';
+        root.dataset.aboutEntranceState = entranceAlreadyComplete ? 'complete' : 'staged';
+        root.dataset.aboutEntranceScale = entranceAlreadyComplete ? '1.0000' : '0.0000';
+        const ambientTarget = Object.freeze({ kind: 'about-ambient-field' });
+        let ambientScale = 0;
+        const routeMaterial = createRouteMaterialEntranceController({
+          id: 'about-point-field-material',
+          routeId: 'about',
+          diagnosticRoot: root,
+          getTargets: () => [ambientTarget],
+          setTargetScale: (target, scale, index, detail) => {
+            ambientScale = scale;
+            root.dataset.aboutEntranceScale = scale.toFixed(4);
+            root.dataset.aboutEntranceState = detail?.phase === 'exiting'
+              ? 'exiting'
+              : (scale >= 0.999 ? 'complete' : detail?.phase || 'staged');
+          },
+        });
+        const resumeRouteEntrance = !entranceAlreadyComplete && isAboutRouteEntering(root);
+        if (entranceAlreadyComplete) routeMaterial.settle('adapter-restored');
+        else routeMaterial.prepare();
+        const unregisterRouteMaterialParticipant = registerRouteTransitionParticipant({
+          id: 'about-point-field-fallback-material',
+          routeId: 'about',
+          prepare: ({ signal }) => routeMaterial.prepare({ signal }),
+          exit: ({ signal }) => routeMaterial.exit({ signal }),
+          enter: ({ signal }) => routeMaterial.enter({ signal }),
+          restore: () => routeMaterial.settle('route-restored'),
+          cancel: ({ reason }) => routeMaterial.cancel(reason),
+        });
+        if (resumeRouteEntrance) void routeMaterial.enter();
+        const handleRouteEntranceStart = (event) => {
+          const routeId = event?.detail?.routeId || '';
+          if (routeId !== 'about') return;
+          if (event?.detail?.mode !== 'direct') return;
+          void routeMaterial.enter();
+        };
+        window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
+        let atmosphereCleanup = null;
+        if (document.getElementById('simulation-atmosphere-glow-canvas')) {
+          try {
+            atmosphereCleanup = registerSimulationAtmosphereSource({
+              id: 'about:ambient',
+              routeId: 'about',
+              kind: 'ambient',
+              scheduler: 'internal',
+              getVisualScale: () => ambientScale,
+            });
+          } catch {
+            // The route remains usable even when both renderers are unavailable.
+          }
         }
+        const readyTimer = window.setTimeout(() => {
+          root.dispatchEvent(new CustomEvent('about:world-runtime-ready'));
+          window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+        }, 0);
+        console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);
+        disposeAdapter = () => {
+          window.clearTimeout(readyTimer);
+          window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
+          unregisterRouteMaterialParticipant();
+          routeMaterial.destroy({ settleTargets: false });
+          atmosphereCleanup?.();
+          delete root.dataset.pointWorldState;
+          delete root.dataset.aboutSceneReady;
+        };
       }
-      const readyTimer = window.setTimeout(() => {
-        root.dispatchEvent(new CustomEvent('about:world-runtime-ready'));
-        window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
-      }, 0);
-      console.warn('[About narrative] Point world unavailable; continuing with editorial content.', error);
-      return () => {
-        window.clearTimeout(readyTimer);
-        atmosphereCleanup?.();
-        delete root.dataset.pointWorldState;
-        delete root.dataset.aboutSceneReady;
-      };
-    }
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(setupTimer);
+      disposeAdapter?.();
+    };
   }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef, showCameraFocusAnchor]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;

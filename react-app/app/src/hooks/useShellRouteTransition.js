@@ -25,6 +25,7 @@ import {
 import {
   recordSimulationVisualTransitionEvent,
   runSimulationVisualTransition,
+  setInitialSimulationVisualScale,
 } from '../lib/simulationVisualTransition.js';
 import {
   clearLegacyRouteTransitionFlags,
@@ -40,6 +41,7 @@ import {
 } from '../lib/transition-phase.js';
 import {
   createEntranceSequence,
+  createExitSequence,
   resetEntranceTargets,
 } from '../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
@@ -359,8 +361,8 @@ function getRouteTransitionTimings({
   const fallbackReady = parseTransitionMs(readyMs, shared.readinessTimeoutMs || READY_FALLBACK_MS);
   const revealEasing = readRootEasing('--ui-ease-in', EASE_OUT);
   const fadeEasing = readRootEasing('--ui-ease-out', EASE_OUT);
-  const timingScale = repeatVisit ? shared.repeatTimingScale : 1;
-  const staggerScale = repeatVisit ? shared.repeatStaggerScale : 1;
+  const timingScale = 1;
+  const staggerScale = 1;
 
   if (reduceMotion) {
     return {
@@ -470,7 +472,7 @@ function buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs = GROUPE
       { el: surfaces.controls, slide: true },
     ]),
     addGroup(groupOffsetMs, [
-      { el: surfaces.wall, slide: false },
+      { el: surfaces.wall, slide: false, materialOwned: true },
       { el: surfaces.hero, slide: true },
     ]),
   ];
@@ -579,11 +581,23 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
   const opacityOnly = options?.opacityOnly === true;
   const anims = [];
   const seen = new Set();
+  const ownedSurfaces = getOwnedRouteSurfaceNodes(surfaceRefs);
+  const { wall } = getRouteContentLayers(surfaceRefs);
+  const typographyExit = createExitSequence({
+    scopes: ownedSurfaces,
+    reducedMotion: opacityOnly,
+    onAnimation: (animation) => animationRegistry.add(animation),
+  });
+  const typographyExitPromise = typographyExit.play();
 
   setInstrumentWakeState(opacityOnly ? null : 'out');
 
-  getOwnedRouteSurfaceNodes(surfaceRefs).forEach((el) => {
+  ownedSurfaces.forEach((el) => {
     if (!el) return;
+    // Circle and particle material exits through its renderer scale. Fading or
+    // shrinking the wall here would hide that authored exit and double-compose
+    // the same pixels.
+    if (el === wall) return;
     if (seen.has(el)) return;
     seen.add(el);
     if (typeof el.animate !== 'function') {
@@ -613,9 +627,11 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
     anims.push(anim);
   });
 
-  if (anims.length === 0) return Promise.resolve();
+  if (anims.length === 0) return typographyExitPromise;
 
-  return Promise.all(
+  return Promise.all([
+    typographyExitPromise,
+    ...(
     anims.map((a) => new Promise((r) => {
       let settled = false;
       let fallbackId = null;
@@ -629,7 +645,8 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
       a.oncancel = finish;
       fallbackId = animationRegistry.addTimer(finish, durationMs + 80, finish);
     }))
-  );
+    ),
+  ]);
 }
 
 function removePortfolioGateSceneBridge() {
@@ -1927,6 +1944,13 @@ export function useShellRouteTransition({
       if (!historyCommitted) {
         commitHistory();
       }
+      if (nextRouteId === 'home' && previousRouteId !== 'home') {
+        // Stage every possible Home renderer at the shared zero-scale endpoint
+        // before React mounts it behind the loader. This covers both the legacy
+        // Canvas and a route-backed daily simulation whose participant does not
+        // exist until after the destination commit.
+        setInitialSimulationVisualScale(reduceMotion ? 1 : 0);
+      }
       setRouteState(nextState);
       activeRouteStateRef.current = nextState;
       activeRouteIdRef.current = nextRouteId;
@@ -2020,6 +2044,47 @@ export function useShellRouteTransition({
       commitHistory(activeTransitionCommittedRef.current ? 'replace' : historyDriver.historyMode);
     };
 
+    const retargetCoveredTransition = (queuedNavigation = null, { departureSettled = false } = {}) => {
+      const destination = queuedNavigation || {
+        href: targetUrl.toString(),
+        options,
+        routeId: nextRouteId,
+      };
+      const coveredTransaction = activeTransactionRef.current;
+      ++transitionGenerationRef.current;
+      cancelRouteTransitionTransaction(coveredTransaction, 'retargeted');
+      if (departureSettled) {
+        coveredTransaction?.participants.complete('departure-settled');
+      } else {
+        coveredTransaction?.participants.cancel('retargeted');
+      }
+      coveredTransaction?.abortController.abort('retargeted');
+      activeTransactionRef.current = null;
+      activeRouteReadyCancelRef.current?.();
+      activeRouteReadyCancelRef.current = null;
+      animationRegistry.cancel();
+      setRouteSurfaceVisibility(false, surfaceRefs);
+      routeLoaderSessionRef.current?.retarget();
+      publishTransitionPhase(
+        TRANSITION_PHASES.ROUTE_LOADING,
+        transitionGenerationRef.current,
+        destination.routeId,
+        destination.options?.activation || activation,
+      );
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      queuedNavigationRef.current = null;
+      setPendingActiveRouteId(null);
+      setStableTimeout(() => {
+        navigateRef.current?.(destination.href, {
+          ...(destination.options || options),
+          resumeCovered: true,
+          forceTransition: true,
+        });
+      }, 0);
+      return true;
+    };
+
     if (navigationDecision === ROUTE_NAVIGATION_DECISIONS.IGNORE) return true;
 
     if (activeTransaction?.recovering) {
@@ -2082,34 +2147,7 @@ export function useShellRouteTransition({
     }
 
     if (canRetargetCoveredTransition) {
-      ++transitionGenerationRef.current;
-      cancelRouteTransitionTransaction(activeTransactionRef.current, 'retargeted');
-      activeTransactionRef.current.abortController.abort('retargeted');
-      activeTransactionRef.current.participants.cancel('retargeted');
-      activeTransactionRef.current = null;
-      activeRouteReadyCancelRef.current?.();
-      activeRouteReadyCancelRef.current = null;
-      animationRegistry.cancel();
-      setRouteSurfaceVisibility(false, surfaceRefs);
-      routeLoaderSessionRef.current?.retarget();
-      publishTransitionPhase(
-        TRANSITION_PHASES.ROUTE_LOADING,
-        transitionGenerationRef.current,
-        nextRouteId,
-        activation,
-      );
-      transitionActiveRef.current = false;
-      activeGateTransitionRef.current = false;
-      queuedNavigationRef.current = null;
-      setPendingActiveRouteId(null);
-      setStableTimeout(() => {
-        navigateRef.current?.(targetUrl.toString(), {
-          ...options,
-          resumeCovered: true,
-          forceTransition: true,
-        });
-      }, 0);
-      return true;
+      return retargetCoveredTransition();
     }
 
     if (transitionActiveRef.current && canPreemptActiveTransition) {
@@ -2284,20 +2322,11 @@ export function useShellRouteTransition({
       const preloadRouteModule = typeof options.preloadRouteModule === 'function'
         ? options.preloadRouteModule
         : nextRouteRuntime?.loadModule;
-      const preloadPromise = typeof options.preloadRouteModule === 'function'
-        ? loadRouteRuntimeModule(preloadRouteModule)
-        : prepareRouteRuntime({
-            routeId: nextRouteId,
-            contentSignature: nextRouteContentSignature,
-            runtime: nextRouteRuntime,
-            priority: 'navigation',
-            reason: 'navigation',
-            signal: abortController.signal,
-          });
-      const preloadResult = preloadPromise
-        .then(() => ({ error: null }), (error) => ({ error }));
       const participantDepartureResult = waitWithTransitionTimeout(
-        Promise.all([participants.prepare(), participants.exit()]),
+        Promise.all([
+          participants.prepare(),
+          resumeCovered ? Promise.resolve() : participants.exit(),
+        ]),
         routeTimings.ready,
         abortController.signal,
       ).then(() => ({ error: null }), (error) => ({ error }));
@@ -2313,17 +2342,44 @@ export function useShellRouteTransition({
               opacityOnly: routeTimings.opacityOnly,
             },
           );
+      const departurePromise = Promise.all([exitPromise, participantDepartureResult]);
+      // Keep normal destination compilation out of the short route-out window.
+      // Canvas material needs those paint turns to shrink through intermediate
+      // scales; cold module evaluation can otherwise turn a valid timeline into
+      // two visible frames (full size, then zero). Explicit preload overrides
+      // remain eager because callers use them to coordinate external readiness.
+      const preloadPromise = typeof options.preloadRouteModule === 'function'
+        ? loadRouteRuntimeModule(preloadRouteModule)
+        : departurePromise.then(() => prepareRouteRuntime({
+            routeId: nextRouteId,
+            contentSignature: nextRouteContentSignature,
+            runtime: nextRouteRuntime,
+            priority: 'navigation',
+            reason: 'navigation',
+            signal: abortController.signal,
+          }));
+      const preloadResult = preloadPromise
+        .then(() => ({ error: null }), (error) => ({ error }));
 
-      Promise.all([preloadResult, exitPromise, participantDepartureResult])
-        .then(async ([preload, , participantDeparture]) => {
+      // Departure motion has a fixed, intentionally short budget. Do not hold
+      // the outgoing view open while a destination module compiles or fetches:
+      // finish the exit, establish the cover, then await preload behind it.
+      departurePromise
+        .then(async ([, participantDeparture]) => {
           if (stale()) return;
-          const departureError = preload.error || participantDeparture.error;
-
           publishTransitionPhase(TRANSITION_PHASES.ROUTE_LOADING, token, nextRouteId, activation);
           setRouteSurfaceVisibility(false, surfaceRefs);
           animationRegistry.cancel();
           await loaderTimingDriver.establishCover();
-          if (departureError) throw departureError;
+          if (participantDeparture.error) throw participantDeparture.error;
+          const queuedNavigation = queuedNavigationRef.current;
+          if (queuedNavigation) {
+            retargetCoveredTransition(queuedNavigation, { departureSettled: true });
+            return;
+          }
+          const preload = await preloadResult;
+          if (stale()) return;
+          if (preload.error) throw preload.error;
         })
         .then(() => {
           if (stale()) return undefined;
@@ -2374,6 +2430,11 @@ export function useShellRouteTransition({
             if (stale()) return;
           }
           await loaderTimingDriver.waitForReadiness();
+          // After all destination work is complete, keep its scale-zero
+          // material and staged typography covered for two real paint turns.
+          // This gives every engine one deterministic blank destination frame
+          // before route-in starts, including WebKit after module compilation.
+          await loaderTimingDriver.waitForDestinationPaint();
         })
         .then(() => {
           if (stale()) return;

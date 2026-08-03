@@ -431,12 +431,23 @@ function updateAmbientSource(nowMs) {
   const canvas = host.sourceCanvas;
   const shortest = Math.min(canvas.width, canvas.height);
   const time = reducedMotion ? 0 : nowMs * 0.000045;
+  let visualScale = 1;
+  if (typeof activeSource?.getVisualScale === 'function') {
+    try {
+      const requestedScale = Number(activeSource.getVisualScale());
+      if (Number.isFinite(requestedScale)) {
+        visualScale = Math.min(1, Math.max(0, requestedScale));
+      }
+    } catch {
+      // A route-owned diagnostic getter must not break the shared compositor.
+    }
+  }
   for (let index = 0; index < AMBIENT_COUNT; index += 1) {
     const ball = ambientBalls[index];
     const orbit = time + ball.phase;
     ball.x = (ball.baseX + Math.sin(orbit) * 0.035) * canvas.width;
     ball.y = (ball.baseY + Math.cos(orbit * 0.83) * 0.028) * canvas.height;
-    ball.r = shortest * (0.026 + (index % 3) * 0.006);
+    ball.r = shortest * (0.026 + (index % 3) * 0.006) * visualScale;
     ball.color = ambientColours[index % ambientColours.length];
   }
   lastSourceLayerCount = 0;
@@ -1360,8 +1371,16 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   transitionPhase = nextPhase;
   if (!host) return;
   if (transitionPhase !== 'idle') {
-    cancelInternalFrame();
     host.edgeCanvas.hidden = true;
+    // Freeze the source that was visible when route-out began. A newly
+    // registered incoming ambient source owns its route-in scale and must keep
+    // rendering; cancelling it here delays the glow until after typography.
+    const canRenderIncomingInternalSource = Boolean(
+      activeSource?.scheduler === 'internal'
+      && activeSource.generation !== transitionSourceGeneration
+    );
+    if (canRenderIncomingInternalSource) scheduleInternalFrame();
+    else cancelInternalFrame();
     return;
   }
   transitionSourceGeneration = 0;

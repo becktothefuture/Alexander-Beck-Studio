@@ -67,6 +67,11 @@ import {
   setInitialSimulationVisualScale,
 } from '../lib/simulationVisualTransition.js';
 import {
+  getRouteMaterialEntranceTiming,
+  getRouteMaterialExitTiming,
+} from '../lib/motion/route-material-entrance.js';
+import { registerRouteTransitionParticipant } from '../lib/motion/route-transition-participants.js';
+import {
   clearHomeEntrancePhase,
   createEntranceSequence,
 } from '../lib/motion/entrance-sequence.js';
@@ -241,12 +246,21 @@ function applyHomeHeroRuntimeConfig() {
 
 const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
 const HOME_TITLE_PREPARE_GRACE_MS = 1200;
-const HOME_ROUTE_RETURN_VISUAL_TIMING = Object.freeze({
-  durationMs: 220,
-  localDurationMs: 180,
-  easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  reason: 'home-route-return',
-});
+function waitForHomeMaterialDelay(delayMs, signal) {
+  return new Promise((resolve) => {
+    if (delayMs <= 0 || signal?.aborted) {
+      resolve();
+      return;
+    }
+    const timerId = window.setTimeout(finish, delayMs);
+    function finish() {
+      window.clearTimeout(timerId);
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    }
+    signal?.addEventListener('abort', finish, { once: true });
+  });
+}
 
 function isSimulationFocusTransitionActive() {
   const phase = document.documentElement.dataset.absSimulationFocusTransition
@@ -306,7 +320,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   let atmosphereSourceCleanup = null;
   let legendFilterCleanup = null;
   let directEntrance = null;
-  let routeReturnVisualPromise = null;
+  let unregisterRouteMaterialParticipant = null;
   const isCurrent = () => (
     !disposed
     && !signal?.aborted
@@ -317,6 +331,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     disposed = true;
     atmosphereSourceCleanup?.();
     atmosphereSourceCleanup = null;
+    unregisterRouteMaterialParticipant?.();
+    unregisterRouteMaterialParticipant = null;
     legendFilterCleanup?.();
     legendFilterCleanup = null;
     directEntrance?.cancel({ clearPhase: true });
@@ -355,6 +371,43 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     setBootLifecycleState('ready');
   } else {
     setBootLifecycleState('booting');
+  }
+  if (!isSimulationSwitchBoot) {
+    unregisterRouteMaterialParticipant = registerRouteTransitionParticipant({
+      id: 'home-simulation-material',
+      routeId: 'home',
+      prepare: () => {
+        const timing = getRouteMaterialEntranceTiming();
+        setInitialSimulationVisualScale(timing.startScale);
+      },
+      exit: async () => {
+        const timing = getRouteMaterialExitTiming();
+        await runSimulationVisualTransition('out', {
+          durationMs: timing.durationMs + timing.staggerMs,
+          localDurationMs: timing.durationMs,
+          easing: timing.easing,
+          reason: 'home-route-material-exit',
+        });
+      },
+      enter: async ({ signal: routeSignal }) => {
+        const timing = getRouteMaterialEntranceTiming();
+        if (timing.reducedMotion) {
+          setInitialSimulationVisualScale(1);
+          return;
+        }
+        await waitForHomeMaterialDelay(timing.delayMs, routeSignal);
+        if (routeSignal?.aborted || !isCurrent()) return;
+        await runSimulationVisualTransition('in', {
+          durationMs: timing.durationMs + timing.staggerMs,
+          localDurationMs: timing.durationMs,
+          startScale: timing.startScale,
+          easing: timing.easing,
+          reason: 'home-route-material',
+        });
+      },
+      restore: () => setInitialSimulationVisualScale(1),
+      cancel: () => setInitialSimulationVisualScale(1),
+    });
   }
   setHomeRouteReadyState(false);
   setHomeSimulationReadyState('false');
@@ -557,19 +610,12 @@ export async function bootstrapHomePage(runtimeContext = {}) {
       }
     }
 
-    // Start the compact route-return bloom on the first simulation frame. The
-    // shell can then resolve its cover over material that is already moving,
-    // while non-critical quote/dev tooling continues independently.
+    // Start the simulation loop while covered. The shell participant above
+    // owns the visible material entrance at the route-in boundary.
     startMainLoop(null, { getForcesFn: getForceApplicator });
     if (shellRouteTransitionActiveAtStart && !isSimulationSwitchBoot) {
       if (startupReduceMotion) {
         setInitialSimulationVisualScale(1);
-        routeReturnVisualPromise = Promise.resolve();
-      } else {
-        routeReturnVisualPromise = runSimulationVisualTransition(
-          'in',
-          HOME_ROUTE_RETURN_VISUAL_TIMING,
-        );
       }
       setHomeRouteReadyState(true);
       markReady?.();
@@ -653,6 +699,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             page: 'home',
             pageLabel: 'Home',
             productLabel: 'Alexander Beck Studio',
+            // State was already applied before the mode runtime became ready.
+            // Replaying every control side effect here can reset the mode and
+            // cancel the shell-owned material entrance while it is running.
+            syncInitialControlSideEffects: false,
           });
         } else {
           const panelDock = await import('./modules/ui/panel-dock.js');
@@ -663,6 +713,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             pageLabel: 'Home',
             panelTitle: 'Settings',
             skipToggleButton: true,
+            syncInitialControlSideEffects: false,
             footerHint: '<kbd>R</kbd> reset · local build panel',
           });
         }
@@ -849,11 +900,13 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           setInitialSimulationVisualScale(1);
           return;
         }
-        setInitialSimulationVisualScale(0);
+        const timing = getRouteMaterialEntranceTiming();
+        setInitialSimulationVisualScale(timing.startScale);
         void runSimulationVisualTransition('in', {
-          durationMs: 760,
-          localDurationMs: 420,
-          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          durationMs: timing.durationMs + timing.staggerMs,
+          localDurationMs: timing.durationMs,
+          startScale: timing.startScale,
+          easing: timing.easing,
           reason: 'home-direct-boot',
         });
       };
@@ -880,14 +933,8 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           setInitialSimulationVisualScale(0);
         } else if (reduceMotion) {
           setInitialSimulationVisualScale(1);
-        } else {
-          await (routeReturnVisualPromise || runSimulationVisualTransition(
-            'in',
-            HOME_ROUTE_RETURN_VISUAL_TIMING,
-          ));
-          if (!isCurrent()) return cleanup;
         }
-        console.log('✓ Home simulation route-return entrance completed');
+        console.log('✓ Home simulation route-return entrance armed');
       } else {
         if (shouldRunHomePostBootEntrance) {
           directEntrance?.cancel({ clearPhase: true });
