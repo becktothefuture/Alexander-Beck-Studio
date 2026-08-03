@@ -432,7 +432,7 @@ export function PlaygroundExperience() {
       getDelayRatio: (item, index, targets, direction) => {
         if (item === dotMaterialTargetRef.current) return direction === 'out' ? 1 : 0;
         if (direction === 'out') return 0;
-        return getMaterialLayoutSnapshot().delayRatios.get(item) ?? 0.35;
+        return materialLayoutSnapshot?.delayRatios.get(item) ?? 0.35;
       },
       requestRender: () => dotRendererRef.current?.drawImmediately(),
       getReducedMotion: () => reducedMotion,

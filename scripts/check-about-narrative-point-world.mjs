@@ -229,6 +229,8 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /layoutProfile: responsiveLayoutProfile/);
   assert.match(source, /mobile-short-landscape/);
   assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)/);
+  assert.match(source, /createAboutNarrativePersistentCacheLease\(\)/);
+  assert.match(source, /persistentCache\.storeSequence\(request\.sequenceKey, prepared\)/);
   assert.match(source, /const requestedSequenceKey = getResponsiveSequenceKey\(frame\.world\.sequenceKey\)/);
   assert.match(source, /wasShortLandscape !== shortLandscape && lastPreparationRequest/);
   assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
@@ -306,6 +308,19 @@ test('PointWorld recomputes responsive preparation identity across orientation c
   assert.match(source, /const getResponsiveSequenceKey = \(sequenceKey\) => \{[\s\S]*shortLandscape \? 'mobile-short-landscape' : 'mobile-default'/);
   assert.match(source, /const wasShortLandscape = shortLandscape;[\s\S]*shortLandscape = isAboutNarrativeShortLandscape[\s\S]*wasShortLandscape !== shortLandscape[\s\S]*preparePlan\(lastPreparationRequest\)/);
   assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)[\s\S]*persistentCache\.getSequence\(responsiveSequenceKey\)/);
+});
+
+test('PointWorld prepares shaders asynchronously without releasing scene readiness early', () => {
+  const source = readFileSync(new URL(
+    '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+    import.meta.url,
+  ), 'utf8');
+  assert.match(source, /typeof renderer\.compileAsync === 'function'/);
+  assert.match(source, /renderer\.compileAsync\(scene, camera\)\.then\(markRendererPrepared\)/);
+  assert.match(source, /if \(!rendererPrepared\) return/);
+  assert.match(source, /renderer\.render\(scene, camera\);\s+rendererPrepared = true/);
+  assert.match(source, /if \(latestFrame\) render\(latestFrame\)/);
+  assert.match(source, /root\.dataset\.pointWorldState = 'preparing'/);
 });
 
 test('About Director previews the point world through the production atmosphere compositor', () => {

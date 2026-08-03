@@ -224,6 +224,17 @@ test('Portfolio publishes the stable selector and state-marker contract for CSS 
   assert.ok(selectors.every((value) => typeof value === 'string' && value.length > 0));
 });
 
+test('Portfolio mount skips unchanged palette work and omits permanently hidden card tags', async () => {
+  const source = await readFile(resolve(
+    __dirname,
+    '../react-app/app/src/legacy/modules/portfolio/app.js',
+  ), 'utf8');
+  assert.match(source, /cardPaletteGeneration = renderedPaletteGeneration/);
+  assert.match(source, /paletteGeneration === this\.cardPaletteGeneration/);
+  assert.match(source, /this\.applyProjectPalette\(\{ force: true \}\)/);
+  assert.doesNotMatch(source, /createElement\('ul'\)[\s\S]{0,160}portfolio-project-card__tags/);
+});
+
 test('Portfolio drawer cue colours remain valid HSL values', () => {
   assert.equal(
     buildPortfolioCueColor({ r: 255, g: 0, b: 0 }, '#000000'),

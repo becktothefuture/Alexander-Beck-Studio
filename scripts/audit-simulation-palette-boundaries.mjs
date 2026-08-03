@@ -125,7 +125,7 @@ async function installMarker(page, surface) {
         canvas: document.getElementById('c'),
         items: globals.balls.slice(),
         roles: globals.balls.map((b) => b.distributionIndex),
-        radii: globals.balls.map((b) => b._tensionLoom?.baseRadius ?? b.r),
+        radii: globals.balls.map((b) => b.rBase ?? b._tensionLoom?.baseRadius ?? b.r),
         mode: globals.currentMode,
         bodyCount: Number(document.getElementById('c')?.dataset.simulationBodyCount || 0),
       });
@@ -168,7 +168,7 @@ async function readState(page, surface) {
       } else {
         identity = marker.runtime === audit && g.balls.length === marker.items.length && g.balls.every((b, i) => b === marker.items[i]);
         roles = g.balls.every((b, i) => b.distributionIndex === marker.roles[i]);
-        geometry = g.balls.every((b, i) => (b._tensionLoom?.baseRadius ?? b.r) === marker.radii[i]);
+        geometry = g.balls.every((b, i) => (b.rBase ?? b._tensionLoom?.baseRadius ?? b.r) === marker.radii[i]);
         palette = g.balls.every((ball) => {
           const row = snapshot.distribution[ball.distributionIndex];
           const expected = snapshot.colors[row?.colorIndex] || snapshot.colors[0];

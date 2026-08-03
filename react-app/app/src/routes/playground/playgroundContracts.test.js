@@ -309,3 +309,15 @@ test('configuration normalization clamps every control and retains canonical def
   assert.equal(normalized.minimumWorldColumns, PLAYGROUND_CONFIG_BOUNDS.minimumWorldColumns.max);
   assert.equal(normalized.dragMomentum, PLAYGROUND_CONFIG_BOUNDS.dragMomentum.max);
 });
+
+test('route material entrance reuses one measured card layout snapshot per transaction', async () => {
+  const source = await readFile(new URL('./PlaygroundExperience.jsx', import.meta.url), 'utf8');
+  assert.match(source, /let materialLayoutSnapshot = null/);
+  assert.match(source, /materialLayoutSnapshot\.items\.length === items\.length/);
+  assert.match(source, /const delayRatios = new WeakMap\(\)/);
+  assert.match(source, /delayRatios\.set\([\s\S]*Math\.hypot\(dx, dy\)/);
+  const delayReaderStart = source.indexOf('getDelayRatio:');
+  const delayReaderEnd = source.indexOf('requestRender:', delayReaderStart);
+  assert.ok(delayReaderStart >= 0 && delayReaderEnd > delayReaderStart);
+  assert.doesNotMatch(source.slice(delayReaderStart, delayReaderEnd), /getBoundingClientRect/);
+});
