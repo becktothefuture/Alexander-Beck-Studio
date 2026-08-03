@@ -118,6 +118,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
+- Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
 - The Button Bar is the only primary navigation. Its moving pill is one shared object, not five independent selected backgrounds. All primary tab cells use their rendered label width plus inline padding; the pill follows that padded cell with a controlled rounded-rectangle radius.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.

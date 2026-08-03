@@ -97,9 +97,10 @@ body.about-narrative-page .route-simulation-layer {
   scrollbar-color: color-mix(in srgb, var(--text-primary) 32%, transparent) transparent;
 }
 
+.about-narrative-scrollport:focus,
 .about-narrative-scrollport:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--about-route-accent) 58%, transparent);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: none;
 }
 
 .about-narrative-content {
@@ -975,6 +976,10 @@ body.dark-mode .about-narrative-client-logos img {
 
 .about-narrative-indicator__line.is-active {
   opacity: 1;
+}
+
+html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__line.is-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--abs-indicator-ink) 42%, transparent);
 }
 
 .about-narrative-lab[data-editor-active='true'] .about-narrative-render-span--title,

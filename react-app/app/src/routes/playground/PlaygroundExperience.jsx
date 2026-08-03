@@ -1110,6 +1110,7 @@ export function PlaygroundExperience() {
               <div className="playground-drag-instruction" data-route-enter="action">
                 <svg
                   className="playground-drag-instruction__icon"
+                  data-focus-indicator-proxy
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"

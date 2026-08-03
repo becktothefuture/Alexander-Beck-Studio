@@ -127,7 +127,7 @@ function getFocusContract(routeId, profile) {
       {
         selector: '[data-playground-viewport][tabindex="0"]',
         count: 1,
-        indicator: 'dual-ring',
+        indicator: 'outline',
         // On the mobile shell, the stable Button Bar deliberately covers both
         // side edges. Require both unobscured horizontal edges to retain full
         // rendered contrast instead of treating shell occlusion as ring loss.
@@ -174,7 +174,7 @@ const specialFocusContracts = Object.freeze({
     scopeSelector: '.portfolio-project-view.is-open[aria-hidden="false"]',
     expectations: Object.freeze([
       Object.freeze({ selector: '.portfolio-project-view__back--top', count: 1, indicator: 'dual-ring' }),
-      Object.freeze({ selector: '.portfolio-project-view__scroll[tabindex="0"]', count: 1, indicator: 'dual-ring' }),
+      Object.freeze({ selector: '.portfolio-project-view__scroll[tabindex="0"]', count: 1, indicator: 'outline' }),
     ]),
   }),
 });
@@ -195,7 +195,7 @@ const focusSuppressionMutationContracts = Object.freeze({
     }),
   ]),
   'portfolio-settled': Object.freeze({ family: 'underline', selector: '.portfolio-project-card.is-active[tabindex="0"]' }),
-  'portfolio-project-drawer': Object.freeze({ family: 'drawer-overlay', selector: '.portfolio-project-view__scroll[tabindex="0"]' }),
+  'portfolio-project-drawer': Object.freeze({ family: 'localized-cue', selector: '.portfolio-project-view__scroll[tabindex="0"]' }),
 });
 
 function assert(condition, message, details = null) {
@@ -567,15 +567,31 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
       if (!auditId) return null;
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
-      const outlineWidth = Number.parseFloat(style.outlineWidth || '0');
-      const outlineVisible = style.outlineStyle !== 'none'
-        && outlineWidth >= 2
+      const ownOutlineWidth = Number.parseFloat(style.outlineWidth || '0');
+      const ownOutlineVisible = style.outlineStyle !== 'none'
+        && ownOutlineWidth >= 2
         && style.outlineColor !== 'transparent'
         && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(style.outlineColor);
-      const shadowColors = [...style.boxShadow.matchAll(/rgba?\([^)]*\)/g)].map((match) => match[0]);
+      const proxy = element.querySelector('[data-focus-indicator-proxy]');
+      const proxyStyle = proxy ? getComputedStyle(proxy) : null;
+      const proxyOutlineWidth = Number.parseFloat(proxyStyle?.outlineWidth || '0');
+      const proxyOutlineVisible = Boolean(proxyStyle)
+        && proxyStyle.outlineStyle !== 'none'
+        && proxyOutlineWidth >= 2
+        && proxyStyle.outlineColor !== 'transparent'
+        && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(proxyStyle.outlineColor);
+      const indicatorElement = ownOutlineVisible || !proxyOutlineVisible ? element : proxy;
+      const indicatorStyle = indicatorElement === element ? style : proxyStyle;
+      const indicatorRect = indicatorElement.getBoundingClientRect();
+      const outlineWidth = Number.parseFloat(indicatorStyle.outlineWidth || '0');
+      const outlineVisible = indicatorStyle.outlineStyle !== 'none'
+        && outlineWidth >= 2
+        && indicatorStyle.outlineColor !== 'transparent'
+        && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(indicatorStyle.outlineColor);
+      const shadowColors = [...indicatorStyle.boxShadow.matchAll(/rgba?\([^)]*\)/g)].map((match) => match[0]);
       const resolvedShadowColors = shadowColors.map((color) => ({ color, rgba: resolveColor(color) }));
       const visibleShadow = resolvedShadowColors.findLast(({ rgba }) => rgba[3] > 0) || null;
-      const shadowVisible = style.boxShadow !== 'none' && Boolean(visibleShadow);
+      const shadowVisible = indicatorStyle.boxShadow !== 'none' && Boolean(visibleShadow);
       const underlinedElement = [element, ...element.querySelectorAll('*')].find((child) => {
         const childStyle = getComputedStyle(child);
         return childStyle.textDecorationLine.includes('underline')
@@ -600,24 +616,24 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
       const indicator = outlineVisible && shadowVisible
         ? {
             kind: 'dual-ring',
-            color: `${style.outlineColor} + ${visibleShadow.color}`,
-            rgba: resolveColor(style.outlineColor),
-            boxShadow: style.boxShadow,
+            color: `${indicatorStyle.outlineColor} + ${visibleShadow.color}`,
+            rgba: resolveColor(indicatorStyle.outlineColor),
+            boxShadow: indicatorStyle.boxShadow,
             secondaryRgba: visibleShadow.rgba,
             width: outlineWidth,
-            offset: Number.parseFloat(style.outlineOffset || '0'),
-            borderRadius: Number.parseFloat(style.borderTopLeftRadius || '0'),
-            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            offset: Number.parseFloat(indicatorStyle.outlineOffset || '0'),
+            borderRadius: Number.parseFloat(indicatorStyle.borderTopLeftRadius || '0'),
+            rect: { x: indicatorRect.x, y: indicatorRect.y, width: indicatorRect.width, height: indicatorRect.height },
           }
         : outlineVisible
         ? {
             kind: 'outline',
-            color: style.outlineColor,
-            rgba: resolveColor(style.outlineColor),
+            color: indicatorStyle.outlineColor,
+            rgba: resolveColor(indicatorStyle.outlineColor),
             width: outlineWidth,
-            offset: Number.parseFloat(style.outlineOffset || '0'),
-            borderRadius: Number.parseFloat(style.borderTopLeftRadius || '0'),
-            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            offset: Number.parseFloat(indicatorStyle.outlineOffset || '0'),
+            borderRadius: Number.parseFloat(indicatorStyle.borderTopLeftRadius || '0'),
+            rect: { x: indicatorRect.x, y: indicatorRect.y, width: indicatorRect.width, height: indicatorRect.height },
           }
         : underlinedElement
           ? {
@@ -639,7 +655,7 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
         auditId,
         focusVisible: element.matches(':focus-visible'),
         outlineStyle: style.outlineStyle,
-        outlineWidth,
+        outlineWidth: ownOutlineWidth,
         outlineColor: style.outlineColor,
         outlineVisible,
         underlined: Boolean(underlinedElement),
@@ -784,10 +800,6 @@ async function setFocusStyleSuppression(page, suppressed) {
           box-shadow: none !important;
           text-decoration: none !important;
         }
-        html[data-abs-focus-audit-suppress='true']
-          .portfolio-project-view__drawer:has(.portfolio-project-view__scroll:focus-visible)::after {
-          box-shadow: none !important;
-        }
       `;
       document.head.append(style);
     }
@@ -901,6 +913,11 @@ async function readIndicatorGeometry(locator, indicatorKind) {
             seen.add(key);
             return [{ x: lineRect.x, y: lineRect.y, width: lineRect.width, height: lineRect.height }];
           });
+        }
+      } else {
+        const proxy = element.querySelector('[data-focus-indicator-proxy]');
+        if (proxy && getComputedStyle(proxy).outlineStyle !== 'none') {
+          indicatorRect = proxy.getBoundingClientRect();
         }
       }
       return {

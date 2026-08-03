@@ -1715,12 +1715,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
     rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
 }
 
-.portfolio-project-view__drawer:has(.portfolio-project-view__scroll:focus-visible)::after {
-  box-shadow:
-    inset 0 0 0 var(--abs-focus-ring-width) var(--abs-focus-ring-shell),
-    inset 0 0 0 calc(var(--abs-focus-ring-width) + var(--abs-focus-ring-offset)) rgba(var(--abs-rgb-black), 0.84);
-}
-
 .portfolio-project-view.is-open .portfolio-project-view__drawer {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
@@ -1828,9 +1822,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view__scroll:focus-visible {
-  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
-  outline-offset: calc(-1 * var(--abs-focus-ring-offset));
-  box-shadow: inset 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
+  outline: none;
+  box-shadow: none;
 }
 
 .portfolio-project-view__scroll::-webkit-scrollbar {
@@ -2034,6 +2027,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   );
 }
 
+.portfolio-project-view__scroll:focus-visible .portfolio-project-view__scroll-cue-icon {
+  border-radius: var(--abs-radius-pill);
+  outline: var(--abs-focus-ring-width) solid currentColor;
+  outline-offset: var(--abs-focus-ring-offset);
+}
+
 .portfolio-project-view.is-open .portfolio-project-view__scroll-cue {
   opacity: 1;
   transform: translate3d(0, 0, 0);
@@ -2046,6 +2045,14 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   animation: none;
   transform: translateY(var(--gap-sm));
   transition-delay: 0ms;
+}
+
+.portfolio-project-view.is-scrolled
+  .portfolio-project-view__scroll:focus-visible
+  .portfolio-project-view__scroll-cue {
+  opacity: 1;
+  animation: none;
+  transform: translate3d(0, 0, 0);
 }
 
 .portfolio-project-view.is-closing .portfolio-project-view__image-shell,

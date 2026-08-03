@@ -369,7 +369,7 @@ function createProjectDrawerMarkup() {
               </div>
               <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
               <div class="portfolio-project-view__scroll-cue" aria-hidden="true">
-                <i class="ti ti-arrow-left portfolio-project-view__scroll-cue-icon"></i>
+                <i class="ti ti-arrow-left portfolio-project-view__scroll-cue-icon" data-focus-indicator-proxy></i>
               </div>
             </div>
             <div class="portfolio-project-view__hero-copy" data-scroll-presence data-scroll-presence-span="0.28">
