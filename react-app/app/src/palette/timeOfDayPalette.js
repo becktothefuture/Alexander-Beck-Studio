@@ -4,61 +4,61 @@ export const TIME_OF_DAY_PALETTE_PERIODS = Object.freeze([
     label: 'After Midnight',
     hours: '00:00–02:59',
     startHour: 0,
-    paletteId: 'sohoInk',
+    paletteId: 'sohoSignal',
   }),
   Object.freeze({
     id: 'pre-dawn',
     label: 'Pre-dawn',
     hours: '03:00–05:59',
     startHour: 3,
-    paletteId: 'thamesWeather',
+    paletteId: 'thamesData',
   }),
   Object.freeze({
     id: 'morning',
     label: 'Morning',
     hours: '06:00–08:59',
     startHour: 6,
-    paletteId: 'brickLaneSaffron',
+    paletteId: 'barbicanProtocol',
   }),
   Object.freeze({
     id: 'civic-morning',
     label: 'Civic Morning',
     hours: '09:00–11:59',
     startHour: 9,
-    paletteId: 'barbicanConcrete',
+    paletteId: 'nightBusMesh',
   }),
   Object.freeze({
     id: 'midday',
     label: 'Midday',
     hours: '12:00–14:59',
     startHour: 12,
-    paletteId: 'sohoInk',
+    paletteId: 'sohoSignal',
   }),
   Object.freeze({
     id: 'afternoon-rush',
     label: 'Afternoon Rush',
     hours: '15:00–17:59',
     startHour: 15,
-    paletteId: 'thamesWeather',
+    paletteId: 'thamesData',
   }),
   Object.freeze({
     id: 'evening',
     label: 'Evening',
     hours: '18:00–20:59',
     startHour: 18,
-    paletteId: 'brickLaneSaffron',
+    paletteId: 'barbicanProtocol',
   }),
   Object.freeze({
     id: 'late-night',
     label: 'Late Night',
     hours: '21:00–23:59',
     startHour: 21,
-    paletteId: 'barbicanConcrete',
+    paletteId: 'nightBusMesh',
   }),
 ]);
 
 const DEFAULT_PERIOD = TIME_OF_DAY_PALETTE_PERIODS.find(
-  (period) => period.paletteId === 'thamesWeather',
+  (period) => period.paletteId === 'thamesData',
 ) || TIME_OF_DAY_PALETTE_PERIODS[0];
 
 export function resolveTimeOfDayPalettePeriod(hour) {

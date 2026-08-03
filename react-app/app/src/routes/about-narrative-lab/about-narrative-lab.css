@@ -754,27 +754,27 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-list li:nth-child(1) {
-  --discipline-color: var(--ball-1, #788a94);
+  --discipline-color: var(--ball-1, #708591);
 }
 
 .about-narrative-discipline-list li:nth-child(2) {
-  --discipline-color: var(--ball-4, #0a5268);
+  --discipline-color: var(--ball-4, #005c78);
 }
 
 .about-narrative-discipline-list li:nth-child(3) {
-  --discipline-color: var(--ball-3, #e9ece7);
+  --discipline-color: var(--ball-3, #eef2ef);
 }
 
 .about-narrative-discipline-list li:nth-child(4) {
-  --discipline-color: var(--ball-7, #2f7f9d);
+  --discipline-color: var(--ball-7, #2d82a6);
 }
 
 .about-narrative-discipline-list li:nth-child(5) {
-  --discipline-color: var(--ball-8, #b58b2b);
+  --discipline-color: var(--ball-8, #e2b42b);
 }
 
 .about-narrative-discipline-list li:nth-child(6) {
-  --discipline-color: var(--ball-6, #d56b2c);
+  --discipline-color: var(--ball-6, #00b8d4);
 }
 
 .about-narrative-discipline-reveal {
@@ -791,7 +791,7 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-reveal li {
-  --discipline-color: var(--ball-1, #788a94);
+  --discipline-color: var(--ball-1, #708591);
   --discipline-beat-enter: clamp(0, calc(var(--discipline-beat-progress) * 5), 1);
   --discipline-beat-exit: clamp(0, calc((var(--discipline-beat-progress) - 0.8) * 5), 1);
   --discipline-beat-opacity: min(

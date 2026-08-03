@@ -2,10 +2,10 @@ import { LONDON_WEATHER_PALETTES as BASE_PALETTES } from '../../palette/londonPa
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../../palette/timeOfDayPalette.js';
 
 const STRAPLINES_BY_ID = {
-  sohoInk: 'Electric blue, taxi amber, and vermilion cut through black London lacquer.',
-  thamesWeather: 'Tidal blue and copper light moving through wet stone and river fog.',
-  brickLaneSaffron: 'Terracotta and saffron held down by parchment, oxblood, and ink blue.',
-  barbicanConcrete: 'Raw concrete with service olive, safety yellow, hard blue, and rust.',
+  sohoSignal: 'Electric signage, wet-screen cyan, and taxi amber cut through zinc and screen black.',
+  thamesData: 'Cold river steel and data cyan move through mist, glass, and one sodium signal.',
+  barbicanProtocol: 'Brutalist concrete meets protocol blue, safety lime, and interface aqua.',
+  nightBusMesh: 'Transit red connects link blue, LED cyan, and pixel aqua across night glass.',
 };
 
 export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({

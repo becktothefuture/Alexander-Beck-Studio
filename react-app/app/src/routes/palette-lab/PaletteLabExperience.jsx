@@ -54,7 +54,7 @@ export function PaletteLabExperience() {
   const [activeIndex, setActiveIndex] = useState(
     Math.max(
       0,
-      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'thamesWeather')
+      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'thamesData')
     )
   );
   const active = LONDON_WEATHER_PALETTES[activeIndex] || LONDON_WEATHER_PALETTES[0];
