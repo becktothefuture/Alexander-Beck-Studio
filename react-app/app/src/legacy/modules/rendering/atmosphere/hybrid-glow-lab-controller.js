@@ -81,6 +81,10 @@ export class HybridGlowLabController {
     this.blurGeometry = null;
     this.schedule = { nextFrameAt: 0 };
     this.effectConfig = { fieldMode: ATMOSPHERIC_FIELD_MODE };
+    this.effectRenderInput = {
+      sourceCanvas: this.sourceCanvas,
+      config: this.effectConfig,
+    };
     this.hasReducedMotionFrame = false;
     this.destroyed = false;
 
@@ -191,8 +195,9 @@ export class HybridGlowLabController {
     }
     const width = Math.max(2, Math.round(rect.width * this.dynamicQuality.scale));
     const height = Math.max(2, Math.round(rect.height * this.dynamicQuality.scale));
-    const resized = resizeCanvas(this.sourceCanvas, width, height)
-      || resizeCanvas(this.outputCanvas, width, height);
+    const sourceResized = resizeCanvas(this.sourceCanvas, width, height);
+    const outputResized = resizeCanvas(this.outputCanvas, width, height);
+    const resized = sourceResized || outputResized;
     if (resized) {
       this.effect.resize(width, height);
       this.clear();
@@ -234,10 +239,7 @@ export class HybridGlowLabController {
     const startedAt = performance.now();
     this.copySimulationSource();
     this.effectConfig.cadenceFps = cadence;
-    this.effect.render({
-      sourceCanvas: this.sourceCanvas,
-      config: this.effectConfig,
-    });
+    this.effect.render(this.effectRenderInput);
     this.metricsEffectCostMs += performance.now() - startedAt;
     this.updateCount += 1;
     this.metricsUpdates += 1;

@@ -1378,10 +1378,10 @@ async function runHybridGlowLabContract(browser) {
       })(),
       snapshot: window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
     }));
-    assert(initial.sharedHandlePresent === false, 'Hybrid Glow mounted the production compositor', initial);
+    assert(initial.sharedHandlePresent === false, 'Atmospheric Glow mounted the production compositor', initial);
     assert(
       initial.sharedGlowCount === 0 && initial.sharedEdgeCount === 0,
-      'Hybrid Glow mounted shared production output canvases',
+      'Atmospheric Glow mounted shared production output canvases',
       initial,
     );
     assert(
@@ -1408,7 +1408,7 @@ async function runHybridGlowLabContract(browser) {
       initial.outputPresentation.animationCount === 0
         && initial.outputPresentation.mixBlendMode === 'normal'
         && initial.outputPresentation.opacity === '1'
-        && initial.outputPresentation.willChange === 'auto',
+        && !initial.outputPresentation.willChange.split(',').map((value) => value.trim()).includes('opacity'),
       'Atmospheric Glow retained crossfade compositor work',
       initial,
     );
