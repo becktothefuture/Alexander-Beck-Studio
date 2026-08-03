@@ -11,7 +11,7 @@ The live reference is `/styleguide.html`. It must describe production components
 - Secondary controls: icon-only sound and theme toggles; sound swaps volume-off/volume-on and theme swaps sun/moon, with no slider track
 - Anatomy: Home–Lab group, divider, Contact, divider, fixed two-slot sound/theme utility group
 - Active geometry: one shared `4.01868px` white dot follows the active or pending route centre; selected tabs never gain a background
-- Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `12px` labels with `10px` inline padding from `768px`; only the route region scrolls when the capsule is width-capped
+- Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `13px` labels with `12px` inline padding from `768px`; desktop utility icons grow from `16px` to `18px`, and only the route region scrolls when the capsule is width-capped
 - Mobile: all five routes remain reachable and the active route is scrolled into view; all controls remain keyboard and touch accessible
 - Primary navigation never moves into a route top bar
 

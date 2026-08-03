@@ -4,12 +4,12 @@
   --button-bar-capsule-height: var(--button-bar-height, 45px);
   --button-bar-mobile-padding-inline: var(--button-bar-button-padding-x, 8px);
   --button-bar-desktop-padding-inline: calc(
-    var(--button-bar-mobile-padding-inline) * var(--button-bar-desktop-padding-scale, 1.25)
+    var(--button-bar-mobile-padding-inline) * var(--button-bar-desktop-padding-scale, 1.5)
   );
   --button-bar-route-padding-inline: var(--button-bar-desktop-padding-inline);
   --button-bar-mobile-font-size: var(--button-bar-font-size, 0.625rem);
   --button-bar-desktop-font-size: calc(
-    var(--button-bar-mobile-font-size) * var(--button-bar-desktop-font-scale, 1.2)
+    var(--button-bar-mobile-font-size) * var(--button-bar-desktop-font-scale, 1.3)
   );
   --button-bar-route-font-size: var(--button-bar-desktop-font-size);
   --button-bar-idle-ink: #767881;
@@ -174,7 +174,7 @@
 }
 
 /* Preserve the reference Geist text boxes so the intrinsic capsule resolves to
-   354px on mobile and grows only through the desktop padding multiplier. */
+   354px on mobile, then grows through the desktop type and padding scales. */
 .button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='home'] .shell-tab__label {
   min-inline-size: 30px;
 }
@@ -355,6 +355,26 @@
   .button-bar[data-button-bar-material='dominant-tab'] {
     --button-bar-route-padding-inline: var(--button-bar-mobile-padding-inline);
     --button-bar-route-font-size: var(--button-bar-mobile-font-size);
+  }
+}
+
+@media (min-width: 768px) {
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
+    flex-basis: 65px;
+    inline-size: 65px;
+    min-inline-size: 65px;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon,
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg,
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
+    inline-size: 18px;
+    block-size: 18px;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
+    font-size: 18px;
+    line-height: 18px;
   }
 }
 

@@ -6,10 +6,10 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarRouteGapPx: 4,
   buttonBarButtonHeightPx: 45,
   buttonBarButtonPaddingXPx: 8,
-  buttonBarDesktopPaddingScale: 1.25,
+  buttonBarDesktopPaddingScale: 1.5,
   buttonBarButtonRadiusPx: 16,
   buttonBarFontSizeRem: 0.625,
-  buttonBarDesktopFontScale: 1.2,
+  buttonBarDesktopFontScale: 1.3,
   buttonBarIndicatorSizePx: 4.01868,
   buttonBarTransitionMs: 320,
 });
