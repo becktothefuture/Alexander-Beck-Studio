@@ -30,7 +30,7 @@ const RAGE_CASE_IDS = Object.freeze([
   ['flock-of-birds', 'flubber-blob', 'weave-field'],
   ['flock-of-birds', 'weave-field', 'flubber-blob'],
   ['magnetic', 'kaleidoscope-3', 'bubbles'],
-  ['parallax-float', 'bubbles', 'kaleidoscope-3'],
+  ['starfield-3d', 'bubbles', 'kaleidoscope-3'],
   ['flubber-blob', 'particle-fountain-b', 'repel-room'],
   ['bubbles', 'repel-room', 'flubber-blob'],
 ]);

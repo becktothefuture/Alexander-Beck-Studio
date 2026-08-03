@@ -17,6 +17,9 @@ const titleRenderCache = {
   visible: false,
   lineCount: 0,
   maxOpacity: 0,
+  sourceCenterX: 0,
+  sourceCenterY: 0,
+  backingDpr: 1,
   lines: Array.from({ length: TITLE_RENDER_MAX_LINES }, () => ({
     text: '',
     x: 0,
@@ -70,8 +73,7 @@ const titleCenterCache = {
 
 const DEPTH_PLANE_TITLE_MODES = new Set([
   MODES.SPHERE_3D,
-  MODES.CUBE_3D,
-  MODES.PARALLAX_FLOAT
+  MODES.CUBE_3D
 ]);
 
 function getCanvasCenter(canvas) {
@@ -299,6 +301,12 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   titleRenderCache.visible = false;
   titleRenderCache.lineCount = 0;
   titleRenderCache.maxOpacity = 0;
+  titleRenderCache.sourceCenterX = (
+    (titleRect.left + titleRect.width * 0.5) - canvasRect.left
+  ) * scaleX;
+  titleRenderCache.sourceCenterY = (
+    (titleRect.top + titleRect.height * 0.5) - canvasRect.top
+  ) * scaleY;
 
   const sourceLines = lineNodes.length ? lineNodes : [title];
   const sceneImpactLogoScale = parseCssPx(
@@ -503,20 +511,53 @@ function hasActiveTitleGlyphs(cache) {
   return false;
 }
 
-function preserveCanvasDuringResize(canvas, width, height) {
+function preserveCanvasDuringResize(canvas, width, height, nextDpr) {
   if (canvas.width === width && canvas.height === height) return false;
+  const previousWidth = canvas.width;
+  const previousHeight = canvas.height;
+  const previousDpr = Math.max(0.01, Number(titleRenderCache.backingDpr) || nextDpr);
   let previous = null;
-  if (canvas.width > 0 && canvas.height > 0 && titleRenderCache.state.renderRevision > 0) {
+  if (previousWidth > 0 && previousHeight > 0 && titleRenderCache.state.renderRevision > 0) {
     previous = document.createElement('canvas');
-    previous.width = canvas.width;
-    previous.height = canvas.height;
+    previous.width = previousWidth;
+    previous.height = previousHeight;
     previous.getContext('2d', { alpha: true })?.drawImage(canvas, 0, 0);
   }
   canvas.width = width;
   canvas.height = height;
   if (previous) {
-    canvas.getContext('2d', { alpha: true })?.drawImage(previous, 0, 0, width, height);
+    const context = canvas.getContext('2d', { alpha: true });
+    const uniformScale = nextDpr / previousDpr;
+    const sourceAnchorX = Number.isFinite(titleRenderCache.sourceCenterX)
+      && titleRenderCache.sourceCenterX > 0
+      ? titleRenderCache.sourceCenterX
+      : previousWidth * 0.5;
+    const sourceAnchorY = Number.isFinite(titleRenderCache.sourceCenterY)
+      && titleRenderCache.sourceCenterY > 0
+      ? titleRenderCache.sourceCenterY
+      : previousHeight * 0.5;
+    const targetAnchorX = (sourceAnchorX / previousWidth) * width;
+    const targetAnchorY = (sourceAnchorY / previousHeight) * height;
+    const drawWidth = previousWidth * uniformScale;
+    const drawHeight = previousHeight * uniformScale;
+    const drawX = targetAnchorX - (sourceAnchorX * uniformScale);
+    const drawY = targetAnchorY - (sourceAnchorY * uniformScale);
+    // A retained title may outlive its keyed semantic source for a frame. Move
+    // that bitmap as one rigid plane: independent width/height scaling visibly
+    // squeezes the letterforms during live resize.
+    context?.drawImage(
+      previous,
+      0,
+      0,
+      previousWidth,
+      previousHeight,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+    );
   }
+  titleRenderCache.backingDpr = nextDpr;
   return true;
 }
 
@@ -528,6 +569,7 @@ function syncTitlePlaneBackingStore(canvas) {
     canvas,
     Math.max(1, Math.round(rect.width * dpr)),
     Math.max(1, Math.round(rect.height * dpr)),
+    dpr,
   );
 }
 

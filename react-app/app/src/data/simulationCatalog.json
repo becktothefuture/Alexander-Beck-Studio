@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "updatedAt": "2026-07-29",
+  "version": 5,
+  "updatedAt": "2026-08-03",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -251,18 +251,6 @@
       "includeInNarrative": true,
       "reviewStatus": "stable",
       "summary": "Counter-rotating polar kaleidoscope with ring shear and petal-like mirrored motion."
-    },
-    {
-      "id": "parallax-float",
-      "name": "Parallax Drift",
-      "chapter": "PARALLAX DRIFT",
-      "stage": "daily-rotation",
-      "surface": "home-mode",
-      "origin": "core-site",
-      "launchPath": "/index.html?mode=parallax-float",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
-      "summary": "Organic parallax drift layer."
     },
     {
       "id": "pressure-crucible",

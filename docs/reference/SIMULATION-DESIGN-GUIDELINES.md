@@ -162,7 +162,7 @@ Requirements:
 
 ### Budgeted Depth / Object Point Cloud
 
-Examples: `3d-cube`, `3d-sphere`, `starfield-3d`, `parallax-float`.
+Examples: `3d-cube`, `3d-sphere`, `starfield-3d`.
 
 Use when the concept is spatial depth, camera response, or object rotation.
 

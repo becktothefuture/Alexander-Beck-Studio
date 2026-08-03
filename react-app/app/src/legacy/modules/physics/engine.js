@@ -286,7 +286,6 @@ function shouldResolveBallCollisionsForMode(mode) {
     mode !== MODES.CRITTERS &&
     mode !== MODES.SPHERE_3D &&
     mode !== MODES.CUBE_3D &&
-    mode !== MODES.PARALLAX_FLOAT &&
     mode !== MODES.STARFIELD_3D &&
     mode !== MODES.PRESSURE_CRUCIBLE;
 }
@@ -505,12 +504,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
 
     
     // Wall collisions + corner repellers
-    // Skip for Parallax modes (internal wrap logic, no wall physics)
+    // Skip for depth modes with internal wrap logic and no wall physics.
     // PERF: Hoist mode/mobile checks and canvas dimensions outside loops
     const mode = globals.currentMode;
     if (mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
-        mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.STARFIELD_3D) {
       const portfolioMotion = mode === MODES.PORTFOLIO_PIT
         ? getPortfolioPitMotionProfile(globals)
@@ -666,7 +664,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.FLIES &&
         mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
-        mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.KALEIDOSCOPE_RIFT &&
         mode !== MODES.WEAVE_FIELD &&

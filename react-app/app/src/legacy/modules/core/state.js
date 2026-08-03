@@ -117,7 +117,6 @@ const state = {
   sizeVariationBubbles: 0,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
-  sizeVariationParallaxFloat: 0,
   sizeVariationWeaveField: 0,
   
   // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
@@ -131,7 +130,6 @@ const state = {
   bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 65,
   crittersWarmupFrames: 10,
-  parallaxFloatWarmupFrames: 10,
   // Sphere Orbit (Mode 16)
   sphere3dRadiusVw: 72,                     // Sphere radius (vmin)
   sphere3dDensity: 94,
@@ -234,7 +232,6 @@ const state = {
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
     [MODES.SPHERE_3D]: { desktop: 140, mobile: 84 },
-    [MODES.PARALLAX_FLOAT]: { desktop: 320, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 },
     [MODES.PARTICLE_FOUNTAIN_B]: { desktop: 210, mobile: 132 }
   },
@@ -613,25 +610,6 @@ const state = {
   kaleidoscopeRiftSizeVariance: 0.18,
   kaleidoscopeRiftWarmupFrames: 45,
 
-  // Parallax Drift (mouse-driven depth parallax)
-  parallaxFloatGridX: 14,
-  parallaxFloatGridY: 10,
-  parallaxFloatGridZ: 7,
-  // Grid span in viewport units (multipliers applied to canvas width/height).
-  // 1.0 ~= edge-to-edge in the grid's world space; use >1 to counter perspective shrink.
-  parallaxFloatSpanX: 5.0,
-  parallaxFloatSpanY: 2.6,
-  parallaxFloatZNear: 50,
-  parallaxFloatZFar: 2800,
-  parallaxFloatFogStart: 0.9,
-  parallaxFloatFocalLength: 420,
-  parallaxFloatRandomize: 0.4,
-  parallaxFloatLevitationAmp: 20,
-  parallaxFloatLevitationSpeed: 0.2,
-  parallaxFloatParallaxStrength: 120,
-  parallaxFloatMouseEasing: 4,
-  parallaxFloatDotSizeMul: 1.1,
-  
   // Water mode
   waterBallCount: 300,
   waterMobileCountScale: 1,
@@ -1482,7 +1460,6 @@ export function initState(config) {
   if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
-  if (config.sizeVariationParallaxFloat !== undefined) state.sizeVariationParallaxFloat = clampNumber(config.sizeVariationParallaxFloat, 0, 1, state.sizeVariationParallaxFloat);
   if (config.sizeVariationWeaveField !== undefined) state.sizeVariationWeaveField = clampNumber(config.sizeVariationWeaveField, 0, 1, state.sizeVariationWeaveField);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
@@ -1528,7 +1505,6 @@ export function initState(config) {
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.kaleidoscopeRiftWarmupFrames !== undefined) state.kaleidoscopeRiftWarmupFrames = clampInt(config.kaleidoscopeRiftWarmupFrames, 0, 240, state.kaleidoscopeRiftWarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
-  if (config.parallaxFloatWarmupFrames !== undefined) state.parallaxFloatWarmupFrames = clampInt(config.parallaxFloatWarmupFrames, 0, 240, state.parallaxFloatWarmupFrames);
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
   if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
@@ -1793,19 +1769,6 @@ export function initState(config) {
   if (config.critterNervousnessMin !== undefined) state.critterNervousnessMin = config.critterNervousnessMin;
   if (config.critterNervousnessMax !== undefined) state.critterNervousnessMax = config.critterNervousnessMax;
   if (config.critterCuriosityBias !== undefined) state.critterCuriosityBias = config.critterCuriosityBias;
-
-  // Lattice (config overrides)
-
-  // Parallax Drift (config overrides)
-  if (config.parallaxFloatGridX !== undefined) state.parallaxFloatGridX = clampInt(config.parallaxFloatGridX, 3, 40, state.parallaxFloatGridX);
-  if (config.parallaxFloatGridY !== undefined) state.parallaxFloatGridY = clampInt(config.parallaxFloatGridY, 3, 40, state.parallaxFloatGridY);
-  if (config.parallaxFloatGridZ !== undefined) state.parallaxFloatGridZ = clampInt(config.parallaxFloatGridZ, 2, 20, state.parallaxFloatGridZ);
-  if (config.parallaxFloatSpanX !== undefined) state.parallaxFloatSpanX = clampNumber(config.parallaxFloatSpanX, 0.2, 12.0, state.parallaxFloatSpanX);
-  if (config.parallaxFloatSpanY !== undefined) state.parallaxFloatSpanY = clampNumber(config.parallaxFloatSpanY, 0.2, 12.0, state.parallaxFloatSpanY);
-  if (config.parallaxFloatZNear !== undefined) state.parallaxFloatZNear = clampNumber(config.parallaxFloatZNear, 10, 1200, state.parallaxFloatZNear);
-  if (config.parallaxFloatZFar !== undefined) state.parallaxFloatZFar = clampNumber(config.parallaxFloatZFar, 50, 3000, state.parallaxFloatZFar);
-  if (config.parallaxFloatFogStart !== undefined) state.parallaxFloatFogStart = clampNumber(config.parallaxFloatFogStart, 0.5, 0.98, state.parallaxFloatFogStart);
-  if (config.parallaxFloatFocalLength !== undefined) state.parallaxFloatFocalLength = clampNumber(config.parallaxFloatFocalLength, 80, 2000, state.parallaxFloatFocalLength);
 
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.

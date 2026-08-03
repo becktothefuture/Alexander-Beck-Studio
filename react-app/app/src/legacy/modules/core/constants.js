@@ -21,8 +21,7 @@ export const MODES = {
   RIFT_RINGS: 'rift-rings',
   // Ball-only "critters" mode.
   CRITTERS: 'critters',
-  // Parallax (depth perception) simulations
-  PARALLAX_FLOAT: 'parallax-float',
+  // Depth perception simulations
   SPHERE_3D: '3d-sphere',
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
@@ -105,7 +104,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.KALEIDOSCOPE_RIFT]: 'MULTIPLICITY',
   [MODES.RIFT_RINGS]: 'DEPTH',
   [MODES.STARFIELD_3D]: 'PERSPECTIVE',
-  [MODES.PARALLAX_FLOAT]: 'PARALLAX DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'FOUNTAIN A',
   [MODES.PARTICLE_FOUNTAIN_B]: 'FOUNTAIN B',
   [MODES.NAPOLEON_POINT_CLOUD]: 'IMPRESSION',
@@ -206,10 +204,6 @@ export const NARRATIVE_QUOTES = {
   [MODES.STARFIELD_3D]: {
     quote: 'The cosmos is within us. We are made of star-stuff.',
     author: 'Carl Sagan'
-  },
-  [MODES.PARALLAX_FLOAT]: {
-    quote: 'Nature does not hurry, yet everything is accomplished.',
-    author: 'Lao Tzu'
   },
   [MODES.PARTICLE_FOUNTAIN]: {
     quote: "You can't use up creativity. The more you use, the more you have.",

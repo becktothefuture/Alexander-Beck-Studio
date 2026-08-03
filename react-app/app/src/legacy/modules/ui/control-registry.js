@@ -4891,192 +4891,6 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PARALLAX FLOAT — Organic variant with random positions + levitation
-  // ═══════════════════════════════════════════════════════════════════════════
-  parallaxFloat: {
-    title: 'Parallax (Float)',
-    icon: '🫧',
-    mode: 'parallax-float',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'parallaxFloatRandomize',
-        label: 'Randomize',
-        stateKey: 'parallaxFloatRandomize',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        reinitMode: true,
-        hint: '0 = perfect grid, 1 = fully scattered'
-      },
-      { type: 'divider', label: 'Grid' },
-      {
-        id: 'parallaxFloatGridX',
-        label: 'Grid X',
-        stateKey: 'parallaxFloatGridX',
-        type: 'range',
-        min: 4, max: 30, step: 1,
-        default: 14,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatGridY',
-        label: 'Grid Y',
-        stateKey: 'parallaxFloatGridY',
-        type: 'range',
-        min: 4, max: 30, step: 1,
-        default: 10,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatGridZ',
-        label: 'Grid Z (Depth)',
-        stateKey: 'parallaxFloatGridZ',
-        type: 'range',
-        min: 2, max: 15, step: 1,
-        default: 7,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      { type: 'divider', label: 'Spread & Depth' },
-      {
-        id: 'parallaxFloatSpanX',
-        label: 'Span X',
-        stateKey: 'parallaxFloatSpanX',
-        type: 'range',
-        min: 1.0, max: 12.0, step: 0.1,
-        default: 5.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'How far the grid extends horizontally'
-      },
-      {
-        id: 'parallaxFloatSpanY',
-        label: 'Span Y',
-        stateKey: 'parallaxFloatSpanY',
-        type: 'range',
-        min: 1.0, max: 12.0, step: 0.1,
-        default: 2.6,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'How far the grid extends vertically'
-      },
-      {
-        id: 'parallaxFloatZNear',
-        label: 'Z Near',
-        stateKey: 'parallaxFloatZNear',
-        type: 'range',
-        min: 10, max: 200, step: 5,
-        default: 50,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatZFar',
-        label: 'Z Far',
-        stateKey: 'parallaxFloatZFar',
-        type: 'range',
-        min: 200, max: 3000, step: 50,
-        default: 2800,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatFogStart',
-        label: 'Fog Start',
-        stateKey: 'parallaxFloatFogStart',
-        type: 'range',
-        min: 0.5, max: 0.98, step: 0.01,
-        default: 0.9,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Depth point where the far-plane fade begins'
-      },
-      { type: 'divider', label: 'Camera' },
-      {
-        id: 'parallaxFloatFocalLength',
-        label: 'Focal Length',
-        stateKey: 'parallaxFloatFocalLength',
-        type: 'range',
-        min: 100, max: 1000, step: 10,
-        default: 420,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      { type: 'divider', label: 'Levitation' },
-      {
-        id: 'parallaxFloatLevitationAmp',
-        label: 'Amplitude',
-        stateKey: 'parallaxFloatLevitationAmp',
-        type: 'range',
-        min: 0, max: 60, step: 2,
-        default: 20,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'How far particles drift'
-      },
-      {
-        id: 'parallaxFloatLevitationSpeed',
-        label: 'Speed',
-        stateKey: 'parallaxFloatLevitationSpeed',
-        type: 'range',
-        min: 0.05, max: 1, step: 0.02,
-        default: 0.2,
-        format: v => v.toFixed(2) + ' Hz',
-        parse: parseFloat,
-        hint: 'How fast particles drift'
-      },
-      { type: 'divider', label: 'Mouse' },
-      {
-        id: 'parallaxFloatParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'parallaxFloatParallaxStrength',
-        type: 'range',
-        min: 0, max: 500, step: 10,
-        default: 120,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'How much the view shifts with mouse'
-      },
-      {
-        id: 'parallaxFloatMouseEasing',
-        label: 'Mouse Smoothing',
-        stateKey: 'parallaxFloatMouseEasing',
-        type: 'range',
-        min: 0.5, max: 15, step: 0.5,
-        default: 4,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Lower = smoother/slower, higher = snappier'
-      },
-      { type: 'divider', label: 'Appearance' },
-      {
-        id: 'parallaxFloatDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'parallaxFloatDotSizeMul',
-        type: 'range',
-        min: 0.5, max: 4.0, step: 0.1,
-        default: 1.1,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      warmupFramesControl('parallaxFloatWarmupFrames')
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // ENTRANCE ANIMATION — Dramatic page entrance orchestration
   // ═══════════════════════════════════════════════════════════════════════════
   entrance: {
@@ -5764,7 +5578,6 @@ export function generateModeSwitcherHTML() {
     'kaleidoscope-3': '🪞',
     'kaleidoscope-rift': '✳',
     'rift-rings': '◎',
-    'parallax-float': '🌫️',
     '3d-sphere': '🌐',
     '3d-cube': '🧊',
     'starfield-3d': '✨',
@@ -5792,7 +5605,6 @@ export function generateModeSwitcherHTML() {
     'kaleidoscope-3': 'Refraction',
     'kaleidoscope-rift': 'Multiplicity',
     'rift-rings': 'Depth',
-    'parallax-float': 'Parallax Drift',
     '3d-sphere': 'Continuity',
     '3d-cube': 'Scaffold',
     'starfield-3d': 'Perspective',
@@ -5890,7 +5702,6 @@ function generateHomeModeSectionHTML() {
               'kaleidoscope-3': '🪞',
               'kaleidoscope-rift': '✳',
               'rift-rings': '◎',
-              'parallax-float': '🌫️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨',
@@ -5918,7 +5729,6 @@ function generateHomeModeSectionHTML() {
               'kaleidoscope-3': 'Refraction',
               'kaleidoscope-rift': 'Multiplicity',
               'rift-rings': 'Depth',
-              'parallax-float': 'Parallax Drift',
               '3d-sphere': 'Continuity',
               '3d-cube': 'Scaffold',
               'starfield-3d': 'Perspective',

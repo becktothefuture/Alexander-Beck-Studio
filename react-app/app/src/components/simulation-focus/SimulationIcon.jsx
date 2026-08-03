@@ -31,7 +31,6 @@ const ICONS = {
   bubbles: BubblesIcon,
   'beach-ball-room': BeachBallRoomIcon,
   magnetic: MagneticFieldIcon,
-  'parallax-float': ParallaxDriftIcon,
   'particle-fountain-b': FountainBIcon,
 };
 
@@ -252,22 +251,6 @@ function MagneticFieldIcon() {
       <circle {...DOT_PROPS} cx="17.25" cy="7.909" r="2" />
       <circle {...DOT_PROPS} cx="7.625" cy="20.5914" r="2" />
       <circle {...DOT_PROPS} cx="10.3032" cy="33" r="2" />
-    </g>
-  );
-}
-
-function ParallaxDriftIcon() {
-  return (
-    <g>
-      <circle {...DOT_PROPS} cx="18" cy="11" r="1.25" />
-      <circle {...DOT_PROPS} cx="24.625" cy="11" r="1.4" />
-      <circle {...DOT_PROPS} cx="31.25" cy="11" r="1.25" />
-      <circle {...DOT_PROPS} cx="15" cy="21" r="1.75" />
-      <circle {...DOT_PROPS} cx="24.625" cy="21" r="2" />
-      <circle {...DOT_PROPS} cx="34.25" cy="21" r="1.75" />
-      <circle {...DOT_PROPS} cx="11.5" cy="34.25" r="2.25" />
-      <circle {...DOT_PROPS} cx="24.625" cy="33.75" r="2.75" />
-      <circle {...DOT_PROPS} cx="37.75" cy="34.25" r="2.25" />
     </g>
   );
 }

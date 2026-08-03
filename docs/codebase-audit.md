@@ -881,11 +881,11 @@ At discovery, runtime-performance samples missed the frame-time gate and varied 
 
 ### Evidence and decision
 
-The stable Chromium artifact is a mode-pass. The 2026-07-31 uncontended WebKit schema-v5 baseline measured all 27 launchable entries with valid global and adjacent controls. Production release scoring follows the catalog's 17 `daily-rotation` entries, not collection or hidden lab surfaces. Four live modes failed that baseline: `repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`. After focused hot-path corrections, those four modes passed 24 of 24 cold/warm repeats in `output/playwright/runtime-performance/targeted-live-webkit.json`, with valid global and adjacent controls and zero performance-gate failures.
+The stable Chromium artifact is a mode-pass. The 2026-07-31 uncontended WebKit schema-v5 baseline measured the then-current 27 launchable entries with valid global and adjacent controls. Production release scoring now follows the current catalog's 16 `daily-rotation` entries, not collection or hidden lab surfaces. Four live modes failed that baseline: `repel-room`, `3d-sphere`, `flubber-blob`, and `rift-rings`. After focused hot-path corrections, those four modes passed 24 of 24 cold/warm repeats in `output/playwright/runtime-performance/targeted-live-webkit.json`, with valid global and adjacent controls and zero performance-gate failures.
 
 ### Suggested direction and verification
 
-Keep the thresholds unchanged. The focused four-mode rerun now passes. Run the default 17-mode WebKit certificate once the host is uncontended. The first post-fix full attempt was stopped after the `magnetic` post-control fell to 41.79 rAF FPS with p95 73 ms and p99 127 ms; no artifact from that invalid attempt is accepted. The schema-v5 audit retains start calibration and fresh static rAF controls immediately before and after every mode block. Use `ABS_PERF_MODES` only for explicit lab diagnostics.
+Keep the thresholds unchanged. The focused four-mode rerun now passes. Run the default 16-mode WebKit certificate once the host is uncontended. The first post-fix full attempt was stopped after the `magnetic` post-control fell to 41.79 rAF FPS with p95 73 ms and p99 127 ms; no artifact from that invalid attempt is accepted. The schema-v5 audit retains start calibration and fresh static rAF controls immediately before and after every mode block. Use `ABS_PERF_MODES` only for explicit lab diagnostics.
 
 ## DOC-001 — About and test documentation contradicts current code
 

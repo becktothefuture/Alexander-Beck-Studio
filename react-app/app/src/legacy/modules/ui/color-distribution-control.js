@@ -121,14 +121,6 @@ function rebalanceWeights(distribution, changedRow, newWeight) {
 }
 
 function getModeBallCountApprox(globals) {
-  const parallaxFloatCount = Math.max(
-    0,
-    Math.round(
-      (globals.parallaxFloatGridX ?? 0)
-      * (globals.parallaxFloatGridY ?? 0)
-      * (globals.parallaxFloatGridZ ?? 0),
-    ),
-  );
   const countsByMode = {
     pit: null,
     flies: globals.fliesBallCount,
@@ -139,7 +131,6 @@ function getModeBallCountApprox(globals) {
     'kaleidoscope-3': globals.kaleidoscope3BallCount,
     'kaleidoscope-rift': globals.kaleidoscopeRiftBallCount,
     critters: globals.critterCount,
-    'parallax-float': parallaxFloatCount,
     '3d-sphere': globals.sphere3dDensity,
     '3d-cube': null,
     'starfield-3d': globals.starfieldCount,

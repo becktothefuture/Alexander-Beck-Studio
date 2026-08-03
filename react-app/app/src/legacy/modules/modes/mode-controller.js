@@ -51,7 +51,6 @@ const MODE_NAMES = {
   'kaleidoscope-rift': 'Multiplicity',
   'rift-rings': 'Depth',
   critters: 'Critter Swarm',
-  'parallax-float': 'Parallax Drift',
   '3d-sphere': 'Continuity',
   '3d-cube': 'Scaffold',
   'starfield-3d': 'Perspective',
@@ -141,14 +140,6 @@ const MODE_REGISTRY = {
       force: 'applyCrittersForces',
       update: 'updateCrittersGrid',
       preRender: 'renderCrittersWaypoints'
-    }
-  },
-  [MODES.PARALLAX_FLOAT]: {
-    load: () => import('./parallax-float.js'),
-    hooks: {
-      initialize: 'initializeParallaxFloat',
-      force: 'applyParallaxFloatForces',
-      update: 'updateParallaxFloatMouse'
     }
   },
   [MODES.SPHERE_3D]: {
@@ -323,7 +314,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? CUBE_3D_DEFAULTS.cube3dWarmupFrames;
-    case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
@@ -355,7 +345,6 @@ function applyModePhysicsState(mode, globals) {
     MODES.SPHERE_3D,
     MODES.CUBE_3D,
     MODES.CRITTERS,
-    MODES.PARALLAX_FLOAT,
     MODES.STARFIELD_3D,
     MODES.ELASTIC_CENTER,
     MODES.FLUBBER_BLOB,

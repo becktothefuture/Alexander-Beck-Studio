@@ -10,8 +10,8 @@ Source of truth for mode IDs and narrative order:
 ## Runtime Summary
 
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
-- `23` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `17` Daily simulations.
+- `21` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `16` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
 - `flock-of-birds`, `repel-room`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
@@ -41,7 +41,6 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Multiplicity | `kaleidoscope-rift` | Active |
 | Depth | `rift-rings` | Route-backed daily/lab |
 | Critter Swarm | `critters` | Active |
-| Parallax Drift | `parallax-float` | Active daily |
 | Continuity | `3d-sphere` | Active |
 | Scaffold | `3d-cube` | Active |
 | Perspective | `starfield-3d` | Active |
@@ -77,17 +76,16 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 12. `magnetic` — MAGNETIC FIELD
 13. `starfield-3d` — PERSPECTIVE
 14. `kaleidoscope-rift` — MULTIPLICITY
-15. `parallax-float` — PARALLAX DRIFT
-16. `particle-fountain-b` — FOUNTAIN B
-17. `rift-rings` — DEPTH
+15. `particle-fountain-b` — FOUNTAIN B
+16. `rift-rings` — DEPTH
 
 ### Extended Tier (shown after Featured)
 
-18. `aperture-bloom` — APERTURE BLOOM
-19. `weightless` — WEIGHTLESS DRIFT
-20. `critters` — CRITTER SWARM
-21. `pressure-crucible` — PRESSURE FIELD
-22. `particle-fountain` — FOUNTAIN A
+17. `aperture-bloom` — APERTURE BLOOM
+18. `weightless` — WEIGHTLESS DRIFT
+19. `critters` — CRITTER SWARM
+20. `pressure-crucible` — PRESSURE FIELD
+21. `particle-fountain` — FOUNTAIN A
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -106,7 +104,7 @@ Loop order is `Featured -> Extended -> Featured`.
 ## Pointer And Title Depth Rules
 
 - Shared pointer input is mouse, trackpad, pen, and touch aware. The first valid input sample inside the canvas must seed mode-local smoothing or velocity state immediately; modes must not ease from offscreen, center, or idle-anchor state.
-- Depth-plane title layering is active for `3d-sphere`, `3d-cube`, and `parallax-float`. All three split particles around the fixed title plane at normalized z `0.5`, with some circles behind the title and others in front.
+- Depth-plane title layering is active for `3d-sphere` and `3d-cube`. Both split particles around the fixed title plane at normalized z `0.5`, with some circles behind the title and others in front.
 - The visible home title/subtitle are canvas-rendered from the semantic `#hero-title` source. No-depth modes draw the title before the normal ball pass, preserving the old title-behind-simulation relationship. Do not change the title's CSS x/y position to solve scene alignment; align the simulation/depth scene to the existing title center instead.
 
 ---
@@ -123,7 +121,6 @@ Loop order is `Featured -> Extended -> Featured`.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
 - `rift-rings`: route-backed Depth concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
 - `critters`: locomotion-based critter behavior and local separation.
-- `parallax-float`: layered depth field with levitation/parallax response, a 2,800px far plane, 40% grid randomization, and a configurable far-depth fog ramp beginning at 90% by default.
 - `3d-sphere`: rotating spherical point cloud.
 - `3d-cube`: Scaffold’s rotating and pointer-tumbled 3D cube point cloud, with optional face lattice points, perspective scaling, and depth fog.
 - `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.

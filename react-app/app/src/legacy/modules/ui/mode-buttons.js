@@ -11,7 +11,6 @@ const modeNames = {
   'kaleidoscope-3': 'Refraction',
   'kaleidoscope-rift': 'Multiplicity',
   'rift-rings': 'Depth',
-  'parallax-float': 'Parallax Drift',
   '3d-sphere': 'Continuity',
   '3d-cube': 'Scaffold',
   'starfield-3d': 'Perspective',
