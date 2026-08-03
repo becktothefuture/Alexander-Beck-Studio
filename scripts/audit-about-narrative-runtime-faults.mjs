@@ -413,24 +413,34 @@ try {
     assertSingleReadableRuntime(evidence.checkpoints.firstMount);
     assert.equal(evidence.checkpoints.firstMount.dataset.worldRendererPreparation, 'async');
 
-    await page.evaluate(() => window.__ABS_SPA_NAVIGATE__('/contact.html', {
-      activation: 'pointer',
-    }));
+    await page.evaluate(() => {
+      window.__aboutNarrativeCacheAuditDocumentMarker = 'document-cache-remount';
+      window.__aboutNarrativeCacheAuditPreviousRuntime = window.__aboutNarrativeRuntime;
+      window.__ABS_SPA_NAVIGATE__('/contact.html', {
+        activation: 'pointer',
+      });
+    });
     await page.waitForFunction(() => (
       location.pathname.endsWith('/contact.html')
       && (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      && window.__aboutNarrativeCacheAuditDocumentMarker === 'document-cache-remount'
       && !window.__aboutNarrativeRuntime
     ), null, { timeout: 60_000 });
     await page.evaluate(() => window.__ABS_SPA_NAVIGATE__('/about.html?edit=1', {
       activation: 'pointer',
     }));
-    await waitForRuntime(page);
-    await waitForPreparation(page, 'ready');
     await page.waitForFunction(() => {
       const root = document.querySelector('.about-narrative-lab');
-      return (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      const runtime = window.__aboutNarrativeRuntime;
+      return location.pathname.endsWith('/about.html')
+        && window.__aboutNarrativeCacheAuditDocumentMarker === 'document-cache-remount'
+        && runtime
+        && runtime !== window.__aboutNarrativeCacheAuditPreviousRuntime
+        && runtime.getDiagnosticsSnapshot?.().state === 'ready'
+        && (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && root?.dataset.pointWorldState === 'ready'
-        && root?.dataset.aboutSceneReady === 'true';
+        && root?.dataset.aboutSceneReady === 'true'
+        && root?.dataset.worldPrepare === 'ready';
     }, null, { timeout: 60_000 });
 
     evidence.checkpoints.remounted = await snapshot(page);
@@ -452,6 +462,10 @@ try {
       evidence.checkpoints.firstMount.harness.starts,
       'The document must retain one completed correspondence Worker run across remount.',
     );
+    await page.evaluate(() => {
+      delete window.__aboutNarrativeCacheAuditDocumentMarker;
+      delete window.__aboutNarrativeCacheAuditPreviousRuntime;
+    });
   });
 
   await runScenario('webgl-context-loss-and-restoration', 'none', async (page, evidence) => {
