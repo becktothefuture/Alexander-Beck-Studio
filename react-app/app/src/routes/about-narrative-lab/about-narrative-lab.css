@@ -1102,7 +1102,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-discipline-reveal li {
   top: calc(50% - 1.9rem);
   right: var(--about-text-corridor-inset-right);
-  left: calc(var(--about-text-corridor-inset-left) + 3.25rem);
+  left: calc(var(--about-text-corridor-inset-left) + 5.25rem);
   width: auto;
   max-width: none;
 }
