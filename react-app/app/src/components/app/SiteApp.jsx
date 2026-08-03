@@ -4,10 +4,6 @@ import { StudioShell } from './StudioShell.jsx';
 import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRoute.jsx';
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
 import { ABOUT_ROUTE_RUNTIME, getAboutRouteView } from '../../routes/about/AboutRoute.jsx';
-import {
-  ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME,
-  getAboutNarrativeLabRouteView,
-} from '../../routes/about-narrative-lab/AboutNarrativeLabRoute.jsx';
 import { CONTACT_ROUTE_RUNTIME, getContactRouteView } from '../../routes/contact/ContactRoute.jsx';
 import {
   getPlaygroundRouteView,
@@ -120,10 +116,6 @@ const ROUTE_DESCRIPTORS = Object.freeze({
     getView: getPlaygroundRouteView,
     runtime: PLAYGROUND_ROUTE_RUNTIME,
   }),
-  'about-narrative-lab': defineRouteDescriptor('about-narrative-lab', {
-    getView: getAboutNarrativeLabRouteView,
-    runtime: ABOUT_NARRATIVE_LAB_ROUTE_RUNTIME,
-  }),
   styleguide: defineRouteDescriptor('styleguide', { getView: getStyleguideRouteView, runtime: STYLEGUIDE_ROUTE_RUNTIME }),
   simulations: defineRouteDescriptor('simulations', { getView: getSimulationLaunchpadRouteView, runtime: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME }),
   'palette-lab': defineRouteDescriptor('palette-lab', { getView: getPaletteLabRouteView, runtime: PALETTE_LAB_ROUTE_RUNTIME }),
@@ -154,7 +146,6 @@ const PRODUCTION_ATMOSPHERE_ROUTE_IDS = new Set([
 
 function resolveAtmosphereHostScope(routeId, routeView) {
   if (routeId === 'atmosphere-crisp-glow') return 'lab';
-  if (routeId === 'about-narrative-lab') return 'production';
   if (String(routeId || '').startsWith('atmosphere-')) return null;
   if (PRIMARY_ROUTE_IDS.includes(routeId)) return 'production';
   const dailyRuntimeRouteId = routeView?.runtimeRouteId || '';
@@ -287,7 +278,7 @@ const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
 const PLAYGROUND_ROUTE_READY_TIMEOUT_MS = 3200;
 
 function isAboutNarrativeSceneReady() {
-  return document.querySelector('[data-route-content="about"], [data-route-content="about-narrative-lab"]')
+  return document.querySelector('[data-route-content="about"]')
     ?.dataset.aboutSceneReady === 'true';
 }
 
@@ -350,9 +341,9 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     return;
   }
 
-  const isAboutRoute = routeId === 'about' || routeId === 'about-narrative-lab';
-  const waitsForAboutNarrativeScene = routeId === 'about-narrative-lab'
-    || (routeId === 'about' && import.meta.env.DEV);
+  const isAboutRoute = routeId === 'about';
+  const waitsForAboutNarrativeScene = routeId === 'about'
+    && (import.meta.env.DEV || __CERTIFY__);
   if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;

@@ -33,7 +33,7 @@ There is no second static page/template pipeline.
 
 ### About environment boundary
 
-`src/routes/about/AboutRoute.jsx` branches on `import.meta.env.DEV`. Production renders `AboutComingSoon` and does not mount the spatial narrative. Development lazy-loads `routes/about-narrative-lab/AboutNarrativeLabExperience.jsx`; its narrative and editor use `public/config/contents-about.json`. A future public narrative launch is separate product work, not part of the current architecture contract.
+`src/routes/about/AboutRoute.jsx` branches on the development/certification boundary. Production renders `AboutComingSoon` and does not mount the spatial narrative. Local development `/about.html` lazy-loads `routes/about-narrative-lab/AboutNarrativeLabExperience.jsx`, reads the accepted copy directly from the canonical About document, and opens the editor by default. `?edit=0` keeps a playback-only audit surface. A future public narrative launch is separate product work, not part of the current architecture contract.
 
 ## Shared shell
 

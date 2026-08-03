@@ -16,4 +16,4 @@ ABOUT-NARRATIVE-CLOSING-EXPLORATION.md records the late ending variants, the rea
 
 ## Current successor
 
-The active review candidate is ../../preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md. Its Lab query is ?copy=current.
+The active review candidate is ../../preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md. It now opens directly in the development About editor at `/about.html`; the separate copy-query Lab has been retired.

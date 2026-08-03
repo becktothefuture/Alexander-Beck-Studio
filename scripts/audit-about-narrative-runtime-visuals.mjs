@@ -344,7 +344,7 @@ for (const checkpoint of checkpoints) {
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
-  await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab', { timeout: 20_000 });
   await page.evaluate(({ storyWU, storyDurationWU }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');

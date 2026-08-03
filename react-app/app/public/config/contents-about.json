@@ -848,7 +848,7 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "I’m a designer and technologist. Most of my projects involve products, systems and interactive experiences, often all three at once."
+          "description": "Hi, I’m Alex. I’m a designer at heart, and I love what I do."
         },
         {
           "id": "text-complexity-idea",
@@ -863,7 +863,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I speak several languages."
+          "text": "I’ve always been fascinated by complex problems…"
         },
         {
           "id": "text-complexity-conditions",
@@ -878,7 +878,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "They rarely say things in quite the same way."
+          "text": "…especially those that require multidisciplinary thinking."
         },
         {
           "id": "text-background-unit",
@@ -898,22 +898,22 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "That difference drew me to Communication Design. I could explore an idea through type, image and motion, and see how each medium changed it."
+                "text": "You might be wondering what I mean by a complex problem. It can be identity technology, a financial product or something as ordinary as a keyboard. The scale changes. I enjoy finding out what sits behind the surface. Sometimes that means explaining it better. Sometimes it means inventing a different way of using it."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "I’ve moved between agency, startup and independent work throughout my career. The projects have ranged from print and cultural work to interfaces, icon systems and motion. At Denaline, I often worked alongside developers, which made me think about what screens did, not only how they looked."
+                "text": "I started my career 13 years ago in visual communication, after changing course from Computer Science to Communication Design in Mainz. Technology interested me, but I kept coming back to the effect an image, a word or a piece of motion can have on someone. It can explain an idea and change how the person receiving it feels about it. I still find that fascinating."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "At Yoti, product, brand and trust were difficult to separate. The anti-spoof hologram is a good example: the way it looked and moved was part of how the interaction communicated trust."
+                "text": "My work gradually became more digital. At Denaline I found myself becoming the digital specialist, working on interfaces, icon systems and motion, often alongside developers. Moving to London to join Yoti made the questions more serious. Identity technology had to work properly, of course, and people also had to understand why they should trust it. That was when product, brand and communication stopped feeling like separate jobs to me."
               },
               {
                 "id": "selected-clients",
                 "kind": "logo-grid",
-                "label": "Selected work across verification, finance, aviation, automotive, hospitality, media and infrastructure.",
+                "label": "Selected work from across my career.",
                 "items": [
                   {
                     "id": "yoti",
@@ -1005,36 +1005,6 @@
           }
         },
         {
-          "id": "text-complexity-curiosity",
-          "kind": "title",
-          "startWU": 5.45,
-          "focusWU": 5.85,
-          "endWU": 6.25,
-          "publishable": true,
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "Different projects ask for different things."
-        },
-        {
-          "id": "text-complexity-listen",
-          "kind": "title",
-          "startWU": 6.35,
-          "focusWU": 6.75,
-          "endWU": 7.15,
-          "publishable": true,
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "Most of mine involve several disciplines."
-        },
-        {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
           "startWU": 10.355,
@@ -1052,17 +1022,17 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "Before deciding what to make, I spend time with the people closest to the problem and test the assumptions in the brief. Then I make something—a sketch, prototype, motion study or sometimes code—so the team has something real to respond to."
+                "text": "When I start a project, I tend to disappear into it for a while. I ask questions, collect references and speak to the people who know the subject properly. Quite often the brief is only one version of the story. Making something early helps me check what I have understood. Even a rough prototype can show where everyone agrees and where they really don’t."
               },
               {
                 "id": "language-context",
                 "kind": "prose",
-                "text": "I often help set the creative direction, but I prefer to do it in the open. Once something is on the table, people can question it and improve it. I do not want collaborators invited in at the end, after the interesting choices have already been made."
+                "text": "I like giving the work a strong direction, although I don’t expect my first idea to survive untouched. The people around the project should be able to change it. I stay close when it is built too, partly because I enjoy that part and partly because I have seen good ideas lose their character in the final implementation."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "On a financial index-building project, complexity needed to be layered rather than hidden. Some interaction nuance was lost in the final build, which changed how closely I stay involved with implementation."
+                "text": "AI has opened another area for me. I use it most days to explore ideas, make prototypes and sometimes simply to get unstuck. It is incredibly useful. It also makes it very easy to produce work that looks finished before anyone has asked whether it is any good. That worries me. I think the purposeful use of AI depends on people remaining responsible for what they make and why."
               },
               {
                 "id": "project-impressions",
@@ -1284,7 +1254,7 @@
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "Unfinished questions tend to follow me home. Some involve AI, trust, privacy or robotics. One involved the iOS keyboard. It bothered me enough to become a side project."
+                "text": "Outside work, I spend a lot of time with music, Lego and independent games. I also have a habit of becoming preoccupied with small things that bother me more than they probably should. The iOS keyboard became one of those things, so I started redesigning it. Trust, privacy and robotics are on my mind too, although for now they are questions rather than projects."
               }
             ]
           }
@@ -1302,7 +1272,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I do not know what the next question will be."
+          "text": "Different disciplines don’t simply add up…"
         },
         {
           "id": "text-life-form",
@@ -1317,7 +1287,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I like that."
+          "text": "…they change one another as the work develops…"
         },
         {
           "id": "text-life-character",
@@ -1332,7 +1302,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I still have plenty to learn."
+          "text": "…until the combination becomes something of its own."
         },
         {
           "id": "text-epilogue-invitation",
@@ -1347,8 +1317,8 @@
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
-          "text": "Get in Touch",
-          "description": "If you are working through an unfamiliar problem, I’d be glad to hear about it."
+          "text": "Let’s make something new",
+          "description": "If you have a complex problem in mind, I’d be curious to hear about it."
         }
       ]
     },
@@ -1372,7 +1342,7 @@
               {
                 "group": 1,
                 "label": "Product Design",
-                "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve.",
+                "description": "Understanding what people need, then working out what the product should do.",
                 "position": [
                   0.380952,
                   0.468085
@@ -1385,7 +1355,7 @@
               {
                 "group": 2,
                 "label": "Experience Design",
-                "description": "I connect user needs, product priorities, and the decisions that shape the journey.",
+                "description": "Looking at the whole journey, including the parts no one owns yet.",
                 "position": [
                   0.396825,
                   0.62766
@@ -1398,7 +1368,7 @@
               {
                 "group": 3,
                 "label": "Art Direction",
-                "description": "I define the visual point of view that gives the work character, clarity, and intent.",
+                "description": "Finding a visual idea that gives the work its own character.",
                 "position": [
                   0.547619,
                   0.56383
@@ -1411,7 +1381,7 @@
               {
                 "group": 4,
                 "label": "Motion & 3D",
-                "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories.",
+                "description": "Using movement and space when a flat explanation is not enough.",
                 "position": [
                   0.333333,
                   0.776596
@@ -1424,7 +1394,7 @@
               {
                 "group": 5,
                 "label": "Creative Engineering",
-                "description": "I prototype with code and AI to move decisions from discussion into working form.",
+                "description": "Making ideas in code so I can see how they really behave.",
                 "position": [
                   0.563492,
                   0.734043
@@ -1437,7 +1407,7 @@
               {
                 "group": 6,
                 "label": "Parametric Systems",
-                "description": "I build systems of tokens, rules, and patterns that scale without losing character.",
+                "description": "Creating rules that allow variety without becoming chaotic.",
                 "position": [
                   0.579365,
                   0.893617

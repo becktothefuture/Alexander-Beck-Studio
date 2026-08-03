@@ -123,7 +123,6 @@ export default defineConfig(({ mode }) => ({
         styleguide: resolve(__dirname, 'styleguide.html'),
         simulations: resolve(__dirname, 'simulations.html'),
         'palette-lab': resolve(__dirname, 'palette-lab.html'),
-        'lab/about-narrative': resolve(__dirname, 'lab/about-narrative.html'),
         'lab/beach-ball-room': resolve(__dirname, 'lab/beach-ball-room.html'),
         'lab/flock-of-birds': resolve(__dirname, 'lab/flock-of-birds.html'),
         'lab/button-bar-playground': resolve(__dirname, 'lab/button-bar-playground.html'),

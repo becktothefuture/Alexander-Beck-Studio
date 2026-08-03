@@ -267,7 +267,7 @@ async function audit(viewport, label) {
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await installIndicatorTimeline(page);
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab', { timeout: 30_000 });
   await restartIndicatorTimeline(page);
   await assertStableIndicatorTimeline(page, `editor ${label} direct load`);
@@ -1056,7 +1056,7 @@ async function auditReducedMotionCorrespondence() {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready');
   const transport = page.locator('.about-editor-transport input[type="range"]');
   const maxWU = Number(await transport.getAttribute('max'));

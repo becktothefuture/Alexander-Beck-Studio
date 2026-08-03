@@ -13,7 +13,7 @@ export const LEGACY_UNUSED_VARS_DEBT_FILES = []
 export const LEGACY_EMPTY_CATCH_DEBT = []
 
 export default defineConfig([
-  globalIgnores(['dist', 'dist-certify', 'dist-editor-preview']),
+  globalIgnores(['dist', 'dist-certify']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

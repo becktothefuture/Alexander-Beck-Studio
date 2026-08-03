@@ -189,7 +189,7 @@ async function auditEditor() {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
   const errors = observeErrors(page);
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
   await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
   await page.waitForFunction(() => (

@@ -235,7 +235,7 @@ async function startPreview({ id, outDir }) {
   while (Date.now() - startedAt < 20_000) {
     if (child.exitCode !== null) break;
     try {
-      const response = await fetch(`${baseUrl}/lab/about-narrative.html`);
+      const response = await fetch(`${baseUrl}/about.html?edit=0`);
       if (response.ok) {
         ready = true;
         break;

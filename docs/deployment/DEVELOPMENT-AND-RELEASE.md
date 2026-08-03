@@ -24,7 +24,7 @@ npm run studio:publish
 ```
 
 - `studio:dev` starts or reuses local Vite on port 8012, starts the safe mirror on 8014, downloads `cloudflared` from Cloudflare's official release if needed, and prints the public phone URL. The processes run in the background; logs and state live under the gitignored `.cache/studio/` directory.
-- `studio:about-editor` starts or reuses local Vite and opens the write-capable About Director editor at `/lab/about-narrative.html?edit=1` in the system browser. It does not start a public mirror or change production.
+- `studio:about-editor` starts or reuses local Vite and opens the write-capable About Director editor at `/about.html` in the system browser. Development About opens in authoring mode by default; `?edit=0` is the playback-only audit surface. It does not start a public mirror or change production.
 - `studio:status` reports the three server states plus the current branch, dirty paths, and ahead/behind relationship with the locally tracked `origin/main`.
 - `studio:stop` stops only processes recorded as owned by `studio:dev`. A local Vite process that was already running is left alone.
 - `studio:check` runs `npm run check:site`, the canonical local production gate.

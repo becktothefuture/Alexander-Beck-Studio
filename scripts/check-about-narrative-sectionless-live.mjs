@@ -34,13 +34,12 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const canonicalSource = await read('../react-app/app/public/config/contents-about.json');
 const canonicalV6 = JSON.parse(canonicalSource);
-const homeContent = JSON.parse(await read('../react-app/app/public/config/contents-home.json'));
 const loadedCanonical = loadAboutNarrativeTrackSource(
   projectAboutNarrativePointFieldDocumentToVersion5(canonicalV6),
 );
 assert.equal(loadedCanonical.valid, true);
 const canonical = loadedCanonical.document;
-const currentScriptSource = await read('../docs/research/about-page-direction/archive/narrative-explorations/ABOUT-NARRATIVE-SCRIPT-v25.md');
+const acceptedScriptSource = await read('../docs/research/about-page-direction/preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md');
 const legacy = JSON.parse(await read('./fixtures/about-narrative/contents-about-v2.json'));
 const liveSources = Object.fromEntries(await Promise.all([
   ['experience', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -591,9 +590,9 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   assert.ok(keys.get('finale-hold').position[2] > keys.get('ripple-overhead-hold').position[2]);
   assert.equal(keys.get('ripple-overhead-hold').easing, 'cubic-bezier(0.32, 0, 0.82, 1)');
   const shift = keys.get('grid-birds-eye');
-  const bridgeTitle = canonical.tracks.text.fields.find((field) => field.id === 'text-complexity-listen');
-  assert.ok(shift.atWU > bridgeTitle.endWU);
-  assert.ok(shift.atWU - bridgeTitle.endWU <= 2);
+  const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
+  assert.ok(shift.atWU > reveal.startWU);
+  assert.ok(shift.atWU < reveal.endWU);
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const firstFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
   for (let storyWU = shift.atWU; storyWU <= keys.get('discipline-hold').atWU; storyWU += 0.025) {
@@ -677,9 +676,16 @@ test('World C flies into plan view before an aimed descent into the bust', () =>
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
   ));
-  const homeDescriptions = new Map(homeContent.legend.items.map((item) => [item.label, item.tooltip]));
+  const acceptedDescriptions = new Map([
+    ['Product Design', 'Understanding what people need, then working out what the product should do.'],
+    ['Experience Design', 'Looking at the whole journey, including the parts no one owns yet.'],
+    ['Art Direction', 'Finding a visual idea that gives the work its own character.'],
+    ['Motion & 3D', 'Using movement and space when a flat explanation is not enough.'],
+    ['Creative Engineering', 'Making ideas in code so I can see how they really behave.'],
+    ['Parametric Systems', 'Creating rules that allow variety without becoming chaotic.'],
+  ]);
   disciplineReveal.parameters.items.forEach((item) => {
-    assert.equal(item.description, homeDescriptions.get(item.label));
+    assert.equal(item.description, acceptedDescriptions.get(item.label));
     assert.ok(item.position[0] >= 0.1 && item.position[0] <= 0.72);
     assert.ok(item.position[1] >= 0.4 && item.position[1] <= 0.95);
     assert.ok(item.mobilePosition[0] >= 0.1 && item.mobilePosition[0] <= 0.72);
@@ -874,13 +880,13 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   assert.equal(opener.text, 'About Me');
   assert.equal(
     opener.description,
-    'I’m a designer and technologist. Most of my projects involve products, systems and interactive experiences, often all three at once.',
+    'Hi, I’m Alex. I’m a designer at heart, and I love what I do.',
   );
   assert.deepEqual(
     titles.filter((field) => field.titleStyle === 'display').map((field) => field.id),
     ['text-promise-main', 'text-epilogue-invitation'],
   );
-  assert.equal(titles.filter((field) => field.titleStyle === 'standard').length, 7);
+  assert.equal(titles.filter((field) => field.titleStyle === 'standard').length, 5);
   assert.match(liveSources.experience, /data-title-style=\{titleStyle\}/);
   assert.match(liveSources.styles, /data-title-style='display'/);
   assert.match(liveSources.experience, /route-centered-page__title/);
@@ -933,10 +939,6 @@ test('later title groups retain their authored breathing gaps', () => {
   const fieldsById = new Map(canonical.tracks.text.fields.map((field) => [field.id, field]));
   const titleSets = [
     {
-      ids: ['text-complexity-curiosity', 'text-complexity-listen'],
-      gaps: [0.1],
-    },
-    {
       ids: ['text-life-momentum', 'text-life-form', 'text-life-character'],
       gaps: [0.5, 0.33],
     },
@@ -958,13 +960,11 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   const emergent = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
   const pointKeys = new Map(canonicalV6.tracks.pointField.keys.map((key) => [key.id, key]));
   const visibilityKeys = new Map(canonicalV6.tracks.visibility.keys.map((key) => [key.id, key]));
-  const firstDisciplineHeading = fields.get('text-complexity-curiosity');
   const finale = fields.get('text-epilogue-invitation');
   const handoffs = [
     [fields.get('text-promise-main').endWU, fields.get('text-complexity-idea').startWU],
     [fields.get('text-complexity-conditions').endWU, fields.get('text-background-unit').startWU],
-    [fields.get('text-background-unit').endWU, fields.get('text-complexity-curiosity').startWU],
-    [fields.get('text-complexity-listen').endWU, reveal.startWU],
+    [fields.get('text-background-unit').endWU, reveal.startWU],
     [fields.get('text-disciplines-title').endWU, fields.get('text-life-momentum').startWU],
     [fields.get('text-life-character').endWU, emergent.startWU],
   ];
@@ -972,8 +972,12 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
     assert.ok(incomingStartWU - outgoingEndWU <= 0.65);
   });
   assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
+  assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.8);
   assert.ok(finale.startWU - emergent.startWU <= 0.81);
-  assert.ok(visibilityKeys.get('visibility-grid-visible').atWU <= firstDisciplineHeading.startWU);
+  assert.ok(
+    visibilityKeys.get('visibility-grid-visible').atWU
+      <= fields.get('text-background-unit').endWU,
+  );
   assert.equal(
     Number((
       (finale.startWU - pointKeys.get('key-world-emergent-departure').atWU)
@@ -1029,8 +1033,6 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
       ['text-complexity-idea', 'title'],
       ['text-complexity-conditions', 'title'],
       ['text-background-unit', 'scroll-block'],
-      ['text-complexity-curiosity', 'title'],
-      ['text-complexity-listen', 'title'],
       ['text-disciplines-title', 'scroll-block'],
       ['text-life-momentum', 'title'],
       ['text-life-form', 'title'],
@@ -1049,7 +1051,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(logoGrid.items.length, 14);
   assert.equal(
     logoGrid.label,
-    'Selected work across verification, finance, aviation, automotive, hospitality, media and infrastructure.',
+    'Selected work from across my career.',
   );
   logoGrid.items.forEach((item) => {
     assert.ok(item.id && item.label);
@@ -1073,20 +1075,12 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   ]);
   assert.equal(backgroundUnit.reveal, undefined);
   assert.equal(disciplineEditorial.reveal, undefined);
-  const firstBridgeTitle = fields.find((field) => field.id === 'text-complexity-curiosity');
-  const finalBridgeTitle = fields.find((field) => field.id === 'text-complexity-listen');
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
   ));
-  assert.ok(firstBridgeTitle.startWU < backgroundUnit.endWU);
-  assert.ok(backgroundUnit.endWU - firstBridgeTitle.startWU <= 0.8);
-  assert.ok(finalBridgeTitle.startWU > firstBridgeTitle.endWU);
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
-  assert.equal(firstBridgeTitle.presentation.viewportY, undefined);
-  assert.equal(finalBridgeTitle.presentation.viewportY, undefined);
-  assert.ok(disciplineReveal.startWU <= firstBridgeTitle.startWU);
   assert.equal(disciplineReveal.activationWU, disciplineReveal.startWU);
-  assert.ok(disciplineReveal.endWU > finalBridgeTitle.endWU);
+  assert.equal(disciplineReveal.parameters.items.length, 6);
   assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.8);
   assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.4);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
@@ -1160,12 +1154,12 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /top: var\(--about-title-viewport-y/);
 });
 
-test('published narrative writing follows V25 with the authored finale CTA', () => {
+test('published narrative writing follows the accepted current script with its authored finale CTA', () => {
   const normalize = (value) => String(value || '')
     .toLocaleLowerCase('en-GB')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
-  const normalizedScript = normalize(currentScriptSource);
+  const normalizedScript = normalize(acceptedScriptSource);
   const authoredCopy = canonical.tracks.text.fields.flatMap((field) => [
       field.text,
       field.description,
@@ -1179,15 +1173,15 @@ test('published narrative writing follows V25 with the authored finale CTA', () 
         ]),
     ]).filter(Boolean);
   authoredCopy.forEach((copy) => {
-    assert.ok(normalizedScript.includes(normalize(copy)), `V25 is missing live copy: ${copy}`);
+    assert.ok(normalizedScript.includes(normalize(copy)), `Accepted script is missing live copy: ${copy}`);
   });
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   reveal.parameters.items.forEach((item) => {
-    assert.ok(normalizedScript.includes(normalize(item.label)), `V25 is missing ${item.label}`);
+    assert.ok(normalizedScript.includes(normalize(item.label)), `Accepted script is missing ${item.label}`);
   });
   assert.equal(
     canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
-    'Get in Touch',
+    'Let’s make something new',
   );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

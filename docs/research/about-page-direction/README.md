@@ -6,7 +6,7 @@ This folder contains the narrative research, editorial direction and review mate
 
 The canonical content configuration defines the current implemented copy and visual allocation. Do not infer approval from an experimental script or Lab query.
 
-The current editorial candidate is `preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md`. It is a review draft written under the guardrails in `supporting/editorial/ABOUT-TONE-OF-VOICE.md`; it is not approved production copy. The matching Lab query is `?copy=current`.
+The current editorial candidate is `preparation/ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md`. It is a review draft written under the guardrails in `supporting/editorial/ABOUT-TONE-OF-VOICE.md`; it is not approved production copy. Local development `/about.html` opens this copy in the About editor by default.
 
 The current production route still uses the legacy section model while the lab migrates to independently authored Camera, World, Text and Interaction tracks. V25 is written for the target continuous journey: World starts are visual anchors, not containers for the narrative.
 

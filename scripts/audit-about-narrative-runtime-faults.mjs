@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const outputDir = 'output/playwright/about-narrative-hardening/runtime';
-const labUrl = `${baseUrl}/lab/about-narrative.html?edit=1`;
+const labUrl = `${baseUrl}/about.html?edit=1`;
 const scenarioResults = [];
 const canonicalSource = await readFile('react-app/app/public/config/contents-about.json', 'utf8');
 const canonicalDocument = JSON.parse(canonicalSource);

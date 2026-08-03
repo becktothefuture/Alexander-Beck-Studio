@@ -2,7 +2,6 @@
 dist/
 react-app/app/dist/
 react-app/app/dist-certify/
-react-app/app/dist-editor-preview/
 
 # Video archives (large unused assets — keep out of git)
 react-app/app/public/video/archive/

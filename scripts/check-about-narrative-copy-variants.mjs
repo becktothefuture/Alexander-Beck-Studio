@@ -5,31 +5,42 @@ import {
   loadAboutNarrativePointFieldPersistenceSource,
   preflightAboutNarrativePointFieldRuntimePlans,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
-import {
-  ABOUT_NARRATIVE_COPY_VARIANTS,
-  createAboutNarrativeCopyVariantDocument,
-  getAboutNarrativeCopyVariant,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCopyVariants.js';
 
 const RAW_DOCUMENT_PATH = new URL('../react-app/app/public/config/contents-about.json', import.meta.url);
+const ABOUT_ROUTE_PATH = new URL(
+  '../react-app/app/src/routes/about/AboutRoute.jsx',
+  import.meta.url,
+);
+const ABOUT_EXPERIENCE_PATH = new URL(
+  '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx',
+  import.meta.url,
+);
+const ROUTE_MANIFEST_PATH = new URL('../react-app/app/src/lib/route-manifest.js', import.meta.url);
+const VITE_CONFIG_PATH = new URL('../react-app/app/vite.config.js', import.meta.url);
 const rawDocument = JSON.parse(await readFile(RAW_DOCUMENT_PATH, 'utf8'));
+const [aboutRouteSource, aboutExperienceSource, routeManifestSource, viteConfigSource] = await Promise.all([
+  readFile(ABOUT_ROUTE_PATH, 'utf8'),
+  readFile(ABOUT_EXPERIENCE_PATH, 'utf8'),
+  readFile(ROUTE_MANIFEST_PATH, 'utf8'),
+  readFile(VITE_CONFIG_PATH, 'utf8'),
+]);
 const loaded = loadAboutNarrativePointFieldPersistenceSource(rawDocument, {
   preflight: preflightAboutNarrativePointFieldRuntimePlans,
 });
 
 assert.equal(loaded.valid, true, loaded.message);
 
-const baseDocument = loaded.document;
+const document = loaded.document;
 
-function getTextField(document, id) {
+function getTextField(id) {
   return document.tracks.text.fields.find((field) => field.id === id);
 }
 
-function getEditorialModules(document) {
+function getEditorialModules() {
   return document.tracks.text.fields.flatMap((field) => field.block?.modules || []);
 }
 
-function getAuthoredText(document) {
+function getAuthoredText() {
   return document.tracks.text.fields.flatMap((field) => [
     field.text,
     field.description,
@@ -43,96 +54,56 @@ function getAuthoredText(document) {
   ]).filter(Boolean).join(' ');
 }
 
-function animationContract(document) {
-  const interactions = structuredClone(document.tracks.interactions);
-  const disciplineItems = interactions.clips
-    .find((clip) => clip.id === 'motion-discipline-reveal')
-    ?.parameters?.items || [];
-  disciplineItems.forEach((item) => { delete item.description; });
-
-  return {
-    globals: document.globals,
-    profiles: document.profiles,
-    camera: document.tracks.camera,
-    visibility: document.tracks.visibility,
-    pointField: document.tracks.pointField,
-    interactions,
-    textTiming: document.tracks.text.fields.map((field) => ({
-      id: field.id,
-      kind: field.kind,
-      startWU: field.startWU,
-      focusWU: field.focusWU,
-      endWU: field.endWU,
-      movement: field.movement,
-      preset: field.preset,
-      titleStyle: field.titleStyle,
-      presentation: field.presentation,
-    })),
-  };
-}
-
-test('only the converged copy candidate remains active', () => {
-  assert.deepEqual(
-    ABOUT_NARRATIVE_COPY_VARIANTS.map((variant) => variant.id),
-    ['current'],
-  );
-  assert.equal(getAboutNarrativeCopyVariant(new URLSearchParams('copy=current'))?.id, 'current');
-  assert.equal(getAboutNarrativeCopyVariant('voice-synthesis'), null);
-  assert.equal(getAboutNarrativeCopyVariant('not-a-variant'), null);
-  assert.equal(createAboutNarrativeCopyVariantDocument(baseDocument, 'not-a-variant'), baseDocument);
+test('development About owns the canonical editor and the standalone Lab route is retired', () => {
+  assert.match(aboutRouteSource, /if \(!import\.meta\.env\.DEV && !__CERTIFY__\)/);
+  assert.match(aboutExperienceSource, /const initialDocument = INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT/);
+  assert.match(aboutExperienceSource, /if \(__DEV__\) return requestedMode !== '0'/);
+  assert.doesNotMatch(aboutExperienceSource, /copyVariant|aboutNarrativeCopyVariants/);
+  assert.doesNotMatch(routeManifestSource, /['"]about-narrative-lab['"]\s*:/);
+  assert.doesNotMatch(viteConfigSource, /['"]lab\/about-narrative['"]\s*:/);
 });
 
-test('the current candidate changes copy without changing the animation contract', () => {
-  const document = createAboutNarrativeCopyVariantDocument(baseDocument, 'current');
-  const modules = getEditorialModules(document);
+test('the canonical document carries the accepted spoken narrative', () => {
+  const authoredText = getAuthoredText();
+  const modules = getEditorialModules();
+  const firstProse = modules.find((module) => module.id === 'context')?.text || '';
   const disciplines = document.tracks.interactions.clips
     .find((clip) => clip.id === 'motion-discipline-reveal')
     ?.parameters?.items || [];
 
-  assert.notEqual(document, baseDocument);
-  assert.deepEqual(animationContract(document), animationContract(baseDocument));
-  assert.equal(modules.filter((module) => module.kind === 'list').length, 0);
-  assert.equal(modules.find((module) => module.id === 'selected-clients').label, 'Selected work from across my career.');
-  assert.equal(disciplines.length, 6);
-  assert.ok(disciplines.every((item) => item.description.length >= 50));
-});
-
-test('the current candidate carries the accepted spoken narrative decisions', () => {
-  const document = createAboutNarrativeCopyVariantDocument(baseDocument, 'current');
-  const authoredText = getAuthoredText(document);
-  const firstProse = getEditorialModules(document).find((module) => module.id === 'context')?.text || '';
-
-  assert.equal(getTextField(document, 'text-promise-main').text, 'About Me');
+  assert.equal(getTextField('text-promise-main').text, 'About Me');
   assert.equal(
-    getTextField(document, 'text-promise-main').description,
+    getTextField('text-promise-main').description,
     'Hi, I’m Alex. I’m a designer at heart, and I love what I do.',
   );
   assert.equal(
-    getTextField(document, 'text-complexity-idea').text,
+    getTextField('text-complexity-idea').text,
     'I’ve always been fascinated by complex problems…',
   );
   assert.equal(
-    getTextField(document, 'text-complexity-conditions').text,
+    getTextField('text-complexity-conditions').text,
     '…especially those that require multidisciplinary thinking.',
   );
   assert.match(firstProse, /identity technology, a financial product or something as ordinary as a keyboard/);
   assert.match(authoredText, /13 years ago/);
   assert.match(authoredText, /purposeful use of AI/);
   assert.match(authoredText, /music, Lego and independent games/);
+  assert.equal(modules.filter((module) => module.kind === 'list').length, 0);
+  assert.equal(modules.find((module) => module.id === 'selected-clients').label, 'Selected work from across my career.');
+  assert.equal(disciplines.length, 6);
+  assert.ok(disciplines.every((item) => item.description.length >= 50));
   assert.doesNotMatch(authoredText, /\bfear\b|\bafraid\b/i);
   assert.doesNotMatch(authoredText, /—|;/);
-  assert.doesNotMatch(authoredText, /\b(?:human shape|find a way through|make the question tangible|what the problem asks of me|the work widened)\b/i);
 });
 
-test('the ending is transformative and the finale continues it', () => {
-  const document = createAboutNarrativeCopyVariantDocument(baseDocument, 'current');
+test('the canonical ending is transformative and the finale continues it', () => {
   const closingTitles = [
-    getTextField(document, 'text-life-momentum').text,
-    getTextField(document, 'text-life-form').text,
-    getTextField(document, 'text-life-character').text,
+    getTextField('text-life-momentum').text,
+    getTextField('text-life-form').text,
+    getTextField('text-life-character').text,
   ];
   const closingStatement = closingTitles.join(' ');
-  const finale = getTextField(document, 'text-epilogue-invitation');
+  const finale = getTextField('text-epilogue-invitation');
 
   assert.deepEqual(closingTitles, [
     'Different disciplines don’t simply add up…',

@@ -4,10 +4,6 @@ import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
-import {
-  createAboutNarrativeCopyVariantDocument,
-  getAboutNarrativeCopyVariant,
-} from './aboutNarrativeCopyVariants.js';
 import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
@@ -732,26 +728,16 @@ function ScrollProgressIndicator({ activeStartIndex, progress }) {
 }
 
 export function AboutNarrativeLabExperience({
-  routeContentId = 'about-narrative-lab',
+  routeContentId = 'about',
   showIndicator = true,
 }) {
-  const copyVariant = useMemo(() => {
-    if (typeof window === 'undefined' || routeContentId !== 'about-narrative-lab') return null;
-    return getAboutNarrativeCopyVariant(new URLSearchParams(window.location.search));
-  }, [routeContentId]);
-  const initialDocument = useMemo(() => (
-    copyVariant
-      ? createAboutNarrativeCopyVariantDocument(ABOUT_NARRATIVE_DOCUMENT, copyVariant.id)
-      : INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT
-  ), [copyVariant]);
+  const initialDocument = INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT;
   const editorRequested = useMemo(() => {
-    if (typeof window === 'undefined' || routeContentId !== 'about-narrative-lab') return false;
-    if (copyVariant) return false;
-    const queryRequested = new URLSearchParams(window.location.search).get('edit') === '1';
-    const publicPreviewRequested = __CERTIFY__
-      && window.location.pathname.startsWith('/editor-preview/');
-    return queryRequested || publicPreviewRequested;
-  }, [copyVariant, routeContentId]);
+    if (typeof window === 'undefined' || routeContentId !== 'about') return false;
+    const requestedMode = new URLSearchParams(window.location.search).get('edit');
+    if (__DEV__) return requestedMode !== '0';
+    return __CERTIFY__ && requestedMode === '1';
+  }, [routeContentId]);
   const [editorModule, setEditorModule] = useState(null);
   const [editorStore, setEditorStore] = useState(null);
   const indicatorHost = useMemo(() => (
@@ -841,7 +827,6 @@ export function AboutNarrativeLabExperience({
       ref={rootRef}
       className="about-narrative-lab"
       data-route-content={routeContentId}
-      data-about-copy-variant={copyVariant?.id || undefined}
       data-about-layout-profile={runtimePlan?.layoutProfile || 'desktop'}
       data-about-motion-profile={runtimePlan?.motionProfile || 'full'}
       data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}

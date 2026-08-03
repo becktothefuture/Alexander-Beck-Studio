@@ -55,7 +55,7 @@ async function auditFullMotion() {
   page.on('request', (request) => {
     if (request.url().includes('/images/about/interactive-stack/')) previewRequests.push(request.url());
   });
-  await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab');
   await page.waitForTimeout(250);
   assert.equal(previewRequests.length, 0, 'Stack media must not load before the one-viewport prefetch margin.');
@@ -226,7 +226,7 @@ async function auditReducedMotionAndProfiles() {
   for (const viewport of viewports) {
     const context = await browser.newContext({ viewport, reducedMotion: 'reduce' });
     const page = await context.newPage();
-    await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.about-narrative-lab');
     await setStoryWU(page, stackStoryWU);
     const stage = page.locator('.about-interactive-stack__stage');
@@ -259,7 +259,7 @@ async function auditReducedMotionAndProfiles() {
 async function auditEditorControls() {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
-  await page.goto(`${baseUrl}/lab/about-narrative.html?edit=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
   await page.locator('[data-track-object-id="text-disciplines-title"]').click();
   const folder = page.locator('[data-inspector-group="interactive-stack"]');

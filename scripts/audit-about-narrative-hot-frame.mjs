@@ -47,7 +47,7 @@ page.on('console', (message) => {
 page.on('pageerror', (error) => consoleErrors.push(error.message));
 
 try {
-  await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => (
     typeof window.__aboutNarrativeRuntime?.resetHotFrameMetrics === 'function'
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'

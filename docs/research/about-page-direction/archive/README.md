@@ -12,6 +12,10 @@ Current visual allocation lives in the canonical content configuration and imple
 
 `copy-convergence-2026-08-03/` contains the three spoken drafts and the late closing-title exploration. It records the shift from fear to curiosity, the rejection of self-important and people-led endings, and the selected transformative-disciplinary direction.
 
+## Retired Lab versions
+
+`lab-versions/` records the former standalone About Narrative Lab route and its superseded copy-query variants. The active authoring surface is now the development `/about.html` route; production remains unchanged until an explicit release decision.
+
 ## Narrative explorations
 
 `narrative-explorations/` contains:

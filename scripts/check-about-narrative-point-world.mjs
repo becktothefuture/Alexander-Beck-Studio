@@ -314,7 +314,8 @@ test('About Director previews the point world through the production atmosphere 
     import.meta.url,
   ), 'utf8');
 
-  assert.match(siteApp, /routeId === 'about-narrative-lab'\) return 'production'/);
+  assert.doesNotMatch(siteApp, /about-narrative-lab/);
+  assert.match(siteApp, /PRIMARY_ROUTE_IDS/);
   assert.match(pointWorld, /viewportElement: canvasSource \? canvas : null/);
   assert.match(
     pointWorld,

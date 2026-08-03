@@ -220,7 +220,7 @@ const browser = await chromium.launch({
 });
 const context = await browser.newContext({ viewport, reducedMotion });
 const page = await context.newPage();
-await page.goto(`${baseUrl}/lab/about-narrative.html`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
 
 const report = { baseUrl, phase, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };

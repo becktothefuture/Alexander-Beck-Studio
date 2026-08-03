@@ -1219,7 +1219,7 @@ function createPointFieldAdapter({
 
   const handleRouteEntranceStart = (event) => {
     const routeId = event?.detail?.routeId || '';
-    if (routeId !== 'about' && routeId !== 'about-narrative-lab') return;
+    if (routeId !== 'about') return;
     entranceRequested = true;
     root.dataset.aboutEntranceRequested = 'true';
     if (sceneReady && latestFrame?.reducedMotion) completeSceneEntrance();

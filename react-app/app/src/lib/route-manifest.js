@@ -104,14 +104,6 @@ export const ROUTE_MANIFEST = Object.freeze({
       iconOnly: false,
     },
   },
-  'about-narrative-lab': {
-    id: 'about-narrative-lab',
-    path: '/lab/about-narrative.html',
-    aliases: ['/lab/about-narrative.html', '/lab/about-narrative'],
-    gated: false,
-    layout: 'shared-shell',
-    title: 'About Narrative Lab - Alexander Beck Studio',
-  },
   styleguide: {
     id: 'styleguide',
     path: '/styleguide.html',

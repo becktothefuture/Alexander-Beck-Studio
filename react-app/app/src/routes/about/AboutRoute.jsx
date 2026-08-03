@@ -12,7 +12,7 @@ export const ABOUT_ROUTE_RUNTIME = {
 };
 
 export function getAboutRouteView() {
-  if (!import.meta.env.DEV) {
+  if (!import.meta.env.DEV && !__CERTIFY__) {
     return {
       bodyClass: 'body about-page',
       mainLandmarkHeadingId: 'about-coming-soon-title',

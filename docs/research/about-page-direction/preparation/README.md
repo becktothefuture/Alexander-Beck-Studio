@@ -4,7 +4,7 @@ This folder contains only material that is active in the current editorial pass.
 
 ## Active review candidate
 
-`ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md` is the only active copy candidate. Lab query: `?copy=current`.
+`ABOUT-NARRATIVE-SPOKEN-DRAFT-v4-CURRENT.md` is the only active copy candidate. It opens in the development About editor at `/about.html`.
 
 It uses the fixed title, prose and discipline order and follows the anti-synthetic rules in `../supporting/editorial/ABOUT-TONE-OF-VOICE.md`. It is not approved production copy.
 

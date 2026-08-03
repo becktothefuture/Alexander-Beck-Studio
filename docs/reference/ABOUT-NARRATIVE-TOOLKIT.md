@@ -33,7 +33,7 @@ The About page is one authored scroll sequence played by three cooperating layer
 The creative toolkit is available only during local development:
 
 ```text
-http://localhost:8012/lab/about-narrative.html?edit=1
+http://localhost:8012/about.html
 ```
 
 The normal lab URL and `/about.html` are playback-only. Production builds remove the editor module and Save endpoint strings.
