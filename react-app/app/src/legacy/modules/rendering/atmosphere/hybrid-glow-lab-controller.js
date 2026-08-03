@@ -21,6 +21,7 @@ import {
 } from './simulation-atmosphere-config.js';
 
 const METRICS_INTERVAL_MS = 500;
+const ATMOSPHERIC_FIELD_MODE = 'broad';
 
 function createCanvas(className = '', layer = '') {
   const canvas = document.createElement('canvas');
@@ -32,7 +33,7 @@ function createCanvas(className = '', layer = '') {
 
 function getContext(canvas, options = {}) {
   const context = canvas.getContext('2d', { alpha: true, ...options });
-  if (!context) throw new Error('Hybrid glow Canvas 2D context unavailable');
+  if (!context) throw new Error('Atmospheric glow Canvas 2D context unavailable');
   return context;
 }
 
@@ -51,8 +52,8 @@ function clearContext(context) {
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function clamp01(value) {
-  return Math.min(1, Math.max(0, Number(value) || 0));
+function canDrawCanvas(canvas) {
+  return canvas instanceof HTMLCanvasElement && canvas.width > 1 && canvas.height > 1;
 }
 
 export class HybridGlowLabController {
@@ -65,62 +66,42 @@ export class HybridGlowLabController {
     this.routeLayer = this.mainCanvas.parentElement;
     this.outputCanvas = createCanvas(
       'atmosphere-output-canvas atmosphere-hybrid-glow-output',
-      'hybrid-glow',
+      'hybrid-atmosphere',
     );
-    this.outputContext = getContext(this.outputCanvas, { desynchronized: true });
     this.sourceCanvas = createCanvas();
     this.sourceContext = getContext(this.sourceCanvas, { desynchronized: true });
-    this.broadWorkCanvas = createCanvas();
-    this.tightWorkCanvas = createCanvas();
-    this.referenceCanvas = createCanvas();
-    this.broadFrames = [createCanvas(), createCanvas()];
-    this.broadFrameContexts = this.broadFrames.map((canvas) => getContext(canvas));
-    this.broadEffect = new DiffuseGlowEffect(this.broadWorkCanvas);
-    this.tightEffect = new DiffuseGlowEffect(this.tightWorkCanvas);
-    this.referenceEffect = new DiffuseGlowEffect(this.referenceCanvas);
+    this.effect = new DiffuseGlowEffect(this.outputCanvas);
     this.routeLayer.append(this.outputCanvas);
 
     this.dynamicQuality = resolveAtmosphereQualityScale(this.config.common.qualityMode);
     this.themeMode = isDarkThemeDocument() ? 'dark' : 'light';
     this.reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
     this.geometryKey = '';
+    this.geometryDirty = true;
     this.blurGeometry = null;
-    this.schedules = {
-      broad: { nextFrameAt: 0 },
-      tight: { nextFrameAt: 0 },
-      reference: { nextFrameAt: 0 },
-    };
-    this.hasBroadFrame = false;
-    this.broadCurrentIndex = 0;
-    this.broadTargetIndex = 1;
-    this.broadBlendStartedAt = 0;
-    this.broadBlendDurationMs = 0;
-    this.isBroadBlending = false;
-    this.hasTightFrame = false;
-    this.hasReferenceFrame = false;
+    this.schedule = { nextFrameAt: 0 };
+    this.effectConfig = { fieldMode: ATMOSPHERIC_FIELD_MODE };
     this.hasReducedMotionFrame = false;
     this.destroyed = false;
 
-    this.presentationFrameCount = 0;
-    this.broadUpdateCount = 0;
-    this.tightUpdateCount = 0;
-    this.referenceUpdateCount = 0;
+    this.updateCount = 0;
     this.metricsStartedAt = performance.now();
-    this.metricsPresentationFrames = 0;
-    this.metricsBroadUpdates = 0;
-    this.metricsTightUpdates = 0;
-    this.metricsReferenceUpdates = 0;
+    this.metricsUpdates = 0;
     this.metricsEffectCostMs = 0;
-    this.metricsPresentationCostMs = 0;
     this.lastMetrics = {
-      presentationFps: 0,
-      broadFps: 0,
-      tightFps: 0,
-      referenceFps: 0,
+      atmosphereFps: 0,
       effectCostPerSecondMs: 0,
-      presentationCostPerSecondMs: 0,
       totalCostPerSecondMs: 0,
     };
+
+    this.handleGeometryChange = () => {
+      this.geometryDirty = true;
+    };
+    this.resizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(this.handleGeometryChange)
+      : null;
+    this.resizeObserver?.observe(this.mainCanvas);
+    window.addEventListener('resize', this.handleGeometryChange, { passive: true });
 
     this.handleThemeChange = (event) => {
       const nextTheme = event?.detail?.isDark ? 'dark' : 'light';
@@ -146,7 +127,7 @@ export class HybridGlowLabController {
         onSimulationChange: (nextMode) => this.setSimulationMode(nextMode),
         onThemeChange: (nextTheme) => setTheme(nextTheme),
       });
-    this.applyPresentationState();
+    this.applyVisibility();
     this.installAuditHandle();
   }
 
@@ -156,16 +137,23 @@ export class HybridGlowLabController {
       this.productionConfig,
       this.themeMode,
     );
+    this.effectConfig.fieldMode = ATMOSPHERIC_FIELD_MODE;
+    this.effectConfig.intensity = Math.min(
+      1,
+      this.renderProfile.intensity * this.hybridProfile.glowStrength,
+    );
+    this.effectConfig.colourStrength = this.renderProfile.colourStrength;
+    this.effectConfig.memoryMs = this.reducedMotion ? 0 : this.renderProfile.memoryMs;
   }
 
-  applyPresentationState() {
+  applyVisibility() {
     this.outputCanvas.hidden = !this.config.common.enabled;
   }
 
-  resetSchedules() {
-    this.schedules.broad.nextFrameAt = 0;
-    this.schedules.tight.nextFrameAt = 0;
-    this.schedules.reference.nextFrameAt = 0;
+  resetMetricsWindow() {
+    this.metricsStartedAt = performance.now();
+    this.metricsUpdates = 0;
+    this.metricsEffectCostMs = 0;
   }
 
   setConfig(nextConfig) {
@@ -174,31 +162,26 @@ export class HybridGlowLabController {
     if (previousQuality !== this.config.common.qualityMode) {
       this.dynamicQuality = resolveAtmosphereQualityScale(this.config.common.qualityMode);
       this.geometryKey = '';
+      this.geometryDirty = true;
     }
     this.rebuildProfiles();
-    this.applyPresentationState();
+    this.applyVisibility();
     this.clear();
   }
 
   clear() {
-    clearContext(this.outputContext);
     clearContext(this.sourceContext);
-    this.broadFrameContexts.forEach(clearContext);
-    this.broadEffect.clear();
-    this.tightEffect.clear();
-    this.referenceEffect.clear();
-    this.hasBroadFrame = false;
-    this.hasTightFrame = false;
-    this.hasReferenceFrame = false;
+    this.effect.clear();
     this.hasReducedMotionFrame = false;
-    this.isBroadBlending = false;
-    this.broadBlendStartedAt = 0;
-    this.resetSchedules();
+    this.schedule.nextFrameAt = 0;
+    this.resetMetricsWindow();
   }
 
   syncSize() {
+    if (!this.geometryDirty && this.blurGeometry) return true;
     const rect = this.mainCanvas.getBoundingClientRect();
     if (rect.width <= 1 || rect.height <= 1) return false;
+    this.geometryDirty = false;
     const geometryKey = `${Math.round(rect.width)}:${Math.round(rect.height)}`;
     if (geometryKey !== this.geometryKey) {
       this.geometryKey = geometryKey;
@@ -208,18 +191,10 @@ export class HybridGlowLabController {
     }
     const width = Math.max(2, Math.round(rect.width * this.dynamicQuality.scale));
     const height = Math.max(2, Math.round(rect.height * this.dynamicQuality.scale));
-    let resized = false;
-    [
-      this.sourceCanvas,
-      this.outputCanvas,
-      ...this.broadFrames,
-    ].forEach((canvas) => {
-      resized = resizeCanvas(canvas, width, height) || resized;
-    });
+    const resized = resizeCanvas(this.sourceCanvas, width, height)
+      || resizeCanvas(this.outputCanvas, width, height);
     if (resized) {
-      this.broadEffect.resize(width, height);
-      this.tightEffect.resize(width, height);
-      this.referenceEffect.resize(width, height);
+      this.effect.resize(width, height);
       this.clear();
     }
     this.blurGeometry = resolveSimulationAtmosphereBlurGeometry({
@@ -230,6 +205,8 @@ export class HybridGlowLabController {
       largeSpread: this.renderProfile.largeSpread,
       smallSpread: this.renderProfile.smallSpread,
     });
+    this.effectConfig.largeBlurRadiusBackingPx = this.blurGeometry.largeRadiusBackingPx;
+    this.effectConfig.smallBlurRadiusBackingPx = this.blurGeometry.smallRadiusBackingPx;
     return true;
   }
 
@@ -238,178 +215,33 @@ export class HybridGlowLabController {
     const width = this.sourceCanvas.width;
     const height = this.sourceCanvas.height;
     clearContext(context);
-    const layers = [this.mainCanvas];
+    if (canDrawCanvas(this.mainCanvas)) {
+      context.drawImage(this.mainCanvas, 0, 0, width, height);
+    }
     const frontDepthCanvas = this.globals.depthTitleFrontCanvas;
     if (
       frontDepthCanvas?.isConnected
       && frontDepthCanvas.id !== 'simulation-title-canvas'
+      && canDrawCanvas(frontDepthCanvas)
     ) {
-      layers.push(frontDepthCanvas);
+      context.drawImage(frontDepthCanvas, 0, 0, width, height);
     }
-    layers.forEach((canvas) => {
-      if (!(canvas instanceof HTMLCanvasElement) || canvas.width <= 1 || canvas.height <= 1) return;
-      context.drawImage(canvas, 0, 0, width, height);
-    });
-    return layers.length;
   }
 
-  createEffectConfig({ fieldMode = 'both', cadenceFps, intensityScale = 1, memoryMs } = {}) {
-    return {
-      ...this.renderProfile,
-      fieldMode,
-      cadenceFps,
-      intensity: Math.min(1, this.renderProfile.intensity * intensityScale),
-      memoryMs: memoryMs ?? this.renderProfile.memoryMs,
-      largeBlurRadiusBackingPx: this.blurGeometry.largeRadiusBackingPx,
-      smallBlurRadiusBackingPx: this.blurGeometry.smallRadiusBackingPx,
-    };
-  }
-
-  settleBroadBlend(now, force = false) {
-    if (!this.isBroadBlending) return;
-    const elapsed = Math.max(0, now - this.broadBlendStartedAt);
-    if (!force && elapsed < this.broadBlendDurationMs) return;
-    this.broadCurrentIndex = this.broadTargetIndex;
-    this.broadTargetIndex = 1 - this.broadCurrentIndex;
-    this.isBroadBlending = false;
-  }
-
-  commitBroadFrame(now, broadCadence) {
-    if (!this.hasBroadFrame) {
-      const context = this.broadFrameContexts[this.broadCurrentIndex];
-      clearContext(context);
-      context.drawImage(this.broadWorkCanvas, 0, 0);
-      this.hasBroadFrame = true;
-      return;
-    }
-    this.settleBroadBlend(now, true);
-    const targetContext = this.broadFrameContexts[this.broadTargetIndex];
-    clearContext(targetContext);
-    targetContext.drawImage(this.broadWorkCanvas, 0, 0);
-    this.broadBlendDurationMs = Math.min(
-      this.hybridProfile.crossfadeMs,
-      1000 / Math.max(1, broadCadence),
-    );
-    if (this.broadBlendDurationMs <= 0) {
-      this.broadCurrentIndex = this.broadTargetIndex;
-      this.broadTargetIndex = 1 - this.broadCurrentIndex;
-      this.isBroadBlending = false;
-      return;
-    }
-    this.broadBlendStartedAt = now;
-    this.isBroadBlending = true;
-  }
-
-  presentHybrid(now) {
+  renderAtmosphere(now) {
+    const cadence = Number(this.hybridProfile.glowCadence) || 8;
+    if (!shouldRenderSimulationAtmosphereFrame(this.schedule, now, cadence)) return false;
     const startedAt = performance.now();
-    const context = this.outputContext;
-    clearContext(context);
-    if (this.hasBroadFrame) {
-      if (this.isBroadBlending) {
-        const progress = clamp01(
-          (now - this.broadBlendStartedAt) / Math.max(1, this.broadBlendDurationMs),
-        );
-        context.globalAlpha = 1 - progress;
-        context.drawImage(this.broadFrames[this.broadCurrentIndex], 0, 0);
-        context.globalCompositeOperation = 'lighter';
-        context.globalAlpha = progress;
-        context.drawImage(this.broadFrames[this.broadTargetIndex], 0, 0);
-        if (progress >= 1) this.settleBroadBlend(now, true);
-      } else {
-        context.drawImage(this.broadFrames[this.broadCurrentIndex], 0, 0);
-      }
-    }
-    if (this.hasTightFrame) {
-      context.globalCompositeOperation = this.hasBroadFrame ? 'screen' : 'source-over';
-      context.globalAlpha = 1;
-      context.drawImage(this.tightWorkCanvas, 0, 0);
-    }
-    context.globalCompositeOperation = 'source-over';
-    context.globalAlpha = 1;
-    this.recordPresentationCost(performance.now() - startedAt);
-  }
-
-  presentReference() {
-    const startedAt = performance.now();
-    clearContext(this.outputContext);
-    this.outputContext.drawImage(this.referenceCanvas, 0, 0);
-    this.recordPresentationCost(performance.now() - startedAt);
-  }
-
-  recordPresentationCost(costMs) {
-    this.presentationFrameCount += 1;
-    this.metricsPresentationFrames += 1;
-    this.metricsPresentationCostMs += costMs;
-  }
-
-  renderHybrid(now) {
-    const broadCadence = Number(this.hybridProfile.broadCadence) || 8;
-    const tightCadence = Number(this.hybridProfile.tightCadence) || 24;
-    const broadDue = shouldRenderSimulationAtmosphereFrame(
-      this.schedules.broad,
-      now,
-      broadCadence,
-    );
-    const tightDue = shouldRenderSimulationAtmosphereFrame(
-      this.schedules.tight,
-      now,
-      tightCadence,
-    );
-    if (broadDue || tightDue) {
-      const effectStartedAt = performance.now();
-      this.copySimulationSource();
-      if (broadDue) {
-        this.broadEffect.render({
-          sourceCanvas: this.sourceCanvas,
-          config: this.createEffectConfig({
-            fieldMode: 'broad',
-            cadenceFps: broadCadence,
-            intensityScale: this.hybridProfile.broadStrength,
-            memoryMs: 0,
-          }),
-        });
-        this.commitBroadFrame(now, broadCadence);
-        this.broadUpdateCount += 1;
-        this.metricsBroadUpdates += 1;
-      }
-      if (tightDue) {
-        this.tightEffect.render({
-          sourceCanvas: this.sourceCanvas,
-          config: this.createEffectConfig({
-            fieldMode: 'tight',
-            cadenceFps: tightCadence,
-            intensityScale: this.hybridProfile.tightStrength,
-            memoryMs: 0,
-          }),
-        });
-        this.hasTightFrame = true;
-        this.tightUpdateCount += 1;
-        this.metricsTightUpdates += 1;
-      }
-      this.metricsEffectCostMs += performance.now() - effectStartedAt;
-    }
-    if (broadDue || tightDue || this.isBroadBlending) this.presentHybrid(now);
-  }
-
-  renderReference(now, mode) {
-    const cadence = mode === 'hold'
-      ? Number(this.hybridProfile.broadCadence) || 8
-      : Number(this.hybridProfile.tightCadence) || 24;
-    if (!shouldRenderSimulationAtmosphereFrame(this.schedules.reference, now, cadence)) return;
-    const effectStartedAt = performance.now();
     this.copySimulationSource();
-    this.referenceEffect.render({
+    this.effectConfig.cadenceFps = cadence;
+    this.effect.render({
       sourceCanvas: this.sourceCanvas,
-      config: this.createEffectConfig({
-        cadenceFps: cadence,
-        memoryMs: this.reducedMotion ? 0 : this.renderProfile.memoryMs,
-      }),
+      config: this.effectConfig,
     });
-    this.metricsEffectCostMs += performance.now() - effectStartedAt;
-    this.hasReferenceFrame = true;
-    this.referenceUpdateCount += 1;
-    this.metricsReferenceUpdates += 1;
-    this.presentReference();
+    this.metricsEffectCostMs += performance.now() - startedAt;
+    this.updateCount += 1;
+    this.metricsUpdates += 1;
+    return true;
   }
 
   render(now = performance.now()) {
@@ -422,10 +254,8 @@ export class HybridGlowLabController {
       this.updateMetrics(now);
       return;
     }
-    const mode = this.reducedMotion ? 'reference' : this.hybridProfile.presentationMode;
-    if (mode === 'hybrid') this.renderHybrid(now);
-    else this.renderReference(now, mode);
-    if (this.reducedMotion && this.hasReferenceFrame) this.hasReducedMotionFrame = true;
+    const rendered = this.renderAtmosphere(now);
+    if (this.reducedMotion && rendered) this.hasReducedMotionFrame = true;
     this.updateMetrics(now);
   }
 
@@ -434,28 +264,16 @@ export class HybridGlowLabController {
     if (elapsed < METRICS_INTERVAL_MS) return;
     const seconds = Math.max(0.001, elapsed / 1000);
     this.lastMetrics = {
-      presentationFps: this.metricsPresentationFrames / seconds,
-      broadFps: this.metricsBroadUpdates / seconds,
-      tightFps: this.metricsTightUpdates / seconds,
-      referenceFps: this.metricsReferenceUpdates / seconds,
+      atmosphereFps: this.metricsUpdates / seconds,
       effectCostPerSecondMs: this.metricsEffectCostMs / seconds,
-      presentationCostPerSecondMs: this.metricsPresentationCostMs / seconds,
-      totalCostPerSecondMs: (this.metricsEffectCostMs + this.metricsPresentationCostMs) / seconds,
+      totalCostPerSecondMs: this.metricsEffectCostMs / seconds,
     };
-    const mode = this.hybridProfile.presentationMode;
-    const cadenceSummary = mode === 'hybrid'
-      ? `${this.hybridProfile.broadCadence}/${this.hybridProfile.tightCadence}`
-      : mode === 'hold' ? this.hybridProfile.broadCadence : this.hybridProfile.tightCadence;
     this.parameterizer?.setMetrics({
-      summary: `${mode} · ${cadenceSummary} fps · ${this.lastMetrics.totalCostPerSecondMs.toFixed(1)} ms/s`,
+      summary: `atmosphere · ${this.hybridProfile.glowCadence} fps · ${this.lastMetrics.totalCostPerSecondMs.toFixed(1)} ms/s`,
     });
     this.metricsStartedAt = now;
-    this.metricsPresentationFrames = 0;
-    this.metricsBroadUpdates = 0;
-    this.metricsTightUpdates = 0;
-    this.metricsReferenceUpdates = 0;
+    this.metricsUpdates = 0;
     this.metricsEffectCostMs = 0;
-    this.metricsPresentationCostMs = 0;
   }
 
   async setSimulationMode(nextMode) {
@@ -485,12 +303,11 @@ export class HybridGlowLabController {
     window.__ABS_ATMOSPHERE_LAB__ = {
       getSnapshot: () => ({
         variant: this.variant,
-        renderer: this.broadEffect.renderMode,
-        presentationMode: this.hybridProfile.presentationMode,
-        broadCadence: Number(this.hybridProfile.broadCadence),
-        tightCadence: Number(this.hybridProfile.tightCadence),
-        crossfadeMs: this.hybridProfile.crossfadeMs,
-        effectiveCrossfadeMs: this.broadBlendDurationMs,
+        renderer: this.effect.renderMode,
+        fieldMode: ATMOSPHERIC_FIELD_MODE,
+        glowCadence: Number(this.hybridProfile.glowCadence),
+        memoryMs: this.effectConfig.memoryMs,
+        displaySmoothing: this.effectConfig.memoryMs > 0 ? 'temporal-memory' : 'none',
         quality: this.dynamicQuality.id,
         scale: this.dynamicQuality.scale,
         outputWidth: this.outputCanvas.width,
@@ -498,11 +315,8 @@ export class HybridGlowLabController {
         simulationMode: this.globals.currentMode,
         themeMode: this.themeMode,
         reducedMotion: this.reducedMotion,
-        presentationFrameCount: this.presentationFrameCount,
-        broadUpdateCount: this.broadUpdateCount,
-        tightUpdateCount: this.tightUpdateCount,
-        referenceUpdateCount: this.referenceUpdateCount,
-        broadBlending: this.isBroadBlending,
+        updateCount: this.updateCount,
+        temporalMemoryFrames: this.effect.temporalMemoryFrames,
         renderProfile: {
           intensity: this.renderProfile.intensity,
           colourStrength: this.renderProfile.colourStrength,
@@ -522,10 +336,10 @@ export class HybridGlowLabController {
     if (this.destroyed) return;
     this.destroyed = true;
     window.removeEventListener(THEME_CHANGE_EVENT, this.handleThemeChange);
+    window.removeEventListener('resize', this.handleGeometryChange);
+    this.resizeObserver?.disconnect();
     this.parameterizer?.destroy();
-    this.broadEffect.destroy();
-    this.tightEffect.destroy();
-    this.referenceEffect.destroy();
+    this.effect.destroy();
     this.outputCanvas.remove();
     if (window.__ABS_ATMOSPHERE_LAB__) delete window.__ABS_ATMOSPHERE_LAB__;
   }

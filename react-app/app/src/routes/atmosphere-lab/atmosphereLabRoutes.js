@@ -42,10 +42,10 @@ export const ATMOSPHERE_LAB_VARIANTS = Object.freeze({
   }),
   hybridGlow: Object.freeze({
     id: 'hybridGlow',
-    label: 'Hybrid Glow',
-    shortLabel: 'Hybrid',
+    label: 'Atmospheric Glow',
+    shortLabel: 'Atmosphere',
     path: '/lab/atmosphere-hybrid-glow.html',
-    title: 'Atmosphere Lab — Hybrid Glow',
+    title: 'Atmosphere Lab — Atmospheric Glow',
   }),
 });
 

@@ -17,7 +17,7 @@ export {
 const createProfile = (values) => Object.freeze(values);
 
 export const DEFAULT_ATMOSPHERE_LAB_CONFIG = Object.freeze({
-  version: 11,
+  version: 13,
   common: Object.freeze({
     enabled: true,
     qualityMode: 'auto',
@@ -96,75 +96,27 @@ export const DEFAULT_ATMOSPHERE_LAB_CONFIG = Object.freeze({
       blendMode: 'add',
     }),
     hybridGlow: createProfile({
-      presentationMode: 'hybrid',
-      broadCadence: '8',
-      tightCadence: '24',
-      crossfadeMs: 110,
-      broadStrength: 1,
-      tightStrength: 1,
+      glowCadence: '8',
+      glowStrength: 1,
     }),
   }),
 });
 
 const HYBRID_GLOW_GROUPS = Object.freeze([
   Object.freeze({
-    title: 'Comparison',
+    title: 'Atmosphere',
     initiallyOpen: true,
     scope: 'profile',
     controls: Object.freeze([
       {
-        id: 'presentationMode',
-        label: 'Mode',
-        type: 'select',
-        options: Object.freeze(['hybrid', 'hold', 'reference']),
-      },
-    ]),
-  }),
-  Object.freeze({
-    title: 'Timing',
-    initiallyOpen: true,
-    scope: 'profile',
-    controls: Object.freeze([
-      {
-        id: 'broadCadence',
-        label: 'Broad FPS',
+        id: 'glowCadence',
+        label: 'Glow FPS',
         type: 'select',
         options: Object.freeze(['4', '8', '12', '16', '24']),
       },
       {
-        id: 'tightCadence',
-        label: 'Tight FPS',
-        type: 'select',
-        options: Object.freeze(['8', '16', '24', '30', '60']),
-      },
-      {
-        id: 'crossfadeMs',
-        label: 'Crossfade',
-        type: 'range',
-        min: 0,
-        max: 125,
-        step: 5,
-        display: 'ms',
-      },
-    ]),
-  }),
-  Object.freeze({
-    title: 'Balance',
-    initiallyOpen: true,
-    scope: 'profile',
-    controls: Object.freeze([
-      {
-        id: 'broadStrength',
-        label: 'Broad Level',
-        type: 'range',
-        min: 0,
-        max: 1.5,
-        step: 0.05,
-        display: 'percent',
-      },
-      {
-        id: 'tightStrength',
-        label: 'Tight Level',
+        id: 'glowStrength',
+        label: 'Glow Level',
         type: 'range',
         min: 0,
         max: 1.5,
@@ -340,7 +292,7 @@ export function normalizeAtmosphereLabConfig(input = {}) {
     ? profiles.hybridGlow
     : {};
   return {
-    version: 11,
+    version: 13,
     common: {
       enabled: common.enabled !== false,
       qualityMode: normalizeChoice(common.qualityMode, ['auto', 'high', 'balanced', 'low'], defaults.common.qualityMode),
@@ -371,38 +323,16 @@ export function normalizeAtmosphereLabConfig(input = {}) {
         blendMode: normalizeChoice(profiles.canvasFeedback?.blendMode, ['normal', 'screen', 'add'], defaults.profiles.canvasFeedback.blendMode),
       },
       hybridGlow: {
-        presentationMode: normalizeChoice(
-          hybridGlowSource.presentationMode,
-          ['hybrid', 'hold', 'reference'],
-          defaults.profiles.hybridGlow.presentationMode,
-        ),
-        broadCadence: normalizeChoice(
-          hybridGlowSource.broadCadence,
+        glowCadence: normalizeChoice(
+          hybridGlowSource.glowCadence ?? hybridGlowSource.broadCadence,
           ['4', '8', '12', '16', '24'],
-          defaults.profiles.hybridGlow.broadCadence,
+          defaults.profiles.hybridGlow.glowCadence,
         ),
-        tightCadence: normalizeChoice(
-          hybridGlowSource.tightCadence,
-          ['8', '16', '24', '30', '60'],
-          defaults.profiles.hybridGlow.tightCadence,
-        ),
-        crossfadeMs: clampNumber(
-          hybridGlowSource.crossfadeMs,
-          0,
-          125,
-          defaults.profiles.hybridGlow.crossfadeMs,
-        ),
-        broadStrength: clampNumber(
-          hybridGlowSource.broadStrength,
+        glowStrength: clampNumber(
+          hybridGlowSource.glowStrength ?? hybridGlowSource.broadStrength,
           0,
           1.5,
-          defaults.profiles.hybridGlow.broadStrength,
-        ),
-        tightStrength: clampNumber(
-          hybridGlowSource.tightStrength,
-          0,
-          1.5,
-          defaults.profiles.hybridGlow.tightStrength,
+          defaults.profiles.hybridGlow.glowStrength,
         ),
       },
     },

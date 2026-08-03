@@ -1341,6 +1341,122 @@ async function runExperimentalLabIsolation(browser) {
   }
 }
 
+async function runHybridGlowLabContract(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(routeUrl('/lab/atmosphere-hybrid-glow.html?mode=pit&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await page.waitForFunction(() => {
+      const snapshot = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
+      return snapshot?.variant === 'hybridGlow'
+        && snapshot.fieldMode === 'broad'
+        && snapshot.updateCount > 1
+        && snapshot.temporalMemoryFrames === 1;
+    }, null, { timeout: WAIT_MS, polling: 'raf' });
+
+    const initial = await page.evaluate(() => ({
+      sharedHandlePresent: Boolean(window.__ABS_SIMULATION_ATMOSPHERE__),
+      sharedGlowCount: document.querySelectorAll('#simulation-atmosphere-glow-canvas').length,
+      sharedEdgeCount: document.querySelectorAll('#simulation-atmosphere-edge-light-canvas').length,
+      outputCount: document.querySelectorAll('.atmosphere-hybrid-glow-output').length,
+      legacyLayerGroupCount: document.querySelectorAll('.atmosphere-hybrid-glow-layer-group').length,
+      legacyCrossfadeFrameCount: document.querySelectorAll(
+        '.atmosphere-hybrid-glow-crossfade-frame',
+      ).length,
+      outputPresentation: (() => {
+        const output = document.querySelector('.atmosphere-hybrid-glow-output');
+        const style = output ? getComputedStyle(output) : null;
+        return {
+          animationCount: output?.getAnimations?.().length || 0,
+          mixBlendMode: style?.mixBlendMode || '',
+          opacity: style?.opacity || '',
+          willChange: style?.willChange || '',
+        };
+      })(),
+      snapshot: window.__ABS_ATMOSPHERE_LAB__.getSnapshot(),
+    }));
+    assert(initial.sharedHandlePresent === false, 'Hybrid Glow mounted the production compositor', initial);
+    assert(
+      initial.sharedGlowCount === 0 && initial.sharedEdgeCount === 0,
+      'Hybrid Glow mounted shared production output canvases',
+      initial,
+    );
+    assert(
+      initial.outputCount === 1
+        && initial.legacyLayerGroupCount === 0
+        && initial.legacyCrossfadeFrameCount === 0,
+      'Atmospheric Glow did not reduce to one visible output Canvas',
+      initial,
+    );
+    assert(
+      initial.snapshot.config.version === 13
+        && JSON.stringify(Object.keys(initial.snapshot.config.profiles.hybridGlow).sort())
+          === JSON.stringify(['glowCadence', 'glowStrength'])
+        && initial.snapshot.fieldMode === 'broad'
+        && initial.snapshot.glowCadence === 8
+        && initial.snapshot.memoryMs > 0
+        && initial.snapshot.memoryMs === initial.snapshot.renderProfile.memoryMs
+        && initial.snapshot.temporalMemoryFrames === 1
+        && initial.snapshot.displaySmoothing === 'temporal-memory',
+      'Atmospheric Glow defaults do not describe the broad 8 FPS memory field',
+      initial,
+    );
+    assert(
+      initial.outputPresentation.animationCount === 0
+        && initial.outputPresentation.mixBlendMode === 'normal'
+        && initial.outputPresentation.opacity === '1'
+        && initial.outputPresentation.willChange === 'auto',
+      'Atmospheric Glow retained crossfade compositor work',
+      initial,
+    );
+
+    const sampleCadence = async (cadence, durationMs) => {
+      await page.locator('select[data-parameter-id="glowCadence"]').selectOption(cadence);
+      await page.waitForFunction((expectedCadence) => (
+        window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.().glowCadence === Number(expectedCadence)
+      ), cadence, { timeout: WAIT_MS, polling: 'raf' });
+      await page.waitForTimeout(400);
+      const before = await page.evaluate(() => (
+        window.__ABS_ATMOSPHERE_LAB__.getSnapshot().updateCount
+      ));
+      await page.waitForTimeout(durationMs);
+      const after = await page.evaluate(() => (
+        window.__ABS_ATMOSPHERE_LAB__.getSnapshot().updateCount
+      ));
+      return after - before;
+    };
+    const eightFpsUpdates = await sampleCadence('8', 2000);
+    const twelveFpsUpdates = await sampleCadence('12', 1500);
+    await page.locator('select[data-parameter-id="glowCadence"]').selectOption('8');
+    assert(
+      eightFpsUpdates >= 14 && eightFpsUpdates <= 20,
+      'Atmospheric Glow did not hold the 8 FPS cadence',
+      { eightFpsUpdates },
+    );
+    assert(
+      twelveFpsUpdates >= 15 && twelveFpsUpdates <= 22,
+      'Atmospheric Glow cadence control did not apply live',
+      { twelveFpsUpdates },
+    );
+
+    return {
+      renderer: initial.snapshot.renderer,
+      quality: initial.snapshot.quality,
+      scale: initial.snapshot.scale,
+      fieldMode: initial.snapshot.fieldMode,
+      memoryMs: initial.snapshot.memoryMs,
+      eightFpsUpdates,
+      twelveFpsUpdates,
+      outputPresentation: initial.outputPresentation,
+    };
+  } finally {
+    await context.close();
+  }
+}
+
 async function runStatelessGlowContract(browser) {
   const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
   const page = await context.newPage();
@@ -1403,6 +1519,26 @@ async function runStatelessGlowContract(browser) {
         sourceContext.fillRect(x - 8, 24, 16, 16);
       };
       const readAlpha = (x) => outputContext.getImageData(x, 32, 1, 1).data[3];
+      const readAlphaEnergy = () => {
+        const pixels = outputContext.getImageData(0, 0, output.width, output.height).data;
+        let total = 0;
+        for (let index = 3; index < pixels.length; index += 4) total += pixels[index];
+        return total;
+      };
+
+      paintSource(80);
+      config.fieldMode = 'broad';
+      effect.render({ sourceCanvas: source, config });
+      const broadFieldEnergy = readAlphaEnergy();
+      effect.clear();
+      config.fieldMode = 'tight';
+      effect.render({ sourceCanvas: source, config });
+      const tightFieldEnergy = readAlphaEnergy();
+      effect.clear();
+      delete config.fieldMode;
+      effect.render({ sourceCanvas: source, config });
+      const combinedFieldEnergy = readAlphaEnergy();
+      effect.clear();
 
       paintSource(24);
       effect.render({ sourceCanvas: source, config });
@@ -1470,6 +1606,9 @@ async function runStatelessGlowContract(browser) {
       edgeEffect.destroy();
       return {
         firstOldAlpha,
+        broadFieldEnergy,
+        tightFieldEnergy,
+        combinedFieldEnergy,
         secondOldAlpha,
         secondNewAlpha,
         memoryOldAlpha,
@@ -1491,6 +1630,14 @@ async function runStatelessGlowContract(browser) {
       };
     });
     assert(result.firstOldAlpha > 20, 'Diffuse glow fixture did not render its first source', result);
+    assert(
+      result.broadFieldEnergy > 0
+        && result.tightFieldEnergy > 0
+        && result.combinedFieldEnergy > result.broadFieldEnergy
+        && result.combinedFieldEnergy > result.tightFieldEnergy,
+      'Diffuse glow field isolation did not exclude the unselected field',
+      result,
+    );
     assert(result.secondOldAlpha <= 1, 'Diffuse glow retained the previous source position', result);
     assert(result.secondNewAlpha > 20, 'Diffuse glow did not follow the current source position', result);
     assert(
@@ -1760,6 +1907,7 @@ async function main() {
     const crispLab = shouldRun('crisp') ? await runCrispLabIsolation(browser) : null;
     const persistence = shouldRun('persistence') ? await runCrispPersistenceContract(browser) : null;
     const experimentalLab = shouldRun('experimental') ? await runExperimentalLabIsolation(browser) : null;
+    const hybridLab = shouldRun('hybrid') ? await runHybridGlowLabContract(browser) : null;
     const stateless = shouldRun('stateless') ? await runStatelessGlowContract(browser) : null;
     const configPanel = shouldRun('panel') ? await runConfigPanelContract(browser) : null;
     const output = {
@@ -1777,6 +1925,7 @@ async function main() {
       crispLab,
       persistence,
       experimentalLab,
+      hybridLab,
       stateless,
       configPanel,
     };

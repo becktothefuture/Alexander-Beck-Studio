@@ -88,7 +88,7 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 `modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas inside the wall-radius-inheriting edge layer; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
 
-Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. The About Narrative editor mounts that same production-scoped host so its preview shows the exact final glow and edge response. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
+Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. The About Narrative editor mounts that same production-scoped host so its preview shows the exact final glow and edge response. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. The Atmospheric Glow performance lab owns one isolated broad-field compositor and never mounts the production host. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
 
 The registration boundary is:
 
@@ -128,6 +128,12 @@ Scheduling and performance are part of the contract:
 - source startup gets a bounded 2.5-second first-frame window before fail-open so a busy route transition cannot permanently hide a healthy glow source.
 
 `window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot()` is diagnostic output only. It reports ownership, source, scheduler, scale, cadence, geometry reads, sampled emitters, and rolling cost; it must not become configuration truth.
+
+### Atmospheric Glow performance lab
+
+`/lab/atmosphere-hybrid-glow.html` renders only the broad atmospheric field at an authored default of 8 FPS. It deliberately omits the tight small-radius glow, alternating snapshot canvases, CSS opacity crossfade, and additive display blend. The source simulation and crisp balls retain their normal cadence.
+
+The lab reads the production field material and its bounded one-frame memory, but keeps cadence, level multiplier, enabled state, and quality as lab-owned controls. One visible output Canvas and one reusable source Canvas carry the effect. The clean current field swaps with one history buffer, so memory does not require an additional full-frame history copy or accumulate older frames. Geometry reads occur only when the source Canvas changes size. The lab does not alter production cadence, production configuration, or production host ownership. Reduced Motion resolves to one static broad field without temporal history.
 
 ## Future Direction
 

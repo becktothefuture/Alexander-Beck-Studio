@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 13,
   "common": {
     "enabled": true,
     "qualityMode": "auto",
@@ -78,12 +78,8 @@
       "blendMode": "add"
     },
     "hybridGlow": {
-      "presentationMode": "hybrid",
-      "broadCadence": "8",
-      "tightCadence": "24",
-      "crossfadeMs": 110,
-      "broadStrength": 1,
-      "tightStrength": 1
+      "glowCadence": "8",
+      "glowStrength": 1
     }
   }
 }
