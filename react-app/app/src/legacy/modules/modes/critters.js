@@ -1146,18 +1146,18 @@ export function applyCrittersForces(ball, dt) {
 // Cache waypoint colors (regenerate when journey points or palette changes)
 let waypointColors = [];
 let lastJourneyPointCount = 0;
-let lastPaletteTemplate = null;
+let lastPaletteGeneration = -1;
 
 function ensureWaypointColors() {
   const globals = getGlobals();
   const pointCount = globals.hiveJourneyPointCount || 4;
-  const currentTemplate = globals.currentTemplate || 'riverMist';
+  const paletteGeneration = Number(globals.simulationPaletteGeneration) || 0;
   
   // Regenerate colors if point count or palette changed
   const needsRegeneration = 
     waypointColors.length !== pointCount || 
     lastJourneyPointCount !== pointCount ||
-    lastPaletteTemplate !== currentTemplate;
+    lastPaletteGeneration !== paletteGeneration;
     
   if (needsRegeneration) {
     waypointColors = [];
@@ -1165,7 +1165,7 @@ function ensureWaypointColors() {
       waypointColors.push(getColorByIndex(HIVE_WAYPOINT_COLOR_INDEX));
     }
     lastJourneyPointCount = pointCount;
-    lastPaletteTemplate = currentTemplate;
+    lastPaletteGeneration = paletteGeneration;
   }
 }
 
@@ -1198,7 +1198,7 @@ export function renderCrittersWaypoints(ctx) {
     const point = journeyPoints[i];
     const x = point.x * w;
     const y = point.y * h;
-    const color = waypointColors[i] || "var(--color-brand-white)";
+    const color = waypointColors[i] || getColorByIndex(HIVE_WAYPOINT_COLOR_INDEX);
     
     // Draw waypoint ball
     ctx.beginPath();

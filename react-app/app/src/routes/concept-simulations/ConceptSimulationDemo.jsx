@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { withBasePath } from '../../lib/base-path.js';
 import {
   DEFAULT_DAILY_FOCUS_THEME,

@@ -459,7 +459,7 @@ function seedFluxParticle(g, canvas, index, count, particleSize) {
   const home = getFilledSwarmHome(g, canvas, index, count);
   const colorInfo = pickRandomColorWithIndex(g);
   const ball = new Ball(home.x, home.y, particleSize, colorInfo.color);
-  ball.colorIndex = colorInfo.index;
+  ball.distributionIndex = colorInfo.distributionIndex;
   ball.r = particleSize;
   ball.rBase = particleSize;
   ball.m = 1;

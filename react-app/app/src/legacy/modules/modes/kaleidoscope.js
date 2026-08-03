@@ -17,6 +17,7 @@ import { drawPebbleBody } from '../visual/pebble-body.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { resolveMobileSimulationBodyScale } from '../../../lib/mobileSimulationSizing.js';
+import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -293,7 +294,9 @@ function initializeKaleidoscopeWithCount(count, mode) {
     pickedRow = pickedRow || pickWeightedRow(categorizedRows.all);
     if (!pickedRow) return pickRandomColorWithIndex();
     return {
-      color: palette[pickedRow.colorIndex] || palette[0] || "var(--color-brand-white)",
+      color: palette[pickedRow.colorIndex]
+        || palette[0]
+        || FALLBACK_SIMULATION_PALETTE_COLORS[0],
       distributionIndex: pickedRow.distributionIndex
     };
   }

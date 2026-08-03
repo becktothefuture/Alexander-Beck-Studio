@@ -8,7 +8,10 @@ import { MODES } from '../core/constants.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
-import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
+import {
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationMaterialColorIndex,
+} from '../../../palette/simulationPaletteContract.js';
 
 const TAU = Math.PI * 2;
 const MIN_DISTANCE = 0.001;
@@ -35,6 +38,7 @@ const loom = {
   pulseY: 0,
   pulseAge: 999,
   pulseColor: ELASTIC_PULSE_FALLBACK_COLOR,
+  paletteGeneration: -1,
   reducedMotion: false
 };
 
@@ -366,6 +370,7 @@ export function initializeElasticCenter() {
   loom.reducedMotion = prefersReducedMotion();
   loom.pulseAge = 999;
   loom.pulseColor = getColorByIndex(5) || ELASTIC_PULSE_FALLBACK_COLOR;
+  loom.paletteGeneration = Number(g.simulationPaletteGeneration) || 0;
   resetDrag();
 
   for (let i = 0; i < candidates.length; i += 1) {
@@ -504,6 +509,21 @@ export function updateElasticCenter(dt) {
   reflowHomes(g);
 
   const balls = g.balls || [];
+  const paletteGeneration = Number(g.simulationPaletteGeneration) || 0;
+  if (loom.paletteGeneration !== paletteGeneration) {
+    loom.pulseColor = getColorByIndex(5) || ELASTIC_PULSE_FALLBACK_COLOR;
+    for (let index = 0; index < balls.length; index += 1) {
+      const ball = balls[index];
+      const data = ball?._tensionLoom;
+      if (!data) continue;
+      const colorIndex = resolveSimulationMaterialColorIndex(
+        ball.distributionIndex,
+        g.colorDistribution,
+      );
+      data.baseColor = getColorByIndex(colorIndex);
+    }
+    loom.paletteGeneration = paletteGeneration;
+  }
   const dpr = getDpr(g);
   const pulseDuration = 0.72;
   const pulseSpeed = Math.max(180, Number(g.tensionLoomPulseSpeed ?? 620)) * dpr;

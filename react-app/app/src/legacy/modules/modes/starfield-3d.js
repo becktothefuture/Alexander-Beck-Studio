@@ -4,12 +4,14 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { pickRandomColor } from '../visual/colors.js';
+import { getColorByIndex, pickRandomColorWithIndex } from '../visual/colors.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
+import { resolveSimulationMaterialColorIndex } from '../../../palette/simulationPaletteContract.js';
 
 // Module-level star array (not balls, just data)
 let _stars = [];
 let _lastTime = 0;
+let _paletteGeneration = -1;
 const SPAN_MULTIPLIER = 4;
 const STARFIELD_BASE_SIZE_MULTIPLIER = 0.55;
 const STARFIELD_FAR_SIZE_RATIO = 0.68;
@@ -31,15 +33,36 @@ let _mouseInitialized = false;
 let _lastPointerSequence = null;
 
 function createStar(w, h, zNear, zFar, spanX, spanY) {
+  const { color, distributionIndex } = pickRandomColorWithIndex();
   return {
     x: (Math.random() * 2 - 1) * w * spanX * 0.5,
     y: (Math.random() * 2 - 1) * h * spanY * 0.5,
     z: zNear + Math.random() * (zFar - zNear),
-    color: pickRandomColor(),
+    color,
+    distributionIndex,
     visualScale: 1,
     alpha: 0, // Start invisible for fade-in
     fadeState: 'fadingIn' // 'fadingIn', 'visible', 'fadingOut'
   };
+}
+
+function syncStarfieldPalette(g) {
+  const generation = Number(g.simulationPaletteGeneration) || 0;
+  if (_paletteGeneration === generation) return;
+
+  for (let index = 0; index < _stars.length; index += 1) {
+    const star = _stars[index];
+    const colorIndex = resolveSimulationMaterialColorIndex(
+      star.distributionIndex,
+      g.colorDistribution,
+    );
+    star.color = getColorByIndex(colorIndex);
+  }
+  _paletteGeneration = generation;
+  if (g.canvas?.dataset) {
+    g.canvas.dataset.starfieldPaletteGeneration = String(generation);
+    g.canvas.dataset.starfieldPaletteColors = [...new Set(_stars.map((star) => star.color))].join(',');
+  }
 }
 
 export function getStarfieldVisualTransitionCount() {
@@ -79,6 +102,8 @@ export function initializeStarfield3D() {
     star.fadeTimer = 0;
     _stars.push(star);
   }
+  _paletteGeneration = -1;
+  syncStarfieldPalette(g);
 
   canvas.dataset.simulationBodyCount = String(count);
   canvas.dataset.starfieldSpanMultiplier = spanMultiplier.toFixed(2);
@@ -97,6 +122,7 @@ export function renderStarfield3D(ctx) {
   const g = getGlobals();
   const canvas = g.canvas;
   if (!canvas || _stars.length === 0) return;
+  syncStarfieldPalette(g);
 
   const now = performance.now();
   const dt = Math.min(0.1, (now - _lastTime) / 1000);
@@ -171,7 +197,9 @@ export function renderStarfield3D(ctx) {
       star.z = zFar + Math.random() * (zFar - zNear) * 0.3;
       star.x = (Math.random() * 2 - 1) * w * spanX * 0.5;
       star.y = (Math.random() * 2 - 1) * h * spanY * 0.5;
-      star.color = pickRandomColor();
+      const { color, distributionIndex } = pickRandomColorWithIndex();
+      star.color = color;
+      star.distributionIndex = distributionIndex;
       star.alpha = 0;
       star.fadeState = 'fadingIn';
       star.fadeTimer = 0;

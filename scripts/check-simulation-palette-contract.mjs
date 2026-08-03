@@ -23,6 +23,24 @@ const designSystem = JSON.parse(readFileSync(
   resolve(repoRoot, 'react-app/app/public/config/design-system.json'),
   'utf8',
 ));
+const simulationCatalog = JSON.parse(readFileSync(
+  resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json'),
+  'utf8',
+));
+const tokenSource = readFileSync(
+  resolve(repoRoot, 'react-app/app/public/css/tokens.css'),
+  'utf8',
+);
+
+const initialCssPalette = Array.from({ length: SIMULATION_PALETTE_SIZE }, (_, index) => {
+  const match = tokenSource.match(new RegExp(`--ball-${index + 1}:\\s*(#[\\da-f]{6})`, 'i'));
+  return match?.[1]?.toLowerCase() || '';
+});
+assert.deepEqual(
+  initialCssPalette,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  'First-paint CSS must use the same fallback palette as the runtime controller.',
+);
 
 function compactDistribution(distribution) {
   return distribution.map(({ roleId, label, colorIndex, weight }) => ({
@@ -228,19 +246,45 @@ const productionConsumers = [
   'react-app/app/src/hooks/useTimeOfDayPaletteSync.js',
   'react-app/app/src/routes/daily-focus/dailyFocusTheme.js',
   'react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx',
+  'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx',
   'react-app/app/src/routes/concept-simulations/conceptSimulationRenderer.js',
+  'react-app/app/src/routes/flock-of-birds/FlockOfBirdsDemo.jsx',
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
+  'react-app/app/src/routes/napoleon-point-cloud/NapoleonPointCloud.jsx',
+  'react-app/app/src/routes/repel-room/RepelRoomDemo.jsx',
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
+  'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
   'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
 ];
 
+const labPaletteOwnerBySimulation = new Map([
+  ['repel-room', 'react-app/app/src/routes/repel-room/RepelRoomDemo.jsx'],
+  ['flock-of-birds', 'react-app/app/src/routes/flock-of-birds/FlockOfBirdsDemo.jsx'],
+  ['beach-ball-room', 'react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx'],
+  ['aperture-bloom', 'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx'],
+  ['confluence-bridges', 'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx'],
+  ['napoleon-point-cloud', 'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx'],
+  ['rift-rings', 'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx'],
+  ['spatial-scan', 'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx'],
+]);
+simulationCatalog.simulations
+  .filter((entry) => entry.surface === 'lab-route')
+  .forEach((entry) => {
+    const ownerPath = labPaletteOwnerBySimulation.get(entry.id);
+    assert.ok(ownerPath, `${entry.id} has no registered shared-palette owner.`);
+    assert.ok(productionConsumers.includes(ownerPath), `${entry.id} palette owner is not checked.`);
+  });
+
 const forbiddenPatterns = [
   { pattern: /from\s+['"][^'"]*timeOfDayPalette\.js['"]/, reason: 'imports the schedule directly' },
   { pattern: /(?:DEFAULT_COLOR_DISTRIBUTION|DEFAULT_DISTRIBUTION)\s*=/, reason: 'declares a local distribution fallback' },
   { pattern: /colorDistribution\s*:\s*\[/, reason: 'declares a local distribution array' },
+  { pattern: /palette\s*:\s*\[/, reason: 'declares a local palette array' },
+  { pattern: /runtime\.(?:paletteId|palette|paletteTemplate|paletteSlug)/, reason: 'reads a config-selected palette' },
+  { pattern: /getPropertyValue\([^\n]*--ball-/, reason: 'reconstructs a palette from CSS instead of consuming the snapshot' },
   { pattern: /searchParams[^\n]*(?:palette|colorTemplate)|params\.get\(['"](?:palette|colorTemplate)/i, reason: 'reads a palette URL override' },
 ];
 
@@ -254,6 +298,9 @@ productionConsumers.forEach((relativePath) => {
 const requiredRegistrations = [
   'react-app/app/src/hooks/useTimeOfDayPaletteSync.js',
   'react-app/app/src/routes/daily-focus/dailyFocusTheme.js',
+  'react-app/app/src/routes/concept-simulations/ConceptSimulationDemo.jsx',
+  'react-app/app/src/routes/flock-of-birds/FlockOfBirdsDemo.jsx',
+  'react-app/app/src/routes/repel-room/RepelRoomDemo.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
   'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
@@ -306,13 +353,104 @@ assert.match(portfolioSource, /roleCounts/);
 assert.match(portfolioSource, /roleId:\s*row\.roleId/);
 
 for (const relativePath of [
+  'react-app/app/src/routes/napoleon-point-cloud/NapoleonPointCloud.jsx',
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
+  'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
 ]) {
   const source = readFileSync(resolve(repoRoot, relativePath), 'utf8');
-  assert.match(source, /materialRoleIndex/, `${relativePath} must retain stable material-role indices.`);
-  assert.match(source, /resolveSimulationMaterialColorIndex/, `${relativePath} must resolve role colours from the current snapshot.`);
+  if (relativePath.includes('Renderer')) {
+    assert.match(source, /materialRoleIndex/, `${relativePath} must retain stable material-role indices.`);
+    assert.match(source, /resolveSimulationMaterialColorIndex/, `${relativePath} must resolve role colours from the current snapshot.`);
+  } else {
+    assert.match(source, /resolveSimulationPaletteColors/);
+    assert.match(source, /resolveSimulationColorDistribution/);
+  }
 }
+
+const cssPaletteFallbackFiles = [
+  'react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css',
+  'react-app/app/src/routes/loader-playground/loader-playground.css',
+  'react-app/app/src/routes/loader-playground/loaderPlaygroundControls.js',
+  'react-app/app/src/routes/route-ball-transition-lab/RouteBallTransitionLab.jsx',
+];
+cssPaletteFallbackFiles.forEach((relativePath) => {
+  const source = readFileSync(resolve(repoRoot, relativePath), 'utf8');
+  const fallbackPattern = /var\(--ball-([1-8]),\s*(#[\da-f]{6})\)/gi;
+  let match = fallbackPattern.exec(source);
+  while (match) {
+    const lineStart = source.lastIndexOf('\n', match.index) + 1;
+    const lineEnd = source.indexOf('\n', match.index);
+    const line = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
+    if (line.includes('--about-route-accent')) {
+      match = fallbackPattern.exec(source);
+      continue;
+    }
+    const paletteIndex = Number(match[1]) - 1;
+    assert.equal(
+      match[2].toLowerCase(),
+      FALLBACK_SIMULATION_PALETTE_COLORS[paletteIndex],
+      `${relativePath} has a stale --ball-${paletteIndex + 1} fallback.`,
+    );
+    match = fallbackPattern.exec(source);
+  }
+});
+
+const legacyColorSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/visual/colors.js',
+), 'utf8');
+assert.doesNotMatch(
+  legacyColorSource,
+  /export function applyColorTemplate/,
+  'The legacy runtime must not expose an arbitrary palette mutation path.',
+);
+assert.match(legacyColorSource, /refreshSimulationPalettePresentation\(\)/);
+
+const starfieldSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/modes/starfield-3d.js',
+), 'utf8');
+for (const requiredPattern of [
+  /pickRandomColorWithIndex/,
+  /distributionIndex/,
+  /resolveSimulationMaterialColorIndex/,
+  /simulationPaletteGeneration/,
+]) {
+  assert.match(starfieldSource, requiredPattern, 'Perspective must refresh its private star array.');
+}
+assert.doesNotMatch(starfieldSource, /\bpickRandomColor\(/);
+
+const elasticSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/modes/elastic-center.js',
+), 'utf8');
+assert.match(elasticSource, /loom\.paletteGeneration !== paletteGeneration/);
+assert.match(elasticSource, /data\.baseColor = getColorByIndex\(colorIndex\)/);
+
+const crittersSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/modes/critters.js',
+), 'utf8');
+assert.match(crittersSource, /lastPaletteGeneration !== paletteGeneration/);
+assert.doesNotMatch(crittersSource, /lastPaletteTemplate|currentTemplate \|\|/);
+
+const pressureSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/modes/pressure-crucible.js',
+), 'utf8');
+assert.match(pressureSource, /ball\.distributionIndex = colorInfo\.distributionIndex/);
+assert.doesNotMatch(pressureSource, /ball\.colorIndex = colorInfo\.index/);
+
+const masterControlsSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/ui/controls.js',
+), 'utf8');
+assert.doesNotMatch(
+  masterControlsSource,
+  /applyColorTemplate|colorSelect\.addEventListener/,
+  'The scheduled palette selector must remain read-only.',
+);
 const controlRegistrySource = readFileSync(resolve(
   repoRoot,
   'react-app/app/src/legacy/modules/ui/control-registry.js',
