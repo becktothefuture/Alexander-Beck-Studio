@@ -1,6 +1,6 @@
 export const BUTTON_BAR_DEFAULTS = Object.freeze({
-  buttonBarHeightPx: 60.8,
-  buttonBarInsetPx: 10,
+  buttonBarHeightPx: 56,
+  buttonBarInsetPx: 6,
   buttonBarWidthPx: 2400,
   buttonBarMaxWidthPx: 2400,
   buttonBarGapPx: 16,
@@ -20,16 +20,6 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarActiveDropPx: 0,
   buttonBarTransitionMs: 140,
   buttonBarPressZTravelPx: 2,
-  buttonBarSideLinesEnabled: true,
-  buttonBarSideLineCount: 5,
-  buttonBarSideLineBankHeightPct: 80,
-  buttonBarSideLineOuterPaddingPx: 24,
-  buttonBarSideLineOffsetYPx: 0,
-  buttonBarSideLineMenuGapPx: 48,
-  buttonBarSideLineThicknessPx: 1,
-  buttonBarSideLineOpacity: 0.4,
-  buttonBarSideLineContrastPct: 50,
-  buttonBarSideLineRadiusPx: 0.5,
 });
 
 const LEGACY_BUTTON_BAR_KEYS = Object.freeze({
@@ -72,7 +62,7 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
         id: 'buttonBarInsetPx',
         label: 'Bar Inset',
         type: 'range',
-        min: 10,
+        min: 6,
         max: 32,
         step: 1,
         display: 'px',
@@ -262,117 +252,6 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
       },
     ],
   },
-  {
-    title: 'Side Lines · Behaviour',
-    initiallyOpen: true,
-    controls: [
-      {
-        id: 'buttonBarSideLinesEnabled',
-        label: 'Enabled',
-        type: 'checkbox',
-        display: 'boolean',
-      },
-    ],
-  },
-  {
-    title: 'Side Lines · Layout',
-    initiallyOpen: true,
-    controls: [
-      {
-        id: 'buttonBarSideLineCount',
-        label: 'Line Count',
-        type: 'range',
-        min: 2,
-        max: 8,
-        step: 1,
-        display: 'integer',
-      },
-      {
-        id: 'buttonBarSideLineBankHeightPct',
-        label: 'Bank Height',
-        type: 'range',
-        min: 30,
-        max: 100,
-        step: 1,
-        display: '%',
-        hint: 'Maximum line-bank height; scales down fluidly on narrower desktops.',
-      },
-      {
-        id: 'buttonBarSideLineOuterPaddingPx',
-        label: 'Outer Padding',
-        type: 'range',
-        min: 0,
-        max: 80,
-        step: 1,
-        display: 'px',
-        hint: 'Additional inset from each wall edge; scales down fluidly on narrower desktops.',
-      },
-      {
-        id: 'buttonBarSideLineOffsetYPx',
-        label: 'Vertical Offset',
-        type: 'range',
-        min: -12,
-        max: 12,
-        step: 0.5,
-        display: 'subpx',
-        hint: 'Maximum vertical adjustment; scales down fluidly on narrower desktops.',
-      },
-      {
-        id: 'buttonBarSideLineMenuGapPx',
-        label: 'Menu Gap',
-        type: 'range',
-        min: 16,
-        max: 120,
-        step: 1,
-        display: 'px',
-        hint: 'Maximum spacing between the line banks and controls; scales down fluidly on narrower desktops.',
-      },
-    ],
-  },
-  {
-    title: 'Side Lines · Appearance',
-    initiallyOpen: true,
-    controls: [
-      {
-        id: 'buttonBarSideLineThicknessPx',
-        label: 'Thickness',
-        type: 'range',
-        min: 0.5,
-        max: 3,
-        step: 0.25,
-        display: 'subpx',
-        hint: 'Crisp line thickness; remains constant across desktop widths.',
-      },
-      {
-        id: 'buttonBarSideLineOpacity',
-        label: 'Opacity',
-        type: 'range',
-        min: 0,
-        max: 1,
-        step: 0.01,
-        display: 'ratio',
-      },
-      {
-        id: 'buttonBarSideLineContrastPct',
-        label: 'Ink Mix',
-        type: 'range',
-        min: 0,
-        max: 100,
-        step: 1,
-        display: '%',
-      },
-      {
-        id: 'buttonBarSideLineRadiusPx',
-        label: 'End Radius',
-        type: 'range',
-        min: 0,
-        max: 4,
-        step: 0.25,
-        display: 'subpx',
-        hint: 'Maximum bank corner radius; scales down fluidly on narrower desktops.',
-      },
-    ],
-  },
 ]);
 
 export const BUTTON_BAR_CONTROLS = Object.freeze(
@@ -393,24 +272,6 @@ function readControlValue(input, id) {
     : undefined;
 }
 
-function createFluidPxClamp(targetValue, startRatio, minimumStartPx = 0) {
-  const target = Number(targetValue);
-  if (!Number.isFinite(target) || target === 0) return '0px';
-
-  const targetMagnitude = Math.abs(target);
-  const startMagnitude = Math.min(
-    targetMagnitude,
-    Math.max(targetMagnitude * startRatio, minimumStartPx),
-  );
-  const start = Math.sign(target) * startMagnitude;
-  const slope = (target - start) / (1440 - 900);
-  const intercept = start - (slope * 900);
-  const lower = Math.min(start, target);
-  const upper = Math.max(start, target);
-
-  return `clamp(${lower.toFixed(3)}px, calc(${intercept.toFixed(3)}px + ${(slope * 100).toFixed(6)}vw), ${upper.toFixed(3)}px)`;
-}
-
 export function normalizeButtonBarConfig(source = {}) {
   const input = source && typeof source === 'object' ? source : {};
   return Object.fromEntries(
@@ -429,17 +290,6 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   const targetRoot = root || (typeof document !== 'undefined' ? document.documentElement : null);
   if (!targetRoot?.style) return;
   const config = normalizeButtonBarConfig(source);
-  const sideLineBankHeightPx = config.buttonBarButtonHeightPx
-    * (config.buttonBarSideLineBankHeightPct / 100);
-  const sideLinePitchPx = sideLineBankHeightPx / config.buttonBarSideLineCount;
-  const sideLinePitchAt900Px = sideLinePitchPx * 0.8;
-  const sideLineThicknessPx = Math.min(config.buttonBarSideLineThicknessPx, sideLinePitchAt900Px);
-  const sideLineStartPx = Math.max(0, (sideLinePitchPx - sideLineThicknessPx) / 2);
-  const sideLineStartAt900Px = Math.max(0, (sideLinePitchAt900Px - sideLineThicknessPx) / 2);
-  const sideLineStartRatio = sideLineStartPx > 0
-    ? sideLineStartAt900Px / sideLineStartPx
-    : 1;
-
   targetRoot.style.setProperty('--button-bar-height', `${config.buttonBarHeightPx}px`);
   targetRoot.style.setProperty('--button-bar-inset', `${config.buttonBarInsetPx}px`);
   targetRoot.style.setProperty('--button-bar-padding-y', `${config.buttonBarInsetPx}px`);
@@ -461,19 +311,6 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   targetRoot.style.setProperty('--button-bar-active-glow', `${config.buttonBarActiveGlowPx}px`);
   targetRoot.style.setProperty('--button-bar-active-drop', `${config.buttonBarActiveDropPx}px`);
   targetRoot.style.setProperty('--button-bar-transition-ms', `${config.buttonBarTransitionMs}ms`);
-  targetRoot.style.setProperty('--button-bar-side-line-bank-height', createFluidPxClamp(sideLineBankHeightPx, 0.8));
-  targetRoot.style.setProperty('--button-bar-side-line-pitch', createFluidPxClamp(sideLinePitchPx, 0.8));
-  targetRoot.style.setProperty('--button-bar-side-line-thickness', `${sideLineThicknessPx}px`);
-  targetRoot.style.setProperty('--button-bar-side-line-start', createFluidPxClamp(sideLineStartPx, sideLineStartRatio));
-  targetRoot.style.setProperty('--button-bar-side-line-end', 'calc(var(--button-bar-side-line-start) + var(--button-bar-side-line-thickness))');
-  targetRoot.style.setProperty('--button-bar-side-line-outer-padding', createFluidPxClamp(config.buttonBarSideLineOuterPaddingPx, 0.45, 8));
-  targetRoot.style.setProperty('--button-bar-side-line-offset-y', createFluidPxClamp(config.buttonBarSideLineOffsetYPx, 0.65));
-  targetRoot.style.setProperty('--button-bar-side-line-menu-gap', createFluidPxClamp(config.buttonBarSideLineMenuGapPx, 0.45, 16));
-  targetRoot.style.setProperty('--button-bar-side-line-opacity', String(
-    config.buttonBarSideLinesEnabled ? config.buttonBarSideLineOpacity : 0,
-  ));
-  targetRoot.style.setProperty('--button-bar-side-line-contrast', `${config.buttonBarSideLineContrastPct}%`);
-  targetRoot.style.setProperty('--button-bar-side-line-radius', createFluidPxClamp(config.buttonBarSideLineRadiusPx, 0.75));
   targetRoot.style.setProperty('--shell-tab-press-projection-y', `${Math.min(1.5, Math.max(0, config.buttonBarPressZTravelPx * 0.5)).toFixed(2)}px`);
 
   targetRoot.style.setProperty('--shell-bottom-band-height', 'var(--button-bar-responsive-height)');

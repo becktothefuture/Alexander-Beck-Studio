@@ -38,12 +38,12 @@
     "parallaxFloat",
     "entrance"
   ],
-  "controlCount": 336,
-  "descriptorDigest": "03e8913f9e7e57f6db7ff3464614cc4425fafef83439a1c8e3998350cff86804",
-  "renderedControlCount": 336,
-  "renderedIdDigest": "9b9307d86b2935ea5ab24ab5eac674979acdd51c933439804ee24b83d5f66760",
-  "generatedMarkupDigest": "dc56ec762fa235f4e5522fab4bdf4f2e23f070e2078d881e4a07d748bfd7a42c",
-  "parseFormatDigest": "cf4efb194e4345743bca42ac1c084f039c88b0cca331cea925c2eecf720015ed",
+  "controlCount": 326,
+  "descriptorDigest": "e93caed6a23869e3c7d611896a05d0932eb0116ecfd1572d51c32b3b3f5bb750",
+  "renderedControlCount": 326,
+  "renderedIdDigest": "5e4e621211af0083e91f1e1aa416df366322cab9b2b29045b21825d6af83d171",
+  "generatedMarkupDigest": "773c5673bb5d49c00f20ec5190f47a1d3721c547e05ae5087f14b1c24d66a698",
+  "parseFormatDigest": "86b8a60bbdaa84a2cde522cbd36ff3a339949bcd5eb9d791945b956e5391dd08",
   "sentinels": [
     {
       "id": "ballMassKg",

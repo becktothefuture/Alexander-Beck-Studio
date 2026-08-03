@@ -313,12 +313,12 @@
   --content-padding-x: var(--abs-content-padding);
   --content-padding-y: var(--abs-content-padding);
   --content-padding-y-bottom: calc(var(--abs-content-padding) * var(--abs-content-pad-mul-bottom));
-  --button-bar-inset: 10px;
+  --button-bar-inset: 6px;
   --button-bar-padding-y: var(--button-bar-inset);
   --button-bar-width: 2400px;
   --button-bar-gap: 16px;
   --button-bar-button-height: 40.8px;
-  --button-bar-height: calc(var(--button-bar-button-height) + (var(--button-bar-padding-y) * 2));
+  --button-bar-height: 56px;
   --button-bar-responsive-height: var(--button-bar-height);
   --button-bar-button-padding-x: 16px;
   --button-bar-button-radius: 999px;

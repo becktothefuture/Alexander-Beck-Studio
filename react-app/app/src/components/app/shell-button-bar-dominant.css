@@ -6,74 +6,40 @@
      visible body is three quarters of the primary height, centred in the same
      row so both groups share one optical axis. */
   --dominant-primary-control-height: var(--shell-tab-height, 48px);
-  --dominant-primary-tab-visual-height: 80%;
-  --dominant-primary-tab-padding-inline: calc(var(--shell-tab-padding-x, 16px) * 0.9);
+  --dominant-primary-tab-padding-inline: calc(var(--shell-tab-padding-x, 16px) * 1.5);
   --dominant-primary-tab-radius: 10px;
   --dominant-primary-tab-font-size: calc((14px * 0.8) + 2px);
   --dominant-primary-tab-font-weight: 644;
   --dominant-primary-tab-letter-spacing: 0.03em;
   --dominant-primary-tab-gap: var(--shell-tab-gap, 16px);
-  --dominant-flat-active-surface: rgb(216 216 216);
   --dominant-flat-utility-surface: rgb(32 32 32);
   --dominant-flat-utility-surface-hover: rgb(40 40 40);
   --dominant-flat-bright-ink: rgb(245 244 239);
-  --dominant-flat-muted-ink: rgba(var(--abs-rgb-white), 0.62);
-  --dominant-primary-active-surface: var(--dominant-flat-active-surface);
+  --dominant-primary-active-surface: rgb(216 216 216);
   --dominant-primary-active-ink: rgb(var(--abs-rgb-black));
-  --dominant-primary-idle-ink: var(--dominant-flat-muted-ink);
+  --dominant-primary-idle-ink: rgba(var(--abs-rgb-white), 0.52);
   --dominant-primary-hover-ink: rgba(var(--abs-rgb-white), 0.78);
   --dominant-primary-pressed-ink: rgba(var(--abs-rgb-white), 0.92);
   --dominant-secondary-control-height: calc(var(--dominant-primary-control-height) * 0.75);
   --dominant-secondary-icon-size: calc(var(--dominant-secondary-control-height) * 0.5);
   --dominant-group-separation: clamp(32px, 3vw, 48px);
-  --dominant-utility-wall: var(
-    --playground-stage,
-    var(--dominant-wall, var(--button-bar-gasket-ground))
-  );
-  --dominant-utility-page: var(
-    --playground-page,
-    var(--dominant-page-bg, var(--dominant-utility-wall))
-  );
-  --dominant-utility-ink: var(
-    --playground-ink,
-    var(--dominant-page-ink, var(--button-bar-outer-ink))
-  );
-  --button-bar-secondary-control-ink: var(--dominant-utility-ink);
   --dominant-utility-control-bg: var(--dominant-flat-utility-surface);
   --dominant-utility-control-bg-hover: var(--dominant-flat-utility-surface-hover);
-  --dominant-utility-control-ink: var(--dominant-flat-muted-ink);
-  --dominant-utility-shadow: var(--dominant-press-shadow, rgba(var(--abs-rgb-black), 0.52));
-  --dominant-utility-light: var(--dominant-press-light, rgba(var(--abs-rgb-white), 0.42));
-  --dominant-sound-active: var(--dominant-flat-utility-surface);
-  --dominant-sound-active-ink: var(--dominant-flat-bright-ink);
-  --dominant-theme-thumb-surface: var(--dominant-flat-bright-ink);
-  --dominant-theme-thumb-ink: rgb(var(--abs-rgb-black));
-  --dominant-utility-pressed-rim: none;
-  --dominant-tab-pressed-rim: none;
+  --dominant-utility-control-ink: var(--dominant-primary-idle-ink);
   --shell-tab-motion-ease: cubic-bezier(0.2, 0, 0, 1);
   --button-bar-pill-motion-ease: cubic-bezier(0.2, 1.18, 0.24, 1);
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .shell-tab {
-  transition:
-    background 160ms var(--shell-tab-motion-ease),
-    color 160ms var(--shell-tab-motion-ease),
-    transform 160ms var(--shell-tab-motion-ease);
+  justify-content: center;
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons {
   --button-bar-active-pill-x: 0px;
   --button-bar-active-pill-width: calc(var(--shell-tab-height, 48px) * 0.8);
-  --button-bar-active-pill-height: var(--dominant-primary-tab-visual-height);
-  --button-bar-active-pill-y: 10%;
+  --button-bar-active-pill-height: 92%;
+  --button-bar-active-pill-y: 4%;
   --button-bar-active-pill-bg: var(--dominant-primary-active-surface);
 
   position: relative;
   isolation: isolate;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] {
-  justify-content: center;
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider {
@@ -133,29 +99,23 @@
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is(:hover, :focus-visible, :active),
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[aria-current='page'],
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  .shell-tab {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
-  border-width: 0;
+  color: var(--dominant-primary-idle-ink);
+  border: 0;
   border-radius: var(--abs-radius-pill);
+  background: none;
+  box-shadow: none;
   transform: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab {
-  color: var(--dominant-primary-idle-ink);
-  background: transparent;
+  .shell-tab:is(:hover, :focus-visible, :active, [aria-current='page']) {
+  background: none;
   box-shadow: none;
+  transform: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -190,28 +150,19 @@
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active) {
   color: var(--dominant-primary-hover-ink);
-  background: transparent;
-  box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab:not([aria-current='page']):active {
   color: var(--dominant-primary-pressed-ink);
-  background: transparent;
-  box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab[aria-current='page'],
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[aria-current='page']:is(:hover, :focus-visible, :active) {
+  .shell-tab[aria-current='page'] {
   color: var(--dominant-primary-active-ink);
   cursor: default;
-  background: transparent;
-  box-shadow: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -223,14 +174,6 @@
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
   .shell-tab
-  :is(.shell-tab__icon, .shell-tab__label),
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is(:hover, :focus-visible, :active)
-  :is(.shell-tab__icon, .shell-tab__label),
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[aria-current='page']
   :is(.shell-tab__icon, .shell-tab__label) {
   color: currentColor;
   filter: none;
@@ -240,19 +183,7 @@
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab:is(:active, [aria-current='page'])
-  :is(.shell-tab__icon, .shell-tab__label) {
-  transform: translate3d(0, calc(0px - var(--shell-tab-motion-y, 0px)), 0);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab
-  .shell-tab__label,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is(:hover, :focus-visible, :active, [aria-current='page'])
-  .shell-tab__label {
+  .shell-tab .shell-tab__label {
   line-height: 1;
   transform: translate3d(0, 1px, 0);
 }
@@ -292,11 +223,9 @@
 
 /* Sound keeps the same outer-shell body in both states and both site themes. */
 .button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']),
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']):not(:hover):not(:focus-visible):not(:active) {
+  .button-bar__sound-toggle.shell-tab:not([data-enabled='true']) {
   color: var(--dominant-utility-control-ink);
-  background: transparent;
+  background: none;
   box-shadow: none;
 }
 
@@ -308,21 +237,16 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__sound-toggle.shell-tab[data-enabled='true'],
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__sound-toggle.shell-tab[data-enabled='true']:is(:hover, :focus-visible, :active) {
-  --shell-tab-text-active: var(--dominant-sound-active-ink);
-  color: var(--dominant-sound-active-ink);
-  background: var(--dominant-sound-active);
+  .button-bar__sound-toggle.shell-tab[data-enabled='true'] {
+  --shell-tab-text-active: var(--dominant-flat-bright-ink);
+  color: var(--dominant-flat-bright-ink);
+  background: var(--dominant-flat-utility-surface);
   box-shadow: none;
   transform: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__sound-toggle.shell-tab
-  .button-bar__secondary-icon.shell-tab__icon,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__sound-toggle.shell-tab:is(:hover, :focus-visible, :active)
   .button-bar__secondary-icon.shell-tab__icon {
   display: inline-grid;
   place-items: center;
@@ -365,58 +289,11 @@
   transform: none;
 }
 
-/* Hover and keyboard focus can reveal material, but idle label ink does not
-   change until the button is physically pressed. */
-.button-bar.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active),
-.button-bar.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):is(:hover, :focus-visible):not(:active)
-  :is(.shell-tab__icon, .shell-tab__label) {
-  color: var(--dominant-primary-hover-ink);
-}
-
-.button-bar.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):active,
-.button-bar.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):active
-  :is(.shell-tab__icon, .shell-tab__label) {
-  color: var(--dominant-primary-pressed-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
-  background: var(--dominant-utility-control-bg);
-  box-shadow: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__theme-toggle[data-state='light']
-  .button-bar__theme-thumb {
-  inset-inline-start: var(--button-bar-switch-padding);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__theme-toggle[data-state='dark']
-  .button-bar__theme-thumb {
-  inset-inline-start: calc(
-    100% - var(--button-bar-switch-padding) - var(--button-bar-switch-thumb-size)
-  );
-}
-
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__theme-toggle
-  .button-bar__theme-thumb,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__theme-toggle:is(:hover, :focus-visible, :active)
   .button-bar__theme-thumb {
-  position: absolute;
-  color: var(--dominant-theme-thumb-ink);
-  border-radius: var(--button-bar-switch-thumb-radius);
-  background: var(--dominant-theme-thumb-surface);
+  color: rgb(var(--abs-rgb-black));
+  background: var(--dominant-flat-bright-ink);
   box-shadow: none;
   filter: none;
   text-shadow: none;
@@ -435,10 +312,7 @@
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab[aria-current='page']:focus-visible,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not([aria-current='page']):focus-visible:not(:active) {
+  .shell-tab[aria-current='page']:focus-visible {
   outline-color: rgb(var(--abs-rgb-black));
   box-shadow: 0 0 0 var(--abs-focus-ring-offset, 3px) rgb(var(--abs-rgb-white));
 }
@@ -450,25 +324,12 @@
     --dominant-primary-tab-font-size: clamp(11px, calc(1.35vw + 2px), 13.2px);
     --dominant-primary-tab-gap: clamp(2px, 0.9vw, 7px);
     --dominant-group-separation: clamp(8px, 2vw, 14px);
-    justify-content: center;
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns:
-      max-content
-      max-content
-      max-content
-      max-content
-      max-content;
     flex: 0 0 auto;
     inline-size: max-content;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab:not(.shell-tab--icon-only) {
-    min-inline-size: 0;
   }
 
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
@@ -486,12 +347,6 @@
     border-width: 0;
     background: var(--dominant-flat-utility-surface);
     box-shadow: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons:has(.button-bar__mobile-theme-reset)
-    .button-bar__sound-toggle.shell-tab {
-    display: none;
   }
 }
 
