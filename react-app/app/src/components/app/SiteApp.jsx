@@ -109,6 +109,10 @@ const ROUTE_DESCRIPTORS = Object.freeze({
     getView: getAtmosphereLabHomeView,
     runtime: HOME_ROUTE_RUNTIME,
   }),
+  'atmosphere-hybrid-glow': defineRouteDescriptor('atmosphere-hybrid-glow', {
+    getView: getAtmosphereLabHomeView,
+    runtime: HOME_ROUTE_RUNTIME,
+  }),
   contact: defineRouteDescriptor('contact', { getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
   portfolio: defineRouteDescriptor('portfolio', { getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
   about: defineRouteDescriptor('about', { getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),

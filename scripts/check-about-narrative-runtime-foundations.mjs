@@ -297,6 +297,31 @@ test('preparation controller follows idle, preparing, ready, and disposed states
   assert.equal(controller.requestPreparation(intent('sequence-b')).reason, 'disposed');
 });
 
+test('preparation controller adopts a cached ready intent without starting preparation', () => {
+  let starts = 0;
+  const cached = { id: 'cached-sequence' };
+  const controller = createAboutNarrativePreparationController({
+    startPreparation: async () => {
+      starts += 1;
+      return { id: 'unexpected-worker-result' };
+    },
+  });
+  const result = controller.adoptReady(intent('sequence-a'), cached, {
+    trigger: 'document-cache',
+  });
+  assert.deepEqual(result, {
+    accepted: true,
+    reason: 'adopted-ready',
+    generation: 1,
+  });
+  assert.equal(starts, 0);
+  assert.equal(controller.getSnapshot().state, 'ready');
+  assert.equal(controller.getSnapshot().trigger, 'document-cache');
+  assert.equal(controller.getReadyCandidate(), cached);
+  assert.equal(controller.requestPreparation(intent('sequence-a')).reason, 'already-ready');
+  assert.equal(starts, 0);
+});
+
 test('deterministic preparation failure latches and repeated frames cannot restart it', async () => {
   const timers = createFakeTimers();
   let starts = 0;

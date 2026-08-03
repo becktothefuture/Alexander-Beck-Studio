@@ -45,6 +45,14 @@ export const ROUTE_MANIFEST = Object.freeze({
     layout: 'shared-shell',
     title: 'Atmosphere Lab — Crisp + Glow',
   },
+  'atmosphere-hybrid-glow': {
+    id: 'atmosphere-hybrid-glow',
+    path: '/lab/atmosphere-hybrid-glow.html',
+    aliases: ['/lab/atmosphere-hybrid-glow.html', '/lab/atmosphere-hybrid-glow'],
+    gated: false,
+    layout: 'shared-shell',
+    title: 'Atmosphere Lab — Hybrid Glow',
+  },
   contact: {
     id: 'contact',
     path: '/contact.html',

@@ -22,6 +22,7 @@ import {
 } from '../title-depth.js';
 import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
 import { CanvasFeedbackEffect } from './canvas-feedback-effect.js';
+import { HybridGlowLabController } from './hybrid-glow-lab-controller.js';
 import { WebglAtmosphereEffect } from './webgl-atmosphere-effect.js';
 import {
   getAtmosphereFramePolicySnapshot,
@@ -731,6 +732,30 @@ export async function initializeAtmosphereLab({ variant, globals }) {
       const { refreshBubbleAtmosphereDepth } = await import('../../modes/bubbles.js');
       refreshBubbleAtmosphereDepth();
     }
+    return activeController;
+  }
+  if (variant === 'hybridGlow') {
+    const [config, designSystem] = await Promise.all([
+      fetchLabConfig(),
+      fetchDesignSystemConfig().catch(() => normalizeDesignSystemConfig({
+        shell: {
+          surface: { simulationAtmosphere: DEFAULT_SIMULATION_ATMOSPHERE_CONFIG },
+        },
+      })),
+    ]);
+    activeController = new HybridGlowLabController({
+      globals,
+      labConfig: config,
+      productionConfig: createCrispGlowAuthoringConfig(designSystem),
+    });
+    setAtmosphereFrameRenderer((frameGlobals) => {
+      if (activeController?.globals !== frameGlobals) return;
+      if (getAtmosphereLabVariant(window.location.pathname) !== activeController.variant) {
+        disposeActiveAtmosphereLab();
+        return;
+      }
+      activeController.render(performance.now());
+    });
     return activeController;
   }
   const config = await fetchLabConfig();

@@ -7,6 +7,8 @@ const VARIANT_BY_PATH = Object.freeze({
   '/lab/atmosphere-feedback': 'canvasFeedback',
   '/lab/atmosphere-crisp-glow.html': 'crispGlow',
   '/lab/atmosphere-crisp-glow': 'crispGlow',
+  '/lab/atmosphere-hybrid-glow.html': 'hybridGlow',
+  '/lab/atmosphere-hybrid-glow': 'hybridGlow',
 });
 
 export const ATMOSPHERE_LAB_VARIANTS = Object.freeze({
@@ -37,6 +39,13 @@ export const ATMOSPHERE_LAB_VARIANTS = Object.freeze({
     shortLabel: 'Glow',
     path: '/lab/atmosphere-crisp-glow.html',
     title: 'Atmosphere Lab — Crisp + Glow',
+  }),
+  hybridGlow: Object.freeze({
+    id: 'hybridGlow',
+    label: 'Hybrid Glow',
+    shortLabel: 'Hybrid',
+    path: '/lab/atmosphere-hybrid-glow.html',
+    title: 'Atmosphere Lab — Hybrid Glow',
   }),
 });
 

@@ -17,7 +17,7 @@ export {
 const createProfile = (values) => Object.freeze(values);
 
 export const DEFAULT_ATMOSPHERE_LAB_CONFIG = Object.freeze({
-  version: 10,
+  version: 11,
   common: Object.freeze({
     enabled: true,
     qualityMode: 'auto',
@@ -95,8 +95,104 @@ export const DEFAULT_ATMOSPHERE_LAB_CONFIG = Object.freeze({
       sourceGain: 0.48,
       blendMode: 'add',
     }),
+    hybridGlow: createProfile({
+      presentationMode: 'hybrid',
+      broadCadence: '8',
+      tightCadence: '24',
+      crossfadeMs: 110,
+      broadStrength: 1,
+      tightStrength: 1,
+    }),
   }),
 });
+
+const HYBRID_GLOW_GROUPS = Object.freeze([
+  Object.freeze({
+    title: 'Comparison',
+    initiallyOpen: true,
+    scope: 'profile',
+    controls: Object.freeze([
+      {
+        id: 'presentationMode',
+        label: 'Mode',
+        type: 'select',
+        options: Object.freeze(['hybrid', 'hold', 'reference']),
+      },
+    ]),
+  }),
+  Object.freeze({
+    title: 'Timing',
+    initiallyOpen: true,
+    scope: 'profile',
+    controls: Object.freeze([
+      {
+        id: 'broadCadence',
+        label: 'Broad FPS',
+        type: 'select',
+        options: Object.freeze(['4', '8', '12', '16', '24']),
+      },
+      {
+        id: 'tightCadence',
+        label: 'Tight FPS',
+        type: 'select',
+        options: Object.freeze(['8', '16', '24', '30', '60']),
+      },
+      {
+        id: 'crossfadeMs',
+        label: 'Crossfade',
+        type: 'range',
+        min: 0,
+        max: 125,
+        step: 5,
+        display: 'ms',
+      },
+    ]),
+  }),
+  Object.freeze({
+    title: 'Balance',
+    initiallyOpen: true,
+    scope: 'profile',
+    controls: Object.freeze([
+      {
+        id: 'broadStrength',
+        label: 'Broad Level',
+        type: 'range',
+        min: 0,
+        max: 1.5,
+        step: 0.05,
+        display: 'percent',
+      },
+      {
+        id: 'tightStrength',
+        label: 'Tight Level',
+        type: 'range',
+        min: 0,
+        max: 1.5,
+        step: 0.05,
+        display: 'percent',
+      },
+    ]),
+  }),
+  Object.freeze({
+    title: 'Performance',
+    initiallyOpen: true,
+    scope: 'common',
+    controls: Object.freeze([
+      {
+        id: 'enabled',
+        label: 'Enabled',
+        type: 'checkbox',
+        scope: 'common',
+      },
+      {
+        id: 'qualityMode',
+        label: 'Quality',
+        type: 'select',
+        options: Object.freeze(['auto', 'high', 'balanced', 'low']),
+      },
+    ]),
+  }),
+]);
 
 const COMMON_GROUPS = Object.freeze([
   {
@@ -227,6 +323,7 @@ function normalizeBaseProfile(profile, legacyCommon, defaults) {
 
 export function getAtmosphereControlGroups(variant) {
   if (variant === 'crispGlow') return SIMULATION_ATMOSPHERE_CONTROL_GROUPS;
+  if (variant === 'hybridGlow') return HYBRID_GLOW_GROUPS;
   const profileGroup = PROFILE_GROUPS[variant] || PROFILE_GROUPS.webglPost;
   return [...COMMON_GROUPS, profileGroup];
 }
@@ -239,8 +336,11 @@ export function normalizeAtmosphereLabConfig(input = {}) {
   const webglPost = normalizeBaseProfile(profiles.webglPost, common, defaults.profiles.webglPost);
   const density = normalizeBaseProfile(profiles.density, common, defaults.profiles.density);
   const canvasFeedback = normalizeBaseProfile(profiles.canvasFeedback, common, defaults.profiles.canvasFeedback);
+  const hybridGlowSource = profiles.hybridGlow && typeof profiles.hybridGlow === 'object'
+    ? profiles.hybridGlow
+    : {};
   return {
-    version: 10,
+    version: 11,
     common: {
       enabled: common.enabled !== false,
       qualityMode: normalizeChoice(common.qualityMode, ['auto', 'high', 'balanced', 'low'], defaults.common.qualityMode),
@@ -269,6 +369,41 @@ export function normalizeAtmosphereLabConfig(input = {}) {
         diffusionPasses: Math.round(clampNumber(profiles.canvasFeedback?.diffusionPasses, 1, 4, defaults.profiles.canvasFeedback.diffusionPasses)),
         sourceGain: clampNumber(profiles.canvasFeedback?.sourceGain, 0.05, 0.8, defaults.profiles.canvasFeedback.sourceGain),
         blendMode: normalizeChoice(profiles.canvasFeedback?.blendMode, ['normal', 'screen', 'add'], defaults.profiles.canvasFeedback.blendMode),
+      },
+      hybridGlow: {
+        presentationMode: normalizeChoice(
+          hybridGlowSource.presentationMode,
+          ['hybrid', 'hold', 'reference'],
+          defaults.profiles.hybridGlow.presentationMode,
+        ),
+        broadCadence: normalizeChoice(
+          hybridGlowSource.broadCadence,
+          ['4', '8', '12', '16', '24'],
+          defaults.profiles.hybridGlow.broadCadence,
+        ),
+        tightCadence: normalizeChoice(
+          hybridGlowSource.tightCadence,
+          ['8', '16', '24', '30', '60'],
+          defaults.profiles.hybridGlow.tightCadence,
+        ),
+        crossfadeMs: clampNumber(
+          hybridGlowSource.crossfadeMs,
+          0,
+          125,
+          defaults.profiles.hybridGlow.crossfadeMs,
+        ),
+        broadStrength: clampNumber(
+          hybridGlowSource.broadStrength,
+          0,
+          1.5,
+          defaults.profiles.hybridGlow.broadStrength,
+        ),
+        tightStrength: clampNumber(
+          hybridGlowSource.tightStrength,
+          0,
+          1.5,
+          defaults.profiles.hybridGlow.tightStrength,
+        ),
       },
     },
   };

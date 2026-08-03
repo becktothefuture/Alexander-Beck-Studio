@@ -1823,6 +1823,12 @@ function createPointFieldAdapter({
     const cached = persistentCache.getSequence(responsiveSequenceKey);
     if (cached) {
       readySequence = cached;
+      preparationController.adoptReady({
+        sequenceKey: responsiveSequenceKey,
+        pairId: `sequence:${responsiveSequenceKey}`,
+        inputFingerprint: responsiveInputFingerprint,
+        input: null,
+      }, null, { trigger: 'document-cache' });
       sequenceState = 'ready';
       root.dataset.worldPrepare = 'ready';
       return true;

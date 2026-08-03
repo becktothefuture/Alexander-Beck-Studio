@@ -227,6 +227,32 @@ export function createAboutNarrativePreparationController({
     });
   };
 
+  const adoptReady = (intent, candidate = null, { trigger = 'cache-hit' } = {}) => {
+    assertIntent(intent);
+    if (disposed) return Object.freeze({ accepted: false, reason: 'disposed' });
+    const normalized = {
+      sequenceKey: intent.sequenceKey,
+      pairId: intent.pairId || '',
+      inputFingerprint: intent.inputFingerprint,
+      input: intent.input,
+    };
+    if (sameIntent(currentIntent, normalized) && state === 'ready') {
+      return Object.freeze({ accepted: true, reason: 'already-ready', generation });
+    }
+    clearRetryTimer();
+    invalidateActiveRun('adopted-ready');
+    currentIntent = normalized;
+    readyCandidate = retainReadyCandidate ? candidate : null;
+    automaticRetries = 0;
+    state = 'ready';
+    record('preparation-ready-adopted', {
+      trigger,
+      lastFailure: null,
+      retryScheduled: false,
+    });
+    return Object.freeze({ accepted: true, reason: 'adopted-ready', generation });
+  };
+
   const retryPreparation = ({ sequenceKey, pairId = '', inputFingerprint } = {}) => {
     if (disposed) return Object.freeze({ accepted: false, reason: 'disposed' });
     const requested = { sequenceKey, pairId, inputFingerprint };
@@ -282,6 +308,7 @@ export function createAboutNarrativePreparationController({
   };
 
   return Object.freeze({
+    adoptReady,
     cancel,
     dispose,
     getDiagnosticsSnapshot: diagnosticStore.getSnapshot,

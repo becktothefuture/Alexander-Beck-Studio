@@ -195,6 +195,9 @@ export class DiffuseGlowEffect {
     const colourStrength = Math.max(0, Number(config.colourStrength) || 0);
     const broadSaturation = colourStrength * BROAD_SATURATION_MULTIPLIER;
     const colourSaturation = colourStrength * COLOUR_SATURATION_MULTIPLIER;
+    const fieldMode = ['broad', 'tight'].includes(config.fieldMode) ? config.fieldMode : 'both';
+    const includeBroadField = fieldMode !== 'tight';
+    const includeTightField = fieldMode !== 'broad';
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.globalCompositeOperation = 'source-over';
@@ -226,13 +229,17 @@ export class DiffuseGlowEffect {
           `saturate(${colourSaturation.toFixed(2)})`,
         ].join(' ');
       }
-      context.globalAlpha = intensity * BROAD_ALPHA_SHARE;
-      context.filter = this.broadFilter;
-      context.drawImage(sourceCanvas, 0, 0, width, height);
-      context.globalCompositeOperation = 'screen';
-      context.globalAlpha = intensity * COLOUR_ALPHA_SHARE;
-      context.filter = this.colourFilter;
-      context.drawImage(sourceCanvas, 0, 0, width, height);
+      if (includeBroadField) {
+        context.globalAlpha = intensity * BROAD_ALPHA_SHARE;
+        context.filter = this.broadFilter;
+        context.drawImage(sourceCanvas, 0, 0, width, height);
+      }
+      if (includeTightField) {
+        context.globalCompositeOperation = includeBroadField ? 'screen' : 'source-over';
+        context.globalAlpha = intensity * COLOUR_ALPHA_SHARE;
+        context.filter = this.colourFilter;
+        context.drawImage(sourceCanvas, 0, 0, width, height);
+      }
       context.globalCompositeOperation = 'source-over';
       context.filter = 'none';
     } else {
@@ -245,6 +252,8 @@ export class DiffuseGlowEffect {
         colourStrength,
         largeBlurRadius,
         smallBlurRadius,
+        includeBroadField,
+        includeTightField,
       );
     }
 
@@ -311,6 +320,8 @@ export class DiffuseGlowEffect {
     colourStrength,
     largeBlurRadius,
     smallBlurRadius,
+    includeBroadField,
+    includeTightField,
   ) {
     const firstLevel = this.blurPyramid[0];
     firstLevel.context.setTransform(1, 0, 0, 1, 0, 0);
@@ -337,43 +348,47 @@ export class DiffuseGlowEffect {
 
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    const broadSpread = this.prepareSpreadLevel(
-      broadIndex,
-      broadLevel.canvas,
-      largeBlurRadius,
-      intensity * BROAD_ALPHA_SHARE * BROAD_BRIGHTNESS * FALLBACK_ALPHA_SCALE,
-      width,
-      height,
-    );
-    context.globalAlpha = 1;
-    context.drawImage(broadSpread, 0, 0, width, height);
-    context.globalCompositeOperation = 'screen';
-    const colourAlpha = Math.min(
-      1,
-      intensity
-        * COLOUR_ALPHA_SHARE
-        * COLOUR_BRIGHTNESS
-        * colourStrength
-        * FALLBACK_ALPHA_SCALE,
-    );
-    const smallSpread = this.prepareSpreadLevel(
-      smallIndex,
-      smallLevel.canvas,
-      smallBlurRadius,
-      colourAlpha,
-      width,
-      height,
-    );
-    context.drawImage(smallSpread, 0, 0, width, height);
-    const fineSpread = this.prepareSpreadLevel(
-      fineIndex,
-      fineLevel.canvas,
-      smallBlurRadius * 0.5,
-      colourAlpha * 0.5 * Math.min(1.25, COLOUR_SATURATION_MULTIPLIER),
-      width,
-      height,
-    );
-    context.drawImage(fineSpread, 0, 0, width, height);
+    if (includeBroadField) {
+      const broadSpread = this.prepareSpreadLevel(
+        broadIndex,
+        broadLevel.canvas,
+        largeBlurRadius,
+        intensity * BROAD_ALPHA_SHARE * BROAD_BRIGHTNESS * FALLBACK_ALPHA_SCALE,
+        width,
+        height,
+      );
+      context.globalAlpha = 1;
+      context.drawImage(broadSpread, 0, 0, width, height);
+    }
+    if (includeTightField) {
+      context.globalCompositeOperation = includeBroadField ? 'screen' : 'source-over';
+      const colourAlpha = Math.min(
+        1,
+        intensity
+          * COLOUR_ALPHA_SHARE
+          * COLOUR_BRIGHTNESS
+          * colourStrength
+          * FALLBACK_ALPHA_SCALE,
+      );
+      const smallSpread = this.prepareSpreadLevel(
+        smallIndex,
+        smallLevel.canvas,
+        smallBlurRadius,
+        colourAlpha,
+        width,
+        height,
+      );
+      context.drawImage(smallSpread, 0, 0, width, height);
+      const fineSpread = this.prepareSpreadLevel(
+        fineIndex,
+        fineLevel.canvas,
+        smallBlurRadius * 0.5,
+        colourAlpha * 0.5 * Math.min(1.25, COLOUR_SATURATION_MULTIPLIER),
+        width,
+        height,
+      );
+      context.drawImage(fineSpread, 0, 0, width, height);
+    }
     context.globalCompositeOperation = 'source-over';
   }
 

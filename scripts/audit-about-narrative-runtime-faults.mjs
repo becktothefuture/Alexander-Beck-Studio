@@ -405,6 +405,55 @@ try {
     assertSingleReadableRuntime(evidence.checkpoints.remounted);
   });
 
+  await runScenario('document-cache-remount', 'none', async (page, evidence) => {
+    await page.goto(labUrl, { waitUntil: 'domcontentloaded' });
+    await waitForRuntime(page);
+    await waitForPreparation(page, 'ready');
+    evidence.checkpoints.firstMount = await snapshot(page);
+    assertSingleReadableRuntime(evidence.checkpoints.firstMount);
+    assert.equal(evidence.checkpoints.firstMount.dataset.worldRendererPreparation, 'async');
+
+    await page.evaluate(() => window.__ABS_SPA_NAVIGATE__('/contact.html', {
+      activation: 'pointer',
+    }));
+    await page.waitForFunction(() => (
+      location.pathname.endsWith('/contact.html')
+      && (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+      && !window.__aboutNarrativeRuntime
+    ), null, { timeout: 60_000 });
+    await page.evaluate(() => window.__ABS_SPA_NAVIGATE__('/about.html?edit=1', {
+      activation: 'pointer',
+    }));
+    await waitForRuntime(page);
+    await waitForPreparation(page, 'ready');
+    await page.waitForFunction(() => {
+      const root = document.querySelector('.about-narrative-lab');
+      return (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
+        && root?.dataset.pointWorldState === 'ready'
+        && root?.dataset.aboutSceneReady === 'true';
+    }, null, { timeout: 60_000 });
+
+    evidence.checkpoints.remounted = await snapshot(page);
+    assertSingleReadableRuntime(evidence.checkpoints.remounted);
+    assert.equal(evidence.checkpoints.remounted.dataset.worldRendererPreparation, 'async');
+    assert.ok(Number(evidence.checkpoints.remounted.dataset.worldRendererPrepareMs) > 0);
+    assert.ok(
+      evidence.checkpoints.remounted.diagnostics.sequenceCache.hits
+        > evidence.checkpoints.firstMount.diagnostics.sequenceCache.hits,
+      'The remounted adapter must consume the document-scoped sequence cache.',
+    );
+    assert.equal(
+      evidence.checkpoints.remounted.metrics.workerStarts,
+      0,
+      'A cached remount must not start another correspondence Worker.',
+    );
+    assert.equal(
+      evidence.checkpoints.remounted.harness.starts,
+      evidence.checkpoints.firstMount.harness.starts,
+      'The document must retain one completed correspondence Worker run across remount.',
+    );
+  });
+
   await runScenario('webgl-context-loss-and-restoration', 'none', async (page, evidence) => {
     await page.goto(labUrl, { waitUntil: 'domcontentloaded' });
     await waitForRuntime(page);

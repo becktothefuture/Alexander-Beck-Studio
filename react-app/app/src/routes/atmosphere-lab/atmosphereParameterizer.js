@@ -376,8 +376,12 @@ export function createAtmosphereParameterizer({
     approachRow.append(simulationLabel);
   }
   let themeSelect = null;
-  if (variant === 'crispGlow') {
-    const themeLabel = createElement('label', '', 'Values for');
+  if (variant === 'crispGlow' || variant === 'hybridGlow') {
+    const themeLabel = createElement(
+      'label',
+      '',
+      variant === 'crispGlow' ? 'Values for' : 'Preview in',
+    );
     themeSelect = document.createElement('select');
     themeSelect.setAttribute('aria-label', 'Theme values to edit and preview');
     ['light', 'dark'].forEach((theme) => {
@@ -541,8 +545,9 @@ export function createAtmosphereParameterizer({
       themeSelect.value = activeThemeMode;
       controlBindings.forEach((sync) => sync());
     },
-    setMetrics({ fps = 0, costMs = 0, quality = '', fallback = false } = {}) {
-      metrics.textContent = `${fallback ? 'fallback · ' : ''}${Math.round(fps)} fps · ${costMs.toFixed(1)} ms · ${quality}`;
+    setMetrics({ fps = 0, costMs = 0, quality = '', fallback = false, summary = '' } = {}) {
+      metrics.textContent = summary
+        || `${fallback ? 'fallback · ' : ''}${Math.round(fps)} fps · ${costMs.toFixed(1)} ms · ${quality}`;
     },
   };
 }

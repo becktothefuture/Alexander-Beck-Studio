@@ -10,6 +10,7 @@ import {
   DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
   normalizeSimulationAtmosphereConfig,
+  resolveSimulationAtmosphereBlurGeometry,
   resolveSimulationAtmosphereCadence,
   resolveSimulationAtmosphereQualityScale,
   resolveSimulationAtmosphereRenderProfile,
@@ -25,10 +26,6 @@ const QUALITY_LEVELS = Object.freeze({
 });
 const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 2500;
-const GLOW_RADIUS_MIN_CSS_PX = 36;
-const GLOW_RADIUS_MAX_CSS_PX = 180;
-const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
-const SMALL_GLOW_RADIUS_MAX_CSS_PX = 72;
 const AMBIENT_COUNT = 8;
 
 let host = null;
@@ -362,17 +359,6 @@ function syncGeometry() {
   const rect = host.root.getBoundingClientRect();
   geometryReadCount += 1;
   if (rect.width <= 1 || rect.height <= 1) return false;
-  const shortestSide = Math.min(rect.width, rect.height);
-  resolvedGlowRadiusCss = Math.max(
-    GLOW_RADIUS_MIN_CSS_PX,
-    Math.min(GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.largeSpread),
-  );
-  responsiveScale = resolvedGlowRadiusCss / shortestSide;
-  resolvedSmallGlowRadiusCss = Math.max(
-    SMALL_GLOW_RADIUS_MIN_CSS_PX,
-    Math.min(SMALL_GLOW_RADIUS_MAX_CSS_PX, shortestSide * renderProfile.smallSpread),
-  );
-  smallResponsiveScale = resolvedSmallGlowRadiusCss / shortestSide;
   const width = Math.max(2, Math.round(rect.width * dynamicQuality.scale));
   const height = Math.max(2, Math.round(rect.height * dynamicQuality.scale));
   if (host.sourceCanvas.width !== width || host.sourceCanvas.height !== height) {
@@ -381,11 +367,20 @@ function syncGeometry() {
     host.effect.resize(width, height);
     frameSchedule.nextFrameAt = 0;
   }
-  const backingScaleX = width / rect.width;
-  const backingScaleY = height / rect.height;
-  const backingScale = Math.sqrt(backingScaleX * backingScaleY);
-  renderProfile.largeBlurRadiusBackingPx = resolvedGlowRadiusCss * backingScale;
-  renderProfile.smallBlurRadiusBackingPx = resolvedSmallGlowRadiusCss * backingScale;
+  const blurGeometry = resolveSimulationAtmosphereBlurGeometry({
+    widthCss: rect.width,
+    heightCss: rect.height,
+    backingWidth: width,
+    backingHeight: height,
+    largeSpread: renderProfile.largeSpread,
+    smallSpread: renderProfile.smallSpread,
+  });
+  resolvedGlowRadiusCss = blurGeometry.largeRadiusCss;
+  responsiveScale = blurGeometry.largeResponsiveScale;
+  resolvedSmallGlowRadiusCss = blurGeometry.smallRadiusCss;
+  smallResponsiveScale = blurGeometry.smallResponsiveScale;
+  renderProfile.largeBlurRadiusBackingPx = blurGeometry.largeRadiusBackingPx;
+  renderProfile.smallBlurRadiusBackingPx = blurGeometry.smallRadiusBackingPx;
   host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;

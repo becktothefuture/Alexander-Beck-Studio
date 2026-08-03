@@ -133,6 +133,7 @@ export default defineConfig(({ mode }) => ({
         'lab/atmosphere-density': resolve(__dirname, 'lab/atmosphere-density.html'),
         'lab/atmosphere-feedback': resolve(__dirname, 'lab/atmosphere-feedback.html'),
         'lab/atmosphere-crisp-glow': resolve(__dirname, 'lab/atmosphere-crisp-glow.html'),
+        'lab/atmosphere-hybrid-glow': resolve(__dirname, 'lab/atmosphere-hybrid-glow.html'),
         'lab/wall-repel': resolve(__dirname, 'lab/wall-repel.html'),
         'lab/aperture-bloom': resolve(__dirname, 'lab/aperture-bloom.html'),
         'lab/confluence-bridges': resolve(__dirname, 'lab/confluence-bridges.html'),

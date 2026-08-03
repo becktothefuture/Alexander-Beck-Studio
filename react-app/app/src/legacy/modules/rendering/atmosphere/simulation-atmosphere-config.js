@@ -1,4 +1,8 @@
 const createProfile = (values) => Object.freeze(values);
+const GLOW_RADIUS_MIN_CSS_PX = 36;
+const GLOW_RADIUS_MAX_CSS_PX = 180;
+const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
+const SMALL_GLOW_RADIUS_MAX_CSS_PX = 72;
 
 const LIGHT_PROFILE = createProfile({
   intensity: 0.42,
@@ -143,6 +147,38 @@ export function resolveSimulationAtmosphereQualityScale(qualityMode = 'auto') {
   if (resolved === 'high') return { id: 'high', scale: 0.5 };
   if (resolved === 'low') return { id: 'low', scale: 0.25 };
   return { id: 'balanced', scale: 0.375 };
+}
+
+export function resolveSimulationAtmosphereBlurGeometry({
+  widthCss,
+  heightCss,
+  backingWidth,
+  backingHeight,
+  largeSpread,
+  smallSpread,
+} = {}) {
+  const width = Math.max(1, Number(widthCss) || 1);
+  const height = Math.max(1, Number(heightCss) || 1);
+  const shortestSide = Math.min(width, height);
+  const largeRadiusCss = Math.max(
+    GLOW_RADIUS_MIN_CSS_PX,
+    Math.min(GLOW_RADIUS_MAX_CSS_PX, shortestSide * (Number(largeSpread) || 0)),
+  );
+  const smallRadiusCss = Math.max(
+    SMALL_GLOW_RADIUS_MIN_CSS_PX,
+    Math.min(SMALL_GLOW_RADIUS_MAX_CSS_PX, shortestSide * (Number(smallSpread) || 0)),
+  );
+  const backingScaleX = Math.max(1, Number(backingWidth) || 1) / width;
+  const backingScaleY = Math.max(1, Number(backingHeight) || 1) / height;
+  const backingScale = Math.sqrt(backingScaleX * backingScaleY);
+  return {
+    largeRadiusCss,
+    smallRadiusCss,
+    largeResponsiveScale: largeRadiusCss / shortestSide,
+    smallResponsiveScale: smallRadiusCss / shortestSide,
+    largeRadiusBackingPx: largeRadiusCss * backingScale,
+    smallRadiusBackingPx: smallRadiusCss * backingScale,
+  };
 }
 
 export function resolveSimulationAtmosphereCadence(cadenceMode = 'auto') {

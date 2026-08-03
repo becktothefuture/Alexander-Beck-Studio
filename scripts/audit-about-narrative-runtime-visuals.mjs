@@ -70,6 +70,7 @@ const checkpointSpecs = [
   { id: 'desktop-bridge-resolve', storyWU: 6.65, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'desktop-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'desktop-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-anticipation', storyWU: 8.351, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumPresentedDisciplines: 1, maximumPresentedDisciplines: 1, minimumDisciplineLabelOpacity: 0.15, maximumDisciplineLabelOpacity: 0.17, maximumDisciplineDescriptionOpacity: 0.05, maximumSpatialTitles: 0 },
   { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
@@ -93,6 +94,7 @@ const checkpointSpecs = [
   { id: 'mobile-grid-floor', storyWU: 6.2, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'mobile-bridge-move', storyWU: 7.55, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'mobile-discipline-entry', storyWU: 8.25, stage: 'calm-field-v1', visibility: 1, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-anticipation', storyWU: 8.351, stage: 'calm-field-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumPresentedDisciplines: 1, maximumPresentedDisciplines: 1, minimumDisciplineLabelOpacity: 0.15, maximumDisciplineLabelOpacity: 0.17, maximumDisciplineDescriptionOpacity: 0.05, maximumSpatialTitles: 0 },
   { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
   { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
@@ -428,6 +430,11 @@ for (const checkpoint of checkpoints) {
     const visibleEditorialRects = visibleEditorialLines.map((node) => node.getBoundingClientRect());
     const visibleDisciplines = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .filter((node) => Number(getComputedStyle(node).opacity) > 0.05);
+    const presentedDiscipline = visibleDisciplines[0] || null;
+    const presentedDisciplineLabel = presentedDiscipline
+      ?.querySelector('.about-narrative-discipline-reveal__label') || null;
+    const presentedDisciplineDescription = presentedDiscipline
+      ?.querySelector('.about-narrative-discipline-reveal__description') || null;
     const visibleDisciplineRects = visibleDisciplines.map((node) => node.getBoundingClientRect());
     const disciplineTypeSizesMatch = visibleDisciplines.every((node) => {
       const title = node.querySelector('.about-narrative-discipline-reveal__label');
@@ -495,6 +502,13 @@ for (const checkpoint of checkpoints) {
       visibleEditorialLineCount: visibleEditorialLines.length,
       visibleSpatialTitleCount: visibleSpatialTitles.length,
       visibleSpatialTitleBounds,
+      presentedDisciplineCount: visibleDisciplines.length,
+      presentedDisciplineLabelOpacity: presentedDisciplineLabel
+        ? Number(getComputedStyle(presentedDisciplineLabel).opacity)
+        : null,
+      presentedDisciplineDescriptionOpacity: presentedDisciplineDescription
+        ? Number(getComputedStyle(presentedDisciplineDescription).opacity)
+        : null,
       disciplineCenterOffsetRatio: rootRect && disciplineBounds
         ? Math.abs(((disciplineBounds.left + disciplineBounds.right) / 2)
           - (rootRect.left + (rootRect.width / 2))) / rootRect.width
@@ -585,6 +599,36 @@ for (const checkpoint of checkpoints) {
     assert.ok(
       state.disciplineLabels <= checkpoint.maximumLabels,
       `${checkpoint.id}: expected at most ${checkpoint.maximumLabels} labels, received ${state.disciplineLabels}`,
+    );
+  }
+  if (checkpoint.minimumPresentedDisciplines !== undefined) {
+    assert.ok(
+      state.presentedDisciplineCount >= checkpoint.minimumPresentedDisciplines,
+      `${checkpoint.id}: expected a faintly presented discipline label.`,
+    );
+  }
+  if (checkpoint.maximumPresentedDisciplines !== undefined) {
+    assert.ok(
+      state.presentedDisciplineCount <= checkpoint.maximumPresentedDisciplines,
+      `${checkpoint.id}: more than one discipline presentation is visible.`,
+    );
+  }
+  if (checkpoint.minimumDisciplineLabelOpacity !== undefined) {
+    assert.ok(
+      state.presentedDisciplineLabelOpacity >= checkpoint.minimumDisciplineLabelOpacity,
+      `${checkpoint.id}: the anticipated discipline label is too faint.`,
+    );
+  }
+  if (checkpoint.maximumDisciplineLabelOpacity !== undefined) {
+    assert.ok(
+      state.presentedDisciplineLabelOpacity <= checkpoint.maximumDisciplineLabelOpacity,
+      `${checkpoint.id}: the anticipated discipline label resolves before its grid point.`,
+    );
+  }
+  if (checkpoint.maximumDisciplineDescriptionOpacity !== undefined) {
+    assert.ok(
+      state.presentedDisciplineDescriptionOpacity <= checkpoint.maximumDisciplineDescriptionOpacity,
+      `${checkpoint.id}: the discipline description resolves before its grid point.`,
     );
   }
   if (checkpoint.minimumSpatialTitles !== undefined) {

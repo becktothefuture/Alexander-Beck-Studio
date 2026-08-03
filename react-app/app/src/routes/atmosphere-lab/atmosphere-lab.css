@@ -2,14 +2,14 @@ body.atmosphere-lab-page {
   overflow: hidden;
 }
 
-body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) {
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow):not(.atmosphere-lab-page--hybridGlow) {
   --atmosphere-core-presence: 0;
   --atmosphere-haze-strength: 1;
   --atmosphere-grain-strength: 1;
 }
 
-body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) #c,
-body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow) #simulation-front-depth-canvas {
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow):not(.atmosphere-lab-page--hybridGlow) #c,
+body.atmosphere-lab-page:not(.atmosphere-lab-page--crispGlow):not(.atmosphere-lab-page--hybridGlow) #simulation-front-depth-canvas {
   opacity: var(--atmosphere-core-presence);
 }
 
@@ -47,7 +47,8 @@ body.atmosphere-lab-page #simulations canvas.atmosphere-output-canvas {
   image-rendering: auto;
 }
 
-body.atmosphere-lab-page--crispGlow #simulations canvas.atmosphere-output-canvas {
+body.atmosphere-lab-page--crispGlow #simulations canvas.atmosphere-output-canvas,
+body.atmosphere-lab-page--hybridGlow #simulations canvas.atmosphere-output-canvas {
   z-index: 9;
 }
 

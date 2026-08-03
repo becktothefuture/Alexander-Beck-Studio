@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 11,
   "common": {
     "enabled": true,
     "qualityMode": "auto",
@@ -76,6 +76,14 @@
       "diffusionPasses": 1,
       "sourceGain": 0.48,
       "blendMode": "add"
+    },
+    "hybridGlow": {
+      "presentationMode": "hybrid",
+      "broadCadence": "8",
+      "tightCadence": "24",
+      "crossfadeMs": 110,
+      "broadStrength": 1,
+      "tightStrength": 1
     }
   }
 }

@@ -231,6 +231,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)/);
   assert.match(source, /createAboutNarrativePersistentCacheLease\(\)/);
   assert.match(source, /persistentCache\.storeSequence\(request\.sequenceKey, prepared\)/);
+  assert.match(source, /preparationController\.adoptReady\([\s\S]*trigger: 'document-cache'/);
   assert.match(source, /const requestedSequenceKey = getResponsiveSequenceKey\(frame\.world\.sequenceKey\)/);
   assert.match(source, /wasShortLandscape !== shortLandscape && lastPreparationRequest/);
   assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
