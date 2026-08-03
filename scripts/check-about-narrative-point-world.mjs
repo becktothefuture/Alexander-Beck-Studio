@@ -305,7 +305,7 @@ test('PointWorld recomputes responsive preparation identity across orientation c
   assert.match(source, /let shortLandscape = isAboutNarrativeShortLandscape/);
   assert.match(source, /const getResponsiveSequenceKey = \(sequenceKey\) => \{[\s\S]*shortLandscape \? 'mobile-short-landscape' : 'mobile-default'/);
   assert.match(source, /const wasShortLandscape = shortLandscape;[\s\S]*shortLandscape = isAboutNarrativeShortLandscape[\s\S]*wasShortLandscape !== shortLandscape[\s\S]*preparePlan\(lastPreparationRequest\)/);
-  assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)[\s\S]*sequenceCache\.get\(responsiveSequenceKey\)/);
+  assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)[\s\S]*persistentCache\.getSequence\(responsiveSequenceKey\)/);
 });
 
 test('About Director previews the point world through the production atmosphere compositor', () => {
