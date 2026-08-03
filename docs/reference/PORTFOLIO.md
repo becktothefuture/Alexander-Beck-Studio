@@ -69,7 +69,7 @@ During a route transition, the runtime may publish the first valid measured deck
 
 ## Stable DOM contract
 
-`portfolio-dom-contract.js` is the explicit selector and state-marker boundary for CSS ownership work. M16 may consolidate existing CSS against that vocabulary, but it must not rename, duplicate, or move those nodes and markers. The frozen contract covers the route scene/frame/wall/canvas/title/top bar, deck mount/cards/labels, drawer host/view, and the load, entrance, media-ready, and active-project attributes. `check-portfolio-characterization.mjs` fails if that contract drifts.
+`portfolio-dom-contract.js` is the explicit selector and state-marker boundary for CSS ownership work. M16 may consolidate existing CSS against that vocabulary, but it must not rename, duplicate, or move those nodes and markers. The frozen contract covers the route scene/frame/wall/canvas/title/top bar, deck mount/cards/labels, drawer host/view, and the load, entrance, media-ready, and active-project attributes. `check-portfolio-characterization.mjs` fails if that contract drifts. Permanently hidden project-tag lists are not card DOM. Card palette work is generation-gated after construction, so normal mount skips its duplicate pass; a shared palette event forces the required rerun.
 
 ## Project-triggered access gate
 

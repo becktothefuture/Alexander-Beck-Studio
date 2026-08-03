@@ -247,7 +247,7 @@ centre outwards in the same order that the bust clears the surface. Local mappin
 optimum: deterministic Morton ordering and bounded repair reduce aggregate and outlier travel without
 an impractical 12,000-point exact solver.
 
-Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails.
+Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails. Resolved immutable CPU Shape and sequence arrays remain in bounded document-scoped caches across renderer remounts; abort-scoped promises, mutable runtime wrappers, WebGL resources, and GPU state never enter those caches.
 
 Select a Point Field segment and open its Advanced transition controls to compare the supported
 correspondence modes. The inspector identifies the source and target Forms and reports Preparing,
@@ -409,7 +409,7 @@ parallel v3 schema or compatibility adapter.
 Validation blocks Apply and Save for duplicate IDs, invalid extents, unsafe text, unknown Forms,
 modifiers, or transitions, broken numeric values, invalid buffers, or a missing protected finale.
 
-The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, legacy procedural-bust fallback, and accessible editorial content when WebGL is unavailable.
+The last-known-good compiled plan continues to play while a draft is invalid. Runtime failure containment includes abortable Shape generation, cached valid buffers, resource disposal, theme-token updates outside the hot loop, WebGL context recovery, visibility pausing, legacy procedural-bust fallback, and accessible editorial content when WebGL is unavailable. Where Three.js supports it, shader preparation uses `compileAsync()` behind the existing readiness cover. The scene-ready signal still waits for the first final-size rendered narrative frame, with synchronous compilation retained as the compatibility and failure fallback.
 
 The protected reduced-motion profile step-samples camera and visibility, removes continuous flight,
 depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled Form
