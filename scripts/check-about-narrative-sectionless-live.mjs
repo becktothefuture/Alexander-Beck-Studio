@@ -297,7 +297,8 @@ test('live renderer, timeline, and 3D frame contain no Section contract', () => 
   assert.match(liveSources.experience, /runtimePlan\?\.renderSpans/);
   assert.match(liveSources.experience, /data-text-field-id/);
   assert.match(liveSources.experience, /role="progressbar"/);
-  assert.match(liveSources.experience, /pointProfile=\{runtimePlan\?\.pointProfile\}/);
+  assert.match(liveSources.experience, /\{runtimePlan \? \(/);
+  assert.match(liveSources.experience, /pointProfile=\{runtimePlan\.pointProfile\}/);
 });
 
 test('C owns one fixed grid World and D is expressed only as Motion', () => {
