@@ -66,7 +66,7 @@ The Crisp + Glow lab remains the focused visual comparison surface and samples t
 
 `atmosphere-lab.json` owns only the WebGL Post, Instanced Density, and Canvas Feedback experiments. It must not persist or regenerate a `crispGlow` profile or any title-position state. Exact atmosphere values remain in canonical JSON and normalizer code, consistent with the general authority rule above.
 
-The production ball palette is resolved once by the shared shell from the visitor's local time of day. Eight palettes fill the 24-hour cycle in three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00. Home, Portfolio, About, Contact, and Playground consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
+The production ball palette is resolved once by the shared shell from the visitor's local time of day. Four palettes rotate twice through eight three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00; the second twelve hours repeat the first four-palette sequence. Home, Portfolio, About, Contact, and Playground consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
 
 Loaders and normalizers live under `src/legacy/modules/utils/` and route-specific runtime folders. Flattening is implemented in `scripts/lib/flatten-design-config.mjs`; the no-write comparison is `scripts/check-design-config.mjs`.
 

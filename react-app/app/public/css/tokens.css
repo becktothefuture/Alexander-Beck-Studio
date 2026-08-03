@@ -141,14 +141,14 @@
   --abs-indicator-ink: rgb(var(--abs-rgb-black));
 
   /* Initial simulation palette; the shared controller projects the live period on boot. */
-  --ball-1: #a1a5a3;
-  --ball-2: #c7cac4;
-  --ball-3: #f1efe7;
-  --ball-4: #00685d;
-  --ball-5: #131816;
-  --ball-6: #f04430;
-  --ball-7: #4b9185;
-  --ball-8: #d99716;
+  --ball-1: #788a94;
+  --ball-2: #b7c3c8;
+  --ball-3: #e9ece7;
+  --ball-4: #0a5268;
+  --ball-5: #10191f;
+  --ball-6: #d56b2c;
+  --ball-7: #2f7f9d;
+  --ball-8: #b58b2b;
 
   /* Typography Tokens */
   --abs-font-sans: "Geist", system-ui, sans-serif;

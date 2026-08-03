@@ -2,14 +2,10 @@ import { LONDON_WEATHER_PALETTES as BASE_PALETTES } from '../../palette/londonPa
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../../palette/timeOfDayPalette.js';
 
 const STRAPLINES_BY_ID = {
-  riverMist: 'Bottle green and traffic amber moving through rain-softened stone.',
-  portlandHaze: 'Enamel teal and vermilion held inside a clear architectural neutral field.',
-  blueBreak: 'Ultramarine after rain, warmed by burnt orange and ochre.',
-  sodiumRain: 'Iron oxide and sulfur heat, cut by a single storm-teal counterpoint.',
-  ryeLaneRush: 'Shopfront green, shutter red, wet concrete, and takeaway amber.',
-  nightTube2049: 'Petrol blue infrastructure with brake-light red and platform amber.',
-  barbicanWarning: 'Concrete, fire-door red-orange, civic yellow, and wayfinding blue.',
-  nightBusStatic: 'Oxblood and tail-light red against station mint and LED blue.',
+  sohoInk: 'Electric blue, taxi amber, and vermilion cut through black London lacquer.',
+  thamesWeather: 'Tidal blue and copper light moving through wet stone and river fog.',
+  brickLaneSaffron: 'Terracotta and saffron held down by parchment, oxblood, and ink blue.',
+  barbicanConcrete: 'Raw concrete with service olive, safety yellow, hard blue, and rust.',
 };
 
 export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({
@@ -19,7 +15,7 @@ export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({
   weather: palette.weather,
   personality: palette.personality,
   strapline: STRAPLINES_BY_ID[palette.id],
-  schedule: TIME_OF_DAY_PALETTE_PERIODS.find((period) => period.paletteId === palette.id),
+  schedule: TIME_OF_DAY_PALETTE_PERIODS.filter((period) => period.paletteId === palette.id),
   story: palette.story,
   words: palette.words,
   palette: {

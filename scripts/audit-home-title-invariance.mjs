@@ -902,6 +902,140 @@ async function auditHomeCanvasTitleEntrance(browser) {
   }
 }
 
+async function readCanvasTitleThemePaint(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('simulation-title-canvas');
+    const canvasRect = canvas?.getBoundingClientRect();
+    const context = canvas?.getContext('2d', { alpha: true, willReadFrequently: true });
+    if (!canvas || !canvasRect || !context || canvasRect.width <= 0 || canvasRect.height <= 0) {
+      return null;
+    }
+
+    const scaleX = canvas.width / canvasRect.width;
+    const scaleY = canvas.height / canvasRect.height;
+    return Array.from(document.querySelectorAll('#hero-title .hero-title__name, #hero-title .hero-title__role'))
+      .map((line) => {
+        const style = getComputedStyle(line);
+        const rect = line.getBoundingClientRect();
+        const x = Math.max(0, Math.floor((rect.left - canvasRect.left) * scaleX));
+        const y = Math.max(0, Math.floor((rect.top - canvasRect.top) * scaleY));
+        const width = Math.min(canvas.width - x, Math.ceil(rect.width * scaleX));
+        const height = Math.min(canvas.height - y, Math.ceil(rect.height * scaleY));
+        const pixels = context.getImageData(x, y, width, height).data;
+        let maxAlpha = 0;
+        let red = 0;
+        let green = 0;
+        let blue = 0;
+        let maxAlphaPixelCount = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+          const alpha = pixels[index + 3];
+          if (alpha < maxAlpha) continue;
+          if (alpha > maxAlpha) {
+            maxAlpha = alpha;
+            red = 0;
+            green = 0;
+            blue = 0;
+            maxAlphaPixelCount = 0;
+          }
+          if (alpha <= 0) continue;
+          red += pixels[index];
+          green += pixels[index + 1];
+          blue += pixels[index + 2];
+          maxAlphaPixelCount += 1;
+        }
+        const semanticRgb = (style.color.match(/[\d.]+/g) || [])
+          .slice(0, 3)
+          .map((channel) => Math.round(Number(channel)));
+        return {
+          text: String(line.textContent || '').replace(/\u00a0/g, ' ').trim(),
+          semanticColor: style.color,
+          semanticRgb,
+          semanticOpacity: Number.parseFloat(style.opacity || '1'),
+          canvasRgb: maxAlphaPixelCount > 0
+            ? [
+              Math.round(red / maxAlphaPixelCount),
+              Math.round(green / maxAlphaPixelCount),
+              Math.round(blue / maxAlphaPixelCount),
+            ]
+            : [],
+          canvasMaxAlpha: maxAlpha,
+        };
+      });
+  });
+}
+
+function assertCanvasTitleThemePaint(lines, label) {
+  assert(lines?.length === 3, `${label}: expected three Home title lines`, lines);
+  lines.forEach((line) => {
+    assert(line.canvasMaxAlpha > 0, `${label}/${line.text}: Canvas title line is empty`, line);
+    assert(line.canvasRgb.length === 3 && line.semanticRgb.length === 3,
+      `${label}/${line.text}: title colour could not be sampled`, line);
+    line.canvasRgb.forEach((channel, index) => {
+      assert(Math.abs(channel - line.semanticRgb[index]) <= 1,
+        `${label}/${line.text}: Canvas colour does not match the semantic title`, line);
+    });
+    const expectedAlpha = Math.round(line.semanticOpacity * 255);
+    assert(Math.abs(line.canvasMaxAlpha - expectedAlpha) <= 3,
+      `${label}/${line.text}: Canvas opacity does not match the semantic title`, {
+        ...line,
+        expectedAlpha,
+      });
+  });
+  assert(lines[1].canvasMaxAlpha < lines[0].canvasMaxAlpha,
+    `${label}: Creative & must remain quieter than Alexander Beck`, lines);
+  assert(lines[2].canvasMaxAlpha < lines[0].canvasMaxAlpha,
+    `${label}: Technologist. must remain quieter than Alexander Beck`, lines);
+}
+
+async function auditHomeCanvasTitleThemeSwitch(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    colorScheme: 'dark',
+    reducedMotion: 'no-preference',
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem('theme-preference-v3', 'auto');
+    localStorage.removeItem('theme-preference-v2');
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(pageUrl('/index.html?mode=pit&absAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await waitForSettledHomeTitle(page);
+    await page.waitForFunction(() => document.documentElement.dataset.absTheme === 'dark', null, {
+      timeout: waitMs,
+    });
+    const dark = await readCanvasTitleThemePaint(page);
+    assertCanvasTitleThemePaint(dark, 'dark');
+    await page.screenshot({ path: resolve(outputRoot, 'theme-switch-dark.png') });
+
+    const previousRevision = await page.evaluate(() => (
+      Number(document.getElementById('simulation-title-canvas')?.dataset.titlePlaneRenderRevision) || 0
+    ));
+    await page.getByRole('button', { name: 'Switch to light mode' }).click();
+    await page.waitForFunction((revision) => (
+      document.documentElement.dataset.absTheme === 'light'
+      && Number(document.getElementById('simulation-title-canvas')?.dataset.titlePlaneRenderRevision) > revision
+    ), previousRevision, { timeout: waitMs, polling: 'raf' });
+    await page.evaluate(() => new Promise((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+    }));
+    const light = await readCanvasTitleThemePaint(page);
+    assertCanvasTitleThemePaint(light, 'light');
+    await page.screenshot({ path: resolve(outputRoot, 'theme-switch-light.png') });
+
+    return { dark, light };
+  } catch (error) {
+    await page.screenshot({ path: resolve(outputRoot, 'theme-switch-failure.png'), fullPage: true })
+      .catch(() => undefined);
+    throw error;
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   const server = await ensureServer();
   const entries = await readCatalog();
@@ -910,6 +1044,19 @@ async function main() {
 
   try {
     await mkdir(outputRoot, { recursive: true });
+    const titleThemeSwitch = await auditHomeCanvasTitleThemeSwitch(browser);
+    const themeOnly = process.env.ABS_TITLE_THEME_ONLY === '1';
+    if (themeOnly) {
+      const themeOutput = {
+        ok: true,
+        browser: browserName,
+        viewport: { width: 1440, height: 900 },
+        titleThemeSwitch,
+      };
+      await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(themeOutput, null, 2)}\n`);
+      console.log(JSON.stringify(themeOutput, null, 2));
+      return;
+    }
     const resizeOnly = process.env.ABS_TITLE_RESIZE_ONLY === '1';
     const homeCanvasEntrance = resizeOnly ? null : await auditHomeCanvasTitleEntrance(browser);
     const stableTitleHandoffs = resizeOnly ? [] : await auditStableTitleHandoffs(browser);
@@ -971,6 +1118,7 @@ async function main() {
       stableTitleHandoffs,
       stableTitleResize,
       continuousHomeResize,
+      titleThemeSwitch,
     };
     if (process.env.ABS_TITLE_AUDIT_DETAILS === '1') output.results = byTheme;
     await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(output, null, 2)}\n`);

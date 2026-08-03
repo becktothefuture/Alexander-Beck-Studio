@@ -54,7 +54,7 @@ export function PaletteLabExperience() {
   const [activeIndex, setActiveIndex] = useState(
     Math.max(
       0,
-      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'portlandHaze')
+      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'thamesWeather')
     )
   );
   const active = LONDON_WEATHER_PALETTES[activeIndex] || LONDON_WEATHER_PALETTES[0];
@@ -123,7 +123,9 @@ export function PaletteLabExperience() {
             <PaletteBand label="Night" colors={active.palette.dark} />
           </div>
           <p className="palette-lab__schedule">
-            Live globally {active.schedule?.hours || 'outside the scheduled cycle'}
+            Live globally {active.schedule.length
+              ? active.schedule.map((period) => period.hours).join(' and ')
+              : 'outside the scheduled cycle'}
           </p>
         </div>
         <div className="palette-lab__preview">

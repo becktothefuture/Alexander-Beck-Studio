@@ -363,6 +363,7 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       glyphTarget.finalColor = '';
       if (!glyphSource || glyphIndex >= target.glyphCount) continue;
       const state = glyphSource.__absRouteEntranceState || null;
+      const entranceOwnsPresentation = state && state.settled !== true;
       // Entrance snapshots are valid only while their glyph is animating. Once
       // settled, responsive layout becomes the sole geometry owner again.
       const glyphRect = state?.settled === true
@@ -374,12 +375,17 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       glyphTarget.font = target.font;
       glyphTarget.color = target.color;
       glyphTarget.finalOpacity = clamp01(
-        state ? state.finalOpacity : opacity
+        entranceOwnsPresentation ? state.finalOpacity : opacity
       );
       glyphTarget.blurPx = 0;
       glyphTarget.driftPx = glyphRect.width * (Number(state?.travelPercent) || 0) * -0.01 * scaleX;
       glyphTarget.flashColors = state?.flashColors || null;
-      glyphTarget.finalColor = state?.finalColor || target.color;
+      // Settled glyphs must follow the live semantic source. Keeping their
+      // entrance-time endpoint here leaves the Canvas on the previous theme
+      // and discards the authored opacity of secondary title lines.
+      glyphTarget.finalColor = entranceOwnsPresentation && state.finalColor
+        ? state.finalColor
+        : target.color;
       glyphTarget.state = state;
     }
 

@@ -9,6 +9,8 @@ import {
 } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const EXPECTED_START_HOURS = Object.freeze([0, 3, 6, 9, 12, 15, 18, 21]);
+const EXPECTED_PALETTE_COUNT = 4;
+const EXPECTED_ROTATION_COUNT = 2;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -19,7 +21,7 @@ assert(
   `Expected ${EXPECTED_START_HOURS.length} palette periods, got ${TIME_OF_DAY_PALETTE_PERIODS.length}`,
 );
 
-const scheduledPaletteIds = new Set();
+const scheduledPaletteCounts = new Map();
 TIME_OF_DAY_PALETTE_PERIODS.forEach((period, index) => {
   assert(
     period.startHour === EXPECTED_START_HOURS[index],
@@ -29,17 +31,34 @@ TIME_OF_DAY_PALETTE_PERIODS.forEach((period, index) => {
     Boolean(LONDON_WEATHER_PALETTE_MAP[period.paletteId]),
     `Period ${period.id} references missing palette ${period.paletteId}`,
   );
-  assert(
-    !scheduledPaletteIds.has(period.paletteId),
-    `Palette ${period.paletteId} is scheduled more than once`,
+  scheduledPaletteCounts.set(
+    period.paletteId,
+    (scheduledPaletteCounts.get(period.paletteId) || 0) + 1,
   );
-  scheduledPaletteIds.add(period.paletteId);
 });
 
 assert(
-  scheduledPaletteIds.size === LONDON_WEATHER_PALETTES.length,
-  'Every authored palette must appear exactly once in the 24-hour schedule',
+  LONDON_WEATHER_PALETTES.length === EXPECTED_PALETTE_COUNT,
+  `Expected ${EXPECTED_PALETTE_COUNT} authored palettes, got ${LONDON_WEATHER_PALETTES.length}`,
 );
+assert(
+  scheduledPaletteCounts.size === EXPECTED_PALETTE_COUNT,
+  `Expected ${EXPECTED_PALETTE_COUNT} scheduled palettes, got ${scheduledPaletteCounts.size}`,
+);
+LONDON_WEATHER_PALETTES.forEach((palette, index) => {
+  assert(
+    TIME_OF_DAY_PALETTE_PERIODS[index].paletteId === palette.id,
+    `The first rotation must follow authored palette order at slot ${index + 1}`,
+  );
+  assert(
+    TIME_OF_DAY_PALETTE_PERIODS[index + EXPECTED_PALETTE_COUNT].paletteId === palette.id,
+    `The second rotation must repeat ${palette.id} after twelve hours`,
+  );
+  assert(
+    scheduledPaletteCounts.get(palette.id) === EXPECTED_ROTATION_COUNT,
+    `${palette.id} must appear exactly ${EXPECTED_ROTATION_COUNT} times per day`,
+  );
+});
 
 for (let hour = 0; hour < 24; hour += 1) {
   const period = resolveTimeOfDayPalettePeriod(hour);
@@ -50,12 +69,65 @@ for (let hour = 0; hour < 24; hour += 1) {
   );
 }
 
+function getColorProfile(color) {
+  const channels = color.slice(1).match(/.{2}/g).map((value) => Number.parseInt(value, 16) / 255);
+  const [red, green, blue] = channels;
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+  let hue = 0;
+  if (delta > 0) {
+    if (maximum === red) hue = 60 * (((green - blue) / delta) % 6);
+    else if (maximum === green) hue = 60 * (((blue - red) / delta) + 2);
+    else hue = 60 * (((red - green) / delta) + 4);
+  }
+  if (hue < 0) hue += 360;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs((2 * lightness) - 1));
+  const linear = channels.map((channel) => (
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  ));
+  const luminance = (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+  return { hue, luminance, saturation };
+}
+
+const authoredColors = new Set();
 for (const palette of LONDON_WEATHER_PALETTES) {
   assert(palette.light === palette.dark, `${palette.id} must share one light/dark colour array`);
   assert(palette.light.length === 8, `${palette.id} must define exactly eight colours`);
   assert(
     palette.light.every((color) => /^#[\da-f]{6}$/i.test(color)),
     `${palette.id} contains a malformed colour`,
+  );
+  assert(new Set(palette.light).size === 8, `${palette.id} must not repeat a colour`);
+  palette.light.forEach((color) => {
+    assert(!authoredColors.has(color), `${palette.id} reuses ${color} from another personality`);
+    authoredColors.add(color);
+  });
+
+  const profiles = palette.light.map(getColorProfile);
+  assert(
+    profiles.filter(({ saturation }) => saturation >= 0.45).length >= 4,
+    `${palette.id} must retain at least four confident chromatic colours`,
+  );
+  assert(
+    profiles.some(({ luminance }) => luminance <= 0.02)
+      && profiles.some(({ luminance }) => luminance >= 0.75),
+    `${palette.id} must be grounded by both near-black and light mineral neutrals`,
+  );
+  assert(
+    !profiles.some(({ hue, saturation }) => saturation >= 0.3 && hue >= 260 && hue <= 330),
+    `${palette.id} must remain purple-free`,
+  );
+  const hasChristmasRed = profiles.some(({ hue, saturation }) => (
+    saturation >= 0.45 && (hue <= 15 || hue >= 345)
+  ));
+  const hasChristmasGreen = profiles.some(({ hue, saturation }) => (
+    saturation >= 0.4 && hue >= 95 && hue <= 155
+  ));
+  assert(
+    !(hasChristmasRed && hasChristmasGreen),
+    `${palette.id} must not pair saturated Christmas red and green`,
   );
 }
 
@@ -67,4 +139,4 @@ for (const startHour of EXPECTED_START_HOURS) {
   );
 }
 
-console.log('PASS: eight palettes cover one 24-hour cycle in equal three-hour periods.');
+console.log('PASS: four distinct London palettes rotate twice across eight equal three-hour periods.');
