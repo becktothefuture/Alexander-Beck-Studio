@@ -39,7 +39,7 @@ The early inline script in each boot-overlay HTML entry is a first-paint mirror,
 | Shell wall | `--shell-wall-bg`, `--abs-wall-base` | Stable authored dark wall |
 | Studio-window interior | `--studio-window-bg`, `--frame-inner-surface` | Resolved site theme |
 | Home grouped legibility fields | `--frame-inner-surface` | Resolved site theme |
-| Persistent Button Bar | Outer-shell tokens; active primary pill consumes `--studio-window-bg` | Dark outer shell with one selected-tab theme projection |
+| Persistent Button Bar | Fixed outer-shell capsule tokens | Theme-invariant gradient capsule with white active label/dot and stable neutral utility ink |
 
 Never alias the window-interior tokens back to `--abs-wall-base`; keep each surface token explicit even when they share the same active light/dark endpoint.
 
@@ -56,7 +56,7 @@ Site theme, browser scheme, browser family, and display gamut are not inputs to 
 
 ## Button Bar
 
-The Button Bar sits outside the studio window. Its base, unselected primary tabs, and secondary sound/theme/reset controls derive from the active dark outer frame and outer-shell ink. The selected primary tab is the single exception: its moving pill exactly matches `--studio-window-bg`, while its label/icon use fully opaque inverse theme ink—black in light mode and white in dark mode. Unselected route labels remain faded outer-shell ink. Theme changes must not recolour the Button Bar base, utility controls, borders, or focus treatment.
+The Button Bar crosses the studio window's bottom edge but remains owned by the dark outer shell. Its `#141414` to black capsule, inset highlights, inactive labels, dividers, and sound/theme/reset controls are invariant across site themes. Sound and theme remain plain icon-only toggle buttons: sound swaps volume-off/volume-on, while theme swaps sun/moon. There is no slider track. The selected route uses a white label and the one shared white dot; tabs never borrow `--studio-window-bg` or add a selected surface. Theme changes may change behavior and accessible labels, but must not recolour or resize the capsule, utility slots, dividers, dot, or focus treatment.
 
 ## Portfolio Gate
 

@@ -84,17 +84,19 @@ const contrastContracts = Object.freeze({
 
 function getFocusContract(routeId, profile) {
   const shellExpectations = [
-    { selector: '[data-button-bar-item]', count: 5, indicator: 'dual-ring' },
+    { selector: '[data-button-bar-item]', count: 5, indicator: 'underline' },
     {
       selector: '.button-bar__sound-toggle',
       count: 1,
       exposedCount: profile.id === 'mobile-reduced' ? 0 : 1,
+      minimumPassingEdges: 3,
     },
-    { selector: '.button-bar__theme-toggle', count: 1 },
+    { selector: '.button-bar__theme-toggle', count: 1, minimumPassingEdges: 3 },
     {
       selector: '.button-bar__mobile-theme-reset',
       count: 1,
       exposedCount: profile.id === 'mobile-reduced' ? 1 : 0,
+      minimumPassingEdges: 3,
     },
   ];
   const routeExpectations = {
@@ -728,19 +730,28 @@ function buildIndicatorProbePairs(indicator) {
     return lineRects.flatMap((lineRect, lineIndex) => (
       [0.2, 0.35, 0.5, 0.65, 0.8].map((position) => ({
         edge: `underline-line-${lineIndex + 1}`,
-        bands: [{
-          name: 'underline',
-          points: buildBandPoints({
-            x: lineRect.x + (lineRect.width * position),
-            // A single line has a tight element text box in both engines, so
-            // its declared offset starts below that box. Multiline Range
-            // fragments include per-line leading below the decoration; bind
-            // those bands by subtracting the same computed underline offset.
-            y: lineRects.length === 1
-              ? rect.y + rect.height + indicator.offset + (indicator.width / 2)
-              : lineRect.y + lineRect.height - indicator.offset + (indicator.width / 4),
-          }, 'bottom', indicator.width),
-        }],
+        bands: [
+          {
+            name: 'underline-line-box',
+            points: buildBandPoints({
+              x: lineRect.x + (lineRect.width * position),
+              // Browser text-decoration geometry is baseline-relative. The
+              // DOM Range exposes the line box rather than the baseline, so
+              // probe the rendered line-box edge as well as the declared
+              // offset estimate below.
+              y: lineRect.y + lineRect.height - (indicator.width / 2),
+            }, 'bottom', indicator.width),
+          },
+          {
+            name: 'underline-declared-offset',
+            points: buildBandPoints({
+              x: lineRect.x + (lineRect.width * position),
+              y: lineRects.length === 1
+                ? rect.y + rect.height + indicator.offset + (indicator.width / 2)
+                : lineRect.y + lineRect.height - indicator.offset + (indicator.width / 4),
+            }, 'bottom', indicator.width),
+          },
+        ],
       }))
     ));
   }

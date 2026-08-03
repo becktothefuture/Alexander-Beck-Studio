@@ -1,4 +1,5 @@
-import { buildRouteHref, SHELL_ROUTE_TABS } from '../../lib/routes.js';
+import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
+import { buildRouteHref } from '../../lib/routes.js';
 import { StyleguideTypographySection } from './StyleguideTypography.jsx';
 
 export const STYLEGUIDE_ROUTE_RUNTIME = {
@@ -10,35 +11,15 @@ const homeHref = buildRouteHref('home');
 
 function renderButtonBarSpecimen() {
   return (
-    <div className="button-bar shell-bottom-band styleguide-button-bar" data-button-bar>
-      <nav className="button-bar__primary-buttons shell-tab-nav" aria-label="Button Bar specimen">
-        {SHELL_ROUTE_TABS.map((tab) => (
-          <button
-            key={tab.routeId}
-            type="button"
-            className={`button-bar__button shell-tab${tab.iconOnly ? ' button-bar__button--icon-only shell-tab--icon-only' : ''}`}
-            data-route-tab={tab.routeId}
-            data-state={tab.routeId === 'portfolio' ? 'active' : 'idle'}
-            aria-current={tab.routeId === 'portfolio' ? 'page' : undefined}
-            disabled
-          >
-            {tab.iconOnly ? (
-              <i className={`ti ${tab.icon} button-bar__icon shell-tab__icon`} aria-hidden="true" />
-            ) : (
-              <span className="button-bar__label shell-tab__label">{tab.label}</span>
-            )}
-          </button>
-        ))}
-      </nav>
-      <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary controls specimen">
-        <button type="button" className="button-bar__secondary-button shell-tab shell-tab--icon-only" aria-label="Sound off" disabled>
-          <i className="ti ti-volume-off button-bar__secondary-icon shell-tab__icon" aria-hidden="true" />
-        </button>
-        <button type="button" className="button-bar__secondary-button button-bar__theme-toggle shell-tab shell-tab--icon-only" aria-label="Theme" disabled>
-          <span className="button-bar__theme-thumb" aria-hidden="true" />
-        </button>
-      </div>
-    </div>
+    <ShellButtonBar
+      activeRouteId="portfolio"
+      className="styleguide-button-bar"
+      materialVariant="dominant-tab"
+      onRouteSelect={() => {}}
+      preview
+      previewTheme="dark"
+      onPreviewThemeChange={() => {}}
+    />
   );
 }
 
@@ -84,7 +65,7 @@ export function getStyleguideRouteView() {
           <section className="styleguide-section" aria-labelledby="sg-button-bar">
             <h2 id="sg-button-bar">Button Bar navigation</h2>
             <p className="styleguide-section__hint">
-              Route definitions and labels come from <code className="styleguide-doc__code">SHELL_ROUTE_TABS</code>. The specimen shows Portfolio active, alongside idle routes and the sound/theme group.
+              The specimen uses the production component: four routes, Contact, two dividers, fixed utilities, and one shared active dot.
             </p>
             {renderButtonBarSpecimen()}
           </section>

@@ -76,16 +76,16 @@ export function DominantTabLab() {
           Full playground
         </a>
         <div className="dominant-tab-lab__heading">
-          <p className="dominant-tab-lab__eyebrow">Final validation / 11</p>
-          <h1>Dominant Tab</h1>
-          <p>Colour after release. Pressed material without physical travel.</p>
+          <p className="dominant-tab-lab__eyebrow">Production validation</p>
+          <h1>Button Bar</h1>
+          <p>The production capsule, shared route dot, and fixed utility slots.</p>
         </div>
       </header>
 
       <section className="dominant-tab-lab__validation" aria-labelledby="dominant-tab-specimen-title">
         <div className="dominant-tab-lab__specimen-heading">
           <h2 id="dominant-tab-specimen-title">Live specimen</h2>
-          <p><span aria-hidden="true" /> Zero button travel</p>
+          <p><span aria-hidden="true" /> Shared production material</p>
         </div>
 
         <div className="dominant-tab-lab__wall">
@@ -107,7 +107,7 @@ export function DominantTabLab() {
           <span>Active route</span>
           <strong>{activeRoute?.label || 'Home'}</strong>
           <span>Interaction</span>
-          <strong>Optical press only</strong>
+          <strong>Shared dot travel</strong>
           <span>Theme</span>
           <strong>{theme}</strong>
         </div>

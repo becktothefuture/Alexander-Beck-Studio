@@ -8,7 +8,7 @@ The production design intent and responsive rules live in [`DESIGN.md`](../../DE
 
 The bottom Button Bar is the primary navigation object. Its labels come from `SHELL_ROUTE_TABS`; the About route uses the concise `About` label. Route top bars are optional back/utility strips only.
 
-The dark outer shell owns the Button Bar’s resting material. All five primary cells are content-sized from their rendered label plus inline padding; the active shared rounded-rectangle pill matches that padded cell and uses the same flat light-neutral surface with opaque dark ink in both site themes. Unselected labels stay visibly faded but readable; hover/focus and pressed states remain clear without recolouring the shell. The divider stays visually grouped with the flat-charcoal sound and theme controls, leaving a deliberate breathing gap after the primary navigation.
+The dark outer shell owns the Button Bar’s resting material. The `45px` capsule intentionally crosses the studio-window bottom edge by `15.5px`; it uses a `16px` radius, a `#141414` to black gradient, and the reference inset highlights in every theme. Home through Lab form the first route group, followed by a divider, Contact, a second divider, and the fixed sound/theme group. Sound and theme are icon-only toggles that swap volume-off/volume-on and sun/moon glyphs without a slider track. The shared white dot follows the active or pending label centre. Labels use uppercase Geist SemiBold at `10px` through `767px` and `12px` from `768px`, with `8px` mobile inline padding and `10px` desktop padding. Hover, press, and keyboard focus change ink or add a compact focus cue, never a tab background.
 
 ## Shell and surfaces
 

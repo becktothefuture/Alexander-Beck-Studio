@@ -124,7 +124,6 @@ async function readState(page) {
     const activeCard = document.querySelector('.portfolio-project-card.is-active');
     const gate = document.querySelector('.portfolio-access-gate');
     const gateRect = gate?.getBoundingClientRect() || null;
-    const buttonBarRect = document.querySelector('[data-button-bar]')?.getBoundingClientRect() || null;
     const windowRect = document.getElementById('simulations')?.getBoundingClientRect() || null;
     const firstInput = document.querySelector('[aria-label="Portfolio invite code digit 1 of 6"]');
     const legacyBlur = document.getElementById('modal-blur-layer');
@@ -163,7 +162,6 @@ async function readState(page) {
         && gateRect.top >= windowRect.top - 1
         && gateRect.right <= windowRect.right + 1
         && gateRect.bottom <= windowRect.bottom + 1
-        && (!buttonBarRect || gateRect.bottom <= buttonBarRect.top + 1)
       ),
       legacyBlur: style(legacyBlur),
       legacyContent: style(legacyContent),
@@ -248,7 +246,7 @@ async function auditProtectedFlow(browser) {
     assert(opened.pendingProjectId === opened.activeProjectId, 'Gate did not retain the selected project intent', opened);
     assert(!opened.drawerOpen && opened.selectedProjectIndex < 0, 'Drawer began before authorisation', opened);
     assert(opened.firstInputFocused, 'Gate did not focus the first invite-code input', opened);
-    assert(opened.gateInsideWindow, 'Gate escaped the studio window or covered the Button Bar', opened);
+    assert(opened.gateInsideWindow, 'Gate escaped the studio-window bounds behind the Button Bar', opened);
     assert(opened.legacyBlur?.visibility === 'hidden' && opened.legacyContent?.visibility === 'hidden', 'Legacy modal layers painted above the in-window gate', opened);
     await page.screenshot({ path: resolve(outputRoot, `${prefix}-02-gate.png`) });
 

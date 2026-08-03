@@ -313,21 +313,24 @@
   --content-padding-x: var(--abs-content-padding);
   --content-padding-y: var(--abs-content-padding);
   --content-padding-y-bottom: calc(var(--abs-content-padding) * var(--abs-content-pad-mul-bottom));
-  --button-bar-inset: 6px;
-  --button-bar-padding-y: var(--button-bar-inset);
-  --button-bar-width: 2400px;
-  --button-bar-gap: 16px;
-  --button-bar-button-height: 40.8px;
-  --button-bar-height: 56px;
-  --button-bar-responsive-height: var(--button-bar-height);
-  --button-bar-button-padding-x: 16px;
-  --button-bar-button-radius: 999px;
-  --button-bar-font-size: 1.032rem;
-  --button-bar-max-width: 2400px;
-  --button-bar-bg: color-mix(in srgb, var(--abs-browser-chrome) 88%, rgba(var(--abs-rgb-black), 1) 12%);
+  --button-bar-height: 45px;
+  --button-bar-bottom-inset: 10.5px;
+  --button-bar-window-overlap: 15.5px;
+  --button-bar-frame-reserve: calc(var(--button-bar-height) - var(--button-bar-window-overlap) + var(--button-bar-bottom-inset));
+  --button-bar-content-clearance: calc(var(--button-bar-window-overlap) + 8px);
+  --button-bar-responsive-height: var(--button-bar-frame-reserve);
+  --button-bar-gap: 5px;
+  --button-bar-route-gap: 4px;
+  --button-bar-button-height: 45px;
+  --button-bar-button-padding-x: 8px;
+  --button-bar-desktop-padding-scale: 1.25;
+  --button-bar-button-radius: 16px;
+  --button-bar-font-size: 10px;
+  --button-bar-indicator-size: 4.01868px;
+  --button-bar-bg: linear-gradient(180deg, #141414 0%, #000000 100%);
   --button-bar-shadow:
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.08),
-    inset 0 14px 30px rgba(var(--abs-rgb-black), 0.18);
+    inset 0 2px 3px rgba(var(--abs-rgb-white), 0.04),
+    inset 0 1px 1px rgba(var(--abs-rgb-white), 0.08);
   --button-bar-top-bevel: rgba(var(--abs-rgb-white), 0.1);
   --button-bar-outer-ink: rgba(var(--abs-rgb-white), 0.88);
   --button-bar-outer-ink-muted: rgba(var(--abs-rgb-white), 0.64);
@@ -348,13 +351,12 @@
   --button-bar-shadow-opacity: 0;
   --button-bar-active-glow: 0px;
   --button-bar-active-drop: 0px;
-  --button-bar-transition-ms: 140ms;
-  --shell-bottom-tabs-gap: var(--button-bar-inset);
-  --shell-bottom-tabs-padding-y: var(--button-bar-padding-y);
-  --shell-tab-nav-width: var(--button-bar-width);
+  --button-bar-transition-ms: 320ms;
+  --shell-bottom-tabs-gap: var(--button-bar-bottom-inset);
+  --shell-bottom-tabs-padding-y: 0px;
   --shell-tab-gap: var(--button-bar-gap);
   --shell-tab-height: var(--button-bar-button-height);
-  --shell-bottom-band-height: var(--button-bar-responsive-height);
+  --shell-bottom-band-height: var(--button-bar-frame-reserve);
   --shell-tab-padding-x: var(--button-bar-button-padding-x);
   --shell-tab-radius: var(--button-bar-button-radius);
   --shell-tab-font-size: var(--button-bar-font-size);

@@ -41,8 +41,10 @@ function keepActiveTabVisible(primaryNav, activeTab) {
   const maxScrollLeft = primaryNav.scrollWidth - primaryNav.clientWidth;
   if (maxScrollLeft <= 0) return;
 
-  const tabStart = activeTab.offsetLeft;
-  const tabEnd = tabStart + activeTab.offsetWidth;
+  const primaryNavRect = primaryNav.getBoundingClientRect();
+  const activeTabRect = activeTab.getBoundingClientRect();
+  const tabStart = activeTabRect.left - primaryNavRect.left + primaryNav.scrollLeft;
+  const tabEnd = tabStart + activeTabRect.width;
   const visibleStart = primaryNav.scrollLeft;
   const visibleEnd = visibleStart + primaryNav.clientWidth;
   const edgeGap = 2;
@@ -54,11 +56,11 @@ function keepActiveTabVisible(primaryNav, activeTab) {
   }
 }
 
-function syncActivePillGeometry(primaryNav, activeRouteId) {
+function syncActiveIndicatorGeometry(primaryNav, activeRouteId) {
   const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
     .find((tab) => tab.dataset.routeTab === activeRouteId);
-  const activePill = primaryNav.querySelector('.button-bar__active-pill');
-  if (!activeTab || !activePill) return;
+  const activeIndicator = primaryNav.querySelector('.button-bar__active-indicator');
+  if (!activeTab || !activeIndicator) return;
 
   keepActiveTabVisible(primaryNav, activeTab);
 
@@ -66,14 +68,17 @@ function syncActivePillGeometry(primaryNav, activeRouteId) {
   const activeTabRect = activeTab.getBoundingClientRect();
   if (!primaryNavRect.width || !activeTabRect.width) return;
 
-  const width = activeTabRect.width;
-  const x = activeTabRect.left - primaryNavRect.left + primaryNav.scrollLeft;
+  const indicatorSize = activeIndicator.getBoundingClientRect().width;
+  const x = activeTabRect.left
+    - primaryNavRect.left
+    + primaryNav.scrollLeft
+    + ((activeTabRect.width - indicatorSize) / 2);
 
-  primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
-  primaryNav.style.setProperty('--button-bar-active-pill-width', `${width.toFixed(3)}px`);
+  primaryNav.style.setProperty('--button-bar-active-indicator-x', `${x.toFixed(3)}px`);
+  primaryNav.dataset.activeIndicatorReady = 'true';
 }
 
-function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
+function useActiveIndicatorGeometry(primaryNavRef, activeRouteId, enabled) {
   useLayoutEffect(() => {
     const primaryNav = primaryNavRef.current;
     if (!enabled || !primaryNav || !activeRouteId) return undefined;
@@ -83,7 +88,7 @@ function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
     const update = () => {
       if (disposed) return;
       frameId = 0;
-      syncActivePillGeometry(primaryNav, activeRouteId);
+      syncActiveIndicatorGeometry(primaryNav, activeRouteId);
     };
     const scheduleUpdate = () => {
       if (disposed || frameId) return;
@@ -100,12 +105,14 @@ function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
     resizeObserver?.observe(primaryNav);
     if (activeTab) resizeObserver?.observe(activeTab);
     window.addEventListener('resize', scheduleUpdate);
+    primaryNav.addEventListener('scroll', scheduleUpdate, { passive: true });
     document.fonts?.ready?.then(scheduleUpdate);
 
     return () => {
       disposed = true;
       window.cancelAnimationFrame(frameId);
       window.removeEventListener('resize', scheduleUpdate);
+      primaryNav.removeEventListener('scroll', scheduleUpdate);
       resizeObserver?.disconnect();
       // Keep the previous geometry on the persistent nav so the next route has a transition origin.
     };
@@ -376,6 +383,7 @@ function RouteButton({
   isCurrent,
   isPending,
   isVisualActive,
+  isVisualDestination,
   onRouteNavigate,
   onRouteSelect,
   onRouteIntent,
@@ -407,6 +415,7 @@ function RouteButton({
     'data-route-tab': tab.routeId,
     'data-state': isPending ? 'pending' : (isCurrent ? 'active' : 'idle'),
     'data-route-pending': isPending ? 'true' : undefined,
+    'data-visual-active': isVisualDestination ? 'true' : undefined,
     'aria-label': tab.ariaLabel,
     'aria-current': isCurrent ? 'page' : undefined,
     onPointerEnter: () => signalIntent('pointer-hover'),
@@ -504,7 +513,7 @@ export function ShellButtonBar({
   const visualActiveRouteId = normalizedPendingRouteId || normalizedActiveRouteId;
   const activeRouteTab = getRouteTabById(visualActiveRouteId);
   const primaryNavRef = useRef(null);
-  useActivePillGeometry(
+  useActiveIndicatorGeometry(
     primaryNavRef,
     visualActiveRouteId,
     materialVariant === 'dominant-tab',
@@ -535,8 +544,27 @@ export function ShellButtonBar({
         data-active-route={activeRouteTab?.routeId}
         data-pending-route={normalizedPendingRouteId || undefined}
       >
-        <span className="button-bar__active-pill" aria-hidden="true" />
-        {SHELL_ROUTE_TABS.map((tab) => (
+        <span className="button-bar__active-indicator" aria-hidden="true" />
+        <div className="button-bar__route-cluster">
+          {SHELL_ROUTE_TABS.slice(0, 4).map((tab) => (
+            <RouteButton
+              key={tab.routeId}
+              tab={tab}
+              isCurrent={tab.routeId === normalizedActiveRouteId}
+              isPending={Boolean(normalizedPendingRouteId && tab.routeId === normalizedPendingRouteId)}
+              isVisualActive={tab.routeId === visualActiveRouteId || Boolean(
+                normalizedPendingRouteId && tab.routeId === normalizedActiveRouteId
+              )}
+              isVisualDestination={tab.routeId === visualActiveRouteId}
+              onRouteNavigate={onRouteNavigate}
+              onRouteSelect={onRouteSelect}
+              onRouteIntent={onRouteIntent}
+              renderDecoration={renderRouteButtonDecoration}
+            />
+          ))}
+        </div>
+        <span className="button-bar__divider button-bar__divider--route" aria-hidden="true" />
+        {SHELL_ROUTE_TABS.slice(4).map((tab) => (
           <RouteButton
             key={tab.routeId}
             tab={tab}
@@ -545,6 +573,7 @@ export function ShellButtonBar({
             isVisualActive={tab.routeId === visualActiveRouteId || Boolean(
               normalizedPendingRouteId && tab.routeId === normalizedActiveRouteId
             )}
+            isVisualDestination={tab.routeId === visualActiveRouteId}
             onRouteNavigate={onRouteNavigate}
             onRouteSelect={onRouteSelect}
             onRouteIntent={onRouteIntent}
@@ -552,7 +581,7 @@ export function ShellButtonBar({
           />
         ))}
       </nav>
-      <div className="button-bar__divider" aria-hidden="true" />
+      <span className="button-bar__divider button-bar__divider--utility" aria-hidden="true" />
       <SecondaryButtons
         preview={preview}
         previewTheme={previewTheme}

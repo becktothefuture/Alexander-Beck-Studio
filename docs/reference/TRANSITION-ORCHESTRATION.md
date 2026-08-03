@@ -93,7 +93,7 @@ Canonical engineering contract for route and modal transitions.
 
 ## 6) Surface grouping contract
 - Route view ownership is intentionally two-slot: `simulationLayer` for page-owned wall/content, and `uiLayer` for page-owned chrome/actions. Optional `heroLayer` belongs to the route simulation/content side.
-- The Button Bar is a stable shell control; route transitions must not animate or hide it. The footer is Home-only content and remains absent on the other routes.
+- The Button Bar is a stable shell control; route transitions must not animate, hide, recolour, or reposition it. Its dot may retarget to `pendingRouteId` while `aria-current` remains committed. A failed or superseded transition returns the dot to the committed route without creating another transition owner. The footer is Home-only content and remains absent on the other routes.
 - The stable shell preserves one descriptor registry for every transition surface: wall, hero, chrome, route secondary content, Home footer, and simulation-focus controls. All hiding, inert management, animation, cancellation, restoration, and diagnostics derive from that registry.
 - Stable wrappers expose `data-route-surface` and keyed route children expose `data-route-view`. The Home footer and simulation controls are first-class surfaces; neither may mount visibly before route-in.
 - Route-in begins surface resolution and route-owned `[data-route-enter]` children from one coordinated loader-departure boundary. Child delays express hierarchy without serializing the entire surface reveal.
@@ -107,7 +107,7 @@ Canonical engineering contract for route and modal transitions.
 
 ## 7) In-window route loader
 
-- `RouteTransitionLoader` is always mounted inside `#abs-scene` at layer 280. Its plate uses the live `--studio-window-bg`, covers the studio window including route overlays and Portfolio sheets, and stops above the persistent Button Bar. Theme changes while covered update the plate immediately.
+- `RouteTransitionLoader` is always mounted inside `#abs-scene` at layer 280. Its plate uses the live `--studio-window-bg` and covers the complete studio-window bounds, including the area behind the overlapping Button Bar, route overlays, and Portfolio sheets. The Button Bar stays visually and interactively above it. Theme changes while covered update the plate immediately.
 - The route loader and direct boot use the same `.abs-loader-spinner` primitive: eight explicit equal-sided elements with `aspect-ratio: 1`, `border-radius: 50%`, and circular clipping. `#abs-boot-spinner` remains unique to direct boot and fixed-light-on-black; direct boot retains its 750ms minimum, 640ms exit, and 2.4× bloom. SPA dots use `--text-primary` and therefore follow the manual in-window theme.
 - SPA loading begins as a plate only. The readiness clock starts when the destination is provisionally committed. Readiness inside `spinnerDelayMs` (120ms by default) cancels escalation and creates no artificial loader minimum. Sustained waits show the spinner once; after it appears, `spinnerMinimumMs` (140ms by default) prevents a visual blink. A covered retarget reuses the current plate, delay, and spinner presence.
 - The remaining compact route profile stays in `shell.motion.routeTransition`: 130ms surface exit, 70ms spinner arrival, 160ms spinner departure capped at 1.45×, and a 220ms destination surface resolve. A warm plate crossfades immediately over 70ms; once a spinner has genuinely appeared, its plate keeps the more deliberate 40ms-delayed 160ms departure.

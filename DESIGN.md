@@ -86,7 +86,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
 - Manual site theme affects the studio-window interior and the temporary in-window route cover. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
-- The Button Bar belongs to the dark outer shell. Its unselected route tabs, sound, theme, and reset controls must not derive material or ink from the studio window or route body text. The active primary route pill uses one flat light-neutral surface with opaque dark ink in both site themes; unselected route labels remain visibly faded but readable on the outer shell. Sound and theme controls use the same flat charcoal material in both themes, with a bright sound-on glyph and a light toggle thumb making their state explicit.
+- The Button Bar belongs to the stable dark outer shell. It is a compact `45px` capsule with a `#141414` to `#000000` vertical gradient, two inset highlights, and a `16px` radius in every site theme. Inactive labels use the readable neutral `#767881`; utility icons use `#72747D`; the active label and shared `4.01868px` dot are white. Sound and theme are plain icon-only toggles: sound swaps volume-off/volume-on and theme swaps sun/moon. Neither control uses a slider track. No tab has a selected background.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange, and Lab pink.
 - Simulation colours have one time-of-day owner. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route- or config-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
@@ -98,7 +98,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Use the existing 4px sub-unit and 8px rhythm for static endpoints. Tight icon/text pairings may use the smaller step.
 - Reuse semantic gaps and content insets. Do not create a route-specific spacing scale.
-- The studio window always reserves the full Button Bar stack, separator, gap, padding, and safe-area inset.
+- The studio window reserves `40px + safe-area` beneath its frame boundary while the capsule deliberately overlaps the window by `15.5px` and sits `10.5px + safe-area` above the viewport edge. Window backgrounds and overlays continue behind the overlap; route-owned interactive content consumes `--button-bar-content-clearance`.
 - Readable text measure uses `ch`; layout width uses percentages, container units, or explicit maximums.
 - Width-owned typography and horizontal spacing use width-based fluid interpolation. Height-owned composition may use `svh`, `dvh`, or container height units.
 - Avoid `vmin` for values whose intent is horizontal; it can collapse spacing in short landscape viewports.
@@ -119,7 +119,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
 - Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
-- The Button Bar is the only primary navigation. Its moving pill is one shared object, not five independent selected backgrounds. All primary tab cells use their rendered label width plus inline padding; the pill follows that padded cell with a controlled rounded-rectangle radius.
+- The Button Bar is the only primary navigation. Its moving dot is one shared inert object, not five independent selected backgrounds. Primary cells use rendered label width plus `8px` mobile inline padding and exactly `10px` from `768px`. Labels retain the reference `10px` size through `767px` and scale to `12px` from `768px`. The dot follows the active or pending cell centre with compositor-only travel; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 
@@ -171,7 +171,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Every project declares `access: "public" | "protected"`. Missing or unsupported runtime values fail closed as protected.
 - The access gate appears only when an unauthorised visitor opens a protected project. It blurs the live deck inside the studio window, stores one Portfolio-wide grant, closes completely, then continues the exact selected card through the existing drawer handoff. Public projects bypass it.
 - This gate is client-side access friction, not secure authentication; truly private assets require server or edge enforcement.
-- The drawer covers route content, stops above the Button Bar, supports native reading/selection behavior, and preserves focus restoration.
+- The drawer covers route content to the studio-window boundary behind the overlapping Button Bar, supports native reading/selection behavior, and preserves focus restoration.
 - Project-specific editorial treatments must be named content variants, not selector rules tied only to a project ID.
 
 ### About Me

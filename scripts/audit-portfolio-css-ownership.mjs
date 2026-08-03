@@ -349,7 +349,7 @@ function assertBase(snapshot, theme, label) {
   assert(targets.title.fontFamily.toLowerCase().includes('instrument serif'), `${label}: title lost headline ownership`, targets.title);
   assert(targets.deck.rect?.width > 0 && targets.card.rect?.width > 0, `${label}: deck/card has no geometry`, targets);
   assert(targets.buttonBar.position === 'fixed', `${label}: Button Bar is not shell-fixed`, targets.buttonBar);
-  assert(Math.abs(targets.buttonBar.rect.bottom - snapshot.viewport.height) <= 2, `${label}: Button Bar detached from bottom`, targets.buttonBar);
+  assert(Math.abs((snapshot.viewport.height - targets.buttonBar.rect.bottom) - 10.5) <= 0.5, `${label}: Button Bar lost its 10.5px bottom inset`, targets.buttonBar);
   const mainIndex = snapshot.styleSheetOrder.findIndex((href) => /\/css\/main\.css(?:\?|$)/.test(href));
   const portfolioIndex = snapshot.styleSheetOrder.findIndex((href) => /\/css\/portfolio\.css(?:\?|$)/.test(href));
   assert(mainIndex >= 0 && portfolioIndex > mainIndex, `${label}: stylesheet order changed`, snapshot.styleSheetOrder);
@@ -361,9 +361,9 @@ function assertOverlay(snapshot, name, label) {
   const bar = snapshot.targets.buttonBar;
   const controls = snapshot.targets.buttonBarControls;
   assert(overlay.count === 1 && overlay.rect?.width > 0 && overlay.opacity > 0.5, `${label}: overlay unavailable`, overlay);
-  const outerBandIntrusionPx = overlay.rect.bottom - bar.rect.top;
-  assert(outerBandIntrusionPx <= 4, `${label}: overlay exceeded the provisional outer-band seat`, { overlay, bar });
-  assert(overlay.rect.bottom <= controls.rect.top, `${label}: overlay crossed visible Button Bar controls`, { overlay, controls });
+  const buttonBarOverlapPx = overlay.rect.bottom - bar.rect.top;
+  assert(Math.abs(buttonBarOverlapPx - 15.5) <= 1, `${label}: overlay and capsule lost the intentional 15.5px overlap`, { overlay, bar });
+  assert(Math.abs(controls.rect.top - bar.rect.top) <= 0.5, `${label}: Button Bar controls detached from capsule geometry`, { controls, bar });
   assertProvenance(snapshot, [name, 'buttonBar', 'buttonBarControls'], label);
 }
 

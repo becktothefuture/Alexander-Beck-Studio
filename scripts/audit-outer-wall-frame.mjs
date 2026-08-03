@@ -246,7 +246,7 @@ async function readFrameState(page) {
     const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
-    const activePill = buttonBar?.querySelector('.button-bar__active-pill');
+    const activePill = buttonBar?.querySelector('.button-bar__active-indicator');
     const soundToggle = buttonBar?.querySelector('.button-bar__sound-toggle');
     const themeToggle = buttonBar?.querySelector('.button-bar__theme-toggle');
     const themeThumb = buttonBar?.querySelector('.button-bar__theme-thumb');
@@ -277,11 +277,17 @@ async function readFrameState(page) {
       bodyBackground: bodyStyle.backgroundColor,
       themeColor: document.querySelector('meta[name="theme-color"]:not([media])')?.content || '',
       activeTabBackground: activeStyle?.backgroundColor || '',
-      activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundColor || '',
+      activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundImage || '',
+      activePillOpacity: activePillStyle?.opacity || '',
       activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
       activeTabBorder: activeStyle?.borderTopColor || '',
       inactiveTabBackground: inactiveStyle?.backgroundColor || '',
+      inactiveTabColor: inactiveStyle?.color || '',
       buttonBarBackground: buttonBar ? getComputedStyle(buttonBar).backgroundColor : '',
+      buttonBarBackgroundImage: buttonBar ? getComputedStyle(buttonBar).backgroundImage : '',
+      buttonBarShadow: buttonBar ? getComputedStyle(buttonBar).boxShadow : '',
+      buttonBarRadius: buttonBar ? getComputedStyle(buttonBar).borderRadius : '',
+      buttonBarHeight: buttonBar?.getBoundingClientRect().height || 0,
       inactiveTabBorder: inactiveStyle?.borderTopColor || '',
       soundToggleBackground: soundStyle?.backgroundColor || '',
       soundToggleColor: soundStyle?.color || '',
@@ -338,73 +344,64 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     throw new Error(`${siteTheme}/${browserScheme}/${phase} theme-color expected ${expectedHex}, got ${actual.themeColor}`);
   }
 
-  const expectedFrameRgb = hexToRgb(expectedHex);
-  const expectedWindowRgb = hexToRgb(expectedWindow);
-  const expectedActiveSurfaceRgb = [216, 216, 216];
-  const expectedUtilitySurfaceRgb = [32, 32, 32];
-  const expectedThumbSurfaceRgb = [245, 244, 239];
+  const capsuleMidpointRgb = [10, 10, 10];
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
-  const buttonBarBackground = cssColorToRgba(actual.buttonBarBackground);
-  const bodyBackground = cssColorToRgba(actual.bodyBackground);
-  const activeBackground = cssColorToRgba(actual.activePillBackground || actual.activeTabBackground);
+  const activeBackground = cssColorToRgba(actual.activeTabBackground);
   const activeForeground = cssColorToRgba(actual.activeTabColor);
-  if (!expectedFrameRgb || !expectedWindowRgb || !inactiveBackground || !buttonBarBackground || !bodyBackground || !activeBackground || !activeForeground) {
+  const inactiveForeground = cssColorToRgba(actual.inactiveTabColor);
+  if (!inactiveBackground || !activeBackground || !activeForeground || !inactiveForeground) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse Button Bar colours: ${JSON.stringify({
-      expectedHex,
       inactiveTabBackground: actual.inactiveTabBackground,
-      buttonBarBackground: actual.buttonBarBackground,
       activeTabBackground: actual.activeTabBackground,
-      activePillBackground: actual.activePillBackground,
       activeTabColor: actual.activeTabColor,
+      inactiveTabColor: actual.inactiveTabColor,
     })}`);
   }
 
-  const compositedButtonBarBackground = compositeRgba(buttonBarBackground, bodyBackground);
-  const compositedInactiveBackground = compositeRgba(inactiveBackground, compositedButtonBarBackground);
-  if (pixelDistance(compositedInactiveBackground, expectedFrameRgb) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} inactive Button Bar surface must match outer frame: expected ${expectedFrameRgb.join(',')}, got ${compositedInactiveBackground.join(',')}`);
+  if (!actual.buttonBarBackgroundImage.includes('rgb(20, 20, 20)')
+    || !actual.buttonBarBackgroundImage.includes('rgb(0, 0, 0)')) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar lost the #141414 to #000000 gradient: ${actual.buttonBarBackgroundImage}`);
   }
-
-  if (activeBackground[3] < 0.9) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must be an opaque selected state: got ${actual.activePillBackground || actual.activeTabBackground}`);
+  if (!actual.buttonBarShadow.includes('0px 2px 3px') || !actual.buttonBarShadow.includes('0px 1px 1px')) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar lost its paired inset highlights: ${actual.buttonBarShadow}`);
   }
-
-  if (pixelDistance(activeBackground.slice(0, 3), expectedActiveSurfaceRgb) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar surface must remain theme-invariant: expected ${expectedActiveSurfaceRgb.join(',')}, got ${activeBackground.join(',')}`);
+  if (actual.buttonBarRadius !== '16px' || Math.abs(actual.buttonBarHeight - 45) > 0.25) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar geometry expected 45px/16px, got ${actual.buttonBarHeight}px/${actual.buttonBarRadius}`);
   }
-
-  const compositedForeground = compositeRgba(activeForeground, activeBackground);
-  const expectedActiveInk = [0, 0, 0];
-  if (activeForeground[3] < 0.99 || pixelDistance(compositedForeground, expectedActiveInk) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must remain opaque dark ink: expected ${expectedActiveInk.join(',')}, got ${actual.activeTabColor}`);
+  if (activeBackground[3] > 0.01 || inactiveBackground[3] > 0.01) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} route tabs introduced a background: active=${actual.activeTabBackground} inactive=${actual.inactiveTabBackground}`);
   }
-  const activeContrast = contrastRatio(compositedForeground, activeBackground);
+  if (!actual.activePillBackground.includes('active-dot.svg') || Number(actual.activePillOpacity) < 0.99) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} shared active dot is unavailable: image=${actual.activePillBackground} opacity=${actual.activePillOpacity}`);
+  }
+  const activeInk = compositeRgba(activeForeground, [...capsuleMidpointRgb, 1]);
+  if (activeForeground[3] < 0.99 || pixelDistance(activeInk, [255, 255, 255]) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must remain opaque white, got ${actual.activeTabColor}`);
+  }
+  const activeContrast = contrastRatio(activeInk, capsuleMidpointRgb);
   if (activeContrast < 4.5) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1: foreground=${actual.activeTabColor} background=${actual.activePillBackground || actual.activeTabBackground}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar contrast ${activeContrast.toFixed(2)} is below 4.5:1`);
   }
-
   actual.activeTabContrast = Number(activeContrast.toFixed(2));
+  const inactiveInk = compositeRgba(inactiveForeground, [...capsuleMidpointRgb, 1]);
+  const inactiveContrast = contrastRatio(inactiveInk, capsuleMidpointRgb);
+  if (inactiveContrast < 4.5) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} inactive Button Bar contrast ${inactiveContrast.toFixed(2)} is below 4.5:1: ${actual.inactiveTabColor}`);
+  }
+  actual.inactiveTabContrast = Number(inactiveContrast.toFixed(2));
 
-  const assertUtilityControl = (
-    name,
-    backgroundValue,
-    colorValue,
-    surfaceBackground = compositedButtonBarBackground,
-    expectedSurface = expectedFrameRgb,
-  ) => {
+  const assertUtilityControl = (name, backgroundValue, colorValue) => {
     const background = cssColorToRgba(backgroundValue);
     const foreground = cssColorToRgba(colorValue);
     if (!background || !foreground) {
       throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse ${name} colours: background=${backgroundValue} color=${colorValue}`);
     }
 
-    const compositedBackground = compositeRgba(background, surfaceBackground);
-    if (pixelDistance(compositedBackground, expectedSurface) > 2) {
-      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface expected ${expectedSurface.join(',')}, got ${compositedBackground.join(',')} from ${backgroundValue}`);
+    if (background[3] > 0.01) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} introduced a tab surface: ${backgroundValue}`);
     }
-
-    const compositedControlForeground = compositeRgba(foreground, compositedBackground);
-    const controlContrast = contrastRatio(compositedControlForeground, compositedBackground);
+    const compositedControlForeground = compositeRgba(foreground, [...capsuleMidpointRgb, 1]);
+    const controlContrast = contrastRatio(compositedControlForeground, capsuleMidpointRgb);
     if (controlContrast < 3) {
       throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} icon contrast ${controlContrast.toFixed(2)} is below 3:1: foreground=${colorValue} background=${backgroundValue}`);
     }
@@ -414,22 +411,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
 
   actual.utilityControlContrast = {
     sound: assertUtilityControl('sound-toggle', actual.soundToggleBackground, actual.soundToggleColor),
-    themeTrack: assertUtilityControl(
-      'theme-toggle',
-      actual.themeToggleBackground,
-      actual.themeToggleColor,
-      compositedButtonBarBackground,
-      expectedUtilitySurfaceRgb,
-    ),
-    themeThumb: assertUtilityControl(
-      'theme-thumb',
-      actual.themeThumbBackground,
-      actual.themeThumbColor,
-      cssColorToRgba(actual.themeToggleBackground)
-        ? compositeRgba(cssColorToRgba(actual.themeToggleBackground), compositedButtonBarBackground)
-        : compositedButtonBarBackground,
-      expectedThumbSurfaceRgb,
-    ),
+    theme: assertUtilityControl('theme-toggle', actual.themeToggleBackground, actual.themeToggleColor),
   };
 
 }

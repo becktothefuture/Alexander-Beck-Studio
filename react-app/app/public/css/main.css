@@ -493,6 +493,11 @@ html.fonts-loading .project-detail {
     0px,
     calc(max(var(--abs-safe-left), var(--content-padding-x)) - var(--safari-tint-inset-x, var(--safari-tint-inset)))
   );
+  padding-bottom: max(
+    var(--button-bar-content-clearance, 23.5px),
+    calc(max(var(--abs-safe-bottom), var(--content-padding-y-bottom)) - var(--safari-tint-inset-y, var(--safari-tint-inset)))
+  );
+  scroll-padding-bottom: var(--button-bar-content-clearance, 23.5px);
 }
 
 /* Re-enable pointer events ONLY for actual interactive UI elements.
@@ -4573,10 +4578,7 @@ svg.shell-tab__icon {
 
 @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
   :root {
-    --button-bar-responsive-height: calc(
-      var(--shell-tab-height, 48px)
-      + (var(--shell-bottom-tabs-padding-y) * 2.5)
-    );
+    --button-bar-responsive-height: var(--button-bar-frame-reserve, 40px);
   }
 
   .shell-bottom-band {
@@ -4594,10 +4596,7 @@ svg.shell-tab__icon {
     --button-bar-mobile-secondary-height: var(--shell-tab-height, 48px);
     --button-bar-mobile-row-gap: clamp(8px, 2.5vw, 12px);
     --button-bar-mobile-divider-size: 1px;
-    --button-bar-responsive-height: calc(
-      var(--button-bar-mobile-primary-height)
-      + (var(--shell-bottom-tabs-padding-y) * 2)
-    );
+    --button-bar-responsive-height: var(--button-bar-frame-reserve, 40px);
     --shell-control-icon-size: 20px;
   }
 

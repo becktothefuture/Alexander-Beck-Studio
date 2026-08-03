@@ -365,7 +365,7 @@ async function readInvariantState(page) {
         })
       : null;
     const buttonBar = activePrimaryTab?.closest('.button-bar');
-    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
+    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-indicator');
     const activePrimaryTabRect = activePrimaryTab?.getBoundingClientRect();
     const activePrimaryContentRect = activePrimaryVisibleContent?.getBoundingClientRect();
     const activePrimaryPillRect = activePrimaryPill?.getBoundingClientRect();
@@ -413,7 +413,7 @@ async function readInvariantState(page) {
         const style = getComputedStyle(tab);
         return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
       }).join(';'),
-      activePrimaryPillBackground: activePrimaryPill ? getComputedStyle(activePrimaryPill).backgroundColor : '',
+      activePrimaryPillBackground: activePrimaryPill ? getComputedStyle(activePrimaryPill).backgroundImage : '',
       activePrimaryInk: activePrimaryContent ? getComputedStyle(activePrimaryContent).color : '',
       activePrimaryRouteId: activePrimaryTab?.dataset.routeTab || '',
       activePrimaryTabX: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.x) : '',
@@ -744,11 +744,10 @@ function diffInvariantState(before, after, { includePhysicalBoundary = false } =
 }
 
 function assertActivePrimaryTabThemeContract(state, theme, route, viewport) {
-  const expectedSurface = 'rgb(216, 216, 216)';
-  if (normalize(state.activePrimaryPillBackground) !== expectedSurface) {
-    throw new Error(`${route} ${viewport.name} ${theme} active primary pill expected ${expectedSurface}, got ${state.activePrimaryPillBackground}`);
+  if (!normalize(state.activePrimaryPillBackground).includes('active-dot.svg')) {
+    throw new Error(`${route} ${viewport.name} ${theme} active indicator lost the canonical dot asset: ${state.activePrimaryPillBackground}`);
   }
-  const expectedInk = 'rgb(0, 0, 0)';
+  const expectedInk = 'rgb(255, 255, 255)';
   if (normalize(state.activePrimaryInk) !== expectedInk) {
     throw new Error(`${route} ${viewport.name} ${theme} active primary ink expected ${expectedInk}, got ${state.activePrimaryInk}`);
   }
@@ -758,41 +757,31 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
   const requiredValues = [
     'activePrimaryTabX',
     'activePrimaryTabWidth',
-    'activePrimaryTabHeight',
-    'activePrimaryContentWidth',
-    'activePrimaryInlinePadding',
     'activePrimaryPillX',
     'activePrimaryPillWidth',
     'activePrimaryPillHeight',
   ];
   if (!state.activePrimaryRouteId || requiredValues.some((key) => !Number.isFinite(Number(state[key])))) {
-    throw new Error(`${route} ${viewport.name} active primary pill geometry was unavailable`);
+    throw new Error(`${route} ${viewport.name} active primary indicator geometry was unavailable`);
   }
 
-  const geometryTolerance = 1;
-  const expectedHeight = Number(state.activePrimaryTabHeight) * 0.8;
-  const expectedWidth = Math.min(
-    Number(state.activePrimaryTabWidth),
-    Math.max(
-      44,
-      Number(state.activePrimaryContentWidth) + Number(state.activePrimaryInlinePadding),
-    ),
-  );
-  const expectedX = Number(state.activePrimaryTabX)
-    + ((Number(state.activePrimaryTabWidth) - Number(state.activePrimaryPillWidth)) / 2);
+  const geometryTolerance = 0.5;
+  const expectedSize = 4.01868;
+  const expectedCenter = Number(state.activePrimaryTabX) + (Number(state.activePrimaryTabWidth) / 2);
+  const actualCenter = Number(state.activePrimaryPillX) + (Number(state.activePrimaryPillWidth) / 2);
   const failures = [];
 
-  if (Math.abs(Number(state.activePrimaryPillHeight) - expectedHeight) > geometryTolerance) {
-    failures.push(`height expected ${expectedHeight.toFixed(2)}px, got ${state.activePrimaryPillHeight}px`);
+  if (Math.abs(Number(state.activePrimaryPillHeight) - expectedSize) > geometryTolerance) {
+    failures.push(`height expected ${expectedSize.toFixed(3)}px, got ${state.activePrimaryPillHeight}px`);
   }
-  if (Math.abs(Number(state.activePrimaryPillWidth) - expectedWidth) > geometryTolerance) {
-    failures.push(`width expected ${expectedWidth.toFixed(2)}px, got ${state.activePrimaryPillWidth}px`);
+  if (Math.abs(Number(state.activePrimaryPillWidth) - expectedSize) > geometryTolerance) {
+    failures.push(`width expected ${expectedSize.toFixed(3)}px, got ${state.activePrimaryPillWidth}px`);
   }
-  if (Math.abs(Number(state.activePrimaryPillX) - expectedX) > geometryTolerance) {
-    failures.push(`centered x expected ${expectedX.toFixed(2)}px, got ${state.activePrimaryPillX}px`);
+  if (Math.abs(actualCenter - expectedCenter) > geometryTolerance) {
+    failures.push(`center expected ${expectedCenter.toFixed(2)}px, got ${actualCenter.toFixed(2)}px`);
   }
   if (failures.length > 0) {
-    throw new Error(`${route} ${viewport.name} active primary pill geometry contract failed:\n${failures.join('\n')}`);
+    throw new Error(`${route} ${viewport.name} active primary indicator geometry contract failed:\n${failures.join('\n')}`);
   }
 }
 
@@ -801,11 +790,12 @@ async function waitForActivePrimaryTabThemeContract(page) {
     const activePrimaryTab = document.querySelector('[data-route-tab][aria-current="page"]');
     const activePrimaryContent = activePrimaryTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const buttonBar = activePrimaryTab?.closest('.button-bar');
-    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
+    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-indicator');
     if (!activePrimaryContent || !activePrimaryPill) return false;
 
-    return getComputedStyle(activePrimaryPill).backgroundColor === 'rgb(216, 216, 216)'
-      && getComputedStyle(activePrimaryContent).color === 'rgb(0, 0, 0)';
+    return buttonBar.querySelector('[data-button-bar-nav]')?.dataset.activeIndicatorReady === 'true'
+      && getComputedStyle(activePrimaryPill).backgroundImage.includes('active-dot.svg')
+      && getComputedStyle(activePrimaryContent).color === 'rgb(255, 255, 255)';
   }, null, { timeout: 5000 });
 }
 
@@ -843,6 +833,8 @@ async function auditRoute(browser, route, viewport) {
     } else {
       await themeToggle.dispatchEvent('click');
     }
+    await page.mouse.move(0, 0);
+    await page.evaluate(() => document.activeElement?.blur?.());
     await page.waitForFunction(() => (
       document.querySelector('.button-bar__theme-toggle')?.getAttribute('aria-label') === 'Switch to light mode'
     ), undefined, { timeout: 5000 });
@@ -950,6 +942,8 @@ async function auditBallPitBoundary(browser, viewport) {
     } else {
       await themeToggle.dispatchEvent('click');
     }
+    await page.mouse.move(0, 0);
+    await page.evaluate(() => document.activeElement?.blur?.());
     await page.waitForFunction(() => (
       document.querySelector('.button-bar__theme-toggle')?.getAttribute('aria-label') === 'Switch to light mode'
     ), undefined, { timeout: 5000 });
