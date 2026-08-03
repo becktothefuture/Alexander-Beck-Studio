@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
-import { applyColorTemplate } from './colors.js';
+import { refreshSimulationPalettePresentation } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
@@ -148,7 +148,7 @@ function applyDarkModeToDOM(isDark) {
   applyLayoutCSSVars();
 
   // Establish the authored palette before adapting frame chrome.
-  applyColorTemplate(globals.currentTemplate);
+  refreshSimulationPalettePresentation();
   syncShellToDocument({ isDark });
 
   // Re-project the invariant black frame through every theme-color tag.

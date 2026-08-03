@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
+import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../palette/simulationPaletteContract.js';
 import './dominant-tab-lab.css';
 import '../../components/app/shell-button-bar-dominant.css';
 
 const THEME_STORAGE_KEY = 'dominant-tab-lab-theme-v1';
-const FALLBACK_COLORS = ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'];
 
 function getContrastInk(hex) {
   const normalized = String(hex || '').replace('#', '');
@@ -36,7 +36,9 @@ export function DominantTabLab() {
 
   const paletteStyle = useMemo(() => {
     const palette = getSimulationPaletteSnapshot();
-    const colors = Array.isArray(palette?.colors) ? palette.colors : FALLBACK_COLORS;
+    const colors = Array.isArray(palette?.colors)
+      ? palette.colors
+      : FALLBACK_SIMULATION_PALETTE_COLORS;
     const style = colors.reduce((nextStyle, color, index) => {
       nextStyle[`--ball-${index + 1}`] = color;
       return nextStyle;

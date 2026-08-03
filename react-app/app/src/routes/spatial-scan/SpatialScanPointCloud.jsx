@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationColorDistribution,
+  resolveSimulationPaletteColors,
+} from '../../palette/simulationPaletteContract.js';
 import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import './spatial-scan.css';
 
@@ -17,20 +23,9 @@ const DEFAULT_CAMERA_FRAME = Object.freeze({
   fov: 48,
 });
 const DEFAULT_THEME = {
-  palette: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#d7ff2f', '#0d5cb6', '#ffa000'],
-  colorDistribution: [
-    { label: 'Product Design', colorIndex: 0, weight: 44 },
-    { label: 'Experience Design', colorIndex: 3, weight: 14 },
-    { label: 'Art Direction', colorIndex: 2, weight: 17 },
-    { label: 'Motion & 3D', colorIndex: 6, weight: 11 },
-    { label: 'Creative Engineering', colorIndex: 7, weight: 7 },
-    { label: 'Parametric Systems', colorIndex: 5, weight: 7 },
-  ],
+  palette: FALLBACK_SIMULATION_PALETTE_COLORS,
+  colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
 };
-
-function isHexColor(value) {
-  return /^#[0-9a-f]{6}$/i.test(String(value || '').trim());
-}
 
 function hexToRgbUnit(hex) {
   const clean = String(hex || '').replace('#', '');
@@ -43,42 +38,12 @@ function hexToRgbUnit(hex) {
   ];
 }
 
-function readCssBallPalette() {
-  if (typeof window === 'undefined') return [];
-  const styles = window.getComputedStyle(document.documentElement);
-  return Array.from({ length: 8 }, (_, index) => styles.getPropertyValue(`--ball-${index + 1}`).trim())
-    .filter(isHexColor);
-}
-
 function resolvePalette(theme) {
-  const cssPalette = readCssBallPalette();
-  if (cssPalette.length === 8) return cssPalette;
-  const source = Array.isArray(theme?.palette) ? theme.palette : DEFAULT_THEME.palette;
-  const palette = source.filter(isHexColor);
-  return palette.length ? palette : DEFAULT_THEME.palette;
+  return resolveSimulationPaletteColors(theme?.palette);
 }
 
 function resolveColorDistribution(theme, paletteLength) {
-  const source = Array.isArray(theme?.colorDistribution)
-    ? theme.colorDistribution
-    : DEFAULT_THEME.colorDistribution;
-  const distribution = [];
-
-  for (const row of source) {
-    const colorIndex = Math.round(Number(row?.colorIndex));
-    const weight = Number(row?.weight);
-    if (
-      Number.isFinite(colorIndex)
-      && colorIndex >= 0
-      && colorIndex < paletteLength
-      && Number.isFinite(weight)
-      && weight > 0
-    ) {
-      distribution.push({ colorIndex, weight });
-    }
-  }
-
-  return distribution.length ? distribution : DEFAULT_THEME.colorDistribution;
+  return resolveSimulationColorDistribution(theme?.colorDistribution, paletteLength);
 }
 
 function buildGroupColors(theme, colourMode) {

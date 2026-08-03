@@ -1,10 +1,11 @@
+import { DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS } from './simulation-atmosphere-config.js';
+
 const BROAD_ALPHA_SHARE = 0.92;
 const COLOUR_ALPHA_SHARE = 0.68;
 const BROAD_BRIGHTNESS = 1.02;
 const BROAD_SATURATION_MULTIPLIER = 1.08;
 const COLOUR_BRIGHTNESS = 1.08;
 const COLOUR_SATURATION_MULTIPLIER = 1.6;
-const DEFAULT_CADENCE_FPS = 30;
 const BLUR_PYRAMID_LEVELS = 6;
 // A low-resolution nine-tap kernel keeps Safari's filter-free path broad and
 // isotropic without scaling nine full-size draws on every compositor frame.
@@ -255,7 +256,10 @@ export class DiffuseGlowEffect {
     outputContext.clearRect(0, 0, width, height);
     outputContext.drawImage(this.freshCanvas, 0, 0, width, height);
 
-    const cadenceFps = Math.max(1, Number(config.cadenceFps) || DEFAULT_CADENCE_FPS);
+    const cadenceFps = Math.max(
+      1,
+      Number(config.cadenceFps) || DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
+    );
     const decay = memoryMs > 0
       ? Math.exp((-Math.LN2 * (1000 / cadenceFps)) / memoryMs)
       : 0;

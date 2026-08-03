@@ -9,7 +9,10 @@ import {
 import {
   TIME_OF_DAY_PALETTE_PERIODS,
 } from '../../../palette/timeOfDayPalette.js';
-import { resolveSimulationColorDistribution } from '../../../palette/simulationPaletteContract.js';
+import {
+  FALLBACK_SIMULATION_PALETTE_COLORS,
+  resolveSimulationColorDistribution,
+} from '../../../palette/simulationPaletteContract.js';
 import {
   createSimulationMaterialSequence,
   getSimulationPaletteSnapshot,
@@ -505,17 +508,6 @@ export function maybeAutoPickCursorColor(reason = 'auto') {
   return true;
 }
 
-export function getCurrentPalette(templateName, isDarkOverride) {
-  const template = COLOR_TEMPLATES[resolveColorTemplateName(templateName)];
-  if (!template) return COLOR_TEMPLATES[DEFAULT_LONDON_WEATHER_PALETTE_ID].light.slice();
-
-  const isDarkMode = typeof isDarkOverride === 'boolean'
-    ? isDarkOverride
-    : Boolean(getGlobals().isDarkMode);
-  const rawPalette = isDarkMode ? template.dark : template.light;
-  return rawPalette.slice();
-}
-
 /**
  * Pick a random color and return both the color hex and the distribution index
  * @returns {{ color: string, distributionIndex: number }} Color and its distribution index (0-6)
@@ -526,7 +518,7 @@ export function pickRandomColorWithIndex() {
   
   if (!colors || colors.length === 0) {
     console.warn('No colors available, using fallback');
-    return { color: '#ffffff', distributionIndex: 0 };
+    return { color: FALLBACK_SIMULATION_PALETTE_COLORS[0], distributionIndex: 0 };
   }
   
   // Primary: use the runtime color distribution (legend labels → distinct palette indices).
@@ -537,17 +529,23 @@ export function pickRandomColorWithIndex() {
     if (coverageIndex != null) {
       const row = dist[coverageIndex];
       const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
-      return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: coverageIndex };
+      return {
+        color: colors[idx] || colors[0] || FALLBACK_SIMULATION_PALETTE_COLORS[idx],
+        distributionIndex: coverageIndex,
+      };
     }
     const role = selectSimulationMaterialRole(Math.random(), getSimulationPaletteSnapshot());
     const idx = clampIntFallback(role?.colorIndex, 0, 7, 0);
     return {
-      color: colors[idx] || colors[0] || '#ffffff',
+      color: colors[idx] || colors[0] || FALLBACK_SIMULATION_PALETTE_COLORS[idx],
       distributionIndex: clampIntFallback(role?.distributionIndex, 0, dist.length - 1, 0),
     };
   }
 
-  return { color: colors[0] || '#ffffff', distributionIndex: 0 };
+  return {
+    color: colors[0] || FALLBACK_SIMULATION_PALETTE_COLORS[0],
+    distributionIndex: 0,
+  };
 }
 
 export function pickRandomColor() {
@@ -564,11 +562,11 @@ export function getColorByIndex(index) {
   
   if (!colors || colors.length === 0) {
     console.warn('No colors available, using fallback');
-    return '#ffffff';
+    return FALLBACK_SIMULATION_PALETTE_COLORS[0];
   }
   
   const clampedIndex = Math.max(0, Math.min(7, Math.floor(index)));
-  return colors[clampedIndex] || '#ffffff';
+  return colors[clampedIndex] || FALLBACK_SIMULATION_PALETTE_COLORS[clampedIndex];
 }
 
 function isProjectNeutralColor(hex) {
@@ -724,51 +722,9 @@ function applyPaletteTheme(templateName) {
 
 }
 
-export function applyColorTemplate(templateName) {
+function projectSimulationPaletteSnapshot(snapshot, { force = false } = {}) {
   const globals = getGlobals();
-  const resolvedTemplateName = resolveColorTemplateName(templateName);
-  globals.currentTemplate = resolvedTemplateName;
-  applyPaletteTheme(resolvedTemplateName);
-  globals.currentColors = getCurrentPalette(resolvedTemplateName);
-
-  // Keep any development UI selects in sync with the shared schedule.
-  try {
-    forEachPanelUiDocument((uiDocument) => {
-      const select = uiDocument.getElementById('colorSelect');
-      if (select) select.value = resolvedTemplateName;
-    });
-  } catch (_) { /* no-op */ }
-  
-  // Cursor color must remain valid across template + theme changes.
-  // Route colour wins on production routes; non-production surfaces keep the legacy cursor mode.
-  if (globals.cursorColorMode !== 'auto' && globals.cursorColorMode !== 'manual') {
-    globals.cursorColorMode = 'auto';
-  }
-  
-  // Update existing ball colors
-  updateExistingBallColors();
-  
-  // Sync CSS variables
-  syncPaletteVars(globals.currentColors);
-
-  const routePick = applyActiveRouteCursorColor();
-  if (!routePick) {
-    applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
-  }
-  
-  // Update UI color pickers
-  updateColorPickersUI();
-  
-  // Notify optional UI consumers (e.g., dev control panel swatches).
-  // Event-driven; not used in hot paths.
-  try {
-    window.dispatchEvent(new CustomEvent('bb:paletteChanged', { detail: { template: resolvedTemplateName } }));
-  } catch (_) { /* no-op */ }
-}
-
-export function applySimulationPaletteSnapshot(snapshot) {
-  const globals = getGlobals();
-  if (!snapshot || snapshot.generation === globals.simulationPaletteGeneration) return;
+  if (!snapshot || (!force && snapshot.generation === globals.simulationPaletteGeneration)) return;
 
   globals.currentTemplate = snapshot.paletteId;
   globals.currentColors = snapshot.colors.slice();
@@ -789,11 +745,21 @@ export function applySimulationPaletteSnapshot(snapshot) {
   } catch (_) { /* no-op */ }
 
   updateExistingBallColors(snapshot);
+  syncPaletteVars(globals.currentColors);
+
   const routePick = applyActiveRouteCursorColor();
   if (!routePick) {
     applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
   }
   updateColorPickersUI();
+}
+
+export function applySimulationPaletteSnapshot(snapshot) {
+  projectSimulationPaletteSnapshot(snapshot);
+}
+
+export function refreshSimulationPalettePresentation() {
+  projectSimulationPaletteSnapshot(getSimulationPaletteSnapshot(), { force: true });
 }
 
 function updateExistingBallColors(snapshot = getSimulationPaletteSnapshot()) {
@@ -817,7 +783,10 @@ function updateExistingBallColors(snapshot = getSimulationPaletteSnapshot()) {
     }
     const role = materialSequence[i] || distribution[0];
     ball.distributionIndex = Number(role?.distributionIndex) || 0;
-    ball.color = globals.currentColors[role?.colorIndex] || globals.currentColors[0] || '#ffffff';
+    const colorIndex = Number(role?.colorIndex) || 0;
+    ball.color = globals.currentColors[colorIndex]
+      || globals.currentColors[0]
+      || FALLBACK_SIMULATION_PALETTE_COLORS[colorIndex];
   }
 }
 
@@ -826,7 +795,7 @@ function syncPaletteVars(colors) {
     const root = document.documentElement;
     const list = (colors && colors.length ? colors : []).slice(0, 8);
     for (let i = 0; i < 8; i++) {
-      const hex = list[i] || '#ffffff';
+      const hex = list[i] || FALLBACK_SIMULATION_PALETTE_COLORS[i];
       root.style.setProperty(`--ball-${i+1}`, hex);
     }
 
@@ -838,7 +807,7 @@ function syncPaletteVars(colors) {
       sound: 3,
     };
     Object.entries(routeAccentIndexes).forEach(([routeId, colorIndex]) => {
-      const hex = list[colorIndex] || '#ffffff';
+      const hex = list[colorIndex] || FALLBACK_SIMULATION_PALETTE_COLORS[colorIndex];
       root.style.setProperty(`--button-bar-accent-${routeId}`, hex);
       root.style.setProperty(`--button-bar-accent-${routeId}-ink`, computeSafeTextOnCursorColor(hex) || '#ffffff');
     });

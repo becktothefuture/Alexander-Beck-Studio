@@ -8,9 +8,11 @@ import { MODES } from '../core/constants.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
+import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
 
 const TAU = Math.PI * 2;
 const MIN_DISTANCE = 0.001;
+const ELASTIC_PULSE_FALLBACK_COLOR = FALLBACK_SIMULATION_PALETTE_COLORS[5];
 
 let unsubscribePointer = null;
 
@@ -32,7 +34,7 @@ const loom = {
   pulseX: 0,
   pulseY: 0,
   pulseAge: 999,
-  pulseColor: '#d7ff2f',
+  pulseColor: ELASTIC_PULSE_FALLBACK_COLOR,
   reducedMotion: false
 };
 
@@ -363,7 +365,7 @@ export function initializeElasticCenter() {
   loom.lastH = 0;
   loom.reducedMotion = prefersReducedMotion();
   loom.pulseAge = 999;
-  loom.pulseColor = getColorByIndex(5) || '#d7ff2f';
+  loom.pulseColor = getColorByIndex(5) || ELASTIC_PULSE_FALLBACK_COLOR;
   resetDrag();
 
   for (let i = 0; i < candidates.length; i += 1) {

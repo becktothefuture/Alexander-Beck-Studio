@@ -10,39 +10,15 @@ import {
 import { FLOCK_OF_BIRDS_SIMULATION_REGISTRY_ENTRY } from './flockOfBirdsRegistry.js';
 import { createFlockOfBirdsRenderer } from './flockOfBirdsRenderer.js';
 import {
-  DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  getLondonWeatherPalette,
-  resolveLondonWeatherPaletteId,
-} from '../../palette/londonPalettes.js';
+  DEFAULT_DAILY_FOCUS_THEME,
+  useDailyFocusTheme,
+} from '../daily-focus/dailyFocusTheme.js';
 import { withBasePath } from '../../lib/base-path.js';
-import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
-import {
-  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
-  normalizeMobileSimulationBodyScale,
-} from '../../lib/mobileSimulationSizing.js';
 import './flock-of-birds-runtime.css';
 import './flock-of-birds.css';
 
 const CONFIG_URL = withBasePath('/config/flock-of-birds-demo.json');
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
-const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [];
-const DEFAULT_COLOR_DISTRIBUTION = [
-  { label: 'Product Design', colorIndex: 0, weight: 31 },
-  { label: 'Experience Design', colorIndex: 3, weight: 13 },
-  { label: 'Art Direction', colorIndex: 2, weight: 16 },
-  { label: 'Motion & 3D', colorIndex: 6, weight: 20 },
-  { label: 'Creative Engineering', colorIndex: 7, weight: 10 },
-  { label: 'Parametric Systems', colorIndex: 5, weight: 10 },
-];
-
-const DEFAULT_THEME_COLORS = {
-  light: '#efefef',
-  dark: '#202020',
-  active: '#202020',
-  palette: DEFAULT_PALETTE,
-  colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
-  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
-};
 
 async function loadJson(url, fallback) {
   try {
@@ -63,35 +39,6 @@ function downloadConfig(config) {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(anchor.href);
-}
-
-function resolveFlockTheme(designSystem, isDark) {
-  const runtime = designSystem?.runtime || {};
-  const paletteId = resolveLondonWeatherPaletteId(
-    runtime.paletteId
-      || runtime.palette
-      || runtime.paletteTemplate
-      || runtime.paletteSlug
-      || DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
-  const palette = getLondonWeatherPalette(paletteId);
-
-  const light = runtime.bgLight || DEFAULT_THEME_COLORS.light;
-  const dark = runtime.bgDark || DEFAULT_THEME_COLORS.dark;
-  const activePalette = isDark ? palette?.dark : palette?.light;
-
-  return {
-    light,
-    dark,
-    active: isDark ? dark : light,
-    palette: Array.isArray(activePalette) ? activePalette : DEFAULT_THEME_COLORS.palette,
-    colorDistribution: Array.isArray(runtime.colorDistribution)
-      ? runtime.colorDistribution
-      : DEFAULT_THEME_COLORS.colorDistribution,
-    mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
-      runtime.mobileSimulationBodyScale,
-    ),
-  };
 }
 
 function shouldShowControlPanel() {
@@ -197,17 +144,13 @@ function FlockOfBirdsPanel({ config, saveStatus, onChange, onReset, onSave }) {
 }
 
 export function FlockOfBirdsDemo() {
-  const isDark = useRenderedThemeIsDark();
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const configRef = useRef(DEFAULT_FLOCK_OF_BIRDS_CONFIG);
-  const colorsRef = useRef(DEFAULT_THEME_COLORS);
+  const colorsRef = useRef(DEFAULT_DAILY_FOCUS_THEME);
   const [config, setConfig] = useState(DEFAULT_FLOCK_OF_BIRDS_CONFIG);
   const [designSystem, setDesignSystem] = useState(null);
-  const themeColors = useMemo(
-    () => resolveFlockTheme(designSystem, isDark),
-    [designSystem, isDark],
-  );
+  const themeColors = useDailyFocusTheme(designSystem);
   const [saveStatus, setSaveStatus] = useState('loaded');
   const [configReady, setConfigReady] = useState(false);
   const showControlPanel = useMemo(() => shouldShowControlPanel(), []);

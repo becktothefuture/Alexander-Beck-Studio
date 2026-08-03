@@ -29,11 +29,11 @@ const SPA_SCENARIO_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_SPA_SCENAR
   .filter(Boolean));
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 const RESPONSIVE_PROFILES = Object.freeze([
-  Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 30 }),
-  Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 30 }),
-  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 30 }),
-  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 30 }),
-  Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 30 }),
+  Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 24 }),
+  Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 24 }),
+  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 24 }),
+  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 24 }),
+  Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 24 }),
 ]);
 
 if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
@@ -382,7 +382,7 @@ async function runDirectBootMatrix(browser) {
       assertAtmosphereState(
         state,
         scenario,
-        scenario.id === 'home' ? { qualities: ['balanced', 'low'], cadence: 30 } : null,
+        scenario.id === 'home' ? { qualities: ['balanced', 'low'], cadence: 24 } : null,
       );
       if (
         ENFORCE_COST_BUDGET
@@ -943,7 +943,7 @@ async function runMobilePerformance(browser) {
         || snapshot?.compositedFrameCount >= minimumFrameCount;
     }, settledFrameCount + 120, { timeout: WAIT_MS, polling: 50 });
     const state = await readAtmosphereState(page);
-    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 30 });
+    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
     if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready') {
       assert(state.snapshot.cost.meanMs <= 0.75, 'Mobile Low atmosphere exceeded the 0.75 ms mean budget', state);
     }
@@ -976,7 +976,7 @@ async function runReducedMotion(browser) {
         || (snapshot?.reducedMotion === true && snapshot?.internalRafCount === 0);
     }, null, { timeout: WAIT_MS, polling: 'raf' });
     const state = await readAtmosphereState(page);
-    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 30 });
+    assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
     assert(state.snapshot.reducedMotion === true, 'Reduced Motion was not detected', state);
     assert(state.snapshot.temporalMemoryFrames === 0, 'Reduced Motion retained temporal glow memory', state);
     if (state.snapshot.status === 'ready') {
@@ -1362,12 +1362,13 @@ async function runStatelessGlowContract(browser) {
       } = await import(
         '/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js'
       );
+      const automaticCadence = resolveSimulationAtmosphereCadence('auto');
       const sampleSchedule = (refreshRate, durationMs = 3000) => {
         const schedule = { nextFrameAt: 0 };
         const accepted = [];
         const sourceInterval = 1000 / refreshRate;
         for (let now = 0; now < durationMs; now += sourceInterval) {
-          if (shouldRenderSimulationAtmosphereFrame(schedule, now, 30)) accepted.push(now);
+          if (shouldRenderSimulationAtmosphereFrame(schedule, now, automaticCadence)) accepted.push(now);
         }
         const deltas = accepted.slice(1).map((time, index) => time - accepted[index]);
         return {
@@ -1377,7 +1378,7 @@ async function runStatelessGlowContract(browser) {
         };
       };
       const cadenceContract = {
-        automaticCadence: resolveSimulationAtmosphereCadence('auto'),
+        automaticCadence,
         sixtyHz: sampleSchedule(60),
         highRefresh: sampleSchedule(144),
       };
@@ -1525,17 +1526,17 @@ async function runStatelessGlowContract(browser) {
       result,
     );
     assert(
-      result.cadenceContract.automaticCadence === 30
-        && result.cadenceContract.sixtyHz.count >= 89
-        && result.cadenceContract.sixtyHz.count <= 91
-        && result.cadenceContract.sixtyHz.meanDelta > 32
-        && result.cadenceContract.sixtyHz.meanDelta < 35
-        && result.cadenceContract.sixtyHz.maxDelta < 35
-        && result.cadenceContract.highRefresh.count >= 89
-        && result.cadenceContract.highRefresh.count <= 91
-        && result.cadenceContract.highRefresh.meanDelta > 32
-        && result.cadenceContract.highRefresh.meanDelta < 35
-        && result.cadenceContract.highRefresh.maxDelta < 36,
+      result.cadenceContract.automaticCadence === 24
+        && result.cadenceContract.sixtyHz.count >= 72
+        && result.cadenceContract.sixtyHz.count <= 73
+        && result.cadenceContract.sixtyHz.meanDelta > 41
+        && result.cadenceContract.sixtyHz.meanDelta < 42
+        && result.cadenceContract.sixtyHz.maxDelta < 51
+        && result.cadenceContract.highRefresh.count >= 72
+        && result.cadenceContract.highRefresh.count <= 73
+        && result.cadenceContract.highRefresh.meanDelta > 41
+        && result.cadenceContract.highRefresh.meanDelta < 42
+        && result.cadenceContract.highRefresh.maxDelta < 43,
       'Atmosphere frame scheduling reintroduced cadence aliasing',
       result,
     );

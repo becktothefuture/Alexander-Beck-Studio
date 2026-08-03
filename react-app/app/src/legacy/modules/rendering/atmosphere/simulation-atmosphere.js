@@ -7,6 +7,7 @@ import {
 import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
 import { DiffuseGlowEffect } from './diffuse-glow-effect.js';
 import {
+  DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
   normalizeSimulationAtmosphereConfig,
   resolveSimulationAtmosphereCadence,
@@ -55,7 +56,7 @@ let renderProfile = null;
 let automaticQuality = QUALITY_LEVELS.balanced;
 let dynamicQuality = QUALITY_LEVELS.balanced;
 let pendingQuality = null;
-let cadence = 30;
+let cadence = DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS;
 let responsiveScale = 1;
 let resolvedGlowRadiusCss = 0;
 let smallResponsiveScale = 1;

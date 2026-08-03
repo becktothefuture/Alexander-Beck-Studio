@@ -144,7 +144,7 @@ const COMMON_GROUPS = Object.freeze([
     scope: 'common',
     controls: [
       { id: 'qualityMode', label: 'Quality', type: 'select', options: ['auto', 'high', 'balanced', 'low'] },
-      { id: 'hazeCadence', label: 'Haze FPS', type: 'select', options: ['auto', '60', '30', '20'] },
+      { id: 'hazeCadence', label: 'Haze FPS', type: 'select', options: ['auto', '60', '30', '24', '20'] },
     ],
   },
 ]);
@@ -244,7 +244,7 @@ export function normalizeAtmosphereLabConfig(input = {}) {
     common: {
       enabled: common.enabled !== false,
       qualityMode: normalizeChoice(common.qualityMode, ['auto', 'high', 'balanced', 'low'], defaults.common.qualityMode),
-      hazeCadence: normalizeChoice(common.hazeCadence, ['auto', '60', '30', '20'], defaults.common.hazeCadence),
+      hazeCadence: normalizeChoice(common.hazeCadence, ['auto', '60', '30', '24', '20'], defaults.common.hazeCadence),
     },
     profiles: {
       webglPost: {

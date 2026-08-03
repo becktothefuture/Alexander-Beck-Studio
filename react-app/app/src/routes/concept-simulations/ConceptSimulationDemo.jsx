@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  getLondonWeatherPalette,
-  resolveLondonWeatherPaletteId,
-} from '../../palette/londonPalettes.js';
 import { withBasePath } from '../../lib/base-path.js';
-import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import {
-  DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
-  normalizeMobileSimulationBodyScale,
-} from '../../lib/mobileSimulationSizing.js';
+  DEFAULT_DAILY_FOCUS_THEME,
+  useDailyFocusTheme,
+} from '../daily-focus/dailyFocusTheme.js';
 import {
   CONCEPT_SIMULATION_IDS,
   CONCEPT_SIMULATION_REGISTRY,
@@ -22,24 +16,6 @@ import './concept-simulations-runtime.css';
 import './concept-simulations.css';
 
 const DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
-const DEFAULT_PALETTE = getLondonWeatherPalette(DEFAULT_LONDON_WEATHER_PALETTE_ID)?.dark || [];
-const DEFAULT_COLOR_DISTRIBUTION = [
-  { label: 'Product Design', colorIndex: 0, weight: 31 },
-  { label: 'Experience Design', colorIndex: 3, weight: 13 },
-  { label: 'Art Direction', colorIndex: 2, weight: 16 },
-  { label: 'Motion & 3D', colorIndex: 6, weight: 20 },
-  { label: 'Creative Engineering', colorIndex: 7, weight: 10 },
-  { label: 'Parametric Systems', colorIndex: 5, weight: 10 },
-];
-
-const DEFAULT_THEME_COLORS = {
-  light: '#efefef',
-  dark: '#202020',
-  active: '#202020',
-  palette: DEFAULT_PALETTE,
-  colorDistribution: DEFAULT_COLOR_DISTRIBUTION,
-  mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
-};
 
 const NAPOLEON_AMOUNT_OPTIONS = [
   { value: 'low', label: '5k' },
@@ -198,35 +174,6 @@ async function loadJson(url, fallback) {
   } catch {
     return fallback;
   }
-}
-
-function resolveConceptTheme(designSystem, isDark) {
-  const runtime = designSystem?.runtime || {};
-  const paletteId = resolveLondonWeatherPaletteId(
-    runtime.paletteId
-      || runtime.palette
-      || runtime.paletteTemplate
-      || runtime.paletteSlug
-      || DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  ) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
-  const palette = getLondonWeatherPalette(paletteId);
-
-  const light = runtime.bgLight || DEFAULT_THEME_COLORS.light;
-  const dark = runtime.bgDark || DEFAULT_THEME_COLORS.dark;
-  const activePalette = isDark ? palette?.dark : palette?.light;
-
-  return {
-    light,
-    dark,
-    active: isDark ? dark : light,
-    palette: Array.isArray(activePalette) ? activePalette : DEFAULT_THEME_COLORS.palette,
-    colorDistribution: Array.isArray(runtime.colorDistribution)
-      ? runtime.colorDistribution
-      : DEFAULT_THEME_COLORS.colorDistribution,
-    mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
-      runtime.mobileSimulationBodyScale,
-    ),
-  };
 }
 
 function shouldShowControlPanel() {
@@ -456,7 +403,6 @@ function SpatialScanPointCloudPanel({ config, onChange, onReset }) {
 }
 
 export function ConceptSimulationDemo({ simulationId }) {
-  const isDark = useRenderedThemeIsDark();
   const entry = CONCEPT_SIMULATION_REGISTRY[simulationId];
   const isNapoleonPointCloud = simulationId === CONCEPT_SIMULATION_IDS.NAPOLEON_POINT_CLOUD;
   const isSpatialScanPointCloud = simulationId === CONCEPT_SIMULATION_IDS.SPATIAL_SCAN;
@@ -465,13 +411,10 @@ export function ConceptSimulationDemo({ simulationId }) {
   const rendererRef = useRef(null);
   const [config, setConfig] = useState(() => normalizeConceptSimulationConfig(simulationId, entry.defaults));
   const configRef = useRef(config);
-  const themeRef = useRef(DEFAULT_THEME_COLORS);
+  const themeRef = useRef(DEFAULT_DAILY_FOCUS_THEME);
   const [ready, setReady] = useState(false);
   const [designSystem, setDesignSystem] = useState(null);
-  const themeColors = useMemo(
-    () => resolveConceptTheme(designSystem, isDark),
-    [designSystem, isDark],
-  );
+  const themeColors = useDailyFocusTheme(designSystem);
   const [reducedMotion, setReducedMotion] = useState(false);
   const surfaceStyle = isNapoleonPointCloud
     ? undefined

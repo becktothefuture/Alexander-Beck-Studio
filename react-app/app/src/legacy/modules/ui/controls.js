@@ -6,9 +6,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { setMode } from '../modes/mode-controller.js';
-import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
-import { applyChromeHarmony } from '../visual/chrome-harmony.js';
-import { autoSaveSettings } from '../utils/storage.js';
+import { populateColorSelect } from '../visual/colors.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
 import { updateModeButtonsUI } from './mode-buttons.js';
@@ -38,21 +36,9 @@ export function setupMasterControls(options = {}) {
   syncSlidersToState({ uiDocument, runOnChange: options.runOnChange });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // COLOR TEMPLATE SELECT — Special handling (not in registry)
+  // CURRENT SCHEDULED PALETTE — Read-only status (not in registry)
   // ═══════════════════════════════════════════════════════════════════════════
   populateColorSelect();
-  const colorSelect = uiDocument.getElementById('colorSelect');
-  if (colorSelect) {
-    if (colorSelect.dataset.panelBound !== 'true') {
-      colorSelect.dataset.panelBound = 'true';
-      colorSelect.addEventListener('change', () => {
-        applyColorTemplate(colorSelect.value);
-        applyChromeHarmony();
-        autoSaveSettings();
-      });
-    }
-  }
-
 }
 
 /**

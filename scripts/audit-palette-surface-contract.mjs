@@ -5,16 +5,19 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { chromium } from 'playwright';
-import {
-  LONDON_WEATHER_PALETTES,
-  LONDON_WEATHER_PALETTE_MAP,
-} from '../react-app/app/src/palette/londonPalettes.js';
+import { LONDON_WEATHER_PALETTE_MAP } from '../react-app/app/src/palette/londonPalettes.js';
+import { TIME_OF_DAY_PALETTE_PERIODS } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const designSystemPath = resolve(repoRoot, 'react-app/app/public/config/design-system.json');
 const baseUrl = process.env.ABS_PALETTE_AUDIT_URL || 'http://localhost:8012/';
 const shouldStartDevServer = !process.env.ABS_PALETTE_AUDIT_URL;
-const palettes = LONDON_WEATHER_PALETTES.map((palette) => palette.id);
+const palettePeriods = TIME_OF_DAY_PALETTE_PERIODS.map((period) => ({
+  paletteId: period.paletteId,
+  fixedTime: Date.parse(
+    `2026-08-03T${String(period.startHour).padStart(2, '0')}:30:00+01:00`,
+  ),
+}));
 const themes = ['light', 'dark'];
 
 function log(message) {
@@ -121,15 +124,12 @@ async function ensureDevServer() {
   }
 }
 
-async function readContractState(page, palette) {
-  return page.evaluate(async (nextPalette) => {
-    const colors = await import('/src/legacy/modules/visual/colors.js');
-    const chrome = await import('/src/legacy/modules/visual/chrome-harmony.js');
-    colors.applyColorTemplate(nextPalette);
-    chrome.applyChromeHarmony();
+async function readContractState(page) {
+  return page.evaluate(() => {
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     return {
+      paletteId: root.dataset.absSimulationPaletteId,
       wall: cs.getPropertyValue('--abs-wall-base').trim(),
       wallLight: cs.getPropertyValue('--abs-wall-base-light').trim(),
       wallDark: cs.getPropertyValue('--abs-wall-base-dark').trim(),
@@ -148,7 +148,7 @@ async function readContractState(page, palette) {
         (_, index) => cs.getPropertyValue(`--ball-${index + 1}`).trim(),
       ),
     };
-  }, palette);
+  });
 }
 
 function assertSurfaceContract(theme, palette, actual, expected) {
@@ -190,27 +190,46 @@ async function run() {
 
   try {
     for (const theme of themes) {
-      const context = await browser.newContext({ viewport: { width: 1280, height: 820 } });
-      await context.addInitScript((forcedTheme) => {
-        localStorage.setItem('theme-preference-v3', forcedTheme);
-        localStorage.removeItem('theme-preference');
-      }, theme);
-      const page = await context.newPage();
-      await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector('#app-frame', { timeout: 15000 });
-      await page.waitForFunction(() => (
-        ['ready', 'failed'].includes(document.documentElement.dataset.absBootState)
-      ), null, { timeout: 15000 });
-      await page.waitForTimeout(250);
+      for (const { paletteId, fixedTime } of palettePeriods) {
+        const context = await browser.newContext({
+          viewport: { width: 1280, height: 820 },
+          timezoneId: 'Europe/London',
+        });
+        await context.addInitScript(({ forcedTheme, now }) => {
+          localStorage.setItem('theme-preference-v3', forcedTheme);
+          localStorage.removeItem('theme-preference');
 
-      for (const palette of palettes) {
-        const actual = await readContractState(page, palette);
-        assertSurfaceContract(theme, palette, actual, expectedByTheme[theme]);
-        assertAuthoredPalette(theme, palette, actual);
-        rows.push({ theme, palette, ...actual });
+          const NativeDate = Date;
+          class FixedDate extends NativeDate {
+            constructor(...args) {
+              super(...(args.length ? args : [now]));
+            }
+
+            static now() {
+              return now;
+            }
+          }
+          window.Date = FixedDate;
+        }, { forcedTheme: theme, now: fixedTime });
+
+        const page = await context.newPage();
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#app-frame', { timeout: 15000 });
+        await page.waitForFunction((expectedPaletteId) => (
+          ['ready', 'failed'].includes(document.documentElement.dataset.absBootState)
+          && document.documentElement.dataset.absSimulationPaletteId === expectedPaletteId
+        ), paletteId, { timeout: 15000 });
+        await page.waitForTimeout(250);
+
+        const actual = await readContractState(page);
+        if (actual.paletteId !== paletteId) {
+          throw new Error(`${theme}/${paletteId}: controller resolved ${actual.paletteId || '(none)'}`);
+        }
+        assertSurfaceContract(theme, paletteId, actual, expectedByTheme[theme]);
+        assertAuthoredPalette(theme, paletteId, actual);
+        rows.push({ theme, palette: paletteId, ...actual });
+        await context.close();
       }
-
-      await context.close();
     }
   } finally {
     await browser.close();

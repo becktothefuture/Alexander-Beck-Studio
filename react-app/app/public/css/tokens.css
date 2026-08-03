@@ -140,15 +140,15 @@
   --abs-indicator-rest-opacity: 0.22;
   --abs-indicator-ink: rgb(var(--abs-rgb-black));
 
-  /* Ball colors (preserved) */
-  --ball-1: #b5b7b6;
-  --ball-2: #bbbdbd;
-  --ball-3: #ffffff;
-  --ball-4: #00695c;
-  --ball-5: #000000;
-  --ball-6: #d7ff2f;
-  --ball-7: #0d5cb6;
-  --ball-8: #ffa000;
+  /* Initial simulation palette; the shared controller projects the live period on boot. */
+  --ball-1: #a1a5a3;
+  --ball-2: #c7cac4;
+  --ball-3: #f1efe7;
+  --ball-4: #00685d;
+  --ball-5: #131816;
+  --ball-6: #f04430;
+  --ball-7: #4b9185;
+  --ball-8: #d99716;
 
   /* Typography Tokens */
   --abs-font-sans: "Geist", system-ui, sans-serif;

@@ -10,6 +10,8 @@ const DARK_PROFILE = createProfile({
   colourStrength: 1.35,
 });
 
+export const DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS = 24;
+
 export const DEFAULT_SIMULATION_ATMOSPHERE_CONFIG = Object.freeze({
   enabled: true,
   largeSpread: 0.15,
@@ -144,15 +146,17 @@ export function resolveSimulationAtmosphereQualityScale(qualityMode = 'auto') {
 }
 
 export function resolveSimulationAtmosphereCadence(cadenceMode = 'auto') {
-  if (['60', '30', '20'].includes(String(cadenceMode))) return Number(cadenceMode);
-  if (cadenceMode !== 'auto') return 30;
-  return 30;
+  if (['60', '30', '24', '20'].includes(String(cadenceMode))) return Number(cadenceMode);
+  return DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS;
 }
 
 /** Keep a target deadline so display-frame rounding cannot alias the glow cadence. */
 export function shouldRenderSimulationAtmosphereFrame(schedule, nowMs, cadenceFps) {
   const now = Number(nowMs) || 0;
-  const interval = 1000 / Math.max(1, Number(cadenceFps) || 30);
+  const interval = 1000 / Math.max(
+    1,
+    Number(cadenceFps) || DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
+  );
   const tolerance = Math.min(2, interval * 0.2);
   const deadline = Number(schedule?.nextFrameAt) || 0;
   if (deadline > 0 && now + tolerance < deadline) return false;

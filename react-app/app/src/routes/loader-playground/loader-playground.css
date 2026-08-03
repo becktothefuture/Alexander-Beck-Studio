@@ -331,32 +331,32 @@ body.loader-playground-page {
   0%,
   15.99%,
   100% {
-    background: var(--ball-1, #b5b7b6);
+    background: var(--ball-1, #a1a5a3);
   }
 
   16.66%,
   32.99% {
-    background: var(--ball-4, #00695c);
+    background: var(--ball-4, #00685d);
   }
 
   33.33%,
   49.99% {
-    background: var(--ball-2, #bbbdbd);
+    background: var(--ball-2, #c7cac4);
   }
 
   50%,
   66.65% {
-    background: var(--ball-7, #0d5cb6);
+    background: var(--ball-7, #4b9185);
   }
 
   66.66%,
   83.32% {
-    background: var(--ball-8, #ffa000);
+    background: var(--ball-8, #d99716);
   }
 
   83.33%,
   99.99% {
-    background: var(--ball-6, #d7ff2f);
+    background: var(--ball-6, #f04430);
   }
 }
 

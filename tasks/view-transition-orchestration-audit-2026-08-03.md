@@ -147,6 +147,8 @@ Both five-route 4× CPU passes and both rapid-retarget stress passes also pass:
 - Chromium desktop retarget stress: `output/playwright/transition-flows/2026-08-03T18-30-50-565Z-chromium-1280x900-motion-stress.json`
 - Chromium mobile retarget stress: `output/playwright/transition-flows/2026-08-03T18-31-56-457Z-chromium-390x844-motion-stress.json`
 
+Cold held/released About loads also pass in Chromium and WebKit at 1280×900 and 390×844. Each first exposed frame records material scale 0, visual glyph/line opacity 0, and canvas opacity 1. The four runs record 13–96 progressive material frames, with typography beginning 1,009–1,105 ms after the first material growth frame.
+
 These are relative engineering scores for the instrumented development route, not Lighthouse scores. The audit itself reads detailed geometry every frame, and Chromium headless software WebGL amplifies the About cost.
 
 | View | Score | Median first visible | P95 worst frame | Absolute worst frame | Chromium long tasks | 4× CPU worst frame |
