@@ -1,16 +1,9 @@
+import { LONDON_WEATHER_PALETTE_COLORS } from './londonPalettes.js';
+
 export const SIMULATION_PALETTE_SIZE = 8;
 export const SIMULATION_MATERIAL_ROLE_COUNT = 6;
 
-export const FALLBACK_SIMULATION_PALETTE_COLORS = Object.freeze([
-  '#b5b7b6',
-  '#bbbdbd',
-  '#ffffff',
-  '#00695c',
-  '#000000',
-  '#d7ff2f',
-  '#0d5cb6',
-  '#ffa000',
-]);
+export const FALLBACK_SIMULATION_PALETTE_COLORS = LONDON_WEATHER_PALETTE_COLORS.portlandHaze;
 
 export const DEFAULT_SIMULATION_COLOR_DISTRIBUTION = Object.freeze([
   Object.freeze({ roleId: 'product-design', label: 'Product Design', colorIndex: 0, weight: 31 }),

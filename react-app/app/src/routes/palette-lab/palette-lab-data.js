@@ -2,14 +2,14 @@ import { LONDON_WEATHER_PALETTES as BASE_PALETTES } from '../../palette/londonPa
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../../palette/timeOfDayPalette.js';
 
 const STRAPLINES_BY_ID = {
-  riverMist: 'Rain with a neon-citrus interrupt: wet glass, green-black depth, and transit cyan.',
-  portlandHaze: 'Exact parity with the original Industrial Teal runtime palette.',
-  blueBreak: 'Spring sun after rain: cobalt, signal orange, sky blue, and an acid-citrus spark.',
-  sodiumRain: 'Summer air before rain: heat shimmer, ultraviolet, hot metal orange, and sulfur-citrus.',
-  ryeLaneRush: 'South London market energy: wet concrete, hard red, violet print, and takeaway amber.',
-  nightTube2049: 'Future Night Tube voltage: platform cyan, magenta signal, ultraviolet, and acid light.',
-  barbicanWarning: 'Brutalist civic signal: concrete, fire-door orange, safety yellow, and hard blue.',
-  nightBusStatic: 'Late transit through wet glass: tail-light red, display blue, station mint, and amber.',
+  riverMist: 'Bottle green and traffic amber moving through rain-softened stone.',
+  portlandHaze: 'Enamel teal and vermilion held inside a clear architectural neutral field.',
+  blueBreak: 'Ultramarine after rain, warmed by burnt orange and ochre.',
+  sodiumRain: 'Iron oxide and sulfur heat, cut by a single storm-teal counterpoint.',
+  ryeLaneRush: 'Shopfront green, shutter red, wet concrete, and takeaway amber.',
+  nightTube2049: 'Petrol blue infrastructure with brake-light red and platform amber.',
+  barbicanWarning: 'Concrete, fire-door red-orange, civic yellow, and wayfinding blue.',
+  nightBusStatic: 'Oxblood and tail-light red against station mint and LED blue.',
 };
 
 export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({
