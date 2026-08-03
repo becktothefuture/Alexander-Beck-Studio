@@ -30,12 +30,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-6',
 ]);
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.32, y: 0.3 }),
-  Object.freeze({ group: 2, x: 0.32, y: 0.41 }),
-  Object.freeze({ group: 3, x: 0.32, y: 0.52 }),
-  Object.freeze({ group: 4, x: 0.32, y: 0.63 }),
-  Object.freeze({ group: 5, x: 0.32, y: 0.74 }),
-  Object.freeze({ group: 6, x: 0.32, y: 0.85 }),
+  Object.freeze({ group: 1, x: 0.31, y: 0.3 }),
+  Object.freeze({ group: 2, x: 0.31, y: 0.41 }),
+  Object.freeze({ group: 3, x: 0.31, y: 0.52 }),
+  Object.freeze({ group: 4, x: 0.31, y: 0.63 }),
+  Object.freeze({ group: 5, x: 0.31, y: 0.74 }),
+  Object.freeze({ group: 6, x: 0.31, y: 0.85 }),
 ]);
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
