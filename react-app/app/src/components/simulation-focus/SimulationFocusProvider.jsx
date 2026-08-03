@@ -14,6 +14,10 @@ import {
 } from '../../data/simulationCatalog.js';
 import { triggerHaptic } from '../../lib/haptics.js';
 import {
+  getWrappedAdjacentItem,
+  shouldIgnoreGlobalKeyboardShortcut,
+} from '../../lib/global-keyboard-shortcuts.js';
+import {
   dismissGateBackdrop,
   ensureGateModalOverlay,
   getGateModalCloseDurationMs,
@@ -234,6 +238,38 @@ export function SimulationFocusProvider({
     if (!accepted) isSelectionPendingRef.current = false;
     return accepted;
   }, [activeId, closeChooser, requestSimulationSwitch]);
+
+  useEffect(() => {
+    if (routeId !== 'home' || !shouldShowSwitcher || isSelectionPending) return undefined;
+
+    const handleGlobalSimulationKeyDown = (event) => {
+      const isSpace = event.key === ' ' || event.key === 'Spacebar' || event.code === 'Space';
+      const routeTab = event.target?.closest?.('[data-route-tab]');
+      const allowActiveHomeTab = routeTab?.dataset.routeTab === 'home'
+        && routeTab.getAttribute('aria-current') === 'page';
+      if (
+        !isSpace
+        || shouldIgnoreGlobalKeyboardShortcut(event, { allowRouteTab: allowActiveHomeTab })
+      ) return;
+
+      const nextSimulation = getWrappedAdjacentItem(
+        DAILY_FOCUS_SIMULATIONS,
+        activeId,
+        1,
+        (simulation) => simulation.id,
+      );
+      if (!nextSimulation || nextSimulation.id === activeId) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      selectSimulation(nextSimulation.id);
+    };
+
+    window.addEventListener('keydown', handleGlobalSimulationKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalSimulationKeyDown, true);
+    };
+  }, [activeId, isSelectionPending, routeId, selectSimulation, shouldShowSwitcher]);
 
   const value = useMemo(() => ({
     activeId,

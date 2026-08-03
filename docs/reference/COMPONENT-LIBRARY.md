@@ -13,6 +13,7 @@ The live reference is `/styleguide.html`. It must describe production components
 - Active geometry: one shared `4.01868px` white dot follows the active or pending route centre; selected tabs never gain a background
 - Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `13px` labels with `12px` inline padding from `768px`; desktop utility icons grow from `16px` to `18px`, and only the route region scrolls when the capsule is width-capped
 - Mobile: all five routes remain reachable and the active route is scrolled into view; all controls remain keyboard and touch accessible
+- Global keyboard: when no focused control or open modal owns the key, Left and Right Arrow activate the previous or next route with wraparound; Space advances the Home Daily Simulation
 - Primary navigation never moves into a route top bar
 
 ## Utility icon buttons

@@ -9,6 +9,10 @@ import {
   unlockAudio,
 } from '../../legacy/modules/audio/sound-engine.js';
 import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
+import {
+  getWrappedAdjacentItem,
+  shouldIgnoreGlobalKeyboardShortcut,
+} from '../../lib/global-keyboard-shortcuts.js';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import './shell-button-bar-dominant.css';
@@ -483,6 +487,43 @@ export function ShellButtonBar({
     visualActiveRouteId,
     materialVariant === 'dominant-tab',
   );
+  useEffect(() => {
+    if (preview || !visualActiveRouteId) return undefined;
+
+    const handleGlobalRouteKeyDown = (event) => {
+      const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (!direction || shouldIgnoreGlobalKeyboardShortcut(event, { allowRouteTab: true })) return;
+
+      const nextTab = getWrappedAdjacentItem(
+        SHELL_ROUTE_TABS,
+        visualActiveRouteId,
+        direction,
+        (tab) => tab.routeId,
+      );
+      if (!nextTab || nextTab.routeId === visualActiveRouteId) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      const nextTabElement = [...(primaryNavRef.current?.querySelectorAll('[data-route-tab]') || [])]
+        .find((tab) => tab.dataset.routeTab === nextTab.routeId);
+      nextTabElement?.focus({ preventScroll: true });
+      onRouteIntent?.(nextTab.routeId, nextTab, 'keyboard-arrow');
+      playButtonBarPressSound();
+
+      if (!onRouteNavigate?.(nextTab.href, nextTab, {
+        source: 'button-bar',
+        activation: 'keyboard',
+        preemptTransition: true,
+      })) {
+        window.location.assign(nextTab.href);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalRouteKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalRouteKeyDown, true);
+    };
+  }, [onRouteIntent, onRouteNavigate, preview, visualActiveRouteId]);
   const barClassName = ['button-bar', className].filter(Boolean).join(' ');
   const primaryNavClassName = [
     'button-bar__primary-buttons',
@@ -503,6 +544,7 @@ export function ShellButtonBar({
         ref={primaryNavRef}
         className={primaryNavClassName}
         aria-label={preview ? 'Playground route buttons' : 'Primary buttons'}
+        aria-keyshortcuts={!preview ? 'ArrowLeft ArrowRight' : undefined}
         data-button-group="primary-buttons"
         data-button-bar-nav
         data-route-tabs
