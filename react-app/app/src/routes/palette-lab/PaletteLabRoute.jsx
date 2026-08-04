@@ -1,5 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { buildRouteHref } from '../../lib/routes.js';
-import { PaletteLabExperience } from './PaletteLabExperience.jsx';
+
+const PaletteLabExperience = lazy(() => (
+  import('./PaletteLabExperience.jsx')
+    .then((module) => ({ default: module.PaletteLabExperience }))
+));
 
 const homeHref = buildRouteHref('home');
 
@@ -34,7 +39,9 @@ export function getPaletteLabRouteView() {
     ),
     mainContent: (
       <main className="ui-center-spacer palette-lab-main" aria-label="London weather palette review">
-        <PaletteLabExperience />
+        <Suspense fallback={null}>
+          <PaletteLabExperience />
+        </Suspense>
       </main>
     ),
   };

@@ -9,12 +9,16 @@ const sources = Object.fromEntries(await Promise.all([
   ['portfolio', '../react-app/app/src/legacy/modules/portfolio/app.js'],
   ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
+  ['playgroundComingSoon', '../react-app/app/src/routes/playground/PlaygroundComingSoon.jsx'],
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
+  ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
   ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
   ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
+  ['entranceSequence', '../react-app/app/src/lib/motion/entrance-sequence.js'],
+  ['homeRoute', '../react-app/app/src/routes/home/HomeRoute.jsx'],
   ['home', '../react-app/app/public/css/main.css'],
 ].map(async ([key, path]) => [key, await read(path)])));
 
@@ -46,7 +50,10 @@ test('every production route lockup consumes the shared title, rule, and descrip
 test('shared CSS owns lockup typography, rule geometry, spacing, and settled description tone', () => {
   assert.match(sources.main, /--route-intro-description-max-width: 50\.4ch/);
   assert.match(sources.main, /--route-intro-description-line-height: 1\.485/);
-  assert.match(sources.main, /--route-intro-description-opacity: 0\.64/);
+  assert.match(
+    sources.main,
+    /--route-intro-description-opacity: var\(--supporting-description-opacity\)/,
+  );
   assert.match(sources.main, /route-centered-page__description\.route-intro-description \{[\s\S]*?var\(--route-intro-description-max-width\)[\s\S]*?var\(--route-intro-description-line-height\)[\s\S]*?var\(--route-intro-description-opacity\)/);
   assert.match(sources.main, /\.route-title-lockup__rule \{[\s\S]*?var\(--route-title-rule-width\)[\s\S]*?var\(--route-title-rule-offset\)/);
   assert.match(sources.main, /\.route-title-lockup > :is\([\s\S]*?margin-top: var\(--route-title-description-gap\)/);
@@ -61,6 +68,35 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.doesNotMatch(sources.aboutStyles, /--about-bookend-description-max-width/);
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 42ch/);
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 32ch/);
+});
+
+test('every production bookend uses one cached paint endpoint and glyph-only travel contract', () => {
+  assert.match(sources.homeRoute, /data-canvas-title-source="home"/);
+  assert.equal(
+    (sources.homeRoute.match(/data-route-enter-variant="bookend-title"/g) || []).length,
+    2,
+  );
+  assert.match(sources.portfolio, /heading\.dataset\.routeEnterVariant = 'bookend-title'/);
+  assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.playgroundComingSoon, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.playground, /data-route-enter-variant="bookend-title"/);
+
+  assert.match(sources.entranceSequence, /const bookendEndpointByElement = new WeakMap\(\)/);
+  assert.match(sources.entranceSequence, /cached\?\.sequenceSeed === sequenceSeed/);
+  assert.match(sources.entranceSequence, /const finalColor = bookendEndpoint\?\.finalColor \|\| ''/);
+  assert.match(
+    sources.entranceSequence,
+    /finalOpacity: bookendEndpoint\?\.finalOpacity \?\? readFinalOpacity\(element\)/,
+  );
+  assert.match(
+    sources.entranceSequence,
+    /glyph\.style\.transform = canvasOwnsMovement[\s\S]*?'translate3d\(0, 0, 0\)'[\s\S]*?target\.travelPercent/,
+  );
+  assert.match(
+    sources.main,
+    /\.route-entrance-glyph \{[\s\S]*?transform: translate3d\(0, 0, 0\);[\s\S]*?transform-origin: 50% 50%/,
+  );
 });
 
 test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -14,6 +14,14 @@ import {
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const outputRoot = resolve(repoRoot, 'output/playwright/focus-contrast');
+const simulationCatalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
+const simulationCatalog = JSON.parse(await readFile(simulationCatalogPath, 'utf8'));
+const dailyFocusSimulationCount = (simulationCatalog.simulations || [])
+  .filter((entry) => entry.stage === 'daily-rotation')
+  .length;
+if (dailyFocusSimulationCount < 1) {
+  throw new Error('Focus contrast audit requires at least one daily-rotation simulation');
+}
 const browserOption = String(process.env.ABS_BROWSER || 'all').trim().toLowerCase();
 const browserLaunchers = new Map([
   ['chromium', chromium],
@@ -74,11 +82,12 @@ const contrastContracts = Object.freeze({
     ]),
   }),
   playground: Object.freeze({
-    applicable: true,
-    state: 'settled-playground',
-    expectations: Object.freeze([
-      Object.freeze({ selector: '#playground-route-description.route-centered-page__description', count: 1 }),
-    ]),
+    applicable: false,
+    state: 'production-coming-soon',
+    reason: 'The production Lab contract renders only the Coming soon title and has no supporting normal text.',
+    markerSelector: '#playground-coming-soon-title.route-centered-page__title',
+    markerCount: 1,
+    unexpectedSelector: '.route-centered-page__description, .route-intro-description, .gate-description',
   }),
 });
 
@@ -118,28 +127,7 @@ function getFocusContract(routeId, profile) {
       { selector: '.contact-email-row', count: 1, indicator: 'dual-ring' },
       ...shellExpectations,
     ],
-    playground: [
-      {
-        selector: '[data-playground-viewport][tabindex="0"]',
-        count: 1,
-        indicator: 'outline',
-        // On the mobile shell, the stable Button Bar deliberately covers both
-        // side edges. Require both unobscured horizontal edges to retain full
-        // rendered contrast instead of treating shell occlusion as ring loss.
-        minimumPassingEdges: 2,
-      },
-      {
-        selector: '.playground-semantic-collection '
-          + '[data-playground-item] > .playground-item__route-surface > button',
-        count: 20,
-        indicator: 'dual-ring',
-        allowFocusReposition: true,
-        allowPartialViewport: true,
-        minimumPassingEdges: 3,
-        minimumPassingEdgesWhenClipped: 1,
-      },
-      ...shellExpectations,
-    ],
+    playground: [...shellExpectations],
   };
   return {
     id: `${routeId}-settled`,
@@ -154,7 +142,11 @@ const specialFocusContracts = Object.freeze({
     scopeSelector: '#simulation-focus-modal[aria-hidden="false"]',
     expectations: Object.freeze([
       Object.freeze({ selector: '.gate-back', count: 1, indicator: 'dual-ring' }),
-      Object.freeze({ selector: '.simulation-focus-row', count: 17, indicator: 'dual-ring' }),
+      Object.freeze({
+        selector: '.simulation-focus-row',
+        count: dailyFocusSimulationCount,
+        indicator: 'dual-ring',
+      }),
     ]),
   }),
   portfolioGate: Object.freeze({
@@ -579,7 +571,17 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
       const indicatorElement = ownOutlineVisible || !proxyOutlineVisible ? element : proxy;
       const indicatorStyle = indicatorElement === element ? style : proxyStyle;
       const indicatorRect = indicatorElement.getBoundingClientRect();
+      const indicatorUsesProxy = indicatorElement !== element;
       const outlineWidth = Number.parseFloat(indicatorStyle.outlineWidth || '0');
+      const proxyProbeTolerance = indicatorUsesProxy
+        ? Math.max(
+            outlineWidth,
+            (Math.max(
+              Math.abs(indicatorRect.width - indicatorElement.offsetWidth),
+              Math.abs(indicatorRect.height - indicatorElement.offsetHeight),
+            ) / 2) + outlineWidth,
+          )
+        : 0;
       const outlineVisible = indicatorStyle.outlineStyle !== 'none'
         && outlineWidth >= 2
         && indicatorStyle.outlineColor !== 'transparent'
@@ -619,6 +621,7 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
             width: outlineWidth,
             offset: Number.parseFloat(indicatorStyle.outlineOffset || '0'),
             borderRadius: Number.parseFloat(indicatorStyle.borderTopLeftRadius || '0'),
+            proxyProbeTolerance,
             rect: { x: indicatorRect.x, y: indicatorRect.y, width: indicatorRect.width, height: indicatorRect.height },
           }
         : outlineVisible
@@ -629,6 +632,7 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
             width: outlineWidth,
             offset: Number.parseFloat(indicatorStyle.outlineOffset || '0'),
             borderRadius: Number.parseFloat(indicatorStyle.borderTopLeftRadius || '0'),
+            proxyProbeTolerance,
             rect: { x: indicatorRect.x, y: indicatorRect.y, width: indicatorRect.width, height: indicatorRect.height },
           }
         : underlinedElement
@@ -753,6 +757,15 @@ function buildIndicatorProbePairs(indicator) {
   const primaryDistance = inset
     ? Math.max(1, Math.abs(indicator.offset))
     : Math.max(1, indicator.offset + (indicator.width / 2));
+  const primaryDistances = indicator.proxyProbeTolerance > 0 && !inset
+    ? Array.from(
+        { length: (Math.ceil(indicator.proxyProbeTolerance) * 2) + 1 },
+        (_, index) => Math.max(
+          0.5,
+          primaryDistance + index - Math.ceil(indicator.proxyProbeTolerance),
+        ),
+      ).filter((distance, index, distances) => distances.indexOf(distance) === index)
+    : [primaryDistance];
   const secondaryDistance = indicator.kind === 'dual-ring'
     ? indicator.boxShadow.includes('inset')
       ? 0
@@ -770,10 +783,12 @@ function buildIndicatorProbePairs(indicator) {
     return { x: rect.x + rect.width + (inset ? -distance : distance), y: rect.y + (rect.height * position) };
   };
   return ['top', 'bottom', 'left', 'right'].flatMap((edge) => positions.map((position) => {
-    const bands = [{
-      name: 'primary',
-      points: buildBandPoints(coordinate(edge, position, primaryDistance), edge, indicator.width),
-    }];
+    const bands = primaryDistances.map((distance, distanceIndex) => ({
+      name: distanceIndex === 0 && primaryDistances.length === 1
+        ? 'primary'
+        : `proxy-offset-${distance}`,
+      points: buildBandPoints(coordinate(edge, position, distance), edge, indicator.width),
+    }));
     if (secondaryDistance !== null) {
       bands.push({
         name: 'counter',
@@ -1277,7 +1292,7 @@ async function auditFocusState(page, contract, keyboardKey, label) {
 
 async function auditContrastState(page, routeId, label) {
   const contract = contrastContracts[routeId];
-  if (routeId === 'playground') {
+  if (routeId === 'playground' && contract.applicable) {
     await page.evaluate(() => window.__ABS_PLAYGROUND__?.recenter?.());
     await page.waitForFunction(() => {
       const description = document.querySelector('#playground-route-description');

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
+import { ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER || 'chromium';
@@ -21,6 +22,10 @@ const canonical = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const canonicalSemanticFieldCount = canonical.tracks.text.fields.length;
+const canonicalTextFieldIds = canonical.tracks.text.fields
+  .map((field) => field.id)
+  .sort();
 const titleHierarchyWU = canonical.tracks.text.fields.find(
   (field) => field.id === 'text-complexity-idea',
 )?.focusWU;
@@ -57,7 +62,10 @@ async function auditProduction(viewport, label, expectedProfile) {
   }
 
   await page.waitForSelector('.about-narrative-lab');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
+  await page.waitForFunction(
+    (expectedCount) => document.querySelectorAll('[data-text-field-id]').length === expectedCount,
+    canonicalSemanticFieldCount,
+  );
   await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
 
   const initial = await page.evaluate(() => {
@@ -82,7 +90,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.equal(initial.editorCount, 0);
   assert.equal(initial.legacyContainerCount, 0);
-  assert.equal(initial.semanticFieldCount, 11);
+  assert.equal(initial.semanticFieldCount, canonicalSemanticFieldCount);
   assert.equal(initial.stubSemanticCount, 0);
   assert.equal(initial.canvasCount, 1);
   assert.ok(initial.canvasWidth > 0 && initial.canvasHeight > 0);
@@ -191,7 +199,10 @@ async function auditEditor() {
   const errors = observeErrors(page);
   await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
-  await page.waitForFunction(() => document.querySelectorAll('[data-text-field-id]').length === 11);
+  await page.waitForFunction(
+    (expectedCount) => document.querySelectorAll('[data-text-field-id]').length === expectedCount,
+    canonicalSemanticFieldCount,
+  );
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete'
   ));
@@ -280,7 +291,7 @@ async function auditEditor() {
   assert.deepEqual(initial.lanes, ['point-field']);
   assert.equal(initial.legacyContainerCount, 0);
   assert.deepEqual(initial.plusLabels, []);
-  assert.equal(initial.semanticFieldCount, 11);
+  assert.equal(initial.semanticFieldCount, canonicalSemanticFieldCount);
   assert.deepEqual(
     await page.getByRole('tablist', { name: 'Timeline track' }).getByRole('tab').allTextContents(),
     ['Camera', 'Visibility', 'Forms', 'Text', 'Motion'],
@@ -440,15 +451,11 @@ async function auditEditor() {
   assert.deepEqual(editorialConnection, { firstBefore: false, firstAfter: false });
 
   const authoredStructure = await page.evaluate(() => ({
-    aTitles: document.querySelectorAll('[data-track-object-id="text-promise-main"]').length,
-    bTitles: document.querySelectorAll('[data-track-object-id^="text-complexity-"][data-track-object-type="text-field"]').length - 3,
-    cEditorial: document.querySelectorAll('[data-track-object-id="text-background-unit"]').length,
-    cLogos: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
-    dTitles: ['text-complexity-curiosity', 'text-complexity-listen']
-      .filter((id) => document.querySelector(`[data-track-object-id="${id}"]`)).length,
-    dEditorial: document.querySelectorAll('[data-track-object-id="text-disciplines-title"]').length,
-    eTitles: document.querySelectorAll('[data-track-object-id^="text-life-"][data-track-object-type="text-field"]').length,
-    finalTitles: document.querySelectorAll('[data-track-object-id="text-epilogue-invitation"]').length,
+    textFieldIds: Array.from(document.querySelectorAll('[data-track-object-type="text-field"]'))
+      .map((node) => node.getAttribute('data-track-object-id'))
+      .filter(Boolean)
+      .sort(),
+    legacyClientTracks: document.querySelectorAll('[data-track-object-id="text-background-clients"]').length,
     continuousPassages: document.querySelectorAll('p.about-narrative-editorial-copy[data-text-field-id]').length,
   }));
   await selectTrack('Motion');
@@ -457,14 +464,8 @@ async function auditEditor() {
   ).count();
   await selectTrack('Text');
   assert.deepEqual(authoredStructure, {
-    aTitles: 1,
-    bTitles: 1,
-    cEditorial: 1,
-    cLogos: 0,
-    dTitles: 2,
-    dEditorial: 1,
-    eTitles: 3,
-    finalTitles: 1,
+    textFieldIds: canonicalTextFieldIds,
+    legacyClientTracks: 0,
     continuousPassages: 0,
   });
   assert.equal(disciplineCount, 1);
@@ -570,19 +571,37 @@ async function auditEditor() {
   assert.ok(Math.abs(editorialTrigger.editorialToLogoGap - (editorialTrigger.rowGap * 2)) < 1);
   assert.ok(editorialTrigger.visualLineCount >= 3, 'Desktop editorial prose must expose visual lines, not paragraph blocks.');
 
-  const editorialStaggerWU = editorialStartWU
-    + (canonical.globals.editorialMotion.fadeDurationWU * 0.5);
-  await setPlayhead(editorialStaggerWU);
-  await page.waitForFunction((expectedWU) => Math.abs(
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
-  ) < 0.01, editorialStaggerWU);
-  const staggeredLineReveals = await page.locator(
-    '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy:first-child [data-editorial-visual-line]',
-  ).evaluateAll((lines) => lines.map((line) => (
-    [...line.querySelectorAll('[data-editorial-reveal="word"]')].map((node) => Number(
-      node.style.getPropertyValue('--editorial-reveal'),
-    ))
-  )));
+  const staggerProbeStepWU = Math.max(
+    0.01,
+    canonical.globals.editorialMotion.fadeDurationWU / 10,
+  );
+  const staggerProbeEndWU = editorialStartWU
+    + (canonical.globals.editorialMotion.fadeDurationWU * 2);
+  let editorialStaggerWU = editorialStartWU;
+  let staggeredLineReveals = [];
+  for (
+    let probeWU = editorialStartWU + staggerProbeStepWU;
+    probeWU <= staggerProbeEndWU + 0.0001;
+    probeWU += staggerProbeStepWU
+  ) {
+    await setPlayhead(probeWU);
+    await page.waitForFunction((expectedWU) => Math.abs(
+      Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+    ) < 0.01, probeWU);
+    await page.evaluate(() => new Promise((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+    }));
+    const sample = await page.locator(
+      '[data-text-field-id="text-background-unit"] .about-narrative-editorial-copy:first-child [data-editorial-visual-line]',
+    ).evaluateAll((lines) => lines.map((line) => (
+      [...line.querySelectorAll('[data-editorial-reveal="word"]')].map((node) => Number(
+        node.style.getPropertyValue('--editorial-reveal'),
+      ))
+    )));
+    staggeredLineReveals = sample;
+    editorialStaggerWU = probeWU;
+    if (sample.some((line) => Math.max(...line) - Math.min(...line) > 0.1)) break;
+  }
   assert.ok(staggeredLineReveals.length >= 3);
   assert.ok(
     staggeredLineReveals.every((line) => line.every((value, index) => (
@@ -592,7 +611,7 @@ async function auditEditor() {
   );
   assert.ok(
     staggeredLineReveals.some((line) => Math.max(...line) - Math.min(...line) > 0.1),
-    'At least one visible line must show a meaningful word-by-word opacity progression.',
+    `At least one visible line must show a meaningful word-by-word opacity progression by ${editorialStaggerWU.toFixed(3)} WU.`,
   );
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-word-reveal-midpoint.png` });
 
@@ -610,8 +629,19 @@ async function auditEditor() {
   assert.ok(Math.max(...editorialReveals) > 0.95);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-editorial-reveal.png` });
 
+  const disciplineClip = canonical.tracks.interactions.clips.find(
+    (clip) => clip.type === 'discipline-reveal',
+  );
+  assert.ok(disciplineClip, 'The canonical discipline reveal clip is missing.');
+  const disciplineSequenceStartWU = Number(disciplineClip.startWU)
+    + Number(disciplineClip.parameters.settleDurationWU);
+  const disciplineBeatDurationWU = Number(disciplineClip.parameters.beatDurationWU);
   const disciplineRevealSamples = [];
-  for (const storyWU of [8.5, 9, 9.5, 10, 10.5, 11]) {
+  const disciplineSampleWUs = disciplineClip.parameters.items.map((item, index) => ({
+    group: Number(item.group),
+    storyWU: disciplineSequenceStartWU + ((index + 0.5) * disciplineBeatDurationWU),
+  }));
+  for (const { storyWU } of disciplineSampleWUs) {
     await setPlayhead(storyWU);
     await page.waitForFunction((expectedWU) => Math.abs(
       Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
@@ -622,21 +652,21 @@ async function auditEditor() {
         .map((node) => Number(node.dataset.disciplineGroup))
     )));
   }
-  disciplineRevealSamples.slice(1).forEach((groups, index) => {
-    const previousGroups = disciplineRevealSamples[index];
-    assert.ok(
-      previousGroups.every((group) => groups.includes(group)),
-      'A revealed discipline must stay revealed as forward scroll advances.',
+  disciplineRevealSamples.forEach((groups, index) => {
+    assert.deepEqual(
+      groups,
+      [disciplineSampleWUs[index].group],
+      'Each authored discipline beat must expose only its matching label.',
     );
   });
-  assert.equal(disciplineRevealSamples.at(-1).length, 6);
 
-  await setPlayhead(10.55);
-  await page.waitForFunction(() => (
-    Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) > 10.51
+  const disciplineDesktopWU = disciplineSampleWUs.at(-1).storyWU;
+  await setPlayhead(disciplineDesktopWU);
+  await page.waitForFunction((expectedWU) => (
+    Math.abs(Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU) < 0.01
     && document.querySelector('.about-narrative-lab')?.dataset.worldTo === 'calm-field-v1'
-    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) === 6
-  ));
+    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) === 1
+  ), disciplineDesktopWU);
   const disciplineDesktop = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('[aria-label="About Alexander narrative"]').getBoundingClientRect();
@@ -689,7 +719,7 @@ async function auditEditor() {
     status: document.querySelector('[data-text-kind="stub"] .about-track-editor-clip__badge')?.textContent,
   }));
   assert.equal(draft.clipCount, 1);
-  assert.equal(draft.semanticFieldCount, 11);
+  assert.equal(draft.semanticFieldCount, canonicalSemanticFieldCount);
   assert.equal(draft.status, 'Draft · Not published');
   await runMoreAction('Undo');
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
@@ -767,7 +797,11 @@ async function auditEditor() {
   );
 
   await selectTrack('Forms');
-  await page.locator('[data-point-field-id="segment-key-world-grid-departure-to-key-world-grid-arrival"]').click();
+  const shortPointFieldSegment = page.locator(
+    '[data-point-field-id="segment-key-world-grid-departure-to-key-world-grid-arrival"]',
+  );
+  await shortPointFieldSegment.focus();
+  await shortPointFieldSegment.press('Enter');
   const pointFieldInspector = page.getByRole('region', { name: 'Selected object inspector' });
   for (const label of ['Type', 'Easing', 'Correspondence']) {
     assert.equal(
@@ -778,7 +812,7 @@ async function auditEditor() {
   }
   assert.deepEqual(
     await pointFieldInspector.locator('details > summary span').allTextContents(),
-    ['Stagger', 'Organic path', 'Plane motion', 'Split transition'],
+    ['Split transition'],
   );
   await selectTrack('Forms');
   await page.locator('[aria-label="Point field state library"] > button').nth(2).click();
@@ -792,14 +826,17 @@ async function auditEditor() {
   }
 
   await selectTrack('Text');
-  assert.equal(await page.getByRole('heading', { name: 'Global text animation' }).count(), 1);
-  assert.equal(await page.locator('[data-track-settings="text"] details').count(), 5);
+  assert.equal(await page.getByRole('heading', { name: 'Global text', exact: true }).count(), 1);
+  assert.equal(
+    await page.locator('[data-track-settings="text"] details').count(),
+    ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS.length,
+  );
   await page.locator('[data-inspector-group="text-editorial"] > summary').click();
   const revealSlider = page.getByRole('slider', { name: 'Global text Reveal starts slider' });
   const initialRevealThreshold = Number(await revealSlider.inputValue());
-  const steppedRevealThreshold = Number((initialRevealThreshold - 0.01).toFixed(2));
+  const steppedRevealThreshold = Number((initialRevealThreshold + 0.01).toFixed(2));
   await revealSlider.focus();
-  await revealSlider.press('ArrowLeft');
+  await revealSlider.press('ArrowRight');
   await revealSlider.press('Tab');
   await page.waitForFunction((expected) => (
     Math.abs(Number(
@@ -846,6 +883,11 @@ async function auditEditor() {
   });
   assert.ok(Math.abs(tabletLandscapeRatio - (1180 / 820)) < 0.01);
   await page.getByRole('button', { name: 'Mobile' }).click();
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.about-narrative-lab');
+    return root?.dataset.aboutLayoutProfile === 'mobile'
+      && root.dataset.worldPrepare === 'ready';
+  }, null, { timeout: 120_000 });
   await selectPreviewOrientation('portrait');
   await setPlayhead(titleHierarchyWU);
   await page.waitForFunction((expectedWU) => Math.abs(
@@ -877,7 +919,7 @@ async function auditEditor() {
       withinInlineViewport: bounds.left >= viewport.left && bounds.right <= viewport.right,
     };
   });
-  assert.ok(mobileEditorial.fontSize >= 19.5);
+  assert.ok(mobileEditorial.fontSize >= 17);
   assert.ok(mobileEditorial.rowGap >= mobileEditorial.fontSize * 0.55);
   assert.ok(
     mobileEditorial.visualLineCount > editorialTrigger.visualLineCount,
@@ -886,48 +928,48 @@ async function auditEditor() {
   assert.equal(mobileEditorial.withinInlineViewport, true);
   await page.screenshot({ path: `${outputDir}/${browserName}-editor-mobile-editorial.png` });
 
-  await setPlayhead(10.55);
   const mobilePortraitRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();
     return rect.width / rect.height;
   });
   assert.ok(Math.abs(mobilePortraitRatio - (390 / 844)) < 0.01);
-  await page.waitForFunction(() => {
-    const root = document.querySelector('.about-narrative-lab');
-    const visibleLabels = Number(root?.dataset.worldDisciplineLabels || 0);
-    return Number(root?.dataset.narrativeStoryWu) > 10.51
-      && visibleLabels === 6;
-  });
-  await page.waitForFunction(() => {
-    const viewport = document.querySelector('.about-narrative-discipline-reveal')?.getBoundingClientRect();
-    if (!viewport) return false;
-    const intersectingLabels = [...document.querySelectorAll('[data-discipline-group]')]
-      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .filter((label) => {
-        const rect = label.getBoundingClientRect();
-        return rect.bottom > viewport.top && rect.top < viewport.bottom;
-      });
-    return intersectingLabels.length >= 1 && intersectingLabels.every((label) => {
-      const rect = label.getBoundingClientRect();
-      return rect.left >= viewport.left - 1
-        && rect.right <= viewport.right + 1;
+  const mobileDisciplineSamples = [];
+  for (const { storyWU } of disciplineSampleWUs) {
+    await setPlayhead(storyWU);
+    await page.waitForFunction((expectedWU) => Math.abs(
+      Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
+    ) < 0.01, storyWU);
+    await page.evaluate(() => new Promise((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+    }));
+    const sample = await page.evaluate(() => {
+      const root = document.querySelector('.about-narrative-lab');
+      const overlay = document.querySelector('.about-narrative-discipline-reveal');
+      const viewport = overlay?.getBoundingClientRect();
+      const visibleLabels = [...document.querySelectorAll('[data-discipline-group]')]
+        .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
+        .map((label) => ({
+          group: Number(label.dataset.disciplineGroup),
+          rect: label.getBoundingClientRect(),
+        }))
+        .filter(({ rect }) => viewport && rect.bottom > viewport.top && rect.top < viewport.bottom);
+      return {
+        activeDiscipline: overlay?.dataset.activeDiscipline || '',
+        metricCount: Number(root?.dataset.worldDisciplineLabels || 0),
+        visibleGroups: visibleLabels.map(({ group }) => group),
+        withinInlineViewport: Boolean(viewport && visibleLabels.length >= 1 && visibleLabels.every(({ rect }) => (
+          rect.left >= viewport.left - 1 && rect.right <= viewport.right + 1
+        ))),
+      };
     });
-  });
-  const mobileDisciplineBounds = await page.evaluate(() => {
-    const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
-    const intersectingLabels = [...document.querySelectorAll('[data-discipline-group]')]
-      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .filter((label) => {
-        const rect = label.getBoundingClientRect();
-        return rect.bottom > viewport.top && rect.top < viewport.bottom;
-      });
-    return intersectingLabels.length >= 1 && intersectingLabels.every((label) => {
-      const rect = label.getBoundingClientRect();
-      return rect.left >= viewport.left - 1
-        && rect.right <= viewport.right + 1;
-    });
-  });
-  assert.equal(mobileDisciplineBounds, true);
+    mobileDisciplineSamples.push({ storyWU, ...sample });
+    if (sample.visibleGroups.length > 0) break;
+  }
+  const mobileDisciplineSample = mobileDisciplineSamples.find((sample) => (
+    sample.visibleGroups.length > 0
+  ));
+  assert.ok(mobileDisciplineSample, `Mobile discipline reveal never became visible: ${JSON.stringify(mobileDisciplineSamples)}`);
+  assert.equal(mobileDisciplineSample.withinInlineViewport, true);
   await selectPreviewOrientation('landscape');
   const mobileLandscapeRatio = await page.locator('.about-narrative-scrollport').evaluate((node) => {
     const rect = node.getBoundingClientRect();

@@ -2592,6 +2592,10 @@ export function AboutNarrativePointWorld3D({
     const root = rootRef.current;
     const interaction = interactionRef?.current || canvas;
     if (!canvas || !root) return undefined;
+    // A point-profile change replaces this adapter on the same canvas. Cancel
+    // the previous adapter's deferred context loss before this setup is itself
+    // deferred, otherwise the old timer can invalidate the shared canvas first.
+    cancelPendingContextLoss(canvas);
     let active = true;
     let disposeAdapter = null;
     // Defer one task so React Strict Mode's development setup probe can cancel

@@ -311,6 +311,10 @@ function PointKey({
       aria-pressed={selected}
       data-point-field-selection="point-field-key"
       data-point-field-id={pointKey.id}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect?.(selection, Number(pointKey.atWU));
+      }}
       onPointerDown={begin}
       onPointerMove={move}
       onPointerUp={(event) => finish(event)}
@@ -394,6 +398,10 @@ function PointSegment({
       aria-pressed={selected}
       data-point-field-selection="point-field-segment"
       data-point-field-id={segment.id}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect?.(selection);
+      }}
       onPointerDown={begin}
       onPointerMove={move}
       onPointerUp={(event) => finish(event)}

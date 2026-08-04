@@ -649,3 +649,22 @@ export function createIndexedSimulationVisualTransition({
     },
   };
 }
+
+/**
+ * Create a material transition for a renderer that already owns a continuous
+ * frame loop. Scale updates are sampled by that loop, so transition RAFs must
+ * not trigger a second full render of the same canvas.
+ */
+export function createContinuousSimulationVisualTransition({
+  sourceId,
+  getCount,
+  setScaleAt,
+  getSeed,
+} = {}) {
+  return createIndexedSimulationVisualTransition({
+    sourceId,
+    getCount,
+    setScaleAt,
+    getSeed,
+  });
+}

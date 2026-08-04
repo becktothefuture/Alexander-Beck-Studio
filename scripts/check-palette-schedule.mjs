@@ -91,6 +91,16 @@ function getColorProfile(color) {
   return { hue, luminance, saturation };
 }
 
+function getChromaticHueFamily({ hue, saturation }) {
+  if (saturation < 0.45) return null;
+  if (hue >= 345 || hue < 15) return 'red';
+  if (hue < 75) return 'orange-yellow';
+  if (hue < 165) return 'green';
+  if (hue < 200) return 'cyan';
+  if (hue < 260) return 'blue';
+  return 'purple';
+}
+
 const authoredColors = new Set();
 for (const palette of LONDON_WEATHER_PALETTES) {
   assert(palette.light === palette.dark, `${palette.id} must share one light/dark colour array`);
@@ -109,6 +119,13 @@ for (const palette of LONDON_WEATHER_PALETTES) {
   assert(
     profiles.filter(({ saturation }) => saturation >= 0.45).length >= 4,
     `${palette.id} must retain at least four confident chromatic colours`,
+  );
+  const chromaticHueFamilies = new Set(
+    profiles.map(getChromaticHueFamily).filter(Boolean),
+  );
+  assert(
+    chromaticHueFamilies.size >= 3,
+    `${palette.id} must span at least three chromatic hue families`,
   );
   assert(
     profiles.some(({ luminance }) => luminance <= 0.02)

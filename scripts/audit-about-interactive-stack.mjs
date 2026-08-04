@@ -261,6 +261,7 @@ async function auditEditorControls() {
   const page = await context.newPage();
   await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
+  await page.getByRole('tab', { name: 'Text', exact: true }).click();
   await page.locator('[data-track-object-id="text-disciplines-title"]').click();
   const folder = page.locator('[data-inspector-group="interactive-stack"]');
   await folder.waitFor({ state: 'visible' });

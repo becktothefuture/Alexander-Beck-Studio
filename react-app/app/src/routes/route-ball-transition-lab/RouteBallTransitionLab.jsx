@@ -11,17 +11,17 @@ const ROUTES = Object.freeze([
   {
     id: 'portfolio',
     label: 'Work',
-    color: 'var(--ball-6, #00b8d4)',
+    color: 'var(--ball-6, #c95332)',
   },
   {
     id: 'about',
     label: 'About Me',
-    color: 'var(--ball-7, #2d82a6)',
+    color: 'var(--ball-7, #3f72c8)',
   },
   {
     id: 'contact',
     label: 'Contact',
-    color: 'var(--ball-8, #e2b42b)',
+    color: 'var(--ball-8, #d5b23a)',
   },
 ]);
 

@@ -18,6 +18,29 @@ function lerp(from, to, amount) {
   return from + ((to - from) * amount);
 }
 
+export function updateCubeRotationMatrix(matrix, rotationX, rotationY, rotationZ) {
+  const target = matrix || {};
+  const cosX = Math.cos(rotationX);
+  const sinX = Math.sin(rotationX);
+  const cosY = Math.cos(rotationY);
+  const sinY = Math.sin(rotationY);
+  const cosZ = Math.cos(rotationZ);
+  const sinZ = Math.sin(rotationZ);
+
+  // Match the authored Y -> X -> Z rotation order without recalculating six
+  // trigonometric functions for every point in the cloud.
+  target.xx = (cosY * cosZ) + (sinY * sinX * sinZ);
+  target.xy = -cosX * sinZ;
+  target.xz = (-sinY * cosZ) + (cosY * sinX * sinZ);
+  target.yx = (cosY * sinZ) - (sinY * sinX * cosZ);
+  target.yy = cosX * cosZ;
+  target.yz = (-sinY * sinZ) - (cosY * sinX * cosZ);
+  target.zx = sinY * cosX;
+  target.zy = sinX;
+  target.zz = cosY * cosX;
+  return target;
+}
+
 export function generateCubePoints(edgeDensity, faceGrid) {
   const density = Math.max(2, edgeDensity | 0);
   const faceSteps = Math.max(0, faceGrid | 0);

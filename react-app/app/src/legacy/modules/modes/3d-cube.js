@@ -14,7 +14,7 @@ import {
   resolveCube3DMotionScale,
   resolveCube3DSizePx,
 } from './cube3d-config.js';
-import { generateCubePoints } from './cube3d-geometry.js';
+import { generateCubePoints, updateCubeRotationMatrix } from './cube3d-geometry.js';
 
 let reducedMotionQuery = null;
 
@@ -26,25 +26,6 @@ function prefersReducedMotion() {
 
 function clamp01(v) {
   return Math.max(-1, Math.min(1, v));
-}
-
-function rotateXYZ(x, y, z, rx, ry, rz) {
-  const cosY = Math.cos(ry);
-  const sinY = Math.sin(ry);
-  const x1 = x * cosY - z * sinY;
-  const z1 = x * sinY + z * cosY;
-
-  const cosX = Math.cos(rx);
-  const sinX = Math.sin(rx);
-  const y2 = y * cosX - z1 * sinX;
-  const z2 = y * sinX + z1 * cosX;
-
-  const cosZ = Math.cos(rz);
-  const sinZ = Math.sin(rz);
-  const x3 = x1 * cosZ - y2 * sinZ;
-  const y3 = x1 * sinZ + y2 * cosZ;
-
-  return { x: x3, y: y3, z: z2 };
 }
 
 function clampCanvasAlpha(value) {
@@ -92,7 +73,17 @@ export function initialize3DCube() {
     tumbleY: 0,
     pointerWasInCanvas: false,
     lastPointerSequence: null,
-    audioAngle: 0
+    audioAngle: 0,
+    dotSizeMul,
+    focalLength: Math.max(
+      80,
+      g.cube3dFocalLength ?? CUBE_3D_DEFAULTS.cube3dFocalLength,
+    ),
+    fogOptions: {
+      fogStart: g.cube3dFogStart ?? CUBE_3D_DEFAULTS.cube3dFogStart,
+      fogMin: g.cube3dFogMin ?? CUBE_3D_DEFAULTS.cube3dFogMin,
+    },
+    rotationMatrix: updateCubeRotationMatrix({}, 0, 0, 0),
   };
 
   for (let i = 0; i < pts.length; i++) {
@@ -115,27 +106,21 @@ export function apply3DCubeForces(ball, dt) {
   const state = g.cube3dState;
   if (!canvas || !state || !ball || !ball._cube3d) return;
 
-  // Read runtime params each frame for real-time updates
-  const idleSpeed = g.cube3dIdleSpeed ?? CUBE_3D_DEFAULTS.cube3dIdleSpeed;
-  const cursorInfluence = g.cube3dCursorInfluence ?? CUBE_3D_DEFAULTS.cube3dCursorInfluence;
-  const tumbleSpeed = g.cube3dTumbleSpeed ?? CUBE_3D_DEFAULTS.cube3dTumbleSpeed;
-  const tumbleDamping = Math.max(0, Math.min(
-    0.999,
-    g.cube3dTumbleDamping ?? CUBE_3D_DEFAULTS.cube3dTumbleDamping,
-  ));
-  const dotSizeMul = Math.max(
-    0.1,
-    g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
-  );
-  const reducedMotion = prefersReducedMotion();
-  const motionScale = resolveCube3DMotionScale(
-    reducedMotion,
-    g.cube3dReducedMotionScale,
-  );
-  const idleMotionScale = reducedMotion ? 0 : 1;
-
-  // Update shared rotation once per frame
+  // Update shared rotation and live configuration once per physics step.
   if (ball === g.balls[0]) {
+    const idleSpeed = g.cube3dIdleSpeed ?? CUBE_3D_DEFAULTS.cube3dIdleSpeed;
+    const cursorInfluence = g.cube3dCursorInfluence ?? CUBE_3D_DEFAULTS.cube3dCursorInfluence;
+    const tumbleSpeed = g.cube3dTumbleSpeed ?? CUBE_3D_DEFAULTS.cube3dTumbleSpeed;
+    const tumbleDamping = Math.max(0, Math.min(
+      0.999,
+      g.cube3dTumbleDamping ?? CUBE_3D_DEFAULTS.cube3dTumbleDamping,
+    ));
+    const reducedMotion = prefersReducedMotion();
+    const motionScale = resolveCube3DMotionScale(
+      reducedMotion,
+      g.cube3dReducedMotionScale,
+    );
+    const idleMotionScale = reducedMotion ? 0 : 1;
     const titleCenter = getHeroTitleCanvasCenter(g);
     state.cx = titleCenter.x;
     state.cy = titleCenter.y;
@@ -143,6 +128,16 @@ export function apply3DCubeForces(ball, dt) {
       canvas.width,
       g.cube3dSizeVw ?? CUBE_3D_DEFAULTS.cube3dSizeVw,
     );
+    state.dotSizeMul = Math.max(
+      0.1,
+      g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
+    );
+    state.focalLength = Math.max(
+      80,
+      g.cube3dFocalLength ?? CUBE_3D_DEFAULTS.cube3dFocalLength,
+    );
+    state.fogOptions.fogStart = g.cube3dFogStart ?? CUBE_3D_DEFAULTS.cube3dFogStart;
+    state.fogOptions.fogMin = g.cube3dFogMin ?? CUBE_3D_DEFAULTS.cube3dFogMin;
     const cx = state.cx;
     const cy = state.cy;
     const pointerInCanvas = g.pointerInCanvas ?? g.mouseInCanvas;
@@ -196,38 +191,37 @@ export function apply3DCubeForces(ball, dt) {
         filterHz: 3300,
       });
     }
+    updateCubeRotationMatrix(
+      state.rotationMatrix,
+      state.rotX,
+      state.rotY,
+      state.rotZ,
+    );
   }
 
   const { x, y, z } = ball._cube3d;
-  const unitRotation = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
-  const rotatedX = unitRotation.x * state.sizePx;
-  const rotatedY = unitRotation.y * state.sizePx;
-  const rotatedZ = unitRotation.z * state.sizePx;
-  const focal = Math.max(
-    80,
-    g.cube3dFocalLength ?? CUBE_3D_DEFAULTS.cube3dFocalLength,
-  );
+  const matrix = state.rotationMatrix;
+  const rotatedX = ((x * matrix.xx) + (y * matrix.xy) + (z * matrix.xz)) * state.sizePx;
+  const rotatedY = ((x * matrix.yx) + (y * matrix.yy) + (z * matrix.yz)) * state.sizePx;
+  const rotatedZ = ((x * matrix.zx) + (y * matrix.zy) + (z * matrix.zz)) * state.sizePx;
 
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
   // zDist: back gives sizePx (far), front gives 0 (close)
   const halfSize = state.sizePx * 0.5;
   const zDist = halfSize - rotatedZ;
-  const scale = focal / (focal + zDist);
+  const scale = state.focalLength / (state.focalLength + zDist);
   // Now: back points get smaller scale (more distant), front points get larger scale (closer)
 
   const targetX = state.cx + rotatedX * scale;
   const targetY = state.cy + rotatedY * scale;
-  const rawR = ball._cloudBaseR * dotSizeMul * scale;
+  const rawR = ball._cloudBaseR * state.dotSizeMul * scale;
 
   // Depth factor for logo layering and engine fog
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
   const depthFactor = (rotatedZ + halfSize) / state.sizePx;
 
-  ball.alpha = resolveDistanceFogOpacity(depthFactor, {
-    fogStart: g.cube3dFogStart ?? CUBE_3D_DEFAULTS.cube3dFogStart,
-    fogMin: g.cube3dFogMin ?? CUBE_3D_DEFAULTS.cube3dFogMin,
-  });
+  ball.alpha = resolveDistanceFogOpacity(depthFactor, state.fogOptions);
 
   ball.r = clampRadiusToGlobalBounds(g, rawR);
   ball.x = targetX;

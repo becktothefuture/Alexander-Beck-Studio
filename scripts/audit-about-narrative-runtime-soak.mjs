@@ -50,14 +50,19 @@ try {
   ), null, { timeout: 120_000 });
 
   if (profile === 'mobile') {
-    await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+    // The phone authoring layout keeps responsive preview controls mounted but
+    // hides them behind its compact sheet. Trigger the same React button here
+    // so this resource soak can certify the mobile point profile itself.
+    await page.locator('.about-track-editor-preview__profiles button')
+      .filter({ hasText: /^Mobile$/u })
+      .evaluate((node) => node.click());
     await page.waitForFunction(() => (
       window.__aboutNarrativeRuntime?.getMetrics?.().pointCount === 5000
       && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
     ), null, { timeout: 120_000 });
   }
 
-  const transport = page.getByRole('slider', { name: 'Story WU playhead' });
+  const transport = page.getByRole('slider', { name: 'Timeline playhead' });
   const maxWU = Number(await transport.getAttribute('max'));
   const storyWUs = [
     Math.min(maxWU, 2.8),
@@ -68,7 +73,7 @@ try {
   ];
 
   const drive = (count) => page.evaluate(async ({ values, count: cycleCount }) => {
-    const input = document.querySelector('input[aria-label="Story WU playhead"]');
+    const input = document.querySelector('input[aria-label="Timeline playhead"]');
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     for (let index = 0; index < cycleCount; index += 1) {
       setter.call(input, String(values[index % values.length]));

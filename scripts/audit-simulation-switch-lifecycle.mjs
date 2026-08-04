@@ -89,6 +89,16 @@ function pageUrl(pathname) {
   return new URL(pathname, `${baseUrl}/`).toString();
 }
 
+function isRepelRoomRuntimeRequest(url) {
+  let pathname = String(url);
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    // Fall back to the raw request URL for malformed diagnostic input.
+  }
+  return /\/RepelRoomRuntime(?:-[^/]+)?\.(?:jsx?|tsx?)$/i.test(pathname);
+}
+
 function entryUrl(entry) {
   const url = new URL(entry.surface === 'lab-route'
     ? entry.dailyHref
@@ -707,13 +717,7 @@ async function runFaultProbe(browser, browserName, type, entries) {
   if (type === 'preload') {
     await context.route('**/*', async (route) => {
       const url = route.request().url();
-      let matchesRuntime = false;
-      try {
-        matchesRuntime = new URL(url).pathname.endsWith('/RepelRoomRuntime.jsx');
-      } catch {
-        matchesRuntime = url.includes('/RepelRoomRuntime.jsx');
-      }
-      if (!matchesRuntime) return route.continue();
+      if (!isRepelRoomRuntimeRequest(url)) return route.continue();
       interception.interceptionCount += 1;
       interception.urls.push(url);
       await route.abort('failed');
@@ -722,7 +726,7 @@ async function runFaultProbe(browser, browserName, type, entries) {
   }
   const page = await context.newPage();
   page.on('requestfailed', (request) => {
-    if (request.url().includes('/RepelRoomRuntime.jsx')) interception.failedRequestUrls.push(request.url());
+    if (isRepelRoomRuntimeRequest(request.url())) interception.failedRequestUrls.push(request.url());
   });
   const id = safeName(`${browserName}-fault-${type}`);
   let trace = null;

@@ -5,9 +5,14 @@
  * Run: npm run audit:portfolio-drawer:pointer
  * Needs: dev or preview server. Set ABS_DEV_URL to origin or full index URL.
  */
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 
 const WAIT_MS = Number(process.env.ABS_CANVAS_WAIT_MS || 25000);
+const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
+const BROWSER_TYPE = BROWSER_NAME === 'webkit' ? webkit : chromium;
+if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
+  throw new Error(`Unsupported ABS_BROWSER "${BROWSER_NAME}". Expected chromium or webkit.`);
+}
 
 function resolveHomeEntryUrl() {
   let raw = (process.env.ABS_DEV_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
@@ -47,14 +52,22 @@ async function waitForVisibleOnScreenLabel(page) {
       return Array.from(document.querySelectorAll('.portfolio-project-label')).some((label) => {
         if (!(label instanceof HTMLElement)) return false;
         const rect = label.getBoundingClientRect();
+        const styles = getComputedStyle(label);
         const centerX = rect.left + (rect.width / 2);
         const centerY = rect.top + (rect.height / 2);
-        return rect.width > 8
+        const topElement = document.elementFromPoint(centerX, centerY);
+        return label.dataset.deckVisualSlot === 'front'
+          && label.dataset.ringNearest === 'true'
+          && label.getAttribute('tabindex') === '0'
+          && styles.pointerEvents !== 'none'
+          && Number.parseFloat(styles.opacity || '0') > 0.15
+          && rect.width > 8
           && rect.height > 8
           && centerX >= 0
           && centerX <= viewportWidth
           && centerY >= 0
-          && centerY <= viewportHeight;
+          && centerY <= viewportHeight
+          && Boolean(topElement && (topElement === label || label.contains(topElement)));
       });
     },
     { timeout: WAIT_MS }
@@ -62,7 +75,7 @@ async function waitForVisibleOnScreenLabel(page) {
 }
 
 async function main() {
-  const browser = await chromium.launch();
+  const browser = await BROWSER_TYPE.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const pageErrors = [];
   const consoleErrors = [];
@@ -102,9 +115,15 @@ async function main() {
           const projectIndex = Number(label.dataset.projectIndex);
           if (!Number.isInteger(projectIndex) || excludeIndexes.includes(projectIndex)) return null;
           const rect = label.getBoundingClientRect();
+          const styles = getComputedStyle(label);
           const centerX = rect.left + (rect.width / 2);
           const centerY = rect.top + (rect.height / 2);
-          const onScreen = rect.width > 8
+          const onScreen = label.dataset.deckVisualSlot === 'front'
+            && label.dataset.ringNearest === 'true'
+            && label.getAttribute('tabindex') === '0'
+            && styles.pointerEvents !== 'none'
+            && Number.parseFloat(styles.opacity || '0') > 0.15
+            && rect.width > 8
             && rect.height > 8
             && centerX >= 0
             && centerX <= viewportWidth
@@ -119,7 +138,7 @@ async function main() {
             y: centerY,
             width: rect.width,
             height: rect.height,
-            opacity: getComputedStyle(label).opacity,
+            opacity: styles.opacity,
           };
         })
         .filter(Boolean)
@@ -182,7 +201,7 @@ async function main() {
     console.error('FAIL: portfolio pointer-open regression detected');
     process.exitCode = 1;
   } else {
-    console.error(`PASS: pointer click opened and closed ${results.length} portfolio project(s)`);
+    console.error(`PASS: pointer click opened and closed ${results.length} portfolio project(s) in ${BROWSER_NAME}`);
   }
 
   await browser.close();

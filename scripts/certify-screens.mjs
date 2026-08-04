@@ -7,6 +7,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 import process from 'node:process';
 import { chromium, webkit } from 'playwright';
 import { PNG } from 'pngjs';
+import {
+  ACCEPTABLE_SCREEN_BOOT_STATES,
+  assessScreenRequirement,
+  evaluateScreenReadiness,
+} from './lib/screen-certification-contract.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
@@ -25,7 +30,6 @@ const previewHost = process.env.ABS_CERT_HOST || '127.0.0.1';
 const configuredPreviewPort = Number(process.env.ABS_CERT_PORT || 0);
 let previewPort = configuredPreviewPort || 8014;
 let baseUrl = `http://${previewHost}:${previewPort}`;
-const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 const routeBackedDailySurfaceSelector = [
   '#flock-of-birds-canvas',
@@ -98,11 +102,10 @@ const matrix = [
     sessionStorage: {
       abs_portfolio_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '#c', '[data-route-tab="portfolio"]', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
+    readySelectors: ['#app-frame', '[data-route-tab="portfolio"]', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
       { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
       { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] }
@@ -461,6 +464,24 @@ async function sampleReadiness(page, entry) {
 
     return {
       bootState: document.documentElement.dataset.absBootState || '',
+      transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+      introPhase: document.documentElement.dataset.absIntroPhase || '',
+      overlayHidden: (() => {
+        const overlay = document.getElementById('abs-boot-overlay');
+        if (!overlay) return true;
+        const style = getComputedStyle(overlay);
+        return style.display === 'none'
+          || style.visibility === 'hidden'
+          || Number.parseFloat(style.opacity || '1') < 0.02;
+      })(),
+      unsettledGlyphCount: Array.from(document.querySelectorAll('[data-route-enter-glyph]'))
+        .filter((element) => (
+          element.__absRouteEntranceState
+          && element.__absRouteEntranceState.settled !== true
+        )).length,
+      materialStates: Array.from(document.querySelectorAll('[data-route-material-state]'))
+        .map((element) => element.dataset.routeMaterialState || '')
+        .filter(Boolean),
       readyState: document.readyState,
       visibleSelectors: selectorSummary.filter((item) => item.visibleCount > 0).length,
       selectorSummary
@@ -479,36 +500,22 @@ function formatReadinessFailure(sample) {
 async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
   const startedAt = Date.now();
   let lastSample = null;
+  let stableSampleCount = 0;
 
   while (Date.now() - startedAt < timeoutMs) {
     lastSample = await sampleReadiness(page, entry);
-    const bootStateReady = acceptableBootStates.includes(lastSample.bootState);
-    const selectorsReady = lastSample.visibleSelectors >= (entry.minReadySelectors || 1);
+    const readiness = evaluateScreenReadiness(lastSample, {
+      minimumVisibleSelectors: entry.minReadySelectors || 1,
+    });
+    stableSampleCount = readiness.ready ? stableSampleCount + 1 : 0;
 
-    if (entry.requireBootState && bootStateReady && selectorsReady) {
+    // A direct boot briefly reports `ready` before the overlay enters its
+    // revealing phase. Two consecutive settled samples prevent that transient
+    // state from being captured as the final design.
+    if (stableSampleCount >= 2) {
       return {
         ready: true,
-        source: `boot-and-selectors:${lastSample.bootState}:${lastSample.visibleSelectors}`,
-        lastSample
-      };
-    }
-
-    if (
-      !entry.requireBootState &&
-      !entry.requireReadySelectors &&
-      bootStateReady
-    ) {
-      return {
-        ready: true,
-        source: `boot-state:${lastSample.bootState}`,
-        lastSample
-      };
-    }
-
-    if (!entry.requireBootState && selectorsReady) {
-      return {
-        ready: true,
-        source: `selectors:${lastSample.visibleSelectors}`,
+        source: `settled:${lastSample.bootState}:${lastSample.visibleSelectors}`,
         lastSample
       };
     }
@@ -580,65 +587,6 @@ async function collectSelectorStats(page, requirement) {
   }, requirement);
 }
 
-function assessRequirement(requirement, selectorResult) {
-  const failures = [];
-  const presentStats = selectorResult.stats.filter((item) => item.visible || item.area > 0);
-
-  if (requirement.minCount && presentStats.length < requirement.minCount) {
-    failures.push(`${requirement.selector}:expected-visible-count>=${requirement.minCount},got=${presentStats.length}`);
-  }
-
-  if (!requirement.minCount && presentStats.length === 0) {
-    failures.push(`${requirement.selector}:not-visible`);
-  }
-
-  if (requirement.minArea) {
-    const maxArea = presentStats.reduce((max, item) => Math.max(max, item.area), 0);
-    if (maxArea < requirement.minArea) {
-      failures.push(`${requirement.selector}:area<${requirement.minArea}`);
-    }
-  }
-
-  if (requirement.requiredText?.length) {
-    const combinedText = presentStats
-      .map((item) => item.text)
-      .join(' ')
-      .replace(/\s+/gu, ' ')
-      .trim()
-      .toLowerCase();
-    requirement.requiredText.forEach((expected) => {
-      const normalizedExpected = String(expected).replace(/\s+/gu, ' ').trim().toLowerCase();
-      if (!combinedText.includes(normalizedExpected)) {
-        failures.push(`${requirement.selector}:missing-text:${expected}`);
-      }
-    });
-  }
-
-  if (requirement.requiredTextAnyOf?.length) {
-    const combinedText = presentStats
-      .map((item) => item.text)
-      .join(' ')
-      .replace(/\s+/gu, ' ')
-      .trim()
-      .toLowerCase();
-    requirement.requiredTextAnyOf.forEach((options) => {
-      const matched = options.some((expected) => {
-        const normalizedExpected = String(expected).replace(/\s+/gu, ' ').trim().toLowerCase();
-        return combinedText.includes(normalizedExpected);
-      });
-      if (!matched) {
-        failures.push(`${requirement.selector}:missing-any-of:${options.join('|')}`);
-      }
-    });
-  }
-
-  return {
-    selector: requirement.selector,
-    failures,
-    visibleCount: presentStats.length
-  };
-}
-
 async function certifyEntry(browser, entry, viewport, theme) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
@@ -674,7 +622,7 @@ async function certifyEntry(browser, entry, viewport, theme) {
     for (const requirement of entry.selectors) {
       try {
         const selectorResult = await collectSelectorStats(page, requirement);
-        const assessed = assessRequirement(requirement, selectorResult);
+        const assessed = assessScreenRequirement(requirement, selectorResult);
         selectorResults.push({ ...selectorResult, assessment: assessed });
         selectorFailures.push(...assessed.failures);
       } catch (error) {
@@ -722,7 +670,7 @@ async function certifyEntry(browser, entry, viewport, theme) {
       viewport,
       screenshot: screenshotPath,
       bootState,
-      bootStateOk: acceptableBootStates.includes(bootState) || readiness.ready,
+      bootStateOk: ACCEPTABLE_SCREEN_BOOT_STATES.includes(bootState) && readiness.ready,
       readiness,
       runtimeFailures,
       selectorResults,

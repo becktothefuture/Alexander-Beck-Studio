@@ -237,6 +237,7 @@
   .button-bar__primary-buttons
   .shell-tab:focus-visible
   .shell-tab__label {
+  box-shadow: inset 0 -2px 0 currentColor;
   text-decoration-line: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;

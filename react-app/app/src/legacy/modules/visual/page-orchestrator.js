@@ -161,7 +161,7 @@ export async function completeDirectBoot(options = {}) {
   const detail = options.detail || 'ready';
   const selectors = options.selectors || DEFAULT_BOOT_SELECTORS;
 
-  if (shouldHoldBootOverlay(options)) {
+  if (getBootOverlay() && shouldHoldBootOverlay(options)) {
     window.__ABS_RELEASE_BOOT_OVERLAY__ = () => completeDirectBoot({
       ...options,
       force: true,

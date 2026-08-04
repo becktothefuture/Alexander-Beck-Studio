@@ -47,6 +47,8 @@ const createFocusPage = ({ targetSelector, focusSequence, styles = {} }) => {
               outlineWidth: 2,
               outlineColor: 'rgb(0, 0, 0)',
               outlineVisible: true,
+              focusIndicatorVisible: true,
+              indicatorKinds: ['outline'],
               inViewport: true,
               ...styles,
             };
@@ -66,10 +68,45 @@ for (const route of focusRoutes) {
   });
   const result = await assertRepresentativeKeyboardFocus(page, route);
   assert.equal(result.active, true);
-  assert.equal(result.outlineVisible, true);
+  assert.equal(result.focusIndicatorVisible, true);
 }
 
 const playground = focusRoutes.find((route) => route.id === 'playground');
+const underlinedFocus = await assertRepresentativeKeyboardFocus(
+  createFocusPage({
+    targetSelector: playground.representativeFocus.selector,
+    focusSequence: [playground.representativeFocus.selector],
+    styles: {
+      outlineStyle: 'none',
+      outlineWidth: 0,
+      outlineVisible: false,
+      focusIndicatorVisible: true,
+      indicatorKinds: ['descendant-underline'],
+    },
+  }),
+  playground,
+);
+assert.deepEqual(underlinedFocus.indicatorKinds, ['descendant-underline']);
+
+await assert.rejects(
+  assertRepresentativeKeyboardFocus(
+    createFocusPage({
+      targetSelector: playground.representativeFocus.selector,
+      focusSequence: [playground.representativeFocus.selector],
+      styles: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+        outlineVisible: false,
+        focusIndicatorVisible: false,
+        indicatorKinds: [],
+      },
+    }),
+    playground,
+  ),
+  (error) => error.routeId === 'playground'
+    && error.assertion === 'representative-focus-visible-style',
+);
+
 await assert.rejects(
   assertRepresentativeKeyboardFocus(
     createFocusPage({

@@ -33,8 +33,9 @@ function getLondonTime() {
   return LONDON_TIME_FORMAT.format(new Date()).toUpperCase();
 }
 
-export function SiteFooter() {
+function LondonClock() {
   const [londonTime, setLondonTime] = useState(getLondonTime);
+  const hasTwoDigitHour = /^\d{2}:/.test(londonTime);
 
   useEffect(() => {
     const update = () => setLondonTime(getLondonTime());
@@ -43,6 +44,17 @@ export function SiteFooter() {
     return () => window.clearInterval(intervalId);
   }, []);
 
+  return (
+    <time
+      id="time-display"
+      className={hasTwoDigitHour ? 'time-display--wide' : undefined}
+    >
+      {londonTime}
+    </time>
+  );
+}
+
+export function SiteFooter() {
   return (
     <>
       <footer className="ui-bottom home-footer">
@@ -85,7 +97,7 @@ export function SiteFooter() {
                   <strong className="location-name">London</strong>
                   <span className="meta-separator" aria-hidden="true">·</span>
                 </span>
-                <time id="time-display">{londonTime}</time>
+                <LondonClock />
               </span>
             </div>
           </div>

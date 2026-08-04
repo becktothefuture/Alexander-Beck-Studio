@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { getGlobals } from '../../legacy/modules/core/state.js';
 import {
-  createIndexedSimulationVisualTransition,
+  createContinuousSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import {
@@ -11,6 +11,7 @@ import {
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
+import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
@@ -298,9 +299,44 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   pointerCollider.name = 'BeachBallPointerCollider';
   scene.add(pointerCollider);
 
-  const beadGeometry = new THREE.SphereGeometry(1, 8, 6);
-  let beadMeshes = [];
-  let beadInstanceRanges = [];
+  const beadMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      beadDiameter: { value: 0.1 },
+      pointScale: { value: 1 },
+    },
+    vertexColors: true,
+    transparent: true,
+    depthTest: true,
+    depthWrite: true,
+    vertexShader: `
+      uniform float beadDiameter;
+      uniform float pointScale;
+      attribute float beadScale;
+      varying vec3 vBeadColor;
+
+      void main() {
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        float perspectiveScale = pointScale / max(0.001, -viewPosition.z);
+        gl_PointSize = max(0.0, beadDiameter * beadScale * perspectiveScale);
+        gl_Position = projectionMatrix * viewPosition;
+        vBeadColor = color;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vBeadColor;
+
+      void main() {
+        float radius = length(gl_PointCoord - vec2(0.5));
+        float alpha = 1.0 - smoothstep(0.46, 0.5, radius);
+        if (alpha <= 0.0) discard;
+        gl_FragColor = vec4(vBeadColor, alpha);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+  let beadPoints = null;
+  let beadScaleAttribute = null;
   let visualBeadCount = 0;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
@@ -312,10 +348,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
 
   const raycaster = new THREE.Raycaster();
   const pointerNdc = new THREE.Vector2();
-  const tempMatrix = new THREE.Matrix4();
-  const tempPosition = new THREE.Vector3();
   const tempQuaternion = new THREE.Quaternion();
-  const tempScale = new THREE.Vector3();
   const tempCollisionNormal = new THREE.Vector3();
   const tempTangentVelocity = new THREE.Vector3();
   const tempAngularAxis = new THREE.Vector3();
@@ -332,6 +365,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   let rebuildTimer = 0;
   let resizeTimer = 0;
   let resizeObserver = null;
+  let lastFrameTime = 0;
   let lastTime = performance.now();
   let accumulator = 0;
   let isHidden = document.hidden;
@@ -356,11 +390,10 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     zMin: -3,
     zMax: 1.2,
   };
-  const visualTransition = createIndexedSimulationVisualTransition({
+  const visualTransition = createContinuousSimulationVisualTransition({
     sourceId: BEACH_BALL_ROOM_SIMULATION_REGISTRY_ENTRY.id,
     getCount: () => visualBeadCount,
     setScaleAt: (index, scale) => applyBeadVisualScaleAt(index, scale),
-    requestRender: () => renderer.render(scene, camera),
     getSeed: () => beadRebuildCount + 0x5bead,
   });
   unregisterVisualTransition = registerSimulationVisualTransition(
@@ -405,35 +438,20 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   }
 
   function disposeBeads() {
-    for (const mesh of beadMeshes) {
-      ballGroup.remove(mesh);
-      mesh.material?.dispose?.();
+    if (beadPoints) {
+      ballGroup.remove(beadPoints);
+      beadPoints.geometry.dispose();
     }
-    beadMeshes = [];
-    beadInstanceRanges = [];
+    beadPoints = null;
+    beadScaleAttribute = null;
     visualBeadCount = 0;
     container.dataset.renderedBeadColors = '';
   }
 
   function applyBeadVisualScaleAt(index, scale) {
-    if (index < 0 || index >= visualBeadCount) return;
-    for (let rangeIndex = 0; rangeIndex < beadInstanceRanges.length; rangeIndex += 1) {
-      const range = beadInstanceRanges[rangeIndex];
-      if (index < range.start || index >= range.start + range.count) continue;
-      const localIndex = index - range.start;
-      const matrixOffset = localIndex * 16;
-      tempPosition.set(
-        range.baseMatrices[matrixOffset + 12],
-        range.baseMatrices[matrixOffset + 13],
-        range.baseMatrices[matrixOffset + 14],
-      );
-      tempQuaternion.identity();
-      tempScale.setScalar(beadRadius * Math.max(0, scale));
-      tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-      range.mesh.setMatrixAt(localIndex, tempMatrix);
-      range.mesh.instanceMatrix.needsUpdate = true;
-      return;
-    }
+    if (!beadScaleAttribute || index < 0 || index >= visualBeadCount) return;
+    beadScaleAttribute.setX(index, Math.max(0, scale));
+    beadScaleAttribute.needsUpdate = true;
   }
 
   function wakeMotion(now = performance.now()) {
@@ -562,6 +580,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     camera.aspect = metrics.aspect;
     camera.updateProjectionMatrix();
     renderer.setSize(metrics.width, metrics.height, false);
+    beadMaterial.uniforms.pointScale.value = renderer.domElement.height * 0.5;
     container.dataset.renderedDpr = String(renderer.getPixelRatio());
     const ballDiameterRatio = clampBeachBallRoomNumber(settings.ballDiameterViewportRatio, 0.15, 0.9);
     const targetDiameter = Math.min(metrics.visibleWidth, metrics.visibleHeight) * ballDiameterRatio;
@@ -613,61 +632,13 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     const bottomCap = THREE.MathUtils.degToRad(clampBeachBallRoomNumber(settings.bottomCapAngleDeg, 0, 90));
     const colorRatio = colorColumns / columnsPerStrip;
     const centerRadius = ballRadius + beadRadius * (0.35 + clampBeachBallRoomNumber(settings.beadSurfaceOffset, 0, 2));
-    const colorCounts = new Map(activePalette.approvedColors.map((color) => [color, 0]));
-    const meshesByColor = new Map();
-    const writeIndices = new Map();
-    let beadCount = 0;
-    let beadOffset = 0;
-
-    for (let row = 1; row <= latitudeRows; row += 1) {
-      const theta = (row / (latitudeRows + 1)) * Math.PI;
-
-      for (let column = 0; column < longitudeColumns; column += 1) {
-        const phi = (column / longitudeColumns) * TAU;
-        const color = resolveBeadColor({
-          theta,
-          phi,
-          topCap,
-          bottomCap,
-          stripPhaseRad,
-          stripCount,
-          colorRatio,
-          palette: activePalette,
-        });
-        colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
-        beadCount += 1;
-      }
-    }
-
-    for (const [color, count] of colorCounts) {
-      if (count <= 0) continue;
-      const material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(color),
-        depthTest: true,
-        depthWrite: true,
-      });
-      const mesh = new THREE.InstancedMesh(beadGeometry, material, count);
-      mesh.name = `BeachBallRoomBeads:${color}`;
-      mesh.renderOrder = 1;
-      mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
-      mesh.userData.color = color;
-      mesh.userData.visualStart = beadOffset;
-      mesh.userData.baseMatrices = new Float32Array(count * 16);
-      beadInstanceRanges.push({
-        start: beadOffset,
-        count,
-        mesh,
-        baseMatrices: mesh.userData.baseMatrices,
-      });
-      beadOffset += count;
-      meshesByColor.set(color, mesh);
-      writeIndices.set(color, 0);
-      beadMeshes.push(mesh);
-      ballGroup.add(mesh);
-    }
-    visualBeadCount = beadOffset;
-
-    container.dataset.renderedBeadColors = beadMeshes.map((mesh) => mesh.userData.color).join(',');
+    const beadCount = latitudeRows * longitudeColumns;
+    const positions = new Float32Array(beadCount * 3);
+    const colors = new Float32Array(beadCount * 3);
+    const scales = new Float32Array(beadCount);
+    const renderedColors = new Set();
+    const threeColors = new Map();
+    let beadIndex = 0;
 
     for (let row = 1; row <= latitudeRows; row += 1) {
       const theta = (row / (latitudeRows + 1)) * Math.PI;
@@ -689,25 +660,38 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
           colorRatio,
           palette: activePalette,
         });
-        const mesh = meshesByColor.get(color);
-        if (!mesh) continue;
-        const instanceIndex = writeIndices.get(color) || 0;
-        const visualIndex = (mesh.userData.visualStart || 0) + instanceIndex;
-        const visualScale = visualTransition.getScaleAt(visualIndex);
-
-        tempPosition.set(x, y, z);
-        tempQuaternion.identity();
-        tempScale.setScalar(beadRadius * visualScale);
-        tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-        mesh.setMatrixAt(instanceIndex, tempMatrix);
-        tempMatrix.toArray(mesh.userData.baseMatrices, instanceIndex * 16);
-        writeIndices.set(color, instanceIndex + 1);
+        let threeColor = threeColors.get(color);
+        if (!threeColor) {
+          threeColor = new THREE.Color(color);
+          threeColors.set(color, threeColor);
+        }
+        const offset = beadIndex * 3;
+        positions[offset] = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
+        colors[offset] = threeColor.r;
+        colors[offset + 1] = threeColor.g;
+        colors[offset + 2] = threeColor.b;
+        scales[beadIndex] = visualTransition.getScaleAt(beadIndex);
+        renderedColors.add(color);
+        beadIndex += 1;
       }
     }
 
-    for (const mesh of beadMeshes) {
-      mesh.instanceMatrix.needsUpdate = true;
-    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    beadScaleAttribute = new THREE.BufferAttribute(scales, 1);
+    beadScaleAttribute.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute('beadScale', beadScaleAttribute);
+    geometry.computeBoundingSphere();
+    beadPoints = new THREE.Points(geometry, beadMaterial);
+    beadPoints.name = 'BeachBallRoomBeads';
+    beadPoints.renderOrder = 1;
+    ballGroup.add(beadPoints);
+    visualBeadCount = beadCount;
+    beadMaterial.uniforms.beadDiameter.value = (beadRadius * 2) / cameraFovScale;
+    container.dataset.renderedBeadColors = [...renderedColors].join(',');
     beadRebuildCount += 1;
     container.dataset.beadRebuildCount = String(beadRebuildCount);
     container.dataset.beadCount = String(beadCount);
@@ -884,9 +868,14 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   function renderFrame(now) {
     frameId = window.requestAnimationFrame(renderFrame);
     if (isHidden) {
+      lastFrameTime = 0;
       lastTime = now;
       return;
     }
+
+    const nextFrameTime = advanceFrameScheduler(lastFrameTime, now, latestReducedMotion ? 30 : 60);
+    if (nextFrameTime === null) return;
+    lastFrameTime = nextFrameTime;
 
     const delta = Math.min((now - lastTime) / 1000, FIXED_DT * MAX_SUBSTEPS);
     lastTime = now;
@@ -922,6 +911,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
 
   function onVisibilityChange() {
     isHidden = document.hidden;
+    lastFrameTime = 0;
     lastTime = performance.now();
     accumulator = 0;
   }
@@ -1046,13 +1036,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       activePalette = nextPalette;
       applyPaletteDiagnostics(activePalette);
       lineMaterial.color.setStyle(activePalette.roomLine);
-      for (let index = 0; index < beadMeshes.length; index += 1) {
-        const color = activePalette.approvedColors[index % activePalette.approvedColors.length]
-          || activePalette.white;
-        beadMeshes[index].material.color.setStyle(color);
-        beadMeshes[index].userData.color = color;
-      }
-      container.dataset.renderedBeadColors = beadMeshes.map((mesh) => mesh.userData.color).join(',');
+      buildBeads();
       renderer.render(scene, camera);
     },
     updateSettings,
@@ -1073,7 +1057,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       disposeRoomLineGeometry();
       disposeBeads();
-      beadGeometry.dispose();
+      beadMaterial.dispose();
       depthSphere.geometry.dispose();
       depthMaterial.dispose();
       pointerCollider.geometry.dispose();

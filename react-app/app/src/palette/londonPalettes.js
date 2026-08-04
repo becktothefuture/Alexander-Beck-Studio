@@ -1,8 +1,8 @@
 export const LONDON_WEATHER_PALETTE_COLORS = Object.freeze({
   sohoSignal: Object.freeze(['#87919a', '#c7ced2', '#f3f1e9', '#0067ff', '#0c1117', '#ffd000', '#ff4b2b', '#008fa8']),
-  thamesData: Object.freeze(['#708591', '#b7c7ce', '#eef2ef', '#005c78', '#071820', '#00b8d4', '#2d82a6', '#e2b42b']),
-  barbicanProtocol: Object.freeze(['#858a87', '#b8bcb8', '#eceae1', '#2368ff', '#101411', '#d8f500', '#00a6a0', '#ff6a00']),
-  nightBusMesh: Object.freeze(['#7e8991', '#bcc5ca', '#f0eee8', '#d7193f', '#0d1116', '#00a7ff', '#285ddb', '#30c6d2']),
+  thamesData: Object.freeze(['#708591', '#b7c7ce', '#eef2ef', '#005c78', '#071820', '#c95332', '#3f72c8', '#d5b23a']),
+  barbicanProtocol: Object.freeze(['#858a87', '#b8bcb8', '#eceae1', '#245fda', '#101411', '#d8e316', '#bd4936', '#f28a22']),
+  nightBusMesh: Object.freeze(['#7e8991', '#bcc5ca', '#f0eee8', '#d7193f', '#0d1116', '#00a7ff', '#e3a21a', '#36b7a0']),
 });
 
 function createPaletteTheme(colors) {
@@ -47,18 +47,18 @@ export const LONDON_WEATHER_PALETTES = [
     slug: 'thames-data',
     label: 'Thames Data',
     weather: 'River Network',
-    personality: 'Cold river steel, data cyan, tidal blue, sodium brass.',
+    personality: 'Tidal teal, signal copper, bridge blue, sodium brass.',
     story:
-      'Cold river steel, mist, cloud, and deep water carry the quiet base. Data cyan and river blue make the Thames feel connected and contemporary, with one restrained sodium-brass signal.',
+      'River steel, mist, cloud, and deep water carry the quiet base. Signal copper, bridge blue, and sodium brass cross the cooler field like moving infrastructure reflected on the Thames.',
     words: [
       'Thames',
       'river network',
-      'data cyan',
-      'tidal blue',
+      'tidal teal',
+      'signal copper',
+      'bridge blue',
       'river steel',
       'deep water',
       'mist',
-      'bridge steel',
       'cold cloud',
       'embankment',
       'sodium brass',
@@ -74,9 +74,9 @@ export const LONDON_WEATHER_PALETTES = [
     slug: 'barbican-protocol',
     label: 'Barbican Protocol',
     weather: 'Civic Systems',
-    personality: 'Concrete, protocol blue, safety lime, interface aqua.',
+    personality: 'Concrete, protocol blue, safety lime, oxide red, service orange.',
     story:
-      'Concrete, aggregate, chalk, and control black establish a hard civic base. Protocol blue, safety lime, interface aqua, and one service-orange note turn the Barbican into an active control system.',
+      'Concrete, aggregate, chalk, and control black establish a hard civic base. Protocol blue, safety lime, fire-door oxide, and service orange make the Barbican feel inhabited as well as infrastructural.',
     words: [
       'Barbican',
       'civic protocol',
@@ -84,7 +84,7 @@ export const LONDON_WEATHER_PALETTES = [
       'aggregate',
       'protocol blue',
       'safety lime',
-      'interface aqua',
+      'fire-door oxide',
       'service orange',
       'control room',
       'civic deck',
@@ -101,16 +101,16 @@ export const LONDON_WEATHER_PALETTES = [
     slug: 'night-bus-mesh',
     label: 'Night Bus Mesh',
     weather: 'Transit After Dark',
-    personality: 'Bus red, link blue, LED cyan, pixel aqua.',
+    personality: 'Bus red, LED blue, sodium amber, ticket-machine teal.',
     story:
-      'Road steel, LED haze, ticket paper, and night glass carry a cool transit base. Bus red connects to link blue, LED cyan, and pixel aqua like a moving London network after dark.',
+      'Road steel, LED haze, ticket paper, and night glass carry the base. Bus red, display blue, sodium amber, and ticket-machine teal cross it like different layers of London moving after dark.',
     words: [
       'night bus',
       'transit mesh',
       'bus red',
-      'link blue',
-      'LED cyan',
-      'pixel aqua',
+      'LED blue',
+      'sodium amber',
+      'ticket-machine teal',
       'road steel',
       'ticket paper',
       'night glass',

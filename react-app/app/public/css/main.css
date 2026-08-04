@@ -2317,7 +2317,8 @@ html[data-shell-route='home'] body:not(.detail-open) :is(
   #expertise-legend,
   .ui-top-right .decorative-script,
   #social-links,
-  #site-year
+  #site-year,
+  #edge-caption
 )::before {
   content: '';
   position: absolute;
@@ -2357,8 +2358,10 @@ html[data-shell-route='home'] body:not(.detail-open) #site-year {
   --home-legibility-field-inset: -8px -14px;
 }
 
-html[data-shell-route='home'] body:not(.detail-open) #edge-caption::before {
-  content: none;
+html[data-shell-route='home'] body:not(.detail-open) #edge-caption {
+  --home-legibility-field-inset: -18px -24px;
+  --home-text-hover-field-opacity: 1;
+  --home-text-hover-field-blur: 16px;
 }
 
 html[data-shell-route='home'] body:not(.detail-open) .legend__item span {
@@ -2579,11 +2582,14 @@ p {
 }
 
 .simulation-focus-switcher-slot {
-  --home-simulation-switcher-title-gap: clamp(40px, 6svh, 56px);
+  --home-simulation-switcher-title-gap: clamp(44px, 6svh, 60px);
   --home-simulation-switcher-title-half-height: calc(
     var(--route-entry-title-size) *
-    1.32 *
+    var(--route-bookend-title-scale) *
+    var(--home-hero-title-size-scale) *
+    var(--route-title-line-height) *
     var(--abs-font-headline-line-height-scale, 1) *
+    1.5 *
     var(--abs-scene-impact-logo-scale, 1) *
     var(--brand-logo-user-scale, 1)
   );
@@ -3341,6 +3347,9 @@ button.abs-meta-btn,
 /* Time Display - Geist, 80% size; min-width keeps layout stable before/without JS */
 #time-display {
   display: inline-block;
+  contain: strict;
+  inline-size: 8.5ch;
+  block-size: 1em;
   font-family: var(--abs-font-sans);
   font-style: normal;
   font-size: 0.84em;
@@ -3350,6 +3359,11 @@ button.abs-meta-btn,
   font-feature-settings: 'tnum' 1;
   letter-spacing: var(--meta-time-letter-spacing);
   min-width: 8.5ch; /* Reserve space so the footer chrome does not jitter as seconds tick. */
+}
+
+#time-display.time-display--wide {
+  inline-size: 9.4ch;
+  min-width: 9.4ch;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -3462,7 +3476,6 @@ button.abs-meta-btn,
 
 html[data-shell-route='home'] .hero-title--canvas-source {
   --home-hero-title-scale: var(--route-bookend-title-scale);
-  --home-hero-title-size-scale: 0.9;
   --home-hero-title-font-size: calc(
     var(--route-entry-title-size) *
     var(--home-hero-title-scale) *
@@ -3473,7 +3486,7 @@ html[data-shell-route='home'] .hero-title--canvas-source {
   --hero-title-line-height: calc(
     var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1)
   );
-  --hero-title-letter-spacing: var(--abs-font-headline-letter-spacing);
+  --hero-title-letter-spacing: var(--route-title-letter-spacing);
   font-family: var(--abs-font-headline);
   font-kerning: normal;
   /* Compensate for the right-hand full stop so the wordmark reads centred. */
@@ -7582,15 +7595,17 @@ body.portfolio-page--locked #simulations {
   --route-bookend-title-size: calc(
     var(--route-entry-title-size) * var(--route-bookend-title-scale)
   );
-  /* 10% tighter than the previous Home title leading of 1.12. */
-  --route-title-line-height: 1.008;
+  /* 10% tighter than the previous shared title leading of 1.008. */
+  --route-title-line-height: 0.9072;
+  --route-title-letter-spacing: calc(var(--abs-font-headline-letter-spacing) - 0.01em);
+  --home-hero-title-size-scale: 0.9;
   --route-description-font-size: clamp(0.875rem, 0.76rem + 0.32vw, 1rem);
   --route-description-line-height: 1.32;
   --route-description-max-width: 40ch;
   --route-description-letter-spacing: -0.012em;
   --route-intro-description-max-width: 50.4ch;
   --route-intro-description-line-height: 1.485;
-  --route-intro-description-opacity: 0.64;
+  --route-intro-description-opacity: var(--supporting-description-opacity);
   --route-title-rule-width: 2rem;
   --route-title-rule-thickness: 2px;
   --route-title-rule-offset: clamp(8px, 0.8vw, 12px);
@@ -7647,7 +7662,7 @@ body.portfolio-page--locked #simulations {
   font-size: var(--route-entry-title-size);
   font-weight: var(--abs-weight-regular);
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
-  letter-spacing: var(--abs-font-headline-letter-spacing);
+  letter-spacing: var(--route-title-letter-spacing);
   text-wrap: balance;
 }
 
@@ -8246,7 +8261,13 @@ body.dark-mode .cv-photo {
 
   #time-display {
     font-size: 0.9em;
-    min-width: 8ch;
+    inline-size: 8.4ch;
+    min-width: 8.4ch;
+  }
+
+  #time-display.time-display--wide {
+    inline-size: 9.4ch;
+    min-width: 9.4ch;
   }
 
 }

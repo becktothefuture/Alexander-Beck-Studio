@@ -1,5 +1,5 @@
 import {
-  createIndexedSimulationVisualTransition,
+  createContinuousSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
@@ -12,6 +12,8 @@ import {
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
+import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
+import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -129,23 +131,6 @@ function resolveDpr(config) {
   return clamp(Math.min(deviceDpr, Number(config.maxDpr) || 1.5, mobileCap), 0.75, 2);
 }
 
-function resizeCanvasToDisplaySize(canvas, dpr) {
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.max(1, Math.round(rect.width * dpr));
-  const height = Math.max(1, Math.round(rect.height * dpr));
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  return {
-    cssWidth: Math.max(1, rect.width),
-    cssHeight: Math.max(1, rect.height),
-    width,
-    height,
-    dpr,
-  };
-}
-
 function shouldPauseForVisibility(config) {
   return config.pauseWhenHidden !== false
     && typeof document !== 'undefined'
@@ -184,7 +169,7 @@ function drawBackground(ctx, metrics, theme, config) {
 }
 
 function createBirdColorCache(theme) {
-  return resolvePalette(theme).map((hex) => parseHexColor(hex));
+  return resolvePalette(theme).map((hex) => rgbString(parseHexColor(hex), 1));
 }
 
 export function createFlockOfBirdsRenderer({
@@ -262,34 +247,34 @@ export function createFlockOfBirdsRenderer({
     targetFps: 60,
   };
   let rafId = 0;
-  let timeoutId = 0;
   let destroyed = false;
+  let lastFrameTime = 0;
   let lastTime = 0;
   let metricsDirty = true;
   let metricsSyncCount = 0;
   let stateBuildCount = 0;
   let mobileBodyScale = 1;
+  let birdColorTheme = null;
+  let birdColorGeneration = Number.NaN;
+  let birdColorStrings = [];
+  const birdRoleColorIndices = new Uint8Array(DEFAULT_SIMULATION_COLOR_DISTRIBUTION.length);
   let unregisterVisualTransition = null;
-  const visualTransition = createIndexedSimulationVisualTransition({
+  const visualTransition = createContinuousSimulationVisualTransition({
     sourceId: 'flock-of-birds',
     getCount: () => state.count || 0,
-    // Transition repaints must not call drawFrame; drawFrame advances physics and schedules RAF.
-    requestRender: () => drawVisualFrame(true),
     getSeed: () => 0x7f4a9c21,
   });
   unregisterVisualTransition = registerSimulationVisualTransition('flock-of-birds', visualTransition);
 
   function cancelScheduledFrame() {
     if (rafId) window.cancelAnimationFrame(rafId);
-    if (timeoutId) window.clearTimeout(timeoutId);
     rafId = 0;
-    timeoutId = 0;
   }
 
   function syncMetrics(config) {
     const nextDpr = resolveDpr(config);
     if (!metricsDirty && Math.abs(nextDpr - metrics.dpr) < 0.001) return;
-    Object.assign(metrics, resizeCanvasToDisplaySize(canvas, nextDpr));
+    syncCanvasDisplayMetrics(canvas, nextDpr, metrics);
     metricsDirty = false;
     metricsSyncCount += 1;
     canvas.dataset.layoutSyncCount = String(metricsSyncCount);
@@ -465,12 +450,10 @@ export function createFlockOfBirdsRenderer({
     }
   }
 
-  function addSoftBoundaryForces(config, i, ax, ay, time) {
+  function addSoftBoundaryForces(config, i, ax, ay, time, band) {
     const x = state.x[i];
     const y = state.y[i];
     const vy = state.vy[i];
-    const groundY = metrics.cssHeight * config.groundLine;
-    const band = resolveFlightBand(config, metrics.cssHeight, groundY);
     const containment = config.skyContainment * 300;
     const topAvoidDistance = clamp(band.span * 0.34, 86, 220);
     const bottomAvoidDistance = clamp(Math.max(band.span * 0.42, config.groundAvoidDistance * 0.72), 110, 300);
@@ -920,7 +903,7 @@ export function createFlockOfBirdsRenderer({
       ay += lateralY * bankArc * 0.22;
       ay -= lift;
 
-      addSoftBoundaryForces(config, i, ax, ay, time);
+      addSoftBoundaryForces(config, i, ax, ay, time, flightBand);
       ax = forceScratch.ax;
       ay = forceScratch.ay;
       addMouseForces(config, i, ax, ay, allowPointer);
@@ -1214,24 +1197,37 @@ export function createFlockOfBirdsRenderer({
   }
 
   function drawBirds(config, theme) {
-    const colors = createBirdColorCache(theme);
+    const nextColorGeneration = Number(theme?.paletteGeneration || 0);
+    if (theme !== birdColorTheme || nextColorGeneration !== birdColorGeneration) {
+      birdColorTheme = theme;
+      birdColorGeneration = nextColorGeneration;
+      birdColorStrings = createBirdColorCache(theme);
+      for (let roleIndex = 0; roleIndex < birdRoleColorIndices.length; roleIndex += 1) {
+        birdRoleColorIndices[roleIndex] = resolveSimulationMaterialColorIndex(
+          roleIndex,
+          theme?.paletteSnapshot || theme?.colorDistribution,
+        );
+      }
+    }
     const baseRadius = config.birdRadius * mobileBodyScale;
     const depthSize = config.depthSize;
 
-    for (let i = 0; i < state.count; i += 1) {
-      const depth = clamp(state.depth[i], -1, 1);
-      const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
-      if (radius <= 0.05) continue;
-      const colorIndex = resolveSimulationMaterialColorIndex(
-        state.materialRoleIndex[i],
-        theme?.paletteSnapshot || theme?.colorDistribution,
-      );
-      const color = colors[colorIndex % colors.length];
-
+    for (let colorIndex = 0; colorIndex < birdColorStrings.length; colorIndex += 1) {
+      let hasVisibleBird = false;
       ctx.beginPath();
-      ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
-      ctx.fillStyle = rgbString(color, 1);
-      ctx.fill();
+      for (let i = 0; i < state.count; i += 1) {
+        if (birdRoleColorIndices[state.materialRoleIndex[i]] !== colorIndex) continue;
+        const depth = clamp(state.depth[i], -1, 1);
+        const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
+        if (radius <= 0.05) continue;
+        ctx.moveTo(state.x[i] + radius, state.y[i]);
+        ctx.arc(state.x[i], state.y[i], radius, 0, TAU);
+        hasVisibleBird = true;
+      }
+      if (hasVisibleBird) {
+        ctx.fillStyle = birdColorStrings[colorIndex];
+        ctx.fill();
+      }
     }
   }
 
@@ -1297,6 +1293,16 @@ export function createFlockOfBirdsRenderer({
     const theme = getTheme() || DEFAULT_THEME;
     if (!force && shouldPauseForVisibility(config)) return;
 
+    if (!force) {
+      const targetFps = resolveTargetFps(config, reducedMotion);
+      const nextFrameTime = advanceFrameScheduler(lastFrameTime, now, targetFps);
+      if (nextFrameTime === null) {
+        rafId = window.requestAnimationFrame(drawFrame);
+        return;
+      }
+      lastFrameTime = nextFrameTime;
+    }
+
     const frameStart = performance.now();
     const dt = lastTime > 0 ? clamp((now - lastTime) / 1000, 1 / 120, 1 / 30) : 1 / 60;
     lastTime = now;
@@ -1325,13 +1331,7 @@ export function createFlockOfBirdsRenderer({
     metrics.lastFrameMs = performance.now() - frameStart;
 
     if (!destroyed && config.enabled !== false && !shouldPauseForVisibility(config)) {
-      const targetFps = resolveTargetFps(config, reducedMotion);
-      const frameInterval = 1000 / targetFps;
-      const timeoutDelay = Math.max(0, frameInterval - (1000 / 60));
-      timeoutId = window.setTimeout(() => {
-        timeoutId = 0;
-        rafId = window.requestAnimationFrame(drawFrame);
-      }, timeoutDelay);
+      rafId = window.requestAnimationFrame(drawFrame);
     }
   }
 
@@ -1372,6 +1372,7 @@ export function createFlockOfBirdsRenderer({
 
   function handleVisibilityChange() {
     if (!document.hidden) {
+      lastFrameTime = 0;
       lastTime = 0;
       drawFrame(performance.now(), true);
     }
@@ -1393,11 +1394,12 @@ export function createFlockOfBirdsRenderer({
       if (destroyed) return;
       cancelScheduledFrame();
       metricsDirty = true;
+      lastFrameTime = 0;
       lastTime = 0;
       drawFrame(performance.now(), true);
     },
     renderOnce() {
-      drawFrame(performance.now(), true);
+      drawVisualFrame(true);
     },
     getMetrics() {
       return { ...metrics };

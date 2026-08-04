@@ -3,9 +3,9 @@ import { TIME_OF_DAY_PALETTE_PERIODS } from '../../palette/timeOfDayPalette.js';
 
 const STRAPLINES_BY_ID = {
   sohoSignal: 'Electric signage, wet-screen cyan, and taxi amber cut through zinc and screen black.',
-  thamesData: 'Cold river steel and data cyan move through mist, glass, and one sodium signal.',
-  barbicanProtocol: 'Brutalist concrete meets protocol blue, safety lime, and interface aqua.',
-  nightBusMesh: 'Transit red connects link blue, LED cyan, and pixel aqua across night glass.',
+  thamesData: 'Tidal teal, signal copper, bridge blue, and sodium brass move through river steel.',
+  barbicanProtocol: 'Concrete meets protocol blue, safety lime, fire-door oxide, and service orange.',
+  nightBusMesh: 'Bus red, display blue, sodium amber, and ticket-machine teal cross night glass.',
 };
 
 export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({

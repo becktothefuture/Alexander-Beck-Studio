@@ -666,6 +666,10 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             canvasTitleFontSizeCssPx: Number(canvasTitleState.firstLineFontSizeCssPx) || 0,
             canvasTitleFirstLineX: Number(canvasTitleState.firstLineX) || 0,
             canvasTitleFirstLineY: Number(canvasTitleState.firstLineY) || 0,
+            canvasTitleFirstGlyphX: Number(canvasTitleState.firstGlyphX) || 0,
+            canvasTitleFirstGlyphY: Number(canvasTitleState.firstGlyphY) || 0,
+            canvasTitleEntranceMovementCanvasOwned:
+              canvasTitleState.entranceMovementCanvasOwned === true,
             ballCount: balls.length,
             dpr: Number(globals.DPR) || 1,
             targetFps: Number(globals.currentTargetFps) || 0,

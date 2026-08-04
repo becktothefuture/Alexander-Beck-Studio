@@ -1,6 +1,6 @@
 import { CONCEPT_SIMULATION_IDS } from './conceptSimulationConfigs.js';
 import {
-  createIndexedSimulationVisualTransition,
+  createContinuousSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import {
@@ -20,9 +20,13 @@ import {
 } from '../../palette/simulationPaletteContract.js';
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
+import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
+const DEFAULT_TARGET_FPS = 60;
+const REDUCED_MOTION_TARGET_FPS = 30;
 const DEFAULT_THEME = {
   active: '#202020',
   palette: FALLBACK_SIMULATION_PALETTE_COLORS,
@@ -75,25 +79,6 @@ function resolveDpr(config) {
   const viewportWidth = typeof window === 'undefined' ? 1024 : window.innerWidth || 1024;
   const mobileMax = viewportWidth < 520 ? 1.15 : (viewportWidth < 820 ? 1.3 : configuredMax);
   return clamp(Math.min(deviceDpr, configuredMax, mobileMax), 0.75, 2);
-}
-
-function resizeCanvasToDisplaySize(canvas, dpr) {
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.max(1, Math.round(rect.width * dpr));
-  const height = Math.max(1, Math.round(rect.height * dpr));
-  const changed = canvas.width !== width || canvas.height !== height;
-  if (changed) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  return {
-    changed,
-    cssWidth: Math.max(1, rect.width),
-    cssHeight: Math.max(1, rect.height),
-    width,
-    height,
-    dpr,
-  };
 }
 
 function getScaledRadius(config, metrics, theme) {
@@ -740,8 +725,8 @@ function updateBody(body, config, pointer, dt, reserve = null) {
   body.rotation += body.spin + (body.vx * 0.0008);
 }
 
-function renderBackground(ctx, metrics, theme, config, pointer, simulationId, options = {}) {
-  if (options.transparentBackground) {
+function renderBackground(ctx, metrics, theme, config, pointer, simulationId, transparentBackground) {
+  if (transparentBackground) {
     ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
     return;
   }
@@ -787,9 +772,20 @@ export function createConceptSimulationRenderer({
     dragBodyIndex: -1,
     lastAt: -Infinity,
   };
-  let metrics = null;
+  const metrics = {
+    changed: true,
+    cssWidth: 1,
+    cssHeight: 1,
+    width: 1,
+    height: 1,
+    dpr: 1,
+    mobileSimulationBodyScale: 1,
+    simulationBodyRadius: 0,
+  };
+  let metricsReady = false;
   let bodies = [];
   let frameId = 0;
+  let lastFrameTime = 0;
   let lastTime = 0;
   let started = false;
   let layoutKey = '';
@@ -806,13 +802,9 @@ export function createConceptSimulationRenderer({
     audioAngle: 0,
   };
   let unregisterVisualTransition = null;
-  const visualTransition = createIndexedSimulationVisualTransition({
+  const visualTransition = createContinuousSimulationVisualTransition({
     sourceId: simulationId,
     getCount: () => bodies.length,
-    requestRender: () => {
-      syncLayout();
-      render();
-    },
     getSeed: () => {
       const seedMap = {
         [CONCEPT_SIMULATION_IDS.APERTURE_BLOOM]: 11021,
@@ -895,8 +887,12 @@ export function createConceptSimulationRenderer({
   function syncLayout() {
     const config = getConfig();
     const theme = getTheme() || DEFAULT_THEME;
-    const dpr = resolveDpr(config);
-    metrics = resizeCanvasToDisplaySize(canvas, dpr);
+    let metricsChanged = false;
+    if (!metricsReady || layoutSyncRequested) {
+      syncCanvasDisplayMetrics(canvas, resolveDpr(config), metrics);
+      metricsReady = true;
+      metricsChanged = metrics.changed;
+    }
     metrics.mobileSimulationBodyScale = resolveMobileSimulationBodyScale(
       theme?.mobileSimulationBodyScale,
       metrics,
@@ -908,9 +904,9 @@ export function createConceptSimulationRenderer({
     }
 
     const sourcesChanged = config !== lastConfigSource || theme !== lastThemeSource;
-    if (layoutSyncRequested || metrics.changed || sourcesChanged || !layoutKey) {
+    if (layoutSyncRequested || metricsChanged || sourcesChanged || !layoutKey) {
       const nextLayoutKey = getLayoutKey(config, theme);
-      if (metrics.changed || nextLayoutKey !== layoutKey) {
+      if (metricsChanged || nextLayoutKey !== layoutKey) {
         layoutKey = nextLayoutKey;
         rebuildBodies(config, theme);
       }
@@ -938,6 +934,11 @@ export function createConceptSimulationRenderer({
     frameId = window.requestAnimationFrame(step);
     const config = getConfig();
     if (!ctx || !config.enabled || shouldPauseForVisibility(config)) return;
+
+    const targetFps = reducedMotion ? REDUCED_MOTION_TARGET_FPS : DEFAULT_TARGET_FPS;
+    const nextFrameTime = advanceFrameScheduler(lastFrameTime, now, targetFps);
+    if (nextFrameTime === null) return;
+    lastFrameTime = nextFrameTime;
 
     syncLayout();
     const rawDt = lastTime ? (now - lastTime) / 1000 : 1 / 60;
@@ -1037,7 +1038,7 @@ export function createConceptSimulationRenderer({
     const theme = getTheme() || DEFAULT_THEME;
     const config = getConfig();
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
-    renderBackground(ctx, metrics, theme, config, pointer, simulationId, { transparentBackground });
+    renderBackground(ctx, metrics, theme, config, pointer, simulationId, transparentBackground);
     if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       for (const body of bodies) {
         if (body.kind !== 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
@@ -1060,6 +1061,7 @@ export function createConceptSimulationRenderer({
     render();
     if (started) return;
     started = true;
+    lastFrameTime = 0;
     lastTime = 0;
     frameId = window.requestAnimationFrame(step);
   }
@@ -1178,6 +1180,7 @@ export function createConceptSimulationRenderer({
       frameId = 0;
     }
     started = false;
+    lastFrameTime = 0;
     unregisterVisualTransition?.();
     unregisterVisualTransition = null;
     visualTransition.destroy?.();

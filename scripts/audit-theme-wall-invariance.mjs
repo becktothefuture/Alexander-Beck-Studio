@@ -11,8 +11,13 @@ const shouldStartDevServer = !process.env.ABS_THEME_WALL_AUDIT_URL;
 const browserName = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const viewportFilter = String(process.env.ABS_THEME_WALL_VIEWPORT || '').trim().toLowerCase();
+const routeFilter = String(process.env.ABS_THEME_WALL_ROUTE || '').trim();
 const NAVIGATION_TIMEOUT_MS = 60_000;
-const routes = ['/', '/portfolio.html', '/about.html', '/contact.html', '/playground.html'];
+const routes = ['/', '/portfolio.html', '/about.html', '/contact.html', '/playground.html']
+  .filter((route) => !routeFilter || route === routeFilter);
+if (routeFilter && routes.length === 0) {
+  throw new Error(`Unknown ABS_THEME_WALL_ROUTE "${routeFilter}".`);
+}
 const viewports = [
   { name: 'mobile-min-320', width: 320, height: 720, deviceScaleFactor: 2, isMobile: true },
   { name: 'mobile-edge-340', width: 340, height: 760, deviceScaleFactor: 2, isMobile: true },

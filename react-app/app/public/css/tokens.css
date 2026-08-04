@@ -146,9 +146,9 @@
   --ball-3: #eef2ef;
   --ball-4: #005c78;
   --ball-5: #071820;
-  --ball-6: #00b8d4;
-  --ball-7: #2d82a6;
-  --ball-8: #e2b42b;
+  --ball-6: #c95332;
+  --ball-7: #3f72c8;
+  --ball-8: #d5b23a;
 
   /* Typography Tokens */
   --abs-font-sans: "Geist", system-ui, sans-serif;
@@ -473,16 +473,6 @@
   --abs-noise-edge-overlap: 0px; /* How far noise extends past inner wall edge */
   --abs-noise-offset-y: 0px;     /* Vertical offset for noise layer (positive = down) */
 
-  /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
-  --grunge-video-edge-overlap: 0px;                   /* How far video extends past inner wall edge */
-  --grunge-video-offset-y: 0px;                       /* Vertical offset for video layer (positive = down) */
-  --grunge-video-enabled: 1;                          /* 0 = off, 1 = on */
-  --grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
-  --grunge-video-blend-mode-light: overlay;           /* Light mode blend */
-  --grunge-video-blend-mode-dark: screen;             /* Dark mode blend */
-  --grunge-video-fade-duration: 2000ms;               /* Fade-in duration */
-  --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
-
   /* Wall Frame Inset (space between viewport edge and wall outer edge) */
   --safari-tint-inset: var(--container-border);
   --safari-tint-inset-x: var(--container-border);
@@ -777,7 +767,6 @@
      INSIDE #abs-scene (scene stacking context):
      ─────────────────────────────────────────────────────────────────────────────
      Wall + scene effects     100        #simulations / .simulation-wall-layer
-     Video Overlays           150        .grunge-video-overlay (above wall, below UI)
      Frame vignette           175        .frame-vignette
      UI Layer                 200        .fade-content.ui-layer (header + nav + footer)
      Button Bar               205        .shell-bottom-band (outside window bounds)

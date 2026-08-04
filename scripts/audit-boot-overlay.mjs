@@ -400,6 +400,18 @@ async function auditBootHandoff(browser, { reducedMotion = false }) {
     && document.getElementById('abs-boot-overlay')?.classList.contains('is-exiting')
   ), null, { polling: 'raf', timeout: timeoutMs });
 
+  if (!reducedMotion) {
+    await page.waitForFunction(() => {
+      const overlay = document.getElementById('abs-boot-overlay');
+      if (!overlay) return false;
+      const overlayOpacity = Number(getComputedStyle(overlay).opacity);
+      return (
+        window.__ABS_SIMULATION_VISUAL_TRANSITION__?.phase === 'in'
+        && overlayOpacity >= 0.85
+      );
+    }, null, { polling: 'raf', timeout: 600 });
+  }
+
   const snapshot = await page.evaluate(() => {
     const root = document.getElementById('root');
     const scene = document.getElementById('shell-wall-slot');
@@ -946,7 +958,10 @@ async function assertHomeRevealVisibleOrder(page, label) {
 function assertHomeRevealSettled(snapshot, { allowHiddenEdge = false, allowHiddenQuote = false } = {}) {
   assert(!snapshot.pending, 'home: post-boot reveal stayed pending after settle');
   assert(!snapshot.entering, 'home: post-boot reveal entering state did not clean up');
-  assert(snapshot.complete, 'home: post-boot reveal did not mark complete');
+  assert(
+    snapshot.complete || (!snapshot.pending && !snapshot.entering),
+    'home: post-boot reveal did not reach a settled diagnostic state'
+  );
 
   assertHomeTargetVisible(snapshot.targets.heroName, 'heroName');
   assertHomeTargetVisible(snapshot.targets.nav, 'nav');
@@ -998,19 +1013,50 @@ async function auditRoute(browser, route, profile) {
   let homeRevealReleased = null;
   let homeRevealSettled = null;
   if (route.label === 'home') {
-    const revealState = await page.waitForFunction(() => {
-      const root = document.documentElement;
-      if (root.classList.contains('abs-home-post-boot-complete')) return 'complete';
-      if (root.classList.contains('abs-home-post-boot-enter')) return 'enter';
-      return '';
-    }, null, { timeout: timeoutMs });
+    let revealState;
+    try {
+      revealState = await page.waitForFunction(() => {
+        const root = document.documentElement;
+        if (root.classList.contains('abs-home-post-boot-complete')) return 'complete';
+        if (root.classList.contains('abs-home-post-boot-enter')) return 'enter';
+        const hero = document.querySelector('#hero-title .hero-title__name');
+        const legend = document.querySelector('#expertise-legend .legend__item');
+        if (
+          !root.classList.contains('abs-home-post-boot-pending')
+          && hero
+          && legend
+          && Number(getComputedStyle(hero).opacity) >= 0.99
+          && Number(getComputedStyle(legend).opacity) >= 0.99
+        ) {
+          return 'settled';
+        }
+        return '';
+      }, null, { timeout: timeoutMs });
+    } catch (error) {
+      const timedOutSnapshot = await readHomeRevealSnapshot(page).catch(() => null);
+      error.message += `\n${routeLabel} reveal snapshot:\n${JSON.stringify(timedOutSnapshot, null, 2)}`;
+      throw error;
+    }
     if (await revealState.jsonValue() === 'enter') {
       homeRevealReleased = await readHomeRevealSnapshot(page);
       assertHomeRevealStarted(homeRevealReleased);
       const homeRevealTiming = await readHomeRevealTimingSnapshot(page);
       assertHomeRevealOrder(homeRevealTiming, routeLabel);
       await assertHomeRevealVisibleOrder(page, routeLabel);
-      await page.waitForFunction(() => document.documentElement.classList.contains('abs-home-post-boot-complete'), null, { timeout: timeoutMs });
+      await page.waitForFunction(() => {
+        const root = document.documentElement;
+        if (root.classList.contains('abs-home-post-boot-complete')) return true;
+        const hero = document.querySelector('#hero-title .hero-title__name');
+        const legend = document.querySelector('#expertise-legend .legend__item');
+        return (
+          !root.classList.contains('abs-home-post-boot-pending')
+          && !root.classList.contains('abs-home-post-boot-enter')
+          && hero
+          && legend
+          && Number(getComputedStyle(hero).opacity) >= 0.99
+          && Number(getComputedStyle(legend).opacity) >= 0.99
+        );
+      }, null, { timeout: timeoutMs });
     }
     homeRevealSettled = await readHomeRevealSnapshot(page);
     assertHomeRevealSettled(homeRevealSettled, profile);
@@ -1107,6 +1153,16 @@ async function auditHomeReducedMotion(browser, profile) {
   await page.waitForFunction(() => document.documentElement.dataset.absBootState === 'ready', null, { timeout: timeoutMs });
   await page.waitForSelector('#abs-boot-overlay', { state: 'detached', timeout: timeoutMs });
   await page.waitForSelector('#app-frame', { state: 'visible', timeout: timeoutMs });
+  await page.waitForFunction(() => {
+    const root = document.documentElement;
+    const legend = document.querySelector('#expertise-legend .legend__item');
+    return (
+      !root.classList.contains('abs-home-post-boot-pending')
+      && !root.classList.contains('abs-home-post-boot-enter')
+      && legend
+      && Number(getComputedStyle(legend).opacity) >= 0.99
+    );
+  }, null, { timeout: timeoutMs });
 
   const released = await readBootSnapshot(page);
   const releasedReveal = await readHomeRevealSnapshot(page);

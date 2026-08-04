@@ -1,5 +1,5 @@
 import {
-  createIndexedSimulationVisualTransition,
+  createContinuousSimulationVisualTransition,
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import {
@@ -15,6 +15,7 @@ import {
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
+import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -119,25 +120,6 @@ function shouldPauseForVisibility(config) {
   return config.pauseWhenHidden !== false
     && typeof document !== 'undefined'
     && document.hidden;
-}
-
-function resizeCanvasToDisplaySize(canvas, dpr) {
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.max(1, Math.round(rect.width * dpr));
-  const height = Math.max(1, Math.round(rect.height * dpr));
-  const changed = canvas.width !== width || canvas.height !== height;
-  if (changed) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  return {
-    changed,
-    cssWidth: Math.max(1, rect.width),
-    cssHeight: Math.max(1, rect.height),
-    width,
-    height,
-    dpr,
-  };
 }
 
 function resolveBallCount(config, metrics, reducedMotion) {
@@ -406,7 +388,7 @@ function resolveCollisions(state, metrics, config) {
   }
 }
 
-function updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion) {
+function updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion, force) {
   if (config.enabled === false) return;
 
   const nowSeconds = now / 1000;
@@ -419,8 +401,6 @@ function updateState(state, metrics, config, pointer, now, deltaSeconds, reduced
   const maxSpeed = reducedMotion
     ? Math.min(clamp(Number(config.maxSpeed) || 1600, 80, 2200), 240)
     : clamp(Number(config.maxSpeed) || 1600, 80, 2200);
-  const force = { ax: 0, ay: 0 };
-
   for (let i = 0; i < state.count; i += 1) {
     force.ax = 0;
     force.ay = 0;
@@ -482,32 +462,38 @@ function createColorCache(theme) {
   const black = { r: 0, g: 0, b: 0 };
   const lift = theme?.active === theme?.light ? black : white;
   return {
-    active,
-    backgroundTop: mixColor(active, lift, 0.025),
-    backgroundBottom: mixColor(active, lift, 0.07),
-    body: palette.map((color) => parseHexColor(color)),
+    active: rgbString(active, 1),
+    backgroundTop: rgbString(mixColor(active, lift, 0.025), 1),
+    backgroundBottom: rgbString(mixColor(active, lift, 0.07), 1),
+    body: palette.map((color) => rgbString(parseHexColor(color), 1)),
   };
 }
 
-function drawState(ctx, state, metrics, theme, options = {}) {
-  const colors = createColorCache(theme);
-  const getVisualScaleAt = options.getVisualScaleAt || (() => 1);
+function drawState(
+  ctx,
+  state,
+  metrics,
+  theme,
+  colors,
+  transparentBackground,
+  getVisualScaleAt,
+) {
   ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  if (options.transparentBackground) {
+  if (transparentBackground) {
     ctx.clearRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   } else {
     const gradient = ctx.createLinearGradient(0, 0, metrics.cssWidth, metrics.cssHeight);
-    gradient.addColorStop(0, rgbString(colors.backgroundTop, 1));
-    gradient.addColorStop(0.55, rgbString(colors.active, 1));
-    gradient.addColorStop(1, rgbString(colors.backgroundBottom, 1));
+    gradient.addColorStop(0, colors.backgroundTop);
+    gradient.addColorStop(0.55, colors.active);
+    gradient.addColorStop(1, colors.backgroundBottom);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   }
 
   for (let colorIndex = 0; colorIndex < colors.body.length; colorIndex += 1) {
-    ctx.fillStyle = rgbString(colors.body[colorIndex], 1);
+    ctx.fillStyle = colors.body[colorIndex];
     ctx.beginPath();
     for (let i = 0; i < state.count; i += 1) {
       if (resolveSimulationMaterialColorIndex(
@@ -547,8 +533,16 @@ export function createRepelRoomRenderer({
     inBounds: false,
     lastAt: -Infinity,
   };
+  const force = { ax: 0, ay: 0 };
   let state = null;
-  let metrics = null;
+  const metrics = {
+    changed: true,
+    cssWidth: 1,
+    cssHeight: 1,
+    width: 1,
+    height: 1,
+    dpr: 1,
+  };
   let rafId = 0;
   let running = false;
   let lastFrameAt = 0;
@@ -557,12 +551,14 @@ export function createRepelRoomRenderer({
   let stateBuildCount = 0;
   let lastConfigSource = null;
   let lastThemeSource = null;
+  let colorThemeSource = null;
+  let colorGeneration = Number.NaN;
+  let colorCache = createColorCache(DEFAULT_THEME);
   let stateSyncRequested = true;
   let unregisterVisualTransition = null;
-  const visualTransition = createIndexedSimulationVisualTransition({
+  const visualTransition = createContinuousSimulationVisualTransition({
     sourceId: 'repel-room',
     getCount: () => state?.count || 0,
-    requestRender: () => paintCurrentState(),
     getSeed: () => 0x43f17a91,
   });
   unregisterVisualTransition = registerSimulationVisualTransition('repel-room', visualTransition);
@@ -615,13 +611,14 @@ export function createRepelRoomRenderer({
     canvas.dataset.simulationStateBuildCount = String(stateBuildCount);
   }
 
-  function syncFrameState() {
-    const config = getConfig();
-    const theme = getTheme();
-    const dpr = resolveDpr(config);
-    metrics = resizeCanvasToDisplaySize(canvas, dpr);
+  function syncFrameState(config, theme) {
+    let metricsChanged = false;
+    if (stateSyncRequested) {
+      syncCanvasDisplayMetrics(canvas, resolveDpr(config), metrics);
+      metricsChanged = metrics.changed;
+    }
     const sourcesChanged = config !== lastConfigSource || theme !== lastThemeSource;
-    ensureState(config, theme, stateSyncRequested || metrics.changed || sourcesChanged);
+    ensureState(config, theme, stateSyncRequested || metricsChanged || sourcesChanged);
     lastConfigSource = config;
     lastThemeSource = theme;
     stateSyncRequested = false;
@@ -631,33 +628,35 @@ export function createRepelRoomRenderer({
     canvas.dataset.simulationInitialSpeed = state.initialSpeed.toFixed(0);
     canvas.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
     canvas.dataset.simulationPaletteId = String(theme?.paletteId || '');
-    return { config, theme };
-  }
 
-  function paintCurrentState() {
-    const startedAt = performance.now();
-    const { theme } = syncFrameState();
-    drawState(ctx, state, metrics, theme, {
-      transparentBackground,
-      getVisualScaleAt: visualTransition.getScaleAt,
-    });
-    notifySimulationAtmosphereSourceFrame('repel-room');
-    lastRenderMs = performance.now() - startedAt;
+    const nextColorGeneration = Number(theme?.paletteGeneration || 0);
+    if (theme !== colorThemeSource || nextColorGeneration !== colorGeneration) {
+      colorThemeSource = theme;
+      colorGeneration = nextColorGeneration;
+      colorCache = createColorCache(theme);
+    }
   }
 
   function render(now = performance.now()) {
-    const { config, theme } = syncFrameState();
+    const config = getConfig();
+    const theme = getTheme();
+    syncFrameState(config, theme);
     const deltaSeconds = lastUpdateAt > 0
       ? clamp((now - lastUpdateAt) / 1000, 0.001, 0.045)
       : 1 / 60;
     lastUpdateAt = now;
 
     const startedAt = performance.now();
-    updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion);
-    drawState(ctx, state, metrics, theme, {
+    updateState(state, metrics, config, pointer, now, deltaSeconds, reducedMotion, force);
+    drawState(
+      ctx,
+      state,
+      metrics,
+      theme,
+      colorCache,
       transparentBackground,
-      getVisualScaleAt: visualTransition.getScaleAt,
-    });
+      visualTransition.getScaleAt,
+    );
     notifySimulationAtmosphereSourceFrame('repel-room');
     lastRenderMs = performance.now() - startedAt;
   }
@@ -684,7 +683,7 @@ export function createRepelRoomRenderer({
   function start() {
     const config = getConfig();
     stateSyncRequested = true;
-    metrics = resizeCanvasToDisplaySize(canvas, resolveDpr(config));
+    syncFrameState(config, getTheme());
     if (!running) {
       running = true;
       lastFrameAt = 0;

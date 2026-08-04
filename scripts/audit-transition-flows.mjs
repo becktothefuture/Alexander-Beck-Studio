@@ -1514,10 +1514,13 @@ async function runPreloadFailureProbe(page, traces, nextIndex) {
   await page.waitForFunction(() => {
     const phase = document.documentElement.dataset.absTransitionPhase || 'idle';
     const rendered = document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || '';
+    const loaderState = document.querySelector('[data-route-transition-loader]')
+      ?.getAttribute('data-route-transition-loader-state') || '';
     const mount = document.getElementById('portfolioProjectMount');
     const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
     return (
       phase === 'idle'
+      && loaderState === 'idle'
       && rendered === 'portfolio'
       && location.pathname.endsWith('/portfolio.html')
       && mount?.dataset.portfolioEntrancePhase === 'complete'
@@ -1641,6 +1644,8 @@ async function main() {
           const heldState = await page.evaluate(() => {
             const phase = document.documentElement.dataset.absTransitionPhase || 'idle';
             const source = document.querySelector('[data-route-view="home"]');
+            const loader = document.querySelector('[data-route-transition-loader]');
+            const studioWindow = document.getElementById('simulations');
             let opacity = 1;
             let visible = Boolean(source);
             for (let current = source; current; current = current.parentElement) {
@@ -1648,10 +1653,28 @@ async function main() {
               opacity *= Number.parseFloat(styles.opacity || '1') || 0;
               if (styles.display === 'none' || styles.visibility === 'hidden') visible = false;
             }
-            return { phase, outgoingOpacity: visible ? opacity : 0 };
+            const loaderStyles = loader ? getComputedStyle(loader) : null;
+            const loaderVisible = Boolean(loaderStyles)
+              && loaderStyles.display !== 'none'
+              && loaderStyles.visibility !== 'hidden';
+            return {
+              phase,
+              outgoingOpacity: visible ? opacity : 0,
+              loaderOpacity: loaderVisible ? Number.parseFloat(loaderStyles.opacity || '0') : 0,
+              loaderRect: loader?.getBoundingClientRect().toJSON?.() || null,
+              studioWindowRect: studioWindow?.getBoundingClientRect().toJSON?.() || null,
+              loaderBackgroundColor: loaderStyles?.backgroundColor || '',
+              studioWindowBackgroundColor: studioWindow ? getComputedStyle(studioWindow).backgroundColor : '',
+            };
           });
+          const outgoingStillCovers = heldState.phase === 'route-out'
+            && heldState.outgoingOpacity > VISIBILITY_EPSILON;
+          const loaderNowCovers = heldState.phase === 'route-loading'
+            && heldState.loaderOpacity >= FULL_COVER_OPACITY
+            && rectCoversWindow(heldState.loaderRect, heldState.studioWindowRect)
+            && heldState.loaderBackgroundColor === heldState.studioWindowBackgroundColor;
           assert(
-            heldState.phase === 'route-out' && heldState.outgoingOpacity > VISIBILITY_EPSILON,
+            outgoingStillCovers || loaderNowCovers,
             'Delayed Portfolio preload exposed a blank frame before the loader transaction',
             heldState,
           );

@@ -53,6 +53,9 @@ const titleRenderCache = {
     firstLineFontSizeCssPx: 0,
     firstLineX: 0,
     firstLineY: 0,
+    firstGlyphX: 0,
+    firstGlyphY: 0,
+    entranceMovementCanvasOwned: false,
     sourceId: 'hero-title',
     sourceConnected: false,
     retainedPixels: false,
@@ -117,7 +120,7 @@ export function getHeroTitleCanvasCenter(globals) {
   const signature = `${canvas.width}|${canvas.height}|${title.textContent}|${root?.className || ''}`;
   if (
     titleCenterCache.signature === signature
-    && !shouldRefreshEveryFrame(root, scene)
+    && !shouldTrackTitleGeometryEveryFrame(scene)
   ) {
     return { x: titleCenterCache.x, y: titleCenterCache.y };
   }
@@ -200,6 +203,9 @@ function markCanvasTitleInactive(globals) {
   titleRenderCache.state.firstLineFontSizeCssPx = 0;
   titleRenderCache.state.firstLineX = 0;
   titleRenderCache.state.firstLineY = 0;
+  titleRenderCache.state.firstGlyphX = 0;
+  titleRenderCache.state.firstGlyphY = 0;
+  titleRenderCache.state.entranceMovementCanvasOwned = false;
   titleRenderCache.state.sourceConnected = false;
   titleRenderCache.state.retainedPixels = false;
   if (globals) globals.canvasTitleRenderState = titleRenderCache.state;
@@ -213,19 +219,32 @@ function retainCanvasTitlePixels(globals) {
   return titleRenderCache;
 }
 
-function shouldRefreshEveryFrame(root, scene) {
-  const sceneAnimationRunning = scene?.classList?.contains('abs-scene--animating')
-    && scene.getAnimations?.({ subtree: true })?.some((animation) => animation.playState === 'running');
-  if (!root?.classList) return Boolean(sceneAnimationRunning);
-  // The stable shell is marked entrance-complete before the route-owned Home
-  // content enters. Follow the dedicated content phase so the canvas-rendered
-  // title mirrors every semantic DOM opacity frame after the loader detaches.
-  const bootEntranceActive = root.classList.contains('abs-home-post-boot-enter');
-  return root.classList.contains('entrance-transitioning')
-    || bootEntranceActive
-    || root.dataset?.absTransitionPhase === 'route-loading'
-    || root.dataset?.absTransitionPhase === 'route-in'
-    || sceneAnimationRunning;
+function shouldTrackTitleGeometryEveryFrame(scene) {
+  return Boolean(scene?.classList?.contains('abs-scene--animating')
+    && scene.getAnimations?.({ subtree: true })?.some((animation) => animation.playState === 'running'));
+}
+
+function nodeContainsHomepageTitle(node) {
+  if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+  return node.id === 'hero-title' || Boolean(node.querySelector?.('#hero-title'));
+}
+
+function shouldInvalidateHomepageTitleForMutations(records, simulations) {
+  const title = document.getElementById('hero-title');
+  const scene = document.getElementById('abs-scene');
+  return records.some((record) => {
+    const target = record.target;
+    if (
+      target === simulations
+      || target === scene
+      || target === title
+      || title?.contains?.(target)
+    ) {
+      return true;
+    }
+    if (record.type !== 'childList') return false;
+    return [...record.addedNodes, ...record.removedNodes].some(nodeContainsHomepageTitle);
+  });
 }
 
 function isCanvasTitleSource(title) {
@@ -270,7 +289,7 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   const scene = document.getElementById('abs-scene');
   const signature = buildTitleRenderSignature(canvas, title, root, body, scene);
   const needsRefresh = titleRenderCache.signature !== signature
-    || shouldRefreshEveryFrame(root, scene);
+    || shouldTrackTitleGeometryEveryFrame(scene);
 
   if (!needsRefresh) return titleRenderCache;
 
@@ -333,6 +352,7 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
     if (!text || !lineRect || lineRect.width <= 0 || lineRect.height <= 0) continue;
 
     const style = getComputedStyle(source);
+    const glyphNodes = source.querySelectorAll?.('[data-route-enter-glyph]') || [];
     const cssFontSize = parseCssPx(style.fontSize, 16);
     const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
     const fontPx = Math.max(1, fontSizeCssPx * scaleY);
@@ -345,8 +365,8 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
     const fontWeight = style.fontWeight || '400';
 
     target.text = text;
-    target.x = ((lineRect.left + lineRect.width * 0.5) - canvasRect.left) * scaleX;
-    target.y = ((lineRect.top + lineRect.height * 0.5) - canvasRect.top) * scaleY;
+    target.x = ((lineRect.left + (lineRect.width * 0.5)) - canvasRect.left) * scaleX;
+    target.y = ((lineRect.top + (lineRect.height * 0.5)) - canvasRect.top) * scaleY;
     target.font = `${fontStyle}${fontWeight} ${fontPx.toFixed(3)}px ${style.fontFamily || 'sans-serif'}`;
     target.color = style.color || titleStyle.color || '#000';
     target.opacity = opacity;
@@ -354,7 +374,6 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
     target.fontSizeCssPx = fontSizeCssPx;
     target.blurPx = parseBlurPx(style.filter) * scaleY;
 
-    const glyphNodes = source.querySelectorAll?.('[data-route-enter-glyph]') || [];
     let drawAsSettledLine = body?.classList?.contains('atmosphere-lab-page') && glyphNodes.length > 0;
     for (let glyphIndex = 0; drawAsSettledLine && glyphIndex < glyphNodes.length; glyphIndex += 1) {
       if (glyphNodes[glyphIndex].__absRouteEntranceState?.settled !== true) drawAsSettledLine = false;
@@ -372,14 +391,17 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
       if (!glyphSource || glyphIndex >= target.glyphCount) continue;
       const state = glyphSource.__absRouteEntranceState || null;
       const entranceOwnsPresentation = state && state.settled !== true;
-      // Entrance snapshots are valid only while their glyph is animating. Once
-      // settled, responsive layout becomes the sole geometry owner again.
-      const glyphRect = state?.settled === true
+      // Canvas-owned Home glyphs keep the hidden semantic source at its live
+      // responsive endpoint. DOM-rendered bookends retain their staged snapshot
+      // until settlement.
+      const glyphRect = state?.canvasOwnsMovement || state?.settled === true
         ? glyphSource.getBoundingClientRect()
         : state?.finalRect || glyphSource.getBoundingClientRect();
+      const glyphCenterX = glyphRect.left + (glyphRect.width * 0.5);
+      const glyphCenterY = glyphRect.top + (glyphRect.height * 0.5);
       glyphTarget.text = String(glyphSource.textContent || '').replace(/\u00a0/g, ' ');
-      glyphTarget.x = ((glyphRect.left + glyphRect.width * 0.5) - canvasRect.left) * scaleX;
-      glyphTarget.y = ((glyphRect.top + glyphRect.height * 0.5) - canvasRect.top) * scaleY;
+      glyphTarget.x = (glyphCenterX - canvasRect.left) * scaleX;
+      glyphTarget.y = (glyphCenterY - canvasRect.top) * scaleY;
       glyphTarget.font = target.font;
       glyphTarget.color = target.color;
       glyphTarget.finalOpacity = clamp01(
@@ -411,6 +433,25 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   titleRenderCache.state.firstLineFontSizeCssPx = titleRenderCache.lines[0].fontSizeCssPx;
   titleRenderCache.state.firstLineX = titleRenderCache.lines[0].x;
   titleRenderCache.state.firstLineY = titleRenderCache.lines[0].y;
+  titleRenderCache.state.firstGlyphX = titleRenderCache.lines[0].glyphCount > 0
+    ? titleRenderCache.lines[0].glyphs[0].x
+    : 0;
+  titleRenderCache.state.firstGlyphY = titleRenderCache.lines[0].glyphCount > 0
+    ? titleRenderCache.lines[0].glyphs[0].y
+    : 0;
+  let entranceMovementCanvasOwned = false;
+  for (let lineIndex = 0; lineIndex < titleRenderCache.lineCount; lineIndex += 1) {
+    const line = titleRenderCache.lines[lineIndex];
+    for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
+      const glyphState = line.glyphs[glyphIndex].state;
+      if (glyphState?.canvasOwnsMovement && glyphState.settled !== true) {
+        entranceMovementCanvasOwned = true;
+        break;
+      }
+    }
+    if (entranceMovementCanvasOwned) break;
+  }
+  titleRenderCache.state.entranceMovementCanvasOwned = entranceMovementCanvasOwned;
   titleRenderCache.state.sourceConnected = true;
   titleRenderCache.state.retainedPixels = false;
   globals.canvasTitleRenderState = titleRenderCache.state;
@@ -500,12 +541,18 @@ function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
   return visible;
 }
 
-function hasActiveTitleGlyphs(cache) {
+function hasActiveTitleGlyphs(cache, now) {
   for (let lineIndex = 0; lineIndex < cache.lines.length; lineIndex += 1) {
     const line = cache.lines[lineIndex];
     for (let glyphIndex = 0; glyphIndex < line.glyphCount; glyphIndex += 1) {
       const state = line.glyphs[glyphIndex].state;
-      if (state?.phase === 'playing' && state.settled !== true) return true;
+      if (
+        state?.phase === 'playing'
+        && state.settled !== true
+        && resolveGlyphLinearProgress(state, now) < 1
+      ) {
+        return true;
+      }
     }
   }
   return false;
@@ -599,10 +646,15 @@ function renderTitlePlane(controller) {
   const visible = drawHomepageCanvasTitleCache(context, canvas, globals);
   publishTitlePlaneState(canvas, globals);
 
-  const root = document.documentElement;
   const scene = document.getElementById('abs-scene');
+  const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
   if (titleRenderCache.state.sourceConnected
-    && (shouldRefreshEveryFrame(root, scene) || hasActiveTitleGlyphs(titleRenderCache))) {
+    && (
+      shouldTrackTitleGeometryEveryFrame(scene)
+      || hasActiveTitleGlyphs(titleRenderCache, now)
+    )) {
     controller.requestRender();
   }
   return visible;
@@ -648,7 +700,12 @@ function createTitlePlaneController(canvas) {
 
   const simulations = canvas.parentElement;
   controller.mutationObserver = typeof MutationObserver === 'function' && simulations
-    ? new MutationObserver(invalidate)
+    ? new MutationObserver((records) => {
+      // The simulation subtree also contains the clock, controls, footer, and
+      // other entrance targets. Their text/style changes cannot move the Home
+      // title, so do not wake its render plane for unrelated mutations.
+      if (shouldInvalidateHomepageTitleForMutations(records, simulations)) invalidate();
+    })
     : null;
   controller.mutationObserver?.observe(simulations, {
     subtree: true,

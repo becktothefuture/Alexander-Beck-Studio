@@ -1,5 +1,6 @@
 import { startTransition, useState } from 'react';
 import { LONDON_WEATHER_PALETTES } from './palette-lab-data.js';
+import './palette-lab.css';
 
 function PaletteLabStill({ concept }) {
   if (!concept.screenshot) {

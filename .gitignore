@@ -3,9 +3,9 @@ dist/
 react-app/app/dist/
 react-app/app/dist-certify/
 
-# Video archives (large unused assets — keep out of git)
-react-app/app/public/video/archive/
-react-app/app/public/video/under consideration/
+# Video source archives (large unused assets — keep out of git and public builds)
+source-assets/video/archive/
+source-assets/video/under-consideration/
 
 # Raw third-party 3D source downloads; commit processed runtime assets only
 source-assets/napoleon-bust/

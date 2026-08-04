@@ -633,13 +633,43 @@ export async function assertRepresentativeKeyboardFocus(page, route) {
   });
 
   const focus = await page.locator(selector).evaluate((element) => {
+    const colorIsVisible = (value) => {
+      const color = String(value || '').trim().toLowerCase();
+      return color !== 'transparent'
+        && !/^rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(color);
+    };
+    const indicatorKinds = [];
+    const candidates = [element, ...element.querySelectorAll('*')];
+    candidates.forEach((candidate, index) => {
+      const candidateStyle = getComputedStyle(candidate);
+      const outlineWidth = Number.parseFloat(candidateStyle.outlineWidth || '0');
+      if (
+        candidateStyle.outlineStyle !== 'none'
+        && outlineWidth >= 1
+        && colorIsVisible(candidateStyle.outlineColor)
+      ) {
+        indicatorKinds.push(index === 0 ? 'outline' : 'descendant-outline');
+      }
+      if (
+        candidateStyle.textDecorationLine?.includes('underline')
+        && colorIsVisible(candidateStyle.textDecorationColor || candidateStyle.color)
+      ) {
+        indicatorKinds.push(index === 0 ? 'underline' : 'descendant-underline');
+      }
+      if (
+        candidateStyle.boxShadow
+        && candidateStyle.boxShadow !== 'none'
+        && colorIsVisible(candidateStyle.boxShadow)
+      ) {
+        indicatorKinds.push(index === 0 ? 'box-shadow' : 'descendant-box-shadow');
+      }
+    });
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
     const outlineWidth = Number.parseFloat(style.outlineWidth || '0');
     const outlineVisible = style.outlineStyle !== 'none'
       && outlineWidth >= 1
-      && style.outlineColor !== 'transparent'
-      && !/rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(style.outlineColor);
+      && colorIsVisible(style.outlineColor);
     return {
       active: element === document.activeElement,
       focusVisible: element.matches(':focus-visible'),
@@ -647,6 +677,8 @@ export async function assertRepresentativeKeyboardFocus(page, route) {
       outlineWidth,
       outlineColor: style.outlineColor,
       outlineVisible,
+      focusIndicatorVisible: indicatorKinds.length > 0,
+      indicatorKinds: [...new Set(indicatorKinds)],
       inViewport: rect.width > 0
         && rect.height > 0
         && rect.right > 0
@@ -656,6 +688,6 @@ export async function assertRepresentativeKeyboardFocus(page, route) {
     };
   });
   assertSmoke(focus.active && focus.focusVisible, route.id, 'representative-focus-visible-state', focus);
-  assertSmoke(focus.outlineVisible && focus.inViewport, route.id, 'representative-focus-visible-style', focus);
+  assertSmoke(focus.focusIndicatorVisible && focus.inViewport, route.id, 'representative-focus-visible-style', focus);
   return focus;
 }

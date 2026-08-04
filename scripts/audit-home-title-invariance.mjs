@@ -919,7 +919,7 @@ async function auditHomeCanvasTitleEntrance(browser) {
   await context.addInitScript(() => {
     window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__ = {
       sawPendingHidden: false,
-      sawDomIntermediate: false,
+      sawSemanticSourceHiddenDuringEnter: false,
       sawCanvasIntermediate: false,
       sawEnterWithoutOverlay: false,
       sawDelayedControlInert: false,
@@ -940,35 +940,53 @@ async function auditHomeCanvasTitleEntrance(browser) {
     const sample = () => {
       const audit = window.__ABS_HOME_CANVAS_TITLE_ENTRANCE_AUDIT__;
       const root = document.documentElement;
-      const titleLine = document.querySelector('#hero-title .hero-title__name');
+      const titleRoot = document.getElementById('hero-title');
       const titleGlyphs = Array.from(
         document.querySelectorAll('#hero-title [data-route-enter-glyph]'),
       );
-      const glyphOpacities = titleGlyphs.map((glyph) => (
-        Number.parseFloat(getComputedStyle(glyph).opacity || '1')
+      const glyphStates = titleGlyphs.map((glyph) => glyph.__absRouteEntranceState || null);
+      const now = performance.now();
+      const glyphProgress = glyphStates.map((state) => {
+        if (!state || state.settled) return 1;
+        if (state.phase !== 'playing' || !(state.startedAt > 0)) return -1;
+        const elapsed = now - state.startedAt - state.delayMs;
+        if (elapsed < 0) return -1;
+        return Math.min(1, elapsed / Math.max(1, state.durationMs));
+      });
+      const titleRootOpacity = titleRoot
+        ? Number.parseFloat(getComputedStyle(titleRoot).opacity || '1')
+        : 1;
+      const titleIsStaged = glyphStates.length > 0 && glyphStates.every((state) => (
+        state?.phase === 'staged'
+        && state.settled !== true
+        && state.canvasOwnsMovement === true
       ));
-      const domOpacity = glyphOpacities.length > 0
-        ? Math.max(...glyphOpacities)
-        : titleLine
-          ? Number.parseFloat(getComputedStyle(titleLine).opacity || '1')
-          : 1;
-      const titleIsStaged = glyphOpacities.length > 0
-        ? glyphOpacities.every((opacity) => opacity <= 0.02)
-        : domOpacity <= 0.02;
-      const titleIsInterpolating = glyphOpacities.length > 0
-        ? glyphOpacities.some((opacity) => opacity > 0.02 && opacity < 0.98)
-          || (Math.min(...glyphOpacities) <= 0.02 && domOpacity >= 0.98)
-        : domOpacity > 0.02 && domOpacity < 0.98;
+      const startedGlyphCount = glyphProgress.filter((progress) => progress >= 0).length;
+      const activeGlyphCount = glyphProgress.filter((progress) => progress >= 0 && progress < 1).length;
       const snapshot = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.();
       const canvasOpacity = Number(snapshot?.canvasTitleMaxOpacity) || 0;
+      const canvasVisible = snapshot?.canvasTitleVisible === true;
 
-      if (root.classList.contains('abs-home-post-boot-pending') && titleIsStaged) {
+      if (
+        root.classList.contains('abs-home-post-boot-pending')
+        && titleIsStaged
+        && !canvasVisible
+        && canvasOpacity <= 0.02
+      ) {
         audit.sawPendingHidden = true;
       }
       if (root.classList.contains('abs-home-post-boot-enter')) {
         if (!document.getElementById('abs-boot-overlay')) audit.sawEnterWithoutOverlay = true;
-        if (titleIsInterpolating) audit.sawDomIntermediate = true;
-        if (canvasOpacity > 0.02 && canvasOpacity < 0.98) audit.sawCanvasIntermediate = true;
+        if (titleRootOpacity <= 0.02 && glyphStates.every((state) => state?.canvasOwnsMovement)) {
+          audit.sawSemanticSourceHiddenDuringEnter = true;
+        }
+        if (
+          canvasVisible
+          && startedGlyphCount > 0
+          && (startedGlyphCount < glyphStates.length || activeGlyphCount > 0)
+        ) {
+          audit.sawCanvasIntermediate = true;
+        }
       }
 
       if (root.dataset.absBootState === 'revealing' && !document.getElementById('abs-boot-overlay')) {
@@ -1011,14 +1029,266 @@ async function auditHomeCanvasTitleEntrance(browser) {
     }));
 
     assert(result.sawPendingHidden, 'Home title was not staged hidden before its entrance', result);
-    assert(result.sawDomIntermediate, 'Home semantic title did not interpolate after the loader', result);
-    assert(result.sawCanvasIntermediate, 'Home canvas title did not mirror the semantic title entrance', result);
+    assert(
+      result.sawSemanticSourceHiddenDuringEnter,
+      'Home semantic title became visible beneath its Canvas-owned entrance',
+      result,
+    );
+    assert(result.sawCanvasIntermediate, 'Home canvas title did not interpolate after the loader', result);
     assert(result.sawEnterWithoutOverlay, 'Home title entrance began before the loader detached', result);
     assert(result.sawDelayedControlInert, 'Home delayed controls were not removed from keyboard navigation', result);
     assert(!result.delayedControlEscapedInert, 'A hidden Home entrance control remained keyboard-focusable', result);
     assert(result.stuckInertTargets.length === 0, 'Home entrance left controls inert after settling', result);
     assert(result.canvasOpacity >= 0.99, 'Home canvas title did not settle visible', result);
     return result;
+  } finally {
+    await context.close();
+  }
+}
+
+async function readActiveTitleResizeMetrics(page) {
+  return page.evaluate(() => {
+    const runtime = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || {};
+    const canvas = document.getElementById('simulation-title-canvas');
+    const canvasRect = canvas?.getBoundingClientRect();
+    const title = document.getElementById('hero-title');
+    const titleRect = title?.getBoundingClientRect();
+    const firstLine = title?.querySelector('.hero-title__name');
+    const firstLineRect = firstLine?.getBoundingClientRect();
+    const firstGlyph = title?.querySelector('[data-route-enter-glyph]');
+    const firstGlyphRect = firstGlyph?.getBoundingClientRect();
+    const entranceState = firstGlyph?.__absRouteEntranceState || null;
+    const secondaryLine = title?.querySelector('.hero-title__role');
+    const secondaryGlyph = secondaryLine?.querySelector('[data-route-enter-glyph]');
+    const secondaryEntranceState = secondaryGlyph?.__absRouteEntranceState || null;
+    const switcherRect = document.querySelector('.simulation-focus-switcher-slot')
+      ?.getBoundingClientRect();
+    const titleStyle = title ? getComputedStyle(title) : null;
+    const firstLineStyle = firstLine ? getComputedStyle(firstLine) : null;
+    const scaleX = canvas && canvasRect ? canvasRect.width / Math.max(1, canvas.width) : 0;
+    const scaleY = canvas && canvasRect ? canvasRect.height / Math.max(1, canvas.height) : 0;
+    const titleCenterX = titleRect ? titleRect.left + (titleRect.width * 0.5) : 0;
+    const titleCenterY = titleRect ? titleRect.top + (titleRect.height * 0.5) : 0;
+    const sceneScale = Number.parseFloat(
+      titleStyle?.getPropertyValue('--abs-scene-impact-logo-scale') || '1',
+    ) || 1;
+    const userScale = Number.parseFloat(
+      titleStyle?.getPropertyValue('--brand-logo-user-scale') || '1',
+    ) || 1;
+    const semanticFontSizeCssPx = (Number.parseFloat(firstLineStyle?.fontSize || '0') || 0)
+      * sceneScale
+      * userScale;
+    const firstGlyphCenterX = canvasRect
+      ? canvasRect.left + (Number(runtime.canvasTitleFirstGlyphX) * scaleX)
+      : 0;
+    const firstGlyphCenterY = canvasRect
+      ? canvasRect.top + (Number(runtime.canvasTitleFirstGlyphY) * scaleY)
+      : 0;
+    const firstLineCenterX = canvasRect
+      ? canvasRect.left + (Number(runtime.canvasTitleFirstLineX) * scaleX)
+      : 0;
+    const firstLineCenterY = canvasRect
+      ? canvasRect.top + (Number(runtime.canvasTitleFirstLineY) * scaleY)
+      : 0;
+    const expectedFirstGlyphCenterX = firstGlyphRect
+      ? firstGlyphRect.left + (firstGlyphRect.width * 0.5)
+      : titleCenterX;
+    const expectedFirstGlyphCenterY = firstGlyphRect
+      ? firstGlyphRect.top + (firstGlyphRect.height * 0.5)
+      : titleCenterY;
+    const expectedFirstLineCenterX = firstLineRect
+      ? firstLineRect.left + (firstLineRect.width * 0.5)
+      : titleCenterX;
+    const expectedFirstLineCenterY = firstLineRect
+      ? firstLineRect.top + (firstLineRect.height * 0.5)
+      : titleCenterY;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const intendedSecondaryOpacity = Number.parseFloat(
+      titleStyle?.getPropertyValue('--brand-logo-secondary-opacity') || '0.72',
+    ) || 0.72;
+
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      renderRevision: Number(canvas?.dataset.titlePlaneRenderRevision) || 0,
+      phase: document.documentElement.classList.contains('abs-home-post-boot-enter')
+        ? 'enter'
+        : document.documentElement.classList.contains('abs-home-post-boot-complete')
+          ? 'complete'
+          : 'other',
+      canvasOwnsEntranceMovement: runtime.canvasTitleEntranceMovementCanvasOwned === true,
+      canvasFontSizeCssPx: Number(runtime.canvasTitleFontSizeCssPx) || 0,
+      semanticFontSizeCssPx,
+      firstLineCenterX,
+      firstLineCenterY,
+      firstGlyphDeltaX: firstGlyphCenterX - expectedFirstGlyphCenterX,
+      firstGlyphDeltaY: firstGlyphCenterY - expectedFirstGlyphCenterY,
+      firstLineDeltaX: firstLineCenterX - expectedFirstLineCenterX,
+      firstLineDeltaY: firstLineCenterY - expectedFirstLineCenterY,
+      settledLineDeltaX: firstLineRect ? firstLineCenterX - (firstLineRect.left + (firstLineRect.width * 0.5)) : 0,
+      settledLineDeltaY: firstLineRect ? firstLineCenterY - (firstLineRect.top + (firstLineRect.height * 0.5)) : 0,
+      intendedSecondaryOpacity,
+      secondaryGlyphFinalOpacity: Number(secondaryEntranceState?.finalOpacity),
+      switcherGap: titleRect && switcherRect ? switcherRect.top - titleRect.bottom : 0,
+      backingWidthDelta: canvas && canvasRect
+        ? Math.abs(canvas.width - Math.round(canvasRect.width * dpr))
+        : Number.POSITIVE_INFINITY,
+      backingHeightDelta: canvas && canvasRect
+        ? Math.abs(canvas.height - Math.round(canvasRect.height * dpr))
+        : Number.POSITIVE_INFINITY,
+      backingScaleRatio: canvas && canvasRect && canvasRect.width > 0 && canvasRect.height > 0
+        ? (canvas.width / canvasRect.width) / (canvas.height / canvasRect.height)
+        : 0,
+      animation: entranceState ? {
+        startedAt: Number(entranceState.startedAt) || 0,
+        delayMs: Number(entranceState.delayMs) || 0,
+        durationMs: Number(entranceState.durationMs) || 0,
+        travelPercent: Number(entranceState.travelPercent) || 0,
+      } : null,
+    };
+  });
+}
+
+function assertActiveTitleResizeMetrics(sample, baseline, label) {
+  assert(sample.phase === 'enter', `${label}: title entrance settled before resize verification`, sample);
+  assert(sample.canvasOwnsEntranceMovement, `${label}: Canvas did not retain entrance movement ownership`, sample);
+  compareMetric(
+    sample.canvasFontSizeCssPx,
+    sample.semanticFontSizeCssPx,
+    'responsive entrance font size',
+    0.01,
+    label,
+  );
+  assert(Math.abs(sample.firstGlyphDeltaX) <= 0.25, `${label}: first glyph lost its horizontal anchor`, sample);
+  assert(Math.abs(sample.firstGlyphDeltaY) <= 0.25, `${label}: first glyph lost its vertical anchor`, sample);
+  assert(Math.abs(sample.firstLineDeltaX) <= 0.25, `${label}: first line lost its horizontal anchor`, sample);
+  assert(Math.abs(sample.firstLineDeltaY) <= 0.25, `${label}: first line lost its vertical anchor`, sample);
+  assert(sample.switcherGap >= 40, `${label}: simulation switcher is too close to the title`, sample);
+  assert(sample.backingWidthDelta <= 1 && sample.backingHeightDelta <= 1, `${label}: title backing store is stale`, sample);
+  assert(Math.abs(sample.backingScaleRatio - 1) <= 0.002, `${label}: title Canvas applies non-uniform scaling`, sample);
+  compareMetric(
+    sample.secondaryGlyphFinalOpacity,
+    sample.intendedSecondaryOpacity,
+    'secondary title tone',
+    0.001,
+    label,
+  );
+  assert(sample.animation?.startedAt === baseline.animation?.startedAt, `${label}: resize restarted the title animation`, sample);
+  assert(sample.animation?.delayMs === baseline.animation?.delayMs, `${label}: resize changed the title delay`, sample);
+  assert(sample.animation?.durationMs === baseline.animation?.durationMs, `${label}: resize changed the title duration`, sample);
+  assert(sample.animation?.travelPercent === baseline.animation?.travelPercent, `${label}: resize changed the title travel`, sample);
+}
+
+async function auditHomeCanvasTitleEntranceResize(browser) {
+  const context = await browser.newContext({
+    viewport: { width: 1200, height: 900 },
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(pageUrl('/index.html?mode=pit&absAudit=1&titleResizeAudit=1'), {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
+    await page.waitForFunction(() => (
+      document.documentElement.classList.contains('abs-home-post-boot-enter')
+      && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().canvasTitleEntranceMovementCanvasOwned === true
+    ), null, { timeout: waitMs, polling: 'raf' });
+
+    const baseline = await readActiveTitleResizeMetrics(page);
+    assertActiveTitleResizeMetrics(baseline, baseline, 'entrance-resize/1200x900');
+    assert(baseline.switcherGap >= 40, 'entrance-resize: desktop switcher is too close to the title', baseline);
+    const samples = [baseline];
+    await page.waitForTimeout(Math.max(0, baseline.animation.delayMs + 160));
+    const viewports = [
+      { width: 900, height: 520 },
+      { width: 1200, height: 520 },
+      { width: 390, height: 844 },
+    ];
+
+    for (const viewportTarget of viewports) {
+      const previousRevision = samples[samples.length - 1].renderRevision;
+      await page.setViewportSize(viewportTarget);
+      await page.waitForFunction((revision) => {
+        const canvas = document.getElementById('simulation-title-canvas');
+        const rect = canvas?.getBoundingClientRect();
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        return Number(canvas?.dataset.titlePlaneRenderRevision) > revision
+          && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().canvasTitleEntranceMovementCanvasOwned === true
+          && Math.abs(canvas.width - Math.round((rect?.width || 0) * dpr)) <= 1
+          && Math.abs(canvas.height - Math.round((rect?.height || 0) * dpr)) <= 1;
+      }, previousRevision, { timeout: waitMs, polling: 'raf' });
+      const sample = await readActiveTitleResizeMetrics(page);
+      assertActiveTitleResizeMetrics(
+        sample,
+        baseline,
+        `entrance-resize/${viewportTarget.width}x${viewportTarget.height}`,
+      );
+      samples.push(sample);
+      if (viewportTarget.width === 900) {
+        await page.waitForTimeout(160);
+        await page.screenshot({ path: resolve(outputRoot, 'entrance-resize-landscape.png') });
+      }
+    }
+
+    // The shell frame intentionally eases to its new bounds during a resize.
+    // Compare settlement with the stable final active geometry, not the first
+    // resize frame sampled while that shell transition is still in flight.
+    await page.waitForTimeout(300);
+    const finalActive = await readActiveTitleResizeMetrics(page);
+    assertActiveTitleResizeMetrics(finalActive, baseline, 'entrance-resize/final-active');
+    samples.push(finalActive);
+
+    await page.waitForFunction(() => (
+      document.documentElement.classList.contains('abs-home-post-boot-complete')
+      && window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.().canvasTitleEntranceMovementCanvasOwned === false
+    ), null, { timeout: waitMs, polling: 'raf' });
+    await page.evaluate(() => new Promise((resolveFrame) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
+    }));
+    const settled = await readActiveTitleResizeMetrics(page);
+    assert(
+      settled.phase === 'complete' && !settled.canvasOwnsEntranceMovement,
+      'entrance-resize: Canvas did not release entrance movement ownership',
+      settled,
+    );
+    compareMetric(
+      settled.canvasFontSizeCssPx,
+      settled.semanticFontSizeCssPx,
+      'settled responsive font size',
+      0.01,
+      'entrance-resize/settled',
+    );
+    assert(Math.abs(settled.settledLineDeltaX) <= 0.25, 'entrance-resize: settled title drifted horizontally', settled);
+    assert(Math.abs(settled.settledLineDeltaY) <= 0.25, 'entrance-resize: settled title drifted vertically', settled);
+    compareMetric(
+      settled.firstLineCenterX,
+      finalActive.firstLineCenterX,
+      'settlement horizontal continuity',
+      0.25,
+      'entrance-resize/settled',
+    );
+    compareMetric(
+      settled.firstLineCenterY,
+      finalActive.firstLineCenterY,
+      'settlement vertical continuity',
+      0.25,
+      'entrance-resize/settled',
+    );
+    compareMetric(
+      settled.secondaryGlyphFinalOpacity,
+      settled.intendedSecondaryOpacity,
+      'settled secondary title tone',
+      0.001,
+      'entrance-resize/settled',
+    );
+    assert(settled.switcherGap >= 40, 'entrance-resize: mobile switcher is too close to the title', settled);
+    await page.screenshot({ path: resolve(outputRoot, 'entrance-resize-settled.png') });
+    return { samples, settled };
+  } catch (error) {
+    await page.screenshot({ path: resolve(outputRoot, 'entrance-resize-failure.png'), fullPage: true })
+      .catch(() => undefined);
+    throw error;
   } finally {
     await context.close();
   }
@@ -1166,6 +1436,17 @@ async function main() {
 
   try {
     await mkdir(outputRoot, { recursive: true });
+    if (process.env.ABS_TITLE_ENTRANCE_RESIZE_ONLY === '1') {
+      const homeCanvasEntranceResize = await auditHomeCanvasTitleEntranceResize(browser);
+      const resizeOutput = {
+        ok: true,
+        browser: browserName,
+        homeCanvasEntranceResize,
+      };
+      await writeFile(resolve(outputRoot, 'result.json'), `${JSON.stringify(resizeOutput, null, 2)}\n`);
+      console.log(JSON.stringify(resizeOutput, null, 2));
+      return;
+    }
     const titleThemeSwitch = await auditHomeCanvasTitleThemeSwitch(browser);
     const themeOnly = process.env.ABS_TITLE_THEME_ONLY === '1';
     if (themeOnly) {

@@ -9,7 +9,10 @@ import {
   resolveCube3DMotionScale,
   resolveCube3DSizePx,
 } from '../react-app/app/src/legacy/modules/modes/cube3d-config.js';
-import { generateCubePoints } from '../react-app/app/src/legacy/modules/modes/cube3d-geometry.js';
+import {
+  generateCubePoints,
+  updateCubeRotationMatrix,
+} from '../react-app/app/src/legacy/modules/modes/cube3d-geometry.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const designSystem = JSON.parse(readFileSync(
@@ -42,4 +45,38 @@ for (const [edgeDensity, faceGrid] of [[2, 0], [9, 0], [9, 1], [9, 3]]) {
   assert.equal(uniquePoints.size, points.length, 'Scaffold geometry must not stack duplicate dots.');
 }
 
-console.log('PASS: Scaffold configuration and unique unit geometry share one contract.');
+function rotateReference({ x, y, z }, rotationX, rotationY, rotationZ) {
+  const cosY = Math.cos(rotationY);
+  const sinY = Math.sin(rotationY);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+  const cosX = Math.cos(rotationX);
+  const sinX = Math.sin(rotationX);
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+  const cosZ = Math.cos(rotationZ);
+  const sinZ = Math.sin(rotationZ);
+  return {
+    x: x1 * cosZ - y2 * sinZ,
+    y: x1 * sinZ + y2 * cosZ,
+    z: z2,
+  };
+}
+
+const matrix = {};
+for (const rotations of [[0, 0, 0], [0.2, -0.7, 1.1], [-1.4, 0.3, -0.25]]) {
+  updateCubeRotationMatrix(matrix, ...rotations);
+  for (const point of generateCubePoints(3, 1)) {
+    const expected = rotateReference(point, ...rotations);
+    const actual = {
+      x: (point.x * matrix.xx) + (point.y * matrix.xy) + (point.z * matrix.xz),
+      y: (point.x * matrix.yx) + (point.y * matrix.yy) + (point.z * matrix.yz),
+      z: (point.x * matrix.zx) + (point.y * matrix.zy) + (point.z * matrix.zz),
+    };
+    assert.ok(Math.abs(actual.x - expected.x) < 1e-12);
+    assert.ok(Math.abs(actual.y - expected.y) < 1e-12);
+    assert.ok(Math.abs(actual.z - expected.z) < 1e-12);
+  }
+}
+
+console.log('PASS: Scaffold configuration, unique unit geometry, and cached rotation share one contract.');

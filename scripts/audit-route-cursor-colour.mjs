@@ -219,7 +219,44 @@ async function assertPlaygroundCursorStates(page) {
   const viewport = page.locator('[data-playground-viewport]');
   const box = await viewport.boundingBox();
   if (!box) throw new Error('playground: drag surface was unavailable for cursor checks');
-  const start = { x: Math.round(box.x + 12), y: Math.round(box.y + 12) };
+  const start = await page.evaluate(() => {
+    const surface = document.querySelector('[data-playground-viewport]');
+    const rect = surface?.getBoundingClientRect();
+    if (!surface || !rect) return null;
+    const ratios = [
+      [0.5, 0.5],
+      [0.1, 0.5],
+      [0.9, 0.5],
+      [0.5, 0.1],
+      [0.5, 0.9],
+    ];
+    const clickableSelector = [
+      'a[href]:not([aria-disabled="true"])',
+      'button:not([disabled]):not([aria-disabled="true"])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      'summary',
+      '[role="button"]:not([aria-disabled="true"])',
+      '[role="link"]:not([aria-disabled="true"])',
+      '[tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])',
+    ].join(',');
+    for (const [xRatio, yRatio] of ratios) {
+      const x = Math.round(rect.left + rect.width * xRatio);
+      const y = Math.round(rect.top + rect.height * yRatio);
+      const target = document.elementFromPoint(x, y);
+      const action = target?.closest(clickableSelector);
+      if (
+        target?.closest('[data-cursor-default-surface]') === surface
+        && !target.closest('[data-playground-item]')
+        && (!action || action === surface)
+      ) {
+        return { x, y };
+      }
+    }
+    return null;
+  });
+  if (!start) throw new Error('playground: no empty drag-surface point was available for cursor checks');
   const end = { x: start.x + 36, y: start.y + 20 };
 
   await page.mouse.move(start.x, start.y);
@@ -274,12 +311,33 @@ async function assertHomeOverlayCursor(page) {
 async function assertOuterShellKeepsCustomCursor(page, routeId) {
   const outside = await page.evaluate(() => {
     const rect = document.getElementById('simulations')?.getBoundingClientRect();
-    if (!rect) return { x: 2, y: 2 };
+    if (!rect) return null;
+
+    // Probe the middle of a real exposed wall band. The extreme viewport
+    // corners sit outside the rounded physical frame and intentionally receive
+    // a document-leave event in Chromium, so they are not outer-shell surface.
+    const candidates = [
+      { x: rect.left / 2, y: rect.top + rect.height / 2 },
+      { x: rect.right + (innerWidth - rect.right) / 2, y: rect.top + rect.height / 2 },
+      { x: rect.left + rect.width / 2, y: rect.top / 2 },
+      { x: rect.left + rect.width / 2, y: rect.bottom + (innerHeight - rect.bottom) / 2 },
+    ];
+    const point = candidates.find(({ x, y }) => (
+      x >= 1
+      && x <= innerWidth - 2
+      && y >= 1
+      && y <= innerHeight - 2
+      && (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom)
+    ));
+    if (!point) return null;
     return {
-      x: Math.max(1, Math.round(rect.left - 16)),
-      y: Math.max(1, Math.round(rect.top - 16)),
+      x: Math.round(point.x),
+      y: Math.round(point.y),
     };
   });
+  if (!outside) {
+    throw new Error(`${routeId}: no exposed outer-shell band was available for the cursor probe`);
+  }
   await page.mouse.move(outside.x, outside.y);
   await page.waitForTimeout(80);
   const state = await readRouteCursorState(page, routeId);

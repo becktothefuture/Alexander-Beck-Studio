@@ -885,12 +885,6 @@ const state = {
   logoBlurInactive: 0,               // Logo blur when gate is closed (px)
   logoBlurActive: 12,                // Logo blur when gate is active (px)
   
-  // Grunge video overlay (see docs/grunge-video-overlay.md)
-  grungeVideoEnabled: true,          // Enable/disable video overlay
-  grungeVideoOpacity: 0.8,           // Video opacity (0-1)
-  grungeVideoBlendModeLight: 'overlay',  // Blend mode for light mode video
-  grungeVideoBlendModeDark: 'screen',    // Blend mode for dark mode video
-  
   // Entrance Animation (browser default → wall-state)
   entranceEnabled: true,            // Enable dramatic entrance animation
   entranceWallTransitionDelay: 300,  // Delay before wall-state transition starts (ms)
@@ -2248,11 +2242,6 @@ export function initState(config) {
   if (config.modalOverlayMobileBlurPx !== undefined) state.modalOverlayMobileBlurPx = config.modalOverlayMobileBlurPx;
   if (config.modalOverlayTransitionMs !== undefined) state.modalOverlayTransitionMs = config.modalOverlayTransitionMs;
   if (config.modalOverlayTransitionOutMs !== undefined) state.modalOverlayTransitionOutMs = config.modalOverlayTransitionOutMs;
-  
-  // Grunge video overlay settings
-  if (config.grungeVideoEnabled !== undefined) state.grungeVideoEnabled = config.grungeVideoEnabled;
-  if (config.grungeVideoOpacity !== undefined) state.grungeVideoOpacity = config.grungeVideoOpacity;
-  if (config.grungeVideoBlendMode !== undefined) state.grungeVideoBlendMode = config.grungeVideoBlendMode;
   
   // Outer wall settings (edge lighting, shadows)
   // Outer Wall Continuous Border

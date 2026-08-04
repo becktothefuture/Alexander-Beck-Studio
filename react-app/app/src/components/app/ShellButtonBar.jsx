@@ -504,9 +504,6 @@ export function ShellButtonBar({
 
       event.preventDefault();
       event.stopPropagation();
-      const nextTabElement = [...(primaryNavRef.current?.querySelectorAll('[data-route-tab]') || [])]
-        .find((tab) => tab.dataset.routeTab === nextTab.routeId);
-      nextTabElement?.focus({ preventScroll: true });
       onRouteIntent?.(nextTab.routeId, nextTab, 'keyboard-arrow');
       playButtonBarPressSound();
 
