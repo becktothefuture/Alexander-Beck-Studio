@@ -1,3 +1,5 @@
+/* global __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__:readonly */
+
 import { useEffect, useMemo, useState } from 'react';
 import { withBasePath } from '../../lib/base-path.js';
 import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';

@@ -35,3 +35,7 @@ npm run validate:html-entries
 echo
 echo "8) Flat circle material guardrail"
 npm run check:flat-circle-materials
+
+echo
+echo "9) React lint"
+npm run lint --prefix react-app/app
