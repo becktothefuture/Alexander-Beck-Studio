@@ -3,6 +3,7 @@
   "runtime": {
     "liteModeEnabled": false,
     "cornerShapeSquircleEnabled": true,
+    "simulationCollisionInsetPx": 0,
     "ballMassKg": 240,
     "REST": 0.18,
     "FRICTION": 0.018,
