@@ -21,8 +21,10 @@ import {
   updatePlaygroundWorkSelection,
 } from './media/playgroundWorkUrl.js';
 import {
+  applyPlaygroundResponsiveProfile,
   calculateContentWorld,
   calculateNeighbouringCopyCoverage,
+  createPlaygroundResponsiveProfile,
   forEachNeighbouringCopy,
   placePlaygroundItems,
 } from './spatial/index.js';
@@ -66,6 +68,31 @@ function buildWorld(items, options = PLACEMENT_OPTIONS) {
     titleSafeAreaCells: placed.titleSafeArea,
   });
   return { placed, world };
+}
+
+function getToroidalProjectClearances(placements, world) {
+  const rectDistance = (left, right) => Math.hypot(
+    Math.max(left.left - right.right, right.left - left.right, 0),
+    Math.max(left.top - right.bottom, right.top - left.bottom, 0),
+  );
+
+  return placements.map((placement, placementIndex) => {
+    let minimumClearance = Infinity;
+    placements.forEach((candidate, candidateIndex) => {
+      if (placementIndex === candidateIndex) return;
+      for (let column = -1; column <= 1; column += 1) {
+        for (let row = -1; row <= 1; row += 1) {
+          minimumClearance = Math.min(minimumClearance, rectDistance(placement.bounds, {
+            left: candidate.bounds.left + (column * world.columns),
+            top: candidate.bounds.top + (row * world.rows),
+            right: candidate.bounds.right + (column * world.columns),
+            bottom: candidate.bounds.bottom + (row * world.rows),
+          }));
+        }
+      }
+    });
+    return minimumClearance;
+  });
 }
 
 test('canonical content validates the exact catalogue and accepts project 31 without code changes', async () => {
@@ -167,6 +194,33 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(seamCoverage.rowCount >= 2);
   assert.ok(offsets.some(([x]) => Math.abs(x) === expanded.world.widthPx));
   assert.ok(offsets.some(([, y]) => Math.abs(y) === expanded.world.heightPx));
+});
+
+test('canonical salon placement keeps homogeneous project clearance across world seams', async () => {
+  const source = await readContent();
+  const runtimeOptions = {
+    ...applyPlaygroundResponsiveProfile(
+      DEFAULT_PLAYGROUND_CONFIG,
+      createPlaygroundResponsiveProfile(1440),
+    ),
+    includeTypeRow: false,
+    titleSafePaddingCells: 0,
+    titleSafeAreaCells: { left: -14, top: -4, right: 14, bottom: 4 },
+  };
+  const result = buildWorld(source.items, runtimeOptions);
+  const clearances = getToroidalProjectClearances(result.placed.placements, result.world);
+  const minimum = Math.min(...clearances);
+  const maximum = Math.max(...clearances);
+  const average = clearances.reduce((sum, value) => sum + value, 0) / clearances.length;
+  const deviation = Math.sqrt(clearances.reduce(
+    (sum, value) => sum + ((value - average) ** 2),
+    0,
+  ) / clearances.length);
+
+  assert.equal(result.placed.diagnostics.maximumPassIndex, 0);
+  assert.ok(minimum >= 3);
+  assert.ok(maximum <= 9);
+  assert.ok(deviation / average <= 0.35);
 });
 
 test('larger item spans expand their footprint and a seed change regenerates deterministically', async () => {

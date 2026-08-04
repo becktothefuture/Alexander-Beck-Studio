@@ -226,6 +226,7 @@ async function readAtmosphereState(page) {
 function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   const snapshot = state.snapshot;
   assert(snapshot, `${scenario.id}: production atmosphere diagnostics are missing`, state);
+  const ambientSource = snapshot.sourceKind === 'ambient';
   assert(snapshot.scope === 'production', `${scenario.id}: atmosphere scope is not production`, state);
   assert(snapshot.routeId === scenario.routeId, `${scenario.id}: route ownership is wrong`, state);
   assert(sourceIdMatches(snapshot.activeSourceId, scenario.sourceIds), `${scenario.id}: source ownership is wrong`, state);
@@ -243,12 +244,14 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.edgeCanvasId === 'simulation-atmosphere-edge-light-canvas', `${scenario.id}: edge canvas identity is wrong`, state);
   assert(state.dom.glowPointerEvents === 'none', `${scenario.id}: glow canvas captures pointer input`, state);
   assert(state.dom.edgePointerEvents === 'none', `${scenario.id}: edge canvas captures pointer input`, state);
-  assert(
-    Math.abs((state.dom.glowRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
-      && Math.abs((state.dom.glowRect?.height || 0) - (state.wallRect?.height || 0)) <= 0.25,
-    `${scenario.id}: glow display geometry diverges from the wall`,
-    state,
-  );
+  if (!ambientSource) {
+    assert(
+      Math.abs((state.dom.glowRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
+        && Math.abs((state.dom.glowRect?.height || 0) - (state.wallRect?.height || 0)) <= 0.25,
+      `${scenario.id}: glow display geometry diverges from the wall`,
+      state,
+    );
+  }
   assert(state.dom.edgeLayerCount === 1, `${scenario.id}: expected one edge-light layer`, state);
   assert(state.dom.legacyEdgeContourCount === 0, `${scenario.id}: legacy edge contour is still mounted`, state);
   assert(state.dom.edgeClipPath === 'none', `${scenario.id}: edge Canvas has an independent clip path`, state);
@@ -275,7 +278,7 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     `${scenario.id}: edge canvas received source-material blur`,
     state,
   );
-  if (snapshot.edgeStrength > 0) {
+  if (!ambientSource && snapshot.edgeStrength > 0) {
     assert(
       state.dom.edgeFilter.includes('brightness(') && state.dom.edgeFilter.includes('saturate('),
       `${scenario.id}: edge canvas is missing its compositor-only colour treatment`,
@@ -293,8 +296,22 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.firstCompositeAt > 0, `${scenario.id}: first composite was not recorded`, state);
   assert(snapshot.compositedFrameCount > 0, `${scenario.id}: no atmosphere frame was composited`, state);
   assert(snapshot.outputWidth > 1 && snapshot.outputHeight > 1, `${scenario.id}: output buffer is empty`, state);
-  assert(state.dom.glowHidden === false, `${scenario.id}: ready glow canvas is hidden`, state);
   assert(state.wallRect?.width > 1 && state.wallRect?.height > 1, `${scenario.id}: wall geometry is missing`, state);
+  if (ambientSource) {
+    assert(state.dom.glowHidden === true, `${scenario.id}: ambient glow canvas remained visible`, state);
+    assert(state.dom.edgeHidden === true, `${scenario.id}: ambient edge canvas remained visible`, state);
+    assert(snapshot.sourceLightCount === 0, `${scenario.id}: ambient fallback retained source lights`, state);
+    assert(snapshot.sampledEmitterCount === 0, `${scenario.id}: ambient fallback retained synthetic emitters`, state);
+    assert(
+      (state.dom.glowAlpha?.coverage || 0) === 0
+        && (state.dom.glowAlpha?.meanAlpha || 0) === 0,
+      `${scenario.id}: ambient fallback painted placeholder atmosphere`,
+      state,
+    );
+    assert(snapshot.schedulerActive === false, `${scenario.id}: ambient fallback retained an animation loop`, state);
+  } else {
+    assert(state.dom.glowHidden === false, `${scenario.id}: ready glow canvas is hidden`, state);
+  }
   if (scenario.id === 'home') {
     assert(snapshot.sourceKind === 'canvas', 'home: atmosphere does not sample the final rendered frame', state);
     assert(snapshot.sourceLayerCount >= 1, 'home: final-frame source has no visible layers', state);

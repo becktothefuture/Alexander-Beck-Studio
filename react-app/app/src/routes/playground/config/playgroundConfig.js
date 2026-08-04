@@ -9,7 +9,7 @@ export const PLAYGROUND_LAYOUT_PRESETS = Object.freeze([
 
 export const DEFAULT_PLAYGROUND_CONFIG = Object.freeze({
   layoutPreset: 'salon',
-  layoutSeed: 271828,
+  layoutSeed: 272684,
   gridSpacingPx: 24,
   minimumWorldColumns: 80,
   minimumWorldRows: 56,

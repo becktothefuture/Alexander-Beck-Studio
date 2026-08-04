@@ -27,7 +27,7 @@
   --portfolio-drawer-radius: var(--frame-inner-radius);
   /* Positive = gap around sheet → real pit + .inner-wall-gradient-edge show through (wall lights).
      Negative = sheet extends toward / under the host clip (still clipped by #portfolio-sheet-host). */
-  --portfolio-drawer-seat-inset: var(--abs-window-control-seat-inset, 3px);
+  --portfolio-drawer-seat-inset: -2px;
   --portfolio-drawer-seat-radius: max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-drawer-seat-inset)));
   /* Tighter than seat radius so anti-aliased corners don’t show a hairline behind the insert. */
   --portfolio-drawer-inner-radius-shrink: 1px;

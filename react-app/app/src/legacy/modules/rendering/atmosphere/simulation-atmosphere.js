@@ -1,6 +1,5 @@
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../../../lib/theme-state.js';
 import {
-  createSimulationMaterialSequence,
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
 } from '../../../../palette/simulationPaletteController.js';
@@ -26,7 +25,6 @@ const QUALITY_LEVELS = Object.freeze({
 });
 const COST_SAMPLE_CAPACITY = 120;
 const FIRST_FRAME_TIMEOUT_MS = 2500;
-const AMBIENT_COUNT = 8;
 
 let host = null;
 let hostGeneration = 0;
@@ -80,11 +78,6 @@ const sourceViewportGeometry = {
   height: 0,
 };
 let ambientPaletteSnapshot = getSimulationPaletteSnapshot();
-let ambientColours = createSimulationMaterialSequence(
-  AMBIENT_COUNT,
-  {},
-  ambientPaletteSnapshot,
-).map((role) => ambientPaletteSnapshot.colors[role.colorIndex]);
 let lastSourceLightCount = 0;
 let lastSourceLayerCount = 0;
 let lastSampledEmitterCount = 0;
@@ -95,17 +88,6 @@ let costSampleCount = 0;
 let costSampleSum = 0;
 let costSampleMax = 0;
 const costSamples = new Float32Array(COST_SAMPLE_CAPACITY);
-
-const ambientBalls = Array.from({ length: AMBIENT_COUNT }, (_, index) => ({
-  x: 0,
-  y: 0,
-  r: 1,
-  color: ambientColours[index % ambientColours.length],
-  pebbleSeed: 7000 + index * 37,
-  baseX: 0.08 + ((index * 0.317) % 0.84),
-  baseY: 0.1 + ((index * 0.463) % 0.8),
-  phase: index * 1.731,
-}));
 
 const effectRenderArgs = {
   sourceCanvas: null,
@@ -423,31 +405,33 @@ function syncSourceViewportGeometry(source) {
   return sourceViewportGeometry;
 }
 
-function updateAmbientSource(nowMs) {
+function clearAmbientSource() {
+  const context = host.sourceContext;
   const canvas = host.sourceCanvas;
-  const shortest = Math.min(canvas.width, canvas.height);
-  const time = reducedMotion ? 0 : nowMs * 0.000045;
-  let visualScale = 1;
-  if (typeof activeSource?.getVisualScale === 'function') {
-    try {
-      const requestedScale = Number(activeSource.getVisualScale());
-      if (Number.isFinite(requestedScale)) {
-        visualScale = Math.min(1, Math.max(0, requestedScale));
-      }
-    } catch {
-      // A route-owned diagnostic getter must not break the shared compositor.
-    }
-  }
-  for (let index = 0; index < AMBIENT_COUNT; index += 1) {
-    const ball = ambientBalls[index];
-    const orbit = time + ball.phase;
-    ball.x = (ball.baseX + Math.sin(orbit) * 0.035) * canvas.width;
-    ball.y = (ball.baseY + Math.cos(orbit * 0.83) * 0.028) * canvas.height;
-    ball.r = shortest * (0.026 + (index % 3) * 0.006) * visualScale;
-    ball.color = ambientColours[index % ambientColours.length];
-  }
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
+  context.filter = 'none';
+  context.clearRect(0, 0, canvas.width, canvas.height);
   lastSourceLayerCount = 0;
-  lastSourceLightCount = renderEmitterDiscs(ambientBalls, canvas, 1);
+  lastSourceLightCount = 0;
+  lastSampledEmitterCount = 0;
+}
+
+function renderAmbientSource(now) {
+  clearAmbientSource();
+  host.effect.clear();
+  host.edgeLight.clear();
+  compositedFrameCount += 1;
+  firstCompositeAt ||= now;
+  consecutiveErrors = 0;
+  staticFrameDirty = false;
+  host.glowCanvas.hidden = true;
+  host.edgeCanvas.hidden = true;
+  host.root.dataset.atmosphereReady = 'true';
+  host.root.dataset.atmosphereStatus = 'ready';
+  settleFirstFrame(activeSource, now);
+  return true;
 }
 
 function renderEmitterDiscs(emitters, mainCanvas, emitterStride = 1) {
@@ -538,12 +522,8 @@ function copyEmitterSource(source) {
   return true;
 }
 
-function copyActiveSource(nowMs) {
+function copyActiveSource() {
   if (!host || !activeSource) return false;
-  if (activeSource.kind === 'ambient') {
-    updateAmbientSource(nowMs);
-    return true;
-  }
   if (activeSource.kind === 'emitters') return copyEmitterSource(activeSource);
   return copyCanvasSource(activeSource);
 }
@@ -597,12 +577,13 @@ function renderComposite(now) {
   if (reducedMotion && !staticFrameDirty) return false;
   applyPendingQuality();
   if (!syncGeometry()) return false;
+  if (activeSource.kind === 'ambient') return renderAmbientSource(now);
   if (!reducedMotion && !shouldRenderSimulationAtmosphereFrame(frameSchedule, now, cadence)) {
     skippedFrameCount += 1;
     return false;
   }
   const start = performance.now();
-  if (!copyActiveSource(now)) return false;
+  if (!copyActiveSource()) return false;
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
   renderProfile.cadenceFps = cadence;
   effectRenderArgs.config = renderProfile;
@@ -644,7 +625,10 @@ function internalFrame(now) {
     || destroyed
   ) return;
   renderSafely(now);
-  if (!reducedMotion || staticFrameDirty) scheduleInternalFrame();
+  const shouldContinue = activeSource.kind === 'ambient'
+    ? !activeSource.firstFrame.settled
+    : (!reducedMotion || staticFrameDirty);
+  if (shouldContinue) scheduleInternalFrame();
 }
 
 function scheduleInternalFrame() {
@@ -881,11 +865,11 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   const reducedMotionQuery = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
   const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
     ambientPaletteSnapshot = snapshot;
-    ambientColours = createSimulationMaterialSequence(AMBIENT_COUNT, {}, snapshot)
-      .map((role) => snapshot.colors[role.colorIndex]);
     staticFrameDirty = true;
     root.dataset.simulationPaletteGeneration = String(snapshot.generation);
-    if (host && activeSource?.kind === 'ambient') scheduleInternalFrame();
+    if (host && activeSource?.scheduler === 'internal' && activeSource.kind !== 'ambient') {
+      scheduleInternalFrame();
+    }
   });
   reducedMotion = reducedMotionQuery?.matches === true;
   destroyed = false;
@@ -1369,8 +1353,8 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   if (transitionPhase !== 'idle') {
     host.edgeCanvas.hidden = true;
     // Freeze the source that was visible when route-out began. A newly
-    // registered incoming ambient source owns its route-in scale and must keep
-    // rendering; cancelling it here delays the glow until after typography.
+    // registered incoming internal source still owns its first clear or
+    // composite frame during route-in.
     const canRenderIncomingInternalSource = Boolean(
       activeSource?.scheduler === 'internal'
       && activeSource.generation !== transitionSourceGeneration

@@ -14,7 +14,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-hero-image-gutter': '0px',
     '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
     '--portfolio-scroll-hint-offset': 'clamp(var(--size-26), var(--size-18) + var(--font-size-1.2), var(--size-52))',
-    '--portfolio-drawer-seat-inset': '3px',
+    '--portfolio-drawer-seat-inset': '-2px',
     '--portfolio-drawer-inner-radius-shrink': "var(--size-border-default)",
     '--portfolio-drawer-insert-contact-opacity': '0.24',
     '--portfolio-drawer-insert-top-light-opacity': '0.14',

@@ -786,6 +786,42 @@ async function assertCameraInputs(page, evidence) {
 
 async function assertSalonCoverage(page, evidence) {
   const snapshot = await page.evaluate(() => window.__ABS_PLAYGROUND__.getSnapshot());
+  const placementRects = snapshot.placements.map((placement) => ({
+    left: placement.xCell,
+    top: placement.yCell,
+    right: placement.xCell + placement.footprintWidthCells,
+    bottom: placement.yCell + placement.footprintHeightCells,
+  }));
+  const rectDistance = (left, right) => Math.hypot(
+    Math.max(left.left - right.right, right.left - left.right, 0),
+    Math.max(left.top - right.bottom, right.top - left.bottom, 0),
+  );
+  const projectClearances = placementRects.map((placement, placementIndex) => {
+    let minimumClearance = Infinity;
+    placementRects.forEach((candidate, candidateIndex) => {
+      if (placementIndex === candidateIndex) return;
+      for (let column = -1; column <= 1; column += 1) {
+        for (let row = -1; row <= 1; row += 1) {
+          minimumClearance = Math.min(minimumClearance, rectDistance(placement, {
+            left: candidate.left + (column * snapshot.diagnostics.worldColumns),
+            top: candidate.top + (row * snapshot.diagnostics.worldRows),
+            right: candidate.right + (column * snapshot.diagnostics.worldColumns),
+            bottom: candidate.bottom + (row * snapshot.diagnostics.worldRows),
+          }));
+        }
+      }
+    });
+    return minimumClearance;
+  });
+  const clearanceMinimum = Math.min(...projectClearances);
+  const clearanceMaximum = Math.max(...projectClearances);
+  const clearanceAverage = projectClearances.reduce((sum, value) => sum + value, 0)
+    / projectClearances.length;
+  const clearanceDeviation = Math.sqrt(projectClearances.reduce(
+    (sum, value) => sum + ((value - clearanceAverage) ** 2),
+    0,
+  ) / projectClearances.length);
+  const clearanceVariation = clearanceDeviation / clearanceAverage;
   const samples = [];
   const sampleCount = 8;
 
@@ -838,8 +874,31 @@ async function assertSalonCoverage(page, evidence) {
     maximum,
     samples: samples.filter((sample) => sample.visibleCount === maximum),
   });
+  assert(clearanceMinimum >= 3, 'Salon projects do not preserve the shared clearance target', {
+    clearanceMinimum,
+    projectClearances,
+  });
+  assert(clearanceMaximum <= 9, 'Salon placement leaves an isolated project', {
+    clearanceMaximum,
+    projectClearances,
+  });
+  assert(clearanceVariation <= 0.35, 'Salon project spacing is not homogeneous', {
+    clearanceAverage,
+    clearanceVariation,
+    projectClearances,
+  });
   assert(rotationFree, 'One or more Playground works are rotated');
-  evidence.salonCoverage = { minimum, maximum, average, rotationFree, sampleCount: counts.length };
+  evidence.salonCoverage = {
+    minimum,
+    maximum,
+    average,
+    clearanceMinimum,
+    clearanceMaximum,
+    clearanceAverage,
+    clearanceVariation,
+    rotationFree,
+    sampleCount: counts.length,
+  };
 }
 
 async function assertSpatialProjectNavigation(page, evidence) {
@@ -2280,8 +2339,8 @@ async function main() {
         'mouse drag, touch drag, wheel, diagonal wheel, keyboard, and Home recenter',
         'one roving project tab stop with directional nearest-neighbour arrow navigation',
         '320 x 568 landing keeps project material visible and rendered captions at 12px or larger',
-        'loose, rotation-free salon placement fills deterministic quarter-cells without sparse placement-order rings',
-        '64 sampled camera positions stay between the sparse and overcrowded coverage limits',
+        'rotation-free salon placement keeps deterministic quarter-cell origins and homogeneous project clearances',
+        '64 sampled camera positions stay between the sparse and overcrowded coverage limits across the wrapped field',
         'projects remain fixed under pointer hover with no attraction transform',
         'enlarged project and caption bounds remain collision-free at every inspected world seam',
         'low-opacity grey dots wake into current-palette colours, persist, fade, and return the renderer to sleep',

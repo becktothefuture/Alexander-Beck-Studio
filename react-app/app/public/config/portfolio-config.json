@@ -6,7 +6,7 @@
     "--portfolio-image-veil-opacity": "0.14",
     "--portfolio-scroll-hint-offset": "clamp(26px, 18px + 1.2vw, 52px)",
     "--portfolio-drawer-inner-radius-shrink": "0px",
-    "--portfolio-drawer-seat-inset": "3px",
+    "--portfolio-drawer-seat-inset": "-2px",
     "--portfolio-drawer-insert-contact-opacity": "0.55",
     "--portfolio-drawer-insert-top-light-opacity": "0.35",
     "--portfolio-drawer-insert-lip-opacity": "0",
@@ -80,11 +80,11 @@
       "particleField": {
         "idleOpacity": 1,
         "fastOpacity": 1,
-        "quietBandHeight": 0.58,
-        "quietBandOpacity": 0.44,
-        "densityScale": 1.25,
-        "minRadiusPx": 3.25,
-        "maxRadiusPx": 7.5,
+        "quietBandHeight": 0.38,
+        "quietBandOpacity": 0.45,
+        "densityScale": 0.4,
+        "minRadiusPx": 2.7,
+        "maxRadiusPx": 9,
         "motionResponse": 1,
         "parallaxDepth": 1
       }

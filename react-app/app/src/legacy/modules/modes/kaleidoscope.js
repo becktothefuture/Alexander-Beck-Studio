@@ -23,13 +23,17 @@ const TAU = Math.PI * 2;
 const EPS = 1e-6;
 const MOBILE_SOURCE_COUNT_FACTOR = 0.52;
 const MOBILE_SOURCE_SPREAD_MUL = 1.08;
-const MOBILE_FORCE_RESPONSE_SCALE = 1.06;
-const MOBILE_MORPH_SCALE = 1.08;
-const MOBILE_TOUCH_MORPH_SCALE = 1.18;
+const MOBILE_FORCE_RESPONSE_SCALE = 1;
+const MOBILE_MORPH_SCALE = 1;
+const MOBILE_TOUCH_MORPH_SCALE = 1.1;
 const MOBILE_IDLE_DRIFT_SCALE = 1.45;
 const MOBILE_IDLE_PHASE_SCALE = 1.72;
 const MOBILE_RENDER_FILL_SCALE = 2.15;
 const DESKTOP_RENDER_FILL_SCALE = 3.35;
+const POINTER_MOTION_IMPULSE_GAIN = 5.6;
+const POINTER_MOTION_PAN_RATIO = 0.14;
+const POINTER_MOTION_PHASE_RANGE = 0.52;
+const POINTER_MOTION_DEPTH_RANGE = 0.09;
 
 // Render-time smoothing state (mouse-driven rotation should ease-in/out)
 let _lastRenderMs = 0;
@@ -465,12 +469,13 @@ export function applyKaleidoscopeForces(ball, dt) {
   // ───────────────────────────────────────────────────────────────────────────
   const nowMs = performance.now();
   const sinceMoveMs = nowMs - (g.lastPointerMoveMs || 0);
-  const movingRecently = sinceMoveMs < 180; // grace window for smooth release
+  const directTouchActive = g.pointerActive === true && (g.pointerType === 'touch' || g.pointerType === 'pen');
+  const movingRecently = sinceMoveMs < (directTouchActive ? 280 : 180); // Longer grace for discrete touch samples.
 
   if (g._kaleiActivity === undefined) g._kaleiActivity = 0;
   const targetActivity = movingRecently ? 1 : 0;
-  const tauIn = 0.22;   // ramp-up time constant (seconds)
-  const tauOut = 0.55;  // decay time constant (seconds)
+  const tauIn = 0.08;   // Fast attack keeps pointer movement directly connected to the material.
+  const tauOut = 0.42;  // Longer release lets a quick gesture finish cleanly.
   const tau = targetActivity > g._kaleiActivity ? tauIn : tauOut;
   const k = 1 - Math.exp(-dt / Math.max(1e-4, tau));
   g._kaleiActivity += (targetActivity - g._kaleiActivity) * k;
@@ -678,14 +683,20 @@ export function renderKaleidoscope(ctx) {
   // Real kaleidoscope morphing: mouse position shifts which part of the source pattern
   // gets sampled, creating transformation (not just rotation).
   // We need both phase (rotation) and pan (position shift) for true morphing.
-  if (!g._kaleiMorph) {
+  if (!g._kaleiMorph || g._kaleiMorph.motionVersion !== 1) {
     g._kaleiMorph = {
+      motionVersion: 1,
       phase: { x: 0, v: 0 },
       panX: { x: 0, v: 0 },
       panY: { x: 0, v: 0 },
       pointerX: { x: 0, v: 0 },
       pointerY: { x: 0, v: 0 },
       influence: { x: 0, v: 0 },
+      motionX: 0,
+      motionY: 0,
+      motionEnergy: 0,
+      lastInputX: 0,
+      lastInputY: 0,
       idlePhase: 0,
       pointerWasValid: false,
       lastPointerSequence: null
@@ -714,22 +725,57 @@ export function renderKaleidoscope(ctx) {
   const pointerXNormTarget = pointerValid ? clamp(mdx / Math.max(1, w * 0.5), -1, 1) : 0;
   const pointerYNormTarget = pointerValid ? clamp(mdy / Math.max(1, h * 0.5), -1, 1) : 0;
 
-  if (pointerValid && (!morph.pointerWasValid || morph.lastPointerSequence !== pointerSequence || g.pointerJustEnteredCanvas === true)) {
+  const pointerStarted = pointerValid
+    && (!morph.pointerWasValid || morph.lastPointerSequence !== pointerSequence || g.pointerJustEnteredCanvas === true);
+  if (pointerStarted) {
     morph.influence.x = pointerStrengthTarget;
     morph.influence.v = 0;
     morph.pointerX.x = pointerXNormTarget;
     morph.pointerX.v = 0;
     morph.pointerY.x = pointerYNormTarget;
     morph.pointerY.v = 0;
+    morph.motionX = 0;
+    morph.motionY = 0;
+    morph.motionEnergy = 0;
+    morph.lastInputX = mx;
+    morph.lastInputY = my;
     morph.lastPointerSequence = pointerSequence;
+  }
+
+  // A moving lens should do more than follow the pointer's resting position. Convert each
+  // gesture into a short, normalized mapping impulse so equal viewport-relative movement
+  // produces the same shear, pan, and depth shift on desktop and mobile.
+  if (pointerValid && morph.pointerWasValid && !pointerStarted) {
+    const minDimension = Math.max(1, Math.min(w, h));
+    const deltaX = mx - morph.lastInputX;
+    const deltaY = my - morph.lastInputY;
+    const inputScale = (touchDragActive ? MOBILE_TOUCH_MORPH_SCALE : 1)
+      * (g.prefersReducedMotion ? 0.28 : 1);
+    const impulseX = (deltaX / minDimension) * POINTER_MOTION_IMPULSE_GAIN * inputScale;
+    const impulseY = (deltaY / minDimension) * POINTER_MOTION_IMPULSE_GAIN * inputScale;
+    morph.motionX = clamp(morph.motionX + impulseX, -1, 1);
+    morph.motionY = clamp(morph.motionY + impulseY, -1, 1);
+    morph.motionEnergy = Math.max(
+      morph.motionEnergy,
+      clamp(Math.hypot(impulseX, impulseY), 0, 1)
+    );
+  }
+  if (pointerValid) {
+    morph.lastInputX = mx;
+    morph.lastInputY = my;
   }
   morph.pointerWasValid = pointerValid;
 
+  const motionDecay = Math.exp(-dt * (pointerValid ? 4.8 : 7.2));
+  morph.motionX *= motionDecay;
+  morph.motionY *= motionDecay;
+  morph.motionEnergy *= motionDecay;
+
   // Smooth normalized pointer intent first so the visual fold reacts to motion as a glide
   // instead of binding directly to raw cursor position.
-  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 3.8 : 2.2);
-  springTo(morph.pointerX, pointerXNormTarget, dt, 3.5);
-  springTo(morph.pointerY, pointerYNormTarget, dt, 3.5);
+  springTo(morph.influence, pointerStrengthTarget, dt, pointerValid ? 6.4 : 3.4);
+  springTo(morph.pointerX, pointerXNormTarget, dt, 6.8);
+  springTo(morph.pointerY, pointerYNormTarget, dt, 6.8);
 
   const pointerStrength = clamp(morph.influence.x, 0, 1);
   const pointerXNorm = morph.pointerX.x;
@@ -742,17 +788,20 @@ export function renderKaleidoscope(ctx) {
   const idleSpeedScaled = idleSpeed * mobileIdleScale * complexity * (g.prefersReducedMotion ? 0 : 1) * (1 - pointerStrength * 0.85);
   morph.idlePhase = wrapAngleSigned(morph.idlePhase + idleSpeedScaled * dt);
 
-  const panRangePx = Math.min(w, h) * (0.052 + 0.045 * speed) * mobileMorphScale;
+  const minDimension = Math.min(w, h);
+  const panRangePx = minDimension * (0.075 + 0.055 * speed) * mobileMorphScale;
   const panStrength = (0.48 + 0.14 * complexity) * pointerStrength;
-  const panXTarget = pointerXNorm * panRangePx * panStrength;
-  const panYTarget = pointerYNorm * panRangePx * panStrength;
-  const phaseAmplitude = (0.22 + 0.08 * complexity) * mobileMorphScale;
+  const motionPanRangePx = minDimension * POINTER_MOTION_PAN_RATIO;
+  const panXTarget = pointerXNorm * panRangePx * panStrength + morph.motionX * motionPanRangePx;
+  const panYTarget = pointerYNorm * panRangePx * panStrength + morph.motionY * motionPanRangePx;
+  const phaseAmplitude = (0.32 + 0.12 * complexity) * mobileMorphScale;
   const phaseOffset = ((pointerXNorm * 0.2) + (pointerYNorm * 0.12)) * mobileMorphScale;
-  const phaseTarget = morph.idlePhase + (mouseAngle * phaseAmplitude + phaseOffset) * pointerStrength;
+  const motionPhase = (morph.motionX - morph.motionY * 0.64) * POINTER_MOTION_PHASE_RANGE;
+  const phaseTarget = morph.idlePhase + (mouseAngle * phaseAmplitude + phaseOffset) * pointerStrength + motionPhase;
 
-  springTo(morph.phase, phaseTarget, dt, 4.2);
-  springTo(morph.panX, panXTarget, dt, 4.8);
-  springTo(morph.panY, panYTarget, dt, 4.8);
+  springTo(morph.phase, phaseTarget, dt, 7.2);
+  springTo(morph.panX, panXTarget, dt, 8);
+  springTo(morph.panY, panYTarget, dt, 8);
 
   const phase = morph.phase.x;
   const panX = morph.panX.x;
@@ -763,7 +812,10 @@ export function renderKaleidoscope(ctx) {
   const speed01 = clamp((speed - 0.2) / 1.8, 0, 1);
   const zoomRange = (0.16 + 0.1 * speed01) * (isMobile ? 0.86 : 1);
   const centerFill = pointerValid ? (1 - mDistN) : 0;
-  const zoom = 1 + zoomRange * centerFill - zoomRange * 0.35 * mDistN;
+  const zoom = 1
+    + zoomRange * centerFill
+    - zoomRange * 0.35 * mDistN
+    + morph.motionEnergy * POINTER_MOTION_DEPTH_RANGE;
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
 

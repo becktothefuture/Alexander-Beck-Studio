@@ -1196,9 +1196,9 @@ function createPointFieldAdapter({
     atmosphereSourceCleanup?.();
     atmosphereSourceCleanup = null;
     atmosphereSourceKind = nextKind;
-    // Visibility is authoritative for the complete point material. Leaving an
-    // ambient source active here creates unrelated coloured light after the
-    // authored point world has reached zero.
+    // Visibility is authoritative for the complete point material. Unregister
+    // once it reaches zero even though the compatibility ambient source is
+    // transparent, so diagnostics still reflect the authored material state.
     if (nextKind === 'none') return;
     const canvasSource = nextKind === 'canvas';
     atmosphereSourceCleanup = registerSimulationAtmosphereSource({
@@ -2370,7 +2370,7 @@ function createPointFieldAdapter({
     root.dataset.pointWorldState = 'unavailable';
     root.dataset.aboutSceneReady = 'true';
     window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
-    console.warn('[About narrative] Point-world shader preparation failed; using the ambient fallback.', error);
+    console.warn('[About narrative] Point-world shader preparation failed; using the clear background fallback.', error);
   };
   const prepareRendererSynchronously = () => {
     renderer.compile(scene, camera);

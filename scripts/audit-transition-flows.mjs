@@ -1298,16 +1298,10 @@ function assertTransitionTrace(trace, {
       && sample.atmosphere?.sourceKind === 'ambient'
     ));
     if (ambientSamples.length > 0) {
-      const firstTypography = routeInSamples.find((sample) => sample.incoming.childMaxOpacity > 0.02);
-      const preTypographyAmbient = ambientSamples.filter((sample) => (
-        !firstTypography || sample.elapsedMs <= firstTypography.elapsedMs
-      ));
-      const frameCounts = preTypographyAmbient.map((sample) => sample.atmosphere.compositedFrameCount);
       assert(
-        preTypographyAmbient.some((sample) => sample.atmosphere.schedulerActive)
-          && Math.max(...frameCounts) > Math.min(...frameCounts),
-        `${trace.label}: About ambient fallback did not render its growth before typography`,
-        { firstTypography, preTypographyAmbient },
+        ambientSamples.at(-1).atmosphere.schedulerActive === false,
+        `${trace.label}: About clear fallback retained an atmosphere loop`,
+        { ambientSamples },
       );
     }
   }

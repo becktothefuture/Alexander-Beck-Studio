@@ -2,6 +2,10 @@ const PLACEMENT_PRESETS = new Set(['salon', 'balanced', 'loose', 'clustered']);
 const MAX_DIAGNOSTIC_ISSUES = 12;
 const DEFAULT_MAX_CANDIDATES_PER_PASS = 4096;
 const DEFAULT_MAX_PASSES = 4;
+const SALON_CLEARANCE_CANDIDATES_PER_PASS = 512;
+const SALON_TARGET_CLEARANCE_CELLS = 3;
+const DEFAULT_SALON_COLUMNS = 144;
+const DEFAULT_SALON_ROWS = 112;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 function toFiniteNumber(value, fallback) {
@@ -298,8 +302,8 @@ export function writePlacementCandidate({
   passIndex = 0,
   footprintWidthCells = 1,
   footprintHeightCells = 1,
-  salonColumns = 128,
-  salonRows = 96,
+  salonColumns = DEFAULT_SALON_COLUMNS,
+  salonRows = DEFAULT_SALON_ROWS,
   salonEdgeInsetCells = 2,
 }, target) {
   if (!target || typeof target !== 'object') {
@@ -453,6 +457,57 @@ function collides(bounds, placed, titleSafeArea, gapCells) {
   return false;
 }
 
+function cellRectDistanceSquared(left, right) {
+  const deltaX = Math.max(left.left - right.right, right.left - left.right, 0);
+  const deltaY = Math.max(left.top - right.bottom, right.top - left.bottom, 0);
+  return (deltaX * deltaX) + (deltaY * deltaY);
+}
+
+function getWrappedSalonClearanceSquared(
+  bounds,
+  placed,
+  titleSafeArea,
+  gapCells,
+  periodColumns,
+  periodRows,
+) {
+  let minimumClearanceSquared = Infinity;
+  if (titleSafeArea) {
+    for (let column = -1; column <= 1; column += 1) {
+      for (let row = -1; row <= 1; row += 1) {
+        const wrappedTitleArea = {
+          left: titleSafeArea.left + (column * periodColumns),
+          top: titleSafeArea.top + (row * periodRows),
+          right: titleSafeArea.right + (column * periodColumns),
+          bottom: titleSafeArea.bottom + (row * periodRows),
+        };
+        if (cellRectsOverlap(bounds, wrappedTitleArea, gapCells)) return -1;
+      }
+    }
+  }
+
+  for (let obstacleIndex = 0; obstacleIndex < placed.length; obstacleIndex += 1) {
+    const obstacle = placed[obstacleIndex].bounds;
+    for (let column = -1; column <= 1; column += 1) {
+      for (let row = -1; row <= 1; row += 1) {
+        const wrappedObstacle = {
+          left: obstacle.left + (column * periodColumns),
+          top: obstacle.top + (row * periodRows),
+          right: obstacle.right + (column * periodColumns),
+          bottom: obstacle.bottom + (row * periodRows),
+        };
+        if (cellRectsOverlap(bounds, wrappedObstacle, gapCells)) return -1;
+        minimumClearanceSquared = Math.min(
+          minimumClearanceSquared,
+          cellRectDistanceSquared(bounds, wrappedObstacle),
+        );
+      }
+    }
+  }
+
+  return minimumClearanceSquared;
+}
+
 /**
  * Places items in append-only placementOrder. Existing results do not depend on
  * the catalogue length or the eventual world dimensions.
@@ -478,8 +533,14 @@ export function placePlaygroundItems(items, options = {}) {
     options.maxCandidatesPerPass ?? DEFAULT_MAX_CANDIDATES_PER_PASS,
   ));
   const maxPasses = Math.floor(Number(options.maxPasses ?? DEFAULT_MAX_PASSES));
-  const salonColumns = Math.max(128, Math.ceil(Number(options.minimumWorldColumns ?? 80)));
-  const salonRows = Math.max(96, Math.ceil(Number(options.minimumWorldRows ?? 56)));
+  const salonColumns = Math.max(
+    DEFAULT_SALON_COLUMNS,
+    Math.ceil(Number(options.minimumWorldColumns ?? 80)),
+  );
+  const salonRows = Math.max(
+    DEFAULT_SALON_ROWS,
+    Math.ceil(Number(options.minimumWorldRows ?? 56)),
+  );
   const salonEdgeInsetCells = Math.max(
     0,
     Math.ceil(Number(options.worldPaddingCells ?? 1)) + gapCells,
@@ -495,9 +556,12 @@ export function placePlaygroundItems(items, options = {}) {
     let attempts = 0;
     let acceptedPass = -1;
     for (let passIndex = 0; passIndex < maxPasses && !acceptedBaseBounds; passIndex += 1) {
-      for (let candidateIndex = 0;
-        candidateIndex < maxCandidatesPerPass && !acceptedBaseBounds;
-        candidateIndex += 1) {
+      const candidatesThisPass = preset === 'salon'
+        ? Math.min(maxCandidatesPerPass, SALON_CLEARANCE_CANDIDATES_PER_PASS)
+        : maxCandidatesPerPass;
+      let bestSalonBounds = null;
+      let bestSalonClearanceSquared = -1;
+      for (let candidateIndex = 0; candidateIndex < candidatesThisPass; candidateIndex += 1) {
         attempts += 1;
         writePlacementCandidate({
           preset,
@@ -513,10 +577,34 @@ export function placePlaygroundItems(items, options = {}) {
           salonEdgeInsetCells,
         }, candidate);
         const bounds = createCandidateBounds(candidate.x, candidate.y, footprint);
-        if (!collides(bounds, basePlacements, titleSafeArea, gapCells)) {
+        if (preset === 'salon') {
+          const passScale = 2 ** passIndex;
+          const clearanceSquared = getWrappedSalonClearanceSquared(
+            bounds,
+            basePlacements,
+            titleSafeArea,
+            gapCells,
+            salonColumns * passScale,
+            salonRows * passScale,
+          );
+          const cappedClearanceSquared = Math.min(
+            clearanceSquared,
+            SALON_TARGET_CLEARANCE_CELLS ** 2,
+          );
+          if (cappedClearanceSquared > bestSalonClearanceSquared) {
+            bestSalonBounds = bounds;
+            bestSalonClearanceSquared = cappedClearanceSquared;
+            if (cappedClearanceSquared === SALON_TARGET_CLEARANCE_CELLS ** 2) break;
+          }
+        } else if (!collides(bounds, basePlacements, titleSafeArea, gapCells)) {
           acceptedBaseBounds = bounds;
           acceptedPass = passIndex;
+          break;
         }
+      }
+      if (bestSalonBounds) {
+        acceptedBaseBounds = bestSalonBounds;
+        acceptedPass = passIndex;
       }
     }
     if (!acceptedBaseBounds) {

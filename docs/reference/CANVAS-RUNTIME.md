@@ -106,7 +106,7 @@ const unregister = registerSimulationAtmosphereSource({
 
 - `emitters` requires `getEmitters()` and `external`.
 - `canvas` accepts `internal` when the compositor may sample independently, or `renderer-coupled` when the source renderer must tick it after publishing a frame. Home uses a renderer-coupled Canvas source and supplies its main and active front-depth canvases in final display order through `getCanvasLayers()`, so custom, replicated, and depth-split modes all feed the same finished-frame atmosphere path. A registered source Canvas must never be either compositor output Canvas.
-- `ambient` requires `internal` and uses the compositor's fixed eight-disc fallback. It is for a genuinely canvas-less or deliberately suspended eligible state, not a substitute for registering available route material.
+- `ambient` requires `internal` and is a transparent compatibility/readiness source for a genuinely canvas-less, failed, or deliberately suspended eligible state. It clears outgoing atmosphere, keeps both compositor outputs hidden, settles ready, and stops without entering the blur path. It never paints synthetic discs, colour, glow, or placeholder material, and it is not a substitute for registering available route material.
 - `opacityElement` identifies the crisp material whose authored presence the compositor projects. The shell-owned title plane is never a compositor source and keeps its own opacity contract.
 
 Registration returns a generation-qualified, idempotent disposer. A stale disposer cannot clear a newer route source. Source changes clear the diffuse output in the idle state; during a shell transition the outgoing result may freeze under the route cover until the next source is ready. The disposer also exposes `firstFrame`, which resolves `ready`, `cancelled`, or `failed-open` without extending the shell's global readiness timeout.
@@ -123,7 +123,7 @@ Scheduling and performance are part of the contract:
 - the edge-light Canvas samples only the narrow quality-scaled band exposed by the shell mask; authored inset moves that band inward while its corner radius remains concentric with the studio window. Brightness and saturation belong to the masked CSS compositor layer so Canvas does not run a filtered full-frame raster pass for the edge response;
 - simulation bodies stay crisp; broad softness belongs to the shared atmosphere output and never to source-body `CanvasRenderingContext2D.filter`, `shadowBlur`, or a whole-source CSS blur;
 - automatic quality may step down after sustained compositor cost, without reducing the simulation's authored body count;
-- internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Reduced Motion renders a static response and does not keep an ambient loop alive;
+- internal scheduling stops when hidden, disabled, failed, detached, or without an internal source. Transparent `ambient` sources settle through a clear readiness frame and do not retain a loop. Reduced Motion renders a static response for real material sources;
 - two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.
 - source startup gets a bounded 2.5-second first-frame window before fail-open so a busy route transition cannot permanently hide a healthy glow source.
 

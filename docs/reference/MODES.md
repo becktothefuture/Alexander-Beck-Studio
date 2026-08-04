@@ -117,7 +117,7 @@ Loop order is `Featured -> Extended -> Featured`.
 - `water`: dense drag/ripple motion field.
 - `magnetic`: attraction/repel dynamics with velocity limiting.
 - `bubbles`: full-height drink-like nucleation from lower sources, terminal rise, pointer/touch wake deflection, surface dissolve, and recycle.
-- `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and mode-local bounds/render path.
+- `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and a short pointer-motion mapping impulse. Gesture distance is normalized to the viewport so desktop mouse movement and mobile touch drag produce the same shear, pan, and depth response; mobile keeps fewer source bodies while retaining a dense mirrored wedge read.
 - `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
 - `rift-rings`: route-backed Depth concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
 - `critters`: locomotion-based critter behavior and local separation.

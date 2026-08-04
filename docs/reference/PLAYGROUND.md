@@ -72,7 +72,7 @@ Replace each placeholder as one complete unit: reviewed copy, accurate accessibi
 
 ## Deterministic placement
 
-Placement is derived from stable item identity, `placementOrder`, the selected preset, `projectSpacing`, and `layoutSeed`. The default salon preset distributes work across a wide low-discrepancy field and accepts collision-free quarter-cell positions. Mixed media spans and off-axis origins create an eclectic wall without rotating the work, changing the layout randomly, or leaving a sparse opposite corner in the repeating world. The balanced preset remains available when strict dot alignment is required. Higher project spacing still expands the deterministic composition, but with a restrained radial curve that avoids large unused bands. The narrower responsive profile tightens this expansion and keeps the inter-item safety gap at one grid cell so several projects peek into the initial 320 × 568 view. The exact title exclusion remains intact. The modulo period is then calculated from the resulting project extents, so the repeat area grows with the composition instead of clipping or repeating projects too soon. Existing placements are append-stable when new items are appended and earlier placement inputs stay unchanged. The world period remains grid-quantized while salon item origins use quarter-cells.
+Placement is derived from stable item identity, `placementOrder`, the selected preset, `projectSpacing`, and `layoutSeed`. The default salon preset evaluates a bounded low-discrepancy candidate set and accepts the first position that reaches the shared clearance target. This distributes work homogeneously across the wrapped field, including its seams, without losing mixed media spans or off-axis quarter-cell origins. The wider base period prevents the clearance search from fragmenting into a sparse overflow pass. The balanced preset remains available when strict dot alignment is required. Higher project spacing still expands the deterministic composition, but with a restrained radial curve that avoids large unused bands. The narrower responsive profile tightens this expansion and keeps the inter-item safety gap at one grid cell so several projects peek into the initial 320 × 568 view. The exact title exclusion remains intact. The modulo period is then calculated from the resulting project extents, so the repeat area grows with the composition instead of clipping or repeating projects too soon. Existing placements are append-stable when new items are appended and earlier placement inputs stay unchanged. The world period remains grid-quantized while salon item origins use quarter-cells.
 
 Do not regenerate the seed as part of routine content editing. Use **Generate new seed** only for a deliberate full-layout re-composition. Review the complete field after regeneration, then use **Save design configuration** to write the chosen seed to the canonical `playground` namespace. Changing an existing item ID, placement order, span, scale, label footprint, preset, or seed can move work and requires a new full-field review.
 
@@ -93,7 +93,7 @@ The canonical values below include the visible panel controls and the implementa
 | Field | Default | Allowed values |
 | --- | ---: | --- |
 | `layoutPreset` | `salon` | `salon`, `balanced`, `loose`, `clustered` |
-| `layoutSeed` | `271828` | unsigned 32-bit integer |
+| `layoutSeed` | `272684` | unsigned 32-bit integer |
 | `gridSpacingPx` | `24` | 24–72, step 4 |
 | `minimumWorldColumns` | `80` | 56–160, step 8 |
 | `minimumWorldRows` | `56` | 40–112, step 8 |

@@ -592,7 +592,7 @@ const state = {
   kaleidoscope3BallCount: 170,
   kaleidoscope3Wedges: 8,
   kaleidoscope3WedgesMobile: 5,  // Mobile keeps enough mirrored copies for the bloom to read in portrait.
-  kaleidoscope3Speed: 1.45,
+  kaleidoscope3Speed: 0.85,
   kaleidoscope3DotSizeVh: 0.72,
   kaleidoscope3DotAreaMul: 0.68,
   kaleidoscope3SpawnAreaMul: 0.9,

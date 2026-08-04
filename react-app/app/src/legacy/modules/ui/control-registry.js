@@ -3795,7 +3795,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'kaleidoscope3Speed',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 1.45,
+        default: 0.85,
         format: v => v.toFixed(2),
         parse: parseFloat
       },

@@ -201,7 +201,8 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniforms\.sceneEntranceScale\.value = scale/);
   assert.match(source, /exit: \(\{ signal \}\) => routeMaterial\.exit\(\{ signal/);
   assert.match(source, /getVisualScale: \(\) => ambientScale/);
-  assert.match(atmosphereSource, /ball\.r = shortest \* \(0\.026 \+ \(index % 3\) \* 0\.006\) \* visualScale/);
+  assert.match(atmosphereSource, /function clearAmbientSource\(\) \{/);
+  assert.doesNotMatch(atmosphereSource, /ambientBalls|createSimulationMaterialSequence/);
   assert.match(atmosphereSource, /activeSource\.generation !== transitionSourceGeneration/);
   assert.match(source, /pointAlpha <= 0\.001 \|\| fieldOpacity <= 0\.001/);
   assert.match(source, /globalCamera\?\.distanceFogStartWU \?\? 8/);

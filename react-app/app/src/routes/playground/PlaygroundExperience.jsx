@@ -1148,6 +1148,8 @@ export function PlaygroundExperience() {
           yCell: placement.yCell,
           widthCells: placement.mediaWidthCells,
           heightCells: placement.mediaHeightCells,
+          footprintWidthCells: placement.footprintWidthCells,
+          footprintHeightCells: placement.footprintHeightCells,
         })) || [],
         ready: route.dataset.playgroundReady === 'true',
       }),

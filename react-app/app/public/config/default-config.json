@@ -1,7 +1,6 @@
 {
   "liteModeEnabled": false,
   "cornerShapeSquircleEnabled": true,
-  "simulationCollisionInsetPx": 0,
   "ballMassKg": 240,
   "REST": 0.18,
   "FRICTION": 0.018,
@@ -213,7 +212,7 @@
   "bubblesWarmupFrames": 10,
   "kaleidoscope3BallCount": 228,
   "kaleidoscope3Wedges": 12,
-  "kaleidoscope3Speed": 0.4,
+  "kaleidoscope3Speed": 0.85,
   "kaleidoscopeIdleDrift": 0.1,
   "kaleidoscope3DotSizeVh": 0.6,
   "kaleidoscope3DotAreaMul": 1.15,
