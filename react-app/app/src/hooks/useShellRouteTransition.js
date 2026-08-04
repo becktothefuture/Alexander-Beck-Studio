@@ -2470,6 +2470,10 @@ export function useShellRouteTransition({
             onViewSettled: () => {
               if (nextRouteId === 'portfolio') {
                 releasePortfolioDeck(isGate ? 'gate-success' : 'route-in');
+                // Portfolio keeps its own short entrance lock until the lead
+                // card is visible. Release the parent wall here so that local
+                // lock, rather than the full shell/title sequence, owns input.
+                inertRegistry.restore([surfaceRefs.wall.current]);
               }
             },
           });
@@ -2548,7 +2552,10 @@ export function useShellRouteTransition({
               }
             },
             onViewSettled: () => {
-              if (revealRouteId === 'portfolio') releasePortfolioDeck('route-in-fallback');
+              if (revealRouteId === 'portfolio') {
+                releasePortfolioDeck('route-in-fallback');
+                inertRegistry.restore([surfaceRefs.wall.current]);
+              }
             },
           });
           if (!stale()) finishTransition(isGate, gateBackdropDismissed);

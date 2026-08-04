@@ -1274,7 +1274,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount.is-portfolio-boot-preparing,
-.portfolio-deck-mount.is-portfolio-deck-revealing {
+.portfolio-deck-mount.is-portfolio-deck-input-locked {
   pointer-events: none;
 }
 

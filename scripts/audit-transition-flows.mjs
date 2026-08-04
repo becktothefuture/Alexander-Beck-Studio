@@ -1376,6 +1376,79 @@ async function clickRouteTab(page, routeId) {
   await page.locator(`[data-route-tab="${routeId}"]`).click({ timeout: WAIT_MS });
 }
 
+async function probePortfolioInputDuringEntrance(page) {
+  await page.waitForFunction(() => {
+    const mount = document.getElementById('portfolioProjectMount');
+    const wall = document.getElementById('shell-wall-slot');
+    const leadCard = mount?.querySelector(
+      '.portfolio-project-card[data-portfolio-reveal-rank="0"]'
+    );
+    const leadScale = Number.parseFloat(
+      leadCard?.style.getPropertyValue('--portfolio-card-route-entrance-scale') || '0'
+    );
+    return Boolean(
+      (document.documentElement.dataset.absTransitionPhase || '') === 'route-in'
+      && mount?.dataset.portfolioEntrancePhase === 'entering'
+      && mount.dataset.portfolioInputReleaseState === 'ready'
+      && mount.dataset.portfolioInputReleaseReason === 'lead-card-visible'
+      && leadScale >= 0.08
+      && !mount.inert
+      && !wall?.inert
+    );
+  }, null, { timeout: WAIT_MS, polling: 'raf' });
+
+  const readState = () => page.evaluate(() => {
+    const mount = document.getElementById('portfolioProjectMount');
+    const wall = document.getElementById('shell-wall-slot');
+    const leadCard = mount?.querySelector(
+      '.portfolio-project-card[data-portfolio-reveal-rank="0"]'
+    );
+    const deck = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    return {
+      routePhase: document.documentElement.dataset.absTransitionPhase || '',
+      entrancePhase: mount?.dataset.portfolioEntrancePhase || '',
+      inputState: mount?.dataset.carouselInputState || '',
+      releaseState: mount?.dataset.portfolioInputReleaseState || '',
+      releaseReason: mount?.dataset.portfolioInputReleaseReason || '',
+      mountInert: Boolean(mount?.inert),
+      wallInert: Boolean(wall?.inert),
+      pointerEvents: mount ? getComputedStyle(mount).pointerEvents : '',
+      leadScale: Number.parseFloat(
+        leadCard?.style.getPropertyValue('--portfolio-card-route-entrance-scale') || '0'
+      ),
+      targetPosition: Number(deck?.targetPosition || 0),
+      displayPosition: Number(deck?.displayPosition || 0),
+    };
+  });
+
+  const before = await readState();
+  assert(before.entrancePhase === 'entering', 'Portfolio input released after its entrance completed', before);
+  assert(before.mountInert === false, 'Portfolio deck remained inert after its lead card appeared', before);
+  assert(before.wallInert === false, 'Portfolio wall remained inert after its lead card appeared', before);
+  assert(before.pointerEvents !== 'none', 'Portfolio deck still blocked pointer input after its lead card appeared', before);
+
+  const stage = page.locator('.portfolio-deck-stage');
+  const stageRect = await stage.boundingBox();
+  assert(stageRect, 'Portfolio deck stage had no interactive geometry during entrance', before);
+  await page.mouse.move(
+    stageRect.x + (stageRect.width / 2),
+    stageRect.y + (stageRect.height / 2),
+  );
+  await page.mouse.wheel(0, 700);
+  await page.waitForFunction((initialTarget) => {
+    const deck = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    return Math.abs(Number(deck?.targetPosition || 0) - initialTarget) > 0.01;
+  }, before.targetPosition, { timeout: 2000, polling: 'raf' });
+
+  const after = await readState();
+  assert(
+    Math.abs(after.targetPosition - before.targetPosition) > 0.01,
+    'Portfolio ignored wheel input after its lead card appeared',
+    { before, after },
+  );
+  return { before, after };
+}
+
 async function waitForTransitionObserved(page) {
   await page.waitForFunction(() => {
     const phase = document.documentElement.dataset.absTransitionPhase || 'idle';
@@ -1396,6 +1469,7 @@ async function runTransition(page, {
 }) {
   await startRafRecorder(page, { fromRouteId, toRouteId: step.id, label });
   let trace = null;
+  let portfolioInputProbe = null;
   try {
     await activate();
     // A destination can commit in the same task that schedules the shell phase.
@@ -1403,8 +1477,12 @@ async function runTransition(page, {
     // the RAF recorder while the visible transition is only just beginning.
     await waitForTransitionObserved(page);
     await afterActivate?.();
+    if (step.id === 'portfolio' && !REDUCED_MOTION) {
+      portfolioInputProbe = await probePortfolioInputDuringEntrance(page);
+    }
     await waitForTargetSettled(page, step);
     trace = await stopRafRecorder(page);
+    if (portfolioInputProbe) trace.portfolioInputProbe = portfolioInputProbe;
     assertTransitionTrace(trace, { requireRouteOut, allowIndicatorReversal });
     return trace;
   } catch (error) {
