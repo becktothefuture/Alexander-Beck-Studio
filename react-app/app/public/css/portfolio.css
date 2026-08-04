@@ -835,7 +835,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
     var(--portfolio-deck-card-height-fluid),
     var(--portfolio-deck-card-height-max)
   );
-  --portfolio-card-contact-shadow-opacity: 0.16;
+  --portfolio-card-contact-shadow-opacity: 0;
   --portfolio-card-top-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 1.28);
   --portfolio-card-bottom-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 0.22);
   --portfolio-card-contact-shadow:
@@ -1167,9 +1167,9 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   border-radius: inherit;
   background: linear-gradient(
     to bottom,
-    rgba(1, 6, 15, 0) 50%,
-    rgba(1, 6, 15, 0.75) 75%,
-    rgba(1, 6, 15, 0.9) 100%
+    rgba(1, 6, 15, 0) 48%,
+    rgba(1, 6, 15, 0.58) 76%,
+    rgba(1, 6, 15, 0.82) 100%
   );
   pointer-events: none;
 }
@@ -1394,7 +1394,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   flex-direction: column;
   align-content: start;
   justify-items: start;
-  gap: calc(12px * var(--portfolio-card-content-scale));
+  gap: calc(8px * var(--portfolio-card-content-scale));
   padding: 0;
   max-width: none;
   pointer-events: none;
@@ -1403,13 +1403,13 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-card__client {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: calc(15px * var(--portfolio-card-content-scale));
+  font-size: calc(12px * var(--portfolio-card-content-scale));
   font-weight: 600;
-  line-height: calc(20.531px * var(--portfolio-card-content-scale));
-  letter-spacing: 0.3px;
+  line-height: calc(16px * var(--portfolio-card-content-scale));
+  letter-spacing: 0.18px;
   text-transform: none;
   color: #f5f1ea;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.24);
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.16);
 }
 
 .portfolio-deck-mount .portfolio-project-label__text,
@@ -1421,12 +1421,12 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   padding: 0;
   text-align: left;
   font-family: var(--abs-font-sans);
-  font-size: calc(29px * var(--portfolio-card-content-scale));
+  font-size: calc(23px * var(--portfolio-card-content-scale));
   font-weight: 500;
-  line-height: calc(32px * var(--portfolio-card-content-scale));
-  letter-spacing: 0;
+  line-height: calc(26px * var(--portfolio-card-content-scale));
+  letter-spacing: -0.01em;
   color: #f5f1ea;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.26);
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.18);
   overflow-wrap: normal;
   text-wrap: balance;
 }
@@ -2728,7 +2728,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
     bottom: clamp(24px, 6.5%, 30px);
     left: clamp(16px, 5vw, 20px);
     width: calc(100% - clamp(32px, 10vw, 40px));
-    gap: 12px;
+    gap: 8px;
     max-width: none;
     min-height: 0;
     padding: 0;
@@ -2742,7 +2742,7 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   .portfolio-deck-mount .portfolio-project-label__text,
   .portfolio-project-card__title {
     max-width: 100%;
-    font-size: clamp(1.38rem, 6.4vw, 1.82rem);
+    font-size: clamp(1.18rem, 5.2vw, 1.46rem);
     line-height: 1.08;
   }
 
@@ -2795,8 +2795,8 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
   }
 
   .portfolio-project-card__client {
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 12px;
+    line-height: 16px;
   }
 
   .portfolio-project-card__tags {
@@ -2805,8 +2805,8 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
   .portfolio-deck-mount .portfolio-project-label__text,
   .portfolio-project-card__title {
-    font-size: clamp(1.36rem, 6.2vw, 1.75rem);
-    line-height: 1.1;
+    font-size: clamp(1.16rem, 5.1vw, 1.38rem);
+    line-height: 1.08;
   }
 
   .portfolio-project-view__title {

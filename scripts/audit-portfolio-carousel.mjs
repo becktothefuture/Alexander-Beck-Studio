@@ -75,8 +75,12 @@ async function waitForCarousel(page, { isolateAtmosphere = true } = {}) {
   await page.waitForFunction(
     () => {
       const description = document.querySelector('.portfolio-deck-intro__body');
+      const expectedOpacity = Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--route-intro-description-opacity')
+      );
       return description
-        && Math.abs(Number.parseFloat(getComputedStyle(description).opacity) - 0.64) <= 0.01;
+        && Number.isFinite(expectedOpacity)
+        && Math.abs(Number.parseFloat(getComputedStyle(description).opacity) - expectedOpacity) <= 0.01;
     },
     null,
     { timeout: WAIT_MS }
@@ -375,6 +379,9 @@ async function collectGeometry(page) {
       introDescriptionOpacity: intro
         ? Number.parseFloat(getComputedStyle(intro.querySelector('.portfolio-deck-intro__body')).opacity)
         : null,
+      introDescriptionExpectedOpacity: Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--route-intro-description-opacity')
+      ),
       activeCardWidth: activeCardRect ? Number(activeCardRect.width.toFixed(3)) : null,
       activeCardHeight: activeCardRect ? Number(activeCardRect.height.toFixed(3)) : null,
       activeCardTopDvh: activeCardRect
@@ -1352,7 +1359,13 @@ async function main() {
       if (result.geometry.overlaps.length) failures.push(`${name}: ${result.geometry.overlaps.length} visible overlap(s)`);
       if (result.geometry.cardCtaCount !== 0) failures.push(`${name}: card View CTAs are still rendered`);
       if (/[.!?]$/.test(result.geometry.introTitleText)) failures.push(`${name}: intro title still has terminal punctuation`);
-      if (Math.abs((result.geometry.introDescriptionOpacity ?? 0) - 0.64) > 0.01) {
+      if (
+        !Number.isFinite(result.geometry.introDescriptionExpectedOpacity)
+        || Math.abs(
+          (result.geometry.introDescriptionOpacity ?? 0)
+          - result.geometry.introDescriptionExpectedOpacity
+        ) > 0.01
+      ) {
         failures.push(`${name}: intro description opacity does not match Contact`);
       }
       if (result.geometry.activeSeatDeltaY === null || result.geometry.activeSeatDeltaY > 1) {

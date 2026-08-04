@@ -143,10 +143,10 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   largeViewportGroupOffsetHeightEndPx: 1800,
   largeViewportGroupOffsetMaxDvh: 6,
   perspectivePx: 1600,
-  pathRadiusPx: 2600,
-  mobilePathRadiusPx: 820,
-  angleStepDeg: 10.25,
-  mobileAngleStepDeg: 13.5,
+  pathRadiusPx: 8000,
+  mobilePathRadiusPx: 3200,
+  angleStepDeg: 3.3,
+  mobileAngleStepDeg: 4.5,
   sideRotationDeg: 10,
   farRotationDeg: 22,
   sideScale: 0.985,
@@ -173,7 +173,7 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reappearFade: 0.12,
   exitScale: 1.045,
   exitBlurPx: 3.2,
-  contactShadowOpacity: 0.12,
+  contactShadowOpacity: 0,
   particleField: Object.freeze({
     idleOpacity: 0,
     fastOpacity: 0.26,
@@ -188,8 +188,8 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
 });
 
 const PORTFOLIO_DECK_INTRO_FALLBACK = Object.freeze({
-  title: 'Selected Work',
-  body: 'Projects from early concepts to shipped websites, apps, tools, and platforms.',
+  title: 'Work',
+  body: 'Selected projects from early concepts to shipped websites, apps, tools, and platforms.',
 });
 const PORTFOLIO_CARD_DARK_INK = Object.freeze({
   css: '#111111',
@@ -1727,13 +1727,13 @@ class PortfolioScrollApp {
     );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
     const configuredPathRadius = lerp(
-      clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 1400),
-      clamp(toNumber(this.deckOptions.pathRadiusPx, PORTFOLIO_DECK_DEFAULTS.pathRadiusPx), 900, 3200),
+      clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 6000),
+      clamp(toNumber(this.deckOptions.pathRadiusPx, PORTFOLIO_DECK_DEFAULTS.pathRadiusPx), 900, 12000),
       responsiveT
     );
     const configuredAngleStepDeg = lerp(
-      clamp(toNumber(this.deckOptions.mobileAngleStepDeg, PORTFOLIO_DECK_DEFAULTS.mobileAngleStepDeg), 7, 24),
-      clamp(toNumber(this.deckOptions.angleStepDeg, PORTFOLIO_DECK_DEFAULTS.angleStepDeg), 6, 18),
+      clamp(toNumber(this.deckOptions.mobileAngleStepDeg, PORTFOLIO_DECK_DEFAULTS.mobileAngleStepDeg), 2, 24),
+      clamp(toNumber(this.deckOptions.angleStepDeg, PORTFOLIO_DECK_DEFAULTS.angleStepDeg), 1.5, 18),
       responsiveT
     );
     const sideRotationDeg = clamp(toNumber(this.deckOptions.sideRotationDeg, PORTFOLIO_DECK_DEFAULTS.sideRotationDeg), 0, 24);
