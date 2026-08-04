@@ -17,7 +17,7 @@ export function setupBuildControls(options = {}) {
 
     try {
       const result = await performDesignSystemSave();
-      btn.textContent = result.saved ? '✓ Updated' : 'Downloaded JSON';
+      btn.textContent = result.saved ? '✓ Saved & Applied' : 'Downloaded JSON';
     } catch (e) {
       btn.textContent = 'Update Failed';
     } finally {

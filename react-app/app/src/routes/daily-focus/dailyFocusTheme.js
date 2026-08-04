@@ -10,6 +10,12 @@ import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 
 export const DAILY_FOCUS_DESIGN_SYSTEM_URL = withBasePath('/config/design-system.json');
 
+// Vite embeds this only in the production bundle. Other JSON-backed lab
+// simulations still load their own authored demo files as before.
+const PRODUCTION_DESIGN_SYSTEM_CONFIG = typeof __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__ === 'undefined'
+  ? null
+  : __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__;
+
 const dailyFocusJsonPromises = new Map();
 
 const INITIAL_PALETTE_SNAPSHOT = getSimulationPaletteSnapshot();
@@ -62,6 +68,9 @@ export function prewarmDailyFocusJson(url, { signal } = {}) {
 }
 
 export async function loadDailyFocusJson(url, fallback) {
+  if (url === DAILY_FOCUS_DESIGN_SYSTEM_URL && PRODUCTION_DESIGN_SYSTEM_CONFIG) {
+    return PRODUCTION_DESIGN_SYSTEM_CONFIG;
+  }
   try {
     return await requestDailyFocusJson(url);
   } catch {

@@ -6,12 +6,12 @@
 
 ## Generated design outputs
 
-- `default-config.json` — generated runtime settings for the homepage simulation.
-- `shell-config.json` — generated shared shell/surface/layout settings.
-- `portfolio-config.json` — generated portfolio-specific tuning.
+- `default-config.json` — generated runtime settings for development and compatibility previews.
+- `shell-config.json` — generated shared shell/surface/layout settings for development and compatibility previews.
+- `portfolio-config.json` — generated portfolio-specific tuning for development and compatibility previews.
 - `cv-config.json` — retained generated-schema compatibility output; there is no live CV route.
 
-These generated files exist for runtime compatibility and build output. Do not treat them as the primary source of truth.
+These generated files exist for development and compatibility previews. Production builds embed one immutable snapshot of `design-system.json` in the JavaScript bundle, so the final site does not request these design-control files at runtime. Do not treat generated files as the primary source of truth.
 
 ## Content files
 
@@ -26,6 +26,7 @@ Playground starts with 30 explicit placeholders: 18 image, 6 video, and 6 local 
 
 - Save design changes through the canonical `design-system.json` flow.
 - Run builds from the repo root, not only from `react-app/app`, so `flatten:design-config` always runs before `vite build`.
+- Save applies the already-live tuned state and persists it through the development authoring API. The server regenerates all compatibility files and triggers a full reload so the canonical saved values are the active source after reload.
 - A design control is only complete when it supports:
   - live apply in dev
   - canonical save into `design-system.json`

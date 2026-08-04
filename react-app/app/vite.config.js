@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
@@ -11,6 +12,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicConfigDir = resolve(__dirname, 'public/config');
+const designSystemConfigPath = resolve(publicConfigDir, 'design-system.json');
 const VIRTUAL_CONTENT_PREFIX = '\0virtual:abs-content/';
 const CONTENT_MODULES = {
   'virtual:abs-content/home': resolve(publicConfigDir, 'contents-home.json'),
@@ -71,7 +73,15 @@ function publicDevGuardPlugin() {
   };
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  // The editor reads the canonical file in development. A production build
+  // captures the normalized settings here, so the shipped runtime has no
+  // design-config fetch or mutable control source to resolve.
+  const productionDesignSystem = mode === 'production'
+    ? JSON.parse(readFileSync(designSystemConfigPath, 'utf8'))
+    : null;
+
+  return {
   base: '/',
   plugins: [
     react(),
@@ -102,6 +112,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     __DEV__: mode === 'development' && process.env.ABS_PUBLIC_DEV !== '1',
     __CERTIFY__: mode === 'certification',
+    __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__: JSON.stringify(productionDesignSystem),
   },
   server: process.env.ABS_PUBLIC_DEV === '1'
     ? {
@@ -149,4 +160,5 @@ export default defineConfig(({ mode }) => ({
       }
     }
   }
-}));
+  };
+});

@@ -19,7 +19,7 @@ export function setupBuildControls(config, options = {}) {
     try {
       const portfolioSnapshot = buildConfigSnapshot(config, { uiDocument });
       const result = await performDesignSystemSave({ portfolioSnapshot });
-      btn.textContent = result.saved ? 'Saved Design JSON' : 'Downloaded Design JSON';
+      btn.textContent = result.saved ? 'Saved & Applied' : 'Downloaded Design JSON';
     } catch (e) {
       btn.textContent = 'Design Save Failed';
     } finally {

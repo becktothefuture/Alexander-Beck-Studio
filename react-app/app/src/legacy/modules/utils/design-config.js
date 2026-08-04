@@ -62,6 +62,13 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
 let designSystemPromise = null;
 const legacyConfigPromises = new Map();
 
+// Replaced by Vite with the canonical snapshot only for a production build.
+// Development deliberately keeps this null so the authoring panel can reload
+// the source file after every save.
+const PRODUCTION_DESIGN_SYSTEM_CONFIG = typeof __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__ === 'undefined'
+  ? null
+  : __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__;
+
 function loadCachedLegacyConfig(cacheKey, inlineKey, paths) {
   const inline = readInlineObject(inlineKey);
   if (inline) return Promise.resolve(inline);
@@ -608,6 +615,13 @@ async function loadFallbackDesignSystem() {
 export async function loadDesignSystemConfig() {
   if (designSystemPromise) return designSystemPromise;
 
+  if (PRODUCTION_DESIGN_SYSTEM_CONFIG) {
+    designSystemPromise = Promise.resolve(
+      normalizeDesignSystemConfig(PRODUCTION_DESIGN_SYSTEM_CONFIG),
+    );
+    return designSystemPromise;
+  }
+
   const inline = readInlineObject('__DESIGN_SYSTEM_CONFIG__');
   if (inline) {
     designSystemPromise = Promise.resolve(normalizeDesignSystemConfig(inline));
@@ -659,7 +673,9 @@ export function deriveLegacyConfigFiles(designSystem = {}) {
 }
 
 export function shouldUseCanonicalDesignConfig() {
-  return Boolean(readInlineObject('__DESIGN_SYSTEM_CONFIG__')) || detectDevConfigMode();
+  return Boolean(PRODUCTION_DESIGN_SYSTEM_CONFIG)
+    || Boolean(readInlineObject('__DESIGN_SYSTEM_CONFIG__'))
+    || detectDevConfigMode();
 }
 
 export async function loadLegacyRuntimeConfig() {
