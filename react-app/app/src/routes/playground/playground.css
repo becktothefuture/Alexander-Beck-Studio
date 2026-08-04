@@ -236,11 +236,6 @@
   outline: none;
 }
 
-.playground-route .playground-title-lockup .route-centered-page__title:focus-visible {
-  outline: var(--playground-focus-width) solid var(--text-primary);
-  outline-offset: var(--playground-focus-offset);
-}
-
 .playground-route .playground-drag-instruction {
   position: absolute;
   inset-block-start: calc(100% + clamp(0.5rem, 1.2svh, 0.75rem));

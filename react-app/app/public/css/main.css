@@ -5673,6 +5673,14 @@ body.dark-mode {
   outline: none;
 }
 
+/* Route headings receive programmatic focus after keyboard and history
+   navigation. Keep that announcement handoff visually neutral. */
+[data-route-focus-target]:focus,
+[data-route-focus-target]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 :where(
   a[href],
   button:not(:disabled),
