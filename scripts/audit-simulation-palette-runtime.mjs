@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
 
-import { getLondonWeatherPalette } from '../react-app/app/src/palette/londonPalettes.js';
+import { getLondonPalette } from '../react-app/app/src/palette/londonPalettes.js';
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -20,7 +20,7 @@ if (!['chromium', 'webkit'].includes(browserName)) {
 }
 
 const surfaces = [
-  { id: 'home', path: '/index.html?mode=pit&absAudit=palette' },
+  { id: 'home', path: '/index.html?mode=pit&absAudit=1' },
   { id: 'portfolio', path: '/portfolio.html' },
   { id: 'about', path: '/about.html' },
   { id: 'contact', path: '/contact.html' },
@@ -103,7 +103,8 @@ async function waitForSurface(page, surfaceId) {
       || atmosphere.paletteGeneration !== snapshot.generation
     ) return false;
     if (id === 'home') {
-      return document.getElementById('c')?.dataset.simulationPaletteGeneration === String(snapshot.generation);
+      return document.getElementById('c')?.dataset.simulationPaletteGeneration === String(snapshot.generation)
+        && Boolean(window.__ABS_HOME_AUDIT__?.getGlobals?.());
     }
     if (id === 'portfolio') {
       const deck = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
@@ -113,8 +114,11 @@ async function waitForSurface(page, surfaceId) {
     }
     if (id === 'about') {
       const world = document.querySelector('.about-narrative-lab');
-      return world?.dataset.pointWorldState === 'ready'
-        && world.dataset.simulationPaletteGeneration === String(snapshot.generation);
+      if (world) {
+        return world.dataset.pointWorldState === 'ready'
+          && world.dataset.simulationPaletteGeneration === String(snapshot.generation);
+      }
+      return Boolean(document.getElementById('about-coming-soon-title'));
     }
     if (id === 'contact') {
       const stage = document.querySelector('[data-contact-ripple-stage]');
@@ -144,10 +148,10 @@ async function inspectSurface(page, surfaceId) {
     const atmosphere = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null;
     let consumer = null;
     if (id === 'home') {
-      const globals = (await import('/src/legacy/modules/core/state.js')).getGlobals();
+      const globals = window.__ABS_HOME_AUDIT__?.getGlobals?.();
       consumer = {
         generation: Number(globals.simulationPaletteGeneration || 0),
-        paletteId: globals.currentTemplate,
+        paletteId: globals.currentPaletteId,
         colors: globals.currentColors?.slice?.() || [],
         distribution: globals.colorDistribution?.map?.((row) => ({ ...row })) || [],
       };
@@ -155,11 +159,18 @@ async function inspectSurface(page, surfaceId) {
       consumer = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()
         ?.getDeckDebugSnapshot?.()?.particleField || null;
     } else if (id === 'about') {
-      consumer = {
-        generation: Number(document.querySelector('.about-narrative-lab')?.dataset.simulationPaletteGeneration || 0),
-        paletteId: document.querySelector('.about-narrative-lab')?.dataset.simulationPaletteId || '',
-        runtime: window.__aboutNarrativeRuntime?.getDiagnosticsSnapshot?.() || null,
-      };
+      const world = document.querySelector('.about-narrative-lab');
+      consumer = world
+        ? {
+          generation: Number(world.dataset.simulationPaletteGeneration || 0),
+          paletteId: world.dataset.simulationPaletteId || '',
+          runtime: window.__aboutNarrativeRuntime?.getDiagnosticsSnapshot?.() || null,
+        }
+        : {
+          generation: Number(atmosphere?.paletteGeneration || 0),
+          paletteId: atmosphere?.paletteId || '',
+          runtime: null,
+        };
     } else if (id === 'contact') {
       consumer = {
         generation: Number(document.querySelector('[data-contact-ripple-stage]')?.dataset.simulationPaletteGeneration || 0),
@@ -252,7 +263,7 @@ async function main() {
     await page.clock.install({ time: new Date(2026, 6, 18, 0, 30, 0, 0) });
     for (const period of TIME_OF_DAY_PALETTE_PERIODS) {
       await page.clock.setSystemTime(new Date(2026, 6, 18, period.startHour, 30, 0, 0));
-      const expectedColors = getLondonWeatherPalette(period.paletteId)?.light;
+      const expectedColors = getLondonPalette(period.paletteId)?.light;
       assert(expectedColors?.length === 8, `Missing catalogue palette ${period.paletteId}`);
       for (const surface of surfaces) {
         console.log(`[palette-runtime] browser=${browserName} period=${period.id} surface=${surface.id}`);

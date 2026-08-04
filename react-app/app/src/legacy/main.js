@@ -723,7 +723,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         }
         const colors = await import('./modules/visual/colors.js');
         if (!isCurrent()) return cleanup;
-        colors.populateColorSelect?.();
+        colors.populateScheduledPaletteSelect?.();
         updateModeButtonsUI?.(startMode);
       } catch (e) { /* The local preview panel is optional to Home runtime readiness. */ }
     }

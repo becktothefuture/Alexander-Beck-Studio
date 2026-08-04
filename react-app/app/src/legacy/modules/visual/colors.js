@@ -1,14 +1,11 @@
 import { getGlobals } from '../core/state.js';
 import { forEachPanelUiDocument } from '../ui/panel-ui-context.js';
 import {
-  DEFAULT_LONDON_WEATHER_PALETTE_ID,
-  LONDON_WEATHER_PALETTES,
-  getLondonWeatherPaletteAccents,
-  resolveLondonWeatherPaletteId,
+  DEFAULT_LONDON_PALETTE_ID,
+  LONDON_PALETTES,
+  getLondonPaletteAccents,
+  resolveLondonPaletteId,
 } from '../../../palette/londonPalettes.js';
-import {
-  TIME_OF_DAY_PALETTE_PERIODS,
-} from '../../../palette/timeOfDayPalette.js';
 import {
   FALLBACK_SIMULATION_PALETTE_COLORS,
   resolveSimulationColorDistribution,
@@ -18,12 +15,6 @@ import {
   getSimulationPaletteSnapshot,
   selectSimulationMaterialRole,
 } from '../../../palette/simulationPaletteController.js';
-
-function clamp01(t) {
-  const n = Number(t);
-  if (!Number.isFinite(n)) return 0;
-  return n < 0 ? 0 : n > 1 ? 1 : n;
-}
 
 function hexToRgb255(hex) {
   const h = String(hex || '').trim();
@@ -53,46 +44,11 @@ function hexToRgbaString(hex, alpha = 1) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
-function hsvToRgb01({ h, s, v }) {
-  const hh = ((Number(h) % 360) + 360) % 360;
-  const ss = clamp01(s);
-  const vv = clamp01(v);
-
-  const c = vv * ss;
-  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
-  const m = vv - c;
-
-  let rr, gg, bb;
-  if (hh < 60) { rr = c; gg = x; bb = 0; }
-  else if (hh < 120) { rr = x; gg = c; bb = 0; }
-  else if (hh < 180) { rr = 0; gg = c; bb = x; }
-  else if (hh < 240) { rr = 0; gg = x; bb = c; }
-  else if (hh < 300) { rr = x; gg = 0; bb = c; }
-  else { rr = c; gg = 0; bb = x; }
-
-  return { r: rr + m, g: gg + m, b: bb + m };
-}
-
 function clamp255(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return 0;
   return x < 0 ? 0 : x > 255 ? 255 : x;
 }
-
-export const COLOR_TEMPLATES = {
-  ...LONDON_WEATHER_PALETTES.reduce((acc, palette) => {
-    acc[palette.id] = {
-      label: palette.label,
-      light: palette.light.slice(),
-      dark: palette.dark.slice(),
-    };
-    return acc;
-  }, {})
-};
-
-export const PALETTE_CHAPTER_ORDER = TIME_OF_DAY_PALETTE_PERIODS.map(
-  (period) => period.paletteId,
-);
 
 let distributionCoverageKey = '';
 let distributionCoverageCursor = 0;
@@ -150,15 +106,6 @@ export function resetColorDistributionCoverage() {
   distributionCoverageKey = '';
   distributionCoverageCursor = 0;
   distributionCoverageOrder = [];
-}
-
-export function resolveColorTemplateName(templateName) {
-  return resolveLondonWeatherPaletteId(templateName) || DEFAULT_LONDON_WEATHER_PALETTE_ID;
-}
-
-export function getTimeOfDayPaletteTemplate() {
-  return resolveLondonWeatherPaletteId(getSimulationPaletteSnapshot().paletteId)
-    || DEFAULT_LONDON_WEATHER_PALETTE_ID;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -581,19 +528,9 @@ function normalizeHexKey(hex) {
   return rgb255ToHex(rgb).toLowerCase();
 }
 
-/** Distinct greys when the live palette runs out of unique neutrals (portfolio pit only). */
-const PORTFOLIO_GREY_FALLBACKS = [
-  '#6b7670',
-  '#8a9390',
-  '#4a5550',
-  '#a3aba7',
-  '#3d4743',
-  '#b8c0bc'
-];
-
 /**
- * One unique fill per portfolio project: chromatic palette slots first, then neutrals/greys
- * from the same palette (deduped), then stepped greys. Avoids repeating the same accent hue.
+ * Use every approved material role before repeating the current London palette.
+ * The portfolio never invents colours when the project count exceeds eight.
  */
 export function getPortfolioProjectPaletteColor(index, projectCount) {
   const n = Math.max(1, Math.floor(Number(projectCount)) || 1);
@@ -604,15 +541,12 @@ export function getPortfolioProjectPaletteColor(index, projectCount) {
 
 function buildPortfolioProjectColorSequence(projectCount) {
   const globals = getGlobals();
-  const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
-
-  if (!colors.length) {
-    const out = [];
-    for (let i = 0; i < projectCount; i += 1) {
-      out.push(getGeneratedPortfolioFallbackColor(i));
-    }
-    return out;
-  }
+  const activeColors = Array.isArray(globals.currentColors)
+    ? globals.currentColors.filter(Boolean)
+    : [];
+  const colors = activeColors.length
+    ? activeColors
+    : FALLBACK_SIMULATION_PALETTE_COLORS;
 
   const out = [];
   const seen = new Set();
@@ -630,15 +564,9 @@ function buildPortfolioProjectColorSequence(projectCount) {
     if (out.length >= projectCount) return out;
   }
 
-  for (let i = 0; i < PORTFOLIO_GREY_FALLBACKS.length; i += 1) {
-    addUniquePortfolioProjectColor(out, seen, PORTFOLIO_GREY_FALLBACKS[i]);
-    if (out.length >= projectCount) return out;
-  }
-
-  let fallbackIndex = 0;
-  while (out.length < projectCount) {
-    addUniquePortfolioProjectColor(out, seen, getGeneratedPortfolioFallbackColor(fallbackIndex));
-    fallbackIndex += 1;
+  const approvedSequence = out.slice();
+  for (let i = out.length; i < projectCount; i += 1) {
+    out.push(approvedSequence[i % approvedSequence.length]);
   }
   return out;
 }
@@ -652,20 +580,10 @@ function addUniquePortfolioProjectColor(out, seen, color) {
   return true;
 }
 
-function getGeneratedPortfolioFallbackColor(index) {
-  const hue = ((Math.abs(Math.floor(index)) * 137.508) + 24) % 360;
-  const rgb = hsvToRgb01({ h: hue, s: 0.58, v: 0.7 });
-  return rgb255ToHex({
-    r: Math.round(rgb.r * 255),
-    g: Math.round(rgb.g * 255),
-    b: Math.round(rgb.b * 255),
-  });
-}
-
 export function getProjectPaletteColor(index) {
   const globals = getGlobals();
   const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
-  if (!colors.length) return '#1b7f6e';
+  if (!colors.length) return FALLBACK_SIMULATION_PALETTE_COLORS[3];
 
   const chromatic = [];
   const neutrals = [];
@@ -687,11 +605,11 @@ export function getProjectPaletteColor(index) {
   return colors[Math.abs(Math.floor(index)) % colors.length] || colors[0];
 }
 
-function applyPaletteTheme(templateName) {
+function applyPaletteAccents(paletteId) {
   const globals = getGlobals();
   const root = document.documentElement;
   const isDark = Boolean(globals.isDarkMode);
-  const accents = getLondonWeatherPaletteAccents(templateName);
+  const accents = getLondonPaletteAccents(paletteId);
   if (!accents || !root) return;
 
   globals.linkHoverColor = accents.linkHoverColor || globals.linkHoverColor;
@@ -726,7 +644,7 @@ function projectSimulationPaletteSnapshot(snapshot, { force = false } = {}) {
   const globals = getGlobals();
   if (!snapshot || (!force && snapshot.generation === globals.simulationPaletteGeneration)) return;
 
-  globals.currentTemplate = snapshot.paletteId;
+  globals.currentPaletteId = snapshot.paletteId;
   globals.currentColors = snapshot.colors.slice();
   globals.colorDistribution = snapshot.distribution.map((row) => ({ ...row }));
   globals.simulationPaletteGeneration = snapshot.generation;
@@ -735,11 +653,11 @@ function projectSimulationPaletteSnapshot(snapshot, { force = false } = {}) {
     globals.canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
     globals.canvas.dataset.simulationPaletteId = snapshot.paletteId;
   }
-  applyPaletteTheme(snapshot.paletteId);
+  applyPaletteAccents(snapshot.paletteId);
 
   try {
     forEachPanelUiDocument((uiDocument) => {
-      const select = uiDocument.getElementById('colorSelect');
+      const select = uiDocument.getElementById('scheduledPaletteSelect');
       if (select) select.value = snapshot.paletteId;
     });
   } catch (_) { /* no-op */ }
@@ -830,22 +748,20 @@ function updateColorPickersUI() {
   });
 }
 
-export function populateColorSelect() {
+export function populateScheduledPaletteSelect() {
   const globals = getGlobals();
   forEachPanelUiDocument((uiDocument) => {
-    const select = uiDocument.getElementById('colorSelect');
+    const select = uiDocument.getElementById('scheduledPaletteSelect');
     if (!select) return;
 
     select.innerHTML = '';
-    for (const key of PALETTE_CHAPTER_ORDER) {
-      const template = COLOR_TEMPLATES[key];
-      if (!template) continue;
+    for (const palette of LONDON_PALETTES) {
       const option = uiDocument.createElement('option');
-      option.value = key;
-      option.textContent = template.label;
+      option.value = palette.id;
+      option.textContent = palette.label;
       select.appendChild(option);
     }
 
-    select.value = resolveColorTemplateName(globals.currentTemplate);
+    select.value = resolveLondonPaletteId(globals.currentPaletteId) || DEFAULT_LONDON_PALETTE_ID;
   });
 }

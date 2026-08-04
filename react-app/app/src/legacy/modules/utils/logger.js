@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
 
 /**
  * Design goals:
@@ -84,18 +85,9 @@ export function isDev() {
   return devMode;
 }
 
-// Fallback color palette (River Mist light mode) - used if currentColors not available
+// Use the approved default palette if runtime state is not ready yet.
 // Weights: 50%, 25%, 12%, 6%, 3%, 2%, 1%, 1%
-const FALLBACK_CONSOLE_COLORS = [
-  "var(--color-detected-a4aba8)", // river grey (dominant)
-  "var(--color-detected-c9cfcb)", // light stone
-  "var(--color-detected-f7f5ef)", // gallery white
-  "var(--color-detected-5e857f)", // misted green
-  "var(--color-detected-121416)", // ink
-  "var(--color-detected-d36e4b)", // terracotta accent
-  "var(--color-detected-5c7c96)", // Thames blue
-  "var(--color-detected-d2ad62)", // brass
-];
+const FALLBACK_CONSOLE_COLORS = FALLBACK_SIMULATION_PALETTE_COLORS;
 const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 
 /**

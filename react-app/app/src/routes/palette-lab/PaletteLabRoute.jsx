@@ -38,7 +38,7 @@ export function getPaletteLabRouteView() {
       </header>
     ),
     mainContent: (
-      <main className="ui-center-spacer palette-lab-main" aria-label="London weather palette review">
+      <main className="ui-center-spacer palette-lab-main" aria-label="Approved London colour system">
         <Suspense fallback={null}>
           <PaletteLabExperience />
         </Suspense>

@@ -19,7 +19,7 @@ import {
   configureSimulationPalette,
   getSimulationPaletteSnapshot,
 } from '../../../palette/simulationPaletteController.js';
-import { getLondonWeatherPaletteAccents } from '../../../palette/londonPalettes.js';
+import { getLondonPaletteAccents } from '../../../palette/londonPalettes.js';
 import { SIMULATION_MATERIAL_ROLE_COUNT } from '../../../palette/simulationPaletteContract.js';
 import {
   BUTTON_BAR_DEFAULTS,
@@ -36,7 +36,7 @@ import {
 } from '../modes/cube3d-config.js';
 
 const initialSimulationPalette = getSimulationPaletteSnapshot();
-const timeOfDayAccents = getLondonWeatherPaletteAccents(initialSimulationPalette.paletteId) || {};
+const initialPaletteAccents = getLondonPaletteAccents(initialSimulationPalette.paletteId) || {};
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
@@ -250,7 +250,7 @@ const state = {
   // - `cursorColorHex`: resolved hex string stamped into CSS (--cursor-color) and used by the trail.
   cursorColorMode: 'auto',
   cursorColorIndex: 5,
-  cursorColorHex: '#f03030',
+  cursorColorHex: initialSimulationPalette.colors[5],
   // Relative luminance threshold (0..1). Higher = more permissive, lower = more contrasty.
   // Cursor must never be white / light greys; we filter aggressively by default.
   cursorColorLumaMax: 0.62,
@@ -463,7 +463,7 @@ const state = {
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
   currentColors: initialSimulationPalette.colors.slice(),
-  currentTemplate: initialSimulationPalette.paletteId,
+  currentPaletteId: initialSimulationPalette.paletteId,
   // Color Distribution (labels ↔ palette indices ↔ weights)
   // Used by `pickRandomColor()` for ALL modes.
   // Six disciplines choose six distinct palette indices; authored weights remain canonical.
@@ -726,7 +726,7 @@ const state = {
   edgeCaptionDistanceMinPx: 8,
   edgeCaptionDistanceMaxPx: 48,
   // Link Colors
-  linkHoverColor: timeOfDayAccents.linkHoverColor || '#f03030',          // Link hover accent (shared)
+  linkHoverColor: initialPaletteAccents.linkHoverColor || initialSimulationPalette.colors[5],
 
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
@@ -2102,10 +2102,6 @@ export function initState(config) {
     ...config,
   }));
 
-  // Link colors
-  if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;
-  else state.linkHoverColor = readTokenVar('--link-hover-color', state.linkHoverColor);
-
   // Link controls (hit areas + interaction)
   if (config.uiHitAreaMul !== undefined) {
     state.uiHitAreaMul = clampNumber(config.uiHitAreaMul, 0.5, 3.0, state.uiHitAreaMul);
@@ -2455,7 +2451,7 @@ export function setCanvas(canvas, ctx, container) {
   state.container = container;
   if (canvas?.dataset) {
     canvas.dataset.simulationPaletteGeneration = String(state.simulationPaletteGeneration || 0);
-    canvas.dataset.simulationPaletteId = state.currentTemplate || '';
+    canvas.dataset.simulationPaletteId = state.currentPaletteId || '';
   }
 }
 

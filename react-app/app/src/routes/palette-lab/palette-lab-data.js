@@ -1,4 +1,4 @@
-import { LONDON_WEATHER_PALETTES as BASE_PALETTES } from '../../palette/londonPalettes.js';
+import { LONDON_PALETTES as BASE_PALETTES } from '../../palette/londonPalettes.js';
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../../palette/timeOfDayPalette.js';
 
 const STRAPLINES_BY_ID = {
@@ -8,11 +8,11 @@ const STRAPLINES_BY_ID = {
   nightBusMesh: 'Bus red, display blue, sodium amber, and ticket-machine teal cross night glass.',
 };
 
-export const LONDON_WEATHER_PALETTES = BASE_PALETTES.map((palette) => ({
+export const APPROVED_LONDON_PALETTES = BASE_PALETTES.map((palette) => ({
   id: palette.id,
   slug: palette.slug,
   name: palette.label,
-  weather: palette.weather,
+  facet: palette.facet,
   personality: palette.personality,
   strapline: STRAPLINES_BY_ID[palette.id],
   schedule: TIME_OF_DAY_PALETTE_PERIODS.filter((period) => period.paletteId === palette.id),

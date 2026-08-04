@@ -2447,21 +2447,6 @@ export const CONTROL_SECTIONS = {
         }
       },
 
-      // ─── LINKS ───────────────────────────────────────────────────────────
-      { type: 'divider', label: 'Links' },
-      {
-        id: 'linkHoverColor',
-        label: 'Hover Accent',
-        stateKey: 'linkHoverColor',
-        type: 'color',
-        default: "var(--color-detected-f03030)",
-        hint: 'Link hover color (accent)',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--link-hover-color', val);
-        }
-      },
-      
       // ─── LOGO ────────────────────────────────────────────────────────────
       { type: 'divider', label: 'Logo' },
       {
@@ -5433,7 +5418,7 @@ export function generateThemeSectionHTML({ open = true } = {}) {
     </details>`;
 }
 
-export function generateColorTemplateSectionHTML({ open = false } = {}) {
+export function generateScheduledPaletteSectionHTML({ open = false } = {}) {
   return `
     <details class="panel-section-accordion" ${open ? 'open' : ''}>
       <summary class="panel-section-header">
@@ -5446,7 +5431,7 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
             <span class="control-label">Scheduled Palette</span>
             <span class="control-value"></span>
           </div>
-          <select id="colorSelect" aria-label="Current scheduled palette" disabled></select>
+          <select id="scheduledPaletteSelect" aria-label="Current scheduled palette" disabled></select>
         </label>
       </div>
     </details>`;
@@ -5803,7 +5788,7 @@ export function generatePanelHTML() {
     ${generateThemeSectionHTML({ open: true })}
     ${generateMasterSectionsHTML()}
     ${generateHomePanelHTML()}
-    ${generateColorTemplateSectionHTML({ open: false })}
+    ${generateScheduledPaletteSectionHTML({ open: false })}
     <div class="panel-footer">
       <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> switch modes
     </div>

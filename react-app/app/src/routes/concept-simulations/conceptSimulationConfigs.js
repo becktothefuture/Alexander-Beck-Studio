@@ -51,7 +51,6 @@ export const CONCEPT_SIMULATION_REGISTRY = Object.freeze({
       enabled: true,
       ballCount: 112,
       hubCount: 5,
-      colorPalette: 'site-weather',
       bodyRadius: 8.8,
       minRadius: 6.8,
       maxRadius: 11.8,
@@ -228,7 +227,6 @@ export function normalizeConceptSimulationConfig(simulationId, input = {}) {
     next.animationSpeed = clampNumber(next.animationSpeed, 0, 1.4, defaults.animationSpeed);
     next.bridgeArc = clampNumber(next.bridgeArc, 0, 0.62, defaults.bridgeArc);
     next.backgroundResponse = clampNumber(next.backgroundResponse, 0, 0.28, defaults.backgroundResponse);
-    next.colorPalette = String(next.colorPalette || defaults.colorPalette);
   }
 
   if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {

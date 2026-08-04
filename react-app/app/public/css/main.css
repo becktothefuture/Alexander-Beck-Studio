@@ -3930,11 +3930,11 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar {
-  --button-bar-accent-home: var(--ball-4, #00695c);
-  --button-bar-accent-portfolio: var(--ball-6, #d7ff2f);
-  --button-bar-accent-about: var(--ball-7, #0d5cb6);
-  --button-bar-accent-contact: var(--ball-8, #ffa000);
-  --button-bar-accent-playground: var(--ball-3, #f04f77);
+  --button-bar-accent-home: var(--ball-4, #005c78);
+  --button-bar-accent-portfolio: var(--ball-6, #c95332);
+  --button-bar-accent-about: var(--ball-7, #3f72c8);
+  --button-bar-accent-contact: var(--ball-8, #d5b23a);
+  --button-bar-accent-playground: var(--ball-3, #eef2ef);
   --button-bar-accent-sound: var(--button-bar-accent-home);
   --button-bar-figma-selected-ink: #ff4013;
   --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);

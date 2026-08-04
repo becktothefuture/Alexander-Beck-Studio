@@ -95,10 +95,10 @@ body.palette-lab-page .palette-lab-topbar__center {
   justify-content: center;
 }
 
-body.palette-lab-page .palette-lab__active-weather,
+body.palette-lab-page .palette-lab__active-facet,
 body.palette-lab-page .palette-lab-band__label,
 body.palette-lab-page .palette-lab__preview-caption,
-body.palette-lab-page .palette-lab-card__weather {
+body.palette-lab-page .palette-lab-card__facet {
   margin: 0;
   font-family: var(--abs-font-mono);
   font-size: var(--text-xs);

@@ -10,6 +10,7 @@ import {
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
+import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../palette/simulationPaletteContract.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
@@ -207,7 +208,7 @@ function resolvePalette(snapshot) {
     blackAllowed,
     stripColors: stripeColors.length ? stripeColors : resolvedApprovedColors,
     white,
-    roomLine: normalizeHexColor(colors[4], '#07111b'),
+    roomLine: normalizeHexColor(colors[4], FALLBACK_SIMULATION_PALETTE_COLORS[4]),
   };
 }
 

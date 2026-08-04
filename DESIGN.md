@@ -44,7 +44,8 @@ The system is distributed across these production surfaces. A design change is c
 
 | Artefact | Production source |
 | --- | --- |
-| Core tokens, palette, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
+| Core tokens, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
+| Stable simulation palette registry and twice-daily schedule | `src/palette/londonPalettes.js`, `src/palette/timeOfDayPalette.js` |
 | Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html`, `playground.html` |
 | Persistent shell, surface slots, Home footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
@@ -88,7 +89,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Manual site theme affects the studio-window interior and the temporary in-window route cover. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
 - The Button Bar belongs to the stable dark outer shell. It is a compact `45px` capsule with a `#141414` to `#000000` vertical gradient, two inset highlights, and a `16px` radius in every site theme. Inactive labels use the readable neutral `#767881`; utility icons use `#72747D`; the active label and shared `4.01868px` dot are white. Sound and theme are plain icon-only toggles: sound swaps volume-off/volume-on and theme swaps sun/moon. Neither control uses a slider track. No tab has a selected background.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange, and Lab pink.
-- Simulation colours have one time-of-day owner. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route- or config-specific palette overrides.
+- Simulation colours have one stable time-of-day owner. Soho Signal, Thames Data, Barbican Protocol, and Night Bus Mesh are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain should make the window feel physical without muddying type or flattening surface separation.
 - Home UI legibility comes from five static, background-matched fields behind the expertise legend, philosophy, socials, edge caption, and London/time groups. Interaction changes foreground emphasis only; it does not animate or multiply the fields.
@@ -388,7 +389,6 @@ These are implementation/documentation findings, not permission for a broad refa
 | P1 | Portfolio reading surface blocks selection | Global `user-select: none` is not restored in the drawer body. | Restore native selection/cursor behavior inside the reading surface; keep drag suppression on the deck only. |
 | P2 | Global Geist tracking creates repair overrides | Body uses very tight global tracking; drawer and components reset it locally. | Default body to neutral tracking and apply named compact/normal/loose/mono/headline roles explicitly. |
 | P2 | Project editorial style is tied to one ID | Extensive `chapter-7` selectors encode a reusable art direction as an exception. | Promote it to a named content variant and preserve the current output exactly during migration. |
-| P2 | Raw component colors and fallback palettes drift | Contact/Portfolio surfaces and Contact ripple fallback duplicate color values. | Introduce local semantic component tokens and one shared palette fallback. |
 | P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
 | P2 | Token scope is broad and repetitive | Global token file mixes foundations, compatibility aliases, and component internals. | Do not rewrite wholesale; keep new global tokens semantic and move component tokens locally when that component is revised. |
 | P3 | About narrative is still being authored | The production route renders `AboutComingSoon`; the canonical spatial narrative, editor, and point-world runtime remain development-only. | Continue development authoring without implying or committing to a public launch. |

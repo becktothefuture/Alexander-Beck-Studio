@@ -1,6 +1,7 @@
 import {
-  LONDON_WEATHER_PALETTES,
-  LONDON_WEATHER_PALETTE_MAP,
+  LONDON_PALETTES,
+  LONDON_PALETTE_MAP,
+  LONDON_PALETTE_STATUS,
 } from '../react-app/app/src/palette/londonPalettes.js';
 import {
   TIME_OF_DAY_PALETTE_PERIODS,
@@ -11,10 +12,18 @@ import {
 const EXPECTED_START_HOURS = Object.freeze([0, 3, 6, 9, 12, 15, 18, 21]);
 const EXPECTED_PALETTE_COUNT = 4;
 const EXPECTED_ROTATION_COUNT = 2;
+const APPROVED_PALETTE_COLORS = Object.freeze({
+  sohoSignal: Object.freeze(['#87919a', '#c7ced2', '#f3f1e9', '#0067ff', '#0c1117', '#ffd000', '#ff4b2b', '#008fa8']),
+  thamesData: Object.freeze(['#708591', '#b7c7ce', '#eef2ef', '#005c78', '#071820', '#c95332', '#3f72c8', '#d5b23a']),
+  barbicanProtocol: Object.freeze(['#858a87', '#b8bcb8', '#eceae1', '#245fda', '#101411', '#d8e316', '#bd4936', '#f28a22']),
+  nightBusMesh: Object.freeze(['#7e8991', '#bcc5ca', '#f0eee8', '#d7193f', '#0d1116', '#00a7ff', '#e3a21a', '#36b7a0']),
+});
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
+
+assert(LONDON_PALETTE_STATUS === 'stable', 'The approved London palette set must remain stable.');
 
 assert(
   TIME_OF_DAY_PALETTE_PERIODS.length === EXPECTED_START_HOURS.length,
@@ -28,7 +37,7 @@ TIME_OF_DAY_PALETTE_PERIODS.forEach((period, index) => {
     `Period ${period.id} must start at ${EXPECTED_START_HOURS[index]}:00`,
   );
   assert(
-    Boolean(LONDON_WEATHER_PALETTE_MAP[period.paletteId]),
+    Boolean(LONDON_PALETTE_MAP[period.paletteId]),
     `Period ${period.id} references missing palette ${period.paletteId}`,
   );
   scheduledPaletteCounts.set(
@@ -38,14 +47,18 @@ TIME_OF_DAY_PALETTE_PERIODS.forEach((period, index) => {
 });
 
 assert(
-  LONDON_WEATHER_PALETTES.length === EXPECTED_PALETTE_COUNT,
-  `Expected ${EXPECTED_PALETTE_COUNT} authored palettes, got ${LONDON_WEATHER_PALETTES.length}`,
+  LONDON_PALETTES.length === EXPECTED_PALETTE_COUNT,
+  `Expected ${EXPECTED_PALETTE_COUNT} authored palettes, got ${LONDON_PALETTES.length}`,
 );
 assert(
   scheduledPaletteCounts.size === EXPECTED_PALETTE_COUNT,
   `Expected ${EXPECTED_PALETTE_COUNT} scheduled palettes, got ${scheduledPaletteCounts.size}`,
 );
-LONDON_WEATHER_PALETTES.forEach((palette, index) => {
+LONDON_PALETTES.forEach((palette, index) => {
+  assert(
+    JSON.stringify(palette.light) === JSON.stringify(APPROVED_PALETTE_COLORS[palette.id]),
+    `${palette.id} drifted from the approved production colours`,
+  );
   assert(
     TIME_OF_DAY_PALETTE_PERIODS[index].paletteId === palette.id,
     `The first rotation must follow authored palette order at slot ${index + 1}`,
@@ -102,7 +115,7 @@ function getChromaticHueFamily({ hue, saturation }) {
 }
 
 const authoredColors = new Set();
-for (const palette of LONDON_WEATHER_PALETTES) {
+for (const palette of LONDON_PALETTES) {
   assert(palette.light === palette.dark, `${palette.id} must share one light/dark colour array`);
   assert(palette.light.length === 8, `${palette.id} must define exactly eight colours`);
   assert(
@@ -156,4 +169,4 @@ for (const startHour of EXPECTED_START_HOURS) {
   );
 }
 
-console.log('PASS: four distinct London palettes rotate twice across eight equal three-hour periods.');
+console.log('PASS: the four approved London palettes rotate twice across eight equal three-hour periods.');

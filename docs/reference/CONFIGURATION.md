@@ -2,9 +2,9 @@
 
 ## Authority
 
-`react-app/app/public/config/design-system.json` is the only authored design configuration. Do not hand-edit `default-config.json`, `shell-config.json`, `portfolio-config.json`, or `cv-config.json`; they are flattened runtime outputs.
+`react-app/app/public/config/design-system.json` is the only authored design configuration. Do not hand-edit `default-config.json`, `shell-config.json`, `portfolio-config.json`, or `cv-config.json`; they are flattened runtime outputs. The stable simulation colour registry is code-owned by `react-app/app/src/palette/londonPalettes.js`, with its schedule in `timeOfDayPalette.js`; it is not an editable config namespace.
 
-Exact current values belong in JSON and normalizer code, not copied into Markdown.
+Exact config values belong in JSON and normalizer code. Exact approved simulation colours belong only in the palette registry and its contract check, not in route config or Markdown.
 
 ## Namespaces
 
@@ -66,7 +66,7 @@ The Crisp + Glow lab remains the focused visual comparison surface and samples t
 
 `atmosphere-lab.json` owns the WebGL Post, Instanced Density, Canvas Feedback, and Atmospheric Glow experiments. Atmospheric Glow reads the current production broad-field material and memory from `design-system.json`, but its saved lab profile contains only cadence and level multiplier; enabled state and quality remain shared lab choices. It must not persist or regenerate a `crispGlow` profile, production atmosphere material, tight-field setting, crossfade setting, or title-position state. Exact production atmosphere values remain in canonical JSON and normalizer code, consistent with the general authority rule above.
 
-The production ball palette is resolved once by the shared shell from the visitor's local time of day. Four palettes rotate twice through eight three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00; the second twelve hours repeat the first four-palette sequence. Home, Portfolio, About, Contact, and Playground consume that live result; route config and URL parameters do not override it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
+The production ball palette is resolved once by the shared shell from the visitor's local time of day. The stable set is Soho Signal, Thames Data, Barbican Protocol, and Night Bus Mesh. These four palettes rotate twice through eight three-hour periods beginning at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00; the second twelve hours repeat the first sequence. Home, Portfolio, About, Contact, and Playground consume that live result. Route config, URL parameters, editable hover accents, local fallback arrays, and generated colours do not override or extend it. The Palette Lab documents the same schedule and specimens, but it is not production design truth.
 
 Loaders and normalizers live under `src/legacy/modules/utils/` and route-specific runtime folders. Flattening is implemented in `scripts/lib/flatten-design-config.mjs`; the no-write comparison is `scripts/check-design-config.mjs`.
 

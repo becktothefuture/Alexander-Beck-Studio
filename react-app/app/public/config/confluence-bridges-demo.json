@@ -3,7 +3,6 @@
   "enabled": true,
   "ballCount": 112,
   "hubCount": 5,
-  "colorPalette": "site-weather",
   "bodyRadius": 8.8,
   "minRadius": 6.8,
   "maxRadius": 11.8,

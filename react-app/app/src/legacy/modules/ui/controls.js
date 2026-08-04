@@ -6,7 +6,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { setMode } from '../modes/mode-controller.js';
-import { populateColorSelect } from '../visual/colors.js';
+import { populateScheduledPaletteSelect } from '../visual/colors.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
 import { updateModeButtonsUI } from './mode-buttons.js';
@@ -21,7 +21,7 @@ function getUiDocument(uiDocument) {
 /**
  * Master controls (shared across pages)
  * - Registry handles all slider/picker bindings via bindRegisteredControls()
- * - This file handles only: theme buttons and color template select
+ * - This file handles only theme buttons and scheduled palette status.
  */
 export function setupMasterControls(options = {}) {
   const uiDocument = getUiDocument(options.uiDocument);
@@ -38,7 +38,7 @@ export function setupMasterControls(options = {}) {
   // ═══════════════════════════════════════════════════════════════════════════
   // CURRENT SCHEDULED PALETTE — Read-only status (not in registry)
   // ═══════════════════════════════════════════════════════════════════════════
-  populateColorSelect();
+  populateScheduledPaletteSelect();
 }
 
 /**

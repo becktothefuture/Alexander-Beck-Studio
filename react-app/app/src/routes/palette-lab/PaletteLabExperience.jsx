@@ -1,5 +1,5 @@
 import { startTransition, useState } from 'react';
-import { LONDON_WEATHER_PALETTES } from './palette-lab-data.js';
+import { APPROVED_LONDON_PALETTES } from './palette-lab-data.js';
 import './palette-lab.css';
 
 function PaletteLabStill({ concept }) {
@@ -55,10 +55,10 @@ export function PaletteLabExperience() {
   const [activeIndex, setActiveIndex] = useState(
     Math.max(
       0,
-      LONDON_WEATHER_PALETTES.findIndex((palette) => palette.id === 'thamesData')
+      APPROVED_LONDON_PALETTES.findIndex((palette) => palette.id === 'thamesData')
     )
   );
-  const active = LONDON_WEATHER_PALETTES[activeIndex] || LONDON_WEATHER_PALETTES[0];
+  const active = APPROVED_LONDON_PALETTES[activeIndex] || APPROVED_LONDON_PALETTES[0];
 
   const selectConcept = (index) => {
     startTransition(() => {
@@ -67,9 +67,9 @@ export function PaletteLabExperience() {
   };
 
   return (
-    <section className="palette-lab" aria-label="London weather palette review">
+    <section className="palette-lab" aria-label="Approved London colour system">
       <div className="palette-lab__selector" role="tablist" aria-label="Palette concepts">
-        {LONDON_WEATHER_PALETTES.map((concept, index) => {
+        {APPROVED_LONDON_PALETTES.map((concept, index) => {
           const isActive = index === activeIndex;
           return (
             <button
@@ -81,7 +81,7 @@ export function PaletteLabExperience() {
               className={`palette-lab-card${isActive ? ' is-active' : ''}`}
               onClick={() => selectConcept(index)}
             >
-              <span className="palette-lab-card__weather">{concept.weather}</span>
+              <span className="palette-lab-card__facet">{concept.facet}</span>
               <span className="palette-lab-card__name">{concept.name}</span>
               <span className="palette-lab-card__swatches" aria-hidden="true">
                 {concept.palette.light.map((color) => (
@@ -105,7 +105,7 @@ export function PaletteLabExperience() {
         <div className="palette-lab__active-copy">
           <div className="palette-lab__active-header">
             <div>
-              <p className="palette-lab__active-weather">{active.weather}</p>
+              <p className="palette-lab__active-facet">{active.facet}</p>
               <h2 className="palette-lab__active-name">{active.name}</h2>
             </div>
             <p className="palette-lab__active-personality">{active.personality}</p>

@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { chromium } from 'playwright';
-import { LONDON_WEATHER_PALETTE_MAP } from '../react-app/app/src/palette/londonPalettes.js';
+import { LONDON_PALETTE_MAP } from '../react-app/app/src/palette/londonPalettes.js';
 import { TIME_OF_DAY_PALETTE_PERIODS } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -174,7 +174,7 @@ function assertPaletteVariation(rows) {
 }
 
 function assertAuthoredPalette(theme, paletteId, actual) {
-  const expected = LONDON_WEATHER_PALETTE_MAP[paletteId]?.light || [];
+  const expected = LONDON_PALETTE_MAP[paletteId]?.light || [];
   if (JSON.stringify(actual.ballColors) !== JSON.stringify(expected)) {
     throw new Error(
       `${theme}/${paletteId} ball palette drifted: expected ${expected.join(',')}, got ${actual.ballColors.join(',')}`,

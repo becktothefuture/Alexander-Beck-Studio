@@ -21,7 +21,7 @@
   /* Essentials */
   --color-bg-light: #efefef;
   --color-bg-dark: #1b1b1b;
-  --color-accent: #f03030;
+  --color-accent: var(--ball-4);
   --color-success: #22c55e;
   --color-error: #ef4444;
   --color-success-rgb: 34, 197, 94;
@@ -427,7 +427,7 @@
   --abs-fg-muted: var(--text-muted);
 
   /* Link + Accent Colors (hover system depends on these vars) */
-  --link-hover-color: var(--color-accent);
+  --link-hover-color: var(--ball-6);
   --cursor-color: var(--ball-6);
 
   /* Layout + Radius */
@@ -832,7 +832,7 @@
   --brand-logo-user-scale: 0.936;
   /* Home hero wordmark / styleguide hero specimens (Geist). */
   --hero-title-letter-spacing: -0.027ch; /* ~35% tighter than -0.02ch */
-  --hero-role-accent: #e10600;
+  --hero-role-accent: var(--ball-8);
 
   --breakpoint-tablet: 991px;
   --breakpoint-mobile-l: 767px;

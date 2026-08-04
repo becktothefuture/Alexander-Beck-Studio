@@ -1,4 +1,4 @@
-import { getLondonWeatherPalette } from './londonPalettes.js';
+import { getLondonPalette } from './londonPalettes.js';
 import {
   getNextTimeOfDayPaletteBoundary,
   getTimeOfDayPalettePeriod,
@@ -79,7 +79,7 @@ export function createSimulationPaletteController({
 
   function createSnapshot(date, nextGeneration) {
     const period = getTimeOfDayPalettePeriod(date);
-    const palette = getLondonWeatherPalette(period.paletteId);
+    const palette = getLondonPalette(period.paletteId);
     const colors = resolveSimulationPaletteColors(palette?.light);
     const effectiveDate = new Date(date.getTime());
     effectiveDate.setHours(period.startHour, 0, 0, 0);
@@ -103,7 +103,7 @@ export function createSimulationPaletteController({
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('bb:paletteChanged', {
         detail: Object.freeze({
-          template: snapshot.paletteId,
+          paletteId: snapshot.paletteId,
           generation: snapshot.generation,
           snapshot,
         }),

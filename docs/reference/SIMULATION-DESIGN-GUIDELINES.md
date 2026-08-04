@@ -59,14 +59,14 @@ When in doubt, reduce count before reducing size.
 
 ### Color
 
-Use the active time-of-day/design-system palette and the canonical `colorDistribution` contract.
+Use the active shared time-of-day palette snapshot and the canonical `colorDistribution` contract.
 
 Rules:
 - neutral palette roles should remain dominant;
 - saturated colors are accents, not a confetti field;
 - bright accents should be rare and consequential;
 - do not introduce a parallel color system in a renderer;
-- route-backed labs must load palette/theme from `design-system.json`.
+- route-backed labs must consume colour from the shared palette controller and surface/theme values from `design-system.json`.
 
 ---
 

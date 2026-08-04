@@ -15,7 +15,7 @@ import {
   selectSimulationMaterialRole,
 } from '../react-app/app/src/palette/simulationPaletteContract.js';
 import { createSimulationPaletteController } from '../react-app/app/src/palette/simulationPaletteController.js';
-import { LONDON_WEATHER_PALETTES } from '../react-app/app/src/palette/londonPalettes.js';
+import { LONDON_PALETTES } from '../react-app/app/src/palette/londonPalettes.js';
 import { getNextTimeOfDayPaletteBoundary } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -41,6 +41,22 @@ assert.deepEqual(
   FALLBACK_SIMULATION_PALETTE_COLORS,
   'First-paint CSS must use the same fallback palette as the runtime controller.',
 );
+assert.equal(
+  Object.hasOwn(designSystem.runtime || {}, 'linkHoverColor'),
+  false,
+  'The authored config must not expose a competing palette accent.',
+);
+for (const [token, paletteIndex] of [
+  ['--color-accent', 4],
+  ['--link-hover-color', 6],
+  ['--hero-role-accent', 8],
+]) {
+  assert.match(
+    tokenSource,
+    new RegExp(`${token}:\\s*var\\(--ball-${paletteIndex}\\)`),
+    `${token} must derive from the approved palette.`,
+  );
+}
 
 function compactDistribution(distribution) {
   return distribution.map(({ roleId, label, colorIndex, weight }) => ({
@@ -114,7 +130,7 @@ assert.strictEqual(
   'An incomplete palette must fail atomically without a partial array.',
 );
 
-LONDON_WEATHER_PALETTES.forEach((palette) => {
+LONDON_PALETTES.forEach((palette) => {
   const resolvedPalette = resolveSimulationPaletteColors(palette.light);
   assert.equal(resolvedPalette.length, SIMULATION_PALETTE_SIZE);
   assert.deepEqual(resolvedPalette, palette.light);
@@ -369,23 +385,19 @@ for (const relativePath of [
 }
 
 const cssPaletteFallbackFiles = [
+  'react-app/app/public/css/main.css',
+  'react-app/app/public/css/panel.css',
   'react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css',
   'react-app/app/src/routes/loader-playground/loader-playground.css',
   'react-app/app/src/routes/loader-playground/loaderPlaygroundControls.js',
   'react-app/app/src/routes/route-ball-transition-lab/RouteBallTransitionLab.jsx',
+  'react-app/app/src/routes/sound-playground/sound-playground.css',
 ];
 cssPaletteFallbackFiles.forEach((relativePath) => {
   const source = readFileSync(resolve(repoRoot, relativePath), 'utf8');
   const fallbackPattern = /var\(--ball-([1-8]),\s*(#[\da-f]{6})\)/gi;
   let match = fallbackPattern.exec(source);
   while (match) {
-    const lineStart = source.lastIndexOf('\n', match.index) + 1;
-    const lineEnd = source.indexOf('\n', match.index);
-    const line = source.slice(lineStart, lineEnd < 0 ? source.length : lineEnd);
-    if (line.includes('--about-route-accent')) {
-      match = fallbackPattern.exec(source);
-      continue;
-    }
     const paletteIndex = Number(match[1]) - 1;
     assert.equal(
       match[2].toLowerCase(),
@@ -405,7 +417,29 @@ assert.doesNotMatch(
   /export function applyColorTemplate/,
   'The legacy runtime must not expose an arbitrary palette mutation path.',
 );
+assert.doesNotMatch(
+  legacyColorSource,
+  /COLOR_TEMPLATES|PALETTE_CHAPTER_ORDER|PORTFOLIO_GREY_FALLBACKS|getGeneratedPortfolioFallbackColor/,
+  'The legacy runtime must not retain a parallel palette or generated fallback scheme.',
+);
 assert.match(legacyColorSource, /refreshSimulationPalettePresentation\(\)/);
+
+const loggerSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/legacy/modules/utils/logger.js',
+), 'utf8');
+assert.match(loggerSource, /FALLBACK_CONSOLE_COLORS\s*=\s*FALLBACK_SIMULATION_PALETTE_COLORS/);
+assert.doesNotMatch(loggerSource, /FALLBACK_CONSOLE_COLORS\s*=\s*\[/);
+
+const conceptConfigSource = readFileSync(resolve(
+  repoRoot,
+  'react-app/app/src/routes/concept-simulations/conceptSimulationConfigs.js',
+), 'utf8');
+assert.doesNotMatch(
+  conceptConfigSource,
+  /colorPalette|site-weather/,
+  'Concept simulations must not expose a palette selector or legacy palette label.',
+);
 
 const starfieldSource = readFileSync(resolve(
   repoRoot,
@@ -448,7 +482,7 @@ const masterControlsSource = readFileSync(resolve(
 ), 'utf8');
 assert.doesNotMatch(
   masterControlsSource,
-  /applyColorTemplate|colorSelect\.addEventListener/,
+  /applyColorTemplate|scheduledPaletteSelect\.addEventListener/,
   'The scheduled palette selector must remain read-only.',
 );
 const controlRegistrySource = readFileSync(resolve(
@@ -456,6 +490,12 @@ const controlRegistrySource = readFileSync(resolve(
   'react-app/app/src/legacy/modules/ui/control-registry.js',
 ), 'utf8');
 assert.match(controlRegistrySource, /configureSimulationPalette/);
+assert.match(controlRegistrySource, /id="scheduledPaletteSelect"[^>]*disabled/);
+assert.doesNotMatch(
+  controlRegistrySource,
+  /id:\s*['"]linkHoverColor['"]|stateKey:\s*['"]linkHoverColor['"]/,
+  'The dev panel must not expose a competing palette accent.',
+);
 assert.doesNotMatch(
   controlRegistrySource,
   /balls\[i\]\.color\s*=\s*pickRandomColor/,

@@ -1,9 +1,9 @@
-import { LONDON_WEATHER_PALETTE_COLORS } from './londonPalettes.js';
+import { LONDON_PALETTE_COLORS } from './londonPalettes.js';
 
 export const SIMULATION_PALETTE_SIZE = 8;
 export const SIMULATION_MATERIAL_ROLE_COUNT = 6;
 
-export const FALLBACK_SIMULATION_PALETTE_COLORS = LONDON_WEATHER_PALETTE_COLORS.thamesData;
+export const FALLBACK_SIMULATION_PALETTE_COLORS = LONDON_PALETTE_COLORS.thamesData;
 
 export const DEFAULT_SIMULATION_COLOR_DISTRIBUTION = Object.freeze([
   Object.freeze({ roleId: 'product-design', label: 'Product Design', colorIndex: 0, weight: 31 }),
