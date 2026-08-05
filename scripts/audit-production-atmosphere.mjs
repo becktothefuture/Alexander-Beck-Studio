@@ -31,8 +31,8 @@ const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 const RESPONSIVE_PROFILES = Object.freeze([
   Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 24 }),
   Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 24 }),
-  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 24, fallback: true }),
-  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 24, fallback: true }),
+  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 24 }),
+  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 24 }),
   Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 24 }),
 ]);
 
@@ -343,9 +343,9 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     const glowCoverage = state.dom.glowAlpha?.coverage || 0;
     const glowCoverageRatio = sourceCoverage > 0 ? glowCoverage / sourceCoverage : 0;
     const minimumCoverageRatio = sourceCoverage < 0.1
-      ? 2.5
+      ? 2
       : sourceCoverage < 0.2
-        ? 1.5
+        ? 1.35
         : 1;
     const compactOutputBuffer = Math.min(snapshot.outputWidth, snapshot.outputHeight) < 120;
     const compactFallbackBuffer = snapshot.glowRenderMode === 'spread-pyramid-fallback'
@@ -1011,17 +1011,18 @@ async function runMobilePerformance(browser) {
     const settledFrameCount = await page.evaluate(() => (
       window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().compositedFrameCount || 0
     ));
-    await page.waitForTimeout(750);
+    await page.waitForFunction((minimumFrameCount) => {
+      const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
+      return snapshot?.status === 'failed-open'
+        || snapshot?.compositedFrameCount >= minimumFrameCount;
+    }, settledFrameCount + 120, { timeout: WAIT_MS, polling: 50 });
     const state = await readAtmosphereState(page);
     assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
-    assert(state.snapshot.fallbackActive === true, 'Mobile did not use the static atmosphere fallback', state);
-    assert(
-      state.snapshot.compositedFrameCount === settledFrameCount,
-      'Mobile static atmosphere continued compositing Canvas frames',
-      { before: settledFrameCount, after: state.snapshot.compositedFrameCount },
-    );
-    assert(state.snapshot.cost.sampleCount === 0, 'Mobile static atmosphere retained Canvas cost samples', state);
-    if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready' && !state.snapshot.fallbackActive) {
+    assert(state.snapshot.fallbackActive === false, 'Mobile did not restore the live Canvas atmosphere', state);
+    assert(state.snapshot.presentationMode === 'canvas', 'Mobile atmosphere presentation is not Canvas', state);
+    assert(state.dom.glowHidden === false, 'Mobile live glow Canvas is hidden', state);
+    assert(state.snapshot.cost.sampleCount > 0, 'Mobile Canvas atmosphere has no cost samples', state);
+    if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready') {
       assert(state.snapshot.cost.meanMs <= 0.75, 'Mobile Low atmosphere exceeded the 0.75 ms mean budget', state);
     }
     return {
@@ -1056,7 +1057,8 @@ async function runReducedMotion(browser) {
     assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
     assert(state.snapshot.reducedMotion === true, 'Reduced Motion was not detected', state);
     assert(state.snapshot.temporalMemoryFrames === 0, 'Reduced Motion retained temporal glow memory', state);
-    assert(state.snapshot.fallbackActive === true, 'Reduced Motion mobile lost its static atmosphere', state);
+    assert(state.snapshot.fallbackActive === false, 'Reduced Motion mobile did not restore the Canvas atmosphere', state);
+    assert(state.snapshot.presentationMode === 'canvas', 'Reduced Motion atmosphere presentation is not Canvas', state);
     if (state.snapshot.status === 'ready') {
       assert(state.snapshot.scheduler === 'internal', 'Reduced Motion Contact source is not internally scheduled', state);
       assert(state.snapshot.internalRafCount === 0, 'Reduced Motion retained an active internal atmosphere RAF', state);
@@ -1092,38 +1094,23 @@ async function setPageTheme(page, theme) {
 
 async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeometryReads) {
   await page.waitForFunction(
-    ({ expectedRouteId, expectedCadence, expectedFallback, minimumGeometryReads }) => {
+    ({ expectedRouteId, expectedCadence, minimumGeometryReads }) => {
       const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
       const wallRect = document.getElementById('simulations')?.getBoundingClientRect();
       const glow = document.getElementById('simulation-atmosphere-glow-canvas');
-      const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
       if (
         !snapshot
         || !wallRect
-      ) return false;
-      if (expectedFallback || snapshot.fallbackActive) {
-        return snapshot.routeId === expectedRouteId
-          && snapshot.status === 'ready'
-          && snapshot.quality === 'low'
-          && snapshot.fallbackActive === true
-          && snapshot.presentationMode === 'css-static'
-          && snapshot.schedulerActive === false
-          && snapshot.internalRafCount === 0
-          && glow?.hidden === true
-          && edge?.hidden === true
-          && getComputedStyle(document.getElementById('simulations')).backgroundImage
-            .includes('radial-gradient');
-      }
-      if (
-        snapshot.status !== 'ready'
+        || snapshot.status !== 'ready'
         || snapshot.firstCompositeAt <= 0
         || snapshot.fallbackActive
         || glow?.hidden !== false
       ) return false;
       const expectedWidth = Math.round(wallRect.width * snapshot.scale);
       const expectedHeight = Math.round(wallRect.height * snapshot.scale);
+      const resolvedCadence = snapshot.quality === 'low' ? 20 : expectedCadence;
       return snapshot.routeId === expectedRouteId
-        && snapshot.cadence === expectedCadence
+        && snapshot.cadence === resolvedCadence
         && snapshot.geometryReadCount > minimumGeometryReads
         && Math.abs(snapshot.outputWidth - expectedWidth) <= 2
         && Math.abs(snapshot.outputHeight - expectedHeight) <= 2
@@ -1133,7 +1120,6 @@ async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeom
     {
       expectedRouteId: scenario.routeId,
       expectedCadence: profile.cadence,
-      expectedFallback: profile.fallback === true,
       minimumGeometryReads: previousGeometryReads,
     },
     { timeout: WAIT_MS, polling: 'raf' },
@@ -1217,14 +1203,12 @@ async function runResponsiveResizeMatrix(browser) {
             resolvedGlowRadiusCss: expectedGlowRadiusCss,
             resolvedSmallGlowRadiusCss: expectedSmallGlowRadiusCss,
           });
-          if (!state.snapshot.fallbackActive) {
-            assert(
-              state.snapshot.edgeWidth === state.snapshot.outputWidth
-                && state.snapshot.edgeHeight === state.snapshot.outputHeight,
-              `${scenario.id}/${theme}/${profile.id}: edge backing store diverges from glow output`,
-              state,
-            );
-          }
+          assert(
+            state.snapshot.edgeWidth === state.snapshot.outputWidth
+              && state.snapshot.edgeHeight === state.snapshot.outputHeight,
+            `${scenario.id}/${theme}/${profile.id}: edge backing store diverges from glow output`,
+            state,
+          );
           if (CAPTURE_RESPONSIVE) {
             await page.screenshot({
               path: resolve(

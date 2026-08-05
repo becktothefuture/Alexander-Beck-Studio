@@ -53,7 +53,7 @@
     "innerWallRimTopShadowOpacityDark": 0.18,
     "simulationAtmosphere": {
       "enabled": true,
-      "lowQualityMode": "css-static",
+      "lowQualityMode": "canvas",
       "largeSpread": 0.08,
       "smallSpread": 0.02,
       "memoryMs": 400,
