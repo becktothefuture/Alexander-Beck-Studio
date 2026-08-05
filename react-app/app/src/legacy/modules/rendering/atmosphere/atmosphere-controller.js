@@ -655,10 +655,6 @@ class CrispGlowLabController {
     const url = new URL(window.location.href);
     url.searchParams.set('mode', requestedMode);
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-    if (requestedMode === MODES.BUBBLES) {
-      const { refreshBubbleAtmosphereDepth } = await import('../../modes/bubbles.js');
-      refreshBubbleAtmosphereDepth();
-    }
     invalidateSimulationAtmosphereGeometry('crisp-lab-simulation');
     this.parameterizer?.setSimulationMode(requestedMode);
     return requestedMode;
@@ -728,10 +724,6 @@ export async function initializeAtmosphereLab({ variant, globals }) {
       },
     }));
     activeController = new CrispGlowLabController({ globals, designSystem });
-    if (globals.currentMode === MODES.BUBBLES) {
-      const { refreshBubbleAtmosphereDepth } = await import('../../modes/bubbles.js');
-      refreshBubbleAtmosphereDepth();
-    }
     return activeController;
   }
   if (variant === 'hybridGlow') {

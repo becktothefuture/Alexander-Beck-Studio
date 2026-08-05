@@ -62,6 +62,7 @@ export function RiftRingsRuntime() {
       simulationId: SIMULATION_ID,
       reducedMotion,
       transparentBackground: true,
+      useHomeSimulationBodyRadius: true,
       getConfig: () => configRef.current,
       getTheme: () => themeRef.current,
     });

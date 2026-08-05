@@ -293,7 +293,6 @@ export function initialize3DSphere() {
   // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
   const minDim = Math.min(canvas.width, canvas.height);
   const radiusPx = Math.max(10, (radiusVw / 100) * minDim);
-  const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
 
   // Initialize rotation matrix as identity (no rotation)
@@ -309,12 +308,12 @@ export function initialize3DSphere() {
     cy: titleCenter.y,
     radiusPx,
     rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
-    dotSizeMul,
     prevTrackballPoint: null,
     currentAngularVelX: 0,
     currentAngularVelY: 0,
     currentAngularVelZ: 0,
     orbitPhase: 0,
+    breathPhase: 0,
     spinAxisLocalX: 0,
     spinAxisLocalY: 1,
     spinAxisLocalZ: 0,
@@ -340,7 +339,7 @@ export function initialize3DSphere() {
     ball.vx = 0;
     ball.vy = 0;
     ball.omega = 0;
-    ball.r = clampRadiusToGlobalBounds(g, baseR * dotSizeMul);
+    ball.r = clampRadiusToGlobalBounds(g, baseR);
     ball._cloudBaseR = baseR;
     ball._sphere3d = pts[i];
     ball._cloudMode = 'sphere';
@@ -353,8 +352,6 @@ export function apply3DSphereForces(ball, dt) {
   const canvas = g.canvas;
   const state = g.sphere3dState;
   if (!canvas || !state || !ball || !ball._sphere3d) return;
-
-  const dotSizeMul = Math.max(0.2, g.sphere3dDotSizeMul ?? 1.0);
 
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {
@@ -379,6 +376,7 @@ export function apply3DSphereForces(ball, dt) {
     const orbitRadius = Math.max(0, (g.sphere3dOrbitRadiusVw ?? DEFAULT_ORBIT_RADIUS_VW) / 100) * minDim * motionScale;
     const orbitSpeed = clampNumber(g.sphere3dOrbitSpeed ?? DEFAULT_ORBIT_SPEED, 0, 1.5) * motionScale;
     state.orbitPhase += orbitSpeed * dt;
+    state.breathPhase += dt * 0.46 * motionScale;
     state.cx = canvas.width * 0.5;
     state.cy = titleCenter.y + Math.sin(state.orbitPhase) * orbitRadius * 0.38;
 
@@ -454,6 +452,12 @@ export function apply3DSphereForces(ball, dt) {
   let unitX = point.x;
   let unitY = point.y;
   let unitZ = point.z;
+  const breathWave = Math.sin(
+    state.breathPhase + point.y * 2.8 + point.x * 1.4,
+  ) * 0.055 * state.motionScale;
+  unitX *= 1 + breathWave * 0.42;
+  unitY *= 1 - breathWave * 0.68;
+  unitZ *= 1 + breathWave * 0.24;
   const strain = state.spinStrain || 0;
   if (strain > 0.0001) {
     const axisX = state.spinAxisLocalX || 0;
@@ -492,15 +496,14 @@ export function apply3DSphereForces(ball, dt) {
   const targetX = state.cx + rotatedX * scale;
   const targetY = state.cy + rotatedY * scale;
 
-  const rawR = ball._cloudBaseR * dotSizeMul * scale;
   const depth = (rotatedZ + r) / (2 * r);
 
   // Scale size based on z-depth for perspective illusion
   // Back balls (z=0) are smaller, front balls (z=1) are larger
   // This enhances the 3D effect significantly
-  const perspectiveSize = 0.6 + depth * 0.8; // 0.6x to 1.4x scale
-  
-  ball.r = Math.max(state.minDotRadius, clampRadiusToGlobalBounds(g, rawR * perspectiveSize));
+  const foregroundRadius = Math.max(1, g.R_MED || 8.9);
+  const perspectiveSize = 0.68 + depth * 0.32;
+  ball.r = Math.max(state.minDotRadius, foregroundRadius * perspectiveSize * scale);
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;

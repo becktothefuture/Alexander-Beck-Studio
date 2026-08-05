@@ -26,6 +26,12 @@ A control is complete only when it supports:
 
 Removing a control also means removing its persistence/export path. Browser storage and `window.__*` caches are helpers, never design truth.
 
+### Production simulation body size
+
+`runtime.homeSimulationBodyRadiusPx` is the one production master radius for Daily Simulation circle material. Its authored default is `8.9px`, matching Tension. The legacy Home modes and the route-backed Tension, Convergence, and Depth renderers all consume this value; no production simulation owns a separate body-size multiplier. Perspective and other 3D projections may reduce the rendered radius by depth, but their foreground radius remains the global value.
+
+`runtime.mobileSimulationBodyScale` is the only responsive adjustment and is applied after the master radius. The current `0.8` value therefore resolves to `7.12px` at the mobile breakpoint. Change **Simulation ball size** in the development panel to apply and save the master value through the normal canonical configuration path.
+
 ## Build and validation
 
 ```bash

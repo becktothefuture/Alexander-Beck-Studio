@@ -3,7 +3,7 @@
 // ║               All global state - extracted from balls-source.html            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, MODES } from './constants.js';
+import { CONSTANTS, FEATURED_MODES, MODES } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import {
   DEFAULT_FRAME_RADIUS_DESKTOP_PX,
@@ -30,6 +30,10 @@ import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   resolveMobileSimulationBodyScale,
 } from '../../../lib/mobileSimulationSizing.js';
+import {
+  DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX,
+  normalizeHomeSimulationBodyRadius,
+} from '../../../lib/homeSimulationSizing.js';
 import {
   CUBE_3D_DEFAULTS,
   normalizeCube3DConfig,
@@ -114,10 +118,8 @@ const state = {
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
   sizeVariationMagnetic: 0,
-  sizeVariationBubbles: 0,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
-  sizeVariationWeaveField: 0,
   
   // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
   // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
@@ -127,12 +129,11 @@ const state = {
   waterWarmupFrames: 10,
 
   magneticWarmupFrames: 10,
-  bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 65,
   crittersWarmupFrames: 10,
   // Sphere Orbit (Mode 16)
   sphere3dRadiusVw: 72,                     // Sphere radius (vmin)
-  sphere3dDensity: 94,
+  sphere3dDensity: 240,
   sphere3dFocalLength: 600,
   sphere3dDotSizeMul: 1.0,
   sphere3dIdleSpeed: 0.15,
@@ -158,19 +159,19 @@ const state = {
   // Scaffold 3D cube values (Mode 17)
   ...CUBE_3D_DEFAULTS,
   // Star Field (Mode 23)
-  starfieldCount: 200,
+  starfieldCount: 320,
   starfieldSpanX: 1.5,
   starfieldSpanY: 1.2,
-  starfieldMobileSpanMultiplier: 4,
+  starfieldMobileSpanMultiplier: 1.7,
   starfieldZNear: 100,
   starfieldZFar: 2000,
   starfieldFocalLength: 500,
   starfieldParallaxStrength: 320,
   starfieldSpeed: 400,
-  starfieldDotSizeMul: 1.35,
+  starfieldDotSizeMul: 1,
   starfieldFogStart: 0.86,
-  starfieldFogMin: 0.16,
-  starfieldMobileFogMin: 0.16,
+  starfieldFogMin: 0.32,
+  starfieldMobileFogMin: 0.38,
   starfieldIdleJitter: 0,
   starfieldFadeDuration: 0.5,
   starfield3dWarmupFrames: 10,
@@ -190,6 +191,7 @@ const state = {
   mobileObjectReductionFactor: 1.0,
   // Mobile visual density: radius multiplier applied after responsive sizing.
   mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  homeSimulationBodyRadiusPx: DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX,
   // Only reduce object counts on mobile when counts exceed this threshold.
   mobileObjectReductionThreshold: 200,
   // Lite mode: global multiplier applied to object counts (0..1).
@@ -222,16 +224,14 @@ const state = {
     [MODES.WEIGHTLESS]: { desktop: 220, mobile: 140 },
     [MODES.WATER]: { desktop: 1800, mobile: 900 },
     [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
-    [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
     [MODES.KALEIDOSCOPE]: { desktop: 170, mobile: 70 },
     [MODES.KALEIDOSCOPE_RIFT]: { desktop: 34, mobile: 32 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
-    [MODES.FLUBBER_BLOB]: { desktop: 120, mobile: 52 },
-    [MODES.WEAVE_FIELD]: { desktop: 132, mobile: 88 },
+    [MODES.FLUBBER_BLOB]: { desktop: 160, mobile: 80 },
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
-    [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
-    [MODES.SPHERE_3D]: { desktop: 140, mobile: 84 },
+    [MODES.STARFIELD_3D]: { desktop: 320, mobile: 220 },
+    [MODES.SPHERE_3D]: { desktop: 240, mobile: 160 },
     [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 },
     [MODES.PARTICLE_FOUNTAIN_B]: { desktop: 210, mobile: 132 }
   },
@@ -444,19 +444,6 @@ const state = {
   magneticRadius: 0, // 0 = unlimited, otherwise max distance in px
   magneticExplosionInterval: 5,
   
-  // Bubbles mode params
-  bubblesRiseSpeed: 360,
-  bubblesWobble: 65,
-  bubblesMaxCount: 200,
-  bubblesDensity: 0.8,
-  bubblesMobileDensityMul: 0.75,
-  bubblesVerticalExtent: 1,
-  bubblesDepthSpan: 0.8,
-  // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
-  bubblesDeflectRadius: 0,
-  
-
-  
   // Colors
   // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
   // Keep these aligned with the palette selected from the visitor's local time so:
@@ -503,7 +490,7 @@ const state = {
   tensionLoomWarmupFrames: 8,
 
   // Soft Blob mode params
-  flubberBlobBallCount: 120,
+  flubberBlobBallCount: 160,
   flubberBlobParticleCollisions: true,
   flubberBlobContactIterations: 5,
   flubberBlobSurfaceTension: 0.04,
@@ -531,7 +518,8 @@ const state = {
   flubberBlobGrabLocality: 0.38,
   flubberBlobInitialSpeed: 520,
   flubberBlobInitialAngleDeg: -18,
-  flubberBlobWallBounce: 0.34,
+  flubberBlobWallBounce: 0.46,
+  flubberBlobInterBodyBounce: 0.5,
   flubberBlobWallFriction: 0.006,
   flubberBlobWallLocality: 0.78,
   flubberBlobWallSquish: 0.42,
@@ -539,21 +527,6 @@ const state = {
   flubberBlobReleaseTransfer: 1,
   flubberBlobMaxSpeed: 1400,
   flubberBlobWarmupFrames: 10,
-
-  // Weave Field mode
-  weaveFieldBallCount: 132,
-  weaveFieldBallSizeMul: 0.6,
-  weaveFieldLaneCount: 4,
-  weaveFieldFlowSpeed: 118,
-  weaveFieldWeaveStrength: 0.9,
-  weaveFieldLaneTension: 14,
-  weaveFieldProgressSeconds: 9,
-  weaveFieldPointerRepelStrength: 22000,
-  weaveFieldPointerRadius: 260,
-  weaveFieldDamping: 0.965,
-  weaveFieldMaxSpeed: 1920,
-  weaveFieldCollisionIterations: 1,
-  weaveFieldWarmupFrames: 0,
 
   // Pressure Field mode
   pressureCrucibleBallCount: 144,
@@ -575,6 +548,8 @@ const state = {
   particleFountainGravityMultiplier: 1.7, // gravity multiplier (particles fall after rising)
   particleFountainUpwardForce: 300, // optional upward force in px/s², 0 = disabled
   particleFountainMaxParticles: 230, // maximum active particles
+  particleFountainBNozzleSpread: 0.32,
+  particleFountainBTempo: 0.82,
   particleFountainLifetime: 8.0, // seconds - how long particles live before fading out
   particleFountainWarmupFrames: 120, // skip ahead ~2s on load for instant flow
   particleFountainMouseRepelStrength: 50000, // px/s² - very strong force for barrier effect (like hand over fountain)
@@ -604,10 +579,6 @@ const state = {
   kaleidoscopeRiftRings: 4,
   kaleidoscopeRiftSpeed: 1.2,
   kaleidoscopeRiftShear: 0.9,
-  kaleidoscopeRiftDotSizeVh: 0.82,
-  kaleidoscopeRiftMobileDotSizeVh: 0.82,
-  kaleidoscopeRiftDotAreaMul: 0.74,
-  kaleidoscopeRiftSizeVariance: 0.18,
   kaleidoscopeRiftWarmupFrames: 45,
 
   // Water mode
@@ -1094,8 +1065,6 @@ export function applyLayoutFromVwToPx() {
   state.repelRadius = Math.round(baseCursorPx);
   state.weightlessRepelRadius = Math.round(baseCursorPx);
 
-  state.bubblesDeflectRadius = Math.round(baseCursorPx);
-  
   // Particle Fountain mouse repulsion radius (separate vw-based value)
   const particleFountainMouseRepelRadiusVw = state.particleFountainMouseRepelRadiusVw ?? 5.0;
   const particleFountainMouseRepelRadiusPx = Math.max(0, vwToPx(particleFountainMouseRepelRadiusVw, w));
@@ -1451,10 +1420,8 @@ export function initState(config) {
   if (config.sizeVariationWeightless !== undefined) state.sizeVariationWeightless = clampNumber(config.sizeVariationWeightless, 0, 1, state.sizeVariationWeightless);
   if (config.sizeVariationWater !== undefined) state.sizeVariationWater = clampNumber(config.sizeVariationWater, 0, 1, state.sizeVariationWater);
   if (config.sizeVariationMagnetic !== undefined) state.sizeVariationMagnetic = clampNumber(config.sizeVariationMagnetic, 0, 1, state.sizeVariationMagnetic);
-  if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
-  if (config.sizeVariationWeaveField !== undefined) state.sizeVariationWeaveField = clampNumber(config.sizeVariationWeaveField, 0, 1, state.sizeVariationWeaveField);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
 
@@ -1495,13 +1462,11 @@ export function initState(config) {
   if (config.waterWarmupFrames !== undefined) state.waterWarmupFrames = clampInt(config.waterWarmupFrames, 0, 240, state.waterWarmupFrames);
 
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
-  if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.kaleidoscopeRiftWarmupFrames !== undefined) state.kaleidoscopeRiftWarmupFrames = clampInt(config.kaleidoscopeRiftWarmupFrames, 0, 240, state.kaleidoscopeRiftWarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
   if (config.flubberBlobWarmupFrames !== undefined) state.flubberBlobWarmupFrames = clampInt(config.flubberBlobWarmupFrames, 0, 240, state.flubberBlobWarmupFrames);
-  if (config.weaveFieldWarmupFrames !== undefined) state.weaveFieldWarmupFrames = clampInt(config.weaveFieldWarmupFrames, 0, 240, state.weaveFieldWarmupFrames);
   if (config.pressureCrucibleWarmupFrames !== undefined) state.pressureCrucibleWarmupFrames = clampInt(config.pressureCrucibleWarmupFrames, 0, 240, state.pressureCrucibleWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
@@ -1560,6 +1525,12 @@ export function initState(config) {
       0.5,
       1,
       state.mobileSimulationBodyScale
+    );
+  }
+  if (config.homeSimulationBodyRadiusPx !== undefined) {
+    state.homeSimulationBodyRadiusPx = normalizeHomeSimulationBodyRadius(
+      config.homeSimulationBodyRadiusPx,
+      state.homeSimulationBodyRadiusPx,
     );
   }
   if (config.mobileObjectReductionThreshold !== undefined) {
@@ -1712,10 +1683,6 @@ export function initState(config) {
   if (config.kaleidoscopeRiftRings !== undefined) state.kaleidoscopeRiftRings = clampNumber(config.kaleidoscopeRiftRings, 2, 9, state.kaleidoscopeRiftRings);
   if (config.kaleidoscopeRiftSpeed !== undefined) state.kaleidoscopeRiftSpeed = clampNumber(config.kaleidoscopeRiftSpeed, 0.2, 2.4, state.kaleidoscopeRiftSpeed);
   if (config.kaleidoscopeRiftShear !== undefined) state.kaleidoscopeRiftShear = clampNumber(config.kaleidoscopeRiftShear, 0, 2, state.kaleidoscopeRiftShear);
-  if (config.kaleidoscopeRiftDotSizeVh !== undefined) state.kaleidoscopeRiftDotSizeVh = clampNumber(config.kaleidoscopeRiftDotSizeVh, 0.1, 4.0, state.kaleidoscopeRiftDotSizeVh);
-  if (config.kaleidoscopeRiftMobileDotSizeVh !== undefined) state.kaleidoscopeRiftMobileDotSizeVh = clampNumber(config.kaleidoscopeRiftMobileDotSizeVh, 0.1, 4.0, state.kaleidoscopeRiftMobileDotSizeVh);
-  if (config.kaleidoscopeRiftDotAreaMul !== undefined) state.kaleidoscopeRiftDotAreaMul = clampNumber(config.kaleidoscopeRiftDotAreaMul, 0.1, 2.0, state.kaleidoscopeRiftDotAreaMul);
-  if (config.kaleidoscopeRiftSizeVariance !== undefined) state.kaleidoscopeRiftSizeVariance = clampNumber(config.kaleidoscopeRiftSizeVariance, 0, 1, state.kaleidoscopeRiftSizeVariance);
   // New key: kaleidoscopeWedges (preferred). Back-compat: kaleidoscopeSegments.
   if (config.kaleidoscopeWedges !== undefined) {
     state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeWedges, 3, 24, state.kaleidoscopeWedges);
@@ -1777,19 +1744,6 @@ export function initState(config) {
     if (!isArray && !isPrimitive) continue;
     if (val === undefined) continue;
     state[key] = val;
-  }
-
-  if (config.bubblesVerticalExtent !== undefined) {
-    state.bubblesVerticalExtent = clampNumber(config.bubblesVerticalExtent, 0.15, 1, state.bubblesVerticalExtent);
-  }
-  if (config.bubblesDensity !== undefined) {
-    state.bubblesDensity = clampNumber(config.bubblesDensity, 0, 1, state.bubblesDensity);
-  }
-  if (config.bubblesMobileDensityMul !== undefined) {
-    state.bubblesMobileDensityMul = clampNumber(config.bubblesMobileDensityMul, 0, 1, state.bubblesMobileDensityMul);
-  }
-  if (config.bubblesDepthSpan !== undefined) {
-    state.bubblesDepthSpan = clampNumber(config.bubblesDepthSpan, 0.1, 1, state.bubblesDepthSpan);
   }
 
   // Sphere Orbit (Mode 16)
@@ -1889,25 +1843,13 @@ export function initState(config) {
   if (config.flubberBlobInitialSpeed !== undefined) state.flubberBlobInitialSpeed = clampInt(config.flubberBlobInitialSpeed, 0, 1600, state.flubberBlobInitialSpeed);
   if (config.flubberBlobInitialAngleDeg !== undefined) state.flubberBlobInitialAngleDeg = clampNumber(config.flubberBlobInitialAngleDeg, -180, 180, state.flubberBlobInitialAngleDeg);
   if (config.flubberBlobWallBounce !== undefined) state.flubberBlobWallBounce = clampNumber(config.flubberBlobWallBounce, 0, 0.75, state.flubberBlobWallBounce);
+  if (config.flubberBlobInterBodyBounce !== undefined) state.flubberBlobInterBodyBounce = clampNumber(config.flubberBlobInterBodyBounce, 0.1, 0.8, state.flubberBlobInterBodyBounce);
   if (config.flubberBlobWallFriction !== undefined) state.flubberBlobWallFriction = clampNumber(config.flubberBlobWallFriction, 0, 0.8, state.flubberBlobWallFriction);
   if (config.flubberBlobWallLocality !== undefined) state.flubberBlobWallLocality = clampNumber(config.flubberBlobWallLocality, 0, 1, state.flubberBlobWallLocality);
   if (config.flubberBlobWallSquish !== undefined) state.flubberBlobWallSquish = clampNumber(config.flubberBlobWallSquish, 0, 1.5, state.flubberBlobWallSquish);
   if (config.flubberBlobDragStrength !== undefined) state.flubberBlobDragStrength = clampNumber(config.flubberBlobDragStrength, 4, 90, state.flubberBlobDragStrength);
   if (config.flubberBlobReleaseTransfer !== undefined) state.flubberBlobReleaseTransfer = clampNumber(config.flubberBlobReleaseTransfer, 0, 1.2, state.flubberBlobReleaseTransfer);
   if (config.flubberBlobMaxSpeed !== undefined) state.flubberBlobMaxSpeed = clampInt(config.flubberBlobMaxSpeed, 360, 1800, state.flubberBlobMaxSpeed);
-  if (config.weaveFieldBallCount !== undefined) state.weaveFieldBallCount = clampInt(config.weaveFieldBallCount, 48, 260, state.weaveFieldBallCount);
-  if (config.weaveFieldBallSizeMul !== undefined) state.weaveFieldBallSizeMul = clampNumber(config.weaveFieldBallSizeMul, 0.2, 1.5, state.weaveFieldBallSizeMul);
-  if (config.weaveFieldLaneCount !== undefined) state.weaveFieldLaneCount = clampInt(config.weaveFieldLaneCount, 3, 9, state.weaveFieldLaneCount);
-  if (config.weaveFieldFlowSpeed !== undefined) state.weaveFieldFlowSpeed = clampNumber(config.weaveFieldFlowSpeed, 0, 180, state.weaveFieldFlowSpeed);
-  if (config.weaveFieldWeaveStrength !== undefined) state.weaveFieldWeaveStrength = clampNumber(config.weaveFieldWeaveStrength, 0, 1.2, state.weaveFieldWeaveStrength);
-  if (config.weaveFieldLaneTension !== undefined) state.weaveFieldLaneTension = clampNumber(config.weaveFieldLaneTension, 0, 18, state.weaveFieldLaneTension);
-  if (config.weaveFieldProgressSeconds !== undefined) state.weaveFieldProgressSeconds = clampNumber(config.weaveFieldProgressSeconds, 4, 40, state.weaveFieldProgressSeconds);
-  if (config.weaveFieldPointerRepelStrength !== undefined) state.weaveFieldPointerRepelStrength = clampInt(config.weaveFieldPointerRepelStrength, 0, 60000, state.weaveFieldPointerRepelStrength);
-  if (config.weaveFieldPointerRadius !== undefined) state.weaveFieldPointerRadius = clampInt(config.weaveFieldPointerRadius, 40, 420, state.weaveFieldPointerRadius);
-  if (config.weaveFieldDamping !== undefined) state.weaveFieldDamping = clampNumber(config.weaveFieldDamping, 0.7, 0.995, state.weaveFieldDamping);
-  if (config.weaveFieldMaxSpeed !== undefined) state.weaveFieldMaxSpeed = clampInt(config.weaveFieldMaxSpeed, 220, 2200, state.weaveFieldMaxSpeed);
-  if (config.weaveFieldCollisionIterations !== undefined) state.weaveFieldCollisionIterations = clampInt(config.weaveFieldCollisionIterations, 0, 6, state.weaveFieldCollisionIterations);
-
   // Mobile count overrides
   if (config.waterMobileCountScale !== undefined) state.waterMobileCountScale = clampNumber(config.waterMobileCountScale, 0.25, 1, state.waterMobileCountScale);
 
@@ -1933,6 +1875,8 @@ export function initState(config) {
   if (config.particleFountainGravityMultiplier !== undefined) state.particleFountainGravityMultiplier = clampNumber(config.particleFountainGravityMultiplier, 0, 2.0, state.particleFountainGravityMultiplier);
   if (config.particleFountainUpwardForce !== undefined) state.particleFountainUpwardForce = clampInt(config.particleFountainUpwardForce, 0, 800, state.particleFountainUpwardForce);
   if (config.particleFountainMaxParticles !== undefined) state.particleFountainMaxParticles = clampInt(config.particleFountainMaxParticles, 20, 300, state.particleFountainMaxParticles);
+  if (config.particleFountainBNozzleSpread !== undefined) state.particleFountainBNozzleSpread = clampNumber(config.particleFountainBNozzleSpread, 0.2, 0.4, state.particleFountainBNozzleSpread);
+  if (config.particleFountainBTempo !== undefined) state.particleFountainBTempo = clampNumber(config.particleFountainBTempo, 0.5, 1.2, state.particleFountainBTempo);
   if (config.particleFountainLifetime !== undefined) state.particleFountainLifetime = clampNumber(config.particleFountainLifetime, 1.0, 30.0, state.particleFountainLifetime);
   if (config.particleFountainMouseRepelStrength !== undefined) state.particleFountainMouseRepelStrength = clampInt(config.particleFountainMouseRepelStrength, 10000, 100000, state.particleFountainMouseRepelStrength);
   if (config.particleFountainMouseRepelRadiusVw !== undefined) state.particleFountainMouseRepelRadiusVw = clampNumber(config.particleFountainMouseRepelRadiusVw, 1.0, 20.0, state.particleFountainMouseRepelRadiusVw);
@@ -2590,7 +2534,9 @@ export function updateBallSizes() {
   const t = Math.pow(tLinear, curve);
   
   // Interpolation between min and max sizes
-  const responsiveSize = minSize + (maxSize - minSize) * t;
+  const responsiveSize = FEATURED_MODES.includes(state.currentMode)
+    ? normalizeHomeSimulationBodyRadius(state.homeSimulationBodyRadiusPx)
+    : minSize + (maxSize - minSize) * t;
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     state.mobileSimulationBodyScale,
     {

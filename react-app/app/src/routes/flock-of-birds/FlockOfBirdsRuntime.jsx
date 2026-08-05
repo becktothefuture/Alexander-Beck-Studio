@@ -60,6 +60,7 @@ export function FlockOfBirdsRuntime() {
       canvas,
       reducedMotion,
       transparentBackground: true,
+      useHomeSimulationBodyRadius: true,
       getConfig: () => configRef.current,
       getTheme: () => themeRef.current,
     });

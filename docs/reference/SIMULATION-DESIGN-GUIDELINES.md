@@ -113,7 +113,7 @@ These are the proven families in the current collection. New work should fit one
 
 ### Bounded Physical Pebbles
 
-Examples: `pit`, `water`, `bubbles`, `magnetic`.
+Examples: `pit`, `water`, `particle-fountain-b`, `magnetic`.
 
 Use when the main rule is gravity, contact, buoyancy, drag, pressure, or collision.
 
@@ -126,7 +126,7 @@ Requirements:
 
 ### Structured Field Or Lattice
 
-Examples: `elastic-center`, `weave-field`, `kaleidoscope-3`.
+Examples: `elastic-center`, `flubber-blob`, `kaleidoscope-3`.
 
 Use when the visual payoff is order, tension, symmetry, weaving, or resonance.
 

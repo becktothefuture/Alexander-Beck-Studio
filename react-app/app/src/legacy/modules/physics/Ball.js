@@ -121,8 +121,7 @@ function getInteriorWallViolation(ball, w, h) {
   // disabled diagonal corner collisions, which made large frame radii appear
   // unrelated to the ball-pit boundary.
   const skipForPit = isPitMode && ny < 0 && Math.abs(nx) <= 1e-4;
-  const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
-  if (skipForPit || skipForBubbles) return null;
+  if (skipForPit) return null;
 
   const shapeExtentAlongN = usePortfolioWallExtent
     ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)

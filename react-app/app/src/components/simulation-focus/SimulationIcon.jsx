@@ -24,11 +24,9 @@ const ICONS = {
   'pressure-crucible': PressureMosaicIcon,
   'flock-of-birds': FlockIcon,
   'flubber-blob': FlubberBlobIcon,
-  'weave-field': WeaveFieldIcon,
   'kaleidoscope-3': KaleidoscopeIcon,
   'kaleidoscope-rift': KaleidoscopeRiftIcon,
   'rift-rings': RiftRingsIcon,
-  bubbles: BubblesIcon,
   'beach-ball-room': BeachBallRoomIcon,
   magnetic: MagneticFieldIcon,
   'particle-fountain-b': FountainBIcon,
@@ -203,19 +201,6 @@ function FlubberBlobIcon() {
   );
 }
 
-function WeaveFieldIcon() {
-  return (
-    <g>
-      <path {...ICON_PROPS} d="M10 18H18M24 18H38" />
-      <path {...ICON_PROPS} d="M10 30H24M30 30H38" />
-      <path {...ICON_PROPS} d="M17 10V17M17 23V38" />
-      <path {...ICON_PROPS} d="M31 10V29M31 35V38" />
-      <path {...DOT_PROPS} d="M17 20C18.1046 20 19 19.1046 19 18C19 16.8954 18.1046 16 17 16C15.8954 16 15 16.8954 15 18C15 19.1046 15.8954 20 17 20Z" />
-      <path {...DOT_PROPS} d="M31 32C32.1046 32 33 31.1046 33 30C33 28.8954 32.1046 28 31 28C29.8954 28 29 28.8954 29 30C29 31.1046 29.8954 32 31 32Z" />
-    </g>
-  );
-}
-
 function FountainBIcon() {
   return (
     <g>
@@ -287,21 +272,6 @@ function RiftRingsIcon() {
       <circle {...ICON_PROPS} cx="24" cy="24" r="5" />
       <circle {...ICON_PROPS} cx="24" cy="24" r="11" />
       <circle {...ICON_PROPS} cx="24" cy="24" r="17" />
-    </g>
-  );
-}
-
-function BubblesIcon() {
-  return (
-    <g>
-      <circle {...DOT_PROPS} cx="18" cy="36" r="2.2" />
-      <circle {...DOT_PROPS} cx="29" cy="35" r="1.8" />
-      <circle {...DOT_PROPS} cx="23" cy="30" r="2.7" />
-      <circle {...DOT_PROPS} cx="33" cy="27" r="2.1" />
-      <circle {...DOT_PROPS} cx="16" cy="25" r="1.7" />
-      <circle {...DOT_PROPS} cx="26" cy="20" r="2.4" />
-      <circle {...DOT_PROPS} cx="34" cy="16" r="1.6" />
-      <circle {...DOT_PROPS} cx="20" cy="12" r="2" />
     </g>
   );
 }

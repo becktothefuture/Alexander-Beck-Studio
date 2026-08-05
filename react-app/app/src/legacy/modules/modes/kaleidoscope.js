@@ -16,7 +16,6 @@ import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
-import { resolveMobileSimulationBodyScale } from '../../../lib/mobileSimulationSizing.js';
 import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
 
 const TAU = Math.PI * 2;
@@ -181,11 +180,7 @@ function getKaleidoscopeRiftParams(g) {
     mobileSpokes: g.kaleidoscopeRiftSpokesMobile ?? 5,
     rings: g.kaleidoscopeRiftRings ?? 5,
     speed: g.kaleidoscopeRiftSpeed ?? 1.15,
-    shear: g.kaleidoscopeRiftShear ?? 0.72,
-    dotSizeVh: g.kaleidoscopeRiftDotSizeVh ?? 1.05,
-    mobileDotSizeVh: g.kaleidoscopeRiftMobileDotSizeVh ?? g.kaleidoscopeRiftDotSizeVh ?? 1.05,
-    dotAreaMul: g.kaleidoscopeRiftDotAreaMul ?? 1.05,
-    sizeVariance: g.kaleidoscopeRiftSizeVariance ?? 0.24
+    shear: g.kaleidoscopeRiftShear ?? 0.72
   };
 }
 
@@ -202,23 +197,7 @@ function getKaleidoscopeRiftAdjustedCount(g, baseCount) {
 }
 
 function randomRadiusForKaleidoscopeRift(g) {
-  const canvas = g?.canvas;
-  const h = canvas?.height || 0;
-  const params = getKaleidoscopeRiftParams(g);
-  const isMobile = g.isMobile || g.isMobileViewport;
-  const vh = clamp(Number(isMobile ? params.mobileDotSizeVh : params.dotSizeVh), 0.1, 4.0);
-  const areaMul = clamp(Number(params.dotAreaMul), 0.1, 2.0);
-  const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
-  const variance = clamp(Number(params.sizeVariance) * 0.5, 0, 0.2);
-  const mobileBodyScale = resolveMobileSimulationBodyScale(
-    g.mobileSimulationBodyScale,
-    {
-      width: g.W,
-      height: g.H,
-      isMobileDevice: g.isMobile ? true : undefined,
-    },
-  );
-  return base * (1 - variance + Math.random() * variance * 2) * mobileBodyScale;
+  return Math.max(1, Number(g.R_MED) || 8.9);
 }
 
 // Initialize with specific ball count (used by all kaleidoscope variants)
@@ -407,7 +386,9 @@ export function initializeKaleidoscopeRift() {
     const ringT = ringCount <= 1 ? 0.5 : ring / (ringCount - 1);
     const slotOffset = (slot + 0.5 + (ring % 2) * 0.48) / slotsPerRing;
     const angularJitter = (Math.random() - 0.5) * wedgeAngle * (isMobile ? 0.07 : 0.05);
-    const theta0 = wedgeAngle * (0.05 + 0.9 * (slotOffset % 1)) + angularJitter;
+    const phaseFamily = (ring + slot) % 3;
+    const familyOffset = Math.sin(slot * 1.7 + ring * 0.8) * wedgeAngle * 0.06;
+    const theta0 = wedgeAngle * (0.05 + 0.9 * (slotOffset % 1)) + angularJitter + familyOffset;
     const radialJitter = (Math.random() - 0.5) * minDim * (isMobile ? 0.034 : 0.026);
     const radiusBase = clamp(inner + (outer - inner) * Math.pow(ringT, 0.78) + radialJitter, inner, outer);
     const radius = randomRadiusForKaleidoscopeRift(g);
@@ -419,6 +400,8 @@ export function initializeKaleidoscopeRift() {
     b._riftTheta0 = theta0;
     b._riftRadiusBase = radiusBase;
     b._riftSeed = (i * 0.61803398875 + Math.random() * 0.2) * TAU;
+    b._riftFamily = phaseFamily;
+    b._riftPresence = Math.random() < 0.14 ? 0.48 : 1;
     b._kaleiSeed = b._riftSeed;
     b.vx = 0;
     b.vy = 0;
@@ -621,7 +604,12 @@ export function applyKaleidoscopeRiftForces(ball, dt) {
   const theta = (ball._riftTheta0 ?? 0) + shear + wave;
   const radialWave = Math.cos((state.pointerAngle - theta) * 2 + seed) * state.open.x * (0.16 + ringT * 0.24);
   const openExpansion = 1 + state.open.x * (0.12 + ringT * 0.2);
-  const targetR = (ball._riftRadiusBase ?? Math.min(canvas.width, canvas.height) * 0.25) * openExpansion * (1 + radialWave);
+  const familyPhase = (ball._riftFamily || 0) * TAU / 3;
+  const familyBreath = Math.sin(state.phase * 1.4 + familyPhase + seed * 0.2)
+    * (0.035 + ringT * 0.025);
+  const targetR = (ball._riftRadiusBase ?? Math.min(canvas.width, canvas.height) * 0.25)
+    * openExpansion
+    * (1 + radialWave + familyBreath);
   const targetX = cx + Math.cos(theta) * targetR;
   const targetY = cy + Math.sin(theta) * targetR;
   const speed = clamp(params.speed, 0.2, 2.4);
@@ -914,12 +902,13 @@ export function renderKaleidoscopeRift(ctx) {
     const seed = ball._riftSeed ?? 0;
     const radiusPulse = 1 + Math.sin(state.phase * 3 + seed) * open * 0.095;
     const drawRadius = visualRadius * (0.76 + ringT * 0.1);
-    const alpha = ball.alpha < 1 ? ball.alpha : 1;
+    const alpha = (ball.alpha < 1 ? ball.alpha : 1) * (ball._riftPresence || 1);
 
     for (let wi = 0; wi < spokes; wi += 1) {
       const mirroredLocal = wi % 2 === 0 ? local : wedgeAngle - local;
       const ringDrift = phase * (wi % 2 === 0 ? 1 : -1) * (0.35 + ringT);
-      const outA = wi * wedgeAngle + mirroredLocal + ringDrift;
+      const irregularPhase = Math.sin(seed + wi * 1.3 + state.phase * 0.8) * 0.018 * (0.4 + open);
+      const outA = wi * wedgeAngle + mirroredLocal + ringDrift + irregularPhase;
       const outR = baseR * radiusPulse
         * (1 + open * (0.12 + ringT * 0.18))
         * (1 + Math.sin(wi * 1.7 + seed + state.phase) * open * 0.05);

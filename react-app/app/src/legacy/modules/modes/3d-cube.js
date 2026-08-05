@@ -54,10 +54,6 @@ export function initialize3DCube() {
   const sizeVw = g.cube3dSizeVw ?? CUBE_3D_DEFAULTS.cube3dSizeVw;
   const sizePx = resolveCube3DSizePx(canvas.width, sizeVw);
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
-  const dotSizeMul = Math.max(
-    0.1,
-    g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
-  );
 
   const pts = generateCubePoints(edgeDensity, faceGrid);
 
@@ -74,7 +70,7 @@ export function initialize3DCube() {
     pointerWasInCanvas: false,
     lastPointerSequence: null,
     audioAngle: 0,
-    dotSizeMul,
+    breathPhase: 0,
     focalLength: Math.max(
       80,
       g.cube3dFocalLength ?? CUBE_3D_DEFAULTS.cube3dFocalLength,
@@ -92,7 +88,7 @@ export function initialize3DCube() {
     ball.vx = 0;
     ball.vy = 0;
     ball.omega = 0;
-    ball.r = clampRadiusToGlobalBounds(g, baseR * dotSizeMul);
+    ball.r = clampRadiusToGlobalBounds(g, baseR);
     ball._cloudBaseR = baseR;
     ball._cube3d = { x: pts[i].x, y: pts[i].y, z: pts[i].z };
     ball._cloudMode = 'cube';
@@ -127,10 +123,6 @@ export function apply3DCubeForces(ball, dt) {
     state.sizePx = resolveCube3DSizePx(
       canvas.width,
       g.cube3dSizeVw ?? CUBE_3D_DEFAULTS.cube3dSizeVw,
-    );
-    state.dotSizeMul = Math.max(
-      0.1,
-      g.cube3dDotSizeMul ?? CUBE_3D_DEFAULTS.cube3dDotSizeMul,
     );
     state.focalLength = Math.max(
       80,
@@ -177,6 +169,7 @@ export function apply3DCubeForces(ball, dt) {
       + ((ny * cursorInfluence + state.tumbleX) * motionScale)
     ) * dt;
     state.rotZ += idleSpeed * 0.2 * idleMotionScale * dt;
+    state.breathPhase += dt * 0.42 * motionScale;
     const manualAngularVelocity = Math.hypot(state.tumbleX, state.tumbleY) * motionScale;
     if (pointerInCanvas && manualAngularVelocity > 0.12) {
       state.audioAngle += manualAngularVelocity * dt;
@@ -200,10 +193,14 @@ export function apply3DCubeForces(ball, dt) {
   }
 
   const { x, y, z } = ball._cube3d;
+  const breath = Math.sin(state.breathPhase) * 0.055;
+  const breathingX = x * (1 + breath);
+  const breathingY = y * (1 - breath * 0.62);
+  const breathingZ = z * (1 + Math.cos(state.breathPhase * 0.74) * 0.04);
   const matrix = state.rotationMatrix;
-  const rotatedX = ((x * matrix.xx) + (y * matrix.xy) + (z * matrix.xz)) * state.sizePx;
-  const rotatedY = ((x * matrix.yx) + (y * matrix.yy) + (z * matrix.yz)) * state.sizePx;
-  const rotatedZ = ((x * matrix.zx) + (y * matrix.zy) + (z * matrix.zz)) * state.sizePx;
+  const rotatedX = ((breathingX * matrix.xx) + (breathingY * matrix.xy) + (breathingZ * matrix.xz)) * state.sizePx;
+  const rotatedY = ((breathingX * matrix.yx) + (breathingY * matrix.yy) + (breathingZ * matrix.yz)) * state.sizePx;
+  const rotatedZ = ((breathingX * matrix.zx) + (breathingY * matrix.zy) + (breathingZ * matrix.zz)) * state.sizePx;
 
   // Calculate distance from viewer for correct perspective
   // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
@@ -215,7 +212,6 @@ export function apply3DCubeForces(ball, dt) {
 
   const targetX = state.cx + rotatedX * scale;
   const targetY = state.cy + rotatedY * scale;
-  const rawR = ball._cloudBaseR * state.dotSizeMul * scale;
 
   // Depth factor for logo layering and engine fog
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
@@ -223,7 +219,8 @@ export function apply3DCubeForces(ball, dt) {
 
   ball.alpha = resolveDistanceFogOpacity(depthFactor, state.fogOptions);
 
-  ball.r = clampRadiusToGlobalBounds(g, rawR);
+  const foregroundRadius = Math.max(1, g.R_MED || 8.9);
+  ball.r = foregroundRadius * (0.52 + depthFactor * 0.48) * scale;
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;

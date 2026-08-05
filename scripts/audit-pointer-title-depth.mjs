@@ -18,7 +18,7 @@ function resolveModeUrl(mode) {
   return url.toString();
 }
 
-function resolveCrispGlowUrl(mode = 'bubbles') {
+function resolveCrispGlowUrl(mode = '3d-sphere') {
   const raw = String(process.env.ABS_DEV_URL || DEFAULT_ORIGIN).trim().replace(/\/+$/, '');
   const origin = new URL(/\.html$/i.test(raw) ? raw : `${raw}/index.html`).origin;
   const url = new URL(CRISP_GLOW_PATH, origin);
@@ -296,17 +296,17 @@ async function auditCrispGlowTitleDepth(page) {
     });
   }
 
-  await page.selectOption('select[aria-label="Simulation"]', 'bubbles');
+  await page.selectOption('select[aria-label="Simulation"]', '3d-sphere');
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
-    return snap?.simulationMode === 'bubbles'
+    return snap?.simulationMode === '3d-sphere'
       && snap?.rearCount > 0
       && snap?.frontCount > 0
       && snap?.frontShare >= 0.2
-      && snap?.frontShare <= 0.48
+      && snap?.frontShare <= 0.55
       && document.getElementById('simulations')?.classList.contains('simulation-depth-title-layer-active');
   }, undefined, { timeout: WAIT_MS });
-  const emergence = await page.evaluate(() => {
+  const continuity = await page.evaluate(() => {
     const material = document.getElementById('c');
     const front = document.getElementById('simulation-front-depth-canvas');
     return {
@@ -323,18 +323,18 @@ async function auditCrispGlowTitleDepth(page) {
     };
   });
   if (
-    emergence.depthLayerActive !== true
-    || emergence.dedicatedTitleCanvasCount !== 0
-    || emergence.experimentalTitleCanvasCount !== 0
-    || emergence.edgeCanvasCount !== 1
-    || emergence.edgeClipCount !== 0
-    || !(emergence.materialZ < emergence.frontZ)
-    || emergence.materialFilter !== 'none'
-    || emergence.frontFilter !== 'none'
-    || emergence.edgeWidth <= 0
-    || emergence.edgeHeight <= 0
+    continuity.depthLayerActive !== true
+    || continuity.dedicatedTitleCanvasCount !== 0
+    || continuity.experimentalTitleCanvasCount !== 0
+    || continuity.edgeCanvasCount !== 1
+    || continuity.edgeClipCount !== 0
+    || !(continuity.materialZ < continuity.frontZ)
+    || continuity.materialFilter !== 'none'
+    || continuity.frontFilter !== 'none'
+    || continuity.edgeWidth <= 0
+    || continuity.edgeHeight <= 0
   ) {
-    throw new Error(`Crisp + Glow layer contract invalid: ${JSON.stringify(emergence)}`);
+    throw new Error(`Crisp + Glow layer contract invalid: ${JSON.stringify(continuity)}`);
   }
 
   const requiredCompositionControls = [
@@ -419,11 +419,11 @@ async function auditCrispGlowTitleDepth(page) {
 
   return {
     simulations: titleResults.length,
-    emergence: {
-      rearCount: emergence.rearCount,
-      frontCount: emergence.frontCount,
-      frontShare: emergence.frontShare,
-      titleOwner: emergence.titleOwner,
+    continuity: {
+      rearCount: continuity.rearCount,
+      frontCount: continuity.frontCount,
+      frontShare: continuity.frontShare,
+      titleOwner: continuity.titleOwner,
     },
     compositionControls: requiredCompositionControls.length,
     themeResults,

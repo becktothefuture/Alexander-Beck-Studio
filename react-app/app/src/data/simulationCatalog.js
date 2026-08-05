@@ -21,6 +21,8 @@ export const SIMULATION_RELOAD_STORAGE_KEY = 'abs_simulation_reload_choice_v1';
 
 export const SIMULATION_ID_ALIASES = Object.freeze({
   'wall-repel': 'repel-room',
+  bubbles: 'pit',
+  'weave-field': 'pit',
 });
 
 let volatileFocusChoice = null;

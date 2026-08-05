@@ -19,9 +19,9 @@ const MAX_EMISSIONS_PER_NOZZLE_FRAME = 4;
 const DEG_TO_RAD = Math.PI / 180;
 const MOBILE_PEAK_HEIGHT_RATIO = 0.58;
 const CENTER_SWAY_DEGREES = 2.5;
-const OUTER_BOW_DEGREES = 6;
-const GROUP_BOW_DEGREES = 7;
-const WAVE_BOW_DEGREES = 3;
+const OUTER_BOW_DEGREES = 10;
+const GROUP_BOW_DEGREES = 12;
+const WAVE_BOW_DEGREES = 4;
 const SIDE_PEAK_HEIGHT_RATIO = 0.55;
 const CENTER_PEAK_HEIGHT_RATIO = 0.75;
 const CENTER_VELOCITY_SCALE = Math.sqrt(
@@ -34,9 +34,9 @@ const emissionAngles = new Float32Array(NOZZLE_COUNT);
 const emissionEnergy = new Float32Array(NOZZLE_COUNT);
 const nozzleWasActive = new Uint8Array(NOZZLE_COUNT);
 const pressureCues = [
-  { id: 'particle-fountain-b:left', intensity: 0.5, x: 0.25, radius: 14, minIntervalMs: 260 },
+  { id: 'particle-fountain-b:left', intensity: 0.5, x: 0.18, radius: 14, minIntervalMs: 260 },
   { id: 'particle-fountain-b:center', intensity: 0.62, x: 0.5, radius: 16, minIntervalMs: 260 },
-  { id: 'particle-fountain-b:right', intensity: 0.5, x: 0.75, radius: 14, minIntervalMs: 260 },
+  { id: 'particle-fountain-b:right', intensity: 0.5, x: 0.82, radius: 14, minIntervalMs: 260 },
 ];
 
 let choreographyTime = 0;
@@ -135,12 +135,13 @@ function configureChoreography(phase) {
   // The remaining 1.4 seconds are a second rest before the loop begins again.
 }
 
-function getNozzleX(canvasWidth, inset, radius, nozzleIndex) {
+function getNozzleX(canvasWidth, inset, radius, nozzleIndex, configuredSpread = 0.32) {
   const left = inset + radius;
   const center = canvasWidth * 0.5;
   const right = canvasWidth - inset - radius;
-  if (nozzleIndex === 0) return (left + center) * 0.5;
-  if (nozzleIndex === 2) return (center + right) * 0.5;
+  const spread = clamp(Number(configuredSpread) || 0.32, 0.2, 0.4);
+  if (nozzleIndex === 0) return clamp(center - canvasWidth * spread, left, center);
+  if (nozzleIndex === 2) return clamp(center + canvasWidth * spread, center, right);
   return center;
 }
 
@@ -163,7 +164,13 @@ function createParticle(nozzleIndex) {
   const dpr = g.DPR || 1;
   const radius = randomRadiusForMode(g, MODES.PARTICLE_FOUNTAIN);
   const inset = getSimulationCollisionInsetPx(g);
-  const sourceX = getNozzleX(canvas.width, inset, radius, nozzleIndex);
+  const sourceX = getNozzleX(
+    canvas.width,
+    inset,
+    radius,
+    nozzleIndex,
+    g.particleFountainBNozzleSpread,
+  );
   const sourceY = canvas.height - inset - radius - dpr;
   const { color, distributionIndex } = pickRandomColorWithIndex();
   const ball = new Ball(sourceX, sourceY, radius, color);
@@ -284,7 +291,10 @@ export function updateParticleFountainB(dt) {
   const choreographyDt = Math.max(Math.max(0, dt), wallElapsed);
   const motionScale = reducedMotion ? 0.42 : 1;
   choreographyTime = (
-    choreographyTime + choreographyDt * (reducedMotion ? 0.65 : 1)
+    choreographyTime
+      + choreographyDt
+        * clamp(g.particleFountainBTempo ?? 0.82, 0.5, 1.2)
+        * (reducedMotion ? 0.65 : 1)
   ) % CHOREOGRAPHY_DURATION;
   configureChoreography(choreographyTime);
 
@@ -305,7 +315,15 @@ export function updateParticleFountainB(dt) {
     }
 
     if (!nozzleWasActive[nozzleIndex]) {
-      triggerPressure(pressureCues[nozzleIndex]);
+      const cue = pressureCues[nozzleIndex];
+      cue.x = clamp(getNozzleX(
+        g.canvas.width,
+        getSimulationCollisionInsetPx(g),
+        g.R_MED || 8.9,
+        nozzleIndex,
+        g.particleFountainBNozzleSpread,
+      ) / Math.max(1, g.canvas.width), 0, 1);
+      triggerPressure(cue);
       nozzleWasActive[nozzleIndex] = 1;
     }
 

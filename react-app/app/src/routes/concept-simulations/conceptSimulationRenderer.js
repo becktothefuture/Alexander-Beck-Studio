@@ -22,6 +22,7 @@ import { selectSimulationMaterialRole } from '../../palette/simulationPaletteCon
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
+import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -81,7 +82,11 @@ function resolveDpr(config) {
   return clamp(Math.min(deviceDpr, configuredMax, mobileMax), 0.75, 2);
 }
 
-function getScaledRadius(config, metrics, theme) {
+function getScaledRadius(config, metrics, theme, configuredRadius = null) {
+  if (Number.isFinite(Number(configuredRadius))) {
+    return normalizeHomeSimulationBodyRadius(configuredRadius)
+      * resolveMobileSimulationBodyScale(theme?.mobileSimulationBodyScale, metrics);
+  }
   const areaScale = Math.sqrt((metrics.cssWidth * metrics.cssHeight) / REFERENCE_AREA);
   const mobileScale = metrics.cssWidth < 680 ? Number(config.mobileRadiusScale || 0.86) : 1;
   const minRadius = metrics.cssWidth < 680 ? 6.2 : 5.8;
@@ -402,7 +407,7 @@ function buildConfluenceBridgeBodies(random, config, theme, metrics) {
   return bodies;
 }
 
-function buildRiftRingBodies(random, config, theme, metrics) {
+function buildRiftRingBodies(random, config, theme, metrics, configuredRadius = null) {
   const bodies = [];
   const isMobile = isMobileSimulationViewport(metrics);
   const ringCount = Math.round(clamp(Number(
@@ -414,7 +419,7 @@ function buildRiftRingBodies(random, config, theme, metrics) {
     : 1;
   const cx = metrics.cssWidth * 0.5;
   const cy = metrics.cssHeight * 0.5;
-  const responsiveBaseRadius = getScaledRadius(config, metrics, theme);
+  const responsiveBaseRadius = getScaledRadius(config, metrics, theme, configuredRadius);
   const baseRadius = isMobile
     ? Math.max(
       responsiveBaseRadius,
@@ -427,7 +432,7 @@ function buildRiftRingBodies(random, config, theme, metrics) {
     ? minDim * clamp(Number(config.mobileOuterRadiusScale || 0.62), 0.4, 1.1)
     : Math.hypot(metrics.cssWidth, metrics.cssHeight)
       * 0.5
-      * clamp(Number(config.outerRadiusScale || 1.62), 1.25, 1.95);
+      * clamp(Number(config.outerRadiusScale || 1.08), 0.9, 1.95);
   const ringSpacing = clamp(Number(config.ringSpacing || 1.42), 0.9, 2.1);
   const centerRadiusScale = clamp(Number(
     isMobile ? config.mobileCenterRadiusScale : config.centerRadiusScale,
@@ -445,7 +450,9 @@ function buildRiftRingBodies(random, config, theme, metrics) {
     const ringT = ringCount <= 1 ? 0 : ring / (ringCount - 1);
     const easedT = Math.pow(ringT, 0.86);
     const depthT = smoothstep(ringT);
-    const depthRadius = baseRadius * (centerRadiusScale + ((1 - centerRadiusScale) * depthT));
+    const depthRadius = Number.isFinite(Number(configuredRadius))
+      ? baseRadius
+      : baseRadius * (centerRadiusScale + ((1 - centerRadiusScale) * depthT));
     const fogT = centerFogRingCount <= 0 ? 1 : ring / Math.max(1, centerFogRingCount);
     const depthOpacity = ring < centerFogRingCount
       ? centerFogMin + ((1 - centerFogMin) * smoothstep(fogT * centerFogStart))
@@ -757,6 +764,7 @@ export function createConceptSimulationRenderer({
   getConfig,
   getTheme,
   transparentBackground = false,
+  useHomeSimulationBodyRadius = false,
 }) {
   const ctx = canvas.getContext('2d', { alpha: true });
   const pointer = {
@@ -826,6 +834,9 @@ export function createConceptSimulationRenderer({
       Math.round(metrics?.cssWidth || 0),
       Math.round(metrics?.cssHeight || 0),
       Number(config.bodyRadius).toFixed(3),
+      useHomeSimulationBodyRadius
+        ? normalizeHomeSimulationBodyRadius(theme?.homeSimulationBodyRadiusPx).toFixed(3)
+        : 'authored',
       Number(config.mobileRadiusScale).toFixed(3),
       Number(config.rings || 0),
       Number(config.mobileRings || 0),
@@ -868,7 +879,10 @@ export function createConceptSimulationRenderer({
     } else if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       bodies = buildConfluenceBridgeBodies(random, config, theme, metrics);
     } else if (simulationId === CONCEPT_SIMULATION_IDS.RIFT_RINGS) {
-      bodies = buildRiftRingBodies(random, config, theme, metrics);
+      const configuredRadius = useHomeSimulationBodyRadius
+        ? normalizeHomeSimulationBodyRadius(theme?.homeSimulationBodyRadiusPx)
+        : null;
+      bodies = buildRiftRingBodies(random, config, theme, metrics, configuredRadius);
     } else {
       bodies = [];
     }

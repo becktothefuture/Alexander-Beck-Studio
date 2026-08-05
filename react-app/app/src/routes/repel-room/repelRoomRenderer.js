@@ -16,6 +16,7 @@ import {
 } from '../../palette/simulationPaletteContract.js';
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
+import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -84,7 +85,7 @@ function pickWeightedMaterialRoleIndex(random, theme) {
   return selectSimulationMaterialRole(random(), theme?.paletteSnapshot || theme)?.distributionIndex || 0;
 }
 
-function getConfigKey(config, count, theme, metrics) {
+function getConfigKey(config, count, theme, metrics, configuredRadius = config.ballRadius) {
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     theme?.mobileSimulationBodyScale,
     metrics,
@@ -93,7 +94,7 @@ function getConfigKey(config, count, theme, metrics) {
     count,
     Math.round(metrics?.cssWidth || 0),
     Math.round(metrics?.cssHeight || 0),
-    Number(config.ballRadius).toFixed(3),
+    Number(configuredRadius).toFixed(3),
     Number(config.sizeVariation).toFixed(3),
     Number(config.initialSpeed).toFixed(3),
     Number(config.mobileInitialSpeed).toFixed(3),
@@ -142,13 +143,13 @@ function resolveWallRange(config, metrics) {
   return clamp(Math.min(configuredRange, mobileLimit), 40, 520);
 }
 
-function createState(count, metrics, theme, config) {
+function createState(count, metrics, theme, config, configuredRadius = config.ballRadius) {
   const random = mulberry32(0x43f17a91);
   const mobileBodyScale = resolveMobileSimulationBodyScale(
     theme?.mobileSimulationBodyScale,
     metrics,
   );
-  const baseRadius = clamp(Number(config.ballRadius) || 12.4, 6, 22) * mobileBodyScale;
+  const baseRadius = clamp(Number(configuredRadius) || 12.4, 6, 22) * mobileBodyScale;
   const sizeVariation = clamp(Number(config.sizeVariation) || 0, 0, 0.28);
   const initialSpeed = clamp(Number(isMobileSimulationViewport(metrics)
     ? config.mobileInitialSpeed ?? config.initialSpeed
@@ -176,7 +177,7 @@ function createState(count, metrics, theme, config) {
     baseRadius,
     initialSpeed,
     mobileSimulationBodyScale: mobileBodyScale,
-    configKey: getConfigKey(config, count, theme, metrics),
+    configKey: getConfigKey(config, count, theme, metrics, configuredRadius),
   };
   const centerX = metrics.cssWidth * 0.5;
   const centerY = metrics.cssHeight * 0.5;
@@ -520,6 +521,7 @@ export function createRepelRoomRenderer({
   getConfig,
   getTheme,
   transparentBackground = false,
+  useHomeSimulationBodyRadius = false,
 }) {
   const ctx = canvas.getContext('2d', { alpha: Boolean(transparentBackground) });
   const pointer = {
@@ -603,9 +605,12 @@ export function createRepelRoomRenderer({
   function ensureState(config, theme, forceCheck = false) {
     if (!forceCheck && state) return;
     const count = resolveBallCount(config, metrics, reducedMotion);
-    const key = getConfigKey(config, count, theme, metrics);
+    const configuredRadius = useHomeSimulationBodyRadius
+      ? normalizeHomeSimulationBodyRadius(theme?.homeSimulationBodyRadiusPx)
+      : config.ballRadius;
+    const key = getConfigKey(config, count, theme, metrics, configuredRadius);
     if (!state || state.configKey !== key) {
-      state = createState(count, metrics, theme, config);
+      state = createState(count, metrics, theme, config, configuredRadius);
       stateBuildCount += 1;
     }
     canvas.dataset.simulationStateBuildCount = String(stateBuildCount);

@@ -481,17 +481,8 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     const collisionStart = isPitMode ? performance.now() : 0;
     if (globals.currentMode === MODES.KALEIDOSCOPE || globals.currentMode === MODES.KALEIDOSCOPE_RIFT) {
       collisionStats = resolveCollisions(6) || EMPTY_COLLISION_STATS; // handled by kaleidoscope early-return, kept for safety
-    } else if (globals.currentMode === MODES.WEAVE_FIELD) {
-      const weaveIterations = Math.max(
-        0,
-        Math.min(6, Math.round(Number(globals.weaveFieldCollisionIterations ?? 2) || 0))
-      );
-      if (weaveIterations > 0) {
-        collisionStats = resolveCollisions(weaveIterations) || EMPTY_COLLISION_STATS;
-      }
     } else if (
       shouldResolveBallCollisionsForMode(globals.currentMode)
-      && !(Boolean(globals.isMobile || globals.isMobileViewport) && globals.currentMode === MODES.BUBBLES)
     ) {
       collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
     }
@@ -666,7 +657,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.CUBE_3D &&
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.KALEIDOSCOPE_RIFT &&
-        mode !== MODES.WEAVE_FIELD &&
         mode !== MODES.PRESSURE_CRUCIBLE &&
         !isPitLikeMode(mode);
 
@@ -809,7 +799,6 @@ export function render() {
   const pitRenderLodEnabled = isPitMode && globals.pitRenderLodEnabled !== false;
   const crittersRenderLodEnabled = globals.currentMode === MODES.CRITTERS
     && qualityProfile.tier !== 'high';
-  const weaveRenderLodEnabled = globals.currentMode === MODES.WEAVE_FIELD;
   const mobileCircleFastPath = Boolean(globals.isMobile || globals.isMobileViewport)
     && Number(globals.pebbleBlend ?? 0) <= 0.02;
   let ballRenderOptions = null;
@@ -821,7 +810,7 @@ export function render() {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };
-  } else if (crittersRenderLodEnabled || weaveRenderLodEnabled) {
+  } else if (crittersRenderLodEnabled) {
     ballRenderOptions = {
       simpleCircleBodies: true,
       canvasWidth: canvas.width,

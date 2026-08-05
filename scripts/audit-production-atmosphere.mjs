@@ -1427,7 +1427,7 @@ async function runExperimentalLabIsolation(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
   try {
-    await page.goto(routeUrl('/lab/atmosphere-feedback.html?mode=bubbles&panel=0&absAudit=1'), {
+    await page.goto(routeUrl('/lab/atmosphere-feedback.html?mode=3d-sphere&panel=0&absAudit=1'), {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
     });

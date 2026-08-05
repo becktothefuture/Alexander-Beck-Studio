@@ -15,7 +15,6 @@ export const MODES = {
   WEIGHTLESS: 'weightless',
   WATER: 'water',
   MAGNETIC: 'magnetic',
-  BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
   KALEIDOSCOPE_RIFT: 'kaleidoscope-rift',
   RIFT_RINGS: 'rift-rings',
@@ -31,7 +30,6 @@ export const MODES = {
   WALL_REPEL: 'repel-room',
   APERTURE_BLOOM: 'aperture-bloom',
   FLUBBER_BLOB: 'flubber-blob',
-  WEAVE_FIELD: 'weave-field',
   PRESSURE_CRUCIBLE: 'pressure-crucible',
   PARTICLE_FOUNTAIN: 'particle-fountain',
   PARTICLE_FOUNTAIN_B: 'particle-fountain-b',
@@ -50,7 +48,7 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (15 modes):
+// FEATURED TIER (14 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
@@ -86,7 +84,6 @@ export const NARRATIVE_MODE_SEQUENCE = [
 export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PIT]: 'FOUNDATION',
   [MODES.FLIES]: 'ATTENTION',
-  [MODES.BUBBLES]: 'EMERGENCE',
   [MODES.MAGNETIC]: 'MAGNETIC FIELD',
   [MODES.WATER]: 'FLOW',
   [MODES.WEIGHTLESS]: 'WEIGHTLESS DRIFT',
@@ -96,7 +93,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.REPEL_ROOM]: 'TENSION',
   [MODES.APERTURE_BLOOM]: 'APERTURE BLOOM',
   [MODES.FLUBBER_BLOB]: 'COHESION',
-  [MODES.WEAVE_FIELD]: 'JUXTAPOSITION',
   [MODES.PRESSURE_CRUCIBLE]: 'PRESSURE FIELD',
   [MODES.SPHERE_3D]: 'CONTINUITY',
   [MODES.CUBE_3D]: 'SCAFFOLD',
@@ -132,10 +128,6 @@ export const NARRATIVE_QUOTES = {
   [MODES.FLIES]: {
     quote: 'No man ever steps in the same river twice.',
     author: 'Heraclitus'
-  },
-  [MODES.BUBBLES]: {
-    quote: 'In the middle of difficulty lies opportunity.',
-    author: 'Albert Einstein'
   },
   [MODES.MAGNETIC]: {
     quote: 'Order is never observed; it is disorder that attracts attention.',
@@ -174,10 +166,6 @@ export const NARRATIVE_QUOTES = {
     author: 'Kurt Koffka'
   },
   [MODES.FLUBBER_BLOB]: {
-    quote: 'The whole is other than the sum of the parts.',
-    author: 'Kurt Koffka'
-  },
-  [MODES.WEAVE_FIELD]: {
     quote: 'The whole is other than the sum of the parts.',
     author: 'Kurt Koffka'
   },

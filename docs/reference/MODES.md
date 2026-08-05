@@ -10,8 +10,8 @@ Source of truth for mode IDs and narrative order:
 ## Runtime Summary
 
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
-- `21` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `16` Daily simulations.
+- `19` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `14` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
 - `flock-of-birds`, `repel-room`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
@@ -36,7 +36,6 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Weightless Drift | `weightless` | Active |
 | Flow | `water` | Active |
 | Magnetic Field | `magnetic` | Active daily |
-| Emergence | `bubbles` | Active |
 | Refraction | `kaleidoscope-3` | Active |
 | Multiplicity | `kaleidoscope-rift` | Active |
 | Depth | `rift-rings` | Route-backed daily/lab |
@@ -49,7 +48,6 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Tension | `repel-room` | Route-backed daily/lab (`wall-repel` remains a legacy URL/config alias) |
 | Aperture Bloom | `aperture-bloom` | Route-backed collection/lab |
 | Cohesion | `flubber-blob` | Active |
-| Juxtaposition | `weave-field` | Active |
 | Pressure Field | `pressure-crucible` | Active |
 | Fountain A | `particle-fountain` | Active |
 | Fountain B | `particle-fountain-b` | Active daily |
@@ -70,22 +68,20 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 6. `3d-sphere` — CONTINUITY
 7. `flock-of-birds` — CONVERGENCE
 8. `flubber-blob` — COHESION
-9. `weave-field` — JUXTAPOSITION
-10. `kaleidoscope-3` — REFRACTION
-11. `bubbles` — EMERGENCE
-12. `magnetic` — MAGNETIC FIELD
-13. `starfield-3d` — PERSPECTIVE
-14. `kaleidoscope-rift` — MULTIPLICITY
-15. `particle-fountain-b` — FOUNTAIN B
-16. `rift-rings` — DEPTH
+9. `kaleidoscope-3` — REFRACTION
+10. `magnetic` — MAGNETIC FIELD
+11. `starfield-3d` — PERSPECTIVE
+12. `kaleidoscope-rift` — MULTIPLICITY
+13. `particle-fountain-b` — FOUNTAIN B
+14. `rift-rings` — DEPTH
 
 ### Extended Tier (shown after Featured)
 
-17. `aperture-bloom` — APERTURE BLOOM
-18. `weightless` — WEIGHTLESS DRIFT
-19. `critters` — CRITTER SWARM
-20. `pressure-crucible` — PRESSURE FIELD
-21. `particle-fountain` — FOUNTAIN A
+15. `aperture-bloom` — APERTURE BLOOM
+16. `weightless` — WEIGHTLESS DRIFT
+17. `critters` — CRITTER SWARM
+18. `pressure-crucible` — PRESSURE FIELD
+19. `particle-fountain` — FOUNTAIN A
 
 Loop order is `Featured -> Extended -> Featured`.
 
@@ -116,25 +112,23 @@ Loop order is `Featured -> Extended -> Featured`.
 - `weightless`: zero-gravity bounce with cursor blast-style interaction.
 - `water`: dense drag/ripple motion field.
 - `magnetic`: attraction/repel dynamics with velocity limiting.
-- `bubbles`: full-height drink-like nucleation from lower sources, terminal rise, pointer/touch wake deflection, surface dissolve, and recycle.
 - `kaleidoscope-3`: mirrored wedge render with center-pointer fill, edge-pointer opening, and a short pointer-motion mapping impulse. Gesture distance is normalized to the viewport so desktop mouse movement and mobile touch drag produce the same shear, pan, and depth response; mobile keeps fewer source bodies while retaining a dense mirrored wedge read.
-- `kaleidoscope-rift`: one-wedge polar lattice mirrored into counter-rotating petals; pointer/touch movement shears rings and opens a radial rift instead of folding the full source field.
-- `rift-rings`: route-backed Depth concentric-circle field with symmetric ring bands, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog that makes the innermost ring almost disappear.
+- `kaleidoscope-rift`: three phase families form a breathing polar lattice with deliberate gaps; pointer/touch movement shears rings and opens a radial rift while the families counter-rotate.
+- `rift-rings`: route-backed Depth field with tighter in-frame concentric bands, one shared production body radius, whole-ring counter-rotation, stronger pointer/touch radial travel, and center-depth fog.
 - `critters`: locomotion-based critter behavior and local separation.
-- `3d-sphere`: rotating spherical point cloud.
-- `3d-cube`: Scaffold’s rotating and pointer-tumbled 3D cube point cloud, with optional face lattice points, perspective scaling, and depth fog.
-- `starfield-3d`: depth-projected starfield with recycle, pointer/touch camera pan, and shared distance fog.
+- `3d-sphere`: dense breathing spherical point cloud with rotating depth layers and trackball response.
+- `3d-cube`: Scaffold’s breathing, rotating, and pointer-tumbled 3D cube point cloud, with a face lattice, perspective scaling, and depth fog.
+- `starfield-3d`: denser depth-projected field with larger far-depth circles, recycle, pointer/touch camera pan, and shared distance fog.
 - `elastic-center`: Collection-only Elastic Loom; a palette-bead lattice with invisible spring links, single-pointer drag, release waves, subtle hover pressure, and normal wall containment.
 - `flock-of-birds`: route-backed distant flock with weighted center-biased motion, no wall collisions, mouse avoidance, and a safe sky band above the ground.
 - `repel-room`: route-backed Tension with heavy palette balls launched through a bounded room, strong room-edge repulsion, mobile-bounded DPR/count, and mouse repulsion without visible cursor rings. Legacy `wall-repel` links resolve to this canonical mode.
 - `aperture-bloom`: route-backed radial circle aperture with symmetric ring spacing, pointer-opened breathing gaps, normal round circles, and the central brand/link area reserved.
 - `napoleon-point-cloud`: route-backed Impression surface-sampled classical bust-face point cloud with the title layered through the dot field, 5k point amount, 14% density, 23.4 dot size, 0.72x mouse rotation, and auto rotation on.
 - `beach-ball-room`: Collection-only route-backed Beach Ball Room circle-built beach ball with room-scale wall physics, softened room-line treatment, calmer rebound, and controls hidden unless `controls=1`.
-- `flubber-blob`: fixed-size hard circles simulated as embedded beads in a soft silicone-gel raft with persistent gel links, hard 2D contacts, passive hover-only cursor pressure/wake, lossy wall rebound, and no visible detach/reattach behavior.
-- `weave-field`: perpendicular discipline streams that progressively cross into a loose woven lattice, with cursor/touch repulsion opening temporary gaps, shared wall/collision containment, and a compact portrait/mobile weave with fewer lanes and softer motion.
+- `flubber-blob`: two independent soft silicone-gel bodies built from fixed-size hard-circle beads. Each body has its own persistent gel links; the bodies collide with one another, rebound from the studio walls, and can be dragged separately without visible detach/reattach behavior.
 - `pressure-crucible`: Extended-tier experiment. Custom-rendered polarity field with small palette-colored bead samples arranged as a filled swarm cloud. Cursor proximity and speed define a live dipole that bends, splits, and wakes the particles; idle motion stays subtle through local swarm drift rather than a ring orbit.
 - `particle-fountain`: centred continuous emitter that aims toward the pointer within a 30-degree left/right sweep.
-- `particle-fountain-b`: three park-fountain nozzles alternate solos, crossing arches, travelling beats, and intentional rests.
+- `particle-fountain-b`: three widely spaced park-fountain nozzles alternate slower solos, crossing arches, travelling beats, and intentional rests.
 
 ---
 

@@ -604,10 +604,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
         opacityElement: canvas,
         requireRealFrame: true,
       });
-      if (getGlobals().currentMode === MODES.BUBBLES) {
-        const { refreshBubbleAtmosphereDepth } = await import('./modules/modes/bubbles.js');
-        refreshBubbleAtmosphereDepth();
-      }
     }
 
     // Start the simulation loop while covered. The shell participant above

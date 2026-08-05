@@ -14,6 +14,7 @@ import {
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
+import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -178,6 +179,7 @@ export function createFlockOfBirdsRenderer({
   getTheme,
   reducedMotion = false,
   transparentBackground = false,
+  useHomeSimulationBodyRadius = false,
 } = {}) {
   const ctx = canvas.getContext('2d', { alpha: Boolean(transparentBackground) });
   const rand = mulberry32(0x7f4a9c21);
@@ -213,6 +215,7 @@ export function createFlockOfBirdsRenderer({
     gridMinX: 0,
     initWidth: 0,
     initHeight: 0,
+    initRadius: 0,
     initialized: false,
     warmed: false,
   };
@@ -254,6 +257,7 @@ export function createFlockOfBirdsRenderer({
   let metricsSyncCount = 0;
   let stateBuildCount = 0;
   let mobileBodyScale = 1;
+  let baseBirdRadius = 10;
   let birdColorTheme = null;
   let birdColorGeneration = Number.NaN;
   let birdColorStrings = [];
@@ -283,7 +287,7 @@ export function createFlockOfBirdsRenderer({
   }
 
   function resolveFlightBand(config, height, groundY) {
-    const radius = Math.max(1, Number(config.birdRadius) || 10) * mobileBodyScale;
+    const radius = Math.max(1, baseBirdRadius) * mobileBodyScale;
     const hardTop = config.topMargin + radius * 2.5;
     const hardBottom = groundY - radius * 4.2;
     const top = clamp(
@@ -325,7 +329,9 @@ export function createFlockOfBirdsRenderer({
     const cruiseSpeed = mobileFlight
       ? clamp(Number(config.mobileCruiseSpeed) || config.cruiseSpeed, 24, 230)
       : config.cruiseSpeed;
-    const sizeChanged = Math.abs(width - state.initWidth) > 32 || Math.abs(height - state.initHeight) > 32;
+    const sizeChanged = Math.abs(width - state.initWidth) > 32
+      || Math.abs(height - state.initHeight) > 32
+      || Math.abs(baseBirdRadius - state.initRadius) > 0.01;
     if (count === state.count && state.initialized && !sizeChanged) return false;
 
     state.count = count;
@@ -411,6 +417,7 @@ export function createFlockOfBirdsRenderer({
     state.warmed = false;
     state.initWidth = width;
     state.initHeight = height;
+    state.initRadius = baseBirdRadius;
     stateBuildCount += 1;
     return true;
   }
@@ -1041,7 +1048,7 @@ export function createFlockOfBirdsRenderer({
 
       let nextX = xi + nextVx * dt * motionScale;
       let nextY = yi + nextVy * dt * motionScale;
-      const radius = config.birdRadius * mobileBodyScale * (1 + state.depth[i] * config.depthSize);
+      const radius = baseBirdRadius * mobileBodyScale * (1 + state.depth[i] * config.depthSize);
       const hardMargin = Math.max(radius * 4, width * 0.08);
       if (nextX < flightLeft - hardMargin) {
         nextX = flightLeft - hardMargin;
@@ -1161,8 +1168,8 @@ export function createFlockOfBirdsRenderer({
     const spanY = Math.max(1, maxY - minY);
     const scaleX = spanX > maxSpanX ? maxSpanX / spanX : 1;
     const scaleY = spanY > maxSpanY ? maxSpanY / spanY : 1;
-    const minSafeY = config.topMargin + config.birdRadius * mobileBodyScale * 1.5;
-    const maxSafeY = groundY - config.birdRadius * mobileBodyScale * 2.2;
+    const minSafeY = config.topMargin + baseBirdRadius * mobileBodyScale * 1.5;
+    const maxSafeY = groundY - baseBirdRadius * mobileBodyScale * 2.2;
 
     for (let i = 0; i < count; i += 1) {
       state.x[i] = clamp(targetCenterX + (state.x[i] - centerX) * scaleX, 16, width - 16);
@@ -1209,7 +1216,7 @@ export function createFlockOfBirdsRenderer({
         );
       }
     }
-    const baseRadius = config.birdRadius * mobileBodyScale;
+    const baseRadius = baseBirdRadius * mobileBodyScale;
     const depthSize = config.depthSize;
 
     for (let colorIndex = 0; colorIndex < birdColorStrings.length; colorIndex += 1) {
@@ -1233,12 +1240,15 @@ export function createFlockOfBirdsRenderer({
 
   function prepareFrame(config, theme) {
     syncMetrics(config);
+    baseBirdRadius = useHomeSimulationBodyRadius
+      ? normalizeHomeSimulationBodyRadius(theme?.homeSimulationBodyRadiusPx)
+      : Math.max(1, Number(config.birdRadius) || 10);
     mobileBodyScale = resolveMobileSimulationBodyScale(
       theme?.mobileSimulationBodyScale,
       metrics,
     );
     metrics.mobileSimulationBodyScale = mobileBodyScale;
-    metrics.simulationBodyRadius = config.birdRadius * mobileBodyScale;
+    metrics.simulationBodyRadius = baseBirdRadius * mobileBodyScale;
     canvas.dataset.mobileSimulationBodyScale = mobileBodyScale.toFixed(2);
     canvas.dataset.simulationBodyRadius = metrics.simulationBodyRadius.toFixed(2);
     canvas.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');

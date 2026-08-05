@@ -7,6 +7,7 @@
 import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import {
   DEV_ONLY_MODES,
+  FEATURED_MODES,
   NARRATIVE_MODE_SEQUENCE,
   NARRATIVE_CHAPTER_TITLES,
   MODES,
@@ -976,6 +977,25 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
+        id: 'homeSimulationBodyRadiusPx',
+        label: 'Simulation ball size',
+        stateKey: 'homeSimulationBodyRadiusPx',
+        type: 'range',
+        min: 6, max: 16, step: 0.1,
+        default: 8.9,
+        format: v => `${Number(v).toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Sets the shared production Home simulation ball radius. Mobile applies the Mobile Body Size scale.',
+        onChange: (g, _val) => {
+          void _val;
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+            if (FEATURED_MODES.includes(g.currentMode)) setMode(g.currentMode);
+          });
+          updateCursorSize();
+        }
+      },
+      {
         id: 'ballSizeMin',
         label: 'Size Min',
         stateKey: 'ballSizeMin',
@@ -1558,7 +1578,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'linkImpactDuration',
         type: 'range',
         min: 50, max: 300, step: 10,
-        default: 150,
+        default: 320,
         format: v => `${Math.round(v)}ms`,
         parse: v => parseInt(v, 10),
         hint: 'Duration of press animation (fast and subtle)',
@@ -3670,89 +3690,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  bubbles: {
-    title: 'Emergence',
-    icon: '🫧',
-    mode: 'bubbles',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'bubblesSpeed',
-        label: 'Rise Speed',
-        stateKey: 'bubblesRiseSpeed',
-        type: 'range',
-        min: 50, max: 900, step: 25,
-        default: 360,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      },
-      {
-        id: 'bubblesWobble',
-        label: 'Wobble',
-        stateKey: 'bubblesWobble',
-        type: 'range',
-        min: 0, max: 100, step: 5,
-        default: 65,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      },
-      {
-        id: 'bubblesVerticalExtent',
-        label: 'Vertical Extent',
-        stateKey: 'bubblesVerticalExtent',
-        type: 'range',
-        min: 0.15, max: 1, step: 0.05,
-        default: 1,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Height of the bubble band inside the wall (1 = full height).'
-      },
-      {
-        id: 'bubblesDepthSpan',
-        label: 'Depth Span',
-        stateKey: 'bubblesDepthSpan',
-        type: 'range',
-        min: 0.1, max: 1, step: 0.05,
-        default: 0.8,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Z range around the logo depth (1 = full depth).'
-      },
-      {
-        id: 'bubblesMax',
-        label: 'Max Bubbles',
-        stateKey: 'bubblesMaxCount',
-        type: 'range',
-        min: 50, max: 300, step: 10,
-        default: 200,
-        format: v => String(v),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'bubblesDensity',
-        label: 'Density',
-        stateKey: 'bubblesDensity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.8,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'bubblesMobileDensity',
-        label: 'Mobile Density',
-        stateKey: 'bubblesMobileDensityMul',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.75,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Extra mobile-only multiplier applied before the shared mobile performance reduction.'
-      },
-      warmupFramesControl('bubblesWarmupFrames')
-    ]
-  },
-
   kaleidoscope: {
     title: 'Refraction',
     icon: '🪞',
@@ -3811,28 +3748,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Subtle movement when idle; respects prefers-reduced-motion.'
       },
       {
-        id: 'kaleiDotSizeVh',
-        label: 'Dot Size (vh)',
-        stateKey: 'kaleidoscope3DotSizeVh',
-        type: 'range',
-        min: 0.2, max: 2.5, step: 0.05,
-        default: 0.82,
-        format: v => v.toFixed(2) + 'vh',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kaleiDotAreaMul',
-        label: 'Dot Area',
-        stateKey: 'kaleidoscope3DotAreaMul',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.05,
-        default: 0.9,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
         id: 'kaleiSpawnArea',
         label: 'Spawn Density',
         stateKey: 'kaleidoscope3SpawnAreaMul',
@@ -3840,17 +3755,6 @@ export const CONTROL_SECTIONS = {
         min: 0.2, max: 2.0, step: 0.05,
         default: 0.6,
         format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kaleiSizeVar',
-        label: 'Size Variance',
-        stateKey: 'kaleidoscope3SizeVariance',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.45,
-        format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
         reinitMode: true
       },
@@ -3886,26 +3790,57 @@ export const CONTROL_SECTIONS = {
         reinitMode: true
       },
       {
-        id: 'kaleidoscopeRiftDotSizeVh',
-        label: 'Desktop Dot Size',
-        stateKey: 'kaleidoscopeRiftDotSizeVh',
+        id: 'kaleidoscopeRiftSpokes',
+        label: 'Desktop Spokes',
+        stateKey: 'kaleidoscopeRiftSpokes',
         type: 'range',
-        min: 0.1, max: 4, step: 0.05,
-        default: 0.82,
-        format: v => `${v.toFixed(2)}vh`,
-        parse: parseFloat,
+        min: 3, max: 16, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
         reinitMode: true
       },
       {
-        id: 'kaleidoscopeRiftMobileDotSizeVh',
-        label: 'Mobile Dot Size',
-        stateKey: 'kaleidoscopeRiftMobileDotSizeVh',
+        id: 'kaleidoscopeRiftSpokesMobile',
+        label: 'Mobile Spokes',
+        stateKey: 'kaleidoscopeRiftSpokesMobile',
         type: 'range',
-        min: 0.1, max: 4, step: 0.05,
-        default: 1.15,
-        format: v => `${v.toFixed(2)}vh`,
-        parse: parseFloat,
+        min: 3, max: 10, step: 1,
+        default: 4,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
         reinitMode: true
+      },
+      {
+        id: 'kaleidoscopeRiftRings',
+        label: 'Ring Families',
+        stateKey: 'kaleidoscopeRiftRings',
+        type: 'range',
+        min: 2, max: 9, step: 1,
+        default: 4,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kaleidoscopeRiftSpeed',
+        label: 'Orbit Speed',
+        stateKey: 'kaleidoscopeRiftSpeed',
+        type: 'range',
+        min: 0.2, max: 2.4, step: 0.05,
+        default: 1.2,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat
+      },
+      {
+        id: 'kaleidoscopeRiftShear',
+        label: 'Ring Shear',
+        stateKey: 'kaleidoscopeRiftShear',
+        type: 'range',
+        min: 0, max: 2, step: 0.05,
+        default: 0.9,
+        format: v => v.toFixed(2),
+        parse: parseFloat
       }
     ]
   },
@@ -3932,7 +3867,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldSpanX',
         type: 'range',
         min: 0.4, max: 3.5, step: 0.05,
-        default: 2.45,
+        default: 1.5,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3943,7 +3878,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldSpanY',
         type: 'range',
         min: 0.4, max: 3.5, step: 0.05,
-        default: 2.05,
+        default: 1.2,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3954,7 +3889,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldMobileSpanMultiplier',
         type: 'range',
         min: 1, max: 4, step: 0.05,
-        default: 2.6,
+        default: 1.7,
         format: v => `${v.toFixed(2)}×`,
         parse: parseFloat,
         reinitMode: true
@@ -4012,16 +3947,6 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10)
       },
       {
-        id: 'starfieldDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'starfieldDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 4.0, step: 0.05,
-        default: 0.9,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat
-      },
-      {
         id: 'starfieldFogStart',
         label: 'Fog Start',
         stateKey: 'starfieldFogStart',
@@ -4038,7 +3963,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldFogMin',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.16,
+        default: 0.32,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Minimum opacity for stars deepest in the distance fog.'
@@ -4049,7 +3974,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldMobileFogMin',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.3,
+        default: 0.38,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Mobile-only minimum opacity for stars deepest in the distance fog.'
@@ -4092,11 +4017,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'flubberBlobBallCount',
         type: 'range',
         min: 56, max: 180, step: 4,
-        default: 120,
+        default: 160,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true,
-        hint: 'How many fixed-size beads make up the gel body. Lower values are lighter on performance.'
+        hint: 'Total fixed-size beads shared evenly across the two gel bodies.'
       },
       {
         id: 'flubberBlobCohesion',
@@ -4181,10 +4106,21 @@ export const CONTROL_SECTIONS = {
         stateKey: 'flubberBlobWallBounce',
         type: 'range',
         min: 0, max: 0.75, step: 0.01,
-        default: 0.24,
+        default: 0.46,
         format: v => v.toFixed(2),
         parse: parseFloat,
         hint: 'Soft rebound strength when the gel body hits the inner wall.'
+      },
+      {
+        id: 'flubberBlobInterBodyBounce',
+        label: 'Body Collision Bounce',
+        stateKey: 'flubberBlobInterBodyBounce',
+        type: 'range',
+        min: 0.1, max: 0.8, step: 0.01,
+        default: 0.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Rebound strength when the two independent gel bodies collide.'
       },
       {
         id: 'flubberBlobMaxSpeed',
@@ -4199,152 +4135,6 @@ export const CONTROL_SECTIONS = {
       }
     ]
   },
-
-  weaveField: {
-    title: 'Juxtaposition',
-    icon: '🧵',
-    mode: 'weave-field',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'weaveFieldBallCount',
-        label: 'Ball Count',
-        stateKey: 'weaveFieldBallCount',
-        type: 'range',
-        min: 48, max: 260, step: 4,
-        default: 132,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'Total woven bodies. Mobile/lite budgets can still reduce the effective count.'
-      },
-      {
-        id: 'weaveFieldBallSizeMul',
-        label: 'Ball Size',
-        stateKey: 'weaveFieldBallSizeMul',
-        type: 'range',
-        min: 0.2, max: 1.5, step: 0.05,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'Radius multiplier for Juxtaposition balls relative to the shared responsive ball size.'
-      },
-      {
-        id: 'weaveFieldLaneCount',
-        label: 'Lane Count',
-        stateKey: 'weaveFieldLaneCount',
-        type: 'range',
-        min: 3, max: 9, step: 1,
-        default: 4,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'Number of horizontal and vertical discipline streams.'
-      },
-      {
-        id: 'weaveFieldFlowSpeed',
-        label: 'Flow Speed',
-        stateKey: 'weaveFieldFlowSpeed',
-        type: 'range',
-        min: 0, max: 180, step: 2,
-        default: 118,
-        format: v => `${Math.round(v)}px/s`,
-        parse: parseFloat,
-        hint: 'How fast balls travel along their stream paths.'
-      },
-      {
-        id: 'weaveFieldWeaveStrength',
-        label: 'Weave Strength',
-        stateKey: 'weaveFieldWeaveStrength',
-        type: 'range',
-        min: 0, max: 1.2, step: 0.02,
-        default: 0.9,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'How strongly straight streams cross into the woven lattice.'
-      },
-      {
-        id: 'weaveFieldLaneTension',
-        label: 'Lane Tension',
-        stateKey: 'weaveFieldLaneTension',
-        type: 'range',
-        min: 0, max: 18, step: 0.2,
-        default: 14,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'How tightly each ball follows its moving path target.'
-      },
-      {
-        id: 'weaveFieldProgressSeconds',
-        label: 'Build Time',
-        stateKey: 'weaveFieldProgressSeconds',
-        type: 'range',
-        min: 4, max: 40, step: 1,
-        default: 9,
-        format: v => `${Math.round(v)}s`,
-        parse: parseFloat,
-        hint: 'Seconds from straight streams to full weave.'
-      },
-      {
-        id: 'weaveFieldPointerRadius',
-        label: 'Pointer Radius',
-        stateKey: 'weaveFieldPointerRadius',
-        type: 'range',
-        min: 40, max: 420, step: 5,
-        default: 260,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Desktop cursor or mobile touch radius that opens space in the weave.'
-      },
-      {
-        id: 'weaveFieldPointerRepelStrength',
-        label: 'Pointer Repel',
-        stateKey: 'weaveFieldPointerRepelStrength',
-        type: 'range',
-        min: 0, max: 60000, step: 1000,
-        default: 22000,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Strength of the temporary opening around cursor/touch.'
-      },
-      {
-        id: 'weaveFieldDamping',
-        label: 'Damping',
-        stateKey: 'weaveFieldDamping',
-        type: 'range',
-        min: 0.7, max: 0.995, step: 0.005,
-        default: 0.965,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        hint: 'Velocity damping. Lower values feel calmer and less elastic.'
-      },
-      {
-        id: 'weaveFieldMaxSpeed',
-        label: 'Energy Cap',
-        stateKey: 'weaveFieldMaxSpeed',
-        type: 'range',
-        min: 220, max: 2200, step: 20,
-        default: 1920,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10),
-        hint: 'Maximum speed after path pull, collisions, pointer repulsion, and walls.'
-      },
-      {
-        id: 'weaveFieldCollisionIterations',
-        label: 'Contact Passes',
-        stateKey: 'weaveFieldCollisionIterations',
-        type: 'range',
-        min: 0, max: 6, step: 1,
-        default: 1,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Ball-on-ball solver passes. Lower values keep the weave fast while walls still contain it.'
-      },
-      warmupFramesControl('weaveFieldWarmupFrames')
-    ]
-  },
-
 
   pressureCrucible: {
     title: 'Pressure Field',
@@ -4540,6 +4330,28 @@ export const CONTROL_SECTIONS = {
         hint: 'Maximum active particles'
       },
       {
+        id: 'particleFountainBNozzleSpread',
+        label: 'Fountain B Nozzle Spread',
+        stateKey: 'particleFountainBNozzleSpread',
+        type: 'range',
+        min: 0.2, max: 0.4, step: 0.01,
+        default: 0.32,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Distance of each outside nozzle from the centre as a share of the canvas width.'
+      },
+      {
+        id: 'particleFountainBTempo',
+        label: 'Fountain B Tempo',
+        stateKey: 'particleFountainBTempo',
+        type: 'range',
+        min: 0.5, max: 1.2, step: 0.01,
+        default: 0.82,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Playback speed of the Fountain B choreography.'
+      },
+      {
         id: 'particleFountainLifetime',
         label: 'Lifetime',
         stateKey: 'particleFountainLifetime',
@@ -4605,7 +4417,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dDensity',
         type: 'range',
         min: 30, max: 600, step: 10,
-        default: 94,
+        default: 240,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -4619,16 +4431,6 @@ export const CONTROL_SECTIONS = {
         default: 600,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'sphere3dDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'sphere3dDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 4.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat
       },
       {
         id: 'sphere3dIdleSpeed',
@@ -4825,16 +4627,6 @@ export const CONTROL_SECTIONS = {
         default: CUBE_3D_DEFAULTS.cube3dFocalLength,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'cube3dDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'cube3dDotSizeMul',
-        type: 'range',
-        min: CUBE_3D_LIMITS.cube3dDotSizeMul.min, max: CUBE_3D_LIMITS.cube3dDotSizeMul.max, step: 0.05,
-        default: CUBE_3D_DEFAULTS.cube3dDotSizeMul,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat
       },
       {
         id: 'cube3dFogStart',
@@ -5554,7 +5346,6 @@ export function generateBrowserTransitionSectionsHTML() {
 export function generateModeSwitcherHTML() {
   const modeIcons = {
     'pit': '🎯',
-    'bubbles': '🫧',
     'critters': '🐝',
     'flies': '🕊️',
     'water': '🌊',
@@ -5572,7 +5363,6 @@ export function generateModeSwitcherHTML() {
     'wall-repel': '↔',
     'aperture-bloom': '◎',
     'flubber-blob': '🫠',
-    'weave-field': '🧵',
     'pressure-crucible': '◉',
     'particle-fountain': '⛲',
     'particle-fountain-b': '⛲',
@@ -5581,7 +5371,6 @@ export function generateModeSwitcherHTML() {
   };
   const modeLabels = {
     'pit': 'Foundation',
-    'bubbles': 'Emergence',
     'critters': 'Critter Swarm',
     'flies': 'Attention',
     'water': 'Flow',
@@ -5599,7 +5388,6 @@ export function generateModeSwitcherHTML() {
     'wall-repel': 'Tension',
     'aperture-bloom': 'Aperture Bloom',
     'flubber-blob': 'Cohesion',
-    'weave-field': 'Juxtaposition',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Fountain A',
     'particle-fountain-b': 'Fountain B',
@@ -5678,7 +5466,6 @@ function generateHomeModeSectionHTML() {
           ${(() => {
             const modeIcons = {
               'pit': '🎯',
-              'bubbles': '🫧',
               'critters': '🐝',
               'flies': '🕊️',
               'water': '🌊',
@@ -5696,7 +5483,6 @@ function generateHomeModeSectionHTML() {
               'wall-repel': '↔',
               'aperture-bloom': '◎',
               'flubber-blob': '🫠',
-              'weave-field': '🧵',
               'pressure-crucible': '◉',
               'particle-fountain': '⛲',
               'particle-fountain-b': '⛲',
@@ -5705,7 +5491,6 @@ function generateHomeModeSectionHTML() {
             };
             const modeLabels = {
               'pit': 'Foundation',
-              'bubbles': 'Emergence',
               'critters': 'Critter Swarm',
               'flies': 'Attention',
               'water': 'Flow',
@@ -5723,7 +5508,6 @@ function generateHomeModeSectionHTML() {
               'wall-repel': 'Tension',
               'aperture-bloom': 'Aperture Bloom',
               'flubber-blob': 'Cohesion',
-              'weave-field': 'Juxtaposition',
               'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Fountain A',
               'particle-fountain-b': 'Fountain B',

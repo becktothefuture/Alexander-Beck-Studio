@@ -123,7 +123,7 @@ const SOUND_GROUPS = Object.freeze([
   },
   {
     title: 'Material / physics',
-    description: 'The collision voice used by the home pit, quote puck, bubbles, and simulation adapters.',
+    description: 'The collision voice used by the home pit, quote puck, and simulation adapters.',
     sounds: [
       {
         id: 'impact-soft', name: 'Impact / soft', detail: 'Low-radius, medium-energy collision',

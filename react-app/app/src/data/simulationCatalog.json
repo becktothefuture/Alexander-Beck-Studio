@@ -1,6 +1,6 @@
 {
-  "version": 5,
-  "updatedAt": "2026-08-03",
+  "version": 6,
+  "updatedAt": "2026-08-05",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -42,7 +42,7 @@
       "launchPath": "/index.html?mode=3d-cube",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Circle-only points describe a rotating spatial frame."
+      "summary": "A breathing, pointer-tumbled circle lattice describes a rotating spatial frame."
     },
     {
       "id": "water",
@@ -97,7 +97,7 @@
       "launchPath": "/index.html?mode=3d-sphere",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "A sphere-like circle shell with spatial rotation."
+      "summary": "A dense breathing circle shell rotates through layered depth."
     },
     {
       "id": "napoleon-point-cloud",
@@ -142,19 +142,7 @@
       "launchPath": "/index.html?mode=flubber-blob",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Cohesive blob behavior built from circle material."
-    },
-    {
-      "id": "weave-field",
-      "name": "Juxtaposition",
-      "chapter": "JUXTAPOSITION",
-      "stage": "daily-rotation",
-      "surface": "home-mode",
-      "origin": "core-site",
-      "launchPath": "/index.html?mode=weave-field",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
-      "summary": "Interlaced circle motion that reads as a woven field."
+      "summary": "Two cohesive circle bodies collide with each other and rebound from the studio walls."
     },
     {
       "id": "elastic-center",
@@ -179,18 +167,6 @@
       "includeInNarrative": true,
       "reviewStatus": "stable",
       "summary": "High-impact mirrored circle motion for the featured sequence close."
-    },
-    {
-      "id": "bubbles",
-      "name": "Emergence",
-      "chapter": "EMERGENCE",
-      "stage": "daily-rotation",
-      "surface": "home-mode",
-      "origin": "core-site",
-      "launchPath": "/index.html?mode=bubbles",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
-      "summary": "Drink-like bubble nucleation with terminal rise, pointer wake, touch deflection, and recycled surface pops."
     },
     {
       "id": "magnetic",
@@ -238,7 +214,7 @@
       "launchPath": "/index.html?mode=starfield-3d",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Expansive distance-fog field built from circle points."
+      "summary": "A dense forward-moving circle field uses scale, fog, and parallax to reveal depth."
     },
     {
       "id": "kaleidoscope-rift",
@@ -250,7 +226,7 @@
       "launchPath": "/index.html?mode=kaleidoscope-rift",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Counter-rotating polar kaleidoscope with ring shear and petal-like mirrored motion."
+      "summary": "Three phase families form a breathing polar lattice with gaps, ring shear, and counter-rotation."
     },
     {
       "id": "pressure-crucible",
@@ -287,7 +263,7 @@
       "launchPath": "/index.html?mode=particle-fountain-b",
       "includeInNarrative": true,
       "reviewStatus": "stable",
-      "summary": "Three evenly spaced park-fountain nozzles perform a repeating choreography of solos, crossing arches, travelling beats, and rests."
+      "summary": "Three widely spaced park-fountain nozzles perform a slower choreography of solos, crossing arches, travelling beats, and rests."
     },
     {
       "id": "beach-ball-room",
@@ -343,7 +319,7 @@
         "readySelector": "#rift-rings-canvas",
         "notes": "Direct Daily Focus boot enters this route-backed canvas before the expansive ring field is visible."
       },
-      "summary": "Expansive concentric depth rings shear sideways and breathe inward or outward under mouse and touch movement.",
+      "summary": "Tighter concentric depth rings use one shared body size, fog, shear, and radial breathing under mouse and touch movement.",
       "lastReviewedAt": "2026-07-09"
     },
     {

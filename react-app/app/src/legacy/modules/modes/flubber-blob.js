@@ -20,6 +20,7 @@ const GEL_TARGET_NEIGHBORS = 7;
 const GEL_MAX_NEIGHBORS = 10;
 const WALL_SOUND_MIN_INTERVAL_MS = 58;
 const AUDIT_METRICS_INTERVAL_FRAMES = 12;
+const COHESION_BODY_COUNT = 2;
 
 let spawnX = new Float32Array(0);
 let spawnY = new Float32Array(0);
@@ -29,6 +30,7 @@ let grabOffsetX = new Float32Array(0);
 let grabOffsetY = new Float32Array(0);
 let grabWeight = new Float32Array(0);
 let phase = new Float32Array(0);
+let bodyId = new Uint8Array(0);
 let gridHead = new Int32Array(0);
 let gridNext = new Int32Array(0);
 let visited = new Uint16Array(0);
@@ -47,6 +49,16 @@ let gelAdjLink = new Int16Array(0);
 
 const wallHit = { nx: 0, ny: 0, penetration: 0 };
 const centerStats = { x: 0, y: 0, vx: 0, vy: 0, radius: 1 };
+const bodyStats = Array.from({ length: COHESION_BODY_COUNT }, () => ({
+  x: 0,
+  y: 0,
+  vx: 0,
+  vy: 0,
+  radius: 1,
+  averageSpeed: 0,
+}));
+const bodyStarts = new Int16Array(COHESION_BODY_COUNT);
+const bodyCounts = new Int16Array(COHESION_BODY_COUNT);
 const auditMetrics = {
   mode: MODES.FLUBBER_BLOB,
   particleCount: 0,
@@ -57,11 +69,16 @@ const auditMetrics = {
   averageSpeed: 0,
   centerX: 0,
   centerY: 0,
-  radius: 0
+  radius: 0,
+  bodyCount: COHESION_BODY_COUNT,
+  minimumBodySeparation: 0,
+  interBodyCollisionCount: 0,
+  wallCollisionCount: 0,
 };
 
 const blob = {
   count: 0,
+  bodyCount: COHESION_BODY_COUNT,
   ballRadius: 0,
   spawnRadius: 0,
   lastW: 0,
@@ -88,8 +105,11 @@ const blob = {
   pointerActive: false,
   isDragging: false,
   dragPointerId: null,
+  dragBodyId: -1,
   dragWeightTotal: 0,
-  lastWallSoundFrame: -1
+  lastWallSoundFrame: -1,
+  interBodyCollisionCount: 0,
+  wallCollisionCount: 0,
 };
 
 let unsubscribePointer = null;
@@ -115,6 +135,7 @@ function ensureCapacity(count) {
     gridNext.length >= count &&
     visited.length >= count &&
     queue.length >= count
+    && bodyId.length >= count
   ) {
     return;
   }
@@ -126,6 +147,7 @@ function ensureCapacity(count) {
   grabOffsetY = new Float32Array(count);
   grabWeight = new Float32Array(count);
   phase = new Float32Array(count);
+  bodyId = new Uint8Array(count);
   gridNext = new Int32Array(count);
   visited = new Uint16Array(count);
   queue = new Int32Array(count);
@@ -165,27 +187,28 @@ function computeSpawnRadius(count, ballRadius, w, h) {
   return clamp(packedRadius, minDim * minRatio, minDim * maxRatio);
 }
 
-function getInitialCenter(w, h, radius) {
-  if (h > w * 1.18) {
-    return {
-      x: clamp(w * 0.7, radius, Math.max(radius, w - radius)),
-      y: clamp(h * 0.34, radius, Math.max(radius, h - radius))
-    };
-  }
-
+function getInitialCenter(w, h, radius, bodyIndex) {
+  const portrait = h > w * 1.18;
+  const xRatio = portrait
+    ? (bodyIndex === 0 ? 0.32 : 0.68)
+    : (bodyIndex === 0 ? 0.3 : 0.7);
+  const yRatio = portrait
+    ? (bodyIndex === 0 ? 0.38 : 0.58)
+    : (bodyIndex === 0 ? 0.45 : 0.55);
   return {
-    x: clamp(w * 0.42, radius, Math.max(radius, w - radius)),
-    y: clamp(h * 0.48, radius, Math.max(radius, h - radius))
+    x: clamp(w * xRatio, radius, Math.max(radius, w - radius)),
+    y: clamp(h * yRatio, radius, Math.max(radius, h - radius))
   };
 }
 
-function generateSpawnOffsets(count, radius) {
+function generateSpawnOffsets(start, count, radius, angleOffset = 0) {
   let sumX = 0;
   let sumY = 0;
-  for (let i = 0; i < count; i++) {
-    const t = count <= 1 ? 0 : (i + 0.5) / count;
+  for (let localIndex = 0; localIndex < count; localIndex++) {
+    const i = start + localIndex;
+    const t = count <= 1 ? 0 : (localIndex + 0.5) / count;
     const ringR = Math.sqrt(t) * radius * 0.92;
-    const angle = i * GOLDEN_ANGLE;
+    const angle = localIndex * GOLDEN_ANGLE + angleOffset;
     const x = Math.cos(angle) * ringR;
     const y = Math.sin(angle) * ringR;
     spawnX[i] = x;
@@ -197,7 +220,7 @@ function generateSpawnOffsets(count, radius) {
 
   const avgX = count > 0 ? sumX / count : 0;
   const avgY = count > 0 ? sumY / count : 0;
-  for (let i = 0; i < count; i++) {
+  for (let i = start; i < start + count; i++) {
     spawnX[i] -= avgX;
     spawnY[i] -= avgY;
   }
@@ -239,36 +262,40 @@ function buildGelLinks(count) {
   const seen = new Set();
   const neighborCounts = new Uint8Array(count);
 
-  for (let i = 1; i < count; i++) {
-    let nearest = 0;
-    let nearestDistSq = Number.POSITIVE_INFINITY;
-    for (let j = 0; j < i; j++) {
-      const dx = spawnX[j] - spawnX[i];
-      const dy = spawnY[j] - spawnY[i];
-      const distSq = dx * dx + dy * dy;
-      if (distSq < nearestDistSq) {
-        nearestDistSq = distSq;
-        nearest = j;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start + 1; i < end; i++) {
+      let nearest = start;
+      let nearestDistSq = Number.POSITIVE_INFINITY;
+      for (let j = start; j < i; j++) {
+        const dx = spawnX[j] - spawnX[i];
+        const dy = spawnY[j] - spawnY[i];
+        const distSq = dx * dx + dy * dy;
+        if (distSq < nearestDistSq) {
+          nearestDistSq = distSq;
+          nearest = j;
+        }
       }
+      addGelLink(i, nearest, Math.sqrt(nearestDistSq), seen, neighborCounts);
     }
-    addGelLink(i, nearest, Math.sqrt(nearestDistSq), seen, neighborCounts);
-  }
 
-  for (let i = 0; i < count; i++) {
-    const candidates = [];
-    for (let j = 0; j < count; j++) {
-      if (i === j) continue;
-      const dx = spawnX[j] - spawnX[i];
-      const dy = spawnY[j] - spawnY[i];
-      candidates.push({ index: j, distSq: dx * dx + dy * dy });
-    }
-    candidates.sort((a, b) => a.distSq - b.distSq);
+    for (let i = start; i < end; i++) {
+      const candidates = [];
+      for (let j = start; j < end; j++) {
+        if (i === j) continue;
+        const dx = spawnX[j] - spawnX[i];
+        const dy = spawnY[j] - spawnY[i];
+        candidates.push({ index: j, distSq: dx * dx + dy * dy });
+      }
+      candidates.sort((a, b) => a.distSq - b.distSq);
 
-    let added = 0;
-    for (let c = 0; c < candidates.length && added < GEL_TARGET_NEIGHBORS; c++) {
-      const j = candidates[c].index;
-      if (neighborCounts[i] >= GEL_MAX_NEIGHBORS && neighborCounts[j] >= GEL_MAX_NEIGHBORS) continue;
-      if (addGelLink(i, j, Math.sqrt(candidates[c].distSq), seen, neighborCounts)) added++;
+      let added = 0;
+      for (let c = 0; c < candidates.length && added < GEL_TARGET_NEIGHBORS; c++) {
+        const j = candidates[c].index;
+        if (neighborCounts[i] >= GEL_MAX_NEIGHBORS && neighborCounts[j] >= GEL_MAX_NEIGHBORS) continue;
+        if (addGelLink(i, j, Math.sqrt(candidates[c].distSq), seen, neighborCounts)) added++;
+      }
     }
   }
 
@@ -295,17 +322,19 @@ function rebuildGelAdjacency(count) {
   }
 }
 
-function getCenterStats() {
+function getBodyStats(bodyIndex) {
   const g = getGlobals();
   const balls = g.balls || [];
-  const count = Math.min(blob.count, balls.length);
+  const start = bodyStarts[bodyIndex] || 0;
+  const count = Math.min(bodyCounts[bodyIndex] || 0, Math.max(0, balls.length - start));
+  const out = bodyStats[bodyIndex];
   let x = 0;
   let y = 0;
   let vx = 0;
   let vy = 0;
   let speed = 0;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = start; i < start + count; i++) {
     const ball = balls[i];
     x += ball.x;
     y += ball.y;
@@ -323,7 +352,7 @@ function getCenterStats() {
   }
 
   let radius = blob.ballRadius;
-  for (let i = 0; i < count; i++) {
+  for (let i = start; i < start + count; i++) {
     const ball = balls[i];
     const dx = ball.x - x;
     const dy = ball.y - y;
@@ -331,11 +360,49 @@ function getCenterStats() {
     radius = Math.max(radius, dist + blob.ballRadius);
   }
 
+  out.x = x;
+  out.y = y;
+  out.vx = vx;
+  out.vy = vy;
+  out.radius = Math.max(blob.ballRadius, radius);
+  out.averageSpeed = speed;
+  return out;
+}
+
+function getCenterStats() {
+  let totalCount = 0;
+  let x = 0;
+  let y = 0;
+  let vx = 0;
+  let vy = 0;
+  let speed = 0;
+  let radius = blob.ballRadius;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const count = bodyCounts[bodyIndex] || 0;
+    totalCount += count;
+    x += stats.x * count;
+    y += stats.y * count;
+    vx += stats.vx * count;
+    vy += stats.vy * count;
+    speed += stats.averageSpeed * count;
+  }
+  if (totalCount > 0) {
+    x /= totalCount;
+    y /= totalCount;
+    vx /= totalCount;
+    vy /= totalCount;
+    speed /= totalCount;
+  }
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = bodyStats[bodyIndex];
+    radius = Math.max(radius, Math.hypot(stats.x - x, stats.y - y) + stats.radius);
+  }
   centerStats.x = x;
   centerStats.y = y;
   centerStats.vx = vx;
   centerStats.vy = vy;
-  centerStats.radius = Math.max(blob.ballRadius, radius);
+  centerStats.radius = radius;
   blob.averageSpeed = speed;
   return centerStats;
 }
@@ -418,31 +485,36 @@ function applyGelDrift(dt, internalCurrent, localDeform, slimeWobble, shear) {
   if (internalCurrent <= 0) return;
   const g = getGlobals();
   const balls = g.balls || [];
-  const stats = getCenterStats();
   const dpr = g.DPR || 1;
-  const radius = Math.max(blob.ballRadius * 4, stats.radius);
   const wobble = clamp(slimeWobble, 0, 1);
   const currentAccel = (3 + localDeform * 6 + wobble * 4) * internalCurrent * dpr;
   const breathingAccel = currentAccel * (0.08 + wobble * 0.08);
 
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    const dx = ball.x - stats.x;
-    const dy = ball.y - stats.y;
-    const dist = Math.hypot(dx, dy) || 1;
-    const nx = dx / dist;
-    const ny = dy / dist;
-    const tx = -ny;
-    const ty = nx;
-    const radial = clamp(dist / radius, 0, 1.8);
-    const waveA = Math.sin(blob.time * (0.52 + wobble * 0.38) + phase[i] + radial * 2.6);
-    const waveB = Math.cos(blob.time * (0.32 + wobble * 0.42) + phase[i] * 1.73 + dx / radius);
-    const swirlSign = Math.sin(blob.time * 0.18 + radial * 1.7) >= 0 ? 1 : -1;
-    const swirl = currentAccel * (0.14 + radial * 0.22) * swirlSign;
-    const breathe = breathingAccel * waveA * (0.08 + radial * 0.22);
-    const cross = currentAccel * (0.04 + shear * 0.08) * waveB;
-    ball.vx += (tx * swirl + nx * breathe + ty * cross) * dt;
-    ball.vy += (ty * swirl + ny * breathe - tx * cross) * dt;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const radius = Math.max(blob.ballRadius * 4, stats.radius);
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      const dx = ball.x - stats.x;
+      const dy = ball.y - stats.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const tx = -ny;
+      const ty = nx;
+      const radial = clamp(dist / radius, 0, 1.8);
+      const bodyPhase = bodyIndex * Math.PI * 0.72;
+      const waveA = Math.sin(blob.time * (0.52 + wobble * 0.38) + phase[i] + radial * 2.6 + bodyPhase);
+      const waveB = Math.cos(blob.time * (0.32 + wobble * 0.42) + phase[i] * 1.73 + dx / radius - bodyPhase);
+      const swirlSign = Math.sin(blob.time * 0.18 + radial * 1.7 + bodyPhase) >= 0 ? 1 : -1;
+      const swirl = currentAccel * (0.14 + radial * 0.22) * swirlSign;
+      const breathe = breathingAccel * waveA * (0.08 + radial * 0.22);
+      const cross = currentAccel * (0.04 + shear * 0.08) * waveB;
+      ball.vx += (tx * swirl + nx * breathe + ty * cross) * dt;
+      ball.vy += (ty * swirl + ny * breathe - tx * cross) * dt;
+    }
   }
 }
 
@@ -450,15 +522,19 @@ function applyWeakShapeMemory(dt, shapeMemory) {
   if (shapeMemory <= 0) return;
   const g = getGlobals();
   const balls = g.balls || [];
-  const stats = getCenterStats();
   const memoryAccel = shapeMemory * 7 * (g.DPR || 1);
 
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    const targetX = stats.x + spawnX[i];
-    const targetY = stats.y + spawnY[i];
-    ball.vx += (targetX - ball.x) * memoryAccel * dt;
-    ball.vy += (targetY - ball.y) * memoryAccel * dt;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      const targetX = stats.x + spawnX[i];
+      const targetY = stats.y + spawnY[i];
+      ball.vx += (targetX - ball.x) * memoryAccel * dt;
+      ball.vy += (targetY - ball.y) * memoryAccel * dt;
+    }
   }
 }
 
@@ -568,7 +644,7 @@ function creepGelLinks(dt, materialFlow, shapeMemory, maxStretchRatio) {
   }
 }
 
-function resolveParticleContacts(iterations, restitution) {
+function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyRestitution) {
   const g = getGlobals();
   const balls = g.balls || [];
   const dpr = g.DPR || 1;
@@ -635,12 +711,17 @@ function resolveParticleContacts(iterations, restitution) {
               const rvx = b.vx - a.vx;
               const rvy = b.vy - a.vy;
               const vn = rvx * nx + rvy * ny;
-              if (restitution > 0 && vn < 0) {
-                const impulse = -vn * restitution;
+              if (vn < 0) {
+                const isCrossBodyContact = bodyId[i] !== bodyId[j];
+                const restitution = isCrossBodyContact
+                  ? crossBodyRestitution
+                  : sameBodyRestitution;
+                const impulse = -vn * (1 + restitution) * 0.5;
                 a.vx -= nx * impulse;
                 a.vy -= ny * impulse;
                 b.vx += nx * impulse;
                 b.vy += ny * impulse;
+                if (isCrossBodyContact) blob.interBodyCollisionCount += 1;
               }
             }
           }
@@ -655,9 +736,11 @@ function resolveParticleContacts(iterations, restitution) {
 function beginDragHandle(detail) {
   const g = getGlobals();
   const balls = g.balls || [];
-  if (!detail?.inBounds || blob.count <= 0 || !isPointOnBlobBody(detail.x, detail.y)) {
+  const selectedBodyId = detail?.inBounds ? findBodyAtPoint(detail.x, detail.y) : -1;
+  if (blob.count <= 0 || selectedBodyId < 0) {
     blob.isDragging = false;
     blob.dragPointerId = null;
+    blob.dragBodyId = -1;
     blob.dragWeightTotal = 0;
     grabWeight.fill(0, 0, blob.count);
     return false;
@@ -673,6 +756,10 @@ function beginDragHandle(detail) {
   let nearestDistSq = Number.POSITIVE_INFINITY;
 
   for (let i = 0; i < blob.count; i++) {
+    if (bodyId[i] !== selectedBodyId) {
+      grabWeight[i] = 0;
+      continue;
+    }
     const ball = balls[i];
     const dx = ball.x - detail.x;
     const dy = ball.y - detail.y;
@@ -701,6 +788,7 @@ function beginDragHandle(detail) {
 
   blob.isDragging = total > 0;
   blob.dragPointerId = detail.pointerId ?? null;
+  blob.dragBodyId = selectedBodyId;
   blob.dragWeightTotal = total;
   return blob.isDragging;
 }
@@ -755,7 +843,9 @@ function applyDragHandle(dt, speedLimit) {
     const follow = clamp(Number(g.flubberBlobBodyFollow ?? 0.08), 0, 1) * 0.18;
     const nudgeX = (pullX / pullWeight) * follow;
     const nudgeY = (pullY / pullWeight) * follow;
-    for (let i = 0; i < blob.count; i++) {
+    const start = bodyStarts[blob.dragBodyId];
+    const end = start + bodyCounts[blob.dragBodyId];
+    for (let i = start; i < end; i++) {
       const inverseWeight = 1 - Math.min(1, grabWeight[i]);
       balls[i].x += nudgeX * inverseWeight;
       balls[i].y += nudgeY * inverseWeight;
@@ -778,7 +868,9 @@ function endDragHandle(cancelled = false) {
   const bodyTransfer = throwGain * 0.06;
 
   if (throwGain > 0) {
-    for (let i = 0; i < blob.count; i++) {
+    const start = bodyStarts[blob.dragBodyId];
+    const end = start + bodyCounts[blob.dragBodyId];
+    for (let i = start; i < end; i++) {
       const weight = grabWeight[i];
       const bodyWeight = 1 - Math.min(1, weight);
       balls[i].vx += pointerVx * (weight * patchTransfer + bodyWeight * bodyTransfer);
@@ -788,31 +880,35 @@ function endDragHandle(cancelled = false) {
 
   blob.isDragging = false;
   blob.dragPointerId = null;
+  blob.dragBodyId = -1;
   blob.dragWeightTotal = 0;
   grabWeight.fill(0, 0, blob.count);
 }
 
-function isPointOnBlobBody(x, y) {
+function findBodyAtPoint(x, y) {
   const g = getGlobals();
   const balls = g.balls || [];
-  if (blob.count <= 0) return false;
-
-  const stats = getCenterStats();
-  const dxCenter = x - stats.x;
-  const dyCenter = y - stats.y;
-  const centerGate = stats.radius + blob.ballRadius * 1.8;
-  if ((dxCenter * dxCenter + dyCenter * dyCenter) > centerGate * centerGate) return false;
+  if (blob.count <= 0) return -1;
 
   const nearBodyDistance = blob.ballRadius * 2.6;
   const nearBodyDistanceSq = nearBodyDistance * nearBodyDistance;
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    const dx = x - ball.x;
-    const dy = y - ball.y;
-    if ((dx * dx + dy * dy) <= nearBodyDistanceSq) return true;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const dxCenter = x - stats.x;
+    const dyCenter = y - stats.y;
+    const centerGate = stats.radius + blob.ballRadius * 1.8;
+    if ((dxCenter * dxCenter + dyCenter * dyCenter) > centerGate * centerGate) continue;
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      const dx = x - ball.x;
+      const dy = y - ball.y;
+      if ((dx * dx + dy * dy) <= nearBodyDistanceSq) return bodyIndex;
+    }
   }
 
-  return false;
+  return -1;
 }
 
 function measureGelConnectivity(maxStretchRatio) {
@@ -871,21 +967,25 @@ function applyGelEnvelope(dt, surfaceTension, stretch) {
   if (surfaceTension <= 0) return;
   const g = getGlobals();
   const balls = g.balls || [];
-  const stats = getCenterStats();
   const maxRadius = blob.spawnRadius * (1.55 + stretch * 0.75);
   const edgeAccel = surfaceTension * 9 * (g.DPR || 1);
 
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    const dx = ball.x - stats.x;
-    const dy = ball.y - stats.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist <= maxRadius) continue;
-    const nx = dx / Math.max(dist, 1);
-    const ny = dy / Math.max(dist, 1);
-    const excess = dist - maxRadius;
-    ball.vx -= nx * excess * edgeAccel * dt;
-    ball.vy -= ny * excess * edgeAccel * dt;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      const dx = ball.x - stats.x;
+      const dy = ball.y - stats.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= maxRadius) continue;
+      const nx = dx / Math.max(dist, 1);
+      const ny = dy / Math.max(dist, 1);
+      const excess = dist - maxRadius;
+      ball.vx -= nx * excess * edgeAccel * dt;
+      ball.vy -= ny * excess * edgeAccel * dt;
+    }
   }
 }
 
@@ -897,10 +997,7 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
 
   const w = canvas.width;
   const h = canvas.height;
-  const preStats = getCenterStats();
-  const preX = preStats.x;
-  const preY = preStats.y;
-  const preRadius = preStats.radius;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) getBodyStats(bodyIndex);
   const impulseScale = (0.025 + wallSquish * 0.035) * (1 - wallLocality * 0.48);
   const contactBand = blob.ballRadius * (0.9 + wallSquish * 0.14);
   const maxWallImpulse = blob.ballRadius * (2.8 + wallBounce * 4.6);
@@ -912,6 +1009,11 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
     for (let i = 0; i < blob.count; i++) {
       const ball = balls[i];
       if (!writeRoundedRectViolation(ball.x, ball.y, w, h, blob.ballRadius, g, wallHit)) continue;
+      const contactedBody = bodyId[i];
+      const preStats = bodyStats[contactedBody];
+      const preX = preStats.x;
+      const preY = preStats.y;
+      const preRadius = preStats.radius;
 
       anyContact = true;
       const nx = wallHit.nx;
@@ -933,8 +1035,9 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
       );
       const impactThreshold = 2.5 * (g.DPR || 1);
       if (inwardSpeed > impactThreshold || wallHit.penetration > blob.ballRadius * 0.08) {
+        blob.wallCollisionCount += 1;
         const impulse = clamp(
-          inwardSpeed * (1 + wallBounce * 0.65 * contactWeight) +
+          inwardSpeed * (1 + wallBounce * contactWeight) +
             separationAssist * (inwardSpeed > impactThreshold ? 0.06 : 0.025),
           0,
           inwardSpeed + maxWallImpulse * contactWeight
@@ -958,12 +1061,15 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
           ball.vy += ty * Math.sin(blob.time * 7 + phase[i]) * ripple * (0.35 + shear * 0.35) * dt;
         }
 
-        for (let j = 0; j < blob.count; j++) {
+        const bodyStart = bodyStarts[contactedBody];
+        const bodyEnd = bodyStart + bodyCounts[contactedBody];
+        for (let j = bodyStart; j < bodyEnd; j++) {
           if (j === i) continue;
           const other = balls[j];
           const side = ((other.x - preX) * nx + (other.y - preY) * ny) / Math.max(1, preRadius);
           if (side <= 0.1) continue;
-          const amount = side * side * inwardSpeed * contactWeight * impulseScale / Math.max(14, blob.count * 0.28);
+          const amount = side * side * inwardSpeed * contactWeight * impulseScale
+            / Math.max(10, bodyCounts[contactedBody] * 0.28);
           other.vx -= nx * amount;
           other.vy -= ny * amount;
         }
@@ -1019,19 +1125,23 @@ function applyVelocityLimits(speedLimit, viscosity, dt) {
   const globalDrag = Math.exp(-0.0015 * dt);
   const localDrag = Math.exp(-(0.72 + viscosity * 1.85) * dt);
 
-  const stats = getCenterStats();
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    const localVx = ball.vx - stats.vx;
-    const localVy = ball.vy - stats.vy;
-    ball.vx = (stats.vx + localVx * localDrag) * globalDrag;
-    ball.vy = (stats.vy + localVy * localDrag) * globalDrag;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const stats = getBodyStats(bodyIndex);
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      const localVx = ball.vx - stats.vx;
+      const localVy = ball.vy - stats.vy;
+      ball.vx = (stats.vx + localVx * localDrag) * globalDrag;
+      ball.vy = (stats.vy + localVy * localDrag) * globalDrag;
 
-    const speed = Math.hypot(ball.vx, ball.vy);
-    if (speed > speedLimit && speed > 1e-6) {
-      const scale = speedLimit / speed;
-      ball.vx *= scale;
-      ball.vy *= scale;
+      const speed = Math.hypot(ball.vx, ball.vy);
+      if (speed > speedLimit && speed > 1e-6) {
+        const scale = speedLimit / speed;
+        ball.vx *= scale;
+        ball.vy *= scale;
+      }
     }
   }
 }
@@ -1123,18 +1233,23 @@ function resizeBlobIfNeeded() {
   const sx = w / oldW;
   const sy = h / oldH;
   const scale = Math.min(sx, sy);
-  const nextSpawnRadius = computeSpawnRadius(blob.count, blob.ballRadius, w, h);
-  const center = getCenterStats();
+  const perBodyCount = Math.max(1, bodyCounts[0] || Math.ceil(blob.count / blob.bodyCount));
+  const nextSpawnRadius = computeSpawnRadius(perBodyCount, blob.ballRadius, w, h);
   const restScale = nextSpawnRadius / Math.max(1, blob.spawnRadius);
 
-  for (let i = 0; i < blob.count; i++) {
-    const ball = balls[i];
-    ball.x = center.x * sx + (ball.x - center.x) * scale;
-    ball.y = center.y * sy + (ball.y - center.y) * scale;
-    ball.vx *= scale;
-    ball.vy *= scale;
-    spawnX[i] *= restScale;
-    spawnY[i] *= restScale;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const center = getBodyStats(bodyIndex);
+    const start = bodyStarts[bodyIndex];
+    const end = start + bodyCounts[bodyIndex];
+    for (let i = start; i < end; i++) {
+      const ball = balls[i];
+      ball.x = center.x * sx + (ball.x - center.x) * scale;
+      ball.y = center.y * sy + (ball.y - center.y) * scale;
+      ball.vx *= scale;
+      ball.vy *= scale;
+      spawnX[i] *= restScale;
+      spawnY[i] *= restScale;
+    }
   }
 
   for (let link = 0; link < blob.linkCount; link++) {
@@ -1191,6 +1306,8 @@ function exposeAuditHook() {
 
 function updateAuditMetrics() {
   const stats = getCenterStats();
+  const firstBody = getBodyStats(0);
+  const secondBody = getBodyStats(1);
   auditMetrics.mode = MODES.FLUBBER_BLOB;
   auditMetrics.particleCount = blob.count;
   auditMetrics.linkCount = blob.linkCount;
@@ -1201,6 +1318,15 @@ function updateAuditMetrics() {
   auditMetrics.centerX = stats.x;
   auditMetrics.centerY = stats.y;
   auditMetrics.radius = stats.radius;
+  auditMetrics.bodyCount = blob.bodyCount;
+  auditMetrics.minimumBodySeparation = Math.max(
+    0,
+    Math.hypot(secondBody.x - firstBody.x, secondBody.y - firstBody.y)
+      - firstBody.radius
+      - secondBody.radius,
+  );
+  auditMetrics.interBodyCollisionCount = blob.interBodyCollisionCount;
+  auditMetrics.wallCollisionCount = blob.wallCollisionCount;
 }
 
 export function initializeFlubberBlob() {
@@ -1214,53 +1340,78 @@ export function initializeFlubberBlob() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const count = getMobileAdjustedCount(g.flubberBlobBallCount || 120);
-  if (count <= 0) return;
+  const adjustedCount = getMobileAdjustedCount(g.flubberBlobBallCount || 160);
+  if (adjustedCount <= 0) return;
+  const count = Math.max(COHESION_BODY_COUNT * 20, adjustedCount - (adjustedCount % COHESION_BODY_COUNT));
 
   ensureCapacity(count);
   blob.count = count;
+  blob.bodyCount = COHESION_BODY_COUNT;
+  bodyStarts[0] = 0;
+  bodyCounts[0] = Math.floor(count / COHESION_BODY_COUNT);
+  bodyStarts[1] = bodyCounts[0];
+  bodyCounts[1] = count - bodyCounts[0];
   blob.ballRadius = Math.max(2, Number(g.R_MED) || 10);
-  blob.spawnRadius = computeSpawnRadius(count, blob.ballRadius, w, h);
+  blob.spawnRadius = computeSpawnRadius(bodyCounts[0], blob.ballRadius, w, h);
   blob.lastW = w;
   blob.lastH = h;
   blob.time = 0;
   blob.frame = 0;
   blob.maxOverlap = 0;
   blob.maxLinkStretch = 1;
-  blob.connectedComponents = 1;
+  blob.connectedComponents = COHESION_BODY_COUNT;
   blob.averageSpeed = 0;
   blob.pointerActive = false;
   blob.isDragging = false;
   blob.dragPointerId = null;
+  blob.dragBodyId = -1;
   blob.dragWeightTotal = 0;
   blob.lastWallSoundFrame = -1;
+  blob.interBodyCollisionCount = 0;
+  blob.wallCollisionCount = 0;
 
-  const start = getInitialCenter(w, h, blob.spawnRadius + blob.ballRadius);
-  const speed = Math.max(0, Number(g.flubberBlobInitialSpeed ?? 520)) * (g.DPR || 1);
-  const angle = ((Number(g.flubberBlobInitialAngleDeg ?? -18) || 0) * Math.PI) / 180;
-  const baseVx = Math.cos(angle) * speed;
-  const baseVy = Math.sin(angle) * speed;
-
-  generateSpawnOffsets(count, blob.spawnRadius);
-  buildGelLinks(count);
-  for (let i = 0; i < count; i++) {
-    const { color, distributionIndex } = pickRandomColorWithIndex();
-    const ball = new Ball(start.x + spawnX[i], start.y + spawnY[i], blob.ballRadius, color);
-    const swirl = Math.sin(phase[i] * 1.9) * 18 * (g.DPR || 1);
-    const dx = spawnX[i];
-    const dy = spawnY[i];
-    const len = Math.hypot(dx, dy) || 1;
-    ball.vx = baseVx + (-dy / len) * swirl;
-    ball.vy = baseVy + (dx / len) * swirl;
-    ball.rBase = blob.ballRadius;
-    ball.distributionIndex = distributionIndex;
-    ball.isFlubberBlob = true;
-    ball._noSquash = true;
-    ball.squash = 1;
-    ball.squashAmount = 0;
-    ball.omega = 0;
-    g.balls.push(ball);
+  const speed = Math.max(0, Number(g.flubberBlobInitialSpeed ?? 520)) * (g.DPR || 1) * 0.62;
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    generateSpawnOffsets(
+      bodyStarts[bodyIndex],
+      bodyCounts[bodyIndex],
+      blob.spawnRadius,
+      bodyIndex * Math.PI * 0.37,
+    );
   }
+  buildGelLinks(count);
+  for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
+    const start = getInitialCenter(w, h, blob.spawnRadius + blob.ballRadius, bodyIndex);
+    const direction = bodyIndex === 0 ? 1 : -1;
+    const baseVx = direction * speed;
+    const baseVy = direction * speed * 0.08;
+    const startIndex = bodyStarts[bodyIndex];
+    const endIndex = startIndex + bodyCounts[bodyIndex];
+    for (let i = startIndex; i < endIndex; i++) {
+      const { color, distributionIndex } = pickRandomColorWithIndex();
+      const ball = new Ball(start.x + spawnX[i], start.y + spawnY[i], blob.ballRadius, color);
+      const swirl = Math.sin(phase[i] * 1.9) * 18 * (g.DPR || 1) * direction;
+      const dx = spawnX[i];
+      const dy = spawnY[i];
+      const len = Math.hypot(dx, dy) || 1;
+      ball.vx = baseVx + (-dy / len) * swirl;
+      ball.vy = baseVy + (dx / len) * swirl;
+      ball.rBase = blob.ballRadius;
+      ball.distributionIndex = distributionIndex;
+      ball.cohesionBodyId = bodyIndex;
+      bodyId[i] = bodyIndex;
+      ball.isFlubberBlob = true;
+      ball._noSquash = true;
+      ball.squash = 1;
+      ball.squashAmount = 0;
+      ball.omega = 0;
+      g.balls.push(ball);
+    }
+  }
+
+  canvas.dataset.simulationBodyCount = String(count);
+  canvas.dataset.simulationBodyGroupCount = String(blob.bodyCount);
+  canvas.dataset.simulationBodyRadius = blob.ballRadius.toFixed(2);
 
   updateAuditMetrics();
 }
@@ -1303,7 +1454,8 @@ export function stepFlubberBlob(dtSeconds) {
   const shear = clamp(Number(g.flubberBlobShear ?? 0.95), 0, 1);
   const stretch = clamp(Number(g.flubberBlobStretch ?? 1.2), 0, 1.2);
   const internalCurrent = clamp(Number(g.flubberBlobInternalCurrent ?? 0.1), 0, 0.35) * 0.35;
-  const wallBounce = clamp(Number(g.flubberBlobWallBounce ?? 0.34), 0, 0.75) * 0.82;
+  const wallBounce = clamp(Number(g.flubberBlobWallBounce ?? 0.46), 0, 0.75);
+  const interBodyBounce = clamp(Number(g.flubberBlobInterBodyBounce ?? 0.5), 0.1, 0.8);
   const wallFriction = clamp(Number(g.flubberBlobWallFriction ?? 0.006), 0, 0.8);
   const wallLocality = clamp(Number(g.flubberBlobWallLocality ?? 0.78), 0, 1);
   const wallSquish = clamp(Number(g.flubberBlobWallSquish ?? 0.42), 0, 1.5);
@@ -1329,7 +1481,7 @@ export function stepFlubberBlob(dtSeconds) {
     if (particleCollisions) {
       prepareGrid(contactRadius);
       buildGrid();
-      resolveParticleContacts(1, 0);
+      resolveParticleContacts(1, 0, interBodyBounce);
     } else {
       blob.maxOverlap = 0;
     }
@@ -1345,7 +1497,7 @@ export function stepFlubberBlob(dtSeconds) {
       resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, impactRipple, shear);
       prepareGrid(contactRadius);
       buildGrid();
-      resolveParticleContacts(finalContactIterations, 0);
+      resolveParticleContacts(finalContactIterations, 0, interBodyBounce);
     }
   }
 

@@ -46,7 +46,6 @@ const MODE_NAMES = {
   weightless: 'Weightless Drift',
   water: 'Flow',
   magnetic: 'Magnetic Field',
-  bubbles: 'Emergence',
   'kaleidoscope-3': 'Refraction',
   'kaleidoscope-rift': 'Multiplicity',
   'rift-rings': 'Depth',
@@ -60,7 +59,6 @@ const MODE_NAMES = {
   'wall-repel': 'Tension',
   'aperture-bloom': 'Aperture Bloom',
   'flubber-blob': 'Cohesion',
-  'weave-field': 'Juxtaposition',
   'pressure-crucible': 'Pressure Field',
   'particle-fountain': 'Fountain A',
   'particle-fountain-b': 'Fountain B',
@@ -105,14 +103,6 @@ const MODE_REGISTRY = {
       initialize: 'initializeMagnetic',
       force: 'applyMagneticForces',
       update: 'updateMagnetic'
-    }
-  },
-  [MODES.BUBBLES]: {
-    load: () => import('./bubbles.js'),
-    hooks: {
-      initialize: 'initializeBubbles',
-      force: 'applyBubblesForces',
-      update: 'updateBubbles'
     }
   },
   [MODES.KALEIDOSCOPE]: {
@@ -183,13 +173,6 @@ const MODE_REGISTRY = {
       initialize: 'initializeFlubberBlob',
       customStep: 'stepFlubberBlob',
       render: 'renderFlubberBlob'
-    }
-  },
-  [MODES.WEAVE_FIELD]: {
-    load: () => import('./weave-field.js'),
-    hooks: {
-      initialize: 'initializeWeaveField',
-      force: 'applyWeaveFieldForces'
     }
   },
   [MODES.PRESSURE_CRUCIBLE]: {
@@ -308,7 +291,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
-    case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE_RIFT: return globals.kaleidoscopeRiftWarmupFrames ?? 45;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
@@ -317,7 +299,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.tensionLoomWarmupFrames ?? 8;
     case MODES.FLUBBER_BLOB: return globals.flubberBlobWarmupFrames ?? 10;
-    case MODES.WEAVE_FIELD: return globals.weaveFieldWarmupFrames ?? 0;
     case MODES.PRESSURE_CRUCIBLE: return globals.pressureCrucibleWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     case MODES.PARTICLE_FOUNTAIN_B: return 0;
@@ -339,7 +320,6 @@ function applyModePhysicsState(mode, globals) {
     MODES.WEIGHTLESS,
     MODES.WATER,
     MODES.MAGNETIC,
-    MODES.BUBBLES,
     MODES.KALEIDOSCOPE,
     MODES.KALEIDOSCOPE_RIFT,
     MODES.SPHERE_3D,
@@ -348,7 +328,6 @@ function applyModePhysicsState(mode, globals) {
     MODES.STARFIELD_3D,
     MODES.ELASTIC_CENTER,
     MODES.FLUBBER_BLOB,
-    MODES.WEAVE_FIELD,
     MODES.PRESSURE_CRUCIBLE
   ]);
 

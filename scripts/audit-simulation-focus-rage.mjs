@@ -27,12 +27,12 @@ const VIEWPORTS = Object.freeze([
 ]);
 
 const RAGE_CASE_IDS = Object.freeze([
-  ['flock-of-birds', 'flubber-blob', 'weave-field'],
-  ['flock-of-birds', 'weave-field', 'flubber-blob'],
-  ['magnetic', 'kaleidoscope-3', 'bubbles'],
-  ['starfield-3d', 'bubbles', 'kaleidoscope-3'],
+  ['flock-of-birds', 'flubber-blob', '3d-cube'],
+  ['flock-of-birds', '3d-cube', 'flubber-blob'],
+  ['magnetic', 'kaleidoscope-3', '3d-sphere'],
+  ['starfield-3d', '3d-sphere', 'kaleidoscope-3'],
   ['flubber-blob', 'particle-fountain-b', 'repel-room'],
-  ['bubbles', 'repel-room', 'flubber-blob'],
+  ['3d-sphere', 'repel-room', 'flubber-blob'],
 ]);
 
 function resolveOrigin() {

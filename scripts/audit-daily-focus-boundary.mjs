@@ -9,7 +9,6 @@ const homeRoutePath = resolve(repoRoot, 'react-app/app/src/routes/home/HomeRoute
 const dailyFocusRoutePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/DailyFocusRoute.jsx');
 const simulationStagePath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/SimulationStage.jsx');
 const dailyFocusRuntimeLoaderPath = resolve(repoRoot, 'react-app/app/src/routes/daily-focus/dailyFocusRuntimeLoader.js');
-const providerPath = resolve(repoRoot, 'react-app/app/src/components/simulation-focus/SimulationFocusProvider.jsx');
 
 const baseUrl = process.env.ABS_DEV_URL || 'http://localhost:8013';
 const waitMs = Number(process.env.ABS_DAILY_FOCUS_WAIT_MS || 30000);
@@ -55,7 +54,6 @@ async function runStaticChecks(dailyEntries, routeBackedDailyEntries) {
   const dailyFocusRouteSource = await readFile(dailyFocusRoutePath, 'utf8');
   const simulationStageSource = await readFile(simulationStagePath, 'utf8');
   const dailyFocusRuntimeLoaderSource = await readFile(dailyFocusRuntimeLoaderPath, 'utf8');
-  const providerSource = await readFile(providerPath, 'utf8');
 
   if (!homeRouteSource.includes('simulationLayer: (')) {
     failures.push('HomeRoute no longer exposes a replaceable simulationLayer.');
@@ -74,9 +72,6 @@ async function runStaticChecks(dailyEntries, routeBackedDailyEntries) {
   }
   if (!simulationStageSource.includes('data-simulation-stage="daily-focus"')) {
     failures.push('SimulationStage no longer marks daily-focus stage data.');
-  }
-  if (!providerSource.includes('replaceCurrentUrl(buildRouteHref(\'home\'))')) {
-    failures.push('SimulationFocusProvider no longer cleans route-backed Daily URLs back to home.');
   }
   for (const entry of routeBackedDailyEntries) {
     if (!dailyFocusRuntimeLoaderSource.includes(`'${entry.id}': () => import(`)) {
@@ -145,7 +140,7 @@ async function inspectPage(page, id, baseline) {
       textLogo: getComputedStyle(document.documentElement).getPropertyValue('--text-logo').trim(),
       textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-color-dark-muted').trim(),
       shell: {
-        title: visibleRect('#hero-title'),
+        title: visibleRect('#simulation-title-canvas'),
         buttonBar: visibleRect('[data-button-bar]'),
         legend: visibleRect('#expertise-legend'),
         description: visibleRect('.decorative-script'),

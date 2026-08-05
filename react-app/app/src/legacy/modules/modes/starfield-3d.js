@@ -12,10 +12,10 @@ import { resolveSimulationMaterialColorIndex } from '../../../palette/simulation
 let _stars = [];
 let _lastTime = 0;
 let _paletteGeneration = -1;
-const SPAN_MULTIPLIER = 4;
-const STARFIELD_BASE_SIZE_MULTIPLIER = 0.55;
+const SPAN_MULTIPLIER = 1.7;
+const STARFIELD_BASE_SIZE_MULTIPLIER = 1;
 const STARFIELD_FAR_SIZE_RATIO = 0.68;
-const STARFIELD_NEAR_SIZE_RATIO = 1.18;
+const STARFIELD_NEAR_SIZE_RATIO = 1;
 
 function isMobileStarfield(g) {
   return Boolean(g.isMobile || g.isMobileViewport);
@@ -23,7 +23,7 @@ function isMobileStarfield(g) {
 
 function resolveSpanMultiplier(g) {
   if (!isMobileStarfield(g)) return SPAN_MULTIPLIER;
-  return Math.max(1, Math.min(4, Number(g.starfieldMobileSpanMultiplier ?? SPAN_MULTIPLIER)));
+  return Math.max(1, Math.min(3, Number(g.starfieldMobileSpanMultiplier ?? SPAN_MULTIPLIER)));
 }
 
 // Smoothed mouse state for parallax panning
@@ -85,7 +85,7 @@ export function initializeStarfield3D() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const baseCount = Math.max(50, Math.min(500, Math.round(g.starfieldCount ?? 200)));
+  const baseCount = Math.max(50, Math.min(500, Math.round(g.starfieldCount ?? 320)));
   const count = getMobileAdjustedCount(baseCount);
   const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
   const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
@@ -143,8 +143,7 @@ export function renderStarfield3D(ctx) {
   const zFar = Math.max(zNear + 200, g.starfieldZFar ?? 2000);
   const focalLength = Math.max(100, g.starfieldFocalLength ?? 500);
   const speed = Math.max(10, g.starfieldSpeed ?? 400);
-  const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
-  const baseR = (g.R_MED || 20) * dotSizeMul * STARFIELD_BASE_SIZE_MULTIPLIER;
+  const baseR = (g.R_MED || 8.9) * STARFIELD_BASE_SIZE_MULTIPLIER;
   const fogStart = Math.max(0, Math.min(1, g.starfieldFogStart ?? 0.86));
   const fogMin = Math.max(0, Math.min(1, isMobileStarfield(g)
     ? g.starfieldMobileFogMin ?? g.starfieldFogMin ?? 0.16

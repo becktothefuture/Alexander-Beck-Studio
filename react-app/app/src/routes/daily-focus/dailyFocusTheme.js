@@ -7,6 +7,10 @@ import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   normalizeMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
+import {
+  DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX,
+  normalizeHomeSimulationBodyRadius,
+} from '../../lib/homeSimulationSizing.js';
 import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 
@@ -30,6 +34,7 @@ export const DEFAULT_DAILY_FOCUS_THEME = Object.freeze({
   paletteGeneration: INITIAL_PALETTE_SNAPSHOT.generation,
   palette: INITIAL_PALETTE_SNAPSHOT.colors,
   colorDistribution: INITIAL_PALETTE_SNAPSHOT.distribution,
+  homeSimulationBodyRadiusPx: DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX,
   mobileSimulationBodyScale: DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
 });
 
@@ -102,6 +107,9 @@ export function resolveDailyFocusTheme(
     paletteSnapshot: snapshot,
     palette: snapshot.colors,
     colorDistribution: snapshot.distribution,
+    homeSimulationBodyRadiusPx: normalizeHomeSimulationBodyRadius(
+      runtime.homeSimulationBodyRadiusPx,
+    ),
     mobileSimulationBodyScale: normalizeMobileSimulationBodyScale(
       runtime.mobileSimulationBodyScale,
     ),
