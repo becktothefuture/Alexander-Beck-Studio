@@ -46,6 +46,7 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   if (!g) return;
   const config = getSimulationAtmosphereConfig();
   g[getAtmosphereStateKey('enabled')] = config.enabled;
+  g[getAtmosphereStateKey('lowQualityMode')] = config.lowQualityMode;
   g[getAtmosphereStateKey('largeSpread')] = config.largeSpread;
   g[getAtmosphereStateKey('smallSpread')] = config.smallSpread;
   g[getAtmosphereStateKey('memoryMs')] = config.memoryMs;
@@ -68,6 +69,11 @@ export function buildSimulationAtmosphereConfigFromControlState(
   const base = normalizeSimulationAtmosphereConfig(baseConfig);
   const next = {
     enabled: readAtmosphereState(g, getAtmosphereStateKey('enabled'), base.enabled),
+    lowQualityMode: readAtmosphereState(
+      g,
+      getAtmosphereStateKey('lowQualityMode'),
+      base.lowQualityMode,
+    ),
     largeSpread: readAtmosphereState(g, getAtmosphereStateKey('largeSpread'), base.largeSpread),
     smallSpread: readAtmosphereState(g, getAtmosphereStateKey('smallSpread'), base.smallSpread),
     memoryMs: readAtmosphereState(g, getAtmosphereStateKey('memoryMs'), base.memoryMs),
@@ -143,7 +149,13 @@ export const SIMULATION_ATMOSPHERE_CONTROL_SECTIONS = {
     title: 'Glow Field',
     icon: '🌐',
     defaultOpen: true,
-    controls: createAtmosphereCommonControls(['enabled', 'largeSpread', 'smallSpread', 'memoryMs']),
+    controls: createAtmosphereCommonControls([
+      'enabled',
+      'lowQualityMode',
+      'largeSpread',
+      'smallSpread',
+      'memoryMs',
+    ]),
   },
   atmosphereEdge: {
     title: 'Edge Response',

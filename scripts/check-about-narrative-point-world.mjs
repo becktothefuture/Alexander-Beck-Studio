@@ -357,7 +357,7 @@ test('About Director previews the point world through the production atmosphere 
   assert.match(atmosphere, /destination\.x,[\s\S]*destination\.height/);
   assert.match(
     shellStyles,
-    /body\.about-narrative-page #simulations\[data-atmosphere-active='true'\] \.about-narrative-lab/,
+    /body\.about-narrative-page #simulations:is\([\s\S]*\[data-atmosphere-active='true'\][\s\S]*\[data-atmosphere-fallback-active='true'\][\s\S]*\) \.about-narrative-lab/,
   );
 });
 

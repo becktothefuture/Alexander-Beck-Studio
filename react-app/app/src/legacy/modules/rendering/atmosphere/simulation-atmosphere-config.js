@@ -18,6 +18,7 @@ export const DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS = 24;
 
 export const DEFAULT_SIMULATION_ATMOSPHERE_CONFIG = Object.freeze({
   enabled: true,
+  lowQualityMode: 'canvas',
   largeSpread: 0.15,
   smallSpread: 0.051,
   memoryMs: 100,
@@ -35,6 +36,13 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
     scope: 'themeProfile',
     controls: Object.freeze([
       { id: 'enabled', label: 'Enabled', type: 'checkbox', scope: 'common' },
+      {
+        id: 'lowQualityMode',
+        label: 'Low-quality mode',
+        type: 'select',
+        options: ['canvas', 'css-static'],
+        scope: 'common',
+      },
       { id: 'intensity', label: 'Intensity', type: 'range', min: 0, max: 1, step: 0.01, display: 'percent' },
       { id: 'colourStrength', label: 'Colour', type: 'range', min: 0, max: 1.6, step: 0.02, display: 'percent' },
     ]),
@@ -67,6 +75,10 @@ function normalizeThemeProfile(profile, defaults) {
   };
 }
 
+function normalizeLowQualityMode(value) {
+  return ['canvas', 'css-static'].includes(String(value)) ? String(value) : 'canvas';
+}
+
 export function normalizeSimulationAtmosphereConfig(input = {}) {
   const source = input && typeof input === 'object' ? input : {};
   const largeSpread = clampNumber(
@@ -83,6 +95,7 @@ export function normalizeSimulationAtmosphereConfig(input = {}) {
   );
   return {
     enabled: source.enabled !== false,
+    lowQualityMode: normalizeLowQualityMode(source.lowQualityMode),
     largeSpread,
     smallSpread: clampNumber(source.smallSpread, 0.02, 0.1, legacySmallSpread),
     memoryMs: clampNumber(
@@ -124,6 +137,7 @@ export function resolveSimulationAtmosphereRenderProfile(config, theme = 'light'
   const visual = normalized[theme === 'dark' ? 'dark' : 'light'];
   return {
     enabled: normalized.enabled,
+    lowQualityMode: normalized.lowQualityMode,
     largeSpread: normalized.largeSpread,
     smallSpread: normalized.smallSpread,
     memoryMs: normalized.memoryMs,

@@ -5097,6 +5097,39 @@ html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
   z-index: 0;
 }
 
+/* Low-quality production surfaces retain a static palette atmosphere without
+   keeping a full-window Canvas compositor active. The palette controller
+   updates these variables only at the scheduled time-of-day boundary. */
+#simulations[data-atmosphere-fallback-active='true'] {
+  background-image:
+    radial-gradient(
+      circle at 18% 78%,
+      color-mix(in srgb, var(--ball-6) 24%, transparent) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 82% 22%,
+      color-mix(in srgb, var(--ball-7) 20%, transparent) 0%,
+      transparent 48%
+    );
+  background-repeat: no-repeat;
+}
+
+body.dark-mode #simulations[data-atmosphere-fallback-active='true'],
+html[data-abs-theme='dark'] #simulations[data-atmosphere-fallback-active='true'] {
+  background-image:
+    radial-gradient(
+      circle at 18% 78%,
+      color-mix(in srgb, var(--ball-6) 28%, transparent) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 82% 22%,
+      color-mix(in srgb, var(--ball-7) 24%, transparent) 0%,
+      transparent 48%
+    );
+}
+
 #simulations > .simulation-atmosphere-edge-light-layer {
   position: absolute;
   inset: var(--atmosphere-edge-inset, 0px);
@@ -5148,8 +5181,14 @@ html[data-abs-theme='dark'] #simulations[data-atmosphere-active='true']
 
 /* The About point world has its own opaque route ground. The physical window
    remains the ground while the registered field lets shell glow show through. */
-body.about-page #simulations[data-atmosphere-active='true'] .about-narrative-lab,
-body.about-narrative-page #simulations[data-atmosphere-active='true'] .about-narrative-lab {
+body.about-page #simulations:is(
+  [data-atmosphere-active='true'],
+  [data-atmosphere-fallback-active='true']
+) .about-narrative-lab,
+body.about-narrative-page #simulations:is(
+  [data-atmosphere-active='true'],
+  [data-atmosphere-fallback-active='true']
+) .about-narrative-lab {
   background: transparent;
 }
 

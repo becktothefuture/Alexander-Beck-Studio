@@ -31,8 +31,8 @@ const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
 const RESPONSIVE_PROFILES = Object.freeze([
   Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 24 }),
   Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 24 }),
-  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 24 }),
-  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 24 }),
+  Object.freeze({ id: 'mobile', width: 390, height: 844, cadence: 24, fallback: true }),
+  Object.freeze({ id: 'short-landscape', width: 844, height: 390, cadence: 24, fallback: true }),
   Object.freeze({ id: 'desktop-return', width: 1440, height: 900, cadence: 24 }),
 ]);
 
@@ -209,6 +209,7 @@ async function readAtmosphereState(page) {
         edgeLayerRadius: edgeLayerStyle?.borderTopLeftRadius || '',
         edgeLayerCornerShape: edgeLayerStyle?.cornerTopLeftShape || edgeLayerStyle?.cornerShape || '',
         edgeLayerMaskImage: edgeLayerStyle?.maskImage || edgeLayerStyle?.webkitMaskImage || '',
+        fallbackBackgroundImage: wallStyle?.backgroundImage || '',
         edgeClipPath: edgeStyle?.clipPath || '',
         edgeLayerRect: edgeLayerRect ? {
           width: edgeLayerRect.width,
@@ -244,7 +245,7 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.edgeCanvasId === 'simulation-atmosphere-edge-light-canvas', `${scenario.id}: edge canvas identity is wrong`, state);
   assert(state.dom.glowPointerEvents === 'none', `${scenario.id}: glow canvas captures pointer input`, state);
   assert(state.dom.edgePointerEvents === 'none', `${scenario.id}: edge canvas captures pointer input`, state);
-  if (!ambientSource) {
+  if (!ambientSource && !snapshot.fallbackActive) {
     assert(
       Math.abs((state.dom.glowRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
         && Math.abs((state.dom.glowRect?.height || 0) - (state.wallRect?.height || 0)) <= 0.25,
@@ -278,7 +279,7 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     `${scenario.id}: edge canvas received source-material blur`,
     state,
   );
-  if (!ambientSource && snapshot.edgeStrength > 0) {
+  if (!ambientSource && !snapshot.fallbackActive && snapshot.edgeStrength > 0) {
     assert(
       state.dom.edgeFilter.includes('brightness(') && state.dom.edgeFilter.includes('saturate('),
       `${scenario.id}: edge canvas is missing its compositor-only colour treatment`,
@@ -289,6 +290,29 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
 
   if (snapshot.status === 'failed-open') {
     assert(Boolean(snapshot.failOpenReason), `${scenario.id}: failed-open has no reason`, state);
+    return;
+  }
+
+  if (snapshot.fallbackActive) {
+    assert(snapshot.status === 'ready', `${scenario.id}: static atmosphere did not settle ready`, state);
+    assert(snapshot.presentationMode === 'css-static', `${scenario.id}: fallback presentation mode is wrong`, state);
+    assert(snapshot.lowQualityMode === 'css-static', `${scenario.id}: low-quality fallback is not configured`, state);
+    assert(snapshot.quality === 'low', `${scenario.id}: static atmosphere activated outside Low quality`, state);
+    assert(state.dom.glowHidden === true, `${scenario.id}: static atmosphere retained the glow Canvas`, state);
+    assert(state.dom.edgeHidden === true, `${scenario.id}: static atmosphere retained the edge Canvas`, state);
+    assert(snapshot.schedulerActive === false, `${scenario.id}: static atmosphere retained source scheduling`, state);
+    assert(snapshot.internalRafCount === 0, `${scenario.id}: static atmosphere retained an internal RAF`, state);
+    assert(
+      state.dom.fallbackBackgroundImage.includes('radial-gradient'),
+      `${scenario.id}: static atmosphere field is not visibly painted`,
+      state,
+    );
+    if (expectedResponsive) {
+      const allowedQualities = expectedResponsive.qualities || [expectedResponsive.quality];
+      assert(allowedQualities.includes('low'), `${scenario.id}: responsive fallback quality is wrong`, state);
+      assert(Math.abs(snapshot.scale - 0.25) <= 0.0001, `${scenario.id}: fallback scale is wrong`, state);
+      assert(snapshot.cadence === 20, `${scenario.id}: fallback diagnostic cadence is wrong`, state);
+    }
     return;
   }
 
@@ -849,6 +873,13 @@ async function runAtmosphereFailOpenContract(browser) {
 
 async function runKaleidoscopeFinalFrameContract(browser) {
   const context = await browser.newContext({ viewport: { width: 2560, height: 1440 } });
+  await context.route(/\/config\/(?:design-system|shell-config)\.json(?:\?|$)/, async (route) => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    const surface = payload.shell?.surface || payload.surface;
+    surface.simulationAtmosphere.lowQualityMode = 'canvas';
+    await route.fulfill({ response, json: payload });
+  });
   const page = await context.newPage();
   const scenario = PRIMARY_SCENARIOS[0];
   const results = [];
@@ -934,16 +965,21 @@ async function runKaleidoscopeFinalFrameContract(browser) {
       }, { sampleWidth: 320, sampleHeight: 180, sectorCount: 16 });
 
       const sourceActiveSectors = coverage.source.occupancy.filter((value) => value > 0.002).length;
-      const atmosphereActiveSectors = coverage.atmosphere.meanAlpha.filter((value) => value > 0.002).length;
+      const atmosphereAlphaThreshold = coverage.snapshot?.quality === 'low' ? 0.0015 : 0.002;
+      const atmosphereActiveSectors = coverage.atmosphere.meanAlpha
+        .filter((value) => value > atmosphereAlphaThreshold).length;
       const matchedSectors = coverage.source.occupancy.reduce((count, value, index) => (
-        value > 0.002 && coverage.atmosphere.meanAlpha[index] > 0.002 ? count + 1 : count
+        value > 0.002 && coverage.atmosphere.meanAlpha[index] > atmosphereAlphaThreshold
+          ? count + 1
+          : count
       ), 0);
       const matchedRatio = sourceActiveSectors > 0 ? matchedSectors / sourceActiveSectors : 0;
 
       // Refraction currently authors 12 wedges. Sampling it into 16 angular
       // buckets can leave four boundary buckets empty even though every real
       // wedge is present, so require broad radial coverage instead of a false
-      // one-to-one relationship with the audit sampler.
+      // one-to-one relationship with the audit sampler. The compact Low buffer
+      // gets a small alpha quantization allowance while retaining all sectors.
       assert(sourceActiveSectors >= 12, `${mode}: final render occupies too few mirrored sectors`, coverage);
       assert(atmosphereActiveSectors === 16, `${mode}: atmosphere collapsed to a subset of wedges`, coverage);
       assert(matchedRatio === 1, `${mode}: atmosphere does not match every final-render sector`, coverage);
@@ -975,14 +1011,17 @@ async function runMobilePerformance(browser) {
     const settledFrameCount = await page.evaluate(() => (
       window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.().compositedFrameCount || 0
     ));
-    await page.waitForFunction((minimumFrameCount) => {
-      const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
-      return snapshot?.status === 'failed-open'
-        || snapshot?.compositedFrameCount >= minimumFrameCount;
-    }, settledFrameCount + 120, { timeout: WAIT_MS, polling: 50 });
+    await page.waitForTimeout(750);
     const state = await readAtmosphereState(page);
     assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
-    if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready') {
+    assert(state.snapshot.fallbackActive === true, 'Mobile did not use the static atmosphere fallback', state);
+    assert(
+      state.snapshot.compositedFrameCount === settledFrameCount,
+      'Mobile static atmosphere continued compositing Canvas frames',
+      { before: settledFrameCount, after: state.snapshot.compositedFrameCount },
+    );
+    assert(state.snapshot.cost.sampleCount === 0, 'Mobile static atmosphere retained Canvas cost samples', state);
+    if (ENFORCE_COST_BUDGET && state.snapshot.status === 'ready' && !state.snapshot.fallbackActive) {
       assert(state.snapshot.cost.meanMs <= 0.75, 'Mobile Low atmosphere exceeded the 0.75 ms mean budget', state);
     }
     return {
@@ -1017,6 +1056,7 @@ async function runReducedMotion(browser) {
     assertAtmosphereState(state, scenario, { qualities: ['low'], cadence: 24 });
     assert(state.snapshot.reducedMotion === true, 'Reduced Motion was not detected', state);
     assert(state.snapshot.temporalMemoryFrames === 0, 'Reduced Motion retained temporal glow memory', state);
+    assert(state.snapshot.fallbackActive === true, 'Reduced Motion mobile lost its static atmosphere', state);
     if (state.snapshot.status === 'ready') {
       assert(state.snapshot.scheduler === 'internal', 'Reduced Motion Contact source is not internally scheduled', state);
       assert(state.snapshot.internalRafCount === 0, 'Reduced Motion retained an active internal atmosphere RAF', state);
@@ -1038,31 +1078,52 @@ async function setPageTheme(page, theme) {
   }, theme);
   await page.waitForFunction((expectedTheme) => {
     const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
-    return snapshot?.themeMode === expectedTheme
-      && snapshot?.status === 'ready'
-      && snapshot?.firstCompositeAt > 0
+    if (snapshot?.themeMode !== expectedTheme || snapshot?.status !== 'ready') return false;
+    if (snapshot.fallbackActive) {
+      return snapshot.presentationMode === 'css-static'
+        && document.getElementById('simulation-atmosphere-glow-canvas')?.hidden === true
+        && getComputedStyle(document.getElementById('simulations')).backgroundImage
+          .includes('radial-gradient');
+    }
+    return snapshot.firstCompositeAt > 0
       && document.getElementById('simulation-atmosphere-glow-canvas')?.hidden === false;
   }, theme, { timeout: WAIT_MS, polling: 'raf' });
 }
 
 async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeometryReads) {
   await page.waitForFunction(
-    ({ expectedRouteId, expectedCadence, minimumGeometryReads }) => {
+    ({ expectedRouteId, expectedCadence, expectedFallback, minimumGeometryReads }) => {
       const snapshot = window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.();
       const wallRect = document.getElementById('simulations')?.getBoundingClientRect();
       const glow = document.getElementById('simulation-atmosphere-glow-canvas');
+      const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
       if (
         !snapshot
         || !wallRect
-        || snapshot.status !== 'ready'
+      ) return false;
+      if (expectedFallback || snapshot.fallbackActive) {
+        return snapshot.routeId === expectedRouteId
+          && snapshot.status === 'ready'
+          && snapshot.quality === 'low'
+          && snapshot.fallbackActive === true
+          && snapshot.presentationMode === 'css-static'
+          && snapshot.schedulerActive === false
+          && snapshot.internalRafCount === 0
+          && glow?.hidden === true
+          && edge?.hidden === true
+          && getComputedStyle(document.getElementById('simulations')).backgroundImage
+            .includes('radial-gradient');
+      }
+      if (
+        snapshot.status !== 'ready'
         || snapshot.firstCompositeAt <= 0
+        || snapshot.fallbackActive
         || glow?.hidden !== false
       ) return false;
       const expectedWidth = Math.round(wallRect.width * snapshot.scale);
       const expectedHeight = Math.round(wallRect.height * snapshot.scale);
-      const resolvedCadence = snapshot.quality === 'low' ? 20 : expectedCadence;
       return snapshot.routeId === expectedRouteId
-        && snapshot.cadence === resolvedCadence
+        && snapshot.cadence === expectedCadence
         && snapshot.geometryReadCount > minimumGeometryReads
         && Math.abs(snapshot.outputWidth - expectedWidth) <= 2
         && Math.abs(snapshot.outputHeight - expectedHeight) <= 2
@@ -1072,6 +1133,7 @@ async function waitForResponsiveAtmosphere(page, scenario, profile, previousGeom
     {
       expectedRouteId: scenario.routeId,
       expectedCadence: profile.cadence,
+      expectedFallback: profile.fallback === true,
       minimumGeometryReads: previousGeometryReads,
     },
     { timeout: WAIT_MS, polling: 'raf' },
@@ -1155,12 +1217,14 @@ async function runResponsiveResizeMatrix(browser) {
             resolvedGlowRadiusCss: expectedGlowRadiusCss,
             resolvedSmallGlowRadiusCss: expectedSmallGlowRadiusCss,
           });
-          assert(
-            state.snapshot.edgeWidth === state.snapshot.outputWidth
-              && state.snapshot.edgeHeight === state.snapshot.outputHeight,
-            `${scenario.id}/${theme}/${profile.id}: edge backing store diverges from glow output`,
-            state,
-          );
+          if (!state.snapshot.fallbackActive) {
+            assert(
+              state.snapshot.edgeWidth === state.snapshot.outputWidth
+                && state.snapshot.edgeHeight === state.snapshot.outputHeight,
+              `${scenario.id}/${theme}/${profile.id}: edge backing store diverges from glow output`,
+              state,
+            );
+          }
           if (CAPTURE_RESPONSIVE) {
             await page.screenshot({
               path: resolve(
@@ -1180,6 +1244,7 @@ async function runResponsiveResizeMatrix(browser) {
             },
             cadence: state.snapshot.cadence,
             quality: state.snapshot.quality,
+            presentationMode: state.snapshot.presentationMode,
             resolvedGlowRadiusCss: state.snapshot.resolvedGlowRadiusCss,
             resolvedSmallGlowRadiusCss: state.snapshot.resolvedSmallGlowRadiusCss,
           });
@@ -1292,6 +1357,7 @@ async function runCrispPersistenceContract(browser) {
     const clampResults = await page.evaluate(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere-config.js');
       const belowConfig = module.normalizeSimulationAtmosphereConfig({
+        lowQualityMode: 'invalid',
         largeSpread: -2,
         smallSpread: -2,
         contentClearance: -2,
@@ -1302,6 +1368,7 @@ async function runCrispPersistenceContract(browser) {
         light: { intensity: -2, colourStrength: -2 },
       });
       const aboveConfig = module.normalizeSimulationAtmosphereConfig({
+        lowQualityMode: 'css-static',
         largeSpread: 9,
         smallSpread: 9,
         contentClearance: 9,
@@ -1323,6 +1390,7 @@ async function runCrispPersistenceContract(browser) {
     });
     assert(
       clampResults.below.largeSpread === 0.06
+        && clampResults.below.lowQualityMode === 'canvas'
         && clampResults.below.smallSpread === 0.02
         && clampResults.below.memoryMs === 0
         && clampResults.below.edgeStrength === 0
@@ -1331,6 +1399,7 @@ async function runCrispPersistenceContract(browser) {
         && clampResults.below.light.intensity === 0
         && clampResults.below.light.colourStrength === 0
         && clampResults.above.largeSpread === 0.2
+        && clampResults.above.lowQualityMode === 'css-static'
         && clampResults.above.smallSpread === 0.1
         && clampResults.above.memoryMs === 600
         && clampResults.above.edgeStrength === 1.5
@@ -1746,6 +1815,7 @@ async function runConfigPanelContract(browser) {
     await group.waitFor({ state: 'visible', timeout: WAIT_MS });
     const expectedControlIds = [
       'atmosphereEnabledSlider',
+      'atmosphereLowQualityModeSlider',
       'atmosphereLargeSpreadSlider',
       'atmosphereSmallSpreadSlider',
       'atmosphereMemoryMsSlider',
@@ -1761,6 +1831,9 @@ async function runConfigPanelContract(browser) {
       sectionTitles: Array.from(node.querySelectorAll('.panel-section-accordion > summary'))
         .map((summary) => summary.textContent.trim().replace(/\s+/g, ' ')),
       controlIds: Array.from(node.querySelectorAll('input, select')).map((control) => control.id),
+      lowQualityModeOptions: Array.from(
+        node.querySelectorAll('#atmosphereLowQualityModeSlider option'),
+      ).map((option) => option.value),
       intensityMaxima: ['Light', 'Dark'].map((theme) => (
         node.querySelector(`#atmosphere${theme}IntensitySlider`)?.max ?? null
       )),
@@ -1778,6 +1851,11 @@ async function runConfigPanelContract(browser) {
     assert(
       JSON.stringify(state.intensityMaxima) === JSON.stringify(['1', '1']),
       'Background Atmosphere intensity must remain adjustable through 100%',
+      state,
+    );
+    assert(
+      JSON.stringify(state.lowQualityModeOptions) === JSON.stringify(['canvas', 'css-static']),
+      'Background Atmosphere low-quality modes are incomplete',
       state,
     );
     assert(
@@ -1922,6 +2000,7 @@ async function runConfigPanelContract(browser) {
       memoryLiveApply: true,
       edgeWidthLiveApply: true,
       edgeInsetLiveApply: true,
+      lowQualityModeControlAvailable: true,
     };
   } finally {
     await context.close();

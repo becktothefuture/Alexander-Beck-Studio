@@ -254,7 +254,7 @@ Home and Daily simulations, Work / Portfolio, About Me, Contact, and Lab share o
 - Home preserves its Canvas title placement: ordinary material passes in front of the title, while the established depth modes and Emergence may place stable material on both sides. Other routes keep readable DOM copy above their route material while the atmosphere remains continuous behind it.
 - Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Lab uses its palette-owned dot field without adding a route-specific palette. Canvas-less, suspended, error, and editorial-only states stay on the base studio-window surface; the compositor must not invent placeholder colour, glow, or simulated material for them.
 - Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
-- Reduced Motion retains one static diffused colour response. Mobile keeps the same visual hierarchy at reduced output scale rather than disabling the material.
+- Reduced Motion retains one static diffused colour response. The Low performance tier keeps the same hierarchy through a static, palette-matched CSS atmosphere. The live full-window Canvas compositor remains a Balanced/High material, so mobile and constrained surfaces retain broad colour and depth without its continuous compositing cost.
 - The glow may retain one short, bounded history frame behind the current field. It has no drift, multi-buffer diffusion, unbounded accumulation, or memory across source, mode, theme, or geometry boundaries.
 
 ## Fluid responsive contract

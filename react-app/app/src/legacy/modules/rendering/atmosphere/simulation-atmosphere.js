@@ -105,6 +105,23 @@ function resolveQuality() {
   return getQualityById(resolved.id);
 }
 
+function shouldUseCssAtmosphereFallback() {
+  return Boolean(
+    host?.scope === 'production'
+    && configuration.enabled
+    && configuration.lowQualityMode === 'css-static'
+    && dynamicQuality.id === 'low'
+  );
+}
+
+function isCssAtmosphereFallbackActive() {
+  return shouldUseCssAtmosphereFallback() && Boolean(activeSource) && !failureReason;
+}
+
+function isCanvasAtmosphereEnabled() {
+  return configuration.enabled && !shouldUseCssAtmosphereFallback();
+}
+
 function resolveCadenceForQuality() {
   const baseCadence = resolveSimulationAtmosphereCadence('auto');
   return dynamicQuality.id === 'low' ? Math.min(20, baseCadence) : baseCadence;
@@ -267,12 +284,13 @@ function clearOutput({ preservePresentation = false } = {}) {
   outputTransactionId = '';
   staticFrameDirty = true;
   if (!preservePresentation && host) {
+    const fallbackActive = isCssAtmosphereFallbackActive();
     host.glowCanvas.hidden = true;
     host.edgeCanvas.hidden = true;
-    host.root.dataset.atmosphereReady = 'false';
-    host.root.dataset.atmosphereStatus = configuration.enabled && activeSource && !failureReason
-      ? 'waiting-source'
-      : 'idle';
+    host.root.dataset.atmosphereReady = String(fallbackActive);
+    host.root.dataset.atmosphereStatus = fallbackActive
+      ? 'ready'
+      : (configuration.enabled && activeSource && !failureReason ? 'waiting-source' : 'idle');
   }
 }
 
@@ -293,6 +311,8 @@ function failOpen(reason, source = activeSource) {
   if (host) {
     host.root.dataset.atmosphereStatus = 'failed-open';
     host.root.dataset.atmosphereActive = 'false';
+    host.root.dataset.atmosphereFallbackActive = 'false';
+    host.root.dataset.atmosphereReady = 'false';
   }
 }
 
@@ -313,12 +333,17 @@ function rebuildProfile({ resetQuality = false } = {}) {
 
 function applyPresentationState() {
   if (!host) return;
-  const enabled = configuration.enabled && Boolean(activeSource) && !failureReason;
+  const fallbackActive = isCssAtmosphereFallbackActive();
+  const enabled = isCanvasAtmosphereEnabled() && Boolean(activeSource) && !failureReason;
   const root = host.root;
   root.style.setProperty('--atmosphere-edge-width', `${renderProfile.edgeWidthPx}px`);
   root.style.setProperty('--atmosphere-edge-inset', `${renderProfile.edgeInsetPx}px`);
   root.dataset.atmosphereActive = String(enabled);
-  root.dataset.atmosphereStatus = enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle';
+  root.dataset.atmosphereFallbackActive = String(fallbackActive);
+  root.dataset.atmosphereReady = String(fallbackActive || firstCompositeAt > 0);
+  root.dataset.atmosphereStatus = fallbackActive
+    ? 'ready'
+    : (enabled ? (firstCompositeAt ? 'ready' : 'waiting-source') : 'idle');
   if (!enabled) {
     markSourceElement(activeSource, false);
     host.glowCanvas.hidden = true;
@@ -336,6 +361,13 @@ function syncGeometry() {
     pendingQuality = null;
     resetCostMetrics();
     frameSchedule.nextFrameAt = 0;
+    clearOutput();
+    applyPresentationState();
+    if (!isCanvasAtmosphereEnabled()) {
+      cancelInternalFrame();
+      markReplacementDegraded(activeSource, 'atmosphere-css-fallback');
+      return false;
+    }
   }
   cadence = resolveCadenceForQuality();
   const rect = host.root.getBoundingClientRect();
@@ -567,7 +599,7 @@ function applyPendingQuality() {
 }
 
 function renderComposite(now) {
-  if (!host || !activeSource || !configuration.enabled || document.hidden || failureReason) return false;
+  if (!host || !activeSource || !isCanvasAtmosphereEnabled() || document.hidden || failureReason) return false;
   if (activeSource.requiresRealFrame && !activeSource.realFrameReady) return false;
   if (
     replacementTransaction?.generation === activeSource.generation
@@ -576,6 +608,13 @@ function renderComposite(now) {
   if (transitionPhase !== 'idle' && activeSource.generation === transitionSourceGeneration) return false;
   if (reducedMotion && !staticFrameDirty) return false;
   applyPendingQuality();
+  if (!isCanvasAtmosphereEnabled()) {
+    clearOutput();
+    applyPresentationState();
+    markReplacementDegraded(activeSource, 'atmosphere-css-fallback');
+    cancelInternalFrame();
+    return false;
+  }
   if (!syncGeometry()) return false;
   if (activeSource.kind === 'ambient') return renderAmbientSource(now);
   if (!reducedMotion && !shouldRenderSimulationAtmosphereFrame(frameSchedule, now, cadence)) {
@@ -620,7 +659,7 @@ function internalFrame(now) {
   if (
     !activeSource
     || activeSource.scheduler !== 'internal'
-    || !configuration.enabled
+    || !isCanvasAtmosphereEnabled()
     || document.hidden
     || destroyed
   ) return;
@@ -637,7 +676,7 @@ function scheduleInternalFrame() {
     || !host
     || !activeSource
     || activeSource.scheduler !== 'internal'
-    || !configuration.enabled
+    || !isCanvasAtmosphereEnabled()
     || document.hidden
     || destroyed
     || failureReason
@@ -669,16 +708,20 @@ function activateCurrentSource({ resetOutput = true } = {}) {
   rebuildProfile({ resetQuality: true });
   if (resetOutput) clearOutput();
   applyPresentationState();
-  if (configuration.enabled) markSourceElement(activeSource, true);
+  const canvasEnabled = isCanvasAtmosphereEnabled();
+  if (canvasEnabled) markSourceElement(activeSource, true);
   resetCostMetrics();
   const replacement = replacementTransaction;
   const canStartFirstFrameTimeout = replacement?.generation !== activeSource.generation
     || replacement.armed;
-  if (configuration.enabled && canStartFirstFrameTimeout) armSourceFirstFrameTimeout(activeSource);
-  if (!configuration.enabled && replacement?.generation === activeSource.generation && replacement.armed) {
-    markReplacementDegraded(activeSource, 'atmosphere-disabled');
+  if (canvasEnabled && canStartFirstFrameTimeout) armSourceFirstFrameTimeout(activeSource);
+  if (!canvasEnabled && replacement?.generation === activeSource.generation && replacement.armed) {
+    markReplacementDegraded(
+      activeSource,
+      isCssAtmosphereFallbackActive() ? 'atmosphere-css-fallback' : 'atmosphere-disabled',
+    );
   }
-  if (configuration.enabled && activeSource.scheduler === 'internal') scheduleInternalFrame();
+  if (canvasEnabled && activeSource.scheduler === 'internal') scheduleInternalFrame();
 }
 
 function armSourceFirstFrameTimeout(source) {
@@ -687,6 +730,7 @@ function armSourceFirstFrameTimeout(source) {
     || source !== activeSource
     || source.firstFrame.settled
     || source.firstFrameTimeoutId
+    || !isCanvasAtmosphereEnabled()
     || transitionPhase !== 'idle'
     || document.hidden
   ) return;
@@ -719,21 +763,25 @@ function handleVisibilityChange() {
   }
   frameSchedule.nextFrameAt = 0;
   staticFrameDirty = true;
-  armSourceFirstFrameTimeout(activeSource);
-  if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  if (isCanvasAtmosphereEnabled()) {
+    armSourceFirstFrameTimeout(activeSource);
+    if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  }
 }
 
 function handleThemeChange() {
   rebuildProfile();
   clearOutput();
-  if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  applyPresentationState();
+  if (isCanvasAtmosphereEnabled() && activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
 function handleReducedMotionChange(event) {
   reducedMotion = event.matches === true;
   rebuildProfile();
   clearOutput();
-  if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
+  applyPresentationState();
+  if (isCanvasAtmosphereEnabled() && activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
 function computeCostP95() {
@@ -773,13 +821,19 @@ function getDiagnosticSnapshot() {
     edgeInsetPx: renderProfile?.edgeInsetPx ?? configuration.edgeInsetPx,
     edgeDrawCallCount: host?.edgeLight?.lastDrawCallCount || 0,
     scheduler: activeSource?.scheduler || '',
-    schedulerActive: activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource),
+    schedulerActive: isCanvasAtmosphereEnabled()
+      && (activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource)),
     internalRafCount: internalFrameId ? 1 : 0,
     cadence,
     glowRenderMode: host?.effect?.renderMode || '',
     automaticQuality: automaticQuality.id,
     quality: dynamicQuality.id,
     scale: dynamicQuality.scale,
+    lowQualityMode: configuration.lowQualityMode,
+    fallbackActive: isCssAtmosphereFallbackActive(),
+    presentationMode: isCssAtmosphereFallbackActive()
+      ? 'css-static'
+      : (isCanvasAtmosphereEnabled() ? 'canvas' : 'none'),
     responsiveScale,
     smallResponsiveScale,
     themeMode,
@@ -914,6 +968,7 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     glowCanvas.hidden = true;
     edgeCanvas.hidden = true;
     delete root.dataset.atmosphereActive;
+    delete root.dataset.atmosphereFallbackActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
     root.style.removeProperty('--atmosphere-edge-width');
@@ -931,7 +986,7 @@ export function setSimulationAtmosphereConfig(nextConfig) {
   failureReason = '';
   rebuildProfile({ resetQuality: true });
   clearOutput();
-  if (!configuration.enabled) {
+  if (!isCanvasAtmosphereEnabled()) {
     markSourceElement(activeSource, false);
     cancelInternalFrame();
   } else {
@@ -1085,8 +1140,11 @@ export function armSimulationAtmosphereReplacement({ transactionId } = {}) {
   staticFrameDirty = true;
   if (!host) {
     markReplacementDegraded(activeSource, 'atmosphere-host-unavailable');
-  } else if (!configuration.enabled) {
-    markReplacementDegraded(activeSource, 'atmosphere-disabled');
+  } else if (!isCanvasAtmosphereEnabled()) {
+    markReplacementDegraded(
+      activeSource,
+      isCssAtmosphereFallbackActive() ? 'atmosphere-css-fallback' : 'atmosphere-disabled',
+    );
   } else {
     armSourceFirstFrameTimeout(activeSource);
   }
@@ -1340,6 +1398,27 @@ export function invalidateSimulationAtmosphereGeometry() {
   geometryDirty = true;
   sourceViewportGeometryDirty = true;
   staticFrameDirty = true;
+  const nextAutomaticQuality = resolveQuality();
+  if (nextAutomaticQuality.id !== automaticQuality.id) {
+    automaticQuality = nextAutomaticQuality;
+    dynamicQuality = automaticQuality;
+    pendingQuality = null;
+    cadence = resolveCadenceForQuality();
+    resetCostMetrics();
+    frameSchedule.nextFrameAt = 0;
+    clearOutput();
+    applyPresentationState();
+  }
+  if (!isCanvasAtmosphereEnabled()) {
+    markSourceElement(activeSource, false);
+    cancelInternalFrame();
+    markReplacementDegraded(
+      activeSource,
+      shouldUseCssAtmosphereFallback() ? 'atmosphere-css-fallback' : 'atmosphere-disabled',
+    );
+    return;
+  }
+  markSourceElement(activeSource, true);
   if (activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 
@@ -1370,10 +1449,16 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
     host.root.dataset.atmosphereStatus = 'waiting-source';
     return;
   }
-  host.edgeCanvas.hidden = !firstCompositeAt || renderProfile.edgeStrength <= 0;
+  host.edgeCanvas.hidden = isCssAtmosphereFallbackActive()
+    || !firstCompositeAt
+    || renderProfile.edgeStrength <= 0;
   staticFrameDirty = true;
-  armSourceFirstFrameTimeout(activeSource);
-  if (activeSource.scheduler === 'internal') scheduleInternalFrame();
+  if (isCanvasAtmosphereEnabled()) {
+    armSourceFirstFrameTimeout(activeSource);
+    if (activeSource.scheduler === 'internal') scheduleInternalFrame();
+  } else {
+    applyPresentationState();
+  }
 }
 
 /**
