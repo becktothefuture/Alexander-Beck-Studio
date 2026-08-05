@@ -79,6 +79,13 @@ const DEFAULT_SHELL_CONFIG = {
     glowOpacityDark: 0.18,
     shadowBlur: '18px',
     shadowOffsetY: '6px',
+    innerWallRimWidth: '2px',
+    innerWallRimBottomOpacityLight: 0.2,
+    innerWallRimBottomOpacityDark: 0.16,
+    innerWallRimSideOpacityLight: 0.11,
+    innerWallRimSideOpacityDark: 0.09,
+    innerWallRimTopShadowOpacityLight: 0.12,
+    innerWallRimTopShadowOpacityDark: 0.18,
     lightEdgeInset: '0.5px',
     lightEdgeBlur: '4px',
     lightEdgeTopOpacityLight: 0.028,
@@ -579,6 +586,36 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     1.5,
     DEFAULT_SHELL_CONFIG.surface.controlMaterialSaturation
   );
+  const innerWallRimBottomOpacity = numberInRange(
+    isDark
+      ? surface.innerWallRimBottomOpacityDark
+      : surface.innerWallRimBottomOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimBottomOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.innerWallRimBottomOpacityLight
+  );
+  const innerWallRimSideOpacity = numberInRange(
+    isDark
+      ? surface.innerWallRimSideOpacityDark
+      : surface.innerWallRimSideOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimSideOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.innerWallRimSideOpacityLight
+  );
+  const innerWallRimTopShadowOpacity = numberInRange(
+    isDark
+      ? surface.innerWallRimTopShadowOpacityDark
+      : surface.innerWallRimTopShadowOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimTopShadowOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.innerWallRimTopShadowOpacityLight
+  );
 
   const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
   const sheenTopOpacity = isDark ? surface.sheenTopOpacityDark : surface.sheenTopOpacityLight;
@@ -620,6 +657,13 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--abs-surface-glow-opacity', String(glowOpacity));
   root.style.setProperty('--abs-surface-shadow-blur', surface.shadowBlur);
   root.style.setProperty('--abs-surface-shadow-offset-y', surface.shadowOffsetY);
+  root.style.setProperty(
+    '--inner-wall-rim-width',
+    surface.innerWallRimWidth || DEFAULT_SHELL_CONFIG.surface.innerWallRimWidth
+  );
+  root.style.setProperty('--inner-wall-rim-bottom-opacity', String(innerWallRimBottomOpacity));
+  root.style.setProperty('--inner-wall-rim-side-opacity', String(innerWallRimSideOpacity));
+  root.style.setProperty('--inner-wall-rim-top-shadow-opacity', String(innerWallRimTopShadowOpacity));
   root.style.setProperty('--abs-surface-light-edge-inset', surface.lightEdgeInset);
   root.style.setProperty('--abs-surface-light-edge-blur', surface.lightEdgeBlur);
   root.style.setProperty('--abs-surface-light-edge-top-opacity', String(topEdgeOpacity));

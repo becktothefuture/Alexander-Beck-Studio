@@ -2360,7 +2360,7 @@ html[data-shell-route='home'] body:not(.detail-open) #site-year {
 
 html[data-shell-route='home'] body:not(.detail-open) #edge-caption {
   --home-legibility-field-inset: -18px -24px;
-  --home-text-hover-field-opacity: 1;
+  --home-text-hover-field-opacity: 0.6;
   --home-text-hover-field-blur: 16px;
 }
 
@@ -4882,7 +4882,34 @@ html[data-abs-instrument-wake] #simulations::after {
    under the transparent margin; the drawer face uses insert-only shading (no wall lights).
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
-  background: none;
+  background:
+    /* A top-mounted light catches the lower inner lip most strongly. */
+    radial-gradient(
+      50% 100% at 50% 100%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-bottom-opacity, 0.2)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-bottom-opacity, 0.2) * 0.28)) 62%,
+      transparent 100%
+    ) bottom center / 100% var(--inner-wall-rim-width, 2px) no-repeat,
+    /* Side catches are quieter and fade before the rounded corners. */
+    radial-gradient(
+      100% 50% at 0% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-side-opacity, 0.11)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-side-opacity, 0.11) * 0.28)) 62%,
+      transparent 100%
+    ) left center / var(--inner-wall-rim-width, 2px) 100% no-repeat,
+    radial-gradient(
+      100% 50% at 100% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-side-opacity, 0.11)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-side-opacity, 0.11) * 0.28)) 62%,
+      transparent 100%
+    ) right center / var(--inner-wall-rim-width, 2px) 100% no-repeat,
+    /* The upper inner lip turns away from the light and stays in shadow. */
+    radial-gradient(
+      50% 100% at 50% 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-rim-top-shadow-opacity, 0.12)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--inner-wall-rim-top-shadow-opacity, 0.12) * 0.28)) 62%,
+      transparent 100%
+    ) top center / 100% var(--inner-wall-rim-width, 2px) no-repeat;
 }
 
 .inner-wall-gradient-edge {
