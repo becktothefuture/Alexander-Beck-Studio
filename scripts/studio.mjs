@@ -28,6 +28,7 @@ const LOCK_PATH = join(CACHE_DIR, 'lifecycle.lock');
 const LOCAL_DEV_LOG = join(CACHE_DIR, 'local-dev.log');
 const PUBLIC_DEV_LOG = join(CACHE_DIR, 'public-dev.log');
 const TUNNEL_LOG = join(CACHE_DIR, 'tunnel.log');
+const GITHUB_CLI_WRAPPER = join(SCRIPT_DIR, 'github-cli.sh');
 
 const LOCAL_DEV_PORT = 8012;
 const PUBLIC_DEV_PORT = 8014;
@@ -719,6 +720,21 @@ async function confirmPublish(ahead) {
   }
 }
 
+async function requestPagesDeployment() {
+  console.log('Requesting the GitHub Pages workflow for main...');
+  try {
+    await run('bash', [GITHUB_CLI_WRAPPER, 'workflow', 'run', 'gh-pages.yml', '--ref', 'main']);
+    console.log(good('GitHub Pages workflow requested.'));
+    return true;
+  } catch {
+    console.warn(warn(
+      'Push completed, but GitHub Actions could not be requested automatically. '
+      + 'Run: npm run github:cli -- workflow run gh-pages.yml --ref main',
+    ));
+    return false;
+  }
+}
+
 async function studioPublish() {
   const beforeFetch = gitState();
   if (beforeFetch.branch !== 'main') {
@@ -746,6 +762,7 @@ async function studioPublish() {
   }
 
   await run('git', ['push', 'origin', 'main']);
+  await requestPagesDeployment();
   console.log(good('Push complete. GitHub Pages will deploy only after its production workflow passes.'));
 }
 

@@ -11,7 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.event_name }}-${{ github.ref }}
+  # Push and manual recovery runs target the same Pages environment. Keep them
+  # in one queue so an older build cannot deploy after a newer revision.
+  group: pages-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -91,7 +93,7 @@ jobs:
       # continue-on-error from both steps in one focused workflow change.
       - name: Install Chromium for release smoke (advisory)
         id: install_release_smoke_browser
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         continue-on-error: true
         timeout-minutes: 8
         run: |
@@ -100,13 +102,13 @@ jobs:
 
       - name: Run production release smoke (advisory)
         id: release_smoke
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.install_release_smoke_browser.outcome == 'success'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.install_release_smoke_browser.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 8
         run: npm run audit:release-smoke 2>&1 | tee output/playwright/release-smoke/smoke.log
 
       - name: Upload release-smoke evidence
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +118,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: react-app/app/dist
@@ -124,7 +126,7 @@ jobs:
   deploy:
     name: Deploy GitHub Pages
     needs: validate_build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.validate_build.result == 'success'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.validate_build.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
