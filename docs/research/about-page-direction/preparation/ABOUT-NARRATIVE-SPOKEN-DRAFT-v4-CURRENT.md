@@ -107,7 +107,7 @@ This is the accepted narrative used by the canonical About page configuration.
 
 > …and I like not knowing exactly where they’ll lead.
 
-## Let’s make something new
+## Let’s begin.
 
 > If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it.
 

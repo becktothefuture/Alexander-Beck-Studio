@@ -213,7 +213,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   neck and coherent head resolve. The anchored camera eases out of its orbit and holds while the settled
   form begins its final rotation.
 - The bust remains large and horizontally centred through the final invitation. The lower-half stack
-  reads “Let’s make something new”, then the smaller invitation sentence with one inline email link. It has no
+  reads “Let’s begin.”, then the smaller invitation sentence with one inline email link. It has no
   separate action buttons and must not displace the bust or leave the studio viewport.
 - Mobile portrait frames the final bust slightly higher and closer than the previous endpoint while
   retaining the same material/text centre relationship as desktop.

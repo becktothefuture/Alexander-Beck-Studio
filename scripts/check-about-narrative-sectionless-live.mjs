@@ -1316,7 +1316,7 @@ test('published narrative writing follows the accepted current script with its a
   });
   assert.equal(
     canonical.tracks.text.fields.find((field) => field.preset === 'finale-v1')?.text,
-    'Let’s make something new',
+    'Let’s begin.',
   );
   assert.doesNotMatch(canonicalSource, /Together, they become a way to make the idea tangible/);
   assert.doesNotMatch(canonicalSource, /That is when the experience starts to feel real/);

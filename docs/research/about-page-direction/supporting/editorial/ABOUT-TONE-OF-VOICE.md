@@ -219,7 +219,7 @@ Keep the ending:
 - modest about Alex;
 - short enough to remain one spoken thought across three screens.
 
-The finale title should continue this thought with “Let’s make something new.” Do not return to a generic “Get in Touch” heading after the narrative has resolved.
+The finale title should open the next conversation with “Let’s begin.” Do not return to a generic “Get in Touch” heading after the narrative has resolved.
 
 ## Evidence and specificity
 

@@ -310,7 +310,7 @@ Continue the multidisciplinary conclusion as a low-pressure invitation to make s
 
 **Target**
 
-- Use “Let’s make something new” as the title.
+- Use “Let’s begin.” as the title.
 - Description: 10–14 words.
 - Name an unfamiliar, unresolved, or complex problem without sounding like a sales qualification form.
 - Do not repeat “something new” in the preceding travelling title.

@@ -133,7 +133,7 @@ test('the canonical ending is transformative and the finale continues it', () =>
   assert.match(closingStatement, /rarely stay there/i);
   assert.match(closingStatement, /where they’ll lead/i);
   assert.doesNotMatch(closingStatement, /\bpeople\b/i);
-  assert.equal(finale.text, 'Let’s make something new');
+  assert.equal(finale.text, 'Let’s begin.');
   assert.equal(
     finale.description,
     'If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it.',
