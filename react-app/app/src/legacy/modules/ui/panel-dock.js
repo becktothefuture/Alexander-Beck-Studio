@@ -302,7 +302,7 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
+      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame', 'wallEdge', 'outerWallGlow', 'menuEdge'] }),
       simulations: simulationsPrepend,
       simulationModes: ballsPrepend,
     },

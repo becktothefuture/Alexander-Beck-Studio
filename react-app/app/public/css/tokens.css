@@ -587,12 +587,37 @@
   --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
-  /* Inner wall gradient edge - radial gradient light/shadow edges */
+  /* Inner wall soft rim - static light reflected from the studio window */
   --inner-wall-gradient-edge-width: 0px;
-  --inner-wall-rim-focus-x: 50%;
-  --inner-wall-rim-focus-y: 50%;
-  --inner-wall-rim-falloff-stop: 60%;
-  --inner-wall-rim-falloff-opacity-mul: 0.3;
+  --inner-wall-rim-size: 8px;
+  --inner-wall-rim-blur: 18px;
+  --inner-wall-rim-opacity: 0.16;
+  --inner-wall-rim-opacity-light: 0.16;
+  --inner-wall-rim-opacity-dark: 0.07;
+  /* Exterior wall reflection - two static neutral shadow layers. */
+  --outer-wall-glow-near-size: 0px;
+  --outer-wall-glow-near-blur: 14px;
+  --outer-wall-glow-near-opacity: 0.18;
+  --outer-wall-glow-near-opacity-light: 0.18;
+  --outer-wall-glow-near-opacity-dark: 0.055;
+  --outer-wall-glow-far-size: 8px;
+  --outer-wall-glow-far-blur: 48px;
+  --outer-wall-glow-far-opacity: 0.055;
+  --outer-wall-glow-far-opacity-light: 0.055;
+  --outer-wall-glow-far-opacity-dark: 0.018;
+  /* Button Bar reflection - independent near/far layers, inset at the menu edge. */
+  --menu-edge-near-size: 0px;
+  --menu-edge-near-blur: 14px;
+  --menu-edge-near-shift: 0px;
+  --menu-edge-near-opacity: 0.18;
+  --menu-edge-near-opacity-light: 0.18;
+  --menu-edge-near-opacity-dark: 0.055;
+  --menu-edge-far-size: 8px;
+  --menu-edge-far-blur: 48px;
+  --menu-edge-far-shift: 0px;
+  --menu-edge-far-opacity: 0.055;
+  --menu-edge-far-opacity-light: 0.055;
+  --menu-edge-far-opacity-dark: 0.018;
   --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
   --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
   --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
@@ -603,7 +628,7 @@
   --inner-wall-bottom-shadow-opacity-dark: 0.17; /* Inner wall bottom shadow opacity (dark mode) */
   --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
 
-  /* Gradient edge per-side opacities (bottom/sides: light rim; top: shadow rim — overridden by JS) */
+  /* Legacy gradient-edge variables retained for old standalone labs. */
   --inner-wall-gradient-edge-top-shadow-opacity: 0;
   --inner-wall-gradient-edge-bottom-opacity: 0;
   --inner-wall-gradient-edge-side-opacity: 0;

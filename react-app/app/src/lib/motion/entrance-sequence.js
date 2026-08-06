@@ -24,6 +24,7 @@ const HOME_PHASE_CLASSES = Object.freeze([
 ]);
 const styleCleanupGeneration = new WeakMap();
 const bookendEndpointByElement = new WeakMap();
+const finalOpacityByElement = new WeakMap();
 const entranceManagedInertTargets = new WeakSet();
 const BOOKEND_TITLE_MOTION = Object.freeze({
   delayMs: 500,
@@ -97,11 +98,21 @@ function readOrder(element, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function readFinalOpacity(element) {
+function readFinalOpacity(element, sequenceSeed) {
   const explicit = Number.parseFloat(element.dataset.routeEnterOpacity || '');
   if (Number.isFinite(explicit)) return explicit;
+
+  // `play()` recollects live targets after `stage()` has set their inline
+  // opacity to zero. Keep the authored endpoint for this transaction so a
+  // quiet target such as the Home edge caption never briefly reaches full
+  // opacity before its inline styles are released.
+  const cached = finalOpacityByElement.get(element);
+  if (cached?.sequenceSeed === sequenceSeed) return cached.value;
+
   const computed = Number.parseFloat(getComputedStyle(element).opacity || '');
-  return Number.isFinite(computed) && computed > 0.02 ? computed : 1;
+  const value = Number.isFinite(computed) && computed > 0.02 ? computed : 1;
+  finalOpacityByElement.set(element, { sequenceSeed, value });
+  return value;
 }
 
 function readBookendEndpoint(element, sequenceSeed) {
@@ -110,7 +121,7 @@ function readBookendEndpoint(element, sequenceSeed) {
   const endpoint = {
     sequenceSeed,
     finalColor: getComputedStyle(element).color,
-    finalOpacity: readFinalOpacity(element),
+    finalOpacity: readFinalOpacity(element, sequenceSeed),
   };
   bookendEndpointByElement.set(element, endpoint);
   return endpoint;
@@ -542,7 +553,7 @@ function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 }
           ? element.dataset.routeEnterDescriptionText
           : '',
         variant,
-        finalOpacity: bookendEndpoint?.finalOpacity ?? readFinalOpacity(element),
+        finalOpacity: bookendEndpoint?.finalOpacity ?? readFinalOpacity(element, sequenceSeed),
         finalColor,
         flashColors: isBookendTitle
           ? glyphs.map((glyph, glyphIndex) => createRandomOrderedFlashColors(

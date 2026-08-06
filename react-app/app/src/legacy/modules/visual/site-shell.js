@@ -79,13 +79,28 @@ const DEFAULT_SHELL_CONFIG = {
     glowOpacityDark: 0.18,
     shadowBlur: '18px',
     shadowOffsetY: '6px',
-    innerWallRimWidth: '2px',
-    innerWallRimBottomOpacityLight: 0.2,
-    innerWallRimBottomOpacityDark: 0.16,
-    innerWallRimSideOpacityLight: 0.11,
-    innerWallRimSideOpacityDark: 0.09,
-    innerWallRimTopShadowOpacityLight: 0.12,
-    innerWallRimTopShadowOpacityDark: 0.18,
+    innerWallRimSize: '8px',
+    innerWallRimBlur: '18px',
+    innerWallRimOpacityLight: 0.16,
+    innerWallRimOpacityDark: 0.07,
+    outerWallGlowNearSize: '0px',
+    outerWallGlowNearBlur: '14px',
+    outerWallGlowNearOpacityLight: 0.18,
+    outerWallGlowNearOpacityDark: 0.055,
+    outerWallGlowFarSize: '8px',
+    outerWallGlowFarBlur: '48px',
+    outerWallGlowFarOpacityLight: 0.055,
+    outerWallGlowFarOpacityDark: 0.018,
+    menuEdgeNearSize: '0px',
+    menuEdgeNearBlur: '14px',
+    menuEdgeNearShift: '0px',
+    menuEdgeNearOpacityLight: 0.18,
+    menuEdgeNearOpacityDark: 0.055,
+    menuEdgeFarSize: '8px',
+    menuEdgeFarBlur: '48px',
+    menuEdgeFarShift: '0px',
+    menuEdgeFarOpacityLight: 0.055,
+    menuEdgeFarOpacityDark: 0.018,
     lightEdgeInset: '0.5px',
     lightEdgeBlur: '4px',
     lightEdgeTopOpacityLight: 0.028,
@@ -232,6 +247,13 @@ export function patchShellTheme(themePatch = {}) {
 export function patchShellLayout(layoutPatch = {}) {
   currentShellConfig = mergeShellConfig(currentShellConfig, {
     layout: layoutPatch,
+  });
+  return currentShellConfig;
+}
+
+export function patchShellSurface(surfacePatch = {}) {
+  currentShellConfig = mergeShellConfig(currentShellConfig, {
+    surface: surfacePatch,
   });
   return currentShellConfig;
 }
@@ -586,35 +608,55 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     1.5,
     DEFAULT_SHELL_CONFIG.surface.controlMaterialSaturation
   );
-  const innerWallRimBottomOpacity = numberInRange(
+  const innerWallRimOpacity = numberInRange(
     isDark
-      ? surface.innerWallRimBottomOpacityDark
-      : surface.innerWallRimBottomOpacityLight,
+      ? surface.innerWallRimOpacityDark
+      : surface.innerWallRimOpacityLight,
     0,
     1,
     isDark
-      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimBottomOpacityDark
-      : DEFAULT_SHELL_CONFIG.surface.innerWallRimBottomOpacityLight
+      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.innerWallRimOpacityLight
   );
-  const innerWallRimSideOpacity = numberInRange(
+  const outerWallGlowNearOpacity = numberInRange(
     isDark
-      ? surface.innerWallRimSideOpacityDark
-      : surface.innerWallRimSideOpacityLight,
+      ? surface.outerWallGlowNearOpacityDark
+      : surface.outerWallGlowNearOpacityLight,
     0,
     1,
     isDark
-      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimSideOpacityDark
-      : DEFAULT_SHELL_CONFIG.surface.innerWallRimSideOpacityLight
+      ? DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearOpacityLight
   );
-  const innerWallRimTopShadowOpacity = numberInRange(
+  const outerWallGlowFarOpacity = numberInRange(
     isDark
-      ? surface.innerWallRimTopShadowOpacityDark
-      : surface.innerWallRimTopShadowOpacityLight,
+      ? surface.outerWallGlowFarOpacityDark
+      : surface.outerWallGlowFarOpacityLight,
     0,
     1,
     isDark
-      ? DEFAULT_SHELL_CONFIG.surface.innerWallRimTopShadowOpacityDark
-      : DEFAULT_SHELL_CONFIG.surface.innerWallRimTopShadowOpacityLight
+      ? DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarOpacityLight
+  );
+  const menuEdgeNearOpacity = numberInRange(
+    isDark
+      ? surface.menuEdgeNearOpacityDark
+      : surface.menuEdgeNearOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.menuEdgeNearOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.menuEdgeNearOpacityLight
+  );
+  const menuEdgeFarOpacity = numberInRange(
+    isDark
+      ? surface.menuEdgeFarOpacityDark
+      : surface.menuEdgeFarOpacityLight,
+    0,
+    1,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.menuEdgeFarOpacityDark
+      : DEFAULT_SHELL_CONFIG.surface.menuEdgeFarOpacityLight
   );
 
   const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
@@ -658,12 +700,148 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--abs-surface-shadow-blur', surface.shadowBlur);
   root.style.setProperty('--abs-surface-shadow-offset-y', surface.shadowOffsetY);
   root.style.setProperty(
-    '--inner-wall-rim-width',
-    surface.innerWallRimWidth || DEFAULT_SHELL_CONFIG.surface.innerWallRimWidth
+    '--inner-wall-rim-size',
+    surface.innerWallRimSize || DEFAULT_SHELL_CONFIG.surface.innerWallRimSize
   );
-  root.style.setProperty('--inner-wall-rim-bottom-opacity', String(innerWallRimBottomOpacity));
-  root.style.setProperty('--inner-wall-rim-side-opacity', String(innerWallRimSideOpacity));
-  root.style.setProperty('--inner-wall-rim-top-shadow-opacity', String(innerWallRimTopShadowOpacity));
+  root.style.setProperty(
+    '--inner-wall-rim-blur',
+    surface.innerWallRimBlur || DEFAULT_SHELL_CONFIG.surface.innerWallRimBlur
+  );
+  root.style.setProperty('--inner-wall-rim-opacity', String(innerWallRimOpacity));
+  root.style.setProperty(
+    '--inner-wall-rim-opacity-light',
+    String(numberInRange(
+      surface.innerWallRimOpacityLight,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.innerWallRimOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--inner-wall-rim-opacity-dark',
+    String(numberInRange(
+      surface.innerWallRimOpacityDark,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.innerWallRimOpacityDark
+    ))
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-near-size',
+    surface.outerWallGlowNearSize || DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearSize
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-near-blur',
+    surface.outerWallGlowNearBlur || DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearBlur
+  );
+  root.style.setProperty('--outer-wall-glow-near-opacity', String(outerWallGlowNearOpacity));
+  root.style.setProperty(
+    '--outer-wall-glow-near-opacity-light',
+    String(numberInRange(
+      surface.outerWallGlowNearOpacityLight,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-near-opacity-dark',
+    String(numberInRange(
+      surface.outerWallGlowNearOpacityDark,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearOpacityDark
+    ))
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-size',
+    surface.outerWallGlowFarSize || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarSize
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-blur',
+    surface.outerWallGlowFarBlur || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarBlur
+  );
+  root.style.setProperty('--outer-wall-glow-far-opacity', String(outerWallGlowFarOpacity));
+  root.style.setProperty(
+    '--outer-wall-glow-far-opacity-light',
+    String(numberInRange(
+      surface.outerWallGlowFarOpacityLight,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-opacity-dark',
+    String(numberInRange(
+      surface.outerWallGlowFarOpacityDark,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarOpacityDark
+    ))
+  );
+  root.style.setProperty(
+    '--menu-edge-near-size',
+    surface.menuEdgeNearSize || DEFAULT_SHELL_CONFIG.surface.menuEdgeNearSize
+  );
+  root.style.setProperty(
+    '--menu-edge-near-blur',
+    surface.menuEdgeNearBlur || DEFAULT_SHELL_CONFIG.surface.menuEdgeNearBlur
+  );
+  root.style.setProperty(
+    '--menu-edge-near-shift',
+    surface.menuEdgeNearShift || DEFAULT_SHELL_CONFIG.surface.menuEdgeNearShift
+  );
+  root.style.setProperty('--menu-edge-near-opacity', String(menuEdgeNearOpacity));
+  root.style.setProperty(
+    '--menu-edge-near-opacity-light',
+    String(numberInRange(
+      surface.menuEdgeNearOpacityLight,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.menuEdgeNearOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--menu-edge-near-opacity-dark',
+    String(numberInRange(
+      surface.menuEdgeNearOpacityDark,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.menuEdgeNearOpacityDark
+    ))
+  );
+  root.style.setProperty(
+    '--menu-edge-far-size',
+    surface.menuEdgeFarSize || DEFAULT_SHELL_CONFIG.surface.menuEdgeFarSize
+  );
+  root.style.setProperty(
+    '--menu-edge-far-blur',
+    surface.menuEdgeFarBlur || DEFAULT_SHELL_CONFIG.surface.menuEdgeFarBlur
+  );
+  root.style.setProperty(
+    '--menu-edge-far-shift',
+    surface.menuEdgeFarShift || DEFAULT_SHELL_CONFIG.surface.menuEdgeFarShift
+  );
+  root.style.setProperty('--menu-edge-far-opacity', String(menuEdgeFarOpacity));
+  root.style.setProperty(
+    '--menu-edge-far-opacity-light',
+    String(numberInRange(
+      surface.menuEdgeFarOpacityLight,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.menuEdgeFarOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--menu-edge-far-opacity-dark',
+    String(numberInRange(
+      surface.menuEdgeFarOpacityDark,
+      0,
+      1,
+      DEFAULT_SHELL_CONFIG.surface.menuEdgeFarOpacityDark
+    ))
+  );
   root.style.setProperty('--abs-surface-light-edge-inset', surface.lightEdgeInset);
   root.style.setProperty('--abs-surface-light-edge-blur', surface.lightEdgeBlur);
   root.style.setProperty('--abs-surface-light-edge-top-opacity', String(topEdgeOpacity));

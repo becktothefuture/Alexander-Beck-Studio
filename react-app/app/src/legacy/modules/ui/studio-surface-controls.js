@@ -8,6 +8,8 @@ import {
   getShellRouteTransitionConfig,
   patchShellLayout,
   patchShellMotion,
+  patchShellSurface,
+  syncShellToDocument,
 } from '../visual/site-shell.js';
 import { resize } from '../rendering/renderer.js';
 
@@ -25,6 +27,28 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   frameInsetDesktopPx: 16,
   frameRadiusMobilePx: 32,
   frameRadiusDesktopPx: 72,
+  innerWallRimSize: 8,
+  innerWallRimBlur: 18,
+  innerWallRimOpacityLight: 0.16,
+  innerWallRimOpacityDark: 0.07,
+  outerWallGlowNearSize: 0,
+  outerWallGlowNearBlur: 14,
+  outerWallGlowNearOpacityLight: 0.18,
+  outerWallGlowNearOpacityDark: 0.055,
+  outerWallGlowFarSize: 8,
+  outerWallGlowFarBlur: 48,
+  outerWallGlowFarOpacityLight: 0.055,
+  outerWallGlowFarOpacityDark: 0.018,
+  menuEdgeNearSize: 0,
+  menuEdgeNearBlur: 14,
+  menuEdgeNearShift: 0,
+  menuEdgeNearOpacityLight: 0.18,
+  menuEdgeNearOpacityDark: 0.055,
+  menuEdgeFarSize: 8,
+  menuEdgeFarBlur: 48,
+  menuEdgeFarShift: 0,
+  menuEdgeFarOpacityLight: 0.055,
+  menuEdgeFarOpacityDark: 0.018,
   materialDurationMs: 1200,
   materialStaggerMs: 720,
   materialDelayMs: 80,
@@ -66,6 +90,52 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
       { id: 'frameInsetDesktopPx', label: 'Desktop Size', min: 8, max: 48, step: 1, unit: 'px' },
       { id: 'frameRadiusMobilePx', label: 'Mobile Radius', min: 16, max: 64, step: 1, unit: 'px' },
       { id: 'frameRadiusDesktopPx', label: 'Desktop Radius', min: 32, max: 120, step: 1, unit: 'px' },
+    ],
+  },
+  {
+    key: 'wallEdge',
+    title: 'Inner Window Edge',
+    icon: '✦',
+    defaultOpen: true,
+    controls: [
+      { id: 'innerWallRimSize', label: 'Edge Size', min: 0, max: 64, step: 1, unit: 'px' },
+      { id: 'innerWallRimBlur', label: 'Softness', min: 0, max: 160, step: 1, unit: 'px' },
+      { id: 'innerWallRimOpacityLight', label: 'Light Strength', min: 0, max: 1, step: 0.01, format: (value) => `${Math.round(value * 100)}%` },
+      { id: 'innerWallRimOpacityDark', label: 'Dark Strength', min: 0, max: 1, step: 0.01, format: (value) => `${Math.round(value * 100)}%` },
+    ],
+  },
+  {
+    key: 'outerWallGlow',
+    title: 'Outer Wall Glow',
+    icon: '✧',
+    defaultOpen: true,
+    controls: [
+      { id: 'outerWallGlowNearSize', label: 'Near Size', min: 0, max: 48, step: 1, unit: 'px' },
+      { id: 'outerWallGlowNearBlur', label: 'Near Softness', min: 0, max: 160, step: 1, unit: 'px' },
+      { id: 'outerWallGlowNearOpacityLight', label: 'Near Light', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'outerWallGlowNearOpacityDark', label: 'Near Dark', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'outerWallGlowFarSize', label: 'Far Size', min: 0, max: 96, step: 1, unit: 'px' },
+      { id: 'outerWallGlowFarBlur', label: 'Far Softness', min: 0, max: 240, step: 1, unit: 'px' },
+      { id: 'outerWallGlowFarOpacityLight', label: 'Far Light', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'outerWallGlowFarOpacityDark', label: 'Far Dark', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+    ],
+  },
+  {
+    key: 'menuEdge',
+    title: 'Menu Inner Edge',
+    icon: '▰',
+    defaultOpen: true,
+    controls: [
+      { id: 'menuEdgeNearSize', label: 'Near Size', min: 0, max: 48, step: 1, unit: 'px' },
+      { id: 'menuEdgeNearBlur', label: 'Near Softness', min: 0, max: 160, step: 1, unit: 'px' },
+      { id: 'menuEdgeNearShift', label: 'Near Shift', min: -208, max: 208, step: 1, unit: 'px' },
+      { id: 'menuEdgeNearOpacityLight', label: 'Near Light', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'menuEdgeNearOpacityDark', label: 'Near Dark', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'menuEdgeFarSize', label: 'Far Size', min: 0, max: 96, step: 1, unit: 'px' },
+      { id: 'menuEdgeFarBlur', label: 'Far Softness', min: 0, max: 240, step: 1, unit: 'px' },
+      { id: 'menuEdgeFarShift', label: 'Far Shift', min: -336, max: 336, step: 1, unit: 'px' },
+      { id: 'menuEdgeFarOpacityLight', label: 'Far Light', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
+      { id: 'menuEdgeFarOpacityDark', label: 'Far Dark', min: 0, max: 1, step: 0.001, format: (value) => `${Number((value * 100).toFixed(1))}%` },
     ],
   },
   {
@@ -124,6 +194,13 @@ const OBSOLETE_SURFACE_KEYS = [
   'lightEdgeTopOpacityDark',
   'lightEdgeBottomOpacityLight',
   'lightEdgeBottomOpacityDark',
+  'innerWallRimWidth',
+  'innerWallRimBottomOpacityLight',
+  'innerWallRimBottomOpacityDark',
+  'innerWallRimSideOpacityLight',
+  'innerWallRimSideOpacityDark',
+  'innerWallRimTopShadowOpacityLight',
+  'innerWallRimTopShadowOpacityDark',
 ];
 
 const OBSOLETE_THEME_KEYS = [
@@ -202,6 +279,28 @@ function readCurrentConfig() {
       const v = g?.frameRadiusDesktopPx;
       return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameRadiusDesktopPx;
     })(),
+    innerWallRimSize: readNumber(rootStyle, '--inner-wall-rim-size', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize),
+    innerWallRimBlur: readNumber(rootStyle, '--inner-wall-rim-blur', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur),
+    innerWallRimOpacityLight: readNumber(rootStyle, '--inner-wall-rim-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight),
+    innerWallRimOpacityDark: readNumber(rootStyle, '--inner-wall-rim-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityDark),
+    outerWallGlowNearSize: readNumber(rootStyle, '--outer-wall-glow-near-size', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearSize),
+    outerWallGlowNearBlur: readNumber(rootStyle, '--outer-wall-glow-near-blur', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearBlur),
+    outerWallGlowNearOpacityLight: readNumber(rootStyle, '--outer-wall-glow-near-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityLight),
+    outerWallGlowNearOpacityDark: readNumber(rootStyle, '--outer-wall-glow-near-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityDark),
+    outerWallGlowFarSize: readNumber(rootStyle, '--outer-wall-glow-far-size', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarSize),
+    outerWallGlowFarBlur: readNumber(rootStyle, '--outer-wall-glow-far-blur', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarBlur),
+    outerWallGlowFarOpacityLight: readNumber(rootStyle, '--outer-wall-glow-far-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityLight),
+    outerWallGlowFarOpacityDark: readNumber(rootStyle, '--outer-wall-glow-far-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityDark),
+    menuEdgeNearSize: readNumber(rootStyle, '--menu-edge-near-size', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearSize),
+    menuEdgeNearBlur: readNumber(rootStyle, '--menu-edge-near-blur', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearBlur),
+    menuEdgeNearShift: readNumber(rootStyle, '--menu-edge-near-shift', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearShift),
+    menuEdgeNearOpacityLight: readNumber(rootStyle, '--menu-edge-near-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityLight),
+    menuEdgeNearOpacityDark: readNumber(rootStyle, '--menu-edge-near-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityDark),
+    menuEdgeFarSize: readNumber(rootStyle, '--menu-edge-far-size', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarSize),
+    menuEdgeFarBlur: readNumber(rootStyle, '--menu-edge-far-blur', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarBlur),
+    menuEdgeFarShift: readNumber(rootStyle, '--menu-edge-far-shift', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarShift),
+    menuEdgeFarOpacityLight: readNumber(rootStyle, '--menu-edge-far-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityLight),
+    menuEdgeFarOpacityDark: readNumber(rootStyle, '--menu-edge-far-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityDark),
     materialDurationMs: routeTransition.materialDurationMs,
     materialStaggerMs: routeTransition.materialStaggerMs,
     materialDelayMs: routeTransition.materialDelayMs,
@@ -292,6 +391,28 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
   const frameInset = normalizeFrameInsetEndpoints(config);
   const frameRadius = normalizeFrameRadiusEndpoints(config);
+  const innerWallRimSize = Math.round(clamp(config.innerWallRimSize, 0, 64, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize));
+  const innerWallRimBlur = Math.round(clamp(config.innerWallRimBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur));
+  const innerWallRimOpacityLight = clamp(config.innerWallRimOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight);
+  const innerWallRimOpacityDark = clamp(config.innerWallRimOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityDark);
+  const outerWallGlowNearSize = Math.round(clamp(config.outerWallGlowNearSize, 0, 48, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearSize));
+  const outerWallGlowNearBlur = Math.round(clamp(config.outerWallGlowNearBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearBlur));
+  const outerWallGlowNearOpacityLight = clamp(config.outerWallGlowNearOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityLight);
+  const outerWallGlowNearOpacityDark = clamp(config.outerWallGlowNearOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityDark);
+  const outerWallGlowFarSize = Math.round(clamp(config.outerWallGlowFarSize, 0, 96, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarSize));
+  const outerWallGlowFarBlur = Math.round(clamp(config.outerWallGlowFarBlur, 0, 240, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarBlur));
+  const outerWallGlowFarOpacityLight = clamp(config.outerWallGlowFarOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityLight);
+  const outerWallGlowFarOpacityDark = clamp(config.outerWallGlowFarOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityDark);
+  const menuEdgeNearSize = Math.round(clamp(config.menuEdgeNearSize, 0, 48, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearSize));
+  const menuEdgeNearBlur = Math.round(clamp(config.menuEdgeNearBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearBlur));
+  const menuEdgeNearShift = Math.round(clamp(config.menuEdgeNearShift, -208, 208, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearShift));
+  const menuEdgeNearOpacityLight = clamp(config.menuEdgeNearOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityLight);
+  const menuEdgeNearOpacityDark = clamp(config.menuEdgeNearOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityDark);
+  const menuEdgeFarSize = Math.round(clamp(config.menuEdgeFarSize, 0, 96, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarSize));
+  const menuEdgeFarBlur = Math.round(clamp(config.menuEdgeFarBlur, 0, 240, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarBlur));
+  const menuEdgeFarShift = Math.round(clamp(config.menuEdgeFarShift, -336, 336, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarShift));
+  const menuEdgeFarOpacityLight = clamp(config.menuEdgeFarOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityLight);
+  const menuEdgeFarOpacityDark = clamp(config.menuEdgeFarOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityDark);
   const materialDurationMs = Math.round(clamp(config.materialDurationMs, 300, 1800, DEFAULT_STUDIO_SURFACE_CONFIG.materialDurationMs));
   const materialStaggerMs = Math.round(clamp(config.materialStaggerMs, 0, 1200, DEFAULT_STUDIO_SURFACE_CONFIG.materialStaggerMs));
   const materialDelayMs = Math.round(clamp(config.materialDelayMs, 0, 600, DEFAULT_STUDIO_SURFACE_CONFIG.materialDelayMs));
@@ -322,6 +443,28 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     frameInsetDesktopPx: frameInset.desktop,
     frameRadiusMobilePx: frameRadius.mobile,
     frameRadiusDesktopPx: frameRadius.desktop,
+    innerWallRimSize,
+    innerWallRimBlur,
+    innerWallRimOpacityLight,
+    innerWallRimOpacityDark,
+    outerWallGlowNearSize,
+    outerWallGlowNearBlur,
+    outerWallGlowNearOpacityLight,
+    outerWallGlowNearOpacityDark,
+    outerWallGlowFarSize,
+    outerWallGlowFarBlur,
+    outerWallGlowFarOpacityLight,
+    outerWallGlowFarOpacityDark,
+    menuEdgeNearSize,
+    menuEdgeNearBlur,
+    menuEdgeNearShift,
+    menuEdgeNearOpacityLight,
+    menuEdgeNearOpacityDark,
+    menuEdgeFarSize,
+    menuEdgeFarBlur,
+    menuEdgeFarShift,
+    menuEdgeFarOpacityLight,
+    menuEdgeFarOpacityDark,
     materialDurationMs,
     materialStaggerMs,
     materialDelayMs,
@@ -334,6 +477,31 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     cardTiltDeg,
   };
   window.__ABS_STUDIO_SURFACE_CONFIG__ = studioSurfaceSnapshot;
+  patchShellSurface({
+    innerWallRimSize: `${innerWallRimSize}px`,
+    innerWallRimBlur: `${innerWallRimBlur}px`,
+    innerWallRimOpacityLight,
+    innerWallRimOpacityDark,
+    outerWallGlowNearSize: `${outerWallGlowNearSize}px`,
+    outerWallGlowNearBlur: `${outerWallGlowNearBlur}px`,
+    outerWallGlowNearOpacityLight,
+    outerWallGlowNearOpacityDark,
+    outerWallGlowFarSize: `${outerWallGlowFarSize}px`,
+    outerWallGlowFarBlur: `${outerWallGlowFarBlur}px`,
+    outerWallGlowFarOpacityLight,
+    outerWallGlowFarOpacityDark,
+    menuEdgeNearSize: `${menuEdgeNearSize}px`,
+    menuEdgeNearBlur: `${menuEdgeNearBlur}px`,
+    menuEdgeNearShift: `${menuEdgeNearShift}px`,
+    menuEdgeNearOpacityLight,
+    menuEdgeNearOpacityDark,
+    menuEdgeFarSize: `${menuEdgeFarSize}px`,
+    menuEdgeFarBlur: `${menuEdgeFarBlur}px`,
+    menuEdgeFarShift: `${menuEdgeFarShift}px`,
+    menuEdgeFarOpacityLight,
+    menuEdgeFarOpacityDark,
+  });
+  syncShellToDocument();
 
   const g = getGlobals();
   if (g) {
@@ -414,7 +582,7 @@ function generateSectionSetHTML(sections, options = {}) {
     const prependHTML = section.key === 'puck' ? (options.puckPrependHTML || section.prependHTML || '') : (section.prependHTML || '');
     const openAttr = section.defaultOpen ? 'open' : '';
     return `
-      <details class="panel-section-accordion" data-studio-surface-section="${section.key}" ${openAttr}>
+      <details class="panel-section-accordion" data-section-key="${section.key}" data-studio-surface-section="${section.key}" ${openAttr}>
         <summary class="panel-section-header">
           <span class="section-icon">${section.icon}</span>
           <span class="section-label">${section.title}</span>
@@ -523,6 +691,28 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   delete nextShell.layout.frameRadiusTablet;
   delete nextShell.layout.quoteMaxWidth;
   delete nextShell.surface.quoteButtonFillOpacity;
+  nextShell.surface.innerWallRimSize = `${Math.round(clamp(config.innerWallRimSize, 0, 64, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize))}px`;
+  nextShell.surface.innerWallRimBlur = `${Math.round(clamp(config.innerWallRimBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur))}px`;
+  nextShell.surface.innerWallRimOpacityLight = Number(clamp(config.innerWallRimOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight).toFixed(2));
+  nextShell.surface.innerWallRimOpacityDark = Number(clamp(config.innerWallRimOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityDark).toFixed(2));
+  nextShell.surface.outerWallGlowNearSize = `${Math.round(clamp(config.outerWallGlowNearSize, 0, 48, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearSize))}px`;
+  nextShell.surface.outerWallGlowNearBlur = `${Math.round(clamp(config.outerWallGlowNearBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearBlur))}px`;
+  nextShell.surface.outerWallGlowNearOpacityLight = Number(clamp(config.outerWallGlowNearOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityLight).toFixed(3));
+  nextShell.surface.outerWallGlowNearOpacityDark = Number(clamp(config.outerWallGlowNearOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowNearOpacityDark).toFixed(3));
+  nextShell.surface.outerWallGlowFarSize = `${Math.round(clamp(config.outerWallGlowFarSize, 0, 96, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarSize))}px`;
+  nextShell.surface.outerWallGlowFarBlur = `${Math.round(clamp(config.outerWallGlowFarBlur, 0, 240, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarBlur))}px`;
+  nextShell.surface.outerWallGlowFarOpacityLight = Number(clamp(config.outerWallGlowFarOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityLight).toFixed(3));
+  nextShell.surface.outerWallGlowFarOpacityDark = Number(clamp(config.outerWallGlowFarOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.outerWallGlowFarOpacityDark).toFixed(3));
+  nextShell.surface.menuEdgeNearSize = `${Math.round(clamp(config.menuEdgeNearSize, 0, 48, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearSize))}px`;
+  nextShell.surface.menuEdgeNearBlur = `${Math.round(clamp(config.menuEdgeNearBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearBlur))}px`;
+  nextShell.surface.menuEdgeNearShift = `${Math.round(clamp(config.menuEdgeNearShift, -208, 208, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearShift))}px`;
+  nextShell.surface.menuEdgeNearOpacityLight = Number(clamp(config.menuEdgeNearOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityLight).toFixed(3));
+  nextShell.surface.menuEdgeNearOpacityDark = Number(clamp(config.menuEdgeNearOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeNearOpacityDark).toFixed(3));
+  nextShell.surface.menuEdgeFarSize = `${Math.round(clamp(config.menuEdgeFarSize, 0, 96, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarSize))}px`;
+  nextShell.surface.menuEdgeFarBlur = `${Math.round(clamp(config.menuEdgeFarBlur, 0, 240, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarBlur))}px`;
+  nextShell.surface.menuEdgeFarShift = `${Math.round(clamp(config.menuEdgeFarShift, -336, 336, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarShift))}px`;
+  nextShell.surface.menuEdgeFarOpacityLight = Number(clamp(config.menuEdgeFarOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityLight).toFixed(3));
+  nextShell.surface.menuEdgeFarOpacityDark = Number(clamp(config.menuEdgeFarOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityDark).toFixed(3));
   nextShell.motion = { ...(baseShell?.motion || {}) };
   nextShell.motion.routeTransition = {
     ...(baseShell?.motion?.routeTransition || {}),

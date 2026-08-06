@@ -3883,7 +3883,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
-  /* No outward box-shadow: depth is carried by the inner-wall gradient edge. */
+  /* Exterior light is carried by the static pseudo-element behind this clipped window. */
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -3895,6 +3895,26 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     right var(--duration-resize) var(--ease-organic),
     bottom var(--duration-resize) var(--ease-organic),
     height var(--duration-resize) var(--ease-organic);
+}
+
+/* The exterior reflection shares the exact studio-window geometry but sits one
+   layer behind it, so its two static shadows only paint onto the exposed wall. */
+#abs-scene::before,
+.app-scene::before {
+  content: '';
+  position: absolute;
+  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
+  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
+  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
+  border-radius: var(--frame-outer-radius);
+  box-shadow:
+    0 0 var(--outer-wall-glow-near-blur, 14px) var(--outer-wall-glow-near-size, 0px)
+      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
+    0 0 var(--outer-wall-glow-far-blur, 48px) var(--outer-wall-glow-far-size, 8px)
+      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
+  pointer-events: none;
+  z-index: 99;
 }
 
 /* The document/browser surface stays dark. Native UI inside the studio window
@@ -4878,39 +4898,14 @@ html[data-abs-instrument-wake] #simulations::after {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   GRADIENT RIM — inner wall recess: bottom + sides catch light; top lip is shadow.
-   Portfolio sheet (portfolio.css): positive seat inset reveals this rim from the real pit
-   under the transparent margin; the drawer face uses insert-only shading (no wall lights).
+   SOFT WALL RIM — one static inset light around the studio-window contour.
+   The outer shell stays invariant; the active studio-window theme only changes
+   this in-window reflection.
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
-  background:
-    /* A top-mounted light catches the lower inner lip most strongly. */
-    radial-gradient(
-      50% 100% at 50% 100%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-bottom-opacity, 0.2)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-bottom-opacity, 0.2) * 0.28)) 62%,
-      transparent 100%
-    ) bottom center / 100% var(--inner-wall-rim-width, 2px) no-repeat,
-    /* Side catches are quieter and fade before the rounded corners. */
-    radial-gradient(
-      100% 50% at 0% 50%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-side-opacity, 0.11)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-side-opacity, 0.11) * 0.28)) 62%,
-      transparent 100%
-    ) left center / var(--inner-wall-rim-width, 2px) 100% no-repeat,
-    radial-gradient(
-      100% 50% at 100% 50%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-side-opacity, 0.11)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-rim-side-opacity, 0.11) * 0.28)) 62%,
-      transparent 100%
-    ) right center / var(--inner-wall-rim-width, 2px) 100% no-repeat,
-    /* The upper inner lip turns away from the light and stays in shadow. */
-    radial-gradient(
-      50% 100% at 50% 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-rim-top-shadow-opacity, 0.12)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--inner-wall-rim-top-shadow-opacity, 0.12) * 0.28)) 62%,
-      transparent 100%
-    ) top center / 100% var(--inner-wall-rim-width, 2px) no-repeat;
+  background: none;
+  box-shadow: inset 0 0 var(--inner-wall-rim-blur, 18px) var(--inner-wall-rim-size, 8px)
+    rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-opacity, 0.16));
 }
 
 .inner-wall-gradient-edge {
