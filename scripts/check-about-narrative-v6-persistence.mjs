@@ -75,6 +75,29 @@ test('v6 serialization is deterministic and never projects an authored document 
   );
 });
 
+test('discipline formation position survives the v6 save and reload boundary', () => {
+  const document = loadAboutNarrativePointFieldPersistenceSource(canonicalV5).document;
+  const reveal = document.tracks.interactions.clips.find((clip) => (
+    clip.type === 'discipline-reveal'
+  ));
+  reveal.parameters.formationColumn = 64;
+  reveal.parameters.formationRow = 22;
+
+  const serialized = serializeAboutNarrativePointFieldSource(document, {
+    preflight: preflightAboutNarrativePointFieldRuntimePlans,
+  });
+  const reloaded = loadAboutNarrativePointFieldPersistenceSource(serialized, {
+    preflight: preflightAboutNarrativePointFieldRuntimePlans,
+  });
+  const persistedReveal = reloaded.document.tracks.interactions.clips.find((clip) => (
+    clip.id === reveal.id
+  ));
+
+  assert.equal(reloaded.valid, true);
+  assert.equal(persistedReveal.parameters.formationColumn, 64);
+  assert.equal(persistedReveal.parameters.formationRow, 22);
+});
+
 test('invalid, future, and failed-preflight point-field sources preserve exact recovery input', () => {
   const invalid = loadAboutNarrativePointFieldPersistenceSource('{“schemaVersion”:6');
   assert.equal(invalid.valid, false);

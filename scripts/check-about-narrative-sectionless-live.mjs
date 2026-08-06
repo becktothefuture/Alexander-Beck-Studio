@@ -23,12 +23,14 @@ import {
   ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS,
   ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS,
   ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
   ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS,
   ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS,
+  getAboutNarrativeDisciplineAnchors,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
@@ -66,6 +68,40 @@ function assertCameraValue(actual, expected, label) {
     `${label}: expected ${expected}, received ${actual}`,
   );
 }
+
+test('discipline formation controls reposition desktop semantic dots without moving mobile', () => {
+  const controls = ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['discipline-reveal'].parameters
+    .filter((control) => control.group === 'modifier-placement');
+  assert.deepEqual(controls.map((control) => control.id), [
+    'formationColumn',
+    'formationRow',
+  ]);
+  assert.ok(controls.every((control) => control.step === 1));
+
+  const moved = getAboutNarrativeDisciplineAnchors('desktop', {
+    formationColumn: 64,
+    formationRow: 22,
+  });
+  assert.deepEqual(moved.map((anchor) => Math.round(anchor.x * 126)), [
+    64, 73, 64, 73, 64, 73,
+  ]);
+  assert.deepEqual(moved.map((anchor) => Math.round(anchor.y * 94)), [
+    22, 22, 24, 24, 26, 26,
+  ]);
+  assert.equal(
+    getAboutNarrativeDisciplineAnchors('mobile', {
+      formationColumn: 64,
+      formationRow: 22,
+    }),
+    ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS,
+  );
+
+  const reveal = canonicalV6.tracks.interactions.clips.find((clip) => (
+    clip.type === 'discipline-reveal'
+  ));
+  assert.equal(reveal.parameters.formationColumn, 43);
+  assert.equal(reveal.parameters.formationRow, 54);
+});
 
 test('canonical About source is native v6 with a valid v5 compatibility projection', () => {
   assert.equal(canonicalV6.schemaVersion, 6);
@@ -777,6 +813,25 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   assert.equal(new Set(horizontalPositions).size, 2);
   assert.deepEqual(horizontalPositions.map((value) => Math.round(value * 126)), [43, 52, 43, 52, 43, 52]);
   assert.deepEqual(verticalPositions.map((value) => Math.round(value * 94)), [54, 54, 56, 56, 58, 58]);
+  const movedDisciplineAnchors = getAboutNarrativeDisciplineAnchors('desktop', {
+    formationColumn: 64,
+    formationRow: 22,
+  });
+  assert.deepEqual(
+    movedDisciplineAnchors.map((anchor) => Math.round(anchor.x * 126)),
+    [64, 73, 64, 73, 64, 73],
+  );
+  assert.deepEqual(
+    movedDisciplineAnchors.map((anchor) => Math.round(anchor.y * 94)),
+    [22, 22, 24, 24, 26, 26],
+  );
+  assert.equal(
+    getAboutNarrativeDisciplineAnchors('mobile', {
+      formationColumn: 64,
+      formationRow: 22,
+    }),
+    ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS,
+  );
 
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
@@ -797,6 +852,14 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   assert.equal(disciplineReveal.parameters.settleDurationWU, 0.3);
   assert.equal(disciplineReveal.parameters.beatDurationWU, 0.32);
   assert.equal(disciplineReveal.parameters.itemsPerBeat, 2);
+  assert.equal(disciplineReveal.parameters.formationColumn, 43);
+  assert.equal(disciplineReveal.parameters.formationRow, 54);
+  assert.deepEqual(
+    ABOUT_NARRATIVE_INTERACTION_DEFINITIONS['discipline-reveal'].parameters
+      .filter((control) => control.group === 'modifier-placement')
+      .map((control) => control.id),
+    ['formationColumn', 'formationRow'],
+  );
   assertCameraValue(
     disciplineReveal.startWU
       + disciplineReveal.parameters.settleDurationWU
@@ -933,7 +996,8 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.match(liveSources.world, /worldAnchorSampling = 'native-grid-cell'/);
   assert.match(liveSources.world, /float disciplineRevealForGroup\(float group\)/);
   assert.match(liveSources.world, /float revealedGroupWeight = groupExists \* disciplineRevealForGroup\(group\)/);
-  assert.match(liveSources.world, /const disciplineAnchors = getAboutNarrativeDisciplineAnchors\(quality\)/);
+  assert.match(liveSources.world, /const disciplineAnchors = getAboutNarrativeDisciplineAnchors\(quality, \{/);
+  assert.match(liveSources.world, /refreshInstalledDisciplineGroups\(installedPair, \{ formationColumn, formationRow \}\)/);
   assert.match(liveSources.world, /label\.style\.setProperty\('--discipline-reveal'/);
   assert.match(liveSources.world, /label\.style\.setProperty\('--discipline-x'/);
   assert.match(liveSources.world, /const projectDisciplineLabels = \(\) =>/);

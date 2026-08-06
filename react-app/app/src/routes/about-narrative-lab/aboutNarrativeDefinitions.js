@@ -29,6 +29,22 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-8',
   '--ball-6',
 ]);
+const DISCIPLINE_DESKTOP_COLUMNS = 127;
+const DISCIPLINE_DESKTOP_ROWS = 95;
+const DISCIPLINE_DESKTOP_CELLS = Object.freeze([
+  Object.freeze([43, 54]),
+  Object.freeze([52, 54]),
+  Object.freeze([43, 56]),
+  Object.freeze([52, 56]),
+  Object.freeze([43, 58]),
+  Object.freeze([52, 58]),
+]);
+
+export const ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS = Object.freeze({
+  formationColumn: 43,
+  formationRow: 54,
+});
+
 function createDisciplineAnchorGrid(cells, columns, gridRows) {
   return Object.freeze(cells.map(([column, row], index) => Object.freeze({
     group: index + 1,
@@ -40,9 +56,9 @@ function createDisciplineAnchorGrid(cells, columns, gridRows) {
 // Desktop uses two columns by three rows in the lower reading corridor. Every
 // label is still projected from its exact semantic point in the floor grid.
 export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = createDisciplineAnchorGrid(
-  [[43, 54], [52, 54], [43, 56], [52, 56], [43, 58], [52, 58]],
-  127,
-  95,
+  DISCIPLINE_DESKTOP_CELLS,
+  DISCIPLINE_DESKTOP_COLUMNS,
+  DISCIPLINE_DESKTOP_ROWS,
 );
 // The compact renderer keeps the established single reading column.
 export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorGrid(
@@ -51,10 +67,34 @@ export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorG
   61,
 );
 
-export function getAboutNarrativeDisciplineAnchors(pointProfile = 'desktop') {
-  return pointProfile === 'mobile'
-    ? ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS
-    : ABOUT_NARRATIVE_DISCIPLINE_ANCHORS;
+export function getAboutNarrativeDisciplineAnchors(pointProfile = 'desktop', parameters = null) {
+  if (pointProfile === 'mobile') return ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS;
+  const requestedColumn = Math.round(Number(
+    parameters?.formationColumn
+      ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+  ));
+  const requestedRow = Math.round(Number(
+    parameters?.formationRow
+      ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
+  ));
+  const formationColumn = Math.min(117, Math.max(0, Number.isFinite(requestedColumn)
+    ? requestedColumn
+    : ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn));
+  const formationRow = Math.min(90, Math.max(0, Number.isFinite(requestedRow)
+    ? requestedRow
+    : ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow));
+  if (formationColumn === ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn
+    && formationRow === ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow) {
+    return ABOUT_NARRATIVE_DISCIPLINE_ANCHORS;
+  }
+  return createDisciplineAnchorGrid(
+    DISCIPLINE_DESKTOP_CELLS.map(([column, row]) => [
+      formationColumn + column - ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+      formationRow + row - ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
+    ]),
+    DISCIPLINE_DESKTOP_COLUMNS,
+    DISCIPLINE_DESKTOP_ROWS,
+  );
 }
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
@@ -487,6 +527,8 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       settleDurationWU: 0.3,
       beatDurationWU: 0.32,
       itemsPerBeat: 2,
+      formationColumn: 43,
+      formationRow: 54,
       backgroundOpacity: 0.28,
       pointScale: 4.4,
       restoreDurationWU: 0.3,
@@ -503,6 +545,8 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       numberControl('settleDurationWU', 'Lane settle duration', 0.05, 2, 0.01, 'WU', 'modifier-timing'),
       numberControl('beatDurationWU', 'Discipline beat duration', 0.2, 2, 0.01, 'WU', 'modifier-timing'),
       numberControl('itemsPerBeat', 'Disciplines per beat', 1, 6, 1, '', 'modifier-timing'),
+      numberControl('formationColumn', 'Formation column', 0, 117, 1, 'grid', 'modifier-placement'),
+      numberControl('formationRow', 'Formation row', 0, 90, 1, 'grid', 'modifier-placement'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),

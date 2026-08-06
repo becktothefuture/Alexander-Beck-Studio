@@ -2749,7 +2749,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
           {object.type === 'discipline-reveal' ? (
             <>
               <p className="about-track-editor-parameter-note is-wide">
-                The six disciplines keep one semantic order while the configured beat can reveal them in paired rows.
+                Formation column and row move the complete desktop 2×3 arrangement in exact dot-grid steps. The mobile arrangement stays fixed.
               </p>
               <div className="about-track-editor-discipline-layout is-wide">
                 {(object.parameters?.items || []).map((item) => {
@@ -2795,12 +2795,15 @@ function ObjectInspector({ snapshot, store, editScope }) {
           {ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]?.parameters
             .filter((control) => control.group)
             .map((control) => {
+            const controlValue = object.parameters?.[control.id]
+              ?? ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[object.type]
+                ?.defaultParameters?.[control.id];
             if (control.type === 'select') {
               return (
                 <SelectField
                   key={control.id}
                   label={control.label}
-                  value={object.parameters?.[control.id]}
+                  value={controlValue}
                   disabled={locked}
                   options={control.options.map((value) => ({ value, label: value }))}
                   onCommit={(value) => commit(`Edit ${control.label}`, (target) => {
@@ -2814,7 +2817,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
                 key={control.id}
                 label={control.label}
                 ariaLabel={`Interaction ${control.label}`}
-                value={object.parameters?.[control.id]}
+                value={controlValue}
                 control={control}
                 disabled={locked}
                 {...bindObjectRange(`Edit ${control.label}`, (target, value) => {

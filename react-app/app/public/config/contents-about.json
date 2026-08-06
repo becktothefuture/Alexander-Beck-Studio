@@ -1515,6 +1515,8 @@
             "settleDurationWU": 0.3,
             "beatDurationWU": 0.32,
             "itemsPerBeat": 2,
+            "formationColumn": 43,
+            "formationRow": 54,
             "backgroundOpacity": 0.28,
             "pointScale": 4.4,
             "restoreDurationWU": 0.3,

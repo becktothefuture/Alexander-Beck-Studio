@@ -581,6 +581,8 @@ test('Discipline grid compiles three cumulative paired-row beats', () => {
   assert.equal(reveal.settleDurationWU, 0.3);
   assert.equal(reveal.beatDurationWU, 0.32);
   assert.equal(reveal.itemsPerBeat, 2);
+  assert.equal(reveal.formationColumn, 43);
+  assert.equal(reveal.formationRow, 54);
   assert.equal(reveal.beatCount, 3);
   assert.equal(reveal.sequenceStartWU, 9);
   assertClose(reveal.sequenceEndWU, 9.96, 'discipline sequence end');

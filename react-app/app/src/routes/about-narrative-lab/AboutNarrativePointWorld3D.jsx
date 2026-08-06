@@ -6,6 +6,7 @@ import {
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import {
+  ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS,
   getAboutNarrativeDisciplineAnchors,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
@@ -1347,6 +1348,8 @@ function createPointFieldAdapter({
   let lastActiveDiscipline = Number.NaN;
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
+  let lastDisciplineFormationColumn = Number.NaN;
+  let lastDisciplineFormationRow = Number.NaN;
   let lastGridBackgroundState = Number.NaN;
   let lastSimulationVisibility = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
@@ -1480,8 +1483,19 @@ function createPointFieldAdapter({
     });
   };
 
-  const refreshInstalledDisciplineGroups = (pair) => {
-    const disciplineAnchors = getAboutNarrativeDisciplineAnchors(quality);
+  const refreshInstalledDisciplineGroups = (pair, formation = null) => {
+    const formationColumn = Math.round(Number(
+      formation?.formationColumn
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+    ));
+    const formationRow = Math.round(Number(
+      formation?.formationRow
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
+    ));
+    const disciplineAnchors = getAboutNarrativeDisciplineAnchors(quality, {
+      formationColumn,
+      formationRow,
+    });
     const materialThresholds = [
       uniforms.materialThreshold1.value,
       uniforms.materialThreshold2.value,
@@ -1519,6 +1533,10 @@ function createPointFieldAdapter({
     fixedAttributes.toGroup.needsUpdate = true;
     captureDisciplineIndices(fromGroup, fromDisciplineIndices);
     captureDisciplineIndices(toGroup, toDisciplineIndices);
+    lastDisciplineFormationColumn = formationColumn;
+    lastDisciplineFormationRow = formationRow;
+    root.dataset.worldDisciplineFormationColumn = String(formationColumn);
+    root.dataset.worldDisciplineFormationRow = String(formationRow);
   };
 
   const installPreparedPair = (pair) => {
@@ -1538,7 +1556,7 @@ function createPointFieldAdapter({
       fixedAttributes.targetPosition.array,
       fixedAttributes.motionSpatialPhases.array,
     );
-    refreshInstalledDisciplineGroups(pair);
+    refreshInstalledDisciplineGroups(pair, latestFrame?.disciplineReveal?.config);
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
     });
@@ -2076,6 +2094,21 @@ function createPointFieldAdapter({
     const reveal = revealState?.config;
     const overlay = disciplineOverlayRef?.current || null;
     syncDisciplineLabels(overlay);
+
+    const formationColumn = Math.round(Number(
+      reveal?.formationColumn
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+    ));
+    const formationRow = Math.round(Number(
+      reveal?.formationRow
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
+    ));
+    if (quality !== 'mobile'
+      && installedPair
+      && (formationColumn !== lastDisciplineFormationColumn
+        || formationRow !== lastDisciplineFormationRow)) {
+      refreshInstalledDisciplineGroups(installedPair, { formationColumn, formationRow });
+    }
 
     const disciplineWorldAvailable = fromWorld?.shapeId === 'calm-field-v1'
       || toWorld?.shapeId === 'calm-field-v1';
@@ -2717,6 +2750,8 @@ function createPointFieldAdapter({
     delete root.dataset.worldBustShaderYaw;
     delete root.dataset.worldDisciplineVisible;
     delete root.dataset.worldDisciplineLabels;
+    delete root.dataset.worldDisciplineFormationColumn;
+    delete root.dataset.worldDisciplineFormationRow;
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldVisibility;
     root.style.removeProperty('--narrative-bust-yaw');

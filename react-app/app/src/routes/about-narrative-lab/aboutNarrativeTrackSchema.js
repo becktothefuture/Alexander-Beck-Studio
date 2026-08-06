@@ -3,6 +3,7 @@ import {
   ABOUT_NARRATIVE_BLOCK_KINDS,
   ABOUT_NARRATIVE_CAMERA_EASINGS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_EMPHASIS_TONES,
   ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS,
@@ -1875,6 +1876,12 @@ function upgradeDisciplineMotionParameters(parameters) {
   ['backgroundFadeWU', 'reconnectOpacity', 'labelOffsetPx', 'labelScale'].forEach((key) => delete next[key]);
   if (!finite(next.settleDurationWU)) next.settleDurationWU = 0.3;
   if (!finite(next.beatDurationWU)) next.beatDurationWU = 0.7;
+  if (!finite(next.formationColumn)) {
+    next.formationColumn = ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn;
+  }
+  if (!finite(next.formationRow)) {
+    next.formationRow = ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow;
+  }
   next.items = (next.items || []).map((item) => {
     const migrated = cloneAboutNarrativeDocument(item);
     delete migrated.position;

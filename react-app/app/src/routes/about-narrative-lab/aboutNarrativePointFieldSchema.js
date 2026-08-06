@@ -1,6 +1,7 @@
 import {
   ABOUT_NARRATIVE_ADAPTER_DEFINITIONS,
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
+  ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS,
   ABOUT_NARRATIVE_EASINGS,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
@@ -1085,6 +1086,12 @@ function migrateV5Interaction(clip) {
       ...(Number.isFinite(Number(parameters.itemsPerBeat))
         ? { itemsPerBeat: Math.max(1, Math.round(Number(parameters.itemsPerBeat))) }
         : {}),
+      formationColumn: Number.isFinite(Number(parameters.formationColumn))
+        ? Math.round(Number(parameters.formationColumn))
+        : ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+      formationRow: Number.isFinite(Number(parameters.formationRow))
+        ? Math.round(Number(parameters.formationRow))
+        : ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
       backgroundOpacity: parameters.backgroundOpacity,
       pointScale: parameters.pointScale,
       restoreDurationWU,

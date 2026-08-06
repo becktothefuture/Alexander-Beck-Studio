@@ -22,6 +22,9 @@ import {
   getAboutNarrativeRuntimePreparationRequest,
   sampleAboutNarrativeRuntimePlanInto,
 } from './aboutNarrativeRuntimePlan.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS,
+} from './aboutNarrativeDefinitions.js';
 
 const POINT_FIELD_SCHEMA_VERSION = 6;
 const TIME_EPSILON = 0.000001;
@@ -195,6 +198,14 @@ function compileDisciplineReveal(interactions, fallback) {
     backgroundOpacity: Number(parameters.backgroundOpacity),
     reconnectOpacity: 1,
     pointScale: Number(parameters.pointScale),
+    formationColumn: Number(
+      parameters.formationColumn
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
+    ),
+    formationRow: Number(
+      parameters.formationRow
+        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
+    ),
     restoreDurationWU,
     items: parameters.items,
     sourceType: 'motion',
