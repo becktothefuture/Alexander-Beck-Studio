@@ -3,9 +3,12 @@ export const ROUTE_LOADER_BACKDROP_MODES = Object.freeze({
   PRESERVE: 'preserve',
 });
 
-const PERSISTENT_BACKPLANE_ROUTE_PAIRS = new Set([
-  'home:portfolio',
-  'portfolio:home',
+const SHARED_SHELL_ROUTE_IDS = new Set([
+  'home',
+  'portfolio',
+  'about',
+  'contact',
+  'playground',
 ]);
 
 export function normalizeRouteLoaderBackdropMode(mode) {
@@ -15,12 +18,18 @@ export function normalizeRouteLoaderBackdropMode(mode) {
 }
 
 export function resolveRouteLoaderBackdropMode(fromRouteId, toRouteId) {
-  const routePair = `${String(fromRouteId || '').trim()}:${String(toRouteId || '').trim()}`;
+  const fromRoute = String(fromRouteId || '').trim();
+  const toRoute = String(toRouteId || '').trim();
 
-  // The first rollout is intentionally constrained to Home <-> Work. Other
-  // routes retain their opaque fallback until their own frame audit proves
-  // that every route-owned layer is safely suppressed during loading.
-  return PERSISTENT_BACKPLANE_ROUTE_PAIRS.has(routePair)
+  // The shell owns the physical window, its base surface, and grain. Every
+  // primary tab swaps only route-owned material, so its loader is status/input
+  // chrome rather than a visual plate. Unknown or standalone routes retain the
+  // opaque fallback because they do not share that certified backplane.
+  return (
+    fromRoute !== toRoute
+    && SHARED_SHELL_ROUTE_IDS.has(fromRoute)
+    && SHARED_SHELL_ROUTE_IDS.has(toRoute)
+  )
     ? ROUTE_LOADER_BACKDROP_MODES.PRESERVE
     : ROUTE_LOADER_BACKDROP_MODES.OPAQUE;
 }

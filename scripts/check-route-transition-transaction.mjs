@@ -214,21 +214,30 @@ test('normal route transaction follows the only legal phase order', () => {
   assert.equal(transaction.settlementEndpoint, ROUTE_SETTLEMENT_ENDPOINTS.SETTLE_INCOMING);
 });
 
-test('persistent backplane handoff is limited to Home and Work', () => {
+test('persistent backplane handoff covers every primary shared-shell route', () => {
+  const sharedShellRouteIds = ['home', 'portfolio', 'about', 'contact', 'playground'];
+
+  sharedShellRouteIds.forEach((fromRouteId) => {
+    sharedShellRouteIds.forEach((toRouteId) => {
+      if (fromRouteId === toRouteId) return;
+      assert.equal(
+        resolveRouteLoaderBackdropMode(fromRouteId, toRouteId),
+        ROUTE_LOADER_BACKDROP_MODES.PRESERVE,
+        `${fromRouteId} -> ${toRouteId} should preserve the shared backplane`,
+      );
+    });
+  });
+
   assert.equal(
-    resolveRouteLoaderBackdropMode('home', 'portfolio'),
-    ROUTE_LOADER_BACKDROP_MODES.PRESERVE,
-  );
-  assert.equal(
-    resolveRouteLoaderBackdropMode('portfolio', 'home'),
-    ROUTE_LOADER_BACKDROP_MODES.PRESERVE,
-  );
-  assert.equal(
-    resolveRouteLoaderBackdropMode('home', 'about'),
+    resolveRouteLoaderBackdropMode('home', 'home'),
     ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
   );
   assert.equal(
-    resolveRouteLoaderBackdropMode('contact', 'portfolio'),
+    resolveRouteLoaderBackdropMode('home', 'styleguide'),
+    ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
+  );
+  assert.equal(
+    resolveRouteLoaderBackdropMode('styleguide', 'portfolio'),
     ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
   );
 });
