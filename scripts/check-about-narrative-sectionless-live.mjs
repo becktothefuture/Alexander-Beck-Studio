@@ -134,7 +134,7 @@ test('canonical About source authors one consolidated camera, visibility, and fo
 
   assert.ok(reveal);
   assert.ok(ripple);
-  assert.equal(cameraKeys.length, 10);
+  assert.equal(cameraKeys.length, 11);
   [
     'orb-establish',
     'complexity-exit',
@@ -145,6 +145,7 @@ test('canonical About source authors one consolidated camera, visibility, and fo
     'editorial-camera-hold',
     'grid-return-centered',
     'ripple-overhead-hold',
+    'finale-resolved-hold',
     'finale-hold',
   ].forEach((id) => assert.ok(cameraKeys.some((key) => key.id === id), `Missing authored camera key ${id}`));
   [
@@ -167,7 +168,7 @@ test('canonical About source authors one consolidated camera, visibility, and fo
     assert.equal(key.lookAtTarget.length, 3);
     assert.equal(Number.isFinite(key.lookAtRoll), true);
   });
-  assert.equal(visibilityKeys.length, 11);
+  assert.equal(visibilityKeys.length, 12);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, finalWorldKeyWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
@@ -291,7 +292,7 @@ test('bust stays a single protected World across responsive profiles', () => {
   assert.equal(authored.modifiers[1].parameters.formationMode, 'surface-rise');
   assert.ok(authored.modifiers[1].parameters.submergeDepth >= 3);
   assert.equal(authored.seed, grid.seed);
-  assert.equal(authored.shapeParameters.density, 0.3);
+  assert.equal(authored.shapeParameters.density, 0.26);
   assert.ok(authored.shapeParameters.density < grid.shapeParameters.density);
   assert.equal(authored.modifiers[1].parameters.surfaceCarry, 1);
   assert.equal(authored.modifiers[1].parameters.fragmentPresence, 0.5);
@@ -549,7 +550,7 @@ test('B forms a denser moving field before the saved grid flyover', () => {
     chunkSize: 7.55,
     scatter: 0.14,
     turbulence: 0.42,
-    density: 0.38,
+    density: 0.33,
   });
   assert.equal(complexity.modifiers[0].id, 'swarm-life-v1');
   assert.equal(complexity.modifiers[0].parameters.strength, 1.5);
@@ -621,6 +622,7 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   const targetedIds = [
     'grid-return-centered',
     'ripple-overhead-hold',
+    'finale-resolved-hold',
     'finale-hold',
   ];
   const gridFlyoverKeys = gridFlyoverIds.map((id) => keys.get(id));
@@ -710,7 +712,7 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
       assert.ok(key);
       assert.equal(key.aimEnabled, true);
       assert.equal(key.lookAtRoll, 0);
-      assert.equal(key.easing, 'linear');
+      assert.equal(key.easing, key.id === 'finale-resolved-hold' ? 'smoothstep' : 'linear');
       assert.deepEqual(key.lookAtTarget, expectedTarget);
     });
 
@@ -723,23 +725,25 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
       expectedTarget,
     );
     assert.ok(totalOrbitAngle > 0, `${layoutProfile} orbit must travel sideways.`);
+    let previousKeyAngle = -1;
     orbitKeyList.forEach((key) => {
-      const timeProgress = (key.atWU - orbitStart.atWU) / (orbitEnd.atWU - orbitStart.atWU);
+      const angle = getCameraOrbitAngle(key.position, orbitStart.position, expectedTarget);
       assertCameraValue(
         getCameraRadius(key.position, expectedTarget),
         orbitRadius,
         `${layoutProfile} orbit radius at ${key.id}`,
       );
-      assertCameraValue(
-        getCameraOrbitAngle(key.position, orbitStart.position, expectedTarget),
-        totalOrbitAngle * timeProgress,
-        `${layoutProfile} orbit angle at ${key.id}`,
+      assert.ok(
+        angle + 0.000001 >= previousKeyAngle,
+        `${layoutProfile} orbit angle must not reverse at ${key.id}`,
       );
+      previousKeyAngle = angle;
     });
+    assert.deepEqual(orbitKeyList.at(-2).position, orbitEnd.position);
 
+    let previousSampleAngle = -1;
     for (let storyWU = orbitStart.atWU; storyWU <= orbitEnd.atWU; storyWU += 0.05) {
       const frame = sampleAboutNarrativeRuntimePlan(orbitPlan, storyWU);
-      const timeProgress = (storyWU - orbitStart.atWU) / (orbitEnd.atWU - orbitStart.atWU);
       assert.equal(frame.camera.targeted, true);
       assert.equal(frame.camera.aimWeight, 1);
       frame.camera.lookAtTarget.forEach((value, index) => {
@@ -750,11 +754,14 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
         orbitRadius,
         `${layoutProfile} sampled orbit radius`,
       );
-      assertCameraValue(
-        getCameraOrbitAngle(frame.camera.position, orbitStart.position, expectedTarget),
-        totalOrbitAngle * timeProgress,
-        `${layoutProfile} sampled orbit angle`,
+      const sampleAngle = getCameraOrbitAngle(
+        frame.camera.position,
+        orbitStart.position,
+        expectedTarget,
       );
+      assert.ok(sampleAngle + 0.000001 >= previousSampleAngle, `${layoutProfile} sampled orbit must not reverse`);
+      assert.ok(sampleAngle <= totalOrbitAngle + 0.000001, `${layoutProfile} sampled orbit must not overshoot`);
+      previousSampleAngle = sampleAngle;
     }
     return { orbitKeys, orbitPlan };
   };
@@ -778,6 +785,7 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
 
   const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
   const gridRise = visibility.get('visibility-grid-rise');
+  const gridHandoff = visibility.get('visibility-grid-handoff');
   const gridVisible = visibility.get('visibility-grid-visible');
   const editorialOff = visibility.get('visibility-editorial-off');
   const returnStart = visibility.get('visibility-return-start');
@@ -786,11 +794,13 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   assert.equal(returnStart.visibility, 0);
   assert.equal(returned.visibility, 1);
   assert.ok(gridVisible.atWU <= keys.get('grid-birds-eye-2-2-2').atWU);
-  assert.ok(gridVisible.atWU - gridRise.atWU >= 1.5);
+  assert.equal(Number((gridVisible.atWU - gridRise.atWU).toFixed(4)), 0.26);
+  assert.ok(gridHandoff.atWU > gridRise.atWU);
+  assert.ok(gridHandoff.atWU < gridVisible.atWU);
   assert.ok(returned.atWU - returnStart.atWU >= 0.8);
   const flyoverVisibility = sampleAboutNarrativeRuntimePlan(
     plan,
-    (gridRise.atWU + gridVisible.atWU) * 0.5,
+    (gridHandoff.atWU + gridVisible.atWU) * 0.5,
   ).simulation.visibility;
   assert.ok(flyoverVisibility > 0 && flyoverVisibility < 1);
   assert.equal(sampleAboutNarrativeRuntimePlan(
@@ -1050,7 +1060,7 @@ test('every travelling title shares one timing while the finale holds through th
   assert.equal(Number((opener.focusWU - opener.startWU).toFixed(4)), 0.35);
   assert.equal(Number((opener.endWU - opener.startWU).toFixed(4)), 0.7);
   const finale = fieldsById.get('text-epilogue-invitation');
-  assert.equal(Number((finale.focusWU - finale.startWU).toFixed(4)), 0.48);
+  assert.equal(Number((finale.focusWU - finale.startWU).toFixed(4)), 0.45);
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
   assert.equal(finale.preset, 'finale-v1');
   assert.match(liveSources.styles, /opacity: var\(--fragment-opacity, 0\);/);
@@ -1163,21 +1173,13 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   });
   assert.ok(fields.get('text-disciplines-title').startWU >= reveal.endWU);
   assert.ok(fields.get('text-disciplines-title').startWU - reveal.endWU <= 0.25);
-  assert.ok(finale.startWU < emergent.transitionIn.endWU);
+  assert.ok(finale.startWU > emergent.transitionIn.endWU);
+  assert.equal(Number((finale.startWU - emergent.transitionIn.endWU).toFixed(4)), 0.7);
   assert.ok(
     visibilityKeys.get('visibility-grid-visible').atWU
       <= reveal.startWU + reveal.parameters.settleDurationWU,
   );
-  assert.equal(
-    Number((
-      (finale.startWU - pointKeys.get('key-world-emergent-departure').atWU)
-      / (
-        pointKeys.get('key-world-emergent-arrival').atWU
-        - pointKeys.get('key-world-emergent-departure').atWU
-      )
-    ).toFixed(6)),
-    0.732076,
-  );
+  assert.equal(pointKeys.get('key-world-emergent-arrival').atWU, 20.55);
   assert.equal(canonical.profiles.desktop.storyDurationWU, 22.795);
 });
 
@@ -1201,6 +1203,13 @@ test('Text, transitions, and Motion cover the Story without large inactive gaps'
         id: segment.id,
       }]
     )),
+    {
+      startWU: canonicalV6.tracks.interactions.clips
+        .find((clip) => clip.id === 'interaction-emergent-ripple').endWU,
+      endWU: canonicalV6.tracks.text.fields
+        .find((field) => field.id === 'text-epilogue-invitation').startWU,
+      id: 'resolved-bust-hold',
+    },
   ].sort((left, right) => left.startWU - right.startWU || left.endWU - right.endWU);
 
   let coveredUntilWU = 0;
@@ -1295,7 +1304,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.doesNotMatch(liveSources.styles, /--about-emphasis-(?:blue|green|orange)/);
   assert.match(liveSources.styles, /--about-editorial-ink:\s*var\(--text-primary\);/);
   assert.doesNotMatch(liveSources.styles, /about-narrative-editorial-emphasis|about-editorial-strong-ink/);
-  assert.equal(canonicalSource.includes('"emphasis"'), false);
+  assert.equal(canonicalSource.includes('"emphasis"'), true);
   assert.equal(canonical.globals.editorialRevealThreshold, 0.8);
   assert.equal(canonical.globals.editorialMotion.fadeDurationWU, 0.2);
   assert.equal(canonical.globals.editorialMotion.maxBlurPx, 0);
@@ -1334,14 +1343,15 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
-  assert.match(liveSources.styles, /--about-editorial-resting-opacity: 0\.2/);
-  assert.match(liveSources.styles, /\[data-editorial-reveal\] \{[\s\S]*?opacity: calc\(/);
+  assert.match(liveSources.styles, /--about-editorial-resting-opacity: 0\.04/);
+  assert.match(liveSources.styles, /\[data-editorial-reveal\] \{[\s\S]*?opacity: var\(--editorial-focus-opacity/);
   assert.match(liveSources.styles, /--about-spatial-title-type-size: clamp\([\s\S]*?var\(--about-editorial-type-size\) \* 1\.55/);
   assert.match(liveSources.styles, /font-size: var\(--about-spatial-title-type-size\)/);
   assert.match(liveSources.experience, /function EditorialLineText/);
   assert.match(liveSources.experience, /className="about-narrative-media-deck"[\s\S]*?data-editorial-reveal="module"/);
-  assert.match(liveSources.experience, /data-editorial-reveal': 'word'/);
-  assert.match(liveSources.experience, /data-editorial-sequence-ratio/);
+  assert.match(liveSources.experience, /data-editorial-reveal="line"/);
+  assert.doesNotMatch(liveSources.experience, /data-editorial-reveal': 'word'/);
+  assert.doesNotMatch(liveSources.experience, /data-editorial-sequence-ratio/);
   assert.match(liveSources.experience, /new ResizeObserver\(scheduleMeasure\)/);
   assert.match(liveSources.experience, /data-editorial-line-count/);
   assert.match(liveSources.experience, /about:editorial-lines-change/);
@@ -1393,7 +1403,7 @@ test('the lower-half final title and inline email link share the closing frame w
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
-  assert.equal(finale.startWU, 20.895);
+  assert.equal(finale.startWU, 21.25);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
   assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);

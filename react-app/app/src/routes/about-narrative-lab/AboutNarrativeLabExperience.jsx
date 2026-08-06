@@ -93,15 +93,11 @@ function getEditorialTokens(text = '', emphasis = []) {
 
 function renderEditorialToken(token, tokenIndex, {
   measure = false,
-  sequenceRatio = 0,
 } = {}) {
   if (token.whitespace) return token.text;
   const measureProps = measure
     ? { 'data-editorial-measure-word': true, 'data-token-index': tokenIndex }
-    : {
-      'data-editorial-reveal': 'word',
-      'data-editorial-sequence-ratio': sequenceRatio.toFixed(4),
-    };
+    : token.tone ? { 'data-editorial-emphasis': token.tone } : {};
   return <span key={tokenIndex} {...measureProps}>{token.text}</span>;
 }
 
@@ -181,20 +177,17 @@ function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
       <span className="about-narrative-editorial-lines__output">
         {lineRanges.map((range, lineIndex) => {
           const lineTokens = tokens.slice(range.start, range.end + 1);
-          const wordCount = lineTokens.filter((token) => !token.whitespace).length;
-          let wordIndex = 0;
           return (
             <span
+              data-editorial-reveal="line"
               data-editorial-visual-line
               data-editorial-line-index={lineIndex}
               data-world-group={worldGroup || undefined}
               key={`${range.start}-${range.end}`}
             >
-              {lineTokens.map((token, rangeIndex) => {
-                const sequenceRatio = wordCount > 1 ? wordIndex / (wordCount - 1) : 0;
-                if (!token.whitespace) wordIndex += 1;
-                return renderEditorialToken(token, range.start + rangeIndex, { sequenceRatio });
-              })}
+              {lineTokens.map((token, rangeIndex) => (
+                renderEditorialToken(token, range.start + rangeIndex)
+              ))}
               {lineIndex < lineRanges.length - 1 ? ' ' : null}
             </span>
           );
@@ -211,7 +204,7 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
-function ClientLogoItem({ item, reveal = false, sequenceRatio = 0 }) {
+function ClientLogoItem({ item, onSettled, reveal = false }) {
   const record = typeof item === 'string'
     ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
     : item;
@@ -222,7 +215,7 @@ function ClientLogoItem({ item, reveal = false, sequenceRatio = 0 }) {
     <li
       data-client-logo={record.id}
       data-editorial-reveal={reveal ? 'logo' : undefined}
-      data-editorial-sequence-ratio={reveal ? sequenceRatio.toFixed(4) : undefined}
+      data-editorial-atomic-row={reveal ? 'true' : undefined}
       style={{
         '--client-logo-scale': Number.isFinite(scale) ? scale : 1,
         '--client-logo-offset-x': `${Number.isFinite(offsetX) ? offsetX : 0}%`,
@@ -234,11 +227,13 @@ function ClientLogoItem({ item, reveal = false, sequenceRatio = 0 }) {
           <img
             src={record.src}
             alt={record.alt || record.label}
-            loading="lazy"
+            loading="eager"
             decoding="async"
+            onLoad={() => onSettled?.(record.id)}
             onError={(event) => {
               event.currentTarget.hidden = true;
               if (event.currentTarget.nextElementSibling) event.currentTarget.nextElementSibling.hidden = false;
+              onSettled?.(record.id);
             }}
           />
           <span hidden>{record.label}</span>
@@ -249,20 +244,45 @@ function ClientLogoItem({ item, reveal = false, sequenceRatio = 0 }) {
 }
 
 function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
+  const assetIds = useMemo(() => items.flatMap((item) => {
+    if (typeof item === 'string' || !item?.src) return [];
+    return [item.id];
+  }), [items]);
+  const assetSignature = assetIds.join('|');
+  const [settledAssets, setSettledAssets] = useState(() => ({
+    ids: new Set(),
+    signature: assetSignature,
+  }));
+  const settledAssetIds = settledAssets.signature === assetSignature
+    ? settledAssets.ids
+    : new Set();
+  const fieldReady = assetIds.every((id) => settledAssetIds.has(id));
+  const markSettled = (id) => {
+    setSettledAssets((current) => {
+      const currentIds = current.signature === assetSignature ? current.ids : new Set();
+      if (currentIds.has(id)) return current;
+      const next = new Set(currentIds);
+      next.add(id);
+      return { ids: next, signature: assetSignature };
+    });
+  };
   return (
-    <figure className="about-narrative-client-field">
+    <figure
+      className="about-narrative-client-field"
+      data-client-field-ready={fieldReady ? 'true' : 'false'}
+    >
       {label ? (
         <figcaption>
           <EditorialLineText text={label} />
         </figcaption>
       ) : null}
       <ul className="about-narrative-client-logos" aria-label="Selected clients">
-        {items.map((item, itemIndex) => (
+        {items.map((item) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
+            onSettled={markSettled}
             reveal
-            sequenceRatio={items.length > 1 ? itemIndex / (items.length - 1) : 0}
           />
         ))}
       </ul>
@@ -339,6 +359,16 @@ function EditorialList({
   labelId = undefined,
   containerProps = {},
 }) {
+  if (!label && items.length === 1) {
+    return (
+      <p
+        {...containerProps}
+        className="about-narrative-editorial-list about-narrative-editorial-pull-sentence"
+      >
+        <EditorialLineText text={items[0]} emphasis={emphasis} />
+      </p>
+    );
+  }
   return (
     <section
       {...containerProps}
@@ -433,12 +463,11 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   if (block.kind === 'clients') {
     return (
       <ul {...commonProps} className="about-narrative-client-logos" aria-label="Selected clients">
-        {(block.items || []).map((item, itemIndex, items) => (
+        {(block.items || []).map((item) => (
           <ClientLogoItem
             key={typeof item === 'string' ? item : item.id}
             item={item}
             reveal
-            sequenceRatio={items.length > 1 ? itemIndex / (items.length - 1) : 0}
           />
         ))}
       </ul>

@@ -111,6 +111,11 @@ const TRANSFORM_KEYS = new Set([
   'mobileXScale',
   'mobileYOffset',
   'mobileZOffset',
+  'mobileNarrowWidth',
+  'mobileWideWidth',
+  'mobileNarrowScale',
+  'mobileNarrowYOffset',
+  'mobileNarrowDensity',
   'mobileLandscapeScale',
   'mobileLandscapeXScale',
   'mobileLandscapeXOffset',
@@ -549,6 +554,11 @@ function validateTransform(transform, diagnostics, path, partial = false) {
     'mobileXScale',
     'mobileYOffset',
     'mobileZOffset',
+    'mobileNarrowWidth',
+    'mobileWideWidth',
+    'mobileNarrowScale',
+    'mobileNarrowYOffset',
+    'mobileNarrowDensity',
     'mobileLandscapeScale',
     'mobileLandscapeXScale',
     'mobileLandscapeXOffset',
@@ -558,6 +568,9 @@ function validateTransform(transform, diagnostics, path, partial = false) {
     if (transform[key] != null && !finite(transform[key])) diagnostic(diagnostics, 'world-transform-number', `${path}.${key}`, 'Responsive transform values must be finite.');
     if ((key === 'mobileScale'
       || key === 'mobileXScale'
+      || key === 'mobileNarrowWidth'
+      || key === 'mobileWideWidth'
+      || key === 'mobileNarrowScale'
       || key === 'mobileLandscapeScale'
       || key === 'mobileLandscapeXScale')
       && transform[key] != null
@@ -566,6 +579,17 @@ function validateTransform(transform, diagnostics, path, partial = false) {
       diagnostic(diagnostics, 'world-scale', `${path}.${key}`, 'Responsive World scales must be positive.');
     }
   });
+  if (transform.mobileNarrowDensity != null
+    && (!finite(transform.mobileNarrowDensity)
+      || Number(transform.mobileNarrowDensity) < 0
+      || Number(transform.mobileNarrowDensity) > 1)) {
+    diagnostic(diagnostics, 'world-density', `${path}.mobileNarrowDensity`, 'Narrow mobile density must stay between 0 and 1.');
+  }
+  if (finite(transform.mobileNarrowWidth)
+    && finite(transform.mobileWideWidth)
+    && Number(transform.mobileNarrowWidth) >= Number(transform.mobileWideWidth)) {
+    diagnostic(diagnostics, 'world-responsive-width', path, 'Narrow mobile width must be less than wide mobile width.');
+  }
 }
 
 function validateTransition(transition, diagnostics, path, maximumWU, partial = false) {

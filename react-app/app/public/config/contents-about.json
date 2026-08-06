@@ -19,7 +19,7 @@
     },
     "pointMaterial": {
       "opacity": 1,
-      "pointSize": 8.5
+      "pointSize": 9.1
     },
     "swarmTurbulence": {
       "amplitude": 0.05,
@@ -157,6 +157,19 @@
             ],
             "fov": 33
           },
+          "finale-resolved-hold": {
+            "position": [
+              3.943556589690735,
+              0.84025,
+              -16.408961578415663
+            ],
+            "lookAtTarget": [
+              -0.23,
+              -0.95,
+              -7.035
+            ],
+            "fov": 33
+          },
           "grid-birds-eye": {
             "fov": 60
           },
@@ -194,7 +207,17 @@
             "fov": 47.18264014466546
           }
         },
-        "visibility": {},
+        "visibility": {
+          "visibility-grid-handoff": {
+            "atWU": 7.22
+          },
+          "visibility-grid-rise": {
+            "atWU": 7.08
+          },
+          "visibility-grid-visible": {
+            "atWU": 7.34
+          }
+        },
         "pointField": {
           "stateDefinitions": {
             "world-emergent": {
@@ -416,7 +439,7 @@
         },
         {
           "id": "ripple-overhead-hold",
-          "atWU": 19.385,
+          "atWU": 18.95,
           "position": [
             1.4238150509635352,
             0.1699556849818673,
@@ -436,6 +459,30 @@
           "lookAtRoll": 0,
           "fov": 54.46654611211573,
           "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "finale-resolved-hold",
+          "atWU": 20.55,
+          "position": [
+            3.626057173020758,
+            0.13105675984809606,
+            -15.179257754883785
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "aimEnabled": true,
+          "lookAtTarget": [
+            0,
+            -1.8,
+            -7.035
+          ],
+          "lookAtRoll": 0,
+          "fov": 52,
+          "easing": "smoothstep",
           "locked": false
         },
         {
@@ -475,28 +522,35 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 4.079,
+          "atWU": 5.4,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 4.999,
+          "atWU": 5.52,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 5.35,
+          "atWU": 6.92,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
+          "id": "visibility-grid-handoff",
+          "atWU": 7.06,
+          "visibility": 0,
+          "easing": "linear",
+          "locked": false
+        },
+        {
           "id": "visibility-grid-visible",
-          "atWU": 6.89,
+          "atWU": 7.18,
           "visibility": 1,
           "easing": "linear",
           "locked": false
@@ -577,7 +631,7 @@
             "chunkSize": 7.55,
             "scatter": 0.14,
             "turbulence": 0.42,
-            "density": 0.38
+            "density": 0.33
           },
           "modifiers": [
             {
@@ -619,7 +673,7 @@
             "mobileLandscapeZOffset": 0
           },
           "shapeParameters": {
-            "density": 0.3
+            "density": 0.26
           },
           "modifiers": [
             {
@@ -697,7 +751,7 @@
             "depth": 56,
             "height": -1.72,
             "jitter": 0,
-            "density": 0.36
+            "density": 0.32
           },
           "modifiers": [
             {
@@ -732,11 +786,16 @@
             ],
             "scale": 0.52,
             "pointSizeScale": 1.15,
-            "mobileScale": 0.44
+            "mobileScale": 0.44,
+            "mobileNarrowWidth": 390,
+            "mobileWideWidth": 768,
+            "mobileNarrowScale": 0.36,
+            "mobileNarrowYOffset": 0.68,
+            "mobileNarrowDensity": 0.13
           },
           "shapeParameters": {
             "radius": 2.5,
-            "density": 0.198
+            "density": 0.17
           },
           "modifiers": [
             {
@@ -778,12 +837,12 @@
         },
         {
           "id": "key-world-emergent-departure",
-          "atWU": 19.385,
+          "atWU": 18.95,
           "stateId": "world-grid"
         },
         {
           "id": "key-world-emergent-arrival",
-          "atWU": 21.447626,
+          "atWU": 20.55,
           "stateId": "world-emergent"
         },
         {
@@ -913,7 +972,7 @@
           "toKeyId": "key-world-emergent-arrival",
           "transition": {
             "type": "morph",
-            "easing": "linear",
+            "easing": "smoothstep",
             "correspondence": "radial-emergence-v1",
             "stagger": {
               "mode": "uniform",
@@ -1042,7 +1101,13 @@
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "Over time my work became increasingly digital. In agencies I naturally drifted towards interface design, motion, design systems and close collaboration with developers. Moving to London to join Yoti changed the scale of the questions I was working on. Identity technology couldn’t just function correctly. People had to trust it. That was probably the moment I stopped seeing product, brand and communication as separate disciplines. They’re all different ways of solving the same problem."
+                "text": "Over time my work became increasingly digital. In agencies I naturally drifted towards interface design, motion, design systems and close collaboration with developers. Moving to London to join Yoti changed the scale of the questions I was working on. Identity technology couldn’t just function correctly. People had to trust it. That was probably the moment I stopped seeing product, brand and communication as separate disciplines. They’re all different ways of solving the same problem.",
+                "emphasis": [
+                  {
+                    "text": "People had to trust it",
+                    "tone": "blue"
+                  }
+                ]
               },
               {
                 "id": "selected-clients",
@@ -1198,7 +1263,13 @@
               {
                 "id": "making-early",
                 "kind": "prose",
-                "text": "I also like making things early. Not because they are finished, but because they reveal where everyone’s assumptions begin to fall apart. A rough prototype can create better conversations than a polished presentation."
+                "text": "I also like making things early. Not because they are finished, but because they reveal where everyone’s assumptions begin to fall apart. A rough prototype can create better conversations than a polished presentation.",
+                "emphasis": [
+                  {
+                    "text": "A rough prototype can create better conversations",
+                    "tone": "blue"
+                  }
+                ]
               },
               {
                 "id": "language-context",
@@ -1208,7 +1279,13 @@
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "AI has become another tool I use almost every day. It helps me think faster, prototype earlier and explore ideas I wouldn’t have had time to pursue before. It’s an incredible amplifier. It’s also incredibly good at producing work that looks convincing before anyone has asked whether it’s solving the right problem. That feels like an important distinction. I think AI becomes valuable when it strengthens human judgement, not when it replaces it."
+                "text": "AI has become another tool I use almost every day. It helps me think faster, prototype earlier and explore ideas I wouldn’t have had time to pursue before. It’s an incredible amplifier. It’s also incredibly good at producing work that looks convincing before anyone has asked whether it’s solving the right problem. That feels like an important distinction. I think AI becomes valuable when it strengthens human judgement, not when it replaces it.",
+                "emphasis": [
+                  {
+                    "text": "strengthens human judgement",
+                    "tone": "blue"
+                  }
+                ]
               },
               {
                 "id": "project-impressions",
@@ -1488,8 +1565,8 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 20.895,
-          "focusWU": 21.375,
+          "startWU": 21.25,
+          "focusWU": 21.7,
           "endWU": 22.795,
           "publishable": true,
           "presentation": {
@@ -1560,7 +1637,7 @@
           "type": "grid-ripple",
           "startWU": 17.265,
           "activationWU": 17.265,
-          "endWU": 19.385,
+          "endWU": 18.95,
           "parameters": {
             "amplitude": 1.05,
             "speed": 0.38,
@@ -1573,9 +1650,9 @@
         {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 19.385,
-          "activationWU": 19.785,
-          "endWU": 21.925,
+          "startWU": 18.95,
+          "activationWU": 19.35,
+          "endWU": 20.85,
           "parameters": {
             "amplitude": 0.52,
             "speed": 0.16,

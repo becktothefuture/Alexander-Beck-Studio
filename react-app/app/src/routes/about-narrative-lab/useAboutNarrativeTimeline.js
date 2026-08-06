@@ -16,6 +16,9 @@ import {
   sampleAboutNarrativeTitleFieldInto,
 } from './aboutNarrativeRuntimePlan.js';
 import {
+  ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD,
+  getAboutNarrativeEditorialFocusOpacity,
+  getAboutNarrativeEditorialPhraseOpacity,
   getAboutNarrativeReadingOrderRevealMetrics,
   getAboutNarrativeSharedRevealProgress,
 } from './aboutNarrativeReveal.js';
@@ -30,6 +33,7 @@ const EMPTY_MEASUREMENTS = Object.freeze({
   viewportHeight: 0,
   editorialFields: [],
   editorialLines: [],
+  editorialStacks: [],
   titleFields: [],
   contextFields: [],
 });
@@ -235,6 +239,7 @@ export function useAboutNarrativeTimeline({
         const revealMetrics = getAboutNarrativeReadingOrderRevealMetrics(editorialNodes.map((editorialNode) => {
           const rect = editorialNode.getBoundingClientRect();
           return {
+            atomic: editorialNode.dataset.editorialAtomicRow === 'true',
             top: rect.top - fieldRect.top,
             height: rect.height,
           };
@@ -281,8 +286,30 @@ export function useAboutNarrativeTimeline({
           revealOffsetPx: Number(revealMetrics?.revealOffsetPx) || 0,
           revealSoftnessPx: Number(revealMetrics?.revealSoftnessPx) || 0,
           progress: 0,
+          focusModule: null,
         }];
       });
+      const editorialStacks = Array.from(
+        content.querySelectorAll('.about-narrative-editorial-stack'),
+      ).map((stackNode) => {
+        const stack = { activeModuleIndex: -1, modules: [] };
+        const modules = Array.from(stackNode.children).flatMap((moduleNode, moduleIndex) => {
+          const lines = editorialLines.filter((record) => (
+            record.node === moduleNode || moduleNode.contains(record.node)
+          ));
+          if (!lines.length) return [];
+          const module = {
+            index: moduleIndex,
+            lines,
+            maximumProgress: 0,
+            stack,
+          };
+          lines.forEach((record) => { record.focusModule = module; });
+          return [module];
+        });
+        stack.modules = modules;
+        return stack;
+      }).filter((stack) => stack.modules.length);
       const titleFields = [];
       const contextFields = [];
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
@@ -297,13 +324,16 @@ export function useAboutNarrativeTimeline({
           titleFields.push({ node, field, sample });
         }
         if (field.presentation?.layout === 'text-finale-cta'
-          || field.presentation?.layout === 'text-bust-cta') contextFields.push({ node, field });
+          || field.presentation?.layout === 'text-bust-cta') {
+          contextFields.push({ node, field, visible: null });
+        }
       });
       measurementsRef.current = {
         ...measurementsRef.current,
         dirty: false,
         editorialFields,
         editorialLines,
+        editorialStacks,
         titleFields,
         contextFields,
       };
@@ -417,8 +447,41 @@ export function useAboutNarrativeTimeline({
           reducedMotion,
         );
       }
-      for (const { node, progress } of editorialLines) {
+      for (const stack of measurementsRef.current.editorialStacks) {
+        let activeModuleIndex = -1;
+        for (const module of stack.modules) {
+          let maximumProgress = 0;
+          for (const record of module.lines) {
+            maximumProgress = Math.max(maximumProgress, record.progress);
+          }
+          module.maximumProgress = maximumProgress;
+          if (maximumProgress >= ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD) {
+            activeModuleIndex = module.index;
+          }
+        }
+        stack.activeModuleIndex = activeModuleIndex;
+      }
+      for (const record of editorialLines) {
+        const { node, progress } = record;
+        const focusModule = record.focusModule;
+        const focusStack = focusModule?.stack || null;
+        const moduleIndex = focusModule?.index ?? 0;
+        const activeModuleIndex = focusStack?.activeModuleIndex ?? 0;
+        const focusOpacity = getAboutNarrativeEditorialFocusOpacity(
+          moduleIndex,
+          progress,
+          activeModuleIndex,
+          reducedMotion,
+        );
+        const phraseOpacity = getAboutNarrativeEditorialPhraseOpacity(
+          moduleIndex,
+          progress,
+          activeModuleIndex,
+          reducedMotion,
+        );
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
+        node.style.setProperty('--editorial-focus-opacity', focusOpacity.toFixed(4));
+        node.style.setProperty('--editorial-emphasis-opacity', phraseOpacity.toFixed(4));
         const group = Number(
           node.dataset.worldGroup
           || node.closest('[data-world-group]')?.dataset.worldGroup,
@@ -431,7 +494,13 @@ export function useAboutNarrativeTimeline({
       frame.editorialSignals.disciplineFocus = disciplineFocus;
       frame.editorialSignals.gridInfluence = gridInfluence;
 
-      for (const { node, field } of measurementsRef.current.contextFields) {
+      for (const contextField of measurementsRef.current.contextFields) {
+        const { node, field } = contextField;
+        const contextVisible = frame.storyWU >= field.startWU;
+        if (contextField.visible !== contextVisible) {
+          contextField.visible = contextVisible;
+          node.dataset.contextVisible = contextVisible ? 'true' : 'false';
+        }
         const titleProgress = frame.storyWU >= field.startWU
           ? clamp01(
             (frame.storyWU - field.startWU)

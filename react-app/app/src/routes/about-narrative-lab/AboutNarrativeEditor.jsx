@@ -885,7 +885,7 @@ function WorldInspector({ object, selection, store, locked, finaleShapeLocked, c
       <InspectorFolder
         key={`${object.id}-world-placement`}
         group={WORLD_CONTROL_GROUP_BY_ID['world-placement']}
-        count={17}
+        count={object.id === 'world-promise' ? 22 : 17}
       >
         <div className="about-track-editor-folder__grid">
           {[0, 1, 2].map((axis) => (
@@ -907,6 +907,15 @@ function WorldInspector({ object, selection, store, locked, finaleShapeLocked, c
           <NumberField label="Mobile X scale" value={object.transform.mobileXScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World mobile X scale', (target) => { target.transform.mobileXScale = value; })} />
           <NumberField label="Mobile Y offset" value={object.transform.mobileYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileYOffset = value; })} />
           <NumberField label="Mobile Z offset" value={object.transform.mobileZOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World mobile offset', (target) => { target.transform.mobileZOffset = value; })} />
+          {object.id === 'world-promise' ? (
+            <>
+              <NumberField label="Narrow mobile width" value={object.transform.mobileNarrowWidth ?? 390} disabled={locked} step={1} min={1} onCommit={(value) => commit('Edit opening mobile envelope', (target) => { target.transform.mobileNarrowWidth = value; })} />
+              <NumberField label="Wide mobile width" value={object.transform.mobileWideWidth ?? 768} disabled={locked} step={1} min={1} onCommit={(value) => commit('Edit opening mobile envelope', (target) => { target.transform.mobileWideWidth = value; })} />
+              <NumberField label="Narrow mobile scale" value={object.transform.mobileNarrowScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit opening mobile envelope', (target) => { target.transform.mobileNarrowScale = value; })} />
+              <NumberField label="Narrow mobile Y offset" value={object.transform.mobileNarrowYOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit opening mobile envelope', (target) => { target.transform.mobileNarrowYOffset = value; })} />
+              <NumberField label="Narrow mobile density" value={object.transform.mobileNarrowDensity ?? object.shapeParameters?.density ?? 1} disabled={locked} step={0.01} min={0} max={1} onCommit={(value) => commit('Edit opening mobile envelope', (target) => { target.transform.mobileNarrowDensity = value; })} />
+            </>
+          ) : null}
           <NumberField label="Landscape scale" value={object.transform.mobileLandscapeScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World landscape scale', (target) => { target.transform.mobileLandscapeScale = value; })} />
           <NumberField label="Landscape X scale" value={object.transform.mobileLandscapeXScale ?? object.transform.mobileLandscapeScale ?? object.transform.mobileXScale ?? object.transform.mobileScale ?? object.transform.scale} disabled={locked} step={0.01} min={0.01} onCommit={(value) => commit('Edit World landscape X scale', (target) => { target.transform.mobileLandscapeXScale = value; })} />
           <NumberField label="Landscape X offset" value={object.transform.mobileLandscapeXOffset ?? 0} disabled={locked} step={0.01} onCommit={(value) => commit('Edit World landscape offset', (target) => { target.transform.mobileLandscapeXOffset = value; })} />

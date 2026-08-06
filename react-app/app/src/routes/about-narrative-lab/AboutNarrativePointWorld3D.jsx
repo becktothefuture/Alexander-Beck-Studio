@@ -33,6 +33,9 @@ import {
   resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
 import {
+  sampleAboutNarrativeResponsiveWorldMaterialInto,
+} from './aboutNarrativeResponsiveMaterial.js';
+import {
   writeAboutNarrativePointFieldSeedPhases,
   writeAboutNarrativePointFieldSpatialPhases,
 } from './aboutNarrativePointFieldRendererBridge.js';
@@ -158,6 +161,8 @@ const VERTEX_SHADER = `
   uniform float pointSize;
   uniform float fromPointSizeScale;
   uniform float toPointSizeScale;
+  uniform float fromResponsivePresence;
+  uniform float toResponsivePresence;
   uniform float pixelRatio;
   uniform float simulationVisibility;
   uniform float sceneEntranceScale;
@@ -653,7 +658,17 @@ const VERTEX_SHADER = `
       worldPoint.y = mix(worldPoint.y, motionFlattenOffset, planeWeight);
     }
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
-    float enteringPoint = (1.0 - step(0.5, fromPresence)) * step(0.5, toPresence);
+    float responsiveSeed = fract((pointSeed * 43.17) + 0.23);
+    float resolvedFromPresence = fromPresence * step(
+      responsiveSeed,
+      clamp(fromResponsivePresence, 0.0, 1.0)
+    );
+    float resolvedToPresence = toPresence * step(
+      responsiveSeed,
+      clamp(toResponsivePresence, 0.0, 1.0)
+    );
+    float enteringPoint = (1.0 - step(0.5, resolvedFromPresence))
+      * step(0.5, resolvedToPresence);
     float entryOrder = fract((pointSeed * 53.37) + 0.11);
     float entryStart = entryOrder * 0.58;
     float entryProgress = smoothstep(entryStart, entryStart + 0.32, globalMorph);
@@ -665,10 +680,10 @@ const VERTEX_SHADER = `
       * (1.0 - entryProgress)
       * 0.06
       * gl_Position.w;
-    float presence = mix(fromPresence, toPresence, morph);
+    float presence = mix(resolvedFromPresence, resolvedToPresence, morph);
     presence = mix(
       presence,
-      toPresence * step(0.001, entryProgress),
+      resolvedToPresence * step(0.001, entryProgress),
       enteringPoint
     );
     // The authored anchor remains an ordinary grey point, then grows and
@@ -808,28 +823,43 @@ function shapeCacheKey(world, quality) {
   ]);
 }
 
-function writeWorldTransform(target, world, globals, compact, shortLandscape, scratch) {
+function writeWorldTransform(
+  target,
+  world,
+  globals,
+  compact,
+  shortLandscape,
+  inlineSize,
+  scratch,
+) {
   if (!world) return target.identity();
   const transform = world.transform || {};
   const position = transform.position || [0, 0, 0];
   const rotation = transform.rotation || [0, 0, 0];
   const baseScale = Number(transform.scale ?? 1);
+  const responsiveMaterial = sampleAboutNarrativeResponsiveWorldMaterialInto(
+    world,
+    inlineSize,
+    compact,
+    shortLandscape,
+    scratch.responsiveMaterial,
+  );
   const responsiveScale = shortLandscape && Number.isFinite(transform.mobileLandscapeScale)
     ? Number(transform.mobileLandscapeScale)
-    : transform.mobileScale;
+    : responsiveMaterial.scale;
   const scale = compact && Number.isFinite(responsiveScale)
     ? Number(responsiveScale)
     : baseScale;
   const responsiveXScale = shortLandscape && Number.isFinite(transform.mobileLandscapeXScale)
     ? Number(transform.mobileLandscapeXScale)
-    : transform.mobileXScale;
+    : responsiveMaterial.xScale;
   const xScale = compact && Number.isFinite(responsiveXScale)
     ? Number(responsiveXScale)
     : scale;
   const anchorRailZ = resolveAboutNarrativeWorldAnchorRailZ(world, globals);
   scratch.position.set(
     position[0] + (shortLandscape ? Number(transform.mobileLandscapeXOffset || 0) : 0),
-    position[1] + (compact ? Number(transform.mobileYOffset || 0) : 0)
+    position[1] + (compact ? responsiveMaterial.yOffset : 0)
       + (shortLandscape ? Number(transform.mobileLandscapeYOffset || 0) : 0),
     anchorRailZ - Number(world.entryDistanceWU || 0) + position[2]
       + (compact ? Number(transform.mobileZOffset || 0) : 0)
@@ -852,6 +882,12 @@ function createTransformScratch() {
     quaternion: new THREE.Quaternion(),
     scale: new THREE.Vector3(),
     euler: new THREE.Euler(0, 0, 0, 'YXZ'),
+    responsiveMaterial: {
+      scale: 1,
+      xScale: 1,
+      yOffset: 0,
+      presenceRatio: 1,
+    },
   };
 }
 
@@ -994,6 +1030,8 @@ function createPointFieldAdapter({
     pointSize: { value: 5.4 },
     fromPointSizeScale: { value: 1 },
     toPointSizeScale: { value: 1 },
+    fromResponsivePresence: { value: 1 },
+    toResponsivePresence: { value: 1 },
     pixelRatio: { value: 1 },
     simulationVisibility: { value: 1 },
     sceneEntranceScale: {
@@ -1920,6 +1958,7 @@ function createPointFieldAdapter({
         globals,
         compact,
         shortLandscape,
+        width,
         index === 0 ? correspondenceFromScratch : correspondenceToScratch,
       ).elements.slice(),
       shapeId: world.shapeId,
@@ -2282,6 +2321,7 @@ function createPointFieldAdapter({
       frame.globals,
       compact,
       shortLandscape,
+      width,
       fromTransformScratch,
     );
     writeWorldTransform(
@@ -2290,6 +2330,7 @@ function createPointFieldAdapter({
       frame.globals,
       compact,
       shortLandscape,
+      width,
       toTransformScratch,
     );
     updatePointTransitionMotion(frame);
@@ -2299,6 +2340,8 @@ function createPointFieldAdapter({
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fromPointSizeScale.value = Number(fromWorld.transform?.pointSizeScale ?? 1);
     uniforms.toPointSizeScale.value = Number(toWorld.transform?.pointSizeScale ?? 1);
+    uniforms.fromResponsivePresence.value = fromTransformScratch.responsiveMaterial.presenceRatio;
+    uniforms.toResponsivePresence.value = toTransformScratch.responsiveMaterial.presenceRatio;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
     const requestedVisibility = Number(frame.simulation?.visibility ?? 1);
     const simulationVisibility = Number.isFinite(requestedVisibility)

@@ -547,7 +547,9 @@ test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion
     { id: 'visibility-middle', atWU: middleWU, visibility: 1, easing: 'ease-in-out', locked: false },
     { id: 'visibility-end', atWU: durationWU, visibility: 0, easing: 'linear', locked: true },
   ];
-  document.profiles.mobile.overrides.visibility['visibility-middle'] = { visibility: 0.6 };
+  document.profiles.mobile.overrides.visibility = {
+    'visibility-middle': { visibility: 0.6 },
+  };
 
   const full = compileAboutNarrativeRuntimePlan(document, { layoutProfile: 'desktop' });
   assert.equal(full.valid, true);

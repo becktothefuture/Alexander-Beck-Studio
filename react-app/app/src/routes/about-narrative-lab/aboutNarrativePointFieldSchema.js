@@ -137,6 +137,11 @@ function validateTransform(transform, diagnostics, path, { partial = false } = {
     'mobileXScale',
     'mobileYOffset',
     'mobileZOffset',
+    'mobileNarrowWidth',
+    'mobileWideWidth',
+    'mobileNarrowScale',
+    'mobileNarrowYOffset',
+    'mobileNarrowDensity',
     'mobileLandscapeScale',
     'mobileLandscapeXScale',
     'mobileLandscapeXOffset',
@@ -146,19 +151,30 @@ function validateTransform(transform, diagnostics, path, { partial = false } = {
   if (!unknownKeys(diagnostics, transform, allowed, path)) return;
   if (!partial || transform.position != null) validateVector(transform.position, diagnostics, `${path}.position`);
   if (!partial || transform.rotation != null) validateVector(transform.rotation, diagnostics, `${path}.rotation`);
-  ['scale', 'pointSizeScale', 'mobileScale', 'mobileXScale', 'mobileLandscapeScale', 'mobileLandscapeXScale']
+  ['scale', 'pointSizeScale', 'mobileScale', 'mobileXScale', 'mobileNarrowWidth', 'mobileWideWidth', 'mobileNarrowScale', 'mobileLandscapeScale', 'mobileLandscapeXScale']
     .forEach((key) => {
       const required = key === 'scale' && !partial;
       if ((required || transform[key] != null) && (!finite(transform[key]) || Number(transform[key]) <= 0)) {
         diagnostic(diagnostics, 'state-scale', `${path}.${key}`, 'Scale values must be positive and finite.');
       }
     });
-  ['mobileYOffset', 'mobileZOffset', 'mobileLandscapeXOffset', 'mobileLandscapeYOffset', 'mobileLandscapeZOffset']
+  ['mobileYOffset', 'mobileZOffset', 'mobileNarrowYOffset', 'mobileLandscapeXOffset', 'mobileLandscapeYOffset', 'mobileLandscapeZOffset']
     .forEach((key) => {
       if (transform[key] != null && !finite(transform[key])) {
         diagnostic(diagnostics, 'state-transform-number', `${path}.${key}`, 'Responsive transform values must be finite.');
       }
     });
+  if (transform.mobileNarrowDensity != null
+    && (!finite(transform.mobileNarrowDensity)
+      || Number(transform.mobileNarrowDensity) < 0
+      || Number(transform.mobileNarrowDensity) > 1)) {
+    diagnostic(diagnostics, 'state-density', `${path}.mobileNarrowDensity`, 'Narrow mobile density must stay between 0 and 1.');
+  }
+  if (finite(transform.mobileNarrowWidth)
+    && finite(transform.mobileWideWidth)
+    && Number(transform.mobileNarrowWidth) >= Number(transform.mobileWideWidth)) {
+    diagnostic(diagnostics, 'state-responsive-width', path, 'Narrow mobile width must be less than wide mobile width.');
+  }
 }
 
 function validateControlValue(value, control, diagnostics, path) {
