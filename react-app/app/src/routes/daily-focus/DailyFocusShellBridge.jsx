@@ -109,9 +109,6 @@ function isDailyFocusRuntimeReady(simulationId) {
     case 'flock-of-birds':
       return isCanvasSurfaceReady('#flock-of-birds-canvas')
         && isSimulationVisualTransitionSourceActive(id);
-    case 'rift-rings':
-      return isCanvasSurfaceReady('#rift-rings-canvas')
-        && isSimulationVisualTransitionSourceActive(id);
     case 'beach-ball-room': {
       const loadState = runtime.dataset?.beachBallRoomLoadState;
       return Boolean(

@@ -29,7 +29,6 @@ let expectedChooserRows = 0;
 const ROUTE_BACKED_FOCUS_IDS = new Set([
   'repel-room',
   'flock-of-birds',
-  'rift-rings',
 ]);
 
 function resolveOrigin() {

@@ -48,12 +48,12 @@ export function isPitLikeMode(mode) {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (14 modes):
+// FEATURED TIER (13 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression and daily candidates for new visitors
 // - Best work, strongest visual impact
 //
-// EXTENDED TIER (8 modes):
+// EXTENDED TIER (5 modes):
 // - Only appears after all Featured modes have cycled
 // - Additional explorations and experiments
 // - Loop order: Featured → Extended → Featured → ...
@@ -61,7 +61,7 @@ export function isPitLikeMode(mode) {
 // Story arc principles:
 // - Keep tonal contrast between adjacent sims (avoid "similar twice in a row")
 // - Foundation opens the story (source material)
-// - Kaleidoscope closes Featured tier (vocab bloom)
+// - Cadence closes Featured tier (measured release)
 export const FEATURED_MODES = [
   ...DAILY_ROTATION_SIMULATION_IDS
 ];
@@ -84,7 +84,7 @@ export const NARRATIVE_MODE_SEQUENCE = [
 export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PIT]: 'FOUNDATION',
   [MODES.FLIES]: 'ATTENTION',
-  [MODES.MAGNETIC]: 'MAGNETIC FIELD',
+  [MODES.MAGNETIC]: 'MAGNETIC',
   [MODES.WATER]: 'FLOW',
   [MODES.WEIGHTLESS]: 'WEIGHTLESS DRIFT',
   [MODES.CRITTERS]: 'CRITTER SWARM',
@@ -101,7 +101,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.RIFT_RINGS]: 'DEPTH',
   [MODES.STARFIELD_3D]: 'PERSPECTIVE',
   [MODES.PARTICLE_FOUNTAIN]: 'FOUNTAIN A',
-  [MODES.PARTICLE_FOUNTAIN_B]: 'FOUNTAIN B',
+  [MODES.PARTICLE_FOUNTAIN_B]: 'CADENCE',
   [MODES.NAPOLEON_POINT_CLOUD]: 'IMPRESSION',
   [MODES.BEACH_BALL_ROOM]: 'BEACH BALL ROOM'
 };

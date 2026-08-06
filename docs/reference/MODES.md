@@ -10,10 +10,11 @@ Source of truth for mode IDs and narrative order:
 ## Runtime Summary
 
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
-- `19` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `14` Daily simulations.
+- `18` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
+- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `13` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
-- `flock-of-birds`, `repel-room`, and `rift-rings` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `flock-of-birds` and `repel-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
+- `rift-rings` is archived. Its direct lab route remains available, but it is not part of Daily Simulation or the narrative sequence.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
 - `elastic-center`, `napoleon-point-cloud`, and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.
 
@@ -35,10 +36,10 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Attention | `flies` | Active |
 | Weightless Drift | `weightless` | Active |
 | Flow | `water` | Active |
-| Magnetic Field | `magnetic` | Active daily |
+| Magnetic | `magnetic` | Active daily |
 | Refraction | `kaleidoscope-3` | Active |
 | Multiplicity | `kaleidoscope-rift` | Active |
-| Depth | `rift-rings` | Route-backed daily/lab |
+| Depth | `rift-rings` | Archived lab route |
 | Critter Swarm | `critters` | Active |
 | Continuity | `3d-sphere` | Active |
 | Scaffold | `3d-cube` | Active |
@@ -50,7 +51,7 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 | Cohesion | `flubber-blob` | Active |
 | Pressure Field | `pressure-crucible` | Active |
 | Fountain A | `particle-fountain` | Active |
-| Fountain B | `particle-fountain-b` | Active daily |
+| Cadence | `particle-fountain-b` | Active daily |
 | Impression | `napoleon-point-cloud` | Route-backed collection/lab |
 | Beach Ball Room | `beach-ball-room` | Route-backed collection/lab |
 
@@ -69,19 +70,18 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 7. `flock-of-birds` — CONVERGENCE
 8. `flubber-blob` — COHESION
 9. `kaleidoscope-3` — REFRACTION
-10. `magnetic` — MAGNETIC FIELD
+10. `magnetic` — MAGNETIC
 11. `starfield-3d` — PERSPECTIVE
 12. `kaleidoscope-rift` — MULTIPLICITY
-13. `particle-fountain-b` — FOUNTAIN B
-14. `rift-rings` — DEPTH
+13. `particle-fountain-b` — CADENCE
 
 ### Extended Tier (shown after Featured)
 
-15. `aperture-bloom` — APERTURE BLOOM
-16. `weightless` — WEIGHTLESS DRIFT
-17. `critters` — CRITTER SWARM
-18. `pressure-crucible` — PRESSURE FIELD
-19. `particle-fountain` — FOUNTAIN A
+14. `aperture-bloom` — APERTURE BLOOM
+15. `weightless` — WEIGHTLESS DRIFT
+16. `critters` — CRITTER SWARM
+17. `pressure-crucible` — PRESSURE FIELD
+18. `particle-fountain` — FOUNTAIN A
 
 Loop order is `Featured -> Extended -> Featured`.
 

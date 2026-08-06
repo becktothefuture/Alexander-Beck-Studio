@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "updatedAt": "2026-08-05",
+  "version": 7,
+  "updatedAt": "2026-08-06",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -170,8 +170,8 @@
     },
     {
       "id": "magnetic",
-      "name": "Magnetic Field",
-      "chapter": "MAGNETIC FIELD",
+      "name": "Magnetic",
+      "chapter": "MAGNETIC",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -254,8 +254,8 @@
     },
     {
       "id": "particle-fountain-b",
-      "name": "Fountain B",
-      "chapter": "FOUNTAIN B",
+      "name": "Cadence",
+      "chapter": "CADENCE",
       "stage": "daily-rotation",
       "surface": "home-mode",
       "origin": "core-site",
@@ -304,20 +304,19 @@
       "id": "rift-rings",
       "name": "Depth",
       "chapter": "DEPTH",
-      "stage": "daily-rotation",
+      "stage": "hidden",
       "surface": "lab-route",
       "origin": "promoted-lab",
       "introducedOn": "2026-07-09",
       "launchPath": "/lab/rift-rings.html",
-      "dailyHref": "/lab/rift-rings.html?daily=1",
       "configPath": "/config/rift-rings-demo.json",
-      "includeInNarrative": true,
+      "includeInNarrative": false,
       "reviewStatus": "stable",
       "pitchPath": "docs/simulations/pitches/2026-07-09-rift-rings.md",
       "capture": {
         "delayMs": 6400,
         "readySelector": "#rift-rings-canvas",
-        "notes": "Direct Daily Focus boot enters this route-backed canvas before the expansive ring field is visible."
+        "notes": "Direct lab boot enters this route-backed canvas before the expansive ring field is visible."
       },
       "summary": "Tighter concentric depth rings use one shared body size, fog, shear, and radial breathing under mouse and touch movement.",
       "lastReviewedAt": "2026-07-09"

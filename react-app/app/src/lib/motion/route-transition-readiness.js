@@ -5,7 +5,6 @@ import { isCanvasBackingStoreUsable } from '../canvas-backing-store-readiness.js
 const DAILY_LAB_ROUTE_IDS = new Set([
   'repel-room',
   'flock-of-birds',
-  'rift-rings',
 ]);
 
 function hasCanvasBufferReady() {
@@ -93,9 +92,6 @@ function isDailyLabRouteReady(routeId) {
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'flock-of-birds':
       return isCanvasSurfacePrepared('#flock-of-birds-canvas')
-        && isSimulationVisualTransitionSourceActive(routeId);
-    case 'rift-rings':
-      return isCanvasSurfacePrepared('#rift-rings-canvas')
         && isSimulationVisualTransitionSourceActive(routeId);
     case 'beach-ball-room': {
       const container = document.querySelector('.beach-ball-room-simulation');

@@ -6,7 +6,7 @@ const modeNames = {
   'flies': 'Attention',
   'weightless': 'Weightless Drift',
   'water': 'Flow',
-  'magnetic': 'Magnetic Field',
+  'magnetic': 'Magnetic',
   'kaleidoscope-3': 'Refraction',
   'kaleidoscope-rift': 'Multiplicity',
   'rift-rings': 'Depth',
@@ -21,7 +21,7 @@ const modeNames = {
   'flubber-blob': 'Cohesion',
   'pressure-crucible': 'Pressure Field',
   'particle-fountain': 'Fountain A',
-  'particle-fountain-b': 'Fountain B',
+  'particle-fountain-b': 'Cadence',
   'napoleon-point-cloud': 'Impression'
 };
 

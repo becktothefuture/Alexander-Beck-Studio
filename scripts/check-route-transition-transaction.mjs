@@ -650,7 +650,7 @@ test('readiness observes only the incoming route and shared participants', async
 test('route readiness observation keeps canonical daily route identities explicit', () => {
   assert.equal(isDailyLabRouteId('repel-room'), true);
   assert.equal(isDailyLabRouteId('flock-of-birds'), true);
-  assert.equal(isDailyLabRouteId('rift-rings'), true);
+  assert.equal(isDailyLabRouteId('rift-rings'), false);
   assert.equal(isDailyLabRouteId('home'), false);
   assert.equal(isDailyLabRouteId('beach-ball-room'), false);
 });

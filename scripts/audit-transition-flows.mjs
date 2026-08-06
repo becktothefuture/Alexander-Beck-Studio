@@ -69,7 +69,6 @@ const ROUTE_DEFINITIONS = Object.freeze({
 const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
   'repel-room',
   'flock-of-birds',
-  'rift-rings',
 ]);
 const requestedSequence = String(process.env.ABS_TRANSITION_SEQUENCE || '').trim();
 const ROUTE_STEPS = (requestedSequence
@@ -316,7 +315,6 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         const dailyCanvasSelector = {
           'repel-room': '#repel-room-canvas',
           'flock-of-birds': '#flock-of-birds-canvas',
-          'rift-rings': '#rift-rings-canvas',
         }[dailyRouteId] || '';
         const dailyCanvas = dailyCanvasSelector
           ? document.querySelector(dailyCanvasSelector)

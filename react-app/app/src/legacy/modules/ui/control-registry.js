@@ -3628,7 +3628,7 @@ export const CONTROL_SECTIONS = {
   },
 
   magnetic: {
-    title: 'Magnetic Field',
+    title: 'Magnetic',
     icon: '🧲',
     mode: 'magnetic',
     defaultOpen: false,
@@ -4331,7 +4331,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'particleFountainBNozzleSpread',
-        label: 'Fountain B Nozzle Spread',
+        label: 'Cadence Nozzle Spread',
         stateKey: 'particleFountainBNozzleSpread',
         type: 'range',
         min: 0.2, max: 0.4, step: 0.01,
@@ -4342,14 +4342,14 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'particleFountainBTempo',
-        label: 'Fountain B Tempo',
+        label: 'Cadence Tempo',
         stateKey: 'particleFountainBTempo',
         type: 'range',
         min: 0.5, max: 1.2, step: 0.01,
         default: 0.82,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Playback speed of the Fountain B choreography.'
+        hint: 'Playback speed of the Cadence choreography.'
       },
       {
         id: 'particleFountainLifetime',
@@ -5374,7 +5374,7 @@ export function generateModeSwitcherHTML() {
     'critters': 'Critter Swarm',
     'flies': 'Attention',
     'water': 'Flow',
-    'magnetic': 'Magnetic Field',
+    'magnetic': 'Magnetic',
     'weightless': 'Weightless Drift',
     'kaleidoscope-3': 'Refraction',
     'kaleidoscope-rift': 'Multiplicity',
@@ -5390,7 +5390,7 @@ export function generateModeSwitcherHTML() {
     'flubber-blob': 'Cohesion',
     'pressure-crucible': 'Pressure Field',
     'particle-fountain': 'Fountain A',
-    'particle-fountain-b': 'Fountain B',
+    'particle-fountain-b': 'Cadence',
     'napoleon-point-cloud': 'Impression',
     'beach-ball-room': 'Beach Ball Room'
   };
@@ -5494,7 +5494,7 @@ function generateHomeModeSectionHTML() {
               'critters': 'Critter Swarm',
               'flies': 'Attention',
               'water': 'Flow',
-              'magnetic': 'Magnetic Field',
+              'magnetic': 'Magnetic',
               'weightless': 'Weightless Drift',
               'kaleidoscope-3': 'Refraction',
               'kaleidoscope-rift': 'Multiplicity',
@@ -5510,7 +5510,7 @@ function generateHomeModeSectionHTML() {
               'flubber-blob': 'Cohesion',
               'pressure-crucible': 'Pressure Field',
               'particle-fountain': 'Fountain A',
-              'particle-fountain-b': 'Fountain B',
+              'particle-fountain-b': 'Cadence',
               'napoleon-point-cloud': 'Impression',
               'beach-ball-room': 'Beach Ball Room'
             };
