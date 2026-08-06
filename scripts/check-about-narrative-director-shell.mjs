@@ -106,3 +106,20 @@ test('preview and authoring profiles remain separate Director controls', () => {
   assert.ok(shell.includes('<option value="base">Base</option>'));
   assert.ok(shell.includes('<option value="tablet">Tablet override</option>'));
 });
+
+test('Camera inspector gives every selected keyframe true incoming and outgoing easing controls', () => {
+  [
+    'resolveAboutNarrativeCameraKeyEasingHandles(',
+    'setAboutNarrativeCameraKeyEasingStrength(',
+    "['incoming', 'outgoing'].map((direction)",
+    'data-camera-easing-side={direction}',
+    'Ease into keyframe',
+    'Ease out of keyframe',
+    'The first camera has no incoming move.',
+    'The final camera has no outgoing move.',
+    'Camera keyframe easing presets',
+  ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+  assert.equal(editor.includes('Travel easing shapes the move to the next shot.'), false);
+  assert.ok(styles.includes('.about-track-editor-camera-easing__sides'));
+  assert.ok(styles.includes('.about-track-editor-camera-curve__handle.is-context'));
+});

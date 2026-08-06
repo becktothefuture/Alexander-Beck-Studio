@@ -43,8 +43,10 @@ import {
   PointFieldLane,
 } from './PointFieldLane.jsx';
 import {
-  ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
-  parseAboutNarrativeCameraEasing,
+  ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX,
+  ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN,
+  resolveAboutNarrativeCameraKeyEasingHandles,
+  setAboutNarrativeCameraKeyEasingStrength,
 } from './aboutNarrativeCameraEasing.js';
 import {
   ABOUT_INTERACTIVE_STACK_CONTROLS,
@@ -138,6 +140,11 @@ const PREVIEW_ASPECT_RATIOS = Object.freeze({
   tablet: Object.freeze({ portrait: 820 / 1180, landscape: 1180 / 820 }),
   mobile: Object.freeze({ portrait: 390 / 844, landscape: 844 / 390 }),
 });
+const CAMERA_EASING_PRESETS = Object.freeze([
+  Object.freeze({ label: 'Balanced', incoming: 0.35, outgoing: 0.35 }),
+  Object.freeze({ label: 'Cinematic', incoming: 0.82, outgoing: 0.32 }),
+  Object.freeze({ label: 'Measured', incoming: 0.48, outgoing: 0.48 }),
+]);
 const WORLD_CONTROL_GROUP_BY_ID = Object.freeze(Object.fromEntries(
   ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS.map((group) => [group.id, group]),
 ));
@@ -399,13 +406,9 @@ function SelectField({
   );
 }
 
-function formatCameraBezier(x1, x2) {
-  return `cubic-bezier(${Number(x1).toFixed(2)}, 0, ${Number(x2).toFixed(2)}, 1)`;
-}
-
-function CameraBezierField({
-  value,
-  disabled = false,
+function CameraEasingHandleField({
+  direction,
+  handle,
   onBegin,
   onPreview,
   onFinish,
@@ -413,57 +416,96 @@ function CameraBezierField({
   onCommit,
 }) {
   const gestureRef = useRef(false);
-  const curve = parseAboutNarrativeCameraEasing(value)
-    || parseAboutNarrativeCameraEasing(ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING);
-  const commitCurve = (x1, x2) => onCommit?.(formatCameraBezier(x1, x2));
-  const previewCurve = (x1, x2) => onPreview?.(formatCameraBezier(x1, x2));
-  const updateHandle = (event, handle) => {
+  const incoming = direction === 'incoming';
+  const label = incoming ? 'Ease into keyframe' : 'Ease out of keyframe';
+  if (!handle) {
+    return (
+      <section
+        className="about-track-editor-camera-curve is-unavailable"
+        data-camera-easing-side={direction}
+        data-camera-easing-available="false"
+        aria-label={label}
+      >
+        <div className="about-track-editor-camera-curve__heading">
+          <div><span>{label}</span><strong>{incoming ? 'Story start' : 'Story end'}</strong></div>
+        </div>
+        <p>{incoming
+          ? 'The first camera has no incoming move.'
+          : 'The final camera has no outgoing move.'}</p>
+      </section>
+    );
+  }
+
+  const { curve } = handle;
+  const strength = clamp(
+    handle.strength,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX,
+  );
+  const commitStrength = (value) => onCommit?.(clamp(
+    value,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX,
+  ));
+  const previewStrength = (value) => onPreview?.(clamp(
+    value,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN,
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX,
+  ));
+  const updateHandle = (event) => {
     const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect()
       || event.currentTarget.getBoundingClientRect();
     const progress = clamp((event.clientX - bounds.left) / Math.max(1, bounds.width), 0, 1);
-    if (handle === 'out') previewCurve(clamp(progress, 0.04, 0.96), curve.x2);
-    else previewCurve(curve.x1, clamp(progress, 0.04, 0.96));
+    previewStrength(incoming ? 1 - progress : progress);
   };
-  const begin = (event, handle) => {
-    if (disabled) return;
-    gestureRef.current = onBegin?.() !== false;
+  const begin = (event) => {
+    gestureRef.current = onBegin?.(direction) !== false;
     if (!gestureRef.current) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    updateHandle(event, handle);
+    updateHandle(event);
   };
   const finish = () => {
     if (!gestureRef.current) return;
     gestureRef.current = false;
     onFinish?.();
   };
-  const keyAdjust = (event, handle) => {
-    if (disabled) return;
-    const direction = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
-    if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+  const keyAdjust = (event) => {
+    const keyDirection = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+    if (!keyDirection && event.key !== 'Home' && event.key !== 'End') return;
     event.preventDefault();
-    if (handle === 'out') {
-      const next = event.key === 'Home' ? 0.04 : event.key === 'End'
-        ? 0.96 : curve.x1 + (direction * 0.01);
-      commitCurve(clamp(next, 0.04, 0.96), curve.x2);
-      return;
-    }
-    const next = event.key === 'Home' ? 0.04 : event.key === 'End'
-      ? 0.96 : curve.x2 + (direction * 0.01);
-    commitCurve(curve.x1, clamp(next, 0.04, 0.96));
+    const next = event.key === 'Home' ? ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN
+      : event.key === 'End' ? ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX
+        : strength + (keyDirection * 0.01);
+    commitStrength(next);
   };
+  const handleX = (incoming ? curve.x2 : curve.x1) * 200;
+  const handleY = incoming ? 0 : 100;
+  const contextHandleX = (incoming ? curve.x1 : curve.x2) * 200;
+  const contextHandleY = incoming ? 100 : 0;
+  const connectedLabel = incoming
+    ? `From ${getObjectLabel(handle.fromKey, 'camera-key')}`
+    : `To ${getObjectLabel(handle.toKey, 'camera-key')}`;
 
   return (
-    <section className="about-track-editor-camera-curve" aria-label="Camera travel easing">
+    <section
+      className="about-track-editor-camera-curve"
+      data-camera-easing-side={direction}
+      data-camera-easing-available="true"
+      data-camera-easing-segment={handle.ownerKey.id}
+      aria-label={label}
+    >
       <div className="about-track-editor-camera-curve__heading">
-        <div><span>Travel easing</span><strong>Soft cubic curve</strong></div>
-        <code>{value}</code>
+        <div><span>{label}</span><strong title={connectedLabel}>{connectedLabel}</strong></div>
+        <code>{handle.easing}</code>
       </div>
-      <p>Controls the position, rotation, and lens from this key to the next: <b>Out</b> delays departure; <b>In</b> lengthens arrival.</p>
+      <p>{incoming
+        ? 'Higher values make the arrival into this camera longer and softer.'
+        : 'Higher values make the departure from this camera longer and softer.'}</p>
       <svg
         className="about-track-editor-camera-curve__graph"
         viewBox="0 0 200 100"
         role="img"
-        aria-label="Cubic-bezier graph with adjustable departure and arrival handles"
+        aria-label={`${label} cubic-bezier graph`}
       >
         <path className="about-track-editor-camera-curve__grid" d="M 0 50 H 200 M 100 0 V 100" />
         <path className="about-track-editor-camera-curve__curve" d={`M 0 100 C ${curve.x1 * 200} 100, ${curve.x2 * 200} 0, 200 0`} />
@@ -471,52 +513,89 @@ function CameraBezierField({
         <circle className="about-track-editor-camera-curve__anchor" cx="0" cy="100" r="3" />
         <circle className="about-track-editor-camera-curve__anchor" cx="200" cy="0" r="3" />
         <circle
-          className="about-track-editor-camera-curve__handle"
-          cx={curve.x1 * 200}
-          cy="100"
-          r="6"
-          tabIndex={disabled ? -1 : 0}
-          role="slider"
-          aria-label="Departure easing handle"
-          aria-valuemin="0.04"
-          aria-valuemax="0.96"
-          aria-valuenow={curve.x1}
-          onPointerDown={(event) => begin(event, 'out')}
-          onPointerMove={(event) => { if (gestureRef.current) updateHandle(event, 'out'); }}
-          onPointerUp={finish}
-          onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
-          onKeyDown={(event) => keyAdjust(event, 'out')}
+          className="about-track-editor-camera-curve__handle is-context"
+          cx={contextHandleX}
+          cy={contextHandleY}
+          r="5"
+          aria-hidden="true"
         />
         <circle
           className="about-track-editor-camera-curve__handle"
-          cx={curve.x2 * 200}
-          cy="0"
+          cx={handleX}
+          cy={handleY}
           r="6"
-          tabIndex={disabled ? -1 : 0}
+          tabIndex={0}
           role="slider"
-          aria-label="Arrival easing handle"
-          aria-valuemin="0.04"
-          aria-valuemax="0.96"
-          aria-valuenow={curve.x2}
-          onPointerDown={(event) => begin(event, 'in')}
-          onPointerMove={(event) => { if (gestureRef.current) updateHandle(event, 'in'); }}
+          aria-label={`${label} strength`}
+          aria-valuemin={ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN}
+          aria-valuemax={ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX}
+          aria-valuenow={Number(strength.toFixed(2))}
+          onPointerDown={begin}
+          onPointerMove={(event) => { if (gestureRef.current) updateHandle(event); }}
           onPointerUp={finish}
           onPointerCancel={() => { gestureRef.current = false; onCancel?.(); }}
-          onKeyDown={(event) => keyAdjust(event, 'in')}
+          onKeyDown={keyAdjust}
         />
       </svg>
       <div className="about-track-editor-camera-curve__inputs">
-        <NumberField label="Out / acceleration" value={curve.x1} disabled={disabled} min={0.04} max={0.96} step={0.01} onCommit={(next) => commitCurve(clamp(next, 0.04, 0.96), curve.x2)} />
-        <NumberField label="In / deceleration" value={curve.x2} disabled={disabled} min={0.04} max={0.96} step={0.01} onCommit={(next) => commitCurve(curve.x1, clamp(next, 0.04, 0.96))} />
+        <NumberField
+          label={incoming ? 'Ease-in strength' : 'Ease-out strength'}
+          value={Number(strength.toFixed(2))}
+          min={ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN}
+          max={ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX}
+          step={0.01}
+          onCommit={commitStrength}
+        />
       </div>
-      <div className="about-track-editor-camera-curve__presets" aria-label="Camera easing presets">
-        {[
-          ['Balanced', 0.35, 0.65],
-          ['Cinematic', 0.32, 0.18],
-          ['Measured', 0.48, 0.52],
-        ].map(([label, x1, x2]) => (
-          <button key={label} type="button" disabled={disabled} className={Math.abs(curve.x1 - x1) < 0.01 && Math.abs(curve.x2 - x2) < 0.01 ? 'is-active' : ''} onClick={() => commitCurve(x1, x2)}>{label}</button>
+    </section>
+  );
+}
+
+function CameraKeyframeEasingField({
+  context,
+  onBegin,
+  onPreview,
+  onFinish,
+  onCancel,
+  onCommit,
+  onPreset,
+}) {
+  const availableDirections = ['incoming', 'outgoing'].filter((direction) => context?.[direction]);
+  return (
+    <section className="about-track-editor-camera-easing" aria-label="Selected camera keyframe easing">
+      <div className="about-track-editor-camera-easing__heading">
+        <span>Selected camera easing</span>
+        <strong>Arrival + departure</strong>
+      </div>
+      <p>Each control belongs to this camera keyframe. Position, rotation, focus, and lens use the same easing.</p>
+      <div className="about-track-editor-camera-easing__sides">
+        {['incoming', 'outgoing'].map((direction) => (
+          <CameraEasingHandleField
+            key={direction}
+            direction={direction}
+            handle={context?.[direction] || null}
+            onBegin={onBegin}
+            onPreview={(value) => onPreview?.(direction, value)}
+            onFinish={onFinish}
+            onCancel={onCancel}
+            onCommit={(value) => onCommit?.(direction, value)}
+          />
         ))}
+      </div>
+      <div className="about-track-editor-camera-curve__presets" aria-label="Camera keyframe easing presets">
+        {CAMERA_EASING_PRESETS.map((preset) => {
+          const active = availableDirections.length > 0 && availableDirections.every((direction) => (
+            Math.abs(context[direction].strength - preset[direction]) < 0.01
+          ));
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              className={active ? 'is-active' : ''}
+              onClick={() => onPreset?.(preset)}
+            >{preset.label}</button>
+          );
+        })}
       </div>
     </section>
   );
@@ -2171,6 +2250,12 @@ function ObjectInspector({ snapshot, store, editScope }) {
   const cameraAimEnabled = selection.type === 'camera-key'
     && (object.aimEnabled ?? Array.isArray(object.lookAtTarget));
   const cameraOrbit = selection.type === 'camera-key' ? getCameraOrbit(object) : null;
+  const cameraEasingContext = selection.type === 'camera-key'
+    ? resolveAboutNarrativeCameraKeyEasingHandles(
+      snapshot.document.tracks.camera.keys,
+      selection.id,
+    )
+    : null;
   const inspectorTypeLabel = {
     'camera-key': 'camera shot',
     'visibility-key': 'visibility change',
@@ -2200,7 +2285,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
           {number('atWU', object.atWU, boundaryCamera, 'Time')}
-          <p className="about-track-editor-parameter-note is-wide">This shot defines the camera at this exact time. Travel easing shapes the move to the next shot.</p>
+          <p className="about-track-editor-parameter-note is-wide">This shot defines the camera at this exact time. Keyframe easing shapes its arrival from the previous shot and its departure to the next.</p>
           <InspectorFolder group={{ id: 'camera-essentials', label: 'Essentials' }} count={cameraAimEnabled ? 5 : 7} defaultOpen>
             <label className="about-track-editor-check">
               <input
@@ -2338,17 +2423,44 @@ function ObjectInspector({ snapshot, store, editScope }) {
             </div>
           </InspectorFolder>
           <InspectorFolder group={{ id: 'camera-easing', label: 'Travel easing' }} count={2}>
-            <CameraBezierField
-              value={object.easing}
-              disabled={!snapshot.document.tracks.camera.keys.some((key) => Number(key.atWU) > Number(object.atWU))}
-              onBegin={() => store.beginGesture('Shape Camera travel easing', { selection })}
-              onPreview={(value) => store.updateGesture((draft) => {
-                const target = getAboutNarrativeTrackObject(draft, selection);
-                if (target) target.easing = value;
+            <CameraKeyframeEasingField
+              context={cameraEasingContext}
+              onBegin={(direction) => store.beginGesture(
+                `Shape Camera ${direction === 'incoming' ? 'ease in' : 'ease out'}`,
+                { selection },
+              )}
+              onPreview={(direction, value) => store.updateGesture((draft) => {
+                setAboutNarrativeCameraKeyEasingStrength(
+                  draft.tracks.camera.keys,
+                  selection.id,
+                  direction,
+                  value,
+                );
               }, { selection })}
               onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
               onCancel={() => store.cancelGesture()}
-              onCommit={(value) => commit('Edit Camera travel easing', (target) => { target.easing = value; })}
+              onCommit={(direction, value) => commit(
+                `Edit Camera ${direction === 'incoming' ? 'ease in' : 'ease out'}`,
+                (_target, draft) => setAboutNarrativeCameraKeyEasingStrength(
+                  draft.tracks.camera.keys,
+                  selection.id,
+                  direction,
+                  value,
+                ),
+              )}
+              onPreset={(preset) => commit(
+                `Apply Camera ${preset.label} easing`,
+                (_target, draft) => {
+                  ['incoming', 'outgoing'].forEach((direction) => {
+                    setAboutNarrativeCameraKeyEasingStrength(
+                      draft.tracks.camera.keys,
+                      selection.id,
+                      direction,
+                      preset[direction],
+                    );
+                  });
+                },
+              )}
             />
           </InspectorFolder>
         </div>

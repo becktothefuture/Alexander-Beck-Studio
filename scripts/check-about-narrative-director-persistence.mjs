@@ -19,6 +19,10 @@ import {
 import {
   createAboutNarrativePointFieldEditorStore,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldEditorStore.js';
+import {
+  resolveAboutNarrativeCameraKeyEasingHandles,
+  setAboutNarrativeCameraKeyEasingStrength,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
 
 const canonicalV6 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
@@ -110,6 +114,47 @@ test('public Director Save persists and reloads one validated local baseline', (
   assert.match(editorSource, /writeAboutNarrativeLocalSave\(submission\.document/);
   assert.match(editorSource, /readAboutNarrativeLocalSave\(\{/);
   assert.doesNotMatch(editorSource, /'Export draft'/);
+});
+
+test('camera keyframe ease-in and ease-out survive Director save, reload, and export', () => {
+  const storage = new MemoryStorage();
+  const document = structuredClone(canonicalV6);
+  const selectedIndex = Math.floor(document.tracks.camera.keys.length / 2);
+  const selectedKey = document.tracks.camera.keys[selectedIndex];
+  const incoming = setAboutNarrativeCameraKeyEasingStrength(
+    document.tracks.camera.keys,
+    selectedKey.id,
+    'incoming',
+    0.71,
+  );
+  const outgoing = setAboutNarrativeCameraKeyEasingStrength(
+    document.tracks.camera.keys,
+    selectedKey.id,
+    'outgoing',
+    0.63,
+  );
+  assert.equal(incoming.segmentKeyId, document.tracks.camera.keys[selectedIndex - 1].id);
+  assert.equal(outgoing.segmentKeyId, selectedKey.id);
+
+  writeAboutNarrativeLocalSave(document, { targetVersion: 6, savedAt: 2345, storage });
+  const loaded = readAboutNarrativeLocalSave({ targetVersion: 6, storage });
+  const loadedHandles = resolveAboutNarrativeCameraKeyEasingHandles(
+    loaded.document.tracks.camera.keys,
+    selectedKey.id,
+  );
+  assert.equal(Number(loadedHandles.incoming.strength.toFixed(2)), 0.71);
+  assert.equal(Number(loadedHandles.outgoing.strength.toFixed(2)), 0.63);
+
+  const exported = JSON.parse(serializeAboutNarrativeDocumentForExport(
+    loaded.document,
+    { targetVersion: 6 },
+  ));
+  const exportedHandles = resolveAboutNarrativeCameraKeyEasingHandles(
+    exported.tracks.camera.keys,
+    selectedKey.id,
+  );
+  assert.equal(Number(exportedHandles.incoming.strength.toFixed(2)), 0.71);
+  assert.equal(Number(exportedHandles.outgoing.strength.toFixed(2)), 0.63);
 });
 
 test('public Director Save reports unavailable, invalid, quota, and security storage', () => {

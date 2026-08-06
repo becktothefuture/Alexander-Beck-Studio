@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import {
+  resolveAboutNarrativeCameraKeyEasingHandles,
+  setAboutNarrativeCameraKeyEasingStrength,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
+import {
+  compileAboutNarrativeCameraKey,
+  sampleAboutNarrativeCameraKeysInto,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSampling.js';
 import {
   createAboutNarrativeCameraKeyAtWU,
   createAboutNarrativeInteractionAtWU,
@@ -25,6 +34,49 @@ import {
   resizeAboutNarrativeWorldEnd,
   validateAboutNarrativeTrackClipboardPayload,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackEditing.js';
+
+const canonical = JSON.parse(await readFile(
+  new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
+  'utf8',
+));
+
+function createCameraSampleTarget() {
+  return {
+    position: [0, 0, 0],
+    lookAtTarget: [0, 0, 0],
+    quaternion: [0, 0, 0, 1],
+    manualQuaternion: [0, 0, 0, 1],
+    aimQuaternion: [0, 0, 0, 1],
+    lookAtRoll: 0,
+    aimWeight: 0,
+    targeted: false,
+    fov: 48,
+  };
+}
+
+function createAuthoredCameraEasingFixture() {
+  return canonical.tracks.camera.keys.map((key, index) => ({
+    ...structuredClone(key),
+    position: [index * 10, 0, 0],
+    rotation: [0, 0, 0],
+    aimEnabled: false,
+    lookAtTarget: [0, 0, -1],
+    lookAtRoll: 0,
+    fov: 40 + index,
+  }));
+}
+
+function sampleCameraPositionX(keys, storyWU) {
+  const compiled = keys
+    .map(compileAboutNarrativeCameraKey)
+    .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
+  return sampleAboutNarrativeCameraKeysInto(
+    compiled,
+    storyWU,
+    false,
+    createCameraSampleTarget(),
+  ).position[0];
+}
 
 function createFixture() {
   return {
@@ -128,6 +180,69 @@ test('object lookup and ranges use global WU and derive World ends from the next
     startWU: 4.75,
     endWU: 5.25,
   });
+});
+
+test('every authored Camera key controls its own incoming arrival and outgoing departure', () => {
+  const authoredKeys = createAuthoredCameraEasingFixture();
+  authoredKeys.forEach((authoredKey, keyIndex) => {
+    const context = resolveAboutNarrativeCameraKeyEasingHandles(authoredKeys, authoredKey.id);
+    assert.equal(context.key.id, authoredKey.id);
+    assert.equal(Boolean(context.incoming), keyIndex > 0, `${authoredKey.id} incoming availability`);
+    assert.equal(Boolean(context.outgoing), keyIndex < authoredKeys.length - 1, `${authoredKey.id} outgoing availability`);
+
+    ['incoming', 'outgoing'].forEach((direction) => {
+      const segmentIndex = direction === 'incoming' ? keyIndex - 1 : keyIndex;
+      if (segmentIndex < 0 || segmentIndex >= authoredKeys.length - 1) return;
+      const keys = createAuthoredCameraEasingFixture();
+      const beforeEasings = keys.map((key) => key.easing);
+      const beforeContext = resolveAboutNarrativeCameraKeyEasingHandles(keys, authoredKey.id);
+      const nextStrength = beforeContext[direction].strength > 0.5 ? 0.2 : 0.8;
+      const segmentStart = keys[segmentIndex];
+      const segmentEnd = keys[segmentIndex + 1];
+      const segmentProgress = direction === 'incoming' ? 0.75 : 0.25;
+      const sampleWU = segmentStart.atWU
+        + ((segmentEnd.atWU - segmentStart.atWU) * segmentProgress);
+      const beforePositionX = sampleCameraPositionX(keys, sampleWU);
+      const result = setAboutNarrativeCameraKeyEasingStrength(
+        keys,
+        authoredKey.id,
+        direction,
+        nextStrength,
+      );
+
+      assert.equal(result.segmentKeyId, segmentStart.id, `${authoredKey.id} ${direction} segment owner`);
+      keys.forEach((key, index) => {
+        if (index === segmentIndex) assert.notEqual(key.easing, beforeEasings[index]);
+        else assert.equal(key.easing, beforeEasings[index], `${authoredKey.id} ${direction} must not edit ${key.id}`);
+      });
+      const afterPositionX = sampleCameraPositionX(keys, sampleWU);
+      assert.ok(
+        Math.abs(afterPositionX - beforePositionX) > 0.0001,
+        `${authoredKey.id} ${direction} must change runtime camera interpolation`,
+      );
+      assert.equal(
+        sampleCameraPositionX(keys, keys[keyIndex].atWU),
+        keyIndex * 10,
+        `${authoredKey.id} easing must preserve its exact keyframe pose`,
+      );
+    });
+  });
+
+  const boundaryKeys = createAuthoredCameraEasingFixture();
+  const boundaryEasings = boundaryKeys.map((key) => key.easing);
+  assert.equal(setAboutNarrativeCameraKeyEasingStrength(
+    boundaryKeys,
+    boundaryKeys[0].id,
+    'incoming',
+    0.8,
+  ), null);
+  assert.equal(setAboutNarrativeCameraKeyEasingStrength(
+    boundaryKeys,
+    boundaryKeys.at(-1).id,
+    'outgoing',
+    0.8,
+  ), null);
+  assert.deepEqual(boundaryKeys.map((key) => key.easing), boundaryEasings);
 });
 
 test('one or many Text fields move in absolute WU and leave every unrelated track byte-identical', () => {

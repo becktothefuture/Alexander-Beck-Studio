@@ -1,8 +1,15 @@
 export const ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING = 'cubic-bezier(0.32, 0, 0.18, 1)';
+export const ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN = 0;
+export const ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX = 0.96;
 
 const CAMERA_BEZIER_PATTERN = /^cubic-bezier\(\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*\)$/;
 const SOFT_TANGENT_EPSILON = 0.000001;
 const LEGACY_CAMERA_EASINGS = new Set(['linear', 'smoothstep', 'ease-in-out']);
+const LEGACY_CAMERA_EASING_CURVES = Object.freeze({
+  linear: Object.freeze({ x1: 0, y1: 0, x2: 1, y2: 1 }),
+  smoothstep: Object.freeze({ x1: 1 / 3, y1: 0, x2: 2 / 3, y2: 1 }),
+  'ease-in-out': Object.freeze({ x1: 0.5, y1: 0, x2: 0.5, y2: 1 }),
+});
 
 export function parseAboutNarrativeCameraEasing(value) {
   const match = CAMERA_BEZIER_PATTERN.exec(String(value || ''));
@@ -22,6 +29,80 @@ export function normalizeAboutNarrativeCameraEasing(value) {
   return ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING;
 }
 
+export function getEditableAboutNarrativeCameraEasingCurve(value) {
+  return parseAboutNarrativeCameraEasing(value)
+    || LEGACY_CAMERA_EASING_CURVES[value]
+    || parseAboutNarrativeCameraEasing(ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING);
+}
+
+export function formatAboutNarrativeCameraEasing(x1, x2) {
+  return `cubic-bezier(${Number(x1).toFixed(2)}, 0, ${Number(x2).toFixed(2)}, 1)`;
+}
+
+function clampEasingStrength(value) {
+  return Math.min(
+    ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MAX,
+    Math.max(ABOUT_NARRATIVE_CAMERA_EASING_STRENGTH_MIN, Number(value) || 0),
+  );
+}
+
+function orderedCameraKeys(keys) {
+  return [...(keys || [])].sort((left, right) => (
+    Number(left.atWU) - Number(right.atWU) || String(left.id).localeCompare(String(right.id))
+  ));
+}
+
+function createEasingHandle(ownerKey, fromKey, toKey, direction) {
+  const curve = getEditableAboutNarrativeCameraEasingCurve(ownerKey.easing);
+  return {
+    direction,
+    ownerKey,
+    fromKey,
+    toKey,
+    easing: ownerKey.easing,
+    curve,
+    strength: direction === 'incoming' ? 1 - curve.x2 : curve.x1,
+  };
+}
+
+export function resolveAboutNarrativeCameraKeyEasingHandles(keys, keyId) {
+  const ordered = orderedCameraKeys(keys);
+  const index = ordered.findIndex((key) => key.id === keyId);
+  if (index < 0) return null;
+  const key = ordered[index];
+  const previousKey = ordered[index - 1] || null;
+  const nextKey = ordered[index + 1] || null;
+  return {
+    key,
+    previousKey,
+    nextKey,
+    incoming: previousKey
+      ? createEasingHandle(previousKey, previousKey, key, 'incoming')
+      : null,
+    outgoing: nextKey
+      ? createEasingHandle(key, key, nextKey, 'outgoing')
+      : null,
+  };
+}
+
+export function setAboutNarrativeCameraKeyEasingStrength(keys, keyId, direction, value) {
+  const context = resolveAboutNarrativeCameraKeyEasingHandles(keys, keyId);
+  const handle = context?.[direction];
+  if (!handle || !['incoming', 'outgoing'].includes(direction)) return null;
+  const strength = clampEasingStrength(value);
+  const easing = direction === 'incoming'
+    ? formatAboutNarrativeCameraEasing(handle.curve.x1, 1 - strength)
+    : formatAboutNarrativeCameraEasing(strength, handle.curve.x2);
+  handle.ownerKey.easing = easing;
+  return {
+    direction,
+    keyId,
+    segmentKeyId: handle.ownerKey.id,
+    strength,
+    easing,
+  };
+}
+
 export function compileAboutNarrativeCameraEasing(value) {
   const normalized = normalizeAboutNarrativeCameraEasing(value);
   return parseAboutNarrativeCameraEasing(normalized) || Object.freeze({ legacy: normalized });
@@ -34,6 +115,7 @@ function cubic(value, p1, p2) {
 
 export function applyAboutNarrativeCameraEasing(curve, progress) {
   const target = Math.min(1, Math.max(0, Number(progress) || 0));
+  if (target === 0 || target === 1) return target;
   const activeCurve = curve || compileAboutNarrativeCameraEasing(ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING);
   if (activeCurve.legacy === 'linear') return target;
   if (activeCurve.legacy === 'ease-in-out') {

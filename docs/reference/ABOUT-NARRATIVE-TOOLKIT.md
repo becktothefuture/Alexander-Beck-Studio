@@ -143,14 +143,15 @@ A Camera key stores:
 - Absolute Focus Anchor X, Y, and Z in world units
 - Horizon roll in degrees
 - FOV
-- A travel curve into the next key
+- The travel curve for its outgoing segment
 
 Manual rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during
 playback. Focus orientation is recalculated from the interpolated camera position and anchor on every
 frame, so moving the camera naturally produces the pan and tilt required to keep looking at that
 point. A segment that changes orientation mode blends the manual and aimed quaternions smoothly;
 between two focused keys the aim remains exact for the entire segment. Position, anchor, horizon
-roll, and FOV all use the selected key's outgoing travel easing.
+roll, and FOV all use the same segment easing. The editor presents the curve's departure handle as
+ease-out on the source key and its arrival handle as ease-in on the destination key.
 
 Adding a Camera key at the playhead samples the published pose first, so insertion does not create a
 jump. Enabling focus derives an initial anchor along the current view direction only when an old key
@@ -160,13 +161,17 @@ Three.js object at its world coordinates; it never ships in the public route.
 
 ### Camera travel easing
 
-Selecting a Camera key opens its **Travel easing** graph. It controls the outgoing segment: the move from the selected key to the next key, never the segment that arrived at it. The two horizontal Bezier handles shape departure and arrival for position, rotation, and lens.
+Selecting a Camera key opens two **Travel easing** graphs tied to that keyframe:
 
-- **Out / acceleration** controls how long the shot holds before it gathers speed.
-- **In / deceleration** controls how early the shot starts settling into the following composition.
+- **Ease into keyframe** controls how early the previous move starts settling into the selected camera.
+- **Ease out of keyframe** controls how long the selected camera holds before the next move gathers speed.
 - Linear travel is also supported and is used by the baked migration path where it best preserves the previous motion.
 
-The curve can be dragged directly, adjusted with arrow keys, entered numerically, or set from Balanced, Cinematic, and Measured presets. The final Camera key has no outgoing segment, so its curve is disabled.
+Both strengths use the same position, rotation, focus, and lens interpolation. They can be dragged
+directly, adjusted with arrow keys, entered numerically, or set together from Balanced, Cinematic,
+and Measured presets. Higher strength produces a longer, softer ease. The first key has no incoming
+move, and the final key has no outgoing move, so the unavailable side is stated instead of showing a
+control that cannot affect playback.
 
 ### Camera rig controls
 
@@ -181,8 +186,8 @@ persistent anchor controls:
 - **Field of view** widens or tightens the lens.
 
 Travel easing remains in a separate collapsed folder. Slider gestures live-apply as one undoable
-edit, while the adjacent number field supports precise entry. The protected first and final keys
-cannot move in time or be deleted, but their pose remains editable.
+edit, while the adjacent number fields support precise entry. The protected first and final keys
+cannot move in time or be deleted, but their pose and available easing side remain editable.
 
 ### Visibility and global fog
 
