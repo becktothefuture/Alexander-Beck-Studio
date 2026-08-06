@@ -21,6 +21,10 @@ import {
   createAdaptiveSpinnerController,
 } from '../react-app/app/src/lib/motion/route-transition-loader-timing.js';
 import {
+  ROUTE_LOADER_BACKDROP_MODES,
+  resolveRouteLoaderBackdropMode,
+} from '../react-app/app/src/lib/motion/route-transition-backplane.js';
+import {
   createRouteTransitionParticipantGeneration,
   registerRouteTransitionParticipant,
 } from '../react-app/app/src/lib/motion/route-transition-participants.js';
@@ -208,6 +212,25 @@ test('normal route transaction follows the only legal phase order', () => {
   assert.deepEqual(transaction.phaseHistory, ['idle', 'route-out', 'route-loading', 'route-in', 'idle']);
   assert.equal(transaction.settlementStatus, 'ready');
   assert.equal(transaction.settlementEndpoint, ROUTE_SETTLEMENT_ENDPOINTS.SETTLE_INCOMING);
+});
+
+test('persistent backplane handoff is limited to Home and Work', () => {
+  assert.equal(
+    resolveRouteLoaderBackdropMode('home', 'portfolio'),
+    ROUTE_LOADER_BACKDROP_MODES.PRESERVE,
+  );
+  assert.equal(
+    resolveRouteLoaderBackdropMode('portfolio', 'home'),
+    ROUTE_LOADER_BACKDROP_MODES.PRESERVE,
+  );
+  assert.equal(
+    resolveRouteLoaderBackdropMode('home', 'about'),
+    ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
+  );
+  assert.equal(
+    resolveRouteLoaderBackdropMode('contact', 'portfolio'),
+    ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
+  );
 });
 
 test('canonical navigation and effective readiness identities remain distinct', () => {

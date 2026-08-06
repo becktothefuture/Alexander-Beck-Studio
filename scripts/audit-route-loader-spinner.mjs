@@ -35,6 +35,13 @@ function assert(condition, message, details = null) {
   throw new Error(`${message}${suffix}`);
 }
 
+function isTransparentBackground(color) {
+  const normalized = String(color || '').trim().toLowerCase();
+  return normalized === 'transparent'
+    || (normalized.startsWith('rgba(') && /,\s*0(?:\.0+)?\s*\)$/.test(normalized))
+    || (normalized.includes('/') && /\/\s*0(?:\.0+)?\s*\)$/.test(normalized));
+}
+
 function inspectCirclePixels(buffer, label) {
   const png = PNG.sync.read(buffer);
   assert(png.width === png.height, `${label}: captured dot is not square`, {
@@ -147,6 +154,7 @@ async function captureProfile(browser, profile, index) {
     const root = document.documentElement;
     const loader = document.querySelector('.route-transition-loader');
     const studio = document.getElementById('simulations');
+    const noise = document.querySelector('#scene-effects .noise');
     const dot = document.querySelector('.route-transition-loader .abs-loader-spinner__dot');
     const dotStyles = [...document.querySelectorAll('.route-transition-loader .abs-loader-spinner__dot')]
       .map((node) => {
@@ -161,14 +169,30 @@ async function captureProfile(browser, profile, index) {
       });
     return {
       theme: root.dataset.absTheme,
+      backdropMode: loader?.dataset.routeTransitionLoaderBackdrop
+        || root.dataset.absRouteLoaderBackdrop
+        || 'opaque',
       plate: getComputedStyle(loader).backgroundColor,
       studio: getComputedStyle(studio).backgroundColor,
       ink: getComputedStyle(dot).backgroundColor,
       text: getComputedStyle(root).getPropertyValue('--text-primary').trim(),
+      noise: {
+        connected: Boolean(noise?.isConnected),
+        opacity: noise ? Number.parseFloat(getComputedStyle(noise).opacity || '0') : 0,
+        texture: noise ? getComputedStyle(noise, '::before').backgroundImage : '',
+      },
       dotStyles,
     };
   });
-  assert(beforeTheme.plate === beforeTheme.studio, `${profile.label}: plate does not match studio theme`, beforeTheme);
+  assert(beforeTheme.backdropMode === 'preserve', `${profile.label}: Home -> Work did not preserve the shared backplane`, beforeTheme);
+  assert(isTransparentBackground(beforeTheme.plate), `${profile.label}: transparent handoff repainted the loader backdrop`, beforeTheme);
+  assert(
+    beforeTheme.noise.connected
+      && beforeTheme.noise.opacity > 0
+      && beforeTheme.noise.texture.startsWith('url('),
+    `${profile.label}: transparent handoff did not retain the persistent grain`,
+    beforeTheme,
+  );
   beforeTheme.dotStyles.forEach((dot, dotIndex) => {
     assert(dot.width === dot.height, `${profile.label}: dot ${dotIndex + 1} has unequal authored dimensions`, dot);
     assert(dot.borderRadius === '50%', `${profile.label}: dot ${dotIndex + 1} lost its circular radius`, dot);
@@ -188,6 +212,9 @@ async function captureProfile(browser, profile, index) {
       const dot = document.querySelector('.route-transition-loader .abs-loader-spinner__dot');
       return {
         theme: root.dataset.absTheme,
+        backdropMode: loader?.dataset.routeTransitionLoaderBackdrop
+          || root.dataset.absRouteLoaderBackdrop
+          || 'opaque',
         plate: getComputedStyle(loader).backgroundColor,
         studio: getComputedStyle(studio).backgroundColor,
         ink: getComputedStyle(dot).backgroundColor,
@@ -198,8 +225,9 @@ async function captureProfile(browser, profile, index) {
       afterTheme,
       phase: await page.evaluate(() => document.documentElement.dataset.absTransitionPhase),
     });
-    assert(afterTheme.plate === afterTheme.studio, `${profile.label}: plate did not follow a live theme change`, afterTheme);
-    assert(afterTheme.plate !== beforeTheme.plate, `${profile.label}: plate colour did not change with the theme`, {
+    assert(afterTheme.backdropMode === 'preserve', `${profile.label}: theme change replaced the persistent backplane`, afterTheme);
+    assert(isTransparentBackground(afterTheme.plate), `${profile.label}: theme change repainted the transparent handoff`, afterTheme);
+    assert(afterTheme.studio !== beforeTheme.studio, `${profile.label}: studio theme did not change beneath the preserved backplane`, {
       beforeTheme,
       afterTheme,
     });
@@ -253,4 +281,4 @@ await writeFile(reportPath, `${JSON.stringify({
   results,
 }, null, 2)}\n`);
 console.log(JSON.stringify({ profiles: results.length, reportPath }, null, 2));
-console.log(`PASS: ${BROWSER_NAME} route loader completed multiple forward rotations at DPR 1/2/3 and loader colours followed the live studio theme`);
+console.log(`PASS: ${BROWSER_NAME} route loader completed multiple forward rotations at DPR 1/2/3 while Home -> Work preserved the live grain through a theme change`);

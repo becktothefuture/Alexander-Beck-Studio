@@ -47,6 +47,11 @@ import {
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
 import { createRouteLoaderTimingDriver } from '../lib/motion/route-transition-loader-timing.js';
 import {
+  normalizeRouteLoaderBackdropMode,
+  resolveRouteLoaderBackdropMode,
+  ROUTE_LOADER_BACKDROP_MODES,
+} from '../lib/motion/route-transition-backplane.js';
+import {
   isDailyLabRouteId,
   observeRouteBaselineReady,
   waitForObservedRouteReady,
@@ -1154,6 +1159,7 @@ export function useShellRouteTransition({
     generation: 0,
     pendingRouteId: null,
     loaderPresentation: 'plate',
+    loaderBackdropMode: ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
     loaderSpinnerStartedAt: 0,
     activation: null,
     phaseStartedAt: performance.now(),
@@ -1226,6 +1232,22 @@ export function useShellRouteTransition({
         ? Number(detail.spinnerShownAt || performance.now())
         : 0,
     }));
+  }, []);
+  const publishLoaderBackdropMode = useCallback((mode) => {
+    const normalized = normalizeRouteLoaderBackdropMode(mode);
+    // This write is synchronous with the DOM transition phase. It prevents a
+    // React render turn from reintroducing the opaque plate for one frame.
+    document.documentElement.dataset.absRouteLoaderBackdrop = normalized;
+    if (normalized === ROUTE_LOADER_BACKDROP_MODES.PRESERVE) {
+      document.documentElement.style.setProperty('--abs-route-loader-backdrop', 'transparent');
+    } else {
+      document.documentElement.style.removeProperty('--abs-route-loader-backdrop');
+    }
+    setTransitionState((current) => ({
+      ...current,
+      loaderBackdropMode: normalized,
+    }));
+    return normalized;
   }, []);
 
   const publishSimulationSwitchTransaction = useCallback((transaction, status = '') => {
@@ -2065,6 +2087,10 @@ export function useShellRouteTransition({
       animationRegistry.cancel();
       setRouteSurfaceVisibility(false, surfaceRefs);
       routeLoaderSessionRef.current?.retarget();
+      publishLoaderBackdropMode(resolveRouteLoaderBackdropMode(
+        activeRouteIdRef.current || coveredTransaction?.fromState?.route?.id,
+        destination.routeId,
+      ));
       publishTransitionPhase(
         TRANSITION_PHASES.ROUTE_LOADING,
         transitionGenerationRef.current,
@@ -2114,6 +2140,10 @@ export function useShellRouteTransition({
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
       animationRegistry.cancel();
+      publishLoaderBackdropMode(resolveRouteLoaderBackdropMode(
+        activeRouteIdRef.current,
+        nextRouteId,
+      ));
       publishTransitionPhase(
         TRANSITION_PHASES.ROUTE_LOADING,
         transitionGenerationRef.current,
@@ -2263,6 +2293,7 @@ export function useShellRouteTransition({
       setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: isGate });
       const token = ++transitionGenerationRef.current;
+      const loaderBackdropMode = resolveRouteLoaderBackdropMode(previousRouteId, nextRouteId);
       const abortController = new AbortController();
       const participants = createRouteTransitionParticipantGeneration({
         generation: token,
@@ -2299,6 +2330,7 @@ export function useShellRouteTransition({
       });
       activeTransactionRef.current = transaction;
       inertRegistry.activate(getOwnedRouteSurfaceNodes(surfaceRefs));
+      publishLoaderBackdropMode(loaderBackdropMode);
       const stale = () => (
         token !== transitionGenerationRef.current
         || abortController.signal.aborted
@@ -2576,6 +2608,7 @@ export function useShellRouteTransition({
     animationRegistry,
     historyCoordinator,
     inertRegistry,
+    publishLoaderBackdropMode,
     publishLoaderPresentation,
     publishTransitionPhase,
     surfaceRefs,
@@ -2629,6 +2662,7 @@ export function useShellRouteTransition({
     if (isSimulationFocus) {
       return requestSimulationSwitch(options.simulationId);
     }
+    publishLoaderBackdropMode(ROUTE_LOADER_BACKDROP_MODES.OPAQUE);
 
     const finishTransition = () => {
       transitionActiveRef.current = false;
@@ -2723,6 +2757,7 @@ export function useShellRouteTransition({
     animationRegistry,
     inertRegistry,
     navigate,
+    publishLoaderBackdropMode,
     requestSimulationSwitch,
     surfaceRefs,
     syncSteadyTransitionPhase,
@@ -2808,6 +2843,10 @@ export function useShellRouteTransition({
       if (wasTransitionActive || wasGateTransition) {
         animationRegistry.cancel();
         setRouteSurfaceVisibility(false, surfaceRefs);
+        publishLoaderBackdropMode(resolveRouteLoaderBackdropMode(
+          activeRouteIdRef.current,
+          nextState.route.id,
+        ));
         publishTransitionPhase(
           TRANSITION_PHASES.ROUTE_LOADING,
           transitionGenerationRef.current,
@@ -2897,6 +2936,7 @@ export function useShellRouteTransition({
     historyCoordinator,
     inertRegistry,
     navigate,
+    publishLoaderBackdropMode,
     publishTransitionPhase,
     surfaceRefs,
     syncSteadyTransitionPhase,

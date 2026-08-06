@@ -22,6 +22,7 @@ export function RouteTransitionLoader({ transitionState = {} }) {
     settledGeneration = 0,
     settledRouteId = null,
     loaderPresentation = 'plate',
+    loaderBackdropMode = 'opaque',
     loaderSpinnerStartedAt = 0,
   } = transitionState;
   const isActive = ACTIVE_PHASES.has(phase);
@@ -72,6 +73,7 @@ export function RouteTransitionLoader({ transitionState = {} }) {
         data-route-transition-loader
         data-route-transition-loader-state={phase}
         data-route-transition-loader-presentation={loaderPresentation}
+        data-route-transition-loader-backdrop={loaderBackdropMode}
         data-route-transition-spinner-started-at={loaderSpinnerStartedAt || undefined}
         data-route-transition-generation={generation}
         aria-hidden="true"

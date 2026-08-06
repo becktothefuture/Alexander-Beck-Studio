@@ -3,6 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, firefox, webkit } from 'playwright';
+import {
+  ROUTE_LOADER_BACKDROP_MODES,
+  resolveRouteLoaderBackdropMode,
+} from '../react-app/app/src/lib/motion/route-transition-backplane.js';
 
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 60000);
@@ -17,6 +21,10 @@ const CPU_THROTTLE_RATE = Math.max(1, Number(process.env.ABS_TRANSITION_CPU_THRO
 const READINESS_DELAY_MS = Math.max(0, Number(process.env.ABS_TRANSITION_READINESS_DELAY_MS || 0));
 const DWELL_MS = Math.max(0, Number(process.env.ABS_TRANSITION_DWELL_MS || 0));
 const ROUTE_BACKED_HOME_ID = String(process.env.ABS_TRANSITION_ROUTE_BACKED_HOME || '').trim();
+const REQUESTED_THEME = String(process.env.ABS_TRANSITION_THEME || '').trim().toLowerCase();
+if (REQUESTED_THEME && !['light', 'dark'].includes(REQUESTED_THEME)) {
+  throw new Error(`Unknown ABS_TRANSITION_THEME "${REQUESTED_THEME}" (expected light or dark).`);
+}
 const VIEWPORT_MATCH = String(process.env.ABS_TRANSITION_VIEWPORT || '1280x900').match(/^(\d+)x(\d+)$/i);
 const VIEWPORT = VIEWPORT_MATCH
   ? { width: Number(VIEWPORT_MATCH[1]), height: Number(VIEWPORT_MATCH[2]) }
@@ -43,6 +51,7 @@ const runStem = [
   CPU_THROTTLE_RATE > 1 ? `cpu-${CPU_THROTTLE_RATE}x` : '',
   READINESS_DELAY_MS > 0 ? `readiness-${READINESS_DELAY_MS}ms` : '',
   DWELL_MS > 0 ? `dwell-${DWELL_MS}ms` : '',
+  REQUESTED_THEME ? `theme-${REQUESTED_THEME}` : '',
   HEADED ? 'headed' : '',
 ].filter(Boolean).join('-');
 
@@ -76,6 +85,13 @@ function assert(condition, message, details = null) {
   if (condition) return;
   const suffix = details ? `\n${JSON.stringify(details, null, 2)}` : '';
   throw new Error(`${message}${suffix}`);
+}
+
+function isTransparentBackground(color) {
+  const normalized = String(color || '').trim().toLowerCase();
+  return normalized === 'transparent'
+    || (normalized.startsWith('rgba(') && /,\s*0(?:\.0+)?\s*\)$/.test(normalized))
+    || (normalized.includes('/') && /\/\s*0(?:\.0+)?\s*\)$/.test(normalized));
 }
 
 function origin() {
@@ -613,6 +629,8 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const sampleStartedAt = performance.now();
       const root = document.documentElement;
       const loader = document.querySelector('[data-route-transition-loader]');
+      const noise = document.querySelector('#scene-effects .noise');
+      const noiseTexture = noise ? getComputedStyle(noise, '::before').backgroundImage : '';
       const spinner = loader?.querySelector('.route-transition-loader__spinner');
       const spinnerDots = Array.from(spinner?.querySelectorAll('.abs-loader-spinner__dot') || []);
       const routeTabs = document.querySelector('[data-route-tabs]');
@@ -639,6 +657,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         elapsedMs: round(now - state.startedAt, 2),
         path: location.pathname,
         phase: root.dataset.absTransitionPhase || 'idle',
+        theme: root.dataset.absTheme || '',
         instrumentWake: root.dataset.absInstrumentWake || '',
         renderedRoute: shellRoute?.dataset.shellRouteView || currentTab?.getAttribute('data-route-tab') || '',
         committedRoute: currentTab?.getAttribute('data-route-tab') || '',
@@ -650,6 +669,9 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           presentation: loader?.dataset.routeTransitionLoaderPresentation
             || root.dataset.absRouteLoaderPresentation
             || 'plate',
+          backdropMode: loader?.dataset.routeTransitionLoaderBackdrop
+            || root.dataset.absRouteLoaderBackdrop
+            || 'opaque',
           spinnerStartedAt: Number(loader?.dataset.routeTransitionSpinnerStartedAt || 0),
           backgroundColor: getComputedStyle(loader).backgroundColor,
           coveredForMs: root.dataset.absRouteLoadingCoveredAt
@@ -673,6 +695,11 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         },
         studioWindow: readEffective(document.getElementById('simulations')),
         studioWindowBackgroundColor: getComputedStyle(document.getElementById('simulations')).backgroundColor,
+        backplane: {
+          noise: readEffective(noise),
+          noiseIdentity: identifyElement(noise),
+          noiseTexture,
+        },
         buttonBar: readEffective(buttonBar),
         buttonBarIndicator: activeIndicator ? {
           ...readEffective(activeIndicator),
@@ -886,6 +913,10 @@ function assertTransitionTrace(trace, {
   const finalIdleIndex = samples.findLastIndex((sample) => sample.phase === 'idle');
   const materialRoutes = new Set(['home', 'portfolio', 'about', 'contact', 'playground']);
   const initialButtonBarRect = samples.find((sample) => sample.buttonBar?.rect)?.buttonBar?.rect;
+  const expectedLoaderBackdropMode = resolveRouteLoaderBackdropMode(
+    trace.fromRouteId,
+    trace.toRouteId,
+  );
 
   samples.forEach((sample, index) => {
     if (!initialButtonBarRect || !sample.buttonBar?.rect) return;
@@ -905,6 +936,13 @@ function assertTransitionTrace(trace, {
   assert(loadingIndex >= 0, `${trace.label}: route-loading was not observed`, { phases });
   assert(routeInIndex > loadingIndex, `${trace.label}: route-in did not follow route-loading`, { phases });
   assert(finalIdleIndex > routeInIndex, `${trace.label}: idle did not follow route-in`, { phases });
+  if (REQUESTED_THEME) {
+    assert(
+      samples.every((sample) => sample.theme === REQUESTED_THEME),
+      `${trace.label}: requested ${REQUESTED_THEME} theme changed during the transition`,
+      { sampledThemes: [...new Set(samples.map((sample) => sample.theme))] },
+    );
+  }
 
   samples.forEach((sample, index) => {
     if (sample.phase !== 'route-out' && sample.phase !== 'route-loading') return;
@@ -940,9 +978,16 @@ function assertTransitionTrace(trace, {
       && sample.loader.effectiveOpacity >= FULL_COVER_OPACITY
       && rectCoversWindow(sample.loader.rect, sample.studioWindow?.rect)
     );
+    const opaqueLoaderCovers = loaderFullyCovering
+      && sample.loader?.backdropMode === ROUTE_LOADER_BACKDROP_MODES.OPAQUE
+      && sample.loader?.backgroundColor === sample.studioWindowBackgroundColor;
+    const persistentBackplaneVisible = loaderFullyCovering
+      && sample.loader?.backdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE
+      && isTransparentBackground(sample.loader?.backgroundColor)
+      && (sample.backplane?.noise?.effectiveOpacity || 0) > VISIBILITY_EPSILON;
     assert(
-      outgoingVisible || loaderFullyCovering,
-      `${trace.label}: neither outgoing content nor the loader covered a rendered frame`,
+      outgoingVisible || opaqueLoaderCovers || persistentBackplaneVisible,
+      `${trace.label}: neither outgoing content, an opaque loader, nor the persistent backplane protected a rendered frame`,
       traceExcerpt(trace, index),
     );
   });
@@ -964,11 +1009,57 @@ function assertTransitionTrace(trace, {
       sample,
     );
     assert(
-      sample.loader.backgroundColor === sample.studioWindowBackgroundColor,
-      `${trace.label}: loader plate did not match the studio-window theme`,
+      sample.loader?.backdropMode === expectedLoaderBackdropMode,
+      `${trace.label}: loader used the wrong backdrop policy`,
+      { expectedLoaderBackdropMode, loader: sample.loader },
+    );
+    if (expectedLoaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE) {
+      assert(
+        isTransparentBackground(sample.loader?.backgroundColor),
+        `${trace.label}: persistent-backplane loader repainted the studio background`,
+        sample.loader,
+      );
+      assert(
+        (sample.backplane?.noise?.effectiveOpacity || 0) > VISIBILITY_EPSILON,
+        `${trace.label}: persistent grain was hidden during the transparent loader handoff`,
+        sample.backplane,
+      );
+      assert(
+        sample.backplane?.noiseIdentity > 0
+          && sample.backplane?.noiseTexture?.startsWith('url('),
+        `${trace.label}: persistent grain was not backed by its existing texture`,
+        sample.backplane,
+      );
+      return;
+    }
+    assert(
+      sample.loader?.backgroundColor === sample.studioWindowBackgroundColor,
+      `${trace.label}: opaque loader plate did not match the studio-window theme`,
       sample.loader,
     );
   });
+
+  if (expectedLoaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE) {
+    const activeBackplaneSamples = samples.filter((sample) => (
+      ['route-out', 'route-loading', 'route-in'].includes(sample.phase)
+    ));
+    const noiseIdentities = new Set(activeBackplaneSamples
+      .map((sample) => sample.backplane?.noiseIdentity)
+      .filter(Boolean));
+    assert(activeBackplaneSamples.length > 0, `${trace.label}: no active handoff frames were sampled`, { phases });
+    assert(
+      activeBackplaneSamples.every((sample) => (
+        sample.loader?.backdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE
+      )),
+      `${trace.label}: persistent-backplane mode changed during the route transaction`,
+      { activeBackplaneSamples },
+    );
+    assert(
+      noiseIdentities.size === 1,
+      `${trace.label}: persistent grain remounted during the route transaction`,
+      { noiseIdentities: [...noiseIdentities] },
+    );
+  }
 
   const indicatorSamples = samples.filter((sample) => Number.isFinite(sample.buttonBarIndicator?.rect?.left));
   const finalIndicator = indicatorSamples.at(-1)?.buttonBarIndicator;
@@ -1666,14 +1757,17 @@ async function main() {
   });
 
   try {
-    await page.addInitScript(({ readinessDelayMs }) => {
+    await page.addInitScript(({ readinessDelayMs, requestedTheme }) => {
       // Legacy route runtimes temporarily scope requestAnimationFrame so they can
       // clean up their own loops. Keep the audit recorder outside that scope or
       // a route unmount can cancel the very observer intended to inspect it.
       window.__ABS_AUDIT_NATIVE_RAF__ = window.requestAnimationFrame.bind(window);
       window.__ABS_AUDIT_NATIVE_CANCEL_RAF__ = window.cancelAnimationFrame.bind(window);
       window.__ABS_AUDIT_ROUTE_READINESS_DELAY_MS__ = readinessDelayMs;
-    }, { readinessDelayMs: READINESS_DELAY_MS });
+      if (requestedTheme) {
+        localStorage.setItem('theme-preference-v3', requestedTheme);
+      }
+    }, { readinessDelayMs: READINESS_DELAY_MS, requestedTheme: REQUESTED_THEME });
     await page.goto(routeUrl('/index.html?mode=pit&absAudit=1'), {
       waitUntil: 'domcontentloaded',
       timeout: 60000,
@@ -1718,6 +1812,7 @@ async function main() {
             const source = document.querySelector('[data-route-view="home"]');
             const loader = document.querySelector('[data-route-transition-loader]');
             const studioWindow = document.getElementById('simulations');
+            const noise = document.querySelector('#scene-effects .noise');
             let opacity = 1;
             let visible = Boolean(source);
             for (let current = source; current; current = current.parentElement) {
@@ -1729,6 +1824,13 @@ async function main() {
             const loaderVisible = Boolean(loaderStyles)
               && loaderStyles.display !== 'none'
               && loaderStyles.visibility !== 'hidden';
+            let noiseOpacity = 1;
+            let noiseVisible = Boolean(noise);
+            for (let current = noise; current; current = current.parentElement) {
+              const styles = getComputedStyle(current);
+              noiseOpacity *= Number.parseFloat(styles.opacity || '1') || 0;
+              if (styles.display === 'none' || styles.visibility === 'hidden') noiseVisible = false;
+            }
             return {
               phase,
               outgoingOpacity: visible ? opacity : 0,
@@ -1736,18 +1838,30 @@ async function main() {
               loaderRect: loader?.getBoundingClientRect().toJSON?.() || null,
               studioWindowRect: studioWindow?.getBoundingClientRect().toJSON?.() || null,
               loaderBackgroundColor: loaderStyles?.backgroundColor || '',
+              loaderBackdropMode: loader?.dataset.routeTransitionLoaderBackdrop
+                || document.documentElement.dataset.absRouteLoaderBackdrop
+                || 'opaque',
               studioWindowBackgroundColor: studioWindow ? getComputedStyle(studioWindow).backgroundColor : '',
+              noiseOpacity: noiseVisible ? noiseOpacity : 0,
+              noiseTexture: noise ? getComputedStyle(noise, '::before').backgroundImage : '',
             };
           });
           const outgoingStillCovers = heldState.phase === 'route-out'
             && heldState.outgoingOpacity > VISIBILITY_EPSILON;
-          const loaderNowCovers = heldState.phase === 'route-loading'
+          const loaderNowProtects = heldState.phase === 'route-loading'
             && heldState.loaderOpacity >= FULL_COVER_OPACITY
             && rectCoversWindow(heldState.loaderRect, heldState.studioWindowRect)
-            && heldState.loaderBackgroundColor === heldState.studioWindowBackgroundColor;
+            && (
+              (heldState.loaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.OPAQUE
+                && heldState.loaderBackgroundColor === heldState.studioWindowBackgroundColor)
+              || (heldState.loaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE
+                && isTransparentBackground(heldState.loaderBackgroundColor)
+                && heldState.noiseOpacity > VISIBILITY_EPSILON
+                && heldState.noiseTexture.startsWith('url('))
+            );
           assert(
-            outgoingStillCovers || loaderNowCovers,
-            'Delayed Portfolio preload exposed a blank frame before the loader transaction',
+            outgoingStillCovers || loaderNowProtects,
+            'Delayed Portfolio preload exposed neither outgoing content, an opaque loader, nor the persistent backplane',
             heldState,
           );
           await delayedDependency.release();
@@ -1823,6 +1937,7 @@ async function main() {
       browser: BROWSER_NAME,
       viewport: VIEWPORT,
       reducedMotion: REDUCED_MOTION,
+      theme: REQUESTED_THEME || 'auto',
       cpuThrottleRate: CPU_THROTTLE_RATE,
       readinessDelayMs: READINESS_DELAY_MS,
       transitions: traces.length,
