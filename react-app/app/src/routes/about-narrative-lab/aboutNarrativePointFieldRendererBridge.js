@@ -167,8 +167,15 @@ function compileDisciplineReveal(interactions, fallback) {
   const endWU = Number(clip.endWU);
   const settleDurationWU = Number(parameters.settleDurationWU);
   const beatDurationWU = Number(parameters.beatDurationWU);
+  const itemsPerBeat = Math.max(1, Math.min(
+    parameters.items.length,
+    Math.round(Number(parameters.itemsPerBeat) || 1),
+  ));
+  const beatCount = Math.ceil(parameters.items.length / itemsPerBeat);
+  const restoreDurationWU = Math.max(0, Number(parameters.restoreDurationWU));
   const sequenceStartWU = effectStartWU + settleDurationWU;
-  const sequenceEndWU = sequenceStartWU + (parameters.items.length * beatDurationWU);
+  const sequenceEndWU = sequenceStartWU + (beatCount * beatDurationWU);
+  const restoreStartWU = Math.max(sequenceEndWU, endWU - restoreDurationWU);
   return deepFreeze({
     id: clip.id,
     startWU,
@@ -178,14 +185,17 @@ function compileDisciplineReveal(interactions, fallback) {
     effectEndWU: endWU,
     settleDurationWU,
     beatDurationWU,
+    itemsPerBeat,
+    beatCount,
     sequenceStartWU,
     sequenceEndWU,
+    restoreStartWU,
     backgroundFadeWU: settleDurationWU,
     backgroundFadeEndWU: sequenceStartWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
     reconnectOpacity: 1,
     pointScale: Number(parameters.pointScale),
-    restoreDurationWU: Number(parameters.restoreDurationWU),
+    restoreDurationWU,
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -366,10 +376,9 @@ function writeV6DisciplineReveal(frame, config) {
     : frame.reducedMotion
       ? 1
       : smoothRange(frame.storyWU, config.effectStartWU, config.backgroundFadeEndWU);
-  const restoreStartWU = config.sequenceEndWU;
   target.restoreProgress = frame.reducedMotion
     ? 0
-    : smoothRange(frame.storyWU, restoreStartWU, config.effectEndWU);
+    : smoothRange(frame.storyWU, config.restoreStartWU, config.effectEndWU);
   target.activeIndex = -1;
   target.activeGroup = 0;
   target.beatProgress = 0;
@@ -377,11 +386,12 @@ function writeV6DisciplineReveal(frame, config) {
   target.copyOffsetY = 0;
   if (frame.storyWU >= config.sequenceStartWU && frame.storyWU < config.sequenceEndWU) {
     const sequenceWU = frame.storyWU - config.sequenceStartWU;
-    const activeIndex = Math.min(
-      config.items.length - 1,
+    const activeBeatIndex = Math.min(
+      config.beatCount - 1,
       Math.floor(sequenceWU / config.beatDurationWU),
     );
-    const beatProgress = (sequenceWU - (activeIndex * config.beatDurationWU))
+    const activeIndex = activeBeatIndex * config.itemsPerBeat;
+    const beatProgress = (sequenceWU - (activeBeatIndex * config.beatDurationWU))
       / config.beatDurationWU;
     const entrance = frame.reducedMotion ? 1 : smoothRange(beatProgress, 0, 0.2);
     target.activeIndex = activeIndex;

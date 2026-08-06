@@ -145,8 +145,8 @@ test('canonical About source authors one consolidated camera, visibility, and fo
     visibilityKeys.find((key) => key.id === 'visibility-discipline-read'),
     {
       id: 'visibility-discipline-read',
-      atWU: 13.809,
-      visibility: 0.86,
+      atWU: 10.85,
+      visibility: 1,
       easing: 'smoothstep',
       locked: false,
     },
@@ -348,8 +348,9 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
   assert.ok(reveal.startWU >= background.startWU && reveal.endWU <= ripple.startWU);
   assert.ok(ripple.endWU <= nextWorld.startWU);
   assert.ok(reveal.parameters.backgroundOpacity > 0);
-  assert.equal(reveal.parameters.settleDurationWU, 0.5);
-  assert.equal(reveal.parameters.beatDurationWU, 0.7);
+  assert.equal(reveal.parameters.settleDurationWU, 0.3);
+  assert.equal(reveal.parameters.beatDurationWU, 0.32);
+  assert.equal(reveal.parameters.itemsPerBeat, 2);
   assert.ok(reveal.parameters.restoreDurationWU > 0);
   assert.equal(canonical.tracks.text.fields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.doesNotMatch(liveSources.world, /worldDisciplineRise|resolveDisciplineStoryOffset|storyOffset/);
@@ -559,7 +560,7 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C keeps the saved flyover, gentle discipline descent, and constant ending orbit', () => {
+test('World C keeps the saved flyover, settled discipline grid, decisive editorial exit, and constant ending orbit', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   assert.ok(background);
@@ -612,8 +613,8 @@ test('World C keeps the saved flyover, gentle discipline descent, and constant e
   });
   assert.deepEqual(disciplineHoldKeys.map((key) => key.position), [
     [-5, 3.14, -2.94],
-    [-5, 3, -2],
-    [-5, 3, -2],
+    [-5, 3.14, -2.94],
+    [-5, 4.4, 2.2],
   ]);
   assert.equal(keys.get('grid-birds-eye').easing, 'cubic-bezier(0.32, 0, 0.18, 1)');
   assert.equal(
@@ -624,33 +625,29 @@ test('World C keeps the saved flyover, gentle discipline descent, and constant e
   const shift = keys.get('grid-birds-eye');
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   const disciplineBeatStartWU = reveal.startWU + reveal.parameters.settleDurationWU;
-  assert.ok(shift.atWU >= disciplineBeatStartWU);
-  assert.ok(
-    shift.atWU
-      <= disciplineBeatStartWU + (1.5 * reveal.parameters.beatDurationWU),
-    'The downward tilt must settle before the second discipline reaches its midpoint.',
-  );
+  assert.equal(shift.atWU, disciplineBeatStartWU);
+  assert.ok(shift.atWU > reveal.startWU);
   assert.ok(shift.atWU < reveal.endWU);
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const firstFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
-  let previousDisciplineCameraY = Number.POSITIVE_INFINITY;
-  let previousDisciplineCameraZ = Number.NEGATIVE_INFINITY;
-  for (let storyWU = shift.atWU; storyWU <= keys.get('editorial-camera-hold').atWU; storyWU += 0.025) {
+  const disciplineHold = keys.get('discipline-hold');
+  for (let storyWU = shift.atWU; storyWU <= disciplineHold.atWU; storyWU += 0.025) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assert.equal(frame.camera.targeted, false);
     assert.equal(frame.camera.aimWeight, 0);
     assertCameraValue(frame.camera.position[0], -5, 'Discipline camera X');
-    assert.ok(frame.camera.position[2] >= previousDisciplineCameraZ - 0.00001);
-    assert.ok(frame.camera.position[2] >= -2.94 - 0.00001);
-    assert.ok(frame.camera.position[2] <= -2 + 0.00001);
-    assert.ok(frame.camera.position[1] <= previousDisciplineCameraY + 0.00001);
-    assert.ok(frame.camera.position[1] >= 3 - 0.00001);
-    assert.ok(frame.camera.position[1] <= 3.14 + 0.00001);
-    previousDisciplineCameraY = frame.camera.position[1];
-    previousDisciplineCameraZ = frame.camera.position[2];
+    assertCameraValue(frame.camera.position[1], shift.position[1], 'Settled grid camera Y');
+    assertCameraValue(frame.camera.position[2], shift.position[2], 'Settled grid camera Z');
   }
-  assertCameraValue(previousDisciplineCameraY, 3, 'Settled discipline camera Y');
-  assertCameraValue(previousDisciplineCameraZ, -2, 'Settled discipline camera Z');
+  const editorialHold = keys.get('editorial-camera-hold');
+  const exitMidpoint = sampleAboutNarrativeRuntimePlan(
+    plan,
+    disciplineHold.atWU + ((editorialHold.atWU - disciplineHold.atWU) * 0.5),
+  );
+  assert.ok(exitMidpoint.camera.position[1] > disciplineHold.position[1]);
+  assert.ok(exitMidpoint.camera.position[2] > disciplineHold.position[2]);
+  assert.ok(exitMidpoint.camera.fov > disciplineHold.fov);
+  assert.deepEqual(sampleAboutNarrativeRuntimePlan(plan, editorialHold.atWU).camera.position, editorialHold.position);
 
   const getCameraRadius = (position, target) => Math.hypot(
     position[0] - target[0],
@@ -776,10 +773,10 @@ test('World C keeps the saved flyover, gentle discipline descent, and constant e
 
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
-  assert.equal(new Set(verticalPositions).size, 6);
-  assert.equal(new Set(horizontalPositions).size, 1);
-  assert.deepEqual(horizontalPositions.map((value) => Math.round(value * 126)), [48, 48, 48, 48, 48, 48]);
-  assert.deepEqual(verticalPositions.map((value) => Math.round(value * 94)), [53, 54, 55, 56, 57, 58]);
+  assert.equal(new Set(verticalPositions).size, 3);
+  assert.equal(new Set(horizontalPositions).size, 2);
+  assert.deepEqual(horizontalPositions.map((value) => Math.round(value * 126)), [43, 52, 43, 52, 43, 52]);
+  assert.deepEqual(verticalPositions.map((value) => Math.round(value * 94)), [54, 54, 56, 56, 58, 58]);
 
   const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => (
     clip.type === 'discipline-reveal'
@@ -797,40 +794,43 @@ test('World C keeps the saved flyover, gentle discipline descent, and constant e
     assert.equal(item.position, undefined);
     assert.equal(item.mobilePosition, undefined);
   });
-  assert.equal(disciplineReveal.parameters.settleDurationWU, 0.5);
-  assert.equal(disciplineReveal.parameters.beatDurationWU, 0.7);
+  assert.equal(disciplineReveal.parameters.settleDurationWU, 0.3);
+  assert.equal(disciplineReveal.parameters.beatDurationWU, 0.32);
+  assert.equal(disciplineReveal.parameters.itemsPerBeat, 2);
   assertCameraValue(
     disciplineReveal.startWU
       + disciplineReveal.parameters.settleDurationWU
-      + (disciplineReveal.parameters.items.length * disciplineReveal.parameters.beatDurationWU),
-    13.265,
+      + (Math.ceil(
+        disciplineReveal.parameters.items.length / disciplineReveal.parameters.itemsPerBeat,
+      ) * disciplineReveal.parameters.beatDurationWU),
+    9.96,
     'Discipline sequence end',
   );
-  let previousDisciplineBeatY = shift.position[1];
-  let previousDisciplineBeatZ = shift.position[2];
-  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.forEach((anchor, index) => {
+  const gridHold = keys.get('grid-birds-eye');
+  for (let beatIndex = 0; beatIndex < 3; beatIndex += 1) {
+    const leftAnchor = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[beatIndex * 2];
+    const rightAnchor = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[(beatIndex * 2) + 1];
     const beatMidpointWU = disciplineReveal.startWU
       + disciplineReveal.parameters.settleDurationWU
-      + ((index + 0.5) * disciplineReveal.parameters.beatDurationWU);
+      + ((beatIndex + 0.5) * disciplineReveal.parameters.beatDurationWU);
     const frame = sampleAboutNarrativeRuntimePlan(plan, beatMidpointWU);
-    assert.equal(anchor.x, ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[0].x);
-    if (index > 0) assert.ok(anchor.y > ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[index - 1].y);
-    if (beatMidpointWU < shift.atWU) return;
-    assertCameraValue(frame.camera.position[0], shift.position[0], `Discipline ${index + 1} camera X`);
-    assert.ok(
-      frame.camera.position[2] > previousDisciplineBeatZ,
-      `Discipline ${index + 1} must continue the restrained move down the grid.`,
-    );
-    assert.ok(
-      frame.camera.position[1] < previousDisciplineBeatY,
-      `Discipline ${index + 1} must continue the gentle downward camera move.`,
-    );
-    previousDisciplineBeatY = frame.camera.position[1];
-    previousDisciplineBeatZ = frame.camera.position[2];
-  });
-  assert.ok(keys.get('discipline-hold').position[1] < keys.get('grid-birds-eye').position[1]);
-  assert.equal(keys.get('discipline-hold').position[0], keys.get('grid-birds-eye').position[0]);
-  assert.ok(keys.get('discipline-hold').position[2] > keys.get('grid-birds-eye').position[2]);
+    assert.ok(leftAnchor.x < rightAnchor.x);
+    assert.equal(leftAnchor.y, rightAnchor.y);
+    if (beatIndex > 0) {
+      assert.ok(leftAnchor.y > ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[(beatIndex - 1) * 2].y);
+    }
+    gridHold.position.forEach((value, axis) => {
+      assertCameraValue(frame.camera.position[axis], value, `Discipline row ${beatIndex + 1} camera ${axis}`);
+    });
+  }
+  const disciplineHoldKey = keys.get('discipline-hold');
+  const editorialHoldKey = keys.get('editorial-camera-hold');
+  assert.deepEqual(disciplineHoldKey.position, gridHold.position);
+  assert.equal(disciplineHoldKey.fov, gridHold.fov);
+  assert.ok(editorialHoldKey.atWU - disciplineHoldKey.atWU <= 0.800001);
+  assert.ok(editorialHoldKey.position[1] > disciplineHoldKey.position[1]);
+  assert.ok(editorialHoldKey.position[2] - disciplineHoldKey.position[2] > 4);
+  assert.ok(editorialHoldKey.fov > disciplineHoldKey.fov);
   [
     'labelWindowWU',
     'staggerWU',
@@ -1211,13 +1211,13 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.equal(canonical.globals.textMotion.standardViewportY, 50);
   assert.equal(disciplineReveal.activationWU, disciplineReveal.startWU);
   assert.equal(disciplineReveal.parameters.items.length, 6);
-  assert.equal(disciplineReveal.endWU, 13.665);
+  assert.equal(disciplineReveal.endWU, 11.15);
   disciplineReveal.parameters.items.forEach((item) => {
     assert.equal(item.position, undefined);
     assert.equal(item.mobilePosition, undefined);
   });
-  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU - 0.8);
-  assert.ok(disciplineEditorial.focusWU >= disciplineReveal.endWU - 0.4);
+  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU);
+  assert.ok(disciplineEditorial.focusWU > disciplineReveal.endWU);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields
     .filter((field) => field.kind === 'title' && !boundaryTitleIds.has(field.id))

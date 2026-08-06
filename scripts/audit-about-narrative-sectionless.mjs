@@ -636,11 +636,17 @@ async function auditEditor() {
   const disciplineSequenceStartWU = Number(disciplineClip.startWU)
     + Number(disciplineClip.parameters.settleDurationWU);
   const disciplineBeatDurationWU = Number(disciplineClip.parameters.beatDurationWU);
+  const disciplineItemsPerBeat = Math.max(1, Number(disciplineClip.parameters.itemsPerBeat) || 1);
   const disciplineRevealSamples = [];
-  const disciplineSampleWUs = disciplineClip.parameters.items.map((item, index) => ({
-    group: Number(item.group),
-    storyWU: disciplineSequenceStartWU + ((index + 0.5) * disciplineBeatDurationWU),
-  }));
+  const disciplineSampleWUs = Array.from(
+    { length: Math.ceil(disciplineClip.parameters.items.length / disciplineItemsPerBeat) },
+    (_, beatIndex) => ({
+      groups: disciplineClip.parameters.items
+        .slice(0, (beatIndex + 1) * disciplineItemsPerBeat)
+        .map((item) => Number(item.group)),
+      storyWU: disciplineSequenceStartWU + ((beatIndex + 0.5) * disciplineBeatDurationWU),
+    }),
+  );
   for (const { storyWU } of disciplineSampleWUs) {
     await setPlayhead(storyWU);
     await page.waitForFunction((expectedWU) => Math.abs(
@@ -655,18 +661,21 @@ async function auditEditor() {
   disciplineRevealSamples.forEach((groups, index) => {
     assert.deepEqual(
       groups,
-      [disciplineSampleWUs[index].group],
-      'Each authored discipline beat must expose only its matching label.',
+      disciplineSampleWUs[index].groups,
+      'Each authored discipline beat must cumulatively expose its matching rows.',
     );
   });
 
   const disciplineDesktopWU = disciplineSampleWUs.at(-1).storyWU;
   await setPlayhead(disciplineDesktopWU);
-  await page.waitForFunction((expectedWU) => (
+  await page.waitForFunction(({ expectedWU, expectedLabelCount }) => (
     Math.abs(Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU) < 0.01
     && document.querySelector('.about-narrative-lab')?.dataset.worldTo === 'calm-field-v1'
-    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) === 1
-  ), disciplineDesktopWU);
+    && Number(document.querySelector('.about-narrative-lab')?.dataset.worldDisciplineLabels || 0) === expectedLabelCount
+  ), {
+    expectedWU: disciplineDesktopWU,
+    expectedLabelCount: disciplineClip.parameters.items.length,
+  });
   const disciplineDesktop = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
     const viewport = document.querySelector('[aria-label="About Alexander narrative"]').getBoundingClientRect();
@@ -936,9 +945,11 @@ async function auditEditor() {
   const mobileDisciplineSamples = [];
   for (const { storyWU } of disciplineSampleWUs) {
     await setPlayhead(storyWU);
-    await page.waitForFunction((expectedWU) => Math.abs(
-      Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - expectedWU,
-    ) < 0.01, storyWU);
+    await page.waitForFunction((expectedWU) => {
+      const root = document.querySelector('.about-narrative-lab');
+      return Math.abs(Number(root?.dataset.narrativeStoryWu) - expectedWU) < 0.01
+        && root?.dataset.worldPrepare === 'ready';
+    }, storyWU, { timeout: 120_000 });
     await page.evaluate(() => new Promise((resolveFrame) => {
       requestAnimationFrame(() => requestAnimationFrame(resolveFrame));
     }));

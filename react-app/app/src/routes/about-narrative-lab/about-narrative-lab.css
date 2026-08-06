@@ -29,6 +29,7 @@ body.about-narrative-page .route-simulation-layer {
   --about-title-shadow:
     0 0 var(--about-title-shadow-blur, 28px) var(--about-title-shadow-color);
   --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #3f72c8));
+  --about-discipline-white: #fff;
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -780,7 +781,8 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-reveal {
-  --discipline-copy-measure: 38ch;
+  --discipline-copy-measure: min(32ch, calc((var(--about-reading-width) - 4rem) / 2));
+  --discipline-label-gap: 1.5rem;
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -804,15 +806,15 @@ body.dark-mode .about-narrative-client-logos img {
   display: block;
   width: min(
     var(--discipline-copy-measure),
-    max(1px, calc(100% - var(--discipline-x) - 2rem - 22px))
+    max(1px, calc(100% - var(--discipline-x) - 2rem - var(--discipline-label-gap)))
   );
   max-width: var(--discipline-copy-measure);
   opacity: var(--discipline-reveal);
   color: var(--text-primary);
   font-family: var(--abs-font-sans);
-  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  font-size: calc(var(--about-editorial-type-size) * 0.88);
   transform: translate3d(
-    calc(var(--discipline-x) + 22px),
+    calc(var(--discipline-x) + var(--discipline-label-gap)),
     calc(var(--discipline-y) + var(--discipline-entry-y)),
     0
   );
@@ -825,14 +827,14 @@ body.dark-mode .about-narrative-client-logos img {
   width: 100%;
   max-width: 100%;
   font-size: inherit;
-  transform: translateY(-0.525em);
+  transform: translateY(-0.48em);
 }
 
 .about-narrative-discipline-reveal__label {
   display: block;
   font-weight: 580;
   letter-spacing: -0.025em;
-  line-height: 1.18;
+  line-height: 1.08;
   overflow-wrap: normal;
   white-space: normal;
   opacity: 1;
@@ -846,12 +848,12 @@ body.dark-mode .about-narrative-client-logos img {
   display: block;
   width: 100%;
   max-width: 100%;
-  margin-top: 0.55em;
+  margin-top: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.92em;
+  font-size: clamp(0.95rem, calc(var(--about-editorial-type-size) * 0.66), 1.125rem);
   font-weight: var(--about-editorial-type-weight, 300);
   letter-spacing: -0.01em;
-  line-height: 1.32;
+  line-height: 1.42;
   opacity: 1;
   text-wrap: pretty;
   white-space: normal;
@@ -1100,7 +1102,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
     max(
       1px,
       calc(
-        100% - var(--discipline-x) - var(--about-text-corridor-inset-right) - 0.5rem - 22px
+        100% - var(--discipline-x) - var(--about-text-corridor-inset-right) - 0.5rem - var(--discipline-label-gap)
       )
     )
   );

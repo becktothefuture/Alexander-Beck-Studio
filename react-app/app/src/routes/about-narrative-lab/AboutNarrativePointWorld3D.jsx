@@ -242,6 +242,7 @@ const VERTEX_SHADER = `
   uniform vec3 materialColor4;
   uniform vec3 materialColor5;
   uniform vec3 materialColor6;
+  uniform vec3 disciplineWhiteColor;
   uniform vec3 disciplineBackgroundColor;
   uniform float materialThreshold1;
   uniform float materialThreshold2;
@@ -249,6 +250,7 @@ const VERTEX_SHADER = `
   uniform float materialThreshold4;
   uniform float materialThreshold5;
   varying float pointAlpha;
+  varying float pointRevealWeight;
   varying vec3 pointTint;
 
   vec3 rotateY(vec3 value, float angle) {
@@ -343,7 +345,7 @@ const VERTEX_SHADER = `
   vec3 disciplineMaterialColor(float group) {
     if (group < 1.5) return materialColor1;
     if (group < 2.5) return materialColor2;
-    if (group < 3.5) return materialColor3;
+    if (group < 3.5) return disciplineWhiteColor;
     if (group < 4.5) return materialColor4;
     if (group < 5.5) return materialColor5;
     return materialColor6;
@@ -728,12 +730,14 @@ const VERTEX_SHADER = `
     gl_PointSize = max(0.01, clamp(renderedPointSize, 5.25, 21.6) * entranceScale) * pixelRatio;
     gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
     pointAlpha = presence;
+    pointRevealWeight = revealedGroupWeight;
   }
 `;
 
 const FRAGMENT_SHADER = `
   uniform float fieldOpacity;
   varying float pointAlpha;
+  varying float pointRevealWeight;
   varying vec3 pointTint;
 
   void main() {
@@ -741,7 +745,8 @@ const FRAGMENT_SHADER = `
     float radius = length(center);
     if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
-    gl_FragColor = vec4(pointTint, fieldOpacity * pointAlpha * edge);
+    float resolvedFieldOpacity = mix(fieldOpacity, 1.0, pointRevealWeight);
+    gl_FragColor = vec4(pointTint, resolvedFieldOpacity * pointAlpha * edge);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
@@ -783,6 +788,9 @@ function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSn
   });
   uniforms.disciplineBackgroundColor.value.setStyle(
     readColorToken(styles, '--text-muted', '#8b8f92'),
+  );
+  uniforms.disciplineWhiteColor.value.setStyle(
+    readColorToken(styles, '--about-discipline-white', '#ffffff'),
   );
 }
 
@@ -1072,6 +1080,7 @@ function createPointFieldAdapter({
     materialColor4: { value: new THREE.Color() },
     materialColor5: { value: new THREE.Color() },
     materialColor6: { value: new THREE.Color() },
+    disciplineWhiteColor: { value: new THREE.Color('#ffffff') },
     disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
@@ -2077,6 +2086,9 @@ function createPointFieldAdapter({
       && frame.storyWU < reveal.effectEndWU,
     );
     const activeIndex = effectAvailable ? Number(revealState.activeIndex) : -1;
+    const activeEndIndex = activeIndex < 0
+      ? -1
+      : Math.min(disciplineWeights.length, activeIndex + Number(reveal?.itemsPerBeat || 1));
     const activeGroup = activeIndex >= 0 ? Number(revealState.activeGroup) : 0;
     const activeReveal = activeIndex >= 0 ? Number(revealState.activeReveal) : 0;
     const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
@@ -2086,7 +2098,7 @@ function createPointFieldAdapter({
     for (let index = 0; index < disciplineWeights.length; index += 1) {
       const cumulativeReveal = sequenceComplete || index < activeIndex
         ? 1
-        : index === activeIndex ? activeReveal : 0;
+        : index < activeEndIndex ? activeReveal : 0;
       disciplineWeights[index] = cumulativeReveal * simulationVisibility * restoreWeight;
     }
 

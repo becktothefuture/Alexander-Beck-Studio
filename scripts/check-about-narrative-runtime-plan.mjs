@@ -570,7 +570,7 @@ test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion
   assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU).simulation.visibility, 1);
 });
 
-test('Discipline reading line compiles one cumulative six-beat sequence', () => {
+test('Discipline grid compiles three cumulative paired-row beats', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
   assert.ok(reveal);
@@ -578,11 +578,14 @@ test('Discipline reading line compiles one cumulative six-beat sequence', () => 
   assert.equal(reveal.motion.type, 'discipline-reveal');
   assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.equal(reveal.motion.targetWorldId, 'world-grid');
-  assert.equal(reveal.settleDurationWU, 0.5);
-  assert.equal(reveal.beatDurationWU, 0.7);
-  assert.equal(reveal.sequenceStartWU, 9.065);
-  assertClose(reveal.sequenceEndWU, 13.265, 'discipline sequence end');
-  assert.equal(reveal.effectEndWU, 13.665);
+  assert.equal(reveal.settleDurationWU, 0.3);
+  assert.equal(reveal.beatDurationWU, 0.32);
+  assert.equal(reveal.itemsPerBeat, 2);
+  assert.equal(reveal.beatCount, 3);
+  assert.equal(reveal.sequenceStartWU, 9);
+  assertClose(reveal.sequenceEndWU, 9.96, 'discipline sequence end');
+  assertClose(reveal.restoreStartWU, 10.85, 'discipline restore start');
+  assert.equal(reveal.effectEndWU, 11.15);
   assert.equal(reveal.items.length, 6);
   reveal.items.forEach((item) => {
     assert.equal('position' in item, false);
@@ -592,30 +595,34 @@ test('Discipline reading line compiles one cumulative six-beat sequence', () => 
     assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`);
   });
 
-  const settling = sampleAboutNarrativeRuntimePlan(plan, 8.815).disciplineReveal;
+  const settling = sampleAboutNarrativeRuntimePlan(plan, 8.85).disciplineReveal;
   assert.equal(settling.active, true);
   assert.equal(settling.activeIndex, -1);
   assert.ok(settling.backgroundProgress > 0 && settling.backgroundProgress < 1);
 
-  reveal.items.forEach((item, index) => {
-    const midpointWU = reveal.sequenceStartWU + ((index + 0.5) * reveal.beatDurationWU);
+  for (let beatIndex = 0; beatIndex < reveal.beatCount; beatIndex += 1) {
+    const activeIndex = beatIndex * reveal.itemsPerBeat;
+    const midpointWU = reveal.sequenceStartWU + ((beatIndex + 0.5) * reveal.beatDurationWU);
     const frame = sampleAboutNarrativeRuntimePlan(plan, midpointWU).disciplineReveal;
-    assert.equal(frame.activeIndex, index);
-    assert.equal(frame.activeGroup, item.group);
+    assert.equal(frame.activeIndex, activeIndex);
+    assert.equal(frame.activeGroup, reveal.items[activeIndex].group);
     assert.equal(frame.activeReveal, 1);
     assert.ok(frame.beatProgress > 0.49 && frame.beatProgress < 0.51);
     const held = sampleAboutNarrativeRuntimePlan(
       plan,
-      reveal.sequenceStartWU + ((index + 0.95) * reveal.beatDurationWU),
+      reveal.sequenceStartWU + ((beatIndex + 0.95) * reveal.beatDurationWU),
     ).disciplineReveal;
-    assert.equal(held.activeIndex, index);
+    assert.equal(held.activeIndex, activeIndex);
     assert.equal(held.activeReveal, 1);
     assert.equal(held.copyOffsetY, 0);
-  });
+  }
 
-  const restoring = sampleAboutNarrativeRuntimePlan(plan, 13.465).disciplineReveal;
-  const restored = sampleAboutNarrativeRuntimePlan(plan, 13.664999).disciplineReveal;
-  const handoff = sampleAboutNarrativeRuntimePlan(plan, 13.665001).disciplineReveal;
+  const readingHold = sampleAboutNarrativeRuntimePlan(plan, 10.15).disciplineReveal;
+  const restoring = sampleAboutNarrativeRuntimePlan(plan, 11).disciplineReveal;
+  const restored = sampleAboutNarrativeRuntimePlan(plan, 11.149999).disciplineReveal;
+  const handoff = sampleAboutNarrativeRuntimePlan(plan, 11.150001).disciplineReveal;
+  assert.equal(readingHold.activeIndex, -1);
+  assert.equal(readingHold.restoreProgress, 0);
   assert.equal(restoring.activeIndex, -1);
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);
@@ -628,10 +635,10 @@ test('Reduced Motion switches disciplines at the same beat boundaries without sp
     motionProfile: 'reduced',
   });
   const reveal = plan.disciplineReveal;
-  const first = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 0.35).disciplineReveal;
-  const second = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 1.05).disciplineReveal;
+  const first = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 0.16).disciplineReveal;
+  const second = sampleAboutNarrativeRuntimePlan(plan, reveal.sequenceStartWU + 0.48).disciplineReveal;
   assert.equal(first.activeIndex, 0);
-  assert.equal(second.activeIndex, 1);
+  assert.equal(second.activeIndex, 2);
   assert.equal(first.activeReveal, 1);
   assert.equal(second.activeReveal, 1);
   assert.equal(first.copyOffsetY, 0);

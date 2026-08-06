@@ -1082,6 +1082,9 @@ function migrateV5Interaction(clip) {
       beatDurationWU: Number.isFinite(Number(parameters.beatDurationWU))
         ? Number(parameters.beatDurationWU)
         : availableBeatWU / 6,
+      ...(Number.isFinite(Number(parameters.itemsPerBeat))
+        ? { itemsPerBeat: Math.max(1, Math.round(Number(parameters.itemsPerBeat))) }
+        : {}),
       backgroundOpacity: parameters.backgroundOpacity,
       pointScale: parameters.pointScale,
       restoreDurationWU,

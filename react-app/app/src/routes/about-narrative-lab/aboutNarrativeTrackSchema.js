@@ -904,8 +904,13 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
   if (schemaVersion >= 5
     && finite(parameters.settleDurationWU)
     && finite(parameters.beatDurationWU)) {
+    const itemsPerBeat = Math.max(1, Math.min(
+      items.length,
+      Math.round(Number(parameters.itemsPerBeat) || 1),
+    ));
+    const beatCount = Math.ceil(items.length / itemsPerBeat);
     const sequenceDurationWU = Number(parameters.settleDurationWU)
-      + (items.length * Number(parameters.beatDurationWU))
+      + (beatCount * Number(parameters.beatDurationWU))
       + Number(parameters.restoreDurationWU);
     const clipDurationWU = Number(clip.endWU) - Number(clip.startWU);
     if (sequenceDurationWU > clipDurationWU + 0.000001) {
@@ -913,7 +918,7 @@ function validateDisciplineMotionParameters(clip, diagnostics, path, schemaVersi
         diagnostics,
         'discipline-sequence-window',
         `${path}.parameters`,
-        'Lane settle, six discipline beats, and grid restore must fit inside the Discipline reveal Motion clip.',
+        'Lane settle, discipline beats, and grid restore must fit inside the Discipline reveal Motion clip.',
       );
     }
   }

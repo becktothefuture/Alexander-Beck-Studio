@@ -29,25 +29,24 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-8',
   '--ball-6',
 ]);
-function createDisciplineAnchorStack(column, rows, columns, gridRows) {
-  return Object.freeze(rows.map((row, index) => Object.freeze({
+function createDisciplineAnchorGrid(cells, columns, gridRows) {
+  return Object.freeze(cells.map(([column, row], index) => Object.freeze({
     group: index + 1,
     x: column / Math.max(1, columns - 1),
     y: row / Math.max(1, gridRows - 1),
   })));
 }
 
-// Keep the reveal on six neighbouring native grid cells. The compact field
-// uses a different topology, so it owns the equivalent six-cell stack.
-export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = createDisciplineAnchorStack(
-  48,
-  [53, 54, 55, 56, 57, 58],
+// Desktop uses two columns by three rows in the lower reading corridor. Every
+// label is still projected from its exact semantic point in the floor grid.
+export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = createDisciplineAnchorGrid(
+  [[43, 54], [52, 54], [43, 56], [52, 56], [43, 58], [52, 58]],
   127,
   95,
 );
-export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorStack(
-  31,
-  [34, 35, 36, 37, 38, 39],
+// The compact renderer keeps the established single reading column.
+export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorGrid(
+  [[31, 34], [31, 35], [31, 36], [31, 37], [31, 38], [31, 39]],
   82,
   61,
 );
@@ -485,11 +484,12 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'discipline-reveal',
     label: 'Discipline reveal',
     defaultParameters: Object.freeze({
-      settleDurationWU: 0.5,
-      beatDurationWU: 0.7,
+      settleDurationWU: 0.3,
+      beatDurationWU: 0.32,
+      itemsPerBeat: 2,
       backgroundOpacity: 0.28,
       pointScale: 4.4,
-      restoreDurationWU: 0.4,
+      restoreDurationWU: 0.3,
       items: Object.freeze([
         Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.' }),
         Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.' }),
@@ -502,6 +502,7 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     parameters: Object.freeze([
       numberControl('settleDurationWU', 'Lane settle duration', 0.05, 2, 0.01, 'WU', 'modifier-timing'),
       numberControl('beatDurationWU', 'Discipline beat duration', 0.2, 2, 0.01, 'WU', 'modifier-timing'),
+      numberControl('itemsPerBeat', 'Disciplines per beat', 1, 6, 1, '', 'modifier-timing'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),

@@ -2749,7 +2749,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
           {object.type === 'discipline-reveal' ? (
             <>
               <p className="about-track-editor-parameter-note is-wide">
-                One ordered reading line presents a single discipline at a time. Timing and point emphasis are shared across all six items.
+                The six disciplines keep one semantic order while the configured beat can reveal them in paired rows.
               </p>
               <div className="about-track-editor-discipline-layout is-wide">
                 {(object.parameters?.items || []).map((item) => {

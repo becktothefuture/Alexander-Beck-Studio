@@ -212,6 +212,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /gl_PointSize = max\(0\.01, clamp\(renderedPointSize, 5\.25, 21\.6\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /presence = max\(presence, groupExists \* disciplineRevealActive\)/);
   assert.match(source, /disciplineMaterialColor\(group\)/);
+  assert.match(source, /if \(group < 3\.5\) return disciplineWhiteColor/);
+  assert.match(source, /--about-discipline-white/);
+  assert.match(source, /resolvedFieldOpacity = mix\(fieldOpacity, 1\.0, pointRevealWeight\)/);
   assert.match(source, /float group = toGroup >= 0\.5 \? toGroup : fromGroup/);
   assert.match(source, /float disciplineRevealForGroup\(float group\)/);
   assert.match(source, /float revealedGroupWeight = groupExists \* disciplineRevealForGroup\(group\)/);

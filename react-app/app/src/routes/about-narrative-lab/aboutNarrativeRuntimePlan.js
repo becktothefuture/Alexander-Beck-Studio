@@ -206,8 +206,15 @@ function compileDisciplineReveal(textFields, interactionClips) {
   const endWU = effectEndWU;
   const settleDurationWU = Number(parameters.settleDurationWU);
   const beatDurationWU = Number(parameters.beatDurationWU);
+  const itemsPerBeat = Math.max(1, Math.min(
+    parameters.items.length,
+    Math.round(Number(parameters.itemsPerBeat) || 1),
+  ));
+  const beatCount = Math.ceil(parameters.items.length / itemsPerBeat);
+  const restoreDurationWU = Math.max(0, Number(parameters.restoreDurationWU));
   const sequenceStartWU = effectStartWU + settleDurationWU;
-  const sequenceEndWU = sequenceStartWU + (parameters.items.length * beatDurationWU);
+  const sequenceEndWU = sequenceStartWU + (beatCount * beatDurationWU);
+  const restoreStartWU = Math.max(sequenceEndWU, effectEndWU - restoreDurationWU);
   return {
     id: clip.id,
     startWU,
@@ -217,14 +224,17 @@ function compileDisciplineReveal(textFields, interactionClips) {
     effectEndWU,
     settleDurationWU,
     beatDurationWU,
+    itemsPerBeat,
+    beatCount,
     sequenceStartWU,
     sequenceEndWU,
+    restoreStartWU,
     backgroundFadeWU: settleDurationWU,
     backgroundFadeEndWU: sequenceStartWU,
     backgroundOpacity: Number(parameters.backgroundOpacity),
     reconnectOpacity: 1,
     pointScale: Number(parameters.pointScale),
-    restoreDurationWU: Number(parameters.restoreDurationWU),
+    restoreDurationWU,
     items: parameters.items,
     sourceType: 'motion',
     source: clip,
@@ -532,10 +542,9 @@ function writeDisciplineReveal(target, config, storyWU, reducedMotion) {
     : reducedMotion
       ? 1
       : smoothRange(storyWU, config.effectStartWU, config.backgroundFadeEndWU);
-  const restoreStartWU = config.sequenceEndWU;
   target.restoreProgress = reducedMotion
     ? 0
-    : smoothRange(storyWU, restoreStartWU, config.effectEndWU);
+    : smoothRange(storyWU, config.restoreStartWU, config.effectEndWU);
   target.activeIndex = -1;
   target.activeGroup = 0;
   target.beatProgress = 0;
@@ -543,11 +552,12 @@ function writeDisciplineReveal(target, config, storyWU, reducedMotion) {
   target.copyOffsetY = 0;
   if (storyWU >= config.sequenceStartWU && storyWU < config.sequenceEndWU) {
     const sequenceWU = storyWU - config.sequenceStartWU;
-    const activeIndex = Math.min(
-      config.items.length - 1,
+    const activeBeatIndex = Math.min(
+      config.beatCount - 1,
       Math.floor(sequenceWU / config.beatDurationWU),
     );
-    const beatProgress = (sequenceWU - (activeIndex * config.beatDurationWU))
+    const activeIndex = activeBeatIndex * config.itemsPerBeat;
+    const beatProgress = (sequenceWU - (activeBeatIndex * config.beatDurationWU))
       / config.beatDurationWU;
     const entrance = reducedMotion ? 1 : smoothRange(beatProgress, 0, 0.2);
     target.activeIndex = activeIndex;

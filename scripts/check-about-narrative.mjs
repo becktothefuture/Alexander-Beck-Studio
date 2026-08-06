@@ -554,16 +554,16 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and one 
   assert.ok(editorialHandoffFrame.disciplineReveal.localProgress < reveal.end);
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
-  assert.equal(new Set(verticalPositions).size, 6);
-  assert.equal(new Set(horizontalPositions).size, 1);
+  assert.equal(new Set(verticalPositions).size, 3);
+  assert.equal(new Set(horizontalPositions).size, 2);
   const dimensions = getAboutNarrativeDisciplineGridDimensions('desktop');
   assert.deepEqual(
     horizontalPositions.map((value) => Math.round(value * (dimensions.columns - 1))),
-    [48, 48, 48, 48, 48, 48],
+    [43, 52, 43, 52, 43, 52],
   );
   assert.deepEqual(
     verticalPositions.map((value) => Math.round(value * (dimensions.rows - 1))),
-    [53, 54, 55, 56, 57, 58],
+    [54, 54, 56, 56, 58, 58],
   );
   const compactDimensions = getAboutNarrativeDisciplineGridDimensions('mobile');
   assert.deepEqual(

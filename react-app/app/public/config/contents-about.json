@@ -81,21 +81,21 @@
               -1.72,
               -1.75
             ],
-            "fov": 66
+            "fov": 70
           },
           "editorial-camera-hold": {
             "aimEnabled": false,
             "position": [
               -5,
-              3,
-              -1.75
+              4,
+              1.6
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              -1.75
+              1.6
             ],
-            "fov": 66
+            "fov": 70
           },
           "grid-birds-eye": {
             "fov": 60
@@ -128,21 +128,21 @@
               -1.72,
               -1.75
             ],
-            "fov": 66
+            "fov": 70
           },
           "editorial-camera-hold": {
             "aimEnabled": false,
             "position": [
               -5,
-              3,
-              -1.75
+              4,
+              1.6
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              -1.75
+              1.6
             ],
-            "fov": 66
+            "fov": 70
           },
           "finale-hold": {
             "position": [
@@ -320,7 +320,7 @@
         },
         {
           "id": "grid-birds-eye",
-          "atWU": 10.105,
+          "atWU": 9,
           "position": [
             -5,
             3.14,
@@ -344,11 +344,11 @@
         },
         {
           "id": "discipline-hold",
-          "atWU": 14.17,
+          "atWU": 10.35,
           "position": [
             -5,
-            3,
-            -2
+            3.14,
+            -2.94
           ],
           "rotation": [
             -90,
@@ -359,20 +359,20 @@
           "lookAtTarget": [
             -5,
             -1.72,
-            -2.49
+            -2.94
           ],
           "lookAtRoll": 0,
           "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.96, 1)",
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
           "locked": false
         },
         {
           "id": "editorial-camera-hold",
-          "atWU": 14.565,
+          "atWU": 11.15,
           "position": [
             -5,
-            3,
-            -2
+            4.4,
+            2.2
           ],
           "rotation": [
             -90,
@@ -383,10 +383,10 @@
           "lookAtTarget": [
             -5,
             -1.72,
-            -2
+            2.2
           ],
           "lookAtRoll": 0,
-          "fov": 56,
+          "fov": 64,
           "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
           "locked": false
         },
@@ -503,21 +503,21 @@
         },
         {
           "id": "visibility-disciplines",
-          "atWU": 11.978,
+          "atWU": 10.35,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-discipline-read",
-          "atWU": 13.809,
-          "visibility": 0.86,
+          "atWU": 10.85,
+          "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-editorial-off",
-          "atWU": 14.285,
+          "atWU": 11.15,
           "visibility": 0,
           "easing": "linear",
           "locked": false
@@ -1171,8 +1171,8 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 13.87,
-          "focusWU": 14.27,
+          "startWU": 11.25,
+          "focusWU": 11.65,
           "endWU": 16.87,
           "publishable": true,
           "presentation": {
@@ -1508,15 +1508,16 @@
         {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 8.565,
-          "activationWU": 8.565,
-          "endWU": 13.665,
+          "startWU": 8.7,
+          "activationWU": 8.7,
+          "endWU": 11.15,
           "parameters": {
-            "settleDurationWU": 0.5,
-            "beatDurationWU": 0.7,
+            "settleDurationWU": 0.3,
+            "beatDurationWU": 0.32,
+            "itemsPerBeat": 2,
             "backgroundOpacity": 0.28,
             "pointScale": 4.4,
-            "restoreDurationWU": 0.4,
+            "restoreDurationWU": 0.3,
             "items": [
               {
                 "group": 1,
