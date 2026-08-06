@@ -7,10 +7,22 @@ import * as THREE from 'three';
 const VARIANT_ORDER = Object.freeze(['A', 'B', 'C']);
 const DEFAULT_PROFILE = Object.freeze({
   radius: 304,
-  force: 10,
+  force: 100,
   variation: 1,
   responseMs: 420,
   returnMs: 2600,
+});
+const CONTROL_POSITION = Object.freeze({
+  minimum: 0,
+  middle: 500,
+  maximum: 1000,
+});
+const CONTROL_RANGES = Object.freeze({
+  radius: Object.freeze({ min: 20, middle: DEFAULT_PROFILE.radius, max: 2000, step: 1 }),
+  force: Object.freeze({ min: 0, middle: DEFAULT_PROFILE.force, max: 1000, step: 1 }),
+  variation: Object.freeze({ min: 0, middle: DEFAULT_PROFILE.variation, max: 5, step: 0.01 }),
+  responseMs: Object.freeze({ min: 20, middle: DEFAULT_PROFILE.responseMs, max: 5000, step: 5 }),
+  returnMs: Object.freeze({ min: 200, middle: DEFAULT_PROFILE.returnMs, max: 20000, step: 10 }),
 });
 const RESPONSIVE_PROFILE = Object.freeze({
   referenceWidth: 1024,
@@ -77,15 +89,18 @@ const PRESSURE_SHADER_HELPERS = `
   }
 
   float pointerPressureMaterialEnvelope(vec2 pointNdc) {
-    float organicAmount = clamp(pointerPressureVariation, 0.0, 2.0);
+    float organicAmount = clamp(pointerPressureVariation, 0.0, 5.0);
+    float organicDrive = organicAmount * (
+      1.0 + (max(0.0, organicAmount - 1.0) * 0.35)
+    );
     float coherentMaterial = pointerPressureCoherentMaterial(pointNdc);
     float individualMaterial = sin((pointSeed * 131.731) + 0.41);
     float localMass = clamp(
       1.0
-        + ((coherentMaterial - 0.5) * organicAmount * 0.28)
+        + ((coherentMaterial - 0.5) * organicDrive * 0.28)
         + (individualMaterial * organicAmount * 0.025),
-      0.82,
-      1.18
+      0.55,
+      1.55
     );
     float activeEnvelope = pow(
       clamp(pointerPressureStrength, 0.0, 1.0),
@@ -143,16 +158,19 @@ const PRESSURE_SHADER_HELPERS = `
       (pointNdc - pointerNdc) * 0.5 * pointerPressureViewport
     ) + (velocityPx * velocityLagSeconds);
     float safeRadius = max(1.0, pointerPressureRadiusPx);
-    float organicAmount = clamp(pointerPressureVariation, 0.0, 2.0);
+    float organicAmount = clamp(pointerPressureVariation, 0.0, 5.0);
+    float organicDrive = organicAmount * (
+      1.0 + (max(0.0, organicAmount - 1.0) * 0.35)
+    );
     float coherentMaterial = pointerPressureCoherentMaterial(pointNdc);
     float materialDirection = (coherentMaterial - 0.5) * 2.0;
     float individualMaterial = sin((pointSeed * 137.17) + 0.41);
     float radiusScale = clamp(
       1.0
-        + (materialDirection * organicAmount * 0.12)
+        + (materialDirection * organicDrive * 0.12)
         + (individualMaterial * organicAmount * 0.015),
-      0.76,
-      1.24
+      0.3,
+      1.8
     );
     float shapedRadius = safeRadius * radiusScale;
     float distancePx = length(deltaPx);
@@ -170,7 +188,7 @@ const PRESSURE_SHADER_HELPERS = `
       : velocityDirection;
     vec2 tangentDirection = vec2(-radialDirection.y, radialDirection.x);
     float tangentWeight = materialDirection
-      * organicAmount
+      * organicDrive
       * (
         (viscousMode * 0.42)
         + (elasticMode * 0.16)
@@ -205,20 +223,26 @@ const PRESSURE_SHADER_HELPERS = `
     ) return clipPoint;
     float safeW = max(abs(clipPoint.w), 0.0001);
     vec2 pointNdc = clipPoint.xy / safeW;
+    float viscousMode = 1.0 - step(0.5, pointerPressureMode);
+    float elasticMode = step(0.5, pointerPressureMode)
+      * (1.0 - step(1.5, pointerPressureMode));
+    float wakeMode = step(1.5, pointerPressureMode);
+    float trailWeight =
+      (viscousMode * 0.18)
+      + (elasticMode * 0.32)
+      + (wakeMode * 0.72);
     vec2 offsetPx = pointerPressureOffset(
       pointNdc,
       pointerPressureNdc,
-      pointerPressureMode > 1.5 ? 0.34 : 1.0,
+      1.0 - trailWeight,
       0.0
     );
-    if (pointerPressureMode > 1.5) {
-      offsetPx += pointerPressureOffset(
-        pointNdc,
-        pointerPressureTrailNdc,
-        1.0,
-        1.0
-      );
-    }
+    offsetPx += pointerPressureOffset(
+      pointNdc,
+      pointerPressureTrailNdc,
+      trailWeight,
+      1.0
+    );
     vec2 viewport = max(pointerPressureViewport, vec2(1.0));
     vec2 offsetNdc = (offsetPx * 2.0) / viewport;
     clipPoint.xy += offsetNdc * clipPoint.w;
@@ -284,6 +308,47 @@ const coarsePointerQuery = window.matchMedia('(pointer: coarse)');
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function quantizeControlValue(value, step) {
+  const decimalPlaces = String(step).split('.')[1]?.length ?? 0;
+  return Number((Math.round(value / step) * step).toFixed(decimalPlaces));
+}
+
+function controlValueFromPosition(key, position) {
+  const range = CONTROL_RANGES[key];
+  const safePosition = clamp(
+    Number(position) || CONTROL_POSITION.minimum,
+    CONTROL_POSITION.minimum,
+    CONTROL_POSITION.maximum,
+  );
+  const rawValue = safePosition <= CONTROL_POSITION.middle
+    ? range.min + (
+      (range.middle - range.min)
+      * (safePosition / CONTROL_POSITION.middle)
+    )
+    : range.middle + (
+      (range.max - range.middle)
+      * (
+        (safePosition - CONTROL_POSITION.middle)
+        / (CONTROL_POSITION.maximum - CONTROL_POSITION.middle)
+      )
+    );
+  return clamp(quantizeControlValue(rawValue, range.step), range.min, range.max);
+}
+
+function controlPositionFromValue(key, value) {
+  const range = CONTROL_RANGES[key];
+  const safeValue = clamp(Number(value) || range.min, range.min, range.max);
+  if (safeValue <= range.middle) {
+    const lowerSpan = Math.max(Number.EPSILON, range.middle - range.min);
+    return CONTROL_POSITION.middle * ((safeValue - range.min) / lowerSpan);
+  }
+  const upperSpan = Math.max(Number.EPSILON, range.max - range.middle);
+  return CONTROL_POSITION.middle + (
+    (CONTROL_POSITION.maximum - CONTROL_POSITION.middle)
+    * ((safeValue - range.middle) / upperSpan)
+  );
 }
 
 function syncResponsiveProfile() {
@@ -372,6 +437,8 @@ function resetPressureState() {
   state.releaseVelocityY = 0;
   state.targetVelocityX = 0;
   state.targetVelocityY = 0;
+  state.trailX = state.currentX;
+  state.trailY = state.currentY;
   state.wasEligible = false;
 }
 
@@ -388,9 +455,18 @@ function updatePressure(nowMs, frame = null) {
 
   state.currentX = damp(state.currentX, state.targetX, deltaSeconds, state.responseMs);
   state.currentY = damp(state.currentY, state.targetY, deltaSeconds, state.responseMs);
-  const trailDuration = Math.max(170, state.responseMs * 4.8);
+  // Return also controls the shared pressure memory. This makes the control
+  // visible while the mouse moves within the field, without particle CPU state.
+  const trailDuration = Math.max(80, state.returnMs);
   state.trailX = damp(state.trailX, state.currentX, deltaSeconds, trailDuration);
   state.trailY = damp(state.trailY, state.currentY, deltaSeconds, trailDuration);
+  if (
+    state.pointerInside
+    && nowMs - state.lastPointerSampleMs >= state.returnMs
+  ) {
+    state.trailX = state.currentX;
+    state.trailY = state.currentY;
+  }
 
   const velocitySampleIsFresh = state.pointerInside
     && nowMs - state.lastPointerSampleMs <= POINTER_MOTION.sampleExpiryMs;
@@ -455,6 +531,8 @@ function updatePressure(nowMs, frame = null) {
       state.releaseVelocityX = 0;
       state.releaseVelocityY = 0;
       state.pressureStrength = 0;
+      state.trailX = state.currentX;
+      state.trailY = state.currentY;
     }
   } else {
     state.pressureStrength = 0;
@@ -599,8 +677,12 @@ function formatControlValue(key, value) {
 
 function syncControlUi() {
   Object.entries(ui.controls).forEach(([key, input]) => {
-    input.value = String(state[key]);
-    ui.outputs[key].textContent = formatControlValue(key, state[key]);
+    const range = CONTROL_RANGES[key];
+    const formattedValue = formatControlValue(key, state[key]);
+    input.value = String(Math.round(controlPositionFromValue(key, state[key])));
+    input.setAttribute('aria-valuetext', formattedValue);
+    input.title = `${formatControlValue(key, range.min)} to ${formatControlValue(key, range.max)}`;
+    ui.outputs[key].textContent = formattedValue;
   });
   ui.pressureToggle.textContent = state.enabled ? 'Pressure on' : 'Pressure off';
   ui.pressureToggle.setAttribute('aria-pressed', String(state.enabled));
@@ -754,9 +836,11 @@ function updateStatus() {
 
 Object.entries(ui.controls).forEach(([key, input]) => {
   input.addEventListener('input', () => {
-    state[key] = Number(input.value);
+    state[key] = controlValueFromPosition(key, input.value);
     syncResponsiveProfile();
-    ui.outputs[key].textContent = formatControlValue(key, state[key]);
+    const formattedValue = formatControlValue(key, state[key]);
+    input.setAttribute('aria-valuetext', formattedValue);
+    ui.outputs[key].textContent = formattedValue;
   });
 });
 
@@ -826,6 +910,10 @@ window.__aboutPointerPressurePrototype = {
       releaseVelocityX: state.releaseVelocityX,
       releaseVelocityY: state.releaseVelocityY,
       speedPxPerSecond: Math.hypot(state.pointerVelocityX, state.pointerVelocityY),
+      trailDistancePx: Math.hypot(
+        (state.currentX - state.trailX) * 0.5 * state.viewportWidth,
+        (state.currentY - state.trailY) * 0.5 * state.viewportHeight,
+      ),
       velocityX: state.pointerVelocityX,
       velocityY: state.pointerVelocityY,
     },
@@ -842,6 +930,7 @@ window.__aboutPointerPressurePrototype = {
       returnMs: state.returnMs,
       variation: state.variation,
     },
+    ranges: CONTROL_RANGES,
     pressureStrength: state.pressureStrength,
     pointerInside: state.pointerInside,
     pointerType: state.pointerType,
