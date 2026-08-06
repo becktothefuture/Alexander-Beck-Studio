@@ -170,7 +170,7 @@ html.entrance-pre-transition #app-frame {
 }
 
 /* Background elements (#simulations, #abs-scene) are visible immediately (no fade-in).
-   #edge-caption uses .edge-caption only – no overrides – so it keeps 0.3 from the start.
+   #edge-caption uses .edge-caption only – no overrides – so it keeps 0.66 from the start.
    #brand-logo and #main-links use inline styles + JS for late reveal. */
 html.entrance-pre-transition #simulations,
 html.entrance-pre-transition #abs-scene {
@@ -368,7 +368,7 @@ body.body.dark-mode {
   background: transparent;
   max-width: min(800px, calc(100% - (var(--content-padding-x) * 2)));
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
-  opacity: 1;
+  opacity: 0.66;
 }
 
 .edge-caption__line {
