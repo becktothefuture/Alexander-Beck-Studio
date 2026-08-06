@@ -1,6 +1,7 @@
 name: Validate and deploy GitHub Pages (React app)
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
   push:
