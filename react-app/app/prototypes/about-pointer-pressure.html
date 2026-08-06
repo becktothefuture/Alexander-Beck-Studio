@@ -1,0 +1,432 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway Wayfinder evidence for GitHub issue 31.
+  Three pointer-pressure responses, switchable via ?variant=, around the real
+  About narrative runtime. Served by Vite development and excluded from build inputs.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About pointer pressure</title>
+    <link
+      rel="preload"
+      href="/fonts/instrument-serif/InstrumentSerif-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/normalize.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/src/styles/base.css" />
+    <style>
+      :root {
+        color-scheme: light;
+        --prototype-chrome: rgb(12 12 12 / 94%);
+        --prototype-border: rgb(255 255 255 / 15%);
+        --prototype-muted: rgb(255 255 255 / 56%);
+        --prototype-control: rgb(255 255 255 / 9%);
+        --studio-window-bg: #f3f0e9;
+        --frame-inner-surface: #f3f0e9;
+        --text-primary: #171717;
+        --text-muted: #5b5b5b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      #prototype-root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background: var(--studio-window-bg);
+        font-family: "Geist", sans-serif;
+      }
+
+      #prototype-root {
+        position: fixed;
+        inset: 0;
+      }
+
+      .prototype-chrome {
+        position: fixed;
+        inset: 0;
+        z-index: 1000000;
+        pointer-events: none;
+      }
+
+      .prototype-panel,
+      .prototype-switcher {
+        border: 1px solid var(--prototype-border);
+        background: var(--prototype-chrome);
+        box-shadow: 0 18px 50px rgb(0 0 0 / 25%);
+        color: #fff;
+        backdrop-filter: blur(18px);
+        pointer-events: auto;
+      }
+
+      .prototype-panel {
+        position: absolute;
+        top: 1rem;
+        width: min(19rem, calc(50vw - 1.5rem));
+        overflow: hidden;
+        border-radius: 1rem;
+      }
+
+      .prototype-panel--checkpoints {
+        left: 1rem;
+      }
+
+      .prototype-panel--controls {
+        right: 1rem;
+      }
+
+      .prototype-panel summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 2.75rem;
+        padding: 0.75rem 0.9rem;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .prototype-panel summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .prototype-panel summary::after {
+        content: "+";
+        color: var(--prototype-muted);
+        font: 500 1rem/1 "Geist Mono", monospace;
+      }
+
+      .prototype-panel[open] summary::after {
+        content: "−";
+      }
+
+      .prototype-panel__eyebrow,
+      .prototype-field label,
+      .prototype-state dt {
+        color: var(--prototype-muted);
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .prototype-panel summary strong {
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .prototype-panel__body {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0 0.9rem 0.9rem;
+        border-top: 1px solid rgb(255 255 255 / 9%);
+      }
+
+      .prototype-panel__intro {
+        margin: 0.8rem 0 0;
+        color: var(--prototype-muted);
+        font-size: 0.72rem;
+        line-height: 1.45;
+      }
+
+      .prototype-variant-description {
+        min-height: 2.1em;
+        margin: 0;
+        color: rgb(255 255 255 / 82%);
+        font-size: 0.68rem;
+        line-height: 1.45;
+      }
+
+      .prototype-checkpoints {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.4rem;
+      }
+
+      .prototype-button,
+      .prototype-switcher button {
+        border: 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .prototype-button {
+        min-height: 2.25rem;
+        padding: 0.55rem 0.65rem;
+        border-radius: 0.6rem;
+        background: var(--prototype-control);
+        font-size: 0.7rem;
+        text-align: left;
+      }
+
+      .prototype-button:hover,
+      .prototype-button:focus-visible,
+      .prototype-button[aria-pressed="true"] {
+        background: rgb(255 255 255 / 18%);
+        outline: 0;
+      }
+
+      .prototype-button[data-stage="bust"] {
+        grid-column: 1 / -1;
+      }
+
+      .prototype-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+      }
+
+      .prototype-field {
+        display: grid;
+        grid-template-columns: minmax(5rem, 1fr) minmax(6rem, 1.4fr) 3.5rem;
+        gap: 0.55rem;
+        align-items: center;
+      }
+
+      .prototype-field output {
+        color: rgb(255 255 255 / 78%);
+        font: 500 0.68rem/1 "Geist Mono", monospace;
+        text-align: right;
+      }
+
+      .prototype-field input[type="range"] {
+        width: 100%;
+        accent-color: #fff;
+      }
+
+      .prototype-state {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.35rem 0.75rem;
+        padding: 0.7rem;
+        margin: 0;
+        border-radius: 0.65rem;
+        background: rgb(0 0 0 / 22%);
+      }
+
+      .prototype-state dd {
+        margin: 0;
+        color: rgb(255 255 255 / 82%);
+        font: 500 0.66rem/1.2 "Geist Mono", monospace;
+        text-align: right;
+      }
+
+      .prototype-switcher {
+        position: absolute;
+        right: 50%;
+        bottom: max(1rem, env(safe-area-inset-bottom));
+        display: grid;
+        grid-template-columns: 2.75rem minmax(12rem, auto) 2.75rem;
+        align-items: stretch;
+        overflow: hidden;
+        border-radius: 999px;
+        transform: translateX(50%);
+      }
+
+      .prototype-switcher button {
+        display: grid;
+        place-items: center;
+        min-height: 3rem;
+        padding: 0;
+        background: transparent;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 12%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        place-content: center;
+        min-height: 3rem;
+        padding: 0.45rem 1.1rem;
+        border-inline: 1px solid rgb(255 255 255 / 10%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label small {
+        color: var(--prototype-muted);
+        font-size: 0.58rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 0.76rem;
+        font-weight: 600;
+      }
+
+      .prototype-failure {
+        position: fixed;
+        inset: 0;
+        z-index: 2000000;
+        display: none;
+        place-items: center;
+        padding: 2rem;
+        background: #111;
+        color: #fff;
+        text-align: center;
+      }
+
+      .prototype-failure[data-visible="true"] {
+        display: grid;
+      }
+
+      @media (max-width: 720px) {
+        .prototype-panel {
+          top: 0.65rem;
+          width: calc(50vw - 0.975rem);
+        }
+
+        .prototype-panel--checkpoints {
+          left: 0.65rem;
+        }
+
+        .prototype-panel--controls {
+          right: 0.65rem;
+        }
+
+        .prototype-panel__body {
+          max-height: min(64vh, 30rem);
+          overflow: auto;
+        }
+
+        .prototype-field {
+          grid-template-columns: 1fr 3.1rem;
+        }
+
+        .prototype-field input {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .prototype-switcher {
+          bottom: max(0.65rem, env(safe-area-inset-bottom));
+          grid-template-columns: 2.5rem minmax(10rem, auto) 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="about-page about-narrative-page">
+    <div id="prototype-root"></div>
+
+    <aside class="prototype-chrome" data-prototype-chrome>
+      <details class="prototype-panel prototype-panel--checkpoints" open>
+        <summary>
+          <span>
+            <span class="prototype-panel__eyebrow">Wayfinder prototype</span><br />
+            <strong>Representative forms</strong>
+          </span>
+        </summary>
+        <div class="prototype-panel__body">
+          <p class="prototype-panel__intro">
+            The real About timeline is underneath. Jump between five checkpoints, then move the mouse through the particles.
+          </p>
+          <div class="prototype-checkpoints" aria-label="Representative About checkpoints">
+            <button class="prototype-button" type="button" data-stage="cluster">Opening cluster</button>
+            <button class="prototype-button" type="button" data-stage="turbulent">Turbulent field</button>
+            <button class="prototype-button" type="button" data-stage="grid">Calm grid</button>
+            <button class="prototype-button" type="button" data-stage="ripple">Ripple surface</button>
+            <button class="prototype-button" type="button" data-stage="bust">Settled bust</button>
+          </div>
+          <div class="prototype-compare">
+            <button class="prototype-button" type="button" data-pressure-toggle aria-pressed="true">Pressure on</button>
+            <button class="prototype-button" type="button" data-pressure-reset>Reset defaults</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="prototype-panel prototype-panel--controls" open>
+        <summary>
+          <span>
+            <span class="prototype-panel__eyebrow">Temporary controls</span><br />
+            <strong>Pressure profile</strong>
+          </span>
+        </summary>
+        <div class="prototype-panel__body">
+          <p class="prototype-panel__intro">
+            Your desktop baseline sits at the middle of every slider. Radius and force scale down on smaller screens; timing stays fixed.
+          </p>
+          <p class="prototype-panel__intro">
+            A, B, and C now compare viscous, elastic, and inertial material dynamics rather than three shapes of the same pressure mask.
+          </p>
+          <p class="prototype-variant-description" data-variant-description></p>
+          <div class="prototype-field">
+            <label for="pressure-radius">Radius</label>
+            <input id="pressure-radius" type="range" min="60" max="548" step="1" />
+            <output for="pressure-radius" data-output="radius"></output>
+          </div>
+          <div class="prototype-field">
+            <label for="pressure-force">Force</label>
+            <input id="pressure-force" type="range" min="0" max="20" step="1" />
+            <output for="pressure-force" data-output="force"></output>
+          </div>
+          <div class="prototype-field">
+            <label for="pressure-variation">Organicity</label>
+            <input id="pressure-variation" type="range" min="0" max="2" step="0.01" />
+            <output for="pressure-variation" data-output="variation"></output>
+          </div>
+          <div class="prototype-field">
+            <label for="pressure-response">Response</label>
+            <input id="pressure-response" type="range" min="20" max="820" step="5" />
+            <output for="pressure-response" data-output="responseMs"></output>
+          </div>
+          <div class="prototype-field">
+            <label for="pressure-return">Return</label>
+            <input id="pressure-return" type="range" min="200" max="5000" step="10" />
+            <output for="pressure-return" data-output="returnMs"></output>
+          </div>
+          <dl class="prototype-state" aria-live="polite">
+            <dt>Form</dt><dd data-state="form">Preparing</dd>
+            <dt>Strength</dt><dd data-state="strength">0.000</dd>
+            <dt>Motion</dt><dd data-state="motion">Rest</dd>
+            <dt>Pointer speed</dt><dd data-state="speed">0 px/s</dd>
+            <dt>Viewport scale</dt><dd data-state="viewportScale">100%</dd>
+            <dt>Active radius</dt><dd data-state="effectiveRadius">304 px</dd>
+            <dt>Active force</dt><dd data-state="effectiveForce">10 px</dd>
+            <dt>Base parity</dt><dd data-state="parity">Exact at 0</dd>
+            <dt>Draw calls</dt><dd data-state="drawCalls">—</dd>
+            <dt>Fixed buffers</dt><dd data-state="fixedBuffers">—</dd>
+          </dl>
+        </div>
+      </details>
+
+      <nav class="prototype-switcher" aria-label="Pointer-pressure response variants">
+        <button type="button" data-variant-previous aria-label="Previous response">←</button>
+        <span class="prototype-switcher__label">
+          <small data-variant-key>Variant A</small>
+          <strong data-variant-name>Viscous flow</strong>
+        </span>
+        <button type="button" data-variant-next aria-label="Next response">→</button>
+      </nav>
+    </aside>
+
+    <div class="prototype-failure" data-prototype-failure role="alert">
+      <p>The pointer-pressure prototype could not start. Check the browser console for details.</p>
+    </div>
+
+    <script type="module" src="./about-pointer-pressure.jsx"></script>
+  </body>
+</html>
