@@ -6,7 +6,7 @@ import {
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  getAboutNarrativeDisciplineAnchors,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
 import {
@@ -210,8 +210,6 @@ const VERTEX_SHADER = `
   uniform vec3 disciplineRevealA;
   uniform vec3 disciplineRevealB;
   uniform float disciplineRevealActive;
-  uniform float disciplineReducedMotion;
-  uniform float disciplineActiveGroup;
   uniform float disciplineBackgroundWeight;
   uniform float disciplineBackgroundOpacity;
   uniform float disciplineReconnectOpacity;
@@ -333,15 +331,6 @@ const VERTEX_SHADER = `
     return mix(value, movingPoint, amount);
   }
 
-  float disciplineRevealForGroup(float index) {
-    if (index < 1.5) return disciplineRevealA.x;
-    if (index < 2.5) return disciplineRevealA.y;
-    if (index < 3.5) return disciplineRevealA.z;
-    if (index < 4.5) return disciplineRevealB.x;
-    if (index < 5.5) return disciplineRevealB.y;
-    return disciplineRevealB.z;
-  }
-
   vec3 materialColor(float seed) {
     if (seed < materialThreshold1) return materialColor1;
     if (seed < materialThreshold2) return materialColor2;
@@ -358,6 +347,15 @@ const VERTEX_SHADER = `
     if (group < 4.5) return materialColor4;
     if (group < 5.5) return materialColor5;
     return materialColor6;
+  }
+
+  float disciplineRevealForGroup(float group) {
+    if (group < 1.5) return disciplineRevealA.x;
+    if (group < 2.5) return disciplineRevealA.y;
+    if (group < 3.5) return disciplineRevealA.z;
+    if (group < 4.5) return disciplineRevealB.x;
+    if (group < 5.5) return disciplineRevealB.y;
+    return disciplineRevealB.z;
   }
 
   float motionAxisPhase(float axis) {
@@ -617,16 +615,7 @@ const VERTEX_SHADER = `
     float focusMatch = 1.0 - step(0.45, abs(group - disciplineFocus));
     float legacyGroupWeight = groupExists * step(0.001, groupStrength)
       * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
-    float travellingRevealWeight = disciplineRevealForGroup(group);
-    float stationaryRevealWeight = (
-      disciplineRevealA.x + disciplineRevealA.y + disciplineRevealA.z
-      + disciplineRevealB.x + disciplineRevealB.y + disciplineRevealB.z
-    ) * (1.0 - step(0.45, abs(group - 1.0)));
-    float revealedGroupWeight = groupExists * mix(
-      travellingRevealWeight,
-      stationaryRevealWeight,
-      disciplineReducedMotion
-    );
+    float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
     float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
     float disciplineMonochrome = disciplineIsolation * (1.0 - revealedGroupWeight);
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
@@ -641,14 +630,12 @@ const VERTEX_SHADER = `
       livingColor,
       colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
     );
-    // During the camera pass every point is monochrome until its exact semantic
-    // anchor enters the scroll-authored reveal. The authored grid cell owns the
-    // semantic colour, regardless of the material that occupied it beforehand.
+    // Each semantic grid point keeps its own discipline colour as the stack
+    // accumulates through the scroll-authored reveal.
     pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
-    float disciplineColourGroup = mix(group, disciplineActiveGroup, disciplineReducedMotion);
     pointTint = mix(
       pointTint,
-      disciplineMaterialColor(disciplineColourGroup),
+      disciplineMaterialColor(group),
       revealedGroupWeight
     );
 
@@ -681,8 +668,8 @@ const VERTEX_SHADER = `
       toPresence * step(0.001, entryProgress),
       enteringPoint
     );
-    // Exact authored anchor cells remain present as ordinary grey grid points,
-    // then grow and colourise with the same scroll reveal as their labels.
+    // The authored anchor remains an ordinary grey point, then grows and
+    // colourises with the same scroll reveal as its label.
     presence = max(presence, groupExists * disciplineRevealActive);
     presence *= mix(1.0, clamp(bustSurfaceCarry, 0.0, 1.0), surfaceTransit);
     float bustFragmentKeep = step(
@@ -857,6 +844,23 @@ function createTransformScratch() {
     scale: new THREE.Vector3(),
     euler: new THREE.Euler(0, 0, 0, 'YXZ'),
   };
+}
+
+function captureDisciplineIndices(groups, target) {
+  target.fill(-1);
+  for (let pointIndex = 0; pointIndex < groups.length; pointIndex += 1) {
+    const groupIndex = Math.round(groups[pointIndex]) - 1;
+    if (groupIndex >= 0 && groupIndex < target.length && target[groupIndex] < 0) {
+      target[groupIndex] = pointIndex;
+    }
+  }
+}
+
+function hasAllDisciplineIndices(indices) {
+  for (let index = 0; index < indices.length; index += 1) {
+    if (indices[index] < 0) return false;
+  }
+  return true;
 }
 
 function createCameraFocusAnchor() {
@@ -1036,8 +1040,6 @@ function createPointFieldAdapter({
     disciplineRevealA: { value: new THREE.Vector3() },
     disciplineRevealB: { value: new THREE.Vector3() },
     disciplineRevealActive: { value: 0 },
-    disciplineReducedMotion: { value: 0 },
-    disciplineActiveGroup: { value: 0 },
     disciplineBackgroundWeight: { value: 0 },
     disciplineBackgroundOpacity: { value: 0.06 },
     disciplineReconnectOpacity: { value: 0.24 },
@@ -1318,12 +1320,21 @@ function createPointFieldAdapter({
   const correspondenceToTransform = new THREE.Matrix4();
   const correspondenceFromScratch = createTransformScratch();
   const correspondenceToScratch = createTransformScratch();
+  const disciplinePointScratch = new THREE.Vector3();
+  const disciplineFromPointScratch = new THREE.Vector3();
+  const disciplineToPointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
+  const fromDisciplineIndices = new Int32Array(6).fill(-1);
+  const toDisciplineIndices = new Int32Array(6).fill(-1);
+  const disciplineLabels = new Array(6).fill(null);
+  const disciplineLabelReveal = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
+  const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   let lastMotionSegmentId = '';
   let lastMotionStaggerSeed = Number.NaN;
   let lastMotionPathSeed = Number.NaN;
   let cachedDisciplineOverlay = null;
-  let lastDisciplineProgress = Number.NaN;
+  let cachedDisciplineChildCount = -1;
   let lastActiveDiscipline = Number.NaN;
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
@@ -1335,6 +1346,36 @@ function createPointFieldAdapter({
   let lastInteractionEnabled = null;
   let lastWorldStage = '';
   let lastBustStyleYaw = Number.NaN;
+  const syncDisciplineLabels = (overlay) => {
+    const childCount = overlay?.childElementCount ?? -1;
+    if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
+    cachedDisciplineOverlay = overlay || null;
+    cachedDisciplineChildCount = childCount;
+    for (let index = 0; index < disciplineLabels.length; index += 1) {
+      disciplineLabels[index] = overlay?.children[index] || null;
+      disciplineLabelReveal[index] = Number.NaN;
+      disciplineLabelX[index] = Number.NaN;
+      disciplineLabelY[index] = Number.NaN;
+    }
+  };
+  const writeDisciplineLabelReveal = (index, value) => {
+    if (disciplineLabelReveal[index] === value) return;
+    disciplineLabelReveal[index] = value;
+    const label = disciplineLabels[index];
+    if (!label) return;
+    label.style.setProperty('--discipline-reveal', value.toFixed(4));
+    runtimeObserver.hotFrameDomWrite();
+  };
+  const writeDisciplineLabelPosition = (index, x, y) => {
+    if (disciplineLabelX[index] === x && disciplineLabelY[index] === y) return;
+    disciplineLabelX[index] = x;
+    disciplineLabelY[index] = y;
+    const label = disciplineLabels[index];
+    if (!label) return;
+    label.style.setProperty('--discipline-x', `${x.toFixed(2)}px`);
+    label.style.setProperty('--discipline-y', `${y.toFixed(2)}px`);
+    runtimeObserver.hotFrameDomWrite(2);
+  };
   const getModifierSlots = (world, globals) => {
     if (!world) return null;
     const cached = modifierSlotsCache.get(world);
@@ -1431,6 +1472,7 @@ function createPointFieldAdapter({
   };
 
   const refreshInstalledDisciplineGroups = (pair) => {
+    const disciplineAnchors = getAboutNarrativeDisciplineAnchors(quality);
     const materialThresholds = [
       uniforms.materialThreshold1.value,
       uniforms.materialThreshold2.value,
@@ -1443,7 +1485,7 @@ function createPointFieldAdapter({
       pointSeeds: seeds,
       materialThresholds,
       anchors: pair.fromWorld.shapeId === 'calm-field-v1'
-        ? ABOUT_NARRATIVE_DISCIPLINE_ANCHORS
+        ? disciplineAnchors
         : null,
     }) || emptyGroup;
     const toGroup = createAboutNarrativeColourMatchedDisciplineGroups({
@@ -1451,7 +1493,7 @@ function createPointFieldAdapter({
       pointSeeds: seeds,
       materialThresholds,
       anchors: pair.toWorld.shapeId === 'calm-field-v1'
-        ? ABOUT_NARRATIVE_DISCIPLINE_ANCHORS
+        ? disciplineAnchors
         : null,
     }) || emptyGroup;
     fixedAttributes.position.array.set(pair.fromOutput.positions);
@@ -1466,6 +1508,8 @@ function createPointFieldAdapter({
     fixedAttributes.toPresence.needsUpdate = true;
     fixedAttributes.fromGroup.needsUpdate = true;
     fixedAttributes.toGroup.needsUpdate = true;
+    captureDisciplineIndices(fromGroup, fromDisciplineIndices);
+    captureDisciplineIndices(toGroup, toDisciplineIndices);
   };
 
   const installPreparedPair = (pair) => {
@@ -1924,15 +1968,105 @@ function createPointFieldAdapter({
     target.livingColour.value = Number(colour?.strength || 0);
   };
 
+  const projectDisciplineLabels = () => {
+    const useToGrid = hasAllDisciplineIndices(toDisciplineIndices);
+    const useFromGrid = hasAllDisciplineIndices(fromDisciplineIndices);
+    const indices = useToGrid
+      ? toDisciplineIndices
+      : useFromGrid ? fromDisciplineIndices : null;
+    if (!indices) return;
+
+    const morph = Math.min(1, Math.max(0, Number(uniforms.morphProgress.value)));
+    const driftAmplitude = THREE.MathUtils.lerp(
+      uniforms.fromDriftAmplitude.value,
+      uniforms.toDriftAmplitude.value,
+      morph,
+    );
+    const driftSpeed = THREE.MathUtils.lerp(
+      uniforms.fromDriftSpeed.value,
+      uniforms.toDriftSpeed.value,
+      morph,
+    );
+    const driftIrregularity = THREE.MathUtils.lerp(
+      uniforms.fromDriftIrregularity.value,
+      uniforms.toDriftIrregularity.value,
+      morph,
+    );
+    const driftIndividuality = THREE.MathUtils.lerp(
+      uniforms.fromDriftIndividuality.value,
+      uniforms.toDriftIndividuality.value,
+      morph,
+    );
+    const driftAxisSpread = THREE.MathUtils.lerp(
+      uniforms.fromDriftAxisSpread.value,
+      uniforms.toDriftAxisSpread.value,
+      morph,
+    );
+    const driftStoryMix = THREE.MathUtils.lerp(
+      uniforms.fromDriftStoryMix.value,
+      uniforms.toDriftStoryMix.value,
+      morph,
+    );
+    const driftClock = THREE.MathUtils.lerp(
+      uniforms.ambientTime.value,
+      uniforms.storyTime.value,
+      driftStoryMix,
+    );
+    const driftMix = driftIrregularity * 0.58;
+
+    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
+      const pointIndex = indices[groupIndex];
+      if (pointIndex < 0 || !disciplineLabels[groupIndex]) continue;
+      const offset = pointIndex * 3;
+      disciplineFromPointScratch
+        .fromArray(fixedAttributes.position.array, offset)
+        .applyMatrix4(uniforms.fromTransform.value);
+      disciplineToPointScratch
+        .fromArray(fixedAttributes.targetPosition.array, offset)
+        .applyMatrix4(uniforms.toTransform.value);
+      disciplinePointScratch.lerpVectors(
+        disciplineFromPointScratch,
+        disciplineToPointScratch,
+        morph,
+      );
+
+      if (driftAmplitude > 0.000001) {
+        const seed = seeds[pointIndex];
+        const phase = seed * 127.31;
+        const speedVariance = THREE.MathUtils.lerp(
+          1,
+          0.58 + ((((seed * 43.17) + 0.19) % 1) * 0.88),
+          driftIndividuality,
+        );
+        const driftTime = driftClock * driftSpeed * speedVariance;
+        const smoothX = Math.sin((driftTime * 1.07) + (phase * 1.31));
+        const smoothY = Math.sin((driftTime * 0.83) + (phase * 1.73));
+        const smoothZ = Math.cos((driftTime * 0.97) + (phase * 2.11));
+        const erraticX = Math.sin((driftTime * 2.43) + (phase * 0.37));
+        const erraticY = Math.cos((driftTime * 2.07) + (phase * 0.61));
+        const erraticZ = Math.sin((driftTime * 2.81) + (phase * 0.83));
+        disciplinePointScratch.x += THREE.MathUtils.lerp(smoothX, erraticX, driftMix)
+          * driftAxisSpread * driftAmplitude;
+        disciplinePointScratch.y += THREE.MathUtils.lerp(smoothY, erraticY, driftMix)
+          * driftAmplitude;
+        disciplinePointScratch.z += THREE.MathUtils.lerp(smoothZ, erraticZ, driftMix)
+          * driftAxisSpread * driftAmplitude;
+      }
+
+      disciplinePointScratch.project(camera);
+      writeDisciplineLabelPosition(
+        groupIndex,
+        ((disciplinePointScratch.x * 0.5) + 0.5) * width,
+        ((-disciplinePointScratch.y * 0.5) + 0.5) * height,
+      );
+    }
+  };
+
   const updateDisciplineReveal = (frame, fromWorld, toWorld) => {
     const revealState = frame.disciplineReveal;
     const reveal = revealState?.config;
     const overlay = disciplineOverlayRef?.current || null;
-    if (overlay !== cachedDisciplineOverlay) {
-      cachedDisciplineOverlay = overlay;
-      lastDisciplineProgress = Number.NaN;
-      lastActiveDiscipline = Number.NaN;
-    }
+    syncDisciplineLabels(overlay);
 
     const disciplineWorldAvailable = fromWorld?.shapeId === 'calm-field-v1'
       || toWorld?.shapeId === 'calm-field-v1';
@@ -1944,15 +2078,18 @@ function createPointFieldAdapter({
     );
     const activeIndex = effectAvailable ? Number(revealState.activeIndex) : -1;
     const activeGroup = activeIndex >= 0 ? Number(revealState.activeGroup) : 0;
-    const activeReveal = activeIndex >= 0
-      ? Number(revealState.activeReveal) * uniforms.simulationVisibility.value
-      : 0;
+    const activeReveal = activeIndex >= 0 ? Number(revealState.activeReveal) : 0;
+    const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
+    const simulationVisibility = uniforms.simulationVisibility.value;
+    const sequenceComplete = effectAvailable && frame.storyWU >= revealState.sequenceEndWU;
     disciplineWeights.fill(0);
-    if (activeIndex >= 0 && activeIndex < disciplineWeights.length) {
-      disciplineWeights[activeIndex] = activeReveal;
+    for (let index = 0; index < disciplineWeights.length; index += 1) {
+      const cumulativeReveal = sequenceComplete || index < activeIndex
+        ? 1
+        : index === activeIndex ? activeReveal : 0;
+      disciplineWeights[index] = cumulativeReveal * simulationVisibility * restoreWeight;
     }
 
-    const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
     const backgroundWeight = effectAvailable
       ? Number(revealState.backgroundProgress || 0) * restoreWeight
       : 0;
@@ -1962,8 +2099,6 @@ function createPointFieldAdapter({
     uniforms.fromDisciplineBackgroundOpacity.value = backgroundOpacity;
     uniforms.toDisciplineBackgroundOpacity.value = backgroundOpacity;
     uniforms.disciplineRevealActive.value = effectAvailable ? 1 : 0;
-    uniforms.disciplineReducedMotion.value = frame.reducedMotion ? 1 : 0;
-    uniforms.disciplineActiveGroup.value = activeGroup;
     uniforms.disciplineBackgroundWeight.value = backgroundWeight;
     uniforms.disciplineBackgroundOpacity.value = backgroundOpacity;
     uniforms.disciplineReconnectOpacity.value = 1;
@@ -1985,17 +2120,16 @@ function createPointFieldAdapter({
         lastActiveDiscipline = activeGroup;
         runtimeObserver.hotFrameDomWrite();
       }
-      const progress = frame.reducedMotion && activeIndex >= 0
-        ? 0.5
-        : Number(revealState?.beatProgress || 0);
-      if (progress !== lastDisciplineProgress) {
-        overlay.style.setProperty('--discipline-beat-progress', progress.toFixed(4));
-        lastDisciplineProgress = progress;
-        runtimeObserver.hotFrameDomWrite();
+      if (effectAvailable) projectDisciplineLabels();
+      for (let index = 0; index < disciplineLabels.length; index += 1) {
+        writeDisciplineLabelReveal(index, disciplineWeights[index]);
       }
     }
 
-    const visibleCount = activeReveal > 0.05 ? 1 : 0;
+    let visibleCount = 0;
+    for (let index = 0; index < disciplineWeights.length; index += 1) {
+      if (disciplineWeights[index] > 0.05) visibleCount += 1;
+    }
     if (visibleCount !== lastDisciplineVisibleCount) {
       root.dataset.worldDisciplineVisible = String(visibleCount);
       lastDisciplineVisibleCount = visibleCount;

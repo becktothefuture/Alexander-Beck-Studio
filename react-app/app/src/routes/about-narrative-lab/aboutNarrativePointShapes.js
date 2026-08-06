@@ -1,5 +1,5 @@
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  getAboutNarrativeDisciplineAnchors,
   getAboutNarrativeShapeDefinition,
 } from './aboutNarrativeDefinitions.js';
 import { getAboutNarrativeDisciplineGridDimensions } from './aboutNarrativeDisciplinePositions.js';
@@ -212,12 +212,23 @@ function createCalmField(count, seeds, parameters) {
 function createDisciplineGroups(count) {
   const groups = new Float32Array(count);
   const { columns, rows } = getAboutNarrativeDisciplineGridDimensions(count);
-  ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.forEach(({ group, x, y }) => {
+  const anchors = getAboutNarrativeDisciplineAnchors(rows <= 61 ? 'mobile' : 'desktop');
+  anchors.forEach(({ group, x, y }) => {
     const column = Math.round(x * (columns - 1));
     const row = Math.round(y * (rows - 1));
     groups[Math.min(count - 1, (row * columns) + column)] = group;
   });
   return groups;
+}
+
+function usesSharedDisciplineAnchor(anchors) {
+  if (!Array.isArray(anchors) || anchors.length < 2) return false;
+  const [first] = anchors;
+  if (!Number.isFinite(first?.x) || !Number.isFinite(first?.y)) return false;
+  return anchors.every((anchor) => (
+    Math.abs(Number(anchor?.x) - Number(first.x)) < 0.000001
+    && Math.abs(Number(anchor?.y) - Number(first.y)) < 0.000001
+  ));
 }
 
 function getMaterialSlot(seed, thresholds) {
@@ -253,6 +264,7 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
     && gridX.length === pointCount
     && gridZ instanceof Float32Array
     && gridZ.length === pointCount;
+  const sharedAnchor = usesSharedDisciplineAnchor(anchors);
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
@@ -269,7 +281,8 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
       maxZ = Math.max(maxZ, pointZ);
     }
   }
-  for (let group = 1; group <= 6; group += 1) {
+  const semanticGroupCount = sharedAnchor ? 1 : 6;
+  for (let group = 1; group <= semanticGroupCount; group += 1) {
     let anchorIndex = -1;
     const authoredAnchor = anchors?.find((item) => Number(item?.group) === group);
     let targetX = Number.NaN;
@@ -310,8 +323,8 @@ export function createAboutNarrativeColourMatchedDisciplineGroups({
     if (bestIndex < 0) continue;
     if (hasExactGrid) {
       const offset = bestIndex * 3;
-      output.positions[offset] = gridX[bestIndex];
-      output.positions[offset + 2] = gridZ[bestIndex];
+      output.positions[offset] = sharedAnchor ? targetX : gridX[bestIndex];
+      output.positions[offset + 2] = sharedAnchor ? targetZ : gridZ[bestIndex];
       output.presence[bestIndex] = 1;
     }
     groups[bestIndex] = group;

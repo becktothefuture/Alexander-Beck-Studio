@@ -29,14 +29,34 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
   '--ball-8',
   '--ball-6',
 ]);
-export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = Object.freeze([
-  Object.freeze({ group: 1, x: 0.31, y: 0.3 }),
-  Object.freeze({ group: 2, x: 0.31, y: 0.41 }),
-  Object.freeze({ group: 3, x: 0.31, y: 0.52 }),
-  Object.freeze({ group: 4, x: 0.31, y: 0.63 }),
-  Object.freeze({ group: 5, x: 0.31, y: 0.74 }),
-  Object.freeze({ group: 6, x: 0.31, y: 0.85 }),
-]);
+function createDisciplineAnchorStack(column, rows, columns, gridRows) {
+  return Object.freeze(rows.map((row, index) => Object.freeze({
+    group: index + 1,
+    x: column / Math.max(1, columns - 1),
+    y: row / Math.max(1, gridRows - 1),
+  })));
+}
+
+// Keep the reveal on six neighbouring native grid cells. The compact field
+// uses a different topology, so it owns the equivalent six-cell stack.
+export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = createDisciplineAnchorStack(
+  48,
+  [53, 54, 55, 56, 57, 58],
+  127,
+  95,
+);
+export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorStack(
+  31,
+  [34, 35, 36, 37, 38, 39],
+  82,
+  61,
+);
+
+export function getAboutNarrativeDisciplineAnchors(pointProfile = 'desktop') {
+  return pointProfile === 'mobile'
+    ? ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS
+    : ABOUT_NARRATIVE_DISCIPLINE_ANCHORS;
+}
 export const ABOUT_NARRATIVE_TRANSITION_TYPES = Object.freeze([
   'morph',
   'dissolve-morph',

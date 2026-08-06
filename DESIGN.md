@@ -188,25 +188,32 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV, with an optional
   Look-at Target XYZ and horizon roll for shots that must keep one material event framed. Authored
   positions create an orbit; there is no hidden frame origin, depth offset, or secondary dolly system.
-- The calm field is already visible beneath the client editorial, rises continuously as the camera flies
-  over it, and then pitches to an exact bird's-eye grid. Its width, depth, and distance fog must keep
+- The calm field resolves gradually beneath the client editorial as the camera completes the saved
+  backward flyover, then the camera makes one long crane-like tilt into the close bird's-eye view. It
+  does not travel back along the grid after that flyover. Its width, depth, and distance fog must keep
   the physical edges and horizon out of view.
 - Point sizing has two composable controls: one global material size and one relative multiplier per
   World. The global control sets the narrative's overall ball scale; World multipliers provide restrained
   shot-specific compensation without changing density, camera position, or point correspondence.
-- The six disciplines use one grid reading line and one stable editorial text position. Six equally spaced cells in one grid column pass through that line. The matching name is already faintly present at its final position before the active cell grows and receives its discipline colour; the description resolves with the cell. Both text elements use `--about-editorial-type-size`, with hierarchy from weight only. The presentation has no card, connector, counter, glow, per-item position, or screen-space projection. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`, `--ball-8`, `--ball-6`.
+- The six disciplines use six distinct native grid cells in one column. The camera makes one restrained
+  downward crane move as the sequence progresses. Each discipline remains visible after it resolves, so
+  the labels build into a vertical stack beside their own points. Every label follows the matching grid
+  point in screen space with the shared `22px` gap. The presentation has no card, connector, counter, or
+  glow. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
+  `--ball-8`, `--ball-6`.
 - The second editorial area uses one left-aligned measure after the discipline grid has faded completely away. Visibility, camera, and global distance fog are independent controls; fog must never substitute for an authored disappearance or be keyframed per camera pose.
-- The grid returns in full colour, already framed on the ripple centre, after the editorial area clears. A
+- The grid returns in full colour, already framed on the ripple centre, after the editorial area clears.
+  Any reframe from the discipline view happens only while the point world is fully hidden. From the return
+  through the finale, the camera follows one constant sideways orbit around a shared look-at point. A
   continuous concentric wave generator lifts and laterally displaces the ordered floor from its center
-  without helper rings. From the discipline pass onward, the camera keeps that center framed while descending and moving sideways in one continuous sweep;
-  scroll is the wave clock so every change in the ripple is an authored part of the journey.
+  without helper rings; scroll is the wave clock so every change in the ripple is authored.
 - The resolved form is the point-cloud bust: the ordered field gathers into one authored figure rather
   than a solar system or unrelated bodies. It begins only after the sustained ripple passage and forms
   bottom-up from that still-moving surface: the fragmented base and shoulders appear first, then the
   neck and coherent head resolve. The anchored camera eases out of its orbit and holds while the settled
   form begins its final rotation.
 - The bust remains large and horizontally centred through the final invitation. The lower-half stack
-  reads “Get in Touch”, then the smaller invitation sentence with one inline email link. It has no
+  reads “Let’s make something new”, then the smaller invitation sentence with one inline email link. It has no
   separate action buttons and must not displace the bust or leave the studio viewport.
 - Mobile portrait frames the final bust slightly higher and closer than the previous endpoint while
   retaining the same material/text centre relationship as desktop.

@@ -74,22 +74,41 @@ test('the canonical document carries the accepted spoken narrative', () => {
   assert.equal(getTextField('text-promise-main').text, 'About Me');
   assert.equal(
     getTextField('text-promise-main').description,
-    'Hi, I’m Alex. I’m a designer at heart, and I love what I do.',
+    'Hi, I’m Alex. I’m a designer because I’m endlessly curious about how things work.',
   );
   assert.equal(
     getTextField('text-complexity-idea').text,
-    'I’ve always been fascinated by complex problems…',
+    'I’ve always been drawn to complex problems…',
   );
   assert.equal(
     getTextField('text-complexity-conditions').text,
-    '…especially those that require multidisciplinary thinking.',
+    '…especially the kind that don’t fit neatly into a single discipline.',
   );
-  assert.match(firstProse, /identity technology, a financial product or something as ordinary as a keyboard/);
-  assert.match(authoredText, /13 years ago/);
-  assert.match(authoredText, /purposeful use of AI/);
-  assert.match(authoredText, /music, Lego and independent games/);
-  assert.equal(modules.filter((module) => module.kind === 'list').length, 0);
+  assert.equal(
+    getTextField('text-complexity-curiosity').text,
+    'The more complex the questions became…',
+  );
+  assert.equal(
+    getTextField('text-complexity-listen').text,
+    '…the more often I found myself working across disciplines.',
+  );
+  assert.match(firstProse, /new technology that people don’t quite trust yet/);
+  assert.match(authoredText, /around thirteen years ago/);
+  assert.match(authoredText, /AI becomes valuable when it strengthens human judgement/);
+  assert.match(authoredText, /redesigning the iOS keyboard/);
+  assert.deepEqual(
+    modules.filter((module) => module.kind === 'list').map((module) => module.items),
+    [
+      ['Those are the problems I enjoy most.'],
+      ['I’ve learned that the brief is often only part of the story.'],
+    ],
+  );
   assert.equal(modules.find((module) => module.id === 'selected-clients').label, 'Selected work from across my career.');
+  assert.equal(
+    modules.find((module) => module.id === 'selected-clients').items
+      .find((item) => item.id === 'mccann').label,
+    'McCann Worldgroup',
+  );
   assert.equal(disciplines.length, 6);
   assert.ok(disciplines.every((item) => item.description.length >= 50));
   assert.doesNotMatch(authoredText, /\bfear\b|\bafraid\b/i);
@@ -106,15 +125,18 @@ test('the canonical ending is transformative and the finale continues it', () =>
   const finale = getTextField('text-epilogue-invitation');
 
   assert.deepEqual(closingTitles, [
-    'Different disciplines don’t simply add up…',
-    '…they change one another as the work develops…',
-    '…until the combination becomes something of its own.',
+    'They may begin in one discipline…',
+    '…but they rarely stay there…',
+    '…and I like not knowing exactly where they’ll lead.',
   ]);
-  assert.match(closingStatement, /disciplines/i);
-  assert.match(closingStatement, /change one another/i);
-  assert.match(closingStatement, /combination/i);
+  assert.match(closingStatement, /discipline/i);
+  assert.match(closingStatement, /rarely stay there/i);
+  assert.match(closingStatement, /where they’ll lead/i);
   assert.doesNotMatch(closingStatement, /\bpeople\b/i);
   assert.equal(finale.text, 'Let’s make something new');
-  assert.equal(finale.description, 'If you have a complex problem in mind, I’d be curious to hear about it.');
+  assert.equal(
+    finale.description,
+    'If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it.',
+  );
   assert.doesNotMatch(finale.text, /get in touch/i);
 });

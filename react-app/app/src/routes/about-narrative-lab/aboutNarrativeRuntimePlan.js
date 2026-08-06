@@ -550,12 +550,11 @@ function writeDisciplineReveal(target, config, storyWU, reducedMotion) {
     const beatProgress = (sequenceWU - (activeIndex * config.beatDurationWU))
       / config.beatDurationWU;
     const entrance = reducedMotion ? 1 : smoothRange(beatProgress, 0, 0.2);
-    const exit = reducedMotion ? 0 : smoothRange(beatProgress, 0.8, 1);
     target.activeIndex = activeIndex;
     target.activeGroup = Number(config.items[activeIndex]?.group || 0);
     target.beatProgress = beatProgress;
-    target.activeReveal = reducedMotion ? 1 : Math.min(entrance, 1 - exit);
-    target.copyOffsetY = reducedMotion ? 0 : ((1 - entrance) * 18) - (exit * 18);
+    target.activeReveal = entrance;
+    target.copyOffsetY = reducedMotion ? 0 : (1 - entrance) * 18;
   }
   return target;
 }

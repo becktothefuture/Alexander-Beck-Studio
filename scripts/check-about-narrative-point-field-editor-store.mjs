@@ -341,12 +341,13 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
 
   const emergent = store.getSnapshot().document.tracks.interactions.clips
     .find((clip) => clip.id === 'interaction-emergent-ripple');
+  const extendedStartWU = Number((emergent.startWU + 0.23).toFixed(3));
   store.setSelection({ type: 'interaction', id: emergent.id });
   assert.equal(store.beginGesture('Extend v6 interaction preparation'), true);
-  assert.equal(store.updateGestureResizeInteraction(emergent.id, 'start', 15.5), true);
+  assert.equal(store.updateGestureResizeInteraction(emergent.id, 'start', extendedStartWU), true);
   assert.equal(store.commitGesture({ requireValid: true }), true);
   assert.equal(store.getSnapshot().document.tracks.interactions.clips
-    .find((clip) => clip.id === emergent.id).startWU, 15.5);
+    .find((clip) => clip.id === emergent.id).startWU, extendedStartWU);
 });
 
 test('save reconciliation preserves edits made after a v6 submission', () => {

@@ -73,6 +73,9 @@ const checkpointSpecs = [
   { id: 'desktop-discipline-anticipation', storyWU: 8.351, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, minimumPresentedDisciplines: 1, maximumPresentedDisciplines: 1, minimumDisciplineLabelOpacity: 0.15, maximumDisciplineLabelOpacity: 0.17, maximumDisciplineDescriptionOpacity: 0.05, maximumSpatialTitles: 0 },
   { id: 'desktop-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'desktop-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-stack-1', storyWU: 9.415, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-stack-3', storyWU: 10.815, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 3, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'desktop-discipline-stack-6', storyWU: 12.915, stage: 'calm-field-v1', reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
   { id: 'desktop-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'desktop-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'desktop-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'desktop', viewport: { width: 1440, height: 1000 } },
@@ -97,6 +100,9 @@ const checkpointSpecs = [
   { id: 'mobile-discipline-anticipation', storyWU: 8.351, stage: 'calm-field-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, minimumPresentedDisciplines: 1, maximumPresentedDisciplines: 1, minimumDisciplineLabelOpacity: 0.15, maximumDisciplineLabelOpacity: 0.17, maximumDisciplineDescriptionOpacity: 0.05, maximumSpatialTitles: 0 },
   { id: 'mobile-discipline-middle', storyWU: 8.72, stage: 'calm-field-v1', visibility: 0.99, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0, minimumChromaticCoverageRatio: 0.0001 },
   { id: 'mobile-discipline-exit', storyWU: 9.18, stage: 'calm-field-v1', visibility: 0.964, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-stack-1', storyWU: 9.415, stage: 'calm-field-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 1, maximumLabels: 1, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-stack-3', storyWU: 10.815, stage: 'calm-field-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 3, maximumLabels: 3, maximumSpatialTitles: 0 },
+  { id: 'mobile-discipline-stack-6', storyWU: 12.915, stage: 'calm-field-v1', reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, minimumLabels: 6, maximumLabels: 6, maximumSpatialTitles: 0 },
   { id: 'mobile-editorial', storyWU: 9.8, stage: 'calm-field-v1', visibility: 0.916, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'mobile-editorial-complete', storyWU: 10.2, stage: 'calm-field-v1', visibility: 0.887, reviewGroup: 'mobile', viewport: { width: 390, height: 844 }, maximumLabels: 0, maximumSpatialTitles: 0 },
   { id: 'mobile-grid-return', storyWU: 11.7, stage: 'calm-field-v1', visibility: 0, reviewGroup: 'mobile', viewport: { width: 390, height: 844 } },
@@ -436,11 +442,14 @@ for (const checkpoint of checkpoints) {
     const presentedDisciplineDescription = presentedDiscipline
       ?.querySelector('.about-narrative-discipline-reveal__description') || null;
     const visibleDisciplineRects = visibleDisciplines.map((node) => node.getBoundingClientRect());
-    const disciplineTypeSizesMatch = visibleDisciplines.every((node) => {
+    const disciplineTypeHierarchyValid = visibleDisciplines.every((node) => {
       const title = node.querySelector('.about-narrative-discipline-reveal__label');
       const description = node.querySelector('.about-narrative-discipline-reveal__description');
-      return title && description
-        && getComputedStyle(title).fontSize === getComputedStyle(description).fontSize;
+      if (!title || !description) return false;
+      const titleSize = Number.parseFloat(getComputedStyle(title).fontSize);
+      const descriptionSize = Number.parseFloat(getComputedStyle(description).fontSize);
+      return descriptionSize <= titleSize
+        && descriptionSize >= titleSize * 0.85;
     });
     const visibleSpatialTitles = [...document.querySelectorAll('.about-narrative-spatial-fragment')]
       .filter((node) => {
@@ -516,7 +525,7 @@ for (const checkpoint of checkpoints) {
       disciplineWithinTextCorridor: textCorridorRect && disciplineBounds
         ? isInsideTextCorridor(disciplineBounds)
         : null,
-      disciplineTypeSizesMatch,
+      disciplineTypeHierarchyValid,
       spatialTitlesWithinTextCorridor: textCorridorRect && visibleSpatialTitleBounds.length > 0
         ? visibleSpatialTitleBounds.every(isInsideTextCorridor)
         : null,
@@ -570,9 +579,9 @@ for (const checkpoint of checkpoints) {
       `${checkpoint.id}: the discipline reading line must remain inside the global text corridor.`,
     );
     assert.equal(
-      state.disciplineTypeSizesMatch,
+      state.disciplineTypeHierarchyValid,
       true,
-      `${checkpoint.id}: discipline names and descriptions must share the editorial font size.`,
+      `${checkpoint.id}: discipline descriptions must retain the compact title hierarchy.`,
     );
   }
   if (state.spatialTitlesWithinTextCorridor !== null) {

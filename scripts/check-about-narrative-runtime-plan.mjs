@@ -252,7 +252,7 @@ test('camera focus owns orientation while preserving smooth manual-to-focus hand
   assert.equal(midpoint.camera.lookAtTarget.length, 3);
   const manualFrame = sampleAboutNarrativeRuntimePlan(plan, from.atWU);
   assert.equal(manualFrame.camera.targeted, false);
-  assert.deepEqual(manualFrame.camera.lookAtTarget, from.lookAtTarget);
+  assertVectorClose(manualFrame.camera.lookAtTarget, from.lookAtTarget, 'manual camera target');
   const easedMidpoint = applyAboutNarrativeCameraEasing(from.easingCurve, 0.5);
   midpoint.camera.lookAtTarget.forEach((value, axis) => {
     assertClose(
@@ -570,7 +570,7 @@ test('Visibility uses outgoing-key easing, profile overrides, and Reduced Motion
   assert.equal(sampleAboutNarrativeRuntimePlan(reduced, middleWU).simulation.visibility, 1);
 });
 
-test('Discipline reading line compiles one shared six-beat sequence', () => {
+test('Discipline reading line compiles one cumulative six-beat sequence', () => {
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const reveal = plan.disciplineReveal;
   assert.ok(reveal);
@@ -580,9 +580,9 @@ test('Discipline reading line compiles one shared six-beat sequence', () => {
   assert.equal(reveal.motion.targetWorldId, 'world-grid');
   assert.equal(reveal.settleDurationWU, 0.5);
   assert.equal(reveal.beatDurationWU, 0.7);
-  assert.equal(reveal.sequenceStartWU, 5.55);
-  assert.equal(reveal.sequenceEndWU, 9.75);
-  assert.equal(reveal.effectEndWU, 10.15);
+  assert.equal(reveal.sequenceStartWU, 9.065);
+  assertClose(reveal.sequenceEndWU, 13.265, 'discipline sequence end');
+  assert.equal(reveal.effectEndWU, 13.665);
   assert.equal(reveal.items.length, 6);
   reveal.items.forEach((item) => {
     assert.equal('position' in item, false);
@@ -592,7 +592,7 @@ test('Discipline reading line compiles one shared six-beat sequence', () => {
     assert.equal(key in reveal.motion.parameters, false, `${key} must be removed`);
   });
 
-  const settling = sampleAboutNarrativeRuntimePlan(plan, 5.3).disciplineReveal;
+  const settling = sampleAboutNarrativeRuntimePlan(plan, 8.815).disciplineReveal;
   assert.equal(settling.active, true);
   assert.equal(settling.activeIndex, -1);
   assert.ok(settling.backgroundProgress > 0 && settling.backgroundProgress < 1);
@@ -604,11 +604,18 @@ test('Discipline reading line compiles one shared six-beat sequence', () => {
     assert.equal(frame.activeGroup, item.group);
     assert.equal(frame.activeReveal, 1);
     assert.ok(frame.beatProgress > 0.49 && frame.beatProgress < 0.51);
+    const held = sampleAboutNarrativeRuntimePlan(
+      plan,
+      reveal.sequenceStartWU + ((index + 0.95) * reveal.beatDurationWU),
+    ).disciplineReveal;
+    assert.equal(held.activeIndex, index);
+    assert.equal(held.activeReveal, 1);
+    assert.equal(held.copyOffsetY, 0);
   });
 
-  const restoring = sampleAboutNarrativeRuntimePlan(plan, 9.95).disciplineReveal;
-  const restored = sampleAboutNarrativeRuntimePlan(plan, 10.149999).disciplineReveal;
-  const handoff = sampleAboutNarrativeRuntimePlan(plan, 10.150001).disciplineReveal;
+  const restoring = sampleAboutNarrativeRuntimePlan(plan, 13.465).disciplineReveal;
+  const restored = sampleAboutNarrativeRuntimePlan(plan, 13.664999).disciplineReveal;
+  const handoff = sampleAboutNarrativeRuntimePlan(plan, 13.665001).disciplineReveal;
   assert.equal(restoring.activeIndex, -1);
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);

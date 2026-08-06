@@ -96,7 +96,7 @@ test('v6 bridge combines the legacy non-point frame with native point-field samp
   assert.equal(frame.world.transitionProgress, 1);
   assert.equal(getAboutNarrativeRendererPreparationRequest(plan, 10.55).targetWorldId, 'world-grid');
 
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, 17.35, frame, { ambientSeconds: 7 });
+  sampleAboutNarrativeRendererRuntimePlanInto(plan, 21.465, frame, { ambientSeconds: 7 });
   assert.equal(frame.sourceSchemaVersion, 6);
   assert.equal(frame.world.from.stateId, 'world-grid');
   assert.equal(frame.world.to.stateId, 'world-emergent');
@@ -107,7 +107,7 @@ test('v6 bridge combines the legacy non-point frame with native point-field samp
   assert.equal(frame.interactions.activeInteraction?.targetStateId, 'world-emergent');
   assert.equal(frame.interactions.activeInteraction?.targetWorldId, 'world-emergent');
 
-  const request = getAboutNarrativeRendererPreparationRequest(plan, 17.35);
+  const request = getAboutNarrativeRendererPreparationRequest(plan, 21.465);
   assert.equal(request.targetWorldId, 'world-emergent');
   assert.equal(request.sequenceKey, plan.worldSequenceKey);
 });

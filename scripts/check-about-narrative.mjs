@@ -56,6 +56,7 @@ import {
 import {
   ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS,
   ABOUT_NARRATIVE_DISCIPLINE_ANCHORS,
+  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
   resolveAboutNarrativeSwarmMotion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
@@ -507,7 +508,7 @@ test('the opening travels continuously from cluster through turbulence into the 
   assert.ok(background.worldState.transition.endWU > background.worldState.transition.startWU);
 });
 
-test('discipline reveal owns one extended clip, a paced camera handoff, and one six-point reading lane', () => {
+test('discipline reveal owns one extended clip, a paced camera handoff, and one native grid stack', () => {
   const plan = compileAboutNarrativeDocument(canonical);
   const background = plan.sections[2];
   const practice = plan.sections[3];
@@ -554,14 +555,29 @@ test('discipline reveal owns one extended clip, a paced camera handoff, and one 
   const verticalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.y);
   const horizontalPositions = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS.map((anchor) => anchor.x);
   assert.equal(new Set(verticalPositions).size, 6);
-  const sortedVerticalPositions = [...verticalPositions].sort((left, right) => left - right);
-  const verticalGaps = sortedVerticalPositions.slice(1).map((value, index) => value - sortedVerticalPositions[index]);
   assert.equal(new Set(horizontalPositions).size, 1);
-  assert.equal(horizontalPositions[0], 0.31);
-  assert.ok(Math.max(...verticalPositions) - Math.min(...verticalPositions) <= 0.56);
-  assert.ok(Math.min(...verticalGaps) >= 0.1);
-  assert.ok(Math.min(...verticalPositions) >= 0.3);
-  assert.ok(Math.max(...verticalPositions) <= 0.86);
+  const dimensions = getAboutNarrativeDisciplineGridDimensions('desktop');
+  assert.deepEqual(
+    horizontalPositions.map((value) => Math.round(value * (dimensions.columns - 1))),
+    [48, 48, 48, 48, 48, 48],
+  );
+  assert.deepEqual(
+    verticalPositions.map((value) => Math.round(value * (dimensions.rows - 1))),
+    [53, 54, 55, 56, 57, 58],
+  );
+  const compactDimensions = getAboutNarrativeDisciplineGridDimensions('mobile');
+  assert.deepEqual(
+    ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS.map((anchor) => (
+      Math.round(anchor.x * (compactDimensions.columns - 1))
+    )),
+    [31, 31, 31, 31, 31, 31],
+  );
+  assert.deepEqual(
+    ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS.map((anchor) => (
+      Math.round(anchor.y * (compactDimensions.rows - 1))
+    )),
+    [34, 35, 36, 37, 38, 39],
+  );
 });
 
 test('discipline colours follow the canonical Home simulation distribution', () => {
@@ -1408,6 +1424,36 @@ test('authored discipline anchors occupy their exact grid cells regardless of pr
     assertClose(output.positions[offset], output.attributes.disciplineGridX[pointIndex]);
     assertClose(output.positions[offset + 2], output.attributes.disciplineGridZ[pointIndex]);
   });
+});
+
+test('colliding discipline anchors resolve to one semantic point without replacement', async () => {
+  const pointCount = 5000;
+  const pointSeeds = createAboutNarrativeSeeds(pointCount, 506832829);
+  const output = await generateAboutNarrativeShape({
+    shapeId: 'calm-field-v1',
+    pointCount,
+    seeds: pointSeeds,
+    quality: 'mobile',
+    parameters: { width: 48, depth: 56, height: -1.72, jitter: 0, density: 0.02 },
+  });
+  const shared = { x: 0.378, y: 0.591424 };
+  const anchors = Array.from({ length: 6 }, (_, index) => ({ group: index + 1, ...shared }));
+  const groups = createAboutNarrativeColourMatchedDisciplineGroups({
+    output,
+    pointSeeds,
+    materialThresholds: [0.31, 0.44, 0.6, 0.8, 0.9],
+    anchors,
+  });
+  const semanticPoints = [];
+  groups.forEach((group, index) => {
+    if (group > 0) semanticPoints.push({ group, index });
+  });
+  assert.equal(semanticPoints.length, 1);
+  assert.equal(semanticPoints[0].group, 1);
+  const offset = semanticPoints[0].index * 3;
+  assertClose(output.positions[offset], -24 + (48 * shared.x));
+  assertClose(output.positions[offset + 2], -28 + (56 * shared.y));
+  assert.equal(output.presence[semanticPoints[0].index], 1);
 });
 
 test('turbulent field creates uneven volumetric density rather than a uniform random fill', async () => {

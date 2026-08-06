@@ -384,12 +384,11 @@ function writeV6DisciplineReveal(frame, config) {
     const beatProgress = (sequenceWU - (activeIndex * config.beatDurationWU))
       / config.beatDurationWU;
     const entrance = frame.reducedMotion ? 1 : smoothRange(beatProgress, 0, 0.2);
-    const exit = frame.reducedMotion ? 0 : smoothRange(beatProgress, 0.8, 1);
     target.activeIndex = activeIndex;
     target.activeGroup = Number(config.items[activeIndex]?.group || 0);
     target.beatProgress = beatProgress;
-    target.activeReveal = frame.reducedMotion ? 1 : Math.min(entrance, 1 - exit);
-    target.copyOffsetY = frame.reducedMotion ? 0 : ((1 - entrance) * 18) - (exit * 18);
+    target.activeReveal = entrance;
+    target.copyOffsetY = frame.reducedMotion ? 0 : (1 - entrance) * 18;
   }
 }
 

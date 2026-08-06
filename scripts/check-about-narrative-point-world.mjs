@@ -211,10 +211,11 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
   assert.match(source, /gl_PointSize = max\(0\.01, clamp\(renderedPointSize, 5\.25, 21\.6\) \* entranceScale\) \* pixelRatio/);
   assert.match(source, /presence = max\(presence, groupExists \* disciplineRevealActive\)/);
-  assert.match(source, /disciplineMaterialColor\(disciplineColourGroup\)/);
+  assert.match(source, /disciplineMaterialColor\(group\)/);
   assert.match(source, /float group = toGroup >= 0\.5 \? toGroup : fromGroup/);
-  assert.match(source, /stationaryRevealWeight/);
-  assert.match(source, /uniforms\.disciplineReducedMotion\.value = frame\.reducedMotion \? 1 : 0/);
+  assert.match(source, /float disciplineRevealForGroup\(float group\)/);
+  assert.match(source, /float revealedGroupWeight = groupExists \* disciplineRevealForGroup\(group\)/);
+  assert.doesNotMatch(source, /disciplineReducedMotion/);
   assert.match(source, /presence = mix\([\s\S]*revealedGroupWeight/);
   assert.match(source, /max\(cssPointSize, 21\.6\)/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
@@ -240,8 +241,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
   assert.match(source, /const activeIndex = effectAvailable \? Number\(revealState\.activeIndex\) : -1/);
   assert.match(source, /frame\.storyWU < reveal\.effectEndWU/);
-  assert.match(source, /disciplineWeights\[activeIndex\] = activeReveal/);
-  assert.match(source, /overlay\.style\.setProperty\('--discipline-beat-progress'/);
+  assert.match(source, /const cumulativeReveal = sequenceComplete \|\| index < activeIndex/);
+  assert.match(source, /label\.style\.setProperty\('--discipline-reveal'/);
+  assert.match(source, /const projectDisciplineLabels = \(\) =>/);
   assert.doesNotMatch(source, /projectDisciplineAnchors|getAboutNarrativeDisciplineLabelNudge|disciplineLabelResizeObserver/);
   assert.doesNotMatch(source, /installConstrainedDisciplinePoint|constrainDisciplinePointsToCorridor/);
   assert.match(source, /attributeFilter: \['data-editor-preview-layout', 'data-editor-preview-orientation'\]/);
