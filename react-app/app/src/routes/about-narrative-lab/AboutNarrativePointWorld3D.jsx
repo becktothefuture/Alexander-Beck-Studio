@@ -922,6 +922,9 @@ function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSn
 
 function createSimulationBodyAtlasTexture(atlas) {
   const texture = new THREE.CanvasTexture(atlas.canvas);
+  // gl_PointCoord.y already runs from the top of each point sprite. Preserve
+  // the Canvas atlas orientation so its authored top light stays on top.
+  texture.flipY = false;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.minFilter = THREE.LinearFilter;

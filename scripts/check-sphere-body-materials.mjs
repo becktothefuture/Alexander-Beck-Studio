@@ -359,6 +359,10 @@ function assertPrimaryRouteSemanticContracts() {
         pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)/,
       },
       {
+        label: 'About sphere atlas must preserve Canvas top-to-bottom orientation for gl_PointCoord',
+        pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)[\s\S]{0,240}?texture\.flipY\s*=\s*false/,
+      },
+      {
         label: 'About must sample the atlas only for readable circles and discipline balls',
         pattern: /uUseMaterialAtlas\s*>\s*0\.5\s*&&\s*pointMaterialWeight\s*>\s*0\.001[\s\S]{0,720}?texture2D\s*\(\s*uMaterialAtlas\b/,
       },
