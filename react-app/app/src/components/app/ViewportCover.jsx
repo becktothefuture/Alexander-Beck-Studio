@@ -106,7 +106,7 @@ export function ViewportCover() {
           className="viewport-cover__title"
           tabIndex="-1"
         >
-          Give the canvas<br />a little more room.
+          Bit of a Squeeze.
         </h1>
         <p id="viewport-cover-description" className="viewport-cover__instruction">
           Resize this window or rotate your device to continue.
