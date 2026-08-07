@@ -6,7 +6,7 @@ import {
 import './palette-lab.css';
 
 const STAGE_LABELS = Object.freeze({
-  live: 'Live / timed palette',
+  live: 'Live / timed',
 });
 
 function WeightedField({ concept }) {

@@ -202,12 +202,13 @@ body.palette-lab-page .palette-lab__legend {
 
 body.palette-lab-page .palette-lab__legend span {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 56px 1fr;
   gap: var(--space-xs);
 }
 
 body.palette-lab-page .palette-lab__legend b {
   font-weight: 500;
+  white-space: nowrap;
   color: var(--palette-lab-ink);
 }
 
