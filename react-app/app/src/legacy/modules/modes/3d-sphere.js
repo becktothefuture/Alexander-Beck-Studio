@@ -11,6 +11,7 @@ import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 
 const DEFAULT_DRAG_GAIN = 1.25;
 const DEFAULT_RELEASE_SPIN_GAIN = 1.05;
@@ -568,10 +569,19 @@ export function render3DSphereDepthLayer(ctx, options = {}) {
     if (alpha <= 0.001) continue;
 
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = ball.color;
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    if (!drawSimulationBodyMaterial(
+      ctx,
+      ball.color,
+      ball.x,
+      ball.y,
+      radius,
+      g.isDarkMode ? 'dark' : 'light',
+    )) {
+      ctx.fillStyle = ball.color;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }

@@ -1,0 +1,636 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway sphere-depth material study.
+  The exact production simulations run below a prototype-only cached material
+  fill. Excluded from the production Vite inputs; the compact material profile
+  saves locally for repeatable visual tuning.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — Sphere depth</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        --prototype-panel-width: 280px;
+        --prototype-row-height: 28px;
+        --prototype-folder-height: 26px;
+        --prototype-header-height: 34px;
+        --prototype-preview-height: 246px;
+        --prototype-panel-bg: #191a1d;
+        --prototype-panel-header: #111215;
+        --prototype-folder-bg: #222429;
+        --prototype-row-hover: #202228;
+        --prototype-separator: #303238;
+        --prototype-widget: #2a2d33;
+        --prototype-text: #eceff3;
+        --prototype-muted: #8d939c;
+        --prototype-accent: #8fc5f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #e9e9e9;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .prototype-stage,
+      .prototype-simulation-host,
+      .prototype-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .prototype-stage {
+        background: #e9e9e9;
+      }
+
+      .prototype-simulation-host {
+        overflow: hidden;
+      }
+
+      .prototype-canvas {
+        display: block;
+        touch-action: none;
+        cursor: grab;
+      }
+
+      .prototype-canvas[hidden] {
+        display: none;
+      }
+
+      .prototype-canvas:focus {
+        outline: none;
+      }
+
+      body[data-interacting='true'] .prototype-canvas {
+        cursor: grabbing;
+      }
+
+      .prototype-caption {
+        position: fixed;
+        top: 24px;
+        left: 26px;
+        z-index: 4;
+        width: min(29rem, calc(100vw - 350px));
+        pointer-events: none;
+      }
+
+      .prototype-caption__eyebrow {
+        margin: 0 0 7px;
+        color: rgb(20 20 20 / 52%);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .prototype-caption h1 {
+        margin: 0;
+        color: #151515;
+        font-size: clamp(20px, 2.1vw, 34px);
+        font-weight: 520;
+        letter-spacing: -0.035em;
+        line-height: 1;
+      }
+
+      .prototype-caption__description {
+        max-width: 36rem;
+        margin: 10px 0 0;
+        color: rgb(20 20 20 / 61%);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .prototype-caption__interaction {
+        display: inline-flex;
+        max-width: 36rem;
+        margin: 12px 0 0;
+        padding: 5px 7px;
+        border: 1px solid rgb(20 20 20 / 12%);
+        border-radius: 3px;
+        background: rgb(255 255 255 / 36%);
+        color: rgb(20 20 20 / 62%);
+        font: 700 9px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.055em;
+        text-transform: uppercase;
+      }
+
+      body[data-canvas-focus='true'] .prototype-caption__interaction {
+        border-color: rgb(20 20 20 / 26%);
+        color: rgb(20 20 20 / 82%);
+      }
+
+      body[data-background='dark'] .prototype-caption__eyebrow,
+      body[data-background='dark'] .prototype-caption__description {
+        color: rgb(255 255 255 / 54%);
+      }
+
+      body[data-background='dark'] .prototype-caption__interaction {
+        border-color: rgb(255 255 255 / 14%);
+        background: rgb(0 0 0 / 20%);
+        color: rgb(255 255 255 / 60%);
+      }
+
+      body[data-background='dark'][data-canvas-focus='true'] .prototype-caption__interaction {
+        border-color: rgb(255 255 255 / 28%);
+        color: rgb(255 255 255 / 84%);
+      }
+
+      body[data-background='dark'] .prototype-caption h1 {
+        color: #f3f1ea;
+      }
+
+      .parameterizer-panel {
+        position: fixed;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        width: var(--prototype-panel-width);
+        max-width: calc(100vw - 16px);
+        max-height: calc(100vh - 16px);
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 9%);
+        border-radius: 5px;
+        background: var(--prototype-panel-bg);
+        box-shadow: 0 18px 48px rgb(0 0 0 / 24%);
+        color: var(--prototype-text);
+        font-size: 11px;
+      }
+
+      .parameterizer-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        min-height: var(--prototype-header-height);
+        padding: 0 7px 0 9px;
+        border-bottom: 1px solid var(--prototype-separator);
+        background: var(--prototype-panel-header);
+      }
+
+      .parameterizer-header strong {
+        overflow: hidden;
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .parameterizer-header span {
+        display: block;
+        margin-top: 2px;
+        color: var(--prototype-muted);
+        font-size: 9px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .parameterizer-actions {
+        display: flex;
+        gap: 3px;
+      }
+
+      .parameterizer-actions button,
+      .prototype-switcher button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .parameterizer-actions button {
+        min-width: 25px;
+        height: 24px;
+        padding: 0 5px;
+        border-radius: 2px;
+        color: var(--prototype-muted);
+        font-size: 10px;
+      }
+
+      .parameterizer-actions #prototype-save {
+        min-width: 58px;
+        background: var(--prototype-accent);
+        color: #10151a;
+        font-weight: 750;
+      }
+
+      .parameterizer-actions #prototype-save:hover,
+      .parameterizer-actions #prototype-save:focus-visible {
+        background: #b9ddff;
+        color: #080b0e;
+      }
+
+      .parameterizer-actions button:hover,
+      .parameterizer-actions button:focus-visible {
+        background: var(--prototype-widget);
+        color: var(--prototype-text);
+        outline: 0;
+      }
+
+      .parameterizer-preview {
+        display: grid;
+        flex: 0 0 var(--prototype-preview-height);
+        grid-template-rows: minmax(0, 1fr) 22px;
+        min-height: 0;
+        overflow: hidden;
+        border-bottom: 1px solid var(--prototype-separator);
+        background: #151619;
+      }
+
+      .parameterizer-preview canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .parameterizer-preview__meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 9px;
+        border-top: 1px solid rgb(255 255 255 / 6%);
+        background: var(--prototype-panel-header);
+        color: var(--prototype-muted);
+        font: 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .parameterizer-preview__meta strong {
+        color: var(--prototype-text);
+        font: inherit;
+      }
+
+      .parameterizer-preview__scale {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .parameterizer-preview__scale select {
+        height: 17px;
+        padding: 0 14px 0 4px;
+        border: 1px solid rgb(255 255 255 / 10%);
+        border-radius: 2px;
+        outline: 0;
+        background: var(--prototype-widget);
+        color: var(--prototype-text);
+        font: 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .parameterizer-scroll {
+        min-height: 0;
+        overflow: auto;
+        scrollbar-color: #3b3e45 transparent;
+        scrollbar-width: thin;
+      }
+
+      .parameterizer-folder {
+        margin: 0;
+        border-bottom: 1px solid var(--prototype-separator);
+      }
+
+      .parameterizer-folder-title {
+        display: flex;
+        align-items: center;
+        min-height: var(--prototype-folder-height);
+        padding: 0 8px;
+        background: var(--prototype-folder-bg);
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 650;
+        letter-spacing: 0.035em;
+        list-style: none;
+        text-transform: uppercase;
+        user-select: none;
+      }
+
+      .parameterizer-folder-title::-webkit-details-marker {
+        display: none;
+      }
+
+      .parameterizer-folder-title::before {
+        width: 12px;
+        color: var(--prototype-muted);
+        content: '›';
+        font-size: 14px;
+        line-height: 1;
+        transform-origin: 35% 50%;
+        transition: transform 120ms ease-out;
+      }
+
+      .parameterizer-folder[open] > .parameterizer-folder-title::before {
+        transform: rotate(90deg);
+      }
+
+      .parameterizer-row {
+        display: grid;
+        grid-template-columns: 44% minmax(0, 1fr) 38px;
+        align-items: center;
+        min-height: var(--prototype-row-height);
+        padding: 0 7px 0 10px;
+        border-top: 1px solid rgb(255 255 255 / 3%);
+      }
+
+      .parameterizer-row:hover {
+        background: var(--prototype-row-hover);
+      }
+
+      .parameterizer-row--wide {
+        grid-template-columns: 44% minmax(0, 1fr);
+      }
+
+      .parameterizer-label {
+        overflow: hidden;
+        padding-right: 7px;
+        color: #d6d9de;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .parameterizer-control {
+        width: 100%;
+        min-width: 0;
+      }
+
+      input[type='range'].parameterizer-control {
+        height: 14px;
+        margin: 0;
+        accent-color: var(--prototype-accent);
+      }
+
+      input[type='checkbox'].parameterizer-control {
+        justify-self: end;
+        width: 13px;
+        height: 13px;
+        margin: 0;
+        accent-color: var(--prototype-accent);
+      }
+
+      select.parameterizer-control {
+        height: 20px;
+        padding: 0 4px;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 8%);
+        border-radius: 2px;
+        outline: 0;
+        background: var(--prototype-widget);
+        color: var(--prototype-text);
+        font-size: 10px;
+        text-overflow: ellipsis;
+      }
+
+      .parameterizer-value {
+        overflow: hidden;
+        color: var(--prototype-accent);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 9px;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        text-overflow: clip;
+        white-space: nowrap;
+      }
+
+      .parameterizer-note {
+        margin: 0;
+        padding: 8px 10px 9px;
+        color: var(--prototype-muted);
+        font-size: 9px;
+        line-height: 1.4;
+      }
+
+      .parameterizer-metrics {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 4px 10px;
+        margin: 0;
+        padding: 8px 10px 9px;
+        color: var(--prototype-muted);
+        font-size: 9px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .parameterizer-metrics dt,
+      .parameterizer-metrics dd {
+        margin: 0;
+      }
+
+      .parameterizer-metrics dd {
+        overflow: hidden;
+        color: var(--prototype-text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .prototype-switcher {
+        position: fixed;
+        right: 50%;
+        bottom: 14px;
+        z-index: 8;
+        display: grid;
+        grid-template-columns: 38px minmax(220px, auto) 38px;
+        align-items: stretch;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 12%);
+        border-radius: 999px;
+        background: rgb(17 18 21 / 94%);
+        box-shadow: 0 12px 34px rgb(0 0 0 / 23%);
+        color: #fff;
+        transform: translateX(50%);
+        backdrop-filter: blur(16px);
+      }
+
+      .prototype-switcher button {
+        min-width: 38px;
+        min-height: 42px;
+        font-size: 15px;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 10%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        align-content: center;
+        min-height: 42px;
+        padding: 5px 13px;
+        border-inline: 1px solid rgb(255 255 255 / 8%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.2;
+      }
+
+      .prototype-switcher__label small {
+        margin-top: 2px;
+        color: rgb(255 255 255 / 48%);
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+
+      .prototype-perf {
+        position: fixed;
+        bottom: 18px;
+        left: 22px;
+        z-index: 5;
+        margin: 0;
+        color: rgb(20 20 20 / 52%);
+        font: 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
+      }
+
+      body[data-background='dark'] .prototype-perf {
+        color: rgb(255 255 255 / 48%);
+      }
+
+      body[data-panel-collapsed='true'] .parameterizer-preview,
+      body[data-panel-collapsed='true'] .parameterizer-scroll {
+        display: none;
+      }
+
+      @media (max-width: 700px) {
+        :root {
+          --prototype-row-height: 32px;
+        }
+
+        .prototype-caption {
+          top: 16px;
+          left: 16px;
+          width: calc(100vw - 32px);
+        }
+
+        .prototype-caption__description,
+        .prototype-perf {
+          display: none;
+        }
+
+        .parameterizer-panel {
+          top: auto;
+          right: 8px;
+          bottom: 64px;
+        }
+
+        .prototype-switcher {
+          bottom: 8px;
+          grid-template-columns: 36px minmax(190px, auto) 36px;
+          max-width: calc(100vw - 16px);
+        }
+      }
+    </style>
+  </head>
+  <body data-background="light">
+    <main class="prototype-stage">
+      <div class="prototype-simulation-host" id="simulations">
+        <canvas
+          class="prototype-canvas"
+          id="c"
+          aria-label="Production ball simulation with prototype sphere material"
+          aria-describedby="prototype-interaction"
+          tabindex="0"
+        ></canvas>
+        <canvas
+          class="prototype-canvas"
+          id="flock-of-birds-canvas"
+          aria-label="Production Convergence simulation with prototype sphere material"
+          aria-describedby="prototype-interaction"
+          tabindex="0"
+          hidden
+        ></canvas>
+      </div>
+
+      <section class="prototype-caption" aria-live="polite">
+        <p class="prototype-caption__eyebrow" id="prototype-eyebrow">Loading production simulation…</p>
+        <h1 id="prototype-title">Sphere depth study</h1>
+        <p class="prototype-caption__description" id="prototype-description">
+          Matte key, ambient sky, rim, occlusion, and bounce are baked once per colour, then reused without rotating.
+        </p>
+        <p class="prototype-caption__interaction" id="prototype-interaction">
+          Move / drag to interact
+        </p>
+      </section>
+
+      <aside class="parameterizer-panel" aria-label="Sphere effect controls">
+        <header class="parameterizer-header">
+          <div>
+            <strong>Sphere material</strong>
+            <span id="prototype-profile-label">Light environment · material only</span>
+          </div>
+          <div class="parameterizer-actions">
+            <button id="prototype-save" type="button" title="Save prototype material config">Save</button>
+            <button id="prototype-reset" type="button" title="Reset material values">Reset</button>
+            <button id="prototype-collapse" type="button" title="Collapse panel" aria-expanded="true">−</button>
+          </div>
+        </header>
+        <div class="parameterizer-preview" aria-label="Enlarged live sphere material preview">
+          <canvas
+            id="prototype-material-preview"
+            width="556"
+            height="448"
+            role="img"
+            aria-label="One production ball shown at an enlarged preview scale"
+          ></canvas>
+          <div class="parameterizer-preview__meta">
+            <span>
+              <strong>Live ball</strong>
+              <span id="prototype-preview-colour">Loading colour</span>
+            </span>
+            <label class="parameterizer-preview__scale">
+              Scale
+              <select id="prototype-preview-scale" aria-label="Preview scale">
+                <option value="8" selected>8×</option>
+                <option value="10">10×</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="parameterizer-scroll" id="prototype-controls"></div>
+      </aside>
+
+      <nav class="prototype-switcher" id="panelDock" aria-label="Production simulation scenes">
+        <button id="prototype-previous" type="button" aria-label="Previous simulation">←</button>
+        <span class="prototype-switcher__label">
+          <strong id="prototype-scene-label">Foundation / Pit</strong>
+          <small id="prototype-scene-meta">Exact production runtime</small>
+        </span>
+        <button id="prototype-next" type="button" aria-label="Next simulation">→</button>
+      </nav>
+
+      <p class="prototype-perf" id="prototype-perf">Preparing renderer…</p>
+    </main>
+
+    <script type="module" src="./sphere-depth-prototype.js"></script>
+  </body>
+</html>

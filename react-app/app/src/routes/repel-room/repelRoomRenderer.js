@@ -17,6 +17,11 @@ import {
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
+import {
+  drawSimulationBodyMaterial,
+  getSimulationBodyMaterialSprite,
+  prewarmSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -493,6 +498,30 @@ function drawState(
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   }
 
+  const materialTheme = theme?.isDark ? 'dark' : 'light';
+  const useMaterial = colors.body.length > 0
+    && getSimulationBodyMaterialSprite(colors.body[0], materialTheme) !== null;
+  if (useMaterial) {
+    for (let i = 0; i < state.count; i += 1) {
+      const radius = state.radius[i] * getVisualScaleAt(i);
+      if (radius <= 0.05) continue;
+      const colorIndex = resolveSimulationMaterialColorIndex(
+        state.materialRoleIndex[i],
+        theme?.paletteSnapshot || theme?.colorDistribution,
+      );
+      drawSimulationBodyMaterial(
+        ctx,
+        colors.body[colorIndex],
+        state.x[i],
+        state.y[i],
+        radius,
+        materialTheme,
+      );
+    }
+    markAuditFrame(ctx.canvas);
+    return;
+  }
+
   for (let colorIndex = 0; colorIndex < colors.body.length; colorIndex += 1) {
     ctx.fillStyle = colors.body[colorIndex];
     ctx.beginPath();
@@ -639,6 +668,10 @@ export function createRepelRoomRenderer({
       colorThemeSource = theme;
       colorGeneration = nextColorGeneration;
       colorCache = createColorCache(theme);
+      prewarmSimulationBodyMaterial(
+        colorCache.body,
+        theme?.isDark ? 'dark' : 'light',
+      );
     }
   }
 

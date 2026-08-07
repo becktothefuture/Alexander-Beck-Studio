@@ -7,6 +7,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { getColorByIndex, pickRandomColorWithIndex } from '../visual/colors.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { resolveSimulationMaterialColorIndex } from '../../../palette/simulationPaletteContract.js';
+import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 
 // Module-level star array (not balls, just data)
 let _stars = [];
@@ -261,10 +262,19 @@ export function renderStarfield3D(ctx) {
     // Draw circle with alpha
     if (r > 0.05 && drawAlpha > 0.001) {
       ctx.globalAlpha = drawAlpha;
-      ctx.beginPath();
-      ctx.arc(x2d, y2d, r, 0, Math.PI * 2);
-      ctx.fillStyle = star.color;
-      ctx.fill();
+      if (!drawSimulationBodyMaterial(
+        ctx,
+        star.color,
+        x2d,
+        y2d,
+        r,
+        g.isDarkMode ? 'dark' : 'light',
+      )) {
+        ctx.beginPath();
+        ctx.arc(x2d, y2d, r, 0, Math.PI * 2);
+        ctx.fillStyle = star.color;
+        ctx.fill();
+      }
       ctx.globalAlpha = 1;
     }
   }

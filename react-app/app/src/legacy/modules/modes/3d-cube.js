@@ -9,6 +9,7 @@ import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 import {
   CUBE_3D_DEFAULTS,
   resolveCube3DMotionScale,
@@ -269,10 +270,19 @@ export function render3DCubeDepthLayer(ctx, options = {}) {
     if (alpha <= 0.001) continue;
 
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = ball.color;
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    if (!drawSimulationBodyMaterial(
+      ctx,
+      ball.color,
+      ball.x,
+      ball.y,
+      radius,
+      g.isDarkMode ? 'dark' : 'light',
+    )) {
+      ctx.fillStyle = ball.color;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }

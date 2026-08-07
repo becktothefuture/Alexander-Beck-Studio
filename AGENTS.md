@@ -8,6 +8,16 @@
 - The Canvas 2D simulation runtime in `src/legacy/` is active infrastructure. Its directory name is historical; do not delete or rewrite it merely for modernization.
 - The canonical authored design source is `react-app/app/public/config/design-system.json`. Generated runtime configs are never hand-edited.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and specifications are tracked in this repository's GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+This repository uses a single-context domain-documentation layout. See `docs/agents/domain.md`.
+
 ## Commands
 
 - `npm run install:all` — install root and app dependencies

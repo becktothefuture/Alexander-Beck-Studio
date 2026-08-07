@@ -5,6 +5,7 @@ import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { resolveMobileSimulationBodyScale } from '../../../lib/mobileSimulationSizing.js';
+import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 
@@ -612,17 +613,19 @@ export function applyPressureCrucibleForces(ball, dt) {
   ball.sleepTimer = 0;
 }
 
-function drawFluxParticles(ctx, balls) {
+function drawFluxParticles(ctx, balls, theme) {
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   for (let i = 0; i < balls.length; i += 1) {
     const ball = balls[i];
     const meta = ball._pressureFlux;
     if (!meta) continue;
-    ctx.beginPath();
-    ctx.fillStyle = ball.color;
-    ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
-    ctx.fill();
+    if (!drawSimulationBodyMaterial(ctx, ball.color, ball.x, ball.y, ball.r, theme)) {
+      ctx.beginPath();
+      ctx.fillStyle = ball.color;
+      ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -631,5 +634,5 @@ export function renderPressureCrucible(ctx) {
   const g = getGlobals();
   if (g.currentMode !== MODES.PRESSURE_CRUCIBLE) return;
   const balls = g.balls || [];
-  drawFluxParticles(ctx, balls);
+  drawFluxParticles(ctx, balls, g.isDarkMode ? 'dark' : 'light');
 }

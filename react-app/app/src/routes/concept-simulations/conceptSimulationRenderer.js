@@ -23,6 +23,12 @@ import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rend
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
+import {
+  drawClippedSimulationBodyMaterial,
+  drawSimulationBodyMaterial,
+  getSimulationBodyMaterialSprite,
+  prewarmSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -32,6 +38,10 @@ const DEFAULT_THEME = {
   active: '#202020',
   palette: FALLBACK_SIMULATION_PALETTE_COLORS,
   colorDistribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+};
+const conceptMaterialPathScratch = {
+  body: null,
+  radius: 0,
 };
 
 function clamp(value, min, max) {
@@ -218,7 +228,31 @@ function createPebbleShape(random) {
   return points;
 }
 
-function drawPebble(ctx, body, visualScale = 1) {
+function appendConceptPebbleMaterialPath(ctx) {
+  const body = conceptMaterialPathScratch.body;
+  const radius = conceptMaterialPathScratch.radius;
+  const points = body?.shape || [];
+  ctx.save();
+  ctx.translate(body.x, body.y);
+  ctx.rotate(body.rotation);
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    const x = Math.cos(current.angle) * current.radius * radius;
+    const y = Math.sin(current.angle) * current.radius * radius;
+    const nextX = Math.cos(next.angle) * next.radius * radius;
+    const nextY = Math.sin(next.angle) * next.radius * radius;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.quadraticCurveTo(x, y, (x + nextX) * 0.5, (y + nextY) * 0.5);
+    }
+  }
+  ctx.closePath();
+  ctx.restore();
+}
+
+function drawPebble(ctx, body, visualScale = 1, materialTheme = 'light', useMaterial = false) {
   const points = body.shape;
   const radius = body.r * visualScale;
   if (radius <= 0.05) return;
@@ -226,6 +260,22 @@ function drawPebble(ctx, body, visualScale = 1) {
   const opacity = clamp(Number(body.opacity ?? 1), 0, 1);
   if (opacity <= 0.001) return;
   if (opacity < 1) ctx.globalAlpha = previousAlpha * opacity;
+  if (useMaterial) {
+    conceptMaterialPathScratch.body = body;
+    conceptMaterialPathScratch.radius = radius;
+    if (drawClippedSimulationBodyMaterial(
+      ctx,
+      body.color,
+      body.x,
+      body.y,
+      radius,
+      appendConceptPebbleMaterialPath,
+      materialTheme,
+    )) {
+      ctx.globalAlpha = previousAlpha;
+      return;
+    }
+  }
   ctx.save();
   ctx.translate(body.x, body.y);
   ctx.rotate(body.rotation);
@@ -250,13 +300,24 @@ function drawPebble(ctx, body, visualScale = 1) {
   ctx.globalAlpha = previousAlpha;
 }
 
-function drawCircle(ctx, body, visualScale = 1) {
+function drawCircle(ctx, body, visualScale = 1, materialTheme = 'light', useMaterial = false) {
   const radius = body.r * visualScale;
   if (radius <= 0.05) return;
   const previousAlpha = ctx.globalAlpha;
   const opacity = clamp(Number(body.opacity ?? 1), 0, 1);
   if (opacity <= 0.001) return;
   if (opacity < 1) ctx.globalAlpha = previousAlpha * opacity;
+  if (useMaterial && drawSimulationBodyMaterial(
+    ctx,
+    body.color,
+    body.x,
+    body.y,
+    radius,
+    materialTheme,
+  )) {
+    ctx.globalAlpha = previousAlpha;
+    return;
+  }
   ctx.beginPath();
   ctx.arc(body.x, body.y, radius, 0, TAU);
   ctx.fillStyle = body.color;
@@ -264,13 +325,13 @@ function drawCircle(ctx, body, visualScale = 1) {
   ctx.globalAlpha = previousAlpha;
 }
 
-function drawBody(ctx, body, visualScale = 1) {
+function drawBody(ctx, body, visualScale = 1, materialTheme = 'light', useMaterial = false) {
   if (body.shapeKind === 'circle') {
-    drawCircle(ctx, body, visualScale);
+    drawCircle(ctx, body, visualScale, materialTheme, useMaterial);
     return;
   }
 
-  drawPebble(ctx, body, visualScale);
+  drawPebble(ctx, body, visualScale, materialTheme, useMaterial);
 }
 
 function makeBody(random, theme, x, y, r, extra = {}) {
@@ -886,6 +947,10 @@ export function createConceptSimulationRenderer({
     } else {
       bodies = [];
     }
+    prewarmSimulationBodyMaterial(
+      resolvePalette(theme),
+      theme?.isDark ? 'dark' : 'light',
+    );
     bodies.forEach((body, index) => {
       body.bodyIndex = index;
     });
@@ -931,6 +996,7 @@ export function createConceptSimulationRenderer({
     if (paletteGeneration !== Number(theme?.paletteGeneration || 0)) {
       paletteGeneration = Number(theme?.paletteGeneration || 0);
       const palette = resolvePalette(theme);
+      prewarmSimulationBodyMaterial(palette, theme?.isDark ? 'dark' : 'light');
       for (const body of bodies) {
         const colorIndex = resolveSimulationMaterialColorIndex(
           body,
@@ -1051,18 +1117,43 @@ export function createConceptSimulationRenderer({
     if (!ctx || !metrics) return;
     const theme = getTheme() || DEFAULT_THEME;
     const config = getConfig();
+    const materialTheme = theme?.isDark ? 'dark' : 'light';
+    const useMaterial = bodies.length > 0
+      && getSimulationBodyMaterialSprite(bodies[0].color, materialTheme) !== null;
     ctx.setTransform(metrics.dpr, 0, 0, metrics.dpr, 0, 0);
     renderBackground(ctx, metrics, theme, config, pointer, simulationId, transparentBackground);
     if (simulationId === CONCEPT_SIMULATION_IDS.CONFLUENCE_BRIDGES) {
       for (const body of bodies) {
-        if (body.kind !== 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
+        if (body.kind !== 'hub') {
+          drawBody(
+            ctx,
+            body,
+            visualTransition.getScaleAt(body.bodyIndex),
+            materialTheme,
+            useMaterial,
+          );
+        }
       }
       for (const body of bodies) {
-        if (body.kind === 'hub') drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
+        if (body.kind === 'hub') {
+          drawBody(
+            ctx,
+            body,
+            visualTransition.getScaleAt(body.bodyIndex),
+            materialTheme,
+            useMaterial,
+          );
+        }
       }
     } else {
       for (const body of bodies) {
-        drawBody(ctx, body, visualTransition.getScaleAt(body.bodyIndex));
+        drawBody(
+          ctx,
+          body,
+          visualTransition.getScaleAt(body.bodyIndex),
+          materialTheme,
+          useMaterial,
+        );
       }
     }
     markAuditFrame(canvas);

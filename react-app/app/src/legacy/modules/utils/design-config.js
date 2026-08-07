@@ -5,6 +5,9 @@ import {
   normalizeSimulationAtmosphereConfig,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
 import {
+  normalizeSimulationBodyMaterialConfig,
+} from '../rendering/materials/simulation-body-material-config.js';
+import {
   normalizePlaygroundConfig,
 } from '../../../routes/playground/config/playgroundConfig.js';
 
@@ -324,6 +327,13 @@ const RETIRED_SHELL_SURFACE_KEYS = new Set([
   'quoteButtonFillOpacity',
   'sceneDepth',
   'sceneSoftness',
+  'innerWallRimWidth',
+  'innerWallRimBottomOpacityLight',
+  'innerWallRimBottomOpacityDark',
+  'innerWallRimSideOpacityLight',
+  'innerWallRimSideOpacityDark',
+  'innerWallRimTopShadowOpacityLight',
+  'innerWallRimTopShadowOpacityDark',
 ]);
 
 const RETIRED_SHELL_MOTION_KEYS = new Set([
@@ -435,6 +445,9 @@ function pruneShellConfig(shell = {}) {
     }
     nextShell.surface.simulationAtmosphere = normalizeSimulationAtmosphereConfig(
       nextShell.surface.simulationAtmosphere,
+    );
+    nextShell.surface.simulationBodyMaterial = normalizeSimulationBodyMaterialConfig(
+      nextShell.surface.simulationBodyMaterial,
     );
   }
   if (isPlainObject(nextShell.motion)) {

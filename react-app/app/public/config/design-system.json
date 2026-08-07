@@ -13,12 +13,12 @@
     "physicsSleepThreshold": 12,
     "physicsSleepTime": 0.25,
     "physicsSkipSleepingSteps": false,
+    "homeSimulationBodyRadiusPx": 8.9,
     "ballSizeMin": 10.4,
     "ballSizeMax": 14.4,
     "ballSizeCurve": 1.6,
     "mobileObjectReductionFactor": 0.74,
     "mobileSimulationBodyScale": 0.8,
-    "homeSimulationBodyRadiusPx": 8.9,
     "ballSoftness": 0,
     "pebbleBlend": 0,
     "pebbleStretch": 0.14,
@@ -474,6 +474,30 @@
         "dark": {
           "intensity": 0.36,
           "colourStrength": 1.24
+        }
+      },
+      "simulationBodyMaterial": {
+        "enabled": true,
+        "cacheDetailPx": 24,
+        "light": {
+          "keyLevel": 1,
+          "keyReach": 1,
+          "ambientLevel": 1,
+          "ambientReach": 1,
+          "rimBounceLevel": 1,
+          "rimBounceReach": 1,
+          "shadowDepth": 1,
+          "shadowArea": 1
+        },
+        "dark": {
+          "keyLevel": 1,
+          "keyReach": 1,
+          "ambientLevel": 1,
+          "ambientReach": 1,
+          "rimBounceLevel": 1,
+          "rimBounceReach": 1,
+          "shadowDepth": 1,
+          "shadowArea": 1
         }
       }
     },

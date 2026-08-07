@@ -1,0 +1,451 @@
+<!doctype html>
+<!--
+  Throwaway Wayfinder prototype. Compares visible point occupancy and point size
+  on the real local About runtime. Excluded from production inputs.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About point material</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .prototype-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+        opacity: 0;
+        transition: opacity 160ms ease-out;
+      }
+
+      body[data-prototype-ready='true'] .prototype-frame {
+        opacity: 1;
+      }
+
+      .prototype-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        color: rgb(255 255 255 / 58%);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+
+      body[data-prototype-ready='true'] .prototype-status {
+        display: none;
+      }
+
+      .prototype-switcher {
+        position: fixed;
+        right: 50%;
+        bottom: 5.75rem;
+        z-index: 100;
+        display: grid;
+        grid-template-columns: 2.75rem minmax(17rem, auto) 2.75rem;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        background: rgb(12 12 12 / 94%);
+        box-shadow: 0 12px 38px rgb(0 0 0 / 38%);
+        color: #fff;
+        transform: translateX(50%);
+        backdrop-filter: blur(18px);
+      }
+
+      .prototype-switcher button {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 12%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        gap: 0.12rem;
+        padding: 0.5rem 1rem 0.48rem;
+        border-inline: 1px solid rgb(255 255 255 / 12%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label small {
+        color: rgb(255 255 255 / 52%);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .prototype-blocked {
+        display: none;
+        place-items: center;
+        height: 100%;
+        padding: 2rem;
+        color: #fff;
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
+        .prototype-switcher {
+          bottom: 4.8rem;
+          grid-template-columns: 2.5rem minmax(14.5rem, auto) 2.5rem;
+        }
+
+        .prototype-switcher button {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      class="prototype-frame"
+      id="about-prototype-frame"
+      title="About point material prototype"
+    ></iframe>
+
+    <p class="prototype-status" id="prototype-status">Preparing point material…</p>
+
+    <nav class="prototype-switcher" aria-label="Prototype variants">
+      <button id="prototype-previous" type="button" aria-label="Previous variant">←</button>
+      <span class="prototype-switcher__label">
+        <small id="prototype-meta">Visible points 100% · size 8.5px</small>
+        <strong id="prototype-label">A — Current field</strong>
+      </span>
+      <button id="prototype-next" type="button" aria-label="Next variant">→</button>
+    </nav>
+
+    <p class="prototype-blocked" id="prototype-blocked">
+      This throwaway comparison is available only on the local development site.
+    </p>
+
+    <script>
+      const VARIANTS = [
+        {
+          key: 'A',
+          name: 'Current field',
+          meta: 'Visible points 100% · size 8.5px',
+          pointSize: null,
+          densities: null,
+        },
+        {
+          key: 'B',
+          name: 'Balanced material',
+          meta: 'Visible points −13% · size +7%',
+          pointSize: 9.1,
+          densities: {
+            'A key at 0.000 WU, protected': 0.17,
+            'B key at 2.750 WU': 0.33,
+            'C key at 5.350 WU': 0.32,
+            'E key at 21.448 WU': 0.26,
+          },
+        },
+        {
+          key: 'C',
+          name: 'Material-forward',
+          meta: 'Visible points −14% · size +12%',
+          pointSize: 9.5,
+          densities: {
+            'A key at 0.000 WU, protected': 0.17,
+            'B key at 2.750 WU': 0.32,
+            'C key at 5.350 WU': 0.31,
+            'E key at 21.448 WU': 0.26,
+          },
+        },
+      ];
+
+      const frame = document.querySelector('#about-prototype-frame');
+      const label = document.querySelector('#prototype-label');
+      const meta = document.querySelector('#prototype-meta');
+      const status = document.querySelector('#prototype-status');
+      const previous = document.querySelector('#prototype-previous');
+      const next = document.querySelector('#prototype-next');
+      const switcher = document.querySelector('.prototype-switcher');
+      const blocked = document.querySelector('#prototype-blocked');
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+      let loadVersion = 0;
+
+      function readVariant() {
+        const requested = new URL(window.location.href).searchParams.get('variant')?.toUpperCase();
+        return VARIANTS.find((variant) => variant.key === requested) || VARIANTS[0];
+      }
+
+      function updateSwitcher(variant) {
+        label.textContent = `${variant.key} — ${variant.name}`;
+        meta.textContent = variant.meta;
+      }
+
+      function wait(milliseconds) {
+        return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      }
+
+      async function waitFor(documentRoot, readValue, timeout = 30000) {
+        const startedAt = performance.now();
+        while (performance.now() - startedAt < timeout) {
+          const value = readValue(documentRoot);
+          if (value) return value;
+          await wait(40);
+        }
+        throw new Error('The About Director did not become ready in time.');
+      }
+
+      function findButton(documentRoot, labelText) {
+        return Array.from(documentRoot.querySelectorAll('button')).find((button) => (
+          button.getAttribute('aria-label') === labelText
+          || button.textContent.trim() === labelText
+        ));
+      }
+
+      async function clickButton(documentRoot, labelText) {
+        const button = await waitFor(documentRoot, (root) => findButton(root, labelText));
+        button.click();
+        await wait(80);
+      }
+
+      async function selectPointKey(documentRoot, labelText) {
+        const button = await waitFor(documentRoot, (root) => findButton(root, labelText));
+        const pointKeyId = button.dataset.pointFieldId;
+        button.click();
+        await waitFor(documentRoot, (root) => {
+          const selected = root.querySelector(
+            `button[data-point-field-id="${pointKeyId}"][aria-pressed="true"]`,
+          );
+          const inspectorId = root.querySelector(
+            '.about-track-editor-inspector__content header code',
+          )?.textContent.trim();
+          return selected && inspectorId === pointKeyId;
+        });
+      }
+
+      async function selectResponsivePreviewProfile(documentRoot) {
+        const expectedProfile = documentRoot.defaultView.innerWidth <= 600 ? 'mobile' : 'desktop';
+        const button = await waitFor(documentRoot, (root) => (
+          Array.from(root.querySelectorAll('.about-track-editor-preview__profiles button'))
+            .find((candidate) => candidate.textContent.trim().toLowerCase() === expectedProfile)
+        ));
+        const currentProfile = documentRoot.querySelector('.about-narrative-lab')
+          ?.dataset.editorPreviewLayout;
+        if (currentProfile !== expectedProfile) {
+          await waitFor(documentRoot, (root) => {
+            const narrativeRoot = root.querySelector('.about-narrative-lab');
+            return narrativeRoot?.dataset.worldPrepare === 'ready'
+              && narrativeRoot?.dataset.routeMaterialState === 'complete';
+          });
+        }
+        button.click();
+        await waitFor(documentRoot, (root) => {
+          const narrativeRoot = root.querySelector('.about-narrative-lab');
+          return narrativeRoot?.dataset.editorPreviewLayout === expectedProfile
+            && narrativeRoot?.dataset.aboutLayoutProfile === expectedProfile;
+        });
+      }
+
+      async function setExactValue(documentRoot, ariaLabel, value, { commitOnBlur = true } = {}) {
+        const selector = `input[aria-label="${ariaLabel}"]`;
+        const input = await waitFor(documentRoot, (root) => root.querySelector(selector));
+        const view = documentRoot.defaultView;
+        const setValue = Object.getOwnPropertyDescriptor(view.HTMLInputElement.prototype, 'value').set;
+        input.focus();
+        setValue.call(input, String(value));
+        input.dispatchEvent(new view.Event('input', { bubbles: true }));
+        input.dispatchEvent(new view.Event('change', { bubbles: true }));
+        if (commitOnBlur) {
+          input.dispatchEvent(new view.FocusEvent('focusout', {
+            bubbles: true,
+            relatedTarget: null,
+          }));
+        }
+        await waitFor(documentRoot, (root) => {
+          const current = root.querySelector(selector);
+          const valueMatches = current && Math.abs(Number(current.value) - Number(value)) < 0.0001;
+          return valueMatches && (!commitOnBlur || current !== input);
+        });
+      }
+
+      function hideDirector(documentRoot) {
+        const director = documentRoot.querySelector('.about-track-editor');
+        const narrativeRoot = documentRoot.querySelector('.about-narrative-lab');
+        if (director) director.hidden = true;
+        if (narrativeRoot) {
+          delete narrativeRoot.dataset.editorActive;
+          delete narrativeRoot.dataset.editorInspectorOpen;
+        }
+        const designPanelToggle = documentRoot.querySelector(
+          'button[aria-label="Toggle design panel"][aria-pressed="true"]',
+        );
+        designPanelToggle?.click();
+      }
+
+      function suppressDirectorFlash(documentRoot) {
+        const style = documentRoot.createElement('style');
+        style.id = 'about-point-material-prototype-style';
+        style.textContent = `
+          .about-track-editor { opacity: 0 !important; }
+          .about-narrative-lab[data-editor-active='true'] .about-narrative-scrollport,
+          .about-narrative-lab[data-editor-active='true'] .about-narrative-world,
+          .about-narrative-lab[data-editor-active='true'] .about-narrative-motion-layer {
+            right: 0 !important;
+          }
+        `;
+        documentRoot.head.append(style);
+      }
+
+      function suppressCameraFocusAnchor(documentRoot) {
+        const canvas = documentRoot.querySelector('.about-narrative-world__canvas');
+        const context = canvas?.getContext('webgl2') || canvas?.getContext('webgl');
+        if (!context || context.__aboutPointMaterialLinesSuppressed) return;
+        const drawArrays = context.drawArrays.bind(context);
+        const drawElements = context.drawElements.bind(context);
+        context.drawArrays = (mode, first, count) => {
+          if (mode === context.LINES) return;
+          drawArrays(mode, first, count);
+        };
+        context.drawElements = (mode, count, type, offset) => {
+          if (mode === context.LINES) return;
+          drawElements(mode, count, type, offset);
+        };
+        context.__aboutPointMaterialLinesSuppressed = true;
+      }
+
+      async function applyVariant(version) {
+        const variant = readVariant();
+        const documentRoot = frame.contentDocument;
+        if (!documentRoot?.head || !documentRoot.body) return;
+        suppressDirectorFlash(documentRoot);
+        await waitFor(documentRoot, (root) => root.querySelector('.about-track-editor'));
+        if (version !== loadVersion) return;
+        await selectResponsivePreviewProfile(documentRoot);
+
+        if (variant.pointSize != null) {
+          await clickButton(documentRoot, 'Visibility');
+          await setExactValue(
+            documentRoot,
+            'Point material Global point size exact value',
+            variant.pointSize,
+          );
+          await clickButton(documentRoot, 'Forms');
+          for (const [keyLabel, density] of Object.entries(variant.densities)) {
+            await selectPointKey(documentRoot, keyLabel);
+            await setExactValue(documentRoot, 'Density exact value', density);
+          }
+        }
+
+        await clickButton(documentRoot, 'Visibility');
+        await setExactValue(documentRoot, 'Timeline playhead', 0, { commitOnBlur: false });
+
+        if (version !== loadVersion) return;
+        hideDirector(documentRoot);
+        suppressCameraFocusAnchor(documentRoot);
+        await wait(240);
+        document.body.dataset.prototypeReady = 'true';
+        status.textContent = 'Preparing point material…';
+        frame.contentWindow.addEventListener('keydown', handleArrowKey);
+      }
+
+      function loadVariant() {
+        const variant = readVariant();
+        updateSwitcher(variant);
+        document.body.dataset.prototypeReady = 'false';
+        status.textContent = `Preparing ${variant.name.toLowerCase()}…`;
+        loadVersion += 1;
+        const url = new URL('/about.html', window.location.origin);
+        url.searchParams.set('edit', '1');
+        url.searchParams.set('prototype', 'point-material');
+        url.searchParams.set('load', String(loadVersion));
+        frame.src = url;
+      }
+
+      function setVariant(key) {
+        const variant = VARIANTS.find((candidate) => candidate.key === key) || VARIANTS[0];
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', variant.key);
+        window.history.replaceState({}, '', url);
+        loadVariant();
+      }
+
+      function cycleVariant(direction) {
+        const current = readVariant();
+        const currentIndex = VARIANTS.findIndex((variant) => variant.key === current.key);
+        const nextIndex = (currentIndex + direction + VARIANTS.length) % VARIANTS.length;
+        setVariant(VARIANTS[nextIndex].key);
+      }
+
+      function handleArrowKey(event) {
+        const tagName = event.target?.tagName?.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || event.target?.isContentEditable) return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          cycleVariant(-1);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          cycleVariant(1);
+        }
+      }
+
+      if (!localHosts.has(window.location.hostname)) {
+        frame.hidden = true;
+        switcher.hidden = true;
+        status.hidden = true;
+        blocked.style.display = 'grid';
+      } else {
+        previous.addEventListener('click', () => cycleVariant(-1));
+        next.addEventListener('click', () => cycleVariant(1));
+        window.addEventListener('keydown', handleArrowKey);
+        frame.addEventListener('load', () => {
+          const version = loadVersion;
+          applyVariant(version).catch((error) => {
+            if (version !== loadVersion) return;
+            console.error(error);
+            status.textContent = 'Could not prepare this comparison.';
+          });
+        });
+        loadVariant();
+      }
+    </script>
+  </body>
+</html>

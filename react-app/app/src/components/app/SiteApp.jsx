@@ -64,6 +64,7 @@ import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
 import { setupCustomCursor } from '../../legacy/modules/rendering/cursor.js';
 import { setSimulationAtmosphereConfig } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import { setSimulationBodyMaterialConfig } from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import { applyActiveRouteCursorColor } from '../../legacy/modules/visual/colors.js';
 import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById, SHELL_ROUTE_TABS } from '../../lib/routes.js';
@@ -167,6 +168,7 @@ function syncSharedShellRuntimeState() {
     ]).then(([runtimeConfig, shellConfig, designSystem]) => {
       document.documentElement.dataset.absDesignConfigRevision = String(designSystem?.version || 1);
       setSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere);
+      setSimulationBodyMaterialConfig(designSystem?.shell?.surface?.simulationBodyMaterial);
       initState(runtimeConfig);
       applyLayoutCSSVars();
       syncShellToDocument({

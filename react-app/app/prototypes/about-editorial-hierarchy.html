@@ -1,0 +1,334 @@
+<!doctype html>
+<!-- Throwaway Wayfinder prototype. Served by Vite dev, excluded from production inputs. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About editorial hierarchy</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .prototype-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+      }
+
+      .prototype-switcher {
+        position: fixed;
+        right: 50%;
+        bottom: 5.75rem;
+        z-index: 100;
+        display: grid;
+        grid-template-columns: 2.75rem minmax(12rem, auto) 2.75rem;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        background: rgb(12 12 12 / 94%);
+        box-shadow: 0 12px 38px rgb(0 0 0 / 38%);
+        color: #fff;
+        transform: translateX(50%);
+        backdrop-filter: blur(18px);
+      }
+
+      .prototype-switcher button {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 12%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        gap: 0.12rem;
+        padding: 0.52rem 1rem 0.48rem;
+        border-inline: 1px solid rgb(255 255 255 / 12%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label small {
+        color: rgb(255 255 255 / 52%);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .prototype-blocked {
+        display: none;
+        place-items: center;
+        height: 100%;
+        padding: 2rem;
+        color: #fff;
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
+        .prototype-switcher {
+          bottom: 4.8rem;
+          grid-template-columns: 2.5rem minmax(10.5rem, auto) 2.5rem;
+        }
+
+        .prototype-switcher button {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      class="prototype-frame"
+      id="about-prototype-frame"
+      title="About editorial hierarchy prototype"
+    ></iframe>
+
+    <nav class="prototype-switcher" aria-label="Prototype variants">
+      <button id="prototype-previous" type="button" aria-label="Previous variant">←</button>
+      <span class="prototype-switcher__label">
+        <small>Throwaway prototype</small>
+        <strong id="prototype-label">A — Current</strong>
+      </span>
+      <button id="prototype-next" type="button" aria-label="Next variant">→</button>
+    </nav>
+
+    <p class="prototype-blocked" id="prototype-blocked">
+      This throwaway comparison is available only on the local development site.
+    </p>
+
+    <script>
+      const VARIANTS = [
+        { key: 'A', name: 'Current' },
+        { key: 'B', name: 'Double-old-size voice' },
+        { key: 'C', name: 'Monumental voice' },
+      ];
+      const EMPHASIS_PHRASES = [
+        'People had to trust it.',
+        'A rough prototype can create better conversations',
+        'strengthens human judgement',
+      ];
+      const frame = document.querySelector('#about-prototype-frame');
+      const label = document.querySelector('#prototype-label');
+      const previous = document.querySelector('#prototype-previous');
+      const next = document.querySelector('#prototype-next');
+      const switcher = document.querySelector('.prototype-switcher');
+      const blocked = document.querySelector('#prototype-blocked');
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+
+      function readVariant() {
+        const requested = new URL(window.location.href).searchParams.get('variant')?.toUpperCase();
+        return VARIANTS.find((variant) => variant.key === requested) || VARIANTS[0];
+      }
+
+      function setVariant(key) {
+        const variant = VARIANTS.find((candidate) => candidate.key === key) || VARIANTS[0];
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', variant.key);
+        window.history.replaceState({}, '', url);
+        label.textContent = `${variant.key} — ${variant.name}`;
+        applyVariant();
+      }
+
+      function cycleVariant(direction) {
+        const current = readVariant();
+        const currentIndex = VARIANTS.findIndex((variant) => variant.key === current.key);
+        const nextIndex = (currentIndex + direction + VARIANTS.length) % VARIANTS.length;
+        setVariant(VARIANTS[nextIndex].key);
+      }
+
+      function handleArrowKey(event) {
+        const tagName = event.target?.tagName?.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || event.target?.isContentEditable) return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          cycleVariant(-1);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          cycleVariant(1);
+        }
+      }
+
+      function clearVariant(documentRoot) {
+        documentRoot.defaultView.__aboutEditorialPrototypeObserver?.disconnect();
+        documentRoot.defaultView.__aboutEditorialPrototypeObserver = null;
+        documentRoot.querySelector('#about-editorial-prototype-style')?.remove();
+        documentRoot.querySelectorAll('[data-prototype-emphasis]').forEach((element) => {
+          element.removeAttribute('data-prototype-emphasis');
+        });
+        documentRoot.documentElement.removeAttribute('data-about-editorial-prototype');
+      }
+
+      function markPhrase(documentRoot, phrase, variantKey) {
+        documentRoot.querySelectorAll('.about-narrative-editorial-lines__output').forEach((output) => {
+          const walker = documentRoot.createTreeWalker(
+            output,
+            documentRoot.defaultView.NodeFilter.SHOW_TEXT,
+          );
+          const nodes = [];
+          let node = walker.nextNode();
+          while (node) {
+            nodes.push(node);
+            node = walker.nextNode();
+          }
+          const fullText = nodes.map((textNode) => textNode.nodeValue || '').join('');
+          let searchFrom = 0;
+          let phraseStart = fullText.indexOf(phrase, searchFrom);
+          while (phraseStart >= 0) {
+            const phraseEnd = phraseStart + phrase.length;
+            let nodeStart = 0;
+            nodes.forEach((textNode) => {
+              const nodeEnd = nodeStart + (textNode.nodeValue?.length || 0);
+              if (nodeStart < phraseEnd && nodeEnd > phraseStart) {
+                const token = textNode.parentElement?.closest('[data-editorial-reveal="word"]');
+                token?.setAttribute('data-prototype-emphasis', variantKey);
+              }
+              nodeStart = nodeEnd;
+            });
+            searchFrom = phraseEnd;
+            phraseStart = fullText.indexOf(phrase, searchFrom);
+          }
+        });
+      }
+
+      function markEmphasis(documentRoot, variantKey) {
+        EMPHASIS_PHRASES.forEach((phrase) => markPhrase(documentRoot, phrase, variantKey));
+      }
+
+      function applyVariant() {
+        const documentRoot = frame.contentDocument;
+        if (!documentRoot?.head || !documentRoot.body) return;
+        clearVariant(documentRoot);
+        const variant = readVariant();
+        label.textContent = `${variant.key} — ${variant.name}`;
+        if (variant.key === 'A') return;
+
+        documentRoot.documentElement.setAttribute('data-about-editorial-prototype', variant.key);
+        const style = documentRoot.createElement('style');
+        style.id = 'about-editorial-prototype-style';
+        style.textContent = `
+          html[data-about-editorial-prototype] .about-narrative-editorial-unit {
+            width: min(100%, 46rem) !important;
+          }
+
+          html[data-about-editorial-prototype] .about-narrative-editorial-stack > .about-narrative-editorial-copy {
+            max-width: 45ch !important;
+          }
+
+          html[data-about-editorial-prototype] .about-narrative-editorial-list {
+            width: min(100%, 18ch) !important;
+            margin-block: clamp(2.5rem, 8.5svh, 6rem) !important;
+            color: var(--about-editorial-ink);
+            font-family: var(--abs-font-headline);
+            font-style: italic;
+            font-size: calc(var(--about-editorial-type-size) * 2.4);
+          }
+
+          html[data-about-editorial-prototype] .about-narrative-editorial-list ul {
+            padding: 0 !important;
+            margin: 0 !important;
+            list-style: none !important;
+          }
+
+          html[data-about-editorial-prototype] .about-narrative-editorial-list li,
+          html[data-about-editorial-prototype] .about-narrative-editorial-stack > .about-narrative-editorial-list li {
+            display: block !important;
+            padding: 0 !important;
+            border: 0 !important;
+            font-size: 1em !important;
+            font-weight: 400 !important;
+            letter-spacing: var(--abs-font-headline-letter-spacing) !important;
+            line-height: 1 !important;
+          }
+
+          html[data-about-editorial-prototype] .about-narrative-editorial-list li::before,
+          html[data-about-editorial-prototype] .about-narrative-editorial-stack > .about-narrative-editorial-list li::before {
+            display: none !important;
+            content: none !important;
+          }
+
+          html[data-about-editorial-prototype] [data-prototype-emphasis] {
+            color: var(--text-primary) !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+          }
+
+          html[data-about-editorial-prototype='C'] .about-narrative-editorial-list {
+            width: min(100%, 16ch) !important;
+            margin-block: clamp(3rem, 10svh, 7rem) !important;
+            font-size: calc(var(--about-editorial-type-size) * 2.8);
+          }
+
+          html[data-about-editorial-prototype='C'] .about-narrative-editorial-list li,
+          html[data-about-editorial-prototype='C'] .about-narrative-editorial-stack > .about-narrative-editorial-list li {
+            font-weight: 400 !important;
+            line-height: 0.96 !important;
+          }
+        `;
+        documentRoot.head.append(style);
+
+        const observer = new documentRoot.defaultView.MutationObserver(() => {
+          markEmphasis(documentRoot, variant.key);
+        });
+        observer.observe(documentRoot.body, { childList: true, subtree: true });
+        documentRoot.defaultView.__aboutEditorialPrototypeObserver = observer;
+        markEmphasis(documentRoot, variant.key);
+      }
+
+      if (!localHosts.has(window.location.hostname)) {
+        frame.hidden = true;
+        switcher.hidden = true;
+        blocked.style.display = 'grid';
+      } else {
+        previous.addEventListener('click', () => cycleVariant(-1));
+        next.addEventListener('click', () => cycleVariant(1));
+        window.addEventListener('keydown', handleArrowKey);
+        frame.addEventListener('load', () => {
+          frame.contentWindow.addEventListener('keydown', handleArrowKey);
+          applyVariant();
+        });
+        frame.src = '/about.html?edit=0&prototype=editorial-hierarchy';
+        setVariant(readVariant().key);
+      }
+    </script>
+  </body>
+</html>

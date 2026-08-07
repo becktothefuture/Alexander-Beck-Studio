@@ -5,6 +5,10 @@
 
 import { MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
+import {
+  drawClippedSimulationBodyMaterial,
+  drawSimulationBodyMaterial,
+} from '../rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 const TEMPLATE_COUNT = 16;
@@ -18,6 +22,16 @@ const MOBILE_MAX_POINT_COUNT = 12;
 
 const _pathScratchX = [];
 const _pathScratchY = [];
+const materialPathScratch = {
+  ball: null,
+  globals: null,
+  radius: 0,
+  rotationRad: 0,
+  squashAmount: 0,
+  squashNormalAngle: 0,
+  x: 0,
+  y: 0,
+};
 
 function clamp(value, min, max, fallback = min) {
   const next = Number(value);
@@ -246,12 +260,105 @@ export function appendPebbleBodyPath(ctx, ball, radius, globals) {
   appendPebbleGeometryPath(ctx, geom, radius);
 }
 
+function appendScreenSpacePebbleMaterialPath(ctx) {
+  const scratch = materialPathScratch;
+  ctx.save();
+  ctx.translate(scratch.x, scratch.y);
+  if (scratch.squashAmount > 0) {
+    ctx.rotate((scratch.ball?.theta || 0) + scratch.squashNormalAngle);
+    ctx.scale(
+      1 - scratch.squashAmount * 0.3,
+      1 + scratch.squashAmount * 0.3,
+    );
+    ctx.rotate(-scratch.squashNormalAngle);
+  } else if (scratch.rotationRad !== 0) {
+    ctx.rotate(scratch.rotationRad);
+  }
+  appendPebbleBodyPath(ctx, scratch.ball, scratch.radius, scratch.globals);
+  ctx.restore();
+}
+
+function getMaterialTheme(globals) {
+  return globals?.isDarkMode ? 'dark' : 'light';
+}
+
+export function drawPebbleBodyMaterial(
+  ctx,
+  ball,
+  x,
+  y,
+  radius,
+  color,
+  globals,
+  rotationRad = 0,
+) {
+  if (!ctx || !(radius > 0)) return false;
+  const theme = getMaterialTheme(globals);
+  if (!ball || !shouldUsePebbleBody(radius, globals)) {
+    return drawSimulationBodyMaterial(ctx, color, x, y, radius, theme);
+  }
+
+  materialPathScratch.ball = ball;
+  materialPathScratch.globals = globals;
+  materialPathScratch.radius = radius;
+  materialPathScratch.rotationRad = rotationRad;
+  materialPathScratch.squashAmount = 0;
+  materialPathScratch.squashNormalAngle = 0;
+  materialPathScratch.x = x;
+  materialPathScratch.y = y;
+  return drawClippedSimulationBodyMaterial(
+    ctx,
+    color,
+    x,
+    y,
+    radius,
+    appendScreenSpacePebbleMaterialPath,
+    theme,
+  );
+}
+
+export function drawSquashedPebbleBodyMaterial(ctx, ball, radius, globals) {
+  if (!ctx || !ball || !(radius > 0)) return false;
+  materialPathScratch.ball = ball;
+  materialPathScratch.globals = globals;
+  materialPathScratch.radius = radius;
+  materialPathScratch.rotationRad = 0;
+  materialPathScratch.squashAmount = Math.max(0, Number(ball.squashAmount) || 0);
+  materialPathScratch.squashNormalAngle = Number(ball.squashNormalAngle) || 0;
+  materialPathScratch.x = ball.x;
+  materialPathScratch.y = ball.y;
+  const stickerRadius = radius * (1 + materialPathScratch.squashAmount * 0.3);
+  return drawClippedSimulationBodyMaterial(
+    ctx,
+    ball.color,
+    ball.x,
+    ball.y,
+    stickerRadius,
+    appendScreenSpacePebbleMaterialPath,
+    getMaterialTheme(globals),
+  );
+}
+
 export function drawPebbleBody(ctx, ball, x, y, radius, color, globals, opts = {}) {
   if (!ctx) return;
   const rotationRad = Number.isFinite(opts.rotationRad) ? opts.rotationRad : 0;
   const alpha = Number.isFinite(opts.alpha) ? opts.alpha : 1;
   const renderRadius = getPebbleRenderRadius(radius, globals);
   if (!(renderRadius > 0)) return;
+  ctx.save();
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  const materialDrawn = drawPebbleBodyMaterial(
+    ctx,
+    ball,
+    x,
+    y,
+    renderRadius,
+    color,
+    globals,
+    rotationRad,
+  );
+  ctx.restore();
+  if (materialDrawn) return;
   if (!ball || !shouldUsePebbleBody(radius, globals)) {
     const needsTransform = rotationRad !== 0 || alpha < 1;
     if (needsTransform) {

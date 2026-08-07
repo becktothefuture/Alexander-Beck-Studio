@@ -8,10 +8,12 @@ The target is:
 
 - smooth, slightly irregular bodies
 - stable weight and settling
-- flat palette fills with a clean silhouette
+- a clean silhouette with the shared cached matte sphere finish on eligible simulation bodies
 - conservative performance
 
 This is not a “make everything random” system. It is a controlled visual-material language.
+
+The sphere finish applies only when the pebble is an eligible production catalog simulation body. Portfolio cards and pucks keep their route-specific material; the collider and motion guidance below still applies where relevant.
 
 ## Core Model
 
@@ -43,21 +45,24 @@ The site now uses a deterministic pebble family instead of perfect circles.
 - no per-frame random generation
 - low-point contour suitable for real-time canvas rendering
 
-### 2. Flat Material Finish
+### 2. Cached Matte Sphere Finish
 
-Pebbles and circles use one unshaded palette fill.
+Eligible simulation pebbles and circles use the shared cached matte sphere sticker/atlas material.
 
 Rule:
 
-- rotate the body
-- keep the fill flat
-- do not add edge shading, contour strokes, glows, gradients, or local lighting
+- rotate the silhouette when the mode needs it
+- keep the light fixed in screen space rather than rotating it with the body
+- preserve the active palette colour as the base hue and chroma
+- use only the shared key, ambient, rim-bounce, and self-shadow cues
+- do not add contour strokes, cast shadows, drop shadows, glows, renderer-local lights, or per-frame gradients
 
 Implementation:
 
-- fill path rotates with the pebble
-- no second rendering pass is applied to the body
-- depth comes from motion, overlap discipline, scale, and the silhouette itself
+- the renderer selects and draws/samples a cached sticker or atlas entry
+- config, theme, and palette invalidation rebake the cache; ordinary body frames do not rebuild the material
+- the self-shadow is baked inside the silhouette and does not become a second dynamic or cast-shadow pass
+- depth comes from the restrained matte cues together with motion, overlap discipline, scale, and silhouette
 
 ### 3. Portfolio Physics Tuning
 
@@ -110,8 +115,8 @@ Rotation is allowed when it helps the pebble read as a body rather than a sticke
 
 Use these rules:
 
-- let the fill rotate
 - let the silhouette rotate
+- keep the lighting orientation fixed in screen space
 - keep angular speed modest
 - avoid constant busy spin
 
@@ -127,14 +132,14 @@ Performance matters more than geometric purity.
 - stable seeds
 - circle physics
 - low-point pebble outlines
-- one flat fill pass
+- cached sticker/atlas sampling in the body draw pass
 - small body counts
 
 ### Risky
 
 - polygon physics for every pebble
 - per-frame shape regeneration
-- blur-heavy shading
+- per-frame gradients, colour parsing, blur-heavy shading, or local-light calculations
 - large numbers of independently rotating complex paths
 
 ## Home Pit Guidance
@@ -145,6 +150,7 @@ So the correct strategy is:
 
 - keep pit physics circular
 - reuse the shared pebble silhouette
+- reuse the shared cached matte sphere material
 - allow visual rotation only
 - use the same small explicit gap model for neighbors and walls
 - rely on existing LOD and throttle systems
@@ -159,6 +165,6 @@ The default should feel like:
 - slight asymmetry
 - restrained variation
 - calm weight
-- crisp flat silhouettes
+- crisp silhouettes with restrained matte volume on eligible simulation bodies
 
 If the bodies feel noisy, cartoonish, or over-styled, the system has gone too far.

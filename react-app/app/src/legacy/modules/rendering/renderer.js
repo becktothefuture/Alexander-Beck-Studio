@@ -537,6 +537,12 @@ export function resize() {
         ball.x *= scaleX;
         ball.y *= scaleY;
 
+        // Collision squash is transient screen geometry. A real relayout makes
+        // its previous axis and amount stale, so settle it with the new bounds.
+        ball.squashAmount = 0;
+        ball.squash = 1;
+        ball.squashNormalAngle = 0;
+
         if (pitPortfolio && ball.projectIndex !== undefined) {
           const nextRadius = getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeight);
           if (nextRadius !== null) {

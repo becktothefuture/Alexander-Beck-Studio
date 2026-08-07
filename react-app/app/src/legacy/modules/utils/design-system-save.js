@@ -1,6 +1,7 @@
 import { getGlobals } from '../core/state.js';
 import {
   buildSimulationAtmosphereConfigFromControlState,
+  buildSimulationBodyMaterialConfigFromControlState,
   getAllControls,
 } from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
@@ -46,6 +47,7 @@ export function buildRuntimeConfigSnapshot() {
       control.designScope === 'shellTheme'
       || control.designScope === 'shellLayout'
       || control.designScope === 'simulationAtmosphere'
+      || control.designScope === 'simulationBodyMaterial'
     ) continue;
     const value = g[control.stateKey];
     if (value === undefined) continue;
@@ -124,6 +126,10 @@ export function buildShellConfigSnapshot() {
     simulationAtmosphere: buildSimulationAtmosphereConfigFromControlState(
       g,
       nextShell.surface?.simulationAtmosphere,
+    ),
+    simulationBodyMaterial: buildSimulationBodyMaterialConfigFromControlState(
+      g,
+      nextShell.surface?.simulationBodyMaterial,
     ),
   };
   return nextShell;

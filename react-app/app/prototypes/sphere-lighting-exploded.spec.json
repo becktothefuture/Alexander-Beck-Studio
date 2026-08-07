@@ -1,0 +1,406 @@
+{
+  "canvas": {
+    "width": 1600,
+    "height": 1000,
+    "viewBox": "0 0 1600 1000",
+    "units": "px",
+    "background": "#0f1115"
+  },
+  "metadata": {
+    "title": "Exploded sphere lighting system",
+    "desc": "An infographic explaining how dynamic palette colours become realistic matte sphere stickers through five flattened lighting cues and a cached draw-only runtime."
+  },
+  "defs": {
+    "markers": [
+      {
+        "id": "arrow",
+        "markerWidth": 10,
+        "markerHeight": 10,
+        "refX": 9,
+        "refY": 5,
+        "orient": "auto",
+        "pathD": "M0 0 L10 5 L0 10 Z",
+        "style": {"fill": "#68717d"}
+      },
+      {
+        "id": "arrowBright",
+        "markerWidth": 10,
+        "markerHeight": 10,
+        "refX": 9,
+        "refY": 5,
+        "orient": "auto",
+        "pathD": "M0 0 L10 5 L0 10 Z",
+        "style": {"fill": "#78d9ff"}
+      }
+    ],
+    "gradients": [
+      {
+        "type": "radial",
+        "id": "keyLayer",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 350,
+        "cy": 480,
+        "r": 62,
+        "fx": 327,
+        "fy": 452,
+        "stops": [
+          {"offset": "0%", "color": "#ffffff", "opacity": 0.98},
+          {"offset": "38%", "color": "#fff3e2", "opacity": 0.52},
+          {"offset": "76%", "color": "#ffffff", "opacity": 0.08},
+          {"offset": "100%", "color": "#ffffff", "opacity": 0}
+        ]
+      },
+      {
+        "type": "linear",
+        "id": "ambientLayer",
+        "gradientUnits": "userSpaceOnUse",
+        "x1": 540,
+        "y1": 398,
+        "x2": 540,
+        "y2": 522,
+        "stops": [
+          {"offset": "0%", "color": "#76ddff", "opacity": 0.92},
+          {"offset": "48%", "color": "#8f78ff", "opacity": 0.28},
+          {"offset": "100%", "color": "#ff9a68", "opacity": 0.6}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "rimLayer",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 730,
+        "cy": 440,
+        "r": 62,
+        "fx": 730,
+        "fy": 440,
+        "stops": [
+          {"offset": "0%", "color": "#76e4ff", "opacity": 0},
+          {"offset": "70%", "color": "#76e4ff", "opacity": 0.03},
+          {"offset": "91%", "color": "#76e4ff", "opacity": 0.5},
+          {"offset": "100%", "color": "#e5fbff", "opacity": 0.95}
+        ]
+      },
+      {
+        "type": "linear",
+        "id": "ambientIcon",
+        "gradientUnits": "userSpaceOnUse",
+        "x1": 466,
+        "y1": 839,
+        "x2": 466,
+        "y2": 883,
+        "stops": [
+          {"offset": "0%", "color": "#76ddff", "opacity": 0.92},
+          {"offset": "48%", "color": "#8f78ff", "opacity": 0.4},
+          {"offset": "100%", "color": "#ff9a68", "opacity": 0.72}
+        ]
+      },
+      {
+        "type": "linear",
+        "id": "bounceLayer",
+        "gradientUnits": "userSpaceOnUse",
+        "x1": 730,
+        "y1": 378,
+        "x2": 730,
+        "y2": 502,
+        "stops": [
+          {"offset": "0%", "color": "#ff984f", "opacity": 0},
+          {"offset": "58%", "color": "#ff984f", "opacity": 0.05},
+          {"offset": "100%", "color": "#ff984f", "opacity": 0.9}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "shadowLayer",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 920,
+        "cy": 420,
+        "r": 64,
+        "fx": 890,
+        "fy": 385,
+        "stops": [
+          {"offset": "0%", "color": "#ab8bff", "opacity": 0.18},
+          {"offset": "48%", "color": "#633e98", "opacity": 0.28},
+          {"offset": "78%", "color": "#28183f", "opacity": 0.76},
+          {"offset": "100%", "color": "#090b12", "opacity": 0.98}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "finalForm",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 1305,
+        "cy": 485,
+        "r": 132,
+        "fx": 1255,
+        "fy": 427,
+        "stops": [
+          {"offset": "0%", "color": "#ffc0a0"},
+          {"offset": "23%", "color": "#ff7588"},
+          {"offset": "56%", "color": "#ed3e79"},
+          {"offset": "80%", "color": "#b82c77"},
+          {"offset": "100%", "color": "#49184f"}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "finalKey",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 1305,
+        "cy": 485,
+        "r": 132,
+        "fx": 1250,
+        "fy": 418,
+        "stops": [
+          {"offset": "0%", "color": "#ffffff", "opacity": 0.68},
+          {"offset": "28%", "color": "#fff8eb", "opacity": 0.2},
+          {"offset": "65%", "color": "#ffffff", "opacity": 0},
+          {"offset": "100%", "color": "#ffffff", "opacity": 0}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "stableIcon",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 1208,
+        "cy": 862,
+        "r": 15,
+        "fx": 1202,
+        "fy": 855,
+        "stops": [
+          {"offset": "0%", "color": "#ffc0a0"},
+          {"offset": "32%", "color": "#ff7588"},
+          {"offset": "72%", "color": "#c93477"},
+          {"offset": "100%", "color": "#49184f"}
+        ]
+      },
+      {
+        "type": "linear",
+        "id": "finalAmbient",
+        "gradientUnits": "userSpaceOnUse",
+        "x1": 1305,
+        "y1": 353,
+        "x2": 1305,
+        "y2": 617,
+        "stops": [
+          {"offset": "0%", "color": "#7fe4ff", "opacity": 0.34},
+          {"offset": "47%", "color": "#8172ff", "opacity": 0.04},
+          {"offset": "100%", "color": "#ff995d", "opacity": 0.32}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "finalRim",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 1305,
+        "cy": 485,
+        "r": 132,
+        "fx": 1305,
+        "fy": 485,
+        "stops": [
+          {"offset": "0%", "color": "#90ecff", "opacity": 0},
+          {"offset": "80%", "color": "#90ecff", "opacity": 0},
+          {"offset": "96%", "color": "#90ecff", "opacity": 0.24},
+          {"offset": "100%", "color": "#e8fbff", "opacity": 0.5}
+        ]
+      },
+      {
+        "type": "linear",
+        "id": "lightMini",
+        "gradientUnits": "userSpaceOnUse",
+        "x1": 1218,
+        "y1": 636,
+        "x2": 1248,
+        "y2": 712,
+        "stops": [
+          {"offset": "0%", "color": "#d5fbff"},
+          {"offset": "30%", "color": "#ff8f9f"},
+          {"offset": "100%", "color": "#d53078"}
+        ]
+      },
+      {
+        "type": "radial",
+        "id": "darkMini",
+        "gradientUnits": "userSpaceOnUse",
+        "cx": 1425,
+        "cy": 674,
+        "r": 42,
+        "fx": 1408,
+        "fy": 654,
+        "stops": [
+          {"offset": "0%", "color": "#ff8ca0"},
+          {"offset": "45%", "color": "#d33b7d"},
+          {"offset": "100%", "color": "#35113f"}
+        ]
+      }
+    ],
+    "clipPaths": [
+      {
+        "id": "finalClip",
+        "elements": [
+          {"type": "circle", "cx": 1305, "cy": 485, "r": 130, "style": {"fill": "#ffffff"}}
+        ]
+      }
+    ]
+  },
+  "elements": [
+    {
+      "type": "text",
+      "x": 60,
+      "y": 48,
+      "text": "SPHERE MATERIAL SYSTEM / EXPLODED VIEW",
+      "style": {"fill": "#78d9ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 2.2}
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 88,
+      "text": "One dynamic colour. Five lighting cues. One cached matte sphere.",
+      "style": {"fill": "#f5f7fa", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 30, "fontWeight": 700}
+    },
+    {
+      "type": "text",
+      "x": 60,
+      "y": 116,
+      "text": "The cues are calculated together per pixel, flattened before motion starts, and never rotate with the ball.",
+      "style": {"fill": "#98a1ad", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 15}
+    },
+
+    {"type": "rect", "x": 60, "y": 146, "width": 300, "height": 118, "rx": 14, "ry": 14, "style": {"fill": "#171a20", "stroke": "#2b3039", "strokeWidth": 1}},
+    {"type": "text", "x": 82, "y": 171, "text": "1  DYNAMIC COLOUR", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 1}},
+    {"type": "circle", "cx": 94, "cy": 208, "r": 13, "style": {"fill": "#00a7ff"}},
+    {"type": "circle", "cx": 130, "cy": 208, "r": 13, "style": {"fill": "#ff4f7b"}},
+    {"type": "circle", "cx": 166, "cy": 208, "r": 13, "style": {"fill": "#00c9a7"}},
+    {"type": "circle", "cx": 202, "cy": 208, "r": 13, "style": {"fill": "#ffad16"}},
+    {"type": "circle", "cx": 238, "cy": 208, "r": 13, "style": {"fill": "#f0eee8"}},
+    {"type": "circle", "cx": 274, "cy": 208, "r": 13, "style": {"fill": "#7e8991"}},
+    {"type": "text", "x": 82, "y": 244, "text": "Palette snapshot + current theme", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12}},
+
+    {"type": "line", "x1": 373, "y1": 205, "x2": 405, "y2": 205, "style": {"stroke": "#68717d", "strokeWidth": 2, "markerEnd": "url(#arrow)"}},
+    {"type": "rect", "x": 420, "y": 146, "width": 300, "height": 118, "rx": 14, "ry": 14, "style": {"fill": "#171a20", "stroke": "#2b3039", "strokeWidth": 1}},
+    {"type": "text", "x": 442, "y": 171, "text": "2  NORMALISE ONCE", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 1}},
+    {"type": "text", "x": 442, "y": 205, "text": "#00A7FF", "style": {"fill": "#00a7ff", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 18, "fontWeight": 700}},
+    {"type": "text", "x": 535, "y": 205, "text": "=", "style": {"fill": "#66707d", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 18}},
+    {"type": "text", "x": 560, "y": 205, "text": "rgba(0,167,255,1)", "style": {"fill": "#b8c0ca", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 13}},
+    {"type": "text", "x": 442, "y": 244, "text": "Aliases share one packed RGB cache key", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12}},
+
+    {"type": "line", "x1": 733, "y1": 205, "x2": 765, "y2": 205, "style": {"stroke": "#68717d", "strokeWidth": 2, "markerEnd": "url(#arrow)"}},
+    {"type": "rect", "x": 780, "y": 146, "width": 300, "height": 118, "rx": 14, "ry": 14, "style": {"fill": "#171a20", "stroke": "#2b3039", "strokeWidth": 1}},
+    {"type": "text", "x": 802, "y": 171, "text": "3  SHADE IN OKLAB", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 1}},
+    {"type": "circle", "cx": 828, "cy": 213, "r": 23, "style": {"fill": "none", "stroke": "#4c5562", "strokeWidth": 1.5}},
+    {"type": "line", "x1": 828, "y1": 213, "x2": 811, "y2": 194, "style": {"stroke": "#78d9ff", "strokeWidth": 2.5, "markerEnd": "url(#arrowBright)"}},
+    {"type": "text", "x": 870, "y": 207, "text": "N(x, y, z) · light field", "style": {"fill": "#d7dce2", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 14}},
+    {"type": "text", "x": 802, "y": 244, "text": "Lightness changes; hue and chroma survive", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12}},
+
+    {"type": "line", "x1": 1093, "y1": 205, "x2": 1125, "y2": 205, "style": {"stroke": "#68717d", "strokeWidth": 2, "markerEnd": "url(#arrow)"}},
+    {"type": "rect", "x": 1140, "y": 146, "width": 400, "height": 118, "rx": 14, "ry": 14, "style": {"fill": "#171a20", "stroke": "#2b3039", "strokeWidth": 1}},
+    {"type": "text", "x": 1162, "y": 171, "text": "4  FLATTEN + CACHE", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 1}},
+    {"type": "text", "x": 1162, "y": 207, "text": "RGB × ENVIRONMENT × DETAIL", "style": {"fill": "#ff7f9a", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 15, "fontWeight": 700}},
+    {"type": "text", "x": 1162, "y": 229, "text": "→ one final RGBA sticker", "style": {"fill": "#d7dce2", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 14}},
+    {"type": "text", "x": 1162, "y": 250, "text": "Runtime prototype: prewarmed before the loop", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12}},
+
+    {"type": "text", "x": 60, "y": 318, "text": "THE FIVE CUES — EXPLODED", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 14, "fontWeight": 700, "letterSpacing": 1.6}},
+    {"type": "path", "d": "M120 505 C360 470 690 430 1010 404", "style": {"fill": "none", "stroke": "#323842", "strokeWidth": 1.5, "strokeDasharray": "5 8"}},
+
+    {"type": "circle", "cx": 160, "cy": 500, "r": 62, "style": {"fill": "#ff4f7b", "stroke": "#ff7897", "strokeWidth": 1}},
+    {"type": "circle", "cx": 112, "cy": 454, "r": 15, "style": {"fill": "#252a32", "stroke": "#464e5a", "strokeWidth": 1}},
+    {"type": "text", "x": 112, "y": 454, "text": "1", "anchor": "middle", "baseline": "middle", "style": {"fill": "#ffffff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 160, "y": 582, "text": "BASE CHROMA", "anchor": "middle", "style": {"fill": "#ff8da5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 160, "y": 604, "lines": ["Original palette hue", "No grey wash"], "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+    {"type": "line", "x1": 232, "y1": 492, "x2": 278, "y2": 482, "style": {"stroke": "#68717d", "strokeWidth": 1.5, "markerEnd": "url(#arrow)"}},
+
+    {"type": "circle", "cx": 350, "cy": 480, "r": 62, "style": {"fill": "#191c23", "stroke": "#343a45", "strokeWidth": 1}},
+    {"type": "circle", "cx": 350, "cy": 480, "r": 62, "style": {"fill": "url(#keyLayer)"}},
+    {"type": "circle", "cx": 302, "cy": 434, "r": 15, "style": {"fill": "#252a32", "stroke": "#464e5a", "strokeWidth": 1}},
+    {"type": "text", "x": 302, "y": 434, "text": "2", "anchor": "middle", "baseline": "middle", "style": {"fill": "#ffffff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 350, "y": 582, "text": "MATTE KEY", "anchor": "middle", "style": {"fill": "#fff1d9", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 350, "y": 604, "lines": ["Wrapped diffuse light", "Broad, soft highlight"], "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+    {"type": "line", "x1": 422, "y1": 472, "x2": 468, "y2": 462, "style": {"stroke": "#68717d", "strokeWidth": 1.5, "markerEnd": "url(#arrow)"}},
+
+    {"type": "circle", "cx": 540, "cy": 460, "r": 62, "style": {"fill": "#191c23", "stroke": "#343a45", "strokeWidth": 1}},
+    {"type": "circle", "cx": 540, "cy": 460, "r": 62, "style": {"fill": "url(#ambientLayer)"}},
+    {"type": "circle", "cx": 492, "cy": 414, "r": 15, "style": {"fill": "#252a32", "stroke": "#464e5a", "strokeWidth": 1}},
+    {"type": "text", "x": 492, "y": 414, "text": "3", "anchor": "middle", "baseline": "middle", "style": {"fill": "#ffffff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 540, "y": 582, "text": "AMBIENT WRAP", "anchor": "middle", "style": {"fill": "#8fe6ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 540, "y": 604, "lines": ["Sky + horizon field", "Room colour reaches edges"], "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+    {"type": "line", "x1": 612, "y1": 452, "x2": 658, "y2": 442, "style": {"stroke": "#68717d", "strokeWidth": 1.5, "markerEnd": "url(#arrow)"}},
+
+    {"type": "circle", "cx": 730, "cy": 440, "r": 62, "style": {"fill": "#191c23", "stroke": "#343a45", "strokeWidth": 1}},
+    {"type": "circle", "cx": 730, "cy": 440, "r": 62, "style": {"fill": "url(#rimLayer)"}},
+    {"type": "circle", "cx": 730, "cy": 440, "r": 62, "style": {"fill": "url(#bounceLayer)"}},
+    {"type": "circle", "cx": 682, "cy": 394, "r": 15, "style": {"fill": "#252a32", "stroke": "#464e5a", "strokeWidth": 1}},
+    {"type": "text", "x": 682, "y": 394, "text": "4", "anchor": "middle", "baseline": "middle", "style": {"fill": "#ffffff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 730, "y": 582, "text": "RIM + BOUNCE", "anchor": "middle", "style": {"fill": "#8fe6ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 730, "y": 604, "lines": ["Cool silhouette light", "Warm return from below"], "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+    {"type": "line", "x1": 802, "y1": 432, "x2": 848, "y2": 422, "style": {"stroke": "#68717d", "strokeWidth": 1.5, "markerEnd": "url(#arrow)"}},
+
+    {"type": "circle", "cx": 920, "cy": 420, "r": 62, "style": {"fill": "url(#shadowLayer)", "stroke": "#343a45", "strokeWidth": 1}},
+    {"type": "circle", "cx": 872, "cy": 374, "r": 15, "style": {"fill": "#252a32", "stroke": "#464e5a", "strokeWidth": 1}},
+    {"type": "text", "x": 872, "y": 374, "text": "5", "anchor": "middle", "baseline": "middle", "style": {"fill": "#ffffff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 920, "y": 582, "text": "SHADOW FORM", "anchor": "middle", "style": {"fill": "#bca3ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 920, "y": 604, "lines": ["Terminator + occlusion", "Deep colour, not grey"], "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+
+    {"type": "line", "x1": 1002, "y1": 426, "x2": 1135, "y2": 452, "style": {"stroke": "#78d9ff", "strokeWidth": 2.2, "markerEnd": "url(#arrowBright)"}},
+    {"type": "text", "x": 1068, "y": 408, "text": "FLATTEN", "anchor": "middle", "style": {"fill": "#78d9ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11, "fontWeight": 700, "letterSpacing": 1.2}},
+
+    {"type": "circle", "cx": 1305, "cy": 485, "r": 132, "style": {"fill": "url(#finalForm)", "stroke": "#ff90a6", "strokeWidth": 1}},
+    {"type": "circle", "cx": 1305, "cy": 485, "r": 132, "style": {"fill": "url(#finalAmbient)"}},
+    {"type": "circle", "cx": 1305, "cy": 485, "r": 132, "style": {"fill": "url(#finalKey)"}},
+    {"type": "circle", "cx": 1305, "cy": 485, "r": 132, "style": {"fill": "url(#finalRim)"}},
+    {
+      "type": "group",
+      "clipPath": "finalClip",
+      "style": {"fill": "#ffffff", "opacity": 0.055},
+      "children": [
+        {"type": "circle", "cx": 1247, "cy": 431, "r": 2, "style": {}},
+        {"type": "circle", "cx": 1278, "cy": 449, "r": 1.5, "style": {}},
+        {"type": "circle", "cx": 1321, "cy": 422, "r": 1.2, "style": {}},
+        {"type": "circle", "cx": 1355, "cy": 455, "r": 1.7, "style": {}},
+        {"type": "circle", "cx": 1229, "cy": 486, "r": 1.4, "style": {}},
+        {"type": "circle", "cx": 1294, "cy": 498, "r": 1.8, "style": {}},
+        {"type": "circle", "cx": 1371, "cy": 508, "r": 1.3, "style": {}},
+        {"type": "circle", "cx": 1259, "cy": 541, "r": 1.6, "style": {}},
+        {"type": "circle", "cx": 1334, "cy": 554, "r": 1.2, "style": {}},
+        {"type": "circle", "cx": 1382, "cy": 568, "r": 1.5, "style": {}}
+      ]
+    },
+    {"type": "text", "x": 1305, "y": 325, "text": "FINAL COMPOSITE", "anchor": "middle", "style": {"fill": "#ff91a7", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 14, "fontWeight": 700, "letterSpacing": 1.3}},
+    {"type": "text", "x": 1305, "y": 346, "text": "one flat RGBA sticker", "anchor": "middle", "style": {"fill": "#8f98a5", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 12}},
+    {"type": "line", "x1": 1239, "y1": 396, "x2": 1175, "y2": 353, "style": {"stroke": "#76818e", "strokeWidth": 1.2}},
+    {"type": "text", "x": 1165, "y": 346, "text": "fixed screen-space key", "anchor": "end", "style": {"fill": "#b9c1ca", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}},
+    {"type": "line", "x1": 1386, "y1": 570, "x2": 1472, "y2": 606, "style": {"stroke": "#76818e", "strokeWidth": 1.2}},
+    {"type": "text", "x": 1482, "y": 611, "text": "saturated edge shadow", "style": {"fill": "#b9c1ca", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}},
+
+    {"type": "circle", "cx": 1218, "cy": 674, "r": 40, "style": {"fill": "url(#lightMini)", "stroke": "#d7f7ff", "strokeWidth": 1}},
+    {"type": "text", "x": 1218, "y": 731, "text": "LIGHT ROOM", "anchor": "middle", "style": {"fill": "#d7f7ff", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 1218, "y": 748, "text": "broad ambient rim", "anchor": "middle", "style": {"fill": "#7f8996", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 10}},
+    {"type": "circle", "cx": 1425, "cy": 674, "r": 40, "style": {"fill": "url(#darkMini)", "stroke": "#8c568a", "strokeWidth": 1}},
+    {"type": "text", "x": 1425, "y": 731, "text": "DARK ROOM", "anchor": "middle", "style": {"fill": "#dcb1dd", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11, "fontWeight": 700, "letterSpacing": 0.8}},
+    {"type": "text", "x": 1425, "y": 748, "text": "deep edge occlusion", "anchor": "middle", "style": {"fill": "#7f8996", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 10}},
+
+    {"type": "rect", "x": 60, "y": 790, "width": 1480, "height": 148, "rx": 16, "ry": 16, "style": {"fill": "#15181e", "stroke": "#2a3038", "strokeWidth": 1}},
+    {"type": "text", "x": 86, "y": 819, "text": "WHY IT LOOKS REAL", "style": {"fill": "#f0f3f6", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 13, "fontWeight": 700, "letterSpacing": 1.4}},
+
+    {"type": "circle", "cx": 104, "cy": 861, "r": 22, "style": {"fill": "none", "stroke": "#78d9ff", "strokeWidth": 1.5}},
+    {"type": "line", "x1": 104, "y1": 861, "x2": 88, "y2": 844, "style": {"stroke": "#78d9ff", "strokeWidth": 2, "markerEnd": "url(#arrowBright)"}},
+    {"type": "text", "x": 142, "y": 852, "text": "GEOMETRY-AWARE", "style": {"fill": "#dce2e8", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 142, "y": 873, "lines": ["Every pixel gets a sphere normal.", "Light and shadow agree spatially."], "style": {"fill": "#88929f", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+
+    {"type": "circle", "cx": 466, "cy": 861, "r": 22, "style": {"fill": "url(#ambientIcon)", "stroke": "#607788", "strokeWidth": 1}},
+    {"type": "text", "x": 504, "y": 852, "text": "ENVIRONMENT-AWARE", "style": {"fill": "#dce2e8", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 504, "y": 873, "lines": ["Sky, horizon and floor surround it.", "Light and dark rooms feel different."], "style": {"fill": "#88929f", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+
+    {"type": "circle", "cx": 828, "cy": 861, "r": 22, "style": {"fill": "#ff4f7b", "stroke": "#ff9aad", "strokeWidth": 1}},
+    {"type": "circle", "cx": 836, "cy": 853, "r": 7, "style": {"fill": "#ffb0a4", "opacity": 0.8}},
+    {"type": "text", "x": 866, "y": 852, "text": "COLOUR-PRESERVING", "style": {"fill": "#dce2e8", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 866, "y": 873, "lines": ["OKLab keeps hue and chroma alive.", "Highlights and shadows stay vibrant."], "style": {"fill": "#88929f", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+
+    {"type": "rect", "x": 1185, "y": 839, "width": 46, "height": 46, "rx": 8, "ry": 8, "style": {"fill": "#242a32", "stroke": "#4c5664", "strokeWidth": 1}},
+    {"type": "circle", "cx": 1208, "cy": 862, "r": 15, "style": {"fill": "url(#stableIcon)"}},
+    {"type": "text", "x": 1247, "y": 852, "text": "STABLE + CHEAP", "style": {"fill": "#dce2e8", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 12, "fontWeight": 700}},
+    {"type": "text", "x": 1247, "y": 873, "lines": ["The sticker never rotates.", "Animation only draws cached pixels."], "style": {"fill": "#88929f", "fontFamily": "Inter, Arial, sans-serif", "fontSize": 11}, "lineHeight": 1.45},
+
+    {"type": "rect", "x": 60, "y": 958, "width": 1480, "height": 28, "rx": 14, "ry": 14, "style": {"fill": "#1b2027"}},
+    {"type": "text", "x": 800, "y": 972, "text": "PALETTE CHANGES  →  invalidate affected aliases  →  prewarm 6–8 stickers  →  ANIMATION LOOP: draw cached bitmap only",
+      "anchor": "middle", "baseline": "middle", "style": {"fill": "#aeb7c2", "fontFamily": "ui-monospace, Menlo, monospace", "fontSize": 11, "fontWeight": 700, "letterSpacing": 0.3}}
+  ]
+}

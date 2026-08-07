@@ -1,0 +1,606 @@
+<!doctype html>
+<!--
+  Throwaway Wayfinder prototype. Three bust/finale timing treatments, switchable
+  with ?variant=A|B|C, layered over the approved B point material. Production
+  source is unchanged.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About bust timing</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .prototype-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+        opacity: 0;
+        transition: opacity 160ms ease-out;
+      }
+
+      body[data-prototype-ready='true'] .prototype-frame {
+        opacity: 1;
+      }
+
+      .prototype-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        color: rgb(255 255 255 / 58%);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+
+      body[data-prototype-ready='true'] .prototype-status {
+        display: none;
+      }
+
+      .prototype-moments,
+      .prototype-switcher {
+        position: fixed;
+        z-index: 100;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        background: rgb(12 12 12 / 94%);
+        box-shadow: 0 12px 38px rgb(0 0 0 / 38%);
+        color: #fff;
+        backdrop-filter: blur(18px);
+      }
+
+      .prototype-moments {
+        top: 1rem;
+        right: 50%;
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.25rem;
+        transform: translateX(50%);
+      }
+
+      .prototype-moments button {
+        min-height: 2rem;
+        padding: 0.42rem 0.72rem;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: rgb(255 255 255 / 56%);
+        font: 650 0.62rem/1 Arial, sans-serif;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+      }
+
+      .prototype-moments button:hover,
+      .prototype-moments button:focus-visible,
+      .prototype-moments button[aria-pressed='true'] {
+        background: rgb(255 255 255 / 12%);
+        color: #fff;
+        outline: 0;
+      }
+
+      .prototype-moments output {
+        min-width: 4.1rem;
+        padding-inline: 0.55rem;
+        color: rgb(255 255 255 / 48%);
+        font: 700 0.58rem/1 Arial, sans-serif;
+        letter-spacing: 0.05em;
+        text-align: center;
+      }
+
+      .prototype-switcher {
+        right: 50%;
+        bottom: 5.75rem;
+        display: grid;
+        grid-template-columns: 2.75rem minmax(21rem, auto) 2.75rem;
+        align-items: center;
+        overflow: hidden;
+        transform: translateX(50%);
+      }
+
+      .prototype-switcher button {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 12%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        gap: 0.12rem;
+        padding: 0.5rem 1rem 0.48rem;
+        border-inline: 1px solid rgb(255 255 255 / 12%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label small {
+        color: rgb(255 255 255 / 52%);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .prototype-blocked {
+        display: none;
+        place-items: center;
+        height: 100%;
+        padding: 2rem;
+        color: #fff;
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
+        .prototype-moments {
+          top: 0.55rem;
+          max-width: calc(100% - 1rem);
+          overflow-x: auto;
+        }
+
+        .prototype-moments button {
+          padding-inline: 0.58rem;
+          white-space: nowrap;
+        }
+
+        .prototype-moments output {
+          display: none;
+        }
+
+        .prototype-switcher {
+          bottom: 4.8rem;
+          grid-template-columns: 2.5rem minmax(17rem, auto) 2.5rem;
+        }
+
+        .prototype-switcher button {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      class="prototype-frame"
+      id="material-prototype-frame"
+      title="About bust timing prototype"
+    ></iframe>
+
+    <p class="prototype-status" id="prototype-status">Preparing bust timing…</p>
+
+    <nav class="prototype-moments" aria-label="Finale moments">
+      <button type="button" data-moment="formation">Formation</button>
+      <button type="button" data-moment="silhouette">Silhouette</button>
+      <button type="button" data-moment="hold">Figure only</button>
+      <button type="button" data-moment="invitation">Invitation</button>
+      <button type="button" data-moment="endpoint">Endpoint</button>
+      <output id="prototype-playhead">0.00 WU</output>
+    </nav>
+
+    <nav class="prototype-switcher" aria-label="Prototype variants">
+      <button id="prototype-previous" type="button" aria-label="Previous variant">←</button>
+      <span class="prototype-switcher__label">
+        <small id="prototype-meta">CTA overlaps assembly by 0.55 WU</small>
+        <strong id="prototype-label">A — Current overlap</strong>
+      </span>
+      <button id="prototype-next" type="button" aria-label="Next variant">→</button>
+    </nav>
+
+    <p class="prototype-blocked" id="prototype-blocked">
+      This throwaway comparison is available only on the local development site.
+    </p>
+
+    <script>
+      const END_WU = 22.795;
+      const HOLD_CAMERA_ID = 'prototype-finale-resolved-hold';
+      const VARIANTS = [
+        {
+          key: 'A',
+          name: 'Current overlap',
+          meta: 'CTA overlaps assembly by 0.55 WU',
+          formationStartWU: 19.385,
+          resolvedWU: 21.447626,
+          transitionEasing: 'linear',
+          cameraHoldWU: null,
+          cameraEasing: 'linear',
+          ctaStartWU: 20.895,
+          ctaFocusWU: 21.375,
+        },
+        {
+          key: 'B',
+          name: 'Figure, then invitation',
+          meta: '0.70 WU figure-only hold · settled camera',
+          formationStartWU: 18.95,
+          resolvedWU: 20.55,
+          transitionEasing: 'smoothstep',
+          cameraHoldWU: 20.55,
+          cameraEasing: 'smoothstep',
+          ctaStartWU: 21.25,
+          ctaFocusWU: 21.70,
+        },
+        {
+          key: 'C',
+          name: 'Extended reveal',
+          meta: '1.30 WU figure-only hold · earlier rise',
+          formationStartWU: 18.65,
+          resolvedWU: 20.20,
+          transitionEasing: 'ease-out',
+          cameraHoldWU: 20.20,
+          cameraEasing: 'smoothstep',
+          ctaStartWU: 21.50,
+          ctaFocusWU: 21.90,
+        },
+      ];
+
+      const frame = document.querySelector('#material-prototype-frame');
+      const label = document.querySelector('#prototype-label');
+      const meta = document.querySelector('#prototype-meta');
+      const status = document.querySelector('#prototype-status');
+      const previous = document.querySelector('#prototype-previous');
+      const next = document.querySelector('#prototype-next');
+      const switcher = document.querySelector('.prototype-switcher');
+      const moments = document.querySelector('.prototype-moments');
+      const playhead = document.querySelector('#prototype-playhead');
+      const blocked = document.querySelector('#prototype-blocked');
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+      let activeStore = null;
+      let activeNarrativeRoot = null;
+      let loadVersion = 0;
+      let playheadTimer = 0;
+
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function readVariant() {
+        const requested = new URL(window.location.href).searchParams.get('variant')?.toUpperCase();
+        return VARIANTS.find((variant) => variant.key === requested) || VARIANTS[0];
+      }
+
+      function readMoment() {
+        const requested = new URL(window.location.href).searchParams.get('moment');
+        return ['formation', 'silhouette', 'hold', 'invitation', 'endpoint'].includes(requested)
+          ? requested
+          : 'hold';
+      }
+
+      function resolveMomentWU(variant, moment) {
+        if (moment === 'formation') return variant.formationStartWU + 0.08;
+        if (moment === 'silhouette') return Math.max(
+          variant.formationStartWU,
+          variant.resolvedWU - 0.12,
+        );
+        if (moment === 'hold') {
+          return variant.ctaStartWU > variant.resolvedWU
+            ? variant.ctaStartWU - 0.12
+            : Math.min(END_WU, variant.resolvedWU + 0.08);
+        }
+        if (moment === 'invitation') return variant.ctaFocusWU;
+        return END_WU;
+      }
+
+      function wait(milliseconds) {
+        return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      }
+
+      async function waitFor(readValue, timeout = 40000) {
+        const startedAt = performance.now();
+        while (performance.now() - startedAt < timeout) {
+          const value = readValue();
+          if (value) return value;
+          await wait(40);
+        }
+        throw new Error('The nested About prototype did not become ready in time.');
+      }
+
+      function getEditorStore(documentRoot) {
+        const editor = documentRoot.querySelector('.about-track-editor');
+        const fiberKey = editor && Object.keys(editor).find((key) => key.startsWith('__reactFiber$'));
+        let fiber = fiberKey ? editor[fiberKey] : null;
+        while (fiber) {
+          if (fiber.memoizedProps?.store?.getSnapshot) return fiber.memoizedProps.store;
+          fiber = fiber.return;
+        }
+        return null;
+      }
+
+      function applyTimingDocument(draft, variant) {
+        const departure = draft.tracks.pointField.keys.find(
+          (item) => item.id === 'key-world-emergent-departure',
+        );
+        const arrival = draft.tracks.pointField.keys.find(
+          (item) => item.id === 'key-world-emergent-arrival',
+        );
+        const assembly = draft.tracks.pointField.segments.find(
+          (item) => item.id
+            === 'segment-key-world-emergent-departure-to-key-world-emergent-arrival',
+        );
+        departure.atWU = variant.formationStartWU;
+        arrival.atWU = variant.resolvedWU;
+        assembly.transition.easing = variant.transitionEasing;
+
+        const rippleCamera = draft.tracks.camera.keys.find(
+          (item) => item.id === 'ripple-overhead-hold',
+        );
+        rippleCamera.atWU = variant.formationStartWU;
+        rippleCamera.easing = variant.cameraEasing;
+
+        if (variant.cameraHoldWU != null) {
+          const finalCamera = draft.tracks.camera.keys.find((item) => item.id === 'finale-hold');
+          const holdCamera = clone(finalCamera);
+          holdCamera.id = HOLD_CAMERA_ID;
+          holdCamera.atWU = variant.cameraHoldWU;
+          holdCamera.locked = false;
+          delete holdCamera.protected;
+          draft.tracks.camera.keys.push(holdCamera);
+          draft.tracks.camera.keys.sort((left, right) => left.atWU - right.atWU);
+
+          Object.values(draft.profiles).forEach((profile) => {
+            const finalOverride = profile.overrides?.camera?.['finale-hold'];
+            if (finalOverride) profile.overrides.camera[HOLD_CAMERA_ID] = clone(finalOverride);
+          });
+        }
+
+        const gridRipple = draft.tracks.interactions.clips.find(
+          (item) => item.id === 'interaction-grid-ripple',
+        );
+        const emergentRipple = draft.tracks.interactions.clips.find(
+          (item) => item.id === 'interaction-emergent-ripple',
+        );
+        gridRipple.endWU = variant.formationStartWU;
+        emergentRipple.startWU = variant.formationStartWU;
+        emergentRipple.activationWU = variant.formationStartWU + 0.4;
+        emergentRipple.endWU = Math.min(END_WU, variant.resolvedWU + 0.3);
+
+        const invitation = draft.tracks.text.fields.find(
+          (item) => item.id === 'text-epilogue-invitation',
+        );
+        invitation.startWU = variant.ctaStartWU;
+        invitation.focusWU = variant.ctaFocusWU;
+        invitation.endWU = END_WU;
+      }
+
+      function suppressNestedChrome(materialDocument) {
+        const style = materialDocument.createElement('style');
+        style.id = 'about-bust-timing-nested-style';
+        style.textContent = `
+          .prototype-switcher,
+          .prototype-status,
+          .prototype-blocked { display: none !important; }
+        `;
+        materialDocument.head.append(style);
+      }
+
+      function installCtaVisibilityContract(aboutDocument) {
+        const style = aboutDocument.createElement('style');
+        style.id = 'about-bust-timing-cta-visibility-style';
+        style.textContent = `
+          .about-narrative-lab[data-prototype-bust-cta-visible='false']
+          [data-text-field-id='text-epilogue-invitation']
+          .about-narrative-finale-content {
+            visibility: hidden;
+          }
+        `;
+        aboutDocument.head.append(style);
+      }
+
+      function syncCtaVisibility(storyWU) {
+        if (!activeNarrativeRoot) return;
+        const ctaStartWU = Number(activeNarrativeRoot.dataset.prototypeBustCtaStartWu);
+        activeNarrativeRoot.dataset.prototypeBustCtaVisible = storyWU >= ctaStartWU
+          ? 'true'
+          : 'false';
+      }
+
+      function updateSwitcher(variant) {
+        label.textContent = `${variant.key} — ${variant.name}`;
+        meta.textContent = variant.meta;
+      }
+
+      function updateMomentSelection(moment) {
+        moments.querySelectorAll('button[data-moment]').forEach((button) => {
+          button.setAttribute('aria-pressed', button.dataset.moment === moment ? 'true' : 'false');
+        });
+      }
+
+      function seekMoment(moment, { updateUrl = true } = {}) {
+        const variant = readVariant();
+        const storyWU = resolveMomentWU(variant, moment);
+        activeStore?.setTransport({
+          owner: 'timeline',
+          playing: false,
+          liveAmbient: false,
+          storyWU,
+        });
+        syncCtaVisibility(storyWU);
+        updateMomentSelection(moment);
+        if (updateUrl) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('moment', moment);
+          window.history.replaceState({}, '', url);
+        }
+      }
+
+      function updatePlayhead() {
+        window.clearTimeout(playheadTimer);
+        const tick = () => {
+          if (activeNarrativeRoot) {
+            const value = Number(activeNarrativeRoot.dataset.narrativeStoryWu || 0);
+            syncCtaVisibility(value);
+            playhead.value = `${value.toFixed(2)} WU`;
+          }
+          playheadTimer = window.setTimeout(tick, 120);
+        };
+        tick();
+      }
+
+      function interceptNestedArrowKeys(view) {
+        view.addEventListener('keydown', handleArrowKey, { capture: true });
+      }
+
+      async function applyVariant(version) {
+        const variant = readVariant();
+        updateSwitcher(variant);
+        await waitFor(() => frame.contentDocument?.body);
+        const materialDocument = frame.contentDocument;
+        suppressNestedChrome(materialDocument);
+        await waitFor(() => materialDocument.body.dataset.prototypeReady === 'true');
+        if (version !== loadVersion) return;
+
+        const aboutFrame = await waitFor(() => materialDocument.querySelector('#about-prototype-frame'));
+        const aboutDocument = await waitFor(() => aboutFrame.contentDocument?.body
+          && aboutFrame.contentDocument);
+        const narrativeRoot = await waitFor(() => aboutDocument.querySelector('.about-narrative-lab'));
+        const store = await waitFor(() => getEditorStore(aboutDocument));
+        installCtaVisibilityContract(aboutDocument);
+
+        if (variant.key !== 'A') {
+          const committed = store.commit(
+            `Prototype ${variant.key} bust timing`,
+            (draft) => applyTimingDocument(draft, variant),
+            { selectionAfter: { type: 'track', id: 'point-field' }, requireValid: true },
+          );
+          if (!committed) throw new Error(`Could not apply prototype ${variant.key} timing.`);
+        }
+
+        const snapshot = store.getSnapshot();
+        const errors = (snapshot.diagnostics || []).filter((item) => item.level === 'error');
+        if (errors.length) throw new Error(errors.map((item) => item.message).join(' '));
+
+        narrativeRoot.dataset.prototypeBustTimingVariant = variant.key;
+        narrativeRoot.dataset.prototypeBustFormationStartWu = variant.formationStartWU;
+        narrativeRoot.dataset.prototypeBustResolvedWu = variant.resolvedWU;
+        narrativeRoot.dataset.prototypeBustCtaStartWu = variant.ctaStartWU;
+        narrativeRoot.dataset.prototypeBustCtaFocusWu = variant.ctaFocusWU;
+        narrativeRoot.dataset.prototypeBustCameraHoldWu = variant.cameraHoldWU ?? END_WU;
+        narrativeRoot.dataset.prototypeBustTransitionEasing = variant.transitionEasing;
+        narrativeRoot.dataset.prototypeBustFragmentPresence = '0.5';
+
+        activeStore = store;
+        activeNarrativeRoot = narrativeRoot;
+        interceptNestedArrowKeys(frame.contentWindow);
+        interceptNestedArrowKeys(aboutFrame.contentWindow);
+        seekMoment(readMoment(), { updateUrl: false });
+        await wait(420);
+        await waitFor(() => narrativeRoot.dataset.worldPrepare === 'ready');
+        if (version !== loadVersion) return;
+
+        document.body.dataset.prototypeReady = 'true';
+        status.textContent = 'Preparing bust timing…';
+        updatePlayhead();
+      }
+
+      function loadVariant() {
+        const variant = readVariant();
+        updateSwitcher(variant);
+        activeStore = null;
+        activeNarrativeRoot = null;
+        window.clearTimeout(playheadTimer);
+        document.body.dataset.prototypeReady = 'false';
+        status.textContent = `Preparing ${variant.name.toLowerCase()}…`;
+        loadVersion += 1;
+        const url = new URL('/prototypes/about-point-material.html', window.location.origin);
+        url.searchParams.set('variant', 'B');
+        url.searchParams.set('bust-timing', variant.key);
+        url.searchParams.set('load', String(loadVersion));
+        frame.src = url;
+      }
+
+      function setVariant(key) {
+        const variant = VARIANTS.find((candidate) => candidate.key === key) || VARIANTS[0];
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', variant.key);
+        window.history.replaceState({}, '', url);
+        loadVariant();
+      }
+
+      function cycleVariant(direction) {
+        const current = readVariant();
+        const currentIndex = VARIANTS.findIndex((variant) => variant.key === current.key);
+        const nextIndex = (currentIndex + direction + VARIANTS.length) % VARIANTS.length;
+        setVariant(VARIANTS[nextIndex].key);
+      }
+
+      function handleArrowKey(event) {
+        const tagName = event.target?.tagName?.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || event.target?.isContentEditable) return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          cycleVariant(-1);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          cycleVariant(1);
+        }
+      }
+
+      if (!localHosts.has(window.location.hostname)) {
+        frame.hidden = true;
+        switcher.hidden = true;
+        moments.hidden = true;
+        status.hidden = true;
+        blocked.style.display = 'grid';
+      } else {
+        previous.addEventListener('click', () => cycleVariant(-1));
+        next.addEventListener('click', () => cycleVariant(1));
+        moments.addEventListener('click', (event) => {
+          const button = event.target.closest('button[data-moment]');
+          if (button) seekMoment(button.dataset.moment);
+        });
+        window.addEventListener('keydown', handleArrowKey, { capture: true });
+        frame.addEventListener('load', () => {
+          const version = loadVersion;
+          applyVariant(version).catch((error) => {
+            if (version !== loadVersion) return;
+            console.error(error);
+            status.textContent = 'Could not prepare this comparison.';
+          });
+        });
+        loadVariant();
+      }
+    </script>
+  </body>
+</html>

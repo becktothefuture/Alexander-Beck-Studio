@@ -9,6 +9,10 @@ import {
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
+import {
+  getSimulationBodyMaterialAtlas,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import './spatial-scan.css';
 
 const ASSET_BASE_URL = withBasePath('/models/spatial-scan');
@@ -46,16 +50,44 @@ function resolveColorDistribution(theme, paletteLength) {
   return resolveSimulationColorDistribution(theme?.colorDistribution, paletteLength);
 }
 
-function buildGroupColors(theme, colourMode) {
+function buildGroupPaletteColors(theme, colourMode) {
   const palette = resolvePalette(theme);
   const distribution = resolveColorDistribution(theme, palette.length);
   const dominant = palette[distribution[0]?.colorIndex] || palette[0];
 
   return Array.from({ length: 8 }, (_, index) => {
-    if (colourMode === 'dominant') return hexToRgbUnit(dominant);
+    if (colourMode === 'dominant') return dominant;
     const row = distribution[index % distribution.length] || distribution[0];
-    return hexToRgbUnit(palette[row?.colorIndex] || dominant);
+    return palette[row?.colorIndex] || dominant;
   });
+}
+
+function createSimulationBodyAtlasTexture(atlas) {
+  const texture = new THREE.CanvasTexture(atlas.canvas);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.premultiplyAlpha = false;
+  if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function applySimulationBodyAtlas(material, atlas, texture) {
+  material.uniforms.uUseMaterialAtlas.value = atlas && texture ? 1 : 0;
+  material.uniforms.uMaterialAtlas.value = texture;
+  if (!atlas) return;
+  material.uniforms.uMaterialAtlasCellScale.value = atlas.cellStridePx / atlas.widthPx;
+  material.uniforms.uMaterialAtlasInset.value.set(
+    atlas.gutterPx / atlas.widthPx,
+    atlas.gutterPx / atlas.heightPx,
+  );
+  material.uniforms.uMaterialAtlasSpriteScale.value.set(
+    atlas.detailPx / atlas.widthPx,
+    atlas.detailPx / atlas.heightPx,
+  );
 }
 
 function clamp(value, min, max) {
@@ -186,13 +218,20 @@ function makePointMaterial() {
       uSpread: { value: 0 },
       uBreathing: { value: 0.02 },
       uErosion: { value: 0.18 },
+      uUseMaterialAtlas: { value: 0 },
+      uMaterialAtlas: { value: null },
+      uMaterialAtlasCellScale: { value: 1 },
+      uMaterialAtlasInset: { value: new THREE.Vector2() },
+      uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
     },
     vertexShader: `
       attribute vec3 color;
       attribute vec3 normalOffset;
       attribute float pointSeed;
+      attribute float paletteSlot;
       varying vec3 vColor;
       varying float vSeed;
+      varying float vPaletteSlot;
 
       uniform float uTime;
       uniform float uPointSize;
@@ -203,6 +242,7 @@ function makePointMaterial() {
       void main() {
         vColor = color;
         vSeed = pointSeed;
+        vPaletteSlot = paletteSlot;
         vec3 displaced = position;
         float breath = sin((uTime * 0.74) + (pointSeed * 6.28318530718)) * uBreathing * 0.018;
         displaced += normalOffset * ((uSpread * 0.2) + breath);
@@ -218,8 +258,14 @@ function makePointMaterial() {
       precision mediump float;
       varying vec3 vColor;
       varying float vSeed;
+      varying float vPaletteSlot;
       uniform float uOpacity;
       uniform float uErosion;
+      uniform float uUseMaterialAtlas;
+      uniform sampler2D uMaterialAtlas;
+      uniform float uMaterialAtlasCellScale;
+      uniform vec2 uMaterialAtlasInset;
+      uniform vec2 uMaterialAtlasSpriteScale;
 
       void main() {
         float gate = fract(sin(vSeed * 43758.5453123) * 138.172);
@@ -228,6 +274,19 @@ function makePointMaterial() {
         float distanceFromCenter = length(coord);
         if (distanceFromCenter > 0.5) discard;
         float edgeAlpha = 1.0 - smoothstep(0.46, 0.5, distanceFromCenter);
+        if (uUseMaterialAtlas > 0.5) {
+          vec2 atlasUv = vec2(
+            vPaletteSlot * uMaterialAtlasCellScale
+              + uMaterialAtlasInset.x
+              + gl_PointCoord.x * uMaterialAtlasSpriteScale.x,
+            uMaterialAtlasInset.y + gl_PointCoord.y * uMaterialAtlasSpriteScale.y
+          );
+          vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
+          if (materialSample.a <= 0.0) discard;
+          gl_FragColor = vec4(materialSample.rgb, materialSample.a * uOpacity);
+          #include <colorspace_fragment>
+          return;
+        }
         gl_FragColor = vec4(vColor, edgeAlpha * uOpacity);
       }
     `,
@@ -235,9 +294,11 @@ function makePointMaterial() {
 }
 
 function disposeRuntime(runtime) {
+  runtime?.unsubscribeSimulationBodyMaterial?.();
   runtime?.scene?.clear();
   runtime?.geometry?.dispose();
   runtime?.material?.dispose();
+  runtime?.materialAtlasTexture?.dispose();
   runtime?.renderer?.dispose();
 }
 
@@ -288,7 +349,16 @@ export function SpatialScanPointCloud({
   const displayError = error || (meta && !resolvedAsset?.file
     ? `No ${resolvedQuality} spatial scan point-cloud asset is defined`
     : '');
-  const groupColors = useMemo(() => buildGroupColors(theme, colourMode), [theme, colourMode]);
+  const paletteColors = useMemo(() => resolvePalette(theme), [theme]);
+  const groupPaletteColors = useMemo(
+    () => buildGroupPaletteColors(theme, colourMode),
+    [theme, colourMode],
+  );
+  const groupColors = useMemo(
+    () => groupPaletteColors.map((color) => hexToRgbUnit(color)),
+    [groupPaletteColors],
+  );
+  const materialTheme = theme?.isDark ? 'dark' : 'light';
 
   useEffect(() => {
     settingsRef.current = {
@@ -433,6 +503,10 @@ export function SpatialScanPointCloud({
       loadState: 'initializing',
       scrollProgress: 0,
       targetScrollProgress: 0,
+      materialAtlas: null,
+      materialAtlasKey: '',
+      materialAtlasTexture: null,
+      unsubscribeSimulationBodyMaterial: null,
       cameraSampleState: {
         position: new THREE.Vector3(),
         nextPosition: new THREE.Vector3(),
@@ -443,6 +517,40 @@ export function SpatialScanPointCloud({
       },
     };
     runtimeRef.current = runtime;
+
+    function updatePaletteSlotAttribute(atlas) {
+      if (!runtime.groups.length || !runtime.geometry.getAttribute('position')) return;
+      const paletteSlots = new Float32Array(runtime.groups.length);
+      if (atlas) {
+        for (let index = 0; index < runtime.groups.length; index += 1) {
+          const groupIndex = Math.round(runtime.groups[index]) % groupPaletteColors.length;
+          paletteSlots[index] = atlas.getSlot(
+            groupPaletteColors[groupIndex] || groupPaletteColors[0],
+          );
+        }
+      }
+      runtime.geometry.setAttribute('paletteSlot', new THREE.BufferAttribute(paletteSlots, 1));
+    }
+
+    function updateSimulationBodyMaterial() {
+      const atlas = getSimulationBodyMaterialAtlas(paletteColors, { theme: materialTheme });
+      const nextKey = atlas?.key || 'flat';
+      if (nextKey === runtime.materialAtlasKey) return;
+
+      const previousTexture = runtime.materialAtlasTexture;
+      const nextTexture = atlas ? createSimulationBodyAtlasTexture(atlas) : null;
+      runtime.materialAtlas = atlas;
+      runtime.materialAtlasKey = nextKey;
+      runtime.materialAtlasTexture = nextTexture;
+      applySimulationBodyAtlas(material, atlas, nextTexture);
+      updatePaletteSlotAttribute(atlas);
+      previousTexture?.dispose();
+    }
+
+    runtime.unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial(
+      updateSimulationBodyMaterial,
+    );
+    updateSimulationBodyMaterial();
 
     function publishMetricsHook() {
       root.dataset.spatialScanLoadState = runtime.loadState;
@@ -592,18 +700,26 @@ export function SpatialScanPointCloud({
         if (destroyed) return;
 
         const colors = new Float32Array(parsed.pointCount * 3);
+        const paletteSlots = new Float32Array(parsed.pointCount);
         for (let i = 0; i < parsed.pointCount; i += 1) {
-          const color = groupColors[Math.round(parsed.groups[i]) % groupColors.length] || groupColors[0];
+          const groupIndex = Math.round(parsed.groups[i]) % groupColors.length;
+          const color = groupColors[groupIndex] || groupColors[0];
           const offset = i * 3;
           colors[offset] = color[0];
           colors[offset + 1] = color[1];
           colors[offset + 2] = color[2];
+          if (runtime.materialAtlas) {
+            paletteSlots[i] = runtime.materialAtlas.getSlot(
+              groupPaletteColors[groupIndex] || groupPaletteColors[0],
+            );
+          }
         }
 
         geometry.setAttribute('position', new THREE.BufferAttribute(parsed.positions, 3));
         geometry.setAttribute('normalOffset', new THREE.BufferAttribute(parsed.normals, 3));
         geometry.setAttribute('pointSeed', new THREE.BufferAttribute(parsed.seeds, 1));
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute('paletteSlot', new THREE.BufferAttribute(paletteSlots, 1));
         const visiblePointCount = getVisiblePointCount(parsed.pointCount, settingsRef.current.pointDensity);
         geometry.setDrawRange(0, visiblePointCount);
         geometry.computeBoundingSphere();
@@ -712,7 +828,10 @@ export function SpatialScanPointCloud({
     cameraPath,
     resolvedQuality,
     groupColors,
+    groupPaletteColors,
     maxDpr,
+    materialTheme,
+    paletteColors,
     reducedMotion,
     theme?.mobileSimulationBodyScale,
   ]);

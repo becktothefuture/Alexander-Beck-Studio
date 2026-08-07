@@ -17,7 +17,16 @@ import {
 } from '../modes/mode-runtime-bridge.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
-import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
+import {
+  appendPebbleBodyPath,
+  drawPebbleBodyMaterial,
+  drawSquashedPebbleBodyMaterial,
+  getPebbleBodyRotation,
+} from '../visual/pebble-body.js';
+import {
+  getSimulationBodyMaterialConfig,
+  subscribeSimulationBodyMaterial,
+} from '../rendering/materials/simulation-body-material.js';
 import {
   TITLE_DEPTH_PLANE_Z,
   modeUsesDepthTitlePlane,
@@ -59,6 +68,26 @@ const zPartitionCache = {
   behind: [],
   inFront: []
 };
+let simulationBodyMaterialRenderer = null;
+let sharedSimulationBodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
+
+subscribeSimulationBodyMaterial((config) => {
+  sharedSimulationBodyMaterialEnabled = config.enabled;
+});
+
+/**
+ * Prototype-only final-fill override. Production uses the shared cached body
+ * material when enabled; an explicit caller may temporarily replace that fill.
+ */
+export function setSimulationBodyMaterialRenderer(renderer = null) {
+  const nextRenderer = typeof renderer === 'function' ? renderer : null;
+  simulationBodyMaterialRenderer = nextRenderer;
+  return () => {
+    if (simulationBodyMaterialRenderer === nextRenderer) {
+      simulationBodyMaterialRenderer = null;
+    }
+  };
+}
 
 function resetZPartitionCache() {
   zPartitionCache.behind.length = 0;
@@ -953,6 +982,58 @@ function renderBallsColorBatched(
   const canvasHeight = Number(renderOptions?.canvasHeight) || Number.POSITIVE_INFINITY;
   const cullPad = pitLodEnabled ? Math.max(1, tinyRadiusPx) : 0;
   const simpleCircleBodies = Boolean(renderOptions?.simpleCircleBodies);
+  const materialRenderer = simulationBodyMaterialRenderer;
+  const useSharedMaterial = !materialRenderer && sharedSimulationBodyMaterialEnabled;
+
+  // A prototype renderer may still override the production material. Both paths
+  // replace only the final fill; all simulation state and geometry stay here.
+  if (materialRenderer || useSharedMaterial) {
+    const inheritedAlpha = ctx.globalAlpha;
+    const inheritedSmoothing = ctx.imageSmoothingEnabled;
+    const resolvedMaterialOpacity = Math.max(0, Math.min(1, Number(materialOpacity) || 0));
+    ctx.imageSmoothingEnabled = true;
+    for (let i = 0; i < ballsToRender.length; i += 1) {
+      const ball = ballsToRender[i];
+      const radius = ball.getDisplayRadius();
+      if (radius <= 0.05) continue;
+      if (
+        ball.x + radius < -cullPad ||
+        ball.y + radius < -cullPad ||
+        ball.x - radius > canvasWidth + cullPad ||
+        ball.y - radius > canvasHeight + cullPad
+      ) {
+        continue;
+      }
+
+      const filterOpacity = ball.filterOpacity ?? 1;
+      let effectiveAlpha = (ball.alpha ?? 1) * filterOpacity;
+      if (applyDepthFog) {
+        effectiveAlpha *= getDepthFogOpacity(ball.z ?? 1);
+      }
+      if (effectiveAlpha <= 0.001) continue;
+
+      ctx.globalAlpha = inheritedAlpha * resolvedMaterialOpacity * effectiveAlpha;
+      if (materialRenderer) {
+        materialRenderer(ctx, ball, radius, globals, simpleCircleBodies, squashThreshold);
+      } else if (!simpleCircleBodies && ball.squashAmount > squashThreshold) {
+        drawSquashedPebbleBodyMaterial(ctx, ball, radius, globals);
+      } else {
+        drawPebbleBodyMaterial(
+          ctx,
+          ball,
+          ball.x,
+          ball.y,
+          radius,
+          ball.color,
+          globals,
+          simpleCircleBodies ? 0 : getPebbleBodyRotation(ball),
+        );
+      }
+    }
+    ctx.globalAlpha = inheritedAlpha;
+    ctx.imageSmoothingEnabled = inheritedSmoothing;
+    return;
+  }
   
   // Group balls by color (O(n) pass, minimal overhead)
   // PERF: Reuse cached Map and arrays to eliminate per-frame allocations

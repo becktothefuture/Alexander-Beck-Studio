@@ -87,7 +87,7 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
   assert.match(sources.entranceSequence, /const finalColor = bookendEndpoint\?\.finalColor \|\| ''/);
   assert.match(
     sources.entranceSequence,
-    /finalOpacity: bookendEndpoint\?\.finalOpacity \?\? readFinalOpacity\(element\)/,
+    /finalOpacity: bookendEndpoint\?\.finalOpacity \?\? readFinalOpacity\(element, sequenceSeed\)/,
   );
   assert.match(
     sources.entranceSequence,

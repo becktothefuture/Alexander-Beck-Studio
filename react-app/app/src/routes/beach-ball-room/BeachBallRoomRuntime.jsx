@@ -10,10 +10,15 @@ import {
   triggerRelease,
 } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
+import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
 import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../palette/simulationPaletteContract.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import {
+  getSimulationBodyMaterialAtlas,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import {
   BEACH_BALL_ROOM_DEFAULT_SETTINGS,
   clampBeachBallRoomInteger,
@@ -152,6 +157,34 @@ function uniqueColors(colors) {
   return out;
 }
 
+function createSimulationBodyAtlasTexture(atlas) {
+  const texture = new THREE.CanvasTexture(atlas.canvas);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.premultiplyAlpha = false;
+  if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function applySimulationBodyAtlas(material, atlas, texture) {
+  material.uniforms.uUseMaterialAtlas.value = atlas && texture ? 1 : 0;
+  material.uniforms.uMaterialAtlas.value = texture;
+  if (!atlas) return;
+  material.uniforms.uMaterialAtlasCellScale.value = atlas.cellStridePx / atlas.widthPx;
+  material.uniforms.uMaterialAtlasInset.value.set(
+    atlas.gutterPx / atlas.widthPx,
+    atlas.gutterPx / atlas.heightPx,
+  );
+  material.uniforms.uMaterialAtlasSpriteScale.value.set(
+    atlas.detailPx / atlas.widthPx,
+    atlas.detailPx / atlas.heightPx,
+  );
+}
+
 function buildStripColorSequence(approvedColors, white, allowBlack) {
   const candidates = uniqueColors(
     approvedColors.filter((color) => normalizeHexColor(color, null) !== white),
@@ -203,6 +236,7 @@ function resolvePalette(snapshot) {
   return {
     id: snapshot.paletteId,
     generation: snapshot.generation,
+    colors,
     approvedIndices,
     approvedColors: resolvedApprovedColors,
     blackAllowed,
@@ -235,8 +269,9 @@ function createLineMesh(start, end, thickness, material) {
   return mesh;
 }
 
-function createEngine(container, initialSettings, palette, reducedMotion) {
+function createEngine(container, initialSettings, palette, reducedMotion, materialTheme) {
   let activePalette = palette;
+  let activeMaterialTheme = materialTheme === 'dark' ? 'dark' : 'light';
   const applyPaletteDiagnostics = (nextPalette) => {
     container.dataset.paletteId = nextPalette.id;
     container.dataset.simulationPaletteGeneration = String(nextPalette.generation);
@@ -304,6 +339,11 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     uniforms: {
       beadDiameter: { value: 0.1 },
       pointScale: { value: 1 },
+      uUseMaterialAtlas: { value: 0 },
+      uMaterialAtlas: { value: null },
+      uMaterialAtlasCellScale: { value: 1 },
+      uMaterialAtlasInset: { value: new THREE.Vector2() },
+      uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
     },
     vertexColors: true,
     transparent: true,
@@ -313,7 +353,9 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       uniform float beadDiameter;
       uniform float pointScale;
       attribute float beadScale;
+      attribute float paletteSlot;
       varying vec3 vBeadColor;
+      varying float vPaletteSlot;
 
       void main() {
         vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
@@ -321,16 +363,36 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
         gl_PointSize = max(0.0, beadDiameter * beadScale * perspectiveScale);
         gl_Position = projectionMatrix * viewPosition;
         vBeadColor = color;
+        vPaletteSlot = paletteSlot;
       }
     `,
     fragmentShader: `
       varying vec3 vBeadColor;
+      varying float vPaletteSlot;
+      uniform float uUseMaterialAtlas;
+      uniform sampler2D uMaterialAtlas;
+      uniform float uMaterialAtlasCellScale;
+      uniform vec2 uMaterialAtlasInset;
+      uniform vec2 uMaterialAtlasSpriteScale;
 
       void main() {
         float radius = length(gl_PointCoord - vec2(0.5));
-        float alpha = 1.0 - smoothstep(0.46, 0.5, radius);
-        if (alpha <= 0.0) discard;
-        gl_FragColor = vec4(vBeadColor, alpha);
+        if (radius > 0.5) discard;
+        if (uUseMaterialAtlas > 0.5) {
+          vec2 atlasUv = vec2(
+            vPaletteSlot * uMaterialAtlasCellScale
+              + uMaterialAtlasInset.x
+              + gl_PointCoord.x * uMaterialAtlasSpriteScale.x,
+            uMaterialAtlasInset.y + gl_PointCoord.y * uMaterialAtlasSpriteScale.y
+          );
+          vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
+          if (materialSample.a <= 0.0) discard;
+          gl_FragColor = materialSample;
+        } else {
+          float alpha = 1.0 - smoothstep(0.46, 0.5, radius);
+          if (alpha <= 0.0) discard;
+          gl_FragColor = vec4(vBeadColor, alpha);
+        }
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -339,6 +401,10 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   let beadPoints = null;
   let beadScaleAttribute = null;
   let visualBeadCount = 0;
+  let materialAtlas = null;
+  let materialAtlasKey = '';
+  let materialAtlasTexture = null;
+  let unsubscribeSimulationBodyMaterial = null;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: new THREE.Color(activePalette.roomLine),
@@ -447,6 +513,24 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     beadScaleAttribute = null;
     visualBeadCount = 0;
     container.dataset.renderedBeadColors = '';
+  }
+
+  function updateSimulationBodyMaterial() {
+    const nextAtlas = getSimulationBodyMaterialAtlas(activePalette.colors, {
+      theme: activeMaterialTheme,
+    });
+    const nextKey = nextAtlas?.key || 'flat';
+    if (nextKey === materialAtlasKey) return;
+
+    const previousTexture = materialAtlasTexture;
+    const nextTexture = nextAtlas ? createSimulationBodyAtlasTexture(nextAtlas) : null;
+    const needsPaletteSlots = !materialAtlas && nextAtlas && beadPoints;
+    materialAtlas = nextAtlas;
+    materialAtlasKey = nextKey;
+    materialAtlasTexture = nextTexture;
+    applySimulationBodyAtlas(beadMaterial, nextAtlas, nextTexture);
+    if (needsPaletteSlots) buildBeads();
+    previousTexture?.dispose();
   }
 
   function applyBeadVisualScaleAt(index, scale) {
@@ -636,9 +720,11 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     const beadCount = latitudeRows * longitudeColumns;
     const positions = new Float32Array(beadCount * 3);
     const colors = new Float32Array(beadCount * 3);
+    const paletteSlots = new Float32Array(beadCount);
     const scales = new Float32Array(beadCount);
     const renderedColors = new Set();
     const threeColors = new Map();
+    const atlasSlots = new Map();
     let beadIndex = 0;
 
     for (let row = 1; row <= latitudeRows; row += 1) {
@@ -673,6 +759,14 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
         colors[offset] = threeColor.r;
         colors[offset + 1] = threeColor.g;
         colors[offset + 2] = threeColor.b;
+        if (materialAtlas) {
+          let paletteSlot = atlasSlots.get(color);
+          if (paletteSlot === undefined) {
+            paletteSlot = materialAtlas.getSlot(color);
+            atlasSlots.set(color, paletteSlot);
+          }
+          paletteSlots[beadIndex] = paletteSlot;
+        }
         scales[beadIndex] = visualTransition.getScaleAt(beadIndex);
         renderedColors.add(color);
         beadIndex += 1;
@@ -682,6 +776,7 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('paletteSlot', new THREE.BufferAttribute(paletteSlots, 1));
     beadScaleAttribute = new THREE.BufferAttribute(scales, 1);
     beadScaleAttribute.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('beadScale', beadScaleAttribute);
@@ -1025,6 +1120,10 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
   }
   document.addEventListener('visibilitychange', onVisibilityChange);
 
+  unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial(
+    updateSimulationBodyMaterial,
+  );
+  updateSimulationBodyMaterial();
   updateResponsiveSizing();
   buildBeads();
   ballGroup.position.copy(position);
@@ -1037,7 +1136,15 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       activePalette = nextPalette;
       applyPaletteDiagnostics(activePalette);
       lineMaterial.color.setStyle(activePalette.roomLine);
+      updateSimulationBodyMaterial();
       buildBeads();
+      renderer.render(scene, camera);
+    },
+    updateMaterialTheme(nextTheme) {
+      const normalizedTheme = nextTheme === 'dark' ? 'dark' : 'light';
+      if (normalizedTheme === activeMaterialTheme) return;
+      activeMaterialTheme = normalizedTheme;
+      updateSimulationBodyMaterial();
       renderer.render(scene, camera);
     },
     updateSettings,
@@ -1046,6 +1153,8 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(rebuildTimer);
       window.clearTimeout(resizeTimer);
+      unsubscribeSimulationBodyMaterial?.();
+      unsubscribeSimulationBodyMaterial = null;
       unregisterVisualTransition?.();
       unregisterVisualTransition = null;
       visualTransition.destroy?.();
@@ -1059,6 +1168,8 @@ function createEngine(container, initialSettings, palette, reducedMotion) {
       disposeRoomLineGeometry();
       disposeBeads();
       beadMaterial.dispose();
+      materialAtlasTexture?.dispose();
+      materialAtlasTexture = null;
       depthSphere.geometry.dispose();
       depthMaterial.dispose();
       pointerCollider.geometry.dispose();
@@ -1078,9 +1189,12 @@ export function BeachBallRoomRuntime({
   const containerRef = useRef(null);
   const engineRef = useRef(null);
   const reducedMotion = usePrefersReducedMotion();
+  const isDarkTheme = useRenderedThemeIsDark();
+  const materialTheme = isDarkTheme ? 'dark' : 'light';
   const paletteSnapshot = useSimulationPalette();
   const palette = useMemo(() => resolvePalette(paletteSnapshot), [paletteSnapshot]);
   const initialPaletteRef = useRef(palette);
+  const initialMaterialThemeRef = useRef(materialTheme);
   const initialSettingsRef = useRef(settings);
   const previousSettingsRef = useRef(settings);
   const previousReducedMotionRef = useRef(reducedMotion);
@@ -1096,7 +1210,13 @@ export function BeachBallRoomRuntime({
     containerRef.current.dataset.beachBallRoomLoadState = 'initializing';
     onLoadStateChangeRef.current?.('initializing');
     try {
-      engine = createEngine(containerRef.current, initialSettingsRef.current, initialPaletteRef.current, reducedMotion);
+      engine = createEngine(
+        containerRef.current,
+        initialSettingsRef.current,
+        initialPaletteRef.current,
+        reducedMotion,
+        initialMaterialThemeRef.current,
+      );
       containerRef.current.dataset.beachBallRoomLoadState = 'ready';
       onLoadStateChangeRef.current?.('ready');
     } catch (error) {
@@ -1115,6 +1235,10 @@ export function BeachBallRoomRuntime({
   useEffect(() => {
     engineRef.current?.updatePalette(palette);
   }, [palette]);
+
+  useEffect(() => {
+    engineRef.current?.updateMaterialTheme(materialTheme);
+  }, [materialTheme]);
 
   useEffect(() => {
     const changedKeys = getBeachBallRoomChangedSettingKeys(previousSettingsRef.current, settings);

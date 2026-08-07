@@ -1,0 +1,469 @@
+<!doctype html>
+<!--
+  Throwaway Wayfinder prototype. Three mobile-opening compositions, switchable
+  with ?variant=A|B|C, layered over the approved B point-material prototype.
+  Production source is unchanged.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About mobile opening</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .prototype-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+        opacity: 0;
+        transition: opacity 160ms ease-out;
+      }
+
+      body[data-prototype-ready='true'] .prototype-frame {
+        opacity: 1;
+      }
+
+      .prototype-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        color: rgb(255 255 255 / 58%);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+
+      body[data-prototype-ready='true'] .prototype-status {
+        display: none;
+      }
+
+      .prototype-switcher {
+        position: fixed;
+        right: 50%;
+        bottom: 5.75rem;
+        z-index: 100;
+        display: grid;
+        grid-template-columns: 2.75rem minmax(19rem, auto) 2.75rem;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        background: rgb(12 12 12 / 94%);
+        box-shadow: 0 12px 38px rgb(0 0 0 / 38%);
+        color: #fff;
+        transform: translateX(50%);
+        backdrop-filter: blur(18px);
+      }
+
+      .prototype-switcher button {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .prototype-switcher button:hover,
+      .prototype-switcher button:focus-visible {
+        background: rgb(255 255 255 / 12%);
+        outline: 0;
+      }
+
+      .prototype-switcher__label {
+        display: grid;
+        gap: 0.12rem;
+        padding: 0.5rem 1rem 0.48rem;
+        border-inline: 1px solid rgb(255 255 255 / 12%);
+        text-align: center;
+      }
+
+      .prototype-switcher__label small {
+        color: rgb(255 255 255 / 52%);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .prototype-switcher__label strong {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .prototype-blocked {
+        display: none;
+        place-items: center;
+        height: 100%;
+        padding: 2rem;
+        color: #fff;
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
+        .prototype-switcher {
+          bottom: 4.8rem;
+          grid-template-columns: 2.5rem minmax(15rem, auto) 2.5rem;
+        }
+
+        .prototype-switcher button {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      class="prototype-frame"
+      id="material-prototype-frame"
+      title="About mobile opening prototype"
+    ></iframe>
+
+    <p class="prototype-status" id="prototype-status">Preparing mobile opening…</p>
+
+    <nav class="prototype-switcher" aria-label="Prototype variants">
+      <button id="prototype-previous" type="button" aria-label="Previous variant">←</button>
+      <span class="prototype-switcher__label">
+        <small id="prototype-meta">850 points · scale 0.44 · lift 0</small>
+        <strong id="prototype-label">A — Balanced baseline</strong>
+      </span>
+      <button id="prototype-next" type="button" aria-label="Next variant">→</button>
+    </nav>
+
+    <p class="prototype-blocked" id="prototype-blocked">
+      This throwaway comparison is available only on the local development site.
+    </p>
+
+    <script>
+      const BASELINE = Object.freeze({
+        density: 0.17,
+        scale: 0.44,
+        yOffset: 0,
+      });
+      const DESKTOP_SCALE = 0.52;
+      const MOBILE_REFERENCE_WIDTH = 390;
+      const SHARED_MATERIAL_WIDTH = 768;
+      const BASE_RADIUS = 2.5;
+      const BASE_POSITION_Y = 2.25;
+      const MOBILE_POINT_POOL = 5000;
+      const DESKTOP_POINT_POOL = 12000;
+      const VARIANTS = [
+        {
+          key: 'A',
+          name: 'Balanced baseline',
+          endpoint: BASELINE,
+        },
+        {
+          key: 'B',
+          name: 'Lifted material',
+          endpoint: { density: 0.13, scale: 0.36, yOffset: 0.68 },
+        },
+        {
+          key: 'C',
+          name: 'Maximum clearance',
+          endpoint: { density: 0.11, scale: 0.32, yOffset: 0.95 },
+        },
+      ];
+
+      const frame = document.querySelector('#material-prototype-frame');
+      const label = document.querySelector('#prototype-label');
+      const meta = document.querySelector('#prototype-meta');
+      const status = document.querySelector('#prototype-status');
+      const previous = document.querySelector('#prototype-previous');
+      const next = document.querySelector('#prototype-next');
+      const switcher = document.querySelector('.prototype-switcher');
+      const blocked = document.querySelector('#prototype-blocked');
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+      let loadVersion = 0;
+
+      function clamp01(value) {
+        return Math.min(1, Math.max(0, value));
+      }
+
+      function smoothstep(value) {
+        const bounded = clamp01(value);
+        return bounded * bounded * (3 - (2 * bounded));
+      }
+
+      function mix(from, to, amount) {
+        return from + ((to - from) * amount);
+      }
+
+      function round(value, precision = 3) {
+        const factor = 10 ** precision;
+        return Math.round(value * factor) / factor;
+      }
+
+      function readVariant() {
+        const requested = new URL(window.location.href).searchParams.get('variant')?.toUpperCase();
+        return VARIANTS.find((variant) => variant.key === requested) || VARIANTS[0];
+      }
+
+      function resolvePointPool(width = window.innerWidth) {
+        return width > 1180 ? DESKTOP_POINT_POOL : MOBILE_POINT_POOL;
+      }
+
+      function resolveComposition(variant, width = window.innerWidth) {
+        if (width > 1180) {
+          return { ...BASELINE, scale: DESKTOP_SCALE, interpolation: 1 };
+        }
+        if (variant.key === 'A' || width >= SHARED_MATERIAL_WIDTH) {
+          return { ...BASELINE, interpolation: 1 };
+        }
+        const interpolation = smoothstep(
+          (width - MOBILE_REFERENCE_WIDTH)
+          / (SHARED_MATERIAL_WIDTH - MOBILE_REFERENCE_WIDTH),
+        );
+        return {
+          density: mix(variant.endpoint.density, BASELINE.density, interpolation),
+          scale: mix(variant.endpoint.scale, BASELINE.scale, interpolation),
+          yOffset: mix(variant.endpoint.yOffset, BASELINE.yOffset, interpolation),
+          interpolation,
+        };
+      }
+
+      function updateSwitcher(variant, composition) {
+        const visiblePoints = Math.round(resolvePointPool() * composition.density);
+        label.textContent = `${variant.key} — ${variant.name}`;
+        meta.textContent = `${visiblePoints} points · scale ${composition.scale.toFixed(2)} · lift +${composition.yOffset.toFixed(2)}`;
+      }
+
+      function wait(milliseconds) {
+        return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      }
+
+      async function waitFor(readValue, timeout = 40000) {
+        const startedAt = performance.now();
+        while (performance.now() - startedAt < timeout) {
+          const value = readValue();
+          if (value) return value;
+          await wait(40);
+        }
+        throw new Error('The nested About prototype did not become ready in time.');
+      }
+
+      function findButton(documentRoot, labelText) {
+        return Array.from(documentRoot.querySelectorAll('button')).find((button) => (
+          button.getAttribute('aria-label') === labelText
+          || button.textContent.trim() === labelText
+        ));
+      }
+
+      async function clickButton(documentRoot, labelText) {
+        const button = await waitFor(() => findButton(documentRoot, labelText));
+        button.click();
+        await wait(80);
+      }
+
+      async function selectPointKey(documentRoot, labelText) {
+        const button = await waitFor(() => findButton(documentRoot, labelText));
+        const pointKeyId = button.dataset.pointFieldId;
+        button.click();
+        await waitFor(() => {
+          const selected = documentRoot.querySelector(
+            `button[data-point-field-id="${pointKeyId}"][aria-pressed="true"]`,
+          );
+          const inspectorId = documentRoot.querySelector(
+            '.about-track-editor-inspector__content header code',
+          )?.textContent.trim();
+          return selected && inspectorId === pointKeyId;
+        });
+      }
+
+      function findInput(documentRoot, accessibleName) {
+        const labelledInput = documentRoot.querySelector(
+          `input[aria-label="${accessibleName}"]`,
+        );
+        if (labelledInput) return labelledInput;
+        const field = Array.from(documentRoot.querySelectorAll(
+          '.about-track-editor-inspector__content label',
+        )).find((candidate) => candidate.querySelector(':scope > span')?.textContent.trim()
+          === accessibleName);
+        return field?.querySelector('input') || null;
+      }
+
+      async function setExactValue(documentRoot, accessibleName, value) {
+        const input = await waitFor(() => findInput(documentRoot, accessibleName));
+        const view = documentRoot.defaultView;
+        const setValue = Object.getOwnPropertyDescriptor(view.HTMLInputElement.prototype, 'value').set;
+        input.focus();
+        setValue.call(input, String(value));
+        input.dispatchEvent(new view.Event('input', { bubbles: true }));
+        input.dispatchEvent(new view.Event('change', { bubbles: true }));
+        input.dispatchEvent(new view.FocusEvent('focusout', {
+          bubbles: true,
+          relatedTarget: null,
+        }));
+        await waitFor(() => {
+          const current = findInput(documentRoot, accessibleName);
+          return current
+            && Math.abs(Number(current.value) - Number(value)) < 0.0001;
+        });
+        await wait(80);
+      }
+
+      function openInspectorFolder(documentRoot, labelText) {
+        const details = Array.from(documentRoot.querySelectorAll(
+          '.about-track-editor-inspector__content details',
+        )).find((candidate) => candidate.querySelector('summary')?.textContent.trim()
+          .startsWith(labelText));
+        if (details) details.open = true;
+      }
+
+      function suppressNestedPrototypeChrome(materialDocument) {
+        const style = materialDocument.createElement('style');
+        style.id = 'about-mobile-opening-nested-style';
+        style.textContent = `
+          .prototype-switcher,
+          .prototype-status,
+          .prototype-blocked { display: none !important; }
+        `;
+        materialDocument.head.append(style);
+      }
+
+      async function applyVariant(version) {
+        const variant = readVariant();
+        const composition = resolveComposition(variant);
+        updateSwitcher(variant, composition);
+
+        await waitFor(() => frame.contentDocument?.body);
+        const materialDocument = frame.contentDocument;
+        suppressNestedPrototypeChrome(materialDocument);
+        await waitFor(() => materialDocument.body.dataset.prototypeReady === 'true');
+        if (version !== loadVersion) return;
+
+        const aboutFrame = await waitFor(() => materialDocument.querySelector('#about-prototype-frame'));
+        const aboutDocument = await waitFor(() => aboutFrame.contentDocument?.body && aboutFrame.contentDocument);
+        const narrativeRoot = await waitFor(() => aboutDocument.querySelector('.about-narrative-lab'));
+
+        if (variant.key !== 'A' && window.innerWidth < SHARED_MATERIAL_WIDTH) {
+          await clickButton(aboutDocument, 'Forms');
+          await selectPointKey(aboutDocument, 'A key at 0.000 WU, protected');
+          await setExactValue(aboutDocument, 'Density exact value', round(composition.density, 4));
+          await setExactValue(
+            aboutDocument,
+            'Radius exact value',
+            round(BASE_RADIUS * (composition.scale / BASELINE.scale), 4),
+          );
+          openInspectorFolder(aboutDocument, 'Placement');
+          await setExactValue(
+            aboutDocument,
+            'Position Y',
+            round(BASE_POSITION_Y + composition.yOffset, 4),
+          );
+          await wait(420);
+          await waitFor(() => narrativeRoot.dataset.worldPrepare === 'ready');
+        }
+
+        narrativeRoot.dataset.prototypeMobileOpeningVariant = variant.key;
+        narrativeRoot.dataset.prototypeMobileOpeningDensity = round(composition.density, 4);
+        narrativeRoot.dataset.prototypeMobileOpeningScale = round(composition.scale, 4);
+        narrativeRoot.dataset.prototypeMobileOpeningYOffset = round(composition.yOffset, 4);
+        narrativeRoot.dataset.prototypeMobileOpeningInterpolation = round(
+          composition.interpolation,
+          4,
+        );
+        narrativeRoot.dataset.prototypeMobileOpeningVisiblePoints = String(
+          Math.round(resolvePointPool() * composition.density),
+        );
+
+        if (version !== loadVersion) return;
+        document.body.dataset.prototypeReady = 'true';
+        status.textContent = 'Preparing mobile opening…';
+        frame.contentWindow.addEventListener('keydown', handleArrowKey);
+      }
+
+      function loadVariant() {
+        const variant = readVariant();
+        const composition = resolveComposition(variant);
+        updateSwitcher(variant, composition);
+        document.body.dataset.prototypeReady = 'false';
+        status.textContent = `Preparing ${variant.name.toLowerCase()}…`;
+        loadVersion += 1;
+        const url = new URL('/prototypes/about-point-material.html', window.location.origin);
+        url.searchParams.set('variant', 'B');
+        url.searchParams.set('mobile-opening', variant.key);
+        url.searchParams.set('load', String(loadVersion));
+        frame.src = url;
+      }
+
+      function setVariant(key) {
+        const variant = VARIANTS.find((candidate) => candidate.key === key) || VARIANTS[0];
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', variant.key);
+        window.history.replaceState({}, '', url);
+        loadVariant();
+      }
+
+      function cycleVariant(direction) {
+        const current = readVariant();
+        const currentIndex = VARIANTS.findIndex((variant) => variant.key === current.key);
+        const nextIndex = (currentIndex + direction + VARIANTS.length) % VARIANTS.length;
+        setVariant(VARIANTS[nextIndex].key);
+      }
+
+      function handleArrowKey(event) {
+        const tagName = event.target?.tagName?.toLowerCase();
+        if (tagName === 'input' || tagName === 'textarea' || event.target?.isContentEditable) return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          cycleVariant(-1);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          cycleVariant(1);
+        }
+      }
+
+      if (!localHosts.has(window.location.hostname)) {
+        frame.hidden = true;
+        switcher.hidden = true;
+        status.hidden = true;
+        blocked.style.display = 'grid';
+      } else {
+        previous.addEventListener('click', () => cycleVariant(-1));
+        next.addEventListener('click', () => cycleVariant(1));
+        window.addEventListener('keydown', handleArrowKey);
+        frame.addEventListener('load', () => {
+          const version = loadVersion;
+          applyVariant(version).catch((error) => {
+            if (version !== loadVersion) return;
+            console.error(error);
+            status.textContent = 'Could not prepare this comparison.';
+          });
+        });
+        loadVariant();
+      }
+    </script>
+  </body>
+</html>

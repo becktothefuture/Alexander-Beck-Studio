@@ -246,12 +246,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ## Simulation language
 
-- Use solid flat circles or approved pebble bodies as the primary material.
+- Eligible production simulation bodies use one shared cached matte sphere material over the approved circle or pebble geometry. The light direction is fixed in screen space, so body motion and pebble rotation do not rotate the lighting.
+- The active time-of-day palette remains the base colour identity. The Light and Dark material profiles add only restrained key, ambient, rim-bounce, and self-shadow cues; they must preserve the palette hue and chroma rather than introduce a second colour system.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
-- Contact's concentric ripple field and Portfolio's deterministic speed field are intentional production exceptions because they retain the same solid-body palette and physical logic.
+- Contact's ripple, About and Lab dots, Portfolio cards and pucks, the cursor, loaders, navigation, editorial dots, and atmosphere emitters are separate route or interface materials. They do not inherit the sphere finish. Contact's concentric ripple field and Portfolio's deterministic speed field remain intentional production exceptions because they retain the same palette and physical logic.
 
 ### Shared simulation atmosphere
 

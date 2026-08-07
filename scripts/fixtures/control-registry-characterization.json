@@ -4,6 +4,9 @@
     "atmosphereEdge",
     "atmosphereLight",
     "atmosphereDark",
+    "bodyMaterialCommon",
+    "bodyMaterialLight",
+    "bodyMaterialDark",
     "liteMode",
     "environment",
     "physics",
@@ -35,12 +38,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 282,
-  "descriptorDigest": "5a5181b87fb1e5e56c8f2137f07ffffcff902f0103c48c52684405e294ba5c84",
-  "renderedControlCount": 282,
-  "renderedIdDigest": "a807b14b19f70e9532f1e29855a1428727ed88384bce02f163526c3e2c2d7930",
-  "generatedMarkupDigest": "db4d464d23e91ba31096ef30824a856114ade188c5fe25c25e33ce6bfa4bd10e",
-  "parseFormatDigest": "57f812970499862bf14932b6f2454c02dd3a65091e2e9fb91ba1e844b8d29900",
+  "controlCount": 300,
+  "descriptorDigest": "e59be3875a50cd891573a11760e9ceb1514f35ca809e03eb818e939ce2d15506",
+  "renderedControlCount": 300,
+  "renderedIdDigest": "5ef5b0ea425583aef60ca162e1a1189c2679a7e2d95e424ad2611d51748046b5",
+  "generatedMarkupDigest": "dc67f4913d508dc5da6faa385f09ac6a800a4ae6aaccf06644b718a034c769af",
+  "parseFormatDigest": "468457c8a0958fc4c3e60faa3286e29f9492caf352350ce6d25c99aa5f1ae50b",
   "sentinels": [
     {
       "id": "ballMassKg",

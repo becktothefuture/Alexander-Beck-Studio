@@ -10,6 +10,7 @@ import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
+import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -1531,9 +1532,18 @@ export function renderFlubberBlob(ctx) {
       ctx.globalAlpha = alpha;
       previousAlpha = alpha;
     }
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, visualRadius, 0, Math.PI * 2);
-    ctx.fill();
+    if (!drawSimulationBodyMaterial(
+      ctx,
+      ball.color,
+      ball.x,
+      ball.y,
+      visualRadius,
+      g.isDarkMode ? 'dark' : 'light',
+    )) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, visualRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   if (previousAlpha !== 1) ctx.globalAlpha = 1;
 }

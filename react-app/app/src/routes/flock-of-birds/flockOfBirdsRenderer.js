@@ -15,6 +15,11 @@ import { selectSimulationMaterialRole } from '../../palette/simulationPaletteCon
 import { advanceFrameScheduler } from '../../lib/frame-cadence.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
+import {
+  drawSimulationBodyMaterial,
+  getSimulationBodyMaterialSprite,
+  prewarmSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 const SPEED_BUCKET_COUNT = 18;
@@ -177,6 +182,7 @@ export function createFlockOfBirdsRenderer({
   canvas,
   getConfig,
   getTheme,
+  renderBody = null,
   reducedMotion = false,
   transparentBackground = false,
   useHomeSimulationBodyRadius = false,
@@ -1209,6 +1215,10 @@ export function createFlockOfBirdsRenderer({
       birdColorTheme = theme;
       birdColorGeneration = nextColorGeneration;
       birdColorStrings = createBirdColorCache(theme);
+      prewarmSimulationBodyMaterial(
+        birdColorStrings,
+        theme?.isDark ? 'dark' : 'light',
+      );
       for (let roleIndex = 0; roleIndex < birdRoleColorIndices.length; roleIndex += 1) {
         birdRoleColorIndices[roleIndex] = resolveSimulationMaterialColorIndex(
           roleIndex,
@@ -1218,6 +1228,38 @@ export function createFlockOfBirdsRenderer({
     }
     const baseRadius = baseBirdRadius * mobileBodyScale;
     const depthSize = config.depthSize;
+
+    if (typeof renderBody === 'function') {
+      for (let i = 0; i < state.count; i += 1) {
+        const depth = clamp(state.depth[i], -1, 1);
+        const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
+        if (radius <= 0.05) continue;
+        const colorIndex = birdRoleColorIndices[state.materialRoleIndex[i]];
+        renderBody(ctx, state.x[i], state.y[i], radius, birdColorStrings[colorIndex]);
+      }
+      return;
+    }
+
+    const materialTheme = theme?.isDark ? 'dark' : 'light';
+    const useMaterial = birdColorStrings.length > 0
+      && getSimulationBodyMaterialSprite(birdColorStrings[0], materialTheme) !== null;
+    if (useMaterial) {
+      for (let i = 0; i < state.count; i += 1) {
+        const depth = clamp(state.depth[i], -1, 1);
+        const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
+        if (radius <= 0.05) continue;
+        const colorIndex = birdRoleColorIndices[state.materialRoleIndex[i]];
+        drawSimulationBodyMaterial(
+          ctx,
+          birdColorStrings[colorIndex],
+          state.x[i],
+          state.y[i],
+          radius,
+          materialTheme,
+        );
+      }
+      return;
+    }
 
     for (let colorIndex = 0; colorIndex < birdColorStrings.length; colorIndex += 1) {
       let hasVisibleBird = false;

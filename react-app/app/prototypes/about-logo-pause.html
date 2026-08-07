@@ -1,0 +1,371 @@
+<!doctype html>
+<!--
+  Throwaway Wayfinder prototype. One approved B direction for the selected-client
+  logo pause, layered onto the real local About narrative and B line-baton focus.
+  This file is excluded from production inputs.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prototype — About client-logo pause</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .prototype-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+      }
+
+      .prototype-label {
+        position: fixed;
+        right: 50%;
+        bottom: 5.75rem;
+        z-index: 100;
+        display: grid;
+        gap: 0.12rem;
+        min-width: 17rem;
+        padding: 0.64rem 1.2rem 0.62rem;
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        background: rgb(12 12 12 / 94%);
+        box-shadow: 0 12px 38px rgb(0 0 0 / 38%);
+        color: #fff;
+        text-align: center;
+        transform: translateX(50%);
+        backdrop-filter: blur(18px);
+      }
+
+      .prototype-label small {
+        color: rgb(255 255 255 / 52%);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .prototype-label strong {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .prototype-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: #000;
+        color: #fff;
+        text-align: center;
+      }
+
+      body[data-prototype-ready='true'] .prototype-status {
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        .prototype-label {
+          bottom: 4.8rem;
+          min-width: 15rem;
+          padding-inline: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body data-prototype-ready="false">
+    <iframe
+      class="prototype-frame"
+      id="about-logo-prototype-frame"
+      title="About client-logo pause prototype"
+    ></iframe>
+
+    <span class="prototype-label" aria-label="Approved prototype direction">
+      <small>Single approved direction</small>
+      <strong>B — Deliberate client breath</strong>
+    </span>
+
+    <p class="prototype-status" id="prototype-status">Preparing the local About narrative…</p>
+
+    <script>
+      const outerFrame = document.querySelector('#about-logo-prototype-frame');
+      const status = document.querySelector('#prototype-status');
+      const localHosts = new Set(['localhost', '127.0.0.1']);
+      const params = new URLSearchParams(window.location.search);
+      const reducedMotion = params.get('motion') === 'reduced';
+      const editMode = params.get('edit') === '1';
+      let logoFrame = 0;
+      let prepareTimer = 0;
+
+      function clamp01(value) {
+        return Math.min(1, Math.max(0, Number(value) || 0));
+      }
+
+      function smoothstep(start, end, value) {
+        const progress = clamp01((Number(value) - start) / Math.max(0.0001, end - start));
+        return progress * progress * (3 - (2 * progress));
+      }
+
+      function mix(start, end, progress) {
+        return start + ((end - start) * clamp01(progress));
+      }
+
+      function sourceProgress(node) {
+        return clamp01(Number.parseFloat(node?.style.getPropertyValue('--editorial-reveal')));
+      }
+
+      function maximumProgress(nodes) {
+        return nodes.reduce((maximum, node) => Math.max(maximum, sourceProgress(node)), 0);
+      }
+
+      function groupLogoRows(nodes) {
+        const rows = [];
+        nodes.forEach((node) => {
+          const top = Math.round(node.getBoundingClientRect().top);
+          const row = rows.find((record) => Math.abs(record.top - top) <= 1);
+          if (row) row.nodes.push(node);
+          else rows.push({ top, nodes: [node] });
+        });
+        return rows;
+      }
+
+      function installLogoTreatment(documentRoot) {
+        documentRoot.querySelector('#about-logo-pause-prototype-style')?.remove();
+        documentRoot.documentElement.setAttribute('data-about-logo-pause', 'B');
+        documentRoot.documentElement.setAttribute(
+          'data-about-logo-motion',
+          reducedMotion ? 'reduced' : 'full',
+        );
+
+        const style = documentRoot.createElement('style');
+        style.id = 'about-logo-pause-prototype-style';
+        style.textContent = `
+          html[data-about-reading-focus='B'][data-about-logo-pause='B']
+          .about-narrative-editorial-stack > .about-narrative-client-field {
+            gap: clamp(2.5rem, 4.8vw, 3.75rem) !important;
+            padding-block-end: clamp(3.75rem, 7svh, 5.5rem) !important;
+            opacity: var(--prototype-logo-field-opacity, 0.04) !important;
+            transition: opacity 160ms ease-out;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-field figcaption {
+            max-width: min(32ch, 100%) !important;
+            color: color-mix(in srgb, var(--text-primary) 74%, transparent) !important;
+            font-size: clamp(0.76rem, 0.82vw, 0.875rem) !important;
+            line-height: 1.4 !important;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-field figcaption
+          [data-editorial-reveal='word'] {
+            opacity: var(--prototype-logo-caption-opacity, 0) !important;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-logos {
+            gap: clamp(2.6rem, 5vw, 4rem) clamp(2.25rem, 6.5vw, 5.25rem) !important;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-logos li {
+            --client-logo-display-scale: 0.94;
+            height: clamp(5rem, 7.75vw, 6.75rem) !important;
+            opacity: var(--prototype-logo-row-opacity, 0.04) !important;
+            transition: opacity 160ms ease-out;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-logos
+          li[data-client-logo='yoti'] {
+            --client-logo-display-scale: 1.1;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-client-logos img {
+            opacity: 0.96;
+          }
+
+          html[data-about-logo-pause='B']
+          [data-text-field-id='text-complexity-curiosity'] {
+            opacity: var(--prototype-post-logo-opacity, 0) !important;
+          }
+
+          html[data-about-logo-pause='B'] .about-narrative-world {
+            opacity: var(--prototype-logo-world-opacity, 1) !important;
+          }
+
+          html[data-about-reading-focus='B'][data-about-logo-pause='B'][data-about-logo-motion='reduced']
+          .about-narrative-editorial-stack > .about-narrative-client-field,
+          html[data-about-logo-pause='B'][data-about-logo-motion='reduced']
+          .about-narrative-client-logos li {
+            transition: none !important;
+          }
+
+          .about-narrative-lab[data-about-layout-profile='mobile']
+          .about-narrative-client-field {
+            gap: clamp(2.25rem, 8vw, 3rem) !important;
+            padding-block-end: clamp(3.25rem, 9svh, 4.75rem) !important;
+          }
+
+          .about-narrative-lab[data-about-layout-profile='mobile']
+          .about-narrative-client-logos {
+            gap: clamp(2.35rem, 10vw, 3.5rem) clamp(1.25rem, 7vw, 2.25rem) !important;
+          }
+
+          .about-narrative-lab[data-about-layout-profile='mobile']
+          .about-narrative-client-logos li {
+            --client-logo-display-scale: 0.92;
+            height: clamp(4.5rem, 21vw, 5.5rem) !important;
+          }
+
+          .about-narrative-lab[data-about-layout-profile='mobile']
+          .about-narrative-client-logos li[data-client-logo='yoti'] {
+            --client-logo-display-scale: 1.08;
+          }
+        `;
+        documentRoot.head.append(style);
+      }
+
+      function startLogoLoop(baseFrame) {
+        const documentRoot = baseFrame.contentDocument;
+        const view = baseFrame.contentWindow;
+        const root = documentRoot.querySelector('.about-narrative-lab');
+        const field = documentRoot.querySelector('.about-narrative-client-field');
+        if (!root || !field) return false;
+
+        view.cancelAnimationFrame(logoFrame);
+        installLogoTreatment(documentRoot);
+
+        const captionWords = Array.from(field.querySelectorAll(
+          'figcaption [data-editorial-reveal="word"]',
+        ));
+        const logoNodes = Array.from(field.querySelectorAll('.about-narrative-client-logos li'));
+        const nextTitle = documentRoot.querySelector(
+          '[data-text-field-id="text-complexity-curiosity"]',
+        );
+        const pointWorld = documentRoot.querySelector('.about-narrative-world');
+
+        const tick = () => {
+          const storyWU = Number(root.dataset.narrativeStoryWu) || 0;
+          const captionProgress = maximumProgress(captionWords);
+          const profileReduced = reducedMotion || root.dataset.aboutMotionProfile === 'reduced';
+          const mobileProfile = root.dataset.aboutLayoutProfile === 'mobile';
+          const holdReleaseWU = mobileProfile ? 7.08 : 6.92;
+          const handoffEndWU = mobileProfile ? 7.22 : 7.06;
+          const worldReturnEndWU = mobileProfile ? 7.34 : 7.18;
+          const fieldEntry = profileReduced
+            ? Number(captionProgress >= 0.08)
+            : smoothstep(0.06, 0.44, captionProgress);
+          const fieldExit = profileReduced
+            ? (storyWU >= holdReleaseWU ? 0.4 : 1)
+            : mix(1, 0.4, smoothstep(holdReleaseWU, handoffEndWU, storyWU));
+
+          field.style.setProperty(
+            '--prototype-logo-field-opacity',
+            mix(0.04, 1, fieldEntry) * fieldExit,
+          );
+          field.style.setProperty(
+            '--prototype-logo-caption-opacity',
+            profileReduced
+              ? Number(captionProgress >= 0.08)
+              : smoothstep(0.08, 0.5, captionProgress),
+          );
+
+          const rows = groupLogoRows(logoNodes);
+          rows.forEach((row) => {
+            const visible = maximumProgress(row.nodes) >= 0.18;
+            row.nodes.forEach((node) => {
+              node.style.setProperty('--prototype-logo-row-opacity', visible ? '1' : '0.04');
+            });
+          });
+
+          if (nextTitle) {
+            nextTitle.style.setProperty(
+              '--prototype-post-logo-opacity',
+              profileReduced
+                ? Number(storyWU >= holdReleaseWU)
+                : smoothstep(holdReleaseWU, handoffEndWU, storyWU),
+            );
+          }
+
+          if (pointWorld) {
+            let worldOpacity = 1;
+            if (storyWU >= 5.52 && storyWU < handoffEndWU) {
+              worldOpacity = profileReduced
+                ? 0
+                : 1 - smoothstep(5.52, 5.68, storyWU);
+            } else if (storyWU >= handoffEndWU && storyWU < worldReturnEndWU) {
+              worldOpacity = profileReduced
+                ? 1
+                : smoothstep(handoffEndWU, worldReturnEndWU, storyWU);
+            }
+            pointWorld.style.setProperty('--prototype-logo-world-opacity', worldOpacity);
+          }
+
+          document.body.dataset.prototypeStoryWu = storyWU.toFixed(4);
+          document.body.dataset.prototypeLogoRows = String(rows.length);
+          document.body.dataset.prototypeLogoResolved = String(
+            rows.length > 0 && rows.every((row) => maximumProgress(row.nodes) >= 0.18),
+          );
+          document.body.dataset.prototypeLogoHoldReleaseWu = holdReleaseWU.toFixed(2);
+          logoFrame = view.requestAnimationFrame(tick);
+        };
+        tick();
+        document.body.dataset.prototypeReady = 'true';
+        status.textContent = '';
+        return true;
+      }
+
+      function preparePrototype() {
+        window.clearTimeout(prepareTimer);
+        const wrapperDocument = outerFrame.contentDocument;
+        if (!wrapperDocument?.body) {
+          prepareTimer = window.setTimeout(preparePrototype, 80);
+          return;
+        }
+
+        wrapperDocument.querySelector('.prototype-switcher')
+          ?.style.setProperty('display', 'none', 'important');
+        const baseFrame = wrapperDocument.querySelector('#about-prototype-frame');
+        if (!baseFrame) {
+          prepareTimer = window.setTimeout(preparePrototype, 80);
+          return;
+        }
+
+        if (!startLogoLoop(baseFrame)) {
+          baseFrame.addEventListener('load', preparePrototype, { once: true });
+          prepareTimer = window.setTimeout(preparePrototype, 80);
+        }
+      }
+
+      if (!localHosts.has(window.location.hostname)) {
+        outerFrame.hidden = true;
+        document.querySelector('.prototype-label').hidden = true;
+        status.textContent = 'This throwaway prototype is available only on the local development site.';
+      } else {
+        outerFrame.addEventListener('load', preparePrototype);
+        outerFrame.src = `/prototypes/about-reading-focus.html?variant=B${
+          reducedMotion ? '&motion=reduced' : ''
+        }${editMode ? '&edit=1' : ''}`;
+      }
+    </script>
+  </body>
+</html>

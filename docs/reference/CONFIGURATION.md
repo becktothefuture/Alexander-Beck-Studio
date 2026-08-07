@@ -9,7 +9,7 @@ Exact config values belong in JSON and normalizer code. Exact approved simulatio
 ## Namespaces
 
 - `runtime`: shared Canvas/runtime behavior and global tokens
-- `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, and the production simulation atmosphere
+- `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, the production simulation body material, and the production simulation atmosphere
 - `portfolio`: active orbital deck, drawer, handoff motion, and route-specific composition
 - `playground`: deterministic layout, work sizing, dot-field appearance, and camera response for the production Playground route
 - `cv`: retained generated-schema compatibility only; it is not a live CV route
@@ -31,6 +31,16 @@ Removing a control also means removing its persistence/export path. Browser stor
 `runtime.homeSimulationBodyRadiusPx` is the one production master radius for Daily Simulation circle material. Its authored default is `8.9px`, matching Tension. The legacy Home modes and the route-backed Tension, Convergence, and Depth renderers all consume this value; no production simulation owns a separate body-size multiplier. Perspective and other 3D projections may reduce the rendered radius by depth, but their foreground radius remains the global value.
 
 `runtime.mobileSimulationBodyScale` is the only responsive adjustment and is applied after the master radius. The current `0.8` value therefore resolves to `7.12px` at the mobile breakpoint. Change **Simulation ball size** in the development panel to apply and save the master value through the normal canonical configuration path.
+
+### Production simulation body material
+
+`shell.surface.simulationBodyMaterial` is the only authored production body-material location. It owns `enabled`, `cacheDetailPx`, and one Light and one Dark profile. Each theme profile owns `keyLevel` / `keyReach`, `ambientLevel` / `ambientReach`, `rimBounceLevel` / `rimBounceReach`, and `shadowDepth` / `shadowArea`.
+
+The material is one five-cue composition: the resolved palette base plus key, ambient, rim bounce, and self-shadow. Profiles may rebalance those cues for the studio-window theme, but the palette hue and chroma remain the body identity and the light direction remains fixed in screen space. Routes and renderers must not add private profiles, colour transforms, local lights, or material defaults.
+
+`cacheDetailPx` controls bake detail only. The sprite fast path and the `36ms` invalidation debounce are hardcoded runtime performance policy, not configuration. Stickers and atlases rebake after material-config, theme, or palette invalidation; ordinary body frames only draw or sample cached output.
+
+All eligible bodies from the production simulation catalog consume this contract without changing their physics, motion, sizing, depth, or collision rules. Contact ripple geometry, About and Playground dots, editorial dots, Portfolio cards and pucks, cursor, loaders, navigation, and atmosphere emitters are outside its scope. `shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
 
 ## Build and validation
 

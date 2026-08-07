@@ -37,10 +37,17 @@ import {
   buildSimulationAtmosphereConfigFromControlState,
   hydrateSimulationAtmosphereControlState,
 } from './control-definitions/simulation-atmosphere-controls.js';
+import {
+  SIMULATION_BODY_MATERIAL_CONTROL_SECTIONS,
+  buildSimulationBodyMaterialConfigFromControlState,
+  hydrateSimulationBodyMaterialControlState,
+} from './control-definitions/simulation-body-material-controls.js';
 
 export {
   buildSimulationAtmosphereConfigFromControlState,
   hydrateSimulationAtmosphereControlState,
+  buildSimulationBodyMaterialConfigFromControlState,
+  hydrateSimulationBodyMaterialControlState,
 };
 
 
@@ -339,6 +346,9 @@ export const MASTER_GROUPS = [
     title: 'Ball Material',
     icon: '🎱',
     sections: [
+      'bodyMaterialCommon',
+      'bodyMaterialLight',
+      'bodyMaterialDark',
       'balls'
     ]
   },
@@ -798,6 +808,7 @@ function createButtonBarControls() {
 
 export const CONTROL_SECTIONS = {
   ...SIMULATION_ATMOSPHERE_CONTROL_SECTIONS,
+  ...SIMULATION_BODY_MATERIAL_CONTROL_SECTIONS,
   // ═══════════════════════════════════════════════════════════════════════════
   // LITE MODE — Global performance toggle
   // ═══════════════════════════════════════════════════════════════════════════
@@ -5589,6 +5600,7 @@ export function bindRegisteredControls(options = {}) {
   if (!uiDocument) return;
   registerPanelUiDocument(uiDocument);
   hydrateSimulationAtmosphereControlState(g);
+  hydrateSimulationBodyMaterialControlState(g);
 
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
