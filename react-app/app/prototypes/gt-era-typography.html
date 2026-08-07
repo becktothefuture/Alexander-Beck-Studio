@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+  PROTOTYPE — GT Era typography tuning lab.
+  The exact local Home route is rendered in a same-origin selectable mobile or
+  desktop viewport. Prototype values live in this lab's URL and never write to
+  the production design system.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/prototypes/gt-era-typography.css" />
+    <title>GT Era Typography Lab — Alexander Beck Studio</title>
+  </head>
+  <body>
+    <main class="prototype-workspace">
+      <section class="prototype-preview" aria-label="Website preview">
+        <div class="prototype-preview__frame">
+          <iframe
+            id="prototype-site"
+            title="Alexander Beck Studio Home typography prototype"
+            src="/"
+          ></iframe>
+        </div>
+      </section>
+
+      <aside class="parameterizer-panel typography-parameterizer" aria-label="Typography configuration panel">
+        <header class="parameterizer-header">
+          <span class="typography-parameterizer__heading">GT ERA TYPE LAB</span>
+          <span class="typography-parameterizer__status" data-status>LOADING</span>
+          <button type="button" class="typography-parameterizer__collapse" data-collapse aria-expanded="true">
+            HIDE
+          </button>
+        </header>
+
+        <div class="parameterizer-scroll" data-controls></div>
+
+        <footer class="parameterizer-actions">
+          <button type="button" data-action="reset">RESET</button>
+          <button type="button" data-action="copy">COPY LINK</button>
+        </footer>
+      </aside>
+
+      <button type="button" class="typography-parameterizer__launcher" data-launcher aria-label="Show typography controls">
+        TYPE
+      </button>
+    </main>
+
+    <script type="module" src="/prototypes/gt-era-typography.js"></script>
+  </body>
+</html>

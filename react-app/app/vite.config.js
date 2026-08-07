@@ -83,6 +83,12 @@ export default defineConfig(({ mode }) => {
 
   return {
   base: '/',
+  // The authoring server and read-only public mirror use different plugin and
+  // define graphs. Separate their optimized dependency caches so concurrent
+  // studio:dev processes cannot replace each other's React chunks.
+  cacheDir: process.env.ABS_PUBLIC_DEV === '1'
+    ? 'node_modules/.vite-public-dev'
+    : 'node_modules/.vite',
   plugins: [
     react(),
     absContentVirtualPlugin(),

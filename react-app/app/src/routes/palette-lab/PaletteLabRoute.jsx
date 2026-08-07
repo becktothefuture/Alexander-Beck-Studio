@@ -16,6 +16,7 @@ export const PALETTE_LAB_ROUTE_RUNTIME = {
 export function getPaletteLabRouteView() {
   return {
     bodyClass: 'body palette-lab-page',
+    htmlClassName: 'palette-lab-shell',
     studioWindowClassName: 'w-embed palette-lab-wall',
     studioWindowContent: (
       <div className="palette-lab-backdrop" aria-hidden="true">
@@ -38,7 +39,7 @@ export function getPaletteLabRouteView() {
       </header>
     ),
     mainContent: (
-      <main className="ui-center-spacer palette-lab-main" aria-label="Approved London colour system">
+      <main className="ui-center-spacer palette-lab-main" aria-label="London production colour system">
         <Suspense fallback={null}>
           <PaletteLabExperience />
         </Suspense>

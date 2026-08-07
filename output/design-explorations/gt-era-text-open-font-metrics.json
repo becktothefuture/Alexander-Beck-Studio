@@ -1,0 +1,458 @@
+{
+  "generatedAt": "2026-08-07T10:57:59.624Z",
+  "viewport": {
+    "width": 440,
+    "height": 956
+  },
+  "browser": "Chromium via Playwright",
+  "renderSettings": {
+    "bodyWeight": 400,
+    "menuWeight": 600,
+    "bodySizePercent": 102.25,
+    "bodyLeadingPercent": 104.5,
+    "bodyTrackingEm": -0.012
+  },
+  "scoring": {
+    "lowerIsCloser": true,
+    "weights": {
+      "xHeight": 0.28,
+      "capHeight": 0.12,
+      "bodySampleWidth": 0.26,
+      "alphabetWidth": 0.18,
+      "digitWidth": 0.08,
+      "menuWidth": 0.08
+    },
+    "descriptionLinePenaltyPerLine": 2
+  },
+  "reference": {
+    "value": "textRegular",
+    "label": "GT Era Text Regular — reference",
+    "family": "GT Era Text Regular Prototype",
+    "openSource": false,
+    "weights": "400",
+    "metrics": {
+      "resolvedBodyFamily": "\"GT Era Text Regular Prototype\"",
+      "resolvedMenuFamily": "\"GT Era Text Regular Prototype\"",
+      "loadedBodyFaceCount": 1,
+      "loadedMenuFaceCount": 1,
+      "menuWeightFaceCounts": {
+        "400": 1,
+        "500": 1,
+        "600": 1,
+        "700": 1
+      },
+      "xHeightEm": 0.518,
+      "capHeightEm": 0.705,
+      "bodySampleWidthEm": 29.58,
+      "alphabetWidthEm": 14.021,
+      "digitWidthEm": 5.993,
+      "menuWidthEm": 17.692,
+      "descriptionWidthPx": 225.4688,
+      "descriptionHeightPx": 97.7813,
+      "descriptionLineHeightPx": 16.302,
+      "descriptionLineCount": 6
+    }
+  },
+  "candidates": [
+    {
+      "value": "publicSans",
+      "label": "Public Sans — metric closest",
+      "family": "Public Sans",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "\"Public Sans\"",
+        "resolvedMenuFamily": "\"Public Sans\"",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.517,
+        "capHeightEm": 0.723,
+        "bodySampleWidthEm": 28.6904,
+        "alphabetWidthEm": 13.7154,
+        "digitWidthEm": 5.9544,
+        "menuWidthEm": 17.1973,
+        "descriptionWidthPx": 227.3906,
+        "descriptionHeightPx": 97.7813,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 6
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 0.19,
+          "capHeight": 2.55,
+          "bodySampleWidth": 3.01,
+          "alphabetWidth": 2.18,
+          "digitWidth": 0.64,
+          "menuWidth": 2.8
+        },
+        "score": 1.81
+      }
+    },
+    {
+      "value": "onest",
+      "label": "Onest — best balance",
+      "family": "Onest",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "Onest",
+        "resolvedMenuFamily": "Onest",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.527,
+        "capHeightEm": 0.707,
+        "bodySampleWidthEm": 28.997,
+        "alphabetWidthEm": 13.718,
+        "digitWidthEm": 5.812,
+        "menuWidthEm": 17.3336,
+        "descriptionWidthPx": 227.3906,
+        "descriptionHeightPx": 97.7813,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 6
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 1.74,
+          "capHeight": 0.28,
+          "bodySampleWidth": 1.97,
+          "alphabetWidth": 2.16,
+          "digitWidth": 3.02,
+          "menuWidth": 2.03
+        },
+        "score": 1.83
+      }
+    },
+    {
+      "value": "inter",
+      "label": "Inter",
+      "family": "Inter",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "Inter",
+        "resolvedMenuFamily": "Inter",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.5459,
+        "capHeightEm": 0.7275,
+        "bodySampleWidthEm": 29.3843,
+        "alphabetWidthEm": 13.9155,
+        "digitWidthEm": 5.915,
+        "menuWidthEm": 17.603,
+        "descriptionWidthPx": 225.625,
+        "descriptionHeightPx": 97.7813,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 6
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 5.39,
+          "capHeight": 3.19,
+          "bodySampleWidth": 0.66,
+          "alphabetWidth": 0.75,
+          "digitWidth": 1.3,
+          "menuWidth": 0.5
+        },
+        "score": 2.34
+      }
+    },
+    {
+      "value": "workSans",
+      "label": "Work Sans",
+      "family": "Work Sans",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "\"Work Sans\"",
+        "resolvedMenuFamily": "\"Work Sans\"",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.5,
+        "capHeightEm": 0.66,
+        "bodySampleWidthEm": 30.698,
+        "alphabetWidthEm": 14.206,
+        "digitWidthEm": 5.743,
+        "menuWidthEm": 17.2724,
+        "descriptionWidthPx": 224.1875,
+        "descriptionHeightPx": 97.7813,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 6
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 3.47,
+          "capHeight": 6.38,
+          "bodySampleWidth": 3.78,
+          "alphabetWidth": 1.32,
+          "digitWidth": 4.17,
+          "menuWidth": 2.37
+        },
+        "score": 3.48
+      }
+    },
+    {
+      "value": "dmSans",
+      "label": "DM Sans",
+      "family": "DM Sans",
+      "openSource": true,
+      "weights": "100–1000",
+      "metrics": {
+        "resolvedBodyFamily": "\"DM Sans\"",
+        "resolvedMenuFamily": "\"DM Sans\"",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.504,
+        "capHeightEm": 0.7,
+        "bodySampleWidthEm": 28.733,
+        "alphabetWidthEm": 13.506,
+        "digitWidthEm": 5.706,
+        "menuWidthEm": 16.8665,
+        "descriptionWidthPx": 229.6406,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 2.7,
+          "capHeight": 0.71,
+          "bodySampleWidth": 2.86,
+          "alphabetWidth": 3.67,
+          "digitWidth": 4.79,
+          "menuWidth": 4.67
+        },
+        "score": 5
+      }
+    },
+    {
+      "value": "instrumentSans",
+      "label": "Instrument Sans — visual closest",
+      "family": "Instrument Sans",
+      "openSource": true,
+      "weights": "400–700",
+      "metrics": {
+        "resolvedBodyFamily": "\"Instrument Sans\"",
+        "resolvedMenuFamily": "\"Instrument Sans\"",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.51,
+        "capHeightEm": 0.72,
+        "bodySampleWidthEm": 28.238,
+        "alphabetWidthEm": 13.589,
+        "digitWidthEm": 5.651,
+        "menuWidthEm": 17.3703,
+        "descriptionWidthPx": 227.7188,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 1.54,
+          "capHeight": 2.13,
+          "bodySampleWidth": 4.54,
+          "alphabetWidth": 3.08,
+          "digitWidth": 5.71,
+          "menuWidth": 1.82
+        },
+        "score": 5.02
+      }
+    },
+    {
+      "value": "geist",
+      "label": "Geist",
+      "family": "Geist",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "Geist",
+        "resolvedMenuFamily": "Geist",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.53,
+        "capHeightEm": 0.71,
+        "bodySampleWidthEm": 28.113,
+        "alphabetWidthEm": 13.39,
+        "digitWidthEm": 5.724,
+        "menuWidthEm": 17.0136,
+        "descriptionWidthPx": 230.3438,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 2.32,
+          "capHeight": 0.71,
+          "bodySampleWidth": 4.96,
+          "alphabetWidth": 4.5,
+          "digitWidth": 4.49,
+          "menuWidth": 3.83
+        },
+        "score": 5.5
+      }
+    },
+    {
+      "value": "figtree",
+      "label": "Figtree",
+      "family": "Figtree",
+      "openSource": true,
+      "weights": "300–900",
+      "metrics": {
+        "resolvedBodyFamily": "Figtree",
+        "resolvedMenuFamily": "Figtree",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.5,
+        "capHeightEm": 0.7002,
+        "bodySampleWidthEm": 27.7803,
+        "alphabetWidthEm": 13.1783,
+        "digitWidthEm": 5.6342,
+        "menuWidthEm": 16.9325,
+        "descriptionWidthPx": 231.625,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 3.47,
+          "capHeight": 0.68,
+          "bodySampleWidth": 6.08,
+          "alphabetWidth": 6.01,
+          "digitWidth": 5.99,
+          "menuWidth": 4.29
+        },
+        "score": 6.54
+      }
+    },
+    {
+      "value": "archivo",
+      "label": "Archivo",
+      "family": "Archivo",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "Archivo",
+        "resolvedMenuFamily": "Archivo",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.526,
+        "capHeightEm": 0.686,
+        "bodySampleWidthEm": 27.1094,
+        "alphabetWidthEm": 12.8997,
+        "digitWidthEm": 5.6335,
+        "menuWidthEm": 17.221,
+        "descriptionWidthPx": 232.6094,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 1.54,
+          "capHeight": 2.7,
+          "bodySampleWidth": 8.35,
+          "alphabetWidth": 8,
+          "digitWidth": 6,
+          "menuWidth": 2.66
+        },
+        "score": 7.06
+      }
+    },
+    {
+      "value": "hankenGrotesk",
+      "label": "Hanken Grotesk",
+      "family": "Hanken Grotesk",
+      "openSource": true,
+      "weights": "100–900",
+      "metrics": {
+        "resolvedBodyFamily": "\"Hanken Grotesk\"",
+        "resolvedMenuFamily": "\"Hanken Grotesk\"",
+        "loadedBodyFaceCount": 1,
+        "loadedMenuFaceCount": 1,
+        "menuWeightFaceCounts": {
+          "400": 1,
+          "500": 1,
+          "600": 1,
+          "700": 1
+        },
+        "xHeightEm": 0.493,
+        "capHeightEm": 0.697,
+        "bodySampleWidthEm": 27.622,
+        "alphabetWidthEm": 13.026,
+        "digitWidthEm": 5.6,
+        "menuWidthEm": 16.4388,
+        "descriptionWidthPx": 233.1094,
+        "descriptionHeightPx": 81.4844,
+        "descriptionLineHeightPx": 16.302,
+        "descriptionLineCount": 5
+      },
+      "comparison": {
+        "differences": {
+          "xHeight": 4.83,
+          "capHeight": 1.13,
+          "bodySampleWidth": 6.62,
+          "alphabetWidth": 7.1,
+          "digitWidth": 6.56,
+          "menuWidth": 7.08
+        },
+        "score": 7.58
+      }
+    }
+  ]
+}

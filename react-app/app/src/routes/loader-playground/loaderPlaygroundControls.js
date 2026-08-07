@@ -1,10 +1,10 @@
 export const LOADER_DOT_COLORS = [
-  'var(--ball-1, #708591)',
-  'var(--ball-4, #005c78)',
-  'var(--ball-2, #b7c7ce)',
-  'var(--ball-7, #3f72c8)',
-  'var(--ball-8, #d5b23a)',
-  'var(--ball-6, #c95332)',
+  'var(--ball-1, #747474)',
+  'var(--ball-4, #556a64)',
+  'var(--ball-2, #71463a)',
+  'var(--ball-7, #1557ff)',
+  'var(--ball-8, #695a74)',
+  'var(--ball-6, #8e764d)',
 ];
 
 const FIXED_ORBIT_RADIUS = 14.25;

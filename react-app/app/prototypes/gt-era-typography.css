@@ -1,0 +1,380 @@
+:root {
+  color-scheme: dark;
+  --parameterizer-panel-width: 328px;
+  --parameterizer-header-height: 28px;
+  --parameterizer-folder-height: 24px;
+  --parameterizer-row-height: 27px;
+  --parameterizer-panel-bg: #17181b;
+  --parameterizer-header-bg: #0e0f11;
+  --parameterizer-folder-bg: #22242a;
+  --parameterizer-row-bg: #17181b;
+  --parameterizer-row-hover: #1e2025;
+  --parameterizer-separator: #30333a;
+  --parameterizer-text: #f0f2f4;
+  --parameterizer-muted: #9096a0;
+  --parameterizer-widget-bg: #292c32;
+  --parameterizer-widget-hover: #343842;
+  --parameterizer-accent: #8dd8ff;
+  --parameterizer-string: #a9dc76;
+  --preview-width: 440px;
+  --preview-height: 956px;
+  --preview-scale: 1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #08090a;
+}
+
+body {
+  color: var(--parameterizer-text);
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.prototype-workspace {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 34% 48%, rgba(255, 255, 255, 0.035), transparent 38%),
+    #08090a;
+}
+
+.prototype-preview {
+  position: absolute;
+  inset: 0 calc(var(--parameterizer-panel-width) + 40px) 0 0;
+  display: grid;
+  place-items: center;
+}
+
+.prototype-preview__frame {
+  position: relative;
+  width: calc(var(--preview-width) * var(--preview-scale));
+  height: calc(var(--preview-height) * var(--preview-scale));
+  overflow: hidden;
+  border-radius: calc(16px * var(--preview-scale));
+  background: #000;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.09),
+    0 28px 72px rgba(0, 0, 0, 0.52);
+}
+
+#prototype-site {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: var(--preview-width);
+  height: var(--preview-height);
+  border: 0;
+  transform: scale(var(--preview-scale));
+  transform-origin: 0 0;
+}
+
+.parameterizer-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: var(--parameterizer-header-height) minmax(0, 1fr) auto;
+  width: var(--parameterizer-panel-width);
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 4px;
+  background: var(--parameterizer-panel-bg);
+  box-shadow: 0 18px 56px rgba(0, 0, 0, 0.52);
+  font: 500 11px/1.15 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.parameterizer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--parameterizer-header-height);
+  padding: 0 7px;
+  border-bottom: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.typography-parameterizer__heading {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typography-parameterizer__status {
+  margin-left: auto;
+  color: var(--parameterizer-muted);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.typography-parameterizer__collapse,
+.typography-parameterizer__launcher {
+  color: var(--parameterizer-muted);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.typography-parameterizer__collapse {
+  height: 20px;
+  padding: 0 2px;
+  font-size: 8px;
+}
+
+.parameterizer-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.parameterizer-folder {
+  border-bottom: 1px solid var(--parameterizer-separator);
+}
+
+.parameterizer-folder-title {
+  display: flex;
+  align-items: center;
+  min-height: var(--parameterizer-folder-height);
+  padding: 0 8px;
+  color: var(--parameterizer-text);
+  background: var(--parameterizer-folder-bg);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.parameterizer-folder-title::-webkit-details-marker {
+  display: none;
+}
+
+.parameterizer-folder-title::before {
+  width: 11px;
+  color: var(--parameterizer-muted);
+  content: "▾";
+  font-size: 8px;
+}
+
+.parameterizer-folder:not([open]) .parameterizer-folder-title::before {
+  content: "▸";
+}
+
+.parameterizer-row {
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr);
+  align-items: center;
+  min-height: var(--parameterizer-row-height);
+  padding: 0 7px 0 11px;
+  background: var(--parameterizer-row-bg);
+}
+
+.parameterizer-row + .parameterizer-row {
+  border-top: 1px solid rgba(48, 51, 58, 0.58);
+}
+
+.parameterizer-row:hover {
+  background: var(--parameterizer-row-hover);
+}
+
+.parameterizer-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--parameterizer-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parameterizer-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.parameterizer-control input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--parameterizer-accent);
+  cursor: ew-resize;
+}
+
+.parameterizer-value,
+.parameterizer-control input[type="number"],
+.parameterizer-control select {
+  height: 20px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  outline: 0;
+}
+
+.parameterizer-control input[type="number"] {
+  width: 52px;
+  padding: 0 4px;
+  color: var(--parameterizer-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.parameterizer-control select {
+  width: 100%;
+  min-width: 0;
+  padding: 0 20px 0 5px;
+  color: var(--parameterizer-string);
+  font-size: 10px;
+  text-overflow: ellipsis;
+}
+
+.parameterizer-control input:hover,
+.parameterizer-control select:hover,
+.parameterizer-actions button:hover {
+  background-color: var(--parameterizer-widget-hover);
+}
+
+.parameterizer-control input:focus-visible,
+.parameterizer-control select:focus-visible,
+.parameterizer-actions button:focus-visible,
+.typography-parameterizer__collapse:focus-visible,
+.typography-parameterizer__launcher:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: 1px;
+}
+
+.parameterizer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 5px;
+  border-top: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.parameterizer-actions button {
+  height: 23px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  font-size: 9px;
+  letter-spacing: 0.035em;
+  cursor: pointer;
+}
+
+.typography-parameterizer[data-collapsed="true"] {
+  display: none;
+}
+
+.typography-parameterizer__launcher {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 101;
+  display: none;
+  width: 48px;
+  height: 28px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 3px;
+  background: var(--parameterizer-header-bg);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.typography-parameterizer[data-collapsed="true"] + .typography-parameterizer__launcher {
+  display: block;
+}
+
+body[data-capture="true"] .prototype-preview {
+  inset: 0;
+}
+
+body[data-capture="true"] .prototype-preview__frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-capture="true"] #prototype-site {
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+
+body[data-capture="true"] .typography-parameterizer,
+body[data-capture="true"] .typography-parameterizer__launcher {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --parameterizer-row-height: 32px;
+    --parameterizer-folder-height: 30px;
+  }
+
+  .prototype-preview {
+    inset: 0;
+  }
+
+  .parameterizer-panel {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    width: min(var(--parameterizer-panel-width), calc(100% - 16px));
+    max-height: min(62dvh, 600px);
+    font-size: 13px;
+  }
+
+  .parameterizer-control input[type="number"],
+  .parameterizer-control select {
+    height: 26px;
+    font-size: 16px;
+  }
+
+  .typography-parameterizer__launcher {
+    right: 8px;
+    bottom: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

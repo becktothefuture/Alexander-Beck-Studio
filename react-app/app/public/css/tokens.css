@@ -141,14 +141,14 @@
   --abs-indicator-ink: rgb(var(--abs-rgb-black));
 
   /* Initial simulation palette; the shared controller projects the live period on boot. */
-  --ball-1: #708591;
-  --ball-2: #b7c7ce;
-  --ball-3: #eef2ef;
-  --ball-4: #005c78;
-  --ball-5: #071820;
-  --ball-6: #c95332;
-  --ball-7: #3f72c8;
-  --ball-8: #d5b23a;
+  --ball-1: #747474;
+  --ball-2: #71463a;
+  --ball-3: #ffffff;
+  --ball-4: #556a64;
+  --ball-5: #0c1118;
+  --ball-6: #8e764d;
+  --ball-7: #1557ff;
+  --ball-8: #695a74;
 
   /* Typography Tokens */
   --abs-font-sans: "Geist", system-ui, sans-serif;
@@ -602,6 +602,8 @@
   --outer-wall-glow-near-opacity-dark: 0.055;
   --outer-wall-glow-far-size: 8px;
   --outer-wall-glow-far-blur: 48px;
+  --outer-wall-glow-far-size-mobile: 4px;
+  --outer-wall-glow-far-blur-mobile: 10px;
   --outer-wall-glow-far-opacity: 0.055;
   --outer-wall-glow-far-opacity-light: 0.055;
   --outer-wall-glow-far-opacity-dark: 0.018;

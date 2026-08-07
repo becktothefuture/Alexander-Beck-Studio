@@ -12,19 +12,37 @@ import {
 const EXPECTED_START_HOURS = Object.freeze([0, 3, 6, 9, 12, 15, 18, 21]);
 const EXPECTED_PALETTE_COUNT = 4;
 const EXPECTED_ROTATION_COUNT = 2;
+const NEUTRAL_ROLE_INDEX = 0;
+const ART_DIRECTION_ROLE_INDEX = 2;
+const PRIMARY_ROLE_INDEX = 6;
 const APPROVED_PALETTE_COLORS = Object.freeze({
-  sohoSignal: Object.freeze(['#87919a', '#c7ced2', '#f3f1e9', '#0067ff', '#0c1117', '#ffd000', '#ff4b2b', '#008fa8']),
-  thamesData: Object.freeze(['#708591', '#b7c7ce', '#eef2ef', '#005c78', '#071820', '#c95332', '#3f72c8', '#d5b23a']),
-  barbicanProtocol: Object.freeze(['#858a87', '#b8bcb8', '#eceae1', '#245fda', '#101411', '#d8e316', '#bd4936', '#f28a22']),
-  nightBusMesh: Object.freeze(['#7e8991', '#bcc5ca', '#f0eee8', '#d7193f', '#0d1116', '#00a7ff', '#e3a21a', '#36b7a0']),
+  bowWornSignal: Object.freeze(['#747474', '#553875', '#ffffff', '#1aae7d', '#0b090c', '#87915a', '#ff4b00', '#cf287c']),
+  silvertownCobaltVoltage: Object.freeze(['#747474', '#71463a', '#ffffff', '#556a64', '#0c1118', '#8e764d', '#1557ff', '#695a74']),
+  ryeAfterClosing: Object.freeze(['#666666', '#00744a', '#ffffff', '#3344d7', '#07100d', '#f2bd00', '#ff6500', '#9a637f']),
+  ryeAfterClosingTurmeric: Object.freeze(['#747474', '#246147', '#ffffff', '#3b4ed8', '#08100c', '#a67847', '#ffd000', '#99647f']),
 });
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(LONDON_PALETTE_STATUS === 'stable', 'The approved London palette set must remain stable.');
+function getColorProfile(color) {
+  const channels = color.slice(1).match(/.{2}/g).map((value) => Number.parseInt(value, 16) / 255);
+  const maximum = Math.max(...channels);
+  const minimum = Math.min(...channels);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs((2 * lightness) - 1));
+  const linear = channels.map((channel) => (
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  ));
+  return {
+    saturation,
+    luminance: (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]),
+  };
+}
 
+assert(LONDON_PALETTE_STATUS === 'stable', 'The approved London palette set must remain stable.');
 assert(
   TIME_OF_DAY_PALETTE_PERIODS.length === EXPECTED_START_HOURS.length,
   `Expected ${EXPECTED_START_HOURS.length} palette periods, got ${TIME_OF_DAY_PALETTE_PERIODS.length}`,
@@ -54,6 +72,13 @@ assert(
   scheduledPaletteCounts.size === EXPECTED_PALETTE_COUNT,
   `Expected ${EXPECTED_PALETTE_COUNT} scheduled palettes, got ${scheduledPaletteCounts.size}`,
 );
+
+const approvedPaletteIds = Object.keys(APPROVED_PALETTE_COLORS);
+assert(
+  JSON.stringify(LONDON_PALETTES.map((palette) => palette.id)) === JSON.stringify(approvedPaletteIds),
+  'The production registry must contain only the four approved palettes in rotation order.',
+);
+
 LONDON_PALETTES.forEach((palette, index) => {
   assert(
     JSON.stringify(palette.light) === JSON.stringify(APPROVED_PALETTE_COLORS[palette.id]),
@@ -82,39 +107,7 @@ for (let hour = 0; hour < 24; hour += 1) {
   );
 }
 
-function getColorProfile(color) {
-  const channels = color.slice(1).match(/.{2}/g).map((value) => Number.parseInt(value, 16) / 255);
-  const [red, green, blue] = channels;
-  const maximum = Math.max(red, green, blue);
-  const minimum = Math.min(red, green, blue);
-  const delta = maximum - minimum;
-  const lightness = (maximum + minimum) / 2;
-  let hue = 0;
-  if (delta > 0) {
-    if (maximum === red) hue = 60 * (((green - blue) / delta) % 6);
-    else if (maximum === green) hue = 60 * (((blue - red) / delta) + 2);
-    else hue = 60 * (((red - green) / delta) + 4);
-  }
-  if (hue < 0) hue += 360;
-  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs((2 * lightness) - 1));
-  const linear = channels.map((channel) => (
-    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
-  ));
-  const luminance = (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
-  return { hue, luminance, saturation };
-}
-
-function getChromaticHueFamily({ hue, saturation }) {
-  if (saturation < 0.45) return null;
-  if (hue >= 345 || hue < 15) return 'red';
-  if (hue < 75) return 'orange-yellow';
-  if (hue < 165) return 'green';
-  if (hue < 200) return 'cyan';
-  if (hue < 260) return 'blue';
-  return 'purple';
-}
-
-const authoredColors = new Set();
+const authoredColorRoles = new Map();
 for (const palette of LONDON_PALETTES) {
   assert(palette.light === palette.dark, `${palette.id} must share one light/dark colour array`);
   assert(palette.light.length === 8, `${palette.id} must define exactly eight colours`);
@@ -123,43 +116,53 @@ for (const palette of LONDON_PALETTES) {
     `${palette.id} contains a malformed colour`,
   );
   assert(new Set(palette.light).size === 8, `${palette.id} must not repeat a colour`);
-  palette.light.forEach((color) => {
-    assert(!authoredColors.has(color), `${palette.id} reuses ${color} from another personality`);
-    authoredColors.add(color);
+
+  palette.light.forEach((color, colorIndex) => {
+    const normalized = color.toLowerCase();
+    const previousRole = authoredColorRoles.get(normalized);
+    if (previousRole !== undefined) {
+      assert(
+        previousRole === colorIndex
+          && (colorIndex === NEUTRAL_ROLE_INDEX || colorIndex === ART_DIRECTION_ROLE_INDEX),
+        `${palette.id} reuses ${color} outside a shared neutral role`,
+      );
+    } else {
+      authoredColorRoles.set(normalized, colorIndex);
+    }
   });
 
   const profiles = palette.light.map(getColorProfile);
+  const neutralRoleChannels = palette.light[NEUTRAL_ROLE_INDEX].slice(1).match(/.{2}/g);
   assert(
-    profiles.filter(({ saturation }) => saturation >= 0.45).length >= 4,
-    `${palette.id} must retain at least four confident chromatic colours`,
-  );
-  const chromaticHueFamilies = new Set(
-    profiles.map(getChromaticHueFamily).filter(Boolean),
-  );
-  assert(
-    chromaticHueFamilies.size >= 3,
-    `${palette.id} must span at least three chromatic hue families`,
+    new Set(neutralRoleChannels).size === 1
+      && profiles[NEUTRAL_ROLE_INDEX].luminance >= 0.08
+      && profiles[NEUTRAL_ROLE_INDEX].luminance <= 0.45,
+    `${palette.id} must keep Product Design as a true mid-value neutral grey at index 0`,
   );
   assert(
-    profiles.some(({ luminance }) => luminance <= 0.02)
-      && profiles.some(({ luminance }) => luminance >= 0.75),
-    `${palette.id} must be grounded by both near-black and light mineral neutrals`,
+    palette.light[ART_DIRECTION_ROLE_INDEX].toLowerCase() === '#ffffff',
+    `${palette.id} must use pure white for Art Direction at index 2`,
   );
   assert(
-    !profiles.some(({ hue, saturation }) => saturation >= 0.3 && hue >= 260 && hue <= 330),
-    `${palette.id} must remain purple-free`,
+    profiles[4].luminance <= 0.02,
+    `${palette.id} must keep a near-black ground at index 4`,
   );
-  const hasChristmasRed = profiles.some(({ hue, saturation }) => (
-    saturation >= 0.45 && (hue <= 15 || hue >= 345)
-  ));
-  const hasChristmasGreen = profiles.some(({ hue, saturation }) => (
-    saturation >= 0.4 && hue >= 95 && hue <= 155
-  ));
   assert(
-    !(hasChristmasRed && hasChristmasGreen),
-    `${palette.id} must not pair saturated Christmas red and green`,
+    profiles[PRIMARY_ROLE_INDEX].saturation >= 0.8,
+    `${palette.id} must keep one clear high-saturation signal at index 6`,
   );
 }
+
+assert(
+  new Set(LONDON_PALETTES.map((palette) => JSON.stringify(palette.light))).size
+    === EXPECTED_PALETTE_COUNT,
+  'Every approved palette must remain a distinct eight-colour scheme.',
+);
+assert(
+  new Set(LONDON_PALETTES.map((palette) => palette.light[PRIMARY_ROLE_INDEX])).size
+    === EXPECTED_PALETTE_COUNT,
+  'Every approved palette must keep its own exact signal colour.',
+);
 
 for (const startHour of EXPECTED_START_HOURS) {
   const boundary = new Date(2026, 6, 18, startHour, 0, 0, 0);
@@ -169,4 +172,4 @@ for (const startHour of EXPECTED_START_HOURS) {
   );
 }
 
-console.log('PASS: the four approved London palettes rotate twice across eight equal three-hour periods.');
+console.log('PASS: only the four approved London palettes rotate twice across eight equal three-hour periods.');

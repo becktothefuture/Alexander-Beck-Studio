@@ -28,7 +28,7 @@ body.about-narrative-page .route-simulation-layer {
   );
   --about-title-shadow:
     0 0 var(--about-title-shadow-blur, 28px) var(--about-title-shadow-color);
-  --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #3f72c8));
+  --about-route-accent: var(--button-bar-accent-about, var(--ball-7, #1557ff));
   --about-discipline-white: #fff;
   position: absolute;
   inset: 0;
@@ -808,27 +808,27 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-list li:nth-child(1) {
-  --discipline-color: var(--ball-1, #708591);
+  --discipline-color: var(--ball-1, #747474);
 }
 
 .about-narrative-discipline-list li:nth-child(2) {
-  --discipline-color: var(--ball-4, #005c78);
+  --discipline-color: var(--ball-4, #556a64);
 }
 
 .about-narrative-discipline-list li:nth-child(3) {
-  --discipline-color: var(--ball-3, #eef2ef);
+  --discipline-color: var(--ball-3, #ffffff);
 }
 
 .about-narrative-discipline-list li:nth-child(4) {
-  --discipline-color: var(--ball-7, #3f72c8);
+  --discipline-color: var(--ball-7, #1557ff);
 }
 
 .about-narrative-discipline-list li:nth-child(5) {
-  --discipline-color: var(--ball-8, #d5b23a);
+  --discipline-color: var(--ball-8, #695a74);
 }
 
 .about-narrative-discipline-list li:nth-child(6) {
-  --discipline-color: var(--ball-6, #c95332);
+  --discipline-color: var(--ball-6, #8e764d);
 }
 
 .about-narrative-discipline-reveal {
@@ -845,7 +845,7 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-reveal li {
-  --discipline-color: var(--ball-1, #708591);
+  --discipline-color: var(--ball-1, #747474);
   --discipline-reveal: 0;
   --discipline-x: -20vw;
   --discipline-y: -20vh;

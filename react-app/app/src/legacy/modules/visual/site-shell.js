@@ -89,6 +89,8 @@ const DEFAULT_SHELL_CONFIG = {
     outerWallGlowNearOpacityDark: 0.055,
     outerWallGlowFarSize: '8px',
     outerWallGlowFarBlur: '48px',
+    outerWallGlowFarSizeMobile: '4px',
+    outerWallGlowFarBlurMobile: '10px',
     outerWallGlowFarOpacityLight: 0.055,
     outerWallGlowFarOpacityDark: 0.018,
     menuEdgeNearSize: '0px',
@@ -760,6 +762,14 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty(
     '--outer-wall-glow-far-blur',
     surface.outerWallGlowFarBlur || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarBlur
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-size-mobile',
+    surface.outerWallGlowFarSizeMobile || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarSizeMobile
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-blur-mobile',
+    surface.outerWallGlowFarBlurMobile || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarBlurMobile
   );
   root.style.setProperty('--outer-wall-glow-far-opacity', String(outerWallGlowFarOpacity));
   root.style.setProperty(

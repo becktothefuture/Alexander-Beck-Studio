@@ -24,7 +24,7 @@ body.sound-playground-page {
   --sound-text: rgba(255, 255, 255, 0.94);
   --sound-muted: rgba(255, 255, 255, 0.54);
   --sound-faint: rgba(255, 255, 255, 0.34);
-  --sound-accent: var(--ball-7, #3f72c8);
+  --sound-accent: var(--ball-7, #1557ff);
   width: min(100%, 1500px);
   min-height: 100dvh;
   margin-inline: auto;

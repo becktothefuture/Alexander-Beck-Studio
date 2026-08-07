@@ -242,7 +242,12 @@ function createLightingModel(profile) {
       * (signedEnergy >= 0 ? 1 - baseLab[0] : baseLab[0])
       * 0.22;
     lightness += surfaceTooth * profile.surfaceTooth * 0.014 * (0.42 + edge * 0.58);
-    lightness = clamp(lightness, 0.055, 0.91);
+    // Keep the matte ceiling for ordinary palette colours, but do not turn an
+    // authored white material into light grey. Near-white inputs may retain a
+    // brighter highlight while the existing shadow energy still defines form.
+    const authoredWhiteWeight = smoothStep((baseLab[0] - 0.9) / 0.1);
+    const highlightCeiling = lerp(0.91, 1, authoredWhiteWeight);
+    lightness = clamp(lightness, 0.055, highlightCeiling);
 
     const highlightMask = clamp(
       diffuse * 0.72 + rim * 0.68 + skyFill * 0.24 + reflectionBand * 0.56,

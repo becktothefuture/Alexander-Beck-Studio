@@ -3925,6 +3925,19 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   z-index: 99;
 }
 
+/* Keep both exterior-light stages visible inside the narrower mobile wall band.
+   The near layer stays shared; only the far spread/softness use mobile endpoints. */
+@media (max-width: 600px) {
+  #abs-scene::before,
+  .app-scene::before {
+    box-shadow:
+      0 0 var(--outer-wall-glow-near-blur, 14px) var(--outer-wall-glow-near-size, 0px)
+        rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
+      0 0 var(--outer-wall-glow-far-blur-mobile, 10px) var(--outer-wall-glow-far-size-mobile, 4px)
+        rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
+  }
+}
+
 /* The document/browser surface stays dark. Native UI inside the studio window
    receives the resolved manual/auto theme at explicit window-layer boundaries. */
 #simulations,
@@ -3959,11 +3972,11 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar {
-  --button-bar-accent-home: var(--ball-4, #005c78);
-  --button-bar-accent-portfolio: var(--ball-6, #c95332);
-  --button-bar-accent-about: var(--ball-7, #3f72c8);
-  --button-bar-accent-contact: var(--ball-8, #d5b23a);
-  --button-bar-accent-playground: var(--ball-3, #eef2ef);
+  --button-bar-accent-home: var(--ball-4, #556a64);
+  --button-bar-accent-portfolio: var(--ball-6, #8e764d);
+  --button-bar-accent-about: var(--ball-7, #1557ff);
+  --button-bar-accent-contact: var(--ball-8, #695a74);
+  --button-bar-accent-playground: var(--ball-3, #ffffff);
   --button-bar-accent-sound: var(--button-bar-accent-home);
   --button-bar-figma-selected-ink: #ff4013;
   --button-bar-figma-muted-ink: rgba(191, 186, 177, 0.6);
