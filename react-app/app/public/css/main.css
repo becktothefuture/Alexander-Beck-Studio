@@ -5051,6 +5051,17 @@ html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
   visibility: visible;
 }
 
+/* The stable title plane deliberately retains its last Home bitmap while route
+   content remounts. Keep that bitmap measurable but non-paintable until the
+   incoming Home entrance has staged and rendered its blank starting frame. */
+html[data-shell-route='home'][data-abs-transition-phase='route-loading']
+  #simulations > canvas.simulation-title-canvas,
+html[data-shell-route='home']
+  #simulations > canvas.simulation-title-canvas[data-title-plane-presentation='covered'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
 #simulations.simulation-depth-title-layer-active > canvas.simulation-title-canvas {
   z-index: 11;
 }

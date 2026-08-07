@@ -25,6 +25,9 @@ import {
   resolveRouteLoaderBackdropMode,
 } from '../react-app/app/src/lib/motion/route-transition-backplane.js';
 import {
+  createHomeTitlePresentationGate,
+} from '../react-app/app/src/lib/motion/route-transition-title-plane.js';
+import {
   createRouteTransitionParticipantGeneration,
   registerRouteTransitionParticipant,
 } from '../react-app/app/src/lib/motion/route-transition-participants.js';
@@ -240,6 +243,75 @@ test('persistent backplane handoff covers every primary shared-shell route', () 
     resolveRouteLoaderBackdropMode('styleguide', 'portfolio'),
     ROUTE_LOADER_BACKDROP_MODES.OPAQUE,
   );
+});
+
+test('incoming Home title stays covered until a newer staged blank frame renders', async () => {
+  const harness = createReadinessHarness();
+  try {
+    const canvas = createFakeElement({
+      dataset: {
+        titlePlaneReady: 'true',
+        titlePlaneRenderRevision: '12',
+        titlePlaneRetainedPixels: 'true',
+        titlePlaneSourceConnected: 'false',
+      },
+    });
+    harness.elementsById.set('simulation-title-canvas', canvas);
+    const gate = createHomeTitlePresentationGate({ generation: 9, timeoutMs: 500 });
+
+    assert.equal(gate.cover(), true);
+    assert.equal(canvas.dataset.titlePlanePresentation, 'covered');
+    assert.equal(canvas.dataset.titlePlanePresentationGeneration, '9');
+
+    const staged = gate.waitForStagedPaint();
+    canvas.dataset.titlePlaneRenderRevision = '13';
+    canvas.dataset.titlePlaneSourceConnected = 'true';
+    canvas.dataset.titlePlaneReady = 'false';
+    harness.dispatch('abs:simulation-title-plane-rendered');
+
+    assert.equal(await staged, 'staged');
+    assert.equal(gate.release('staged'), true);
+    assert.equal(canvas.dataset.titlePlanePresentation, undefined);
+    assert.equal(canvas.dataset.titlePlanePresentationGeneration, undefined);
+
+    const settled = gate.waitForSettledPaint();
+    canvas.dataset.titlePlaneRenderRevision = '14';
+    canvas.dataset.titlePlaneReady = 'true';
+    harness.dispatch('abs:simulation-title-plane-rendered');
+    assert.equal(await settled, 'settled');
+    assertReadinessWaiterClean(harness);
+  } finally {
+    harness.restore();
+  }
+});
+
+test('incoming Home title gate times out cleanly and never clears a newer generation', async () => {
+  const harness = createReadinessHarness();
+  try {
+    const canvas = createFakeElement({
+      dataset: {
+        titlePlaneReady: 'true',
+        titlePlaneRenderRevision: '4',
+        titlePlaneSourceConnected: 'false',
+      },
+    });
+    harness.elementsById.set('simulation-title-canvas', canvas);
+    const gate = createHomeTitlePresentationGate({ generation: 3, timeoutMs: 100 });
+
+    assert.equal(gate.cover(), true);
+    const staged = gate.waitForStagedPaint();
+    harness.clock.tick(100);
+    await flushPromiseJobs();
+    assert.equal(await staged, 'timeout');
+
+    canvas.dataset.titlePlanePresentationGeneration = '4';
+    assert.equal(gate.release('stale'), false);
+    assert.equal(canvas.dataset.titlePlanePresentation, 'covered');
+    assert.equal(canvas.dataset.titlePlanePresentationGeneration, '4');
+    assertReadinessWaiterClean(harness);
+  } finally {
+    harness.restore();
+  }
 });
 
 test('canonical navigation and effective readiness identities remain distinct', () => {

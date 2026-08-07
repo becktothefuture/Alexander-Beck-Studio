@@ -72,6 +72,7 @@ import {
   markRouteTransitionCommitted,
   settleRouteTransitionTransaction,
 } from '../lib/motion/route-transition-transaction.js';
+import { createHomeTitlePresentationGate } from '../lib/motion/route-transition-title-plane.js';
 import {
   SIMULATION_SWITCH_PHASES,
   SIMULATION_SWITCH_SETTLEMENT_ENDPOINTS,
@@ -1000,10 +1001,11 @@ function staggeredEntrance({
   repeatVisit = false,
   reducedMotion = false,
   staggerScale = 1,
+  homeTitlePresentationGate = null,
   onPrepared,
   onViewSettled,
 } = {}) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const groupOffsetMs = reducedMotion ? 0 : GROUPED_ROUTE_OFFSET_MS * staggerScale;
     const groups = buildRouteTransitionGroups(routeId, surfaceRefs, groupOffsetMs);
     const targets = getGroupedTransitionItems(routeId, surfaceRefs);
@@ -1015,6 +1017,7 @@ function staggeredEntrance({
       if (wall) wall.style.opacity = '1';
       if (hero) hero.style.opacity = '1';
       if (ui) ui.style.opacity = '1';
+      homeTitlePresentationGate?.release('empty-entrance');
       if (typeof onPrepared === 'function') onPrepared();
       if (typeof onViewSettled === 'function') onViewSettled();
       dispatchRouteEntranceStart(routeId, 'route');
@@ -1059,86 +1062,102 @@ function staggeredEntrance({
     // before their compact homepage-style entrance begins.
     void document.documentElement.offsetHeight;
 
-    const hasWaapi = typeof document.documentElement.animate === 'function';
-    if (typeof onPrepared === 'function') onPrepared();
-    if (typeof onViewSettled === 'function') onViewSettled();
-    dispatchRouteEntranceStart(routeId, 'route');
-    const childEntrancePromise = routeEntrance.play();
-    const surfacePromises = [];
+    const prepareAndPlay = async () => {
+      await homeTitlePresentationGate?.waitForStagedPaint();
+      try {
+        if (typeof onPrepared === 'function') onPrepared();
+      } finally {
+        // The phase publisher and title release run in the same task, after the
+        // Canvas has confirmed its staged blank frame. No complete retained
+        // title can paint between those two boundaries.
+        homeTitlePresentationGate?.release('staged');
+      }
+      if (typeof onViewSettled === 'function') onViewSettled();
+      dispatchRouteEntranceStart(routeId, 'route');
+      const childEntrancePromise = routeEntrance.play();
+      const surfacePromises = [];
+      const hasWaapi = typeof document.documentElement.animate === 'function';
 
-    groups.forEach((group) => {
-      group.items.forEach(({ el, slide, materialOwned = false }) => {
-        const delay = reducedMotion ? 0 : group.delayMs;
-        const routeSlideOffset = isRouteTransition ? 'scale(var(--instrument-wake-resolve-scale))' : 'translateY(var(--space-sm))';
+      groups.forEach((group) => {
+        group.items.forEach(({ el, slide, materialOwned = false }) => {
+          const delay = reducedMotion ? 0 : group.delayMs;
+          const routeSlideOffset = isRouteTransition ? 'scale(var(--instrument-wake-resolve-scale))' : 'translateY(var(--space-sm))';
 
-        if (materialOwned) {
-          el.style.opacity = '1';
-          el.style.transform = '';
-          el.style.filter = '';
-          el.style.willChange = 'auto';
-          return;
-        }
-
-        if (hasWaapi) {
-          const keyframes = reducedMotion
-            ? [{ opacity: 0 }, { opacity: 1 }]
-            : slide
-            ? [
-                { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--instrument-wake-blur))' },
-                { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
-              ]
-            : [
-                { opacity: 0, filter: 'blur(var(--instrument-wake-blur))' },
-                { opacity: 1, filter: 'blur(0)' },
-              ];
-
-          const anim = el.animate(keyframes, {
-            duration: enterMs,
-            delay,
-            easing: revealEasing,
-            fill: 'forwards',
-          });
-          animationRegistry.add(anim);
-          anim.onfinish = () => {
+          if (materialOwned) {
             el.style.opacity = '1';
             el.style.transform = '';
             el.style.filter = '';
             el.style.willChange = 'auto';
-          };
-          anim.oncancel = anim.onfinish;
-          surfacePromises.push(anim.finished.catch(() => undefined));
-        } else {
-          surfacePromises.push(new Promise((surfaceResolve) => {
-            let resolved = false;
-            const settleSurface = () => {
-              if (resolved) return;
-              resolved = true;
-              surfaceResolve();
-            };
-            animationRegistry.addTimer(() => {
-              if (!el.isConnected) {
-                settleSurface();
-                return;
-              }
-              el.style.transition = reducedMotion
-                ? `opacity ${enterMs}ms ${revealEasing}`
-                : `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
+            return;
+          }
+
+          if (hasWaapi) {
+            const keyframes = reducedMotion
+              ? [{ opacity: 0 }, { opacity: 1 }]
+              : slide
+              ? [
+                  { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--instrument-wake-blur))' },
+                  { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
+                ]
+              : [
+                  { opacity: 0, filter: 'blur(var(--instrument-wake-blur))' },
+                  { opacity: 1, filter: 'blur(0)' },
+                ];
+
+            const anim = el.animate(keyframes, {
+              duration: enterMs,
+              delay,
+              easing: revealEasing,
+              fill: 'forwards',
+            });
+            animationRegistry.add(anim);
+            anim.onfinish = () => {
               el.style.opacity = '1';
               el.style.transform = '';
               el.style.filter = '';
+              el.style.willChange = 'auto';
+            };
+            anim.oncancel = anim.onfinish;
+            surfacePromises.push(anim.finished.catch(() => undefined));
+          } else {
+            surfacePromises.push(new Promise((surfaceResolve) => {
+              let resolved = false;
+              const settleSurface = () => {
+                if (resolved) return;
+                resolved = true;
+                surfaceResolve();
+              };
               animationRegistry.addTimer(() => {
-                if (el.isConnected) {
-                  el.style.transition = '';
-                  el.style.willChange = 'auto';
+                if (!el.isConnected) {
+                  settleSurface();
+                  return;
                 }
-                settleSurface();
-              }, enterMs + 50, settleSurface);
-            }, delay, settleSurface);
-          }));
-        }
+                el.style.transition = reducedMotion
+                  ? `opacity ${enterMs}ms ${revealEasing}`
+                  : `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
+                el.style.opacity = '1';
+                el.style.transform = '';
+                el.style.filter = '';
+                animationRegistry.addTimer(() => {
+                  if (el.isConnected) {
+                    el.style.transition = '';
+                    el.style.willChange = 'auto';
+                  }
+                  settleSurface();
+                }, enterMs + 50, settleSurface);
+              }, delay, settleSurface);
+            }));
+          }
+        });
       });
+      await Promise.all([childEntrancePromise, ...surfacePromises]);
+      await homeTitlePresentationGate?.waitForSettledPaint();
+    };
+
+    void prepareAndPlay().then(resolve, (error) => {
+      homeTitlePresentationGate?.release('failed-open');
+      reject(error);
     });
-    Promise.all([childEntrancePromise, ...surfacePromises]).then(resolve);
   });
 }
 
@@ -1181,6 +1200,7 @@ export function useShellRouteTransition({
   const activeRouteReadyCancelRef = useRef(null);
   const transitionGenerationRef = useRef(0);
   const activeTransactionRef = useRef(null);
+  const activeHomeTitlePresentationGateRef = useRef(null);
   const activeSimulationSwitchRef = useRef(null);
   const queuedSimulationIntentRef = useRef(null);
   const cancelActiveSimulationSwitchRef = useRef(null);
@@ -2048,6 +2068,8 @@ export function useShellRouteTransition({
       activeTransactionRef.current?.abortController.abort('preempted');
       activeTransactionRef.current?.participants.cancel('preempted');
       activeTransactionRef.current = null;
+      activeHomeTitlePresentationGateRef.current?.cancel('preempted');
+      activeHomeTitlePresentationGateRef.current = null;
       queuedNavigationRef.current = null;
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
@@ -2240,6 +2262,8 @@ export function useShellRouteTransition({
       activeTransactionRef.current?.participants.complete('ready');
       settleRouteTransitionTransaction(activeTransactionRef.current, 'ready');
       activeTransactionRef.current = null;
+      activeHomeTitlePresentationGateRef.current?.release('settled');
+      activeHomeTitlePresentationGateRef.current = null;
       transitionActiveRef.current = false;
       activeGateTransitionRef.current = false;
       setPendingActiveRouteId(null);
@@ -2293,6 +2317,17 @@ export function useShellRouteTransition({
       setPendingActiveRouteId(nextRouteId);
       setLegacyRouteTransitionActive(true, { gate: isGate });
       const token = ++transitionGenerationRef.current;
+      activeHomeTitlePresentationGateRef.current?.cancel('superseded');
+      activeHomeTitlePresentationGateRef.current = null;
+      let homeTitlePresentationGate = null;
+      const coverHomeTitlePresentation = () => {
+        homeTitlePresentationGate?.cancel('replaced');
+        const gate = createHomeTitlePresentationGate({ generation: token });
+        if (!gate.cover()) return null;
+        homeTitlePresentationGate = gate;
+        activeHomeTitlePresentationGateRef.current = gate;
+        return gate;
+      };
       const loaderBackdropMode = resolveRouteLoaderBackdropMode(previousRouteId, nextRouteId);
       const abortController = new AbortController();
       const participants = createRouteTransitionParticipantGeneration({
@@ -2416,6 +2451,7 @@ export function useShellRouteTransition({
         .then(() => {
           if (stale()) return undefined;
           pinRouteSurfacesForCommit(surfaceRefs, animationRegistry);
+          if (nextRouteId === 'home') coverHomeTitlePresentation();
           commit();
           markRouteTransitionCommitted(transaction);
           routeReadinessStartedAt = performance.now();
@@ -2480,6 +2516,7 @@ export function useShellRouteTransition({
             repeatVisit: routeTimings.repeatVisit,
             reducedMotion: routeTimings.opacityOnly,
             staggerScale: routeTimings.staggerScale,
+            homeTitlePresentationGate,
             onPrepared: () => {
               finalizeHistory();
               publishTransitionPhase(TRANSITION_PHASES.ROUTE_IN, token, nextRouteId, activation);
@@ -2534,6 +2571,7 @@ export function useShellRouteTransition({
             }
           } else if (transaction.committed) {
             participants.cancel('rollback');
+            if (previousRouteId === 'home') coverHomeTitlePresentation();
             rollback(error);
             setPendingActiveRouteId(previousRouteId);
             await loaderTimingDriver.waitForDestinationPaint();
@@ -2550,6 +2588,9 @@ export function useShellRouteTransition({
             ).catch(() => undefined);
             const restoringDifferentRoute = readRouteContentSignature(activeRouteStateRef.current)
               !== previousRouteContentSignature;
+            if (previousRouteId === 'home' && restoringDifferentRoute) {
+              coverHomeTitlePresentation();
+            }
             rollback(error);
             setPendingActiveRouteId(previousRouteId);
             if (restoringDifferentRoute) {
@@ -2558,6 +2599,9 @@ export function useShellRouteTransition({
           }
 
           if (stale()) return;
+          if (revealRouteId === 'home' && !homeTitlePresentationGate) {
+            coverHomeTitlePresentation();
+          }
           await staggeredEntrance({
             routeId: revealRouteId,
             surfaceRefs,
@@ -2567,6 +2611,9 @@ export function useShellRouteTransition({
             repeatVisit: visitedRouteIdsRef.current.has(revealRouteId),
             reducedMotion: routeTimings.opacityOnly,
             staggerScale: routeTimings.staggerScale,
+            homeTitlePresentationGate: revealRouteId === 'home'
+              ? homeTitlePresentationGate
+              : null,
             onPrepared: () => {
               finalizeHistory();
               publishTransitionPhase(
@@ -2839,6 +2886,8 @@ export function useShellRouteTransition({
       activeTransactionRef.current?.abortController.abort('popstate');
       activeTransactionRef.current?.participants.cancel('popstate');
       activeTransactionRef.current = null;
+      activeHomeTitlePresentationGateRef.current?.cancel('popstate');
+      activeHomeTitlePresentationGateRef.current = null;
       queuedNavigationRef.current = null;
       if (wasTransitionActive || wasGateTransition) {
         animationRegistry.cancel();
@@ -2908,6 +2957,8 @@ export function useShellRouteTransition({
         activeTransactionRef.current?.abortController.abort('unmount');
         activeTransactionRef.current?.participants.cancel('unmount');
         activeTransactionRef.current = null;
+        activeHomeTitlePresentationGateRef.current?.cancel('unmount');
+        activeHomeTitlePresentationGateRef.current = null;
         queuedNavigationRef.current = null;
         activeRouteReadyCancelRef.current?.();
         activeRouteReadyCancelRef.current = null;

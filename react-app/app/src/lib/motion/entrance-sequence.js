@@ -2,6 +2,7 @@ import { getShellRouteTransitionConfig } from '../../legacy/modules/visual/site-
 import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteController.js';
 import { isDarkThemeDocument } from '../theme-state.js';
 import { resolvePairKerningEm } from './glyph-kerning.js';
+import { requestHomeTitlePlaneRender } from './route-transition-title-plane.js';
 
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
@@ -46,6 +47,14 @@ const GROUP_GAP_MS = 40;
 let glyphPreparationGeneration = 0;
 let entranceSequenceGeneration = 0;
 let glyphKerningContext = null;
+
+function notifyBookendTitlePresentationChanged(element) {
+  if (!element) return;
+  glyphPreparationGeneration += 1;
+  const titleRoot = element.closest?.('#hero-title') || element;
+  titleRoot.dataset.routeEnterGlyphRevision = String(glyphPreparationGeneration);
+  if (titleRoot.dataset.canvasTitleSource === 'home') requestHomeTitlePlaneRender();
+}
 
 const BOOKEND_MOVEMENT_EASING = 'cubic-bezier(0.22, 0.6, 0.4, 0.9)';
 const BOOKEND_RULE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
@@ -288,9 +297,7 @@ export function prepareBookendTitleGlyphs(element) {
   const text = String(element.dataset.routeEnterText || element.textContent || '').replace(/\u00a0/g, ' ');
   if (!text) return [];
   element.dataset.routeEnterText = text;
-  glyphPreparationGeneration += 1;
-  const titleRoot = element.closest?.('#hero-title') || element;
-  titleRoot.dataset.routeEnterGlyphRevision = String(glyphPreparationGeneration);
+  notifyBookendTitlePresentationChanged(element);
   const labelledHeadingAncestor = element.parentElement?.closest?.(
     'h1[aria-label], h2[aria-label], h3[aria-label], h4[aria-label], h5[aria-label], h6[aria-label], [role="heading"][aria-label]',
   );
@@ -698,6 +705,7 @@ function settleTarget(target) {
       glyph.style.transform = 'translate3d(0, 0, 0)';
       settleGlyphEntranceState(glyph);
     });
+    notifyBookendTitlePresentationChanged(target.element);
   } else if (target.variant === 'bookend-description') {
     target.element.style.opacity = String(target.finalOpacity);
     target.element.style.filter = 'none';
@@ -764,6 +772,7 @@ function stageTarget(target, blurPx) {
         : `translate3d(-${target.travelPercent}%, 0, 0)`;
       glyph.style.willChange = 'color, transform';
     });
+    notifyBookendTitlePresentationChanged(target.element);
   } else if (target.variant === 'bookend-description') {
     target.element.style.opacity = String(target.finalOpacity);
     target.element.style.filter = 'none';
@@ -929,6 +938,7 @@ export function createEntranceSequence({
             });
           }
         });
+        notifyBookendTitlePresentationChanged(target.element);
 
         const canvasOwnsMovement = target.glyphs.length > 0
           && target.glyphs.every((glyph) => glyph.__absRouteEntranceState?.canvasOwnsMovement);

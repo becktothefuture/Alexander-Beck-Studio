@@ -627,6 +627,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const sampleStartedAt = performance.now();
       const root = document.documentElement;
       const loader = document.querySelector('[data-route-transition-loader]');
+      const titlePlane = document.getElementById('simulation-title-canvas');
       const noise = document.querySelector('#scene-effects .noise');
       const noiseTexture = noise ? getComputedStyle(noise, '::before').backgroundImage : '';
       const spinner = loader?.querySelector('.route-transition-loader__spinner');
@@ -698,6 +699,15 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           noiseIdentity: identifyElement(noise),
           noiseTexture,
         },
+        titlePlane: titlePlane ? {
+          ...readEffective(titlePlane),
+          ready: titlePlane.dataset.titlePlaneReady === 'true',
+          sourceConnected: titlePlane.dataset.titlePlaneSourceConnected === 'true',
+          retainedPixels: titlePlane.dataset.titlePlaneRetainedPixels === 'true',
+          renderRevision: Number(titlePlane.dataset.titlePlaneRenderRevision || 0),
+          presentation: titlePlane.dataset.titlePlanePresentation || '',
+          presentationGeneration: Number(titlePlane.dataset.titlePlanePresentationGeneration || 0),
+        } : null,
         buttonBar: readEffective(buttonBar),
         buttonBarIndicator: activeIndicator ? {
           ...readEffective(activeIndicator),
@@ -1262,6 +1272,43 @@ function assertTransitionTrace(trace, {
     );
   }
 
+  if (trace.toRouteId === 'home') {
+    const committedHomeLoadingSamples = samples.filter((sample) => (
+      sample.phase === 'route-loading'
+      && isRouteViewForDestination(sample.renderedRoute, 'home')
+    ));
+    assert(
+      committedHomeLoadingSamples.length > 0,
+      `${trace.label}: incoming Home title was not sampled behind the loading boundary`,
+      { phases },
+    );
+    committedHomeLoadingSamples.forEach((sample) => {
+      assert(
+        (sample.titlePlane?.effectiveOpacity || 0) <= VISIBILITY_EPSILON,
+        `${trace.label}: retained Home title pixels became paintable during route-loading`,
+        sample.titlePlane,
+      );
+      assert(
+        sample.titlePlane?.presentation === 'covered',
+        `${trace.label}: incoming Home title lost its generation-scoped presentation gate`,
+        sample.titlePlane,
+      );
+    });
+    if (!REDUCED_MOTION) {
+      assert(
+        firstRouteIn.titlePlane?.sourceConnected === true
+          && firstRouteIn.titlePlane?.ready === false,
+        `${trace.label}: Home route-in began before the staged blank title frame`,
+        firstRouteIn.titlePlane,
+      );
+    }
+    assert(
+      firstRouteIn.titlePlane?.presentation === '',
+      `${trace.label}: Home title presentation gate remained after route-in began`,
+      firstRouteIn.titlePlane,
+    );
+  }
+
   if (materialRoutes.has(trace.toRouteId)) {
     const observedMaterialSamples = samples
       .slice(routeInIndex, finalIdleIndex + 1)
@@ -1409,6 +1456,15 @@ function assertTransitionTrace(trace, {
   assert(settled.busy.studioWindow === 'false' && settled.busy.ui === 'false', `${trace.label}: shell remained aria-busy`, settled.busy);
   assert(settled.incoming.inertCount === 0, `${trace.label}: destination entrance targets remained inert`, settled.incoming);
   assert(settled.focus?.inert !== true, `${trace.label}: focus remained inside inert content`, settled.focus);
+  if (trace.toRouteId === 'home') {
+    assert(
+      settled.titlePlane?.ready === true
+        && settled.titlePlane?.sourceConnected === true
+        && (settled.titlePlane?.effectiveOpacity || 0) > VISIBILITY_EPSILON,
+      `${trace.label}: Home title did not settle visibly after its staged entrance`,
+      settled.titlePlane,
+    );
+  }
   assert(settled.routeHistory?.provisional !== true, `${trace.label}: provisional history survived settlement`, settled.routeHistory);
   const settledRoutes = Object.keys(settled.routeViews);
   assert(

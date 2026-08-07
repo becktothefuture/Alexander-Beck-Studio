@@ -1,5 +1,10 @@
 import { MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
+import {
+  cancelStableAnimationFrame,
+  requestStableAnimationFrame,
+} from '../../../lib/legacy-runtime-scope.js';
+import { TITLE_PLANE_INVALIDATE_EVENT } from '../../../lib/motion/route-transition-title-plane.js';
 
 export const TITLE_DEPTH_PLANE_Z = 0.5;
 const TITLE_RENDER_MAX_LINES = 4;
@@ -679,7 +684,7 @@ function createTitlePlaneController(canvas) {
     requestRender() {
       if (this.disposed || this.rafId) return;
       titleRenderCache.state.sleeping = false;
-      this.rafId = window.requestAnimationFrame(() => {
+      this.rafId = requestStableAnimationFrame(() => {
         this.rafId = 0;
         renderTitlePlane(this);
         if (!this.rafId) {
@@ -739,9 +744,11 @@ function createTitlePlaneController(canvas) {
   controller.handleViewportChange = invalidate;
   controller.handleThemeChange = invalidate;
   controller.handleFontChange = invalidate;
+  controller.handlePresentationChange = invalidate;
   window.addEventListener('resize', controller.handleViewportChange, { passive: true });
   window.addEventListener('orientationchange', controller.handleViewportChange, { passive: true });
   window.addEventListener('abs:theme-changed', controller.handleThemeChange);
+  window.addEventListener(TITLE_PLANE_INVALIDATE_EVENT, controller.handlePresentationChange);
   document.fonts?.addEventListener?.('loadingdone', controller.handleFontChange);
   document.fonts?.ready?.then(() => {
     if (!controller.disposed) invalidate();
@@ -764,7 +771,7 @@ export function attachHomepageCanvasTitlePlane(canvas) {
   controller.dispose = () => {
     if (controller.disposed) return;
     controller.disposed = true;
-    if (controller.rafId) window.cancelAnimationFrame(controller.rafId);
+    if (controller.rafId) cancelStableAnimationFrame(controller.rafId);
     controller.rafId = 0;
     controller.resizeObserver?.disconnect();
     controller.mutationObserver?.disconnect();
@@ -772,6 +779,7 @@ export function attachHomepageCanvasTitlePlane(canvas) {
     window.removeEventListener('resize', controller.handleViewportChange);
     window.removeEventListener('orientationchange', controller.handleViewportChange);
     window.removeEventListener('abs:theme-changed', controller.handleThemeChange);
+    window.removeEventListener(TITLE_PLANE_INVALIDATE_EVENT, controller.handlePresentationChange);
     document.fonts?.removeEventListener?.('loadingdone', controller.handleFontChange);
     if (titlePlaneController === controller) titlePlaneController = null;
   };
