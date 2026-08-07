@@ -73,6 +73,7 @@ import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-run
 
 const MATERIAL_SLOT_COUNT = 6;
 const DISCIPLINE_WHITE_ATLAS_INDEX = MATERIAL_SLOT_COUNT;
+const MATERIAL_POINT_THRESHOLD_PX = 10;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 let nextRuntimeInstanceId = 1;
 let nextGeometryInstanceId = 1;
@@ -268,8 +269,10 @@ const VERTEX_SHADER = `
   uniform float materialThreshold3;
   uniform float materialThreshold4;
   uniform float materialThreshold5;
+  uniform float uMaterialPointThresholdPx;
   varying float pointAlpha;
   varying float pointRevealWeight;
+  varying float pointMaterialWeight;
   varying vec3 pointTint;
   varying vec3 pointMaterialBaseColor;
   varying float pointMaterialSlot;
@@ -782,10 +785,17 @@ const VERTEX_SHADER = `
       revealedGroupWeight
     );
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    gl_PointSize = max(0.01, clamp(renderedPointSize, 5.25, 21.6) * entranceScale) * pixelRatio;
+    float clampedPointSize = clamp(renderedPointSize, 5.25, 21.6);
+    gl_PointSize = max(0.01, clampedPointSize * entranceScale) * pixelRatio;
     gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
     pointAlpha = presence;
     pointRevealWeight = revealedGroupWeight;
+    float readableMaterialWeight = smoothstep(
+      max(0.0, uMaterialPointThresholdPx - 1.0),
+      uMaterialPointThresholdPx + 1.0,
+      clampedPointSize
+    );
+    pointMaterialWeight = max(revealedGroupWeight, readableMaterialWeight);
   }
 `;
 
@@ -796,8 +806,10 @@ const FRAGMENT_SHADER = `
   uniform float uMaterialAtlasCellScale;
   uniform vec2 uMaterialAtlasInset;
   uniform vec2 uMaterialAtlasSpriteScale;
+  uniform vec2 uMaterialAtlasTexelSize;
   varying float pointAlpha;
   varying float pointRevealWeight;
+  varying float pointMaterialWeight;
   varying vec3 pointTint;
   varying vec3 pointMaterialBaseColor;
   varying float pointMaterialSlot;
@@ -824,7 +836,7 @@ const FRAGMENT_SHADER = `
     if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
     float resolvedFieldOpacity = mix(fieldOpacity, 1.0, pointRevealWeight);
-    if (uUseMaterialAtlas > 0.5 && pointRevealWeight > 0.001) {
+    if (uUseMaterialAtlas > 0.5 && pointMaterialWeight > 0.001) {
       vec2 atlasUv = vec2(
         pointMaterialSlot * uMaterialAtlasCellScale
           + uMaterialAtlasInset.x
@@ -832,10 +844,27 @@ const FRAGMENT_SHADER = `
         uMaterialAtlasInset.y + gl_PointCoord.y * uMaterialAtlasSpriteScale.y
       );
       vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
+      if (pointRevealWeight > 0.001) {
+        vec2 detailUv = (
+          floor(atlasUv / uMaterialAtlasTexelSize) + vec2(0.5)
+        ) * uMaterialAtlasTexelSize;
+        vec4 detailMaterialSample = texture2D(uMaterialAtlas, detailUv);
+        materialSample = mix(
+          materialSample,
+          detailMaterialSample,
+          clamp(pointRevealWeight, 0.0, 1.0)
+        );
+      }
       if (materialSample.a <= 0.0) discard;
+      float sphereWeight = clamp(pointMaterialWeight, 0.0, 1.0);
+      vec3 sphereColor = transferMaterialDepth(
+        materialSample.rgb,
+        pointMaterialBaseColor,
+        pointTint
+      );
       gl_FragColor = vec4(
-        transferMaterialDepth(materialSample.rgb, pointMaterialBaseColor, pointTint),
-        resolvedFieldOpacity * pointAlpha * materialSample.a
+        mix(pointTint, sphereColor, sphereWeight),
+        resolvedFieldOpacity * pointAlpha * mix(edge, materialSample.a, sphereWeight)
       );
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -925,6 +954,10 @@ function applySimulationBodyAtlas(material, atlas, texture) {
   material.uniforms.uMaterialAtlasSpriteScale.value.set(
     atlas.detailPx / atlas.widthPx,
     atlas.detailPx / atlas.heightPx,
+  );
+  material.uniforms.uMaterialAtlasTexelSize.value.set(
+    1 / atlas.widthPx,
+    1 / atlas.heightPx,
   );
 }
 
@@ -1251,12 +1284,14 @@ function createPointFieldAdapter({
     materialThreshold3: { value: 0.60 },
     materialThreshold4: { value: 0.80 },
     materialThreshold5: { value: 0.90 },
+    uMaterialPointThresholdPx: { value: MATERIAL_POINT_THRESHOLD_PX },
     fieldOpacity: { value: 0.96 },
     uUseMaterialAtlas: { value: 0 },
     uMaterialAtlas: { value: null },
     uMaterialAtlasCellScale: { value: 1 },
     uMaterialAtlasInset: { value: new THREE.Vector2() },
     uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
+    uMaterialAtlasTexelSize: { value: new THREE.Vector2(1, 1) },
   };
   const modifierUniformTargets = Object.freeze({
     from: Object.freeze({
@@ -1598,6 +1633,10 @@ function createPointFieldAdapter({
     root.dataset.aboutDisciplineBallFinish = nextAtlas
       ? 'cached-sphere-sticker'
       : 'flat-fill';
+    root.dataset.aboutPointMaterialPolicy = nextAtlas
+      ? 'meaningful-size-threshold'
+      : 'flat-fill';
+    root.dataset.aboutPointMaterialThresholdPx = String(MATERIAL_POINT_THRESHOLD_PX);
     root.dataset.simulationPaletteGeneration = String(snapshot.generation);
     root.dataset.simulationPaletteId = snapshot.paletteId;
   };
@@ -2950,6 +2989,8 @@ function createPointFieldAdapter({
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldVisibility;
     delete root.dataset.aboutDisciplineBallFinish;
+    delete root.dataset.aboutPointMaterialPolicy;
+    delete root.dataset.aboutPointMaterialThresholdPx;
     root.style.removeProperty('--narrative-bust-yaw');
   };
 }

@@ -359,16 +359,28 @@ function assertPrimaryRouteSemanticContracts() {
         pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)/,
       },
       {
-        label: 'About must sample the atlas only for revealed semantic discipline balls',
-        pattern: /uUseMaterialAtlas\s*>\s*0\.5\s*&&\s*pointRevealWeight\s*>\s*0\.001[\s\S]{0,520}?texture2D\s*\(\s*uMaterialAtlas\b/,
+        label: 'About must sample the atlas only for readable circles and discipline balls',
+        pattern: /uUseMaterialAtlas\s*>\s*0\.5\s*&&\s*pointMaterialWeight\s*>\s*0\.001[\s\S]{0,720}?texture2D\s*\(\s*uMaterialAtlas\b/,
       },
       {
-        label: 'About generic point material must remain the guarded flat fallback',
-        pattern: /if\s*\(uUseMaterialAtlas[\s\S]{0,900}?\breturn;[\s\S]{0,180}?gl_FragColor\s*=\s*vec4\(pointTint\b/,
+        label: 'About meaningful circles must cross one fixed 10 CSS pixel threshold',
+        pattern: /const\s+MATERIAL_POINT_THRESHOLD_PX\s*=\s*10;/,
       },
       {
-        label: 'About must identify cached and flat discipline finishes',
-        pattern: /aboutDisciplineBallFinish\s*=\s*nextAtlas\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
+        label: 'About meaningful circles must cross that threshold through a soft two-pixel band',
+        pattern: /readableMaterialWeight\s*=\s*smoothstep\([\s\S]{0,180}?uMaterialPointThresholdPx\s*-\s*1\.0[\s\S]{0,180}?uMaterialPointThresholdPx\s*\+\s*1\.0/,
+      },
+      {
+        label: 'About discipline spheres must preserve atlas detail at texel centres',
+        pattern: /pointRevealWeight\s*>\s*0\.001[\s\S]{0,180}?detailUv\s*=\s*\([\s\S]{0,180}?floor\(atlasUv\s*\/\s*uMaterialAtlasTexelSize\)[\s\S]{0,260}?mix\([\s\S]{0,120}?materialSample[\s\S]{0,120}?detailMaterialSample[\s\S]{0,120}?pointRevealWeight/,
+      },
+      {
+        label: 'About microscopic point material must remain the guarded flat fallback',
+        pattern: /if\s*\(uUseMaterialAtlas[\s\S]{0,1600}?\breturn;[\s\S]{0,180}?gl_FragColor\s*=\s*vec4\(pointTint\b/,
+      },
+      {
+        label: 'About must identify cached, thresholded, and flat point finishes',
+        pattern: /aboutDisciplineBallFinish\s*=\s*nextAtlas\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"][\s\S]{0,180}?aboutPointMaterialPolicy\s*=\s*nextAtlas\s*\?\s*['"]meaningful-size-threshold['"]\s*:\s*['"]flat-fill['"]/,
       },
     ],
   );

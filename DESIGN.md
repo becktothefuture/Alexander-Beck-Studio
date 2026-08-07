@@ -201,9 +201,10 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   point in screen space with the shared `22px` gap. The presentation has no card, connector, counter, or
   glow. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
   `--ball-8`, `--ball-6`.
-- The six revealed discipline points are semantic balls. They sample the shared cached sphere atlas. The
-  surrounding narrative point field keeps its point-cloud material and does not become a field of shaded
-  balls.
+- About points become semantic balls only when they resolve as readable circles at 10 CSS pixels or
+  larger. They cross softly from the flat point-cloud material into the shared cached sphere atlas between
+  9 and 11 pixels, so the microscopic field remains flat and cheap. The six revealed discipline points
+  always qualify and use detail-preserving atlas sampling at their compact display size.
 - The second editorial area uses one left-aligned measure after the discipline grid has faded completely away. Visibility, camera, and global distance fog are independent controls; fog must never substitute for an authored disappearance or be keyframed per camera pose.
 - The grid returns in full colour, already framed on the ripple centre, after the editorial area clears.
   Any reframe from the discipline view happens only while the point world is fully hidden. From the return
@@ -251,7 +252,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 ## Simulation language
 
 - Every semantic production ball uses one shared cached matte sphere material over its approved circle or pebble geometry. The light direction is fixed in screen space, so body motion and pebble rotation do not rotate the lighting.
-- Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; the six About discipline balls; Lab / Playground active coloured wake balls; and Contact ripple balls.
+- Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; readable About point-field circles including the six discipline balls; Lab / Playground active coloured wake balls; and Contact ripple balls.
 - The active time-of-day palette remains the base colour identity. The Light and Dark material profiles add only restrained key, ambient, rim-bounce, and self-shadow cues; they may gently compress chroma at lighting extremes but never amplify it beyond the authored base, and hue drift stays imperceptible.
 - A renderer may use its existing flat colour only when the shared sprite or atlas is disabled or unavailable. That fallback must be guarded. Normal frames draw or sample cached output.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
