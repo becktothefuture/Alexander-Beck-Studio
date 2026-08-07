@@ -3,7 +3,7 @@ export const LONDON_PALETTE_STATUS = 'stable';
 
 export const LONDON_PALETTE_COLORS = Object.freeze({
   bowWornSignal: Object.freeze(['#747474', '#553875', '#ffffff', '#1aae7d', '#0b090c', '#87915a', '#ff4b00', '#cf287c']),
-  silvertownCobaltVoltage: Object.freeze(['#747474', '#71463a', '#ffffff', '#556a64', '#0c1118', '#8e764d', '#1557ff', '#695a74']),
+  silvertownCobaltVoltage: Object.freeze(['#747474', '#71463a', '#ffffff', '#00843d', '#0c1118', '#8e764d', '#1557ff', '#695a74']),
   ryeAfterClosing: Object.freeze(['#666666', '#00744a', '#ffffff', '#3344d7', '#07100d', '#f2bd00', '#ff6500', '#9a637f']),
   ryeAfterClosingTurmeric: Object.freeze(['#747474', '#246147', '#ffffff', '#3b4ed8', '#08100c', '#a67847', '#ffd000', '#99647f']),
 });
@@ -50,14 +50,14 @@ export const LONDON_PALETTES = [
     slug: 'silvertown-cobalt-voltage',
     label: 'Silvertown / Cobalt Voltage',
     facet: 'Refined Cobalt',
-    personality: 'Electric cobalt, juniper, burnt copper, old brass, bruised violet.',
+    personality: 'Electric cobalt, transit green, burnt copper, old brass, bruised violet.',
     story:
-      'Cobalt stays almost untouched. Juniper, burnt copper, old brass, and bruised violet provide a quieter industrial field around the electric signal.',
+      'Cobalt remains the signal. A clear transit green cuts through burnt copper, old brass, and bruised violet without becoming a second neon.',
     words: [
       'Silvertown',
       'cobalt voltage',
       'electric blue',
-      'juniper',
+      'transit green',
       'burnt copper',
       'old brass',
       'bruised violet',

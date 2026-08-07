@@ -812,7 +812,7 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-discipline-list li:nth-child(2) {
-  --discipline-color: var(--ball-4, #556a64);
+  --discipline-color: var(--ball-4, #00843d);
 }
 
 .about-narrative-discipline-list li:nth-child(3) {

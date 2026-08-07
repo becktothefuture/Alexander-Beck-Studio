@@ -3972,7 +3972,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar {
-  --button-bar-accent-home: var(--ball-4, #556a64);
+  --button-bar-accent-home: var(--ball-4, #00843d);
   --button-bar-accent-portfolio: var(--ball-6, #8e764d);
   --button-bar-accent-about: var(--ball-7, #1557ff);
   --button-bar-accent-contact: var(--ball-8, #695a74);

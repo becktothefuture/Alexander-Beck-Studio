@@ -6,7 +6,7 @@ const ROUTES = Object.freeze([
   {
     id: 'home',
     label: 'Home',
-    color: 'var(--ball-4, #556a64)',
+    color: 'var(--ball-4, #00843d)',
   },
   {
     id: 'portfolio',
