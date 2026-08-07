@@ -52,7 +52,7 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
-/.scratch/
+/.scratch/about-narrative-editorial-material-refinement/
 
 # One-off local audit scripts (Playwright/Node scratch)
 tmp/*.cjs
