@@ -95,6 +95,7 @@ Caching is part of the rendering contract:
 - stickers and atlas entries bake once for the required palette, theme, material configuration, detail, size, and supported shape state;
 - material-config, theme, and palette changes invalidate the cache through the hardcoded `36ms` debounce;
 - the hardcoded sprite fast path remains runtime policy, while `cacheDetailPx` is the authored bake-resolution control;
+- Lab wake balls at 10 CSS pixels or below use detail-preserving sprite sampling so the cached matte key and form shadow survive downscaling. Larger balls retain smooth interpolation;
 - ordinary body frames only select and draw/sample cached output. They do not build gradients, parse colours, read pixels, or run per-body lighting work;
 - the baked shadow cue is self-shading inside the body silhouette, not a cast shadow, drop shadow, glow, or atmosphere pass;
 - a flat colour path is allowed only as a guarded fallback when the shared sprite or atlas is disabled or unavailable.

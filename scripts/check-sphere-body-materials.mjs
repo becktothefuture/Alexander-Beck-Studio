@@ -382,11 +382,19 @@ function assertPrimaryRouteSemanticContracts() {
       },
       {
         label: 'Playground active wake must draw the shared sprite when it is available',
-        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,420}?\.drawImage\s*\([\s\S]{0,100}?materialSprite\.canvas/,
+        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,900}?\.drawImage\s*\([\s\S]{0,100}?materialSprite\.canvas/,
+      },
+      {
+        label: 'Playground micro spheres must preserve cached lighting detail instead of smoothing it flat',
+        pattern: /imageSmoothingEnabled\s*=\s*diameter\s*>\s*MICRO_SPHERE_SMOOTHING_THRESHOLD_PX/,
+      },
+      {
+        label: 'Playground diagnostics must expose the live sphere sampling mode',
+        pattern: /playgroundActiveBallSampling\s*=\s*bodyMaterialSprites\.length[\s\S]{0,180}?['"]micro-detail-preserving['"]/,
       },
       {
         label: 'Playground active wake flat circles must remain the guarded missing-sprite fallback',
-        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,700}?\bcontinue;[\s\S]{0,320}?\.arc\s*\(/,
+        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,1100}?\bcontinue;[\s\S]{0,320}?\.arc\s*\(/,
       },
       {
         label: 'Playground neutral resting grid must remain an excluded direct flat fill',

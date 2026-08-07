@@ -12,6 +12,7 @@ const COLOR_OPACITY_BUCKET_COUNT = 16;
 const COLOR_WAKE_RADIUS_SCALE_MIN = 0.82;
 const COLOR_WAKE_RADIUS_SCALE_MAX = 1.18;
 const MIN_TEMPORAL_FRAME_INTERVAL_MS = 1000 / 60;
+const MICRO_SPHERE_SMOOTHING_THRESHOLD_PX = 10;
 const TWO_PI = Math.PI * 2;
 
 function clamp(value, minimum, maximum) {
@@ -179,6 +180,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     bodyMaterialSprites = bodyMaterialEnabled
       ? colors.map((color) => getSimulationBodyMaterialSprite(color, { theme: bodyMaterialTheme }))
       : [];
+    if (canvas.dataset) {
+      canvas.dataset.playgroundActiveBallFinish = bodyMaterialSprites.length
+        ? 'cached-sphere-sticker'
+        : 'flat-fill';
+      canvas.dataset.playgroundActiveBallSampling = bodyMaterialSprites.length
+        ? 'micro-detail-preserving'
+        : 'flat-fill';
+    }
   }
 
   const unsubscribeBodyMaterial = canUseSharedMaterial
@@ -546,7 +555,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     const colorCount = Math.min(colors.length, MAX_PALETTE_COLORS);
     const restingRadius = dotRadiusPx * worldScale * routeVisualScale;
     const inheritedSmoothing = context.imageSmoothingEnabled;
-    if (bodyMaterialSprites.length) context.imageSmoothingEnabled = true;
     for (let colorIndex = 0; colorIndex < colorCount; colorIndex += 1) {
       const materialSprite = bodyMaterialSprites[colorIndex];
       context.fillStyle = colors[colorIndex];
@@ -560,6 +568,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
         context.globalAlpha = colorWakeOpacity * bucketStrength;
         if (materialSprite?.canvas) {
           const diameter = activeRadius * 2;
+          // Bilinear sampling averages the matte key and form shadow together
+          // when the shared sticker becomes a tiny Lab bead. Preserve those
+          // cached lighting cues below 10px; larger balls stay smoothly sampled.
+          context.imageSmoothingEnabled = diameter > MICRO_SPHERE_SMOOTHING_THRESHOLD_PX;
           while (index >= 0) {
             context.drawImage(
               materialSprite.canvas,
@@ -1005,6 +1017,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     clear();
     colors.length = 0;
     bodyMaterialSprites.length = 0;
+    if (canvas.dataset) {
+      delete canvas.dataset.playgroundActiveBallFinish;
+      delete canvas.dataset.playgroundActiveBallSampling;
+    }
     roleColorIndices = new Int16Array(0);
     roleThresholds = new Float64Array(0);
   }

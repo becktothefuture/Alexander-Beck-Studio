@@ -88,24 +88,24 @@
       "enabled": true,
       "cacheDetailPx": 24,
       "light": {
-        "keyLevel": 1,
-        "keyReach": 1,
-        "ambientLevel": 1,
+        "keyLevel": 0.15,
+        "keyReach": 1.28,
+        "ambientLevel": 0.59,
         "ambientReach": 1,
-        "rimBounceLevel": 1,
-        "rimBounceReach": 1,
-        "shadowDepth": 1,
-        "shadowArea": 1
+        "rimBounceLevel": 1.03,
+        "rimBounceReach": 1.02,
+        "shadowDepth": 0.94,
+        "shadowArea": 1.13
       },
       "dark": {
-        "keyLevel": 1,
-        "keyReach": 1,
-        "ambientLevel": 1,
-        "ambientReach": 1,
-        "rimBounceLevel": 1,
-        "rimBounceReach": 1,
-        "shadowDepth": 1,
-        "shadowArea": 1
+        "keyLevel": 0.34,
+        "keyReach": 1.03,
+        "ambientLevel": 0,
+        "ambientReach": 0.5,
+        "rimBounceLevel": 0,
+        "rimBounceReach": 0.5,
+        "shadowDepth": 0.49,
+        "shadowArea": 1.5
       }
     }
   },
