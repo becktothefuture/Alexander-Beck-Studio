@@ -4913,7 +4913,8 @@ html[data-abs-instrument-wake] #simulations::after {
   inset: 0;
   border-radius: var(--frame-outer-radius);
   pointer-events: none;
-  z-index: 170;
+  /* Paint directly above the window background, below every scene layer. */
+  z-index: 0;
 }
 
 /* In-window modal system: route/UI content < blur < modal UI, clipped to the studio window. */

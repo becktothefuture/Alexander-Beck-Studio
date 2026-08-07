@@ -802,11 +802,11 @@
      
      INSIDE #simulations (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
+     Inner wall rim           0         .inner-wall-gradient-edge
      Scene / noise            1          #simulations > .scene-effects (under simulation)
      Wall route + canvas      2+         .shell-wall-slot, then #c / .ball-canvas-layer
      CV scroll surface        10        .cv-scroll-container (above in-wall noise)
      CV wall ring canvas      15        .cv-wall-canvas
-     Live wall edge           170       .inner-wall-gradient-edge
      
      OUTSIDE #abs-scene (modal layer):
      ─────────────────────────────────────────────────────────────────────────────

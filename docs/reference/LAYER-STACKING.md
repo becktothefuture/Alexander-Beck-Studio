@@ -9,11 +9,11 @@ The expanded physical order is:
 
 1. browser/page ground;
 2. outer frame and inner wall;
-3. route scene transform group and background noise;
-4. low-resolution simulation-atmosphere glow;
-5. registered crisp route material, including Home's rear/main pass;
-6. the Home Canvas title plane and any front depth material;
-7. the thin static inner-wall rim, lit from above;
+3. the thin static inner-wall rim, lit from above;
+4. route scene transform group and background noise;
+5. low-resolution simulation-atmosphere glow;
+6. registered crisp route material, including Home's rear/main pass;
+7. the Home Canvas title plane and any front depth material;
 8. route UI and the Home footer when Home is active;
 9. window overlays and Portfolio project sheet;
 10. modal/focus overlays;
@@ -27,7 +27,7 @@ The expanded physical order is:
 
 The frame vignette and route UI are descendants of `#simulations`, in that order. This keeps entrance blur, grouped Home legibility fields, and control effects inside the studio-window contour while preserving `#simulations` as the sole rounded clip. Do not mount route UI as an unclipped viewport sibling of the wall.
 
-The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material. The canonical atmosphere edge strength is zero, so its compatibility Canvas stays hidden and does not paint. `.inner-wall-gradient-edge` at `170` owns the neutral static rim below route UI: the bottom and sides catch top-down light while the upper lip remains in shadow. `#simulations` remains the sole outer rounded clip; the rim inherits its geometry and must not generate an independent Canvas, SVG, or route-specific corner path.
+The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material. The canonical atmosphere edge strength is zero, so its compatibility Canvas stays hidden and does not paint. `.inner-wall-gradient-edge` at `0` owns the neutral static rim directly above the window background and below background noise, atmosphere, and route material. `#simulations` remains the sole outer rounded clip; the rim inherits its geometry and must not generate an independent Canvas, SVG, or route-specific corner path.
 
 Home and route-backed Daily simulations share one shell-owned `#simulation-title-canvas`. Their keyed route content supplies one invisible semantic `#hero-title`, but neither route replacement nor an atmosphere source registration owns the visible title plane. Normal modes stack title/material at `9/10`; depth modes stack rear/title/front material at `4/11/12`. The compositor samples simulation material only and applies its title quiet-zone mask after composing active sources. Portfolio, About, and Contact copy remains DOM-owned in its established hero/UI layer.
 
