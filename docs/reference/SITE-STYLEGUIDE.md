@@ -29,7 +29,7 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Instrument Serif is the editorial arrival voice. It gives the main route titles more authorship, warmth, and cultural character.
 - Geist remains the structural voice for navigation, descriptions, controls, Portfolio cards, and project-detail titles. It preserves the site's technical precision and keeps the interface feeling like one engineered object.
 - Geist Mono remains the operational voice for metadata and compact technical labels.
-- The London script is a small signature moment, not another general-purpose display style.
+- The handwritten LDN 26 SVG is a small signature moment, not another general-purpose display style or type role.
 
 Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Portfolio intro, gate, and Playground opening. The production tokens are:
 

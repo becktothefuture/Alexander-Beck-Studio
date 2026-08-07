@@ -9269,3 +9269,37 @@ body.cv-page .cv-section--signals {
     margin-bottom: clamp(2rem, 6vw, 2.8rem);
   }
 }
+
+/* LDN 26 signature: self-hosted artwork, anchored to the existing London clock. */
+.location-name--ldn-26 {
+  box-sizing: border-box;
+  display: inline-block;
+  flex: 0 0 auto;
+  inline-size: 70.5px;
+  aspect-ratio: 1693 / 625;
+  color: inherit;
+  background-color: currentColor;
+  font-size: 0;
+  line-height: 0;
+  vertical-align: middle;
+  -webkit-mask: url('/assets/ldn-26.svg') center / contain no-repeat;
+  mask: url('/assets/ldn-26.svg') center / contain no-repeat;
+}
+
+#site-year .meta-stack {
+  position: relative;
+  display: inline-block;
+}
+
+#site-year .meta-location {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  display: block;
+  line-height: 0;
+  pointer-events: none;
+}
+
+#site-year .meta-separator {
+  display: none;
+}

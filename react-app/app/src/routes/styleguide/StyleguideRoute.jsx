@@ -143,9 +143,22 @@ export function getStyleguideRouteView() {
           <section className="styleguide-section" aria-labelledby="sg-meta">
             <h2 id="sg-meta">Meta / time chip</h2>
             <div className="styleguide-sample-row styleguide-meta-demo">
-              <button type="button" className="abs-meta-btn" disabled>
-                London · 12:00
-              </button>
+              <div
+                id="site-year"
+                className="caption meta-caption abs-meta-btn"
+                aria-label="London local time, 12:00 PM"
+              >
+                <span className="meta-stack">
+                  <span className="meta-location">
+                    <strong
+                      className="location-name location-name--ldn-26"
+                      aria-hidden="true"
+                    />
+                    <span className="meta-separator" aria-hidden="true">·</span>
+                  </span>
+                  <time id="time-display">12:00:00 PM</time>
+                </span>
+              </div>
             </div>
           </section>
 

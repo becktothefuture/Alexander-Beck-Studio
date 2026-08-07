@@ -94,7 +94,10 @@ export function SiteFooter() {
             >
               <span className="meta-stack">
                 <span className="meta-location">
-                  <strong className="location-name">London</strong>
+                  <strong
+                    className="location-name location-name--ldn-26"
+                    aria-hidden="true"
+                  />
                   <span className="meta-separator" aria-hidden="true">·</span>
                 </span>
                 <LondonClock />
