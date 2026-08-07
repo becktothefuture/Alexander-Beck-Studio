@@ -25,6 +25,9 @@ async function openAbout(viewport) {
   await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', {
     timeout: 30_000,
   });
+  await page.waitForFunction(() => (
+    Number(getComputedStyle(document.querySelector('.about-narrative-opening-scroll-cue')).opacity) > 0.99
+  ));
   return { context, errors, page };
 }
 
@@ -58,6 +61,9 @@ try {
   const desktop = await openAbout({ width: 1440, height: 1000 });
   const { page } = desktop;
   const initial = await page.evaluate(() => {
+    const openingCue = document.querySelector('.about-narrative-opening-scroll-cue');
+    const openingCueRect = openingCue?.getBoundingClientRect();
+    const scrollportRect = document.querySelector('.about-narrative-scrollport')?.getBoundingClientRect();
     const pullSentence = document.querySelector('.about-narrative-editorial-pull-sentence');
     const pullStyle = getComputedStyle(pullSentence);
     const prose = document.querySelector('.about-narrative-editorial-copy');
@@ -70,6 +76,14 @@ try {
       lineRevealCount: document.querySelectorAll('[data-editorial-reveal="line"]').length,
       logoCount: document.querySelectorAll('.about-narrative-client-logos > li').length,
       logoReady: logoField?.dataset.clientFieldReady,
+      openingCueArrowCount: openingCue?.querySelectorAll('[class*="ti-arrow"]').length,
+      openingCueLabel: openingCue?.textContent?.replace(/\s+/gu, ' ').trim(),
+      openingCueLineCount: openingCue?.querySelectorAll('.about-narrative-opening-scroll-cue__line').length,
+      openingCueOpacity: Number(getComputedStyle(openingCue).opacity),
+      openingCueState: document.querySelector('.about-narrative-lab')?.dataset.openingScrollCue,
+      openingCueBottomGap: scrollportRect && openingCueRect
+        ? scrollportRect.bottom - openingCueRect.bottom
+        : 0,
       pullBorderBottom: pullStyle.borderBottomWidth,
       pullBorderTop: pullStyle.borderTopWidth,
       pullFontFamily: pullStyle.fontFamily,
@@ -97,6 +111,24 @@ try {
   assert.equal(initial.wordRevealCount, 0);
   assert.equal(initial.ruleCount, 2);
   assert.equal(initial.logoCount, 14);
+  assert.equal(initial.openingCueArrowCount, 0);
+  assert.equal(initial.openingCueLabel, 'Scroll');
+  assert.equal(initial.openingCueLineCount, 1);
+  assert.ok(initial.openingCueOpacity > 0.99);
+  assert.equal(initial.openingCueState, 'visible');
+  assert.ok(initial.openingCueBottomGap >= 24 && initial.openingCueBottomGap <= 56);
+
+  await page.locator('.about-narrative-scrollport').evaluate((node) => {
+    node.scrollTop = 80;
+    node.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+  await page.waitForFunction(() => (
+    Number(getComputedStyle(document.querySelector('.about-narrative-opening-scroll-cue')).opacity) < 0.01
+  ));
+  assert.equal(
+    await page.locator('.about-narrative-lab').getAttribute('data-opening-scroll-cue'),
+    'hidden',
+  );
 
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-client-field')?.dataset.clientFieldReady === 'true'
@@ -152,6 +184,12 @@ try {
     openingOpacity: Number(getComputedStyle(
       document.querySelector('.about-narrative-opening-copy'),
     ).opacity),
+    openingCueBottom: document.querySelector('.about-narrative-opening-scroll-cue')?.getBoundingClientRect().bottom,
+    openingCueOpacity: Number(getComputedStyle(
+      document.querySelector('.about-narrative-opening-scroll-cue'),
+    ).opacity),
+    scrollportBottom: document.querySelector('.about-narrative-scrollport')
+      ?.getBoundingClientRect().bottom,
     standardScale: Number(getComputedStyle(
       document.querySelector('[data-client-logo="sp-global"]'),
     ).getPropertyValue('--client-logo-display-scale')),
@@ -165,6 +203,8 @@ try {
   }));
   assert.equal(mobileLogoState.layoutProfile, 'mobile');
   assert.ok(mobileLogoState.openingOpacity > 0.9);
+  assert.ok(mobileLogoState.openingCueOpacity > 0.9);
+  assert.ok(mobileLogoState.scrollportBottom - mobileLogoState.openingCueBottom >= 24);
   assert.equal(mobileLogoState.standardScale, 0.92);
   assert.ok(mobileLogoState.storyWU < 0.04);
   assert.ok(mobileLogoState.titleOpacity > 0.9);

@@ -314,19 +314,26 @@ async function audit(viewport, label) {
   assert.equal(initialOpener.y, 36);
   const openingScrollCue = page.locator('.about-narrative-opening-scroll-cue');
   assert.equal(await openingScrollCue.count(), 1);
-  assert.equal(await openingScrollCue.locator('.ti-arrow-left').count(), 1);
-  const openingCueGeometry = await page.locator('.about-narrative-spatial-title').first().evaluate((title) => {
-    const cue = title.parentElement.querySelector('.about-narrative-opening-scroll-cue');
+  assert.equal(await openingScrollCue.locator('.about-narrative-opening-scroll-cue__label').textContent(), 'Scroll');
+  assert.equal(await openingScrollCue.locator('.about-narrative-opening-scroll-cue__line').count(), 1);
+  assert.equal(await openingScrollCue.locator('[class*="ti-arrow"]').count(), 0);
+  const openingCueGeometry = await page.locator('[data-text-field-id="text-promise-main"] .route-centered-page__title').evaluate((title) => {
+    const field = title.closest('[data-text-field-id]');
+    const cue = field.querySelector('.about-narrative-opening-scroll-cue');
+    const scrollport = document.querySelector('.about-narrative-scrollport');
     const titleRect = title.getBoundingClientRect();
     const cueRect = cue.getBoundingClientRect();
+    const scrollportRect = scrollport.getBoundingClientRect();
     return {
+      bottomGap: scrollportRect.bottom - cueRect.bottom,
       centreDelta: Math.abs((titleRect.left + (titleRect.width / 2)) - (cueRect.left + (cueRect.width / 2))),
       cueTop: cueRect.top,
-      titleBottom: titleRect.bottom + 36,
+      titleBottom: titleRect.bottom,
     };
   });
   assert.ok(openingCueGeometry.centreDelta <= 1);
   assert.ok(openingCueGeometry.cueTop > openingCueGeometry.titleBottom);
+  assert.ok(openingCueGeometry.bottomGap >= 16 && openingCueGeometry.bottomGap <= 56);
   assert.equal(await root.getAttribute('data-opening-scroll-cue'), 'visible');
   assert.equal(await page.locator('#about-narrative-promise [data-text-cue="complexity-idea"]').count(), 0);
   assert.equal(await page.locator('#about-narrative-complexity [data-text-cue="complexity-idea"]').count(), 1);

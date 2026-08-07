@@ -266,23 +266,40 @@ body.about-narrative-page .route-simulation-layer {
 
 .about-narrative-opening-scroll-cue {
   position: absolute;
-  top: calc(100% + clamp(1.25rem, 3svh, 2rem));
+  top: auto;
+  bottom: max(clamp(2rem, 4svh, 2.75rem), env(safe-area-inset-bottom));
   left: 50%;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: calc(0.79 * clamp(40px, 3.2vw, 52px));
-  height: calc(0.79 * clamp(48px, 6svh, 64px));
-  color: var(--text-primary);
-  opacity: 1;
-  transform: translate3d(-50%, var(--opening-scroll-cue-start-y, 36px), 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.625rem, 1.4svh, 0.875rem);
+  width: max-content;
+  color: color-mix(in srgb, var(--text-primary) 76%, transparent);
+  opacity: var(--about-opening-scroll-cue-opacity, 1);
+  transform: translate3d(-50%, 0, 0);
+  transition: opacity 80ms linear;
   pointer-events: none;
+  will-change: opacity;
 }
 
-.about-narrative-opening-scroll-cue__icon {
-  font-size: calc(0.38 * clamp(36px, 3.2vw, 48px));
+.about-narrative-opening-scroll-cue__label {
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.625rem, 0.575rem + 0.14vw, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.28em;
   line-height: 1;
-  filter: drop-shadow(0 4px 12px color-mix(in srgb, currentColor 22%, transparent));
+  text-indent: 0.28em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.about-narrative-opening-scroll-cue__line {
+  display: block;
+  width: 1px;
+  height: clamp(2.5rem, 5.5svh, 3.75rem);
+  background: currentColor;
+  opacity: 0.72;
 }
 
 .about-narrative-render-span--editorial {
@@ -1243,7 +1260,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
   }
 
   .about-narrative-opening-scroll-cue {
-    top: calc(100% + 0.5rem);
+    display: none;
   }
 
 }
@@ -1310,6 +1327,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .about-narrative-opening-scroll-cue,
   .about-narrative-indicator__line,
   .about-narrative-finale-description__link {
     transition: none;

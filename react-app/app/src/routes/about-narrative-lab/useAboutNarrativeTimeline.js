@@ -45,6 +45,13 @@ const ABOUT_SCROLL_INDICATOR_MAX_START_INDEX = Math.max(
   ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
 );
 
+export function getAboutNarrativeOpeningScrollCueOpacity(scrollTop, viewportHeight) {
+  const resolvedViewportHeight = Math.max(0, Number(viewportHeight) || 0);
+  const fadeDistance = Math.min(72, Math.max(48, resolvedViewportHeight * 0.08));
+  const fadeProgress = clamp01((Number(scrollTop) || 0) / fadeDistance);
+  return 1 - smooth01(fadeProgress);
+}
+
 function getPreviewOptions(editorStore) {
   const previewState = editorStore?.getSnapshot?.()?.previewState;
   return {
@@ -157,6 +164,8 @@ export function useAboutNarrativeTimeline({
     let installedDocument = null;
     let installedProfileKey = '';
     let lastDiagnosticKey = '';
+    let lastOpeningScrollCueOpacity = -1;
+    let lastOpeningScrollCueState = '';
     let disposed = false;
     let lastStoreDocument = editorStore?.getSnapshot?.()?.document || null;
     let lastStorePreviewKey = JSON.stringify(editorStore?.getSnapshot?.()?.previewState || null);
@@ -572,6 +581,22 @@ export function useAboutNarrativeTimeline({
       );
 
       if (frame) {
+        const openingScrollCueOpacity = getAboutNarrativeOpeningScrollCueOpacity(
+          scrollport.scrollTop,
+          measurementsRef.current.viewportHeight || scrollport.clientHeight,
+        );
+        if (Math.abs(openingScrollCueOpacity - lastOpeningScrollCueOpacity) >= 0.001) {
+          lastOpeningScrollCueOpacity = openingScrollCueOpacity;
+          root.style.setProperty(
+            '--about-opening-scroll-cue-opacity',
+            openingScrollCueOpacity.toFixed(4),
+          );
+        }
+        const openingScrollCueState = scrollport.scrollTop <= 0.5 ? 'visible' : 'hidden';
+        if (openingScrollCueState !== lastOpeningScrollCueState) {
+          lastOpeningScrollCueState = openingScrollCueState;
+          root.dataset.openingScrollCue = openingScrollCueState;
+        }
         const nextStoryProgress = frame.durationWU > 0
           ? clamp01(frame.storyWU / frame.durationWU)
           : 0;
@@ -674,6 +699,8 @@ export function useAboutNarrativeTimeline({
       requestMeasureRef.current = () => {};
       delete root.dataset.activeNarrativeWorld;
       delete root.dataset.editorialInView;
+      delete root.dataset.openingScrollCue;
+      root.style.removeProperty('--about-opening-scroll-cue-opacity');
       root.style.removeProperty('--narrative-story-wu');
       root.style.removeProperty('--narrative-viewport-height');
       root.style.removeProperty('--narrative-content-extent-wu');

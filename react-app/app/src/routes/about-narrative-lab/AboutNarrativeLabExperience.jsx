@@ -604,40 +604,45 @@ function TitleField({
           </div>
         </div>
       ) : isOpener ? (
-        <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner route-title-lockup">
-          <Heading
-            id={headingId}
-            className="route-centered-page__title route-bookend-title"
-            data-primary-copy
-            data-route-enter="identity"
-            data-route-enter-order="0"
-            data-route-enter-variant="bookend-title"
-          >
-            {field.text}
-          </Heading>
-          <span
-            className="route-title-lockup__rule"
-            data-about-route-entry-rule
-            aria-hidden="true"
-          />
-          {field.description ? (
-            <p
-              id={descriptionId}
-              className="route-centered-page__description route-intro-description"
-              data-route-enter="context"
-              data-route-enter-variant="bookend-description"
+        <>
+          <div className="about-narrative-opening-copy about-narrative-spatial-fragment route-centered-page__inner route-title-lockup">
+            <Heading
+              id={headingId}
+              className="route-centered-page__title route-bookend-title"
+              data-primary-copy
+              data-route-enter="identity"
+              data-route-enter-order="0"
+              data-route-enter-variant="bookend-title"
             >
-              {field.description}
-            </p>
-          ) : null}
+              {field.text}
+            </Heading>
+            <span
+              className="route-title-lockup__rule"
+              data-about-route-entry-rule
+              aria-hidden="true"
+            />
+            {field.description ? (
+              <p
+                id={descriptionId}
+                className="route-centered-page__description route-intro-description"
+                data-route-enter="context"
+                data-route-enter-variant="bookend-description"
+              >
+                {field.description}
+              </p>
+            ) : null}
+          </div>
           <div
             className="about-narrative-opening-scroll-cue"
             data-route-enter="action"
             aria-hidden="true"
           >
-            <i className="ti ti-arrow-down about-narrative-opening-scroll-cue__icon" />
+            <span className="about-narrative-opening-scroll-cue__label">
+              Scroll
+            </span>
+            <span className="about-narrative-opening-scroll-cue__line" />
           </div>
-        </div>
+        </>
       ) : (
         <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
           {field.text}

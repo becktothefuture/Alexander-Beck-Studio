@@ -7,6 +7,7 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 import {
   getAboutNarrativeEditorialReveal,
+  getAboutNarrativeOpeningScrollCueOpacity,
 } from '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js';
 import {
   getAboutNarrativeReadingOrderRevealMetrics,
@@ -1089,6 +1090,20 @@ test('spatial title hierarchy reserves display type for the opening and finale b
   assert.match(liveSources.experience, /data-route-enter="identity"/);
   assert.match(liveSources.experience, /data-route-enter="context"/);
   assert.match(liveSources.experience, /data-route-enter="action"/);
+});
+
+test('opening scroll cue uses an editorial label and fades once scrolling begins', () => {
+  assert.match(liveSources.experience, />\s*Scroll\s*</);
+  assert.match(liveSources.experience, /about-narrative-opening-scroll-cue__line/);
+  assert.doesNotMatch(liveSources.experience, /about-narrative-opening-scroll-cue__icon/);
+  assert.match(liveSources.styles, /--about-opening-scroll-cue-opacity/);
+  assert.match(liveSources.styles, /bottom: max\(clamp\(2rem, 4svh, 2\.75rem\), env\(safe-area-inset-bottom\)\)/);
+  assert.match(liveSources.styles, /max-height: 600px[\s\S]*?about-narrative-opening-scroll-cue \{\s*display: none/);
+  assert.match(liveSources.styles, /letter-spacing: 0\.28em/);
+  assert.match(liveSources.timeline, /root\.dataset\.openingScrollCue = openingScrollCueState/);
+  assert.equal(getAboutNarrativeOpeningScrollCueOpacity(0, 1000), 1);
+  assert.equal(getAboutNarrativeOpeningScrollCueOpacity(36, 1000), 0.5);
+  assert.equal(getAboutNarrativeOpeningScrollCueOpacity(72, 1000), 0);
 });
 
 test('only the opener and finale Titles may carry supporting descriptions', () => {
