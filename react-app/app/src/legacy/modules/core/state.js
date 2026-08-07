@@ -219,7 +219,7 @@ const state = {
   // Per-mode object-count budgets by hardware class.
   // Applied as upper bounds before mobile/lite multipliers.
   modePerformanceBudgets: {
-    [MODES.PIT]: { desktop: 320, mobile: 220 },
+    [MODES.PIT]: { desktop: 320, mobile: 440 },
     [MODES.FLIES]: { desktop: 90, mobile: 64 },
     [MODES.WEIGHTLESS]: { desktop: 220, mobile: 140 },
     [MODES.WATER]: { desktop: 1800, mobile: 900 },

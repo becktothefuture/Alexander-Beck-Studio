@@ -12,6 +12,8 @@ const SHARED_MATERIAL_PATH = 'react-app/app/src/legacy/modules/rendering/materia
 const SHARED_CONFIG_PATH = 'react-app/app/src/legacy/modules/rendering/materials/simulation-body-material-config.js';
 const DESIGN_CONFIG_PATH = 'react-app/app/public/config/design-system.json';
 const BEACH_BALL_PATH = 'react-app/app/src/routes/beach-ball-room/BeachBallRoomRuntime.jsx';
+const FOUNDATION_MODE_PATH = 'react-app/app/src/legacy/modules/modes/ball-pit.js';
+const CORE_STATE_PATH = 'react-app/app/src/legacy/modules/core/state.js';
 const PROFILE_KEYS = [
   'keyLevel',
   'keyReach',
@@ -25,63 +27,112 @@ const PROFILE_KEYS = [
 const TOP_LEVEL_CONFIG_KEYS = ['enabled', 'cacheDetailPx', 'light', 'dark'];
 const CACHE_DETAIL_OPTIONS = [24, 32, 48];
 
-const canvasRendererContracts = [
-  {
-    path: 'react-app/app/src/legacy/modules/physics/engine.js',
-    imports: ['getSimulationBodyMaterialConfig', 'subscribeSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/visual/pebble-body.js',
-    imports: ['drawSimulationBodyMaterial', 'drawClippedSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/modes/3d-sphere.js',
-    imports: ['drawSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/modes/3d-cube.js',
-    imports: ['drawSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/modes/starfield-3d.js',
-    imports: ['drawSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/modes/flubber-blob.js',
-    imports: ['drawSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/legacy/modules/modes/pressure-crucible.js',
-    imports: ['drawSimulationBodyMaterial'],
-  },
-  {
-    path: 'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
-    imports: ['drawSimulationBodyMaterial', 'getSimulationBodyMaterialSprite'],
-  },
-  {
-    path: 'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
-    imports: ['drawSimulationBodyMaterial', 'getSimulationBodyMaterialSprite'],
-  },
-  {
-    path: 'react-app/app/src/routes/concept-simulations/conceptSimulationRenderer.js',
-    imports: ['drawSimulationBodyMaterial', 'getSimulationBodyMaterialSprite'],
-  },
-];
+const primaryRouteSemanticCoverage = Object.freeze({
+  Home: Object.freeze([
+    {
+      path: 'react-app/app/src/legacy/modules/physics/engine.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialConfig',
+        'prewarmSimulationBodyMaterial',
+        'subscribeSimulationBodyMaterial',
+      ],
+    },
+    {
+      path: 'react-app/app/src/legacy/modules/visual/pebble-body.js',
+      renderer: 'canvas',
+      imports: ['drawSimulationBodyMaterial', 'drawClippedSimulationBodyMaterial'],
+    },
+    ...[
+      '3d-sphere.js',
+      '3d-cube.js',
+      'starfield-3d.js',
+      'flubber-blob.js',
+      'pressure-crucible.js',
+    ].map((fileName) => ({
+      path: `react-app/app/src/legacy/modules/modes/${fileName}`,
+      renderer: 'canvas',
+      imports: ['drawSimulationBodyMaterial'],
+    })),
+    ...[
+      'react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js',
+      'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
+      'react-app/app/src/routes/concept-simulations/conceptSimulationRenderer.js',
+    ].map((path) => ({
+      path,
+      renderer: 'canvas',
+      imports: ['drawSimulationBodyMaterial', 'getSimulationBodyMaterialSprite'],
+    })),
+    ...[
+      'react-app/app/src/routes/napoleon-point-cloud/NapoleonPointCloud.jsx',
+      'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
+      BEACH_BALL_PATH,
+    ].map((path) => ({
+      path,
+      renderer: 'webgl',
+      imports: ['getSimulationBodyMaterialAtlas'],
+    })),
+    {
+      path: 'react-app/app/src/legacy/modules/ui/quote-display.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialSprite',
+        'subscribeSimulationBodyMaterial',
+      ],
+    },
+  ]),
+  'Work / Portfolio': Object.freeze([
+    {
+      path: 'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialConfig',
+        'getSimulationBodyMaterialSprite',
+        'subscribeSimulationBodyMaterial',
+      ],
+    },
+    {
+      path: 'react-app/app/src/legacy/modules/portfolio/pit-mode.js',
+      renderer: 'canvas',
+      imports: ['drawClippedSimulationBodyMaterial'],
+    },
+  ]),
+  About: Object.freeze([
+    {
+      path: 'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+      renderer: 'webgl',
+      imports: ['getSimulationBodyMaterialAtlas', 'subscribeSimulationBodyMaterial'],
+    },
+  ]),
+  'Lab / Playground': Object.freeze([
+    {
+      path: 'react-app/app/src/routes/playground/spatial/dotFieldRenderer.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialConfig',
+        'getSimulationBodyMaterialSprite',
+        'subscribeSimulationBodyMaterial',
+      ],
+    },
+  ]),
+  Contact: Object.freeze([
+    {
+      path: 'react-app/app/src/routes/contact/contactRippleRenderer.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialConfig',
+        'getSimulationBodyMaterialSprite',
+        'subscribeSimulationBodyMaterial',
+      ],
+    },
+  ]),
+});
 
-const webglRendererContracts = [
-  {
-    path: 'react-app/app/src/routes/napoleon-point-cloud/NapoleonPointCloud.jsx',
-    imports: ['getSimulationBodyMaterialAtlas'],
-  },
-  {
-    path: 'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
-    imports: ['getSimulationBodyMaterialAtlas'],
-  },
-  {
-    path: BEACH_BALL_PATH,
-    imports: ['getSimulationBodyMaterialAtlas'],
-  },
-];
+const rendererContracts = Object.entries(primaryRouteSemanticCoverage).flatMap(
+  ([route, contracts]) => contracts.map((contract) => ({ ...contract, route })),
+);
+const canvasRendererContracts = rendererContracts.filter(({ renderer }) => renderer === 'canvas');
+const webglRendererContracts = rendererContracts.filter(({ renderer }) => renderer === 'webgl');
 
 const allowedCanvasGradientOwners = new Map([
   ['react-app/app/src/routes/flock-of-birds/flockOfBirdsRenderer.js', [
@@ -89,6 +140,9 @@ const allowedCanvasGradientOwners = new Map([
   ]],
   ['react-app/app/src/routes/repel-room/repelRoomRenderer.js', [
     { owner: 'drawState', before: /\bconst materialTheme\b/ },
+  ]],
+  ['react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js', [
+    { owner: 'buildMaskGradient' },
   ]],
 ]);
 
@@ -188,13 +242,199 @@ function assertRendererAdoption(contract) {
   }
 }
 
+function assertRequiredSourcePatterns(relativePath, requirements) {
+  const source = readSource(relativePath);
+  if (!source) return;
+  for (const { label, pattern } of requirements) {
+    pattern.lastIndex = 0;
+    if (!pattern.test(source)) {
+      addFailure(`${relativePath}: ${label}`);
+    }
+  }
+}
+
+function assertPrimaryRouteSemanticContracts() {
+  const expectedRoutes = ['Home', 'Work / Portfolio', 'About', 'Lab / Playground', 'Contact'];
+  if (JSON.stringify(Object.keys(primaryRouteSemanticCoverage)) !== JSON.stringify(expectedRoutes)) {
+    addFailure('primary route sphere coverage must explicitly include Home, Work / Portfolio, About, Lab / Playground, and Contact');
+  }
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/legacy/modules/physics/engine.js',
+    [
+      {
+        label: 'Home legacy bodies must prewarm the active palette outside the render loop',
+        pattern: /function\s+prewarmSharedMaterialPalette[\s\S]{0,520}?prewarmSimulationBodyMaterial\s*\(\s*colors/,
+      },
+      {
+        label: 'Home legacy material invalidation must immediately prewarm the current palette',
+        pattern: /subscribeSimulationBodyMaterial\s*\([\s\S]{0,240}?prewarmSharedMaterialThemes\s*\(\s*\)/,
+      },
+      {
+        label: 'Home legacy palette changes must prewarm before ordinary body frames',
+        pattern: /subscribeSimulationPalette\s*\([\s\S]{0,180}?prewarmSharedMaterialThemes\s*\(\s*\)/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/legacy/modules/ui/quote-display.js',
+    [
+      {
+        label: 'Home quote puck must request a shared cached sphere sprite',
+        pattern: /\bconst\s+sprite\s*=\s*getSimulationBodyMaterialSprite\s*\(/,
+      },
+      {
+        label: 'Home quote puck must draw the shared sprite Canvas',
+        pattern: /\bcontext\.drawImage\s*\(\s*sprite\.canvas\b/,
+      },
+      {
+        label: 'Home quote puck flat fill must be guarded by a missing shared sprite',
+        pattern: /if\s*\(\s*!sprite\?\.canvas\s*\)\s*\{[\s\S]{0,260}?ballFinish\s*=\s*['"]flat-fill['"][\s\S]{0,100}?\breturn\b/,
+      },
+      {
+        label: 'Home quote puck must expose cached-sphere-sticker after a successful draw',
+        pattern: /ballFinish\s*=\s*['"]cached-sphere-sticker['"]/,
+      },
+      {
+        label: 'Home quote puck must rebuild its cached material when the shared palette changes',
+        pattern: /paletteChangedCleanup\s*=\s*subscribeSimulationPalette\s*\(\s*syncQuoteMaterial\s*\)/,
+      },
+      {
+        label: 'Home quote puck must release its palette subscription on route teardown',
+        pattern: /paletteChangedCleanup\?\.\(\s*\);[\s\S]{0,80}?paletteChangedCleanup\s*=\s*null/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
+    [
+      {
+        label: 'Portfolio speed field must cache shared sprites for the active palette',
+        pattern: /bodyMaterialSprites\s*=\s*this\.bodyMaterialEnabled\s*\?[\s\S]{0,180}?\.map\(\s*\(color\)\s*=>\s*getSimulationBodyMaterialSprite\s*\(/,
+      },
+      {
+        label: 'Portfolio speed field must guard sphere drawing with enabled, populated shared sprites',
+        pattern: /const\s+materialEnabled\s*=\s*this\.bodyMaterialEnabled\s*&&\s*this\.bodyMaterialSprites\.length\s*>\s*0/,
+      },
+      {
+        label: 'Portfolio speed field must draw shared sprite Canvases when material is available',
+        pattern: /if\s*\(materialEnabled\)\s*\{[\s\S]{0,1200}?\.drawImage\s*\([\s\S]{0,100}?sprite\.canvas/,
+      },
+      {
+        label: 'Portfolio speed field flat circles must remain the guarded material fallback',
+        pattern: /if\s*\(materialEnabled\)\s*\{[\s\S]{0,1800}?\}\s*else\s*\{[\s\S]{0,1000}?\.arc\s*\(/,
+      },
+      {
+        label: 'Portfolio speed field must identify cached and flat fallback finishes',
+        pattern: /portfolioParticleFinish\s*=\s*materialEnabled\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/legacy/modules/portfolio/pit-mode.js',
+    [
+      {
+        label: 'Portfolio pit fallback must render its pebble path through the shared clipped material API',
+        pattern: /const\s+materialDrawn\s*=\s*drawClippedSimulationBodyMaterial\s*\(/,
+      },
+      {
+        label: 'Portfolio pit flat pebble fill must be guarded by a failed shared material draw',
+        pattern: /if\s*\(\s*!materialDrawn\s*\)\s*\{[\s\S]{0,320}?fillStyle\s*=\s*ball\.color[\s\S]{0,220}?\.fill\s*\(\s*\)/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+    [
+      {
+        label: 'About discipline balls must request the shared material atlas',
+        pattern: /\bgetSimulationBodyMaterialAtlas\s*\(\s*materialColors\b/,
+      },
+      {
+        label: 'About discipline balls must upload the shared atlas Canvas to WebGL',
+        pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)/,
+      },
+      {
+        label: 'About must sample the atlas only for revealed semantic discipline balls',
+        pattern: /uUseMaterialAtlas\s*>\s*0\.5\s*&&\s*pointRevealWeight\s*>\s*0\.001[\s\S]{0,520}?texture2D\s*\(\s*uMaterialAtlas\b/,
+      },
+      {
+        label: 'About generic point material must remain the guarded flat fallback',
+        pattern: /if\s*\(uUseMaterialAtlas[\s\S]{0,900}?\breturn;[\s\S]{0,180}?gl_FragColor\s*=\s*vec4\(pointTint\b/,
+      },
+      {
+        label: 'About must identify cached and flat discipline finishes',
+        pattern: /aboutDisciplineBallFinish\s*=\s*nextAtlas\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/routes/playground/spatial/dotFieldRenderer.js',
+    [
+      {
+        label: 'Playground active wake must cache shared sprites for the active palette',
+        pattern: /bodyMaterialSprites\s*=\s*bodyMaterialEnabled\s*\?[\s\S]{0,160}?\.map\(\s*\(color\)\s*=>\s*getSimulationBodyMaterialSprite\s*\(/,
+      },
+      {
+        label: 'Playground active wake must draw the shared sprite when it is available',
+        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,420}?\.drawImage\s*\([\s\S]{0,100}?materialSprite\.canvas/,
+      },
+      {
+        label: 'Playground active wake flat circles must remain the guarded missing-sprite fallback',
+        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,700}?\bcontinue;[\s\S]{0,320}?\.arc\s*\(/,
+      },
+      {
+        label: 'Playground neutral resting grid must remain an excluded direct flat fill',
+        pattern: /fillStyle\s*=\s*neutralColor;[\s\S]{0,180}?drawNeutralDots\s*\(/,
+      },
+      {
+        label: 'Playground diagnostics must distinguish cached active balls from flat fallback',
+        pattern: /activeBallFinish:\s*bodyMaterialSprites\.length\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/routes/contact/contactRippleRenderer.js',
+    [
+      {
+        label: 'Contact ripple balls must request the shared cached sphere sprite',
+        pattern: /\bconst\s+material\s*=\s*getSimulationBodyMaterialSprite\s*\(/,
+      },
+      {
+        label: 'Contact ripple balls must draw the shared sprite Canvas when it is available',
+        pattern: /if\s*\(material\?\.canvas\)\s*\{[\s\S]{0,260}?\.drawImage\s*\([\s\S]{0,100}?material\.canvas/,
+      },
+      {
+        label: 'Contact flat circles must remain the guarded missing-sprite fallback',
+        pattern: /if\s*\(material\?\.canvas\)\s*\{[\s\S]{0,420}?\breturn\s+sprite;[\s\S]{0,180}?\.arc\s*\(/,
+      },
+      {
+        label: 'Contact frame drawing must use the cached local sprite instead of rebuilding ball shading',
+        pattern: /function\s+drawBall\s*\([\s\S]{0,360}?\.drawImage\s*\(\s*sprite\b/,
+      },
+      {
+        label: 'Contact must identify cached and flat fallback finishes',
+        pattern: /contactRippleBallFinish\s*=\s*bodyMaterialEnabled\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
+      },
+    ],
+  );
+}
+
 function nearestDeclaredFunctionName(source, index) {
   const prefix = source.slice(0, index);
-  const pattern = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g;
+  const pattern = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|^\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^;{}]*\)\s*\{/gm;
+  const controlKeywords = new Set(['if', 'for', 'while', 'switch', 'catch']);
   let nearest = null;
   let match = pattern.exec(prefix);
   while (match) {
-    nearest = match[1];
+    const name = match[1] || match[2];
+    if (!controlKeywords.has(name)) nearest = name;
     match = pattern.exec(prefix);
   }
   return nearest;
@@ -419,6 +659,23 @@ function assertSharedBakerContract() {
   if (!/\bspriteCache\b/.test(materialSource) || !/\batlasCache\b/.test(materialSource)) {
     addFailure(`${SHARED_MATERIAL_PATH}: shared baker must retain sprite and atlas caches`);
   }
+  if (!/\bMAX_SPHERE_CHROMA_SCALE\s*=\s*1\s*;/.test(materialSource)) {
+    addFailure(`${SHARED_MATERIAL_PATH}: sphere lighting must not amplify canonical palette chroma`);
+  }
+  if (!/\bMAX_SPHERE_HUE_SHIFT_DEGREES\s*=\s*1\.5\s*;/.test(materialSource)) {
+    addFailure(`${SHARED_MATERIAL_PATH}: sphere lighting hue drift must remain capped at 1.5 degrees`);
+  }
+}
+
+function assertFoundationMobileDensityContract() {
+  const modeSource = readSource(FOUNDATION_MODE_PATH);
+  const stateSource = readSource(CORE_STATE_PATH);
+  if (!/\bFOUNDATION_MOBILE_COUNT_MULTIPLIER\s*=\s*2\s*;/.test(modeSource)) {
+    addFailure(`${FOUNDATION_MODE_PATH}: mobile Foundation must request twice the base body count`);
+  }
+  if (!/\[MODES\.PIT\]\s*:\s*\{\s*desktop:\s*320,\s*mobile:\s*440\s*\}/.test(stateSource)) {
+    addFailure(`${CORE_STATE_PATH}: the mobile Foundation budget must allow the doubled body field`);
+  }
 }
 
 function preserveOpacityAndMaterialContracts() {
@@ -480,11 +737,13 @@ function preserveOpacityAndMaterialContracts() {
 const sourceFiles = walkSourceFiles(resolve(root, 'react-app/app/src'));
 assertSingleSharedModulePaths(sourceFiles);
 assertSharedBakerContract();
+assertFoundationMobileDensityContract();
 await assertConfigContract();
 
 for (const contract of [...canvasRendererContracts, ...webglRendererContracts]) {
   assertRendererAdoption(contract);
 }
+assertPrimaryRouteSemanticContracts();
 for (const { path: relativePath } of canvasRendererContracts) {
   assertNoPerBodyCanvasEffects(relativePath);
 }

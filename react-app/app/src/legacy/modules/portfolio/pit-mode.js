@@ -7,6 +7,7 @@ import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
+import { drawClippedSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { resolvePortfolioLabelContent } from './portfolio-content.js';
 
@@ -34,6 +35,13 @@ const PORTFOLIO_HOVER_SCALE = 1.05;
 const PORTFOLIO_HOVER_SPEED_IN = 8;
 const PORTFOLIO_HOVER_SPEED_OUT = 5;
 const MOBILE_TYPE_SCALE = 0.9;
+const portfolioMaterialPathScratch = {
+  ball: null,
+  radius: 0,
+  rotationRad: 0,
+  x: 0,
+  y: 0,
+};
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
@@ -62,7 +70,7 @@ function getContrastText(fill) {
       : Math.pow((normalized + 0.055) / 1.055, 2.4);
   };
   const luminance = (0.2126 * channel(r)) + (0.7152 * channel(g)) + (0.0722 * channel(b));
-  return luminance > 0.42 ? "var(--color-detected-111111)" : "var(--color-detected-f5f1ea)";
+  return luminance > 0.42 ? '#111111' : '#f5f1ea';
 }
 
 function getReadableLabelRotation(rotationRad) {
@@ -206,6 +214,15 @@ function appendPebbleBodyPath(ctx, ball, radius) {
   ctx.closePath();
 }
 
+function appendPortfolioMaterialPath(ctx) {
+  const scratch = portfolioMaterialPathScratch;
+  ctx.save();
+  ctx.translate(scratch.x, scratch.y);
+  if (scratch.rotationRad !== 0) ctx.rotate(scratch.rotationRad);
+  appendPebbleBodyPath(ctx, scratch.ball, scratch.radius);
+  ctx.restore();
+}
+
 function storePortfolioSeedMetrics(ball, width, height, radius) {
   ball._portfolioSeedCanvasWidth = width;
   ball._portfolioSeedCanvasHeight = height;
@@ -220,7 +237,7 @@ function isDocumentDarkMode() {
 
 /** First project circle: light fill on dark UI, dark fill on light UI. */
 export function getPortfolioAccentCircleFill() {
-  return isDocumentDarkMode() ? "var(--color-detected-f5f1ea)" : "var(--color-detected-111111)";
+  return isDocumentDarkMode() ? '#f5f1ea' : '#111111';
 }
 
 export function applyPortfolioAccentBallColor(ball) {
@@ -536,12 +553,28 @@ function renderProjectBody(ctx, ball, isHovered) {
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(x, y);
-  ctx.rotate(rot);
-  ctx.fillStyle = ball.color;
-  ctx.beginPath();
-  appendPebbleBodyPath(ctx, ball, drawR);
-  ctx.fill();
+  portfolioMaterialPathScratch.ball = ball;
+  portfolioMaterialPathScratch.radius = drawR;
+  portfolioMaterialPathScratch.rotationRad = rot;
+  portfolioMaterialPathScratch.x = x;
+  portfolioMaterialPathScratch.y = y;
+  const materialDrawn = drawClippedSimulationBodyMaterial(
+    ctx,
+    ball.color,
+    x,
+    y,
+    drawR,
+    appendPortfolioMaterialPath,
+    isDocumentDarkMode() ? 'dark' : 'light',
+  );
+  if (!materialDrawn) {
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.fillStyle = ball.color;
+    ctx.beginPath();
+    appendPebbleBodyPath(ctx, ball, drawR);
+    ctx.fill();
+  }
   ctx.restore();
 
 }

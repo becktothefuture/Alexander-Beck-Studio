@@ -6,6 +6,12 @@
 import { getState } from '../core/state.js';
 import { NARRATIVE_QUOTES } from '../core/constants.js';
 import { destroyQuotePuck } from './quote-puck.js';
+import {
+  getSimulationBodyMaterialSprite,
+  subscribeSimulationBodyMaterial,
+} from '../rendering/materials/simulation-body-material.js';
+import { THEME_CHANGE_EVENT } from '../../../lib/theme-state.js';
+import { subscribeSimulationPalette } from '../../../palette/simulationPaletteController.js';
 
 let quoteContainer = null;
 let contentWrapper = null;
@@ -13,9 +19,42 @@ let quoteTextEl = null;
 let quoteAuthorEl = null;
 let isAnimating = false;
 let modeChangedHandler = null;
+let materialChangedCleanup = null;
+let paletteChangedCleanup = null;
+let themeChangedHandler = null;
 
 const ANIM_DURATION = 320;
 const QUOTE_END_SYMBOL = ' ⁕';
+
+function getQuoteMaterialTheme() {
+  return document.documentElement?.classList?.contains('dark-mode')
+    || document.body?.classList?.contains('dark-mode')
+    ? 'dark'
+    : 'light';
+}
+
+function syncQuoteMaterial() {
+  const disk = quoteContainer?.querySelector?.('.quote-display__disk');
+  const canvas = disk?.querySelector?.('.quote-display__material');
+  if (!disk || !canvas) return;
+  const context = canvas.getContext('2d', { alpha: true });
+  if (!context) return;
+  const color = getComputedStyle(disk).backgroundColor || '#808080';
+  const sprite = getSimulationBodyMaterialSprite(color, { theme: getQuoteMaterialTheme() });
+  if (!sprite?.canvas) {
+    canvas.hidden = true;
+    canvas.style.display = 'none';
+    disk.dataset.ballFinish = 'flat-fill';
+    return;
+  }
+  canvas.width = sprite.detail;
+  canvas.height = sprite.detail;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(sprite.canvas, 0, 0, canvas.width, canvas.height);
+  canvas.hidden = false;
+  canvas.style.display = 'block';
+  disk.dataset.ballFinish = 'cached-sphere-sticker';
+}
 
 function getQuoteMountParent() {
   return (
@@ -70,6 +109,17 @@ function createQuoteElement() {
   const disk = document.createElement('div');
   disk.className = 'quote-display__disk';
   disk.setAttribute('aria-hidden', 'true');
+  const materialCanvas = document.createElement('canvas');
+  materialCanvas.className = 'quote-display__material';
+  materialCanvas.setAttribute('aria-hidden', 'true');
+  Object.assign(materialCanvas.style, {
+    display: 'block',
+    width: '100%',
+    height: '100%',
+    borderRadius: 'inherit',
+    pointerEvents: 'none',
+  });
+  disk.appendChild(materialCanvas);
 
   // Create content wrapper for animations (sibling of disk — hover scale only affects disk)
   contentWrapper = document.createElement('div');
@@ -156,6 +206,14 @@ export function destroyQuoteDisplay() {
     window.removeEventListener('bb:modeChanged', modeChangedHandler);
     modeChangedHandler = null;
   }
+  materialChangedCleanup?.();
+  materialChangedCleanup = null;
+  paletteChangedCleanup?.();
+  paletteChangedCleanup = null;
+  if (themeChangedHandler) {
+    window.removeEventListener(THEME_CHANGE_EVENT, themeChangedHandler);
+    themeChangedHandler = null;
+  }
   document.getElementById('quote-display')?.remove();
   document.getElementById('quote-viewport-layer')?.remove();
   quoteContainer = null;
@@ -174,6 +232,11 @@ export function initQuoteDisplay() {
   if (getState().quotePuckEnabled === false) return;
 
   createQuoteElement();
+  syncQuoteMaterial();
+  materialChangedCleanup = subscribeSimulationBodyMaterial(syncQuoteMaterial);
+  paletteChangedCleanup = subscribeSimulationPalette(syncQuoteMaterial);
+  themeChangedHandler = syncQuoteMaterial;
+  window.addEventListener(THEME_CHANGE_EVENT, themeChangedHandler);
 
   // Set initial quote based on current mode (no animation)
   const state = getState();

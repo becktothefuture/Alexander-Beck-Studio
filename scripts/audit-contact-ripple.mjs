@@ -161,6 +161,7 @@ async function readRippleState(page) {
       coreFadeRadius: Number(stage?.dataset.contactRippleCoreFadeRadius || 0),
       burstRelease: stage?.dataset.contactRippleBurstRelease || '',
       ballFinish: stage?.dataset.contactRippleBallFinish || '',
+      bodyMaterialEnabled: window.__ABS_SIMULATION_BODY_MATERIAL__?.getConfig?.().enabled === true,
       pointerMode: stage?.dataset.contactRipplePointerMode || '',
       ringDirections: stage?.dataset.contactRippleRingDirections || '',
       pointerMaxDegrees: Number(stage?.dataset.contactRipplePointerMaxDegrees || 0),
@@ -262,7 +263,11 @@ function assertLayout(state, viewport) {
     state,
   );
   assert(state.burstOrigin === 'center', 'Contact ripple burst is not configured to originate from the Contact field center', state);
-  assert(state.ballFinish === 'flat-fill', 'Contact balls still expose a shaded rim treatment', state);
+  assert(
+    state.ballFinish === (state.bodyMaterialEnabled ? 'cached-sphere-sticker' : 'flat-fill'),
+    'Contact balls do not match the enabled shared sphere-material state',
+    state,
+  );
   assert(state.pointerMode === 'autonomous-drift', 'Contact pointer influence is still active', state);
   assert(state.ringDirections === 'alternating', 'Contact rings do not counter-rotate', state);
   assert(state.pointerMaxDegrees === 0, 'Contact pointer rotation range is still enabled', state);

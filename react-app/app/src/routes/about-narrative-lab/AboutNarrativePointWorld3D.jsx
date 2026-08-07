@@ -52,10 +52,15 @@ import {
   registerSimulationAtmosphereSource,
   tickSimulationAtmosphere,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import {
+  getSimulationBodyMaterialAtlas,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
+import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import {
   resolveSimulationColorDistribution,
 } from '../../palette/simulationPaletteContract.js';
@@ -67,6 +72,7 @@ import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-re
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
 const MATERIAL_SLOT_COUNT = 6;
+const DISCIPLINE_WHITE_ATLAS_INDEX = MATERIAL_SLOT_COUNT;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 let nextRuntimeInstanceId = 1;
 let nextGeometryInstanceId = 1;
@@ -250,6 +256,13 @@ const VERTEX_SHADER = `
   uniform vec3 materialColor6;
   uniform vec3 disciplineWhiteColor;
   uniform vec3 disciplineBackgroundColor;
+  uniform float materialSlot1;
+  uniform float materialSlot2;
+  uniform float materialSlot3;
+  uniform float materialSlot4;
+  uniform float materialSlot5;
+  uniform float materialSlot6;
+  uniform float disciplineWhiteMaterialSlot;
   uniform float materialThreshold1;
   uniform float materialThreshold2;
   uniform float materialThreshold3;
@@ -258,6 +271,8 @@ const VERTEX_SHADER = `
   varying float pointAlpha;
   varying float pointRevealWeight;
   varying vec3 pointTint;
+  varying vec3 pointMaterialBaseColor;
+  varying float pointMaterialSlot;
 
   vec3 rotateY(vec3 value, float angle) {
     float sine = sin(angle);
@@ -348,6 +363,15 @@ const VERTEX_SHADER = `
     return materialColor6;
   }
 
+  float materialSlot(float seed) {
+    if (seed < materialThreshold1) return materialSlot1;
+    if (seed < materialThreshold2) return materialSlot2;
+    if (seed < materialThreshold3) return materialSlot3;
+    if (seed < materialThreshold4) return materialSlot4;
+    if (seed < materialThreshold5) return materialSlot5;
+    return materialSlot6;
+  }
+
   vec3 disciplineMaterialColor(float group) {
     if (group < 1.5) return materialColor1;
     if (group < 2.5) return materialColor2;
@@ -355,6 +379,15 @@ const VERTEX_SHADER = `
     if (group < 4.5) return materialColor4;
     if (group < 5.5) return materialColor5;
     return materialColor6;
+  }
+
+  float disciplineMaterialSlot(float group) {
+    if (group < 1.5) return materialSlot1;
+    if (group < 2.5) return materialSlot2;
+    if (group < 3.5) return disciplineWhiteMaterialSlot;
+    if (group < 4.5) return materialSlot4;
+    if (group < 5.5) return materialSlot5;
+    return materialSlot6;
   }
 
   float disciplineRevealForGroup(float group) {
@@ -633,6 +666,8 @@ const VERTEX_SHADER = `
     float materialSeed = fract((pointSeed * 43.713) + 0.271);
     vec3 baseColor = materialColor(materialSeed);
     vec3 livingColor = materialColor(fract((materialSeed * 3.17) + 0.37));
+    pointMaterialBaseColor = baseColor;
+    pointMaterialSlot = materialSlot(materialSeed);
     pointTint = mix(
       baseColor,
       livingColor,
@@ -646,6 +681,10 @@ const VERTEX_SHADER = `
       disciplineMaterialColor(group),
       revealedGroupWeight
     );
+    if (revealedGroupWeight > 0.001) {
+      pointMaterialBaseColor = disciplineMaterialColor(group);
+      pointMaterialSlot = disciplineMaterialSlot(group);
+    }
 
     worldPoint += resolveParametricPath(globalMorph);
     float planeProgress = resolvePlaneProgress(globalMorph);
@@ -752,9 +791,32 @@ const VERTEX_SHADER = `
 
 const FRAGMENT_SHADER = `
   uniform float fieldOpacity;
+  uniform float uUseMaterialAtlas;
+  uniform sampler2D uMaterialAtlas;
+  uniform float uMaterialAtlasCellScale;
+  uniform vec2 uMaterialAtlasInset;
+  uniform vec2 uMaterialAtlasSpriteScale;
   varying float pointAlpha;
   varying float pointRevealWeight;
   varying vec3 pointTint;
+  varying vec3 pointMaterialBaseColor;
+  varying float pointMaterialSlot;
+
+  vec3 transferMaterialDepth(vec3 materialSample, vec3 baseColor, vec3 tint) {
+    const vec3 lightnessWeights = vec3(0.2126, 0.7152, 0.0722);
+    float materialLightness = dot(materialSample, lightnessWeights);
+    float baseLightness = dot(baseColor, lightnessWeights);
+    vec3 materialChroma = materialSample - vec3(materialLightness);
+    vec3 baseChroma = baseColor - vec3(baseLightness);
+    return clamp(
+      tint
+        + vec3(materialLightness - baseLightness)
+        + materialChroma
+        - baseChroma,
+      0.0,
+      1.0
+    );
+  }
 
   void main() {
     vec2 center = gl_PointCoord - vec2(0.5);
@@ -762,6 +824,23 @@ const FRAGMENT_SHADER = `
     if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
     float resolvedFieldOpacity = mix(fieldOpacity, 1.0, pointRevealWeight);
+    if (uUseMaterialAtlas > 0.5 && pointRevealWeight > 0.001) {
+      vec2 atlasUv = vec2(
+        pointMaterialSlot * uMaterialAtlasCellScale
+          + uMaterialAtlasInset.x
+          + gl_PointCoord.x * uMaterialAtlasSpriteScale.x,
+        uMaterialAtlasInset.y + gl_PointCoord.y * uMaterialAtlasSpriteScale.y
+      );
+      vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
+      if (materialSample.a <= 0.0) discard;
+      gl_FragColor = vec4(
+        transferMaterialDepth(materialSample.rgb, pointMaterialBaseColor, pointTint),
+        resolvedFieldOpacity * pointAlpha * materialSample.a
+      );
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+      return;
+    }
     gl_FragColor = vec4(pointTint, resolvedFieldOpacity * pointAlpha * edge);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -790,23 +869,62 @@ function getMaterialDistribution(snapshot = getSimulationPaletteSnapshot()) {
 function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSnapshot()) {
   const distribution = getMaterialDistribution(snapshot);
   const palette = snapshot.colors;
+  const materialColors = [];
   const weights = distribution.map((row) => Number(row.weight));
   const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
   let cumulative = 0;
   distribution.forEach((row, index) => {
     const colorIndex = Math.max(0, Math.min(7, Math.floor(Number(row.colorIndex) || 0)));
     const color = palette[colorIndex] || palette[0] || '#ffffff';
+    materialColors.push(color);
     uniforms[`materialColor${index + 1}`].value.setStyle(color);
     cumulative += weights[index] / total;
     if (index < MATERIAL_SLOT_COUNT - 1) {
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
-  uniforms.disciplineBackgroundColor.value.setStyle(
-    readColorToken(styles, '--text-muted', '#8b8f92'),
+  const disciplineBackgroundColor = readColorToken(styles, '--text-muted', '#8b8f92');
+  const disciplineWhiteColor = readColorToken(styles, '--about-discipline-white', '#ffffff');
+  uniforms.disciplineBackgroundColor.value.setStyle(disciplineBackgroundColor);
+  uniforms.disciplineWhiteColor.value.setStyle(disciplineWhiteColor);
+  materialColors[DISCIPLINE_WHITE_ATLAS_INDEX] = disciplineWhiteColor;
+  return materialColors;
+}
+
+function createSimulationBodyAtlasTexture(atlas) {
+  const texture = new THREE.CanvasTexture(atlas.canvas);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.premultiplyAlpha = false;
+  if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function syncSimulationBodyAtlasSlots(uniforms, atlas, colors) {
+  for (let index = 0; index < MATERIAL_SLOT_COUNT; index += 1) {
+    uniforms[`materialSlot${index + 1}`].value = atlas?.getSlot(colors[index]) ?? 0;
+  }
+  uniforms.disciplineWhiteMaterialSlot.value = atlas?.getSlot(
+    colors[DISCIPLINE_WHITE_ATLAS_INDEX],
+  ) ?? 0;
+}
+
+function applySimulationBodyAtlas(material, atlas, texture) {
+  material.uniforms.uUseMaterialAtlas.value = atlas && texture ? 1 : 0;
+  material.uniforms.uMaterialAtlas.value = texture;
+  if (!atlas) return;
+  material.uniforms.uMaterialAtlasCellScale.value = atlas.cellStridePx / atlas.widthPx;
+  material.uniforms.uMaterialAtlasInset.value.set(
+    atlas.gutterPx / atlas.widthPx,
+    atlas.gutterPx / atlas.heightPx,
   );
-  uniforms.disciplineWhiteColor.value.setStyle(
-    readColorToken(styles, '--about-discipline-white', '#ffffff'),
+  material.uniforms.uMaterialAtlasSpriteScale.value.set(
+    atlas.detailPx / atlas.widthPx,
+    atlas.detailPx / atlas.heightPx,
   );
 }
 
@@ -1121,12 +1239,24 @@ function createPointFieldAdapter({
     materialColor6: { value: new THREE.Color() },
     disciplineWhiteColor: { value: new THREE.Color('#ffffff') },
     disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
+    materialSlot1: { value: 0 },
+    materialSlot2: { value: 0 },
+    materialSlot3: { value: 0 },
+    materialSlot4: { value: 0 },
+    materialSlot5: { value: 0 },
+    materialSlot6: { value: 0 },
+    disciplineWhiteMaterialSlot: { value: 0 },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
     materialThreshold3: { value: 0.60 },
     materialThreshold4: { value: 0.80 },
     materialThreshold5: { value: 0.90 },
     fieldOpacity: { value: 0.96 },
+    uUseMaterialAtlas: { value: 0 },
+    uMaterialAtlas: { value: null },
+    uMaterialAtlasCellScale: { value: 1 },
+    uMaterialAtlasInset: { value: new THREE.Vector2() },
+    uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
   };
   const modifierUniformTargets = Object.freeze({
     from: Object.freeze({
@@ -1233,6 +1363,8 @@ function createPointFieldAdapter({
   let height = 1;
   let latestFrame = null;
   let routeMaterialOnly = false;
+  let materialAtlasKey = '';
+  let materialAtlasTexture = null;
   const atmosphereEligible = Boolean(document.getElementById('simulation-atmosphere-glow-canvas'));
   let atmosphereSourceCleanup = null;
   let atmosphereSourceKind = '';
@@ -1450,7 +1582,22 @@ function createPointFieldAdapter({
   const updateTheme = () => {
     const styles = getComputedStyle(root);
     const snapshot = getSimulationPaletteSnapshot();
-    syncMaterialPalette(uniforms, styles, snapshot);
+    const materialColors = syncMaterialPalette(uniforms, styles, snapshot);
+    const materialTheme = isDarkThemeDocument(root.ownerDocument) ? 'dark' : 'light';
+    const nextAtlas = getSimulationBodyMaterialAtlas(materialColors, { theme: materialTheme });
+    const nextAtlasKey = nextAtlas?.key || 'flat';
+    syncSimulationBodyAtlasSlots(uniforms, nextAtlas, materialColors);
+    if (nextAtlasKey !== materialAtlasKey) {
+      const previousTexture = materialAtlasTexture;
+      const nextTexture = nextAtlas ? createSimulationBodyAtlasTexture(nextAtlas) : null;
+      materialAtlasKey = nextAtlasKey;
+      materialAtlasTexture = nextTexture;
+      applySimulationBodyAtlas(material, nextAtlas, nextTexture);
+      previousTexture?.dispose();
+    }
+    root.dataset.aboutDisciplineBallFinish = nextAtlas
+      ? 'cached-sphere-sticker'
+      : 'flat-fill';
     root.dataset.simulationPaletteGeneration = String(snapshot.generation);
     root.dataset.simulationPaletteId = snapshot.paletteId;
   };
@@ -2543,6 +2690,7 @@ function createPointFieldAdapter({
     root.dataset.pointWorldState = 'ready';
     resize();
     updateTheme();
+    if (materialAtlasTexture) materialAtlasTexture.needsUpdate = true;
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
     });
@@ -2574,6 +2722,7 @@ function createPointFieldAdapter({
   window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
   resize();
   updateTheme();
+  const unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial(updateTheme);
   const rendererPreparationStartedAt = performance.now();
   const markRendererPrepared = () => {
     if (disposed || !contextAvailable || rendererPrepared) return;
@@ -2745,12 +2894,15 @@ function createPointFieldAdapter({
     canvas.removeEventListener('webglcontextlost', handleContextLost);
     canvas.removeEventListener('webglcontextrestored', handleContextRestored);
     unsubscribePalette();
+    unsubscribeSimulationBodyMaterial();
     window.removeEventListener('abs:theme-changed', updateTheme);
     window.removeEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
     unregisterRouteMaterialParticipant();
     routeMaterial.destroy({ settleTargets: false });
     geometry.dispose();
     material.dispose();
+    materialAtlasTexture?.dispose();
+    materialAtlasTexture = null;
     renderer.dispose();
     if (cameraFocusAnchor) {
       scene.remove(cameraFocusAnchor.object);
@@ -2797,6 +2949,7 @@ function createPointFieldAdapter({
     delete root.dataset.worldDisciplineFormationRow;
     delete root.dataset.worldGridBackground;
     delete root.dataset.worldVisibility;
+    delete root.dataset.aboutDisciplineBallFinish;
     root.style.removeProperty('--narrative-bust-yaw');
   };
 }

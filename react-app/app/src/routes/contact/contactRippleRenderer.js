@@ -14,6 +14,11 @@ import {
   TRANSITION_PHASES,
 } from '../../lib/transition-phase.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
+import {
+  getSimulationBodyMaterialConfig,
+  getSimulationBodyMaterialSprite,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
 const REDUCED_BURST_MS = 620;
@@ -65,7 +70,7 @@ function getDiagnostics() {
   return window.__ABS_CONTACT_RIPPLE_DIAGNOSTICS__;
 }
 
-function createBallSprite(color) {
+function createBallSprite(color, materialTheme = 'light') {
   const size = 64;
   const center = size * 0.5;
   const radius = 27;
@@ -74,6 +79,18 @@ function createBallSprite(color) {
   sprite.height = size;
   const context = sprite.getContext('2d');
   if (!context) return sprite;
+
+  const material = getSimulationBodyMaterialSprite(color, { theme: materialTheme });
+  if (material?.canvas) {
+    context.drawImage(
+      material.canvas,
+      center - radius,
+      center - radius,
+      radius * 2,
+      radius * 2,
+    );
+    return sprite;
+  }
 
   context.fillStyle = color;
   context.beginPath();
@@ -97,16 +114,18 @@ function resolveMaterialSequence(theme, paletteLength) {
 
 function createSpriteSet(theme) {
   const palette = resolvePalette(theme);
+  const materialTheme = theme?.isDark ? 'dark' : 'light';
   const confirmationColor = palette[CONFIRMATION_PALETTE_INDEX]
     || palette[palette.length - 1]
     || '#ffffff';
   return {
     key: getThemeKey(theme, palette),
+    materialTheme,
     palette,
     sequence: resolveMaterialSequence(theme, palette.length),
-    sprites: palette.map(createBallSprite),
+    sprites: palette.map((color) => createBallSprite(color, materialTheme)),
     confirmationColor,
-    confirmationSprite: createBallSprite(confirmationColor),
+    confirmationSprite: createBallSprite(confirmationColor, materialTheme),
   };
 }
 
@@ -118,7 +137,7 @@ function getThemeKey(theme, resolvedPalette = resolvePalette(theme)) {
   const distributionKey = distribution
     .map((role) => `${Number(role?.colorIndex) || 0}:${Number(role?.weight) || 0}`)
     .join(',');
-  return `${resolvedPalette.join('|')}::${distributionKey}`;
+  return `${theme?.isDark ? 'dark' : 'light'}::${resolvedPalette.join('|')}::${distributionKey}`;
 }
 
 function getQuietZone(canvas, element) {
@@ -196,6 +215,15 @@ export function createContactRippleRenderer({
   let lastMotionFrameAt = 0;
   let driftRotation = 0;
   let routeEntrance = null;
+  let bodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
+  const unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial((materialConfig) => {
+    if (destroyed) return;
+    bodyMaterialEnabled = materialConfig.enabled;
+    spriteSet = createSpriteSet(getTheme?.());
+    spriteBuildCount += 1;
+    needsRender = true;
+    requestFrame();
+  });
 
   stage.dataset.contactRippleState = reducedMotion ? 'reduced-idle' : 'idle';
   stage.dataset.contactRippleBurstCount = '0';
@@ -337,7 +365,9 @@ export function createContactRippleRenderer({
     stage.dataset.contactRippleCoreFadeRadius = metrics.coreFadeEnd.toFixed(2);
     stage.dataset.mobileSimulationBodyScale = metrics.mobileSimulationBodyScale.toFixed(2);
     stage.dataset.contactRippleBurstRelease = 'smoothstep-tail';
-    stage.dataset.contactRippleBallFinish = 'flat-fill';
+    stage.dataset.contactRippleBallFinish = bodyMaterialEnabled
+      ? 'cached-sphere-sticker'
+      : 'flat-fill';
     stage.dataset.contactRippleConfigControls = String(CONTACT_RIPPLE_CONTROL_COUNT);
     stage.dataset.contactRippleInnerRingsRemoved = String(config.innerRingSkipCount);
     const nextLayoutKey = [
@@ -794,6 +824,7 @@ export function createContactRippleRenderer({
       frameId = 0;
       resizeObserver?.disconnect();
       transitionObserver?.disconnect();
+      unsubscribeSimulationBodyMaterial();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       context.setTransform(1, 0, 0, 1, 0, 0);

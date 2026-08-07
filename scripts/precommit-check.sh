@@ -33,8 +33,8 @@ echo "7) Production HTML entry validation"
 npm run validate:html-entries
 
 echo
-echo "8) Flat circle material guardrail"
-npm run check:flat-circle-materials
+echo "8) Route-wide sphere body material guardrail"
+npm run check:sphere-body-materials
 
 echo
 echo "9) React lint"

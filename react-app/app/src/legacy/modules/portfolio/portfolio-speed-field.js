@@ -4,6 +4,12 @@ import {
   subscribeSimulationPalette,
 } from '../../../palette/simulationPaletteController.js';
 import { notifySimulationAtmosphereSourceFrame } from '../rendering/atmosphere/simulation-atmosphere.js';
+import {
+  getSimulationBodyMaterialConfig,
+  getSimulationBodyMaterialSprite,
+  subscribeSimulationBodyMaterial,
+} from '../rendering/materials/simulation-body-material.js';
+import { THEME_CHANGE_EVENT } from '../../../lib/theme-state.js';
 
 const DPR_CAP = 2;
 const REFERENCE_AREA = 1440 * 900;
@@ -39,6 +45,13 @@ function createSeededRandom(seed) {
   };
 }
 
+function getMaterialTheme() {
+  return document.documentElement?.classList?.contains('dark-mode')
+    || document.body?.classList?.contains('dark-mode')
+    ? 'dark'
+    : 'light';
+}
+
 export class PortfolioParticleField {
   constructor(canvas, options = {}) {
     this.canvas = canvas || null;
@@ -51,6 +64,9 @@ export class PortfolioParticleField {
     this.colorDistribution = [];
     this.paletteId = '';
     this.paletteGeneration = 0;
+    this.bodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
+    this.bodyMaterialTheme = 'light';
+    this.bodyMaterialSprites = [];
     this.maskGradient = null;
     this.targetVelocity = 0;
     this.filteredVelocity = 0;
@@ -71,16 +87,30 @@ export class PortfolioParticleField {
     this.reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
     this.boundVisibilityChange = () => this.syncLifecycle();
     this.boundMotionPreferenceChange = () => this.syncLifecycle();
+    this.boundThemeChange = () => {
+      this.refreshBodyMaterialSprites();
+      if (this.started && this.width && this.height && !this.isLifecycleSuspended()) {
+        this.drawFrame(performance.now(), 0);
+      }
+    };
     this.transitionObserver = typeof MutationObserver === 'function'
       ? new MutationObserver(() => this.syncLifecycle())
       : null;
     document.addEventListener('visibilitychange', this.boundVisibilityChange);
+    window.addEventListener(THEME_CHANGE_EVENT, this.boundThemeChange);
     this.reducedMotionQuery?.addEventListener?.('change', this.boundMotionPreferenceChange);
     this.transitionObserver?.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-abs-transition-phase'],
     });
     this.unsubscribePalette = subscribeSimulationPalette((snapshot) => this.refreshPalette(snapshot));
+    this.unsubscribeBodyMaterial = subscribeSimulationBodyMaterial((config) => {
+      this.bodyMaterialEnabled = config.enabled;
+      this.refreshBodyMaterialSprites();
+      if (this.started && this.width && this.height && !this.isLifecycleSuspended()) {
+        this.drawFrame(performance.now(), 0);
+      }
+    });
     this.configure(options);
   }
 
@@ -124,7 +154,7 @@ export class PortfolioParticleField {
 
   refreshPalette(snapshot = getSimulationPaletteSnapshot()) {
     if (!this.canvas) return;
-    if (snapshot.generation === this.paletteGeneration) return;
+    if (this.colors.length && snapshot.generation === this.paletteGeneration) return;
     this.colors.splice(0, this.colors.length, ...snapshot.colors);
     this.colorDistribution = snapshot.distribution.slice();
     this.paletteId = snapshot.paletteId;
@@ -137,7 +167,18 @@ export class PortfolioParticleField {
     }
     this.canvas.dataset.simulationPaletteGeneration = String(snapshot.generation);
     this.canvas.dataset.simulationPaletteId = snapshot.paletteId;
+    this.refreshBodyMaterialSprites();
     if (this.width && this.height && this.started) this.drawFrame(performance.now(), 0);
+  }
+
+  refreshBodyMaterialSprites() {
+    this.bodyMaterialTheme = getMaterialTheme();
+    this.bodyMaterialSprites = this.bodyMaterialEnabled
+      ? this.colors.map((color) => getSimulationBodyMaterialSprite(
+        color,
+        { theme: this.bodyMaterialTheme },
+      ))
+      : [];
   }
 
   resize({ force = false } = {}) {
@@ -234,6 +275,7 @@ export class PortfolioParticleField {
 
   start() {
     this.started = true;
+    this.refreshPalette();
     this.resize({ force: true });
     this.canvas?.classList.add('is-active');
     this.syncLifecycle();
@@ -418,22 +460,53 @@ export class PortfolioParticleField {
 
     this.clear();
     this.ctx.globalAlpha = this.opacity;
-    for (let colorIndex = 0; colorIndex < this.colors.length; colorIndex += 1) {
-      this.ctx.fillStyle = this.colors[colorIndex];
-      this.ctx.beginPath();
+    const materialEnabled = this.bodyMaterialEnabled
+      && this.bodyMaterialSprites.length > 0;
+    this.canvas.dataset.portfolioParticleFinish = materialEnabled
+      ? 'cached-sphere-sticker'
+      : 'flat-fill';
+    if (materialEnabled) {
+      const inheritedSmoothing = this.ctx.imageSmoothingEnabled;
+      this.ctx.imageSmoothingEnabled = true;
       for (let index = 0; index < this.particles.length; index += 1) {
         const particle = this.particles[index];
-        if (particle.colorIndex !== colorIndex) continue;
         const radius = particle.radius * clamp(
           toNumber(particle.routeEntranceScale, 1),
           0,
           1,
         );
         if (radius <= 0.01) continue;
-        this.ctx.moveTo(particle.x + radius, particle.y);
-        this.ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+        const sprite = this.bodyMaterialSprites[particle.colorIndex]
+          || this.bodyMaterialSprites[0];
+        if (!sprite?.canvas) continue;
+        const diameter = radius * 2;
+        this.ctx.drawImage(
+          sprite.canvas,
+          particle.x - radius,
+          particle.y - radius,
+          diameter,
+          diameter,
+        );
       }
-      this.ctx.fill();
+      this.ctx.imageSmoothingEnabled = inheritedSmoothing;
+    } else {
+      for (let colorIndex = 0; colorIndex < this.colors.length; colorIndex += 1) {
+        this.ctx.fillStyle = this.colors[colorIndex];
+        this.ctx.beginPath();
+        for (let index = 0; index < this.particles.length; index += 1) {
+          const particle = this.particles[index];
+          if (particle.colorIndex !== colorIndex) continue;
+          const radius = particle.radius * clamp(
+            toNumber(particle.routeEntranceScale, 1),
+            0,
+            1,
+          );
+          if (radius <= 0.01) continue;
+          this.ctx.moveTo(particle.x + radius, particle.y);
+          this.ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+        }
+        this.ctx.fill();
+      }
     }
     this.ctx.globalAlpha = 1;
     if (this.maskGradient) {
@@ -447,6 +520,8 @@ export class PortfolioParticleField {
 
   getSnapshot() {
     const transitionPaused = this.isRouteTransitionPaused();
+    const materialEnabled = this.bodyMaterialEnabled
+      && this.bodyMaterialSprites.length > 0;
     const colorCounts = new Array(this.colors.length).fill(0);
     const roleCounts = Object.fromEntries(
       this.colorDistribution.map((row) => [row.roleId, 0]),
@@ -507,6 +582,8 @@ export class PortfolioParticleField {
       })),
       colorCounts,
       roleCounts,
+      ballFinish: materialEnabled ? 'cached-sphere-sticker' : 'flat-fill',
+      materialTheme: this.bodyMaterialTheme,
       frameCount: this.frameCount,
       drawCount: this.drawCount,
       cssWidth: this.width,
@@ -521,14 +598,18 @@ export class PortfolioParticleField {
     this.started = false;
     this.cancelScheduledFrame();
     document.removeEventListener('visibilitychange', this.boundVisibilityChange);
+    window.removeEventListener(THEME_CHANGE_EVENT, this.boundThemeChange);
     this.reducedMotionQuery?.removeEventListener?.('change', this.boundMotionPreferenceChange);
     this.transitionObserver?.disconnect();
     this.unsubscribePalette?.();
     this.unsubscribePalette = null;
+    this.unsubscribeBodyMaterial?.();
+    this.unsubscribeBodyMaterial = null;
     this.clear();
     this.particles.length = 0;
     this.colors.length = 0;
     this.colorDistribution.length = 0;
+    this.bodyMaterialSprites.length = 0;
     this.paletteId = '';
     this.maskGradient = null;
     this.onSuspensionChange = null;

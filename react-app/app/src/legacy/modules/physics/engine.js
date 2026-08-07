@@ -25,8 +25,14 @@ import {
 } from '../visual/pebble-body.js';
 import {
   getSimulationBodyMaterialConfig,
+  prewarmSimulationBodyMaterial,
   subscribeSimulationBodyMaterial,
 } from '../rendering/materials/simulation-body-material.js';
+import {
+  getSimulationPaletteSnapshot,
+  subscribeSimulationPalette,
+} from '../../../palette/simulationPaletteController.js';
+import { THEME_CHANGE_EVENT } from '../../../lib/theme-state.js';
 import {
   TITLE_DEPTH_PLANE_Z,
   modeUsesDepthTitlePlane,
@@ -70,10 +76,62 @@ const zPartitionCache = {
 };
 let simulationBodyMaterialRenderer = null;
 let sharedSimulationBodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
+let oppositeThemePrewarmPending = false;
+
+function getSharedMaterialTheme() {
+  if (typeof document === 'undefined') return 'light';
+  return document.documentElement?.classList?.contains('dark-mode')
+    || document.body?.classList?.contains('dark-mode')
+    ? 'dark'
+    : 'light';
+}
+
+function canPrewarmSharedMaterial() {
+  return typeof OffscreenCanvas === 'function'
+    || (typeof document !== 'undefined' && typeof document.createElement === 'function');
+}
+
+function prewarmSharedMaterialPalette(theme = getSharedMaterialTheme()) {
+  if (!sharedSimulationBodyMaterialEnabled || !canPrewarmSharedMaterial()) return;
+  const colors = getSimulationPaletteSnapshot()?.colors;
+  if (!Array.isArray(colors) || colors.length === 0) return;
+  prewarmSimulationBodyMaterial(colors, { theme });
+}
+
+function scheduleOppositeThemePrewarm() {
+  if (oppositeThemePrewarmPending || !sharedSimulationBodyMaterialEnabled) return;
+  oppositeThemePrewarmPending = true;
+  const prewarm = () => {
+    oppositeThemePrewarmPending = false;
+    const activeTheme = getSharedMaterialTheme();
+    prewarmSharedMaterialPalette(activeTheme === 'dark' ? 'light' : 'dark');
+  };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(prewarm, { timeout: 1200 });
+  } else if (typeof setTimeout === 'function') {
+    setTimeout(prewarm, 120);
+  } else {
+    oppositeThemePrewarmPending = false;
+  }
+}
+
+function prewarmSharedMaterialThemes() {
+  prewarmSharedMaterialPalette();
+  scheduleOppositeThemePrewarm();
+}
 
 subscribeSimulationBodyMaterial((config) => {
   sharedSimulationBodyMaterialEnabled = config.enabled;
+  if (sharedSimulationBodyMaterialEnabled) prewarmSharedMaterialThemes();
 });
+
+subscribeSimulationPalette(() => {
+  if (sharedSimulationBodyMaterialEnabled) prewarmSharedMaterialThemes();
+});
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener(THEME_CHANGE_EVENT, prewarmSharedMaterialThemes);
+}
 
 /**
  * Prototype-only final-fill override. Production uses the shared cached body
@@ -1013,9 +1071,23 @@ function renderBallsColorBatched(
       if (effectiveAlpha <= 0.001) continue;
 
       ctx.globalAlpha = inheritedAlpha * resolvedMaterialOpacity * effectiveAlpha;
+      const hasVisibleSquash = !simpleCircleBodies && ball.squashAmount > squashThreshold;
+      if (
+        useSharedMaterial
+        && pitLodEnabled
+        && !hasVisibleSquash
+        && effectiveAlpha >= 0.999
+        && radius <= tinyRadiusPx
+      ) {
+        // Below one visible pixel there is no gradient information to retain.
+        // Keep Pit's existing 1x1 LOD instead of paying for a scaled sprite.
+        ctx.fillStyle = ball.color;
+        ctx.fillRect(Math.round(ball.x), Math.round(ball.y), 1, 1);
+        continue;
+      }
       if (materialRenderer) {
         materialRenderer(ctx, ball, radius, globals, simpleCircleBodies, squashThreshold);
-      } else if (!simpleCircleBodies && ball.squashAmount > squashThreshold) {
+      } else if (hasVisibleSquash) {
         drawSquashedPebbleBodyMaterial(ctx, ball, radius, globals);
       } else {
         drawPebbleBodyMaterial(

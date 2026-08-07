@@ -16,6 +16,7 @@ import {
 import { triggerDetent } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import {
   getSimulationBodyMaterialAtlas,
+  getSimulationBodyMaterialSprite,
   subscribeSimulationBodyMaterial,
 } from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import './napoleon-point-cloud.css';
@@ -159,6 +160,8 @@ function startCanvas2dPointCloudFallback({
   frontCanvas,
   asset,
   groupColors,
+  groupPaletteColors,
+  materialTheme,
   settings,
   setError,
 }) {
@@ -171,7 +174,18 @@ function startCanvas2dPointCloudFallback({
   let visualScale = 1;
   let unregisterTransition = null;
   let resizeObserver = null;
+  let materialSprites = [];
+  let unsubscribeSimulationBodyMaterial = () => {};
 
+  const refreshMaterialSprites = () => {
+    materialSprites = groupPaletteColors.map((color) => (
+      getSimulationBodyMaterialSprite(color, { theme: materialTheme })
+    ));
+    root.dataset.pointCloudBallFinish = materialSprites.some(Boolean)
+      ? 'cached-sphere-sticker'
+      : 'flat-fill';
+    draw();
+  };
   const resize = () => {
     const rect = root.getBoundingClientRect();
     const width = Math.max(1, Math.round(rect.width));
@@ -204,19 +218,28 @@ function startCanvas2dPointCloudFallback({
     for (let index = 0; index < visibleCount; index += 1) {
       const offset = index * 3;
       const context = parsed.positions[offset + 2] > 0 ? frontContext : backContext;
-      const color = groupColors[Math.round(parsed.groups[index]) % groupColors.length] || groupColors[0];
-      context.fillStyle = `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${opacity})`;
-      context.beginPath();
-      context.arc(
-        centerX + (parsed.positions[offset] * fit),
-        centerY - (parsed.positions[offset + 1] * fit),
-        radius,
-        0,
-        Math.PI * 2,
-      );
-      context.fill();
+      const groupIndex = Math.round(parsed.groups[index]) % groupColors.length;
+      const color = groupColors[groupIndex] || groupColors[0];
+      const sprite = materialSprites[groupIndex] || materialSprites[0];
+      const x = centerX + (parsed.positions[offset] * fit);
+      const y = centerY - (parsed.positions[offset + 1] * fit);
+      if (sprite?.canvas) {
+        context.globalAlpha = opacity;
+        context.drawImage(sprite.canvas, x - radius, y - radius, radius * 2, radius * 2);
+        context.globalAlpha = 1;
+      } else {
+        context.fillStyle = `rgba(${Math.round(color[0] * 255)}, ${Math.round(color[1] * 255)}, ${Math.round(color[2] * 255)}, ${opacity})`;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+      }
     }
   };
+
+  unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial(
+    refreshMaterialSprites,
+  );
+  refreshMaterialSprites();
 
   const setVisualScale = (scale) => {
     visualScale = clamp(Number(scale), 0, 1);
@@ -275,6 +298,7 @@ function startCanvas2dPointCloudFallback({
     cancelled = true;
     resizeObserver?.disconnect();
     unregisterTransition?.();
+    unsubscribeSimulationBodyMaterial();
     delete window.__ABS_NAPOLEON_POINT_CLOUD__;
   };
 }
@@ -625,6 +649,8 @@ export function NapoleonPointCloud({
         frontCanvas,
         asset,
         groupColors,
+        groupPaletteColors,
+        materialTheme,
         settings: {
           ...settingsRef.current,
           dotSize: settingsRef.current.dotSize * mobileBodyScale,

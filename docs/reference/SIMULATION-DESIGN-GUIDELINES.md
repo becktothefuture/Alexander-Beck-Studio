@@ -35,16 +35,25 @@ Default to the existing ball/pebble material family:
 - smooth, slightly irregular pebble bodies;
 - stable visual weight;
 - restrained size variation;
-- the shared cached matte sphere sticker/atlas finish for every eligible production simulation body;
+- the shared cached matte sphere sticker/atlas finish for every semantic production ball;
 - fixed-screen-space lighting whose direction does not rotate with body motion or pebble orientation;
 - render-only organic variation over simple, trusted simulation geometry.
 
-Perfect circles are allowed only as a deliberate fallback:
+Perfect circle geometry is allowed only as a deliberate silhouette fallback:
 - tiny dots where the pebble contour would be unreadable;
 - direct-render depth fields where the point-cloud concept is explicit;
 - performance LOD when a documented mode requires it.
 
-When those circles are production catalog bodies, they still consume the shared matte material. Route and interface dots that are not simulation bodies keep their own documented finish.
+When those circles are semantic production balls, they still consume the shared matte material. A flat colour path is allowed only as a guarded fallback when the shared material is disabled or its sprite/atlas is unavailable.
+
+The semantic ball contract is route-wide:
+- Home simulation bodies and the quote puck;
+- Work / Portfolio speed-field particles and pit project bodies;
+- the six About discipline balls;
+- Lab / Playground active coloured wake balls;
+- Contact ripple balls.
+
+The neutral Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are not semantic balls. They keep their own documented finish.
 
 Do not make large, hero-visible bodies into generic circles when they should read as site pebbles.
 
@@ -283,7 +292,7 @@ Daily simulations are the live homepage system. They must behave as one product 
 ### Visual Material
 
 Daily visuals use the site ball/pebble language:
-- all eligible catalog bodies use the shared cached matte sphere sticker/atlas material owned by `shell.surface.simulationBodyMaterial` in `design-system.json`;
+- all eligible Daily catalog bodies use the shared cached matte sphere sticker/atlas material owned by `shell.surface.simulationBodyMaterial` in `design-system.json`;
 - the five-cue read is the active `colorDistribution` palette base plus key, ambient, rim bounce, and self-shadow. Light and Dark profiles may rebalance the four lighting cues, but they preserve the base hue and chroma;
 - normal bodies retain their palette identity at full opacity. Renderer-level whitening, parallel colour transforms, and global material translucency are forbidden;
 - reserve opacity changes for explicit spatial depth fog, spawn/retire lifecycles, and shared transitions—not for the settled front/default material;
@@ -292,7 +301,8 @@ Daily visuals use the site ball/pebble language:
 - all shared balls, circle fallbacks, pebbles, and route-specific body renderers in the production catalog use the same material contract. Custom body geometry may select an appropriate cached atlas entry but may not invent another finish;
 - no helper scaffolding such as guide lines, field lines, construction strokes, underlay blobs, tubes, silhouettes, or trails carrying the concept;
 - point clouds and tiny field particles may use perfect circles when pebble contours would be unreadable, but eligible catalog bodies remain palette-driven and use the shared cache;
-- Contact ripples, About and Playground dots, editorial dots, Portfolio cards and pucks, cursor, loaders, navigation, and atmosphere emitters are not simulation bodies and do not inherit this material.
+- the same material owner also serves the semantic non-Daily balls listed in the route-wide contract above. Daily status controls catalog and switching behavior; it does not limit material eligibility;
+- neutral grid dots, generic point particles, DOM cards, UI/editorial/artwork circles, the cursor, loaders, navigation, and atmosphere emitters remain excluded.
 
 Route-backed daily runtimes must render with transparent canvas/background in Daily Focus mode so the shared wall, narrow rim, noise, title layering, chrome, and modal system remain in charge of the surface.
 

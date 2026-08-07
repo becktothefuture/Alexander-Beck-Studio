@@ -86,7 +86,7 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Eligible bodies in the production simulation catalog share one cached matte sphere sticker/atlas material. The active time-of-day palette supplies each body's base hue and chroma. The resolved Light or Dark profile adds key, ambient, rim-bounce, and self-shadow cues without replacing that palette identity. Lighting is fixed in screen space: moving, rotating, projected, and depth-scaled bodies must not rotate the light with their local transform.
+Every semantic production ball shares one cached matte sphere sticker/atlas material. The active time-of-day palette supplies each body's base hue and maximum chroma. The resolved Light or Dark profile adds key, ambient, rim-bounce, and self-shadow cues without replacing that palette identity: lighting extremes may gently compress chroma, never amplify it, and hue drift is capped at 1.5 degrees. Lighting is fixed in screen space: moving, rotating, projected, and depth-scaled bodies must not rotate the light with their local transform.
 
 The canonical authored controls live at `shell.surface.simulationBodyMaterial` in `public/config/design-system.json`. Runtime or route modules may resolve and consume that configuration, but they must not own private material profiles. The material changes only the draw finish; physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
@@ -96,9 +96,18 @@ Caching is part of the rendering contract:
 - material-config, theme, and palette changes invalidate the cache through the hardcoded `36ms` debounce;
 - the hardcoded sprite fast path remains runtime policy, while `cacheDetailPx` is the authored bake-resolution control;
 - ordinary body frames only select and draw/sample cached output. They do not build gradients, parse colours, read pixels, or run per-body lighting work;
-- the baked shadow cue is self-shading inside the body silhouette, not a cast shadow, drop shadow, glow, or atmosphere pass.
+- the baked shadow cue is self-shading inside the body silhouette, not a cast shadow, drop shadow, glow, or atmosphere pass;
+- a flat colour path is allowed only as a guarded fallback when the shared sprite or atlas is disabled or unavailable.
 
-This contract covers catalog simulation bodies across shared and route-backed renderers. It excludes Contact ripples, About and Playground dots, editorial dots, Portfolio cards and pucks, the cursor, loaders, navigation, and atmosphere emitters. Those surfaces keep their existing route or interface material. The atmosphere compositor below remains separate: it samples completed route material and must not be folded into the body cache or changed as part of body-material work.
+Primary-route coverage is explicit:
+
+- Home: shared and route-backed Daily simulation bodies, plus the quote puck;
+- Work / Portfolio: deterministic speed-field particles and the project bodies in the physics-pit fallback;
+- About: the six revealed discipline balls in the narrative point world;
+- Lab / Playground: active coloured wake balls only;
+- Contact: all concentric ripple balls.
+
+Generic circles remain excluded. This includes the neutral Lab resting grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters. These surfaces keep their existing route or interface material. The atmosphere compositor below remains separate: it samples completed route material and must not be folded into the body cache or changed as part of body-material work.
 
 ## Production Simulation Atmosphere
 

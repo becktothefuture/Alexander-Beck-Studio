@@ -13,7 +13,7 @@ The target is:
 
 This is not a “make everything random” system. It is a controlled visual-material language.
 
-The sphere finish applies only when the pebble is an eligible production catalog simulation body. Portfolio cards and pucks keep their route-specific material; the collider and motion guidance below still applies where relevant.
+The sphere finish applies whenever a circle or pebble is a semantic production ball. Coverage is route-wide; it is not limited to the Daily simulation catalog. The collider and motion guidance below still applies only where the renderer has physical bodies.
 
 ## Core Model
 
@@ -47,7 +47,7 @@ The site now uses a deterministic pebble family instead of perfect circles.
 
 ### 2. Cached Matte Sphere Finish
 
-Eligible simulation pebbles and circles use the shared cached matte sphere sticker/atlas material.
+Semantic production pebbles and circles use the shared cached matte sphere sticker/atlas material.
 
 Rule:
 
@@ -63,6 +63,11 @@ Implementation:
 - config, theme, and palette invalidation rebake the cache; ordinary body frames do not rebuild the material
 - the self-shadow is baked inside the silhouette and does not become a second dynamic or cast-shadow pass
 - depth comes from the restrained matte cues together with motion, overlap discipline, scale, and silhouette
+- a flat colour path is a guarded fallback for a disabled or unavailable shared sprite/atlas, not an alternative production finish
+
+Route coverage includes Home simulation bodies and the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, Playground active coloured wake balls, and Contact ripple balls.
+
+Neutral grid dots and generic point particles are not pebbles only because they are round. The neutral Playground grid, generic About point-field particles, Portfolio DOM cards, UI and editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters keep their own material.
 
 ### 3. Portfolio Physics Tuning
 

@@ -764,12 +764,15 @@ function drawProductionBodyMaterial(ctx, ball, radius, globals, simpleCircle, sq
     drawSimulationBodyMaterial(ctx, ball.color, ball.x, ball.y, radius, state.background);
     return;
   }
+  const stickerRadius = ball.squashAmount > squashThreshold
+    ? radius * (1 + ball.squashAmount * 0.3)
+    : radius;
   drawClippedSimulationBodyMaterial(
     ctx,
     ball.color,
     ball.x,
     ball.y,
-    radius,
+    stickerRadius,
     (pathContext) => appendProductionBodyPath(
       pathContext,
       ball,

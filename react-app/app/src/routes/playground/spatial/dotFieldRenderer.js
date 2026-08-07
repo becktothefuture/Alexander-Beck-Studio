@@ -1,3 +1,10 @@
+import {
+  getSimulationBodyMaterialConfig,
+  getSimulationBodyMaterialSprite,
+  subscribeSimulationBodyMaterial,
+} from '../../../legacy/modules/rendering/materials/simulation-body-material.js';
+import { THEME_CHANGE_EVENT } from '../../../lib/theme-state.js';
+
 const DEFAULT_DPR_CAP = 2;
 const DEFAULT_MAX_VISIBLE_DOTS = 20000;
 const MAX_PALETTE_COLORS = 12;
@@ -117,6 +124,12 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let paletteId = '';
   let paletteGeneration = 0;
   let colors = [];
+  const canUseSharedMaterial = typeof globalThis.document !== 'undefined'
+    && documentObject === globalThis.document;
+  let bodyMaterialEnabled = canUseSharedMaterial
+    && getSimulationBodyMaterialConfig().enabled;
+  let bodyMaterialTheme = 'light';
+  let bodyMaterialSprites = [];
   let roleColorIndices = new Int16Array(0);
   let roleThresholds = new Float64Array(0);
   let drawCount = 0;
@@ -157,6 +170,31 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   const bucketHeads = new Int32Array(MAX_PALETTE_COLORS * COLOR_OPACITY_BUCKET_COUNT);
   const resizeTarget = options.resizeTarget || canvas;
   const onDraw = typeof options.onDraw === 'function' ? options.onDraw : null;
+
+  function refreshBodyMaterialSprites() {
+    bodyMaterialTheme = documentObject?.documentElement?.classList?.contains('dark-mode')
+      || documentObject?.body?.classList?.contains('dark-mode')
+      ? 'dark'
+      : 'light';
+    bodyMaterialSprites = bodyMaterialEnabled
+      ? colors.map((color) => getSimulationBodyMaterialSprite(color, { theme: bodyMaterialTheme }))
+      : [];
+  }
+
+  const unsubscribeBodyMaterial = canUseSharedMaterial
+    ? subscribeSimulationBodyMaterial((config) => {
+      bodyMaterialEnabled = config.enabled;
+      refreshBodyMaterialSprites();
+      renderDirty = true;
+      scheduleDraw();
+    })
+    : () => {};
+
+  function handleThemeChange() {
+    refreshBodyMaterialSprites();
+    renderDirty = true;
+    scheduleDraw();
+  }
 
   function resetActivationState() {
     const dotCount = worldColumns * worldRows;
@@ -507,7 +545,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
 
     const colorCount = Math.min(colors.length, MAX_PALETTE_COLORS);
     const restingRadius = dotRadiusPx * worldScale * routeVisualScale;
+    const inheritedSmoothing = context.imageSmoothingEnabled;
+    if (bodyMaterialSprites.length) context.imageSmoothingEnabled = true;
     for (let colorIndex = 0; colorIndex < colorCount; colorIndex += 1) {
+      const materialSprite = bodyMaterialSprites[colorIndex];
       context.fillStyle = colors[colorIndex];
       for (let opacityBucket = 0; opacityBucket < COLOR_OPACITY_BUCKET_COUNT; opacityBucket += 1) {
         let index = bucketHeads[(colorIndex * COLOR_OPACITY_BUCKET_COUNT) + opacityBucket];
@@ -517,6 +558,20 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
           1 + ((colorWakeDotScale - 1) * bucketStrength)
         );
         context.globalAlpha = colorWakeOpacity * bucketStrength;
+        if (materialSprite?.canvas) {
+          const diameter = activeRadius * 2;
+          while (index >= 0) {
+            context.drawImage(
+              materialSprite.canvas,
+              activeScreenX[index] - activeRadius,
+              activeScreenY[index] - activeRadius,
+              diameter,
+              diameter,
+            );
+            index = activeBucketNext[index];
+          }
+          continue;
+        }
         context.beginPath();
         while (index >= 0) {
           const screenX = activeScreenX[index];
@@ -528,6 +583,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
         context.fill();
       }
     }
+    context.imageSmoothingEnabled = inheritedSmoothing;
   }
 
   function completeDraw() {
@@ -725,6 +781,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     paletteId = nextPaletteId;
     paletteGeneration = nextGeneration;
     if (changed) {
+      refreshBodyMaterialSprites();
       if (pointerActive) pointerDirty = true;
       renderDirty = true;
       scheduleDraw();
@@ -855,6 +912,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     started = true;
     resetActivationState();
     documentObject?.addEventListener?.('visibilitychange', handleVisibilityChange);
+    windowObject.addEventListener?.(THEME_CHANGE_EVENT, handleThemeChange);
     windowObject.addEventListener?.('resize', handleWindowResize);
     resizeObserver?.observe(resizeTarget);
     setPalette(options.palette || options);
@@ -927,6 +985,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       paletteGeneration,
       paletteColorCount: colors.length,
       roleCount: roleThresholds.length,
+      activeBallFinish: bodyMaterialSprites.length ? 'cached-sphere-sticker' : 'flat-fill',
+      bodyMaterialTheme,
     };
   }
 
@@ -939,9 +999,12 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     externalFrameRequested = false;
     resizeObserver?.disconnect();
     windowObject.removeEventListener?.('resize', handleWindowResize);
+    windowObject.removeEventListener?.(THEME_CHANGE_EVENT, handleThemeChange);
     documentObject?.removeEventListener?.('visibilitychange', handleVisibilityChange);
+    unsubscribeBodyMaterial();
     clear();
     colors.length = 0;
+    bodyMaterialSprites.length = 0;
     roleColorIndices = new Int16Array(0);
     roleThresholds = new Float64Array(0);
   }

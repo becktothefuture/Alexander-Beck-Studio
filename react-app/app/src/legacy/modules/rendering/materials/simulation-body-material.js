@@ -8,6 +8,9 @@ import {
 const TAU = Math.PI * 2;
 const MAX_SPRITE_CACHE_ENTRIES = 96;
 const MAX_ATLAS_CACHE_ENTRIES = 12;
+const MIN_SPHERE_CHROMA_SCALE = 0.9;
+const MAX_SPHERE_CHROMA_SCALE = 1;
+const MAX_SPHERE_HUE_SHIFT_DEGREES = 1.5;
 const TOOTH_TILE_SIZE = 16;
 const TOOTH_TILE = (() => {
   const tile = new Float32Array(TOOTH_TILE_SIZE ** 2);
@@ -96,9 +99,6 @@ function parseCssColour(value) {
     entry = {
       rgb: Object.freeze(rgb),
       key,
-      spriteRevision: 0,
-      lightSprite: null,
-      darkSprite: null,
     };
     colourEntriesByKey.set(key, entry);
   }
@@ -256,17 +256,30 @@ function createLightingModel(profile) {
     );
     const baseChroma = Math.hypot(baseLab[1], baseLab[2]);
     const baseHue = Math.atan2(baseLab[2], baseLab[1]);
-    const chromaScale = clamp(
-      1 + highlightMask * 0.12 + shadowMask * 0.18,
+    // Lighting may reveal or compress the palette colour, but it must never
+    // become more chromatic than the authored base. This keeps the six
+    // canonical tags recognisable while preserving the full lightness form.
+    const highlightChromaRetention = lerp(
       1,
-      1.3,
+      clamp(profile.highlightVibrance, MIN_SPHERE_CHROMA_SCALE, 1),
+      highlightMask * 0.42,
+    );
+    const shadowChromaRetention = lerp(
+      1,
+      clamp(profile.shadowVibrance, MIN_SPHERE_CHROMA_SCALE, 1),
+      shadowMask * 0.32,
+    );
+    const chromaScale = clamp(
+      highlightChromaRetention * shadowChromaRetention,
+      MIN_SPHERE_CHROMA_SCALE,
+      MAX_SPHERE_CHROMA_SCALE,
     );
     const coolUpper = (ambient * upper + rimLight + horizonFill * 0.5 + reflectionBand) * 0.25;
     const warmLower = (bounce + opposingFill * lower) * 0.28;
     const hueShiftDegrees = clamp(
-      (warmLower - coolUpper + profile.temperature * 0.12) * 4,
-      -4,
-      4,
+      (warmLower - coolUpper + profile.temperature * 0.12) * 1.5,
+      -MAX_SPHERE_HUE_SHIFT_DEGREES,
+      MAX_SPHERE_HUE_SHIFT_DEGREES,
     );
     const hue = baseHue + hueShiftDegrees * (Math.PI / 180);
     const chroma = baseChroma * chromaScale;
@@ -378,21 +391,18 @@ export function getSimulationBodyMaterialSprite(color, options = {}) {
   if (!materialConfig.enabled) return null;
   const theme = (options === 'dark' || options?.theme === 'dark') ? 'dark' : 'light';
   const rgbEntry = parseCssColour(color);
-  if (rgbEntry.spriteRevision !== materialRevision) {
-    rgbEntry.spriteRevision = materialRevision;
-    rgbEntry.lightSprite = null;
-    rgbEntry.darkSprite = null;
-  }
-  const spriteKey = theme === 'dark' ? 'darkSprite' : 'lightSprite';
-  const cached = rgbEntry[spriteKey];
+  const cacheKey = `${theme}:${rgbEntry.key}`;
+  const cached = spriteCache.get(cacheKey);
   if (cached) {
+    // Refresh insertion order so eviction is a real LRU. The bounded cache is
+    // the only strong owner of sticker canvases.
+    spriteCache.delete(cacheKey);
+    spriteCache.set(cacheKey, cached);
     stats.cacheHits += 1;
     return cached;
   }
   stats.cacheMisses += 1;
   const sprite = bakeSprite(rgbEntry, theme);
-  rgbEntry[spriteKey] = sprite;
-  const cacheKey = `${theme}:${rgbEntry.key}`;
   spriteCache.set(cacheKey, sprite);
   evictOldestEntries(spriteCache, MAX_SPRITE_CACHE_ENTRIES);
   return sprite;
@@ -410,7 +420,10 @@ export function drawSimulationBodyMaterial(ctx, color, x, y, radius, options = {
   const sprite = getSimulationBodyMaterialSprite(color, options);
   if (!sprite) return false;
   const diameter = radius * 2;
+  const inheritedSmoothing = ctx.imageSmoothingEnabled;
+  if (!inheritedSmoothing) ctx.imageSmoothingEnabled = true;
   ctx.drawImage(sprite.canvas, x - radius, y - radius, diameter, diameter);
+  if (!inheritedSmoothing) ctx.imageSmoothingEnabled = inheritedSmoothing;
   return true;
 }
 
@@ -427,12 +440,15 @@ export function drawClippedSimulationBodyMaterial(
   const sprite = getSimulationBodyMaterialSprite(color, options);
   if (!sprite) return false;
   ctx.save();
+  const inheritedSmoothing = ctx.imageSmoothingEnabled;
+  if (!inheritedSmoothing) ctx.imageSmoothingEnabled = true;
   ctx.beginPath();
   appendPath(ctx);
   ctx.clip();
   const diameter = radius * 2;
   ctx.drawImage(sprite.canvas, x - radius, y - radius, diameter, diameter);
   ctx.restore();
+  if (!inheritedSmoothing) ctx.imageSmoothingEnabled = inheritedSmoothing;
   return true;
 }
 
@@ -511,6 +527,7 @@ export function clearSimulationBodyMaterialCache() {
   stats.cacheHits = 0;
   stats.cacheMisses = 0;
   stats.atlasBuildCount = 0;
+  for (const listener of listeners) listener(materialConfig, materialRevision);
 }
 
 if (typeof window !== 'undefined') {

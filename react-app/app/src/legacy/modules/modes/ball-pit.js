@@ -8,6 +8,7 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { getSimulationCollisionInsetCssPx } from '../utils/frame-geometry.js';
 
 const HOME_PIT_PEBBLE_SURFACE_GAP_PX = 2;
+const FOUNDATION_MOBILE_COUNT_MULTIPLIER = 2;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -94,7 +95,10 @@ export function initializeBallPit() {
   globals.collisionPairSlopPx = null;
   clearBalls();
   
-  const targetBalls = getMobileAdjustedCount(globals.maxBalls ?? 300);
+  const isMobile = globals.isMobile || globals.isMobileViewport;
+  const baseCount = (globals.maxBalls ?? 300)
+    * (isMobile ? FOUNDATION_MOBILE_COUNT_MULTIPLIER : 1);
+  const targetBalls = getMobileAdjustedCount(baseCount);
   spawnPourBallPit(globals, targetBalls);
 }
 

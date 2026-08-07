@@ -38,9 +38,11 @@ Removing a control also means removing its persistence/export path. Browser stor
 
 The material is one five-cue composition: the resolved palette base plus key, ambient, rim bounce, and self-shadow. Profiles may rebalance those cues for the studio-window theme, but the palette hue and chroma remain the body identity and the light direction remains fixed in screen space. Routes and renderers must not add private profiles, colour transforms, local lights, or material defaults.
 
-`cacheDetailPx` controls bake detail only. The sprite fast path and the `36ms` invalidation debounce are hardcoded runtime performance policy, not configuration. Stickers and atlases rebake after material-config, theme, or palette invalidation; ordinary body frames only draw or sample cached output.
+`cacheDetailPx` controls bake detail only. The sprite fast path and the `36ms` invalidation debounce are hardcoded runtime performance policy, not configuration. Stickers and atlases rebake after material-config, theme, or palette invalidation; ordinary body frames only draw or sample cached output. A renderer may retain its existing flat colour only as a guarded fallback when the shared material is disabled or a sprite/atlas is unavailable.
 
-All eligible bodies from the production simulation catalog consume this contract without changing their physics, motion, sizing, depth, or collision rules. Contact ripple geometry, About and Playground dots, editorial dots, Portfolio cards and pucks, cursor, loaders, navigation, and atmosphere emitters are outside its scope. `shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
+Every semantic production ball consumes this contract without changing its physics, motion, sizing, depth, or collision rules. Coverage includes Home and Daily bodies plus the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, Playground active coloured wake balls, and Contact ripple balls.
+
+The neutral Playground grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are outside this material scope. `shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
 
 ## Build and validation
 
