@@ -2472,6 +2472,14 @@ p {
   white-space: nowrap;
 }
 
+.decorative-script p .home-philosophy-link {
+  display: block;
+  width: fit-content;
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--abs-size-1px);
+  text-underline-offset: 0.16em;
+}
+
 .decorative-script p a::after {
   content: none; /* Dot removed */
 }

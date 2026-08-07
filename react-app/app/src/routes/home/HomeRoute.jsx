@@ -116,6 +116,7 @@ export function getHomeRouteView(canonicalHref = '') {
                   {' '}
                   <a
                     id="contact-route-inline"
+                    className="home-philosophy-link"
                     href="/contact.html"
                     onClick={handleContactClick}
                   >
