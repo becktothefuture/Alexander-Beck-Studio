@@ -41,6 +41,7 @@ import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js'
 import { useSiteHaptics } from '../../hooks/useSiteHaptics.js';
 import { useTimeOfDayPaletteSync } from '../../hooks/useTimeOfDayPaletteSync.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
+import { ViewportCover } from './ViewportCover.jsx';
 import {
   SimulationFocusChooser,
   SimulationFocusProvider,
@@ -659,6 +660,7 @@ export function SiteApp() {
           />
         </SimulationFocusProvider>
       )}
+      <ViewportCover />
     </>
   );
 }
