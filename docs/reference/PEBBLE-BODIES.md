@@ -8,12 +8,12 @@ The target is:
 
 - smooth, slightly irregular bodies
 - stable weight and settling
-- a clean silhouette with the shared cached matte sphere finish on eligible simulation bodies
+- a clean silhouette with a flat palette-owned finish on production simulation bodies
 - conservative performance
 
 This is not a “make everything random” system. It is a controlled visual-material language.
 
-The sphere finish applies whenever a circle or pebble is a semantic production ball. Coverage is route-wide; it is not limited to the Daily simulation catalog. The collider and motion guidance below still applies only where the renderer has physical bodies.
+The flat finish applies whenever a circle or pebble is a semantic production ball. Coverage is route-wide; it is not limited to the Daily simulation catalog. The collider and motion guidance below still applies only where the renderer has physical bodies.
 
 ## Core Model
 
@@ -45,25 +45,22 @@ The site now uses a deterministic pebble family instead of perfect circles.
 - no per-frame random generation
 - low-point contour suitable for real-time canvas rendering
 
-### 2. Cached Matte Sphere Finish
+### 2. Flat Palette Finish
 
-Semantic production pebbles and circles use the shared cached matte sphere sticker/atlas material.
+Semantic production pebbles and circles use the active shared palette as a flat fill.
 
 Rule:
 
 - rotate the silhouette when the mode needs it
-- keep the light fixed in screen space rather than rotating it with the body
-- preserve the active palette colour as the base hue and chroma
-- use only the shared key, ambient, rim-bounce, and self-shadow cues
-- do not add contour strokes, cast shadows, drop shadows, glows, renderer-local lights, or per-frame gradients
+- preserve the active palette colour without lighting transforms
+- retain colour batching wherever bodies share a colour
+- do not add contour strokes, cast shadows, drop shadows, glows, renderer-local lights, per-frame gradients, or per-body texture draws
 
 Implementation:
 
-- the renderer selects and draws/samples a cached sticker or atlas entry
-- config, theme, and palette invalidation rebake the cache; ordinary body frames do not rebuild the material
-- the self-shadow is baked inside the silhouette and does not become a second dynamic or cast-shadow pass
-- depth comes from the restrained matte cues together with motion, overlap discipline, scale, and silhouette
-- a flat colour path is a guarded fallback for a disabled or unavailable shared sprite/atlas, not an alternative production finish
+- the renderer builds the existing body paths and fills compatible bodies in palette-colour batches
+- depth comes from motion, overlap discipline, scale, silhouette, and route-owned depth fog where applicable
+- the cached sphere sticker/atlas infrastructure remains disabled in production
 
 Route coverage includes Home simulation bodies and the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, Playground active coloured wake balls, and Contact ripple balls.
 
@@ -155,7 +152,7 @@ So the correct strategy is:
 
 - keep pit physics circular
 - reuse the shared pebble silhouette
-- reuse the shared cached matte sphere material
+- reuse the flat palette-owned fill
 - allow visual rotation only
 - use the same small explicit gap model for neighbors and walls
 - rely on existing LOD and throttle systems

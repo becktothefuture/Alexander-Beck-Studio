@@ -67,7 +67,7 @@ export const SIMULATION_BODY_MATERIAL_REFERENCE_PROFILES = Object.freeze({
 });
 
 export const DEFAULT_SIMULATION_BODY_MATERIAL_CONFIG = Object.freeze({
-  enabled: true,
+  enabled: false,
   cacheDetailPx: 24,
   light: DEFAULT_MACRO_PROFILE,
   dark: DEFAULT_MACRO_PROFILE,
@@ -132,8 +132,10 @@ export function normalizeSimulationBodyMaterialConfig(input = {}) {
   const cacheDetailPx = SIMULATION_BODY_MATERIAL_CACHE_DETAIL_OPTIONS.includes(requestedDetail)
     ? requestedDetail
     : DEFAULT_SIMULATION_BODY_MATERIAL_CONFIG.cacheDetailPx;
+  const enabled = source.enabled ?? source.effectsEnabled
+    ?? DEFAULT_SIMULATION_BODY_MATERIAL_CONFIG.enabled;
   return {
-    enabled: source.enabled !== false && source.effectsEnabled !== false,
+    enabled: enabled === true,
     cacheDetailPx,
     light: normalizeProfile(source.light || source.profiles?.light),
     dark: normalizeProfile(source.dark || source.profiles?.dark),

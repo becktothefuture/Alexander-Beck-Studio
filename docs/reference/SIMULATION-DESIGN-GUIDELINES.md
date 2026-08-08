@@ -35,8 +35,8 @@ Default to the existing ball/pebble material family:
 - smooth, slightly irregular pebble bodies;
 - stable visual weight;
 - restrained size variation;
-- the shared cached matte sphere sticker/atlas finish for every semantic production ball;
-- fixed-screen-space lighting whose direction does not rotate with body motion or pebble orientation;
+- a flat palette-owned finish for every semantic production ball;
+- colour batching instead of one scaled texture draw per body;
 - render-only organic variation over simple, trusted simulation geometry.
 
 Perfect circle geometry is allowed only as a deliberate silhouette fallback:
@@ -44,7 +44,7 @@ Perfect circle geometry is allowed only as a deliberate silhouette fallback:
 - direct-render depth fields where the point-cloud concept is explicit;
 - performance LOD when a documented mode requires it.
 
-When those circles are semantic production balls, they still consume the shared matte material. A flat colour path is allowed only as a guarded fallback when the shared material is disabled or its sprite/atlas is unavailable.
+When those circles are semantic production balls, they use the same flat palette finish.
 
 The semantic ball contract is route-wide:
 - Home simulation bodies and the quote puck;
@@ -292,15 +292,13 @@ Daily simulations are the live homepage system. They must behave as one product 
 ### Visual Material
 
 Daily visuals use the site ball/pebble language:
-- all eligible Daily catalog bodies use the shared cached matte sphere sticker/atlas material owned by `shell.surface.simulationBodyMaterial` in `design-system.json`;
-- the five-cue read is the active `colorDistribution` palette base plus key, ambient, rim bounce, and self-shadow. Light and Dark profiles may rebalance the four lighting cues, but they preserve the base hue and chroma;
+- all eligible Daily catalog bodies use a flat fill from the active `colorDistribution` palette;
 - normal bodies retain their palette identity at full opacity. Renderer-level whitening, parallel colour transforms, and global material translucency are forbidden;
 - reserve opacity changes for explicit spatial depth fog, spawn/retire lifecycles, and shared transitions—not for the settled front/default material;
-- light stays fixed in screen space. Body rotation, camera motion, and depth projection must not rotate or re-light the cached finish;
-- the baked self-shadow remains inside the silhouette. Do not add cast shadows, drop shadows, renderer-local lights, bevels, glows, or secondary edge passes;
-- all shared balls, circle fallbacks, pebbles, and route-specific body renderers in the production catalog use the same material contract. Custom body geometry may select an appropriate cached atlas entry but may not invent another finish;
+- retain colour batching and do not add per-body texture draws, cast shadows, drop shadows, renderer-local lights, bevels, glows, or secondary edge passes;
+- all shared balls, circle fallbacks, pebbles, and route-specific body renderers in the production catalog use the same flat material contract;
 - no helper scaffolding such as guide lines, field lines, construction strokes, underlay blobs, tubes, silhouettes, or trails carrying the concept;
-- point clouds and tiny field particles may use perfect circles when pebble contours would be unreadable, but eligible catalog bodies remain palette-driven and use the shared cache;
+- point clouds and tiny field particles may use perfect circles when pebble contours would be unreadable, and all eligible catalog bodies remain palette-driven;
 - the same material owner also serves the semantic non-Daily balls listed in the route-wide contract above. Daily status controls catalog and switching behavior; it does not limit material eligibility;
 - neutral grid dots, generic point particles, DOM cards, UI/editorial/artwork circles, the cursor, loaders, navigation, and atmosphere emitters remain excluded.
 

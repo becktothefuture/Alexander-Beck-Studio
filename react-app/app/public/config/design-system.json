@@ -479,7 +479,7 @@
         }
       },
       "simulationBodyMaterial": {
-        "enabled": true,
+        "enabled": false,
         "cacheDetailPx": 24,
         "light": {
           "keyLevel": 0.27,

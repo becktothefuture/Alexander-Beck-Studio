@@ -86,30 +86,11 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Every semantic production ball shares one cached matte sphere sticker/atlas material. The active time-of-day palette supplies each body's base hue and maximum chroma. The resolved Light or Dark profile adds key, ambient, rim-bounce, and self-shadow cues without replacing that palette identity: lighting extremes may gently compress chroma, never amplify it, and hue drift is capped at 1.5 degrees. Lighting is fixed in screen space: moving, rotating, projected, and depth-scaled bodies must not rotate the light with their local transform.
+Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work / Portfolio, About, Lab / Playground, Contact, and the Home quote puck all use their existing flat fallback path.
 
-The canonical authored controls live at `shell.surface.simulationBodyMaterial` in `public/config/design-system.json`. Runtime or route modules may resolve and consume that configuration, but they must not own private material profiles. The material changes only the draw finish; physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
+This is a performance contract as well as a visual choice. Renderers may batch compatible flat bodies by colour and must not replace that batching with one scaled texture draw per body. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
-Caching is part of the rendering contract:
-
-- stickers and atlas entries bake once for the required palette, theme, material configuration, detail, size, and supported shape state;
-- material-config, theme, and palette changes invalidate the cache through the hardcoded `36ms` debounce;
-- the hardcoded sprite fast path remains runtime policy, while `cacheDetailPx` is the authored bake-resolution control;
-- Lab wake balls at 10 CSS pixels or below use detail-preserving sprite sampling so the cached matte key and form shadow survive downscaling. Larger balls retain smooth interpolation;
-- About point-field circles cross softly from the flat point-cloud material into the cached sphere atlas between 9 and 11 CSS pixels. The six discipline balls always use the atlas and texel-centred sampling so their key and form shadow survive at their compact display size;
-- ordinary body frames only select and draw/sample cached output. They do not build gradients, parse colours, read pixels, or run per-body lighting work;
-- the baked shadow cue is self-shading inside the body silhouette, not a cast shadow, drop shadow, glow, or atmosphere pass;
-- a flat colour path is allowed only as a guarded fallback when the shared sprite or atlas is disabled or unavailable.
-
-Primary-route coverage is explicit:
-
-- Home: shared and route-backed Daily simulation bodies, plus the quote puck;
-- Work / Portfolio: deterministic speed-field particles and the project bodies in the physics-pit fallback;
-- About: every narrative point that resolves as a readable circle at 10 CSS pixels or larger, including the six revealed discipline balls;
-- Lab / Playground: active coloured wake balls only;
-- Contact: all concentric ripple balls.
-
-Generic circles remain excluded. This includes the neutral Lab resting grid, microscopic About point-field particles below the 9–11 CSS-pixel material transition, Portfolio DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters. These surfaces keep their existing route or interface material. The atmosphere compositor below remains separate: it samples completed route material and must not be folded into the body cache or changed as part of body-material work.
+The retained sphere-material cache is compatibility and development infrastructure only. It must remain inactive in production unless a later, explicit visual decision includes measured frame-time evidence across the route matrix. The shared atmosphere compositor below remains separate and may sample the completed flat route material.
 
 ## Production Simulation Atmosphere
 

@@ -9,7 +9,7 @@ Exact config values belong in JSON and normalizer code. Exact approved simulatio
 ## Namespaces
 
 - `runtime`: shared Canvas/runtime behavior and global tokens
-- `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, the production simulation body material, and the production simulation atmosphere
+- `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, the flat production simulation body material, and the production simulation atmosphere
 - `portfolio`: active orbital deck, drawer, handoff motion, and route-specific composition
 - `playground`: deterministic layout, work sizing, dot-field appearance, and camera response for the production Playground route
 - `cv`: retained generated-schema compatibility only; it is not a live CV route
@@ -34,15 +34,11 @@ Removing a control also means removing its persistence/export path. Browser stor
 
 ### Production simulation body material
 
-`shell.surface.simulationBodyMaterial` is the only authored production body-material location. It owns `enabled`, `cacheDetailPx`, and one Light and one Dark profile. Each theme profile owns `keyLevel` / `keyReach`, `ambientLevel` / `ambientReach`, `rimBounceLevel` / `rimBounceReach`, and `shadowDepth` / `shadowArea`.
+`shell.surface.simulationBodyMaterial.enabled` is canonically `false`. The code default is also `false`, so a missing or incomplete configuration cannot turn the sphere finish back on. Production bodies keep their active palette colour and use the existing flat render path across Home, Work / Portfolio, About, Lab / Playground, Contact, and the Home quote puck.
 
-The material is one five-cue composition: the resolved palette base plus key, ambient, rim bounce, and self-shadow. Profiles may rebalance those cues for the studio-window theme, but the palette hue and chroma remain the body identity and the light direction remains fixed in screen space. Routes and renderers must not add private profiles, colour transforms, local lights, or material defaults.
+The remaining cache-detail and Light/Dark profile fields preserve configuration compatibility for development experiments. They do not affect production while the material is disabled. Any later production reactivation requires an explicit visual decision and measured frame-time evidence; ordinary production rendering must retain colour batching and avoid one scaled texture draw per body.
 
-`cacheDetailPx` controls bake detail only. The sprite fast path and the `36ms` invalidation debounce are hardcoded runtime performance policy, not configuration. Stickers and atlases rebake after material-config, theme, or palette invalidation; ordinary body frames only draw or sample cached output. A renderer may retain its existing flat colour only as a guarded fallback when the shared material is disabled or a sprite/atlas is unavailable.
-
-Every semantic production ball consumes this contract without changing its physics, motion, sizing, depth, or collision rules. Coverage includes Home and Daily bodies plus the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, Playground active coloured wake balls, and Contact ripple balls.
-
-The neutral Playground grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are outside this material scope. `shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
+`shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
 
 ## Build and validation
 

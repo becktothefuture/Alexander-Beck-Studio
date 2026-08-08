@@ -201,10 +201,8 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   point in screen space with the shared `22px` gap. The presentation has no card, connector, counter, or
   glow. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
   `--ball-8`, `--ball-6`.
-- About points become semantic balls only when they resolve as readable circles at 10 CSS pixels or
-  larger. They cross softly from the flat point-cloud material into the shared cached sphere atlas between
-  9 and 11 pixels, so the microscopic field remains flat and cheap. The six revealed discipline points
-  always qualify and use detail-preserving atlas sampling at their compact display size.
+- About points remain flat palette-owned circles when they resolve at readable sizes. The microscopic
+  field and the six revealed discipline points use the same flat finish without a sphere-atlas transition.
 - The second editorial area uses one left-aligned measure after the discipline grid has faded completely away. Visibility, camera, and global distance fog are independent controls; fog must never substitute for an authored disappearance or be keyframed per camera pose.
 - The grid returns in full colour, already framed on the ripple centre, after the editorial area clears.
   Any reframe from the discipline view happens only while the point world is fully hidden. From the return
@@ -229,8 +227,8 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 ### Contact
 
 - Contact uses the centered route-entry title, supporting description, and one primary email-copy action.
-- The ripple field is a route-specific motion behavior. Its balls use the shared cached sphere stickers,
-  create a quiet zone around content, and respond to the copy action.
+- The ripple field is a route-specific motion behavior. Its balls use flat palette fills, create a quiet
+  zone around content, and respond to the copy action.
 - The email address uses Geist Mono; copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
 - Contact retains the shared spacing/type roles even though its simulation and action are unique.
 
@@ -238,7 +236,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 - Lab is the fifth primary route. It is a spatial catalogue, not a masonry page, dashboard, whiteboard, or replacement for Work.
 - The opening lockup is part of the pannable world. Instrument Serif is limited to the route H1. Work descriptions use the Portfolio caption treatment and wrap in full below their left-aligned names; visible media-type tags are omitted.
-- The dot field and work placement share one grid, camera phase, and pre-paint camera sample. Drag rendering is frame-coalesced for a stable 60fps-or-better camera cadence on both ordinary and high-refresh displays, and the Lab atmosphere sleeps when its renderer is idle. The Canvas backing store preserves true circular dots across fractional viewport sizes and pixel densities. Resting dots are low-opacity neutral grey and remain a flat grid material. Mouse hover wakes a configurable radius into random colours from the current shared ball palette; those active semantic wake balls use the shared cached sphere stickers. The wake exposes bounded intensity, density, edge softness, coloured-dot scale, and persistence controls, then fades back to grey without keeping a stationary renderer awake. The grid tiles homogeneously behind the title and every project without a title-area mask or empty seam. Seamless copies support continuity, but only one logical item per work may be interactive or exposed to assistive technology.
+- The dot field and work placement share one grid, camera phase, and pre-paint camera sample. Drag rendering is frame-coalesced for a stable 60fps-or-better camera cadence on both ordinary and high-refresh displays, and the Lab atmosphere sleeps when its renderer is idle. The Canvas backing store preserves true circular dots across fractional viewport sizes and pixel densities. Resting dots are low-opacity neutral grey and remain a flat grid material. Mouse hover wakes a configurable radius into random colours from the current shared ball palette; those active semantic wake balls retain the same flat finish. The wake exposes bounded intensity, density, edge softness, coloured-dot scale, and persistence controls, then fades back to grey without keeping a stationary renderer awake. The grid tiles homogeneously behind the title and every project without a title-area mask or empty seam. Seamless copies support continuity, but only one logical item per work may be interactive or exposed to assistive technology.
 - Work opens in an in-window dialog with shareable `?work=<id>` state, complete keyboard behavior, focus trapping, focus restoration, and browser Back support.
 - Reduced Motion retains panning, wrapping, hierarchy, selection, and focus. It removes inertia, pointer attraction, scale/blur travel, and stagger.
 - The initial 20 entries and their local media are explicit placeholders. They must not be presented as real projects, client work, contributions, or outcomes. The content and authoring contract is [`docs/reference/PLAYGROUND.md`](docs/reference/PLAYGROUND.md).
@@ -251,10 +249,9 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ## Simulation language
 
-- Every semantic production ball uses one shared cached matte sphere material over its approved circle or pebble geometry. The light direction is fixed in screen space, so body motion and pebble rotation do not rotate the lighting.
+- Every semantic production ball uses its approved circle or pebble geometry with a flat fill from the active time-of-day palette.
 - Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; readable About point-field circles including the six discipline balls; Lab / Playground active coloured wake balls; and Contact ripple balls.
-- The active time-of-day palette remains the base colour identity. The Light and Dark material profiles add only restrained key, ambient, rim-bounce, and self-shadow cues; they may gently compress chroma at lighting extremes but never amplify it beyond the authored base, and hue drift stays imperceptible.
-- A renderer may use its existing flat colour only when the shared sprite or atlas is disabled or unavailable. That fallback must be guarded. Normal frames draw or sample cached output.
+- The cached sphere sticker/atlas finish is disabled globally. Production renderers retain colour batching and do not issue one scaled texture draw per body.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
