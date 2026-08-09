@@ -2208,6 +2208,16 @@ html[data-shell-route='home'] body .ui-top-right .decorative-script {
    interpolated continuously. Breakpoints may change content topology, but they
    must not also introduce unrelated padding, type, or control-size jumps. */
 html[data-shell-route='home'] body {
+  --home-responsive-title-lift: clamp(
+    0px,
+    calc((768px - 100vw) * 16),
+    16px
+  );
+  --home-responsive-switcher-lift: clamp(
+    0px,
+    calc((768px - 100vw) * 24),
+    24px
+  );
   --home-responsive-top-gap: clamp(
     calc(var(--gap-lg) - var(--abs-size-1px)),
     3.6vw,
@@ -2229,6 +2239,10 @@ html[data-shell-route='home'] body {
       calc(var(--ui-icon-frame-size) * 0.25)
     )
   );
+  --home-responsive-social-control-frame-size: calc(
+    var(--home-responsive-footer-control-frame-size)
+    - clamp(0px, calc((768px - 100vw) * 0.035714), 6px)
+  );
   --home-footer-meta-font-size: clamp(14px, calc(6.857px + 1.1905vw), 16px);
   --home-footer-side-padding: clamp(
     0px,
@@ -2238,7 +2252,11 @@ html[data-shell-route='home'] body {
   --home-footer-social-overlap: clamp(
     0px,
     calc((768px - 100vw) * 0.047619),
-    var(--gap-sm)
+    4px
+  );
+  --home-footer-social-frame-offset: min(
+    0px,
+    calc(var(--wall-thickness) - var(--content-padding-x))
   );
 }
 
@@ -2587,7 +2605,6 @@ p {
 
 .simulation-focus-switcher-slot {
   --home-simulation-switcher-title-gap: clamp(44px, 6svh, 60px);
-  --home-simulation-switcher-offset-y: 0px;
   --home-simulation-switcher-title-half-height: calc(
     var(--route-entry-title-size) *
     var(--route-bookend-title-scale) *
@@ -2605,7 +2622,7 @@ p {
     (clamp(20px, 5vh, 52px) - 4vh) +
     var(--home-simulation-switcher-title-half-height) +
     var(--home-simulation-switcher-title-gap) +
-    var(--home-simulation-switcher-offset-y)
+    calc(var(--home-responsive-switcher-lift, 0px) * -1)
   );
   transform: translateX(-50%);
   z-index: 19;
@@ -2985,6 +3002,7 @@ button.abs-meta-btn,
 
 #social-links {
   gap: 0px;
+  margin-inline-start: var(--home-footer-social-frame-offset, 0px);
 }
 
 .abs-icon-btn {
@@ -3053,8 +3071,14 @@ button.abs-meta-btn,
 }
 
 #social-links .abs-icon-btn {
-  inline-size: var(--home-footer-control-frame-size);
-  block-size: var(--home-footer-control-frame-size);
+  inline-size: var(
+    --home-responsive-social-control-frame-size,
+    var(--home-footer-control-frame-size)
+  );
+  block-size: var(
+    --home-responsive-social-control-frame-size,
+    var(--home-footer-control-frame-size)
+  );
 }
 
 
@@ -3488,7 +3512,10 @@ html[data-shell-route='home'] .hero-title--canvas-source {
     var(--home-hero-title-size-scale)
   );
   --home-hero-title-anchor-y: 55%;
-  --home-hero-title-offset-y: clamp(-36px, -4svh, -16px);
+  --home-hero-title-offset-y: calc(
+    clamp(-36px, -4svh, -16px)
+    - var(--home-responsive-title-lift, 0px)
+  );
   --hero-title-line-height: calc(
     var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1)
   );
@@ -5681,16 +5708,6 @@ html.is-safari .noise::before {
   .footer_icon-group,
   #social-links {
     gap: 0;
-  }
-
-  html[data-shell-route='home'] body #social-links {
-    --home-footer-social-overlap: 4px;
-    margin-inline-start: calc(var(--wall-thickness) - var(--content-padding-x));
-  }
-
-  html[data-shell-route='home'] body #social-links .abs-icon-btn {
-    inline-size: 48px;
-    block-size: 48px;
   }
 
   #social-links .footer_icon-link + .footer_icon-link {
@@ -8214,15 +8231,6 @@ body.dark-mode .cv-photo {
   html[data-shell-route='home'] body .ui-top-main:not(.route-topbar) {
     box-sizing: border-box;
     padding-inline: 10px;
-  }
-
-  html[data-shell-route='home'] body .hero-title--canvas-source {
-    --home-hero-title-offset-y: calc(clamp(-36px, -4svh, -16px) - 16px);
-  }
-
-  html[data-shell-route='home'] body .simulation-focus-switcher-slot {
-    /* Follow the 16px title lift, then tighten the title-to-control gap by 8px. */
-    --home-simulation-switcher-offset-y: -24px;
   }
 
   body.portfolio-page .route-topbar {
