@@ -204,7 +204,7 @@ export const NARRATIVE_QUOTES = {
 };
 
 export const CONSTANTS = {
-  DPR: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+  DPR: Math.max(1, Math.min(2, globalThis.window?.devicePixelRatio || 1)),
   CANVAS_HEIGHT_VH_PIT: 1.5,
   CANVAS_HEIGHT_VH_DEFAULT: 1.0,
   OFFSCREEN_MOUSE: -1e9,

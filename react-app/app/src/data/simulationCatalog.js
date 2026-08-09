@@ -1,4 +1,4 @@
-import catalogData from './simulationCatalog.json';
+import catalogData from './simulationCatalog.json' with { type: 'json' };
 
 export const SIMULATION_STAGES = Object.freeze({
   DAILY_ROTATION: 'daily-rotation',

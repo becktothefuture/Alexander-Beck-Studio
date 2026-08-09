@@ -46,7 +46,7 @@ const initialPaletteAccents = getLondonPaletteAccents(initialSimulationPalette.p
 // PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
 // The renderer can reduce DPR on weak devices for better performance
 // ════════════════════════════════════════════════════════════════════════════════
-let _effectiveDPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+let _effectiveDPR = Math.max(1, Math.min(2, globalThis.window?.devicePixelRatio || 1));
 
 export function setEffectiveDPR(dpr) {
   _effectiveDPR = dpr;
