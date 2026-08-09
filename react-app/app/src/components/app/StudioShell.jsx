@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { SiteFooter } from '../SiteFooter.jsx';
 import { RouteTransitionLoader } from './RouteTransitionLoader.jsx';
@@ -10,6 +10,8 @@ import {
   setSimulationAtmosphereTransitionState,
 } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import { attachHomepageCanvasTitlePlane } from '../../legacy/modules/rendering/title-depth.js';
+import { createInteractionSoundDelegate } from '../../legacy/modules/audio/interaction-sound-policy.js';
+import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 
 function RouteSceneMount({ routeRenderKey, children }) {
   switch (routeRenderKey) {
@@ -135,6 +137,11 @@ export function StudioShell({
     if (!titleCanvasRef.current) return undefined;
     return attachHomepageCanvasTitlePlane(titleCanvasRef.current);
   }, []);
+
+  useEffect(() => createInteractionSoundDelegate({
+    root: document,
+    play: playInteractionSound,
+  }), []);
 
   return (
     <>

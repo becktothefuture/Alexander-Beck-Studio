@@ -85,6 +85,8 @@ function ensureLauncherButton() {
   if (button.dataset.panelPopupBound !== 'true') {
     button.dataset.panelPopupBound = 'true';
     button.setAttribute('aria-label', 'Toggle design panel');
+    button.dataset.soundAction = 'none';
+    button.dataset.soundSource = 'development-design-panel';
     button.dataset.panelDetachSupported = 'true';
     button.addEventListener('click', (event) => {
       if (event.shiftKey) {

@@ -123,6 +123,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. Primary cells use rendered label width plus `8px` mobile inline padding and `16px` from `768px`. Labels retain the reference `10px` size through `767px` and scale to `16px` from `768px`; they use the next available Geist weight (`700`) with restrained `0.012em` tracking. Desktop utility icons scale from `16px` to `18px`. The key follows the active or pending cell geometry with compositor-only travel, resizes to the target label cell, and uses the configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
+- Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content or carousel advances use one step click. About, Lab, and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work orbit sounds only when a distinct project reaches centre, not throughout travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
 
 #### Quiet control material and emphasis
 

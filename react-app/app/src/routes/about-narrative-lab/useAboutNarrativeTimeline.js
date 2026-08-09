@@ -4,6 +4,7 @@ import {
   createSmoothScrollMediaQueries,
   shouldUseNativeSmoothScroll,
 } from '../../lib/smooth-scroll.js';
+import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
 import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
   compileAboutNarrativeRendererRuntimePlan,
@@ -116,6 +117,7 @@ export function useAboutNarrativeTimeline({
   worldRuntimeRef,
   scrollportRef,
   contentRef,
+  playScrollDetent = null,
 }) {
   const [initialPlan] = useState(() => createInitialPlan(document, editorStore));
   const [runtimePlan, setRuntimePlan] = useState(initialPlan);
@@ -167,6 +169,10 @@ export function useAboutNarrativeTimeline({
     let lastOpeningScrollCueOpacity = -1;
     let lastOpeningScrollCueState = '';
     let disposed = false;
+    const scrollSoundController = createScrollSoundController({
+      playDetent: playScrollDetent,
+      source: 'about-scroll',
+    });
     let lastStoreDocument = editorStore?.getSnapshot?.()?.document || null;
     let lastStorePreviewKey = JSON.stringify(editorStore?.getSnapshot?.()?.previewState || null);
 
@@ -655,7 +661,15 @@ export function useAboutNarrativeTimeline({
         else rebuildLenis();
       }
     };
-    const handleScrollPreparation = () => schedulePreparationHandoff();
+    const handleScrollPreparation = () => {
+      schedulePreparationHandoff();
+      const transport = getTransport(editorStore);
+      if (transport && transport.owner !== 'scroll') {
+        scrollSoundController.reset();
+        return;
+      }
+      scrollSoundController.samplePosition(0, scrollport.scrollTop, performance.now());
+    };
     const handleEditorialLinesChange = () => scheduleMeasure();
     const handleVisibilityChange = () => {
       worldRuntimeRef.current?.setVisible?.(!window.document.hidden);
@@ -686,6 +700,7 @@ export function useAboutNarrativeTimeline({
       window.clearTimeout(measureTimer);
       window.clearTimeout(preparationTimer);
       lenis?.destroy();
+      scrollSoundController.reset();
       resizeObserver.disconnect();
       unsubscribe?.();
       reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
@@ -705,7 +720,7 @@ export function useAboutNarrativeTimeline({
       root.style.removeProperty('--narrative-viewport-height');
       root.style.removeProperty('--narrative-content-extent-wu');
     };
-  }, [contentRef, editorStore, rootRef, scrollportRef, worldRuntimeRef]);
+  }, [contentRef, editorStore, playScrollDetent, rootRef, scrollportRef, worldRuntimeRef]);
 
   return { runtimePlan, storyWU, storyProgress, activeIndicatorStartIndex };
 }

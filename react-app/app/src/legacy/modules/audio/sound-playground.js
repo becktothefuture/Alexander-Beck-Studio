@@ -1,14 +1,23 @@
 let audioContext = null;
 let outputGain = null;
 let isReady = false;
+let previewTimers = [];
 
-const CANDIDATE_IDS = Object.freeze([
-  'air-whisper',
-  'soft-bloom',
-  'velvet-tap',
-  'magnetic-halo',
-  'elastic-ping',
+// THROWAWAY AUDITION PROTOTYPE: three scroll-detent families for review in
+// /lab/sound-playground.html. Production routes do not import these voices.
+const SCROLL_CANDIDATE_IDS = Object.freeze([
+  'felt-ratchet',
+  'crystal-notch',
+  'air-teeth',
 ]);
+
+const SCROLL_CANDIDATE_INTERVAL_MS = Object.freeze({
+  'felt-ratchet': 48,
+  'crystal-notch': 58,
+  'air-teeth': 54,
+});
+
+const lastScrollCandidateAt = new Map();
 
 function getAudioContextConstructor() {
   if (typeof window === 'undefined') return null;
@@ -37,118 +46,133 @@ function createNoiseBuffer(duration = 0.06) {
   return buffer;
 }
 
-function finishNode(node, source, stopAt) {
+function finishNode(node, source, stopAt, startAt = audioContext.currentTime) {
   source.onended = () => {
     try { source.disconnect(); } catch { /* Audio cleanup is best effort. */ }
     try { node.disconnect(); } catch { /* Audio cleanup is best effort. */ }
   };
-  source.start();
+  source.start(startAt);
   source.stop(stopAt);
 }
 
-function playAirWhisper() {
-  const start = audioContext.currentTime;
+function getVelocityPresence(velocity) {
+  const normalizedVelocity = Math.max(0, Math.min(1, (Number(velocity) || 0) / 1800));
+  return 0.86 + normalizedVelocity * 0.18;
+}
+
+function getEmphasisMultiplier(emphasis) {
+  return emphasis ? 1.42 : 1;
+}
+
+function playNoiseTick({
+  duration,
+  peak,
+  frequencyStart,
+  frequencyEnd,
+  q,
+  startAt = audioContext.currentTime,
+}) {
+  const stopAt = startAt + duration;
   const source = audioContext.createBufferSource();
   const filter = audioContext.createBiquadFilter();
   const gain = audioContext.createGain();
-  source.buffer = createNoiseBuffer(0.055);
+  source.buffer = createNoiseBuffer(duration);
   filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(1200, start);
-  filter.frequency.exponentialRampToValueAtTime(760, start + 0.045);
-  filter.Q.value = 0.65;
-  scheduleEnvelope(gain, start, 0.048, 0.004, 0.045);
+  filter.frequency.setValueAtTime(frequencyStart, startAt);
+  filter.frequency.exponentialRampToValueAtTime(frequencyEnd, stopAt);
+  filter.Q.value = q;
+  scheduleEnvelope(gain, startAt, peak, 0.0015, Math.max(0.004, duration - 0.003));
   connectToOutput(source.connect(filter).connect(gain));
-  finishNode(gain, source, start + 0.06);
+  finishNode(gain, source, stopAt, startAt);
 }
 
-function playSoftBloom() {
-  const start = audioContext.currentTime;
-  const stopAt = start + 0.17;
+function playToneTick({
+  type = 'sine',
+  duration,
+  peak,
+  frequencyStart,
+  frequencyEnd,
+  lowpassHz,
+  startAt = audioContext.currentTime,
+}) {
+  const stopAt = startAt + duration;
   const oscillator = audioContext.createOscillator();
   const filter = audioContext.createBiquadFilter();
   const gain = audioContext.createGain();
-  oscillator.type = 'triangle';
-  oscillator.frequency.setValueAtTime(720, start);
-  oscillator.frequency.exponentialRampToValueAtTime(520, stopAt);
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequencyStart, startAt);
+  oscillator.frequency.exponentialRampToValueAtTime(frequencyEnd, stopAt);
   filter.type = 'lowpass';
-  filter.frequency.value = 1700;
+  filter.frequency.value = lowpassHz;
   filter.Q.value = 0.35;
-  scheduleEnvelope(gain, start, 0.035, 0.014, 0.15);
+  scheduleEnvelope(gain, startAt, peak, 0.001, Math.max(0.004, duration - 0.002));
   connectToOutput(oscillator.connect(filter).connect(gain));
-  finishNode(gain, oscillator, stopAt);
+  finishNode(gain, oscillator, stopAt, startAt);
 }
 
-function playVelvetTap() {
+function playFeltRatchet({ velocity = 520, emphasis = false } = {}) {
   const start = audioContext.currentTime;
-  const stopAt = start + 0.105;
-  const oscillator = audioContext.createOscillator();
-  const filter = audioContext.createBiquadFilter();
-  const gain = audioContext.createGain();
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(210, start);
-  oscillator.frequency.exponentialRampToValueAtTime(150, stopAt);
-  filter.type = 'lowpass';
-  filter.frequency.value = 620;
-  filter.Q.value = 0.45;
-  scheduleEnvelope(gain, start, 0.060, 0.002, 0.095);
-  connectToOutput(oscillator.connect(filter).connect(gain));
-  finishNode(gain, oscillator, stopAt);
-}
-
-function playMagneticHalo() {
-  const start = audioContext.currentTime;
-  const stopAt = start + 0.19;
-  const gain = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-  const oscillators = [
-    { frequency: 910, detune: -7, gain: 0.021 },
-    { frequency: 910, detune: 7, gain: 0.018 },
-  ].map(({ frequency, detune, gain: partialGain }) => {
-    const oscillator = audioContext.createOscillator();
-    const partial = audioContext.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = frequency;
-    oscillator.detune.value = detune;
-    partial.gain.value = partialGain;
-    oscillator.connect(partial).connect(gain);
-    oscillator.start(start);
-    oscillator.stop(stopAt);
-    return oscillator;
+  const presence = getVelocityPresence(velocity) * getEmphasisMultiplier(emphasis);
+  const variance = 0.94 + Math.random() * 0.12;
+  playNoiseTick({
+    duration: 0.026,
+    peak: 0.030 * presence,
+    frequencyStart: 1380 * variance,
+    frequencyEnd: 820 * variance,
+    q: 0.78,
+    startAt: start,
   });
-  filter.type = 'lowpass';
-  filter.frequency.value = 2400;
-  filter.Q.value = 0.25;
-  scheduleEnvelope(gain, start, 0.8, 0.018, 0.17);
-  connectToOutput(gain.connect(filter));
-  oscillators[0].onended = () => {
-    try { gain.disconnect(); } catch { /* Audio cleanup is best effort. */ }
-    try { filter.disconnect(); } catch { /* Audio cleanup is best effort. */ }
-  };
+  playToneTick({
+    duration: 0.033,
+    peak: 0.018 * presence,
+    frequencyStart: 188 * variance,
+    frequencyEnd: 142 * variance,
+    lowpassHz: 560,
+    startAt: start,
+  });
 }
 
-function playElasticPing() {
+function playCrystalNotch({ velocity = 520, emphasis = false } = {}) {
   const start = audioContext.currentTime;
-  const stopAt = start + 0.23;
-  const oscillator = audioContext.createOscillator();
-  const filter = audioContext.createBiquadFilter();
-  const gain = audioContext.createGain();
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(560, start);
-  oscillator.frequency.exponentialRampToValueAtTime(310, stopAt);
-  filter.type = 'lowpass';
-  filter.frequency.value = 1250;
-  filter.Q.value = 0.5;
-  scheduleEnvelope(gain, start, 0.042, 0.006, 0.215);
-  connectToOutput(oscillator.connect(filter).connect(gain));
-  finishNode(gain, oscillator, stopAt);
+  const presence = getVelocityPresence(velocity) * getEmphasisMultiplier(emphasis);
+  const variance = 0.92 + Math.random() * 0.16;
+  playNoiseTick({
+    duration: 0.018,
+    peak: 0.019 * presence,
+    frequencyStart: 3600 * variance,
+    frequencyEnd: 2100 * variance,
+    q: 1.35,
+    startAt: start,
+  });
+  playToneTick({
+    type: 'triangle',
+    duration: 0.025,
+    peak: 0.0105 * presence,
+    frequencyStart: 1360 * variance,
+    frequencyEnd: 920 * variance,
+    lowpassHz: 2800,
+    startAt: start,
+  });
 }
 
-const PLAYERS = {
-  'air-whisper': playAirWhisper,
-  'soft-bloom': playSoftBloom,
-  'velvet-tap': playVelvetTap,
-  'magnetic-halo': playMagneticHalo,
-  'elastic-ping': playElasticPing,
+function playAirTeeth({ velocity = 520, emphasis = false } = {}) {
+  const start = audioContext.currentTime;
+  const presence = getVelocityPresence(velocity) * getEmphasisMultiplier(emphasis);
+  const variance = 0.92 + Math.random() * 0.16;
+  playNoiseTick({
+    duration: 0.036,
+    peak: 0.027 * presence,
+    frequencyStart: 2200 * variance,
+    frequencyEnd: 1050 * variance,
+    q: 0.48,
+    startAt: start,
+  });
+}
+
+const SCROLL_PLAYERS = {
+  'felt-ratchet': playFeltRatchet,
+  'crystal-notch': playCrystalNotch,
+  'air-teeth': playAirTeeth,
 };
 
 export async function unlockSoundPlaygroundAudio() {
@@ -175,12 +199,40 @@ export async function unlockSoundPlaygroundAudio() {
   }
 }
 
-export function playSoundPlaygroundHover(candidateId) {
-  if (!isReady || !audioContext || !outputGain || !PLAYERS[candidateId]) return false;
-  PLAYERS[candidateId]();
+export function playSoundPlaygroundScrollCandidate(candidateId, options = {}) {
+  const player = SCROLL_PLAYERS[candidateId];
+  if (!isReady || !audioContext || !outputGain || !player) return false;
+  const now = performance.now();
+  const minimumIntervalMs = SCROLL_CANDIDATE_INTERVAL_MS[candidateId] || 52;
+  if (!options.emphasis && now - (lastScrollCandidateAt.get(candidateId) || -Infinity) < minimumIntervalMs) {
+    return false;
+  }
+  lastScrollCandidateAt.set(candidateId, now);
+  player(options);
   return true;
 }
 
-export function getSoundPlaygroundCandidateIds() {
-  return [...CANDIDATE_IDS];
+export function playSoundPlaygroundScrollPreview(candidateId, { mode = 'continuous' } = {}) {
+  if (!SCROLL_PLAYERS[candidateId] || !isReady || !audioContext || !outputGain) return false;
+  previewTimers.forEach((timer) => window.clearTimeout(timer));
+  previewTimers = [];
+
+  if (mode === 'step') {
+    playSoundPlaygroundScrollCandidate(candidateId, { velocity: 420, emphasis: true });
+    return true;
+  }
+
+  const sequence = [0, 150, 270, 370, 455, 530, 605, 685, 780, 900, 1040, 1210];
+  sequence.forEach((delay, index) => {
+    previewTimers.push(window.setTimeout(() => {
+      const phase = index / Math.max(1, sequence.length - 1);
+      const velocity = 260 + Math.sin(phase * Math.PI) * 1240;
+      playSoundPlaygroundScrollCandidate(candidateId, { velocity });
+    }, delay));
+  });
+  return true;
+}
+
+export function getSoundPlaygroundScrollCandidateIds() {
+  return [...SCROLL_CANDIDATE_IDS];
 }

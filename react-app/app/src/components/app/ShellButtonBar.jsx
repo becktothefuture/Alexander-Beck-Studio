@@ -3,7 +3,7 @@ import {
   SOUND_STATE_EVENT,
   getSoundState,
   initSoundEngine,
-  playButtonPressSound,
+  playInteractionSound,
   playSoundEnabledMotif,
   toggleSound,
   unlockAudio,
@@ -121,8 +121,8 @@ function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
   }, [activeRouteId, enabled, primaryNavRef]);
 }
 
-function playButtonBarPressSound() {
-  playButtonPressSound();
+function playButtonBarPressSound(source = 'button-bar') {
+  playInteractionSound('press', { source });
 }
 
 function isPrimaryPointerPress(event) {
@@ -228,8 +228,10 @@ function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-pressed={isDark ? 'true' : 'false'}
       data-state={isDark ? 'dark' : 'light'}
+      data-sound-action="manual"
+      data-sound-source="theme-toggle"
       onPointerDown={(event) => {
-        if (beginCapturedPointerPress(event)) playButtonBarPressSound();
+        if (beginCapturedPointerPress(event)) playButtonBarPressSound('theme-toggle');
       }}
       onPointerUp={(event) => {
         if (!completeCapturedPointerPress(event)) return;
@@ -237,7 +239,7 @@ function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
         activateTheme();
       }}
       onKeyDown={(event) => {
-        if (isKeyboardPress(event)) playButtonBarPressSound();
+        if (isKeyboardPress(event)) playButtonBarPressSound('theme-toggle');
       }}
       onClick={(event) => {
         if (consumePointerActivated(event)) return;
@@ -286,14 +288,19 @@ function BottomSoundToggle({ decoration }) {
       const didUnlock = await unlockAudio();
       setSoundState(readSoundButtonState());
       if (didUnlock && readSoundButtonState().isEnabled) {
+        playInteractionSound('press', { source: 'sound-toggle-enable' });
         playSoundEnabledMotif();
       }
       return;
     }
 
+    if (currentState.isEnabled) {
+      playInteractionSound('press', { source: 'sound-toggle-disable' });
+    }
     const isNowEnabled = toggleSound();
     setSoundState(readSoundButtonState());
     if (isNowEnabled) {
+      playInteractionSound('press', { source: 'sound-toggle-enable' });
       playSoundEnabledMotif();
     }
   };
@@ -306,16 +313,15 @@ function BottomSoundToggle({ decoration }) {
       aria-pressed={isEnabled ? 'true' : 'false'}
       data-state={isEnabled ? 'active' : 'idle'}
       data-enabled={isEnabled ? 'true' : 'false'}
+      data-sound-action="manual"
+      data-sound-source="sound-toggle"
       onPointerDown={(event) => {
-        if (beginCapturedPointerPress(event)) playButtonBarPressSound();
+        beginCapturedPointerPress(event);
       }}
       onPointerUp={(event) => {
         if (!completeCapturedPointerPress(event)) return;
         markPointerActivated(event);
         handleClick();
-      }}
-      onKeyDown={(event) => {
-        if (isKeyboardPress(event)) playButtonBarPressSound();
       }}
       onClick={(event) => {
         if (consumePointerActivated(event)) return;
@@ -386,6 +392,8 @@ function RouteButton({
     'data-visual-active': isVisualDestination ? 'true' : undefined,
     'aria-label': tab.ariaLabel,
     'aria-current': isCurrent ? 'page' : undefined,
+    'data-sound-action': 'manual',
+    'data-sound-source': `route-${tab.routeId}`,
     onPointerEnter: () => signalIntent('pointer-hover'),
     onFocus: () => signalIntent('keyboard-focus'),
     onPointerDown: (event) => {
@@ -393,7 +401,7 @@ function RouteButton({
       if (isModifiedRouteEvent(event)) return;
       signalIntent(event.pointerType === 'touch' ? 'touch-intent' : 'pointer-intent');
       if (beginCapturedPointerPress(event)) {
-        playButtonBarPressSound();
+        playButtonBarPressSound(`route-${tab.routeId}`);
         markPointerActivated(event);
         if (!onRouteSelect) {
           event.preventDefault();
@@ -407,7 +415,7 @@ function RouteButton({
       if (onRouteSelect) selectRoute();
     },
     onKeyDown: (event) => {
-      if (!isVisualActive && isKeyboardPress(event)) playButtonBarPressSound();
+      if (!isVisualActive && isKeyboardPress(event)) playButtonBarPressSound(`route-${tab.routeId}`);
     },
   };
   const decoration = renderDecoration?.(tab);
@@ -504,7 +512,7 @@ export function ShellButtonBar({
       event.preventDefault();
       event.stopPropagation();
       onRouteIntent?.(nextTab.routeId, nextTab, 'keyboard-arrow');
-      playButtonBarPressSound();
+      playButtonBarPressSound(`route-${nextTab.routeId}`);
 
       if (!onRouteNavigate?.(nextTab.href, nextTab, {
         source: 'button-bar',

@@ -78,7 +78,9 @@ During a route transition, the runtime may publish the first valid measured deck
 
 Portfolio always boots the full live deck on route entry, regardless of access storage. Each project explicitly declares `access: "public" | "protected"`; missing values fail closed at runtime and the content validator rejects missing or unsupported authored values.
 
-Public projects open directly. Opening a protected project without access freezes deck input and ambient media, stores one pending project identity/focus source inside `PortfolioScrollApp`, and opens `PortfolioGateRoute` in the shell-owned in-window overlay. No drawer, hero bridge, sound, or open haptic begins before acceptance. Close, Escape, or backdrop dismissal clears the intent and restores the same card, field, video, and focus without replaying the route entrance.
+Public projects open directly with the shared press-plus-soft-tail project sound. Opening a protected project without access plays only the ordinary press, freezes deck input and ambient media, stores one pending project identity/focus source inside `PortfolioScrollApp`, and opens `PortfolioGateRoute` in the shell-owned in-window overlay. The quieter opening tail, drawer, hero bridge, and open haptic wait until acceptance. Close, Escape, or backdrop dismissal clears the intent and restores the same card, field, video, and focus without replaying the route entrance.
+
+The orbit emits one step click only when a distinct project reaches centre. It emits no continuous travel detents. The open project drawer uses the speed-responsive Scroll Crystal voice on vertical user scrolling and resets the voice before open, close, or programmatic scroll restoration.
 
 A correct code uses the existing `abs_portfolio_ok` cookie/session contract. The gate closes completely, the deck returns to stable final geometry, and the runtime remeasures the selected card before invoking the existing drawer/handoff path. The grant applies to every protected project and survives reload. The URL and route history do not change.
 

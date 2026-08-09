@@ -76,6 +76,8 @@ export function SiteFooter() {
                   aria-label={label}
                   data-route-enter="footer"
                   data-route-enter-order={index}
+                  data-sound-action="press"
+                  data-sound-source={`footer-social-${label.toLowerCase().replaceAll(' ', '-')}`}
                 >
                   <i className={`ti ${icon}`} aria-hidden="true" />
                   <span className="screen-reader">{screenReaderText}</span>

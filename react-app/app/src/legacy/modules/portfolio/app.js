@@ -29,7 +29,6 @@ import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import * as SoundEngine from '../audio/sound-engine.js';
-import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { completeDirectBoot, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { resetTransitionState, setupPrefetchOnHover, setupTransitionNavigationLinks } from '../utils/page-nav.js';
 import {
@@ -73,8 +72,6 @@ let activePortfolioBootstrapRunId = 0;
 const PORTFOLIO_CLICK_DRAG_THRESHOLD_PX = 12;
 const PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS = 90;
 const PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS = 120;
-const PORTFOLIO_CAROUSEL_DETENT_STEP = 1;
-const PORTFOLIO_CAROUSEL_DETENT_MIN_VELOCITY = 0.18;
 const PORTFOLIO_CAROUSEL_DETENT_GAIN = 0.032;
 const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
@@ -1099,29 +1096,16 @@ class PortfolioScrollApp {
       return;
     }
 
-    const elapsedSeconds = Math.max(0.001, (now - this.portfolioSfxLastFrameAt) / 1000);
-    const projectDelta = this.deckDisplayPosition - this.portfolioSfxLastPosition;
-    const projectVelocity = projectDelta / elapsedSeconds;
     this.portfolioSfxLastFrameAt = now;
     this.portfolioSfxLastPosition = this.deckDisplayPosition;
     SoundEngine.updateWheelSfx?.(0);
-    triggerDetent({
-      id: 'portfolio-carousel-scroll',
-      value: this.deckDisplayPosition,
-      step: PORTFOLIO_CAROUSEL_DETENT_STEP,
-      velocity: projectVelocity,
-      minVelocity: PORTFOLIO_CAROUSEL_DETENT_MIN_VELOCITY,
-      minIntervalMs: 64,
-      gain: PORTFOLIO_CAROUSEL_DETENT_GAIN,
-      filterHz: PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ,
-    });
   }
 
-  playPortfolioActionSound() {
+  playPortfolioActionSound(kind = 'press', options = {}) {
     const now = performance.now();
     if (now - this.lastPortfolioActionSoundAt < PORTFOLIO_ACTION_SOUND_MIN_INTERVAL_MS) return;
     this.lastPortfolioActionSoundAt = now;
-    SoundEngine.playButtonPressSound?.();
+    SoundEngine.playInteractionSound?.(kind, options);
   }
 
   playPortfolioCenterSound() {
@@ -1129,7 +1113,7 @@ class PortfolioScrollApp {
     if (now - this.lastPortfolioCenterSoundAt < PORTFOLIO_CENTER_SOUND_MIN_INTERVAL_MS) return;
     this.lastPortfolioCenterSoundAt = now;
     if (typeof SoundEngine.playWheelCenterClick === 'function') {
-      SoundEngine.playWheelCenterClick();
+      SoundEngine.playInteractionSound?.('step', { source: 'portfolio-project-center' });
       return;
     }
     SoundEngine.playDetentClick?.({
@@ -1309,6 +1293,8 @@ class PortfolioScrollApp {
     card.dataset.projectIndex = String(projectIndex);
     card.dataset.projectId = String(project?.id || `project-${projectIndex + 1}`);
     card.dataset.projectAccess = getProjectAccessMode(project);
+    card.dataset.soundAction = 'manual';
+    card.dataset.soundSource = `portfolio-project-${card.dataset.projectId}`;
     applyProjectCardTheme(card, project, projectIndex, this.projects.length);
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '-1');
@@ -3247,6 +3233,7 @@ class PortfolioScrollApp {
       this.deckStage.setAttribute('aria-hidden', 'true');
     }
     if (this.mount) this.mount.dataset.portfolioAccessPending = 'true';
+    this.playPortfolioActionSound('press', { source: `portfolio-gate-${project.id}` });
     announceToScreenReader('This project requires a portfolio invite code.');
     window.dispatchEvent(new CustomEvent('abs:portfolio:request-access', {
       detail: {
@@ -3310,6 +3297,7 @@ class PortfolioScrollApp {
         }
         const opened = this.openProjectByIndex(projectIndex, {
           inputType: intent?.inputType || 'access-granted',
+          soundPhase: 'tail',
         });
         if (!opened) {
           this.particleField?.setSuspended(false);
@@ -3336,7 +3324,10 @@ class PortfolioScrollApp {
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
 
-    this.playPortfolioActionSound();
+    this.playPortfolioActionSound('project-open', {
+      source: `portfolio-project-${project.id}`,
+      phase: options.soundPhase || 'all',
+    });
     this.clearDeckSettleTimer();
     this.stopDeckAnimation();
     this.particleField?.setSuspended(true);
@@ -3345,7 +3336,6 @@ class PortfolioScrollApp {
     this.pendingDeckFocusIndex = -1;
     this.pendingDeckAnnounce = false;
     this.stopPortfolioCarouselSfx();
-    SoundEngine.playWheelOpen?.();
     triggerHaptic('open');
     this.prefetchProjectAssets(project);
     this.pauseAllVideos();
@@ -3405,8 +3395,9 @@ class PortfolioScrollApp {
 
   closeProject() {
     if (!this.isProjectOpen) return;
+    this.projectDrawerView?.setScrollSoundEnabled?.(false);
     if (!this.projectView) {
-      SoundEngine.playWheelClose?.();
+      SoundEngine.playInteractionSound?.('close', { source: 'portfolio-project-close' });
       this.finishProjectClose();
       return;
     }
@@ -3414,7 +3405,7 @@ class PortfolioScrollApp {
     this.projectOpenPhase = 'closing';
     this.clearProjectFocusTimeouts();
     document.body.classList.add('portfolio-project-closing');
-    SoundEngine.playWheelClose?.();
+    SoundEngine.playInteractionSound?.('close', { source: 'portfolio-project-close' });
     triggerHaptic('close');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
     const sourceCard = this.getActiveProjectCard(this.selectedProjectIndex)

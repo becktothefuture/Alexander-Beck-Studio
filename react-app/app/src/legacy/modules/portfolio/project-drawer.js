@@ -1,6 +1,8 @@
 import { getProjectContentBlocks, resolvePortfolioLabelContent } from './portfolio-content.js';
 export { getProjectContentBlocks } from './portfolio-content.js';
 import { createScrollPresence } from '../utils/scroll-presence.js';
+import { playScrollDetent } from '../audio/sound-engine.js';
+import { createScrollSoundController } from '../audio/scroll-sound-controller.js';
 import {
   createSmoothScroll,
   createSmoothScrollMediaQueries,
@@ -352,6 +354,8 @@ function createProjectDrawerMarkup() {
           type="button"
           aria-label="Back to portfolio projects"
           data-portfolio-project-back
+          data-sound-action="manual"
+          data-sound-source="portfolio-project-close"
         >
           <i class="ti ti-arrow-left" aria-hidden="true"></i>
         </button>
@@ -404,6 +408,11 @@ export class PortfolioProjectDrawer {
     this.content = null;
     this.backButton = null;
     this.scrollPresence = null;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController = createScrollSoundController({
+      source: 'portfolio-project-scroll',
+      playDetent: playScrollDetent,
+    });
     this.smoothScroll = null;
     this.smoothScrollFrame = null;
     this.reducedMotionQuery = null;
@@ -412,7 +421,12 @@ export class PortfolioProjectDrawer {
     this.closeFallbackTimer = null;
     this.mediaShiftRaf = null;
     this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
-    this.boundUpdateScrollState = () => this.updateScrollState();
+    this.boundUpdateScrollState = () => {
+      this.updateScrollState();
+      if (this.scrollSoundEnabled) {
+        this.scrollSoundController.samplePosition(0, this.scroll?.scrollTop || 0);
+      }
+    };
     this.boundRebuildSmoothScroll = () => this.rebuildSmoothScroll();
     this.boundSmoothScrollRaf = (time) => this.updateSmoothScroll(time);
     this.boundRequestClose = (event) => {
@@ -527,6 +541,11 @@ export class PortfolioProjectDrawer {
     this.root?.classList.toggle('is-scrolled', (this.scroll?.scrollTop || 0) > 16);
   }
 
+  setScrollSoundEnabled(enabled) {
+    this.scrollSoundEnabled = Boolean(enabled);
+    this.scrollSoundController.reset();
+  }
+
   setupMediaScrollShift() {
     this.teardownMediaScrollShift();
     if (!this.scroll) return;
@@ -580,6 +599,7 @@ export class PortfolioProjectDrawer {
 
   resetScrollTop() {
     if (!this.scroll) return;
+    this.scrollSoundController.reset();
     this.smoothScroll?.scrollTo(0, { immediate: true, force: true });
     this.scroll.scrollTop = 0;
     this.refreshSmoothScroll();
@@ -653,6 +673,8 @@ export class PortfolioProjectDrawer {
 
   commitSharedOpen(mediaMotion = this.imageMotion, { activateHeroMotion = true } = {}) {
     if (!this.root) return;
+    this.scrollSoundController.reset();
+    this.scrollSoundEnabled = true;
     this.restoreTransitionMedia(mediaMotion);
     this.root.classList.remove(
       'is-preopen',
@@ -667,6 +689,8 @@ export class PortfolioProjectDrawer {
 
   commitSharedClosed(mediaMotion = this.imageMotion) {
     if (!this.root) return;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController.reset();
     this.restoreTransitionMedia(mediaMotion);
     this.resetMediaTransforms();
     this.root.classList.remove(
@@ -733,7 +757,7 @@ export class PortfolioProjectDrawer {
       ? `
         <div class="portfolio-project-view__links" data-scroll-presence data-scroll-presence-span="0.16">
           ${links.map((link) => `
-            <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+            <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" data-sound-action="press" data-sound-source="portfolio-project-link">
               ${escapeHtml(link.label)}
               <i class="ti ti-external-link" aria-hidden="true"></i>
             </a>
@@ -879,6 +903,8 @@ export class PortfolioProjectDrawer {
 
   syncProject(project, options = {}) {
     if (!this.root || !project) return;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController.reset();
     const {
       animate = true,
       openDurationMs = 420,
@@ -960,6 +986,8 @@ export class PortfolioProjectDrawer {
 
   reveal({ animate = true, titleDelayMs = 280, immediateStart = false } = {}) {
     if (!this.root) return;
+    this.scrollSoundController.reset();
+    this.scrollSoundEnabled = true;
     this.root.classList.remove('is-preopen', 'is-closing');
     if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       this.root.classList.add('is-open', 'is-title-visible', 'is-hero-motion-active');
@@ -987,6 +1015,8 @@ export class PortfolioProjectDrawer {
 
   beginClose({ reducedMotion = false, durationMs = 420, onComplete } = {}) {
     if (!this.root) return;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController.reset();
     this.clearOpenTimers();
     this.root.style.setProperty('--portfolio-project-close-ms', `${durationMs}ms`);
     this.drawer?.removeEventListener('transitionend', this.boundTransitionEnd);
@@ -1010,6 +1040,8 @@ export class PortfolioProjectDrawer {
 
   completeClose() {
     if (!this.root) return;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController.reset();
     this.resetMediaTransforms();
     if (this.closeFallbackTimer !== null) {
       window.clearTimeout(this.closeFallbackTimer);
@@ -1058,6 +1090,8 @@ export class PortfolioProjectDrawer {
     this.teardownMediaScrollShift();
     this.scrollPresence?.destroy();
     this.scrollPresence = null;
+    this.scrollSoundEnabled = false;
+    this.scrollSoundController.reset();
     if (this.closeFallbackTimer !== null) {
       window.clearTimeout(this.closeFallbackTimer);
       this.closeFallbackTimer = null;

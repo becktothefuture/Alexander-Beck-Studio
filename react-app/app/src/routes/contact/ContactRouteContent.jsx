@@ -63,7 +63,7 @@ export function ContactRouteContent() {
   const handleCopy = useCallback(async (event) => {
     const button = event.currentTarget;
     requestContactRippleBurst();
-    void playContactRippleMotif({ unlockIfNeeded: true });
+    void playContactRippleMotif({ unlockIfNeeded: false });
     const ok = await copyToClipboard(email);
     triggerHaptic(ok ? 'success' : 'error');
     button.classList.remove('pulse-energy');
@@ -120,6 +120,8 @@ export function ContactRouteContent() {
               copyState === 'error' ? 'is-error' : '',
             ].filter(Boolean).join(' ')}
             data-copy-email
+            data-sound-action="manual"
+            data-sound-source="contact-copy-email"
             aria-label={copyText.buttonAriaLabel || 'Copy email address'}
             aria-describedby="contact-copy-status"
             onClick={handleCopy}

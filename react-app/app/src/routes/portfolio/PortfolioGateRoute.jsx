@@ -7,6 +7,7 @@ import {
   markGateAccess,
 } from '../../lib/access-gates.js';
 import { triggerHaptic } from '../../lib/haptics.js';
+import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 import {
   dismissGateBackdrop,
   ensureGateModalOverlay,
@@ -84,6 +85,9 @@ export function PortfolioGateRoute() {
 
   const beginClose = useCallback((outcome) => {
     if (phaseRef.current === 'hidden' || phaseRef.current === 'closing') return;
+    if (outcome === 'dismissed') {
+      playInteractionSound('close', { source: 'portfolio-gate-close' });
+    }
     clearTimer();
     phaseRef.current = 'closing';
     setPhase('closing');
@@ -281,6 +285,8 @@ export function PortfolioGateRoute() {
         type="button"
         className="portfolio-access-gate__close abs-icon-btn"
         aria-label="Close portfolio access prompt"
+        data-sound-action="manual"
+        data-sound-source="portfolio-gate-close"
         disabled={accepted || phase === 'closing'}
         onClick={() => beginClose('dismissed')}
       >

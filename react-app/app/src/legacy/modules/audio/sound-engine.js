@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getState } from '../core/state.js';
+import { INTERACTION_SOUND_RECIPES } from './interaction-sound-policy.js';
 
 /**
  * Sound Design: Soft Organic Impacts
@@ -367,6 +368,7 @@ let sharedNoiseBuffer = null;
 
 // Wheel SFX state
 let wheelTickBuffer = null;
+let scrollCrystalBuffer = null;
 let wheelTickSource = null;
 let wheelTickGain = null;
 let wheelTickFilter = null;
@@ -655,6 +657,23 @@ function createWheelTickBuffer() {
   }
 }
 
+function createScrollCrystalBuffer() {
+  if (scrollCrystalBuffer || !audioContext) return;
+  const sampleRate = audioContext.sampleRate;
+  const duration = 0.026;
+  const length = Math.floor(sampleRate * duration);
+  scrollCrystalBuffer = audioContext.createBuffer(1, length, sampleRate);
+  const data = scrollCrystalBuffer.getChannelData(0);
+  for (let index = 0; index < length; index += 1) {
+    const time = index / sampleRate;
+    const noiseEnvelope = Math.exp(-time * 250);
+    const toneEnvelope = Math.exp(-time * 145);
+    const triangle = (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * 1320 * time));
+    data[index] = ((Math.random() * 2 - 1) * noiseEnvelope * 0.62)
+      + (triangle * toneEnvelope * 0.34);
+  }
+}
+
 function createWheelSwishBuffer() {
   if (wheelSwishBuffer || !audioContext) return;
   const sampleRate = audioContext.sampleRate;
@@ -720,12 +739,14 @@ function stopWheelLoops() {
   }
 }
 
-function playWheelClick(gain, filterHz) {
-  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+function playWheelClick(gain, filterHz, { delayMs = 0, playbackRate = 1 } = {}) {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
   ensureWheelBus();
   createWheelTickBuffer();
+  const now = audioContext.currentTime;
   const src = audioContext.createBufferSource();
   src.buffer = wheelTickBuffer;
+  src.playbackRate.setValueAtTime(playbackRate, now);
   const g = audioContext.createGain();
   g.gain.value = gain;
   const hp = audioContext.createBiquadFilter();
@@ -735,12 +756,106 @@ function playWheelClick(gain, filterHz) {
   lp.type = 'lowpass';
   lp.frequency.value = filterHz;
   src.connect(hp).connect(lp).connect(g).connect(wheelBus);
-  src.start();
+  src.onended = () => {
+    try { src.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { hp.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { lp.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { g.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+  };
+  src.start(now + (Math.max(0, delayMs) / 1000));
+  return true;
+}
+
+export function playInteractionSound(kind, {
+  source = 'unclassified-action',
+  phase = 'all',
+} = {}) {
+  if (kind === 'contact') {
+    return playContactRippleMotif({ unlockIfNeeded: false });
+  }
+
+  const recipe = INTERACTION_SOUND_RECIPES[kind];
+  if (!recipe || !isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
+
+  const layers = kind === 'project-open' && phase === 'tail'
+    ? recipe.layers.slice(1)
+    : recipe.layers;
+  if (!layers.length) return false;
+  recordSoundDebugEvent('interaction-feedback', `interaction:${source}`, {
+    kind,
+    phase,
+    source,
+    layerCount: layers.length,
+    durationMs: recipe.durationMs,
+  });
+  for (const layer of layers) {
+    playWheelClick(layer.gain, layer.filterHz, {
+      delayMs: layer.delayMs,
+      playbackRate: layer.playbackRate,
+    });
+  }
+  return true;
 }
 
 export function playDetentClick({ gain = 0.05, filterHz = 3200 } = {}) {
   recordSoundDebugEvent('detent-playback', 'sound-engine:detent', { gain, filterHz });
   playWheelClick(gain, filterHz);
+}
+
+export function playScrollDetent({
+  direction = 0,
+  source = 'scroll',
+  speed = 0,
+  speedNorm = 0,
+} = {}) {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return false;
+  ensureWheelBus();
+  createScrollCrystalBuffer();
+
+  const response = clamp(Number(speedNorm) || 0, 0, 1);
+  const gainValue = 0.026 + (response * 0.0035);
+  const filterHz = 2500 + (response * 1400);
+  const directionLift = Math.sign(Number(direction) || 0) * 0.008;
+  const playbackRate = vary(0.92 + (response * 0.20) + directionLift, 0.035);
+  const now = audioContext.currentTime;
+  const src = audioContext.createBufferSource();
+  const hp = audioContext.createBiquadFilter();
+  const lp = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+
+  src.buffer = scrollCrystalBuffer;
+  src.playbackRate.setValueAtTime(playbackRate, now);
+  hp.type = 'highpass';
+  hp.frequency.setValueAtTime(760, now);
+  hp.Q.setValueAtTime(0.35, now);
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(filterHz, now);
+  lp.Q.setValueAtTime(0.55, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.0012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.024);
+
+  src.connect(hp).connect(lp).connect(gain).connect(wheelBus);
+  src.onended = () => {
+    try { src.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { hp.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { lp.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+    try { gain.disconnect(); } catch (e) { /* Audio cleanup is best effort. */ }
+  };
+
+  recordSoundDebugEvent('scroll-detent-playback', 'sound-engine:scroll-detent', {
+    character: 'scroll-crystal',
+    direction: Math.sign(Number(direction) || 0),
+    filterHz: Math.round(filterHz),
+    gain: Number(gainValue.toFixed(4)),
+    playbackRate: Number(playbackRate.toFixed(3)),
+    source,
+    speed: Math.round(Math.max(0, Number(speed) || 0)),
+    speedNorm: Number(response.toFixed(3)),
+  });
+  src.start(now);
+  src.stop(now + 0.03);
+  return true;
 }
 
 export function updateWheelSfx(velocityPxPerSec = 0) {
@@ -817,7 +932,7 @@ export function playWheelSnap() {
 }
 
 export function playWheelCenterClick() {
-  playWheelClick(WHEEL_SFX_CONFIG.centerGain, WHEEL_SFX_CONFIG.centerFilterHz || 1600);
+  playInteractionSound('step', { source: 'legacy-wheel-center' });
 }
 
 export function playWheelOpen() {
@@ -825,7 +940,7 @@ export function playWheelOpen() {
 }
 
 export function playWheelClose() {
-  playWheelClick(WHEEL_SFX_CONFIG.closeGain, WHEEL_SFX_CONFIG.closeFilterHz || 1600);
+  playInteractionSound('close', { source: 'legacy-wheel-close' });
 }
 
 export function playHoverSound() {
@@ -839,9 +954,7 @@ export function playHoverSound() {
 }
 
 export function playButtonPressSound() {
-  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  recordSoundDebugEvent('button-press-playback', 'sound-engine:button-press', { gain: 0.099, filterHz: 2200 });
-  playWheelClick(0.099, 2200);
+  return playInteractionSound('press', { source: 'legacy-button-press' });
 }
 
 export function playSoundEnabledMotif() {
@@ -1108,7 +1221,7 @@ function scheduleContactPressureRing({
  * Contact activation motif: a bright lifted ripple synced to the visible wave.
  * The press stays tactile without a bass drop, then five airy ring pulses travel
  * outward and resolve into a longer upward shimmer tail.
- * The first Contact click may unlock audio; an explicitly muted engine stays silent.
+ * Contact never unlocks audio; it stays silent until the visitor uses the sound toggle.
  */
 export async function playContactRippleMotif({ unlockIfNeeded = false } = {}) {
   if (!isUnlocked && unlockIfNeeded) {
@@ -1670,6 +1783,7 @@ export function disposeSoundEngine() {
   isEnabled = false;
   lastSoundTime.clear();
   stopWheelLoops();
+  scrollCrystalBuffer = null;
   wheelBus = null;
   emitSoundStateChange();
 }

@@ -17,11 +17,10 @@ import {
 } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
 import {
-  playButtonPressSound,
-  playWheelClose,
-  playWheelOpen,
-  updateWheelSfx,
+  playInteractionSound,
+  playScrollDetent,
 } from '../../legacy/modules/audio/sound-engine.js';
+import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
 import {
   registerSimulationAtmosphereSource,
   tickSimulationAtmosphere,
@@ -66,7 +65,6 @@ import {
 import './playground.css';
 
 const INITIAL_POSTER_TIMEOUT_MS = 2200;
-const SOUND_STOP_DELAY_MS = 90;
 const TITLE_SAFE_PADDING_CELLS = 0;
 const COPY_KEY_SEPARATOR = ':';
 const PROJECT_NAVIGATION_DIRECTIONS = Object.freeze({
@@ -291,8 +289,7 @@ export function PlaygroundExperience() {
   const copySignatureRef = useRef('');
   const cameraFrameRef = useRef(null);
   const lastLogicalCameraRef = useRef({ x: 0, y: 0 });
-  const lastSoundFrameRef = useRef({ x: 0, y: 0, at: 0 });
-  const soundStopTimerRef = useRef(0);
+  const scrollSoundControllerRef = useRef(null);
   const draggingRef = useRef(false);
   const spatialCleanupRef = useRef(null);
   const diagnosticsRef = useRef({});
@@ -596,7 +593,7 @@ export function PlaygroundExperience() {
       }
       const nextId = parsePlaygroundWorkSelection(window.location, contentRef.current?.items);
       if (selectedIdRef.current && !nextId) {
-        playWheelClose();
+        playInteractionSound('close', { source: 'lab-project-close' });
         triggerHaptic('close');
       }
       setSelectedId(nextId);
@@ -611,16 +608,17 @@ export function PlaygroundExperience() {
     returnFocusIdRef.current = itemId;
     updatePlaygroundWorkSelection(itemId, { itemsOrIds: activeContent.items });
     setSelectedId(itemId);
-    playButtonPressSound();
-    playWheelOpen();
+    playInteractionSound('project-open', { source: `lab-project-${itemId}` });
     triggerHaptic('open', { event });
   }, []);
 
   const requestClose = useCallback(({ reason } = {}) => {
     const result = clearPlaygroundWorkSelection({ preferBack: true });
-    playWheelClose();
-    triggerHaptic('close');
-    if (result !== 'back') setSelectedId(null);
+    if (result !== 'back') {
+      playInteractionSound('close', { source: 'lab-project-close' });
+      triggerHaptic('close');
+      setSelectedId(null);
+    }
     if (reason === 'programmatic') return;
   }, []);
 
@@ -632,7 +630,7 @@ export function PlaygroundExperience() {
       else world.removeAttribute('aria-hidden');
     }
     cameraRef.current?.setEnabled(!isInert);
-    if (isInert) updateWheelSfx(0);
+    if (isInert) scrollSoundControllerRef.current?.reset();
   }, []);
 
   const restoreItemFocus = useCallback((itemId) => {
@@ -774,33 +772,17 @@ export function PlaygroundExperience() {
       return coverage;
     };
 
-    const stopSoundAfterIdle = () => {
-      soundStopTimerRef.current = 0;
-      const remainingMs = SOUND_STOP_DELAY_MS
-        - (performance.now() - lastSoundFrameRef.current.at);
-      if (remainingMs > 0) {
-        soundStopTimerRef.current = window.setTimeout(stopSoundAfterIdle, remainingMs);
-        return;
-      }
-      updateWheelSfx(0);
-    };
-
+    const scrollSoundController = createScrollSoundController({
+      playDetent: playScrollDetent,
+      source: 'lab-camera',
+    });
+    scrollSoundControllerRef.current = scrollSoundController;
     const updateSound = (cameraState) => {
-      const now = performance.now();
-      const previous = lastSoundFrameRef.current;
-      const elapsed = Math.max(1, now - previous.at);
-      if (previous.at > 0) {
-        const deltaX = cameraState.logicalX - previous.x;
-        const deltaY = cameraState.logicalY - previous.y;
-        const speed = Math.min(3600, Math.hypot(deltaX, deltaY) * (1000 / elapsed));
-        updateWheelSfx(speed >= 50 ? speed : 0);
-      }
-      previous.x = cameraState.logicalX;
-      previous.y = cameraState.logicalY;
-      previous.at = now;
-      if (!soundStopTimerRef.current) {
-        soundStopTimerRef.current = window.setTimeout(stopSoundAfterIdle, SOUND_STOP_DELAY_MS);
-      }
+      scrollSoundController.samplePosition(
+        cameraState.logicalX,
+        cameraState.logicalY,
+        performance.now(),
+      );
     };
 
     let lastRenderedCameraX = Number.NaN;
@@ -988,9 +970,10 @@ export function PlaygroundExperience() {
       cameraRef.current = null;
       dotRendererRef.current = null;
       applyCameraFrameRef.current = () => {};
-      updateWheelSfx(0);
-      if (soundStopTimerRef.current) window.clearTimeout(soundStopTimerRef.current);
-      soundStopTimerRef.current = 0;
+      scrollSoundController.reset();
+      if (scrollSoundControllerRef.current === scrollSoundController) {
+        scrollSoundControllerRef.current = null;
+      }
     };
     spatialCleanupRef.current = cleanup;
     return () => {
@@ -1182,7 +1165,7 @@ export function PlaygroundExperience() {
   useEffect(() => () => {
     activeVideoOwnersRef.current.clear();
     activeIframeOwnersRef.current.clear();
-    updateWheelSfx(0);
+    scrollSoundControllerRef.current?.reset();
   }, []);
 
   const routeStyle = model ? {
@@ -1343,6 +1326,8 @@ export function PlaygroundExperience() {
                         tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
                         aria-label={accessibleName}
                         aria-haspopup="dialog"
+                        data-sound-action="manual"
+                        data-sound-source={`lab-project-${item.id}`}
                         onFocus={() => {
                           setKeyboardItemId(item.id);
                           focusLogicalItem(item.id);

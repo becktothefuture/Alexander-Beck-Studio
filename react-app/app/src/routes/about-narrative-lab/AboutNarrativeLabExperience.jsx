@@ -16,6 +16,7 @@ import {
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
+import { playInteractionSound, playScrollDetent } from '../../legacy/modules/audio/sound-engine.js';
 import './about-narrative-lab.css';
 
 const INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT = ABOUT_NARRATIVE_DOCUMENT;
@@ -293,6 +294,7 @@ function ClientLogoGrid({ items = [], label = 'Selected clients' }) {
 function EditorialMediaDeck({ module }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const dragStartXRef = useRef(null);
+  const suppressClickRef = useRef(false);
   const items = module.items || [];
   const visibleItems = items.length ? items : [0, 1, 2].map((index) => ({
     id: `placeholder-${index + 1}`,
@@ -304,6 +306,7 @@ function EditorialMediaDeck({ module }) {
   }));
   const advance = (direction = 1) => {
     if (!items.length) return;
+    playInteractionSound('step', { source: 'about-media-deck' });
     setActiveIndex((index) => (index + direction + items.length) % items.length);
   };
   return (
@@ -317,7 +320,15 @@ function EditorialMediaDeck({ module }) {
         type="button"
         className="about-narrative-media-deck__stage"
         aria-label={items.length ? 'Show next artefact' : 'Image module ready for three to five artefacts'}
-        onClick={() => advance(1)}
+        data-sound-action="manual"
+        data-sound-source="about-media-deck"
+        onClick={() => {
+          if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+          }
+          advance(1);
+        }}
         onKeyDown={(event) => {
           if (event.key === 'ArrowLeft') advance(-1);
           if (event.key === 'ArrowRight') advance(1);
@@ -327,6 +338,7 @@ function EditorialMediaDeck({ module }) {
           const startX = dragStartXRef.current;
           dragStartXRef.current = null;
           if (startX == null || Math.abs(event.clientX - startX) < 28) return;
+          suppressClickRef.current = true;
           advance(event.clientX < startX ? 1 : -1);
         }}
         disabled={!items.length}
@@ -596,6 +608,8 @@ function TitleField({
                 <a
                   className="about-narrative-finale-description__link"
                   href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
+                  data-sound-action="press"
+                  data-sound-source="about-email-link"
                 >
                   Send me an email.
                 </a>
@@ -861,6 +875,7 @@ export function AboutNarrativeLabExperience({
     worldRuntimeRef,
     scrollportRef,
     contentRef,
+    playScrollDetent,
   });
 
   useLayoutEffect(() => {

@@ -22,6 +22,8 @@ function renderLegendItem(item) {
       className="w-layout-hflex legend__item"
       data-tooltip={item.tooltip}
       data-route-enter="legend"
+      data-sound-action="press"
+      data-sound-source={`home-legend-${item.label.toLowerCase().replaceAll(' ', '-')}`}
       aria-pressed="false"
       aria-controls="legend-details-status"
     >
@@ -118,6 +120,8 @@ export function getHomeRouteView(canonicalHref = '') {
                     id="contact-route-inline"
                     className="home-philosophy-link"
                     href="/contact.html"
+                    data-sound-action="press"
+                    data-sound-source="home-contact-link"
                     onClick={handleContactClick}
                   >
                     {philosophyLink.text}

@@ -18,6 +18,7 @@ import {
   reconcileAboutInteractiveStackOrder,
   retreatAboutInteractiveStackOrder,
 } from './aboutInteractiveStackModel.js';
+import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 
 const INITIAL_GESTURE = Object.freeze({
   pointerId: null,
@@ -201,6 +202,7 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
   const beginNavigation = useCallback((direction, { preserveDragVisual = false } = {}) => {
     if (stateRef.current.order.length <= 1) return;
     clearScheduledWork();
+    playInteractionSound('step', { source: 'about-project-stack' });
     dispatchAction({ type: 'navigate', direction });
     if (preserveDragVisual) {
       frameRef.current = requestAnimationFrame(() => {
@@ -456,6 +458,8 @@ export function AboutInteractiveStack({ module, motionProfile = 'full', scrollpo
         type="button"
         className="about-interactive-stack__stage"
         data-stack-phase={state.phase}
+        data-sound-action="manual"
+        data-sound-source="about-project-stack"
         aria-disabled={enabled ? undefined : 'true'}
         aria-label={enabled ? 'Show another project impression' : module.label || 'Project impression'}
         aria-describedby={`${instructionsId} ${statusId}`}

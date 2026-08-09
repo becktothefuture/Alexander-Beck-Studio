@@ -5,7 +5,6 @@ import {
   initSoundEngine,
   playButtonPressSound,
   playCollisionSound,
-  playHoverSound,
   playSoundEnabledMotif,
   playTestSound,
   playWheelCenterClick,
@@ -17,8 +16,9 @@ import {
   updateWheelSfxConfig,
 } from '../../legacy/modules/audio/sound-engine.js';
 import {
-  getSoundPlaygroundCandidateIds,
-  playSoundPlaygroundHover,
+  getSoundPlaygroundScrollCandidateIds,
+  playSoundPlaygroundScrollCandidate,
+  playSoundPlaygroundScrollPreview,
   unlockSoundPlaygroundAudio,
 } from '../../legacy/modules/audio/sound-playground.js';
 import {
@@ -31,29 +31,22 @@ import './sound-playground.css';
 
 const CANDIDATES = Object.freeze([
   {
-    id: 'air-whisper', number: '01', name: 'Air Whisper', tag: 'Recommended',
-    description: 'A filtered breath with no pitched click. Reads as presence, not feedback.',
-    recipe: 'Band-passed noise · 55ms · 1.2kHz → 760Hz', recommendation: 'Best everyday hover',
+    id: 'felt-ratchet', number: '01', name: 'Felt Ratchet', tag: 'Recommended starting point',
+    description: 'A warm fibre-and-wood detent with a tiny low body. Close, organic, and deliberately unmusical.',
+    recipe: 'Noise + sine body · 33ms · 1.38kHz → 820Hz', recommendation: 'Best continuous movement',
+    distancePx: 22,
   },
   {
-    id: 'soft-bloom', number: '02', name: 'Soft Bloom', tag: 'Recommended',
-    description: 'A tiny triangle tone that opens slowly, then melts away. More character, still quiet.',
-    recipe: 'Triangle tone · 170ms · 720Hz → 520Hz', recommendation: 'Best expressive hover',
+    id: 'crystal-notch', number: '02', name: 'Crystal Notch', tag: 'Foundation family',
+    description: 'A much quieter relative of the Foundation crystal-pebble collision. Crisp and familiar, but intentionally sparse.',
+    recipe: 'Noise + triangle glint · 25ms · 3.6kHz → 920Hz', recommendation: 'Best family continuity',
+    distancePx: 32,
   },
   {
-    id: 'velvet-tap', number: '03', name: 'Velvet Tap', tag: 'Material',
-    description: 'A low, rounded body with the transient removed. Tactile, soft, and slightly physical.',
-    recipe: 'Sine body · 105ms · 210Hz → 150Hz',
-  },
-  {
-    id: 'magnetic-halo', number: '04', name: 'Magnetic Halo', tag: 'Spatial',
-    description: 'Two close tones create a barely-there shimmer, like a control waking up under a fingertip.',
-    recipe: 'Detuned sine pair · 190ms · ±7 cents',
-  },
-  {
-    id: 'elastic-ping', number: '05', name: 'Elastic Ping', tag: 'Playful',
-    description: 'A soft falling pitch with a longer tail. Distinctive, but more audible than the other options.',
-    recipe: 'Sine body · 230ms · 560Hz → 310Hz',
+    id: 'air-teeth', number: '03', name: 'Air Teeth', tag: 'Quietest',
+    description: 'A dry, paper-like filtered tick with no tonal body. It registers as texture before it registers as a sound.',
+    recipe: 'Band-passed noise · 36ms · 2.2kHz → 1.05kHz', recommendation: 'Best long-form reading',
+    distancePx: 27,
   },
 ]);
 
@@ -104,7 +97,7 @@ const SOUND_GROUPS = Object.freeze([
     title: 'Interface',
     description: 'The small signals used by buttons, toggles, drawers, and navigation.',
     sounds: [
-      { id: 'hover', name: 'Hover', detail: 'Quiet wheel detent · no swish', play: playHoverSound },
+      { id: 'hover', name: 'Hover', detail: 'Intentionally silent', play: null },
       { id: 'press', name: 'Press', detail: 'Current production press reference', play: playPressReference },
       { id: 'enable', name: 'Enable motif', detail: 'Three-note sound-on confirmation', play: playSoundEnabledMotif },
     ],
@@ -391,6 +384,7 @@ function FidgetArea({ isAudioReady }) {
 }
 
 function SoundCatalogCard({ sound, isAudioReady, onPlay }) {
+  const isSilent = typeof sound.play !== 'function';
   return (
     <article className="sound-playground__catalog-card">
       <div className="sound-playground__catalog-meta">
@@ -398,16 +392,39 @@ function SoundCatalogCard({ sound, isAudioReady, onPlay }) {
         <h3>{sound.name}</h3>
         <p>{sound.detail}</p>
       </div>
-      <SoundButton className="sound-playground__catalog-play" disabled={!isAudioReady} onClick={() => onPlay(sound)}>
-        <span className="sound-playground__button-kicker">Audition</span>
-        <strong>Play sound</strong>
+      <SoundButton className="sound-playground__catalog-play" disabled={!isAudioReady || isSilent} onClick={() => onPlay(sound)}>
+        <span className="sound-playground__button-kicker">{isSilent ? 'Contract' : 'Audition'}</span>
+        <strong>{isSilent ? 'No sound' : 'Play sound'}</strong>
       </SoundButton>
     </article>
   );
 }
 
-function HoverCandidateCard({ candidate, isAudioReady, isActive, onPreview }) {
-  const playCandidate = useCallback(() => onPreview(candidate.id), [candidate.id, onPreview]);
+function ScrollCandidateCard({ candidate, isAudioReady, isActive, onPreview }) {
+  const scrollStateRef = useRef({ previousTop: 0, previousAt: 0, distance: 0 });
+  const [lastAction, setLastAction] = useState('Scroll inside this lane');
+  const playContinuous = useCallback(() => onPreview(candidate.id, 'continuous'), [candidate.id, onPreview]);
+  const playStep = useCallback(() => onPreview(candidate.id, 'step'), [candidate.id, onPreview]);
+  const handleScroll = useCallback((event) => {
+    if (!isAudioReady) return;
+    const now = performance.now();
+    const state = scrollStateRef.current;
+    const nextTop = event.currentTarget.scrollTop;
+    const delta = nextTop - state.previousTop;
+    const elapsed = Math.max(8, now - (state.previousAt || now));
+    state.previousTop = nextTop;
+    state.previousAt = now;
+    state.distance += Math.abs(delta);
+    if (state.distance < candidate.distancePx) return;
+    state.distance %= candidate.distancePx;
+    const didPlay = playSoundPlaygroundScrollCandidate(candidate.id, {
+      velocity: Math.min(2200, Math.abs(delta) / elapsed * 1000),
+    });
+    if (didPlay) {
+      setLastAction(`${Math.round(nextTop)}px · live detent`);
+      onPreview(candidate.id, 'select-only');
+    }
+  }, [candidate.distancePx, candidate.id, isAudioReady, onPreview]);
 
   return (
     <article className={`sound-playground__candidate${isActive ? ' is-active' : ''}`}>
@@ -420,20 +437,50 @@ function HoverCandidateCard({ candidate, isAudioReady, isActive, onPreview }) {
         <p>{candidate.description}</p>
         <span className="sound-playground__candidate-recipe">{candidate.recipe}</span>
       </div>
-      <SoundButton
-        className="sound-playground__candidate-play"
-        disabled={!isAudioReady}
-        onClick={playCandidate}
-      >
-        <strong>Play sound</strong>
-      </SoundButton>
+      <div className="sound-playground__candidate-actions">
+        <SoundButton className="sound-playground__candidate-play" disabled={!isAudioReady} onClick={playContinuous}>
+          <span className="sound-playground__button-kicker">Continuous</span>
+          <strong>Play movement</strong>
+        </SoundButton>
+        <SoundButton className="sound-playground__candidate-play" disabled={!isAudioReady} onClick={playStep}>
+          <span className="sound-playground__button-kicker">Work</span>
+          <strong>Play project step</strong>
+        </SoundButton>
+      </div>
+      <div className="sound-playground__scroll-audition">
+        <div className="sound-playground__scroll-audition-heading">
+          <span>Live scroll lane</span>
+          <output aria-live="polite">{lastAction}</output>
+        </div>
+        <div
+          className="sound-playground__scroll-lane"
+          tabIndex={0}
+          aria-label={`Scroll to audition ${candidate.name}`}
+          onScroll={handleScroll}
+        >
+          <div className="sound-playground__scroll-lane-track">
+            {['Start', 'Drift', 'Move', 'Coast', 'Settle'].map((label, index) => (
+              <div key={label} className="sound-playground__scroll-lane-stop">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <strong>{label}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </article>
   );
 }
 
+function getInitialScrollCandidate() {
+  if (typeof window === 'undefined') return null;
+  const candidateId = new URLSearchParams(window.location.search).get('scrollSound');
+  return CANDIDATES.some((candidate) => candidate.id === candidateId) ? candidateId : null;
+}
+
 export function SoundPlayground() {
   const [isAudioReady, setIsAudioReady] = useState(false);
-  const [activeCandidate, setActiveCandidate] = useState(null);
+  const [activeCandidate, setActiveCandidate] = useState(getInitialScrollCandidate);
   const [lastCatalogSound, setLastCatalogSound] = useState('Nothing played yet');
 
   const enableAudio = useCallback(async () => {
@@ -445,10 +492,13 @@ export function SoundPlayground() {
     setIsAudioReady(Boolean(productionReady && playgroundReady));
   }, []);
 
-  const previewCandidate = useCallback((candidateId) => {
+  const previewCandidate = useCallback((candidateId, mode = 'continuous') => {
     if (!isAudioReady) return;
     setActiveCandidate(candidateId);
-    playSoundPlaygroundHover(candidateId);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('scrollSound', candidateId);
+    window.history.replaceState(window.history.state, '', nextUrl);
+    if (mode !== 'select-only') playSoundPlaygroundScrollPreview(candidateId, { mode });
   }, [isAudioReady]);
 
   const playCatalogSound = useCallback((sound) => {
@@ -457,7 +507,7 @@ export function SoundPlayground() {
     setLastCatalogSound(sound.name);
   }, [isAudioReady]);
 
-  const candidateIds = getSoundPlaygroundCandidateIds();
+  const candidateIds = getSoundPlaygroundScrollCandidateIds();
 
   return (
     <main className="sound-playground" aria-labelledby="sound-playground-title">
@@ -470,7 +520,7 @@ export function SoundPlayground() {
             </span>
           </div>
           <h1 id="sound-playground-title">Every sound, one place.</h1>
-          <p>Fidget with the real interactions on the left. Audition the full production sound catalog on the right. The five hover ideas stay at the bottom for comparison.</p>
+          <p>Fidget with the real interactions on the left. Audition the production catalog on the right. Hover remains silent; the three scroll-wheel candidates at the bottom are isolated prototypes.</p>
         </div>
         <div className="sound-playground__hero-action">
           <button type="button" className="sound-playground__enable" onClick={enableAudio}>
@@ -508,13 +558,13 @@ export function SoundPlayground() {
 
           <section className="sound-playground__candidates" aria-labelledby="sound-playground-candidates-title">
             <header>
-              <span className="sound-playground__section-label">Hover candidates</span>
-              <h2 id="sound-playground-candidates-title">Five ways to make hover feel like a hint.</h2>
-              <p>These are exploratory alternatives, not yet wired into production.</p>
+              <span className="sound-playground__section-label">Scroll candidates</span>
+              <h2 id="sound-playground-candidates-title">Three quiet ways to make movement feel physical.</h2>
+              <p>Each voice has a continuous pass, a single Work project step, and a live native scroll lane. None is wired into production.</p>
             </header>
             <div className="sound-playground__candidate-list">
               {CANDIDATES.filter((candidate) => candidateIds.includes(candidate.id)).map((candidate) => (
-                <HoverCandidateCard
+                <ScrollCandidateCard
                   key={candidate.id}
                   candidate={candidate}
                   isAudioReady={isAudioReady}

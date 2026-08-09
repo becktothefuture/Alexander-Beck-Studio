@@ -13,6 +13,7 @@ import {
   SIMULATION_FOCUS_STORAGE_KEY,
 } from '../../data/simulationCatalog.js';
 import { triggerHaptic } from '../../lib/haptics.js';
+import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 import {
   getWrappedAdjacentItem,
   shouldIgnoreGlobalKeyboardShortcut,
@@ -344,6 +345,8 @@ export function SimulationFocusSwitcher() {
         type="button"
         className="simulation-focus-pill simulation-focus-switcher"
         data-simulation-id={activeSimulation.id}
+        data-sound-action="press"
+        data-sound-source="simulation-chooser-toggle"
         aria-haspopup="dialog"
         aria-expanded={isChooserOpen}
         aria-controls={FOCUS_MODAL_ID}
@@ -374,6 +377,10 @@ export function SimulationFocusChooser() {
     selectSimulation,
   } = useSimulationFocus();
   const modalRef = useRef(null);
+  const dismissChooser = useCallback(() => {
+    playInteractionSound('close', { source: 'simulation-chooser-close' });
+    closeChooser();
+  }, [closeChooser]);
 
   useEffect(() => {
     if (!isChooserMounted) return undefined;
@@ -420,13 +427,13 @@ export function SimulationFocusChooser() {
       (selected || (coarsePointer ? modalRef.current : firstButton))?.focus({ preventScroll: true });
     });
 
-    const handleDismiss = () => closeChooser();
+    const handleDismiss = () => dismissChooser();
     document.addEventListener('modal-overlay-dismiss', handleDismiss);
     return () => {
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener('modal-overlay-dismiss', handleDismiss);
     };
-  }, [closeChooser, isChooserActive]);
+  }, [dismissChooser, isChooserActive]);
 
   useEffect(() => {
     if (!isChooserActive) return undefined;
@@ -434,19 +441,19 @@ export function SimulationFocusChooser() {
     const handleDocumentKeyDown = (event) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
-      closeChooser();
+      dismissChooser();
     };
 
     document.addEventListener('keydown', handleDocumentKeyDown);
     return () => {
       document.removeEventListener('keydown', handleDocumentKeyDown);
     };
-  }, [closeChooser, isChooserActive]);
+  }, [dismissChooser, isChooserActive]);
 
   const handleKeyDown = (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      closeChooser();
+      dismissChooser();
       return;
     }
 
@@ -489,8 +496,10 @@ export function SimulationFocusChooser() {
           type="button"
           className="gate-back abs-icon-btn"
           data-modal-back
+          data-sound-action="manual"
+          data-sound-source="simulation-chooser-close"
           aria-label="Close simulation chooser"
-          onClick={() => closeChooser()}
+          onClick={dismissChooser}
         >
           <svg
             className="portfolio-project-view__close-icon"
@@ -521,6 +530,8 @@ export function SimulationFocusChooser() {
               type="button"
               className="simulation-focus-row"
               data-simulation-id={entry.id}
+              data-sound-action="press"
+              data-sound-source={`simulation-select-${entry.id}`}
               style={{ '--simulation-focus-row-index': index }}
               aria-current={isActive ? 'true' : undefined}
               aria-busy={isPending ? 'true' : undefined}
