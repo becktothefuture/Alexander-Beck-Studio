@@ -80,7 +80,7 @@ export function DominantTabLab() {
         <div className="dominant-tab-lab__heading">
           <p className="dominant-tab-lab__eyebrow">Production validation</p>
           <h1>Button Bar</h1>
-          <p>The production capsule, shared route dot, and fixed utility slots.</p>
+          <p>The production capsule, shared route key, and fixed utility slots.</p>
         </div>
       </header>
 
@@ -109,7 +109,7 @@ export function DominantTabLab() {
           <span>Active route</span>
           <strong>{activeRoute?.label || 'Home'}</strong>
           <span>Interaction</span>
-          <strong>Shared dot travel</strong>
+          <strong>Shared key travel</strong>
           <span>Theme</span>
           <strong>{theme}</strong>
         </div>

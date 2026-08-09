@@ -328,6 +328,14 @@ export const MASTER_GROUPS = [
     ]
   },
   {
+    id: 'menu',
+    title: 'Menu',
+    icon: '▰',
+    sections: [
+      'buttonBar'
+    ]
+  },
+  {
     id: 'simulations',
     title: 'Simulation Setup',
     icon: '🎛️',
@@ -786,7 +794,7 @@ function getColorInputValue(value, uiDocument = null) {
 
 function createButtonBarControls() {
   return BUTTON_BAR_CONTROL_GROUPS.flatMap((group) => [
-    { type: 'divider', label: `Button Bar · ${group.title}` },
+    { type: 'divider', label: group.title },
     ...group.controls.map((control) => ({
       id: control.id,
       label: control.label,
@@ -1471,7 +1479,6 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${vw}vw, ${maxPx}px)`);
         }
       },
-      ...createButtonBarControls(),
       {
         id: 'homeMainLinksBelowLogoPx',
         label: 'Links Offset',
@@ -1531,6 +1538,16 @@ export const CONTROL_SECTIONS = {
         }
       }
     ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUTTON BAR - Persistent primary navigation and its moving active key
+  // ═══════════════════════════════════════════════════════════════════════════
+  buttonBar: {
+    title: 'Button Bar',
+    icon: '▰',
+    defaultOpen: true,
+    controls: createButtonBarControls()
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

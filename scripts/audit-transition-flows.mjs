@@ -635,7 +635,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const routeTabs = document.querySelector('[data-route-tabs]');
       const currentTab = document.querySelector('[data-route-tab][aria-current="page"]');
       const buttonBar = document.querySelector('[data-button-bar]');
-      const activeIndicator = buttonBar?.querySelector('.button-bar__active-indicator');
+      const activeIndicator = buttonBar?.querySelector('.button-bar__active-pill');
       const visualTab = routeTabs?.querySelector(`[data-route-tab="${routeTabs?.dataset.activeRoute || ''}"]`);
       const activeIndicatorRect = activeIndicator?.getBoundingClientRect();
       const visualTabRect = visualTab?.getBoundingClientRect();
@@ -803,7 +803,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       elapsedMs: round(performance.now() - state.startedAt, 2),
       detail: event?.detail ? { ...event.detail } : null,
     });
-    const activeIndicator = document.querySelector('.button-bar__active-indicator');
+    const activeIndicator = document.querySelector('.button-bar__active-pill');
     const onIndicatorTransition = (event) => {
       if (event.target !== activeIndicator || event.propertyName !== 'transform') return;
       state.indicatorTransitions.push({

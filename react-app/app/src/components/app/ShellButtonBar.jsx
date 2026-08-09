@@ -59,11 +59,11 @@ function keepActiveTabVisible(primaryNav, activeTab) {
   }
 }
 
-function syncActiveIndicatorGeometry(primaryNav, activeRouteId) {
+function syncActivePillGeometry(primaryNav, activeRouteId) {
   const activeTab = [...primaryNav.querySelectorAll('[data-route-tab]')]
     .find((tab) => tab.dataset.routeTab === activeRouteId);
-  const activeIndicator = primaryNav.querySelector('.button-bar__active-indicator');
-  if (!activeTab || !activeIndicator) return;
+  const activePill = primaryNav.querySelector('.button-bar__active-pill');
+  if (!activeTab || !activePill) return;
 
   keepActiveTabVisible(primaryNav, activeTab);
 
@@ -71,17 +71,16 @@ function syncActiveIndicatorGeometry(primaryNav, activeRouteId) {
   const activeTabRect = activeTab.getBoundingClientRect();
   if (!primaryNavRect.width || !activeTabRect.width) return;
 
-  const indicatorSize = activeIndicator.getBoundingClientRect().width;
   const x = activeTabRect.left
     - primaryNavRect.left
-    + primaryNav.scrollLeft
-    + ((activeTabRect.width - indicatorSize) / 2);
+    + primaryNav.scrollLeft;
 
-  primaryNav.style.setProperty('--button-bar-active-indicator-x', `${x.toFixed(3)}px`);
-  primaryNav.dataset.activeIndicatorReady = 'true';
+  primaryNav.style.setProperty('--button-bar-active-pill-x', `${x.toFixed(3)}px`);
+  primaryNav.style.setProperty('--button-bar-active-pill-width', `${activeTabRect.width.toFixed(3)}px`);
+  primaryNav.dataset.activePillReady = 'true';
 }
 
-function useActiveIndicatorGeometry(primaryNavRef, activeRouteId, enabled) {
+function useActivePillGeometry(primaryNavRef, activeRouteId, enabled) {
   useLayoutEffect(() => {
     const primaryNav = primaryNavRef.current;
     if (!enabled || !primaryNav || !activeRouteId) return undefined;
@@ -91,7 +90,7 @@ function useActiveIndicatorGeometry(primaryNavRef, activeRouteId, enabled) {
     const update = () => {
       if (disposed) return;
       frameId = 0;
-      syncActiveIndicatorGeometry(primaryNav, activeRouteId);
+      syncActivePillGeometry(primaryNav, activeRouteId);
     };
     const scheduleUpdate = () => {
       if (disposed || frameId) return;
@@ -482,7 +481,7 @@ export function ShellButtonBar({
   const visualActiveRouteId = normalizedPendingRouteId || normalizedActiveRouteId;
   const activeRouteTab = getRouteTabById(visualActiveRouteId);
   const primaryNavRef = useRef(null);
-  useActiveIndicatorGeometry(
+  useActivePillGeometry(
     primaryNavRef,
     visualActiveRouteId,
     materialVariant === 'dominant-tab',
@@ -548,7 +547,7 @@ export function ShellButtonBar({
         data-active-route={activeRouteTab?.routeId}
         data-pending-route={normalizedPendingRouteId || undefined}
       >
-        <span className="button-bar__active-indicator" aria-hidden="true" />
+        <span className="button-bar__active-pill" aria-hidden="true" />
         <div className="button-bar__route-cluster">
           {SHELL_ROUTE_TABS.slice(0, 4).map((tab) => (
             <RouteButton
@@ -567,7 +566,6 @@ export function ShellButtonBar({
             />
           ))}
         </div>
-        <span className="button-bar__divider button-bar__divider--route" aria-hidden="true" />
         {SHELL_ROUTE_TABS.slice(4).map((tab) => (
           <RouteButton
             key={tab.routeId}
@@ -585,7 +583,6 @@ export function ShellButtonBar({
           />
         ))}
       </nav>
-      <span className="button-bar__divider button-bar__divider--utility" aria-hidden="true" />
       <SecondaryButtons
         previewTheme={previewTheme}
         onPreviewThemeChange={onPreviewThemeChange}

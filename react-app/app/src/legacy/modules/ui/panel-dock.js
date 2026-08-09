@@ -302,11 +302,12 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame', 'wallEdge', 'outerWallGlow', 'menuEdge'] }),
+      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame', 'wallEdge', 'outerWallGlow'] }),
       simulations: simulationsPrepend,
       simulationModes: ballsPrepend,
     },
     append: {
+      menu: generateStudioShellControlsHTML({ sectionKeys: ['menuEdge'] }),
       layout: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
       motion: generateStudioShellControlsHTML({ sectionKeys: ['routeEntrance'] }),
       puck: generateStudioShellControlsHTML({

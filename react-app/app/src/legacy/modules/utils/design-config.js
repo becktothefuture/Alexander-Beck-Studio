@@ -169,6 +169,7 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'buttonBarPressZTravelPx',
   'buttonBarActiveGlowPx',
   'buttonBarActiveDropPx',
+  'buttonBarIndicatorSizePx',
   'shellTabNavWidthPx',
   'shellTabBgWallMixPct',
   'shellTabBgWhiteMixPct',

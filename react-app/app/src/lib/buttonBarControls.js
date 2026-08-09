@@ -4,14 +4,20 @@ export const BUTTON_BAR_DEFAULTS = Object.freeze({
   buttonBarWindowOverlapPx: 15.5,
   buttonBarGapPx: 5,
   buttonBarRouteGapPx: 4,
+  buttonBarShellPaddingXPx: 0,
   buttonBarButtonHeightPx: 45,
   buttonBarButtonPaddingXPx: 8,
-  buttonBarDesktopPaddingScale: 1.5,
+  buttonBarDesktopPaddingScale: 2,
   buttonBarButtonRadiusPx: 16,
   buttonBarFontSizeRem: 0.625,
-  buttonBarDesktopFontScale: 1.3,
-  buttonBarIndicatorSizePx: 4.01868,
-  buttonBarTransitionMs: 320,
+  buttonBarDesktopFontScale: 1.6,
+  buttonBarActiveInsetPx: 1,
+  buttonBarActiveRadiusPx: 15,
+  buttonBarActiveDepthPx: 3,
+  buttonBarActiveSurfaceOpacity: 0.09,
+  buttonBarActiveHighlightOpacity: 0.12,
+  buttonBarActiveShadowOpacity: 0.55,
+  buttonBarTransitionMs: 360,
 });
 
 const LEGACY_BUTTON_BAR_KEYS = Object.freeze({
@@ -35,20 +41,38 @@ export const BUTTON_BAR_CONTROL_GROUPS = Object.freeze([
       { id: 'buttonBarWindowOverlapPx', label: 'Window Overlap', type: 'range', min: 0, max: 32, step: 0.5, display: 'subpx' },
       { id: 'buttonBarGapPx', label: 'Group Gap', type: 'range', min: 0, max: 16, step: 0.5, display: 'subpx' },
       { id: 'buttonBarRouteGapPx', label: 'Route Gap', type: 'range', min: 0, max: 12, step: 0.5, display: 'subpx' },
+      { id: 'buttonBarShellPaddingXPx', label: 'Capsule Pad', type: 'range', min: 0, max: 16, step: 0.5, display: 'subpx' },
       { id: 'buttonBarButtonHeightPx', label: 'Link Height', type: 'range', min: 40, max: 56, step: 0.1, display: 'subpx' },
       { id: 'buttonBarButtonPaddingXPx', label: 'Mobile Link Pad', type: 'range', min: 4, max: 16, step: 0.5, display: 'subpx' },
-      { id: 'buttonBarDesktopPaddingScale', label: 'Desktop Pad Scale', type: 'range', min: 1, max: 1.5, step: 0.05, display: 'ratio' },
+      { id: 'buttonBarDesktopPaddingScale', label: 'Desktop Pad Scale', type: 'range', min: 1, max: 2.5, step: 0.05, display: 'ratio' },
       { id: 'buttonBarButtonRadiusPx', label: 'Capsule Radius', type: 'range', min: 8, max: 24, step: 0.5, display: 'subpx' },
-      { id: 'buttonBarFontSizeRem', label: 'Mobile Type Size', type: 'range', min: 0.5, max: 0.875, step: 0.005, display: 'rem' },
-      { id: 'buttonBarDesktopFontScale', label: 'Desktop Type Scale', type: 'range', min: 1, max: 1.5, step: 0.05, display: 'ratio' },
     ],
   },
   {
-    title: 'Active state',
+    title: 'Typography',
     initiallyOpen: true,
     controls: [
-      { id: 'buttonBarIndicatorSizePx', label: 'Dot Size', type: 'range', min: 2, max: 8, step: 0.01, display: 'subpx' },
-      { id: 'buttonBarTransitionMs', label: 'Dot Travel', type: 'range', min: 0, max: 600, step: 10, display: 'ms' },
+      { id: 'buttonBarFontSizeRem', label: 'Mobile Type Size', type: 'range', min: 0.5, max: 0.875, step: 0.005, display: 'rem' },
+      { id: 'buttonBarDesktopFontScale', label: 'Desktop Type Scale', type: 'range', min: 1, max: 2, step: 0.05, display: 'ratio' },
+    ],
+  },
+  {
+    title: 'Active Key',
+    initiallyOpen: true,
+    controls: [
+      { id: 'buttonBarActiveInsetPx', label: 'Key Inset', type: 'range', min: 0, max: 8, step: 0.25, display: 'subpx' },
+      { id: 'buttonBarActiveRadiusPx', label: 'Key Radius', type: 'range', min: 8, max: 24, step: 0.5, display: 'subpx' },
+      { id: 'buttonBarActiveDepthPx', label: 'Key Depth', type: 'range', min: 0, max: 8, step: 0.25, display: 'subpx' },
+      { id: 'buttonBarActiveSurfaceOpacity', label: 'Key Surface', type: 'range', min: 0, max: 0.25, step: 0.005, display: 'percent' },
+      { id: 'buttonBarActiveHighlightOpacity', label: 'Key Highlight', type: 'range', min: 0, max: 0.25, step: 0.005, display: 'percent' },
+      { id: 'buttonBarActiveShadowOpacity', label: 'Key Shadow', type: 'range', min: 0, max: 0.8, step: 0.01, display: 'percent' },
+    ],
+  },
+  {
+    title: 'Motion',
+    initiallyOpen: true,
+    controls: [
+      { id: 'buttonBarTransitionMs', label: 'Key Travel', type: 'range', min: 0, max: 800, step: 10, display: 'ms' },
     ],
   },
 ]);
@@ -92,13 +116,20 @@ export function applyButtonBarCssVars(source = {}, root = null) {
   targetRoot.style.setProperty('--button-bar-window-overlap', `${config.buttonBarWindowOverlapPx}px`);
   targetRoot.style.setProperty('--button-bar-gap', `${config.buttonBarGapPx}px`);
   targetRoot.style.setProperty('--button-bar-route-gap', `${config.buttonBarRouteGapPx}px`);
+  targetRoot.style.setProperty('--button-bar-shell-padding-x', `${config.buttonBarShellPaddingXPx}px`);
   targetRoot.style.setProperty('--button-bar-button-height', `${config.buttonBarButtonHeightPx}px`);
   targetRoot.style.setProperty('--button-bar-button-padding-x', `${config.buttonBarButtonPaddingXPx}px`);
   targetRoot.style.setProperty('--button-bar-desktop-padding-scale', String(config.buttonBarDesktopPaddingScale));
   targetRoot.style.setProperty('--button-bar-button-radius', `${config.buttonBarButtonRadiusPx}px`);
   targetRoot.style.setProperty('--button-bar-font-size', `${config.buttonBarFontSizeRem * 16}px`);
   targetRoot.style.setProperty('--button-bar-desktop-font-scale', String(config.buttonBarDesktopFontScale));
-  targetRoot.style.setProperty('--button-bar-indicator-size', `${config.buttonBarIndicatorSizePx}px`);
+  targetRoot.style.setProperty('--button-bar-active-inset', `${config.buttonBarActiveInsetPx}px`);
+  targetRoot.style.setProperty('--button-bar-active-radius', `${config.buttonBarActiveRadiusPx}px`);
+  targetRoot.style.setProperty('--button-bar-active-depth', `${config.buttonBarActiveDepthPx}px`);
+  targetRoot.style.setProperty('--button-bar-active-depth-blur', `${(config.buttonBarActiveDepthPx * 2) + 2}px`);
+  targetRoot.style.setProperty('--button-bar-active-surface-opacity', String(config.buttonBarActiveSurfaceOpacity));
+  targetRoot.style.setProperty('--button-bar-active-highlight-opacity', String(config.buttonBarActiveHighlightOpacity));
+  targetRoot.style.setProperty('--button-bar-active-shadow-opacity', String(config.buttonBarActiveShadowOpacity));
   targetRoot.style.setProperty('--button-bar-transition-ms', `${config.buttonBarTransitionMs}ms`);
   targetRoot.style.setProperty(
     '--button-bar-frame-reserve',
@@ -129,6 +160,7 @@ export function formatButtonBarControlValue(value, control) {
   if (control.display === 'ms') return `${Math.round(numeric)}ms`;
   if (control.display === 'rem') return `${numeric.toFixed(3)}rem`;
   if (control.display === 'ratio') return numeric.toFixed(2);
+  if (control.display === 'percent') return `${Number((numeric * 100).toFixed(1))}%`;
   return String(numeric);
 }
 

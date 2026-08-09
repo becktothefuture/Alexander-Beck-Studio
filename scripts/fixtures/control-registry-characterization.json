@@ -13,6 +13,7 @@
     "balls",
     "cursor",
     "uiSpacing",
+    "buttonBar",
     "links",
     "scene",
     "overlay",
@@ -38,12 +39,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 300,
-  "descriptorDigest": "9ee0b2a6ab14b94001114177cdb05b9a075af9fb1832035629d35cfa66378b87",
-  "renderedControlCount": 300,
-  "renderedIdDigest": "5ef5b0ea425583aef60ca162e1a1189c2679a7e2d95e424ad2611d51748046b5",
-  "generatedMarkupDigest": "42a1c33e9ffff340841c5712b0060e94e3cf030bab20ba30365fd3e6cf796583",
-  "parseFormatDigest": "d3edc0883d57890bbb07b6bdeba98c9992d23720ca4a1baa92347f6937a7c772",
+  "controlCount": 306,
+  "descriptorDigest": "38215cc3c3c27ce8389426223e31ad664845a4984fe51be610815791cc15932d",
+  "renderedControlCount": 306,
+  "renderedIdDigest": "06e432ee9c935c1710d4e4a9c1098b382cbd209dd042fd9cb440aab81c33296d",
+  "generatedMarkupDigest": "71a8c542c52ac6831d80c57a3c809d0d57c6eb819105e86f36de4c5f3094edd1",
+  "parseFormatDigest": "e8e6a103dd736e57f4d9c3cc54b0d5129ded2b1491dee814ad299b3420960fcf",
   "sentinels": [
     {
       "id": "ballMassKg",

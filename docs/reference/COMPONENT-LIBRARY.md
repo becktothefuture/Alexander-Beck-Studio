@@ -9,9 +9,9 @@ The live reference is `/styleguide.html`. It must describe production components
 - Route buttons: Home, Work (Portfolio route), About, Lab, Contact
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: icon-only sound and theme toggles; sound swaps volume-off/volume-on and theme swaps sun/moon, with no slider track
-- Anatomy: Home–Lab group, divider, Contact, divider, fixed two-slot sound/theme utility group
-- Active geometry: one shared `4.01868px` white dot follows the active or pending route centre; selected tabs never gain a background
-- Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `13px` labels with `12px` inline padding from `768px`; desktop utility icons grow from `16px` to `18px`, and only the route region scrolls when the capsule is width-capped
+- Anatomy: Home–Lab route group followed by the fixed two-slot sound/theme utility group; route and utility separators are absent
+- Active geometry: one shared graphite key follows the active or pending route cell, resizes with its label, and applies the configured key inset equally on all four sides
+- Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `16px` labels with `16px` inline padding from `768px`; labels use Geist at weight `700` with `0.012em` tracking, desktop utility icons grow from `16px` to `18px`, and only the route region scrolls when the capsule is width-capped
 - Mobile: all five routes remain reachable and the active route is scrolled into view; all controls remain keyboard and touch accessible
 - Global keyboard: when no focused control or open modal owns the key, Left and Right Arrow activate the previous or next route with wraparound; Space advances the Home Daily Simulation
 - Primary navigation never moves into a route top bar

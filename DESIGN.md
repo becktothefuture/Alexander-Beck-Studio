@@ -87,7 +87,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
 - Manual site theme affects the studio-window interior and the temporary in-window route cover. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
-- The Button Bar belongs to the stable dark outer shell. It is a compact `45px` capsule with a `#141414` to `#000000` vertical gradient, two inset highlights, and a `16px` radius in every site theme. Inactive labels use the readable neutral `#767881`; utility icons use `#72747D`; the active label and shared `4.01868px` dot are white. Sound and theme are plain icon-only toggles: sound swaps volume-off/volume-on and theme swaps sun/moon. Neither control uses a slider track. No tab has a selected background.
+- The Button Bar belongs to the stable dark outer shell. It is a compact `45px` capsule with a `#141414` to `#000000` vertical gradient, two inset highlights, and a `16px` radius in every site theme. Inactive labels use the readable neutral `#767881`; utility icons use `#72747D`; the active label is white above one shared graphite key surface. Sound and theme are plain icon-only toggles: sound swaps volume-off/volume-on and theme swaps sun/moon. Neither control uses a slider track. Route and utility separators are absent.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange, and Lab pink.
 - Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
@@ -120,7 +120,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
 - Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
-- The Button Bar is the only primary navigation. Its moving dot is one shared inert object, not five independent selected backgrounds. Primary cells use rendered label width plus `8px` mobile inline padding and `12px` from `768px`. Labels retain the reference `10px` size through `767px` and scale to `13px` from `768px`. Desktop utility icons scale from `16px` to `18px`. The dot follows the active or pending cell centre with compositor-only travel; `aria-current` remains on the committed route.
+- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. Primary cells use rendered label width plus `8px` mobile inline padding and `16px` from `768px`. Labels retain the reference `10px` size through `767px` and scale to `16px` from `768px`; they use the next available Geist weight (`700`) with restrained `0.012em` tracking. Desktop utility icons scale from `16px` to `18px`. The key follows the active or pending cell geometry with compositor-only travel, resizes to the target label cell, and uses the configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 
@@ -351,7 +351,7 @@ Recalculate these from approved computed endpoints before implementation if the 
 
 ### Do not fluidize
 
-- Button Bar geometry, touch targets, safe-area offsets, dividers, and icon frames.
+- Button Bar geometry, touch targets, safe-area offsets, active-key material, label sizing, and icon frames.
 - Frame inset/radius; they already have a canonical endpoint interpolation.
 - Portfolio orbital geometry, drawer handoff geometry, and height-led project art direction.
 - Home short-height compression and narrow landscape safeguards.

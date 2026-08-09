@@ -246,7 +246,7 @@ async function readFrameState(page) {
     const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
-    const activePill = buttonBar?.querySelector('.button-bar__active-indicator');
+    const activePill = buttonBar?.querySelector('.button-bar__active-pill');
     const soundToggle = buttonBar?.querySelector('.button-bar__sound-toggle');
     const themeToggle = buttonBar?.querySelector('.button-bar__theme-toggle');
     const themeThumb = buttonBar?.querySelector('.button-bar__theme-thumb');
@@ -277,7 +277,7 @@ async function readFrameState(page) {
       bodyBackground: bodyStyle.backgroundColor,
       themeColor: document.querySelector('meta[name="theme-color"]:not([media])')?.content || '',
       activeTabBackground: activeStyle?.backgroundColor || '',
-      activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundImage || '',
+      activePillBackground: activePillStyle?.display === 'none' ? '' : activePillStyle?.backgroundColor || '',
       activePillOpacity: activePillStyle?.opacity || '',
       activeTabColor: activeContentStyle?.color || activeStyle?.color || '',
       activeTabBorder: activeStyle?.borderTopColor || '',
@@ -371,8 +371,9 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   if (activeBackground[3] > 0.01 || inactiveBackground[3] > 0.01) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} route tabs introduced a background: active=${actual.activeTabBackground} inactive=${actual.inactiveTabBackground}`);
   }
-  if (!actual.activePillBackground.includes('active-dot.svg') || Number(actual.activePillOpacity) < 0.99) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} shared active dot is unavailable: image=${actual.activePillBackground} opacity=${actual.activePillOpacity}`);
+  const activePillSurface = cssColorToRgba(actual.activePillBackground);
+  if (!activePillSurface || activePillSurface[3] <= 0.01 || Number(actual.activePillOpacity) < 0.99) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} shared active key is unavailable: surface=${actual.activePillBackground} opacity=${actual.activePillOpacity}`);
   }
   const activeInk = compositeRgba(activeForeground, [...capsuleMidpointRgb, 1]);
   if (activeForeground[3] < 0.99 || pixelDistance(activeInk, [255, 255, 255]) > 2) {

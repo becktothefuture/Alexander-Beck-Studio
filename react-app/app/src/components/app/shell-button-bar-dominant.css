@@ -4,19 +4,19 @@
   --button-bar-capsule-height: var(--button-bar-height, 45px);
   --button-bar-mobile-padding-inline: var(--button-bar-button-padding-x, 8px);
   --button-bar-desktop-padding-inline: calc(
-    var(--button-bar-mobile-padding-inline) * var(--button-bar-desktop-padding-scale, 1.5)
+    var(--button-bar-mobile-padding-inline) * var(--button-bar-desktop-padding-scale, 2)
   );
   --button-bar-route-padding-inline: var(--button-bar-desktop-padding-inline);
   --button-bar-mobile-font-size: var(--button-bar-font-size, 0.625rem);
   --button-bar-desktop-font-size: calc(
-    var(--button-bar-mobile-font-size) * var(--button-bar-desktop-font-scale, 1.3)
+    var(--button-bar-mobile-font-size) * var(--button-bar-desktop-font-scale, 1.6)
   );
   --button-bar-route-font-size: var(--button-bar-desktop-font-size);
   --button-bar-idle-ink: #767881;
   --button-bar-utility-ink: #72747d;
   --button-bar-bright-ink: #ffffff;
   --button-bar-label-transition: 160ms;
-  --button-bar-indicator-ease: var(--ease-safari-safe, cubic-bezier(0.2, 0, 0, 1));
+  --button-bar-pill-ease: var(--ease-safari-safe, cubic-bezier(0.2, 0, 0, 1));
   position: relative;
   isolation: isolate;
   display: flex;
@@ -26,7 +26,7 @@
   block-size: var(--button-bar-capsule-height);
   min-block-size: var(--button-bar-capsule-height);
   box-sizing: border-box;
-  padding: 0 10px;
+  padding: 0 var(--button-bar-shell-padding-x, 0px);
   color: var(--button-bar-idle-ink);
   border-radius: var(--button-bar-button-radius, 16px);
   background: linear-gradient(180deg, #141414 0%, #000000 100%);
@@ -47,7 +47,7 @@
     - (2 * var(--safari-tint-inset-x, var(--safari-tint-inset)))
   );
   min-block-size: var(--button-bar-capsule-height);
-  padding: 0 10px;
+  padding: 0 var(--button-bar-shell-padding-x, 0px);
   z-index: 400;
   box-shadow:
     inset 0 calc(var(--menu-edge-near-blur, 14px) + var(--menu-edge-near-size, 0px) + var(--menu-edge-near-shift, 0px))
@@ -62,7 +62,8 @@
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons.shell-tab-nav {
-  --button-bar-active-indicator-x: 0px;
+  --button-bar-active-pill-x: 0px;
+  --button-bar-active-pill-width: 0px;
   position: relative;
   isolation: isolate;
   display: flex;
@@ -93,60 +94,42 @@
   min-block-size: var(--button-bar-capsule-height);
 }
 
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider {
-  position: relative;
-  display: block;
-  flex: 0 0 0;
-  align-self: center;
-  inline-size: 0;
-  min-inline-size: 0;
-  block-size: 16px;
-  min-block-size: 16px;
-  margin: 0;
-  opacity: 1;
-  pointer-events: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__divider::before {
-  content: '';
+.button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill {
   position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: 50%;
-  inline-size: 16px;
-  block-size: 1px;
-  background: url('/assets/button-bar/divider.svg') center / 16px 1px no-repeat;
-  box-shadow: none;
-  transform: translate(-50%, -50%) rotate(90deg);
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-indicator {
-  position: absolute;
-  inset-block-start: 32.14px;
-  inset-inline-start: 0;
-  z-index: 2;
+  inset-block-start: var(--button-bar-active-inset, 1px);
+  inset-inline-start: var(--button-bar-active-inset, 1px);
+  z-index: 0;
   display: block;
-  inline-size: var(--button-bar-indicator-size, 4.01868px);
-  block-size: var(--button-bar-indicator-size, 4.01868px);
-  background: url('/assets/button-bar/active-dot.svg') center / contain no-repeat;
+  inline-size: calc(var(--button-bar-active-pill-width) - (2 * var(--button-bar-active-inset, 1px)));
+  block-size: calc(var(--button-bar-capsule-height) - (2 * var(--button-bar-active-inset, 1px)));
+  border-radius: var(--button-bar-active-radius, 15px);
+  background-color: rgb(255 255 255 / var(--button-bar-active-surface-opacity, 0.09));
+  box-shadow:
+    0 var(--button-bar-active-depth, 3px)
+      var(--button-bar-active-depth-blur, 8px)
+      rgb(0 0 0 / var(--button-bar-active-shadow-opacity, 0.55)),
+    inset 0 1px 0 rgb(255 255 255 / var(--button-bar-active-highlight-opacity, 0.12)),
+    inset 0 -1px 0 rgb(0 0 0 / 0.34);
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(var(--button-bar-active-indicator-x), 0, 0);
+  transform: translate3d(var(--button-bar-active-pill-x), 0, 0);
   transition:
-    transform var(--button-bar-transition-ms, 320ms) var(--button-bar-indicator-ease),
+    transform var(--button-bar-transition-ms, 360ms) var(--button-bar-pill-ease),
+    inline-size var(--button-bar-transition-ms, 360ms) var(--button-bar-pill-ease),
     opacity 80ms linear;
-  will-change: transform;
-  contain: paint style;
+  will-change: transform, inline-size;
+  contain: style;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-indicator-ready='true']
-  .button-bar__active-indicator {
+  .button-bar__primary-buttons[data-active-pill-ready='true']
+  .button-bar__active-pill {
   opacity: 1;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons:not([data-active-route])
-  .button-bar__active-indicator {
+  .button-bar__active-pill {
   display: none;
 }
 
@@ -156,6 +139,8 @@
   .shell-tab:is(:hover, :focus-visible, :active, [aria-current='page']) {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   block-size: var(--button-bar-capsule-height);
   min-block-size: var(--button-bar-capsule-height);
@@ -174,9 +159,9 @@
   color: currentColor;
   font-family: var(--abs-font-sans);
   font-size: var(--button-bar-route-font-size);
-  font-weight: 600;
+  font-weight: 700;
   line-height: normal;
-  letter-spacing: 0.005px;
+  letter-spacing: 0.012em;
   text-transform: uppercase;
   transform: none;
   transition: color var(--button-bar-label-transition) var(--shell-tab-motion-ease);
@@ -396,7 +381,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-indicator,
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill,
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons .shell-tab__label,
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
     transition: none;
