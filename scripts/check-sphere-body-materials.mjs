@@ -104,17 +104,6 @@ const primaryRouteSemanticCoverage = Object.freeze({
       imports: ['getSimulationBodyMaterialAtlas', 'subscribeSimulationBodyMaterial'],
     },
   ]),
-  'Lab / Playground': Object.freeze([
-    {
-      path: 'react-app/app/src/routes/playground/spatial/dotFieldRenderer.js',
-      renderer: 'canvas',
-      imports: [
-        'getSimulationBodyMaterialConfig',
-        'getSimulationBodyMaterialSprite',
-        'subscribeSimulationBodyMaterial',
-      ],
-    },
-  ]),
   Contact: Object.freeze([
     {
       path: 'react-app/app/src/routes/contact/contactRippleRenderer.js',
@@ -254,9 +243,9 @@ function assertRequiredSourcePatterns(relativePath, requirements) {
 }
 
 function assertPrimaryRouteSemanticContracts() {
-  const expectedRoutes = ['Home', 'Work / Portfolio', 'About', 'Lab / Playground', 'Contact'];
+  const expectedRoutes = ['Home', 'Work / Portfolio', 'About', 'Contact'];
   if (JSON.stringify(Object.keys(primaryRouteSemanticCoverage)) !== JSON.stringify(expectedRoutes)) {
-    addFailure('primary route sphere coverage must explicitly include Home, Work / Portfolio, About, Lab / Playground, and Contact');
+    addFailure('primary route sphere coverage must explicitly include Home, Work / Portfolio, About, and Contact');
   }
 
   assertRequiredSourcePatterns(
@@ -393,32 +382,8 @@ function assertPrimaryRouteSemanticContracts() {
     'react-app/app/src/routes/playground/spatial/dotFieldRenderer.js',
     [
       {
-        label: 'Playground active wake must cache shared sprites for the active palette',
-        pattern: /bodyMaterialSprites\s*=\s*bodyMaterialEnabled\s*\?[\s\S]{0,160}?\.map\(\s*\(color\)\s*=>\s*getSimulationBodyMaterialSprite\s*\(/,
-      },
-      {
-        label: 'Playground active wake must draw the shared sprite when it is available',
-        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,900}?\.drawImage\s*\([\s\S]{0,100}?materialSprite\.canvas/,
-      },
-      {
-        label: 'Playground micro spheres must preserve cached lighting detail instead of smoothing it flat',
-        pattern: /imageSmoothingEnabled\s*=\s*diameter\s*>\s*MICRO_SPHERE_SMOOTHING_THRESHOLD_PX/,
-      },
-      {
-        label: 'Playground diagnostics must expose the live sphere sampling mode',
-        pattern: /playgroundActiveBallSampling\s*=\s*bodyMaterialSprites\.length[\s\S]{0,180}?['"]micro-detail-preserving['"]/,
-      },
-      {
-        label: 'Playground active wake flat circles must remain the guarded missing-sprite fallback',
-        pattern: /if\s*\(materialSprite\?\.canvas\)\s*\{[\s\S]{0,1100}?\bcontinue;[\s\S]{0,320}?\.arc\s*\(/,
-      },
-      {
-        label: 'Playground neutral resting grid must remain an excluded direct flat fill',
+        label: 'Playground grid must remain a neutral direct flat fill',
         pattern: /fillStyle\s*=\s*neutralColor;[\s\S]{0,180}?drawNeutralDots\s*\(/,
-      },
-      {
-        label: 'Playground diagnostics must distinguish cached active balls from flat fallback',
-        pattern: /activeBallFinish:\s*bodyMaterialSprites\.length\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"]/,
       },
     ],
   );

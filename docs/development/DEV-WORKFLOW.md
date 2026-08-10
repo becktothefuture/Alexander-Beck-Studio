@@ -20,7 +20,7 @@ npm run preview
 
 Use focused Playwright audits after the server is running. Run transition audits serially in Chromium and WebKit; add `ABS_TRANSITION_STRICT_RAF=1` when motion cadence changed. Run `npm run certify:screens` only from a fresh build.
 
-`npm run audit:playground` checks Playground route and alias readiness, two-axis input and wrapping, grid and catalogue semantics, selected-media ownership, dialog focus/URL behavior, docked/detached panel parity, canonical save and reload parity, Reduced Motion, shared palette/mute state, SPA disposal, and local loading errors. It uses Chromium by default. Set `ABS_BROWSER=webkit` to run the same contract in WebKit.
+`npm run audit:playground` checks Playground route and alias readiness, two-axis input and wrapping, neutral grid hover inertia, catalogue semantics, selected-media ownership, dialog focus/URL behavior, docked/detached panel parity, canonical save and reload parity, Reduced Motion, shared mute state, SPA disposal, and local loading errors. It uses Chromium by default. Set `ABS_BROWSER=webkit` to run the same contract in WebKit.
 
 These are three complementary layers: source/configuration checks and build validation, Node tests, and browser audits. A green non-browser gate does not replace the focused Playwright checks required for a changed route or interaction.
 

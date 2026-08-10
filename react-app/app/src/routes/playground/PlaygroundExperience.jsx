@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
 import { triggerHaptic } from '../../lib/haptics.js';
 import {
   createRouteMaterialEntranceController,
@@ -298,7 +297,6 @@ export function PlaygroundExperience() {
   const activeIframeOwnersRef = useRef(new Set());
   const applyCameraFrameRef = useRef(() => {});
   const returnFocusIdRef = useRef(null);
-  const paletteRef = useRef(null);
   const materialEntranceRef = useRef(null);
   const dotMaterialTargetRef = useRef(Object.freeze({ kind: 'dot-field' }));
   const dotMaterialScaleRef = useRef(0);
@@ -318,7 +316,6 @@ export function PlaygroundExperience() {
   const [loadError, setLoadError] = useState('');
   const [interactiveModel, setInteractiveModel] = useState(null);
   const [readyModel, setReadyModel] = useState(null);
-  const palette = useSimulationPalette();
   const reducedMotion = useDailyFocusReducedMotion();
   const responsiveProfile = useMemo(
     () => createPlaygroundResponsiveProfile(viewportWidthPx),
@@ -352,8 +349,7 @@ export function PlaygroundExperience() {
     contentRef.current = content;
     modelRef.current = model;
     selectedIdRef.current = selectedId;
-    paletteRef.current = palette;
-  }, [content, model, palette, runtimeConfig, selectedId]);
+  }, [content, model, runtimeConfig, selectedId]);
 
   useLayoutEffect(() => {
     const route = routeRef.current;
@@ -720,37 +716,11 @@ export function PlaygroundExperience() {
       routeVisualScale: dotMaterialScaleRef.current,
       dotRadiusPx: configRef.current.dotRadiusPx,
       dotOpacity: configRef.current.dotOpacity,
-      colorWakeRadiusPx: configRef.current.colorWakeRadiusPx,
-      colorWakePersistenceMs: configRef.current.colorWakePersistenceMs,
-      colorWakeFadeMs: configRef.current.colorWakeFadeMs,
-      colorWakeOpacity: configRef.current.colorWakeOpacity,
-      colorWakeDensity: configRef.current.colorWakeDensity,
-      colorWakeEdgeSoftness: configRef.current.colorWakeEdgeSoftness,
-      colorWakeDotScale: configRef.current.colorWakeDotScale,
-      layoutSeed: configRef.current.layoutSeed,
       neutralColor: getComputedStyle(route).getPropertyValue('--text-muted').trim() || '#777777',
-      palette: paletteRef.current,
       requestRenderFrame: () => cameraRef.current?.requestUpdate() || false,
       onDraw: () => tickSimulationAtmosphere(performance.now(), 'playground:dot-field'),
     });
     dotRendererRef.current = dotRenderer;
-
-    let pointerRect = viewportRect;
-    const handlePointerMove = (event) => {
-      if (event.pointerType !== 'mouse') return;
-      dotRenderer.setPointer(
-        event.clientX - pointerRect.left,
-        event.clientY - pointerRect.top,
-        true,
-      );
-    };
-    const handlePointerLeave = (event) => {
-      if (event.pointerType !== 'mouse') return;
-      dotRenderer.setPointer(0, 0, false);
-    };
-    viewport.addEventListener('pointermove', handlePointerMove, { passive: true });
-    viewport.addEventListener('pointerleave', handlePointerLeave, { passive: true });
-    viewport.addEventListener('pointercancel', handlePointerLeave, { passive: true });
 
     const syncCopies = (cameraState, force = false) => {
       const coverage = calculateNeighbouringCopyCoverage({
@@ -911,7 +881,6 @@ export function PlaygroundExperience() {
     const resizeObserver = new ResizeObserver(() => {
       const rect = viewport.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
-      pointerRect = rect;
       setViewportWidthPx((current) => {
         const next = Math.round(rect.width);
         return current === next ? current : next;
@@ -960,9 +929,6 @@ export function PlaygroundExperience() {
       if (cleaned) return;
       cleaned = true;
       resizeObserver.disconnect();
-      viewport.removeEventListener('pointermove', handlePointerMove);
-      viewport.removeEventListener('pointerleave', handlePointerLeave);
-      viewport.removeEventListener('pointercancel', handlePointerLeave);
       window.removeEventListener('abs:theme-changed', syncTheme);
       unregisterAtmosphere();
       camera.destroy();
@@ -983,10 +949,6 @@ export function PlaygroundExperience() {
   }, [content, model, publishDiagnostics, responsiveProfile.worldScale, viewportNode]);
 
   useEffect(() => {
-    dotRendererRef.current?.setPalette(palette);
-  }, [palette]);
-
-  useEffect(() => {
     cameraRef.current?.configure({
       wheelSensitivity: config.wheelSensitivity,
       dragMomentum: reducedMotion ? 0 : config.dragMomentum,
@@ -995,27 +957,11 @@ export function PlaygroundExperience() {
     dotRendererRef.current?.configure({
       dotRadiusPx: runtimeConfig.dotRadiusPx,
       dotOpacity: config.dotOpacity,
-      colorWakeRadiusPx: config.colorWakeRadiusPx,
-      colorWakePersistenceMs: config.colorWakePersistenceMs,
-      colorWakeFadeMs: config.colorWakeFadeMs,
-      colorWakeOpacity: config.colorWakeOpacity,
-      colorWakeDensity: config.colorWakeDensity,
-      colorWakeEdgeSoftness: config.colorWakeEdgeSoftness,
-      colorWakeDotScale: config.colorWakeDotScale,
-      layoutSeed: config.layoutSeed,
       worldScale: responsiveProfile.worldScale,
     });
   }, [
-    config.colorWakePersistenceMs,
-    config.colorWakeFadeMs,
-    config.colorWakeRadiusPx,
-    config.colorWakeOpacity,
-    config.colorWakeDensity,
-    config.colorWakeEdgeSoftness,
-    config.colorWakeDotScale,
     config.dotOpacity,
     config.dragMomentum,
-    config.layoutSeed,
     config.wheelSensitivity,
     reducedMotion,
     responsiveProfile.worldScale,

@@ -62,9 +62,9 @@ Implementation:
 - depth comes from motion, overlap discipline, scale, silhouette, and route-owned depth fog where applicable
 - the cached sphere sticker/atlas infrastructure remains disabled in production
 
-Route coverage includes Home simulation bodies and the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, Playground active coloured wake balls, and Contact ripple balls.
+Route coverage includes Home simulation bodies and the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, and Contact ripple balls.
 
-Neutral grid dots and generic point particles are not pebbles only because they are round. The neutral Playground grid, generic About point-field particles, Portfolio DOM cards, UI and editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters keep their own material.
+Neutral grid dots and generic point particles are not pebbles only because they are round. The neutral, hover-inert Playground grid, generic About point-field particles, Portfolio DOM cards, UI and editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters keep their own material.
 
 ### 3. Portfolio Physics Tuning
 

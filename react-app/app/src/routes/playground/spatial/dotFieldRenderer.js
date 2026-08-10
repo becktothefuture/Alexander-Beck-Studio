@@ -1,18 +1,5 @@
-import {
-  getSimulationBodyMaterialConfig,
-  getSimulationBodyMaterialSprite,
-  subscribeSimulationBodyMaterial,
-} from '../../../legacy/modules/rendering/materials/simulation-body-material.js';
-import { THEME_CHANGE_EVENT } from '../../../lib/theme-state.js';
-
 const DEFAULT_DPR_CAP = 2;
 const DEFAULT_MAX_VISIBLE_DOTS = 20000;
-const MAX_PALETTE_COLORS = 12;
-const COLOR_OPACITY_BUCKET_COUNT = 16;
-const COLOR_WAKE_RADIUS_SCALE_MIN = 0.82;
-const COLOR_WAKE_RADIUS_SCALE_MAX = 1.18;
-const MIN_TEMPORAL_FRAME_INTERVAL_MS = 1000 / 60;
-const MICRO_SPHERE_SMOOTHING_THRESHOLD_PX = 10;
 const TWO_PI = Math.PI * 2;
 
 function clamp(value, minimum, maximum) {
@@ -24,51 +11,9 @@ function finite(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-function wrapInteger(value, period) {
-  const remainder = value % period;
-  return remainder < 0 ? remainder + period : remainder;
-}
-
-function nearestPeriodicCoordinate(value, reference, period) {
-  if (!Number.isFinite(reference) || !Number.isFinite(period) || period <= 0) return value;
-  return value + (Math.round((reference - value) / period) * period);
-}
-
-export function hashDotCoordinate(column, row, seed = 1) {
-  let hash = (Number(seed) >>> 0) ^ 0x9e3779b9;
-  hash ^= Math.imul(Number(column) | 0, 0x85ebca6b);
-  hash = Math.imul(hash ^ (hash >>> 16), 0xc2b2ae35);
-  hash ^= Math.imul(Number(row) | 0, 0x27d4eb2f);
-  hash = Math.imul(hash ^ (hash >>> 15), 0x165667b1);
-  return (hash ^ (hash >>> 16)) >>> 0;
-}
-
-function secondaryHash(hash) {
-  let mixed = (hash ^ 0xa511e9b3) >>> 0;
-  mixed = Math.imul(mixed ^ (mixed >>> 16), 0x7feb352d);
-  mixed = Math.imul(mixed ^ (mixed >>> 15), 0x846ca68b);
-  return (mixed ^ (mixed >>> 16)) >>> 0;
-}
-
-function paletteMatches(left, right) {
-  if (left.length !== right.length) return false;
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) return false;
-  }
-  return true;
-}
-
-function numericArrayMatches(left, right) {
-  if (left.length !== right.length) return false;
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) return false;
-  }
-  return true;
-}
-
 /**
- * Creates a redraw-on-change Canvas 2D dot renderer. Camera and pointer changes
- * coalesce into one frame; only a rising or fading colour wake keeps a temporary loop alive.
+ * Creates a redraw-on-change Canvas 2D dot renderer. Camera changes coalesce
+ * into one frame and the neutral field sleeps whenever its geometry is stable.
  */
 export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   const context = canvas?.getContext?.('2d', { alpha: true, desynchronized: true });
@@ -108,131 +53,19 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let dotRadiusPx = clamp(finite(options.dotRadiusPx, 2.25), 0.25, gridSpacingPx * 0.45);
   let dotOpacity = clamp(finite(options.dotOpacity, 0.28), 0, 1);
   let routeVisualScale = clamp(finite(options.routeVisualScale, 1), 0, 1);
-  let colorWakeRadiusPx = clamp(finite(options.colorWakeRadiusPx, 168), 1, 2048);
-  let colorWakePersistenceMs = clamp(finite(options.colorWakePersistenceMs, 1000), 1000, 10000);
-  let colorWakeFadeMs = clamp(finite(options.colorWakeFadeMs, 2000), 1, 10000);
-  let colorWakeOpacity = clamp(finite(options.colorWakeOpacity, 0.88), 0, 1);
-  let colorWakeDensity = clamp(finite(options.colorWakeDensity, 1), 0, 1);
-  let colorWakeEdgeSoftness = clamp(finite(options.colorWakeEdgeSoftness, 0), 0, 1);
-  let colorWakeDotScale = clamp(finite(options.colorWakeDotScale, 1), 0.1, 3);
   let neutralColor = String(options.neutralColor || '#8a8a8a');
-  let layoutSeed = Number(options.layoutSeed ?? 1) >>> 0;
   let maximumDpr = clamp(finite(options.maximumDpr, DEFAULT_DPR_CAP), 1, 3);
   let maximumVisibleDots = Math.max(
     256,
     Math.floor(finite(options.maximumVisibleDots, DEFAULT_MAX_VISIBLE_DOTS)),
   );
-  let paletteId = '';
-  let paletteGeneration = 0;
-  let colors = [];
-  const canUseSharedMaterial = typeof globalThis.document !== 'undefined'
-    && documentObject === globalThis.document;
-  let bodyMaterialEnabled = canUseSharedMaterial
-    && getSimulationBodyMaterialConfig().enabled;
-  let bodyMaterialTheme = 'light';
-  let bodyMaterialSprites = [];
-  let roleColorIndices = new Int16Array(0);
-  let roleThresholds = new Float64Array(0);
   let drawCount = 0;
   let lastVisibleDotCount = 0;
   let lastDrawnDotCount = 0;
   let lastSamplingStride = 1;
   let renderDirty = true;
-  let pointerDirty = false;
-  let pointerActive = false;
-  let pointerX = 0;
-  let pointerY = 0;
-  let previousPointerWorldX = Number.NaN;
-  let previousPointerWorldY = Number.NaN;
-  let lastPointerSweepDistancePx = 0;
-  let lastInfluencedDotCount = 0;
-  let lastTemporalDrawAt = 0;
-  let activationSequence = 1;
-  let activeCount = 0;
-  let hoveredDotCount = 0;
-  let risingDotCount = 0;
-  let fadingDotCount = 0;
-  let hoverPass = 0;
-  let minimumInfluenceRadiusScale = 0;
-  let maximumInfluenceRadiusScale = 0;
-  let minimumInfluenceStrength = 0;
-  let maximumInfluenceStrength = 0;
-  let activationTimes = new Float64Array(0);
-  let activationColorSamples = new Uint32Array(0);
-  let activationStrengths = new Float32Array(0);
-  let peakActivationStrengths = new Float32Array(0);
-  let releaseStrengths = new Float32Array(0);
-  let hoverPasses = new Uint32Array(0);
-  let activeFlags = new Uint8Array(0);
-  let activeIndices = new Int32Array(0);
-  let activeBucketNext = new Int32Array(0);
-  let activeScreenX = new Float64Array(0);
-  let activeScreenY = new Float64Array(0);
-  const bucketHeads = new Int32Array(MAX_PALETTE_COLORS * COLOR_OPACITY_BUCKET_COUNT);
   const resizeTarget = options.resizeTarget || canvas;
   const onDraw = typeof options.onDraw === 'function' ? options.onDraw : null;
-
-  function refreshBodyMaterialSprites() {
-    bodyMaterialTheme = documentObject?.documentElement?.classList?.contains('dark-mode')
-      || documentObject?.body?.classList?.contains('dark-mode')
-      ? 'dark'
-      : 'light';
-    bodyMaterialSprites = bodyMaterialEnabled
-      ? colors.map((color) => getSimulationBodyMaterialSprite(color, { theme: bodyMaterialTheme }))
-      : [];
-    if (canvas.dataset) {
-      canvas.dataset.playgroundActiveBallFinish = bodyMaterialSprites.length
-        ? 'cached-sphere-sticker'
-        : 'flat-fill';
-      canvas.dataset.playgroundActiveBallSampling = bodyMaterialSprites.length
-        ? 'micro-detail-preserving'
-        : 'flat-fill';
-    }
-  }
-
-  const unsubscribeBodyMaterial = canUseSharedMaterial
-    ? subscribeSimulationBodyMaterial((config) => {
-      bodyMaterialEnabled = config.enabled;
-      refreshBodyMaterialSprites();
-      renderDirty = true;
-      scheduleDraw();
-    })
-    : () => {};
-
-  function handleThemeChange() {
-    refreshBodyMaterialSprites();
-    renderDirty = true;
-    scheduleDraw();
-  }
-
-  function resetActivationState() {
-    const dotCount = worldColumns * worldRows;
-    activationTimes = new Float64Array(dotCount);
-    activationColorSamples = new Uint32Array(dotCount);
-    activationStrengths = new Float32Array(dotCount);
-    peakActivationStrengths = new Float32Array(dotCount);
-    releaseStrengths = new Float32Array(dotCount);
-    hoverPasses = new Uint32Array(dotCount);
-    activeFlags = new Uint8Array(dotCount);
-    activeIndices = new Int32Array(dotCount);
-    activeBucketNext = new Int32Array(dotCount);
-    activeScreenX = new Float64Array(dotCount);
-    activeScreenY = new Float64Array(dotCount);
-    activeCount = 0;
-    hoveredDotCount = 0;
-    risingDotCount = 0;
-    fadingDotCount = 0;
-    hoverPass = 0;
-    minimumInfluenceRadiusScale = 0;
-    maximumInfluenceRadiusScale = 0;
-    minimumInfluenceStrength = 0;
-    maximumInfluenceStrength = 0;
-    previousPointerWorldX = Number.NaN;
-    previousPointerWorldY = Number.NaN;
-    lastPointerSweepDistancePx = 0;
-    lastInfluencedDotCount = 0;
-    bucketHeads.fill(-1);
-  }
 
   function clear() {
     if (!width || !height) return;
@@ -260,370 +93,23 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     context.fill();
   }
 
-  function resolveReleasedStrength(index, now) {
-    const age = now - activationTimes[index];
-    if (age <= 0) return releaseStrengths[index];
-    if (age <= colorWakePersistenceMs) return releaseStrengths[index];
-    return releaseStrengths[index] * clamp(
-      1 - ((age - colorWakePersistenceMs) / colorWakeFadeMs),
-      0,
-      1,
-    );
-  }
-
-  function resolveInfluenceRadiusScale(deltaX, deltaY, coordinateHash) {
-    const angle = Math.atan2(deltaY, deltaX);
-    const seedPhase = (layoutSeed / 4294967296) * TWO_PI;
-    const broadVariation = (Math.sin((angle * 3) + seedPhase) * 0.09)
-      + (Math.sin((angle * 5) - (seedPhase * 0.61)) * 0.055);
-    const microVariation = (
-      (secondaryHash(coordinateHash ^ 0x510e527f) / 4294967296) - 0.5
-    ) * 0.08;
-    return clamp(
-      1 + broadVariation + microVariation,
-      COLOR_WAKE_RADIUS_SCALE_MIN,
-      COLOR_WAKE_RADIUS_SCALE_MAX,
-    );
-  }
-
-  function resolveInfluenceStrength(normalizedDistance) {
-    const distance = clamp(normalizedDistance, 0, 1);
-    const smoothDistance = distance * distance * (3 - (2 * distance));
-    const falloffPower = 0.72 + (colorWakeEdgeSoftness * 0.78);
-    return Math.pow(1 - smoothDistance, falloffPower);
-  }
-
-  function releaseUnvisitedHoveredDots(now, currentPass) {
-    for (let offset = 0; offset < activeCount; offset += 1) {
-      const index = activeIndices[offset];
-      if (activationTimes[index] >= 0 || hoverPasses[index] === currentPass) continue;
-      releaseStrengths[index] = peakActivationStrengths[index];
-      activationTimes[index] = now;
-    }
-  }
-
-  function activatePointerArea(now) {
-    if (!pointerDirty) return;
-    pointerDirty = false;
-    hoverPass = (hoverPass + 1) >>> 0;
-    if (hoverPass === 0) {
-      hoverPasses.fill(0);
-      hoverPass = 1;
-    }
-    const currentPass = hoverPass;
-    if (!pointerActive || !colors.length) {
-      minimumInfluenceRadiusScale = 0;
-      maximumInfluenceRadiusScale = 0;
-      minimumInfluenceStrength = 0;
-      maximumInfluenceStrength = 0;
-      previousPointerWorldX = Number.NaN;
-      previousPointerWorldY = Number.NaN;
-      lastPointerSweepDistancePx = 0;
-      lastInfluencedDotCount = 0;
-      releaseUnvisitedHoveredDots(now, currentPass);
-      return;
-    }
-
-    const worldWidthPx = worldColumns * gridSpacingPx;
-    const worldHeightPx = worldRows * gridSpacingPx;
-    const rawPointerWorldX = cameraX + ((pointerX - viewportCenterX) / worldScale);
-    const rawPointerWorldY = cameraY + ((pointerY - viewportCenterY) / worldScale);
-    const pointerWorldX = nearestPeriodicCoordinate(
-      rawPointerWorldX,
-      previousPointerWorldX,
-      worldWidthPx,
-    );
-    const pointerWorldY = nearestPeriodicCoordinate(
-      rawPointerWorldY,
-      previousPointerWorldY,
-      worldHeightPx,
-    );
-    let sweepStartX = Number.isFinite(previousPointerWorldX)
-      ? previousPointerWorldX
-      : pointerWorldX;
-    let sweepStartY = Number.isFinite(previousPointerWorldY)
-      ? previousPointerWorldY
-      : pointerWorldY;
-    const sweepDeltaX = pointerWorldX - sweepStartX;
-    const sweepDeltaY = pointerWorldY - sweepStartY;
-    const sweepDistancePx = Math.hypot(sweepDeltaX, sweepDeltaY);
-    const maximumContinuousSweepPx = Math.hypot(width, height) * 1.5 / worldScale;
-    if (sweepDistancePx > maximumContinuousSweepPx) {
-      sweepStartX = pointerWorldX;
-      sweepStartY = pointerWorldY;
-      lastPointerSweepDistancePx = 0;
-    } else {
-      lastPointerSweepDistancePx = sweepDistancePx;
-    }
-    previousPointerWorldX = pointerWorldX;
-    previousPointerWorldY = pointerWorldY;
-    const segmentDeltaX = pointerWorldX - sweepStartX;
-    const segmentDeltaY = pointerWorldY - sweepStartY;
-    const segmentLengthSquared = (segmentDeltaX * segmentDeltaX)
-      + (segmentDeltaY * segmentDeltaY);
-    const wakeRadiusPx = colorWakeRadiusPx / worldScale;
-    const searchRadiusPx = wakeRadiusPx * COLOR_WAKE_RADIUS_SCALE_MAX;
-    const minimumColumn = Math.ceil(
-      (Math.min(sweepStartX, pointerWorldX) - searchRadiusPx) / gridSpacingPx,
-    );
-    const maximumColumn = Math.floor(
-      (Math.max(sweepStartX, pointerWorldX) + searchRadiusPx) / gridSpacingPx,
-    );
-    const minimumRow = Math.ceil(
-      (Math.min(sweepStartY, pointerWorldY) - searchRadiusPx) / gridSpacingPx,
-    );
-    const maximumRow = Math.floor(
-      (Math.max(sweepStartY, pointerWorldY) + searchRadiusPx) / gridSpacingPx,
-    );
-    minimumInfluenceRadiusScale = COLOR_WAKE_RADIUS_SCALE_MAX;
-    maximumInfluenceRadiusScale = COLOR_WAKE_RADIUS_SCALE_MIN;
-    minimumInfluenceStrength = 1;
-    maximumInfluenceStrength = 0;
-    let influencedDotCount = 0;
-
-    for (let row = minimumRow; row <= maximumRow; row += 1) {
-      const dotWorldY = row * gridSpacingPx;
-      const wrappedRow = wrapInteger(row, worldRows);
-      for (let column = minimumColumn; column <= maximumColumn; column += 1) {
-        const dotWorldX = column * gridSpacingPx;
-        const projection = segmentLengthSquared > 0
-          ? clamp(
-            (((dotWorldX - sweepStartX) * segmentDeltaX)
-              + ((dotWorldY - sweepStartY) * segmentDeltaY)) / segmentLengthSquared,
-            0,
-            1,
-          )
-          : 1;
-        const closestX = sweepStartX + (segmentDeltaX * projection);
-        const closestY = sweepStartY + (segmentDeltaY * projection);
-        const deltaX = dotWorldX - closestX;
-        const deltaY = dotWorldY - closestY;
-        const distanceSquared = (deltaX * deltaX) + (deltaY * deltaY);
-        const wrappedColumn = wrapInteger(column, worldColumns);
-        const coordinateHash = hashDotCoordinate(wrappedColumn, wrappedRow, layoutSeed);
-        const densitySample = secondaryHash(coordinateHash ^ 0x6d2b79f5) / 4294967296;
-        if (densitySample >= colorWakeDensity) continue;
-        const influenceRadiusScale = resolveInfluenceRadiusScale(
-          deltaX,
-          deltaY,
-          coordinateHash,
-        );
-        const influenceRadiusPx = wakeRadiusPx * influenceRadiusScale;
-        if (distanceSquared >= influenceRadiusPx * influenceRadiusPx) continue;
-        const normalizedDistance = Math.sqrt(distanceSquared) / influenceRadiusPx;
-        let influenceStrength = resolveInfluenceStrength(normalizedDistance);
-        if (influenceStrength <= 0) continue;
-        const endpointDeltaX = dotWorldX - pointerWorldX;
-        const endpointDeltaY = dotWorldY - pointerWorldY;
-        const endpointDistanceSquared = (endpointDeltaX * endpointDeltaX)
-          + (endpointDeltaY * endpointDeltaY);
-        const endpointRadiusScale = resolveInfluenceRadiusScale(
-          endpointDeltaX,
-          endpointDeltaY,
-          coordinateHash,
-        );
-        const endpointRadiusPx = wakeRadiusPx * endpointRadiusScale;
-        const endpointHovered = endpointDistanceSquared < endpointRadiusPx * endpointRadiusPx;
-        if (endpointHovered) {
-          influenceStrength = resolveInfluenceStrength(
-            Math.sqrt(endpointDistanceSquared) / endpointRadiusPx,
-          );
-        }
-        const index = (wrappedRow * worldColumns) + wrappedColumn;
-        if (!activeFlags[index]) {
-          activeFlags[index] = 1;
-          activeIndices[activeCount] = index;
-          activeCount += 1;
-          activationColorSamples[index] = secondaryHash(
-            coordinateHash ^ activationSequence,
-          );
-          activationSequence = (activationSequence + 1) >>> 0;
-          peakActivationStrengths[index] = 0;
-          releaseStrengths[index] = 0;
-          activationTimes[index] = -now;
-        } else if (activationTimes[index] >= 0) {
-          const retainedStrength = resolveReleasedStrength(index, now);
-          activationStrengths[index] = retainedStrength;
-          peakActivationStrengths[index] = retainedStrength;
-          activationTimes[index] = -now;
-        }
-        if (endpointHovered) hoverPasses[index] = currentPass;
-        activationStrengths[index] = Math.max(
-          activationStrengths[index],
-          influenceStrength,
-        );
-        peakActivationStrengths[index] = Math.max(
-          peakActivationStrengths[index],
-          activationStrengths[index],
-        );
-        minimumInfluenceRadiusScale = Math.min(
-          minimumInfluenceRadiusScale,
-          influenceRadiusScale,
-        );
-        maximumInfluenceRadiusScale = Math.max(
-          maximumInfluenceRadiusScale,
-          influenceRadiusScale,
-        );
-        minimumInfluenceStrength = Math.min(minimumInfluenceStrength, influenceStrength);
-        maximumInfluenceStrength = Math.max(maximumInfluenceStrength, influenceStrength);
-        influencedDotCount += 1;
-      }
-    }
-    if (influencedDotCount === 0) {
-      minimumInfluenceRadiusScale = 0;
-      maximumInfluenceRadiusScale = 0;
-      minimumInfluenceStrength = 0;
-      maximumInfluenceStrength = 0;
-    }
-    lastInfluencedDotCount = influencedDotCount;
-    releaseUnvisitedHoveredDots(now, currentPass);
-  }
-
-  function resolveColorIndex(sample) {
-    if (!colors.length) return -1;
-    if (!roleThresholds.length) return sample % colors.length;
-    const roleIndex = sample % roleColorIndices.length;
-    const colorIndex = roleColorIndices[roleIndex];
-    return Number.isInteger(colorIndex) && colorIndex >= 0 && colorIndex < colors.length
-      ? colorIndex
-      : 0;
-  }
-
-  function drawActiveColors(now) {
-    bucketHeads.fill(-1);
-    hoveredDotCount = 0;
-    risingDotCount = 0;
-    fadingDotCount = 0;
-    let retainedCount = 0;
-    const worldWidthPx = worldColumns * gridSpacingPx;
-    const worldHeightPx = worldRows * gridSpacingPx;
-
-    for (let offset = 0; offset < activeCount; offset += 1) {
-      const index = activeIndices[offset];
-      const activationTime = activationTimes[index];
-      const hovered = activationTime < 0;
-      const age = hovered ? 0 : Math.max(0, now - activationTime);
-      if (!hovered && age >= colorWakePersistenceMs + colorWakeFadeMs) {
-        activeFlags[index] = 0;
-        activationTimes[index] = 0;
-        activationStrengths[index] = 0;
-        peakActivationStrengths[index] = 0;
-        releaseStrengths[index] = 0;
-        continue;
-      }
-
-      activeIndices[retainedCount] = index;
-      retainedCount += 1;
-      let combinedStrength;
-      if (hovered) {
-        hoveredDotCount += 1;
-        combinedStrength = activationStrengths[index];
-      } else {
-        fadingDotCount += 1;
-        combinedStrength = resolveReleasedStrength(index, now);
-      }
-
-      const row = Math.floor(index / worldColumns);
-      const column = index - (row * worldColumns);
-      const baseX = column * gridSpacingPx;
-      const baseY = row * gridSpacingPx;
-      const copyColumn = Math.round((cameraX - baseX) / worldWidthPx);
-      const copyRow = Math.round((cameraY - baseY) / worldHeightPx);
-      const screenX = viewportCenterX + ((baseX + (copyColumn * worldWidthPx) - cameraX)
-        * worldScale);
-      const screenY = viewportCenterY + ((baseY + (copyRow * worldHeightPx) - cameraY)
-        * worldScale);
-      const visibleRadius = dotRadiusPx * worldScale * routeVisualScale;
-      if (screenX < -visibleRadius || screenX > width + visibleRadius
-        || screenY < -visibleRadius || screenY > height + visibleRadius) continue;
-
-      const colorIndex = resolveColorIndex(activationColorSamples[index]);
-      if (colorIndex < 0) continue;
-      if (combinedStrength <= 0) continue;
-      const opacityBucket = Math.min(
-        COLOR_OPACITY_BUCKET_COUNT - 1,
-        Math.floor((1 - combinedStrength) * COLOR_OPACITY_BUCKET_COUNT),
-      );
-      const bucketIndex = (colorIndex * COLOR_OPACITY_BUCKET_COUNT) + opacityBucket;
-      activeScreenX[index] = screenX;
-      activeScreenY[index] = screenY;
-      activeBucketNext[index] = bucketHeads[bucketIndex];
-      bucketHeads[bucketIndex] = index;
-    }
-    activeCount = retainedCount;
-
-    const colorCount = Math.min(colors.length, MAX_PALETTE_COLORS);
-    const restingRadius = dotRadiusPx * worldScale * routeVisualScale;
-    const inheritedSmoothing = context.imageSmoothingEnabled;
-    for (let colorIndex = 0; colorIndex < colorCount; colorIndex += 1) {
-      const materialSprite = bodyMaterialSprites[colorIndex];
-      context.fillStyle = colors[colorIndex];
-      for (let opacityBucket = 0; opacityBucket < COLOR_OPACITY_BUCKET_COUNT; opacityBucket += 1) {
-        let index = bucketHeads[(colorIndex * COLOR_OPACITY_BUCKET_COUNT) + opacityBucket];
-        if (index < 0) continue;
-        const bucketStrength = 1 - (opacityBucket / COLOR_OPACITY_BUCKET_COUNT);
-        const activeRadius = restingRadius * (
-          1 + ((colorWakeDotScale - 1) * bucketStrength)
-        );
-        context.globalAlpha = colorWakeOpacity * bucketStrength;
-        if (materialSprite?.canvas) {
-          const diameter = activeRadius * 2;
-          // Bilinear sampling averages the matte key and form shadow together
-          // when the shared sticker becomes a tiny Lab bead. Preserve those
-          // cached lighting cues below 10px; larger balls stay smoothly sampled.
-          context.imageSmoothingEnabled = diameter > MICRO_SPHERE_SMOOTHING_THRESHOLD_PX;
-          while (index >= 0) {
-            context.drawImage(
-              materialSprite.canvas,
-              activeScreenX[index] - activeRadius,
-              activeScreenY[index] - activeRadius,
-              diameter,
-              diameter,
-            );
-            index = activeBucketNext[index];
-          }
-          continue;
-        }
-        context.beginPath();
-        while (index >= 0) {
-          const screenX = activeScreenX[index];
-          const screenY = activeScreenY[index];
-          context.moveTo(screenX + activeRadius, screenY);
-          context.arc(screenX, screenY, activeRadius, 0, TWO_PI);
-          index = activeBucketNext[index];
-        }
-        context.fill();
-      }
-    }
-    context.imageSmoothingEnabled = inheritedSmoothing;
-  }
-
   function completeDraw() {
     drawCount += 1;
     onDraw?.();
   }
 
-  function draw(timestamp) {
+  function draw() {
     frameId = 0;
     externalFrameRequested = false;
-    if (!started || disposed || paused || hidden || !width || !height) return;
-    const now = Number.isFinite(Number(timestamp))
-      ? Number(timestamp)
-      : (windowObject.performance?.now?.() || globalThis.performance?.now?.() || 1);
-    if (!renderDirty && !pointerDirty
-      && lastTemporalDrawAt > 0
-      && now - lastTemporalDrawAt < MIN_TEMPORAL_FRAME_INTERVAL_MS) {
-      scheduleDraw();
-      return;
-    }
-    activatePointerArea(Math.max(1, now));
+    if (!started || disposed || paused || hidden || !width || !height || !renderDirty) return;
     lastDrawnCameraX = cameraX;
     lastDrawnCameraY = cameraY;
     clear();
     if (dotOpacity <= 0 || dotRadiusPx <= 0 || routeVisualScale <= 0.001) {
-      completeDraw();
+      renderDirty = false;
       lastVisibleDotCount = 0;
       lastDrawnDotCount = 0;
+      completeDraw();
       return;
     }
     const minimumColumn = Math.ceil(
@@ -662,12 +148,9 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       maximumRow,
       samplingStride,
     );
-    drawActiveColors(Math.max(1, now));
     context.globalAlpha = 1;
     renderDirty = false;
-    lastTemporalDrawAt = now;
     completeDraw();
-    if (fadingDotCount > 0) scheduleDraw();
   }
 
   function scheduleDraw() {
@@ -683,7 +166,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     if (!started || disposed || paused || hidden) return false;
     if (frameId) windowObject.cancelAnimationFrame(frameId);
     frameId = 0;
-    draw(windowObject.performance?.now?.() || globalThis.performance?.now?.() || 1);
+    draw();
     return true;
   }
 
@@ -734,7 +217,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     viewportCenterX = resolvedCenterX;
     viewportCenterY = resolvedCenterY;
     if (hasAuthoredCenter) automaticViewportCenter = false;
-    if (pointerActive) pointerDirty = true;
     renderDirty = true;
     if (renderImmediately) drawImmediately();
     else scheduleDraw();
@@ -750,72 +232,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     worldRows = rows;
     gridSpacingPx = spacing;
     dotRadiusPx = Math.min(dotRadiusPx, gridSpacingPx * 0.45);
-    resetActivationState();
     renderDirty = true;
     scheduleDraw();
-  }
-
-  function setPalette(snapshot = {}) {
-    const nextColors = Array.isArray(snapshot.colors)
-      ? snapshot.colors.slice(0, MAX_PALETTE_COLORS).map((color) => String(color))
-      : [];
-    const distribution = Array.isArray(snapshot.distribution) ? snapshot.distribution : [];
-    let totalWeight = 0;
-    for (let index = 0; index < distribution.length; index += 1) {
-      const weight = Number(distribution[index]?.weight);
-      if (Number.isFinite(weight) && weight > 0) totalWeight += weight;
-    }
-    const nextRoleColorIndices = new Int16Array(distribution.length);
-    const nextRoleThresholds = new Float64Array(distribution.length);
-    let accumulatedWeight = 0;
-    for (let index = 0; index < distribution.length; index += 1) {
-      const row = distribution[index];
-      const colorIndex = Number(row?.colorIndex);
-      const weight = Number(row?.weight);
-      nextRoleColorIndices[index] = Number.isInteger(colorIndex)
-        && colorIndex >= 0
-        && colorIndex < nextColors.length
-        ? colorIndex
-        : 0;
-      accumulatedWeight += Number.isFinite(weight) && weight > 0 ? weight : 0;
-      nextRoleThresholds[index] = totalWeight > 0 ? accumulatedWeight / totalWeight : 1;
-    }
-    const nextPaletteId = String(snapshot.paletteId || '');
-    const nextGeneration = Number(snapshot.generation) || 0;
-    const changed = !paletteMatches(colors, nextColors)
-      || nextPaletteId !== paletteId
-      || nextGeneration !== paletteGeneration
-      || !numericArrayMatches(roleColorIndices, nextRoleColorIndices)
-      || !numericArrayMatches(roleThresholds, nextRoleThresholds);
-    colors = nextColors;
-    roleColorIndices = nextRoleColorIndices;
-    roleThresholds = nextRoleThresholds;
-    paletteId = nextPaletteId;
-    paletteGeneration = nextGeneration;
-    if (changed) {
-      refreshBodyMaterialSprites();
-      if (pointerActive) pointerDirty = true;
-      renderDirty = true;
-      scheduleDraw();
-    }
-  }
-
-  function setPointer(nextX, nextY, nextActive = true) {
-    const active = nextActive === true;
-    const resolvedX = active ? finite(nextX, pointerX) : pointerX;
-    const resolvedY = active ? finite(nextY, pointerY) : pointerY;
-    if (active === pointerActive && resolvedX === pointerX && resolvedY === pointerY) return false;
-    pointerActive = active;
-    pointerX = resolvedX;
-    pointerY = resolvedY;
-    if (!active) {
-      previousPointerWorldX = Number.NaN;
-      previousPointerWorldY = Number.NaN;
-      lastPointerSweepDistancePx = 0;
-    }
-    pointerDirty = true;
-    scheduleDraw();
-    return true;
   }
 
   function setRouteVisualScale(nextScale, { immediate = true } = {}) {
@@ -836,43 +254,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     );
     const nextOpacity = clamp(finite(nextOptions.dotOpacity, dotOpacity), 0, 1);
     const nextWorldScale = clamp(finite(nextOptions.worldScale, worldScale), 0.5, 1);
-    const nextColorWakeRadius = clamp(
-      finite(nextOptions.colorWakeRadiusPx, colorWakeRadiusPx),
-      1,
-      2048,
-    );
-    const nextColorWakePersistence = clamp(
-      finite(nextOptions.colorWakePersistenceMs, colorWakePersistenceMs),
-      1000,
-      10000,
-    );
-    const nextColorWakeFade = clamp(
-      finite(nextOptions.colorWakeFadeMs, colorWakeFadeMs),
-      1,
-      10000,
-    );
-    const nextColorWakeOpacity = clamp(
-      finite(nextOptions.colorWakeOpacity, colorWakeOpacity),
-      0,
-      1,
-    );
-    const nextColorWakeDensity = clamp(
-      finite(nextOptions.colorWakeDensity, colorWakeDensity),
-      0,
-      1,
-    );
-    const nextColorWakeEdgeSoftness = clamp(
-      finite(nextOptions.colorWakeEdgeSoftness, colorWakeEdgeSoftness),
-      0,
-      1,
-    );
-    const nextColorWakeDotScale = clamp(
-      finite(nextOptions.colorWakeDotScale, colorWakeDotScale),
-      0.1,
-      3,
-    );
     const nextNeutralColor = String(nextOptions.neutralColor || neutralColor);
-    const nextSeed = Number(nextOptions.layoutSeed ?? layoutSeed) >>> 0;
     const nextMaximumDpr = clamp(finite(nextOptions.maximumDpr, maximumDpr), 1, 3);
     const nextMaximumVisibleDots = Math.max(
       256,
@@ -882,18 +264,9 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     dotRadiusPx = nextRadius;
     worldScale = nextWorldScale;
     dotOpacity = nextOpacity;
-    colorWakeRadiusPx = nextColorWakeRadius;
-    colorWakePersistenceMs = nextColorWakePersistence;
-    colorWakeFadeMs = nextColorWakeFade;
-    colorWakeOpacity = nextColorWakeOpacity;
-    colorWakeDensity = nextColorWakeDensity;
-    colorWakeEdgeSoftness = nextColorWakeEdgeSoftness;
-    colorWakeDotScale = nextColorWakeDotScale;
     neutralColor = nextNeutralColor;
-    layoutSeed = nextSeed;
     maximumDpr = nextMaximumDpr;
     maximumVisibleDots = nextMaximumVisibleDots;
-    if (pointerActive) pointerDirty = true;
     renderDirty = true;
     if (dprChanged) resize(true);
     else scheduleDraw();
@@ -905,7 +278,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       if (frameId) windowObject.cancelAnimationFrame(frameId);
       frameId = 0;
       externalFrameRequested = false;
-    } else if (!hidden) {
+    } else {
       renderDirty = true;
       scheduleDraw();
     }
@@ -922,14 +295,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   function start() {
     if (started || disposed) return;
     started = true;
-    resetActivationState();
     documentObject?.addEventListener?.('visibilitychange', handleVisibilityChange);
-    windowObject.addEventListener?.(THEME_CHANGE_EVENT, handleThemeChange);
     windowObject.addEventListener?.('resize', handleWindowResize);
     resizeObserver?.observe(resizeTarget);
-    setPalette(options.palette || options);
     resize(true);
-    scheduleDraw();
   }
 
   function setPaused(nextPaused) {
@@ -938,7 +307,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       if (frameId) windowObject.cancelAnimationFrame(frameId);
       frameId = 0;
       externalFrameRequested = false;
-    } else if (!paused) {
+    } else {
       renderDirty = true;
       scheduleDraw();
     }
@@ -972,33 +341,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       dotRadiusPx,
       dotOpacity,
       routeVisualScale,
-      colorWakeRadiusPx,
-      colorWakePersistenceMs,
-      colorWakeFadeMs,
-      colorWakeOpacity,
-      colorWakeDensity,
-      colorWakeEdgeSoftness,
-      colorWakeDotScale,
-      pointerActive,
-      minimumInfluenceRadiusScale,
-      maximumInfluenceRadiusScale,
-      minimumInfluenceStrength,
-      maximumInfluenceStrength,
-      pointerSweepDistancePx: lastPointerSweepDistancePx,
-      influencedDotCount: lastInfluencedDotCount,
-      activeColoredDotCount: activeCount,
-      hoveredColoredDotCount: hoveredDotCount,
-      risingColoredDotCount: risingDotCount,
-      fadingColoredDotCount: fadingDotCount,
+      neutralColor,
       visibleDotCount: lastVisibleDotCount,
       drawnDotCount: lastDrawnDotCount,
       samplingStride: lastSamplingStride,
-      paletteId,
-      paletteGeneration,
-      paletteColorCount: colors.length,
-      roleCount: roleThresholds.length,
-      activeBallFinish: bodyMaterialSprites.length ? 'cached-sphere-sticker' : 'flat-fill',
-      bodyMaterialTheme,
     };
   }
 
@@ -1011,18 +357,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     externalFrameRequested = false;
     resizeObserver?.disconnect();
     windowObject.removeEventListener?.('resize', handleWindowResize);
-    windowObject.removeEventListener?.(THEME_CHANGE_EVENT, handleThemeChange);
     documentObject?.removeEventListener?.('visibilitychange', handleVisibilityChange);
-    unsubscribeBodyMaterial();
     clear();
-    colors.length = 0;
-    bodyMaterialSprites.length = 0;
-    if (canvas.dataset) {
-      delete canvas.dataset.playgroundActiveBallFinish;
-      delete canvas.dataset.playgroundActiveBallSampling;
-    }
-    roleColorIndices = new Int16Array(0);
-    roleThresholds = new Float64Array(0);
   }
 
   return Object.freeze({
@@ -1030,8 +366,6 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     resize,
     setCamera,
     setWorld,
-    setPointer,
-    setPalette,
     configure,
     setRouteVisualScale,
     drawImmediately,

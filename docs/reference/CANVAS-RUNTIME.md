@@ -86,7 +86,7 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work / Portfolio, About, Lab / Playground, Contact, and the Home quote puck all use their existing flat fallback path.
+Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work / Portfolio, About, Contact, and the Home quote puck all use their existing flat fallback path. The Lab dot field is a separate neutral grid material.
 
 This is a performance contract as well as a visual choice. Renderers may batch compatible flat bodies by colour and must not replace that batching with one scaled texture draw per body. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 

@@ -238,7 +238,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 - Lab is the fifth primary route. It is a spatial catalogue, not a masonry page, dashboard, whiteboard, or replacement for Work.
 - The opening lockup is part of the pannable world. Instrument Serif is limited to the route H1. Work descriptions use the Portfolio caption treatment and wrap in full below their left-aligned names; visible media-type tags are omitted.
-- The dot field and work placement share one grid, camera phase, and pre-paint camera sample. Drag rendering is frame-coalesced for a stable 60fps-or-better camera cadence on both ordinary and high-refresh displays, and the Lab atmosphere sleeps when its renderer is idle. The Canvas backing store preserves true circular dots across fractional viewport sizes and pixel densities. Resting dots are low-opacity neutral grey and remain a flat grid material. Mouse hover wakes a configurable radius into random colours from the current shared ball palette; those active semantic wake balls retain the same flat finish. The wake exposes bounded intensity, density, edge softness, coloured-dot scale, and persistence controls, then fades back to grey without keeping a stationary renderer awake. The grid tiles homogeneously behind the title and every project without a title-area mask or empty seam. Seamless copies support continuity, but only one logical item per work may be interactive or exposed to assistive technology.
+- The dot field and work placement share one grid, camera phase, and pre-paint camera sample. Drag rendering is frame-coalesced for a stable 60fps-or-better camera cadence on both ordinary and high-refresh displays, and the Lab atmosphere sleeps when its renderer is idle. The Canvas backing store preserves true circular dots across fractional viewport sizes and pixel densities. Dots are low-opacity neutral grey, remain a flat grid material, and do not respond to pointer hover. The grid tiles homogeneously behind the title and every project without a title-area mask or empty seam. Seamless copies support continuity, but only one logical item per work may be interactive or exposed to assistive technology.
 - Work opens in an in-window dialog with shareable `?work=<id>` state, complete keyboard behavior, focus trapping, focus restoration, and browser Back support.
 - Reduced Motion retains panning, wrapping, hierarchy, selection, and focus. It removes inertia, pointer attraction, scale/blur travel, and stagger.
 - The initial 20 entries and their local media are explicit placeholders. They must not be presented as real projects, client work, contributions, or outcomes. The content and authoring contract is [`docs/reference/PLAYGROUND.md`](docs/reference/PLAYGROUND.md).
@@ -252,13 +252,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 ## Simulation language
 
 - Every semantic production ball uses its approved circle or pebble geometry with a flat fill from the active time-of-day palette.
-- Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; readable About point-field circles including the six discipline balls; Lab / Playground active coloured wake balls; and Contact ripple balls.
+- Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; readable About point-field circles including the six discipline balls; and Contact ripple balls.
 - The cached sphere sticker/atlas finish is disabled globally. Production renderers retain colour batching and do not issue one scaled texture draw per body.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
-- Exclusions are role-based, not shape-based. The neutral Lab resting grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
+- Exclusions are role-based, not shape-based. The neutral Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
 
 ### Shared simulation atmosphere
 
@@ -266,7 +266,7 @@ Home and Daily simulations, Work / Portfolio, About Me, Contact, and Lab share o
 
 - The source material remains the only direct colour layer. Glow is a broad projection of the current completed source frame. The shell rim remains neutral and static; it never samples ball colours or requires a full-window masked Canvas layer.
 - Home preserves its Canvas title placement: ordinary material passes in front of the title, while the established depth modes may place stable material on both sides. Other routes keep readable DOM copy above their route material while the atmosphere remains continuous behind it.
-- Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Lab uses its palette-owned dot field without adding a route-specific palette. Canvas-less, suspended, error, and editorial-only states stay on the base studio-window surface; the compositor must not invent placeholder colour, glow, or simulated material for them.
+- Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Lab uses its neutral dot field. Canvas-less, suspended, error, and editorial-only states stay on the base studio-window surface; the compositor must not invent placeholder colour, glow, or simulated material for them.
 - Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
 - Reduced Motion retains one static diffused colour response. Mobile keeps the same visual hierarchy at reduced output scale rather than disabling the material.
 - The glow may retain one short, bounded history frame behind the current field. It has no drift, multi-buffer diffusion, unbounded accumulation, or memory across source, mode, theme, or geometry boundaries.

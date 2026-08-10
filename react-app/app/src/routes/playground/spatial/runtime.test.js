@@ -266,7 +266,7 @@ test('camera controller follows display frames and coalesces explicit render req
   controller.destroy();
 });
 
-test('camera and dot wake share one frame and one canvas draw while dragging', () => {
+test('camera and dot field share one frame and one canvas draw while dragging', () => {
   const target = new FakePointerTarget();
   const windowObject = new FakeWindow();
   const documentObject = new FakeEventTarget();
@@ -321,9 +321,8 @@ test('camera and dot wake share one frame and one canvas draw while dragging', (
   const initialDrawCount = renderer.getSnapshot().drawCount;
 
   target.dispatch('pointerdown', pointerEvent({ clientX: 100, clientY: 100, timeStamp: 20 }));
-  renderer.setPointer(120, 100, true);
   target.dispatch('pointermove', pointerEvent({ clientX: 120, clientY: 100, timeStamp: 27 }));
-  assert.equal(windowObject.frames.size, 1, 'pointer and camera invalidation should share one frame');
+  assert.equal(windowObject.frames.size, 1, 'camera invalidation should use one frame');
   windowObject.flushAnimationFrames(23.61);
   assert.equal(renderer.getSnapshot().drawCount, initialDrawCount + 1);
   assert.equal(controller.getSnapshot().logicalX, -20);
@@ -370,15 +369,6 @@ test('dot renderer clamps DPR, draws only on changes, pauses, and cleans up', ()
     worldRows: 56,
     viewportCenterX: 96,
     viewportCenterY: 48,
-    palette: {
-      paletteId: 'test',
-      generation: 1,
-      colors: ['#ffffff', '#ff0000'],
-      distribution: [
-        { colorIndex: 0, weight: 3 },
-        { colorIndex: 1, weight: 1 },
-      ],
-    },
   });
   renderer.start();
   assert.equal(windowObject.frames.size, 1);
@@ -423,30 +413,19 @@ test('dot renderer clamps DPR, draws only on changes, pauses, and cleans up', ()
   assert.ok(clearCount >= 2);
 });
 
-test('dot renderer wakes palette colours around the pointer and lets them persist', () => {
+test('dot renderer exposes only the neutral grid material', () => {
   const windowObject = new FakeWindow();
   const documentObject = new FakeEventTarget();
   documentObject.visibilityState = 'visible';
   const fills = [];
-  const arcs = [];
-  const paintedArcs = [];
-  const currentArcs = [];
   const context = {
     globalAlpha: 1,
     fillStyle: '',
-    beginPath() { currentArcs.length = 0; },
+    beginPath() {},
     moveTo() {},
-    arc(x, y, radius) {
-      arcs.push({ color: this.fillStyle, radius });
-      currentArcs.push({ x, y, radius });
-    },
+    arc() {},
     fill() {
       fills.push({ color: this.fillStyle, alpha: this.globalAlpha });
-      currentArcs.forEach((arc) => paintedArcs.push({
-        ...arc,
-        color: this.fillStyle,
-        alpha: this.globalAlpha,
-      }));
     },
     clearRect() {},
     setTransform() {},
@@ -466,130 +445,17 @@ test('dot renderer wakes palette colours around the pointer and lets them persis
     viewportCenterX: 160,
     viewportCenterY: 120,
     dotOpacity: 0.28,
-    colorWakeRadiusPx: 56,
-    colorWakePersistenceMs: 1000,
-    colorWakeFadeMs: 2000,
-    colorWakeOpacity: 0.72,
-    colorWakeDensity: 1,
-    colorWakeEdgeSoftness: 0.5,
-    colorWakeDotScale: 1.25,
-    palette: {
-      paletteId: 'wake-test',
-      generation: 1,
-      colors: ['#ff0000', '#00ff00'],
-      distribution: [
-        { colorIndex: 0, weight: 1 },
-        { colorIndex: 1, weight: 1 },
-      ],
-    },
   });
 
   renderer.start();
   windowObject.flushAnimationFrames(16.67);
-  assert.equal(renderer.getSnapshot().activeColoredDotCount, 0);
   assert.deepEqual(fills.at(-1), { color: '#8a8a8a', alpha: 0.28 });
-
-  renderer.setPointer(160, 120, true);
-  windowObject.flushAnimationFrames(33.34);
-  const hovered = renderer.getSnapshot();
-  assert.ok(hovered.activeColoredDotCount > 0);
-  assert.equal(hovered.hoveredColoredDotCount, hovered.activeColoredDotCount);
-  assert.equal(hovered.risingColoredDotCount, 0);
-  assert.equal(hovered.colorWakePersistenceMs, 1000);
-  assert.equal(hovered.colorWakeFadeMs, 2000);
-  assert.equal(hovered.colorWakeOpacity, 0.72);
-  assert.equal(hovered.colorWakeDensity, 1);
-  assert.equal(hovered.colorWakeEdgeSoftness, 0.5);
-  assert.equal(hovered.colorWakeDotScale, 1.25);
-  assert.ok(hovered.minimumInfluenceRadiusScale < hovered.maximumInfluenceRadiusScale);
-  assert.ok(hovered.minimumInfluenceStrength < hovered.maximumInfluenceStrength);
-  assert.ok(hovered.maximumInfluenceStrength > 0.9);
-  assert.ok(hovered.minimumInfluenceStrength < 0.5);
-  const immediateColorAlpha = Math.max(0, ...fills
-    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
-    .map(({ alpha }) => alpha));
-  assert.equal(immediateColorAlpha, hovered.colorWakeOpacity);
-  const coloredRadii = arcs
-    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
-    .map(({ radius }) => radius);
-  assert.ok(Math.max(...coloredRadii) > 2.25);
-  assert.ok(Math.max(...coloredRadii) <= 2.25 * hovered.colorWakeDotScale);
-  assert.ok(Math.min(...coloredRadii) < Math.max(...coloredRadii));
-  assert.equal(windowObject.frames.size, 0, 'an immediate stationary hover should let the renderer sleep');
-
-  paintedArcs.length = 0;
-  renderer.setPointer(202, 120, true);
-  windowObject.flushAnimationFrames(50.01);
-  const additiveCenterAlpha = Math.max(0, ...paintedArcs
-    .filter(({ x, y, color }) => (
-      x === 160 && y === 120 && (color === '#ff0000' || color === '#00ff00')
-    ))
-    .map(({ alpha }) => alpha));
-  assert.equal(
-    additiveCenterAlpha,
-    immediateColorAlpha,
-    'pointer movement must not dim a colour that is already lit',
+  assert.equal(renderer.setPointer, undefined);
+  assert.equal(renderer.setPalette, undefined);
+  assert.deepEqual(
+    Object.keys(renderer.getSnapshot()).filter((key) => /colorWake|palette|pointer|ColoredDot/.test(key)),
+    [],
   );
-
-  paintedArcs.length = 0;
-  renderer.setPointer(0, 0, false);
-  windowObject.flushAnimationFrames(66.68);
-  const retainedCenterAlpha = Math.max(0, ...paintedArcs
-    .filter(({ x, y, color }) => (
-      x === 160 && y === 120 && (color === '#ff0000' || color === '#00ff00')
-    ))
-    .map(({ alpha }) => alpha));
-  assert.equal(
-    retainedCenterAlpha,
-    immediateColorAlpha,
-    'retention should preserve a dot\'s strongest sampled colour',
-  );
-
-  renderer.setPointer(160, 120, true);
-  windowObject.flushAnimationFrames(83.35);
-  const endpointHoveredCount = renderer.getSnapshot().hoveredColoredDotCount;
-  renderer.setPointer(300, 120, true);
-  windowObject.flushAnimationFrames(100.02);
-  const swept = renderer.getSnapshot();
-  assert.equal(swept.pointerSweepDistancePx, 140);
-  assert.ok(swept.influencedDotCount > endpointHoveredCount * 2);
-  assert.ok(swept.activeColoredDotCount > endpointHoveredCount * 2);
-  assert.ok(swept.fadingColoredDotCount > 0, 'the swept trail should enter retention immediately');
-  assert.ok(
-    swept.hoveredColoredDotCount < swept.activeColoredDotCount,
-    'only the current endpoint should remain hovered',
-  );
-  windowObject.flushAnimationFrames(99.5);
-  assert.equal(
-    renderer.getSnapshot().activeColoredDotCount,
-    swept.activeColoredDotCount,
-    'a queued frame-start timestamp must not expire a newer release time',
-  );
-
-  renderer.setPointer(0, 0, false);
-  fills.length = 0;
-  windowObject.flushAnimationFrames(116.69);
-  const released = renderer.getSnapshot();
-  assert.equal(released.pointerActive, false);
-  assert.ok(released.fadingColoredDotCount > 0);
-  assert.equal(windowObject.frames.size, 1);
-
-  fills.length = 0;
-  windowObject.flushAnimationFrames(1116.69);
-  const heldColorAlpha = Math.max(0, ...fills
-    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
-    .map(({ alpha }) => alpha));
-  assert.equal(heldColorAlpha, immediateColorAlpha);
-
-  fills.length = 0;
-  windowObject.flushAnimationFrames(2116.69);
-  const fadingColorAlpha = Math.max(0, ...fills
-    .filter(({ color }) => color === '#ff0000' || color === '#00ff00')
-    .map(({ alpha }) => alpha));
-  assert.ok(fadingColorAlpha > 0 && fadingColorAlpha < heldColorAlpha);
-
-  windowObject.flushAnimationFrames(3116.69);
-  assert.equal(renderer.getSnapshot().activeColoredDotCount, 0);
   assert.equal(windowObject.frames.size, 0);
   renderer.destroy();
 });

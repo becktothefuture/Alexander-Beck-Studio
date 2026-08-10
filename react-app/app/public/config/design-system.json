@@ -712,13 +712,6 @@
     "labelGapPx": 8,
     "dotRadiusPx": 2,
     "dotOpacity": 0.16,
-    "colorWakeRadiusPx": 112,
-    "colorWakePersistenceMs": 1000,
-    "colorWakeFadeMs": 2000,
-    "colorWakeOpacity": 1,
-    "colorWakeDensity": 1,
-    "colorWakeEdgeSoftness": 0.3,
-    "colorWakeDotScale": 1.5,
     "wheelSensitivity": 0.82,
     "dragMomentum": 0.88
   },

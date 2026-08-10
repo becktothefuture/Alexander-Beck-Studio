@@ -4,7 +4,7 @@
 
 Lab is the fourth primary production route, immediately before Contact. Its canonical entry remains `/playground.html`; `/playground` is the extensionless alias. The internal route ID and source namespace remain `playground` for compatibility. It renders inside the persistent `StudioShell`, and its Button Bar label is **Lab**.
 
-The route is a two-axis spatial catalogue arranged as an eclectic Petersburger or salon hanging. Visitors can pan with pointer drag, touch, wheel, trackpad, arrow keys while the viewport is focused, or WASD. Panning becomes active when the camera is mounted, including while the title entrance is still playing. `Home` recentres the title. Tab enters one roving project focus, then the arrow keys move to the nearest project in that direction and centre its complete media-and-caption footprint. The logical camera is unbounded, while repeated visual copies make the finite authored world feel continuous. Wheel input eases toward its destination and drag release uses filtered velocity for a smoother stop. Drag work is frame-coalesced and bounded on high-refresh displays so the camera retains a stable 60fps-or-better cadence without running the complete render path at 120–240Hz. The Canvas dot field and the project layer commit the same camera sample before each paint, so neither layer trails the other. On narrower usable widths, one derived responsive profile modestly scales the shared world, tightens project placement, maintains a 12px minimum rendered caption size, reduces dot radius, and compensates input so touch remains direct; it never creates a second saved mobile configuration. The atmosphere compositor is renderer-coupled and sleeps when the field is idle. Every dot is a true circle; the Canvas backing store calibrates both CSS axes independently to preserve that shape at fractional sizes and high pixel densities. The resting field uses low-opacity grey. A mouse pointer wakes nearby dots immediately into randomly distributed colours from the current shared ball palette. The influence field has a stable organic boundary rather than a perfect circle, and its strength eases continuously from the pointer centre to each locally varied outer edge. Once a dot is lit, later pointer samples can only increase its strength; mouse movement never dims it. Coalesced pointer positions are joined by one bounded swept activation, so fast movement retains a continuous trail instead of isolated islands. Each released dot keeps its strongest sampled colour through the hold, then fades and returns to grey. The wake renderer coalesces pointer work and sleeps after a stationary hover has settled and has no fading trail. Projects stay fixed under pointer hover. Fine-pointer devices hide the native cursor inside the Lab route so only the shared custom lens is visible; the detached parameter panel retains its native editor cursor. The route does not add application zoom and does not intercept Ctrl-wheel or Command-wheel browser zoom.
+The route is a two-axis spatial catalogue arranged as an eclectic Petersburger or salon hanging. Visitors can pan with pointer drag, touch, wheel, trackpad, arrow keys while the viewport is focused, or WASD. Panning becomes active when the camera is mounted, including while the title entrance is still playing. `Home` recentres the title. Tab enters one roving project focus, then the arrow keys move to the nearest project in that direction and centre its complete media-and-caption footprint. The logical camera is unbounded, while repeated visual copies make the finite authored world feel continuous. Wheel input eases toward its destination and drag release uses filtered velocity for a smoother stop. Drag work is frame-coalesced and bounded on high-refresh displays so the camera retains a stable 60fps-or-better cadence without running the complete render path at 120–240Hz. The Canvas dot field and the project layer commit the same camera sample before each paint, so neither layer trails the other. On narrower usable widths, one derived responsive profile modestly scales the shared world, tightens project placement, maintains a 12px minimum rendered caption size, reduces dot radius, and compensates input so touch remains direct; it never creates a second saved mobile configuration. The atmosphere compositor is renderer-coupled and sleeps when the field is idle. Every dot is a true circle; the Canvas backing store calibrates both CSS axes independently to preserve that shape at fractional sizes and high pixel densities. The field uses low-opacity neutral grey and does not respond to pointer hover. Projects also stay fixed under pointer hover. Fine-pointer devices hide the native cursor inside the Lab route so only the shared custom lens is visible; the detached parameter panel retains its native editor cursor. The route does not add application zoom and does not intercept Ctrl-wheel or Command-wheel browser zoom.
 
 The opening title is part of the pannable world. Instrument Serif is limited to its H1 and the description uses Geist with the shared supporting-description colour. The dot field remains continuous behind the complete title lockup; a broad, theme-aware shadow darkens the field without cutting a hole in the grid. The title keeps a project-collision safe area. A centered four-way Tabler move icon replaces the visible movement sentence; it retains the About opening arrow's compact scale but sits closer to the description. “Drag to explore.” remains available to assistive technology. The ordered entrance remains identity, context, action, then support. Each entrance transaction measures the viewport and current project-card geometry once, then reuses that immutable snapshot for visibility and distance staggering until the transaction is reset.
 
@@ -81,14 +81,14 @@ Do not regenerate the seed as part of routine content editing. Use **Generate ne
 The development panel has one schema for both docked and detached hosts. Open the docked panel with the settings launcher. Shift-click the same launcher to open the detached panel. Save uses the same pinned action row as the Home panel. The route registers these folders:
 
 - **Composition**: preset, project spacing, item scale, and size variation;
-- **Dot field**: grid spacing, dot radius, neutral opacity, and the colour wake's radius, persistence, intensity, density, edge softness, and dot size. Lower spacing creates a denser grid;
+- **Dot field**: grid spacing, dot radius, and neutral opacity. Lower spacing creates a denser grid;
 - **Motion**: wheel sensitivity and drag momentum;
 - **Actions**: recenter, generate a new seed, and reset Lab values;
 - **Diagnostics**: project count, world columns and rows, occupied cells, and visible copies.
 
 Diagnostics are read-only runtime evidence. They are not saved.
 
-The canonical values below include the visible panel controls and the implementation guardrails that are intentionally kept out of routine editing. The resting dots stay neutral; palette colour appears only in the pointer wake.
+The canonical values below include the visible panel controls and the implementation guardrails that are intentionally kept out of routine editing. The dots stay neutral at rest and on pointer hover.
 
 | Field | Default | Allowed values |
 | --- | ---: | --- |
@@ -105,13 +105,6 @@ The canonical values below include the visible panel controls and the implementa
 | `labelGapPx` | `8` | 4–16, step 1 |
 | `dotRadiusPx` | `2` | 2–7, step 0.25 |
 | `dotOpacity` | `0.16` | 0.12–0.6, step 0.01 |
-| `colorWakeRadiusPx` | `112` | 56–360, step 8 |
-| `colorWakePersistenceMs` | `1000` | 1000–3000, step 100 |
-| `colorWakeFadeMs` | `2000` | 500–4000, step 100 |
-| `colorWakeOpacity` | `1` | 0.25–1, step 0.01 |
-| `colorWakeDensity` | `1` | 0.15–1, step 0.05 |
-| `colorWakeEdgeSoftness` | `0.3` | 0–1, step 0.05 |
-| `colorWakeDotScale` | `1.5` | 0.5–1.5, step 0.05 |
 | `wheelSensitivity` | `0.82` | 0.5–1.6, step 0.01 |
 | `dragMomentum` | `0.88` | 0–0.96, step 0.01 |
 
@@ -130,6 +123,6 @@ ABS_BROWSER=chromium npm run audit:transition-flows
 ABS_BROWSER=webkit npm run audit:transition-flows
 ```
 
-`npm run audit:playground` proves the route and alias, five-tab shell, centred font-ready title, input and wrapping behavior, grid alignment, semantic catalogue, media ownership, dialog and URL behavior, docked/detached panel parity, canonical save payload, reload dimensions, Reduced Motion, palette/mute integration, SPA cleanup, and local error-free loading in the selected browser. It uses Chromium by default; set `ABS_BROWSER=webkit` for WebKit evidence.
+`npm run audit:playground` proves the route and alias, five-tab shell, centred font-ready title, input and wrapping behavior, grid alignment and hover inertia, semantic catalogue, media ownership, dialog and URL behavior, docked/detached panel parity, canonical save payload, reload dimensions, Reduced Motion, mute integration, SPA cleanup, and local error-free loading in the selected browser. It uses Chromium by default; set `ABS_BROWSER=webkit` for WebKit evidence.
 
 For content work, also check direct `/playground.html`, alias `/playground`, a valid `?work=<id>`, an invalid work ID, keyboard panning, pointer/touch panning, focus return, browser Back, light/dark themes, Reduced Motion, local asset failures, and the detached-panel save path. Inspect desktop, tablet, and mobile captures in Chromium and WebKit. A green build does not replace visual and accessibility inspection.

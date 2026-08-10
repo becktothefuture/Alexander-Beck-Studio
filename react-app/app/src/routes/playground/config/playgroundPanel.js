@@ -61,28 +61,6 @@ export const PLAYGROUND_PANEL_SCHEMA = deepFreeze([
       }),
       numericControl('dotRadiusPx', 'Dot radius', { unit: 'px' }),
       numericControl('dotOpacity', 'Dot opacity', { display: 'percent' }),
-      numericControl('colorWakeRadiusPx', 'Colour radius', {
-        unit: 'px',
-        hint: 'Area around the pointer that wakes the current ball palette.',
-      }),
-      numericControl('colorWakePersistenceMs', 'Colour hold', {
-        display: 'duration',
-        hint: 'How long colour stays at full strength after the pointer moves away.',
-      }),
-      numericControl('colorWakeFadeMs', 'Colour fade', {
-        display: 'duration',
-        hint: 'How long colour takes to fade back to neutral.',
-      }),
-      numericControl('colorWakeOpacity', 'Colour intensity', { display: 'percent' }),
-      numericControl('colorWakeDensity', 'Colour density', {
-        display: 'percent',
-        hint: 'Share of dots that respond inside the influence area.',
-      }),
-      numericControl('colorWakeEdgeSoftness', 'Edge softness', {
-        display: 'percent',
-        hint: 'Controls how strongly colour concentrates near the pointer before fading outward.',
-      }),
-      numericControl('colorWakeDotScale', 'Colour dot size', { unit: '×' }),
     ],
   },
   {

@@ -338,13 +338,6 @@ test('configuration normalization clamps every control and retains canonical def
     labelGapPx: 900,
     dotRadiusPx: 20,
     dotOpacity: -1,
-    colorWakeRadiusPx: 999,
-    colorWakePersistenceMs: -1,
-    colorWakeFadeMs: -1,
-    colorWakeOpacity: 9,
-    colorWakeDensity: -1,
-    colorWakeEdgeSoftness: 9,
-    colorWakeDotScale: -1,
     wheelSensitivity: 10,
     dragMomentum: 1,
   });

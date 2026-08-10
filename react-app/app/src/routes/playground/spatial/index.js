@@ -42,7 +42,6 @@ export {
 
 export {
   createPlaygroundDotFieldRenderer,
-  hashDotCoordinate,
 } from './dotFieldRenderer.js';
 
 export {

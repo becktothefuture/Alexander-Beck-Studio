@@ -1391,61 +1391,54 @@ async function assertHoverDoesNotMoveProjects(page, evidence) {
   evidence.hoverStability = { itemId, movement, beforeStyle, style };
 }
 
-async function assertDotColorWake(page, evidence) {
+async function assertDotGridHoverInert(page, evidence) {
   const viewport = page.locator('[data-playground-viewport]');
   const box = await viewport.boundingBox();
   assert(box, 'Lab viewport has no measurable bounds');
   const config = await page.evaluate(() => ({ ...window.__ABS_PLAYGROUND_CONFIG__ }));
   assert(config.dotOpacity < 0.5, 'Resting dot opacity is not low', config);
-  assert(config.colorWakeRadiusPx > 0, 'Colour-wake radius is unavailable', config);
-  assert(config.colorWakePersistenceMs > 0, 'Colour persistence is unavailable', config);
-
-  await page.mouse.move(box.x + (box.width / 2), box.y + (box.height / 2));
-  await page.waitForFunction(() => {
+  const before = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-playground-dot-field]');
     const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
-    return field?.activeColoredDotCount > 0
-      && field.hoveredColoredDotCount === field.activeColoredDotCount;
-  }, null, { timeout: timeoutMs, polling: 'raf' });
-  await page.waitForTimeout(80);
-  const hovered = (await getPlaygroundState(page)).snapshot.dotField;
-  assert(hovered.frameScheduled === false, 'A stationary colour wake did not let the renderer sleep', hovered);
-
-  await page.mouse.move(box.x + (box.width * 0.82), box.y + (box.height / 2), { steps: 1 });
-  await page.waitForFunction((endpointCount) => {
-    const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
-    return field?.pointerSweepDistancePx > field.colorWakeRadiusPx
-      && field.influencedDotCount > endpointCount
-      && field.fadingColoredDotCount > 0;
-  }, hovered.hoveredColoredDotCount, { timeout: timeoutMs, polling: 'raf' });
-  const swept = (await getPlaygroundState(page)).snapshot.dotField;
-  assert(
-    swept.activeColoredDotCount > hovered.activeColoredDotCount,
-    'A coalesced pointer jump did not retain the travelled dot path',
-    { hovered, swept },
-  );
-  await page.screenshot({ path: resolve(runRoot, 'dot-color-wake.png'), fullPage: true });
-
-  const pageSize = page.viewportSize();
-  await page.mouse.move(
-    box.x + (box.width / 2),
-    Math.min((pageSize?.height || box.y + box.height + 8) - 2, box.y + box.height + 8),
-  );
-  await page.waitForFunction(() => {
-    const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
-    return field?.activeColoredDotCount > 0 && field.fadingColoredDotCount > 0;
-  }, null, { timeout: timeoutMs, polling: 'raf' });
-  const fading = (await getPlaygroundState(page)).snapshot.dotField;
-  assert(fading.frameScheduled === true, 'Released colours are not running their bounded fade', fading);
-
-  await page.waitForFunction(() => {
-    const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
-    return field?.activeColoredDotCount === 0 && field.frameScheduled === false;
-  }, null, {
-    timeout: Math.max(timeoutMs, config.colorWakePersistenceMs + 2000),
-    polling: 'raf',
+    return {
+      pixels: canvas?.toDataURL(),
+      field,
+      config: { ...window.__ABS_PLAYGROUND_CONFIG__ },
+    };
   });
-  const settled = (await getPlaygroundState(page)).snapshot.dotField;
-  evidence.dotColorWake = { config, hovered, swept, fading, settled };
+  assert(before.pixels, 'Lab dot field could not be sampled');
+  assert(before.field?.frameScheduled === false, 'Neutral dot field was not idle before hover', before.field);
+  assert(
+    !Object.keys(before.config).some((key) => key.startsWith('colorWake')),
+    'Removed colour-wake configuration is still exposed',
+    before.config,
+  );
+  assert(
+    !Object.keys(before.field).some((key) => /colorWake|palette|pointer|ColoredDot/.test(key)),
+    'Removed hover-colour diagnostics are still exposed',
+    before.field,
+  );
+
+  await page.mouse.move(box.x + (box.width * 0.2), box.y + (box.height * 0.25));
+  await page.mouse.move(box.x + (box.width * 0.8), box.y + (box.height * 0.5), { steps: 8 });
+  await page.mouse.move(box.x + (box.width * 0.45), box.y + (box.height * 0.8), { steps: 8 });
+  await page.waitForTimeout(200);
+
+  const after = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-playground-dot-field]');
+    return {
+      pixels: canvas?.toDataURL(),
+      field: window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField,
+    };
+  });
+  assert(after.pixels === before.pixels, 'Pointer hover changed the neutral grid pixels');
+  assert(after.field?.drawCount === before.field?.drawCount, 'Pointer hover redrew the neutral grid', {
+    before: before.field,
+    after: after.field,
+  });
+  assert(after.field?.frameScheduled === false, 'Pointer hover woke the neutral grid renderer', after.field);
+  await page.screenshot({ path: resolve(runRoot, 'dot-grid-hover-inert.png'), fullPage: true });
+  evidence.dotGridHoverInert = { config, before: before.field, after: after.field };
 }
 
 async function assertConfigAndPanels(page, evidence) {
@@ -1460,25 +1453,18 @@ async function assertConfigAndPanels(page, evidence) {
     diagnostics: Array.from(panel.querySelectorAll('[data-playground-diagnostic]'), (node) => node.dataset.playgroundDiagnostic),
   }));
   assert(dockSchema.folders.length === 5, 'Docked Playground panel must have five folders', dockSchema);
-  assert(dockSchema.controls.length === 16, 'Docked Playground panel must have sixteen controls', dockSchema);
+  assert(dockSchema.controls.length === 9, 'Docked Playground panel must have nine controls', dockSchema);
   assert(
     dockSchema.controls.includes('projectSpacing') && !dockSchema.controls.includes('targetDensity'),
     'Playground panel must expose direct project spacing instead of inverse target density',
     dockSchema,
   );
   assert(
-    [
-      'dotOpacity',
-      'colorWakeRadiusPx',
-      'colorWakePersistenceMs',
-      'colorWakeFadeMs',
-      'colorWakeOpacity',
-      'colorWakeDensity',
-      'colorWakeEdgeSoftness',
-      'colorWakeDotScale',
-    ].every((id) => dockSchema.controls.includes(id))
-      && !dockSchema.controls.includes('accentFrequency'),
-    'Playground panel does not expose the complete colour-wake contract',
+    dockSchema.controls.includes('gridSpacingPx')
+      && dockSchema.controls.includes('dotRadiusPx')
+      && dockSchema.controls.includes('dotOpacity')
+      && !dockSchema.controls.some((id) => id.startsWith('colorWake')),
+    'Playground panel must expose only neutral dot-field controls',
     dockSchema,
   );
   assert(dockSchema.actions.length === 3, 'Docked Playground panel must have three actions', dockSchema);
@@ -1539,15 +1525,7 @@ async function assertConfigAndPanels(page, evidence) {
   const liveDot = (await getPlaygroundState(page)).snapshot.dotField;
   assert(liveDot.drawCount > 0, 'Live dot-radius change did not redraw the field', { spacingDot, liveDot });
 
-  for (const [controlId, value] of [
-    ['dotOpacity', 0.32],
-    ['colorWakeRadiusPx', 240],
-    ['colorWakePersistenceMs', 1800],
-    ['colorWakeOpacity', 0.76],
-    ['colorWakeDensity', 0.65],
-    ['colorWakeEdgeSoftness', 0.4],
-    ['colorWakeDotScale', 1.2],
-  ]) {
+  for (const [controlId, value] of [['dotOpacity', 0.32]]) {
     await dock.locator(`[data-playground-control="${controlId}"] input`).evaluate((input, nextValue) => {
       input.value = String(nextValue);
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1556,20 +1534,7 @@ async function assertConfigAndPanels(page, evidence) {
   await page.waitForFunction(() => {
     const config = window.__ABS_PLAYGROUND_CONFIG__;
     const field = window.__ABS_PLAYGROUND__?.getSnapshot?.().dotField;
-    return config.dotOpacity === 0.32
-      && config.colorWakeRadiusPx === 240
-      && config.colorWakePersistenceMs === 1800
-      && config.colorWakeOpacity === 0.76
-      && config.colorWakeDensity === 0.65
-      && config.colorWakeEdgeSoftness === 0.4
-      && config.colorWakeDotScale === 1.2
-      && field?.dotOpacity === 0.32
-      && field.colorWakeRadiusPx === 240
-      && field.colorWakePersistenceMs === 1800
-      && field.colorWakeOpacity === 0.76
-      && field.colorWakeDensity === 0.65
-      && field.colorWakeEdgeSoftness === 0.4
-      && field.colorWakeDotScale === 1.2;
+    return config.dotOpacity === 0.32 && field?.dotOpacity === 0.32;
   }, null, { timeout: timeoutMs, polling: 'raf' });
   const liveConfig = await page.evaluate(() => ({ ...window.__ABS_PLAYGROUND_CONFIG__ }));
 
@@ -1643,12 +1608,11 @@ async function assertConfigAndPanels(page, evidence) {
   assert(savedRequest?.config?.playground?.wheelSensitivity === 1.5, 'Canonical save request dropped wheel sensitivity', savedRequest);
   assert(savedRequest?.config?.playground?.dragMomentum === 0, 'Canonical save request dropped drag momentum', savedRequest);
   assert(savedRequest?.config?.playground?.dotOpacity === 0.32, 'Canonical save request dropped dot opacity', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakeRadiusPx === 240, 'Canonical save request dropped colour radius', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakePersistenceMs === 1800, 'Canonical save request dropped colour persistence', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakeOpacity === 0.76, 'Canonical save request dropped colour intensity', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakeDensity === 0.65, 'Canonical save request dropped colour density', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakeEdgeSoftness === 0.4, 'Canonical save request dropped edge softness', savedRequest);
-  assert(savedRequest?.config?.playground?.colorWakeDotScale === 1.2, 'Canonical save request dropped colour dot size', savedRequest);
+  assert(
+    !Object.keys(savedRequest?.config?.playground || {}).some((key) => key.startsWith('colorWake')),
+    'Canonical save request retained removed colour-wake values',
+    savedRequest,
+  );
   if (canonicalWriteMode) {
     const persisted = JSON.parse(await readFile(canonicalConfigPath, 'utf8'));
     assert(persisted.playground?.dotRadiusPx === 5.25, 'Canonical file did not persist dot radius', persisted.playground);
@@ -1657,12 +1621,11 @@ async function assertConfigAndPanels(page, evidence) {
     assert(persisted.playground?.wheelSensitivity === 1.5, 'Canonical file did not persist wheel sensitivity', persisted.playground);
     assert(persisted.playground?.dragMomentum === 0, 'Canonical file did not persist drag momentum', persisted.playground);
     assert(persisted.playground?.dotOpacity === 0.32, 'Canonical file did not persist dot opacity', persisted.playground);
-    assert(persisted.playground?.colorWakeRadiusPx === 240, 'Canonical file did not persist colour radius', persisted.playground);
-    assert(persisted.playground?.colorWakePersistenceMs === 1800, 'Canonical file did not persist colour persistence', persisted.playground);
-    assert(persisted.playground?.colorWakeOpacity === 0.76, 'Canonical file did not persist colour intensity', persisted.playground);
-    assert(persisted.playground?.colorWakeDensity === 0.65, 'Canonical file did not persist colour density', persisted.playground);
-    assert(persisted.playground?.colorWakeEdgeSoftness === 0.4, 'Canonical file did not persist edge softness', persisted.playground);
-    assert(persisted.playground?.colorWakeDotScale === 1.2, 'Canonical file did not persist colour dot size', persisted.playground);
+    assert(
+      !Object.keys(persisted.playground || {}).some((key) => key.startsWith('colorWake')),
+      'Canonical file retained removed colour-wake values',
+      persisted.playground,
+    );
   } else {
     await page.unroute('**/api/design-system/config');
   }
@@ -1702,12 +1665,6 @@ async function assertConfigAndPanels(page, evidence) {
     && Math.abs(window.__ABS_PLAYGROUND_CONFIG__.projectSpacing - expected.projectSpacing) < 0.001
     && window.__ABS_PLAYGROUND_CONFIG__.gridSpacingPx === expected.gridSpacingPx
     && window.__ABS_PLAYGROUND_CONFIG__.dotOpacity === expected.dotOpacity
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakeRadiusPx === expected.colorWakeRadiusPx
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakePersistenceMs === expected.colorWakePersistenceMs
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakeOpacity === expected.colorWakeOpacity
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakeDensity === expected.colorWakeDensity
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakeEdgeSoftness === expected.colorWakeEdgeSoftness
-    && window.__ABS_PLAYGROUND_CONFIG__.colorWakeDotScale === expected.colorWakeDotScale
   ), initialConfig, { timeout: timeoutMs });
   evidence.panel = {
     dockSchema,
@@ -1723,38 +1680,14 @@ async function assertConfigAndPanels(page, evidence) {
   };
 }
 
-async function assertPaletteAndMute(page, evidence, { mutable = true } = {}) {
+async function assertGridAndMute(page, evidence) {
   const before = await page.evaluate(() => ({
-    palette: window.__ABS_SIMULATION_PALETTE__,
     dot: window.__ABS_PLAYGROUND__.getSnapshot().dotField,
     soundPressed: document.querySelector('.button-bar__sound-toggle')?.getAttribute('aria-pressed'),
     soundEvents: window.__ABS_SIMULATION_AUDIO__?.total || 0,
   }));
-  if (mutable) {
-    await page.evaluate(async () => {
-      const module = await import('/src/palette/simulationPaletteController.js');
-      const source = window.__ABS_SIMULATION_PALETTE__.distribution.map((row, index) => ({
-        roleId: row.roleId,
-        label: row.label,
-        colorIndex: row.colorIndex,
-        weight: row.weight + (index === 0 ? 1 : 0),
-      }));
-      module.configureSimulationPalette({ colorDistribution: source });
-    });
-    await page.waitForFunction((generation) => (
-      window.__ABS_PLAYGROUND__.getSnapshot().dotField.paletteGeneration > generation
-    ), before.dot.paletteGeneration, { timeout: timeoutMs, polling: 'raf' });
-  }
-  const after = await page.evaluate(() => ({
-    palette: window.__ABS_SIMULATION_PALETTE__,
-    dot: window.__ABS_PLAYGROUND__.getSnapshot().dotField,
-    soundPressed: document.querySelector('.button-bar__sound-toggle')?.getAttribute('aria-pressed'),
-    soundEvents: window.__ABS_SIMULATION_AUDIO__?.total || 0,
-  }));
-  assert(after.dot.paletteId === after.palette.paletteId, 'Dot field did not consume the shared palette ID', { before, after });
-  assert(after.dot.paletteGeneration === after.palette.generation, 'Dot field did not consume the shared palette generation', { before, after });
   assert(before.soundPressed !== 'true', 'Mute audit requires the shared sound control to be muted', before);
-  const camera = after.dot;
+  const camera = before.dot;
   await page.locator('[data-playground-viewport]').hover();
   await page.mouse.wheel(90, 70);
   await page.waitForFunction((drawCount) => window.__ABS_PLAYGROUND__.getSnapshot().dotField.drawCount > drawCount, camera.drawCount, {
@@ -1766,8 +1699,8 @@ async function assertPaletteAndMute(page, evidence, { mutable = true } = {}) {
     soundEvents: window.__ABS_SIMULATION_AUDIO__?.total || 0,
   }));
   assert(mutedAfterPan.soundPressed !== 'true', 'Playground panning changed the shared mute state', mutedAfterPan);
-  assert(mutedAfterPan.soundEvents === after.soundEvents, 'Muted Playground panning emitted sound playback', { after, mutedAfterPan });
-  evidence.paletteAndMute = { before, after, mutedAfterPan };
+  assert(mutedAfterPan.soundEvents === before.soundEvents, 'Muted Playground panning emitted sound playback', { before, mutedAfterPan });
+  evidence.gridAndMute = { before, mutedAfterPan };
 }
 
 async function assertContentIsolationAndGrowth(browser, failures, evidence, baseline) {
@@ -2257,7 +2190,7 @@ async function main() {
     await assertSalonCoverage(page, evidence);
     await assertCameraInputs(page, evidence);
     await assertSpatialProjectNavigation(page, evidence);
-    await assertDotColorWake(page, evidence);
+    await assertDotGridHoverInert(page, evidence);
     await assertHoverDoesNotMoveProjects(page, evidence);
     await assertDragGuard(page);
     await assertWrapping(page, evidence);
@@ -2274,7 +2207,7 @@ async function main() {
     state = await getPlaygroundState(page);
     assert(state.lightboxCount === 0 && state.snapshot.selectedId === null, 'Invalid work URL did not fail safely', state);
 
-    await assertPaletteAndMute(page, evidence, { mutable: !previewMode });
+    await assertGridAndMute(page, evidence);
     if (!previewMode) await assertConfigAndPanels(page, evidence);
     await page.reload({ waitUntil: 'domcontentloaded', timeout: timeoutMs });
     await waitForPlayground(page);
@@ -2287,12 +2220,11 @@ async function main() {
       assert(reloadedConfig.wheelSensitivity === 1.5, 'Reload did not consume the saved canonical wheel sensitivity', reloadedConfig);
       assert(reloadedConfig.dragMomentum === 0, 'Reload did not consume the saved canonical drag momentum', reloadedConfig);
       assert(reloadedConfig.dotOpacity === 0.32, 'Reload did not consume the saved canonical dot opacity', reloadedConfig);
-      assert(reloadedConfig.colorWakeRadiusPx === 240, 'Reload did not consume the saved canonical colour radius', reloadedConfig);
-      assert(reloadedConfig.colorWakePersistenceMs === 1800, 'Reload did not consume the saved canonical colour persistence', reloadedConfig);
-      assert(reloadedConfig.colorWakeOpacity === 0.76, 'Reload did not consume the saved canonical colour intensity', reloadedConfig);
-      assert(reloadedConfig.colorWakeDensity === 0.65, 'Reload did not consume the saved canonical colour density', reloadedConfig);
-      assert(reloadedConfig.colorWakeEdgeSoftness === 0.4, 'Reload did not consume the saved canonical edge softness', reloadedConfig);
-      assert(reloadedConfig.colorWakeDotScale === 1.2, 'Reload did not consume the saved canonical colour dot size', reloadedConfig);
+      assert(
+        !Object.keys(reloadedConfig).some((key) => key.startsWith('colorWake')),
+        'Reload restored removed colour-wake values',
+        reloadedConfig,
+      );
       evidence.canonicalReload = reloadedConfig;
     }
     const reloadedDimensions = {

@@ -11,7 +11,6 @@ import {
   createPlaygroundSpatialDiagnostics,
   didPointerTravelExceedThreshold,
   forEachNeighbouringCopy,
-  hashDotCoordinate,
   normalizeWheelDelta,
   placePlaygroundItems,
   positiveModulo,
@@ -367,10 +366,7 @@ test('copy coverage grows only when viewport and item buffer require neighbours'
   assert.equal(visited, wide.copyCount);
 });
 
-test('coordinate hashing and diagnostics are deterministic', () => {
-  assert.equal(hashDotCoordinate(-4, 12, 99), hashDotCoordinate(-4, 12, 99));
-  assert.notEqual(hashDotCoordinate(-4, 12, 99), hashDotCoordinate(-3, 12, 99));
-
+test('diagnostics are deterministic', () => {
   const items = createItems(20);
   const result = placePlaygroundItems(items, PLACEMENT_OPTIONS);
   const world = calculateContentWorld(result.placements, PLACEMENT_OPTIONS);

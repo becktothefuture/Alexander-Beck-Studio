@@ -50,10 +50,9 @@ The semantic ball contract is route-wide:
 - Home simulation bodies and the quote puck;
 - Work / Portfolio speed-field particles and pit project bodies;
 - the six About discipline balls;
-- Lab / Playground active coloured wake balls;
 - Contact ripple balls.
 
-The neutral Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are not semantic balls. They keep their own documented finish.
+The neutral, hover-inert Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are not semantic balls. They keep their own documented finish.
 
 Do not make large, hero-visible bodies into generic circles when they should read as site pebbles.
 
