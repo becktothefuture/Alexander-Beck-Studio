@@ -13,6 +13,7 @@ import {
   getTransitionPhase,
   TRANSITION_PHASES,
 } from '../../lib/transition-phase.js';
+import { CONTACT_RIPPLE_PRESS_FEEDBACK_MS } from './contactRippleEvents.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import {
   getSimulationBodyMaterialConfig,
@@ -21,7 +22,6 @@ import {
 } from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 
 const TAU = Math.PI * 2;
-const REDUCED_BURST_MS = 620;
 const MAX_DPR = 1.5;
 const IDLE_ROTATION_SPEED = 0.045;
 const MAX_ACTIVE_BURSTS = 8;
@@ -215,6 +215,8 @@ export function createContactRippleRenderer({
   let lastMotionFrameAt = 0;
   let driftRotation = 0;
   let routeEntrance = null;
+  const burstColorHost = stage.closest('#simulations');
+  let publishedBurstColor = '';
   let bodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
   const unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial((materialConfig) => {
     if (destroyed) return;
@@ -231,7 +233,7 @@ export function createContactRippleRenderer({
   stage.dataset.contactRippleMaxActiveBursts = '0';
   stage.dataset.contactRippleInstance = String(instanceId);
   stage.dataset.contactRippleBurstMode = 'additive-wavefronts';
-  stage.dataset.contactRippleBurstColor = spriteSet.confirmationColor;
+  publishBurstColor(spriteSet.confirmationColor);
   stage.dataset.contactRippleBurstOrigin = 'center';
   stage.dataset.contactRipplePointerMode = reducedMotion ? 'disabled-reduced-motion' : 'autonomous-drift';
   stage.dataset.contactRippleRingDirections = 'alternating';
@@ -248,6 +250,13 @@ export function createContactRippleRenderer({
     if (stage.dataset.contactRippleState === nextState) return;
     stage.dataset.contactRippleState = nextState;
     if (diagnostics) diagnostics.lastState = nextState;
+  }
+
+  function publishBurstColor(color) {
+    const nextColor = isHexColor(color) ? color : '#ffffff';
+    publishedBurstColor = nextColor;
+    stage.dataset.contactRippleBurstColor = nextColor;
+    burstColorHost?.style.setProperty('--contact-ripple-burst-color', nextColor);
   }
 
   function getIdleAlphaRange() {
@@ -282,9 +291,9 @@ export function createContactRippleRenderer({
     stage.dataset.contactRipplePaletteId = String(theme?.paletteId || '');
     stage.dataset.simulationPaletteGeneration = String(theme?.paletteGeneration || '');
     stage.dataset.contactRipplePalette = nextPalette.join(',');
-    stage.dataset.contactRippleBurstColor = nextPalette[CONFIRMATION_PALETTE_INDEX]
+    publishBurstColor(nextPalette[CONFIRMATION_PALETTE_INDEX]
       || nextPalette[nextPalette.length - 1]
-      || '';
+      || '#ffffff');
     const nextKey = getThemeKey(theme, nextPalette);
     if (diagnostics) {
       diagnostics.paletteId = String(theme?.paletteId || '');
@@ -628,10 +637,14 @@ export function createContactRippleRenderer({
   }
 
   function drawReduced(now) {
-    syncActiveBursts(now, REDUCED_BURST_MS);
+    syncActiveBursts(now, CONTACT_RIPPLE_PRESS_FEEDBACK_MS);
     let emphasis = 0;
     for (const started of activeBursts) {
-      const progress = clamp((now - started.startedAt) / REDUCED_BURST_MS, 0, 1);
+      const progress = clamp(
+        (now - started.startedAt) / CONTACT_RIPPLE_PRESS_FEEDBACK_MS,
+        0,
+        1,
+      );
       emphasis += (1 - smoothstep(progress)) * 0.44;
     }
     emphasis = clamp(emphasis, 0, 0.72);
@@ -825,6 +838,11 @@ export function createContactRippleRenderer({
       resizeObserver?.disconnect();
       transitionObserver?.disconnect();
       unsubscribeSimulationBodyMaterial();
+      if (
+        burstColorHost?.style.getPropertyValue('--contact-ripple-burst-color') === publishedBurstColor
+      ) {
+        burstColorHost.style.removeProperty('--contact-ripple-burst-color');
+      }
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       context.setTransform(1, 0, 0, 1, 0, 0);

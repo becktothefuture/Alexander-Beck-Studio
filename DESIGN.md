@@ -134,6 +134,7 @@ The Home simulation switcher, simulation chooser controls, Portfolio drawer and 
 - Every quiet control keeps its border geometry transparent in every state. Resting and interaction hierarchy comes from the translucent blurred fill, text/icon contrast, and opacity—not a visible hairline.
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
 - Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and text/icon contrast. The Home switcher also keeps that state while its chooser is open.
+- Contact copy adds one contained, centre-out light wash using the background ripple's exact, unmixed current confirmation colour. It starts in the same click frame as the ripple, clears after `620ms`, and never adds a border, halo, or layout movement.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
 - The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Lab keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
@@ -230,7 +231,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Contact uses the centered route-entry title, supporting description, and one primary email-copy action.
 - The ripple field is a route-specific motion behavior. Its balls use flat palette fills, create a quiet
   zone around content, and respond to the copy action.
-- The email address uses Geist within a borderless quiet-control capsule; copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
+- The email address uses Geist within a borderless quiet-control capsule; its momentary pressed light starts with the background ripple, while copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
 - Contact retains the shared spacing/type roles even though its simulation and action are unique.
 
 ### Lab

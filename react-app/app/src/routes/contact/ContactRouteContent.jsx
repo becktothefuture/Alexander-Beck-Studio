@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import { triggerHaptic } from '../../lib/haptics.js';
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
-import { requestContactRippleBurst } from './contactRippleEvents.js';
+import {
+  CONTACT_RIPPLE_PRESS_FEEDBACK_MS,
+  requestContactRippleBurst,
+} from './contactRippleEvents.js';
 
 const COPY_FEEDBACK_MS = 3000;
 
@@ -36,6 +39,7 @@ async function copyToClipboard(text) {
 export function ContactRouteContent() {
   const contact = homeContent.contact || {};
   const [copyState, setCopyState] = useState('idle');
+  const [pressPulse, setPressPulse] = useState({ active: false, phase: 0 });
   const resetTimerRef = useRef(null);
   const pulseTimerRef = useRef(null);
   const email = contact.email || 'alexander@beck.fyi';
@@ -60,25 +64,21 @@ export function ContactRouteContent() {
     if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
   }, []);
 
-  const handleCopy = useCallback(async (event) => {
-    const button = event.currentTarget;
-    requestContactRippleBurst();
-    void playContactRippleMotif({ unlockIfNeeded: false });
-    const ok = await copyToClipboard(email);
-    triggerHaptic(ok ? 'success' : 'error');
-    button.classList.remove('pulse-energy');
+  const handleCopy = useCallback(async () => {
     if (pulseTimerRef.current) {
       window.clearTimeout(pulseTimerRef.current);
       pulseTimerRef.current = null;
     }
-    if (ok) {
-      void button.offsetWidth;
-      button.classList.add('pulse-energy');
-      pulseTimerRef.current = window.setTimeout(() => {
-        button.classList.remove('pulse-energy');
-        pulseTimerRef.current = null;
-      }, 800);
-    }
+    setPressPulse((current) => ({ active: true, phase: current.phase === 0 ? 1 : 0 }));
+    pulseTimerRef.current = window.setTimeout(() => {
+      setPressPulse((current) => ({ ...current, active: false }));
+      pulseTimerRef.current = null;
+    }, CONTACT_RIPPLE_PRESS_FEEDBACK_MS);
+
+    requestContactRippleBurst();
+    void playContactRippleMotif({ unlockIfNeeded: false });
+    const ok = await copyToClipboard(email);
+    triggerHaptic(ok ? 'success' : 'error');
     setFeedback(ok ? 'copied' : 'error');
   }, [email, setFeedback]);
 
@@ -116,6 +116,7 @@ export function ContactRouteContent() {
             type="button"
             className={[
               'contact-email-row',
+              pressPulse.active ? 'pulse-energy' : '',
               copyState === 'copied' ? 'is-copied' : '',
               copyState === 'error' ? 'is-error' : '',
             ].filter(Boolean).join(' ')}
@@ -124,6 +125,12 @@ export function ContactRouteContent() {
             data-sound-source="contact-copy-email"
             aria-label={copyText.buttonAriaLabel || 'Copy email address'}
             aria-describedby="contact-copy-status"
+            style={{
+              '--contact-copy-flash-animation': pressPulse.phase === 0
+                ? 'contactCopyMaterialFlashA'
+                : 'contactCopyMaterialFlashB',
+              '--contact-copy-flash-duration': `${CONTACT_RIPPLE_PRESS_FEEDBACK_MS}ms`,
+            }}
             onClick={handleCopy}
           >
             <span className="contact-email-text">{email}</span>
