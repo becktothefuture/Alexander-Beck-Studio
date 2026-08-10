@@ -392,6 +392,16 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
   const atmosphereVal = createEventElement();
   const atmosphereLightIntensity = createEventElement({ value: '0.73' });
   const atmosphereLightIntensityVal = createEventElement();
+  const utilityRailButtonSize = createEventElement({ value: '52' });
+  const utilityRailButtonSizeVal = createEventElement();
+  const utilityRailHorizontalOffset = createEventElement({ value: '24' });
+  const utilityRailHorizontalOffsetVal = createEventElement();
+  const utilityRailMobileButtonSize = createEventElement({ value: '28' });
+  const utilityRailMobileButtonSizeVal = createEventElement();
+  const utilityRailMobileHorizontalOffset = createEventElement({ value: '-18' });
+  const utilityRailMobileHorizontalOffsetVal = createEventElement();
+  const utilityRailMobileVerticalPosition = createEventElement({ value: '78' });
+  const utilityRailMobileVerticalPositionVal = createEventElement();
   const elements = new Map([
     ['ballMassKgSlider', ballMass],
     ['ballMassKgVal', ballMassVal],
@@ -401,6 +411,16 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
     ['atmosphereLargeSpreadVal', atmosphereVal],
     ['atmosphereLightIntensitySlider', atmosphereLightIntensity],
     ['atmosphereLightIntensityVal', atmosphereLightIntensityVal],
+    ['utilityRailButtonSizePxSlider', utilityRailButtonSize],
+    ['utilityRailButtonSizePxVal', utilityRailButtonSizeVal],
+    ['utilityRailHorizontalOffsetPxSlider', utilityRailHorizontalOffset],
+    ['utilityRailHorizontalOffsetPxVal', utilityRailHorizontalOffsetVal],
+    ['utilityRailMobileButtonSizePxSlider', utilityRailMobileButtonSize],
+    ['utilityRailMobileButtonSizePxVal', utilityRailMobileButtonSizeVal],
+    ['utilityRailMobileHorizontalOffsetPxSlider', utilityRailMobileHorizontalOffset],
+    ['utilityRailMobileHorizontalOffsetPxVal', utilityRailMobileHorizontalOffsetVal],
+    ['utilityRailMobileVerticalPositionVhSlider', utilityRailMobileVerticalPosition],
+    ['utilityRailMobileVerticalPositionVhVal', utilityRailMobileVerticalPositionVal],
   ]);
   const uiDocument = createProbeDocument(elements);
 
@@ -427,6 +447,25 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
 
   ballMass.dispatch('input');
   assert.equal(ballMassVal.textContent, '123 kg');
+
+  utilityRailButtonSize.dispatch('input');
+  utilityRailHorizontalOffset.dispatch('input');
+  utilityRailMobileButtonSize.dispatch('input');
+  utilityRailMobileHorizontalOffset.dispatch('input');
+  utilityRailMobileVerticalPosition.dispatch('input');
+  assert.equal(utilityRailButtonSizeVal.textContent, '52px');
+  assert.equal(utilityRailHorizontalOffsetVal.textContent, '24px');
+  assert.equal(utilityRailMobileButtonSizeVal.textContent, '28px');
+  assert.equal(utilityRailMobileHorizontalOffsetVal.textContent, '-18px');
+  assert.equal(utilityRailMobileVerticalPositionVal.textContent, '78%');
+  assert.equal(cssValues.get('--utility-rail-button-size'), '52px');
+  assert.equal(cssValues.get('--utility-rail-icon-size'), '23.92px');
+  assert.equal(cssValues.get('--utility-rail-horizontal-offset'), '24px');
+  assert.equal(cssValues.get('--utility-rail-mobile-button-size'), '28px');
+  assert.equal(cssValues.get('--utility-rail-mobile-icon-size'), '12.88px');
+  assert.equal(cssValues.get('--utility-rail-mobile-horizontal-offset'), '-18px');
+  assert.equal(cssValues.get('--utility-rail-mobile-vertical-position'), '78svh');
+
   ballMass.value = '';
   registry.syncSlidersToState({ uiDocument, runOnChange: false });
   assert.equal(ballMass.value, 123, 'Bound range state must round-trip through public synchronization.');
@@ -435,6 +474,16 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
   atmosphere.dispatch('input');
   atmosphereLightIntensity.value = String(originalAtmosphere.light.intensity);
   atmosphereLightIntensity.dispatch('input');
+  utilityRailButtonSize.value = '32';
+  utilityRailButtonSize.dispatch('input');
+  utilityRailHorizontalOffset.value = '0';
+  utilityRailHorizontalOffset.dispatch('input');
+  utilityRailMobileButtonSize.value = '25';
+  utilityRailMobileButtonSize.dispatch('input');
+  utilityRailMobileHorizontalOffset.value = '-11';
+  utilityRailMobileHorizontalOffset.dispatch('input');
+  utilityRailMobileVerticalPosition.value = '78';
+  utilityRailMobileVerticalPosition.dispatch('input');
 });
 
 test('color distribution binding preserves normalization, uniqueness, publication, and repeated binding', async () => {

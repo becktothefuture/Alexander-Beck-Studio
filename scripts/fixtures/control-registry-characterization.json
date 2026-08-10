@@ -14,6 +14,7 @@
     "cursor",
     "uiSpacing",
     "buttonBar",
+    "utilityRail",
     "links",
     "scene",
     "overlay",
@@ -39,12 +40,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 306,
-  "descriptorDigest": "38215cc3c3c27ce8389426223e31ad664845a4984fe51be610815791cc15932d",
-  "renderedControlCount": 306,
-  "renderedIdDigest": "06e432ee9c935c1710d4e4a9c1098b382cbd209dd042fd9cb440aab81c33296d",
-  "generatedMarkupDigest": "71a8c542c52ac6831d80c57a3c809d0d57c6eb819105e86f36de4c5f3094edd1",
-  "parseFormatDigest": "e8e6a103dd736e57f4d9c3cc54b0d5129ded2b1491dee814ad299b3420960fcf",
+  "controlCount": 317,
+  "descriptorDigest": "abb309dade453b725fd92abaf6f0e15126a58dc40b2dbfb8cace78400dc4b1af",
+  "renderedControlCount": 317,
+  "renderedIdDigest": "6e8209683b734c43de69d4364f1c9c8ed2637dc46657595e2a4e6623e111b352",
+  "generatedMarkupDigest": "a135cbc66f4bcaf616d64fcc10bbc5224a8897f1c3a355e2bd44668401e5bddb",
+  "parseFormatDigest": "1f855471d17bce5bcabe901018f90ce5c6761e126ca91a0ed6e70be3f6c54bf5",
   "sentinels": [
     {
       "id": "ballMassKg",
