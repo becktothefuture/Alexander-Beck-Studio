@@ -9294,7 +9294,7 @@ body.cv-page .cv-section--signals {
   }
 }
 
-/* LDN 26 signature: self-hosted artwork, anchored to the existing London clock. */
+/* LDN 26 signature: self-hosted artwork, inline with time on desktop and stacked on mobile. */
 .location-name--ldn-26 {
   box-sizing: border-box;
   display: inline-block;
@@ -9311,16 +9311,11 @@ body.cv-page .cv-section--signals {
 }
 
 #site-year .meta-stack {
-  position: relative;
-  display: inline-block;
+  position: static;
 }
 
 #site-year .meta-location {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 4px);
-  display: block;
-  line-height: 0;
+  position: static;
   pointer-events: none;
 }
 
