@@ -45,8 +45,10 @@
   --portfolio-drawer-outline-width: 1px;
   --portfolio-drawer-outline-opacity: 0.28;
   --portfolio-project-back-offset: var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px));
+  --portfolio-project-back-size: var(--ui-icon-frame-size);
+  --portfolio-project-back-glyph-size: var(--ui-icon-glyph-size);
   --portfolio-project-back-clearance: calc(
-    var(--portfolio-project-back-offset) + var(--ui-icon-frame-size) + clamp(14px, 3vw, 24px)
+    var(--portfolio-project-back-offset) + var(--portfolio-project-back-size) + clamp(14px, 3vw, 24px)
   );
   --portfolio-hero-image-gutter: 0px;
   --portfolio-hero-image-radius: max(
@@ -1839,18 +1841,19 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view__back--top.abs-icon-btn {
+  --ui-icon-glyph-size: var(--portfolio-project-back-glyph-size);
   position: absolute;
   top: max(var(--portfolio-project-back-offset), env(safe-area-inset-top, 0px));
   left: max(var(--portfolio-project-back-offset), env(safe-area-inset-left, 0px));
   z-index: 60;
-  inline-size: var(--ui-icon-frame-size);
-  block-size: var(--ui-icon-frame-size);
-  width: var(--ui-icon-frame-size);
-  height: var(--ui-icon-frame-size);
-  min-width: var(--ui-icon-frame-size);
-  min-height: var(--ui-icon-frame-size);
-  max-width: var(--ui-icon-frame-size);
-  max-height: var(--ui-icon-frame-size);
+  inline-size: var(--portfolio-project-back-size);
+  block-size: var(--portfolio-project-back-size);
+  width: var(--portfolio-project-back-size);
+  height: var(--portfolio-project-back-size);
+  min-width: var(--portfolio-project-back-size);
+  min-height: var(--portfolio-project-back-size);
+  max-width: var(--portfolio-project-back-size);
+  max-height: var(--portfolio-project-back-size);
   aspect-ratio: 1 / 1;
   padding: 0;
   overflow: hidden;
@@ -2806,6 +2809,11 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 }
 
 @media (max-width: 720px) {
+  .portfolio-project-view {
+    --portfolio-project-back-size: 44px;
+    --portfolio-project-back-glyph-size: 20px;
+  }
+
   .portfolio-project-view__body {
     padding-left: max(var(--portfolio-sheet-pad-x), var(--portfolio-project-back-clearance));
   }

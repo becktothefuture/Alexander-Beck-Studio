@@ -1,7 +1,7 @@
 {
   "status": "m16-two-family-consolidated",
   "mainRuleCount": 1606,
-  "portfolioRuleCount": 508,
+  "portfolioRuleCount": 509,
   "relevantMainRuleCount": 454,
   "overlapCount": 390,
   "exactOverlapCount": 16,
@@ -10,5 +10,5 @@
   "plannedMainOwnerCount": 348,
   "plannedPortfolioOwnerCount": 42,
   "conditionalOverlapCount": 79,
-  "overlapSignature": "3aaa81a89749060ef895701f408ffd57a43ac957e54b6e8a68b2bc040267111c"
+  "overlapSignature": "ee019889e07d7216a34a2db70c30ec1895ae3fc2def253fefdfae6b228a74c66"
 }
