@@ -19,7 +19,7 @@ Preserve visible separation between browser frame, outer wall, inner wall, canva
 ## Route language
 
 - Home: simulation material, semantic title source, expertise legend, supporting philosophy copy
-- Portfolio: orbital deck, media-first handoff, editorial drawer, in-window gate
+- Portfolio: linear deck, media-first handoff, editorial drawer, in-window gate
 - About Me and Contact: centered route content inside the same physical window
 - Playground: pannable dot-aligned catalogue, restrained work labels, and in-window selected-work dialog
 - Labs: local back/utility top chrome when needed

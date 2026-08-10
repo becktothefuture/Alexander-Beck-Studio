@@ -50,7 +50,7 @@ The system is distributed across these production surfaces. A design change is c
 | Persistent shell, surface slots, Home footer, overlay hosts, Button Bar, and Utility Rail | `StudioShell.jsx`, `ShellButtonBar.jsx`, `ShellUtilityRail.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css`, `shell-utility-rail.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
-| Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
+| Portfolio intro, linear deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
 | About Me production `AboutComingSoon` placeholder plus development-only scroll narrative, editor, point field, and emergent-form resolution | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Lab title, deterministic spatial catalogue, dot field, media dialog, and authoring surface | `routes/playground/`, `public/config/contents-playground.json`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
@@ -124,7 +124,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. All five routes pair an icon with a sentence-case label: mobile uses `21px` Tabler outline icons with `8px` labels and a `5px` gap; desktop scales that relationship to `25px` icons with `11px` labels and a `6px` gap. Labels use Geist weight `700` with slightly tightened `-0.02em` tracking. The mobile key is `50px` inside its `62px` cell; the desktop key is `71px` inside its `85px` cell, leaving the larger desktop stack with approximately `6px` of vertical breathing room. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
-- Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content or carousel advances use one step click. About, Lab, and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work orbit sounds only when a distinct project reaches centre, not throughout travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
+- Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content or carousel advances use one step click. About, Lab, and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work deck sounds only when a distinct project reaches centre, not throughout travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
 
 #### Quiet control material and emphasis
 
@@ -169,7 +169,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 ### Work / Portfolio
 
 - “Work” is the Button Bar label; “Portfolio” is the route and experience name.
-- The live route is an orbital, drag/scroll-controlled media deck available as the unauthorised preview. It is not a grid or a physics pit.
+- The live route is a linear, drag/scroll-controlled media deck available as the unauthorised preview. The centred card is full size, every inactive card is 90% size, and the complete track stays on one horizontal axis. It is not a grid or a physics pit.
 - The route intro and gate use the editorial route-entry voice. Card and project-detail titles remain Geist.
 - Every project declares `access: "public" | "protected"`. Missing or unsupported runtime values fail closed as protected.
 - The access gate appears only when an unauthorised visitor opens a protected project. It blurs the live deck inside the studio window, stores one Portfolio-wide grant, closes completely, then continues the exact selected card through the existing drawer handoff. Public projects bypass it.
@@ -355,7 +355,7 @@ Recalculate these from approved computed endpoints before implementation if the 
 
 - Button Bar geometry, touch targets, safe-area offsets, active-key material, label sizing, and icon frames.
 - Frame inset/radius; they already have a canonical endpoint interpolation.
-- Portfolio orbital geometry, drawer handoff geometry, and height-led project art direction.
+- Portfolio linear-track geometry, drawer handoff geometry, and height-led project art direction.
 - Home short-height compression and narrow landscape safeguards.
 - Borders, focus-ring widths, the fixed cursor diameter, or motion timing.
 - Project titles through the route-entry serif token.
@@ -385,7 +385,7 @@ An exception is allowed only when it strengthens the design thesis and is record
 - accessibility impact;
 - verification command and screenshots.
 
-Current intentional exceptions are the Home Canvas title, Home expertise composition, Portfolio orbital deck, Portfolio media handoff, Portfolio gate, Contact ripple field, and the London signature.
+Current intentional exceptions are the Home Canvas title, Home expertise composition, Portfolio linear deck, Portfolio media handoff, Portfolio gate, Contact ripple field, and the London signature.
 
 ## Outlier register and proposed resolutions
 

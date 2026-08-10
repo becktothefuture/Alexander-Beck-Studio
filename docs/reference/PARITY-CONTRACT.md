@@ -26,7 +26,7 @@ For config or panel changes:
 - `npm run certify:screens`: fresh production build, five primary routes, desktop/mobile, light/dark
 - `npm run audit:canvas-spa`: route-generation and canvas backing-store stability
 - `npm run audit:portfolio-gate`: current in-window gate
-- `npm run audit:portfolio-carousel`: orbital deck
+- `npm run audit:portfolio-carousel`: linear deck and indicator
 - `npm run audit:portfolio-drawer`: project drawer
 - `npm run audit:playground`: Playground routes, inputs, wrapping, catalogue semantics, dialog/media ownership, panel/save parity, Reduced Motion, and SPA cleanup; Chromium by default, or the browser selected through `ABS_BROWSER`
 - `npm run audit:transition-flows`: Chromium and WebKit, serially; strict RAF when cadence changed

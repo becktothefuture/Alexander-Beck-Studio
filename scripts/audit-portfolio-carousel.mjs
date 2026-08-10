@@ -1,5 +1,5 @@
 /**
- * Portfolio orbital carousel regression audit.
+ * Portfolio linear carousel regression audit.
  *
  * Run against a production preview:
  * ABS_DEV_URL=http://127.0.0.1:8013 npm run audit:portfolio-carousel
@@ -21,6 +21,7 @@ const VIEWPORTS = [
   { name: 'desktop-wide', width: 3440, height: 1440 },
   { name: 'desktop-tall', width: 3440, height: 1800 },
   { name: 'desktop', width: 1440, height: 900 },
+  { name: 'desktop-narrow-tall', width: 1024, height: 1366 },
   { name: 'tablet', width: 1024, height: 768 },
   { name: 'mobile-landscape', width: 844, height: 390 },
   { name: 'mobile-small', width: 360, height: 640 },
@@ -329,6 +330,7 @@ async function collectGeometry(page) {
           projectId: card.dataset.projectId,
           offset: Number(card.dataset.orbitOffset),
           opacity: Number(style.opacity),
+          centerY: rect.top + (rect.height / 2),
           rect: clipped,
         };
       })
@@ -352,10 +354,37 @@ async function collectGeometry(page) {
     }
     const activeCard = document.querySelector('.portfolio-project-card.is-active');
     const activeCardRect = activeCard?.getBoundingClientRect?.();
+    const deckSnapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    const trackStepPx = deckSnapshot?.layout?.trackStepPx;
+    const inactiveScale = deckSnapshot?.layout?.inactiveScale;
+    const maxVisibleOffset = deckSnapshot?.layout?.maxVisibleOffset;
+    const trackCards = (deckSnapshot?.cards || []).filter((card) => (
+      card.nearestProjectInstance
+      && card.visibility !== 'hidden'
+      && card.opacity > 0.05
+      && Number.isFinite(maxVisibleOffset)
+      && card.depth <= maxVisibleOffset + 0.01
+    ));
+    const activeTrackCard = trackCards.find((card) => card.isActive);
+    const inactiveTrackCards = trackCards.filter((card) => card.depth >= 0.99);
+    const trackYErrors = trackCards.map((card) => Math.abs(card.y));
+    const trackSpacingErrors = Number.isFinite(trackStepPx)
+      ? trackCards.map((card) => Math.abs(Math.abs(card.x) - (card.depth * trackStepPx)))
+      : [];
+    const trackRotationErrors = trackCards.map((card) => Math.max(
+      Math.abs(card.rotateX || 0),
+      Math.abs(card.rotateZ || 0)
+    ));
+    const activeScaleError = activeTrackCard ? Math.abs(activeTrackCard.scale - 1) : null;
+    const inactiveScaleErrors = Number.isFinite(inactiveScale)
+      ? inactiveTrackCards.map((card) => Math.abs(card.scale - inactiveScale))
+      : [];
     const intro = document.querySelector('.portfolio-deck-intro');
     const introRect = intro instanceof HTMLElement && getComputedStyle(intro).display !== 'none'
       ? intro.getBoundingClientRect()
       : null;
+    const particleCanvas = document.querySelector('.portfolio-speed-field-canvas');
+    const deckViewport = document.querySelector('.portfolio-deck-viewport');
     const activeCenterDeltaY = activeCardRect
       ? Math.abs(
         (activeCardRect.top + (activeCardRect.height / 2))
@@ -384,6 +413,30 @@ async function collectGeometry(page) {
       ),
       activeCardWidth: activeCardRect ? Number(activeCardRect.width.toFixed(3)) : null,
       activeCardHeight: activeCardRect ? Number(activeCardRect.height.toFixed(3)) : null,
+      activeCardAspectRatio: activeCardRect
+        ? Number((activeCardRect.width / activeCardRect.height).toFixed(6))
+        : null,
+      trackStepPx: Number.isFinite(trackStepPx) ? Number(trackStepPx.toFixed(6)) : null,
+      inactiveScale: Number.isFinite(inactiveScale) ? Number(inactiveScale.toFixed(6)) : null,
+      maxVisibleOffset: Number.isFinite(maxVisibleOffset) ? maxVisibleOffset : null,
+      maxTrackYError: trackYErrors.length
+        ? Number(Math.max(...trackYErrors).toFixed(6))
+        : null,
+      maxTrackSpacingError: trackSpacingErrors.length
+        ? Number(Math.max(...trackSpacingErrors).toFixed(6))
+        : null,
+      maxTrackRotationError: trackRotationErrors.length
+        ? Number(Math.max(...trackRotationErrors).toFixed(6))
+        : null,
+      activeScaleError: activeScaleError === null ? null : Number(activeScaleError.toFixed(6)),
+      maxInactiveScaleError: inactiveScaleErrors.length
+        ? Number(Math.max(...inactiveScaleErrors).toFixed(6))
+        : null,
+      maxCardCenterDeltaY: activeCardRect && cards.length
+        ? Number(Math.max(...cards.map((card) => Math.abs(
+          card.centerY - (activeCardRect.top + (activeCardRect.height / 2))
+        ))).toFixed(6))
+        : null,
       activeCardTopDvh: activeCardRect
         ? Number(((activeCardRect.top / window.innerHeight) * 100).toFixed(3))
         : null,
@@ -398,6 +451,9 @@ async function collectGeometry(page) {
       introCardGapDvh: activeCardRect && introRect
         ? Number((((activeCardRect.top - introRect.bottom) / window.innerHeight) * 100).toFixed(3))
         : null,
+      introZIndex: intro ? Number.parseFloat(getComputedStyle(intro).zIndex) : null,
+      particleZIndex: particleCanvas ? Number.parseFloat(getComputedStyle(particleCanvas).zIndex) : null,
+      viewportZIndex: deckViewport ? Number.parseFloat(getComputedStyle(deckViewport).zIndex) : null,
     };
   });
 }
@@ -415,16 +471,16 @@ async function collectDotAppearance(page) {
         height: Number.parseFloat(style.height),
         borderRadius: Number.parseFloat(style.borderRadius),
         cornerShape: style.cornerShape || '',
+        active: dot.classList.contains('is-active'),
         centerX: rect.left + (rect.width / 2),
         centerY: rect.top + (rect.height / 2),
       };
     });
-    const centerGaps = samples
+    const orderedSamples = [...samples].sort((first, second) => first.centerX - second.centerX);
+    const centerGaps = orderedSamples
       .slice(1)
-      .map((sample, index) => Math.hypot(
-        sample.centerX - samples[index].centerX,
-        sample.centerY - samples[index].centerY
-      ));
+      .map((sample, index) => sample.centerX - orderedSamples[index].centerX);
+    const centerYs = samples.map((sample) => sample.centerY);
     const dotDial = document.querySelector('.portfolio-carousel-dot-dial');
     const dotDialVisible = dotDial ? getComputedStyle(dotDial).display !== 'none' : false;
     const stageRect = document.querySelector('.portfolio-deck-stage')?.getBoundingClientRect?.();
@@ -446,6 +502,7 @@ async function collectDotAppearance(page) {
       uniqueColors: new Set(samples.map((sample) => sample.color)).size,
       minOpacity: samples.length ? Math.min(...samples.map((sample) => sample.opacity)) : null,
       maxOpacity: samples.length ? Math.max(...samples.map((sample) => sample.opacity)) : null,
+      activeCount: samples.filter((sample) => sample.active).length,
       opacities: samples.map((sample) => Number(sample.opacity.toFixed(3))).sort((a, b) => a - b),
       dotDialVisible,
       bottomClearance: bottomClearance === null ? null : Number(bottomClearance.toFixed(3)),
@@ -460,6 +517,12 @@ async function collectDotAppearance(page) {
         ? Math.min(...samples.map((sample) => sample.borderRadius / Math.max(0.5, Math.min(sample.width, sample.height) / 2)))
         : null,
       minCenterGap: centerGaps.length ? Math.min(...centerGaps) : null,
+      maxCenterGapDelta: centerGaps.length
+        ? Math.max(...centerGaps) - Math.min(...centerGaps)
+        : null,
+      maxCenterYDelta: centerYs.length
+        ? Math.max(...centerYs) - Math.min(...centerYs)
+        : null,
       markWidth: samples[0]?.width ?? null,
       markHeight: samples[0]?.height ?? null,
       sharedThickness: Number.isFinite(sharedThickness) ? sharedThickness : null,
@@ -529,8 +592,11 @@ async function getMotionSample(page) {
       opacity: 0,
       particleCount: 0,
     };
-    const dot = document.querySelector('.portfolio-carousel-dot');
-    const dotRect = dot?.getBoundingClientRect?.();
+    const activeDotIndices = [...document.querySelectorAll('.portfolio-carousel-dot')]
+      .reduce((indices, dot, index) => {
+        if (dot.classList.contains('is-active')) indices.push(index);
+        return indices;
+      }, []);
     const visibleProjectIndices = Array.from(new Set(
       (snapshot?.cards || [])
         .filter((card) => card.visibility !== 'hidden' && card.opacity > 0.05)
@@ -560,7 +626,7 @@ async function getMotionSample(page) {
       frontProjectIndices,
       cardCount: snapshot?.cards?.length || 0,
       focusableCardCount: document.querySelectorAll('.portfolio-project-card[tabindex="0"]').length,
-      dot: dotRect ? { x: dotRect.x, y: dotRect.y } : null,
+      activeDotIndices,
     };
   });
 }
@@ -969,14 +1035,12 @@ async function auditWheel(page) {
   const committed = await waitForCommittedAdvance(page, before.activeIndex);
   const after = await getMotionSample(page);
   samples.push(after);
-  const dotDelta = before.dot && samples[2]?.dot
-    ? Math.hypot(samples[2].dot.x - before.dot.x, samples[2].dot.y - before.dot.y)
-    : 0;
+  const indicatorAdvanced = before.activeDotIndices.join(',') !== after.activeDotIndices.join(',');
   return {
     before,
     after,
     samples,
-    dotDelta: Number(dotDelta.toFixed(3)),
+    indicatorAdvanced,
     committed,
     reversals: findMotionReversals(samples),
   };
@@ -1116,6 +1180,7 @@ async function auditPermanentRing(page) {
   const mediaFailures = [...initial.mediaFailures];
   const edgeOpacitySamples = [...initial.edgeOpacitySamples];
   let maxOpacityJump = 0;
+  let maxOpacityJumpSample = null;
   const stepsPerProject = 10;
 
   for (const direction of [1, -1]) {
@@ -1135,7 +1200,16 @@ async function auditPermanentRing(page) {
         const previousState = previous.visibleProjects[projectId];
         const previousOpacity = previousState?.opacity || 0;
         const opacityJump = state.opacity - previousOpacity;
-        if (previousState) maxOpacityJump = Math.max(maxOpacityJump, opacityJump);
+        if (previousState && opacityJump > maxOpacityJump) {
+          maxOpacityJump = opacityJump;
+          maxOpacityJumpSample = {
+            direction,
+            stepIndex,
+            projectId,
+            previous: previousState,
+            current: state,
+          };
+        }
         if (previousOpacity <= 0.03 && state.opacity > 0.95 && state.clippedRatio > 0.2) {
           abruptEntries.push({ direction, stepIndex, projectId, previousOpacity, opacity: state.opacity });
         }
@@ -1156,6 +1230,7 @@ async function auditPermanentRing(page) {
     abruptEntries,
     mediaFailures,
     maxOpacityJump: Number(maxOpacityJump.toFixed(4)),
+    maxOpacityJumpSample,
     minEdgeOpacity: edgeOpacitySamples.length
       ? Number(Math.min(...edgeOpacitySamples).toFixed(4))
       : null,
@@ -1369,13 +1444,70 @@ async function main() {
         failures.push(`${name}: intro description opacity does not match Contact`);
       }
       if (result.geometry.activeSeatDeltaY === null || result.geometry.activeSeatDeltaY > 1) {
-        failures.push(`${name}: active card is not aligned to its configured orbit seat`);
+        failures.push(`${name}: active card is not aligned to its configured track seat`);
       }
       if (result.geometry.introCardGap !== null && result.geometry.introCardGap < 8) {
         failures.push(`${name}: intro overlaps or crowds the active card`);
       }
+      if (
+        result.geometry.introZIndex === null
+        || result.geometry.particleZIndex === null
+        || result.geometry.viewportZIndex === null
+        || result.geometry.introZIndex >= result.geometry.particleZIndex
+        || result.geometry.particleZIndex >= result.geometry.viewportZIndex
+      ) {
+        failures.push(`${name}: title, simulation, and cards do not preserve their depth order`);
+      }
+      if (
+        result.geometry.activeCardAspectRatio === null
+        || Math.abs(result.geometry.activeCardAspectRatio - (316 / 461)) > 0.001
+      ) {
+        failures.push(`${name}: active card does not preserve the 316:461 aspect ratio`);
+      }
+      if (result.geometry.maxTrackYError === null || result.geometry.maxTrackYError > 0.1) {
+        failures.push(`${name}: runtime card poses do not share one horizontal axis`);
+      }
+      if (result.geometry.maxCardCenterDeltaY === null || result.geometry.maxCardCenterDeltaY > 1) {
+        failures.push(`${name}: rendered card centres do not share one horizontal axis`);
+      }
+      if (result.geometry.maxTrackSpacingError === null || result.geometry.maxTrackSpacingError > 0.1) {
+        failures.push(`${name}: card positions do not follow the configured linear step`);
+      }
+      if (result.geometry.maxTrackRotationError === null || result.geometry.maxTrackRotationError > 0.01) {
+        failures.push(`${name}: linear track retained card rotation`);
+      }
+      if (result.geometry.activeScaleError === null || result.geometry.activeScaleError > 0.002) {
+        failures.push(`${name}: centred card does not settle at full size`);
+      }
+      if (
+        result.geometry.inactiveScale === null
+        || Math.abs(result.geometry.inactiveScale - 0.9) > 0.002
+        || result.geometry.maxInactiveScaleError === null
+        || result.geometry.maxInactiveScaleError > 0.002
+      ) {
+        failures.push(`${name}: inactive cards do not settle at 90% size`);
+      }
+      const expectedVisibleCardCount = Number.isFinite(result.geometry.maxVisibleOffset)
+        ? 1 + (result.geometry.maxVisibleOffset * 2)
+        : null;
+      if (
+        expectedVisibleCardCount === null
+        || result.geometry.cards.length < expectedVisibleCardCount
+      ) {
+        failures.push(`${name}: project sequence stops before both viewport edges`);
+      }
       if (name === 'desktop-wide' && result.geometry.cards.length < 5) {
         failures.push('desktop-wide: enlarged ultra-wide layout does not expose five project cards');
+      }
+      if (
+        name === 'desktop-narrow-tall'
+        && (
+          (result.geometry.activeCardWidth ?? 0) < 315
+          || result.geometry.cards.length < 5
+          || (result.geometry.introCardGap ?? Infinity) > 60
+        )
+      ) {
+        failures.push('desktop-narrow-tall: height-aware title and five-card composition regressed');
       }
       if (
         name === 'desktop-tall'
@@ -1391,6 +1523,7 @@ async function main() {
         failures.push(`${name}: line track does not use the shared thickness`);
       }
       if (result.dots.maxOpacity === null || result.dots.maxOpacity < 0.99) failures.push(`${name}: active line is not fully opaque`);
+      if (result.dots.activeCount !== 2) failures.push(`${name}: line track does not expose exactly two active marks`);
       if (result.dots.minOpacity === null || result.dots.minOpacity < 0.2 || result.dots.minOpacity > 0.24) failures.push(`${name}: resting lines do not use the quiet opacity`);
       if (result.dots.uniqueColors !== 1) failures.push(`${name}: line track uses inconsistent ink colours`);
       if (result.dots.cornerShapes.includes('squircle')) failures.push(`${name}: lines use squircle corners`);
@@ -1398,6 +1531,12 @@ async function main() {
       if (result.dots.minPillRadiusRatio === null || result.dots.minPillRadiusRatio < 0.99) failures.push(`${name}: line track marks do not have pill ends`);
       if (result.dots.dotDialVisible && (result.dots.minCenterGap === null || result.dots.minCenterGap < result.dots.markWidth * 1.35)) {
         failures.push(`${name}: lines are not spaced clearly apart`);
+      }
+      if (result.dots.dotDialVisible && (result.dots.maxCenterYDelta === null || result.dots.maxCenterYDelta > 0.1)) {
+        failures.push(`${name}: line track marks do not share one horizontal axis`);
+      }
+      if (result.dots.dotDialVisible && (result.dots.maxCenterGapDelta === null || result.dots.maxCenterGapDelta > 0.1)) {
+        failures.push(`${name}: line track marks are not evenly spaced`);
       }
       if (['mobile-small', 'mobile', 'mobile-large'].includes(name)) {
         if (!result.dots.dotDialVisible) failures.push(`${name}: line track is hidden in portrait`);
@@ -1433,17 +1572,19 @@ async function main() {
     if ((summary.viewports.desktop.press?.delta ?? Infinity) > 2) failures.push('desktop: pointer-down center delta exceeded 2px');
     const wideCard = summary.viewports['desktop-wide'].geometry;
     const desktopCard = summary.viewports.desktop.geometry;
+    if ((desktopCard.activeCardWidth ?? 0) < 330) {
+      failures.push('desktop: active card did not grow beyond the former 262px cap');
+    }
     if (
-      (wideCard.activeCardWidth ?? 0) < (desktopCard.activeCardWidth ?? Infinity) * 1.7
-      || (wideCard.activeCardHeight ?? 0) < (desktopCard.activeCardHeight ?? Infinity) * 1.7
-      || (wideCard.activeTitleFontSize ?? 0) < (desktopCard.activeTitleFontSize ?? Infinity) * 1.4
+      (wideCard.activeCardWidth ?? 0) < 419
+      || (wideCard.activeCardWidth ?? Infinity) > 421
     ) {
-      failures.push('desktop-wide: card geometry and content do not scale up with the available viewport');
+      failures.push('desktop-wide: active card does not settle at the 420px maximum');
     }
     if (/view project/i.test(summary.viewports.desktop.cursor?.text || '')) failures.push('desktop: cursor still contains View Project');
     if (/abs-cursor-project-hover/.test(summary.viewports.desktop.cursor?.className || '')) failures.push('desktop: project-hover cursor class still active');
     if (summary.viewports.desktop.wheel?.before.activeIndex === summary.viewports.desktop.wheel?.after.activeIndex) failures.push('desktop: wheel did not advance');
-    if ((summary.viewports.desktop.wheel?.dotDelta ?? 0) <= 0.5) failures.push('desktop: line coordinates did not move');
+    if (!summary.viewports.desktop.wheel?.indicatorAdvanced) failures.push('desktop: indicator active pair did not advance');
     if (summary.viewports.desktop.wheel?.reversals.length) failures.push('desktop: wheel trace reversed after committed input');
     if ((summary.viewports.desktop.continuousWheel?.distance ?? 0) < 2) failures.push('desktop: continuous wheel did not advance multiple projects');
     if (summary.viewports.desktop.continuousWheel?.reversals.length) failures.push('desktop: continuous wheel trace reversed');

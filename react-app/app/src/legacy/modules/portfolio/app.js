@@ -66,6 +66,11 @@ import {
   getRouteCardMotionFrame,
 } from '../../../lib/motion/route-material-entrance.js';
 import { getSimulationPaletteSnapshot } from '../../../palette/simulationPaletteController.js';
+import {
+  resolveScrollProgressIndicatorState,
+  SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT,
+  SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+} from '../../../lib/scroll-progress-indicator.js';
 
 let activePortfolioBootstrapRunId = 0;
 
@@ -76,10 +81,15 @@ const PORTFOLIO_CAROUSEL_DETENT_GAIN = 0.032;
 const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
+const PORTFOLIO_CARD_ASPECT_RATIO = 316 / 461;
+const PORTFOLIO_CARD_FLUID_STAGE_RATIO = 0.25;
+const PORTFOLIO_CARD_FLUID_HEIGHT_RATIO = 0.46;
+const PORTFOLIO_CARD_DESKTOP_INLINE_CAP_RATIO = 0.38;
+const PORTFOLIO_TALL_DESKTOP_ASPECT_RATIO = 1.05;
+const PORTFOLIO_TALL_DESKTOP_CARD_GAP_PX = 10;
+const PORTFOLIO_TALL_DESKTOP_EDGE_PEEK_PX = 12;
 const PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS = 300;
 const PORTFOLIO_BOOKEND_FALLBACK_REVEAL_DELAY_MS = 300;
-const PORTFOLIO_CARD_INPUT_RELEASE_SCALE = 0.08;
-const PORTFOLIO_CARD_INPUT_RELEASE_FALLBACK_OFFSET_MS = 48;
 
 // The shared entrance executor owns title, rule, and description timings.
 // Portfolio only needs the resolved endpoint so cards do not compete with the
@@ -104,8 +114,6 @@ function applyPortfolioTitleTiming(mount, sequence) {
   return revealDelayMs;
 }
 const PORTFOLIO_CARD_EDGE_MIN_OPACITY = 0.8;
-const PORTFOLIO_INDICATOR_REST_OPACITY = 0.22;
-const PORTFOLIO_INDICATOR_ACTIVE_RADIUS = 2;
 
 const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reducedMotionDurationMs: 1,
@@ -118,47 +126,19 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   followSmoothing: 0.18,
   settleIdleMs: 150,
   settleStrength: 0.15,
-  cardWidthPercent: 24,
-  cardMaxWidthPx: 262,
-  cardHeightCqh: 58,
-  cardMaxHeightPx: 378,
-  largeViewportWidthStartPx: 1440,
-  largeViewportWidthEndPx: 2560,
-  largeViewportHeightStartPx: 900,
-  largeViewportHeightEndPx: 1440,
-  largeViewportCardScaleMax: 1.75,
-  largeViewportContentScaleMax: 1.45,
-  mobileCardWidthPercent: 64,
-  mobileCardMaxWidthPx: 300,
-  mobileCardHeightCqh: 58,
-  mobileCardMaxHeightPx: 500,
+  cardMinWidthPx: 220,
+  cardMaxWidthPx: 420,
   centerYPercent: 50,
   mobileCenterYPercent: 58,
   sliderYOffsetDvh: 0,
   introYOffsetDvh: 0,
   desktopViewportYOffsetDvh: 3,
-  largeViewportOrbitCapStartProgress: 0.6,
-  largeViewportTitleCardGapDvh: 8,
-  largeViewportGroupOffsetHeightEndPx: 1800,
-  largeViewportGroupOffsetMaxDvh: 6,
   perspectivePx: 1600,
-  pathRadiusPx: 8000,
-  mobilePathRadiusPx: 3200,
-  angleStepDeg: 3.3,
-  mobileAngleStepDeg: 4.5,
-  sideRotationDeg: 10,
-  farRotationDeg: 22,
-  sideScale: 0.985,
-  mobileSideScale: 0.78,
-  farScale: 0.9,
+  inactiveScale: 0.9,
   minCardGapPx: 18,
-  dotDialRadiusPx: 2050,
-  mobileDotDialRadiusPx: 900,
-  dotDensity: 5,
-  dotActiveScale: 1,
+  indicatorGapPx: 9,
+  dotDensity: SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
   dotParallaxRatio: 1,
-  dotArcSpanDeg: 18,
-  dotArcOffsetDeg: 0,
   depthGap1Px: 0,
   depthZ1Px: -18,
   depthScale1: 0.985,
@@ -433,15 +413,16 @@ class PortfolioScrollApp {
     this.deckMetrics = {
       stageWidth: 0,
       stageHeight: 0,
-      pathRadius: PORTFOLIO_DECK_DEFAULTS.pathRadiusPx,
-      angleStepDeg: PORTFOLIO_DECK_DEFAULTS.angleStepDeg,
-      sideRotationDeg: PORTFOLIO_DECK_DEFAULTS.sideRotationDeg,
-      farRotationDeg: PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
-      sideScale: PORTFOLIO_DECK_DEFAULTS.sideScale,
-      farScale: PORTFOLIO_DECK_DEFAULTS.farScale,
+      trackStepPx: (
+        PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx
+        * (1 + PORTFOLIO_DECK_DEFAULTS.inactiveScale)
+        * 0.5
+      ) + PORTFOLIO_DECK_DEFAULTS.minCardGapPx,
+      inactiveScale: PORTFOLIO_DECK_DEFAULTS.inactiveScale,
       cardWidth: PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx,
-      cardHeight: PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx,
+      cardHeight: PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx / PORTFOLIO_CARD_ASPECT_RATIO,
       minCardGap: PORTFOLIO_DECK_DEFAULTS.minCardGapPx,
+      indicatorGapPx: PORTFOLIO_DECK_DEFAULTS.indicatorGapPx,
       maxVisibleOffset: 5,
     };
     this.dotDial = null;
@@ -478,10 +459,6 @@ class PortfolioScrollApp {
     this.entrancePromise = null;
     this.entranceAbortController = null;
     this.entranceRankedCards = [];
-    this.deckInputReleaseMode = '';
-    this.deckInputReleaseTimer = 0;
-    this.deckInputReleaseFrame = 0;
-    this.deckInputReleaseCleanup = null;
     this.materialEntrance = null;
     this.routeCompletionObserver = null;
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -524,20 +501,21 @@ class PortfolioScrollApp {
     this.renderProjectDeck();
     this.registerRouteParticipant();
     this.particleField = new PortfolioParticleField(
-      document.querySelector('.portfolio-speed-field-canvas'),
+      this.mount?.querySelector('.portfolio-speed-field-canvas'),
       {
         ...this.deckOptions.particleField,
         onSuspensionChange: (suspended) => this.syncAtmosphereSource(suspended),
       }
     );
     this.particleField.start();
+    this.setupDeckEvents();
+    this.releaseDeckEntranceInput('deck-mounted');
     this.createMaterialEntranceController();
     this.materialEntrance.prepare({ reducedMotion: shouldReducePortfolioMotion() });
     this.syncAtmosphereSource(true);
     this.thumbnailReadinessPromise = this.prepareProjectThumbnails();
     await this.thumbnailReadinessPromise;
     if (signal?.aborted) return false;
-    this.setupDeckEvents();
     this.applyProjectPalette();
     if (!routeTransition) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -586,7 +564,7 @@ class PortfolioScrollApp {
   registerRouteParticipant() {
     this.unregisterRouteTransitionParticipant?.();
     this.unregisterRouteTransitionParticipant = registerRouteTransitionParticipant({
-      id: 'portfolio-orbital-deck',
+      id: 'portfolio-linear-deck',
       routeId: 'portfolio',
       prepare: ({ signal }) => this.prepareRouteEntrance({ signal }),
       exit: ({ signal }) => this.prepareRouteExit({ signal }),
@@ -625,14 +603,6 @@ class PortfolioScrollApp {
         target.style.setProperty('--portfolio-card-route-entrance-scale', String(frame.scale));
         target.style.setProperty('--portfolio-card-route-y', `${frame.translateY}px`);
         target.style.setProperty('--portfolio-card-route-tilt', `${frame.rotate}deg`);
-        if (
-          this.deckInputReleaseMode === 'route-material'
-          && target.dataset.portfolioRevealRank === '0'
-          && detail?.phase === 'entering'
-          && frame.scale >= PORTFOLIO_CARD_INPUT_RELEASE_SCALE
-        ) {
-          this.releaseDeckEntranceInput('lead-card-visible');
-        }
       },
       getDelayRatio: (target, index, targets, direction) => {
         if (target?.nodeType) {
@@ -842,7 +812,6 @@ class PortfolioScrollApp {
     this.entranceAbortController?.abort();
     this.entranceAbortController = null;
     this.entrancePromise = null;
-    this.clearDeckInputReleaseSchedule();
     this.deckIntroEntrance?.cancel();
     this.deckIntroEntrance = null;
     this.deckIntroEntranceMode = '';
@@ -1233,6 +1202,11 @@ class PortfolioScrollApp {
 
     const intro = this.createDeckIntro();
 
+    const particleCanvas = document.createElement('canvas');
+    particleCanvas.className = 'portfolio-speed-field-canvas';
+    particleCanvas.setAttribute('aria-hidden', 'true');
+    particleCanvas.draggable = false;
+
     const viewport = document.createElement('div');
     viewport.className = 'portfolio-deck-viewport';
     viewport.setAttribute('aria-labelledby', 'portfolioDeckIntroTitle');
@@ -1267,7 +1241,7 @@ class PortfolioScrollApp {
     status.setAttribute('aria-live', 'polite');
     status.setAttribute('aria-atomic', 'true');
 
-    pin.append(intro, viewport, dotDial, mist, status);
+    pin.append(intro, particleCanvas, viewport, dotDial, mist, status);
     stage.append(pin);
     this.mount.appendChild(stage);
     applyBookendTitleKerning(intro.querySelector('[data-route-enter-variant="bookend-title"]'));
@@ -1583,8 +1557,8 @@ class PortfolioScrollApp {
       return 0;
     }
 
-    // Keep every responsive orbit seat below the complete intro block. The
-    // configured seat still wins whenever it already provides more breathing room.
+    // Seat the track from the complete intro block so title and cards remain a
+    // single responsive composition as either viewport axis changes.
     const resolvedClearancePx = Number.isFinite(clearancePx)
       ? clearancePx
       : clamp(stageHeight * 0.02, 12, 24);
@@ -1606,68 +1580,19 @@ class PortfolioScrollApp {
     const stageWidth = this.deckStage?.clientWidth || this.mount.clientWidth || window.innerWidth || 1440;
     const stageHeight = this.deckStage?.clientHeight || this.mount.clientHeight || window.innerHeight || 900;
     const responsiveT = clamp((stageWidth - 390) / (1180 - 390), 0, 1);
-    const desktopCardWidthPercent = clamp(toNumber(this.deckOptions.cardWidthPercent, PORTFOLIO_DECK_DEFAULTS.cardWidthPercent), 16, 42);
-    const mobileCardWidthPercent = clamp(toNumber(this.deckOptions.mobileCardWidthPercent, PORTFOLIO_DECK_DEFAULTS.mobileCardWidthPercent), 60, 92);
-    const cardWidthPercent = lerp(mobileCardWidthPercent, desktopCardWidthPercent, responsiveT);
-    const largeViewportWidthStartPx = clamp(
-      toNumber(this.deckOptions.largeViewportWidthStartPx, PORTFOLIO_DECK_DEFAULTS.largeViewportWidthStartPx),
-      900,
-      2200
+    const cardMinWidthPx = clamp(
+      toNumber(this.deckOptions.cardMinWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMinWidthPx),
+      180,
+      320
     );
-    const largeViewportWidthEndPx = clamp(
-      toNumber(this.deckOptions.largeViewportWidthEndPx, PORTFOLIO_DECK_DEFAULTS.largeViewportWidthEndPx),
-      largeViewportWidthStartPx + 1,
-      3840
+    const cardMaxWidthPx = Math.max(
+      cardMinWidthPx,
+      clamp(
+        toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx),
+        320,
+        560
+      )
     );
-    const largeViewportHeightStartPx = clamp(
-      toNumber(this.deckOptions.largeViewportHeightStartPx, PORTFOLIO_DECK_DEFAULTS.largeViewportHeightStartPx),
-      600,
-      1200
-    );
-    const largeViewportHeightEndPx = clamp(
-      toNumber(this.deckOptions.largeViewportHeightEndPx, PORTFOLIO_DECK_DEFAULTS.largeViewportHeightEndPx),
-      largeViewportHeightStartPx + 1,
-      2160
-    );
-    const largeViewportCardScaleMax = clamp(
-      toNumber(this.deckOptions.largeViewportCardScaleMax, PORTFOLIO_DECK_DEFAULTS.largeViewportCardScaleMax),
-      1,
-      2.4
-    );
-    const largeViewportContentScaleMax = clamp(
-      toNumber(this.deckOptions.largeViewportContentScaleMax, PORTFOLIO_DECK_DEFAULTS.largeViewportContentScaleMax),
-      1,
-      1.8
-    );
-    const largeViewportWidthProgress = clamp(
-      (stageWidth - largeViewportWidthStartPx)
-        / (largeViewportWidthEndPx - largeViewportWidthStartPx),
-      0,
-      1
-    );
-    const largeViewportHeightProgress = clamp(
-      ((window.innerHeight || stageHeight) - largeViewportHeightStartPx)
-        / (largeViewportHeightEndPx - largeViewportHeightStartPx),
-      0,
-      1
-    );
-    const largeViewportProgress = Math.min(
-      largeViewportWidthProgress,
-      largeViewportHeightProgress
-    );
-    const largeViewportCardScale = lerp(1, largeViewportCardScaleMax, largeViewportProgress);
-    const largeViewportContentScale = lerp(1, largeViewportContentScaleMax, largeViewportProgress);
-    const desktopCardMaxWidthPx = clamp(toNumber(this.deckOptions.cardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx), 220, 620)
-      * largeViewportCardScale;
-    const mobileCardMaxWidthPx = clamp(toNumber(this.deckOptions.mobileCardMaxWidthPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxWidthPx), 240, 520);
-    const cardMaxWidthPx = lerp(mobileCardMaxWidthPx, desktopCardMaxWidthPx, responsiveT);
-    const desktopCardHeightCqh = clamp(toNumber(this.deckOptions.cardHeightCqh, PORTFOLIO_DECK_DEFAULTS.cardHeightCqh), 36, 68);
-    const mobileCardHeightCqh = clamp(toNumber(this.deckOptions.mobileCardHeightCqh, PORTFOLIO_DECK_DEFAULTS.mobileCardHeightCqh), 42, 72);
-    const cardHeightCqh = lerp(mobileCardHeightCqh, desktopCardHeightCqh, responsiveT);
-    const desktopCardMaxHeightPx = clamp(toNumber(this.deckOptions.cardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx), 340, 620)
-      * largeViewportCardScale;
-    const mobileCardMaxHeightPx = clamp(toNumber(this.deckOptions.mobileCardMaxHeightPx, PORTFOLIO_DECK_DEFAULTS.mobileCardMaxHeightPx), 380, 620);
-    const cardMaxHeightPx = lerp(mobileCardMaxHeightPx, desktopCardMaxHeightPx, responsiveT);
     const desktopCenterYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
     const mobileCenterYPercent = clamp(toNumber(this.deckOptions.mobileCenterYPercent, PORTFOLIO_DECK_DEFAULTS.mobileCenterYPercent), 48, 78);
     const configuredCenterYPercent = lerp(mobileCenterYPercent, desktopCenterYPercent, responsiveT);
@@ -1677,127 +1602,114 @@ class PortfolioScrollApp {
       0,
       8
     );
-    const viewportYOffsetDvh = stageWidth > 900 ? desktopViewportYOffsetDvh : 0;
-    const viewportYOffsetPx = viewportHeight * viewportYOffsetDvh / 100;
-    const largeViewportOrbitCapStartProgress = clamp(
-      toNumber(
-        this.deckOptions.largeViewportOrbitCapStartProgress,
-        PORTFOLIO_DECK_DEFAULTS.largeViewportOrbitCapStartProgress
-      ),
-      0,
-      0.95
-    );
-    const largeViewportOrbitCapProgress = stageWidth > 900
-      ? smoothstep(largeViewportOrbitCapStartProgress, 1, largeViewportProgress)
-      : 0;
-    const largeViewportTitleCardGapDvh = clamp(
-      toNumber(
-        this.deckOptions.largeViewportTitleCardGapDvh,
-        PORTFOLIO_DECK_DEFAULTS.largeViewportTitleCardGapDvh
-      ),
-      4,
-      12
-    );
-    const largeViewportGroupOffsetHeightEndPx = clamp(
-      toNumber(
-        this.deckOptions.largeViewportGroupOffsetHeightEndPx,
-        PORTFOLIO_DECK_DEFAULTS.largeViewportGroupOffsetHeightEndPx
-      ),
-      largeViewportHeightEndPx + 1,
-      2400
-    );
-    const largeViewportGroupOffsetMaxDvh = clamp(
-      toNumber(
-        this.deckOptions.largeViewportGroupOffsetMaxDvh,
-        PORTFOLIO_DECK_DEFAULTS.largeViewportGroupOffsetMaxDvh
-      ),
-      0,
-      12
-    );
-    const largeViewportGroupOffsetProgress = smoothstep(
-      largeViewportHeightEndPx,
-      largeViewportGroupOffsetHeightEndPx,
-      viewportHeight
-    ) * smoothstep(0.85, 1, largeViewportWidthProgress);
-    const largeViewportGroupOffsetDvh = stageWidth > 900
-      ? largeViewportGroupOffsetMaxDvh * largeViewportGroupOffsetProgress
+    const viewportYOffsetDvh = stageWidth > 900 && viewportHeight >= 800
+      ? desktopViewportYOffsetDvh
       : 0;
     const introYOffsetDvh = clamp(
       toNumber(this.deckOptions.introYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.introYOffsetDvh),
       -12,
       12
     );
-    const resolvedIntroYOffsetDvh = largeViewportGroupOffsetDvh + introYOffsetDvh;
+    const resolvedIntroYOffsetDvh = introYOffsetDvh;
     this.mount.style.setProperty(
       '--portfolio-deck-intro-y-offset',
       `${resolvedIntroYOffsetDvh.toFixed(4)}dvh`
     );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
-    const configuredPathRadius = lerp(
-      clamp(toNumber(this.deckOptions.mobilePathRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobilePathRadiusPx), 420, 6000),
-      clamp(toNumber(this.deckOptions.pathRadiusPx, PORTFOLIO_DECK_DEFAULTS.pathRadiusPx), 900, 12000),
-      responsiveT
+    const inactiveScale = clamp(
+      toNumber(this.deckOptions.inactiveScale, PORTFOLIO_DECK_DEFAULTS.inactiveScale),
+      0.75,
+      0.98
     );
-    const configuredAngleStepDeg = lerp(
-      clamp(toNumber(this.deckOptions.mobileAngleStepDeg, PORTFOLIO_DECK_DEFAULTS.mobileAngleStepDeg), 2, 24),
-      clamp(toNumber(this.deckOptions.angleStepDeg, PORTFOLIO_DECK_DEFAULTS.angleStepDeg), 1.5, 18),
-      responsiveT
+    const minCardGap = clamp(
+      toNumber(this.deckOptions.minCardGapPx, PORTFOLIO_DECK_DEFAULTS.minCardGapPx),
+      8,
+      48
     );
-    const sideRotationDeg = clamp(toNumber(this.deckOptions.sideRotationDeg, PORTFOLIO_DECK_DEFAULTS.sideRotationDeg), 0, 24);
-    const farRotationDeg = clamp(toNumber(this.deckOptions.farRotationDeg, PORTFOLIO_DECK_DEFAULTS.farRotationDeg), sideRotationDeg, 34);
-    const desktopSideScale = clamp(toNumber(this.deckOptions.sideScale, PORTFOLIO_DECK_DEFAULTS.sideScale), 0.82, 1.08);
-    const mobileSideScale = clamp(toNumber(this.deckOptions.mobileSideScale, PORTFOLIO_DECK_DEFAULTS.mobileSideScale), 0.62, 0.92);
-    const sideScale = lerp(mobileSideScale, desktopSideScale, responsiveT);
-    const farScale = Math.min(
-      sideScale,
-      clamp(toNumber(this.deckOptions.farScale, PORTFOLIO_DECK_DEFAULTS.farScale), 0.68, 1)
-    );
-    const minCardGap = lerp(
-      12,
-      clamp(toNumber(this.deckOptions.minCardGapPx, PORTFOLIO_DECK_DEFAULTS.minCardGapPx), 8, 48),
-      responsiveT
-    );
-    const dotDialRadius = lerp(
-      clamp(toNumber(this.deckOptions.mobileDotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.mobileDotDialRadiusPx), 520, 1600),
-      clamp(toNumber(this.deckOptions.dotDialRadiusPx, PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx), 900, 3600),
-      responsiveT
+    const isTallDesktop = stageWidth > 900
+      && stageHeight / stageWidth > PORTFOLIO_TALL_DESKTOP_ASPECT_RATIO;
+    const resolvedCardGap = isTallDesktop
+      ? Math.min(minCardGap, PORTFOLIO_TALL_DESKTOP_CARD_GAP_PX)
+      : minCardGap;
+    const indicatorGapPx = clamp(
+      toNumber(this.deckOptions.indicatorGapPx, PORTFOLIO_DECK_DEFAULTS.indicatorGapPx),
+      5,
+      24
     );
     const contactShadowOpacity = clamp(
       toNumber(this.deckOptions.contactShadowOpacity, PORTFOLIO_DECK_DEFAULTS.contactShadowOpacity),
       0,
       0.18
     );
-    let maxVisibleOffset = Math.min(
-      PORTFOLIO_RING_MAX_VISIBLE_OFFSET,
-      stageWidth >= 1700 ? 3 : (stageWidth >= 1180 ? 2 : 1)
+    const widthDrivenCardWidth = stageWidth * PORTFOLIO_CARD_FLUID_STAGE_RATIO;
+    const heightDrivenCardWidth = stageHeight
+      * PORTFOLIO_CARD_FLUID_HEIGHT_RATIO
+      * PORTFOLIO_CARD_ASPECT_RATIO;
+    const desktopInlineCardCap = stageWidth * PORTFOLIO_CARD_DESKTOP_INLINE_CAP_RATIO;
+    const tallSequenceCardCap = (
+      (stageWidth * 0.5)
+      - (resolvedCardGap * 2)
+      - PORTFOLIO_TALL_DESKTOP_EDGE_PEEK_PX
+    ) / (1 + (inactiveScale * 0.5));
+    const responsiveCardWidth = stageWidth > 900
+      ? Math.min(
+        Math.max(widthDrivenCardWidth, heightDrivenCardWidth),
+        desktopInlineCardCap,
+        isTallDesktop ? tallSequenceCardCap : Number.POSITIVE_INFINITY
+      )
+      : widthDrivenCardWidth;
+    const fluidCardWidth = clamp(
+      responsiveCardWidth,
+      cardMinWidthPx,
+      cardMaxWidthPx
     );
-    const cardWidth = Math.min(stageWidth * cardWidthPercent / 100, cardMaxWidthPx);
-    const cardHeight = stageWidth <= 900
-      ? cardWidth * (461 / 316)
-      : clamp(stageHeight * cardHeightCqh / 100, 260, cardMaxHeightPx);
-    const titleClearanceCenterYPercent = this.getTitleClearanceCenterYPercent({ stageHeight, cardHeight });
-    const uncappedCenterYPercent = clamp(
-      Math.max(configuredCenterYPercent, titleClearanceCenterYPercent),
-      45,
-      stageWidth <= 900 ? 82 : 85
+    const intro = this.deckStage?.querySelector?.('.portfolio-deck-intro');
+    const introRect = intro?.getBoundingClientRect?.();
+    const stageRect = this.deckStage?.getBoundingClientRect?.();
+    const introBottomPx = introRect && stageRect && getComputedStyle(intro).display !== 'none'
+      ? Math.max(0, introRect.bottom - stageRect.top)
+      : 0;
+    const configuredGapScale = lerp(
+      0.8,
+      1.2,
+      clamp((configuredCenterYPercent - 45) / 40, 0, 1)
     );
-    const largeViewportCappedCenterYPercent = this.getTitleClearanceCenterYPercent({
-      stageHeight,
-      cardHeight,
-      clearancePx: viewportHeight * largeViewportTitleCardGapDvh / 100,
-      viewportOffsetPx: viewportYOffsetPx,
-    });
-    const centerYPercent = lerp(
-      uncappedCenterYPercent,
-      Math.min(uncappedCenterYPercent, largeViewportCappedCenterYPercent),
-      largeViewportOrbitCapProgress
+    const titlePreferredGapPx = clamp(
+      clamp(stageHeight * 0.04, 28, 52) * configuredGapScale,
+      24,
+      58
     );
+    const bottomClearancePx = clamp(stageHeight * 0.04, 24, 40);
     const sliderYOffsetDvh = clamp(
       toNumber(this.deckOptions.sliderYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.sliderYOffsetDvh),
       -12,
       12
     );
     const resolvedViewportYOffsetDvh = viewportYOffsetDvh + sliderYOffsetDvh;
+    const resolvedViewportOffsetPx = viewportHeight * resolvedViewportYOffsetDvh / 100;
+    const heightFitCardWidth = (
+      stageHeight
+      - introBottomPx
+      - titlePreferredGapPx
+      - bottomClearancePx
+      - Math.max(0, resolvedViewportOffsetPx)
+    ) * PORTFOLIO_CARD_ASPECT_RATIO;
+    const cardWidth = stageWidth > 900
+      ? clamp(Math.min(fluidCardWidth, heightFitCardWidth), cardMinWidthPx, cardMaxWidthPx)
+      : fluidCardWidth;
+    const cardHeight = cardWidth / PORTFOLIO_CARD_ASPECT_RATIO;
+    const cardContentScale = Math.max(1, cardWidth / 316);
+    const titlePreferredCenterYPercent = this.getTitleClearanceCenterYPercent({
+      stageHeight,
+      cardHeight,
+      clearancePx: titlePreferredGapPx,
+      viewportOffsetPx: resolvedViewportOffsetPx,
+    });
+    const centerYPercent = clamp(
+      titlePreferredCenterYPercent,
+      38,
+      stageWidth <= 900 ? 82 : 85
+    );
     const resolvedCenterYRatio = clamp(
       (
         (stageHeight * centerYPercent / 100)
@@ -1810,93 +1722,45 @@ class PortfolioScrollApp {
       ...this.deckOptions.particleField,
       quietBandCenterY: resolvedCenterYRatio,
     });
-    const getScaleAtOffset = (offset) => {
-      const absOffset = Math.abs(offset);
-      if (absOffset <= 1) return lerp(1, sideScale, absOffset);
-      return lerp(
-        sideScale,
-        farScale,
-        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
-      );
-    };
-    const getRotationAtOffset = (offset) => lerp(
-      sideRotationDeg,
-      farRotationDeg,
-      clamp((Math.abs(offset) - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
-    ) * Math.min(1, Math.abs(offset));
-    const getProjectedCardWidth = (offset) => {
-      const rotationRad = (getRotationAtOffset(offset) * Math.PI) / 180;
-      return getScaleAtOffset(offset) * (
-        (cardWidth * Math.abs(Math.cos(rotationRad)))
-        + (cardHeight * Math.abs(Math.sin(rotationRad)))
-      );
-    };
-    const orbitFits = (angleStepRad) => {
-      const halfStepSeparation = 2 * configuredPathRadius * Math.sin(angleStepRad * 0.5);
-      if (halfStepSeparation < getProjectedCardWidth(0.5) + minCardGap) return false;
-      for (let offset = 1; offset <= maxVisibleOffset; offset += 1) {
-        const orbitStep = Math.sin(offset * angleStepRad) - Math.sin((offset - 1) * angleStepRad);
-        if (orbitStep <= 0.001) return false;
-        const requiredGap = (
-          (getProjectedCardWidth(offset - 1) + getProjectedCardWidth(offset)) * 0.5
-        ) + minCardGap;
-        if ((configuredPathRadius * orbitStep) < requiredGap) return false;
-      }
-      return true;
-    };
-    const configuredAngleStepRad = (configuredAngleStepDeg * Math.PI) / 180;
-    let angleStepRad = configuredAngleStepRad;
-    while (maxVisibleOffset > 1) {
-      const maxAngleStepRad = (Math.min(34, 80 / maxVisibleOffset) * Math.PI) / 180;
-      if (orbitFits(maxAngleStepRad)) break;
-      maxVisibleOffset -= 1;
-    }
-    if (!orbitFits(angleStepRad)) {
-      let low = angleStepRad;
-      let high = (Math.min(34, 80 / maxVisibleOffset) * Math.PI) / 180;
-      for (let iteration = 0; iteration < 18; iteration += 1) {
-        const candidate = (low + high) * 0.5;
-        if (orbitFits(candidate)) high = candidate;
-        else low = candidate;
-      }
-      angleStepRad = high;
-    }
-    const angleStepDeg = (angleStepRad * 180) / Math.PI;
-    const pathRadius = configuredPathRadius;
+    const trackStepPx = (cardWidth * (1 + inactiveScale) * 0.5) + resolvedCardGap;
+    const intersectingSideSlots = Math.floor(
+      (
+        (stageWidth * 0.5)
+        + (cardWidth * inactiveScale * 0.5)
+        - 1
+      ) / trackStepPx
+    );
+    // Keep the linear train visible through the window edges. The viewport owns
+    // the crop; card visibility follows actual geometry instead of breakpoints.
+    const maxVisibleOffset = clamp(
+      intersectingSideSlots,
+      1,
+      PORTFOLIO_RING_MAX_VISIBLE_OFFSET
+    );
     this.deckMetrics = {
       stageWidth,
       stageHeight,
-      configuredPathRadius,
-      pathRadius,
-      configuredAngleStepDeg,
-      angleStepDeg,
-      sideRotationDeg,
-      farRotationDeg,
-      sideScale,
-      farScale,
+      trackStepPx,
+      inactiveScale,
       cardWidth,
       cardHeight,
-      minCardGap,
-      dotDialRadius,
+      minCardGap: resolvedCardGap,
+      indicatorGapPx,
       centerYPercent,
       sliderYOffsetDvh,
       introYOffsetDvh,
       resolvedViewportYOffsetDvh,
       resolvedIntroYOffsetDvh,
-      dotArcOffsetDeg: clamp(toNumber(this.deckOptions.dotArcOffsetDeg, PORTFOLIO_DECK_DEFAULTS.dotArcOffsetDeg), -60, 60),
       maxVisibleOffset,
     };
 
-    this.mount.style.setProperty('--portfolio-deck-card-width-fluid', `${cardWidthPercent}%`);
-    this.mount.style.setProperty('--portfolio-deck-card-width-max', `${cardMaxWidthPx}px`);
-    this.mount.style.setProperty('--portfolio-deck-card-height-fluid', `${cardHeightCqh}cqh`);
-    this.mount.style.setProperty('--portfolio-deck-card-height-max', `${cardMaxHeightPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-card-width', `${cardWidth}px`);
     this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
     this.mount.style.setProperty('--portfolio-deck-viewport-y-offset', `${resolvedViewportYOffsetDvh}dvh`);
     this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
-    this.mount.style.setProperty('--portfolio-card-content-scale', largeViewportContentScale.toFixed(4));
-    this.mount.style.setProperty('--portfolio-carousel-path-radius', `${pathRadius}px`);
-    this.mount.style.setProperty('--portfolio-carousel-dot-radius', `${dotDialRadius}px`);
+    this.mount.style.setProperty('--portfolio-card-content-scale', cardContentScale.toFixed(4));
+    this.mount.style.setProperty('--portfolio-carousel-track-step', `${trackStepPx}px`);
+    this.mount.style.setProperty('--portfolio-carousel-indicator-gap', `${indicatorGapPx}px`);
     const dotCount = Math.round(toNumber(this.deckOptions.dotDensity, PORTFOLIO_DECK_DEFAULTS.dotDensity));
     this.mount.style.setProperty('--portfolio-carousel-dot-count', String(dotCount));
     this.syncDotDialDensity(dotCount);
@@ -2206,54 +2070,41 @@ class PortfolioScrollApp {
     const metrics = this.deckMetrics || {};
     const maxVisibleOffset = Math.max(1, metrics.maxVisibleOffset || 1);
     const rawAbsOffset = Math.abs(offset);
-    const orbitOffset = clamp(offset, -(maxVisibleOffset + 1), maxVisibleOffset + 1);
-    const absOffset = Math.abs(orbitOffset);
+    const trackOffset = clamp(offset, -(maxVisibleOffset + 1), maxVisibleOffset + 1);
+    const absOffset = Math.abs(trackOffset);
     const sideProgress = clamp(absOffset / maxVisibleOffset, 0, 1);
-    const angleDeg = orbitOffset * (metrics.angleStepDeg || PORTFOLIO_DECK_DEFAULTS.angleStepDeg);
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const radius = metrics.pathRadius || PORTFOLIO_DECK_DEFAULTS.pathRadiusPx;
-    const x = Math.sin(angleRad) * radius;
-    const y = radius * (1 - Math.cos(angleRad)) * 0.88;
-    const rotateZ = Math.sign(orbitOffset)
-      * lerp(
-        metrics.sideRotationDeg || PORTFOLIO_DECK_DEFAULTS.sideRotationDeg,
-        metrics.farRotationDeg || PORTFOLIO_DECK_DEFAULTS.farRotationDeg,
-        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
-      )
-      * Math.min(1, absOffset);
-    const scale = absOffset <= 1
-      ? lerp(1, metrics.sideScale || PORTFOLIO_DECK_DEFAULTS.sideScale, absOffset)
-      : lerp(
-        metrics.sideScale || PORTFOLIO_DECK_DEFAULTS.sideScale,
-        metrics.farScale || PORTFOLIO_DECK_DEFAULTS.farScale,
-        clamp((absOffset - 1) / Math.max(1, maxVisibleOffset - 1), 0, 1)
-      );
-    const fadeStart = maxVisibleOffset + 0.1;
+    const trackStepPx = metrics.trackStepPx || (
+      PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx
+      * (1 + PORTFOLIO_DECK_DEFAULTS.inactiveScale)
+      * 0.5
+    ) + PORTFOLIO_DECK_DEFAULTS.minCardGapPx;
+    const inactiveScale = metrics.inactiveScale || PORTFOLIO_DECK_DEFAULTS.inactiveScale;
+    const x = trackOffset * trackStepPx;
+    const y = 0;
+    const rotateZ = 0;
+    const scale = lerp(1, inactiveScale, Math.min(1, absOffset));
     const fadeEnd = maxVisibleOffset + 0.9;
-    const orbitOpacity = 1 - smoothstep(fadeStart, fadeEnd, rawAbsOffset);
-    const rotationRad = (rotateZ * Math.PI) / 180;
     const projectedCardWidth = scale * (
-      ((metrics.cardWidth || PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx) * Math.abs(Math.cos(rotationRad)))
-      + ((metrics.cardHeight || PORTFOLIO_DECK_DEFAULTS.cardMaxHeightPx) * Math.abs(Math.sin(rotationRad)))
+      metrics.cardWidth || PORTFOLIO_DECK_DEFAULTS.cardMaxWidthPx
     );
     const stageHalfWidth = Math.max(1, (metrics.stageWidth || window.innerWidth || 1440) * 0.5);
     const edgePenetration = stageHalfWidth - (Math.abs(x) - (projectedCardWidth * 0.5));
     const entryFadeDistance = clamp(projectedCardWidth * 0.42, 48, 180);
     const edgeOpacity = smoothstep(0, entryFadeDistance, edgePenetration);
     const edgePresence = lerp(PORTFOLIO_CARD_EDGE_MIN_OPACITY, 1, edgeOpacity);
-    const opacity = orbitOpacity * edgePresence;
+    const opacity = edgePresence;
     const activeAmount = clamp(1 - absOffset, 0, 1);
-    const slot = Math.abs(orbitOffset) < 0.52 ? '0' : String(Math.round(orbitOffset));
+    const slot = Math.abs(trackOffset) < 0.52 ? '0' : String(Math.round(trackOffset));
     return {
       slot,
-      visualSlot: activeAmount > 0.48 ? 'front' : (orbitOffset < 0 ? 'left' : 'right'),
-      zone: activeAmount > 0.48 ? 'active-orbit' : 'side-orbit',
+      visualSlot: activeAmount > 0.48 ? 'front' : (trackOffset < 0 ? 'left' : 'right'),
+      zone: activeAmount > 0.48 ? 'active-track' : 'side-track',
       depth: rawAbsOffset,
       depthLabel: String(Math.round(rawAbsOffset)),
       zIndex: Math.max(1, Math.round(700 - (rawAbsOffset * 22))),
       x,
       y,
-      z: -rawAbsOffset * 18,
+      z: 0,
       rotateX: 0,
       rotateZ,
       scale,
@@ -2350,34 +2201,27 @@ class PortfolioScrollApp {
   updateDotDial() {
     if (!this.dotDial || !this.dotDialDots.length) return;
     const dotCount = this.dotDialDots.length;
-    const radius = this.deckMetrics?.dotDialRadius || PORTFOLIO_DECK_DEFAULTS.dotDialRadiusPx;
     const projectCount = Math.max(1, this.projects.length);
     const parallaxRatio = clamp(
       toNumber(this.deckOptions.dotParallaxRatio, PORTFOLIO_DECK_DEFAULTS.dotParallaxRatio),
       -2,
       2
     );
-    const progress = this.deckDisplayPosition * parallaxRatio;
-    const phaseDots = (progress / projectCount) * dotCount;
-    const arcSpanDeg = clamp(
-      toNumber(this.deckOptions.dotArcSpanDeg, PORTFOLIO_DECK_DEFAULTS.dotArcSpanDeg),
-      8,
-      34
-    );
+    const cyclePosition = (this.deckDisplayPosition * parallaxRatio) / projectCount;
+    const progress = ((cyclePosition % 1) + 1) % 1;
+    const indicatorState = resolveScrollProgressIndicatorState(progress, {
+      tickCount: dotCount,
+      activeTickCount: SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT,
+    });
     this.dotDial.style.setProperty('--portfolio-carousel-dot-progress', String(progress));
     this.dotDialDots.forEach((dot, index) => {
-      const rawPhase = (index - phaseDots) / dotCount;
-      const normalized = ((((rawPhase + 0.5) % 1) + 1) % 1) - 0.5;
-      const angleDeg = (normalized * arcSpanDeg) + (this.deckMetrics?.dotArcOffsetDeg || 0);
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const x = Math.sin(angleRad) * radius;
-      const y = radius * (1 - Math.cos(angleRad));
-      const wrappedDistance = Math.abs(normalized) * dotCount;
-      const activeAmount = clamp(1 - (wrappedDistance / PORTFOLIO_INDICATOR_ACTIVE_RADIUS), 0, 1);
-      const edgeOpacity = lerp(PORTFOLIO_INDICATOR_REST_OPACITY, 1, activeAmount);
-      dot.style.setProperty('--portfolio-dot-x', `${x.toFixed(2)}px`);
-      dot.style.setProperty('--portfolio-dot-y', `${y.toFixed(2)}px`);
-      dot.style.setProperty('--portfolio-dot-opacity', edgeOpacity.toFixed(3));
+      const isActive = index >= indicatorState.activeStartIndex
+        && index < indicatorState.activeStartIndex + indicatorState.activeTickCount;
+      if (dot.classList.contains('is-active') === isActive) return;
+      dot.classList.toggle('is-active', isActive);
+      dot.dataset.active = isActive ? 'true' : 'false';
+      if (isActive) dot.style.setProperty('--portfolio-dot-opacity', '1');
+      else dot.style.removeProperty('--portfolio-dot-opacity');
     });
   }
 
@@ -2398,12 +2242,13 @@ class PortfolioScrollApp {
       particleField: this.particleField?.getSnapshot?.() || null,
       speedField: this.particleField?.getSnapshot?.() || null,
       layout: {
-        configuredPathRadius: this.deckMetrics?.configuredPathRadius,
-        effectivePathRadius: this.deckMetrics?.pathRadius,
-        configuredAngleStepDeg: this.deckMetrics?.configuredAngleStepDeg,
-        effectiveAngleStepDeg: this.deckMetrics?.angleStepDeg,
-        dotDialRadius: this.deckMetrics?.dotDialRadius,
+        trackStepPx: this.deckMetrics?.trackStepPx,
+        inactiveScale: this.deckMetrics?.inactiveScale,
+        cardWidth: this.deckMetrics?.cardWidth,
+        cardHeight: this.deckMetrics?.cardHeight,
+        indicatorGapPx: this.deckMetrics?.indicatorGapPx,
         dotCount: this.dotDialDots.length,
+        maxVisibleOffset: this.deckMetrics?.maxVisibleOffset,
         centerYPercent: this.deckMetrics?.centerYPercent,
         sliderYOffsetDvh: this.deckMetrics?.sliderYOffsetDvh,
         introYOffsetDvh: this.deckMetrics?.introYOffsetDvh,
@@ -2473,6 +2318,7 @@ class PortfolioScrollApp {
           y: pose.y,
           z: pose.z,
           rotateX: pose.rotateX,
+          rotateZ: pose.rotateZ,
           scale: pose.scale,
           blur: pose.blur,
           opacity: pose.opacity,
@@ -2559,16 +2405,6 @@ class PortfolioScrollApp {
     if (this.mount) this.mount.dataset.carouselInputState = state;
   }
 
-  clearDeckInputReleaseSchedule() {
-    window.clearTimeout(this.deckInputReleaseTimer);
-    window.cancelAnimationFrame(this.deckInputReleaseFrame);
-    this.deckInputReleaseTimer = 0;
-    this.deckInputReleaseFrame = 0;
-    this.deckInputReleaseCleanup?.();
-    this.deckInputReleaseCleanup = null;
-    this.deckInputReleaseMode = '';
-  }
-
   lockDeckEntranceInput(reason = 'entrance') {
     if (!this.mount) return false;
     this.mount.classList.add('is-portfolio-deck-input-locked');
@@ -2583,7 +2419,6 @@ class PortfolioScrollApp {
     if (!this.mount) return false;
     const wasLocked = this.mount.classList.contains('is-portfolio-deck-input-locked')
       || this.mount.inert;
-    this.clearDeckInputReleaseSchedule();
     if (!wasLocked) return false;
     this.mount.classList.remove('is-portfolio-deck-input-locked');
     this.mount.inert = false;
@@ -2594,40 +2429,8 @@ class PortfolioScrollApp {
     return wasLocked;
   }
 
-  armDeckInputRelease({ routeTransition = false, signal = null, reason = 'entrance' } = {}) {
-    this.clearDeckInputReleaseSchedule();
-    this.lockDeckEntranceInput(reason);
-    this.deckInputReleaseMode = routeTransition ? 'route-material' : 'card-opacity';
-    if (routeTransition) return;
-
-    const leadCard = this.entranceRankedCards[0];
-    if (!leadCard) return;
-    const releaseAfterPaint = () => {
-      if (signal?.aborted || this.destroyed || this.deckInputReleaseFrame) return;
-      this.deckInputReleaseFrame = window.requestAnimationFrame(() => {
-        this.deckInputReleaseFrame = 0;
-        this.releaseDeckEntranceInput('lead-card-visible');
-      });
-    };
-    const handleTransitionStart = (event) => {
-      if (event.target !== leadCard || event.propertyName !== 'opacity') return;
-      releaseAfterPaint();
-    };
-    const cancel = () => this.clearDeckInputReleaseSchedule();
-    leadCard.addEventListener('transitionstart', handleTransitionStart);
-    signal?.addEventListener?.('abort', cancel, { once: true });
-    this.deckInputReleaseCleanup = () => {
-      leadCard.removeEventListener('transitionstart', handleTransitionStart);
-      signal?.removeEventListener?.('abort', cancel);
-    };
-
-    const revealDelayMs = Number.parseFloat(
-      leadCard.style.getPropertyValue('--portfolio-card-reveal-delay')
-    );
-    const fallbackDelayMs = Number.isFinite(revealDelayMs)
-      ? revealDelayMs + PORTFOLIO_CARD_INPUT_RELEASE_FALLBACK_OFFSET_MS
-      : PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS;
-    this.deckInputReleaseTimer = window.setTimeout(releaseAfterPaint, fallbackDelayMs);
+  armDeckInputRelease({ reason = 'entrance' } = {}) {
+    this.releaseDeckEntranceInput(`${reason}-ready`);
   }
 
   rebaseDeckPosition({ allowInFlight = false } = {}) {

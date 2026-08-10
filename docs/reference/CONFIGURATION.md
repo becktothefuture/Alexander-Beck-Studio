@@ -10,7 +10,7 @@ Exact config values belong in JSON and normalizer code. Exact approved simulatio
 
 - `runtime`: shared Canvas/runtime behavior and global tokens
 - `shell`: physical frame, wall finish, shared chrome, typography, cross-route surface language, the flat production simulation body material, and the production simulation atmosphere
-- `portfolio`: active orbital deck, drawer, handoff motion, and route-specific composition
+- `portfolio`: active linear deck, drawer, handoff motion, and route-specific composition
 - `playground`: deterministic layout, work sizing, dot-field appearance, and camera response for the production Playground route
 - `cv`: retained generated-schema compatibility only; it is not a live CV route
 

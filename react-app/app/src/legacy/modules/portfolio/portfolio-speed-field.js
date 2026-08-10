@@ -133,6 +133,7 @@ export class PortfolioParticleField {
       minRadiusPx,
       maxRadiusPx,
       motionResponse: clamp(toNumber(options.motionResponse, 1), 0.25, 2.5),
+      inertiaMs: clamp(toNumber(options.inertiaMs, 260), 80, 700),
       parallaxDepth: clamp(toNumber(options.parallaxDepth, 1), 0.25, 2),
     };
 
@@ -304,8 +305,7 @@ export class PortfolioParticleField {
   isRouteTransitionPaused() {
     const transitionPhase = document.documentElement.dataset.absTransitionPhase || 'idle';
     return transitionPhase === 'route-out'
-      || transitionPhase === 'route-loading'
-      || transitionPhase === 'route-in';
+      || transitionPhase === 'route-loading';
   }
 
   isLifecycleSuspended() {
@@ -401,7 +401,16 @@ export class PortfolioParticleField {
     const previousTimestamp = this.lastFrameAt || timestamp;
     const dtMs = this.lastFrameAt ? clamp(timestamp - previousTimestamp, 1, 50) : 16.67;
     this.lastFrameAt = timestamp;
-    const velocityAlpha = 1 - Math.exp(-dtMs / 72);
+    const releasingVelocity = Math.abs(this.targetVelocity) < VELOCITY_EPSILON;
+    const reversingVelocity = !releasingVelocity
+      && Math.sign(this.targetVelocity) !== Math.sign(this.filteredVelocity)
+      && Math.abs(this.filteredVelocity) >= VELOCITY_EPSILON;
+    const velocityResponseMs = releasingVelocity
+      ? this.options.inertiaMs
+      : reversingVelocity
+        ? Math.min(110, this.options.inertiaMs * 0.42)
+        : 72;
+    const velocityAlpha = 1 - Math.exp(-dtMs / velocityResponseMs);
     this.filteredVelocity += (this.targetVelocity - this.filteredVelocity) * velocityAlpha;
     if (Math.abs(this.targetVelocity) < VELOCITY_EPSILON && Math.abs(this.filteredVelocity) < 0.01) {
       this.filteredVelocity = 0;
@@ -560,6 +569,7 @@ export class PortfolioParticleField {
       minRadiusPx: this.options.minRadiusPx,
       maxRadiusPx: this.options.maxRadiusPx,
       motionResponse: this.options.motionResponse,
+      inertiaMs: this.options.inertiaMs,
       parallaxDepth: this.options.parallaxDepth,
       arcMotion: true,
       cadence: this.isReducedMotion() || transitionPaused

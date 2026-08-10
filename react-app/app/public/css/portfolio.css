@@ -788,10 +788,10 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   isolation: isolate;
 }
 
-.portfolio-speed-field-canvas {
+#simulations .portfolio-speed-field-canvas {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   height: 100%;
   opacity: 1;
@@ -826,22 +826,10 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-entrance-blur: 6px;
   --portfolio-indicator-reveal-duration: 420ms;
   --portfolio-indicator-reveal-delay: var(--portfolio-content-reveal-delay, 360ms);
-  --portfolio-deck-card-width-fluid: 24%;
-  --portfolio-deck-card-width-max: 316px;
-  --portfolio-deck-card-height-fluid: 58vh;
-  --portfolio-deck-card-height-fluid: 58cqh;
-  --portfolio-deck-card-height-max: 461px;
+  --portfolio-deck-card-width: 220px;
   --portfolio-card-content-scale: 1;
-  --portfolio-deck-card-width: min(
-    var(--portfolio-deck-card-width-fluid),
-    var(--portfolio-deck-card-width-max)
-  );
   --portfolio-deck-card-aspect: 316 / 461;
-  --portfolio-deck-card-height: clamp(
-    260px,
-    var(--portfolio-deck-card-height-fluid),
-    var(--portfolio-deck-card-height-max)
-  );
+  --portfolio-deck-card-height: auto;
   --portfolio-card-contact-shadow-opacity: 0;
   --portfolio-card-top-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 1.28);
   --portfolio-card-bottom-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 0.22);
@@ -874,6 +862,9 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-deck-depth-blur-2: 0.95px;
   --portfolio-deck-hidden-y: 0px;
   --portfolio-deck-perspective: 1200px;
+  --portfolio-deck-periphery-veil-size: 20dvw;
+  --portfolio-deck-periphery-veil-core: 2dvw;
+  --portfolio-deck-periphery-veil-opacity: 0.2;
   --portfolio-card-radius: calc(24px * var(--portfolio-card-content-scale));
   --portfolio-card-media-radius: var(--portfolio-card-radius);
   --portfolio-card-pad: 0px;
@@ -887,7 +878,6 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-surface: var(--portfolio-card-base);
   --portfolio-card-ink: #f8f3eb;
   --portfolio-card-muted: color-mix(in srgb, var(--portfolio-card-ink) 72%, var(--portfolio-card-base));
-  --portfolio-carousel-dot-radius: 2050px;
 }
 
 /* Portfolio owns every Portfolio-qualified hero rule. Keep these declarations
@@ -1009,7 +999,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 
 .portfolio-deck-intro {
   position: absolute;
-  z-index: 8;
+  z-index: 1;
   top: calc(clamp(58px, 8cqh, 91px) + var(--portfolio-deck-intro-y-offset));
   left: 50%;
   box-sizing: border-box;
@@ -1071,7 +1061,15 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mist {
-  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  box-shadow: inset 0 0
+    calc(var(--portfolio-deck-periphery-veil-size) - var(--portfolio-deck-periphery-veil-core))
+    var(--portfolio-deck-periphery-veil-core)
+    var(--studio-window-bg);
+  opacity: var(--portfolio-deck-periphery-veil-opacity);
+  pointer-events: none;
 }
 
 .portfolio-deck-mount .portfolio-project-label.portfolio-project-card {
@@ -1529,28 +1527,23 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   z-index: 9;
   left: 50%;
   top: calc(100% - clamp(48px, 6cqh, 60px));
-  width: 0;
-  height: 0;
+  display: flex;
+  gap: var(--portfolio-carousel-indicator-gap, var(--abs-indicator-line-gap, 9px));
+  width: max-content;
+  height: var(--abs-indicator-line-width, 8px);
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .portfolio-carousel-dot {
-  position: absolute;
-  left: 0;
-  top: 0;
+  display: block;
+  flex: 0 0 auto;
   width: var(--abs-indicator-line-thickness, 3px);
   height: var(--abs-indicator-line-width, 8px);
   border-radius: 999px;
   background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
   opacity: var(--portfolio-dot-opacity, var(--abs-indicator-rest-opacity, 0.22));
-  transform:
-    translate3d(
-      calc(var(--portfolio-dot-x, 0px) - (var(--abs-indicator-line-thickness, 3px) / 2)),
-      calc(var(--portfolio-dot-y, 0px) - (var(--abs-indicator-line-width, 8px) / 2)),
-      0
-    );
-  transform-origin: 50% 50%;
-  will-change: transform, opacity;
+  transition: opacity 140ms ease-out;
 }
 
 .portfolio-label-layer {
@@ -2753,12 +2746,6 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
 @media (max-width: 900px) {
   .portfolio-deck-mount {
-    --portfolio-deck-card-width: min(
-      var(--portfolio-deck-card-width-fluid),
-      var(--portfolio-deck-card-width-max)
-    );
-    --portfolio-deck-card-aspect: 316 / 461;
-    --portfolio-deck-card-height: auto;
     --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
     --portfolio-card-copy-pad-x: 20px;
@@ -2847,11 +2834,6 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
 @media (max-width: 640px) {
   .portfolio-deck-mount {
-    --portfolio-deck-card-width: min(
-      var(--portfolio-deck-card-width-fluid),
-      var(--portfolio-deck-card-width-max)
-    );
-    --portfolio-deck-card-height: auto;
     --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
   }
@@ -2912,9 +2894,6 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
 @media (max-height: 480px) and (orientation: landscape) {
   .portfolio-deck-mount {
-    --portfolio-deck-card-width: min(34%, 270px);
-    --portfolio-deck-card-aspect: 316 / 461;
-    --portfolio-deck-card-height: clamp(220px, 58vh, 330px);
     --portfolio-deck-center-y: 50%;
     --portfolio-card-pad: 0px;
     --portfolio-card-copy-pad-x: 18px;
