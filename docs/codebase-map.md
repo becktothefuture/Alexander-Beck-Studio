@@ -112,7 +112,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | Home | `src/routes/home/HomeRoute.jsx` | `src/legacy/main.js` | Canvas balls and visual title; semantic title remains in the DOM. |
 | Portfolio | `src/routes/portfolio/PortfolioRoute.jsx` | `src/legacy/modules/portfolio/app.js` | Gate, orbital project deck, project handoff, and drawer. |
-| About Me | `src/routes/about/AboutRoute.jsx` | None in production | Production renders `AboutComingSoon`; development can load the spatial narrative experience. |
+| About Me | `src/routes/about/AboutRoute.jsx` | React-owned Three.js point world | Production and development load the spatial narrative; the editor remains development-only. |
 | Contact | `src/routes/contact/ContactRoute.jsx` | React-owned simulation/content | Contact information and ripple interaction. |
 | Playground | `src/routes/playground/PlaygroundRoute.jsx` | React lifecycle with route-local imperative camera and Canvas renderer | Pannable deterministic catalogue, local media, and selected-work dialog. |
 
@@ -226,7 +226,7 @@ Canonical content: `public/config/contents-about.json`
 Development route: `src/routes/about-narrative-lab/`
 Local persistence API: `vite.dev-admin-plugin.js`
 
-The About narrative system is a development-only spatial authoring and playback environment in the current production route contract. It includes:
+The About narrative system provides production playback and a development-only spatial authoring environment. It includes:
 
 - schema validation, normalization, and migrations;
 - track compilation and runtime planning;

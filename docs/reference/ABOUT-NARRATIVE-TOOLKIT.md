@@ -203,16 +203,15 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 - `0–5.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
   interval, and bridge directly into the calm grid.
-- `5.05–5.55 WU`: settle the complete field into its overhead reading lane.
-- `5.55–9.75 WU`: pass six equal discipline beats through one stable reading line.
-- `9.75–10.15 WU`: reconnect the final point and restore the full-colour grid.
-- `10.15–13.15 WU`: hand off cleanly to focused editorial space while the camera repositions.
-- `13.15–15.27 WU`: return to the centered surface and sustain the scroll-authored ripple beneath
-  the three travelling titles.
-- `15.27–16.07 WU`: begin gathering the fixed point pool while the third title exits, then build the
-  bust from its lower layers into the head.
-- `15.91–17.81 WU`: start the final invitation when the bust is 80% formed, then continue a small
-  aimed orbit and gentle bust motion behind the complete invitation, description, and actions.
+- `5.05–7.18 WU`: settle the complete field into its overhead reading lane, briefly hide it, then
+  return it beneath the titles that introduce the Discipline reveal.
+- `8.70–11.15 WU`: pass six paired Discipline groups through their point-anchored reading positions,
+  reconnect the final points, and fade the labels before the Camera leaves.
+- `11.15–13.55 WU`: yield to one continuous editorial passage while the hidden Camera repositions.
+- `13.55–18.95 WU`: return to the centred surface under the passage's final paragraph and sustain
+  the scroll-authored ripple beneath the three travelling titles.
+- `18.95–20.55 WU`: gather the fixed point pool and build the bust from its lower layers into the head.
+- `21.25–22.795 WU`: hold the resolved form behind the complete final invitation and description.
 
 ## How Point Field states stay connected
 
@@ -344,11 +343,12 @@ The Discipline reveal stays authored in Motion, but the Text lane shows its comp
 read-only flow reservation. This makes the occupied reading interval visible between the preceding
 titles and the following editorial block without creating a second timing owner.
 
-The clip is one draggable timing object. Six equally spaced cells in one grid column feed the same
-reading position on desktop, portrait mobile, and short landscape. The runtime updates one CSS beat
-progress value and existing shader uniforms; it does not measure, project, pack, or resize-observe
-discipline labels during playback. A selected cell starts as an ordinary grey grid point, grows at the
-reading line, and reconnects with the moving grid as its copy exits. Its previous material colour does
+The clip is one draggable timing object. Six stable point groups resolve as three paired rows on
+desktop and as the compact responsive composition on tablet and portrait mobile. Phone landscape and
+short landscape use the shared viewport cover. The runtime projects each label from its point-group
+anchor while the Camera holds the readable composition, then restores the grid and fades the labels
+before the Camera leaves. A selected cell starts as an ordinary grey grid point, grows at its anchored
+reading position, and reconnects with the moving grid as its copy exits. Its previous material colour does
 not affect the selection because the semantic group assigns the reveal colour. Their
 palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
 `2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.

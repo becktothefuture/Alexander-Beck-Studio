@@ -83,7 +83,7 @@ test('point material and narrow-mobile opening use the approved authored envelop
   assert.deepEqual(
     ['world-promise', 'world-complexity', 'world-grid', 'world-emergent']
       .map((id) => getState(id).shapeParameters.density),
-    [0.17, 0.33, 0.32, 0.26],
+    [0.05, 0.33, 0.32, 0.26],
   );
 
   const target = {};
@@ -92,7 +92,7 @@ test('point material and narrow-mobile opening use the approved authored envelop
   );
   assert.equal(target.scale, 0.36);
   assert.equal(target.yOffset, 0.68);
-  assert.ok(Math.abs(target.presenceRatio - (0.13 / 0.17)) < 0.000001);
+  assert.equal(target.presenceRatio, 1);
 
   sampleAboutNarrativeResponsiveWorldMaterialInto(
     getState('world-promise'), 768, true, false, target,

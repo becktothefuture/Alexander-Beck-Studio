@@ -624,6 +624,8 @@ function TitleField({
               id={headingId}
               className="route-centered-page__title route-bookend-title"
               data-primary-copy
+              data-route-focus-target={isPrimaryTitle ? true : undefined}
+              tabIndex={isPrimaryTitle ? -1 : undefined}
               data-route-enter="identity"
               data-route-enter-order="0"
               data-route-enter-variant="bookend-title"
@@ -1008,7 +1010,7 @@ export function AboutNarrativeLabExperience({
         tabIndex={0}
         aria-label="About Alexander narrative"
       >
-        <main ref={contentRef} className="about-narrative-content" style={contentStyle}>
+        <div ref={contentRef} className="about-narrative-content" style={contentStyle}>
           {(runtimePlan?.renderSpans || []).map((span) => {
             const field = textFieldsById.get(span.fieldIds[0]);
             if (!field?.publishable || field.kind === 'stub') return null;
@@ -1026,7 +1028,7 @@ export function AboutNarrativeLabExperience({
               />
             );
           })}
-        </main>
+        </div>
       </div>
       {disciplineRevealMotion ? (
         <div className="about-narrative-motion-layer about-narrative-motion-layer--discipline">

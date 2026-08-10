@@ -25,7 +25,7 @@ There is no second static page/template pipeline.
 |---|---|---|
 | Home | `routes/home/HomeRoute.jsx` | `legacy/main.js` + simulation modules |
 | Portfolio | `routes/portfolio/PortfolioRoute.jsx` | `legacy/modules/portfolio/app.js`, drawer, handoff |
-| About Me | `routes/about/AboutRoute.jsx` + `routes/about/AboutComingSoon.jsx` | none in production; React-owned Three.js point world in development only |
+| About Me | `routes/about/AboutRoute.jsx` | React-owned Three.js point world; editor loaded only in development |
 | Contact | `routes/contact/ContactRoute.jsx` | none |
 | Playground | `routes/playground/PlaygroundRoute.jsx` + `PlaygroundExperience.jsx` | React lifecycle with imperative camera and Canvas 2D dot renderer under `routes/playground/spatial/` |
 
@@ -33,7 +33,7 @@ There is no second static page/template pipeline.
 
 ### About environment boundary
 
-`src/routes/about/AboutRoute.jsx` branches on the development/certification boundary. Production renders `AboutComingSoon` and does not mount the spatial narrative. Local development `/about.html` lazy-loads `routes/about-narrative-lab/AboutNarrativeLabExperience.jsx`, reads the accepted copy directly from the canonical About document, and opens the editor by default. `?edit=0` keeps a playback-only audit surface. A future public narrative launch is separate product work, not part of the current architecture contract.
+`src/routes/about/AboutRoute.jsx` lazy-loads `routes/about-narrative-lab/AboutNarrativeLabExperience.jsx` for production and development playback. Both read accepted copy and choreography directly from the canonical About document. Local development opens the editor by default; `?edit=0` keeps a playback-only audit surface. Production cannot load the editor or Save client and waits for the first prepared point-world frame before releasing the direct-load overlay.
 
 ## Shared shell
 
@@ -50,7 +50,7 @@ See `CANVAS-RUNTIME.md` and `TRANSITION-ORCHESTRATION.md`.
 ## Data and configuration
 
 - `contents-home.json`: Home, footer/social, Contact, and Portfolio-gate editorial content
-- `contents-about.json`: canonical content and choreography for the development-only About narrative and editor
+- `contents-about.json`: canonical content and choreography for production About playback and the development editor
 - `contents-portfolio.json`: project cards, detail copy, and media
 - `contents-playground.json`: Playground catalogue labels, local media references, stable placement order, and grid spans
 - `design-system.json`: only authored design configuration
@@ -65,7 +65,7 @@ The root `npm run build` is canonical:
 1. check production HTML entry shells against `index.html`;
 2. flatten the authored design config;
 3. run the multi-entry Vite build.
-4. verify that the development-only About editor and Save client did not enter production assets.
+4. verify that About playback is present while the development-only editor and Save client did not enter production assets.
 
 Direct app builds can bypass configuration flattening and are not release-equivalent.
 

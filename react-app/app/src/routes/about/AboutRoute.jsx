@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react';
-import { AboutComingSoon } from './AboutComingSoon.jsx';
 
 let aboutNarrativeExperiencePromise = null;
 
@@ -20,31 +19,15 @@ const AboutNarrativeExperience = lazy(loadAboutNarrativeExperience);
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
   prewarm: ({ stage } = {}) => {
-    if (!import.meta.env.DEV || stage === 'data') return true;
+    if (stage === 'data') return true;
     return loadAboutNarrativeExperience();
   },
 };
 
 export function getAboutRouteView() {
-  if (!import.meta.env.DEV && !__CERTIFY__) {
-    return {
-      bodyClass: 'body about-page',
-      mainLandmarkHeadingId: 'about-coming-soon-title',
-      legacyRuntime: false,
-      surfaceRouteId: 'about',
-      routeRenderKey: 'about',
-      contentRenderKey: 'about',
-      studioWindowClassName: 'about-simulation route-page-window w-embed',
-      simulationLayer: null,
-      uiLayer: {
-        chrome: null,
-        secondary: <AboutComingSoon />,
-      },
-    };
-  }
-
   return {
     bodyClass: 'body about-page about-narrative-page',
+    mainLandmarkHeadingId: 'about-route-title',
     legacyRuntime: false,
     surfaceRouteId: 'about',
     routeRenderKey: 'about',

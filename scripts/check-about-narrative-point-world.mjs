@@ -333,7 +333,7 @@ test('PointWorld prepares shaders asynchronously without releasing scene readine
   assert.match(source, /root\.dataset\.pointWorldState = 'preparing'/);
 });
 
-test('About Director previews the point world through the production atmosphere compositor', () => {
+test('About playback uses the production atmosphere compositor without a static SiteApp import', () => {
   const pointWorld = readFileSync(new URL(
     '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
     import.meta.url,
@@ -351,7 +351,7 @@ test('About Director previews the point world through the production atmosphere 
     import.meta.url,
   ), 'utf8');
 
-  assert.doesNotMatch(siteApp, /about-narrative-lab/);
+  assert.doesNotMatch(siteApp, /from ['"][^'"]*about-narrative-lab/);
   assert.match(siteApp, /PRIMARY_ROUTE_IDS\.includes\(routeId\)\) return 'production'/);
   assert.match(pointWorld, /viewportElement: canvasSource \? canvas : null/);
   assert.match(

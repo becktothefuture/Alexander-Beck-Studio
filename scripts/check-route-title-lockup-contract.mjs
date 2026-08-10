@@ -13,9 +13,10 @@ const sources = Object.fromEntries(await Promise.all([
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
-  ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
   ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
+  ['siteApp', '../react-app/app/src/components/app/SiteApp.jsx'],
+  ['routeReadiness', '../react-app/app/src/lib/motion/route-transition-readiness.js'],
   ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
   ['entranceSequence', '../react-app/app/src/lib/motion/entrance-sequence.js'],
   ['homeRoute', '../react-app/app/src/routes/home/HomeRoute.jsx'],
@@ -78,7 +79,7 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
   );
   assert.match(sources.portfolio, /heading\.dataset\.routeEnterVariant = 'bookend-title'/);
   assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
-  assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.about, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.playgroundComingSoon, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.playground, /data-route-enter-variant="bookend-title"/);
 
@@ -97,6 +98,12 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
     sources.main,
     /\.route-entrance-glyph \{[\s\S]*?transform: translate3d\(0, 0, 0\);[\s\S]*?transform-origin: 50% 50%/,
   );
+});
+
+test('About readiness resolves from the narrative scene root, not the outer shell container', () => {
+  const readySelector = /\.about-narrative-lab\[data-route-content=["']about["']\]/;
+  assert.match(sources.siteApp, readySelector);
+  assert.match(sources.routeReadiness, readySelector);
 });
 
 test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {

@@ -285,7 +285,7 @@ const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
 const PLAYGROUND_ROUTE_READY_TIMEOUT_MS = 3200;
 
 function isAboutNarrativeSceneReady() {
-  return document.querySelector('[data-route-content="about"]')
+  return document.querySelector('.about-narrative-lab[data-route-content="about"]')
     ?.dataset.aboutSceneReady === 'true';
 }
 
@@ -349,8 +349,7 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   }
 
   const isAboutRoute = routeId === 'about';
-  const waitsForAboutNarrativeScene = routeId === 'about'
-    && (import.meta.env.DEV || __CERTIFY__);
+  const waitsForAboutNarrativeScene = routeId === 'about';
   if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;

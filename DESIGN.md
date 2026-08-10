@@ -51,7 +51,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, linear deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me production `AboutComingSoon` placeholder plus development-only scroll narrative, editor, point field, and emergent-form resolution | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
+| About Me production scroll narrative, point field, emergent-form resolution, and development-only editor | `routes/about/AboutRoute.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Lab title, deterministic spatial catalogue, dot field, media dialog, and authoring surface | `routes/playground/`, `public/config/contents-playground.json`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -179,13 +179,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- The production About route renders `AboutComingSoon`, a centered “Coming soon.” placeholder. The full scroll narrative and its editor are separate development-only surfaces; this document does not commit them to a public launch.
-- The development narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
+- The production About route renders the complete scroll narrative. Its authoring editor remains a development-only surface and is excluded from production assets.
+- The narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
 - The narrative establishes an orb above the opening promise, flies into its complexity, scatters
   through an empty interval, raises an organised grid from below, isolates six disciplines, and
   gathers that same material into one suspended spatial form. These are transformations of one
   material, not separate decorative scenes.
-- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral; internal module spacing remains authorable from the Text inspector. The quieter artefact stack remains a supporting, scroll-safe image module rather than a new chapter.
+- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral. The second unit is one continuous multi-paragraph passage; project-impression cards do not interrupt its reading flow.
 - Spatial titles use one Instrument Serif family at two explicit scales: medium travelling titles stay vertically centred while bridging the editorial passages, while larger display titles punctuate the opening and finale bookends. Both bookend lockups share an authored 70% viewport position in the lower half, keep the same screen-space centre while visible, and use one narrower supporting-description measure. The opening cluster and final bust share one upper-field visual centre.
 - Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV, with an optional
   Look-at Target XYZ and horizon roll for shots that must keep one material event framed. Authored
@@ -221,10 +221,10 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   separate action buttons and must not displace the bust or leave the studio viewport.
 - Mobile portrait frames the final bust slightly higher and closer than the previous endpoint while
   retaining the same material/text centre relationship as desktop.
-- Short mobile landscape is the deliberate exception to the stacked finale: the bust and invitation
-  recompose as equal left/right fields so both remain materially present within the shallow studio
-  window. World controls expose the short-landscape scale and XYZ offsets; this is not a hidden camera.
-- The creative toolkit belongs to the development narrative surface and lab route with `?edit=1`. Both read the validated `public/config/contents-about.json` document. The production About route does not mount the narrative or its editor; it renders `AboutComingSoon`.
+- Phone presentation is portrait-only. Phone landscape and any landscape viewport too short to
+  contain the studio window use the shared viewport cover instead of recomposing route content.
+  Portrait phone, ordinary laptop, tablet, and sufficiently tall ultrawide viewports remain supported.
+- The creative toolkit belongs to local development and opens with `?edit=1`. Production and development playback read the validated `public/config/contents-about.json` document, while production excludes the editor, Save client, and authoring diagnostics.
 
 ### Contact
 
@@ -405,7 +405,6 @@ These are implementation/documentation findings, not permission for a broad refa
 | P2 | Project editorial style is tied to one ID | Extensive `chapter-7` selectors encode a reusable art direction as an exception. | Promote it to a named content variant and preserve the current output exactly during migration. |
 | P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
 | P2 | Token scope is broad and repetitive | Global token file mixes foundations, compatibility aliases, and component internals. | Do not rewrite wholesale; keep new global tokens semantic and move component tokens locally when that component is revised. |
-| P3 | About narrative is still being authored | The production route renders `AboutComingSoon`; the canonical spatial narrative, editor, and point-world runtime remain development-only. | Continue development authoring without implying or committing to a public launch. |
 
 ## Verification
 

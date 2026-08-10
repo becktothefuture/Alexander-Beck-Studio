@@ -65,7 +65,7 @@ The `legacy/` name does not mean unused: it contains the active simulation engin
 
 - Home — interactive simulation wall and Daily Simulation focus
 - Portfolio — orbital project deck, in-window access gate, detail drawer
-- About Me — `AboutComingSoon` in production; the spatial narrative and editor are development-only
+- About Me — production spatial narrative; the authoring editor remains development-only
 - Contact — current contact route
 
 The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
@@ -75,7 +75,7 @@ The persistent Button Bar owns primary navigation. Route top bars are utility/ba
 - Routes and Button Bar labels: `react-app/app/src/lib/routes.js`
 - Shared shell: `react-app/app/src/components/app/StudioShell.jsx`
 - Editorial copy: `react-app/app/public/config/contents-home.json` and `contents-portfolio.json`
-- Development About narrative content: `react-app/app/public/config/contents-about.json`
+- About narrative content and choreography: `react-app/app/public/config/contents-about.json`
 - Authored design values: `react-app/app/public/config/design-system.json`
 - Generated configs: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 

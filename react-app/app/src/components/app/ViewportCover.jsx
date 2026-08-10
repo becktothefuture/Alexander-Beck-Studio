@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { getExtremeViewportMode } from './viewportGuard.js';
+import { getViewportCoverMode } from './viewportGuard.js';
 import './viewport-cover.css';
 
 function readViewport() {
@@ -14,7 +14,7 @@ function readViewport() {
   return {
     width,
     height,
-    mode: getExtremeViewportMode(width, height),
+    mode: getViewportCoverMode(width, height),
   };
 }
 

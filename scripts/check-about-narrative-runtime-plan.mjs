@@ -588,7 +588,7 @@ test('Discipline grid compiles three cumulative paired-row beats', () => {
   assert.equal(reveal.beatCount, 3);
   assert.equal(reveal.sequenceStartWU, 9);
   assertClose(reveal.sequenceEndWU, 9.96, 'discipline sequence end');
-  assertClose(reveal.restoreStartWU, 10.85, 'discipline restore start');
+  assertClose(reveal.restoreStartWU, 10.35, 'discipline restore start');
   assert.equal(reveal.effectEndWU, 11.15);
   assert.equal(reveal.items.length, 6);
   reveal.items.forEach((item) => {

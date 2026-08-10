@@ -26,7 +26,7 @@ These are three complementary layers: source/configuration checks and build vali
 
 ## About environment boundary
 
-`react-app/app/src/routes/about/AboutRoute.jsx` renders `AboutComingSoon` in production. In development it lazy-loads the spatial narrative, whose editor and playback source are development-only. This workflow does not imply a future public launch.
+`react-app/app/src/routes/about/AboutRoute.jsx` lazy-loads the spatial narrative in production and development. The canonical playback source is shared, but the editor, Save endpoint, and authoring diagnostics remain development-only. Use `?edit=0` for local playback without the editor.
 
 ## Sources of truth
 
@@ -34,7 +34,7 @@ These are three complementary layers: source/configuration checks and build vali
 - authored design config: `react-app/app/public/config/design-system.json`
 - Home and Portfolio editorial content: `react-app/app/public/config/contents-home.json`, `react-app/app/public/config/contents-portfolio.json`
 - Playground catalogue content: `react-app/app/public/config/contents-playground.json`
-- development About narrative content: `react-app/app/public/config/contents-about.json`
+- About narrative content and choreography: `react-app/app/public/config/contents-about.json`
 - generated runtime config: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 - build output: `react-app/app/dist/`
 

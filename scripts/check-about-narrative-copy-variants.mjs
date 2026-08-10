@@ -54,10 +54,12 @@ function getAuthoredText() {
   ]).filter(Boolean).join(' ');
 }
 
-test('development About owns the canonical editor and the standalone Lab route is retired', () => {
-  assert.match(aboutRouteSource, /if \(!import\.meta\.env\.DEV && !__CERTIFY__\)/);
+test('production About owns canonical playback, development owns the editor, and the standalone Lab route is retired', () => {
+  assert.doesNotMatch(aboutRouteSource, /AboutComingSoon|about-coming-soon-title/);
+  assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-route-title'/);
   assert.match(aboutExperienceSource, /const initialDocument = INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT/);
   assert.match(aboutExperienceSource, /if \(__DEV__\) return requestedMode !== '0'/);
+  assert.doesNotMatch(aboutExperienceSource, /<main\b/, 'The shell owns the only main landmark.');
   assert.doesNotMatch(aboutExperienceSource, /copyVariant|aboutNarrativeCopyVariants/);
   assert.doesNotMatch(routeManifestSource, /['"]about-narrative-lab['"]\s*:/);
   assert.doesNotMatch(viteConfigSource, /['"]lab\/about-narrative['"]\s*:/);
@@ -109,6 +111,8 @@ test('the canonical document carries the accepted spoken narrative', () => {
       .find((item) => item.id === 'mccann').label,
     'McCann Worldgroup',
   );
+  assert.equal(modules.some((module) => module.kind === 'interactive-stack'), false);
+  assert.equal(getTextField('text-disciplines-title').block.moduleGapRem, 1.6);
   assert.equal(disciplines.length, 6);
   assert.ok(disciplines.every((item) => item.description.length >= 50));
   assert.doesNotMatch(authoredText, /\bfear\b|\bafraid\b/i);

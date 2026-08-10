@@ -10,6 +10,7 @@ const canonical = JSON.parse(await readFile(
   'utf8',
 ));
 const stackField = canonical.tracks.text.fields.find((field) => field.id === 'text-disciplines-title');
+const stackModule = stackField?.block?.modules?.find((module) => module.kind === 'interactive-stack');
 const storyDurationWU = canonical.profiles.desktop.storyDurationWU;
 const stackStoryWU = Math.min(stackField.endWU - 0.15, stackField.startWU + 1.1);
 const browser = await browserType.launch(browserName === 'chromium' ? {
@@ -287,11 +288,41 @@ async function auditEditorControls() {
   await context.close();
 }
 
+async function auditRetiredStack() {
+  const viewports = [
+    { width: 1440, height: 1000 },
+    { width: 390, height: 844 },
+  ];
+  for (const viewport of viewports) {
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    const previewRequests = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/images/about/interactive-stack/')) previewRequests.push(request.url());
+    });
+    await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]');
+    await setStoryWU(page, stackStoryWU);
+    assert.equal(await page.locator('.about-interactive-stack').count(), 0);
+    assert.equal(previewRequests.length, 0);
+    const passage = page.locator('[data-text-field-id="text-disciplines-title"] .about-narrative-editorial-stack');
+    assert.equal(await passage.count(), 1);
+    assert.equal(await passage.evaluate((node) => getComputedStyle(node).rowGap), '25.6px');
+    assert.equal(await passage.locator(':scope > *').count(), 7);
+    await context.close();
+  }
+}
+
 try {
-  await auditFullMotion();
-  await auditReducedMotionAndProfiles();
-  if (process.env.ABS_STACK_SKIP_EDITOR !== '1') await auditEditorControls();
-  console.log(`PASS: Interactive stack ${browserName} interaction, loading, accessibility, reduced-motion, and responsive audit`);
+  if (!stackModule) {
+    await auditRetiredStack();
+    console.log(`PASS: Project-impressions stack is absent and the continuous editorial passage is intact in ${browserName}`);
+  } else {
+    await auditFullMotion();
+    await auditReducedMotionAndProfiles();
+    if (process.env.ABS_STACK_SKIP_EDITOR !== '1') await auditEditorControls();
+    console.log(`PASS: Interactive stack ${browserName} interaction, loading, accessibility, reduced-motion, and responsive audit`);
+  }
 } finally {
   await browser.close();
 }

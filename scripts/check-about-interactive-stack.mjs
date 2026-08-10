@@ -18,9 +18,15 @@ import {
 import { validateAboutNarrativePointFieldDocument } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
 const configPath = new URL('../react-app/app/public/config/contents-about.json', import.meta.url);
+const fixturePath = new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url);
 const canonical = JSON.parse(await readFile(configPath, 'utf8'));
-const disciplineField = canonical.tracks.text.fields.find((field) => field.id === 'text-disciplines-title');
+const stackFixture = JSON.parse(await readFile(fixturePath, 'utf8'));
+const disciplineField = stackFixture.tracks.text.fields.find((field) => field.id === 'text-disciplines-title');
 const stackModule = disciplineField?.block?.modules?.find((module) => module.id === 'project-impressions');
+const canonicalWithStack = structuredClone(canonical);
+canonicalWithStack.tracks.text.fields
+  .find((field) => field.id === 'text-disciplines-title')
+  .block.modules.push(structuredClone(stackModule));
 
 function readWebpMetadata(bytes) {
   assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF');
@@ -78,10 +84,16 @@ function stackErrorCodes(document) {
     .map((item) => item.code.replace(/^v5-projection-/, ''));
 }
 
-test('canonical Interactive stack contains 20 strict, valid image records', () => {
+test('canonical About passage omits the retired project-impressions stack', () => {
+  const canonicalModules = canonical.tracks.text.fields
+    .flatMap((field) => field.block?.modules || []);
+  assert.equal(canonicalModules.some((module) => module.kind === 'interactive-stack'), false);
+});
+
+test('Interactive stack compatibility fixture contains 20 strict, valid image records', () => {
   assert.ok(stackModule);
   assert.equal(stackModule.items.length, 20);
-  assert.equal(stackErrorCodes(canonical).length, 0);
+  assert.equal(stackErrorCodes(canonicalWithStack).length, 0);
   assert.equal(new Set(stackModule.items.map((item) => item.id)).size, 20);
 });
 
@@ -151,18 +163,18 @@ test('parameter resolution clamps invalid live values to shared bounds', () => {
 });
 
 test('strict schema rejects duplicate IDs, unsupported fields, invalid limits, and video without poster', () => {
-  const duplicate = structuredClone(canonical);
+  const duplicate = structuredClone(canonicalWithStack);
   const duplicateModule = duplicate.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
     .block.modules.find((module) => module.id === 'project-impressions');
   duplicateModule.items[1].id = duplicateModule.items[0].id;
   assert.ok(stackErrorCodes(duplicate).includes('duplicate-id'));
 
-  const unknown = structuredClone(canonical);
+  const unknown = structuredClone(canonicalWithStack);
   unknown.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
     .block.modules.find((module) => module.id === 'project-impressions').items[0].mystery = true;
   assert.ok(stackErrorCodes(unknown).includes('unknown-key'));
 
-  const video = structuredClone(canonical);
+  const video = structuredClone(canonicalWithStack);
   const videoItem = video.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
     .block.modules.find((module) => module.id === 'project-impressions').items[0];
   videoItem.type = 'video';

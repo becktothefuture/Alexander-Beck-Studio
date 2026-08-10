@@ -798,7 +798,7 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   assert.equal(Number((gridVisible.atWU - gridRise.atWU).toFixed(4)), 0.26);
   assert.ok(gridHandoff.atWU > gridRise.atWU);
   assert.ok(gridHandoff.atWU < gridVisible.atWU);
-  assert.ok(returned.atWU - returnStart.atWU >= 0.8);
+  assert.ok(returned.atWU - returnStart.atWU >= 0.8 - Number.EPSILON * 8);
   const flyoverVisibility = sampleAboutNarrativeRuntimePlan(
     plan,
     (gridHandoff.atWU + gridVisible.atWU) * 0.5,
@@ -899,6 +899,8 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   }
   const disciplineHoldKey = keys.get('discipline-hold');
   const editorialHoldKey = keys.get('editorial-camera-hold');
+  assert.equal(disciplineReveal.parameters.restoreDurationWU, 0.8);
+  assert.equal(disciplineHoldKey.atWU, 10.95);
   assert.deepEqual(disciplineHoldKey.position, gridHold.position);
   assert.equal(disciplineHoldKey.fov, gridHold.fov);
   assert.ok(editorialHoldKey.atWU - disciplineHoldKey.atWU <= 0.800001);
@@ -1174,6 +1176,7 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   const emergent = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent');
   const pointKeys = new Map(canonicalV6.tracks.pointField.keys.map((key) => [key.id, key]));
   const visibilityKeys = new Map(canonicalV6.tracks.visibility.keys.map((key) => [key.id, key]));
+  const cameraKeys = new Map(canonicalV6.tracks.camera.keys.map((key) => [key.id, key]));
   const finale = fields.get('text-epilogue-invitation');
   const handoffs = [
     [fields.get('text-promise-main').endWU, fields.get('text-complexity-idea').startWU],
@@ -1186,8 +1189,11 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   handoffs.forEach(([outgoingEndWU, incomingStartWU]) => {
     assert.ok(incomingStartWU - outgoingEndWU <= 0.65);
   });
-  assert.ok(fields.get('text-disciplines-title').startWU >= reveal.endWU);
-  assert.ok(fields.get('text-disciplines-title').startWU - reveal.endWU <= 0.25);
+  assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
+  assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.2);
+  assert.equal(cameraKeys.get('grid-return-centered').atWU, 13.55);
+  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 13.55);
+  assert.equal(visibilityKeys.get('visibility-returned').atWU, 14.35);
   assert.ok(finale.startWU > emergent.transitionIn.endWU);
   assert.equal(Number((finale.startWU - emergent.transitionIn.endWU).toFixed(4)), 0.7);
   assert.ok(
@@ -1304,7 +1310,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
     assert.equal(item.position, undefined);
     assert.equal(item.mobilePosition, undefined);
   });
-  assert.ok(disciplineEditorial.startWU >= disciplineReveal.endWU);
+  assert.ok(disciplineEditorial.startWU < disciplineReveal.endWU);
   assert.ok(disciplineEditorial.focusWU > disciplineReveal.endWU);
   const boundaryTitleIds = new Set(['text-promise-main', 'text-epilogue-invitation']);
   fields

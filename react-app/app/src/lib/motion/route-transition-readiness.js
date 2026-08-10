@@ -206,7 +206,9 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   }
 
   if (routeId === 'about') {
-    const aboutRoute = document.querySelector('[data-route-content="about"]');
+    const aboutRoute = document.querySelector(
+      '.about-narrative-lab[data-route-content="about"]',
+    );
     return Boolean(
       body.classList.contains('about-page')
       && aboutRoute

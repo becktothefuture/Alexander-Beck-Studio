@@ -45,7 +45,7 @@ async function auditProduction(viewport, label, expectedProfile) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const errors = observeErrors(page);
-  await page.goto(`${baseUrl}/about.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => (
     document.querySelector('#about-coming-soon-title, .about-narrative-lab')
   ));
@@ -135,6 +135,10 @@ async function auditProduction(viewport, label, expectedProfile) {
         rect.left >= viewport.left - 1
         && rect.right <= viewport.right + 1
       )),
+      labelsWithinVerticalViewport: labels.every((rect) => (
+        rect.top >= viewport.top - 1
+        && rect.bottom <= viewport.bottom + 1
+      )),
       overlapPairs,
     };
   });
@@ -143,9 +147,26 @@ async function auditProduction(viewport, label, expectedProfile) {
     gridInfluence: '0.0000',
     worldTo: 'calm-field-v1',
     labelsWithinHorizontalViewport: true,
+    labelsWithinVerticalViewport: true,
     overlapPairs: [],
   }, `${label} discipline labels should remain separate`);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
+
+  await page.locator('.about-narrative-scrollport').evaluate((node, storyDurationWU) => {
+    node.scrollTop = (node.scrollHeight - node.clientHeight) * (11.075 / storyDurationWU);
+    node.dispatchEvent(new Event('scroll', { bubbles: true }));
+  }, canonical.profiles[expectedProfile].storyDurationWU);
+  await page.waitForFunction(() => {
+    const storyWU = Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu);
+    return storyWU > 11.04 && storyWU < 11.11;
+  });
+  assert.equal(
+    await page.locator('.about-narrative-discipline-reveal li').evaluateAll((labels) => (
+      labels.filter((label) => Number(getComputedStyle(label).opacity) > 0.05).length
+    )),
+    0,
+    `${label} Discipline labels must fade before the Camera leaves the held composition.`,
+  );
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
     node.scrollTop = node.scrollHeight - node.clientHeight;
@@ -1025,7 +1046,7 @@ try {
     await auditProduction({ width: 820, height: 1180 }, 'tablet-portrait', 'tablet');
     await auditProduction({ width: 1180, height: 820 }, 'tablet-landscape', 'tablet');
     await auditProduction({ width: 390, height: 844 }, 'mobile-portrait', 'mobile');
-    await auditProduction({ width: 844, height: 390 }, 'mobile-landscape', 'mobile');
+    await auditProduction({ width: 375, height: 667 }, 'mobile-portrait-narrow', 'mobile');
   }
   if (!productionOnly) await auditEditor();
   console.log(`PASS: sectionless About Narrative ${browserName} ${productionOnly ? 'production' : editorOnly ? 'editor' : 'production and editor'} audit.`);
