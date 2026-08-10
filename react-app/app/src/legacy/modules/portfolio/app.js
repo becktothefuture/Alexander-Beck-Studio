@@ -82,12 +82,9 @@ const PORTFOLIO_CAROUSEL_DETENT_FILTER_HZ = 3300;
 const PORTFOLIO_RING_MAX_VISIBLE_OFFSET = 3;
 const PORTFOLIO_RING_GUARD_SLOTS = 2;
 const PORTFOLIO_CARD_ASPECT_RATIO = 316 / 461;
-const PORTFOLIO_CARD_FLUID_STAGE_RATIO = 0.25;
-const PORTFOLIO_CARD_FLUID_HEIGHT_RATIO = 0.46;
-const PORTFOLIO_CARD_DESKTOP_INLINE_CAP_RATIO = 0.38;
-const PORTFOLIO_TALL_DESKTOP_ASPECT_RATIO = 1.05;
-const PORTFOLIO_TALL_DESKTOP_CARD_GAP_PX = 10;
-const PORTFOLIO_TALL_DESKTOP_EDGE_PEEK_PX = 12;
+const PORTFOLIO_CARD_FLUID_WIDTH_RATIO = 0.15;
+const PORTFOLIO_CARD_FLUID_HEIGHT_RATIO = 0.12;
+const PORTFOLIO_CARD_MOBILE_WIDTH_RATIO = 0.56;
 const PORTFOLIO_CARD_ENTRANCE_FALLBACK_DELAY_MS = 300;
 const PORTFOLIO_BOOKEND_FALLBACK_REVEAL_DELAY_MS = 300;
 
@@ -128,11 +125,7 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   settleStrength: 0.15,
   cardMinWidthPx: 220,
   cardMaxWidthPx: 420,
-  centerYPercent: 50,
-  mobileCenterYPercent: 58,
-  sliderYOffsetDvh: 0,
-  introYOffsetDvh: 0,
-  desktopViewportYOffsetDvh: 3,
+  compositionYOffsetDvh: -1.5,
   perspectivePx: 1600,
   inactiveScale: 0.9,
   minCardGapPx: 18,
@@ -1535,51 +1528,11 @@ class PortfolioScrollApp {
     }) || null;
   }
 
-  getTitleClearanceCenterYPercent({
-    stageHeight,
-    cardHeight,
-    clearancePx = null,
-    viewportOffsetPx = 0,
-  }) {
-    const stage = this.deckStage || this.mount;
-    const intro = stage?.querySelector?.('.portfolio-deck-intro');
-    if (!intro || !stage || !(stageHeight > 0) || !(cardHeight > 0)) return 0;
-
-    const introRect = intro.getBoundingClientRect?.();
-    const stageRect = stage.getBoundingClientRect?.();
-    if (
-      !introRect ||
-      !stageRect ||
-      introRect.width <= 0 ||
-      introRect.height <= 0 ||
-      stageRect.height <= 0
-    ) {
-      return 0;
-    }
-
-    // Seat the track from the complete intro block so title and cards remain a
-    // single responsive composition as either viewport axis changes.
-    const resolvedClearancePx = Number.isFinite(clearancePx)
-      ? clearancePx
-      : clamp(stageHeight * 0.02, 12, 24);
-    const introBottom = introRect.bottom - stageRect.top;
-    return (
-      (
-        introBottom
-        + resolvedClearancePx
-        + (cardHeight * 0.5)
-        - viewportOffsetPx
-      )
-      / stageHeight
-    ) * 100;
-  }
-
   applyDeckTuning() {
     if (!this.mount) return;
     this.deckOptions = this.resolveDeckOptions();
     const stageWidth = this.deckStage?.clientWidth || this.mount.clientWidth || window.innerWidth || 1440;
     const stageHeight = this.deckStage?.clientHeight || this.mount.clientHeight || window.innerHeight || 900;
-    const responsiveT = clamp((stageWidth - 390) / (1180 - 390), 0, 1);
     const cardMinWidthPx = clamp(
       toNumber(this.deckOptions.cardMinWidthPx, PORTFOLIO_DECK_DEFAULTS.cardMinWidthPx),
       180,
@@ -1593,27 +1546,14 @@ class PortfolioScrollApp {
         560
       )
     );
-    const desktopCenterYPercent = clamp(toNumber(this.deckOptions.centerYPercent, PORTFOLIO_DECK_DEFAULTS.centerYPercent), 45, 85);
-    const mobileCenterYPercent = clamp(toNumber(this.deckOptions.mobileCenterYPercent, PORTFOLIO_DECK_DEFAULTS.mobileCenterYPercent), 48, 78);
-    const configuredCenterYPercent = lerp(mobileCenterYPercent, desktopCenterYPercent, responsiveT);
     const viewportHeight = window.innerHeight || stageHeight;
-    const desktopViewportYOffsetDvh = clamp(
-      toNumber(this.deckOptions.desktopViewportYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.desktopViewportYOffsetDvh),
-      0,
-      8
-    );
-    const viewportYOffsetDvh = stageWidth > 900 && viewportHeight >= 800
-      ? desktopViewportYOffsetDvh
-      : 0;
-    const introYOffsetDvh = clamp(
-      toNumber(this.deckOptions.introYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.introYOffsetDvh),
+    const compositionYOffsetDvh = clamp(
+      toNumber(
+        this.deckOptions.compositionYOffsetDvh,
+        PORTFOLIO_DECK_DEFAULTS.compositionYOffsetDvh
+      ),
       -12,
       12
-    );
-    const resolvedIntroYOffsetDvh = introYOffsetDvh;
-    this.mount.style.setProperty(
-      '--portfolio-deck-intro-y-offset',
-      `${resolvedIntroYOffsetDvh.toFixed(4)}dvh`
     );
     const perspectivePx = clamp(toNumber(this.deckOptions.perspectivePx, PORTFOLIO_DECK_DEFAULTS.perspectivePx), 500, 2600);
     const inactiveScale = clamp(
@@ -1626,11 +1566,6 @@ class PortfolioScrollApp {
       8,
       48
     );
-    const isTallDesktop = stageWidth > 900
-      && stageHeight / stageWidth > PORTFOLIO_TALL_DESKTOP_ASPECT_RATIO;
-    const resolvedCardGap = isTallDesktop
-      ? Math.min(minCardGap, PORTFOLIO_TALL_DESKTOP_CARD_GAP_PX)
-      : minCardGap;
     const indicatorGapPx = clamp(
       toNumber(this.deckOptions.indicatorGapPx, PORTFOLIO_DECK_DEFAULTS.indicatorGapPx),
       5,
@@ -1641,88 +1576,85 @@ class PortfolioScrollApp {
       0,
       0.18
     );
-    const widthDrivenCardWidth = stageWidth * PORTFOLIO_CARD_FLUID_STAGE_RATIO;
-    const heightDrivenCardWidth = stageHeight
-      * PORTFOLIO_CARD_FLUID_HEIGHT_RATIO
-      * PORTFOLIO_CARD_ASPECT_RATIO;
-    const desktopInlineCardCap = stageWidth * PORTFOLIO_CARD_DESKTOP_INLINE_CAP_RATIO;
-    const tallSequenceCardCap = (
-      (stageWidth * 0.5)
-      - (resolvedCardGap * 2)
-      - PORTFOLIO_TALL_DESKTOP_EDGE_PEEK_PX
-    ) / (1 + (inactiveScale * 0.5));
-    const responsiveCardWidth = stageWidth > 900
-      ? Math.min(
-        Math.max(widthDrivenCardWidth, heightDrivenCardWidth),
-        desktopInlineCardCap,
-        isTallDesktop ? tallSequenceCardCap : Number.POSITIVE_INFINITY
-      )
-      : widthDrivenCardWidth;
-    const fluidCardWidth = clamp(
-      responsiveCardWidth,
-      cardMinWidthPx,
-      cardMaxWidthPx
-    );
     const intro = this.deckStage?.querySelector?.('.portfolio-deck-intro');
     const introRect = intro?.getBoundingClientRect?.();
     const stageRect = this.deckStage?.getBoundingClientRect?.();
-    const introBottomPx = introRect && stageRect && getComputedStyle(intro).display !== 'none'
-      ? Math.max(0, introRect.bottom - stageRect.top)
+    const introVisible = Boolean(
+      intro
+      && introRect
+      && stageRect
+      && introRect.width > 0
+      && introRect.height > 0
+      && getComputedStyle(intro).display !== 'none'
+    );
+    const introHeightPx = introVisible ? introRect.height : 0;
+    const compositionGapPx = introVisible
+      ? stageWidth <= 600
+        ? clamp(stageHeight * 0.035, 28, 36)
+        : clamp(stageHeight * 0.045, 36, 56)
       : 0;
-    const configuredGapScale = lerp(
-      0.8,
-      1.2,
-      clamp((configuredCenterYPercent - 45) / 40, 0, 1)
+    const compositionTopBoundaryPx = clamp(stageHeight * 0.055, 36, 70);
+    const dotDialRect = this.dotDial?.getBoundingClientRect?.();
+    const dotDialVisible = Boolean(
+      this.dotDial
+      && dotDialRect
+      && stageRect
+      && dotDialRect.width > 0
+      && dotDialRect.height > 0
+      && getComputedStyle(this.dotDial).display !== 'none'
     );
-    const titlePreferredGapPx = clamp(
-      clamp(stageHeight * 0.04, 28, 52) * configuredGapScale,
-      24,
-      58
+    const indicatorTopPx = dotDialVisible
+      ? dotDialRect.top - stageRect.top
+      : stageHeight - clamp(stageHeight * 0.055, 44, 64);
+    const compositionBottomBoundaryPx = Math.max(
+      compositionTopBoundaryPx,
+      indicatorTopPx - clamp(stageHeight * 0.016, 12, 20)
     );
-    const bottomClearancePx = clamp(stageHeight * 0.04, 24, 40);
-    const sliderYOffsetDvh = clamp(
-      toNumber(this.deckOptions.sliderYOffsetDvh, PORTFOLIO_DECK_DEFAULTS.sliderYOffsetDvh),
-      -12,
-      12
+    const availableCompositionHeightPx = Math.max(
+      0,
+      compositionBottomBoundaryPx - compositionTopBoundaryPx
     );
-    const resolvedViewportYOffsetDvh = viewportYOffsetDvh + sliderYOffsetDvh;
-    const resolvedViewportOffsetPx = viewportHeight * resolvedViewportYOffsetDvh / 100;
-    const heightFitCardWidth = (
-      stageHeight
-      - introBottomPx
-      - titlePreferredGapPx
-      - bottomClearancePx
-      - Math.max(0, resolvedViewportOffsetPx)
-    ) * PORTFOLIO_CARD_ASPECT_RATIO;
-    const cardWidth = stageWidth > 900
-      ? clamp(Math.min(fluidCardWidth, heightFitCardWidth), cardMinWidthPx, cardMaxWidthPx)
-      : fluidCardWidth;
+    const responsiveCardWidth = stageWidth <= 600
+      ? stageWidth * PORTFOLIO_CARD_MOBILE_WIDTH_RATIO
+      : (stageWidth * PORTFOLIO_CARD_FLUID_WIDTH_RATIO)
+        + (stageHeight * PORTFOLIO_CARD_FLUID_HEIGHT_RATIO);
+    const heightFitCardWidth = Math.max(
+      0,
+      (availableCompositionHeightPx - introHeightPx - compositionGapPx)
+        * PORTFOLIO_CARD_ASPECT_RATIO
+    );
+    const fittedCardMinWidthPx = heightFitCardWidth > 0
+      ? Math.min(cardMinWidthPx, heightFitCardWidth)
+      : cardMinWidthPx;
+    const cardWidth = clamp(
+      Math.min(responsiveCardWidth, heightFitCardWidth || responsiveCardWidth),
+      fittedCardMinWidthPx,
+      cardMaxWidthPx
+    );
     const cardHeight = cardWidth / PORTFOLIO_CARD_ASPECT_RATIO;
     const cardContentScale = Math.max(1, cardWidth / 316);
-    const titlePreferredCenterYPercent = this.getTitleClearanceCenterYPercent({
-      stageHeight,
-      cardHeight,
-      clearancePx: titlePreferredGapPx,
-      viewportOffsetPx: resolvedViewportOffsetPx,
-    });
-    const centerYPercent = clamp(
-      titlePreferredCenterYPercent,
-      38,
-      stageWidth <= 900 ? 82 : 85
+    const compositionHeightPx = introHeightPx + compositionGapPx + cardHeight;
+    const centeredCompositionTopPx = compositionTopBoundaryPx
+      + ((availableCompositionHeightPx - compositionHeightPx) * 0.5);
+    const maxCompositionTopPx = Math.max(
+      compositionTopBoundaryPx,
+      compositionBottomBoundaryPx - compositionHeightPx
     );
-    const resolvedCenterYRatio = clamp(
-      (
-        (stageHeight * centerYPercent / 100)
-        + (viewportHeight * resolvedViewportYOffsetDvh / 100)
-      ) / stageHeight,
-      0,
-      1
+    const compositionTopPx = clamp(
+      centeredCompositionTopPx + (viewportHeight * compositionYOffsetDvh / 100),
+      compositionTopBoundaryPx,
+      maxCompositionTopPx
     );
+    const cardCenterYPx = compositionTopPx
+      + introHeightPx
+      + compositionGapPx
+      + (cardHeight * 0.5);
+    const resolvedCenterYRatio = clamp(cardCenterYPx / stageHeight, 0, 1);
     this.particleField?.configure({
       ...this.deckOptions.particleField,
       quietBandCenterY: resolvedCenterYRatio,
     });
-    const trackStepPx = (cardWidth * (1 + inactiveScale) * 0.5) + resolvedCardGap;
+    const trackStepPx = (cardWidth * (1 + inactiveScale) * 0.5) + minCardGap;
     const intersectingSideSlots = Math.floor(
       (
         (stageWidth * 0.5)
@@ -1744,19 +1676,19 @@ class PortfolioScrollApp {
       inactiveScale,
       cardWidth,
       cardHeight,
-      minCardGap: resolvedCardGap,
+      minCardGap,
       indicatorGapPx,
-      centerYPercent,
-      sliderYOffsetDvh,
-      introYOffsetDvh,
-      resolvedViewportYOffsetDvh,
-      resolvedIntroYOffsetDvh,
+      compositionTopPx,
+      compositionHeightPx,
+      compositionGapPx,
+      compositionYOffsetDvh,
+      cardCenterYPx,
       maxVisibleOffset,
     };
 
     this.mount.style.setProperty('--portfolio-deck-card-width', `${cardWidth}px`);
-    this.mount.style.setProperty('--portfolio-deck-center-y', `${centerYPercent}%`);
-    this.mount.style.setProperty('--portfolio-deck-viewport-y-offset', `${resolvedViewportYOffsetDvh}dvh`);
+    this.mount.style.setProperty('--portfolio-deck-intro-top', `${compositionTopPx}px`);
+    this.mount.style.setProperty('--portfolio-deck-center-y', `${cardCenterYPx}px`);
     this.mount.style.setProperty('--portfolio-deck-perspective', `${perspectivePx}px`);
     this.mount.style.setProperty('--portfolio-card-content-scale', cardContentScale.toFixed(4));
     this.mount.style.setProperty('--portfolio-carousel-track-step', `${trackStepPx}px`);
@@ -2249,11 +2181,11 @@ class PortfolioScrollApp {
         indicatorGapPx: this.deckMetrics?.indicatorGapPx,
         dotCount: this.dotDialDots.length,
         maxVisibleOffset: this.deckMetrics?.maxVisibleOffset,
-        centerYPercent: this.deckMetrics?.centerYPercent,
-        sliderYOffsetDvh: this.deckMetrics?.sliderYOffsetDvh,
-        introYOffsetDvh: this.deckMetrics?.introYOffsetDvh,
-        resolvedViewportYOffsetDvh: this.deckMetrics?.resolvedViewportYOffsetDvh,
-        resolvedIntroYOffsetDvh: this.deckMetrics?.resolvedIntroYOffsetDvh,
+        compositionTopPx: this.deckMetrics?.compositionTopPx,
+        compositionHeightPx: this.deckMetrics?.compositionHeightPx,
+        compositionGapPx: this.deckMetrics?.compositionGapPx,
+        compositionYOffsetDvh: this.deckMetrics?.compositionYOffsetDvh,
+        cardCenterYPx: this.deckMetrics?.cardCenterYPx,
       },
       activeIndex: this.activeProjectIndex,
       intendedIndex: this.getDeckIntentIndex(),

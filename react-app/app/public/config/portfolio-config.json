@@ -46,10 +46,7 @@
     "carousel": {
       "cardMinWidthPx": 220,
       "cardMaxWidthPx": 420,
-      "sliderYOffsetDvh": 0,
-      "introYOffsetDvh": 0,
-      "centerYPercent": 54,
-      "mobileCenterYPercent": 63,
+      "compositionYOffsetDvh": -1.5,
       "inactiveScale": 0.9,
       "minCardGapPx": 18,
       "contactShadowOpacity": 0,

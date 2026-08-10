@@ -451,16 +451,18 @@ test('Portfolio config normalization deep-merges, clamps, and migrates legacy fi
     cssVars: { '--portfolio-nav-top': '12px' },
     runtime: {
       carousel: {
-        sliderYOffsetDvh: 99,
-        introYOffsetDvh: -99,
+        compositionYOffsetDvh: 99,
+        sliderYOffsetDvh: 8,
+        introYOffsetDvh: -8,
         speedField: { maxOpacity: 0.4, densityScale: 1.5 },
       },
       labeling: { fontMaxPx: 32, fontMinPx: 18, lineHeight: 1.1 },
     },
   });
   assert.equal(normalized.cssVars['--portfolio-nav-top'], '12px');
-  assert.equal(normalized.runtime.carousel.sliderYOffsetDvh, 12);
-  assert.equal(normalized.runtime.carousel.introYOffsetDvh, -12);
+  assert.equal(normalized.runtime.carousel.compositionYOffsetDvh, 12);
+  assert.equal(normalized.runtime.carousel.sliderYOffsetDvh, undefined);
+  assert.equal(normalized.runtime.carousel.introYOffsetDvh, undefined);
   assert.equal(normalized.runtime.carousel.speedField, undefined);
   assert.equal(normalized.runtime.carousel.particleField.fastOpacity, 0.4);
   assert.equal(normalized.runtime.carousel.particleField.densityScale, 1.5);
@@ -470,13 +472,13 @@ test('Portfolio config normalization deep-merges, clamps, and migrates legacy fi
   assert.equal(normalized.runtime.labeling.lineHeight, undefined);
   assert.ok(normalized.runtime.motion.openDurationMs > 0, 'Unspecified defaults must survive a partial override.');
 
-  const runtime = normalizePortfolioRuntime({ carousel: { sliderYOffsetDvh: 99 } });
-  assert.equal(runtime.carousel.sliderYOffsetDvh, 12);
+  const runtime = normalizePortfolioRuntime({ carousel: { compositionYOffsetDvh: 99 } });
+  assert.equal(runtime.carousel.compositionYOffsetDvh, 12);
   let receivedRuntime = null;
   createNormalizedPortfolioRuntimeListener((value) => { receivedRuntime = value; })({
-    carousel: { introYOffsetDvh: -99 },
+    carousel: { compositionYOffsetDvh: -99 },
   });
-  assert.equal(receivedRuntime.carousel.introYOffsetDvh, -12);
+  assert.equal(receivedRuntime.carousel.compositionYOffsetDvh, -12);
 });
 
 test('intentional Portfolio runtime contract breaks are rejected', () => {

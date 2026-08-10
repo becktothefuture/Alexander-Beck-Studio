@@ -102,11 +102,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       settleStrength: 0.15,
       cardMinWidthPx: 220,
       cardMaxWidthPx: 420,
-      centerYPercent: 50,
-      mobileCenterYPercent: 58,
-      sliderYOffsetDvh: 0,
-      introYOffsetDvh: 0,
-      desktopViewportYOffsetDvh: 3,
+      compositionYOffsetDvh: -1.5,
       perspectivePx: 1600,
       inactiveScale: 0.9,
       minCardGapPx: 18,
@@ -191,14 +187,15 @@ export function normalizePortfolioConfig(rawConfig) {
     field.parallaxDepth = Math.min(2, Math.max(0.25, Number(field.parallaxDepth) || 1));
   }
   if (isObject(runtime?.carousel)) {
-    const sliderYOffsetDvh = Number(runtime.carousel.sliderYOffsetDvh);
-    const introYOffsetDvh = Number(runtime.carousel.introYOffsetDvh);
-    runtime.carousel.sliderYOffsetDvh = Number.isFinite(sliderYOffsetDvh)
-      ? Math.min(12, Math.max(-12, sliderYOffsetDvh))
-      : 0;
-    runtime.carousel.introYOffsetDvh = Number.isFinite(introYOffsetDvh)
-      ? Math.min(12, Math.max(-12, introYOffsetDvh))
-      : 0;
+    const compositionYOffsetDvh = Number(runtime.carousel.compositionYOffsetDvh);
+    runtime.carousel.compositionYOffsetDvh = Number.isFinite(compositionYOffsetDvh)
+      ? Math.min(12, Math.max(-12, compositionYOffsetDvh))
+      : DEFAULT_PORTFOLIO_CONFIG.runtime.carousel.compositionYOffsetDvh;
+    delete runtime.carousel.centerYPercent;
+    delete runtime.carousel.mobileCenterYPercent;
+    delete runtime.carousel.sliderYOffsetDvh;
+    delete runtime.carousel.introYOffsetDvh;
+    delete runtime.carousel.desktopViewportYOffsetDvh;
   }
   if (runtime?.labeling) {
     if (runtime.labeling.fontDesktopPx === undefined && Number.isFinite(Number(runtime.labeling.fontMaxPx))) {

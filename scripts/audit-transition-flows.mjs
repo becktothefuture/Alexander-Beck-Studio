@@ -1519,18 +1519,10 @@ async function probePortfolioInputDuringEntrance(page) {
   await page.waitForFunction(() => {
     const mount = document.getElementById('portfolioProjectMount');
     const wall = document.getElementById('shell-wall-slot');
-    const leadCard = mount?.querySelector(
-      '.portfolio-project-card[data-portfolio-reveal-rank="0"]'
-    );
-    const leadScale = Number.parseFloat(
-      leadCard?.style.getPropertyValue('--portfolio-card-route-entrance-scale') || '0'
-    );
     return Boolean(
       (document.documentElement.dataset.absTransitionPhase || '') === 'route-in'
       && mount?.dataset.portfolioEntrancePhase === 'entering'
       && mount.dataset.portfolioInputReleaseState === 'ready'
-      && mount.dataset.portfolioInputReleaseReason === 'lead-card-visible'
-      && leadScale >= 0.08
       && !mount.inert
       && !wall?.inert
     );
@@ -1562,9 +1554,9 @@ async function probePortfolioInputDuringEntrance(page) {
 
   const before = await readState();
   assert(before.entrancePhase === 'entering', 'Portfolio input released after its entrance completed', before);
-  assert(before.mountInert === false, 'Portfolio deck remained inert after its lead card appeared', before);
-  assert(before.wallInert === false, 'Portfolio wall remained inert after its lead card appeared', before);
-  assert(before.pointerEvents !== 'none', 'Portfolio deck still blocked pointer input after its lead card appeared', before);
+  assert(before.mountInert === false, 'Portfolio deck remained inert after the destination became visible', before);
+  assert(before.wallInert === false, 'Portfolio wall remained inert after the destination became visible', before);
+  assert(before.pointerEvents !== 'none', 'Portfolio deck still blocked pointer input after the destination became visible', before);
 
   const stage = page.locator('.portfolio-deck-stage');
   const stageRect = await stage.boundingBox();
@@ -1582,7 +1574,7 @@ async function probePortfolioInputDuringEntrance(page) {
   const after = await readState();
   assert(
     Math.abs(after.targetPosition - before.targetPosition) > 0.01,
-    'Portfolio ignored wheel input after its lead card appeared',
+    'Portfolio ignored wheel input while its entrance animation was still running',
     { before, after },
   );
   return { before, after };

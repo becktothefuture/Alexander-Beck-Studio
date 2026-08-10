@@ -2520,9 +2520,6 @@ export function useShellRouteTransition({
             onPrepared: () => {
               finalizeHistory();
               publishTransitionPhase(TRANSITION_PHASES.ROUTE_IN, token, nextRouteId, activation);
-              if (nextRouteId === 'playground' && surfaceRefs.wall.current) {
-                inertRegistry.restore([surfaceRefs.wall.current]);
-              }
               participantEnterPromise = waitWithTransitionTimeout(
                 participants.enter(),
                 routeTimings.ready,
@@ -2537,12 +2534,12 @@ export function useShellRouteTransition({
               dismissGateBackdropOnce();
             },
             onViewSettled: () => {
+              // Input belongs to the destination as soon as its settled wall is
+              // visible. Typography and route material can continue animating
+              // without holding scroll, drag, or simulation controls inert.
+              inertRegistry.restore([surfaceRefs.wall.current]);
               if (nextRouteId === 'portfolio') {
                 releasePortfolioDeck(isGate ? 'gate-success' : 'route-in');
-                // Portfolio keeps its own short entrance lock until the lead
-                // card is visible. Release the parent wall here so that local
-                // lock, rather than the full shell/title sequence, owns input.
-                inertRegistry.restore([surfaceRefs.wall.current]);
               }
             },
           });
@@ -2631,9 +2628,9 @@ export function useShellRouteTransition({
               }
             },
             onViewSettled: () => {
+              inertRegistry.restore([surfaceRefs.wall.current]);
               if (revealRouteId === 'portfolio') {
                 releasePortfolioDeck('route-in-fallback');
-                inertRegistry.restore([surfaceRefs.wall.current]);
               }
             },
           });
