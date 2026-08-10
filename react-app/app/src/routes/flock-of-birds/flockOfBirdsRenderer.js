@@ -3,7 +3,6 @@ import {
   registerSimulationVisualTransition,
 } from '../../lib/simulationVisualTransition.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
-import { triggerPressure } from '../../legacy/modules/audio/simulation-audio-adapter.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
 import {
   DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
@@ -1368,16 +1367,6 @@ export function createFlockOfBirdsRenderer({
 
     if (config.enabled !== false) {
       updateBirds(config, needsWarmup ? 1 / 60 : dt, now, true);
-      const pointerSpeed = Math.hypot(pointer.vx, pointer.vy);
-      if (pointer.active && pointerSpeed > 320) {
-        triggerPressure({
-          id: 'flock-of-birds:avoidance-split',
-          intensity: clamp(pointerSpeed / 1300, 0.58, 0.86),
-          x: clamp(pointer.x / Math.max(1, metrics.cssWidth), 0, 1),
-          radius: 18,
-          minIntervalMs: 180,
-        });
-      }
     }
     paintFrame(config, theme);
     metrics.lastFrameMs = performance.now() - frameStart;

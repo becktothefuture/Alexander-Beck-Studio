@@ -4,6 +4,11 @@ import { createScrollPresence } from '../utils/scroll-presence.js';
 import { playScrollDetent } from '../audio/sound-engine.js';
 import { createScrollSoundController } from '../audio/scroll-sound-controller.js';
 import {
+  getScrollElementProgress,
+  resolveScrollProgressIndicatorState,
+  SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+} from '../../../lib/scroll-progress-indicator.js';
+import {
   createSmoothScroll,
   createSmoothScrollMediaQueries,
   shouldUseNativeSmoothScroll,
@@ -338,6 +343,15 @@ function buildKenBurnsStyleVars(sequence) {
 }
 
 function createProjectDrawerMarkup() {
+  const progressIndicatorLines = Array.from(
+    { length: SCROLL_PROGRESS_INDICATOR_TICK_COUNT },
+    (_, index) => `
+      <span
+        class="portfolio-project-progress__line"
+        data-line-index="${index}"
+        aria-hidden="true"
+      ></span>`,
+  ).join('');
   return `
     <section
       id="portfolioProjectView"
@@ -348,6 +362,19 @@ function createProjectDrawerMarkup() {
       aria-labelledby="portfolioProjectEyebrow portfolioProjectTitle"
     >
       <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
+      <div class="portfolio-project-progress-layer" data-portfolio-project-progress-layer>
+        <div
+          class="portfolio-project-progress"
+          data-portfolio-project-progress
+          role="progressbar"
+          aria-label="Project page scroll progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          aria-valuetext="0% through this project"
+        >${progressIndicatorLines}
+        </div>
+      </div>
       <div class="portfolio-project-view__drawer">
         <button
           class="portfolio-project-view__back portfolio-project-view__back--top gate-back abs-icon-btn"
@@ -407,6 +434,10 @@ export class PortfolioProjectDrawer {
     this.title = null;
     this.content = null;
     this.backButton = null;
+    this.progressIndicator = null;
+    this.progressIndicatorLines = [];
+    this.progressLabel = 'this project';
+    this.progressResizeObserver = null;
     this.scrollPresence = null;
     this.scrollSoundEnabled = false;
     this.scrollSoundController = createScrollSoundController({
@@ -462,6 +493,10 @@ export class PortfolioProjectDrawer {
     this.title = this.root?.querySelector('.portfolio-project-view__title') || null;
     this.content = this.root?.querySelector('#portfolioProjectContent') || null;
     this.backButton = this.root?.querySelector('.portfolio-project-view__back--top') || null;
+    this.progressIndicator = this.root?.querySelector('[data-portfolio-project-progress]') || null;
+    this.progressIndicatorLines = Array.from(
+      this.progressIndicator?.querySelectorAll('.portfolio-project-progress__line') || [],
+    );
     this.root?.addEventListener('click', this.boundBackClick);
     this.backdrop?.addEventListener('pointerdown', this.boundRequestClose);
     this.scroll?.addEventListener('scroll', this.boundUpdateScrollState, { passive: true });
@@ -472,6 +507,12 @@ export class PortfolioProjectDrawer {
           maxSpanPx: 220,
         })
       : null;
+    if (typeof ResizeObserver === 'function') {
+      this.progressResizeObserver = new ResizeObserver(() => this.updateScrollProgress());
+      [this.scroll, this.imageShell, this.content].forEach((element) => {
+        if (element) this.progressResizeObserver.observe(element);
+      });
+    }
     this.setupSmoothScroll();
     this.setupMediaScrollShift();
     this.updateScrollState();
@@ -539,6 +580,24 @@ export class PortfolioProjectDrawer {
 
   updateScrollState() {
     this.root?.classList.toggle('is-scrolled', (this.scroll?.scrollTop || 0) > 16);
+    this.updateScrollProgress();
+  }
+
+  updateScrollProgress() {
+    if (!this.progressIndicator) return;
+    const state = resolveScrollProgressIndicatorState(getScrollElementProgress(this.scroll));
+    this.progressIndicator.setAttribute('aria-valuenow', String(state.progressValue));
+    this.progressIndicator.setAttribute(
+      'aria-valuetext',
+      `${state.progressValue}% through ${this.progressLabel}`,
+    );
+    this.progressIndicator.dataset.progress = state.progress.toFixed(4);
+    this.progressIndicatorLines.forEach((line, index) => {
+      const isActive = index >= state.activeStartIndex
+        && index < state.activeStartIndex + state.activeTickCount;
+      line.classList.toggle('is-active', isActive);
+      line.dataset.active = isActive ? 'true' : 'false';
+    });
   }
 
   setScrollSoundEnabled(enabled) {
@@ -919,6 +978,11 @@ export class PortfolioProjectDrawer {
     const spokenLabel = labelContent.eyebrow
       ? `${labelContent.eyebrow}: ${labelContent.title}`
       : labelContent.title;
+    this.progressLabel = spokenLabel || 'this project';
+    this.progressIndicator?.setAttribute(
+      'aria-label',
+      `${this.progressLabel} scroll progress`,
+    );
 
     this.root.style.setProperty('--portfolio-project-open-ms', `${openDurationMs}ms`);
     this.root.style.setProperty('--portfolio-project-image-fade-ms', `${imageFadeMs}ms`);
@@ -948,6 +1012,7 @@ export class PortfolioProjectDrawer {
           this.refreshSmoothScroll();
           this.scheduleDrawerMediaScrollShift();
           this.scrollPresence?.refresh();
+          this.updateScrollProgress();
         }, { once: true });
       }
     }
@@ -1090,6 +1155,8 @@ export class PortfolioProjectDrawer {
     this.teardownMediaScrollShift();
     this.scrollPresence?.destroy();
     this.scrollPresence = null;
+    this.progressResizeObserver?.disconnect();
+    this.progressResizeObserver = null;
     this.scrollSoundEnabled = false;
     this.scrollSoundController.reset();
     if (this.closeFallbackTimer !== null) {
@@ -1112,5 +1179,7 @@ export class PortfolioProjectDrawer {
     this.title = null;
     this.content = null;
     this.backButton = null;
+    this.progressIndicator = null;
+    this.progressIndicatorLines = [];
   }
 }

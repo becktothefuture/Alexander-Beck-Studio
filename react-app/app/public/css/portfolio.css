@@ -1628,6 +1628,61 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   overflow: visible;
 }
 
+.portfolio-project-progress-layer {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  height: calc(
+    100%
+    + var(--portfolio-host-bottom-reserve)
+    - var(--shell-bottom-band-height)
+    - var(--abs-safe-bottom)
+  );
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--portfolio-project-open-ms, 420ms) ease;
+}
+
+.portfolio-project-view.is-open .portfolio-project-progress-layer {
+  opacity: 1;
+  visibility: visible;
+}
+
+.portfolio-project-progress {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: max(clamp(10px, 1vw, 14px), env(safe-area-inset-left));
+  display: grid;
+  gap: var(--abs-indicator-line-gap, 9px);
+  pointer-events: none;
+  transform: translateY(calc(-50% + 0.5px));
+}
+
+.portfolio-project-progress__line {
+  display: block;
+  width: var(--abs-indicator-line-width, 8px);
+  height: var(--abs-indicator-line-thickness, 3px);
+  border-radius: 999px;
+  background: var(--abs-indicator-ink, rgb(var(--abs-rgb-black)));
+  opacity: var(--abs-indicator-rest-opacity, 0.22);
+  transform-origin: 0 50%;
+  transition: opacity 140ms ease-out;
+}
+
+.portfolio-project-progress__line.is-active {
+  opacity: 1;
+}
+
+.portfolio-project-view:has(.portfolio-project-view__scroll:focus-visible)
+  .portfolio-project-progress__line.is-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--abs-indicator-ink) 42%, transparent);
+}
+
 .portfolio-project-view.is-visible {
   visibility: visible;
 }
@@ -2920,6 +2975,8 @@ html[data-abs-theme='dark'] .portfolio-project-view[data-project-id='chapter-5']
 
   .portfolio-project-view__backdrop,
   .portfolio-project-view__drawer,
+  .portfolio-project-progress-layer,
+  .portfolio-project-progress__line,
   .portfolio-project-view__image-shell,
   .portfolio-project-view__image-motion,
   .portfolio-project-media-bridge,

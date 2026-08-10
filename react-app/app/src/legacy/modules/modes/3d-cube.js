@@ -8,7 +8,6 @@ import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
-import { triggerDetent } from '../audio/simulation-audio-adapter.js';
 import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 import {
   CUBE_3D_DEFAULTS,
@@ -70,7 +69,6 @@ export function initialize3DCube() {
     tumbleY: 0,
     pointerWasInCanvas: false,
     lastPointerSequence: null,
-    audioAngle: 0,
     breathPhase: 0,
     focalLength: Math.max(
       80,
@@ -171,20 +169,6 @@ export function apply3DCubeForces(ball, dt) {
     ) * dt;
     state.rotZ += idleSpeed * 0.2 * idleMotionScale * dt;
     state.breathPhase += dt * 0.42 * motionScale;
-    const manualAngularVelocity = Math.hypot(state.tumbleX, state.tumbleY) * motionScale;
-    if (pointerInCanvas && manualAngularVelocity > 0.12) {
-      state.audioAngle += manualAngularVelocity * dt;
-      triggerDetent({
-        id: '3d-cube:edge',
-        value: state.audioAngle,
-        step: Math.PI / 16,
-        velocity: manualAngularVelocity,
-        minVelocity: 0.16,
-        minIntervalMs: 34,
-        gain: 0.052,
-        filterHz: 3300,
-      });
-    }
     updateCubeRotationMatrix(
       state.rotationMatrix,
       state.rotX,

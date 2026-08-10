@@ -10,7 +10,8 @@ import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
-import { triggerDetent } from '../audio/simulation-audio-adapter.js';
+import { createAngularScrollSoundController } from '../audio/angular-scroll-sound-controller.js';
+import { playScrollDetent } from '../audio/sound-engine.js';
 import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
 
 const DEFAULT_DRAG_GAIN = 1.25;
@@ -26,6 +27,7 @@ const DEFAULT_MIN_DOT_RADIUS_PX = 1.8;
 const DEFAULT_ALPHA_MAX = 1;
 const INPUT_VELOCITY_EASE = 10;
 const INPUT_VELOCITY_THRESHOLD = 0.025;
+const ROTATION_SOUND_COAST_MS = 520;
 const DEPTH_BLEND_BAND = 0.045;
 const depthRenderScratch = [];
 let unsubscribePointer = null;
@@ -220,6 +222,10 @@ function handleSpherePointer(type, detail) {
       return;
     }
     state.isDragging = true;
+    state.userSpinActive = false;
+    state.rotationSoundCoastRemainingMs = 0;
+    state.rotationSoundAtMs = 0;
+    state.rotationSoundController.reset();
     state.dragPointerId = detail.pointerId ?? null;
     state.prevTrackballPoint = mapToTrackball(relX, relY, state.radiusPx);
     state.lastPointerTime = Number(detail.time) || performance.now();
@@ -240,6 +246,7 @@ function handleSpherePointer(type, detail) {
       const rotation = trackballRotation(state.prevTrackballPoint, currentPoint);
       const angularVel = rotation.angle / dt;
       if (angularVel > INPUT_VELOCITY_THRESHOLD) {
+        state.userSpinActive = true;
         const motionScale = resolveReducedMotionScale(g);
         const dragGain = resolveDragGain(g) * motionScale;
         const maxAngularVelocity = clampNumber(
@@ -269,6 +276,14 @@ function handleSpherePointer(type, detail) {
     state.currentAngularVelX *= releaseGain;
     state.currentAngularVelY *= releaseGain;
     state.currentAngularVelZ *= releaseGain;
+    state.rotationSoundCoastRemainingMs = type === 'cancel' || !state.userSpinActive
+      ? 0
+      : ROTATION_SOUND_COAST_MS;
+    if (type === 'cancel') {
+      state.userSpinActive = false;
+      state.rotationSoundAtMs = 0;
+      state.rotationSoundController.reset();
+    }
     resetDragState(state);
   }
 }
@@ -323,7 +338,13 @@ export function initialize3DSphere() {
     dragPointerId: null,
     lastPointerTime: 0,
     pointerWasInCanvas: false,
-    audioAngle: 0,
+    userSpinActive: false,
+    rotationSoundCoastRemainingMs: 0,
+    rotationSoundAtMs: 0,
+    rotationSoundController: createAngularScrollSoundController({
+      source: 'continuity-rotation',
+      playDetent: playScrollDetent,
+    }),
     motionScale: resolveReducedMotionScale(g),
     idleSpeed: resolveSpinIdleSpeed(g),
     focal: Math.max(80, g.sphere3dFocalLength ?? 600),
@@ -416,23 +437,30 @@ export function apply3DSphereForces(ball, dt) {
       state.spinAxisLocalX = state.rotationMatrix[0] * axisX + state.rotationMatrix[3] * axisY + state.rotationMatrix[6] * axisZ;
       state.spinAxisLocalY = state.rotationMatrix[1] * axisX + state.rotationMatrix[4] * axisY + state.rotationMatrix[7] * axisZ;
       state.spinAxisLocalZ = state.rotationMatrix[2] * axisX + state.rotationMatrix[5] * axisY + state.rotationMatrix[8] * axisZ;
-      if (state.isDragging && totalAngularVel > 0.08) {
-        state.audioAngle += coastAngle;
-        triggerDetent({
-          id: '3d-sphere:orbit',
-          value: state.audioAngle,
-          step: Math.PI / 18,
-          velocity: totalAngularVel,
-          minVelocity: 0.11,
-          minIntervalMs: 34,
-          gain: 0.048,
-          filterHz: 3200,
-        });
+      const rotationSoundActive = state.userSpinActive && (
+        state.isDragging || state.rotationSoundCoastRemainingMs > 0
+      );
+      if (rotationSoundActive) {
+        state.rotationSoundAtMs += dt * 1000;
+        state.rotationSoundController.sampleAngularDelta(coastAngle, state.rotationSoundAtMs);
       }
     } else {
       state.currentAngularVelX = 0;
       state.currentAngularVelY = 0;
       state.currentAngularVelZ = 0;
+    }
+
+    if (!state.isDragging && state.rotationSoundCoastRemainingMs > 0) {
+      state.rotationSoundCoastRemainingMs = Math.max(
+        0,
+        state.rotationSoundCoastRemainingMs - (dt * 1000),
+      );
+    }
+
+    if (!state.isDragging && state.rotationSoundCoastRemainingMs <= 0 && state.userSpinActive) {
+      state.userSpinActive = false;
+      state.rotationSoundAtMs = 0;
+      state.rotationSoundController.reset();
     }
 
     if (!state.isDragging && totalAngularVel < 0.25) {

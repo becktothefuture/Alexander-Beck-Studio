@@ -5,6 +5,10 @@ import {
   shouldUseNativeSmoothScroll,
 } from '../../lib/smooth-scroll.js';
 import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
+import {
+  SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT,
+  SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+} from '../../lib/scroll-progress-indicator.js';
 import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
   compileAboutNarrativeRendererRuntimePlan,
@@ -39,8 +43,8 @@ const EMPTY_MEASUREMENTS = Object.freeze({
   contextFields: [],
 });
 
-export const ABOUT_SCROLL_INDICATOR_TICK_COUNT = 18;
-export const ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT = 2;
+export const ABOUT_SCROLL_INDICATOR_TICK_COUNT = SCROLL_PROGRESS_INDICATOR_TICK_COUNT;
+export const ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT = SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT;
 const ABOUT_SCROLL_INDICATOR_MAX_START_INDEX = Math.max(
   0,
   ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,

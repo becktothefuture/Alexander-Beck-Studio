@@ -6,6 +6,8 @@
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
+import { triggerImpact } from '../audio/simulation-audio-adapter.js';
+import { resolveWallImpactSound } from '../audio/simulation-sound-policy.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
@@ -509,7 +511,25 @@ export class Ball {
       if (registerEffects) {
         // Sound panned by x position
         const pan = this.x / Math.max(1, w);
-        playCollisionSound(this.r, impact * 0.65, pan, this._soundId);
+        const wallSound = resolveWallImpactSound({
+          mode: globals.currentMode,
+          impact,
+          fallbackId: this._soundId,
+        });
+        if (
+          wallSound.minIntervalMs > 0
+          && wallSound.intensity >= wallSound.minimumIntensity
+        ) {
+          triggerImpact({
+            id: wallSound.id,
+            radius: this.r,
+            intensity: wallSound.intensity,
+            x: pan,
+            minIntervalMs: wallSound.minIntervalMs,
+          });
+        } else if (wallSound.minIntervalMs <= 0) {
+          playCollisionSound(this.r, wallSound.intensity, pan, wallSound.id);
+        }
         
         // Wobble registration - use ball position for impact point
         const impactSpeedN = Math.max(0, preVn);
