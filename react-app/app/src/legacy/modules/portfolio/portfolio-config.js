@@ -109,7 +109,6 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       indicatorGapPx: 9,
       dotDensity: 18,
       dotParallaxRatio: 1,
-      contactShadowOpacity: 0,
       particleField: {
         idleOpacity: 0,
         fastOpacity: 0.26,
@@ -196,6 +195,7 @@ export function normalizePortfolioConfig(rawConfig) {
     delete runtime.carousel.sliderYOffsetDvh;
     delete runtime.carousel.introYOffsetDvh;
     delete runtime.carousel.desktopViewportYOffsetDvh;
+    delete runtime.carousel.contactShadowOpacity;
   }
   if (runtime?.labeling) {
     if (runtime.labeling.fontDesktopPx === undefined && Number.isFinite(Number(runtime.labeling.fontMaxPx))) {

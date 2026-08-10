@@ -145,7 +145,6 @@ const PORTFOLIO_DECK_DEFAULTS = Object.freeze({
   reappearFade: 0.12,
   exitScale: 1.045,
   exitBlurPx: 3.2,
-  contactShadowOpacity: 0,
   particleField: Object.freeze({
     idleOpacity: 0,
     fastOpacity: 0.26,
@@ -1571,11 +1570,6 @@ class PortfolioScrollApp {
       5,
       24
     );
-    const contactShadowOpacity = clamp(
-      toNumber(this.deckOptions.contactShadowOpacity, PORTFOLIO_DECK_DEFAULTS.contactShadowOpacity),
-      0,
-      0.18
-    );
     const intro = this.deckStage?.querySelector?.('.portfolio-deck-intro');
     const introRect = intro?.getBoundingClientRect?.();
     const stageRect = this.deckStage?.getBoundingClientRect?.();
@@ -1696,7 +1690,6 @@ class PortfolioScrollApp {
     const dotCount = Math.round(toNumber(this.deckOptions.dotDensity, PORTFOLIO_DECK_DEFAULTS.dotDensity));
     this.mount.style.setProperty('--portfolio-carousel-dot-count', String(dotCount));
     this.syncDotDialDensity(dotCount);
-    this.mount.style.setProperty('--portfolio-card-contact-shadow-opacity', contactShadowOpacity.toFixed(3));
   }
 
   wrapProjectIndex(index) {

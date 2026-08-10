@@ -134,7 +134,6 @@ const CONTROL_SECTIONS = {
         title: 'Card Emphasis',
         controls: [
           { id: 'carouselInactiveScale', label: 'Inactive scale', configKey: 'runtime.carousel.inactiveScale', type: 'range', min: 0.75, max: 0.98, step: 0.01, unit: '', default: 0.9, refresh: true, hint: 'Scale for every card that is not centred. The active card remains at full size.' },
-          { id: 'carouselContactShadowOpacity', label: 'Contact shadow', configKey: 'runtime.carousel.contactShadowOpacity', type: 'range', min: 0, max: 0.2, step: 0.005, unit: '', default: 0, refresh: true },
         ],
       },
       {

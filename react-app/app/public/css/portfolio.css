@@ -832,25 +832,6 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-card-content-scale: 1;
   --portfolio-deck-card-aspect: 316 / 461;
   --portfolio-deck-card-height: auto;
-  --portfolio-card-contact-shadow-opacity: 0;
-  --portfolio-card-top-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 1.28);
-  --portfolio-card-bottom-shadow-opacity: calc(var(--portfolio-card-contact-shadow-opacity) * 0.22);
-  --portfolio-card-contact-shadow:
-    0 clamp(-24px, -1.55vw, -14px) clamp(28px, 2.8vw, 48px) -6px
-      rgba(0, 0, 0, var(--portfolio-card-top-shadow-opacity)),
-    0 clamp(-8px, -0.58vw, -5px) clamp(14px, 1.4vw, 24px) -10px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.95)),
-    0 clamp(4px, 0.45vw, 7px) clamp(10px, 1vw, 18px) -6px
-      rgba(0, 0, 0, var(--portfolio-card-bottom-shadow-opacity)),
-    var(--ui-chrome-button-edge);
-  --portfolio-card-contact-shadow-hover:
-    0 clamp(-30px, -1.9vw, -18px) clamp(34px, 3.4vw, 58px) -6px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 1.58)),
-    0 clamp(-10px, -0.72vw, -6px) clamp(16px, 1.6vw, 28px) -9px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 1.16)),
-    0 clamp(3px, 0.4vw, 6px) clamp(9px, 0.9vw, 16px) -7px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.18)),
-    var(--ui-chrome-button-edge);
   --portfolio-deck-center-y: 50%;
   --portfolio-deck-intro-top: clamp(58px, 8cqh, 91px);
   --portfolio-deck-depth-gap-1: clamp(34px, 4.1vh, 42px);
@@ -1132,8 +1113,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   inset: 0;
   z-index: 0;
   border-radius: inherit;
-  background-color: #101010;
-  box-shadow: var(--portfolio-card-contact-shadow);
+  box-shadow: none;
   overflow: hidden;
   transform:
     translateY(var(--portfolio-card-route-y, 0px))
@@ -1145,8 +1125,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transition:
     transform var(--portfolio-card-surface-transform-duration, 420ms)
       var(--portfolio-card-surface-transform-easing, var(--ease-settle, cubic-bezier(0.215, 0.61, 0.355, 1)))
-      var(--portfolio-card-surface-transform-delay, 0ms),
-    box-shadow 300ms var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
+      var(--portfolio-card-surface-transform-delay, 0ms);
 }
 
 .portfolio-project-card__material {
@@ -1179,29 +1158,11 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   --portfolio-card-press-scale: 1.012;
 }
 
-.portfolio-deck-mount .portfolio-project-card:hover .portfolio-project-card__surface,
-.portfolio-deck-mount .portfolio-project-card.is-keyboard-focused .portfolio-project-card__surface {
-  box-shadow: var(--portfolio-card-contact-shadow-hover);
-}
-
 /* Cycle rebasing swaps between visually identical permanent ring copies in one
    frame. Suppressing the opacity transition for that frame makes the handoff
    pixel-stable instead of fading the replacement copy from its offscreen state. */
 .portfolio-deck-mount.is-ring-rebasing .portfolio-project-card {
   transition: none;
-}
-
-.portfolio-deck-mount .portfolio-project-card.is-pressing .portfolio-project-card__surface {
-  box-shadow:
-    0 clamp(-15px, -1.05vw, -9px) clamp(20px, 2vw, 34px) -8px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.9)),
-    0 clamp(-5px, -0.35vw, -3px) clamp(10px, 1vw, 18px) -9px
-      rgba(0, 0, 0, calc(var(--portfolio-card-contact-shadow-opacity) * 0.62)),
-    inset 0 1px 0 color-mix(in srgb, white 34%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, black 22%, transparent);
-  transition:
-    box-shadow 115ms cubic-bezier(0.34, 0, 0.2, 1),
-    opacity 160ms ease;
 }
 
 .portfolio-deck-mount .portfolio-project-card.is-opening-release {
@@ -1214,10 +1175,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-deck-mount .portfolio-project-card.is-opening-release .portfolio-project-card__surface {
-  box-shadow: var(--portfolio-card-contact-shadow-hover);
-  transition:
-    transform 90ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 110ms var(--ease-organic, ease);
+  transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .portfolio-project-media-bridge {
@@ -1231,7 +1189,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   padding: 0;
   background: transparent;
   border: 0;
-  box-shadow: var(--portfolio-card-contact-shadow-hover);
+  box-shadow: none;
   pointer-events: none;
   overflow: hidden;
   transform: none;
