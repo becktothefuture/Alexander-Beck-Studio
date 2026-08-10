@@ -6,22 +6,22 @@ const ROUTES = Object.freeze([
   {
     id: 'home',
     label: 'Home',
-    color: 'var(--ball-4, #00843d)',
+    color: 'var(--ball-4, #008f4d)',
   },
   {
     id: 'portfolio',
     label: 'Work',
-    color: 'var(--ball-6, #8e764d)',
+    color: 'var(--ball-6, #bd9530)',
   },
   {
     id: 'about',
     label: 'About Me',
-    color: 'var(--ball-7, #1557ff)',
+    color: 'var(--ball-7, #1852ff)',
   },
   {
     id: 'contact',
     label: 'Contact',
-    color: 'var(--ball-8, #695a74)',
+    color: 'var(--ball-8, #a34b43)',
   },
 ]);
 

@@ -25,7 +25,7 @@
   --panel-destructive-foreground: hsl(0 0% 98%);
   
   /* Brand accent */
-  --panel-brand: var(--ball-7, #1557ff);
+  --panel-brand: var(--ball-7, #1852ff);
   --panel-brand-foreground: hsl(0 0% 100%);
   
   /* Sizing */

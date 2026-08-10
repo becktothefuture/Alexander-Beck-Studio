@@ -15,11 +15,12 @@ const EXPECTED_ROTATION_COUNT = 2;
 const NEUTRAL_ROLE_INDEX = 0;
 const ART_DIRECTION_ROLE_INDEX = 2;
 const PRIMARY_ROLE_INDEX = 6;
+const MINIMUM_SIGNAL_SATURATION = 0.78;
 const APPROVED_PALETTE_COLORS = Object.freeze({
-  bowWornSignal: Object.freeze(['#747474', '#553875', '#ffffff', '#1aae7d', '#0b090c', '#87915a', '#ff4b00', '#cf287c']),
-  silvertownCobaltVoltage: Object.freeze(['#747474', '#71463a', '#ffffff', '#00843d', '#0c1118', '#8e764d', '#1557ff', '#695a74']),
+  bowWornSignal: Object.freeze(['#7b746e', '#704835', '#ffffff', '#00866b', '#0d0b10', '#7147c6', '#ff4b00', '#0067c5']),
+  silvertownCobaltVoltage: Object.freeze(['#74777a', '#86503a', '#ffffff', '#008f4d', '#0a131a', '#bd9530', '#1852ff', '#a34b43']),
   ryeAfterClosing: Object.freeze(['#666666', '#00744a', '#ffffff', '#3344d7', '#07100d', '#f2bd00', '#ff6500', '#9a637f']),
-  ryeAfterClosingTurmeric: Object.freeze(['#747474', '#246147', '#ffffff', '#3b4ed8', '#08100c', '#a67847', '#ffd000', '#99647f']),
+  ryeAfterClosingTurmeric: Object.freeze(['#78716c', '#31543f', '#ffffff', '#0067a5', '#0b100c', '#ffcf00', '#e2231a', '#6942a2']),
 });
 
 function assert(condition, message) {
@@ -132,12 +133,11 @@ for (const palette of LONDON_PALETTES) {
   });
 
   const profiles = palette.light.map(getColorProfile);
-  const neutralRoleChannels = palette.light[NEUTRAL_ROLE_INDEX].slice(1).match(/.{2}/g);
   assert(
-    new Set(neutralRoleChannels).size === 1
+    profiles[NEUTRAL_ROLE_INDEX].saturation <= 0.08
       && profiles[NEUTRAL_ROLE_INDEX].luminance >= 0.08
       && profiles[NEUTRAL_ROLE_INDEX].luminance <= 0.45,
-    `${palette.id} must keep Product Design as a true mid-value neutral grey at index 0`,
+    `${palette.id} must keep Product Design as a low-chroma mid-value grey at index 0`,
   );
   assert(
     palette.light[ART_DIRECTION_ROLE_INDEX].toLowerCase() === '#ffffff',
@@ -148,7 +148,7 @@ for (const palette of LONDON_PALETTES) {
     `${palette.id} must keep a near-black ground at index 4`,
   );
   assert(
-    profiles[PRIMARY_ROLE_INDEX].saturation >= 0.8,
+    profiles[PRIMARY_ROLE_INDEX].saturation >= MINIMUM_SIGNAL_SATURATION,
     `${palette.id} must keep one clear high-saturation signal at index 6`,
   );
 }

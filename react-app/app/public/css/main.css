@@ -3986,10 +3986,10 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 }
 
 .button-bar {
-  --button-bar-accent-home: var(--ball-4, #00843d);
-  --button-bar-accent-portfolio: var(--ball-6, #8e764d);
-  --button-bar-accent-about: var(--ball-7, #1557ff);
-  --button-bar-accent-contact: var(--ball-8, #695a74);
+  --button-bar-accent-home: var(--ball-4, #008f4d);
+  --button-bar-accent-portfolio: var(--ball-6, #bd9530);
+  --button-bar-accent-about: var(--ball-7, #1852ff);
+  --button-bar-accent-contact: var(--ball-8, #a34b43);
   --button-bar-accent-playground: var(--ball-3, #ffffff);
   --button-bar-accent-sound: var(--button-bar-accent-home);
   --button-bar-figma-selected-ink: #ff4013;
@@ -6860,7 +6860,7 @@ body.cv-page .route-topbar .gate-back {
 .contact-email-row {
   --contact-email-pad-y: var(--modal-pad-md-y, 0.9rem);
   --contact-email-pad-x: var(--modal-pad-md-x, 1.05rem);
-  --contact-copy-flash-color: var(--contact-ripple-burst-color, var(--ball-8, #695a74));
+  --contact-copy-flash-color: var(--contact-ripple-burst-color, var(--ball-8, #a34b43));
   --contact-copy-flash-fill: var(--contact-copy-flash-color);
   width: auto;
   max-width: min(100%, clamp(320px, 80vw, 520px));
