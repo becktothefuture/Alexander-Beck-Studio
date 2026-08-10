@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { SiteFooter } from '../SiteFooter.jsx';
 import { RouteTransitionLoader } from './RouteTransitionLoader.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
+import { ShellUtilityRail } from './ShellUtilityRail.jsx';
 import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
 import {
@@ -289,6 +290,7 @@ export function StudioShell({
               reason,
             })}
           />
+          <ShellUtilityRail />
           {/* Portfolio drawer: keep its route content and scroll cue above the window UI but below the Button Bar. */}
           <div
             id="portfolio-sheet-host"

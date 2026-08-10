@@ -29,6 +29,12 @@ import {
   applyButtonBarCssVars,
   formatButtonBarControlValue,
 } from '../../../lib/buttonBarControls.js';
+import {
+  UTILITY_RAIL_CONTROL_GROUPS,
+  UTILITY_RAIL_DEFAULTS,
+  applyUtilityRailCssVars,
+  formatUtilityRailControlValue,
+} from '../../../lib/utilityRailControls.js';
 import { CUBE_3D_DEFAULTS, CUBE_3D_LIMITS } from '../modes/cube3d-config.js';
 // The color-distribution leaf owns configureSimulationPalette publication.
 import { bindColorDistributionControl, generateColorDistributionControlHTML } from './color-distribution-control.js';
@@ -333,6 +339,14 @@ export const MASTER_GROUPS = [
     icon: '▰',
     sections: [
       'buttonBar'
+    ]
+  },
+  {
+    id: 'utilityRail',
+    title: 'Utility Rail',
+    icon: '⋮',
+    sections: [
+      'utilityRail'
     ]
   },
   {
@@ -809,6 +823,28 @@ function createButtonBarControls() {
       hint: control.hint || `Button Bar: ${control.label.toLowerCase()}.`,
       onChange: (g) => {
         applyButtonBarCssVars(g);
+      },
+    })),
+  ]);
+}
+
+function createUtilityRailControls() {
+  return UTILITY_RAIL_CONTROL_GROUPS.flatMap((group) => [
+    { type: 'divider', label: group.title },
+    ...group.controls.map((control) => ({
+      id: control.id,
+      label: control.label,
+      stateKey: control.id,
+      type: control.type || 'range',
+      min: control.min,
+      max: control.max,
+      step: control.step,
+      default: UTILITY_RAIL_DEFAULTS[control.id],
+      format: (value) => formatUtilityRailControlValue(value, control),
+      parse: parseFloat,
+      hint: control.hint || `Utility Rail: ${control.label.toLowerCase()}.`,
+      onChange: (g) => {
+        applyUtilityRailCssVars(g);
       },
     })),
   ]);
@@ -1548,6 +1584,16 @@ export const CONTROL_SECTIONS = {
     icon: '▰',
     defaultOpen: true,
     controls: createButtonBarControls()
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITY RAIL - Persistent theme and sound controls at the window edge
+  // ═══════════════════════════════════════════════════════════════════════════
+  utilityRail: {
+    title: 'Position & Scale',
+    icon: '⋮',
+    defaultOpen: true,
+    controls: createUtilityRailControls()
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

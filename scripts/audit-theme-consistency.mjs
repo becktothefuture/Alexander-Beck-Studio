@@ -120,6 +120,8 @@ async function readThemeState(page) {
       themeColor: normalizeColor(document.querySelector('meta[name="theme-color"]:not([media])')?.content || ''),
       storedPreference: localStorage.getItem('theme-preference-v3'),
       legacyV2Preference: localStorage.getItem('theme-preference-v2'),
+      themeSource: root.dataset.absThemeSource || '',
+      themeToggleDisplay: getComputedStyle(document.querySelector('.button-bar__theme-toggle')).display,
       activeRoute: document.querySelector('[data-route-tab][aria-current="page"]')?.getAttribute('data-route-tab') || '',
     };
   });

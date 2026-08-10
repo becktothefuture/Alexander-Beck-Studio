@@ -247,9 +247,9 @@ async function readFrameState(page) {
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
     const activePill = buttonBar?.querySelector('.button-bar__active-pill');
-    const soundToggle = buttonBar?.querySelector('.button-bar__sound-toggle');
-    const themeToggle = buttonBar?.querySelector('.button-bar__theme-toggle');
-    const themeThumb = buttonBar?.querySelector('.button-bar__theme-thumb');
+    const soundToggle = document.querySelector('[data-shell-utility-rail] .button-bar__sound-toggle');
+    const themeToggle = document.querySelector('[data-shell-utility-rail] .button-bar__theme-toggle');
+    const themeThumb = themeToggle?.querySelector('.button-bar__theme-thumb, .shell-utility-control__icon');
     const activeStyle = activeTab ? getComputedStyle(activeTab) : null;
     const activeContentStyle = activeContent ? getComputedStyle(activeContent) : null;
     const inactiveStyle = inactiveTab ? getComputedStyle(inactiveTab) : null;
@@ -259,6 +259,8 @@ async function readFrameState(page) {
     const themeThumbStyle = themeThumb ? getComputedStyle(themeThumb) : null;
     return {
       boot: root.dataset.absBootState || '',
+      theme: root.dataset.absTheme || '',
+      themeSource: root.dataset.absThemeSource || '',
       transition: root.dataset.absSimulationFocusTransition || '',
       label: document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() || '',
       absBrowserChrome: rootStyle.getPropertyValue('--abs-browser-chrome').trim(),
@@ -291,8 +293,10 @@ async function readFrameState(page) {
       inactiveTabBorder: inactiveStyle?.borderTopColor || '',
       soundToggleBackground: soundStyle?.backgroundColor || '',
       soundToggleColor: soundStyle?.color || '',
+      soundToggleDisplay: soundStyle?.display || '',
       themeToggleBackground: themeStyle?.backgroundColor || '',
       themeToggleColor: themeStyle?.color || '',
+      themeToggleDisplay: themeStyle?.display || '',
       themeThumbBackground: themeThumbStyle?.backgroundColor || '',
       themeThumbColor: themeThumbStyle?.color || '',
     };
@@ -308,7 +312,8 @@ async function readFrameState(page) {
   };
 }
 
-function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, expectedWall, expectedSiteFrame, checkOuterPixel = true) {
+function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, expectedWindow, expectedWall, expectedSiteFrame, checkOuterPixel = true, options = {}) {
+  const isMobile = Boolean(options.isMobile);
   const expected = normalizeHex(expectedHex);
   for (const key of ['absBrowserChrome', 'frameColor', 'wallColor', 'chromeBg']) {
     if (normalizeHex(actual[key]) !== expected) {
@@ -365,8 +370,10 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   if (!actual.buttonBarShadow.includes('0px 2px 3px') || !actual.buttonBarShadow.includes('0px 1px 1px')) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar lost its paired inset highlights: ${actual.buttonBarShadow}`);
   }
-  if (actual.buttonBarRadius !== '16px' || Math.abs(actual.buttonBarHeight - 45) > 0.25) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar geometry expected 45px/16px, got ${actual.buttonBarHeight}px/${actual.buttonBarRadius}`);
+  const expectedButtonBarHeight = isMobile ? 62 : 68;
+  const expectedButtonBarRadius = isMobile ? '20px' : '22px';
+  if (actual.buttonBarRadius !== expectedButtonBarRadius || Math.abs(actual.buttonBarHeight - expectedButtonBarHeight) > 0.25) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar geometry expected ${expectedButtonBarHeight}px/${expectedButtonBarRadius}, got ${actual.buttonBarHeight}px/${actual.buttonBarRadius}`);
   }
   if (activeBackground[3] > 0.01 || inactiveBackground[3] > 0.01) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} route tabs introduced a background: active=${actual.activeTabBackground} inactive=${actual.inactiveTabBackground}`);
@@ -391,15 +398,18 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   }
   actual.inactiveTabContrast = Number(inactiveContrast.toFixed(2));
 
-  const assertUtilityControl = (name, backgroundValue, colorValue) => {
+  const assertUtilityControl = (name, backgroundValue, colorValue, { allowSurface = false } = {}) => {
     const background = cssColorToRgba(backgroundValue);
     const foreground = cssColorToRgba(colorValue);
     if (!background || !foreground) {
       throw new Error(`${siteTheme}/${browserScheme}/${phase} could not parse ${name} colours: background=${backgroundValue} color=${colorValue}`);
     }
 
-    if (background[3] > 0.01) {
+    if (!allowSurface && background[3] > 0.01) {
       throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} introduced a tab surface: ${backgroundValue}`);
+    }
+    if (allowSurface && background[3] > 0.12) {
+      throw new Error(`${siteTheme}/${browserScheme}/${phase} ${name} surface is too strong: ${backgroundValue}`);
     }
     const compositedControlForeground = compositeRgba(foreground, [...capsuleMidpointRgb, 1]);
     const controlContrast = contrastRatio(compositedControlForeground, capsuleMidpointRgb);
@@ -411,9 +421,15 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
   };
 
   actual.utilityControlContrast = {
-    sound: assertUtilityControl('sound-toggle', actual.soundToggleBackground, actual.soundToggleColor),
-    theme: assertUtilityControl('theme-toggle', actual.themeToggleBackground, actual.themeToggleColor),
+    sound: assertUtilityControl('sound-toggle', actual.soundToggleBackground, actual.soundToggleColor, { allowSurface: isMobile }),
+    theme: assertUtilityControl('theme-toggle', actual.themeToggleBackground, actual.themeToggleColor, { allowSurface: isMobile }),
   };
+  if (actual.soundToggleDisplay === 'none') {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} sound control is hidden`);
+  }
+  if (actual.themeToggleDisplay === 'none') {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} theme control is hidden`);
+  }
 
 }
 
@@ -423,6 +439,7 @@ function resolveExpectedFrame(_browserScheme, expectations, _profile) {
 
 async function runCase(browser, siteTheme, browserScheme, expectations, profile) {
   const expectedFrame = resolveExpectedFrame(browserScheme, expectations, profile);
+  const isMobile = Boolean(profile.context.isMobile);
   const expectedWindow = expectations.window[siteTheme];
   const context = await browser.newContext({
     ...profile.context,
@@ -443,7 +460,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     await page.waitForTimeout(1200);
 
     const directHome = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !profile.context.isMobile);
+    assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !isMobile, { isMobile });
 
     await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
     await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
@@ -457,7 +474,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     await page.waitForTimeout(1200);
 
     const routeBacked = await readFrameState(page);
-    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !profile.context.isMobile);
+    assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !isMobile, { isMobile });
 
     log(`engine=${browserName} profile=${profile.name} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame} active-contrast=${routeBacked.activeTabContrast}:1`);
   } finally {

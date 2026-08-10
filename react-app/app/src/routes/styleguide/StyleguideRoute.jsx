@@ -65,7 +65,7 @@ export function getStyleguideRouteView() {
           <section className="styleguide-section" aria-labelledby="sg-button-bar">
             <h2 id="sg-button-bar">Button Bar navigation</h2>
             <p className="styleguide-section__hint">
-              The specimen uses the production component: four routes, Contact, two dividers, fixed utilities, and one shared active dot.
+              The production component keeps five icon-and-label routes in one group. One shared active key moves between them; theme and sound live in the separate global Utility Rail.
             </p>
             {renderButtonBarSpecimen()}
           </section>

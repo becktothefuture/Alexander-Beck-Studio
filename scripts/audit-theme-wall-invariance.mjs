@@ -419,7 +419,10 @@ async function readInvariantState(page) {
         return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
       }).join(';'),
       activePrimaryPillBackground: activePrimaryPill ? getComputedStyle(activePrimaryPill).backgroundColor : '',
-      activePrimaryPillInset: Number.parseFloat(rootStyle.getPropertyValue('--button-bar-active-inset')),
+      activePrimaryPillInset: Number.parseFloat(
+        rootStyle.getPropertyValue('--button-bar-effective-active-inset')
+        || rootStyle.getPropertyValue('--button-bar-active-inset'),
+      ),
       activePrimaryInk: activePrimaryContent ? getComputedStyle(activePrimaryContent).color : '',
       activePrimaryRouteId: activePrimaryTab?.dataset.routeTab || '',
       activePrimaryTabX: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.x) : '',
@@ -804,8 +807,10 @@ async function waitForActivePrimaryTabThemeContract(page) {
 
     const activePrimaryTabRect = activePrimaryTab.getBoundingClientRect();
     const activePrimaryPillRect = activePrimaryPill.getBoundingClientRect();
+    const rootStyle = getComputedStyle(document.documentElement);
     const activePrimaryPillInset = Number.parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--button-bar-active-inset'),
+      rootStyle.getPropertyValue('--button-bar-effective-active-inset')
+      || rootStyle.getPropertyValue('--button-bar-active-inset'),
     );
     const expectedPillWidth = activePrimaryTabRect.width - (2 * activePrimaryPillInset);
     const expectedPillHeight = activePrimaryTabRect.height - (2 * activePrimaryPillInset);

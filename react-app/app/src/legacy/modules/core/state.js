@@ -27,6 +27,11 @@ import {
   normalizeButtonBarConfig,
 } from '../../../lib/buttonBarControls.js';
 import {
+  UTILITY_RAIL_DEFAULTS,
+  applyUtilityRailCssVars,
+  normalizeUtilityRailConfig,
+} from '../../../lib/utilityRailControls.js';
+import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
   resolveMobileSimulationBodyScale,
 } from '../../../lib/mobileSimulationSizing.js';
@@ -707,6 +712,7 @@ const state = {
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   ...BUTTON_BAR_DEFAULTS,
+  ...UTILITY_RAIL_DEFAULTS,
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 32,           // Corner radius - shared by all rounded elements (px)
 
@@ -1196,6 +1202,7 @@ export function applyLayoutCSSVars() {
       root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 1)));
   root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(state.homeMainLinksBelowLogoPx ?? 40)}px`);
   applyButtonBarCssVars(state, root);
+  applyUtilityRailCssVars(state, root);
   if (Number.isFinite(state.footerNavBarTopVh)) {
     root.style.setProperty('--footer-nav-bar-top', `${state.footerNavBarTopVh}vh`);
     root.style.setProperty('--footer-nav-bar-top-svh', `${state.footerNavBarTopVh}svh`);
@@ -2042,6 +2049,11 @@ export function initState(config) {
   }
   Object.assign(state, normalizeButtonBarConfig({
     ...BUTTON_BAR_DEFAULTS,
+    ...state,
+    ...config,
+  }));
+  Object.assign(state, normalizeUtilityRailConfig({
+    ...UTILITY_RAIL_DEFAULTS,
     ...state,
     ...config,
   }));

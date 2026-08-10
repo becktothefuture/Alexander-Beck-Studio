@@ -106,10 +106,14 @@ function detectSystemPreference() {
   return 'light';
 }
 
+function getEffectiveThemePreference(theme = currentTheme) {
+  return normalizeThemePreference(theme);
+}
+
 function refreshSystemPreference() {
   systemPreference = detectSystemPreference();
-  if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-    applyTheme('auto', { persist: false });
+  if (getEffectiveThemePreference() === 'auto' && resolveShouldBeDark(currentTheme) !== isRenderedDarkMode()) {
+    applyTheme(currentTheme, { persist: false });
     return;
   }
   applyChromeHarmony();
@@ -117,7 +121,7 @@ function refreshSystemPreference() {
 }
 
 function resolveShouldBeDark(theme) {
-  return resolveThemeIsDark(theme, systemPreference === 'dark');
+  return resolveThemeIsDark(getEffectiveThemePreference(theme), systemPreference === 'dark');
 }
 
 function isRenderedDarkMode() {
@@ -138,6 +142,7 @@ function applyDarkModeToDOM(isDark) {
   const globals = getGlobals();
   const root = document.documentElement;
   globals.isDarkMode = isDark;
+  root.dataset.absThemeSource = getEffectiveThemePreference(currentTheme);
   
   applyThemeState(isDark, { container: globals.container });
   root.style.setProperty(
@@ -188,6 +193,7 @@ function updateSegmentControl() {
   forEachPanelUiDocument((uiDocument) => {
     const panelThemeToggle = uiDocument.querySelector('.panel-theme-toggle');
     if (panelThemeToggle) {
+      panelThemeToggle.hidden = false;
       panelThemeToggle.textContent = globals.isDarkMode ? '☀️' : '🌙';
       panelThemeToggle.dataset.state = globals.isDarkMode ? 'dark' : 'light';
     }
@@ -196,6 +202,12 @@ function updateSegmentControl() {
     const lightBtn = uiDocument.getElementById('themeLight');
     const darkBtn = uiDocument.getElementById('themeDark');
     if (!autoBtn || !lightBtn || !darkBtn) return;
+
+    const segmentControl = autoBtn.closest('.theme-segment-control');
+    if (segmentControl) segmentControl.hidden = false;
+    [autoBtn, lightBtn, darkBtn].forEach((button) => {
+      button.disabled = false;
+    });
 
     [autoBtn, lightBtn, darkBtn].forEach(btn => btn.classList.remove('active'));
 
@@ -241,6 +253,7 @@ export function bindThemeSegmentControls(uiDocument) {
  */
 function applyTheme(theme, { persist = true } = {}) {
   currentTheme = normalizeThemePreference(theme);
+  const effectiveTheme = getEffectiveThemePreference(currentTheme);
   const shouldBeDark = resolveShouldBeDark(currentTheme);
   
   applyDarkModeToDOM(shouldBeDark);
@@ -252,12 +265,13 @@ function applyTheme(theme, { persist = true } = {}) {
     window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, {
       detail: {
         theme: currentTheme,
+        effectiveTheme,
         isDark: shouldBeDark,
       },
     }));
   } catch (e) { /* Theme state remains applied when optional observers cannot be notified. */ }
   
-  devLog(`🎨 Theme set to: ${currentTheme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
+  devLog(`🎨 Theme set to: ${effectiveTheme} (saved: ${currentTheme}, rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
 
 export function setTheme(theme) {
@@ -287,7 +301,7 @@ export function initializeDarkMode() {
   systemPreference = detectSystemPreference();
   devLog(`🖥️ System prefers: ${systemPreference}`);
   
-  // Restore the same preference at every viewport width.
+  // Every viewport restores the saved preference. Auto follows the device.
   applyTheme(readThemePreference(), { persist: false });
   
   bindThemeSegmentControls(document);
@@ -300,8 +314,8 @@ export function initializeDarkMode() {
       devLog(`🖥️ System preference changed to: ${systemPreference}`);
       
       // If in auto mode, update
-      if (currentTheme === 'auto' && resolveShouldBeDark('auto') !== isRenderedDarkMode()) {
-        applyTheme('auto', { persist: false });
+      if (getEffectiveThemePreference() === 'auto' && resolveShouldBeDark(currentTheme) !== isRenderedDarkMode()) {
+        applyTheme(currentTheme, { persist: false });
       } else {
         applyChromeHarmony();
         updateThemeColor(isRenderedDarkMode());

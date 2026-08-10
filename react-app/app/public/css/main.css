@@ -759,22 +759,6 @@ html[data-abs-transition-phase='route-loading'] .about-narrative-indicator-layer
   visibility: hidden;
 }
 
-/* The active pill may lead navigation while aria-current continues to describe
-   the route that is actually committed. Keep those visual/semantic states distinct. */
-.button-bar[data-button-bar-material='dominant-tab']
-  [data-route-tabs][data-pending-route]
-  .shell-tab[aria-current='page'] {
-  color: var(--dominant-primary-idle-ink);
-  cursor: pointer;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  [data-route-tabs][data-pending-route]
-  .shell-tab[data-route-pending='true'] {
-  color: var(--dominant-primary-active-ink);
-  cursor: default;
-}
-
 .shell-route-slot {
   position: relative;
   grid-column: 1;
@@ -3816,12 +3800,18 @@ html[data-abs-transition-phase='route-in'] body.cv-page #abs-scene {
 html[data-abs-transition-phase='route-out'] [data-shell-bottom-band],
 html[data-abs-transition-phase='route-loading'] [data-shell-bottom-band],
 html[data-abs-transition-phase='route-in'] [data-shell-bottom-band],
+html[data-abs-transition-phase='route-out'] [data-shell-utility-rail],
+html[data-abs-transition-phase='route-loading'] [data-shell-utility-rail],
+html[data-abs-transition-phase='route-in'] [data-shell-utility-rail],
 html[data-abs-transition-phase='route-out'] [data-button-bar],
 html[data-abs-transition-phase='route-loading'] [data-button-bar],
 html[data-abs-transition-phase='route-in'] [data-button-bar],
 html[data-abs-transition-phase='route-out'] [data-button-bar] :is(a, button, [role='button']),
 html[data-abs-transition-phase='route-loading'] [data-button-bar] :is(a, button, [role='button']),
-html[data-abs-transition-phase='route-in'] [data-button-bar] :is(a, button, [role='button']) {
+html[data-abs-transition-phase='route-in'] [data-button-bar] :is(a, button, [role='button']),
+html[data-abs-transition-phase='route-out'] [data-shell-utility-rail] button,
+html[data-abs-transition-phase='route-loading'] [data-shell-utility-rail] button,
+html[data-abs-transition-phase='route-in'] [data-shell-utility-rail] button {
   pointer-events: auto;
 }
 
@@ -8040,7 +8030,12 @@ body.dark-mode .cv-photo {
 @media (max-width: 600px) {
   .panel-toggle-btn {
     right: 12px;
-    bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom) + 12px);
+    bottom: calc(
+      var(--button-bar-effective-height, var(--button-bar-height, 45px))
+      + var(--button-bar-bottom-inset, 10.5px)
+      + var(--abs-safe-bottom)
+      + 12px
+    );
     width: 42px;
     height: 42px;
   }

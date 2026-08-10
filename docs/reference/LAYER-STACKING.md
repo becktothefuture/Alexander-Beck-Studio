@@ -17,11 +17,11 @@ The expanded physical order is:
 8. route UI and the Home footer when Home is active;
 9. window overlays and Portfolio project sheet;
 10. modal/focus overlays;
-11. persistent Button Bar and its finish layer.
+11. persistent Button Bar and Utility Rail with their finish layers.
 
 ## Ownership
 
-`StudioShell.jsx` owns the physical window, overlay hosts, Home-only footer surface, and Button Bar. Route content stays inside the studio window. The Button Bar is a shell-owned sibling that deliberately overlaps the bottom `15.5px` of the window and must never be covered by route content, loaders, gates, or a project sheet.
+`StudioShell.jsx` owns the physical window, overlay hosts, Home-only footer surface, Button Bar, and Utility Rail. Route content stays inside the studio window. The Button Bar is a shell-owned sibling that deliberately overlaps the bottom `30px` of the window on mobile and `32px` on desktop. The Utility Rail is a shell-owned sibling attached to the studio-window right edge. Neither fixture may be covered by route content, loaders, gates, or a project sheet.
 
 `simulationLayer` and optional `heroLayer` content are scene-side. Visible route copy and controls belong in `uiLayer`. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays with the balls.
 

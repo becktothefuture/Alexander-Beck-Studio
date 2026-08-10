@@ -358,7 +358,8 @@
         } catch (_error) {}
 
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var isDark = savedTheme === 'dark' || (savedTheme === 'auto' && prefersDark);
+        var effectiveTheme = savedTheme;
+        var isDark = effectiveTheme === 'dark' || (effectiveTheme === 'auto' && prefersDark);
 
         if (isDark) root.classList.add('dark-mode');
         applyPalette(isDark);

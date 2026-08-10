@@ -15,7 +15,7 @@ The site is an engineered studio instrument with editorial warmth.
 - Clean and precise, but never sterile.
 - Playful through physical response, surprising behavior, and careful material detail rather than decorative clutter.
 - Contemporary and authored: Instrument Serif creates an editorial arrival; Geist keeps the interface technically exact.
-- Persistent and spatially reliable: the frame, window, Button Bar, and outside shell read as one object.
+- Persistent and spatially reliable: the frame, window, Button Bar, Utility Rail, and outside shell read as one object.
 - Restrained in its effects: color, blur, grain, depth, sound, and motion earn their place by clarifying hierarchy or interaction.
 - Human at the edges: the London signature, direct copy, and occasional irregular physical behavior soften the engineered structure.
 
@@ -47,7 +47,7 @@ The system is distributed across these production surfaces. A design change is c
 | Core tokens, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
 | Stable simulation palette registry and twice-daily schedule | `src/palette/londonPalettes.js`, `src/palette/timeOfDayPalette.js` |
 | Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html`, `playground.html` |
-| Persistent shell, surface slots, Home footer, overlay hosts, and Button Bar | `StudioShell.jsx`, `ShellButtonBar.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css` |
+| Persistent shell, surface slots, Home footer, overlay hosts, Button Bar, and Utility Rail | `StudioShell.jsx`, `ShellButtonBar.jsx`, `ShellUtilityRail.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css`, `shell-utility-rail.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, orbital deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
@@ -86,8 +86,9 @@ Exact values live in the headline and text tokens. The design rule is scarcity a
 The neutral structure carries the interface. Accent colors signal route, interaction, or simulation material; they are not general decoration.
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
-- Manual site theme affects the studio-window interior and the temporary in-window route cover. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
-- The Button Bar belongs to the stable dark outer shell. It is a compact `45px` capsule with a `#141414` to `#000000` vertical gradient, two inset highlights, and a `16px` radius in every site theme. Inactive labels use the readable neutral `#767881`; utility icons use `#72747D`; the active label is white above one shared graphite key surface. Sound and theme are plain icon-only toggles: sound swaps volume-off/volume-on and theme swaps sun/moon. Neither control uses a slider track. Route and utility separators are absent.
+- Manual site theme affects the studio-window interior and the temporary in-window route cover at every viewport width. `auto` follows `prefers-color-scheme`; explicit light or dark choices persist across responsive changes. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
+- The Button Bar belongs to the stable dark outer shell. Mobile is the proportional master at `62px` high; desktop carries the same composition at a slightly enlarged `68px`. Both retain the `#141414` to `#000000` vertical gradient and two inset highlights in every site theme. Mobile uses a `20px` capsule radius and desktop uses `22px`. Home, Work, About, Lab, and Contact are one undivided route group. Every route pairs a Tabler outline icon with a sentence-case Geist label: mobile uses `21px` icons, `8px` labels, and a `5px` gap in equal `62px` route cells; desktop uses `25px` icons, `11px` labels, and a `6px` gap in equal `85px` route cells. Labels use slightly tightened `-0.02em` tracking. Inactive labels use the readable neutral `#767881`; the active pair is white above one shared graphite key surface. Route separators are absent.
+- The Utility Rail is a separate shell fixture attached to the studio window's right edge. Desktop stays vertically centred at `50svh` with `32px` visible controls. Mobile deliberately becomes quieter: `25px` visible controls, an `-11px` outward offset, and a centre at `76svh` in the viewport's bottom half. Coarse-pointer hit areas expand invisibly to `44px` without allowing the two controls to overlap. The **Utility Rail** panel owns separate desktop and mobile size and horizontal-position controls plus the mobile vertical anchor; both horizontal ranges run from `-160px` to `160px`, the mobile size runs from `22px` to `44px`, and its vertical anchor runs from `55%` to `90%`. The rail uses stable outer-shell ink and material in every theme, persists through route transitions, and never becomes part of route content or the Button Bar.
 - Route accents remain stable: Home green, Work acid, About blue, Contact orange, and Lab pink.
 - Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
@@ -99,7 +100,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Use the existing 4px sub-unit and 8px rhythm for static endpoints. Tight icon/text pairings may use the smaller step.
 - Reuse semantic gaps and content insets. Do not create a route-specific spacing scale.
-- The studio window reserves `40px + safe-area` beneath its frame boundary while the capsule deliberately overlaps the window by `15.5px` and sits `10.5px + safe-area` above the viewport edge. Window backgrounds and overlays continue behind the overlap; route-owned interactive content consumes `--button-bar-content-clearance`.
+- The studio window derives its reserve from the active Button Bar endpoint. Mobile overlaps the window by `30px`; the slightly enlarged desktop endpoint uses `32px`, preserving the same approximately half-overlapped placement. Both sit `10.5px + safe-area` above the viewport edge. Window backgrounds and overlays continue behind the overlap; route-owned interactive content consumes `--button-bar-content-clearance`.
 - Readable text measure uses `ch`; layout width uses percentages, container units, or explicit maximums.
 - Width-owned typography and horizontal spacing use width-based fluid interpolation. Height-owned composition may use `svh`, `dvh`, or container height units.
 - Avoid `vmin` for values whose intent is horizontal; it can collapse spacing in short landscape viewports.
@@ -120,7 +121,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
 - Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
-- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. Primary cells use rendered label width plus `8px` mobile inline padding and `16px` from `768px`. Labels retain the reference `10px` size through `767px` and scale to `16px` from `768px`; they use the next available Geist weight (`700`) with restrained `0.012em` tracking. Desktop utility icons scale from `16px` to `18px`. The key follows the active or pending cell geometry with compositor-only travel, resizes to the target label cell, and uses the configured key inset equally on all four sides; `aria-current` remains on the committed route.
+- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. All five routes pair an icon with a sentence-case label: mobile uses `21px` Tabler outline icons with `8px` labels and a `5px` gap; desktop scales that relationship to `25px` icons with `11px` labels and a `6px` gap. Labels use Geist weight `700` with slightly tightened `-0.02em` tracking. The mobile key is `50px` inside its `62px` cell; the desktop key is `71px` inside its `85px` cell, leaving the larger desktop stack with approximately `6px` of vertical breathing room. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 - Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content or carousel advances use one step click. About, Lab, and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work orbit sounds only when a distinct project reaches centre, not throughout travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
@@ -141,7 +142,7 @@ Inside the simulation chooser, option rows are transparent at rest and retain tr
 
 ### Motion and material presence
 
-- The physical frame, window, Button Bar, and outside shell remain present during route changes.
+- The physical frame, window, Button Bar, Utility Rail, and outside shell remain present during route changes.
 - Animate route-owned content inside the stable window.
 - The first readable frame uses final geometry. Text must not become legible while still moving into its layout position.
 - Entrance order is identity, context, action, then supporting detail. Returning from an interruption is faster and simpler than the first entrance.
@@ -153,7 +154,7 @@ Inside the simulation chooser, option rows are transparent at rest and retain tr
 
 ### Persistent shell
 
-The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, Button Bar, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme. The social/time footer and edge caption are Home-owned content and are not shown on Portfolio, About Me, Contact, or Lab.
+The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, Button Bar, Utility Rail, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme. The social/time footer and edge caption are Home-owned content and are not shown on Portfolio, About Me, Contact, or Lab.
 
 ### Home
 

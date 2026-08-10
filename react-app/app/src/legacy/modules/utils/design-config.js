@@ -296,7 +296,6 @@ const RETIRED_RUNTIME_KEYS = new Set([
 const BUTTON_BAR_RUNTIME_KEY_ALIASES = Object.freeze({
   shellBottomBandHeightPx: 'buttonBarHeightPx',
   shellBottomTabsGapPx: 'buttonBarBottomInsetPx',
-  shellTabGapPx: 'buttonBarGapPx',
   shellTabHeightPx: 'buttonBarButtonHeightPx',
   shellTabPaddingXPx: 'buttonBarButtonPaddingXPx',
   shellTabRadiusPx: 'buttonBarButtonRadiusPx',

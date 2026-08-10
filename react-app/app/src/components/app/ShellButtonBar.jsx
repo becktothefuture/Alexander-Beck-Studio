@@ -1,36 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import {
-  SOUND_STATE_EVENT,
-  getSoundState,
-  initSoundEngine,
-  playInteractionSound,
-  playSoundEnabledMotif,
-  toggleSound,
-  unlockAudio,
-} from '../../legacy/modules/audio/sound-engine.js';
-import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 import {
   getWrappedAdjacentItem,
   shouldIgnoreGlobalKeyboardShortcut,
 } from '../../lib/global-keyboard-shortcuts.js';
 import { SHELL_ROUTE_TABS } from '../../lib/routes.js';
-import { useRenderedThemeIsDark } from '../../hooks/useRenderedTheme.js';
+import { ShellUtilityControls } from './ShellUtilityControls.jsx';
 import './shell-button-bar-dominant.css';
-
-function readSoundButtonState() {
-  try {
-    const soundState = getSoundState();
-    return {
-      isUnlocked: Boolean(soundState?.isUnlocked),
-      isEnabled: Boolean(soundState?.isUnlocked && soundState?.isEnabled),
-    };
-  } catch {
-    return {
-      isUnlocked: false,
-      isEnabled: false,
-    };
-  }
-}
 
 function getNormalizedActiveRouteId(activeRouteId) {
   return activeRouteId;
@@ -167,188 +143,26 @@ function getRouteButtonClassName(tab) {
     'button-bar__button',
     'shell-tab',
     tab.iconOnly ? 'button-bar__button--icon-only shell-tab--icon-only' : '',
+    tab.icon ? 'button-bar__button--route-icon shell-tab--route-icon' : '',
   ].filter(Boolean).join(' ');
 }
 
 function ButtonBarIcon({ tab, className = 'button-bar__icon shell-tab__icon' }) {
-  return <i className={`ti ${tab.icon} ${className}`} aria-hidden="true" />;
+  const iconGlyph = tab.icon === 'ti-flask' ? '\uebd2' : '';
+  return (
+    <i className={`ti ${iconGlyph ? '' : tab.icon} ${className}`} aria-hidden="true">
+      {iconGlyph}
+    </i>
+  );
 }
 
 function RouteButtonContent({ tab, decoration }) {
   return (
     <>
       {decoration}
-      {tab.iconOnly ? (
-        <>
-          <ButtonBarIcon tab={tab} />
-          <span className="screen-reader">{tab.label}</span>
-          <span className="button-bar__label button-bar__label--mobile-only shell-tab__label" aria-hidden="true">{tab.label}</span>
-        </>
-      ) : (
-        <span className="button-bar__label shell-tab__label">{tab.label}</span>
-      )}
+      {tab.icon ? <ButtonBarIcon tab={tab} /> : null}
+      <span className="button-bar__label shell-tab__label">{tab.label}</span>
     </>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg className="button-bar__secondary-svg" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2.2M12 19.8V22M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2 12h2.2M19.8 12H22M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg className="button-bar__secondary-svg" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M20.35 14.64A8.7 8.7 0 0 1 9.36 3.65a8.7 8.7 0 1 0 10.99 10.99Z" />
-    </svg>
-  );
-}
-
-function BottomThemeToggle({ decoration, previewTheme, onPreviewThemeChange }) {
-  const renderedThemeIsDark = useRenderedThemeIsDark();
-  const isDark = previewTheme ? previewTheme === 'dark' : renderedThemeIsDark;
-
-  const nextTheme = isDark ? 'light' : 'dark';
-  const activateTheme = () => {
-    if (onPreviewThemeChange) {
-      onPreviewThemeChange(nextTheme);
-      return;
-    }
-    setTheme(nextTheme);
-  };
-
-  return (
-    <button
-      type="button"
-      className="button-bar__secondary-button button-bar__theme-toggle shell-tab shell-tab--icon-only"
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      aria-pressed={isDark ? 'true' : 'false'}
-      data-state={isDark ? 'dark' : 'light'}
-      data-sound-action="manual"
-      data-sound-source="theme-toggle"
-      onPointerDown={(event) => {
-        if (beginCapturedPointerPress(event)) playButtonBarPressSound('theme-toggle');
-      }}
-      onPointerUp={(event) => {
-        if (!completeCapturedPointerPress(event)) return;
-        markPointerActivated(event);
-        activateTheme();
-      }}
-      onKeyDown={(event) => {
-        if (isKeyboardPress(event)) playButtonBarPressSound('theme-toggle');
-      }}
-      onClick={(event) => {
-        if (consumePointerActivated(event)) return;
-        activateTheme();
-      }}
-    >
-      {decoration}
-      <span className="button-bar__theme-thumb" aria-hidden="true">
-        {isDark ? <MoonIcon /> : <SunIcon />}
-      </span>
-      <span className="screen-reader">{isDark ? 'Switch to light mode' : 'Switch to dark mode'}</span>
-    </button>
-  );
-}
-
-function BottomSoundToggle({ decoration }) {
-  const [soundState, setSoundState] = useState(readSoundButtonState);
-  const isEnabled = soundState.isUnlocked && soundState.isEnabled;
-
-  useEffect(() => {
-    initSoundEngine();
-
-    const syncSoundState = (event) => {
-      if (event?.detail) {
-        setSoundState({
-          isUnlocked: Boolean(event.detail.isUnlocked),
-          isEnabled: Boolean(event.detail.isUnlocked && event.detail.isEnabled),
-        });
-        return;
-      }
-
-      setSoundState(readSoundButtonState());
-    };
-
-    syncSoundState();
-    window.addEventListener(SOUND_STATE_EVENT, syncSoundState);
-    return () => {
-      window.removeEventListener(SOUND_STATE_EVENT, syncSoundState);
-    };
-  }, []);
-
-  const handleClick = async () => {
-    const currentState = readSoundButtonState();
-
-    if (!currentState.isUnlocked) {
-      const didUnlock = await unlockAudio();
-      setSoundState(readSoundButtonState());
-      if (didUnlock && readSoundButtonState().isEnabled) {
-        playInteractionSound('press', { source: 'sound-toggle-enable' });
-        playSoundEnabledMotif();
-      }
-      return;
-    }
-
-    if (currentState.isEnabled) {
-      playInteractionSound('press', { source: 'sound-toggle-disable' });
-    }
-    const isNowEnabled = toggleSound();
-    setSoundState(readSoundButtonState());
-    if (isNowEnabled) {
-      playInteractionSound('press', { source: 'sound-toggle-enable' });
-      playSoundEnabledMotif();
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      className="button-bar__secondary-button button-bar__sound-toggle shell-tab shell-tab--icon-only"
-      aria-label={isEnabled ? 'Sound on' : 'Sound off'}
-      aria-pressed={isEnabled ? 'true' : 'false'}
-      data-state={isEnabled ? 'active' : 'idle'}
-      data-enabled={isEnabled ? 'true' : 'false'}
-      data-sound-action="manual"
-      data-sound-source="sound-toggle"
-      onPointerDown={(event) => {
-        beginCapturedPointerPress(event);
-      }}
-      onPointerUp={(event) => {
-        if (!completeCapturedPointerPress(event)) return;
-        markPointerActivated(event);
-        handleClick();
-      }}
-      onClick={(event) => {
-        if (consumePointerActivated(event)) return;
-        handleClick();
-      }}
-    >
-      {decoration}
-      <i className={`ti ${isEnabled ? 'ti-volume-2' : 'ti-volume-off'} button-bar__secondary-icon shell-tab__icon`} aria-hidden="true" />
-      <span className="screen-reader">{isEnabled ? 'Sound on' : 'Sound off'}</span>
-    </button>
-  );
-}
-
-function SecondaryButtons({
-  previewTheme,
-  onPreviewThemeChange,
-  renderDecoration,
-}) {
-  return (
-    <div className="button-bar__secondary-buttons" role="group" aria-label="Secondary buttons" data-button-group="secondary-buttons">
-      <BottomSoundToggle decoration={renderDecoration?.({ controlId: 'sound' })} />
-      <BottomThemeToggle
-        decoration={renderDecoration?.({ controlId: 'theme' })}
-        previewTheme={previewTheme}
-        onPreviewThemeChange={onPreviewThemeChange}
-      />
-    </div>
   );
 }
 
@@ -557,7 +371,7 @@ export function ShellButtonBar({
       >
         <span className="button-bar__active-pill" aria-hidden="true" />
         <div className="button-bar__route-cluster">
-          {SHELL_ROUTE_TABS.slice(0, 4).map((tab) => (
+          {SHELL_ROUTE_TABS.map((tab) => (
             <RouteButton
               key={tab.routeId}
               tab={tab}
@@ -574,28 +388,15 @@ export function ShellButtonBar({
             />
           ))}
         </div>
-        {SHELL_ROUTE_TABS.slice(4).map((tab) => (
-          <RouteButton
-            key={tab.routeId}
-            tab={tab}
-            isCurrent={tab.routeId === normalizedActiveRouteId}
-            isPending={Boolean(normalizedPendingRouteId && tab.routeId === normalizedPendingRouteId)}
-            isVisualActive={tab.routeId === visualActiveRouteId || Boolean(
-              normalizedPendingRouteId && tab.routeId === normalizedActiveRouteId
-            )}
-            isVisualDestination={tab.routeId === visualActiveRouteId}
-            onRouteNavigate={onRouteNavigate}
-            onRouteSelect={onRouteSelect}
-            onRouteIntent={onRouteIntent}
-            renderDecoration={renderRouteButtonDecoration}
-          />
-        ))}
       </nav>
-      <SecondaryButtons
-        previewTheme={previewTheme}
-        onPreviewThemeChange={onPreviewThemeChange}
-        renderDecoration={renderSecondaryButtonDecoration}
-      />
+      {preview ? (
+        <ShellUtilityControls
+          inButtonBar
+          previewTheme={previewTheme}
+          onPreviewThemeChange={onPreviewThemeChange}
+          renderDecoration={renderSecondaryButtonDecoration}
+        />
+      ) : null}
     </div>
   );
 }

@@ -6,13 +6,22 @@ The live reference is `/styleguide.html`. It must describe production components
 
 `ShellButtonBar.jsx` renders the persistent bottom navigation from `SHELL_ROUTE_TABS` in `src/lib/routes.js`.
 
-- Route buttons: Home, Work (Portfolio route), About, Lab, Contact
+- Route buttons: Home, Work (Portfolio route), About, Lab, Contact. Every route renders an accessible Tabler outline icon with a visible label.
 - States: idle, hover/focus, pressed, active/current
-- Secondary controls: icon-only sound and theme toggles; sound swaps volume-off/volume-on and theme swaps sun/moon, with no slider track
-- Anatomy: Home–Lab route group followed by the fixed two-slot sound/theme utility group; route and utility separators are absent
+- Secondary controls: none; theme and sound belong to the separate shell-owned Utility Rail
+- Anatomy: one undivided five-route group; separators and route-group parameters are absent
 - Active geometry: one shared graphite key follows the active or pending route cell, resizes with its label, and applies the configured key inset equally on all four sides
-- Responsive type and spacing: links use `10px` labels with `8px` inline padding through `767px`, then `16px` labels with `16px` inline padding from `768px`; labels use Geist at weight `700` with `0.012em` tracking, desktop utility icons grow from `16px` to `18px`, and only the route region scrolls when the capsule is width-capped
-- Mobile: all five routes remain reachable and the active route is scrolled into view; all controls remain keyboard and touch accessible
+- Responsive type and spacing: mobile route cells shrink evenly below their configured `62px` maximum, pair `21px` icons with sentence-case `8px` labels across a `5px` gap, and retain a minimum 51px route target at a 320px viewport. Desktop scales the same composition to equal `85px` route cells with `25px` icons, sentence-case `11px` labels, and a `6px` gap. Labels use Geist at weight `700` with slightly tightened `-0.02em` tracking.
+- Mobile: all five routes remain visible without horizontal scrolling
+
+## Global utility controls: Utility Rail
+
+- Component: `ShellUtilityRail.jsx` with shared behavior in `ShellUtilityControls.jsx`
+- Position: fixed to the studio-window right edge; desktop centres at `50svh`, while mobile defaults to an outward `-11px` offset and a `76svh` centre
+- Controls: theme above sound in one vertical capsule at every viewport width
+- Geometry: desktop uses `32px` visible buttons; mobile uses quieter `25px` visible buttons with proportionally scaled icons
+- Configuration: the top-level **Utility Rail** group exposes separate **Desktop** and **Mobile** geometry, including the mobile vertical position
+- Accessibility: both buttons keep an accessible name, `aria-pressed`, and a visible focus ring; at the default mobile size, coarse-pointer hit regions expand invisibly to `44px` without overlapping
 - Global keyboard: when no focused control or open modal owns the key, Left and Right Arrow activate the previous or next route with wraparound; Space advances the Home Daily Simulation
 - Primary navigation never moves into a route top bar
 

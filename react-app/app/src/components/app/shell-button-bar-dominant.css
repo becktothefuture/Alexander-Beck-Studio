@@ -1,17 +1,15 @@
 /* Figma capsule material shared by the production shell and Button Bar labs. */
 
 .button-bar[data-button-bar-material='dominant-tab'] {
-  --button-bar-capsule-height: var(--button-bar-height, 45px);
-  --button-bar-mobile-padding-inline: var(--button-bar-button-padding-x, 8px);
-  --button-bar-desktop-padding-inline: calc(
-    var(--button-bar-mobile-padding-inline) * var(--button-bar-desktop-padding-scale, 2)
-  );
-  --button-bar-route-padding-inline: var(--button-bar-desktop-padding-inline);
-  --button-bar-mobile-font-size: var(--button-bar-font-size, 0.625rem);
+  --button-bar-capsule-height: var(--button-bar-effective-height, var(--button-bar-height, 68px));
+  --button-bar-capsule-radius: var(--button-bar-effective-radius, var(--button-bar-button-radius, 22px));
+  --button-bar-key-inset: var(--button-bar-effective-active-inset, var(--button-bar-active-inset, 7px));
+  --button-bar-base-font-size: var(--button-bar-effective-font-size, var(--button-bar-font-size, 0.6875rem));
   --button-bar-desktop-font-size: calc(
-    var(--button-bar-mobile-font-size) * var(--button-bar-desktop-font-scale, 1.6)
+    var(--button-bar-base-font-size) * var(--button-bar-desktop-font-scale, 1)
   );
   --button-bar-route-font-size: var(--button-bar-desktop-font-size);
+  --button-bar-route-gap: var(--button-bar-desktop-label-gap, 6px);
   --button-bar-idle-ink: #767881;
   --button-bar-utility-ink: #72747d;
   --button-bar-bright-ink: #ffffff;
@@ -22,13 +20,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--button-bar-gap, 5px);
+  gap: 0;
   block-size: var(--button-bar-capsule-height);
   min-block-size: var(--button-bar-capsule-height);
   box-sizing: border-box;
   padding: 0 var(--button-bar-shell-padding-x, 0px);
   color: var(--button-bar-idle-ink);
-  border-radius: var(--button-bar-button-radius, 16px);
+  border-radius: var(--button-bar-capsule-radius);
   background: linear-gradient(180deg, #141414 0%, #000000 100%);
   box-shadow:
     inset 0 2px 3px rgba(255, 255, 255, 0.04),
@@ -69,7 +67,7 @@
   display: flex;
   flex: 1 1 auto;
   align-items: center;
-  gap: var(--button-bar-gap, 5px);
+  gap: 0;
   inline-size: max-content;
   min-inline-size: 0;
   min-block-size: var(--button-bar-capsule-height);
@@ -90,18 +88,18 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: var(--button-bar-route-gap, 4px);
+  gap: 0;
   min-block-size: var(--button-bar-capsule-height);
 }
 
 .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill {
   position: absolute;
-  inset-block-start: var(--button-bar-active-inset, 1px);
-  inset-inline-start: var(--button-bar-active-inset, 1px);
+  inset-block-start: var(--button-bar-key-inset);
+  inset-inline-start: var(--button-bar-key-inset);
   z-index: 0;
   display: block;
-  inline-size: calc(var(--button-bar-active-pill-width) - (2 * var(--button-bar-active-inset, 1px)));
-  block-size: calc(var(--button-bar-capsule-height) - (2 * var(--button-bar-active-inset, 1px)));
+  inline-size: calc(var(--button-bar-active-pill-width) - (2 * var(--button-bar-key-inset)));
+  block-size: calc(var(--button-bar-capsule-height) - (2 * var(--button-bar-key-inset)));
   border-radius: var(--button-bar-active-radius, 15px);
   background-color: rgb(255 255 255 / var(--button-bar-active-surface-opacity, 0.09));
   box-shadow:
@@ -133,18 +131,20 @@
   display: none;
 }
 
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons .shell-tab,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is(:hover, :focus-visible, :active, [aria-current='page']) {
+.button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons .shell-tab {
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
   position: relative;
   z-index: 1;
+  display: inline-flex;
   flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--button-bar-route-gap);
   block-size: var(--button-bar-capsule-height);
   min-block-size: var(--button-bar-capsule-height);
-  padding: 0 var(--button-bar-route-padding-inline);
+  padding: 0;
   color: var(--button-bar-idle-ink);
   border: 0;
   border-radius: 0;
@@ -160,65 +160,43 @@
   font-family: var(--abs-font-sans);
   font-size: var(--button-bar-route-font-size);
   font-weight: 700;
-  line-height: normal;
-  letter-spacing: 0.012em;
-  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: none;
   transform: none;
   transition: color var(--button-bar-label-transition) var(--shell-tab-motion-ease);
 }
 
-/* Preserve the reference Geist text boxes so the intrinsic capsule resolves to
-   354px on mobile, then grows through the desktop type and padding scales. */
-.button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='home'] .shell-tab__label {
-  min-inline-size: 30px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='portfolio'] .shell-tab__label {
-  min-inline-size: 31px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='about'] .shell-tab__label {
-  min-inline-size: 35px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='playground'] .shell-tab__label {
-  min-inline-size: 20px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] [data-route-tab='contact'] .shell-tab__label {
-  min-inline-size: 47px;
+.button-bar[data-button-bar-material='dominant-tab'] .button-bar__icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  color: currentColor;
+  font-size: 16px;
+  line-height: 16px;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab[data-visual-active='true'],
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[data-visual-active='true']
-  .shell-tab__label {
+  .shell-tab:is([aria-current='page'], [data-visual-active='true']) {
   color: var(--button-bar-bright-ink);
   cursor: default;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab:not([data-visual-active='true']):hover,
+  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):hover,
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab:not([data-visual-active='true']):focus-visible {
+  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):focus-visible {
   color: color-mix(in srgb, var(--button-bar-bright-ink) 76%, var(--button-bar-idle-ink));
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab:not([data-visual-active='true']):active {
+  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):active {
   color: var(--button-bar-bright-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab[aria-current='page']::before {
-  content: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -348,35 +326,169 @@
 
 @media (max-width: 767px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
-    --button-bar-route-padding-inline: var(--button-bar-mobile-padding-inline);
-    --button-bar-route-font-size: var(--button-bar-mobile-font-size);
+    --button-bar-mobile-utility-cell: 44px;
+    --button-bar-route-font-size: var(--button-bar-base-font-size);
+    --button-bar-route-gap: 5px;
   }
-}
 
-@media (min-width: 768px) {
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
-    flex-basis: 65px;
-    inline-size: 65px;
-    min-inline-size: 65px;
+    flex-basis: var(--button-bar-mobile-utility-cell);
+    inline-size: var(--button-bar-mobile-utility-cell);
+    min-inline-size: var(--button-bar-mobile-utility-cell);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon {
+    inline-size: min(
+      var(--button-bar-mobile-icon-cell, 62px),
+      calc((100vw - 64px) / 5)
+    );
+    min-inline-size: min(
+      var(--button-bar-mobile-icon-cell, 62px),
+      calc((100vw - 64px) / 5)
+    );
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon
+    .button-bar__icon {
+    inline-size: var(--button-bar-mobile-icon-size, 21px);
+    block-size: var(--button-bar-mobile-icon-size, 21px);
+    font-size: var(--button-bar-mobile-icon-size, 21px);
+    line-height: var(--button-bar-mobile-icon-size, 21px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon
+    .shell-tab__label {
+    display: block;
+    min-inline-size: 0;
+    font-size: var(--button-bar-mobile-font-size, 8px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon:focus-visible {
+    outline: 2px solid rgb(255 255 255 / 0.78);
+    outline-offset: calc(0px - var(--button-bar-key-inset));
+    border-radius: var(--button-bar-active-radius, 15px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon:focus-visible
+    .shell-tab__label {
+    box-shadow: none;
+    text-decoration: none;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__theme-toggle.shell-tab,
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
+    display: none;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__sound-toggle.shell-tab,
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__sound-toggle.shell-tab:is(:hover, :focus-visible, :active) {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 40px;
+    inline-size: 40px;
+    min-inline-size: 40px;
+    block-size: 40px;
+    min-block-size: 40px;
+    margin-inline: 2px;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 0.045);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 3px 10px rgb(0 0 0 / 0.24);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__sound-toggle.shell-tab[data-enabled='true'] {
+    background: rgb(255 255 255 / 0.075);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__sound-toggle.shell-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: rgb(255 255 255 / 0.055);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 3px 10px rgb(0 0 0 / 0.24);
+    pointer-events: none;
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__secondary-buttons
+    .button-bar__sound-toggle.shell-tab[data-enabled='true']::before {
+    background: rgb(255 255 255 / 0.085);
   }
 
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon,
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg,
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
-    inline-size: 18px;
-    block-size: 18px;
+    inline-size: var(--button-bar-mobile-icon-size, 21px);
+    block-size: var(--button-bar-mobile-icon-size, 21px);
   }
 
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
-    font-size: 18px;
-    line-height: 18px;
+    font-size: var(--button-bar-mobile-icon-size, 21px);
+    line-height: var(--button-bar-mobile-icon-size, 21px);
   }
 }
 
-@media (min-width: 360px) and (max-width: 389px) {
-  .button-bar[data-button-bar-material='dominant-tab'] {
-    --button-bar-gap: 4px;
-    --button-bar-route-gap: 0px;
+@media (min-width: 768px) {
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon {
+    inline-size: var(--button-bar-desktop-route-cell, 85px);
+    min-inline-size: var(--button-bar-desktop-route-cell, 85px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab']
+    .button-bar__primary-buttons
+    .shell-tab--route-icon
+    .button-bar__icon {
+    inline-size: var(--button-bar-desktop-icon-size, 25px);
+    block-size: var(--button-bar-desktop-icon-size, 25px);
+    font-size: var(--button-bar-desktop-icon-size, 25px);
+    line-height: var(--button-bar-desktop-icon-size, 25px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
+    flex-basis: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
+    inline-size: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
+    min-inline-size: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon,
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg,
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
+    inline-size: var(--button-bar-desktop-icon-size, 25px);
+    block-size: var(--button-bar-desktop-icon-size, 25px);
+  }
+
+  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
+    font-size: var(--button-bar-desktop-icon-size, 25px);
+    line-height: var(--button-bar-desktop-icon-size, 25px);
   }
 }
 
