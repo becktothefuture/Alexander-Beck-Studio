@@ -866,7 +866,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   --portfolio-deck-perspective: 1200px;
   --portfolio-deck-periphery-veil-size: 20dvw;
   --portfolio-deck-periphery-veil-core: 2dvw;
-  --portfolio-deck-periphery-veil-opacity: 0.2;
+  --portfolio-deck-periphery-veil-opacity: 0.3;
   --portfolio-card-radius: calc(24px * var(--portfolio-card-content-scale));
   --portfolio-card-media-radius: var(--portfolio-card-radius);
   --portfolio-card-pad: 0px;
