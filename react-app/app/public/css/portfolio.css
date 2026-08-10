@@ -610,17 +610,24 @@ html.portfolio-access-gate-open .window-overlay-layer {
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 0;
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: 50%;
-  background: transparent;
+  background: var(--abs-soft-control-fill);
   color: var(--text-primary);
   cursor: pointer;
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
 }
 
 .portfolio-access-gate__close.abs-icon-btn:hover,
 .portfolio-access-gate__close.abs-icon-btn:focus-visible,
 .portfolio-access-gate__close.abs-icon-btn:active {
   position: absolute;
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
 }
 
@@ -1772,7 +1779,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 /* Drawer return action: same quiet icon family as route back + footer socials. */
 .portfolio-project-view__back.abs-icon-btn {
   color: var(--text-primary);
-  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   background: var(--abs-soft-control-fill);
   box-shadow: none;
   backdrop-filter:
@@ -1800,7 +1807,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   padding: 0;
   overflow: hidden;
   color: var(--text-primary);
-  border-color: var(--abs-soft-control-outline);
+  border-color: transparent;
   border-radius: 50%;
   corner-shape: round;
   background: var(--abs-soft-control-fill);
@@ -1825,7 +1832,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 .portfolio-project-view__back--top.abs-icon-btn:focus-visible,
 .portfolio-project-view__back--top.abs-icon-btn:active {
   color: var(--text-primary);
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
 }
 

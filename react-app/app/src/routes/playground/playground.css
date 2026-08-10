@@ -750,7 +750,7 @@
   margin: 0;
   padding: 0;
   color: var(--text-primary);
-  border: var(--abs-soft-control-edge-width, 0.5px) solid var(--abs-soft-control-outline);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
   border-radius: 50%;
   background: var(--abs-soft-control-fill);
   -webkit-backdrop-filter: blur(var(--abs-soft-control-blur, 18px)) saturate(var(--abs-soft-control-saturation, 1.08));
@@ -765,7 +765,7 @@
 
 .playground-route .playground-lightbox__close:is(:hover, :focus-visible, :active) {
   color: var(--text-primary);
-  border-color: var(--abs-soft-control-outline-active);
+  border-color: transparent;
   background: var(--abs-soft-control-emphasis-fill);
 }
 

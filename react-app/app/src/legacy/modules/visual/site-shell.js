@@ -51,10 +51,11 @@ const DEFAULT_SHELL_CONFIG = {
     radius: '18px',
     blur: '8px',
     saturation: 1.12,
-    controlMaterialDarkenPercent: 5,
+    controlMaterialDarkenPercent: 12,
+    controlMaterialDarkenPercentDark: 36,
     controlMaterialFillOpacity: 0.72,
-    controlMaterialOutlineOpacity: 0.12,
-    controlMaterialOutlineActiveOpacity: 0.15,
+    controlMaterialOutlineOpacity: 0,
+    controlMaterialOutlineActiveOpacity: 0,
     controlMaterialEmphasisOpacityLight: 0.86,
     controlMaterialEmphasisOpacityDark: 0.72,
     controlMaterialEdgeWidth: '0.5px',
@@ -571,10 +572,14 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     ? Number(surface.sceneHighlight)
     : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
   const controlMaterialDarkenPercent = numberInRange(
-    surface.controlMaterialDarkenPercent,
+    isDark
+      ? surface.controlMaterialDarkenPercentDark
+      : surface.controlMaterialDarkenPercent,
     0,
-    5,
-    DEFAULT_SHELL_CONFIG.surface.controlMaterialDarkenPercent
+    40,
+    isDark
+      ? DEFAULT_SHELL_CONFIG.surface.controlMaterialDarkenPercentDark
+      : DEFAULT_SHELL_CONFIG.surface.controlMaterialDarkenPercent
   );
   const controlMaterialFillOpacity = numberInRange(
     surface.controlMaterialFillOpacity,

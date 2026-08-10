@@ -70,8 +70,8 @@ The core pairing is Instrument Serif plus Geist.
 - Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Portfolio intro and gate, plus the explicit About sequence beats below.
 - About adds three deliberate display beats in the continuous spatial narrative: its opening, exact midpoint, and finale. All other travelling spatial titles stay in Geist at a smaller scale between display and editorial copy.
 - The Home identity, Work introduction, About opening/finale, Contact title, and Lab title share one viewport-stable bookend motion after a `500ms` pause. Individual letters appear in reading order through five instant colours sampled from the current ball palette. Dark mode orders each random sample from darkest to lightest; light mode reverses that order. Each glyph travels `10%` from left to right over the same `280ms` colour cycle, with `84%` overlap and no opacity fade or blur. Home keeps its secondary lines at the authored muted opacity. Where a title uses the shared lockup, its short rule begins exactly when the final coloured letter settles, then scales from the centre while the rendered description lines fade in from top to bottom. The complete description rises on a long cubic ease-out while each line uses a slower, softer opacity curve, so the supporting elements decelerate as one gesture without splitting glyphs or changing kerning. Bookend motion never moves the title vertically, clips, or crops title glyphs. All five route identities use the shared `--route-bookend-title-size` at a `1.61568` optical scale and shared tighter headline leading. Reduced motion settles the complete hierarchy immediately.
-- Geist is the structural voice for navigation, descriptions, controls, Portfolio cards, project names, project-detail titles, and ordinary headings.
-- Geist Mono is operational: kickers, metadata, access inputs, the Contact email address, and compact technical labels.
+- Geist is the structural voice for navigation, descriptions, controls, the Contact email action, Portfolio cards, project names, project-detail titles, and ordinary headings.
+- Geist Mono is operational: kickers, metadata, access inputs, and compact technical labels.
 - The handwritten LDN 26 SVG is the rare London signature. It is artwork, not another type role or heading style.
 - Do not inherit Instrument Serif through a section or route. Apply the headline role explicitly.
 - Project titles stay Geist. The editorial route voice and the project-information voice must not compete.
@@ -127,18 +127,17 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 #### Quiet control material and emphasis
 
-The Home simulation switcher, Portfolio drawer back control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens while retaining their own pill, circle, or box geometry.
+The Home simulation switcher, simulation chooser controls, Portfolio drawer and access-gate controls, Lab media close control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens and use one shape language: capsules for compact text actions and selectable rows, circles for icon-only close and back actions.
 
-- The resting material follows the current studio-window theme, darkens its surface by no more than 5%, and remains translucent enough for the 18px backdrop blur and gentle saturation to preserve local context.
-- The Home simulation switcher, chooser rows, and chooser close control keep their border geometry transparent in every state. Resting and interaction hierarchy comes from the translucent blurred fill, text/icon contrast, and opacity—not a visible hairline.
-- Other quiet controls may use the 0.5px semantic edge at 12% opacity in the resting state and no more than 15% for hover, keyboard focus, pressed, open, or selected states.
+- The resting material follows the current studio-window theme. Its surface darkens by 12% in light mode and 36% in dark mode before the translucent mix, so the borderless shape remains legible over both interiors. The 18px backdrop blur and gentle saturation preserve local context.
+- Every quiet control keeps its border geometry transparent in every state. Resting and interaction hierarchy comes from the translucent blurred fill, text/icon contrast, and opacity—not a visible hairline.
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
 - Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and text/icon contrast. The Home switcher also keeps that state while its chooser is open.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
 - The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Lab keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
-Inside the simulation chooser, option rows are transparent at rest and retain transparent border geometry in every state. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It is transparent at rest and uses the shared emphasis material on hover, keyboard focus, and press. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
+Inside the simulation chooser, option rows are transparent at rest and retain transparent border geometry in every state. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It uses the shared resting material and emphasis fill without a visible border. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
 
 ### Motion and material presence
 
@@ -230,7 +229,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Contact uses the centered route-entry title, supporting description, and one primary email-copy action.
 - The ripple field is a route-specific motion behavior. Its balls use flat palette fills, create a quiet
   zone around content, and respond to the copy action.
-- The email address uses Geist Mono; copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
+- The email address uses Geist within a borderless quiet-control capsule; copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
 - Contact retains the shared spacing/type roles even though its simulation and action are unique.
 
 ### Lab
@@ -302,7 +301,7 @@ The route-entry title family is implemented. The remaining rows are proposals an
 | Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
 | Proposed | Portfolio card type | Local fluid client/title tokens | Keep Geist and preserve fixed card geometry/legibility. |
 | Proposed | Portfolio detail title | Local continuous Geist title token | Named editorial variants may opt into documented alternatives. |
-| Proposed | Contact email | Local continuous mono-size token across the narrow safeguard | Preserve 44px+ hit target and readable address wrapping. |
+| Proposed | Contact email | Local continuous Geist size token across the narrow safeguard | Preserve 44px+ hit target and readable address wrapping. |
 
 The shared title token uses a direct mobile clamp, bridges the 601–1024px interval, and retains the existing desktop value from 1025px upward:
 

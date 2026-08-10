@@ -96,11 +96,11 @@
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
 
-  /* Shared quiet control material: theme surface, darkened by at most 5%. */
-  --abs-soft-control-darken: 5%;
+  /* Shared borderless quiet control material: theme surface with calm tonal separation. */
+  --abs-soft-control-darken: 12%;
   --abs-soft-control-fill-opacity: 72%;
-  --abs-soft-control-outline-opacity: 12%;
-  --abs-soft-control-outline-active-opacity: 15%;
+  --abs-soft-control-outline-opacity: 0%;
+  --abs-soft-control-outline-active-opacity: 0%;
   --abs-soft-control-emphasis-rgb: var(--abs-rgb-white);
   --abs-soft-control-emphasis-opacity: 86%;
   --abs-soft-control-edge-width: 0.5px;
@@ -890,6 +890,7 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   --studio-window-color-scheme: dark;
+  --abs-soft-control-darken: 36%;
   --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
   --abs-soft-control-emphasis-opacity: 72%;
   --abs-indicator-ink: rgb(var(--abs-rgb-white));
