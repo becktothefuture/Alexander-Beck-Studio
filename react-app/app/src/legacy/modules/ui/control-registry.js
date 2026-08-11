@@ -2565,7 +2565,7 @@ export const CONTROL_SECTIONS = {
         min: 0,
         max: 1,
         step: 0.01,
-        default: 0.72,
+        default: 0.36,
         format: (v) => Number(v).toFixed(2),
         parse: parseFloat,
         hint: 'Shared opacity for the Home title role lines (1 = match the name).',

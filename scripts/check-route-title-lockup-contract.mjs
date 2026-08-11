@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
+const designConfig = JSON.parse(await read('../react-app/app/public/config/design-system.json'));
 const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
   ['portfolioStyles', '../react-app/app/public/css/portfolio.css'],
@@ -19,6 +20,7 @@ const sources = Object.fromEntries(await Promise.all([
   ['routeReadiness', '../react-app/app/src/lib/motion/route-transition-readiness.js'],
   ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
   ['entranceSequence', '../react-app/app/src/lib/motion/entrance-sequence.js'],
+  ['titleDepth', '../react-app/app/src/legacy/modules/rendering/title-depth.js'],
   ['homeRoute', '../react-app/app/src/routes/home/HomeRoute.jsx'],
   ['home', '../react-app/app/public/css/main.css'],
 ].map(async ([key, path]) => [key, await read(path)])));
@@ -97,6 +99,28 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
   assert.match(
     sources.main,
     /\.route-entrance-glyph \{[\s\S]*?transform: translate3d\(0, 0, 0\);[\s\S]*?transform-origin: 50% 50%/,
+  );
+});
+
+test('bookend palette frames stay fully opaque before their quieter resting endpoint', () => {
+  assert.equal(designConfig.runtime.brandLogoSecondaryOpacity, 0.36);
+  assert.equal(designConfig.shell.motion.routeTransition.routeBookendDurationMs, 196);
+  assert.match(sources.entranceSequence, /subtitleGapMs: 98/);
+  assert.match(
+    sources.entranceSequence,
+    /flashColors\.map\([\s\S]*?opacity: 1,[\s\S]*?easing: 'steps\(1, end\)'/,
+  );
+  assert.match(
+    sources.entranceSequence,
+    /keyframes\.push\(\{ color: finalColor, opacity: finalOpacity, offset: 1 \}\)/,
+  );
+  assert.match(
+    sources.entranceSequence,
+    /createSteppedColorKeyframes\(flashColors, target\.finalColor, target\.finalOpacity\)/,
+  );
+  assert.match(
+    sources.titleDepth,
+    /const opacity = linearProgress < 1 \? 1 : glyph\.finalOpacity/,
   );
 });
 

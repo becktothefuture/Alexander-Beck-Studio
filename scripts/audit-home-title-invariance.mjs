@@ -1104,8 +1104,8 @@ async function readActiveTitleResizeMetrics(page) {
       : titleCenterY;
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     const intendedSecondaryOpacity = Number.parseFloat(
-      titleStyle?.getPropertyValue('--brand-logo-secondary-opacity') || '0.72',
-    ) || 0.72;
+      titleStyle?.getPropertyValue('--brand-logo-secondary-opacity') || '0.36',
+    ) || 0.36;
 
     return {
       viewport: { width: innerWidth, height: innerHeight },

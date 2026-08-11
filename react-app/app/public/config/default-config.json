@@ -107,7 +107,7 @@
   "textColorLightMuted": "#2f2f2f",
   "textColorDark": "#f0f0f0",
   "textColorDarkMuted": "#c8c8c8",
-  "brandLogoSecondaryOpacity": 0.72,
+  "brandLogoSecondaryOpacity": 0.36,
   "colorDistribution": [
     {
       "roleId": "product-design",

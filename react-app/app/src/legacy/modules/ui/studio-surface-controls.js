@@ -55,7 +55,7 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   materialStaggerMs: 720,
   materialDelayMs: 80,
   typographyDelayMs: 1100,
-  routeBookendDurationMs: 560,
+  routeBookendDurationMs: 196,
   materialExitDurationMs: 140,
   materialExitStaggerMs: 70,
   typographyExitDurationMs: 100,

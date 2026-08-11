@@ -493,7 +493,7 @@ function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
         const linearProgress = resolveGlyphLinearProgress(glyph.state, now);
         if (linearProgress < 0) continue;
         const movementProgress = easeTitleGlyphProgress(linearProgress);
-        const opacity = glyph.finalOpacity;
+        const opacity = linearProgress < 1 ? 1 : glyph.finalOpacity;
         maxOpacity = Math.max(maxOpacity, opacity);
         if (opacity <= 0.01) continue;
         const flashColors = glyph.flashColors;

@@ -109,7 +109,7 @@
     "textColorLightMuted": "#2f2f2f",
     "textColorDark": "#f0f0f0",
     "textColorDarkMuted": "#c8c8c8",
-    "brandLogoSecondaryOpacity": 0.72,
+    "brandLogoSecondaryOpacity": 0.36,
     "colorDistribution": [
       {
         "roleId": "product-design",
@@ -550,7 +550,7 @@
         "typographyExitDurationMs": 100,
         "typographyExitStaggerMs": 24,
         "routeBookendColorCount": 5,
-        "routeBookendDurationMs": 280,
+        "routeBookendDurationMs": 196,
         "routeBookendOverlapPercent": 84,
         "routeBookendLineOverlapMs": 0,
         "routeBookendLineDurationMs": 780,

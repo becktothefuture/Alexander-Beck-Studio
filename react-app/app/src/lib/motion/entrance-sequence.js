@@ -30,10 +30,10 @@ const entranceManagedInertTargets = new WeakSet();
 const BOOKEND_TITLE_MOTION = Object.freeze({
   delayMs: 500,
   colorCount: 5,
-  durationMs: 280,
+  durationMs: 196,
   overlapPercent: 84,
   lineOverlapMs: 0,
-  subtitleGapMs: 140,
+  subtitleGapMs: 98,
   ruleDurationMs: 520,
   descriptionDelayMs: 260,
   descriptionDurationMs: 900,
@@ -162,14 +162,15 @@ function createRandomOrderedFlashColors(colors, count, isDark, seed) {
   return isDark ? selected : selected.reverse();
 }
 
-function createSteppedColorKeyframes(flashColors, finalColor) {
+function createSteppedColorKeyframes(flashColors, finalColor, finalOpacity = 1) {
   const count = Math.max(1, flashColors.length);
   const keyframes = flashColors.map((color, index) => ({
     color,
+    opacity: 1,
     offset: index / count,
     easing: 'steps(1, end)',
   }));
-  keyframes.push({ color: finalColor, offset: 1 });
+  keyframes.push({ color: finalColor, opacity: finalOpacity, offset: 1 });
   return keyframes;
 }
 
@@ -967,7 +968,7 @@ export function createEntranceSequence({
             ? target.flashColors[glyphIndex]
             : [target.finalColor];
           const colorAnimation = glyph.animate(
-            createSteppedColorKeyframes(flashColors, target.finalColor),
+            createSteppedColorKeyframes(flashColors, target.finalColor, target.finalOpacity),
             {
               duration: target.durationMs,
               delay: delayMs,

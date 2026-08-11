@@ -1,7 +1,7 @@
 export const TITLE_ENTRANCE_LAB_DEFAULTS = Object.freeze({
   theme: 'light',
   colorCount: 5,
-  letterDurationMs: 280,
+  letterDurationMs: 196,
   overlapPercent: 84,
   lineOverlapMs: 0,
   lineDurationMs: 520,

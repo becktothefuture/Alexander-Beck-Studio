@@ -137,7 +137,7 @@ const DEFAULT_SHELL_CONFIG = {
       typographyDelayMs: 1100,
       typographyExitDurationMs: 100,
       typographyExitStaggerMs: 24,
-      routeBookendColorCount: 5, routeBookendDurationMs: 560, routeBookendOverlapPercent: 84,
+      routeBookendColorCount: 5, routeBookendDurationMs: 196, routeBookendOverlapPercent: 84,
       routeBookendLineOverlapMs: 0, routeBookendLineDurationMs: 780,
       routeBookendDescriptionDelayMs: 390, routeBookendDescriptionDurationMs: 1350,
       routeBookendDescriptionLineStaggerMs: 270, routeBookendMovementEnabled: true, routeBookendTravelPercent: 10,
