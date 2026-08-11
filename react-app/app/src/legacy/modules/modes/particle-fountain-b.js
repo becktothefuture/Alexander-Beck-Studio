@@ -6,7 +6,7 @@
 import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
-import { MODES } from '../core/constants.js';
+import { CONSTANTS, MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
@@ -17,16 +17,22 @@ const PARTICLE_LIFETIME = 6.4;
 const FADE_DURATION = 1.25;
 const MAX_EMISSIONS_PER_NOZZLE_FRAME = 4;
 const DEG_TO_RAD = Math.PI / 180;
-const MOBILE_PEAK_HEIGHT_RATIO = 0.58;
 const CENTER_SWAY_DEGREES = 2.5;
 const OUTER_BOW_DEGREES = 10;
 const GROUP_BOW_DEGREES = 12;
 const WAVE_BOW_DEGREES = 4;
 const SIDE_PEAK_HEIGHT_RATIO = 0.55;
 const CENTER_PEAK_HEIGHT_RATIO = 0.75;
-const CENTER_VELOCITY_SCALE = Math.sqrt(
-  CENTER_PEAK_HEIGHT_RATIO / SIDE_PEAK_HEIGHT_RATIO,
-);
+const REFERENCE_INITIAL_VELOCITY = 4700;
+const MIN_INITIAL_VELOCITY = 200;
+const MAX_INITIAL_VELOCITY = 10000;
+const VELOCITY_SOLVER_ITERATIONS = 24;
+const TRAJECTORY_SOLVER_STEPS = 720;
+const FLUID_SCALE_MIN_WIDTH = 390;
+const FLUID_SCALE_MAX_WIDTH = 1200;
+const MOBILE_PRESSURE_COMPENSATION = 1.035;
+const DESKTOP_PRESSURE_COMPENSATION = 1.04;
+const OUTER_NOZZLE_PRESSURE_COMPENSATION = 1.035;
 
 const emissionAccumulators = new Float32Array(NOZZLE_COUNT);
 const emissionRates = new Float32Array(NOZZLE_COUNT);
@@ -42,9 +48,131 @@ const pressureCues = [
 let choreographyTime = 0;
 let reducedMotion = false;
 let lastUpdateAtMs = 0;
+let launchVelocityProfileKey = '';
+const launchVelocities = new Float32Array(NOZZLE_COUNT);
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function projectVerticalRise(initialVelocity, {
+  dt,
+  gravity,
+  friction,
+  massScale,
+  waterDrag,
+  upwardAcceleration,
+  dpr,
+}) {
+  let velocityY = -initialVelocity;
+  let offsetY = 0;
+  let peakY = 0;
+
+  for (let step = 0; step < TRAJECTORY_SOLVER_STEPS; step += 1) {
+    velocityY += gravity * dt;
+    const speedMultiplier = clamp(1 - Math.abs(velocityY) / (100 * dpr), 0, 1);
+    const progressiveDrag = friction * (1 + speedMultiplier);
+    velocityY *= Math.max(0, 1 - progressiveDrag / massScale);
+    velocityY *= 1 - waterDrag;
+    velocityY -= upwardAcceleration * dt;
+    offsetY += velocityY * dt;
+    peakY = Math.min(peakY, offsetY);
+    if (velocityY >= 0) break;
+  }
+
+  return -peakY;
+}
+
+export function resolveParticleFountainBLaunchVelocity(targetRise, physics) {
+  const dpr = Math.max(1, Number(physics.dpr) || 1);
+  let low = MIN_INITIAL_VELOCITY * dpr;
+  let high = MAX_INITIAL_VELOCITY * dpr;
+  const target = Math.max(0, Number(targetRise) || 0);
+  const trajectoryPhysics = { ...physics, dpr };
+
+  for (let iteration = 0; iteration < VELOCITY_SOLVER_ITERATIONS; iteration += 1) {
+    const velocity = (low + high) * 0.5;
+    if (projectVerticalRise(velocity, trajectoryPhysics) < target) low = velocity;
+    else high = velocity;
+  }
+
+  return high;
+}
+
+function resolveLaunchVelocityProfile(g, canvas) {
+  const dpr = g.DPR || 1;
+  const inset = getSimulationCollisionInsetPx(g);
+  const representativeRadius = g.R_MED || 8.9 * dpr;
+  const sourceY = canvas.height - inset - representativeRadius - dpr;
+  const isMobileClass = g.isMobile || g.isMobileViewport;
+  const dt = isMobileClass ? CONSTANTS.PHYSICS_DT_MOBILE : CONSTANTS.PHYSICS_DT;
+  const gravity = Math.max(0.01, Math.abs(g.G || (g.GE * (g.gravityMultiplier || 1))))
+    * Math.max(0, Number(g.gravityScale) || 1);
+  const friction = clamp(g.FRICTION ?? 0.018, 0, 0.25);
+  const massScale = Math.max(0.25, (g.ballMassKg || 240) / (g.MASS_BASELINE_KG || 240));
+  const waterDrag = clamp(g.particleFountainWaterDrag ?? 0.02, 0.01, 1);
+  const upwardAcceleration = Math.max(0, g.particleFountainUpwardForce || 0) * 0.6 * dpr;
+  const cssWidth = canvas.width / dpr;
+  const fluidScaleProgress = clamp(
+    (cssWidth - FLUID_SCALE_MIN_WIDTH) / (FLUID_SCALE_MAX_WIDTH - FLUID_SCALE_MIN_WIDTH),
+    0,
+    1,
+  );
+  const responsivePressureCompensation = MOBILE_PRESSURE_COMPENSATION
+    + fluidScaleProgress
+      * (DESKTOP_PRESSURE_COMPENSATION - MOBILE_PRESSURE_COMPENSATION);
+  const pressureScale = clamp(
+    (g.particleFountainInitialVelocity || REFERENCE_INITIAL_VELOCITY)
+      / REFERENCE_INITIAL_VELOCITY,
+    MIN_INITIAL_VELOCITY / REFERENCE_INITIAL_VELOCITY,
+    MAX_INITIAL_VELOCITY / REFERENCE_INITIAL_VELOCITY,
+  );
+  const key = [
+    canvas.width,
+    canvas.height,
+    dpr,
+    inset,
+    representativeRadius,
+    dt,
+    gravity,
+    friction,
+    massScale,
+    waterDrag,
+    upwardAcceleration,
+    responsivePressureCompensation,
+    pressureScale,
+  ].join(':');
+  if (key === launchVelocityProfileKey) return launchVelocities;
+
+  const physics = {
+    dt,
+    gravity,
+    friction,
+    massScale,
+    waterDrag,
+    upwardAcceleration,
+    dpr,
+  };
+  for (let nozzleIndex = 0; nozzleIndex < NOZZLE_COUNT; nozzleIndex += 1) {
+    const peakHeightRatio = nozzleIndex === 1
+      ? CENTER_PEAK_HEIGHT_RATIO
+      : SIDE_PEAK_HEIGHT_RATIO;
+    const targetPeakY = canvas.height * (1 - peakHeightRatio) + representativeRadius;
+    const targetRise = Math.max(0, sourceY - targetPeakY);
+    const nozzlePressureCompensation = nozzleIndex === 1
+      ? 1
+      : OUTER_NOZZLE_PRESSURE_COMPENSATION;
+    launchVelocities[nozzleIndex] = clamp(
+      resolveParticleFountainBLaunchVelocity(targetRise, physics)
+        * responsivePressureCompensation
+        * nozzlePressureCompensation
+        * pressureScale,
+      MIN_INITIAL_VELOCITY * dpr,
+      MAX_INITIAL_VELOCITY * dpr,
+    );
+  }
+  launchVelocityProfileKey = key;
+  return launchVelocities;
 }
 
 function resetNozzleState() {
@@ -145,17 +273,6 @@ function getNozzleX(canvasWidth, inset, radius, nozzleIndex, configuredSpread = 
   return center;
 }
 
-function getBaseVelocity(g, canvas, sourceY) {
-  const dpr = g.DPR || 1;
-  const baseVelocity = (g.particleFountainInitialVelocity || 600) * dpr;
-  if (!(g.isMobile || g.isMobileViewport)) return baseVelocity;
-
-  const targetPeakY = canvas.height * MOBILE_PEAK_HEIGHT_RATIO;
-  const riseDistance = Math.max(0, sourceY - targetPeakY);
-  const gravity = Math.max(0.01, Math.abs(g.G || (g.GE * (g.gravityMultiplier || 1))));
-  return Math.min(baseVelocity, Math.sqrt(2 * gravity * riseDistance));
-}
-
 function createParticle(nozzleIndex) {
   const g = getGlobals();
   const canvas = g.canvas;
@@ -185,10 +302,8 @@ function createParticle(nozzleIndex) {
   ball.originalRadius = radius;
 
   const velocityVariation = 0.94 + Math.random() * 0.12;
-  const nozzleHeightScale = nozzleIndex === 1 ? CENTER_VELOCITY_SCALE : 1;
-  const velocity = getBaseVelocity(g, canvas, sourceY)
+  const velocity = resolveLaunchVelocityProfile(g, canvas)[nozzleIndex]
     * clamp(emissionEnergy[nozzleIndex], 0.6, 1.1)
-    * nozzleHeightScale
     * velocityVariation;
   const configuredSpread = clamp(g.particleFountainSpreadAngle ?? 20, 4, 120);
   const jetSpread = Math.min(5, configuredSpread * 0.25) * DEG_TO_RAD;
@@ -218,6 +333,7 @@ export function initializeParticleFountainB() {
   const g = getGlobals();
   g.balls.length = 0;
   choreographyTime = 0;
+  launchVelocityProfileKey = '';
   lastUpdateAtMs = globalThis.performance?.now?.() || 0;
   reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
 
@@ -349,6 +465,12 @@ export function getParticleFountainBDiagnostics() {
     choreographyTime,
     emissionRates: Array.from(emissionRates),
     emissionAngles: Array.from(emissionAngles),
+    launchVelocities: Array.from(launchVelocities),
+    peakHeightRatios: [
+      SIDE_PEAK_HEIGHT_RATIO,
+      CENTER_PEAK_HEIGHT_RATIO,
+      SIDE_PEAK_HEIGHT_RATIO,
+    ],
     reducedMotion,
   };
 }

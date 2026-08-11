@@ -840,7 +840,15 @@ export function updatePhysics(dtSeconds, applyForcesFunc) {
   }
 
   if (!canvas) return;
-  if (!balls || balls.length === 0) return;
+  if (!balls) return;
+
+  // Some modes use their per-frame updater to emit the next set of bodies.
+  // Keep that clock alive while the scene is intentionally empty, otherwise
+  // an emitter that clears between phrases can never start its next loop.
+  if (balls.length === 0) {
+    getModeUpdater()?.(dtSeconds);
+    return;
+  }
 
   // Mode warmup: consume synchronously before first render after init.
   // This prevents visible “settling” motion (no pop-in/flash) by advancing physics
