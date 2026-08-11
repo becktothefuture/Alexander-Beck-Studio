@@ -299,7 +299,9 @@ export function hideCursor() {
   if (presentationFrameId) cancelAnimationFrame(presentationFrameId);
   presentationFrameId = 0;
   cursorElement.style.display = 'none';
-  setSimulationCursorOwnership(false);
+  // Keep native-cursor suppression in place while the pointer is outside the
+  // document. Releasing it here can expose a link's `cursor: pointer` for one
+  // frame before the first re-entry pointermove restores custom ownership.
   isCustomCursorActive = false;
 }
 

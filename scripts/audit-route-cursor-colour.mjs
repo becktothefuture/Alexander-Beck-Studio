@@ -198,10 +198,12 @@ async function moveInsideWindow(page) {
 async function assertNativeCursorNeverExposed(page, routeId) {
   const readNativeCursorState = () => page.evaluate(() => {
     const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     return {
       html: getComputedStyle(document.documentElement).cursor,
       body: getComputedStyle(document.body).cursor,
       activeTab: activeTab ? getComputedStyle(activeTab).cursor : '',
+      inactiveTab: inactiveTab ? getComputedStyle(inactiveTab).cursor : '',
     };
   });
   const assertHidden = (state, phase) => {
@@ -214,12 +216,14 @@ async function assertNativeCursorNeverExposed(page, routeId) {
 
   assertHidden(await readNativeCursorState(), 'settled direct load');
 
+  await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })));
+  assertHidden(await readNativeCursorState(), 'pointer outside the document');
+
   await page.evaluate(() => {
-    document.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
-    const rect = activeTab?.getBoundingClientRect();
-    if (!activeTab || !rect) return;
-    activeTab.dispatchEvent(new PointerEvent('pointermove', {
+    const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
+    const rect = inactiveTab?.getBoundingClientRect();
+    if (!inactiveTab || !rect) return;
+    inactiveTab.dispatchEvent(new PointerEvent('pointermove', {
       bubbles: true,
       pointerType: 'mouse',
       clientX: rect.left + (rect.width / 2),
