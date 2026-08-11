@@ -850,6 +850,11 @@ export function normalizeAboutNarrativePointFieldDocument(input) {
         keys: [...source.tracks.camera.keys]
           .map(clone)
           .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id)),
+        ...(Array.isArray(source.tracks.camera.orientationKeys) ? {
+          orientationKeys: [...source.tracks.camera.orientationKeys]
+            .map(clone)
+            .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id)),
+        } : {}),
       },
       visibility: {
         keys: [...source.tracks.visibility.keys]

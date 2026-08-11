@@ -92,12 +92,14 @@ const OVERRIDE_TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', '
 const LEGACY_OVERRIDE_TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
 const TRACK_KEYS = new Set(['camera', 'visibility', 'worlds', 'text', 'interactions']);
 const LEGACY_TRACK_KEYS = new Set(['camera', 'worlds', 'text', 'interactions']);
-const CAMERA_TRACK_KEYS = new Set(['keys']);
+const CAMERA_TRACK_KEYS = new Set(['keys', 'orientationKeys']);
 const VISIBILITY_TRACK_KEYS = new Set(['keys']);
 const WORLD_TRACK_KEYS = new Set(['objects']);
 const TEXT_TRACK_KEYS = new Set(['fields']);
 const INTERACTION_TRACK_KEYS = new Set(['clips']);
 const CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'aimEnabled', 'lookAtTarget', 'lookAtRoll', 'fov', 'easing', 'locked']);
+const CAMERA_ORIENTATION_KEY_KEYS = new Set(['id', 'atWU', 'rotation', 'easing', 'locked']);
+const CAMERA_ORIENTATION_OVERRIDE_KEYS = new Set(['atWU', 'rotation', 'easing']);
 const VERSION_4_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'position', 'rotation', 'fov', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const LEGACY_CAMERA_KEY_KEYS = new Set(['id', 'atWU', 'offset', 'lookAtOffset', 'fov', 'roll', 'distanceFogStartWU', 'distanceFogEndWU', 'easing', 'locked']);
 const VISIBILITY_KEY_KEYS = new Set(['id', 'atWU', 'visibility', 'easing', 'locked']);
@@ -393,8 +395,12 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
   const currentSchema = schemaVersion >= 5;
   unknownKeys(diagnostics, overrides, currentSchema ? OVERRIDE_TRACK_KEYS : LEGACY_OVERRIDE_TRACK_KEYS, path);
   if (!isObject(overrides)) return;
+  const cameraIndex = new Map([
+    ...indexes.camera.entries(),
+    ...(indexes.cameraOrientation?.entries() || []),
+  ]);
   const definitions = [
-    ['camera', indexes.camera, schemaVersion === 3
+    ['camera', cameraIndex, schemaVersion === 3
       ? LEGACY_CAMERA_OVERRIDE_KEYS
       : schemaVersion === 4 ? VERSION_4_CAMERA_OVERRIDE_KEYS : CAMERA_OVERRIDE_KEYS],
     ...(currentSchema ? [['visibility', indexes.visibility, VISIBILITY_OVERRIDE_KEYS]] : []),
@@ -412,13 +418,21 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
     Object.entries(entries).forEach(([id, override]) => {
       const itemPath = `${trackPath}.${id}`;
       const base = index.get(id);
+      const cameraOrientationOverride = track === 'camera' && indexes.cameraOrientation?.has(id);
       if (!base) diagnostic(diagnostics, 'override-target', itemPath, `Override target “${id}” does not exist on ${track}.`);
-      if (!validateOverrideObject(override, allowed, diagnostics, itemPath)) return;
+      if (!validateOverrideObject(
+        override,
+        cameraOrientationOverride ? CAMERA_ORIENTATION_OVERRIDE_KEYS : allowed,
+        diagnostics,
+        itemPath,
+      )) return;
       Object.entries(override).forEach(([key, value]) => {
         if (key.endsWith('WU') && key !== 'distanceFogStartWU' && key !== 'distanceFogEndWU') validateTime(value, diagnostics, `${itemPath}.${key}`, { max: durationWU });
       });
       if (track === 'camera') {
-        if (schemaVersion === 3) {
+        if (cameraOrientationOverride) {
+          if (override.rotation != null) validateVector(override.rotation, diagnostics, `${itemPath}.rotation`);
+        } else if (schemaVersion === 3) {
           if (override.offset != null) validateVector(override.offset, diagnostics, `${itemPath}.offset`);
           if (override.lookAtOffset != null) validateVector(override.lookAtOffset, diagnostics, `${itemPath}.lookAtOffset`);
           if (override.roll != null && !finite(override.roll)) diagnostic(diagnostics, 'camera-roll', `${itemPath}.roll`, 'Roll must be finite.');
@@ -486,6 +500,20 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
     if (index === 0 && atWU !== 0) {
       diagnostic(diagnostics, 'profile-camera-endpoint', `${path}.camera.${key.id}.atWU`, 'Profile Camera overrides must preserve the Story WU start key.');
     }
+  });
+  const cameraOrientationKeys = [...(indexes.cameraOrientation?.values() || [])];
+  let previousCameraOrientationWU = -1;
+  cameraOrientationKeys.forEach((key) => {
+    const atWU = Number(overrides.camera?.[key.id]?.atWU ?? key.atWU);
+    if (atWU <= previousCameraOrientationWU) {
+      diagnostic(
+        diagnostics,
+        'profile-camera-orientation-order',
+        `${path}.camera.${key.id}.atWU`,
+        'Profile Camera orientation keys must remain strictly ordered.',
+      );
+    }
+    previousCameraOrientationWU = atWU;
   });
 
   if (currentSchema) {
@@ -1004,11 +1032,14 @@ export function validateAboutNarrativeTrackDocument(input, {
   unknownKeys(diagnostics, tracks.interactions, INTERACTION_TRACK_KEYS, 'tracks.interactions');
 
   const cameraKeys = tracks.camera?.keys;
+  const cameraOrientationKeys = tracks.camera?.orientationKeys || [];
   const visibilityKeys = tracks.visibility?.keys;
   const worlds = tracks.worlds?.objects;
   const textFields = tracks.text?.fields;
   const clips = tracks.interactions?.clips;
   if (!Array.isArray(cameraKeys) || cameraKeys.length < 2) diagnostic(diagnostics, 'camera-track', 'tracks.camera.keys', 'Camera track requires at least two keys.');
+  if (!Array.isArray(cameraOrientationKeys)) diagnostic(diagnostics, 'camera-orientation-track', 'tracks.camera.orientationKeys', 'Camera orientation keys must be an array.');
+  if (Array.isArray(cameraOrientationKeys) && cameraOrientationKeys.length === 1) diagnostic(diagnostics, 'camera-orientation-track', 'tracks.camera.orientationKeys', 'Camera orientation track requires either zero keys or at least two keys.');
   if (currentSchema && (!Array.isArray(visibilityKeys) || visibilityKeys.length < 2)) diagnostic(diagnostics, 'visibility-track', 'tracks.visibility.keys', 'Visibility track requires at least two keys.');
   if (!Array.isArray(worlds) || worlds.length < 1) diagnostic(diagnostics, 'world-track', 'tracks.worlds.objects', 'World track requires at least one World Start.');
   if (!Array.isArray(textFields)) diagnostic(diagnostics, 'text-track', 'tracks.text.fields', 'Text fields must be an array.');
@@ -1062,6 +1093,20 @@ export function validateAboutNarrativeTrackDocument(input, {
     if (key.locked !== (index === 0 || index === cameraKeys.length - 1)) diagnostic(diagnostics, 'camera-boundary-lock', `${path}.locked`, 'Only story start and story end Camera keys may be locked.');
   });
   if (cameraKeys?.length && Number(cameraKeys[0].atWU) !== 0) diagnostic(diagnostics, 'camera-endpoints', 'tracks.camera.keys', 'Camera keys must begin at Story WU 0.');
+
+  let previousCameraOrientationWU = -1;
+  (cameraOrientationKeys || []).forEach((key, index) => {
+    const path = `tracks.camera.orientationKeys.${index}`;
+    unknownKeys(diagnostics, key, CAMERA_ORIENTATION_KEY_KEYS, path);
+    if (!isObject(key)) return;
+    validateId(key.id, seen, diagnostics, `${path}.id`);
+    validateTime(key.atWU, diagnostics, `${path}.atWU`, { max: durationWU });
+    if (Number(key.atWU) <= previousCameraOrientationWU) diagnostic(diagnostics, 'camera-orientation-order', `${path}.atWU`, 'Camera orientation keys must be strictly ordered by atWU.');
+    previousCameraOrientationWU = Number(key.atWU);
+    validateVector(key.rotation, diagnostics, `${path}.rotation`);
+    if (!ABOUT_NARRATIVE_CAMERA_EASINGS.includes(key.easing) && !parseAboutNarrativeCameraEasing(key.easing)) diagnostic(diagnostics, 'camera-orientation-easing', `${path}.easing`, 'Camera orientation easing must be a soft cubic-bezier curve.');
+    if (typeof key.locked !== 'boolean') diagnostic(diagnostics, 'camera-orientation-locked', `${path}.locked`, 'Camera orientation locked must be boolean.');
+  });
 
   if (currentSchema) {
     let previousVisibilityWU = -1;
@@ -1202,6 +1247,7 @@ export function validateAboutNarrativeTrackDocument(input, {
 
   const indexes = {
     camera: new Map((cameraKeys || []).map((item) => [item.id, item])),
+    cameraOrientation: new Map((cameraOrientationKeys || []).map((item) => [item.id, item])),
     visibility: new Map((visibilityKeys || []).map((item) => [item.id, item])),
     worlds: new Map((worlds || []).map((item) => [item.id, item])),
     text: new Map((textFields || []).map((item) => [item.id, item])),
@@ -1306,15 +1352,25 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
     },
     tracks: {
-      camera: { keys: [...source.tracks.camera.keys]
-        .map((inputKey) => {
-          const key = normalizeCameraAimKey(inputKey);
-          return {
-            ...key,
-            easing: normalizeAboutNarrativeCameraEasing(key.easing),
-          };
-        })
-        .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
+      camera: {
+        keys: [...source.tracks.camera.keys]
+          .map((inputKey) => {
+            const key = normalizeCameraAimKey(inputKey);
+            return {
+              ...key,
+              easing: normalizeAboutNarrativeCameraEasing(key.easing),
+            };
+          })
+          .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
+        ...(Array.isArray(source.tracks.camera.orientationKeys) ? {
+          orientationKeys: [...source.tracks.camera.orientationKeys]
+            .map((key) => ({
+              ...cloneAboutNarrativeDocument(key),
+              easing: normalizeAboutNarrativeCameraEasing(key.easing),
+            }))
+            .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
+        } : {}),
+      },
       visibility: { keys: [...source.tracks.visibility.keys]
         .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)) },
       worlds: { objects: [...source.tracks.worlds.objects].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },
@@ -1964,6 +2020,9 @@ export function repairAboutNarrativeVersion5Hybrid(input) {
     delete next.distanceFogEndWU;
     return next;
   });
+  const cameraOrientationKeys = cloneAboutNarrativeDocument(
+    raw.tracks?.camera?.orientationKeys || [],
+  );
   const textFields = (raw.tracks?.text?.fields || []).map((field) => (
     field.kind === 'discipline-reveal'
       ? stripLegacyDisciplineField(field)
@@ -1980,7 +2039,10 @@ export function repairAboutNarrativeVersion5Hybrid(input) {
   });
   const worldObjects = cloneAboutNarrativeDocument(raw.tracks?.worlds?.objects || []);
   const targetIds = {
-    camera: new Set(cameraKeys.map((item) => item.id)),
+    camera: new Set([
+      ...cameraKeys.map((item) => item.id),
+      ...cameraOrientationKeys.map((item) => item.id),
+    ]),
     visibility: new Set(visibilityKeys.map((item) => item.id)),
     worlds: new Set(worldObjects.map((item) => item.id)),
     text: new Set(textFields.map((item) => item.id)),
@@ -2017,7 +2079,10 @@ export function repairAboutNarrativeVersion5Hybrid(input) {
       'reduced-motion': { mode: 'overlay', motionPolicy: 'settled' },
     },
     tracks: {
-      camera: { keys: cameraKeys },
+      camera: {
+        keys: cameraKeys,
+        ...(cameraOrientationKeys.length ? { orientationKeys: cameraOrientationKeys } : {}),
+      },
       visibility: { keys: visibilityKeys },
       worlds: { objects: worldObjects },
       text: { fields: textFields },

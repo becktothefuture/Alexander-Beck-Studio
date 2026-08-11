@@ -3,6 +3,9 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { chromium, webkit } from 'playwright';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_VIEWFINDER,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplineViewfinder.js';
 
 const baseUrl = (process.env.ABS_DEV_URL || 'http://localhost:8012').trim().replace(/\/+$/, '');
 const browserName = (process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
@@ -15,6 +18,11 @@ const canonical = JSON.parse(await readFile(
 const storyDurationWU = Number(canonical.profiles.desktop.storyDurationWU);
 const scanStepWU = 0.05;
 const maxInactiveRunWU = 0.15;
+const minDisciplineTravelPx = 100;
+const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
+const disciplineRestoreStartWU = Number(disciplineReveal.endWU)
+  - Number(disciplineReveal.parameters.restoreDurationWU);
+const disciplineLabels = disciplineReveal.parameters.items.map((item) => item.label);
 
 const viewportDefinitions = [
   ['large-desktop', { width: 1920, height: 1080 }],
@@ -30,11 +38,14 @@ const viewports = requestedViewport === 'all'
   : viewportDefinitions.filter(([viewportId]) => viewportId === requestedViewport);
 
 const criticalRanges = [
-  [10.8, 11.6],
+  [8.2, 11.6],
   [13.3, 17.1],
 ];
 
-const evidenceWU = [11, 11.15, 11.3, 13.55, 13.75, 14.05, 14.35, 16.2, 16.9];
+const evidenceWU = [
+  8.35, 8.65, 8.95, 9.15, 9.47, 9.79, 10.11, 10.35, 10.85, 11, 11.15, 11.3,
+  12.85, 13, 13.2, 13.35, 13.55, 16.2, 16.9,
+];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -63,7 +74,7 @@ async function setStoryWU(page, storyWU) {
   await page.waitForFunction((value) => {
     const sampled = Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu);
     return Number.isFinite(sampled) && Math.abs(sampled - value) <= 0.035;
-  }, storyWU, { timeout: 20_000 });
+  }, storyWU, { timeout: 30_000 });
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
@@ -89,6 +100,29 @@ async function readActivity(page, storyWU) {
       })
       : [];
     const worldVisibility = Number(root?.dataset.worldVisibility || 0);
+    const disciplinePositions = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
+      .flatMap((node) => {
+        const rect = node.getBoundingClientRect();
+        const opacity = Number(getComputedStyle(node).opacity);
+        if (opacity <= 0.05
+          || !studio
+          || rect.bottom <= studio.top
+          || rect.top >= studio.bottom) return [];
+        return [{
+          label: node.querySelector('.about-narrative-discipline-reveal__label')?.textContent.trim() || '',
+          top: Math.round(rect.top),
+          bottom: Math.round(rect.bottom),
+        }];
+      });
+    const disciplineViewfinder = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
+      .map((node) => {
+        const style = getComputedStyle(node);
+        return {
+          label: node.querySelector('.about-narrative-discipline-reveal__label')?.textContent.trim() || '',
+          opacity: Number(style.opacity),
+          projectedY: Number.parseFloat(style.getPropertyValue('--discipline-y')),
+        };
+      });
     return {
       requestedWU,
       storyWU: Number(root?.dataset.narrativeStoryWu || 0),
@@ -96,6 +130,8 @@ async function readActivity(page, storyWU) {
       foregroundCount: foreground.length,
       worldVisibility,
       worldStage: root?.dataset.worldStage || '',
+      disciplinePositions,
+      disciplineViewfinder,
       visibleTextFields: [...new Set(foreground.map((node) => (
         node.closest('[data-text-field-id]')?.dataset.textFieldId || ''
       )).filter(Boolean))],
@@ -146,20 +182,57 @@ try {
       longestInactiveRunWU <= maxInactiveRunWU + 0.0001,
       `${viewportId}: inactive runs ${JSON.stringify(inactiveRuns)} exceed ${maxInactiveRunWU.toFixed(2)} WU`,
     );
+    const productPositions = samples.flatMap((sample) => (
+      sample.disciplinePositions
+        .filter((position) => position.label === 'Product Design')
+        .map((position) => position.top)
+    ));
+    const disciplineTravelPx = productPositions.length > 1
+      ? Math.max(...productPositions) - Math.min(...productPositions)
+      : 0;
+    assert(
+      disciplineTravelPx >= minDisciplineTravelPx,
+      `${viewportId}: Discipline camera travel moved Product Design by only ${disciplineTravelPx}px`,
+    );
+    const revealSamples = samples.filter((sample) => (
+      sample.storyWU <= disciplineRestoreStartWU + scanStepWU + 0.0001
+    ));
+    disciplineLabels.forEach((label) => {
+      const labelSamples = revealSamples
+        .map((sample) => sample.disciplineViewfinder.find((item) => item.label === label))
+        .filter(Boolean);
+      const maxOpacity = Math.max(0, ...labelSamples.map((item) => item.opacity));
+      assert(maxOpacity >= 0.95, `${viewportId}: ${label} never becomes fully readable before restore.`);
+      labelSamples.filter((item) => item.opacity > 0.05).forEach((item) => {
+        assert(
+          item.projectedY <= (viewport.height * ABOUT_NARRATIVE_DISCIPLINE_VIEWFINDER.entryStartRatio) + 12,
+          `${viewportId}: ${label} appeared below the authored viewfinder entry band at ${item.projectedY}px.`,
+        );
+      });
+    });
 
     const screenshots = [];
     for (const storyWU of evidenceWU) {
       await setStoryWU(page, storyWU);
       const screenshot = path.join(outputDir, `${viewportId}-wu-${storyWU.toFixed(2).replace('.', '-')}.png`);
-      await page.screenshot({ path: screenshot });
+      await page.screenshot({ path: screenshot, animations: 'disabled', timeout: 60_000 });
       screenshots.push({ storyWU, screenshot });
     }
-    report.viewports.push({ viewportId, viewport, longestInactiveRunWU, inactiveRuns, samples, screenshots });
+    report.viewports.push({
+      viewportId,
+      viewport,
+      longestInactiveRunWU,
+      inactiveRuns,
+      disciplineTravelPx,
+      samples,
+      screenshots,
+    });
     await page.close();
   }
 } finally {
   await browser.close();
 }
 
-await writeFile(path.join(outputDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+const reportName = requestedViewport === 'all' ? 'report.json' : `report-${requestedViewport}.json`;
+await writeFile(path.join(outputDir, reportName), `${JSON.stringify(report, null, 2)}\n`);
 console.log(`Responsive About Sequence audit passed in ${browserName}: ${viewports.length} viewports, longest inactive run ${Math.max(...report.viewports.map((entry) => entry.longestInactiveRunWU)).toFixed(2)} WU.`);

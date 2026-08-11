@@ -73,31 +73,28 @@
             "aimEnabled": false,
             "position": [
               -5,
-              3,
-              -1.75
+              4,
+              -0.75
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              -1.75
+              -0.75
             ],
-            "fov": 70
+            "fov": 60
           },
-          "editorial-camera-hold": {
+          "discipline-travel-start": {
             "aimEnabled": false,
             "position": [
               -5,
               4,
-              1.6
+              -4.89
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              1.6
+              -4.89
             ],
-            "fov": 70
-          },
-          "grid-birds-eye": {
             "fov": 60
           }
         },
@@ -120,29 +117,29 @@
             "aimEnabled": false,
             "position": [
               -5,
-              3,
-              -1.75
+              4,
+              -0.75
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              -1.75
+              -0.75
             ],
-            "fov": 70
+            "fov": 60
           },
-          "editorial-camera-hold": {
+          "discipline-travel-start": {
             "aimEnabled": false,
             "position": [
               -5,
               4,
-              1.6
+              -4.89
             ],
             "lookAtTarget": [
               -5,
               -1.72,
-              1.6
+              -4.89
             ],
-            "fov": 70
+            "fov": 60
           },
           "finale-hold": {
             "position": [
@@ -169,9 +166,6 @@
               -7.035
             ],
             "fov": 33
-          },
-          "grid-birds-eye": {
-            "fov": 60
           },
           "grid-return-centered": {
             "position": [
@@ -318,12 +312,12 @@
           "locked": false
         },
         {
-          "id": "grid-birds-eye-2-2-2",
-          "atWU": 8.825,
+          "id": "discipline-travel-start",
+          "atWU": 7.7,
           "position": [
             -5,
-            0.2,
-            -2.94
+            3.14,
+            -4.51
           ],
           "rotation": [
             -2.3,
@@ -338,64 +332,16 @@
           ],
           "lookAtRoll": 0,
           "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false
-        },
-        {
-          "id": "grid-birds-eye",
-          "atWU": 9,
-          "position": [
-            -5,
-            3.14,
-            -2.94
-          ],
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            -5,
-            -1.72,
-            -2.94
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "easing": "linear",
           "locked": false
         },
         {
           "id": "discipline-hold",
-          "atWU": 10.95,
-          "position": [
-            -5,
-            3.14,
-            -2.94
-          ],
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            -5,
-            -1.72,
-            -2.94
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false
-        },
-        {
-          "id": "editorial-camera-hold",
           "atWU": 11.15,
           "position": [
             -5,
-            4.4,
-            2.2
+            3.14,
+            -1.75
           ],
           "rotation": [
             -90,
@@ -406,16 +352,16 @@
           "lookAtTarget": [
             -5,
             -1.72,
-            2.2
+            -1.75
           ],
           "lookAtRoll": 0,
-          "fov": 64,
+          "fov": 56,
           "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
           "locked": false
         },
         {
           "id": "grid-return-centered",
-          "atWU": 13.55,
+          "atWU": 13,
           "position": [
             0,
             0.13105675984809606,
@@ -509,6 +455,41 @@
           "easing": "linear",
           "locked": true
         }
+      ],
+      "orientationKeys": [
+        {
+          "id": "discipline-tilt-start",
+          "atWU": 8.35,
+          "rotation": [
+            -2.3,
+            0,
+            0
+          ],
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "discipline-tilt-end",
+          "atWU": 9.15,
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "discipline-tilt-hold",
+          "atWU": 11.15,
+          "rotation": [
+            -90,
+            0,
+            0
+          ],
+          "easing": "linear",
+          "locked": false
+        }
       ]
     },
     "visibility": {
@@ -578,14 +559,14 @@
         },
         {
           "id": "visibility-return-start",
-          "atWU": 13.55,
+          "atWU": 13,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 14.35,
+          "atWU": 13.35,
           "visibility": 1,
           "easing": "linear",
           "locked": false
@@ -1236,7 +1217,7 @@
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 11,
+          "startWU": 10.85,
           "focusWU": 11.4,
           "endWU": 16.87,
           "publishable": true,
@@ -1372,14 +1353,14 @@
           "activationWU": 8.7,
           "endWU": 11.15,
           "parameters": {
-            "settleDurationWU": 0.3,
+            "settleDurationWU": 0.45,
             "beatDurationWU": 0.32,
             "itemsPerBeat": 2,
             "formationColumn": 43,
             "formationRow": 54,
             "backgroundOpacity": 0.28,
             "pointScale": 4.4,
-            "restoreDurationWU": 0.8,
+            "restoreDurationWU": 0.5,
             "items": [
               {
                 "group": 1,
@@ -1418,8 +1399,8 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 13.55,
-          "activationWU": 13.55,
+          "startWU": 13,
+          "activationWU": 13,
           "endWU": 18.95,
           "parameters": {
             "amplitude": 1.05,

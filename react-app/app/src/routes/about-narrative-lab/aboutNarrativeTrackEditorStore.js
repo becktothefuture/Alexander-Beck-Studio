@@ -697,6 +697,7 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
       if (gesture || tryState) return rejectBusyEdit('Create track object');
       const base = kind || (track === 'camera'
         ? 'camera-key'
+        : track === 'camera-orientation' ? 'camera-orientation-key'
         : track === 'visibility' ? 'visibility-key' : track);
       const id = options.id || createUniqueId(snapshot.document, base);
       const operationOptions = { ...options, id };
@@ -719,7 +720,7 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
           ? { ...options.template, protected: false }
           : options.template;
       }
-      const publishedPlan = ['camera', 'visibility'].includes(track) && snapshot.compiledPlan?.valid
+      const publishedPlan = ['camera', 'camera-orientation', 'visibility'].includes(track) && snapshot.compiledPlan?.valid
         ? compileAboutNarrativeRuntimePlan(snapshot.document, snapshot.previewState)
         : null;
       if (track === 'camera' && !operationOptions.cameraKey && publishedPlan?.valid) {
@@ -731,6 +732,12 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
           lookAtTarget: [...frame.camera.lookAtTarget],
           lookAtRoll: frame.camera.lookAtRoll,
           fov: frame.camera.fov,
+        };
+      }
+      if (track === 'camera-orientation' && !operationOptions.cameraOrientationKey && publishedPlan?.valid) {
+        const frame = sampleAboutNarrativeRuntimePlan(publishedPlan, atWU);
+        operationOptions.cameraOrientationKey = {
+          rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
         };
       }
       if (track === 'visibility' && !operationOptions.visibilityKey && publishedPlan?.valid) {

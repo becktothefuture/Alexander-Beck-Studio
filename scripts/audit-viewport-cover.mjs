@@ -94,7 +94,7 @@ try {
       await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       const state = await assertCovered(page, routeId, mode);
       const screenshot = path.join(outputDir, `${routeId}-${mode}.png`);
-      await page.screenshot({ path: screenshot });
+      await page.screenshot({ path: screenshot, animations: 'disabled', timeout: 60_000 });
       results.covered.push({ routeId, routePath, mode, viewport, state, screenshot });
       if (mode === 'mobile-landscape') await assertRecovered(page, routeId);
       await page.close();

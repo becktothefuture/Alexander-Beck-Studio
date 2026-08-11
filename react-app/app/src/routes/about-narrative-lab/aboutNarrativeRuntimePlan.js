@@ -8,7 +8,8 @@ import {
 } from './aboutNarrativeTrackSchema.js';
 import {
   compileAboutNarrativeCameraKey,
-  sampleAboutNarrativeCameraKeysInto,
+  compileAboutNarrativeCameraOrientationKey,
+  sampleAboutNarrativeCameraChannelsInto,
 } from './aboutNarrativeCameraSampling.js';
 import {
   createAboutNarrativeProfileResolver,
@@ -56,6 +57,7 @@ function invalidPlan({
     durationWU: 0,
     maxStoryWU: 0,
     cameraKeys: [],
+    cameraOrientationKeys: [],
     visibilityKeys: [],
     worlds: [],
     textFields: [],
@@ -136,6 +138,13 @@ function applyProfileOverrides(model, resolver) {
       return compileAboutNarrativeCameraKey(merged);
     })
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
+  const cameraOrientationKeys = (model.tracks.camera.orientationKeys || [])
+    .map((key) => compileAboutNarrativeCameraOrientationKey({
+      ...key,
+      ...(overrides.camera[key.id] || {}),
+      rotation: [...(overrides.camera[key.id]?.rotation || key.rotation)],
+    }))
+    .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
   const visibilityKeys = model.tracks.visibility.keys
     .map((key) => ({ ...key, ...(overrides.visibility[key.id] || {}) }))
     .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id));
@@ -158,7 +167,14 @@ function applyProfileOverrides(model, resolver) {
   const interactionClips = model.tracks.interactions.clips
     .map((clip) => ({ ...clip, ...(overrides.interactions[clip.id] || {}) }))
     .sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id));
-  return { cameraKeys, visibilityKeys, worlds, textFields, interactionClips };
+  return {
+    cameraKeys,
+    cameraOrientationKeys,
+    visibilityKeys,
+    worlds,
+    textFields,
+    interactionClips,
+  };
 }
 
 function compileLegacyDisciplineReveal(textFields) {
@@ -320,6 +336,7 @@ export function compileAboutNarrativeRuntimePlan(input, options = {}) {
     durationWU: resolver.storyDurationWU,
     maxStoryWU: resolver.storyDurationWU,
     cameraKeys: tracks.cameraKeys,
+    cameraOrientationKeys: tracks.cameraOrientationKeys,
     visibilityKeys: tracks.visibilityKeys,
     worlds: tracks.worlds,
     textFields: tracks.textFields,
@@ -689,8 +706,9 @@ export function sampleAboutNarrativeRuntimePlanInto(
   const activeWorldIndex = findIndexAtWU(plan.worlds, clampedStoryWU, 'startWU');
   const toWorld = plan.worlds[activeWorldIndex] || null;
   const fromWorld = plan.worlds[Math.max(0, activeWorldIndex - 1)] || toWorld;
-  const cameraKey = sampleAboutNarrativeCameraKeysInto(
+  const cameraKey = sampleAboutNarrativeCameraChannelsInto(
     plan.cameraKeys,
+    plan.cameraOrientationKeys,
     clampedStoryWU,
     reducedMotion,
     target._cameraKey,

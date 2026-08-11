@@ -22,13 +22,13 @@ const viewport = viewports[viewportId] || viewports.desktop;
 const reducedMotion = process.env.ABS_CONTACT_SHEET_REDUCED === '1' ? 'reduce' : 'no-preference';
 const sequences = {
   opening: [0, 0.12, 0.28, 0.42, 0.58, 0.7, 0.9, 1.15, 1.35],
-  anchorProbe: [8.85, 9.35, 9.85, 10.35, 10.85, 11.35],
-  editorial: [3.3, 3.48, 3.53, 3.72, 4.2, 4.8, 5.25, 5.45, 12.85, 13.15, 13.55, 13.75, 14.35],
-  disciplines: [6.55, 7.35, 8.15, 8.45, 8.65, 8.9, 9.15, 9.4, 9.65, 9.9, 10.15, 10.4, 10.65, 10.9, 11.15, 11.4, 11.65, 11.9, 12.15, 12.45, 12.85],
-  disciplineReview: [7.1, 7.35, 7.7, 8.05, 8.35, 8.55, 8.65, 8.78, 8.9, 9.05, 9.2, 9.35, 9.5, 9.65, 9.8, 9.95, 10.1, 10.25, 10.4, 10.55, 10.7, 10.85, 11, 11.15, 11.3, 11.45, 11.6, 11.75, 11.9, 12.05, 12.2, 12.45, 12.65],
-  late: [12.45, 12.85, 13.15, 13.55, 13.75, 14.05, 14.35, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 18.1, 18.5, 19.25, 20, 20.4, 20.75, 21.1, 21.5, durationWU],
-  ending: [13.55, 13.75, 14.05, 14.35, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 17.95, 18.2, 18.5, 18.85, 19.25, 19.6, 20, 20.35, 20.75, 21.05, 21.35, 21.65, durationWU],
-  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.48, 3.72, 4.2, 4.8, 5.45, 6.05, 6.95, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.65, 11, 11.15, 11.4, 11.65, 12.15, 12.85, 13.55, 13.75, 14.05, 14.35, 15.7, 16.57, 16.9, 17.38, 17.75, 18.5, 19.25, 20, 20.75, 21.35, durationWU],
+  anchorProbe: [8.35, 8.75, 9.15, 9.47, 9.79, 10.11, 10.35, 10.85, 11.15],
+  editorial: [3.3, 3.48, 3.53, 3.72, 4.2, 4.8, 5.25, 5.45, 12.85, 13, 13.2, 13.35, 13.55],
+  disciplines: [6.55, 7.35, 8.15, 8.35, 8.55, 8.75, 8.95, 9.15, 9.31, 9.47, 9.63, 9.79, 9.95, 10.11, 10.35, 10.6, 10.85, 11, 11.15, 11.3, 11.45, 11.6, 11.9, 12.2, 12.65],
+  disciplineReview: [7.1, 7.35, 7.7, 8.05, 8.2, 8.35, 8.5, 8.65, 8.8, 8.95, 9.15, 9.31, 9.47, 9.63, 9.79, 9.95, 10.11, 10.23, 10.35, 10.5, 10.65, 10.8, 10.95, 11.05, 11.15, 11.3, 11.45, 11.6, 11.9, 12.2, 12.45, 12.65],
+  late: [12.45, 12.85, 13, 13.2, 13.35, 13.55, 14.05, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 18.1, 18.5, 19.25, 20, 20.4, 20.75, 21.1, 21.5, durationWU],
+  ending: [13, 13.2, 13.35, 13.55, 14.05, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 17.95, 18.2, 18.5, 18.85, 19.25, 19.6, 20, 20.35, 20.75, 21.05, 21.35, 21.65, durationWU],
+  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.48, 3.72, 4.2, 4.8, 5.45, 6.05, 6.95, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.65, 11, 11.15, 11.4, 11.65, 12.15, 12.85, 13, 13.2, 13.35, 13.55, 15.7, 16.57, 16.9, 17.38, 17.75, 18.5, 19.25, 20, 20.75, 21.35, durationWU],
 };
 const requestedSequenceIds = new Set(
   String(process.env.ABS_CONTACT_SHEET_SEQUENCES || Object.keys(sequences).join(','))
@@ -68,6 +68,7 @@ async function readFrameState(page, requestedWU) {
         const style = getComputedStyle(node);
         const opacity = Number(style.opacity);
         const anchorX = Number.parseFloat(style.getPropertyValue('--discipline-x'));
+        const anchorY = Number.parseFloat(style.getPropertyValue('--discipline-y'));
         return {
         label: node.querySelector('.about-narrative-discipline-reveal__label')?.textContent.trim() || '',
         side: node.dataset.labelSide || 'right',
@@ -87,6 +88,7 @@ async function readFrameState(page, requestedWU) {
           return Math.max(1, Math.round(description.getBoundingClientRect().height / Number.parseFloat(style.lineHeight)));
         })(),
         anchorX: Number.isFinite(anchorX) ? Math.round(anchorX) : null,
+        anchorY: Number.isFinite(anchorY) ? Math.round(anchorY) : null,
         anchorGap: Number.isFinite(anchorX) ? Math.round(rect.left - anchorX) : null,
         withinEditorialZone: rect.left >= window.innerWidth * 0.15
           && rect.right <= window.innerWidth * 0.85,

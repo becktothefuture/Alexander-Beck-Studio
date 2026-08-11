@@ -6,10 +6,11 @@ export const ABOUT_NARRATIVE_MIN_WORLD_DURATION_WU = 0.25;
 export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
 
 const CLIPBOARD_KIND = 'about-narrative-track-objects';
-const OBJECT_TYPES = Object.freeze(['camera-key', 'visibility-key', 'world', 'text-field', 'interaction']);
-const TRACK_IDS = Object.freeze(['camera', 'visibility', 'world', 'text', 'interaction']);
+const OBJECT_TYPES = Object.freeze(['camera-key', 'camera-orientation-key', 'visibility-key', 'world', 'text-field', 'interaction']);
+const TRACK_IDS = Object.freeze(['camera', 'camera-orientation', 'visibility', 'world', 'text', 'interaction']);
 const TYPE_TO_TRACK = Object.freeze({
   'camera-key': 'camera',
+  'camera-orientation-key': 'camera-orientation',
   'visibility-key': 'visibility',
   world: 'world',
   'text-field': 'text',
@@ -17,6 +18,7 @@ const TYPE_TO_TRACK = Object.freeze({
 });
 const TRACK_TO_OVERRIDE_SCOPE = Object.freeze({
   camera: 'camera',
+  'camera-orientation': 'camera',
   visibility: 'visibility',
   world: 'worlds',
   text: 'text',
@@ -38,6 +40,7 @@ function resultError(reason, code = 'invalid-edit') {
 
 function getTrackCollection(model, trackId) {
   if (trackId === 'camera') return model?.tracks?.camera?.keys;
+  if (trackId === 'camera-orientation') return model?.tracks?.camera?.orientationKeys;
   if (trackId === 'visibility') return model?.tracks?.visibility?.keys;
   if (trackId === 'world') return model?.tracks?.worlds?.objects;
   if (trackId === 'text') return model?.tracks?.text?.fields;
@@ -46,7 +49,7 @@ function getTrackCollection(model, trackId) {
 }
 
 function getObjectTime(object, type) {
-  if (type === 'camera-key' || type === 'visibility-key') return Number(object.atWU);
+  if (type === 'camera-key' || type === 'camera-orientation-key' || type === 'visibility-key') return Number(object.atWU);
   if (type === 'world') return Number(object.startWU);
   return Number(object.startWU);
 }
@@ -56,6 +59,7 @@ function getStoryDurationWU(model) {
   if (Number.isFinite(profileDuration) && profileDuration > 0) return profileDuration;
   const times = [
     ...(model?.tracks?.camera?.keys || []).map((item) => item.atWU),
+    ...(model?.tracks?.camera?.orientationKeys || []).map((item) => item.atWU),
     ...(model?.tracks?.visibility?.keys || []).map((item) => item.atWU),
     ...(model?.tracks?.worlds?.objects || []).map((item) => item.startWU),
     ...(model?.tracks?.pointField?.keys || []).map((item) => item.atWU),
@@ -68,6 +72,7 @@ function getStoryDurationWU(model) {
 function getNonTextBoundaryWU(model) {
   const times = [
     ...(model.tracks?.camera?.keys || []).map((item) => item.atWU),
+    ...(model.tracks?.camera?.orientationKeys || []).map((item) => item.atWU),
     ...(model.tracks?.visibility?.keys || []).map((item) => item.atWU),
     ...(model.tracks?.worlds?.objects || []).flatMap((item) => [
       item.startWU,
@@ -345,6 +350,12 @@ export function getAboutNarrativeTrackObjectRange(model, selectionOrType, object
       endWU: cleanWU(Number(object.atWU) + Number(cameraWindowWU || 0)),
     };
   }
+  if (selection.type === 'camera-orientation-key') {
+    return {
+      startWU: cleanWU(Number(object.atWU) - Number(cameraWindowWU || 0)),
+      endWU: cleanWU(Number(object.atWU) + Number(cameraWindowWU || 0)),
+    };
+  }
   if (selection.type === 'visibility-key') {
     return {
       startWU: cleanWU(Number(object.atWU) - Number(cameraWindowWU || 0)),
@@ -363,7 +374,7 @@ export function getAboutNarrativeTrackObjectRange(model, selectionOrType, object
 }
 
 function objectMovableTimes(object, type) {
-  if (type === 'camera-key' || type === 'visibility-key') return [Number(object.atWU)];
+  if (type === 'camera-key' || type === 'camera-orientation-key' || type === 'visibility-key') return [Number(object.atWU)];
   if (type === 'world') return [
     Number(object.startWU),
     Number(object.anchorWU),
@@ -382,7 +393,7 @@ function objectMovableTimes(object, type) {
 
 function shiftObjectTimes(object, type, deltaWU) {
   const shift = (value) => cleanWU(Number(value) + deltaWU);
-  if (type === 'camera-key' || type === 'visibility-key') object.atWU = shift(object.atWU);
+  if (type === 'camera-key' || type === 'camera-orientation-key' || type === 'visibility-key') object.atWU = shift(object.atWU);
   if (type === 'world') {
     object.startWU = shift(object.startWU);
     object.anchorWU = shift(object.anchorWU);
@@ -463,6 +474,15 @@ function validateEditingModel(model) {
     .map((key) => Number(key.atWU));
   if (cameraTimes.some((time, index) => index > 0 && time <= cameraTimes[index - 1])) {
     return resultError('Camera keys must have unique increasing WU positions.', 'camera-order');
+  }
+  const cameraOrientationTimes = [...(model?.tracks?.camera?.orientationKeys || [])]
+    .sort((left, right) => left.atWU - right.atWU)
+    .map((key) => Number(key.atWU));
+  if (cameraOrientationTimes.length === 1) {
+    return resultError('Camera orientation requires either zero keys or at least two keys.', 'camera-orientation-count');
+  }
+  if (cameraOrientationTimes.some((time, index) => index > 0 && time <= cameraOrientationTimes[index - 1])) {
+    return resultError('Camera orientation keys must have unique increasing WU positions.', 'camera-orientation-order');
   }
   const visibilityTimes = [...(model?.tracks?.visibility?.keys || [])]
     .sort((left, right) => left.atWU - right.atWU)
@@ -879,6 +899,24 @@ export function createAboutNarrativeCameraKeyAtWU({ model, atWU, id = null, came
   });
 }
 
+export function createAboutNarrativeCameraOrientationKeyAtWU({
+  model,
+  atWU,
+  id = null,
+  cameraOrientationKey = {},
+}) {
+  const durationWU = getStoryDurationWU(model);
+  const time = cleanWU(clamp(Number(atWU), 0, durationWU));
+  return addCreatedObject(model, 'camera-orientation-key', {
+    ...clone(cameraOrientationKey),
+    id: createUniqueId(model, id, 'camera-orientation-key'),
+    atWU: time,
+    rotation: clone(cameraOrientationKey.rotation || [0, 0, 0]),
+    easing: cameraOrientationKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
+    locked: false,
+  });
+}
+
 export function createAboutNarrativeVisibilityKeyAtWU({ model, atWU, id = null, visibilityKey = {} }) {
   const durationWU = getStoryDurationWU(model);
   const time = cleanWU(clamp(Number(atWU), 0, durationWU));
@@ -969,10 +1007,11 @@ export function createAboutNarrativeTrackObjectAtWU({ model, track, kind = null,
   if (track === 'text' && kind === 'scroll-block') return createAboutNarrativeScrollBlockAtWU({ model, ...options });
   if (track === 'text' && kind === 'stub') return createAboutNarrativeStubAtWU({ model, ...options });
   if (track === 'camera') return createAboutNarrativeCameraKeyAtWU({ model, ...options });
+  if (track === 'camera-orientation') return createAboutNarrativeCameraOrientationKeyAtWU({ model, ...options });
   if (track === 'visibility') return createAboutNarrativeVisibilityKeyAtWU({ model, ...options });
   if (track === 'world') return createAboutNarrativeWorldAtWU({ model, ...options });
   if (track === 'interaction') return createAboutNarrativeInteractionAtWU({ model, ...options });
-  return resultError('Choose a supported Camera, Visibility, World, Text, or Interaction object type.', 'object-kind');
+  return resultError('Choose a supported Camera travel, Camera orientation, Visibility, World, Text, or Interaction object type.', 'object-kind');
 }
 
 export function deleteAboutNarrativeTrackObjects({ model, selection }) {
@@ -1105,7 +1144,9 @@ export function deriveAboutNarrativeTrackLoopRange({
     return resultError('Loop roll and Camera window values must be valid non-negative WU values.', 'loop-window');
   }
   const ranges = resolved.members.map((member) => getAboutNarrativeTrackObjectRange(model, member, null, {
-    cameraWindowWU: ['camera-key', 'visibility-key'].includes(member.type) ? cameraWindowWU : 0,
+    cameraWindowWU: ['camera-key', 'camera-orientation-key', 'visibility-key'].includes(member.type)
+      ? cameraWindowWU
+      : 0,
   }));
   const durationWU = getStoryDurationWU(model);
   const startWU = cleanWU(clamp(Math.min(...ranges.map((range) => range.startWU)) - Number(preRollWU), 0, durationWU));

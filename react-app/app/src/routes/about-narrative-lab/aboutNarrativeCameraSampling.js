@@ -161,6 +161,17 @@ export function compileAboutNarrativeCameraKey(key) {
   };
 }
 
+export function compileAboutNarrativeCameraOrientationKey(key) {
+  return {
+    ...key,
+    easingCurve: compileAboutNarrativeCameraEasing(key?.easing),
+    quaternion: writeAboutNarrativeCameraQuaternion(
+      [0, 0, 0, 1],
+      key?.rotation,
+    ),
+  };
+}
+
 export function writeAboutNarrativeCameraSampleFromKey(target, key) {
   const position = key?.position || [0, 0, 0];
   const lookAtTarget = key?.lookAtTarget || [0, 0, -1];
@@ -236,5 +247,64 @@ export function sampleAboutNarrativeCameraKeysInto(
     writeQuaternion(target.quaternion, target.manualQuaternion);
   }
   target.fov = mix(from.fov, to.fov, progress);
+  return target;
+}
+
+export function sampleAboutNarrativeCameraOrientationKeysInto(
+  keys,
+  storyWU,
+  reducedMotion,
+  target,
+) {
+  if (!keys.length
+    || storyWU < Number(keys[0].atWU)
+    || storyWU > Number(keys.at(-1).atWU)) return false;
+  const fromIndex = findCameraKeyIndex(keys, storyWU);
+  const from = keys[fromIndex];
+  const to = keys[Math.min(keys.length - 1, fromIndex + 1)];
+  if (reducedMotion || from === to) {
+    writeQuaternion(target.manualQuaternion, from.quaternion);
+    writeQuaternion(target.quaternion, from.quaternion);
+  } else {
+    const spanWU = Math.max(
+      CAMERA_TIME_EPSILON,
+      Number(to.atWU) - Number(from.atWU),
+    );
+    const progress = applyAboutNarrativeCameraEasing(
+      from.easingCurve,
+      (storyWU - Number(from.atWU)) / spanWU,
+    );
+    slerpAboutNarrativeCameraQuaternionInto(
+      target.manualQuaternion,
+      from.quaternion,
+      to.quaternion,
+      progress,
+    );
+    writeQuaternion(target.quaternion, target.manualQuaternion);
+  }
+  target.aimWeight = 0;
+  target.targeted = false;
+  return true;
+}
+
+export function sampleAboutNarrativeCameraChannelsInto(
+  movementKeys,
+  orientationKeys,
+  storyWU,
+  reducedMotion,
+  target,
+) {
+  sampleAboutNarrativeCameraKeysInto(
+    movementKeys,
+    storyWU,
+    reducedMotion,
+    target,
+  );
+  sampleAboutNarrativeCameraOrientationKeysInto(
+    orientationKeys,
+    storyWU,
+    reducedMotion,
+    target,
+  );
   return target;
 }

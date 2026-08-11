@@ -28,10 +28,14 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import { loadAboutNarrativeTrackSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackPersistence.js';
 import {
+  getAboutNarrativeCameraRotationFromQuaternion,
   migrateLegacyAboutNarrativeCameraPose,
   writeAboutNarrativeCameraOrbitPosition,
   writeAboutNarrativeCameraQuaternion,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraRig.js';
+import {
+  writeAboutNarrativeDisciplineViewfinderWeights,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDisciplineViewfinder.js';
 import { applyAboutNarrativeCameraEasing } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraEasing.js';
 import {
   applyAboutNarrativeWorldTransitionEasing,
@@ -82,6 +86,7 @@ function seededStorySamples(durationWU, count = 500) {
 function boundarySamples(plan) {
   const boundaries = [0, plan.durationWU];
   plan.cameraKeys.forEach((key) => boundaries.push(key.atWU));
+  plan.cameraOrientationKeys.forEach((key) => boundaries.push(key.atWU));
   plan.visibilityKeys.forEach((key) => boundaries.push(key.atWU));
   plan.worlds.forEach((world) => boundaries.push(
     world.startWU,
@@ -580,15 +585,15 @@ test('Discipline grid compiles three cumulative paired-row beats', () => {
   assert.equal(reveal.motion.type, 'discipline-reveal');
   assert.equal(plan.textFields.some((field) => field.kind === 'discipline-reveal'), false);
   assert.equal(reveal.motion.targetWorldId, 'world-grid');
-  assert.equal(reveal.settleDurationWU, 0.3);
+  assert.equal(reveal.settleDurationWU, 0.45);
   assert.equal(reveal.beatDurationWU, 0.32);
   assert.equal(reveal.itemsPerBeat, 2);
   assert.equal(reveal.formationColumn, 43);
   assert.equal(reveal.formationRow, 54);
   assert.equal(reveal.beatCount, 3);
-  assert.equal(reveal.sequenceStartWU, 9);
-  assertClose(reveal.sequenceEndWU, 9.96, 'discipline sequence end');
-  assertClose(reveal.restoreStartWU, 10.35, 'discipline restore start');
+  assertClose(reveal.sequenceStartWU, 9.15, 'discipline sequence start');
+  assertClose(reveal.sequenceEndWU, 10.11, 'discipline sequence end');
+  assertClose(reveal.restoreStartWU, 10.65, 'discipline restore start');
   assert.equal(reveal.effectEndWU, 11.15);
   assert.equal(reveal.items.length, 6);
   reveal.items.forEach((item) => {
@@ -631,6 +636,60 @@ test('Discipline grid compiles three cumulative paired-row beats', () => {
   assert.ok(restoring.restoreProgress > 0 && restoring.restoreProgress < 1);
   assert.ok(restored.restoreProgress > 0.999);
   assert.equal(handoff.active, false);
+});
+
+test('Camera travel remains linear while the independent orientation lane eases the floor tilt', () => {
+  const desktop = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
+  assert.deepEqual(
+    desktop.cameraOrientationKeys.map((key) => [key.id, key.atWU]),
+    [
+      ['discipline-tilt-start', 8.35],
+      ['discipline-tilt-end', 9.15],
+      ['discipline-tilt-hold', 11.15],
+    ],
+  );
+  assert.equal(desktop.cameraKeys.some((key) => key.id === 'grid-birds-eye'), false);
+  const sampleTimes = [7.7, 8.35, 8.75, 9.15, 10.15, 11.15];
+  const samples = sampleTimes.map((storyWU) => sampleAboutNarrativeRuntimePlan(desktop, storyWU));
+  const zVelocities = samples.slice(1).map((frame, index) => (
+    (frame.camera.position[2] - samples[index].camera.position[2])
+      / (sampleTimes[index + 1] - sampleTimes[index])
+  ));
+  zVelocities.slice(1).forEach((velocity) => assertClose(velocity, zVelocities[0], 'constant travel velocity'));
+  samples.forEach((frame) => assertClose(frame.camera.position[1], 3.14, 'constant travel height'));
+  const tiltMidRotation = getAboutNarrativeCameraRotationFromQuaternion(samples[2].camera.quaternion);
+  assertClose(tiltMidRotation[0], -46.15, 'smooth tilt midpoint', 0.02);
+  assertClose(
+    getAboutNarrativeCameraRotationFromQuaternion(samples[3].camera.quaternion)[0],
+    -90,
+    'top-down tilt endpoint',
+    0.001,
+  );
+  assert.deepEqual(samples[3].camera.quaternion, samples.at(-1).camera.quaternion);
+
+  const mobile = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'mobile' });
+  const mobileStart = sampleAboutNarrativeRuntimePlan(mobile, 7.7);
+  const mobileTopDown = sampleAboutNarrativeRuntimePlan(mobile, 9.15);
+  const mobileEnd = sampleAboutNarrativeRuntimePlan(mobile, 11.15);
+  assertClose(mobileStart.camera.position[1], 4, 'mobile travel height start');
+  assertClose(mobileEnd.camera.position[1], 4, 'mobile travel height end');
+  assertClose(mobileTopDown.camera.fov, 60, 'mobile top-down FOV');
+  assertClose(mobileEnd.camera.fov, 60, 'mobile traversal FOV');
+});
+
+test('Discipline viewfinder weights reveal each projected anchor at the lower-frame entry band', () => {
+  const target = new Float32Array(6);
+  writeAboutNarrativeDisciplineViewfinderWeights(
+    target,
+    new Float64Array([800, 742.5, 700, 658, 400, Number.NaN]),
+    844,
+  );
+  assert.equal(target[0], 0);
+  assert.ok(target[1] > 0 && target[1] < 0.01);
+  assert.ok(target[2] > 0 && target[2] < 1);
+  assert.equal(target[3], 1);
+  assert.equal(target[4], 1);
+  assert.equal(target[5], 0);
 });
 
 test('Reduced Motion switches disciplines at the same beat boundaries without spatial travel', () => {
@@ -704,6 +763,7 @@ test('layout profile overrides apply completely by stable object ID without sour
   const model = structuredClone(canonical);
   const original = structuredClone(model);
   const camera = model.tracks.camera.keys[1];
+  const cameraOrientation = model.tracks.camera.orientationKeys[1];
   const visibility = model.tracks.visibility.keys[1] || model.tracks.visibility.keys[0];
   const world = model.tracks.worlds.objects[0];
   const text = model.tracks.text.fields.find((field) => field.kind === 'title' && !field.protected);
@@ -714,6 +774,10 @@ test('layout profile overrides apply completely by stable object ID without sour
     lookAtTarget: [2, 3, 3],
     fov: 44,
     easing: 'ease-in-out',
+  };
+  model.profiles.mobile.overrides.camera[cameraOrientation.id] = {
+    rotation: [-82, 1, 0],
+    easing: 'smoothstep',
   };
   model.profiles.mobile.overrides.visibility[visibility.id] = {
     visibility: 0.35,
@@ -742,6 +806,10 @@ test('layout profile overrides apply completely by stable object ID without sour
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).rotation, [10, 20, 30]);
   assert.equal(plan.cameraKeys.find((item) => item.id === camera.id).aimEnabled, true);
   assert.deepEqual(plan.cameraKeys.find((item) => item.id === camera.id).lookAtTarget, [2, 3, 3]);
+  assert.deepEqual(
+    plan.cameraOrientationKeys.find((item) => item.id === cameraOrientation.id).rotation,
+    [-82, 1, 0],
+  );
   assert.equal(plan.visibilityKeys.find((item) => item.id === visibility.id).visibility, 0.35);
   const resolvedWorld = plan.worlds.find((item) => item.id === world.id);
   assert.deepEqual(resolvedWorld.transform.position, [1, 2, 3]);

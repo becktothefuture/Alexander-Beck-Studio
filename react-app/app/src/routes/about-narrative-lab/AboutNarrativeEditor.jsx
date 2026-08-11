@@ -91,14 +91,16 @@ import {
 import './about-narrative-editor.css';
 
 const LEGACY_TRACKS = Object.freeze([
-  { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
+  { id: 'camera', label: 'Camera travel', type: 'camera-key', colour: 'camera' },
+  { id: 'camera-orientation', label: 'Camera tilt', type: 'camera-orientation-key', colour: 'camera' },
   { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
   { id: 'world', label: 'World', type: 'world', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
   { id: 'interaction', label: 'Motion', type: 'interaction', colour: 'interaction' },
 ]);
 const POINT_FIELD_TRACKS = Object.freeze([
-  { id: 'camera', label: 'Camera', type: 'camera-key', colour: 'camera' },
+  { id: 'camera', label: 'Camera travel', type: 'camera-key', colour: 'camera' },
+  { id: 'camera-orientation', label: 'Camera tilt', type: 'camera-orientation-key', colour: 'camera' },
   { id: 'visibility', label: 'Visibility', type: 'visibility-key', colour: 'visibility' },
   { id: 'point-field', label: 'Forms', type: 'point-field-key', colour: 'world' },
   { id: 'text', label: 'Text', type: 'text-field', colour: 'text' },
@@ -185,6 +187,7 @@ function cleanWU(value) {
 function getSelectionTrackId(selection, pointFieldV6 = true) {
   if (selection?.type === 'track') return selection.id;
   if (selection?.type === 'camera-key') return 'camera';
+  if (selection?.type === 'camera-orientation-key') return 'camera-orientation';
   if (selection?.type === 'visibility-key') return 'visibility';
   if (selection?.type === 'world') return 'world';
   if (selection?.type === 'text-field') return 'text';
@@ -268,6 +271,7 @@ function getGridRippleStartControl(document, clip) {
 
 function getTrackItems(document, trackId) {
   if (trackId === 'camera') return document.tracks.camera.keys;
+  if (trackId === 'camera-orientation') return document.tracks.camera.orientationKeys || [];
   if (trackId === 'visibility') return document.tracks.visibility.keys;
   if (trackId === 'world') return document.tracks.worlds?.objects || [];
   if (trackId === 'point-field') return [];
@@ -277,6 +281,7 @@ function getTrackItems(document, trackId) {
 
 function getObjectLabel(object, type) {
   if (type === 'camera-key') return object.id.replace(/^camera-/, '') || 'Camera key';
+  if (type === 'camera-orientation-key') return object.id.replace(/^camera-/, '') || 'Camera tilt key';
   if (type === 'visibility-key') return object.id.replace(/^visibility-/, '') || 'Visibility key';
   if (type === 'world') return object.label || object.shapeId || object.id;
   if (type === 'interaction') {
@@ -297,7 +302,7 @@ function getObjectLabel(object, type) {
 }
 
 function getObjectStart(object, type) {
-  return Number(['camera-key', 'visibility-key'].includes(type) ? object.atWU : object.startWU);
+  return Number(['camera-key', 'camera-orientation-key', 'visibility-key'].includes(type) ? object.atWU : object.startWU);
 }
 
 function getEditorialTextConnections(fields) {
@@ -553,6 +558,7 @@ function CameraEasingHandleField({
 
 function CameraKeyframeEasingField({
   context,
+  description = 'Each control belongs to this camera keyframe. Position, rotation, focus, and lens use the same easing.',
   onBegin,
   onPreview,
   onFinish,
@@ -567,7 +573,7 @@ function CameraKeyframeEasingField({
         <span>Selected camera easing</span>
         <strong>Arrival + departure</strong>
       </div>
-      <p>Each control belongs to this camera keyframe. Position, rotation, focus, and lens use the same easing.</p>
+      <p>{description}</p>
       <div className="about-track-editor-camera-easing__sides">
         {['incoming', 'outgoing'].map((direction) => (
           <CameraEasingHandleField
@@ -1564,7 +1570,7 @@ function TrackObject({
   const startWU = range?.startWU ?? getObjectStart(object, track.type);
   const endWU = range?.endWU ?? startWU;
   const locked = object.locked === true || object.protected === true;
-  const pointLike = ['camera-key', 'visibility-key'].includes(track.type);
+  const pointLike = ['camera-key', 'camera-orientation-key', 'visibility-key'].includes(track.type);
   const left = startWU * pixelsPerWU;
   const width = pointLike
     ? 18
@@ -2264,9 +2270,15 @@ function ObjectInspector({ snapshot, store, editScope }) {
       snapshot.document.tracks.camera.keys,
       selection.id,
     )
+    : selection.type === 'camera-orientation-key'
+      ? resolveAboutNarrativeCameraKeyEasingHandles(
+        snapshot.document.tracks.camera.orientationKeys || [],
+        selection.id,
+      )
     : null;
   const inspectorTypeLabel = {
     'camera-key': 'camera shot',
+    'camera-orientation-key': 'camera tilt',
     'visibility-key': 'visibility change',
     'text-field': 'text',
     interaction: 'motion',
@@ -2463,6 +2475,81 @@ function ObjectInspector({ snapshot, store, editScope }) {
                   ['incoming', 'outgoing'].forEach((direction) => {
                     setAboutNarrativeCameraKeyEasingStrength(
                       draft.tracks.camera.keys,
+                      selection.id,
+                      direction,
+                      preset[direction],
+                    );
+                  });
+                },
+              )}
+            />
+          </InspectorFolder>
+        </div>
+      ) : null}
+
+      {selection.type === 'camera-orientation-key' ? (
+        <div className="about-track-editor-fields">
+          {number('atWU', object.atWU, locked, 'Time')}
+          <p className="about-track-editor-parameter-note is-wide">
+            This lane changes only camera orientation. Camera travel and lens continue independently on the Camera travel lane.
+          </p>
+          <InspectorFolder group={{ id: 'camera-orientation', label: 'Tilt orientation' }} count={3} defaultOpen>
+            <div className="about-track-editor-camera-rig">
+              <section className="about-track-editor-camera-rig__group">
+                <span>Rotation</span>
+                {ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS
+                  .filter((control) => control.group === 'rotation')
+                  .map((control) => {
+                    const axis = Number(control.id.split('.')[1]);
+                    return (
+                      <RangeParameterField
+                        key={control.id}
+                        label={control.label}
+                        ariaLabel={`Camera tilt ${control.label}`}
+                        value={object.rotation?.[axis] ?? 0}
+                        control={control}
+                        {...bindObjectRange(`Edit Camera tilt ${control.label}`, (target, next) => {
+                          target.rotation[axis] = next;
+                        })}
+                      />
+                    );
+                  })}
+              </section>
+            </div>
+          </InspectorFolder>
+          <InspectorFolder group={{ id: 'camera-orientation-easing', label: 'Tilt easing' }} count={2}>
+            <CameraKeyframeEasingField
+              context={cameraEasingContext}
+              description="Each control belongs to this tilt keyframe. Only orientation uses this easing; travel and lens keep their own timing."
+              onBegin={(direction) => store.beginGesture(
+                `Shape Camera tilt ${direction === 'incoming' ? 'ease in' : 'ease out'}`,
+                { selection },
+              )}
+              onPreview={(direction, value) => store.updateGesture((draft) => {
+                setAboutNarrativeCameraKeyEasingStrength(
+                  draft.tracks.camera.orientationKeys,
+                  selection.id,
+                  direction,
+                  value,
+                );
+              }, { selection })}
+              onFinish={() => store.commitGesture({ selectionAfter: selection, requireValid: true })}
+              onCancel={() => store.cancelGesture()}
+              onCommit={(direction, value) => commit(
+                `Edit Camera tilt ${direction === 'incoming' ? 'ease in' : 'ease out'}`,
+                (_target, draft) => setAboutNarrativeCameraKeyEasingStrength(
+                  draft.tracks.camera.orientationKeys,
+                  selection.id,
+                  direction,
+                  value,
+                ),
+              )}
+              onPreset={(preset) => commit(
+                `Apply Camera tilt ${preset.label} easing`,
+                (_target, draft) => {
+                  ['incoming', 'outgoing'].forEach((direction) => {
+                    setAboutNarrativeCameraKeyEasingStrength(
+                      draft.tracks.camera.orientationKeys,
                       selection.id,
                       direction,
                       preset[direction],
@@ -2905,6 +2992,16 @@ function getDiagnosticControlSpec(resolved) {
     ));
     if (control) return { folder: 'Camera rig', label: control.label };
     if (leaf === 'easing') return { ariaLabel: 'Camera easing presets' };
+    return { label: humanizeDiagnosticProperty(leaf) };
+  }
+  if (selectionType === 'camera-orientation-key') {
+    const axis = Number(leaf);
+    const field = parts.at(-2);
+    const control = ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS.find((candidate) => (
+      candidate.id === `${field}.${axis}`
+    ));
+    if (control) return { folder: 'Tilt orientation', label: control.label };
+    if (leaf === 'easing') return { ariaLabel: 'Camera keyframe easing presets' };
     return { label: humanizeDiagnosticProperty(leaf) };
   }
   if (selectionType === 'visibility-key') {
@@ -4038,7 +4135,11 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
                 {snapshot.clipboard ? <button type="button" onClick={() => store.pasteClipboard({ atWU: snapshot.transport.storyWU })}>Paste</button> : null}
                 <button type="button" onClick={() => store.duplicateSelection()}>Duplicate</button>
                 <button type="button" className="is-danger" onClick={() => store.deleteSelection()}>
-                  {snapshot.selection.type === 'camera-key' ? 'Delete camera shot' : 'Delete'}
+                  {snapshot.selection.type === 'camera-key'
+                    ? 'Delete camera shot'
+                    : snapshot.selection.type === 'camera-orientation-key'
+                      ? 'Delete camera tilt key'
+                      : 'Delete'}
                 </button>
               </div>
             </details>

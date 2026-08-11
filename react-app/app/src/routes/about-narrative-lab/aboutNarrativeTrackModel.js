@@ -7,7 +7,8 @@ import {
 } from './aboutNarrativeTrackSchema.js';
 import {
   compileAboutNarrativeCameraKey,
-  sampleAboutNarrativeCameraKeysInto,
+  compileAboutNarrativeCameraOrientationKey,
+  sampleAboutNarrativeCameraChannelsInto,
 } from './aboutNarrativeCameraSampling.js';
 import {
   applyAboutNarrativeTrackEasing,
@@ -143,6 +144,9 @@ export function compileAboutNarrativeTrackModel(input) {
     cameraKeys: [...(model.tracks?.camera?.keys || [])]
       .map(compileAboutNarrativeCameraKey)
       .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
+    cameraOrientationKeys: [...(model.tracks?.camera?.orientationKeys || [])]
+      .map(compileAboutNarrativeCameraOrientationKey)
+      .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
     visibilityKeys: [...(model.tracks?.visibility?.keys || [])]
       .sort((left, right) => left.atWU - right.atWU || left.id.localeCompare(right.id)),
     worlds: compiledWorlds,
@@ -238,8 +242,9 @@ export function sampleAboutNarrativeTrackPlanInto(plan, storyWU, target) {
   }
   const clampedStoryWU = Math.max(0, Math.min(plan.durationWU, Number(storyWU) || 0));
   const globals = plan.model.globals;
-  const cameraKey = sampleAboutNarrativeCameraKeysInto(
+  const cameraKey = sampleAboutNarrativeCameraChannelsInto(
     plan.cameraKeys,
+    plan.cameraOrientationKeys,
     clampedStoryWU,
     false,
     target._cameraKey,

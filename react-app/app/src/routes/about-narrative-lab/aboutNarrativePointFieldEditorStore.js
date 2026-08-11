@@ -1226,6 +1226,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
       }
       const base = kind || (track === 'camera'
         ? 'camera-key'
+        : track === 'camera-orientation' ? 'camera-orientation-key'
         : track === 'visibility' ? 'visibility-key' : track);
       const id = options.id || createUniqueId(snapshot.document, base);
       const operationOptions = { ...options, id };
@@ -1243,7 +1244,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
       if (track === 'text' && kind === 'stub') {
         operationOptions.template = { label: 'Untitled stub', ...options.template };
       }
-      if (['camera', 'visibility'].includes(track) && snapshot.compiledPlan?.valid) {
+      if (['camera', 'camera-orientation', 'visibility'].includes(track) && snapshot.compiledPlan?.valid) {
         const frame = sampleAboutNarrativeRuntimePlan(snapshot.compiledPlan, atWU);
         if (track === 'camera' && !operationOptions.cameraKey) {
           operationOptions.cameraKey = {
@@ -1257,6 +1258,11 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
         }
         if (track === 'visibility' && !operationOptions.visibilityKey) {
           operationOptions.visibilityKey = { visibility: frame.simulation.visibility };
+        }
+        if (track === 'camera-orientation' && !operationOptions.cameraOrientationKey) {
+          operationOptions.cameraOrientationKey = {
+            rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
+          };
         }
       }
       if (track === 'interaction') operationOptions.interactionType ||= 'horizontal-spin';

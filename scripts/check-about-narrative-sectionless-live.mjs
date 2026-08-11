@@ -135,20 +135,22 @@ test('canonical About source authors one consolidated camera, visibility, and fo
 
   assert.ok(reveal);
   assert.ok(ripple);
-  assert.equal(cameraKeys.length, 11);
+  assert.equal(cameraKeys.length, 9);
   [
     'orb-establish',
     'complexity-exit',
     'grid-birds-eye-2',
-    'grid-birds-eye-2-2-2',
-    'grid-birds-eye',
+    'discipline-travel-start',
     'discipline-hold',
-    'editorial-camera-hold',
     'grid-return-centered',
     'ripple-overhead-hold',
     'finale-resolved-hold',
     'finale-hold',
   ].forEach((id) => assert.ok(cameraKeys.some((key) => key.id === id), `Missing authored camera key ${id}`));
+  assert.deepEqual(
+    canonical.tracks.camera.orientationKeys.map((key) => key.id),
+    ['discipline-tilt-start', 'discipline-tilt-end', 'discipline-tilt-hold'],
+  );
   [
     'complexity-exit-2',
     'emergent-orbit-quarter',
@@ -386,7 +388,7 @@ test('C owns one fixed grid World and D is expressed only as Motion', () => {
   assert.ok(reveal.startWU >= background.startWU && reveal.endWU <= ripple.startWU);
   assert.ok(ripple.endWU <= nextWorld.startWU);
   assert.ok(reveal.parameters.backgroundOpacity > 0);
-  assert.equal(reveal.parameters.settleDurationWU, 0.3);
+  assert.equal(reveal.parameters.settleDurationWU, 0.45);
   assert.equal(reveal.parameters.beatDurationWU, 0.32);
   assert.equal(reveal.parameters.itemsPerBeat, 2);
   assert.ok(reveal.parameters.restoreDurationWU > 0);
@@ -571,10 +573,10 @@ test('B forms a denser moving field before the saved grid flyover', () => {
   assert.ok(flyThroughZ[1] < flyThroughZ[0]);
   assert.ok(flyThrough[0].position[2] > 0);
   assert.ok(flyThrough.at(-1).position[2] < 0);
-  const gridFlyover = [keys.get('grid-birds-eye-2'), keys.get('grid-birds-eye-2-2-2')];
+  const gridFlyover = [keys.get('grid-birds-eye-2'), keys.get('discipline-travel-start')];
   assert.deepEqual(gridFlyover.map((key) => key.position), [
     [-5, 0.2, -40],
-    [-5, 0.2, -2.94],
+    [-5, 3.14, -4.51],
   ]);
   assert.ok(gridFlyover[1].position[2] > gridFlyover[0].position[2]);
   const openingPlan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
@@ -598,7 +600,7 @@ test('Camera keys retain clean finite authored transforms', () => {
   });
 });
 
-test('World C keeps the saved flyover, settled discipline grid, decisive editorial exit, and constant ending orbit', () => {
+test('World C keeps one backward flyover through the floor turn and Discipline reading pass', () => {
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const background = canonical.tracks.worlds.objects.find((world) => world.label === 'C');
   assert.ok(background);
@@ -613,12 +615,11 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   ];
   const gridFlyoverIds = [
     'grid-birds-eye-2',
-    'grid-birds-eye-2-2-2',
+    'discipline-travel-start',
   ];
-  const disciplineHoldIds = [
-    'grid-birds-eye',
+  const disciplineTravelIds = [
+    'discipline-travel-start',
     'discipline-hold',
-    'editorial-camera-hold',
   ];
   const targetedIds = [
     'grid-return-centered',
@@ -633,60 +634,70 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
     assert.equal(key.rotation[1], 0);
     assert.equal(key.rotation[2], 0);
     assert.equal(key.lookAtRoll, 0);
-    assert.equal(key.easing, 'cubic-bezier(0.32, 0, 0.18, 1)');
   });
   assert.deepEqual(gridFlyoverKeys.map((key) => key.position), [
     [-5, 0.2, -40],
-    [-5, 0.2, -2.94],
+    [-5, 3.14, -4.51],
   ]);
   assert.deepEqual(gridFlyoverKeys.map((key) => key.rotation), [
     [-2.3, 0, 0],
     [-2.3, 0, 0],
   ]);
-  const disciplineHoldKeys = disciplineHoldIds.map((id) => keys.get(id));
-  disciplineHoldKeys.forEach((key) => {
+  assert.equal(gridFlyoverKeys[0].easing, 'cubic-bezier(0.32, 0, 0.18, 1)');
+  assert.equal(gridFlyoverKeys[1].easing, 'linear');
+  const disciplineTravelKeys = disciplineTravelIds.map((id) => keys.get(id));
+  disciplineTravelKeys.forEach((key) => {
     assert.ok(key);
     assert.equal(key.aimEnabled, false);
-    assert.deepEqual(key.rotation, [-90, 0, 0]);
     assert.equal(key.lookAtRoll, 0);
   });
-  assert.deepEqual(disciplineHoldKeys.map((key) => key.position), [
-    [-5, 3.14, -2.94],
-    [-5, 3.14, -2.94],
-    [-5, 4.4, 2.2],
+  assert.deepEqual(disciplineTravelKeys.map((key) => key.position), [
+    [-5, 3.14, -4.51],
+    [-5, 3.14, -1.75],
   ]);
-  assert.equal(keys.get('grid-birds-eye').easing, 'cubic-bezier(0.32, 0, 0.18, 1)');
-  assert.equal(
-    keys.get('grid-birds-eye').position[2],
-    keys.get('grid-birds-eye-2-2-2').position[2],
-    'The crane tilt must not travel back along the grid.',
-  );
-  const shift = keys.get('grid-birds-eye');
+  assert.ok(keys.get('discipline-hold').position[2] > keys.get('discipline-travel-start').position[2]);
+  assert.equal(keys.has('editorial-camera-hold'), false);
+  const orientationKeys = new Map(canonical.tracks.camera.orientationKeys.map((key) => [key.id, key]));
+  const travelStart = keys.get('discipline-travel-start');
+  const pitchStart = orientationKeys.get('discipline-tilt-start');
+  const shift = orientationKeys.get('discipline-tilt-end');
+  assert.deepEqual(pitchStart.rotation, [-2.3, 0, 0]);
+  assert.deepEqual(shift.rotation, [-90, 0, 0]);
+  assert.ok(travelStart.atWU < pitchStart.atWU, 'Constant travel must be established before the tilt begins.');
   const reveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
   const disciplineBeatStartWU = reveal.startWU + reveal.parameters.settleDurationWU;
-  assert.equal(shift.atWU, disciplineBeatStartWU);
+  assertCameraValue(shift.atWU, disciplineBeatStartWU, 'Discipline beat start');
   assert.ok(shift.atWU > reveal.startWU);
   assert.ok(shift.atWU < reveal.endWU);
   const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile: 'desktop' });
   const firstFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
   const disciplineHold = keys.get('discipline-hold');
-  for (let storyWU = shift.atWU; storyWU <= disciplineHold.atWU; storyWU += 0.025) {
+  let previousDisciplineCameraZ = travelStart.position[2];
+  for (let storyWU = travelStart.atWU; storyWU <= disciplineHold.atWU + 0.000001; storyWU += 0.025) {
     const frame = sampleAboutNarrativeRuntimePlan(plan, storyWU);
     assert.equal(frame.camera.targeted, false);
-    assert.equal(frame.camera.aimWeight, 0);
+    assertCameraValue(frame.camera.aimWeight, 0, 'Discipline camera aim weight');
     assertCameraValue(frame.camera.position[0], -5, 'Discipline camera X');
-    assertCameraValue(frame.camera.position[1], shift.position[1], 'Settled grid camera Y');
-    assertCameraValue(frame.camera.position[2], shift.position[2], 'Settled grid camera Z');
+    assert.ok(
+      frame.camera.position[2] >= previousDisciplineCameraZ - 0.000001,
+      'Discipline camera must continue backward without a Z reversal.',
+    );
+    if (storyWU >= shift.atWU - 0.000001) {
+      assertCameraValue(frame.camera.position[1], travelStart.position[1], 'Top-down Discipline camera Y');
+      assert.deepEqual(frame.camera.quaternion, firstFrame.camera.quaternion);
+    }
+    previousDisciplineCameraZ = frame.camera.position[2];
   }
-  const editorialHold = keys.get('editorial-camera-hold');
-  const exitMidpoint = sampleAboutNarrativeRuntimePlan(
+  assert.equal(disciplineHold.position[1], travelStart.position[1]);
+  assert.ok(disciplineHold.position[2] > travelStart.position[2]);
+  const gridReturn = keys.get('grid-return-centered');
+  const hiddenReframeMidpoint = sampleAboutNarrativeRuntimePlan(
     plan,
-    disciplineHold.atWU + ((editorialHold.atWU - disciplineHold.atWU) * 0.5),
+    disciplineHold.atWU + ((gridReturn.atWU - disciplineHold.atWU) * 0.5),
   );
-  assert.ok(exitMidpoint.camera.position[1] > disciplineHold.position[1]);
-  assert.ok(exitMidpoint.camera.position[2] > disciplineHold.position[2]);
-  assert.ok(exitMidpoint.camera.fov > disciplineHold.fov);
-  assert.deepEqual(sampleAboutNarrativeRuntimePlan(plan, editorialHold.atWU).camera.position, editorialHold.position);
+  assert.equal(sampleAboutNarrativeRuntimePlan(plan, disciplineHold.atWU).simulation.visibility, 0);
+  assert.equal(hiddenReframeMidpoint.simulation.visibility, 0);
+  assert.notDeepEqual(hiddenReframeMidpoint.camera.position, disciplineHold.position);
 
   const getCameraRadius = (position, target) => Math.hypot(
     position[0] - target[0],
@@ -794,11 +805,11 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
   assert.equal(editorialOff.visibility, 0);
   assert.equal(returnStart.visibility, 0);
   assert.equal(returned.visibility, 1);
-  assert.ok(gridVisible.atWU <= keys.get('grid-birds-eye-2-2-2').atWU);
+  assert.ok(gridVisible.atWU <= keys.get('discipline-travel-start').atWU);
   assert.equal(Number((gridVisible.atWU - gridRise.atWU).toFixed(4)), 0.26);
   assert.ok(gridHandoff.atWU > gridRise.atWU);
   assert.ok(gridHandoff.atWU < gridVisible.atWU);
-  assert.ok(returned.atWU - returnStart.atWU >= 0.8 - Number.EPSILON * 8);
+  assert.ok(returned.atWU - returnStart.atWU >= 0.3 - Number.EPSILON * 8);
   const flyoverVisibility = sampleAboutNarrativeRuntimePlan(
     plan,
     (gridHandoff.atWU + gridVisible.atWU) * 0.5,
@@ -860,7 +871,7 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
     assert.equal(item.position, undefined);
     assert.equal(item.mobilePosition, undefined);
   });
-  assert.equal(disciplineReveal.parameters.settleDurationWU, 0.3);
+  assert.equal(disciplineReveal.parameters.settleDurationWU, 0.45);
   assert.equal(disciplineReveal.parameters.beatDurationWU, 0.32);
   assert.equal(disciplineReveal.parameters.itemsPerBeat, 2);
   assert.equal(disciplineReveal.parameters.formationColumn, 43);
@@ -877,10 +888,12 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
       + (Math.ceil(
         disciplineReveal.parameters.items.length / disciplineReveal.parameters.itemsPerBeat,
       ) * disciplineReveal.parameters.beatDurationWU),
-    9.96,
+    10.11,
     'Discipline sequence end',
   );
-  const gridHold = keys.get('grid-birds-eye');
+  const gridHold = keys.get('discipline-travel-start');
+  const gridHoldFrame = sampleAboutNarrativeRuntimePlan(plan, shift.atWU);
+  let previousBeatCameraZ = gridHold.position[2];
   for (let beatIndex = 0; beatIndex < 3; beatIndex += 1) {
     const leftAnchor = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[beatIndex * 2];
     const rightAnchor = ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[(beatIndex * 2) + 1];
@@ -893,20 +906,20 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
     if (beatIndex > 0) {
       assert.ok(leftAnchor.y > ABOUT_NARRATIVE_DISCIPLINE_ANCHORS[(beatIndex - 1) * 2].y);
     }
-    gridHold.position.forEach((value, axis) => {
-      assertCameraValue(frame.camera.position[axis], value, `Discipline row ${beatIndex + 1} camera ${axis}`);
-    });
+    assertCameraValue(frame.camera.position[0], gridHold.position[0], `Discipline row ${beatIndex + 1} camera X`);
+    assertCameraValue(frame.camera.position[1], gridHold.position[1], `Discipline row ${beatIndex + 1} camera Y`);
+    assert.ok(frame.camera.position[2] > previousBeatCameraZ, `Discipline row ${beatIndex + 1} camera should keep moving backward.`);
+    assert.deepEqual(frame.camera.quaternion, gridHoldFrame.camera.quaternion);
+    previousBeatCameraZ = frame.camera.position[2];
   }
   const disciplineHoldKey = keys.get('discipline-hold');
-  const editorialHoldKey = keys.get('editorial-camera-hold');
-  assert.equal(disciplineReveal.parameters.restoreDurationWU, 0.8);
-  assert.equal(disciplineHoldKey.atWU, 10.95);
-  assert.deepEqual(disciplineHoldKey.position, gridHold.position);
+  assert.equal(disciplineReveal.parameters.restoreDurationWU, 0.5);
+  assert.equal(disciplineHoldKey.atWU, 11.15);
+  assert.equal(disciplineHoldKey.position[0], gridHold.position[0]);
+  assert.equal(disciplineHoldKey.position[1], gridHold.position[1]);
+  assert.ok(disciplineHoldKey.position[2] > gridHold.position[2]);
   assert.equal(disciplineHoldKey.fov, gridHold.fov);
-  assert.ok(editorialHoldKey.atWU - disciplineHoldKey.atWU <= 0.800001);
-  assert.ok(editorialHoldKey.position[1] > disciplineHoldKey.position[1]);
-  assert.ok(editorialHoldKey.position[2] - disciplineHoldKey.position[2] > 4);
-  assert.ok(editorialHoldKey.fov > disciplineHoldKey.fov);
+  assert.equal(keys.has('editorial-camera-hold'), false);
   [
     'labelWindowWU',
     'staggerWU',
@@ -933,7 +946,17 @@ test('World C keeps the saved flyover, settled discipline grid, decisive editori
     const compactTarget = profileId === 'mobile'
       ? [-0.23, -0.95, -7.035]
       : [0, -1.8, -7.035];
-    disciplineHoldIds.forEach((id) => assert.equal(compactKeys.get(id).aimEnabled, false));
+    disciplineTravelIds.forEach((id) => assert.equal(compactKeys.get(id).aimEnabled, false));
+    const compactGridHold = compactKeys.get('discipline-travel-start');
+    const compactDisciplineHold = compactKeys.get('discipline-hold');
+    assert.equal(compactGridHold.position[1], 4);
+    assert.equal(compactDisciplineHold.position[1], 4);
+    assert.equal(compactGridHold.fov, 60);
+    assert.equal(compactDisciplineHold.fov, 60);
+    assert.ok(
+      compactDisciplineHold.position[2] - compactGridHold.position[2] >= 2,
+      `${profileId} Discipline camera must travel visibly down the grid.`,
+    );
     targetedIds.forEach((id) => {
       const key = compactKeys.get(id);
       assert.equal(key.aimEnabled, true);
@@ -1190,10 +1213,11 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
     assert.ok(incomingStartWU - outgoingEndWU <= 0.65);
   });
   assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
-  assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.2);
-  assert.equal(cameraKeys.get('grid-return-centered').atWU, 13.55);
-  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 13.55);
-  assert.equal(visibilityKeys.get('visibility-returned').atWU, 14.35);
+  assert.equal(fields.get('text-disciplines-title').startWU, 10.85);
+  assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.3 + Number.EPSILON * 8);
+  assert.equal(cameraKeys.get('grid-return-centered').atWU, 13);
+  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 13);
+  assert.equal(visibilityKeys.get('visibility-returned').atWU, 13.35);
   assert.ok(finale.startWU > emergent.transitionIn.endWU);
   assert.equal(Number((finale.startWU - emergent.transitionIn.endWU).toFixed(4)), 0.7);
   assert.ok(
@@ -1543,14 +1567,14 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
   }
 });
 
-test('editor exposes the five native v6 lanes and all Text creation kinds', () => {
+test('editor exposes the six native v6 lanes and all Text creation kinds', () => {
   const trackDeclaration = liveSources.editor.slice(
     liveSources.editor.indexOf('const POINT_FIELD_TRACKS'),
     liveSources.editor.indexOf('const TRACK_BY_ID'),
   );
   assert.deepEqual(
     [...trackDeclaration.matchAll(/id: '([^']+)'/g)].map((match) => match[1]),
-    ['camera', 'visibility', 'point-field', 'text', 'interaction'],
+    ['camera', 'camera-orientation', 'visibility', 'point-field', 'text', 'interaction'],
   );
   assert.doesNotMatch(liveSources.editor, /sectionId|sectionRefs|data-narrative-section|['"]section['"]\s*,\s*label/i);
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'title'\)/);

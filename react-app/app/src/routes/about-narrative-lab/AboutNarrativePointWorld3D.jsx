@@ -11,6 +11,9 @@ import {
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
 import {
+  writeAboutNarrativeDisciplineViewfinderWeights,
+} from './aboutNarrativeDisciplineViewfinder.js';
+import {
   ABOUT_NARRATIVE_BUST_STATES,
   createAboutNarrativeBustController,
 } from './aboutNarrativeBustController.js';
@@ -1542,6 +1545,7 @@ function createPointFieldAdapter({
   const disciplineFromPointScratch = new THREE.Vector3();
   const disciplineToPointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
+  const disciplineViewfinderWeights = new Float32Array(6);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
   const toDisciplineIndices = new Int32Array(6).fill(-1);
   const disciplineLabels = new Array(6).fill(null);
@@ -2355,12 +2359,21 @@ function createPointFieldAdapter({
     const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
     const simulationVisibility = uniforms.simulationVisibility.value;
     const sequenceComplete = effectAvailable && frame.storyWU >= revealState.sequenceEndWU;
+    if (effectAvailable) projectDisciplineLabels();
+    writeAboutNarrativeDisciplineViewfinderWeights(
+      disciplineViewfinderWeights,
+      disciplineLabelY,
+      height,
+    );
     disciplineWeights.fill(0);
     for (let index = 0; index < disciplineWeights.length; index += 1) {
       const cumulativeReveal = sequenceComplete || index < activeIndex
         ? 1
         : index < activeEndIndex ? activeReveal : 0;
-      disciplineWeights[index] = cumulativeReveal * simulationVisibility * restoreWeight;
+      const revealWeight = frame.reducedMotion
+        ? cumulativeReveal
+        : disciplineViewfinderWeights[index];
+      disciplineWeights[index] = revealWeight * simulationVisibility * restoreWeight;
     }
 
     const backgroundWeight = effectAvailable
@@ -2393,7 +2406,6 @@ function createPointFieldAdapter({
         lastActiveDiscipline = activeGroup;
         runtimeObserver.hotFrameDomWrite();
       }
-      if (effectAvailable) projectDisciplineLabels();
       for (let index = 0; index < disciplineLabels.length; index += 1) {
         writeDisciplineLabelReveal(index, disciplineWeights[index]);
       }

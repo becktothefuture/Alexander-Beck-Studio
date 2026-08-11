@@ -187,21 +187,27 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
   material, not separate decorative scenes.
 - Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral. The second unit is one continuous multi-paragraph passage; project-impression cards do not interrupt its reading flow.
 - Spatial titles use one Instrument Serif family at two explicit scales: medium travelling titles stay vertically centred while bridging the editorial passages, while larger display titles punctuate the opening and finale bookends. Both bookend lockups share an authored 70% viewport position in the lower half, keep the same screen-space centre while visible, and use one narrower supporting-description measure. The opening cluster and final bust share one upper-field visual centre.
-- Camera authoring is one direct rig: absolute Position XYZ, Rotation XYZ, and FOV, with an optional
-  Look-at Target XYZ and horizon roll for shots that must keep one material event framed. Authored
+- Camera authoring uses explicit channels. The Camera travel lane owns absolute Position XYZ, FOV,
+  and the optional Look-at Target XYZ with horizon roll. A separate Camera tilt lane can own manual
+  Rotation XYZ when orientation must change without retiming or easing the travel path. Authored
   positions create an orbit; there is no hidden frame origin, depth offset, or secondary dolly system.
 - The calm field resolves gradually beneath the client editorial as the camera completes the saved
-  backward flyover, then the camera makes one long crane-like tilt into the close bird's-eye view. It
-  does not travel back along the grid after that flyover. Its width, depth, and distance fog must keep
-  the physical edges and horizon out of view.
+  backward flyover. That backward travel continues while the camera pitches toward the floor, then
+  carries on through the bird's-eye Discipline reading lane. The movement is one uninterrupted path,
+  not a flyover followed by a stationary tilt. The constant-speed travel segment begins before the
+  independent tilt, and compact layouts keep FOV fixed throughout the reading pass so lens changes do
+  not cancel the visible movement. Its width, depth, and distance fog must keep the physical edges and
+  horizon out of view.
 - Point sizing has two composable controls: one global material size and one relative multiplier per
   World. The global control sets the narrative's overall ball scale; World multipliers provide restrained
   shot-specific compensation without changing density, camera position, or point correspondence.
-- The six disciplines use six distinct native grid cells in one column. The camera makes one restrained
-  downward crane move as the sequence progresses. Each discipline remains visible after it resolves, so
+- The six disciplines use six distinct native grid cells in one column. Once the camera is looking
+  straight down, it keeps travelling backward along the grid as each paired row resolves. Camera height
+  and pitch stay fixed through this reading pass. Each discipline remains visible after it resolves, so
   the labels build into a vertical stack beside their own points. Every label follows the matching grid
-  point in screen space with the shared `22px` gap. The presentation has no card, connector, counter, or
-  glow. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
+  point in screen space with the shared `22px` gap. Each label begins resolving when its projected point
+  enters the lower viewfinder band and is fully readable before the global restore. The presentation has
+  no card, connector, counter, or glow. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
   `--ball-8`, `--ball-6`.
 - About points remain flat palette-owned circles when they resolve at readable sizes. The microscopic
   field and the six revealed discipline points use the same flat finish without a sphere-atlas transition.

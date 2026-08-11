@@ -11,6 +11,7 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSampling.js';
 import {
   createAboutNarrativeCameraKeyAtWU,
+  createAboutNarrativeCameraOrientationKeyAtWU,
   createAboutNarrativeInteractionAtWU,
   createAboutNarrativeScrollBlockAtWU,
   createAboutNarrativeStubAtWU,
@@ -96,6 +97,11 @@ function createFixture() {
           { id: 'camera-middle', atWU: 3, position: [1, 0, 0], rotation: [0, 0, 5], fov: 45, easing: 'smoothstep', locked: false },
           { id: 'camera-end', atWU: 10, position: [0, 0, 0], rotation: [0, 0, 0], fov: 48, easing: 'smoothstep', locked: true },
         ],
+        orientationKeys: [
+          { id: 'camera-tilt-start', atWU: 1, rotation: [0, 0, 0], easing: 'smoothstep', locked: true },
+          { id: 'camera-tilt-middle', atWU: 5, rotation: [-45, 0, 0], easing: 'smoothstep', locked: false },
+          { id: 'camera-tilt-end', atWU: 9, rotation: [-90, 0, 0], easing: 'linear', locked: true },
+        ],
       },
       visibility: {
         keys: [
@@ -168,6 +174,10 @@ test('stable object-ID selections normalize directly and migrate legacy editor s
 test('object lookup and ranges use global WU and derive World ends from the next World Start', () => {
   const model = createFixture();
   assert.equal(getAboutNarrativeTrackObject(model, { type: 'camera-key', id: 'camera-middle' }).atWU, 3);
+  assert.deepEqual(
+    getAboutNarrativeTrackObject(model, { type: 'camera-orientation-key', id: 'camera-tilt-middle' }).rotation,
+    [-45, 0, 0],
+  );
   assert.equal(getAboutNarrativeTrackObject(model, { type: 'visibility-key', id: 'visibility-middle' }).visibility, 0.4);
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'world', id: 'world-one' }), { startWU: 0, endWU: 4 });
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'world', id: 'world-three' }), { startWU: 8, endWU: 10 });
@@ -175,6 +185,10 @@ test('object lookup and ranges use global WU and derive World ends from the next
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'camera-key', id: 'camera-middle' }, null, { cameraWindowWU: 0.25 }), {
     startWU: 2.75,
     endWU: 3.25,
+  });
+  assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'camera-orientation-key', id: 'camera-tilt-middle' }, null, { cameraWindowWU: 0.25 }), {
+    startWU: 4.75,
+    endWU: 5.25,
   });
   assert.deepEqual(getAboutNarrativeTrackObjectRange(model, { type: 'visibility-key', id: 'visibility-middle' }, null, { cameraWindowWU: 0.25 }), {
     startWU: 4.75,
@@ -312,7 +326,7 @@ test('Text animation windows keep their duration, distribute evenly, and extend 
   assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
 });
 
-test('World, Camera, and Visibility movement shifts only selected timing and rejects protected objects', () => {
+test('World, Camera travel, Camera tilt, and Visibility movement shifts only selected timing and rejects protected objects', () => {
   const model = createFixture();
   const interactionsBefore = bytes(model.tracks.interactions);
   const movedWorld = moveAboutNarrativeTrackObjectsByWU({
@@ -340,6 +354,17 @@ test('World, Camera, and Visibility movement shifts only selected timing and rej
     selection: { type: 'camera-key', id: 'camera-start' },
     deltaWU: 1,
   }).valid, false);
+
+  const movedCameraTilt = moveAboutNarrativeTrackObjectsByWU({
+    model,
+    selection: { type: 'camera-orientation-key', id: 'camera-tilt-middle' },
+    deltaWU: 0.2,
+  });
+  assert.equal(movedCameraTilt.valid, true);
+  assert.equal(getAboutNarrativeTrackObject(
+    movedCameraTilt.model,
+    { type: 'camera-orientation-key', id: 'camera-tilt-middle' },
+  ).atWU, 5.2);
 
   const movedVisibility = moveAboutNarrativeTrackObjectsByWU({
     model,
@@ -451,7 +476,7 @@ test('World end resizing clamps protected boundaries and rejects locked or final
   assert.equal(resizeAboutNarrativeWorldEnd({ model, id: 'world-three', atWU: 9 }).valid, false);
 });
 
-test('Title, Scroll block, Stub, Camera, Visibility, World, and Interaction creation uses independent IDs and absolute WU', () => {
+test('Title, Scroll block, Stub, Camera travel, Camera tilt, Visibility, World, and Interaction creation uses independent IDs and absolute WU', () => {
   const model = createFixture();
   const title = createAboutNarrativeTitleAtWU({ model, atWU: 2 });
   assert.equal(title.valid, true);
@@ -472,6 +497,24 @@ test('Title, Scroll block, Stub, Camera, Visibility, World, and Interaction crea
   assert.deepEqual(camera.object.position, [1, 2, 3]);
   assert.deepEqual(camera.object.rotation, [0, 0, 0]);
   assert.equal('distanceFogStartWU' in camera.object, false);
+
+  const cameraTilt = createAboutNarrativeCameraOrientationKeyAtWU({
+    model,
+    atWU: 4,
+    cameraOrientationKey: { rotation: [-30, 0, 0] },
+  });
+  assert.equal(cameraTilt.valid, true);
+  assert.equal(cameraTilt.object.atWU, 4);
+  assert.deepEqual(cameraTilt.object.rotation, [-30, 0, 0]);
+
+  const genericCameraTilt = createAboutNarrativeTrackObjectAtWU({
+    model,
+    track: 'camera-orientation',
+    atWU: 7,
+    cameraOrientationKey: { rotation: [-75, 0, 0] },
+  });
+  assert.equal(genericCameraTilt.valid, true);
+  assert.equal(genericCameraTilt.object.atWU, 7);
 
   const visibility = createAboutNarrativeVisibilityKeyAtWU({
     model,
@@ -583,6 +626,11 @@ test('loop audition derives ranges for every global object type and same-track m
   });
   const camera = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'camera-key', id: 'camera-middle' } });
   assert.deepEqual([camera.startWU, camera.endWU], [2.75, 3.25]);
+  const cameraTilt = deriveAboutNarrativeTrackLoopRange({
+    model,
+    selection: { type: 'camera-orientation-key', id: 'camera-tilt-middle' },
+  });
+  assert.deepEqual([cameraTilt.startWU, cameraTilt.endWU], [4.75, 5.25]);
   const visibility = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'visibility-key', id: 'visibility-middle' } });
   assert.deepEqual([visibility.startWU, visibility.endWU], [4.75, 5.25]);
   const world = deriveAboutNarrativeTrackLoopRange({ model, selection: { type: 'world', id: 'world-two' } });

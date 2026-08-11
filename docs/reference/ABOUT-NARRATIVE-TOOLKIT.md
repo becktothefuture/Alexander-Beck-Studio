@@ -132,9 +132,9 @@ quaternion owns orientation, with **Horizon roll** as its only rotational offset
 in the world and continues its eased key-to-key movement in both modes. There is no authored frame
 origin, depth offset, orbit, dolly, or secondary rail adjustment underneath either mode.
 
-### Editable Camera keys
+### Editable Camera travel and tilt keys
 
-A Camera key stores:
+A Camera travel key stores:
 
 - Global Story WU (`atWU`)
 - Absolute Position X, Y, and Z in world units
@@ -145,12 +145,18 @@ A Camera key stores:
 - FOV
 - The travel curve for its outgoing segment
 
+A Camera tilt key stores only global Story WU, manual Rotation XYZ, and its outgoing orientation
+curve. The tilt lane is optional. While its bounded interval is active, it overrides manual rotation
+without changing Camera position, focus target, or FOV. This lets a constant travel segment continue
+through a pitch without adding a combined pose key or a translation pause.
+
 Manual rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during
 playback. Focus orientation is recalculated from the interpolated camera position and anchor on every
 frame, so moving the camera naturally produces the pan and tilt required to keep looking at that
 point. A segment that changes orientation mode blends the manual and aimed quaternions smoothly;
 between two focused keys the aim remains exact for the entire segment. Position, anchor, horizon
-roll, and FOV all use the same segment easing. The editor presents the curve's departure handle as
+roll, and FOV all use the travel segment easing. Manual rotation uses that curve only when the optional
+tilt lane is inactive. The editor presents the curve's departure handle as
 ease-out on the source key and its arrival handle as ease-in on the destination key.
 
 Adding a Camera key at the playhead samples the published pose first, so insertion does not create a
@@ -167,7 +173,8 @@ Selecting a Camera key opens two **Travel easing** graphs tied to that keyframe:
 - **Ease out of keyframe** controls how long the selected camera holds before the next move gathers speed.
 - Linear travel is also supported and is used by the baked migration path where it best preserves the previous motion.
 
-Both strengths use the same position, rotation, focus, and lens interpolation. They can be dragged
+Both strengths use the same position, focus, and lens interpolation. Rotation follows them only when
+there is no active Camera tilt interval. The controls can be dragged
 directly, adjusted with arrow keys, entered numerically, or set together from Balanced, Cinematic,
 and Measured presets. Higher strength produces a longer, softer ease. The first key has no incoming
 move, and the final key has no outgoing move, so the unavailable side is stated instead of showing a
@@ -205,10 +212,16 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
   interval, and bridge directly into the calm grid.
 - `5.05–7.18 WU`: settle the complete field into its overhead reading lane, briefly hide it, then
   return it beneath the titles that introduce the Discipline reveal.
-- `8.70–11.15 WU`: pass six paired Discipline groups through their point-anchored reading positions,
-  reconnect the final points, and fade the labels before the Camera leaves.
-- `11.15–13.55 WU`: yield to one continuous editorial passage while the hidden Camera repositions.
-- `13.55–18.95 WU`: return to the centred surface under the passage's final paragraph and sustain
+- `7.70–11.15 WU`: use one linear Camera travel segment with fixed height and a fixed compact-layout
+  lens. It is already moving before the orientation change starts and continues through the complete
+  Discipline pass.
+- `8.35–9.15 WU`: keep the saved backward flyover moving while the Camera pitches smoothly from its
+  field-level view to the floor-facing Discipline view on the independent Camera tilt lane.
+- `9.15–11.15 WU`: continue that same backward path down the grid, reveal the three paired Discipline
+  rows as their projected anchors enter the lower viewfinder, reconnect the final points, and fade the
+  labels before the world hides.
+- `11.15–13.00 WU`: yield to one continuous editorial passage while the hidden Camera repositions.
+- `13.00–18.95 WU`: return to the centred surface under the passage's final paragraph and sustain
   the scroll-authored ripple beneath the three travelling titles.
 - `18.95–20.55 WU`: gather the fixed point pool and build the bust from its lower layers into the head.
 - `21.25–22.795 WU`: hold the resolved form behind the complete final invitation and description.
@@ -334,7 +347,8 @@ into hundreds of keyframes.
 
 Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field Form for the
 complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
-point emphasis. One shared beat clock selects a single item at the stable editorial reading position.
+point emphasis. Full motion resolves each item from its projected anchor as it enters the lower
+viewfinder; Reduced Motion retains the deterministic paired beat clock without spatial travel.
 The clip never owns camera, fog, or whole-system visibility.
 **Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
 Reorder the six labels without remapping their stable point groups or authoring responsive positions.
@@ -346,7 +360,7 @@ titles and the following editorial block without creating a second timing owner.
 The clip is one draggable timing object. Six stable point groups resolve as three paired rows on
 desktop and as the compact responsive composition on tablet and portrait mobile. Phone landscape and
 short landscape use the shared viewport cover. The runtime projects each label from its point-group
-anchor while the Camera holds the readable composition, then restores the grid and fades the labels
+anchor while the Camera continues its top-down travel, then restores the grid and fades the labels
 before the Camera leaves. A selected cell starts as an ordinary grey grid point, grows at its anchored
 reading position, and reconnects with the moving grid as its copy exits. Its previous material colour does
 not affect the selection because the semantic group assigns the reveal colour. Their
