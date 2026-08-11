@@ -71,10 +71,15 @@ async function preparePage(page, origin, mode, stepHz) {
   });
   await page.waitForFunction(() => (
     document.documentElement.dataset.absHomeSimulationReady === 'true'
+      && document.documentElement.dataset.absHomeCanvasTitleReady === 'true'
       && typeof window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot === 'function'
       && !document.getElementById('abs-boot-overlay')
       && document.documentElement.dataset.absBootState !== 'booting'
       && Number(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.maxScale || 0) >= 0.999
+      && window.__ABS_HOME_AUDIT__.getRuntimeSnapshot().canvasTitleVisible === true
+      && window.__ABS_HOME_AUDIT__.getRuntimeSnapshot().canvasTitleLineCount >= 3
+      && window.__ABS_HOME_AUDIT__.getRuntimeSnapshot()
+        .canvasTitleEntranceMovementCanvasOwned === false
   ), undefined, { timeout: 30_000, polling: 'raf' });
   return page.evaluate(async ({ expectedMode, seed, durationSeconds, physicsStepHz }) => {
     const audit = window.__ABS_HOME_AUDIT__;
@@ -107,6 +112,28 @@ async function preparePage(page, origin, mode, stepHz) {
     if (expectedMode === 'starfield-3d') {
       await new Promise((resolveDelay) => window.setTimeout(resolveDelay, 120));
       engine.render();
+    }
+    const runtimeSnapshot = audit.getRuntimeSnapshot();
+    if (
+      runtimeSnapshot.canvasTitleVisible !== true
+      || runtimeSnapshot.canvasTitleLineCount < 3
+      || runtimeSnapshot.canvasTitleEntranceMovementCanvasOwned === true
+    ) {
+      throw new Error(`Canvas title is not ready after deterministic render: ${JSON.stringify({
+        visible: runtimeSnapshot.canvasTitleVisible,
+        lineCount: runtimeSnapshot.canvasTitleLineCount,
+        entranceMovementCanvasOwned:
+          runtimeSnapshot.canvasTitleEntranceMovementCanvasOwned,
+      })}`);
+    }
+    const depthTitleMode = expectedMode === '3d-sphere' || expectedMode === '3d-cube';
+    if (depthTitleMode && (
+      runtimeSnapshot.depthTitleLayerActive !== true
+      || runtimeSnapshot.frontDepthCanvasActive !== true
+      || runtimeSnapshot.behindTitleCount < 1
+      || runtimeSnapshot.inFrontOfTitleCount < 1
+    )) {
+      throw new Error(`Depth-title crossing is not ready: ${JSON.stringify(runtimeSnapshot)}`);
     }
     const balls = globals.balls.filter((ball) => ball && ball.__portfolioHidden !== true);
     let left = Number.POSITIVE_INFINITY;
@@ -158,6 +185,17 @@ async function preparePage(page, origin, mode, stepHz) {
       meanSpeedCssPxPerSecond: sumSpeed / count / (globals.DPR || 1),
       depth: { rearCount, frontCount },
       colours,
+      title: {
+        visible: runtimeSnapshot.canvasTitleVisible === true,
+        lineCount: runtimeSnapshot.canvasTitleLineCount,
+        maxOpacity: runtimeSnapshot.canvasTitleMaxOpacity,
+        firstLineX: runtimeSnapshot.canvasTitleFirstLineX / globals.canvas.width,
+        firstLineY: runtimeSnapshot.canvasTitleFirstLineY / globals.canvas.height,
+        depthLayerActive: runtimeSnapshot.depthTitleLayerActive === true,
+        frontDepthCanvasActive: runtimeSnapshot.frontDepthCanvasActive === true,
+        entranceMovementCanvasOwned:
+          runtimeSnapshot.canvasTitleEntranceMovementCanvasOwned === true,
+      },
       sphereRotationMatrix: globals.sphere3dState?.rotationMatrix
         ? [...globals.sphere3dState.rotationMatrix]
         : null,
@@ -259,6 +297,25 @@ function compareState(baseline, current) {
       baseline.depth.rearCount / Math.max(1, baseline.depth.rearCount + baseline.depth.frontCount),
       current.depth.rearCount / Math.max(1, current.depth.rearCount + current.depth.frontCount),
     ),
+    titleVisible: baseline.title.visible === true && current.title.visible === true,
+    titleLineCountMatches: baseline.title.lineCount >= 3
+      && baseline.title.lineCount === current.title.lineCount,
+    titleEntranceSettled: baseline.title.entranceMovementCanvasOwned === false
+      && current.title.entranceMovementCanvasOwned === false,
+    titlePositionDistance: round(Math.hypot(
+      baseline.title.firstLineX - current.title.firstLineX,
+      baseline.title.firstLineY - current.title.firstLineY,
+    )),
+    depthTitleCrossingReady: !['3d-sphere', '3d-cube'].includes(current.mode) || (
+      baseline.title.depthLayerActive === true
+      && current.title.depthLayerActive === true
+      && baseline.title.frontDepthCanvasActive === true
+      && current.title.frontDepthCanvasActive === true
+      && baseline.depth.rearCount > 0
+      && current.depth.rearCount > 0
+      && baseline.depth.frontCount > 0
+      && current.depth.frontCount > 0
+    ),
   };
   comparison.passed = (comparison.ballCountMatches
       || (streamingFountain && comparison.ballCountRelativeDelta <= 0.06))
@@ -267,7 +324,12 @@ function compareState(baseline, current) {
     && comparison.centroidDistance <= (streamingFountain ? 0.03 : 0.08)
     && comparison.maximumBoundsDelta <= (streamingFountain ? 0.18 : 0.15)
     && comparison.meanRadiusCssPxDelta <= 0.1
-    && comparison.rearShareDelta <= 0.05;
+    && comparison.rearShareDelta <= 0.05
+    && comparison.titleVisible
+    && comparison.titleLineCountMatches
+    && comparison.titleEntranceSettled
+    && comparison.titlePositionDistance <= 0.015
+    && comparison.depthTitleCrossingReady;
   return comparison;
 }
 
@@ -355,6 +417,7 @@ async function main() {
   const failures = rows.filter((row) => !row.comparison.passed);
   const report = {
     ok: failures.length === 0,
+    harnessVersion: 3,
     generatedAt: new Date().toISOString(),
     baselineUrl: BASELINE_URL,
     currentUrl: CURRENT_URL,

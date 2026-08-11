@@ -8,14 +8,16 @@ import { CONSTANTS, MODES } from '../core/constants.js';
 import { hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { emitScenePointer } from './scene-pointer.js';
+import {
+  disposePointerGeometryObserver,
+  observePointerGeometry,
+} from './pointer-geometry-observer.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
-let disposePointerGeometryObserver = null;
 
 export function disposePointerGeometryCache() {
-  disposePointerGeometryObserver?.();
-  disposePointerGeometryObserver = null;
+  disposePointerGeometryObserver();
 }
 
 function triggerWaterRipple(x, y, velocityFactor) {
@@ -77,18 +79,7 @@ export function setupPointer() {
   let canvasRectReadAt = 0;
   let wasSceneTransforming = false;
   const invalidateCanvasRect = () => { canvasRectCache = null; };
-  const canvasResizeObserver = typeof ResizeObserver === 'function'
-    ? new ResizeObserver(invalidateCanvasRect)
-    : null;
-  canvasResizeObserver?.observe(canvas);
-  window.addEventListener('resize', invalidateCanvasRect, { passive: true });
-  window.addEventListener('orientationchange', invalidateCanvasRect, { passive: true });
-  disposePointerGeometryObserver = () => {
-    canvasResizeObserver?.disconnect();
-    window.removeEventListener('resize', invalidateCanvasRect);
-    window.removeEventListener('orientationchange', invalidateCanvasRect);
-    canvasRectCache = null;
-  };
+  observePointerGeometry(canvas, invalidateCanvasRect);
 
   /**
    * Panel/UI hit-test: when interacting with the settings UI, we must NOT

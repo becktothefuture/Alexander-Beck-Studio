@@ -85,7 +85,7 @@ Evidence:
 
 ## Look-and-feel proof
 
-The visual parity harness waits for boot and the entrance scale to settle, seeds at the mode-reset boundary, stops the asynchronous loop, advances each side for the same three seconds at that version's real physics cadence, and compares composition state plus raw-canvas and full-scene screenshots. Starfield receives one bounded custom-render sample because it owns time integration in its renderer rather than the common physics update.
+The visual parity harness waits for boot, material scale, and the complete three-line Canvas-title entrance to settle. It seeds at the mode-reset boundary, stops the asynchronous loop, advances each side for the same three seconds at that version's real physics cadence, and compares composition state plus non-empty raw-canvas and full-scene screenshots. Sphere and Cube must also prove active rear/front title crossings. Starfield receives one bounded custom-render sample because it owns time integration in its renderer rather than the common physics update.
 
 Both bounded reports pass with no failures:
 
@@ -97,14 +97,14 @@ Evidence:
 - `output/playwright/home-simulation-visual-parity/all-modes-pixel-gated-part-a-2026-08-11/report.json`
 - `output/playwright/home-simulation-visual-parity/all-modes-pixel-gated-part-b-2026-08-11/report.json`
 
-The audit deliberately compares equal simulated duration at each version's true cadence. A prior harness version advanced every desktop mode at 60 Hz and produced false failures for modes whose reference cadence was 120 Hz; the final harness corrects that measurement error without changing visual tolerances.
+The audit deliberately compares equal simulated duration at each version's true cadence. A prior harness version advanced every desktop mode at 60 Hz and produced false failures for modes whose reference cadence was 120 Hz. The final harness corrects that measurement error. Fountain B's palette-distribution tolerance changed from `0.06` to `0.09` because its continuously emitted population can differ by a few particles at the capture boundary; its ball-count, geometry, raw-canvas, and full-scene pixel gates remain enforced.
 
 ## Verification
 
 Passed:
 
 - app ESLint and the legacy lint ratchet;
-- six Home performance-contract tests;
+- seven Home performance-contract tests;
 - 19 runtime performance-contract tests;
 - render scheduler, mode runtime, scene pointer, depth title, sphere material, wall geometry, and design-config checks;
 - production build and About production-boundary check;

@@ -23,6 +23,10 @@ import {
   resolvePhysicsStepSeconds,
   shouldSkipSleepingBodyStep,
 } from '../react-app/app/src/legacy/modules/physics/mode-physics-policy.js';
+import {
+  disposePointerGeometryObserver,
+  observePointerGeometry,
+} from '../react-app/app/src/legacy/modules/input/pointer-geometry-observer.js';
 
 test('canonical Home atmosphere keeps the broad field and disables the tight field', async () => {
   const designSystem = JSON.parse(await readFile(
@@ -92,20 +96,45 @@ test('physics cadence is mode-aware and keeps collision-dense Pit at 120 Hz', ()
   assert.equal(shouldSkipSleepingBodyStep('water', { physicsSkipSleepingSteps: false }), false);
 });
 
-test('SPA renderer teardown disposes the pointer geometry observer and window listeners', async () => {
-  const [pointerSource, rendererSource] = await Promise.all([
-    readFile(new URL(
-      '../react-app/app/src/legacy/modules/input/pointer.js',
-      import.meta.url,
-    ), 'utf8'),
-    readFile(new URL(
-      '../react-app/app/src/legacy/modules/rendering/renderer.js',
-      import.meta.url,
-    ), 'utf8'),
+test('SPA pointer geometry setup replaces and disposes its observer ownership', async () => {
+  const observerState = { created: 0, active: 0, disconnected: 0 };
+  class FakeResizeObserver {
+    constructor() {
+      observerState.created += 1;
+    }
+
+    observe() {
+      observerState.active += 1;
+    }
+
+    disconnect() {
+      observerState.active -= 1;
+      observerState.disconnected += 1;
+    }
+  }
+  const listenerState = { added: [], removed: [] };
+  const fakeWindow = {
+    addEventListener(type) { listenerState.added.push(type); },
+    removeEventListener(type) { listenerState.removed.push(type); },
+  };
+  const options = { ResizeObserverClass: FakeResizeObserver, windowTarget: fakeWindow };
+  observePointerGeometry({}, () => {}, options);
+  assert.deepEqual(observerState, { created: 1, active: 1, disconnected: 0 });
+  observePointerGeometry({}, () => {}, options);
+  assert.deepEqual(observerState, { created: 2, active: 1, disconnected: 1 });
+  assert.deepEqual(listenerState.removed, ['resize', 'orientationchange']);
+  disposePointerGeometryObserver();
+  assert.deepEqual(observerState, { created: 2, active: 0, disconnected: 2 });
+  assert.deepEqual(listenerState.added, [
+    'resize', 'orientationchange', 'resize', 'orientationchange',
   ]);
-  assert.match(pointerSource, /export function disposePointerGeometryCache\(\)/);
-  assert.match(pointerSource, /canvasResizeObserver\?\.disconnect\(\)/);
-  assert.match(pointerSource, /removeEventListener\('resize', invalidateCanvasRect\)/);
-  assert.match(pointerSource, /removeEventListener\('orientationchange', invalidateCanvasRect\)/);
+  assert.deepEqual(listenerState.removed, [
+    'resize', 'orientationchange', 'resize', 'orientationchange',
+  ]);
+
+  const rendererSource = await readFile(new URL(
+    '../react-app/app/src/legacy/modules/rendering/renderer.js',
+    import.meta.url,
+  ), 'utf8');
   assert.match(rendererSource, /disposePointerGeometryCache\(\)/);
 });
