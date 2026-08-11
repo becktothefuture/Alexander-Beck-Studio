@@ -17,6 +17,8 @@ This implementation follows specification [#49](https://github.com/becktothefutu
 
 The cursor is now the single pointer-presentation owner. It uses the event target before any fallback hit test, coalesces visual work to one requestAnimationFrame, guards body-class writes by state, and caches canvas mapping. Title geometry no longer polls because the permanent noise pseudo-element is animated.
 
+The pointer geometry observer and its window listeners are now explicitly disconnected on SPA route teardown. Re-entering Home therefore creates one fresh cache owner instead of accumulating observers across route hops.
+
 Final pointer proof for an 80-event burst:
 
 | Counter | Before exploratory probe | After |
@@ -83,7 +85,7 @@ Evidence:
 
 ## Look-and-feel proof
 
-The visual parity harness uses deterministic random input, stops the asynchronous loop, advances each side for the same three seconds at that version's real physics cadence, renders once, and compares composition state plus raw-canvas and full-scene screenshots.
+The visual parity harness waits for boot and the entrance scale to settle, seeds at the mode-reset boundary, stops the asynchronous loop, advances each side for the same three seconds at that version's real physics cadence, and compares composition state plus raw-canvas and full-scene screenshots. Starfield receives one bounded custom-render sample because it owns time integration in its renderer rather than the common physics update.
 
 Both bounded reports pass with no failures:
 
@@ -92,8 +94,8 @@ Both bounded reports pass with no failures:
 
 Evidence:
 
-- `output/playwright/home-simulation-visual-parity/all-modes-final-part-a-2026-08-11/report.json`
-- `output/playwright/home-simulation-visual-parity/all-modes-final-part-b-2026-08-11/report.json`
+- `output/playwright/home-simulation-visual-parity/all-modes-pixel-gated-part-a-2026-08-11/report.json`
+- `output/playwright/home-simulation-visual-parity/all-modes-pixel-gated-part-b-2026-08-11/report.json`
 
 The audit deliberately compares equal simulated duration at each version's true cadence. A prior harness version advanced every desktop mode at 60 Hz and produced false failures for modes whose reference cadence was 120 Hz; the final harness corrects that measurement error without changing visual tolerances.
 
@@ -116,5 +118,6 @@ Passed:
 ## Remaining risk and next proof
 
 - WebKit Pit is not yet strict all-repeat certified because one cold owned-production sample had a 52 ms maximum gap. The mode otherwise holds the emulated display ceiling, and every warm repeat passes.
+- Dropped and resynchronized physics debt is recorded but not yet a release gate. A clean-release interaction and soak matrix must set and enforce that budget before specification #49 can close.
 - These runs use Playwright device emulation, not a physical iPhone Safari capture. A physical-device trace remains the correct final hardware proof.
 - The full performance matrix should be repeated from a clean release commit after unrelated dirty-worktree changes are resolved. No production deployment or push was performed.

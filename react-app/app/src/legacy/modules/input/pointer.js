@@ -11,6 +11,12 @@ import { emitScenePointer } from './scene-pointer.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
+let disposePointerGeometryObserver = null;
+
+export function disposePointerGeometryCache() {
+  disposePointerGeometryObserver?.();
+  disposePointerGeometryObserver = null;
+}
 
 function triggerWaterRipple(x, y, velocityFactor) {
   if (typeof createWaterRippleFn === 'function') {
@@ -65,6 +71,8 @@ export function setupPointer() {
     return;
   }
 
+  disposePointerGeometryCache();
+
   let canvasRectCache = null;
   let canvasRectReadAt = 0;
   let wasSceneTransforming = false;
@@ -75,6 +83,12 @@ export function setupPointer() {
   canvasResizeObserver?.observe(canvas);
   window.addEventListener('resize', invalidateCanvasRect, { passive: true });
   window.addEventListener('orientationchange', invalidateCanvasRect, { passive: true });
+  disposePointerGeometryObserver = () => {
+    canvasResizeObserver?.disconnect();
+    window.removeEventListener('resize', invalidateCanvasRect);
+    window.removeEventListener('orientationchange', invalidateCanvasRect);
+    canvasRectCache = null;
+  };
 
   /**
    * Panel/UI hit-test: when interacting with the settings UI, we must NOT

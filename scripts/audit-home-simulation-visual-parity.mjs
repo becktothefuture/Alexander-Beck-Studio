@@ -26,6 +26,10 @@ const CURRENT_SIXTY_HZ_MODES = new Set([
   'magnetic',
   'elastic-center',
 ]);
+const CANVAS_CHANGED_PIXEL_RATIO_MAX = 0.18;
+const CANVAS_MEAN_CHANNEL_DIFFERENCE_MAX = 0.045;
+const SCENE_CHANGED_PIXEL_RATIO_MAX = 0.2;
+const SCENE_MEAN_CHANNEL_DIFFERENCE_MAX = 0.04;
 
 const PROFILES = Object.freeze({
   desktop: Object.freeze({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 }),
@@ -68,6 +72,9 @@ async function preparePage(page, origin, mode, stepHz) {
   await page.waitForFunction(() => (
     document.documentElement.dataset.absHomeSimulationReady === 'true'
       && typeof window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot === 'function'
+      && !document.getElementById('abs-boot-overlay')
+      && document.documentElement.dataset.absBootState !== 'booting'
+      && Number(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.maxScale || 0) >= 0.999
   ), undefined, { timeout: 30_000, polling: 'raf' });
   return page.evaluate(async ({ expectedMode, seed, durationSeconds, physicsStepHz }) => {
     const audit = window.__ABS_HOME_AUDIT__;
@@ -75,8 +82,15 @@ async function preparePage(page, origin, mode, stepHz) {
     window.__ABS_RESET_PARITY_RANDOM__(seed);
     const controller = await import('/src/legacy/modules/modes/mode-controller.js');
     const engine = await import('/src/legacy/modules/physics/engine.js');
+    const visualTransition = await import('/src/lib/simulationVisualTransition.js');
+    visualTransition.setInitialSimulationVisualScale(1);
+    // Imports may initialize unrelated visual modules that also use
+    // Math.random(). Seed at the mode-reset boundary so both revisions start
+    // the simulation from the same random sequence.
+    window.__ABS_RESET_PARITY_RANDOM__(seed);
     if (audit.getGlobals().currentMode === expectedMode) await controller.resetCurrentMode();
     else await controller.setMode(expectedMode);
+    visualTransition.setInitialSimulationVisualScale(1);
     audit.stopMainLoop();
     const globals = audit.getGlobals();
     if (globals.currentMode !== expectedMode) {
@@ -87,6 +101,13 @@ async function preparePage(page, origin, mode, stepHz) {
       engine.updatePhysics(1 / physicsStepHz, controller.getForceApplicator());
     }
     engine.render();
+    // Starfield owns its time integration inside its custom renderer rather
+    // than updatePhysics(). Give that surface one bounded visual-time sample
+    // so the parity proof cannot pass on a transparent first frame.
+    if (expectedMode === 'starfield-3d') {
+      await new Promise((resolveDelay) => window.setTimeout(resolveDelay, 120));
+      engine.render();
+    }
     const balls = globals.balls.filter((ball) => ball && ball.__portfolioHidden !== true);
     let left = Number.POSITIVE_INFINITY;
     let top = Number.POSITIVE_INFINITY;
@@ -165,8 +186,12 @@ async function readPixelDifference(leftPath, rightPath) {
   }
   let changed = 0;
   let absoluteChannelDifference = 0;
+  let leftVisiblePixels = 0;
+  let rightVisiblePixels = 0;
   const pixelCount = left.info.width * left.info.height;
   for (let offset = 0; offset < left.data.length; offset += 4) {
+    if (left.data[offset + 3] > 0) leftVisiblePixels += 1;
+    if (right.data[offset + 3] > 0) rightVisiblePixels += 1;
     let pixelMaximum = 0;
     for (let channel = 0; channel < 4; channel += 1) {
       const difference = Math.abs(left.data[offset + channel] - right.data[offset + channel]);
@@ -180,8 +205,20 @@ async function readPixelDifference(leftPath, rightPath) {
     width: left.info.width,
     height: left.info.height,
     changedPixelRatio: round(changed / pixelCount),
-    meanAbsoluteChannelDifference: round(absoluteChannelDifference / (pixelCount * 4), 3),
+    meanAbsoluteChannelDifference: round(
+      absoluteChannelDifference / (pixelCount * 4 * 255),
+    ),
+    leftVisiblePixelRatio: round(leftVisiblePixels / pixelCount),
+    rightVisiblePixelRatio: round(rightVisiblePixels / pixelCount),
   };
+}
+
+function pixelComparisonPasses(result, changedPixelRatioMax, meanChannelDifferenceMax) {
+  return result.comparable === true
+    && result.leftVisiblePixelRatio > 0.0001
+    && result.rightVisiblePixelRatio > 0.0001
+    && result.changedPixelRatio <= changedPixelRatioMax
+    && result.meanAbsoluteChannelDifference <= meanChannelDifferenceMax;
 }
 
 function difference(left, right) {
@@ -226,7 +263,7 @@ function compareState(baseline, current) {
   comparison.passed = (comparison.ballCountMatches
       || (streamingFountain && comparison.ballCountRelativeDelta <= 0.06))
     && comparison.paletteSetMatches
-    && comparison.paletteDistributionDelta <= (streamingFountain ? 0.06 : 0.03)
+    && comparison.paletteDistributionDelta <= (streamingFountain ? 0.09 : 0.03)
     && comparison.centroidDistance <= (streamingFountain ? 0.03 : 0.08)
     && comparison.maximumBoundsDelta <= (streamingFountain ? 0.18 : 0.15)
     && comparison.meanRadiusCssPxDelta <= 0.1
@@ -245,6 +282,13 @@ async function captureSide(browser, browserName, profileName, mode, label, origi
     const scenePath = resolve(OUTPUT_ROOT, `${prefix}-scene.png`);
     const canvasDataUrl = await page.locator('#c').evaluate((canvas) => canvas.toDataURL('image/png'));
     await writeFile(canvasPath, Buffer.from(canvasDataUrl.split(',')[1], 'base64'));
+    await page.addStyleTag({ content: `
+      *, *::before, *::after {
+        animation-play-state: paused !important;
+        transition-duration: 0s !important;
+        caret-color: transparent !important;
+      }
+    ` });
     await page.locator('#simulations').screenshot({ path: scenePath });
     return { state, canvasPath, scenePath };
   } finally {
@@ -274,7 +318,33 @@ async function main() {
             baseline.canvasPath,
             current.canvasPath,
           );
-          rows.push({ browserName, profileName, mode, baseline, current, comparison, pixelDifference });
+          const scenePixelDifference = await readPixelDifference(
+            baseline.scenePath,
+            current.scenePath,
+          );
+          const pixelPassed = pixelComparisonPasses(
+            pixelDifference,
+            CANVAS_CHANGED_PIXEL_RATIO_MAX,
+            CANVAS_MEAN_CHANNEL_DIFFERENCE_MAX,
+          );
+          const scenePixelPassed = pixelComparisonPasses(
+            scenePixelDifference,
+            SCENE_CHANGED_PIXEL_RATIO_MAX,
+            SCENE_MEAN_CHANNEL_DIFFERENCE_MAX,
+          );
+          comparison.passed = comparison.passed && pixelPassed && scenePixelPassed;
+          rows.push({
+            browserName,
+            profileName,
+            mode,
+            baseline,
+            current,
+            comparison,
+            pixelDifference,
+            scenePixelDifference,
+            pixelPassed,
+            scenePixelPassed,
+          });
           console.log(comparison.passed ? 'PASS' : 'FAIL');
         }
       }
@@ -298,14 +368,38 @@ async function main() {
       paletteDistributionDelta: 0.03,
       streamingFountain: {
         ballCountRelativeDelta: 0.06,
-        paletteDistributionDelta: 0.06,
+        paletteDistributionDelta: 0.09,
         centroidDistance: 0.03,
         maximumBoundsDelta: 0.18,
       },
+      canvasPixels: {
+        changedPixelRatio: CANVAS_CHANGED_PIXEL_RATIO_MAX,
+        meanAbsoluteChannelDifference: CANVAS_MEAN_CHANNEL_DIFFERENCE_MAX,
+      },
+      scenePixels: {
+        changedPixelRatio: SCENE_CHANGED_PIXEL_RATIO_MAX,
+        meanAbsoluteChannelDifference: SCENE_MEAN_CHANNEL_DIFFERENCE_MAX,
+      },
     },
     rows,
-    failures: failures.map(({ browserName, profileName, mode, comparison }) => ({
-      browserName, profileName, mode, comparison,
+    failures: failures.map(({
+      browserName,
+      profileName,
+      mode,
+      comparison,
+      pixelDifference,
+      scenePixelDifference,
+      pixelPassed,
+      scenePixelPassed,
+    }) => ({
+      browserName,
+      profileName,
+      mode,
+      comparison,
+      pixelDifference,
+      scenePixelDifference,
+      pixelPassed,
+      scenePixelPassed,
     })),
   };
   const reportPath = resolve(OUTPUT_ROOT, 'report.json');

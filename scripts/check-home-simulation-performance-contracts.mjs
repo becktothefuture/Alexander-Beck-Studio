@@ -91,3 +91,21 @@ test('physics cadence is mode-aware and keeps collision-dense Pit at 120 Hz', ()
   assert.equal(shouldSkipSleepingBodyStep('portfolio-pit', { physicsSkipSleepingSteps: false }), true);
   assert.equal(shouldSkipSleepingBodyStep('water', { physicsSkipSleepingSteps: false }), false);
 });
+
+test('SPA renderer teardown disposes the pointer geometry observer and window listeners', async () => {
+  const [pointerSource, rendererSource] = await Promise.all([
+    readFile(new URL(
+      '../react-app/app/src/legacy/modules/input/pointer.js',
+      import.meta.url,
+    ), 'utf8'),
+    readFile(new URL(
+      '../react-app/app/src/legacy/modules/rendering/renderer.js',
+      import.meta.url,
+    ), 'utf8'),
+  ]);
+  assert.match(pointerSource, /export function disposePointerGeometryCache\(\)/);
+  assert.match(pointerSource, /canvasResizeObserver\?\.disconnect\(\)/);
+  assert.match(pointerSource, /removeEventListener\('resize', invalidateCanvasRect\)/);
+  assert.match(pointerSource, /removeEventListener\('orientationchange', invalidateCanvasRect\)/);
+  assert.match(rendererSource, /disposePointerGeometryCache\(\)/);
+});

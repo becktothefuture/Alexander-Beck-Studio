@@ -21,6 +21,7 @@ import { applyCanvasShadow } from './effects.js';
 import { removeDepthTitleLayerClass } from './depth-title-layer-state.js';
 import { stopMainLoop } from './loop.js';
 import { isDev } from '../utils/logger.js';
+import { disposePointerGeometryCache } from '../input/pointer.js';
 import {
   getSimulationCollisionInsetPx,
   syncSimulationCollisionBounds,
@@ -237,6 +238,7 @@ export function disposeRendererListeners(expectedOwner = null) {
     resizeDebounceId = null;
   }
   disposeDepthTitleCanvas();
+  disposePointerGeometryCache();
   // SPA route teardown removes pointer listeners via legacy scope; allow the next
   // `setupPointer()` to register fresh handlers (otherwise __pointerReady blocks re-init).
   try {
