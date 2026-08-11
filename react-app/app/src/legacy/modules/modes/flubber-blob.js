@@ -11,6 +11,7 @@ import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
+import { shouldVisitForwardGridNeighbour } from '../physics/collision-policy.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -75,6 +76,8 @@ const auditMetrics = {
   minimumBodySeparation: 0,
   interBodyCollisionCount: 0,
   wallCollisionCount: 0,
+  contactIterationsUsed: 0,
+  gridBuildCount: 0,
 };
 
 const blob = {
@@ -95,6 +98,9 @@ const blob = {
   maxLinkStretch: 1,
   connectedComponents: 1,
   averageSpeed: 0,
+  contactIterationsThisFrame: 0,
+  gridBuildsThisFrame: 0,
+  wallImpactThisFrame: false,
   pointerX: 0,
   pointerY: 0,
   pointerVx: 0,
@@ -475,6 +481,7 @@ function getCellIndex(x, y) {
 function buildGrid() {
   const g = getGlobals();
   const balls = g.balls || [];
+  blob.gridBuildsThisFrame += 1;
   for (let i = 0; i < blob.count; i++) {
     const cell = getCellIndex(balls[i].x, balls[i].y);
     gridNext[i] = gridHead[cell];
@@ -645,7 +652,12 @@ function creepGelLinks(dt, materialFlow, shapeMemory, maxStretchRatio) {
   }
 }
 
-function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyRestitution) {
+function resolveParticleContacts(
+  iterations,
+  sameBodyRestitution,
+  crossBodyRestitution,
+  allowEarlyExit = false,
+) {
   const g = getGlobals();
   const balls = g.balls || [];
   const dpr = g.DPR || 1;
@@ -655,8 +667,11 @@ function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyResti
   const contactDistanceSq = contactDistance * contactDistance;
   const slop = 0;
   let maxOverlap = 0;
+  const convergenceThreshold = 0.15 * dpr;
 
   for (let iter = 0; iter < iterations; iter++) {
+    let iterationMaxOverlap = 0;
+    blob.contactIterationsThisFrame += 1;
     if (iter > 0) {
       gridHead.fill(-1, 0, blob.gridCellCount);
       buildGrid();
@@ -668,10 +683,11 @@ function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyResti
       const cx = cell % blob.gridCols;
       const cy = (cell / blob.gridCols) | 0;
 
-      for (let oy = -1; oy <= 1; oy++) {
+      for (let oy = 0; oy <= 1; oy++) {
         const gridY = cy + oy;
         if (gridY < 0 || gridY >= blob.gridRows) continue;
         for (let ox = -1; ox <= 1; ox++) {
+          if (!shouldVisitForwardGridNeighbour(ox, oy)) continue;
           const gridX = cx + ox;
           if (gridX < 0 || gridX >= blob.gridCols) continue;
           const otherCell = gridY * blob.gridCols + gridX;
@@ -679,7 +695,7 @@ function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyResti
           for (let i = head; i >= 0; i = gridNext[i]) {
             const a = balls[i];
             for (let j = gridHead[otherCell]; j >= 0; j = gridNext[j]) {
-              if (j <= i) continue;
+              if (ox === 0 && oy === 0 && j <= i) continue;
               const b = balls[j];
               const dx = b.x - a.x;
               const dy = b.y - a.y;
@@ -702,12 +718,10 @@ function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyResti
               b.x += nx * correction;
               b.y += ny * correction;
 
-              if (iter === iterations - 1) {
-                const nextDx = b.x - a.x;
-                const nextDy = b.y - a.y;
-                const visualOverlap = renderedContactDistance - Math.sqrt(nextDx * nextDx + nextDy * nextDy);
-                if (visualOverlap > maxOverlap) maxOverlap = visualOverlap;
-              }
+              const nextDx = b.x - a.x;
+              const nextDy = b.y - a.y;
+              const visualOverlap = renderedContactDistance - Math.sqrt(nextDx * nextDx + nextDy * nextDy);
+              if (visualOverlap > iterationMaxOverlap) iterationMaxOverlap = visualOverlap;
 
               const rvx = b.vx - a.vx;
               const rvy = b.vy - a.vy;
@@ -729,6 +743,12 @@ function resolveParticleContacts(iterations, sameBodyRestitution, crossBodyResti
         }
       }
     }
+    maxOverlap = iterationMaxOverlap;
+    if (
+      allowEarlyExit
+      && iter >= 1
+      && iterationMaxOverlap <= convergenceThreshold
+    ) break;
   }
 
   blob.maxOverlap = maxOverlap;
@@ -1037,6 +1057,7 @@ function resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, im
       const impactThreshold = 2.5 * (g.DPR || 1);
       if (inwardSpeed > impactThreshold || wallHit.penetration > blob.ballRadius * 0.08) {
         blob.wallCollisionCount += 1;
+        blob.wallImpactThisFrame = true;
         const impulse = clamp(
           inwardSpeed * (1 + wallBounce * contactWeight) +
             separationAssist * (inwardSpeed > impactThreshold ? 0.06 : 0.025),
@@ -1328,6 +1349,8 @@ function updateAuditMetrics() {
   );
   auditMetrics.interBodyCollisionCount = blob.interBodyCollisionCount;
   auditMetrics.wallCollisionCount = blob.wallCollisionCount;
+  auditMetrics.contactIterationsUsed = blob.contactIterationsThisFrame;
+  auditMetrics.gridBuildCount = blob.gridBuildsThisFrame;
 }
 
 export function initializeFlubberBlob() {
@@ -1370,6 +1393,9 @@ export function initializeFlubberBlob() {
   blob.lastWallSoundFrame = -1;
   blob.interBodyCollisionCount = 0;
   blob.wallCollisionCount = 0;
+  blob.contactIterationsThisFrame = 0;
+  blob.gridBuildsThisFrame = 0;
+  blob.wallImpactThisFrame = false;
 
   const speed = Math.max(0, Number(g.flubberBlobInitialSpeed ?? 520)) * (g.DPR || 1) * 0.62;
   for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
@@ -1467,6 +1493,10 @@ export function stepFlubberBlob(dtSeconds) {
   const linkStrength = clamp(0.08 + cohesionGain * 0.048 + surfaceTension * 0.05, 0.1, 0.72);
   const compressionStrength = clamp(0.08 + surfaceTension * 0.05, 0.06, 0.26);
 
+  blob.contactIterationsThisFrame = 0;
+  blob.gridBuildsThisFrame = 0;
+  blob.wallImpactThisFrame = false;
+
   storePreviousPositions();
   applyVelocityLimits(speedLimit, viscosity, dt);
   applyGelDrift(dt, internalCurrent, localDeform, slimeWobble, shear);
@@ -1494,11 +1524,17 @@ export function stepFlubberBlob(dtSeconds) {
       ? contactIterations
       : contactIterations + (blob.isDragging ? 4 : 3);
     const finalContactPasses = isMobile ? 1 : 2;
+    const settledContactBudget = blob.averageSpeed <= 24 * (g.DPR || 1);
     for (let pass = 0; pass < finalContactPasses; pass++) {
       resolveWalls(dt, wallBounce, wallFriction, wallLocality, wallSquish, impactRipple, shear);
       prepareGrid(contactRadius);
       buildGrid();
-      resolveParticleContacts(finalContactIterations, 0, interBodyBounce);
+      resolveParticleContacts(
+        finalContactIterations,
+        0,
+        interBodyBounce,
+        settledContactBudget && !blob.isDragging && !blob.wallImpactThisFrame,
+      );
     }
   }
 

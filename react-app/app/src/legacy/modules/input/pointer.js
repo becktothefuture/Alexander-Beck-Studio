@@ -5,7 +5,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
-import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
+import { hideCursor, showCursor } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { emitScenePointer } from './scene-pointer.js';
 
@@ -65,6 +65,17 @@ export function setupPointer() {
     return;
   }
 
+  let canvasRectCache = null;
+  let canvasRectReadAt = 0;
+  let wasSceneTransforming = false;
+  const invalidateCanvasRect = () => { canvasRectCache = null; };
+  const canvasResizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(invalidateCanvasRect)
+    : null;
+  canvasResizeObserver?.observe(canvas);
+  window.addEventListener('resize', invalidateCanvasRect, { passive: true });
+  window.addEventListener('orientationchange', invalidateCanvasRect, { passive: true });
+
   /**
    * Panel/UI hit-test: when interacting with the settings UI, we must NOT
    * update simulation mouse state (repel/attract), and the UI must receive
@@ -89,11 +100,22 @@ export function setupPointer() {
    * Get mouse position relative to canvas from any event
    */
   function getCanvasPosition(clientX, clientY) {
-    // SIMPLICITY > cleverness:
-    // Always compute the rect at the time of the event, then map into the canvas buffer.
-    // This guarantees cursor + trail alignment even during fast motion and scene transforms
-    // (gate depth, impact reactions, etc.) that change rect dimensions without resize events.
-    const rect = canvas.getBoundingClientRect();
+    const now = performance.now();
+    const sceneTransforming = document.getElementById('abs-scene')
+      ?.classList.contains('abs-scene--animating') === true;
+    if (
+      !canvasRectCache
+      || sceneTransforming !== wasSceneTransforming
+      || (sceneTransforming && now - canvasRectReadAt >= 14)
+    ) {
+      canvasRectCache = canvas.getBoundingClientRect();
+      canvasRectReadAt = now;
+      wasSceneTransforming = sceneTransforming;
+      if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true || globals.performanceAuditEnabled === true) {
+        globals.pointerCanvasRectReadCount = (Number(globals.pointerCanvasRectReadCount) || 0) + 1;
+      }
+    }
+    const rect = canvasRectCache;
     const rw = rect.width || 1;
     const rh = rect.height || 1;
     const sx = canvas.width / rw;
@@ -180,10 +202,9 @@ export function setupPointer() {
       }
     }
     
-    // Update custom cursor position only for mouse-like pointers
-    if (isMouseLike) {
-      updateCursorPosition(clientX, clientY);
-    } else {
+    // cursor.js owns document-level mouse presentation. Keep raw simulation
+    // input immediate here, but do not present the same pointer twice.
+    if (!isMouseLike) {
       // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
       hideCursor();
     }

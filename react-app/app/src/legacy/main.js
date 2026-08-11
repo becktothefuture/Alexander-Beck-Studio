@@ -620,6 +620,7 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     }
 
     if (isHomeRuntimeAuditEnabled() && typeof window !== 'undefined') {
+      getGlobals().performanceAuditEnabled = true;
       window.__ABS_HOME_AUDIT__ = {
         getGlobals,
         getShellConfig,
@@ -673,6 +674,30 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             throttleLevel: Number(globals.adaptiveThrottleLevel) || 0,
             renderQualityTier: globals.renderQualityTierResolved || null,
             titleLayoutReadCount: Number(globals.titleLayoutReadCount) || 0,
+            cursorPresentationCount: Number(globals.cursorPresentationCount) || 0,
+            cursorHitTestCount: Number(globals.cursorHitTestCount) || 0,
+            cursorBodyClassMutationCount: Number(globals.cursorBodyClassMutationCount) || 0,
+            pointerCanvasRectReadCount: Number(globals.pointerCanvasRectReadCount) || 0,
+            analytic3dIntegrationStepCount: Number(globals.analytic3dIntegrationStepCount) || 0,
+            analytic3dProjectionPassCount: Number(globals.analytic3dProjectionPassCount) || 0,
+            analytic3dProjectedPointCount: Number(globals.analytic3dProjectedPointCount) || 0,
+            sphereNativeDepthSortCount: Number(globals.sphereNativeDepthSortCount) || 0,
+            sphereInsertionSortCount: Number(globals.sphereInsertionSortCount) || 0,
+            sphereInsertionSortMoveCount: Number(globals.sphereInsertionSortMoveCount) || 0,
+            collisionGridBuildCount: Number(globals.collisionGridBuildCount) || 0,
+            collisionCandidateCheckCount: Number(globals.collisionCandidateCheckCount) || 0,
+            collisionPairCount: Number(globals.collisionPairCount) || 0,
+            collisionSolverIterationCount: Number(globals.collisionSolverIterationCount) || 0,
+            collisionMaximumResidualPx: Number(globals.collisionMaximumResidualPx) || 0,
+            pitSleepEvaluationCount: Number(globals.pitSleepEvaluationCount) || 0,
+            pitSleepingBodyCount: Number(globals.pitSleepingBodyCount) || 0,
+            pitSkippedSleepingStepCount: Number(globals.pitSkippedSleepingStepCount) || 0,
+            fliesNeighbourGridBuildCount: Number(globals.fliesNeighbourGridBuildCount) || 0,
+            fliesNeighbourCandidateCount: Number(globals.fliesNeighbourCandidateCount) || 0,
+            physicsDebtSeconds: Number(globals.physicsDebtSeconds) || 0,
+            physicsResynchronizedSeconds: Number(globals.physicsResynchronizedSeconds) || 0,
+            physicsDroppedSeconds: Number(globals.physicsDroppedSeconds) || 0,
+            flubberMetrics: window.__ABS_FLUBBER_BLOB_AUDIT__?.getMetrics?.() || null,
             semanticTitleText: title?.textContent?.replace(/\s+/g, ' ').trim() || '',
             behindTitleCount,
             inFrontOfTitleCount,

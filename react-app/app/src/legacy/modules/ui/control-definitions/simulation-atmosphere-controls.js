@@ -47,6 +47,7 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   const config = getSimulationAtmosphereConfig();
   g[getAtmosphereStateKey('enabled')] = config.enabled;
   g[getAtmosphereStateKey('lowQualityMode')] = config.lowQualityMode;
+  g[getAtmosphereStateKey('fieldMode')] = config.fieldMode;
   g[getAtmosphereStateKey('largeSpread')] = config.largeSpread;
   g[getAtmosphereStateKey('smallSpread')] = config.smallSpread;
   g[getAtmosphereStateKey('memoryMs')] = config.memoryMs;
@@ -74,6 +75,7 @@ export function buildSimulationAtmosphereConfigFromControlState(
       getAtmosphereStateKey('lowQualityMode'),
       base.lowQualityMode,
     ),
+    fieldMode: readAtmosphereState(g, getAtmosphereStateKey('fieldMode'), base.fieldMode),
     largeSpread: readAtmosphereState(g, getAtmosphereStateKey('largeSpread'), base.largeSpread),
     smallSpread: readAtmosphereState(g, getAtmosphereStateKey('smallSpread'), base.smallSpread),
     memoryMs: readAtmosphereState(g, getAtmosphereStateKey('memoryMs'), base.memoryMs),
@@ -152,8 +154,8 @@ export const SIMULATION_ATMOSPHERE_CONTROL_SECTIONS = {
     controls: createAtmosphereCommonControls([
       'enabled',
       'lowQualityMode',
+      'fieldMode',
       'largeSpread',
-      'smallSpread',
       'memoryMs',
     ]),
   },

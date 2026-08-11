@@ -137,6 +137,7 @@ const MODE_REGISTRY = {
     hooks: {
       initialize: 'initialize3DSphere',
       force: 'apply3DSphereForces',
+      customStep: 'step3DSphere',
       depthRender: 'render3DSphereDepthLayer'
     }
   },
@@ -145,6 +146,7 @@ const MODE_REGISTRY = {
     hooks: {
       initialize: 'initialize3DCube',
       force: 'apply3DCubeForces',
+      customStep: 'step3DCube',
       depthRender: 'render3DCubeDepthLayer'
     }
   },

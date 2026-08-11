@@ -1,4 +1,4 @@
-export const RUNTIME_PERFORMANCE_SCHEMA_VERSION = 5;
+export const RUNTIME_PERFORMANCE_SCHEMA_VERSION = 6;
 export const MINIMUM_SAMPLE_MS = 5_000;
 export const MINIMUM_REPEAT_COUNT = 3;
 export const DEFAULT_PROFILES = Object.freeze(['cold', 'warm']);
@@ -69,6 +69,13 @@ export function normalizeCadence({ measuredFps, targetFps, observedRefreshHz }) 
   };
 }
 
+export function countMissedRenderDeadlines(intervalMs, targetFps = 60, toleranceMs = 0.5) {
+  const interval = Math.max(0, finiteNumber(intervalMs) ?? 0);
+  const target = Math.max(1, finiteNumber(targetFps) ?? 60);
+  const deadline = 1000 / target;
+  return Math.max(0, Math.floor((interval + Math.max(0, toleranceMs)) / deadline) - 1);
+}
+
 export function parsePerformanceContract(env = process.env) {
   const profiles = String(env.ABS_PERF_PROFILES || DEFAULT_PROFILES.join(','))
     .split(',')
@@ -120,6 +127,11 @@ export function parsePerformanceContract(env = process.env) {
       minimumFps: Math.max(1, finiteNumber(env.ABS_PERF_MIN_FPS) ?? 58),
       maximumP95Ms: Math.max(1, finiteNumber(env.ABS_PERF_MAX_P95_MS) ?? 20),
       maximumP99Ms: Math.max(1, finiteNumber(env.ABS_PERF_MAX_P99_MS) ?? 33.4),
+      maximumLongestGapMs: Math.max(1, finiteNumber(env.ABS_PERF_MAX_LONGEST_GAP_MS) ?? 50),
+      maximumRenderInvocationP95Ms: Math.max(1, finiteNumber(env.ABS_PERF_MAX_RENDER_P95_MS) ?? 20),
+      maximumRenderInvocationP99Ms: Math.max(1, finiteNumber(env.ABS_PERF_MAX_RENDER_P99_MS) ?? 33.4),
+      maximumConsecutiveMisses: Math.max(0, Math.floor(finiteNumber(env.ABS_PERF_MAX_CONSECUTIVE_MISSES) ?? 2)),
+      maximumInputToRenderP95Ms: Math.max(1, finiteNumber(env.ABS_PERF_MAX_INPUT_TO_RENDER_P95_MS) ?? 33.4),
       maximumWarmDecayPercent: Math.max(0, finiteNumber(env.ABS_PERF_MAX_DECAY_PERCENT) ?? 5),
       minimumObservedRefreshHz: Math.max(1, finiteNumber(env.ABS_PERF_MIN_REFRESH_HZ) ?? 50),
     },
@@ -159,6 +171,27 @@ export function evaluateRepeat(sample, contract, { requiresContinuousFrames }) {
   if (sample.p99Ms === null || sample.p99Ms > contract.thresholds.maximumP99Ms) {
     add('p99-frame-time', sample.p99Ms, `<= ${contract.thresholds.maximumP99Ms}ms`, 'The slowest one percent of rAF intervals exceed the selected baseline.');
   }
+  if (sample.longestGapMs === null || sample.longestGapMs > contract.thresholds.maximumLongestGapMs) {
+    add('maximum-frame-gap', sample.longestGapMs, `<= ${contract.thresholds.maximumLongestGapMs}ms`, 'A visible stall exceeded the stable-sample limit.');
+  }
+  if (requiresContinuousFrames && (sample.renderInvocationP95Ms === null
+    || sample.renderInvocationP95Ms > contract.thresholds.maximumRenderInvocationP95Ms)) {
+    add('render-invocation-p95', sample.renderInvocationP95Ms, `<= ${contract.thresholds.maximumRenderInvocationP95Ms}ms`, 'The owned renderer missed its p95 delivery limit.');
+  }
+  if (requiresContinuousFrames && (sample.renderInvocationP99Ms === null
+    || sample.renderInvocationP99Ms > contract.thresholds.maximumRenderInvocationP99Ms)) {
+    add('render-invocation-p99', sample.renderInvocationP99Ms, `<= ${contract.thresholds.maximumRenderInvocationP99Ms}ms`, 'The owned renderer missed its p99 delivery limit.');
+  }
+  if (requiresContinuousFrames && (sample.maximumConsecutiveMisses === null
+    || sample.maximumConsecutiveMisses === undefined
+    || sample.maximumConsecutiveMisses > contract.thresholds.maximumConsecutiveMisses)) {
+    add('maximum-consecutive-missed-deadlines', sample.maximumConsecutiveMisses, `<= ${contract.thresholds.maximumConsecutiveMisses}`, 'The renderer missed too many 60 Hz deadlines in one cluster.');
+  }
+  if (sample.inputProfile && sample.inputProfile !== 'idle'
+    && (sample.inputToRenderP95Ms === null
+      || sample.inputToRenderP95Ms > contract.thresholds.maximumInputToRenderP95Ms)) {
+    add('input-to-render-p95', sample.inputToRenderP95Ms, `<= ${contract.thresholds.maximumInputToRenderP95Ms}ms`, 'Paced input was not reflected by the next owned render within the interaction limit.');
+  }
   if (sample.throttleLevel !== null && sample.throttleLevel !== undefined && Number(sample.throttleLevel) !== 0) {
     add('no-adaptive-throttle', sample.throttleLevel, '0 or null', 'The runtime reduced quality during the sample.');
   }
@@ -187,6 +220,10 @@ export function aggregateProfile(repeats, contract) {
     'p95Ms',
     'p99Ms',
     'longestGapMs',
+    'renderInvocationP95Ms',
+    'renderInvocationP99Ms',
+    'maximumConsecutiveMisses',
+    'inputToRenderP95Ms',
     'observedRefreshHz',
   ];
   const aggregate = {};

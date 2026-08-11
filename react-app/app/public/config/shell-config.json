@@ -72,6 +72,7 @@
     "simulationAtmosphere": {
       "enabled": true,
       "lowQualityMode": "canvas",
+      "fieldMode": "broad",
       "largeSpread": 0.08,
       "smallSpread": 0.02,
       "memoryMs": 400,

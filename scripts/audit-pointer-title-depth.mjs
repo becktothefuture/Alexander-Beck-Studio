@@ -1,9 +1,15 @@
 #!/usr/bin/env node
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const DEFAULT_ORIGIN = 'http://127.0.0.1:8012';
 const WAIT_MS = Number(process.env.ABS_POINTER_TITLE_WAIT_MS || 30000);
 const CRISP_GLOW_PATH = '/lab/atmosphere-crisp-glow.html';
+const OUTPUT_PATH = resolve(
+  process.env.ABS_POINTER_TITLE_OUTPUT
+    || 'output/playwright/pointer-title-depth/latest.json',
+);
 // This audit verifies the legacy home #c canvas contract. Keep these fixtures
 // to current daily home-mode entries; collection modes can route to the daily
 // shell and intentionally do not provide #c on direct startup.
@@ -59,6 +65,26 @@ function cubeRotationDistance(a, b) {
   );
 }
 
+function readAnalyticProjectionDelta(start, end) {
+  const integrationSteps = end.analytic3dIntegrationStepCount - start.analytic3dIntegrationStepCount;
+  const projectionPasses = end.analytic3dProjectionPassCount - start.analytic3dProjectionPassCount;
+  const projectedPoints = end.analytic3dProjectedPointCount - start.analytic3dProjectedPointCount;
+  if (
+    projectionPasses <= 0
+    || integrationSteps <= 0
+    || projectedPoints !== projectionPasses * end.ballCount
+    || integrationSteps > projectionPasses * 4
+  ) {
+    throw new Error(`Analytic 3D projection did not remain once per visible update: ${JSON.stringify({
+      integrationSteps,
+      projectionPasses,
+      projectedPoints,
+      ballCount: end.ballCount,
+    })}`);
+  }
+  return { integrationSteps, projectionPasses, projectedPoints };
+}
+
 async function gotoMode(page, mode) {
   await page.goto(resolveModeUrl(mode), { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector('#c', { state: 'attached', timeout: WAIT_MS });
@@ -102,7 +128,109 @@ async function auditMouseSphere(page) {
   if (end.pointerType !== 'mouse' || end.pointerInCanvas !== true) {
     throw new Error(`3d-sphere mouse pointer state invalid: ${JSON.stringify(end)}`);
   }
-  return { rotationDelta, pointerSequence: end.pointerSequence };
+  return {
+    rotationDelta,
+    pointerSequence: end.pointerSequence,
+    projection: readAnalyticProjectionDelta(start, end),
+  };
+}
+
+async function auditPointerHotPath(page) {
+  await gotoMode(page, 'water');
+  await page.mouse.move(320, 320);
+  await page.waitForFunction(() => (
+    !document.documentElement.classList.contains('abs-home-post-boot-pending')
+      && !document.documentElement.classList.contains('abs-home-post-boot-enter')
+      && Array.from(document.querySelectorAll('#hero-title [data-route-enter-glyph]'))
+        .every((glyph) => glyph.__absRouteEntranceState?.settled === true)
+  ), undefined, { timeout: WAIT_MS, polling: 'raf' });
+  await page.waitForTimeout(160);
+  await page.waitForFunction(async () => {
+    const before = window.__ABS_HOME_AUDIT__.getRuntimeSnapshot().titleLayoutReadCount;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    return window.__ABS_HOME_AUDIT__.getRuntimeSnapshot().titleLayoutReadCount === before;
+  }, undefined, { timeout: WAIT_MS, polling: 150 });
+  const beforeBurst = await snapshot(page);
+  await page.evaluate(() => {
+    const canvas = document.getElementById('c');
+    const rect = canvas.getBoundingClientRect();
+    for (let index = 0; index < 80; index += 1) {
+      canvas.dispatchEvent(new PointerEvent('pointermove', {
+        bubbles: true,
+        isPrimary: true,
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: rect.left + 40 + index,
+        clientY: rect.top + 80,
+      }));
+    }
+  });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const afterBurst = await snapshot(page);
+  const burst = {
+    events: 80,
+    presentations: afterBurst.cursorPresentationCount - beforeBurst.cursorPresentationCount,
+    hitTests: afterBurst.cursorHitTestCount - beforeBurst.cursorHitTestCount,
+    bodyMutations: afterBurst.cursorBodyClassMutationCount - beforeBurst.cursorBodyClassMutationCount,
+    canvasRectReads: afterBurst.pointerCanvasRectReadCount - beforeBurst.pointerCanvasRectReadCount,
+    titleLayoutReads: afterBurst.titleLayoutReadCount - beforeBurst.titleLayoutReadCount,
+  };
+  if (
+    burst.presentations > 2
+    || burst.hitTests !== 0
+    || burst.bodyMutations > 1
+    || burst.canvasRectReads > 1
+    || burst.titleLayoutReads !== 0
+  ) {
+    throw new Error(`Pointer burst is not once-per-frame and layout-stable: ${JSON.stringify(burst)}`);
+  }
+
+  const beforePaced = await snapshot(page);
+  await page.evaluate(() => {
+    window.__ABS_POINTER_MUTATIONS__ = [];
+    const targets = [document.documentElement, document.body, document.getElementById('abs-scene'), document.getElementById('hero-title')].filter(Boolean);
+    window.__ABS_POINTER_MUTATION_OBSERVER__ = new MutationObserver((records) => {
+      for (const record of records) {
+        window.__ABS_POINTER_MUTATIONS__.push({
+          target: record.target.id || record.target.tagName,
+          attribute: record.attributeName,
+          value: record.target.getAttribute?.(record.attributeName) || '',
+        });
+      }
+    });
+    for (const target of targets) {
+      window.__ABS_POINTER_MUTATION_OBSERVER__.observe(target, { attributes: true, subtree: false });
+    }
+  });
+  const start = await canvasClientPoint(page, 0.25, 0.45);
+  const end = await canvasClientPoint(page, 0.75, 0.55);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.move(end.x, end.y, { steps: 40 });
+  await page.waitForTimeout(80);
+  const afterPaced = await snapshot(page);
+  const mutations = await page.evaluate(() => {
+    window.__ABS_POINTER_MUTATION_OBSERVER__?.disconnect();
+    return window.__ABS_POINTER_MUTATIONS__ || [];
+  });
+  const paced = {
+    events: 41,
+    presentations: afterPaced.cursorPresentationCount - beforePaced.cursorPresentationCount,
+    hitTests: afterPaced.cursorHitTestCount - beforePaced.cursorHitTestCount,
+    bodyMutations: afterPaced.cursorBodyClassMutationCount - beforePaced.cursorBodyClassMutationCount,
+    canvasRectReads: afterPaced.pointerCanvasRectReadCount - beforePaced.pointerCanvasRectReadCount,
+    titleLayoutReads: afterPaced.titleLayoutReadCount - beforePaced.titleLayoutReadCount,
+    mutations,
+  };
+  if (
+    paced.presentations > paced.events
+    || paced.hitTests !== 0
+    || paced.bodyMutations !== 0
+    || paced.canvasRectReads !== 0
+    || paced.titleLayoutReads !== 0
+  ) {
+    throw new Error(`Paced pointer path repeated ownership or layout work: ${JSON.stringify(paced)}`);
+  }
+  return { burst, paced };
 }
 
 async function auditTouchSphere(browser) {
@@ -148,7 +276,51 @@ async function auditTouchSphere(browser) {
   if (end.pointerType !== 'touch') {
     throw new Error(`3d-sphere touch pointer type invalid: ${JSON.stringify(end)}`);
   }
-  return { rotationDelta, pointerSequence: end.pointerSequence };
+  return {
+    rotationDelta,
+    pointerSequence: end.pointerSequence,
+    projection: readAnalyticProjectionDelta(start, end),
+  };
+}
+
+async function auditPitSleepWake(page) {
+  await gotoMode(page, 'pit');
+  await page.mouse.move(10, 10);
+  const target = await page.evaluate(() => {
+    const audit = window.__ABS_HOME_AUDIT__;
+    const globals = audit.getGlobals();
+    const ball = globals.balls[0];
+    ball.x = globals.canvas.width * 0.5;
+    ball.y = globals.canvas.height * 0.18;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.omega = 0;
+    ball.isSleeping = true;
+    ball.sleepTimer = 1;
+    const rect = globals.canvas.getBoundingClientRect();
+    return {
+      x: rect.left + (ball.x / globals.canvas.width) * rect.width,
+      y: rect.top + (ball.y / globals.canvas.height) * rect.height,
+      skippedBefore: audit.getRuntimeSnapshot().pitSkippedSleepingStepCount,
+    };
+  });
+  await page.waitForTimeout(120);
+  const sleeping = await snapshot(page);
+  if (sleeping.pitSkippedSleepingStepCount <= target.skippedBefore) {
+    throw new Error('Pit did not skip the forced sleeping body step.');
+  }
+  await page.mouse.move(target.x, target.y);
+  await page.waitForFunction(
+    () => window.__ABS_HOME_AUDIT__.getGlobals().balls[0].isSleeping === false,
+    undefined,
+    { timeout: WAIT_MS, polling: 'raf' },
+  );
+  const awake = await snapshot(page);
+  return {
+    skippedSleepingSteps: sleeping.pitSkippedSleepingStepCount - target.skippedBefore,
+    pointerSequence: awake.pointerSequence,
+    wokeFromPointer: true,
+  };
 }
 
 async function getCubeSnapshot(page) {
@@ -436,22 +608,29 @@ async function main() {
 
   try {
     const mouseSphere = await auditMouseSphere(page);
+    const pointerHotPath = await auditPointerHotPath(page);
     const touchSphere = await auditTouchSphere(browser);
+    const pitSleepWake = await auditPitSleepWake(page);
     const responsiveCube = await auditResponsiveCube(page);
     const reducedMotionCube = await auditReducedMotionCube(browser);
     const depthModes = await auditDepthModes(page);
     const noDepthModes = await auditNoDepthModes(page);
     const crispGlow = await auditCrispGlowTitleDepth(page);
-    console.log(JSON.stringify({
+    const result = {
       ok: true,
       mouseSphere,
+      pointerHotPath,
       touchSphere,
+      pitSleepWake,
       responsiveCube,
       reducedMotionCube,
       depthModes,
       noDepthModes,
       crispGlow,
-    }, null, 2));
+    };
+    await mkdir(dirname(OUTPUT_PATH), { recursive: true });
+    await writeFile(OUTPUT_PATH, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
+    console.log(JSON.stringify({ ...result, outputPath: OUTPUT_PATH }, null, 2));
   } finally {
     await page.close().catch(() => {});
     await browser.close();

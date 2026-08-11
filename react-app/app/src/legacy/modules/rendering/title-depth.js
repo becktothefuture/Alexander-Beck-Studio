@@ -226,7 +226,11 @@ function retainCanvasTitlePixels(globals) {
 
 function shouldTrackTitleGeometryEveryFrame(scene) {
   return Boolean(scene?.classList?.contains('abs-scene--animating')
-    && scene.getAnimations?.({ subtree: true })?.some((animation) => animation.playState === 'running'));
+    && scene.getAnimations?.({ subtree: true })?.some((animation) => {
+      if (animation.playState !== 'running') return false;
+      const name = String(animation.animationName || '');
+      return !name.startsWith('abs-noise-');
+    }));
 }
 
 function nodeContainsHomepageTitle(node) {
@@ -259,6 +263,13 @@ function isCanvasTitleSource(title) {
   return !body?.classList.contains('portfolio-page') && !body?.classList.contains('cv-page');
 }
 
+function getTitleRelevantBodySignature(body) {
+  if (!body?.classList) return '';
+  return ['portfolio-page', 'cv-page', 'atmosphere-lab-page']
+    .filter((name) => body.classList.contains(name))
+    .join(' ');
+}
+
 function buildTitleRenderSignature(canvas, title, root, body, scene) {
   return [
     canvas.width,
@@ -269,7 +280,7 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
     root?.className || '',
     root?.dataset?.absTransitionPhase || '',
     root?.dataset?.absBootState || '',
-    body?.className || '',
+    getTitleRelevantBodySignature(body),
     scene?.className || '',
     scene?.style?.getPropertyValue('--abs-scene-impact-logo-scale') || '',
     document.fonts?.status || ''
@@ -720,8 +731,15 @@ function createTitlePlaneController(canvas) {
     attributeFilter: ['class', 'style', 'data-route-enter-glyph-revision'],
   });
 
+  controller.lastRelevantBodySignature = getTitleRelevantBodySignature(document.body);
   controller.rootMutationObserver = typeof MutationObserver === 'function'
-    ? new MutationObserver(invalidate)
+    ? new MutationObserver((records) => {
+      const hasNonBodyMutation = records.some((record) => record.target !== document.body);
+      const nextBodySignature = getTitleRelevantBodySignature(document.body);
+      const bodyContractChanged = nextBodySignature !== controller.lastRelevantBodySignature;
+      controller.lastRelevantBodySignature = nextBodySignature;
+      if (hasNonBodyMutation || bodyContractChanged) invalidate();
+    })
     : null;
   controller.rootMutationObserver?.observe(document.documentElement, {
     attributes: true,

@@ -14,6 +14,9 @@ import {
 } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
+import { getSimulationBodyMaterialConfig } from '../rendering/materials/simulation-body-material.js';
+import { shouldBatchFlatCircleBodies } from '../rendering/simulation-render-strategy.js';
+import { RENDER_REFERENCE_HZ, normalizePerStepMultiplier } from '../utils/time-normalization.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
 
@@ -602,8 +605,9 @@ export function applyKaleidoscopeRiftForces(ball, dt) {
 
   ball.vx += ((targetX - ball.x) * spring - ball.vx * damp) * dt;
   ball.vy += ((targetY - ball.y) * spring - ball.vy * damp) * dt;
-  ball.vx *= 0.996;
-  ball.vy *= 0.996;
+  const damping = normalizePerStepMultiplier(0.996, dt, RENDER_REFERENCE_HZ);
+  ball.vx *= damping;
+  ball.vy *= damping;
 }
 
 export function renderKaleidoscope(ctx) {
@@ -790,10 +794,15 @@ export function renderKaleidoscope(ctx) {
     + morph.motionEnergy * POINTER_MOTION_DEPTH_RANGE;
 
   const { cos: wedgeCos, sin: wedgeSin } = getWedgeTrigCache(g, wedges, wedgeAngle);
+  const batchOpaqueCircles = shouldBatchFlatCircleBodies(g.pebbleBlend ?? 0)
+    && getSimulationBodyMaterialConfig().enabled !== true;
 
   // Draw
   for (let bi = 0; bi < balls.length; bi++) {
     const ball = balls[bi];
+    const alpha = ball.alpha < 1 ? ball.alpha : 1;
+    const batchBall = batchOpaqueCircles && alpha >= 0.999;
+    let batchedReplicaCount = 0;
     const visualRadius = ball.r
       * Math.max(0, Math.min(1, ball.visualScale ?? 1))
       * (1 - centerFill * 0.18);
@@ -838,12 +847,23 @@ export function renderKaleidoscope(ctx) {
       const y = cy + outSin * r;
       if (x < -cullMargin || x > w + cullMargin || y < -cullMargin || y > h + cullMargin) continue;
 
-      // Draw the shared pebble silhouette in the mirrored wedge.
-      drawPebbleBody(ctx, ball, x, y, visualRadius, ball.color, g, {
-        alpha: ball.alpha < 1 ? ball.alpha : 1,
-        rotationRad: ball.theta || 0,
-      });
+      if (batchBall) {
+        if (batchedReplicaCount === 0) {
+          ctx.fillStyle = ball.color;
+          ctx.beginPath();
+        }
+        ctx.moveTo(x + visualRadius, y);
+        ctx.arc(x, y, visualRadius, 0, TAU);
+        batchedReplicaCount += 1;
+      } else {
+        // Translucent replicas retain independent fills so overlap energy is unchanged.
+        drawPebbleBody(ctx, ball, x, y, visualRadius, ball.color, g, {
+          alpha,
+          rotationRad: ball.theta || 0,
+        });
+      }
     }
+    if (batchedReplicaCount > 0) ctx.fill();
   }
 }
 
@@ -870,6 +890,8 @@ export function renderKaleidoscopeRift(ctx) {
   const period = 2 * wedgeAngle;
   const phase = state.phase * 0.38;
   const open = clamp(state.open.x, 0, 1);
+  const batchOpaqueCircles = shouldBatchFlatCircleBodies(g.pebbleBlend ?? 0)
+    && getSimulationBodyMaterialConfig().enabled !== true;
 
   for (let bi = 0; bi < balls.length; bi += 1) {
     const ball = balls[bi];
@@ -887,6 +909,8 @@ export function renderKaleidoscopeRift(ctx) {
     const radiusPulse = 1 + Math.sin(state.phase * 3 + seed) * open * 0.095;
     const drawRadius = visualRadius * (0.76 + ringT * 0.1);
     const alpha = (ball.alpha < 1 ? ball.alpha : 1) * (ball._riftPresence || 1);
+    const batchBall = batchOpaqueCircles && alpha >= 0.999;
+    let batchedReplicaCount = 0;
 
     for (let wi = 0; wi < spokes; wi += 1) {
       const mirroredLocal = wi % 2 === 0 ? local : wedgeAngle - local;
@@ -901,10 +925,21 @@ export function renderKaleidoscopeRift(ctx) {
 
       if (x < -cullPad || x > w + cullPad || y < -cullPad || y > h + cullPad) continue;
 
-      drawPebbleBody(ctx, ball, x, y, drawRadius, ball.color, g, {
-        alpha,
-        rotationRad: (ball.theta || 0) + outA * 0.12,
-      });
+      if (batchBall) {
+        if (batchedReplicaCount === 0) {
+          ctx.fillStyle = ball.color;
+          ctx.beginPath();
+        }
+        ctx.moveTo(x + drawRadius, y);
+        ctx.arc(x, y, drawRadius, 0, TAU);
+        batchedReplicaCount += 1;
+      } else {
+        drawPebbleBody(ctx, ball, x, y, drawRadius, ball.color, g, {
+          alpha,
+          rotationRad: (ball.theta || 0) + outA * 0.12,
+        });
+      }
     }
+    if (batchedReplicaCount > 0) ctx.fill();
   }
 }

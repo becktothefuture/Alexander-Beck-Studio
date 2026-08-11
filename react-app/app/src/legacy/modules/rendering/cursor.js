@@ -20,6 +20,21 @@ const MODAL_CURSOR_Z_INDEX = 20000;
 let lastClientX = 0;
 let lastClientY = 0;
 let hasLastPointerPosition = false;
+let lastPointerTarget = null;
+let presentationFrameId = 0;
+
+function countAudit(name) {
+  const globals = getGlobals();
+  if (globalThis.__ABS_ROUTE_PERF_AUDIT__ !== true && globals.performanceAuditEnabled !== true) return;
+  globals[name] = (Number(globals[name]) || 0) + 1;
+}
+
+function setSimulationCursorOwnership(active) {
+  const body = document.body;
+  if (!body || body.classList.contains('abs-in-simulation') === active) return;
+  body.classList.toggle('abs-in-simulation', active);
+  countAudit('cursorBodyClassMutationCount');
+}
 
 function handleLinkHoverEvent() {
   if (hasLastPointerPosition) refreshCursor();
@@ -38,16 +53,16 @@ function unwireLinkHoverListener() {
 }
 
 function handleDocumentCursorPointerMove(event) {
-  if (event?.pointerType && event.pointerType !== 'mouse') {
+  if (event?.pointerType && !['mouse', 'pen'].includes(event.pointerType)) {
     hideCursor();
     return;
   }
-  updateCursorPosition(event.clientX, event.clientY);
+  updateCursorPosition(event.clientX, event.clientY, event.target);
 }
 
 function handleDocumentCursorMouseMove(event) {
   if (window.PointerEvent) return;
-  updateCursorPosition(event.clientX, event.clientY);
+  updateCursorPosition(event.clientX, event.clientY, event.target);
 }
 
 function wireDocumentCursorTracking() {
@@ -222,21 +237,36 @@ function isHoveringOverLink() {
  * @param {number} clientX - Mouse X position
  * @param {number} clientY - Mouse Y position
  */
-export function updateCursorPosition(clientX, clientY) {
-  ensureLiveCustomCursorElement();
-  if (!cursorElement) return;
-
+export function updateCursorPosition(clientX, clientY, target = null) {
   lastClientX = clientX;
   lastClientY = clientY;
+  lastPointerTarget = target;
   hasLastPointerPosition = true;
+  if (presentationFrameId) return;
+  presentationFrameId = requestAnimationFrame(() => {
+    presentationFrameId = 0;
+    presentCursorPosition();
+  });
+}
+
+function presentCursorPosition() {
+  ensureLiveCustomCursorElement();
+  if (!cursorElement) return;
+  const clientX = lastClientX;
+  const clientY = lastClientY;
+  countAudit('cursorPresentationCount');
   
   const overlayIsActive = isOverlayActive();
-  const hoverTarget = document.elementFromPoint(clientX, clientY);
+  let hoverTarget = lastPointerTarget;
+  if (!hoverTarget?.isConnected) {
+    hoverTarget = document.elementFromPoint(clientX, clientY);
+    countAudit('cursorHitTestCount');
+  }
 
   // Editor surfaces retain the system cursor. Hiding only the native cursor in
   // CSS would leave the custom lens rendered above controls, so yield here.
   if (isNativeEditorCursorTarget(hoverTarget)) {
-    document.body.classList.remove('abs-in-simulation');
+    setSimulationCursorOwnership(false);
     cursorElement.style.display = 'none';
     isCustomCursorActive = false;
     return;
@@ -244,7 +274,7 @@ export function updateCursorPosition(clientX, clientY) {
 
   const interactive = isClickableCursorTarget(hoverTarget) || isHoveringOverLink();
   isCustomCursorActive = true;
-  document.body.classList.add('abs-in-simulation');
+  setSimulationCursorOwnership(true);
   cursorElement.classList.remove('modal-active');
   applyStandardCursorMount(clientX, clientY, overlayIsActive, interactive);
   cursorElement.style.display = 'block';
@@ -253,6 +283,7 @@ export function updateCursorPosition(clientX, clientY) {
 
 export function refreshCursor() {
   if (!cursorElement || !hasLastPointerPosition) return;
+  lastPointerTarget = null;
   updateCursorPosition(lastClientX, lastClientY);
 }
 
@@ -261,9 +292,10 @@ export function refreshCursor() {
  */
 export function hideCursor() {
   if (!cursorElement) return;
-  
+  if (presentationFrameId) cancelAnimationFrame(presentationFrameId);
+  presentationFrameId = 0;
   cursorElement.style.display = 'none';
-  document.body.classList.remove('abs-in-simulation');
+  setSimulationCursorOwnership(false);
   isCustomCursorActive = false;
 }
 

@@ -8,6 +8,10 @@ import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import {
+  normalizePerStepMultiplier,
+  resolveReferenceStepHz,
+} from '../utils/time-normalization.js';
 
 // Explosion timer state (kept for compatibility, but explosions disabled)
 let explosionTimer = 0;
@@ -103,7 +107,11 @@ export function applyMagneticForces(ball, dt) {
   }
   
   // Damping (configurable)
-  const damping = g.magneticDamping ?? 0.998;
+  const damping = normalizePerStepMultiplier(
+    g.magneticDamping ?? 0.998,
+    dt,
+    resolveReferenceStepHz(g),
+  );
   ball.vx *= damping;
   ball.vy *= damping;
 }

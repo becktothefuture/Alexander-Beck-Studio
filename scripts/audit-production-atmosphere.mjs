@@ -366,13 +366,16 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     const glowEnergyRatio = sourceMeanAlpha > 0
       ? state.dom.glowAlpha?.meanAlpha / sourceMeanAlpha
       : 0;
-    const minimumGlowEnergyRatio = snapshot.glowRenderMode === 'spread-pyramid-fallback'
-      ? (compactFallbackBuffer ? 0.45 : 0.5)
-      : (compactOutputBuffer ? 0.55 : 0.6);
+    const broadOnly = snapshot.fieldMode === 'broad';
+    const minimumGlowEnergyRatio = broadOnly
+      ? (snapshot.glowRenderMode === 'spread-pyramid-fallback' ? 0.2 : 0.3)
+      : snapshot.glowRenderMode === 'spread-pyramid-fallback'
+        ? (compactFallbackBuffer ? 0.45 : 0.5)
+        : (compactOutputBuffer ? 0.55 : 0.6);
     assert(
-      // SPA re-entry can sample a slightly different moving ball field than a
-      // direct boot. The WebKit spread pyramid also distributes energy over
-      // more pixels than the native filter, so retain a renderer-aware floor.
+      // Broad-only production intentionally distributes less concentrated
+      // alpha than the retired broad+tight composition. Coverage remains the
+      // primary proof that the retained large field surrounds the crisp source.
       glowEnergyRatio >= minimumGlowEnergyRatio && glowEnergyRatio <= 1.5,
       'home: glow energy does not match the crisp source frame',
       state,
@@ -1800,8 +1803,8 @@ async function runConfigPanelContract(browser) {
     const expectedControlIds = [
       'atmosphereEnabledSlider',
       'atmosphereLowQualityModeSlider',
+      'atmosphereFieldModeSlider',
       'atmosphereLargeSpreadSlider',
-      'atmosphereSmallSpreadSlider',
       'atmosphereMemoryMsSlider',
       ...['Light', 'Dark'].flatMap((theme) => [
         'Intensity',
@@ -1954,23 +1957,27 @@ async function runConfigPanelContract(browser) {
     const globalSection = globalSummary.locator('..');
     if ((await globalSection.getAttribute('open')) === null) await globalSummary.click();
     const largeSpreadSlider = page.locator('#atmosphereLargeSpreadSlider');
-    const smallSpreadSlider = page.locator('#atmosphereSmallSpreadSlider');
+    const fieldModeSlider = page.locator('#atmosphereFieldModeSlider');
     const memorySlider = page.locator('#atmosphereMemoryMsSlider');
+    assert(
+      await page.locator('#atmosphereSmallSpreadSlider').count() === 0,
+      'Production controls exposed the retired tight-field spread',
+    );
     const originalLargeSpread = await largeSpreadSlider.inputValue();
-    const originalSmallSpread = await smallSpreadSlider.inputValue();
+    const originalFieldMode = await fieldModeSlider.inputValue();
     const originalMemory = await memorySlider.inputValue();
+    await fieldModeSlider.selectOption('both');
     await largeSpreadSlider.fill('0.12');
-    await smallSpreadSlider.fill('0.04');
     await memorySlider.fill('175');
     await page.waitForFunction(async () => {
       const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
       const config = module.getSimulationAtmosphereConfig();
-      return config.largeSpread === 0.12
-        && config.smallSpread === 0.04
+      return config.fieldMode === 'both'
+        && config.largeSpread === 0.12
         && config.memoryMs === 175;
     }, null, { timeout: WAIT_MS });
+    await fieldModeSlider.selectOption(originalFieldMode);
     await largeSpreadSlider.fill(originalLargeSpread);
-    await smallSpreadSlider.fill(originalSmallSpread);
     await memorySlider.fill(originalMemory);
 
     return {
@@ -1980,7 +1987,8 @@ async function runConfigPanelContract(browser) {
       edgeControl: edgeControlState,
       edgeWidthControl: edgeWidthControlState,
       edgeInsetControl: edgeInsetControlState,
-      spreadLiveApply: true,
+      fieldModeLiveApply: true,
+      broadSpreadLiveApply: true,
       memoryLiveApply: true,
       edgeWidthLiveApply: true,
       edgeInsetLiveApply: true,

@@ -24,6 +24,10 @@ let cachedTargetFPS = 60;
 let mainLoopStopped = false;
 /** Latest `frame` callback from `startMainLoop` (visibility handler registers only once). */
 let runFrameRef = null;
+let physicsDebtSeconds = 0;
+let physicsResynchronizedSeconds = 0;
+let physicsDroppedSeconds = 0;
+const MAX_PHYSICS_DEBT_SECONDS = 0.1;
 
 // Adaptive throttling: if we detect sustained low FPS, reduce work
 let recentFrameTimes = [];
@@ -113,6 +117,9 @@ export function resetAdaptiveThrottle() {
   adaptiveAverageFps = 60;
   frameCounter = 0;
   lastAcceptedFrameTime = 0;
+  physicsDebtSeconds = 0;
+  physicsResynchronizedSeconds = 0;
+  physicsDroppedSeconds = 0;
 }
 
 function updateAdaptiveThrottle(frameTime, targetFPS) {
@@ -269,7 +276,9 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     globals.currentTargetFps = targetFPS;
     
     const now = nowMs / 1000;
-    let dt = Math.min(getFrameDtCap(globals), now - last);
+    const elapsedSeconds = Math.max(0, now - last);
+    const frameDtCap = getFrameDtCap(globals);
+    const dt = Math.min(frameDtCap, elapsedSeconds);
     last = now;
     
     // PERF: Cache force applicator once per frame (not per particle)
@@ -281,8 +290,23 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     // Skip physics entirely while the portfolio drawer is open (bodies are frozen).
     const drawerOpen = globals?.currentMode === MODES.PORTFOLIO_PIT && globals.__portfolioDrawerOpen;
     const runPhysics = !drawerOpen && shouldRunPhysicsThisFrame(globals, effectiveThrottleLevel);
+    if (drawerOpen) {
+      physicsDebtSeconds = 0;
+    } else {
+      const previousDebt = physicsDebtSeconds;
+      physicsDebtSeconds = Math.min(MAX_PHYSICS_DEBT_SECONDS, physicsDebtSeconds + elapsedSeconds);
+      physicsDroppedSeconds += Math.max(0, previousDebt + elapsedSeconds - MAX_PHYSICS_DEBT_SECONDS);
+    }
     if (runPhysics) {
-      updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
+      const physicsDt = Math.min(frameDtCap, physicsDebtSeconds);
+      physicsDebtSeconds = Math.max(0, physicsDebtSeconds - physicsDt);
+      physicsResynchronizedSeconds += Math.max(0, physicsDt - dt);
+      updatePhysics(physicsDt, cachedForceFn ?? applyForcesFunc);
+    }
+    if (globals.performanceAuditEnabled === true) {
+      globals.physicsDebtSeconds = physicsDebtSeconds;
+      globals.physicsResynchronizedSeconds = physicsResynchronizedSeconds;
+      globals.physicsDroppedSeconds = physicsDroppedSeconds;
     }
     
     const isPitMode = isPitLikeMode(globals?.currentMode);

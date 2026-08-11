@@ -29,8 +29,31 @@ const INPUT_VELOCITY_EASE = 10;
 const INPUT_VELOCITY_THRESHOLD = 0.025;
 const ROTATION_SOUND_COAST_MS = 520;
 const DEPTH_BLEND_BAND = 0.045;
+const MAX_ANALYTIC_STEPS = 4;
 const depthRenderScratch = [];
 let unsubscribePointer = null;
+let sphereGeneration = 0;
+let sortedSphereGeneration = -1;
+
+function compareSphereDepth(left, right) {
+  return (left.z ?? 0) - (right.z ?? 0);
+}
+
+function insertionSortSphereDepth(items) {
+  let moves = 0;
+  for (let index = 1; index < items.length; index += 1) {
+    const item = items[index];
+    const depth = item.z ?? 0;
+    let cursor = index - 1;
+    while (cursor >= 0 && (items[cursor].z ?? 0) > depth) {
+      items[cursor + 1] = items[cursor];
+      cursor -= 1;
+      moves += 1;
+    }
+    items[cursor + 1] = item;
+  }
+  return moves;
+}
 
 function fibonacciSphere(count) {
   const pts = [];
@@ -299,6 +322,7 @@ export function initialize3DSphere() {
   if (!canvas) return;
 
   clearBalls();
+  sphereGeneration += 1;
   ensurePointerSubscription();
 
   const densityBase = Math.max(10, Math.round(g.sphere3dDensity ?? 350));
@@ -352,6 +376,9 @@ export function initialize3DSphere() {
     alphaMax: clampNumber(g.sphere3dAlphaMax ?? DEFAULT_ALPHA_MAX, 0.2, 1),
     fogStart: g.sphere3dFogStart ?? 0.9,
     fogMin: g.sphere3dFogMin ?? 0.42,
+    physicsAccumulator: 0,
+    deferProjection: false,
+    deferSharedUpdate: false,
   };
 
   const pts = fibonacciSphere(count);
@@ -376,7 +403,7 @@ export function apply3DSphereForces(ball, dt) {
   if (!canvas || !state || !ball || !ball._sphere3d) return;
 
   // Update shared rotation once per frame (first ball)
-  if (ball === g.balls[0]) {
+  if (ball === g.balls[0] && !state.deferSharedUpdate) {
     // Resolve shared configuration once per frame, not once per particle.
     state.motionScale = resolveReducedMotionScale(g);
     state.idleSpeed = resolveSpinIdleSpeed(g);
@@ -475,6 +502,8 @@ export function apply3DSphereForces(ball, dt) {
     state.spinStrain += ((strainT * strainMax * motionScale) - state.spinStrain) * (1 - Math.exp(-8 * dt));
   }
 
+  if (state.deferProjection) return;
+
   const point = ball._sphere3d;
   const r = state.radiusPx;
   const matrix = state.rotationMatrix;
@@ -550,6 +579,40 @@ export function apply3DSphereForces(ball, dt) {
   }) * state.alphaMax;
 }
 
+export function step3DSphere(dtSeconds) {
+  const g = getGlobals();
+  const state = g.sphere3dState;
+  const balls = g.balls;
+  if (!state || !Array.isArray(balls) || balls.length === 0) return;
+  const fixedDt = (g.isMobile || g.isMobileViewport) ? (1 / 60) : (1 / 120);
+  state.physicsAccumulator += Math.min(0.033, Math.max(0, Number(dtSeconds) || 0));
+  let integrationSteps = 0;
+  try {
+    state.deferProjection = true;
+    while (state.physicsAccumulator >= fixedDt && integrationSteps < MAX_ANALYTIC_STEPS) {
+      apply3DSphereForces(balls[0], fixedDt);
+      state.physicsAccumulator -= fixedDt;
+      integrationSteps += 1;
+    }
+  } finally {
+    state.deferProjection = false;
+  }
+  if (state.physicsAccumulator > fixedDt * 8) state.physicsAccumulator = 0;
+  try {
+    state.deferSharedUpdate = true;
+    for (let index = 0; index < balls.length; index += 1) {
+      apply3DSphereForces(balls[index], 0);
+    }
+  } finally {
+    state.deferSharedUpdate = false;
+  }
+  if (g.performanceAuditEnabled === true) {
+    g.analytic3dIntegrationStepCount = (Number(g.analytic3dIntegrationStepCount) || 0) + integrationSteps;
+    g.analytic3dProjectionPassCount = (Number(g.analytic3dProjectionPassCount) || 0) + 1;
+    g.analytic3dProjectedPointCount = (Number(g.analytic3dProjectedPointCount) || 0) + balls.length;
+  }
+}
+
 export function render3DSphereDepthLayer(ctx, options = {}) {
   const g = getGlobals();
   const balls = g.balls;
@@ -564,12 +627,32 @@ export function render3DSphereDepthLayer(ctx, options = {}) {
   // The engine always renders the behind layer first. Build and sort the full
   // depth list once there, then reuse the identical order for the front layer.
   if (layer === 'behind' || depthRenderScratch.length === 0) {
-    depthRenderScratch.length = 0;
-    for (let i = 0; i < balls.length; i += 1) {
-      const ball = balls[i];
-      if (ball?._cloudMode === 'sphere') depthRenderScratch.push(ball);
+    const state = g.sphere3dState;
+    const angularVelocity = state
+      ? Math.hypot(
+        state.currentAngularVelX || 0,
+        state.currentAngularVelY || 0,
+        state.currentAngularVelZ || 0,
+      )
+      : 0;
+    if (sortedSphereGeneration !== sphereGeneration || angularVelocity > 4.5) {
+      depthRenderScratch.length = 0;
+      for (let i = 0; i < balls.length; i += 1) {
+        const ball = balls[i];
+        if (ball?._cloudMode === 'sphere') depthRenderScratch.push(ball);
+      }
+      depthRenderScratch.sort(compareSphereDepth);
+      sortedSphereGeneration = sphereGeneration;
+      if (g.performanceAuditEnabled === true) {
+        g.sphereNativeDepthSortCount = (Number(g.sphereNativeDepthSortCount) || 0) + 1;
+      }
+    } else {
+      const moves = insertionSortSphereDepth(depthRenderScratch);
+      if (g.performanceAuditEnabled === true) {
+        g.sphereInsertionSortCount = (Number(g.sphereInsertionSortCount) || 0) + 1;
+        g.sphereInsertionSortMoveCount = (Number(g.sphereInsertionSortMoveCount) || 0) + moves;
+      }
     }
-    depthRenderScratch.sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
   }
 
   ctx.save();

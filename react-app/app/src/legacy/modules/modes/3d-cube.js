@@ -15,8 +15,10 @@ import {
   resolveCube3DSizePx,
 } from './cube3d-config.js';
 import { generateCubePoints, updateCubeRotationMatrix } from './cube3d-geometry.js';
+import { normalizePerStepMultiplier, resolveReferenceStepHz } from '../utils/time-normalization.js';
 
 let reducedMotionQuery = null;
+const MAX_ANALYTIC_STEPS = 4;
 
 function prefersReducedMotion() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
@@ -79,6 +81,9 @@ export function initialize3DCube() {
       fogMin: g.cube3dFogMin ?? CUBE_3D_DEFAULTS.cube3dFogMin,
     },
     rotationMatrix: updateCubeRotationMatrix({}, 0, 0, 0),
+    physicsAccumulator: 0,
+    deferProjection: false,
+    deferSharedUpdate: false,
   };
 
   for (let i = 0; i < pts.length; i++) {
@@ -102,7 +107,7 @@ export function apply3DCubeForces(ball, dt) {
   if (!canvas || !state || !ball || !ball._cube3d) return;
 
   // Update shared rotation and live configuration once per physics step.
-  if (ball === g.balls[0]) {
+  if (ball === g.balls[0] && !state.deferSharedUpdate) {
     const idleSpeed = g.cube3dIdleSpeed ?? CUBE_3D_DEFAULTS.cube3dIdleSpeed;
     const cursorInfluence = g.cube3dCursorInfluence ?? CUBE_3D_DEFAULTS.cube3dCursorInfluence;
     const tumbleSpeed = g.cube3dTumbleSpeed ?? CUBE_3D_DEFAULTS.cube3dTumbleSpeed;
@@ -155,8 +160,13 @@ export function apply3DCubeForces(ball, dt) {
     state.tumbleY += dx * tumbleSpeed;
 
     // Damping
-    state.tumbleX *= tumbleDamping;
-    state.tumbleY *= tumbleDamping;
+    const timeCorrectTumbleDamping = normalizePerStepMultiplier(
+      tumbleDamping,
+      dt,
+      resolveReferenceStepHz(g),
+    );
+    state.tumbleX *= timeCorrectTumbleDamping;
+    state.tumbleY *= timeCorrectTumbleDamping;
 
     // Apply rotation: idle + cursor + tumble
     state.rotY += (
@@ -176,6 +186,8 @@ export function apply3DCubeForces(ball, dt) {
       state.rotZ,
     );
   }
+
+  if (state.deferProjection) return;
 
   const { x, y, z } = ball._cube3d;
   const breath = Math.sin(state.breathPhase) * 0.055;
@@ -217,6 +229,40 @@ export function apply3DCubeForces(ball, dt) {
   // Back points: depthFactor=0 (behind logo, dark, small)
   // Front points: depthFactor=1 (in front of logo, bright, large)
   ball.z = depthFactor;
+}
+
+export function step3DCube(dtSeconds) {
+  const g = getGlobals();
+  const state = g.cube3dState;
+  const balls = g.balls;
+  if (!state || !Array.isArray(balls) || balls.length === 0) return;
+  const fixedDt = (g.isMobile || g.isMobileViewport) ? (1 / 60) : (1 / 120);
+  state.physicsAccumulator += Math.min(0.033, Math.max(0, Number(dtSeconds) || 0));
+  let integrationSteps = 0;
+  try {
+    state.deferProjection = true;
+    while (state.physicsAccumulator >= fixedDt && integrationSteps < MAX_ANALYTIC_STEPS) {
+      apply3DCubeForces(balls[0], fixedDt);
+      state.physicsAccumulator -= fixedDt;
+      integrationSteps += 1;
+    }
+  } finally {
+    state.deferProjection = false;
+  }
+  if (state.physicsAccumulator > fixedDt * 8) state.physicsAccumulator = 0;
+  try {
+    state.deferSharedUpdate = true;
+    for (let index = 0; index < balls.length; index += 1) {
+      apply3DCubeForces(balls[index], 0);
+    }
+  } finally {
+    state.deferSharedUpdate = false;
+  }
+  if (g.performanceAuditEnabled === true) {
+    g.analytic3dIntegrationStepCount = (Number(g.analytic3dIntegrationStepCount) || 0) + integrationSteps;
+    g.analytic3dProjectionPassCount = (Number(g.analytic3dProjectionPassCount) || 0) + 1;
+    g.analytic3dProjectedPointCount = (Number(g.analytic3dProjectedPointCount) || 0) + balls.length;
+  }
 }
 
 export function render3DCubeDepthLayer(ctx, options = {}) {

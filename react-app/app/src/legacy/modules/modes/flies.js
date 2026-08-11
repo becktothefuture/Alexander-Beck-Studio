@@ -9,6 +9,83 @@ import { pickRandomColor } from '../visual/colors.js';
 import { CONSTANTS } from '../core/constants.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const neighbourGrid = new Map();
+const neighbourCellPool = [];
+const neighbourScratch = [];
+const neighbourCellScratch = new Array(9);
+const neighbourCellPositions = new Uint16Array(9);
+let neighbourCellPoolIndex = 0;
+let neighbourGridColumns = 1;
+let neighbourGridRows = 1;
+let neighbourGridCellSize = 1;
+
+function buildNeighbourGrid(globals, cellSize) {
+  neighbourCellPoolIndex = 0;
+  for (const cell of neighbourGrid.values()) cell.length = 0;
+  neighbourGrid.clear();
+  neighbourGridCellSize = Math.max(1, cellSize);
+  neighbourGridColumns = Math.max(1, Math.ceil(globals.canvas.width / neighbourGridCellSize));
+  neighbourGridRows = Math.max(1, Math.ceil(globals.canvas.height / neighbourGridCellSize));
+  for (let index = 0; index < globals.balls.length; index += 1) {
+    const ball = globals.balls[index];
+    const cellX = clamp(Math.floor(ball.x / neighbourGridCellSize), 0, neighbourGridColumns - 1);
+    const cellY = clamp(Math.floor(ball.y / neighbourGridCellSize), 0, neighbourGridRows - 1);
+    const key = cellY * neighbourGridColumns + cellX;
+    let cell = neighbourGrid.get(key);
+    if (!cell) {
+      cell = neighbourCellPool[neighbourCellPoolIndex] || [];
+      neighbourCellPool[neighbourCellPoolIndex] = cell;
+      neighbourCellPoolIndex += 1;
+      neighbourGrid.set(key, cell);
+    }
+    cell.push(index);
+  }
+  if (globals.performanceAuditEnabled === true) {
+    globals.fliesNeighbourGridBuildCount = (Number(globals.fliesNeighbourGridBuildCount) || 0) + 1;
+  }
+}
+
+function collectNeighbourIndices(ball) {
+  neighbourScratch.length = 0;
+  let cellCount = 0;
+  const cellX = clamp(Math.floor(ball.x / neighbourGridCellSize), 0, neighbourGridColumns - 1);
+  const cellY = clamp(Math.floor(ball.y / neighbourGridCellSize), 0, neighbourGridRows - 1);
+  for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+    const y = cellY + offsetY;
+    if (y < 0 || y >= neighbourGridRows) continue;
+    for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+      const x = cellX + offsetX;
+      if (x < 0 || x >= neighbourGridColumns) continue;
+      const cell = neighbourGrid.get(y * neighbourGridColumns + x);
+      if (!cell?.length) continue;
+      neighbourCellScratch[cellCount] = cell;
+      neighbourCellPositions[cellCount] = 0;
+      cellCount += 1;
+    }
+  }
+
+  // Each grid cell is populated in global ball-index order. Merge the at-most
+  // nine sorted cell lists so force accumulation keeps the original all-balls
+  // order without an allocation or an Array.sort for every body.
+  while (true) {
+    let nextCell = -1;
+    let nextIndex = Number.POSITIVE_INFINITY;
+    for (let cellIndex = 0; cellIndex < cellCount; cellIndex += 1) {
+      const cell = neighbourCellScratch[cellIndex];
+      const position = neighbourCellPositions[cellIndex];
+      if (position >= cell.length) continue;
+      const candidate = cell[position];
+      if (candidate < nextIndex) {
+        nextIndex = candidate;
+        nextCell = cellIndex;
+      }
+    }
+    if (nextCell < 0) break;
+    neighbourScratch.push(nextIndex);
+    neighbourCellPositions[nextCell] += 1;
+  }
+  return neighbourScratch;
+}
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -91,6 +168,8 @@ export function applyFliesForces(ball, dt) {
   const swarmSpeed = globals.swarmSpeed ?? 0.4;
   const pointerActive = globals.mouseX !== CONSTANTS.OFFSCREEN_MOUSE && globals.mouseY !== CONSTANTS.OFFSCREEN_MOUSE;
   const timeS = performance.now() * 0.001;
+  const separationRadius = 120 * globals.DPR;
+  if (ball === globals.balls[0]) buildNeighbourGrid(globals, separationRadius);
   
   const swarmCenterX = pointerActive ? globals.mouseX : getIdleTargetX(globals, timeS);
   const swarmCenterY = pointerActive ? globals.mouseY : getIdleTargetY(globals, timeS);
@@ -107,10 +186,10 @@ export function applyFliesForces(ball, dt) {
   ball.vy += dirY * attractForce * dt;
   
   // Separation
-  const separationRadius = 120 * globals.DPR;
   let sepX = 0, sepY = 0, neighborCount = 0;
-  for (let i = 0; i < globals.balls.length; i++) {
-    const other = globals.balls[i];
+  const neighbours = collectNeighbourIndices(ball);
+  for (let i = 0; i < neighbours.length; i++) {
+    const other = globals.balls[neighbours[i]];
     if (other === ball) continue;
     const dx2 = ball.x - other.x;
     const dy2 = ball.y - other.y;
@@ -122,6 +201,9 @@ export function applyFliesForces(ball, dt) {
       sepY += (dy2 / d_other) * strength;
       neighborCount++;
     }
+  }
+  if (globals.performanceAuditEnabled === true) {
+    globals.fliesNeighbourCandidateCount = (Number(globals.fliesNeighbourCandidateCount) || 0) + neighbours.length;
   }
   if (neighborCount > 0) {
     const separationForce = globals.fliesSeparation ?? 15000;

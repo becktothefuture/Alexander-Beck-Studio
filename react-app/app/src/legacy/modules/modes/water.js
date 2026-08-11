@@ -8,6 +8,11 @@ import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
+import {
+  RENDER_REFERENCE_HZ,
+  normalizePerStepMultiplier,
+  resolveReferenceStepHz,
+} from '../utils/time-normalization.js';
 
 // Ripple system
 const ripples = [];
@@ -73,9 +78,12 @@ export function applyWaterForces(ball, dt) {
   
   // Strong water resistance (damping)
   const waterDrag = globals.waterDrag || 0.015;
-  ball.vx *= (1 - waterDrag);
-  ball.vy *= (1 - waterDrag);
-  ball.omega *= (1 - waterDrag * 0.5);
+  const referenceHz = resolveReferenceStepHz(globals);
+  const linearDrag = normalizePerStepMultiplier(1 - waterDrag, dt, referenceHz);
+  const angularDrag = normalizePerStepMultiplier(1 - waterDrag * 0.5, dt, referenceHz);
+  ball.vx *= linearDrag;
+  ball.vy *= linearDrag;
+  ball.omega *= angularDrag;
   
   // Apply ripple forces
   const DPR = globals.DPR || 1;
@@ -119,7 +127,7 @@ export function updateWaterRipples(dt) {
     const ripple = ripples[i];
     ripple.radius += rippleSpeed * dt;
     ripple.age += dt;
-    ripple.strength *= 0.96; // Decay
+    ripple.strength *= normalizePerStepMultiplier(0.96, dt, RENDER_REFERENCE_HZ);
     
     // Remove old/weak ripples
     if (ripple.age > 3.0 || ripple.strength < 10) {

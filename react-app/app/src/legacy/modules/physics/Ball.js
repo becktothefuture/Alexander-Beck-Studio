@@ -12,6 +12,8 @@ import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-s
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawPebbleBody, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
+import { normalizePerStepMultiplier, resolveReferenceStepHz } from '../utils/time-normalization.js';
+import { shouldSkipSleepingBodyStep } from './mode-physics-policy.js';
 import { resolveInteriorWallViolation } from './wall-collision-geometry.js';
 
 // Unique ID counter for ball sound debouncing
@@ -237,10 +239,13 @@ export class Ball {
     
     // Skip all physics if sleeping (Box2D approach)
     // Can be disabled for debugging / extreme tuning.
-    if (this.isSleeping && globals.physicsSkipSleepingSteps !== false) {
+    if (this.isSleeping && shouldSkipSleepingBodyStep(currentMode, globals)) {
       this.vx = 0;
       this.vy = 0;
       this.omega = 0;
+      if (globals.performanceAuditEnabled === true && isPitLikeMode(currentMode)) {
+        globals.pitSkippedSleepingStepCount = (Number(globals.pitSkippedSleepingStepCount) || 0) + 1;
+      }
       return;
     }
 
@@ -292,8 +297,13 @@ export class Ball {
     const progressiveDrag = baseDrag * (1 + speedMultiplier * 1.0); // Up to 2x at low speed
     
     const drag = Math.max(0, 1 - (progressiveDrag / massScale));
-    this.vx *= drag;
-    this.vy *= drag;
+    const timeCorrectDrag = normalizePerStepMultiplier(
+      drag,
+      dt,
+      resolveReferenceStepHz(globals),
+    );
+    this.vx *= timeCorrectDrag;
+    this.vy *= timeCorrectDrag;
     
     // ════════════════════════════════════════════════════════════════════════════
     // MICRO-JITTER PREVENTION - Snap tiny velocities to zero

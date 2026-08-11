@@ -39,6 +39,8 @@ import {
 } from '../rendering/title-depth.js';
 import { removeDepthTitleLayerClass } from '../rendering/depth-title-layer-state.js';
 import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
+import { resolveFlatCircleBatchingStrategy } from '../rendering/simulation-render-strategy.js';
+import { resolvePhysicsStepSeconds } from './mode-physics-policy.js';
 import {
   renderActiveAtmosphereFrame,
   resolveAtmosphereTitlePlacementOverride,
@@ -55,10 +57,6 @@ import {
 // Re-export for backwards compatibility
 export { resetPhysicsAccumulator };
 
-const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
-
-
-const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
 const DEPTH_FOG_MIN_OPACITY = 0.3;
 const DEPTH_FOG_START_Z = 0.75;
 const CORNER_RADIUS = 42; // matches rounded container corners
@@ -481,6 +479,82 @@ function applyCornerRepellers(ball, canvasW, canvasH, dt, mobile = false) {
   }
 }
 
+function evaluatePitSleep(globals, balls, mode, dt) {
+  const dpr = globals.DPR || 1;
+  const pitMotion = mode === MODES.PORTFOLIO_PIT
+    ? getPortfolioPitMotionProfile(globals)
+    : null;
+  const vThreshBase = pitMotion?.sleepVelocityThreshold
+    ?? (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12);
+  const vThresh = vThreshBase * dpr;
+  const vThreshSq = vThresh * vThresh;
+  const tinySpeedSq = (2 * dpr) * (2 * dpr);
+  const wThresh = pitMotion?.sleepAngularThreshold
+    ?? (Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18);
+  const timeToSleep = pitMotion?.timeToSleep ?? globals.timeToSleep ?? 0.25;
+  const groundedVerticalSnap = (pitMotion?.groundedVerticalSnap ?? 6) * dpr;
+  const supportVerticalSnap = (pitMotion?.supportVerticalSnap ?? groundedVerticalSnap) * dpr;
+  const restingLateralSnap = (pitMotion?.restingLateralSnap ?? 6) * dpr;
+  const restingAngularSnap = pitMotion?.restingAngularSnap ?? 0.06;
+  let sleepingCount = 0;
+
+  for (let index = 0; index < balls.length; index += 1) {
+    const ball = balls[index];
+    if (!ball) continue;
+    if (ball.isSleeping) {
+      sleepingCount += 1;
+      continue;
+    }
+    const speedSq = ball.vx * ball.vx + ball.vy * ball.vy;
+    const angularSpeed = Math.abs(ball.omega);
+    const hasRestingContact = Number(ball.restingContactTimer) > 0;
+    const settled = ball.isGrounded || ball.hasSupport || hasRestingContact;
+    if (!settled || speedSq >= vThreshSq || angularSpeed >= wThresh) {
+      ball.sleepTimer = 0;
+      continue;
+    }
+
+    ball.vx *= 0.32;
+    ball.vy *= 0.2;
+    ball.omega *= 0.28;
+    if (ball.isGrounded && Math.abs(ball.vy) < groundedVerticalSnap) ball.vy = 0;
+    if (ball.hasSupport && Math.abs(ball.vy) < supportVerticalSnap) ball.vy = 0;
+    if (Math.abs(ball.vx) < restingLateralSnap) ball.vx = 0;
+    if (speedSq < tinySpeedSq) {
+      ball.vx = 0;
+      ball.vy = 0;
+    }
+    if (angularSpeed < restingAngularSnap) ball.omega = 0;
+    const nearRest = Math.abs(ball.vx) < restingLateralSnap
+      && Math.abs(ball.vy) < Math.max(groundedVerticalSnap, supportVerticalSnap)
+      && angularSpeed < Math.max(restingAngularSnap * 1.5, 0.03);
+    if (nearRest && pitMotion?.restingContactHold > 0) {
+      ball.restingContactTimer = Math.max(
+        Number(ball.restingContactTimer) || 0,
+        pitMotion.restingContactHold,
+      );
+    }
+    const directSleepEligible = nearRest
+      && hasRestingContact
+      && Math.abs(ball.vy) < (Math.min(groundedVerticalSnap, supportVerticalSnap) * 0.35)
+      && speedSq < (tinySpeedSq * 4)
+      && (Number(ball.restingContactTimer) || 0) >= Math.min(pitMotion?.restingContactHold ?? 0, 0.12);
+    ball.sleepTimer = directSleepEligible ? timeToSleep : ball.sleepTimer + (nearRest ? dt * 2 : dt);
+    if (ball.sleepTimer >= timeToSleep) {
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.omega = 0;
+      ball.isSleeping = true;
+      sleepingCount += 1;
+    }
+  }
+
+  if (globals.performanceAuditEnabled === true) {
+    globals.pitSleepEvaluationCount = (Number(globals.pitSleepEvaluationCount) || 0) + 1;
+    globals.pitSleepingBodyCount = sleepingCount;
+  }
+}
+
 function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   const globals = getGlobals();
   const balls = globals.balls;
@@ -499,7 +573,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
 
   // Select physics timestep based on device type (60Hz mobile, 120Hz desktop)
-  const DT = (globals.isMobile || globals.isMobileViewport) ? DT_MOBILE : DT_DESKTOP;
+  const DT = resolvePhysicsStepSeconds(globals.currentMode, globals);
 
   // Kaleidoscope mode has its own lightweight physics path:
   // - Smooth (per-frame), not fixed-timestep accumulator
@@ -653,84 +727,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
           );
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // POST-PHYSICS STABILIZATION (Pit modes only)
-        // ════════════════════════════════════════════════════════════════════════
-        const DPR = globals.DPR || 1;
-        const pitMotion = mode === MODES.PORTFOLIO_PIT
-          ? getPortfolioPitMotionProfile(globals)
-          : null;
-        const vThreshBase = pitMotion?.sleepVelocityThreshold
-          ?? (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0);
-        const vThresh = vThreshBase * DPR;
-        const vThreshSq = vThresh * vThresh;
-        const tinySpeedSq = (2 * DPR) * (2 * DPR);
-        const wThresh = pitMotion?.sleepAngularThreshold
-          ?? (Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18);
-        const tSleep = pitMotion?.timeToSleep ?? globals.timeToSleep ?? 0.25;
-        const groundedVerticalSnap = (pitMotion?.groundedVerticalSnap ?? 6) * DPR;
-        const supportVerticalSnap = (pitMotion?.supportVerticalSnap ?? groundedVerticalSnap) * DPR;
-        const restingLateralSnap = (pitMotion?.restingLateralSnap ?? 6) * DPR;
-        const restingAngularSnap = pitMotion?.restingAngularSnap ?? 0.06;
-        
-        for (let i = 0; i < lenClamp; i++) {
-          const b = balls[i];
-          if (!b || b.isSleeping) continue;
-          const speedSq = b.vx * b.vx + b.vy * b.vy;
-          const angSpeed = Math.abs(b.omega);
-          const hasRestingContact = Number(b.restingContactTimer) > 0;
-          const isSettled = b.isGrounded || b.hasSupport || hasRestingContact;
-          if (isSettled && speedSq < vThreshSq && angSpeed < wThresh) {
-            b.vx *= 0.32;
-            b.vy *= 0.2;
-            b.omega *= 0.28;
-            if (b.isGrounded && Math.abs(b.vy) < groundedVerticalSnap) {
-              b.vy = 0;
-            }
-            if (b.hasSupport && Math.abs(b.vy) < supportVerticalSnap) {
-              b.vy = 0;
-            }
-            if (Math.abs(b.vx) < restingLateralSnap) {
-              b.vx = 0;
-            }
-            if (speedSq < tinySpeedSq) {
-              b.vx = 0;
-              b.vy = 0;
-            }
-            if (angSpeed < restingAngularSnap) {
-              b.omega = 0;
-            }
-            const nearRest = Math.abs(b.vx) < restingLateralSnap
-              && Math.abs(b.vy) < Math.max(groundedVerticalSnap, supportVerticalSnap)
-              && angSpeed < Math.max(restingAngularSnap * 1.5, 0.03);
-            if (nearRest && pitMotion?.restingContactHold > 0) {
-              b.restingContactTimer = Math.max(Number(b.restingContactTimer) || 0, pitMotion.restingContactHold);
-            }
-            const directSleepEligible = nearRest
-              && hasRestingContact
-              && Math.abs(b.vy) < (Math.min(groundedVerticalSnap, supportVerticalSnap) * 0.35)
-              && speedSq < (tinySpeedSq * 4)
-              && (Number(b.restingContactTimer) || 0) >= Math.min(pitMotion?.restingContactHold ?? 0, 0.12);
-            if (directSleepEligible) {
-              b.vx = 0;
-              b.vy = 0;
-              b.omega = 0;
-              b.sleepTimer = tSleep;
-              b.isSleeping = true;
-              continue;
-            }
-            b.sleepTimer += nearRest ? (DT * 2) : DT;
-            if (b.sleepTimer >= tSleep) {
-              b.vx = 0;
-              b.vy = 0;
-              b.omega = 0;
-              b.isSleeping = true;
-            }
-          } else {
-            b.sleepTimer = 0;
-          }
-        }
       }
+      // Sleep ownership is independent from whether wall correction needed a
+      // post-pass. Otherwise a settled stack keeps paying full integration
+      // cost precisely when the solver has already converged.
+      evaluatePitSleep(globals, balls, mode, DT);
     }
 
     // Global sleep (non-pit physics modes):
@@ -877,6 +878,9 @@ export function render() {
   if (!ctx || !canvas) return;
   if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
     canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
+    const timestamps = canvas.__absAuditFrameTimestamps || (canvas.__absAuditFrameTimestamps = []);
+    timestamps.push(performance.now());
+    if (timestamps.length > 2_000) timestamps.splice(0, timestamps.length - 2_000);
   }
   const isPitMode = isPitLikeMode(globals.currentMode);
   const renderStart = isPitMode ? performance.now() : 0;
@@ -894,8 +898,10 @@ export function render() {
   const pitRenderLodEnabled = isPitMode && globals.pitRenderLodEnabled !== false;
   const crittersRenderLodEnabled = globals.currentMode === MODES.CRITTERS
     && qualityProfile.tier !== 'high';
-  const mobileCircleFastPath = Boolean(globals.isMobile || globals.isMobileViewport)
-    && Number(globals.pebbleBlend ?? 0) <= 0.02;
+  const flatCircleBatchingStrategy = resolveFlatCircleBatchingStrategy(
+    globals.pebbleBlend ?? 0,
+    Boolean(globals.isMobile || globals.isMobileViewport),
+  );
   let ballRenderOptions = null;
   if (pitRenderLodEnabled) {
     ballRenderOptions = {
@@ -912,10 +918,12 @@ export function render() {
       canvasHeight: canvas.height
     };
   }
-  if (mobileCircleFastPath) {
+  if (flatCircleBatchingStrategy !== 'none') {
     ballRenderOptions = {
       ...(ballRenderOptions || {}),
-      simpleCircleBodies: true,
+      ...(flatCircleBatchingStrategy === 'mobile-simple'
+        ? { simpleCircleBodies: true }
+        : { flatCircleBatching: true }),
       canvasWidth: canvas.width,
       canvasHeight: canvas.height
     };
@@ -1048,6 +1056,7 @@ function renderBallsColorBatched(
   const canvasHeight = Number(renderOptions?.canvasHeight) || Number.POSITIVE_INFINITY;
   const cullPad = pitLodEnabled ? Math.max(1, tinyRadiusPx) : 0;
   const simpleCircleBodies = Boolean(renderOptions?.simpleCircleBodies);
+  const flatCircleBatching = Boolean(renderOptions?.flatCircleBatching);
   const materialRenderer = simulationBodyMaterialRenderer;
   const useSharedMaterial = !materialRenderer && sharedSimulationBodyMaterialEnabled;
 
@@ -1136,7 +1145,7 @@ function renderBallsColorBatched(
     ctx.globalAlpha = inheritedAlpha * groupMaterialAlpha;
     ctx.fillStyle = color;
 
-    if (simpleCircleBodies) {
+    if (simpleCircleBodies || flatCircleBatching) {
       ctx.beginPath();
       let hasOpaqueCircles = false;
       for (let i = 0; i < group.length; i++) {
@@ -1157,14 +1166,33 @@ function renderBallsColorBatched(
           effectiveAlpha *= getDepthFogOpacity(ball.z ?? 1);
         }
         if (effectiveAlpha <= 0.001) continue;
-        if (effectiveAlpha < 0.999) {
+        const hasVisibleSquash = ball.squashAmount > squashThreshold;
+        if (hasVisibleSquash || effectiveAlpha < 0.999) {
+          if (hasOpaqueCircles) {
+            ctx.fill();
+            hasOpaqueCircles = false;
+          }
           ctx.save();
           ctx.globalAlpha = inheritedAlpha * groupMaterialAlpha * effectiveAlpha;
-          ctx.beginPath();
-          ctx.moveTo(ball.x + radius, ball.y);
-          ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
-          ctx.fill();
+          if (hasVisibleSquash) {
+            const originalAlpha = ball.alpha;
+            const originalFilterOpacity = ball.filterOpacity;
+            try {
+              ball.alpha = 1;
+              ball.filterOpacity = 1;
+              ball.draw(ctx);
+            } finally {
+              ball.alpha = originalAlpha;
+              ball.filterOpacity = originalFilterOpacity;
+            }
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(ball.x + radius, ball.y);
+            ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.restore();
+          ctx.beginPath();
           continue;
         }
         ctx.moveTo(ball.x + radius, ball.y);

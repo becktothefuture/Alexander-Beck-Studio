@@ -7,6 +7,11 @@ import { CONSTANTS, isPitLikeMode, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { portfolioPitNarrowPhase, portfolioPitKinematicOverlap } from './portfolio-pit-narrow-phase.js';
+import {
+  resolveCollisionConvergenceThreshold,
+  shouldStopCollisionIterations,
+  shouldVisitForwardGridNeighbour,
+} from './collision-policy.js';
 
 /** Min center distance for ball–ball (canvas buffer px): r1+r2 + ratio padding + flat gap */
 export function getBallBallRestDistance(A, B, globals) {
@@ -50,10 +55,13 @@ function getPortfolioPitContactProfile(globals) {
 }
 
 const spatialGrid = new Map();
+const activeSpatialGridKeys = [];
 const reusablePairs = [];
 const pairPool = [];
 const lastBroadphaseStats = {
-  sleepingPairSkips: 0
+  sleepingPairSkips: 0,
+  candidateChecks: 0,
+  gridBuilds: 0,
 };
 
 /** Centers closer than this use an arbitrary separation axis (avoids div-by-zero / skipped pairs). */
@@ -71,6 +79,8 @@ function collectPairsSorted() {
   // Always reuse the same array to avoid per-frame allocations.
   reusablePairs.length = 0;
   lastBroadphaseStats.sleepingPairSkips = 0;
+  lastBroadphaseStats.candidateChecks = 0;
+  lastBroadphaseStats.gridBuilds = 0;
   if (n < 2) return reusablePairs;
 
   // Portfolio: always use brute-force pairs (n ≪ 100). Eliminates spatial-hash / R_MAX edge cases
@@ -88,6 +98,7 @@ function collectPairsSorted() {
       const A = balls[i];
       if (!A || A.__portfolioHidden) continue;
       for (let j = i + 1; j < n; j += 1) {
+        lastBroadphaseStats.candidateChecks += 1;
         const B = balls[j];
         if (!B || B.__portfolioHidden) continue;
         const dx = B.x - A.x;
@@ -95,17 +106,14 @@ function collectPairsSorted() {
         const rSum = getBallBallRestDistance(A, B, globals);
         const dist2 = dx * dx + dy * dy;
         if (dist2 >= rSum * rSum) continue;
-        const dist = Math.sqrt(Math.max(dist2, CONSTANTS.MIN_DISTANCE_EPSILON));
-        const overlap = rSum - dist;
         const idx = reusablePairs.length;
         let p = pairPool[idx];
         if (!p) {
-          p = { i: 0, j: 0, overlap: 0 };
+          p = { i: 0, j: 0 };
           pairPool[idx] = p;
         }
         p.i = i;
         p.j = j;
-        p.overlap = overlap;
         reusablePairs.push(p);
       }
     }
@@ -155,12 +163,16 @@ function collectPairsSorted() {
   const cellSize = Math.max(1, cellRMax * 2 * (1 + spacingRatio) + surfaceGapPx * 2);
   const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
   if (reuseGrid) {
-    for (const arr of spatialGrid.values()) arr.length = 0;
+    for (let index = 0; index < activeSpatialGridKeys.length; index += 1) {
+      spatialGrid.get(activeSpatialGridKeys[index]).length = 0;
+    }
   } else {
     spatialGrid.clear();
   }
+  activeSpatialGridKeys.length = 0;
   
   // Build grid
+  lastBroadphaseStats.gridBuilds = 1;
   for (let i = 0; i < n; i++) {
     const b = balls[i];
     const cx = (b.x / cellSize) | 0;
@@ -168,17 +180,21 @@ function collectPairsSorted() {
     const key = cy * gridWidth + cx;
     let arr = spatialGrid.get(key);
     if (!arr) { arr = []; spatialGrid.set(key, arr); }
+    if (arr.length === 0) activeSpatialGridKeys.push(key);
     arr.push(i);
   }
   
-  for (const [key, arr] of spatialGrid) {
-    if (arr.length === 0) continue;
+  for (let activeIndex = 0; activeIndex < activeSpatialGridKeys.length; activeIndex += 1) {
+    const key = activeSpatialGridKeys[activeIndex];
+    const arr = spatialGrid.get(key);
     const cy = (key / gridWidth) | 0;
     const cx = key % gridWidth;
     
-    // Check 9 neighboring cells
-    for (let oy = -1; oy <= 1; oy++) {
+    // Visit the current cell plus four forward neighbours. The previous 3x3
+    // scan visited every cross-cell candidate twice before j<=i rejected it.
+    for (let oy = 0; oy <= 1; oy++) {
       for (let ox = -1; ox <= 1; ox++) {
+        if (!shouldVisitForwardGridNeighbour(ox, oy)) continue;
         const neighborKey = (cy + oy) * gridWidth + (cx + ox);
         const nb = spatialGrid.get(neighborKey);
         if (!nb) continue;
@@ -188,7 +204,8 @@ function collectPairsSorted() {
           const i = arr[ii];
           for (let jj = 0; jj < nb.length; jj++) {
             const j = nb[jj];
-            if (j <= i) continue;
+            if (ox === 0 && oy === 0 && j <= i) continue;
+            lastBroadphaseStats.candidateChecks += 1;
             
             const A = balls[i], B = balls[j];
             if (pitSleepAwareBroadphase && A.isSleeping && B.isSleeping) {
@@ -200,14 +217,11 @@ function collectPairsSorted() {
             const dist2 = dx*dx + dy*dy;
             
             if (dist2 < rSum*rSum) {
-              const dist = Math.sqrt(Math.max(dist2, CONSTANTS.MIN_DISTANCE_EPSILON));
-              const overlap = rSum - dist;
               const idx = reusablePairs.length;
               let p = pairPool[idx];
-              if (!p) { p = { i: 0, j: 0, overlap: 0 }; pairPool[idx] = p; }
+              if (!p) { p = { i: 0, j: 0 }; pairPool[idx] = p; }
               p.i = i;
               p.j = j;
-              p.overlap = overlap;
               reusablePairs.push(p);
             }
           }
@@ -234,8 +248,13 @@ export function resolveCollisions(iterations = 10) {
   const REST_VEL_THRESHOLD = 30;
   const skipSleepingCollisions = Boolean(globals.physicsSkipSleepingCollisions);
   let overlapDebt = 0;
+  let maxResidualPenetration = 0;
+  let iterationsUsed = 0;
+  const convergenceThreshold = resolveCollisionConvergenceThreshold(globals.DPR || 1);
   
   for (let iter = 0; iter < iterations; iter++) {
+    let iterationMaxCorrection = 0;
+    let iterationMaxResidual = 0;
     for (let k = 0; k < pairs.length; k++) {
       const { i, j } = pairs[k];
       const A = balls[i];
@@ -290,6 +309,11 @@ export function resolveCollisions(iterations = 10) {
 
       // Positional correction (always applied to prevent overlap, even for sleeping bodies)
       const correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / invSum;
+      const appliedCorrection = correctionMag * invSum;
+      if (appliedCorrection > iterationMaxCorrection) iterationMaxCorrection = appliedCorrection;
+      if (globals.performanceAuditEnabled === true) {
+        iterationMaxResidual = Math.max(iterationMaxResidual, overlap - appliedCorrection);
+      }
       const cx = correctionMag * nx;
       const cy = correctionMag * ny;
       A.x -= cx * invA; A.y -= cy * invA;
@@ -416,12 +440,31 @@ export function resolveCollisions(iterations = 10) {
         }
       }
     }
+    iterationsUsed = iter + 1;
+    maxResidualPenetration = iterationMaxResidual;
+    if (shouldStopCollisionIterations(iterationMaxCorrection, convergenceThreshold)) break;
+  }
+
+  if (globals.performanceAuditEnabled === true) {
+    globals.collisionGridBuildCount = (Number(globals.collisionGridBuildCount) || 0)
+      + lastBroadphaseStats.gridBuilds;
+    globals.collisionCandidateCheckCount = (Number(globals.collisionCandidateCheckCount) || 0)
+      + lastBroadphaseStats.candidateChecks;
+    globals.collisionPairCount = (Number(globals.collisionPairCount) || 0) + pairs.length;
+    globals.collisionSolverIterationCount = (Number(globals.collisionSolverIterationCount) || 0)
+      + iterationsUsed;
+    globals.collisionMaximumResidualPx = Math.max(
+      Number(globals.collisionMaximumResidualPx) || 0,
+      maxResidualPenetration,
+    );
   }
 
   return {
     pairCount: pairs.length,
     overlapDebt,
-    sleepingPairSkips
+    sleepingPairSkips,
+    iterationsUsed,
+    maxResidualPenetration,
   };
 }
 

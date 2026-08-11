@@ -11,6 +11,7 @@ import {
   RUNTIME_PERFORMANCE_SCHEMA_VERSION,
   aggregateProfile,
   aggregateRafControlProfile,
+  countMissedRenderDeadlines,
   evaluateEnvironmentCalibration,
   evaluateLocalEnvironmentCalibration,
   evaluateMode,
@@ -29,6 +30,8 @@ const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase()
 const DEVICE_NAME = String(process.env.ABS_DEVICE || 'iPhone 13');
 const ORIENTATION = String(process.env.ABS_ORIENTATION || 'portrait').toLowerCase();
 const HEADLESS = process.env.ABS_HEADED !== '1';
+const INPUT_PROFILE = String(process.env.ABS_PERF_INPUT_PROFILE || 'idle').trim().toLowerCase();
+const RANDOM_SEED = Math.max(1, Number(process.env.ABS_PERF_RANDOM_SEED || 20260811) >>> 0);
 const RUN_ID = `${new Date().toISOString().replace(/[:.]/g, '-')}-${BROWSER_NAME}-${randomUUID().slice(0, 8)}`;
 const OUTPUT_PATH = resolve(process.env.ABS_PERF_OUTPUT || `output/playwright/runtime-performance/${RUN_ID}.json`);
 const OWNED_ARTIFACT_ROOT = resolve(`output/playwright/runtime-performance/artifacts/${RUN_ID}/dist`);
@@ -43,6 +46,9 @@ if (!['chromium', 'webkit'].includes(BROWSER_NAME)) {
 if (!devices[DEVICE_NAME]) throw new Error(`Unknown Playwright device profile: ${DEVICE_NAME}`);
 if (!['portrait', 'landscape'].includes(ORIENTATION)) {
   throw new Error(`Unsupported ABS_ORIENTATION=${ORIENTATION}; use portrait or landscape.`);
+}
+if (!['idle', 'pointer-sweep', 'drag'].includes(INPUT_PROFILE)) {
+  throw new Error(`Unsupported ABS_PERF_INPUT_PROFILE=${INPUT_PROFILE}; use idle,pointer-sweep,drag.`);
 }
 
 const deviceProfile = { ...devices[DEVICE_NAME] };
@@ -270,8 +276,30 @@ async function waitForOwnedRuntime(page, entry) {
   );
 }
 
+async function driveInputProfile(page, profile) {
+  if (profile === 'idle') return { id: profile, script: 'none' };
+  await page.waitForTimeout(120);
+  const box = await page.locator('#c').boundingBox();
+  if (!box) return { id: profile, script: 'canvas-unavailable' };
+  const left = box.x + box.width * 0.22;
+  const right = box.x + box.width * 0.78;
+  const upper = box.y + box.height * 0.42;
+  const lower = box.y + box.height * 0.58;
+  await page.mouse.move(left, upper);
+  if (profile === 'drag') await page.mouse.down();
+  await page.mouse.move(right, lower, { steps: 60 });
+  await page.mouse.move(left, lower, { steps: 60 });
+  if (profile === 'drag') await page.mouse.up();
+  return {
+    id: profile,
+    script: profile === 'drag'
+      ? 'paced 120-step press-drag-release across the owned canvas'
+      : 'paced 120-step pointer sweep across the owned canvas',
+  };
+}
+
 async function measurePage(page, entry, durationMs) {
-  return page.evaluate(async ({ durationMs: requestedDurationMs, surface }) => {
+  const measurementPromise = page.evaluate(async ({ durationMs: requestedDurationMs, surface, inputProfile }) => {
     const candidates = surface === 'home-mode'
       ? [document.querySelector('#c')].filter(Boolean)
       : Array.from(document.querySelectorAll('canvas')).filter((canvas) => (
@@ -297,7 +325,27 @@ async function measurePage(page, entry, durationMs) {
     };
     const intervals = [];
     const renderedIntervals = [];
+    const inputEventTimestamps = [];
+    const recordInput = (event) => {
+      if (event.isPrimary === false) return;
+      inputEventTimestamps.push(performance.now());
+    };
+    if (inputProfile !== 'idle') {
+      document.addEventListener('pointermove', recordInput, { passive: true });
+      document.addEventListener('pointerdown', recordInput, { passive: true });
+      document.addEventListener('pointerup', recordInput, { passive: true });
+    }
     const startRenderedFrameCount = Number(auditCanvas?.__absAuditFrameCount) || 0;
+    if (auditCanvas) auditCanvas.__absAuditFrameTimestamps = [];
+    const longTasks = [];
+    const longTaskObserver = typeof PerformanceObserver === 'function'
+      ? new PerformanceObserver((list) => {
+        for (const item of list.getEntries()) {
+          longTasks.push({ startTime: item.startTime, duration: item.duration });
+        }
+      })
+      : null;
+    try { longTaskObserver?.observe({ type: 'longtask', buffered: false }); } catch { /* unsupported */ }
     let previousObservedRenderedFrameCount = startRenderedFrameCount;
     let previousRenderedAt = 0;
     let previous = 0;
@@ -318,6 +366,10 @@ async function measurePage(page, entry, durationMs) {
       requestAnimationFrame(tick);
     });
     const actualDurationMs = endedAt - start;
+    longTaskObserver?.disconnect();
+    document.removeEventListener('pointermove', recordInput);
+    document.removeEventListener('pointerdown', recordInput);
+    document.removeEventListener('pointerup', recordInput);
     const runtime = window.__ABS_HOME_AUDIT__?.getRuntimeSnapshot?.() || null;
     const renderedFrameCount = auditCanvas
       ? Math.max(0, (Number(auditCanvas.__absAuditFrameCount) || 0) - startRenderedFrameCount)
@@ -341,6 +393,12 @@ async function measurePage(page, entry, durationMs) {
       renderedIntervals,
       runtime,
       renderedFrameCount,
+      sourceRenderTimestamps: Array.isArray(auditCanvas?.__absAuditFrameTimestamps)
+        ? [...auditCanvas.__absAuditFrameTimestamps]
+        : [],
+      longTasks,
+      inputProfile,
+      inputEventTimestamps,
       renderedFps: renderedFrameCount === null ? null : renderedFrameCount * 1000 / actualDurationMs,
       ownership,
       visualCount: Number(window.__ABS_SIMULATION_VISUAL_TRANSITION__?.count) || null,
@@ -355,7 +413,10 @@ async function measurePage(page, entry, durationMs) {
       },
       canvases,
     };
-  }, { durationMs, surface: entry.surface });
+  }, { durationMs, surface: entry.surface, inputProfile: INPUT_PROFILE });
+  const inputEvidence = await driveInputProfile(page, INPUT_PROFILE);
+  const sample = await measurementPromise;
+  return { ...sample, inputEvidence };
 }
 
 async function measureStaticRaf(page, durationMs) {
@@ -443,7 +504,34 @@ async function sampleLocalRafControl(browser, entryId, phase) {
 
 function summarizeSample(sample, consoleErrors, pageErrors) {
   const intervals = sample.intervals.filter(Number.isFinite);
-  const renderedIntervals = sample.renderedIntervals.filter(Number.isFinite);
+  const sourceRenderTimestamps = sample.sourceRenderTimestamps.filter(Number.isFinite);
+  const renderedIntervals = sourceRenderTimestamps.length > 1
+    ? sourceRenderTimestamps.slice(1).map((time, index) => time - sourceRenderTimestamps[index])
+    : sample.renderedIntervals.filter(Number.isFinite);
+  const targetIntervalMs = 1000 / 60;
+  let maximumConsecutiveMisses = 0;
+  let currentConsecutiveMisses = 0;
+  let lateRenderIntervalCount = 0;
+  for (const interval of renderedIntervals) {
+    const missed = countMissedRenderDeadlines(interval, 60, 0.5);
+    if (missed > 0) {
+      lateRenderIntervalCount += 1;
+      currentConsecutiveMisses += missed;
+      maximumConsecutiveMisses = Math.max(maximumConsecutiveMisses, currentConsecutiveMisses);
+    } else {
+      currentConsecutiveMisses = 0;
+    }
+  }
+  const inputToRenderLatencies = [];
+  let renderCursor = 0;
+  for (const inputAt of sample.inputEventTimestamps.filter(Number.isFinite)) {
+    while (renderCursor < sourceRenderTimestamps.length && sourceRenderTimestamps[renderCursor] < inputAt) {
+      renderCursor += 1;
+    }
+    if (renderCursor < sourceRenderTimestamps.length) {
+      inputToRenderLatencies.push(sourceRenderTimestamps[renderCursor] - inputAt);
+    }
+  }
   const elapsed = intervals.reduce((sum, value) => sum + value, 0);
   const rafFps = intervals.length * 1000 / Math.max(1, elapsed);
   const observedRefreshHz = median(intervals) > 0 ? 1000 / median(intervals) : null;
@@ -478,6 +566,14 @@ function summarizeSample(sample, consoleErrors, pageErrors) {
     longestGapMs: round(Math.max(...intervals, 0)),
     renderInvocationP95Ms: round(percentile(renderedIntervals, 0.95)),
     renderInvocationP99Ms: round(percentile(renderedIntervals, 0.99)),
+    lateRenderIntervalRatio: round(lateRenderIntervalCount / Math.max(1, renderedIntervals.length), 4),
+    maximumConsecutiveMisses,
+    inputProfile: sample.inputProfile,
+    inputEvidence: sample.inputEvidence,
+    inputEventCount: sample.inputEventTimestamps.length,
+    inputToRenderP95Ms: round(percentile(inputToRenderLatencies, 0.95)),
+    longestLongTaskMs: round(Math.max(...sample.longTasks.map((task) => task.duration), 0)),
+    longTaskCount: sample.longTasks.length,
     renderedP95Ms: round(percentile(renderedIntervals, 0.95)),
     renderedP99Ms: round(percentile(renderedIntervals, 0.99)),
     renderInvocationCount: sample.renderedFrameCount,
@@ -485,6 +581,8 @@ function summarizeSample(sample, consoleErrors, pageErrors) {
     renderedFrameCountSemantic: 'legacy alias of renderInvocationCount; not a presented-frame count',
     targetFps,
     throttleLevel: sample.runtime?.throttleLevel ?? null,
+    runtimeCounters: sample.runtime,
+    randomSeed: RANDOM_SEED,
     objectOrPointCount: Number(sample.runtime?.ballCount) || sample.visualCount || null,
     renderedDpr: round(sample.runtime?.dpr ?? sample.canvases.find((canvas) => canvas.width > 1)?.backingDpr),
     ownership: sample.ownership,
@@ -594,10 +692,16 @@ try {
         const pageErrors = [];
         page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
         page.on('pageerror', (error) => pageErrors.push(error.message));
-        await page.addInitScript(() => {
+        await page.addInitScript((seed) => {
+          let state = seed >>> 0;
+          Math.random = () => {
+            state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+            return state / 4294967296;
+          };
+          window.__ABS_PERF_RANDOM_SEED__ = seed;
           window.__ABS_ROUTE_PERF_AUDIT__ = true;
           sessionStorage.setItem('abs_portfolio_ok', 'runtime-performance-audit');
-        });
+        }, RANDOM_SEED);
         process.stdout.write(`Sampling ${entry.id} ${profileName} ${repeatIndex + 1}/${CONTRACT.repeatCount}... `);
         try {
           await page.goto(result.url, { waitUntil: 'networkidle', timeout: 60_000 });
@@ -708,6 +812,7 @@ const output = {
     cpuModel: cpus()[0]?.model || null,
   },
   emulation: { deviceProfile: DEVICE_NAME, orientation: ORIENTATION, colorScheme: process.env.ABS_COLOR_SCHEME === 'dark' ? 'dark' : 'light' },
+  controlledInput: { profile: INPUT_PROFILE, randomSeed: RANDOM_SEED },
   contract: CONTRACT,
   environmentCalibration,
   catalogSha256: createHash('sha256').update(catalogText).digest('hex'),

@@ -842,6 +842,7 @@ function getDiagnosticSnapshot() {
     reducedMotion,
     temporalMemoryFrames: host?.effect?.temporalMemoryFrames || 0,
     memoryMs: renderProfile?.memoryMs ?? configuration.memoryMs,
+    fieldMode: renderProfile?.fieldMode ?? configuration.fieldMode,
     largeSpread: renderProfile?.largeSpread ?? configuration.largeSpread,
     smallSpread: renderProfile?.smallSpread ?? configuration.smallSpread,
     resolvedGlowRadiusCss,

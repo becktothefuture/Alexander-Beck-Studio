@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   aggregateProfile,
   aggregateRafControlProfile,
+  countMissedRenderDeadlines,
   evaluateEnvironmentCalibration,
   evaluateLocalEnvironmentCalibration,
   evaluateMode,
@@ -39,6 +40,11 @@ test('contract declares short adjacent controls without changing performance thr
   });
   assert.equal(contract.thresholds.maximumP95Ms, 20);
   assert.equal(contract.thresholds.maximumP99Ms, 33.4);
+  assert.equal(contract.thresholds.maximumLongestGapMs, 50);
+  assert.equal(contract.thresholds.maximumRenderInvocationP95Ms, 20);
+  assert.equal(contract.thresholds.maximumRenderInvocationP99Ms, 33.4);
+  assert.equal(contract.thresholds.maximumConsecutiveMisses, 2);
+  assert.equal(contract.thresholds.maximumInputToRenderP95Ms, 33.4);
 });
 
 test('certification defaults to an owned production preview', () => {
@@ -82,6 +88,11 @@ function passingRepeat(overrides = {}) {
     p95Ms: 17,
     p99Ms: 20,
     longestGapMs: 21,
+    renderInvocationP95Ms: 17,
+    renderInvocationP99Ms: 20,
+    maximumConsecutiveMisses: 0,
+    inputProfile: 'idle',
+    inputToRenderP95Ms: null,
     throttleLevel: 0,
     consoleErrors: [],
     pageErrors: [],
@@ -139,6 +150,33 @@ test('repeat failures name every failed predicate and reason', () => {
   assert.ok(result.failures.every((failure) => failure.reason));
 });
 
+test('repeat rejects visible stalls and clustered missed render deadlines', () => {
+  const contract = parsePerformanceContract({});
+  const result = evaluateRepeat(passingRepeat({
+    longestGapMs: 80,
+    renderInvocationP95Ms: 24,
+    renderInvocationP99Ms: 41,
+    maximumConsecutiveMisses: 3,
+  }), contract, { requiresContinuousFrames: true });
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures.map((failure) => failure.predicate), [
+    'maximum-frame-gap',
+    'render-invocation-p95',
+    'render-invocation-p99',
+    'maximum-consecutive-missed-deadlines',
+  ]);
+});
+
+test('active input profile gates interaction to next owned render latency', () => {
+  const contract = parsePerformanceContract({});
+  const result = evaluateRepeat(passingRepeat({
+    inputProfile: 'pointer-sweep',
+    inputToRenderP95Ms: 40,
+  }), contract, { requiresContinuousFrames: true });
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures.map((failure) => failure.predicate), ['input-to-render-p95']);
+});
+
 test('target and refresh ceiling caps raw render-invocation cadence', () => {
   assert.deepEqual(normalizeCadence({ measuredFps: 70.58, targetFps: 60, observedRefreshHz: 120.07 }), {
     rawMeasuredFps: 70.58,
@@ -152,6 +190,12 @@ test('target and refresh ceiling caps raw render-invocation cadence', () => {
     cappedMeasuredFps: 60,
     overRenderFps: 3.5700000000000003,
   });
+});
+
+test('missed deadline counting ignores lateness until a full render opportunity is skipped', () => {
+  assert.equal(countMissedRenderDeadlines(18, 60), 0);
+  assert.equal(countMissedRenderDeadlines(33.4, 60), 1);
+  assert.equal(countMissedRenderDeadlines(50.1, 60), 2);
 });
 
 test('profile records robust aggregates but rejects any failed repeat', () => {
