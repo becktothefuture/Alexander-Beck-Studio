@@ -57,11 +57,13 @@ function handleDocumentCursorPointerMove(event) {
     hideCursor();
     return;
   }
+  setSimulationCursorOwnership(!isNativeEditorCursorTarget(event.target));
   updateCursorPosition(event.clientX, event.clientY, event.target);
 }
 
 function handleDocumentCursorMouseMove(event) {
   if (window.PointerEvent) return;
+  setSimulationCursorOwnership(!isNativeEditorCursorTarget(event.target));
   updateCursorPosition(event.clientX, event.clientY, event.target);
 }
 
@@ -142,6 +144,7 @@ export const getCursorBrightenedColor = getCursorColor;
  */
 export function setupCustomCursor() {
   const container = document.getElementById('simulations') || document.body;
+  setSimulationCursorOwnership(!isNativeEditorCursorTarget(lastPointerTarget));
 
   if (isInitialized && cursorElement && !cursorElement.isConnected) {
     detachCustomCursorModuleState();

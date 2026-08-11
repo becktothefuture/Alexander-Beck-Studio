@@ -195,6 +195,48 @@ async function moveInsideWindow(page) {
   await page.waitForTimeout(80);
 }
 
+async function assertNativeCursorNeverExposed(page, routeId) {
+  const readNativeCursorState = () => page.evaluate(() => {
+    const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    return {
+      html: getComputedStyle(document.documentElement).cursor,
+      body: getComputedStyle(document.body).cursor,
+      activeTab: activeTab ? getComputedStyle(activeTab).cursor : '',
+    };
+  });
+  const assertHidden = (state, phase) => {
+    for (const [surface, cursor] of Object.entries(state)) {
+      if (cursor !== 'none') {
+        throw new Error(`${routeId}: native cursor was ${cursor || '(empty)'} on ${surface} during ${phase}`);
+      }
+    }
+  };
+
+  assertHidden(await readNativeCursorState(), 'settled direct load');
+
+  await page.evaluate(() => {
+    document.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const rect = activeTab?.getBoundingClientRect();
+    if (!activeTab || !rect) return;
+    activeTab.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles: true,
+      pointerType: 'mouse',
+      clientX: rect.left + (rect.width / 2),
+      clientY: rect.top + (rect.height / 2),
+    }));
+  });
+  assertHidden(await readNativeCursorState(), 'pointer re-entry before the next animation frame');
+
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  const customCursorDisplay = await page.locator('#custom-cursor').evaluate(
+    (cursor) => getComputedStyle(cursor).display,
+  );
+  if (customCursorDisplay !== 'block') {
+    throw new Error(`${routeId}: custom cursor did not replace the hidden native cursor after pointer re-entry`);
+  }
+}
+
 async function assertInactiveHoverDoesNotPreview(page, routeId) {
   const inactiveRouteId = routeOrder.find((candidate) => candidate !== routeId);
   await page.locator(`[data-route-tab="${inactiveRouteId}"]`).hover();
@@ -504,6 +546,7 @@ async function directLoadChecks(browser) {
     const page = await context.newPage();
     await page.goto(routeUrl(routeId), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitForRouteReady(page, routeId);
+    await assertNativeCursorNeverExposed(page, routeId);
     await moveInsideWindow(page);
     const state = await readRouteCursorState(page, routeId);
     assertRouteCursorState(state);
@@ -599,11 +642,55 @@ async function responsiveButtonBarChecks(browser) {
   }
 }
 
+async function viewportCoverCursorCheck(browser) {
+  const context = await browser.newContext({ viewport: { width: 320, height: 1000 } });
+  const page = await context.newPage();
+  await page.goto(routeUrl('home'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(
+    () => (
+      document.documentElement.dataset.absViewportCover === 'active'
+      && Boolean(document.querySelector('.viewport-cover'))
+      && Boolean(document.getElementById('custom-cursor'))
+    ),
+    { timeout: routeWaitMs },
+  );
+  await page.mouse.move(160, 500);
+  await page.waitForTimeout(80);
+  const state = await page.evaluate(() => {
+    const cover = document.querySelector('.viewport-cover');
+    const cursor = document.getElementById('custom-cursor');
+    return {
+      html: getComputedStyle(document.documentElement).cursor,
+      body: getComputedStyle(document.body).cursor,
+      cover: cover ? getComputedStyle(cover).cursor : '',
+      coverZIndex: cover ? Number(getComputedStyle(cover).zIndex) : 0,
+      customDisplay: cursor ? getComputedStyle(cursor).display : '',
+      customZIndex: cursor ? Number(getComputedStyle(cursor).zIndex) : 0,
+    };
+  });
+  for (const surface of ['html', 'body', 'cover']) {
+    if (state[surface] !== 'none') {
+      throw new Error(`viewport cover: native cursor was ${state[surface] || '(empty)'} on ${surface}`);
+    }
+  }
+  if (state.customDisplay !== 'block') {
+    throw new Error(`viewport cover: custom cursor display was ${state.customDisplay || '(empty)'}, expected block`);
+  }
+  if (state.customZIndex <= state.coverZIndex) {
+    throw new Error(
+      `viewport cover: custom cursor z-index ${state.customZIndex} did not clear cover z-index ${state.coverZIndex}`,
+    );
+  }
+  log('viewport cover: native cursor hidden and custom lens visible');
+  await context.close();
+}
+
 async function run() {
   const server = await ensureDevServer();
   const browser = await chromium.launch();
   try {
     await responsiveButtonBarChecks(browser);
+    await viewportCoverCursorCheck(browser);
     await directLoadChecks(browser);
     if (!buttonBarOnly) await spaChecks(browser);
   } finally {

@@ -190,7 +190,7 @@
   background: none;
   box-shadow: none;
   transform: none;
-  cursor: default;
+  cursor: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']

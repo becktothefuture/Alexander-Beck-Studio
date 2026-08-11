@@ -20,7 +20,7 @@
   overflow: hidden;
   color: #f4f4f0;
   background: #000000;
-  cursor: default !important;
+  cursor: none !important;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -70,11 +70,11 @@ html[data-abs-viewport-cover='active'] body,
 html[data-abs-viewport-cover='active'] body.abs-in-simulation,
 html[data-abs-viewport-cover='active'] .viewport-cover,
 html[data-abs-viewport-cover='active'] .viewport-cover * {
-  cursor: default !important;
+  cursor: none !important;
 }
 
 html[data-abs-viewport-cover='active'] #custom-cursor {
-  display: none !important;
+  z-index: 2147483646 !important;
 }
 
 @media (prefers-reduced-motion: no-preference) {
