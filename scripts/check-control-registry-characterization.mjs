@@ -18,6 +18,11 @@ const vite = await import(pathToFileURL(requireFromApp.resolve('vite')).href);
 function installBrowserStubs(storage) {
   const cssValues = new Map();
   const paletteEvents = [];
+  globalThis.getComputedStyle = () => ({
+    getPropertyValue(name) {
+      return cssValues.get(name) || '';
+    },
+  });
   globalThis.HTMLElement = class HTMLElement {};
   globalThis.CustomEvent = class CustomEvent {
     constructor(type, options = {}) {
@@ -47,6 +52,9 @@ function installBrowserStubs(storage) {
       classList: { contains: () => false, toggle() {} },
       dataset: {},
       style: {
+        getPropertyValue(name) {
+          return cssValues.get(name) || '';
+        },
         setProperty(name, value) {
           cssValues.set(name, String(value));
         },
@@ -384,6 +392,10 @@ test('every active control preserves parse and format behavior at its default bo
 });
 
 test('registered control binding preserves state, CSS/runtime, and atmosphere application', () => {
+  const bgLight = createEventElement({ value: '#d8d8d8' });
+  const bgLightVal = createEventElement();
+  const bgDark = createEventElement({ value: '#18202a' });
+  const bgDarkVal = createEventElement();
   const ballMass = createEventElement({ value: '123' });
   const ballMassVal = createEventElement();
   const cornerShape = createEventElement({ checked: false });
@@ -403,6 +415,10 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
   const utilityRailMobileVerticalPosition = createEventElement({ value: '78' });
   const utilityRailMobileVerticalPositionVal = createEventElement();
   const elements = new Map([
+    ['bgLightPicker', bgLight],
+    ['bgLightVal', bgLightVal],
+    ['bgDarkPicker', bgDark],
+    ['bgDarkVal', bgDarkVal],
     ['ballMassKgSlider', ballMass],
     ['ballMassKgVal', ballMassVal],
     ['cornerShapeSquircleEnabledSlider', cornerShape],
@@ -425,6 +441,20 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
   const uiDocument = createProbeDocument(elements);
 
   registry.bindRegisteredControls({ uiDocument });
+
+  bgLight.dispatch('input');
+  assert.equal(bgLightVal.textContent, '#d8d8d8');
+  assert.equal(cssValues.get('--studio-window-bg-light'), '#d8d8d8');
+  assert.equal(cssValues.get('--studio-window-bg'), '#d8d8d8');
+
+  bgDark.dispatch('input');
+  assert.equal(bgDarkVal.textContent, '#18202a');
+  assert.equal(cssValues.get('--studio-window-bg-dark'), '#18202a');
+  assert.equal(
+    cssValues.get('--studio-window-bg'),
+    '#d8d8d8',
+    'Editing the inactive theme must not replace the visible studio-window color.',
+  );
 
   // `bindRegisteredControls` writes through the real shared state. Observe it through
   // public synchronization behavior and callback side effects, without test exports.

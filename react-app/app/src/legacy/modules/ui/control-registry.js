@@ -20,6 +20,7 @@ import { updateCursorSize } from '../rendering/cursor.js';
 import { getCurrentTheme, setTheme } from '../visual/dark-mode-v2.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallShadowCSS } from '../visual/wall-shadow.js';
+import { applyWindowPalette, resolveWindowPalette } from '../visual/site-shell.js';
 import { initQuotePuck } from './quote-puck.js';
 import { destroyQuoteDisplay, initQuoteDisplay } from './quote-display.js';
 import { forEachPanelUiDocument, registerPanelUiDocument, resolvePanelUiDocument } from './panel-ui-context.js';
@@ -782,6 +783,11 @@ function getColorInputValue(value, uiDocument = null) {
   }
 
   return '#000000';
+}
+
+function applyMasterWindowColor(cssVariable, value) {
+  document.documentElement.style.setProperty(cssVariable, value);
+  applyWindowPalette(resolveWindowPalette());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2382,8 +2388,7 @@ export const CONTROL_SECTIONS = {
         default: "var(--color-detected-efefef)",
         hint: 'Background color for light mode',
         onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--bg-light', val);
+          applyMasterWindowColor('--bg-light', val);
         }
       },
       {
@@ -2394,8 +2399,7 @@ export const CONTROL_SECTIONS = {
         default: "var(--color-detected-181818)",
         hint: 'Background color for dark mode',
         onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--bg-dark', val);
+          applyMasterWindowColor('--bg-dark', val);
         }
       },
       { type: 'divider', label: 'Outer Shell' },
