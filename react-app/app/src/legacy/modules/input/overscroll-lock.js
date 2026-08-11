@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                      OVERSCROLL LOCK (iOS RUBBER-BAND FIX)                   ║
 // ║   Prevents page rubber-banding / scroll bounce while allowing internal       ║
-// ║   scrolling for UI containers (modal lists + panel).                         ║
+// ║   scrolling for dedicated control-panel surfaces.                            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 /**
@@ -23,7 +23,6 @@ export function setupOverscrollLock() {
     // Allow scroll inside dedicated UI scroll containers.
     if (target.closest('.panel-dock .panel .panel-content')) return true;
     if (target.closest('#controlPanel')) return true;
-    if (target.closest('.simulation-focus-list')) return true;
 
     return false;
   };
@@ -37,4 +36,3 @@ export function setupOverscrollLock() {
     e.preventDefault();
   }, { passive: false, capture: true });
 }
-

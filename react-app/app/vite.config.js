@@ -160,6 +160,7 @@ export default defineConfig(({ mode }) => {
         'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
         'lab/title-entrance': resolve(__dirname, 'lab/title-entrance.html'),
         'lab/route-ball-transition': resolve(__dirname, 'lab/route-ball-transition.html'),
+        'lab/simulation-switcher-motion': resolve(__dirname, 'lab/simulation-switcher-motion.html'),
         ...(mode === 'development'
           ? { 'panel-host': resolve(__dirname, 'panel-host.html') }
           : {})

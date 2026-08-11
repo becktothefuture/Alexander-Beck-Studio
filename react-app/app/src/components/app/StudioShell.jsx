@@ -101,7 +101,6 @@ export function StudioShell({
   showFooter = false,
   windowOverlayContent,
   simulationFocusControls,
-  simulationFocusModal,
   surfaceRefs,
   onRoutePrewarm,
 }) {
@@ -278,7 +277,7 @@ export function StudioShell({
             }}
           />
           <ShellWindowOverlay>
-            {windowOverlayContent ?? simulationFocusModal}
+            {windowOverlayContent}
           </ShellWindowOverlay>
           <ShellButtonBar
             activeRouteId={activeRouteId || routeRenderKey}

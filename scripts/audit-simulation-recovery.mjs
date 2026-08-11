@@ -32,9 +32,20 @@ async function openFlies(page) {
 }
 
 async function chooseRepelRoom(page) {
-  await page.locator('.simulation-focus-switcher').click();
-  await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
-  await page.locator('.simulation-focus-row').filter({ hasText: 'Tension' }).first().click();
+  for (let step = 0; step < 13; step += 1) {
+    const switcher = page.locator('.simulation-focus-switcher');
+    const currentId = await switcher.getAttribute('data-simulation-id');
+    if (currentId === 'repel-room') return;
+    await switcher.click();
+    await page.waitForFunction((previousId) => {
+      const root = document.documentElement;
+      const control = document.querySelector('.simulation-focus-switcher');
+      return control?.dataset.simulationId !== previousId
+        && !control?.disabled
+        && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle';
+    }, currentId, { timeout: waitMs, polling: 25 });
+  }
+  throw new Error('Circular switcher did not reach Tension within one cycle');
 }
 
 async function readRecoveryState(page) {
@@ -194,7 +205,6 @@ async function main() {
       await page.waitForFunction(() => (
         (document.documentElement.dataset.absTransitionPhase || 'idle') === 'idle'
         && (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
-        && !document.documentElement.classList.contains('simulation-focus-modal-open')
         && getComputedStyle(document.getElementById('window-overlay-blur-layer')).visibility === 'hidden'
         && Number.parseFloat(getComputedStyle(document.getElementById('window-overlay-blur-layer')).opacity || '1') <= 0.001
       ), null, { timeout: waitMs });

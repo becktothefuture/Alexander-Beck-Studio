@@ -273,10 +273,10 @@ const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const READY_FALLBACK_MS = 900;
 const GROUPED_ROUTE_OFFSET_MS = 80;
 const PORTFOLIO_GATE_SCENE_FADE_MS = 480;
-const SIMULATION_FOCUS_EXIT_MS = 520;
-const SIMULATION_FOCUS_ENTER_MS = 500;
-const SIMULATION_FOCUS_EXIT_LOCAL_MS = 240;
-const SIMULATION_FOCUS_ENTER_LOCAL_MS = 280;
+const SIMULATION_FOCUS_EXIT_MS = 390;
+const SIMULATION_FOCUS_ENTER_MS = 375;
+const SIMULATION_FOCUS_EXIT_LOCAL_MS = 180;
+const SIMULATION_FOCUS_ENTER_LOCAL_MS = 210;
 const SIMULATION_FOCUS_EASE_OUT = 'cubic-bezier(0.72, 0, 0.86, 0.32)';
 const SIMULATION_FOCUS_EASE_IN = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
@@ -1798,7 +1798,7 @@ export function useShellRouteTransition({
     setLegacyRouteTransitionActive(true, { gate: false });
     setSimulationShellStability(true, surfaceRefs);
     // Publish the accepted target before yielding to preload work. React batches this
-    // with the chooser click, so the switcher label changes in the same interaction
+    // with the switcher press, so the incoming label starts in the same interaction
     // commit instead of waiting for prepare—or the full runtime settlement—to finish.
     publishSimulationSwitchTransaction(transaction, 'accepted');
 

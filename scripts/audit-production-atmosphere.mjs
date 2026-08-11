@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
+import { advanceSimulationSwitcherTo } from './lib/simulation-switcher.mjs';
 
 const ORIGIN = String(process.env.ABS_DEV_URL || 'http://localhost:8012').replace(/\/+$/, '');
 const WAIT_MS = Math.max(5000, Number(process.env.ABS_ATMOSPHERE_WAIT_MS || 45000));
@@ -11,6 +12,7 @@ const ENFORCE_COST_BUDGET = process.env.ABS_ATMOSPHERE_ENFORCE_COST === '1';
 const CAPTURE_RESPONSIVE = process.env.ABS_ATMOSPHERE_CAPTURE_RESPONSIVE === '1';
 const RESPONSIVE_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere-responsive');
 const HANDOFF_CAPTURE_ROOT = resolve('output', 'playwright', 'production-atmosphere', BROWSER_NAME);
+const SIMULATION_CATALOG_PATH = resolve('react-app/app/src/data/simulationCatalog.json');
 const GLOW_RADIUS_MIN_CSS_PX = 36;
 const GLOW_RADIUS_MAX_CSS_PX = 180;
 const SMALL_GLOW_RADIUS_MIN_CSS_PX = 12;
@@ -28,6 +30,8 @@ const SPA_SCENARIO_FILTER = new Set(String(process.env.ABS_ATMOSPHERE_SPA_SCENAR
   .map((value) => value.trim())
   .filter(Boolean));
 const browserType = BROWSER_NAME === 'webkit' ? webkit : chromium;
+const simulationCatalog = JSON.parse(await readFile(SIMULATION_CATALOG_PATH, 'utf8'));
+const dailySimulations = simulationCatalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
 const RESPONSIVE_PROFILES = Object.freeze([
   Object.freeze({ id: 'desktop', width: 1440, height: 900, cadence: 24 }),
   Object.freeze({ id: 'tablet', width: 820, height: 1180, cadence: 24 }),
@@ -511,17 +515,14 @@ async function clickPrimaryRoute(page, scenario) {
 }
 
 async function chooseDailySimulation(page, name, scenario) {
-  await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
-  await page.waitForSelector('.simulation-focus-modal.active', { timeout: WAIT_MS });
-  await page.locator('.simulation-focus-modal.active .simulation-focus-row')
-    .filter({ hasText: name })
-    .first()
-    .click();
+  const target = dailySimulations.find((entry) => entry.name === name);
+  assert(target, `Unknown Daily Simulation label: ${name}`);
+  await advanceSimulationSwitcherTo(page, dailySimulations, target.id, WAIT_MS);
   try {
     await waitForSettledAtmosphere(page, scenario);
   } catch (error) {
     const state = await readAtmosphereState(page).catch(() => null);
-    throw new Error(`${scenario.id}: chooser atmosphere did not settle\n${JSON.stringify(state, null, 2)}`, {
+    throw new Error(`${scenario.id}: circular switcher atmosphere did not settle\n${JSON.stringify(state, null, 2)}`, {
       cause: error,
     });
   }
@@ -548,7 +549,7 @@ async function runSpaLifecycle(browser) {
       const state = await chooseDailySimulation(page, 'Tension', dailyScenario);
       assert(
         state.snapshot.sourceGeneration > previousGeneration,
-        `${dailyScenario.id}: source generation did not advance after chooser selection`,
+        `${dailyScenario.id}: source generation did not advance after circular switch`,
         state,
       );
       assert(
@@ -766,11 +767,9 @@ function assertAtomicAtmosphereHandoff(result, before, expected) {
 }
 
 async function chooseSimulationForHandoff(page, targetName) {
-  await page.locator('.simulation-focus-switcher').click({ timeout: WAIT_MS });
-  await page.locator('.simulation-focus-modal.active .simulation-focus-row')
-    .filter({ hasText: targetName })
-    .first()
-    .click({ timeout: WAIT_MS });
+  const target = dailySimulations.find((entry) => entry.name === targetName);
+  assert(target, `Unknown Daily Simulation label: ${targetName}`);
+  await advanceSimulationSwitcherTo(page, dailySimulations, target.id, WAIT_MS);
 }
 
 async function runAtomicHandoffContract(browser) {

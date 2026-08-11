@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, firefox, webkit } from 'playwright';
@@ -7,6 +7,7 @@ import {
   ROUTE_LOADER_BACKDROP_MODES,
   resolveRouteLoaderBackdropMode,
 } from '../react-app/app/src/lib/motion/route-transition-backplane.js';
+import { advanceSimulationSwitcherTo } from './lib/simulation-switcher.mjs';
 
 const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 60000);
@@ -39,6 +40,7 @@ const SPINNER_DELAY_MS = 120;
 const SPINNER_MINIMUM_MS = 140;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'transition-flows');
+const simulationCatalogPath = resolve(__dirname, '..', 'react-app/app/src/data/simulationCatalog.json');
 const BROWSERS = { chromium, firefox, webkit };
 const runTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const runStem = [
@@ -1830,6 +1832,8 @@ async function runPreloadFailureProbe(page, traces, nextIndex) {
 
 async function main() {
   await mkdir(outputRoot, { recursive: true });
+  const simulationCatalog = JSON.parse(await readFile(simulationCatalogPath, 'utf8'));
+  const dailySimulations = simulationCatalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
   const browserType = BROWSERS[BROWSER_NAME] || chromium;
   const browser = await browserType.launch({ headless: !HEADED });
   const context = await browser.newContext({
@@ -1891,8 +1895,7 @@ async function main() {
         DAILY_FOCUS_ROUTE_IDS.includes(ROUTE_BACKED_HOME_ID),
         `Unknown ABS_TRANSITION_ROUTE_BACKED_HOME "${ROUTE_BACKED_HOME_ID}"`,
       );
-      await page.locator('.simulation-focus-switcher').click();
-      await page.locator(`.simulation-focus-row[data-simulation-id="${ROUTE_BACKED_HOME_ID}"]`).click();
+      await advanceSimulationSwitcherTo(page, dailySimulations, ROUTE_BACKED_HOME_ID, WAIT_MS);
       await page.waitForFunction((simulationId) => {
         const root = document.documentElement;
         const stage = document.getElementById('simulation-stage');

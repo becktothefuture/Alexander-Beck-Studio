@@ -128,18 +128,18 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 #### Quiet control material and emphasis
 
-The Home simulation switcher, simulation chooser controls, Portfolio drawer and access-gate controls, Lab media close control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens and use one shape language: capsules for compact text actions and selectable rows, circles for icon-only close and back actions.
+The Home simulation switcher, Portfolio drawer and access-gate controls, Lab media close control, and Contact email/copy action are one material family. They consume the semantic `--abs-soft-control-*` tokens and use one shape language: capsules for compact text actions and selectable rows, circles for icon-only close and back actions.
 
 - The resting material follows the current studio-window theme. Its surface darkens by 12% in light mode and 36% in dark mode before the translucent mix, so the borderless shape remains legible over both interiors. The 18px backdrop blur and gentle saturation preserve local context.
 - Every quiet control keeps its border geometry transparent in every state. Resting and interaction hierarchy comes from the translucent blurred fill, text/icon contrast, and opacity—not a visible hairline.
 - Emphasis is adaptive, not route-accented: use a translucent white field in light mode and a translucent black field in dark mode. Text and icons resolve through the current in-window text tokens.
-- Hover, `:focus-visible`, and pressed states use the same emphasis fill, blur, saturation, and text/icon contrast. The Home switcher also keeps that state while its chooser is open.
+- Hover, `:focus-visible`, pressed, and advancing states use the same emphasis fill, blur, saturation, and text/icon contrast.
 - Contact copy adds one contained, centre-out light wash using the background ripple's exact, unmixed current confirmation colour. It starts in the same click frame as the ripple, clears after `620ms`, and never adds a border, halo, or layout movement.
 - Do not stack a colored halo, glow, drop shadow, or second hover field on top of this emphasis material. State must remain calm and legible over moving simulation content.
 - The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Lab keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
-Inside the simulation chooser, option rows are transparent at rest and retain transparent border geometry in every state. The current simulation, hovered option, keyboard-focused option, and pressed option use one identical emphasis material; the current row remains visibly emphasized before pointer interaction. The modal close control is anchored at the studio window's top-right corner using the same safe-area-aware inset as the Portfolio drawer's top-left back control. It uses the shared resting material and emphasis fill without a visible border. Reduced motion removes transitions without removing any selected, focus, or hover-state contrast.
+The Home switcher is a circular next control, not a selector or dialog trigger. It shows the current simulation name and a refresh glyph. On activation, the current label exits upward while the next label enters from below, and the glyph rotates 180 degrees. The material response, label travel, and glyph motion share one easing. Reduced motion commits the next label and simulation without travel, blur, scale, or rotation.
 
 ### Motion and material presence
 

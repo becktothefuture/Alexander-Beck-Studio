@@ -283,7 +283,7 @@ Daily simulations are the live homepage system. They must behave as one product 
 
 ### Source Of Truth
 
-- `react-app/app/src/data/simulationCatalog.json` owns the public name, stage, launch target, and Daily chooser membership.
+- `react-app/app/src/data/simulationCatalog.json` owns the public name, stage, launch target, and Daily switcher membership and order.
 - IDs, routes, storage keys, and file names stay stable when display names change.
 - User-facing labels, ARIA labels, panels, audit expectations, and docs should use the catalog display name.
 - Historical concept names can appear only as explanatory source-object text, not as the simulation name in live UI.
@@ -305,11 +305,11 @@ Route-backed daily runtimes must render with transparent canvas/background in Da
 
 ### Motion And Switching
 
-All Daily chooser selections use the shared `simulation-focus` transition:
+Every circular Daily switcher advance uses the shared `simulation-focus` transition:
 - existing active simulation scales/renders `out`;
 - shell holds at the handoff point;
 - next simulation scales/renders `in`;
-- the boot preloader must not appear during chooser-driven switches.
+- the boot preloader must not appear during switcher-driven changes.
 
 Renderer rules:
 - home-mode simulations participate through the shared `home-canvas` visual transition registry;

@@ -285,57 +285,6 @@ body.abs-in-simulation .simulation-focus-switcher-slot:active {
   cursor: none !important;
 }
 
-/* The simulation chooser modal is an in-window surface; keep the custom cursor as the only cursor. */
-body.abs-in-simulation .simulation-focus-modal,
-body.abs-in-simulation .simulation-focus-modal *,
-body.abs-in-simulation .simulation-focus-modal:hover,
-body.abs-in-simulation .simulation-focus-modal *:hover,
-body.abs-in-simulation .simulation-focus-modal:focus,
-body.abs-in-simulation .simulation-focus-modal *:focus,
-body.abs-in-simulation .simulation-focus-modal:active,
-body.abs-in-simulation .simulation-focus-modal *:active,
-.modal-overlay .simulation-focus-modal,
-.modal-overlay .simulation-focus-modal *,
-.modal-overlay .simulation-focus-modal:hover,
-.modal-overlay .simulation-focus-modal *:hover,
-.modal-overlay .simulation-focus-modal:focus,
-.modal-overlay .simulation-focus-modal *:focus,
-.modal-overlay .simulation-focus-modal:active,
-.modal-overlay .simulation-focus-modal *:active {
-  cursor: none !important;
-}
-
-body.abs-in-simulation .simulation-focus-modal button,
-body.abs-in-simulation .simulation-focus-modal a,
-body.abs-in-simulation .simulation-focus-modal [role="button"],
-body.abs-in-simulation .simulation-focus-modal [tabindex],
-body.abs-in-simulation .simulation-focus-row,
-body.abs-in-simulation .simulation-focus-row *,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:hover,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:hover *,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:focus,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:focus *,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:active,
-body.abs-in-simulation .simulation-focus-modal .simulation-focus-row:active *,
-body.abs-in-simulation .simulation-focus-modal .gate-back,
-body.abs-in-simulation .simulation-focus-modal .gate-back *,
-.modal-overlay .simulation-focus-modal button,
-.modal-overlay .simulation-focus-modal a,
-.modal-overlay .simulation-focus-modal [role="button"],
-.modal-overlay .simulation-focus-modal [tabindex],
-.modal-overlay .simulation-focus-row,
-.modal-overlay .simulation-focus-row *,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:hover,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:hover *,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:focus,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:focus *,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:active,
-.modal-overlay .simulation-focus-modal .simulation-focus-row:active *,
-.modal-overlay .simulation-focus-modal .gate-back,
-.modal-overlay .simulation-focus-modal .gate-back * {
-  cursor: none !important;
-}
-
 body.dark-mode,
 body.body.dark-mode { 
   background: var(--abs-browser-chrome, #000000);
@@ -2197,11 +2146,6 @@ html[data-shell-route='home'] body {
     calc((768px - 100vw) * 16),
     16px
   );
-  --home-responsive-switcher-lift: clamp(
-    0px,
-    calc((768px - 100vw) * 24),
-    24px
-  );
   --home-responsive-top-gap: clamp(
     calc(var(--gap-lg) - var(--abs-size-1px)),
     3.6vw,
@@ -2588,25 +2532,17 @@ p {
 }
 
 .simulation-focus-switcher-slot {
-  --home-simulation-switcher-title-gap: clamp(44px, 6svh, 60px);
-  --home-simulation-switcher-title-half-height: calc(
-    var(--route-entry-title-size) *
-    var(--route-bookend-title-scale) *
-    var(--home-hero-title-size-scale) *
-    var(--route-title-line-height) *
-    var(--abs-font-headline-line-height-scale, 1) *
-    1.5 *
-    var(--abs-scene-impact-logo-scale, 1) *
-    var(--brand-logo-user-scale, 1)
-  );
+  --simulation-switcher-motion-duration: 520ms;
+  --simulation-switcher-motion-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
+  --simulation-switcher-motion-travel: calc(100% + 5px);
+  --home-simulation-switcher-footer-gap: clamp(24px, calc(54px - 4vw), 40px);
   position: fixed;
   left: 50%;
-  top: calc(
-    50% +
-    (clamp(20px, 5vh, 52px) - 4vh) +
-    var(--home-simulation-switcher-title-half-height) +
-    var(--home-simulation-switcher-title-gap) +
-    calc(var(--home-responsive-switcher-lift, 0px) * -1)
+  top: auto;
+  bottom: calc(
+    var(--button-bar-content-clearance, 40px) +
+    var(--home-responsive-footer-control-frame-size, var(--ui-icon-frame-size)) +
+    var(--home-simulation-switcher-footer-gap)
   );
   transform: translateX(-50%);
   z-index: 19;
@@ -2618,7 +2554,6 @@ p {
     filter var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-html[data-abs-transition-phase='modal-open'] .simulation-focus-switcher-slot,
 html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   opacity: 0;
   pointer-events: none;
@@ -2627,71 +2562,61 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   transition-timing-function: var(--ui-ease-out, cubic-bezier(0.4, 0, 1, 1));
 }
 
-html[data-abs-transition-phase='modal-open'] .simulation-focus-switcher-slot {
-  transform: translateX(-50%);
-}
-
 html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
 }
 
 .simulation-focus-pill {
   position: relative;
+  isolation: isolate;
   appearance: none;
   border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: 999px;
-  background: var(--abs-soft-control-fill);
-  color: var(--text-logo);
+  border-radius: var(--abs-radius-pill);
+  background: transparent;
+  color: color-mix(in srgb, var(--text-logo) 68%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-xs);
-  min-height: 40px;
-  max-width: calc(100vw - (var(--gap-lg) * 2));
-  padding: 0 var(--gap-md);
-  font: inherit;
+  gap: 7px;
+  min-height: 44px;
+  max-width: calc(100vw - (var(--gap-md) * 2));
+  padding: 9px 13px 10px 15px;
   font-family: var(--abs-font-sans);
-  font-size: var(--legend-font-size);
+  font-size: clamp(11px, 1vw, 12px);
   font-weight: var(--abs-weight-regular);
-  line-height: 1;
+  line-height: 1.2;
   letter-spacing: 0;
   white-space: nowrap;
   cursor: pointer;
-  isolation: isolate;
   overflow: visible;
   pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+  transform: translateZ(0);
+  transition:
+    color 180ms var(--ease-organic),
+    transform 140ms var(--ease-organic);
+}
+
+.simulation-focus-pill::before {
+  content: '';
+  position: absolute;
+  inset: 5px 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--frame-inner-surface) 68%, transparent);
+  pointer-events: none;
+  transform: scale(1) translateZ(0);
+  transform-origin: center;
   -webkit-backdrop-filter:
     blur(var(--abs-soft-control-blur, 18px))
     saturate(var(--abs-soft-control-saturation, 1.08));
   backdrop-filter:
     blur(var(--abs-soft-control-blur, 18px))
     saturate(var(--abs-soft-control-saturation, 1.08));
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: none;
   transition:
-    color 180ms var(--ease-organic),
     background-color 180ms var(--ease-organic),
-    transform 140ms var(--ease-organic),
-    filter 140ms var(--ease-organic);
-}
-
-.simulation-focus-pill::before {
-  content: '';
-  position: absolute;
-  inset: var(--abs-soft-hover-field-inset);
-  z-index: 0;
-  border-radius: inherit;
-  background: var(--abs-soft-hover-field-fill);
-  filter: none;
-  box-shadow: none;
-  opacity: 0;
-  pointer-events: none;
-  transform: none;
-  transform-origin: center;
-  transition:
-    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
-    background var(--abs-soft-hover-field-duration) var(--ease-organic),
-    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
+    transform 140ms var(--ease-organic);
 }
 
 .simulation-focus-pill > * {
@@ -2699,117 +2624,171 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   z-index: 1;
 }
 
-.simulation-focus-switcher {
-  align-items: center;
-  border-color: transparent;
-  border-radius: var(--abs-radius-pill);
-  background: var(--abs-soft-control-fill);
-  gap: calc(var(--gap-xs) * 0.7);
-  min-height: 44px;
-  max-width: calc(100vw - (var(--gap-md) * 2));
-  padding: clamp(8px, 0.9vw, 10px) clamp(18px, 1.8vw, 24px);
-  font-size: clamp(12px, 1.2vw, 13px);
-  line-height: 1.2;
-  white-space: normal;
-  overflow: visible;
-  box-shadow: none;
-}
-
 html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher {
   corner-shape: round;
 }
 
-.simulation-focus-switcher .simulation-focus-pill__label {
-  display: block;
-  min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.2;
-}
-
-.simulation-focus-pill.simulation-focus-switcher:hover {
-  border-color: transparent;
-}
-
-.simulation-focus-switcher .simulation-focus-pill__icon {
-  display: block;
-  align-self: center;
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
-  transform: none;
-}
-
 .simulation-focus-pill:hover,
 .simulation-focus-pill:focus-visible,
-.simulation-focus-pill:active,
-.simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill {
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
+.simulation-focus-pill[data-phase='advancing'] {
   color: var(--text-primary);
-}
-
-.simulation-focus-pill:disabled {
-  cursor: wait;
-  opacity: 0.72;
-}
-
-.simulation-focus-pill:disabled,
-.simulation-focus-pill:disabled:hover,
-.simulation-focus-pill:disabled:focus-visible,
-.simulation-focus-pill:disabled:active {
-  background: var(--abs-soft-control-fill);
-  color: var(--text-logo);
-  transform: none;
-  filter: none;
-}
-
-.simulation-focus-pill.simulation-focus-switcher:hover,
-.simulation-focus-pill.simulation-focus-switcher:focus-visible,
-.simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill.simulation-focus-switcher {
-  border-color: transparent;
 }
 
 .simulation-focus-pill:hover::before,
 .simulation-focus-pill:focus-visible::before,
-.simulation-focus-pill:active::before,
-.simulation-focus-pill:disabled::before,
-.simulation-focus-switcher-slot[data-open='true'] .simulation-focus-pill::before {
-  opacity: 0;
-  transform: none;
-  transition:
-    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
-    background var(--abs-soft-hover-field-duration) var(--ease-organic),
-    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
+.simulation-focus-pill[data-phase='advancing']::before {
+  background: var(--abs-soft-control-emphasis-fill);
 }
 
-.simulation-focus-pill:active {
-  transform: none;
-  filter: none;
+.simulation-focus-pill:active::before {
+  transform: scale(0.976) translateZ(0);
+}
+
+.simulation-focus-pill[data-phase='advancing']::before {
+  animation: simulation-switcher-material-settle
+    var(--simulation-switcher-motion-duration)
+    var(--simulation-switcher-motion-easing)
+    both;
 }
 
 .simulation-focus-pill:focus-visible {
-  outline: var(--hairline, 1px) solid color-mix(in srgb, var(--text-logo) 62%, transparent);
-  outline-offset: 4px;
-}
-
-.simulation-focus-pill.simulation-focus-switcher:focus-visible {
   outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
   outline-offset: var(--abs-focus-ring-offset);
 }
 
-.simulation-focus-pill__label {
-  min-width: 0;
+.simulation-focus-pill:disabled {
+  cursor: wait;
+}
+
+.simulation-focus-pill__label-window {
+  position: relative;
+  display: block;
+  inline-size: 9.5ch;
+  block-size: 1.2em;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.simulation-focus-pill__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity, filter;
+  transition:
+    transform var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing),
+    opacity var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing),
+    filter var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing);
+}
+
+.simulation-focus-pill__label--next {
+  opacity: 0;
+  filter: blur(1.25px);
+  transform: translate3d(0, var(--simulation-switcher-motion-travel), 0);
+}
+
+.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__label--current {
+  opacity: 0;
+  filter: blur(1.25px);
+  transform: translate3d(0, calc(-1 * var(--simulation-switcher-motion-travel)), 0);
+}
+
+.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__label--next {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .simulation-focus-pill__icon {
-  width: 16px;
-  height: 16px;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
   flex: 0 0 auto;
+  rotate: 0deg;
+  scale: 1;
+  transform: translateZ(0);
+  transform-origin: center;
+  will-change: rotate, scale;
+  transition: rotate var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing);
+}
+
+.simulation-focus-pill__icon svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+}
+
+.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__icon {
+  rotate: 180deg;
+  animation: simulation-switcher-icon-breathe
+    var(--simulation-switcher-motion-duration)
+    var(--simulation-switcher-motion-easing)
+    both;
+}
+
+.simulation-focus-pill[data-phase='resetting']
+  :is(.simulation-focus-pill__label, .simulation-focus-pill__icon) {
+  transition: none;
+}
+
+.simulation-focus-switcher-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes simulation-switcher-material-settle {
+  0% {
+    transform: scale(0.976) translateZ(0);
+  }
+
+  42% {
+    transform: scale(0.991) translateZ(0);
+  }
+
+  100% {
+    transform: scale(1) translateZ(0);
+  }
+}
+
+@keyframes simulation-switcher-icon-breathe {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  46% {
+    scale: 0.86;
+  }
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .simulation-focus-pill::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--frame-inner-surface) 70%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simulation-focus-pill,
+  .simulation-focus-pill::before,
+  .simulation-focus-pill__label,
+  .simulation-focus-pill__icon {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* Legacy JS-driven stagger classes removed — nav links use the CSS
@@ -4994,44 +4973,6 @@ html[data-abs-instrument-wake] #simulations::after {
   pointer-events: none;
 }
 
-html.simulation-focus-modal-open .window-overlay-layer {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
-}
-
-html.simulation-focus-modal-open .window-overlay-blur-layer {
-  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
-  backdrop-filter: blur(var(--modal-overlay-blur, 13.2px));
-  background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
-}
-
-html.simulation-focus-modal-open .window-overlay-content-layer {
-  pointer-events: auto;
-}
-
-/* A chooser selection hands straight back to the live simulation. Keep the
-   modal layers fully out of the scale-down/scale-up transition, even before
-   React has finished unmounting the chooser from the persistent shell. */
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-layer {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: none;
-}
-
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .window-overlay-blur-layer {
-  -webkit-backdrop-filter: blur(0);
-  backdrop-filter: blur(0);
-  background-color: transparent;
-}
-
-/* The legacy controller still owns chooser phase/depth timing, but its
-   viewport layers must not paint above the in-window overlay system. */
-html.simulation-focus-modal-open #modal-blur-layer,
-html.simulation-focus-modal-open #modal-content-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-blur-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-content-layer,
 html.portfolio-access-gate-open #modal-blur-layer,
 html.portfolio-access-gate-open #modal-content-layer,
 html.portfolio-access-gate-closing #modal-blur-layer,
@@ -5039,13 +4980,6 @@ html.portfolio-access-gate-closing #modal-content-layer {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-}
-
-@media (max-width: 600px), (hover: none) and (pointer: coarse) {
-  html.simulation-focus-modal-open .window-overlay-blur-layer {
-    -webkit-backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
-    backdrop-filter: blur(var(--modal-overlay-mobile-blur, var(--modal-overlay-blur, 24px)));
-  }
 }
 
 #simulations canvas {
@@ -6172,7 +6106,6 @@ body.dark-mode .ui-main-nav .footer_link:active {
     .footer_link:hover,
     .decorative-script p a:hover,
     .contact-email-row:hover,
-    .simulation-focus-row:hover,
     .gate-back:hover,
     .abs-icon-btn:hover
   ) {
@@ -6329,305 +6262,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   visibility: visible;
 }
 
-.simulation-focus-modal {
-  --simulation-focus-row-height: 38px;
-  --simulation-focus-icon-size: 24px;
-  --simulation-focus-list-width: min(100%, 14.75rem);
-  --simulation-focus-list-gutter: clamp(6px, 2.6vw, 10px);
-  --simulation-focus-scroll-fade: clamp(18px, 4svh, 36px);
-  --simulation-focus-ink: var(--text-primary);
-  --simulation-focus-hover-fill: var(--abs-soft-control-emphasis-fill);
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  max-width: none;
-  height: 100%;
-  max-height: none;
-  margin: 0;
-  z-index: 2;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  display: grid;
-  grid-template-rows: auto auto;
-  align-items: center;
-  align-content: center;
-  justify-items: center;
-  gap: var(--gap-md);
-  padding: clamp(20px, 4vw, 32px) var(--abs-modal-mobile-pad-x, 20px);
-  box-sizing: border-box;
-  color: var(--simulation-focus-ink);
-  overflow: hidden;
-  transition: opacity var(--modal-overlay-transition-out-duration, var(--ui-nav-return-duration, 240ms)) var(--ease-gate-motion);
-}
-
-.simulation-focus-modal.hidden {
-  display: none;
-}
-
-.simulation-focus-modal.active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion) var(--modal-content-delay, 150ms);
-}
-
-.simulation-focus-modal.closing {
-  opacity: 0;
-  visibility: visible;
-  pointer-events: none;
-  display: grid;
-}
-
-.simulation-focus-modal__title {
-  width: var(--simulation-focus-list-width);
-  margin: 0;
-  color: var(--simulation-focus-ink);
-  font-family: var(--abs-font-sans);
-  font-size: clamp(1.18rem, 1.05rem + 0.45vw, 1.48rem);
-  font-weight: var(--abs-weight-regular);
-  line-height: 1.1;
-  letter-spacing: 0;
-  padding: 0;
-  text-align: center;
-}
-
-.simulation-focus-list {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: calc(var(--gap-xs) * 0.4);
-  width: var(--simulation-focus-list-width);
-  min-height: 0;
-  height: auto;
-  max-height: min(58svh, 520px);
-  justify-self: center;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  padding:
-    var(--simulation-focus-scroll-fade)
-    var(--simulation-focus-list-gutter)
-    var(--simulation-focus-scroll-fade);
-  margin-inline: 0;
-  scroll-padding-block: var(--simulation-focus-scroll-fade);
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--simulation-focus-scroll-fade),
-    #000 calc(100% - var(--simulation-focus-scroll-fade)),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--simulation-focus-scroll-fade),
-    #000 calc(100% - var(--simulation-focus-scroll-fade)),
-    transparent 100%
-  );
-}
-
-.simulation-focus-list::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
-}
-
-.simulation-focus-row {
-  position: relative;
-  appearance: none;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: var(--abs-radius-pill);
-  background: transparent;
-  color: var(--simulation-focus-ink);
-  display: grid;
-  grid-template-columns: var(--simulation-focus-icon-size) minmax(0, 1fr);
-  align-items: center;
-  gap: calc(var(--gap-sm) * 0.72);
-  min-height: var(--simulation-focus-row-height);
-  width: 100%;
-  padding: calc(var(--gap-xs) * 0.45) calc(var(--gap-sm) * 0.72);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  isolation: isolate;
-  overflow: visible;
-  opacity: 0.75;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    color 160ms var(--ease-organic),
-    opacity 160ms var(--ease-organic),
-    transform 140ms var(--ease-organic),
-    filter 140ms var(--ease-organic);
-}
-
-.simulation-focus-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: var(--simulation-focus-hover-fill);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  filter: none;
-  box-shadow: none;
-  opacity: 0;
-  pointer-events: none;
-  transform: none;
-  transform-origin: center;
-  transition:
-    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
-    background var(--abs-soft-hover-field-duration) var(--ease-organic),
-    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
-}
-
-.simulation-focus-row > * {
-  position: relative;
-  z-index: 1;
-}
-
-.simulation-focus-row:focus-visible,
-.simulation-focus-row:active,
-.simulation-focus-row[aria-current='true'] {
-  border-color: transparent;
-  color: var(--text-primary);
-  opacity: 1;
-}
-
-.simulation-focus-row:focus-visible::before,
-.simulation-focus-row:active::before,
-.simulation-focus-row[aria-current='true']::before {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
-    background var(--abs-soft-hover-field-duration) var(--ease-organic),
-    filter var(--abs-soft-hover-field-duration) var(--ease-organic);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .simulation-focus-row:hover {
-    border-color: transparent;
-    color: var(--text-primary);
-    opacity: 1;
-  }
-
-  .simulation-focus-row:hover::before {
-    opacity: 1;
-    transform: none;
-    transition:
-      opacity var(--abs-soft-hover-field-duration) var(--ease-organic),
-      background var(--abs-soft-hover-field-duration) var(--ease-organic),
-      filter var(--abs-soft-hover-field-duration) var(--ease-organic);
-  }
-}
-
-.simulation-focus-row:active {
-  transform: none;
-  filter: none;
-}
-
-.simulation-focus-row:disabled {
-  cursor: wait;
-  opacity: 0.42;
-}
-
-.simulation-focus-row:disabled,
-.simulation-focus-row:disabled:hover,
-.simulation-focus-row:disabled:focus-visible,
-.simulation-focus-row:disabled:active {
-  color: var(--simulation-focus-ink);
-  transform: none;
-  filter: none;
-}
-
-.simulation-focus-row[aria-current='true']:disabled {
-  color: var(--text-primary);
-  opacity: 0.78;
-}
-
-.simulation-focus-row:disabled::before {
-  opacity: 0;
-}
-
-.simulation-focus-row[aria-current='true']:disabled::before {
-  opacity: 1;
-}
-
-.simulation-focus-row:focus-visible {
-  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
-  outline-offset: var(--abs-focus-ring-offset);
-}
-
-.simulation-focus-row[aria-current='true'] {
-  border-color: transparent;
-  background: transparent;
-  opacity: 1;
-}
-
-.simulation-focus-row__icon {
-  width: var(--simulation-focus-icon-size);
-  height: var(--simulation-focus-icon-size);
-  color: currentColor;
-}
-
-.simulation-focus-row__copy {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--gap-xs);
-}
-
-.simulation-focus-row__name {
-  min-width: 0;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  font-family: var(--abs-font-sans);
-  font-size: clamp(0.92rem, 0.9rem + 0.18vw, 1rem);
-  font-weight: var(--abs-weight-regular);
-  line-height: 1.1;
-  letter-spacing: 0;
-}
-
-.simulation-focus-row__meta {
-  flex: 0 0 auto;
-  color: currentColor;
-  font-family: var(--abs-font-sans);
-  font-size: var(--legend-font-size);
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-@media (min-width: 720px) and (min-height: 560px) {
-  .simulation-focus-modal {
-    --simulation-focus-row-height: 36px;
-    --simulation-focus-icon-size: 24px;
-    --simulation-focus-list-width: min(100%, 21rem);
-    gap: var(--gap-md);
-    padding:
-      clamp(24px, 4svh, 48px)
-      clamp(var(--gap-xl), 5vw, calc(var(--gap-xl) * 2));
-  }
-
-  .simulation-focus-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: calc(var(--gap-sm) * 0.8);
-    width: var(--simulation-focus-list-width);
-  }
-}
-
 .modal-label {
   text-align: center;
   width: 100%;
@@ -6643,74 +6277,12 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .cv-modal .modal-nav,
 .portfolio-modal .modal-nav,
-.contact-modal .modal-nav,
-.simulation-focus-modal .modal-nav {
+.contact-modal .modal-nav {
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 0;
-}
-
-.simulation-focus-modal .simulation-focus-modal__nav {
-  position: absolute;
-  top: calc(
-    var(--abs-window-control-seat-inset, 3px)
-    + max(var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px)), env(safe-area-inset-top, 0px))
-  );
-  right: calc(
-    var(--abs-window-control-seat-inset, 3px)
-    + max(var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px)), env(safe-area-inset-right, 0px))
-  );
-  z-index: 3;
-  width: var(--ui-icon-frame-size);
-  height: var(--ui-icon-frame-size);
-}
-
-.simulation-focus-modal .gate-back {
-  inline-size: var(--ui-icon-frame-size);
-  block-size: var(--ui-icon-frame-size);
-  width: var(--ui-icon-frame-size);
-  height: var(--ui-icon-frame-size);
-  min-width: var(--ui-icon-frame-size);
-  min-height: var(--ui-icon-frame-size);
-  max-width: var(--ui-icon-frame-size);
-  max-height: var(--ui-icon-frame-size);
-  padding: 0;
-  color: var(--simulation-focus-ink);
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: 50%;
-  corner-shape: round;
-  background: var(--abs-soft-control-fill);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  transition:
-    background-color 160ms var(--ease-organic),
-    color 160ms var(--ease-organic),
-    transform 0.15s var(--ease-organic),
-    filter 0.15s var(--ease-organic);
-}
-
-.simulation-focus-modal .gate-back:hover,
-.simulation-focus-modal .gate-back:focus-visible,
-.simulation-focus-modal .gate-back:active {
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-  color: var(--text-primary);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .simulation-focus-pill,
-  .simulation-focus-pill::before,
-  .simulation-focus-row,
-  .simulation-focus-row::before,
-  .simulation-focus-modal .gate-back {
-    transition: none;
-  }
 }
 
 .cv-modal.active .modal-label,
@@ -6822,10 +6394,6 @@ body.cv-page .route-topbar .gate-back {
   outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
   outline-offset: var(--abs-focus-ring-offset);
   box-shadow: none;
-}
-
-#simulation-focus-modal :is(.gate-back, .simulation-focus-row):focus-visible {
-  box-shadow: 0 0 0 var(--abs-focus-ring-offset) var(--abs-focus-ring-counter);
 }
 
 .gate-title {
@@ -7548,22 +7116,6 @@ body.page-transitioning {
 #modal-content-layer.active,
 .modal-content-layer.active {
   pointer-events: auto;
-}
-
-html.simulation-focus-modal-open #modal-blur-layer,
-html.simulation-focus-modal-open .modal-blur-layer,
-html.simulation-focus-modal-open #modal-content-layer,
-html.simulation-focus-modal-open .modal-content-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-blur-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .modal-blur-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] #modal-content-layer,
-html[data-shell-route='home'][data-abs-simulation-focus-transition] .modal-content-layer {
-  top: var(--safari-tint-inset-y, var(--safari-tint-inset));
-  right: var(--safari-tint-inset-x, var(--safari-tint-inset));
-  bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
-  left: var(--safari-tint-inset-x, var(--safari-tint-inset));
-  border-radius: var(--frame-outer-radius);
-  overflow: hidden;
 }
 
 /* Modal host centers gate content */

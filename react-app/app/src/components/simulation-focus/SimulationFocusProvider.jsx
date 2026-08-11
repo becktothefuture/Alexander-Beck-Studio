@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ChevronsUpDown } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
@@ -13,24 +13,15 @@ import {
   SIMULATION_FOCUS_STORAGE_KEY,
 } from '../../data/simulationCatalog.js';
 import { triggerHaptic } from '../../lib/haptics.js';
-import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 import {
   getWrappedAdjacentItem,
   shouldIgnoreGlobalKeyboardShortcut,
 } from '../../lib/global-keyboard-shortcuts.js';
-import {
-  dismissGateBackdrop,
-  ensureGateModalOverlay,
-  getGateModalCloseDurationMs,
-  prepareGateModalOpen,
-} from '../../legacy/modules/ui/gate-modal-shared.js';
 import { SimulationFocusContext, useSimulationFocus } from './SimulationFocusContext.js';
-import { SimulationIcon } from './SimulationIcon.jsx';
 
-const FOCUS_MODAL_ID = 'simulation-focus-modal';
-const CHOOSER_TITLE_ID = 'simulation-focus-modal-title';
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
+const SWITCHER_MOTION_FALLBACK_MS = 620;
 
 function readUrlMode() {
   if (typeof window === 'undefined') return null;
@@ -42,14 +33,20 @@ function readUrlMode() {
   }
 }
 
-function getFocusableElements(container) {
-  if (!container) return [];
-  return Array.from(container.querySelectorAll(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  )).filter((element) => {
-    const styles = window.getComputedStyle(element);
-    return styles.display !== 'none' && styles.visibility !== 'hidden';
-  });
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mediaQuery) return undefined;
+    const handleChange = () => setPrefersReducedMotion(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return prefersReducedMotion;
 }
 
 export function SimulationFocusProvider({
@@ -59,41 +56,27 @@ export function SimulationFocusProvider({
   simulationSwitchSnapshot,
   children,
 }) {
-  const returnFocusRef = useRef(null);
-  const closeTimerRef = useRef(null);
   const isSelectionPendingRef = useRef(false);
   const [focusState, setFocusState] = useState(() => getResolvedSimulationFocus());
-  const [isChooserOpen, setChooserOpen] = useState(false);
-  const [isChooserClosing, setChooserClosing] = useState(false);
-  const [isChooserActive, setChooserActive] = useState(false);
 
   const refreshFocusState = useCallback(() => {
     setFocusState(getResolvedSimulationFocus());
   }, []);
 
   useEffect(() => {
-    const syncTimer = window.setTimeout(() => {
-      refreshFocusState();
-    }, 0);
-    return () => {
-      window.clearTimeout(syncTimer);
-    };
+    const syncTimer = window.setTimeout(refreshFocusState, 0);
+    return () => window.clearTimeout(syncTimer);
   }, [refreshFocusState, routeId, surfaceRouteId]);
 
   useEffect(() => {
     const handleStorage = (event) => {
-      if (!event || event.key === SIMULATION_FOCUS_STORAGE_KEY) {
-        refreshFocusState();
-      }
-    };
-    const handleFocusChanged = () => {
-      refreshFocusState();
+      if (!event || event.key === SIMULATION_FOCUS_STORAGE_KEY) refreshFocusState();
     };
 
-    window.addEventListener(SIMULATION_FOCUS_CHANGED_EVENT, handleFocusChanged);
+    window.addEventListener(SIMULATION_FOCUS_CHANGED_EVENT, refreshFocusState);
     window.addEventListener('storage', handleStorage);
     return () => {
-      window.removeEventListener(SIMULATION_FOCUS_CHANGED_EVENT, handleFocusChanged);
+      window.removeEventListener(SIMULATION_FOCUS_CHANGED_EVENT, refreshFocusState);
       window.removeEventListener('storage', handleStorage);
     };
   }, [refreshFocusState]);
@@ -107,9 +90,6 @@ export function SimulationFocusProvider({
   const routeBackedActiveId = routeIsDailyFocus ? surfaceRouteId : null;
   const urlMode = readUrlMode();
   const homeModeActiveId = routeId === 'home' && DAILY_FOCUS_ID_SET.has(urlMode) ? urlMode : null;
-  // The pill communicates the accepted user intent, while runtime ownership continues
-  // to move through prepare/out/commit/prime/in behind it. Keeping the outgoing ID
-  // here made the label lag until the complete switch transaction had settled.
   const activeId = pendingSelectionId
     || routeBackedActiveId
     || homeModeActiveId
@@ -124,121 +104,27 @@ export function SimulationFocusProvider({
     isSelectionPendingRef.current = isSelectionPending;
   }, [isSelectionPending]);
 
-  const closeChooser = useCallback((options = {}) => {
-    const {
-      haptic = true,
-      restoreFocus = true,
-      keepBackdrop = false,
-      instant = false,
-    } = options;
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-    setChooserActive(false);
-    setChooserClosing(!instant);
-    setChooserOpen(false);
-    if (haptic) triggerHaptic('close');
-    if (!keepBackdrop) {
-      dismissGateBackdrop({ instant });
-    }
-    if (!instant) {
-      const closeDurationMs = getGateModalCloseDurationMs({ keepBackdrop });
-      closeTimerRef.current = window.setTimeout(() => {
-        setChooserClosing(false);
-        closeTimerRef.current = null;
-      }, closeDurationMs);
-    }
-    if (!restoreFocus) return;
+  const advanceSimulation = useCallback(() => {
+    if (isSelectionPendingRef.current || !activeId) return false;
 
-    const restoreTriggerFocus = () => {
-      if (returnFocusRef.current && document.contains(returnFocusRef.current)) {
-        returnFocusRef.current.focus({ preventScroll: true });
-      }
-    };
+    const nextSimulation = getWrappedAdjacentItem(
+      DAILY_FOCUS_SIMULATIONS,
+      activeId,
+      1,
+      (simulation) => simulation.id,
+    );
+    if (!nextSimulation || nextSimulation.id === activeId) return false;
 
-    window.setTimeout(restoreTriggerFocus, 0);
-    window.setTimeout(restoreTriggerFocus, 80);
-    window.setTimeout(restoreTriggerFocus, 180);
-  }, []);
-
-  const openChooser = useCallback((triggerElement = null) => {
-    if (isSelectionPendingRef.current) return;
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-    setChooserClosing(false);
-    setChooserActive(false);
-    returnFocusRef.current = triggerElement;
-    setChooserOpen(true);
-    triggerHaptic('open');
-  }, []);
-
-  const markChooserOverlayReady = useCallback(() => {
-    setChooserActive(true);
-  }, []);
-
-  useEffect(() => {
-    if (shouldShowSwitcher || (!isChooserOpen && !isChooserClosing && !isChooserActive)) {
-      return undefined;
-    }
-
-    const routeResetTimer = window.setTimeout(() => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-      setChooserActive(false);
-      setChooserClosing(false);
-      setChooserOpen(false);
-      dismissGateBackdrop();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(routeResetTimer);
-    };
-  }, [isChooserActive, isChooserClosing, isChooserOpen, shouldShowSwitcher]);
-
-  useEffect(() => () => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-    }
-    dismissGateBackdrop({ suppressReturnAnimation: true, instant: true });
-  }, []);
-
-  const toggleChooser = useCallback((triggerElement = null) => {
-    if (isSelectionPendingRef.current) {
-      if (isChooserOpen) {
-        closeChooser({ haptic: false, restoreFocus: false, instant: true });
-      }
-      return;
-    }
-    if (isChooserOpen) {
-      closeChooser();
-      return;
-    }
-    openChooser(triggerElement);
-  }, [closeChooser, isChooserOpen, openChooser]);
-
-  const selectSimulation = useCallback((simulationId) => {
-    if (isSelectionPendingRef.current) {
-      closeChooser({ haptic: false, restoreFocus: false, instant: true });
+    isSelectionPendingRef.current = true;
+    const accepted = requestSimulationSwitch?.(nextSimulation.id) === true;
+    if (!accepted) {
+      isSelectionPendingRef.current = false;
       return false;
     }
 
-    if (simulationId === activeId) {
-      closeChooser({ restoreFocus: false });
-      return true;
-    }
-
     triggerHaptic('step');
-    isSelectionPendingRef.current = true;
-    closeChooser({ haptic: false, restoreFocus: false, instant: true });
-    const accepted = requestSimulationSwitch?.(simulationId) === true;
-    if (!accepted) isSelectionPendingRef.current = false;
-    return accepted;
-  }, [activeId, closeChooser, requestSimulationSwitch]);
+    return true;
+  }, [activeId, requestSimulationSwitch]);
 
   useEffect(() => {
     if (routeId !== 'home' || !shouldShowSwitcher || isSelectionPending) return undefined;
@@ -253,65 +139,37 @@ export function SimulationFocusProvider({
         || shouldIgnoreGlobalKeyboardShortcut(event, { allowRouteTab: allowActiveHomeTab })
       ) return;
 
-      const nextSimulation = getWrappedAdjacentItem(
-        DAILY_FOCUS_SIMULATIONS,
-        activeId,
-        1,
-        (simulation) => simulation.id,
-      );
-      if (!nextSimulation || nextSimulation.id === activeId) return;
-
       event.preventDefault();
       event.stopPropagation();
-      selectSimulation(nextSimulation.id);
+      advanceSimulation();
     };
 
     window.addEventListener('keydown', handleGlobalSimulationKeyDown, true);
-    return () => {
-      window.removeEventListener('keydown', handleGlobalSimulationKeyDown, true);
-    };
-  }, [activeId, isSelectionPending, routeId, selectSimulation, shouldShowSwitcher]);
+    return () => window.removeEventListener('keydown', handleGlobalSimulationKeyDown, true);
+  }, [advanceSimulation, isSelectionPending, routeId, shouldShowSwitcher]);
 
   const value = useMemo(() => ({
     activeId,
     activeSimulation,
-    closeChooser,
+    advanceSimulation,
     dailyId: focusState.dailyId,
-    dailySimulations: DAILY_FOCUS_SIMULATIONS,
-    isChooserActive,
-    isChooserClosing,
-    isChooserMounted: isChooserOpen || isChooserClosing,
-    isChooserOpen,
     isSelectionPending,
-    markChooserOverlayReady,
-    openChooser,
     pendingSelectionId,
     routeId,
+    shouldShowSwitcher,
     simulationTransitionPhase,
     surfaceRouteId,
-    selectedId: focusState.selectedId,
-    selectSimulation,
-    shouldShowSwitcher,
-    toggleChooser,
   }), [
     activeId,
     activeSimulation,
-    closeChooser,
+    advanceSimulation,
     focusState.dailyId,
-    focusState.selectedId,
-    isChooserActive,
-    isChooserClosing,
-    isChooserOpen,
     isSelectionPending,
-    markChooserOverlayReady,
-    openChooser,
     pendingSelectionId,
     routeId,
+    shouldShowSwitcher,
     simulationTransitionPhase,
     surfaceRouteId,
-    selectSimulation,
-    shouldShowSwitcher,
-    toggleChooser,
   ]);
 
   return (
@@ -324,228 +182,105 @@ export function SimulationFocusProvider({
 export function SimulationFocusSwitcher() {
   const {
     activeSimulation,
-    isChooserOpen,
+    advanceSimulation,
     isSelectionPending,
     shouldShowSwitcher,
-    toggleChooser,
+    simulationTransitionPhase,
   } = useSimulationFocus();
-  const buttonRef = useRef(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [displayedSimulation, setDisplayedSimulation] = useState(activeSimulation);
+  const [incomingSimulation, setIncomingSimulation] = useState(null);
+  const [motionPhase, setMotionPhase] = useState('idle');
+  const [observedActiveId, setObservedActiveId] = useState(activeSimulation?.id || null);
+  const resetFrameRef = useRef(null);
 
-  if (!shouldShowSwitcher || !activeSimulation) return null;
+  if (activeSimulation && activeSimulation.id !== observedActiveId) {
+    setObservedActiveId(activeSimulation.id);
+    if (prefersReducedMotion || !displayedSimulation) {
+      setDisplayedSimulation(activeSimulation);
+      setIncomingSimulation(null);
+      setMotionPhase('idle');
+    } else {
+      setIncomingSimulation(activeSimulation);
+      setMotionPhase('advancing');
+    }
+  } else if (prefersReducedMotion && motionPhase === 'advancing' && incomingSimulation) {
+    setDisplayedSimulation(incomingSimulation);
+    setIncomingSimulation(null);
+    setMotionPhase('idle');
+  }
+
+  const finishLabelAdvance = useCallback(() => {
+    if (motionPhase !== 'advancing' || !incomingSimulation) return;
+    setDisplayedSimulation(incomingSimulation);
+    setIncomingSimulation(null);
+    setMotionPhase('resetting');
+    resetFrameRef.current = window.requestAnimationFrame(() => {
+      resetFrameRef.current = window.requestAnimationFrame(() => {
+        setMotionPhase('idle');
+        resetFrameRef.current = null;
+      });
+    });
+  }, [incomingSimulation, motionPhase]);
+
+  useEffect(() => () => {
+    if (resetFrameRef.current !== null) window.cancelAnimationFrame(resetFrameRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (motionPhase !== 'advancing') return undefined;
+    const fallbackTimer = window.setTimeout(finishLabelAdvance, SWITCHER_MOTION_FALLBACK_MS);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [finishLabelAdvance, motionPhase]);
+
+  if (!shouldShowSwitcher || !activeSimulation || !displayedSimulation) return null;
+
+  const nextLabelSimulation = incomingSimulation
+    || (activeSimulation.id !== displayedSimulation.id ? activeSimulation : displayedSimulation);
+  const isAdvancing = motionPhase === 'advancing';
 
   return (
     <div
       className="simulation-focus-switcher-slot"
-      data-open={String(isChooserOpen)}
       data-pending={String(isSelectionPending)}
       data-route-enter="control"
     >
       <button
-        ref={buttonRef}
         type="button"
         className="simulation-focus-pill simulation-focus-switcher"
         data-simulation-id={activeSimulation.id}
-        data-sound-action="press"
-        data-sound-source="simulation-chooser-toggle"
-        aria-haspopup="dialog"
-        aria-expanded={isChooserOpen}
-        aria-controls={FOCUS_MODAL_ID}
+        data-sound-action="step"
+        data-sound-source="simulation-next"
+        data-advancing={String(isAdvancing)}
+        data-phase={motionPhase}
+        data-transition-phase={simulationTransitionPhase}
+        aria-label={`Show next simulation. Currently ${activeSimulation.name}`}
         aria-busy={isSelectionPending ? 'true' : undefined}
         aria-disabled={isSelectionPending ? 'true' : undefined}
         disabled={isSelectionPending}
-        onClick={() => toggleChooser(buttonRef.current)}
+        onClick={advanceSimulation}
       >
-        <span className="simulation-focus-pill__label">{activeSimulation.name}</span>
-        <ChevronsUpDown className="simulation-focus-pill__icon" aria-hidden="true" strokeWidth={1.8} />
-      </button>
-    </div>
-  );
-}
-
-export function SimulationFocusChooser() {
-  const {
-    activeId,
-    closeChooser,
-    dailySimulations,
-    isChooserActive,
-    isChooserClosing,
-    isChooserMounted,
-    isChooserOpen,
-    isSelectionPending,
-    markChooserOverlayReady,
-    pendingSelectionId,
-    selectSimulation,
-  } = useSimulationFocus();
-  const modalRef = useRef(null);
-  const dismissChooser = useCallback(() => {
-    playInteractionSound('close', { source: 'simulation-chooser-close' });
-    closeChooser();
-  }, [closeChooser]);
-
-  useEffect(() => {
-    if (!isChooserMounted) return undefined;
-    document.documentElement.classList.add('simulation-focus-modal-open');
-    return () => {
-      document.documentElement.classList.remove('simulation-focus-modal-open');
-    };
-  }, [isChooserMounted]);
-
-  useEffect(() => {
-    if (!isChooserOpen) return undefined;
-    let cancelled = false;
-
-    try {
-      ensureGateModalOverlay();
-      prepareGateModalOpen(modalRef.current, {
-        mount: false,
-        onReady: () => {
-          if (!cancelled) {
-            markChooserOverlayReady();
-          }
-        },
-      });
-    } catch {
-      window.requestAnimationFrame(() => {
-        if (!cancelled) {
-          markChooserOverlayReady();
-        }
-      });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isChooserOpen, markChooserOverlayReady]);
-
-  useEffect(() => {
-    if (!isChooserActive) return undefined;
-
-    const focusFrame = window.requestAnimationFrame(() => {
-      const coarsePointer = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches;
-      const selected = coarsePointer ? null : modalRef.current?.querySelector('[aria-current="true"]');
-      const firstButton = modalRef.current?.querySelector('button');
-      (selected || (coarsePointer ? modalRef.current : firstButton))?.focus({ preventScroll: true });
-    });
-
-    const handleDismiss = () => dismissChooser();
-    document.addEventListener('modal-overlay-dismiss', handleDismiss);
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener('modal-overlay-dismiss', handleDismiss);
-    };
-  }, [dismissChooser, isChooserActive]);
-
-  useEffect(() => {
-    if (!isChooserActive) return undefined;
-
-    const handleDocumentKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      dismissChooser();
-    };
-
-    document.addEventListener('keydown', handleDocumentKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleDocumentKeyDown);
-    };
-  }, [dismissChooser, isChooserActive]);
-
-  const handleKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      dismissChooser();
-      return;
-    }
-
-    if (event.key !== 'Tab') return;
-    const focusable = getFocusableElements(modalRef.current);
-    if (!focusable.length) return;
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  const modalClassName = [
-    'simulation-focus-modal',
-    isChooserActive ? 'active' : '',
-    isChooserClosing ? 'closing' : '',
-    !isChooserMounted ? 'hidden' : '',
-  ].filter(Boolean).join(' ');
-
-  return (
-    <div
-      ref={modalRef}
-      id={FOCUS_MODAL_ID}
-      className={modalClassName}
-      aria-hidden={isChooserActive ? 'false' : 'true'}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={CHOOSER_TITLE_ID}
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
-    >
-      <div className="modal-nav simulation-focus-modal__nav">
-        <button
-          type="button"
-          className="gate-back abs-icon-btn"
-          data-modal-back
-          data-sound-action="manual"
-          data-sound-source="simulation-chooser-close"
-          aria-label="Close simulation chooser"
-          onClick={dismissChooser}
-        >
-          <svg
-            className="portfolio-project-view__close-icon"
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
-            aria-hidden="true"
-            focusable="false"
+        <span className="simulation-focus-pill__label-window" aria-hidden="true">
+          <span className="simulation-focus-pill__label simulation-focus-pill__label--current">
+            {displayedSimulation.name}
+          </span>
+          <span
+            className="simulation-focus-pill__label simulation-focus-pill__label--next"
+            onTransitionEnd={(event) => {
+              if (event.propertyName === 'transform') finishLabelAdvance();
+            }}
           >
-            <path
-              fill="currentColor"
-              d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
-            />
-          </svg>
-          <span>BACK</span>
-        </button>
-      </div>
+            {nextLabelSimulation.name}
+          </span>
+        </span>
+        <span className="simulation-focus-pill__icon" aria-hidden="true">
+          <RefreshCw strokeWidth={1.8} />
+        </span>
+      </button>
 
-      <h2 id={CHOOSER_TITLE_ID} className="simulation-focus-modal__title">Choose a simulation</h2>
-
-      <div className="simulation-focus-list" role="list">
-        {dailySimulations.map((entry, index) => {
-          const isActive = entry.id === activeId;
-          const isPending = entry.id === pendingSelectionId;
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              className="simulation-focus-row"
-              data-simulation-id={entry.id}
-              data-sound-action="press"
-              data-sound-source={`simulation-select-${entry.id}`}
-              style={{ '--simulation-focus-row-index': index }}
-              aria-current={isActive ? 'true' : undefined}
-              aria-busy={isPending ? 'true' : undefined}
-              disabled={isSelectionPending}
-              onClick={() => selectSimulation(entry.id)}
-            >
-              <SimulationIcon id={entry.id} className="simulation-focus-row__icon" />
-              <span className="simulation-focus-row__copy">
-                <span className="simulation-focus-row__name">{entry.name}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <span className="simulation-focus-switcher-status" aria-live="polite">
+        Current simulation: {activeSimulation.name}
+      </span>
     </div>
   );
 }

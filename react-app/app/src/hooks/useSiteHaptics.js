@@ -8,12 +8,10 @@ const INTERACTIVE_SELECTOR = [
   '[role="button"]',
   '.abs-icon-btn',
   '.simulation-focus-pill',
-  '.simulation-focus-row',
 ].join(',');
 
 const OPEN_SELECTOR = [
   '[aria-haspopup="dialog"]',
-  '.simulation-focus-switcher',
 ].join(',');
 
 const CLOSE_SELECTOR = [
@@ -31,7 +29,7 @@ function getHapticTarget(target) {
 
 function getActivationType(element) {
   if (element.matches(CLOSE_SELECTOR)) return 'close';
-  if (element.matches('.simulation-focus-row')) return 'step';
+  if (element.matches('.simulation-focus-switcher')) return 'step';
   if (element.matches(OPEN_SELECTOR)) return 'open';
   return 'tap';
 }

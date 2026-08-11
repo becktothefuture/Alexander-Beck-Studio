@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import { chromium, firefox, webkit } from 'playwright';
 import { PNG } from 'pngjs';
+import { advanceSimulationSwitcherTo } from './lib/simulation-switcher.mjs';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const designSystemPath = resolve(repoRoot, 'react-app/app/public/config/design-system.json');
@@ -162,6 +163,7 @@ function loadExpectations() {
   if (!routeBacked) throw new Error('No route-backed daily simulation available for audit.');
 
   return {
+    dailySimulations: simulations.filter((entry) => entry.stage === 'daily-rotation'),
     homeMode,
     routeBacked,
     frame: designSystem.shell?.theme?.siteFrame || '#000000',
@@ -462,8 +464,12 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     const directHome = await readFrameState(page);
     assertFrameState(siteTheme, browserScheme, `direct-home-${expectations.homeMode.id}`, directHome, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !isMobile, { isMobile });
 
-    await page.locator('.simulation-focus-switcher').click({ timeout: 5000 });
-    await page.locator('.simulation-focus-row').filter({ hasText: expectations.routeBacked.name }).click({ timeout: 5000 });
+    await advanceSimulationSwitcherTo(
+      page,
+      expectations.dailySimulations,
+      expectations.routeBacked.id,
+      15000,
+    );
     await page.waitForFunction((name) => (
       document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() === name
       && document.documentElement.dataset.absSimulationFocusTransition !== 'out'

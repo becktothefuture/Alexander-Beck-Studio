@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Default: 64 core traces (2 browsers × 2 viewports × 2 themes × 2 motion
-// profiles × 4 topologies), one rapid-input probe per profile, and three fresh-
+// profiles × 3 reachable adjacent topologies), one rapid-input probe per profile, and three fresh-
 // context fault probes per browser. Deterministic comma-separated filters:
 //   ABS_LIFECYCLE_BROWSER=chromium|webkit|all (ABS_BROWSER is also accepted)
 //   ABS_LIFECYCLE_VIEWPORT=desktop|mobile|all
 //   ABS_LIFECYCLE_THEME=light|dark|all
 //   ABS_LIFECYCLE_MOTION=normal|reduced|all
 //   ABS_LIFECYCLE_TOPOLOGY=home-mode-to-home-mode|home-mode-to-route-backed|
-//     route-backed-to-home-mode|route-backed-to-route-backed|all
+//     route-backed-to-home-mode|all
 //   ABS_LIFECYCLE_FLOW=foundation-to-scaffold,...|all
 // Harness controls: ABS_DEV_URL, ABS_LIFECYCLE_WAIT_MS,
 // ABS_LIFECYCLE_HEADED=1, ABS_LIFECYCLE_SKIP_RAPID=1,
@@ -48,10 +48,9 @@ const viewports = Object.freeze({
 });
 
 const coreFlows = Object.freeze([
-  Object.freeze({ name: 'foundation-to-scaffold', from: 'pit', to: '3d-cube', topology: 'home-mode-to-home-mode' }),
+  Object.freeze({ name: 'foundation-to-attention', from: 'pit', to: 'flies', topology: 'home-mode-to-home-mode' }),
   Object.freeze({ name: 'flow-to-tension', from: 'water', to: 'repel-room', topology: 'home-mode-to-route-backed' }),
-  Object.freeze({ name: 'tension-to-multiplicity', from: 'repel-room', to: 'kaleidoscope-rift', topology: 'route-backed-to-home-mode' }),
-  Object.freeze({ name: 'tension-to-convergence', from: 'repel-room', to: 'flock-of-birds', topology: 'route-backed-to-route-backed' }),
+  Object.freeze({ name: 'tension-to-continuity', from: 'repel-room', to: '3d-sphere', topology: 'route-backed-to-home-mode' }),
 ]);
 
 function csvFilter(name, values, aliases = {}, fallback = '') {
@@ -333,17 +332,13 @@ async function waitForSettledSimulation(page, simulationId) {
       && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle'
       && (root.dataset.absTransitionPhase || 'idle') === 'idle'
       && root.dataset.absBootState !== 'booting'
-      && !document.getElementById('abs-boot-overlay')
-      && !document.querySelector('.simulation-focus-modal.active');
+      && !document.getElementById('abs-boot-overlay');
   }, simulationId, { timeout: waitMs, polling: 25 });
   await page.waitForTimeout(80);
 }
 
-async function openAndSelect(page, simulationId) {
+async function advanceOnce(page, simulationId, expectedLabel) {
   await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
-  const row = page.locator(`.simulation-focus-modal.active .simulation-focus-row[data-simulation-id="${simulationId}"]`);
-  const expectedLabel = (await row.locator('.simulation-focus-row__name').textContent())?.trim() || '';
-  await row.click({ timeout: waitMs });
   return page.evaluate(({ expectedId, expectedName }) => {
     const switcher = document.querySelector('.simulation-focus-switcher');
     const transaction = window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || null;
@@ -568,7 +563,7 @@ async function runCoreTrace(browser, profile, flow, entries) {
       ), phase, { timeout: waitMs, polling: 10 });
       await page.screenshot({ path: resolve(runOutputDir, `${id}-${phase}.png`) });
     });
-    const tapState = await openAndSelect(page, flow.to);
+    const tapState = await advanceOnce(page, flow.to, entries.get(flow.to)?.name || '');
     await waitForSettledSimulation(page, flow.to);
     await Promise.all(phaseCaptures);
     trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.stop());
@@ -613,31 +608,14 @@ async function runRapidProbe(browser, profile, entries) {
     await waitForSettledSimulation(page, 'pit');
     await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.start());
     await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
-    await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
-    const burstDispatchCount = await page.evaluate((targetId) => {
-      const row = document.querySelector(
-        `.simulation-focus-modal.active .simulation-focus-row[data-simulation-id="${targetId}"]`,
-      );
-      if (!row) return 0;
+    const burstDispatchCount = await page.evaluate(() => {
+      const switcher = document.querySelector('.simulation-focus-switcher');
+      if (!switcher) return 0;
       const count = 20;
-      for (let index = 0; index < count; index += 1) row.click();
+      for (let index = 0; index < count; index += 1) switcher.click();
       return count;
-    }, 'repel-room');
-    if (burstDispatchCount !== 20) issues.push(`same-task-burst-not-dispatched:${burstDispatchCount}`);
-    const latestIntentAccepted = await page.evaluate(() => {
-      const navigate = window.__ABS_SPA_NAVIGATE__;
-      if (typeof navigate !== 'function') return false;
-      const queuedIntermediate = navigate('/index.html', {
-        transitionStyle: 'simulation-focus',
-        simulationId: '3d-cube',
-      });
-      const restoredLatest = navigate('/index.html', {
-        transitionStyle: 'simulation-focus',
-        simulationId: 'repel-room',
-      });
-      return queuedIntermediate === true && restoredLatest === true;
     });
-    if (!latestIntentAccepted) issues.push('programmatic-latest-intent-rejected');
+    if (burstDispatchCount !== 20) issues.push(`same-task-burst-not-dispatched:${burstDispatchCount}`);
     const rapidAttempts = [];
     for (let index = 0; index < 10; index += 1) {
       rapidAttempts.push(await page.evaluate(() => {
@@ -649,23 +627,22 @@ async function runRapidProbe(browser, profile, entries) {
           phase,
           busy,
           disabled: Boolean(switcher?.disabled),
-          modalActive: Boolean(document.querySelector('.simulation-focus-modal.active')),
         };
       }));
       await page.waitForTimeout(12);
     }
-    await waitForSettledSimulation(page, 'repel-room');
+    await waitForSettledSimulation(page, 'flies');
     trace = await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.stop());
     const final = trace.frames.at(-1);
-    if (final?.runtimeId !== 'repel-room') issues.push(`target-not-settled:${final?.runtimeId}`);
+    if (final?.runtimeId !== 'flies') issues.push(`target-not-settled:${final?.runtimeId}`);
     const busyAttempts = rapidAttempts.filter((attempt) => attempt.busy);
     if (!busyAttempts.length) issues.push('rapid-input-missed-active-transaction');
-    if (busyAttempts.some((attempt) => !attempt.disabled || attempt.modalActive)) issues.push('rapid-input-not-blocked');
+    if (busyAttempts.some((attempt) => !attempt.disabled)) issues.push('rapid-input-not-blocked');
     if (trace.frames.some((frame) => new Set(frame.canvases.map((canvas) => canvas.owner || canvas.id)).size > 1 && Number(frame.visual?.maxScale ?? 1) > 0.035)) issues.push('visible-overlap');
     if (trace.frames.some((frame) => !frame.title.present || !frame.title.sameNode)) issues.push('title-node-replaced');
     const finalTx = [...trace.switchEvents].reverse().find((event) => event.detail?.phase === 'idle')?.detail;
     if (finalTx?.busy) issues.push('transaction-left-busy');
-    if (finalTx?.targetSimulationId !== 'repel-room') issues.push(`stale-transaction-published:${finalTx?.targetSimulationId}`);
+    if (finalTx?.targetSimulationId !== 'flies') issues.push(`stale-transaction-published:${finalTx?.targetSimulationId}`);
     const historiesByTransaction = new Map();
     for (const event of trace.switchEvents) {
       if (!event.detail?.transactionId) continue;
@@ -732,13 +709,13 @@ async function runFaultProbe(browser, browserName, type, entries) {
   let trace = null;
   let evidence = null;
   try {
-    await page.goto(entryUrl(entries.get('pit')), { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await waitForSettledSimulation(page, 'pit');
+    await page.goto(entryUrl(entries.get('water')), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await waitForSettledSimulation(page, 'water');
     const activationBaseline = await page.evaluate(() => (
       Number(window.__ABS_LIFECYCLE_FAULT_INJECTION__?.activationCount || 0)
     ));
     await page.evaluate(() => window.__ABS_SIMULATION_LIFECYCLE_AUDIT__.start());
-    await openAndSelect(page, 'repel-room');
+    await advanceOnce(page, 'repel-room', entries.get('repel-room')?.name || '');
     await page.waitForFunction(() => (
       window.__ABS_SIMULATION_LIFECYCLE_AUDIT__?.switchEvents?.some(
         (event) => event.detail?.phase && event.detail.phase !== 'idle',
@@ -746,7 +723,6 @@ async function runFaultProbe(browser, browserName, type, entries) {
     ), null, { timeout: waitMs, polling: 10 });
     await page.waitForFunction(() => (
       (document.documentElement.dataset.absSimulationFocusTransition || 'idle') === 'idle'
-      && !document.querySelector('.simulation-focus-modal.active')
       && window.__ABS_SIMULATION_LIFECYCLE_AUDIT__?.switchEvents?.some(
         (event) => event.detail?.phase === 'idle' && event.detail?.busy === false,
       )

@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { advanceSimulationSwitcherTo } from './lib/simulation-switcher.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const catalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
@@ -120,30 +121,16 @@ async function waitForSettledSimulation(page, entry, timeoutMs = waitMs) {
   }
 }
 
-async function chooseSimulation(page, entry) {
+async function chooseSimulation(page, entry, entries) {
   const currentId = await page.locator('.simulation-focus-switcher').getAttribute('data-simulation-id');
   if (currentId === entry.id) {
     await waitForSettledSimulation(page, entry, Math.min(waitMs, 8000));
-    return { method: 'current', chooserError: '' };
+    return { method: 'current' };
   }
 
-  try {
-    await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
-    await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
-    await page
-      .locator('.simulation-focus-modal.active .simulation-focus-row')
-      .filter({ hasText: entry.name })
-      .first()
-      .click({ timeout: waitMs });
-    await waitForSettledSimulation(page, entry, Math.min(waitMs, 8000));
-    return { method: 'chooser', chooserError: '' };
-  } catch (error) {
-    const directPath = entry.dailyHref || entry.launchPath || '/index.html';
-    await page.goto(resolveUrl(directPath), { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForSelector('.simulation-focus-switcher', { timeout: waitMs });
-    await waitForSettledSimulation(page, entry);
-    return { method: 'direct-fallback', chooserError: error?.message || String(error) };
-  }
+  await advanceSimulationSwitcherTo(page, entries, entry.id, waitMs);
+  await waitForSettledSimulation(page, entry, Math.min(waitMs, 8000));
+  return { method: 'circular-switcher' };
 }
 
 async function readCaptureState(page, entry, theme) {
@@ -302,7 +289,7 @@ async function captureTheme(browser, entries, theme) {
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     process.stdout.write(`Capturing ${theme} ${entry.id}... `);
-    const selection = await chooseSimulation(page, entry);
+    const selection = await chooseSimulation(page, entry, entries);
     await page.waitForTimeout(settleMs);
     await waitForSettledSimulation(page, entry);
     const state = await readCaptureState(page, entry, theme);
@@ -335,7 +322,7 @@ async function auditDesktopIsolation(browser, entries) {
   await page.waitForSelector('.simulation-focus-switcher', { timeout: waitMs });
   const states = [];
   for (const entry of entries) {
-    await chooseSimulation(page, entry);
+    await chooseSimulation(page, entry, entries);
     const state = await readCaptureState(page, entry, 'light');
     assertCaptureState(state, 1);
     states.push(state);

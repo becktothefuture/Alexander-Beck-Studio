@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -14,14 +14,6 @@ import {
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const outputRoot = resolve(repoRoot, 'output/playwright/focus-contrast');
-const simulationCatalogPath = resolve(repoRoot, 'react-app/app/src/data/simulationCatalog.json');
-const simulationCatalog = JSON.parse(await readFile(simulationCatalogPath, 'utf8'));
-const dailyFocusSimulationCount = (simulationCatalog.simulations || [])
-  .filter((entry) => entry.stage === 'daily-rotation')
-  .length;
-if (dailyFocusSimulationCount < 1) {
-  throw new Error('Focus contrast audit requires at least one daily-rotation simulation');
-}
 const browserOption = String(process.env.ABS_BROWSER || 'all').trim().toLowerCase();
 const browserLaunchers = new Map([
   ['chromium', chromium],
@@ -139,18 +131,6 @@ function getFocusContract(routeId, profile) {
 }
 
 const specialFocusContracts = Object.freeze({
-  simulationModal: Object.freeze({
-    id: 'home-simulation-modal',
-    scopeSelector: '#simulation-focus-modal[aria-hidden="false"]',
-    expectations: Object.freeze([
-      Object.freeze({ selector: '.gate-back', count: 1, indicator: 'dual-ring' }),
-      Object.freeze({
-        selector: '.simulation-focus-row',
-        count: dailyFocusSimulationCount,
-        indicator: 'dual-ring',
-      }),
-    ]),
-  }),
   portfolioGate: Object.freeze({
     id: 'portfolio-protected-gate',
     scopeSelector: '.portfolio-access-gate.is-open',
@@ -1692,33 +1672,6 @@ async function run() {
                     );
                   } else {
                     contrastObservation = await auditContrastState(page, route.id, `${label}/settled`);
-                  }
-
-                  if (route.id === 'home') {
-                    const switcher = page.locator('.simulation-focus-switcher');
-                    await switcher.click();
-                    await page.locator('#simulation-focus-modal[aria-hidden="false"]').waitFor({ state: 'visible', timeout: 30_000 });
-                    await page.waitForFunction(() => {
-                      const modal = document.querySelector('#simulation-focus-modal.active[aria-hidden="false"]');
-                      return modal && Number.parseFloat(getComputedStyle(modal).opacity || '0') >= 0.999;
-                    }, undefined, { timeout: 30_000, polling: 25 });
-                    focusStates.modal = await auditFocusState(
-                      page,
-                      specialFocusContracts.simulationModal,
-                      keyboardKey,
-                      `${label}/modal`,
-                    );
-                    await page.screenshot({
-                      path: resolve(outputRoot, `${browserName}-${theme}-${profile.id}-home-modal.png`),
-                      fullPage: true,
-                      animations: 'disabled',
-                    });
-                    await page.keyboard.press('Escape');
-                    await page.waitForFunction(() => (
-                      !document.documentElement.classList.contains('simulation-focus-modal-open')
-                    ), undefined, { timeout: 30_000, polling: 25 });
-                    reverseNavigation.modalReturnedToSwitcher = await switcher.evaluate((element) => document.activeElement === element);
-                    assert(reverseNavigation.modalReturnedToSwitcher, `${label}: closing the simulation modal did not restore switcher focus`);
                   }
 
                   await page.screenshot({

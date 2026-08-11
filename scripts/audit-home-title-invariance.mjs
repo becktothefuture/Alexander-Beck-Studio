@@ -739,7 +739,7 @@ async function visitSimulation(page, entry) {
   return metrics;
 }
 
-async function auditStableTitleHandoffs(browser) {
+async function auditStableTitleHandoffs(browser, dailyEntries) {
   const context = await browser.newContext({
     viewport,
     colorScheme: 'light',
@@ -766,12 +766,15 @@ async function auditStableTitleHandoffs(browser) {
       window.__ABS_TITLE_PLANE_IDENTITY__ = document.getElementById('simulation-title-canvas');
     });
 
-    const handoffs = [
-      { label: 'home-to-home', targetName: 'Scaffold', targetId: '3d-cube' },
-      { label: 'home-to-daily', targetName: 'Tension', targetId: 'repel-room' },
-      { label: 'daily-to-daily', targetName: 'Convergence', targetId: 'flock-of-birds' },
-      { label: 'daily-to-home', targetName: 'Foundation', targetId: 'pit' },
-    ];
+    const handoffs = dailyEntries.map((entry, index) => {
+      const target = dailyEntries[(index + 1) % dailyEntries.length];
+      const fromTopology = entry.surface === 'home-mode' ? 'home' : 'daily';
+      const targetTopology = target.surface === 'home-mode' ? 'home' : 'daily';
+      return {
+        label: `${fromTopology}-to-${targetTopology}-${entry.id}-to-${target.id}`,
+        targetId: target.id,
+      };
+    });
     const results = [];
     for (const handoff of handoffs) {
       await page.waitForFunction(async () => {
@@ -779,8 +782,6 @@ async function auditStableTitleHandoffs(browser) {
         const snapshot = titleModule.getHomepageCanvasTitleSnapshot();
         return snapshot.sourceConnected && snapshot.visible;
       }, null, { timeout: waitMs, polling: 'raf' });
-      await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
-      await page.waitForSelector('.simulation-focus-modal.active', { timeout: waitMs });
       await page.evaluate(async ({ label }) => {
         const titleModule = await import('/src/legacy/modules/rendering/title-depth.js');
         const scratch = document.createElement('canvas');
@@ -859,10 +860,7 @@ async function auditStableTitleHandoffs(browser) {
         requestAnimationFrame(sample);
       }, { label: handoff.label });
 
-      await page.locator('.simulation-focus-modal.active .simulation-focus-row')
-        .filter({ hasText: handoff.targetName })
-        .first()
-        .click({ timeout: waitMs });
+      await page.locator('.simulation-focus-switcher').click({ timeout: waitMs });
       await page.waitForFunction(({ targetId }) => {
         const audit = window.__ABS_TITLE_HANDOFF_AUDIT__;
         const tx = window.__ABS_SIMULATION_SWITCH_TRANSACTION__ || {};
@@ -1462,7 +1460,7 @@ async function main() {
     }
     const resizeOnly = process.env.ABS_TITLE_RESIZE_ONLY === '1';
     const homeCanvasEntrance = resizeOnly ? null : await auditHomeCanvasTitleEntrance(browser);
-    const stableTitleHandoffs = resizeOnly ? [] : await auditStableTitleHandoffs(browser);
+    const stableTitleHandoffs = resizeOnly ? [] : await auditStableTitleHandoffs(browser, entries);
     const stableTitleResize = await auditStableTitleResize(browser);
     const retainedTitleResize = await auditRetainedTitleResize(browser);
     const continuousHomeResize = await auditContinuousHomeResize(browser);

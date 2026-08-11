@@ -43,7 +43,6 @@ import { useTimeOfDayPaletteSync } from '../../hooks/useTimeOfDayPaletteSync.js'
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
 import { ViewportCover } from './ViewportCover.jsx';
 import {
-  SimulationFocusChooser,
   SimulationFocusProvider,
   SimulationFocusSwitcher,
 } from '../simulation-focus/SimulationFocusProvider.jsx';
@@ -653,7 +652,6 @@ export function SiteApp() {
             showFooter={routeView.showFooter}
             windowOverlayContent={routeView.windowOverlayContent}
             simulationFocusControls={<SimulationFocusSwitcher />}
-            simulationFocusModal={<SimulationFocusChooser />}
             surfaceRefs={surfaceRefs}
             onRoutePrewarm={prewarmRoute}
           />

@@ -11,12 +11,12 @@ Source of truth for mode IDs and narrative order:
 
 - Public simulation IDs and narrative ordering are defined by the mode constants and catalog together.
 - `18` modes are in the narrative cycle (`NARRATIVE_MODE_SEQUENCE`).
-- The Daily Simulation chooser and live daily selection are derived from the catalog `daily-rotation` stage; the current catalog contains `13` Daily simulations.
+- The circular Daily Simulation switcher and live selection are derived from the catalog `daily-rotation` stage; the current catalog contains `13` Daily simulations.
 - Daily Simulation selection uses the catalog `daily-rotation` stage as an eligibility pool. Each full page reload randomly selects an entry other than the last visible simulation, so the simulation always changes instead of following a calendar rotation.
 - `flock-of-birds` and `repel-room` are route-backed daily entries: they appear in the narrative sequence and open dedicated renderers instead of the legacy ball-physics mode runner.
 - `rift-rings` is archived. Its direct lab route remains available, but it is not part of Daily Simulation or the narrative sequence.
 - `aperture-bloom` remains a route-backed collection/narrative entry, but it is not part of the live daily selection.
-- `elastic-center`, `napoleon-point-cloud`, and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation chooser or live narrative cycle.
+- `elastic-center`, `napoleon-point-cloud`, and `beach-ball-room` are collection entries with `includeInNarrative: false`; they are not in the Daily Simulation switcher or live narrative cycle.
 
 ## Lab-Only Route Candidates
 

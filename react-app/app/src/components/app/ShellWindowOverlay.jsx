@@ -6,8 +6,7 @@ function dispatchWindowOverlayDismiss(event) {
   const contentLayer = event.currentTarget;
   const modalHost = contentLayer.querySelector('#window-overlay-modal-host');
   const isDismissSurface = target === contentLayer
-    || target === modalHost
-    || target.classList.contains('simulation-focus-modal');
+    || target === modalHost;
 
   if (isDismissSurface) {
     document.dispatchEvent(new CustomEvent('modal-overlay-dismiss', {
