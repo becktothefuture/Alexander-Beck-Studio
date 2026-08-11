@@ -41,6 +41,8 @@ import { removeDepthTitleLayerClass } from '../rendering/depth-title-layer-state
 import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
 import { resolveFlatCircleBatchingStrategy } from '../rendering/simulation-render-strategy.js';
 import { resolvePhysicsStepSeconds } from './mode-physics-policy.js';
+import { consumeWarmupFrameSlice } from './warmup-frame-scheduler.js';
+import { normalizePerStepMultiplier, resolveReferenceStepHz } from '../utils/time-normalization.js';
 import {
   renderActiveAtmosphereFrame,
   resolveAtmosphereTitlePlacementOverride,
@@ -62,6 +64,7 @@ const DEPTH_FOG_START_Z = 0.75;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
+const PIT_WARMUP_SUBSTEP_DT = 1 / 120;
 const PIT_PERF_WINDOW = 120;
 const EMPTY_COLLISION_STATS = Object.freeze({
   pairCount: 0,
@@ -496,7 +499,14 @@ function evaluatePitSleep(globals, balls, mode, dt) {
   const supportVerticalSnap = (pitMotion?.supportVerticalSnap ?? groundedVerticalSnap) * dpr;
   const restingLateralSnap = (pitMotion?.restingLateralSnap ?? 6) * dpr;
   const restingAngularSnap = pitMotion?.restingAngularSnap ?? 0.06;
+  const referenceStepHz = resolveReferenceStepHz(globals);
+  const restingHorizontalDamping = normalizePerStepMultiplier(0.32, dt, referenceStepHz);
+  const restingVerticalDamping = normalizePerStepMultiplier(0.2, dt, referenceStepHz);
+  const restingAngularDamping = normalizePerStepMultiplier(0.28, dt, referenceStepHz);
   let sleepingCount = 0;
+  let awakeCount = 0;
+  let maxAwakeSpeedSq = 0;
+  let maxAwakeAngularSpeed = 0;
 
   for (let index = 0; index < balls.length; index += 1) {
     const ball = balls[index];
@@ -511,12 +521,15 @@ function evaluatePitSleep(globals, balls, mode, dt) {
     const settled = ball.isGrounded || ball.hasSupport || hasRestingContact;
     if (!settled || speedSq >= vThreshSq || angularSpeed >= wThresh) {
       ball.sleepTimer = 0;
+      awakeCount += 1;
+      maxAwakeSpeedSq = Math.max(maxAwakeSpeedSq, speedSq);
+      maxAwakeAngularSpeed = Math.max(maxAwakeAngularSpeed, angularSpeed);
       continue;
     }
 
-    ball.vx *= 0.32;
-    ball.vy *= 0.2;
-    ball.omega *= 0.28;
+    ball.vx *= restingHorizontalDamping;
+    ball.vy *= restingVerticalDamping;
+    ball.omega *= restingAngularDamping;
     if (ball.isGrounded && Math.abs(ball.vy) < groundedVerticalSnap) ball.vy = 0;
     if (ball.hasSupport && Math.abs(ball.vy) < supportVerticalSnap) ball.vy = 0;
     if (Math.abs(ball.vx) < restingLateralSnap) ball.vx = 0;
@@ -547,11 +560,19 @@ function evaluatePitSleep(globals, balls, mode, dt) {
       ball.isSleeping = true;
       sleepingCount += 1;
     }
+    if (!ball.isSleeping) {
+      awakeCount += 1;
+      maxAwakeSpeedSq = Math.max(maxAwakeSpeedSq, ball.vx * ball.vx + ball.vy * ball.vy);
+      maxAwakeAngularSpeed = Math.max(maxAwakeAngularSpeed, Math.abs(ball.omega));
+    }
   }
 
+  globals.pitSleepingBodyCount = sleepingCount;
+  globals.pitAwakeBodyCount = awakeCount;
+  globals.pitMaxAwakeSpeedSq = maxAwakeSpeedSq;
+  globals.pitMaxAwakeAngularSpeed = maxAwakeAngularSpeed;
   if (globals.performanceAuditEnabled === true) {
     globals.pitSleepEvaluationCount = (Number(globals.pitSleepEvaluationCount) || 0) + 1;
-    globals.pitSleepingBodyCount = sleepingCount;
   }
 }
 
@@ -573,7 +594,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
 
   // Select physics timestep based on device type (60Hz mobile, 120Hz desktop)
-  const DT = resolvePhysicsStepSeconds(globals.currentMode, globals);
+  const DT = resolvePhysicsStepSeconds(
+    globals.currentMode,
+    globals,
+    dtSeconds,
+    performance.now(),
+  );
 
   // Kaleidoscope mode has its own lightweight physics path:
   // - Smooth (per-frame), not fixed-timestep accumulator
@@ -815,6 +841,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
 
   if (isPitMode) {
+    globals.pitLastOverlapDebt = pitOverlapDebt;
     const store = getPitPerfStore(globals);
     if (store) {
       store.pendingPhysics = {
@@ -840,42 +867,61 @@ export function updatePhysics(dtSeconds, applyForcesFunc) {
     updateCursorExplosion(dtSeconds);
   }
 
-  if (!canvas) return;
-  if (!balls) return;
+  if (!canvas) return false;
+  if (!balls) return false;
 
   // Some modes use their per-frame updater to emit the next set of bodies.
   // Keep that clock alive while the scene is intentionally empty, otherwise
   // an emitter that clears between phrases can never start its next loop.
   if (balls.length === 0) {
     getModeUpdater()?.(dtSeconds);
-    return;
+    return false;
   }
 
-  // Mode warmup: consume synchronously before first render after init.
-  // This prevents visible “settling” motion (no pop-in/flash) by advancing physics
-  // N render-frames without drawing.
+  // Consume the exact warm-up sequence in bounded slices while the route is
+  // covered, so startup settling cannot monopolise one display frame.
   const warmupFrames = Math.max(0, Math.round(globals.warmupFramesRemaining || 0));
   if (warmupFrames > 0) {
-    globals.warmupFramesRemaining = 0;
+    const usePitSubsteps = globals.currentMode === MODES.PIT
+      && !globals.isMobile
+      && !globals.isMobileViewport;
+    const remainingUnits = usePitSubsteps
+      ? Math.max(0, Math.round(Number(globals.warmupSubstepsRemaining) || warmupFrames * 2))
+      : warmupFrames;
+    const warmupDt = usePitSubsteps ? PIT_WARMUP_SUBSTEP_DT : WARMUP_FRAME_DT;
     setAccumulator(0);
-
-    for (let i = 0; i < warmupFrames; i++) {
-      updatePhysicsInternal(WARMUP_FRAME_DT, applyForcesFunc);
+    const slice = consumeWarmupFrameSlice({
+      remainingFrames: remainingUnits,
+      runFrame: () => updatePhysicsInternal(warmupDt, applyForcesFunc),
+    });
+    if (usePitSubsteps) {
+      globals.warmupSubstepsRemaining = slice.remainingFrames;
+      globals.warmupFramesRemaining = Math.ceil(slice.remainingFrames / 2);
+    } else {
+      globals.warmupFramesRemaining = slice.remainingFrames;
     }
-    // No further physics this frame; render will show the settled state.
-    return;
+    globals.warmupSliceCount = (Number(globals.warmupSliceCount) || 0) + 1;
+    globals.warmupConsumedFrameCount = (Number(globals.warmupConsumedFrameCount) || 0)
+      + slice.consumedFrames * (warmupDt / WARMUP_FRAME_DT);
+    globals.warmupMaxSliceMs = Math.max(Number(globals.warmupMaxSliceMs) || 0, slice.elapsedMs);
+    globals.warmupHardLimitExceededCount = (Number(globals.warmupHardLimitExceededCount) || 0)
+      + (slice.exceededHardLimit ? 1 : 0);
+    // Keep the covered route unpainted until the exact warm-up sequence completes.
+    return slice.remainingFrames > 0;
   }
 
   updatePhysicsInternal(dtSeconds, applyForcesFunc);
+  return false;
 }
 
-export function render() {
+export function render(frameBudget = null) {
   const globals = getGlobals();
   const ctx = globals.ctx;
   const balls = globals.balls;
   const canvas = globals.canvas;
   
   if (!ctx || !canvas) return;
+  if ((Number(globals.warmupFramesRemaining) || 0) > 0) return;
   if (globalThis.__ABS_ROUTE_PERF_AUDIT__ === true) {
     canvas.__absAuditFrameCount = (Number(canvas.__absAuditFrameCount) || 0) + 1;
     const timestamps = canvas.__absAuditFrameTimestamps || (canvas.__absAuditFrameTimestamps = []);
@@ -1025,7 +1071,7 @@ export function render() {
   drawWalls(ctx, canvas.width, canvas.height, {
     wallGradientStrokeEnabled: qualityProfile.wallGradientStrokeEnabled
   });
-  renderActiveAtmosphereFrame(globals);
+  renderActiveAtmosphereFrame(globals, frameBudget);
   if (isPitMode) {
     const postFxMs = performance.now() - postFxStart;
     finalizePitPerfSample(globals, performance.now() - renderStart, postFxMs);

@@ -324,6 +324,11 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.firstCompositeAt > 0, `${scenario.id}: first composite was not recorded`, state);
   assert(snapshot.compositedFrameCount > 0, `${scenario.id}: no atmosphere frame was composited`, state);
   assert(snapshot.outputWidth > 1 && snapshot.outputHeight > 1, `${scenario.id}: output buffer is empty`, state);
+  assert(
+    snapshot.maximumDeferredCompositeAgeMs <= snapshot.maximumDeferredCompositeAgeLimitMs,
+    `${scenario.id}: a deliberate atmosphere deferral exceeded its projected nominal age limit`,
+    state,
+  );
   assert(state.wallRect?.width > 1 && state.wallRect?.height > 1, `${scenario.id}: wall geometry is missing`, state);
   if (ambientSource) {
     assert(state.dom.glowHidden === true, `${scenario.id}: ambient glow canvas remained visible`, state);
@@ -465,6 +470,10 @@ async function runDirectBootMatrix(browser) {
         cadence: state.snapshot.cadence,
         meanCostMs: state.snapshot.cost.meanMs,
         costSamples: state.snapshot.cost.sampleCount,
+        deferredLateFrameCount: state.snapshot.deferredLateFrameCount,
+        maximumCompositeAgeMs: state.snapshot.maximumCompositeAgeMs,
+        maximumDeferredCompositeAgeMs: state.snapshot.maximumDeferredCompositeAgeMs,
+        maximumDeferredCompositeAgeLimitMs: state.snapshot.maximumDeferredCompositeAgeLimitMs,
       });
     } finally {
       await context.close();

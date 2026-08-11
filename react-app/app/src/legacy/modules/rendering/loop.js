@@ -209,6 +209,11 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
 
   // Cached force applicator - resolved once per frame, not per particle
   let cachedForceFn = null;
+  const renderFrameBudget = {
+    allowAtmosphereDeferral: true,
+    deadlineMs: 0,
+    targetFps: 60,
+  };
   
   // ══════════════════════════════════════════════════════════════════════════════
   // PERFORMANCE: Visibility API - pause when tab is hidden
@@ -297,11 +302,12 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
       physicsDebtSeconds = Math.min(MAX_PHYSICS_DEBT_SECONDS, physicsDebtSeconds + elapsedSeconds);
       physicsDroppedSeconds += Math.max(0, previousDebt + elapsedSeconds - MAX_PHYSICS_DEBT_SECONDS);
     }
+    let warmupPending = false;
     if (runPhysics) {
       const physicsDt = Math.min(frameDtCap, physicsDebtSeconds);
       physicsDebtSeconds = Math.max(0, physicsDebtSeconds - physicsDt);
       physicsResynchronizedSeconds += Math.max(0, physicsDt - dt);
-      updatePhysics(physicsDt, cachedForceFn ?? applyForcesFunc);
+      warmupPending = updatePhysics(physicsDt, cachedForceFn ?? applyForcesFunc) === true;
     }
     if (globals.performanceAuditEnabled === true) {
       globals.physicsDebtSeconds = physicsDebtSeconds;
@@ -316,9 +322,11 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
 
     // Under heavy sustained pressure in Pit mode, skip rendering on frames
     // where physics is already skipped. This reduces paint/composite load.
-    const skipRender = isPitMode && !runPhysics && effectiveThrottleLevel >= 2;
+    const skipRender = warmupPending || (isPitMode && !runPhysics && effectiveThrottleLevel >= 2);
     if (!skipRender) {
-      render();
+      renderFrameBudget.deadlineMs = nowMs + minFrameInterval;
+      renderFrameBudget.targetFps = targetFPS;
+      render(renderFrameBudget);
     }
     
     // FPS tracking

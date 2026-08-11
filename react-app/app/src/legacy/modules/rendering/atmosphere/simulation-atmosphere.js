@@ -9,12 +9,17 @@ import {
   DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
   DEFAULT_SIMULATION_ATMOSPHERE_CONFIG,
   normalizeSimulationAtmosphereConfig,
+  isSimulationAtmosphereFrameDue,
   resolveSimulationAtmosphereBlurGeometry,
   resolveSimulationAtmosphereCadence,
   resolveSimulationAtmosphereQualityScale,
   resolveSimulationAtmosphereRenderProfile,
   shouldRenderSimulationAtmosphereFrame,
 } from './simulation-atmosphere-config.js';
+import {
+  resolveAtmosphereMaximumOutputAgeMs,
+  shouldDeferAtmosphereFrame,
+} from './atmosphere-frame-budget.js';
 
 const SOURCE_KINDS = new Set(['emitters', 'canvas', 'ambient']);
 const SOURCE_SCHEDULERS = new Set(['external', 'internal', 'renderer-coupled']);
@@ -68,6 +73,11 @@ let skippedFrameCount = 0;
 let geometryReadCount = 0;
 let sourceViewportGeometryReadCount = 0;
 let firstCompositeAt = 0;
+let lastCompositeAt = 0;
+let deferredLateFrameCount = 0;
+let maximumCompositeAgeMs = 0;
+let maximumDeferredCompositeAgeMs = 0;
+let lastFrameBudgetTargetFps = 60;
 let failureReason = '';
 let sourceViewportGeometryDirty = true;
 const sourceViewportGeometry = {
@@ -95,6 +105,14 @@ const effectRenderArgs = {
   nowMs: 0,
 };
 const resolvedCanvasLayers = [];
+const atmosphereDeferralInput = {
+  frameBudget: null,
+  nowMs: 0,
+  lastCompositeAt: 0,
+  cadenceFps: DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
+  costEstimateMs: 0,
+  canDefer: false,
+};
 
 function getQualityById(id) {
   return QUALITY_LEVELS[id] || QUALITY_LEVELS.balanced;
@@ -279,6 +297,7 @@ function clearOutput({ preservePresentation = false } = {}) {
   clearCount += 1;
   frameSchedule.nextFrameAt = 0;
   firstCompositeAt = 0;
+  lastCompositeAt = 0;
   outputSourceGeneration = 0;
   firstCompositeGeneration = 0;
   outputTransactionId = '';
@@ -456,6 +475,10 @@ function renderAmbientSource(now) {
   host.edgeLight.clear();
   compositedFrameCount += 1;
   firstCompositeAt ||= now;
+  if (lastCompositeAt > 0) {
+    maximumCompositeAgeMs = Math.max(maximumCompositeAgeMs, now - lastCompositeAt);
+  }
+  lastCompositeAt = now;
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = true;
@@ -598,7 +621,7 @@ function applyPendingQuality() {
   frameSchedule.nextFrameAt = 0;
 }
 
-function renderComposite(now) {
+function renderComposite(now, frameBudget = null) {
   if (!host || !activeSource || !isCanvasAtmosphereEnabled() || document.hidden || failureReason) return false;
   if (activeSource.requiresRealFrame && !activeSource.realFrameReady) return false;
   if (
@@ -607,6 +630,9 @@ function renderComposite(now) {
   ) return false;
   if (transitionPhase !== 'idle' && activeSource.generation === transitionSourceGeneration) return false;
   if (reducedMotion && !staticFrameDirty) return false;
+  if (Number(frameBudget?.targetFps) > 0) {
+    lastFrameBudgetTargetFps = Number(frameBudget.targetFps);
+  }
   applyPendingQuality();
   if (!isCanvasAtmosphereEnabled()) {
     clearOutput();
@@ -617,9 +643,33 @@ function renderComposite(now) {
   }
   if (!syncGeometry()) return false;
   if (activeSource.kind === 'ambient') return renderAmbientSource(now);
-  if (!reducedMotion && !shouldRenderSimulationAtmosphereFrame(frameSchedule, now, cadence)) {
-    skippedFrameCount += 1;
-    return false;
+  if (!reducedMotion) {
+    if (!isSimulationAtmosphereFrameDue(frameSchedule, now, cadence)) {
+      skippedFrameCount += 1;
+      return false;
+    }
+    atmosphereDeferralInput.frameBudget = frameBudget;
+    atmosphereDeferralInput.nowMs = now;
+    atmosphereDeferralInput.lastCompositeAt = lastCompositeAt;
+    atmosphereDeferralInput.cadenceFps = cadence;
+    atmosphereDeferralInput.costEstimateMs = Math.max(lastCostMs, costEmaMs);
+    atmosphereDeferralInput.canDefer = firstCompositeAt > 0
+      && !staticFrameDirty
+      && !geometryDirty
+      && !pendingQuality
+      && transitionPhase === 'idle'
+      && simulationSwitchPhase === 'idle'
+      && !replacementTransaction;
+    if (shouldDeferAtmosphereFrame(atmosphereDeferralInput)) {
+      deferredLateFrameCount += 1;
+      maximumDeferredCompositeAgeMs = Math.max(
+        maximumDeferredCompositeAgeMs,
+        now - lastCompositeAt,
+      );
+      return false;
+    }
+    // Commit the cadence deadline only when the publication will run.
+    shouldRenderSimulationAtmosphereFrame(frameSchedule, now, cadence);
   }
   const start = performance.now();
   if (!copyActiveSource()) return false;
@@ -633,6 +683,10 @@ function renderComposite(now) {
   recordCost(costMs);
   compositedFrameCount += 1;
   firstCompositeAt ||= now;
+  if (lastCompositeAt > 0) {
+    maximumCompositeAgeMs = Math.max(maximumCompositeAgeMs, now - lastCompositeAt);
+  }
+  lastCompositeAt = now;
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = false;
@@ -644,9 +698,9 @@ function renderComposite(now) {
   return true;
 }
 
-function renderSafely(now) {
+function renderSafely(now, frameBudget = null) {
   try {
-    return renderComposite(now);
+    return renderComposite(now, frameBudget);
   } catch (error) {
     consecutiveErrors += 1;
     if (consecutiveErrors >= 2) failOpen(error);
@@ -866,6 +920,14 @@ function getDiagnosticSnapshot() {
     sourceLayerCount: lastSourceLayerCount,
     emitterBudget: dynamicQuality.emitterBudget,
     firstCompositeAt,
+    lastCompositeAt,
+    deferredLateFrameCount,
+    maximumCompositeAgeMs,
+    maximumDeferredCompositeAgeMs,
+    maximumDeferredCompositeAgeLimitMs: resolveAtmosphereMaximumOutputAgeMs(
+      resolveCadenceForQuality(),
+      lastFrameBudgetTargetFps,
+    ),
     cost: {
       sampleCount: costSampleCount,
       meanMs: costSampleCount ? costSampleSum / costSampleCount : 0,
@@ -953,6 +1015,11 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   installDiagnosticHandle();
   rebuildProfile({ resetQuality: true });
   resetCostMetrics();
+  lastCompositeAt = 0;
+  deferredLateFrameCount = 0;
+  maximumCompositeAgeMs = 0;
+  maximumDeferredCompositeAgeMs = 0;
+  lastFrameBudgetTargetFps = 60;
 
   const detach = () => {
     if (!host || host.generation !== generation) return;
@@ -1388,11 +1455,11 @@ export function registerSimulationAtmosphereSource(definition) {
   return cleanup;
 }
 
-export function tickSimulationAtmosphere(now = performance.now(), sourceId = '') {
+export function tickSimulationAtmosphere(now = performance.now(), sourceId = '', frameBudget = null) {
   if (!activeSource || !host) return false;
   if (sourceId && sourceId !== activeSource.id) return false;
   if (activeSource.scheduler === 'internal') return false;
-  return renderSafely(Number(now) || performance.now());
+  return renderSafely(Number(now) || performance.now(), frameBudget);
 }
 
 export function invalidateSimulationAtmosphereGeometry() {

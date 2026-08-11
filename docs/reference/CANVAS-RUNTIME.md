@@ -56,7 +56,7 @@ The Home owner does not equate canvas allocation with readiness. It waits for cr
 
 Runtime boot functions may return a cleanup/disposer function. New runtime work should prefer explicit cleanup because it is easier to audit and safer during SPA route changes.
 
-Home prewarming may cache the Home route module, copy, and the selected simulation-mode module, but it never creates a canvas runtime, initializes simulation state, or starts a loop. When Home is bootstrapped behind an active shell route cover, it reports route readiness immediately after mode initialization and scheduling the first main-loop frame. The shell then keeps the final canvas/title geometry covered for two painted frames. Non-critical quote and development tooling continues after that readiness boundary. Direct document boot keeps its existing self-contained readiness cadence. Do not add per-frame allocations or move physics work into React to reduce bootstrap cost.
+Home prewarming may cache the Home route module, copy, and the selected simulation-mode module, but it never creates a canvas runtime, initializes simulation state, or starts a loop. When Home is bootstrapped behind an active shell route cover, it starts the main loop and reports route readiness after scheduled body warm-up completes. The shell then keeps the final canvas/title geometry covered for two painted frames. Non-critical quote and development tooling continues after that readiness boundary. Direct document boot keeps its existing self-contained readiness cadence. Do not add per-frame allocations or move physics work into React to reduce bootstrap cost.
 
 ### Runtime generation and cancellation
 
@@ -125,6 +125,7 @@ Scheduling and performance are part of the contract:
 - High, Balanced, and Low render at `0.5`, `0.375`, and `0.25` scale with bounded emitter budgets of `160`, `96`, and `64`;
 - production uses `fieldMode: "broad"`: the large atmospheric field remains at the authored `0.08` spread, while the tight colour-reflection field is deliberately disabled. The dormant small-spread value remains migration and lab input only. Backing-store quality changes resolution only and cannot change the broad field's apparent spread;
 - High and Balanced atmosphere cadence is 24 FPS. Low quality uses 20 FPS to free frame time on constrained or over-budget surfaces; source physics/renderers retain their own cadence;
+- an already-presented, clean, steady-state atmosphere frame may defer when its measured compositor cost would miss the next display deadline. First, dirty, transition, and replacement frames remain mandatory. The scheduler does not deliberately defer when the next nominal display interval would retain output beyond one atmosphere interval plus one display interval;
 - each production compositor frame samples the current completed source frame, applies the broad field across the complete wall, then preserves only the previous clean field behind the current one. The removed tight field must not be simulated by raising opacity or shrinking the broad radius. Browsers with a reliable Canvas filter use the native blur; other browsers use a bounded spread pyramid tuned to the same apparent footprint. That one-frame blend is deterministic rather than frame-time-weighted, so deadline jitter cannot pulse its brightness; it is primed from the first clean field, resets on source/mode/theme/geometry changes, and is disabled for Reduced Motion. There is no content mask, recursive feedback, multi-buffer diffusion, unbounded accumulation, or mode-to-mode trail;
 - the wall `ResizeObserver` must update glow and edge backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
 - Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
@@ -135,7 +136,7 @@ Scheduling and performance are part of the contract:
 - two consecutive compositor errors fail open: glow and edge clear, crisp route material returns to full presence, and route interaction/readiness continues.
 - source startup gets a bounded 2.5-second first-frame window before fail-open so a busy route transition cannot permanently hide a healthy glow source.
 
-`window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot()` is diagnostic output only. It reports ownership, source, scheduler, scale, cadence, geometry reads, sampled emitters, and rolling cost; it must not become configuration truth.
+`window.__ABS_SIMULATION_ATMOSPHERE__.getSnapshot()` is diagnostic output only. It reports ownership, source, scheduler, scale, cadence, geometry reads, sampled emitters, rolling cost, deadline deferrals, and their maximum retained-output age; it must not become configuration truth.
 
 ### Atmospheric Glow performance lab
 
@@ -187,7 +188,8 @@ Do not move the title's CSS x/y placement to align a scene. If a depth scene nee
 
 ## Physics And Render Cost Contract
 
-- Pit and other collision-dense desktop modes retain the 120 Hz reference step. Water, Magnetic, Weightless, Flies, and Elastic use a 60 Hz step. Mobile retains its existing 60 Hz reference.
+- Desktop Pit retains its authored 120 Hz reference step during warm-up, direct/recent pointer interaction, or measured pile activity, then returns to 60 Hz after a 250 ms activity hold. Portfolio Pit and other collision-dense desktop modes retain 120 Hz; Water, Magnetic, Weightless, Flies, and Elastic use 60 Hz; mobile retains its existing 60 Hz reference.
+- Body warm-up keeps its exact authored simulation duration but is consumed under the route cover in preferred 2 ms, best-effort 4 ms wall-clock slices. Home readiness waits for the slices to finish; custom renderers with no `Ball` bodies skip body warm-up as they did before.
 - Per-step damping uses an explicit reference rate, so changing step count does not change the authored decay curve. Do not add a raw per-step multiplier without time normalization.
 - Sphere and Cube integrate their shared 3D state at the existing reference step but project each point once per visible frame. They do not run generic `Ball.step()` work.
 - Adaptive pressure may defer physics, but bounded simulation debt is carried into later frames. It must not silently discard accepted-frame time.

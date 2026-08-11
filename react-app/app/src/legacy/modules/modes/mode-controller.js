@@ -19,6 +19,7 @@ import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor, resetColorDistributionCoverage } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
+import { resolveWarmupFrameCount } from '../physics/warmup-frame-scheduler.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
 import { CUBE_3D_DEFAULTS } from './cube3d-config.js';
 import {
@@ -522,8 +523,30 @@ export async function setMode(inputMode) {
     }
 
     // Schedule warmup consumption (no rendering during warmup).
-    const warmupFrames = Math.max(0, Math.round(getWarmupFramesForMode(mode, globals) || 0));
+    // Custom-rendered modes can intentionally own no Ball bodies. Their legacy
+    // startup path never consumed body warm-up steps, so keep that visible
+    // behaviour while avoiding a readiness wait that can never complete.
+    const warmupFrames = resolveWarmupFrameCount(
+      getWarmupFramesForMode(mode, globals),
+      globals.balls?.length,
+    );
     globals.warmupFramesRemaining = warmupFrames;
+    globals.warmupSubstepsRemaining = mode === MODES.PIT
+      && !globals.isMobile
+      && !globals.isMobileViewport
+      ? warmupFrames * 2
+      : 0;
+    globals.warmupSliceCount = 0;
+    globals.warmupConsumedFrameCount = 0;
+    globals.warmupMaxSliceMs = 0;
+    globals.warmupHardLimitExceededCount = 0;
+    globals.pitCadenceHoldSeconds = 0;
+    globals.pitPhysicsStepHz = isPitLikeMode(mode) ? 120 : null;
+    globals.pitSleepingBodyCount = null;
+    globals.pitAwakeBodyCount = null;
+    globals.pitMaxAwakeSpeedSq = null;
+    globals.pitMaxAwakeAngularSpeed = null;
+    globals.pitLastOverlapDebt = null;
 
     // Broadcast mode changes for lightweight UI micro-interactions.
     if (typeof window !== 'undefined' && mode !== prevMode) {

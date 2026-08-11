@@ -491,11 +491,17 @@ export class Ball {
         
         // Spin coupling
         const slip = this.vx - this.omega * this.r;
-        this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
+        const referenceStepHz = resolveReferenceStepHz(globals);
+        const timeCorrectSpinGain = 1 - normalizePerStepMultiplier(
+          1 - CONSTANTS.SPIN_GAIN,
+          dt,
+          referenceStepHz,
+        );
+        this.omega += (slip / this.r) * timeCorrectSpinGain / massScale;
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
         if (globals.currentMode === MODES.PIT && groundSpeed < 6 * DPR) {
-          this.omega *= 0.7;
+          this.omega *= normalizePerStepMultiplier(0.7, dt, referenceStepHz);
         }
         if (Math.abs(this.omega) < 0.05) this.omega = 0;
 

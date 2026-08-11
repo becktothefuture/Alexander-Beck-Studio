@@ -215,7 +215,7 @@ export function resolveSimulationAtmosphereCadence(cadenceMode = 'auto') {
 }
 
 /** Keep a target deadline so display-frame rounding cannot alias the glow cadence. */
-export function shouldRenderSimulationAtmosphereFrame(schedule, nowMs, cadenceFps) {
+export function isSimulationAtmosphereFrameDue(schedule, nowMs, cadenceFps) {
   const now = Number(nowMs) || 0;
   const interval = 1000 / Math.max(
     1,
@@ -223,7 +223,18 @@ export function shouldRenderSimulationAtmosphereFrame(schedule, nowMs, cadenceFp
   );
   const tolerance = Math.min(2, interval * 0.2);
   const deadline = Number(schedule?.nextFrameAt) || 0;
-  if (deadline > 0 && now + tolerance < deadline) return false;
+  return !(deadline > 0 && now + tolerance < deadline);
+}
+
+/** Keep a target deadline so display-frame rounding cannot alias the glow cadence. */
+export function shouldRenderSimulationAtmosphereFrame(schedule, nowMs, cadenceFps) {
+  if (!isSimulationAtmosphereFrameDue(schedule, nowMs, cadenceFps)) return false;
+  const now = Number(nowMs) || 0;
+  const interval = 1000 / Math.max(
+    1,
+    Number(cadenceFps) || DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
+  );
+  const deadline = Number(schedule?.nextFrameAt) || 0;
 
   let nextFrameAt = deadline > 0 ? deadline + interval : now + interval;
   if (nextFrameAt < now) nextFrameAt = now + interval;

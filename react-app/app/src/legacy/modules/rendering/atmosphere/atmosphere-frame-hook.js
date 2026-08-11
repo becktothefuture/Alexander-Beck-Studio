@@ -10,15 +10,15 @@ export function setAtmosphereFrameRenderer(renderer, policy = null) {
   framePolicy = frameRenderer && policy && typeof policy === 'object' ? policy : null;
 }
 
-export function renderActiveAtmosphereFrame(globals) {
+export function renderActiveAtmosphereFrame(globals, frameBudget = null) {
   // The physics renderer calls this only after its target canvas has been
   // painted. Keep this handshake allocation-free on the steady-state path.
   notifySimulationAtmosphereSourceFrame('home');
   if (frameRenderer) {
-    frameRenderer(globals);
+    frameRenderer(globals, frameBudget);
     return;
   }
-  tickSimulationAtmosphere(performance.now());
+  tickSimulationAtmosphere(performance.now(), '', frameBudget);
 }
 
 export function isAtmosphereFrameRendererActive() {

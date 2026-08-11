@@ -246,6 +246,21 @@ function applyHomeHeroRuntimeConfig() {
 
 const HOME_CANVAS_READY_TIMEOUT_MS = 3200;
 const HOME_TITLE_PREPARE_GRACE_MS = 1200;
+async function waitForHomePhysicsWarmup({ signal, isCurrent, timeoutMs = HOME_CANVAS_READY_TIMEOUT_MS } = {}) {
+  const deadline = performance.now() + Math.max(250, Number(timeoutMs) || HOME_CANVAS_READY_TIMEOUT_MS);
+  while (
+    !signal?.aborted
+    && (typeof isCurrent !== 'function' || isCurrent())
+    && (Number(getGlobals().warmupFramesRemaining) || 0) > 0
+    && performance.now() < deadline
+  ) {
+    await waitForFrames(1);
+  }
+  return !signal?.aborted
+    && (typeof isCurrent !== 'function' || isCurrent())
+    && (Number(getGlobals().warmupFramesRemaining) || 0) === 0;
+}
+
 function waitForHomeMaterialDelay(delayMs, signal) {
   return new Promise((resolve) => {
     if (delayMs <= 0 || signal?.aborted) {
@@ -609,6 +624,14 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     // Start the simulation loop while covered. The shell participant above
     // owns the visible material entrance at the route-in boundary.
     startMainLoop(null, { getForcesFn: getForceApplicator });
+    const physicsWarmupReady = await waitForHomePhysicsWarmup({
+      signal,
+      isCurrent,
+    });
+    if (!isCurrent()) return cleanup;
+    if (!physicsWarmupReady) {
+      throw new Error('Home physics warm-up did not complete before readiness timeout');
+    }
     if (shellRouteTransitionActiveAtStart && !isSimulationSwitchBoot) {
       if (startupReduceMotion) {
         setInitialSimulationVisualScale(1);
@@ -691,7 +714,21 @@ export async function bootstrapHomePage(runtimeContext = {}) {
             collisionMaximumResidualPx: Number(globals.collisionMaximumResidualPx) || 0,
             pitSleepEvaluationCount: Number(globals.pitSleepEvaluationCount) || 0,
             pitSleepingBodyCount: Number(globals.pitSleepingBodyCount) || 0,
+            pitAwakeBodyCount: Number(globals.pitAwakeBodyCount) || 0,
+            pitMaxAwakeSpeedSq: Number(globals.pitMaxAwakeSpeedSq) || 0,
+            pitMaxAwakeAngularSpeed: Number(globals.pitMaxAwakeAngularSpeed) || 0,
+            pitLastOverlapDebt: Number(globals.pitLastOverlapDebt) || 0,
+            pitCadenceHoldSeconds: Number(globals.pitCadenceHoldSeconds) || 0,
+            pitPhysicsStepHz: Number(globals.pitPhysicsStepHz) || 0,
+            pitPhysics60HzDecisionCount: Number(globals.pitPhysics60HzDecisionCount) || 0,
+            pitPhysics120HzDecisionCount: Number(globals.pitPhysics120HzDecisionCount) || 0,
             pitSkippedSleepingStepCount: Number(globals.pitSkippedSleepingStepCount) || 0,
+            warmupFramesRemaining: Number(globals.warmupFramesRemaining) || 0,
+            warmupSliceCount: Number(globals.warmupSliceCount) || 0,
+            warmupConsumedFrameCount: Number(globals.warmupConsumedFrameCount) || 0,
+            warmupMaxSliceMs: Number(globals.warmupMaxSliceMs) || 0,
+            warmupHardLimitExceededCount: Number(globals.warmupHardLimitExceededCount) || 0,
+            atmosphereMetrics: window.__ABS_SIMULATION_ATMOSPHERE__?.getSnapshot?.() || null,
             fliesNeighbourGridBuildCount: Number(globals.fliesNeighbourGridBuildCount) || 0,
             fliesNeighbourCandidateCount: Number(globals.fliesNeighbourCandidateCount) || 0,
             physicsDebtSeconds: Number(globals.physicsDebtSeconds) || 0,
