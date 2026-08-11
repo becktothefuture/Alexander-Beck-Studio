@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 
 const configuredBaseUrl = (process.env.ABS_ROUTE_CURSOR_URL || 'http://127.0.0.1:8012').trim().replace(/\/+$/, '');
 const shouldStartDevServer = !process.env.ABS_ROUTE_CURSOR_URL;
+const buttonBarOnly = process.env.ABS_ROUTE_CURSOR_BUTTON_BAR_ONLY === '1';
 let baseUrl = configuredBaseUrl;
 const routePaths = {
   home: '/index.html',
@@ -202,6 +203,153 @@ async function assertInactiveHoverDoesNotPreview(page, routeId) {
   assertClickableCursorState(state, `${routeId}: ${inactiveRouteId} tab`);
 }
 
+async function readCurrentRouteTabVisualState(page) {
+  return page.evaluate(() => {
+    const tab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const label = tab?.querySelector('.shell-tab__label');
+    if (!tab || !label) return null;
+    const tabStyle = getComputedStyle(tab);
+    const tabBeforeStyle = getComputedStyle(tab, '::before');
+    const labelStyle = getComputedStyle(label);
+    const activePill = document.querySelector('.button-bar__active-pill');
+    const activePillStyle = activePill ? getComputedStyle(activePill) : null;
+    const rect = tab.getBoundingClientRect();
+    return {
+      routeId: tab.getAttribute('data-route-tab') || '',
+      backgroundColor: tabStyle.backgroundColor,
+      backgroundImage: tabStyle.backgroundImage,
+      boxShadow: tabStyle.boxShadow,
+      transform: tabStyle.transform,
+      pseudoContent: tabBeforeStyle.content,
+      activePillOpacity: activePillStyle?.opacity || '',
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      },
+      focusVisible: tab.matches(':focus-visible'),
+      labelBoxShadow: labelStyle.boxShadow,
+      labelTextDecoration: labelStyle.textDecorationLine,
+    };
+  });
+}
+
+function assertSameTabGeometry(actual, expected, label) {
+  for (const edge of ['left', 'top', 'width', 'height']) {
+    if (Math.abs(actual.rect[edge] - expected.rect[edge]) > 0.02) {
+      throw new Error(`${label}: current-route ${edge} changed from ${expected.rect[edge]} to ${actual.rect[edge]}`);
+    }
+  }
+}
+
+function assertCurrentTabSurfaceInvariant(actual, expected, label) {
+  for (const property of ['backgroundColor', 'backgroundImage', 'boxShadow', 'transform']) {
+    if (actual[property] !== expected[property]) {
+      throw new Error(
+        `${label}: current-route ${property} changed from ${expected[property]} to ${actual[property]}`,
+      );
+    }
+  }
+  assertSameTabGeometry(actual, expected, label);
+}
+
+async function assertCurrentRouteActivationNoOp(page, routeId) {
+  const before = await page.evaluate(() => ({
+    href: location.href,
+    historyLength: history.length,
+    transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+  }));
+  const activation = await page.evaluate(() => {
+    const tab = document.querySelector('[data-route-tab][aria-current="page"]');
+    if (!tab) return null;
+    tab.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      pointerType: 'mouse',
+    }));
+    const pointerPressStarted = tab.dataset.buttonBarPointerActivated === 'true';
+    tab.dataset.buttonBarPointerActivated = 'true';
+    const trailingClickPrevented = !tab.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      detail: 1,
+    }));
+    const trailingPointerMarkerCleared = tab.dataset.buttonBarPointerActivated !== 'true';
+    const events = [
+      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 }),
+      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 0 }),
+      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, metaKey: true }),
+      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true }),
+      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, shiftKey: true }),
+      new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }),
+    ];
+    return {
+      pointerPressStarted,
+      trailingClickPrevented,
+      trailingPointerMarkerCleared,
+      activationsPrevented: events.map((event) => !tab.dispatchEvent(event)),
+    };
+  });
+  await page.waitForTimeout(100);
+  const after = await page.evaluate(() => ({
+    href: location.href,
+    historyLength: history.length,
+    transitionPhase: document.documentElement.dataset.absTransitionPhase || 'idle',
+  }));
+  if (
+    !activation
+    || activation.pointerPressStarted
+    || !activation.trailingClickPrevented
+    || !activation.trailingPointerMarkerCleared
+    || activation.activationsPrevented.some((prevented) => !prevented)
+    || after.href !== before.href
+    || after.historyLength !== before.historyLength
+    || after.transitionPhase !== before.transitionPhase
+  ) {
+    throw new Error(`${routeId}: current route allowed navigation or started an interaction press`);
+  }
+}
+
+async function assertCurrentRouteTabVisualInvariance(page, routeId) {
+  await moveInsideWindow(page);
+  const activeTab = page.locator('[data-route-tab][aria-current="page"]');
+  const rest = await readCurrentRouteTabVisualState(page);
+  if (!rest || rest.routeId !== routeId) {
+    throw new Error(`${routeId}: current route tab was unavailable for visual-state checks`);
+  }
+  if (!['none', 'normal'].includes(rest.pseudoContent) || Number(rest.activePillOpacity) !== 1) {
+    throw new Error(`${routeId}: current route rendered a selected surface outside the shared active pill`);
+  }
+
+  await activeTab.hover();
+  await page.waitForTimeout(200);
+  const hover = await readCurrentRouteTabVisualState(page);
+  assertCurrentTabSurfaceInvariant(hover, rest, `${routeId}: hover`);
+  const hoverCursor = await readRouteCursorState(page, routeId);
+  if (hoverCursor.cursorClass.split(/\s+/).includes('abs-cursor-interactive')) {
+    throw new Error(`${routeId}: current route activated the clickable cursor state`);
+  }
+
+  await page.mouse.down();
+  const pressed = await readCurrentRouteTabVisualState(page);
+  await page.mouse.up();
+  assertCurrentTabSurfaceInvariant(pressed, rest, `${routeId}: press`);
+
+  await moveInsideWindow(page);
+  await page.keyboard.press('Tab');
+  await activeTab.focus();
+  await page.waitForTimeout(200);
+  const focus = await readCurrentRouteTabVisualState(page);
+  assertCurrentTabSurfaceInvariant(focus, rest, `${routeId}: keyboard focus`);
+  if (!focus.focusVisible || focus.labelTextDecoration !== 'underline') {
+    throw new Error(`${routeId}: current route lost its keyboard focus indicator`);
+  }
+  await assertCurrentRouteActivationNoOp(page, routeId);
+}
+
 function assertClickableCursorState(state, label) {
   if (!state.cursorClass.split(/\s+/).includes('abs-cursor-interactive')) {
     throw new Error(`${label} did not activate the standard clickable state`);
@@ -360,6 +508,12 @@ async function directLoadChecks(browser) {
     const state = await readRouteCursorState(page, routeId);
     assertRouteCursorState(state);
     await assertInactiveHoverDoesNotPreview(page, routeId);
+    await assertCurrentRouteTabVisualInvariance(page, routeId);
+    if (buttonBarOnly) {
+      log(`direct ${routeId}: Button Bar interaction states passed`);
+      await context.close();
+      continue;
+    }
     await assertOuterShellKeepsCustomCursor(page, routeId);
     if (routeId === 'home') await assertHomeOverlayCursor(page);
     if (routeId === 'playground') await assertPlaygroundCursorStates(page);
@@ -394,17 +548,71 @@ async function spaChecks(browser) {
   await context.close();
 }
 
+async function responsiveButtonBarChecks(browser) {
+  for (const width of [320, 390, 768, 1280]) {
+    const context = await browser.newContext({ viewport: { width, height: 820 } });
+    await context.addInitScript(() => {
+      localStorage.setItem('theme-preference-v3', 'dark');
+    });
+    const page = await context.newPage();
+    await page.goto(routeUrl('home'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await waitForRouteReady(page, 'home');
+    const state = await page.evaluate(() => {
+      const tabs = [...document.querySelectorAll('[data-route-tab]')];
+      return tabs.map((tab) => {
+        const label = tab.querySelector('.shell-tab__label');
+        const rect = tab.getBoundingClientRect();
+        const labelRect = label?.getBoundingClientRect();
+        return {
+          routeId: tab.getAttribute('data-route-tab') || '',
+          cellWidth: rect.width,
+          labelFontSize: Number.parseFloat(getComputedStyle(label).fontSize),
+          labelFits: Boolean(
+            label
+            && labelRect
+            && label.scrollWidth <= label.clientWidth + 0.5
+            && labelRect.left >= rect.left - 0.5
+            && labelRect.right <= rect.right + 0.5
+          ),
+        };
+      });
+    });
+    const expectedFontSize = width < 768 ? 10 : 12;
+    const expectedCellWidth = width < 768 ? 62 : 85;
+    for (const tab of state) {
+      if (Math.abs(tab.labelFontSize - expectedFontSize) > 0.02) {
+        throw new Error(
+          `${width}px ${tab.routeId}: label was ${tab.labelFontSize}px, expected ${expectedFontSize}px`,
+        );
+      }
+      if (Math.abs(tab.cellWidth - expectedCellWidth) > 0.02) {
+        throw new Error(
+          `${width}px ${tab.routeId}: route cell was ${tab.cellWidth}px, expected ${expectedCellWidth}px`,
+        );
+      }
+      if (!tab.labelFits) {
+        throw new Error(`${width}px ${tab.routeId}: route label clipped or overflowed its cell`);
+      }
+    }
+    log(`responsive ${width}px: ${expectedFontSize}px labels in ${expectedCellWidth}px cells`);
+    await context.close();
+  }
+}
+
 async function run() {
   const server = await ensureDevServer();
   const browser = await chromium.launch();
   try {
+    await responsiveButtonBarChecks(browser);
     await directLoadChecks(browser);
-    await spaChecks(browser);
+    if (!buttonBarOnly) await spaChecks(browser);
   } finally {
     await browser.close();
     await server?.stop();
   }
-  log('PASS: one 57.6px neutral lens persists across routes and the outer shell, with one smaller/quieter clickable state.');
+  log(buttonBarOnly
+    ? 'PASS: Button Bar active states, route affordances, and responsive labels passed.'
+    : 'PASS: one 57.6px neutral lens persists across routes and the outer shell, with one smaller/quieter clickable state.');
 }
 
 run().catch((error) => {

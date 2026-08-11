@@ -4,7 +4,7 @@
   --button-bar-capsule-height: var(--button-bar-effective-height, var(--button-bar-height, 68px));
   --button-bar-capsule-radius: var(--button-bar-effective-radius, var(--button-bar-button-radius, 22px));
   --button-bar-key-inset: var(--button-bar-effective-active-inset, var(--button-bar-active-inset, 7px));
-  --button-bar-base-font-size: var(--button-bar-effective-font-size, var(--button-bar-font-size, 0.6875rem));
+  --button-bar-base-font-size: var(--button-bar-effective-font-size, var(--button-bar-font-size, 0.75rem));
   --button-bar-desktop-font-size: calc(
     var(--button-bar-base-font-size) * var(--button-bar-desktop-font-scale, 1)
   );
@@ -181,8 +181,15 @@
 
 .button-bar[data-button-bar-material='dominant-tab']
   .button-bar__primary-buttons
-  .shell-tab:is([aria-current='page'], [data-visual-active='true']) {
+  .shell-tab:is([aria-current='page'], [data-visual-active='true']),
+.button-bar[data-button-bar-material='dominant-tab']
+  .button-bar__primary-buttons
+  .shell-tab:is([aria-current='page'], [data-visual-active='true']):is(:hover, :focus-visible, :active) {
   color: var(--button-bar-bright-ink);
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
   cursor: default;
 }
 
@@ -199,6 +206,10 @@
   .button-bar__primary-buttons
   .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):active {
   color: var(--button-bar-bright-ink);
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -343,14 +354,8 @@
   .button-bar[data-button-bar-material='dominant-tab']
     .button-bar__primary-buttons
     .shell-tab--route-icon {
-    inline-size: min(
-      var(--button-bar-mobile-icon-cell, 62px),
-      calc((100vw - 64px) / 5)
-    );
-    min-inline-size: min(
-      var(--button-bar-mobile-icon-cell, 62px),
-      calc((100vw - 64px) / 5)
-    );
+    inline-size: var(--button-bar-mobile-icon-cell, 62px);
+    min-inline-size: var(--button-bar-mobile-icon-cell, 62px);
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
@@ -369,7 +374,7 @@
     .shell-tab__label {
     display: block;
     min-inline-size: 0;
-    font-size: var(--button-bar-mobile-font-size, 8px);
+    font-size: var(--button-bar-mobile-font-size, 10px);
   }
 
   .button-bar[data-button-bar-material='dominant-tab']

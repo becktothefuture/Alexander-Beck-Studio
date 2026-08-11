@@ -321,7 +321,7 @@
   --button-bar-mobile-radius: 20px;
   --button-bar-mobile-icon-cell: 62px;
   --button-bar-mobile-icon-size: 21px;
-  --button-bar-mobile-font-size: 8px;
+  --button-bar-mobile-font-size: 10px;
   --button-bar-mobile-active-inset: 6px;
   --button-bar-desktop-route-cell: 85px;
   --button-bar-desktop-icon-size: 25px;
@@ -342,7 +342,7 @@
   --button-bar-button-padding-x: 8px;
   --button-bar-desktop-padding-scale: 2;
   --button-bar-button-radius: 22px;
-  --button-bar-font-size: 11px;
+  --button-bar-font-size: 12px;
   --button-bar-indicator-size: 4.01868px;
   --button-bar-bg: linear-gradient(180deg, #141414 0%, #000000 100%);
   --button-bar-shadow:

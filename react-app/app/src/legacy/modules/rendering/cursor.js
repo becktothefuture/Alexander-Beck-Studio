@@ -103,6 +103,7 @@ function isNativeEditorCursorTarget(target) {
 
 function isClickableCursorTarget(target) {
   if (!target?.closest) return false;
+  if (target.closest('[data-route-tab]:is([aria-current="page"], [data-visual-active="true"])')) return false;
   const action = target.closest([
     'a[href]:not([aria-disabled="true"])',
     'button:not([disabled]):not([aria-disabled="true"])',

@@ -251,7 +251,8 @@ function RouteButton({
   }
 
   const handleClick = (event) => {
-    if (consumePointerActivated(event)) {
+    const wasPointerActivated = consumePointerActivated(event);
+    if (isVisualActive || wasPointerActivated) {
       event.preventDefault();
       return;
     }
@@ -277,6 +278,9 @@ function RouteButton({
       href={tab.href}
       {...commonProps}
       onClick={handleClick}
+      onAuxClick={(event) => {
+        if (isVisualActive) event.preventDefault();
+      }}
     >
       <RouteButtonContent tab={tab} decoration={decoration} />
     </a>

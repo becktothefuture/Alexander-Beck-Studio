@@ -14,6 +14,7 @@ const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase()
 const HEADED = process.env.ABS_HEADED === '1';
 const STRICT_RAF = process.env.ABS_TRANSITION_STRICT_RAF === '1';
 const REDUCED_MOTION = process.env.ABS_TRANSITION_REDUCED_MOTION === '1';
+const BUTTON_BAR_ONLY = process.env.ABS_TRANSITION_BUTTON_BAR_ONLY === '1';
 const STRESS_MODE = process.env.ABS_TRANSITION_STRESS === '1';
 const DELAYED_READINESS_MODE = process.env.ABS_TRANSITION_DELAYED_READINESS === '1';
 const PRELOAD_FAILURE_MODE = process.env.ABS_TRANSITION_PRELOAD_FAILURE === '1';
@@ -708,7 +709,38 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           presentation: titlePlane.dataset.titlePlanePresentation || '',
           presentationGeneration: Number(titlePlane.dataset.titlePlanePresentationGeneration || 0),
         } : null,
-        buttonBar: readEffective(buttonBar),
+        buttonBar: buttonBar ? {
+          ...readEffective(buttonBar),
+          hitTests: (() => {
+            const rect = buttonBar.getBoundingClientRect();
+            const points = [
+              ['overlap-band', rect.left + (rect.width / 2), rect.top + 4],
+              ['center', rect.left + (rect.width / 2), rect.top + (rect.height / 2)],
+              ['lower-band', rect.left + (rect.width / 2), rect.bottom - 4],
+              ...[...buttonBar.querySelectorAll('[data-route-tab]')].map((tab) => {
+                const tabRect = tab.getBoundingClientRect();
+                return [
+                  `route-${tab.getAttribute('data-route-tab') || 'unknown'}`,
+                  tabRect.left + (tabRect.width / 2),
+                  tabRect.top + (tabRect.height / 2),
+                ];
+              }),
+            ];
+            return points.filter(([, x, y]) => (
+              x >= Math.max(0, rect.left)
+              && x <= Math.min(innerWidth, rect.right)
+              && y >= Math.max(0, rect.top)
+              && y <= Math.min(innerHeight, rect.bottom)
+            )).map(([name, x, y]) => {
+              const target = document.elementFromPoint(x, y);
+              return { name, hit: Boolean(target && buttonBar.contains(target)) };
+            });
+          })(),
+          zIndex: getComputedStyle(buttonBar).zIndex,
+        } : null,
+        buttonBarWindowOverlapPx: Number.parseFloat(
+          getComputedStyle(root).getPropertyValue('--button-bar-effective-window-overlap')
+        ),
         buttonBarIndicator: activeIndicator ? {
           ...readEffective(activeIndicator),
           transform: activeIndicatorStyle?.transform || '',
@@ -927,6 +959,26 @@ function assertTransitionTrace(trace, {
   );
 
   samples.forEach((sample, index) => {
+    assert(
+      sample.buttonBar?.effectiveOpacity >= FULL_COVER_OPACITY
+        && sample.buttonBar?.visiblyStyled === true,
+      `${trace.label}: Button Bar became visually hidden during the route transition`,
+      traceExcerpt(trace, index),
+    );
+    assert(
+      sample.buttonBar?.pointerEvents !== 'none'
+        && sample.buttonBar?.inert === false
+        && sample.buttonBar?.hitTests?.length >= 4
+        && sample.buttonBar.hitTests.every(({ hit }) => hit),
+      `${trace.label}: Button Bar became non-interactive during the route transition`,
+      traceExcerpt(trace, index),
+    );
+    assert(
+      sample.buttonBarIndicator?.effectiveOpacity >= FULL_COVER_OPACITY
+        && sample.buttonBarIndicator?.pointerEvents === 'none',
+      `${trace.label}: Button Bar active pill became hidden or interactive`,
+      traceExcerpt(trace, index),
+    );
     if (!initialButtonBarRect || !sample.buttonBar?.rect) return;
     for (const edge of ['left', 'top', 'right', 'bottom']) {
       assert(
@@ -935,6 +987,15 @@ function assertTransitionTrace(trace, {
         traceExcerpt(trace, index),
       );
     }
+    assert(
+      Number.isFinite(sample.buttonBarWindowOverlapPx)
+        && Math.abs(
+          (sample.studioWindow?.rect?.bottom - sample.buttonBar.rect.top)
+          - sample.buttonBarWindowOverlapPx
+        ) <= GEOMETRY_TOLERANCE_PX,
+      `${trace.label}: Button Bar lost its configured studio-window overlap`,
+      traceExcerpt(trace, index),
+    );
   });
 
   if (requireRouteOut) {
@@ -951,6 +1012,7 @@ function assertTransitionTrace(trace, {
       { sampledThemes: [...new Set(samples.map((sample) => sample.theme))] },
     );
   }
+  if (BUTTON_BAR_ONLY) return;
 
   samples.forEach((sample, index) => {
     if (sample.phase !== 'route-out' && sample.phase !== 'route-loading') return;
@@ -1012,8 +1074,12 @@ function assertTransitionTrace(trace, {
       sample,
     );
     assert(
-      Math.abs((sample.studioWindow?.rect?.bottom - sample.buttonBar?.rect?.top) - 15.5) <= GEOMETRY_TOLERANCE_PX,
-      `${trace.label}: Button Bar lost its intentional 15.5px studio-window overlap`,
+      Number.isFinite(sample.buttonBarWindowOverlapPx)
+        && Math.abs(
+          (sample.studioWindow?.rect?.bottom - sample.buttonBar?.rect?.top)
+          - sample.buttonBarWindowOverlapPx
+        ) <= GEOMETRY_TOLERANCE_PX,
+      `${trace.label}: Button Bar lost its configured studio-window overlap`,
       sample,
     );
     assert(
