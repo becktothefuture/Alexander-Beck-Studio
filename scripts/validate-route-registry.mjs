@@ -507,6 +507,9 @@ export function validateRouteRegistrySnapshot(snapshot) {
     if (!route.shellTab.label || !route.shellTab.ariaLabel) {
       addError(errors, 'shell-tab-metadata-missing', `${route.id}: shell tab label and ariaLabel are required`);
     }
+    if (!route.shellTab.icon) {
+      addError(errors, 'shell-tab-icon-missing', `${route.id}: shell tab icon is required`);
+    }
   });
   const runtimeTabsById = indexUnique(errors, snapshot.shellTabs, (tab) => tab.routeId, 'shell-tab-route-duplicate', 'Runtime shell tabs');
   compareSets(
@@ -764,6 +767,7 @@ async function runFixtures() {
     ['missing fifth manifest shell tab', 'shell-tab-count-drift', (snapshot) => { snapshot.routes.find((route) => route.id === 'playground').shellTab = null; }],
     ['missing manifest shell tab', 'shell-tab-runtime-extra', (snapshot) => { snapshot.routes.find((route) => route.id === 'contact').shellTab = null; }],
     ['shell tab metadata omission', 'shell-tab-metadata-missing', (snapshot) => { snapshot.routes.find((route) => route.id === 'about').shellTab.ariaLabel = null; }],
+    ['shell tab icon omission', 'shell-tab-icon-missing', (snapshot) => { snapshot.routes.find((route) => route.id === 'home').shellTab.icon = null; }],
     ['shell tab semantic order drift', 'shell-tab-semantic-order-drift', (snapshot) => {
       const contactOrder = snapshot.routes.find((route) => route.id === 'contact').shellTab.order;
       snapshot.routes.find((route) => route.id === 'contact').shellTab.order = snapshot.routes.find((route) => route.id === 'playground').shellTab.order;

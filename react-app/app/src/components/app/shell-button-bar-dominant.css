@@ -151,6 +151,8 @@
   background: none;
   box-shadow: none;
   transform: none;
+  /* This material does not scale tabs; keep the icon-font layer unpromoted and sharp. */
+  will-change: auto;
 }
 
 .button-bar[data-button-bar-material='dominant-tab']
@@ -324,6 +326,7 @@
   block-size: 16px;
 }
 
+/* Keep the configured odd icon frames for layout, but rasterize glyphs at even pixel sizes. */
 @media (max-width: 767px) {
   .button-bar[data-button-bar-material='dominant-tab'] {
     --button-bar-mobile-utility-cell: 44px;
@@ -356,8 +359,8 @@
     .button-bar__icon {
     inline-size: var(--button-bar-mobile-icon-size, 21px);
     block-size: var(--button-bar-mobile-icon-size, 21px);
-    font-size: var(--button-bar-mobile-icon-size, 21px);
-    line-height: var(--button-bar-mobile-icon-size, 21px);
+    font-size: calc(var(--button-bar-mobile-icon-size, 21px) - 1px);
+    line-height: calc(var(--button-bar-mobile-icon-size, 21px) - 1px);
   }
 
   .button-bar[data-button-bar-material='dominant-tab']
@@ -469,8 +472,8 @@
     .button-bar__icon {
     inline-size: var(--button-bar-desktop-icon-size, 25px);
     block-size: var(--button-bar-desktop-icon-size, 25px);
-    font-size: var(--button-bar-desktop-icon-size, 25px);
-    line-height: var(--button-bar-desktop-icon-size, 25px);
+    font-size: calc(var(--button-bar-desktop-icon-size, 25px) - 1px);
+    line-height: calc(var(--button-bar-desktop-icon-size, 25px) - 1px);
   }
 
   .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
