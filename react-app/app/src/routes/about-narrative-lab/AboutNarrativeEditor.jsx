@@ -118,6 +118,7 @@ const POINT_FIELD_SELECTION_TYPES = new Set([
   'point-field-segment',
   'point-field-state',
 ]);
+const CAMERA_SELECTION_TYPES = new Set(['camera-key', 'camera-orientation-key', 'camera-lens-key']);
 const MIN_TIMELINE_WIDTH = 520;
 const BASE_PIXELS_PER_WU = 66;
 const TEXT_CONNECTION_EPSILON_WU = 0.0001;
@@ -1816,7 +1817,8 @@ function TrackObject({
   const range = getAboutNarrativeTrackObjectRange(document, { type: track.type, id: object.id });
   const startWU = range?.startWU ?? getObjectStart(object, track.type);
   const endWU = range?.endWU ?? startWU;
-  const locked = object.locked === true || object.protected === true;
+  const locked = !CAMERA_SELECTION_TYPES.has(track.type)
+    && (object.locked === true || object.protected === true);
   const pointLike = ['camera-key', 'camera-orientation-key', 'camera-lens-key', 'visibility-key'].includes(track.type);
   const left = startWU * pixelsPerWU;
   const width = pointLike
@@ -2638,10 +2640,10 @@ function ObjectInspector({ snapshot, store, editScope }) {
   }
 
   const finaleWorld = selection.type === 'world' && object.protected === true;
-  const boundaryCamera = selection.type === 'camera-key' && object.locked === true;
+  const cameraObject = CAMERA_SELECTION_TYPES.has(selection.type);
   const locked = (object.locked === true || object.protected === true)
     && !finaleWorld
-    && !boundaryCamera;
+    && !cameraObject;
   const commit = (label, mutate) => store.commit(label, (draft) => {
     const target = getAboutNarrativeTrackObject(draft, selection);
     if (target) mutate(target, draft);
@@ -2702,13 +2704,12 @@ function ObjectInspector({ snapshot, store, editScope }) {
         <span>{inspectorTypeLabel}</span>
         <h2>{getObjectLabel(object, selection.type)}</h2>
         <code>{object.id}</code>
-        {boundaryCamera ? <b>Timing fixed · Pose editable</b> : null}
         {locked ? <b>{selection.type === 'visibility-key' ? 'Timing protected' : 'Protected'}</b> : null}
       </header>
 
       {selection.type === 'camera-key' ? (
         <div className="about-track-editor-fields">
-          {number('atWU', object.atWU, boundaryCamera, 'Time')}
+          {number('atWU', object.atWU, locked, 'Time')}
           <p className="about-track-editor-parameter-note is-wide">Move owns XYZ only. Look and Lens continue on independent lanes, so changing travel cannot reset the pitch or FOV.</p>
           <InspectorFolder group={{ id: 'camera-essentials', label: 'Essentials' }} count={4} defaultOpen>
             <div className="about-track-editor-camera-rig">
@@ -4576,6 +4577,8 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
                     ? 'Delete camera shot'
                     : snapshot.selection.type === 'camera-orientation-key'
                       ? 'Delete camera tilt key'
+                      : snapshot.selection.type === 'camera-lens-key'
+                        ? 'Delete camera lens key'
                       : 'Delete'}
                 </button>
               </div>
