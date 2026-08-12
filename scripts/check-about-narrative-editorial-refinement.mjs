@@ -102,7 +102,7 @@ test('point material and narrow-mobile opening use the approved authored envelop
   assert.equal(target.presenceRatio, 1);
 });
 
-test('the bust resolves and holds before the finale invitation appears', () => {
+test('the finale invitation resolves as the bust finishes forming', () => {
   const keys = canonical.tracks.pointField.keys;
   assert.equal(keys.find((key) => key.id === 'key-world-emergent-departure').atWU, 18.95);
   assert.equal(keys.find((key) => key.id === 'key-world-emergent-arrival').atWU, 20.55);
@@ -115,6 +115,6 @@ test('the bust resolves and holds before the finale invitation appears', () => {
   assert.equal(canonical.tracks.camera.keys.find((key) => key.id === 'finale-resolved-hold').atWU, 20.55);
   assert.deepEqual(
     ['startWU', 'focusWU', 'endWU'].map((key) => getTextField('text-epilogue-invitation')[key]),
-    [21.25, 21.7, 22.795],
+    [20.15, 20.6, 22.795],
   );
 });

@@ -210,6 +210,13 @@ export function createAboutNarrativeBustController({
     return true;
   };
 
+  const setYaw = (yaw) => {
+    if (snapshot.state === ABOUT_NARRATIVE_BUST_STATES.DRAGGING) return false;
+    snapshot.yaw = finiteOr(yaw);
+    snapshot.formationYaw = snapshot.yaw;
+    return true;
+  };
+
   const writeSnapshot = (target) => {
     target.state = snapshot.state;
     target.yaw = snapshot.yaw;
@@ -229,6 +236,7 @@ export function createAboutNarrativeBustController({
     endDrag,
     rotateByKeyboard,
     cancelInteraction,
+    setYaw,
     leave,
     get state() { return snapshot.state; },
     get yaw() { return snapshot.yaw; },

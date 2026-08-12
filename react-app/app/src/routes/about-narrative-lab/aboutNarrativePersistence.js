@@ -58,7 +58,7 @@ function resolvePersistenceBoundary(targetVersion = ACTIVE_SCHEMA_VERSION) {
       serialize: serializeAboutNarrativePointFieldSource,
     };
   }
-  throw new TypeError('About Narrative persistence targetVersion must be 5 or 6.');
+  throw new TypeError(`About Narrative persistence targetVersion must be ${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} or ${ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION}.`);
 }
 
 function parseHash(response, payload) {

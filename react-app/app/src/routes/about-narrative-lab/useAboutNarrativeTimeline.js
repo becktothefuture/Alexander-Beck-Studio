@@ -11,28 +11,25 @@ import {
 } from '../../lib/scroll-progress-indicator.js';
 import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
-  compileAboutNarrativeRendererRuntimePlan,
-  createAboutNarrativeRendererFrameSample,
-  getAboutNarrativeRendererPreparationRequest,
-  sampleAboutNarrativeRendererRuntimePlanInto,
-} from './aboutNarrativePointFieldRendererBridge.js';
-import {
-  createAboutNarrativeTitleFieldSample,
-  sampleAboutNarrativeTitleFieldInto,
-} from './aboutNarrativeRuntimePlan.js';
-import {
   ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD,
-  getAboutNarrativeEditorialFocusOpacity,
-  getAboutNarrativeEditorialPhraseOpacity,
+  compileAboutNarrativeComposerPlan,
+  createAboutNarrativeComposerContextSample,
+  createAboutNarrativeComposerFrameSample,
+  createAboutNarrativeComposerTitleSample,
+  getAboutNarrativeComposerEditorialFocusOpacity,
+  getAboutNarrativeComposerEditorialPhraseOpacity,
+  getAboutNarrativeComposerEditorialReveal,
+  getAboutNarrativeComposerOpeningCueOpacity,
+  getAboutNarrativeComposerPreparationRequest,
+  sampleAboutNarrativeComposerContextInto,
+  sampleAboutNarrativeComposerPlanInto,
+  sampleAboutNarrativeComposerTitleInto,
+} from './aboutNarrativeComposer.js';
+import {
   getAboutNarrativeReadingOrderRevealMetrics,
-  getAboutNarrativeSharedRevealProgress,
 } from './aboutNarrativeReveal.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
-const smooth01 = (value) => {
-  const progress = clamp01(value);
-  return progress * progress * (3 - (2 * progress));
-};
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
@@ -50,12 +47,7 @@ const ABOUT_SCROLL_INDICATOR_MAX_START_INDEX = Math.max(
   ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
 );
 
-export function getAboutNarrativeOpeningScrollCueOpacity(scrollTop, viewportHeight) {
-  const resolvedViewportHeight = Math.max(0, Number(viewportHeight) || 0);
-  const fadeDistance = Math.min(72, Math.max(48, resolvedViewportHeight * 0.08));
-  const fadeProgress = clamp01((Number(scrollTop) || 0) / fadeDistance);
-  return 1 - smooth01(fadeProgress);
-}
+export const getAboutNarrativeOpeningScrollCueOpacity = getAboutNarrativeComposerOpeningCueOpacity;
 
 function getPreviewOptions(editorStore) {
   const previewState = editorStore?.getSnapshot?.()?.previewState;
@@ -67,7 +59,7 @@ function getPreviewOptions(editorStore) {
 
 function createInitialPlan(document, editorStore) {
   const canReadViewport = typeof window !== 'undefined';
-  return compileAboutNarrativeRendererRuntimePlan(document, {
+  return compileAboutNarrativeComposerPlan(document, {
     inlineSize: canReadViewport ? window.innerWidth : undefined,
     blockSize: canReadViewport ? window.innerHeight : undefined,
     ...getPreviewOptions(editorStore),
@@ -89,30 +81,7 @@ function isFieldActive(field, storyWU, durationWU) {
     && Math.abs(Number(field.endWU) - durationWU) <= 0.000001;
 }
 
-export function getAboutNarrativeEditorialReveal(
-  record,
-  scrollWU,
-  viewportHeight,
-  viewportThreshold,
-  reducedMotion,
-) {
-  const revealOffsetWU = Number(record.revealOffsetPx || 0) / Math.max(1, viewportHeight);
-  const viewportY = Number(viewportThreshold)
-    + revealOffsetWU
-    - (Number(scrollWU) - Number(record.startScrollWU));
-  const revealTravel = Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0);
-  const revealSoftnessWU = Math.max(
-    0.001,
-    Number(record.revealSoftnessPx || 0) / Math.max(1, viewportHeight),
-  );
-  const completionViewportY = Number(viewportThreshold) - revealTravel;
-  return getAboutNarrativeSharedRevealProgress(
-    viewportY,
-    completionViewportY + revealSoftnessWU,
-    revealSoftnessWU,
-    reducedMotion,
-  );
-}
+export const getAboutNarrativeEditorialReveal = getAboutNarrativeComposerEditorialReveal;
 
 export function useAboutNarrativeTimeline({
   document,
@@ -138,9 +107,9 @@ export function useAboutNarrativeTimeline({
   const titleSampleByIdRef = useRef(new Map());
   const measurementsRef = useRef({ ...EMPTY_MEASUREMENTS });
   const requestMeasureRef = useRef(() => {});
-  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeRendererFrameSample();
+  if (frameSampleRef.current == null) frameSampleRef.current = createAboutNarrativeComposerFrameSample();
   if (frameSampleOptionsRef.current == null) {
-    frameSampleOptionsRef.current = { ambientSeconds: 0, deltaSeconds: 0, liveAmbient: true };
+    frameSampleOptionsRef.current = {};
   }
 
   useLayoutEffect(() => {
@@ -195,7 +164,7 @@ export function useAboutNarrativeTimeline({
     };
 
     const handoffPreparation = (nextStoryWU, { force = false } = {}) => {
-      const request = getAboutNarrativeRendererPreparationRequest(planRef.current, nextStoryWU);
+      const request = getAboutNarrativeComposerPreparationRequest(planRef.current, nextStoryWU);
       const runtime = worldRuntimeRef.current;
       if (!request || typeof runtime?.preparePlan !== 'function') return false;
       const identity = `${request.sequenceKey}:${request.targetWorldId}`;
@@ -337,14 +306,14 @@ export function useAboutNarrativeTimeline({
         if (field.kind === 'title' && field.movement === 'spatial') {
           let sample = titleSampleByIdRef.current.get(field.id);
           if (!sample) {
-            sample = createAboutNarrativeTitleFieldSample();
+            sample = createAboutNarrativeComposerTitleSample();
             titleSampleByIdRef.current.set(field.id, sample);
           }
           titleFields.push({ node, field, sample });
         }
         if (field.presentation?.layout === 'text-finale-cta'
           || field.presentation?.layout === 'text-bust-cta') {
-          contextFields.push({ node, field, visible: null });
+          contextFields.push({ node, field, visible: null, sample: createAboutNarrativeComposerContextSample() });
         }
       });
       measurementsRef.current = {
@@ -369,7 +338,7 @@ export function useAboutNarrativeTimeline({
       const transport = getTransport(editorStore);
       const sourceDocument = getPlaybackDocument(documentRef, editorStore);
       const contentPressure = collectContentPressure(viewportHeight);
-      const candidate = compileAboutNarrativeRendererRuntimePlan(sourceDocument, {
+      const candidate = compileAboutNarrativeComposerPlan(sourceDocument, {
         inlineSize: viewportWidth,
         blockSize: viewportHeight,
         prefersReducedMotion: reducedMotionQuery.matches,
@@ -434,7 +403,7 @@ export function useAboutNarrativeTimeline({
       const reducedMotion = frame.reducedMotion;
       const textMotion = frame.globals.textMotion;
       for (const { node, field, sample } of measurementsRef.current.titleFields) {
-        sampleAboutNarrativeTitleFieldInto(field, frame.storyWU, textMotion, reducedMotion, sample);
+        sampleAboutNarrativeComposerTitleInto(field, frame.storyWU, textMotion, reducedMotion, sample);
         const visible = !reducedMotion
           || isFieldActive(field, frame.storyWU, frame.durationWU);
         node.style.setProperty('--fragment-x', `${sample.x.toFixed(2)}px`);
@@ -458,7 +427,7 @@ export function useAboutNarrativeTimeline({
       });
       root.dataset.editorialInView = editorialInView ? 'true' : 'false';
       for (const record of editorialLines) {
-        record.progress = getAboutNarrativeEditorialReveal(
+        record.progress = getAboutNarrativeComposerEditorialReveal(
           record,
           scrollWU,
           viewportHeight,
@@ -486,13 +455,13 @@ export function useAboutNarrativeTimeline({
         const focusStack = focusModule?.stack || null;
         const moduleIndex = focusModule?.index ?? 0;
         const activeModuleIndex = focusStack?.activeModuleIndex ?? 0;
-        const focusOpacity = getAboutNarrativeEditorialFocusOpacity(
+        const focusOpacity = getAboutNarrativeComposerEditorialFocusOpacity(
           moduleIndex,
           progress,
           activeModuleIndex,
           reducedMotion,
         );
-        const phraseOpacity = getAboutNarrativeEditorialPhraseOpacity(
+        const phraseOpacity = getAboutNarrativeComposerEditorialPhraseOpacity(
           moduleIndex,
           progress,
           activeModuleIndex,
@@ -514,38 +483,18 @@ export function useAboutNarrativeTimeline({
       frame.editorialSignals.gridInfluence = gridInfluence;
 
       for (const contextField of measurementsRef.current.contextFields) {
-        const { node, field } = contextField;
-        const contextVisible = frame.storyWU >= field.startWU;
+        const { node, field, sample } = contextField;
+        sampleAboutNarrativeComposerContextInto(field, frame.storyWU, reducedMotion, sample);
+        const contextVisible = sample.visible;
         if (contextField.visible !== contextVisible) {
           contextField.visible = contextVisible;
           node.dataset.contextVisible = contextVisible ? 'true' : 'false';
         }
-        const titleProgress = frame.storyWU >= field.startWU
-          ? clamp01(
-            (frame.storyWU - field.startWU)
-            / Math.max(0.000001, field.focusWU - field.startWU),
-          )
-          : 0;
-        const postTitleProgress = frame.storyWU >= field.focusWU
-          ? clamp01(
-            (frame.storyWU - field.focusWU)
-            / Math.max(0.000001, field.endWU - field.focusWU),
-          )
-          : 0;
-        const ruleProgress = reducedMotion
-          ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : smooth01(postTitleProgress / 0.24);
-        const descriptionProgress = reducedMotion
-          ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : smooth01((postTitleProgress - 0.24) / 0.46);
-        const actionProgress = reducedMotion
-          ? (frame.storyWU >= field.startWU ? 1 : 0)
-          : smooth01((postTitleProgress - 0.7) / 0.3);
-        node.style.setProperty('--spatial-context-opacity', titleProgress.toFixed(4));
-        node.style.setProperty('--route-title-rule-scale', ruleProgress.toFixed(4));
-        node.style.setProperty('--spatial-description-opacity', descriptionProgress.toFixed(4));
-        node.style.setProperty('--spatial-action-opacity', actionProgress.toFixed(4));
-        node.style.setProperty('--spatial-context-y', `${((1 - descriptionProgress) * 16).toFixed(2)}px`);
+        node.style.setProperty('--spatial-context-opacity', sample.titleOpacity.toFixed(4));
+        node.style.setProperty('--route-title-rule-scale', sample.ruleScale.toFixed(4));
+        node.style.setProperty('--spatial-description-opacity', sample.descriptionOpacity.toFixed(4));
+        node.style.setProperty('--spatial-action-opacity', sample.actionOpacity.toFixed(4));
+        node.style.setProperty('--spatial-context-y', `${sample.y.toFixed(2)}px`);
       }
     };
 
@@ -580,10 +529,7 @@ export function useAboutNarrativeTimeline({
       previousTime = time;
       const nextStoryWU = readTransport(deltaSeconds);
       const sampleOptions = frameSampleOptionsRef.current;
-      sampleOptions.ambientSeconds = time / 1000;
-      sampleOptions.deltaSeconds = deltaSeconds;
-      sampleOptions.liveAmbient = getTransport(editorStore)?.liveAmbient !== false;
-      const frame = sampleAboutNarrativeRendererRuntimePlanInto(
+      const frame = sampleAboutNarrativeComposerPlanInto(
         planRef.current,
         nextStoryWU,
         frameSampleRef.current,

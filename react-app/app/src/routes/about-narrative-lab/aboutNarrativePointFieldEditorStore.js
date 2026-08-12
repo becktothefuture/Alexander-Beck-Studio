@@ -17,8 +17,10 @@ import {
   writeAboutNarrativePointFieldTarget,
 } from './aboutNarrativePointFieldEditing.js';
 import {
-  compileAboutNarrativeRendererRuntimePlan,
-} from './aboutNarrativePointFieldRendererBridge.js';
+  compileAboutNarrativeComposerPlan,
+  createAboutNarrativeComposerFrameSample,
+  sampleAboutNarrativeComposerPlanInto,
+} from './aboutNarrativeComposer.js';
 import { applyAboutNarrativePointFieldOverrides } from './aboutNarrativePointFieldSchema.js';
 import {
   ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
@@ -26,7 +28,6 @@ import {
   ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
   ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES,
 } from './aboutNarrativePointFieldMotion.js';
-import { sampleAboutNarrativeRuntimePlan } from './aboutNarrativeRuntimePlan.js';
 import {
   createAboutNarrativeTrackClipboardPayload,
   createAboutNarrativeTrackObjectAtWU,
@@ -611,7 +612,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
   const compileCandidate = (document, nextPreviewState = null) => {
     metrics.compilations += 1;
     const activePreview = nextPreviewState || snapshot?.previewState || defaultPreviewState(previewState);
-    const plan = compileAboutNarrativeRendererRuntimePlan(document, {
+    const plan = compileAboutNarrativeComposerPlan(document, {
       previewLayoutProfile: activePreview.layoutProfile,
       previewMotionProfile: activePreview.motionProfile,
     });
@@ -982,6 +983,30 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     },
     updateGestureMove(deltaWU) {
       if (!gesture) return false;
+      if (gesture.operation?.type === 'linked-camera') {
+        const candidate = clone(gesture.startDocument);
+        const requestedAtWU = Number(gesture.operation.atWU);
+        const appliedDeltaWU = cleanWU(Math.round(Number(deltaWU) * 100) / 100);
+        const linkedKeys = [
+          ...candidate.tracks.camera.moveKeys,
+          ...candidate.tracks.camera.lookKeys,
+          ...candidate.tracks.camera.lensKeys,
+        ].filter((key) => Math.abs(Number(key.atWU) - requestedAtWU) <= 0.000001);
+        if (linkedKeys.some((key) => key.locked)) {
+          return rejectOperation(gesture.label, { reason: 'A protected linked Camera key cannot be moved.' });
+        }
+        linkedKeys.forEach((key) => {
+          key.atWU = cleanWU(Number(key.atWU) + appliedDeltaWU);
+          Object.values(candidate.profiles || {}).forEach((profile) => {
+            const override = profile.overrides?.camera?.[key.id];
+            if (Number.isFinite(Number(override?.atWU))) override.atWU = cleanWU(Number(override.atWU) + appliedDeltaWU);
+          });
+        });
+        candidate.tracks.camera.moveKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
+        candidate.tracks.camera.lookKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
+        candidate.tracks.camera.lensKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
+        return updateGestureResult({ valid: true, document: candidate, selection: gesture.startSelection });
+      }
       if (hasProtectedSelection(gesture.startDocument, gesture.startSelection)) {
         return rejectOperation(gesture.label, { reason: 'A protected object cannot be moved.' });
       }
@@ -1227,6 +1252,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
       const base = kind || (track === 'camera'
         ? 'camera-key'
         : track === 'camera-orientation' ? 'camera-orientation-key'
+        : track === 'camera-lens' ? 'camera-lens-key'
         : track === 'visibility' ? 'visibility-key' : track);
       const id = options.id || createUniqueId(snapshot.document, base);
       const operationOptions = { ...options, id };
@@ -1244,16 +1270,16 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
       if (track === 'text' && kind === 'stub') {
         operationOptions.template = { label: 'Untitled stub', ...options.template };
       }
-      if (['camera', 'camera-orientation', 'visibility'].includes(track) && snapshot.compiledPlan?.valid) {
-        const frame = sampleAboutNarrativeRuntimePlan(snapshot.compiledPlan, atWU);
+      if (['camera', 'camera-orientation', 'camera-lens', 'visibility'].includes(track) && snapshot.compiledPlan?.valid) {
+        const frame = sampleAboutNarrativeComposerPlanInto(
+          snapshot.compiledPlan,
+          atWU,
+          createAboutNarrativeComposerFrameSample(),
+        );
         if (track === 'camera' && !operationOptions.cameraKey) {
           operationOptions.cameraKey = {
             position: [...frame.camera.position],
-            rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
-            aimEnabled: Number(frame.camera.aimWeight || 0) >= 0.9999,
-            lookAtTarget: [...frame.camera.lookAtTarget],
-            lookAtRoll: frame.camera.lookAtRoll,
-            fov: frame.camera.fov,
+            velocityMode: 'eased',
           };
         }
         if (track === 'visibility' && !operationOptions.visibilityKey) {
@@ -1263,6 +1289,9 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
           operationOptions.cameraOrientationKey = {
             rotation: getAboutNarrativeCameraRotationFromQuaternion(frame.camera.quaternion),
           };
+        }
+        if (track === 'camera-lens' && !operationOptions.cameraLensKey) {
+          operationOptions.cameraLensKey = { fov: frame.camera.fov };
         }
       }
       if (track === 'interaction') operationOptions.interactionType ||= 'horizontal-spin';

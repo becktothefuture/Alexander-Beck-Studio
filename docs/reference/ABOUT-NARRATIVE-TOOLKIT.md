@@ -1,16 +1,27 @@
-# About Director 3.0
+# About Director 4.0
 
-About Director 3.0 is the local authoring product for the About narrative. The product version and
-the document version are separate: the current canonical document is **schema v6**.
+About Director 4.0 is the local authoring product for the About narrative. The product version and
+the document version are separate: the current canonical document is **schema v7**.
 
-## Director 3.0 editor contract
+## Director 4.0 editor contract
 
 - The command bar separates Director identity, transport, document actions, and Save state.
-- The timeline has minimized, compact, and expanded dock heights. Resizing the dock does not change
+- The timeline opens in a compact all-lanes overview and fits the complete Story to the available
+  width. It has minimized, compact, and expanded dock heights. Resizing the dock does not change
   zoom, scroll, selection, playhead, active segment, preview geometry, or authored timing.
-- Desktop uses a stage, contextual inspector, and bottom timeline. Tablet uses an overlay inspector
-  that does not resize the emulated preview. Phone uses mutually exclusive Timeline and Inspector
-  sheets.
+- Desktop and tablet use a stage, docked contextual inspector, and bottom timeline. A wider
+  discipline inspector keeps the viewfinder map and all six positions usable. Phone uses mutually
+  exclusive Timeline and Inspector sheets.
+- The timeline drawer is translucent, while each lane remains `95%` opaque. The preview remains
+  visible without reducing key, segment, or label contrast.
+- Scene buttons seek and centre Opening, Field, Grid, Disciplines, Editorial, Closing, Bust, and
+  Finale. Lane headers are selectable, so lane access remains usable when the top lane tabs are
+  hidden at narrower widths.
+- Timeline dragging magnetically snaps to keys, scene boundaries, text envelopes, effect edges, and
+  discipline viewfinder crossings. Hold `Alt` while dragging to bypass snapping. The active snap WU
+  is drawn beside the guide.
+- Camera Move, Look, and Lens sliders open in a local **Fine** range and retain exact numeric entry.
+  **Full** exposes the registered safety range when a larger change is intentional.
 - Preview profile and Point Field authoring scope are independent. Changing Desktop, Tablet, Mobile,
   orientation, or Reduced Motion never changes the Base/Tablet/Mobile authored override.
 - Text blocks have structured add, edit, reorder, duplicate, and remove actions. Advanced source is a
@@ -19,8 +30,8 @@ the document version are separate: the current canonical document is **schema v6
   relevant timeline item and focuses its inspector control.
 - Save, recovery, conflict, and checkpoint state belong to the editor store. Editor layout, panel
   sizes, zoom, and selection never become canonical document fields.
-- The schema-v6 Point Field lane, Form keys, transition segments, compiler, and runtime are the
-  authoritative upstream implementation. Director does not define parallel transition types.
+- The schema-v7 Composer document, compiler, and sampler are the authoritative implementation.
+  Renderers display one sampled frame and never create narrative timing or camera motion.
 
 ## What this system is
 
@@ -33,7 +44,7 @@ The About page is one authored scroll sequence played by three cooperating layer
 The creative toolkit is available only during local development:
 
 ```text
-http://localhost:8012/about.html
+http://localhost:8012/about.html?edit=1
 ```
 
 The normal lab URL and `/about.html` are playback-only. Production builds remove the editor module and Save endpoint strings.
@@ -43,30 +54,43 @@ The normal lab URL and `/about.html` are playback-only. Production builds remove
 ```text
 About Narrative
 └── Sequence
-    ├── Camera track → absolute Camera keys
-    ├── Visibility track → whole-simulation opacity keys
-    ├── Point Field track → reusable Form states, keys, hold regions, and transition segments
-    ├── Text track → travelling Titles and editorial Scroll blocks
-    └── Motion track → discipline reveal and gathering-pulse clips
+    ├── Camera
+    │   ├── Move → absolute XYZ position keys
+    │   ├── Look → pitch, yaw, and roll keys
+    │   └── Lens → FOV keys
+    ├── World
+    │   ├── Visibility → whole-simulation opacity keys
+    │   ├── Forms → reusable rest geometry and morph targets
+    │   └── Effects → drift, ripples, assembly, yaw, and discipline reveal clips
+    └── Content
+        └── Text → travelling Titles and editorial Scroll blocks
 ```
 
 - A **Sequence** is the complete scroll journey.
-- A **Camera key** sets an absolute Position XYZ, Rotation XYZ, and lens at one Story WU.
+- A **Move key** sets only absolute camera Position XYZ at one Story WU.
+- A **Look key** sets only pitch, yaw, and roll at one Story WU.
+- A **Lens key** sets only FOV at one Story WU.
 - A **Visibility key** fades the complete point simulation independently of camera and fog.
 - A **Form state** is a reusable point-field definition referenced by stable keys.
 - A **Point Field key** places a Form state at an absolute Story WU.
 - A **transition segment** owns the parametric motion between two keys; hold regions retain a Form.
 - A **Shape** is the rest arrangement of the fixed point pool.
-- A **modifier** adds deterministic or ambient movement to a Shape.
+- An **Effect clip** adds deterministic Story-time movement to a Form.
 - A **Title** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
 - A **Discipline reveal** is one movable Motion clip that moves six existing points through one stable grid reading line without creating another Form or six ordinary title keyframes.
 
 “Stage” is not part of the authored vocabulary.
 
+The timeline draws segment duration, camera translation and angular velocity, whole-simulation
+visibility, activity coverage, and discipline viewfinder-crossing markers. Empty activity longer than
+`0.15 WU` is a production error. The discipline inspector provides a two-dimensional grid editor for
+Desktop, Tablet, and Mobile. Anchors snap to real point cells, preserve collision spacing, support
+exact X/Z entry and responsive inheritance, and can move one reveal pair together.
+
 ## The source of truth
 
-All About copy, order, timing, camera keys, Shapes, modifiers, and interactions live in:
+All About copy, order, timing, camera keys, Forms, Effects, and interactions live in:
 
 ```text
 react-app/app/public/config/contents-about.json
@@ -104,9 +128,9 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a dockable, development-only instrument with five independent lanes: Camera,
-Visibility, Point Field, Text, and Motion. Its palette does not inherit route or website theme colours.
-The first and final Camera and Visibility boundaries remain protected. Left and Right arrow keys
+The timeline is a dockable, development-only instrument grouped into Camera, World, and Content.
+It exposes Move, Look, Lens, Visibility, Forms, Effects, and Text lanes. Its neutral charcoal palette
+does not inherit route or website theme colours. The first and final Camera and Visibility boundaries remain protected. Left and Right arrow keys
 jump to the previous or next timing point unless a text field or numeric control has focus.
 
 The compiler converts `storyWU` into:
@@ -125,76 +149,19 @@ The runtime samples this once per animation frame. No point-field adapter may st
 
 ## Camera fundamentals
 
-The camera is one absolute rig with two explicit orientation modes and one persistent world-space
-**Focus Anchor**. Manual mode uses authored X/Y/Z rotation and ignores the anchor for orientation.
-Focus mode keeps the camera pointed at the anchor while Position moves around it; the derived
-quaternion owns orientation, with **Horizon roll** as its only rotational offset. The anchor remains
-in the world and continues its eased key-to-key movement in both modes. There is no authored frame
-origin, depth offset, orbit, dolly, or secondary rail adjustment underneath either mode.
+The camera has three complete, non-overlapping lanes:
 
-### Editable Camera travel and tilt keys
+- **Move** owns Position XYZ only.
+- **Look** owns pitch, yaw, and roll only. Quaternion interpolation produces continuous orientation.
+- **Lens** owns FOV only.
 
-A Camera travel key stores:
+Move keys cannot contain rotation, targets, focus, orbit, or FOV. Look is defined from Story start to
+Story end, so rotation never changes owner during playback. The renderer does not generate a target
+or an extra camera rotation. Constant Move segments use linear interpolation and report translation
+speed in WU/WU. Look and Lens have separate curves and velocity graphs.
 
-- Global Story WU (`atWU`)
-- Absolute Position X, Y, and Z in world units
-- Rotation X, Y, and Z in degrees
-- Focus enabled
-- Absolute Focus Anchor X, Y, and Z in world units
-- Horizon roll in degrees
-- FOV
-- The travel curve for its outgoing segment
-
-A Camera tilt key stores only global Story WU, manual Rotation XYZ, and its outgoing orientation
-curve. The tilt lane is optional. While its bounded interval is active, it overrides manual rotation
-without changing Camera position, focus target, or FOV. This lets a constant travel segment continue
-through a pitch without adding a combined pose key or a translation pause.
-
-Manual rotation uses Three.js `YXZ` Euler order at authored keys and quaternion interpolation during
-playback. Focus orientation is recalculated from the interpolated camera position and anchor on every
-frame, so moving the camera naturally produces the pan and tilt required to keep looking at that
-point. A segment that changes orientation mode blends the manual and aimed quaternions smoothly;
-between two focused keys the aim remains exact for the entire segment. Position, anchor, horizon
-roll, and FOV all use the travel segment easing. Manual rotation uses that curve only when the optional
-tilt lane is inactive. The editor presents the curve's departure handle as
-ease-out on the source key and its arrival handle as ease-in on the destination key.
-
-Adding a Camera key at the playhead samples the published pose first, so insertion does not create a
-jump. Enabling focus derives an initial anchor along the current view direction only when an old key
-does not have one. Disabling focus bakes the current aimed orientation into manual rotation without
-moving or deleting the anchor. The editor's testing view renders the anchor as a real red three-axis
-Three.js object at its world coordinates; it never ships in the public route.
-
-### Camera travel easing
-
-Selecting a Camera key opens two **Travel easing** graphs tied to that keyframe:
-
-- **Ease into keyframe** controls how early the previous move starts settling into the selected camera.
-- **Ease out of keyframe** controls how long the selected camera holds before the next move gathers speed.
-- Linear travel is also supported and is used by the baked migration path where it best preserves the previous motion.
-
-Both strengths use the same position, focus, and lens interpolation. Rotation follows them only when
-there is no active Camera tilt interval. The controls can be dragged
-directly, adjusted with arrow keys, entered numerically, or set together from Balanced, Cinematic,
-and Measured presets. Higher strength produces a longer, softer ease. The first key has no incoming
-move, and the final key has no outgoing move, so the unavailable side is stated instead of showing a
-control that cannot affect playback.
-
-### Camera rig controls
-
-The open **Camera rig** folder contains seven manual pose/lens controls, one Focus toggle, and four
-persistent anchor controls:
-
-- **Position X**, **Position Y**, and **Position Z** move the camera in world space.
-- **Rotation X**, **Rotation Y**, and **Rotation Z** rotate around the camera itself at the centre of the viewport, like a first-person video-game camera.
-- **Focus on 3D anchor** enables anchor-owned orientation. Manual rotation controls are disabled while it is active.
-- **Anchor X**, **Anchor Y**, and **Anchor Z** place the persistent world-space focus point whether focus is enabled or disabled.
-- **Horizon roll** rotates the aimed camera around its view axis without changing the point it sees.
-- **Field of view** widens or tightens the lens.
-
-Travel easing remains in a separate collapsed folder. Slider gestures live-apply as one undoable
-edit, while the adjacent number fields support precise entry. The protected first and final keys
-cannot move in time or be deleted, but their pose and available easing side remain editable.
+The **Helicopter sweep** recipe writes ordinary Move, Look, and Lens keys. It introduces no special
+runtime behaviour or hidden coupling. Linked selection can retime related keys explicitly.
 
 ### Visibility and global fog
 
@@ -210,25 +177,35 @@ simulation exists on screen are therefore three explicit, non-overlapping contro
 
 - `0–5.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
   interval, and bridge directly into the calm grid.
-- `5.05–7.18 WU`: settle the complete field into its overhead reading lane, briefly hide it, then
-  return it beneath the titles that introduce the Discipline reveal.
-- `7.70–11.15 WU`: use one linear Camera travel segment with fixed height and a fixed compact-layout
+- `3.465–6.865 WU`: fade the first field completely out as the first editorial unit becomes readable, perform the
+  grid morph and Camera reposition while hidden, then return it beneath the next travelling title.
+- `7.70–11.15 WU`: use one linear Move segment from `[-5, 3.14, -4.51]` to
+  `[-5, 3.14, -1.75]` at exactly `0.8 WU/WU`, with fixed height and a fixed compact-layout
   lens. It is already moving before the orientation change starts and continues through the complete
   Discipline pass.
-- `8.35–9.15 WU`: keep the saved backward flyover moving while the Camera pitches smoothly from its
-  field-level view to the floor-facing Discipline view on the independent Camera tilt lane.
+- `8.35–9.15 WU`: keep the backward flyover moving while Look pitches smoothly from `-2.3°` to
+  `-90°`. Move velocity does not change.
 - `9.15–11.15 WU`: continue that same backward path down the grid, reveal the three paired Discipline
   rows as their projected anchors enter the lower viewfinder, reconnect the final points, and fade the
-  labels before the world hides.
-- `11.15–13.00 WU`: yield to one continuous editorial passage while the hidden Camera repositions.
-- `13.00–18.95 WU`: return to the centred surface under the passage's final paragraph and sustain
-  the scroll-authored ripple beneath the three travelling titles.
-- `18.95–20.55 WU`: gather the fixed point pool and build the bust from its lower layers into the head.
-- `21.25–22.795 WU`: hold the resolved form behind the complete final invitation and description.
+  labels before the world hides. Grid restore begins at `10.35 WU`; the labels are below the visible
+  threshold by `11.075 WU`, before the Move segment leaves the held composition.
+- `10.85–14.15 WU`: fade the Discipline field completely out as the second editorial unit becomes readable and
+  use the zero-visibility interval for the complete Camera reframe.
+- `14.15–16.35 WU`: return to the centred surface and sustain the grid ripple beneath the three
+  shorter closing-title beats.
+- `16.35–17.95 WU`: hand the grid ripple to the emergent ripple while the fixed point pool gathers
+  and builds the bust from its lower layers into the head.
+- `17.45–20.00 WU`: bring in the final invitation during the bust resolve, then hold the complete
+  lockup without a separate empty beat.
+
+The same editorial copy leaves the viewport at slightly different WU values as line wrapping and
+viewport height change. The responsive sequence audit records the single exit breath separately and
+caps it at `0.7 WU`; every other inactive run retains the stricter `0.15 WU` limit. This keeps the grid
+fully hidden behind readable editorial text without disguising the width-dependent clearance as motion.
 
 ## How Point Field states stay connected
 
-Schema v6 stores one Point Field track with `stateDefinitions`, `keys`, and `segments`. Stable keys
+Schema v7 stores one Point Field track with `stateDefinitions`, `keys`, and `segments`. Stable keys
 reference reusable Form states. Segments own timing, easing, correspondence, and parametric transition
 motion; hold regions retain the preceding Form without inventing another container. Camera,
 Visibility, Point Field, Text, and Motion remain independent tracks.
@@ -286,33 +263,17 @@ compatibility but is not part of the canonical sequence.
 Use the Point Field state inspector to change a Form. The change is one undoable transaction. While
 a new Shape generates, the last-valid compiled plan and buffers remain visible.
 
-## Modifiers and clocks
+## Effects and the Story clock
 
-A Shape supplies rest positions. Its ordered modifier stack supplies behaviour:
+A Form supplies only rest geometry, material, and authored morph targets. The Effects lane owns all
+scroll-driven behaviour, including ambient drift, swarm motion, group emphasis, ripples, living
+waves, Bust assembly, and Bust yaw. Every effect clip declares its interval, parameters, and reduced
+motion behaviour.
 
-- Ambient drift
-- Swarm life: independent 3D motion driven by the Sequence-level **Shared turbulence** profile. The cluster and turbulent field use the same full-strength profile; each Form exposes only a local strength multiplier, allowing the same motion to taper smoothly into the calm field.
-- Group emphasis
-- Living wave
-- Living colour
-- Ambient drift on the resolved emergent form
-- Bust assembly: controls platform width and gather time, bottom-to-head formation timing, layer
-  softness, the fragmented lower band, point scatter/fall, and how much of that band remains visible
-- Whole-bust rotation: turns the settled bust platform around its local vertical axis while the
-  authored camera holds. **Platform spin** controls the ambient speed; zero pauses it. Reduced
-  Motion settles the platform without continuous rotation.
-
-Modifiers can be enabled, reordered, and parameterised. Shared turbulence range, speed, irregularity, individuality, and axis spread are edited once under **Sequence → Shared turbulence**. The Form-level **Swarm life → Local strength** control changes intensity without creating a second motion profile. Each registered modifier declares safe ranges, units, cost, and reduced-motion behaviour.
-
-Two clocks keep editing reproducible:
-
-- `story`: derived from `storyWU`, deterministic when scrubbing backwards
-- `ambient`: wall-clock motion during live playback
-- `mixed`: authored state plus a bounded ambient layer
-
-Disable **Live ambient** to freeze ambient movement while comparing frames. The canonical ending has
-no pointer-owned sculpture rotation: camera movement, Point Field transitions, the Bust rotation modifier,
-and global Visibility carry the complete final beat.
+The Composer has one narrative clock: `story`, derived from `storyWU`. Scrubbing forwards or
+backwards therefore produces the same frame. Renderers may evaluate the sampled values, but they do
+not choose activation, easing, phase, or timing. Hover, focus, dragging, and throwing remain direct
+event-driven interactions because they are not scroll narrative.
 
 ## Text editing
 
@@ -348,10 +309,11 @@ into hundreds of keyframes.
 Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field Form for the
 complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
 point emphasis. Full motion resolves each item from its projected anchor as it enters the lower
-viewfinder; Reduced Motion retains the deterministic paired beat clock without spatial travel.
+viewfinder; Reduced Motion steps at the same compiled crossing times without spatial travel.
 The clip never owns camera, fog, or whole-system visibility.
 **Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
-Reorder the six labels without remapping their stable point groups or authoring responsive positions.
+Reorder the six labels without remapping their stable point groups. Reposition their explicit Desktop,
+Tablet, and Mobile anchors in the two-dimensional grid editor; production playback has no fallback grid.
 
 The Discipline reveal stays authored in Motion, but the Text lane shows its complete interval as a
 read-only flow reservation. This makes the occupied reading interval visible between the preceding
@@ -418,7 +380,7 @@ invalid, and future-editor entries instead of silently dropping protected data.
 
 The router preserves `?edit=1`, and editor-originated writes do not trigger Vite's generic content reload. Save therefore keeps the same editor URL, selection, and playhead open.
 
-Schema v6 is canonical. The persistence boundary owns migration from v5, including recovery,
+Schema v7 is canonical. The persistence boundary owns migration from v6 and older documents, including recovery,
 clipboard, checkpoint, import, and canonical-load paths. A migration that cannot preserve authored
 meaning fails closed and retains the original value for recovery or export. Director never creates a
 parallel v3 schema or compatibility adapter.

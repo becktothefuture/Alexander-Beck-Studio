@@ -1,6 +1,11 @@
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
 } from './aboutNarrativeCorrespondenceRegistry.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
+  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
+  getAboutNarrativeDisciplinePosition,
+} from './aboutNarrativeDisciplinePositions.js';
 export { ABOUT_NARRATIVE_CORRESPONDENCE_MODES };
 
 export const ABOUT_NARRATIVE_SCHEMA_VERSION = 2;
@@ -32,12 +37,12 @@ export const ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS = Object.freeze([
 const DISCIPLINE_DESKTOP_COLUMNS = 127;
 const DISCIPLINE_DESKTOP_ROWS = 95;
 const DISCIPLINE_DESKTOP_CELLS = Object.freeze([
-  Object.freeze([43, 54]),
-  Object.freeze([52, 54]),
-  Object.freeze([43, 56]),
-  Object.freeze([52, 56]),
   Object.freeze([43, 58]),
   Object.freeze([52, 58]),
+  Object.freeze([43, 59]),
+  Object.freeze([52, 59]),
+  Object.freeze([43, 60]),
+  Object.freeze([52, 60]),
 ]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS = Object.freeze({
@@ -60,14 +65,25 @@ export const ABOUT_NARRATIVE_DISCIPLINE_ANCHORS = createDisciplineAnchorGrid(
   DISCIPLINE_DESKTOP_COLUMNS,
   DISCIPLINE_DESKTOP_ROWS,
 );
-// The compact renderer keeps the established single reading column.
+// The compact renderer keeps both members of each reveal pair inside the
+// portrait camera corridor.
 export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS = createDisciplineAnchorGrid(
-  [[31, 34], [31, 35], [31, 36], [31, 37], [31, 38], [31, 39]],
+  [[31, 38], [34, 38], [31, 39], [34, 39], [31, 40], [34, 40]],
   82,
   61,
 );
 
 export function getAboutNarrativeDisciplineAnchors(pointProfile = 'desktop', parameters = null) {
+  const layoutProfile = parameters?.layoutProfile
+    || (pointProfile === 'mobile' ? 'mobile' : 'desktop');
+  if (Array.isArray(parameters?.items) && parameters.items.length === 6) {
+    return Object.freeze([...parameters.items]
+      .sort((left, right) => Number(left.group) - Number(right.group))
+      .map((item) => {
+        const [x, y] = getAboutNarrativeDisciplinePosition(item, layoutProfile);
+        return Object.freeze({ group: Number(item.group), x, y });
+      }));
+  }
   if (pointProfile === 'mobile') return ABOUT_NARRATIVE_DISCIPLINE_MOBILE_ANCHORS;
   const requestedColumn = Math.round(Number(
     parameters?.formationColumn
@@ -405,7 +421,6 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     parameters: Object.freeze([
       numberControl('amplitude', 'Amplitude', 0, 1.5, 0.001, 'WU', 'modifier-motion'),
       numberControl('speed', 'Speed', 0, 8, 0.01, '', 'modifier-motion'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'swarm-life-v1': Object.freeze({
@@ -452,7 +467,6 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
       numberControl('speed', 'Speed', 0, 8, 0.01, '', 'modifier-motion'),
       numberControl('frequencyX', 'X frequency', 0.02, 8, 0.01, '', 'modifier-motion'),
       numberControl('frequencyZ', 'Z frequency', 0.02, 8, 0.01, '', 'modifier-motion'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'living-colour-v1': Object.freeze({
@@ -463,7 +477,6 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     reducedMotion: 'settled',
     parameters: Object.freeze([
       numberControl('strength', 'Strength', 0, 1, 0.01, '', 'modifier-appearance'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'orbital-life-v1': Object.freeze({
@@ -475,7 +488,6 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
     parameters: Object.freeze([
       numberControl('strength', 'Strength', 0, 1, 0.01, '', 'modifier-motion'),
       numberControl('speed', 'Speed', 0, 1, 0.005, '', 'modifier-motion'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
   }),
   'bust-yaw-v1': Object.freeze({
@@ -489,7 +501,6 @@ export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
       numberControl('dragSensitivity', 'Drag sensitivity', 0.05, 5, 0.05, '', 'modifier-timing'),
       numberControl('resumeDelay', 'Resume delay', 0, 15, 0.1, 's', 'modifier-timing'),
       numberControl('resumeBlend', 'Resume blend', 0.05, 15, 0.05, 's', 'modifier-timing'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['ambient']) }),
     ]),
   }),
   'bust-assembly-v1': Object.freeze({
@@ -524,29 +535,23 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
     id: 'discipline-reveal',
     label: 'Discipline reveal',
     defaultParameters: Object.freeze({
-      settleDurationWU: 0.3,
-      beatDurationWU: 0.32,
-      itemsPerBeat: 2,
-      formationColumn: 43,
-      formationRow: 54,
+      entryStartRatio: 0.95,
+      entryCompleteRatio: 0.92,
       backgroundOpacity: 0.28,
       pointScale: 4.4,
       restoreDurationWU: 0.8,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.' }),
-        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.' }),
-        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.' }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.' }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.' }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.' }),
+        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[0] }),
+        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[1] }),
+        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[2] }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[3] }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[4] }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[5] }),
       ]),
     }),
     parameters: Object.freeze([
-      numberControl('settleDurationWU', 'Lane settle duration', 0.05, 2, 0.01, 'WU', 'modifier-timing'),
-      numberControl('beatDurationWU', 'Discipline beat duration', 0.2, 2, 0.01, 'WU', 'modifier-timing'),
-      numberControl('itemsPerBeat', 'Disciplines per beat', 1, 6, 1, '', 'modifier-timing'),
-      numberControl('formationColumn', 'Formation column', 0, 117, 1, 'grid', 'modifier-placement'),
-      numberControl('formationRow', 'Formation row', 0, 90, 1, 'grid', 'modifier-placement'),
+      numberControl('entryStartRatio', 'Reveal band starts', 0.5, 1, 0.01, 'view', 'modifier-placement'),
+      numberControl('entryCompleteRatio', 'Reveal band completes', 0.4, 0.95, 0.01, 'view', 'modifier-placement'),
       numberControl('backgroundOpacity', 'Resting grid opacity', 0, 0.5, 0.01, '', 'modifier-appearance'),
       numberControl('pointScale', 'Discipline point size', 1, 8, 0.05, '×', 'modifier-appearance'),
       numberControl('restoreDurationWU', 'Grid restore duration', 0, 4, 0.01, 'WU', 'modifier-timing'),
@@ -560,15 +565,19 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       speed: 0.72,
       frequency: 1.25,
       releaseWU: 0,
-      timeMode: 'ambient',
     }),
     parameters: Object.freeze([
       numberControl('amplitude', 'Wave strength', 0, 3, 0.01, 'WU', 'modifier-motion'),
       numberControl('speed', 'Wave speed', 0, 6, 0.01, '', 'modifier-motion'),
       numberControl('frequency', 'Ring density', 0.1, 4, 0.01, '', 'modifier-motion'),
       numberControl('releaseWU', 'Fade-out', 0, 2, 0.05, 'WU', 'modifier-timing'),
-      Object.freeze({ id: 'timeMode', label: 'Clock', type: 'select', group: 'modifier-timing', options: Object.freeze(['story', 'ambient', 'mixed']) }),
     ]),
+  }),
+  'state-effect': Object.freeze({
+    id: 'state-effect',
+    label: 'State effect',
+    defaultParameters: Object.freeze({ effectId: 'ambient-drift-v1', releaseWU: 0 }),
+    parameters: Object.freeze([]),
   }),
   'horizontal-spin': Object.freeze({
     id: 'horizontal-spin',

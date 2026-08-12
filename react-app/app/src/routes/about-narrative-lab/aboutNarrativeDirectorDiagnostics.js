@@ -39,7 +39,9 @@ function getPointFieldTarget(document, parts) {
 }
 
 const TRACK_PATHS = Object.freeze([
-  ['camera', 'keys', 'camera-key'],
+  ['camera', 'moveKeys', 'camera-key'],
+  ['camera', 'lookKeys', 'camera-orientation-key'],
+  ['camera', 'lensKeys', 'camera-lens-key'],
   ['visibility', 'keys', 'visibility-key'],
   ['text', 'fields', 'text-field'],
   ['interactions', 'clips', 'interaction'],
@@ -66,7 +68,7 @@ export function resolveAboutDirectorDiagnostic(document, diagnostic) {
     if (!item?.id) continue;
     return {
       selection: { type, id: item.id },
-      storyWU: Number(type === 'camera-key' || type === 'visibility-key' ? item.atWU : item.focusWU ?? item.startWU),
+      storyWU: Number(type.startsWith('camera-') || type === 'camera-key' || type === 'visibility-key' ? item.atWU : item.focusWU ?? item.startWU),
       label: item.label || item.text || item.id,
       property: parts.at(-1) || 'document',
       focusId: `diagnostic:${diagnostic.path}`,

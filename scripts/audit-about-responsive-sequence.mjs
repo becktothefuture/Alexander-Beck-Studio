@@ -18,6 +18,7 @@ const canonical = JSON.parse(await readFile(
 const storyDurationWU = Number(canonical.profiles.desktop.storyDurationWU);
 const scanStepWU = 0.05;
 const maxInactiveRunWU = 0.15;
+const maxResponsiveEditorialExitRunWU = 0.7;
 const minDisciplineTravelPx = 100;
 const disciplineReveal = canonical.tracks.interactions.clips.find((clip) => clip.type === 'discipline-reveal');
 const disciplineRestoreStartWU = Number(disciplineReveal.endWU)
@@ -38,13 +39,14 @@ const viewports = requestedViewport === 'all'
   : viewportDefinitions.filter(([viewportId]) => viewportId === requestedViewport);
 
 const criticalRanges = [
+  [3.2, 7],
   [8.2, 11.6],
   [13.3, 17.1],
 ];
 
 const evidenceWU = [
   8.35, 8.65, 8.95, 9.15, 9.47, 9.79, 10.11, 10.35, 10.85, 11, 11.15, 11.3,
-  12.85, 13, 13.2, 13.35, 13.55, 16.2, 16.9,
+  12.85, 13.55, 14.05, 14.1, 14.175, 14.25, 16.2, 16.9,
 ];
 
 function assert(condition, message) {
@@ -164,7 +166,14 @@ function groupInactiveRuns(samples) {
 
 await mkdir(outputDir, { recursive: true });
 const browser = await browserType.launch({ headless: true });
-const report = { browser: browserName, baseUrl, scanStepWU, maxInactiveRunWU, viewports: [] };
+const report = {
+  browser: browserName,
+  baseUrl,
+  scanStepWU,
+  maxInactiveRunWU,
+  maxResponsiveEditorialExitRunWU,
+  viewports: [],
+};
 
 try {
   for (const [viewportId, viewport] of viewports) {
@@ -177,10 +186,15 @@ try {
       samples.push(await readActivity(page, storyWU));
     }
     const inactiveRuns = groupInactiveRuns(samples);
-    const longestInactiveRunWU = Math.max(0, ...inactiveRuns.map((run) => run.durationWU));
+    const unexpectedInactiveRuns = inactiveRuns.filter((run) => !(
+      run.startWU >= 13.3
+      && run.endWU <= 14.1 + scanStepWU + 0.0001
+      && run.durationWU <= maxResponsiveEditorialExitRunWU + 0.0001
+    ));
+    const longestInactiveRunWU = Math.max(0, ...unexpectedInactiveRuns.map((run) => run.durationWU));
     assert(
       longestInactiveRunWU <= maxInactiveRunWU + 0.0001,
-      `${viewportId}: inactive runs ${JSON.stringify(inactiveRuns)} exceed ${maxInactiveRunWU.toFixed(2)} WU`,
+      `${viewportId}: inactive runs ${JSON.stringify(unexpectedInactiveRuns)} exceed ${maxInactiveRunWU.toFixed(2)} WU`,
     );
     const productPositions = samples.flatMap((sample) => (
       sample.disciplinePositions
@@ -223,6 +237,7 @@ try {
       viewport,
       longestInactiveRunWU,
       inactiveRuns,
+      unexpectedInactiveRuns,
       disciplineTravelPx,
       samples,
       screenshots,

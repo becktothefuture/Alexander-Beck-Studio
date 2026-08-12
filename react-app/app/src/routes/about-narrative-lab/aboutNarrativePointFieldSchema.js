@@ -23,8 +23,17 @@ import {
   normalizeAboutNarrativeTrackDocument,
   validateAboutNarrativeTrackDocument,
 } from './aboutNarrativeTrackSchema.js';
+import {
+  getAboutNarrativeCameraRotationFromQuaternion,
+  writeAboutNarrativeCameraLookAtQuaternion,
+} from './aboutNarrativeCameraRig.js';
+import {
+  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
+  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
+} from './aboutNarrativeDisciplinePositions.js';
 
-export const ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION = 6;
+export const ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION = 7;
+export const ABOUT_NARRATIVE_LEGACY_POINT_FIELD_SCHEMA_VERSION = 6;
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TIME_EPSILON = 0.000001;
@@ -36,6 +45,10 @@ const V6_TRANSITION_TYPES = Object.freeze([
 ]);
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
 const TRACK_KEYS = new Set(['camera', 'visibility', 'pointField', 'text', 'interactions']);
+const CAMERA_TRACK_KEYS = new Set(['moveKeys', 'lookKeys', 'lensKeys']);
+const CAMERA_MOVE_KEY_KEYS = new Set(['id', 'atWU', 'position', 'easing', 'velocityMode', 'locked']);
+const CAMERA_LOOK_KEY_KEYS = new Set(['id', 'atWU', 'rotation', 'easing', 'locked']);
+const CAMERA_LENS_KEY_KEYS = new Set(['id', 'atWU', 'fov', 'easing', 'locked']);
 const POINT_FIELD_KEYS = new Set(['stateDefinitions', 'keys', 'segments']);
 const STATE_KEYS = new Set([
   'id',
@@ -74,6 +87,22 @@ const INTERACTION_KEYS = new Set([
   'parameters',
   'protected',
 ]);
+const DISCIPLINE_PARAMETER_KEYS = new Set([
+  'entryStartRatio',
+  'entryCompleteRatio',
+  'backgroundOpacity',
+  'pointScale',
+  'restoreDurationWU',
+  'items',
+]);
+const DISCIPLINE_ITEM_KEYS = new Set([
+  'group',
+  'label',
+  'description',
+  'position',
+  'tabletPosition',
+  'mobilePosition',
+]);
 const PROFILE_OVERRIDE_KEYS = new Set([
   'camera',
   'visibility',
@@ -89,6 +118,9 @@ const V5_PROJECTION_ONLY_INTERACTION_CODES = new Set([
 const STATE_OVERRIDE_KEYS = new Set(['railAnchorWU', 'transform']);
 const KEY_OVERRIDE_KEYS = new Set(['atWU']);
 const SEGMENT_OVERRIDE_KEYS = new Set(['transition']);
+const CAMERA_MOVE_OVERRIDE_KEYS = new Set(['atWU', 'position', 'easing', 'velocityMode']);
+const CAMERA_LOOK_OVERRIDE_KEYS = new Set(['atWU', 'rotation', 'easing']);
+const CAMERA_LENS_OVERRIDE_KEYS = new Set(['atWU', 'fov', 'easing']);
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
 const finite = (value) => Number.isFinite(Number(value));
@@ -125,6 +157,127 @@ function validateVector(value, diagnostics, path) {
   if (!Array.isArray(value) || value.length !== 3 || value.some((item) => !finite(item))) {
     diagnostic(diagnostics, 'vector', path, 'Expected three finite numbers.');
   }
+}
+
+function validateDisciplinePosition(value, diagnostics, path) {
+  if (!Array.isArray(value) || value.length !== 2 || value.some((item) => !finite(item))) {
+    diagnostic(diagnostics, 'discipline-position', path, 'Discipline positions require two finite normalized coordinates.');
+    return;
+  }
+  if (value.some((item) => Number(item) < 0 || Number(item) > 1)) {
+    diagnostic(diagnostics, 'discipline-position-range', path, 'Discipline positions must stay between 0 and 1.');
+  }
+}
+
+function validateCameraLane(keys, {
+  path,
+  allowed,
+  durationWU,
+  seen,
+  diagnostics,
+  valueKey,
+  validateValue,
+}) {
+  if (!Array.isArray(keys) || keys.length < 2) {
+    diagnostic(diagnostics, 'camera-lane-count', path, 'Camera lanes require at least two keys.');
+    return;
+  }
+  let previousWU = Number.NEGATIVE_INFINITY;
+  keys.forEach((key, index) => {
+    const keyPath = `${path}.${index}`;
+    if (!unknownKeys(diagnostics, key, allowed, keyPath)) return;
+    validateId(key.id, seen, diagnostics, `${keyPath}.id`);
+    const atWU = Number(key.atWU);
+    if (!finite(atWU) || atWU < 0 || atWU > durationWU) {
+      diagnostic(diagnostics, 'camera-key-time', `${keyPath}.atWU`, 'Camera key time must stay inside the Story duration.');
+    }
+    if (atWU <= previousWU) {
+      diagnostic(diagnostics, 'camera-key-order', `${keyPath}.atWU`, 'Camera lane keys must have unique increasing WU positions.');
+    }
+    previousWU = atWU;
+    validateValue(key[valueKey], `${keyPath}.${valueKey}`);
+    if (typeof key.easing !== 'string' || !key.easing) {
+      diagnostic(diagnostics, 'camera-key-easing', `${keyPath}.easing`, 'Camera keys require an outgoing easing.');
+    }
+    if (key.locked != null && typeof key.locked !== 'boolean') {
+      diagnostic(diagnostics, 'camera-key-lock', `${keyPath}.locked`, 'Camera key lock must be true or false.');
+    }
+  });
+  if (Math.abs(Number(keys[0]?.atWU)) > TIME_EPSILON
+    || Math.abs(Number(keys.at(-1)?.atWU) - durationWU) > TIME_EPSILON) {
+    diagnostic(diagnostics, 'camera-lane-boundaries', path, 'Every Camera lane must cover WU 0 through the final Story WU.');
+  }
+}
+
+function validateCameraTrack(camera, diagnostics, durationWU) {
+  if (!unknownKeys(diagnostics, camera, CAMERA_TRACK_KEYS, 'tracks.camera')) return;
+  const seen = new Set();
+  validateCameraLane(camera.moveKeys, {
+    path: 'tracks.camera.moveKeys',
+    allowed: CAMERA_MOVE_KEY_KEYS,
+    durationWU,
+    seen,
+    diagnostics,
+    valueKey: 'position',
+    validateValue: (value, path) => validateVector(value, diagnostics, path),
+  });
+  validateCameraLane(camera.lookKeys, {
+    path: 'tracks.camera.lookKeys',
+    allowed: CAMERA_LOOK_KEY_KEYS,
+    durationWU,
+    seen,
+    diagnostics,
+    valueKey: 'rotation',
+    validateValue: (value, path) => validateVector(value, diagnostics, path),
+  });
+  validateCameraLane(camera.lensKeys, {
+    path: 'tracks.camera.lensKeys',
+    allowed: CAMERA_LENS_KEY_KEYS,
+    durationWU,
+    seen,
+    diagnostics,
+    valueKey: 'fov',
+    validateValue: (value, path) => {
+      if (!finite(value) || Number(value) < 20 || Number(value) > 100) {
+        diagnostic(diagnostics, 'camera-lens-value', path, 'Camera FOV must stay between 20 and 100 degrees.');
+      }
+    },
+  });
+  camera.moveKeys?.forEach((key, index) => {
+    if (key.velocityMode != null && !['constant', 'eased'].includes(key.velocityMode)) {
+      diagnostic(
+        diagnostics,
+        'camera-velocity-mode',
+        `tracks.camera.moveKeys.${index}.velocityMode`,
+        'Move velocity mode must be constant or eased.',
+      );
+    }
+  });
+}
+
+function validateCameraOverrides(input, diagnostics) {
+  const laneById = new Map();
+  input.tracks.camera.moveKeys.forEach((key) => laneById.set(key.id, CAMERA_MOVE_OVERRIDE_KEYS));
+  input.tracks.camera.lookKeys.forEach((key) => laneById.set(key.id, CAMERA_LOOK_OVERRIDE_KEYS));
+  input.tracks.camera.lensKeys.forEach((key) => laneById.set(key.id, CAMERA_LENS_OVERRIDE_KEYS));
+  ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS.forEach((profileId) => {
+    const overrides = input.profiles?.[profileId]?.overrides?.camera;
+    if (!isObject(overrides)) return;
+    Object.entries(overrides).forEach(([id, override]) => {
+      const allowed = laneById.get(id);
+      const path = `profiles.${profileId}.overrides.camera.${id}`;
+      if (!allowed) {
+        diagnostic(diagnostics, 'camera-override-target', path, `Unknown Camera lane key “${id}”.`);
+        return;
+      }
+      if (!unknownKeys(diagnostics, override, allowed, path)) return;
+      if (override.position != null) validateVector(override.position, diagnostics, `${path}.position`);
+      if (override.rotation != null) validateVector(override.rotation, diagnostics, `${path}.rotation`);
+      if (override.fov != null && (!finite(override.fov) || Number(override.fov) < 20 || Number(override.fov) > 100)) {
+        diagnostic(diagnostics, 'camera-lens-value', `${path}.fov`, 'Camera FOV must stay between 20 and 100 degrees.');
+      }
+    });
+  });
 }
 
 function validateTransform(transform, diagnostics, path, { partial = false } = {}) {
@@ -494,6 +647,21 @@ function mapV6InteractionToV5(clip) {
   const next = clone(clip);
   next.targetWorldId = next.targetStateId;
   delete next.targetStateId;
+  if (next.type === 'discipline-reveal') {
+    next.parameters = {
+      entryStartRatio: next.parameters?.entryStartRatio,
+      entryCompleteRatio: next.parameters?.entryCompleteRatio,
+      backgroundOpacity: next.parameters?.backgroundOpacity,
+      pointScale: next.parameters?.pointScale,
+      restoreDurationWU: next.parameters?.restoreDurationWU,
+      items: (next.parameters?.items || []).map((item) => {
+        const projected = clone(item);
+        delete projected.tabletPosition;
+        return projected;
+      }),
+    };
+  }
+  if (next.type === 'grid-ripple') delete next.parameters.timeMode;
   return next;
 }
 
@@ -606,6 +774,35 @@ function diffV5Worlds(baseWorlds, resolvedWorlds) {
 
 export function projectAboutNarrativePointFieldDocumentToVersion5(input) {
   const source = clone(input);
+  const durationWU = Number(source.profiles?.desktop?.storyDurationWU || 0);
+  const composerCamera = {
+    keys: [
+      {
+        id: 'composer-camera-start',
+        atWU: 0,
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        aimEnabled: false,
+        lookAtTarget: [0, 0, -1],
+        lookAtRoll: 0,
+        fov: 48,
+        easing: 'linear',
+        locked: true,
+      },
+      {
+        id: 'composer-camera-end',
+        atWU: durationWU,
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        aimEnabled: false,
+        lookAtTarget: [0, 0, -1],
+        lookAtRoll: 0,
+        fov: 48,
+        easing: 'linear',
+        locked: true,
+      },
+    ],
+  };
   const baseWorlds = createV5WorldsFromPointField(source.tracks.pointField);
   const profileEntries = Object.entries(source.profiles).map(([profileId, profile]) => {
     if (profileId === 'reduced-motion') return [profileId, clone(profile)];
@@ -618,7 +815,7 @@ export function projectAboutNarrativePointFieldDocumentToVersion5(input) {
     return [profileId, {
       ...clone(profile),
       overrides: {
-        camera: clone(overrides.camera || {}),
+        camera: {},
         visibility: clone(overrides.visibility || {}),
         worlds: diffV5Worlds(baseWorlds, resolvedWorlds),
         text: clone(overrides.text || {}),
@@ -631,12 +828,14 @@ export function projectAboutNarrativePointFieldDocumentToVersion5(input) {
     globals: clone(source.globals),
     profiles: Object.fromEntries(profileEntries),
     tracks: {
-      camera: clone(source.tracks.camera),
+      camera: composerCamera,
       visibility: clone(source.tracks.visibility),
       worlds: { objects: baseWorlds },
       text: clone(source.tracks.text),
       interactions: {
-        clips: source.tracks.interactions.clips.map(mapV6InteractionToV5),
+        clips: source.tracks.interactions.clips
+          .filter((clip) => clip.type !== 'state-effect')
+          .map(mapV6InteractionToV5),
       },
     },
     library: clone(source.library),
@@ -666,6 +865,48 @@ function validateV6Interactions(interactions, stateIds, diagnostics, durationWU)
         path,
         'Interaction timing must remain ordered inside the Story duration.',
       );
+    }
+    if (clip.type === 'discipline-reveal') {
+      const parameters = clip.parameters;
+      if (!unknownKeys(diagnostics, parameters, DISCIPLINE_PARAMETER_KEYS, `${path}.parameters`)) return;
+      const entryStart = Number(parameters.entryStartRatio);
+      const entryComplete = Number(parameters.entryCompleteRatio);
+      if (!(entryStart > entryComplete && entryStart <= 1 && entryComplete >= 0)) {
+        diagnostic(
+          diagnostics,
+          'discipline-entry-band',
+          `${path}.parameters`,
+          'The reveal band must enter from a larger viewport ratio and complete at a smaller ratio.',
+        );
+      }
+      if (!Array.isArray(parameters.items) || parameters.items.length !== 6) {
+        diagnostic(diagnostics, 'discipline-items', `${path}.parameters.items`, 'Discipline reveal requires exactly six positioned items.');
+      } else {
+        const groups = new Set();
+        parameters.items.forEach((item, itemIndex) => {
+          const itemPath = `${path}.parameters.items.${itemIndex}`;
+          unknownKeys(diagnostics, item, DISCIPLINE_ITEM_KEYS, itemPath);
+          if (!Number.isInteger(item.group) || item.group < 1 || item.group > 6 || groups.has(item.group)) {
+            diagnostic(diagnostics, 'discipline-group', `${itemPath}.group`, 'Discipline groups must uniquely cover 1 through 6.');
+          }
+          groups.add(item.group);
+          ['position', 'tabletPosition', 'mobilePosition'].forEach((key) => (
+            validateDisciplinePosition(item[key], diagnostics, `${itemPath}.${key}`)
+          ));
+        });
+      }
+    }
+    if (clip.type === 'state-effect') {
+      const effectId = clip.parameters?.effectId;
+      if (!ABOUT_NARRATIVE_MODIFIER_DEFINITIONS[effectId]) {
+        diagnostic(diagnostics, 'state-effect-id', `${path}.parameters.effectId`, `Unknown Composer effect “${effectId}”.`);
+      }
+      if (clip.parameters?.timeMode != null) {
+        diagnostic(diagnostics, 'state-effect-clock', `${path}.parameters.timeMode`, 'Composer effects always use Story time.');
+      }
+    }
+    if (clip.type === 'grid-ripple' && clip.parameters?.timeMode != null) {
+      diagnostic(diagnostics, 'grid-ripple-clock', `${path}.parameters.timeMode`, 'Composer ripples always use Story time.');
     }
   });
 }
@@ -727,10 +968,12 @@ export function validateAboutNarrativePointFieldDocument(input) {
   const diagnostics = [];
   if (!unknownKeys(diagnostics, input, TOP_LEVEL_KEYS, 'document')) return diagnostics;
   if (input.schemaVersion !== ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION) {
-    diagnostic(diagnostics, 'schema-version', 'schemaVersion', 'Point-field schema version 6 is required.');
+    diagnostic(diagnostics, 'schema-version', 'schemaVersion', 'About Composer schema version 7 is required.');
   }
   if (!unknownKeys(diagnostics, input.tracks, TRACK_KEYS, 'tracks')) return diagnostics;
   const durationWU = Number(input.profiles?.desktop?.storyDurationWU);
+  validateCameraTrack(input.tracks.camera, diagnostics, durationWU);
+  validateCameraOverrides(input, diagnostics);
   validatePointFieldTrack(input.tracks.pointField, diagnostics, 'tracks.pointField', durationWU);
   const stateIds = new Set((input.tracks.pointField?.stateDefinitions || []).map((state) => state.id));
   validateV6Interactions(input.tracks.interactions, stateIds, diagnostics, durationWU);
@@ -807,6 +1050,12 @@ function normalizePointField(pointField) {
   };
 }
 
+function normalizeCameraLane(keys) {
+  return [...keys]
+    .map(clone)
+    .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id));
+}
+
 export function normalizeAboutNarrativePointFieldDocument(input) {
   const source = clone(input);
   return {
@@ -847,14 +1096,9 @@ export function normalizeAboutNarrativePointFieldDocument(input) {
     },
     tracks: {
       camera: {
-        keys: [...source.tracks.camera.keys]
-          .map(clone)
-          .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id)),
-        ...(Array.isArray(source.tracks.camera.orientationKeys) ? {
-          orientationKeys: [...source.tracks.camera.orientationKeys]
-            .map(clone)
-            .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id)),
-        } : {}),
+        moveKeys: normalizeCameraLane(source.tracks.camera.moveKeys),
+        lookKeys: normalizeCameraLane(source.tracks.camera.lookKeys),
+        lensKeys: normalizeCameraLane(source.tracks.camera.lensKeys),
       },
       visibility: {
         keys: [...source.tracks.visibility.keys]
@@ -1127,6 +1371,209 @@ function migrateV5Interaction(clip) {
   return next;
 }
 
+function resolveLegacyCameraRotation(key) {
+  if (key?.aimEnabled === true && Array.isArray(key.lookAtTarget)) {
+    return getAboutNarrativeCameraRotationFromQuaternion(
+      writeAboutNarrativeCameraLookAtQuaternion(
+        [0, 0, 0, 1],
+        key.position,
+        key.lookAtTarget,
+        key.lookAtRoll,
+      ),
+    ).map((value) => Number(value.toFixed(6)));
+  }
+  return clone(key?.rotation || [0, 0, 0]);
+}
+
+function migrateVersion6Camera(camera, durationWU) {
+  const legacyKeys = [...(camera?.keys || [])]
+    .sort((left, right) => Number(left.atWU) - Number(right.atWU));
+  const moveKeys = legacyKeys.map((key) => ({
+    id: `move-${key.id}`,
+    atWU: cleanWU(key.atWU),
+    position: clone(key.position),
+    easing: key.easing || 'linear',
+    velocityMode: key.easing === 'linear' ? 'constant' : 'eased',
+    locked: key.locked === true,
+  }));
+  const lensKeys = legacyKeys.map((key) => ({
+    id: `lens-${key.id}`,
+    atWU: cleanWU(key.atWU),
+    fov: Number(key.fov ?? 48),
+    easing: key.easing || 'linear',
+    locked: key.locked === true,
+  }));
+  const lookByTime = new Map(legacyKeys.map((key) => [cleanWU(key.atWU), {
+    id: `look-${key.id}`,
+    atWU: cleanWU(key.atWU),
+    rotation: resolveLegacyCameraRotation(key),
+    easing: key.easing || 'linear',
+    locked: key.locked === true,
+  }]));
+  (camera?.orientationKeys || []).forEach((key) => {
+    lookByTime.set(cleanWU(key.atWU), {
+      id: `look-${key.id}`,
+      atWU: cleanWU(key.atWU),
+      rotation: clone(key.rotation),
+      easing: key.easing || 'linear',
+      locked: key.locked === true,
+    });
+  });
+  const lookKeys = [...lookByTime.values()]
+    .sort((left, right) => Number(left.atWU) - Number(right.atWU));
+  const ensureBoundaries = (keys, valueKey) => {
+    if (!keys.length) return;
+    if (Number(keys[0].atWU) > 0) keys.unshift({
+      ...clone(keys[0]),
+      id: `${keys[0].id}-boundary-start`,
+      atWU: 0,
+      locked: true,
+    });
+    if (Number(keys.at(-1).atWU) < durationWU) keys.push({
+      ...clone(keys.at(-1)),
+      id: `${keys.at(-1).id}-boundary-end`,
+      atWU: durationWU,
+      [valueKey]: clone(keys.at(-1)[valueKey]),
+      locked: true,
+    });
+  };
+  ensureBoundaries(moveKeys, 'position');
+  ensureBoundaries(lookKeys, 'rotation');
+  ensureBoundaries(lensKeys, 'fov');
+  return { moveKeys, lookKeys, lensKeys };
+}
+
+function migrateVersion6CameraOverrides(camera, legacyOverrides = {}) {
+  const migrated = {};
+  const legacyById = new Map((camera?.keys || []).map((key) => [key.id, key]));
+  const explicitLookAtTime = new Map((camera?.orientationKeys || []).map((key) => [
+    cleanWU(key.atWU),
+    `look-${key.id}`,
+  ]));
+  Object.entries(legacyOverrides || {}).forEach(([id, override]) => {
+    const base = legacyById.get(id);
+    if (!base) return;
+    const moveOverride = {};
+    if (override.atWU != null) moveOverride.atWU = cleanWU(override.atWU);
+    if (override.position != null) moveOverride.position = clone(override.position);
+    if (override.easing != null) moveOverride.easing = override.easing;
+    if (Object.keys(moveOverride).length) migrated[`move-${id}`] = moveOverride;
+
+    const lensOverride = {};
+    if (override.atWU != null) lensOverride.atWU = cleanWU(override.atWU);
+    if (override.fov != null) lensOverride.fov = Number(override.fov);
+    if (override.easing != null) lensOverride.easing = override.easing;
+    if (Object.keys(lensOverride).length) migrated[`lens-${id}`] = lensOverride;
+
+    const lookId = explicitLookAtTime.get(cleanWU(base.atWU)) || `look-${id}`;
+    const lookOverride = {};
+    if (override.atWU != null) lookOverride.atWU = cleanWU(override.atWU);
+    if (override.rotation != null) lookOverride.rotation = clone(override.rotation);
+    if (override.aimEnabled === true || Array.isArray(override.lookAtTarget)) {
+      lookOverride.rotation = resolveLegacyCameraRotation({
+        ...base,
+        ...override,
+        position: override.position || base.position,
+        lookAtTarget: override.lookAtTarget || base.lookAtTarget,
+        aimEnabled: override.aimEnabled ?? base.aimEnabled,
+      });
+    }
+    if (override.easing != null) lookOverride.easing = override.easing;
+    if (Object.keys(lookOverride).length) migrated[lookId] = lookOverride;
+  });
+  return migrated;
+}
+
+function stateParticipationRange(pointField, stateId, durationWU) {
+  const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
+  let startWU = durationWU;
+  let endWU = 0;
+  pointField.segments.forEach((segment) => {
+    const from = keyById.get(segment.fromKeyId);
+    const to = keyById.get(segment.toKeyId);
+    if (from?.stateId !== stateId && to?.stateId !== stateId) return;
+    startWU = Math.min(startWU, Number(from.atWU));
+    endWU = Math.max(endWU, Number(to.atWU));
+  });
+  return { startWU: cleanWU(startWU), endWU: cleanWU(endWU) };
+}
+
+export function migrateAboutNarrativeVersion6To7(input) {
+  const source = clone(input);
+  if (Number(source?.schemaVersion) !== ABOUT_NARRATIVE_LEGACY_POINT_FIELD_SCHEMA_VERSION) {
+    const error = new Error('Director 4 migration requires a schema v6 About Narrative document.');
+    error.name = 'AboutNarrativeComposerMigrationError';
+    error.original = source;
+    throw error;
+  }
+  const durationWU = Number(source.profiles?.desktop?.storyDurationWU || 0);
+  const legacyCamera = source.tracks.camera;
+  const stateEffects = [];
+  source.tracks.pointField.stateDefinitions.forEach((state) => {
+    const range = stateParticipationRange(source.tracks.pointField, state.id, durationWU);
+    (state.modifiers || []).forEach((modifier) => {
+      if (modifier.enabled === false) return;
+      const parameters = clone(modifier.parameters || {});
+      delete parameters.timeMode;
+      stateEffects.push({
+        id: `effect-${state.id}-${modifier.id.replace(/-v\d+$/, '')}`,
+        type: 'state-effect',
+        startWU: range.startWU,
+        activationWU: range.startWU,
+        endWU: range.endWU,
+        targetStateId: state.id,
+        parameters: {
+          effectId: modifier.id,
+          releaseWU: 0,
+          ...parameters,
+        },
+      });
+    });
+    state.modifiers = [];
+  });
+  const profiles = Object.fromEntries(Object.entries(source.profiles).map(([profileId, profile]) => {
+    if (profileId === 'reduced-motion') return [profileId, clone(profile)];
+    return [profileId, {
+      ...clone(profile),
+      overrides: {
+        ...clone(profile.overrides),
+        camera: migrateVersion6CameraOverrides(legacyCamera, profile.overrides?.camera),
+      },
+    }];
+  }));
+  const interactions = (source.tracks.interactions?.clips || []).map((clip) => {
+    const migrated = clone(clip);
+    if (migrated.type === 'grid-ripple') delete migrated.parameters?.timeMode;
+    if (migrated.type !== 'discipline-reveal') return migrated;
+    const items = (migrated.parameters?.items || []).map((item, index) => ({
+      ...clone(item),
+      position: clone(item.position || ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[index]),
+      tabletPosition: clone(item.tabletPosition || item.position || ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[index]),
+      mobilePosition: clone(item.mobilePosition || ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[index]),
+    }));
+    migrated.parameters = {
+      entryStartRatio: 0.88,
+      entryCompleteRatio: 0.78,
+      backgroundOpacity: Number(migrated.parameters?.backgroundOpacity ?? 0.28),
+      pointScale: Number(migrated.parameters?.pointScale ?? 4.4),
+      restoreDurationWU: Number(migrated.parameters?.restoreDurationWU ?? 0.5),
+      items,
+    };
+    return migrated;
+  });
+  const migrated = {
+    ...source,
+    schemaVersion: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+    profiles,
+    tracks: {
+      ...source.tracks,
+      camera: migrateVersion6Camera(legacyCamera, durationWU),
+      interactions: { clips: [...interactions, ...stateEffects] },
+    },
+  };
+  return normalizeAboutNarrativePointFieldDocument(migrated);
+}
+
 export function migrateAboutNarrativeVersion5To6(input) {
   const source = clone(input);
   if (Number(source?.schemaVersion) !== ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION) {
@@ -1173,7 +1620,7 @@ export function migrateAboutNarrativeVersion5To6(input) {
     }];
   }));
   const migrated = {
-    schemaVersion: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+    schemaVersion: ABOUT_NARRATIVE_LEGACY_POINT_FIELD_SCHEMA_VERSION,
     globals: clone(v5.globals),
     profiles,
     tracks: {
@@ -1187,17 +1634,7 @@ export function migrateAboutNarrativeVersion5To6(input) {
     },
     library: clone(v5.library),
   };
-  const normalized = normalizeAboutNarrativePointFieldDocument(migrated);
-  const diagnostics = validateAboutNarrativePointFieldDocument(normalized);
-  const errors = diagnostics.filter((item) => item.level === 'error');
-  if (errors.length) {
-    const error = new Error(errors.map((item) => `${item.path}: ${item.message}`).join('\n'));
-    error.name = 'AboutNarrativePointFieldMigrationError';
-    error.diagnostics = diagnostics;
-    error.original = source;
-    throw error;
-  }
-  return normalized;
+  return migrateAboutNarrativeVersion6To7(migrated);
 }
 
 export function sampleAboutNarrativePointField(pointField, storyWU, durationWU) {

@@ -6,13 +6,9 @@ import {
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS,
   getAboutNarrativeDisciplineAnchors,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
-import {
-  writeAboutNarrativeDisciplineViewfinderWeights,
-} from './aboutNarrativeDisciplineViewfinder.js';
 import {
   ABOUT_NARRATIVE_BUST_STATES,
   createAboutNarrativeBustController,
@@ -33,7 +29,6 @@ import {
 import { validateAboutNarrativeWorkerPublication } from './aboutNarrativeWorkerPublicationValidator.js';
 import {
   isAboutNarrativeShortLandscape,
-  resolveAboutNarrativeMotionTimeMix,
 } from './aboutNarrativeMotionMath.js';
 import {
   sampleAboutNarrativeResponsiveWorldMaterialInto,
@@ -41,7 +36,7 @@ import {
 import {
   writeAboutNarrativePointFieldSeedPhases,
   writeAboutNarrativePointFieldSpatialPhases,
-} from './aboutNarrativePointFieldRendererBridge.js';
+} from './aboutNarrativePointFieldMotion.js';
 import {
   findAboutNarrativeWorldById,
   getAboutNarrativeWorldId,
@@ -167,7 +162,6 @@ const VERTEX_SHADER = `
   uniform float motionFlattenAxis;
   uniform float motionFlattenOffset;
   uniform float storyTime;
-  uniform float ambientTime;
   uniform float pointSize;
   uniform float fromPointSizeScale;
   uniform float toPointSizeScale;
@@ -314,7 +308,7 @@ const VERTEX_SHADER = `
   ) {
     float amount = clamp(weight, 0.0, 1.0);
     if (amount <= 0.0001) return value;
-    float clock = mix(ambientTime, storyTime, clamp(storyMix, 0.0, 1.0));
+    float clock = storyTime;
     float orbitDelta = clock * speed * 6.2831853;
     // Membership uses a seed decorrelated from density, mirroring the CPU
     // generator so a sparse field still contains the core and every body.
@@ -566,7 +560,7 @@ const VERTEX_SHADER = `
     float driftIndividuality = mix(fromDriftIndividuality, toDriftIndividuality, morph);
     float driftAxisSpread = mix(fromDriftAxisSpread, toDriftAxisSpread, morph);
     float driftStoryMix = mix(fromDriftStoryMix, toDriftStoryMix, morph);
-    float driftClock = mix(ambientTime, storyTime, driftStoryMix);
+    float driftClock = storyTime;
     float phase = pointSeed * 127.31;
     float speedVariance = mix(
       1.0,
@@ -593,7 +587,7 @@ const VERTEX_SHADER = `
     float waveSpeed = mix(fromWaveSpeed, toWaveSpeed, morph);
     float waveStoryMix = mix(fromWaveStoryMix, toWaveStoryMix, morph);
     vec2 waveFrequency = mix(fromWaveFrequency, toWaveFrequency, morph);
-    float waveClock = mix(ambientTime, storyTime, clamp(waveStoryMix, 0.0, 1.0));
+    float waveClock = storyTime;
     worldPoint.y += waveWeight * waveAmplitude * sin(
       (worldPoint.x * waveFrequency.x)
       + (worldPoint.z * waveFrequency.y)
@@ -605,11 +599,7 @@ const VERTEX_SHADER = `
     vec2 rippleDirection = rippleDistance > 0.0001
       ? ripplePoint / rippleDistance
       : vec2(0.0);
-    float rippleClock = mix(
-      ambientTime,
-      storyTime,
-      clamp(gridRippleStoryMix, 0.0, 1.0)
-    );
+    float rippleClock = storyTime;
     float ripplePhase = rippleClock * gridRippleSpeed * 6.2831853;
     float rippleAngle = atan(ripplePoint.y, ripplePoint.x);
     float phaseVariation = sin((rippleAngle * 3.0) + (ripplePhase * 0.18)) * 0.24;
@@ -667,7 +657,7 @@ const VERTEX_SHADER = `
     float disciplineMonochrome = disciplineIsolation * (1.0 - revealedGroupWeight);
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
-      (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (ambientTime * 0.18)
+      (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (storyTime * 0.18)
     ));
     float materialSeed = fract((pointSeed * 43.713) + 0.271);
     vec3 baseColor = materialColor(materialSeed);
@@ -879,16 +869,6 @@ const FRAGMENT_SHADER = `
   }
 `;
 
-function modifier(world, id) {
-  return world?.modifiers?.find((item) => item.id === id && item.enabled !== false)?.parameters || null;
-}
-
-function optionalModifier(world, id) {
-  const entry = world?.modifiers?.find((item) => item.id === id);
-  if (!entry) return null;
-  return entry.enabled === false ? false : entry.parameters;
-}
-
 function readColorToken(styles, token, fallback) {
   return styles.getPropertyValue(token).trim() || fallback;
 }
@@ -1065,28 +1045,6 @@ function hasAllDisciplineIndices(indices) {
   return true;
 }
 
-function createCameraFocusAnchor() {
-  const radius = 0.28;
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-    -radius, 0, 0, radius, 0, 0,
-    0, -radius, 0, 0, radius, 0,
-    0, 0, -radius, 0, 0, radius,
-  ]), 3));
-  const material = new THREE.LineBasicMaterial({
-    color: 0xff0000,
-    depthTest: false,
-    depthWrite: false,
-    transparent: true,
-    opacity: 1,
-  });
-  const object = new THREE.LineSegments(geometry, material);
-  object.name = 'about-narrative-camera-focus-anchor';
-  object.frustumCulled = false;
-  object.renderOrder = 1000;
-  return { geometry, material, object };
-}
-
 function createPointFieldAdapter({
   canvas,
   root,
@@ -1094,7 +1052,7 @@ function createPointFieldAdapter({
   disciplineOverlayRef,
   runtimeRef,
   pointProfile: explicitPointProfile,
-  showCameraFocusAnchor = false,
+  layoutProfile: explicitLayoutProfile,
 }) {
   // React can recreate this effect synchronously when the measured point
   // profile changes. Reuse that canvas context instead of destroying it
@@ -1103,13 +1061,13 @@ function createPointFieldAdapter({
   const runtimeInstanceId = nextRuntimeInstanceId;
   nextRuntimeInstanceId += 1;
   const initialBounds = root.getBoundingClientRect();
-  const layoutProfile = classifyAboutNarrativeLayoutProfile({
+  const layoutProfile = explicitLayoutProfile || classifyAboutNarrativeLayoutProfile({
     inlineSize: initialBounds.width || window.innerWidth,
     blockSize: initialBounds.height || window.innerHeight,
   });
   const quality = explicitPointProfile || resolveAboutNarrativePointProfile(layoutProfile);
   const compact = quality === 'mobile';
-  const responsiveLayoutProfile = compact ? 'mobile' : layoutProfile;
+  const responsiveLayoutProfile = layoutProfile;
   let shortLandscape = isAboutNarrativeShortLandscape({
     layoutProfile: responsiveLayoutProfile,
     width: initialBounds.width,
@@ -1156,8 +1114,6 @@ function createPointFieldAdapter({
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 80);
-  const cameraFocusAnchor = showCameraFocusAnchor ? createCameraFocusAnchor() : null;
-  if (cameraFocusAnchor) scene.add(cameraFocusAnchor.object);
   const geometry = new THREE.BufferGeometry();
   const geometryInstanceId = nextGeometryInstanceId;
   nextGeometryInstanceId += 1;
@@ -1183,7 +1139,6 @@ function createPointFieldAdapter({
     motionFlattenAxis: { value: 1 },
     motionFlattenOffset: { value: 0 },
     storyTime: { value: 0 },
-    ambientTime: { value: 0 },
     pointSize: { value: 5.4 },
     fromPointSizeScale: { value: 1 },
     toPointSizeScale: { value: 1 },
@@ -1531,10 +1486,8 @@ function createPointFieldAdapter({
     hidden: false,
   };
   let bustYaw = 0;
-  let lastBustAmbientTime = 0;
   let dragging = false;
   let dragStart = null;
-  const modifierSlotsCache = new WeakMap();
   const fromTransformScratch = createTransformScratch();
   const toTransformScratch = createTransformScratch();
   const correspondenceFromTransform = new THREE.Matrix4();
@@ -1545,7 +1498,6 @@ function createPointFieldAdapter({
   const disciplineFromPointScratch = new THREE.Vector3();
   const disciplineToPointScratch = new THREE.Vector3();
   const disciplineWeights = new Float32Array(6);
-  const disciplineViewfinderWeights = new Float32Array(6);
   const fromDisciplineIndices = new Int32Array(6).fill(-1);
   const toDisciplineIndices = new Int32Array(6).fill(-1);
   const disciplineLabels = new Array(6).fill(null);
@@ -1560,8 +1512,7 @@ function createPointFieldAdapter({
   let lastActiveDiscipline = Number.NaN;
   let lastDisciplineVisibleCount = Number.NaN;
   let lastDisciplineLabelCount = Number.NaN;
-  let lastDisciplineFormationColumn = Number.NaN;
-  let lastDisciplineFormationRow = Number.NaN;
+  let lastDisciplineItems = null;
   let lastGridBackgroundState = Number.NaN;
   let lastSimulationVisibility = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
@@ -1600,25 +1551,18 @@ function createPointFieldAdapter({
     label.style.setProperty('--discipline-y', `${y.toFixed(2)}px`);
     runtimeObserver.hotFrameDomWrite(2);
   };
-  const getModifierSlots = (world, globals) => {
-    if (!world) return null;
-    const cached = modifierSlotsCache.get(world);
-    if (cached) return cached;
-    const swarm = modifier(world, 'swarm-life-v1');
-    runtimeObserver.hotFrameOwnedAllocation();
-    const slots = {
-      swarm: swarm ? resolveAboutNarrativeSwarmMotion(swarm, globals.swarmTurbulence) : null,
-      drift: modifier(world, 'ambient-drift-v1'),
-      wave: modifier(world, 'living-wave-v1'),
-      group: modifier(world, 'group-emphasis-v1'),
-      isolation: modifier(world, 'discipline-isolation-v1'),
-      orbital: modifier(world, 'orbital-life-v1'),
-      colour: modifier(world, 'living-colour-v1'),
-      bust: modifier(world, 'bust-yaw-v1'),
-      bustAssembly: optionalModifier(world, 'bust-assembly-v1'),
-    };
-    modifierSlotsCache.set(world, slots);
-    return slots;
+  const getComposerEffectIndex = (frame, world, effectId) => {
+    const stateId = getAboutNarrativeWorldId(world);
+    const active = frame?.composerEffects?.active || [];
+    for (let index = 0; index < active.length; index += 1) {
+      const clip = active[index];
+      if (clip.targetStateId === stateId && clip.parameters?.effectId === effectId) return index;
+    }
+    return -1;
+  };
+  const getComposerEffect = (frame, world, effectId) => {
+    const index = getComposerEffectIndex(frame, world, effectId);
+    return index < 0 ? null : frame.composerEffects.active[index].parameters;
   };
 
   const updateTheme = () => {
@@ -1715,17 +1659,9 @@ function createPointFieldAdapter({
   };
 
   const refreshInstalledDisciplineGroups = (pair, formation = null) => {
-    const formationColumn = Math.round(Number(
-      formation?.formationColumn
-        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
-    ));
-    const formationRow = Math.round(Number(
-      formation?.formationRow
-        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
-    ));
     const disciplineAnchors = getAboutNarrativeDisciplineAnchors(quality, {
-      formationColumn,
-      formationRow,
+      items: formation?.items,
+      layoutProfile: responsiveLayoutProfile,
     });
     const materialThresholds = [
       uniforms.materialThreshold1.value,
@@ -1764,10 +1700,7 @@ function createPointFieldAdapter({
     fixedAttributes.toGroup.needsUpdate = true;
     captureDisciplineIndices(fromGroup, fromDisciplineIndices);
     captureDisciplineIndices(toGroup, toDisciplineIndices);
-    lastDisciplineFormationColumn = formationColumn;
-    lastDisciplineFormationRow = formationRow;
-    root.dataset.worldDisciplineFormationColumn = String(formationColumn);
-    root.dataset.worldDisciplineFormationRow = String(formationRow);
+    lastDisciplineItems = formation?.items || null;
   };
 
   const installPreparedPair = (pair) => {
@@ -2190,27 +2123,28 @@ function createPointFieldAdapter({
     return true;
   };
 
-  const setModifierUniforms = (target, world, globals) => {
-    const slots = getModifierSlots(world, globals);
-    const sharedSwarm = slots?.swarm;
-    const drift = sharedSwarm || slots?.drift;
-    const wave = slots?.wave;
-    const group = slots?.group;
-    const isolation = slots?.isolation;
-    const orbital = slots?.orbital;
-    const colour = slots?.colour;
+  const setModifierUniforms = (target, world, globals, frame) => {
+    const authoredSwarm = getComposerEffect(frame, world, 'swarm-life-v1');
+    const sharedSwarm = authoredSwarm
+      ? resolveAboutNarrativeSwarmMotion(authoredSwarm, globals.swarmTurbulence)
+      : null;
+    const drift = sharedSwarm
+      || getComposerEffect(frame, world, 'ambient-drift-v1');
+    const wave = getComposerEffect(frame, world, 'living-wave-v1');
+    const group = getComposerEffect(frame, world, 'group-emphasis-v1');
+    const isolation = getComposerEffect(frame, world, 'discipline-isolation-v1');
+    const orbital = getComposerEffect(frame, world, 'orbital-life-v1');
+    const colour = getComposerEffect(frame, world, 'living-colour-v1');
     target.driftAmplitude.value = Number(drift?.amplitude || 0);
     target.driftSpeed.value = Number(drift?.speed || 0);
     target.driftIrregularity.value = Number(sharedSwarm?.irregularity || 0);
     target.driftIndividuality.value = Number(sharedSwarm?.individuality || 0);
     target.driftAxisSpread.value = Number(sharedSwarm?.axisSpread || 0);
-    target.driftStoryMix.value = sharedSwarm
-      ? sharedSwarm.storyMix
-      : drift?.timeMode === 'story' ? 1 : drift?.timeMode === 'mixed' ? 0.08 : 0;
+    target.driftStoryMix.value = drift ? 1 : 0;
     target.waveWeight.value = wave ? Number(wave.strength ?? 1) : 0;
     target.waveAmplitude.value = Number(wave?.amplitude || 0);
     target.waveSpeed.value = Number(wave?.speed || 0);
-    target.waveStoryMix.value = resolveAboutNarrativeMotionTimeMix(wave?.timeMode);
+    target.waveStoryMix.value = wave ? 1 : 0;
     target.waveFrequency.value.set(
       Number(wave?.frequencyX || 1),
       Number(wave?.frequencyZ || 1),
@@ -2220,9 +2154,7 @@ function createPointFieldAdapter({
     target.disciplineBackgroundOpacity.value = Number(isolation?.backgroundOpacity ?? 1);
     target.orbitalWeight.value = Number(orbital?.strength || 0);
     target.orbitalSpeed.value = Number(orbital?.speed || 0);
-    target.orbitalStoryMix.value = orbital?.timeMode === 'ambient'
-      ? 0
-      : orbital?.timeMode === 'mixed' ? 0.5 : 1;
+    target.orbitalStoryMix.value = orbital ? 1 : 0;
     target.orbitalRadius.value = Number(world?.shapeParameters?.orbitRadius ?? 5.8);
     target.livingColour.value = Number(colour?.strength || 0);
   };
@@ -2267,7 +2199,7 @@ function createPointFieldAdapter({
       morph,
     );
     const driftClock = THREE.MathUtils.lerp(
-      uniforms.ambientTime.value,
+      uniforms.storyTime.value,
       uniforms.storyTime.value,
       driftStoryMix,
     );
@@ -2327,19 +2259,8 @@ function createPointFieldAdapter({
     const overlay = disciplineOverlayRef?.current || null;
     syncDisciplineLabels(overlay);
 
-    const formationColumn = Math.round(Number(
-      reveal?.formationColumn
-        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationColumn,
-    ));
-    const formationRow = Math.round(Number(
-      reveal?.formationRow
-        ?? ABOUT_NARRATIVE_DISCIPLINE_FORMATION_DEFAULTS.formationRow,
-    ));
-    if (quality !== 'mobile'
-      && installedPair
-      && (formationColumn !== lastDisciplineFormationColumn
-        || formationRow !== lastDisciplineFormationRow)) {
-      refreshInstalledDisciplineGroups(installedPair, { formationColumn, formationRow });
+    if (installedPair && reveal?.items && reveal.items !== lastDisciplineItems) {
+      refreshInstalledDisciplineGroups(installedPair, reveal);
     }
 
     const disciplineWorldAvailable = fromWorld?.shapeId === 'calm-field-v1'
@@ -2350,30 +2271,15 @@ function createPointFieldAdapter({
       && frame.storyWU >= reveal.effectStartWU
       && frame.storyWU < reveal.effectEndWU,
     );
-    const activeIndex = effectAvailable ? Number(revealState.activeIndex) : -1;
-    const activeEndIndex = activeIndex < 0
-      ? -1
-      : Math.min(disciplineWeights.length, activeIndex + Number(reveal?.itemsPerBeat || 1));
-    const activeGroup = activeIndex >= 0 ? Number(revealState.activeGroup) : 0;
-    const activeReveal = activeIndex >= 0 ? Number(revealState.activeReveal) : 0;
     const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
     const simulationVisibility = uniforms.simulationVisibility.value;
-    const sequenceComplete = effectAvailable && frame.storyWU >= revealState.sequenceEndWU;
     if (effectAvailable) projectDisciplineLabels();
-    writeAboutNarrativeDisciplineViewfinderWeights(
-      disciplineViewfinderWeights,
-      disciplineLabelY,
-      height,
-    );
     disciplineWeights.fill(0);
+    let activeGroup = 0;
     for (let index = 0; index < disciplineWeights.length; index += 1) {
-      const cumulativeReveal = sequenceComplete || index < activeIndex
-        ? 1
-        : index < activeEndIndex ? activeReveal : 0;
-      const revealWeight = frame.reducedMotion
-        ? cumulativeReveal
-        : disciplineViewfinderWeights[index];
+      const revealWeight = Number(revealState?.weights?.[index] || 0);
       disciplineWeights[index] = revealWeight * simulationVisibility * restoreWeight;
+      if (revealWeight > 0.001) activeGroup = Number(reveal?.items?.[index]?.group || index + 1);
     }
 
     const backgroundWeight = effectAvailable
@@ -2479,23 +2385,26 @@ function createPointFieldAdapter({
       ? frame.world.transitionProgress
       : installedPair.progress;
     if (pairMatchesRequest) installedPair.progress = transitionProgress;
-    const bust = getModifierSlots(toWorld, frame.globals)?.bust;
+    const bustEffectIndex = getComposerEffectIndex(frame, toWorld, 'bust-yaw-v1');
+    const bust = bustEffectIndex < 0
+      ? null
+      : frame.composerEffects.active[bustEffectIndex].parameters;
     const formingBust = toWorld.shapeId === 'bust-v1' && transitionProgress < 0.9999;
-    const bustDeltaSeconds = frame.ambientTime > 0 && lastBustAmbientTime > 0
-      ? Math.min(0.5, Math.max(0, frame.ambientTime - lastBustAmbientTime))
-      : 0;
-    lastBustAmbientTime = frame.ambientTime;
     bustSampleInput.active = toWorld.shapeId === 'bust-v1';
     bustSampleInput.transitionProgress = transitionProgress;
-    bustSampleInput.deltaSeconds = bustDeltaSeconds;
-    bustSampleInput.speed = Math.max(0, Number(bust?.speed || 0));
+    bustSampleInput.deltaSeconds = 0;
+    bustSampleInput.speed = 0;
     bustSampleInput.resumeDelay = Number(bust?.resumeDelay || 0);
-    bustSampleInput.liveAmbient = frame.ambientTime > 0;
-    bustSampleInput.deterministicScrub = frame.ambientTime === 0;
+    bustSampleInput.liveAmbient = false;
+    bustSampleInput.deterministicScrub = true;
     bustSampleInput.reducedMotion = frame.reducedMotion;
     bustSampleInput.hidden = document.hidden;
     const bustState = bustController.sample(bustSampleInput);
-    bustYaw = bustState.yaw;
+    const authoredBustYaw = bust && !frame.reducedMotion
+      ? Number(frame.composerEffects.elapsedWU[bustEffectIndex] || 0)
+        * Math.max(0, Number(bust.speed || 0))
+      : 0;
+    bustYaw = Math.abs(bustState.yaw) > 0.000001 ? bustState.yaw : authoredBustYaw;
     if (toWorld.shapeId !== 'bust-v1' && dragStart) {
       if (interaction.hasPointerCapture(dragStart.pointerId)) {
         interaction.releasePointerCapture(dragStart.pointerId);
@@ -2511,11 +2420,6 @@ function createPointFieldAdapter({
       camera.updateProjectionMatrix();
     }
     camera.updateMatrixWorld(true);
-    if (cameraFocusAnchor) {
-      const aimWeight = Number(frame.camera.aimWeight || 0);
-      cameraFocusAnchor.object.position.fromArray(frame.camera.lookAtTarget);
-      cameraFocusAnchor.material.opacity = 0.32 + (Math.min(1, Math.max(0, aimWeight)) * 0.68);
-    }
     writeWorldTransform(
       uniforms.fromTransform.value,
       fromWorld,
@@ -2537,7 +2441,6 @@ function createPointFieldAdapter({
     updatePointTransitionMotion(frame);
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
-    uniforms.ambientTime.value = frame.ambientTime;
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fromPointSizeScale.value = Number(fromWorld.transform?.pointSizeScale ?? 1);
     uniforms.toPointSizeScale.value = Number(toWorld.transform?.pointSizeScale ?? 1);
@@ -2562,8 +2465,8 @@ function createPointFieldAdapter({
       lastSimulationVisibility = simulationVisibility;
       runtimeObserver.hotFrameDomWrite();
     }
-    setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals);
-    setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals);
+    setModifierUniforms(modifierUniformTargets.from, fromWorld, frame.globals, frame);
+    setModifierUniforms(modifierUniformTargets.to, toWorld, frame.globals, frame);
     if (frame.reducedMotion) {
       uniforms.fromDriftAmplitude.value = 0;
       uniforms.toDriftAmplitude.value = 0;
@@ -2576,7 +2479,7 @@ function createPointFieldAdapter({
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.bustYaw.value = bustYaw;
     const bustAssemblyWorld = toWorld.shapeId === 'bust-v1' ? toWorld : fromWorld;
-    const bustAssemblySlot = getModifierSlots(bustAssemblyWorld, frame.globals)?.bustAssembly;
+    const bustAssemblySlot = getComposerEffect(frame, bustAssemblyWorld, 'bust-assembly-v1');
     const bustAssembly = bustAssemblySlot && typeof bustAssemblySlot === 'object'
       ? bustAssemblySlot
       : DEFAULT_BUST_ASSEMBLY;
@@ -2638,18 +2541,10 @@ function createPointFieldAdapter({
     uniforms.gridRippleAmplitude.value = Number(rippleParameters?.amplitude || 0);
     uniforms.gridRippleSpeed.value = Number(rippleParameters?.speed || 0);
     uniforms.gridRippleFrequency.value = Number(rippleParameters?.frequency || 1);
-    uniforms.gridRippleStoryMix.value = rippleParameters?.timeMode === 'story'
-      ? 1
-      : rippleParameters?.timeMode === 'mixed' ? 0.12 : 0;
-    const rippleActivationWU = Number(activeInteraction?.activationWU || 0);
-    const rippleDurationWU = Math.max(
-      0.0001,
-      Number(activeInteraction?.endWU || 0) - rippleActivationWU,
-    );
+    uniforms.gridRippleStoryMix.value = rippleParameters ? 1 : 0;
     uniforms.gridRippleProgress.value = frame.reducedMotion || !rippleParameters
       ? 0
-      : Math.min(1, Math.max(0, (Number(frame.storyWU || 0) - rippleActivationWU)
-        / rippleDurationWU));
+      : Number(frame.interactions.effectProgress || 0);
     const targetTransformElements = uniforms.toTransform.value.elements;
     uniforms.gridRippleCenter.value.set(
       targetTransformElements[12],
@@ -2697,7 +2592,8 @@ function createPointFieldAdapter({
     const deltaX = event.clientX - dragStart.x;
     const deltaY = event.clientY - dragStart.y;
     if (!dragging && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      const bust = getModifierSlots(latestFrame?.world?.to, latestFrame?.globals)?.bust;
+      const bust = getComposerEffect(latestFrame, latestFrame?.world?.to, 'bust-yaw-v1');
+      bustController.setYaw(bustYaw);
       dragging = bustController.beginDrag({
         pointerId: event.pointerId,
         x: dragStart.x,
@@ -2958,11 +2854,6 @@ function createPointFieldAdapter({
     materialAtlasTexture?.dispose();
     materialAtlasTexture = null;
     renderer.dispose();
-    if (cameraFocusAnchor) {
-      scene.remove(cameraFocusAnchor.object);
-      cameraFocusAnchor.geometry.dispose();
-      cameraFocusAnchor.material.dispose();
-    }
     webglTracker?.dispose();
     // Route views remount this renderer. Release a genuinely detached browser
     // context on the next task, while allowing a synchronous React effect
@@ -3016,7 +2907,7 @@ export function AboutNarrativePointWorld3D({
   disciplineOverlayRef,
   runtimeRef,
   pointProfile = '',
-  showCameraFocusAnchor = false,
+  layoutProfile = '',
 }) {
   const canvasRef = useRef(null);
 
@@ -3043,7 +2934,7 @@ export function AboutNarrativePointWorld3D({
           disciplineOverlayRef,
           runtimeRef,
           pointProfile,
-          showCameraFocusAnchor,
+          layoutProfile,
         });
       } catch (error) {
         // The fallback can be rebuilt when the measured point profile changes.
@@ -3125,7 +3016,7 @@ export function AboutNarrativePointWorld3D({
       window.clearTimeout(setupTimer);
       disposeAdapter?.();
     };
-  }, [disciplineOverlayRef, interactionRef, pointProfile, rootRef, runtimeRef, showCameraFocusAnchor]);
+  }, [disciplineOverlayRef, interactionRef, layoutProfile, pointProfile, rootRef, runtimeRef]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;
 }

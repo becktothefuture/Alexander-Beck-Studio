@@ -171,7 +171,7 @@ test('canonical About source authors one consolidated camera, visibility, and fo
     assert.equal(key.lookAtTarget.length, 3);
     assert.equal(Number.isFinite(key.lookAtRoll), true);
   });
-  assert.equal(visibilityKeys.length, 12);
+  assert.equal(visibilityKeys.length, 10);
   assert.equal(visibilityKeys[0].atWU, 0);
   assert.equal(visibilityKeys.at(-1).atWU, finalWorldKeyWU);
   assert.ok(visibilityKeys.some((key) => key.visibility === 0));
@@ -797,7 +797,6 @@ test('World C keeps one backward flyover through the floor turn and Discipline r
 
   const visibility = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
   const gridRise = visibility.get('visibility-grid-rise');
-  const gridHandoff = visibility.get('visibility-grid-handoff');
   const gridVisible = visibility.get('visibility-grid-visible');
   const editorialOff = visibility.get('visibility-editorial-off');
   const returnStart = visibility.get('visibility-return-start');
@@ -806,13 +805,11 @@ test('World C keeps one backward flyover through the floor turn and Discipline r
   assert.equal(returnStart.visibility, 0);
   assert.equal(returned.visibility, 1);
   assert.ok(gridVisible.atWU <= keys.get('discipline-travel-start').atWU);
-  assert.equal(Number((gridVisible.atWU - gridRise.atWU).toFixed(4)), 0.26);
-  assert.ok(gridHandoff.atWU > gridRise.atWU);
-  assert.ok(gridHandoff.atWU < gridVisible.atWU);
-  assert.ok(returned.atWU - returnStart.atWU >= 0.3 - Number.EPSILON * 8);
+  assert.equal(Number((gridVisible.atWU - gridRise.atWU).toFixed(4)), 0.15);
+  assert.equal(Number((returned.atWU - returnStart.atWU).toFixed(4)), 0.15);
   const flyoverVisibility = sampleAboutNarrativeRuntimePlan(
     plan,
-    (gridHandoff.atWU + gridVisible.atWU) * 0.5,
+    (gridRise.atWU + gridVisible.atWU) * 0.5,
   ).simulation.visibility;
   assert.ok(flyoverVisibility > 0 && flyoverVisibility < 1);
   assert.equal(sampleAboutNarrativeRuntimePlan(
@@ -823,6 +820,7 @@ test('World C keeps one backward flyover through the floor turn and Discipline r
   assert.equal(sampleAboutNarrativeRuntimePlan(plan, returned.atWU).simulation.visibility, 1);
   const rippleClip = canonical.tracks.interactions.clips.find((clip) => clip.id === 'interaction-grid-ripple');
   assert.equal(rippleClip.startWU, keys.get('grid-return-centered').atWU);
+  assert.equal(rippleClip.activationWU, returned.atWU);
   assert.ok(rippleClip.startWU > editorialOff.atWU);
 
   const bustBottomY = canonical.tracks.worlds.objects.find((world) => world.id === 'world-emergent').transform.position[1]
@@ -1005,7 +1003,8 @@ test('D is a dedicated Discipline reveal Motion and E sustains a scroll-authored
   assert.ok(clip.startWU >= reveal.endWU);
   assert.ok(clip.startWU >= world.startWU);
   assert.ok(clip.endWU <= nextWorld.startWU);
-  assert.equal(clip.activationWU, clip.startWU);
+  assert.ok(clip.activationWU > clip.startWU);
+  assert.equal(Number((clip.activationWU - clip.startWU).toFixed(4)), 0.15);
   assert.ok(clip.parameters.amplitude > 0);
   assert.ok(clip.parameters.speed > 0);
   assert.equal(clip.parameters.timeMode, 'story');
@@ -1179,7 +1178,7 @@ test('later title groups retain their authored breathing gaps', () => {
     },
     {
       ids: ['text-life-momentum', 'text-life-form', 'text-life-character'],
-      gaps: [0.5, 0.33],
+      gaps: [0.25, 0.22],
     },
   ];
   titleSets.forEach(({ ids, gaps }) => ids.slice(1).forEach((id, index) => {
@@ -1191,6 +1190,38 @@ test('later title groups retain their authored breathing gaps', () => {
       `${id} must preserve its authored breathing gap`,
     );
   }));
+});
+
+test('editorial reading windows keep the point world hidden while camera reframes run', () => {
+  const cameraKeys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
+  const visibilityKeys = new Map(canonical.tracks.visibility.keys.map((key) => [key.id, key]));
+  const hiddenWindows = [
+    [visibilityKeys.get('visibility-void-off').atWU, visibilityKeys.get('visibility-grid-rise').atWU],
+    [visibilityKeys.get('visibility-editorial-off').atWU, visibilityKeys.get('visibility-return-start').atWU],
+  ];
+
+  ['desktop', 'tablet', 'mobile'].forEach((layoutProfile) => {
+    const plan = compileAboutNarrativeRuntimePlan(canonical, { layoutProfile });
+    hiddenWindows.forEach(([startWU, endWU]) => {
+      for (let storyWU = startWU; storyWU <= endWU + 0.000001; storyWU += 0.05) {
+        assert.equal(
+          sampleAboutNarrativeRuntimePlan(plan, Math.min(storyWU, endWU)).simulation.visibility,
+          0,
+          `${layoutProfile} editorial reading must hide the point world at ${storyWU.toFixed(3)} WU`,
+        );
+      }
+    });
+    assert.equal(sampleAboutNarrativeRuntimePlan(plan, 5.25).simulation.visibility, 0);
+    assert.equal(sampleAboutNarrativeRuntimePlan(plan, 13.5).simulation.visibility, 0);
+    assert.equal(sampleAboutNarrativeRuntimePlan(plan, visibilityKeys.get('visibility-grid-visible').atWU).simulation.visibility, 1);
+    assert.equal(sampleAboutNarrativeRuntimePlan(plan, visibilityKeys.get('visibility-returned').atWU).simulation.visibility, 1);
+  });
+
+  assert.equal(visibilityKeys.get('visibility-void-off').atWU, 3.72);
+  assert.equal(visibilityKeys.get('visibility-grid-rise').atWU, 6.715);
+  assert.equal(visibilityKeys.get('visibility-editorial-off').atWU, 11.1);
+  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 14.1);
+  assert.equal(cameraKeys.get('grid-return-centered').atWU, 14.1);
 });
 
 test('semantic handoffs keep deliberate breaths without empty scroll runs', () => {
@@ -1215,11 +1246,12 @@ test('semantic handoffs keep deliberate breaths without empty scroll runs', () =
   assert.ok(fields.get('text-disciplines-title').startWU < reveal.endWU);
   assert.equal(fields.get('text-disciplines-title').startWU, 10.85);
   assert.ok(reveal.endWU - fields.get('text-disciplines-title').startWU <= 0.3 + Number.EPSILON * 8);
-  assert.equal(cameraKeys.get('grid-return-centered').atWU, 13);
-  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 13);
-  assert.equal(visibilityKeys.get('visibility-returned').atWU, 13.35);
-  assert.ok(finale.startWU > emergent.transitionIn.endWU);
-  assert.equal(Number((finale.startWU - emergent.transitionIn.endWU).toFixed(4)), 0.7);
+  assert.equal(cameraKeys.get('grid-return-centered').atWU, 14.1);
+  assert.equal(visibilityKeys.get('visibility-return-start').atWU, 14.1);
+  assert.equal(visibilityKeys.get('visibility-returned').atWU, 14.25);
+  assert.ok(finale.startWU < emergent.transitionIn.endWU);
+  assert.ok(finale.focusWU > emergent.transitionIn.endWU);
+  assert.equal(Number((emergent.transitionIn.endWU - finale.startWU).toFixed(4)), 0.4);
   assert.ok(
     visibilityKeys.get('visibility-grid-visible').atWU
       <= reveal.startWU + reveal.parameters.settleDurationWU,
@@ -1448,7 +1480,7 @@ test('the lower-half final title and inline email link share the closing frame w
   const keys = new Map(canonical.tracks.camera.keys.map((key) => [key.id, key]));
   const finalHold = keys.get('finale-hold');
   assert.equal(finale.endWU, canonical.profiles.desktop.storyDurationWU);
-  assert.equal(finale.startWU, 21.25);
+  assert.equal(finale.startWU, 20.15);
   assert.equal(finale.presentation.layout, 'text-bust-cta');
   assert.equal(canonical.globals.textMotion.bookendViewportY, 70);
   assert.ok(finale.focusWU > finale.startWU);

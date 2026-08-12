@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "globals": {
     "scrollSmoothing": 0.82,
     "readingWidthRem": 51,
@@ -50,8 +50,8 @@
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 22.795,
-      "scrollDurationWU": 22.795,
+      "storyDurationWU": 20,
+      "scrollDurationWU": 20,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -65,37 +65,43 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 22.795,
-      "scrollDurationWU": 22.795,
+      "storyDurationWU": 20,
+      "scrollDurationWU": 20,
       "overrides": {
         "camera": {
-          "discipline-hold": {
-            "aimEnabled": false,
-            "position": [
-              -5,
-              4,
-              -0.75
-            ],
-            "lookAtTarget": [
-              -5,
-              -1.72,
-              -0.75
-            ],
+          "lens-discipline-hold": {
             "fov": 60
           },
-          "discipline-travel-start": {
-            "aimEnabled": false,
+          "lens-discipline-travel-start": {
+            "fov": 60
+          },
+          "look-discipline-tilt-hold": {
+            "rotation": [
+              -90,
+              0,
+              0
+            ]
+          },
+          "look-discipline-travel-start": {
+            "rotation": [
+              -2.3,
+              0,
+              0
+            ]
+          },
+          "move-discipline-hold": {
             "position": [
               -5,
               4,
-              -4.89
-            ],
-            "lookAtTarget": [
+              -1.75
+            ]
+          },
+          "move-discipline-travel-start": {
+            "position": [
               -5,
-              -1.72,
-              -4.89
-            ],
-            "fov": 60
+              4,
+              -4.51
+            ]
           }
         },
         "visibility": {},
@@ -109,109 +115,118 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 22.795,
-      "scrollDurationWU": 23.501983,
+      "storyDurationWU": 20,
+      "scrollDurationWU": 20.62,
       "overrides": {
         "camera": {
-          "discipline-hold": {
-            "aimEnabled": false,
+          "lens-discipline-hold": {
+            "fov": 60
+          },
+          "lens-discipline-travel-start": {
+            "fov": 60
+          },
+          "lens-finale-hold": {
+            "fov": 33
+          },
+          "lens-finale-resolved-hold": {
+            "fov": 33
+          },
+          "lens-ripple-overhead-hold": {
+            "fov": 47.18264014466546
+          },
+          "look-discipline-tilt-hold": {
+            "rotation": [
+              -90,
+              0,
+              0
+            ]
+          },
+          "look-discipline-travel-start": {
+            "rotation": [
+              -2.3,
+              0,
+              0
+            ]
+          },
+          "look-finale-hold": {
+            "rotation": [
+              -9.896777,
+              156,
+              0
+            ]
+          },
+          "look-finale-resolved-hold": {
+            "rotation": [
+              -9.896777,
+              156,
+              0
+            ]
+          },
+          "look-grid-return-centered": {
+            "rotation": [
+              -9.896777,
+              -180,
+              0
+            ]
+          },
+          "look-ripple-overhead-hold": {
+            "rotation": [
+              -10.101532,
+              170.80046,
+              0
+            ]
+          },
+          "move-discipline-hold": {
             "position": [
               -5,
               4,
-              -0.75
-            ],
-            "lookAtTarget": [
-              -5,
-              -1.72,
-              -0.75
-            ],
-            "fov": 60
+              -1.75
+            ]
           },
-          "discipline-travel-start": {
-            "aimEnabled": false,
+          "move-discipline-travel-start": {
             "position": [
               -5,
               4,
-              -4.89
-            ],
-            "lookAtTarget": [
-              -5,
-              -1.72,
-              -4.89
-            ],
-            "fov": 60
+              -4.51
+            ]
           },
-          "finale-hold": {
+          "move-finale-hold": {
             "position": [
               3.943556589690735,
               0.84025,
               -16.408961578415663
-            ],
-            "lookAtTarget": [
-              -0.23,
-              -0.95,
-              -7.035
-            ],
-            "fov": 33
+            ]
           },
-          "finale-resolved-hold": {
+          "move-finale-resolved-hold": {
             "position": [
               3.943556589690735,
               0.84025,
               -16.408961578415663
-            ],
-            "lookAtTarget": [
-              -0.23,
-              -0.95,
-              -7.035
-            ],
-            "fov": 33
+            ]
           },
-          "grid-return-centered": {
+          "move-grid-return-centered": {
             "position": [
               -0.23,
               0.84025,
               -17.29607841705559
-            ],
-            "lookAtTarget": [
-              -0.23,
-              -0.95,
-              -7.035
             ]
           },
-          "orb-establish": {
-            "aimEnabled": false,
+          "move-orb-establish": {
             "position": [
               0,
               0.98,
               5.2
             ]
           },
-          "ripple-overhead-hold": {
+          "move-ripple-overhead-hold": {
             "position": [
               1.4094387913887356,
               0.8769080142263166,
               -17.157715688011272
-            ],
-            "lookAtTarget": [
-              -0.23,
-              -0.95,
-              -7.035
-            ],
-            "fov": 47.18264014466546
+            ]
           }
         },
-        "visibility": {
-          "visibility-grid-handoff": {
-            "atWU": 7.22
-          },
-          "visibility-grid-rise": {
-            "atWU": 7.08
-          },
-          "visibility-grid-visible": {
-            "atWU": 7.34
-          }
-        },
+        "visibility": {},
         "pointField": {
           "stateDefinitions": {
             "world-emergent": {
@@ -238,238 +253,174 @@
   },
   "tracks": {
     "camera": {
-      "keys": [
+      "moveKeys": [
         {
-          "id": "orb-establish",
+          "id": "move-orb-establish",
           "atWU": 0,
           "position": [
             0,
             0.98,
             5.9
           ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            0.98,
-            4.9
-          ],
-          "lookAtRoll": 0,
-          "fov": 46,
           "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
+          "velocityMode": "eased",
           "locked": true
         },
         {
-          "id": "complexity-exit",
+          "id": "move-complexity-exit",
           "atWU": 5.122,
           "position": [
             0,
             0.1,
             -21.6
           ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            0,
-            0.1,
-            -6.2
-          ],
-          "lookAtRoll": 0,
-          "fov": 52,
           "easing": "smoothstep",
+          "velocityMode": "eased",
           "locked": false
         },
         {
-          "id": "grid-birds-eye-2",
+          "id": "move-grid-birds-eye-2",
           "atWU": 5.37,
           "position": [
             -5,
             0.2,
             -40
           ],
-          "rotation": [
-            -2.3,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            -5,
-            -1.72,
-            -22.409751
-          ],
-          "lookAtRoll": 0,
-          "fov": 80,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "easing": "cubic-bezier(0.32, 0, 0.99, 1)",
+          "velocityMode": "eased",
           "locked": false
         },
         {
-          "id": "discipline-travel-start",
+          "id": "move-discipline-travel-start",
           "atWU": 7.7,
           "position": [
             -5,
             3.14,
             -4.51
           ],
-          "rotation": [
-            -2.3,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            -5,
-            -1.72,
-            -22.409751
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
           "easing": "linear",
+          "velocityMode": "constant",
           "locked": false
         },
         {
-          "id": "discipline-hold",
+          "id": "move-discipline-hold",
           "atWU": 11.15,
           "position": [
             -5,
             3.14,
             -1.75
           ],
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "aimEnabled": false,
-          "lookAtTarget": [
-            -5,
-            -1.72,
-            -1.75
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "easing": "cubic-bezier(0.35, 0, 0.18, 1)",
+          "velocityMode": "constant",
           "locked": false
         },
         {
-          "id": "grid-return-centered",
-          "atWU": 13,
+          "id": "move-grid-return-centered",
+          "atWU": 14.15,
           "position": [
             0,
             0.13105675984809606,
             -15.95
           ],
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.8,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 56,
           "easing": "linear",
+          "velocityMode": "constant",
           "locked": false
         },
         {
-          "id": "ripple-overhead-hold",
-          "atWU": 18.95,
+          "id": "move-ripple-overhead-hold",
+          "atWU": 16.35,
           "position": [
             1.4238150509635352,
             0.1699556849818673,
             -15.82694122532745
           ],
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.8,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 54.46654611211573,
           "easing": "linear",
+          "velocityMode": "constant",
           "locked": false
         },
         {
-          "id": "finale-resolved-hold",
-          "atWU": 20.55,
+          "id": "move-finale-resolved-hold",
+          "atWU": 17.75,
           "position": [
             3.626057173020758,
             0.13105675984809606,
             -15.179257754883785
           ],
+          "easing": "smoothstep",
+          "velocityMode": "eased",
+          "locked": false
+        },
+        {
+          "id": "move-finale-hold",
+          "atWU": 20,
+          "position": [
+            3.626057173020758,
+            0.13105675984809606,
+            -15.179257754883785
+          ],
+          "easing": "linear",
+          "velocityMode": "constant",
+          "locked": true
+        }
+      ],
+      "lookKeys": [
+        {
+          "id": "look-orb-establish",
+          "atWU": 0,
           "rotation": [
             0,
             0,
             0
           ],
-          "aimEnabled": true,
-          "lookAtTarget": [
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
+          "locked": true
+        },
+        {
+          "id": "look-complexity-exit",
+          "atWU": 5.122,
+          "rotation": [
             0,
-            -1.8,
-            -7.035
+            0,
+            0
           ],
-          "lookAtRoll": 0,
-          "fov": 52,
           "easing": "smoothstep",
           "locked": false
         },
         {
-          "id": "finale-hold",
-          "atWU": 22.795,
-          "position": [
-            3.626057173020758,
-            0.13105675984809606,
-            -15.179257754883785
-          ],
+          "id": "look-grid-birds-eye-2",
+          "atWU": 5.37,
           "rotation": [
-            0,
+            -2.3,
             0,
             0
           ],
-          "aimEnabled": true,
-          "lookAtTarget": [
-            0,
-            -1.8,
-            -7.035
-          ],
-          "lookAtRoll": 0,
-          "fov": 52,
-          "easing": "linear",
-          "locked": true
-        }
-      ],
-      "orientationKeys": [
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false
+        },
         {
-          "id": "discipline-tilt-start",
+          "id": "look-discipline-travel-start",
+          "atWU": 7.7,
+          "rotation": [
+            -2.3,
+            0,
+            0
+          ],
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "look-discipline-pitch-start",
           "atWU": 8.35,
           "rotation": [
             -2.3,
             0,
             0
           ],
-          "easing": "smoothstep",
+          "easing": "linear",
           "locked": false
         },
         {
-          "id": "discipline-tilt-end",
+          "id": "look-discipline-tilt-end",
           "atWU": 9.15,
           "rotation": [
             -90,
@@ -480,7 +431,7 @@
           "locked": false
         },
         {
-          "id": "discipline-tilt-hold",
+          "id": "look-discipline-tilt-hold",
           "atWU": 11.15,
           "rotation": [
             -90,
@@ -489,6 +440,115 @@
           ],
           "easing": "linear",
           "locked": false
+        },
+        {
+          "id": "look-grid-return-centered",
+          "atWU": 14.15,
+          "rotation": [
+            -12.22189,
+            -180,
+            0
+          ],
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "look-ripple-overhead-hold",
+          "atWU": 16.35,
+          "rotation": [
+            -12.472009,
+            170.801071,
+            0
+          ],
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "look-finale-resolved-hold",
+          "atWU": 17.75,
+          "rotation": [
+            -12.22189,
+            156,
+            0
+          ],
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "look-finale-hold",
+          "atWU": 20,
+          "rotation": [
+            -12.22189,
+            156,
+            0
+          ],
+          "easing": "linear",
+          "locked": true
+        }
+      ],
+      "lensKeys": [
+        {
+          "id": "lens-orb-establish",
+          "atWU": 0,
+          "fov": 46,
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
+          "locked": true
+        },
+        {
+          "id": "lens-complexity-exit",
+          "atWU": 5.122,
+          "fov": 52,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "lens-grid-birds-eye-2",
+          "atWU": 5.37,
+          "fov": 80,
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false
+        },
+        {
+          "id": "lens-discipline-travel-start",
+          "atWU": 7.7,
+          "fov": 56,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "lens-discipline-hold",
+          "atWU": 11.15,
+          "fov": 56,
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
+          "locked": false
+        },
+        {
+          "id": "lens-grid-return-centered",
+          "atWU": 14.15,
+          "fov": 56,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "lens-ripple-overhead-hold",
+          "atWU": 16.35,
+          "fov": 54.46654611211573,
+          "easing": "linear",
+          "locked": false
+        },
+        {
+          "id": "lens-finale-resolved-hold",
+          "atWU": 17.75,
+          "fov": 52,
+          "easing": "smoothstep",
+          "locked": false
+        },
+        {
+          "id": "lens-finale-hold",
+          "atWU": 20,
+          "fov": 52,
+          "easing": "linear",
+          "locked": true
         }
       ]
     },
@@ -503,44 +563,30 @@
         },
         {
           "id": "visibility-complexity",
-          "atWU": 5.4,
+          "atWU": 3.465,
           "visibility": 1,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-void-off",
-          "atWU": 5.52,
+          "atWU": 3.72,
           "visibility": 0,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-rise",
-          "atWU": 6.92,
+          "atWU": 6.715,
           "visibility": 0,
           "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-grid-handoff",
-          "atWU": 7.06,
-          "visibility": 0,
-          "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-grid-visible",
-          "atWU": 7.18,
+          "atWU": 6.865,
           "visibility": 1,
           "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-disciplines",
-          "atWU": 10.35,
-          "visibility": 1,
-          "easing": "smoothstep",
           "locked": false
         },
         {
@@ -559,21 +605,21 @@
         },
         {
           "id": "visibility-return-start",
-          "atWU": 13,
+          "atWU": 14.15,
           "visibility": 0,
           "easing": "smoothstep",
           "locked": false
         },
         {
           "id": "visibility-returned",
-          "atWU": 13.35,
+          "atWU": 14.3,
           "visibility": 1,
           "easing": "linear",
           "locked": false
         },
         {
           "id": "visibility-end",
-          "atWU": 22.795,
+          "atWU": 20,
           "visibility": 1,
           "easing": "linear",
           "locked": true
@@ -614,15 +660,7 @@
             "turbulence": 0.42,
             "density": 0.33
           },
-          "modifiers": [
-            {
-              "id": "swarm-life-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 1.5
-              }
-            }
-          ]
+          "modifiers": []
         },
         {
           "id": "world-emergent",
@@ -656,50 +694,7 @@
           "shapeParameters": {
             "density": 0.26
           },
-          "modifiers": [
-            {
-              "id": "ambient-drift-v1",
-              "enabled": true,
-              "parameters": {
-                "amplitude": 0.018,
-                "speed": 0.28,
-                "timeMode": "mixed"
-              }
-            },
-            {
-              "id": "bust-assembly-v1",
-              "enabled": true,
-              "parameters": {
-                "formationMode": "surface-rise",
-                "baseStart": 0.06,
-                "headStart": 0.58,
-                "layerSoftness": 0.44,
-                "platformScale": 2.75,
-                "platformSettle": 0.28,
-                "surfaceHeight": -1.52,
-                "submergeDepth": 3.65,
-                "waterlineSoftness": 0.34,
-                "surfaceCarry": 1,
-                "fragmentHeight": 0.78,
-                "fragmentFade": 0.54,
-                "fragmentReveal": 0.34,
-                "fragmentSpread": 0.42,
-                "fragmentFall": 0.18,
-                "fragmentPresence": 0.5
-              }
-            },
-            {
-              "id": "bust-yaw-v1",
-              "enabled": true,
-              "parameters": {
-                "speed": 0.035,
-                "dragSensitivity": 1,
-                "resumeDelay": 0.18,
-                "resumeBlend": 0.9,
-                "timeMode": "ambient"
-              }
-            }
-          ],
+          "modifiers": [],
           "protected": true
         },
         {
@@ -714,7 +709,7 @@
             "position": [
               0,
               0.2,
-              0
+              0.33
             ],
             "rotation": [
               0,
@@ -723,9 +718,10 @@
             ],
             "scale": 1,
             "pointSizeScale": 1.2,
-            "mobileScale": 1,
+            "mobileScale": 0.6,
             "mobileXScale": 1,
-            "mobileYOffset": 0.345
+            "mobileYOffset": 0.345,
+            "mobileZOffset": 1.37
           },
           "shapeParameters": {
             "width": 48,
@@ -734,17 +730,7 @@
             "jitter": 0,
             "density": 0.32
           },
-          "modifiers": [
-            {
-              "id": "ambient-drift-v1",
-              "enabled": true,
-              "parameters": {
-                "amplitude": 0.028,
-                "speed": 0.55,
-                "timeMode": "ambient"
-              }
-            }
-          ]
+          "modifiers": []
         },
         {
           "id": "world-promise",
@@ -778,15 +764,7 @@
             "radius": 2,
             "density": 0.05
           },
-          "modifiers": [
-            {
-              "id": "swarm-life-v1",
-              "enabled": true,
-              "parameters": {
-                "strength": 3.66
-              }
-            }
-          ]
+          "modifiers": []
         }
       ],
       "keys": [
@@ -803,7 +781,7 @@
         },
         {
           "id": "key-world-complexity-arrival",
-          "atWU": 2.75,
+          "atWU": 3.749988,
           "stateId": "world-complexity"
         },
         {
@@ -818,17 +796,17 @@
         },
         {
           "id": "key-world-emergent-departure",
-          "atWU": 18.95,
+          "atWU": 16.35,
           "stateId": "world-grid"
         },
         {
           "id": "key-world-emergent-arrival",
-          "atWU": 20.55,
+          "atWU": 17.75,
           "stateId": "world-emergent"
         },
         {
           "id": "key-world-emergent-final",
-          "atWU": 22.795,
+          "atWU": 20,
           "stateId": "world-emergent",
           "protected": true
         }
@@ -1219,7 +1197,7 @@
           "kind": "scroll-block",
           "startWU": 10.85,
           "focusWU": 11.4,
-          "endWU": 16.87,
+          "endWU": 14.15,
           "publishable": true,
           "presentation": {
             "layout": "disciplines"
@@ -1284,9 +1262,9 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 16.88,
-          "focusWU": 17.23,
-          "endWU": 17.63,
+          "startWU": 14.25,
+          "focusWU": 14.6,
+          "endWU": 14.95,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1299,9 +1277,9 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 18.13,
-          "focusWU": 18.48,
-          "endWU": 18.88,
+          "startWU": 15.05,
+          "focusWU": 15.4,
+          "endWU": 15.75,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1314,9 +1292,9 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 19.21,
-          "focusWU": 19.51,
-          "endWU": 19.81,
+          "startWU": 15.85,
+          "focusWU": 16.2,
+          "endWU": 16.55,
           "publishable": true,
           "presentation": {
             "layout": "center"
@@ -1329,9 +1307,9 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 21.25,
-          "focusWU": 21.7,
-          "endWU": 22.795,
+          "startWU": 17.45,
+          "focusWU": 17.85,
+          "endWU": 20,
           "publishable": true,
           "presentation": {
             "layout": "text-bust-cta"
@@ -1347,50 +1325,159 @@
     "interactions": {
       "clips": [
         {
+          "id": "effect-world-promise-swarm-life",
+          "type": "state-effect",
+          "startWU": 0,
+          "activationWU": 0,
+          "endWU": 2.75,
+          "targetStateId": "world-promise",
+          "parameters": {
+            "effectId": "swarm-life-v1",
+            "releaseWU": 0,
+            "strength": 3.66
+          }
+        },
+        {
+          "id": "effect-world-complexity-swarm-life",
+          "type": "state-effect",
+          "startWU": 0.7,
+          "activationWU": 0.7,
+          "endWU": 5.35,
+          "targetStateId": "world-complexity",
+          "parameters": {
+            "effectId": "swarm-life-v1",
+            "releaseWU": 0,
+            "strength": 1.5
+          }
+        },
+        {
+          "id": "effect-world-grid-ambient-drift",
+          "type": "state-effect",
+          "startWU": 5.05,
+          "activationWU": 5.05,
+          "endWU": 17.75,
+          "targetStateId": "world-grid",
+          "parameters": {
+            "effectId": "ambient-drift-v1",
+            "releaseWU": 0,
+            "amplitude": 0.028,
+            "speed": 0.55
+          }
+        },
+        {
           "id": "motion-discipline-reveal",
           "type": "discipline-reveal",
-          "startWU": 8.7,
-          "activationWU": 8.7,
+          "startWU": 9.15,
+          "activationWU": 9.15,
           "endWU": 11.15,
           "parameters": {
-            "settleDurationWU": 0.45,
-            "beatDurationWU": 0.32,
-            "itemsPerBeat": 2,
-            "formationColumn": 43,
-            "formationRow": 54,
-            "backgroundOpacity": 0.28,
-            "pointScale": 4.4,
-            "restoreDurationWU": 0.5,
+            "entryStartRatio": 0.54,
+            "entryCompleteRatio": 0.52,
+            "backgroundOpacity": 0.13,
+            "pointScale": 3.2,
+            "restoreDurationWU": 0.8,
             "items": [
               {
                 "group": 1,
                 "label": "Product Design",
-                "description": "Understanding what people actually need before deciding what should be built."
+                "description": "Understanding what people actually need before deciding what should be built.",
+                "position": [
+                  0.34127,
+                  0.574468
+                ],
+                "tabletPosition": [
+                  0.382716,
+                  0.583333
+                ],
+                "mobilePosition": [
+                  0.382716,
+                  0.583333
+                ]
               },
               {
                 "group": 2,
                 "label": "Experience Design",
-                "description": "Looking at the whole journey, including the awkward gaps between teams, systems and touchpoints."
+                "description": "Looking at the whole journey, including the awkward gaps between teams, systems and touchpoints.",
+                "position": [
+                  0.412698,
+                  0.574468
+                ],
+                "tabletPosition": [
+                  0.419753,
+                  0.583333
+                ],
+                "mobilePosition": [
+                  0.419753,
+                  0.583333
+                ]
               },
               {
                 "group": 3,
                 "label": "Art Direction",
-                "description": "Finding a visual idea that gives the work its own personality."
+                "description": "Finding a visual idea that gives the work its own personality.",
+                "position": [
+                  0.34127,
+                  0.585106
+                ],
+                "tabletPosition": [
+                  0.382716,
+                  0.6
+                ],
+                "mobilePosition": [
+                  0.382716,
+                  0.6
+                ]
               },
               {
                 "group": 4,
                 "label": "Motion & 3D",
-                "description": "Using movement and space when static design isn’t enough."
+                "description": "Using movement and space when static design isn’t enough.",
+                "position": [
+                  0.412698,
+                  0.585106
+                ],
+                "tabletPosition": [
+                  0.419753,
+                  0.6
+                ],
+                "mobilePosition": [
+                  0.419753,
+                  0.6
+                ]
               },
               {
                 "group": 5,
                 "label": "Creative Engineering",
-                "description": "Building ideas in code so they can be tested instead of imagined."
+                "description": "Building ideas in code so they can be tested instead of imagined.",
+                "position": [
+                  0.34127,
+                  0.595745
+                ],
+                "tabletPosition": [
+                  0.382716,
+                  0.616667
+                ],
+                "mobilePosition": [
+                  0.382716,
+                  0.616667
+                ]
               },
               {
                 "group": 6,
                 "label": "Parametric Systems",
-                "description": "Creating flexible systems that stay coherent as they grow."
+                "description": "Creating flexible systems that stay coherent as they grow.",
+                "position": [
+                  0.412698,
+                  0.595745
+                ],
+                "tabletPosition": [
+                  0.419753,
+                  0.616667
+                ],
+                "mobilePosition": [
+                  0.419753,
+                  0.616667
+                ]
               }
             ]
           },
@@ -1399,30 +1486,86 @@
         {
           "id": "interaction-grid-ripple",
           "type": "grid-ripple",
-          "startWU": 13,
-          "activationWU": 13,
-          "endWU": 18.95,
+          "startWU": 14.15,
+          "activationWU": 14.3,
+          "endWU": 16.35,
           "parameters": {
             "amplitude": 1.05,
             "speed": 0.38,
             "frequency": 1.65,
-            "releaseWU": 0.62,
-            "timeMode": "story"
+            "releaseWU": 0.62
           },
           "targetStateId": "world-grid"
         },
         {
+          "id": "effect-world-emergent-ambient-drift",
+          "type": "state-effect",
+          "startWU": 16.35,
+          "activationWU": 16.35,
+          "endWU": 20,
+          "targetStateId": "world-emergent",
+          "parameters": {
+            "effectId": "ambient-drift-v1",
+            "releaseWU": 0,
+            "amplitude": 0.018,
+            "speed": 0.28
+          }
+        },
+        {
+          "id": "effect-world-emergent-bust-assembly",
+          "type": "state-effect",
+          "startWU": 16.35,
+          "activationWU": 16.35,
+          "endWU": 20,
+          "targetStateId": "world-emergent",
+          "parameters": {
+            "effectId": "bust-assembly-v1",
+            "releaseWU": 0,
+            "formationMode": "surface-rise",
+            "baseStart": 0.06,
+            "headStart": 0.58,
+            "layerSoftness": 0.44,
+            "platformScale": 2.75,
+            "platformSettle": 0.28,
+            "surfaceHeight": -1.52,
+            "submergeDepth": 3.65,
+            "waterlineSoftness": 0.34,
+            "surfaceCarry": 1,
+            "fragmentHeight": 0.78,
+            "fragmentFade": 0.54,
+            "fragmentReveal": 0.34,
+            "fragmentSpread": 0.42,
+            "fragmentFall": 0.18,
+            "fragmentPresence": 0.5
+          }
+        },
+        {
+          "id": "effect-world-emergent-bust-yaw",
+          "type": "state-effect",
+          "startWU": 16.35,
+          "activationWU": 16.35,
+          "endWU": 20,
+          "targetStateId": "world-emergent",
+          "parameters": {
+            "effectId": "bust-yaw-v1",
+            "releaseWU": 0,
+            "speed": 0.035,
+            "dragSensitivity": 1,
+            "resumeDelay": 0.18,
+            "resumeBlend": 0.9
+          }
+        },
+        {
           "id": "interaction-emergent-ripple",
           "type": "grid-ripple",
-          "startWU": 18.95,
-          "activationWU": 19.35,
-          "endWU": 20.85,
+          "startWU": 16.35,
+          "activationWU": 16.65,
+          "endWU": 17.95,
           "parameters": {
             "amplitude": 0.52,
             "speed": 0.16,
             "frequency": 1.95,
-            "releaseWU": 0.75,
-            "timeMode": "story"
+            "releaseWU": 0.75
           },
           "targetStateId": "world-emergent"
         }

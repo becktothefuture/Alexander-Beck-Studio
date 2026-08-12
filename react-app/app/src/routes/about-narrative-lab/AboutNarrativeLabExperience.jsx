@@ -686,6 +686,8 @@ function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = '
           <li
             key={item.group}
             data-discipline-group={item.group}
+            data-label-side={Number(item.group) % 2 === 0 ? 'left' : 'right'}
+            aria-label={item.description ? `${item.label}. ${item.description}` : item.label}
             style={{
               '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
             }}
@@ -999,7 +1001,7 @@ export function AboutNarrativeLabExperience({
           disciplineOverlayRef={disciplineOverlayRef}
           runtimeRef={worldRuntimeRef}
           pointProfile={runtimePlan.pointProfile}
-          showCameraFocusAnchor={editorRequested && __DEV__}
+          layoutProfile={runtimePlan.layoutProfile}
         />
       ) : null}
       <div

@@ -280,7 +280,7 @@ export function createDevAdminPlugin({
   ], [publicConfigRoot]);
   const aboutPersistence = createAboutNarrativePersistenceService({
     configPath: aboutNarrativeConfigPath,
-    targetVersion: 6,
+    targetVersion: 7,
   });
 
   return {

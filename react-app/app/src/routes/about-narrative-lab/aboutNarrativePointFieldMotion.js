@@ -33,8 +33,86 @@ export const ABOUT_NARRATIVE_POINT_FIELD_MOTION_DEFAULTS = Object.freeze({
 const EMPTY_POINT = Object.freeze({});
 const EMPTY_OPTIONS = Object.freeze({});
 const TWO_PI = Math.PI * 2;
+const TIME_EPSILON = 0.000001;
 
 const clamp01 = (value) => Math.min(1, Math.max(0, Number(value) || 0));
+
+export function resolveAboutNarrativePointFieldSeededPhase(pointSeed, motionSeed) {
+  return seededPhase(pointSeed, Number(motionSeed) >>> 0);
+}
+
+export function writeAboutNarrativePointFieldSeedPhases(
+  pointSeeds,
+  staggerSeed,
+  pathSeed,
+  phases,
+) {
+  for (let index = 0; index < pointSeeds.length; index += 1) {
+    const offset = index * 2;
+    phases[offset] = resolveAboutNarrativePointFieldSeededPhase(
+      pointSeeds[index],
+      staggerSeed,
+    );
+    phases[offset + 1] = resolveAboutNarrativePointFieldSeededPhase(
+      pointSeeds[index],
+      pathSeed,
+    );
+  }
+}
+
+export function writeAboutNarrativePointFieldSpatialPhases(positions, phases) {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+  for (let offset = 0; offset < positions.length; offset += 3) {
+    const x = positions[offset];
+    const y = positions[offset + 1];
+    const z = positions[offset + 2];
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    minZ = Math.min(minZ, z);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+    maxZ = Math.max(maxZ, z);
+  }
+  const centerX = (minX + maxX) * 0.5;
+  const centerZ = (minZ + maxZ) * 0.5;
+  let maxRadius = TIME_EPSILON;
+  for (let offset = 0; offset < positions.length; offset += 3) {
+    maxRadius = Math.max(
+      maxRadius,
+      Math.hypot(positions[offset] - centerX, positions[offset + 2] - centerZ),
+    );
+  }
+  const rangeX = Math.max(TIME_EPSILON, maxX - minX);
+  const rangeY = Math.max(TIME_EPSILON, maxY - minY);
+  const rangeZ = Math.max(TIME_EPSILON, maxZ - minZ);
+  for (let index = 0, offset = 0; offset < positions.length; index += 1, offset += 3) {
+    const phaseOffset = index * 4;
+    phases[phaseOffset] = clamp01(
+      Math.hypot(positions[offset] - centerX, positions[offset + 2] - centerZ) / maxRadius,
+    );
+    phases[phaseOffset + 1] = clamp01((positions[offset] - minX) / rangeX);
+    phases[phaseOffset + 2] = clamp01((positions[offset + 1] - minY) / rangeY);
+    phases[phaseOffset + 3] = clamp01((positions[offset + 2] - minZ) / rangeZ);
+  }
+}
+
+export function applyAboutNarrativePointFieldMotionToPosition(position, motion) {
+  position.x += motion.pathOffset[0];
+  position.y += motion.pathOffset[1];
+  position.z += motion.pathOffset[2];
+  const planeWeight = clamp01(Math.abs(Number(motion.planeOffset) || 0) * 4);
+  if (planeWeight <= 0) return position;
+  const axis = motion.planeAxis === 'x' || motion.planeAxis === 'z'
+    ? motion.planeAxis
+    : 'y';
+  position[axis] += (Number(motion.planePosition) - position[axis]) * planeWeight;
+  return position;
+}
 
 function resolveAxis(value, fallback) {
   return ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES.includes(value) ? value : fallback;

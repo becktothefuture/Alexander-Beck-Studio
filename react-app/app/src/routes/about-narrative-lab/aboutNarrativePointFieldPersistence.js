@@ -1,6 +1,7 @@
 import {
   ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
   loadAboutNarrativePointFieldSource,
+  migrateAboutNarrativeVersion6To7,
   migrateAboutNarrativeVersion5To6,
   projectAboutNarrativePointFieldDocumentToVersion5,
   serializeAboutNarrativePointFieldDocument,
@@ -25,9 +26,11 @@ const POINT_FIELD_TYPES = Object.freeze({
   'point-field-key': 'keys',
   'point-field-segment': 'segments',
 });
-const TRACK_IDS = new Set(['camera', 'visibility', 'point-field', 'text', 'interaction']);
+const TRACK_IDS = new Set(['camera', 'camera-orientation', 'camera-lens', 'visibility', 'point-field', 'text', 'interaction']);
 const TYPE_TO_TRACK = Object.freeze({
   'camera-key': 'camera',
+  'camera-orientation-key': 'camera-orientation',
+  'camera-lens-key': 'camera-lens',
   'visibility-key': 'visibility',
   'point-field-state': 'point-field',
   'point-field-key': 'point-field',
@@ -139,6 +142,38 @@ export function loadAboutNarrativePointFieldPersistenceSource(input, { preflight
     }), preflight);
   }
 
+  if (sourceVersion === 6) {
+    try {
+      const migrated = migrateAboutNarrativeVersion6To7(
+        typeof input === 'string' ? JSON.parse(input) : clone(input),
+      );
+      const loaded = loadAboutNarrativePointFieldSource(migrated);
+      return applyPreflight(Object.freeze({
+        ...loaded,
+        status: 'migrated',
+        original: clone(input),
+        sourceVersion,
+        migrations: Object.freeze(['6->7']),
+      }), preflight);
+    } catch (error) {
+      return Object.freeze({
+        status: 'invalid',
+        valid: false,
+        readOnly: false,
+        document: null,
+        original: clone(input),
+        sourceVersion,
+        migrations: Object.freeze([]),
+        diagnostics: Object.freeze(clone(error?.diagnostics || [makeDiagnostic(
+          'composer-migration-failed',
+          'document',
+          error?.message || 'Director 4 migration failed.',
+        )])),
+        message: error?.message || 'Director 4 migration failed.',
+      });
+    }
+  }
+
   const legacy = loadAboutNarrativeTrackSource(input);
   if (!legacy.valid) return legacy;
   let migrated;
@@ -167,7 +202,7 @@ export function loadAboutNarrativePointFieldPersistenceSource(input, { preflight
     status: 'migrated',
     original: legacy.original,
     sourceVersion,
-    migrations: Object.freeze([...legacy.migrations, '5->6']),
+    migrations: Object.freeze([...legacy.migrations, '5->7']),
   });
   return applyPreflight(result, preflight);
 }
@@ -199,7 +234,9 @@ function pointFieldObjectExists(document, selection) {
     return document.tracks.pointField[collection].some((item) => item.id === selection.id);
   }
   const collections = {
-    'camera-key': document.tracks.camera.keys,
+    'camera-key': document.tracks.camera.moveKeys,
+    'camera-orientation-key': document.tracks.camera.lookKeys,
+    'camera-lens-key': document.tracks.camera.lensKeys,
     'visibility-key': document.tracks.visibility.keys,
     'text-field': document.tracks.text.fields,
     interaction: document.tracks.interactions.clips,

@@ -230,10 +230,10 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
     /float authoritativeMorph = clamp\(morphProgress, 0\.0, 1\.0\);\s+float globalMorph = resolveParametricProgress\(authoritativeMorph\)/,
   );
   assert.doesNotMatch(source, /globalMorph = smoothstep\([^\n]*morphProgress/);
-  assert.match(source, /float waveClock = mix\(ambientTime, storyTime/);
-  assert.match(source, /target\.waveStoryMix\.value = resolveAboutNarrativeMotionTimeMix\(wave\?\.timeMode\)/);
+  assert.match(source, /float waveClock = storyTime/);
+  assert.doesNotMatch(source, /resolveAboutNarrativeMotionTimeMix|timeMode/);
   assert.match(source, /let shortLandscape = isAboutNarrativeShortLandscape/);
-  assert.match(source, /const responsiveLayoutProfile = compact \? 'mobile' : layoutProfile/);
+  assert.match(source, /const responsiveLayoutProfile = layoutProfile/);
   assert.match(source, /layoutProfile: responsiveLayoutProfile/);
   assert.match(source, /mobile-short-landscape/);
   assert.match(source, /const responsiveSequenceKey = getResponsiveSequenceKey\(sequenceKey\)/);
@@ -245,9 +245,9 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
   assert.match(source, /inputFingerprint: pair\.inputFingerprint/);
   assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
-  assert.match(source, /const activeIndex = effectAvailable \? Number\(revealState\.activeIndex\) : -1/);
   assert.match(source, /frame\.storyWU < reveal\.effectEndWU/);
-  assert.match(source, /const cumulativeReveal = sequenceComplete \|\| index < activeIndex/);
+  assert.match(source, /const revealWeight = Number\(revealState\?\.weights\?\.\[index\] \|\| 0\)/);
+  assert.doesNotMatch(source, /beatDurationWU|itemsPerBeat|activeIndex|cumulativeReveal/);
   assert.match(source, /label\.style\.setProperty\('--discipline-reveal'/);
   assert.match(source, /const projectDisciplineLabels = \(\) =>/);
   assert.doesNotMatch(source, /projectDisciplineAnchors|getAboutNarrativeDisciplineLabelNudge|disciplineLabelResizeObserver/);
@@ -261,6 +261,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.doesNotMatch(source, /ringBand|ringThickness|debris ring/i);
   assert.match(source, /uniforms\.fromOrbitalWeight\.value = 0[\s\S]*uniforms\.toOrbitalWeight\.value = 0/);
   assert.match(source, /const targetTransformElements = uniforms\.toTransform\.value\.elements/);
+  assert.match(source, /frame\.interactions\.effectProgress/);
   assert.match(source, /targetTransformElements\[12\],[\s\S]*targetTransformElements\[14\]/);
   assert.doesNotMatch(source, /rippleParameters\?\.center[XYZ]/);
   assert.match(source, /float bustHeight = clamp\(\(targetPosition\.y \+ 0\.86\) \/ 1\.72/);
@@ -271,7 +272,8 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniform float bustBuildHeadStart/);
   assert.match(source, /uniform float bustPlatformScale/);
   assert.match(source, /uniform float bustPlatformSettle/);
-  assert.match(source, /bustSampleInput\.speed = Math\.max\(0, Number\(bust\?\.speed \|\| 0\)\)/);
+  assert.match(source, /bustSampleInput\.speed = 0/);
+  assert.match(source, /frame\.composerEffects\.elapsedWU\[bustEffectIndex\]/);
   assert.match(source, /fromPoint = mix\(fromPoint, rotateY\(fromPoint, bustYaw\), fromBust\)/);
   assert.match(source, /toPoint = mix\(toPoint, rotateY\(toPoint, bustYaw\), toBust\)/);
   assert.doesNotMatch(source, /cameraOrbitAngle|writeAboutNarrativeCameraOrbitPosition/);
@@ -287,7 +289,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /uniforms\.toDisciplineIsolation\.value = backgroundWeight/);
   assert.match(source, /uniform float bustFragmentSpread/);
   assert.match(source, /bustFragmentProgress[\s\S]*bustAssemblyWeight/);
-  assert.match(source, /float rippleClock = mix\([\s\S]*?ambientTime/);
+  assert.match(source, /float rippleClock = storyTime/);
   assert.match(source, /float radialRipple = sin\(/);
   assert.match(source, /float harmonicRipple = sin\(/);
   assert.match(source, /float undertowRipple = cos\(/);

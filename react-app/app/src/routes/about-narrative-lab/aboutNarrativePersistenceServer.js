@@ -56,7 +56,7 @@ export function createAboutNarrativePersistenceService({
 }) {
   if (![ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION, ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION]
     .includes(Number(targetVersion))) {
-    throw new TypeError('About Narrative persistence targetVersion must be 5 or 6.');
+    throw new TypeError(`About Narrative persistence targetVersion must be ${ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION} or ${ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION}.`);
   }
   const pointFieldActive = Number(targetVersion) === ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION;
   const loadSource = pointFieldActive

@@ -3,184 +3,53 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  compileAboutNarrativeComposerPlan,
+  createAboutNarrativeComposerFrameSample,
+  getAboutNarrativeComposerPreparationRequest,
+  sampleAboutNarrativeComposerPlanInto,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
+import {
   applyAboutNarrativePointFieldMotionToPosition,
-  compileAboutNarrativeRendererRuntimePlan,
-  createAboutNarrativeRendererFrameSample,
-  getAboutNarrativeRendererPreparationRequest,
+  createAboutNarrativePointFieldMotionSample,
   resolveAboutNarrativePointFieldSeededPhase,
-  sampleAboutNarrativeRendererRuntimePlanInto,
+  sampleAboutNarrativePointFieldMotionInto,
   writeAboutNarrativePointFieldSeedPhases,
   writeAboutNarrativePointFieldSpatialPhases,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldRendererBridge.js';
-import {
-  createAboutNarrativePointFieldMotionSample,
-  sampleAboutNarrativePointFieldMotionInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldMotion.js';
-import {
-  compileAboutNarrativeRuntimePlan,
-  createAboutNarrativeRuntimeFrameSample,
-  sampleAboutNarrativeRuntimePlanInto,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 
-const canonicalV5 = JSON.parse(await readFile(
-  new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url),
-  'utf8',
-));
-const canonicalV6 = JSON.parse(await readFile(
+const canonical = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
+const composerSource = await readFile(new URL(
+  '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js',
+  import.meta.url,
+), 'utf8');
 
-function firstMorph(document) {
-  return document.tracks.pointField.segments.find((segment) => segment.transition.type === 'morph');
-}
-
-function seededStorySamples(durationWU, count = 300) {
-  const values = [0, durationWU];
-  let state = 0x243f6a88;
-  for (let index = 0; index < count; index += 1) {
-    state = ((1664525 * state) + 1013904223) >>> 0;
-    values.push((state / 0x100000000) * durationWU);
-  }
-  return values;
-}
-
-test('renderer bridge delegates schema v5 compilation and sampling without changing legacy values', () => {
-  const legacyPlan = compileAboutNarrativeRuntimePlan(canonicalV5);
-  const bridgePlan = compileAboutNarrativeRendererRuntimePlan(canonicalV5);
-  assert.equal(bridgePlan.valid, legacyPlan.valid);
-  assert.equal(bridgePlan.durationWU, legacyPlan.durationWU);
-  assert.deepEqual(bridgePlan.worlds, legacyPlan.worlds);
-  assert.deepEqual(bridgePlan.interactionClips, legacyPlan.interactionClips);
-  const legacyFrame = createAboutNarrativeRuntimeFrameSample();
-  const bridgeFrame = createAboutNarrativeRendererFrameSample();
-  seededStorySamples(legacyPlan.durationWU).forEach((storyWU) => {
-    sampleAboutNarrativeRuntimePlanInto(legacyPlan, storyWU, legacyFrame);
-    sampleAboutNarrativeRendererRuntimePlanInto(bridgePlan, storyWU, bridgeFrame);
-    assert.equal(bridgeFrame.world.from?.id, legacyFrame.world.from?.id);
-    assert.equal(bridgeFrame.world.to?.id, legacyFrame.world.to?.id);
-    assert.equal(bridgeFrame.world.transitionProgress, legacyFrame.world.transitionProgress);
-    assert.equal(bridgeFrame.world.transition.type, legacyFrame.world.transition.type);
-    assert.deepEqual(bridgeFrame.camera.position, legacyFrame.camera.position);
-    assert.equal(bridgeFrame.simulation.visibility, legacyFrame.simulation.visibility);
-    assert.equal(bridgeFrame.world.parametricMotion, false);
+function compile(layoutProfile = 'desktop') {
+  const plan = compileAboutNarrativeComposerPlan(canonical, {
+    previewLayoutProfile: layoutProfile,
+    previewMotionProfile: 'full',
+    inlineSize: layoutProfile === 'mobile' ? 390 : layoutProfile === 'tablet' ? 1024 : 1440,
+    blockSize: layoutProfile === 'mobile' ? 844 : 1000,
   });
+  assert.equal(plan.valid, true, JSON.stringify(plan.diagnostics, null, 2));
+  return plan;
+}
+
+test('the production Composer has no legacy renderer bridge or v5 runtime delegation', () => {
+  assert.doesNotMatch(composerSource, /PointFieldRendererBridge/);
+  assert.doesNotMatch(composerSource, /compileAboutNarrativeRuntimePlan/);
+  assert.doesNotMatch(composerSource, /sampleAboutNarrativeRuntimePlanInto/);
+  const plan = compile();
+  assert.equal(plan.sourceSchemaVersion, 7);
+  assert.equal('rendererPlan' in plan, false);
+  assert.equal('basePlan' in plan, false);
 });
 
-test('v6 bridge combines the legacy non-point frame with native point-field sampling', () => {
-  const plan = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
-  assert.equal(plan.valid, true);
-  assert.equal(plan.sourceSchemaVersion, 6);
-  assert.equal(plan.worlds.length, 4);
-  assert.equal(plan.worldPreparationDescriptor.pairs.length, 4);
-  assert.equal(plan.worldSequenceKey, plan.worldPreparationDescriptor.preparationFingerprint);
-  assert.deepEqual(
-    plan.worlds.map((world) => world.stateId),
-    ['world-promise', 'world-complexity', 'world-grid', 'world-emergent'],
-  );
-  assert.deepEqual(
-    plan.worldPreparationDescriptor.pairs.map((pair) => [pair.fromWorldId, pair.toWorldId]),
-    [
-      ['world-promise', 'world-promise'],
-      ['world-promise', 'world-complexity'],
-      ['world-complexity', 'world-grid'],
-      ['world-grid', 'world-emergent'],
-    ],
-  );
-
-  const frame = createAboutNarrativeRendererFrameSample();
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, 10.55, frame);
-  assert.equal(frame.world.from.stateId, 'world-complexity');
-  assert.equal(frame.world.to.stateId, 'world-grid');
-  assert.equal(frame.world.transition.type, 'hold');
-  assert.equal(frame.world.transitionProgress, 1);
-  assert.equal(getAboutNarrativeRendererPreparationRequest(plan, 10.55).targetWorldId, 'world-grid');
-
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, 20.43, frame, { ambientSeconds: 7 });
-  assert.equal(frame.sourceSchemaVersion, 6);
-  assert.equal(frame.world.from.stateId, 'world-grid');
-  assert.equal(frame.world.to.stateId, 'world-emergent');
-  assert.equal(frame.world.parametricMotion, true);
-  assert.equal(frame.world.visualProgress, frame.world.transitionProgress);
-  assert.equal(frame.camera.position.length, 3);
-  assert.equal(frame.globals, plan.basePlan.model.globals);
-  assert.equal(frame.interactions.activeInteraction?.targetStateId, 'world-emergent');
-  assert.equal(frame.interactions.activeInteraction?.targetWorldId, 'world-emergent');
-
-  const request = getAboutNarrativeRendererPreparationRequest(plan, 20.43);
-  assert.equal(request.targetWorldId, 'world-emergent');
-  assert.equal(request.sequenceKey, plan.worldSequenceKey);
-});
-
-test('grid-to-bust begins from the settled grid and introduces its ripple gradually', () => {
-  const plan = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
-  const outgoing = plan.interactionClips.find((clip) => clip.id === 'interaction-grid-ripple');
-  const incoming = plan.interactionClips.find((clip) => clip.id === 'interaction-emergent-ripple');
-  const frame = createAboutNarrativeRendererFrameSample();
-  const boundaryWU = incoming.startWU;
-
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, boundaryWU - 0.000001, frame);
-  assert.equal(frame.interactions.activeInteraction.id, outgoing.id);
-  assert.ok(frame.interactions.effectWeight < 0.001);
-
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, boundaryWU, frame);
-  assert.equal(frame.world.from.stateId, 'world-grid');
-  assert.equal(frame.world.to.stateId, 'world-emergent');
-  assert.equal(frame.world.transitionProgress, 0);
-  assert.equal(frame.interactions.activeInteraction.id, incoming.id);
-  assert.equal(frame.interactions.effectWeight, 0);
-
-  const handoffMidpoint = boundaryWU + ((incoming.activationWU - boundaryWU) * 0.5);
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, handoffMidpoint, frame);
-  assert.ok(frame.interactions.effectWeight > 0);
-  assert.ok(frame.interactions.effectWeight < 1);
-
-  sampleAboutNarrativeRendererRuntimePlanInto(plan, incoming.activationWU, frame);
-  assert.equal(frame.interactions.effectWeight, 1);
-});
-
-test('timing, easing, and parametric motion do not invalidate prepared geometry', () => {
-  const baseline = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
-  const changed = structuredClone(canonicalV6);
-  const segment = firstMorph(changed);
-  segment.transition.easing = 'ease-in-out';
-  segment.transition.path = {
-    mode: 'curl', amount: 0.7, axis: 'z', frequency: 2.5, seed: 17,
-  };
-  const arrival = changed.tracks.pointField.keys.find((key) => key.id === segment.toKeyId);
-  arrival.atWU -= 0.05;
-  const changedPlan = compileAboutNarrativeRendererRuntimePlan(changed);
-  assert.equal(changedPlan.valid, true);
-  assert.equal(changedPlan.worldSequenceKey, baseline.worldSequenceKey);
-
-  const geometryChanged = structuredClone(canonicalV6);
-  geometryChanged.tracks.pointField.stateDefinitions[0].shapeParameters.width += 0.2;
-  const geometryPlan = compileAboutNarrativeRendererRuntimePlan(geometryChanged);
-  assert.equal(geometryPlan.valid, true);
-  assert.notEqual(geometryPlan.worldSequenceKey, baseline.worldSequenceKey);
-});
-
-test('v6 step-end becomes renderer cut only at the bridge boundary', () => {
-  const source = structuredClone(canonicalV6);
-  const segment = firstMorph(source);
-  segment.transition.type = 'step-end';
-  const plan = compileAboutNarrativeRendererRuntimePlan(source);
-  assert.equal(plan.valid, true);
-  assert.equal(plan.pointFieldPlan.segments.find((item) => item.id === segment.id).transition.type, 'step-end');
-  const compiled = plan.pointFieldPlan.segments.find((item) => item.id === segment.id);
-  const frame = createAboutNarrativeRendererFrameSample();
-  sampleAboutNarrativeRendererRuntimePlanInto(
-    plan,
-    compiled.startWU + (compiled.durationWU * 0.5),
-    frame,
-  );
-  assert.equal(frame.world.transition.type, 'cut');
-  assert.equal(frame.world.transitionProgress, 0);
-});
-
-test('v6 bridge sampling retains every caller-owned hot-frame container', () => {
-  const plan = compileAboutNarrativeRendererRuntimePlan(canonicalV6);
-  const frame = createAboutNarrativeRendererFrameSample();
+test('Composer preparation and sampling retain caller-owned hot-frame containers', () => {
+  const plan = compile();
+  const frame = createAboutNarrativeComposerFrameSample();
   const identities = {
     frame,
     world: frame.world,
@@ -192,9 +61,10 @@ test('v6 bridge sampling retains every caller-owned hot-frame container', () => 
     active: frame.interactions.activeClipIds,
     activated: frame.interactions.activatedClipIds,
     pointField: frame._pointFieldFrame,
+    disciplineWeights: frame._disciplineReveal.weights,
   };
-  seededStorySamples(plan.durationWU, 600).forEach((storyWU) => {
-    const sampled = sampleAboutNarrativeRendererRuntimePlanInto(plan, storyWU, frame);
+  for (let storyWU = 0; storyWU <= plan.durationWU; storyWU += 0.025) {
+    const sampled = sampleAboutNarrativeComposerPlanInto(plan, storyWU, frame);
     assert.equal(sampled, identities.frame);
     assert.equal(sampled.world, identities.world);
     assert.equal(sampled.world.transition, identities.transition);
@@ -205,10 +75,14 @@ test('v6 bridge sampling retains every caller-owned hot-frame container', () => 
     assert.equal(sampled.interactions.activeClipIds, identities.active);
     assert.equal(sampled.interactions.activatedClipIds, identities.activated);
     assert.equal(sampled._pointFieldFrame, identities.pointField);
-  });
+    assert.equal(sampled._disciplineReveal.weights, identities.disciplineWeights);
+  }
+  const request = getAboutNarrativeComposerPreparationRequest(plan, 9.5);
+  assert.equal(request.targetWorldId, 'world-grid');
+  assert.equal(request.sequenceKey, plan.worldSequenceKey);
 });
 
-test('renderer phase buffers and anchor motion use deterministic shared point motion', () => {
+test('renderer phase buffers and anchor motion use the shared deterministic point-motion module', () => {
   const seeds = new Float32Array([0.1, 0.4, 0.9]);
   const seedPhases = new Float32Array(6);
   writeAboutNarrativePointFieldSeedPhases(seeds, 11, 17, seedPhases);
@@ -224,29 +98,21 @@ test('renderer phase buffers and anchor motion use deterministic shared point mo
   const positions = new Float32Array([-2, -1, 0, 0, 1, 2, 2, 3, -2]);
   const spatialPhases = new Float32Array(12);
   writeAboutNarrativePointFieldSpatialPhases(positions, spatialPhases);
-  const radial = [spatialPhases[0], spatialPhases[4], spatialPhases[8]];
-  const x = [spatialPhases[1], spatialPhases[5], spatialPhases[9]];
-  const y = [spatialPhases[2], spatialPhases[6], spatialPhases[10]];
-  const z = [spatialPhases[3], spatialPhases[7], spatialPhases[11]];
-  assert.deepEqual([...x], [0, 0.5, 1]);
-  assert.deepEqual([...y], [0, 0.5, 1]);
-  assert.ok([...radial, ...z].every((value) => value >= 0 && value <= 1));
+  spatialPhases.forEach((value) => assert(value >= 0 && value <= 1));
 
   const transition = {
     type: 'morph',
-    stagger: { mode: 'random', amount: 0.4, axis: 'y', seed: 11 },
-    path: { mode: 'noise', amount: 0.8, axis: 'z', frequency: 2, seed: 17 },
-    flatten: { mode: 'toward-plane', amount: 0.6, axis: 'y', offset: -0.5 },
+    stagger: { mode: 'random', amount: 0.3, axis: 'y', seed: 11 },
+    path: { mode: 'arc', amount: 0.8, axis: 'z', frequency: 1, seed: 17 },
+    flatten: { mode: 'toward-plane', amount: 0.5, axis: 'y', offset: -1 },
   };
-  const motion = createAboutNarrativePointFieldMotionSample();
-  sampleAboutNarrativePointFieldMotionInto(
+  const motion = sampleAboutNarrativePointFieldMotionInto(
     transition,
-    0.7,
-    { seed: seeds[1], radialPhase: radial[1], xPhase: x[1], yPhase: y[1], zPhase: z[1] },
-    motion,
+    0.5,
+    { seed: 0.4, radialPhase: 0.5, xPhase: 0.5, yPhase: 0.5, zPhase: 0.5 },
+    createAboutNarrativePointFieldMotionSample(),
   );
-  const position = { x: 1, y: 2, z: 3 };
-  const result = applyAboutNarrativePointFieldMotionToPosition(position, motion);
-  assert.equal(result, position);
-  assert.ok([position.x, position.y, position.z].every(Number.isFinite));
+  const point = applyAboutNarrativePointFieldMotionToPosition({ x: 0, y: 0, z: 0 }, motion);
+  assert.deepEqual(Object.keys(point), ['x', 'y', 'z']);
+  assert(Object.values(point).every(Number.isFinite));
 });

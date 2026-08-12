@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import sharp from 'sharp';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
@@ -16,19 +16,21 @@ const viewports = Object.freeze({
   tablet: Object.freeze({ width: 1024, height: 768 }),
   mobile: Object.freeze({ width: 390, height: 844 }),
   narrowMobile: Object.freeze({ width: 375, height: 667 }),
+  shortWide: Object.freeze({ width: 844, height: 390 }),
 });
 const viewportId = process.env.ABS_CONTACT_SHEET_VIEWPORT || 'desktop';
 const viewport = viewports[viewportId] || viewports.desktop;
 const reducedMotion = process.env.ABS_CONTACT_SHEET_REDUCED === '1' ? 'reduce' : 'no-preference';
 const sequences = {
+  overlay: [0],
   opening: [0, 0.12, 0.28, 0.42, 0.58, 0.7, 0.9, 1.15, 1.35],
   anchorProbe: [8.35, 8.75, 9.15, 9.47, 9.79, 10.11, 10.35, 10.85, 11.15],
-  editorial: [3.3, 3.48, 3.53, 3.72, 4.2, 4.8, 5.25, 5.45, 12.85, 13, 13.2, 13.35, 13.55],
+  editorial: [3.3, 3.465, 3.59, 3.72, 4.2, 4.8, 5.25, 5.45, 6.715, 6.79, 6.865, 10.85, 10.975, 11.1, 12.85, 13.55, 14.05, 14.1, 14.175, 14.25],
   disciplines: [6.55, 7.35, 8.15, 8.35, 8.55, 8.75, 8.95, 9.15, 9.31, 9.47, 9.63, 9.79, 9.95, 10.11, 10.35, 10.6, 10.85, 11, 11.15, 11.3, 11.45, 11.6, 11.9, 12.2, 12.65],
-  disciplineReview: [7.1, 7.35, 7.7, 8.05, 8.2, 8.35, 8.5, 8.65, 8.8, 8.95, 9.15, 9.31, 9.47, 9.63, 9.79, 9.95, 10.11, 10.23, 10.35, 10.5, 10.65, 10.8, 10.95, 11.05, 11.15, 11.3, 11.45, 11.6, 11.9, 12.2, 12.45, 12.65],
-  late: [12.45, 12.85, 13, 13.2, 13.35, 13.55, 14.05, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 18.1, 18.5, 19.25, 20, 20.4, 20.75, 21.1, 21.5, durationWU],
-  ending: [13, 13.2, 13.35, 13.55, 14.05, 14.65, 15.35, 15.7, 16.1, 16.22, 16.57, 16.97, 17.08, 17.38, 17.68, 17.75, 17.95, 18.2, 18.5, 18.85, 19.25, 19.6, 20, 20.35, 20.75, 21.05, 21.35, 21.65, durationWU],
-  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.48, 3.72, 4.2, 4.8, 5.45, 6.05, 6.95, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.65, 11, 11.15, 11.4, 11.65, 12.15, 12.85, 13, 13.2, 13.35, 13.55, 15.7, 16.57, 16.9, 17.38, 17.75, 18.5, 19.25, 20, 20.75, 21.35, durationWU],
+  disciplineReview: [7.7, 7.85, 8, 8.15, 8.3, 8.35, 8.5, 8.65, 8.8, 8.95, 9.1, 9.15, 9.3, 9.45, 9.6, 9.75, 9.9, 10.05, 10.2, 10.35, 10.5, 10.65, 10.8, 10.95, 11.1, 11.15],
+  late: [12.45, 12.85, 13.55, 14.05, 14.15, 14.25, 14.65, 15.05, 15.35, 15.75, 16.1, 16.35, 16.55, 16.85, 17.15, 17.45, 17.75, 18.1, 18.5, 19, 19.5, durationWU],
+  ending: [14, 14.15, 14.25, 14.5, 14.75, 14.95, 15.05, 15.3, 15.55, 15.75, 15.85, 16.1, 16.35, 16.55, 16.8, 17.05, 17.3, 17.45, 17.6, 17.75, 17.95, 18.2, 18.5, 18.8, 19.1, 19.4, 19.7, durationWU],
+  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.465, 3.72, 4.2, 4.8, 5.45, 6.05, 6.715, 6.865, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.85, 11.1, 11.4, 12.15, 13.55, 14.05, 14.15, 14.25, 15.05, 15.85, 16.35, 17.45, 17.75, 18.5, 19.25, durationWU],
 };
 const requestedSequenceIds = new Set(
   String(process.env.ABS_CONTACT_SHEET_SEQUENCES || Object.keys(sequences).join(','))
@@ -214,14 +216,16 @@ async function createContactSheet(id, evidence) {
 
 await mkdir(outputDir, { recursive: true });
 const configFingerprint = createHash('sha256').update(canonicalSource).digest('hex');
-const browser = await chromium.launch({
+const browserName = process.env.ABS_BROWSER === 'webkit' ? 'webkit' : 'chromium';
+const browserType = browserName === 'webkit' ? webkit : chromium;
+const browser = await browserType.launch({
   headless: true,
-  args: [
+  args: browserName === 'chromium' ? [
     '--use-gl=angle',
     '--use-angle=swiftshader-webgl',
     '--enable-unsafe-swiftshader',
     '--disable-gpu-sandbox',
-  ],
+  ] : [],
 });
 const context = await browser.newContext({ viewport, reducedMotion });
 const page = await context.newPage();
@@ -233,7 +237,7 @@ await page.waitForFunction(
   { timeout: 30_000 },
 );
 
-const report = { baseUrl, phase, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
+const report = { baseUrl, phase, browserName, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
 for (const [id, storyValues] of Object.entries(sequences)) {
   if (!requestedSequenceIds.has(id)) continue;
   const evidence = [];

@@ -1,6 +1,6 @@
 export const ABOUT_NARRATIVE_DISCIPLINE_VIEWFINDER = Object.freeze({
-  entryStartRatio: 0.88,
-  entryCompleteRatio: 0.78,
+  entryStartRatio: 0.95,
+  entryCompleteRatio: 0.92,
 });
 
 function clamp01(value) {

@@ -2,10 +2,10 @@ import { AboutNarrativePointWorld3D } from './AboutNarrativePointWorld3D.jsx';
 
 export const DEFAULT_ABOUT_NARRATIVE_WORLD = 'three-point-world-v1';
 
-function ThreePointWorld({ rootRef, interactionRef, disciplineOverlayRef, runtimeRef, pointProfile, showCameraFocusAnchor }) {
+function ThreePointWorld({ rootRef, interactionRef, disciplineOverlayRef, runtimeRef, pointProfile, layoutProfile }) {
   return (
     <div className="about-narrative-world" data-world-implementation={DEFAULT_ABOUT_NARRATIVE_WORLD} aria-hidden="true">
-      <AboutNarrativePointWorld3D rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} pointProfile={pointProfile} showCameraFocusAnchor={showCameraFocusAnchor} />
+      <AboutNarrativePointWorld3D rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} pointProfile={pointProfile} layoutProfile={layoutProfile} />
     </div>
   );
 }
@@ -21,9 +21,9 @@ export function AboutNarrativeWorld({
   disciplineOverlayRef,
   runtimeRef,
   pointProfile = '',
-  showCameraFocusAnchor = false,
+  layoutProfile = '',
 }) {
   const Renderer = ABOUT_NARRATIVE_WORLD_RENDERERS[rendererId]
     || ABOUT_NARRATIVE_WORLD_RENDERERS[DEFAULT_ABOUT_NARRATIVE_WORLD];
-  return <Renderer rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} pointProfile={pointProfile} showCameraFocusAnchor={showCameraFocusAnchor} />;
+  return <Renderer rootRef={rootRef} interactionRef={interactionRef} disciplineOverlayRef={disciplineOverlayRef} runtimeRef={runtimeRef} pointProfile={pointProfile} layoutProfile={layoutProfile} />;
 }

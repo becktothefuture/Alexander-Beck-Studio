@@ -1,28 +1,28 @@
 import { ABOUT_NARRATIVE_POINT_PROFILES } from './aboutNarrativeRuntimeConstants.js';
 
 export const ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS = Object.freeze({
-  x: Object.freeze({ min: 0.1, max: 0.72 }),
-  y: Object.freeze({ min: 0.4, max: 0.95 }),
+  x: Object.freeze({ min: 0.3, max: 0.48 }),
+  y: Object.freeze({ min: 0.54, max: 0.67 }),
 });
 
-export const ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION = 0.16;
+export const ABOUT_NARRATIVE_DISCIPLINE_MIN_SEPARATION = 0.01;
 
 export const ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS = Object.freeze([
-  Object.freeze([0.14, 0.50]),
-  Object.freeze([0.42, 0.58]),
-  Object.freeze([0.70, 0.66]),
-  Object.freeze([0.14, 0.76]),
-  Object.freeze([0.42, 0.85]),
-  Object.freeze([0.70, 0.94]),
+  Object.freeze([43 / 126, 58 / 94]),
+  Object.freeze([52 / 126, 58 / 94]),
+  Object.freeze([43 / 126, 59 / 94]),
+  Object.freeze([52 / 126, 59 / 94]),
+  Object.freeze([43 / 126, 60 / 94]),
+  Object.freeze([52 / 126, 60 / 94]),
 ]);
 
 export const ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS = Object.freeze([
-  Object.freeze([0.16, 0.50]),
-  Object.freeze([0.62, 0.59]),
-  Object.freeze([0.16, 0.68]),
-  Object.freeze([0.62, 0.77]),
-  Object.freeze([0.16, 0.86]),
-  Object.freeze([0.62, 0.95]),
+  Object.freeze([31 / 81, 38 / 60]),
+  Object.freeze([34 / 81, 38 / 60]),
+  Object.freeze([31 / 81, 39 / 60]),
+  Object.freeze([34 / 81, 39 / 60]),
+  Object.freeze([31 / 81, 40 / 60]),
+  Object.freeze([34 / 81, 40 / 60]),
 ]);
 
 function clamp(value, min, max) {
@@ -37,7 +37,9 @@ function clean(value) {
 export function getAboutNarrativeDisciplineGridDimensions(profileOrPointCount = 'desktop') {
   const pointCount = typeof profileOrPointCount === 'number'
     ? profileOrPointCount
-    : ABOUT_NARRATIVE_POINT_PROFILES[profileOrPointCount]?.pointCount
+    : ABOUT_NARRATIVE_POINT_PROFILES[
+      profileOrPointCount === 'tablet' ? 'mobile' : profileOrPointCount
+    ]?.pointCount
       || ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount;
   const columns = Math.max(24, Math.floor(Math.sqrt(pointCount * 1.36)));
   return Object.freeze({ columns, rows: Math.ceil(pointCount / columns), pointCount });
@@ -96,8 +98,10 @@ export function getAboutNarrativeDisciplinePosition(item, profile = 'desktop') {
     ? ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[groupIndex]
     : desktopFallback;
   const candidate = profile === 'mobile'
-    ? item?.mobilePosition || item?.position || fallback
-    : item?.position || fallback;
+    ? item?.mobilePosition || item?.tabletPosition || item?.position || fallback
+    : profile === 'tablet'
+      ? item?.tabletPosition || item?.position || fallback
+      : item?.position || fallback;
   return getAboutNarrativeDisciplinePositionForGridCell(
     getAboutNarrativeDisciplineGridCell(candidate, profile),
     profile,
