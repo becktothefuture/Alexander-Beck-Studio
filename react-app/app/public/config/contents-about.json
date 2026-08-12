@@ -75,20 +75,6 @@
           "lens-discipline-travel-start": {
             "fov": 60
           },
-          "look-discipline-tilt-hold": {
-            "rotation": [
-              -90,
-              0,
-              0
-            ]
-          },
-          "look-discipline-travel-start": {
-            "rotation": [
-              -2.3,
-              0,
-              0
-            ]
-          },
           "move-discipline-hold": {
             "position": [
               -5,
@@ -133,20 +119,6 @@
           },
           "lens-ripple-overhead-hold": {
             "fov": 47.18264014466546
-          },
-          "look-discipline-tilt-hold": {
-            "rotation": [
-              -90,
-              0,
-              0
-            ]
-          },
-          "look-discipline-travel-start": {
-            "rotation": [
-              -2.3,
-              0,
-              0
-            ]
           },
           "look-finale-hold": {
             "rotation": [
@@ -263,8 +235,7 @@
             5.9
           ],
           "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
-          "velocityMode": "eased",
-          "locked": true
+          "velocityMode": "eased"
         },
         {
           "id": "move-complexity-exit",
@@ -275,8 +246,7 @@
             -21.6
           ],
           "easing": "smoothstep",
-          "velocityMode": "eased",
-          "locked": false
+          "velocityMode": "eased"
         },
         {
           "id": "move-grid-birds-eye-2",
@@ -287,8 +257,7 @@
             -40
           ],
           "easing": "cubic-bezier(0.32, 0, 0.99, 1)",
-          "velocityMode": "eased",
-          "locked": false
+          "velocityMode": "eased"
         },
         {
           "id": "move-discipline-travel-start",
@@ -299,8 +268,7 @@
             -4.51
           ],
           "easing": "linear",
-          "velocityMode": "constant",
-          "locked": false
+          "velocityMode": "constant"
         },
         {
           "id": "move-discipline-hold",
@@ -311,8 +279,7 @@
             -1.75
           ],
           "easing": "cubic-bezier(0.35, 0, 0.18, 1)",
-          "velocityMode": "constant",
-          "locked": false
+          "velocityMode": "constant"
         },
         {
           "id": "move-grid-return-centered",
@@ -323,8 +290,7 @@
             -15.95
           ],
           "easing": "linear",
-          "velocityMode": "constant",
-          "locked": false
+          "velocityMode": "constant"
         },
         {
           "id": "move-ripple-overhead-hold",
@@ -335,8 +301,7 @@
             -15.82694122532745
           ],
           "easing": "linear",
-          "velocityMode": "constant",
-          "locked": false
+          "velocityMode": "constant"
         },
         {
           "id": "move-finale-resolved-hold",
@@ -347,8 +312,7 @@
             -15.179257754883785
           ],
           "easing": "smoothstep",
-          "velocityMode": "eased",
-          "locked": false
+          "velocityMode": "eased"
         },
         {
           "id": "move-finale-hold",
@@ -359,8 +323,7 @@
             -15.179257754883785
           ],
           "easing": "linear",
-          "velocityMode": "constant",
-          "locked": true
+          "velocityMode": "constant"
         }
       ],
       "lookKeys": [
@@ -372,8 +335,7 @@
             0,
             0
           ],
-          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
-          "locked": true
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)"
         },
         {
           "id": "look-complexity-exit",
@@ -383,8 +345,7 @@
             0,
             0
           ],
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "smoothstep"
         },
         {
           "id": "look-grid-birds-eye-2",
@@ -394,8 +355,7 @@
             0,
             0
           ],
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
         },
         {
           "id": "look-discipline-travel-start",
@@ -405,8 +365,7 @@
             0,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-discipline-pitch-start",
@@ -416,8 +375,7 @@
             0,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-discipline-tilt-end",
@@ -427,8 +385,7 @@
             0,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-discipline-tilt-hold",
@@ -438,8 +395,7 @@
             0,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-grid-return-centered",
@@ -449,8 +405,7 @@
             -180,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-ripple-overhead-hold",
@@ -460,8 +415,7 @@
             170.801071,
             0
           ],
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "look-finale-resolved-hold",
@@ -471,8 +425,7 @@
             156,
             0
           ],
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "smoothstep"
         },
         {
           "id": "look-finale-hold",
@@ -482,8 +435,7 @@
             156,
             0
           ],
-          "easing": "linear",
-          "locked": true
+          "easing": "linear"
         }
       ],
       "lensKeys": [
@@ -491,64 +443,55 @@
           "id": "lens-orb-establish",
           "atWU": 0,
           "fov": 46,
-          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
-          "locked": true
+          "easing": "cubic-bezier(0.55, 0, 0.75, 1)"
         },
         {
           "id": "lens-complexity-exit",
           "atWU": 5.122,
           "fov": 52,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "smoothstep"
         },
         {
           "id": "lens-grid-birds-eye-2",
           "atWU": 5.37,
           "fov": 80,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
         },
         {
           "id": "lens-discipline-travel-start",
           "atWU": 7.7,
           "fov": 56,
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "lens-discipline-hold",
           "atWU": 11.15,
           "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)",
-          "locked": false
+          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
         },
         {
           "id": "lens-grid-return-centered",
           "atWU": 14.15,
           "fov": 56,
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "lens-ripple-overhead-hold",
           "atWU": 16.35,
           "fov": 54.46654611211573,
-          "easing": "linear",
-          "locked": false
+          "easing": "linear"
         },
         {
           "id": "lens-finale-resolved-hold",
           "atWU": 17.75,
           "fov": 52,
-          "easing": "smoothstep",
-          "locked": false
+          "easing": "smoothstep"
         },
         {
           "id": "lens-finale-hold",
           "atWU": 20,
           "fov": 52,
-          "easing": "linear",
-          "locked": true
+          "easing": "linear"
         }
       ]
     },

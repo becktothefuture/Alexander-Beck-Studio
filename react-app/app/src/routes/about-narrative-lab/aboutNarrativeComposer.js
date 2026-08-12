@@ -521,7 +521,7 @@ function compileDisciplineReveal(interactions, camera, pointPlan, pointProfile, 
       );
       if (!entry.entered || !complete.entered) {
         diagnostics.push({
-          level: 'error',
+          level: 'warning',
           code: 'discipline-viewfinder-crossing',
           path: `tracks.interactions.clips.${clip.id}.parameters.items.${item.group}`,
           message: `${item.label} does not cross the configured viewfinder band before restore.`,

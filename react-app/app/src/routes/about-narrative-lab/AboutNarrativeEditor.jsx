@@ -4574,7 +4574,7 @@ export default function AboutNarrativeEditor({ store, rootRef, previewOnly = fal
                 <button type="button" onClick={() => store.duplicateSelection()}>Duplicate</button>
                 <button type="button" className="is-danger" onClick={() => store.deleteSelection()}>
                   {snapshot.selection.type === 'camera-key'
-                    ? 'Delete camera shot'
+                    ? 'Delete camera move key'
                     : snapshot.selection.type === 'camera-orientation-key'
                       ? 'Delete camera tilt key'
                       : snapshot.selection.type === 'camera-lens-key'

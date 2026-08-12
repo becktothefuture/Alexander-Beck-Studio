@@ -921,7 +921,7 @@ export function createAboutNarrativeCameraKeyAtWU({ model, atWU, id = null, came
     position: clone(cameraKey.position || [0, 0, 0]),
     easing: cameraKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
     velocityMode: cameraKey.velocityMode || 'eased',
-    locked: false,
+    ...(Number(model.schemaVersion) <= 5 ? { locked: false } : {}),
   });
 }
 
@@ -939,7 +939,7 @@ export function createAboutNarrativeCameraLensKeyAtWU({
     atWU: time,
     fov: Number(cameraLensKey.fov ?? 48),
     easing: cameraLensKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
-    locked: false,
+    ...(Number(model.schemaVersion) <= 5 ? { locked: false } : {}),
   });
 }
 
@@ -957,7 +957,7 @@ export function createAboutNarrativeCameraOrientationKeyAtWU({
     atWU: time,
     rotation: clone(cameraOrientationKey.rotation || [0, 0, 0]),
     easing: cameraOrientationKey.easing || ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING,
-    locked: false,
+    ...(Number(model.schemaVersion) <= 5 ? { locked: false } : {}),
   });
 }
 

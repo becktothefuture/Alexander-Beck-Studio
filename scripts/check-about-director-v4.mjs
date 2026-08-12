@@ -60,17 +60,14 @@ test('Camera lanes may use one freely positioned key while retaining a defined p
   flexible.tracks.camera.moveKeys = [{
     ...structuredClone(canonical.tracks.camera.moveKeys[4]),
     atWU: 9.25,
-    locked: false,
   }];
   flexible.tracks.camera.lookKeys = [{
     ...structuredClone(canonical.tracks.camera.lookKeys[6]),
     atWU: 9.25,
-    locked: false,
   }];
   flexible.tracks.camera.lensKeys = [{
     ...structuredClone(canonical.tracks.camera.lensKeys[4]),
     atWU: 9.25,
-    locked: false,
   }];
 
   assert.deepEqual(validateAboutNarrativePointFieldDocument(flexible), []);

@@ -1047,7 +1047,11 @@ function normalizePointField(pointField) {
 
 function normalizeCameraLane(keys) {
   return [...keys]
-    .map(clone)
+    .map((key) => {
+      const normalized = clone(key);
+      delete normalized.locked;
+      return normalized;
+    })
     .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id));
 }
 
@@ -1389,21 +1393,18 @@ function migrateVersion6Camera(camera, durationWU) {
     position: clone(key.position),
     easing: key.easing || 'linear',
     velocityMode: key.easing === 'linear' ? 'constant' : 'eased',
-    locked: key.locked === true,
   }));
   const lensKeys = legacyKeys.map((key) => ({
     id: `lens-${key.id}`,
     atWU: cleanWU(key.atWU),
     fov: Number(key.fov ?? 48),
     easing: key.easing || 'linear',
-    locked: key.locked === true,
   }));
   const lookByTime = new Map(legacyKeys.map((key) => [cleanWU(key.atWU), {
     id: `look-${key.id}`,
     atWU: cleanWU(key.atWU),
     rotation: resolveLegacyCameraRotation(key),
     easing: key.easing || 'linear',
-    locked: key.locked === true,
   }]));
   (camera?.orientationKeys || []).forEach((key) => {
     lookByTime.set(cleanWU(key.atWU), {
@@ -1411,7 +1412,6 @@ function migrateVersion6Camera(camera, durationWU) {
       atWU: cleanWU(key.atWU),
       rotation: clone(key.rotation),
       easing: key.easing || 'linear',
-      locked: key.locked === true,
     });
   });
   const lookKeys = [...lookByTime.values()]
@@ -1422,14 +1422,12 @@ function migrateVersion6Camera(camera, durationWU) {
       ...clone(keys[0]),
       id: `${keys[0].id}-boundary-start`,
       atWU: 0,
-      locked: true,
     });
     if (Number(keys.at(-1).atWU) < durationWU) keys.push({
       ...clone(keys.at(-1)),
       id: `${keys.at(-1).id}-boundary-end`,
       atWU: durationWU,
       [valueKey]: clone(keys.at(-1)[valueKey]),
-      locked: true,
     });
   };
   ensureBoundaries(moveKeys, 'position');

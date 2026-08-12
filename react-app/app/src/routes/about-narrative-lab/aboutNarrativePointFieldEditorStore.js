@@ -575,6 +575,9 @@ function createUniqueId(document, base) {
 
 function prepareOperationDocument(input) {
   const document = clone(input);
+  ['moveKeys', 'lookKeys', 'lensKeys'].forEach((lane) => {
+    (document.tracks?.camera?.[lane] || []).forEach((key) => delete key.locked);
+  });
   (document.tracks?.visibility?.keys || []).forEach((key) => {
     if (key.locked !== true) key.locked = false;
   });
@@ -627,7 +630,7 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     };
   };
 
-  const initialCandidate = clone(initialDocument);
+  const initialCandidate = prepareOperationDocument(initialDocument);
   const initialCompiled = compileCandidate(initialCandidate, defaultPreviewState(previewState));
   const ownedInitialDocument = initialCompiled.document;
   const baselineDocument = clone(ownedInitialDocument);
@@ -995,9 +998,6 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
           ...candidate.tracks.camera.lookKeys,
           ...candidate.tracks.camera.lensKeys,
         ].filter((key) => Math.abs(Number(key.atWU) - requestedAtWU) <= 0.000001);
-        if (linkedKeys.some((key) => key.locked)) {
-          return rejectOperation(gesture.label, { reason: 'A protected linked Camera key cannot be moved.' });
-        }
         linkedKeys.forEach((key) => {
           key.atWU = cleanWU(Number(key.atWU) + appliedDeltaWU);
           Object.values(candidate.profiles || {}).forEach((profile) => {

@@ -7,15 +7,18 @@ import {
   createAboutNarrativePointFieldEditorStore,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldEditorStore.js';
 import {
+  getAboutNarrativeComposerCameraSample,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
+import {
   validateAboutNarrativePointFieldDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 
-const canonicalV6 = JSON.parse(await readFile(
+const canonicalV7 = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
 const createStore = (options = {}) => createAboutNarrativePointFieldEditorStore(
-  structuredClone(canonicalV6),
+  structuredClone(canonicalV7),
   options,
 );
 const bytes = (value) => JSON.stringify(value);
@@ -24,15 +27,31 @@ const morphSegment = (document) => document.tracks.pointField.segments.find((seg
   segment.transition.type === 'morph'
 ));
 
-test('v6 store owns input and publishes a renderer-compatible snapshot', () => {
-  const input = structuredClone(canonicalV6);
+test('canonical v7 camera data omits obsolete locks and no-op responsive overrides', () => {
+  const baseKeys = new Map(['moveKeys', 'lookKeys', 'lensKeys'].flatMap((lane) => (
+    canonicalV7.tracks.camera[lane].map((key) => [key.id, key])
+  )));
+  for (const lane of ['moveKeys', 'lookKeys', 'lensKeys']) {
+    assert.equal(canonicalV7.tracks.camera[lane].some((key) => 'locked' in key), false);
+  }
+  for (const profile of Object.values(canonicalV7.profiles)) {
+    for (const [id, override] of Object.entries(profile.overrides?.camera || {})) {
+      for (const [property, value] of Object.entries(override)) {
+        assert.notDeepEqual(value, baseKeys.get(id)?.[property], `${id}.${property} must change the base value`);
+      }
+    }
+  }
+});
+
+test('v7 store owns input and publishes a renderer-compatible snapshot', () => {
+  const input = structuredClone(canonicalV7);
   const store = createAboutNarrativePointFieldEditorStore(input);
   let publications = 0;
   const unsubscribe = store.subscribe(() => { publications += 1; });
   input.tracks.pointField.keys[1].atWU = 99;
   assert.notEqual(store.getSnapshot().document.tracks.pointField.keys[1].atWU, 99);
   assert.equal(store.getSnapshot().compiledPlan.valid, true);
-  assert.equal(store.getSnapshot().compiledPlan.sourceSchemaVersion, 6);
+  assert.equal(store.getSnapshot().compiledPlan.sourceSchemaVersion, 7);
   assert.equal(store.getSnapshot().compiledPlan, store.getSnapshot().lastValidPlan);
   assert.deepEqual(store.getSnapshot().selection, { type: 'track', id: 'point-field' });
   store.pointField.select('point-field-key', editableKey(store.getSnapshot().document).id);
@@ -74,8 +93,8 @@ test('Camera boundary keys support move, duplicate, delete, and undo', () => {
   assert.equal(store.duplicateSelection({ offsetWU: 0.1 }), true);
   const duplicateId = store.getSnapshot().selection.id;
   assert.notEqual(duplicateId, cameraId);
-  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
-    .find((key) => key.id === duplicateId).locked, false);
+  assert.equal('locked' in store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === duplicateId), false);
   assert.equal(store.undo(), true);
 
   store.setSelection({ type: 'camera-key', id: cameraId });
@@ -98,6 +117,95 @@ test('Camera boundary keys support move, duplicate, delete, and undo', () => {
       .some((key) => key.id === id), false);
     assert.deepEqual(validateAboutNarrativePointFieldDocument(store.getSnapshot().document), []);
     assert.equal(store.undo(), true);
+  }
+});
+
+test('Camera deletion previews and saves the new path despite choreography guidance', () => {
+  const store = createStore({ baselineHash: 'camera-delete-base' });
+  const cameraId = 'move-discipline-travel-start';
+  const approvedPlan = store.getSnapshot().lastValidPlan;
+  store.setSelection({ type: 'camera-key', id: cameraId });
+
+  assert.equal(store.deleteSelection(), true);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .some((key) => key.id === cameraId), false);
+  assert.equal(store.getSnapshot().dirty, true);
+  assert.notEqual(store.getSnapshot().lastValidPlan, approvedPlan);
+  assert.equal(store.getSnapshot().compiledPlan, store.getSnapshot().lastValidPlan);
+  assert.equal(store.getSnapshot().compiledPlan.model.tracks.camera.moveKeys
+    .some((key) => key.id === cameraId), false);
+  const beforeDeletedTime = getAboutNarrativeComposerCameraSample(
+    store.getSnapshot().compiledPlan,
+    7.69,
+  );
+  const atDeletedTime = getAboutNarrativeComposerCameraSample(
+    store.getSnapshot().compiledPlan,
+    7.7,
+  );
+  const afterDeletedTime = getAboutNarrativeComposerCameraSample(
+    store.getSnapshot().compiledPlan,
+    7.71,
+  );
+  assert.notDeepEqual(beforeDeletedTime.position, atDeletedTime.position);
+  assert.notDeepEqual(atDeletedTime.position, afterDeletedTime.position);
+  assert.equal(store.getSnapshot().previewDocumentState.status, 'valid-draft');
+  assert.equal(store.getSaveEligibility().code, 'ready');
+  assert.match(
+    store.getSnapshot().diagnostics.find((item) => item.level === 'warning')?.message || '',
+    /viewfinder band/i,
+  );
+
+  assert.equal(store.undo(), true);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .some((key) => key.id === cameraId), true);
+  assert.equal(store.getSnapshot().previewDocumentState.status, 'saved');
+  assert.equal(store.getSnapshot().diagnostics.some((item) => item.level === 'error'), false);
+});
+
+test('Move, Look, and Lens lanes can each be reduced to one key despite legacy locks', () => {
+  const lockedDocument = structuredClone(canonicalV7);
+  ['moveKeys', 'lookKeys', 'lensKeys'].forEach((lane) => {
+    lockedDocument.tracks.camera[lane].forEach((key) => { key.locked = true; });
+  });
+  const store = createAboutNarrativePointFieldEditorStore(lockedDocument, {
+    baselineHash: 'camera-reduction-base',
+  });
+
+  ['moveKeys', 'lookKeys', 'lensKeys'].forEach((lane) => {
+    assert.equal(store.getSnapshot().document.tracks.camera[lane]
+      .some((key) => 'locked' in key), false, `${lane} should discard legacy locks`);
+  });
+
+  const linkedAtWU = 5.122;
+  const linkedSelection = { type: 'camera-key', id: 'move-complexity-exit' };
+  assert.equal(store.beginGesture('Move linked Camera beat', {
+    selection: linkedSelection,
+    operation: { type: 'linked-camera', atWU: linkedAtWU },
+  }), true);
+  assert.equal(store.updateGestureMove(0.01), true);
+  assert.equal(store.commitGesture(), true);
+  for (const lane of ['moveKeys', 'lookKeys', 'lensKeys']) {
+    assert.equal(store.getSnapshot().document.tracks.camera[lane]
+      .some((key) => key.atWU === 5.132), true, `${lane} linked key should move`);
+  }
+  assert.equal(store.undo(), true);
+
+  for (const [lane, type] of [
+    ['moveKeys', 'camera-key'],
+    ['lookKeys', 'camera-orientation-key'],
+    ['lensKeys', 'camera-lens-key'],
+  ]) {
+    const ids = store.getSnapshot().document.tracks.camera[lane].map((key) => key.id);
+    for (const id of ids.slice(1)) {
+      store.setSelection({ type, id });
+      assert.equal(store.deleteSelection(), true, `${lane} should delete ${id}`);
+    }
+    assert.equal(store.getSnapshot().document.tracks.camera[lane].length, 1);
+    assert.equal(store.getSnapshot().document.tracks.camera[lane][0].id, ids[0]);
+
+    store.setSelection({ type, id: ids[0] });
+    assert.equal(store.deleteSelection(), false, `${lane} must retain one defining key`);
+    assert.match(store.getSnapshot().rejectedEdit.reason, /at least one key/i);
   }
 });
 
@@ -336,7 +444,7 @@ test('state topology actions use guarded reusable-state operations', () => {
   assert.equal(validateAboutNarrativePointFieldDocument(store.getSnapshot().document).length, 0);
 });
 
-test('non-point Text and interaction edits remain native v6 operations', () => {
+test('non-point Text and interaction edits remain native v7 operations', () => {
   const store = createStore();
   const title = store.getSnapshot().document.tracks.text.fields.find((field) => (
     field.kind === 'title' && !field.protected
@@ -346,7 +454,7 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
   assert.equal(store.moveSelection(0.01, { snap: false }), true);
   assert.equal(store.getSnapshot().document.tracks.text.fields
     .find((field) => field.id === title.id).startWU, originalStart + 0.01);
-  assert.equal(store.getSnapshot().document.schemaVersion, 6);
+  assert.equal(store.getSnapshot().document.schemaVersion, 7);
   assert.equal(store.getSnapshot().compiledPlan.valid, true);
 
   assert.equal(store.createObject({ track: 'camera', atWU: 2.123 }), true);
@@ -367,7 +475,7 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
     .find((clip) => clip.type === 'grid-ripple');
   assert.equal(typeof interaction.targetStateId, 'string');
   store.setSelection({ type: 'interaction', id: interaction.id });
-  assert.equal(store.beginGesture('Resize v6 interaction'), true);
+  assert.equal(store.beginGesture('Resize v7 interaction'), true);
   assert.equal(store.updateGestureResizeInteraction(
     interaction.id,
     'end',
@@ -383,15 +491,15 @@ test('non-point Text and interaction edits remain native v6 operations', () => {
     .find((clip) => clip.id === 'interaction-emergent-ripple');
   const extendedStartWU = Number((emergent.startWU + 0.23).toFixed(3));
   store.setSelection({ type: 'interaction', id: emergent.id });
-  assert.equal(store.beginGesture('Extend v6 interaction preparation'), true);
+  assert.equal(store.beginGesture('Extend v7 interaction preparation'), true);
   assert.equal(store.updateGestureResizeInteraction(emergent.id, 'start', extendedStartWU), true);
   assert.equal(store.commitGesture({ requireValid: true }), true);
   assert.equal(store.getSnapshot().document.tracks.interactions.clips
     .find((clip) => clip.id === emergent.id).startWU, extendedStartWU);
 });
 
-test('save reconciliation preserves edits made after a v6 submission', () => {
-  const store = createStore({ baselineHash: 'base-v6' });
+test('save reconciliation preserves edits made after a v7 submission', () => {
+  const store = createStore({ baselineHash: 'base-v7' });
   const submission = store.createSaveSubmission();
   const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
     .find((item) => !item.protected);
@@ -399,11 +507,11 @@ test('save reconciliation preserves edits made after a v6 submission', () => {
     id: state.id,
     patch: { label: `${state.label} revised` },
   }), true);
-  const result = store.markSaved(submission.document, 'persisted-v6', submission.revision);
+  const result = store.markSaved(submission.document, 'persisted-v7', submission.revision);
   assert.equal(result.newerEditsExist, true);
   assert.equal(result.clean, false);
   assert.equal(store.getSnapshot().dirty, true);
-  assert.equal(store.getSnapshot().baselineHash, 'persisted-v6');
+  assert.equal(store.getSnapshot().baselineHash, 'persisted-v7');
   assert.equal(store.getSnapshot().saveState.status, 'idle');
 });
 
@@ -413,7 +521,7 @@ test('source installation preserves edits made while canonical load is in flight
     .find((item) => !item.protected);
   const localLabel = `${state.label} local`;
   assert.equal(store.pointField.patchState({ id: state.id, patch: { label: localLabel } }), true);
-  const remote = structuredClone(canonicalV6);
+  const remote = structuredClone(canonicalV7);
   remote.globals.readingWidthRem += 0.25;
   assert.equal(store.installSource(remote, 'remote-hash', { status: 'ready' }), true);
   assert.equal(store.getSnapshot().document.tracks.pointField.stateDefinitions
@@ -425,7 +533,7 @@ test('source installation preserves edits made while canonical load is in flight
 });
 
 test('save lifecycle reconciles newer edits and keeps the next If-Match baseline', () => {
-  const store = createStore({ baselineHash: 'base-v6' });
+  const store = createStore({ baselineHash: 'base-v7' });
   const initialState = store.getSnapshot().document.tracks.pointField.stateDefinitions
     .find((item) => !item.protected);
   store.pointField.patchState({
@@ -442,27 +550,27 @@ test('save lifecycle reconciles newer edits and keeps the next If-Match baseline
     id: submittedState.id,
     patch: { label: `${submittedState.label} newer` },
   });
-  const result = store.markSaved(first.document, 'persisted-v6', first.revision);
+  const result = store.markSaved(first.document, 'persisted-v7', first.revision);
   assert.equal(result.newerEditsExist, true);
   assert.equal(store.getSnapshot().saveState.status, 'idle');
   const second = store.beginSave();
-  assert.equal(second.baselineHash, 'persisted-v6');
+  assert.equal(second.baselineHash, 'persisted-v7');
   assert.equal(second.revision, store.getSnapshot().revision);
-  const clean = store.markSaved(second.document, 'persisted-v6-next', second.revision);
+  const clean = store.markSaved(second.document, 'persisted-v7-next', second.revision);
   assert.equal(clean.newerEditsExist, false);
   assert.equal(clean.clean, true);
   assert.equal(store.getSnapshot().saveState.status, 'saved');
-  assert.equal(store.getSnapshot().baselineHash, 'persisted-v6-next');
+  assert.equal(store.getSnapshot().baselineHash, 'persisted-v7-next');
 });
 
 test('conflict preserves local work and confirmed reload remains undoable', () => {
-  const store = createStore({ baselineHash: 'base-v6' });
+  const store = createStore({ baselineHash: 'base-v7' });
   const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
     .find((item) => !item.protected);
   const localLabel = `${state.label} local conflict`;
   store.pointField.patchState({ id: state.id, patch: { label: localLabel } });
   const localBytes = bytes(store.getSnapshot().document);
-  const remote = structuredClone(canonicalV6);
+  const remote = structuredClone(canonicalV7);
   remote.globals.readingWidthRem += 0.5;
   store.markConflict({
     currentHash: 'remote-hash',
@@ -480,7 +588,7 @@ test('conflict preserves local work and confirmed reload remains undoable', () =
 });
 
 test('restore last saved is one undoable command', () => {
-  const store = createStore({ baselineHash: 'base-v6' });
+  const store = createStore({ baselineHash: 'base-v7' });
   const state = store.getSnapshot().document.tracks.pointField.stateDefinitions
     .find((item) => !item.protected);
   const initial = bytes(store.getSnapshot().document);
@@ -511,7 +619,7 @@ test('live point-field gestures defer full compilation until the atomic commit',
   assert.equal(store.getMetrics().compilations - compilationStart, 1);
   assert.ok(elapsedMs < 1_000, `40 live point-field previews took ${elapsedMs.toFixed(1)}ms.`);
   console.log(
-    `40 v6 store gesture previews: ${elapsedMs.toFixed(1)}ms; 0 full compiles; `
+    `40 v7 store gesture previews: ${elapsedMs.toFixed(1)}ms; 0 full compiles; `
       + 'one transient document/snapshot pair per update; one retained history command on commit',
   );
 });
@@ -541,7 +649,7 @@ test('40 inspector patch previews allocate transient drafts without full preview
   assert.equal(store.getMetrics().compilations - compilationStart, 1);
   assert.ok(elapsedMs < 1_000, `40 live point-field patch previews took ${elapsedMs.toFixed(1)}ms.`);
   console.log(
-    `40 v6 patch previews: ${elapsedMs.toFixed(1)}ms; 0 full compiles; `
+    `40 v7 patch previews: ${elapsedMs.toFixed(1)}ms; 0 full compiles; `
       + 'one transient draft per update; one retained history command on commit',
   );
 });
