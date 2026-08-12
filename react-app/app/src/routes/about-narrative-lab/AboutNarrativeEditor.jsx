@@ -824,14 +824,14 @@ function RangeParameterField({
 }) {
   const gestureRef = useRef(false);
   const normalizedValue = normalizeControlValue(value, control);
-  const precisionRangeRef = useRef({ key: null, center: normalizedValue });
+  const [precisionRange, setPrecisionRange] = useState({ key: rangeKey, center: normalizedValue });
   const [fineMode, setFineMode] = useState(Boolean(precisionWindow));
-  if (precisionRangeRef.current.key !== rangeKey) {
-    precisionRangeRef.current = { key: rangeKey, center: normalizedValue };
-  }
+  const precisionCenter = precisionRange.key === rangeKey
+    ? precisionRange.center
+    : normalizedValue;
   const fineWindow = Math.max(Number(control.step), Number(precisionWindow) || 0);
-  const fineMin = Math.max(Number(control.min), precisionRangeRef.current.center - fineWindow);
-  const fineMax = Math.min(Number(control.max), precisionRangeRef.current.center + fineWindow);
+  const fineMin = Math.max(Number(control.min), precisionCenter - fineWindow);
+  const fineMax = Math.min(Number(control.max), precisionCenter + fineWindow);
   const sliderMin = fineMode && fineWindow > 0 ? fineMin : Number(control.min);
   const sliderMax = fineMode && fineWindow > 0 ? fineMax : Number(control.max);
   const span = sliderMax - sliderMin;
@@ -879,7 +879,7 @@ function RangeParameterField({
               aria-pressed={fineMode}
               title={fineMode ? 'Use the full parameter range' : 'Use a precision range around the current value'}
               onClick={() => {
-                precisionRangeRef.current = { key: rangeKey, center: normalizedValue };
+                setPrecisionRange({ key: rangeKey, center: normalizedValue });
                 setFineMode((current) => !current);
               }}
             >{fineMode ? 'Fine' : 'Full'}</button>
