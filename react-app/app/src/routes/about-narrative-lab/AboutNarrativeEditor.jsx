@@ -1952,7 +1952,7 @@ function TrackObject({
 
   return (
     <div
-      className={`about-track-editor-object is-${track.colour}${durationEdges.includes('start') ? ' has-resize-start' : ''}${durationEdges.includes('end') ? ' has-resize-end' : ''}`}
+      className={`about-track-editor-object is-${track.colour}${pointLike ? ' is-point' : ''}${durationEdges.includes('start') ? ' has-resize-start' : ''}${durationEdges.includes('end') ? ' has-resize-end' : ''}`}
       style={{ left, width }}
     >
       <button

@@ -755,7 +755,24 @@ async function auditEditor() {
   assert.equal(await page.locator('[data-text-kind="stub"]').count(), 0);
 
   await selectTrack('Camera');
-  await page.locator('[data-track-object-type="camera-key"]').first().click();
+  const cameraKey = page.locator('[data-track-object-id="move-grid-birds-eye-2"]');
+  await cameraKey.click();
+  await page.waitForFunction(() => (
+    document.querySelector('.about-director-playhead-readout strong')?.textContent === '5.37'
+  ));
+  const cameraKeyAlignment = await cameraKey.evaluate((key) => {
+    const point = key.querySelector('.about-track-editor-clip__point');
+    const playhead = document.querySelector('.about-track-editor-playhead');
+    const pointRect = point?.getBoundingClientRect();
+    const playheadRect = playhead?.getBoundingClientRect();
+    return pointRect && playheadRect
+      ? Math.abs(
+        (pointRect.left + (pointRect.width / 2))
+        - (playheadRect.left + (playheadRect.width / 2)),
+      )
+      : Number.POSITIVE_INFINITY;
+  });
+  assert.ok(cameraKeyAlignment <= 0.5, `Camera key centre missed the playhead by ${cameraKeyAlignment}px.`);
   const cameraFolderLabels = await page.locator('[data-inspector-group^="camera-"] > summary span').allTextContents();
   assert.deepEqual(cameraFolderLabels, [
     'Essentials',

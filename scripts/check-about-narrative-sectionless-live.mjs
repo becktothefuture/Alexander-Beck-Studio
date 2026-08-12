@@ -1616,3 +1616,19 @@ test('editor exposes the six native v6 lanes and all Text creation kinds', () =>
   assert.match(liveSources.editor, /Draft · Not published/);
   assert.match(liveSources.editor, /Reduced Motion/);
 });
+
+test('timeline point markers center their hit target and diamond on the authored WU', () => {
+  assert.match(liveSources.editor, /pointLike \? ' is-point' : ''/);
+  assert.match(
+    liveSources.editorStyles,
+    /\.about-track-editor-object\.is-point\s*\{\s*transform:\s*translateX\(-50%\);\s*\}/,
+  );
+  assert.match(
+    liveSources.editorStyles,
+    /\.about-track-editor-playhead[\s\S]*?transform:\s*translateX\(-50%\);/,
+  );
+  assert.match(
+    liveSources.editorStyles,
+    /\.about-point-field-key\s*\{[\s\S]*?transform:\s*translate\(-50%, -50%\) !important;/,
+  );
+});

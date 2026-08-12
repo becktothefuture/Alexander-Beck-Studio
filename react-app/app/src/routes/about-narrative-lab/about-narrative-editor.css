@@ -634,6 +634,8 @@
   min-height: 38px;
 }
 
+.about-track-editor-object.is-point { transform: translateX(-50%); }
+
 .about-track-editor-object.is-camera { --lane-colour: var(--editor-camera); }
 .about-track-editor-object.is-visibility { --lane-colour: var(--editor-visibility); }
 .about-track-editor-object.is-world { --lane-colour: var(--editor-world); }
