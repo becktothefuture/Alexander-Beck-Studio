@@ -44,6 +44,8 @@ import {
   validateAboutNarrativeTrackClipboardPayload,
 } from './aboutNarrativeTrackEditing.js';
 
+const CAMERA_SELECTION_TYPES = new Set(['camera-key', 'camera-orientation-key', 'camera-lens-key']);
+
 const MAX_HISTORY_COMMANDS = 100;
 const MAX_HISTORY_BYTES = 5 * 1024 * 1024;
 const LAYOUT_PROFILES = new Set(['desktop', 'tablet', 'mobile']);
@@ -542,6 +544,7 @@ function getSelectionObject(document, selection) {
 
 function hasProtectedSelection(document, selection) {
   return selectionMembers(normalizeSelection(selection, document)).some((member) => {
+    if (CAMERA_SELECTION_TYPES.has(member.type)) return false;
     const object = getSelectionObject(document, member);
     return object?.protected === true || object?.locked === true;
   });

@@ -61,6 +61,46 @@ test('point-field commands are atomic across history, selection, undo, and redo'
     .find((item) => item.id === segment.id).transition.easing, 'ease-in-out');
 });
 
+test('Camera boundary keys support move, duplicate, delete, and undo', () => {
+  const store = createStore();
+  const cameraId = store.getSnapshot().document.tracks.camera.moveKeys[0].id;
+  store.setSelection({ type: 'camera-key', id: cameraId });
+
+  assert.equal(store.moveSelection(0.25, { snap: false }), true);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === cameraId).atWU, 0.25);
+  assert.equal(store.undo(), true);
+
+  assert.equal(store.duplicateSelection({ offsetWU: 0.1 }), true);
+  const duplicateId = store.getSnapshot().selection.id;
+  assert.notEqual(duplicateId, cameraId);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === duplicateId).locked, false);
+  assert.equal(store.undo(), true);
+
+  store.setSelection({ type: 'camera-key', id: cameraId });
+  assert.equal(store.deleteSelection(), true);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .some((key) => key.id === cameraId), false);
+  assert.deepEqual(validateAboutNarrativePointFieldDocument(store.getSnapshot().document), []);
+  assert.equal(store.undo(), true);
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .some((key) => key.id === cameraId), true);
+
+  for (const [lane, type] of [
+    ['lookKeys', 'camera-orientation-key'],
+    ['lensKeys', 'camera-lens-key'],
+  ]) {
+    const id = store.getSnapshot().document.tracks.camera[lane][0].id;
+    store.setSelection({ type, id });
+    assert.equal(store.deleteSelection(), true, `${lane} boundary delete`);
+    assert.equal(store.getSnapshot().document.tracks.camera[lane]
+      .some((key) => key.id === id), false);
+    assert.deepEqual(validateAboutNarrativePointFieldDocument(store.getSnapshot().document), []);
+    assert.equal(store.undo(), true);
+  }
+});
+
 test('invalid gesture previews retain the last-known-good plan and cancel exactly', () => {
   const store = createStore();
   const before = bytes(store.getSnapshot().document);

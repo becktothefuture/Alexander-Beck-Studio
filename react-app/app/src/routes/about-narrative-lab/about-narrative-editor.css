@@ -63,6 +63,7 @@
   font-family: var(--abs-font-sans);
   font-size: 11px;
   line-height: 1.35;
+  cursor: auto;
   pointer-events: none;
 }
 

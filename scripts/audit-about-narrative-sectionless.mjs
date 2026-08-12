@@ -762,7 +762,8 @@ async function auditEditor() {
     'Advanced coordinates',
     'Travel easing',
   ]);
-  assert.equal(await page.getByText('Timing fixed · Pose editable', { exact: true }).count(), 1);
+  assert.equal(await page.getByText('Timing fixed · Pose editable', { exact: true }).count(), 0);
+  assert.equal(await page.getByRole('spinbutton', { name: 'Time' }).isEnabled(), true);
   const cameraFolders = page.locator('[data-inspector-group^="camera-"]');
   assert.equal(await cameraFolders.count(), 3);
   assert.equal(await page.locator('[data-inspector-group="camera-essentials"]').evaluate((folder) => folder.open), true);

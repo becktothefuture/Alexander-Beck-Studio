@@ -326,7 +326,7 @@ test('Text animation windows keep their duration, distribute evenly, and extend 
   assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
 });
 
-test('World, Camera travel, Camera tilt, and Visibility movement shifts only selected timing and rejects protected objects', () => {
+test('World, Camera travel, Camera tilt, and Visibility movement shifts only selected timing while camera boundaries stay editable', () => {
   const model = createFixture();
   const interactionsBefore = bytes(model.tracks.interactions);
   const movedWorld = moveAboutNarrativeTrackObjectsByWU({
@@ -349,11 +349,16 @@ test('World, Camera travel, Camera tilt, and Visibility movement shifts only sel
   });
   assert.equal(movedCamera.valid, true);
   assert.equal(getAboutNarrativeTrackObject(movedCamera.model, { type: 'camera-key', id: 'camera-middle' }).atWU, 3.2);
-  assert.equal(moveAboutNarrativeTrackObjectsByWU({
+  const movedBoundaryCamera = moveAboutNarrativeTrackObjectsByWU({
     model,
     selection: { type: 'camera-key', id: 'camera-start' },
     deltaWU: 1,
-  }).valid, false);
+  });
+  assert.equal(movedBoundaryCamera.valid, true);
+  assert.equal(getAboutNarrativeTrackObject(
+    movedBoundaryCamera.model,
+    { type: 'camera-key', id: 'camera-start' },
+  ).atWU, 1);
 
   const movedCameraTilt = moveAboutNarrativeTrackObjectsByWU({
     model,
@@ -550,7 +555,23 @@ test('delete and duplicate validate the complete graph and preserve unrelated tr
   assert.equal(removed.valid, true);
   assert.equal(getAboutNarrativeTrackObject(removed.model, { type: 'text-field', id: 'text-placeholder' }), null);
   assert.equal(bytes(removed.model.tracks.worlds), worldBytes);
-  assert.equal(deleteAboutNarrativeTrackObjects({ model, selection: { type: 'camera-key', id: 'camera-start' } }).valid, false);
+  const boundaryRemoved = deleteAboutNarrativeTrackObjects({
+    model,
+    selection: { type: 'camera-key', id: 'camera-start' },
+  });
+  assert.equal(boundaryRemoved.valid, true);
+  assert.equal(getAboutNarrativeTrackObject(boundaryRemoved.model, {
+    type: 'camera-key',
+    id: 'camera-start',
+  }), null);
+  const lastCameraKey = structuredClone(canonical);
+  lastCameraKey.tracks.camera.moveKeys = [lastCameraKey.tracks.camera.moveKeys[0]];
+  const lastCameraKeyDelete = deleteAboutNarrativeTrackObjects({
+    model: lastCameraKey,
+    selection: { type: 'camera-key', id: lastCameraKey.tracks.camera.moveKeys[0].id },
+  });
+  assert.equal(lastCameraKeyDelete.valid, false);
+  assert.equal(lastCameraKeyDelete.code, 'camera-count');
   assert.equal(deleteAboutNarrativeTrackObjects({ model, selection: { type: 'world', id: 'world-two' } }).valid, false, 'Targeted Worlds cannot be removed silently.');
 
   const duplicate = duplicateAboutNarrativeTrackObjects({

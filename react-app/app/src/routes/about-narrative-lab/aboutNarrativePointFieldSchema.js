@@ -36,7 +36,6 @@ export const ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION = 7;
 export const ABOUT_NARRATIVE_LEGACY_POINT_FIELD_SCHEMA_VERSION = 6;
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const TIME_EPSILON = 0.000001;
 const V6_TRANSITION_TYPES = Object.freeze([
   'morph',
   'dissolve-morph',
@@ -178,8 +177,8 @@ function validateCameraLane(keys, {
   valueKey,
   validateValue,
 }) {
-  if (!Array.isArray(keys) || keys.length < 2) {
-    diagnostic(diagnostics, 'camera-lane-count', path, 'Camera lanes require at least two keys.');
+  if (!Array.isArray(keys) || keys.length < 1) {
+    diagnostic(diagnostics, 'camera-lane-count', path, 'Camera lanes require at least one key.');
     return;
   }
   let previousWU = Number.NEGATIVE_INFINITY;
@@ -203,10 +202,6 @@ function validateCameraLane(keys, {
       diagnostic(diagnostics, 'camera-key-lock', `${keyPath}.locked`, 'Camera key lock must be true or false.');
     }
   });
-  if (Math.abs(Number(keys[0]?.atWU)) > TIME_EPSILON
-    || Math.abs(Number(keys.at(-1)?.atWU) - durationWU) > TIME_EPSILON) {
-    diagnostic(diagnostics, 'camera-lane-boundaries', path, 'Every Camera lane must cover WU 0 through the final Story WU.');
-  }
 }
 
 function validateCameraTrack(camera, diagnostics, durationWU) {

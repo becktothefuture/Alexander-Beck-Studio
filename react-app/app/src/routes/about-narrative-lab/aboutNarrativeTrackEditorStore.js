@@ -29,6 +29,7 @@ const LAYOUT_PROFILES = new Set(['desktop', 'tablet', 'mobile']);
 const ORIENTATIONS = new Set(['portrait', 'landscape']);
 const MOTION_PROFILES = new Set(['full', 'reduced']);
 const TRANSPORT_OWNERS = new Set(['scroll', 'timeline', 'playback']);
+const CAMERA_SELECTION_TYPES = new Set(['camera-key', 'camera-orientation-key', 'camera-lens-key']);
 
 const clone = (value) => structuredClone(value);
 const documentBytes = (document) => JSON.stringify(document).length * 2;
@@ -93,6 +94,7 @@ function selectionMembers(selection) {
 
 function hasProtectedSelection(document, selection) {
   return selectionMembers(normalizeAboutNarrativeTrackSelection(selection, document)).some((member) => {
+    if (CAMERA_SELECTION_TYPES.has(member.type)) return false;
     const object = getAboutNarrativeTrackObject(document, member);
     return object?.protected === true || object?.locked === true;
   });

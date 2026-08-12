@@ -7,6 +7,7 @@ export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
 
 const CLIPBOARD_KIND = 'about-narrative-track-objects';
 const OBJECT_TYPES = Object.freeze(['camera-key', 'camera-orientation-key', 'camera-lens-key', 'visibility-key', 'world', 'text-field', 'interaction']);
+const CAMERA_OBJECT_TYPES = new Set(['camera-key', 'camera-orientation-key', 'camera-lens-key']);
 const TRACK_IDS = Object.freeze(['camera', 'camera-orientation', 'camera-lens', 'visibility', 'world', 'text', 'interaction']);
 const TYPE_TO_TRACK = Object.freeze({
   'camera-key': 'camera',
@@ -480,7 +481,11 @@ function validateEditingModel(model) {
     }
   }
 
-  const cameraTimes = [...(model?.tracks?.camera?.moveKeys || model?.tracks?.camera?.keys || [])]
+  const cameraKeys = model?.tracks?.camera?.moveKeys || model?.tracks?.camera?.keys || [];
+  if (Array.isArray(model?.tracks?.camera?.moveKeys) && cameraKeys.length < 1) {
+    return resultError('Camera Move requires at least one key.', 'camera-count');
+  }
+  const cameraTimes = [...cameraKeys]
     .sort((left, right) => left.atWU - right.atWU)
     .map((key) => Number(key.atWU));
   if (cameraTimes.some((time, index) => index > 0 && time <= cameraTimes[index - 1])) {
@@ -489,8 +494,8 @@ function validateEditingModel(model) {
   const cameraOrientationTimes = [...(model?.tracks?.camera?.lookKeys || model?.tracks?.camera?.orientationKeys || [])]
     .sort((left, right) => left.atWU - right.atWU)
     .map((key) => Number(key.atWU));
-  if (cameraOrientationTimes.length === 1) {
-    return resultError('Camera orientation requires either zero keys or at least two keys.', 'camera-orientation-count');
+  if (Array.isArray(model?.tracks?.camera?.lookKeys) && cameraOrientationTimes.length < 1) {
+    return resultError('Camera Look requires at least one key.', 'camera-orientation-count');
   }
   if (cameraOrientationTimes.some((time, index) => index > 0 && time <= cameraOrientationTimes[index - 1])) {
     return resultError('Camera orientation keys must have unique increasing WU positions.', 'camera-orientation-order');
@@ -498,8 +503,8 @@ function validateEditingModel(model) {
   const cameraLensTimes = [...(model?.tracks?.camera?.lensKeys || [])]
     .sort((left, right) => left.atWU - right.atWU)
     .map((key) => Number(key.atWU));
-  if (cameraLensTimes.length === 1) {
-    return resultError('Camera Lens requires at least two keys.', 'camera-lens-count');
+  if (Array.isArray(model?.tracks?.camera?.lensKeys) && cameraLensTimes.length < 1) {
+    return resultError('Camera Lens requires at least one key.', 'camera-lens-count');
   }
   if (cameraLensTimes.some((time, index) => index > 0 && time <= cameraLensTimes[index - 1])) {
     return resultError('Camera Lens keys must have unique increasing WU positions.', 'camera-lens-order');
@@ -565,7 +570,9 @@ export function moveAboutNarrativeTrackObjectsByWU({
   const resolved = resolveSelectedObjects(model, selection);
   if (!resolved.valid) return resolved;
   if (!finite(deltaWU)) return resultError('Movement requires a finite WU delta.', 'movement-delta');
-  if (resolved.objects.some((object) => object.locked)) return resultError('A protected track object cannot be moved.', 'protected-object');
+  if (!CAMERA_OBJECT_TYPES.has(resolved.type) && resolved.objects.some((object) => object.locked)) {
+    return resultError('A protected track object cannot be moved.', 'protected-object');
+  }
   const durationWU = getStoryDurationWU(model);
   const times = resolved.objects.flatMap((object) => objectMovableTimes(object, resolved.type));
   const minimumDeltaWU = -Math.min(...times);
@@ -1055,7 +1062,9 @@ export function createAboutNarrativeTrackObjectAtWU({ model, track, kind = null,
 export function deleteAboutNarrativeTrackObjects({ model, selection }) {
   const resolved = resolveSelectedObjects(model, selection);
   if (!resolved.valid) return resolved;
-  if (resolved.objects.some((object) => object.locked)) return resultError('A protected track object cannot be deleted.', 'protected-object');
+  if (!CAMERA_OBJECT_TYPES.has(resolved.type) && resolved.objects.some((object) => object.locked)) {
+    return resultError('A protected track object cannot be deleted.', 'protected-object');
+  }
   const candidate = clone(model);
   const ids = new Set(resolved.members.map((member) => member.id));
   const collection = getTrackCollection(candidate, resolved.track);

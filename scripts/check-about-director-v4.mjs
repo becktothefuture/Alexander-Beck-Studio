@@ -52,6 +52,52 @@ test('Camera Move, Look, and Lens have non-overlapping ownership', () => {
   assert(camera.lensKeys.every((key) => Number.isFinite(key.fov) && !('position' in key) && !('rotation' in key)));
 });
 
+test('Camera lanes may use one freely positioned key while retaining a defined pose', () => {
+  const flexible = structuredClone(canonical);
+  ['desktop', 'tablet', 'mobile'].forEach((profileId) => {
+    flexible.profiles[profileId].overrides.camera = {};
+  });
+  flexible.tracks.camera.moveKeys = [{
+    ...structuredClone(canonical.tracks.camera.moveKeys[4]),
+    atWU: 9.25,
+    locked: false,
+  }];
+  flexible.tracks.camera.lookKeys = [{
+    ...structuredClone(canonical.tracks.camera.lookKeys[6]),
+    atWU: 9.25,
+    locked: false,
+  }];
+  flexible.tracks.camera.lensKeys = [{
+    ...structuredClone(canonical.tracks.camera.lensKeys[4]),
+    atWU: 9.25,
+    locked: false,
+  }];
+
+  assert.deepEqual(validateAboutNarrativePointFieldDocument(flexible), []);
+  const plan = compileAboutNarrativeComposerPlan(flexible, {
+    previewLayoutProfile: 'desktop',
+    previewMotionProfile: 'full',
+    inlineSize: 1440,
+    blockSize: 1000,
+  });
+  assert.equal(plan.valid, true, JSON.stringify(plan.diagnostics, null, 2));
+  const start = getAboutNarrativeComposerCameraSample(plan, 0);
+  const end = getAboutNarrativeComposerCameraSample(plan, 20);
+  assert.deepEqual(start.position, end.position);
+  assert.deepEqual(start.quaternion, end.quaternion);
+  assert.equal(start.fov, end.fov);
+  const roundtrip = loadAboutNarrativePointFieldPersistenceSource(
+    serializeAboutNarrativePointFieldSource(flexible),
+  );
+  assert.equal(roundtrip.valid, true);
+  assert.deepEqual(roundtrip.document, flexible);
+
+  flexible.tracks.camera.moveKeys = [];
+  assert(validateAboutNarrativePointFieldDocument(flexible).some((item) => (
+    item.code === 'camera-lane-count' && item.path === 'tracks.camera.moveKeys'
+  )));
+});
+
 test('helicopter translation is exactly 0.8 WU/WU on every profile while Look pitches independently', () => {
   for (const profile of ['desktop', 'tablet', 'mobile']) {
     const plan = compile(profile);

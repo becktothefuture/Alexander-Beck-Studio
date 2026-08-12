@@ -494,7 +494,7 @@ test('the Text row header exposes the global width and animation controls', () =
   assert.match(liveSources.editor, /object\.kind !== 'title'/);
 });
 
-test('the Camera row exposes global distance fog and protected boundary poses remain editable', () => {
+test('the Camera row exposes global distance fog and every Camera key remains fully editable', () => {
   assert.deepEqual(
     ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS.map((group) => group.id),
     ['camera-fog'],
@@ -538,7 +538,8 @@ test('the Camera row exposes global distance fog and protected boundary poses re
   assert.doesNotMatch(liveSources.world, /about-narrative-camera-target/);
   assert.doesNotMatch(liveSources.editorStyles, /\.about-narrative-camera-target/);
   assert.match(liveSources.editor, /Distance fog is global across the sequence/);
-  assert.match(liveSources.editor, /Timing fixed · Pose editable/);
+  assert.doesNotMatch(liveSources.editor, /Timing fixed · Pose editable/);
+  assert.match(liveSources.editor, /CAMERA_SELECTION_TYPES/);
   assert.match(liveSources.world, /float cameraDepth = max\(0\.0, -viewPoint\.z\)/);
   assert.match(liveSources.world, /presence \*= 1\.0 - distanceFog/);
 });
