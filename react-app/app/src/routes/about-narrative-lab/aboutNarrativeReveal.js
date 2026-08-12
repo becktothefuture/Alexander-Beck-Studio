@@ -8,11 +8,10 @@ export const ABOUT_NARRATIVE_REVEAL_ROW_ADVANCE_CAP = 1.25;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MIN_PX = 4;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MAX_PX = 18;
 export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.04;
-export const ABOUT_NARRATIVE_EDITORIAL_EARLIER_OPACITY = 0.14;
-export const ABOUT_NARRATIVE_EDITORIAL_PREVIOUS_OPACITY = 0.4;
 export const ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY = 1;
-export const ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD = 0.18;
 export const ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD = 0.12;
+export const ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y = 0.32;
+export const ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y = 0.08;
 
 const smoothstep = (start, end, value) => {
   const progress = clamp01((Number(value) - start) / Math.max(0.000001, end - start));
@@ -20,35 +19,37 @@ const smoothstep = (start, end, value) => {
 };
 
 export function getAboutNarrativeEditorialFocusOpacity(
-  moduleIndex,
   lineProgress,
-  activeModuleIndex,
+  viewportY,
   reducedMotion = false,
 ) {
-  if (moduleIndex < activeModuleIndex - 1) return ABOUT_NARRATIVE_EDITORIAL_EARLIER_OPACITY;
-  if (moduleIndex === activeModuleIndex - 1) return ABOUT_NARRATIVE_EDITORIAL_PREVIOUS_OPACITY;
-  if (moduleIndex > activeModuleIndex || activeModuleIndex < 0) {
-    return ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY;
-  }
+  const entryOpacity = reducedMotion
+    ? Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
+    : smoothstep(0.12, 0.72, lineProgress);
+  const exitOpacity = reducedMotion
+    ? Number(Number(viewportY) >= ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y)
+    : smoothstep(
+      ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y,
+      ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y,
+      viewportY,
+    );
+  const focusProgress = entryOpacity * exitOpacity;
   if (reducedMotion) {
-    return Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
+    return focusProgress > 0
       ? ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY
       : ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY;
   }
   return ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY + (
     (ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY - ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY)
-    * smoothstep(0.12, 0.72, lineProgress)
+    * focusProgress
   );
 }
 
 export function getAboutNarrativeEditorialPhraseOpacity(
-  moduleIndex,
   lineProgress,
-  activeModuleIndex,
   reducedMotion = false,
 ) {
-  if (moduleIndex > activeModuleIndex
-    || Number(lineProgress) < ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD) return 0;
+  if (Number(lineProgress) < ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD) return 0;
   return reducedMotion || Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
     ? 1
     : 0;

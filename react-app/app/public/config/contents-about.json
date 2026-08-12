@@ -1033,7 +1033,6 @@
           "block": {
             "id": "background-unit",
             "kind": "stack",
-            "moduleGapRem": 4.6,
             "modules": [
               {
                 "id": "context",
@@ -1205,7 +1204,6 @@
           "block": {
             "id": "disciplines-passage",
             "kind": "stack",
-            "moduleGapRem": 1.6,
             "modules": [
               {
                 "id": "attention",

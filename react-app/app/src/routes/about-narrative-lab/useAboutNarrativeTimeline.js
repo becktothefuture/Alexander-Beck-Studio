@@ -11,7 +11,6 @@ import {
 } from '../../lib/scroll-progress-indicator.js';
 import { remapAboutNarrativeScrollTop } from './aboutNarrativeProfileResolver.js';
 import {
-  ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD,
   compileAboutNarrativeComposerPlan,
   createAboutNarrativeComposerContextSample,
   createAboutNarrativeComposerFrameSample,
@@ -19,6 +18,7 @@ import {
   getAboutNarrativeComposerEditorialFocusOpacity,
   getAboutNarrativeComposerEditorialPhraseOpacity,
   getAboutNarrativeComposerEditorialReveal,
+  getAboutNarrativeComposerEditorialViewportY,
   getAboutNarrativeComposerOpeningCueOpacity,
   getAboutNarrativeComposerPreparationRequest,
   sampleAboutNarrativeComposerContextInto,
@@ -268,36 +268,14 @@ export function useAboutNarrativeTimeline({
         const revealMetrics = measurementsRef.current.editorialRevealMetrics?.get(node);
         return [{
           node,
-          field,
           editorialMotion: plan.model.globals.editorialMotion,
           startScrollWU: Number(span.scrollBounds.startWU),
           revealOffsetPx: Number(revealMetrics?.revealOffsetPx) || 0,
           revealSoftnessPx: Number(revealMetrics?.revealSoftnessPx) || 0,
           progress: 0,
-          focusModule: null,
+          viewportY: 0,
         }];
       });
-      const editorialStacks = Array.from(
-        content.querySelectorAll('.about-narrative-editorial-stack'),
-      ).map((stackNode) => {
-        const stack = { activeModuleIndex: -1, modules: [] };
-        const modules = Array.from(stackNode.children).flatMap((moduleNode, moduleIndex) => {
-          const lines = editorialLines.filter((record) => (
-            record.node === moduleNode || moduleNode.contains(record.node)
-          ));
-          if (!lines.length) return [];
-          const module = {
-            index: moduleIndex,
-            lines,
-            maximumProgress: 0,
-            stack,
-          };
-          lines.forEach((record) => { record.focusModule = module; });
-          return [module];
-        });
-        stack.modules = modules;
-        return stack;
-      }).filter((stack) => stack.modules.length);
       const titleFields = [];
       const contextFields = [];
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
@@ -321,7 +299,6 @@ export function useAboutNarrativeTimeline({
         dirty: false,
         editorialFields,
         editorialLines,
-        editorialStacks,
         titleFields,
         contextFields,
       };
@@ -427,6 +404,12 @@ export function useAboutNarrativeTimeline({
       });
       root.dataset.editorialInView = editorialInView ? 'true' : 'false';
       for (const record of editorialLines) {
+        record.viewportY = getAboutNarrativeComposerEditorialViewportY(
+          record,
+          scrollWU,
+          viewportHeight,
+          viewportThreshold,
+        );
         record.progress = getAboutNarrativeComposerEditorialReveal(
           record,
           scrollWU,
@@ -435,36 +418,15 @@ export function useAboutNarrativeTimeline({
           reducedMotion,
         );
       }
-      for (const stack of measurementsRef.current.editorialStacks) {
-        let activeModuleIndex = -1;
-        for (const module of stack.modules) {
-          let maximumProgress = 0;
-          for (const record of module.lines) {
-            maximumProgress = Math.max(maximumProgress, record.progress);
-          }
-          module.maximumProgress = maximumProgress;
-          if (maximumProgress >= ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD) {
-            activeModuleIndex = module.index;
-          }
-        }
-        stack.activeModuleIndex = activeModuleIndex;
-      }
       for (const record of editorialLines) {
-        const { node, progress } = record;
-        const focusModule = record.focusModule;
-        const focusStack = focusModule?.stack || null;
-        const moduleIndex = focusModule?.index ?? 0;
-        const activeModuleIndex = focusStack?.activeModuleIndex ?? 0;
+        const { node, progress, viewportY } = record;
         const focusOpacity = getAboutNarrativeComposerEditorialFocusOpacity(
-          moduleIndex,
           progress,
-          activeModuleIndex,
+          viewportY,
           reducedMotion,
         );
         const phraseOpacity = getAboutNarrativeComposerEditorialPhraseOpacity(
-          moduleIndex,
           progress,
-          activeModuleIndex,
           reducedMotion,
         );
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));

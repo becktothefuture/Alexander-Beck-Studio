@@ -39,7 +39,6 @@ import {
   sampleAboutNarrativeTitleFieldInto,
 } from './aboutNarrativeRuntimePlan.js';
 import {
-  ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD,
   getAboutNarrativeEditorialFocusOpacity,
   getAboutNarrativeEditorialPhraseOpacity,
   getAboutNarrativeSharedRevealProgress,
@@ -52,8 +51,6 @@ const smooth01 = (value) => {
   const progress = clamp01(value);
   return progress * progress * (3 - (2 * progress));
 };
-
-export { ABOUT_NARRATIVE_EDITORIAL_ACTIVE_THRESHOLD };
 
 export function getAboutNarrativeComposerOpeningCueOpacity(scrollTop, viewportHeight) {
   const resolvedViewportHeight = Math.max(0, Number(viewportHeight) || 0);
@@ -68,10 +65,12 @@ export function getAboutNarrativeComposerEditorialReveal(
   viewportThreshold,
   reducedMotion,
 ) {
-  const revealOffsetWU = Number(record.revealOffsetPx || 0) / Math.max(1, viewportHeight);
-  const viewportY = Number(viewportThreshold)
-    + revealOffsetWU
-    - (Number(scrollWU) - Number(record.startScrollWU));
+  const viewportY = getAboutNarrativeComposerEditorialViewportY(
+    record,
+    scrollWU,
+    viewportHeight,
+    viewportThreshold,
+  );
   const revealTravel = Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0);
   const revealSoftnessWU = Math.max(
     0.001,
@@ -84,6 +83,18 @@ export function getAboutNarrativeComposerEditorialReveal(
     revealSoftnessWU,
     reducedMotion,
   );
+}
+
+export function getAboutNarrativeComposerEditorialViewportY(
+  record,
+  scrollWU,
+  viewportHeight,
+  viewportThreshold,
+) {
+  const revealOffsetWU = Number(record.revealOffsetPx || 0) / Math.max(1, viewportHeight);
+  return Number(viewportThreshold)
+    + revealOffsetWU
+    - (Number(scrollWU) - Number(record.startScrollWU));
 }
 
 export function getAboutNarrativeComposerEditorialFocusOpacity(...args) {

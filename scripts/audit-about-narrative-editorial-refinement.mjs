@@ -89,6 +89,7 @@ try {
       pullFontFamily: pullStyle.fontFamily,
       pullFontSize: Number.parseFloat(pullStyle.fontSize),
       pullFontStyle: pullStyle.fontStyle,
+      pullTextAlign: pullStyle.textAlign,
       pullLineHeight: Number.parseFloat(pullStyle.lineHeight),
       pullListItemCount: pullSentence?.querySelectorAll('li').length,
       pullTag: pullSentence?.tagName,
@@ -102,7 +103,8 @@ try {
   assert.equal(initial.pullBorderTop, '0px');
   assert.equal(initial.pullBorderBottom, '0px');
   assert.match(initial.pullFontFamily, /Instrument Serif/);
-  assert.equal(initial.pullFontStyle, 'italic');
+  assert.equal(initial.pullFontStyle, 'normal');
+  assert.equal(initial.pullTextAlign, 'center');
   assert.ok(initial.pullFontSize >= initial.proseFontSize * 2.35);
   assert.ok(initial.pullLineHeight <= initial.pullFontSize * 1.05);
   assert.equal(initial.emphasisCount, 15);

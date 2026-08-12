@@ -3041,7 +3041,7 @@ function ObjectInspector({ snapshot, store, editScope }) {
                   <RangeParameterField
                     label="Module spacing"
                     ariaLabel="Editorial module spacing"
-                    value={object.block?.moduleGapRem ?? 1.75}
+                    value={object.block?.moduleGapRem ?? 4.6}
                     control={EDITORIAL_MODULE_GAP_CONTROL}
                     disabled={locked}
                     {...bindObjectRange('Edit Editorial module spacing', (target, value) => {

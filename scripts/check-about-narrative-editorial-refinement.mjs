@@ -53,17 +53,21 @@ test('approved editorial emphasis and pull-sentence hierarchy are canonical', ()
   assert.doesNotMatch(experienceSource, /data-editorial-reveal': 'word'/);
   assert.match(styleSource, /font-size:\s*calc\(var\(--about-editorial-type-size\) \* 2\.4\)/);
   assert.match(styleSource, /font-family:\s*var\(--abs-font-headline\)/);
-  assert.match(styleSource, /font-style:\s*italic/);
+  assert.match(styleSource, /font-style:\s*normal/);
+  assert.match(styleSource, /text-align:\s*center/);
+  assert.equal(getTextField('text-background-unit').block.moduleGapRem, undefined);
+  assert.equal(getTextField('text-disciplines-title').block.moduleGapRem, undefined);
 });
 
-test('line focus and phrase visibility follow the approved B opacity ladder', () => {
-  assert.equal(getAboutNarrativeEditorialFocusOpacity(0, 1, 3, false), 0.14);
-  assert.equal(getAboutNarrativeEditorialFocusOpacity(2, 1, 3, false), 0.4);
-  assert.equal(getAboutNarrativeEditorialFocusOpacity(3, 0, 3, false), 0.04);
-  assert.equal(getAboutNarrativeEditorialFocusOpacity(3, 1, 3, false), 1);
-  assert.equal(getAboutNarrativeEditorialPhraseOpacity(0, 1, 3, false), 1);
-  assert.equal(getAboutNarrativeEditorialPhraseOpacity(3, 0.11, 3, false), 0);
-  assert.equal(getAboutNarrativeEditorialPhraseOpacity(3, 1, 3, false), 1);
+test('each visual line enters and leaves focus independently', () => {
+  assert.equal(getAboutNarrativeEditorialFocusOpacity(0, 0.6, false), 0.04);
+  assert.equal(getAboutNarrativeEditorialFocusOpacity(1, 0.32, false), 1);
+  assert.equal(getAboutNarrativeEditorialFocusOpacity(1, 0.08, false), 0.04);
+  const leadingLine = getAboutNarrativeEditorialFocusOpacity(1, 0.16, false);
+  const followingLine = getAboutNarrativeEditorialFocusOpacity(1, 0.24, false);
+  assert.ok(leadingLine < followingLine);
+  assert.equal(getAboutNarrativeEditorialPhraseOpacity(0.11, false), 0);
+  assert.equal(getAboutNarrativeEditorialPhraseOpacity(1, false), 1);
 });
 
 test('logo rows share one atomic reveal metric', () => {
