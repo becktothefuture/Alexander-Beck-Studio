@@ -1,12 +1,34 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "bentley",
   "title": "Bentley",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Bentley", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": "Hugo & Cat", "status": "candidate", "sourceClaimIds": ["claim-bentley-003"]},
+    "employer": {"value": "Hugo & Cat", "status": "candidate", "sourceClaimIds": ["claim-bentley-003"]},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Digital ownership vision", "Automotive experience", "3D prototype"], "status": "candidate", "sourceClaimIds": ["claim-bentley-001", "claim-bentley-004", "claim-bentley-008"]},
+    "timeframe": {"start": null, "end": null, "yearLabel": null, "duration": "2 months", "precision": "unknown", "status": "candidate", "sourceClaimIds": ["claim-bentley-005"]}
+  },
   "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-bentley-digital-expression", "title": "My Bentley World and digital expression vision", "storyRole": "primary", "status": "candidate", "summary": "A digital ownership vision that used timing, staged content, and a 3D garage to turn vehicle delivery into anticipation.", "sourceClaimIds": ["claim-bentley-001", "claim-bentley-007", "claim-bentley-008", "claim-bentley-010"]}
+  ],
+  "disciplines": [
+    {"name": "Experience Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-bentley-003", "claim-bentley-007"]},
+    {"name": "Interaction Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-bentley-003", "claim-bentley-008"]},
+    {"name": "3D and Motion", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-bentley-003", "claim-bentley-004"]}
+  ],
+  "collaborators": [
+    {"id": "collab-bentley-001", "name": "Tom Good", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-bentley-009"], "publicCreditStatus": "unknown"},
+    {"id": "collab-bentley-002", "name": "Jude Gay", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-bentley-009"], "publicCreditStatus": "unknown"},
+    {"id": "collab-bentley-003", "name": "Russel Hinton", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio; a separate note suggests a possible compilation-video lead.", "status": "candidate", "sourceClaimIds": ["claim-bentley-009"], "publicCreditStatus": "unknown"},
+    {"id": "collab-bentley-004", "name": "Paohan Chen", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-bentley-009"], "publicCreditStatus": "unknown"}
+  ],
   "workingHypotheses": [
     "The story is a short vision engagement about making digital ownership feel anticipatory rather than transactional."
   ],

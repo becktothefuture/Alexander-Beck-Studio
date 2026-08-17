@@ -6,9 +6,16 @@ import sharp from 'sharp';
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const phase = process.env.ABS_CONTACT_SHEET_PHASE || 'current';
 const outputDir = `output/playwright/about-narrative-contact-sheets/${phase}`;
-const canonicalSource = await readFile('react-app/app/public/config/contents-about.json', 'utf8');
+const experienceVersion = 'main';
+const canonicalConfigName = 'contents-about.json';
+const canonicalSource = await readFile(
+  `react-app/app/public/config/${canonicalConfigName}`,
+  'utf8',
+);
 const canonicalDocument = JSON.parse(canonicalSource);
-const durationWU = Number(canonicalDocument.profiles.desktop.storyDurationWU);
+// The profile value is only a persisted diagnostic cache in content-flow mode.
+// Replace it with the measured browser extent once the Story Stack has laid out.
+let durationWU = Number(canonicalDocument.profiles.desktop.storyDurationWU);
 const viewports = Object.freeze({
   largeDesktop: Object.freeze({ width: 1920, height: 1080 }),
   desktop: Object.freeze({ width: 1440, height: 1000 }),
@@ -21,16 +28,31 @@ const viewports = Object.freeze({
 const viewportId = process.env.ABS_CONTACT_SHEET_VIEWPORT || 'desktop';
 const viewport = viewports[viewportId] || viewports.desktop;
 const reducedMotion = process.env.ABS_CONTACT_SHEET_REDUCED === '1' ? 'reduce' : 'no-preference';
+// Each sequence answers one visual question. Keep `rhythm` aligned with every
+// authored text handoff; the focused probes may sample the material more densely.
 const sequences = {
+  page: [],
   overlay: [0],
   opening: [0, 0.12, 0.28, 0.42, 0.58, 0.7, 0.9, 1.15, 1.35],
   anchorProbe: [8.35, 8.75, 9.15, 9.47, 9.79, 10.11, 10.35, 10.85, 11.15],
   editorial: [3.3, 3.465, 3.59, 3.72, 4.2, 4.8, 5.25, 5.45, 6.715, 6.79, 6.865, 10.85, 10.975, 11.1, 12.85, 13.55, 14.05, 14.1, 14.175, 14.25],
   disciplines: [6.55, 7.35, 8.15, 8.35, 8.55, 8.75, 8.95, 9.15, 9.31, 9.47, 9.63, 9.79, 9.95, 10.11, 10.35, 10.6, 10.85, 11, 11.15, 11.3, 11.45, 11.6, 11.9, 12.2, 12.65],
   disciplineReview: [7.7, 7.85, 8, 8.15, 8.3, 8.35, 8.5, 8.65, 8.8, 8.95, 9.1, 9.15, 9.3, 9.45, 9.6, 9.75, 9.9, 10.05, 10.2, 10.35, 10.5, 10.65, 10.8, 10.95, 11.1, 11.15],
-  late: [12.45, 12.85, 13.55, 14.05, 14.15, 14.25, 14.65, 15.05, 15.35, 15.75, 16.1, 16.35, 16.55, 16.85, 17.15, 17.45, 17.75, 18.1, 18.5, 19, 19.5, durationWU],
+  late: [12.45, 12.85, 13.55, 14.05, 14.15, 14.25, 14.65, 15.05, 15.35, 15.75, 16.1, 16.35, 16.55, 16.85, 17.15, 17.45, 17.75, 18.1, 18.5, 19, 20.1, 20.65, durationWU],
   ending: [14, 14.15, 14.25, 14.5, 14.75, 14.95, 15.05, 15.3, 15.55, 15.75, 15.85, 16.1, 16.35, 16.55, 16.8, 17.05, 17.3, 17.45, 17.6, 17.75, 17.95, 18.2, 18.5, 18.8, 19.1, 19.4, 19.7, durationWU],
-  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.465, 3.72, 4.2, 4.8, 5.45, 6.05, 6.715, 6.865, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.85, 11.1, 11.4, 12.15, 13.55, 14.05, 14.15, 14.25, 15.05, 15.85, 16.35, 17.45, 17.75, 18.5, 19.25, durationWU],
+  storyboard: [0, 0.4, 0.8, 1.6, 2.79, 3.2, 3.465, 3.72, 4.2, 4.8, 5.45, 6.05, 6.715, 6.865, 7.35, 7.85, 8.15, 8.45, 8.65, 9.15, 9.65, 10.15, 10.85, 11.1, 11.4, 12.15, 13.55, 14.05, 14.15, 14.25, 15.05, 15.85, 16.35, 17.45, 17.75, 18.5, 19.25, 20.65, durationWU],
+  rhythm: [0, 0.4, 0.8, 1.4, 1.8, 2.2, 2.55, 2.95, 3.35, 3.6, 5.2, 7.05, 7.15, 7.55, 7.95, 8.05, 8.4, 8.85, 8.95, 9.7, 10.4, 11.4, 11.5, 12.1, 12.4, 14, 14.4, 14.5, 14.85, 15.2, 15.3, 15.65, 16, 16.1, 16.45, 16.8, 17.2, 18.2, 19.2, 20.1, 20.65, 20.8, durationWU],
+  // Four compact motion strips reveal the same material changing condition:
+  // seed into interior, interior into passage, passage hold, then world fold.
+  cinematicMotion: [
+    0.45, 0.95, 1.55, 2.15,
+    6.35, 6.75, 7.35, 8.05,
+    10.4, 12.4, 14.4, 16.4,
+    16.257, 17.35, 18.45, 19.6,
+  ],
+  // Dense sampling makes the long nebula-to-floor gather visually auditable.
+  floorProbe: [8.4, 9.4, 10.4, 11.4, 12.4, 14.4, 16.1, 16.8, 17.2],
+  orbitProbe: [17.2, 18.2, 19.2, 20.2, 21.2, 21.6, durationWU],
 };
 const requestedSequenceIds = new Set(
   String(process.env.ABS_CONTACT_SHEET_SEQUENCES || Object.keys(sequences).join(','))
@@ -229,7 +251,10 @@ const browser = await browserType.launch({
 });
 const context = await browser.newContext({ viewport, reducedMotion });
 const page = await context.newPage();
-await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
+await page.goto(
+  `${baseUrl}/about.html?edit=0`,
+  { waitUntil: 'domcontentloaded' },
+);
 await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
 await page.waitForFunction(
   () => document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete',
@@ -237,9 +262,21 @@ await page.waitForFunction(
   { timeout: 30_000 },
 );
 
-const report = { baseUrl, phase, browserName, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
-for (const [id, storyValues] of Object.entries(sequences)) {
+durationWU = await page.locator('.about-narrative-scrollport').evaluate((node) => (
+  (node.scrollHeight - node.clientHeight) / Math.max(1, node.clientHeight)
+));
+// `page` is the canonical whole-story sheet: evenly sampling the measured
+// extent keeps it complete when copy is added, removed, or rewrapped.
+sequences.page = Array.from({ length: 29 }, (_, index) => (
+  durationWU * (index / 28)
+));
+
+const report = { baseUrl, phase, experienceVersion, canonicalConfigName, browserName, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
+for (const [id, requestedStoryValues] of Object.entries(sequences)) {
   if (!requestedSequenceIds.has(id)) continue;
+  const storyValues = [...new Set(requestedStoryValues.map((value) => (
+    Math.min(durationWU, Math.max(0, Number(value) || 0))
+  )))];
   const evidence = [];
   for (const storyWU of storyValues) {
     await setStoryWU(page, storyWU);

@@ -757,6 +757,12 @@ test('local authoring JSON write contract', async (t) => {
       assert.equal(aboutSave.statusCode, 200);
       assert.deepEqual(Object.keys(aboutSave.json).sort(), ['document', 'hash', 'ok']);
       assert.equal(aboutSave.getHeader('etag'), `"${aboutSave.json.hash}"`);
+
+      assert.equal(
+        harness.handlers.has('/api/about-narrative/v2/config'),
+        false,
+        'The promoted About source must not retain a second writable endpoint.',
+      );
     });
 
     await t.test('About validation and conflict behavior keep diagnostics and ETag recovery data', async () => {

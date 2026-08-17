@@ -6,6 +6,11 @@
   "extractionStatus": "pending",
   "sensitivity": "personal",
   "origin": "user_provided",
+  "captureMethod": "file_copy",
+  "redactionStatus": "not_required",
+  "containsCredentials": false,
+  "sourceCreatedAt": null,
+  "sourceModifiedAt": null,
   "receivedAt": "YYYY-MM-DD",
   "projectIds": ["<project-id>"],
   "path": "docs/portfolio/sources/raw/<source-id>/<filename>",
@@ -15,4 +20,3 @@
   "supersedes": [],
   "supersededBy": []
 }
-

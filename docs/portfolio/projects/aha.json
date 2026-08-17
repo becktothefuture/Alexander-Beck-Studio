@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "aha",
   "title": "American Heart Association",
   "lifecycleStatus": "on_hold",
@@ -7,6 +7,14 @@
   "holdReason": "The project is ongoing; final narrative, contribution, implementation, and outcome claims are deferred.",
   "sensitivity": "confidential",
   "lastReviewed": "2026-07-15",
+  "metadata": {
+    "client": {"value": "American Heart Association", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": [], "status": "unknown", "sourceClaimIds": []},
+    "timeframe": {"start": null, "end": null, "yearLabel": "Ongoing", "duration": null, "precision": "unknown", "status": "withheld", "sourceClaimIds": []}
+  },
   "readiness": {
     "sourceCoverage": "not_assessed",
     "interviewStatus": "deferred",
@@ -14,6 +22,9 @@
     "copyStatus": "blocked_on_hold"
   },
   "workingHypotheses": [],
+  "bodiesOfWork": [],
+  "disciplines": [],
+  "collaborators": [],
   "organisingIdea": {
     "statement": "Intentionally deferred while the project is ongoing.",
     "status": "on_hold",

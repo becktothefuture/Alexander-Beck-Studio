@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "source": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender-current/about-v2-scene-source.json",
+  "blendFile": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender-current/about-v2-track-working.blend",
+  "glbFile": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender-current/about-v2-track-reference.glb",
+  "primitiveCount": 118,
+  "meshObjectCount": 151,
+  "vertices": 24769,
+  "polygons": 24150,
+  "cameraSamples": 721,
+  "frameRange": [
+    1,
+    3600
+  ],
+  "durationSeconds": 120,
+  "baseBlend": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender/about-v2-track-working.blend",
+  "preservedAuthoredMeshObjects": 150,
+  "ocean": {
+    "object": "ABS_OCEAN_SURFACE",
+    "vertices": 12513,
+    "faces": 12288,
+    "modifierCount": 4,
+    "paletteSlots": 6
+  },
+  "bounds": [
+    [
+      -159.97451782226562,
+      -0.4977237284183502,
+      -25.098302841186523
+    ],
+    [
+      160.021728515625,
+      721.0,
+      26.610708236694336
+    ]
+  ],
+  "forbiddenBottomTrackObjects": []
+}

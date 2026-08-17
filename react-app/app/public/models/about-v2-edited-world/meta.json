@@ -1,0 +1,1031 @@
+{
+  "version": 1,
+  "name": "about-v2-edited-world",
+  "title": "About V2 edited Blender world",
+  "creator": "Alexander Beck",
+  "source": {
+    "file": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender-current/about-v2-track-working.blend",
+    "sha256": "6c1c4ca90ff8768179c56d010d572b09c9efefb3da0551a49547c378d2365ae1",
+    "objects": [
+      {
+        "name": "BEAM_056_living-trunk",
+        "triangles": 36,
+        "surfaceArea": 109.335358,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.001",
+        "triangles": 36,
+        "surfaceArea": 109.335263,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.002",
+        "triangles": 36,
+        "surfaceArea": 109.335299,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.003",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.004",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.005",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.006",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.007",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.008",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.009",
+        "triangles": 36,
+        "surfaceArea": 109.335278,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.010",
+        "triangles": 36,
+        "surfaceArea": 109.335305,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.011",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.012",
+        "triangles": 36,
+        "surfaceArea": 109.335296,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.013",
+        "triangles": 36,
+        "surfaceArea": 109.335296,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.014",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.015",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.016",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.017",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.018",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.019",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.020",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "BEAM_056_living-trunk.021",
+        "triangles": 36,
+        "surfaceArea": 109.335311,
+        "collections": [
+          "06_LIVING"
+        ]
+      },
+      {
+        "name": "Cube",
+        "triangles": 12,
+        "surfaceArea": 23.999973,
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Cube.001",
+        "triangles": 12,
+        "surfaceArea": 89.555536,
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Cube.002",
+        "triangles": 12,
+        "surfaceArea": 44.042989,
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Cube.003",
+        "triangles": 12,
+        "surfaceArea": 44.042988,
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Cube.004",
+        "triangles": 12,
+        "surfaceArea": 184.239064,
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "GATE_029_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 17.827998,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_029_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 17.827999,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_029_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 17.828005,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_029_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 17.828004,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_030_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 18.152327,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_030_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 18.152323,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_030_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 18.152232,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_030_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 18.152231,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_031_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 18.469294,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_031_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 18.469295,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_031_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 18.4694,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_031_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 18.469401,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_032_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 18.772124,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_032_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 18.772124,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_032_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 18.77216,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_032_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 18.772161,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_033_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.053759,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_033_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.053765,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_033_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.053731,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_033_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.053729,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_034_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.308027,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_034_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.308025,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_034_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.308117,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_034_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.308114,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_035_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.529276,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_035_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.529278,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_035_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.529239,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_035_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.529232,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_036_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.712536,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_036_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.71255,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_036_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.712355,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_036_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.712355,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_037_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.853514,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_037_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.853517,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_037_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.853743,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_037_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.853749,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_038_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.949439,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_038_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.949434,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_038_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.949459,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_038_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.949457,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_039_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.998042,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_039_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.998053,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_039_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.998051,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_039_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.998059,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_040_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.997962,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_040_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.997962,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_040_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.997737,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_040_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.997746,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_041_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.949439,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_041_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.949442,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_041_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.949527,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_041_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.949526,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_043_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.712601,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_043_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.7126,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_043_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.7125,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_043_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.712498,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_045_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 19.308095,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_045_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 19.3081,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_045_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 19.307974,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_045_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 19.307972,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_047_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 18.772046,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_047_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 18.772044,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_047_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 18.772056,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_047_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 18.772067,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_049_rotating-loop-gate_LEFT",
+        "triangles": 12,
+        "surfaceArea": 18.152338,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_049_rotating-loop-gate_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 18.15234,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_049_rotating-loop-gate_SILL",
+        "triangles": 12,
+        "surfaceArea": 18.152393,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_049_rotating-loop-gate_TOP",
+        "triangles": 12,
+        "surfaceArea": 18.152394,
+        "collections": [
+          "04_LOOP"
+        ]
+      },
+      {
+        "name": "GATE_051_ignition-circuit_LEFT",
+        "triangles": 12,
+        "surfaceArea": 25.387996,
+        "collections": [
+          "05_IGNITION"
+        ]
+      },
+      {
+        "name": "GATE_051_ignition-circuit_RIGHT",
+        "triangles": 12,
+        "surfaceArea": 25.387915,
+        "collections": [
+          "05_IGNITION"
+        ]
+      },
+      {
+        "name": "GATE_051_ignition-circuit_SILL",
+        "triangles": 12,
+        "surfaceArea": 28.863882,
+        "collections": [
+          "05_IGNITION"
+        ]
+      },
+      {
+        "name": "GATE_051_ignition-circuit_TOP",
+        "triangles": 12,
+        "surfaceArea": 28.863968,
+        "collections": [
+          "05_IGNITION"
+        ]
+      },
+      {
+        "name": "HOOP_000_opening-signal-ring",
+        "triangles": 1152,
+        "surfaceArea": 59.70177,
+        "collections": [
+          "01_SIGNAL"
+        ]
+      },
+      {
+        "name": "HOOP_004_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 51.427653,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_006_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 63.894871,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_008_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 59.425676,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_009_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 65.224954,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_010_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 54.043515,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_011_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 59.425677,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_012_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 64.548403,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_013_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 52.941458,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_014_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 57.653519,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_015_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 62.067879,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_016_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 50.506894,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_017_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 54.640093,
+        "collections": [
+          "02_HOOPS"
+        ]
+      },
+      {
+        "name": "HOOP_018_centered-hoop",
+        "triangles": 1152,
+        "surfaceArea": 58.52644,
+        "collections": [
+          "02_HOOPS"
+        ]
+      }
+    ],
+    "objectCount": 113,
+    "triangleCount": 17844,
+    "surfaceArea": 5019.864907,
+    "oceanMarker": null
+  },
+  "coordinateSystem": {
+    "source": "Blender right-handed Z-up",
+    "runtime": "website right-handed Y-up",
+    "mapping": "Blender (x,y,z) -> website (x,z,-y)",
+    "units": "metres / website world units"
+  },
+  "layout": {
+    "format": "little-endian float32",
+    "strideFloats": 8,
+    "strideBytes": 32,
+    "attributes": [
+      "position.x",
+      "position.y",
+      "position.z",
+      "normal.x",
+      "normal.y",
+      "normal.z",
+      "seed",
+      "colorGroup"
+    ],
+    "oceanMarker": "seed < 0"
+  },
+  "palette": {
+    "owner": "Home simulation palette snapshot",
+    "groups": 6,
+    "policy": "balanced mixed groups; runtime colors only"
+  },
+  "ocean": {
+    "nearZ": -395.5,
+    "farZ": -2195.5,
+    "baseY": -6.2,
+    "nearHalfWidth": 50.0,
+    "farHalfWidth": 4400.0,
+    "cameraEnd": [
+      0.0,
+      2.2,
+      -393.0
+    ],
+    "blenderCameraEnd": [
+      0.0,
+      2.2,
+      -340.639709
+    ],
+    "nearOffset": 2.5
+  },
+  "finaleAlignment": {
+    "collections": [
+      "06_LIVING"
+    ],
+    "sourceMinY": -25.098303,
+    "sourceMaxY": 26.610708,
+    "sourceCenterY": 0.756203,
+    "cameraTrackY": 2.2,
+    "offsetY": 1.443797
+  },
+  "lods": {
+    "low": {
+      "file": "about-v2-edited-world-points-low.bin",
+      "count": 5000,
+      "bytes": 160000,
+      "environmentCount": 2000,
+      "oceanCount": 3000,
+      "bounds": {
+        "min": [
+          -3624.087706,
+          -23.654507,
+          -1951.061699
+        ],
+        "max": [
+          2170.608046,
+          28.054504,
+          0.48743
+        ]
+      },
+      "materialCounts": [
+        834,
+        834,
+        833,
+        833,
+        833,
+        833
+      ]
+    },
+    "medium": {
+      "file": "about-v2-edited-world-points-medium.bin",
+      "count": 12000,
+      "bytes": 384000,
+      "environmentCount": 5000,
+      "oceanCount": 7000,
+      "bounds": {
+        "min": [
+          -3886.862724,
+          -23.654507,
+          -2036.078995
+        ],
+        "max": [
+          2557.503849,
+          28.054504,
+          0.497057
+        ]
+      },
+      "materialCounts": [
+        2001,
+        2001,
+        2000,
+        2000,
+        1999,
+        1999
+      ]
+    }
+  }
+}

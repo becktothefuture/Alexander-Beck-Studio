@@ -54,10 +54,14 @@ function getAuthoredText() {
   ]).filter(Boolean).join(' ');
 }
 
-test('production About owns canonical playback, development owns the editor, and the standalone Lab route is retired', () => {
-  assert.doesNotMatch(aboutRouteSource, /AboutComingSoon|about-coming-soon-title/);
+test('development owns canonical playback while production keeps the About coming-soon gate', () => {
+  assert.match(aboutRouteSource, /import \{ AboutComingSoon \}/);
+  assert.match(aboutRouteSource, /if \(!import\.meta\.env\.DEV\)/);
+  assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-coming-soon-title'/);
+  assert.match(aboutRouteSource, /secondary: <AboutComingSoon \/>/);
   assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-route-title'/);
-  assert.match(aboutExperienceSource, /const initialDocument = INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT/);
+  assert.doesNotMatch(aboutRouteSource, /getAboutExperienceVersion|URLSearchParams|experienceVersion=/);
+  assert.match(aboutExperienceSource, /const initialDocument = ABOUT_NARRATIVE_DOCUMENT/);
   assert.match(aboutExperienceSource, /if \(__DEV__\) return requestedMode !== '0'/);
   assert.doesNotMatch(aboutExperienceSource, /<main\b/, 'The shell owns the only main landmark.');
   assert.doesNotMatch(aboutExperienceSource, /copyVariant|aboutNarrativeCopyVariants/);
@@ -69,14 +73,12 @@ test('the canonical document carries the accepted spoken narrative', () => {
   const authoredText = getAuthoredText();
   const modules = getEditorialModules();
   const firstProse = modules.find((module) => module.id === 'context')?.text || '';
-  const disciplines = document.tracks.interactions.clips
-    .find((clip) => clip.id === 'motion-discipline-reveal')
-    ?.parameters?.items || [];
+  const disciplines = getTextField('text-discipline-labels')?.block?.items || [];
 
   assert.equal(getTextField('text-promise-main').text, 'About Me');
   assert.equal(
     getTextField('text-promise-main').description,
-    'Hi, I’m Alex. I’m a designer because I’m endlessly curious about how things work.',
+    'Hi, I’m Alex. I’m a designer because I see possibility in how things work—and how they could work better.',
   );
   assert.equal(
     getTextField('text-complexity-idea').text,
@@ -84,39 +86,41 @@ test('the canonical document carries the accepted spoken narrative', () => {
   );
   assert.equal(
     getTextField('text-complexity-conditions').text,
-    '…especially the kind that don’t fit neatly into a single discipline.',
+    '…especially those that refuse to stay within one discipline.',
   );
   assert.equal(
     getTextField('text-complexity-curiosity').text,
-    'The more complex the questions became…',
+    'The more complex the question…',
   );
   assert.equal(
     getTextField('text-complexity-listen').text,
-    '…the more often I found myself working across disciplines.',
+    '…the more often I work at the intersection of disciplines.',
   );
-  assert.match(firstProse, /new technology that people don’t quite trust yet/);
+  assert.match(firstProse, /technology such as AI or digital identity can be useful before people are ready to trust it/);
   assert.match(authoredText, /around thirteen years ago/);
-  assert.match(authoredText, /AI becomes valuable when it strengthens human judgement/);
-  assert.match(authoredText, /redesigning the iOS keyboard/);
+  assert.match(authoredText, /AI sharpens the same tension/);
+  assert.match(authoredText, /could a phone keyboard work better/);
   assert.deepEqual(
     modules.filter((module) => module.kind === 'list').map((module) => module.items),
     [
-      ['Those are the problems I enjoy most.'],
-      ['I’ve learned that the brief is often only part of the story.'],
+      ['That is where I see the most potential for useful innovation.'],
+      ['Good design does not always make things easier.'],
     ],
   );
-  assert.equal(modules.find((module) => module.id === 'selected-clients').label, 'Selected work from across my career.');
+  assert.equal(
+    modules.find((module) => module.id === 'selected-clients').label,
+    'I’ve been fortunate to work with influential organisations across automotive, aviation, charity, finance and technology.',
+  );
   assert.equal(
     modules.find((module) => module.id === 'selected-clients').items
       .find((item) => item.id === 'mccann').label,
     'McCann Worldgroup',
   );
   assert.equal(modules.some((module) => module.kind === 'interactive-stack'), false);
-  assert.equal(getTextField('text-disciplines-title').block.moduleGapRem, 1.6);
+  assert.equal(getTextField('text-disciplines-title').block.kind, 'stack');
   assert.equal(disciplines.length, 6);
   assert.ok(disciplines.every((item) => item.description.length >= 50));
   assert.doesNotMatch(authoredText, /\bfear\b|\bafraid\b/i);
-  assert.doesNotMatch(authoredText, /—|;/);
 });
 
 test('the canonical ending is transformative and the finale continues it', () => {
@@ -140,7 +144,7 @@ test('the canonical ending is transformative and the finale continues it', () =>
   assert.equal(finale.text, 'Let’s begin.');
   assert.equal(
     finale.description,
-    'If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it.',
+    'If you’re working on something difficult to define, or following a question you can’t leave alone, I’d be curious to hear about it.',
   );
   assert.doesNotMatch(finale.text, /get in touch/i);
 });

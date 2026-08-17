@@ -1,0 +1,160 @@
+[ABOUT ME PAGE — CONDENSED EDITORIAL DRAFT WITH EXAMPLES]
+[This is a proposed revision, not live site copy.]
+[Bracketed notes describe placement or editorial purpose and are not page copy.]
+
+
+[OPENING SCREEN]
+
+[TITLE]
+About Me
+
+[PARAGRAPH — directly beneath the title]
+Hi, I’m Alex. I’m a designer because I see possibility in how things work—and how they could work better.
+
+[SMALL SCROLL CUE]
+Scroll
+
+
+[FULL-SCREEN TITLE]
+I’ve always been drawn to complex problems…
+
+
+[FULL-SCREEN TITLE]
+…especially those that refuse to stay within one discipline.
+
+
+[FIRST READING SECTION]
+
+[PARAGRAPH — principle followed by three examples]
+What do I mean by a complex problem? The ground is always shifting. A technology such as AI or digital identity can be useful before people are ready to trust it. A new product can ask for an interaction no one has learned yet. An ordinary tool—the phone keyboard, a consent screen, a sign-in flow—can shape millions of decisions without attracting attention.
+
+[PULL-OUT SENTENCE]
+That is where I see the most potential for useful innovation.
+
+[PARAGRAPH — includes a concrete example of useful friction]
+I want to understand what sits beneath the surface: technical constraints, human behaviour, business goals and the small details that shape an experience. The answer might be to simplify, explain something differently, or add a moment of friction—a pause before someone shares sensitive information. When design works, it can disappear into the experience. That is a good thing.
+
+[PARAGRAPH]
+I started my career in Communication Design in Mainz, Germany, around thirteen years ago. Technology interested me, but visual communication showed me how a single image, word, type choice or movement can change what someone understands and feels. That still fascinates me, and it remains fundamental to how I work.
+
+[PARAGRAPH — Yoti provides the concrete example]
+In creative agencies I moved towards interface design, motion, design systems and close collaboration with developers. At Yoti in London, the challenge was more delicate: use product design and brand to help people trust digital identity. That was when I stopped treating product, brand and communication as separate disciplines. They solve different parts of the same problem, and they work best in service of one another.
+
+[CLIENT LOGO GRID]
+
+[GRID LABEL]
+I’ve been fortunate to work with influential organisations across automotive, aviation, charity, finance and technology.
+
+[LOGOS — shown as graphic marks]
+Yoti
+S&P Global
+Bentley
+SunExpress
+McCann Worldgroup
+American Heart Association
+Sony
+Jaguar Land Rover
+Maybourne Hotels
+Experian
+Data Communications Company
+Tourism Ireland
+Lufthansa
+General Motors
+
+
+[FULL-SCREEN TITLE]
+The more complex the question…
+
+
+[FULL-SCREEN TITLE]
+…the more often I work at the intersection of disciplines.
+
+
+[DISCIPLINE REVEAL]
+
+[DISCIPLINE TITLE]
+Product Design
+
+[DISCIPLINE DESCRIPTION]
+Understanding what people need before deciding what should be built.
+
+[DISCIPLINE TITLE]
+Experience Design
+
+[DISCIPLINE DESCRIPTION]
+Seeing the whole journey, especially the gaps between teams, systems and touchpoints.
+
+[DISCIPLINE TITLE]
+Art Direction
+
+[DISCIPLINE DESCRIPTION]
+Finding a visual idea with enough personality to shape the whole system.
+
+[DISCIPLINE TITLE]
+Motion & 3D
+
+[DISCIPLINE DESCRIPTION]
+Using movement and space when static design isn’t enough.
+
+[DISCIPLINE TITLE]
+Creative Engineering
+
+[DISCIPLINE DESCRIPTION]
+Building ideas in code so they can be tested instead of imagined.
+
+[DISCIPLINE TITLE]
+Parametric Systems
+
+[DISCIPLINE DESCRIPTION]
+Building flexible systems that stay coherent as they grow.
+
+
+[SECOND READING SECTION]
+
+[PARAGRAPH — understanding the wider problem]
+When I begin a project, I want to understand the business, the people and the space around the problem before deciding what the work should become. A brief may name the visible problem. It rarely explains the forces that created it.
+
+[PULL-OUT SENTENCE]
+Good design does not always make things easier.
+
+[PARAGRAPH — critical position on simplicity and friction]
+We live in a time of frictionless products and instant answers. I don’t believe less is always more. Sometimes design should slow someone down, make a decision visible or leave complexity intact. A confirmation before sharing an identity can be useful friction if it helps someone understand what they are doing.
+
+[PARAGRAPH — using trends without being led by them]
+I use trends when they help people enter something new. I distrust them when they replace the idea. An interface can look current and still have nothing to say. I would rather make something that belongs to the problem and lasts beyond the moment.
+
+[PARAGRAPH — making early and protecting character through implementation]
+I make things early and stay close to development. A prototype reveals where an idea is useful and where it is only decoration. Systems matter, but standardise every unusual decision and the result becomes another copy of a copy. The structure should be reliable. The important moments should still feel made by a person.
+
+[PARAGRAPH — critical position on AI]
+AI sharpens the same tension. It helps me explore further and make ideas visible sooner. It can also average them into something merely plausible. I use it to widen the search. Deciding what is worth making is still my responsibility.
+
+[PARAGRAPH — personal projects become the examples]
+Not everything starts with a client. Some projects begin with a question I can’t leave alone: could a phone keyboard work better? How should people understand AI? What makes a digital product feel trustworthy? Others lead into robotics or creative engineering.
+
+[PARAGRAPH]
+Some become things I can share; others remain sketches, prototypes or half-answered questions. All of them shape what I do next.
+
+
+[FULL-SCREEN TITLE]
+They may begin in one discipline…
+
+
+[FULL-SCREEN TITLE]
+…but they rarely stay there…
+
+
+[FULL-SCREEN TITLE]
+…and I like not knowing exactly where they’ll lead.
+
+
+[CLOSING SCREEN]
+
+[TITLE]
+Let’s begin.
+
+[PARAGRAPH — beneath the closing title]
+If you’re working on something difficult to define, or following a question you can’t leave alone, I’d be curious to hear about it.
+
+[EMAIL LINK]
+Send me an email.

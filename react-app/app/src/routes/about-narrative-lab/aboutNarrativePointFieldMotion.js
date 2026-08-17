@@ -6,6 +6,7 @@ export const ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES = Object.freeze([
 ]);
 export const ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES = Object.freeze([
   'direct',
+  'flow',
   'arc',
   'curl',
   'noise',
@@ -221,6 +222,23 @@ function writeCurlOffset(target, axis, angle, amplitude) {
   }
 }
 
+function writeFlowOffset(target, axis, angle, amplitude) {
+  // Flow is deliberately a single broad bend, not time-varying noise. Nearby
+  // points share the spatial part of `angle`, so the field moves in coherent
+  // ribbons while the small seeded term keeps individual paths from stacking.
+  const secondary = Math.sin(angle * 0.63) * amplitude * 0.42;
+  if (axis === 'x') {
+    target[1] = Math.cos(angle) * amplitude;
+    target[2] = secondary;
+  } else if (axis === 'z') {
+    target[0] = Math.cos(angle) * amplitude;
+    target[1] = secondary;
+  } else {
+    target[0] = Math.cos(angle) * amplitude;
+    target[2] = secondary;
+  }
+}
+
 /**
  * Samples renderer-ready per-point motion without allocating. `visualProgress`
  * is authoritative: this function remaps it for stagger but never eases it again.
@@ -262,7 +280,22 @@ export function sampleAboutNarrativePointFieldMotionInto(
     && path.amount > 0 && path.mode !== 'direct') {
     const envelope = Math.sin(Math.PI * progress) * path.amount;
     const phase = seededPhase(point.seed, path.seed);
-    if (path.mode === 'arc') {
+    if (path.mode === 'flow') {
+      const spatialPhase = clamp01(
+        point.radialPhase
+        ?? point.axisPhase
+        ?? point.yPhase
+        ?? phase,
+      );
+      writeFlowOffset(
+        target.pathOffset,
+        path.axis,
+        (spatialPhase * TWO_PI)
+          + (phase * 0.22)
+          + (progress * path.frequency * Math.PI),
+        envelope,
+      );
+    } else if (path.mode === 'arc') {
       writeAxisOffset(target.pathOffset, path.axis, envelope);
     } else if (path.mode === 'curl') {
       writeCurlOffset(

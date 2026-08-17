@@ -1884,11 +1884,6 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   pointer-events: auto;
 }
 
-.portfolio-project-view__scroll :is(h1, h2, h3, h4, h5, h6, p, figcaption, a) {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
 /* Hero fills first viewport of scrollport; CQ ties height to visible drawer when possible. */
 .portfolio-project-view__hero {
   position: relative;

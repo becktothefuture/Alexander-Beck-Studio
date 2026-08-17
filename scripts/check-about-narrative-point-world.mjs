@@ -169,7 +169,7 @@ test('surface-rise bust formation keeps the exact source pose at transition star
   assert.notDeepEqual([target.x, target.y, target.z], input.fromPosition);
 });
 
-test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressive bust formation, and orbital motion on one contract', () => {
+test('point renderer keeps visibility, fog, sizing, ocean motion, legacy bust formation, and orbital motion on one contract', () => {
   const source = readFileSync(new URL(
     '../react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
     import.meta.url,
@@ -195,6 +195,21 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /float resolvedToPresence = toPresence \* step\(/);
   assert.match(source, /float enteringPoint = \(1\.0 - step\(0\.5, resolvedFromPresence\)\)/);
   assert.match(source, /gl_Position\.z \+= enteringPoint/);
+  assert.match(source, /gl_Position = applyPointerPressure\(projectionMatrix \* viewPoint\)/);
+  assert.match(source, /pointerPressureOrganicField/);
+  assert.match(source, /pointerPressureTrailNdc/);
+  assert.match(source, /const renderNowMs = performance\.now\(\)/);
+  assert.match(source, /updatePointerPressure\(frame, renderNowMs\)/);
+  assert.match(source, /createAboutNarrativeCameraPointerPanController/);
+  assert.match(source, /createAboutNarrativeCameraSteadycamController/);
+  assert.match(source, /cameraSteadycam\.sampleInto\(/);
+  assert.match(source, /cameraPointerPan\.sampleInto\(/);
+  assert.match(source, /camera\.quaternion\.multiply\(cameraPointerPanQuaternion\)/);
+  assert.match(source, /getCameraPointerPanSnapshot: cameraPointerPan\.getSnapshot/);
+  assert.match(source, /getCameraSteadycamSnapshot:/);
+  assert.match(source, /root\.addEventListener\('pointermove', handlePressurePointerMove/);
+  assert.match(source, /finePointerQuery\.matches/);
+  assert.match(source, /getPointerPressureSnapshot: pointerPressure\.getSnapshot/);
   assert.match(source, /gl_PointSize \*= mix\(1\.0, max\(0\.01, entryProgress\), enteringPoint\)/);
   assert.match(source, /ROUTE_ENTRANCE_START_EVENT/);
   assert.match(source, /entranceAlreadyComplete = root\.dataset\.aboutEntranceState === 'complete'/);
@@ -211,19 +226,12 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /globalCamera\?\.distanceFogEndWU \?\? 18/);
   assert.doesNotMatch(source, /frame\.camera\.distanceFog/);
   assert.doesNotMatch(source, /disciplineFieldFog|DisciplineBackgroundScale/);
-  assert.match(source, /float clampedPointSize = clamp\(renderedPointSize, 5\.25, 21\.6\)/);
+  assert.match(
+    source,
+    /float clampedPointSize = clamp\(cssPointSize, mix\(6\.5, 3\.8, longAssemblyWeight\), 21\.6\)/,
+  );
   assert.match(source, /gl_PointSize = max\(0\.01, clampedPointSize \* entranceScale\) \* pixelRatio/);
-  assert.match(source, /presence = max\(presence, groupExists \* disciplineRevealActive\)/);
-  assert.match(source, /disciplineMaterialColor\(group\)/);
-  assert.match(source, /if \(group < 3\.5\) return disciplineWhiteColor/);
-  assert.match(source, /--about-discipline-white/);
-  assert.match(source, /resolvedFieldOpacity = mix\(fieldOpacity, 1\.0, pointRevealWeight\)/);
-  assert.match(source, /float group = toGroup >= 0\.5 \? toGroup : fromGroup/);
-  assert.match(source, /float disciplineRevealForGroup\(float group\)/);
-  assert.match(source, /float revealedGroupWeight = groupExists \* disciplineRevealForGroup\(group\)/);
-  assert.doesNotMatch(source, /disciplineReducedMotion/);
-  assert.match(source, /presence = mix\([\s\S]*revealedGroupWeight/);
-  assert.match(source, /max\(cssPointSize, 21\.6\)/);
+  assert.doesNotMatch(source, /disciplineReveal|disciplineIsolation|disciplineBackground|projectDiscipline/);
   assert.match(source, /worldPointSizeScale = mix\(fromPointSizeScale, toPointSizeScale, morph\)/);
   assert.match(
     source,
@@ -244,14 +252,6 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /wasShortLandscape !== shortLandscape && lastPreparationRequest/);
   assert.match(source, /inputFingerprint: pairDescriptor\.inputFingerprint/);
   assert.match(source, /inputFingerprint: pair\.inputFingerprint/);
-  assert.match(source, /frame\.storyWU >= reveal\.effectStartWU/);
-  assert.match(source, /frame\.storyWU < reveal\.effectEndWU/);
-  assert.match(source, /const revealWeight = Number\(revealState\?\.weights\?\.\[index\] \|\| 0\)/);
-  assert.doesNotMatch(source, /beatDurationWU|itemsPerBeat|activeIndex|cumulativeReveal/);
-  assert.match(source, /label\.style\.setProperty\('--discipline-reveal'/);
-  assert.match(source, /const projectDisciplineLabels = \(\) =>/);
-  assert.doesNotMatch(source, /projectDisciplineAnchors|getAboutNarrativeDisciplineLabelNudge|disciplineLabelResizeObserver/);
-  assert.doesNotMatch(source, /installConstrainedDisciplinePoint|constrainDisciplinePointsToCorridor/);
   assert.match(source, /attributeFilter: \['data-editor-preview-layout', 'data-editor-preview-orientation'\]/);
   assert.match(source, /window\.addEventListener\('resize', resize, \{ passive: true \}\)/);
   assert.match(source, /window\.removeEventListener\('resize', resize\)/);
@@ -284,9 +284,28 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /vec2 gatheredPlatform = gridRippleCenter[\s\S]*?toWorld\.xz/);
   assert.match(source, /vec3 submergedBust = toWorld/);
   assert.match(source, /float surfaceTransit = max\(0\.0, surfaceDeparture - surfaceArrival\)/);
-  assert.match(source, /presence \*= mix\(1\.0, clamp\(bustSurfaceCarry/);
-  assert.match(source, /uniforms\.fromDisciplineIsolation\.value = backgroundWeight/);
-  assert.match(source, /uniforms\.toDisciplineIsolation\.value = backgroundWeight/);
+  assert.match(source, /float materialSizePresence = mix\([\s\S]*clamp\(bustSurfaceCarry/);
+  assert.match(source, /gl_PointSize \*= max\(0\.01, materialSizePresence\)/);
+  assert.match(source, /uniform float oceanTime/);
+  assert.match(source, /float oceanSurface = \(/);
+  assert.match(source, /worldPoint\.xz \+= oceanHorizontal \* oceanWeight/);
+  assert.match(source, /vec4 sampleOceanSplash\(/);
+  assert.match(source, /worldPoint \+= oceanSplash\.xyz \* oceanWeight/);
+  assert.match(source, /oceanSplashEnergy \* 0\.34/);
+  assert.match(source, /uniforms\.oceanSplashAmount\.value = frame\.reducedMotion/);
+  assert.match(source, /distanceFog = mix\(distanceFog, oceanDistanceFog, oceanWeight\)/);
+  assert.match(source, /uniform float oceanRevealProgress;/);
+  assert.match(source, /presence \*= mix\(1\.0, oceanRevealProgress, oceanWeight\);/);
+  assert.match(source, /distanceFogEndWU \* oceanFogDistanceScale/);
+  assert.match(source, /worldPoint\.z \+= oceanStoryOffsetZ \* oceanWeight/);
+  assert.match(source, /ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU - oceanStoryEndWU/);
+  assert.match(source, /uniforms\.oceanTime\.value = frame\.reducedMotion \? 0 : performance\.now\(\) \* 0\.001/);
+  assert.match(source, /uniform float structureManifestationAmount/);
+  assert.match(source, /float structureMotionMask = longAssemblyWeight \* \(1\.0 - oceanWeight\)/);
+  assert.match(source, /float manifestationWeight = smoothstep\(/);
+  assert.match(source, /viewPoint\.xyz \+= manifestationDirection/);
+  assert.match(source, /driftClock = mix\(storyTime, oceanTime, longAssemblyWeight\)/);
+  assert.match(source, /uniforms\.structureAmbientAmount\.value = frame\.reducedMotion/);
   assert.match(source, /uniform float bustFragmentSpread/);
   assert.match(source, /bustFragmentProgress[\s\S]*bustAssemblyWeight/);
   assert.match(source, /float rippleClock = storyTime/);
@@ -305,10 +324,7 @@ test('point renderer keeps visibility, fog, sizing, perpetual ripples, progressi
   assert.match(source, /gridRippleEmphasis/);
   assert.match(source, /attributeFilter: \['class', 'data-theme'\]/);
   assert.doesNotMatch(source, /--narrative-camera-fov/);
-  assert.match(
-    styles,
-    /data-about-motion-profile='reduced'[\s\S]*discipline-reveal li[\s\S]*transform: none/,
-  );
+  assert.doesNotMatch(styles, /about-narrative-discipline-reveal/);
 });
 
 test('PointWorld recomputes responsive preparation identity across orientation changes in one live adapter', () => {

@@ -27,14 +27,14 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     }),
   }),
   about: Object.freeze({
-    identitySelector: '.about-narrative-lab[data-world-prepare="ready"]',
+    identitySelector: '#about-coming-soon-title',
     runtime: false,
     representativeFocus: Object.freeze({
       selector: '[data-route-tab="portfolio"]',
     }),
     semanticContract: Object.freeze({
       mainSelector: '#simulations[role="main"][data-route-content="about"]',
-      headingSelector: 'h1#about-route-title[data-route-focus-target]',
+      headingSelector: 'h1#about-coming-soon-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
   }),

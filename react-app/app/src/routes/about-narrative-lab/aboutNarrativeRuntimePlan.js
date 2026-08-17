@@ -488,7 +488,6 @@ export function sampleAboutNarrativeTitleFieldInto(
   const endY = Number(textMotion?.endY ?? 130);
   const entryDepth = Number(textMotion?.entryDepth ?? 360);
   const exitDepth = Number(textMotion?.exitDepth ?? 220);
-  const maxBlur = Number(textMotion?.maxBlur ?? 22);
   if (isFinale) {
     const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
     if (valueWU < startWU) {
@@ -503,28 +502,43 @@ export function sampleAboutNarrativeTitleFieldInto(
       'smoothstep',
       (valueWU - startWU) / (focusWU - startWU),
     );
-    target.opacity = entryProgress;
+    // Finale copy enters through a quiet spatial settle. It is fully opaque
+    // from its first rendered frame so the forming bust never competes with
+    // partially legible typography.
+    target.opacity = 1;
     target.blur = 0;
     target.x = 0;
-    target.y = 0;
-    target.z = 0;
+    target.y = mix(18, 0, entryProgress);
+    target.z = mix(-entryDepth * 0.12, 0, entryProgress);
     return target;
   }
   if (isOpener) {
     const spanWU = Math.max(0.00001, endWU - startWU);
     const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
-    const exitProgress = applyAboutNarrativeTrackEasing('smoothstep', progress);
-    target.opacity = valueWU > endWU ? 0 : 1 - exitProgress;
+    const travelProgress = applyAboutNarrativeTrackEasing('smoothstep', progress);
+    const usesUnitExit = Number.isFinite(Number(textMotion?.titleExitOpacity));
+    const readableEnd = Math.min(0.98, Math.max(
+      0,
+      Number(textMotion?.readableEnd ?? 0.72),
+    ));
+    const exitProgress = applyAboutNarrativeTrackEasing(
+      'smoothstep',
+      (progress - readableEnd) / Math.max(0.00001, 1 - readableEnd),
+    );
+    // The opening title, rule, and description share these inherited values.
+    // They travel and settle out as one lockup instead of dimming title glyphs
+    // independently before the parent disappears.
+    target.opacity = usesUnitExit ? 1 - exitProgress : 1;
     target.blur = 0;
     target.x = 0;
-    target.y = mix(openerStartY, endY, exitProgress);
-    target.z = 0;
+    target.y = usesUnitExit ? mix(openerStartY, endY, travelProgress) : openerStartY;
+    target.z = usesUnitExit ? mix(0, exitDepth * 0.4, travelProgress) : 0;
     return target;
   }
   if (valueWU < startWU || valueWU > endWU) {
     const before = valueWU < startWU;
     target.opacity = 0;
-    target.blur = maxBlur;
+    target.blur = 0;
     target.x = 0;
     target.y = before ? startY : endY;
     target.z = before ? -entryDepth : exitDepth;
@@ -533,20 +547,10 @@ export function sampleAboutNarrativeTitleFieldInto(
 
   const spanWU = Math.max(0.00001, endWU - startWU);
   const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
-  const readableStart = Math.min(1, Math.max(0, Number(textMotion?.readableStart ?? 0.24)));
-  const readableEnd = Math.min(1, Math.max(0, Number(textMotion?.readableEnd ?? 0.76)));
-  const clearIn = readableStart <= 0
-    ? 1
-    : applyAboutNarrativeTrackEasing('smoothstep', progress / readableStart);
-  const clearOut = readableEnd >= 1
-    ? 1
-    : 1 - applyAboutNarrativeTrackEasing(
-      'smoothstep',
-      (progress - readableEnd) / (1 - readableEnd),
-    );
-  const clarity = Math.min(clearIn, clearOut);
-  target.opacity = clarity;
-  target.blur = mix(maxBlur, 0, clarity);
+  // Travelling titles use position and depth as their complete transition.
+  // Keeping glyphs solid and sharp makes legibility independent of scroll speed.
+  target.opacity = 1;
+  target.blur = 0;
   target.x = 0;
   target.y = mix(startY, endY, progress);
   target.z = mix(-entryDepth, exitDepth, progress);

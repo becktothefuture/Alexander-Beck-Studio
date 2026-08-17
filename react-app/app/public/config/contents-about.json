@@ -1,57 +1,71 @@
 {
   "schemaVersion": 7,
   "globals": {
-    "scrollSmoothing": 0.82,
-    "readingWidthRem": 51,
-    "editorialRevealThreshold": 0.8,
+    "scrollSmoothing": 1,
+    "readingWidthRem": 50,
+    "editorialRevealThreshold": 0.78,
     "editorialMotion": {
       "fadeDurationWU": 0.2,
       "maxBlurPx": 0,
       "travelPx": 0
     },
     "worldRail": {
-      "originZ": 8,
-      "unitsPerWU": 1
+      "originZ": 14,
+      "unitsPerWU": 18.5
     },
     "camera": {
-      "distanceFogStartWU": 10,
-      "distanceFogEndWU": 22
+      "distanceFogStartWU": 7,
+      "distanceFogEndWU": 34,
+      "forwardSpeedWU": 18.5,
+      "steadycamResponseMs": 260,
+      "pointerPanDegrees": 0.35,
+      "pointerPanResponseMs": 620
     },
     "pointMaterial": {
       "opacity": 1,
-      "pointSize": 9.1
+      "pointSize": 13,
+      "pointerRadiusPx": 182,
+      "pointerForcePx": 0,
+      "pointerVariation": 0,
+      "pointerResponseMs": 65,
+      "pointerReturnMs": 720
     },
     "swarmTurbulence": {
-      "amplitude": 0.05,
-      "speed": 0.52,
-      "irregularity": 0.74,
-      "individuality": 0.92,
-      "axisSpread": 0.9
+      "amplitude": 0,
+      "speed": 0,
+      "irregularity": 0,
+      "individuality": 0,
+      "axisSpread": 0
     },
     "textMotion": {
       "preset": "travelling-title-v1",
-      "standardMaxWidthCh": 22,
-      "displayMaxWidthCh": 18,
+      "standardMaxWidthCh": 21,
+      "displayMaxWidthCh": 17,
       "standardViewportY": 50,
-      "bookendViewportY": 70,
-      "durationScale": 1.7,
-      "startY": 50,
+      "bookendViewportY": 50,
+      "durationScale": 1.35,
+      "startY": 30,
       "openerStartY": 0,
-      "endY": -50,
-      "readableStart": 0.4,
-      "readableEnd": 0.69,
-      "titleShadowOpacity": 0.3,
-      "titleShadowBlurPx": 28,
+      "endY": -24,
+      "readableStart": 0.18,
+      "readableEnd": 0.72,
+      "titleDrawDurationMs": 90,
+      "titleColorCount": 5,
+      "titleLineStaggerMs": 70,
+      "titleExitOpacity": 0.2,
+      "titleExitLineStagger": 0.16,
+      "titleShadowOpacity": 0,
+      "titleShadowBlurPx": 0,
       "perspective": 1600,
-      "entryDepth": 360,
-      "exitDepth": 220,
-      "maxBlur": 6
+      "entryDepth": 280,
+      "exitDepth": 180,
+      "maxBlur": 0
     }
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 20,
-      "scrollDurationWU": 20,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -65,31 +79,10 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 20,
-      "scrollDurationWU": 20,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22,
       "overrides": {
-        "camera": {
-          "lens-discipline-hold": {
-            "fov": 60
-          },
-          "lens-discipline-travel-start": {
-            "fov": 60
-          },
-          "move-discipline-hold": {
-            "position": [
-              -5,
-              4,
-              -1.75
-            ]
-          },
-          "move-discipline-travel-start": {
-            "position": [
-              -5,
-              4,
-              -4.51
-            ]
-          }
-        },
+        "camera": {},
         "visibility": {},
         "pointField": {
           "stateDefinitions": {},
@@ -101,116 +94,13 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 20,
-      "scrollDurationWU": 20.62,
+      "storyDurationWU": 22,
+      "scrollDurationWU": 22,
       "overrides": {
-        "camera": {
-          "lens-discipline-hold": {
-            "fov": 60
-          },
-          "lens-discipline-travel-start": {
-            "fov": 60
-          },
-          "lens-finale-hold": {
-            "fov": 33
-          },
-          "lens-finale-resolved-hold": {
-            "fov": 33
-          },
-          "lens-ripple-overhead-hold": {
-            "fov": 47.18264014466546
-          },
-          "look-finale-hold": {
-            "rotation": [
-              -9.896777,
-              156,
-              0
-            ]
-          },
-          "look-finale-resolved-hold": {
-            "rotation": [
-              -9.896777,
-              156,
-              0
-            ]
-          },
-          "look-grid-return-centered": {
-            "rotation": [
-              -9.896777,
-              -180,
-              0
-            ]
-          },
-          "look-ripple-overhead-hold": {
-            "rotation": [
-              -10.101532,
-              170.80046,
-              0
-            ]
-          },
-          "move-discipline-hold": {
-            "position": [
-              -5,
-              4,
-              -1.75
-            ]
-          },
-          "move-discipline-travel-start": {
-            "position": [
-              -5,
-              4,
-              -4.51
-            ]
-          },
-          "move-finale-hold": {
-            "position": [
-              3.943556589690735,
-              0.84025,
-              -16.408961578415663
-            ]
-          },
-          "move-finale-resolved-hold": {
-            "position": [
-              3.943556589690735,
-              0.84025,
-              -16.408961578415663
-            ]
-          },
-          "move-grid-return-centered": {
-            "position": [
-              -0.23,
-              0.84025,
-              -17.29607841705559
-            ]
-          },
-          "move-orb-establish": {
-            "position": [
-              0,
-              0.98,
-              5.2
-            ]
-          },
-          "move-ripple-overhead-hold": {
-            "position": [
-              1.4094387913887356,
-              0.8769080142263166,
-              -17.157715688011272
-            ]
-          }
-        },
+        "camera": {},
         "visibility": {},
         "pointField": {
-          "stateDefinitions": {
-            "world-emergent": {
-              "transform": {
-                "position": [
-                  0.32,
-                  0,
-                  0
-                ]
-              }
-            }
-          },
+          "stateDefinitions": {},
           "keys": {},
           "segments": {}
         },
@@ -227,432 +117,469 @@
     "camera": {
       "moveKeys": [
         {
-          "id": "move-orb-establish",
+          "id": "move-ride-threshold",
           "atWU": 0,
           "position": [
             0,
-            0.98,
-            5.9
+            0.15,
+            14
           ],
-          "easing": "cubic-bezier(0.55, 0, 0.75, 1)",
-          "velocityMode": "eased"
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-promise-main",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         },
         {
-          "id": "move-complexity-exit",
-          "atWU": 5.122,
+          "id": "move-ride-material-yard",
+          "atWU": 1.4,
+          "position": [
+            -1.2,
+            0.15,
+            -11.9
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-complexity-idea",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-hoops",
+          "atWU": 2.55,
+          "position": [
+            -7.02,
+            0.839,
+            -33.175
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-complexity-conditions",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-archive",
+          "atWU": 3.6,
+          "position": [
+            -10.467,
+            1.902,
+            -52.6
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-background-unit",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-question-drop",
+          "atWU": 7.15,
+          "position": [
+            4.859,
+            -0.61,
+            -118.275
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-complexity-curiosity",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-interchange",
+          "atWU": 8.05,
+          "position": [
+            0.933,
+            0.542,
+            -134.925
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-complexity-listen",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-workshops",
+          "atWU": 8.95,
+          "position": [
+            8.421,
+            4.975,
+            -151.575
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-discipline-labels",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-assembly-hall",
+          "atWU": 11.5,
+          "position": [
+            -5.867,
+            15.666,
+            -198.75
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-disciplines-title",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-pressure-wall",
+          "atWU": 14.5,
+          "position": [
+            1.057,
+            0.955,
+            -254.25
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-life-momentum",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-transfer-bridge",
+          "atWU": 15.3,
+          "position": [
+            -0.782,
+            1.498,
+            -269.05
+          ],
+          "easing": "linear",
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-life-form",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "move-ride-city",
+          "atWU": 16.1,
           "position": [
             0,
-            0.1,
-            -21.6
-          ],
-          "easing": "smoothstep",
-          "velocityMode": "eased"
-        },
-        {
-          "id": "move-grid-birds-eye-2",
-          "atWU": 5.37,
-          "position": [
-            -5,
-            0.2,
-            -40
-          ],
-          "easing": "cubic-bezier(0.32, 0, 0.99, 1)",
-          "velocityMode": "eased"
-        },
-        {
-          "id": "move-discipline-travel-start",
-          "atWU": 7.7,
-          "position": [
-            -5,
-            3.14,
-            -4.51
+            0.65,
+            -283.85
           ],
           "easing": "linear",
-          "velocityMode": "constant"
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-life-character",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         },
         {
-          "id": "move-discipline-hold",
-          "atWU": 11.15,
-          "position": [
-            -5,
-            3.14,
-            -1.75
-          ],
-          "easing": "cubic-bezier(0.35, 0, 0.18, 1)",
-          "velocityMode": "constant"
-        },
-        {
-          "id": "move-grid-return-centered",
-          "atWU": 14.15,
+          "id": "move-ride-terminal",
+          "atWU": 20.1,
           "position": [
             0,
-            0.13105675984809606,
-            -15.95
+            2.1,
+            -357.85
           ],
           "easing": "linear",
-          "velocityMode": "constant"
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         },
         {
-          "id": "move-ripple-overhead-hold",
-          "atWU": 16.35,
+          "id": "move-ride-beyond",
+          "atWU": 22,
           "position": [
-            1.4238150509635352,
-            0.1699556849818673,
-            -15.82694122532745
+            0,
+            2.2,
+            -393
           ],
           "easing": "linear",
-          "velocityMode": "constant"
-        },
-        {
-          "id": "move-finale-resolved-hold",
-          "atWU": 17.75,
-          "position": [
-            3.626057173020758,
-            0.13105675984809606,
-            -15.179257754883785
-          ],
-          "easing": "smoothstep",
-          "velocityMode": "eased"
-        },
-        {
-          "id": "move-finale-hold",
-          "atWU": 20,
-          "position": [
-            3.626057173020758,
-            0.13105675984809606,
-            -15.179257754883785
-          ],
-          "easing": "linear",
-          "velocityMode": "constant"
+          "velocityMode": "fluid",
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "exit",
+            "offsetWU": 0
+          }
         }
       ],
       "lookKeys": [
         {
-          "id": "look-orb-establish",
+          "id": "look-ride-threshold",
           "atWU": 0,
           "rotation": [
+            -0.47,
+            0.57,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-promise-main",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-material-yard",
+          "atWU": 1.4,
+          "rotation": [
+            1.387,
+            -15.478,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-complexity-idea",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-hoops",
+          "atWU": 2.55,
+          "rotation": [
+            2.826,
+            -12.204,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-complexity-conditions",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-archive",
+          "atWU": 3.6,
+          "rotation": [
+            2.997,
+            5.083,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-background-unit",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-question-drop",
+          "atWU": 7.15,
+          "rotation": [
+            -2.981,
+            -7.237,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-complexity-curiosity",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-interchange",
+          "atWU": 8.05,
+          "rotation": [
+            8.477,
+            -18.586,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-complexity-listen",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-workshops",
+          "atWU": 8.95,
+          "rotation": [
+            32.015,
+            27.477,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-discipline-labels",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-assembly-hall",
+          "atWU": 11.5,
+          "rotation": [
+            0.387,
+            8.029,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-disciplines-title",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-pressure-wall",
+          "atWU": 14.5,
+          "rotation": [
+            -3.719,
+            7.875,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-life-momentum",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-transfer-bridge",
+          "atWU": 15.3,
+          "rotation": [
+            -2.327,
+            4.506,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-life-form",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-city",
+          "atWU": 16.1,
+          "rotation": [
+            0.329,
+            8.251,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-life-character",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-terminal",
+          "atWU": 20.1,
+          "rotation": [
+            0.399,
+            0,
+            0
+          ],
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "look-ride-beyond",
+          "atWU": 22,
+          "rotation": [
             0,
             0,
             0
           ],
-          "easing": "cubic-bezier(0.55, 0, 0.75, 1)"
-        },
-        {
-          "id": "look-complexity-exit",
-          "atWU": 5.122,
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "easing": "smoothstep"
-        },
-        {
-          "id": "look-grid-birds-eye-2",
-          "atWU": 5.37,
-          "rotation": [
-            -2.3,
-            0,
-            0
-          ],
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
-        },
-        {
-          "id": "look-discipline-travel-start",
-          "atWU": 7.7,
-          "rotation": [
-            -2.3,
-            0,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-discipline-pitch-start",
-          "atWU": 8.35,
-          "rotation": [
-            -2.3,
-            0,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-discipline-tilt-end",
-          "atWU": 9.15,
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-discipline-tilt-hold",
-          "atWU": 11.15,
-          "rotation": [
-            -90,
-            0,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-grid-return-centered",
-          "atWU": 14.15,
-          "rotation": [
-            -12.22189,
-            -180,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-ripple-overhead-hold",
-          "atWU": 16.35,
-          "rotation": [
-            -12.472009,
-            170.801071,
-            0
-          ],
-          "easing": "linear"
-        },
-        {
-          "id": "look-finale-resolved-hold",
-          "atWU": 17.75,
-          "rotation": [
-            -12.22189,
-            156,
-            0
-          ],
-          "easing": "smoothstep"
-        },
-        {
-          "id": "look-finale-hold",
-          "atWU": 20,
-          "rotation": [
-            -12.22189,
-            156,
-            0
-          ],
-          "easing": "linear"
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "exit",
+            "offsetWU": 0
+          }
         }
       ],
       "lensKeys": [
         {
-          "id": "lens-orb-establish",
+          "id": "lens-ride-fixed",
           "atWU": 0,
-          "fov": 46,
-          "easing": "cubic-bezier(0.55, 0, 0.75, 1)"
-        },
-        {
-          "id": "lens-complexity-exit",
-          "atWU": 5.122,
-          "fov": 52,
-          "easing": "smoothstep"
-        },
-        {
-          "id": "lens-grid-birds-eye-2",
-          "atWU": 5.37,
-          "fov": 80,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
-        },
-        {
-          "id": "lens-discipline-travel-start",
-          "atWU": 7.7,
-          "fov": 56,
-          "easing": "linear"
-        },
-        {
-          "id": "lens-discipline-hold",
-          "atWU": 11.15,
-          "fov": 56,
-          "easing": "cubic-bezier(0.32, 0, 0.18, 1)"
-        },
-        {
-          "id": "lens-grid-return-centered",
-          "atWU": 14.15,
-          "fov": 56,
-          "easing": "linear"
-        },
-        {
-          "id": "lens-ripple-overhead-hold",
-          "atWU": 16.35,
-          "fov": 54.46654611211573,
-          "easing": "linear"
-        },
-        {
-          "id": "lens-finale-resolved-hold",
-          "atWU": 17.75,
-          "fov": 52,
-          "easing": "smoothstep"
-        },
-        {
-          "id": "lens-finale-hold",
-          "atWU": 20,
-          "fov": 52,
-          "easing": "linear"
+          "fov": 85,
+          "easing": "linear",
+          "trigger": {
+            "momentId": "text-promise-main",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         }
       ]
     },
     "visibility": {
       "keys": [
         {
-          "id": "visibility-start",
+          "id": "visibility-long-assembly-start",
           "atWU": 0,
           "visibility": 1,
           "easing": "linear",
-          "locked": true
+          "locked": true,
+          "trigger": {
+            "momentId": "text-promise-main",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         },
         {
-          "id": "visibility-complexity",
-          "atWU": 3.465,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-void-off",
-          "atWU": 3.72,
-          "visibility": 0,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-grid-rise",
-          "atWU": 6.715,
-          "visibility": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-grid-visible",
-          "atWU": 6.865,
+          "id": "visibility-long-assembly-end",
+          "atWU": 22,
           "visibility": 1,
           "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-discipline-read",
-          "atWU": 10.85,
-          "visibility": 1,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-editorial-off",
-          "atWU": 11.15,
-          "visibility": 0,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-return-start",
-          "atWU": 14.15,
-          "visibility": 0,
-          "easing": "smoothstep",
-          "locked": false
-        },
-        {
-          "id": "visibility-returned",
-          "atWU": 14.3,
-          "visibility": 1,
-          "easing": "linear",
-          "locked": false
-        },
-        {
-          "id": "visibility-end",
-          "atWU": 20,
-          "visibility": 1,
-          "easing": "linear",
-          "locked": true
+          "locked": true,
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "exit",
+            "offsetWU": 0
+          }
         }
       ]
     },
     "pointField": {
       "stateDefinitions": [
         {
-          "id": "world-complexity",
-          "label": "B",
+          "id": "v2-long-assembly",
+          "label": "The Long Assembly · Permanent Corridor",
+          "protected": true,
           "adapterId": "point-field-v1",
-          "shapeId": "turbulent-field-v1",
+          "shapeId": "long-assembly-corridor-v1",
           "seed": 506832829,
-          "railAnchorWU": 0.95,
-          "entryDistanceWU": 6.2,
+          "railAnchorWU": 0,
+          "entryDistanceWU": 14,
           "transform": {
             "position": [
               0,
-              1.2,
-              0
-            ],
-            "rotation": [
-              0,
               0,
               0
-            ],
-            "scale": 0.92,
-            "pointSizeScale": 1.05
-          },
-          "shapeParameters": {
-            "width": 10.5,
-            "height": 13.8,
-            "depth": 38.6,
-            "chunkCount": 30,
-            "chunkSize": 7.55,
-            "scatter": 0.14,
-            "turbulence": 0.42,
-            "density": 0.33
-          },
-          "modifiers": []
-        },
-        {
-          "id": "world-emergent",
-          "label": "E",
-          "adapterId": "point-field-v1",
-          "shapeId": "bust-v1",
-          "seed": 506832829,
-          "railAnchorWU": 4.059751,
-          "entryDistanceWU": 12,
-          "transform": {
-            "position": [
-              0.6,
-              0,
-              0
-            ],
-            "rotation": [
-              0,
-              10,
-              0.03
-            ],
-            "scale": 2,
-            "pointSizeScale": 1,
-            "mobileScale": 1.38,
-            "mobileYOffset": 0.2,
-            "mobileLandscapeScale": 1.8,
-            "mobileLandscapeXScale": 1.8,
-            "mobileLandscapeXOffset": 3.48,
-            "mobileLandscapeYOffset": -2,
-            "mobileLandscapeZOffset": 0
-          },
-          "shapeParameters": {
-            "density": 0.26
-          },
-          "modifiers": [],
-          "protected": true
-        },
-        {
-          "id": "world-grid",
-          "label": "C",
-          "adapterId": "point-field-v1",
-          "shapeId": "calm-field-v1",
-          "seed": 506832829,
-          "railAnchorWU": 4.059751,
-          "entryDistanceWU": 12,
-          "transform": {
-            "position": [
-              0,
-              0.2,
-              0.33
             ],
             "rotation": [
               0,
@@ -660,240 +587,79 @@
               0
             ],
             "scale": 1,
-            "pointSizeScale": 1.2,
-            "mobileScale": 0.6,
-            "mobileXScale": 1,
-            "mobileYOffset": 0.345,
-            "mobileZOffset": 1.37
+            "pointSizeScale": 1,
+            "mobileScale": 0.82,
+            "mobileXScale": 0.82,
+            "mobileYOffset": 0.2
           },
           "shapeParameters": {
-            "width": 48,
-            "depth": 56,
-            "height": -1.72,
-            "jitter": 0,
-            "density": 0.32
-          },
-          "modifiers": []
-        },
-        {
-          "id": "world-promise",
-          "label": "A",
-          "adapterId": "point-field-v1",
-          "shapeId": "cluster-v1",
-          "seed": 506832829,
-          "railAnchorWU": 0,
-          "entryDistanceWU": 8,
-          "transform": {
-            "position": [
-              0,
-              2,
-              0
-            ],
-            "rotation": [
-              0,
-              0.174533,
-              0
-            ],
-            "scale": 0.52,
-            "pointSizeScale": 1.15,
-            "mobileScale": 0.44,
-            "mobileNarrowWidth": 390,
-            "mobileWideWidth": 768,
-            "mobileNarrowScale": 0.36,
-            "mobileNarrowYOffset": 0.68,
-            "mobileNarrowDensity": 0.13
-          },
-          "shapeParameters": {
-            "radius": 2,
-            "density": 0.05
+            "storyDurationWU": 22,
+            "widthScale": 1,
+            "heightScale": 1,
+            "depthScale": 1,
+            "cameraLookAheadWU": 0.82,
+            "density": 1,
+            "structureManifestationAmount": 0.72,
+            "structureAmbientAmount": 0.055,
+            "structureAmbientSpeed": 0.28,
+            "signalRadius": 2.59,
+            "signalYOffset": 2.7,
+            "hoopRadius": 4.35,
+            "hoopCount": 18,
+            "loopStartWU": 7.9,
+            "loopEndWU": 13.85,
+            "loopRadiusX": 9.5,
+            "loopRadiusY": 8.7,
+            "loopRollDegrees": 360,
+            "loopGateCount": 22,
+            "terminalDistanceWU": 1.25,
+            "oceanHeight": -6.2,
+            "oceanDensity": 0.9,
+            "oceanAmplitude": 2.05,
+            "oceanSpeed": 1.04,
+            "oceanChop": 1.08,
+            "oceanPointScale": 1.18,
+            "oceanFogDistanceScale": 24,
+            "oceanSplashAmount": 1.2,
+            "oceanSplashHeight": 4.4,
+            "backgroundAnchorWU": 3.6,
+            "intersectionAnchorWU": 8.05,
+            "disciplinesAnchorWU": 11.5,
+            "cityAnchorWU": 16.1,
+            "finaleAnchorWU": 20.1
           },
           "modifiers": []
         }
       ],
       "keys": [
         {
-          "id": "key-world-promise-initial",
+          "id": "key-long-assembly-start",
           "atWU": 0,
-          "stateId": "world-promise",
-          "protected": true
+          "stateId": "v2-long-assembly",
+          "protected": true,
+          "trigger": {
+            "momentId": "text-promise-main",
+            "phase": "enter",
+            "offsetWU": 0
+          }
         },
         {
-          "id": "key-world-complexity-departure",
-          "atWU": 0.7,
-          "stateId": "world-promise"
-        },
-        {
-          "id": "key-world-complexity-arrival",
-          "atWU": 3.749988,
-          "stateId": "world-complexity"
-        },
-        {
-          "id": "key-world-grid-departure",
-          "atWU": 5.05,
-          "stateId": "world-complexity"
-        },
-        {
-          "id": "key-world-grid-arrival",
-          "atWU": 5.35,
-          "stateId": "world-grid"
-        },
-        {
-          "id": "key-world-emergent-departure",
-          "atWU": 16.35,
-          "stateId": "world-grid"
-        },
-        {
-          "id": "key-world-emergent-arrival",
-          "atWU": 17.75,
-          "stateId": "world-emergent"
-        },
-        {
-          "id": "key-world-emergent-final",
-          "atWU": 20,
-          "stateId": "world-emergent",
-          "protected": true
+          "id": "key-long-assembly-end",
+          "atWU": 22,
+          "stateId": "v2-long-assembly",
+          "protected": true,
+          "trigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "exit",
+            "offsetWU": 0
+          }
         }
       ],
       "segments": [
         {
-          "id": "segment-key-world-promise-initial-to-key-world-complexity-departure",
-          "fromKeyId": "key-world-promise-initial",
-          "toKeyId": "key-world-complexity-departure",
-          "transition": {
-            "type": "hold",
-            "easing": "linear",
-            "correspondence": null,
-            "progress": 1,
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-complexity-departure-to-key-world-complexity-arrival",
-          "fromKeyId": "key-world-complexity-departure",
-          "toKeyId": "key-world-complexity-arrival",
-          "transition": {
-            "type": "morph",
-            "easing": "smoothstep",
-            "correspondence": "index-v1",
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-complexity-arrival-to-key-world-grid-departure",
-          "fromKeyId": "key-world-complexity-arrival",
-          "toKeyId": "key-world-grid-departure",
-          "transition": {
-            "type": "hold",
-            "easing": "linear",
-            "correspondence": null,
-            "progress": 1,
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-grid-departure-to-key-world-grid-arrival",
-          "fromKeyId": "key-world-grid-departure",
-          "toKeyId": "key-world-grid-arrival",
-          "transition": {
-            "type": "morph",
-            "easing": "ease-out",
-            "correspondence": "spatial-nearest-v2",
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-grid-arrival-to-key-world-emergent-departure",
-          "fromKeyId": "key-world-grid-arrival",
-          "toKeyId": "key-world-emergent-departure",
-          "transition": {
-            "type": "hold",
-            "easing": "linear",
-            "correspondence": null,
-            "progress": 1,
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-emergent-departure-to-key-world-emergent-arrival",
-          "fromKeyId": "key-world-emergent-departure",
-          "toKeyId": "key-world-emergent-arrival",
-          "transition": {
-            "type": "morph",
-            "easing": "smoothstep",
-            "correspondence": "radial-emergence-v1",
-            "stagger": {
-              "mode": "uniform",
-              "amount": 0
-            },
-            "path": {
-              "mode": "direct",
-              "amount": 0
-            },
-            "flatten": {
-              "mode": "none",
-              "amount": 0
-            }
-          }
-        },
-        {
-          "id": "segment-key-world-emergent-arrival-to-key-world-emergent-final",
-          "fromKeyId": "key-world-emergent-arrival",
-          "toKeyId": "key-world-emergent-final",
+          "id": "segment-long-assembly-permanent-hold",
+          "fromKeyId": "key-long-assembly-start",
+          "toKeyId": "key-long-assembly-end",
           "transition": {
             "type": "hold",
             "easing": "linear",
@@ -921,9 +687,14 @@
           "id": "text-promise-main",
           "kind": "title",
           "startWU": 0,
-          "focusWU": 0.35,
-          "endWU": 0.7,
+          "focusWU": 0.4,
+          "endWU": 0.8,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.85,
+            "gapAfter": "chapter",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "opener"
           },
@@ -931,15 +702,20 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "Hi, I’m Alex. I’m a designer because I’m endlessly curious about how things work."
+          "description": "Hi, I’m Alex. I’m a designer because I see possibility in how things work—and how they could work better."
         },
         {
           "id": "text-complexity-idea",
           "kind": "title",
-          "startWU": 1.3,
-          "focusWU": 1.7,
-          "endWU": 2.1,
+          "startWU": 1.4,
+          "focusWU": 1.8,
+          "endWU": 2.2,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
@@ -951,25 +727,35 @@
         {
           "id": "text-complexity-conditions",
           "kind": "title",
-          "startWU": 2.42,
-          "focusWU": 2.82,
-          "endWU": 3.22,
+          "startWU": 2.55,
+          "focusWU": 2.95,
+          "endWU": 3.35,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "standard",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…especially the kind that don’t fit neatly into a single discipline."
+          "text": "…especially those that refuse to stay within one discipline."
         },
         {
           "id": "text-background-unit",
           "kind": "scroll-block",
-          "startWU": 3.465,
-          "focusWU": 3.945,
-          "endWU": 6.715,
+          "startWU": 3.6,
+          "focusWU": 4.1,
+          "endWU": 7.05,
           "publishable": true,
+          "flow": {
+            "minScreens": 1.8,
+            "gapAfter": "standard",
+            "focusMode": "reading-start"
+          },
           "presentation": {
             "layout": "reading"
           },
@@ -980,40 +766,34 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "What do I mean by a complex problem? Sometimes it’s a new technology that people don’t quite trust yet. Sometimes it’s a product that has no obvious interaction pattern because no one has built it before. Sometimes it’s something surprisingly ordinary that millions of people experience every day without questioning it."
+                "text": "What do I mean by a complex problem? The ground is always shifting. A technology such as AI or digital identity can be useful before people are ready to trust it. A new product can ask for an interaction no one has learned yet. An ordinary tool—the phone keyboard, a consent screen, a sign-in flow—can shape millions of decisions without attracting attention."
               },
               {
                 "id": "context-emphasis",
                 "kind": "list",
                 "items": [
-                  "Those are the problems I enjoy most."
+                  "That is where I see the most potential for useful innovation."
                 ]
               },
               {
                 "id": "understanding",
                 "kind": "prose",
-                "text": "I like understanding what sits underneath the surface. The technical constraints. The human behaviour. The business goals. The tiny details that quietly shape an experience. Sometimes the answer is making something simpler. Sometimes it’s creating a new interaction. Sometimes it’s explaining an idea so clearly that people forget it ever seemed complicated. The best design often disappears into the experience. I think that’s a good thing."
+                "text": "I want to understand what sits beneath the surface: technical constraints, human behaviour, business goals and the small details that shape an experience. The answer might be to simplify, explain something differently, or add a moment of friction—a pause before someone shares sensitive information. When design works, it can disappear into the experience. That is a good thing."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "I started my career in Communication Design in Mainz, Germany, around thirteen years ago. Although I always enjoyed technology, I kept coming back to something much more fundamental: the effect that visual communication can have on people. A single image. A typographic decision. A carefully chosen word. A piece of motion. Each can completely change how someone understands an idea, or how they feel about it. That still fascinates me today."
+                "text": "I started my career in Communication Design in Mainz, Germany, around thirteen years ago. Technology interested me, but visual communication showed me how a single image, word, type choice or movement can change what someone understands and feels. That still fascinates me, and it remains fundamental to how I work."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "Over time my work became increasingly digital. In agencies I naturally drifted towards interface design, motion, design systems and close collaboration with developers. Moving to London to join Yoti changed the scale of the questions I was working on. Identity technology couldn’t just function correctly. People had to trust it. That was probably the moment I stopped seeing product, brand and communication as separate disciplines. They’re all different ways of solving the same problem.",
-                "emphasis": [
-                  {
-                    "text": "People had to trust it",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "In creative agencies I moved towards interface design, motion, design systems and close collaboration with developers. At Yoti in London, the challenge was more delicate: use product design and brand to help people trust digital identity. That was when I stopped treating product, brand and communication as separate disciplines. They solve different parts of the same problem, and they work best in service of one another."
               },
               {
                 "id": "selected-clients",
                 "kind": "logo-grid",
-                "label": "Selected work from across my career.",
+                "label": "I’ve been fortunate to work with influential organisations across automotive, aviation, charity, finance and technology.",
                 "items": [
                   {
                     "id": "yoti",
@@ -1098,6 +878,13 @@
                     "label": "General Motors",
                     "src": "/images/about/client-logos/general-motors.svg",
                     "alt": "General Motors"
+                  },
+                  {
+                    "id": "think-money-think-life",
+                    "label": "Think Money Think Life",
+                    "src": "/images/about/client-logos/think-money-think-life.svg",
+                    "alt": "Think Money Think Life",
+                    "scale": 0.92
                   }
                 ]
               }
@@ -1107,40 +894,111 @@
         {
           "id": "text-complexity-curiosity",
           "kind": "title",
-          "startWU": 6.765,
-          "focusWU": 7.165,
-          "endWU": 7.565,
+          "startWU": 7.15,
+          "focusWU": 7.55,
+          "endWU": 7.95,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "The more complex the questions became…"
+          "text": "The more complex the question…"
         },
         {
           "id": "text-complexity-listen",
           "kind": "title",
-          "startWU": 7.665,
-          "focusWU": 8.065,
-          "endWU": 8.465,
+          "startWU": 8.05,
+          "focusWU": 8.45,
+          "endWU": 8.85,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "standard",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…the more often I found myself working across disciplines."
+          "text": "…the more often I work at the intersection of disciplines."
+        },
+        {
+          "id": "text-discipline-labels",
+          "kind": "scroll-block",
+          "startWU": 8.95,
+          "focusWU": 9.7,
+          "endWU": 11.4,
+          "publishable": true,
+          "flow": {
+            "minScreens": 1.6,
+            "gapAfter": "standard",
+            "focusMode": "reading-start"
+          },
+          "presentation": {
+            "layout": "disciplines"
+          },
+          "block": {
+            "id": "discipline-labels",
+            "kind": "disciplines",
+            "label": "Disciplines",
+            "items": [
+              {
+                "id": "product-design",
+                "label": "Product Design",
+                "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve."
+              },
+              {
+                "id": "experience-design",
+                "label": "Experience Design",
+                "description": "I connect user needs, product priorities, and the decisions that shape the journey."
+              },
+              {
+                "id": "art-direction",
+                "label": "Art Direction",
+                "description": "I define the visual point of view that gives the work character, clarity, and intent."
+              },
+              {
+                "id": "motion-and-3d",
+                "label": "Motion & 3D",
+                "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories."
+              },
+              {
+                "id": "creative-engineering",
+                "label": "Creative Engineering",
+                "description": "I prototype with code and AI to move decisions from discussion into working form."
+              },
+              {
+                "id": "parametric-systems",
+                "label": "Parametric Systems",
+                "description": "I build systems of tokens, rules, and patterns that scale without losing character."
+              }
+            ]
+          },
+          "reveal": {
+            "fadeDurationWU": 0.2
+          }
         },
         {
           "id": "text-disciplines-title",
           "kind": "scroll-block",
-          "startWU": 10.85,
-          "focusWU": 11.4,
-          "endWU": 14.15,
+          "startWU": 11.5,
+          "focusWU": 12.1,
+          "endWU": 14.4,
           "publishable": true,
+          "flow": {
+            "minScreens": 1.8,
+            "gapAfter": "chapter",
+            "focusMode": "reading-start"
+          },
           "presentation": {
             "layout": "disciplines"
           },
@@ -1151,51 +1009,44 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "When I begin a project I tend to disappear into it for a while. I ask a lot of questions. I collect references from unexpected places. I speak to the people who understand the problem better than anyone else."
+                "text": "When I begin a project, I want to understand the business, the people and the space around the problem before deciding what the work should become. A brief may name the visible problem. It rarely explains the forces that created it."
               },
               {
                 "id": "brief-emphasis",
                 "kind": "list",
                 "items": [
-                  "I’ve learned that the brief is often only part of the story."
+                  "Good design does not always make things easier."
                 ]
+              },
+              {
+                "id": "friction-judgement",
+                "kind": "prose",
+                "text": "We live in a time of frictionless products and instant answers. I don’t believe less is always more. Sometimes design should slow someone down, make a decision visible or leave complexity intact. A confirmation before sharing an identity can be useful friction if it helps someone understand what they are doing."
+              },
+              {
+                "id": "trend-judgement",
+                "kind": "prose",
+                "text": "I use trends when they help people enter something new. I distrust them when they replace the idea. An interface can look current and still have nothing to say. I would rather make something that belongs to the problem and lasts beyond the moment."
               },
               {
                 "id": "making-early",
                 "kind": "prose",
-                "text": "I also like making things early. Not because they are finished, but because they reveal where everyone’s assumptions begin to fall apart. A rough prototype can create better conversations than a polished presentation.",
-                "emphasis": [
-                  {
-                    "text": "A rough prototype can create better conversations",
-                    "tone": "blue"
-                  }
-                ]
-              },
-              {
-                "id": "language-context",
-                "kind": "prose",
-                "text": "I care about giving projects a strong point of view, but I’m not precious about my ideas. Good work gets better when smart people challenge it. I also stay close to development. Partly because I genuinely enjoy building things. Mostly because I’ve seen too many good ideas lose what made them special during implementation."
+                "text": "I make things early and stay close to development. A prototype reveals where an idea is useful and where it is only decoration. Systems matter, but standardise every unusual decision and the result becomes another copy of a copy. The structure should be reliable. The important moments should still feel made by a person."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "AI has become another tool I use almost every day. It helps me think faster, prototype earlier and explore ideas I wouldn’t have had time to pursue before. It’s an incredible amplifier. It’s also incredibly good at producing work that looks convincing before anyone has asked whether it’s solving the right problem. That feels like an important distinction. I think AI becomes valuable when it strengthens human judgement, not when it replaces it.",
-                "emphasis": [
-                  {
-                    "text": "strengthens human judgement",
-                    "tone": "blue"
-                  }
-                ]
+                "text": "AI sharpens the same tension. It helps me explore further and make ideas visible sooner. It can also average them into something merely plausible. I use it to widen the search. Deciding what is worth making is still my responsibility."
               },
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "Not everything I build starts with a client. Quite often it starts with a question that refuses to leave me alone. Recently that’s included redesigning the iOS keyboard, exploring better ways for people to understand AI, thinking about trust in digital products, and experimenting with robotics and creative engineering."
+                "text": "Not everything starts with a client. Some projects begin with a question I can’t leave alone: could a phone keyboard work better? How should people understand AI? What makes a digital product feel trustworthy? Others lead into robotics or creative engineering."
               },
               {
                 "id": "unfinished-projects",
                 "kind": "prose",
-                "text": "Some of these projects become something I can share. Others stay as sketches, prototypes or half-answered questions. They still shape how I approach whatever comes next."
+                "text": "Some become things I can share; others remain sketches, prototypes or half-answered questions. All of them shape what I do next."
               }
             ]
           }
@@ -1203,10 +1054,15 @@
         {
           "id": "text-life-momentum",
           "kind": "title",
-          "startWU": 14.25,
-          "focusWU": 14.6,
-          "endWU": 14.95,
+          "startWU": 14.5,
+          "focusWU": 14.85,
+          "endWU": 15.2,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.7,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
@@ -1218,10 +1074,15 @@
         {
           "id": "text-life-form",
           "kind": "title",
-          "startWU": 15.05,
-          "focusWU": 15.4,
-          "endWU": 15.75,
+          "startWU": 15.3,
+          "focusWU": 15.65,
+          "endWU": 16,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.7,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
@@ -1233,10 +1094,15 @@
         {
           "id": "text-life-character",
           "kind": "title",
-          "startWU": 15.85,
-          "focusWU": 16.2,
-          "endWU": 16.55,
+          "startWU": 16.1,
+          "focusWU": 16.45,
+          "endWU": 16.8,
           "publishable": true,
+          "flow": {
+            "minScreens": 0.7,
+            "gapAfter": "chapter",
+            "focusMode": "middle"
+          },
           "presentation": {
             "layout": "center"
           },
@@ -1248,267 +1114,108 @@
         {
           "id": "text-epilogue-invitation",
           "kind": "title",
-          "startWU": 17.45,
-          "focusWU": 17.85,
-          "endWU": 20,
+          "startWU": 20.1,
+          "focusWU": 20.65,
+          "endWU": 22,
           "publishable": true,
+          "flow": {
+            "minScreens": 1.4,
+            "gapAfter": "none",
+            "focusMode": "middle"
+          },
           "presentation": {
-            "layout": "text-bust-cta"
+            "layout": "text-finale-cta"
           },
           "movement": "spatial",
           "preset": "finale-v1",
           "titleStyle": "display",
           "text": "Let’s begin.",
-          "description": "If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it."
+          "description": "If you’re working on something difficult to define, or following a question you can’t leave alone, I’d be curious to hear about it."
         }
       ]
     },
     "interactions": {
       "clips": [
         {
-          "id": "effect-world-promise-swarm-life",
+          "id": "effect-long-assembly-service-pulse",
           "type": "state-effect",
-          "startWU": 0,
-          "activationWU": 0,
-          "endWU": 2.75,
-          "targetStateId": "world-promise",
+          "startWU": 13.45,
+          "activationWU": 13.85,
+          "endWU": 14.85,
+          "targetStateId": "v2-long-assembly",
           "parameters": {
-            "effectId": "swarm-life-v1",
+            "effectId": "living-wave-v1",
             "releaseWU": 0,
-            "strength": 3.66
-          }
-        },
-        {
-          "id": "effect-world-complexity-swarm-life",
-          "type": "state-effect",
-          "startWU": 0.7,
-          "activationWU": 0.7,
-          "endWU": 5.35,
-          "targetStateId": "world-complexity",
-          "parameters": {
-            "effectId": "swarm-life-v1",
-            "releaseWU": 0,
-            "strength": 1.5
-          }
-        },
-        {
-          "id": "effect-world-grid-ambient-drift",
-          "type": "state-effect",
-          "startWU": 5.05,
-          "activationWU": 5.05,
-          "endWU": 17.75,
-          "targetStateId": "world-grid",
-          "parameters": {
-            "effectId": "ambient-drift-v1",
-            "releaseWU": 0,
-            "amplitude": 0.028,
-            "speed": 0.55
-          }
-        },
-        {
-          "id": "motion-discipline-reveal",
-          "type": "discipline-reveal",
-          "startWU": 9.15,
-          "activationWU": 9.15,
-          "endWU": 11.15,
-          "parameters": {
-            "entryStartRatio": 0.54,
-            "entryCompleteRatio": 0.52,
-            "backgroundOpacity": 0.13,
-            "pointScale": 3.2,
-            "restoreDurationWU": 0.8,
-            "items": [
-              {
-                "group": 1,
-                "label": "Product Design",
-                "description": "Understanding what people actually need before deciding what should be built.",
-                "position": [
-                  0.34127,
-                  0.574468
-                ],
-                "tabletPosition": [
-                  0.382716,
-                  0.583333
-                ],
-                "mobilePosition": [
-                  0.382716,
-                  0.583333
-                ]
-              },
-              {
-                "group": 2,
-                "label": "Experience Design",
-                "description": "Looking at the whole journey, including the awkward gaps between teams, systems and touchpoints.",
-                "position": [
-                  0.412698,
-                  0.574468
-                ],
-                "tabletPosition": [
-                  0.419753,
-                  0.583333
-                ],
-                "mobilePosition": [
-                  0.419753,
-                  0.583333
-                ]
-              },
-              {
-                "group": 3,
-                "label": "Art Direction",
-                "description": "Finding a visual idea that gives the work its own personality.",
-                "position": [
-                  0.34127,
-                  0.585106
-                ],
-                "tabletPosition": [
-                  0.382716,
-                  0.6
-                ],
-                "mobilePosition": [
-                  0.382716,
-                  0.6
-                ]
-              },
-              {
-                "group": 4,
-                "label": "Motion & 3D",
-                "description": "Using movement and space when static design isn’t enough.",
-                "position": [
-                  0.412698,
-                  0.585106
-                ],
-                "tabletPosition": [
-                  0.419753,
-                  0.6
-                ],
-                "mobilePosition": [
-                  0.419753,
-                  0.6
-                ]
-              },
-              {
-                "group": 5,
-                "label": "Creative Engineering",
-                "description": "Building ideas in code so they can be tested instead of imagined.",
-                "position": [
-                  0.34127,
-                  0.595745
-                ],
-                "tabletPosition": [
-                  0.382716,
-                  0.616667
-                ],
-                "mobilePosition": [
-                  0.382716,
-                  0.616667
-                ]
-              },
-              {
-                "group": 6,
-                "label": "Parametric Systems",
-                "description": "Creating flexible systems that stay coherent as they grow.",
-                "position": [
-                  0.412698,
-                  0.595745
-                ],
-                "tabletPosition": [
-                  0.419753,
-                  0.616667
-                ],
-                "mobilePosition": [
-                  0.419753,
-                  0.616667
-                ]
-              }
-            ]
+            "strength": 0.55,
+            "amplitude": 0.08,
+            "speed": 1.8,
+            "frequencyX": 0.08,
+            "frequencyZ": 0.52
           },
-          "targetStateId": "world-grid"
-        },
-        {
-          "id": "interaction-grid-ripple",
-          "type": "grid-ripple",
-          "startWU": 14.15,
-          "activationWU": 14.3,
-          "endWU": 16.35,
-          "parameters": {
-            "amplitude": 1.05,
-            "speed": 0.38,
-            "frequency": 1.65,
-            "releaseWU": 0.62
+          "trigger": {
+            "momentId": "text-disciplines-title",
+            "phase": "exit",
+            "offsetWU": -0.55
           },
-          "targetStateId": "world-grid"
-        },
-        {
-          "id": "effect-world-emergent-ambient-drift",
-          "type": "state-effect",
-          "startWU": 16.35,
-          "activationWU": 16.35,
-          "endWU": 20,
-          "targetStateId": "world-emergent",
-          "parameters": {
-            "effectId": "ambient-drift-v1",
-            "releaseWU": 0,
-            "amplitude": 0.018,
-            "speed": 0.28
+          "endTrigger": {
+            "momentId": "text-life-momentum",
+            "phase": "focus",
+            "offsetWU": 0
           }
         },
         {
-          "id": "effect-world-emergent-bust-assembly",
+          "id": "effect-long-assembly-workshop-check",
           "type": "state-effect",
-          "startWU": 16.35,
-          "activationWU": 16.35,
-          "endWU": 20,
-          "targetStateId": "world-emergent",
+          "startWU": 14.85,
+          "activationWU": 15.1,
+          "endWU": 16.1,
+          "targetStateId": "v2-long-assembly",
           "parameters": {
-            "effectId": "bust-assembly-v1",
+            "effectId": "living-wave-v1",
             "releaseWU": 0,
-            "formationMode": "surface-rise",
-            "baseStart": 0.06,
-            "headStart": 0.58,
-            "layerSoftness": 0.44,
-            "platformScale": 2.75,
-            "platformSettle": 0.28,
-            "surfaceHeight": -1.52,
-            "submergeDepth": 3.65,
-            "waterlineSoftness": 0.34,
-            "surfaceCarry": 1,
-            "fragmentHeight": 0.78,
-            "fragmentFade": 0.54,
-            "fragmentReveal": 0.34,
-            "fragmentSpread": 0.42,
-            "fragmentFall": 0.18,
-            "fragmentPresence": 0.5
-          }
-        },
-        {
-          "id": "effect-world-emergent-bust-yaw",
-          "type": "state-effect",
-          "startWU": 16.35,
-          "activationWU": 16.35,
-          "endWU": 20,
-          "targetStateId": "world-emergent",
-          "parameters": {
-            "effectId": "bust-yaw-v1",
-            "releaseWU": 0,
-            "speed": 0.035,
-            "dragSensitivity": 1,
-            "resumeDelay": 0.18,
-            "resumeBlend": 0.9
-          }
-        },
-        {
-          "id": "interaction-emergent-ripple",
-          "type": "grid-ripple",
-          "startWU": 16.35,
-          "activationWU": 16.65,
-          "endWU": 17.95,
-          "parameters": {
-            "amplitude": 0.52,
-            "speed": 0.16,
-            "frequency": 1.95,
-            "releaseWU": 0.75
+            "strength": 0.7,
+            "amplitude": 0.11,
+            "speed": 1.15,
+            "frequencyX": 0.15,
+            "frequencyZ": 0.3
           },
-          "targetStateId": "world-emergent"
+          "trigger": {
+            "momentId": "text-life-momentum",
+            "phase": "exit",
+            "offsetWU": -0.1
+          },
+          "endTrigger": {
+            "momentId": "text-life-character",
+            "phase": "enter",
+            "offsetWU": 0
+          }
+        },
+        {
+          "id": "effect-long-assembly-living-canopy",
+          "type": "state-effect",
+          "startWU": 16.1,
+          "activationWU": 16.1,
+          "endWU": 22,
+          "targetStateId": "v2-long-assembly",
+          "parameters": {
+            "effectId": "living-wave-v1",
+            "releaseWU": 0,
+            "strength": 1,
+            "amplitude": 0.26,
+            "speed": 0.62,
+            "frequencyX": 0.12,
+            "frequencyZ": 0.16
+          },
+          "trigger": {
+            "momentId": "text-life-character",
+            "phase": "enter",
+            "offsetWU": 0
+          },
+          "endTrigger": {
+            "momentId": "text-epilogue-invitation",
+            "phase": "exit",
+            "offsetWU": 0
+          }
         }
       ]
     }
@@ -1516,8 +1223,8 @@
   "library": {
     "presets": [
       {
-        "id": "current-approved-v1",
-        "label": "Current approved look",
+        "id": "long-assembly-v1",
+        "label": "The Long Assembly",
         "scope": "sequence",
         "protected": true
       }

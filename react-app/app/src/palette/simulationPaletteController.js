@@ -49,6 +49,11 @@ function projectSnapshotToDocument(snapshot) {
   snapshot.colors.forEach((color, index) => {
     root.style.setProperty(`--ball-${index + 1}`, color);
   });
+  snapshot.distribution.forEach((row) => {
+    const color = snapshot.colors[row.colorIndex];
+    if (!color) return;
+    root.style.setProperty(`--simulation-role-${row.roleId}`, color);
+  });
   root.dataset.absTimeOfDayPalette = snapshot.paletteId;
   root.dataset.absSimulationPaletteId = snapshot.paletteId;
   root.dataset.absSimulationPalettePeriod = snapshot.periodId;

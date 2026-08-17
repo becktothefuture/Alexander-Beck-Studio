@@ -1,7 +1,7 @@
-# About Director 4.0
+# About Director
 
-About Director 4.0 is the local authoring product for the About narrative. The product version and
-the document version are separate: the current canonical document is **schema v7**.
+About Director is the local authoring product for the canonical About narrative. The current
+canonical document is **schema v7**.
 
 ## Director 4.0 editor contract
 
@@ -9,23 +9,24 @@ the document version are separate: the current canonical document is **schema v7
 - The timeline opens in a compact all-lanes overview and fits the complete Story to the available
   width. It has minimized, compact, and expanded dock heights. Resizing the dock does not change
   zoom, scroll, selection, playhead, active segment, preview geometry, or authored timing.
-- Desktop and tablet use a stage, docked contextual inspector, and bottom timeline. A wider
-  discipline inspector keeps the viewfinder map and all six positions usable. Phone uses mutually
-  exclusive Timeline and Inspector sheets.
+- Text is the first, persistent **Story spine**. Compact editing always keeps it beside the selected
+  animation lane, and its final publishable exit is the canonical page boundary.
+- Desktop and tablet use a stage, docked contextual inspector, and bottom timeline. Phone uses
+  mutually exclusive Timeline and Inspector sheets.
 - The timeline drawer is translucent, while each lane remains `95%` opaque. The preview remains
   visible without reducing key, segment, or label contrast.
-- Scene buttons seek and centre Opening, Field, Grid, Disciplines, Editorial, Closing, Bust, and
-  Finale. Lane headers are selectable, so lane access remains usable when the top lane tabs are
-  hidden at narrower widths.
-- Timeline dragging magnetically snaps to keys, scene boundaries, text envelopes, effect edges, and
-  discipline viewfinder crossings. Hold `Alt` while dragging to bypass snapping. The active snap WU
-  is drawn beside the guide.
+- Moment buttons are generated from the publishable Text spine. They seek and centre each authored
+  Text focus, so the navigation cannot drift from the page's real editorial order.
+- Timeline dragging magnetically snaps to keys, Text-moment boundaries, text envelopes, effect edges, and
+  the final orbit boundaries. Hold `Alt` while dragging to bypass snapping. The active snap WU is
+  drawn beside the guide.
 - Camera Move, Look, and Lens sliders open in a local **Fine** range and retain exact numeric entry.
   **Full** exposes the registered safety range when a larger change is intentional.
 - Preview profile and Point Field authoring scope are independent. Changing Desktop, Tablet, Mobile,
   orientation, or Reduced Motion never changes the Base/Tablet/Mobile authored override.
-- Text blocks have structured add, edit, reorder, duplicate, and remove actions. Advanced source is a
-  lossless escape hatch for unknown valid fields.
+- Text blocks keep their authored order and timing. Their copy, structured content, layout, and
+  presentation remain editable; adding, removing, duplicating, reordering, moving, or resizing the
+  Story spine is intentionally unavailable in schema v7.
 - Diagnostics identify severity, object or segment, property, and message. **Show** selects the
   relevant timeline item and focuses its inspector control.
 - Save, recovery, conflict, and checkpoint state belong to the editor store. Editor layout, panel
@@ -39,7 +40,7 @@ The About page is one authored scroll sequence played by three cooperating layer
 
 1. Native DOM text remains readable, selectable, responsive, and accessible.
 2. One Three.js point-field runtime draws every procedural Form, including the final emergent form.
-3. One world-unit playhead samples Camera, Visibility, Point Field, Text, and Motion at the same moment.
+3. One world-unit playhead samples Camera, Point Field, Text, and Motion at the same moment.
 
 The creative toolkit is available only during local development:
 
@@ -47,7 +48,8 @@ The creative toolkit is available only during local development:
 http://localhost:8012/about.html?edit=1
 ```
 
-The normal lab URL and `/about.html` are playback-only. Production builds remove the editor module and Save endpoint strings.
+Development `/about.html?edit=0` is playback-only. Production `/about.html` renders the centered
+Coming Soon gate and does not expose the narrative or its authoring controls.
 
 ## The authoring hierarchy
 
@@ -55,48 +57,59 @@ The normal lab URL and `/about.html` are playback-only. Production builds remove
 About Narrative
 └── Sequence
     ├── Camera
-    │   ├── Move → absolute XYZ position keys
+    │   ├── Move → Text-moment-bound XYZ position keys
     │   ├── Look → pitch, yaw, and roll keys
-    │   └── Lens → FOV keys
-    ├── World
-    │   ├── Visibility → whole-simulation opacity keys
-    │   ├── Forms → reusable rest geometry and morph targets
-    │   └── Effects → drift, ripples, assembly, yaw, and discipline reveal clips
-    └── Content
-        └── Text → travelling Titles and editorial Scroll blocks
+    │   ├── Lens → FOV keys
+    │   └── Orbit → one target-locked finale movement
+    ├── Visuals
+    │   └── Forms + effects
+    │       ├── Form intervals → reusable rest geometry and morph targets
+    │       └── Nested Effects → drift, ripples, and assembly clips
+    ├── Visual settings
+    │   └── Point style → global opacity and point size, without timeline timing
+    └── Story
+        └── Text spine → travelling Titles and editorial Scroll blocks
 ```
 
 - A **Sequence** is the complete scroll journey.
-- A **Move key** sets only absolute camera Position XYZ at one Story WU.
-- A **Look key** sets only pitch, yaw, and roll at one Story WU.
-- A **Lens key** sets only FOV at one Story WU.
-- A **Visibility key** fades the complete point simulation independently of camera and fog.
+- A **Move key** sets only camera Position XYZ at a named Text moment, phase, and offset.
+- A **Look key** sets only pitch, yaw, and roll at a named Text moment, phase, and offset.
+- A **Lens key** sets only FOV at a named Text moment, phase, and offset.
+- A **Camera orbit** circles one Form anchor while keeping Look aimed at that anchor.
+- **Point material** controls global point opacity and size. The canonical visibility boundary stays at `1` throughout the sequence.
 - A **Form state** is a reusable point-field definition referenced by stable keys.
-- A **Point Field key** places a Form state at an absolute Story WU.
+- A **Point Field key** places a Form state relative to a named Text moment.
 - A **transition segment** owns the parametric motion between two keys; hold regions retain a Form.
 - A **Shape** is the rest arrangement of the fixed point pool.
 - An **Effect clip** adds deterministic Story-time movement to a Form.
 - A **Title** is a large travelling statement.
 - An **editorial block** is native vertically scrolling prose, a list, or a detail.
-- A **Discipline reveal** is one movable Motion clip that moves six existing points through one stable grid reading line without creating another Form or six ordinary title keyframes.
+- A **discipline list** is one ordinary editorial Scroll block containing six labels and descriptions.
 
 “Stage” is not part of the authored vocabulary.
 
-The timeline draws segment duration, camera translation and angular velocity, whole-simulation
-visibility, activity coverage, and discipline viewfinder-crossing markers. Empty activity longer than
-`0.15 WU` is a production error. The discipline inspector provides a two-dimensional grid editor for
-Desktop, Tablet, and Mobile. Anchors snap to real point cells, preserve collision spacing, support
-exact X/Z entry and responsive inheritance, and can move one reveal pair together.
+Titles stay sharp throughout their active span; spatial travel provides their entrance and exit. In the canonical experience,
+each Title also uses the shared bookend colour draw: letters appear in reading order through full-opacity
+palette colours, then settle to the authored text colour. The effect never changes the Title's size,
+placement, or Story timing, and Reduced Motion settles it immediately. Editorial blocks remain ordinary
+solid document content with no per-line opacity timeline. This keeps copy edits structural and
+predictable while the point field and camera animate around them.
+
+The timeline draws segment duration, camera translation and angular velocity, the final orbit,
+camera movement, and activity coverage. Empty activity longer than `0.15 WU` is a
+production error. Discipline labels use the normal structured Text inspector; they have no projected
+anchors or separate responsive positioning model.
 
 ## The source of truth
 
-All About copy, order, timing, camera keys, Forms, Effects, and interactions live in:
+The sole authored About document lives in:
 
 ```text
 react-app/app/public/config/contents-about.json
 ```
 
-The editor and public playback read that same document. There is no second JavaScript copy of the prose.
+Development playback, Director Save, local recovery, and the build input all resolve this document.
+The route ignores `version` parameters and there is no second About source or writable endpoint.
 
 Other ownership stays separate:
 
@@ -109,14 +122,15 @@ Other ownership stays separate:
 
 `1 WU` means one current narrative viewport height. The inspector can reduce the preview width, but the fixed timeline is portalled above the studio window and never changes its height or authored timing.
 
-The sequence saves one Story duration and one Scroll duration per responsive profile. Camera,
-Visibility, Point Field, Text, and Motion objects all use absolute Story WU, so moving one lane never
-silently retimes another. The profile resolver maps physical scroll distance to the same authored
-Story WU without measuring DOM content into the creative timing model.
+The sequence saves one Story duration and one Scroll duration per responsive profile. The fixed Text
+spine defines both values and therefore defines the page's editorial rhythm. The profile resolver
+maps physical scroll distance to that authored Story WU without measuring DOM content into the
+creative timing model.
 
-Moving or resizing Text never scales Camera, Visibility, Point Field, or Motion timing. If Text extends
-beyond the current ending, the Story boundary grows and the other tracks hold their last authored
-state. Moving Text earlier can remove only unused ending space; it never compresses another lane.
+Schema-v7 Text timing is immutable in the Director: its order, enter, focus, exit, and final page
+boundary cannot be moved. Camera, Form, and Effect objects store bindings to those Text moments and
+may be repositioned by changing their bound phase or offset. Animation therefore happens around the
+page structure; it never changes the structure or silently retimes the reader's journey.
 
 ## One global playhead
 
@@ -128,10 +142,27 @@ The runtime has one `storyWU` value. Three sources can own it:
 
 Only one owner is active at a time. Scrubbing stops Lenis. Choosing **Follow scroll** resumes it without resetting the current page position. Wheel or touch input cancels playback.
 
-The timeline is a dockable, development-only instrument grouped into Camera, World, and Content.
-It exposes Move, Look, Lens, Visibility, Forms, Effects, and Text lanes. Its neutral charcoal palette
-does not inherit route or website theme colours. The first and final Camera and Visibility boundaries remain protected. Left and Right arrow keys
+The timeline is a dockable, development-only instrument grouped into Story, Camera, and Visuals.
+It exposes five temporal lanes: Text spine, Move, Look, Lens, and **Forms + effects**. A Form interval
+owns every Effect nested inside it. Clicking the **Forms + effects** track header opens the complete
+sequence inspector: Form start, end, and duration plus each Effect's timing, Text-moment bindings,
+type, and parameters. Changing a Form boundary scales its nested Effects proportionally so they stay
+inside their owner. Global **Point style** opens the material inspector without creating a false empty
+lane. Its neutral charcoal palette
+does not inherit route or website theme colours. The first and final Camera boundaries remain protected. Left and Right arrow keys
 jump to the previous or next timing point unless a text field or numeric control has focus.
+
+### Fixed Text moments own animation timing
+
+Every Camera, Form, Visibility, Orbit, and Effect trigger stores a binding with `momentId`, `phase`
+(`enter`, `focus`, or `exit`), and `offsetWU`. The runtime keeps resolved WU values as a fast playback
+cache, but the binding is authoritative. Dragging an animation changes its nearest fixed Text-moment
+binding instead of creating a loose absolute key.
+
+Effects and Orbit also have an `endTrigger`. An Effect's `startWU` is only its soft attack lead; its
+full-strength activation remains bound to Text. Responsive profiles may change geometry, but cannot
+override Text, Camera, Form, Visibility, or Effect timing. Schema validation rejects missing bindings,
+unknown moments, invalid phases, timing drift, and responsive timing overrides.
 
 The compiler converts `storyWU` into:
 
@@ -147,6 +178,55 @@ Interaction activation
 
 The runtime samples this once per animation frame. No point-field adapter may start another RAF.
 
+## The Long Assembly
+
+The canonical experience is one fixed, dot-built architectural ride. It does not use a montage of
+alternate simulations. Two protected Point Field keys reference the same
+`long-assembly-corridor-v1` state, and their only segment is a linear hold. Camera travel reveals
+permanent structures through fog; the geometry never morphs, dissolves, resets, or returns.
+
+The route uses one shared Hermite centreline for both geometry and camera. Its main set pieces are:
+
+1. Station and square threshold
+2. Material-yard chicane
+3. Three staggered hoops and the first aperture wall
+4. Archive cut with repeating load gates
+5. Roof release, diagonal bridge, and sunken court
+6. Banked interchange with side hoops
+7. Six rapid workshop gates
+8. Climbing assembly hall
+9. Pressure wall and a four-gate compression run
+10. Exposed city run with hoops, blind walls, and towers
+11. Terminal hall where the signal conduit becomes a living load path
+
+The Story Stack owns track length. `materializeAboutNarrativeStoryLayout()` writes measured
+`layout.durationWU` and five semantic anchors into the runtime-only Shape parameters. The shared
+track mapper compresses or extends each local route span. Shorter or longer copy therefore changes
+camera distance, landmark spacing, and repeated bay counts together without changing their order.
+The canonical 22 WU route advances 18.5 world units per WU: about 407 world units, or roughly a
+two-minute physical ride at 3.4 units per second. A short physical tail keeps the terminal present
+beyond the final text frame.
+
+Select **Camera travel** in Director to tune the steadicam response. **Track glide** controls
+scroll easing, **Rotation look-ahead** changes the shared camera-and-gate sight line, and **Mouse pan
+amount/response** control the small passive local look offset. These values save to
+`contents-about.json` at `globals.scrollSmoothing`, `globals.camera`, and the Long Assembly
+`shapeParameters`. The centreline, gate alignment, and local-pan composition remain code-owned so
+reconnecting the controls cannot create a second camera path. Mouse pan is disabled for Reduced
+Motion, hidden pages, touch/coarse pointers, and direct pointer manipulation.
+
+Desktop and mobile retain the fixed 12,000/5,000 point budgets. Mobile narrows the corridor in X but
+does not delete beats or change their order. Three bounded `living-wave-v1` windows test the system,
+then activate the terminal. Reduced motion sets their weight to zero, removes camera roll, and cuts to
+the previous semantic ride key while keeping the same world and reading order. Long Assembly world
+rotation is locked at zero because the track owns orientation; responsive scale and offsets remain valid.
+
+Distance fog is evaluated in camera space. Long Assembly uses a zero far-fog floor, so geometry beyond
+the 22-unit reveal window is genuinely invisible and only appears as the camera reaches it. Select
+**Camera travel** in Director to tune **Fog begins** and **Fully faded** with live sliders and exact
+WU inputs. Both values save to `globals.camera` in `contents-about.json`; the start control
+cannot cross the end control.
+
 ## Camera fundamentals
 
 The camera has three complete, non-overlapping lanes:
@@ -155,60 +235,36 @@ The camera has three complete, non-overlapping lanes:
 - **Look** owns pitch, yaw, and roll only. Quaternion interpolation produces continuous orientation.
 - **Lens** owns FOV only.
 
-Move keys cannot contain rotation, targets, focus, orbit, or FOV. Look is defined from Story start to
-Story end, so rotation never changes owner during playback. The renderer does not generate a target
-or an extra camera rotation. Constant Move segments use linear interpolation and report translation
-speed in WU/WU. Look and Lens have separate curves and velocity graphs.
+Move keys cannot contain rotation, targets, focus, or FOV. Look is defined from Story start to the
+finale handoff. **Fluid** Move segments use continuous Hermite tangents through adjacent Move keys,
+so passing a key does not stop or change direction abruptly. Constant Move segments remain linear.
+Look and Lens retain their own curves and velocity graphs.
 
-The **Helicopter sweep** recipe writes ordinary Move, Look, and Lens keys. It introduces no special
-runtime behaviour or hidden coupling. Linked selection can retime related keys explicitly.
+The Sequence may contain one final Camera orbit. It references a Form state, resolves that Form's
+responsive world anchor, takes over position and look-at for its authored interval, and appears as a
+band on the Move lane. A Move key and Look key share the orbit start WU so the handoff is continuous.
+The orbit easing also sets the Move handoff tangent: an eased orbit starts and ends at rest, while a
+linear orbit retains the matching angular tangent.
+The **Continuous field flight** recipe writes the current flight keys and full orbit as one undoable edit.
 
-### Visibility and global fog
+### Continuous presence and global fog
 
-Visibility is its own lane. Each key stores `atWU`, a `0–1` whole-simulation visibility value, and
-outgoing easing. At exact zero the point object is not drawn, which lets the sequence pass through
-true empty/editorial space and return at a new camera pose without using fog as a camera cut.
+Schema v7 retains start and end visibility keys for compatibility, but both are protected at `1` and
+the Director does not expose a Visibility lane. Point material remains editable through the global
+**Point style** action because it has no timeline timing.
+Depth, camera position, Form presence, and fog create visual breathing room without blacking out or
+repositioning the point world off-screen.
 
 Distance fog is global Sequence state with one start and end distance. It remains editable, but it
 is never stored or interpolated per Camera key. Camera movement, atmospheric depth, and whether the
 simulation exists on screen are therefore three explicit, non-overlapping controls.
-
-### Current camera choreography
-
-- `0–5.35 WU`: establish the opener, travel through the turbulent field, pass the first editorial
-  interval, and bridge directly into the calm grid.
-- `3.465–6.865 WU`: fade the first field completely out as the first editorial unit becomes readable, perform the
-  grid morph and Camera reposition while hidden, then return it beneath the next travelling title.
-- `7.70–11.15 WU`: use one linear Move segment from `[-5, 3.14, -4.51]` to
-  `[-5, 3.14, -1.75]` at exactly `0.8 WU/WU`, with fixed height and a fixed compact-layout
-  lens. It is already moving before the orientation change starts and continues through the complete
-  Discipline pass.
-- `8.35–9.15 WU`: keep the backward flyover moving while Look pitches smoothly from `-2.3°` to
-  `-90°`. Move velocity does not change.
-- `9.15–11.15 WU`: continue that same backward path down the grid, reveal the three paired Discipline
-  rows as their projected anchors enter the lower viewfinder, reconnect the final points, and fade the
-  labels before the world hides. Grid restore begins at `10.35 WU`; the labels are below the visible
-  threshold by `11.075 WU`, before the Move segment leaves the held composition.
-- `10.85–14.15 WU`: fade the Discipline field completely out as the second editorial unit becomes readable and
-  use the zero-visibility interval for the complete Camera reframe.
-- `14.15–16.35 WU`: return to the centred surface and sustain the grid ripple beneath the three
-  shorter closing-title beats.
-- `16.35–17.95 WU`: hand the grid ripple to the emergent ripple while the fixed point pool gathers
-  and builds the bust from its lower layers into the head.
-- `17.45–20.00 WU`: bring in the final invitation during the bust resolve, then hold the complete
-  lockup without a separate empty beat.
-
-The same editorial copy leaves the viewport at slightly different WU values as line wrapping and
-viewport height change. The responsive sequence audit records the single exit breath separately and
-caps it at `0.7 WU`; every other inactive run retains the stricter `0.15 WU` limit. This keeps the grid
-fully hidden behind readable editorial text without disguising the width-dependent clearance as motion.
 
 ## How Point Field states stay connected
 
 Schema v7 stores one Point Field track with `stateDefinitions`, `keys`, and `segments`. Stable keys
 reference reusable Form states. Segments own timing, easing, correspondence, and parametric transition
 motion; hold regions retain the preceding Form without inventing another container. Camera,
-Visibility, Point Field, Text, and Motion remain independent tracks.
+Point Field, Text, and Motion remain independent tracks.
 
 Timing and easing edits do not regenerate geometry or correspondence. The compiler and runtime keep
 one cumulative point identity through the complete key order, so forward, reverse, and direct seeking
@@ -243,16 +299,18 @@ an impractical 12,000-point exact solver.
 
 Procedural Shape generation and correspondence are prepared cumulatively in a module Worker, never in the RAF loop. The mapped endpoint of A → B becomes the exact source ordering for B → C, keeping point colour, drift phase, presence, and semantic identity continuous across the complete story. Direct seeking compiles the same chain. A complete last-known-good pair stays installed while an edited sequence prepares or fails. Resolved immutable CPU Shape and sequence arrays remain in bounded document-scoped caches across renderer remounts; abort-scoped promises, mutable runtime wrappers, WebGL resources, and GPU state never enter those caches.
 
-Select a Point Field segment and open its Advanced transition controls to compare the supported
-correspondence modes. The inspector identifies the source and target Forms and reports Preparing,
-Ready, last-valid fallback, or Failed. Saved JSON stores only authored parameters; generated
-permutations and metrics remain runtime data.
+Open **World sequence** to tune each Form's essential Transformation controls beside its Effects.
+**Flow** is the canonical movement character: spatial neighbours follow broad deterministic ribbons,
+with restrained stagger and no opacity crossfade. Advanced exposes correspondence, axes, seeds,
+frequency, and floor-plane controls. The inspector identifies the source and target Forms and reports
+Preparing, Ready, last-valid fallback, or Failed. Saved JSON stores only authored parameters;
+generated permutations and metrics remain runtime data.
 
 ## Current procedural Shapes
 
 - `cluster-v1`: a spherical complexity cloud
 - `turbulent-field-v1`: an uneven volumetric cloud assembled from weighted chunks, sparse pockets, loose particles, and an organic coordinate warp
-- `calm-field-v1`: a wide horizontal clearing whose existing points also provide the six semantic discipline anchors
+- `calm-field-v1`: the wide horizontal field used for the uninterrupted flyover
 - `emergent-form-v1`: six woven currents that read together as one suspended spatial sculpture
 - `discipline-grid-v1`: a frontal field with six semantic anchors
 - `living-field-v1`: terrain designed for wave and colour modifiers
@@ -263,12 +321,14 @@ compatibility but is not part of the canonical sequence.
 Use the Point Field state inspector to change a Form. The change is one undoable transaction. While
 a new Shape generates, the last-valid compiled plan and buffers remain visible.
 
-## Effects and the Story clock
+## Forms, Effects, and the Story clock
 
-A Form supplies only rest geometry, material, and authored morph targets. The Effects lane owns all
-scroll-driven behaviour, including ambient drift, swarm motion, group emphasis, ripples, living
-waves, Bust assembly, and Bust yaw. Every effect clip declares its interval, parameters, and reduced
-motion behaviour.
+A Form supplies rest geometry, material, and authored morph targets. Its sequence interval also owns
+all nested scroll-driven Effects, including ambient drift, swarm motion, group emphasis, ripples,
+living waves, Bust assembly, and Bust yaw. Every Effect declares its interval, parameters, and reduced
+motion behaviour, but it is edited in the same **Forms + effects** lane and inspector as its owner.
+The document keeps Form and Effect data normalized for runtime performance; that storage detail does
+not create a second authoring timeline.
 
 The Composer has one narrative clock: `story`, derived from `storyWU`. Scrubbing forwards or
 backwards therefore produces the same frame. Renderers may evaluate the sampled values, but they do
@@ -277,26 +337,31 @@ event-driven interactions because they are not scroll narrative.
 
 ## Text editing
 
-### Add another travelling title
+### Edit a travelling title
 
-1. Put the playhead where the new sentence should begin.
-2. Use **Add** on the Text lane and choose **Title**.
-3. Select the new Text field, edit its statement, and set its start, focus, and end WU.
-4. Drag the complete field to retime it without changing its internal reading interval.
+1. Select the existing Title in the fixed Text spine.
+2. Edit its statement, description, layout, or presentation controls in the inspector.
+3. Leave its disabled enter, focus, and exit values unchanged; they define the page rhythm.
+4. Retime the surrounding Camera, Form, and Effect objects through their Moment phase and Fine
+   offset controls.
 
-Clicking a clip selects and highlights it. Clicking a Camera/Visibility key, Point Field key, Text field,
+Clicking a clip selects and highlights it. Clicking a Camera key, Point Field key, Text field,
 or Motion activation marker also snaps the global playhead to that exact WU. Clicking a track name
 opens that track's global controls without requiring an empty-canvas click.
 
-A Title is an absolute duration bar with a brighter focus marker. Dragging the bar moves its complete
-start/focus/end envelope. Shared spatial-title duration, readable window, depth path, and blur remain
-Sequence controls; there is no owning Section that can silently crop or reinterpret its timing.
+A Title is a fixed duration bar with a brighter focus marker. Shared spatial-title readable window,
+depth path, and blur remain Sequence controls; there is no owning Section that can silently crop or
+reinterpret its timing.
 
-The saved Text field owns its absolute timing. No second file or JavaScript array needs editing.
+The saved Text field owns its immutable timing. No second file or JavaScript array may retime it.
 
 The DOM contains one semantic sentence per Title field. Visual Z depth and blur are presentation only. The Spatial-title wrapper owns one shared CSS perspective, while every title travels from the shared negative-Z entry depth to the shared positive-Z exit depth. Maximum blur changes sharpness only; it does not move the title.
 
 The opening Title (`text-promise-main`, using preset `opener-v1`) is already sharp at `0 WU` and begins from **Spatial titles → Opener start Y**. It then continues moving toward the shared exit position. Later travelling titles continue to use the shared Start Y, dual-handle **Clear window**, depth path, and blur-in/blur-out behaviour.
+
+In the canonical experience, entering any travelling Title or the finale replays the same five-colour glyph draw used by the
+opening bookend. Leaving its Text moment cancels and settles the transaction; re-entering that moment
+replays it. The draw uses the current simulation palette and does not add a second saved timing lane.
 
 ### Edit editorial prose
 
@@ -304,35 +369,19 @@ Select a Scroll block in the Text lane and edit its structured content. Paragrap
 details, clients, discipline lists, and normal lists stay native DOM content. They are not converted
 into hundreds of keyframes.
 
-### Edit the six-discipline reveal
+### Edit the six discipline labels
 
-Select **Discipline reveal** in the Motion lane. C remains one unchanged calm-field Form for the
-complete grid and discipline sequence: the Motion clip owns grid isolation, background opacity, and
-point emphasis. Full motion resolves each item from its projected anchor as it enters the lower
-viewfinder; Reduced Motion steps at the same compiled crossing times without spatial travel.
-The clip never owns camera, fog, or whole-system visibility.
-**Grid restore duration** gently returns the grid to its full, unhighlighted circles near the clip end.
-Reorder the six labels without remapping their stable point groups. Reposition their explicit Desktop,
-Tablet, and Mobile anchors in the two-dimensional grid editor; production playback has no fallback grid.
+Select **Disciplines** in the Text lane. It is one standard Scroll block with block kind
+`disciplines`. Reorder or edit the six label-and-description records with dedicated structured controls.
+The labels always render as one native DOM column and inherit the normal responsive editorial layout.
+There is no Motion clip, viewfinder, projected anchor, per-label world position, grid isolation,
+background opacity, point scaling, or color remapping.
 
-The Discipline reveal stays authored in Motion, but the Text lane shows its complete interval as a
-read-only flow reservation. This makes the occupied reading interval visible between the preceding
-titles and the following editorial block without creating a second timing owner.
-
-The clip is one draggable timing object. Six stable point groups resolve as three paired rows on
-desktop and as the compact responsive composition on tablet and portrait mobile. Phone landscape and
-short landscape use the shared viewport cover. The runtime projects each label from its point-group
-anchor while the Camera continues its top-down travel, then restores the grid and fades the labels
-before the Camera leaves. A selected cell starts as an ordinary grey grid point, grows at its anchored
-reading position, and reconnects with the moving grid as its copy exits. Its previous material colour does
-not affect the selection because the semantic group assigns the reveal colour. Their
-palette is fixed to the Home simulation ball tokens by semantic group: `1 → --ball-1`,
-`2 → --ball-4`, `3 → --ball-3`, `4 → --ball-7`, `5 → --ball-8`, `6 → --ball-6`.
-After the final labels pass and the grid restoration completes, Visibility hides the complete simulation
-for editorial copy. C returns in
-full colour around the same transformed center. The story-clock ripple combines a primary radial
-wave, harmonic, undertow, and center pulse while the titles cross the surface. It releases into E,
-where each point first gathers onto the base-plane footprint of its eventual bust position. Height
+The colored grid remains an independent World layer beneath this block. Its palette and opacity do
+not react to which label is visible. The camera's fluid Move path supplies the helicopter-like motion.
+After the labels, the story-clock ripple combines a primary radial wave, harmonic, undertow, and
+center pulse while the titles cross the surface. It releases into E, where each point first gathers
+onto the base-plane footprint of its eventual bust position. Height
 thresholds then lift the lower layers, shoulders, neck, and head in order. The effect uses the material
 itself—no helper rings, point-size pulse, or second camera rig.
 
@@ -396,6 +445,13 @@ The protected reduced-motion profile step-samples camera and visibility, removes
 depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled Form
 states, and the six labels only during their authored interval.
 
+The protected finale owns one target-locked camera orbit. Once the authored timeline reaches its
+physical scroll boundary, further downward wheel, trackpad, touch, Page Down, Space, or Arrow Down
+input continues that same orbit for unlimited revolutions. The runtime stores only the nearest
+equivalent angular phase so long sessions stay numerically stable. Upward input remains ordinary
+page navigation and fades the retained offset through the authored orbit, so the endpoint never
+becomes a scroll trap. Reduced motion keeps the settled final pose and ignores continued-orbit input.
+
 ## Adding a new Shape generator
 
 1. Add a registered Shape definition and bounded controls in `aboutNarrativeDefinitions.js`.
@@ -418,17 +474,19 @@ npm run check:about-narrative
 npm run check:about-narrative-hardening
 npm run audit:about-narrative
 ABS_BROWSER=webkit npm run audit:about-narrative
+npm run audit:about-narrative-infinite-finale
+ABS_BROWSER=webkit npm run audit:about-narrative-infinite-finale
 npm run audit:about-narrative-runtime-soak
 npm run check:site
 npm run certify:about-narrative
 ```
 
-The browser audit verifies exact-WU sampling, the direct Position/Rotation/FOV camera rig, global fog,
-independent Visibility, editor/playback presence, typography roles, portal placement, protected
-boundaries, keyframe navigation, discipline anchors and palette mapping, text edit/undo, WebGL
+The browser audit verifies exact-WU sampling, the Position/Rotation/FOV camera lanes, final orbit, global fog,
+continuous visibility, editor/playback presence, typography roles, portal placement, protected
+boundaries, keyframe navigation, native discipline labels, uninterrupted palette, text edit/undo, WebGL
 readiness, timeline collapse, and editor clearance above the persistent Button Bar.
 
 The certification runtime-visual audit captures the full authored arc at 32 exact Story WU
-checkpoints. It records Point Field and Visibility state and produces independent-review contact sheets for
+checkpoints. It records Point Field and compatibility visibility state and produces independent-review contact sheets for
 desktop, mobile, and reduced motion. These contact sheets are required release evidence, not optional
 debug output. Run certification from a clean isolated checkout so its source commit is exact.

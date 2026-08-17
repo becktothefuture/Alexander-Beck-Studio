@@ -228,6 +228,17 @@ body.body {
   isolation: isolate;
 }
 
+/* Product copy is intentionally non-selectable across every route. Preserve
+   native text editing only where the visitor can actually enter content. */
+body :is(
+  input:not([type='range']),
+  textarea,
+  [contenteditable]:not([contenteditable='false'])
+) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Pages that do not use the index fade-in pipeline should be visible + interactive.
    Portfolio and CV are standalone experiences driven by their own scripts. */
 /* (Intentionally no portfolio/cv override here.)
@@ -6426,12 +6437,19 @@ body.cv-page .route-topbar .gate-back {
 
 
 .contact-email-row {
-  --contact-email-pad-y: var(--modal-pad-md-y, 0.9rem);
-  --contact-email-pad-x: var(--modal-pad-md-x, 1.05rem);
+  --contact-action-height: 44px;
+  --contact-action-font-size: 0.875rem;
+  --contact-action-icon-size: 1rem;
+  --contact-action-pad-x: var(--gap-14, 0.875rem);
+  --contact-action-gap: var(--gap-8, 0.5rem);
+  --contact-email-pad-y: 0;
+  --contact-email-pad-x: var(--contact-action-pad-x);
   --contact-copy-flash-color: var(--contact-ripple-burst-color, var(--ball-8, #a34b43));
   --contact-copy-flash-fill: var(--contact-copy-flash-color);
   width: auto;
-  max-width: min(100%, clamp(320px, 80vw, 520px));
+  height: var(--contact-action-height);
+  min-height: var(--contact-action-height);
+  max-width: 100%;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -6578,7 +6596,7 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
 }
 
 .contact-email-text {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -6589,11 +6607,11 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
   background: transparent;
   background-color: transparent;
   -webkit-tap-highlight-color: transparent;
-  padding: var(--contact-email-pad-y) var(--contact-email-pad-x);
+  padding: 0 var(--contact-action-gap) 0 var(--contact-email-pad-x);
   text-align: left;
   
   font-family: var(--abs-font-sans);
-  font-size: clamp(0.95rem, 2.4vw, 1.125rem);
+  font-size: var(--contact-action-font-size);
   font-weight: var(--abs-weight-regular);
   letter-spacing: var(--abs-letter-spacing-tight);
   color: inherit;
@@ -6601,12 +6619,8 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
 }
 
 @media (max-width: 360px) {
-  body.contact-page .contact-email-row {
-    --contact-email-pad-x: clamp(0.8rem, 3.8vw, 1.05rem);
-  }
-
   .contact-email-text {
-    font-size: clamp(0.95rem, 4.2vw, 1rem);
+    font-size: var(--contact-action-font-size);
   }
 }
 
@@ -6620,13 +6634,15 @@ html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse
   border: 0;
   border-left: 0;
   background: transparent;
-  padding: var(--contact-email-pad-y) var(--contact-email-pad-x);
+  padding: 0 var(--contact-email-pad-x) 0 var(--contact-action-gap);
   color: inherit;
   transition: inherit;
 }
 
 .contact-email-copy i {
   color: inherit;
+  font-size: var(--contact-action-icon-size);
+  line-height: 1;
 }
 
 /* (Intentionally no “copied” border override; click pulse handles feedback.) */
@@ -7413,10 +7429,96 @@ body.portfolio-page--locked #simulations {
 
 .contact-route__copy {
   position: relative;
-  display: flex;
-  justify-content: center;
   width: 100%;
   margin-top: var(--gap-24);
+}
+
+.contact-action-stack {
+  --contact-action-height: 44px;
+  --contact-action-font-size: 0.875rem;
+  --contact-action-icon-size: 1rem;
+  --contact-action-pad-x: var(--gap-14, 0.875rem);
+  --contact-action-gap: var(--gap-8, 0.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-12, 0.75rem);
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.contact-action-stack__primary,
+.contact-action-stack__secondary {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contact-linkedin-action {
+  width: auto;
+  height: var(--contact-action-height);
+  min-width: 0;
+  min-height: var(--contact-action-height);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--contact-action-gap);
+  padding: 0 var(--contact-action-pad-x);
+  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
+  border-radius: var(--abs-radius-pill);
+  background: var(--abs-soft-control-fill);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur, 18px))
+    saturate(var(--abs-soft-control-saturation, 1.08));
+  color: var(--text-quiet);
+  font-family: var(--abs-font-sans);
+  font-size: var(--contact-action-font-size);
+  font-weight: var(--abs-weight-regular);
+  line-height: 1;
+  letter-spacing: var(--abs-letter-spacing-tight);
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 150ms var(--ease-organic),
+    border-color 150ms var(--ease-organic),
+    background-color 150ms var(--ease-organic);
+}
+
+.contact-linkedin-action i {
+  flex: 0 0 auto;
+  font-size: var(--contact-action-icon-size);
+  line-height: 1;
+}
+
+.contact-linkedin-action:hover,
+.contact-linkedin-action:active,
+.contact-linkedin-action:focus-visible {
+  border-color: transparent;
+  background: var(--abs-soft-control-emphasis-fill);
+  color: var(--text-primary);
+}
+
+.contact-linkedin-action:focus-visible {
+  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
+  outline-offset: var(--abs-focus-ring-offset);
+  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
+}
+
+@media (max-width: 600px) {
+  .contact-action-stack {
+    gap: var(--gap-8, 0.5rem);
+  }
 }
 
 .portfolio-gate-route__inputs {
@@ -7427,12 +7529,10 @@ body.cv-page .cv-scroll-container {
   pointer-events: auto;
 }
 
-/* Keep document-like cursor/selection rules scoped to the reading surface only. */
+/* Keep the document-like cursor scoped to the reading surface only. */
 body.cv-page .cv-scroll-container,
 body.cv-page .cv-scroll-container * {
   cursor: auto;
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 body.cv-page #abs-scene {

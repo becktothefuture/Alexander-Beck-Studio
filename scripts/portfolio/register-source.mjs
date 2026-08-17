@@ -12,6 +12,7 @@ const SOURCE_INDEX_PATH = path.join(PORTFOLIO_ROOT, 'sources', 'index.json');
 const INGESTION_LOG_PATH = path.join(PORTFOLIO_ROOT, 'logs', 'ingestion-log.md');
 
 const SENSITIVITY_VALUES = new Set(['public', 'internal', 'confidential', 'personal', 'restricted']);
+const REDACTION_VALUES = new Set(['not_required', 'pending', 'complete']);
 
 function parseArgs(argv) {
   const args = {};
@@ -41,6 +42,11 @@ function usage() {
     '  --sensitivity personal         public|internal|confidential|personal|restricted',
     '  --origin user_provided         Short source-origin label',
     '  --type pdf                     Optional type override; defaults to file extension',
+    '  --capture-method file_copy     How the source was captured',
+    '  --redaction-status complete    not_required|pending|complete',
+    '  --source-created-at YYYY-MM-DD Original creation date when known',
+    '  --source-modified-at YYYY-MM-DD Original modification date when known',
+    '  --contains-credentials false   Must remain false; sanitise the file before intake',
   ].join('\n');
 }
 
@@ -77,7 +83,7 @@ function nextSourceId(sources, compactDate) {
 
 function extractionTemplate(record) {
   const projects = record.projectIds.length > 0 ? record.projectIds.join(', ') : 'Unrouted';
-  return `# Source Extraction: ${record.id}\n\n## Source\n\n- Title: ${record.title}\n- Registered path: \`${record.path}\`\n- Projects: ${projects}\n- Sensitivity: ${record.sensitivity}\n- Extraction status: pending\n\n## Locator map\n\n| Locator | Visible content | Routed project | Notes |\n|---|---|---|---|\n\n## Candidate claims\n\n| Project | Category | Claim | Locator | Confidence | Sensitivity |\n|---|---|---|---|---|---|\n\n## Conflicts or ambiguities\n\n- None recorded.\n\n## Media candidates\n\n| Project | Locator | Subject | Potential story use | Permission status |\n|---|---|---|---|---|\n\n## Follow-up questions\n\n- None recorded.\n`;
+  return `# Source Extraction: ${record.id}\n\n## Source\n\n- Title: ${record.title}\n- Registered path: \`${record.path}\`\n- Projects: ${projects}\n- Sensitivity: ${record.sensitivity}\n- Capture method: ${record.captureMethod}\n- Redaction status: ${record.redactionStatus}\n- Contains credentials: no\n- Extraction status: pending\n\n## Locator map\n\n| Locator | Visible content | Routed project | Notes |\n|---|---|---|---|\n\n## Candidate claims\n\n| Project | Category | Claim | Locator | Confidence | Sensitivity |\n|---|---|---|---|---|---|\n\n## Conflicts or ambiguities\n\n- None recorded.\n\n## Media candidates\n\n| Project | Locator | Subject | Potential story use | Permission status |\n|---|---|---|---|---|\n\n## Follow-up questions\n\n- None recorded.\n`;
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -100,6 +106,15 @@ if (!sourceStat?.isFile()) {
 const sensitivity = args.sensitivity || 'personal';
 if (!SENSITIVITY_VALUES.has(sensitivity)) {
   throw new Error(`Invalid sensitivity: ${sensitivity}`);
+}
+
+const redactionStatus = args['redaction-status'] || 'not_required';
+if (!REDACTION_VALUES.has(redactionStatus)) {
+  throw new Error(`Invalid redaction status: ${redactionStatus}`);
+}
+
+if (String(args['contains-credentials'] || 'false').toLowerCase() !== 'false') {
+  throw new Error('Sources containing credentials cannot be registered. Create a sanitised extract first.');
 }
 
 const catalog = await readJson(CATALOG_PATH);
@@ -143,6 +158,11 @@ const record = {
   extractionStatus: 'pending',
   sensitivity,
   origin: String(args.origin || 'user_provided').trim(),
+  captureMethod: String(args['capture-method'] || 'file_copy').trim(),
+  redactionStatus,
+  containsCredentials: false,
+  sourceCreatedAt: args['source-created-at'] || null,
+  sourceModifiedAt: args['source-modified-at'] || null,
   receivedAt,
   projectIds,
   path: relativeDestination,

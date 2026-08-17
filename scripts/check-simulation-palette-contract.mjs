@@ -211,7 +211,11 @@ try {
   lifecycleController.start();
   assert.equal(timers.size, 1, 'The shell controller must own exactly one boundary timer.');
   assert.equal([...timers.values()][0]?.delay, 132, 'The boundary timer must not be delayed by a coarse minimum clamp.');
-  assert.equal(cssValues.size, SIMULATION_PALETTE_SIZE);
+  assert.equal(
+    cssValues.size,
+    SIMULATION_PALETTE_SIZE + SIMULATION_MATERIAL_ROLE_COUNT,
+    'The document projection must expose both palette slots and scene material-role colours.',
+  );
   const diagnosticDescriptor = Object.getOwnPropertyDescriptor(
     lifecycleWindow,
     '__ABS_SIMULATION_PALETTE__',
@@ -228,6 +232,13 @@ try {
   assert.equal(lifecycleDocument.documentElement.dataset.absSimulationPaletteGeneration, String(afterBoundary.generation));
   afterBoundary.colors.forEach((color, index) => {
     assert.equal(cssValues.get(`--ball-${index + 1}`), color);
+  });
+  afterBoundary.distribution.forEach((row) => {
+    assert.equal(
+      cssValues.get(`--simulation-role-${row.roleId}`),
+      afterBoundary.colors[row.colorIndex],
+      `The ${row.roleId} UI colour must match its scene material colour.`,
+    );
   });
 
   lifecycleController.stop();

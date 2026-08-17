@@ -209,12 +209,15 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
     const aboutRoute = document.querySelector(
       '.about-narrative-lab[data-route-content="about"]',
     );
+    const comingSoonTitle = document.getElementById('about-coming-soon-title');
     return Boolean(
       body.classList.contains('about-page')
-      && aboutRoute
       && (
-        aboutRoute.dataset.aboutSceneReady === 'true'
-        || !body.classList.contains('about-narrative-page')
+        comingSoonTitle
+        || (
+          aboutRoute
+          && aboutRoute.dataset.aboutSceneReady === 'true'
+        )
       )
     );
   }

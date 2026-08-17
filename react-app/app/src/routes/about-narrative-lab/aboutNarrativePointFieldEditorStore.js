@@ -23,6 +23,12 @@ import {
 } from './aboutNarrativeComposer.js';
 import { applyAboutNarrativePointFieldOverrides } from './aboutNarrativePointFieldSchema.js';
 import {
+  refreshAboutNarrativeMomentTriggers,
+} from './aboutNarrativeMoments.js';
+import {
+  reconcileAboutNarrativeEffectsWithFormSequence,
+} from './aboutNarrativeFormSequence.js';
+import {
   ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
   ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES,
   ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
@@ -40,7 +46,6 @@ import {
   pasteAboutNarrativeTrackClipboardPayload,
   resizeAboutNarrativeInteractionEdge,
   resizeAboutNarrativeTextFieldEdge,
-  synchronizeAboutNarrativeDurationToText,
   validateAboutNarrativeTrackClipboardPayload,
 } from './aboutNarrativeTrackEditing.js';
 
@@ -81,7 +86,7 @@ const POINT_FIELD_BASE_PATCH_KEYS = Object.freeze({
 });
 const POINT_FIELD_PROFILE_PATCH_KEYS = Object.freeze({
   'point-field-state': new Set(['railAnchorWU', 'transform']),
-  'point-field-key': new Set(['atWU']),
+  'point-field-key': new Set(),
   'point-field-segment': new Set(['transition']),
 });
 
@@ -245,6 +250,7 @@ function previewPointFieldPatch(input, {
     return previewPointFieldKeyMove(input, { keyId: id, atWU: patch.atWU, scope });
   }
   const document = clone(input);
+  const beforePointField = clone(document.tracks.pointField);
   const target = document.tracks.pointField[collection].find((item) => item.id === id);
   if (!target) return invalidPointFieldPreview(`Point-field target “${id}” does not exist.`);
   if (target.protected === true && type === 'point-field-key') {
@@ -273,6 +279,16 @@ function previewPointFieldPatch(input, {
     .some((state) => state.id === target.stateId)) {
     return invalidPointFieldPreview('The point-field key targets a missing state.');
   }
+  if (type === 'point-field-key' && Object.hasOwn(patch, 'stateId')) {
+    reconcileAboutNarrativeEffectsWithFormSequence(
+      document.tracks.interactions?.clips,
+      beforePointField,
+      document.tracks.pointField,
+      document.profiles.desktop.storyDurationWU,
+    ).forEach((effectId) => {
+      refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id: effectId });
+    });
+  }
   return Object.freeze({
     valid: true,
     document,
@@ -295,24 +311,6 @@ function getResolvedPointField(document, profileId) {
   );
 }
 
-function setPointFieldProfileKeyTime(document, profileId, keyId, atWU) {
-  const pointFieldOverrides = document.profiles[profileId].overrides.pointField;
-  pointFieldOverrides.keys ||= {};
-  const baseKey = document.tracks.pointField.keys.find((key) => key.id === keyId);
-  if (Math.abs(Number(baseKey.atWU) - Number(atWU)) <= POINT_FIELD_TIME_EPSILON) {
-    const existing = pointFieldOverrides.keys[keyId];
-    if (existing) {
-      delete existing.atWU;
-      if (!Object.keys(existing).length) delete pointFieldOverrides.keys[keyId];
-    }
-    return;
-  }
-  pointFieldOverrides.keys[keyId] = {
-    ...(pointFieldOverrides.keys[keyId] || {}),
-    atWU: cleanWU(atWU),
-  };
-}
-
 function previewPointFieldKeyMove(input, { keyId, atWU, scope = 'base' } = {}) {
   if (!Number.isFinite(Number(atWU))) {
     return invalidPointFieldPreview('Point-field key time must be finite.');
@@ -320,7 +318,11 @@ function previewPointFieldKeyMove(input, { keyId, atWU, scope = 'base' } = {}) {
   if (scope !== 'base' && !POINT_FIELD_PROFILE_IDS.includes(scope)) {
     return invalidPointFieldPreview(`Unknown point-field edit scope “${scope}”.`);
   }
+  if (scope !== 'base') {
+    return invalidPointFieldPreview('Form timing belongs to the shared Text moments and cannot diverge by viewport.');
+  }
   const document = clone(input);
+  const beforePointField = clone(document.tracks.pointField);
   const key = document.tracks.pointField.keys.find((item) => item.id === keyId);
   if (!key) return invalidPointFieldPreview(`Point-field key “${keyId}” does not exist.`);
   if (key.protected === true) {
@@ -355,8 +357,17 @@ function previewPointFieldKeyMove(input, { keyId, atWU, scope = 'base' } = {}) {
     return invalidPointFieldPreview('The resolved profile timelines do not share a valid key range.');
   }
   const appliedAtWU = cleanWU(clamp(Number(atWU), minimum, maximum));
-  if (scope === 'base') key.atWU = appliedAtWU;
-  else setPointFieldProfileKeyTime(document, scope, keyId, appliedAtWU);
+  key.atWU = appliedAtWU;
+  const changedEffectIds = reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  );
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: keyId });
+  changedEffectIds.forEach((id) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id });
+  });
   return Object.freeze({
     valid: true,
     document,
@@ -375,7 +386,11 @@ function previewPointFieldSegmentMove(input, { segmentId, deltaWU, scope = 'base
   if (scope !== 'base' && !POINT_FIELD_PROFILE_IDS.includes(scope)) {
     return invalidPointFieldPreview(`Unknown point-field edit scope “${scope}”.`);
   }
+  if (scope !== 'base') {
+    return invalidPointFieldPreview('Form timing belongs to the shared Text moments and cannot diverge by viewport.');
+  }
   const document = clone(input);
+  const beforePointField = clone(document.tracks.pointField);
   const pointField = document.tracks.pointField;
   const segment = pointField.segments.find((item) => item.id === segmentId);
   if (!segment) return invalidPointFieldPreview(`Point-field segment “${segmentId}” does not exist.`);
@@ -426,16 +441,19 @@ function previewPointFieldSegmentMove(input, { segmentId, deltaWU, scope = 'base
     return invalidPointFieldPreview('The resolved profile timelines do not share a valid segment range.');
   }
   const appliedDeltaWU = cleanWU(clamp(Number(deltaWU), minimumDelta, maximumDelta));
-  if (scope === 'base') {
-    fromBase.atWU = cleanWU(Number(fromBase.atWU) + appliedDeltaWU);
-    toBase.atWU = cleanWU(Number(toBase.atWU) + appliedDeltaWU);
-  } else {
-    const resolved = getResolvedPointField(document, scope);
-    const from = resolved.keys.find((key) => key.id === fromBase.id);
-    const to = resolved.keys.find((key) => key.id === toBase.id);
-    setPointFieldProfileKeyTime(document, scope, fromBase.id, Number(from.atWU) + appliedDeltaWU);
-    setPointFieldProfileKeyTime(document, scope, toBase.id, Number(to.atWU) + appliedDeltaWU);
-  }
+  fromBase.atWU = cleanWU(Number(fromBase.atWU) + appliedDeltaWU);
+  toBase.atWU = cleanWU(Number(toBase.atWU) + appliedDeltaWU);
+  const changedEffectIds = reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  );
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: fromBase.id });
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: toBase.id });
+  changedEffectIds.forEach((id) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id });
+  });
   return Object.freeze({
     valid: true,
     document,
@@ -505,8 +523,8 @@ function normalizeTransport(input, durationWU) {
 }
 
 function normalizeSelection(selection, document, legacySelectionMap) {
-  if (selection?.type === 'track' && selection.id === 'point-field') {
-    return { type: 'track', id: 'point-field' };
+  if (selection?.type === 'track' && ['point-field', 'effects'].includes(selection.id)) {
+    return { type: 'track', id: selection.id };
   }
   if (POINT_FIELD_TYPES.has(selection?.type)) {
     return normalizeAboutNarrativePointFieldSelection(selection, document);
@@ -596,11 +614,29 @@ function prepareOperationDocument(input) {
   return document;
 }
 
+function pointFieldStructureSignature(document) {
+  const pointField = document?.tracks?.pointField;
+  return JSON.stringify({
+    states: (pointField?.stateDefinitions || []).map((state) => [
+      state.id,
+      state.shapeId,
+      state.shapeParameters?.worldType ?? null,
+    ]),
+    keys: (pointField?.keys || []).map((key) => [key.id, key.stateId]),
+    segments: (pointField?.segments || []).map((segment) => [
+      segment.id,
+      segment.fromKeyId,
+      segment.toKeyId,
+    ]),
+  });
+}
+
 export function createAboutNarrativePointFieldEditorStore(initialDocument, {
   initialSelection = { type: 'track', id: 'point-field' },
   previewState = null,
   legacySelectionMap = null,
   baselineHash = '',
+  fixedPointFieldStructure = false,
 } = {}) {
   const listeners = new Set();
   const metrics = {
@@ -614,6 +650,9 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
   let gesture = null;
   let tryState = null;
   let snapshot = null;
+  const fixedStructureSignature = fixedPointFieldStructure
+    ? pointFieldStructureSignature(initialDocument)
+    : '';
 
   const compileCandidate = (document, nextPreviewState = null) => {
     metrics.compilations += 1;
@@ -625,7 +664,10 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     return {
       plan,
       document: plan.valid && plan.pointFieldPlan?.model
-        ? clone(plan.pointFieldPlan.model)
+        // Content-flow compilation produces a runtime-only numeric projection.
+        // The editor must keep authored copy, gap presets, and semantic triggers
+        // instead of accidentally persisting fitted rail coordinates.
+        ? clone(plan.storyLayout?.mode === 'content-flow' ? document : plan.pointFieldPlan.model)
         : clone(document),
     };
   };
@@ -739,6 +781,19 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     requireValid = false,
     recordHistory = true,
   }) => {
+    if (fixedStructureSignature
+      && pointFieldStructureSignature(document) !== fixedStructureSignature) {
+      snapshot = {
+        ...snapshot,
+        rejectedEdit: makeRejectedEdit(
+          label,
+          [],
+          'This version has five fixed worlds. Edit their timing, geometry, and motion without changing the sequence structure.',
+        ),
+      };
+      emit();
+      return false;
+    }
     const compiled = compileCandidate(document);
     if (requireValid && !compiled.plan.valid) {
       snapshot = {
@@ -891,6 +946,28 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     getMetrics() {
       return Object.freeze({ ...metrics });
     },
+    setRuntimePlan(plan) {
+      if (!plan?.valid) return false;
+      const current = snapshot.compiledPlan;
+      const sameProjection = current?.valid
+        && current.layoutProfile === plan.layoutProfile
+        && current.motionProfile === plan.motionProfile
+        && current.storyLayout?.signature === plan.storyLayout?.signature
+        && current.worldSequenceKey === plan.worldSequenceKey;
+      if (sameProjection) return false;
+      // The live compositor measures real text before deriving page length.
+      // Publish that read-only projection back to Director so its ruler,
+      // playhead, and semantic triggers describe the rendered page exactly.
+      snapshot = {
+        ...snapshot,
+        compiledPlan: plan,
+        lastValidPlan: plan,
+        diagnostics: clone(plan.diagnostics || []),
+        transport: normalizeTransport(snapshot.transport, plan.durationWU),
+      };
+      emit();
+      return true;
+    },
     commit(label, mutate, {
       selectionAfter = snapshot.selection,
       requireValid = false,
@@ -989,27 +1066,6 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     },
     updateGestureMove(deltaWU) {
       if (!gesture) return false;
-      if (gesture.operation?.type === 'linked-camera') {
-        const candidate = clone(gesture.startDocument);
-        const requestedAtWU = Number(gesture.operation.atWU);
-        const appliedDeltaWU = cleanWU(Math.round(Number(deltaWU) * 100) / 100);
-        const linkedKeys = [
-          ...candidate.tracks.camera.moveKeys,
-          ...candidate.tracks.camera.lookKeys,
-          ...candidate.tracks.camera.lensKeys,
-        ].filter((key) => Math.abs(Number(key.atWU) - requestedAtWU) <= 0.000001);
-        linkedKeys.forEach((key) => {
-          key.atWU = cleanWU(Number(key.atWU) + appliedDeltaWU);
-          Object.values(candidate.profiles || {}).forEach((profile) => {
-            const override = profile.overrides?.camera?.[key.id];
-            if (Number.isFinite(Number(override?.atWU))) override.atWU = cleanWU(Number(override.atWU) + appliedDeltaWU);
-          });
-        });
-        candidate.tracks.camera.moveKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
-        candidate.tracks.camera.lookKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
-        candidate.tracks.camera.lensKeys.sort((left, right) => Number(left.atWU) - Number(right.atWU));
-        return updateGestureResult({ valid: true, document: candidate, selection: gesture.startSelection });
-      }
       if (hasProtectedSelection(gesture.startDocument, gesture.startSelection)) {
         return rejectOperation(gesture.label, { reason: 'A protected object cannot be moved.' });
       }
@@ -1334,13 +1390,13 @@ export function createAboutNarrativePointFieldEditorStore(initialDocument, {
     setTextTiming(id, field, value) {
       if (gesture || tryState) return rejectBusyEdit('Edit Text timing');
       if (!['startWU', 'endWU'].includes(field) || !Number.isFinite(Number(value))) return false;
-      const previousDurationWU = Number(snapshot.document.profiles?.desktop?.storyDurationWU);
-      return store.commit('Edit Text timing', (draft) => {
-        const target = getAboutNarrativeTrackObject(draft, { type: 'text-field', id });
-        if (!target) return;
-        target[field] = Number(value);
-        synchronizeAboutNarrativeDurationToText(draft, previousDurationWU);
-      }, { selectionAfter: { type: 'text-field', id }, requireValid: true });
+      return applyOperation('Edit Text timing', resizeAboutNarrativeTextFieldEdge({
+        model: snapshot.document,
+        id,
+        edge: field === 'startWU' ? 'start' : 'end',
+        atWU: Number(value),
+        snap: false,
+      }));
     },
     deleteSelection() {
       if (gesture || tryState) return rejectBusyEdit('Delete track objects');

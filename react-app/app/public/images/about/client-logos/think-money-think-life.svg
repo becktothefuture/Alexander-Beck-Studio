@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" viewBox="0 0 640 320" role="img" aria-labelledby="title">
+  <title id="title">Think Money Think Life</title>
+  <g fill="#111111">
+    <rect x="38" y="104" width="112" height="112" rx="34" transform="rotate(-12 94 160)" opacity="0.62"/>
+    <rect x="74" y="104" width="112" height="112" rx="34" transform="rotate(12 130 160)"/>
+    <text x="220" y="151" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="800" letter-spacing="1">THINK MONEY</text>
+    <text x="220" y="207" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="800" letter-spacing="1">THINK LIFE</text>
+    <circle cx="599" cy="118" r="7" fill="none" stroke="#111111" stroke-width="3"/>
+    <text x="595" y="123" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="middle">R</text>
+  </g>
+</svg>

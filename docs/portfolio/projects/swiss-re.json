@@ -1,21 +1,39 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "swiss-re",
   "title": "Swiss Re",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "confidential",
-  "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "not_started", "copyStatus": "blocked_missing_facts"},
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Swiss Re", "status": "candidate", "sourceClaimIds": ["claim-swissre-001"]},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Corporate website", "Content experience", "Interaction prototypes"], "status": "candidate", "sourceClaimIds": ["claim-swissre-002", "claim-swissre-003", "claim-swissre-005"]},
+    "timeframe": {"start": "2025-08", "end": "2025-09", "yearLabel": "2025", "duration": null, "precision": "month", "status": "candidate", "sourceClaimIds": ["claim-swissre-006"]}
+  },
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-swissre-about-us-2026", "title": "About Us 2026", "storyRole": "primary", "status": "candidate", "summary": "Responsive corporate-site page system and interaction concepts for communicating Swiss Re's brand, ambition, culture, and way of working.", "sourceClaimIds": ["claim-swissre-002", "claim-swissre-003", "claim-swissre-005"]}
+  ],
+  "disciplines": [
+    {"name": "Experience Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-swissre-003", "claim-swissre-004"]},
+    {"name": "Interface Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-swissre-003", "claim-swissre-004"]},
+    {"name": "Creative Prototyping", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-swissre-005"]},
+    {"name": "Motion", "emphasis": "supporting", "status": "candidate", "sourceClaimIds": ["claim-swissre-004", "claim-swissre-005"]}
+  ],
+  "collaborators": [],
   "workingHypotheses": [
-    "The supplied portfolio confirms only that Swiss Re was prior experience; every substantive case-study fact still needs to come from interview or new source material."
+    "The current evidence identifies an About Us 2026 website and prototype package, but the shared story, credits, delivery state, and relationship to any earlier Swiss Re campaign remain unresolved."
   ],
   "organisingIdea": {
-    "statement": "Find the human decision hidden inside an institutional system and make the information around that decision graspable.",
+    "statement": "Turn an institutional brand into a set of tangible, responsive moments that make Swiss Re's purpose, ambition, and culture easier to experience.",
     "status": "hypothesis",
     "evidenceBasis": "interview_needed",
     "sourceClaimIds": [],
-    "lastReviewed": "2026-07-17"
+    "lastReviewed": "2026-08-07"
   },
   "claims": [
     {
@@ -29,17 +47,101 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "No product, role, timeframe, team, or outcome is supplied."
+    },
+    {
+      "id": "claim-swissre-002",
+      "category": "project_identity",
+      "statement": "The primary indexed body of work is titled Swiss Re About Us 2026.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": "Confirm the public-facing project title."
+    },
+    {
+      "id": "claim-swissre-003",
+      "category": "scope",
+      "statement": "The work covered the homepage, How We Work, Our Ambition, and People & Culture in desktop and mobile designs using reusable components.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss re workflow"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": null
+    },
+    {
+      "id": "claim-swissre-004",
+      "category": "hands_on",
+      "statement": "Alexander's working note lists designing the four page families in desktop and mobile, pulling in reusable components, and exploring scroll animation through Webflow.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss re workflow"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": "Confirm actual delivery and contribution boundaries."
+    },
+    {
+      "id": "claim-swissre-005",
+      "category": "hands_on",
+      "statement": "The handover referenced component documentation, page designs, prototypes, sitemap and content rationale, plus coded concepts named Shimmer, Scroll Snap, Interactive Globe, and Immersive Hero.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": "Confirm which concepts Alexander designed and coded."
+    },
+    {
+      "id": "claim-swissre-006",
+      "category": "timeline",
+      "statement": "Project notes establish an approximate working window from late August to mid-September 2025.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss re workflow; Note: Swiss Re About Us 2026 Handover"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": "These are note dates, not confirmed project start and end dates."
+    },
+    {
+      "id": "claim-swissre-007",
+      "category": "delivery_status",
+      "statement": "The work reached a structured handover containing designs, documentation, prototypes, coded concepts, sitemap, and content rationale.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-swissre-about-us-2026"],
+      "notes": "Handover is not evidence that the concepts shipped."
     }
   ],
   "conflicts": [],
   "openQuestions": [
-    {"id": "q-swissre-001", "category": "project_identity", "question": "What product, service, platform, or initiative was the work for?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-001", "category": "project_identity", "question": "What product, service, platform, or initiative was the work for?", "status": "resolved", "answer": "The primary indexed body of work is the Swiss Re About Us 2026 website and prototype package.", "sourceIds": ["src-20260807-004"]},
     {"id": "q-swissre-002", "category": "brief", "question": "Who was the audience and what problem or opportunity created the brief?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-swissre-003", "category": "role", "question": "What was Alexander's role, hands-on contribution, team, and timeframe?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-swissre-004", "category": "constraint", "question": "What was the defining organisational, technical, regulatory, or information constraint?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-swissre-005", "category": "decision", "question": "Which concrete model, workflow, prototype, or decision is worth showing?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-swissre-006", "category": "outcome", "question": "What shipped or changed, what remains unknown, and what may be published?", "status": "open", "answer": null, "sourceIds": []}
+    {"id": "q-swissre-005", "category": "decision", "question": "Which concrete model, workflow, prototype, or decision is worth showing?", "status": "open", "answer": "Four coded concept leads exist: Shimmer, Scroll Snap, Interactive Globe, and Immersive Hero. Alexander still needs to choose the one that best carries the story.", "sourceIds": []},
+    {"id": "q-swissre-006", "category": "outcome", "question": "What shipped or changed, what remains unknown, and what may be published?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-swissre-007", "category": "project_identity", "question": "Does the earlier Swiss Re campaign work belong inside the same client-master story as About Us 2026?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-swissre-001", "sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss re workflow", "subject": "Homepage and three About Us page families in desktop and mobile", "storyUse": "Show the responsive content and component system", "status": "candidate", "permissionStatus": "unknown", "notes": "Retrieve approved exports; do not copy internal URLs."},
+    {"id": "media-swissre-002", "sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover", "subject": "Shimmer and Scroll Snap coded concepts", "storyUse": "Show how brand qualities were translated into behaviour", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm authorship and publication boundary."},
+    {"id": "media-swissre-003", "sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover", "subject": "Interactive Globe and Immersive Hero coded concepts", "storyUse": "Compare alternative expressions of scale and purpose", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm authorship and publication boundary."},
+    {"id": "media-swissre-004", "sourceId": "src-20260807-004", "locator": "Swiss Re / Note: Swiss Re About Us 2026 Handover", "subject": "Sitemap, content rationale, and component documentation", "storyUse": "Connect expressive prototypes to the information and system work", "status": "candidate", "permissionStatus": "unknown", "notes": "Sanitise internal content before use."}
+  ],
   "interviewRounds": []
 }

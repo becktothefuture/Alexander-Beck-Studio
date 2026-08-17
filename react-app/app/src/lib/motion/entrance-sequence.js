@@ -283,6 +283,35 @@ export function applyBookendTitleKerning(element) {
 }
 
 /**
+ * Record visual title lines without changing the accessible or inline word
+ * structure. About uses these indices to stagger both colour drawing and the
+ * later quiet fade, while one-line route titles keep their existing rhythm.
+ */
+export function measureBookendTitleGlyphLines(element) {
+  if (!element?.isConnected) return [];
+  const words = Array.from(element.querySelectorAll('.route-entrance-word'));
+  const lines = [];
+  words.forEach((word) => {
+    const top = word.getBoundingClientRect().top;
+    let lineIndex = lines.findIndex((lineTop) => Math.abs(lineTop - top) <= 1.5);
+    if (lineIndex < 0) {
+      lineIndex = lines.length;
+      lines.push(top);
+    }
+    const glyphs = Array.from(word.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
+    const priorGlyphCount = Array.from(element.querySelectorAll(
+      `${ENTRANCE_GLYPH_SELECTOR}[data-route-enter-line-index="${lineIndex}"]`,
+    )).length;
+    glyphs.forEach((glyph, glyphIndex) => {
+      glyph.dataset.routeEnterLineIndex = String(lineIndex);
+      glyph.dataset.routeEnterLineGlyphIndex = String(priorGlyphCount + glyphIndex);
+    });
+  });
+  element.dataset.routeEnterLineCount = String(Math.max(1, lines.length));
+  return Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
+}
+
+/**
  * Converts one title into stable word groups and individually animatable glyphs.
  * The title keeps its accessible name while visual children remain aria-hidden.
  */
@@ -292,6 +321,7 @@ export function prepareBookendTitleGlyphs(element) {
   if (existingGlyphs.length > 0) {
     existingGlyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
     applyBookendTitleKerning(element);
+    measureBookendTitleGlyphLines(element);
     return existingGlyphs;
   }
 
@@ -329,10 +359,13 @@ export function prepareBookendTitleGlyphs(element) {
   const glyphs = Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
   glyphs.forEach((glyph, index) => glyph.style.setProperty('--route-enter-glyph-index', index));
   applyBookendTitleKerning(element);
+  measureBookendTitleGlyphLines(element);
   return glyphs;
 }
 
-function resolveProfile(name, timingMode = 'repeat') {
+function resolveProfile(name, timingMode = 'repeat', {
+  bookendDelayMs = null,
+} = {}) {
   const baseProfile = PROFILES[name] || PROFILES.route;
   const config = getShellRouteTransitionConfig();
   const reduced = timingMode === 'reduced';
@@ -342,6 +375,9 @@ function resolveProfile(name, timingMode = 'repeat') {
   const step = reduced ? 0 : Math.round(config.itemStepMs);
   const routeTypographyOffsetMs = reduced || name !== 'route'
     ? 0
+    : config.typographyDelayMs;
+  const resolvedBookendDelayMs = Number.isFinite(Number(bookendDelayMs))
+    ? Math.max(0, Number(bookendDelayMs))
     : config.typographyDelayMs;
   const group = (groupName, durationMs, stepMs = step) => ({
     ...baseProfile.groups[groupName],
@@ -359,7 +395,7 @@ function resolveProfile(name, timingMode = 'repeat') {
     blurPx: reduced ? 0 : baseProfile.blurPx,
     bookendTitle: {
       ...baseProfile.bookendTitle,
-      delayMs: reduced ? 0 : config.typographyDelayMs,
+      delayMs: reduced ? 0 : resolvedBookendDelayMs,
       colorCount: config.routeBookendColorCount,
       durationMs: reduced ? 0 : config.routeBookendDurationMs,
       overlapPercent: config.routeBookendOverlapPercent,
@@ -386,11 +422,25 @@ function readGroup(profile, name) {
   return profile.groups[name] || profile.groups.context;
 }
 
+function getTitleGlyphDelayOffset(target, glyphIndex) {
+  const glyph = target.glyphs[glyphIndex];
+  const lineIndex = Number(glyph?.dataset.routeEnterLineIndex || 0);
+  const lineGlyphIndex = Number(glyph?.dataset.routeEnterLineGlyphIndex ?? glyphIndex);
+  return (lineIndex * Number(target.titleLineStepMs || 0))
+    + (lineGlyphIndex * target.letterStepMs);
+}
+
+function getLastTitleGlyphDelayOffset(target) {
+  return target.glyphs.reduce((maximum, _glyph, glyphIndex) => (
+    Math.max(maximum, getTitleGlyphDelayOffset(target, glyphIndex))
+  ), 0);
+}
+
 function getTargetEndMs(target) {
   if (target.variant === 'bookend-title') {
     return target.delayMs
       + target.durationMs
-      + (Math.max(0, target.glyphs.length - 1) * target.letterStepMs);
+      + getLastTitleGlyphDelayOffset(target);
   }
   if (target.variant === 'bookend-description') {
     return target.delayMs
@@ -500,7 +550,12 @@ function sequenceTargets(targets, profile) {
   ));
 }
 
-function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 } = {}) {
+function collectTargets(scopes, profile, {
+  trigger = 'route',
+  sequenceSeed = 0,
+  targetSelector = ENTRANCE_SELECTOR,
+  targetDefaults = null,
+} = {}) {
   const groupCounts = new Map();
   const seen = new Set();
   const targets = [];
@@ -509,19 +564,27 @@ function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 }
 
   asScopeElements(scopes).forEach((scope) => {
     const elements = [
-      ...(scope.matches?.(ENTRANCE_SELECTOR) ? [scope] : []),
-      ...Array.from(scope.querySelectorAll?.(ENTRANCE_SELECTOR) || []),
+      ...(scope.matches?.(targetSelector) ? [scope] : []),
+      ...Array.from(scope.querySelectorAll?.(targetSelector) || []),
     ];
 
     elements.forEach((element) => {
-      const elementTrigger = element.dataset.routeEnterTrigger || 'route';
+      const elementTrigger = targetDefaults?.trigger
+        || element.dataset.routeEnterTrigger
+        || 'route';
       if (elementTrigger !== trigger) return;
       if (seen.has(element)) return;
       seen.add(element);
-      const groupName = element.dataset.routeEnter || 'context';
+      const groupName = targetDefaults?.groupName
+        || element.dataset.routeEnter
+        || 'context';
       const fallbackOrder = groupCounts.get(groupName) || 0;
-      const order = readOrder(element, fallbackOrder);
-      const variant = element.dataset.routeEnterVariant || 'default';
+      const order = Number.isFinite(Number(targetDefaults?.order))
+        ? Number(targetDefaults.order)
+        : readOrder(element, fallbackOrder);
+      const variant = targetDefaults?.variant
+        || element.dataset.routeEnterVariant
+        || 'default';
       const isBookendTitle = variant === 'bookend-title';
       const isBookendDescription = variant === 'bookend-description';
       const glyphs = isBookendTitle ? prepareBookendTitleGlyphs(element) : [];
@@ -541,19 +604,32 @@ function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 }
         order,
         delayMs: group.startMs + (group.stepMs * order),
         durationMs: isBookendTitle
-          ? profile.bookendTitle.durationMs
+          ? Number.isFinite(Number(targetDefaults?.durationMs))
+            ? Math.max(0, Number(targetDefaults.durationMs))
+            : profile.bookendTitle.durationMs
           : isBookendDescription
             ? profile.bookendTitle.descriptionDurationMs
             : group.durationMs,
         blurPx: isBookendTitle || isBookendDescription ? 0 : profile.blurPx,
         letterStepMs: isBookendTitle
-          ? profile.bookendTitle.durationMs * (1 - (profile.bookendTitle.overlapPercent / 100))
+          ? Number.isFinite(Number(targetDefaults?.letterStepMs))
+            ? Math.max(0, Number(targetDefaults.letterStepMs))
+            : (
+                Number.isFinite(Number(targetDefaults?.durationMs))
+                  ? Math.max(0, Number(targetDefaults.durationMs))
+                  : profile.bookendTitle.durationMs
+              ) * (1 - (profile.bookendTitle.overlapPercent / 100))
+          : 0,
+        titleLineStepMs: isBookendTitle
+          ? Math.max(0, Number(targetDefaults?.titleLineStepMs || 0))
           : 0,
         lineStepMs: isBookendDescription
           ? profile.bookendTitle.descriptionLineStaggerMs
           : 0,
         travelPercent: isBookendTitle && profile.bookendTitle.movementEnabled
-          ? profile.bookendTitle.travelPercent
+          ? Number.isFinite(Number(targetDefaults?.travelPercent))
+            ? Number(targetDefaults.travelPercent)
+            : profile.bookendTitle.travelPercent
           : 0,
         glyphs,
         descriptionLines,
@@ -566,7 +642,9 @@ function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 }
         flashColors: isBookendTitle
           ? glyphs.map((glyph, glyphIndex) => createRandomOrderedFlashColors(
             paletteColors,
-            profile.bookendTitle.colorCount,
+            Number.isFinite(Number(targetDefaults?.colorCount))
+              ? Math.max(1, Math.round(Number(targetDefaults.colorCount)))
+              : profile.bookendTitle.colorCount,
             isDark,
             (sequenceSeed * 97) + (targetIndex * 131) + (glyphIndex * 19),
           ))
@@ -591,6 +669,7 @@ function collectTargets(scopes, profile, { trigger = 'route', sequenceSeed = 0 }
         durationMs: profile.bookendTitle.ruleDurationMs,
         blurPx: 0,
         letterStepMs: 0,
+        titleLineStepMs: 0,
         lineStepMs: 0,
         travelPercent: 0,
         glyphs: [],
@@ -750,7 +829,7 @@ function stageTarget(target, blurPx) {
         phase: 'staged',
         settled: false,
         startedAt: 0,
-        delayMs: target.delayMs + (glyphIndex * target.letterStepMs),
+        delayMs: target.delayMs + getTitleGlyphDelayOffset(target, glyphIndex),
         durationMs: target.durationMs,
         flashColors: target.flashColors[glyphIndex] || [],
         finalColor: target.finalColor,
@@ -830,12 +909,21 @@ export function createEntranceSequence({
   diagnosticRoot = null,
   reducedMotion = prefersReducedMotion(),
   trigger = 'route',
+  targetSelector = ENTRANCE_SELECTOR,
+  targetDefaults = null,
+  bookendDelayMs = null,
   onAnimation,
 } = {}) {
-  const profile = resolveProfile(profileName, timingMode);
+  const profile = resolveProfile(profileName, timingMode, { bookendDelayMs });
   entranceSequenceGeneration += 1;
   const sequenceSeed = entranceSequenceGeneration;
-  let targets = collectTargets(scopes, profile, { trigger, sequenceSeed });
+  const targetOptions = {
+    trigger,
+    sequenceSeed,
+    targetSelector,
+    targetDefaults,
+  };
+  let targets = collectTargets(scopes, profile, targetOptions);
   let animations = [];
   let animationGroupsByTarget = new Map();
   let staged = false;
@@ -891,7 +979,7 @@ export function createEntranceSequence({
     // staged glyph/line children without replacing their known parent element.
     // Recollect and restage every live target so playback never holds detached
     // child references or exposes newly mounted text at its CSS endpoint.
-    targets = collectTargets(scopes, profile, { trigger, sequenceSeed });
+    targets = collectTargets(scopes, profile, targetOptions);
     targets.forEach((target) => stageTarget(target, reducedMotion ? 0 : target.blurPx));
     targets.forEach(refreshBookendTitleEndpoint);
 
@@ -929,7 +1017,7 @@ export function createEntranceSequence({
       if (target.variant === 'bookend-title') {
         const startedAt = performance.now();
         target.glyphs.forEach((glyph, glyphIndex) => {
-          const delayMs = target.delayMs + (glyphIndex * target.letterStepMs);
+          const delayMs = target.delayMs + getTitleGlyphDelayOffset(target, glyphIndex);
           if (glyph.__absRouteEntranceState) {
             Object.assign(glyph.__absRouteEntranceState, {
               phase: 'playing',
@@ -944,8 +1032,7 @@ export function createEntranceSequence({
         const canvasOwnsMovement = target.glyphs.length > 0
           && target.glyphs.every((glyph) => glyph.__absRouteEntranceState?.canvasOwnsMovement);
         if (canvasOwnsMovement) {
-          const lastGlyphDelayMs = target.delayMs
-            + (Math.max(0, target.glyphs.length - 1) * target.letterStepMs);
+          const lastGlyphDelayMs = target.delayMs + getLastTitleGlyphDelayOffset(target);
           const timingAnimation = target.element.animate(
             [
               { opacity: target.finalOpacity },

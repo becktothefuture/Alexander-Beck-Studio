@@ -39,6 +39,29 @@ function cameraSegments(plan) {
       value: quaternionAngle(from.quaternion, to.quaternion) / durationWU,
     };
   });
+  const orbit = plan.camera.orbit;
+  if (orbit?.startPosition && orbit?.target) {
+    const durationWU = Math.max(EPSILON, Number(orbit.endWU) - Number(orbit.startWU));
+    const radius = Math.hypot(
+      Number(orbit.startPosition[0]) - Number(orbit.target[0]),
+      Number(orbit.startPosition[2]) - Number(orbit.target[2]),
+    );
+    move.push({
+      id: orbit.id,
+      startWU: Number(orbit.startWU),
+      endWU: Number(orbit.endWU),
+      value: radius * Math.abs(Number(orbit.arcRadians)) / durationWU,
+      constant: true,
+      orbit: true,
+    });
+    look.push({
+      id: `${orbit.id}:look`,
+      startWU: Number(orbit.startWU),
+      endWU: Number(orbit.endWU),
+      value: Math.abs(Number(orbit.arcRadians)) * (180 / Math.PI) / durationWU,
+      orbit: true,
+    });
+  }
   return { move, look };
 }
 
@@ -93,12 +116,11 @@ function coverage(plan, stepWU) {
 }
 
 export function analyseAboutNarrativeComposerPlan(plan, { stepWU = 0.025 } = {}) {
-  if (!plan?.valid) return { camera: { move: [], look: [] }, coverage: [], gaps: [], disciplineCrossings: [] };
+  if (!plan?.valid) return { camera: { move: [], look: [] }, coverage: [], gaps: [] };
   const coverageSegments = coverage(plan, stepWU);
   return {
     camera: cameraSegments(plan),
     coverage: coverageSegments,
     gaps: coverageSegments.filter((segment) => segment.type === 'empty' && segment.endWU - segment.startWU > 0.15 + EPSILON),
-    disciplineCrossings: plan.disciplineCrossings || [],
   };
 }

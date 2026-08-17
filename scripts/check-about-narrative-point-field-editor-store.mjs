@@ -120,9 +120,11 @@ test('Camera boundary keys support move, duplicate, delete, and undo', () => {
   }
 });
 
-test('Camera deletion previews and saves the new path despite choreography guidance', () => {
+test('Camera deletion previews and saves the new path without choreography warnings', () => {
   const store = createStore({ baselineHash: 'camera-delete-base' });
-  const cameraId = 'move-discipline-travel-start';
+  const cameraId = 'move-grid-flight-start';
+  const cameraWU = store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === cameraId).atWU;
   const approvedPlan = store.getSnapshot().lastValidPlan;
   store.setSelection({ type: 'camera-key', id: cameraId });
 
@@ -136,24 +138,21 @@ test('Camera deletion previews and saves the new path despite choreography guida
     .some((key) => key.id === cameraId), false);
   const beforeDeletedTime = getAboutNarrativeComposerCameraSample(
     store.getSnapshot().compiledPlan,
-    7.69,
+    cameraWU - 0.01,
   );
   const atDeletedTime = getAboutNarrativeComposerCameraSample(
     store.getSnapshot().compiledPlan,
-    7.7,
+    cameraWU,
   );
   const afterDeletedTime = getAboutNarrativeComposerCameraSample(
     store.getSnapshot().compiledPlan,
-    7.71,
+    cameraWU + 0.01,
   );
   assert.notDeepEqual(beforeDeletedTime.position, atDeletedTime.position);
   assert.notDeepEqual(atDeletedTime.position, afterDeletedTime.position);
   assert.equal(store.getSnapshot().previewDocumentState.status, 'valid-draft');
   assert.equal(store.getSaveEligibility().code, 'ready');
-  assert.match(
-    store.getSnapshot().diagnostics.find((item) => item.level === 'warning')?.message || '',
-    /viewfinder band/i,
-  );
+  assert.deepEqual(store.getSnapshot().diagnostics, []);
 
   assert.equal(store.undo(), true);
   assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
@@ -162,7 +161,7 @@ test('Camera deletion previews and saves the new path despite choreography guida
   assert.equal(store.getSnapshot().diagnostics.some((item) => item.level === 'error'), false);
 });
 
-test('Move, Look, and Lens lanes can each be reduced to one key despite legacy locks', () => {
+test('Move, Look, and Lens timing stays independently editable despite legacy locks', () => {
   const lockedDocument = structuredClone(canonicalV7);
   ['moveKeys', 'lookKeys', 'lensKeys'].forEach((lane) => {
     lockedDocument.tracks.camera[lane].forEach((key) => { key.locked = true; });
@@ -176,18 +175,17 @@ test('Move, Look, and Lens lanes can each be reduced to one key despite legacy l
       .some((key) => 'locked' in key), false, `${lane} should discard legacy locks`);
   });
 
-  const linkedAtWU = 5.122;
   const linkedSelection = { type: 'camera-key', id: 'move-complexity-exit' };
+  const originalAtWU = store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === linkedSelection.id).atWU;
+  store.setSelection(linkedSelection);
   assert.equal(store.beginGesture('Move linked Camera beat', {
     selection: linkedSelection,
-    operation: { type: 'linked-camera', atWU: linkedAtWU },
   }), true);
   assert.equal(store.updateGestureMove(0.01), true);
   assert.equal(store.commitGesture(), true);
-  for (const lane of ['moveKeys', 'lookKeys', 'lensKeys']) {
-    assert.equal(store.getSnapshot().document.tracks.camera[lane]
-      .some((key) => key.atWU === 5.132), true, `${lane} linked key should move`);
-  }
+  assert.equal(store.getSnapshot().document.tracks.camera.moveKeys
+    .find((key) => key.id === linkedSelection.id).atWU, originalAtWU + 0.01);
   assert.equal(store.undo(), true);
 
   for (const [lane, type] of [
@@ -195,17 +193,13 @@ test('Move, Look, and Lens lanes can each be reduced to one key despite legacy l
     ['lookKeys', 'camera-orientation-key'],
     ['lensKeys', 'camera-lens-key'],
   ]) {
-    const ids = store.getSnapshot().document.tracks.camera[lane].map((key) => key.id);
-    for (const id of ids.slice(1)) {
-      store.setSelection({ type, id });
-      assert.equal(store.deleteSelection(), true, `${lane} should delete ${id}`);
-    }
-    assert.equal(store.getSnapshot().document.tracks.camera[lane].length, 1);
-    assert.equal(store.getSnapshot().document.tracks.camera[lane][0].id, ids[0]);
-
-    store.setSelection({ type, id: ids[0] });
-    assert.equal(store.deleteSelection(), false, `${lane} must retain one defining key`);
-    assert.match(store.getSnapshot().rejectedEdit.reason, /at least one key/i);
+    const key = store.getSnapshot().document.tracks.camera[lane][1];
+    const beforeWU = key.atWU;
+    store.setSelection({ type, id: key.id });
+    assert.equal(store.moveSelection(0.01, { snap: false }), true, `${lane} timing should move`);
+    assert.equal(store.getSnapshot().document.tracks.camera[lane]
+      .find((item) => item.id === key.id).atWU, Number((beforeWU + 0.01).toFixed(6)));
+    assert.equal(store.undo(), true);
   }
 });
 
@@ -278,7 +272,7 @@ test('key movement gestures preview repeatedly and commit one history command', 
   assert.equal(store.getSnapshot().saveState.status, 'saved');
 });
 
-test('segment movement gestures keep responsive timing scoped and atomic', () => {
+test('segment movement gestures keep shared timing atomic across responsive profiles', () => {
   const store = createStore();
   const before = bytes(store.getSnapshot().document);
   const segment = morphSegment(store.getSnapshot().document);
@@ -290,10 +284,14 @@ test('segment movement gestures keep responsive timing scoped and atomic', () =>
     segmentId: segment.id,
     scope: 'mobile',
   }), true);
+  assert.equal(store.pointField.updateMoveSegment(0.01), false);
+  assert.match(store.getSnapshot().rejectedEdit.reason, /shared Text moments/i);
+  assert.equal(store.cancelGesture(), true);
+  assert.equal(store.pointField.beginMoveSegment({ segmentId: segment.id, scope: 'base' }), true);
   assert.equal(store.pointField.updateMoveSegment(0.01), true);
   assert.equal(store.pointField.updateMoveSegment(0.02), true);
   assert.equal(store.getSnapshot().document.tracks.pointField.keys
-    .find((item) => item.id === segment.fromKeyId).atWU, baseFromWU);
+    .find((item) => item.id === segment.fromKeyId).atWU, Number((baseFromWU + 0.02).toFixed(6)));
   assert.equal(store.getMetrics().compilations - compilationStart, 0);
   assert.equal(store.commitGesture({ requireValid: true }), true);
   assert.equal(store.getMetrics().compilations - compilationStart, 1);
@@ -444,16 +442,17 @@ test('state topology actions use guarded reusable-state operations', () => {
   assert.equal(validateAboutNarrativePointFieldDocument(store.getSnapshot().document).length, 0);
 });
 
-test('non-point Text and interaction edits remain native v7 operations', () => {
+test('v7 fixes Text structure while keeping bound interaction timing editable', () => {
   const store = createStore();
   const title = store.getSnapshot().document.tracks.text.fields.find((field) => (
     field.kind === 'title' && !field.protected
   ));
   store.setSelection({ type: 'text-field', id: title.id });
   const originalStart = title.startWU;
-  assert.equal(store.moveSelection(0.01, { snap: false }), true);
+  assert.equal(store.moveSelection(0.01, { snap: false }), false);
   assert.equal(store.getSnapshot().document.tracks.text.fields
-    .find((field) => field.id === title.id).startWU, originalStart + 0.01);
+    .find((field) => field.id === title.id).startWU, originalStart);
+  assert.match(store.getSnapshot().rejectedEdit.reason, /fixed editorial spine/i);
   assert.equal(store.getSnapshot().document.schemaVersion, 7);
   assert.equal(store.getSnapshot().compiledPlan.valid, true);
 
@@ -465,11 +464,7 @@ test('non-point Text and interaction edits remain native v7 operations', () => {
     track: 'interaction',
     atWU: 6,
     targetStateId: 'world-grid',
-  }), true);
-  const createdInteraction = store.getSnapshot().document.tracks.interactions.clips
-    .find((clip) => clip.id === store.getSnapshot().selection.id);
-  assert.equal(createdInteraction.targetStateId, 'world-grid');
-  assert.equal('targetWorldId' in createdInteraction, false);
+  }), false);
 
   const interaction = store.getSnapshot().document.tracks.interactions.clips
     .find((clip) => clip.type === 'grid-ripple');
@@ -487,15 +482,15 @@ test('non-point Text and interaction edits remain native v7 operations', () => {
   assert.equal(resized.targetStateId, interaction.targetStateId);
   assert.equal('targetWorldId' in resized, false);
 
-  const emergent = store.getSnapshot().document.tracks.interactions.clips
-    .find((clip) => clip.id === 'interaction-emergent-ripple');
-  const extendedStartWU = Number((emergent.startWU + 0.23).toFixed(3));
-  store.setSelection({ type: 'interaction', id: emergent.id });
+  const finalRipple = store.getSnapshot().document.tracks.interactions.clips
+    .find((clip) => clip.id === 'interaction-grid-ripple');
+  const extendedStartWU = Number((finalRipple.startWU + 0.23).toFixed(3));
+  store.setSelection({ type: 'interaction', id: finalRipple.id });
   assert.equal(store.beginGesture('Extend v7 interaction preparation'), true);
-  assert.equal(store.updateGestureResizeInteraction(emergent.id, 'start', extendedStartWU), true);
+  assert.equal(store.updateGestureResizeInteraction(finalRipple.id, 'start', extendedStartWU), true);
   assert.equal(store.commitGesture({ requireValid: true }), true);
   assert.equal(store.getSnapshot().document.tracks.interactions.clips
-    .find((clip) => clip.id === emergent.id).startWU, extendedStartWU);
+    .find((clip) => clip.id === finalRipple.id).startWU, extendedStartWU);
 });
 
 test('save reconciliation preserves edits made after a v7 submission', () => {

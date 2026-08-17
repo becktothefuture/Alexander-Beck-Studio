@@ -3,6 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8016';
+const experienceVersion = 'main';
+const expectedWorldStage = 'long-assembly-corridor-v1';
 const outputDir = 'output/playwright/about-narrative-hardening/runtime';
 const source = await readFile(
   'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
@@ -26,7 +28,11 @@ assert.doesNotMatch(renderSource, /new\s+(?:Array|Float\w*Array|THREE\.)/, 'Poin
 assert.doesNotMatch(renderSource, /frame\.(?:section|sectionIndex|localProgress)\b/, 'PointWorld must consume sectionless frame signals.');
 assert.match(renderSource, /frame\.interactions\?\.activeInteraction/, 'PointWorld must consume the active Interaction clip.');
 assert.match(renderSource, /frame\.interactions\.interactionActivated/, 'PointWorld must consume absolute Interaction activation.');
-assert.doesNotMatch(source, /matchMedia\(/, 'Point resources must not be selected from pointer/media heuristics.');
+assert.match(
+  source,
+  /resolveAboutNarrativePointProfile\(layoutProfile\)/,
+  'Point resources must be selected from the measured layout profile.',
+);
 
 const browser = await chromium.launch({
   headless: true,
@@ -53,10 +59,10 @@ try {
     && document.querySelector('.about-narrative-lab')?.dataset.worldPrepare === 'ready'
   ), null, { timeout: 60_000 });
 
-  await page.waitForFunction(() => (
-    document.querySelector('.about-narrative-lab')?.dataset.worldStage === 'cluster-v1'
+  await page.waitForFunction((worldStage) => (
+    document.querySelector('.about-narrative-lab')?.dataset.worldStage === worldStage
     && window.__aboutNarrativeRuntime?.getMetrics?.().fixedAttributeIdentityStable === true
-  ), null, { timeout: 60_000 });
+  ), expectedWorldStage, { timeout: 60_000 });
 
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__aboutNarrativeRuntime.resetHotFrameMetrics());
@@ -75,9 +81,10 @@ try {
 
   await mkdir(outputDir, { recursive: true });
   await writeFile(
-    `${outputDir}/hot-frame-600.json`,
+    `${outputDir}/hot-frame-600-${experienceVersion}.json`,
     `${JSON.stringify({
       baseUrl,
+      experienceVersion,
       recordedAt: new Date().toISOString(),
       storyWU: 0,
       liveAmbient: false,

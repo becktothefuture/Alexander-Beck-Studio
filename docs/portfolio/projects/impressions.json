@@ -1,18 +1,28 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "impressions",
   "title": "Impressions",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Multiple", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Selected impressions"], "status": "candidate", "sourceClaimIds": []},
+    "timeframe": {"start": null, "end": null, "yearLabel": null, "duration": null, "precision": "unknown", "status": "unknown", "sourceClaimIds": []}
+  },
   "readiness": {"sourceCoverage": "not_assessed", "interviewStatus": "not_started", "mediaCoverage": "not_assessed", "copyStatus": "blocked_missing_facts"},
-  "subprojects": [
-    {"id": "jaguar-land-rover", "title": "Jaguar Land Rover", "status": "unverified"},
-    {"id": "maybourne", "title": "Maybourne Hotels", "status": "name_needs_confirmation"},
-    {"id": "posters", "title": "Posters", "status": "unverified"},
-    {"id": "other-small-work", "title": "Other small work", "status": "unverified"}
+  "bodiesOfWork": [
+    {"id": "work-impressions-jaguar-land-rover", "title": "Jaguar Land Rover", "storyRole": "primary", "status": "candidate", "summary": "Modern Luxury Ideator concept using a living client signature to support associates and create personalised customer outputs.", "sourceClaimIds": ["claim-impressions-001", "claim-impressions-002", "claim-impressions-003"]},
+    {"id": "work-impressions-maybourne", "title": "Maybourne", "storyRole": "primary", "status": "candidate", "summary": "Luxury-hospitality story and interaction ideas designed to protect the character of individual properties rather than impose one generic system.", "sourceClaimIds": ["claim-impressions-005", "claim-impressions-006", "claim-impressions-007"]},
+    {"id": "work-impressions-posters", "title": "Posters", "storyRole": "primary", "status": "candidate", "summary": "Selected poster work organised around decisive visual moves.", "sourceClaimIds": []},
+    {"id": "work-impressions-other-small-work", "title": "Other small work", "storyRole": "supporting", "status": "candidate", "summary": "Small artefacts that add variety without requiring full case studies.", "sourceClaimIds": []}
   ],
+  "disciplines": [],
+  "collaborators": [],
   "workingHypotheses": [],
   "organisingIdea": {
     "statement": "A small piece earns its place through one decisive creative move, not through the amount of process surrounding it.",
@@ -21,7 +31,16 @@
     "sourceClaimIds": [],
     "lastReviewed": "2026-07-17"
   },
-  "claims": [],
+  "claims": [
+    {"id": "claim-impressions-001", "category": "project_identity", "statement": "The Jaguar Land Rover material includes a Modern Luxury Ideator concept built around an evolving client signature.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-jaguar-land-rover"], "notes": "The note title says LRG; confirm the exact JLR programme and title."},
+    {"id": "claim-impressions-002", "category": "brief", "statement": "The concept explored how associates could retain client preferences and context across touchpoints without making luxury service feel automated or intrusive.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-jaguar-land-rover"], "notes": null},
+    {"id": "claim-impressions-003", "category": "decision", "statement": "A living Client Signature could support associate guidance and become a customer-facing Journey Signature, short AI film, AR keepsake, and personalised next step.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-jaguar-land-rover"], "notes": "Confirm which route Alexander designed and whether any prototype existed."},
+    {"id": "claim-impressions-004", "category": "delivery_status", "statement": "The Jaguar Land Rover work appears to have been a concept or pitch rather than confirmed production work.", "status": "candidate", "confidence": "low", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-jaguar-land-rover"], "notes": "Must be confirmed before public description."},
+    {"id": "claim-impressions-005", "category": "project_identity", "statement": "The Maybourne material concerns a luxury-hospitality story and experience direction across several properties.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-maybourne"], "notes": "Confirm the formal client name and FUB context."},
+    {"id": "claim-impressions-006", "category": "constraint", "statement": "The direction needed to create coherence across locations without erasing the particular character of properties such as Claridge's or forcing technology into the story.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-maybourne"], "notes": null},
+    {"id": "claim-impressions-007", "category": "decision", "statement": "Story matrices, tapestry symbolism, restrained personalisation, ink or calligraphic motion, and hand-drawn reveals were explored as ways to make digital moments feel tailored.", "status": "candidate", "confidence": "high", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-maybourne"], "notes": "Confirm which ideas became artefacts or delivered work."},
+    {"id": "claim-impressions-008", "category": "delivery_status", "statement": "The available Maybourne evidence records strategy and creative directions but not a confirmed final deliverable or launch.", "status": "candidate", "confidence": "medium", "sensitivity": "confidential", "sources": [{"sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-impressions-maybourne"], "notes": null}
+  ],
   "conflicts": [],
   "openQuestions": [
     {"id": "q-impressions-001", "category": "project_identity", "question": "Is the hotel client correctly named Maybourne Hotels, and which individual projects belong in each group?", "status": "open", "answer": null, "sourceIds": []},
@@ -30,6 +49,11 @@
     {"id": "q-impressions-004", "category": "media", "question": "Which ten artefacts create the strongest varied sequence without repetition?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-impressions-005", "category": "anecdote", "question": "What single observation, brief detail, or craft decision makes each selected artefact worth seeing?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
+  "media": [
+    {"id": "media-impressions-001", "sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator", "subject": "Client Signature and associate-facing ideator concept", "storyUse": "Show the central modern-luxury service idea", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate a safe visual artefact and confirm permission."},
+    {"id": "media-impressions-002", "sourceId": "src-20260807-004", "locator": "Jaguar Land Rover / Note: LRG Project — Modern Luxury Ideator", "subject": "Journey Signature, AI film, and AR keepsake route", "storyUse": "Show how the client model could become a memorable customer output", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm whether this was prototyped."},
+    {"id": "media-impressions-003", "sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting", "subject": "Story matrix and property-character direction", "storyUse": "Show how coherence could preserve distinct hotel identities", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate the actual artefact."},
+    {"id": "media-impressions-004", "sourceId": "src-20260807-004", "locator": "Maybourne / Note: Maybourne & FUB meeting", "subject": "Ink, calligraphic motion, or hand-drawn reveal study", "storyUse": "Provide one decisive craft move for the stack", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm which study was made and may be shown."}
+  ],
   "interviewRounds": []
 }

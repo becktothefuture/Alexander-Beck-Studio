@@ -1,17 +1,30 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "tourism-ireland",
   "title": "Tourism Ireland",
   "lifecycleStatus": "archived",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Tourism Ireland", "status": "candidate", "sourceClaimIds": ["claim-tourism-ireland-001"]},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Web app"], "status": "candidate", "sourceClaimIds": ["claim-tourism-ireland-002"]},
+    "timeframe": {"start": "2021", "end": "2021", "yearLabel": "2021", "duration": null, "precision": "year", "status": "candidate", "sourceClaimIds": ["claim-tourism-ireland-003"]}
+  },
   "readiness": {
     "sourceCoverage": "partial",
     "interviewStatus": "not_started",
     "mediaCoverage": "not_started",
     "copyStatus": "blocked_missing_facts"
   },
+  "bodiesOfWork": [
+    {"id": "work-tourism-ireland-web-app", "title": "Tourism Ireland web app", "storyRole": "primary", "status": "candidate", "summary": "A possible web-app project with website and Figma recordings prepared for presentation.", "sourceClaimIds": ["claim-tourism-ireland-002", "claim-tourism-ireland-003"]}
+  ],
+  "disciplines": [],
+  "collaborators": [],
   "workingHypotheses": [
     "Tourism Ireland may be a client credit embedded in an older personal-site design rather than a current portfolio candidate."
   ],
@@ -36,6 +49,32 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "The source contains no description of the work and misspells Ireland."
+    },
+    {
+      "id": "claim-tourism-ireland-002",
+      "category": "project_identity",
+      "statement": "A portfolio-planning note calls the work a Tourism Ireland web app.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Tourism Ireland / Note: Tourism Ireland presentation"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-tourism-ireland-web-app"],
+      "notes": "The exact app and brief remain unknown."
+    },
+    {
+      "id": "claim-tourism-ireland-003",
+      "category": "media",
+      "statement": "A November 2021 presentation note references a live-website recording and a Figma recording.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "Tourism Ireland / Note: Tourism Ireland presentation"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-tourism-ireland-web-app"],
+      "notes": "The note date supports 2021 evidence chronology, not exact project dates."
     }
   ],
   "conflicts": [],
@@ -65,6 +104,9 @@
       "sourceIds": []
     }
   ],
-  "media": [],
+  "media": [
+    {"id": "media-tourism-ireland-001", "sourceId": "src-20260807-004", "locator": "Tourism Ireland / Note: Tourism Ireland presentation", "subject": "Website recording", "storyUse": "Possible evidence of the delivered or prototype experience", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate the recording."},
+    {"id": "media-tourism-ireland-002", "sourceId": "src-20260807-004", "locator": "Tourism Ireland / Note: Tourism Ireland presentation", "subject": "Figma recording", "storyUse": "Show design process or interaction detail", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate the recording."}
+  ],
   "interviewRounds": []
 }

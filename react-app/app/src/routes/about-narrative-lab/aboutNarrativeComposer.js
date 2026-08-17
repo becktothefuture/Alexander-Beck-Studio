@@ -1,13 +1,7 @@
 import {
-  applyAboutNarrativeCameraEasing,
-  compileAboutNarrativeCameraEasing,
-} from './aboutNarrativeCameraEasing.js';
-import {
-  slerpAboutNarrativeCameraQuaternionInto,
-  writeAboutNarrativeCameraQuaternion,
-  writeAboutNarrativeCameraTargetFromRotation,
-} from './aboutNarrativeCameraRig.js';
-import { getAboutNarrativeDisciplinePosition } from './aboutNarrativeDisciplinePositions.js';
+  compileAboutNarrativeCameraMotion,
+  sampleAboutNarrativeCameraMotionInto,
+} from './aboutNarrativeCameraMotion.js';
 import {
   createAboutNarrativePointFieldPreparationDescriptor,
 } from './aboutNarrativePointFieldIdentity.js';
@@ -32,8 +26,9 @@ import {
 } from './aboutNarrativeProfileResolver.js';
 import { compileAboutNarrativeRenderSpans } from './aboutNarrativeRenderSpans.js';
 import {
-  sampleAboutNarrativeResponsiveWorldMaterialInto,
-} from './aboutNarrativeResponsiveMaterial.js';
+  compileAboutNarrativeStoryLayout,
+  materializeAboutNarrativeStoryLayout,
+} from './aboutNarrativeStoryLayout.js';
 import {
   createAboutNarrativeTitleFieldSample,
   sampleAboutNarrativeTitleFieldInto,
@@ -154,28 +149,6 @@ function mergeLane(keys, overrides = {}) {
     .sort((left, right) => Number(left.atWU) - Number(right.atWU) || left.id.localeCompare(right.id));
 }
 
-function compileCamera(document, layoutProfile) {
-  const camera = document.tracks.camera;
-  const overrides = document.profiles[layoutProfile]?.overrides?.camera || {};
-  return deepFreeze({
-    moveKeys: mergeLane(camera.moveKeys, overrides).map((key) => ({
-      ...key,
-      easingCurve: compileAboutNarrativeCameraEasing(
-        key.velocityMode === 'constant' ? 'linear' : key.easing,
-      ),
-    })),
-    lookKeys: mergeLane(camera.lookKeys, overrides).map((key) => ({
-      ...key,
-      easingCurve: compileAboutNarrativeCameraEasing(key.easing),
-      quaternion: writeAboutNarrativeCameraQuaternion([0, 0, 0, 1], key.rotation),
-    })),
-    lensKeys: mergeLane(camera.lensKeys, overrides).map((key) => ({
-      ...key,
-      easingCurve: compileAboutNarrativeCameraEasing(key.easing),
-    })),
-  });
-}
-
 function findKeyIndex(keys, storyWU) {
   let low = 0;
   let high = keys.length - 1;
@@ -188,55 +161,6 @@ function findKeyIndex(keys, storyWU) {
     } else high = middle - 1;
   }
   return result;
-}
-
-function lanePair(keys, storyWU) {
-  const fromIndex = findKeyIndex(keys, storyWU);
-  return [keys[fromIndex], keys[Math.min(keys.length - 1, fromIndex + 1)]];
-}
-
-function laneProgress(from, to, storyWU, reducedMotion) {
-  if (reducedMotion || from === to) return 0;
-  const raw = (storyWU - Number(from.atWU))
-    / Math.max(TIME_EPSILON, Number(to.atWU) - Number(from.atWU));
-  return applyAboutNarrativeCameraEasing(from.easingCurve, clamp01(raw));
-}
-
-function sampleCameraInto(camera, storyWU, reducedMotion, target) {
-  const [moveFrom, moveTo] = lanePair(camera.moveKeys, storyWU);
-  const moveProgress = laneProgress(moveFrom, moveTo, storyWU, reducedMotion);
-  for (let axis = 0; axis < 3; axis += 1) {
-    target.position[axis] = Number(moveFrom.position[axis])
-      + ((Number(moveTo.position[axis]) - Number(moveFrom.position[axis])) * moveProgress);
-  }
-
-  const [lookFrom, lookTo] = lanePair(camera.lookKeys, storyWU);
-  const lookProgress = laneProgress(lookFrom, lookTo, storyWU, reducedMotion);
-  slerpAboutNarrativeCameraQuaternionInto(
-    target.quaternion,
-    lookFrom.quaternion,
-    lookTo.quaternion,
-    lookProgress,
-  );
-  writeAboutNarrativeCameraTargetFromRotation(
-    target.lookAtTarget,
-    target.position,
-    [
-      Number(lookFrom.rotation[0]) + ((Number(lookTo.rotation[0]) - Number(lookFrom.rotation[0])) * lookProgress),
-      Number(lookFrom.rotation[1]) + ((Number(lookTo.rotation[1]) - Number(lookFrom.rotation[1])) * lookProgress),
-      Number(lookFrom.rotation[2]) + ((Number(lookTo.rotation[2]) - Number(lookFrom.rotation[2])) * lookProgress),
-    ],
-    1,
-  );
-  target.lookAtRoll = 0;
-  target.aimWeight = 0;
-  target.targeted = false;
-
-  const [lensFrom, lensTo] = lanePair(camera.lensKeys, storyWU);
-  const lensProgress = laneProgress(lensFrom, lensTo, storyWU, reducedMotion);
-  target.fov = Number(lensFrom.fov)
-    + ((Number(lensTo.fov) - Number(lensFrom.fov)) * lensProgress);
-  return target;
 }
 
 function createProfileResolver(model, options) {
@@ -366,212 +290,6 @@ function createInteractionAdapters(pointPlan) {
     .map((clip) => deepFreeze({ ...clip, targetWorldId: clip.targetStateId }));
 }
 
-function rotateVectorByQuaternion(vector, quaternion) {
-  const [x, y, z] = vector;
-  const [qx, qy, qz, qw] = quaternion;
-  const ix = (qw * x) + (qy * z) - (qz * y);
-  const iy = (qw * y) + (qz * x) - (qx * z);
-  const iz = (qw * z) + (qx * y) - (qy * x);
-  const iw = (-qx * x) - (qy * y) - (qz * z);
-  return [
-    (ix * qw) + (iw * -qx) + (iy * -qz) - (iz * -qy),
-    (iy * qw) + (iw * -qy) + (iz * -qx) - (ix * -qz),
-    (iz * qw) + (iw * -qz) + (ix * -qy) - (iy * -qx),
-  ];
-}
-
-function quaternionFromYXZ(rotation) {
-  const x = Number(rotation?.[0] || 0) * 0.5;
-  const y = Number(rotation?.[1] || 0) * 0.5;
-  const z = Number(rotation?.[2] || 0) * 0.5;
-  const c1 = Math.cos(x);
-  const c2 = Math.cos(y);
-  const c3 = Math.cos(z);
-  const s1 = Math.sin(x);
-  const s2 = Math.sin(y);
-  const s3 = Math.sin(z);
-  return [
-    (s1 * c2 * c3) + (c1 * s2 * s3),
-    (c1 * s2 * c3) - (s1 * c2 * s3),
-    (c1 * c2 * s3) - (s1 * s2 * c3),
-    (c1 * c2 * c3) + (s1 * s2 * s3),
-  ];
-}
-
-function disciplineWorldPosition(item, profile, world, globals, pointProfile, options) {
-  const [normalizedX, normalizedZ] = getAboutNarrativeDisciplinePosition(item, profile);
-  const shape = world.shapeParameters || {};
-  const transform = world.transform || {};
-  const compact = pointProfile === 'mobile';
-  const shortLandscape = isAboutNarrativeShortLandscape({
-    layoutProfile: profile,
-    width: options.inlineSize,
-    height: options.blockSize,
-  });
-  const responsive = sampleAboutNarrativeResponsiveWorldMaterialInto(
-    world,
-    options.inlineSize,
-    compact,
-    shortLandscape,
-    { scale: 1, xScale: 1, yOffset: 0, presenceRatio: 1 },
-  );
-  const scale = shortLandscape && Number.isFinite(transform.mobileLandscapeScale)
-    ? Number(transform.mobileLandscapeScale)
-    : responsive.scale;
-  const xScale = shortLandscape && Number.isFinite(transform.mobileLandscapeXScale)
-    ? Number(transform.mobileLandscapeXScale)
-    : responsive.xScale;
-  const local = [
-    (normalizedX - 0.5) * Number(shape.width ?? 13) * xScale,
-    Number(shape.height ?? -1.72) * scale,
-    (normalizedZ - 0.5) * Number(shape.depth ?? 17) * scale,
-  ];
-  const rotated = rotateVectorByQuaternion(local, quaternionFromYXZ(transform.rotation));
-  const position = transform.position || [0, 0, 0];
-  const anchorRailZ = Number.isFinite(world.anchorRailZ)
-    ? Number(world.anchorRailZ)
-    : Number(globals.worldRail.originZ) - (Number(world.railAnchorWU) * Number(globals.worldRail.unitsPerWU));
-  return [
-    rotated[0] + Number(position[0] || 0)
-      + (shortLandscape ? Number(transform.mobileLandscapeXOffset || 0) : 0),
-    rotated[1] + Number(position[1] || 0) + (compact ? responsive.yOffset : 0)
-      + (shortLandscape ? Number(transform.mobileLandscapeYOffset || 0) : 0),
-    rotated[2] + anchorRailZ - Number(world.entryDistanceWU || 0) + Number(position[2] || 0)
-      + (compact ? Number(transform.mobileZOffset || 0) : 0)
-      + (shortLandscape ? Number(transform.mobileLandscapeZOffset || 0) : 0),
-  ];
-}
-
-function viewfinderRatio(worldPosition, cameraSample) {
-  const delta = [
-    worldPosition[0] - cameraSample.position[0],
-    worldPosition[1] - cameraSample.position[1],
-    worldPosition[2] - cameraSample.position[2],
-  ];
-  const [qx, qy, qz, qw] = cameraSample.quaternion;
-  const local = rotateVectorByQuaternion(delta, [-qx, -qy, -qz, qw]);
-  const depth = -local[2];
-  if (depth <= TIME_EPSILON) return Number.POSITIVE_INFINITY;
-  const tangent = Math.tan((Number(cameraSample.fov) * Math.PI / 180) * 0.5);
-  return 0.5 - ((local[1] / Math.max(TIME_EPSILON, depth * tangent)) * 0.5);
-}
-
-function findViewfinderCrossing(camera, worldPosition, startWU, endWU, ratio) {
-  const sample = {
-    position: [0, 0, 0],
-    quaternion: [0, 0, 0, 1],
-    lookAtTarget: [0, 0, -1],
-    lookAtRoll: 0,
-    aimWeight: 0,
-    targeted: false,
-    fov: 48,
-  };
-  const at = (storyWU) => viewfinderRatio(
-    worldPosition,
-    sampleCameraInto(camera, storyWU, false, sample),
-  );
-  if (at(startWU) <= ratio) return { atWU: startWU, entered: true };
-  if (at(endWU) > ratio) return { atWU: endWU, entered: false };
-  let low = startWU;
-  let high = endWU;
-  for (let iteration = 0; iteration < 32; iteration += 1) {
-    const middle = (low + high) * 0.5;
-    if (at(middle) <= ratio) high = middle;
-    else low = middle;
-  }
-  return { atWU: high, entered: true };
-}
-
-function compileDisciplineReveal(interactions, camera, pointPlan, pointProfile, options) {
-  const clip = interactions.find((item) => item.type === 'discipline-reveal');
-  if (!clip) return { config: null, crossings: [], diagnostics: [] };
-  const parameters = clip.parameters;
-  const startWU = Number(clip.activationWU);
-  const endWU = Number(clip.endWU);
-  const restoreDurationWU = Math.max(0, Number(parameters.restoreDurationWU));
-  const restoreStartWU = Math.max(startWU, endWU - restoreDurationWU);
-  const entryStartRatio = Number(parameters.entryStartRatio ?? 0.88);
-  const entryCompleteRatio = Number(parameters.entryCompleteRatio ?? 0.78);
-  const world = pointPlan.rendererStates.find((state) => state.stateId === clip.targetStateId);
-  const diagnostics = [];
-  const crossings = [...parameters.items]
-    .sort((left, right) => Number(left.group) - Number(right.group))
-    .map((item) => {
-      const worldPosition = disciplineWorldPosition(
-        item,
-        pointPlan.layoutProfile,
-        world,
-        pointPlan.globals,
-        pointProfile,
-        options,
-      );
-      const entry = findViewfinderCrossing(
-        camera,
-        worldPosition,
-        startWU,
-        restoreStartWU,
-        entryStartRatio,
-      );
-      const complete = findViewfinderCrossing(
-        camera,
-        worldPosition,
-        entry.atWU,
-        restoreStartWU,
-        entryCompleteRatio,
-      );
-      if (!entry.entered || !complete.entered) {
-        diagnostics.push({
-          level: 'warning',
-          code: 'discipline-viewfinder-crossing',
-          path: `tracks.interactions.clips.${clip.id}.parameters.items.${item.group}`,
-          message: `${item.label} does not cross the configured viewfinder band before restore.`,
-        });
-      }
-      return deepFreeze({
-        group: Number(item.group),
-        label: item.label,
-        startWU: entry.atWU,
-        completeWU: Math.max(entry.atWU, complete.atWU),
-        atWU: entry.atWU,
-        worldPosition,
-      });
-    });
-  const sequenceStartWU = crossings.length
-    ? Math.min(...crossings.map((crossing) => crossing.startWU))
-    : startWU;
-  const sequenceEndWU = crossings.length
-    ? Math.max(...crossings.map((crossing) => crossing.completeWU))
-    : restoreStartWU;
-  return {
-    diagnostics,
-    crossings,
-    config: deepFreeze({
-      id: clip.id,
-      startWU,
-      focusWU: startWU + ((endWU - startWU) * 0.5),
-      endWU,
-      effectStartWU: Number(clip.startWU),
-      effectEndWU: endWU,
-      sequenceStartWU,
-      sequenceEndWU,
-      restoreStartWU,
-      backgroundFadeWU: Math.max(0, sequenceStartWU - Number(clip.startWU)),
-      backgroundFadeEndWU: sequenceStartWU,
-      entryStartRatio,
-      entryCompleteRatio,
-      backgroundOpacity: Number(parameters.backgroundOpacity),
-      reconnectOpacity: 1,
-      pointScale: Number(parameters.pointScale),
-      restoreDurationWU,
-      items: parameters.items,
-      crossings,
-      sourceType: 'motion',
-      source: clip,
-      motion: clip,
-    }),
-  };
-}
-
 function invalidComposerPlan(pointPlan, diagnostics = []) {
   return deepFreeze({
     ...pointPlan,
@@ -585,8 +303,7 @@ function invalidComposerPlan(pointPlan, diagnostics = []) {
     interactionClips: [],
     effects: [],
     renderSpans: [],
-    disciplineReveal: null,
-    disciplineCrossings: [],
+    storyLayout: null,
   });
 }
 
@@ -602,7 +319,28 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
       message: error.message,
     }]);
   }
-  const pointPlan = compileAboutNarrativePointFieldRuntime(input, {
+
+  // The Story Stack is compiled before every motion system. It derives the
+  // page length from ordered content and named gaps, then materializes the
+  // numeric timing cache consumed by allocation-sensitive runtime samplers.
+  const storyLayout = compileAboutNarrativeStoryLayout(input, {
+    profileId: resolver.layoutProfile,
+    measurements: options.storyLayoutMeasurements || options.contentPressure,
+  });
+  if (!storyLayout.valid) return invalidComposerPlan(null, storyLayout.diagnostics);
+  const runtimeInput = materializeAboutNarrativeStoryLayout(input, storyLayout);
+  try {
+    resolver = createProfileResolver(runtimeInput, options);
+  } catch (error) {
+    return invalidComposerPlan(null, [{
+      level: 'error',
+      code: 'composer-story-profile',
+      path: 'profiles',
+      message: error.message,
+    }]);
+  }
+
+  const pointPlan = compileAboutNarrativePointFieldRuntime(runtimeInput, {
     ...options,
     layoutProfile: resolver.layoutProfile,
     motionProfile: resolver.motionProfile,
@@ -610,7 +348,6 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
   if (!pointPlan.valid) return invalidComposerPlan(pointPlan);
   const model = pointPlan.model;
   const pointProfile = resolveAboutNarrativePointProfile(resolver.layoutProfile);
-  const camera = compileCamera(model, resolver.layoutProfile);
   const visibilityKeys = resolveLane(model, resolver, 'visibility');
   const textFields = resolveTextFields(model, resolver);
   const pointField = applyAboutNarrativePointFieldOverrides(
@@ -628,15 +365,15 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
       message: error.message,
     }]);
   }
-  const interactionClips = createInteractionAdapters(pointPlan);
-  const effects = pointPlan.interactions.filter((clip) => clip.type === 'state-effect');
-  const reveal = compileDisciplineReveal(
-    interactionClips,
-    camera,
-    pointPlan,
+  const camera = compileAboutNarrativeCameraMotion(
+    model,
+    resolver.layoutProfile,
+    preparation.worlds,
     pointProfile,
     options,
   );
+  const interactionClips = createInteractionAdapters(pointPlan);
+  const effects = pointPlan.interactions.filter((clip) => clip.type === 'state-effect');
   const renderSpanPlan = compileAboutNarrativeRenderSpans({
     textFields,
     worlds: preparation.worlds,
@@ -646,8 +383,8 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
     contentPressure: options.contentPressure,
   });
   const diagnostics = [
+    ...storyLayout.diagnostics,
     ...pointPlan.diagnostics,
-    ...reveal.diagnostics,
     ...renderSpanPlan.diagnostics,
   ];
   if (!renderSpanPlan.valid || diagnostics.some((item) => item.level === 'error')) {
@@ -677,10 +414,9 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
     interactionClips,
     effects,
     renderSpans: renderSpanPlan.spans,
+    storyLayout,
     worldSequenceKey: preparation.sequenceKey,
     worldPreparationDescriptor: preparation.descriptor,
-    disciplineReveal: reveal.config,
-    disciplineCrossings: reveal.crossings,
   });
 }
 
@@ -694,21 +430,6 @@ function createMotionEnvelopeSamples() {
 
 export function createAboutNarrativeComposerFrameSample() {
   const motion = createMotionEnvelopeSamples();
-  const disciplineReveal = {
-    id: '',
-    config: null,
-    storyWU: 0,
-    startWU: 0,
-    endWU: 0,
-    backgroundFadeWU: 0,
-    restoreDurationWU: 0,
-    sequenceStartWU: 0,
-    sequenceEndWU: 0,
-    active: false,
-    backgroundProgress: 0,
-    restoreProgress: 0,
-    weights: new Float32Array(6),
-  };
   const frame = {
     globals: null,
     sourceSchemaVersion: 7,
@@ -720,6 +441,7 @@ export function createAboutNarrativeComposerFrameSample() {
     layoutProfile: 'desktop',
     pointProfile: 'desktop',
     reducedMotion: false,
+    finaleOrbitWU: 0,
     camera: {
       position: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
@@ -753,7 +475,9 @@ export function createAboutNarrativeComposerFrameSample() {
         ...motion,
       },
     },
-    text: { activeFieldIds: [] },
+    text: {
+      activeFieldIds: [],
+    },
     interactions: {
       activeClipIds: [],
       activatedClipIds: [],
@@ -768,13 +492,10 @@ export function createAboutNarrativeComposerFrameSample() {
       weight: [],
       elapsedWU: [],
     },
-    disciplineReveal: null,
-    editorialSignals: { disciplineFocus: 0, gridInfluence: 0 },
   };
   Object.defineProperties(frame, {
     _aboutNarrativeComposerFrame: { value: true },
     _pointFieldFrame: { value: createAboutNarrativePointFieldFrameSample() },
-    _disciplineReveal: { value: disciplineReveal },
   });
   return frame;
 }
@@ -808,10 +529,11 @@ function copyIds(target, source) {
 }
 
 function collectActiveText(target, textFields, storyWU, durationWU) {
-  target.length = 0;
+  target.activeFieldIds.length = 0;
   for (let index = 0; index < textFields.length; index += 1) {
     const field = textFields[index];
-    if (isActiveAt(field, storyWU, durationWU)) target.push(field.id);
+    if (!isActiveAt(field, storyWU, durationWU)) continue;
+    target.activeFieldIds.push(field.id);
   }
 }
 
@@ -825,6 +547,8 @@ function effectWeight(clip, storyWU, reducedMotion) {
   const activationWU = Number(clip.activationWU);
   const endWU = Number(clip.endWU);
   const releaseWU = Math.max(0, Number(clip.parameters?.releaseWU) || 0);
+  // Every effect is one continuous attack, sustain, and release envelope.
+  // Keeping that shape inside one clip prevents visible resets at handoffs.
   const attack = activationWU <= startWU ? 1 : smoothRange(storyWU, startWU, activationWU);
   const releaseStartWU = Math.max(activationWU, endWU - releaseWU);
   const release = releaseWU <= TIME_EPSILON
@@ -842,41 +566,6 @@ function writeMotionEnvelope(target, source) {
   if (Object.hasOwn(target, 'offset')) target.offset = source.offset;
 }
 
-function sampleDisciplineReveal(frame, config) {
-  const target = frame._disciplineReveal;
-  if (!config) {
-    frame.disciplineReveal = null;
-    return;
-  }
-  frame.disciplineReveal = target;
-  target.id = config.id;
-  target.config = config;
-  target.storyWU = frame.storyWU;
-  target.startWU = config.startWU;
-  target.endWU = config.endWU;
-  target.backgroundFadeWU = config.backgroundFadeWU;
-  target.restoreDurationWU = config.restoreDurationWU;
-  target.sequenceStartWU = config.sequenceStartWU;
-  target.sequenceEndWU = config.sequenceEndWU;
-  target.active = frame.storyWU >= config.effectStartWU && frame.storyWU < config.effectEndWU;
-  target.backgroundProgress = !target.active
-    ? 0
-    : frame.reducedMotion
-      ? 1
-      : smoothRange(frame.storyWU, config.effectStartWU, config.backgroundFadeEndWU);
-  target.restoreProgress = frame.reducedMotion
-    ? Number(frame.storyWU >= config.effectEndWU)
-    : smoothRange(frame.storyWU, config.restoreStartWU, config.effectEndWU);
-  target.weights.fill(0);
-  if (!target.active) return;
-  for (let index = 0; index < config.crossings.length && index < target.weights.length; index += 1) {
-    const crossing = config.crossings[index];
-    target.weights[index] = frame.reducedMotion
-      ? Number(frame.storyWU >= crossing.completeWU)
-      : smoothRange(frame.storyWU, crossing.startWU, crossing.completeWU);
-  }
-}
-
 function sampleInteractions(plan, pointFrame, frame) {
   copyIds(frame.interactions.activeClipIds, pointFrame.interactions.activeClipIds);
   copyIds(frame.interactions.activatedClipIds, pointFrame.interactions.activatedClipIds);
@@ -884,12 +573,14 @@ function sampleInteractions(plan, pointFrame, frame) {
   frame.interactions.interactionActivated = false;
   frame.interactions.effectWeight = 0;
   frame.interactions.effectProgress = 0;
-  const fromStateId = pointFrame.world.from?.stateId;
   const toStateId = pointFrame.world.to?.stateId;
   for (let index = 0; index < plan.interactionClips.length; index += 1) {
     const clip = plan.interactionClips[index];
     if (!isActiveAt(clip, frame.storyWU, frame.durationWU)) continue;
-    if (clip.targetStateId !== fromStateId && clip.targetStateId !== toStateId) continue;
+    // The destination Form owns the active interval. Source-Form interactions
+    // must not leak into the next morph merely because both geometries are
+    // still present in the shader.
+    if (clip.targetStateId !== toStateId) continue;
     frame.interactions.activeInteraction = clip;
     frame.interactions.interactionActivated = frame.storyWU >= Number(clip.activationWU);
     frame.interactions.effectWeight = effectWeight(clip, frame.storyWU, frame.reducedMotion);
@@ -901,15 +592,19 @@ function sampleInteractions(plan, pointFrame, frame) {
   }
 }
 
-function sampleComposerEffects(plan, frame) {
+function sampleComposerEffects(plan, pointFrame, frame) {
   const target = frame.composerEffects;
   target.active.length = 0;
   target.progress.length = 0;
   target.weight.length = 0;
   target.elapsedWU.length = 0;
+  const owningStateId = pointFrame.world.to?.stateId;
   for (let index = 0; index < plan.effects.length; index += 1) {
     const clip = plan.effects[index];
     if (!isActiveAt(clip, frame.storyWU, frame.durationWU)) continue;
+    // Compile-time validation guarantees containment. Keep this runtime guard
+    // as the final seam so a stale preview can never compose adjacent Forms.
+    if (clip.targetStateId !== owningStateId) continue;
     const elapsedWU = Math.max(0, frame.storyWU - Number(clip.activationWU));
     target.active.push(clip);
     target.progress.push(frame.reducedMotion
@@ -938,6 +633,7 @@ export function sampleAboutNarrativeComposerPlanInto(
     options,
   );
   if (!pointFrame) return null;
+  const segment = findById(plan.pointFieldPlan.segments, pointFrame.world.segmentId);
   target.sourceSchemaVersion = plan.sourceSchemaVersion;
   target.globals = plan.globals;
   target.storyWU = clampedStoryWU;
@@ -948,14 +644,28 @@ export function sampleAboutNarrativeComposerPlanInto(
   target.layoutProfile = plan.layoutProfile;
   target.pointProfile = plan.pointProfile;
   target.reducedMotion = plan.reducedMotion;
-  sampleCameraInto(plan.camera, clampedStoryWU, plan.reducedMotion, target.camera);
+  target.finaleOrbitWU = plan.reducedMotion ? 0 : Number(options.finaleOrbitWU) || 0;
+  // Reduced motion settles the complete destination composition at the start
+  // of a morph. Sample the camera at the same semantic destination boundary so
+  // geometry and viewpoint cut together instead of showing mismatched worlds.
+  const cameraStoryWU = plan.reducedMotion
+    && segment
+    && segment.transition.type !== 'hold'
+    ? segment.endWU
+    : clampedStoryWU;
+  sampleAboutNarrativeCameraMotionInto(
+    plan.camera,
+    cameraStoryWU,
+    plan.reducedMotion,
+    target.camera,
+    { finaleOrbitWU: target.finaleOrbitWU },
+  );
   target.simulation.visibility = sampleVisibility(
     plan.visibilityKeys,
     clampedStoryWU,
     plan.reducedMotion,
   );
 
-  const segment = findById(plan.pointFieldPlan.segments, pointFrame.world.segmentId);
   const sampledFromWorld = findById(plan.worlds, pointFrame.world.from?.stateId, 'stateId');
   const toWorld = findById(plan.worlds, pointFrame.world.to?.stateId, 'stateId') || sampledFromWorld;
   const settledPair = segment?.transition.type === 'hold'
@@ -984,12 +694,14 @@ export function sampleAboutNarrativeComposerPlanInto(
   writeMotionEnvelope(target.world.transition.path, pointFrame.world.transition.path);
   writeMotionEnvelope(target.world.transition.flatten, pointFrame.world.transition.flatten);
 
-  collectActiveText(target.text.activeFieldIds, plan.textFields, clampedStoryWU, plan.durationWU);
+  collectActiveText(
+    target.text,
+    plan.textFields,
+    clampedStoryWU,
+    plan.durationWU,
+  );
   sampleInteractions(plan, pointFrame, target);
-  sampleComposerEffects(plan, target);
-  sampleDisciplineReveal(target, plan.disciplineReveal);
-  target.editorialSignals.disciplineFocus = 0;
-  target.editorialSignals.gridInfluence = 0;
+  sampleComposerEffects(plan, pointFrame, target);
   return target;
 }
 
@@ -1009,7 +721,12 @@ export function getAboutNarrativeComposerPreparationRequest(plan, storyWU) {
   } : null;
 }
 
-export function getAboutNarrativeComposerCameraSample(plan, storyWU, target = null) {
+export function getAboutNarrativeComposerCameraSample(
+  plan,
+  storyWU,
+  target = null,
+  options = EMPTY_OPTIONS,
+) {
   const sample = target || {
     position: [0, 0, 0],
     quaternion: [0, 0, 0, 1],
@@ -1019,5 +736,11 @@ export function getAboutNarrativeComposerCameraSample(plan, storyWU, target = nu
     targeted: false,
     fov: 48,
   };
-  return sampleCameraInto(plan.camera, Number(storyWU), plan.reducedMotion, sample);
+  return sampleAboutNarrativeCameraMotionInto(
+    plan.camera,
+    Number(storyWU),
+    plan.reducedMotion,
+    sample,
+    options,
+  );
 }

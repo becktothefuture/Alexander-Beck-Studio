@@ -3,6 +3,12 @@ import {
   normalizeAboutNarrativePointFieldDocument,
   validateAboutNarrativePointFieldDocument,
 } from './aboutNarrativePointFieldSchema.js';
+import {
+  refreshAboutNarrativeMomentTriggers,
+} from './aboutNarrativeMoments.js';
+import {
+  reconcileAboutNarrativeEffectsWithFormSequence,
+} from './aboutNarrativeFormSequence.js';
 
 export const ABOUT_NARRATIVE_POINT_FIELD_SELECTION_TYPES = Object.freeze([
   'point-field-state',
@@ -31,7 +37,7 @@ const BASE_PATCH_KEYS = Object.freeze({
 });
 const PROFILE_PATCH_KEYS = Object.freeze({
   'point-field-state': new Set(['railAnchorWU', 'transform']),
-  'point-field-key': new Set(['atWU']),
+  'point-field-key': new Set(),
   'point-field-segment': new Set(['transition']),
 });
 const COLLECTION_BY_TYPE = Object.freeze({
@@ -173,24 +179,6 @@ function hasOwnTimeOverride(document, profileId, keyId) {
     document.profiles[profileId].overrides.pointField.keys?.[keyId] || {},
     'atWU',
   );
-}
-
-function setProfileKeyTime(document, profileId, keyId, atWU) {
-  const pointFieldOverrides = document.profiles[profileId].overrides.pointField;
-  pointFieldOverrides.keys ||= {};
-  const baseKey = getItem(document, 'point-field-key', keyId);
-  if (Math.abs(Number(baseKey.atWU) - Number(atWU)) <= TIME_EPSILON) {
-    const existing = pointFieldOverrides.keys[keyId];
-    if (existing) {
-      delete existing.atWU;
-      if (!Object.keys(existing).length) delete pointFieldOverrides.keys[keyId];
-    }
-    return;
-  }
-  pointFieldOverrides.keys[keyId] = {
-    ...(pointFieldOverrides.keys[keyId] || {}),
-    atWU: cleanWU(atWU),
-  };
 }
 
 function keyTimingContexts(document, scope, keyId) {
@@ -388,8 +376,12 @@ export function moveAboutNarrativePointFieldKey(input, {
   const prepared = prepareDocument(input);
   if (!prepared.valid) return prepared;
   if (!requireScope(scope)) return invalidResult('edit-scope', `Unknown point-field edit scope “${scope}”.`);
+  if (scope !== 'base') {
+    return invalidResult('moment-shared-timing', 'Form timing belongs to the shared Text moments and cannot diverge by viewport.');
+  }
   if (!Number.isFinite(Number(atWU))) return invalidResult('key-time', 'Point-field key time must be finite.');
   const document = prepared.document;
+  const beforePointField = clone(document.tracks.pointField);
   const key = getItem(document, 'point-field-key', keyId);
   if (!key) return invalidResult('missing-key', `Point-field key “${keyId}” does not exist.`);
   if (key.protected === true) return invalidResult('protected-key', 'Protected boundary keys cannot move.');
@@ -398,8 +390,17 @@ export function moveAboutNarrativePointFieldKey(input, {
     return invalidResult('key-bounds', 'The resolved profile timelines do not share a valid key range.');
   }
   const nextWU = cleanWU(clamp(Number(atWU), bounds.minimum, bounds.maximum));
-  if (scope === 'base') key.atWU = nextWU;
-  else setProfileKeyTime(document, scope, keyId, nextWU);
+  key.atWU = nextWU;
+  const changedEffectIds = reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  );
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: keyId });
+  changedEffectIds.forEach((id) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id });
+  });
   return commitDocument(input, document, { type: 'point-field-key', id: keyId }, {
     requestedAtWU: Number(atWU),
     appliedAtWU: nextWU,
@@ -415,8 +416,12 @@ export function moveAboutNarrativePointFieldSegment(input, {
   const prepared = prepareDocument(input);
   if (!prepared.valid) return prepared;
   if (!requireScope(scope)) return invalidResult('edit-scope', `Unknown point-field edit scope “${scope}”.`);
+  if (scope !== 'base') {
+    return invalidResult('moment-shared-timing', 'Form timing belongs to the shared Text moments and cannot diverge by viewport.');
+  }
   if (!Number.isFinite(Number(deltaWU))) return invalidResult('segment-delta', 'Point-field segment movement must be finite.');
   const document = prepared.document;
+  const beforePointField = clone(document.tracks.pointField);
   const baseSegment = getItem(document, 'point-field-segment', segmentId);
   if (!baseSegment) return invalidResult('missing-segment', `Point-field segment “${segmentId}” does not exist.`);
   const fromBase = getItem(document, 'point-field-key', baseSegment.fromKeyId);
@@ -461,16 +466,19 @@ export function moveAboutNarrativePointFieldSegment(input, {
     return invalidResult('segment-bounds', 'The resolved profile timelines do not share a valid segment movement range.');
   }
   const appliedDeltaWU = cleanWU(clamp(Number(deltaWU), minimumDelta, maximumDelta));
-  if (scope === 'base') {
-    fromBase.atWU = cleanWU(Number(fromBase.atWU) + appliedDeltaWU);
-    toBase.atWU = cleanWU(Number(toBase.atWU) + appliedDeltaWU);
-  } else {
-    const resolved = profilePointField(document, scope);
-    const from = resolved.keys.find((key) => key.id === fromBase.id);
-    const to = resolved.keys.find((key) => key.id === toBase.id);
-    setProfileKeyTime(document, scope, fromBase.id, Number(from.atWU) + appliedDeltaWU);
-    setProfileKeyTime(document, scope, toBase.id, Number(to.atWU) + appliedDeltaWU);
-  }
+  fromBase.atWU = cleanWU(Number(fromBase.atWU) + appliedDeltaWU);
+  toBase.atWU = cleanWU(Number(toBase.atWU) + appliedDeltaWU);
+  const changedEffectIds = reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  );
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: fromBase.id });
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: toBase.id });
+  changedEffectIds.forEach((id) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id });
+  });
   return commitDocument(input, document, { type: 'point-field-segment', id: segmentId }, {
     requestedDeltaWU: Number(deltaWU),
     appliedDeltaWU,
@@ -511,6 +519,7 @@ export function makeAboutNarrativePointFieldKeyStateUnique(input, {
   const prepared = prepareDocument(input);
   if (!prepared.valid) return prepared;
   const document = prepared.document;
+  const beforePointField = clone(document.tracks.pointField);
   const key = getItem(document, 'point-field-key', keyId);
   if (!key) return invalidResult('missing-key', `Point-field key “${keyId}” does not exist.`);
   if (key.protected === true) return invalidResult('protected-key', 'Protected boundary keys cannot change state ownership.');
@@ -529,6 +538,14 @@ export function makeAboutNarrativePointFieldKeyStateUnique(input, {
   });
   key.stateId = nextId;
   repairAdjacentTransitions(document, keyId);
+  reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  ).forEach((effectId) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id: effectId });
+  });
   return commitDocument(input, document, { type: 'point-field-key', id: keyId }, { stateId: nextId });
 }
 
@@ -573,6 +590,7 @@ export function splitAboutNarrativePointFieldSegment(input, {
   if (!Number.isFinite(Number(atWU))) return invalidResult('split-time', 'Segment split time must be finite.');
   const document = prepared.document;
   const pointField = document.tracks.pointField;
+  const beforePointField = clone(pointField);
   const index = segmentIndex(pointField, segmentId);
   if (index < 0) return invalidResult('missing-segment', `Point-field segment “${segmentId}” does not exist.`);
   let minimum = Number.NEGATIVE_INFINITY;
@@ -616,6 +634,15 @@ export function splitAboutNarrativePointFieldSegment(input, {
       toKeyId: nextKeyId,
     }, holdSegment);
   }
+  reconcileAboutNarrativeEffectsWithFormSequence(
+    document.tracks.interactions?.clips,
+    beforePointField,
+    document.tracks.pointField,
+    document.profiles.desktop.storyDurationWU,
+  ).forEach((effectId) => {
+    refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id: effectId });
+  });
+  refreshAboutNarrativeMomentTriggers(document, { type: 'point-field-key', id: nextKeyId });
   return commitDocument(input, document, { type: 'point-field-key', id: nextKeyId }, {
     keyId: nextKeyId,
     retainedSegmentId: segmentId,
@@ -652,6 +679,7 @@ export function writeAboutNarrativePointFieldTarget(input, {
     return moveAboutNarrativePointFieldKey(prepared.document, { keyId: id, atWU: patch.atWU, scope });
   }
   const document = prepared.document;
+  const beforePointField = clone(document.tracks.pointField);
   const target = getItem(document, type, id);
   if (!target) return invalidResult('missing-target', `Point-field target “${id}” does not exist.`);
   if (target.protected === true && type === 'point-field-key') {
@@ -667,7 +695,17 @@ export function writeAboutNarrativePointFieldTarget(input, {
     const overrides = document.profiles[scope].overrides.pointField[collection];
     overrides[id] = mergeDeep(overrides[id] || {}, patch);
   }
-  if (type === 'point-field-key' && Object.hasOwn(patch, 'stateId')) repairAdjacentTransitions(document, id);
+  if (type === 'point-field-key' && Object.hasOwn(patch, 'stateId')) {
+    repairAdjacentTransitions(document, id);
+    reconcileAboutNarrativeEffectsWithFormSequence(
+      document.tracks.interactions?.clips,
+      beforePointField,
+      document.tracks.pointField,
+      document.profiles.desktop.storyDurationWU,
+    ).forEach((effectId) => {
+      refreshAboutNarrativeMomentTriggers(document, { type: 'interaction', id: effectId });
+    });
+  }
   return commitDocument(input, document, { type, id });
 }
 

@@ -7,7 +7,6 @@ const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER || 'chromium';
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const outputDir = resolve('output/playwright/about-narrative-editorial-refinement');
-const storyDurationWU = 22.795;
 const aboutUrl = `${baseUrl}/about.html?edit=0`;
 
 await mkdir(outputDir, { recursive: true });
@@ -19,7 +18,12 @@ async function openAbout(viewport) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() !== 'error') return;
+    const sourceUrl = message.location().url || '';
+    // Google Fonts can rotate cached asset URLs independently of the app.
+    // Keep application errors fatal while allowing the declared font fallback.
+    if (sourceUrl.startsWith('https://fonts.gstatic.com/')) return;
+    errors.push(sourceUrl ? `${message.text()} @ ${sourceUrl}` : message.text());
   });
   await page.goto(aboutUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', {
@@ -32,11 +36,13 @@ async function openAbout(viewport) {
 }
 
 async function setStoryWU(page, storyWU) {
-  await page.locator('.about-narrative-scrollport').evaluate((node, input) => {
-    const availableScroll = Math.max(0, node.scrollHeight - node.clientHeight);
-    node.scrollTop = availableScroll * (input.storyWU / input.durationWU);
+  await page.locator('.about-narrative-scrollport').evaluate((node, value) => {
+    node.scrollTop = Math.min(
+      node.scrollHeight - node.clientHeight,
+      Math.max(0, Number(value) * node.clientHeight),
+    );
     node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  }, { durationWU: storyDurationWU, storyWU });
+  }, storyWU);
   try {
     await page.waitForFunction((target) => {
       const current = Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu);
@@ -57,6 +63,21 @@ async function setStoryWU(page, storyWU) {
   }
 }
 
+async function readFinaleTiming(page) {
+  return page.locator('[data-text-field-id="text-epilogue-invitation"]').evaluate((node) => {
+    const wrapper = node.closest('.about-narrative-render-span');
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    const viewportHeight = Math.max(1, scrollport.clientHeight);
+    return {
+      startWU: wrapper.offsetTop / viewportHeight,
+      durationWU: Number.parseFloat(
+        getComputedStyle(wrapper).getPropertyValue('--story-block-duration-wu'),
+      ),
+      pageEndWU: (scrollport.scrollHeight - scrollport.clientHeight) / viewportHeight,
+    };
+  });
+}
+
 try {
   const desktop = await openAbout({ width: 1440, height: 1000 });
   const { page } = desktop;
@@ -69,11 +90,14 @@ try {
     const prose = document.querySelector('.about-narrative-editorial-copy');
     const proseStyle = getComputedStyle(prose);
     const emphasis = Array.from(document.querySelectorAll('[data-editorial-emphasis]'));
+    const lineReveals = Array.from(document.querySelectorAll('[data-editorial-reveal="line"]'));
+    const spatialTitles = Array.from(document.querySelectorAll('.about-narrative-spatial-title'));
     const logoField = document.querySelector('.about-narrative-client-field');
     return {
       emphasisCount: emphasis.length,
       emphasisOpacity: emphasis.map((node) => Number(getComputedStyle(node).opacity)),
-      lineRevealCount: document.querySelectorAll('[data-editorial-reveal="line"]').length,
+      lineRevealCount: lineReveals.length,
+      lineRevealOpacity: lineReveals.map((node) => Number(getComputedStyle(node).opacity)),
       logoCount: document.querySelectorAll('.about-narrative-client-logos > li').length,
       logoReady: logoField?.dataset.clientFieldReady,
       openingCueArrowCount: openingCue?.querySelectorAll('[class*="ti-arrow"]').length,
@@ -81,6 +105,7 @@ try {
       openingCueLineCount: openingCue?.querySelectorAll('.about-narrative-opening-scroll-cue__line').length,
       openingCueOpacity: Number(getComputedStyle(openingCue).opacity),
       openingCueState: document.querySelector('.about-narrative-lab')?.dataset.openingScrollCue,
+      openingTitleOpacity: Number(getComputedStyle(document.querySelector('#about-route-title')).opacity),
       openingCueBottomGap: scrollportRect && openingCueRect
         ? scrollportRect.bottom - openingCueRect.bottom
         : 0,
@@ -95,6 +120,8 @@ try {
       pullTag: pullSentence?.tagName,
       proseFontSize: Number.parseFloat(proseStyle.fontSize),
       ruleCount: document.querySelectorAll('.about-narrative-opening-copy .route-title-lockup__rule, .about-narrative-finale-content .route-title-lockup__rule').length,
+      spatialTitleFilters: spatialTitles.map((node) => getComputedStyle(node).filter),
+      spatialTitleShadows: spatialTitles.map((node) => getComputedStyle(node).textShadow),
       wordRevealCount: document.querySelectorAll('[data-editorial-reveal="word"]').length,
     };
   });
@@ -107,9 +134,12 @@ try {
   assert.equal(initial.pullTextAlign, 'center');
   assert.ok(initial.pullFontSize >= initial.proseFontSize * 2.35);
   assert.ok(initial.pullLineHeight <= initial.pullFontSize * 1.05);
-  assert.equal(initial.emphasisCount, 15);
+  assert.equal(initial.emphasisCount, 0);
   initial.emphasisOpacity.forEach((opacity) => assert.equal(opacity, 0));
   assert.ok(initial.lineRevealCount > 0);
+  initial.lineRevealOpacity.forEach((opacity) => assert.equal(opacity, 1));
+  initial.spatialTitleFilters.forEach((filter) => assert.equal(filter, 'none'));
+  initial.spatialTitleShadows.forEach((shadow) => assert.equal(shadow, 'none'));
   assert.equal(initial.wordRevealCount, 0);
   assert.equal(initial.ruleCount, 2);
   assert.equal(initial.logoCount, 14);
@@ -118,6 +148,7 @@ try {
   assert.equal(initial.openingCueLineCount, 1);
   assert.ok(initial.openingCueOpacity > 0.99);
   assert.equal(initial.openingCueState, 'visible');
+  assert.ok(initial.openingTitleOpacity > 0.99);
   assert.ok(initial.openingCueBottomGap >= 24 && initial.openingCueBottomGap <= 56);
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
@@ -164,17 +195,20 @@ try {
     timeout: 30_000,
   });
   await page.waitForTimeout(500);
-  await setStoryWU(page, 20.43);
-  assert.equal(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-finale-content').evaluate((node) => (
-    getComputedStyle(node).visibility
-  )), 'hidden');
+  const finaleTiming = await readFinaleTiming(page);
+  await setStoryWU(page, finaleTiming.startWU + (finaleTiming.durationWU * 0.05));
+  // The finale arrives through depth and position. Its type must never fade or
+  // blur while the bust resolves behind it.
+  assert.ok(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title').evaluate((node) => (
+    Number(getComputedStyle(node).opacity) >= 0.95
+  )));
   await page.screenshot({ path: `${outputDir}/${browserName}-desktop-bust-resolved.png` });
 
-  await setStoryWU(page, 21.7);
-  assert.equal(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-finale-content').evaluate((node) => (
-    getComputedStyle(node).visibility
-  )), 'visible');
-  await setStoryWU(page, 22.4);
+  await setStoryWU(page, finaleTiming.startWU + (finaleTiming.durationWU * 0.5));
+  assert.ok(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title').evaluate((node) => (
+    Number(getComputedStyle(node).opacity) >= 0.95
+  )));
+  await setStoryWU(page, finaleTiming.pageEndWU);
   await page.screenshot({ path: `${outputDir}/${browserName}-desktop-finale.png` });
   assert.deepEqual(desktop.errors, []);
   await desktop.context.close();

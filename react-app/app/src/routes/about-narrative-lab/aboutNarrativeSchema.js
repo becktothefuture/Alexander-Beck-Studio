@@ -248,6 +248,11 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         entryDepth: Number(textMotion.entryDepth ?? 360),
         exitDepth: Number(textMotion.exitDepth ?? 220),
         maxBlur: Number(textMotion.maxBlur ?? 22),
+        titleDrawDurationMs: Number(textMotion.titleDrawDurationMs ?? 220),
+        titleColorCount: Number(textMotion.titleColorCount ?? 5),
+        titleLineStaggerMs: Number(textMotion.titleLineStaggerMs ?? 140),
+        titleExitOpacity: Number(textMotion.titleExitOpacity ?? 0.2),
+        titleExitLineStagger: Number(textMotion.titleExitLineStagger ?? 0.16),
       },
     },
     sections: Array.isArray(source.sections) ? source.sections.map((section, index) => ({
@@ -322,7 +327,7 @@ export function validateAboutNarrativeDocument(input, {
     ['readingWidthRem', globals.readingWidthRem, 30, 90],
     ['editorialRevealThreshold', globals.editorialRevealThreshold, 0, 1],
     ['camera.startZ', globals.camera?.startZ, -100, 100],
-    ['camera.cadence', globals.camera?.cadence, 0.01, 5],
+    ['camera.cadence', globals.camera?.cadence, 0.01, 24],
     ['camera.fov', globals.camera?.fov, 20, 90],
     ['pointMaterial.opacity', globals.pointMaterial?.opacity, 0, 1],
     ['pointMaterial.pointSize', globals.pointMaterial?.pointSize, 0.1, 20],
@@ -343,6 +348,11 @@ export function validateAboutNarrativeDocument(input, {
     ['textMotion.entryDepth', globals.textMotion?.entryDepth, 0, 3000],
     ['textMotion.exitDepth', globals.textMotion?.exitDepth, 0, 3000],
     ['textMotion.maxBlur', globals.textMotion?.maxBlur, 0, 100],
+    ['textMotion.titleDrawDurationMs', globals.textMotion?.titleDrawDurationMs ?? 220, 80, 500],
+    ['textMotion.titleColorCount', globals.textMotion?.titleColorCount ?? 5, 1, 8],
+    ['textMotion.titleLineStaggerMs', globals.textMotion?.titleLineStaggerMs ?? 140, 0, 400],
+    ['textMotion.titleExitOpacity', globals.textMotion?.titleExitOpacity ?? 0.2, 0, 1],
+    ['textMotion.titleExitLineStagger', globals.textMotion?.titleExitLineStagger ?? 0.16, 0, 0.4],
   ];
   globalRanges.forEach(([path, value, min, max]) => {
     if (!finite(value) || Number(value) < min || Number(value) > max) {

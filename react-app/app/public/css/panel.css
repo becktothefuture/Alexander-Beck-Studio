@@ -192,8 +192,6 @@ body:not(.dark-mode) {
   overflow-x: hidden;
   flex: 1 1 auto;
   min-height: 0;
-  -webkit-user-select: auto;
-  user-select: auto;
   cursor: auto;
 }
 
@@ -2044,6 +2042,11 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
   max-height: none;
   border-radius: var(--panel-radius-lg);
   resize: none;
+}
+
+.panel .panel-header .panel-theme-toggle[hidden],
+.panel .theme-segment-control[hidden] {
+  display: none;
 }
 
 .dock-toggle { display: none !important; }

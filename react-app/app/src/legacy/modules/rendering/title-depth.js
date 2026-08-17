@@ -372,9 +372,9 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
     const cssFontSize = parseCssPx(style.fontSize, 16);
     const fontSizeCssPx = Math.max(1, cssFontSize * stableTitleScale);
     const fontPx = Math.max(1, fontSizeCssPx * scaleY);
-    // Modal obscuring belongs to the stable plane's CSS presentation. Never
-    // bake it into pixels or opening the chooser would destructively erase the
-    // title bitmap needed by the following switch transaction.
+    // Surface obscuring belongs to the stable plane's CSS presentation. Never
+    // bake it into pixels or a shell transition could destructively erase the
+    // title bitmap needed by the following frame.
     const opacity = clamp01(parseCssPx(style.opacity, 1));
     const letterSpacingPx = parseCssPx(style.letterSpacing, 0) * stableTitleScale * scaleX;
     const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : '';

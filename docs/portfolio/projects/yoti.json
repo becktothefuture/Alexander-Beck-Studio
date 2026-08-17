@@ -1,12 +1,38 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "yoti",
   "title": "Yoti",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Yoti", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": "Yoti", "status": "candidate", "sourceClaimIds": ["claim-yoti-003", "claim-yoti-004"]},
+    "formalRole": {"value": "Senior Product Designer", "status": "candidate", "sourceClaimIds": ["claim-yoti-003"]},
+    "projectType": {"value": ["Digital identity products", "Trust interactions", "Design system"], "status": "candidate", "sourceClaimIds": ["claim-yoti-001", "claim-yoti-006", "claim-yoti-007", "claim-yoti-009"]},
+    "timeframe": {"start": "2017-12", "end": "2019-11", "yearLabel": "2017–2019", "duration": null, "precision": "month", "status": "disputed", "sourceClaimIds": ["claim-yoti-004", "claim-yoti-005"]}
+  },
   "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-yoti-hologram", "title": "Anti-spoof age-verification hologram", "storyRole": "primary", "status": "candidate", "summary": "A gyroscope-driven trust signal designed for fast in-store age verification.", "sourceClaimIds": ["claim-yoti-007", "claim-yoti-008"]},
+    {"id": "work-yoti-physical-scanner", "title": "Physical ID scanner", "storyRole": "supporting", "status": "candidate", "summary": "A low-cost physical interaction for offline identity verification.", "sourceClaimIds": ["claim-yoti-009"]},
+    {"id": "work-yoti-data-sharing", "title": "QR login and data-sharing handoff", "storyRole": "supporting", "status": "candidate", "summary": "A cross-device handoff that made requested identity data visible before sharing.", "sourceClaimIds": ["claim-yoti-009", "claim-yoti-010"]},
+    {"id": "work-yoti-age-verification", "title": "Age-verification recovery work", "storyRole": "supporting", "status": "candidate", "summary": "A response to policy, trust, and conversion challenges in age verification.", "sourceClaimIds": ["claim-yoti-009", "claim-yoti-010"]},
+    {"id": "work-yoti-design-system", "title": "Product and brand design system", "storyRole": "context", "status": "candidate", "summary": "Shared product, engineering, and brand foundations supporting consistency across the client relationship.", "sourceClaimIds": ["claim-yoti-006"]}
+  ],
+  "disciplines": [
+    {"name": "Product Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-yoti-003", "claim-yoti-009"]},
+    {"name": "Interaction Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-yoti-007", "claim-yoti-009"]},
+    {"name": "Design Systems", "emphasis": "supporting", "status": "candidate", "sourceClaimIds": ["claim-yoti-006"]}
+  ],
+  "collaborators": [
+    {"id": "collab-yoti-001", "name": "Andy Ainger", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-yoti-011"], "publicCreditStatus": "unknown"},
+    {"id": "collab-yoti-002", "name": "Amy Rodgers", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-yoti-011"], "publicCreditStatus": "unknown"},
+    {"id": "collab-yoti-003", "name": "Brand lead", "type": "person", "role": "Name partially redacted", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-yoti-011"], "publicCreditStatus": "withheld"},
+    {"id": "collab-yoti-004", "name": "Head of development", "type": "person", "role": "Name partially redacted", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-yoti-011"], "publicCreditStatus": "withheld"}
+  ],
   "workingHypotheses": [
     "Yoti is probably too broad for one linear case study; the strongest story may be a system of trust told through three concrete artefacts."
   ],

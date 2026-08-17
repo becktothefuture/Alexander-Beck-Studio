@@ -12,6 +12,11 @@ import {
   inspectAboutNarrativeAnchorSampling,
   sampleAboutNarrativeAnchorPosition,
 } from '../src/routes/about-narrative-lab/aboutNarrativeModifierSampling.js';
+import {
+  ABOUT_NARRATIVE_POINTER_PRESSURE_DEFAULTS,
+  createAboutNarrativePointerPressureController,
+  createAboutNarrativePointerPressureSample,
+} from '../src/routes/about-narrative-lab/aboutNarrativePointerPressure.js';
 
 const identity = [
   1, 0, 0, 0,
@@ -35,6 +40,61 @@ function createSamplingInput(overrides = {}) {
     ...overrides,
   };
 }
+
+test('mouse pressure follows organically, settles in finite time, and returns to exact zero', () => {
+  const controller = createAboutNarrativePointerPressureController({ initialNowMs: 0 });
+  const sample = createAboutNarrativePointerPressureSample();
+  controller.setViewport(0, 0, 1024, 700);
+  controller.setPointerNdc(0, 0, 'mouse', 0, 0);
+
+  for (let nowMs = 16; nowMs <= 480; nowMs += 16) {
+    assert.equal(controller.sampleInto(sample, nowMs), sample);
+  }
+  assert.equal(sample.active, true);
+  assert.ok(sample.strength > 0.99);
+  assert.equal(sample.radiusPx, ABOUT_NARRATIVE_POINTER_PRESSURE_DEFAULTS.radiusPx);
+  assert.equal(sample.forcePx, ABOUT_NARRATIVE_POINTER_PRESSURE_DEFAULTS.forcePx);
+
+  controller.setPointerOutside('mouse');
+  controller.sampleInto(sample, 496);
+  assert.equal(sample.settling, true);
+  assert.ok(sample.strength > 0);
+  controller.sampleInto(
+    sample,
+    496 + ABOUT_NARRATIVE_POINTER_PRESSURE_DEFAULTS.returnMs,
+  );
+  assert.equal(sample.settling, false);
+  assert.equal(sample.strength, 0);
+  assert.equal(sample.releaseStrength, 0);
+  assert.equal(controller.getSnapshot().exactRest, true);
+});
+
+test('mouse pressure is disabled for touch, coarse pointers, reduced motion, and manipulation', () => {
+  const controller = createAboutNarrativePointerPressureController({ initialNowMs: 0 });
+  const sample = createAboutNarrativePointerPressureSample();
+  controller.setViewport(0, 0, 390, 844);
+  controller.setPointerNdc(0, 0, 'touch', 0, 0);
+  controller.sampleInto(sample, 100);
+  assert.equal(sample.active, false);
+  assert.equal(sample.strength, 0);
+
+  controller.setPointerNdc(0, 0, 'mouse', 0, 120);
+  controller.sampleInto(sample, 220);
+  assert.ok(sample.strength > 0);
+  controller.setPointerNdc(0, 0, 'touch', 0, 240);
+  controller.sampleInto(sample, 260);
+  assert.equal(sample.strength, 0);
+
+  controller.setPointerNdc(0, 0, 'mouse', 0, 280);
+  controller.sampleInto(sample, 320, false, true, false, false);
+  assert.equal(sample.strength, 0);
+  controller.sampleInto(sample, 360, true, true, false, true);
+  assert.equal(sample.strength, 0);
+  controller.setDirectManipulation(true);
+  controller.sampleInto(sample, 420, false, true, false, true);
+  assert.equal(sample.active, false);
+  assert.equal(sample.strength, 0);
+});
 
 test('bust holds one yaw through forward and reverse formation boundaries', () => {
   const controller = createAboutNarrativeBustController();

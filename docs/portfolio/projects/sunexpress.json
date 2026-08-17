@@ -1,21 +1,45 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "sunexpress",
   "title": "SunExpress",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "SunExpress", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-001"]},
+    "agency": {"value": "Dennerlein GmbH", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-003"]},
+    "employer": {"value": "Dennerlein GmbH", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-003"]},
+    "formalRole": {"value": "Art Director and principal designer", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-003", "claim-sunexpress-016"]},
+    "projectType": {"value": ["Airline website", "Booking experience", "Digital design system"], "status": "candidate", "sourceClaimIds": ["claim-sunexpress-001", "claim-sunexpress-013"]},
+    "timeframe": {"start": "2017", "end": "2017", "yearLabel": "2017", "duration": "7 months", "precision": "year", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-019"]}
+  },
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "partial", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-sunexpress-relaunch", "title": "Website and booking relaunch", "storyRole": "primary", "status": "confirmed", "summary": "Full website, booking-flow, and digital-language redesign balancing commercial discovery, clarity, and warmth.", "sourceClaimIds": ["claim-sunexpress-001", "claim-sunexpress-008", "claim-sunexpress-011", "claim-sunexpress-012", "claim-sunexpress-019"]},
+    {"id": "work-sunexpress-tutorials", "title": "Online-service tutorial films and campaign", "storyRole": "supporting", "status": "candidate", "summary": "Animated stories and a wider campaign that made airline self-service easier to understand and remember.", "sourceClaimIds": ["claim-sunexpress-020", "claim-sunexpress-021", "claim-sunexpress-022"]}
+  ],
+  "disciplines": [
+    {"name": "Experience Design", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-sunexpress-005", "claim-sunexpress-013"]},
+    {"name": "Interface Design", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-sunexpress-005", "claim-sunexpress-013"]},
+    {"name": "Art Direction", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-sunexpress-013", "claim-sunexpress-016"]},
+    {"name": "Motion", "emphasis": "supporting", "status": "confirmed", "sourceClaimIds": ["claim-sunexpress-013"]}
+  ],
+  "collaborators": [
+    {"id": "collab-sunexpress-001", "name": "Dennerlein design team", "type": "team", "role": "Agency design and production team", "contribution": "Visual production and development collaboration around the website and booking system.", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-009", "claim-sunexpress-018"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sunexpress-002", "name": "SunExpress stakeholders", "type": "team", "role": "Client stakeholders", "contribution": "Operational and commercial input across the long-term client relationship.", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-009", "claim-sunexpress-018"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sunexpress-003", "name": "Creative Director", "type": "person", "role": "Creative Director; name unresolved", "contribution": "Collaborated on information architecture and primary website and booking flows.", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-019"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sunexpress-004", "name": "Tutorial production team", "type": "team", "role": "Junior illustrator, motion designer, and voice artist; names unresolved", "contribution": "Developed scenes, animation, and voice for the online-service films.", "status": "candidate", "sourceClaimIds": ["claim-sunexpress-021"], "publicCreditStatus": "unknown"}
+  ],
   "workingHypotheses": [
-    "The honest archive angle is that the visual style has aged, while the information architecture and booking decisions remain useful evidence."
+    "The strongest master story combines a friendly low-cost-airline personality with the progressive simplification of commercial and booking complexity."
   ],
   "organisingIdea": {
-    "statement": "Sequence a branching booking journey so travellers see the right choice at the right moment without hiding commercial options.",
+    "statement": "Make a low-cost airline feel optimistic and easy to explore by sequencing complexity, preserving personality, and simplifying booking decisions without hiding commercial goals.",
     "status": "candidate",
     "evidenceBasis": "source_backed",
-    "sourceClaimIds": ["claim-sunexpress-006", "claim-sunexpress-007", "claim-sunexpress-008"],
-    "lastReviewed": "2026-07-17"
+    "sourceClaimIds": ["claim-sunexpress-006", "claim-sunexpress-008", "claim-sunexpress-011", "claim-sunexpress-012", "claim-sunexpress-014"],
+    "lastReviewed": "2026-08-07"
   },
   "claims": [
     {
@@ -73,12 +97,16 @@
       "id": "claim-sunexpress-005",
       "category": "hands_on",
       "statement": "Attributed work includes journey mapping, interaction audits, screen restructuring, booking-flow design, a responsive design system, and a multilingual icon set.",
-      "status": "candidate",
+      "status": "confirmed",
       "confidence": "medium",
       "sensitivity": "internal",
-      "sources": [{"sourceId": "src-20260715-002", "locator": "pp. 38–44"}],
-      "confirmedBy": null,
-      "lastReviewed": "2026-07-15",
+      "sources": [
+        {"sourceId": "src-20260715-002", "locator": "pp. 38–44"},
+        {"sourceId": "src-20260807-003", "locator": "Round 1 / Q3"}
+      ],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
       "notes": "Clarify which pieces were designed personally versus by the visual-design team."
     },
     {
@@ -109,12 +137,16 @@
       "id": "claim-sunexpress-008",
       "category": "decision",
       "statement": "The booking flow progressively revealed flexible-date, extra, one-way, and return options instead of exposing every branch at once.",
-      "status": "candidate",
+      "status": "confirmed",
       "confidence": "high",
       "sensitivity": "internal",
-      "sources": [{"sourceId": "src-20260715-002", "locator": "p. 44, Shaping Simplicity at Scale"}],
-      "confirmedBy": null,
-      "lastReviewed": "2026-07-15",
+      "sources": [
+        {"sourceId": "src-20260715-002", "locator": "p. 44, Shaping Simplicity at Scale"},
+        {"sourceId": "src-20260807-003", "locator": "Round 1 / Q2"}
+      ],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
       "notes": "Confirm testing evidence and the shipped interaction."
     },
     {
@@ -140,6 +172,178 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "Do not publish without a source, measurement window, and credible attribution."
+    },
+    {
+      "id": "claim-sunexpress-011",
+      "category": "brief",
+      "statement": "The redesign needed to make a price-led airline feel friendly, optimistic, and useful for discovery without obscuring commercial options.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Round 1 / Q1; Round 1 / Q1 / follow-up"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": null
+    },
+    {
+      "id": "claim-sunexpress-012",
+      "category": "decision",
+      "statement": "Related booking decisions were grouped and complexity was introduced progressively instead of splitting every branch across separate screens.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Round 1 / Q2; Round 1 / Q2 / follow-up"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Flight and package selection in one view is a concrete example."
+    },
+    {
+      "id": "claim-sunexpress-013",
+      "category": "hands_on",
+      "statement": "Alexander worked across UX, UI, interaction, booking-flow restructuring, prototyping, motion, photography selection, colour, iconography, illustration direction, and the digital style guide.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Round 1 / Q3; Contribution boundaries / Alexander's contribution"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Exact illustration authorship and engineering ownership remain unresolved."
+    },
+    {
+      "id": "claim-sunexpress-014",
+      "category": "reflection",
+      "statement": "Alexander considers the information architecture and booking decisions more durable than the visual style, which has visibly aged.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Most valuable material / Fascinating observation"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": null
+    },
+    {
+      "id": "claim-sunexpress-015",
+      "category": "delivery_status",
+      "statement": "The website redesign, booking flow, design language, and digital style guide shipped, but exact feature parity is not documented.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Delivery boundaries"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Confirm which booking features shipped exactly as designed."
+    },
+    {
+      "id": "claim-sunexpress-016",
+      "category": "role",
+      "statement": "Alexander describes himself as the principal designer on the relaunch while employed as an Art Director at Dennerlein GmbH.",
+      "status": "confirmed",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260715-001", "locator": "p. 1, Professional Experience — Dennerlein GmbH"},
+        {"sourceId": "src-20260807-003", "locator": "Round 1 / Q3"}
+      ],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Confirm whether principal designer was a project role or descriptive responsibility."
+    },
+    {
+      "id": "claim-sunexpress-017",
+      "category": "outcome",
+      "statement": "Alexander recalls that much of the underlying structure remained in use for roughly a decade.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Round 1 / Q1; Most valuable material / Fascinating observation"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Useful reflection, but the duration needs external or dated-site evidence before publication as fact."
+    },
+    {
+      "id": "claim-sunexpress-018",
+      "category": "collaboration",
+      "statement": "The relaunch involved wider agency design and production, development, and SunExpress stakeholders.",
+      "status": "confirmed",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-003", "locator": "Contribution boundaries / Team contribution"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "Named collaborators and specific contribution boundaries remain missing."
+    },
+    {
+      "id": "claim-sunexpress-019",
+      "category": "timeline",
+      "statement": "The website and booking relaunch is dated 2017 and described as a seven-month project for SunExpress.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Relaunch"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-relaunch"],
+      "notes": "The precise start and end months remain unknown."
+    },
+    {
+      "id": "claim-sunexpress-020",
+      "category": "project_identity",
+      "statement": "A separate 2016 six-week body of work used animated tutorial films and a wider campaign to explain SunExpress online services.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-tutorials"],
+      "notes": "Confirm that this supporting campaign belongs in the public SunExpress master story."
+    },
+    {
+      "id": "claim-sunexpress-021",
+      "category": "collaboration",
+      "statement": "Alexander wrote and art-directed the tutorial film, defined its visual style, designed scenes with a junior illustrator, and worked with a motion designer and voice artist.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-tutorials"],
+      "notes": "Names and exact production credits remain unresolved."
+    },
+    {
+      "id": "claim-sunexpress-022",
+      "category": "decision",
+      "statement": "The tutorials combined light-hearted travel stories with step-by-step instruction and modular characters that could support a fast production schedule and wider campaign rollout.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-tutorials"],
+      "notes": null
+    },
+    {
+      "id": "claim-sunexpress-023",
+      "category": "outcome",
+      "statement": "An older portfolio note claims the first tutorial was dubbed into three languages, received more than 50,000 social views, and led to reuse of the character style across further touchpoints.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-sunexpress-tutorials"],
+      "notes": "Do not publish without dated channel evidence or another reliable source."
     }
   ],
   "conflicts": [
@@ -152,11 +356,13 @@
     }
   ],
   "openQuestions": [
-    {"id": "q-sunexpress-001", "category": "timeline", "question": "When did the project happen, in what employer or agency context, and for how long?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-001", "category": "timeline", "question": "When did the project happen, in what employer or agency context, and for how long?", "status": "resolved", "answer": "The relaunch is dated 2017 and seven months; the supporting Tutorials campaign is dated 2016 and six weeks. The work sat within Alexander's Dennerlein GmbH employment.", "sourceIds": ["src-20260715-001", "src-20260807-004"]},
     {"id": "q-sunexpress-002", "category": "scope", "question": "Which booking stages, markets, languages, and platforms were actually in scope?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-sunexpress-003", "category": "role", "question": "What did Alexander personally own in the journey, design system, and icon work?", "status": "open", "answer": null, "sourceIds": []},
     {"id": "q-sunexpress-004", "category": "delivery_status", "question": "Which parts were implemented, tested, or remained conceptual?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-sunexpress-005", "category": "reflection", "question": "What has visibly aged, what still holds up, and what would Alexander now change?", "status": "open", "answer": null, "sourceIds": []}
+    {"id": "q-sunexpress-005", "category": "reflection", "question": "What has visibly aged, what still holds up, and what would Alexander now change?", "status": "resolved", "answer": "The visual style has aged more than the information architecture and booking decisions; the exact redesign choices Alexander would make today remain open.", "sourceIds": ["src-20260807-003"]},
+    {"id": "q-sunexpress-006", "category": "project_identity", "question": "Should the 2016 tutorial films and campaign appear as a supporting body of work inside the SunExpress master story?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-sunexpress-007", "category": "anecdote", "question": "What did ‘UX was done in a Gunslinger kind of way’ mean in practice, and which decision best captures it?", "status": "open", "answer": null, "sourceIds": []}
   ],
   "media": [
     {"id": "media-sunexpress-001", "sourceId": "src-20260715-002", "locator": "p. 38", "subject": "SunExpress factsheet", "storyUse": "Brief and role reference", "status": "candidate", "permissionStatus": "unknown", "notes": "Ignore copied collaborator credits."},
@@ -167,7 +373,12 @@
     {"id": "media-sunexpress-006", "sourceId": "src-20260715-002", "locator": "p. 42", "subject": "Mid-fidelity prototype states", "storyUse": "Explain prototypes as conversation layer", "status": "candidate", "permissionStatus": "unknown", "notes": "Source image is blurred."},
     {"id": "media-sunexpress-007", "sourceId": "src-20260715-002", "locator": "p. 43, screen family", "subject": "Desktop and mobile booking screens", "storyUse": "Show cross-platform system breadth", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate original screen exports."},
     {"id": "media-sunexpress-008", "sourceId": "src-20260715-002", "locator": "p. 43, process sketch", "subject": "Booking-flow sketches and annotations", "storyUse": "Connect structure to final screens", "status": "candidate", "permissionStatus": "unknown", "notes": "Request legible source sketch."},
-    {"id": "media-sunexpress-009", "sourceId": "src-20260715-002", "locator": "p. 44", "subject": "Progressively disclosed booking flow", "storyUse": "Close on the key interaction decision", "status": "candidate", "permissionStatus": "unknown", "notes": "Need multiple state captures for a clear sequence."}
+    {"id": "media-sunexpress-009", "sourceId": "src-20260715-002", "locator": "p. 44", "subject": "Progressively disclosed booking flow", "storyUse": "Close on the key interaction decision", "status": "candidate", "permissionStatus": "unknown", "notes": "Need multiple state captures for a clear sequence."},
+    {"id": "media-sunexpress-010", "sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials", "subject": "Tutorial character modules and storyboards", "storyUse": "Show a visual system built for rapid story production", "status": "candidate", "permissionStatus": "unknown", "notes": "Retrieve original assets from Notes before use."},
+    {"id": "media-sunexpress-011", "sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials", "subject": "Animated tutorial film stills", "storyUse": "Connect service instruction with a friendly brand voice", "status": "candidate", "permissionStatus": "unknown", "notes": "Retrieve original assets and confirm production credits."},
+    {"id": "media-sunexpress-012", "sourceId": "src-20260807-004", "locator": "SunExpress / Note: ✅SunExpress Tutorials", "subject": "Tutorial campaign across web, out-of-home, merchandise, and inflight material", "storyUse": "Show how the character system extended beyond the film", "status": "candidate", "permissionStatus": "unknown", "notes": "Retrieve original assets and confirm permission."}
   ],
-  "interviewRounds": []
+  "interviewRounds": [
+    {"id": "interview-sunexpress-001", "sourceId": "src-20260807-003", "date": "2026-08-05", "status": "ingested", "bodiesOfWorkDiscussed": ["work-sunexpress-relaunch"], "notes": "Voice-derived; exact delivery scope, dates, credits, and outcome evidence remain open."}
+  ]
 }

@@ -4,6 +4,8 @@
 
 Every project needs one organising idea: a specific tension that explains why the challenge was fascinating and why the solution was more than a collection of screens.
 
+Each project is one client-master story. A client relationship may include several campaigns, features, products, phases, or experiments. Name these bodies of work when the facts differ, but interview them as evidence for one shared client story. Do not create a separate organising idea for every piece.
+
 An organising idea is not a slogan or generic theme. It should connect:
 
 - a surprising observation about the problem;
@@ -18,19 +20,19 @@ Work on one project at a time and ask only two or three questions per round. The
 2. **Mechanism** — the particular model, interaction, sequence, or craft decision that answered it.
 3. **Proof** — the user response, stakeholder decision, shipped behaviour, limitation, or artefact that shows what the solution achieved.
 
-Administrative facts such as dates, credits, permissions, and exact delivery status remain required, but collect them as targeted follow-ups after the story has a spine.
+Administrative facts such as dates, credits, permissions, and exact delivery status remain required. After the story has a spine, run a short metadata and credits pass in the same conversation. Do not end a project interview with these fields silently missing.
 
-After every round, register the answers as a source, update the project claims, and either confirm, refine, or reject the organising idea.
+After every round, register the answers as a source, update the project claims, and either confirm, refine, or reject the organising idea. Voice handoffs use `pending-registration`; the ingestion pass assigns all source and claim IDs.
 
 ## Recommended order
 
-1. S&P Global
-2. Bentley
-3. Yoti
-4. SunExpress
-5. Personal Website
-6. McCann
-7. Swiss Re
+1. McCann metadata and credits follow-up
+2. SunExpress package, metadata, and credits follow-up
+3. Swiss Re
+4. S&P Global
+5. Bentley
+6. Yoti
+7. Personal Website
 8. Impressions
 9. ProKeyboard
 10. Gen Digital and Tourism Ireland triage
@@ -65,11 +67,13 @@ American Heart Association remains on hold and is excluded from copy interviews.
 
 ### SunExpress
 
-**Candidate organising idea:** Sequence a branching booking journey so travellers see the right choice at the right moment without hiding commercial options.
+**Candidate organising idea:** Make a low-cost airline feel optimistic and easy to explore by sequencing complexity, preserving personality, and simplifying booking decisions without hiding commercial goals.
 
-1. Which analytics finding most clearly contradicted the team's assumptions: users not scrolling, promotions being missed, or a specific mid-booking drop-off? Locate the exact page or booking step and describe what you originally thought users were doing versus what the data revealed.
-2. Pick one genuinely messy itinerary—flexible dates, a return journey, extras, or a one-way trip—and walk through the old and redesigned flows step by step. What did you reveal later, combine, or remove, and why was that sequence better than simply putting every choice on screen?
-3. Where did traveller clarity conflict with upsell targets, airline operations, or multilingual consistency? Describe the disagreement, the prototype that helped resolve it, what shipped, and whether the claimed revenue effect can honestly be connected to the design.
+**Next round:** Confirm the package and complete factual gaps.
+
+1. Should the 2016 tutorial films and campaign sit inside the same SunExpress story as the 2017 relaunch? If yes, what shared belief about making low-cost travel feel understandable and optimistic connects them—and what did you mean when you wrote that the UX was done in a “Gunslinger” way?
+2. Who were the Creative Director, front-end developers, junior illustrator, motion designer, voice artist, and closest SunExpress stakeholders? Name the people you remember and describe one concrete way each affected the work.
+3. Which booking features, markets, languages, and campaign pieces shipped exactly as designed? Which original artefacts can be shown, and what evidence—if any—supports the revenue, satisfaction, reach, or decade-long durability claims?
 
 ### Personal Website
 
@@ -81,19 +85,21 @@ American Heart Association remains on hold and is excluded from copy interviews.
 
 ### McCann
 
-**Hypothesis to test:** A single restrained interaction can give a website a memorable identity more effectively than a feature-heavy experience.
+**Candidate organising idea:** Express McCann's renewed creative confidence through deliberate restraint, allowing typography, motion, and the work itself to replace most conventional interface.
 
-1. Identify the exact McCann organisation and page. Then describe the interaction in its resting and active states: what does the visitor do, what moves or changes, and why was that tiny gesture the right expression of McCann rather than a generic flourish?
-2. What larger, louder, or more conventional directions were considered? Choose one and explain precisely what made it less effective—did it compete with the work, weaken the hierarchy, slow the site, or make the identity feel performative?
-3. What did you personally craft in the interaction, typography, rhythm, or prototype, and what reaction from the client, team, or audience convinced you that the restrained idea was enough?
+**Next round:** Confirm the package and complete factual gaps.
+
+1. Should the January McCann Nordics work and the October–November global brand website sit inside one McCann master story? Map the two bodies of work, their dates, and the part each plays in the shared story of restraint and confidence.
+2. Name the Creative Director, James, the Webflow and Umbraco contributors, and any other close collaborators. What did you personally design or implement, what did they own, and where did the prototype end and the production build begin?
+3. What is the exact project title, McCann organisation, duration, final CMS, public or archived URL, and publication boundary? Which identity deck, sketches, rejected directions, prototype recordings, or implementation states may be shown?
 
 ### Swiss Re
 
-**Hypothesis to test:** Find the human decision hidden inside an institutional system and make the information around that decision graspable.
+**Hypothesis to test:** Turn an institutional brand into tangible, responsive moments that make Swiss Re's purpose, ambition, and culture easier to experience.
 
-1. Name the specific person and decision at the centre of the work—not the platform or business unit. What did that person need to decide, what information were they juggling, and what made the existing process unusually difficult?
-2. Show me the messiest source artefact, model, or workflow you encountered. What relationship or hierarchy did you discover inside it, and how did that become a screen, prototype, service model, or design-system decision?
-3. Was there a moment when a stakeholder or user said, in effect, “now I understand it”? What exactly were they looking at, what had changed from before, and did that understanding lead to an implemented decision or remain a promising concept?
+1. What was the real problem behind About Us 2026? Take me to the moment when a conventional corporate page stopped being enough. What did Swiss Re need a visitor to understand or feel about its ambition, culture, and way of working?
+2. Compare Shimmer, Scroll Snap, Interactive Globe, and Immersive Hero. Which one best expressed the brand, which one was hardest to make credible, and what did you personally design or code in each route?
+3. Did any earlier Swiss Re campaign work contribute to the same client story? Then complete the facts: agency or employer, formal role, dates, collaborators, handover versus shipped scope, and what may be shown publicly.
 
 ### Impressions
 
@@ -130,4 +136,3 @@ American Heart Association remains on hold and is excluded from copy interviews.
 ### American Heart Association
 
 **On hold:** Do not define an organising idea or run a copy interview while the work is ongoing. Continue cataloguing sources only. Resume when Alexander defines the milestone and publication boundary that make reflection possible.
-

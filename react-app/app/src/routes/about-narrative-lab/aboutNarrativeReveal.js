@@ -7,7 +7,7 @@ export const ABOUT_NARRATIVE_REVEAL_ROW_TOLERANCE_PX = 1;
 export const ABOUT_NARRATIVE_REVEAL_ROW_ADVANCE_CAP = 1.25;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MIN_PX = 4;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MAX_PX = 18;
-export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.04;
+export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.2;
 export const ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY = 1;
 export const ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD = 0.12;
 export const ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y = 0.32;
@@ -22,6 +22,7 @@ export function getAboutNarrativeEditorialFocusOpacity(
   lineProgress,
   viewportY,
   reducedMotion = false,
+  restingOpacity = ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY,
 ) {
   const entryOpacity = reducedMotion
     ? Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
@@ -37,10 +38,11 @@ export function getAboutNarrativeEditorialFocusOpacity(
   if (reducedMotion) {
     return focusProgress > 0
       ? ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY
-      : ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY;
+      : clamp01(restingOpacity);
   }
-  return ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY + (
-    (ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY - ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY)
+  const resolvedRestingOpacity = clamp01(restingOpacity);
+  return resolvedRestingOpacity + (
+    (ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY - resolvedRestingOpacity)
     * focusProgress
   );
 }

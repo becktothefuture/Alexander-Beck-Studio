@@ -1,12 +1,30 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "personal-website",
   "title": "Personal Website",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "public",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Alexander Beck", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": "Self-initiated", "status": "candidate", "sourceClaimIds": []},
+    "formalRole": {"value": "Designer and developer", "status": "candidate", "sourceClaimIds": ["claim-personal-004"]},
+    "projectType": {"value": ["Personal website", "Creative technology platform"], "status": "candidate", "sourceClaimIds": ["claim-personal-001", "claim-personal-005"]},
+    "timeframe": {"start": "2024", "end": null, "yearLabel": "2024–ongoing", "duration": null, "precision": "year", "status": "candidate", "sourceClaimIds": ["claim-personal-003"]}
+  },
   "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "partial", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-personal-spatial-predecessor", "title": "Spatial Webflow predecessor", "storyRole": "context", "status": "candidate", "summary": "A spatial portfolio built with Webflow, CSS, JavaScript, sound, motion, and CSS-based 3D.", "sourceClaimIds": ["claim-personal-001", "claim-personal-005", "claim-personal-009"]},
+    {"id": "work-personal-current-studio", "title": "Current React studio website", "storyRole": "primary", "status": "candidate", "summary": "The current framed, route-based studio site and simulation system that evolved from the predecessor's performance and structure lessons.", "sourceClaimIds": [], "notes": "Register the current repository and implementation history as direct evidence before confirming facts."}
+  ],
+  "disciplines": [
+    {"name": "Creative Engineering", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-personal-004", "claim-personal-005", "claim-personal-006"]},
+    {"name": "Experience Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-personal-001", "claim-personal-007", "claim-personal-009"]},
+    {"name": "Motion and Spatial Design", "emphasis": "supporting", "status": "candidate", "sourceClaimIds": ["claim-personal-005", "claim-personal-009"]}
+  ],
+  "collaborators": [],
   "workingHypotheses": [
     "Portfolio v1 documents a predecessor built with Webflow, CSS, and JavaScript; the final case study should tell the evolution into the current React and simulation system rather than polishing the obsolete version."
   ],

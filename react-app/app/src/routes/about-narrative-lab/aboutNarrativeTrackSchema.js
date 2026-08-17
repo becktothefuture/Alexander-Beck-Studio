@@ -72,7 +72,14 @@ const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks'
 const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'editorialMotion', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const LEGACY_GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
-const GLOBAL_CAMERA_KEYS = new Set(['distanceFogStartWU', 'distanceFogEndWU']);
+const GLOBAL_CAMERA_KEYS = new Set([
+  'distanceFogStartWU',
+  'distanceFogEndWU',
+  'forwardSpeedWU',
+  'steadycamResponseMs',
+  'pointerPanDegrees',
+  'pointerPanResponseMs',
+]);
 const VERSION_4_GLOBAL_CAMERA_KEYS = new Set(['fov', 'distanceFogStartWU', 'distanceFogEndWU']);
 const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
   'startZ',
@@ -82,9 +89,17 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
   'distanceFogStartWU',
   'distanceFogEndWU',
 ]);
-const POINT_MATERIAL_KEYS = new Set(['opacity', 'pointSize']);
+const POINT_MATERIAL_KEYS = new Set([
+  'opacity',
+  'pointSize',
+  'pointerRadiusPx',
+  'pointerForcePx',
+  'pointerVariation',
+  'pointerResponseMs',
+  'pointerReturnMs',
+]);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
-const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'titleShadowOpacity', 'titleShadowBlurPx', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'titleShadowOpacity', 'titleShadowBlurPx', 'titleDrawDurationMs', 'titleColorCount', 'titleLineStaggerMs', 'titleExitOpacity', 'titleExitLineStagger', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
 const EDITORIAL_MOTION_KEYS = new Set([...Object.keys(ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS)]);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
@@ -126,14 +141,18 @@ const TRANSFORM_KEYS = new Set([
 ]);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
-const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'protected']);
+const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'flow', 'protected']);
 const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'description', 'anchor']);
 const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block', 'reveal']);
 const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
 const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
 const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
 const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
+const STORY_FLOW_KEYS = new Set(['minScreens', 'gapAfter', 'focusMode', 'focusOffsetScreens']);
+const STORY_GAP_PRESETS = new Set(['none', 'tight', 'standard', 'chapter', 'finale']);
+const STORY_FOCUS_MODES = new Set(['middle', 'reading-start']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
+const BLOCK_DISCIPLINE_ITEM_KEYS = new Set(['id', 'label', 'description']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const REVEAL_KEYS = new Set(['fadeDurationWU']);
 const LEGACY_REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
@@ -296,6 +315,11 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   [
     ['titleShadowOpacity', 0, 1, 'Global title shadow opacity must stay between 0 and 1.'],
     ['titleShadowBlurPx', 0, 120, 'Global title shadow blur must stay between 0 and 120 pixels.'],
+    ['titleDrawDurationMs', 80, 500, 'Global title colour draw duration must stay between 80 and 500 milliseconds.'],
+    ['titleColorCount', 1, 8, 'Global title colour count must stay between 1 and 8.'],
+    ['titleLineStaggerMs', 0, 400, 'Global title draw line stagger must stay between 0 and 400 milliseconds.'],
+    ['titleExitOpacity', 0, 1, 'Global title faded opacity must stay between 0 and 1.'],
+    ['titleExitLineStagger', 0, 0.4, 'Global title exit line stagger must stay between 0 and 0.4.'],
   ].forEach(([key, minimum, maximum, message]) => {
     const value = globals.textMotion?.[key];
     if (value != null && (!finite(value) || Number(value) < minimum || Number(value) > maximum)) {
@@ -306,8 +330,8 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
     if (!finite(globals.worldRail?.originZ) || Number(globals.worldRail.originZ) < -100 || Number(globals.worldRail.originZ) > 100) {
       diagnostic(diagnostics, 'world-rail-origin', 'globals.worldRail.originZ', 'World rail origin Z must stay between -100 and 100.');
     }
-    if (!finite(globals.worldRail?.unitsPerWU) || Number(globals.worldRail.unitsPerWU) < 0.01 || Number(globals.worldRail.unitsPerWU) > 5) {
-      diagnostic(diagnostics, 'world-rail-cadence', 'globals.worldRail.unitsPerWU', 'World rail units per WU must stay between 0.01 and 5.');
+    if (!finite(globals.worldRail?.unitsPerWU) || Number(globals.worldRail.unitsPerWU) < 0.01 || Number(globals.worldRail.unitsPerWU) > 24) {
+      diagnostic(diagnostics, 'world-rail-cadence', 'globals.worldRail.unitsPerWU', 'World rail units per WU must stay between 0.01 and 24.');
     }
   }
   const fogStartWU = Number(globals.camera?.distanceFogStartWU);
@@ -321,6 +345,50 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
+  if (globals.camera?.forwardSpeedWU != null
+    && (!finite(globals.camera.forwardSpeedWU)
+      || Number(globals.camera.forwardSpeedWU) <= 0
+      || Number(globals.camera.forwardSpeedWU) > 24)) {
+    diagnostic(
+      diagnostics,
+      'camera-forward-speed',
+      'globals.camera.forwardSpeedWU',
+      'Global camera forward speed must be greater than 0 and at most 24 world units per Story WU.',
+    );
+  }
+  if (globals.camera?.steadycamResponseMs != null
+    && (!finite(globals.camera.steadycamResponseMs)
+      || Number(globals.camera.steadycamResponseMs) < 0
+      || Number(globals.camera.steadycamResponseMs) > 1200)) {
+    diagnostic(
+      diagnostics,
+      'camera-steadycam-response',
+      'globals.camera.steadycamResponseMs',
+      'Global camera track settling must stay between 0 and 1200 milliseconds.',
+    );
+  }
+  if (globals.camera?.pointerPanDegrees != null
+    && (!finite(globals.camera.pointerPanDegrees)
+      || Number(globals.camera.pointerPanDegrees) < 0
+      || Number(globals.camera.pointerPanDegrees) > 8)) {
+    diagnostic(
+      diagnostics,
+      'camera-pointer-pan-amount',
+      'globals.camera.pointerPanDegrees',
+      'Global mouse pan amount must stay between 0 and 8 degrees.',
+    );
+  }
+  if (globals.camera?.pointerPanResponseMs != null
+    && (!finite(globals.camera.pointerPanResponseMs)
+      || Number(globals.camera.pointerPanResponseMs) < 80
+      || Number(globals.camera.pointerPanResponseMs) > 2000)) {
+    diagnostic(
+      diagnostics,
+      'camera-pointer-pan-response',
+      'globals.camera.pointerPanResponseMs',
+      'Global mouse pan response must stay between 80 and 2000 milliseconds.',
+    );
+  }
   const worldRail = globals.worldRail;
   const legacyCompatibleGlobals = { ...globals };
   delete legacyCompatibleGlobals.worldRail;
@@ -330,6 +398,15 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   delete legacyCompatibleTextMotion.bookendViewportY;
   delete legacyCompatibleTextMotion.titleShadowOpacity;
   delete legacyCompatibleTextMotion.titleShadowBlurPx;
+  delete legacyCompatibleTextMotion.titleDrawDurationMs;
+  delete legacyCompatibleTextMotion.titleColorCount;
+  delete legacyCompatibleTextMotion.titleLineStaggerMs;
+  delete legacyCompatibleTextMotion.titleExitOpacity;
+  delete legacyCompatibleTextMotion.titleExitLineStagger;
+  const legacyCompatibleCamera = { ...(globals.camera || {}) };
+  delete legacyCompatibleCamera.forwardSpeedWU;
+  delete legacyCompatibleCamera.pointerPanDegrees;
+  delete legacyCompatibleCamera.pointerPanResponseMs;
   // Reuse the established v2 global contract without allowing the legacy
   // validator to see or normalize any authored track data.
   const shim = {
@@ -342,7 +419,7 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
         cadence: Number(worldRail?.unitsPerWU ?? 1),
         cadenceLocked: true,
         fov: Number(globals.camera?.fov ?? 48),
-        ...globals.camera,
+        ...legacyCompatibleCamera,
       },
     },
     sections: [{
@@ -776,7 +853,20 @@ function validateBlock(block, diagnostics, path) {
   if (block.label != null) validateSafeText(block.label, diagnostics, `${path}.label`, { maximum: 120 });
   if (block.items != null) {
     if (!Array.isArray(block.items)) diagnostic(diagnostics, 'block-items', `${path}.items`, 'Block items must be an array.');
-    else block.items.forEach((item, index) => validateSafeText(item, diagnostics, `${path}.items.${index}`, { required: true, maximum: 240 }));
+    else block.items.forEach((item, index) => {
+      const itemPath = `${path}.items.${index}`;
+      // Old documents used plain strings. Canonical v7 disciplines are records
+      // so the visible label and its short editorial description travel together.
+      if (block.kind !== 'disciplines' || typeof item === 'string') {
+        validateSafeText(item, diagnostics, itemPath, { required: true, maximum: 240 });
+        return;
+      }
+      unknownKeys(diagnostics, item, BLOCK_DISCIPLINE_ITEM_KEYS, itemPath);
+      if (!isObject(item)) return;
+      if (!ID_PATTERN.test(item.id || '')) diagnostic(diagnostics, 'discipline-item-id', `${itemPath}.id`, 'Discipline item ID must be a lower-case slug.');
+      validateSafeText(item.label, diagnostics, `${itemPath}.label`, { required: true, maximum: 120 });
+      validateSafeText(item.description, diagnostics, `${itemPath}.description`, { required: true, maximum: 320 });
+    });
   }
   if (stackKind) {
     if (!Array.isArray(block.modules) || block.modules.length === 0) diagnostic(diagnostics, 'block-modules-required', `${path}.modules`, 'Stack blocks require at least one module.');
@@ -823,6 +913,47 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
   ['startWU', 'focusWU', 'endWU'].forEach((key) => validateTime(field[key], diagnostics, `${path}.${key}`, { max: durationWU }));
   if (!(Number(field.startWU) <= Number(field.focusWU) && Number(field.focusWU) <= Number(field.endWU))) diagnostic(diagnostics, 'text-order', path, 'Text timing must satisfy startWU ≤ focusWU ≤ endWU.');
   if (typeof field.publishable !== 'boolean') diagnostic(diagnostics, 'text-publishable', `${path}.publishable`, 'publishable must be boolean.');
+  if (field.flow != null) {
+    unknownKeys(diagnostics, field.flow, STORY_FLOW_KEYS, `${path}.flow`);
+    if (isObject(field.flow)) {
+      const minScreens = Number(field.flow.minScreens);
+      if (!Number.isFinite(minScreens) || minScreens < 0.2 || minScreens > 12) {
+        diagnostic(
+          diagnostics,
+          'story-flow-minimum',
+          `${path}.flow.minScreens`,
+          'Story block minimum length must be between 0.2 and 12 screens.',
+        );
+      }
+      if (!STORY_GAP_PRESETS.has(field.flow.gapAfter)) {
+        diagnostic(
+          diagnostics,
+          'story-flow-gap',
+          `${path}.flow.gapAfter`,
+          'Story block gapAfter must be none, tight, standard, chapter, or finale.',
+        );
+      }
+      if (!STORY_FOCUS_MODES.has(field.flow.focusMode)) {
+        diagnostic(
+          diagnostics,
+          'story-flow-focus',
+          `${path}.flow.focusMode`,
+          'Story block focusMode must be middle or reading-start.',
+        );
+      }
+      if (field.flow.focusOffsetScreens != null) {
+        const focusOffsetScreens = Number(field.flow.focusOffsetScreens);
+        if (!Number.isFinite(focusOffsetScreens) || focusOffsetScreens < 0 || focusOffsetScreens > 6) {
+          diagnostic(
+            diagnostics,
+            'story-flow-focus-offset',
+            `${path}.flow.focusOffsetScreens`,
+            'Story block focus offset must be between 0 and 6 screens.',
+          );
+        }
+      }
+    }
+  }
   if (field.presentation != null) {
     unknownKeys(diagnostics, field.presentation, PRESENTATION_KEYS, `${path}.presentation`);
     if (isObject(field.presentation)) {
@@ -1340,6 +1471,11 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       bookendViewportY: Number(source.globals.textMotion?.bookendViewportY ?? openerViewportY ?? 70),
       titleShadowOpacity: Number(source.globals.textMotion?.titleShadowOpacity ?? 0.3),
       titleShadowBlurPx: Number(source.globals.textMotion?.titleShadowBlurPx ?? 28),
+      titleDrawDurationMs: Number(source.globals.textMotion?.titleDrawDurationMs ?? 220),
+      titleColorCount: Number(source.globals.textMotion?.titleColorCount ?? 5),
+      titleLineStaggerMs: Number(source.globals.textMotion?.titleLineStaggerMs ?? 140),
+      titleExitOpacity: Number(source.globals.textMotion?.titleExitOpacity ?? 0.2),
+      titleExitLineStagger: Number(source.globals.textMotion?.titleExitLineStagger ?? 0.16),
     },
   };
   return {

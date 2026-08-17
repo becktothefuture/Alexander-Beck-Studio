@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "source": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender/about-v2-scene-source.json",
+  "blendFile": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender/about-v2-track-working.blend",
+  "glbFile": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender/about-v2-track-reference.glb",
+  "primitiveCount": 118,
+  "meshObjectCount": 202,
+  "vertices": 85306,
+  "polygons": 108878,
+  "cameraSamples": 721,
+  "frameRange": [
+    1,
+    3600
+  ],
+  "durationSeconds": 120,
+  "bounds": [
+    [
+      -16.383817672729492,
+      -0.37925243377685547,
+      -5.082027435302734
+    ],
+    [
+      14.438270568847656,
+      366.6519470214844,
+      22.595102310180664
+    ]
+  ],
+  "forbiddenBottomTrackObjects": []
+}

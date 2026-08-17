@@ -51,7 +51,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Portfolio intro, linear deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me production scroll narrative, point field, emergent-form resolution, and development-only editor | `routes/about/AboutRoute.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
+| About Me production gate, canonical Long Assembly development narrative, point field, and editor | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Lab title, deterministic spatial catalogue, dot field, media dialog, and authoring surface | `routes/playground/`, `public/config/contents-playground.json`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -179,61 +179,17 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- The production About route renders the complete scroll narrative. Its authoring editor remains a development-only surface and is excluded from production assets.
+- Production deliberately renders the centered **Coming soon.** gate inside the stable shell. The Long Assembly and its editor are development-only until a separate launch decision.
+- Development always renders one canonical scroll narrative. URL `version` parameters are ignored; `?edit=1` opens its authoring editor and `?edit=0` shows clean playback.
+- `public/config/contents-about.json` is the sole authored About document. The editor, local recovery, build input, and playback all resolve that source; no V1/V2 source split or second write endpoint remains.
 - The narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
-- The narrative establishes an orb above the opening promise, flies into its complexity, scatters
-  through an empty interval, raises an organised grid from below, isolates six disciplines, and
-  gathers that same material into one suspended spatial form. These are transformations of one
-  material, not separate decorative scenes.
-- Two vertically scrolling editorial areas carry the background, client context, reflections on the practice, AI, and multidisciplinary synthesis. Each area remains one authored unit, but its prose resolves one rendered line at a time through the shared fade and blur channels. Visual line groups recalculate when the available width or font metrics change, never on each scroll frame. The point world yields completely whenever either unit enters the viewport. The first unit ends with optically balanced monochrome client assets in a quiet three-column desktop grid with a centred final pair, or a two-column mobile grid. The logo field inherits the editorial unit's exact width at every layout profile. Every client asset uses the same 640 × 320 transparent canvas with its visible artwork alpha-centred and sized inside the file, so frontend placement remains neutral. The second unit is one continuous multi-paragraph passage; project-impression cards do not interrupt its reading flow.
-- Spatial titles use one Instrument Serif family at two explicit scales: medium travelling titles stay vertically centred while bridging the editorial passages, while larger display titles punctuate the opening and finale bookends. Both bookend lockups share an authored 70% viewport position in the lower half, keep the same screen-space centre while visible, and use one narrower supporting-description measure. The opening cluster and final bust share one upper-field visual centre.
-- Camera authoring uses three complete, non-overlapping channels. Move owns absolute Position XYZ,
-  Look owns pitch, yaw, and roll, and Lens owns FOV. Look remains authored across the complete Story,
-  so no bounded override or ownership handoff can reset orientation. There is no camera target,
-  automatic focus, hidden orbit, frame origin, depth offset, or secondary dolly system.
-- The calm field resolves gradually beneath the client editorial as the camera completes the saved
-  backward flyover. That backward travel continues while the camera pitches toward the floor, then
-  carries on through the bird's-eye Discipline reading lane. The movement is one uninterrupted path,
-  not a flyover followed by a stationary tilt. The constant-speed travel segment begins before the
-  independent Look lane, and compact layouts keep FOV fixed throughout the reading pass so lens changes do
-  not cancel the visible movement. Its width, depth, and distance fog must keep the physical edges and
-  horizon out of view.
-- Point sizing has two composable controls: one global material size and one relative multiplier per
-  World. The global control sets the narrative's overall ball scale; World multipliers provide restrained
-  shot-specific compensation without changing density, camera position, or point correspondence.
-- The six disciplines use six distinct native grid cells arranged as three paired rows. Once the camera
-  is looking straight down, it keeps travelling backward along the grid as each row resolves. Camera
-  height and pitch stay fixed through this reading pass. Each discipline remains visible after it
-  resolves, so the labels build into a two-column reading field. Every label follows the matching grid
-  point in screen space with the shared `22px` gap. Each label begins resolving when its projected point
-  enters the lower viewfinder band and is fully readable before the global restore. The presentation has
-  no card, connector, counter, or glow. Portrait mobile keeps paired copy inside the frame by facing the
-  right column inward and using a compact shared measure. Short portrait keeps every discipline name
-  visible and retains its description in the item's accessible label instead of colliding two long copy
-  columns. Colours remain fixed in category order: `--ball-1`, `--ball-4`, `--ball-3`, `--ball-7`,
-  `--ball-8`, `--ball-6`.
-- About points remain flat palette-owned circles when they resolve at readable sizes. The microscopic
-  field and the six revealed discipline points use the same flat finish without a sphere-atlas transition.
-- The second editorial area uses one left-aligned measure after the discipline grid has faded completely away. Visibility, camera, and global distance fog are independent controls; fog must never substitute for an authored disappearance or be keyframed per camera pose.
-- The grid returns in full colour, already framed on the ripple centre, after the editorial area clears.
-  Any reframe from the discipline view happens only while the point world is fully hidden. From the return
-  through the finale, the camera follows one constant sideways orbit around a shared look-at point. A
-  continuous concentric wave generator lifts and laterally displaces the ordered floor from its center
-  without helper rings; scroll is the wave clock so every change in the ripple is authored.
-- The resolved form is the point-cloud bust: the ordered field gathers into one authored figure rather
-  than a solar system or unrelated bodies. It begins only after the sustained ripple passage and forms
-  bottom-up from that still-moving surface: the fragmented base and shoulders appear first, then the
-  neck and coherent head resolve. The anchored camera eases out of its orbit and holds while the settled
-  form begins its final rotation.
-- The bust remains large and horizontally centred through the final invitation. The lower-half stack
-  reads “Let’s begin.”, then the smaller invitation sentence with one inline email link. It has no
-  separate action buttons and must not displace the bust or leave the studio viewport.
-- Mobile portrait frames the final bust slightly higher and closer than the previous endpoint while
-  retaining the same material/text centre relationship as desktop.
-- Phone presentation is portrait-only. Phone landscape and any landscape viewport too short to
-  contain the studio window use the shared viewport cover instead of recomposing route content.
-  Portrait phone, ordinary laptop, tablet, and sufficiently tall ultrawide viewports remain supported.
-- The creative toolkit belongs to local development and opens with `?edit=1`. Production and development playback read the validated `public/config/contents-about.json` document, while production excludes the editor, Save client, and authoring diagnostics.
+- The canonical experience is one permanent dot-built world called **The Long Assembly**. It removes the five-world simulation sequence and every form-to-form morph. A continuous floor, edge datum, and centre service spine connect twelve recognisable architectural beats: threshold, material yard, crossing house, long archive, sunken court, interchange, six-bay workshop, assembly hall, single bridge, connected bridges, unfinished city, and living forum.
+- The Story Stack acts as page geometry. Text order, measured copy height, and named gaps determine the complete scroll length. The corridor's Z extent is derived from that measured duration, so shorter or longer copy compresses or extends the same landmark sequence. Camera, visibility, Effects, and empty tracks never add page length.
+- The canonical experience uses one centred, forward-only ride. Structures become visible through one global fog field as the camera reaches them. The Director exposes the high-signal ride, camera, fog, world, material, motion, and ocean controls that save to the canonical document.
+- Complexity becomes organised through physical accumulation. Loose grounded parts gain a complete crossing, repeated archive bays, a shared interchange, six joined workshops, and a dependable assembly hall. A forked support appears incomplete, then paired, then multi-level; this permanent construction lineage becomes the final canopy rather than transforming into it.
+- The canonical experience protects title and editorial legibility through real central circulation and landmark placement. It does not use a projected clearance mask, text plate, blur, world fade, opacity dissolve, population swap, hidden cut, or pointer pressure. Spatial titles remain solid Instrument Serif; editorial copy remains opaque Geist.
+- Every Title uses the shared route-bookend glyph language. The opener keeps its route entrance; each travelling Title and the finale replay the same left-to-right, full-opacity palette-colour draw when its Text moment becomes active, without changing that Title's authored size or position. Reduced Motion settles the complete title immediately.
+- The living forum owns the final invitation. Two rooted construction trees overlap above an open central route, and one low-frequency `living-wave-v1` Effect gradually activates near the final Text moment. Reduced motion disables that oscillation while preserving the same fixed geometry, camera position, text order, and spatial payoff.
 
 ### Contact
 

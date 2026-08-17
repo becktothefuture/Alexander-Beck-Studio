@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-08-07",
+  "evidenceSourceIds": ["src-20260807-004"],
+  "candidates": [
+    {"id": "candidate-dear-white-parents", "client": "Dear White Parents", "possiblePlacement": "undecided", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Determine whether this is a client project, a body of work, or a credit."},
+    {"id": "candidate-experian", "client": "Experian", "possiblePlacement": "undecided", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "App and mortgage-concept references may belong to one client-master story."},
+    {"id": "candidate-dcc", "client": "DCC", "possiblePlacement": "undecided", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Exact organisation and app need identification."},
+    {"id": "candidate-vizient", "client": "Vizient", "possiblePlacement": "undecided", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Website and members dashboard may be bodies of work in one client record."},
+    {"id": "candidate-prove-my-age", "client": "Prove My Age", "possiblePlacement": "body_of_work", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Check whether this belongs inside the Yoti master story."},
+    {"id": "candidate-lufthansa", "client": "Lufthansa", "possiblePlacement": "impressions", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Icon-library work may suit Impressions."},
+    {"id": "candidate-fadista", "client": "Fadista", "possiblePlacement": "impressions", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Typeface work may suit Impressions."},
+    {"id": "candidate-viiv", "client": "ViiV", "possiblePlacement": "impressions", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Presentation work needs exact identity and permission."},
+    {"id": "candidate-mount-trashmore", "client": "Mount Trashmore", "possiblePlacement": "impressions", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Determine project type and whether it is publicly showable."},
+    {"id": "candidate-hugomrm", "client": "HugoMRM", "possiblePlacement": "undecided", "status": "indexed_candidate", "evidence": ["ProKeyboard / Note: Current projects"], "notes": "Clarify whether this is a client, internal project, or shorthand."},
+    {"id": "candidate-swiss-re-campaign", "client": "Swiss Re", "possiblePlacement": "body_of_work", "status": "indexed_candidate", "evidence": ["Portfolio candidate inventory / Note: Portfolio 2022 - plan"], "notes": "Check whether the campaign belongs in the Swiss Re master story alongside About Us 2026."}
+  ]
+}

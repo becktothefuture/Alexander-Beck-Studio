@@ -4,9 +4,11 @@
 
 This document defines the interview method. Project facts, source provenance, open questions, readiness, and the American Heart Association hold state live in `docs/portfolio/`. Do not promote wording from this plan into final copy unless the relevant project claim is confirmed there.
 
+The attachable Voice instructions and handoff contract live in `docs/portfolio/VOICE-INTERVIEW-INSTRUCTIONS.md` and `docs/portfolio/VOICE-HANDOFF-TEMPLATE.md`.
+
 ## What to expect
 
-We will work through one project at a time. The conversation should feel like remembering the work with a thoughtful colleague, not completing a questionnaire.
+We will work through one client-master project at a time. A client may contain several related pieces of work, but the portfolio will tell one shared client story. The conversation should feel like remembering the work with a thoughtful colleague, not completing a questionnaire.
 
 I will ask two or three questions at a time, listen for the parts with energy or tension, and follow those before moving on. Short, imperfect answers are useful. The final prose comes later.
 
@@ -61,37 +63,33 @@ Old material is evidence and memory support, not copy to reuse automatically.
 
 ## What I will produce after each interview
 
-1. A compact fact sheet with confirmed and unconfirmed details separated.
-2. A recommended narrative angle unique to that project.
-3. A first human-written draft of roughly 450–700 words.
-4. A media sequence with a role for every image or video.
-5. A short gap list for missing evidence, credits, dates, or approvals.
-6. A version ready to review in the live portfolio.
+1. A raw-answer handoff with question-level locators.
+2. A compact fact sheet with confirmed and unconfirmed details separated.
+3. A recommended organising idea for the complete client story.
+4. A list of bodies of work and how each supports that story.
+5. A media and evidence lead list.
+6. A short gap list for missing evidence, credits, dates, or approvals.
+
+Copy drafting starts only after the project passes the copy gate. An interview does not automatically produce public copy.
 
 Nothing marked unconfirmed becomes a public claim. We will use `TBC`, `draft`, or a direct question until the user confirms it.
 
 ## Suggested project order
 
-1. American Heart Association — freshest work and the prototype for the format
-2. S&P Global — strongest complex-product story
-3. Bentley — craft, brand, motion, and hands-on 3D
-4. Yoti — trust, regulation, and cross-device interaction
-5. SunExpress — archive honesty and large transactional UX
-6. Personal website — experimental practice and implementation
-7. Pro Keyboard — focused concept with evidence limits made explicit
+1. McCann — complete package, metadata, credits, and delivery follow-up
+2. SunExpress — complete package, metadata, credits, and outcome follow-up
+3. Swiss Re — first narrative interview grounded in the new Notes evidence
+4. S&P Global — strongest complex-product story
+5. Bentley — craft, brand, motion, and hands-on 3D
+6. Yoti — trust, regulation, and cross-device interaction
+7. Personal website — experimental practice and implementation
+8. ProKeyboard — focused concept with evidence limits made explicit
 
 The order can change when the old portfolio or available evidence suggests a better sequence.
 
-## American Heart Association draft
+## American Heart Association hold
 
-The current AHA project in `contents-portfolio.json` is a format prototype, not approved portfolio copy. Its source-backed framing is:
-
-- mission: make a large heart-health ecosystem feel like a trusted companion;
-- active work: experience strategy, information architecture, route studies, design-system behaviour, visual language, motion, and prototypes;
-- honest state: ongoing, with two route expressions still alive and several outcomes not yet established;
-- interview need: confirm Alexander's role, collaborators, tensions, adopted decisions, implementation state, and observable value.
-
-The current mock uses neutral working copy. Role, collaboration, decisions and outcomes still require confirmation in the interview before publication.
+American Heart Association is ongoing. Source cataloguing is allowed, but do not run a copy interview, define an organising idea, draft narrative, or state outcomes until Alexander explicitly removes the hold.
 
 ## AHA media placeholders
 

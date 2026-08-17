@@ -6,6 +6,11 @@ import {
 } from '../../lib/smooth-scroll.js';
 import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
 import {
+  createEntranceSequence,
+  measureBookendTitleGlyphLines,
+  prepareBookendTitleGlyphs,
+} from '../../lib/motion/entrance-sequence.js';
+import {
   SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT,
   SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
 } from '../../lib/scroll-progress-indicator.js';
@@ -28,8 +33,61 @@ import {
 import {
   getAboutNarrativeReadingOrderRevealMetrics,
 } from './aboutNarrativeReveal.js';
+import {
+  advanceAboutNarrativeFinaleOrbitWU,
+  getAboutNarrativeFinaleOverflowPixels,
+  getAboutNarrativeFinaleScrollDeltaWU,
+} from './aboutNarrativeFinaleOrbit.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
+const smoothstep = (value) => {
+  const progress = clamp01(value);
+  return progress * progress * (3 - (2 * progress));
+};
+const FINALE_EPSILON = 0.000001;
+const ABOUT_TITLE_DRAW_SELECTOR = '[data-about-title-draw]';
+const ABOUT_TITLE_DRAW_TARGET_DEFAULTS = Object.freeze({
+  trigger: 'about-title',
+  groupName: 'identity',
+  order: 0,
+  variant: 'bookend-title',
+});
+
+function applyAboutTitleLineExit(drawNode, field, storyWU, textMotion, reducedMotion) {
+  if (!drawNode) return;
+  const glyphs = Array.from(drawNode.querySelectorAll('[data-route-enter-glyph]'));
+  if (glyphs.length === 0) return;
+  if (field.preset === 'opener-v1') {
+    // The opening lockup owns one shared exit through --fragment-opacity and
+    // --fragment-* transforms. Keep its title glyphs solid so the title, rule,
+    // and description never split into different exit gestures.
+    glyphs.forEach((glyph) => { glyph.style.opacity = '1'; });
+    return;
+  }
+  if (field.preset === 'finale-v1' || field.presentation?.layout === 'text-finale-cta') {
+    glyphs.forEach((glyph) => { glyph.style.opacity = '1'; });
+    return;
+  }
+  const durationWU = Math.max(0.000001, Number(field.endWU) - Number(field.startWU));
+  const fieldProgress = clamp01((Number(storyWU) - Number(field.startWU)) / durationWU);
+  const readableEnd = clamp01(Number(textMotion.titleExitStart ?? textMotion.readableEnd ?? 0.76));
+  const exitProgress = reducedMotion
+    ? 0
+    : clamp01((fieldProgress - readableEnd) / Math.max(0.000001, 1 - readableEnd));
+  const fadedOpacity = clamp01(Number(textMotion.titleExitOpacity ?? 0.2));
+  const lineStagger = clamp01(Number(textMotion.titleExitLineStagger ?? 0.16));
+  const lineCount = Math.max(1, Number(drawNode.dataset.routeEnterLineCount || 1));
+  const staggeredSpan = 1 + (Math.max(0, lineCount - 1) * lineStagger);
+  glyphs.forEach((glyph) => {
+    const lineIndex = Math.max(0, Number(glyph.dataset.routeEnterLineIndex || 0));
+    const lineProgress = smoothstep((exitProgress * staggeredSpan) - (lineIndex * lineStagger));
+    glyph.style.opacity = String(1 + ((fadedOpacity - 1) * lineProgress));
+  });
+}
+// Periodically restart only the audio distance clock. The visible phase is
+// already wrapped per revolution; this keeps even an extremely long session
+// away from floating-point growth without changing the orbit.
+const FINALE_SOUND_WRAP_WU = 1_024;
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
@@ -86,6 +144,8 @@ export const getAboutNarrativeEditorialReveal = getAboutNarrativeComposerEditori
 export function useAboutNarrativeTimeline({
   document,
   editorStore = null,
+  finaleContinuation = false,
+  solidTitles = false,
   rootRef,
   worldRuntimeRef,
   scrollportRef,
@@ -138,9 +198,17 @@ export function useAboutNarrativeTimeline({
     let lastPreparationIdentity = '';
     let installedDocument = null;
     let installedProfileKey = '';
+    let installedStoryLayoutSignature = '';
     let lastDiagnosticKey = '';
     let lastOpeningScrollCueOpacity = -1;
     let lastOpeningScrollCueState = '';
+    let finaleOrbitWU = 0;
+    let finaleOrbitSoundWU = 0;
+    let previousTouchY = null;
+    let activeTitleEntrance = null;
+    let activeTitleEntranceKey = '';
+    let activeTitleEntranceNode = null;
+    let activeTitleEntranceReduced = false;
     let disposed = false;
     const scrollSoundController = createScrollSoundController({
       playDetent: playScrollDetent,
@@ -161,6 +229,80 @@ export function useAboutNarrativeTimeline({
       const resolver = planRef.current?.resolver;
       if (!resolver) return;
       scrollport.scrollTop = resolver.scrollWUFromStoryWU(nextStoryWU) * Math.max(1, viewportHeight);
+    };
+
+    const publishFinaleOrbitWU = (nextWU) => {
+      finaleOrbitWU = Number(nextWU) || 0;
+      frameSampleOptionsRef.current.finaleOrbitWU = finaleOrbitWU;
+      root.dataset.finaleOrbitWu = finaleOrbitWU.toFixed(6);
+      root.dataset.finaleOrbitActive = Math.abs(finaleOrbitWU) > FINALE_EPSILON
+        ? 'true'
+        : 'false';
+    };
+
+    const getFinaleContinuation = (plan = planRef.current) => {
+      if (plan?.camera?.orbit) return plan.camera.orbit;
+      if (!finaleContinuation || !plan) return null;
+      // V2 continues its outgoing material current after the physical page
+      // ends. Reusing the bounded finale accumulator keeps trackpad, wheel,
+      // touch, and keyboard input fluid without reintroducing camera orbit.
+      return {
+        startWU: Math.max(0, Number(plan.durationWU) - 1),
+        endWU: Number(plan.durationWU),
+        arcDegrees: 360,
+      };
+    };
+
+    const resetFinaleOrbit = () => {
+      const hadSoundTravel = finaleOrbitSoundWU > FINALE_EPSILON;
+      if (Math.abs(finaleOrbitWU) <= FINALE_EPSILON
+        && !hadSoundTravel) return;
+      finaleOrbitSoundWU = 0;
+      if (hadSoundTravel) scrollSoundController.reset();
+      publishFinaleOrbitWU(0);
+    };
+
+    const advanceFinaleOrbitFromScroll = (
+      deltaY,
+      deltaMode = 0,
+      targetScrollTop = scrollport.scrollTop,
+    ) => {
+      // Upward input remains ordinary page navigation. The retained angular
+      // offset fades out through the authored orbit as the visitor scrolls
+      // back, so leaving the finale never requires unwinding every turn.
+      const plan = planRef.current;
+      const continuation = getFinaleContinuation(plan);
+      if (!(Number(deltaY) > 0) || !continuation || plan.reducedMotion) return 0;
+      const maximumScrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      const overflowPixels = getAboutNarrativeFinaleOverflowPixels({
+        deltaY,
+        deltaMode,
+        viewportHeight: scrollport.clientHeight,
+        scrollTop: scrollport.scrollTop,
+        targetScrollTop,
+        maximumScrollTop,
+      });
+      if (overflowPixels <= FINALE_EPSILON) return 0;
+      const deltaWU = getAboutNarrativeFinaleScrollDeltaWU({
+        deltaY: overflowPixels,
+        deltaMode: 0,
+        viewportHeight: scrollport.clientHeight,
+        storyPerScrollWU: plan.resolver.storyPerScrollWU,
+      });
+      finaleOrbitSoundWU += deltaWU;
+      if (finaleOrbitSoundWU >= FINALE_SOUND_WRAP_WU) {
+        finaleOrbitSoundWU = 0;
+        scrollSoundController.reset();
+      }
+      publishFinaleOrbitWU(advanceAboutNarrativeFinaleOrbitWU(
+        finaleOrbitWU,
+        deltaWU,
+        continuation,
+      ));
+      const virtualScrollTop = maximumScrollTop
+        + (finaleOrbitSoundWU * Math.max(1, scrollport.clientHeight));
+      scrollSoundController.samplePosition(0, virtualScrollTop, performance.now());
+      return overflowPixels;
     };
 
     const handoffPreparation = (nextStoryWU, { force = false } = {}) => {
@@ -201,6 +343,20 @@ export function useAboutNarrativeTimeline({
         content,
         smoothing: planRef.current?.model?.globals?.scrollSmoothing
           ?? documentRef.current.globals.scrollSmoothing,
+        virtualScroll: (input) => {
+          // Lenis exposes the destination before the rendered scroll catches
+          // up. Split the same uninterrupted gesture at that destination so
+          // its remainder drives the bust instead of being lost at the clamp.
+          const overflowPixels = advanceFinaleOrbitFromScroll(
+            input.deltaY,
+            0,
+            lenis?.targetScroll,
+          );
+          if (overflowPixels <= FINALE_EPSILON) return true;
+          input.deltaY = Math.max(0, input.deltaY - overflowPixels);
+          input.event.preventDefault();
+          return input.deltaY > FINALE_EPSILON;
+        },
       });
     };
 
@@ -287,7 +443,17 @@ export function useAboutNarrativeTimeline({
             sample = createAboutNarrativeComposerTitleSample();
             titleSampleByIdRef.current.set(field.id, sample);
           }
-          titleFields.push({ node, field, sample });
+          const drawNode = solidTitles
+            ? node.querySelector(ABOUT_TITLE_DRAW_SELECTOR)
+            : null;
+          if (drawNode) measureBookendTitleGlyphLines(drawNode);
+          titleFields.push({
+            node,
+            field,
+            sample,
+            drawNode,
+            drawKey: drawNode ? `${field.id}:${field.text}` : '',
+          });
         }
         if (field.presentation?.layout === 'text-finale-cta'
           || field.presentation?.layout === 'text-bust-cta') {
@@ -332,8 +498,10 @@ export function useAboutNarrativeTimeline({
       }
 
       const profileKey = `${candidate.layoutProfile}:${candidate.motionProfile}`;
+      const storyLayoutSignature = String(candidate.storyLayout?.signature || '');
       const modelOrProfileChanged = sourceDocument !== installedDocument
-        || profileKey !== installedProfileKey;
+        || profileKey !== installedProfileKey
+        || storyLayoutSignature !== installedStoryLayoutSignature;
       const preservedStoryWU = transport && transport.owner !== 'scroll'
         ? Number(transport.storyWU) || 0
         : previousPlan?.resolver ? remapAboutNarrativeScrollTop({
@@ -355,6 +523,7 @@ export function useAboutNarrativeTimeline({
       if (modelOrProfileChanged) {
         installedDocument = sourceDocument;
         installedProfileKey = profileKey;
+        installedStoryLayoutSignature = storyLayoutSignature;
         setRuntimePlan(candidate);
         editorStore?.setRuntimePlan?.(candidate);
         schedulePreparationHandoff(preservedStoryWU, { force: true });
@@ -376,23 +545,102 @@ export function useAboutNarrativeTimeline({
     };
     requestMeasureRef.current = scheduleMeasure;
 
+    const syncTitleEntrance = (titleField, reducedMotion, textMotion) => {
+      const nextNode = titleField?.drawNode || null;
+      const drawDurationMs = Math.max(0, Number(textMotion?.titleDrawDurationMs ?? 220));
+      const drawColorCount = Math.max(1, Math.round(Number(textMotion?.titleColorCount ?? 5)));
+      const drawLineStaggerMs = Math.max(0, Number(textMotion?.titleLineStaggerMs ?? 140));
+      const nextKey = titleField?.drawKey
+        ? `${titleField.drawKey}:${drawDurationMs}:${drawColorCount}:${drawLineStaggerMs}`
+        : '';
+      if (
+        nextNode === activeTitleEntranceNode
+        && nextKey === activeTitleEntranceKey
+        && reducedMotion === activeTitleEntranceReduced
+      ) return;
+
+      activeTitleEntrance?.cancel();
+      activeTitleEntrance = null;
+      activeTitleEntranceNode = nextNode;
+      activeTitleEntranceKey = nextKey;
+      activeTitleEntranceReduced = reducedMotion;
+      if (!nextNode) return;
+
+      prepareBookendTitleGlyphs(nextNode);
+      const drawLineCount = Math.max(
+        1,
+        Number(nextNode.dataset.routeEnterLineCount || 1),
+      );
+      const drawLineStepMs = drawLineCount > 1
+        ? drawLineStaggerMs / Math.max(1, drawLineCount - 1)
+        : 0;
+      activeTitleEntrance = createEntranceSequence({
+        scopes: nextNode,
+        profile: 'route',
+        timingMode: 'repeat',
+        reducedMotion,
+        trigger: 'about-title',
+        targetSelector: ABOUT_TITLE_DRAW_SELECTOR,
+        targetDefaults: {
+          ...ABOUT_TITLE_DRAW_TARGET_DEFAULTS,
+          durationMs: drawDurationMs,
+          colorCount: drawColorCount,
+          // About titles read as two quick line events, not a slow character
+          // sweep. The shared route-title entrance keeps its authored glyph
+          // stagger everywhere else. Treat the configured line value as one
+          // total draw window so additional mobile wraps do not animate more
+          // slowly than the same title on desktop.
+          letterStepMs: 0,
+          titleLineStepMs: drawLineStepMs,
+        },
+        bookendDelayMs: 0,
+      });
+      activeTitleEntrance.stage();
+      void activeTitleEntrance.play();
+    };
+
     const updateSemanticText = (frame) => {
       const reducedMotion = frame.reducedMotion;
       const textMotion = frame.globals.textMotion;
-      for (const { node, field, sample } of measurementsRef.current.titleFields) {
+      let activeTitleField = null;
+      for (const titleField of measurementsRef.current.titleFields) {
+        const {
+          node,
+          field,
+          sample,
+          drawNode,
+        } = titleField;
         sampleAboutNarrativeComposerTitleInto(field, frame.storyWU, textMotion, reducedMotion, sample);
-        const visible = !reducedMotion
-          || isFieldActive(field, frame.storyWU, frame.durationWU);
+        const fieldActive = isFieldActive(field, frame.storyWU, frame.durationWU);
+        const usesUnitExit = field.preset === 'opener-v1';
+        if (fieldActive && drawNode) activeTitleField = titleField;
+        // V2 titles stay present for their Text moment. Their glyph lines own
+        // the colour entrance and the controlled fade to the authored floor;
+        // this parent gate prevents adjacent sticky moments from overlapping.
+        const visible = solidTitles ? fieldActive : !reducedMotion || fieldActive;
         node.style.setProperty('--fragment-x', `${sample.x.toFixed(2)}px`);
         node.style.setProperty('--fragment-y', `${sample.y.toFixed(2)}px`);
         node.style.setProperty('--fragment-z', `${sample.z.toFixed(2)}px`);
         node.style.setProperty('--fragment-blur', `${sample.blur.toFixed(2)}px`);
-        node.style.setProperty('--fragment-opacity', visible ? sample.opacity.toFixed(4) : '0');
+        node.style.setProperty(
+          '--fragment-opacity',
+          visible
+            ? ((solidTitles && !usesUnitExit) ? '1' : sample.opacity.toFixed(4))
+            : '0',
+        );
+      }
+      syncTitleEntrance(activeTitleField, reducedMotion, textMotion);
+      for (const titleField of measurementsRef.current.titleFields) {
+        if (!titleField.drawNode) continue;
+        applyAboutTitleLineExit(
+          titleField.drawNode,
+          titleField.field,
+          frame.storyWU,
+          textMotion,
+          reducedMotion,
+        );
       }
 
-      let disciplineFocus = 0;
-      let gridInfluence = 0;
-      const editorialLines = measurementsRef.current.editorialLines;
       const viewportThreshold = frame.globals.editorialRevealThreshold;
       const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight);
       const scrollWU = planRef.current.resolver.scrollWUFromStoryWU(frame.storyWU);
@@ -403,6 +651,7 @@ export function useAboutNarrativeTimeline({
         return fieldBottomWU > scrollWU && fieldTopWU < scrollWU + 1;
       });
       root.dataset.editorialInView = editorialInView ? 'true' : 'false';
+      const editorialLines = measurementsRef.current.editorialLines;
       for (const record of editorialLines) {
         record.viewportY = getAboutNarrativeComposerEditorialViewportY(
           record,
@@ -424,6 +673,7 @@ export function useAboutNarrativeTimeline({
           progress,
           viewportY,
           reducedMotion,
+          textMotion.titleExitOpacity,
         );
         const phraseOpacity = getAboutNarrativeComposerEditorialPhraseOpacity(
           progress,
@@ -432,17 +682,7 @@ export function useAboutNarrativeTimeline({
         node.style.setProperty('--editorial-reveal', progress.toFixed(4));
         node.style.setProperty('--editorial-focus-opacity', focusOpacity.toFixed(4));
         node.style.setProperty('--editorial-emphasis-opacity', phraseOpacity.toFixed(4));
-        const group = Number(
-          node.dataset.worldGroup
-          || node.closest('[data-world-group]')?.dataset.worldGroup,
-        ) || 0;
-        if (group > 0 && progress >= 0.24) disciplineFocus = group;
-        if (node.closest('[data-world-influence="true"]')) {
-          gridInfluence = Math.max(gridInfluence, progress);
-        }
       }
-      frame.editorialSignals.disciplineFocus = disciplineFocus;
-      frame.editorialSignals.gridInfluence = gridInfluence;
 
       for (const contextField of measurementsRef.current.contextFields) {
         const { node, field, sample } = contextField;
@@ -490,6 +730,21 @@ export function useAboutNarrativeTimeline({
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
       const nextStoryWU = readTransport(deltaSeconds);
+      const continuation = getFinaleContinuation(planRef.current);
+      // The smooth-scroll target can cross the physical page end before the
+      // painted scroll position catches up. Preserve that gesture overflow
+      // throughout the final authored screen; otherwise the frame loop clears
+      // it and the visitor has to pause, then scroll again, to move the current.
+      const continuationStartWU = Number(continuation?.startWU);
+      const maximumScrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      const smoothingTargetReachedEnd = Number(lenis?.targetScroll) >= maximumScrollTop - 1;
+      const continuationGestureCommitted = finaleOrbitSoundWU > FINALE_EPSILON
+        && (scrollport.scrollTop >= maximumScrollTop - 1 || smoothingTargetReachedEnd);
+      if (!continuation || planRef.current.reducedMotion
+        || (nextStoryWU < continuationStartWU - FINALE_EPSILON
+          && !continuationGestureCommitted)) {
+        resetFinaleOrbit();
+      }
       const sampleOptions = frameSampleOptionsRef.current;
       const frame = sampleAboutNarrativeComposerPlanInto(
         planRef.current,
@@ -557,6 +812,44 @@ export function useAboutNarrativeTimeline({
       editorStore.setTransport({ owner: 'scroll', playing: false, storyWU: nextStoryWU });
       rebuildLenis();
     };
+    const handleWheel = (event) => {
+      cancelPlayback();
+      // Desktop wheel input is split inside Lenis, where its smoothed target
+      // is available. Native-scroll profiles use the painted position here.
+      if (lenis) return;
+      const overflowPixels = advanceFinaleOrbitFromScroll(event.deltaY, event.deltaMode);
+      if (overflowPixels <= FINALE_EPSILON) return;
+      scrollport.scrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      event.preventDefault();
+    };
+    const handleTouchStart = (event) => {
+      cancelPlayback();
+      previousTouchY = Number(event.touches?.[0]?.clientY);
+    };
+    const handleTouchMove = (event) => {
+      const currentTouchY = Number(event.touches?.[0]?.clientY);
+      if (!Number.isFinite(currentTouchY) || !Number.isFinite(previousTouchY)) return;
+      const deltaY = previousTouchY - currentTouchY;
+      previousTouchY = currentTouchY;
+      const overflowPixels = advanceFinaleOrbitFromScroll(deltaY);
+      if (overflowPixels <= FINALE_EPSILON) return;
+      scrollport.scrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      event.preventDefault();
+    };
+    const handleTouchEnd = () => { previousTouchY = null; };
+    const handleFinaleKeyDown = (event) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.target !== scrollport) return;
+      const keyDeltaPixels = {
+        ArrowDown: 48,
+        PageDown: scrollport.clientHeight * 0.9,
+        ' ': scrollport.clientHeight * 0.9,
+      }[event.key];
+      if (keyDeltaPixels && advanceFinaleOrbitFromScroll(keyDeltaPixels) > FINALE_EPSILON) {
+        scrollport.scrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+        event.preventDefault();
+      }
+    };
     const handleStoreChange = () => {
       const state = editorStore?.getSnapshot?.();
       if (!state) return;
@@ -580,6 +873,17 @@ export function useAboutNarrativeTimeline({
         scrollSoundController.reset();
         return;
       }
+      const maximumScrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      const smoothingTargetReachedEnd = Number(lenis?.targetScroll) >= maximumScrollTop - 1;
+      if (finaleOrbitSoundWU > FINALE_EPSILON
+        && scrollport.scrollTop < maximumScrollTop - 1
+        && !smoothingTargetReachedEnd) {
+        // Rebase the synthetic finale sound coordinate before ordinary reverse
+        // scrolling resumes. A forward smoothing target at the page end is
+        // still the same uninterrupted gesture and must retain its overflow.
+        finaleOrbitSoundWU = 0;
+        scrollSoundController.reset();
+      }
       scrollSoundController.samplePosition(0, scrollport.scrollTop, performance.now());
     };
     const handleEditorialLinesChange = () => scheduleMeasure();
@@ -594,8 +898,12 @@ export function useAboutNarrativeTimeline({
     resizeObserver.observe(content);
     reducedMotionQuery.addEventListener('change', handleReducedMotionChange);
     nativeScrollQuery.addEventListener('change', handleNativeScrollChange);
-    scrollport.addEventListener('wheel', cancelPlayback, { passive: true });
-    scrollport.addEventListener('touchstart', cancelPlayback, { passive: true });
+    scrollport.addEventListener('wheel', handleWheel, { passive: false });
+    scrollport.addEventListener('touchstart', handleTouchStart, { passive: true });
+    scrollport.addEventListener('touchmove', handleTouchMove, { passive: false });
+    scrollport.addEventListener('touchend', handleTouchEnd, { passive: true });
+    scrollport.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    scrollport.addEventListener('keydown', handleFinaleKeyDown);
     scrollport.addEventListener('scroll', handleScrollPreparation, { passive: true });
     content.addEventListener('about:editorial-lines-change', handleEditorialLinesChange);
     window.document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -613,12 +921,17 @@ export function useAboutNarrativeTimeline({
       window.clearTimeout(preparationTimer);
       lenis?.destroy();
       scrollSoundController.reset();
+      activeTitleEntrance?.cancel();
       resizeObserver.disconnect();
       unsubscribe?.();
       reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
       nativeScrollQuery.removeEventListener('change', handleNativeScrollChange);
-      scrollport.removeEventListener('wheel', cancelPlayback);
-      scrollport.removeEventListener('touchstart', cancelPlayback);
+      scrollport.removeEventListener('wheel', handleWheel);
+      scrollport.removeEventListener('touchstart', handleTouchStart);
+      scrollport.removeEventListener('touchmove', handleTouchMove);
+      scrollport.removeEventListener('touchend', handleTouchEnd);
+      scrollport.removeEventListener('touchcancel', handleTouchEnd);
+      scrollport.removeEventListener('keydown', handleFinaleKeyDown);
       scrollport.removeEventListener('scroll', handleScrollPreparation);
       content.removeEventListener('about:editorial-lines-change', handleEditorialLinesChange);
       window.document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -626,13 +939,15 @@ export function useAboutNarrativeTimeline({
       requestMeasureRef.current = () => {};
       delete root.dataset.activeNarrativeWorld;
       delete root.dataset.editorialInView;
+      delete root.dataset.finaleOrbitActive;
+      delete root.dataset.finaleOrbitWu;
       delete root.dataset.openingScrollCue;
       root.style.removeProperty('--about-opening-scroll-cue-opacity');
       root.style.removeProperty('--narrative-story-wu');
       root.style.removeProperty('--narrative-viewport-height');
       root.style.removeProperty('--narrative-content-extent-wu');
     };
-  }, [contentRef, editorStore, playScrollDetent, rootRef, scrollportRef, worldRuntimeRef]);
+  }, [contentRef, editorStore, finaleContinuation, playScrollDetent, rootRef, scrollportRef, solidTitles, worldRuntimeRef]);
 
   return { runtimePlan, storyWU, storyProgress, activeIndicatorStartIndex };
 }

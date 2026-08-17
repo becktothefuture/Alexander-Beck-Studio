@@ -1,0 +1,157 @@
+[ABOUT ME PAGE — CURRENT COPY]
+[Extracted from the current authored About Me page source on 12 August 2026.]
+[Bracketed notes describe placement or presentation and are not page copy.]
+
+
+[OPENING SCREEN]
+
+[TITLE]
+About Me
+
+[PARAGRAPH — directly beneath the title]
+Hi, I’m Alex. I’m a designer because I see endless potential in how things work.
+
+[SMALL SCROLL CUE — beneath the opening copy]
+Scroll
+
+
+[FULL-SCREEN TITLE]
+I have always been drawn to complex problems…
+
+
+[FULL-SCREEN TITLE]
+…especially the kind that does not fit into a single discipline.
+
+
+[FIRST READING SECTION]
+
+[PARAGRAPH]
+What do I mean by a complex problems?   Paradigms are constanly evolving. Sometimes it’s a new technology that we don’t quite trust yet. Sometimes it’s a product that has no obvious way to use yet because no one has built it before. Sometimes it’s something completely ordinary that we experience every day without ever questioning it.
+
+[PULL-OUT SENTENCE]
+This is where I see pure potential for rational innovation.
+
+[PARAGRAPH]
+I have always liked to understand what sits underneath the surface. The technical constraints. The human mindset. The business goals. The tiny details that shape any experience.   And sometimes the answer is making something simpler. Sometimes it’s explaining it differently. Even adding friction can be helpful. Sometimes it’s explaining an idea so clearly that people forget it ever seemed complicated.   The best design often disappears into the experience. And I think that’s a really good thing.
+
+[PARAGRAPH]
+I started my career in Communication Design in Mainz, Germany, around thirteen years ago. Although I always enjoyed technology, I kept coming back to the fundamental effect that visual communication can have on people. A single image. A typographic decision. A carefully chosen word. A piece of motion. Each can completely change how someone understands an idea, or how they feel about it. That still fascinates me today and has become a fundamental part of how I work.
+
+[PARAGRAPH — “People had to trust it” is highlighted in blue]
+In creative agencies I naturally drifted towards interface design, motion, design systems and close collaboration with developers. Moving to London to join Yoti challenged me to work in service of users, using design and brand to instill trust into something as delicate as people's identities online. Is was also the moment when I stopped seeing product, brand and communication as separate disciplines. They’re all different ways of solving the same problem. And they all need to work in service of one another.
+
+[CLIENT LOGO GRID — appears after the paragraph above]
+
+[GRID LABEL]
+I have been fortunate to work for some of the worlds most influential brands across the automotive, aviation, charity and financial industries.
+
+[LOGOS — shown as graphic marks; names listed here in reading order]
+Yoti
+S&P Global
+Bentley
+SunExpress
+McCann Worldgroup
+American Heart Association
+Sony
+Jaguar Land Rover
+Maybourne Hotels
+Experian
+Data Communications Company
+Tourism Ireland
+Lufthansa
+General Motors
+
+
+[FULL-SCREEN TITLE]
+The more complex a question becomes…
+
+
+[FULL-SCREEN TITLE]
+…the more often I find myself working at the intersection of disciplines.
+
+
+[DISCIPLINE REVEAL — labels and descriptions appear around the animated point field]
+
+[DISCIPLINE TITLE]
+Product Design
+
+[DISCIPLINE DESCRIPTION]
+Understanding what people actually need before deciding what should be built.
+
+[DISCIPLINE TITLE]
+Experience Design
+
+[DISCIPLINE DESCRIPTION]
+Looking at the whole journey, including the awkward gaps between teams, systems and touchpoints.
+
+[DISCIPLINE TITLE]
+Art Direction
+
+[DISCIPLINE DESCRIPTION]
+Finding a unique visual idea that gives the work a personality that can scale.
+
+[DISCIPLINE TITLE]
+Motion & 3D
+
+[DISCIPLINE DESCRIPTION]
+Using movement and space when static design isn’t enough.
+
+[DISCIPLINE TITLE]
+Creative Engineering
+
+[DISCIPLINE DESCRIPTION]
+Building ideas in code so they can be tested instead of imagined.
+
+[DISCIPLINE TITLE]
+Parametric Systems
+
+[DISCIPLINE DESCRIPTION]
+Creating powerful flexible systems that stay coherent as they grow.
+
+
+[SECOND READING SECTION]
+
+[PARAGRAPH]
+When I begin a project I tend to disappear into it for a while. I ask a lot of questions. I collect references from unexpected places. I speak to the people who understand the problem better than anyone else.
+
+[PULL-OUT SENTENCE]
+I’ve learned that the brief is often only part of the story.
+
+[PARAGRAPH — “A rough prototype can create better conversations” is highlighted in blue]
+I also like making things early. Not because they are finished, but because they reveal where everyone’s assumptions begin to fall apart. A rough prototype can create better conversations than a polished presentation.
+
+[PARAGRAPH]
+I care about giving projects a strong point of view, but I’m not precious about my ideas. Good work gets better when smart people challenge it. I also stay close to development. Partly because I genuinely enjoy building things. Mostly because I’ve seen too many good ideas lose what made them special during implementation.
+
+[PARAGRAPH — “strengthens human judgement” is highlighted in blue]
+AI has become another tool I use almost every day. It helps me think faster, prototype earlier and explore ideas I wouldn’t have had time to pursue before. It’s an incredible amplifier. It’s also incredibly good at producing work that looks convincing before anyone has asked whether it’s solving the right problem. That feels like an important distinction. I think AI becomes valuable when it strengthens human judgement, not when it replaces it.
+
+[PARAGRAPH]
+Not everything I build starts with a client. Quite often it starts with a question that refuses to leave me alone. Recently that’s included redesigning the iOS keyboard, exploring better ways for people to understand AI, thinking about trust in digital products, and experimenting with robotics and creative engineering.
+
+[PARAGRAPH]
+Some of these projects become something I can share. Others stay as sketches, prototypes or half-answered questions. They still shape how I approach whatever comes next.
+
+
+[FULL-SCREEN TITLE]
+They may begin in one discipline…
+
+
+[FULL-SCREEN TITLE]
+…but they rarely stay there…
+
+
+[FULL-SCREEN TITLE]
+…and I like not knowing exactly where they’ll lead.
+
+
+[CLOSING SCREEN]
+
+[TITLE]
+Let’s begin.
+
+[PARAGRAPH — beneath the closing title]
+If you’re working on something difficult to define, or have a question you can’t quite leave alone, I’d be curious to hear about it.
+
+[EMAIL LINK — follows the paragraph and opens alexander@beck.fyi]
+Send me an email.

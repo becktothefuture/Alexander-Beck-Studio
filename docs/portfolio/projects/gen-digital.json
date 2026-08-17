@@ -1,17 +1,37 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "gen-digital",
   "title": "Gen Digital",
   "lifecycleStatus": "archived",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Gen Digital", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-001"]},
+    "agency": {"value": "Hugo & Cat", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-001"]},
+    "employer": {"value": "Hugo & Cat", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-001"]},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Website redesign", "Interaction prototype"], "status": "candidate", "sourceClaimIds": ["claim-gen-digital-003", "claim-gen-digital-004"]},
+    "timeframe": {"start": "2023", "end": "2023", "yearLabel": "2023", "duration": null, "precision": "year", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-005"]}
+  },
   "readiness": {
     "sourceCoverage": "partial",
     "interviewStatus": "not_started",
     "mediaCoverage": "not_started",
     "copyStatus": "blocked_missing_facts"
   },
+  "bodiesOfWork": [
+    {"id": "work-gen-website-redesign", "title": "Website redesign and interaction studies", "storyRole": "primary", "status": "candidate", "summary": "Styleframes, Webflow and Framer prototypes, and interaction studies intended to give each page several memorable moments.", "sourceClaimIds": ["claim-gen-digital-003", "claim-gen-digital-004", "claim-gen-digital-005"]}
+  ],
+  "disciplines": [
+    {"name": "Art Direction", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-004"]},
+    {"name": "Interaction Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-004", "claim-gen-digital-005"]},
+    {"name": "Creative Prototyping", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-004"]}
+  ],
+  "collaborators": [
+    {"id": "collab-gen-001", "name": "Tibor", "type": "person", "role": "Surname and role unresolved", "contribution": "Referenced in project review notes.", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-006"], "publicCreditStatus": "unknown"},
+    {"id": "collab-gen-002", "name": "John", "type": "person", "role": "Surname and role unresolved", "contribution": "Referenced in project review notes.", "status": "candidate", "sourceClaimIds": ["claim-gen-digital-006"], "publicCreditStatus": "unknown"}
+  ],
   "workingHypotheses": [
     "Gen Digital may be a client credit rather than a project that belongs in the public portfolio."
   ],
@@ -51,7 +71,11 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "This is an employment window, not a confirmed project date."
-    }
+    },
+    {"id": "claim-gen-digital-003", "category": "project_identity", "statement": "A project note appears to describe a Gen website redesign with styleframes, Webflow work, and interaction prototypes.", "status": "candidate", "confidence": "medium", "sensitivity": "internal", "sources": [{"sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-gen-website-redesign"], "notes": "Confirm the exact Gen brand and public project title."},
+    {"id": "claim-gen-digital-004", "category": "hands_on", "statement": "The note records styleframes, Webflow build work, Framer transition prototypes, cursor and mouse interactions, and large click areas.", "status": "candidate", "confidence": "medium", "sensitivity": "internal", "sources": [{"sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-gen-website-redesign"], "notes": "Confirm which items Alexander personally owned."},
+    {"id": "claim-gen-digital-005", "category": "decision", "statement": "The project aimed to create three memorable interaction moments on each page rather than treating motion as one global effect.", "status": "candidate", "confidence": "medium", "sensitivity": "internal", "sources": [{"sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-gen-website-redesign"], "notes": "The 2023 year is inferred only from the note's date and needs confirmation."},
+    {"id": "claim-gen-digital-006", "category": "team", "statement": "Project review notes mention collaborators named Tibor and John.", "status": "candidate", "confidence": "low", "sensitivity": "internal", "sources": [{"sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen"}], "confirmedBy": null, "lastReviewed": "2026-08-07", "bodyOfWorkIds": ["work-gen-website-redesign"], "notes": "Surnames, roles, and contributions are unknown."}
   ],
   "conflicts": [],
   "openQuestions": [
@@ -80,6 +104,9 @@
       "sourceIds": []
     }
   ],
-  "media": [],
+  "media": [
+    {"id": "media-gen-001", "sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen", "subject": "Styleframes and page interaction studies", "storyUse": "Establish the visual direction and page-specific moments", "status": "candidate", "permissionStatus": "unknown", "notes": "Locate originals."},
+    {"id": "media-gen-002", "sourceId": "src-20260807-004", "locator": "Gen Digital / Note: Gen", "subject": "Framer transitions and cursor or mouse interactions", "storyUse": "Show the design mechanism in motion", "status": "candidate", "permissionStatus": "unknown", "notes": "Confirm that a recording exists and may be shown."}
+  ],
   "interviewRounds": []
 }

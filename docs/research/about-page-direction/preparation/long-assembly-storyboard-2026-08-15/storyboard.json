@@ -1,0 +1,82 @@
+{
+  "title": "The Long Assembly",
+  "generatedAt": "2026-08-15T09:15:24.421Z",
+  "sourcePointCount": 41637,
+  "desktopPointCount": 12000,
+  "mobilePointCount": 5000,
+  "frames": [
+    {
+      "id": "01-threshold",
+      "label": "Threshold",
+      "textId": "text-promise-main",
+      "cameraZ": 14
+    },
+    {
+      "id": "02-material-yard",
+      "label": "Material yard",
+      "textId": "text-complexity-idea",
+      "cameraZ": 5
+    },
+    {
+      "id": "03-crossing-house",
+      "label": "Crossing house",
+      "textId": "text-complexity-conditions",
+      "cameraZ": -7
+    },
+    {
+      "id": "04-long-archive",
+      "label": "Long archive",
+      "textId": "text-background-unit",
+      "cameraZ": -15
+    },
+    {
+      "id": "05-sunken-court",
+      "label": "Sunken court",
+      "textId": "text-complexity-curiosity",
+      "cameraZ": -32
+    },
+    {
+      "id": "06-interchange",
+      "label": "Interchange",
+      "textId": "text-complexity-listen",
+      "cameraZ": -47
+    },
+    {
+      "id": "07-six-bay-workshop",
+      "label": "Six-bay workshop",
+      "textId": "text-discipline-labels",
+      "cameraZ": -57
+    },
+    {
+      "id": "08-assembly-hall",
+      "label": "Assembly hall",
+      "textId": "text-disciplines-title",
+      "cameraZ": -72
+    },
+    {
+      "id": "09-single-bridge",
+      "label": "Single bridge",
+      "textId": "text-life-momentum",
+      "cameraZ": -84
+    },
+    {
+      "id": "10-connected-bridges",
+      "label": "Connected bridges",
+      "textId": "text-life-form",
+      "cameraZ": -98
+    },
+    {
+      "id": "11-unfinished-city",
+      "label": "Unfinished city",
+      "textId": "text-life-character",
+      "cameraZ": -108
+    },
+    {
+      "id": "12-living-forum",
+      "label": "Living forum",
+      "textId": "text-epilogue-invitation",
+      "cameraZ": -126,
+      "life": 1
+    }
+  ]
+}

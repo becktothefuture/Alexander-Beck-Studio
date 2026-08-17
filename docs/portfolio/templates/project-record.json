@@ -1,11 +1,19 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "<project-id>",
   "title": "<project title>",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
   "lastReviewed": "YYYY-MM-DD",
+  "metadata": {
+    "client": {"value": "<client>", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": [], "status": "unknown", "sourceClaimIds": []},
+    "timeframe": {"start": null, "end": null, "yearLabel": null, "duration": null, "precision": "unknown", "status": "unknown", "sourceClaimIds": []}
+  },
   "readiness": {
     "sourceCoverage": "not_started",
     "interviewStatus": "not_started",
@@ -13,6 +21,9 @@
     "copyStatus": "blocked_missing_facts"
   },
   "workingHypotheses": [],
+  "bodiesOfWork": [],
+  "disciplines": [],
+  "collaborators": [],
   "organisingIdea": {
     "statement": "<one observation-mechanism-proof narrative hypothesis>",
     "status": "hypothesis",

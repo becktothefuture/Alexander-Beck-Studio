@@ -70,7 +70,7 @@ function failure(category, message = category) {
   return Object.assign(new Error(message), { category });
 }
 
-test('runtime constants protect point profiles, caches, retry policy, and nine fixed attributes', () => {
+test('runtime constants protect point profiles, caches, retry policy, and seven fixed attributes', () => {
   assert.equal(ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION, 2);
   assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount, 12000);
   assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount, 5000);
@@ -79,7 +79,7 @@ test('runtime constants protect point profiles, caches, retry policy, and nine f
   assert.deepEqual(ABOUT_NARRATIVE_RETRY_POLICY, { delayMs: 1000, maximumAutomaticRetries: 1 });
   assert.deepEqual(ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS.map((attribute) => attribute.id), [
     'position', 'targetPosition', 'pointSeed', 'fromPresence', 'toPresence',
-    'fromPointSize', 'toPointSize', 'fromGroup', 'toGroup',
+    'fromPointSize', 'toPointSize',
   ]);
   assert.equal(ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS.filter((attribute) => !attribute.mutable).length, 1);
 });

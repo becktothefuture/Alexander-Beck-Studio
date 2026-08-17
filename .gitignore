@@ -52,6 +52,8 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+__pycache__/
+*.py[cod]
 /.scratch/about-narrative-editorial-material-refinement/
 
 # One-off local audit scripts (Playwright/Node scratch)

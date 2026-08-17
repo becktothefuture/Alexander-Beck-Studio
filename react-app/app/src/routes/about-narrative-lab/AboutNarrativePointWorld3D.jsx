@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import {
-  createAboutNarrativeColourMatchedDisciplineGroups,
   createAboutNarrativeSeeds,
   generateAboutNarrativeShape,
 } from './aboutNarrativePointShapes.js';
 import {
-  getAboutNarrativeDisciplineAnchors,
   resolveAboutNarrativeSwarmMotion,
 } from './aboutNarrativeDefinitions.js';
 import {
@@ -31,12 +29,28 @@ import {
   isAboutNarrativeShortLandscape,
 } from './aboutNarrativeMotionMath.js';
 import {
-  sampleAboutNarrativeResponsiveWorldMaterialInto,
-} from './aboutNarrativeResponsiveMaterial.js';
+  createAboutNarrativeWorldTransformSample,
+  resolveAboutNarrativeWorldTransformInto,
+} from './aboutNarrativeWorldTransform.js';
 import {
   writeAboutNarrativePointFieldSeedPhases,
   writeAboutNarrativePointFieldSpatialPhases,
 } from './aboutNarrativePointFieldMotion.js';
+import {
+  createAboutNarrativePointerPressureController,
+  createAboutNarrativePointerPressureSample,
+} from './aboutNarrativePointerPressure.js';
+import {
+  createAboutNarrativeCameraPointerPanController,
+  createAboutNarrativeCameraPointerPanSample,
+} from './aboutNarrativeCameraPointerPan.js';
+import {
+  createAboutNarrativeCameraSteadycamController,
+  createAboutNarrativeCameraSteadycamSample,
+} from './aboutNarrativeCameraSteadycam.js';
+import {
+  ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU,
+} from './aboutNarrativeLongRideTrack.js';
 import {
   findAboutNarrativeWorldById,
   getAboutNarrativeWorldId,
@@ -70,8 +84,15 @@ import { createAboutNarrativeRuntimeResources } from 'virtual:about-narrative-re
 import { createAboutNarrativeRuntimeObserver } from 'virtual:about-narrative-runtime-observer';
 
 const MATERIAL_SLOT_COUNT = 6;
-const DISCIPLINE_WHITE_ATLAS_INDEX = MATERIAL_SLOT_COUNT;
 const MATERIAL_POINT_THRESHOLD_PX = 10;
+const OCEAN_IMPULSE_AMPLITUDE_WU = 5.8;
+const OCEAN_IMPULSE_DURATION_MS = 5200;
+const OCEAN_IMPULSE_NEAR_Z = -395.5;
+const OCEAN_IMPULSE_DEPTH_WU = 1800;
+const OCEAN_DENSITY_RAMP_DEPTH_WU = 140;
+const OCEAN_REVEAL_DEPTH_WU = 1100;
+const OCEAN_REVEAL_FEATHER_WU = 300;
+const POINT_WORLD_CAMERA_FAR_WU = 2400;
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 let nextRuntimeInstanceId = 1;
 let nextGeometryInstanceId = 1;
@@ -130,7 +151,10 @@ const pointMotionStaggerModeValue = (mode) => (
   mode === 'random' ? 1 : mode === 'radial' ? 2 : mode === 'axis' ? 3 : 0
 );
 const pointMotionPathModeValue = (mode) => (
-  mode === 'arc' ? 1 : mode === 'curl' ? 2 : mode === 'noise' ? 3 : 0
+  mode === 'arc' ? 1
+    : mode === 'curl' ? 2
+      : mode === 'noise' ? 3
+        : mode === 'flow' ? 4 : 0
 );
 const pointMotionFlattenModeValue = (mode) => (
   mode === 'toward-plane' ? 1 : mode === 'from-plane' ? 2 : 0
@@ -142,8 +166,6 @@ const VERTEX_SHADER = `
   attribute float toPresence;
   attribute float fromPointSize;
   attribute float toPointSize;
-  attribute float fromGroup;
-  attribute float toGroup;
   attribute vec2 motionSeedPhases;
   attribute vec4 motionSpatialPhases;
   uniform mat4 fromTransform;
@@ -162,11 +184,31 @@ const VERTEX_SHADER = `
   uniform float motionFlattenAxis;
   uniform float motionFlattenOffset;
   uniform float storyTime;
+  uniform float oceanTime;
+  uniform float oceanBaseY;
+  uniform float oceanDensity;
+  uniform float oceanAmplitude;
+  uniform float oceanSpeed;
+  uniform float oceanChop;
+  uniform float oceanPointScale;
+  uniform float oceanFogDistanceScale;
+  uniform float oceanRevealProgress;
+  uniform float oceanStoryOffsetZ;
+  uniform float oceanSplashAmount;
+  uniform float oceanSplashHeight;
+  uniform float oceanImpulseProgress;
+  uniform float oceanImpulseAmplitude;
+  uniform float structureManifestationAmount;
+  uniform float structureAmbientAmount;
+  uniform float structureAmbientSpeed;
   uniform float pointSize;
   uniform float fromPointSizeScale;
   uniform float toPointSizeScale;
   uniform float fromResponsivePresence;
   uniform float toResponsivePresence;
+  uniform float fromLongAssembly;
+  uniform float toLongAssembly;
+  uniform float themeDark;
   uniform float pixelRatio;
   uniform float simulationVisibility;
   uniform float sceneEntranceScale;
@@ -194,12 +236,6 @@ const VERTEX_SHADER = `
   uniform float toWaveStoryMix;
   uniform vec2 fromWaveFrequency;
   uniform vec2 toWaveFrequency;
-  uniform float fromGroupStrength;
-  uniform float toGroupStrength;
-  uniform float fromDisciplineIsolation;
-  uniform float toDisciplineIsolation;
-  uniform float fromDisciplineBackgroundOpacity;
-  uniform float toDisciplineBackgroundOpacity;
   uniform float fromOrbitalWeight;
   uniform float toOrbitalWeight;
   uniform float fromOrbitalSpeed;
@@ -208,8 +244,6 @@ const VERTEX_SHADER = `
   uniform float toOrbitalStoryMix;
   uniform float fromOrbitalRadius;
   uniform float toOrbitalRadius;
-  uniform float disciplineFocus;
-  uniform float gridInfluence;
   uniform float gridRippleWeight;
   uniform float gridRippleAmplitude;
   uniform float gridRippleSpeed;
@@ -217,13 +251,6 @@ const VERTEX_SHADER = `
   uniform float gridRippleStoryMix;
   uniform float gridRippleProgress;
   uniform vec2 gridRippleCenter;
-  uniform vec3 disciplineRevealA;
-  uniform vec3 disciplineRevealB;
-  uniform float disciplineRevealActive;
-  uniform float disciplineBackgroundWeight;
-  uniform float disciplineBackgroundOpacity;
-  uniform float disciplineReconnectOpacity;
-  uniform float disciplinePointScale;
   uniform float fromLivingColour;
   uniform float toLivingColour;
   uniform float fromBust;
@@ -252,27 +279,162 @@ const VERTEX_SHADER = `
   uniform vec3 materialColor4;
   uniform vec3 materialColor5;
   uniform vec3 materialColor6;
-  uniform vec3 disciplineWhiteColor;
-  uniform vec3 disciplineBackgroundColor;
+  uniform vec3 assemblyOrganicColor;
   uniform float materialSlot1;
   uniform float materialSlot2;
   uniform float materialSlot3;
   uniform float materialSlot4;
   uniform float materialSlot5;
   uniform float materialSlot6;
-  uniform float disciplineWhiteMaterialSlot;
   uniform float materialThreshold1;
   uniform float materialThreshold2;
   uniform float materialThreshold3;
   uniform float materialThreshold4;
   uniform float materialThreshold5;
   uniform float uMaterialPointThresholdPx;
+  uniform vec2 pointerPressureNdc;
+  uniform vec2 pointerPressureTrailNdc;
+  uniform vec2 pointerPressureViewport;
+  uniform vec2 pointerPressureVelocityPx;
+  uniform vec2 pointerPressureReleaseVelocityPx;
+  uniform float pointerPressureRadiusPx;
+  uniform float pointerPressureForcePx;
+  uniform float pointerPressureVariation;
+  uniform float pointerPressureStrength;
+  uniform float pointerPressureReleaseProgress;
+  uniform float pointerPressureReleaseStrength;
   varying float pointAlpha;
-  varying float pointRevealWeight;
   varying float pointMaterialWeight;
   varying vec3 pointTint;
   varying vec3 pointMaterialBaseColor;
   varying float pointMaterialSlot;
+  varying float pointLongAssembly;
+
+  float pointerPressureOrganicField(vec2 pointNdc) {
+    float fieldA = sin(dot(pointNdc, vec2(4.1, 3.2)) + 0.7);
+    float fieldB = sin(dot(pointNdc, vec2(-2.8, 5.3)) + 2.1);
+    return clamp(0.5 + (fieldA * 0.27) + (fieldB * 0.23), 0.0, 1.0);
+  }
+
+  float pointerPressureEnvelope(vec2 pointNdc) {
+    float organicAmount = clamp(pointerPressureVariation, 0.0, 5.0);
+    float organicDrive = organicAmount * (
+      1.0 + (max(0.0, organicAmount - 1.0) * 0.35)
+    );
+    float coherentMaterial = pointerPressureOrganicField(pointNdc);
+    float individualMaterial = sin((pointSeed * 131.731) + 0.41);
+    float localMass = clamp(
+      1.0
+        + ((coherentMaterial - 0.5) * organicDrive * 0.28)
+        + (individualMaterial * organicAmount * 0.025),
+      0.55,
+      1.55
+    );
+    float activeEnvelope = pow(
+      clamp(pointerPressureStrength, 0.0, 1.0),
+      localMass
+    );
+    float releaseProgress = clamp(pointerPressureReleaseProgress, 0.0, 1.0);
+    float settleStart = clamp(0.72 + ((localMass - 1.0) * 0.18), 0.68, 0.76);
+    float settlePhase = smoothstep(settleStart, 1.0, releaseProgress);
+    // A very small elastic crossing stops the field from returning as a rigid disc.
+    float settleOffset = -sin(settlePhase * 3.14159265)
+      * 0.07
+      * organicAmount
+      * pointerPressureReleaseStrength;
+    return activeEnvelope + settleOffset;
+  }
+
+  vec2 pointerPressureOffset(
+    vec2 pointNdc,
+    vec2 pointerNdc,
+    float sourceWeight,
+    float trailSource
+  ) {
+    float releaseMix = smoothstep(
+      0.0,
+      0.18,
+      clamp(pointerPressureReleaseProgress, 0.0, 1.0)
+    );
+    vec2 velocityPx = mix(
+      pointerPressureVelocityPx,
+      pointerPressureReleaseVelocityPx,
+      releaseMix
+    );
+    float speedPx = length(velocityPx);
+    float speedAmount = clamp(speedPx / 1200.0, 0.0, 1.0);
+    vec2 velocityDirection = speedPx > 0.001 ? velocityPx / speedPx : vec2(0.0);
+    vec2 deltaPx = (
+      (pointNdc - pointerNdc) * 0.5 * pointerPressureViewport
+    ) + (velocityPx * 0.024 * (1.0 + (trailSource * 0.45)));
+    float organicAmount = clamp(pointerPressureVariation, 0.0, 5.0);
+    float organicDrive = organicAmount * (
+      1.0 + (max(0.0, organicAmount - 1.0) * 0.35)
+    );
+    float coherentMaterial = pointerPressureOrganicField(pointNdc);
+    float materialDirection = (coherentMaterial - 0.5) * 2.0;
+    float individualMaterial = sin((pointSeed * 137.17) + 0.41);
+    float radiusScale = clamp(
+      1.0
+        + (materialDirection * organicDrive * 0.12)
+        + (individualMaterial * organicAmount * 0.015),
+      0.3,
+      1.8
+    );
+    // Shear the influence field itself before measuring distance. This avoids
+    // a mathematically circular pressure boundary even while the mouse rests.
+    vec2 shearedDeltaPx = vec2(
+      deltaPx.x + (deltaPx.y * organicAmount * (0.18 + (materialDirection * 0.08))),
+      deltaPx.y * (1.0 + (materialDirection * organicAmount * 0.12))
+    );
+    float shapedRadius = max(1.0, pointerPressureRadiusPx) * radiusScale;
+    float distancePx = length(shearedDeltaPx);
+    float influence = 1.0 - smoothstep(0.0, shapedRadius, distancePx);
+    float coreSoftnessPx = max(5.0, shapedRadius * 0.05);
+    vec2 radialFlow = shearedDeltaPx / sqrt(
+      (distancePx * distancePx) + (coreSoftnessPx * coreSoftnessPx)
+    );
+    vec2 radialDirection = distancePx > 0.001
+      ? shearedDeltaPx / distancePx
+      : velocityDirection;
+    vec2 tangentDirection = vec2(-radialDirection.y, radialDirection.x);
+    // Coherent shear and the lagging sample break the perfect circular hole.
+    vec2 materialFlow = radialFlow
+      + (tangentDirection * materialDirection * organicDrive * 0.24)
+      + (velocityDirection * speedAmount * 0.18);
+    float forceVariation = 1.0 + (individualMaterial * organicAmount * 0.035);
+    return materialFlow
+      * pointerPressureForcePx
+      * influence
+      * forceVariation
+      * sourceWeight
+      * pointerPressureEnvelope(pointNdc);
+  }
+
+  vec4 applyPointerPressure(vec4 clipPoint) {
+    if (
+      pointerPressureStrength <= 0.000001
+      && pointerPressureReleaseStrength <= 0.000001
+    ) return clipPoint;
+    float safeW = max(abs(clipPoint.w), 0.0001);
+    vec2 pointNdc = clipPoint.xy / safeW;
+    float trailWeight = 0.32;
+    vec2 offsetPx = pointerPressureOffset(
+      pointNdc,
+      pointerPressureNdc,
+      1.0 - trailWeight,
+      0.0
+    );
+    offsetPx += pointerPressureOffset(
+      pointNdc,
+      pointerPressureTrailNdc,
+      trailWeight,
+      1.0
+    );
+    vec2 viewport = max(pointerPressureViewport, vec2(1.0));
+    clipPoint.xy += ((offsetPx * 2.0) / viewport) * clipPoint.w;
+    return clipPoint;
+  }
 
   vec3 rotateY(vec3 value, float angle) {
     float sine = sin(angle);
@@ -291,6 +453,16 @@ const VERTEX_SHADER = `
       value.x,
       (cosine * value.y) - (sine * value.z),
       (sine * value.y) + (cosine * value.z)
+    );
+  }
+
+  vec3 rotateZ(vec3 value, float angle) {
+    float sine = sin(angle);
+    float cosine = cos(angle);
+    return vec3(
+      (cosine * value.x) - (sine * value.y),
+      (sine * value.x) + (cosine * value.y),
+      value.z
     );
   }
 
@@ -372,31 +544,42 @@ const VERTEX_SHADER = `
     return materialSlot6;
   }
 
-  vec3 disciplineMaterialColor(float group) {
-    if (group < 1.5) return materialColor1;
-    if (group < 2.5) return materialColor2;
-    if (group < 3.5) return disciplineWhiteColor;
-    if (group < 4.5) return materialColor4;
-    if (group < 5.5) return materialColor5;
+  float longAssemblyMaterialClass(float sizeCode) {
+    return clamp(floor(((sizeCode - 0.67) / 0.10) + 0.0001), 0.0, 5.0);
+  }
+
+  float materialClassMask(float materialClass, float targetClass) {
+    return 1.0 - step(0.49, abs(materialClass - targetClass));
+  }
+
+  vec3 longAssemblyAtlasBaseColor(float materialClass) {
+    if (materialClass < 0.5) return materialColor1;
+    if (materialClass < 1.5) return materialColor2;
+    if (materialClass < 2.5) return materialColor3;
+    if (materialClass < 3.5) return materialColor5;
+    if (materialClass < 4.5) return materialColor4;
     return materialColor6;
   }
 
-  float disciplineMaterialSlot(float group) {
-    if (group < 1.5) return materialSlot1;
-    if (group < 2.5) return materialSlot2;
-    if (group < 3.5) return disciplineWhiteMaterialSlot;
-    if (group < 4.5) return materialSlot4;
-    if (group < 5.5) return materialSlot5;
+  float longAssemblyMaterialSlot(float materialClass) {
+    if (materialClass < 0.5) return materialSlot1;
+    if (materialClass < 1.5) return materialSlot2;
+    if (materialClass < 2.5) return materialSlot3;
+    if (materialClass < 3.5) return materialSlot5;
+    if (materialClass < 4.5) return materialSlot4;
     return materialSlot6;
   }
 
-  float disciplineRevealForGroup(float group) {
-    if (group < 1.5) return disciplineRevealA.x;
-    if (group < 2.5) return disciplineRevealA.y;
-    if (group < 3.5) return disciplineRevealA.z;
-    if (group < 4.5) return disciplineRevealB.x;
-    if (group < 5.5) return disciplineRevealB.y;
-    return disciplineRevealB.z;
+  vec3 longAssemblyMaterialColor(float materialClass) {
+    if (materialClass < 0.5) return materialColor1;
+    if (materialClass < 1.5) return materialColor2;
+    if (materialClass < 2.5) return materialColor3;
+    if (materialClass < 3.5) return materialColor5;
+    if (materialClass < 4.5) return materialColor4;
+    // Preserve all six authored material colours through the structural ride.
+    // Organic points still blend toward the living green through waveWeight
+    // below, but their settled colour must match the sixth discipline marker.
+    return materialColor6;
   }
 
   float motionAxisPhase(float axis) {
@@ -445,12 +628,30 @@ const VERTEX_SHADER = `
       }
       return vec3(cos(angle) * envelope, 0.0, sin(angle) * envelope);
     }
-    float primary = sin(angle) * envelope;
-    float secondary = sin((angle * 1.37) + 2.1) * envelope;
-    float tertiary = cos((angle * 0.83) + 4.2) * envelope;
-    if (motionPathAxis < 0.5) return vec3(primary, secondary, tertiary);
-    if (motionPathAxis > 1.5) return vec3(secondary, tertiary, primary);
-    return vec3(tertiary, primary, secondary);
+    if (motionPathMode < 3.5) {
+      float primary = sin(angle) * envelope;
+      float secondary = sin((angle * 1.37) + 2.1) * envelope;
+      float tertiary = cos((angle * 0.83) + 4.2) * envelope;
+      if (motionPathAxis < 0.5) return vec3(primary, secondary, tertiary);
+      if (motionPathAxis > 1.5) return vec3(secondary, tertiary, primary);
+      return vec3(tertiary, primary, secondary);
+    }
+
+    // Flow bends spatial neighbours together. It gives each point a curved
+    // route without the flicker that independent noise creates at field scale.
+    float coherentPhase = mix(
+      motionSpatialPhases.x,
+      motionAxisPhase(motionPathAxis),
+      0.38
+    );
+    float flowAngle = (coherentPhase * 6.28318530718)
+      + (motionSeedPhases.y * 1.38230077)
+      + (progress * motionPathFrequency * 3.14159265359);
+    float flowPrimary = cos(flowAngle) * envelope;
+    float flowSecondary = sin(flowAngle * 0.63) * envelope * 0.42;
+    if (motionPathAxis < 0.5) return vec3(0.0, flowPrimary, flowSecondary);
+    if (motionPathAxis > 1.5) return vec3(flowPrimary, flowSecondary, 0.0);
+    return vec3(flowPrimary, 0.0, flowSecondary);
   }
 
   float resolvePlaneProgress(float progress) {
@@ -462,6 +663,59 @@ const VERTEX_SHADER = `
       );
     }
     return progress + ((pow(progress, 3.0) - progress) * motionFlattenAmount);
+  }
+
+  vec4 sampleOceanSplash(
+    vec2 coordinate,
+    vec2 center,
+    float cycleOffset,
+    float pointHash
+  ) {
+    float cycle = fract((oceanTime * 0.11) + cycleOffset);
+    float eventProgress = clamp(cycle / 0.30, 0.0, 1.0);
+    float eventPresence = 1.0 - smoothstep(0.20, 0.32, cycle);
+    float distanceFromImpact = length(coordinate - center);
+    float ringRadius = mix(0.25, 6.4, eventProgress);
+    float ring = (
+      1.0 - smoothstep(0.0, 0.62, abs(distanceFromImpact - ringRadius))
+    ) * eventPresence;
+    float impactCore = 1.0 - smoothstep(0.65, 4.2, distanceFromImpact);
+    float dropletGate = step(
+      0.76,
+      fract((pointHash * 37.17) + (cycleOffset * 13.71))
+    );
+    float dropletArc = sin(
+      clamp(cycle / 0.24, 0.0, 1.0) * 3.14159265359
+    ) * (1.0 - smoothstep(0.20, 0.30, cycle));
+    float spray = impactCore * dropletGate * dropletArc;
+    vec2 radialDirection = (coordinate - center) / max(0.001, distanceFromImpact);
+    vec2 radialPush = radialDirection * ring * 0.22;
+    float verticalLift = (ring * 0.16) + (spray * oceanSplashHeight);
+    return vec4(radialPush.x, verticalLift, radialPush.y, max(ring, spray));
+  }
+
+  vec4 sampleOceanImpulse(vec2 coordinate) {
+    float depthProgress = clamp(
+      (${OCEAN_IMPULSE_NEAR_Z.toFixed(1)} - coordinate.y)
+        / ${OCEAN_IMPULSE_DEPTH_WU.toFixed(1)},
+      0.0,
+      1.0
+    );
+    float distanceFromFront = depthProgress - oceanImpulseProgress;
+    float crest = exp(-pow(distanceFromFront / 0.022, 2.0));
+    float wakeDistance = max(0.0, -distanceFromFront);
+    float behindFront = 1.0 - smoothstep(-0.006, 0.026, distanceFromFront);
+    float wake = sin(wakeDistance * 92.0)
+      * exp(-wakeDistance * 11.0)
+      * behindFront;
+    float lateralVariation = 0.88 + (cos(coordinate.x * 0.035) * 0.12);
+    float height = ((crest * 1.0) + (wake * 0.38))
+      * oceanImpulseAmplitude
+      * lateralVariation;
+    float forwardPush = (crest + (abs(wake) * 0.22))
+      * oceanImpulseAmplitude
+      * 0.18;
+    return vec4(0.0, height, -forwardPush, max(crest, abs(wake) * 0.45));
   }
 
   void main() {
@@ -488,6 +742,21 @@ const VERTEX_SHADER = `
       toBust * (1.0 - fromBust) * bustAssemblyWeight
     );
     float morph = mix(layeredMorph, globalMorph, bustSurfaceRiseWeight);
+    float longAssemblyWeight = mix(fromLongAssembly, toLongAssembly, morph);
+    float fromOceanPoint = step(1.5, fromPointSize) * fromLongAssembly;
+    float toOceanPoint = step(1.5, toPointSize) * toLongAssembly;
+    float oceanWeight = mix(fromOceanPoint, toOceanPoint, morph);
+    float oceanSplashEnergy = 0.0;
+    float semanticFromSize = fromPointSize - fromOceanPoint;
+    float semanticToSize = toPointSize - toOceanPoint;
+    float semanticSizeCode = mix(semanticFromSize, semanticToSize, morph);
+    float assemblyMaterialClass = longAssemblyMaterialClass(semanticSizeCode);
+    float atmosphereMaterial = materialClassMask(assemblyMaterialClass, 0.0);
+    float stoneMaterial = materialClassMask(assemblyMaterialClass, 1.0);
+    float steelMaterial = materialClassMask(assemblyMaterialClass, 2.0);
+    float glassMaterial = materialClassMask(assemblyMaterialClass, 3.0);
+    float signalMaterial = materialClassMask(assemblyMaterialClass, 4.0);
+    float organicMaterial = materialClassMask(assemblyMaterialClass, 5.0);
     vec3 fromPoint = applyOrbitalLife(
       position,
       pointSeed,
@@ -534,6 +803,112 @@ const VERTEX_SHADER = `
     );
     vec3 risingWorldPoint = mix(fromWorld, submergedBust, surfaceDeparture);
     vec3 worldPoint = mix(gatheredWorldPoint, risingWorldPoint, bustSurfaceRiseWeight);
+    worldPoint.z += oceanStoryOffsetZ * oceanWeight;
+    float oceanClock = oceanTime * oceanSpeed;
+    vec2 oceanCoordinate = worldPoint.xz;
+    float oceanPrimaryPhase = dot(oceanCoordinate, vec2(0.125, 0.058))
+      + (oceanClock * 0.68);
+    float oceanCrossPhase = dot(oceanCoordinate, vec2(-0.18, 0.115))
+      + (oceanClock * 0.94);
+    float oceanBreakerPhase = dot(oceanCoordinate, vec2(0.41, 0.255))
+      + (oceanClock * 1.48)
+      + (sin(oceanPrimaryPhase) * 0.58);
+    float oceanBackwashPhase = dot(oceanCoordinate, vec2(-0.32, -0.27))
+      - (oceanClock * 1.16)
+      + (sin(oceanCrossPhase) * 0.26);
+    float oceanRipplePhase = dot(oceanCoordinate, vec2(0.82, 0.54))
+      + (oceanClock * 2.36);
+    float oceanSwellPhase = dot(oceanCoordinate, vec2(0.029, 0.016))
+      + (oceanClock * 0.27)
+      + (sin(oceanPrimaryPhase * 0.42) * 0.16);
+    float oceanGust = 0.78 + (
+      sin(dot(oceanCoordinate, vec2(0.011, -0.017)) + (oceanClock * 0.19))
+      * 0.22
+    );
+    float oceanBreakerShape = sin(oceanBreakerPhase)
+      + (sin(oceanBreakerPhase * 2.0) * 0.32)
+      + (sin(oceanBreakerPhase * 3.0) * 0.10);
+    float oceanBackwashShape = sin(oceanBackwashPhase)
+      + (sin(oceanBackwashPhase * 2.0) * 0.18);
+    float oceanSurface = (
+      (sin(oceanSwellPhase) * 0.52)
+      + (sin(oceanPrimaryPhase) * 0.62)
+      + (sin(oceanCrossPhase) * 0.34)
+      + (oceanBreakerShape * 0.28)
+      + (oceanBackwashShape * 0.16)
+      + (sin(oceanRipplePhase) * 0.06)
+    ) * oceanAmplitude * oceanGust;
+    vec2 oceanHorizontal = (
+      (vec2(0.89, 0.46) * cos(oceanPrimaryPhase) * 0.64)
+      + (vec2(-0.84, 0.54) * cos(oceanCrossPhase) * 0.44)
+      + (vec2(0.85, 0.53) * cos(oceanBreakerPhase) * 0.32)
+      + (vec2(-0.76, -0.65) * cos(oceanBackwashPhase) * 0.18)
+    ) * oceanChop * oceanGust;
+    float oceanCrestEnergy = smoothstep(
+      oceanAmplitude * 0.34,
+      oceanAmplitude * 0.82,
+      oceanSurface
+    );
+    worldPoint.y = mix(worldPoint.y, oceanBaseY + oceanSurface, oceanWeight);
+    worldPoint.xz += oceanHorizontal * oceanWeight;
+    vec2 oceanLocalCoordinate = vec2(
+      worldPoint.x,
+      worldPoint.z - oceanStoryOffsetZ
+    );
+    float oceanLocalDepthWU = max(
+      0.0,
+      ${OCEAN_IMPULSE_NEAR_Z.toFixed(1)} - oceanLocalCoordinate.y
+    );
+    float oceanDepthProgress = smoothstep(
+      0.0,
+      1.0,
+      clamp(
+        oceanLocalDepthWU / ${OCEAN_DENSITY_RAMP_DEPTH_WU.toFixed(1)},
+        0.0,
+        1.0
+      )
+    );
+    float oceanDepthDensity = mix(
+      clamp(oceanDensity * 0.22, 0.0, 1.0),
+      clamp(oceanDensity, 0.0, 1.0),
+      oceanDepthProgress
+    );
+    float oceanDensityPresence = step(
+      fract((pointSeed * 197.39) + 0.41),
+      oceanDepthDensity
+    );
+    float oceanRevealFrontWU = mix(
+      -${OCEAN_REVEAL_FEATHER_WU.toFixed(1)},
+      ${OCEAN_REVEAL_DEPTH_WU.toFixed(1)},
+      oceanRevealProgress
+    );
+    float oceanSpatialReveal = 1.0 - smoothstep(
+      oceanRevealFrontWU - ${OCEAN_REVEAL_FEATHER_WU.toFixed(1)},
+      oceanRevealFrontWU + (${OCEAN_REVEAL_FEATHER_WU.toFixed(1)} * 0.22),
+      oceanLocalDepthWU
+    );
+    vec4 nearSplash = sampleOceanSplash(
+      oceanLocalCoordinate,
+      vec2(-5.6, -409.0),
+      0.08,
+      pointSeed
+    );
+    vec4 farSplash = sampleOceanSplash(
+      oceanLocalCoordinate,
+      vec2(6.8, -413.0),
+      0.58,
+      pointSeed
+    );
+    vec4 oceanSplash = (nearSplash + farSplash) * oceanSplashAmount;
+    worldPoint += oceanSplash.xyz * oceanWeight;
+    oceanSplashEnergy = oceanSplash.w * oceanWeight;
+    vec4 oceanImpulse = sampleOceanImpulse(oceanLocalCoordinate);
+    worldPoint += oceanImpulse.xyz * oceanWeight;
+    oceanSplashEnergy = max(oceanSplashEnergy, oceanImpulse.w * oceanWeight);
+    oceanSplashEnergy = max(
+      oceanSplashEnergy,
+      oceanCrestEnergy * oceanWeight * 0.55
+    );
     float surfaceTransit = max(0.0, surfaceDeparture - surfaceArrival)
       * bustSurfaceRiseWeight;
     float bustInfluence = mix(fromBust, toBust, morph);
@@ -560,7 +935,15 @@ const VERTEX_SHADER = `
     float driftIndividuality = mix(fromDriftIndividuality, toDriftIndividuality, morph);
     float driftAxisSpread = mix(fromDriftAxisSpread, toDriftAxisSpread, morph);
     float driftStoryMix = mix(fromDriftStoryMix, toDriftStoryMix, morph);
-    float driftClock = storyTime;
+    // The edited corridor shares one restrained motion field. It keeps every
+    // authored structure alive without adding geometry, draw calls, or CPU
+    // animation. Ocean points opt out and retain their dedicated wave field.
+    driftAmplitude = mix(driftAmplitude, structureAmbientAmount, longAssemblyWeight);
+    driftSpeed = mix(driftSpeed, structureAmbientSpeed, longAssemblyWeight);
+    driftIrregularity = mix(driftIrregularity, 0.08, longAssemblyWeight);
+    driftIndividuality = mix(driftIndividuality, 0.34, longAssemblyWeight);
+    driftAxisSpread = mix(driftAxisSpread, 0.82, longAssemblyWeight);
+    float driftClock = mix(storyTime, oceanTime, longAssemblyWeight);
     float phase = pointSeed * 127.31;
     float speedVariance = mix(
       1.0,
@@ -580,7 +963,10 @@ const VERTEX_SHADER = `
     );
     vec3 driftVector = mix(smoothDrift, erraticDrift, driftIrregularity * 0.58);
     driftVector.xz *= driftAxisSpread;
-    worldPoint += driftVector * driftAmplitude;
+    float assemblyDriftMask = 1.0 - oceanWeight;
+    worldPoint += driftVector
+      * driftAmplitude
+      * mix(1.0, assemblyDriftMask, longAssemblyWeight);
 
     float waveWeight = mix(fromWaveWeight, toWaveWeight, morph);
     float waveAmplitude = mix(fromWaveAmplitude, toWaveAmplitude, morph);
@@ -588,11 +974,27 @@ const VERTEX_SHADER = `
     float waveStoryMix = mix(fromWaveStoryMix, toWaveStoryMix, morph);
     vec2 waveFrequency = mix(fromWaveFrequency, toWaveFrequency, morph);
     float waveClock = storyTime;
-    worldPoint.y += waveWeight * waveAmplitude * sin(
+    float waveValue = sin(
       (worldPoint.x * waveFrequency.x)
       + (worldPoint.z * waveFrequency.y)
       + (waveClock * waveSpeed)
     );
+    float anchoredStructure = smoothstep(-2.8, 0.8, worldPoint.y);
+    float organicHeight = smoothstep(-2.7, 2.6, worldPoint.y);
+    float assemblyWaveMask = (atmosphereMaterial * 0.10)
+      + (stoneMaterial * 0.055 * anchoredStructure)
+      + (steelMaterial * 0.11 * anchoredStructure)
+      + (glassMaterial * 0.17 * anchoredStructure)
+      + (signalMaterial * 0.34)
+      + (organicMaterial * organicHeight);
+    float resolvedWaveMask = mix(1.0, assemblyWaveMask, longAssemblyWeight);
+    worldPoint.y += waveWeight * waveAmplitude * waveValue * resolvedWaveMask;
+    worldPoint.x += waveWeight
+      * waveAmplitude
+      * 0.28
+      * cos((worldPoint.z * waveFrequency.y) + (waveClock * waveSpeed * 0.73))
+      * organicMaterial
+      * longAssemblyWeight;
 
     vec2 ripplePoint = worldPoint.xz - gridRippleCenter;
     float rippleDistance = length(ripplePoint);
@@ -639,22 +1041,6 @@ const VERTEX_SHADER = `
     float gridRippleEmphasis = 1.0
       + (abs(perpetualRipple) * gridRippleWeight * surfaceRippleMix * 0.22);
 
-    float group = toGroup >= 0.5 ? toGroup : fromGroup;
-    float groupStrength = mix(fromGroupStrength, toGroupStrength, morph);
-    float groupExists = step(0.5, group);
-    float disciplineIsolation = mix(fromDisciplineIsolation, toDisciplineIsolation, morph);
-    float isolatedBackgroundOpacity = mix(
-      fromDisciplineBackgroundOpacity,
-      toDisciplineBackgroundOpacity,
-      morph
-    );
-    float focusActive = step(0.5, disciplineFocus);
-    float focusMatch = 1.0 - step(0.45, abs(group - disciplineFocus));
-    float legacyGroupWeight = groupExists * step(0.001, groupStrength)
-      * mix(1.0, mix(0.28, 1.0, focusMatch), focusActive);
-    float revealedGroupWeight = groupExists * disciplineRevealForGroup(group);
-    float groupWeight = mix(legacyGroupWeight, revealedGroupWeight, disciplineRevealActive);
-    float disciplineMonochrome = disciplineIsolation * (1.0 - revealedGroupWeight);
     float colourWeight = mix(fromLivingColour, toLivingColour, morph);
     float livingBand = 0.5 + (0.5 * sin(
       (worldPoint.x * 0.72) + (worldPoint.z * 0.38) + (storyTime * 0.18)
@@ -662,26 +1048,35 @@ const VERTEX_SHADER = `
     float materialSeed = fract((pointSeed * 43.713) + 0.271);
     vec3 baseColor = materialColor(materialSeed);
     vec3 livingColor = materialColor(fract((materialSeed * 3.17) + 0.37));
-    pointMaterialBaseColor = baseColor;
-    pointMaterialSlot = materialSlot(materialSeed);
-    pointTint = mix(
+    vec3 resolvedMaterialBaseColor = mix(
       baseColor,
-      livingColor,
-      colourWeight * smoothstep(0.72, 0.98, livingBand) * 0.48
+      longAssemblyAtlasBaseColor(assemblyMaterialClass),
+      longAssemblyWeight
     );
-    // Each semantic grid point keeps its own discipline colour as the stack
-    // accumulates through the scroll-authored reveal.
-    pointTint = mix(pointTint, disciplineBackgroundColor, disciplineMonochrome);
+    vec3 resolvedMaterialColor = mix(
+      baseColor,
+      longAssemblyMaterialColor(assemblyMaterialClass),
+      longAssemblyWeight
+    );
+    pointMaterialBaseColor = resolvedMaterialBaseColor;
+    pointLongAssembly = longAssemblyWeight;
+    pointMaterialSlot = mix(
+      materialSlot(materialSeed),
+      longAssemblyMaterialSlot(assemblyMaterialClass),
+      longAssemblyWeight
+    );
+    pointTint = mix(
+      resolvedMaterialColor,
+      livingColor,
+      colourWeight
+        * smoothstep(0.72, 0.98, livingBand)
+        * mix(0.48, (signalMaterial * 0.34) + (organicMaterial * 0.56), longAssemblyWeight)
+    );
     pointTint = mix(
       pointTint,
-      disciplineMaterialColor(group),
-      revealedGroupWeight
+      assemblyOrganicColor,
+      organicMaterial * longAssemblyWeight * smoothstep(0.06, 0.78, waveWeight)
     );
-    if (revealedGroupWeight > 0.001) {
-      pointMaterialBaseColor = disciplineMaterialColor(group);
-      pointMaterialSlot = disciplineMaterialSlot(group);
-    }
-
     worldPoint += resolveParametricPath(globalMorph);
     float planeProgress = resolvePlaneProgress(globalMorph);
     float planeWeight = clamp(abs(planeProgress - globalMorph) * 4.0, 0.0, 1.0);
@@ -693,6 +1088,30 @@ const VERTEX_SHADER = `
       worldPoint.y = mix(worldPoint.y, motionFlattenOffset, planeWeight);
     }
     vec4 viewPoint = modelViewMatrix * vec4(worldPoint, 1.0);
+    float settledCameraDepth = max(0.0, -viewPoint.z);
+    float structureMotionMask = longAssemblyWeight * (1.0 - oceanWeight);
+    float manifestationStart = distanceFogStartWU * 0.92;
+    float manifestationEnd = max(
+      manifestationStart + 0.001,
+      distanceFogEndWU * 0.96
+    );
+    float manifestationWeight = smoothstep(
+      manifestationStart,
+      manifestationEnd,
+      settledCameraDepth
+    );
+    // Reuse precomputed per-point phases so emergence adds no extra trigonometry.
+    vec3 manifestationDirection = vec3(
+      (motionSeedPhases.x * 2.0) - 1.0,
+      (motionSeedPhases.y * 1.36) - 0.68,
+      (fract((motionSeedPhases.x * 1.618) + (motionSeedPhases.y * 0.73)) * 0.84) - 0.42
+    );
+    // Scatter is strongest where the form first becomes visible through fog,
+    // then resolves exactly onto the Blender-authored geometry near camera.
+    viewPoint.xyz += manifestationDirection
+      * manifestationWeight
+      * structureManifestationAmount
+      * structureMotionMask;
     float responsiveSeed = fract((pointSeed * 43.17) + 0.23);
     float resolvedFromPresence = fromPresence * step(
       responsiveSeed,
@@ -704,27 +1123,38 @@ const VERTEX_SHADER = `
     );
     float enteringPoint = (1.0 - step(0.5, resolvedFromPresence))
       * step(0.5, resolvedToPresence);
+    float leavingPoint = step(0.5, resolvedFromPresence)
+      * (1.0 - step(0.5, resolvedToPresence));
     float entryOrder = fract((pointSeed * 53.37) + 0.11);
     float entryStart = entryOrder * 0.58;
     float entryProgress = smoothstep(entryStart, entryStart + 0.32, globalMorph);
-    gl_Position = projectionMatrix * viewPoint;
-    // Incoming density grows behind established material at its final colour.
-    // Size, rather than dim alpha, authors the reversible reveal so new points
-    // never read as a dark foreground layer while scrolling in either direction.
+    float exitOrder = fract((pointSeed * 71.83) + 0.29);
+    float exitStart = 0.28 + (exitOrder * 0.42);
+    float exitProgress = 1.0 - smoothstep(exitStart, exitStart + 0.30, globalMorph);
+    gl_Position = applyPointerPressure(projectionMatrix * viewPoint);
+    // Density changes are physical size handoffs, not opacity crossfades.
+    // Entering points grow from their matched source and leaving points shrink
+    // into their matched destination while every continuing point stays solid.
     gl_Position.z += enteringPoint
       * (1.0 - entryProgress)
       * 0.06
       * gl_Position.w;
-    float presence = mix(resolvedFromPresence, resolvedToPresence, morph);
+    float presence = max(resolvedFromPresence, resolvedToPresence);
     presence = mix(
       presence,
       resolvedToPresence * step(0.001, entryProgress),
       enteringPoint
     );
-    // The authored anchor remains an ordinary grey point, then grows and
-    // colourises with the same scroll reveal as its label.
-    presence = max(presence, groupExists * disciplineRevealActive);
-    presence *= mix(1.0, clamp(bustSurfaceCarry, 0.0, 1.0), surfaceTransit);
+    presence = mix(
+      presence,
+      resolvedFromPresence * step(0.001, exitProgress),
+      leavingPoint
+    );
+    float materialSizePresence = mix(
+      1.0,
+      clamp(bustSurfaceCarry, 0.0, 1.0),
+      surfaceTransit
+    );
     float bustFragmentKeep = step(
       fract((pointSeed * 131.71) + 0.27),
       mix(
@@ -737,34 +1167,60 @@ const VERTEX_SHADER = `
         )
       )
     );
-    presence *= mix(1.0, bustFragmentKeep, bustFragment);
-    float reconnect = clamp(gridInfluence, 0.0, 1.0);
-    float textBackgroundWeight = disciplineBackgroundWeight * (1.0 - disciplineIsolation);
-    float backgroundVisibility = mix(
-      1.0,
-      mix(disciplineBackgroundOpacity, disciplineReconnectOpacity, reconnect),
-      textBackgroundWeight
-    );
-    float revealVisibility = mix(backgroundVisibility, 1.0, revealedGroupWeight);
-    presence *= mix(1.0, revealVisibility, disciplineRevealActive);
-    presence *= mix(1.0, isolatedBackgroundOpacity, disciplineMonochrome);
+    materialSizePresence *= mix(1.0, bustFragmentKeep, bustFragment);
     float cameraDepth = max(0.0, -viewPoint.z);
     float distanceFog = smoothstep(
       distanceFogStartWU,
       max(distanceFogStartWU + 0.001, distanceFogEndWU),
       cameraDepth
     );
-    presence *= 1.0 - distanceFog;
-    presence *= clamp(simulationVisibility, 0.0, 1.0);
-    presence = mix(
-      presence,
-      clamp(simulationVisibility, 0.0, 1.0),
-      revealedGroupWeight
+    float oceanFogEndWU = max(
+      distanceFogEndWU,
+      distanceFogEndWU * oceanFogDistanceScale
     );
-    float sizeWeight = mix(fromPointSize, toPointSize, morph);
-    float groupScale = mix(groupStrength, max(0.0, disciplinePointScale - 1.0), disciplineRevealActive);
-    float emphasis = 1.0 + (groupWeight * groupScale) + (waveWeight * 0.18);
-    float perspectiveScale = clamp(5.5 / max(1.0, -viewPoint.z), 0.68, 2.2);
+    float oceanDistanceFog = smoothstep(
+      distanceFogStartWU * 1.25,
+      max(
+        (distanceFogStartWU * 1.25) + 0.001,
+        oceanFogEndWU
+      ),
+      cameraDepth
+    );
+    distanceFog = mix(distanceFog, oceanDistanceFog, oceanWeight);
+    // The permanent corridor uses stronger depth concealment than the legacy
+    // worlds. Nearby landmarks stay tangible while the next chapter is only a
+    // silhouette in the fog.
+    float fogFloor = mix(0.38, 0.0, longAssemblyWeight);
+    presence *= mix(1.0, fogFloor, distanceFog);
+    // Reveal timing and horizon depth are intentionally separate. The ocean
+    // stays absent until the closing approach, then opens into a much deeper
+    // fog interval so the final frame reads as a vista instead of a thin band.
+    presence *= mix(1.0, oceanSpatialReveal, oceanWeight);
+    // The near water is deliberately the sparsest part of the field. Density
+    // rises toward the horizon, preserving a broad ocean without a foreground
+    // wall of particles or any additional geometry and draw calls.
+    presence *= mix(1.0, oceanDensityPresence, oceanWeight);
+    float assemblyMaterialPresence = (atmosphereMaterial * 0.12)
+      + stoneMaterial
+      + steelMaterial
+      + (glassMaterial * 0.72)
+      + signalMaterial
+      + organicMaterial;
+    assemblyMaterialPresence = mix(assemblyMaterialPresence, 1.0, oceanWeight);
+    presence *= mix(1.0, assemblyMaterialPresence, longAssemblyWeight);
+    presence *= clamp(simulationVisibility, 0.0, 1.0);
+    float sizeWeight = semanticSizeCode
+      * mix(1.0, oceanPointScale, oceanWeight)
+      * (1.0 + (oceanSplashEnergy * 0.34));
+    float assemblyPulse = max(0.0, waveValue)
+      * ((signalMaterial * 0.26) + (organicMaterial * 0.38) + (glassMaterial * 0.08));
+    float emphasis = 1.0 + (
+      waveWeight * mix(0.18, assemblyPulse, longAssemblyWeight)
+    );
+    // Keep one material-size reference for the complete story. Retain a quiet
+    // depth cue without letting distant corridor points become dust.
+    float rawPerspectiveScale = 5.5 / max(1.0, -viewPoint.z);
+    float perspectiveScale = clamp(mix(1.0, rawPerspectiveScale, 0.42), 0.72, 1.5);
     float worldPointSizeScale = mix(fromPointSizeScale, toPointSizeScale, morph);
     float cssPointSize = pointSize
       * worldPointSizeScale
@@ -772,23 +1228,28 @@ const VERTEX_SHADER = `
       * emphasis
       * gridRippleEmphasis
       * perspectiveScale;
-    float renderedPointSize = mix(
-      cssPointSize,
-      max(cssPointSize, 21.6),
-      revealedGroupWeight
-    );
     float entranceScale = clamp(sceneEntranceScale, 0.0, 1.0);
-    float clampedPointSize = clamp(renderedPointSize, 5.25, 21.6);
+    float clampedPointSize = clamp(cssPointSize, mix(6.5, 3.8, longAssemblyWeight), 21.6);
+    float centralLight = exp(-abs(viewPoint.x) * 0.075);
+    float depthLight = 0.64 + (0.36 * smoothstep(1.8, 9.5, cameraDepth));
+    pointTint *= mix(1.0, depthLight * (0.76 + (centralLight * 0.24)), longAssemblyWeight);
+    float structuralMaterial = min(1.0, stoneMaterial + steelMaterial + (glassMaterial * 0.45));
+    float foregroundOcclusion = (1.0 - smoothstep(1.5, 5.8, cameraDepth))
+      * structuralMaterial
+      * longAssemblyWeight;
+    vec3 foregroundInk = mix(pointTint, materialColor1, 0.28);
+    pointTint = mix(pointTint, foregroundInk, foregroundOcclusion * 0.16);
     gl_PointSize = max(0.01, clampedPointSize * entranceScale) * pixelRatio;
     gl_PointSize *= mix(1.0, max(0.01, entryProgress), enteringPoint);
+    gl_PointSize *= mix(1.0, max(0.01, exitProgress), leavingPoint);
+    gl_PointSize *= max(0.01, materialSizePresence);
     pointAlpha = presence;
-    pointRevealWeight = revealedGroupWeight;
     float readableMaterialWeight = smoothstep(
       max(0.0, uMaterialPointThresholdPx - 1.0),
       uMaterialPointThresholdPx + 1.0,
       clampedPointSize
     );
-    pointMaterialWeight = max(revealedGroupWeight, readableMaterialWeight);
+    pointMaterialWeight = readableMaterialWeight;
   }
 `;
 
@@ -799,13 +1260,12 @@ const FRAGMENT_SHADER = `
   uniform float uMaterialAtlasCellScale;
   uniform vec2 uMaterialAtlasInset;
   uniform vec2 uMaterialAtlasSpriteScale;
-  uniform vec2 uMaterialAtlasTexelSize;
   varying float pointAlpha;
-  varying float pointRevealWeight;
   varying float pointMaterialWeight;
   varying vec3 pointTint;
   varying vec3 pointMaterialBaseColor;
   varying float pointMaterialSlot;
+  varying float pointLongAssembly;
 
   vec3 transferMaterialDepth(vec3 materialSample, vec3 baseColor, vec3 tint) {
     const vec3 lightnessWeights = vec3(0.2126, 0.7152, 0.0722);
@@ -828,7 +1288,6 @@ const FRAGMENT_SHADER = `
     float radius = length(center);
     if (radius > 0.5 || pointAlpha <= 0.001 || fieldOpacity <= 0.001) discard;
     float edge = 1.0 - smoothstep(0.44, 0.5, radius);
-    float resolvedFieldOpacity = mix(fieldOpacity, 1.0, pointRevealWeight);
     if (uUseMaterialAtlas > 0.5 && pointMaterialWeight > 0.001) {
       vec2 atlasUv = vec2(
         pointMaterialSlot * uMaterialAtlasCellScale
@@ -837,48 +1296,46 @@ const FRAGMENT_SHADER = `
         uMaterialAtlasInset.y + gl_PointCoord.y * uMaterialAtlasSpriteScale.y
       );
       vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
-      if (pointRevealWeight > 0.001) {
-        vec2 detailUv = (
-          floor(atlasUv / uMaterialAtlasTexelSize) + vec2(0.5)
-        ) * uMaterialAtlasTexelSize;
-        vec4 detailMaterialSample = texture2D(uMaterialAtlas, detailUv);
-        materialSample = mix(
-          materialSample,
-          detailMaterialSample,
-          clamp(pointRevealWeight, 0.0, 1.0)
-        );
-      }
       if (materialSample.a <= 0.0) discard;
       float sphereWeight = clamp(pointMaterialWeight, 0.0, 1.0);
-      vec3 sphereColor = transferMaterialDepth(
+      vec3 chromaticSphereColor = transferMaterialDepth(
         materialSample.rgb,
         pointMaterialBaseColor,
         pointTint
       );
+      const vec3 lightnessWeights = vec3(0.2126, 0.7152, 0.0722);
+      float atlasLightness = dot(materialSample.rgb, lightnessWeights);
+      float atlasBaseLightness = dot(pointMaterialBaseColor, lightnessWeights);
+      vec3 neutralSphereColor = clamp(
+        pointTint + vec3(atlasLightness - atlasBaseLightness),
+        0.0,
+        1.0
+      );
+      vec3 sphereColor = mix(
+        chromaticSphereColor,
+        neutralSphereColor,
+        clamp(pointLongAssembly, 0.0, 1.0)
+      );
       gl_FragColor = vec4(
         mix(pointTint, sphereColor, sphereWeight),
-        resolvedFieldOpacity * pointAlpha * mix(edge, materialSample.a, sphereWeight)
+        fieldOpacity * pointAlpha * mix(edge, materialSample.a, sphereWeight)
       );
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
       return;
     }
-    gl_FragColor = vec4(pointTint, resolvedFieldOpacity * pointAlpha * edge);
+    gl_FragColor = vec4(pointTint, fieldOpacity * pointAlpha * edge);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `;
-
-function readColorToken(styles, token, fallback) {
-  return styles.getPropertyValue(token).trim() || fallback;
-}
 
 function getMaterialDistribution(snapshot = getSimulationPaletteSnapshot()) {
   return resolveSimulationColorDistribution(snapshot.distribution)
     .slice(0, MATERIAL_SLOT_COUNT);
 }
 
-function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSnapshot()) {
+function syncMaterialPalette(uniforms, snapshot = getSimulationPaletteSnapshot()) {
   const distribution = getMaterialDistribution(snapshot);
   const palette = snapshot.colors;
   const materialColors = [];
@@ -895,11 +1352,6 @@ function syncMaterialPalette(uniforms, styles, snapshot = getSimulationPaletteSn
       uniforms[`materialThreshold${index + 1}`].value = cumulative;
     }
   });
-  const disciplineBackgroundColor = readColorToken(styles, '--text-muted', '#8b8f92');
-  const disciplineWhiteColor = readColorToken(styles, '--about-discipline-white', '#ffffff');
-  uniforms.disciplineBackgroundColor.value.setStyle(disciplineBackgroundColor);
-  uniforms.disciplineWhiteColor.value.setStyle(disciplineWhiteColor);
-  materialColors[DISCIPLINE_WHITE_ATLAS_INDEX] = disciplineWhiteColor;
   return materialColors;
 }
 
@@ -923,9 +1375,6 @@ function syncSimulationBodyAtlasSlots(uniforms, atlas, colors) {
   for (let index = 0; index < MATERIAL_SLOT_COUNT; index += 1) {
     uniforms[`materialSlot${index + 1}`].value = atlas?.getSlot(colors[index]) ?? 0;
   }
-  uniforms.disciplineWhiteMaterialSlot.value = atlas?.getSlot(
-    colors[DISCIPLINE_WHITE_ATLAS_INDEX],
-  ) ?? 0;
 }
 
 function applySimulationBodyAtlas(material, atlas, texture) {
@@ -941,21 +1390,18 @@ function applySimulationBodyAtlas(material, atlas, texture) {
     atlas.detailPx / atlas.widthPx,
     atlas.detailPx / atlas.heightPx,
   );
-  material.uniforms.uMaterialAtlasTexelSize.value.set(
-    1 / atlas.widthPx,
-    1 / atlas.heightPx,
-  );
 }
 
 function createEmptyAttribute(count, value = 0) {
   return new Float32Array(count).fill(value);
 }
 
-function shapeCacheKey(world, quality) {
+function shapeCacheKey(world, quality, layoutProfile) {
   return JSON.stringify([
     world?.shapeId,
     world?.seed,
     quality,
+    layoutProfile,
     world?.shapeParameters || {},
   ]);
 }
@@ -970,46 +1416,29 @@ function writeWorldTransform(
   scratch,
 ) {
   if (!world) return target.identity();
-  const transform = world.transform || {};
-  const position = transform.position || [0, 0, 0];
-  const rotation = transform.rotation || [0, 0, 0];
-  const baseScale = Number(transform.scale ?? 1);
-  const responsiveMaterial = sampleAboutNarrativeResponsiveWorldMaterialInto(
+  const resolved = resolveAboutNarrativeWorldTransformInto(
     world,
-    inlineSize,
-    compact,
-    shortLandscape,
-    scratch.responsiveMaterial,
+    {
+      inlineSize,
+      compact,
+      shortLandscape,
+      anchorRailZ: resolveAboutNarrativeWorldAnchorRailZ(world, globals),
+    },
+    scratch.worldTransform,
   );
-  const responsiveScale = shortLandscape && Number.isFinite(transform.mobileLandscapeScale)
-    ? Number(transform.mobileLandscapeScale)
-    : responsiveMaterial.scale;
-  const scale = compact && Number.isFinite(responsiveScale)
-    ? Number(responsiveScale)
-    : baseScale;
-  const responsiveXScale = shortLandscape && Number.isFinite(transform.mobileLandscapeXScale)
-    ? Number(transform.mobileLandscapeXScale)
-    : responsiveMaterial.xScale;
-  const xScale = compact && Number.isFinite(responsiveXScale)
-    ? Number(responsiveXScale)
-    : scale;
-  const anchorRailZ = resolveAboutNarrativeWorldAnchorRailZ(world, globals);
   scratch.position.set(
-    position[0] + (shortLandscape ? Number(transform.mobileLandscapeXOffset || 0) : 0),
-    position[1] + (compact ? responsiveMaterial.yOffset : 0)
-      + (shortLandscape ? Number(transform.mobileLandscapeYOffset || 0) : 0),
-    anchorRailZ - Number(world.entryDistanceWU || 0) + position[2]
-      + (compact ? Number(transform.mobileZOffset || 0) : 0)
-      + (shortLandscape ? Number(transform.mobileLandscapeZOffset || 0) : 0),
+    resolved.position[0],
+    resolved.position[1],
+    resolved.position[2],
   );
   scratch.euler.set(
-    rotation[0],
-    rotation[1],
-    rotation[2],
+    resolved.rotation[0],
+    resolved.rotation[1],
+    resolved.rotation[2],
     'YXZ',
   );
   scratch.quaternion.setFromEuler(scratch.euler);
-  scratch.scale.set(xScale, scale, scale);
+  scratch.scale.set(resolved.xScale, resolved.scale, resolved.scale);
   return target.compose(scratch.position, scratch.quaternion, scratch.scale);
 }
 
@@ -1019,37 +1448,14 @@ function createTransformScratch() {
     quaternion: new THREE.Quaternion(),
     scale: new THREE.Vector3(),
     euler: new THREE.Euler(0, 0, 0, 'YXZ'),
-    responsiveMaterial: {
-      scale: 1,
-      xScale: 1,
-      yOffset: 0,
-      presenceRatio: 1,
-    },
+    worldTransform: createAboutNarrativeWorldTransformSample(),
   };
-}
-
-function captureDisciplineIndices(groups, target) {
-  target.fill(-1);
-  for (let pointIndex = 0; pointIndex < groups.length; pointIndex += 1) {
-    const groupIndex = Math.round(groups[pointIndex]) - 1;
-    if (groupIndex >= 0 && groupIndex < target.length && target[groupIndex] < 0) {
-      target[groupIndex] = pointIndex;
-    }
-  }
-}
-
-function hasAllDisciplineIndices(indices) {
-  for (let index = 0; index < indices.length; index += 1) {
-    if (indices[index] < 0) return false;
-  }
-  return true;
 }
 
 function createPointFieldAdapter({
   canvas,
   root,
   interaction,
-  disciplineOverlayRef,
   runtimeRef,
   pointProfile: explicitPointProfile,
   layoutProfile: explicitLayoutProfile,
@@ -1113,7 +1519,10 @@ function createPointFieldAdapter({
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(48, 1, 0.08, 80);
+  // The camera frustum must end beyond the complete ocean reserve. Visible
+  // depth is owned by the smooth shader fog; a short geometric far plane
+  // makes animated wave points pop as they cross that hard boundary.
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.08, POINT_WORLD_CAMERA_FAR_WU);
   const geometry = new THREE.BufferGeometry();
   const geometryInstanceId = nextGeometryInstanceId;
   nextGeometryInstanceId += 1;
@@ -1121,7 +1530,6 @@ function createPointFieldAdapter({
   const emptyPositions = new Float32Array(pointCount * 3);
   const emptyPresence = createEmptyAttribute(pointCount, 1);
   const emptySize = createEmptyAttribute(pointCount, 1);
-  const emptyGroup = createEmptyAttribute(pointCount);
   const uniforms = {
     fromTransform: { value: new THREE.Matrix4() },
     toTransform: { value: new THREE.Matrix4() },
@@ -1139,11 +1547,31 @@ function createPointFieldAdapter({
     motionFlattenAxis: { value: 1 },
     motionFlattenOffset: { value: 0 },
     storyTime: { value: 0 },
+    oceanTime: { value: 0 },
+    oceanBaseY: { value: -6.2 },
+    oceanDensity: { value: 0.9 },
+    oceanAmplitude: { value: 2.05 },
+    oceanSpeed: { value: 1.04 },
+    oceanChop: { value: 1.08 },
+    oceanPointScale: { value: 1.18 },
+    oceanFogDistanceScale: { value: 24 },
+    oceanRevealProgress: { value: 0 },
+    oceanStoryOffsetZ: { value: 0 },
+    oceanSplashAmount: { value: 1.2 },
+    oceanSplashHeight: { value: 4.4 },
+    oceanImpulseProgress: { value: 0 },
+    oceanImpulseAmplitude: { value: 0 },
+    structureManifestationAmount: { value: 0.72 },
+    structureAmbientAmount: { value: 0.055 },
+    structureAmbientSpeed: { value: 0.28 },
     pointSize: { value: 5.4 },
     fromPointSizeScale: { value: 1 },
     toPointSizeScale: { value: 1 },
     fromResponsivePresence: { value: 1 },
     toResponsivePresence: { value: 1 },
+    fromLongAssembly: { value: 0 },
+    toLongAssembly: { value: 0 },
+    themeDark: { value: 0 },
     pixelRatio: { value: 1 },
     simulationVisibility: { value: 1 },
     sceneEntranceScale: {
@@ -1173,12 +1601,6 @@ function createPointFieldAdapter({
     toWaveStoryMix: { value: 0 },
     fromWaveFrequency: { value: new THREE.Vector2(1, 1) },
     toWaveFrequency: { value: new THREE.Vector2(1, 1) },
-    fromGroupStrength: { value: 0 },
-    toGroupStrength: { value: 0 },
-    fromDisciplineIsolation: { value: 0 },
-    toDisciplineIsolation: { value: 0 },
-    fromDisciplineBackgroundOpacity: { value: 1 },
-    toDisciplineBackgroundOpacity: { value: 1 },
     fromOrbitalWeight: { value: 0 },
     toOrbitalWeight: { value: 0 },
     fromOrbitalSpeed: { value: 0 },
@@ -1187,8 +1609,6 @@ function createPointFieldAdapter({
     toOrbitalStoryMix: { value: 1 },
     fromOrbitalRadius: { value: 5.8 },
     toOrbitalRadius: { value: 5.8 },
-    disciplineFocus: { value: 0 },
-    gridInfluence: { value: 0 },
     gridRippleWeight: { value: 0 },
     gridRippleAmplitude: { value: 0 },
     gridRippleSpeed: { value: 0 },
@@ -1196,13 +1616,6 @@ function createPointFieldAdapter({
     gridRippleStoryMix: { value: 0 },
     gridRippleProgress: { value: 0 },
     gridRippleCenter: { value: new THREE.Vector2() },
-    disciplineRevealA: { value: new THREE.Vector3() },
-    disciplineRevealB: { value: new THREE.Vector3() },
-    disciplineRevealActive: { value: 0 },
-    disciplineBackgroundWeight: { value: 0 },
-    disciplineBackgroundOpacity: { value: 0.06 },
-    disciplineReconnectOpacity: { value: 0.24 },
-    disciplinePointScale: { value: 3.6 },
     fromLivingColour: { value: 0 },
     toLivingColour: { value: 0 },
     fromBust: { value: 0 },
@@ -1231,28 +1644,36 @@ function createPointFieldAdapter({
     materialColor4: { value: new THREE.Color() },
     materialColor5: { value: new THREE.Color() },
     materialColor6: { value: new THREE.Color() },
-    disciplineWhiteColor: { value: new THREE.Color('#ffffff') },
-    disciplineBackgroundColor: { value: new THREE.Color('#8b8f92') },
+    assemblyOrganicColor: { value: new THREE.Color('#00866b') },
     materialSlot1: { value: 0 },
     materialSlot2: { value: 0 },
     materialSlot3: { value: 0 },
     materialSlot4: { value: 0 },
     materialSlot5: { value: 0 },
     materialSlot6: { value: 0 },
-    disciplineWhiteMaterialSlot: { value: 0 },
     materialThreshold1: { value: 0.31 },
     materialThreshold2: { value: 0.44 },
     materialThreshold3: { value: 0.60 },
     materialThreshold4: { value: 0.80 },
     materialThreshold5: { value: 0.90 },
     uMaterialPointThresholdPx: { value: MATERIAL_POINT_THRESHOLD_PX },
+    pointerPressureNdc: { value: new THREE.Vector2() },
+    pointerPressureTrailNdc: { value: new THREE.Vector2() },
+    pointerPressureViewport: { value: new THREE.Vector2(1, 1) },
+    pointerPressureVelocityPx: { value: new THREE.Vector2() },
+    pointerPressureReleaseVelocityPx: { value: new THREE.Vector2() },
+    pointerPressureRadiusPx: { value: 0 },
+    pointerPressureForcePx: { value: 0 },
+    pointerPressureVariation: { value: 0 },
+    pointerPressureStrength: { value: 0 },
+    pointerPressureReleaseProgress: { value: 1 },
+    pointerPressureReleaseStrength: { value: 0 },
     fieldOpacity: { value: 0.96 },
     uUseMaterialAtlas: { value: 0 },
     uMaterialAtlas: { value: null },
     uMaterialAtlasCellScale: { value: 1 },
     uMaterialAtlasInset: { value: new THREE.Vector2() },
     uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
-    uMaterialAtlasTexelSize: { value: new THREE.Vector2(1, 1) },
   };
   const modifierUniformTargets = Object.freeze({
     from: Object.freeze({
@@ -1267,9 +1688,6 @@ function createPointFieldAdapter({
       waveSpeed: uniforms.fromWaveSpeed,
       waveStoryMix: uniforms.fromWaveStoryMix,
       waveFrequency: uniforms.fromWaveFrequency,
-      groupStrength: uniforms.fromGroupStrength,
-      disciplineIsolation: uniforms.fromDisciplineIsolation,
-      disciplineBackgroundOpacity: uniforms.fromDisciplineBackgroundOpacity,
       orbitalWeight: uniforms.fromOrbitalWeight,
       orbitalSpeed: uniforms.fromOrbitalSpeed,
       orbitalStoryMix: uniforms.fromOrbitalStoryMix,
@@ -1288,9 +1706,6 @@ function createPointFieldAdapter({
       waveSpeed: uniforms.toWaveSpeed,
       waveStoryMix: uniforms.toWaveStoryMix,
       waveFrequency: uniforms.toWaveFrequency,
-      groupStrength: uniforms.toGroupStrength,
-      disciplineIsolation: uniforms.toDisciplineIsolation,
-      disciplineBackgroundOpacity: uniforms.toDisciplineBackgroundOpacity,
       orbitalWeight: uniforms.toOrbitalWeight,
       orbitalSpeed: uniforms.toOrbitalSpeed,
       orbitalStoryMix: uniforms.toOrbitalStoryMix,
@@ -1314,8 +1729,6 @@ function createPointFieldAdapter({
     toPresence: new THREE.BufferAttribute(emptyPresence.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     fromPointSize: new THREE.BufferAttribute(emptySize, 1).setUsage(THREE.DynamicDrawUsage),
     toPointSize: new THREE.BufferAttribute(emptySize.slice(), 1).setUsage(THREE.DynamicDrawUsage),
-    fromGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
-    toGroup: new THREE.BufferAttribute(emptyGroup.slice(), 1).setUsage(THREE.DynamicDrawUsage),
     motionSeedPhases: new THREE.BufferAttribute(new Float32Array(pointCount * 2), 2).setUsage(THREE.DynamicDrawUsage),
     motionSpatialPhases: new THREE.BufferAttribute(new Float32Array(pointCount * 4), 4).setUsage(THREE.DynamicDrawUsage),
   });
@@ -1358,6 +1771,23 @@ function createPointFieldAdapter({
   let width = 1;
   let height = 1;
   let latestFrame = null;
+  let oceanImpulseStartedAt = Number.NEGATIVE_INFINITY;
+  let oceanImpulseGeneration = 0;
+  const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const pointerPressure = createAboutNarrativePointerPressureController({
+    initialNowMs: performance.now(),
+  });
+  const pointerPressureSample = createAboutNarrativePointerPressureSample();
+  const cameraPointerPan = createAboutNarrativeCameraPointerPanController({
+    initialNowMs: performance.now(),
+  });
+  const cameraPointerPanSample = createAboutNarrativeCameraPointerPanSample();
+  const cameraPointerPanEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+  const cameraPointerPanQuaternion = new THREE.Quaternion();
+  const cameraSteadycam = createAboutNarrativeCameraSteadycamController({
+    initialNowMs: performance.now(),
+  });
+  const cameraSteadycamSample = createAboutNarrativeCameraSteadycamSample();
   let routeMaterialOnly = false;
   let materialAtlasKey = '';
   let materialAtlasTexture = null;
@@ -1494,63 +1924,14 @@ function createPointFieldAdapter({
   const correspondenceToTransform = new THREE.Matrix4();
   const correspondenceFromScratch = createTransformScratch();
   const correspondenceToScratch = createTransformScratch();
-  const disciplinePointScratch = new THREE.Vector3();
-  const disciplineFromPointScratch = new THREE.Vector3();
-  const disciplineToPointScratch = new THREE.Vector3();
-  const disciplineWeights = new Float32Array(6);
-  const fromDisciplineIndices = new Int32Array(6).fill(-1);
-  const toDisciplineIndices = new Int32Array(6).fill(-1);
-  const disciplineLabels = new Array(6).fill(null);
-  const disciplineLabelReveal = new Float64Array(6).fill(Number.NaN);
-  const disciplineLabelX = new Float64Array(6).fill(Number.NaN);
-  const disciplineLabelY = new Float64Array(6).fill(Number.NaN);
   let lastMotionSegmentId = '';
   let lastMotionStaggerSeed = Number.NaN;
   let lastMotionPathSeed = Number.NaN;
-  let cachedDisciplineOverlay = null;
-  let cachedDisciplineChildCount = -1;
-  let lastActiveDiscipline = Number.NaN;
-  let lastDisciplineVisibleCount = Number.NaN;
-  let lastDisciplineLabelCount = Number.NaN;
-  let lastDisciplineItems = null;
-  let lastGridBackgroundState = Number.NaN;
   let lastSimulationVisibility = Number.NaN;
   let lastBustShaderYaw = Number.NaN;
-  let lastGroupFocus = Number.NaN;
-  let lastGridInfluence = Number.NaN;
   let lastInteractionEnabled = null;
   let lastWorldStage = '';
   let lastBustStyleYaw = Number.NaN;
-  const syncDisciplineLabels = (overlay) => {
-    const childCount = overlay?.childElementCount ?? -1;
-    if (overlay === cachedDisciplineOverlay && childCount === cachedDisciplineChildCount) return;
-    cachedDisciplineOverlay = overlay || null;
-    cachedDisciplineChildCount = childCount;
-    for (let index = 0; index < disciplineLabels.length; index += 1) {
-      disciplineLabels[index] = overlay?.children[index] || null;
-      disciplineLabelReveal[index] = Number.NaN;
-      disciplineLabelX[index] = Number.NaN;
-      disciplineLabelY[index] = Number.NaN;
-    }
-  };
-  const writeDisciplineLabelReveal = (index, value) => {
-    if (disciplineLabelReveal[index] === value) return;
-    disciplineLabelReveal[index] = value;
-    const label = disciplineLabels[index];
-    if (!label) return;
-    label.style.setProperty('--discipline-reveal', value.toFixed(4));
-    runtimeObserver.hotFrameDomWrite();
-  };
-  const writeDisciplineLabelPosition = (index, x, y) => {
-    if (disciplineLabelX[index] === x && disciplineLabelY[index] === y) return;
-    disciplineLabelX[index] = x;
-    disciplineLabelY[index] = y;
-    const label = disciplineLabels[index];
-    if (!label) return;
-    label.style.setProperty('--discipline-x', `${x.toFixed(2)}px`);
-    label.style.setProperty('--discipline-y', `${y.toFixed(2)}px`);
-    runtimeObserver.hotFrameDomWrite(2);
-  };
   const getComposerEffectIndex = (frame, world, effectId) => {
     const stateId = getAboutNarrativeWorldId(world);
     const active = frame?.composerEffects?.active || [];
@@ -1564,12 +1945,20 @@ function createPointFieldAdapter({
     const index = getComposerEffectIndex(frame, world, effectId);
     return index < 0 ? null : frame.composerEffects.active[index].parameters;
   };
+  const getComposerEffectWeight = (frame, world, effectId) => {
+    const index = getComposerEffectIndex(frame, world, effectId);
+    return index < 0 ? 0 : Number(frame.composerEffects.weight[index] || 0);
+  };
 
   const updateTheme = () => {
-    const styles = getComputedStyle(root);
     const snapshot = getSimulationPaletteSnapshot();
-    const materialColors = syncMaterialPalette(uniforms, styles, snapshot);
+    const materialColors = syncMaterialPalette(uniforms, snapshot);
+    const organicColorIndex = String(snapshot.paletteId || '').startsWith('rye') ? 1 : 3;
+    uniforms.assemblyOrganicColor.value.setStyle(
+      snapshot.colors[organicColorIndex] || '#00866b',
+    );
     const materialTheme = isDarkThemeDocument(root.ownerDocument) ? 'dark' : 'light';
+    uniforms.themeDark.value = materialTheme === 'dark' ? 1 : 0;
     const nextAtlas = getSimulationBodyMaterialAtlas(materialColors, { theme: materialTheme });
     const nextAtlasKey = nextAtlas?.key || 'flat';
     syncSimulationBodyAtlasSlots(uniforms, nextAtlas, materialColors);
@@ -1581,7 +1970,7 @@ function createPointFieldAdapter({
       applySimulationBodyAtlas(material, nextAtlas, nextTexture);
       previousTexture?.dispose();
     }
-    root.dataset.aboutDisciplineBallFinish = nextAtlas
+    root.dataset.aboutPointMaterialFinish = nextAtlas
       ? 'cached-sphere-sticker'
       : 'flat-fill';
     root.dataset.aboutPointMaterialPolicy = nextAtlas
@@ -1596,6 +1985,10 @@ function createPointFieldAdapter({
     const canvasRect = canvas.getBoundingClientRect();
     width = Math.max(1, canvasRect.width);
     height = Math.max(1, canvasRect.height);
+    // Pointer coordinates use this cached geometry. Pointermove never forces a
+    // layout read, which keeps the input path independent from the render path.
+    pointerPressure.setViewport(canvasRect.left, canvasRect.top, width, height);
+    cameraPointerPan.setViewport(canvasRect.left, canvasRect.top, width, height);
     const wasShortLandscape = shortLandscape;
     shortLandscape = isAboutNarrativeShortLandscape({
       layoutProfile: responsiveLayoutProfile,
@@ -1616,7 +2009,7 @@ function createPointFieldAdapter({
 
   const pendingShapePreparations = new Map();
   const getShape = async (world, signal) => {
-    const key = shapeCacheKey(world, quality);
+    const key = shapeCacheKey(world, quality, responsiveLayoutProfile);
     const cached = persistentCache.getShape(key);
     if (cached) return cached;
     const pending = pendingShapePreparations.get(key);
@@ -1627,6 +2020,7 @@ function createPointFieldAdapter({
       pointCount,
       seeds: worldSeeds,
       quality,
+      layoutProfile: responsiveLayoutProfile,
       parameters: world.shapeParameters,
       signal,
     });
@@ -1643,64 +2037,17 @@ function createPointFieldAdapter({
 
   const assertInstallOutput = (output, label) => {
     const expectedPositionLength = pointCount * 3;
-    const group = output?.attributes?.disciplineGroup;
     if (!(output?.positions instanceof Float32Array) || output.positions.length !== expectedPositionLength
       || !(output?.presence instanceof Float32Array) || output.presence.length !== pointCount
-      || !(output?.size instanceof Float32Array) || output.size.length !== pointCount
-      || (group && (!(group instanceof Float32Array) || group.length !== pointCount))) {
+      || !(output?.size instanceof Float32Array) || output.size.length !== pointCount) {
       throw new Error(`${label} has invalid fixed point buffers.`);
     }
-    const arrays = [output.positions, output.presence, output.size, ...(group ? [group] : [])];
+    const arrays = [output.positions, output.presence, output.size];
     arrays.forEach((array) => {
       for (let index = 0; index < array.length; index += 1) {
         if (!Number.isFinite(array[index])) throw new Error(`${label} contains a non-finite point value.`);
       }
     });
-  };
-
-  const refreshInstalledDisciplineGroups = (pair, formation = null) => {
-    const disciplineAnchors = getAboutNarrativeDisciplineAnchors(quality, {
-      items: formation?.items,
-      layoutProfile: responsiveLayoutProfile,
-    });
-    const materialThresholds = [
-      uniforms.materialThreshold1.value,
-      uniforms.materialThreshold2.value,
-      uniforms.materialThreshold3.value,
-      uniforms.materialThreshold4.value,
-      uniforms.materialThreshold5.value,
-    ];
-    const fromGroup = createAboutNarrativeColourMatchedDisciplineGroups({
-      output: pair.fromOutput,
-      pointSeeds: seeds,
-      materialThresholds,
-      anchors: pair.fromWorld.shapeId === 'calm-field-v1'
-        ? disciplineAnchors
-        : null,
-    }) || emptyGroup;
-    const toGroup = createAboutNarrativeColourMatchedDisciplineGroups({
-      output: pair.toOutput,
-      pointSeeds: seeds,
-      materialThresholds,
-      anchors: pair.toWorld.shapeId === 'calm-field-v1'
-        ? disciplineAnchors
-        : null,
-    }) || emptyGroup;
-    fixedAttributes.position.array.set(pair.fromOutput.positions);
-    fixedAttributes.targetPosition.array.set(pair.toOutput.positions);
-    fixedAttributes.fromPresence.array.set(pair.fromOutput.presence);
-    fixedAttributes.toPresence.array.set(pair.toOutput.presence);
-    fixedAttributes.fromGroup.array.set(fromGroup);
-    fixedAttributes.toGroup.array.set(toGroup);
-    fixedAttributes.position.needsUpdate = true;
-    fixedAttributes.targetPosition.needsUpdate = true;
-    fixedAttributes.fromPresence.needsUpdate = true;
-    fixedAttributes.toPresence.needsUpdate = true;
-    fixedAttributes.fromGroup.needsUpdate = true;
-    fixedAttributes.toGroup.needsUpdate = true;
-    captureDisciplineIndices(fromGroup, fromDisciplineIndices);
-    captureDisciplineIndices(toGroup, toDisciplineIndices);
-    lastDisciplineItems = formation?.items || null;
   };
 
   const installPreparedPair = (pair) => {
@@ -1720,14 +2067,15 @@ function createPointFieldAdapter({
       fixedAttributes.targetPosition.array,
       fixedAttributes.motionSpatialPhases.array,
     );
-    refreshInstalledDisciplineGroups(pair, latestFrame?.disciplineReveal?.config);
     Object.entries(fixedAttributes).forEach(([name, attribute]) => {
       if (name !== 'pointSeed') attribute.needsUpdate = true;
     });
     resourceLedger?.releaseOwner('installed-pair');
     resourceLedger?.retain('installed-pair', [pair.fromOutput, pair.toOutput]);
     installedPair = { ...pair, progress: 0 };
-    root.dataset.pointAsset = pair.toOutput.fallbackReason ? 'procedural-fallback' : pair.toWorld.shapeId;
+    root.dataset.pointAsset = pair.toOutput.fallbackReason
+      ? 'procedural-fallback'
+      : pair.toOutput.assetId || pair.toWorld.shapeId;
     if (sequenceState !== 'loading') root.dataset.worldPrepare = 'ready';
     root.dataset.worldFrom = pair.fromWorld.shapeId;
     root.dataset.worldTo = pair.toWorld.shapeId;
@@ -2089,7 +2437,13 @@ function createPointFieldAdapter({
       ).elements.slice(),
       shapeId: world.shapeId,
       seed: world.seed,
-      parameters: world.shapeParameters || {},
+      // Workers prepare the lasting sequence after the synchronous bootstrap.
+      // Carry the responsive profile inside their JSON-safe Shape parameters
+      // so both paths produce identical compact gate geometry.
+      parameters: {
+        ...(world.shapeParameters || {}),
+        responsiveLayoutProfile,
+      },
     }));
     const previousPreparation = activePreparation;
     const nextPreparation = {
@@ -2125,23 +2479,33 @@ function createPointFieldAdapter({
 
   const setModifierUniforms = (target, world, globals, frame) => {
     const authoredSwarm = getComposerEffect(frame, world, 'swarm-life-v1');
+    const authoredSwarmWeight = getComposerEffectWeight(frame, world, 'swarm-life-v1');
     const sharedSwarm = authoredSwarm
       ? resolveAboutNarrativeSwarmMotion(authoredSwarm, globals.swarmTurbulence)
       : null;
     const drift = sharedSwarm
       || getComposerEffect(frame, world, 'ambient-drift-v1');
+    const driftWeight = sharedSwarm
+      ? authoredSwarmWeight
+      : getComposerEffectWeight(frame, world, 'ambient-drift-v1');
     const wave = getComposerEffect(frame, world, 'living-wave-v1');
-    const group = getComposerEffect(frame, world, 'group-emphasis-v1');
-    const isolation = getComposerEffect(frame, world, 'discipline-isolation-v1');
+    const waveWeight = getComposerEffectWeight(frame, world, 'living-wave-v1');
     const orbital = getComposerEffect(frame, world, 'orbital-life-v1');
+    const orbitalWeight = getComposerEffectWeight(frame, world, 'orbital-life-v1');
     const colour = getComposerEffect(frame, world, 'living-colour-v1');
-    target.driftAmplitude.value = Number(drift?.amplitude || 0);
-    target.driftSpeed.value = Number(drift?.speed || 0);
+    const colourWeight = getComposerEffectWeight(frame, world, 'living-colour-v1');
+    // Effect attack/release envelopes are sampled once by the Composer. Apply
+    // that weight here so adjacent Form motion eases to zero instead of
+    // snapping when ownership changes.
+    target.driftAmplitude.value = drift
+      ? Number(drift.amplitude || 0) * driftWeight
+      : 0;
+    target.driftSpeed.value = Number(drift?.speed ?? 0);
     target.driftIrregularity.value = Number(sharedSwarm?.irregularity || 0);
     target.driftIndividuality.value = Number(sharedSwarm?.individuality || 0);
     target.driftAxisSpread.value = Number(sharedSwarm?.axisSpread || 0);
     target.driftStoryMix.value = drift ? 1 : 0;
-    target.waveWeight.value = wave ? Number(wave.strength ?? 1) : 0;
+    target.waveWeight.value = wave ? Number(wave.strength ?? 1) * waveWeight : 0;
     target.waveAmplitude.value = Number(wave?.amplitude || 0);
     target.waveSpeed.value = Number(wave?.speed || 0);
     target.waveStoryMix.value = wave ? 1 : 0;
@@ -2149,198 +2513,67 @@ function createPointFieldAdapter({
       Number(wave?.frequencyX || 1),
       Number(wave?.frequencyZ || 1),
     );
-    target.groupStrength.value = Number(group?.strength || 0);
-    target.disciplineIsolation.value = Number(isolation?.strength || 0);
-    target.disciplineBackgroundOpacity.value = Number(isolation?.backgroundOpacity ?? 1);
-    target.orbitalWeight.value = Number(orbital?.strength || 0);
+    target.orbitalWeight.value = Number(orbital?.strength || 0) * orbitalWeight;
     target.orbitalSpeed.value = Number(orbital?.speed || 0);
     target.orbitalStoryMix.value = orbital ? 1 : 0;
     target.orbitalRadius.value = Number(world?.shapeParameters?.orbitRadius ?? 5.8);
-    target.livingColour.value = Number(colour?.strength || 0);
+    target.livingColour.value = Number(colour?.strength || 0) * colourWeight;
   };
 
-  const projectDisciplineLabels = () => {
-    const useToGrid = hasAllDisciplineIndices(toDisciplineIndices);
-    const useFromGrid = hasAllDisciplineIndices(fromDisciplineIndices);
-    const indices = useToGrid
-      ? toDisciplineIndices
-      : useFromGrid ? fromDisciplineIndices : null;
-    if (!indices) return;
-
-    const morph = Math.min(1, Math.max(0, Number(uniforms.morphProgress.value)));
-    const driftAmplitude = THREE.MathUtils.lerp(
-      uniforms.fromDriftAmplitude.value,
-      uniforms.toDriftAmplitude.value,
-      morph,
+  const updatePointerPressure = (frame, nowMs) => {
+    const pointMaterial = frame?.globals?.pointMaterial;
+    pointerPressure.configure(pointMaterial);
+    const requestedVisibility = Number(frame?.simulation?.visibility ?? 0);
+    const materialVisible = Boolean(frame)
+      && Number.isFinite(requestedVisibility)
+      && requestedVisibility > 0.001;
+    pointerPressure.sampleInto(
+      pointerPressureSample,
+      nowMs,
+      Boolean(frame?.reducedMotion),
+      materialVisible,
+      document.hidden,
+      finePointerQuery.matches,
     );
-    const driftSpeed = THREE.MathUtils.lerp(
-      uniforms.fromDriftSpeed.value,
-      uniforms.toDriftSpeed.value,
-      morph,
+    uniforms.pointerPressureNdc.value.set(
+      pointerPressureSample.x,
+      pointerPressureSample.y,
     );
-    const driftIrregularity = THREE.MathUtils.lerp(
-      uniforms.fromDriftIrregularity.value,
-      uniforms.toDriftIrregularity.value,
-      morph,
+    uniforms.pointerPressureTrailNdc.value.set(
+      pointerPressureSample.trailX,
+      pointerPressureSample.trailY,
     );
-    const driftIndividuality = THREE.MathUtils.lerp(
-      uniforms.fromDriftIndividuality.value,
-      uniforms.toDriftIndividuality.value,
-      morph,
+    uniforms.pointerPressureViewport.value.set(width, height);
+    uniforms.pointerPressureVelocityPx.value.set(
+      pointerPressureSample.velocityX,
+      pointerPressureSample.velocityY,
     );
-    const driftAxisSpread = THREE.MathUtils.lerp(
-      uniforms.fromDriftAxisSpread.value,
-      uniforms.toDriftAxisSpread.value,
-      morph,
+    uniforms.pointerPressureReleaseVelocityPx.value.set(
+      pointerPressureSample.releaseVelocityX,
+      pointerPressureSample.releaseVelocityY,
     );
-    const driftStoryMix = THREE.MathUtils.lerp(
-      uniforms.fromDriftStoryMix.value,
-      uniforms.toDriftStoryMix.value,
-      morph,
-    );
-    const driftClock = THREE.MathUtils.lerp(
-      uniforms.storyTime.value,
-      uniforms.storyTime.value,
-      driftStoryMix,
-    );
-    const driftMix = driftIrregularity * 0.58;
-
-    for (let groupIndex = 0; groupIndex < disciplineLabels.length; groupIndex += 1) {
-      const pointIndex = indices[groupIndex];
-      if (pointIndex < 0 || !disciplineLabels[groupIndex]) continue;
-      const offset = pointIndex * 3;
-      disciplineFromPointScratch
-        .fromArray(fixedAttributes.position.array, offset)
-        .applyMatrix4(uniforms.fromTransform.value);
-      disciplineToPointScratch
-        .fromArray(fixedAttributes.targetPosition.array, offset)
-        .applyMatrix4(uniforms.toTransform.value);
-      disciplinePointScratch.lerpVectors(
-        disciplineFromPointScratch,
-        disciplineToPointScratch,
-        morph,
-      );
-
-      if (driftAmplitude > 0.000001) {
-        const seed = seeds[pointIndex];
-        const phase = seed * 127.31;
-        const speedVariance = THREE.MathUtils.lerp(
-          1,
-          0.58 + ((((seed * 43.17) + 0.19) % 1) * 0.88),
-          driftIndividuality,
-        );
-        const driftTime = driftClock * driftSpeed * speedVariance;
-        const smoothX = Math.sin((driftTime * 1.07) + (phase * 1.31));
-        const smoothY = Math.sin((driftTime * 0.83) + (phase * 1.73));
-        const smoothZ = Math.cos((driftTime * 0.97) + (phase * 2.11));
-        const erraticX = Math.sin((driftTime * 2.43) + (phase * 0.37));
-        const erraticY = Math.cos((driftTime * 2.07) + (phase * 0.61));
-        const erraticZ = Math.sin((driftTime * 2.81) + (phase * 0.83));
-        disciplinePointScratch.x += THREE.MathUtils.lerp(smoothX, erraticX, driftMix)
-          * driftAxisSpread * driftAmplitude;
-        disciplinePointScratch.y += THREE.MathUtils.lerp(smoothY, erraticY, driftMix)
-          * driftAmplitude;
-        disciplinePointScratch.z += THREE.MathUtils.lerp(smoothZ, erraticZ, driftMix)
-          * driftAxisSpread * driftAmplitude;
-      }
-
-      disciplinePointScratch.project(camera);
-      writeDisciplineLabelPosition(
-        groupIndex,
-        ((disciplinePointScratch.x * 0.5) + 0.5) * width,
-        ((-disciplinePointScratch.y * 0.5) + 0.5) * height,
-      );
-    }
-  };
-
-  const updateDisciplineReveal = (frame, fromWorld, toWorld) => {
-    const revealState = frame.disciplineReveal;
-    const reveal = revealState?.config;
-    const overlay = disciplineOverlayRef?.current || null;
-    syncDisciplineLabels(overlay);
-
-    if (installedPair && reveal?.items && reveal.items !== lastDisciplineItems) {
-      refreshInstalledDisciplineGroups(installedPair, reveal);
-    }
-
-    const disciplineWorldAvailable = fromWorld?.shapeId === 'calm-field-v1'
-      || toWorld?.shapeId === 'calm-field-v1';
-    const effectAvailable = Boolean(
-      reveal
-      && disciplineWorldAvailable
-      && frame.storyWU >= reveal.effectStartWU
-      && frame.storyWU < reveal.effectEndWU,
-    );
-    const restoreWeight = effectAvailable ? 1 - Number(revealState.restoreProgress || 0) : 0;
-    const simulationVisibility = uniforms.simulationVisibility.value;
-    if (effectAvailable) projectDisciplineLabels();
-    disciplineWeights.fill(0);
-    let activeGroup = 0;
-    for (let index = 0; index < disciplineWeights.length; index += 1) {
-      const revealWeight = Number(revealState?.weights?.[index] || 0);
-      disciplineWeights[index] = revealWeight * simulationVisibility * restoreWeight;
-      if (revealWeight > 0.001) activeGroup = Number(reveal?.items?.[index]?.group || index + 1);
-    }
-
-    const backgroundWeight = effectAvailable
-      ? Number(revealState.backgroundProgress || 0) * restoreWeight
-      : 0;
-    const backgroundOpacity = Number(reveal?.backgroundOpacity ?? 0.28);
-    uniforms.fromDisciplineIsolation.value = backgroundWeight;
-    uniforms.toDisciplineIsolation.value = backgroundWeight;
-    uniforms.fromDisciplineBackgroundOpacity.value = backgroundOpacity;
-    uniforms.toDisciplineBackgroundOpacity.value = backgroundOpacity;
-    uniforms.disciplineRevealActive.value = effectAvailable ? 1 : 0;
-    uniforms.disciplineBackgroundWeight.value = backgroundWeight;
-    uniforms.disciplineBackgroundOpacity.value = backgroundOpacity;
-    uniforms.disciplineReconnectOpacity.value = 1;
-    uniforms.disciplinePointScale.value = Number(reveal?.pointScale ?? 4.4);
-    uniforms.disciplineRevealA.value.set(
-      disciplineWeights[0],
-      disciplineWeights[1],
-      disciplineWeights[2],
-    );
-    uniforms.disciplineRevealB.value.set(
-      disciplineWeights[3],
-      disciplineWeights[4],
-      disciplineWeights[5],
-    );
-
-    if (overlay) {
-      if (activeGroup !== lastActiveDiscipline) {
-        overlay.dataset.activeDiscipline = String(activeGroup);
-        lastActiveDiscipline = activeGroup;
-        runtimeObserver.hotFrameDomWrite();
-      }
-      for (let index = 0; index < disciplineLabels.length; index += 1) {
-        writeDisciplineLabelReveal(index, disciplineWeights[index]);
-      }
-    }
-
-    let visibleCount = 0;
-    for (let index = 0; index < disciplineWeights.length; index += 1) {
-      if (disciplineWeights[index] > 0.05) visibleCount += 1;
-    }
-    if (visibleCount !== lastDisciplineVisibleCount) {
-      root.dataset.worldDisciplineVisible = String(visibleCount);
-      lastDisciplineVisibleCount = visibleCount;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    if (visibleCount !== lastDisciplineLabelCount) {
-      root.dataset.worldDisciplineLabels = String(visibleCount);
-      lastDisciplineLabelCount = visibleCount;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    const gridBackgroundState = backgroundWeight > 0.001 ? 1 : 0;
-    if (gridBackgroundState !== lastGridBackgroundState) {
-      root.dataset.worldGridBackground = String(gridBackgroundState);
-      lastGridBackgroundState = gridBackgroundState;
-      runtimeObserver.hotFrameDomWrite();
-    }
+    uniforms.pointerPressureRadiusPx.value = pointerPressureSample.radiusPx;
+    uniforms.pointerPressureForcePx.value = pointerPressureSample.forcePx;
+    uniforms.pointerPressureVariation.value = pointerPressureSample.variation;
+    uniforms.pointerPressureStrength.value = pointerPressureSample.strength;
+    uniforms.pointerPressureReleaseProgress.value = pointerPressureSample.releaseProgress;
+    uniforms.pointerPressureReleaseStrength.value = pointerPressureSample.releaseStrength;
   };
 
   const render = (frame) => {
     latestFrame = frame;
+    const renderNowMs = performance.now();
+    // Sample before any visibility return. This guarantees the finite release
+    // reaches exact zero even if the authored field fades out mid-settle.
+    updatePointerPressure(frame, renderNowMs);
+    cameraPointerPan.configure(frame?.globals?.camera);
+    cameraPointerPan.sampleInto(
+      cameraPointerPanSample,
+      renderNowMs,
+      Boolean(frame?.reducedMotion),
+      document.hidden,
+      finePointerQuery.matches,
+    );
     syncAtmosphereSource();
     if (routeMaterialOnly) return;
     if (!frame || !contextAvailable || document.hidden) return;
@@ -2413,8 +2646,26 @@ function createPointFieldAdapter({
       dragging = false;
     }
 
-    camera.position.fromArray(frame.camera.position);
-    camera.quaternion.fromArray(frame.camera.quaternion);
+    cameraSteadycam.configure(frame.globals?.camera);
+    cameraSteadycam.sampleInto(
+      cameraSteadycamSample,
+      frame.camera.position,
+      frame.camera.quaternion,
+      renderNowMs,
+      Boolean(frame.reducedMotion) || document.hidden,
+    );
+    camera.position.fromArray(cameraSteadycamSample.position);
+    camera.quaternion.fromArray(cameraSteadycamSample.quaternion);
+    if (cameraPointerPanSample.active) {
+      cameraPointerPanEuler.set(
+        THREE.MathUtils.degToRad(cameraPointerPanSample.pitchDegrees),
+        THREE.MathUtils.degToRad(cameraPointerPanSample.yawDegrees),
+        0,
+        'YXZ',
+      );
+      cameraPointerPanQuaternion.setFromEuler(cameraPointerPanEuler);
+      camera.quaternion.multiply(cameraPointerPanQuaternion);
+    }
     if (camera.fov !== frame.camera.fov) {
       camera.fov = frame.camera.fov;
       camera.updateProjectionMatrix();
@@ -2441,11 +2692,75 @@ function createPointFieldAdapter({
     updatePointTransitionMotion(frame);
     uniforms.morphProgress.value = transitionProgress;
     uniforms.storyTime.value = frame.storyTime;
+    const assemblyWorld = toWorld.shapeId === 'long-assembly-corridor-v1'
+      ? toWorld
+      : fromWorld;
+    const assemblyParameters = assemblyWorld.shapeParameters || {};
+    const assemblyTransform = toWorld.shapeId === 'long-assembly-corridor-v1'
+      ? toTransformScratch.worldTransform
+      : fromTransformScratch.worldTransform;
+    uniforms.oceanTime.value = frame.reducedMotion ? 0 : performance.now() * 0.001;
+    uniforms.oceanBaseY.value = Number(assemblyParameters.oceanHeight ?? -6.2);
+    uniforms.oceanDensity.value = Number(assemblyParameters.oceanDensity ?? 0.9);
+    uniforms.oceanAmplitude.value = Number(assemblyParameters.oceanAmplitude ?? 2.05);
+    uniforms.oceanSpeed.value = Number(assemblyParameters.oceanSpeed ?? 1.04);
+    uniforms.oceanChop.value = Number(assemblyParameters.oceanChop ?? 1.08);
+    uniforms.oceanPointScale.value = Number(assemblyParameters.oceanPointScale ?? 1.18);
+    uniforms.oceanFogDistanceScale.value = Number(assemblyParameters.oceanFogDistanceScale ?? 24);
+    uniforms.oceanSplashAmount.value = frame.reducedMotion
+      ? 0
+      : Number(assemblyParameters.oceanSplashAmount ?? 1.2);
+    uniforms.oceanSplashHeight.value = Number(assemblyParameters.oceanSplashHeight ?? 4.4);
+    const oceanImpulseElapsedMs = renderNowMs - oceanImpulseStartedAt;
+    const oceanImpulseActive = !frame.reducedMotion
+      && Number.isFinite(oceanImpulseElapsedMs)
+      && oceanImpulseElapsedMs >= 0
+      && oceanImpulseElapsedMs <= OCEAN_IMPULSE_DURATION_MS;
+    uniforms.oceanImpulseProgress.value = oceanImpulseActive
+      ? Math.min(1, oceanImpulseElapsedMs / OCEAN_IMPULSE_DURATION_MS)
+      : 0;
+    uniforms.oceanImpulseAmplitude.value = oceanImpulseActive
+      ? OCEAN_IMPULSE_AMPLITUDE_WU
+      : 0;
+    const oceanStoryEndWU = Number(
+      assemblyParameters.storyDurationWU
+        ?? ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU,
+    );
+    const oceanRevealLeadWU = Math.max(
+      3.2,
+      Number(assemblyParameters.terminalDistanceWU ?? 1.25) + 1.95,
+    );
+    const oceanRevealStartWU = oceanStoryEndWU - oceanRevealLeadWU;
+    const oceanRevealProgress = Math.min(1, Math.max(
+      0,
+      (Number(frame.storyTime) - oceanRevealStartWU)
+        / Math.max(0.001, oceanRevealLeadWU - 0.1),
+    ));
+    uniforms.oceanRevealProgress.value = oceanRevealProgress
+      * oceanRevealProgress
+      * (3 - (2 * oceanRevealProgress));
+    uniforms.oceanStoryOffsetZ.value = Math.max(
+      0,
+      ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU - oceanStoryEndWU,
+    ) * Number(frame.globals.worldRail?.unitsPerWU ?? 18.5)
+      * Number(assemblyParameters.depthScale ?? 1)
+      * Number(assemblyTransform.scale ?? 1);
+    uniforms.structureManifestationAmount.value = frame.reducedMotion
+      ? 0
+      : Number(assemblyParameters.structureManifestationAmount ?? 0.72);
+    uniforms.structureAmbientAmount.value = frame.reducedMotion
+      ? 0
+      : Number(assemblyParameters.structureAmbientAmount ?? 0.055);
+    uniforms.structureAmbientSpeed.value = Number(
+      assemblyParameters.structureAmbientSpeed ?? 0.28,
+    );
     uniforms.pointSize.value = frame.globals.pointMaterial.pointSize * mobileBodyScale;
     uniforms.fromPointSizeScale.value = Number(fromWorld.transform?.pointSizeScale ?? 1);
     uniforms.toPointSizeScale.value = Number(toWorld.transform?.pointSizeScale ?? 1);
-    uniforms.fromResponsivePresence.value = fromTransformScratch.responsiveMaterial.presenceRatio;
-    uniforms.toResponsivePresence.value = toTransformScratch.responsiveMaterial.presenceRatio;
+    uniforms.fromResponsivePresence.value = fromTransformScratch.worldTransform.presenceRatio;
+    uniforms.toResponsivePresence.value = toTransformScratch.worldTransform.presenceRatio;
+    uniforms.fromLongAssembly.value = fromWorld.shapeId === 'long-assembly-corridor-v1' ? 1 : 0;
+    uniforms.toLongAssembly.value = toWorld.shapeId === 'long-assembly-corridor-v1' ? 1 : 0;
     uniforms.fieldOpacity.value = frame.globals.pointMaterial.opacity;
     const requestedVisibility = Number(frame.simulation?.visibility ?? 1);
     const simulationVisibility = Number.isFinite(requestedVisibility)
@@ -2479,11 +2794,18 @@ function createPointFieldAdapter({
     uniforms.toBust.value = toWorld.shapeId === 'bust-v1' ? 1 : 0;
     uniforms.bustYaw.value = bustYaw;
     const bustAssemblyWorld = toWorld.shapeId === 'bust-v1' ? toWorld : fromWorld;
+    const bustAssemblyIndex = getComposerEffectIndex(
+      frame,
+      bustAssemblyWorld,
+      'bust-assembly-v1',
+    );
     const bustAssemblySlot = getComposerEffect(frame, bustAssemblyWorld, 'bust-assembly-v1');
     const bustAssembly = bustAssemblySlot && typeof bustAssemblySlot === 'object'
       ? bustAssemblySlot
       : DEFAULT_BUST_ASSEMBLY;
-    uniforms.bustAssemblyWeight.value = bustAssemblySlot === false ? 0 : 1;
+    uniforms.bustAssemblyWeight.value = bustAssemblyIndex < 0
+      ? 1
+      : Number(frame.composerEffects.weight[bustAssemblyIndex] || 0);
     uniforms.bustSurfaceRiseWeight.value = bustAssembly.formationMode === 'surface-rise' ? 1 : 0;
     uniforms.bustBuildBaseStart.value = Number(bustAssembly.baseStart ?? DEFAULT_BUST_ASSEMBLY.baseStart);
     uniforms.bustBuildHeadStart.value = Number(bustAssembly.headStart ?? DEFAULT_BUST_ASSEMBLY.headStart);
@@ -2503,20 +2825,6 @@ function createPointFieldAdapter({
     if (bustYaw !== lastBustShaderYaw) {
       root.dataset.worldBustShaderYaw = bustYaw.toFixed(5);
       lastBustShaderYaw = bustYaw;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    uniforms.disciplineFocus.value = Number(frame.editorialSignals?.disciplineFocus || 0);
-    uniforms.gridInfluence.value = frame.reducedMotion
-      ? 0
-      : Number(frame.editorialSignals?.gridInfluence || 0);
-    if (uniforms.disciplineFocus.value !== lastGroupFocus) {
-      root.dataset.worldGroupFocus = String(uniforms.disciplineFocus.value);
-      lastGroupFocus = uniforms.disciplineFocus.value;
-      runtimeObserver.hotFrameDomWrite();
-    }
-    if (uniforms.gridInfluence.value !== lastGridInfluence) {
-      root.dataset.worldGridInfluence = uniforms.gridInfluence.value.toFixed(4);
-      lastGridInfluence = uniforms.gridInfluence.value;
       runtimeObserver.hotFrameDomWrite();
     }
     const activeInteraction = frame.interactions?.activeInteraction;
@@ -2550,8 +2858,6 @@ function createPointFieldAdapter({
       targetTransformElements[12],
       targetTransformElements[14],
     );
-    updateDisciplineReveal(frame, fromWorld, toWorld);
-
     const interactionEnabled = interactionPairReady
       && interactionTargetParticipates
       && bustController.interactive
@@ -2614,6 +2920,63 @@ function createPointFieldAdapter({
     dragStart = null;
     dragging = false;
   };
+  const handlePressurePointerMove = (event) => {
+    pointerPressure.setPointerFromClient(
+      event.clientX,
+      event.clientY,
+      event.pointerType || 'mouse',
+      event.buttons,
+      performance.now(),
+    );
+    cameraPointerPan.setPointerFromClient(
+      event.clientX,
+      event.clientY,
+      event.pointerType || 'mouse',
+      event.buttons,
+    );
+  };
+  const handlePressurePointerDown = (event) => {
+    if (event.pointerType && event.pointerType !== 'mouse') return;
+    pointerPressure.setDirectManipulation(true);
+    cameraPointerPan.setPointerFromClient(
+      event.clientX,
+      event.clientY,
+      event.pointerType || 'mouse',
+      event.buttons || 1,
+    );
+  };
+  const handlePressurePointerEnd = (event) => {
+    pointerPressure.setDirectManipulation(false);
+    if (!event?.pointerType || event.pointerType === 'mouse') {
+      cameraPointerPan.setPointerFromClient(
+        event?.clientX,
+        event?.clientY,
+        event?.pointerType || 'mouse',
+        0,
+      );
+    }
+  };
+  const handlePressurePointerLeave = (event) => {
+    pointerPressure.setPointerOutside(event.pointerType || 'mouse');
+    cameraPointerPan.setPointerOutside(event.pointerType || 'mouse');
+  };
+  const handlePressureWindowBlur = () => {
+    pointerPressure.setPointerOutside();
+    cameraPointerPan.setPointerOutside();
+  };
+  const handlePressureVisibilityChange = () => {
+    if (document.hidden) {
+      pointerPressure.clear(pointerPressureSample);
+      cameraPointerPan.clear(cameraPointerPanSample);
+      cameraSteadycamSample.initialized = false;
+    }
+  };
+  const handleFinePointerChange = () => {
+    if (!finePointerQuery.matches) {
+      pointerPressure.clear(pointerPressureSample);
+      cameraPointerPan.clear(cameraPointerPanSample);
+    }
+  };
   const handleKeyDown = (event) => {
     if (interaction.dataset.active !== 'true') return;
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -2660,6 +3023,14 @@ function createPointFieldAdapter({
   });
   themeObserver.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   window.addEventListener('resize', resize, { passive: true });
+  root.addEventListener('pointermove', handlePressurePointerMove, { passive: true });
+  root.addEventListener('pointerdown', handlePressurePointerDown, { passive: true });
+  root.addEventListener('pointerleave', handlePressurePointerLeave, { passive: true });
+  window.addEventListener('pointerup', handlePressurePointerEnd, { passive: true });
+  window.addEventListener('pointercancel', handlePressurePointerEnd, { passive: true });
+  window.addEventListener('blur', handlePressureWindowBlur);
+  document.addEventListener('visibilitychange', handlePressureVisibilityChange);
+  finePointerQuery.addEventListener('change', handleFinePointerChange);
   interaction.addEventListener('pointerdown', handlePointerDown);
   interaction.addEventListener('pointermove', handlePointerMove, { passive: false });
   interaction.addEventListener('pointerup', handlePointerEnd);
@@ -2796,6 +3167,26 @@ function createPointFieldAdapter({
     retryPreparation: preparationController.retryPreparation,
     setVisible: preparationController.setVisible,
     getDiagnosticsSnapshot: getRuntimeDiagnosticsSnapshot,
+    getPointerPressureSnapshot: pointerPressure.getSnapshot,
+    getCameraPointerPanSnapshot: cameraPointerPan.getSnapshot,
+    getCameraSteadycamSnapshot: () => cameraSteadycam.getSnapshot(cameraSteadycamSample),
+    getOceanImpulseSnapshot: () => {
+      const elapsedMs = performance.now() - oceanImpulseStartedAt;
+      const active = Number.isFinite(elapsedMs)
+        && elapsedMs >= 0
+        && elapsedMs <= OCEAN_IMPULSE_DURATION_MS;
+      return {
+        active,
+        generation: oceanImpulseGeneration,
+        progress: active ? Math.min(1, elapsedMs / OCEAN_IMPULSE_DURATION_MS) : 0,
+      };
+    },
+    triggerOceanImpulse: () => {
+      oceanImpulseStartedAt = performance.now();
+      oceanImpulseGeneration += 1;
+      root.dataset.oceanImpulseGeneration = String(oceanImpulseGeneration);
+      return oceanImpulseGeneration;
+    },
     subscribeDiagnostics: diagnostics.subscribe,
     resetPerformanceMetrics: runtimeObserver.reset,
     resetHotFrameMetrics: runtimeObserver.resetHotFrameMetrics,
@@ -2836,6 +3227,14 @@ function createPointFieldAdapter({
     responsivePreviewObserver.disconnect();
     themeObserver.disconnect();
     window.removeEventListener('resize', resize);
+    root.removeEventListener('pointermove', handlePressurePointerMove);
+    root.removeEventListener('pointerdown', handlePressurePointerDown);
+    root.removeEventListener('pointerleave', handlePressurePointerLeave);
+    window.removeEventListener('pointerup', handlePressurePointerEnd);
+    window.removeEventListener('pointercancel', handlePressurePointerEnd);
+    window.removeEventListener('blur', handlePressureWindowBlur);
+    document.removeEventListener('visibilitychange', handlePressureVisibilityChange);
+    finePointerQuery.removeEventListener('change', handleFinePointerChange);
     interaction.removeEventListener('pointerdown', handlePointerDown);
     interaction.removeEventListener('pointermove', handlePointerMove);
     interaction.removeEventListener('pointerup', handlePointerEnd);
@@ -2888,13 +3287,8 @@ function createPointFieldAdapter({
     delete root.dataset.worldRendererPrepareMs;
     delete root.dataset.worldBufferRebuilds;
     delete root.dataset.worldBustShaderYaw;
-    delete root.dataset.worldDisciplineVisible;
-    delete root.dataset.worldDisciplineLabels;
-    delete root.dataset.worldDisciplineFormationColumn;
-    delete root.dataset.worldDisciplineFormationRow;
-    delete root.dataset.worldGridBackground;
     delete root.dataset.worldVisibility;
-    delete root.dataset.aboutDisciplineBallFinish;
+    delete root.dataset.aboutPointMaterialFinish;
     delete root.dataset.aboutPointMaterialPolicy;
     delete root.dataset.aboutPointMaterialThresholdPx;
     root.style.removeProperty('--narrative-bust-yaw');
@@ -2904,7 +3298,6 @@ function createPointFieldAdapter({
 export function AboutNarrativePointWorld3D({
   rootRef,
   interactionRef,
-  disciplineOverlayRef,
   runtimeRef,
   pointProfile = '',
   layoutProfile = '',
@@ -2931,7 +3324,6 @@ export function AboutNarrativePointWorld3D({
           canvas,
           root,
           interaction,
-          disciplineOverlayRef,
           runtimeRef,
           pointProfile,
           layoutProfile,
@@ -3016,7 +3408,7 @@ export function AboutNarrativePointWorld3D({
       window.clearTimeout(setupTimer);
       disposeAdapter?.();
     };
-  }, [disciplineOverlayRef, interactionRef, layoutProfile, pointProfile, rootRef, runtimeRef]);
+  }, [interactionRef, layoutProfile, pointProfile, rootRef, runtimeRef]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;
 }

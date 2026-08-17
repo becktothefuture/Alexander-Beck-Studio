@@ -1,21 +1,45 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "mccann",
   "title": "McCann",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
-  "readiness": {"sourceCoverage": "partial", "interviewStatus": "not_started", "mediaCoverage": "not_started", "copyStatus": "blocked_missing_facts"},
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "McCann", "status": "candidate", "sourceClaimIds": ["claim-mccann-001"]},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": "MRM (McCann)", "status": "candidate", "sourceClaimIds": ["claim-mccann-001"]},
+    "formalRole": {"value": "Associate Design Director", "status": "candidate", "sourceClaimIds": ["claim-mccann-001"]},
+    "projectType": {"value": ["Brand website", "Digital identity", "Implementation prototype"], "status": "candidate", "sourceClaimIds": ["claim-mccann-003", "claim-mccann-009", "claim-mccann-014", "claim-mccann-015"]},
+    "timeframe": {"start": "2025", "end": "2025", "yearLabel": "2025", "duration": null, "precision": "year", "status": "candidate", "sourceClaimIds": ["claim-mccann-013"]}
+  },
+  "readiness": {"sourceCoverage": "partial", "interviewStatus": "partial", "mediaCoverage": "not_started", "copyStatus": "blocked_missing_facts"},
+  "bodiesOfWork": [
+    {"id": "work-mccann-global-website", "title": "Global brand website", "storyRole": "primary", "status": "candidate", "summary": "Typography-led website and motion language developed as a deliberately restrained expression of McCann's renewed identity.", "sourceClaimIds": ["claim-mccann-003", "claim-mccann-004", "claim-mccann-009", "claim-mccann-014", "claim-mccann-015"]},
+    {"id": "work-mccann-nordics", "title": "McCann Nordics website work", "storyRole": "supporting", "status": "candidate", "summary": "Earlier Webflow-oriented Nordics work involving templates, responsive navigation, loading, video, and brand assets.", "sourceClaimIds": ["claim-mccann-016"]}
+  ],
+  "disciplines": [
+    {"name": "Experience Design", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-mccann-005", "claim-mccann-012"]},
+    {"name": "Art Direction", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-mccann-005", "claim-mccann-012"]},
+    {"name": "Creative Engineering", "emphasis": "primary", "status": "confirmed", "sourceClaimIds": ["claim-mccann-005", "claim-mccann-006", "claim-mccann-012"]},
+    {"name": "Motion", "emphasis": "supporting", "status": "confirmed", "sourceClaimIds": ["claim-mccann-005", "claim-mccann-012"]}
+  ],
+  "collaborators": [
+    {"id": "collab-mccann-001", "name": "Daryl Lee", "type": "person", "role": "CEO", "contribution": "Leadership review and direction refinement.", "status": "confirmed", "sourceClaimIds": ["claim-mccann-008"], "publicCreditStatus": "unknown"},
+    {"id": "collab-mccann-002", "name": "Creative Director", "type": "person", "role": "Creative Director; name unresolved", "contribution": "Creative direction and refinement of the restraint and presentation model.", "status": "candidate", "sourceClaimIds": ["claim-mccann-008"], "publicCreditStatus": "unknown"},
+    {"id": "collab-mccann-003", "name": "McCann leadership", "type": "team", "role": "Leadership stakeholders", "contribution": "Collaborative review of how much interface and motion the experience needed.", "status": "confirmed", "sourceClaimIds": ["claim-mccann-008"], "publicCreditStatus": "unknown"},
+    {"id": "collab-mccann-004", "name": "James", "type": "person", "role": "Role and surname unresolved", "contribution": "Discussion lead for unresolved implementation and design-refinement items.", "status": "candidate", "sourceClaimIds": ["claim-mccann-018"], "publicCreditStatus": "unknown"}
+  ],
   "workingHypotheses": [
-    "The supplied files confirm MRM (McCann) as an employer but do not identify the separate McCann project intended for the portfolio."
+    "The current evidence points to a restrained global brand website, but the relationship between the earlier McCann Nordics work and the later website remains unresolved."
   ],
   "organisingIdea": {
-    "statement": "A single restrained interaction can give a website a memorable identity more effectively than a feature-heavy experience.",
-    "status": "hypothesis",
-    "evidenceBasis": "interview_needed",
-    "sourceClaimIds": [],
-    "lastReviewed": "2026-07-17"
+    "statement": "Express McCann's renewed creative confidence through deliberate restraint, allowing typography, motion, and the work itself to replace most conventional interface.",
+    "status": "candidate",
+    "evidenceBasis": "source_backed",
+    "sourceClaimIds": ["claim-mccann-003", "claim-mccann-004", "claim-mccann-007", "claim-mccann-011"],
+    "lastReviewed": "2026-08-07"
   },
   "claims": [
     {
@@ -44,16 +68,235 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "This is an employment timeline, not a project timeline."
+    },
+    {
+      "id": "claim-mccann-003",
+      "category": "brief",
+      "statement": "The website needed to express McCann's renewed global identity while keeping the agency's work dominant.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Round 1 / Q1"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "The exact McCann organisation and formal project title remain unresolved."
+    },
+    {
+      "id": "claim-mccann-004",
+      "category": "decision",
+      "statement": "Typography, native scrolling, large media, and very limited navigation replaced feature-heavy agency-site patterns.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Round 1 / Q1 / follow-up; Round 1 / Q2"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "The direction was an opinionated creative position, not a measured optimisation."
+    },
+    {
+      "id": "claim-mccann-005",
+      "category": "hands_on",
+      "statement": "Alexander worked across UX, information architecture, interaction, motion, art direction, Figma and Webflow prototyping, Webflow implementation, animation, and code.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [
+        {"sourceId": "src-20260807-001", "locator": "Round 1 / Q3 / UX through Development"},
+        {"sourceId": "src-20260807-002", "locator": "Disciplines involved; Confirmed contribution"}
+      ],
+      "confirmedBy": "Alexander Beck, interviews recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Named contribution boundaries with the wider team still need confirmation."
+    },
+    {
+      "id": "claim-mccann-006",
+      "category": "hands_on",
+      "statement": "A tokenised design system supported the responsive Webflow implementation.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-002", "locator": "Disciplines involved; Confirmed contribution"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": null
+    },
+    {
+      "id": "claim-mccann-007",
+      "category": "collaboration",
+      "statement": "Building the complete experience in Webflow early allowed leadership to experience and refine the restraint instead of discussing it only through static designs.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Round 1 / Q3 / Prototyping; Most valuable material / Strongest anecdote"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": null
+    },
+    {
+      "id": "claim-mccann-008",
+      "category": "team",
+      "statement": "Alexander developed and refined the direction with a Creative Director, Daryl Lee, and wider McCann leadership.",
+      "status": "confirmed",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Round 1 / Q4"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "The Creative Director and implementation team remain unnamed."
+    },
+    {
+      "id": "claim-mccann-009",
+      "category": "delivery_status",
+      "statement": "The website and motion language shipped, and the Webflow prototype became a basis for implementation in another CMS.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Evidence or outcome; Delivery boundaries / Shipped"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Confirm the production CMS, URL, launch date, and exact shipped scope."
+    },
+    {
+      "id": "claim-mccann-010",
+      "category": "outcome",
+      "statement": "The project established a presentation model for showing McCann work under the renewed brand.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Evidence or outcome"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "This is a stakeholder and design interpretation, not a measured audience outcome."
+    },
+    {
+      "id": "claim-mccann-011",
+      "category": "reflection",
+      "statement": "The direction was judged through creative conviction and stakeholder experience rather than formal user testing.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-001", "locator": "Round 1 / Q2"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Do not claim that user testing validated the direction."
+    },
+    {
+      "id": "claim-mccann-012",
+      "category": "role",
+      "statement": "Experience Design, Art Direction, and Creative Engineering are the primary portfolio disciplines; Motion is supporting, while project-specific 3D remains unverified.",
+      "status": "confirmed",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-002", "locator": "Portfolio taxonomy; Disciplines involved"}],
+      "confirmedBy": "Alexander Beck, interview recorded 2026-08-05",
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "The raw combined label was Motion & 3D. Only Motion is evidenced for this project."
+    },
+    {
+      "id": "claim-mccann-013",
+      "category": "timeline",
+      "statement": "The indexed McCann website work is documented during 2025, with Nordics notes in January and the later global website and migration notes from October to November.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / Note: McCann Website; McCann / McCann Nordics source leads; McCann / Note: Webflow → Umbraco: Migration Approach"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "notes": "Note dates establish evidence chronology, not exact project start and end dates."
+    },
+    {
+      "id": "claim-mccann-014",
+      "category": "decision",
+      "statement": "The website translated the renewed identity through declarative Futura typography, functional Inter text, black and white with Truth Blue, disciplined grids, and selective expressive gradients.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / Note: McCann Website"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Supports the interview's bold-restraint framing."
+    },
+    {
+      "id": "claim-mccann-015",
+      "category": "delivery_status",
+      "statement": "Webflow was used as an interactive prototype, while the documented production approach translated content and interactions into Umbraco, Razor templates, GSAP, CSS, and vanilla JavaScript.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / Note: Webflow → Umbraco: Migration Approach"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "This documents the migration approach but does not prove exact launch parity."
+    },
+    {
+      "id": "claim-mccann-016",
+      "category": "project_identity",
+      "statement": "Separate January 2025 McCann Nordics notes describe Webflow template, responsive navigation, loader, video, colour-variable, typography, and asset work.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / McCann Nordics source leads"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-nordics"],
+      "notes": "Confirm whether this belongs inside the public McCann master story."
+    },
+    {
+      "id": "claim-mccann-017",
+      "category": "hands_on",
+      "statement": "Implementation notes cover Vimeo, JSON-driven projects and cards, awards logic, page refinement, accordion behaviour, mobile scrolling, preload behaviour, analytics, cookies, and metadata.",
+      "status": "candidate",
+      "confidence": "medium",
+      "sensitivity": "confidential",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / Note: McCAnn Design Refinement and Bugs"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Confirm which items Alexander personally solved and which belonged to the wider implementation team."
+    },
+    {
+      "id": "claim-mccann-018",
+      "category": "team",
+      "statement": "A collaborator named James is referenced in implementation-refinement notes.",
+      "status": "candidate",
+      "confidence": "low",
+      "sensitivity": "internal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "McCann / Note: McCAnn Design Refinement and Bugs"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-mccann-global-website"],
+      "notes": "Surname, role, and credit are unknown."
     }
   ],
   "conflicts": [],
   "openQuestions": [
     {"id": "q-mccann-001", "category": "project_identity", "question": "Which McCann organisation, website, or initiative was this?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-mccann-002", "category": "brief", "question": "What was the brief, audience, and intended change?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-002", "category": "brief", "question": "What was the brief, audience, and intended change?", "status": "resolved", "answer": "Express the renewed global identity while keeping the work dominant through deliberate restraint.", "sourceIds": ["src-20260807-001"]},
     {"id": "q-mccann-003", "category": "role", "question": "What was Alexander's role, employer context, team, and timeframe?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-mccann-004", "category": "decision", "question": "What was the distinctive interaction or restrained design decision, and why did it matter?", "status": "open", "answer": null, "sourceIds": []},
-    {"id": "q-mccann-005", "category": "permission", "question": "What shipped, where can it be seen, and which images or outcomes are approved for publication?", "status": "open", "answer": null, "sourceIds": []}
+    {"id": "q-mccann-004", "category": "decision", "question": "What was the distinctive interaction or restrained design decision, and why did it matter?", "status": "resolved", "answer": "Typography, native gestures, motion, and large work media replaced most conventional interface so the work remained dominant.", "sourceIds": ["src-20260807-001"]},
+    {"id": "q-mccann-005", "category": "permission", "question": "What shipped, where can it be seen, and which images or outcomes are approved for publication?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-006", "category": "project_identity", "question": "Should McCann Nordics and the later global brand website appear as supporting bodies of work in one McCann master story?", "status": "open", "answer": null, "sourceIds": []},
+    {"id": "q-mccann-007", "category": "team", "question": "Who were the Creative Director, James, developers, and Umbraco implementation contributors, and what did each own?", "status": "open", "answer": null, "sourceIds": []}
   ],
-  "media": [],
-  "interviewRounds": []
+  "media": [
+    {"id": "media-mccann-001", "sourceId": "src-20260807-004", "locator": "McCann / Note: McCann Website", "subject": "McCann identity presentation and website brand studies", "storyUse": "Establish the visual ingredients behind bold restraint", "status": "candidate", "permissionStatus": "unknown", "notes": "Retrieve selected original assets; the Notes attachment is not copied."},
+    {"id": "media-mccann-002", "sourceId": "src-20260807-004", "locator": "McCann / Note: McCAnn Design Refinement and Bugs", "subject": "JSON-driven project, card, awards, and responsive implementation states", "storyUse": "Show the implementation beneath the simple surface", "status": "candidate", "permissionStatus": "unknown", "notes": "Identify safe visual evidence."},
+    {"id": "media-mccann-003", "sourceId": "src-20260807-004", "locator": "McCann / McCann Nordics source leads", "subject": "McCann Nordics Webflow and responsive studies", "storyUse": "Possible supporting body of work", "status": "candidate", "permissionStatus": "unknown", "notes": "Use only if the Nordics work is confirmed as part of the master story."}
+  ],
+  "interviewRounds": [
+    {"id": "interview-mccann-001", "sourceId": "src-20260807-001", "date": "2026-08-05", "status": "ingested", "bodiesOfWorkDiscussed": ["work-mccann-global-website"], "notes": "Voice-derived; important wording requires confirmation."},
+    {"id": "interview-mccann-002", "sourceId": "src-20260807-002", "date": "2026-08-05", "status": "ingested", "bodiesOfWorkDiscussed": ["work-mccann-global-website"], "notes": "Taxonomy addendum. Interaction-design wording and project-specific 3D remain qualified."}
+  ]
 }

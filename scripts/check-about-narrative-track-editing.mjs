@@ -25,6 +25,7 @@ import {
   distributeAboutNarrativeTextFieldsEvenly,
   duplicateAboutNarrativeTrackObjects,
   getAboutNarrativeActiveWorld,
+  getAboutNarrativeTextStoryDurationWU,
   getAboutNarrativeTrackObject,
   getAboutNarrativeTrackObjectRange,
   moveAboutNarrativeTrackObjectsByWU,
@@ -33,6 +34,7 @@ import {
   resizeAboutNarrativeInteractionEdge,
   resizeAboutNarrativeTextFieldEdge,
   resizeAboutNarrativeWorldEnd,
+  synchronizeAboutNarrativeDurationToText,
   validateAboutNarrativeTrackClipboardPayload,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackEditing.js';
 
@@ -56,7 +58,7 @@ function createCameraSampleTarget() {
 }
 
 function createAuthoredCameraEasingFixture() {
-  return canonical.tracks.camera.keys.map((key, index) => ({
+  return canonical.tracks.camera.moveKeys.map((key, index) => ({
     ...structuredClone(key),
     position: [index * 10, 0, 0],
     rotation: [0, 0, 0],
@@ -259,7 +261,7 @@ test('every authored Camera key controls its own incoming arrival and outgoing d
   assert.deepEqual(boundaryKeys.map((key) => key.easing), boundaryEasings);
 });
 
-test('one or many Text fields move in absolute WU and leave every unrelated track byte-identical', () => {
+test('Text fields keep authored order while leaving every unrelated track byte-identical', () => {
   const model = createFixture();
   const before = {
     camera: bytes(model.tracks.camera),
@@ -279,8 +281,10 @@ test('one or many Text fields move in absolute WU and leave every unrelated trac
     deltaWU: 0.335,
   });
   assert.equal(result.valid, true);
-  assert.equal(getAboutNarrativeTrackObject(result.model, { type: 'text-field', id: 'text-intro' }).focusWU, 1.835);
-  assert.equal(getAboutNarrativeTrackObject(result.model, { type: 'text-field', id: 'text-follow' }).focusWU, 2.835);
+  assert.equal(result.deltaWU, 0.2);
+  assert.equal(result.clamped, true);
+  assert.equal(getAboutNarrativeTrackObject(result.model, { type: 'text-field', id: 'text-intro' }).focusWU, 1.7);
+  assert.equal(getAboutNarrativeTrackObject(result.model, { type: 'text-field', id: 'text-follow' }).focusWU, 2.7);
   assert.equal(bytes(result.model.tracks.camera), before.camera);
   assert.equal(bytes(result.model.tracks.worlds), before.worlds);
   assert.equal(bytes(result.model.tracks.interactions), before.interactions);
@@ -305,6 +309,8 @@ test('Text animation windows keep their duration, distribute evenly, and extend 
 
   const textDriven = createFixture();
   const finale = textDriven.tracks.text.fields.at(-1);
+  finale.kind = 'title';
+  finale.publishable = true;
   finale.startWU = 9;
   finale.focusWU = 9.5;
   finale.endWU = 10;
@@ -324,6 +330,52 @@ test('Text animation windows keep their duration, distribute evenly, and extend 
   assert.equal(extended.model.tracks.interactions.clips[0].parameters.releaseWU, 0.5);
   assert.equal(extended.model.tracks.interactions.clips[0].parameters.speed, 1);
   assert.equal(extended.model.tracks.text.fields.at(-1).endWU, 12);
+});
+
+test('v7 Text owns page length and carries only story-bound animation endpoints with it', () => {
+  const model = structuredClone(canonical);
+  const previousDurationWU = model.profiles.desktop.storyDurationWU;
+  const finale = model.tracks.text.fields.find((field) => field.id === 'text-epilogue-invitation');
+  finale.endWU = 24;
+
+  synchronizeAboutNarrativeDurationToText(model, previousDurationWU);
+
+  assert.equal(getAboutNarrativeTextStoryDurationWU(model), 24);
+  assert.equal(model.profiles.desktop.storyDurationWU, 24);
+  assert.equal(model.profiles.tablet.storyDurationWU, 24);
+  assert.equal(model.profiles.mobile.storyDurationWU, 24);
+  assert.equal(model.profiles.mobile.scrollDurationWU, 24.763636);
+  assert.equal(model.tracks.camera.orbit.endWU, 24);
+  assert.equal(model.tracks.pointField.keys.at(-1).atWU, 24);
+  assert.equal(model.tracks.visibility.keys.at(-1).atWU, 24);
+  assert.equal(
+    model.tracks.interactions.clips.find((clip) => clip.id === 'effect-world-emergent-bust-assembly').endWU,
+    24,
+  );
+  assert.equal(
+    model.tracks.pointField.keys.find((key) => key.id === 'key-world-emergent-arrival').atWU,
+    21.4,
+    'Interior animation timing stays independently editable.',
+  );
+});
+
+test('v7 Text spine rejects temporal and structural timeline edits', () => {
+  const text = canonical.tracks.text.fields.find((field) => field.publishable !== false);
+  const selection = { type: 'text-field', id: text.id };
+  const clipboard = createAboutNarrativeTrackClipboardPayload({ model: canonical, selection });
+  const results = [
+    moveAboutNarrativeTrackObjectsByWU({ model: canonical, selection, deltaWU: 0.1 }),
+    resizeAboutNarrativeTextFieldEdge({ model: canonical, id: text.id, edge: 'end', atWU: text.endWU + 0.1 }),
+    distributeAboutNarrativeTextFieldsEvenly({ model: canonical }),
+    createAboutNarrativeTitleAtWU({ model: canonical, atWU: 1 }),
+    deleteAboutNarrativeTrackObjects({ model: canonical, selection }),
+    duplicateAboutNarrativeTrackObjects({ model: canonical, selection }),
+    pasteAboutNarrativeTrackClipboardPayload({ model: canonical, payload: clipboard, atWU: 1 }),
+  ];
+  results.forEach((result) => {
+    assert.equal(result.valid, false);
+    assert.equal(result.code, 'text-spine-fixed');
+  });
 });
 
 test('World, Camera travel, Camera tilt, and Visibility movement shifts only selected timing while camera boundaries stay editable', () => {
@@ -395,6 +447,15 @@ test('Text edge resizing preserves focus ordering and clamps to the Story range'
   assert.equal(end.valid, true);
   assert.equal(end.object.endWU, 1.5);
   assert.equal(end.clamped, true);
+  const neighbour = resizeAboutNarrativeTextFieldEdge({
+    model,
+    id: 'text-intro',
+    edge: 'end',
+    atWU: 2.6,
+  });
+  assert.equal(neighbour.valid, true);
+  assert.equal(neighbour.object.endWU, 2.2);
+  assert.equal(neighbour.clamped, true);
   assert.equal(resizeAboutNarrativeTextFieldEdge({ model, id: 'text-intro', edge: 'focus', atWU: 2 }).valid, false);
 });
 
@@ -483,9 +544,9 @@ test('World end resizing clamps protected boundaries and rejects locked or final
 
 test('Title, Scroll block, Stub, Camera travel, Camera tilt, Visibility, World, and Interaction creation uses independent IDs and absolute WU', () => {
   const model = createFixture();
-  const title = createAboutNarrativeTitleAtWU({ model, atWU: 2 });
+  const title = createAboutNarrativeTitleAtWU({ model, atWU: 0.5 });
   assert.equal(title.valid, true);
-  assert.deepEqual([title.object.startWU, title.object.focusWU, title.object.endWU], [1.88, 2, 2.12]);
+  assert.deepEqual([title.object.startWU, title.object.focusWU, title.object.endWU], [0.38, 0.5, 0.62]);
   assert.equal(title.object.publishable, true);
 
   const scroll = createAboutNarrativeScrollBlockAtWU({ model, atWU: 5.25 });
@@ -500,7 +561,7 @@ test('Title, Scroll block, Stub, Camera travel, Camera tilt, Visibility, World, 
   assert.equal(camera.valid, true);
   assert.equal(camera.object.atWU, 2);
   assert.deepEqual(camera.object.position, [1, 2, 3]);
-  assert.deepEqual(camera.object.rotation, [0, 0, 0]);
+  assert.equal('rotation' in camera.object, false, 'Camera Move does not duplicate Camera Look.');
   assert.equal('distanceFogStartWU' in camera.object, false);
 
   const cameraTilt = createAboutNarrativeCameraOrientationKeyAtWU({
@@ -579,12 +640,8 @@ test('delete and duplicate validate the complete graph and preserve unrelated tr
     selection: { type: 'text-field', id: 'text-intro' },
     offsetWU: 0.4,
   });
-  assert.equal(duplicate.valid, true);
-  assert.notEqual(duplicate.objects[0].id, 'text-intro');
-  assert.deepEqual([duplicate.objects[0].startWU, duplicate.objects[0].focusWU, duplicate.objects[0].endWU], [1.4, 1.9, 2.4]);
-  assert.equal(bytes(duplicate.model.tracks.camera), bytes(model.tracks.camera));
-  assert.equal(bytes(duplicate.model.tracks.worlds), bytes(model.tracks.worlds));
-  assert.equal(bytes(duplicate.model.tracks.interactions), bytes(model.tracks.interactions));
+  assert.equal(duplicate.valid, false);
+  assert.equal(duplicate.code, 'text-sequence-order');
 
   const visibilityDuplicate = duplicateAboutNarrativeTrackObjects({
     model,

@@ -19,7 +19,6 @@ import {
   resizeAboutNarrativeInteractionEdge,
   resizeAboutNarrativeTextFieldEdge,
   resizeAboutNarrativeWorldEnd,
-  synchronizeAboutNarrativeDurationToText,
   validateAboutNarrativeTrackClipboardPayload,
 } from './aboutNarrativeTrackEditing.js';
 
@@ -783,13 +782,13 @@ export function createAboutNarrativeTrackEditorStore(initialDocument, {
     setTextTiming(id, field, value) {
       if (gesture || tryState) return rejectBusyEdit('Edit Text timing');
       if (!['startWU', 'endWU'].includes(field) || !Number.isFinite(Number(value))) return false;
-      const previousDurationWU = Number(snapshot.document.profiles?.desktop?.storyDurationWU);
-      return store.commit('Edit Text timing', (draft) => {
-        const target = getAboutNarrativeTrackObject(draft, { type: 'text-field', id });
-        if (!target) return;
-        target[field] = Number(value);
-        synchronizeAboutNarrativeDurationToText(draft, previousDurationWU);
-      }, { selectionAfter: { type: 'text-field', id }, requireValid: true });
+      return applyOperation('Edit Text timing', resizeAboutNarrativeTextFieldEdge({
+        model: snapshot.document,
+        id,
+        edge: field === 'startWU' ? 'start' : 'end',
+        atWU: Number(value),
+        snap: false,
+      }));
     },
     deleteSelection() {
       if (gesture || tryState) return rejectBusyEdit('Delete track objects');

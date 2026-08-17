@@ -2,8 +2,7 @@ import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
 } from './aboutNarrativeCorrespondenceRegistry.js';
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
-  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
+  ABOUT_NARRATIVE_DISCIPLINE_LAYOUT_DEFAULTS,
   getAboutNarrativeDisciplinePosition,
 } from './aboutNarrativeDisciplinePositions.js';
 export { ABOUT_NARRATIVE_CORRESPONDENCE_MODES };
@@ -80,7 +79,7 @@ export function getAboutNarrativeDisciplineAnchors(pointProfile = 'desktop', par
     return Object.freeze([...parameters.items]
       .sort((left, right) => Number(left.group) - Number(right.group))
       .map((item) => {
-        const [x, y] = getAboutNarrativeDisciplinePosition(item, layoutProfile);
+        const [x, y] = getAboutNarrativeDisciplinePosition(item, layoutProfile, parameters);
         return Object.freeze({ group: Number(item.group), x, y });
       }));
   }
@@ -141,6 +140,20 @@ function numberControl(id, label, min, max, step, unit = '', group = '') {
   return Object.freeze({ id, label, type: 'range', min, max, step, unit, group });
 }
 
+function derivedNumberControl(id, label, min, max, step, unit = '', group = '') {
+  return Object.freeze({
+    id,
+    label,
+    type: 'range',
+    min,
+    max,
+    step,
+    unit,
+    group,
+    derived: true,
+  });
+}
+
 export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'world-setup', label: 'World setup' }),
   Object.freeze({ id: 'world-placement', label: 'Placement & scale' }),
@@ -148,6 +161,11 @@ export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'shape-dimensions', label: 'Shape · Dimensions' }),
   Object.freeze({ id: 'shape-distribution', label: 'Shape · Distribution' }),
   Object.freeze({ id: 'shape-surface', label: 'Shape · Surface' }),
+  Object.freeze({ id: 'shape-signal', label: 'Ride · Opening signal' }),
+  Object.freeze({ id: 'shape-hoops', label: 'Ride · Round hoops' }),
+  Object.freeze({ id: 'shape-camera', label: 'Ride · Camera' }),
+  Object.freeze({ id: 'shape-loop', label: 'Ride · Long loop' }),
+  Object.freeze({ id: 'shape-finale', label: 'Ride · Ocean finish' }),
   Object.freeze({ id: 'modifier-formation', label: 'Bust · Assembly' }),
   Object.freeze({ id: 'modifier-fragmentation', label: 'Bust · Fragmentation' }),
   Object.freeze({ id: 'modifier-motion', label: 'Modifiers · Motion' }),
@@ -160,6 +178,7 @@ export const ABOUT_NARRATIVE_TEXT_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'text-layout', label: 'Titles · Layout' }),
   Object.freeze({ id: 'text-path', label: 'Titles · Travel path' }),
   Object.freeze({ id: 'text-clarity', label: 'Titles · Clarity' }),
+  Object.freeze({ id: 'text-draw', label: 'Titles · Draw and fade' }),
   Object.freeze({ id: 'text-shadow', label: 'Titles · Background shadow' }),
   Object.freeze({ id: 'text-depth', label: 'Titles · Depth' }),
   Object.freeze({ id: 'text-editorial', label: 'Content · Shared reveal' }),
@@ -172,8 +191,33 @@ export const ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS = Object.freeze({
 });
 
 export const ABOUT_NARRATIVE_CAMERA_TRACK_CONTROL_GROUPS = Object.freeze([
+  Object.freeze({ id: 'camera-steadicam', label: 'Camera · Steadicam response' }),
   Object.freeze({ id: 'camera-fog', label: 'Camera · Distance fog' }),
 ]);
+
+export const ABOUT_NARRATIVE_SCROLL_SMOOTHING_CONTROL = numberControl(
+  'scrollSmoothing',
+  'Track glide',
+  0,
+  1,
+  0.01,
+);
+
+export const ABOUT_NARRATIVE_CAMERA_STEADICAM_CONTROLS = Object.freeze([
+  numberControl('steadycamResponseMs', 'Track settling', 0, 1200, 20, 'ms'),
+  numberControl('pointerPanDegrees', 'Mouse pan amount', 0, 8, 0.05, '°'),
+  numberControl('pointerPanResponseMs', 'Mouse pan response', 80, 2000, 20, 'ms'),
+]);
+
+export const ABOUT_NARRATIVE_LONG_RIDE_LOOK_AHEAD_CONTROL = numberControl(
+  'cameraLookAheadWU',
+  'Rotation look-ahead',
+  0.35,
+  1.4,
+  0.01,
+  'WU',
+  'shape-camera',
+);
 
 export const ABOUT_NARRATIVE_VISIBILITY_TRACK_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'visibility-material', label: 'Visibility · Point material' }),
@@ -195,6 +239,7 @@ export const ABOUT_NARRATIVE_CAMERA_RIG_CONTROLS = Object.freeze([
   numberControl('rotation.0', 'Rotation X', -90, 90, 0.1, '°', 'rotation'),
   numberControl('rotation.1', 'Rotation Y', -180, 180, 0.1, '°', 'rotation'),
   numberControl('rotation.2', 'Rotation Z', -180, 180, 0.1, '°', 'rotation'),
+  numberControl('rollOffset', 'Additional camera roll', -360, 360, 1, '°', 'ride-roll'),
   numberControl('lookAtTarget.0', 'Anchor X', -40, 40, 0.01, 'WU', 'target'),
   numberControl('lookAtTarget.1', 'Anchor Y', -40, 40, 0.01, 'WU', 'target'),
   numberControl('lookAtTarget.2', 'Anchor Z', -40, 40, 0.01, 'WU', 'target'),
@@ -237,7 +282,7 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'sequence',
     label: 'Sequence',
     controls: Object.freeze([
-      numberControl('scrollSmoothing', 'Scroll smoothing', 0, 1, 0.01),
+      ABOUT_NARRATIVE_SCROLL_SMOOTHING_CONTROL,
       numberControl('readingWidthRem', 'Text corridor width', 30, 90, 1, 'rem', 'text-widths'),
       numberControl('editorialRevealThreshold', 'Reveal starts', 0.8, 1, 0.01, '×H', 'text-editorial'),
     ]),
@@ -252,17 +297,28 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
   Object.freeze({
     id: 'camera',
     label: 'Camera',
-    controls: Object.freeze(ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => Object.freeze({
-      ...control,
-      group: 'camera-fog',
-    }))),
+    controls: Object.freeze([
+      ...ABOUT_NARRATIVE_CAMERA_STEADICAM_CONTROLS.map((control) => Object.freeze({
+        ...control,
+        group: 'camera-steadicam',
+      })),
+      ...ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => Object.freeze({
+        ...control,
+        group: 'camera-fog',
+      })),
+    ]),
   }),
   Object.freeze({
     id: 'material',
-    label: 'Point material',
+    label: 'Point material and pointer pressure',
     controls: Object.freeze([
       numberControl('opacity', 'Opacity', 0.2, 1, 0.01),
       numberControl('pointSize', 'Global point size', 2, 12, 0.1, 'px'),
+      numberControl('pointerRadiusPx', 'Pointer pressure radius', 40, 308, 2, 'px'),
+      numberControl('pointerForcePx', 'Pointer pressure force', 0, 152, 1, 'px'),
+      numberControl('pointerVariation', 'Pointer organic variation', 0, 1.04, 0.01),
+      numberControl('pointerResponseMs', 'Pointer response', 20, 120, 5, 'ms'),
+      numberControl('pointerReturnMs', 'Pointer return', 80, 1200, 10, 'ms'),
     ]),
   }),
   Object.freeze({
@@ -291,6 +347,11 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
       numberControl('readableStart', 'Clear-in point', 0, 1, 0.01, '', 'text-clarity'),
       numberControl('readableEnd', 'Clear-out point', 0, 1, 0.01, '', 'text-clarity'),
       numberControl('maxBlur', 'Maximum blur', 0, 100, 1, 'px', 'text-clarity'),
+      numberControl('titleDrawDurationMs', 'Line colour flash', 80, 500, 10, 'ms', 'text-draw'),
+      numberControl('titleColorCount', 'Draw colour count', 1, 8, 1, '', 'text-draw'),
+      numberControl('titleLineStaggerMs', 'Next-line delay', 0, 400, 10, 'ms', 'text-draw'),
+      numberControl('titleExitOpacity', 'Faded text opacity', 0, 1, 0.01, '', 'text-draw'),
+      numberControl('titleExitLineStagger', 'Fade line stagger', 0, 0.4, 0.01, '', 'text-draw'),
       numberControl('titleShadowOpacity', 'Background shadow opacity', 0, 1, 0.01, '', 'text-shadow'),
       numberControl('titleShadowBlurPx', 'Background shadow blur', 0, 120, 1, 'px', 'text-shadow'),
       numberControl('perspective', 'Perspective', 1400, 3200, 20, 'px', 'text-depth'),
@@ -301,6 +362,49 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
+  'long-assembly-corridor-v1': Object.freeze({
+    id: 'long-assembly-corridor-v1',
+    label: 'Blender World + Ocean',
+    description: 'The edited geometric Blender ride resolves into one vast animated point ocean.',
+    adapterId: 'point-field-v1',
+    cost: 1,
+    parameters: Object.freeze([
+      numberControl('storyDurationWU', 'Story depth', 8, 48, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('widthScale', 'Corridor width', 0.5, 1.6, 0.01, '×', 'shape-dimensions'),
+      numberControl('heightScale', 'Corridor height', 0.5, 1.6, 0.01, '×', 'shape-dimensions'),
+      numberControl('depthScale', 'Landmark spacing', 0.65, 1.35, 0.01, '×', 'shape-dimensions'),
+      ABOUT_NARRATIVE_LONG_RIDE_LOOK_AHEAD_CONTROL,
+      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
+      numberControl('structureManifestationAmount', 'Fog emergence spread', 0, 1.8, 0.01, 'WU', 'shape-distribution'),
+      numberControl('structureAmbientAmount', 'Particle drift amount', 0, 0.3, 0.005, 'WU', 'shape-distribution'),
+      numberControl('structureAmbientSpeed', 'Particle drift speed', 0, 1.5, 0.01, '×', 'shape-distribution'),
+      numberControl('signalRadius', 'Signal radius', 0.7, 3, 0.05, 'WU', 'shape-signal'),
+      numberControl('signalYOffset', 'Signal height', -0.5, 5, 0.05, 'WU', 'shape-signal'),
+      numberControl('hoopRadius', 'Hoop radius', 3, 6, 0.05, 'WU', 'shape-hoops'),
+      numberControl('hoopCount', 'Hoop count', 10, 26, 1, '', 'shape-hoops'),
+      numberControl('loopStartWU', 'Loop begins', 7.6, 9, 0.05, 'WU', 'shape-loop'),
+      numberControl('loopEndWU', 'Loop completes', 12.8, 14.3, 0.05, 'WU', 'shape-loop'),
+      numberControl('loopRadiusX', 'Loop width radius', 6, 14, 0.1, 'WU', 'shape-loop'),
+      numberControl('loopRadiusY', 'Loop height radius', 5, 12, 0.1, 'WU', 'shape-loop'),
+      numberControl('loopRollDegrees', 'Physical loop roll', -720, 720, 5, '°', 'shape-loop'),
+      numberControl('loopGateCount', 'Loop gate count', 14, 30, 1, '', 'shape-loop'),
+      numberControl('terminalDistanceWU', 'Ocean arrival distance', 0.6, 2.4, 0.05, 'WU', 'shape-finale'),
+      numberControl('oceanHeight', 'Ocean height', -8, 2, 0.05, 'WU', 'shape-finale'),
+      numberControl('oceanDensity', 'Ocean density', 0.1, 1, 0.01, '×', 'shape-finale'),
+      numberControl('oceanAmplitude', 'Ocean wave height', 0, 3, 0.01, 'WU', 'shape-finale'),
+      numberControl('oceanSpeed', 'Ocean wave speed', 0, 3, 0.01, '×', 'shape-finale'),
+      numberControl('oceanChop', 'Ocean horizontal chop', 0, 1.6, 0.01, 'WU', 'shape-finale'),
+      numberControl('oceanPointScale', 'Ocean dot size', 0.5, 1.6, 0.01, '×', 'shape-finale'),
+      numberControl('oceanFogDistanceScale', 'Ocean horizon depth', 1, 32, 0.05, '×', 'shape-finale'),
+      numberControl('oceanSplashAmount', 'Splash activity', 0, 1.5, 0.01, '×', 'shape-finale'),
+      numberControl('oceanSplashHeight', 'Splash height', 0, 6, 0.05, 'WU', 'shape-finale'),
+      derivedNumberControl('backgroundAnchorWU', 'Background anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('intersectionAnchorWU', 'Intersection anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('disciplinesAnchorWU', 'Disciplines anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('cityAnchorWU', 'City anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('finaleAnchorWU', 'Finale anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+    ]),
+  }),
   'cluster-v1': Object.freeze({
     id: 'cluster-v1',
     label: 'Cluster',
@@ -321,11 +425,12 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     parameters: Object.freeze([
       numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
       numberControl('height', 'Height', 0.5, 28, 0.1, 'WU', 'shape-dimensions'),
-      numberControl('depth', 'Depth', 1, 56, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depth', 'Depth', 1, 96, 0.1, 'WU', 'shape-dimensions'),
       numberControl('chunkCount', 'Cloud chunks', 3, 32, 1, '', 'shape-distribution'),
       numberControl('chunkSize', 'Chunk size', 0.1, 8, 0.05, 'WU', 'shape-distribution'),
       numberControl('scatter', 'Loose particles', 0, 1.5, 0.01, '', 'shape-distribution'),
       numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
+      numberControl('corridorRadius', 'Reading corridor', 0, 8, 0.05, 'WU', 'shape-distribution'),
       numberControl('turbulence', 'Organic warp', 0, 4, 0.01, 'WU', 'shape-surface'),
     ]),
   }),
@@ -337,7 +442,7 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     cost: 1,
     parameters: Object.freeze([
       numberControl('width', 'Width', 1, 48, 0.1, 'WU', 'shape-dimensions'),
-      numberControl('depth', 'Depth', 1, 56, 0.1, 'WU', 'shape-dimensions'),
+      numberControl('depth', 'Depth', 1, 96, 0.1, 'WU', 'shape-dimensions'),
       numberControl('height', 'Height', -16, 16, 0.05, 'WU', 'shape-dimensions'),
       numberControl('jitter', 'Jitter', 0, 2, 0.005, 'WU', 'shape-distribution'),
       numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
@@ -410,6 +515,94 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     ]),
   }),
 });
+
+function findGlobalControl(ownerId, controlId) {
+  return ABOUT_NARRATIVE_GLOBAL_CONTROLS
+    .find((owner) => owner.id === ownerId)
+    ?.controls.find((control) => control.id === controlId);
+}
+
+function findLongAssemblyControl(controlId) {
+  return ABOUT_NARRATIVE_SHAPE_DEFINITIONS['long-assembly-corridor-v1']
+    .parameters.find((control) => control.id === controlId);
+}
+
+function pageParameter(scope, control, path = null) {
+  if (!control) throw new Error('About V2 page parameter references an unknown control.');
+  return Object.freeze({
+    scope,
+    control,
+    path: Object.freeze(path || [control.id]),
+  });
+}
+
+const globalParameter = (ownerId, controlId, path) => pageParameter(
+  'globals',
+  findGlobalControl(ownerId, controlId),
+  path,
+);
+const rideParameter = (controlId) => pageParameter(
+  'long-assembly',
+  findLongAssemblyControl(controlId),
+);
+
+/**
+ * One page-wide V2 tuning surface assembled from the existing canonical
+ * control definitions. These entries do not create a second schema: they
+ * provide a designer-facing view over the same persisted global and Long
+ * Assembly values used by the timeline inspectors and runtime.
+ */
+export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
+  Object.freeze({
+    id: 'page-camera',
+    label: 'Camera & atmosphere',
+    controls: Object.freeze([
+      globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing']),
+      globalParameter('camera', 'steadycamResponseMs', ['camera', 'steadycamResponseMs']),
+      globalParameter('camera', 'pointerPanDegrees', ['camera', 'pointerPanDegrees']),
+      globalParameter('camera', 'distanceFogStartWU', ['camera', 'distanceFogStartWU']),
+      globalParameter('camera', 'distanceFogEndWU', ['camera', 'distanceFogEndWU']),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-world',
+    label: 'World & corridor',
+    controls: Object.freeze([
+      globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize']),
+      rideParameter('structureManifestationAmount'),
+      rideParameter('depthScale'),
+      rideParameter('signalRadius'),
+      rideParameter('hoopRadius'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-motion',
+    label: 'Living motion',
+    controls: Object.freeze([
+      rideParameter('structureAmbientAmount'),
+      rideParameter('structureAmbientSpeed'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-titles',
+    label: 'Titles and text fades',
+    controls: Object.freeze([
+      globalParameter('textMotion', 'standardViewportY', ['textMotion', 'standardViewportY']),
+      globalParameter('textMotion', 'titleDrawDurationMs', ['textMotion', 'titleDrawDurationMs']),
+      globalParameter('textMotion', 'titleExitOpacity', ['textMotion', 'titleExitOpacity']),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-ocean',
+    label: 'Ocean finish',
+    controls: Object.freeze([
+      rideParameter('oceanDensity'),
+      rideParameter('oceanAmplitude'),
+      rideParameter('oceanSpeed'),
+      rideParameter('oceanFogDistanceScale'),
+    ]),
+  }),
+]);
 
 export const ABOUT_NARRATIVE_MODIFIER_DEFINITIONS = Object.freeze({
   'ambient-drift-v1': Object.freeze({
@@ -540,13 +733,14 @@ export const ABOUT_NARRATIVE_INTERACTION_DEFINITIONS = Object.freeze({
       backgroundOpacity: 0.28,
       pointScale: 4.4,
       restoreDurationWU: 0.8,
+      ...ABOUT_NARRATIVE_DISCIPLINE_LAYOUT_DEFAULTS,
       items: Object.freeze([
-        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[0], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[0] }),
-        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[1], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[1] }),
-        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[2], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[2] }),
-        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[3], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[3] }),
-        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[4], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[4] }),
-        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.', position: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], tabletPosition: ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[5], mobilePosition: ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[5] }),
+        Object.freeze({ group: 1, label: 'Product Design', description: 'I turn ambiguous product problems into interfaces teams can build, test, and improve.' }),
+        Object.freeze({ group: 2, label: 'Experience Design', description: 'I connect user needs, product priorities, and the decisions that shape the journey.' }),
+        Object.freeze({ group: 3, label: 'Art Direction', description: 'I define the visual point of view that gives the work character, clarity, and intent.' }),
+        Object.freeze({ group: 4, label: 'Motion & 3D', description: 'I use motion and spatial prototypes to clarify ideas, interactions, and product stories.' }),
+        Object.freeze({ group: 5, label: 'Creative Engineering', description: 'I prototype with code and AI to move decisions from discussion into working form.' }),
+        Object.freeze({ group: 6, label: 'Parametric Systems', description: 'I build systems of tokens, rules, and patterns that scale without losing character.' }),
       ]),
     }),
     parameters: Object.freeze([

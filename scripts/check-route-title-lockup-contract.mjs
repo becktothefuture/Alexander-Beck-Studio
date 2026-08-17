@@ -14,6 +14,7 @@ const sources = Object.fromEntries(await Promise.all([
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
+  ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
   ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
   ['siteApp', '../react-app/app/src/components/app/SiteApp.jsx'],
@@ -33,14 +34,18 @@ test('every production route lockup consumes the shared title, rule, and descrip
   assert.match(sources.contact, /route-centered-page__title route-bookend-title/);
   assert.match(sources.contact, /route-title-lockup__rule/);
   assert.match(sources.contact, /route-centered-page__description route-intro-description/);
+  assert.match(sources.contact, /<LinkedInAction href=\{linkedin\} soundSource="contact-linkedin"/);
 
   assert.match(sources.playground, /route-centered-page__title route-bookend-title/);
   assert.match(sources.playground, /className="route-title-lockup__rule"/);
   assert.match(sources.playground, /className="route-centered-page__description route-intro-description"/);
 
+  assert.match(sources.aboutComingSoon, /route-centered-page__title route-bookend-title/);
+  assert.match(sources.aboutComingSoon, /id="about-coming-soon-title"/);
   assert.equal((sources.about.match(/route-centered-page__title route-bookend-title/g) || []).length, 2);
   assert.equal((sources.about.match(/route-title-lockup__rule/g) || []).length, 2);
   assert.equal((sources.about.match(/route-centered-page__description route-intro-description/g) || []).length, 2);
+  assert.match(sources.about, /<LinkedInAction[\s\S]*?href=\{ABOUT_NARRATIVE_CONTACT\.linkedin\}/);
 
   assert.match(sources.home, /--home-hero-title-scale: var\(--route-bookend-title-scale\)/);
   assert.match(sources.home, /--home-hero-title-size-scale: 0\.9/);
@@ -73,6 +78,34 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 32ch/);
 });
 
+test('Contact and About share one centred, compact two-action family', () => {
+  assert.match(
+    sources.main,
+    /\.contact-action-stack \{[\s\S]*?--contact-action-height: 44px;[\s\S]*?--contact-action-font-size: 0\.875rem;[\s\S]*?flex-direction: column;[\s\S]*?align-items: center;[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;[\s\S]*?margin-inline: auto;/,
+  );
+  assert.match(
+    sources.main,
+    /\.contact-action-stack__primary,[\s\S]*?\.contact-action-stack__secondary \{[\s\S]*?flex: 0 0 auto;[\s\S]*?width: auto;[\s\S]*?max-width: 100%;/,
+  );
+  assert.match(
+    sources.main,
+    /\.contact-linkedin-action \{[\s\S]*?width: auto;[\s\S]*?height: var\(--contact-action-height\);[\s\S]*?border:[\s\S]*?transparent;[\s\S]*?background: var\(--abs-soft-control-fill\)/,
+  );
+  assert.match(
+    sources.main,
+    /\.contact-linkedin-action \{[\s\S]*?font-size: var\(--contact-action-font-size\);[\s\S]*?font-weight: var\(--abs-weight-regular\);/,
+  );
+  assert.match(sources.main, /\.contact-email-text \{[\s\S]*?font-size: var\(--contact-action-font-size\);/);
+  assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--contact-action-icon-size\);/);
+  assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--contact-action-icon-size\);/);
+  assert.match(
+    sources.aboutStyles,
+    /data-about-experience-version='v2'[\s\S]*?\.about-narrative-finale-content \{[\s\S]*?top: 50%;[\s\S]*?justify-items: center;[\s\S]*?transform: translate3d\(0, -50%, 0\)/,
+  );
+  assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
+  assert.doesNotMatch(sources.aboutStyles, /left: 50%;[\s\S]{0,120}width: 50%/);
+});
+
 test('every production bookend uses one cached paint endpoint and glyph-only travel contract', () => {
   assert.match(sources.homeRoute, /data-canvas-title-source="home"/);
   assert.equal(
@@ -81,6 +114,7 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
   );
   assert.match(sources.portfolio, /heading\.dataset\.routeEnterVariant = 'bookend-title'/);
   assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.about, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.playgroundComingSoon, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.playground, /data-route-enter-variant="bookend-title"/);
@@ -124,10 +158,12 @@ test('bookend palette frames stay fully opaque before their quieter resting endp
   );
 });
 
-test('About readiness resolves from the narrative scene root, not the outer shell container', () => {
+test('About readiness accepts the production gate or the development narrative scene root', () => {
   const readySelector = /\.about-narrative-lab\[data-route-content=["']about["']\]/;
   assert.match(sources.siteApp, readySelector);
   assert.match(sources.routeReadiness, readySelector);
+  assert.match(sources.routeReadiness, /getElementById\('about-coming-soon-title'\)/);
+  assert.match(sources.siteApp, /routeId === 'about' && import\.meta\.env\.DEV/);
 });
 
 test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {

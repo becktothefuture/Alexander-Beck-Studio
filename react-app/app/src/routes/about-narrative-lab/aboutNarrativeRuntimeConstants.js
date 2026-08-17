@@ -53,6 +53,4 @@ export const ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS = Object.freeze([
   Object.freeze({ id: 'toPresence', itemSize: 1, mutable: true }),
   Object.freeze({ id: 'fromPointSize', itemSize: 1, mutable: true }),
   Object.freeze({ id: 'toPointSize', itemSize: 1, mutable: true }),
-  Object.freeze({ id: 'fromGroup', itemSize: 1, mutable: true }),
-  Object.freeze({ id: 'toGroup', itemSize: 1, mutable: true }),
 ]);

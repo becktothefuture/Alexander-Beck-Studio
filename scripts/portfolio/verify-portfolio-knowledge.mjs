@@ -16,8 +16,12 @@ const REQUIRED_PATHS = [
   'SCHEMA.md',
   'EXTRACTION-WORKFLOW.md',
   'INTERVIEW-ROADMAP.md',
+  'VOICE-INTERVIEW-INSTRUCTIONS.md',
+  'VOICE-HANDOFF-TEMPLATE.md',
+  'VOICE-PROJECT-CATALOGUE.md',
   'router.yaml',
   'catalog.json',
+  'candidates.json',
   'sources/index.json',
   'sources/raw/README.md',
   'sources/extracted/README.md',
@@ -85,6 +89,16 @@ const ORGANISING_IDEA_EVIDENCE = new Set(['source_backed', 'interview_needed', '
 const CONFIDENCE_VALUES = new Set(['low', 'medium', 'high']);
 const SENSITIVITY_VALUES = new Set(['public', 'internal', 'confidential', 'personal', 'restricted']);
 const QUESTION_STATUSES = new Set(['open', 'deferred', 'resolved', 'discarded']);
+const METADATA_STATUSES = new Set(['unknown', 'candidate', 'confirmed', 'disputed', 'withheld']);
+const TIMEFRAME_PRECISION = new Set(['unknown', 'exact', 'month', 'year', 'approximate_range']);
+const BODY_STATUSES = new Set(['candidate', 'confirmed', 'disputed', 'withheld']);
+const BODY_STORY_ROLES = new Set(['primary', 'supporting', 'context']);
+const DISCIPLINE_EMPHASIS = new Set(['primary', 'supporting']);
+const COLLABORATOR_TYPES = new Set(['person', 'team', 'organisation']);
+const PUBLIC_CREDIT_STATUSES = new Set(['unknown', 'approved', 'withheld']);
+const INTERVIEW_STATUSES = new Set(['registered', 'ingested', 'needs_review']);
+const REDACTION_STATUSES = new Set(['not_required', 'pending', 'complete']);
+const CANDIDATE_STATUSES = new Set(['unverified', 'indexed_candidate', 'accepted', 'rejected', 'archived']);
 
 function relative(filePath) {
   return path.relative(REPO_ROOT, filePath);
@@ -124,11 +138,15 @@ if (router && (!Array.isArray(router.intents) || router.intents.length === 0)) {
 }
 
 const catalog = await readJson(path.join(PORTFOLIO_ROOT, 'catalog.json'));
+const candidates = await readJson(path.join(PORTFOLIO_ROOT, 'candidates.json'));
 const sourceIndex = await readJson(path.join(PORTFOLIO_ROOT, 'sources', 'index.json'));
 const projectIds = new Set();
 const sourceIds = new Set();
 
 if (catalog) {
+  if (catalog.recordModel !== 'client_master') {
+    errors.push('docs/portfolio/catalog.json: recordModel must be client_master');
+  }
   if (!Array.isArray(catalog.projects) || catalog.projects.length === 0) {
     errors.push('docs/portfolio/catalog.json: projects must be a non-empty array');
   } else {
@@ -151,9 +169,25 @@ if (catalog) {
       if (record.lifecycleStatus !== project.status) errors.push(`${project.id}: lifecycleStatus does not match catalogue status`);
       if (record.copyEligibility !== project.copyEligibility) errors.push(`${project.id}: copyEligibility does not match catalogue`);
       if (!SENSITIVITY_VALUES.has(record.sensitivity)) errors.push(`${project.id}: invalid sensitivity ${record.sensitivity}`);
+      if (record.schemaVersion !== 2) errors.push(`${project.id}: schemaVersion must be 2`);
+      if (!record.metadata || typeof record.metadata !== 'object' || Array.isArray(record.metadata)) {
+        errors.push(`${project.id}: metadata must be an object`);
+      }
 
-      for (const key of ['workingHypotheses', 'claims', 'conflicts', 'openQuestions', 'media', 'interviewRounds']) {
+      for (const key of ['workingHypotheses', 'bodiesOfWork', 'disciplines', 'collaborators', 'claims', 'conflicts', 'openQuestions', 'media', 'interviewRounds']) {
         if (!Array.isArray(record[key])) errors.push(`${project.id}: ${key} must be an array`);
+      }
+
+      const bodyIds = new Set();
+      for (const body of record.bodiesOfWork || []) {
+        if (!/^work-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(body.id || '') || bodyIds.has(body.id)) {
+          errors.push(`${project.id}: invalid or duplicate body-of-work ID ${body.id}`);
+        }
+        bodyIds.add(body.id);
+        if (!body.title?.trim()) errors.push(`${body.id}: title is required`);
+        if (!BODY_STORY_ROLES.has(body.storyRole)) errors.push(`${body.id}: invalid storyRole ${body.storyRole}`);
+        if (!BODY_STATUSES.has(body.status)) errors.push(`${body.id}: invalid status ${body.status}`);
+        if (!Array.isArray(body.sourceClaimIds)) errors.push(`${body.id}: sourceClaimIds must be an array`);
       }
 
       const claimIds = new Set();
@@ -167,6 +201,112 @@ if (catalog) {
         if (!Array.isArray(claim.sources) || claim.sources.length === 0) errors.push(`${claim.id}: claims require at least one source locator`);
         for (const source of claim.sources || []) {
           if (!source.sourceId || !source.locator) errors.push(`${claim.id}: source references require sourceId and locator`);
+        }
+        if (claim.bodyOfWorkIds !== undefined) {
+          if (!Array.isArray(claim.bodyOfWorkIds) || claim.bodyOfWorkIds.length === 0) {
+            errors.push(`${claim.id}: bodyOfWorkIds must be a non-empty array when present`);
+          } else {
+            for (const bodyId of claim.bodyOfWorkIds) {
+              if (!bodyIds.has(bodyId)) errors.push(`${claim.id}: references unknown body of work ${bodyId}`);
+            }
+          }
+        }
+        if (claim.status === 'confirmed' && !claim.confirmedBy) {
+          errors.push(`${claim.id}: confirmed claims require confirmedBy`);
+        }
+      }
+
+      const metadata = record.metadata || {};
+      for (const field of ['client', 'agency', 'employer', 'formalRole', 'projectType']) {
+        const fact = metadata[field];
+        if (!fact || typeof fact !== 'object' || Array.isArray(fact)) {
+          errors.push(`${project.id}: metadata.${field} must be an object`);
+          continue;
+        }
+        if (!METADATA_STATUSES.has(fact.status)) errors.push(`${project.id}: metadata.${field} has invalid status ${fact.status}`);
+        if (!Array.isArray(fact.sourceClaimIds)) {
+          errors.push(`${project.id}: metadata.${field}.sourceClaimIds must be an array`);
+        } else {
+          for (const claimId of fact.sourceClaimIds) {
+            if (!claimIds.has(claimId)) errors.push(`${project.id}: metadata.${field} references unknown claim ${claimId}`);
+          }
+          if (fact.status === 'confirmed' && fact.sourceClaimIds.length === 0) {
+            errors.push(`${project.id}: confirmed metadata.${field} requires sourceClaimIds`);
+          }
+        }
+      }
+
+      const timeframe = metadata.timeframe;
+      if (!timeframe || typeof timeframe !== 'object' || Array.isArray(timeframe)) {
+        errors.push(`${project.id}: metadata.timeframe must be an object`);
+      } else {
+        if (!METADATA_STATUSES.has(timeframe.status)) errors.push(`${project.id}: metadata.timeframe has invalid status ${timeframe.status}`);
+        if (!TIMEFRAME_PRECISION.has(timeframe.precision)) errors.push(`${project.id}: metadata.timeframe has invalid precision ${timeframe.precision}`);
+        if (!Array.isArray(timeframe.sourceClaimIds)) {
+          errors.push(`${project.id}: metadata.timeframe.sourceClaimIds must be an array`);
+        } else {
+          for (const claimId of timeframe.sourceClaimIds) {
+            if (!claimIds.has(claimId)) errors.push(`${project.id}: metadata.timeframe references unknown claim ${claimId}`);
+          }
+          if (timeframe.status === 'confirmed' && timeframe.sourceClaimIds.length === 0) {
+            errors.push(`${project.id}: confirmed metadata.timeframe requires sourceClaimIds`);
+          }
+        }
+      }
+
+      for (const body of record.bodiesOfWork || []) {
+        for (const claimId of body.sourceClaimIds || []) {
+          if (!claimIds.has(claimId)) errors.push(`${body.id}: references unknown claim ${claimId}`);
+        }
+        if (body.status === 'confirmed' && (body.sourceClaimIds || []).length === 0) {
+          errors.push(`${body.id}: confirmed body of work requires sourceClaimIds`);
+        }
+      }
+
+      const disciplineKeys = new Set();
+      for (const discipline of record.disciplines || []) {
+        const key = `${discipline.name || ''}:${discipline.emphasis || ''}`;
+        if (!discipline.name?.trim() || disciplineKeys.has(key)) errors.push(`${project.id}: missing or duplicate discipline ${key}`);
+        disciplineKeys.add(key);
+        if (!DISCIPLINE_EMPHASIS.has(discipline.emphasis)) errors.push(`${project.id}: invalid discipline emphasis ${discipline.emphasis}`);
+        if (!BODY_STATUSES.has(discipline.status)) errors.push(`${project.id}: invalid discipline status ${discipline.status}`);
+        if (!Array.isArray(discipline.sourceClaimIds)) {
+          errors.push(`${project.id}: discipline sourceClaimIds must be an array`);
+        } else {
+          for (const claimId of discipline.sourceClaimIds) {
+            if (!claimIds.has(claimId)) errors.push(`${project.id}: discipline references unknown claim ${claimId}`);
+          }
+        }
+      }
+
+      const collaboratorIds = new Set();
+      for (const collaborator of record.collaborators || []) {
+        if (!/^collab-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(collaborator.id || '') || collaboratorIds.has(collaborator.id)) {
+          errors.push(`${project.id}: invalid or duplicate collaborator ID ${collaborator.id}`);
+        }
+        collaboratorIds.add(collaborator.id);
+        if (!collaborator.name?.trim()) errors.push(`${collaborator.id}: name is required`);
+        if (!COLLABORATOR_TYPES.has(collaborator.type)) errors.push(`${collaborator.id}: invalid type ${collaborator.type}`);
+        if (!BODY_STATUSES.has(collaborator.status)) errors.push(`${collaborator.id}: invalid status ${collaborator.status}`);
+        if (!PUBLIC_CREDIT_STATUSES.has(collaborator.publicCreditStatus)) errors.push(`${collaborator.id}: invalid publicCreditStatus ${collaborator.publicCreditStatus}`);
+        if (!Array.isArray(collaborator.sourceClaimIds)) {
+          errors.push(`${collaborator.id}: sourceClaimIds must be an array`);
+        } else {
+          for (const claimId of collaborator.sourceClaimIds) {
+            if (!claimIds.has(claimId)) errors.push(`${collaborator.id}: references unknown claim ${claimId}`);
+          }
+        }
+      }
+
+      const interviewIds = new Set();
+      for (const round of record.interviewRounds || []) {
+        if (!round.id || interviewIds.has(round.id)) errors.push(`${project.id}: missing or duplicate interview ID ${round.id}`);
+        interviewIds.add(round.id);
+        if (!round.sourceId) errors.push(`${round.id}: sourceId is required`);
+        if (!INTERVIEW_STATUSES.has(round.status)) errors.push(`${round.id}: invalid status ${round.status}`);
+        if (!Array.isArray(round.bodiesOfWorkDiscussed)) errors.push(`${round.id}: bodiesOfWorkDiscussed must be an array`);
+        for (const bodyId of round.bodiesOfWorkDiscussed || []) {
+          if (!bodyIds.has(bodyId)) errors.push(`${round.id}: references unknown body of work ${bodyId}`);
         }
       }
 
@@ -243,6 +383,23 @@ if (catalog) {
   }
 }
 
+if (candidates) {
+  if (!Array.isArray(candidates.candidates)) {
+    errors.push('docs/portfolio/candidates.json: candidates must be an array');
+  } else {
+    const candidateIds = new Set();
+    for (const candidate of candidates.candidates) {
+      if (!/^candidate-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidate.id || '') || candidateIds.has(candidate.id)) {
+        errors.push(`Invalid or duplicate candidate ID: ${candidate.id}`);
+      }
+      candidateIds.add(candidate.id);
+      if (!candidate.client?.trim()) errors.push(`${candidate.id}: client is required`);
+      if (!CANDIDATE_STATUSES.has(candidate.status)) errors.push(`${candidate.id}: invalid status ${candidate.status}`);
+      if (!Array.isArray(candidate.evidence) || candidate.evidence.length === 0) errors.push(`${candidate.id}: evidence locators are required`);
+    }
+  }
+}
+
 if (router?.intents && catalog) {
   const intentIds = new Set();
   const sourceIdsForRouting = sourceIndex?.sources?.map((source) => source.id) || [];
@@ -284,6 +441,13 @@ if (sourceIndex) {
       if (checksums.has(source.sha256)) errors.push(`Duplicate source checksum: ${source.sha256}`);
       checksums.add(source.sha256);
       if (!SENSITIVITY_VALUES.has(source.sensitivity)) errors.push(`${source.id}: invalid sensitivity ${source.sensitivity}`);
+      if (!source.captureMethod?.trim()) errors.push(`${source.id}: captureMethod is required`);
+      if (!REDACTION_STATUSES.has(source.redactionStatus)) errors.push(`${source.id}: invalid redactionStatus ${source.redactionStatus}`);
+      if (source.containsCredentials !== false) errors.push(`${source.id}: containsCredentials must be false; sanitise the source before registration`);
+      if (source.origin === 'apple_notes') {
+        if (source.captureMethod !== 'sanitised_transcription') errors.push(`${source.id}: Apple Notes sources require captureMethod sanitised_transcription`);
+        if (source.redactionStatus !== 'complete') errors.push(`${source.id}: Apple Notes sources require complete redaction`);
+      }
       for (const projectId of source.projectIds || []) {
         if (!projectIds.has(projectId)) errors.push(`${source.id}: unknown project ID ${projectId}`);
       }
@@ -311,6 +475,18 @@ if (catalog && sourceIndex) {
     for (const media of record?.media || []) {
       if (media.sourceId && !sourceIds.has(media.sourceId)) errors.push(`${media.id}: unknown source ID ${media.sourceId}`);
     }
+    for (const question of record?.openQuestions || []) {
+      for (const sourceId of question.sourceIds || []) {
+        if (!sourceIds.has(sourceId)) errors.push(`${question.id}: unknown source ID ${sourceId}`);
+      }
+    }
+    for (const round of record?.interviewRounds || []) {
+      if (!sourceIds.has(round.sourceId)) errors.push(`${round.id}: unknown source ID ${round.sourceId}`);
+    }
+  }
+
+  for (const sourceId of candidates?.evidenceSourceIds || []) {
+    if (!sourceIds.has(sourceId)) errors.push(`docs/portfolio/candidates.json: unknown evidence source ID ${sourceId}`);
   }
 }
 

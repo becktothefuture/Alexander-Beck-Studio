@@ -9,6 +9,8 @@ This folder is the source-of-truth system for the portfolio project stories. It 
 3. A project's `claims` array is authoritative only when a claim is marked `confirmed` and cites at least one registered source.
 4. Extracted notes, working hypotheses, Figma copy, and website drafts are derived material. They are never evidence by themselves.
 
+One record represents one client-master portfolio project. Related commissions, campaigns, features, or experiments live in that record's `bodiesOfWork` array and may be referenced by claims. They do not own separate organising ideas. The client-master record supplies the single editorial story.
+
 Conflicting claims stay separate until resolved. Older portfolio language is useful evidence, but it enters the system as `candidate`, not `confirmed`.
 
 ## Fast path
@@ -22,6 +24,7 @@ Conflicting claims stay separate until resolved. Older portfolio language is use
 ## Where things live
 
 - Project catalogue and readiness: `catalog.json`
+- Unplaced client and work candidates: `candidates.json`
 - Per-project claim ledgers: `projects/<project-id>.json`
 - Project-by-project interview sequence: `INTERVIEW-ROADMAP.md`
 - Original supplied files: `sources/raw/<source-id>/`
@@ -31,6 +34,9 @@ Conflicting claims stay separate until resolved. Older portfolio language is use
 - Accepted administrative decisions: `logs/decision-log.md`
 - Future copy drafts: `drafts/`
 - Repeatable templates: `templates/`
+- ChatGPT Voice attachment pack: `VOICE-INTERVIEW-INSTRUCTIONS.md`, `VOICE-HANDOFF-TEMPLATE.md`, `VOICE-PROJECT-CATALOGUE.md`, and `INTERVIEW-ROADMAP.md`
+
+The Voice attachment pack is generated operating material. It helps interviews retrieve the current questions, but it is not factual authority. Replace older uploaded versions when the pack version changes; do not keep several competing copies in the ChatGPT Project.
 
 ## Copy gate
 

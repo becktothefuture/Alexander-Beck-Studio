@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { AboutComingSoon } from './AboutComingSoon.jsx';
 
 let aboutNarrativeExperiencePromise = null;
 
@@ -14,24 +15,44 @@ function loadAboutNarrativeExperience() {
   return aboutNarrativeExperiencePromise;
 }
 
-const AboutNarrativeExperience = lazy(loadAboutNarrativeExperience);
+const AboutNarrativeExperience = import.meta.env.DEV
+  ? lazy(loadAboutNarrativeExperience)
+  : null;
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
   prewarm: ({ stage } = {}) => {
+    if (!import.meta.env.DEV) return true;
     if (stage === 'data') return true;
     return loadAboutNarrativeExperience();
   },
 };
 
 export function getAboutRouteView() {
+  if (!import.meta.env.DEV) {
+    return {
+      bodyClass: 'body about-page',
+      mainLandmarkHeadingId: 'about-coming-soon-title',
+      legacyRuntime: false,
+      surfaceRouteId: 'about',
+      routeRenderKey: 'about-coming-soon',
+      contentRenderKey: 'about-coming-soon',
+      studioWindowClassName: 'about-simulation route-page-window w-embed',
+      simulationLayer: null,
+      uiLayer: {
+        chrome: null,
+        secondary: <AboutComingSoon />,
+      },
+    };
+  }
+
   return {
     bodyClass: 'body about-page about-narrative-page',
     mainLandmarkHeadingId: 'about-route-title',
     legacyRuntime: false,
     surfaceRouteId: 'about',
-    routeRenderKey: 'about',
-    contentRenderKey: 'about',
+    routeRenderKey: 'about-narrative',
+    contentRenderKey: 'about-narrative',
     studioWindowClassName: 'about-simulation route-page-window w-embed',
     simulationLayer: (
       <Suspense fallback={null}>

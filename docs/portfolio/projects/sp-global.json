@@ -1,17 +1,40 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "sp-global",
   "title": "S&P Global",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "internal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "S&P Global", "status": "candidate", "sourceClaimIds": []},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Financial product", "Index-building platform", "Marketing rollout"], "status": "candidate", "sourceClaimIds": ["claim-sp-001", "claim-sp-010"]},
+    "timeframe": {"start": null, "end": null, "yearLabel": null, "duration": null, "precision": "unknown", "status": "unknown", "sourceClaimIds": []}
+  },
   "readiness": {
     "sourceCoverage": "partial",
     "interviewStatus": "not_started",
     "mediaCoverage": "partial",
     "copyStatus": "blocked_missing_facts"
   },
+  "bodiesOfWork": [
+    {"id": "work-sp-index-builder", "title": "S&P Index Builder", "storyRole": "primary", "status": "candidate", "summary": "A visual product that made expert index logic visible, modular, and teachable.", "sourceClaimIds": ["claim-sp-001", "claim-sp-006", "claim-sp-007"]},
+    {"id": "work-sp-spice-rollout", "title": "SPICE marketing rollout", "storyRole": "supporting", "status": "candidate", "summary": "A related marketing rollout documented as ongoing in the 2025 portfolio.", "sourceClaimIds": ["claim-sp-010"]}
+  ],
+  "disciplines": [
+    {"name": "Experience Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-sp-003", "claim-sp-006"]},
+    {"name": "Interface Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-sp-003", "claim-sp-008"]},
+    {"name": "Research and Facilitation", "emphasis": "supporting", "status": "candidate", "sourceClaimIds": ["claim-sp-003", "claim-sp-007"]}
+  ],
+  "collaborators": [
+    {"id": "collab-sp-001", "name": "Tom Good", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-sp-004"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sp-002", "name": "Claudia Carbutt", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-sp-004"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sp-003", "name": "Andy Kemp", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-sp-004"], "publicCreditStatus": "unknown"},
+    {"id": "collab-sp-004", "name": "Martin Grosjean", "type": "person", "role": "Role requires confirmation", "contribution": "Credited in the prior portfolio.", "status": "candidate", "sourceClaimIds": ["claim-sp-004"], "publicCreditStatus": "unknown"}
+  ],
   "workingHypotheses": [
     "The strongest narrative tension is translating expert financial logic without flattening its power."
   ],

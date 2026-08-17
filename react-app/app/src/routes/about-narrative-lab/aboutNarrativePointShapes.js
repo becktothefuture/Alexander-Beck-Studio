@@ -3,6 +3,10 @@ import {
   getAboutNarrativeShapeDefinition,
 } from './aboutNarrativeDefinitions.js';
 import { getAboutNarrativeDisciplineGridDimensions } from './aboutNarrativeDisciplinePositions.js';
+import {
+  ABOUT_NARRATIVE_LONG_ASSEMBLY,
+  createAboutNarrativeLongAssemblyShape,
+} from './aboutNarrativeLongAssembly.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const TWO_PI = Math.PI * 2;
@@ -116,6 +120,7 @@ function createTurbulentField(count, seeds, parameters) {
   const chunkSize = Number(parameters.chunkSize ?? 1.55);
   const scatter = Math.min(1, Math.max(0, Number(parameters.scatter ?? 0.14)));
   const turbulence = Number(parameters.turbulence ?? 0.52);
+  const corridorRadius = Math.max(0, Number(parameters.corridorRadius ?? 0));
   const chunks = Array.from({ length: chunkCount }, (_, chunkIndex) => ({
     x: (hash01((chunkIndex + 1) * 17.13) - 0.5) * width * 0.76,
     y: (hash01((chunkIndex + 1) * 31.71) - 0.5) * height * 0.72,
@@ -165,6 +170,24 @@ function createTurbulentField(count, seeds, parameters) {
     x += Math.sin((z * 0.73) + (y * 0.41) + warpSeed) * turbulence;
     y += Math.sin((x * 0.54) - (z * 0.37) + (warpSeed * 1.31)) * turbulence * 0.58;
     z += Math.cos((x * 0.62) + (y * 0.47) - (warpSeed * 0.73)) * turbulence;
+
+    // The corridor is geometry, never a Text-owned fade. Its X centre stays
+    // on the camera rail while vertical drift and a breathing radius keep the
+    // opening organic instead of cutting a mechanical cylinder through it.
+    if (corridorRadius > 0) {
+      const corridorX = 0;
+      const corridorY = -0.45 + (Math.cos((z * 0.1) - 0.4) * corridorRadius * 0.11);
+      const deltaX = x - corridorX;
+      const deltaY = y - corridorY;
+      const radialDistance = Math.hypot(deltaX, deltaY);
+      const localRadius = corridorRadius * (0.78 + (Math.sin((z * 0.18) + warpSeed) * 0.12));
+      if (radialDistance < localRadius) {
+        const safeDistance = Math.max(0.0001, radialDistance);
+        const displacedRadius = localRadius + ((localRadius - radialDistance) * 0.22);
+        x = corridorX + ((deltaX / safeDistance) * displacedRadius);
+        y = corridorY + ((deltaY / safeDistance) * displacedRadius);
+      }
+    }
 
     const offset = index * 3;
     positions[offset] = x;
@@ -450,11 +473,13 @@ export function createAboutNarrativeOrbitalSystemShape(count, seeds, parameters 
 
 function createBustFallback(count, seeds) {
   const output = createCluster(count, seeds, { radius: 2.7 });
+  output.materialGroups = new Float32Array(count);
   for (let index = 0; index < count; index += 1) {
     const offset = index * 3;
     output.positions[offset] *= 0.72;
     output.positions[offset + 1] = (output.positions[offset + 1] * 1.1) - 0.2;
     output.positions[offset + 2] *= 0.64;
+    output.materialGroups[index] = index % 6;
   }
   return output;
 }
@@ -463,14 +488,16 @@ function normalizeBust(source, count) {
   const sourceCount = source.length / 8;
   if (!Number.isInteger(sourceCount) || sourceCount <= 0) throw new Error('Bust point data has an invalid stride.');
   const positions = new Float32Array(count * 3);
+  const materialGroups = new Float32Array(count);
   for (let index = 0; index < count; index += 1) {
     const sourceIndex = (index % sourceCount) * 8;
     const targetIndex = index * 3;
     positions[targetIndex] = source[sourceIndex];
     positions[targetIndex + 1] = source[sourceIndex + 1];
     positions[targetIndex + 2] = source[sourceIndex + 2];
+    materialGroups[index] = Math.min(5, Math.max(0, Math.round(source[sourceIndex + 7] || 0)));
   }
-  return { positions };
+  return { positions, materialGroups };
 }
 
 async function loadBust(count, quality, signal) {
@@ -483,6 +510,42 @@ async function loadBust(count, quality, signal) {
   const response = await fetch(`/models/napoleon-bust/${lod.file}`, { signal });
   if (!response.ok) throw new Error(`Bust points failed: ${response.status}`);
   return normalizeBust(new Float32Array(await response.arrayBuffer()), count);
+}
+
+function normalizeEditedAboutWorld(source, count) {
+  const sourceCount = source.length / 8;
+  if (!Number.isInteger(sourceCount) || sourceCount <= 0) {
+    throw new Error('Edited About world point data has an invalid stride.');
+  }
+  const positions = new Float32Array(count * 3);
+  const size = new Float32Array(count);
+  const materialSizeCodes = ABOUT_NARRATIVE_LONG_ASSEMBLY.materialSizeCodes;
+  for (let index = 0; index < count; index += 1) {
+    const sourceIndex = (index % sourceCount) * 8;
+    const targetIndex = index * 3;
+    positions[targetIndex] = source[sourceIndex];
+    positions[targetIndex + 1] = source[sourceIndex + 1];
+    positions[targetIndex + 2] = source[sourceIndex + 2];
+    const materialGroup = Math.min(5, Math.max(0, Math.round(source[sourceIndex + 7] || 0)));
+    const oceanMarker = source[sourceIndex + 6] < 0 ? 1 : 0;
+    size[index] = materialSizeCodes[materialGroup] + oceanMarker;
+  }
+  return { positions, size };
+}
+
+async function loadEditedAboutWorld(count, quality, signal) {
+  const qualityId = quality === 'mobile' ? 'low' : 'medium';
+  const assetRoot = '/models/about-v2-edited-world';
+  const metaResponse = await fetch(`${assetRoot}/meta.json`, { signal });
+  if (!metaResponse.ok) throw new Error(`Edited About world metadata failed: ${metaResponse.status}`);
+  const metadata = await metaResponse.json();
+  const lod = metadata?.lods?.[qualityId];
+  if (!lod?.file) throw new Error(`Edited About world metadata has no ${qualityId} LOD.`);
+  const response = await fetch(`${assetRoot}/${lod.file}`, { signal });
+  if (!response.ok) throw new Error(`Edited About world points failed: ${response.status}`);
+  const output = normalizeEditedAboutWorld(new Float32Array(await response.arrayBuffer()), count);
+  output.assetId = metadata.name || 'about-v2-edited-world';
+  return output;
 }
 
 function calculateBounds(positions) {
@@ -530,6 +593,7 @@ export function validateAboutNarrativeShapeOutput(output, pointCount) {
 }
 
 const GENERATORS = Object.freeze({
+  'long-assembly-corridor-v1': createAboutNarrativeLongAssemblyShape,
   'cluster-v1': createCluster,
   'turbulent-field-v1': createTurbulentField,
   'calm-field-v1': createCalmField,
@@ -544,6 +608,7 @@ export async function generateAboutNarrativeShape({
   pointCount,
   seeds,
   quality,
+  layoutProfile = '',
   parameters,
   signal,
 }) {
@@ -558,8 +623,20 @@ export async function generateAboutNarrativeShape({
       output = createBustFallback(pointCount, seeds);
       output.fallbackReason = error?.message || 'Bust asset unavailable.';
     }
+  } else if (shapeId === 'long-assembly-corridor-v1') {
+    try {
+      output = await loadEditedAboutWorld(pointCount, quality, signal);
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      output = createAboutNarrativeLongAssemblyShape(
+        pointCount,
+        seeds,
+        parameters || {},
+      );
+      output.fallbackReason = error?.message || 'Edited Blender world unavailable.';
+    }
   } else {
-    output = GENERATORS[shapeId](pointCount, seeds, parameters || {});
+    output = GENERATORS[shapeId](pointCount, seeds, parameters || {}, { layoutProfile });
   }
   output.presence = createPresence(pointCount, seeds, Number(parameters?.density ?? 1));
   if (output.attributes?.disciplineGroup) {

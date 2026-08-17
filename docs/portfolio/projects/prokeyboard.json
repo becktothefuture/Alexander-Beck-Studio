@@ -1,17 +1,33 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "prokeyboard",
   "title": "ProKeyboard",
   "lifecycleStatus": "active",
   "copyEligibility": "blocked_missing_facts",
   "sensitivity": "personal",
-  "lastReviewed": "2026-07-15",
+  "lastReviewed": "2026-08-07",
+  "metadata": {
+    "client": {"value": "Alexander Beck", "status": "candidate", "sourceClaimIds": ["claim-prokeyboard-001"]},
+    "agency": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "employer": {"value": "Self-initiated", "status": "candidate", "sourceClaimIds": ["claim-prokeyboard-001"]},
+    "formalRole": {"value": null, "status": "unknown", "sourceClaimIds": []},
+    "projectType": {"value": ["Mobile keyboard concept"], "status": "candidate", "sourceClaimIds": ["claim-prokeyboard-001", "claim-prokeyboard-002"]},
+    "timeframe": {"start": null, "end": null, "yearLabel": null, "duration": null, "precision": "unknown", "status": "unknown", "sourceClaimIds": []}
+  },
   "readiness": {
     "sourceCoverage": "partial",
     "interviewStatus": "not_started",
     "mediaCoverage": "partial",
     "copyStatus": "blocked_missing_facts"
   },
+  "bodiesOfWork": [
+    {"id": "work-prokeyboard-iphone", "title": "Ergonomic iPhone keyboard concept", "storyRole": "primary", "status": "candidate", "summary": "A self-initiated keyboard concept intended to adapt to cognitive and physical needs rather than require users to adapt to a fixed layout.", "sourceClaimIds": ["claim-prokeyboard-001", "claim-prokeyboard-002", "claim-prokeyboard-006"]}
+  ],
+  "disciplines": [
+    {"name": "Product Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-prokeyboard-002", "claim-prokeyboard-003"]},
+    {"name": "Interaction Design", "emphasis": "primary", "status": "candidate", "sourceClaimIds": ["claim-prokeyboard-003", "claim-prokeyboard-004"]}
+  ],
+  "collaborators": [],
   "workingHypotheses": [
     "This may work better as an Impressions item or side-project note than as a full case study."
   ],
@@ -95,6 +111,19 @@
       "confirmedBy": null,
       "lastReviewed": "2026-07-15",
       "notes": "Current 2026 status is unknown."
+    },
+    {
+      "id": "claim-prokeyboard-006",
+      "category": "delivery_status",
+      "statement": "A March 2025 project-status note describes ProKeyboard as ongoing but on hold, substantially ready to enter an iPhone build while waiting for stronger Xcode AI capability.",
+      "status": "candidate",
+      "confidence": "high",
+      "sensitivity": "personal",
+      "sources": [{"sourceId": "src-20260807-004", "locator": "ProKeyboard / Note: Current projects"}],
+      "confirmedBy": null,
+      "lastReviewed": "2026-08-07",
+      "bodyOfWorkIds": ["work-prokeyboard-iphone"],
+      "notes": "Confirm the current 2026 status and whether Xcode AI remains the blocker."
     }
   ],
   "conflicts": [],
@@ -104,8 +133,8 @@
       "category": "delivery_status",
       "question": "What exists today: sketches, a Figma prototype, coded keyboard, user test, or abandoned direction?",
       "status": "open",
-      "answer": null,
-      "sourceIds": []
+      "answer": "By March 2025 the design was described as substantially ready for an iPhone build but on hold. The exact artefacts and current 2026 status remain unresolved.",
+      "sourceIds": ["src-20260807-004"]
     },
     {
       "id": "q-prokeyboard-002",

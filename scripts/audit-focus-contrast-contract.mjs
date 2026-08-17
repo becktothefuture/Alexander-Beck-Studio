@@ -59,14 +59,12 @@ const contrastContracts = Object.freeze({
     ]),
   }),
   about: Object.freeze({
-    applicable: true,
-    state: 'settled-about-opening',
-    expectations: Object.freeze([
-      Object.freeze({
-        selector: '.about-narrative-opening-copy .route-intro-description',
-        count: 1,
-      }),
-    ]),
+    applicable: false,
+    state: 'production-coming-soon',
+    reason: 'The production About contract renders only the Coming soon title and has no supporting normal text.',
+    markerSelector: '#about-coming-soon-title.route-centered-page__title',
+    markerCount: 1,
+    unexpectedSelector: '.route-centered-page__description, .route-intro-description, .gate-description',
   }),
   contact: Object.freeze({
     applicable: true,
@@ -119,6 +117,7 @@ function getFocusContract(routeId, profile) {
     about: [...shellExpectations],
     contact: [
       { selector: '.contact-email-row', count: 1, indicator: 'dual-ring' },
+      { selector: '.contact-linkedin-action', count: 1, indicator: 'dual-ring' },
       ...shellExpectations,
     ],
     playground: [...shellExpectations],

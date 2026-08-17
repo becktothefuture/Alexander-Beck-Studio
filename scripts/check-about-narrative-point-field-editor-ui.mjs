@@ -38,10 +38,20 @@ test('Point field gestures preserve transaction phases and explicit edit scope',
   assert.ok(component.includes('gestureRef.current = false'));
 });
 
-test('Segment inspector keeps transition basics while hiding advanced path tuning', () => {
+test('the production editor keeps Forms movable while retaining Text-moment bindings', () => {
+  [
+    'momentBound = false',
+    "data-moment-bound={momentBound ? 'true' : undefined}",
+    'if (protectedKey) return;',
+    "if (protectedKey || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;",
+  ].forEach((token) => assert.ok(component.includes(token), `missing ${token}`));
+  assert.ok(styles.includes('.about-point-field-segment.is-moment-bound'));
+  assert.ok(styles.includes('.about-point-field-key.is-moment-bound'));
+});
+
+test('Segment inspector exposes organic path tuning without offering opacity dissolves', () => {
   [
     "'morph'",
-    "'dissolve-morph'",
     "'hold'",
     "'step-end'",
     'ABOUT_NARRATIVE_EASINGS',
@@ -53,7 +63,10 @@ test('Segment inspector keeps transition basics while hiding advanced path tunin
     'InspectorFolder label="Stagger"',
     'InspectorFolder label="Organic path"',
     'InspectorFolder label="Plane motion"',
-  ].forEach((token) => assert.equal(component.includes(token), false, `unexpected ${token}`));
+    "'flow'",
+    'Flow · recommended',
+  ].forEach((token) => assert.ok(component.includes(token), `missing ${token}`));
+  assert.equal(component.includes("const TRANSITION_TYPES = Object.freeze(['morph', 'dissolve-morph'"), false);
   assert.ok(canonical.tracks.pointField.segments.some((segment) => (
     segment.transition.stagger || segment.transition.path || segment.transition.flatten
   )), 'existing authored transition motion remains in the document');

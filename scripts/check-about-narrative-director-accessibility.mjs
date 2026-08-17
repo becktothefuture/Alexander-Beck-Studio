@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { createAnnouncementDeduper } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDirectorDiagnostics.js';
+import { ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeDefinitions.js';
 
 const editor = await readFile(new URL(
   '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeEditor.jsx',
@@ -12,6 +13,10 @@ const styles = await readFile(new URL(
   '../react-app/app/src/routes/about-narrative-lab/about-narrative-editor.css',
   import.meta.url,
 ), 'utf8');
+const v2 = JSON.parse(await readFile(new URL(
+  '../react-app/app/public/config/contents-about.json',
+  import.meta.url,
+), 'utf8'));
 
 test('announcements are deduplicated before reaching the polite live region', () => {
   const announce = createAnnouncementDeduper();
@@ -74,14 +79,40 @@ test('save errors, inline errors, visible focus, effective targets, and reflow a
   ].forEach((token) => assert.ok(styles.includes(token), `missing ${token}`));
 });
 
-test('timeline clips expose direct keyboard selection and guarded movement', () => {
+test('timeline clips expose direct keyboard selection and Text-owned movement guards', () => {
   [
     'onClick={selectObject}',
     "event.key === 'Enter' || event.key === ' '",
     "['ArrowLeft', 'ArrowRight'].includes(event.key)",
-    'if (locked) return;',
+    'if (!timingMovable) return;',
     'store.moveSelection(direction * (event.shiftKey ? 0.1 : 0.01))',
   ].forEach((token) => assert.ok(editor.includes(token), `missing ${token}`));
+});
+
+test('V2 Director exposes shared, bounded fog controls with live gesture apply', () => {
+  assert.deepEqual(
+    ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => control.id),
+    ['distanceFogStartWU', 'distanceFogEndWU'],
+  );
+  assert.deepEqual(
+    ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS.map((control) => v2.globals.camera[control.id]),
+    [7, 34],
+  );
+
+  const start = editor.indexOf('function DirectorCameraTrackInspector');
+  const end = editor.indexOf('function DirectorCameraBeatInspector');
+  const directorCamera = editor.slice(start, end);
+  [
+    "experienceVersion === 'v2'",
+    "control.group === 'camera-fog'",
+    'getBoundedCameraTrackControl',
+    'data-director-camera-atmosphere',
+    'RangeParameterField',
+    'store.beginGesture',
+    'store.updateGesture',
+    'store.commitGesture',
+    'requireValid: true',
+  ].forEach((token) => assert.ok(directorCamera.includes(token), `missing ${token}`));
 });
 
 test('add disclosures use ordinary controls and conflict focus return is refreshed', () => {

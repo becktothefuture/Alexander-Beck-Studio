@@ -28,9 +28,19 @@ import {
   writeAboutNarrativeCameraLookAtQuaternion,
 } from './aboutNarrativeCameraRig.js';
 import {
-  ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS,
-  ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS,
+  ABOUT_NARRATIVE_DISCIPLINE_LAYOUT_DEFAULTS,
+  ABOUT_NARRATIVE_DISCIPLINE_SPACING_BOUNDS,
+  getAboutNarrativeDisciplinePosition,
 } from './aboutNarrativeDisciplinePositions.js';
+import {
+  getAboutNarrativeEffectSequenceOverlaps,
+  getAboutNarrativeFormOwnershipRangeAt,
+  isAboutNarrativeEffectInsideFormRange,
+} from './aboutNarrativeFormSequence.js';
+import {
+  attachAboutNarrativeMomentTriggers,
+  validateAboutNarrativeMomentTriggers,
+} from './aboutNarrativeMoments.js';
 
 export const ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION = 7;
 export const ABOUT_NARRATIVE_LEGACY_POINT_FIELD_SCHEMA_VERSION = 6;
@@ -44,10 +54,11 @@ const V6_TRANSITION_TYPES = Object.freeze([
 ]);
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
 const TRACK_KEYS = new Set(['camera', 'visibility', 'pointField', 'text', 'interactions']);
-const CAMERA_TRACK_KEYS = new Set(['moveKeys', 'lookKeys', 'lensKeys']);
-const CAMERA_MOVE_KEY_KEYS = new Set(['id', 'atWU', 'position', 'easing', 'velocityMode', 'locked']);
-const CAMERA_LOOK_KEY_KEYS = new Set(['id', 'atWU', 'rotation', 'easing', 'locked']);
-const CAMERA_LENS_KEY_KEYS = new Set(['id', 'atWU', 'fov', 'easing', 'locked']);
+const CAMERA_TRACK_KEYS = new Set(['moveKeys', 'lookKeys', 'lensKeys', 'orbit']);
+const CAMERA_MOVE_KEY_KEYS = new Set(['id', 'atWU', 'position', 'easing', 'velocityMode', 'locked', 'trigger']);
+const CAMERA_LOOK_KEY_KEYS = new Set(['id', 'atWU', 'rotation', 'rollOffset', 'easing', 'locked', 'trigger']);
+const CAMERA_LENS_KEY_KEYS = new Set(['id', 'atWU', 'fov', 'easing', 'locked', 'trigger']);
+const CAMERA_ORBIT_KEYS = new Set(['id', 'startWU', 'endWU', 'targetStateId', 'arcDegrees', 'easing', 'trigger', 'endTrigger']);
 const POINT_FIELD_KEYS = new Set(['stateDefinitions', 'keys', 'segments']);
 const STATE_KEYS = new Set([
   'id',
@@ -62,7 +73,7 @@ const STATE_KEYS = new Set([
   'modifiers',
   'protected',
 ]);
-const KEY_KEYS = new Set(['id', 'atWU', 'stateId', 'protected']);
+const KEY_KEYS = new Set(['id', 'atWU', 'stateId', 'protected', 'trigger']);
 const SEGMENT_KEYS = new Set(['id', 'fromKeyId', 'toKeyId', 'transition']);
 const TRANSITION_KEYS = new Set([
   'type',
@@ -85,6 +96,8 @@ const INTERACTION_KEYS = new Set([
   'targetStateId',
   'parameters',
   'protected',
+  'trigger',
+  'endTrigger',
 ]);
 const DISCIPLINE_PARAMETER_KEYS = new Set([
   'entryStartRatio',
@@ -92,6 +105,12 @@ const DISCIPLINE_PARAMETER_KEYS = new Set([
   'backgroundOpacity',
   'pointScale',
   'restoreDurationWU',
+  'anchor',
+  'tabletAnchor',
+  'mobileAnchor',
+  'spacingRows',
+  'tabletSpacingRows',
+  'mobileSpacingRows',
   'items',
 ]);
 const DISCIPLINE_ITEM_KEYS = new Set([
@@ -118,7 +137,7 @@ const STATE_OVERRIDE_KEYS = new Set(['railAnchorWU', 'transform']);
 const KEY_OVERRIDE_KEYS = new Set(['atWU']);
 const SEGMENT_OVERRIDE_KEYS = new Set(['transition']);
 const CAMERA_MOVE_OVERRIDE_KEYS = new Set(['atWU', 'position', 'easing', 'velocityMode']);
-const CAMERA_LOOK_OVERRIDE_KEYS = new Set(['atWU', 'rotation', 'easing']);
+const CAMERA_LOOK_OVERRIDE_KEYS = new Set(['atWU', 'rotation', 'rollOffset', 'easing']);
 const CAMERA_LENS_OVERRIDE_KEYS = new Set(['atWU', 'fov', 'easing']);
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
@@ -225,6 +244,17 @@ function validateCameraTrack(camera, diagnostics, durationWU) {
     valueKey: 'rotation',
     validateValue: (value, path) => validateVector(value, diagnostics, path),
   });
+  camera.lookKeys?.forEach((key, index) => {
+    if (key.rollOffset == null) return;
+    if (!finite(key.rollOffset) || Math.abs(Number(key.rollOffset)) > 360) {
+      diagnostic(
+        diagnostics,
+        'camera-roll-offset',
+        `tracks.camera.lookKeys.${index}.rollOffset`,
+        'Camera roll offset must stay between -360 and 360 degrees.',
+      );
+    }
+  });
   validateCameraLane(camera.lensKeys, {
     path: 'tracks.camera.lensKeys',
     allowed: CAMERA_LENS_KEY_KEYS,
@@ -239,15 +269,70 @@ function validateCameraTrack(camera, diagnostics, durationWU) {
     },
   });
   camera.moveKeys?.forEach((key, index) => {
-    if (key.velocityMode != null && !['constant', 'eased'].includes(key.velocityMode)) {
+    if (key.velocityMode != null && !['constant', 'eased', 'fluid'].includes(key.velocityMode)) {
       diagnostic(
         diagnostics,
         'camera-velocity-mode',
         `tracks.camera.moveKeys.${index}.velocityMode`,
-        'Move velocity mode must be constant or eased.',
+        'Move velocity mode must be constant, eased, or fluid.',
       );
     }
   });
+  if (camera.orbit != null) {
+    const path = 'tracks.camera.orbit';
+    if (!unknownKeys(diagnostics, camera.orbit, CAMERA_ORBIT_KEYS, path)) return;
+    validateId(camera.orbit.id, seen, diagnostics, `${path}.id`);
+    const startWU = Number(camera.orbit.startWU);
+    const endWU = Number(camera.orbit.endWU);
+    if (!finite(startWU) || !finite(endWU)
+      || startWU < 0 || startWU >= endWU || endWU > durationWU) {
+      diagnostic(
+        diagnostics,
+        'camera-orbit-time',
+        path,
+        'The Camera orbit must have an ordered start and end inside the Story duration.',
+      );
+    }
+    if (!ID_PATTERN.test(camera.orbit.targetStateId || '')) {
+      diagnostic(
+        diagnostics,
+        'camera-orbit-target',
+        `${path}.targetStateId`,
+        'The Camera orbit target must be a Form state ID.',
+      );
+    }
+    const arcDegrees = Number(camera.orbit.arcDegrees);
+    if (!finite(arcDegrees) || Math.abs(arcDegrees) < 1 || Math.abs(arcDegrees) > 360) {
+      diagnostic(
+        diagnostics,
+        'camera-orbit-arc',
+        `${path}.arcDegrees`,
+        'The Camera orbit arc must stay between -360 and 360 degrees and cannot be zero.',
+      );
+    }
+    if (typeof camera.orbit.easing !== 'string' || !camera.orbit.easing) {
+      diagnostic(
+        diagnostics,
+        'camera-orbit-easing',
+        `${path}.easing`,
+        'The Camera orbit requires an easing curve.',
+      );
+    }
+    const hasMoveHandoff = camera.moveKeys?.some((key) => (
+      Math.abs(Number(key.atWU) - startWU) <= 0.000001
+    ));
+    const hasLookHandoff = camera.lookKeys?.some((key) => (
+      Math.abs(Number(key.atWU) - startWU) <= 0.000001
+    ));
+    if (!hasMoveHandoff || !hasLookHandoff) {
+      diagnostic(
+        diagnostics,
+        'camera-orbit-handoff',
+        path,
+        'The Camera orbit start must share one Move key and one Look key for a continuous handoff.',
+      );
+    }
+  }
 }
 
 function validateCameraOverrides(input, diagnostics) {
@@ -268,6 +353,11 @@ function validateCameraOverrides(input, diagnostics) {
       if (!unknownKeys(diagnostics, override, allowed, path)) return;
       if (override.position != null) validateVector(override.position, diagnostics, `${path}.position`);
       if (override.rotation != null) validateVector(override.rotation, diagnostics, `${path}.rotation`);
+      if (override.rollOffset != null && (
+        !finite(override.rollOffset) || Math.abs(Number(override.rollOffset)) > 360
+      )) {
+        diagnostic(diagnostics, 'camera-roll-offset', `${path}.rollOffset`, 'Camera roll offset must stay between -360 and 360 degrees.');
+      }
       if (override.fov != null && (!finite(override.fov) || Number(override.fov) < 20 || Number(override.fov) > 100)) {
         diagnostic(diagnostics, 'camera-lens-value', `${path}.fov`, 'Camera FOV must stay between 20 and 100 degrees.');
       }
@@ -325,6 +415,18 @@ function validateTransform(transform, diagnostics, path, { partial = false } = {
   }
 }
 
+function validateLongRideTransform(transform, diagnostics, path) {
+  if (!Array.isArray(transform?.rotation)) return;
+  if (transform.rotation.some((value) => Math.abs(Number(value) || 0) > 0.000001)) {
+    diagnostic(
+      diagnostics,
+      'long-ride-world-rotation',
+      `${path}.rotation`,
+      'The Long Assembly owns its orientation through the shared ride track; its World rotation must remain zero.',
+    );
+  }
+}
+
 function validateControlValue(value, control, diagnostics, path) {
   if (control.type === 'range') {
     if (!finite(value) || Number(value) < control.min || Number(value) > control.max) {
@@ -355,6 +457,9 @@ function validateStateDefinition(state, diagnostics, path, seenIds) {
     diagnostic(diagnostics, 'state-protected', `${path}.protected`, 'protected must be boolean.');
   }
   validateTransform(state.transform, diagnostics, `${path}.transform`);
+  if (state.shapeId === 'long-assembly-corridor-v1') {
+    validateLongRideTransform(state.transform, diagnostics, `${path}.transform`);
+  }
   if (!isObject(state.shapeParameters)) {
     diagnostic(diagnostics, 'shape-parameters', `${path}.shapeParameters`, 'Shape parameters must be an object.');
   } else if (shape) {
@@ -594,7 +699,7 @@ function validateOverrideMap(value, definitions, allowed, diagnostics, path, val
     const itemPath = `${path}.${id}`;
     if (!ids.has(id)) diagnostic(diagnostics, 'override-target', itemPath, `Override target “${id}” does not exist.`);
     if (!unknownKeys(diagnostics, override, allowed, itemPath)) return;
-    validateValue?.(override, itemPath);
+    validateValue?.(override, itemPath, id);
   });
 }
 
@@ -606,9 +711,13 @@ function validatePointFieldOverrides(overrides, pointField, diagnostics, path, d
     STATE_OVERRIDE_KEYS,
     diagnostics,
     `${path}.stateDefinitions`,
-    (override, itemPath) => {
+    (override, itemPath, id) => {
       if (override.railAnchorWU != null && !finite(override.railAnchorWU)) diagnostic(diagnostics, 'state-rail-anchor', `${itemPath}.railAnchorWU`, 'Rail anchor must be finite.');
       if (override.transform != null) validateTransform(override.transform, diagnostics, `${itemPath}.transform`, { partial: true });
+      const state = pointField.stateDefinitions.find((candidate) => candidate.id === id);
+      if (state?.shapeId === 'long-assembly-corridor-v1' && override.transform != null) {
+        validateLongRideTransform(override.transform, diagnostics, `${itemPath}.transform`);
+      }
     },
   );
   validateOverrideMap(
@@ -640,6 +749,8 @@ function validatePointFieldOverrides(overrides, pointField, diagnostics, path, d
 
 function mapV6InteractionToV5(clip) {
   const next = clone(clip);
+  delete next.trigger;
+  delete next.endTrigger;
   next.targetWorldId = next.targetStateId;
   delete next.targetStateId;
   if (next.type === 'discipline-reveal') {
@@ -651,6 +762,8 @@ function mapV6InteractionToV5(clip) {
       restoreDurationWU: next.parameters?.restoreDurationWU,
       items: (next.parameters?.items || []).map((item) => {
         const projected = clone(item);
+        projected.position = getAboutNarrativeDisciplinePosition(item, 'desktop', next.parameters);
+        projected.mobilePosition = getAboutNarrativeDisciplinePosition(item, 'mobile', next.parameters);
         delete projected.tabletPosition;
         return projected;
       }),
@@ -824,7 +937,13 @@ export function projectAboutNarrativePointFieldDocumentToVersion5(input) {
     profiles: Object.fromEntries(profileEntries),
     tracks: {
       camera: composerCamera,
-      visibility: clone(source.tracks.visibility),
+      visibility: {
+        keys: source.tracks.visibility.keys.map((key) => {
+          const projected = clone(key);
+          delete projected.trigger;
+          return projected;
+        }),
+      },
       worlds: { objects: baseWorlds },
       text: clone(source.tracks.text),
       interactions: {
@@ -875,8 +994,24 @@ function validateV6Interactions(interactions, stateIds, diagnostics, durationWU)
         );
       }
       if (!Array.isArray(parameters.items) || parameters.items.length !== 6) {
-        diagnostic(diagnostics, 'discipline-items', `${path}.parameters.items`, 'Discipline reveal requires exactly six positioned items.');
+        diagnostic(diagnostics, 'discipline-items', `${path}.parameters.items`, 'Discipline reveal requires exactly six items.');
       } else {
+        ['anchor', 'tabletAnchor', 'mobileAnchor'].forEach((key) => (
+          validateDisciplinePosition(parameters[key], diagnostics, `${path}.parameters.${key}`)
+        ));
+        ['spacingRows', 'tabletSpacingRows', 'mobileSpacingRows'].forEach((key) => {
+          const value = Number(parameters[key]);
+          if (!Number.isInteger(value)
+            || value < ABOUT_NARRATIVE_DISCIPLINE_SPACING_BOUNDS.min
+            || value > ABOUT_NARRATIVE_DISCIPLINE_SPACING_BOUNDS.max) {
+            diagnostic(
+              diagnostics,
+              'discipline-spacing',
+              `${path}.parameters.${key}`,
+              `Discipline spacing must be an integer from ${ABOUT_NARRATIVE_DISCIPLINE_SPACING_BOUNDS.min} to ${ABOUT_NARRATIVE_DISCIPLINE_SPACING_BOUNDS.max} grid rows.`,
+            );
+          }
+        });
         const groups = new Set();
         parameters.items.forEach((item, itemIndex) => {
           const itemPath = `${path}.parameters.items.${itemIndex}`;
@@ -885,9 +1020,9 @@ function validateV6Interactions(interactions, stateIds, diagnostics, durationWU)
             diagnostic(diagnostics, 'discipline-group', `${itemPath}.group`, 'Discipline groups must uniquely cover 1 through 6.');
           }
           groups.add(item.group);
-          ['position', 'tabletPosition', 'mobilePosition'].forEach((key) => (
-            validateDisciplinePosition(item[key], diagnostics, `${itemPath}.${key}`)
-          ));
+          ['position', 'tabletPosition', 'mobilePosition'].forEach((key) => {
+            if (item[key] != null) validateDisciplinePosition(item[key], diagnostics, `${itemPath}.${key}`);
+          });
         });
       }
     }
@@ -918,7 +1053,7 @@ function validateV6ProfileInteractions(input, diagnostics, durationWU) {
       input.tracks.pointField,
       profileOverrides.pointField,
     );
-    const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
+    const resolvedClips = [];
     input.tracks.interactions.clips.forEach((clip) => {
       if (!pointField.stateDefinitions.some((state) => state.id === clip.targetStateId)) return;
       const override = overrides[clip.id] || {};
@@ -937,25 +1072,59 @@ function validateV6ProfileInteractions(input, diagnostics, durationWU) {
         );
         return;
       }
-      const participates = pointField.segments.some((segment) => {
-        const fromKey = keyById.get(segment.fromKeyId);
-        const toKey = keyById.get(segment.toKeyId);
-        if (!fromKey || !toKey) return false;
-        const targetParticipates = fromKey.stateId === clip.targetStateId
-          || toKey.stateId === clip.targetStateId;
-        return targetParticipates
-          && Math.max(startWU, Number(fromKey.atWU))
-            < Math.min(endWU, Number(toKey.atWU));
-      });
-      if (!participates) {
+      const resolvedClip = { ...clip, startWU, activationWU, endWU };
+      resolvedClips.push(resolvedClip);
+      const ownership = getAboutNarrativeFormOwnershipRangeAt(
+        pointField,
+        durationWU,
+        clip.targetStateId,
+        activationWU,
+      );
+      if (!isAboutNarrativeEffectInsideFormRange(resolvedClip, ownership)) {
         diagnostic(
           diagnostics,
-          'profile-interaction-participation',
+          'profile-effect-form-sequence',
           `profiles.${profileId}.overrides.interactions.${clip.id}`,
-          `Interaction “${clip.id}” must overlap a point-field segment that uses target state “${clip.targetStateId}”.`,
+          `Effect “${clip.id}” must stay inside the interval owned by Form “${clip.targetStateId}”.`,
         );
       }
     });
+    getAboutNarrativeEffectSequenceOverlaps(resolvedClips).forEach(({ left, right }) => {
+      diagnostic(
+        diagnostics,
+        'profile-effect-sequence-overlap',
+        `profiles.${profileId}.overrides.interactions.${right.id}`,
+        `Effects are sequential: “${left.id}” must end before “${right.id}” begins.`,
+      );
+    });
+  });
+}
+
+function validateV6EffectFormSequence(input, diagnostics, durationWU) {
+  const pointField = input.tracks?.pointField;
+  const clips = input.tracks?.interactions?.clips || [];
+  clips.forEach((clip, index) => {
+    const ownership = getAboutNarrativeFormOwnershipRangeAt(
+      pointField,
+      durationWU,
+      clip.targetStateId,
+      clip.activationWU,
+    );
+    if (isAboutNarrativeEffectInsideFormRange(clip, ownership)) return;
+    diagnostic(
+      diagnostics,
+      'effect-form-sequence',
+      `tracks.interactions.clips.${index}`,
+      `Effect “${clip.id}” must start, activate, and end inside one interval owned by Form “${clip.targetStateId}”.`,
+    );
+  });
+  getAboutNarrativeEffectSequenceOverlaps(clips).forEach(({ left, right }) => {
+    diagnostic(
+      diagnostics,
+      'effect-sequence-overlap',
+      `tracks.interactions.clips.${clips.indexOf(right)}`,
+      `Effects are sequential: “${left.id}” must end before “${right.id}” begins.`,
+    );
   });
 }
 
@@ -967,12 +1136,39 @@ export function validateAboutNarrativePointFieldDocument(input) {
   }
   if (!unknownKeys(diagnostics, input.tracks, TRACK_KEYS, 'tracks')) return diagnostics;
   const durationWU = Number(input.profiles?.desktop?.storyDurationWU);
+  const textDurationWU = Math.max(
+    0,
+    ...(input.tracks?.text?.fields || [])
+      .filter((field) => field.publishable !== false && field.kind !== 'stub')
+      .map((field) => Number(field.endWU))
+      .filter(finite),
+  );
+  if (finite(durationWU) && Math.abs(durationWU - textDurationWU) > 0.000001) {
+    diagnostic(
+      diagnostics,
+      'text-story-duration',
+      'profiles.desktop.storyDurationWU',
+      'Story duration must match the final publishable Text exit.',
+    );
+  }
   validateCameraTrack(input.tracks.camera, diagnostics, durationWU);
   validateCameraOverrides(input, diagnostics);
   validatePointFieldTrack(input.tracks.pointField, diagnostics, 'tracks.pointField', durationWU);
   const stateIds = new Set((input.tracks.pointField?.stateDefinitions || []).map((state) => state.id));
+  if (input.tracks.camera?.orbit
+    && !stateIds.has(input.tracks.camera.orbit.targetStateId)) {
+    diagnostic(
+      diagnostics,
+      'camera-orbit-target',
+      'tracks.camera.orbit.targetStateId',
+      `Unknown Camera orbit Form “${input.tracks.camera.orbit.targetStateId}”.`,
+    );
+  }
   validateV6Interactions(input.tracks.interactions, stateIds, diagnostics, durationWU);
+  validateV6EffectFormSequence(input, diagnostics, durationWU);
   validateV6ProfileInteractions(input, diagnostics, durationWU);
+
+  validateAboutNarrativeMomentTriggers(input).forEach((item) => diagnostics.push(item));
 
   ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS.forEach((profileId) => {
     const profile = input.profiles?.[profileId];
@@ -1098,6 +1294,13 @@ export function normalizeAboutNarrativePointFieldDocument(input) {
         moveKeys: normalizeCameraLane(source.tracks.camera.moveKeys),
         lookKeys: normalizeCameraLane(source.tracks.camera.lookKeys),
         lensKeys: normalizeCameraLane(source.tracks.camera.lensKeys),
+        ...(source.tracks.camera.orbit ? {
+          orbit: {
+            ...clone(source.tracks.camera.orbit),
+            startWU: cleanWU(source.tracks.camera.orbit.startWU),
+            endWU: cleanWU(source.tracks.camera.orbit.endWU),
+          },
+        } : {}),
       },
       visibility: {
         keys: [...source.tracks.visibility.keys]
@@ -1477,6 +1680,27 @@ function migrateVersion6CameraOverrides(camera, legacyOverrides = {}) {
   return migrated;
 }
 
+function stripResponsiveMomentTiming(profiles) {
+  ['desktop', 'tablet', 'mobile'].forEach((profileId) => {
+    const overrides = profiles[profileId]?.overrides;
+    if (!overrides) return;
+    Object.values(overrides.camera || {}).forEach((override) => delete override.atWU);
+    Object.values(overrides.visibility || {}).forEach((override) => delete override.atWU);
+    Object.values(overrides.pointField?.keys || {}).forEach((override) => delete override.atWU);
+    Object.values(overrides.text || {}).forEach((override) => {
+      delete override.startWU;
+      delete override.focusWU;
+      delete override.endWU;
+    });
+    Object.values(overrides.interactions || {}).forEach((override) => {
+      delete override.startWU;
+      delete override.activationWU;
+      delete override.endWU;
+    });
+  });
+  return profiles;
+}
+
 function stateParticipationRange(pointField, stateId, durationWU) {
   const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
   let startWU = durationWU;
@@ -1524,7 +1748,7 @@ export function migrateAboutNarrativeVersion6To7(input) {
     });
     state.modifiers = [];
   });
-  const profiles = Object.fromEntries(Object.entries(source.profiles).map(([profileId, profile]) => {
+  const profiles = stripResponsiveMomentTiming(Object.fromEntries(Object.entries(source.profiles).map(([profileId, profile]) => {
     if (profileId === 'reduced-motion') return [profileId, clone(profile)];
     return [profileId, {
       ...clone(profile),
@@ -1533,23 +1757,25 @@ export function migrateAboutNarrativeVersion6To7(input) {
         camera: migrateVersion6CameraOverrides(legacyCamera, profile.overrides?.camera),
       },
     }];
-  }));
+  })));
   const interactions = (source.tracks.interactions?.clips || []).map((clip) => {
     const migrated = clone(clip);
     if (migrated.type === 'grid-ripple') delete migrated.parameters?.timeMode;
     if (migrated.type !== 'discipline-reveal') return migrated;
-    const items = (migrated.parameters?.items || []).map((item, index) => ({
-      ...clone(item),
-      position: clone(item.position || ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[index]),
-      tabletPosition: clone(item.tabletPosition || item.position || ABOUT_NARRATIVE_DISCIPLINE_DESKTOP_POSITIONS[index]),
-      mobilePosition: clone(item.mobilePosition || ABOUT_NARRATIVE_DISCIPLINE_MOBILE_POSITIONS[index]),
-    }));
+    const items = (migrated.parameters?.items || []).map((item) => {
+      const next = clone(item);
+      delete next.position;
+      delete next.tabletPosition;
+      delete next.mobilePosition;
+      return next;
+    });
     migrated.parameters = {
       entryStartRatio: 0.88,
       entryCompleteRatio: 0.78,
       backgroundOpacity: Number(migrated.parameters?.backgroundOpacity ?? 0.28),
       pointScale: Number(migrated.parameters?.pointScale ?? 4.4),
       restoreDurationWU: Number(migrated.parameters?.restoreDurationWU ?? 0.5),
+      ...ABOUT_NARRATIVE_DISCIPLINE_LAYOUT_DEFAULTS,
       items,
     };
     return migrated;
@@ -1564,6 +1790,7 @@ export function migrateAboutNarrativeVersion6To7(input) {
       interactions: { clips: [...interactions, ...stateEffects] },
     },
   };
+  attachAboutNarrativeMomentTriggers(migrated);
   return normalizeAboutNarrativePointFieldDocument(migrated);
 }
 

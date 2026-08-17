@@ -348,7 +348,7 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   }
 
   const isAboutRoute = routeId === 'about';
-  const waitsForAboutNarrativeScene = routeId === 'about';
+  const waitsForAboutNarrativeScene = routeId === 'about' && import.meta.env.DEV;
   if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;

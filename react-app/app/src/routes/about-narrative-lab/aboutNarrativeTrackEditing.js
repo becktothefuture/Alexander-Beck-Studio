@@ -1,14 +1,32 @@
 import { ABOUT_NARRATIVE_INTERACTION_DEFINITIONS } from './aboutNarrativeDefinitions.js';
 import { ABOUT_NARRATIVE_DEFAULT_CAMERA_EASING } from './aboutNarrativeCameraEasing.js';
+import {
+  getAboutNarrativeMomentTargets,
+  refreshAboutNarrativeMomentTriggers,
+  synchronizeAboutNarrativeMomentTriggers,
+  validateAboutNarrativeMomentTriggers,
+} from './aboutNarrativeMoments.js';
+import {
+  getAboutNarrativeEffectSequenceOverlaps,
+  getAboutNarrativeFormOwnershipRangeAt,
+  getAboutNarrativeFormOwnershipRanges,
+  isAboutNarrativeEffectInsideFormRange,
+} from './aboutNarrativeFormSequence.js';
 
 export const ABOUT_NARRATIVE_TRACK_EDITING_STEP_WU = 0.005;
 export const ABOUT_NARRATIVE_MIN_WORLD_DURATION_WU = 0.25;
 export const ABOUT_NARRATIVE_TRACK_CLIPBOARD_VERSION = 1;
 
+const TIME_EPSILON_WU = 0.000001;
+
 const CLIPBOARD_KIND = 'about-narrative-track-objects';
 const OBJECT_TYPES = Object.freeze(['camera-key', 'camera-orientation-key', 'camera-lens-key', 'visibility-key', 'world', 'text-field', 'interaction']);
 const CAMERA_OBJECT_TYPES = new Set(['camera-key', 'camera-orientation-key', 'camera-lens-key']);
 const TRACK_IDS = Object.freeze(['camera', 'camera-orientation', 'camera-lens', 'visibility', 'world', 'text', 'interaction']);
+// Material is a settings-only surface: it may be selected for its inspector,
+// but it is not a temporal lane and must never enter object editing, clipboard,
+// or responsive override routing.
+const TRACK_SELECTION_IDS = Object.freeze([...TRACK_IDS, 'material']);
 const TYPE_TO_TRACK = Object.freeze({
   'camera-key': 'camera',
   'camera-orientation-key': 'camera-orientation',
@@ -39,6 +57,20 @@ function snapWU(value, step = ABOUT_NARRATIVE_TRACK_EDITING_STEP_WU) {
 
 function resultError(reason, code = 'invalid-edit') {
   return Object.freeze({ valid: false, code, reason });
+}
+
+/**
+ * Schema v7 treats Text timing as authored page structure, not choreography.
+ * Keep this invariant at the editing seam so keyboard shortcuts, gestures,
+ * clipboard actions, and future editor surfaces cannot accidentally retime it.
+ */
+function rejectFixedTextSpineEdit(model) {
+  return Number(model?.schemaVersion) >= 7
+    ? resultError(
+      'Text timing is the fixed editorial spine. Adjust Camera, Forms, and Effects around its moments.',
+      'text-spine-fixed',
+    )
+    : null;
 }
 
 function getTrackCollection(model, trackId) {
@@ -113,16 +145,68 @@ function getNonTextBoundaryWU(model) {
   return Math.max(0, ...times.filter(finite).map(Number));
 }
 
+export function getAboutNarrativeTextStoryDurationWU(model) {
+  return Math.max(
+    0,
+    ...(model.tracks?.text?.fields || [])
+      .filter((field) => field.publishable !== false && field.kind !== 'stub')
+      .map((field) => Number(field.endWU))
+      .filter(Number.isFinite),
+  );
+}
+
+function moveStoryBoundaryPins(model, previousDurationWU, nextDurationWU) {
+  if (Number(model.schemaVersion) < 7
+    || Math.abs(Number(previousDurationWU) - Number(nextDurationWU)) <= TIME_EPSILON_WU) return;
+  const moveIfPinned = (target, key) => {
+    if (target && finite(target[key])
+      && Math.abs(Number(target[key]) - Number(previousDurationWU)) <= TIME_EPSILON_WU) {
+      target[key] = nextDurationWU;
+    }
+  };
+  const moveKeyLane = (keys) => (keys || []).forEach((key) => moveIfPinned(key, 'atWU'));
+
+  // Only values explicitly pinned to the previous page boundary follow Text.
+  // Interior choreography keeps its authored timing and remains independently
+  // adjustable in the Composer.
+  moveKeyLane(model.tracks?.camera?.moveKeys);
+  moveKeyLane(model.tracks?.camera?.lookKeys);
+  moveKeyLane(model.tracks?.camera?.lensKeys);
+  moveKeyLane(model.tracks?.visibility?.keys);
+  moveKeyLane(model.tracks?.pointField?.keys);
+  moveIfPinned(model.tracks?.camera?.orbit, 'endWU');
+  (model.tracks?.interactions?.clips || []).forEach((clip) => {
+    moveIfPinned(clip, 'startWU');
+    moveIfPinned(clip, 'activationWU');
+    moveIfPinned(clip, 'endWU');
+  });
+
+  Object.values(model.profiles || {}).forEach((profile) => {
+    const overrides = profile?.overrides;
+    Object.values(overrides?.camera || {}).forEach((override) => moveIfPinned(override, 'atWU'));
+    Object.values(overrides?.visibility || {}).forEach((override) => moveIfPinned(override, 'atWU'));
+    Object.values(overrides?.pointField?.keys || {}).forEach((override) => moveIfPinned(override, 'atWU'));
+    Object.values(overrides?.interactions || {}).forEach((override) => {
+      moveIfPinned(override, 'startWU');
+      moveIfPinned(override, 'activationWU');
+      moveIfPinned(override, 'endWU');
+    });
+  });
+}
+
 export function synchronizeAboutNarrativeDurationToText(
   model,
   previousDurationWU = getStoryDurationWU(model),
 ) {
-  const textDurationWU = Math.max(
-    0,
-    ...(model.tracks?.text?.fields || []).map((field) => Number(field.endWU)).filter(Number.isFinite),
-  );
-  const nextDurationWU = cleanWU(Math.max(textDurationWU, getNonTextBoundaryWU(model)));
+  const textDurationWU = getAboutNarrativeTextStoryDurationWU(model);
+  const textOwnsStoryDuration = Number(model.schemaVersion) >= 7;
+  const nextDurationWU = cleanWU(textOwnsStoryDuration
+    ? textDurationWU
+    : Math.max(textDurationWU, getNonTextBoundaryWU(model)));
   if (!(nextDurationWU > 0) || !(Number(previousDurationWU) > 0)) return model;
+  if (textOwnsStoryDuration) {
+    moveStoryBoundaryPins(model, previousDurationWU, nextDurationWU);
+  }
   Object.values(model.profiles || {}).forEach((profile) => {
     if (!finite(profile.storyDurationWU)) return;
     const scrollRatio = finite(profile.scrollDurationWU)
@@ -233,7 +317,7 @@ export function normalizeAboutNarrativeTrackSelection(selection, model, {
   legacySelectionMap = null,
   fallbackTrack = 'world',
 } = {}) {
-  if (selection?.type === 'track' && TRACK_IDS.includes(selection.id)) {
+  if (selection?.type === 'track' && TRACK_SELECTION_IDS.includes(selection.id)) {
     return { type: 'track', id: selection.id };
   }
 
@@ -244,7 +328,7 @@ export function normalizeAboutNarrativeTrackSelection(selection, model, {
   if (candidate?.type === 'track') return candidate;
   if (!candidate || !selectionExists(model, candidate)) {
     const trackId = TYPE_TO_TRACK[candidate?.type] || fallbackTrack;
-    return { type: 'track', id: TRACK_IDS.includes(trackId) ? trackId : 'world' };
+    return { type: 'track', id: TRACK_SELECTION_IDS.includes(trackId) ? trackId : 'world' };
   }
 
   const normalizedMembers = getSelectionMembers({
@@ -269,37 +353,11 @@ function sortedWorlds(model) {
 }
 
 function getPointFieldStateRanges(model, stateId) {
-  const pointField = model?.tracks?.pointField;
-  if (!pointField?.keys?.length || !stateId) return [];
-  const keys = [...pointField.keys]
-    .map((key, index) => ({ ...key, _sourceOrder: index }))
-    .sort((left, right) => (
-      Number(left.atWU) - Number(right.atWU)
-      || left._sourceOrder - right._sourceOrder
-    ));
-  const ranges = [];
-  for (let index = 0; index < keys.length - 1; index += 1) {
-    if (keys[index + 1].stateId !== stateId) continue;
-    const startWU = Number(keys[index].atWU);
-    const endWU = Number(keys[index + 1].atWU);
-    const previous = ranges.at(-1);
-    if (previous && Math.abs(previous.endWU - startWU) <= 0.000001) {
-      previous.endWU = endWU;
-    } else {
-      ranges.push({ startWU, endWU });
-    }
-  }
-  const finalKey = keys.at(-1);
-  if (finalKey.stateId === stateId) {
-    const durationWU = getStoryDurationWU(model);
-    const previous = ranges.at(-1);
-    if (previous && Math.abs(previous.endWU - Number(finalKey.atWU)) <= 0.000001) {
-      previous.endWU = durationWU;
-    } else {
-      ranges.push({ startWU: Number(finalKey.atWU), endWU: durationWU });
-    }
-  }
-  return ranges;
+  return getAboutNarrativeFormOwnershipRanges(
+    model?.tracks?.pointField,
+    getStoryDurationWU(model),
+    stateId,
+  );
 }
 
 function getPointFieldStateRange(model, stateId, atWU) {
@@ -466,6 +524,24 @@ function validateEditingModel(model) {
     ids.add(id);
   }
 
+  const textFields = model.tracks?.text?.fields || [];
+  for (let index = 1; index < textFields.length; index += 1) {
+    const previous = textFields[index - 1];
+    const current = textFields[index];
+    if (Number(current.startWU) < Number(previous.endWU) - TIME_EPSILON_WU) {
+      return resultError(
+        `Text order is fixed: ${current.id} cannot overlap or pass ${previous.id}.`,
+        'text-sequence-order',
+      );
+    }
+  }
+
+  if (Number(model.schemaVersion) >= 7) {
+    const momentError = validateAboutNarrativeMomentTriggers(model)
+      .find((item) => item.level === 'error');
+    if (momentError) return resultError(momentError.message, momentError.code);
+  }
+
   const worlds = sortedWorlds(model);
   if (!worlds.length && !model?.tracks?.pointField) {
     return resultError('At least one World Start is required.', 'missing-world');
@@ -523,17 +599,15 @@ function validateEditingModel(model) {
       if (!pointField.stateDefinitions.some((state) => state.id === clip.targetStateId)) {
         return resultError(`${clip.id} targets a missing point-field state.`, 'interaction-target');
       }
-      const keyById = new Map(pointField.keys.map((key) => [key.id, key]));
-      const participates = pointField.segments.some((segment) => {
-        const fromKey = keyById.get(segment.fromKeyId);
-        const toKey = keyById.get(segment.toKeyId);
-        return (fromKey?.stateId === clip.targetStateId || toKey?.stateId === clip.targetStateId)
-          && Math.max(Number(clip.startWU), Number(fromKey?.atWU))
-            < Math.min(Number(clip.endWU), Number(toKey?.atWU));
-      });
-      if (!participates) {
+      const ownership = getAboutNarrativeFormOwnershipRangeAt(
+        pointField,
+        durationWU,
+        clip.targetStateId,
+        clip.activationWU,
+      );
+      if (!isAboutNarrativeEffectInsideFormRange(clip, ownership)) {
         return resultError(
-          `${clip.id} must overlap a segment that uses its target point-field state.`,
+          `${clip.id} must stay inside the interval owned by its target Form.`,
           'interaction-target-window',
         );
       }
@@ -549,6 +623,15 @@ function validateEditingModel(model) {
       return resultError(`${clip.id} extends outside its target's active range.`, 'interaction-target-window');
     }
   }
+  const effectOverlap = getAboutNarrativeEffectSequenceOverlaps(
+    model?.tracks?.interactions?.clips,
+  )[0];
+  if (effectOverlap) {
+    return resultError(
+      `${effectOverlap.left.id} must end before ${effectOverlap.right.id} begins.`,
+      'effect-sequence-overlap',
+    );
+  }
   return Object.freeze({ valid: true });
 }
 
@@ -561,6 +644,37 @@ function resolveSelectedObjects(model, selection) {
   return { valid: true, selection: normalized, members, objects, type: normalized.type, track: TYPE_TO_TRACK[normalized.type] };
 }
 
+function getTextSequenceDeltaBounds(model, members) {
+  const fields = [...(model.tracks?.text?.fields || [])]
+    .sort((left, right) => Number(left.startWU) - Number(right.startWU) || left.id.localeCompare(right.id));
+  const selectedIds = new Set(members.map((member) => member.id));
+  let minimumDeltaWU = Number.NEGATIVE_INFINITY;
+  let maximumDeltaWU = Number.POSITIVE_INFINITY;
+
+  fields.forEach((field, index) => {
+    if (!selectedIds.has(field.id)) return;
+    let previousIndex = index - 1;
+    while (previousIndex >= 0 && selectedIds.has(fields[previousIndex].id)) previousIndex -= 1;
+    let nextIndex = index + 1;
+    while (nextIndex < fields.length && selectedIds.has(fields[nextIndex].id)) nextIndex += 1;
+    const previous = fields[previousIndex];
+    const next = fields[nextIndex];
+    if (previous) {
+      minimumDeltaWU = Math.max(
+        minimumDeltaWU,
+        Number(previous.endWU) - Number(field.startWU),
+      );
+    }
+    if (next) {
+      maximumDeltaWU = Math.min(
+        maximumDeltaWU,
+        Number(next.startWU) - Number(field.endWU),
+      );
+    }
+  });
+  return { minimumDeltaWU, maximumDeltaWU };
+}
+
 export function moveAboutNarrativeTrackObjectsByWU({
   model,
   selection,
@@ -570,15 +684,26 @@ export function moveAboutNarrativeTrackObjectsByWU({
   const resolved = resolveSelectedObjects(model, selection);
   if (!resolved.valid) return resolved;
   if (!finite(deltaWU)) return resultError('Movement requires a finite WU delta.', 'movement-delta');
+  if (resolved.type === 'text-field') {
+    const fixedTextSpine = rejectFixedTextSpineEdit(model);
+    if (fixedTextSpine) return fixedTextSpine;
+  }
   if (!CAMERA_OBJECT_TYPES.has(resolved.type) && resolved.objects.some((object) => object.locked)) {
     return resultError('A protected track object cannot be moved.', 'protected-object');
   }
   const durationWU = getStoryDurationWU(model);
   const times = resolved.objects.flatMap((object) => objectMovableTimes(object, resolved.type));
-  const minimumDeltaWU = -Math.min(...times);
-  const maximumDeltaWU = resolved.type === 'text-field'
+  let minimumDeltaWU = -Math.min(...times);
+  let maximumDeltaWU = resolved.type === 'text-field'
     ? 80 - Math.max(...times)
     : durationWU - Math.max(...times);
+  if (resolved.type === 'text-field') {
+    // Legacy documents still support Text-window movement. The v7 branch has
+    // already returned because its editorial spine is immutable.
+    const sequenceBounds = getTextSequenceDeltaBounds(model, resolved.members);
+    minimumDeltaWU = Math.max(minimumDeltaWU, sequenceBounds.minimumDeltaWU);
+    maximumDeltaWU = Math.min(maximumDeltaWU, sequenceBounds.maximumDeltaWU);
+  }
   const requestedDeltaWU = snap ? snapWU(deltaWU) : cleanWU(deltaWU);
   const appliedDeltaWU = cleanWU(clamp(requestedDeltaWU, minimumDeltaWU, maximumDeltaWU));
   if (Math.abs(appliedDeltaWU) < 0.0000005) {
@@ -594,6 +719,17 @@ export function moveAboutNarrativeTrackObjectsByWU({
       });
     }
   });
+  if (Number(candidate.schemaVersion) >= 7) {
+    if (resolved.type === 'text-field') {
+      // Text is the moment clock. Moving a Text window re-resolves every
+      // bound Camera, Form, Visibility, Orbit, and Effect trigger.
+      synchronizeAboutNarrativeMomentTriggers(candidate);
+    } else {
+      // Direct animation movement changes its offset or nearest moment; it
+      // never leaves an unowned absolute key behind.
+      resolved.members.forEach((member) => refreshAboutNarrativeMomentTriggers(candidate, member));
+    }
+  }
   sortTrack(candidate, resolved.track);
   if (resolved.type === 'text-field') {
     synchronizeAboutNarrativeDurationToText(candidate, durationWU);
@@ -610,6 +746,8 @@ export function moveAboutNarrativeTrackObjectsByWU({
 }
 
 export function distributeAboutNarrativeTextFieldsEvenly({ model }) {
+  const fixedTextSpine = rejectFixedTextSpineEdit(model);
+  if (fixedTextSpine) return fixedTextSpine;
   const fields = [...(model?.tracks?.text?.fields || [])]
     .sort((left, right) => Number(left.focusWU) - Number(right.focusWU) || left.id.localeCompare(right.id));
   if (fields.length < 3) return resultError('At least three Text elements are needed for even spacing.', 'text-distribution');
@@ -635,6 +773,7 @@ export function distributeAboutNarrativeTextFieldsEvenly({ model }) {
     });
     cursorWU = Number(target.endWU) + (index < fields.length - 1 ? gapWU : 0);
   });
+  if (Number(candidate.schemaVersion) >= 7) synchronizeAboutNarrativeMomentTriggers(candidate);
   sortTrack(candidate, 'text');
   synchronizeAboutNarrativeDurationToText(candidate, durationWU);
   const validation = validateEditingModel(candidate);
@@ -656,16 +795,24 @@ export function resizeAboutNarrativeTextFieldEdge({
 }) {
   if (!['start', 'end'].includes(edge)) return resultError('Text resize edge must be start or end.', 'text-edge');
   if (!finite(atWU)) return resultError('Text resize requires a finite Story WU.', 'text-edge-time');
+  const fixedTextSpine = rejectFixedTextSpineEdit(model);
+  if (fixedTextSpine) return fixedTextSpine;
   const field = getAboutNarrativeTrackObject(model, { type: 'text-field', id });
   if (!field) return resultError(`Text field “${id}” is not available.`, 'object-selection');
   if (field.locked || field.protected) return resultError('A protected Text field cannot be resized.', 'protected-object');
   const durationWU = getStoryDurationWU(model);
   const requestedWU = snap ? snapWU(atWU) : cleanWU(atWU);
+  const fields = [...model.tracks.text.fields]
+    .sort((left, right) => Number(left.startWU) - Number(right.startWU) || left.id.localeCompare(right.id));
+  const fieldIndex = fields.findIndex((item) => item.id === id);
+  const previous = fields[fieldIndex - 1];
+  const next = fields[fieldIndex + 1];
   const nextWU = edge === 'start'
-    ? clamp(requestedWU, 0, Number(field.focusWU))
-    : clamp(requestedWU, Number(field.focusWU), 80);
+    ? clamp(requestedWU, Number(previous?.endWU ?? 0), Number(field.focusWU))
+    : clamp(requestedWU, Number(field.focusWU), Number(next?.startWU ?? 80));
   const candidate = clone(model);
   getAboutNarrativeTrackObject(candidate, { type: 'text-field', id })[`${edge}WU`] = cleanWU(nextWU);
+  if (Number(candidate.schemaVersion) >= 7) synchronizeAboutNarrativeMomentTriggers(candidate);
   synchronizeAboutNarrativeDurationToText(candidate, durationWU);
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
@@ -685,7 +832,12 @@ export function resizeAboutNarrativeInteractionEdge({
   if (!clip) return resultError(`Motion clip “${id}” is not available.`, 'object-selection');
   if (clip.locked || clip.protected) return resultError('A protected Motion clip cannot be resized.', 'protected-object');
   const worldRange = clip.targetStateId
-    ? { startWU: 0, endWU: getStoryDurationWU(model) }
+    ? getAboutNarrativeFormOwnershipRangeAt(
+      model.tracks.pointField,
+      getStoryDurationWU(model),
+      clip.targetStateId,
+      clip.activationWU,
+    )
     : getAboutNarrativeTrackObjectRange(model, { type: 'world', id: clip.targetWorldId });
   if (!worldRange) {
     return resultError(`Motion clip “${id}” targets a missing World or point-field state.`, 'interaction-target');
@@ -696,6 +848,9 @@ export function resizeAboutNarrativeInteractionEdge({
     : clamp(requestedWU, Number(clip.activationWU), Number(worldRange.endWU));
   const candidate = clone(model);
   getAboutNarrativeTrackObject(candidate, { type: 'interaction', id })[`${edge}WU`] = cleanWU(nextWU);
+  if (Number(candidate.schemaVersion) >= 7 && edge === 'end') {
+    refreshAboutNarrativeMomentTriggers(candidate, { type: 'interaction', id });
+  }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return {
@@ -856,9 +1011,19 @@ function clampWindow(focusWU, leadWU, trailWU, durationWU) {
 }
 
 function addCreatedObject(model, type, object) {
+  if (type === 'text-field') {
+    const fixedTextSpine = rejectFixedTextSpineEdit(model);
+    if (fixedTextSpine) return fixedTextSpine;
+  }
   const candidate = clone(model);
   getTrackCollection(candidate, TYPE_TO_TRACK[type]).push(object);
+  if (Number(candidate.schemaVersion) >= 7 && type !== 'text-field' && type !== 'world') {
+    refreshAboutNarrativeMomentTriggers(candidate, { type, id: object.id });
+  }
   sortTrack(candidate, TYPE_TO_TRACK[type]);
+  if (type === 'text-field') {
+    synchronizeAboutNarrativeDurationToText(candidate, getStoryDurationWU(model));
+  }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return {
@@ -1062,8 +1227,25 @@ export function createAboutNarrativeTrackObjectAtWU({ model, track, kind = null,
 export function deleteAboutNarrativeTrackObjects({ model, selection }) {
   const resolved = resolveSelectedObjects(model, selection);
   if (!resolved.valid) return resolved;
+  if (resolved.type === 'text-field') {
+    const fixedTextSpine = rejectFixedTextSpineEdit(model);
+    if (fixedTextSpine) return fixedTextSpine;
+  }
   if (!CAMERA_OBJECT_TYPES.has(resolved.type) && resolved.objects.some((object) => object.locked)) {
     return resultError('A protected track object cannot be deleted.', 'protected-object');
+  }
+  if (resolved.type === 'text-field' && Number(model.schemaVersion) >= 7) {
+    const deletedMomentIds = new Set(resolved.members.map((member) => member.id));
+    const dependent = getAboutNarrativeMomentTargets(model).find((entry) => (
+      deletedMomentIds.has(entry.object.trigger?.momentId)
+      || deletedMomentIds.has(entry.object.endTrigger?.momentId)
+    ));
+    if (dependent) {
+      return resultError(
+        `Move ${dependent.id} to another Text moment before deleting this moment.`,
+        'moment-in-use',
+      );
+    }
   }
   const candidate = clone(model);
   const ids = new Set(resolved.members.map((member) => member.id));
@@ -1075,6 +1257,9 @@ export function deleteAboutNarrativeTrackObjects({ model, selection }) {
     if (!overrides) return;
     ids.forEach((id) => delete overrides[id]);
   });
+  if (resolved.type === 'text-field') {
+    synchronizeAboutNarrativeDurationToText(candidate, getStoryDurationWU(model));
+  }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   return {
@@ -1132,6 +1317,10 @@ export function pasteAboutNarrativeTrackClipboardPayload({ model, payload, atWU 
   if (!checked.valid) return checked;
   if (!finite(atWU)) return resultError('Paste requires a finite Story WU.', 'paste-time');
   const type = OBJECT_TYPES.find((candidate) => TYPE_TO_TRACK[candidate] === payload.track);
+  if (type === 'text-field') {
+    const fixedTextSpine = rejectFixedTextSpineEdit(model);
+    if (fixedTextSpine) return fixedTextSpine;
+  }
   const durationWU = getStoryDurationWU(model);
   const allTimes = payload.items.flatMap((item) => objectMovableTimes(item.object, type).map((time) => (
     Number(atWU) + Number(item.offsetWU) + (time - getObjectTime(item.object, type))
@@ -1148,9 +1337,15 @@ export function pasteAboutNarrativeTrackClipboardPayload({ model, payload, atWU 
     if (type === 'text-field' && object.anchor && idMap.has(object.anchor)) object.anchor = idMap.get(object.anchor);
     object.locked = false;
     getTrackCollection(candidate, payload.track).push(object);
+    if (Number(candidate.schemaVersion) >= 7 && type !== 'text-field' && type !== 'world') {
+      refreshAboutNarrativeMomentTriggers(candidate, { type, id: object.id });
+    }
     return object;
   });
   sortTrack(candidate, payload.track);
+  if (type === 'text-field') {
+    synchronizeAboutNarrativeDurationToText(candidate, getStoryDurationWU(model));
+  }
   const validation = validateEditingModel(candidate);
   if (!validation.valid) return validation;
   const members = created.map((object) => ({ type, id: object.id }));

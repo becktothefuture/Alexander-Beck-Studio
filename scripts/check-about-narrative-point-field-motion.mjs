@@ -126,6 +126,19 @@ test('point motion remaps authoritative visual progress without applying easing 
   assert.equal(sample.planeProgress, 0.25);
 });
 
+test('canonical Form changes use coherent spatial paths instead of direct interpolation or dissolves', () => {
+  const morphs = canonicalV6.tracks.pointField.segments.filter((segment) => (
+    segment.transition.type !== 'hold'
+  ));
+  assert(morphs.length >= 3);
+  morphs.forEach((segment) => {
+    assert.equal(segment.transition.type, 'morph', segment.id);
+    assert.equal(segment.transition.path.mode, 'flow', segment.id);
+    assert(Number(segment.transition.path.amount) > 0, segment.id);
+    assert(Number(segment.transition.stagger.amount) <= 0.08, segment.id);
+  });
+});
+
 test('stagger, organic paths, and plane motion are deterministic and preserve both endpoints', () => {
   const source = transition({
     stagger: { mode: 'random', amount: 0.45, axis: 'z', seed: 42 },
@@ -154,13 +167,14 @@ test('stagger, organic paths, and plane motion are deterministic and preserve bo
 });
 
 test('every path and plane mode is pure, reversible, and reduced motion settles cleanly', () => {
-  ['arc', 'curl', 'noise'].forEach((mode) => {
+  ['flow', 'arc', 'curl', 'noise'].forEach((mode) => {
     const source = transition({
       path: { mode, amount: 1, axis: 'x', frequency: 3, seed: 7 },
     });
-    const forward = sampleMotion(source, 0.41, { seed: 0.2 });
-    sampleMotion(source, 0.73, { seed: 0.2 });
-    const reversed = sampleMotion(source, 0.41, { seed: 0.2 });
+    const point = { seed: 0.2, radialPhase: 0.46, axisPhase: 0.3 };
+    const forward = sampleMotion(source, 0.41, point);
+    sampleMotion(source, 0.73, point);
+    const reversed = sampleMotion(source, 0.41, point);
     assert.deepEqual(reversed, forward);
   });
 

@@ -1,6 +1,7 @@
 {
-  "schemaVersion": 1,
-  "lastReviewed": "2026-07-15",
+  "schemaVersion": 2,
+  "recordModel": "client_master",
+  "lastReviewed": "2026-08-07",
   "projects": [
     {
       "id": "aha",

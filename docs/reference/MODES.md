@@ -75,6 +75,10 @@ These pages are review surfaces, not registered narrative modes. Do not add them
 12. `kaleidoscope-rift` — MULTIPLICITY
 13. `particle-fountain-b` — CADENCE
 
+### Daily simulation sound map
+
+Sound follows a visible physical event and stays silent during idle animation. `pit`, `water`, and `magnetic` use collision sound; `flies` uses only meaningful wall impact; `repel-room` uses pressure; `3d-sphere` maps user spin and its short inertial coast to Scroll Crystal; `flubber-blob` uses aggregated soft-body impact; and `particle-fountain-b` keeps its phrase cues. `3d-cube`, `flock-of-birds`, `kaleidoscope-3`, `starfield-3d`, and `kaleidoscope-rift` are silent.
+
 ### Extended Tier (shown after Featured)
 
 14. `aperture-bloom` — APERTURE BLOOM

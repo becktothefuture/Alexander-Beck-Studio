@@ -480,26 +480,12 @@ async function assertPlaygroundCursorStates(page) {
   }
 }
 
-async function assertHomeOverlayCursor(page) {
-  await page.locator('.simulation-focus-switcher').click();
-  await page.waitForSelector('.simulation-focus-modal.active', { timeout: routeWaitMs });
-
-  for (const [label, locator] of [
-    ['chooser row', page.locator('.simulation-focus-row').nth(1)],
-    ['chooser close control', page.locator('.simulation-focus-modal .gate-back')],
-  ]) {
-    await locator.hover();
-    await page.waitForTimeout(500);
-    const state = await readRouteCursorState(page, 'home');
-    assertRouteCursorState(state);
-    assertClickableCursorState(state, `home: ${label}`);
-    if (state.cursorZIndex !== '20000') {
-      throw new Error(`home: ${label} cursor z-index was ${state.cursorZIndex}, expected modal level 20000`);
-    }
-  }
-
-  await page.keyboard.press('Escape');
-  await page.waitForSelector('.simulation-focus-modal', { state: 'hidden', timeout: routeWaitMs });
+async function assertHomeSwitcherCursor(page) {
+  await page.locator('.simulation-focus-switcher').hover();
+  await page.waitForTimeout(500);
+  const state = await readRouteCursorState(page, 'home');
+  assertRouteCursorState(state);
+  assertClickableCursorState(state, 'home: circular simulation switcher');
 }
 
 async function assertOuterShellKeepsCustomCursor(page, routeId) {
@@ -562,7 +548,7 @@ async function directLoadChecks(browser) {
       continue;
     }
     await assertOuterShellKeepsCustomCursor(page, routeId);
-    if (routeId === 'home') await assertHomeOverlayCursor(page);
+    if (routeId === 'home') await assertHomeSwitcherCursor(page);
     if (routeId === 'playground') await assertPlaygroundCursorStates(page);
     log(`direct ${routeId}: ${state.cursorWidth} neutral lens`);
     await context.close();

@@ -89,17 +89,17 @@
       }
     },
     "simulationBodyMaterial": {
-      "enabled": false,
+      "enabled": true,
       "cacheDetailPx": 24,
       "light": {
-        "keyLevel": 0.27,
-        "keyReach": 1.28,
-        "ambientLevel": 0.59,
-        "ambientReach": 1.1,
-        "rimBounceLevel": 1.5,
-        "rimBounceReach": 0.91,
-        "shadowDepth": 0.38,
-        "shadowArea": 0.8
+        "keyLevel": 0,
+        "keyReach": 0.5,
+        "ambientLevel": 0.57,
+        "ambientReach": 0.5,
+        "rimBounceLevel": 0,
+        "rimBounceReach": 0.94,
+        "shadowDepth": 0.51,
+        "shadowArea": 0.85
       },
       "dark": {
         "keyLevel": 0.34,

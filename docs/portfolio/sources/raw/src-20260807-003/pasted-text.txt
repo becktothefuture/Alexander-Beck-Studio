@@ -1,0 +1,224 @@
+# Interview Round 1: SunExpress
+
+## Source metadata
+
+- Source ID: pending-registration
+- Date: 5 August 2026
+- Sensitivity: personal
+- Participants: Alexander Beck and ChatGPT interviewer
+- Transcript status: Voice-derived; important wording requires confirmation
+
+## Organising idea
+
+### Previous hypothesis
+
+Sequence a branching booking journey so travellers see the right choice at the right moment without hiding commercial options.
+
+### Current formulation
+
+Make a low-cost airline feel optimistic, approachable and easy to explore by carefully sequencing complexity, preserving personality, and simplifying every booking decision without sacrificing commercial goals.
+
+### Status
+
+Refined.
+
+### Why
+
+The interview shifted the focus away from booking logic alone. The stronger story is that the project balanced three competing forces:
+
+- commercial discovery and upsell;
+- effortless booking;
+- a warm, human personality at a time when digital products were becoming increasingly flat and sterile.
+
+That combination feels much more distinctive than simply "improving a booking flow." It also better reflects what you repeatedly returned to during the interview. INTERVIEW-ROADMAP.md
+
+---
+
+# Questions and raw answers
+
+## 1. What made this project more interesting than a standard airline redesign?
+
+SunExpress had been a long-term client, with the agency previously producing smaller website updates and campaign work.
+
+The redesign represented the first opportunity to rethink the entire experience rather than individual pages.
+
+Alexander describes this as one of his oldest projects but still one of the pieces he is most proud of because much of the underlying structure survived for roughly a decade, which is unusually long for digital products.
+
+The challenge was not making the airline appear premium.
+
+Instead, the ambition was to make an inexpensive airline feel friendly, optimistic and enjoyable while remaining clearly price-led.
+
+The website should encourage travellers to discover destinations, packages and offers without overwhelming them.
+
+---
+
+### Follow-up
+
+What did "discovery" actually mean?
+
+Discovery meant allowing travellers to browse destinations and offers naturally instead of treating the booking flow as a purely transactional process.
+
+Price remained the primary decision-making tool, but destinations, travel inspiration and package options were deliberately given a stronger role.
+
+---
+
+## 2. Which design mechanism best represents your contribution?
+
+Alexander repeatedly argued against fragmenting the booking experience into many disconnected screens.
+
+Instead of forcing travellers through separate pages for flight selection, package selection and extras, related decisions were brought together where possible.
+
+One example was allowing travellers to select their flight and associated package within the same view.
+
+This helped users understand how pricing worked instead of treating each decision as an isolated step.
+
+Another contribution was creating a visual seat-selection experience, which Alexander remembers as relatively uncommon at the time.
+
+Throughout the booking journey, simplicity consistently took priority over excessive customisation.
+
+The tone of voice was intentionally friendlier than typical airline booking systems, avoiding unnecessarily formal or intimidating language while still communicating operational details.
+
+---
+
+### Follow-up
+
+Why did that matter?
+
+Keeping related decisions together reduced unnecessary navigation and built a clearer mental model of how the booking worked.
+
+Instead of repeatedly asking users to context-switch, the interface progressively introduced complexity only when needed.
+
+---
+
+## 3. Looking back, what are you still proud of?
+
+Beyond the booking flow itself, Alexander remains proud that the interface retained warmth and personality during a period when flat design dominated digital products.
+
+Rather than following minimalist trends completely, the team tried to preserve visual richness without introducing clutter.
+
+Important areas of work included:
+
+- developing a coherent colour system and rationale;
+- designing a custom icon language;
+- creating a complete illustration system;
+- producing a reusable digital style guide that could extend beyond the core booking experience into marketing pages and destination content.
+
+Alexander describes himself as the principal designer on the project.
+
+His contributions included:
+
+- UX;
+- interface design;
+- interaction design;
+- prototyping;
+- motion;
+- photography selection;
+- helping establish the overall visual language.
+
+Destination imagery intentionally focused on presenting places from their most optimistic and inviting perspective.
+
+---
+
+# Most valuable material
+
+## Fascinating observation
+
+This project is noteworthy because its structure remained relevant for around a decade.
+
+Although parts of the visual design have inevitably aged, the information architecture and booking decisions proved unusually durable.
+
+## Design mechanism
+
+Progressive simplification.
+
+Instead of exposing every booking branch immediately, the interface grouped related decisions together, reduced unnecessary screens and revealed complexity gradually.
+
+At the same time, the visual language remained expressive enough to encourage exploration rather than reducing everything to functional utility.
+
+## Strongest anecdote
+
+The decision to merge flight selection and package selection into one coherent interaction, combined with an early visual seat-selection experience, illustrates Alexander's approach to reducing cognitive effort while improving understanding.
+
+## Evidence or outcome
+
+Confirmed:
+
+- Long-term redesign of the SunExpress website.
+- Strong emphasis on booking simplification.
+- Creation of a reusable design language including icons, colour system and illustrations.
+- Alexander personally led a substantial portion of UX, UI, motion and prototyping.
+
+Still requires verification:
+
+- Revenue impact.
+- Exact implementation scope.
+- Which booking features shipped exactly as designed.
+
+---
+
+# Contribution boundaries
+
+## Alexander's contribution
+
+Confirmed:
+
+- UX design
+- UI design
+- Interaction design
+- Booking-flow restructuring
+- Prototyping
+- Motion
+- Photography selection
+- Colour system
+- Iconography
+- Illustration direction
+- Digital style guide
+
+## Team contribution
+
+Confirmed only at a high level:
+
+- Wider agency collaboration.
+- Visual production.
+- Development.
+- Client stakeholders.
+
+Specific collaborators still need confirming because the existing portfolio record contains placeholder or incorrect credits. sunexpress.json
+
+## Unresolved attribution
+
+- Exact ownership of the illustration artwork.
+- Exact ownership of engineering implementation.
+- Team composition.
+
+---
+
+# Delivery boundaries
+
+- **Shipped:** Website redesign, booking flow, design language, style guide (confirmation of exact scope still needed).
+- **Conceptual:** Unknown.
+- **Publicly showable:** Existing interface work, design system, booking flows, icons, illustrations (subject to available assets).
+- **Confidential:** None identified so far.
+- **Requires verification:** Revenue claims, implementation details, project timeline.
+
+---
+
+# Claims confirmed or changed
+
+| Claim ID | New status | Evidence locator | Notes |
+|---|---|---|---|
+| claim-sunexpress-005 | Strengthened | Interview Round 1 | Alexander confirms ownership across UX, UI, prototyping, motion, visual language and style guide. |
+| claim-sunexpress-007 | Strengthened | Interview Round 1 | Simplification of fragmented booking flow confirmed through personal recollection. |
+| claim-sunexpress-008 | Strengthened | Interview Round 1 | Flight/package grouping and progressive disclosure confirmed as intentional design strategy. |
+| claim-sunexpress-010 | Still unresolved | — | Revenue impact still requires independent evidence before publication. |
+
+---
+
+# Remaining questions
+
+- Which analytics insight most directly changed the booking experience?
+- What exactly shipped versus what remained exploratory?
+- How many markets and languages were ultimately supported?
+- Can the reported revenue improvement be supported with evidence?
+- Which illustrations, booking screens and design-system artefacts are available for publication?
+- Looking back today, which parts of the visual design would Alexander redesign, and which parts of the information architecture would remain unchanged?

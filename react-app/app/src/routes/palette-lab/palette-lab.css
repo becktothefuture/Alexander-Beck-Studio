@@ -21,8 +21,6 @@ body.palette-lab-page {
   overscroll-behavior-y: auto;
   min-height: 100%;
   height: auto;
-  -webkit-user-select: text;
-  user-select: text;
   touch-action: pan-y;
   color: var(--palette-lab-ink);
 }

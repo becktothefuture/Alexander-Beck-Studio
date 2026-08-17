@@ -22,7 +22,6 @@ html.simulation-dashboard-document body.simulation-dashboard-page {
   background: #0c0d0e;
   color: #f4f1ea;
   cursor: auto;
-  user-select: text;
   touch-action: auto;
 }
 

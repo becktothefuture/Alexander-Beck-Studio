@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
+import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
 import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
-import { ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS } from './aboutNarrativeDefinitions.js';
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
@@ -16,12 +17,17 @@ import {
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
-import { playInteractionSound, playScrollDetent } from '../../legacy/modules/audio/sound-engine.js';
+import {
+  playContactRippleMotif,
+  playInteractionSound,
+  playScrollDetent,
+} from '../../legacy/modules/audio/sound-engine.js';
+import { CONTACT_RIPPLE_PRESS_FEEDBACK_MS } from '../contact/contactRippleEvents.js';
 import './about-narrative-lab.css';
 
-const INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT = ABOUT_NARRATIVE_DOCUMENT;
+const CANONICAL_ABOUT_EXPERIENCE_VERSION = 'v2';
 
-function getRenderSpanStyle(span) {
+function getRenderSpanStyle(span, storyField = null, storyGap = null) {
   const startWU = Number(span.scrollBounds.startWU);
   const focusWU = Number(span.scrollBounds.focusWU);
   const endWU = Number(span.scrollBounds.endWU);
@@ -30,6 +36,9 @@ function getRenderSpanStyle(span) {
     '--render-span-focus-wu': focusWU,
     '--render-span-end-wu': endWU,
     '--render-span-duration-wu': Math.max(0.001, endWU - startWU),
+    '--story-block-duration-wu': Number(storyField?.durationWU)
+      || Math.max(0.001, endWU - startWU),
+    '--story-gap-after-wu': Number(storyGap?.durationWU) || 0,
   };
 }
 
@@ -37,12 +46,6 @@ function selectTextField(onSelect, fieldId, event) {
   if (!onSelect) return;
   event?.stopPropagation();
   onSelect({ type: 'text-field', id: fieldId });
-}
-
-function selectMotionClip(onSelect, clipId, event) {
-  if (!onSelect) return;
-  event?.stopPropagation();
-  onSelect({ type: 'interaction', id: clipId });
 }
 
 function getEditorialEmphasisMatches(text = '', emphasis = []) {
@@ -102,7 +105,7 @@ function renderEditorialToken(token, tokenIndex, {
   return <span key={tokenIndex} {...measureProps}>{token.text}</span>;
 }
 
-function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
+function EditorialLineText({ text = '', emphasis = [] }) {
   const hostRef = useRef(null);
   const measureRef = useRef(null);
   const signatureRef = useRef('');
@@ -183,7 +186,6 @@ function EditorialLineText({ text = '', emphasis = [], worldGroup = 0 }) {
               data-editorial-reveal="line"
               data-editorial-visual-line
               data-editorial-line-index={lineIndex}
-              data-world-group={worldGroup || undefined}
               key={`${range.start}-${range.end}`}
             >
               {lineTokens.map((token, rangeIndex) => (
@@ -454,7 +456,6 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
   const commonProps = {
     'data-text-field-id': field.id,
     'data-primary-copy': true,
-    'data-world-influence': block.worldInfluence ? 'true' : undefined,
     onClick: (event) => selectTextField(onSelect, field.id, event),
   };
 
@@ -500,23 +501,32 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
     );
   }
   if (block.kind === 'disciplines') {
+    // Keep string support for migrated drafts; authored v7 content uses objects
+    // so each discipline can carry its explanation without another text track.
+    // The list item is the reveal unit: its label and description never separate.
     return (
       <ol {...commonProps} className="about-narrative-discipline-list" aria-label={block.label || 'Areas of expertise'}>
-        {(block.items || []).map((item, itemIndex) => (
-          <li key={item}>
-            <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
-            <span className="about-narrative-discipline-list__number" aria-hidden="true">
-              {String(itemIndex + 1).padStart(2, '0')}
-            </span>
-            <span>
-              <EditorialLineText
-                text={item}
-                emphasis={block.emphasis}
-                worldGroup={itemIndex + 1}
-              />
-            </span>
-          </li>
-        ))}
+        {(block.items || []).map((item) => {
+          const label = typeof item === 'string' ? item : item.label;
+          const description = typeof item === 'string' ? '' : item.description;
+          const itemId = typeof item === 'string' ? item : item.id;
+          const materialRole = itemId === 'motion-and-3d' ? 'motion-3d' : itemId;
+          return (
+            <li
+              data-editorial-reveal="discipline"
+              data-material-role={materialRole}
+              key={itemId}
+            >
+              <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
+              <span className="about-narrative-discipline-list__copy">
+                <strong className="about-narrative-discipline-list__label">{label}</strong>
+                {description ? (
+                  <span className="about-narrative-discipline-list__description">{description}</span>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
       </ol>
     );
   }
@@ -556,7 +566,10 @@ function TitleField({
   field,
   textMotion,
   isPrimaryTitle,
+  drawTitleEntrances,
+  onFinaleEmailPress,
   onSelect,
+  showFinaleEmailAction,
 }) {
   const Heading = isPrimaryTitle ? 'h1' : 'h2';
   const headingId = isPrimaryTitle ? 'about-route-title' : `${field.id}-title`;
@@ -593,6 +606,7 @@ function TitleField({
               id={headingId}
               className="about-narrative-spatial-title about-narrative-spatial-fragment route-centered-page__title route-bookend-title route-title-lockup__title"
               data-primary-copy
+              data-about-title-draw={drawTitleEntrances ? true : undefined}
               data-route-enter-variant="bookend-title"
             >
               {field.text}
@@ -604,16 +618,40 @@ function TitleField({
                 className="about-narrative-finale-description route-centered-page__description route-intro-description"
                 data-route-enter-variant="bookend-description"
               >
-                {field.description}{' '}
-                <a
-                  className="about-narrative-finale-description__link"
-                  href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
-                  data-sound-action="press"
-                  data-sound-source="about-email-link"
-                >
-                  Send me an email.
-                </a>
+                {field.description}
+                {!showFinaleEmailAction ? (
+                  <>
+                    {' '}
+                    <a
+                      className="about-narrative-finale-description__link"
+                      href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
+                      data-sound-action="press"
+                      data-sound-source="about-email-link"
+                    >
+                      Send me an email.
+                    </a>
+                  </>
+                ) : null}
               </p>
+            ) : null}
+            {showFinaleEmailAction ? (
+              <div className="about-narrative-finale-actions contact-action-stack">
+                <div className="about-narrative-finale-email contact-action-stack__primary">
+                  <CopyEmailAction
+                    email={ABOUT_NARRATIVE_CONTACT.email}
+                    onActivate={onFinaleEmailPress}
+                    pressFeedbackMs={CONTACT_RIPPLE_PRESS_FEEDBACK_MS}
+                    soundSource="about-copy-email"
+                    statusId="about-copy-status"
+                  />
+                </div>
+                <div className="contact-action-stack__secondary">
+                  <LinkedInAction
+                    href={ABOUT_NARRATIVE_CONTACT.linkedin}
+                    soundSource="about-linkedin"
+                  />
+                </div>
+              </div>
             ) : null}
           </div>
         </div>
@@ -624,10 +662,11 @@ function TitleField({
               id={headingId}
               className="route-centered-page__title route-bookend-title"
               data-primary-copy
+              data-about-title-draw={drawTitleEntrances ? true : undefined}
               data-route-focus-target={isPrimaryTitle ? true : undefined}
               tabIndex={isPrimaryTitle ? -1 : undefined}
-              data-route-enter="identity"
-              data-route-enter-order="0"
+              data-route-enter={drawTitleEntrances ? undefined : 'identity'}
+              data-route-enter-order={drawTitleEntrances ? undefined : '0'}
               data-route-enter-variant="bookend-title"
             >
               {field.text}
@@ -660,7 +699,12 @@ function TitleField({
           </div>
         </>
       ) : (
-        <Heading id={headingId} className="about-narrative-spatial-title about-narrative-spatial-fragment" data-primary-copy>
+        <Heading
+          id={headingId}
+          className="about-narrative-spatial-title about-narrative-spatial-fragment"
+          data-about-title-draw={drawTitleEntrances ? true : undefined}
+          data-primary-copy
+        >
           {field.text}
         </Heading>
       )}
@@ -668,50 +712,17 @@ function TitleField({
   );
 }
 
-function DisciplineRevealField({ reveal, overlayRef, onSelect, selectionType = 'interaction' }) {
-  const selectReveal = selectionType === 'text-field' ? selectTextField : selectMotionClip;
-  return (
-    <>
-      <h2 id="about-disciplines-heading" className="about-narrative-visually-hidden">Disciplines</h2>
-      <ol
-        ref={overlayRef}
-        className="about-narrative-discipline-reveal"
-        data-motion-clip-id={selectionType === 'interaction' ? reveal.id : undefined}
-        data-text-field-id={selectionType === 'text-field' ? reveal.id : undefined}
-        data-discipline-reveal={reveal.id}
-        aria-labelledby="about-disciplines-heading"
-        onClick={(event) => selectReveal(onSelect, reveal.id, event)}
-      >
-        {(reveal.items || []).map((item) => (
-          <li
-            key={item.group}
-            data-discipline-group={item.group}
-            data-label-side={Number(item.group) % 2 === 0 ? 'left' : 'right'}
-            aria-label={item.description ? `${item.label}. ${item.description}` : item.label}
-            style={{
-              '--discipline-color': `var(${ABOUT_NARRATIVE_DISCIPLINE_BALL_TOKENS[item.group - 1]})`,
-            }}
-          >
-            <span className="about-narrative-discipline-reveal__copy">
-              <span className="about-narrative-discipline-reveal__label">{item.label}</span>
-              {item.description ? (
-                <span className="about-narrative-discipline-reveal__description">{item.description}</span>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </>
-  );
-}
-
 function TextRenderSpan({
   field,
   span,
+  storyField,
+  storyGap,
   textMotion,
   isPrimaryTitle,
-  disciplineOverlayRef,
+  drawTitleEntrances,
+  onFinaleEmailPress,
   onSelect,
+  showFinaleEmailAction,
   motionProfile,
   scrollportRef,
 }) {
@@ -723,39 +734,19 @@ function TextRenderSpan({
         className={`about-narrative-render-span about-narrative-render-span--title about-narrative-render-span--${layout}`}
         data-render-span-id={span.id}
         data-presentation-layout={layout}
-        style={getRenderSpanStyle(span)}
+        style={getRenderSpanStyle(span, storyField, storyGap)}
       >
         <div className="about-narrative-spatial-stage">
           <TitleField
             field={field}
             textMotion={textMotion}
             isPrimaryTitle={isPrimaryTitle}
+            drawTitleEntrances={drawTitleEntrances}
+            onFinaleEmailPress={onFinaleEmailPress}
             onSelect={onSelect}
+            showFinaleEmailAction={showFinaleEmailAction}
           />
         </div>
-      </div>
-    );
-  }
-  if (field.kind === 'discipline-reveal') {
-    const reveal = {
-      id: field.id,
-      items: field.choreography?.items || [],
-      labelOffsetPx: field.choreography?.labelOffsetPx || 0,
-      labelScale: field.choreography?.labelScale ?? 1,
-    };
-    return (
-      <div
-        className="about-narrative-render-span about-narrative-render-span--discipline"
-        data-render-span-id={span.id}
-        data-presentation-layout={layout}
-        style={getRenderSpanStyle(span)}
-      >
-        <DisciplineRevealField
-          reveal={reveal}
-          overlayRef={disciplineOverlayRef}
-          onSelect={onSelect}
-          selectionType="text-field"
-        />
       </div>
     );
   }
@@ -765,7 +756,7 @@ function TextRenderSpan({
         className={`about-narrative-render-span about-narrative-render-span--editorial about-narrative-render-span--${layout}`}
         data-render-span-id={span.id}
         data-presentation-layout={layout}
-        style={getRenderSpanStyle(span)}
+        style={getRenderSpanStyle(span, storyField, storyGap)}
       >
         <ScrollBlockField
           field={field}
@@ -820,7 +811,8 @@ export function AboutNarrativeLabExperience({
   routeContentId = 'about',
   showIndicator = true,
 }) {
-  const initialDocument = INITIAL_ABOUT_NARRATIVE_POINT_FIELD_DOCUMENT;
+  const resolvedExperienceVersion = CANONICAL_ABOUT_EXPERIENCE_VERSION;
+  const initialDocument = ABOUT_NARRATIVE_DOCUMENT;
   const editorRequested = useMemo(() => {
     if (typeof window === 'undefined' || routeContentId !== 'about') return false;
     const requestedMode = new URLSearchParams(window.location.search).get('edit');
@@ -840,8 +832,11 @@ export function AboutNarrativeLabExperience({
   const contentRef = useRef(null);
   const worldRuntimeRef = useRef(null);
   const worldInteractionRef = useRef(null);
-  const disciplineOverlayRef = useRef(null);
   const indicatorLayerRef = useRef(null);
+  const handleFinaleEmailPress = useCallback(() => {
+    worldRuntimeRef.current?.triggerOceanImpulse?.();
+    void playContactRippleMotif({ unlockIfNeeded: false });
+  }, []);
 
   useEffect(() => {
     if ((!__DEV__ && !__CERTIFY__) || !editorRequested) return undefined;
@@ -853,12 +848,13 @@ export function AboutNarrativeLabExperience({
       if (!active) return;
       const store = storeModule.createAboutNarrativePointFieldEditorStore(
         initialDocument,
+        { fixedPointFieldStructure: resolvedExperienceVersion === 'v2' },
       );
       setEditorStore(store);
       setEditorModule(() => editor.default);
     }).catch((error) => console.error('[About narrative] Could not load the development editor.', error));
     return () => { active = false; };
-  }, [editorRequested, initialDocument]);
+  }, [editorRequested, initialDocument, resolvedExperienceVersion]);
 
   useEffect(() => {
     if (!editorStore) return undefined;
@@ -875,6 +871,8 @@ export function AboutNarrativeLabExperience({
   } = useAboutNarrativeTimeline({
     document: playbackDocument,
     editorStore,
+    finaleContinuation: resolvedExperienceVersion === 'v2',
+    solidTitles: resolvedExperienceVersion === 'v2',
     rootRef,
     worldRuntimeRef,
     scrollportRef,
@@ -950,32 +948,33 @@ export function AboutNarrativeLabExperience({
   const textFieldsById = useMemo(() => new Map(
     (runtimePlan?.textFields || []).map((field) => [field.id, field]),
   ), [runtimePlan]);
+  const storyFieldsById = useMemo(() => new Map(
+    (runtimePlan?.storyLayout?.fields || []).map((field) => [field.id, field]),
+  ), [runtimePlan]);
+  const storyGapsByFieldId = useMemo(() => new Map(
+    (runtimePlan?.storyLayout?.gaps || []).map((gap) => [gap.fromFieldId, gap]),
+  ), [runtimePlan]);
   const primaryTitleId = useMemo(() => (
     runtimePlan?.renderSpans
       ?.map((span) => textFieldsById.get(span.fieldIds[0]))
       .find((field) => field?.kind === 'title' && field.publishable)?.id || ''
   ), [runtimePlan, textFieldsById]);
   const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
-  const disciplineRevealMotion = runtimePlan?.disciplineReveal?.sourceType === 'motion'
-    ? runtimePlan.disciplineReveal
-    : null;
   const Editor = editorModule;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
-  const titleShadowOpacity = Number(globals.textMotion.titleShadowOpacity);
-  const titleShadowBlurPx = Number(globals.textMotion.titleShadowBlurPx);
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
-    '--about-title-shadow-opacity': `${(Number.isFinite(titleShadowOpacity) ? Math.min(1, Math.max(0, titleShadowOpacity)) : 0.3) * 100}%`,
-    '--about-title-shadow-blur': `${Number.isFinite(titleShadowBlurPx) ? Math.min(120, Math.max(0, titleShadowBlurPx)) : 28}px`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
     '--about-editorial-reveal-threshold': Number(globals.editorialRevealThreshold) || 1,
+    '--about-editorial-resting-opacity': Number(globals.textMotion.titleExitOpacity ?? 0.2),
   };
   const contentStyle = {
     '--narrative-content-extent-wu': contentExtentWU,
+    '--story-editorial-tail-wu': Number(runtimePlan?.storyLayout?.editorialTailWU) || 0.24,
   };
 
   return (
@@ -985,6 +984,8 @@ export function AboutNarrativeLabExperience({
       data-route-content={routeContentId}
       data-about-layout-profile={runtimePlan?.layoutProfile || 'desktop'}
       data-about-motion-profile={runtimePlan?.motionProfile || 'full'}
+      data-about-experience-version={resolvedExperienceVersion}
+      data-about-story-layout={runtimePlan?.storyLayout?.mode || 'legacy'}
       data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}
       style={rootStyle}
     >
@@ -998,7 +999,6 @@ export function AboutNarrativeLabExperience({
           rendererId="three-point-world-v1"
           rootRef={rootRef}
           interactionRef={worldInteractionRef}
-          disciplineOverlayRef={disciplineOverlayRef}
           runtimeRef={worldRuntimeRef}
           pointProfile={runtimePlan.pointProfile}
           layoutProfile={runtimePlan.layoutProfile}
@@ -1021,10 +1021,14 @@ export function AboutNarrativeLabExperience({
                 key={span.id}
                 field={field}
                 span={span}
+                storyField={storyFieldsById.get(field.id)}
+                storyGap={storyGapsByFieldId.get(field.id)}
                 textMotion={globals.textMotion}
                 isPrimaryTitle={field.id === primaryTitleId}
-                disciplineOverlayRef={disciplineOverlayRef}
+                drawTitleEntrances={resolvedExperienceVersion === 'v2'}
+                onFinaleEmailPress={handleFinaleEmailPress}
                 onSelect={select}
+                showFinaleEmailAction={resolvedExperienceVersion === 'v2'}
                 motionProfile={runtimePlan?.motionProfile || 'full'}
                 scrollportRef={scrollportRef}
               />
@@ -1032,15 +1036,6 @@ export function AboutNarrativeLabExperience({
           })}
         </div>
       </div>
-      {disciplineRevealMotion ? (
-        <div className="about-narrative-motion-layer about-narrative-motion-layer--discipline">
-          <DisciplineRevealField
-            reveal={disciplineRevealMotion}
-            overlayRef={disciplineOverlayRef}
-            onSelect={select}
-          />
-        </div>
-      ) : null}
       {showIndicator && indicatorHost
         ? createPortal(
           <div
@@ -1059,6 +1054,8 @@ export function AboutNarrativeLabExperience({
       {Editor && editorStore && typeof document !== 'undefined'
         ? createPortal(
           <Editor
+            experienceVersion={resolvedExperienceVersion}
+            persistenceScope="main"
             store={editorStore}
             runtimeRef={worldRuntimeRef}
             rootRef={rootRef}

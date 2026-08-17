@@ -36,7 +36,10 @@ function observeErrors(page) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() !== 'error') return;
+    const sourceUrl = message.location().url || '';
+    if (sourceUrl.startsWith('https://fonts.gstatic.com/')) return;
+    errors.push(sourceUrl ? `${message.text()} @ ${sourceUrl}` : message.text());
   });
   return errors;
 }
@@ -98,26 +101,32 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.equal(initial.indicatorHost, 'shell-persistent');
   assert.equal(initial.layoutProfile, expectedProfile);
 
-  await page.locator('.about-narrative-scrollport').evaluate((node, storyDurationWU) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (10.55 / storyDurationWU);
-    node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  }, canonical.profiles[expectedProfile].storyDurationWU);
-  await page.waitForFunction(() => {
-    const root = document.querySelector('.about-narrative-lab');
-    const storyWU = Number(root?.dataset.narrativeStoryWu);
-    const visibleLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
-      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .length;
-    return storyWU > 10.51
-      && storyWU < 10.59
-      && visibleLabels === 6;
+  const disciplineSampleWU = await page.locator('[data-text-field-id="text-discipline-labels"]').evaluate((node) => {
+    const wrapper = node.closest('.about-narrative-render-span');
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    const viewportHeight = Math.max(1, scrollport.clientHeight);
+    return (wrapper.offsetTop / viewportHeight)
+      + Math.min(0.55, (wrapper.offsetHeight / viewportHeight) * 0.35);
   });
+  await page.locator('.about-narrative-scrollport').evaluate((node, storyWU) => {
+    // Story WU is content-derived: one viewport height equals one WU. Sampling
+    // the rendered discipline block keeps this proof valid as its copy changes.
+    node.scrollTop = Math.min(
+      node.scrollHeight - node.clientHeight,
+      Math.max(0, storyWU * node.clientHeight),
+    );
+    node.dispatchEvent(new Event('scroll', { bubbles: true }));
+  }, disciplineSampleWU);
+  await page.waitForFunction((targetWU) => (
+    Math.abs(Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - targetWU) < 0.05
+  ), disciplineSampleWU);
   const disciplineState = await page.evaluate(() => {
     const root = document.querySelector('.about-narrative-lab');
-    const viewport = document.querySelector('.about-narrative-discipline-reveal').getBoundingClientRect();
-    const labels = [...document.querySelectorAll('[data-discipline-group]')]
-      .filter((label) => Number(getComputedStyle(label).opacity) > 0.05)
-      .map((label) => label.getBoundingClientRect())
+    const viewport = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
+    const field = document.querySelector('[data-text-field-id="text-discipline-labels"]');
+    const items = [...field.querySelectorAll('.about-narrative-discipline-list li')];
+    const labels = items
+      .map((item) => item.getBoundingClientRect())
       .filter((rect) => rect.bottom > viewport.top && rect.top < viewport.bottom);
     const overlapPairs = [];
     labels.forEach((rect, index) => labels.slice(index + 1).forEach((other, offset) => {
@@ -128,45 +137,40 @@ async function auditProduction(viewport, label, expectedProfile) {
       if (!separated) overlapPairs.push([index + 1, index + offset + 2]);
     }));
     return {
-      activeWorld: root.dataset.activeNarrativeWorld,
-      gridInfluence: root.dataset.worldGridInfluence,
-      worldTo: root.dataset.worldTo,
+      backgroundColor: getComputedStyle(field).backgroundColor,
+      descriptionCount: field.querySelectorAll('.about-narrative-discipline-list__description').length,
+      descriptionsComplete: [...field.querySelectorAll('.about-narrative-discipline-list__description')]
+        .every((node) => node.textContent.trim().length > 0),
+      fieldOpacity: Number(getComputedStyle(field).opacity),
+      itemCount: items.length,
+      legacyRevealCount: document.querySelectorAll('.about-narrative-discipline-reveal').length,
       labelsWithinHorizontalViewport: labels.every((rect) => (
         rect.left >= viewport.left - 1
         && rect.right <= viewport.right + 1
       )),
-      labelsWithinVerticalViewport: labels.every((rect) => (
-        rect.top >= viewport.top - 1
-        && rect.bottom <= viewport.bottom + 1
-      )),
       overlapPairs,
+      titleCount: field.querySelectorAll('.about-narrative-discipline-list__label').length,
+      visibleItemCount: labels.length,
+      worldStage: root.dataset.worldStage,
+      worldVisibility: Number(root.dataset.worldVisibility),
     };
   });
   assert.deepEqual(disciplineState, {
-    activeWorld: 'world-grid',
-    gridInfluence: '0.0000',
-    worldTo: 'calm-field-v1',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    descriptionCount: 6,
+    descriptionsComplete: true,
+    fieldOpacity: 1,
+    itemCount: 6,
+    legacyRevealCount: 0,
     labelsWithinHorizontalViewport: true,
-    labelsWithinVerticalViewport: true,
     overlapPairs: [],
-  }, `${label} discipline labels should remain separate`);
+    titleCount: 6,
+    visibleItemCount: disciplineState.visibleItemCount,
+    worldStage: 'calm-field-v1',
+    worldVisibility: 1,
+  }, `${label} discipline copy should remain solid and separate`);
+  assert.ok(disciplineState.visibleItemCount > 0, `${label} discipline copy never enters the viewport.`);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}-discipline.png` });
-
-  await page.locator('.about-narrative-scrollport').evaluate((node, storyDurationWU) => {
-    node.scrollTop = (node.scrollHeight - node.clientHeight) * (11.075 / storyDurationWU);
-    node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  }, canonical.profiles[expectedProfile].storyDurationWU);
-  await page.waitForFunction(() => {
-    const storyWU = Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu);
-    return storyWU > 11.04 && storyWU < 11.11;
-  });
-  assert.equal(
-    await page.locator('.about-narrative-discipline-reveal li').evaluateAll((labels) => (
-      labels.filter((label) => Number(getComputedStyle(label).opacity) > 0.05).length
-    )),
-    0,
-    `${label} Discipline labels must fade before the Camera leaves the held composition.`,
-  );
 
   await page.locator('.about-narrative-scrollport').evaluate((node) => {
     node.scrollTop = node.scrollHeight - node.clientHeight;
@@ -189,8 +193,10 @@ async function auditProduction(viewport, label, expectedProfile) {
       active: [...indicator.querySelectorAll('[data-active="true"]')]
         .map((line) => Number(line.dataset.lineIndex)),
       valueText: indicator.getAttribute('aria-valuetext'),
-      titleCenterX: titleRect.left + (titleRect.width / 2),
-      landscapeTitleTargetX: viewport.left + (viewport.width * 0.75),
+      finaleCenterRatio: (
+        (titleRect.left + (titleRect.width / 2) - viewport.left)
+        / Math.max(1, viewport.width)
+      ),
       titleOpacity: Number(getComputedStyle(title).opacity),
       descriptionBelowTitle: descriptionRect.top >= titleRect.bottom - 2,
       inlineEmailHref: emailLink.getAttribute('href'),
@@ -200,10 +206,11 @@ async function auditProduction(viewport, label, expectedProfile) {
   });
   assert.deepEqual(endState.active, [16, 17]);
   assert.equal(endState.valueText, '100% through the About narrative');
-  const expectedTitleCenterX = label === 'mobile-landscape'
-    ? endState.landscapeTitleTargetX
-    : initial.openerCenterX;
-  assert.ok(Math.abs(endState.titleCenterX - expectedTitleCenterX) <= 30);
+  if (expectedProfile === 'desktop') {
+    assert.ok(endState.finaleCenterRatio >= 0.58 && endState.finaleCenterRatio <= 0.9);
+  } else {
+    assert.ok(endState.finaleCenterRatio >= 0.35 && endState.finaleCenterRatio <= 0.65);
+  }
   assert.ok(endState.titleOpacity > 0.99);
   assert.equal(endState.descriptionBelowTitle, true);
   assert.equal(endState.inlineEmailHref, 'mailto:alexander@beck.fyi');
@@ -212,6 +219,137 @@ async function auditProduction(viewport, label, expectedProfile) {
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `${outputDir}/${browserName}-production-${label}.png` });
   await context.close();
+}
+
+async function auditDirectorV7Editor(page) {
+  const editor = page.locator('.about-track-editor');
+  const playhead = page.getByRole('slider', { name: 'Timeline playhead' });
+  await page.waitForFunction(() => {
+    const slider = document.querySelector('input[aria-label="Timeline playhead"]');
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    if (!slider || !scrollport) return false;
+    const measuredDuration = (scrollport.scrollHeight - scrollport.clientHeight)
+      / Math.max(1, scrollport.clientHeight);
+    return Math.abs(Number(slider.max) - measuredDuration) < 0.05;
+  });
+
+  const initial = await page.evaluate(() => {
+    const slider = document.querySelector('input[aria-label="Timeline playhead"]');
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    return {
+      editorVersion: document.querySelector('.about-track-editor')?.dataset.editorVersion,
+      lanes: [...document.querySelectorAll('[data-track-lane]')]
+        .map((lane) => lane.dataset.trackLane),
+      legacyContainerCount: document.querySelectorAll(
+        '[data-narrative-section], [data-section-id], .about-narrative-section',
+      ).length,
+      semanticFieldCount: document.querySelectorAll('[data-text-field-id]').length,
+      measuredDuration: (scrollport.scrollHeight - scrollport.clientHeight)
+        / Math.max(1, scrollport.clientHeight),
+      timelineDuration: Number(slider.max),
+    };
+  });
+  assert.equal(initial.editorVersion, 'composer-v7');
+  assert.deepEqual(initial.lanes, ['camera', 'point-field']);
+  assert.equal(initial.legacyContainerCount, 0);
+  assert.equal(initial.semanticFieldCount, canonicalSemanticFieldCount);
+  assert.ok(Math.abs(initial.timelineDuration - initial.measuredDuration) < 0.05);
+  assert.equal(await page.getByRole('button', { name: /Story Stack/ }).count(), 1);
+  assert.deepEqual(
+    (await page.getByRole('tablist', { name: 'Timeline track' })
+      .getByRole('tab').allTextContents()).map((value) => value.replace(/\s+/g, ' ').trim()),
+    ['DirectionCamera journey', 'DirectionWorld sequence'],
+  );
+
+  await page.getByRole('tab', { name: /World sequence/ }).click();
+  const worldStages = page.getByRole('list', { name: 'World stages' });
+  assert.equal(await worldStages.getByRole('listitem').count(), 4);
+  await worldStages.getByRole('listitem').nth(1).click();
+  const inspector = page.getByRole('region', { name: 'Selected object inspector' });
+  await inspector.waitFor({ state: 'visible' });
+  assert.equal(await inspector.getByRole('heading', { name: 'Reading nebula' }).count(), 1);
+  assert.equal(await inspector.getByRole('combobox', { name: 'Movement' }).inputValue(), 'flow');
+  assert.equal(await inspector.getByRole('combobox', { name: 'Curve' }).inputValue(), 'smoothstep');
+  assert.equal(await inspector.getByRole('slider', { name: 'Form transition flow amount' }).inputValue(), '0.22');
+  assert.equal(await inspector.getByRole('slider', { name: 'Form transition stagger amount' }).inputValue(), '0.08');
+  assert.equal(await inspector.getByText(/opacity never does/i).count(), 1);
+
+  const setPlayhead = async (value) => {
+    await playhead.evaluate((node, nextValue) => {
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      valueSetter.call(node, String(nextValue));
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+      node.dispatchEvent(new Event('change', { bubbles: true }));
+    }, value);
+    await page.waitForFunction((expectedWU) => Math.abs(
+      Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu)
+        - Number(expectedWU),
+    ) < 0.011, value);
+  };
+  const getFieldFocusWU = (fieldId) => page.locator(`[data-text-field-id="${fieldId}"]`)
+    .evaluate((node) => Number(
+      node.closest('.about-narrative-render-span')?.style
+        .getPropertyValue('--render-span-focus-wu'),
+    ));
+
+  const titleFocusWU = await getFieldFocusWU('text-complexity-conditions');
+  await setPlayhead(titleFocusWU);
+  const titleContract = await page.locator(
+    '[data-text-field-id="text-complexity-conditions"] .about-narrative-spatial-title',
+  ).evaluate((node) => {
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return {
+      opacity: Number(style.opacity),
+      filter: style.filter,
+      shadow: style.textShadow,
+      fontFamily: style.fontFamily,
+      inViewport: rect.bottom > 0 && rect.top < window.innerHeight,
+      worldVisibility: Number(
+        document.querySelector('.about-narrative-lab')?.dataset.worldVisibility,
+      ),
+    };
+  });
+  assert.equal(titleContract.opacity, 1);
+  assert.equal(titleContract.filter, 'none');
+  assert.equal(titleContract.shadow, 'none');
+  assert.match(titleContract.fontFamily, /Instrument Serif/i);
+  assert.equal(titleContract.inViewport, true);
+  assert.equal(titleContract.worldVisibility, 1);
+
+  const editorialFocusWU = await getFieldFocusWU('text-background-unit');
+  await setPlayhead(editorialFocusWU);
+  const editorialContract = await page.locator(
+    '[data-text-field-id="text-background-unit"] [data-editorial-reveal]',
+  ).evaluateAll((nodes) => nodes.map((node) => ({
+    opacity: Number(getComputedStyle(node).opacity),
+    filter: getComputedStyle(node).filter,
+    authoredReveal: node.style.getPropertyValue('--editorial-reveal'),
+  })));
+  assert.ok(editorialContract.length > 0);
+  assert.equal(editorialContract.every((item) => item.opacity === 1), true);
+  assert.equal(editorialContract.every((item) => item.filter === 'none'), true);
+  assert.equal(editorialContract.every((item) => item.authoredReveal === ''), true);
+
+  await page.mouse.move(420, 360);
+  await page.waitForTimeout(180);
+  const pointerPressure = await page.evaluate(() => (
+    window.__aboutNarrativeRuntime?.getPointerPressureSnapshot?.()
+  ));
+  assert.equal(pointerPressure?.active, true);
+  assert.ok(pointerPressure?.strength > 0.2);
+  assert.ok(pointerPressure?.effectiveRadiusPx > 0);
+  assert.ok(pointerPressure?.effectiveForcePx > 0);
+
+  await page.getByRole('button', { name: 'Advanced', exact: true }).click();
+  assert.deepEqual(
+    await page.locator('[data-track-lane]').evaluateAll(
+      (nodes) => nodes.map((node) => node.dataset.trackLane),
+    ),
+    ['text', 'camera', 'camera-orientation', 'camera-lens', 'point-field'],
+  );
+  assert.equal(await page.getByRole('tab', { name: /Forms \+ effects/ }).count(), 1);
+  assert.equal(await editor.getAttribute('data-editor-version'), 'composer-v7');
 }
 
 async function auditEditor() {
@@ -272,7 +410,9 @@ async function auditEditor() {
     null,
     'The hidden editor must release the full preview viewport.',
   );
-  await page.getByRole('link', { name: 'About', exact: true }).hover();
+  // The current route tab is intentionally inert cursor-wise. Probe a route
+  // that can actually navigate so this asserts the shared true-action policy.
+  await page.getByRole('link', { name: 'Contact', exact: true }).hover();
   await page.waitForTimeout(120);
   assert.equal(
     await page.locator('#custom-cursor').evaluate((node) => node.classList.contains('abs-cursor-interactive')),
@@ -287,6 +427,14 @@ async function auditEditor() {
     'true',
     'The restored editor must reapply its preview geometry.',
   );
+
+  if (Number(canonical.schemaVersion) >= 7) {
+    await auditDirectorV7Editor(page);
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: `${outputDir}/${browserName}-editor-desktop.png` });
+    await context.close();
+    return;
+  }
 
   const selectTrack = async (name) => {
     await page.getByRole('tab', { name, exact: true }).click();

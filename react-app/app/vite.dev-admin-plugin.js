@@ -282,57 +282,65 @@ export function createDevAdminPlugin({
     configPath: aboutNarrativeConfigPath,
     targetVersion: 7,
   });
-
   return {
     name: 'design-system-dev-plugin',
     configureServer(server) {
       aboutPersistence.cleanup().catch(() => {});
 
-      const aboutNarrativeWriteHandler = createLocalJsonWriteHandler({
-        maxBytes: LOCAL_JSON_WRITE_LIMITS.aboutNarrative,
-        sizeErrorMessage: 'The About document exceeds the 1MiB limit.',
-        allowedRootPaths: [publicConfigRoot],
-        targetPaths: [aboutNarrativeConfigPath],
-        authorize(req) {
-          if (req.headers['x-abs-editor'] !== ABOUT_NARRATIVE_EDITOR_HEADER) {
-            throw createWriteRequestError(403, 'Missing development editor header.');
+      const mountAboutNarrativePersistence = ({ endpoint, configPath, persistence, label }) => {
+        const writeHandler = createLocalJsonWriteHandler({
+          maxBytes: LOCAL_JSON_WRITE_LIMITS.aboutNarrative,
+          sizeErrorMessage: `The ${label} About document exceeds the 1MiB limit.`,
+          allowedRootPaths: [publicConfigRoot],
+          targetPaths: [configPath],
+          authorize(req) {
+            if (req.headers['x-abs-editor'] !== ABOUT_NARRATIVE_EDITOR_HEADER) {
+              throw createWriteRequestError(403, 'Missing development editor header.');
+            }
+          },
+          validate: validateJsonObject,
+          async handle(document, req, res) {
+            const result = await persistence.save(document, req.headers['if-match']);
+            aboutNarrativeEditorWrite = {
+              file: configPath,
+              expiresAt: Date.now() + 1500,
+            };
+            res.setHeader('ETag', `"${result.hash}"`);
+            sendJson(res, 200, { ok: true, document: result.document, hash: result.hash });
+          },
+          failureMessage: `Failed to save ${label} About Narrative.`,
+        });
+
+        server.middlewares.use(endpoint, async (req, res) => {
+          if (req.method !== 'GET') {
+            await writeHandler(req, res);
+            return;
           }
-        },
-        validate: validateJsonObject,
-        async handle(document, req, res) {
-          const result = await aboutPersistence.save(document, req.headers['if-match']);
-          aboutNarrativeEditorWrite = {
-            file: aboutNarrativeConfigPath,
-            expiresAt: Date.now() + 1500,
-          };
-          res.setHeader('ETag', `"${result.hash}"`);
-          sendJson(res, 200, { ok: true, document: result.document, hash: result.hash });
-        },
-        failureMessage: 'Failed to save About Narrative.',
-      });
+          if (req.headers['x-abs-editor'] !== ABOUT_NARRATIVE_EDITOR_HEADER) {
+            sendWriteError(
+              res,
+              createWriteRequestError(403, 'Missing development editor header.'),
+              `Failed to load ${label} About Narrative.`,
+            );
+            return;
+          }
 
-      server.middlewares.use('/api/about-narrative/config', async (req, res) => {
-        if (req.method !== 'GET') {
-          await aboutNarrativeWriteHandler(req, res);
-          return;
-        }
-        if (req.headers['x-abs-editor'] !== ABOUT_NARRATIVE_EDITOR_HEADER) {
-          sendWriteError(
-            res,
-            createWriteRequestError(403, 'Missing development editor header.'),
-            'Failed to load About Narrative.',
-          );
-          return;
-        }
+          try {
+            const current = await persistence.read();
+            res.setHeader('ETag', `"${current.hash}"`);
+            res.setHeader('Cache-Control', 'no-store');
+            sendJson(res, 200, { ok: true, document: current.document, hash: current.hash });
+          } catch (error) {
+            sendWriteError(res, error, `Failed to load ${label} About Narrative.`);
+          }
+        });
+      };
 
-        try {
-          const current = await aboutPersistence.read();
-          res.setHeader('ETag', `"${current.hash}"`);
-          res.setHeader('Cache-Control', 'no-store');
-          sendJson(res, 200, { ok: true, document: current.document, hash: current.hash });
-        } catch (error) {
-          sendWriteError(res, error, 'Failed to load About Narrative.');
-        }
+      mountAboutNarrativePersistence({
+        endpoint: '/api/about-narrative/config',
+        configPath: aboutNarrativeConfigPath,
+        persistence: aboutPersistence,
+        label: 'canonical',
       });
 
       server.middlewares.use('/api/design-system/config', createLocalJsonWriteHandler({

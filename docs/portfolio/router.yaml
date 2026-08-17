@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "execution": {
     "defaultMode": "read_only",
     "requireProjectResolution": true,
@@ -8,6 +8,7 @@
   },
   "globalFiles": {
     "catalog": "docs/portfolio/catalog.json",
+    "candidates": "docs/portfolio/candidates.json",
     "sourceIndex": "docs/portfolio/sources/index.json",
     "ingestionLog": "docs/portfolio/logs/ingestion-log.md",
     "decisionLog": "docs/portfolio/logs/decision-log.md"
@@ -21,11 +22,18 @@
       "postconditions": ["no_files_changed"]
     },
     {
+      "id": "source_discovery",
+      "description": "Inspect potential sources and report useful evidence, sensitivity, and routing without changing the knowledge base.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/candidates.json", "docs/portfolio/sources/index.json"],
+      "allowedWrites": [],
+      "postconditions": ["no_files_changed", "credentials_not_reproduced", "uncertainty_reported"]
+    },
+    {
       "id": "source_ingest",
-      "description": "Register an original source and create a locator-based extraction note.",
+      "description": "Register an original or sanitised source and create a locator-based extraction note.",
       "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/templates/source-record.json"],
       "allowedWrites": ["docs/portfolio/sources/raw/", "docs/portfolio/sources/extracted/", "docs/portfolio/sources/index.json", "docs/portfolio/logs/ingestion-log.md"],
-      "postconditions": ["source_has_id", "source_has_checksum", "source_has_sensitivity", "source_paths_exist"]
+      "postconditions": ["source_has_id", "source_has_checksum", "source_has_sensitivity", "source_paths_exist", "redaction_status_recorded", "credentials_not_stored"]
     },
     {
       "id": "claim_distill",
@@ -35,11 +43,39 @@
       "postconditions": ["claims_have_sources", "claims_have_locators", "confidence_is_low_medium_or_high"]
     },
     {
-      "id": "interview_update",
-      "description": "Register interview answers and use them to confirm, dispute, or withhold claims.",
+      "id": "interview_ingest",
+      "description": "Register an interview as immutable evidence and attach it to the relevant client-master record without promoting claims.",
       "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/INTERVIEW-ROADMAP.md", "docs/portfolio/templates/interview-round.md"],
       "allowedWrites": ["docs/portfolio/sources/raw/", "docs/portfolio/sources/extracted/", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/logs/ingestion-log.md"],
-      "postconditions": ["interview_is_registered_source", "personal_claims_are_user_confirmed"]
+      "postconditions": ["interview_is_registered_source", "question_level_locators_exist", "no_claim_ids_invented"]
+    },
+    {
+      "id": "claim_review",
+      "description": "Distill registered interviews and other evidence into claims, metadata, bodies of work, collaborators, and disciplines.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/sources/index.json", "docs/portfolio/projects/{project_id}.json", "docs/portfolio/SCHEMA.md"],
+      "allowedWrites": ["docs/portfolio/projects/{project_id}.json", "docs/portfolio/logs/ingestion-log.md"],
+      "postconditions": ["claims_have_sources", "metadata_links_claims", "client_master_owns_one_organising_idea", "unresolved_facts_remain_open"]
+    },
+    {
+      "id": "project_triage",
+      "description": "Record a possible client project or body of work before deciding its portfolio placement.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/candidates.json", "docs/portfolio/sources/index.json"],
+      "allowedWrites": ["docs/portfolio/candidates.json", "docs/portfolio/logs/ingestion-log.md"],
+      "postconditions": ["candidate_has_id", "candidate_has_evidence_or_is_marked_unverified", "no_project_record_created_without_decision"]
+    },
+    {
+      "id": "decision",
+      "description": "Record an accepted portfolio-knowledge decision without rewriting earlier decisions.",
+      "requiredReads": ["docs/portfolio/logs/decision-log.md", "docs/portfolio/catalog.json", "docs/portfolio/SCHEMA.md"],
+      "allowedWrites": ["docs/portfolio/logs/decision-log.md"],
+      "postconditions": ["decision_has_id", "decision_has_status", "decision_has_rationale", "supersession_is_explicit"]
+    },
+    {
+      "id": "voice_pack_update",
+      "description": "Update the generated, sanitised instructions and handoff documents used by the ChatGPT Voice interview project.",
+      "requiredReads": ["docs/portfolio/catalog.json", "docs/portfolio/candidates.json", "docs/portfolio/SCHEMA.md", "docs/portfolio/INTERVIEW-ROADMAP.md", "docs/portfolio/VOICE-INTERVIEW-INSTRUCTIONS.md", "docs/portfolio/VOICE-HANDOFF-TEMPLATE.md"],
+      "allowedWrites": ["docs/portfolio/INTERVIEW-ROADMAP.md", "docs/portfolio/VOICE-INTERVIEW-INSTRUCTIONS.md", "docs/portfolio/VOICE-HANDOFF-TEMPLATE.md", "docs/portfolio/VOICE-PROJECT-CATALOGUE.md"],
+      "postconditions": ["voice_pack_is_derivative", "voice_does_not_assign_ids", "source_version_is_visible", "sensitive_material_is_excluded"]
     },
     {
       "id": "copy_draft",

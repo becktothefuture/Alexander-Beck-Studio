@@ -1,0 +1,417 @@
+# Interview Round 1: McCann
+
+## Source metadata
+
+- Source ID: pending-registration
+- Date: 5 August 2026
+- Sensitivity: personal
+- Participants: Alexander Beck and ChatGPT interviewer
+- Transcript status: Voice-derived; important wording requires confirmation
+
+---
+
+# Organising idea
+
+## Previous hypothesis
+
+A single restrained interaction can give a website a memorable identity more effectively than a feature-heavy experience.
+
+## Current formulation
+
+The project was not about reducing features for the sake of minimalism. It was about expressing McCann's renewed creative confidence through deliberate restraint. Every interaction, animation and piece of typography exists only to foreground the work itself. Simplicity becomes an opinionated design stance rather than a lack of design.
+
+## Status
+
+Refined
+
+## Why
+
+The interview consistently returned to one observation:
+
+The challenge was never "how do we make a modern agency website?"
+
+It became:
+
+"How little interface can exist while still creating an unforgettable experience?"
+
+That idea appears much stronger than the original hypothesis.
+
+---
+
+# Questions and raw answers
+
+## 1. What was the surprising constraint at the beginning?
+
+The client wanted almost nothing competing with the work.
+
+The redesign followed McCann's new global identity, inspired by the "golden age" of advertising: big ideas, copywriting, confidence and clarity.
+
+Rather than adding interaction patterns normally expected on agency websites, the team deliberately removed them.
+
+The objective became allowing the work to stand completely on its own.
+
+---
+
+### Follow-up
+
+How did that affect the interface?
+
+Alexander described intentionally abandoning conventional UI ideas very early.
+
+Examples included:
+
+- expandable content
+- complex navigation
+- rich tagging systems
+- decorative interface treatments
+- unnecessary animation
+- typical agency website patterns
+
+Instead, typography became the interface.
+
+Native browser behaviour became the interaction language.
+
+Nothing existed purely for decoration.
+
+---
+
+## 2. How did you know the direction was successful?
+
+There was no formal user testing.
+
+Instead the measure was whether the website felt effortless.
+
+Alexander repeatedly described the result as feeling:
+
+- confident
+- singular
+- cinematic
+- opinionated
+
+The work itself became the interface.
+
+Large typography.
+
+Large imagery.
+
+Large video.
+
+Almost no surrounding chrome.
+
+The absence of interface became part of McCann's identity.
+
+Alexander explicitly described this as an opinionated creative stance rather than an evidence-based optimisation.
+
+---
+
+## 3. What was your personal contribution?
+
+Alexander described his contribution across multiple layers.
+
+### UX
+
+Reduced the overall architecture to only a handful of primary destinations.
+
+Focused the experience around browsing work rather than navigating pages.
+
+Created an experience that feels almost like a slideshow combined with a lightbox.
+
+---
+
+### Interaction Design
+
+Developed the interaction philosophy.
+
+Navigation relies almost entirely on natural scrolling and gesture.
+
+Avoided bespoke interaction wherever possible.
+
+Wanted every interaction to "feel right" rather than feel designed.
+
+---
+
+### Motion
+
+Created the motion language for the new McCann identity.
+
+Designed how the McCann logo appears.
+
+Integrated "Truth Well Told" into the opening experience as a central narrative device.
+
+Expanded the static rebrand into motion and interaction.
+
+---
+
+### Visual Design
+
+Pushed the interface toward an intentionally brutalist feeling.
+
+No icons.
+
+Almost no decorative interface.
+
+Typography became the dominant visual language.
+
+Created an experience that intentionally feels slightly old-school while remaining contemporary.
+
+---
+
+### Prototyping
+
+Built the complete experience in Webflow.
+
+Created a fully interactive prototype early.
+
+Early prototyping became critical because the simplicity could only really be evaluated once experienced.
+
+The prototype accelerated alignment with the client.
+
+---
+
+### Development
+
+Implemented bespoke interaction and animation directly.
+
+The Webflow prototype later became the basis for implementation in another CMS.
+
+---
+
+## 4. Team contribution
+
+The direction was developed collaboratively.
+
+Alexander worked closely with:
+
+- his Creative Director
+- the wider McCann leadership
+- Daryl Lee (CEO)
+
+Discussions repeatedly centred on one question:
+
+"How much is too much?"
+
+The project established a blueprint for how McCann should confidently present work under the new brand.
+
+---
+
+# Most valuable material
+
+## Fascinating observation
+
+The challenge was not simplifying the website.
+
+The challenge was having enough confidence to remove almost everything.
+
+The website deliberately rejects many interaction patterns that have become expected in modern portfolio sites.
+
+---
+
+## Design mechanism
+
+The interface disappears behind:
+
+- typography
+- native gestures
+- motion
+- cinematic presentation
+- extremely limited navigation
+
+Rather than inventing interaction, the project carefully chose what *not* to design.
+
+---
+
+## Strongest anecdote
+
+Building the experience in Webflow extremely early allowed everyone—including senior leadership—to experience the restraint instead of debating it abstractly.
+
+The prototype demonstrated that simplicity could feel richer than feature-heavy alternatives.
+
+---
+
+## Evidence or outcome
+
+Confirmed
+
+- Website shipped.
+- Prototype built in Webflow.
+- Later implemented in another CMS.
+- New McCann rebrand expanded into motion, interaction and digital behaviour.
+- Established a clear presentation model for showcasing work.
+
+Interpretation (not yet evidenced)
+
+- The website feels more confident because of its restraint.
+- The reduction strengthened McCann's creative identity.
+
+These are Alexander's design interpretations rather than measured outcomes.
+
+---
+
+# Contribution boundaries
+
+## Alexander's contribution
+
+Confirmed
+
+- UX
+- Information architecture
+- Interaction design
+- Motion language
+- Motion behaviour
+- Opening experience
+- Typography-led interface
+- Art direction
+- Interactive prototype
+- Webflow build
+- Bespoke interactions
+- Animation implementation
+
+---
+
+## Team contribution
+
+Confirmed
+
+Creative direction and refinement alongside:
+
+- Creative Director
+- Daryl Lee
+- wider McCann leadership
+
+Collective decisions around the level of restraint and presentation.
+
+---
+
+## Unresolved attribution
+
+Need to identify:
+
+- Creative Director by name
+- developers
+- implementation team
+- CMS platform
+- who owned engineering after Webflow
+
+---
+
+# Delivery boundaries
+
+## Shipped
+
+- Website
+- Motion language
+- Homepage
+- Work presentation model
+- Global locations
+- About / manifesto section
+
+---
+
+## Conceptual
+
+None currently identified.
+
+---
+
+## Publicly showable
+
+Likely:
+
+- homepage
+- motion
+- sketches
+- rejected concepts
+- prototype
+- interaction videos
+
+Needs confirmation.
+
+---
+
+## Confidential
+
+None identified yet.
+
+---
+
+## Requires verification
+
+- Project dates
+- Timeline
+- Team credits
+- Agency structure
+- Exact implementation platform
+
+---
+
+# Claims confirmed or changed
+
+| Claim ID | New Status | Evidence | Notes |
+|----------|------------|----------|------|
+| McCann organising idea | Refined | Round 1 | Simplicity is an opinionated creative position rather than minimal UI. |
+| Typography is the interface | Confirmed | Round 1 | Core interaction principle. |
+| Motion language extended the rebrand | Confirmed | Round 1 | Includes logo reveal and "Truth Well Told". |
+| Alexander built prototype in Webflow | Confirmed | Round 1 | Later ported into production CMS. |
+| Native interactions preferred | Confirmed | Round 1 | Avoid bespoke controls unless absolutely necessary. |
+| Website intentionally feels slightly old-school | Confirmed | Round 1 | Reflects the spirit of classic advertising. |
+| User testing validated simplicity | Rejected | Round 1 | No formal testing; confidence came from an intentionally opinionated design position. |
+
+---
+
+# Remaining questions
+
+These should form Interview Round 2.
+
+## Story
+
+- Which McCann organisation was this exactly?
+- What was the official brief?
+- What was the timeline?
+- Why did the rebrand happen?
+
+## Process
+
+- Which ideas were explored before arriving at radical simplicity?
+- Which concepts were rejected?
+- What did early sketches look like?
+- Which interaction almost survived but was removed?
+
+## Motion
+
+- Walk through the opening animation frame by frame.
+- How does "Truth Well Told" appear?
+- How does motion evolve throughout the site?
+
+## UX
+
+- How exactly does someone browse projects?
+- How does navigation work on desktop vs mobile?
+- Why scrolling rather than clicking?
+
+## Technical
+
+- Which bespoke interactions required custom code?
+- Which CMS replaced Webflow?
+- What technical limitations shaped the design?
+
+## Reflection
+
+- What would Alexander change today?
+- Which part still feels timeless?
+- Which part has visibly aged?
+
+## Portfolio assets
+
+Identify:
+
+- sketches
+- rejected explorations
+- motion studies
+- Webflow prototype
+- final homepage
+- logo animation
+- project browsing interaction
+- location explorer
+- manifesto page
+
+These should become the visual backbone of the case study.

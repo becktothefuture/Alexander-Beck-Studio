@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
   ABOUT_NARRATIVE_EASINGS,
+  ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
 } from './aboutNarrativeDefinitions.js';
@@ -13,12 +14,36 @@ import {
 import {
   applyAboutNarrativePointFieldOverrides,
 } from './aboutNarrativePointFieldSchema.js';
+import {
+  ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES,
+  ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES,
+  ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES,
+  ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES,
+} from './aboutNarrativePointFieldMotion.js';
+import {
+  getAboutNarrativeFormSequence,
+} from './aboutNarrativeFormSequence.js';
 
 const PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
-const TRANSITION_TYPES = Object.freeze(['morph', 'dissolve-morph', 'hold', 'step-end']);
+// Dissolve remains readable for imported documents, but Director no longer
+// offers it as an authoring choice. Spatial morphing is the canonical handoff.
+const TRANSITION_TYPES = Object.freeze(['morph', 'hold', 'step-end']);
 const KEYBOARD_STEP_WU = 0.05;
 const KEYBOARD_LARGE_STEP_WU = 0.25;
 const TIME_EPSILON = 0.000001;
+const DIRECTOR_STAGE_LABELS = Object.freeze({
+  'world-promise': 'Condensed seed',
+  'world-complexity': 'Reading nebula',
+  'world-grid': 'Ripple floor',
+  'world-emergent': 'Emerging bust',
+});
+const DIRECTOR_EFFECT_LABELS = Object.freeze({
+  'effect-world-promise-swarm-life': 'Gather',
+  'effect-world-complexity-swarm-life': 'Flow',
+  'effect-world-grid-ambient-drift': 'Settle',
+  'interaction-grid-ripple': 'Finale handoff',
+  'effect-world-emergent-bust-assembly': 'Assemble',
+});
 
 const titleCase = (value) => String(value || '')
   .replaceAll('-', ' ')
@@ -261,9 +286,9 @@ function PointKey({
   selected,
   overridden,
   pixelsPerWU,
-  editScope,
   onSelect,
   onMoveKey,
+  momentBound = false,
 }) {
   const gestureRef = useRef(null);
   const protectedKey = pointKey.protected === true;
@@ -280,13 +305,13 @@ function PointKey({
       latestWU: Number(pointKey.atWU),
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    onMoveKey?.({ phase: 'begin', keyId: pointKey.id, atWU: pointKey.atWU, scope: editScope });
+    onMoveKey?.({ phase: 'begin', keyId: pointKey.id, atWU: pointKey.atWU, scope: 'base' });
   };
   const move = (event) => {
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     gesture.latestWU = cleanNumber(gesture.startWU + ((event.clientX - gesture.startX) / pixelsPerWU));
-    onMoveKey?.({ phase: 'preview', keyId: pointKey.id, atWU: gesture.latestWU, scope: editScope });
+    onMoveKey?.({ phase: 'preview', keyId: pointKey.id, atWU: gesture.latestWU, scope: 'base' });
   };
   const finish = (event, cancelled = false) => {
     const gesture = gestureRef.current;
@@ -296,21 +321,22 @@ function PointKey({
       phase: cancelled ? 'cancel' : 'commit',
       keyId: pointKey.id,
       atWU: cancelled ? gesture.startWU : gesture.latestWU,
-      scope: editScope,
+      scope: 'base',
     });
   };
   return (
     <button
       type="button"
-      className={`about-point-field-key${selected ? ' is-selected' : ''}${protectedKey ? ' is-protected' : ''}${overridden ? ' has-override' : ''}`}
+      className={`about-point-field-key${selected ? ' is-selected' : ''}${protectedKey ? ' is-protected' : ''}${momentBound ? ' is-moment-bound' : ''}${overridden ? ' has-override' : ''}`}
       style={{
         left: Number(pointKey.atWU) * pixelsPerWU,
         '--point-key-stack': stackOffset,
       }}
-      aria-label={`${state?.label || pointKey.stateId} key at ${Number(pointKey.atWU).toFixed(3)} WU${protectedKey ? ', protected' : ''}${overridden ? ', profile override' : ''}`}
+      aria-label={`${state?.label || pointKey.stateId} key at ${Number(pointKey.atWU).toFixed(3)} WU${protectedKey ? ', protected' : ''}${momentBound ? ', adjustable and bound to a fixed Text moment' : ''}${overridden ? ', profile override' : ''}`}
       aria-pressed={selected}
       data-point-field-selection="point-field-key"
       data-point-field-id={pointKey.id}
+      data-moment-bound={momentBound ? 'true' : undefined}
       onClick={(event) => {
         event.stopPropagation();
         onSelect?.(selection, Number(pointKey.atWU));
@@ -328,7 +354,7 @@ function PointKey({
           phase: 'commit',
           keyId: pointKey.id,
           atWU: cleanNumber(Number(pointKey.atWU) + (direction * step)),
-          scope: editScope,
+          scope: 'base',
         });
       }}
     >
@@ -346,9 +372,9 @@ function PointSegment({
   selected,
   overridden,
   pixelsPerWU,
-  editScope,
   onSelect,
   onMoveSegment,
+  momentBound = false,
 }) {
   const gestureRef = useRef(null);
   const startWU = Number(fromKey.atWU);
@@ -365,7 +391,7 @@ function PointSegment({
       latestDeltaWU: 0,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    onMoveSegment?.({ phase: 'begin', segmentId: segment.id, deltaWU: 0, scope: editScope });
+    onMoveSegment?.({ phase: 'begin', segmentId: segment.id, deltaWU: 0, scope: 'base' });
   };
   const move = (event) => {
     const gesture = gestureRef.current;
@@ -375,7 +401,7 @@ function PointSegment({
       phase: 'preview',
       segmentId: segment.id,
       deltaWU: gesture.latestDeltaWU,
-      scope: editScope,
+      scope: 'base',
     });
   };
   const finish = (event, cancelled = false) => {
@@ -386,18 +412,19 @@ function PointSegment({
       phase: cancelled ? 'cancel' : 'commit',
       segmentId: segment.id,
       deltaWU: gesture.latestDeltaWU,
-      scope: editScope,
+      scope: 'base',
     });
   };
   return (
     <button
       type="button"
-      className={`about-point-field-segment is-${segment.transition.type}${selected ? ' is-selected' : ''}${overridden ? ' has-override' : ''}`}
+      className={`about-point-field-segment is-${segment.transition.type}${selected ? ' is-selected' : ''}${momentBound ? ' is-moment-bound' : ''}${overridden ? ' has-override' : ''}`}
       style={{ left: startWU * pixelsPerWU, width }}
-      aria-label={`${label}, ${segment.transition.type}, ${startWU.toFixed(3)} to ${endWU.toFixed(3)} WU${overridden ? ', profile override' : ''}`}
+      aria-label={`${label}, ${segment.transition.type}, ${startWU.toFixed(3)} to ${endWU.toFixed(3)} WU${momentBound ? ', adjustable and bound to fixed Text moments' : ''}${overridden ? ', profile override' : ''}`}
       aria-pressed={selected}
       data-point-field-selection="point-field-segment"
       data-point-field-id={segment.id}
+      data-moment-bound={momentBound ? 'true' : undefined}
       onClick={(event) => {
         event.stopPropagation();
         onSelect?.(selection);
@@ -415,7 +442,7 @@ function PointSegment({
           phase: 'commit',
           segmentId: segment.id,
           deltaWU: direction * step,
-          scope: editScope,
+          scope: 'base',
         });
       }}
     >
@@ -438,6 +465,7 @@ export function PointFieldLane({
   onSelect,
   onMoveKey,
   onMoveSegment,
+  momentBound = false,
 }) {
   const pointField = useMemo(
     () => getPointField(document, editScope),
@@ -457,6 +485,14 @@ export function PointFieldLane({
     () => new Map(basePointField.keys.map((pointKey) => [pointKey.id, pointKey])),
     [basePointField],
   );
+  const stateLabelById = useMemo(
+    () => new Map(pointField.stateDefinitions.map((state) => [state.id, state.label])),
+    [pointField.stateDefinitions],
+  );
+  const formSequences = useMemo(() => getAboutNarrativeFormSequence(
+    pointField,
+    document.profiles.desktop.storyDurationWU,
+  ), [document.profiles.desktop.storyDurationWU, pointField]);
   return (
     <div
       className="about-point-field-lane"
@@ -464,7 +500,72 @@ export function PointFieldLane({
       aria-label={`Point field timeline. Preview ${previewProfile}. Editing ${editScope}.`}
       data-point-field-edit-scope={editScope}
       data-point-field-preview-profile={previewProfile}
+      data-moment-bound={momentBound ? 'true' : undefined}
     >
+      <div className="about-form-effect-sequences" aria-label="Form and effect sequences">
+        {formSequences.map((sequence) => {
+          const effects = (document.tracks.interactions?.clips || []).filter((clip) => (
+            clip.targetStateId === sequence.stateId
+            && Number(clip.activationWU) >= Number(sequence.startWU) - TIME_EPSILON
+            && Number(clip.activationWU) <= Number(sequence.endWU) + TIME_EPSILON
+          ));
+          const selectedSequence = selection?.type === 'point-field-key'
+            && selection.id === sequence.toKeyId;
+          return (
+            <div
+              className={`about-form-effect-sequence${selectedSequence ? ' is-selected' : ''}`}
+              key={`${sequence.fromKeyId}-${sequence.toKeyId}`}
+              style={{
+                left: Number(sequence.startWU) * pixelsPerWU,
+                width: Math.max(3, (Number(sequence.endWU) - Number(sequence.startWU)) * pixelsPerWU),
+              }}
+              data-form-state-id={sequence.stateId}
+            >
+              <button
+                type="button"
+                className="about-form-effect-sequence__body"
+                aria-label={`${stateLabelById.get(sequence.stateId) || sequence.stateId} sequence, ${sequence.startWU} to ${sequence.endWU} WU, ${effects.length} effects`}
+                title={`${stateLabelById.get(sequence.stateId) || sequence.stateId} · ${Number(sequence.startWU).toFixed(2)}–${Number(sequence.endWU).toFixed(2)} WU · ${effects.length} effect${effects.length === 1 ? '' : 's'}`}
+                onPointerDown={(event) => {
+                  // Do not let the timeline scrubber capture a direct Form
+                  // selection before this control can open its inspector.
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect?.({ type: 'point-field-key', id: sequence.toKeyId }, sequence.startWU);
+                }}
+              >
+                <span>{stateLabelById.get(sequence.stateId) || sequence.stateId}</span>
+                <small>{effects.length} FX</small>
+              </button>
+              {effects.map((effect) => (
+                <button
+                  type="button"
+                  className={`about-form-effect-sequence__effect${selection?.type === 'interaction' && selection.id === effect.id ? ' is-selected' : ''}`}
+                  key={effect.id}
+                  style={{
+                    left: `${((Number(effect.startWU) - Number(sequence.startWU)) / Math.max(TIME_EPSILON, Number(sequence.endWU) - Number(sequence.startWU))) * 100}%`,
+                    width: `${Math.max(0.75, ((Number(effect.endWU) - Number(effect.startWU)) / Math.max(TIME_EPSILON, Number(sequence.endWU) - Number(sequence.startWU))) * 100)}%`,
+                  }}
+                  aria-label={`Edit ${ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[effect.type]?.label || effect.type} effect`}
+                  title={`${ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[effect.type]?.label || effect.type} · ${Number(effect.startWU).toFixed(2)}–${Number(effect.endWU).toFixed(2)} WU`}
+                  onPointerDown={(event) => {
+                    // Effects share the Form lane but own this lower hit band;
+                    // keep the parent timeline from converting the click into
+                    // a playhead scrub.
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect?.({ type: 'interaction', id: effect.id }, effect.activationWU);
+                  }}
+                ><span>{ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[effect.type]?.label || effect.type}</span></button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
       {PROFILE_IDS.includes(editScope) ? pointField.keys.map((pointKey) => {
         const baseKey = baseKeyById.get(pointKey.id);
         if (!baseKey || Math.abs(Number(baseKey.atWU) - Number(pointKey.atWU)) <= TIME_EPSILON) return null;
@@ -492,9 +593,9 @@ export function PointFieldLane({
             selected={selection?.type === 'point-field-segment' && selection.id === item.id}
             overridden={Boolean(getOverride(document, editScope, 'point-field-segment', item.id))}
             pixelsPerWU={pixelsPerWU}
-            editScope={editScope}
             onSelect={onSelect}
             onMoveSegment={onMoveSegment}
+            momentBound={momentBound}
           />
         );
       })}
@@ -507,11 +608,102 @@ export function PointFieldLane({
           selected={selection?.type === 'point-field-key' && selection.id === pointKey.id}
           overridden={Boolean(getOverride(document, editScope, 'point-field-key', pointKey.id))}
           pixelsPerWU={pixelsPerWU}
-          editScope={editScope}
           onSelect={onSelect}
           onMoveKey={onMoveKey}
+          momentBound={momentBound}
         />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Author-facing projection of the normalized point-field graph. One named
+ * stage owns its form, transition, and effects; selecting any label still
+ * addresses the canonical key or interaction used by the renderer.
+ */
+export function DirectorPointFieldLane({
+  document,
+  selection,
+  pixelsPerWU,
+  editScope = 'base',
+  previewProfile = 'desktop',
+  onSelect,
+}) {
+  const pointField = useMemo(
+    () => getPointField(document, editScope),
+    [document, editScope],
+  );
+  const sequences = useMemo(() => getAboutNarrativeFormSequence(
+    pointField,
+    document.profiles.desktop.storyDurationWU,
+  ), [document.profiles.desktop.storyDurationWU, pointField]);
+  const stateById = useMemo(
+    () => new Map(pointField.stateDefinitions.map((state) => [state.id, state])),
+    [pointField.stateDefinitions],
+  );
+  const effects = document.tracks.interactions?.clips || [];
+  return (
+    <div
+      className="about-director-world-sequence"
+      role="group"
+      aria-label={`World sequence. Preview ${previewProfile}. Editing ${editScope}.`}
+      data-point-field-edit-scope={editScope}
+    >
+      {sequences.map((sequence) => {
+        const ownedEffects = effects.filter((effect) => (
+          effect.targetStateId === sequence.stateId
+          && Number(effect.activationWU) >= Number(sequence.startWU) - TIME_EPSILON
+          && Number(effect.activationWU) <= Number(sequence.endWU) + TIME_EPSILON
+        ));
+        const selectedStage = selection?.type === 'point-field-key'
+          && selection.id === sequence.toKeyId;
+        // Director speaks in authored story beats. Raw state IDs remain in
+        // Advanced, but they should not turn the simple authored journey into
+        // a technical implementation timeline.
+        const label = DIRECTOR_STAGE_LABELS[sequence.stateId]
+          || stateById.get(sequence.stateId)?.label
+          || sequence.stateId;
+        return (
+          <div
+            className={`about-director-world-stage${selectedStage ? ' is-selected' : ''}`}
+            key={`${sequence.fromKeyId}-${sequence.toKeyId}`}
+            style={{
+              left: Number(sequence.startWU) * pixelsPerWU,
+              width: Math.max(16, (Number(sequence.endWU) - Number(sequence.startWU)) * pixelsPerWU),
+            }}
+          >
+            <button
+              type="button"
+              className="about-director-world-stage__form"
+              data-track-object-id={sequence.toKeyId}
+              aria-pressed={selectedStage}
+              title={`${label} · follows the fixed editorial moments`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect?.({ type: 'point-field-key', id: sequence.toKeyId }, sequence.startWU);
+              }}
+            ><span>{label}</span></button>
+            <div className="about-director-world-stage__effects" aria-label={`${label} effects`}>
+              {ownedEffects.map((effect) => (
+                <button
+                  type="button"
+                  key={effect.id}
+                  className={selection?.type === 'interaction' && selection.id === effect.id ? 'is-selected' : ''}
+                  aria-pressed={selection?.type === 'interaction' && selection.id === effect.id}
+                  title={`Tune ${DIRECTOR_EFFECT_LABELS[effect.id] || ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[effect.type]?.label || effect.type}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect?.({ type: 'interaction', id: effect.id }, effect.activationWU);
+                  }}
+                >{DIRECTOR_EFFECT_LABELS[effect.id] || ABOUT_NARRATIVE_INTERACTION_DEFINITIONS[effect.type]?.label || effect.type}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -583,10 +775,12 @@ function KeyInspector({
   editScope,
   previewProfile,
   onEdit,
-  onMoveKey,
   onMakeUnique,
   onResetOverride,
   onDuplicateState,
+  momentBinding,
+  sequencePanel,
+  fixedStructure = false,
 }) {
   const state = document.tracks.pointField.stateDefinitions.find((item) => item.id === pointKey.stateId);
   if (!state) return null;
@@ -598,10 +792,12 @@ function KeyInspector({
       editScope={editScope}
       previewProfile={previewProfile}
       onEdit={onEdit}
-      onMoveKey={onMoveKey}
       onMakeUnique={onMakeUnique}
       onResetOverride={onResetOverride}
       onDuplicateState={onDuplicateState}
+      momentBinding={momentBinding}
+      sequencePanel={sequencePanel}
+      fixedStructure={fixedStructure}
     />
   );
 }
@@ -617,6 +813,178 @@ function transitionPatch(onEdit, editScope, segmentId, patch, label, phase = 'co
   });
 }
 
+function MotionFields({ segment, editScope, onEdit, disabled }) {
+  const edit = (patch, label, phase = 'commit') => transitionPatch(
+    onEdit,
+    editScope,
+    segment.id,
+    patch,
+    label,
+    phase,
+  );
+  const path = segment.transition.path;
+  const stagger = segment.transition.stagger;
+  const flatten = segment.transition.flatten;
+  const axisOptions = ABOUT_NARRATIVE_POINT_FIELD_MOTION_AXES
+    .map((value) => ({ value, label: value.toUpperCase() }));
+  return (
+    <>
+      <InspectorFolder label="Organic path" count={4} defaultOpen>
+        <p className="about-track-editor-parameter-note">
+          Flow keeps neighbouring points moving in broad ribbons. It preserves point identity and
+          both endpoint forms without an opacity crossfade.
+        </p>
+        <div className="about-track-editor-folder__grid">
+          <SelectField
+            label="Path"
+            value={path.mode}
+            disabled={disabled}
+            options={ABOUT_NARRATIVE_POINT_FIELD_PATH_MODES.map((value) => ({
+              value,
+              label: value === 'flow' ? 'Flow · recommended' : titleCase(value),
+            }))}
+            onCommit={(mode) => edit({ path: { mode } }, 'Change organic path')}
+          />
+          <SelectField
+            label="Bend axis"
+            value={path.axis}
+            disabled={disabled || path.mode === 'direct'}
+            options={axisOptions}
+            onCommit={(axis) => edit({ path: { axis } }, 'Change organic path axis')}
+          />
+          <RangeField
+            label="Path amount"
+            value={path.amount}
+            min={0}
+            max={1}
+            step={0.01}
+            disabled={disabled || path.mode === 'direct'}
+            onEdit={({ phase, value }) => edit(
+              { path: { amount: value } },
+              'Shape organic path',
+              phase,
+            )}
+          />
+          <RangeField
+            label="Flow frequency"
+            value={path.frequency}
+            min={0.25}
+            max={8}
+            step={0.01}
+            disabled={disabled || ['direct', 'arc'].includes(path.mode)}
+            onEdit={({ phase, value }) => edit(
+              { path: { frequency: value } },
+              'Shape organic flow frequency',
+              phase,
+            )}
+          />
+          <NumberField
+            label="Path seed"
+            value={path.seed}
+            min={0}
+            max={0xffffffff}
+            step={1}
+            disabled={disabled || ['direct', 'arc'].includes(path.mode)}
+            onCommit={(seed) => edit({ path: { seed } }, 'Change organic path seed')}
+          />
+        </div>
+      </InspectorFolder>
+      <InspectorFolder label="Stagger" count={4}>
+        <p className="about-track-editor-parameter-note">
+          Use a restrained spatial stagger to create a rolling transformation without jitter.
+        </p>
+        <div className="about-track-editor-folder__grid">
+          <SelectField
+            label="Order"
+            value={stagger.mode}
+            disabled={disabled}
+            options={ABOUT_NARRATIVE_POINT_FIELD_STAGGER_MODES
+              .map((value) => ({ value, label: titleCase(value) }))}
+            onCommit={(mode) => edit({ stagger: { mode } }, 'Change point stagger')}
+          />
+          <SelectField
+            label="Order axis"
+            value={stagger.axis}
+            disabled={disabled || stagger.mode !== 'axis'}
+            options={axisOptions}
+            onCommit={(axis) => edit({ stagger: { axis } }, 'Change point stagger axis')}
+          />
+          <RangeField
+            label="Stagger amount"
+            value={stagger.amount}
+            min={0}
+            max={1}
+            step={0.01}
+            disabled={disabled || stagger.mode === 'uniform'}
+            onEdit={({ phase, value }) => edit(
+              { stagger: { amount: value } },
+              'Shape point stagger',
+              phase,
+            )}
+          />
+          <NumberField
+            label="Stagger seed"
+            value={stagger.seed}
+            min={0}
+            max={0xffffffff}
+            step={1}
+            disabled={disabled || stagger.mode !== 'random'}
+            onCommit={(seed) => edit({ stagger: { seed } }, 'Change point stagger seed')}
+          />
+        </div>
+      </InspectorFolder>
+      <InspectorFolder label="Plane motion" count={4}>
+        <p className="about-track-editor-parameter-note">
+          Plane motion makes the field settle into or lift away from a floor while its organic path continues.
+        </p>
+        <div className="about-track-editor-folder__grid">
+          <SelectField
+            label="Gather"
+            value={flatten.mode}
+            disabled={disabled}
+            options={ABOUT_NARRATIVE_POINT_FIELD_FLATTEN_MODES
+              .map((value) => ({ value, label: titleCase(value) }))}
+            onCommit={(mode) => edit({ flatten: { mode } }, 'Change plane motion')}
+          />
+          <SelectField
+            label="Plane axis"
+            value={flatten.axis}
+            disabled={disabled || flatten.mode === 'none'}
+            options={axisOptions}
+            onCommit={(axis) => edit({ flatten: { axis } }, 'Change plane axis')}
+          />
+          <RangeField
+            label="Plane amount"
+            value={flatten.amount}
+            min={0}
+            max={1}
+            step={0.01}
+            disabled={disabled || flatten.mode === 'none'}
+            onEdit={({ phase, value }) => edit(
+              { flatten: { amount: value } },
+              'Shape plane motion',
+              phase,
+            )}
+          />
+          <RangeField
+            label="Plane position"
+            value={flatten.offset}
+            min={-8}
+            max={8}
+            step={0.01}
+            disabled={disabled || flatten.mode === 'none'}
+            onEdit={({ phase, value }) => edit(
+              { flatten: { offset: value } },
+              'Move transition plane',
+              phase,
+            )}
+          />
+        </div>
+      </InspectorFolder>
+    </>
+  );
+}
+
 function SegmentInspector({
   document,
   segment: baseSegment,
@@ -626,6 +994,7 @@ function SegmentInspector({
   onEdit,
   onResetOverride,
   onSplitSegment,
+  fixedStructure = false,
 }) {
   const pointField = getPointField(document, editScope);
   const segment = pointField.segments.find((item) => item.id === baseSegment.id) || baseSegment;
@@ -685,7 +1054,13 @@ function SegmentInspector({
             'Change point correspondence',
           )}
         />
-        <InspectorFolder label="Split transition" count={2}>
+        <MotionFields
+          segment={segment}
+          editScope={editScope}
+          onEdit={onEdit}
+          disabled={motionDisabled}
+        />
+        {!fixedStructure ? <InspectorFolder label="Split transition" count={2}>
           <p className="about-track-editor-parameter-note">
             Split at the playhead and duplicate either endpoint state. The new opposite span becomes a hold.
           </p>
@@ -701,7 +1076,7 @@ function SegmentInspector({
               onClick={() => onSplitSegment?.({ segmentId: segment.id, atWU: storyWU, duplicate: 'destination' })}
             >Duplicate destination</button>
           </div>
-        </InspectorFolder>
+        </InspectorFolder> : null}
         <ResetOverrideButton
           document={document}
           editScope={editScope}
@@ -743,16 +1118,19 @@ function StateInspector({
   editScope,
   previewProfile,
   onEdit,
-  onMoveKey,
   onMakeUnique,
   onResetOverride,
   onDuplicateState,
   onDeleteState,
+  momentBinding = null,
+  sequencePanel = null,
+  fixedStructure = false,
 }) {
   const pointField = getPointField(document, editScope);
   const state = pointField.stateDefinitions.find((item) => item.id === baseState.id) || baseState;
   const uses = getAboutNarrativePointFieldStateUseCount(document, state.id);
   const shape = ABOUT_NARRATIVE_SHAPE_DEFINITIONS[state.shapeId];
+  const visibleShapeParameters = shape?.parameters || [];
   const protectedState = baseState.protected === true;
   const baseOnly = editScope === 'base';
   const resolvedKey = pointKey
@@ -762,11 +1140,11 @@ function StateInspector({
   const shapeControlGroups = shape ? [
     {
       label: 'Size',
-      controls: shape.parameters.filter((control) => control.group === 'shape-dimensions'),
+      controls: visibleShapeParameters.filter((control) => control.group === 'shape-dimensions'),
     },
     {
       label: 'Character',
-      controls: shape.parameters.filter((control) => control.group !== 'shape-dimensions'),
+      controls: visibleShapeParameters.filter((control) => control.group !== 'shape-dimensions'),
     },
   ].filter((group) => group.controls.length) : [];
   const edit = (patch, label, phase = 'commit') => statePatch(
@@ -795,23 +1173,15 @@ function StateInspector({
         Form edits apply to every use.
       </p>
       <div className="about-track-editor-fields">
+        {resolvedKey ? sequencePanel : null}
+        {resolvedKey ? momentBinding : null}
         {resolvedKey ? (
-          <InspectorFolder label="Key" count={2} defaultOpen>
+          <InspectorFolder label="Key" count={1} defaultOpen>
             <div className="about-track-editor-folder__grid">
-              <NumberField
-                label="Story WU"
-                value={resolvedKey.atWU}
-                disabled={protectedKey}
-                min={0}
-                step={0.01}
-                onCommit={(atWU) => onMoveKey?.({
-                  phase: 'commit', keyId: pointKey.id, atWU, scope: editScope,
-                })}
-              />
               <SelectField
                 label="Form"
                 value={resolvedKey.stateId}
-                disabled={protectedKey || !baseOnly}
+                disabled={fixedStructure || protectedKey || !baseOnly}
                 options={pointField.stateDefinitions.map((item) => ({ value: item.id, label: item.label }))}
                 onCommit={(stateId) => onEdit?.({
                   phase: 'commit',
@@ -823,7 +1193,7 @@ function StateInspector({
                 })}
               />
             </div>
-            {uses.keys > 1 && !protectedKey && baseOnly ? (
+            {!fixedStructure && uses.keys > 1 && !protectedKey && baseOnly ? (
               <button type="button" onClick={() => onMakeUnique?.({ keyId: pointKey.id })}>
                 Make this form unique
               </button>
@@ -837,7 +1207,7 @@ function StateInspector({
               <SelectField
                 label="Shape"
                 value={state.shapeId}
-                disabled={protectedState}
+                disabled={fixedStructure || protectedState}
                 wide
                 options={Object.values(ABOUT_NARRATIVE_SHAPE_DEFINITIONS)
                   .map((item) => ({ value: item.id, label: item.label }))}
@@ -945,7 +1315,7 @@ function StateInspector({
             </InspectorFolder>
           );
         })}
-        <div className="about-point-field-state-actions">
+        {!fixedStructure ? <div className="about-point-field-state-actions">
           <button type="button" disabled={!baseOnly} onClick={() => onDuplicateState?.({ stateId: state.id })}>
             Duplicate state
           </button>
@@ -956,7 +1326,7 @@ function StateInspector({
             title={uses.total > 0 ? 'Remove every key and interaction reference first.' : ''}
             onClick={() => onDeleteState?.({ stateId: state.id })}
           >Delete unused state</button>
-        </div>
+        </div> : null}
         <ResetOverrideButton
           document={document}
           editScope={editScope}
@@ -985,12 +1355,14 @@ export function PointFieldInspector({
   storyWU = 0,
   onSelect,
   onEdit,
-  onMoveKey,
   onResetOverride,
   onMakeUnique,
   onDuplicateState,
   onDeleteState,
   onSplitSegment,
+  momentBinding = null,
+  sequencePanel = null,
+  fixedStructure = false,
 }) {
   const basePointField = document.tracks.pointField;
   if (selection?.type === 'point-field-key') {
@@ -1002,10 +1374,12 @@ export function PointFieldInspector({
         editScope={editScope}
         previewProfile={previewProfile}
         onEdit={onEdit}
-        onMoveKey={onMoveKey}
         onMakeUnique={onMakeUnique}
         onResetOverride={onResetOverride}
         onDuplicateState={onDuplicateState}
+        momentBinding={momentBinding}
+        sequencePanel={sequencePanel}
+        fixedStructure={fixedStructure}
       />
     );
   }
@@ -1021,6 +1395,7 @@ export function PointFieldInspector({
         onEdit={onEdit}
         onResetOverride={onResetOverride}
         onSplitSegment={onSplitSegment}
+        fixedStructure={fixedStructure}
       />
     );
   }
@@ -1036,6 +1411,7 @@ export function PointFieldInspector({
         onResetOverride={onResetOverride}
         onDuplicateState={onDuplicateState}
         onDeleteState={onDeleteState}
+        fixedStructure={fixedStructure}
       />
     );
   }

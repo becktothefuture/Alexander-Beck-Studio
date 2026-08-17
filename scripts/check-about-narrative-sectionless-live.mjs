@@ -1421,7 +1421,7 @@ test('the narrative uses the approved A-E title, editorial, logo, and discipline
   assert.match(liveSources.styles, /var\(--render-span-start-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.doesNotMatch(liveSources.styles, /var\(--render-span-focus-wu, 0\) \+ var\(--about-editorial-reveal-threshold, 1\)/);
   assert.match(liveSources.styles, /--about-editorial-type-size: clamp\(1\.4375rem/);
-  assert.match(liveSources.styles, /--about-editorial-resting-opacity: 0\.04/);
+  assert.match(liveSources.styles, /--about-editorial-resting-opacity: 0\.2/);
   assert.match(liveSources.styles, /\[data-editorial-reveal\] \{[\s\S]*?opacity: var\(--editorial-focus-opacity/);
   assert.match(liveSources.styles, /--about-spatial-title-type-size: clamp\([\s\S]*?var\(--about-editorial-type-size\) \* 1\.55/);
   assert.match(liveSources.styles, /font-size: var\(--about-spatial-title-type-size\)/);
@@ -1600,15 +1600,17 @@ test('all responsive editorial markers reveal through the bottom twenty percent'
   }
 });
 
-test('editor exposes the six native v6 lanes and all Text creation kinds', () => {
+test('editor exposes the six temporal v7 lanes with Text as the story spine', () => {
   const trackDeclaration = liveSources.editor.slice(
     liveSources.editor.indexOf('const POINT_FIELD_TRACKS'),
     liveSources.editor.indexOf('const TRACK_BY_ID'),
   );
   assert.deepEqual(
     [...trackDeclaration.matchAll(/id: '([^']+)'/g)].map((match) => match[1]),
-    ['camera', 'camera-orientation', 'visibility', 'point-field', 'text', 'interaction'],
+    ['text', 'camera', 'camera-orientation', 'camera-lens', 'point-field', 'interaction'],
   );
+  assert.doesNotMatch(trackDeclaration, /id: 'material'/);
+  assert.match(trackDeclaration, /master: true/);
   assert.doesNotMatch(liveSources.editor, /sectionId|sectionRefs|data-narrative-section|['"]section['"]\s*,\s*label/i);
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'title'\)/);
   assert.match(liveSources.editor, /createAtPlayhead\('text', 'scroll-block'\)/);
