@@ -4,7 +4,7 @@ export function LinkedInAction({
 }) {
   return (
     <a
-      className="contact-linkedin-action"
+      className="abs-labelled-action contact-linkedin-action"
       href={href}
       target="_blank"
       rel="noopener noreferrer"

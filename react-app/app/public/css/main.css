@@ -1077,9 +1077,9 @@ body.cv-page .portfolio-topnav .footer_link {
 }
 
 body.portfolio-page .route-topbar .footer_link,
-body.portfolio-page .route-topbar .gate-back,
+body.portfolio-page .route-topbar .gate-back:not(.abs-circular-utility),
 body.cv-page .route-topbar .footer_link,
-body.cv-page .route-topbar .gate-back,
+body.cv-page .route-topbar .gate-back:not(.abs-circular-utility),
 body.portfolio-page .route-topbar .sound-toggle:not([data-enabled="true"]),
 body.cv-page .route-topbar .sound-toggle:not([data-enabled="true"]) {
   color: var(--shell-chrome-ink);
@@ -1126,7 +1126,7 @@ body.portfolio-page .route-topbar__left {
   min-width: 0;
 }
 
-body.portfolio-page .route-topbar__left > .gate-back {
+body.portfolio-page .route-topbar__left > .gate-back:not(.abs-circular-utility) {
   flex: 0 0 auto;
 }
 
@@ -2577,155 +2577,218 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
 }
 
-.simulation-focus-pill {
-  position: relative;
+/*
+ * Shared raised-glass button system
+ *
+ * Labelled actions and circular utilities share one material and interaction
+ * language. Route/component selectors below own anatomy and placement only.
+ */
+:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn) {
+  --abs-soft-control-translate-duration: var(--abs-soft-control-lift-duration);
+  --abs-soft-control-translate-easing: var(--abs-soft-control-lift-easing);
+  box-sizing: border-box;
   isolation: isolate;
   appearance: none;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: var(--abs-radius-pill);
-  background: transparent;
-  color: color-mix(in srgb, var(--text-logo) 68%, transparent);
+  margin: 0;
+  border: 0;
+  background: var(--abs-soft-control-fill);
+  color: var(--abs-soft-control-ink);
+  font-family: var(--abs-font-sans);
+  font-weight: var(--abs-weight-regular);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--abs-soft-control-shadow-rest);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur))
+    saturate(var(--abs-soft-control-saturation));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur))
+    saturate(var(--abs-soft-control-saturation));
+  translate: 0 0;
+  transform: none;
+  filter: none;
+  transition:
+    translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
+    background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
+    color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
+    box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
+}
+
+.abs-labelled-action {
+  --abs-labelled-action-height: 44px;
+  --abs-labelled-action-font-size: 0.875rem;
+  --abs-labelled-action-icon-size: 1rem;
+  --abs-labelled-action-pad-x: 20px;
+  --abs-labelled-action-gap: 12px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 44px;
-  max-width: calc(100vw - (var(--gap-md) * 2));
-  padding: 9px 13px 10px 15px;
-  font-family: var(--abs-font-sans);
-  font-size: clamp(11px, 1vw, 12px);
-  font-weight: var(--abs-weight-regular);
-  line-height: 1.2;
-  letter-spacing: 0;
+  gap: var(--abs-labelled-action-gap);
+  width: auto;
+  min-width: 0;
+  min-height: var(--abs-labelled-action-height);
+  max-width: 100%;
+  padding: 0 var(--abs-labelled-action-pad-x);
+  border-radius: var(--abs-radius-pill);
+  overflow: hidden;
+  font-size: var(--abs-labelled-action-font-size);
+  line-height: 1;
+  letter-spacing: var(--abs-letter-spacing-tight);
   white-space: nowrap;
-  cursor: pointer;
-  overflow: visible;
-  pointer-events: auto;
-  -webkit-tap-highlight-color: transparent;
+}
+
+.abs-circular-utility.abs-icon-btn {
+  --abs-circular-utility-size: 56px;
+  --abs-circular-utility-icon-size: 26px;
+  --ui-icon-glyph-size: var(--abs-circular-utility-icon-size);
+  display: grid;
+  place-items: center;
+  inline-size: var(--abs-circular-utility-size);
+  block-size: var(--abs-circular-utility-size);
+  min-inline-size: var(--abs-circular-utility-size);
+  min-block-size: var(--abs-circular-utility-size);
+  max-inline-size: var(--abs-circular-utility-size);
+  max-block-size: var(--abs-circular-utility-size);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  corner-shape: round;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.abs-circular-utility.abs-icon-btn::before {
+  content: none;
+}
+
+.abs-circular-utility.abs-icon-btn > :is(svg, i) {
+  display: block;
+  inline-size: var(--abs-circular-utility-icon-size);
+  block-size: var(--abs-circular-utility-icon-size);
+  margin: 0;
+  line-height: 1;
+}
+
+.abs-circular-utility.abs-icon-btn > i {
+  font-size: var(--abs-circular-utility-icon-size);
+}
+
+.abs-labelled-action[data-advancing='true'] {
+  background: var(--abs-soft-control-fill-hover);
+  color: var(--abs-soft-control-ink-strong);
+}
+
+:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):focus-visible {
+  background: var(--abs-soft-control-fill-hover);
+  color: var(--abs-soft-control-ink-strong);
+  outline: 3px solid var(--abs-soft-control-focus);
+  outline-offset: 3px;
+  box-shadow: var(--abs-soft-control-shadow-hover);
+  translate: 0 -1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):hover:where(:not(:focus-visible, :disabled)) {
+    background: var(--abs-soft-control-fill-hover);
+    color: var(--abs-soft-control-ink-strong);
+    box-shadow: var(--abs-soft-control-shadow-hover);
+    translate: 0 -2px;
+  }
+}
+
+:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):active {
+  --abs-soft-control-translate-duration: var(--abs-soft-control-press-duration);
+  --abs-soft-control-translate-easing: var(--abs-soft-control-press-easing);
+  animation: none;
+  color: var(--abs-soft-control-ink-strong);
   box-shadow: none;
-  transform: translateZ(0);
-  transition:
-    color 180ms var(--ease-organic),
-    transform 140ms var(--ease-organic);
+  translate: 0 1px;
+  transform: none;
+  filter: none;
 }
 
-.simulation-focus-pill::before {
-  content: '';
-  position: absolute;
-  inset: 5px 0;
-  z-index: 0;
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--frame-inner-surface) 68%, transparent);
-  pointer-events: none;
-  transform: scale(1) translateZ(0);
-  transform-origin: center;
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  transition:
-    background-color 180ms var(--ease-organic),
-    transform 140ms var(--ease-organic);
+.abs-labelled-action:disabled,
+.abs-circular-utility.abs-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
-.simulation-focus-pill > * {
-  position: relative;
-  z-index: 1;
+.abs-labelled-action[data-advancing='true']:disabled {
+  opacity: 1;
+}
+
+.simulation-focus-pill {
+  --simulation-switcher-exit-duration: 160ms;
+  --simulation-switcher-entry-duration: 400ms;
+  --simulation-switcher-handoff-duration: 1440ms;
+  --simulation-switcher-width-duration: 440ms;
+  --simulation-switcher-icon-in-duration: 240ms;
+  --simulation-switcher-icon-out-duration: 320ms;
+  --simulation-switcher-icon-position-easing: cubic-bezier(0.2, 1.25, 0.36, 1);
+  --simulation-switcher-handoff-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
+  --simulation-switcher-exit-travel: 9px;
+  --simulation-switcher-entry-travel: 10px;
+  --simulation-switcher-icon-half-size: 8px;
+  inline-size: var(--simulation-focus-pill-inline-size, fit-content);
+  max-width: calc(100vw - (var(--gap-md) * 2));
+  padding-inline:
+    var(--abs-labelled-action-pad-x)
+    calc(
+      var(--abs-labelled-action-pad-x)
+      + var(--abs-labelled-action-icon-size)
+      + var(--abs-labelled-action-gap)
+    );
+  line-height: 1;
+  pointer-events: auto;
+  will-change: inline-size;
+  transition:
+    inline-size var(--simulation-switcher-width-duration) var(--simulation-switcher-handoff-easing),
+    translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
+    background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
+    color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
+    box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
 }
 
 html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher {
   corner-shape: round;
 }
 
-.simulation-focus-pill:hover,
-.simulation-focus-pill:focus-visible,
-.simulation-focus-pill[data-phase='advancing'] {
-  color: var(--text-primary);
-}
-
-.simulation-focus-pill:hover::before,
-.simulation-focus-pill:focus-visible::before,
-.simulation-focus-pill[data-phase='advancing']::before {
-  background: var(--abs-soft-control-emphasis-fill);
-}
-
-.simulation-focus-pill:active::before {
-  transform: scale(0.976) translateZ(0);
-}
-
-.simulation-focus-pill[data-phase='advancing']::before {
-  animation: simulation-switcher-material-settle
-    var(--simulation-switcher-motion-duration)
-    var(--simulation-switcher-motion-easing)
-    both;
-}
-
-.simulation-focus-pill:focus-visible {
-  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
-  outline-offset: var(--abs-focus-ring-offset);
-}
-
 .simulation-focus-pill:disabled {
   cursor: wait;
 }
 
-.simulation-focus-pill__label-window {
-  position: relative;
+.simulation-focus-pill__label--handoff {
+  position: static;
   display: block;
-  inline-size: 9.5ch;
-  block-size: 1.2em;
-  overflow: hidden;
-  text-align: left;
-}
-
-.simulation-focus-pill__label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
+  flex: 0 0 auto;
   white-space: nowrap;
   opacity: 1;
-  filter: blur(0);
   transform: translate3d(0, 0, 0);
-  will-change: transform, opacity, filter;
-  transition:
-    transform var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing),
-    opacity var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing),
-    filter var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing);
-}
-
-.simulation-focus-pill__label--next {
-  opacity: 0;
-  filter: blur(1.25px);
-  transform: translate3d(0, var(--simulation-switcher-motion-travel), 0);
-}
-
-.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__label--current {
-  opacity: 0;
-  filter: blur(1.25px);
-  transform: translate3d(0, calc(-1 * var(--simulation-switcher-motion-travel)), 0);
-}
-
-.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__label--next {
-  opacity: 1;
-  filter: blur(0);
-  transform: translate3d(0, 0, 0);
+  will-change: opacity, transform;
 }
 
 .simulation-focus-pill__icon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(
+    100%
+    - var(--abs-labelled-action-pad-x)
+    - var(--simulation-switcher-icon-half-size)
+  );
   display: grid;
   place-items: center;
   width: 13px;
   height: 13px;
-  flex: 0 0 auto;
+  translate: -50% -50%;
   rotate: 0deg;
-  scale: 1;
-  transform: translateZ(0);
   transform-origin: center;
-  will-change: rotate, scale;
-  transition: rotate var(--simulation-switcher-motion-duration) var(--simulation-switcher-motion-easing);
+  will-change: inset-inline-start, rotate;
+  transition: inset-inline-start
+    var(--simulation-switcher-icon-out-duration)
+    var(--simulation-switcher-icon-position-easing);
 }
 
 .simulation-focus-pill__icon svg {
@@ -2734,17 +2797,39 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   height: 13px;
 }
 
-.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__icon {
-  rotate: 180deg;
-  animation: simulation-switcher-icon-breathe
-    var(--simulation-switcher-motion-duration)
-    var(--simulation-switcher-motion-easing)
-    both;
+.simulation-focus-pill:is([data-phase='departing'], [data-phase='holding'])
+  .simulation-focus-pill__icon {
+  inset-inline-start: 50%;
+  transition-duration: var(--simulation-switcher-icon-in-duration);
 }
 
-.simulation-focus-pill[data-phase='resetting']
-  :is(.simulation-focus-pill__label, .simulation-focus-pill__icon) {
-  transition: none;
+.simulation-focus-pill[data-phase='departing'] .simulation-focus-pill__label--handoff {
+  opacity: 0;
+  transform: translate3d(0, calc(-1 * var(--simulation-switcher-exit-travel)), 0);
+  transition:
+    opacity var(--simulation-switcher-exit-duration) ease-out,
+    transform var(--simulation-switcher-exit-duration) ease-out;
+}
+
+.simulation-focus-pill[data-phase='holding'] .simulation-focus-pill__label--handoff {
+  opacity: 0;
+  transform: translate3d(0, var(--simulation-switcher-entry-travel), 0);
+}
+
+.simulation-focus-pill[data-phase='arriving'] .simulation-focus-pill__label--handoff {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity var(--simulation-switcher-entry-duration) var(--simulation-switcher-handoff-easing),
+    transform var(--simulation-switcher-entry-duration) var(--simulation-switcher-handoff-easing);
+}
+
+.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__icon {
+  rotate: 0deg;
+  animation: simulation-switcher-icon-handoff
+    var(--simulation-switcher-handoff-duration)
+    cubic-bezier(0.45, 0, 0.2, 1)
+    both;
 }
 
 .simulation-focus-switcher-status {
@@ -2759,46 +2844,39 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   border: 0;
 }
 
-@keyframes simulation-switcher-material-settle {
+@keyframes simulation-switcher-icon-handoff {
   0% {
-    transform: scale(0.976) translateZ(0);
+    rotate: 0deg;
   }
 
-  42% {
-    transform: scale(0.991) translateZ(0);
+  18% {
+    rotate: 54deg;
+  }
+
+  72% {
+    rotate: 306deg;
   }
 
   100% {
-    transform: scale(1) translateZ(0);
-  }
-}
-
-@keyframes simulation-switcher-icon-breathe {
-  0%,
-  100% {
-    scale: 1;
-  }
-
-  46% {
-    scale: 0.86;
-  }
-}
-
-@media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .simulation-focus-pill::before {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: color-mix(in srgb, var(--frame-inner-surface) 70%, transparent);
+    rotate: 360deg;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn),
   .simulation-focus-pill,
-  .simulation-focus-pill::before,
-  .simulation-focus-pill__label,
+  .simulation-focus-pill__label--handoff,
   .simulation-focus-pill__icon {
-    animation: none;
-    transition: none;
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    translate: none !important;
+    filter: none !important;
+    rotate: none !important;
+  }
+
+  .simulation-focus-pill__icon {
+    translate: -50% -50% !important;
   }
 }
 
@@ -5706,6 +5784,12 @@ a:active {
               filter var(--link-impact-duration) var(--ease-organic);
 }
 
+/* Shared button family stays press-nudge-only (no scale, no blur, no inset/edge depth). */
+:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):active {
+  transform: none;
+  filter: none;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    KEYBOARD FOCUS CONTRACT
    One layout-neutral ring for window controls; the Button Bar consumes the
@@ -6035,7 +6119,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
 .footer_link:focus-visible,
 .footer_icon-link:focus-visible,
 .decorative-script p a:focus-visible,
-.gate-back:focus-visible,
+.gate-back:not(.abs-circular-utility):focus-visible,
 .sound-toggle:focus-visible,
 .top-nav__link:focus-visible,
 .top-nav__cv:focus-visible {
@@ -6121,10 +6205,6 @@ body.dark-mode .ui-main-nav .footer_link:active {
     .abs-icon-btn:hover
   ) {
     opacity: 1;
-  }
-
-  body.abs-action-hovering .contact-email-row:not(.pulse-energy):hover::before {
-    opacity: 0;
   }
 }
 
@@ -6354,7 +6434,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   margin: 0 0 0.75rem 0;
 }
 
-.gate-back {
+/* Legacy gate-back styles apply only when not part of the shared circular utility family. */
+.gate-back:not(.abs-circular-utility) {
   appearance: none;
   border: 0;
   background: transparent;
@@ -6373,21 +6454,21 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
               filter 0.15s var(--ease-organic);
 }
 
-body.portfolio-page .route-topbar .gate-back,
-body.cv-page .route-topbar .gate-back {
+body.portfolio-page .route-topbar .gate-back:not(.abs-circular-utility),
+body.cv-page .route-topbar .gate-back:not(.abs-circular-utility) {
   color: var(--shell-chrome-ink);
 }
 
-.gate-back:active {
+.gate-back:not(.abs-circular-utility):active {
   transform: scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
 }
 
-.gate-back span {
+.gate-back:not(.abs-circular-utility) span {
   display: none;
 }
 
-.gate-back i.ti {
+.gate-back:not(.abs-circular-utility) i.ti {
   font-weight: 500;
 }
 
@@ -6401,7 +6482,7 @@ body.cv-page .route-topbar .gate-back {
   filter: none;
 }
 
-.gate-back:focus-visible {
+.gate-back:not(.abs-circular-utility):focus-visible {
   outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-window);
   outline-offset: var(--abs-focus-ring-offset);
   box-shadow: none;
@@ -6437,298 +6518,104 @@ body.cv-page .route-topbar .gate-back {
 
 
 .contact-email-row {
-  --contact-action-height: 44px;
-  --contact-action-font-size: 0.875rem;
-  --contact-action-icon-size: 1rem;
-  --contact-action-pad-x: var(--gap-14, 0.875rem);
-  --contact-action-gap: var(--gap-8, 0.5rem);
-  --contact-email-pad-y: 0;
-  --contact-email-pad-x: var(--contact-action-pad-x);
-  --contact-copy-flash-color: var(--contact-ripple-burst-color, var(--ball-8, #a34b43));
-  --contact-copy-flash-fill: var(--contact-copy-flash-color);
-  width: auto;
-  height: var(--contact-action-height);
-  min-height: var(--contact-action-height);
+  --contact-email-label-duration: 520ms;
+  --contact-email-label-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
+  --contact-email-label-travel: calc(100% + 5px);
+  --contact-email-label-blur: 1.25px;
+  inline-size: fit-content;
+  width: fit-content;
   max-width: 100%;
   display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  margin: 0;
-  padding: 0;
-
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  cursor: pointer;
-  /* Single source of truth: children inherit this for simpler styling. */
-  color: var(--text-quiet);
-
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: var(--abs-radius-pill);
-  background: var(--abs-soft-control-fill);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  -webkit-tap-highlight-color: transparent;
-  overflow: hidden;
-  isolation: isolate;
-  position: relative;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--abs-labelled-action-pad-x);
   z-index: 1;
-  /* Keep text stable: avoid layer promotion / subpixel re-rasterization on hover.
-     (Global UI hover system uses `will-change: transform` on buttons; we opt out here.) */
-  transform: none;
   will-change: auto;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  transition:
-    border-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
-    background-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
-    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
-    transform 0.15s var(--ease-organic);
 }
 
-.contact-email-row::before {
-  content: '';
-  position: absolute;
-  inset: var(--abs-soft-hover-field-inset);
-  z-index: -1;
-  border-radius: inherit;
-  background: var(--abs-soft-hover-field-fill);
-  filter: blur(var(--abs-soft-hover-field-blur));
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--abs-soft-hover-field-duration) var(--ease-organic);
-}
-
-.contact-email-row > * {
+.contact-email-label-window {
   position: relative;
   z-index: 1;
-}
-
-/* Global UI hover system applies `button:hover { will-change: transform; animation: absHoverSnap; }`.
-   Explicitly opt this control out to prevent bounce + 1px text jitter.
-   IMPORTANT: Do NOT cancel `.pulse-energy` (click) animations while hovered. */
-.contact-email-row:hover,
-.contact-email-row:focus,
-.contact-email-row:focus-visible,
-.contact-email-row:focus-within {
-  will-change: auto;
-}
-
-.contact-email-row:not(.pulse-energy):hover,
-.contact-email-row:not(.pulse-energy):focus,
-.contact-email-row:not(.pulse-energy):focus-visible,
-.contact-email-row:not(.pulse-energy):focus-within {
-  animation-name: none;
-  animation-duration: 0s;
-  transform: none;
-}
-
-/* Keep Contact's copy feedback isolated from generic button hover motion. */
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):hover,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus-visible,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row:not(.pulse-energy):focus-within {
-  animation-name: none;
-  animation-duration: 0s;
-  transform: none;
-  will-change: auto;
-}
-
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:hover,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
-html[data-shell-route='contact'] body:not(.detail-open) .contact-email-row.pulse-energy:focus-within {
-  animation: none;
-}
-
-.contact-email-row:not(.pulse-energy):hover,
-.contact-email-row:not(.pulse-energy):active {
-  color: var(--text-primary);
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-  box-shadow: none;
-}
-
-.contact-email-row:not(.pulse-energy):hover::before,
-.contact-email-row:not(.pulse-energy):active::before,
-.contact-email-row:not(.pulse-energy):focus-visible::before,
-.contact-email-row:not(.pulse-energy):focus-within::before {
-  opacity: 0;
-}
-
-.contact-email-row:active {
-  /* No click bounce (requested). */
-  transform: none;
-}
-
-.contact-email-row:focus,
-.contact-email-row:focus-visible,
-.contact-email-row:focus-within {
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-  box-shadow: none;
-}
-
-.contact-email-row:focus-visible {
-  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
-  outline-offset: var(--abs-focus-ring-offset);
-  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
-}
-
-.contact-email-row:focus .contact-email-text,
-.contact-email-row:focus-visible .contact-email-text,
-.contact-email-row:focus-within .contact-email-text,
-.contact-email-row:focus .contact-email-copy,
-.contact-email-row:focus-visible .contact-email-copy,
-.contact-email-row:focus-within .contact-email-copy {
-  box-shadow: none;
-  outline: none;
-}
-
-.contact-email-text {
-  flex: 0 1 auto;
+  display: grid;
+  align-self: center;
+  block-size: 1.2em;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  background-color: transparent;
-  -webkit-tap-highlight-color: transparent;
-  padding: 0 var(--contact-action-gap) 0 var(--contact-email-pad-x);
-  text-align: left;
-  
-  font-family: var(--abs-font-sans);
-  font-size: var(--contact-action-font-size);
-  font-weight: var(--abs-weight-regular);
-  letter-spacing: var(--abs-letter-spacing-tight);
-  color: inherit;
-  transition: inherit;
+  overflow: hidden;
 }
 
-@media (max-width: 360px) {
-  .contact-email-text {
-    font-size: var(--contact-action-font-size);
-  }
-}
-
-
-.contact-email-copy {
-  flex: 0 0 auto;
+.contact-email-label {
+  grid-area: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  appearance: none;
+  block-size: 100%;
+  min-block-size: 0;
+  gap: var(--abs-labelled-action-gap);
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(var(--contact-email-label-blur));
+  transform: translate3d(0, var(--contact-email-label-travel), 0);
+  will-change: opacity, transform, filter;
+  transition:
+    opacity var(--contact-email-label-duration) var(--contact-email-label-easing),
+    transform var(--contact-email-label-duration) var(--contact-email-label-easing),
+    filter var(--contact-email-label-duration) var(--contact-email-label-easing);
+}
+
+.contact-email-label--idle {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+}
+
+.contact-email-row:is(.is-copied, .is-error) .contact-email-label--idle {
+  opacity: 0;
+  filter: blur(var(--contact-email-label-blur));
+  transform: translate3d(0, calc(-1 * var(--contact-email-label-travel)), 0);
+}
+
+.contact-email-row.is-copied .contact-email-label--copied,
+.contact-email-row.is-error .contact-email-label--error {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate3d(0, 0, 0);
+}
+
+.contact-email-text,
+.contact-email-copy {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 0;
-  border-left: 0;
   background: transparent;
-  padding: 0 var(--contact-email-pad-x) 0 var(--contact-action-gap);
   color: inherit;
-  transition: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.contact-email-text {
+  font: inherit;
+}
+
+.contact-email-copy,
+.contact-email-copy i {
+  inline-size: var(--abs-labelled-action-icon-size);
+  block-size: var(--abs-labelled-action-icon-size);
 }
 
 .contact-email-copy i {
   color: inherit;
-  font-size: var(--contact-action-icon-size);
+  font-size: var(--abs-labelled-action-icon-size);
   line-height: 1;
-}
-
-/* (Intentionally no “copied” border override; click pulse handles feedback.) */
-
-.contact-email-row.is-error {
-  border-color: rgba(var(--color-error-rgb), 0.45);
-}
-
-/* The copy action starts this contained light wave in the same click frame as
-   the background ripple. It stays inside the borderless capsule. */
-.contact-email-row::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: block;
-  border-radius: inherit;
-  background: var(--contact-copy-flash-fill);
-  clip-path: circle(0% at 50% 50%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.contact-email-row.pulse-energy {
-  color: var(--text-primary);
-  border-color: transparent;
-  background: var(--abs-soft-control-fill);
-  box-shadow: none;
-  animation: none;
-}
-
-.contact-email-row.pulse-energy .contact-email-text {
-  /* Inherit from parent; no extra animation needed. */
-  animation: none;
-}
-
-.contact-email-row.pulse-energy::after {
-  animation: var(--contact-copy-flash-animation, contactCopyMaterialFlashA)
-    var(--contact-copy-flash-duration, 620ms)
-    cubic-bezier(0.22, 1, 0.36, 1)
-    both;
-}
-
-.contact-email-row.pulse-energy .contact-email-copy i {
-  animation: none;
-}
-
-body.dark-mode .contact-email-row {
-  border-color: transparent;
-  background: var(--abs-soft-control-fill);
-  color: var(--text-quiet);
-}
-
-body.dark-mode .contact-email-row.pulse-energy {
-  color: var(--text-primary);
-  border-color: transparent;
-  background: var(--abs-soft-control-fill);
-  box-shadow: none;
-  animation: none;
-}
-
-body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy,
-body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:hover,
-body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus,
-body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
-body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-within {
-  animation: none;
-}
-
-body.dark-mode .contact-email-row:not(.pulse-energy):hover,
-body.dark-mode .contact-email-row:not(.pulse-energy):active,
-body.dark-mode .contact-email-row:not(.pulse-energy):focus,
-body.dark-mode .contact-email-row:not(.pulse-energy):focus-visible,
-body.dark-mode .contact-email-row:not(.pulse-energy):focus-within {
-  color: var(--text-primary);
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-  box-shadow: none;
-}
-
-body.dark-mode .contact-email-row:not(.pulse-energy):focus-visible {
-  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
-}
-
-body.dark-mode .contact-email-copy {
-  border-left-color: transparent;
 }
 
 /* Home controls sit over moving simulation material, so a complementary ring
@@ -6736,8 +6623,7 @@ body.dark-mode .contact-email-copy {
 html[data-shell-route='home'] body:not(.detail-open) :is(
   #expertise-legend .legend__item--interactive,
   #contact-route-inline,
-  #social-links a,
-  .simulation-focus-switcher
+  #social-links a
 ):focus-visible {
   outline-color: rgb(var(--abs-rgb-white));
   box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgb(var(--abs-rgb-black));
@@ -6760,26 +6646,15 @@ html[data-shell-route='home'] body:not(.detail-open)
   text-decoration-skip-ink: none;
 }
 
-.contact-email-icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-quiet);
-  font-size: 1.25rem;
-}
-
 .contact-copy-status {
   position: absolute;
-  left: 50%;
-  top: calc(100% + 0.35rem);
-  transform: translateX(-50%);
-  width: 100%;
-  text-align: center;
-  pointer-events: none;
-  font-family: var(--abs-font-sans);
-  font-size: 0.9rem;
-  color: var(--text-quiet);
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .cv-modal-inputs,
@@ -6932,10 +6807,6 @@ body[data-abs-theme='dark'] .portfolio-digit:focus {
 }
 
 
-:root {
-  --contact-copy-flash-duration: 620ms;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    ENERGY PULSE ANIMATION - Shared by CV and Portfolio gates
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -6944,44 +6815,6 @@ body[data-abs-theme='dark'] .portfolio-digit:focus {
      Glow intensity is defined on the pseudo-element (no shadow interpolation pops). */
   0%   { transform: scale(1, 1); opacity: 0.9; }
   100% { transform: scale(1.18, 1.32); opacity: 0; }
-}
-
-@keyframes contactCopyMaterialFlashA {
-  0% {
-    clip-path: circle(0% at 50% 50%);
-    opacity: 1;
-  }
-  42% {
-    clip-path: circle(100% at 50% 50%);
-    opacity: 1;
-  }
-  65% {
-    clip-path: circle(110% at 50% 50%);
-    opacity: 1;
-  }
-  100% {
-    clip-path: circle(110% at 50% 50%);
-    opacity: 0;
-  }
-}
-
-@keyframes contactCopyMaterialFlashB {
-  0% {
-    clip-path: circle(0% at 50% 50%);
-    opacity: 1;
-  }
-  42% {
-    clip-path: circle(100% at 50% 50%);
-    opacity: 1;
-  }
-  65% {
-    clip-path: circle(110% at 50% 50%);
-    opacity: 1;
-  }
-  100% {
-    clip-path: circle(110% at 50% 50%);
-    opacity: 0;
-  }
 }
 
 @keyframes energy-shine {
@@ -7434,11 +7267,6 @@ body.portfolio-page--locked #simulations {
 }
 
 .contact-action-stack {
-  --contact-action-height: 44px;
-  --contact-action-font-size: 0.875rem;
-  --contact-action-icon-size: 1rem;
-  --contact-action-pad-x: var(--gap-14, 0.875rem);
-  --contact-action-gap: var(--gap-8, 0.5rem);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7462,57 +7290,14 @@ body.portfolio-page--locked #simulations {
 
 .contact-linkedin-action {
   width: auto;
-  height: var(--contact-action-height);
   min-width: 0;
-  min-height: var(--contact-action-height);
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--contact-action-gap);
-  padding: 0 var(--contact-action-pad-x);
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: var(--abs-radius-pill);
-  background: var(--abs-soft-control-fill);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur, 18px))
-    saturate(var(--abs-soft-control-saturation, 1.08));
-  color: var(--text-quiet);
-  font-family: var(--abs-font-sans);
-  font-size: var(--contact-action-font-size);
-  font-weight: var(--abs-weight-regular);
-  line-height: 1;
-  letter-spacing: var(--abs-letter-spacing-tight);
-  text-decoration: none;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    color 150ms var(--ease-organic),
-    border-color 150ms var(--ease-organic),
-    background-color 150ms var(--ease-organic);
+  padding-inline: 18px 24px;
 }
 
 .contact-linkedin-action i {
   flex: 0 0 auto;
-  font-size: var(--contact-action-icon-size);
+  font-size: var(--abs-labelled-action-icon-size);
   line-height: 1;
-}
-
-.contact-linkedin-action:hover,
-.contact-linkedin-action:active,
-.contact-linkedin-action:focus-visible {
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-  color: var(--text-primary);
-}
-
-.contact-linkedin-action:focus-visible {
-  outline: var(--abs-focus-ring-width) solid var(--abs-focus-ring-shell);
-  outline-offset: var(--abs-focus-ring-offset);
-  box-shadow: 0 0 0 var(--abs-focus-ring-offset) rgba(var(--abs-rgb-black), 0.84);
 }
 
 @media (max-width: 600px) {
@@ -8150,7 +7935,7 @@ body.dark-mode .cv-photo {
     overflow: visible;
   }
 
-  body.portfolio-page .route-topbar__left > .gate-back {
+  body.portfolio-page .route-topbar__left > .gate-back:not(.abs-circular-utility) {
     flex: 0 0 auto;
   }
 

@@ -81,23 +81,15 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
 test('Contact and About share one centred, compact two-action family', () => {
   assert.match(
     sources.main,
-    /\.contact-action-stack \{[\s\S]*?--contact-action-height: 44px;[\s\S]*?--contact-action-font-size: 0\.875rem;[\s\S]*?flex-direction: column;[\s\S]*?align-items: center;[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;[\s\S]*?margin-inline: auto;/,
+    /\.contact-action-stack \{[\s\S]*?flex-direction: column;[\s\S]*?align-items: center;[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;[\s\S]*?margin-inline: auto;/,
   );
   assert.match(
     sources.main,
     /\.contact-action-stack__primary,[\s\S]*?\.contact-action-stack__secondary \{[\s\S]*?flex: 0 0 auto;[\s\S]*?width: auto;[\s\S]*?max-width: 100%;/,
   );
-  assert.match(
-    sources.main,
-    /\.contact-linkedin-action \{[\s\S]*?width: auto;[\s\S]*?height: var\(--contact-action-height\);[\s\S]*?border:[\s\S]*?transparent;[\s\S]*?background: var\(--abs-soft-control-fill\)/,
-  );
-  assert.match(
-    sources.main,
-    /\.contact-linkedin-action \{[\s\S]*?font-size: var\(--contact-action-font-size\);[\s\S]*?font-weight: var\(--abs-weight-regular\);/,
-  );
-  assert.match(sources.main, /\.contact-email-text \{[\s\S]*?font-size: var\(--contact-action-font-size\);/);
-  assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--contact-action-icon-size\);/);
-  assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--contact-action-icon-size\);/);
+  assert.match(sources.main, /\.contact-email-text \{[\s\S]*?font: inherit;/);
+  assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
+  assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.match(
     sources.aboutStyles,
     /data-about-experience-version='v2'[\s\S]*?\.about-narrative-finale-content \{[\s\S]*?top: 50%;[\s\S]*?justify-items: center;[\s\S]*?transform: translate3d\(0, -50%, 0\)/,

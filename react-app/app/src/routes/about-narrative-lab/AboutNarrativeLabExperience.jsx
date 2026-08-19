@@ -22,7 +22,6 @@ import {
   playInteractionSound,
   playScrollDetent,
 } from '../../legacy/modules/audio/sound-engine.js';
-import { CONTACT_RIPPLE_PRESS_FEEDBACK_MS } from '../contact/contactRippleEvents.js';
 import './about-narrative-lab.css';
 
 const CANONICAL_ABOUT_EXPERIENCE_VERSION = 'v2';
@@ -640,7 +639,6 @@ function TitleField({
                   <CopyEmailAction
                     email={ABOUT_NARRATIVE_CONTACT.email}
                     onActivate={onFinaleEmailPress}
-                    pressFeedbackMs={CONTACT_RIPPLE_PRESS_FEEDBACK_MS}
                     soundSource="about-copy-email"
                     statusId="about-copy-status"
                   />

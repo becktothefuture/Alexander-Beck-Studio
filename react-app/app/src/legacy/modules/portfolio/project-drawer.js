@@ -377,7 +377,7 @@ function createProjectDrawerMarkup() {
       </div>
       <div class="portfolio-project-view__drawer">
         <button
-          class="portfolio-project-view__back portfolio-project-view__back--top gate-back abs-icon-btn"
+          class="portfolio-project-view__back portfolio-project-view__back--top gate-back abs-icon-btn abs-circular-utility"
           type="button"
           aria-label="Back to portfolio projects"
           data-portfolio-project-back

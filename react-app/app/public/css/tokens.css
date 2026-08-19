@@ -96,42 +96,30 @@
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
 
-  /* Shared borderless quiet control material: theme surface with calm tonal separation. */
-  --abs-soft-control-darken: 12%;
-  --abs-soft-control-fill-opacity: 72%;
-  --abs-soft-control-outline-opacity: 0%;
-  --abs-soft-control-outline-active-opacity: 0%;
-  --abs-soft-control-emphasis-rgb: var(--abs-rgb-white);
-  --abs-soft-control-emphasis-opacity: 86%;
-  --abs-soft-control-edge-width: 0.5px;
-  --abs-soft-control-blur: 18px;
-  --abs-soft-control-saturation: 1.08;
-  --abs-soft-control-surface:
-    color-mix(
-      in srgb,
-      var(--frame-inner-surface) calc(100% - var(--abs-soft-control-darken)),
-      rgba(var(--abs-rgb-black), 1) var(--abs-soft-control-darken)
-    );
-  --abs-soft-control-fill:
-    color-mix(
-      in srgb,
-      var(--abs-soft-control-surface) var(--abs-soft-control-fill-opacity),
-      transparent
-    );
-  --abs-soft-control-outline:
-    color-mix(
-      in srgb,
-      var(--text-primary) var(--abs-soft-control-outline-opacity),
-      transparent
-    );
-  --abs-soft-control-outline-active:
-    color-mix(
-      in srgb,
-      var(--text-primary) var(--abs-soft-control-outline-active-opacity),
-      transparent
-    );
-  --abs-soft-control-emphasis-fill:
-    rgba(var(--abs-soft-control-emphasis-rgb), var(--abs-soft-control-emphasis-opacity));
+  /* Shared raised-glass control material. Depth comes only from paired inset edges. */
+  --abs-soft-control-fill: rgba(247, 249, 244, 0.64);
+  --abs-soft-control-fill-hover: rgba(252, 253, 249, 0.8);
+  --abs-soft-control-fill-pressed: rgba(232, 236, 226, 0.86);
+  --abs-soft-control-ink: rgba(14, 19, 13, 0.8);
+  --abs-soft-control-ink-strong: #0b100b;
+  --abs-soft-control-shadow-rest:
+    inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.64),
+    inset -1.5px -1.5px 3px rgba(11, 18, 10, 0.18);
+  --abs-soft-control-shadow-hover:
+    inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.82),
+    inset -1.5px -1.5px 3px rgba(11, 18, 10, 0.22);
+  --abs-soft-control-shadow-pressed:
+    inset 2px 2px 5px rgba(11, 18, 10, 0.24),
+    inset -0.5px -0.5px 0.5px rgba(var(--abs-rgb-white), 0.5);
+  --abs-soft-control-focus: #101710;
+  --abs-soft-control-blur: 16px;
+  --abs-soft-control-saturation: 1.16;
+  --abs-soft-control-material-duration: 180ms;
+  --abs-soft-control-material-easing: cubic-bezier(0.2, 0.72, 0.25, 1);
+  --abs-soft-control-lift-duration: 420ms;
+  --abs-soft-control-lift-easing: cubic-bezier(0.2, 1.55, 0.36, 1);
+  --abs-soft-control-press-duration: 90ms;
+  --abs-soft-control-press-easing: cubic-bezier(0.2, 0.72, 0.28, 1);
 
   /* Shared progress/pagination line language. Thickness is projected from shell config. */
   --abs-indicator-line-width: 8px;
@@ -924,9 +912,21 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   --studio-window-color-scheme: dark;
-  --abs-soft-control-darken: 36%;
-  --abs-soft-control-emphasis-rgb: var(--abs-rgb-black);
-  --abs-soft-control-emphasis-opacity: 72%;
+  --abs-soft-control-fill: rgba(12, 16, 12, 0.52);
+  --abs-soft-control-fill-hover: rgba(18, 23, 17, 0.68);
+  --abs-soft-control-fill-pressed: rgba(7, 10, 7, 0.74);
+  --abs-soft-control-ink: rgba(var(--abs-rgb-white), 0.92);
+  --abs-soft-control-ink-strong: rgb(var(--abs-rgb-white));
+  --abs-soft-control-shadow-rest:
+    inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.176),
+    inset -1.5px -1.5px 3px rgba(var(--abs-rgb-black), 0.3);
+  --abs-soft-control-shadow-hover:
+    inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.256),
+    inset -1.5px -1.5px 3px rgba(var(--abs-rgb-black), 0.36);
+  --abs-soft-control-shadow-pressed:
+    inset 2px 2px 5px rgba(var(--abs-rgb-black), 0.38),
+    inset -0.5px -0.5px 0.5px rgba(var(--abs-rgb-white), 0.112);
+  --abs-soft-control-focus: rgb(var(--abs-rgb-white));
   --abs-indicator-ink: rgb(var(--abs-rgb-white));
   /* Theme changes the studio-window interior, never the outer wall/frame. */
   --studio-window-bg: var(--studio-window-bg-dark);

@@ -8,9 +8,9 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = resolve(repoRoot, 'react-app/app');
 
 const BASELINE_COUNTS = Object.freeze({
-  viteInputs: 31,
-  htmlEntries: 31,
-  entryModules: 25,
+  viteInputs: 32,
+  htmlEntries: 32,
+  entryModules: 26,
   routeDefinitions: 22,
   shellTabs: 5,
 });

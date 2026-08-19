@@ -283,7 +283,7 @@ export function PortfolioGateRoute() {
     >
       <button
         type="button"
-        className="portfolio-access-gate__close abs-icon-btn"
+        className="portfolio-access-gate__close abs-icon-btn abs-circular-utility"
         aria-label="Close portfolio access prompt"
         data-sound-action="manual"
         data-sound-source="portfolio-gate-close"

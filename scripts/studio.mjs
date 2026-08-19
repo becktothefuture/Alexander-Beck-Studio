@@ -35,6 +35,7 @@ const PUBLIC_DEV_PORT = 8014;
 const LOCAL_DEV_URL = `http://localhost:${LOCAL_DEV_PORT}`;
 const PUBLIC_DEV_ORIGIN = `http://localhost:${PUBLIC_DEV_PORT}`;
 const PUBLIC_DEV_TUNNEL_ORIGIN = `http://127.0.0.1:${PUBLIC_DEV_PORT}`;
+const BUTTON_AUDIT_PATH = '/lab/button-audit.html';
 const PROCESS_START_TIMEOUT_MS = 30_000;
 const HTTP_TIMEOUT_MS = 4_000;
 const QUICK_TUNNEL_PATTERN = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/i;
@@ -212,6 +213,13 @@ function isStudioViteResponse(result) {
     && result.text.includes('Alexander Beck');
 }
 
+function isButtonAuditResponse(result) {
+  return result.ok
+    && result.text.includes('/@vite/client')
+    && result.text.includes('Button Audit - Alexander Beck Studio')
+    && result.text.includes('/src/entries/button-audit.jsx');
+}
+
 async function waitFor(check, message, timeoutMs = PROCESS_START_TIMEOUT_MS) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -334,6 +342,10 @@ async function ensureDependencies() {
 async function ensureLocalDev() {
   const existing = await probe(`${LOCAL_DEV_URL}/`);
   if (isStudioViteResponse(existing)) {
+    const buttonAudit = await probe(`${LOCAL_DEV_URL}${BUTTON_AUDIT_PATH}`);
+    if (!isButtonAuditResponse(buttonAudit)) {
+      throw new Error(`Local Vite is running, but ${BUTTON_AUDIT_PATH} is not available.`);
+    }
     return {
       owned: false,
       pid: null,
@@ -357,6 +369,10 @@ async function ensureLocalDev() {
     await waitFor(
       async () => isStudioViteResponse(await probe(`${LOCAL_DEV_URL}/`)),
       `Local Vite did not become ready. See ${LOCAL_DEV_LOG}.`,
+    );
+    await waitFor(
+      async () => isButtonAuditResponse(await probe(`${LOCAL_DEV_URL}${BUTTON_AUDIT_PATH}`)),
+      `The local button audit did not become ready. See ${LOCAL_DEV_LOG}.`,
     );
   } catch (error) {
     await stopProcess(processEntry, 'failed local dev server', { quiet: true }).catch(() => {});
@@ -405,6 +421,10 @@ async function ensurePublicDev() {
     await waitFor(
       async () => isStudioViteResponse(await probe(`${PUBLIC_DEV_ORIGIN}/`)),
       `The public dev mirror did not become ready. See ${PUBLIC_DEV_LOG}.`,
+    );
+    await waitFor(
+      async () => isButtonAuditResponse(await probe(`${PUBLIC_DEV_ORIGIN}${BUTTON_AUDIT_PATH}`)),
+      `The public button audit did not become ready. See ${PUBLIC_DEV_LOG}.`,
     );
 
     const blockedApi = await probe(`${PUBLIC_DEV_ORIGIN}/api/design-system/config`, {
@@ -547,6 +567,13 @@ async function startTunnel() {
         `The tunnel started but ${publicUrl} did not become ready. See ${TUNNEL_LOG}.`,
         60_000,
       );
+      await waitFor(
+        async () => isButtonAuditResponse(
+          await probePublicUrl(`${publicUrl}${BUTTON_AUDIT_PATH}`),
+        ),
+        `The tunnel started but its button audit did not become ready. See ${TUNNEL_LOG}.`,
+        60_000,
+      );
 
       return {
         ...processEntry,
@@ -575,10 +602,15 @@ async function studioDev() {
       && isProcessRunning(existingState.publicDev?.pid)
       && isProcessRunning(existingState.tunnel?.pid)
       && isStudioViteResponse(await probePublicUrl(`${existingState.tunnel.publicUrl}/`))
+      && isButtonAuditResponse(await probe(`${LOCAL_DEV_URL}${BUTTON_AUDIT_PATH}`))
+      && isButtonAuditResponse(
+        await probePublicUrl(`${existingState.tunnel.publicUrl}${BUTTON_AUDIT_PATH}`),
+      )
     ) {
       console.log(`${good('Studio dev is already running.')}
 Local:  ${existingState.localDev.url}
-Public: ${existingState.tunnel.publicUrl}`);
+Public: ${existingState.tunnel.publicUrl}
+Button audit: ${LOCAL_DEV_URL}${BUTTON_AUDIT_PATH}`);
       return;
     }
     if (existingState) await stopFromState(existingState, { quiet: true });
@@ -605,6 +637,8 @@ ${good(strong('Studio dev is ready.'))}
 Local authoring: ${LOCAL_DEV_URL}
 Public phone URL: ${tunnel.publicUrl}
 About Me:        ${tunnel.publicUrl}/about.html
+Button audit:    ${LOCAL_DEV_URL}${BUTTON_AUDIT_PATH}
+Phone audit:     ${tunnel.publicUrl}${BUTTON_AUDIT_PATH}
 
 Edits update both Vite servers automatically. Production is unchanged.`);
     if (tunnel.mode === 'quick') {

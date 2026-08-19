@@ -42,7 +42,7 @@ export function getStyleguideRouteView() {
       <header className="ui-top">
         <div className="ui-top-main route-topbar">
           <div className="route-topbar__left">
-            <a href={homeHref} className="gate-back abs-icon-btn" aria-label="Back to home">
+            <a href={homeHref} className="gate-back abs-icon-btn abs-circular-utility" aria-label="Back to home">
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
           </div>
@@ -79,7 +79,7 @@ export function getStyleguideRouteView() {
               <header className="ui-top">
                 <div className="ui-top-main route-topbar">
                   <div className="route-topbar__left">
-                    <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
+                    <span className="gate-back abs-icon-btn abs-circular-utility styleguide-fake-icon" aria-hidden="true">
                       <i className="ti ti-arrow-left" aria-hidden="true" />
                     </span>
                   </div>
@@ -106,7 +106,7 @@ export function getStyleguideRouteView() {
               <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
                 {renderSoundOnIcon()}
               </button>
-              <a href={homeHref} className="gate-back abs-icon-btn" aria-label="Sample back">
+              <a href={homeHref} className="gate-back abs-icon-btn abs-circular-utility" aria-label="Sample back">
                 <i className="ti ti-arrow-left" aria-hidden="true" />
               </a>
             </div>

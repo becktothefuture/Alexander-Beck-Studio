@@ -741,42 +741,8 @@
     var(--abs-safe-right, 0px)
   );
   z-index: 2;
-  display: inline-grid;
-  place-items: center;
-  inline-size: max(44px, var(--ui-icon-frame-size, 44px));
-  block-size: max(44px, var(--ui-icon-frame-size, 44px));
-  min-inline-size: 44px;
-  min-block-size: 44px;
-  margin: 0;
-  padding: 0;
-  color: var(--text-primary);
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
-  border-radius: 50%;
-  background: var(--abs-soft-control-fill);
-  -webkit-backdrop-filter: blur(var(--abs-soft-control-blur, 18px)) saturate(var(--abs-soft-control-saturation, 1.08));
-  backdrop-filter: blur(var(--abs-soft-control-blur, 18px)) saturate(var(--abs-soft-control-saturation, 1.08));
-  appearance: none;
-  transition:
-    background-color var(--duration-quick, 200ms) var(--ease-settle),
-    border-color var(--duration-quick, 200ms) var(--ease-settle);
   pointer-events: auto;
   touch-action: manipulation;
-}
-
-.playground-route .playground-lightbox__close:is(:hover, :focus-visible, :active) {
-  color: var(--text-primary);
-  border-color: transparent;
-  background: var(--abs-soft-control-emphasis-fill);
-}
-
-.playground-route .playground-lightbox__close:focus {
-  outline: none;
-}
-
-.playground-route .playground-lightbox__close:focus-visible {
-  outline: var(--playground-focus-width) solid var(--text-primary);
-  outline-offset: var(--playground-focus-offset);
-  box-shadow: 0 0 0 calc(var(--playground-focus-offset) + var(--playground-focus-width)) var(--studio-window-bg);
 }
 
 .playground-route .playground-sr-instructions {
@@ -863,13 +829,6 @@
     max-block-size: 100%;
   }
 
-}
-
-@media (hover: none), (pointer: coarse) {
-  .playground-route .playground-lightbox__close {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

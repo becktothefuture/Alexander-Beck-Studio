@@ -34,14 +34,11 @@ export function CopyEmailAction({
   copyText = {},
   email = 'alexander@beck.fyi',
   onActivate = null,
-  pressFeedbackMs = 620,
   soundSource = 'copy-email',
   statusId = 'copy-email-status',
 }) {
   const [copyState, setCopyState] = useState('idle');
-  const [pressPulse, setPressPulse] = useState({ active: false, phase: 0 });
   const resetTimerRef = useRef(null);
-  const pulseTimerRef = useRef(null);
 
   const setFeedback = useCallback((state) => {
     if (resetTimerRef.current) {
@@ -56,63 +53,61 @@ export function CopyEmailAction({
 
   useEffect(() => () => {
     if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
-    if (pulseTimerRef.current) window.clearTimeout(pulseTimerRef.current);
   }, []);
 
   const handleCopy = useCallback(async () => {
-    if (pulseTimerRef.current) {
-      window.clearTimeout(pulseTimerRef.current);
-      pulseTimerRef.current = null;
-    }
-    setPressPulse((current) => ({ active: true, phase: current.phase === 0 ? 1 : 0 }));
-    pulseTimerRef.current = window.setTimeout(() => {
-      setPressPulse((current) => ({ ...current, active: false }));
-      pulseTimerRef.current = null;
-    }, pressFeedbackMs);
-
     onActivate?.();
     const ok = await copyToClipboard(email);
     triggerHaptic(ok ? 'success' : 'error');
     setFeedback(ok ? 'copied' : 'error');
-  }, [email, onActivate, pressFeedbackMs, setFeedback]);
+  }, [email, onActivate, setFeedback]);
 
   const statusText = copyState === 'copied'
     ? (copyText.statusCopied || 'Copied')
     : copyState === 'error'
       ? (copyText.statusError || 'Copy failed')
       : '';
-  const iconClass = copyState === 'copied'
-    ? 'ti ti-check'
-    : copyState === 'error'
-      ? 'ti ti-alert-triangle'
-      : 'ti ti-copy';
-
   return (
     <>
       <button
         type="button"
         className={[
+          'abs-labelled-action',
           'contact-email-row',
-          pressPulse.active ? 'pulse-energy' : '',
           copyState === 'copied' ? 'is-copied' : '',
           copyState === 'error' ? 'is-error' : '',
         ].filter(Boolean).join(' ')}
         data-copy-email
+        data-copy-presentation="label"
         data-sound-action="manual"
         data-sound-source={soundSource}
         aria-label={copyText.buttonAriaLabel || 'Copy email address'}
         aria-describedby={statusId}
-        style={{
-          '--contact-copy-flash-animation': pressPulse.phase === 0
-            ? 'contactCopyMaterialFlashA'
-            : 'contactCopyMaterialFlashB',
-          '--contact-copy-flash-duration': `${pressFeedbackMs}ms`,
-        }}
         onClick={handleCopy}
       >
-        <span className="contact-email-text">{email}</span>
-        <span className={['contact-email-copy', copyState !== 'idle' ? 'is-active' : ''].filter(Boolean).join(' ')}>
-          <i className={iconClass} aria-hidden="true" />
+        <span className="contact-email-label-window" aria-hidden="true">
+          <span className="contact-email-label contact-email-label--idle">
+            <span className="contact-email-text">{email}</span>
+            <span className="contact-email-copy">
+              <i className="ti ti-copy" aria-hidden="true" />
+            </span>
+          </span>
+          <span className="contact-email-label contact-email-label--copied">
+            <span className="contact-email-feedback-text">
+              {copyText.statusCopied || 'Copied'}
+            </span>
+            <span className="contact-email-copy contact-email-feedback-icon">
+              <i className="ti ti-check" aria-hidden="true" />
+            </span>
+          </span>
+          <span className="contact-email-label contact-email-label--error">
+            <span className="contact-email-feedback-text">
+              {copyText.statusError || 'Copy failed'}
+            </span>
+            <span className="contact-email-copy contact-email-feedback-icon">
+              <i className="ti ti-alert-triangle" aria-hidden="true" />
+            </span>
+          </span>
         </span>
       </button>
       <div id={statusId} className="contact-copy-status" data-copy-status aria-live="polite">

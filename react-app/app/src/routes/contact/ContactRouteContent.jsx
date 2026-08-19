@@ -2,10 +2,7 @@ import homeContent from 'virtual:abs-content/home';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
-import {
-  CONTACT_RIPPLE_PRESS_FEEDBACK_MS,
-  requestContactRippleBurst,
-} from './contactRippleEvents.js';
+import { requestContactRippleBurst } from './contactRippleEvents.js';
 
 export function ContactRouteContent() {
   const contact = homeContent.contact || {};
@@ -46,7 +43,6 @@ export function ContactRouteContent() {
               copyText={copyText}
               email={email}
               onActivate={handleActivate}
-              pressFeedbackMs={CONTACT_RIPPLE_PRESS_FEEDBACK_MS}
               soundSource="contact-copy-email"
               statusId="contact-copy-status"
             />

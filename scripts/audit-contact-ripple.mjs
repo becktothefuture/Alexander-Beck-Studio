@@ -25,12 +25,6 @@ function assert(condition, message, details = null) {
   throw new Error(`${message}${suffix}`);
 }
 
-function hexColorToCssRgb(value) {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(value));
-  if (!match) return '';
-  return `rgb(${match.slice(1).map((channel) => parseInt(channel, 16)).join(', ')})`;
-}
-
 async function waitForHttpReady(url, timeoutMs = 15000) {
   const startedAt = Date.now();
   let lastError = null;
@@ -135,7 +129,10 @@ async function readRippleState(page) {
     const canvasStyle = canvas ? getComputedStyle(canvas) : null;
     const contentStyle = content ? getComputedStyle(content) : null;
     const buttonStyle = button ? getComputedStyle(button) : null;
-    const buttonFlashStyle = button ? getComputedStyle(button, '::after') : null;
+    const copiedLabel = button?.querySelector('.contact-email-label--copied') || null;
+    const copiedLabelStyle = copiedLabel ? getComputedStyle(copiedLabel) : null;
+    const copiedIcon = copiedLabel?.querySelector('.ti-check') || null;
+    const copiedIconStyle = copiedIcon ? getComputedStyle(copiedIcon) : null;
     const audioEvents = window.__ABS_SIMULATION_AUDIO__?.events || [];
     const motifEvents = audioEvents.filter((event) => event?.type === 'contact-ripple-motif');
     let motifEvent = null;
@@ -187,11 +184,10 @@ async function readRippleState(page) {
       canvasRect: rectOf(canvas),
       contentRect: rectOf(content),
       buttonRect: rectOf(button),
-      buttonPulseActive: button?.classList.contains('pulse-energy') || false,
-      buttonBurstColor: buttonStyle?.getPropertyValue('--contact-ripple-burst-color').trim() || '',
-      buttonFlashBackgroundColor: buttonFlashStyle?.backgroundColor || '',
-      buttonFlashAnimationName: buttonFlashStyle?.animationName || '',
-      buttonFlashDuration: buttonFlashStyle?.animationDuration || '',
+      buttonHasLegacyPulse: button?.classList.contains('pulse-energy') || false,
+      buttonInlineSize: Number(buttonStyle?.inlineSize?.replace('px', '') || 0),
+      copiedLabelOpacity: Number(copiedLabelStyle?.opacity || 0),
+      copiedIconDisplay: copiedIconStyle?.display || '',
       typographyEffectPresent: Boolean(
         content?.dataset.contactTypographyImpact
         || document.querySelector('.is-typography-emphasized, .is-typography-scattering'),
@@ -432,23 +428,17 @@ async function runStandardScenario(browser, viewport, theme) {
     ), initial.burstCount);
     const synchronizedPress = await readRippleState(page);
     assert(synchronizedPress.stageState === 'burst', 'Email activation did not immediately enter burst state', synchronizedPress);
-    assert(synchronizedPress.buttonPulseActive, 'Contact field did not light in the ripple start frame', synchronizedPress);
-    assert(
-      synchronizedPress.buttonFlashAnimationName.startsWith('contactCopyMaterialFlash'),
-      'Contact field did not use the contained material flash',
-      synchronizedPress,
-    );
-    assert(
-      synchronizedPress.buttonBurstColor.toLowerCase() === synchronizedPress.burstColor.toLowerCase(),
-      'Contact field flash color did not match the background confirmation wave',
-      synchronizedPress,
-    );
-    assert(
-      synchronizedPress.buttonFlashBackgroundColor === hexColorToCssRgb(synchronizedPress.burstColor),
-      'Contact field flash mixed or replaced the current palette color',
-      synchronizedPress,
-    );
+    assert(synchronizedPress.buttonHasLegacyPulse === false, 'Retired button-local pulse class returned', synchronizedPress);
     await page.waitForFunction(() => document.querySelector('[data-copy-status]')?.textContent.trim() === 'Copied');
+    const copiedFeedback = await readRippleState(page);
+    assert(
+      Math.abs(copiedFeedback.buttonRect.width - initial.buttonRect.width) <= 0.05
+      && Math.abs(copiedFeedback.buttonRect.height - initial.buttonRect.height) <= 0.05,
+      'Copied feedback changed the email control geometry',
+      { initial: initial.buttonRect, copied: copiedFeedback.buttonRect },
+    );
+    assert(copiedFeedback.copiedLabelOpacity > 0.95, 'Copied label did not settle visibly', copiedFeedback);
+    assert(copiedFeedback.copiedIconDisplay !== 'none', 'Copied check icon is not visible', copiedFeedback);
     await page.waitForFunction((previousCount) => (
       Number(window.__ABS_SIMULATION_AUDIO__?.byType?.['contact-ripple-motif'] || 0) > previousCount
     ), initial.soundMotifCount, { timeout: 5000 });
@@ -547,7 +537,7 @@ async function runStandardScenario(browser, viewport, theme) {
     await waitForRipple(page, 'idle');
     const settled = await readRippleState(page);
     assert(settled.activeBurstCount === 0, 'Settled Contact ripple still has active wavefronts', settled);
-    assert(settled.buttonPulseActive === false, 'Contact field stayed lit after its momentary press state', settled);
+    assert(settled.buttonHasLegacyPulse === false, 'Retired button-local pulse class returned after settlement', settled);
     assert(settled.bodyCount === initial.bodyCount, 'Burst settlement changed the fixed body count', { initial, settled });
     assert(Math.abs(settled.bodyRadius - initial.bodyRadius) <= 0.08, 'Burst settlement changed the rendered ball size', { initial, settled });
     assert(settled.typographyEffectPresent === false, 'Typography effect appeared after settlement', settled);

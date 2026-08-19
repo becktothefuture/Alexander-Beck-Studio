@@ -207,7 +207,7 @@ export function StudioShell({
               className="shell-transition-surface shell-transition-surface--controls"
               data-route-surface="controls"
             >
-              <div key={`controls-${routeRenderKey}`} data-route-view={routeRenderKey}>
+              <div data-route-view={routeRenderKey}>
                 {simulationFocusControls}
               </div>
             </div>

@@ -89,7 +89,7 @@ body.simulation-switcher-motion-lab-page {
   max-width: calc(100vw - (var(--abs-frame-inset) * 2) - 32px);
   padding: 9px 19px 10px 21px;
   appearance: none;
-  border: var(--abs-soft-control-edge-width, 0.5px) solid transparent;
+  border: 0;
   border-radius: var(--abs-radius-pill);
   background: transparent;
   color: var(--text-logo);
@@ -138,7 +138,7 @@ body.simulation-switcher-motion-lab-page {
 .simulation-switcher-motion-lab__pill:hover::before,
 .simulation-switcher-motion-lab__pill:focus-visible::before,
 .simulation-switcher-motion-lab__pill[data-phase='advancing']::before {
-  background: var(--abs-soft-control-emphasis-fill);
+  background: var(--abs-soft-control-fill-hover);
 }
 
 .simulation-switcher-motion-lab__pill:active::before {

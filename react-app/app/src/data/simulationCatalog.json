@@ -205,18 +205,6 @@
       "summary": "Behavioral circle swarm mode."
     },
     {
-      "id": "starfield-3d",
-      "name": "Perspective",
-      "chapter": "PERSPECTIVE",
-      "stage": "daily-rotation",
-      "surface": "home-mode",
-      "origin": "core-site",
-      "launchPath": "/index.html?mode=starfield-3d",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
-      "summary": "A dense forward-moving circle field uses scale, fog, and parallax to reveal depth."
-    },
-    {
       "id": "kaleidoscope-rift",
       "name": "Multiplicity",
       "chapter": "MULTIPLICITY",

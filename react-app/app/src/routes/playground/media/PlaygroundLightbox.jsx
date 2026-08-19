@@ -161,7 +161,7 @@ export function PlaygroundLightbox({
           <button
             ref={closeButtonRef}
             type="button"
-            className="playground-lightbox__close abs-icon-btn"
+            className="playground-lightbox__close abs-icon-btn abs-circular-utility"
             aria-label={`Close ${item.label}`}
             data-sound-action="manual"
             data-sound-source="lab-project-close"

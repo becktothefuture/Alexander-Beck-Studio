@@ -29,7 +29,7 @@ export function getPaletteLabRouteView() {
       <header className="ui-top">
         <div className="ui-top-main route-topbar">
           <div className="route-topbar__left">
-            <a href={homeHref} className="gate-back abs-icon-btn" aria-label="Back to home">
+            <a href={homeHref} className="gate-back abs-icon-btn abs-circular-utility" aria-label="Back to home">
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
           </div>

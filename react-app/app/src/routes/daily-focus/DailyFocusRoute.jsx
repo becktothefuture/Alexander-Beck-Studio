@@ -34,6 +34,7 @@ export function getDailyFocusRouteView(routeId) {
     bodyClass: 'body daily-focus-page',
     htmlClassName: 'js-enabled abs-home-post-boot-complete',
     legacyRuntime: false,
+    providerRouteId: 'home',
     routeRenderKey: routeId,
     runtimeRouteId: routeId,
     readinessRouteId: routeId,
