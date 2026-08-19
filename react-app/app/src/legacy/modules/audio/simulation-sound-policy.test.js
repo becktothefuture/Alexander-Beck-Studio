@@ -31,10 +31,10 @@ test('Attention wall impacts clear the collision voice threshold without changin
     impact: 0.7,
     fallbackId: 'ball-4',
   });
-  assert.equal(attention.id, 'attention:wall-impact');
+  assert.equal(attention.id, 'attention-wall-impact:ball-4');
   assert.ok(attention.intensity > 0.7);
   assert.equal(attention.minimumIntensity, 0.7);
-  assert.equal(attention.minIntervalMs, 140);
+  assert.equal(attention.minIntervalMs, 0);
 
   const flow = resolveWallImpactSound({
     mode: 'water',

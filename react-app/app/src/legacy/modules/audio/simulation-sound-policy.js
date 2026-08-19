@@ -29,12 +29,16 @@ export function resolveWallImpactSound({
   fallbackId = null,
 } = {}) {
   const safeImpact = Math.min(1, Math.max(0, Number(impact) || 0));
+  const safeFallbackId = String(fallbackId || '').trim();
   if (mode === 'flies') {
+    const wallImpactId = safeFallbackId
+      ? `attention-wall-impact:${safeFallbackId}`
+      : 'attention-wall-impact';
     return {
-      id: 'attention:wall-impact',
+      id: wallImpactId,
       intensity: Math.min(1, safeImpact * 1.15),
       minimumIntensity: 0.7,
-      minIntervalMs: 140,
+      minIntervalMs: 0,
     };
   }
   return {
