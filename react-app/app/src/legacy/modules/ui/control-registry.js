@@ -4521,26 +4521,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'sphere3dOrbitRadiusVw',
-        label: 'Orbit Radius',
-        stateKey: 'sphere3dOrbitRadiusVw',
-        type: 'range',
-        min: 0, max: 16, step: 0.25,
-        default: 4.5,
-        format: v => v.toFixed(2) + 'vmin',
-        parse: parseFloat
-      },
-      {
-        id: 'sphere3dOrbitSpeed',
-        label: 'Orbit Speed',
-        stateKey: 'sphere3dOrbitSpeed',
-        type: 'range',
-        min: 0, max: 1.5, step: 0.01,
-        default: 0.12,
-        format: v => v.toFixed(2) + ' rad/s',
-        parse: parseFloat
-      },
-      {
         id: 'sphere3dDragGain',
         label: 'Drag Spin Gain',
         stateKey: 'sphere3dDragGain',

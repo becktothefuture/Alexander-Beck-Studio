@@ -293,8 +293,6 @@
     "sphere3dDensity": 240,
     "sphere3dFocalLength": 600,
     "sphere3dIdleSpeed": 0.15,
-    "sphere3dOrbitRadiusVw": 4.5,
-    "sphere3dOrbitSpeed": 0.12,
     "sphere3dDragGain": 1.25,
     "sphere3dReleaseSpinGain": 1.05,
     "sphere3dAngularDampingPerSec": 0.55,

@@ -146,8 +146,6 @@ const state = {
   sphere3dTumbleSpeed: 0.65,
   sphere3dTumbleDamping: 0.9,
   sphere3dMouseDamping: 0.08,
-  sphere3dOrbitRadiusVw: 4.5,
-  sphere3dOrbitSpeed: 0.12,
   sphere3dAngularDampingPerSec: 0.55,
   sphere3dMaxAngularVelocity: 8,
   sphere3dDragGain: 1.25,
@@ -1763,8 +1761,6 @@ export function initState(config) {
   if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 3, state.sphere3dTumbleSpeed);
   if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0, 1, state.sphere3dTumbleDamping);
   if (config.sphere3dMouseDamping !== undefined) state.sphere3dMouseDamping = clampNumber(config.sphere3dMouseDamping, 0.01, 1, state.sphere3dMouseDamping);
-  if (config.sphere3dOrbitRadiusVw !== undefined) state.sphere3dOrbitRadiusVw = clampNumber(config.sphere3dOrbitRadiusVw, 0, 16, state.sphere3dOrbitRadiusVw);
-  if (config.sphere3dOrbitSpeed !== undefined) state.sphere3dOrbitSpeed = clampNumber(config.sphere3dOrbitSpeed, 0, 1.5, state.sphere3dOrbitSpeed);
   if (config.sphere3dAngularDampingPerSec !== undefined) state.sphere3dAngularDampingPerSec = clampNumber(config.sphere3dAngularDampingPerSec, 0, 8, state.sphere3dAngularDampingPerSec);
   if (config.sphere3dMaxAngularVelocity !== undefined) state.sphere3dMaxAngularVelocity = clampNumber(config.sphere3dMaxAngularVelocity, 0.2, 16, state.sphere3dMaxAngularVelocity);
   if (config.sphere3dDragGain !== undefined) state.sphere3dDragGain = clampNumber(config.sphere3dDragGain, 0, 4, state.sphere3dDragGain);

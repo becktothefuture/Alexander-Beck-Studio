@@ -7,7 +7,6 @@ import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js
 import { MODES } from '../core/constants.js';
 import { spawnBall } from '../physics/spawn.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
-import { getHeroTitleCanvasCenter } from '../rendering/title-depth.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { resolveDistanceFogOpacity } from '../visual/depth-fog.js';
 import { createAngularScrollSoundController } from '../audio/angular-scroll-sound-controller.js';
@@ -18,8 +17,6 @@ const DEFAULT_DRAG_GAIN = 1.25;
 const DEFAULT_RELEASE_SPIN_GAIN = 1.05;
 const DEFAULT_ANGULAR_DAMPING_PER_SEC = 0.55;
 const DEFAULT_MAX_ANGULAR_VELOCITY = 8.0;
-const DEFAULT_ORBIT_RADIUS_VW = 4.5;
-const DEFAULT_ORBIT_SPEED = 0.12;
 const DEFAULT_SPIN_STRAIN_MAX = 0.055;
 const DEFAULT_SPIN_STRAIN_START = 3.0;
 const DEFAULT_REDUCED_MOTION_SCALE = 0.18;
@@ -342,17 +339,15 @@ export function initialize3DSphere() {
     0, 0, 1
   ];
   
-  const titleCenter = getHeroTitleCanvasCenter(g);
   g.sphere3dState = {
     cx: canvas.width * 0.5,
-    cy: titleCenter.y,
+    cy: canvas.height * 0.5,
     radiusPx,
     rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
     prevTrackballPoint: null,
     currentAngularVelX: 0,
     currentAngularVelY: 0,
     currentAngularVelZ: 0,
-    orbitPhase: 0,
     breathPhase: 0,
     spinAxisLocalX: 0,
     spinAxisLocalY: 1,
@@ -415,19 +410,14 @@ export function apply3DSphereForces(ball, dt) {
 
     const motionScale = state.motionScale;
     const idleSpeed = state.idleSpeed;
-    const titleCenter = getHeroTitleCanvasCenter(g);
-
     const radiusVw = g.sphere3dRadiusVw ?? 72;
     // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
     const minDim = Math.min(canvas.width, canvas.height);
     state.radiusPx = Math.max(10, (radiusVw / 100) * minDim);
 
-    const orbitRadius = Math.max(0, (g.sphere3dOrbitRadiusVw ?? DEFAULT_ORBIT_RADIUS_VW) / 100) * minDim * motionScale;
-    const orbitSpeed = clampNumber(g.sphere3dOrbitSpeed ?? DEFAULT_ORBIT_SPEED, 0, 1.5) * motionScale;
-    state.orbitPhase += orbitSpeed * dt;
     state.breathPhase += dt * 0.46 * motionScale;
     state.cx = canvas.width * 0.5;
-    state.cy = titleCenter.y + Math.sin(state.orbitPhase) * orbitRadius * 0.38;
+    state.cy = canvas.height * 0.5;
 
     const damping = Math.exp(-resolveAngularDampingPerSec(g) * dt * (state.isDragging ? 0.18 : 1));
     state.currentAngularVelX *= damping;
