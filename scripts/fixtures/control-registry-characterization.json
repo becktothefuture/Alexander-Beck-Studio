@@ -42,13 +42,15 @@
   ],
   "controlCount": 317,
   "descriptorDigest": "8ff063bbab8673006967d1453683e5a29c7a889c5cd50459d2140a93dcf39b11",
-  "renderedControlCount": 317,
-  "renderedIdDigest": "6528b18ac2e731c2b9ba921c38afb87bd9900e97d5a88807137fd3c605e712b3",
-  "generatedMarkupDigest": "030d4b87856eb70ae310e2fe8bf9746eb435b79a69aa3f42777c556eb75c2cef",
+  "renderedControlCount": 302,
+  "renderedIdDigest": "bbf712e57c46cf682d3f47e11629d595fcf89dbd51d1add404735e11d51f5d3f",
+  "generatedMarkupDigest": "f3b7c3b0e1ab41d59fcab7b05a25cfcae7c13c0f09bb21bfc7ad224657a0987a",
   "parseFormatDigest": "226e4d0b2b7bb4a85dbcf090ef3f28a01ed6407b2418188ee7fe9384f968d621",
   "sentinels": [
     {
       "id": "ballMassKg",
+      "label": "Ball Mass",
+      "labels": null,
       "type": "range",
       "default": 91,
       "min": 20,
@@ -57,6 +59,9 @@
       "options": null,
       "stateKey": "ballMassKg",
       "cssVar": null,
+      "designScope": null,
+      "group": null,
+      "hint": "Heavier = snooker feel (more inertia, less jitter).",
       "section": "Material World",
       "behavior": {
         "parse": true,
@@ -68,6 +73,8 @@
     },
     {
       "id": "REST",
+      "label": "Restitution",
+      "labels": null,
       "type": "range",
       "default": 0.42,
       "min": 0,
@@ -76,6 +83,9 @@
       "options": null,
       "stateKey": "REST",
       "cssVar": null,
+      "designScope": null,
+      "group": null,
+      "hint": "Global bounciness for collisions (modes may override).",
       "section": "Material World",
       "behavior": {
         "parse": true,
@@ -87,6 +97,8 @@
     },
     {
       "id": "cursorInfluenceRadiusVw",
+      "label": "Influence Radius",
+      "labels": null,
       "type": "range",
       "default": 7,
       "min": 0,
@@ -95,6 +107,9 @@
       "options": null,
       "stateKey": "cursorInfluenceRadiusVw",
       "cssVar": null,
+      "designScope": null,
+      "group": null,
+      "hint": "Universal cursor interaction zone (scales with viewport width).",
       "section": "Hand",
       "behavior": {
         "parse": true,
@@ -106,6 +121,8 @@
     },
     {
       "id": "waterBallCount",
+      "label": "Ball Count",
+      "labels": null,
       "type": "range",
       "default": 1000,
       "min": 200,
@@ -114,6 +131,9 @@
       "options": null,
       "stateKey": "waterBallCount",
       "cssVar": null,
+      "designScope": null,
+      "group": null,
+      "hint": null,
       "section": "Flow",
       "behavior": {
         "parse": true,
