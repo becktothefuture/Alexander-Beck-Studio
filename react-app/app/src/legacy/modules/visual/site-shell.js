@@ -74,16 +74,18 @@ const DEFAULT_SHELL_CONFIG = {
     innerWallRimBlur: '18px',
     innerWallRimOpacityLight: 0.16,
     innerWallRimOpacityDark: 0.07,
-    outerWallGlowNearSize: '0px',
-    outerWallGlowNearBlur: '14px',
-    outerWallGlowNearOpacityLight: 0.18,
-    outerWallGlowNearOpacityDark: 0.055,
+    outerWallGlowNearSize: '3px',
+    outerWallGlowNearBlur: '5px',
+    outerWallGlowNearShift: '0px',
+    outerWallGlowNearOpacityLight: 0.295,
+    outerWallGlowNearOpacityDark: 0.097,
     outerWallGlowFarSize: '8px',
-    outerWallGlowFarBlur: '48px',
+    outerWallGlowFarBlur: '13px',
     outerWallGlowFarSizeMobile: '4px',
     outerWallGlowFarBlurMobile: '10px',
-    outerWallGlowFarOpacityLight: 0.055,
-    outerWallGlowFarOpacityDark: 0.018,
+    outerWallGlowFarShift: '0px',
+    outerWallGlowFarOpacityLight: 0.199,
+    outerWallGlowFarOpacityDark: 0.069,
     menuEdgeNearSize: '0px',
     menuEdgeNearBlur: '14px',
     menuEdgeNearShift: '0px',
@@ -687,6 +689,10 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     '--outer-wall-glow-near-blur',
     surface.outerWallGlowNearBlur || DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearBlur
   );
+  root.style.setProperty(
+    '--outer-wall-glow-near-shift',
+    surface.outerWallGlowNearShift || DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearShift
+  );
   root.style.setProperty('--outer-wall-glow-near-opacity', String(outerWallGlowNearOpacity));
   root.style.setProperty(
     '--outer-wall-glow-near-opacity-light',
@@ -717,6 +723,10 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty(
     '--outer-wall-glow-far-size-mobile',
     surface.outerWallGlowFarSizeMobile || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarSizeMobile
+  );
+  root.style.setProperty(
+    '--outer-wall-glow-far-shift',
+    surface.outerWallGlowFarShift || DEFAULT_SHELL_CONFIG.surface.outerWallGlowFarShift
   );
   root.style.setProperty(
     '--outer-wall-glow-far-blur-mobile',

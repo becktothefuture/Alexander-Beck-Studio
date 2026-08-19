@@ -2197,6 +2197,8 @@ html[data-shell-route='home'] body {
     0px,
     calc(var(--wall-thickness) - var(--content-padding-x))
   );
+  --home-footer-social-gap: clamp(12px, 1.2vw, 18px);
+  --home-footer-social-touch-size: 44px;
 }
 
 /* Home desktop/tablet: keep the legend in the 2-column arrangement and let the intro text
@@ -3045,7 +3047,7 @@ button.abs-meta-btn,
   bottom: auto;
   left: auto;
   display: flex;
-  gap: var(--footer-icon-gap);
+  gap: var(--home-footer-social-gap);
   /* Icon buttons are now sized by frame height (square), so no margin counterbalance needed. */
   margin: var(--ui-icon-group-margin, 0px);
   padding: 0;
@@ -3053,8 +3055,32 @@ button.abs-meta-btn,
 }
 
 #social-links {
-  gap: 0px;
-  margin-inline-start: var(--home-footer-social-frame-offset, 0px);
+  margin-inline-start: calc(var(--home-footer-social-frame-offset, 0px) + 16px);
+}
+
+.home-footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--home-footer-social-touch-size);
+  block-size: var(--home-footer-social-touch-size);
+  min-inline-size: var(--home-footer-social-touch-size);
+  min-block-size: var(--home-footer-social-touch-size);
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-decoration: none;
+  line-height: 1;
+}
+
+#social-links .home-footer-social-link > i,
+#social-links .home-footer-social-link > svg {
+  width: var(--shell-control-icon-size);
+  height: var(--shell-control-icon-size);
+  font-size: var(--shell-control-icon-size);
+  line-height: 1;
 }
 
 .abs-icon-btn {
@@ -3999,9 +4025,13 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   left: var(--safari-tint-inset-x, var(--safari-tint-inset));
   border-radius: var(--frame-outer-radius);
   box-shadow:
-    0 0 var(--outer-wall-glow-near-blur, 14px) var(--outer-wall-glow-near-size, 0px)
+    0 calc(var(--outer-wall-glow-near-shift, 0px))
+      var(--outer-wall-glow-near-blur, 14px)
+      var(--outer-wall-glow-near-size, 0px)
       rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
-    0 0 var(--outer-wall-glow-far-blur, 48px) var(--outer-wall-glow-far-size, 8px)
+    0 calc(var(--outer-wall-glow-far-shift, 0px))
+      var(--outer-wall-glow-far-blur, 48px)
+      var(--outer-wall-glow-far-size, 8px)
       rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
   pointer-events: none;
   z-index: 99;
@@ -4012,11 +4042,15 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 @media (max-width: 600px) {
   #abs-scene::before,
   .app-scene::before {
-    box-shadow:
-      0 0 var(--outer-wall-glow-near-blur, 14px) var(--outer-wall-glow-near-size, 0px)
-        rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
-      0 0 var(--outer-wall-glow-far-blur-mobile, 10px) var(--outer-wall-glow-far-size-mobile, 4px)
-        rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
+  box-shadow:
+    0 calc(var(--outer-wall-glow-near-shift, 0px))
+      var(--outer-wall-glow-near-blur, 14px)
+      var(--outer-wall-glow-near-size, 0px)
+      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
+    0 calc(var(--outer-wall-glow-far-shift, 0px))
+      var(--outer-wall-glow-far-blur-mobile, 10px)
+      var(--outer-wall-glow-far-size-mobile, 4px)
+      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
   }
 }
 
@@ -5710,21 +5744,14 @@ html.is-safari .noise::before {
     gap: var(--gap-sm);
   }
   
-  /* Bottom-left icon buttons: 75% frame size on mobile (icon stays same size) */
-  .abs-icon-btn {
-    --link-icon-padding: calc(var(--gap-lg) * 0.7);
-    inline-size: calc(var(--ui-icon-frame-size) * 0.75);
-    block-size: calc(var(--ui-icon-frame-size) * 0.75);
-  }
-  
   /* Bottom-left icon group: tighter gap between icons on mobile */
   .footer_icon-group,
   #social-links {
-    gap: 0;
+    gap: calc(var(--home-footer-social-gap) * 0.85);
   }
 
   #social-links .footer_icon-link + .footer_icon-link {
-    margin-inline-start: calc(var(--home-footer-social-overlap, var(--gap-sm)) * -1);
+    margin-inline-start: 0;
   }
   
   /* Ensure sound toggle doesn't overlap time on mobile */

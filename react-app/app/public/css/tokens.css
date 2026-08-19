@@ -612,8 +612,10 @@
   --outer-wall-glow-near-opacity: 0.18;
   --outer-wall-glow-near-opacity-light: 0.18;
   --outer-wall-glow-near-opacity-dark: 0.055;
+  --outer-wall-glow-near-shift: 0px;
   --outer-wall-glow-far-size: 8px;
   --outer-wall-glow-far-blur: 48px;
+  --outer-wall-glow-far-shift: 0px;
   --outer-wall-glow-far-size-mobile: 4px;
   --outer-wall-glow-far-blur-mobile: 10px;
   --outer-wall-glow-far-opacity: 0.055;
