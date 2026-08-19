@@ -282,7 +282,7 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
     root?.dataset?.absBootState || '',
     getTitleRelevantBodySignature(body),
     scene?.className || '',
-    scene?.style?.getPropertyValue('--abs-scene-impact-logo-scale') || '',
+    scene?.style?.getPropertyValue('--abs-title-logo-impact-scale') || '',
     document.fonts?.status || ''
   ].join('|');
 }
@@ -345,7 +345,7 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
 
   const sourceLines = lineNodes.length ? lineNodes : [title];
   const sceneImpactLogoScale = parseCssPx(
-    titleStyle.getPropertyValue('--abs-scene-impact-logo-scale'),
+    titleStyle.getPropertyValue('--abs-title-logo-impact-scale'),
     1
   );
   const brandLogoUserScale = parseCssPx(

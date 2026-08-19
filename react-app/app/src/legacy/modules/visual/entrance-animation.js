@@ -527,7 +527,7 @@ function revealLogoStaggered(element, options = {}) {
         );
       } else {
         // Fixed logo: use the original transform with translateY offset
-        const baseScale = 'calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1))';
+        const baseScale = 'calc(var(--abs-title-logo-impact-scale, 1) * var(--brand-logo-user-scale, 1))';
         const fromTransform = `translateY(calc(var(--brand-logo-offset-y) - var(--gap-xs))) scale(calc(${baseScale} * 0.96))`;
         const toTransform = `translateY(var(--brand-logo-offset-y)) scale(${baseScale})`;
         anim = element.animate(

@@ -593,7 +593,7 @@
   --inner-wall-outer-shadow-spread: 4px;      /* Outer glow spread */
   --inner-wall-outer-shadow-opacity: 0.15;    /* Outer glow opacity light mode */
   --inner-wall-outer-shadow-opacity-dark: 0.25; /* Outer glow opacity dark mode */
-  
+
   /* Top bevel - thick visible lip at top edge of walls */
   --outer-wall-top-bevel-width: 3px;          /* Outer wall bevel thickness */
   --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */

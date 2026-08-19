@@ -249,7 +249,7 @@ function refreshRuntimeStyleCache(nowMs = performance.now()) {
   try {
     const sceneEl = document.getElementById('abs-scene');
     if (sceneEl) {
-      const scaleRaw = getComputedStyle(sceneEl).getPropertyValue('--abs-scene-impact-logo-scale');
+      const scaleRaw = getComputedStyle(sceneEl).getPropertyValue('--abs-title-logo-impact-scale');
       const parsed = parseFloat(scaleRaw);
       if (Number.isFinite(parsed) && parsed > 0) {
         sceneImpactScale = parsed;

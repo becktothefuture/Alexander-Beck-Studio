@@ -449,7 +449,7 @@
       "innerWallRimSize": "25px",
       "innerWallRimBlur": "160px",
       "innerWallRimOpacityLight": 0.85,
-      "innerWallRimOpacityDark": 0,
+    "innerWallRimOpacityDark": 0.056,
       "outerWallGlowNearSize": "3px",
       "outerWallGlowNearBlur": "5px",
       "outerWallGlowNearOpacityLight": 0.295,

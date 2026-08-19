@@ -18,6 +18,7 @@ const CSS_VAR_IMPACT_DUR = '--abs-scene-impact-dur'; // e.g. "100ms"
 const CSS_VAR_IMPACT_MUL = '--abs-scene-impact-mul';
 const CSS_VAR_LOGO_COMP_MUL = '--abs-scene-impact-logo-comp-mul';
 const CSS_VAR_LOGO_SCALE = '--abs-scene-impact-logo-scale';
+const CSS_VAR_TITLE_LOGO_SCALE = '--abs-title-logo-impact-scale';
 
 let el = null;
 let enabled = false;
@@ -115,6 +116,7 @@ export function initSceneImpactReact() {
   el.style.setProperty(CSS_VAR_IMPACT, '0');
   el.style.setProperty(CSS_VAR_IMPACT_DUR, '100ms');
   el.style.setProperty(CSS_VAR_LOGO_SCALE, '1');
+  el.style.setProperty(CSS_VAR_TITLE_LOGO_SCALE, '1');
 
   // Stamp tunable multipliers (if available) so config/panel changes apply.
   applyImpactMulFromGlobals();
@@ -144,7 +146,12 @@ export function initSceneImpactReact() {
 
     const detail = e?.detail || {};
     const didChange = detail.prevMode && detail.mode && detail.prevMode !== detail.mode;
-    pulseSceneImpact(didChange ? 1 : 0.75, { armManual: false });
+    // Keep scene transition pulse intent, but prevent logo-title coupling during
+    // route-level simulation switch transitions (the logo owns its own scale path).
+    pulseSceneImpact(didChange ? 1 : 0.75, {
+      armManual: false,
+      applyToTitleLogo: false
+    });
   }, { passive: true });
 }
 
@@ -183,7 +190,12 @@ export function pulseSceneImpact(strength = 1, opts = {}) {
     if (!enabled || !el) return;
     if (token !== impactToken) return;
     el.style.setProperty(CSS_VAR_IMPACT, String(s));
-    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(computeLogoScaleFromImpact(s, g)));
+    const impactLogoScale = computeLogoScaleFromImpact(s, g);
+    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(impactLogoScale));
+    el.style.setProperty(
+      CSS_VAR_TITLE_LOGO_SCALE,
+      String(opts?.applyToTitleLogo === false ? 1 : impactLogoScale)
+    );
   });
 
   // Hold briefly at full press, then release out.
@@ -236,7 +248,12 @@ export function sceneImpactPress(strength = 1, opts = {}) {
     if (!enabled || !el) return;
     if (token !== impactToken) return;
     el.style.setProperty(CSS_VAR_IMPACT, String(s));
-    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(computeLogoScaleFromImpact(s, g)));
+    const impactLogoScale = computeLogoScaleFromImpact(s, g);
+    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(impactLogoScale));
+    el.style.setProperty(
+      CSS_VAR_TITLE_LOGO_SCALE,
+      String(opts?.applyToTitleLogo === false ? 1 : impactLogoScale)
+    );
   });
 
   if (scheduleRelease) {
@@ -282,6 +299,7 @@ function applySceneImpactRelease({ token, releaseMs }) {
     if (token !== impactToken) return;
     el.style.setProperty(CSS_VAR_IMPACT, '0');
     el.style.setProperty(CSS_VAR_LOGO_SCALE, '1');
+    el.style.setProperty(CSS_VAR_TITLE_LOGO_SCALE, '1');
   });
 
   // Ensure we always drop will-change after release (covers pointer-hold path).

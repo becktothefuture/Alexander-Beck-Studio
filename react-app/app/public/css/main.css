@@ -3529,7 +3529,7 @@ button.abs-meta-btn,
       + var(--home-hero-title-offset-y, 0px)
     ))
     scale(calc(
-      var(--abs-scene-impact-logo-scale, 1) *
+      var(--abs-title-logo-impact-scale, 1) *
       var(--brand-logo-user-scale, 1)
     ));
   z-index: 5;
