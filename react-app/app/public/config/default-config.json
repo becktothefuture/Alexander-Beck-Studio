@@ -11,6 +11,13 @@
   "physicsSleepThreshold": 12,
   "physicsSleepTime": 0.25,
   "physicsSkipSleepingSteps": false,
+  "maxBalls": 520,
+  "modePerformanceBudgets": {
+    "pit": {
+      "desktop": 520,
+      "mobile": 440
+    }
+  },
   "homeSimulationBodyRadiusPx": 8.9,
   "ballSizeMin": 10.4,
   "ballSizeMax": 14.4,
