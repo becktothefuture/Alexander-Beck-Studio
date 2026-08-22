@@ -702,7 +702,7 @@
           "preset": "opener-v1",
           "titleStyle": "display",
           "text": "About Me",
-          "description": "Hi, I’m Alex. I’m a designer because I see possibility in how things work—and how they could work better."
+          "description": "Hi, I’m Alex. I’m a designer by heart, and I love the moment when a complicated idea starts to feel possible."
         },
         {
           "id": "text-complexity-idea",
@@ -722,7 +722,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I’ve always been drawn to complex problems…"
+          "text": "Most new things arrive before we know what to do with them…"
         },
         {
           "id": "text-complexity-conditions",
@@ -742,7 +742,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…especially those that refuse to stay within one discipline."
+          "text": "…or how to feel about them."
         },
         {
           "id": "text-background-unit",
@@ -766,29 +766,29 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "What do I mean by a complex problem? The ground is always shifting. A technology such as AI or digital identity can be useful before people are ready to trust it. A new product can ask for an interaction no one has learned yet. An ordinary tool—the phone keyboard, a consent screen, a sign-in flow—can shape millions of decisions without attracting attention."
+                "text": "That is the part I find interesting. A product, service or technology can be useful long before it feels familiar. You can explain what it does, but that does not automatically make people want to use it, trust it or care about it."
               },
               {
                 "id": "context-emphasis",
                 "kind": "list",
                 "items": [
-                  "That is where I see the most potential for useful innovation."
+                  "Design should give people a way in."
                 ]
               },
               {
                 "id": "understanding",
                 "kind": "prose",
-                "text": "I want to understand what sits beneath the surface: technical constraints, human behaviour, business goals and the small details that shape an experience. The answer might be to simplify, explain something differently, or add a moment of friction—a pause before someone shares sensitive information. When design works, it can disappear into the experience. That is a good thing."
+                "text": "Sometimes that means simplifying. Sometimes it means slowing things down just enough for a decision to become visible. What matters is that the experience makes sense to the person using it, not only to the person who built it."
               },
               {
                 "id": "education",
                 "kind": "prose",
-                "text": "I started my career in Communication Design in Mainz, Germany, around thirteen years ago. Technology interested me, but visual communication showed me how a single image, word, type choice or movement can change what someone understands and feels. That still fascinates me, and it remains fundamental to how I work."
+                "text": "People need a way to relate to something new. Language, appearance, behaviour and movement all influence whether an idea feels credible or worth their time."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "In creative agencies I moved towards interface design, motion, design systems and close collaboration with developers. At Yoti in London, the challenge was more delicate: use product design and brand to help people trust digital identity. That was when I stopped treating product, brand and communication as separate disciplines. They solve different parts of the same problem, and they work best in service of one another."
+                "text": "That is why multidisciplinary design feels right for the age we are in."
               },
               {
                 "id": "selected-clients",
@@ -909,7 +909,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "The more complex the question…"
+          "text": "A product can work beautifully…"
         },
         {
           "id": "text-complexity-listen",
@@ -929,7 +929,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…the more often I work at the intersection of disciplines."
+          "text": "…and still tell the wrong story."
         },
         {
           "id": "text-discipline-labels",
@@ -954,32 +954,32 @@
               {
                 "id": "product-design",
                 "label": "Product Design",
-                "description": "I turn ambiguous product problems into interfaces teams can build, test, and improve."
+                "description": "I shape how something works, so a complex product feels clear from the first interaction."
               },
               {
                 "id": "experience-design",
                 "label": "Experience Design",
-                "description": "I connect user needs, product priorities, and the decisions that shape the journey."
+                "description": "I connect the moments around a product, so the experience makes sense as people move through it."
               },
               {
                 "id": "art-direction",
                 "label": "Art Direction",
-                "description": "I define the visual point of view that gives the work character, clarity, and intent."
+                "description": "I give the work a visual point of view, because appearance is part of how it communicates."
               },
               {
                 "id": "motion-and-3d",
                 "label": "Motion & 3D",
-                "description": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories."
+                "description": "I use movement and space to explain change and make unfamiliar ideas easier to grasp."
               },
               {
                 "id": "creative-engineering",
                 "label": "Creative Engineering",
-                "description": "I prototype with code and AI to move decisions from discussion into working form."
+                "description": "I combine code and AI to turn early thinking into prototypes we can test."
               },
               {
                 "id": "parametric-systems",
                 "label": "Parametric Systems",
-                "description": "I build systems of tokens, rules, and patterns that scale without losing character."
+                "description": "I build systems that help the work scale without losing the details that give it character."
               }
             ]
           },
@@ -1009,44 +1009,44 @@
               {
                 "id": "attention",
                 "kind": "prose",
-                "text": "When I begin a project, I want to understand the business, the people and the space around the problem before deciding what the work should become. A brief may name the visible problem. It rarely explains the forces that created it."
+                "text": "Products do not arrive in the world as wireframes. They arrive as things people see, read, feel, use and remember."
               },
               {
                 "id": "brief-emphasis",
                 "kind": "list",
                 "items": [
-                  "Good design does not always make things easier."
+                  "The interesting part is how disciplines alter one another."
                 ]
               },
               {
                 "id": "friction-judgement",
                 "kind": "prose",
-                "text": "We live in a time of frictionless products and instant answers. I don’t believe less is always more. Sometimes design should slow someone down, make a decision visible or leave complexity intact. A confirmation before sharing an identity can be useful friction if it helps someone understand what they are doing."
+                "text": "Product design, visual communication, art direction, motion, systems and code all shape this relationship. Each offers a different way to understand the problem and make the answer feel coherent. When they begin influencing one another early, the work starts to feel like one thing rather than a collection of good decisions."
               },
               {
                 "id": "trend-judgement",
                 "kind": "prose",
-                "text": "I use trends when they help people enter something new. I distrust them when they replace the idea. An interface can look current and still have nothing to say. I would rather make something that belongs to the problem and lasts beyond the moment."
+                "text": "I began in Communication Design, and the work gradually took me into products, experiences, visual identities, motion, 3D, systems and code. Over thirteen years, I’ve done that inside companies, in agencies, independently and as a consultant. The contexts have changed, but the pleasure has stayed the same: bringing different ways of thinking together around one thing."
               },
               {
                 "id": "making-early",
                 "kind": "prose",
-                "text": "I make things early and stay close to development. A prototype reveals where an idea is useful and where it is only decoration. Systems matter, but standardise every unusual decision and the result becomes another copy of a copy. The structure should be reliable. The important moments should still feel made by a person."
+                "text": "Aesthetics matter to me because they do real work. They can give an unfamiliar service character, make new technology feel less alien and show people that someone has paid attention to the details."
               },
               {
                 "id": "ai-judgement",
                 "kind": "prose",
-                "text": "AI sharpens the same tension. It helps me explore further and make ideas visible sooner. It can also average them into something merely plausible. I use it to widen the search. Deciding what is worth making is still my responsibility."
+                "text": "I use AI most days, usually alongside code, to explore directions, make prototypes and see how an idea behaves before it becomes expensive to change. It has opened up a remarkable amount of creative territory. It also has a habit of making everything look convincing."
               },
               {
                 "id": "ambitious-teams",
                 "kind": "prose",
-                "text": "Not everything starts with a client. Some projects begin with a question I can’t leave alone: could a phone keyboard work better? How should people understand AI? What makes a digital product feel trustworthy? Others lead into robotics or creative engineering."
+                "text": "The questions I keep coming back to are simple: is it useful, does it have character, and is it responsible? AI can generate options, but it cannot decide which one should exist. That is still human work."
               },
               {
                 "id": "unfinished-projects",
                 "kind": "prose",
-                "text": "Some become things I can share; others remain sketches, prototypes or half-answered questions. All of them shape what I do next."
+                "text": "I’m at my best when there is no established answer yet, when a product, service or idea needs to become approachable without being made ordinary. I like getting close to the craft, staying with the question and giving it a form people can relate to. It is the work I love, and after thirteen years, I know I’m good at it."
               }
             ]
           }
@@ -1069,7 +1069,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "They may begin in one discipline…"
+          "text": "New ideas need a way in…"
         },
         {
           "id": "text-life-form",
@@ -1089,7 +1089,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…but they rarely stay there…"
+          "text": "…and the right disciplines to shape them…"
         },
         {
           "id": "text-life-character",
@@ -1109,7 +1109,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…and I like not knowing exactly where they’ll lead."
+          "text": "…then something new becomes possible."
         },
         {
           "id": "text-epilogue-invitation",
@@ -1130,7 +1130,7 @@
           "preset": "finale-v1",
           "titleStyle": "display",
           "text": "Let’s begin.",
-          "description": "If you’re working on something difficult to define, or following a question you can’t leave alone, I’d be curious to hear about it."
+          "description": "If you’re working on something new, complex or still taking shape, I’d love to hear about it."
         }
       ]
     },
