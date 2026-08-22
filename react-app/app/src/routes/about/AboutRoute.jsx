@@ -15,9 +15,21 @@ function loadAboutNarrativeExperience() {
   return aboutNarrativeExperiencePromise;
 }
 
-const AboutNarrativeExperience = import.meta.env.DEV
-  ? lazy(loadAboutNarrativeExperience)
-  : null;
+const AboutNarrativeExperience = lazy(loadAboutNarrativeExperience);
+
+function isAboutPreviewRequested(canonicalHref = '') {
+  if (import.meta.env.DEV) return true;
+  if (typeof window !== 'undefined') {
+    return new URLSearchParams(window.location.search).get('preview') === 'about';
+  }
+
+  try {
+    const url = new URL(canonicalHref, 'https://beck.fyi');
+    return url.searchParams.get('preview') === 'about';
+  } catch {
+    return false;
+  }
+}
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
@@ -28,8 +40,8 @@ export const ABOUT_ROUTE_RUNTIME = {
   },
 };
 
-export function getAboutRouteView() {
-  if (!import.meta.env.DEV) {
+export function getAboutRouteView(canonicalHref) {
+  if (!isAboutPreviewRequested(canonicalHref)) {
     return {
       bodyClass: 'body about-page',
       mainLandmarkHeadingId: 'about-coming-soon-title',

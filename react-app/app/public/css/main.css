@@ -7236,6 +7236,26 @@ body.portfolio-page--locked #simulations {
   font-size: var(--route-bookend-title-size);
 }
 
+.about-coming-soon__reveal {
+  color: inherit;
+  font-family: var(--abs-font-headline);
+  font-size: var(--route-bookend-title-size);
+  font-weight: var(--abs-weight-regular);
+  line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
+  letter-spacing: var(--route-title-letter-spacing);
+  text-decoration: none;
+}
+
+.about-coming-soon__title-row {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.about-coming-soon__reveal:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 0.08em;
+}
+
 .route-title-lockup {
   gap: 0;
 }
