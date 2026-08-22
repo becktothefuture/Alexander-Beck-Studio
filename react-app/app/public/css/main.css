@@ -3658,6 +3658,12 @@ html[data-abs-transition-phase='modal-open'] .hero-title {
   opacity: var(--brand-logo-secondary-opacity, 0.36);
 }
 
+/* Counterbalance the ampersand so the first role line reads optically centred. */
+html[data-shell-route='home'] .hero-title__name + .hero-title__role {
+  position: relative;
+  left: -0.03em;
+}
+
 .route-entrance-word {
   display: inline-block;
   white-space: nowrap;
