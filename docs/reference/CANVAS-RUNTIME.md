@@ -96,7 +96,7 @@ The retained sphere-material cache is compatibility and development infrastructu
 
 `modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas inside the wall-radius-inheriting edge layer; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
 
-Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. The About Narrative editor mounts that same production-scoped host so its preview shows the exact final glow and edge response. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. The Atmospheric Glow performance lab owns one isolated broad-field compositor and never mounts the production host. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
+Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. Development scene parameters tune the mounted About route directly, so there is no separate editor preview or compositor host. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. The Atmospheric Glow performance lab owns one isolated broad-field compositor and never mounts the production host. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
 
 The registration boundary is:
 

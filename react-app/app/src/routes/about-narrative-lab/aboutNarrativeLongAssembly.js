@@ -414,29 +414,16 @@ function createPrimitiveCollector(parameters = {}) {
     });
   };
 
-  // 01 — A single, open signal is the only legible destination at rest. It is
-  // lifted above the bookend title and uses the full palette within one ring.
-  addHoop(0.78, {
-    radius: clamp(Number(parameters.signalRadius ?? 1.85), 0.7, 3),
-    tube: 0.2,
-    center: [0, clamp(Number(parameters.signalYOffset ?? 2.7), -0.5, 5), 0],
-    count: 760,
-    material: MATERIAL.signal,
-    materialCycle: MIXED_MATERIAL_CYCLE,
-    bankScale: 0,
-    beat: 'signal',
-    role: 'opening-signal-ring',
-  });
-
-  // The ride path remains an invisible choreography rail. It positions the
-  // apertures and camera without drawing a deck, rails, ties, or supports.
+  // The ride path stays invisible in both the baked Blender world and fallback.
+  // No rails, sleepers, floor line, or other bottom-track geometry is generated.
+  // The opening remains clear for a future Blender-authored first moment.
   const terminalBaseWU = track.baseStages.terminal.endWU;
 
-  // 02 — Eighteen hoops make a sustained passage, not a brief motif. Their
-  // origins exactly equal the sampled ride path as it curves.
+  // 02 — The delivered Blender source removes the earliest hoop so the opening
+  // has room for a future authored first moment. Keep the fallback aligned.
   const hoopCount = Math.round(clamp(Number(parameters.hoopCount ?? 18), 10, 26));
   const hoopRadius = clamp(Number(parameters.hoopRadius ?? 4.35), 3, 6);
-  for (let index = 0; index < hoopCount; index += 1) {
+  for (let index = 1; index < hoopCount; index += 1) {
     const progress = index / (hoopCount - 1);
     addHoop(mix(1.34, 5.02, progress), {
       radius: hoopRadius + (Math.sin(progress * Math.PI) * 0.5),
@@ -526,8 +513,8 @@ function createPrimitiveCollector(parameters = {}) {
     });
   }
 
-  // 07/08 — Open fog carries the eye out of the living field. The portrait is
-  // the only object at the destination.
+  // 07/08 — Open fog carries the eye out of the living field toward the
+  // monumental workbench finale supplied by the edited Blender scene.
 
   return {
     primitives,

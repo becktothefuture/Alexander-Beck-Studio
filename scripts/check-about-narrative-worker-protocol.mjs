@@ -17,7 +17,7 @@ const IDENTITY_MATRIX = [
   0, 0, 0, 1,
 ];
 
-function createOutput(values) {
+function createOutput(values, { assetId } = {}) {
   const count = values.length;
   return {
     positions: new Float32Array(values.flatMap((value) => [value, 0, 0])),
@@ -30,6 +30,7 @@ function createOutput(values) {
       min: [Math.min(...values), 0, 0],
       max: [Math.max(...values), 0, 0],
     },
+    ...(assetId ? { assetId } : {}),
   };
 }
 
@@ -110,6 +111,19 @@ test('Worker preparation is deterministic and preserves aligned target attribute
     [...first.outputs[1].output.attributes.disciplineGroup],
     [...second.outputs[1].output.attributes.disciplineGroup],
   );
+});
+
+test('response validation permits the bounded edited-world asset identifier', async () => {
+  const request = createRequest();
+  const response = await prepareAboutNarrativeWorkerResponse(request, {
+    generateShape: async ({ shapeId }) => createOutput(
+      shapeId === 'cluster-v1' ? [0, 1, 2, 3] : [3, 2, 1, 0],
+      { assetId: 'about-v2-edited-world' },
+    ),
+  });
+  assert.equal(response.status, 'success');
+  assert.equal(response.outputs[0].output.assetId, 'about-v2-edited-world');
+  validateAboutNarrativeWorkerResponse(response, request);
 });
 
 test('response validation fails closed for stale, malformed, non-finite, and reordered data', async () => {

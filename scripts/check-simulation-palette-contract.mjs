@@ -282,7 +282,7 @@ const productionConsumers = [
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
-  'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
 ];
@@ -329,7 +329,7 @@ const requiredRegistrations = [
   'react-app/app/src/routes/flock-of-birds/FlockOfBirdsDemo.jsx',
   'react-app/app/src/routes/repel-room/RepelRoomDemo.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
-  'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
 ];
@@ -344,16 +344,15 @@ requiredRegistrations.forEach((relativePath) => {
 
 const aboutSource = readFileSync(resolve(
   repoRoot,
-  'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
 ), 'utf8');
 assert.match(aboutSource, /#include <tonemapping_fragment>[\s\S]*#include <colorspace_fragment>/);
 assert.match(aboutSource, /renderer\.outputColorSpace\s*=\s*THREE\.SRGBColorSpace/);
-assert.match(aboutSource, /getHexString\(THREE\.SRGBColorSpace\)/);
-const aboutThemeSync = aboutSource.match(/const updateTheme = \(\) => \{[\s\S]*?\n  \};/)?.[0] || '';
+assert.match(aboutSource, /subscribeSimulationPalette\s*\(\s*\(snapshot\)\s*=>\s*\{[\s\S]{0,240}?syncPalette\(uniforms, snapshot\)/);
 assert.doesNotMatch(
-  aboutThemeSync,
-  /refreshInstalledDisciplineGroups/,
-  'About palette commits must update uniforms without rewriting discipline buffers.',
+  aboutSource.match(/subscribeSimulationPalette\s*\(\s*\(snapshot\)\s*=>\s*\{[\s\S]*?\n  \}\);/)?.[0] || '',
+  /needsUpdate|setAttribute|createSurfelGeometry/,
+  'About palette commits must update uniforms without rewriting surfel buffers.',
 );
 
 const contactSource = readFileSync(resolve(

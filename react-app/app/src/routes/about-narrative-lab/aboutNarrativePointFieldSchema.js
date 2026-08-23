@@ -428,6 +428,7 @@ function validateLongRideTransform(transform, diagnostics, path) {
 }
 
 function validateControlValue(value, control, diagnostics, path) {
+  if (value == null && control.defaultValue !== undefined) return;
   if (control.type === 'range') {
     if (!finite(value) || Number(value) < control.min || Number(value) > control.max) {
       diagnostic(diagnostics, 'parameter-range', path, `${control.label} must stay between ${control.min} and ${control.max}.`);

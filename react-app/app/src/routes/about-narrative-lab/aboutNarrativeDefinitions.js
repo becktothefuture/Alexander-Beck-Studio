@@ -136,8 +136,28 @@ export const ABOUT_NARRATIVE_VISIBILITY_EASINGS = Object.freeze([
   'smoothstep',
   'ease-in-out',
 ]);
-function numberControl(id, label, min, max, step, unit = '', group = '') {
-  return Object.freeze({ id, label, type: 'range', min, max, step, unit, group });
+function numberControl(id, label, min, max, step, unit = '', group = '', defaultValue) {
+  return Object.freeze({
+    id,
+    label,
+    type: 'range',
+    min,
+    max,
+    step,
+    unit,
+    group,
+    ...(defaultValue === undefined ? {} : { defaultValue }),
+  });
+}
+
+function selectControl(id, label, options, defaultValue) {
+  return Object.freeze({
+    id,
+    label,
+    type: 'select',
+    options: Object.freeze(options.map((option) => Object.freeze({ ...option }))),
+    defaultValue,
+  });
 }
 
 function derivedNumberControl(id, label, min, max, step, unit = '', group = '') {
@@ -161,11 +181,10 @@ export const ABOUT_NARRATIVE_WORLD_CONTROL_GROUPS = Object.freeze([
   Object.freeze({ id: 'shape-dimensions', label: 'Shape · Dimensions' }),
   Object.freeze({ id: 'shape-distribution', label: 'Shape · Distribution' }),
   Object.freeze({ id: 'shape-surface', label: 'Shape · Surface' }),
-  Object.freeze({ id: 'shape-signal', label: 'Ride · Opening signal' }),
   Object.freeze({ id: 'shape-hoops', label: 'Ride · Round hoops' }),
   Object.freeze({ id: 'shape-camera', label: 'Ride · Camera' }),
   Object.freeze({ id: 'shape-loop', label: 'Ride · Long loop' }),
-  Object.freeze({ id: 'shape-finale', label: 'Ride · Ocean finish' }),
+  Object.freeze({ id: 'shape-finale', label: 'Ride · Workbench finale' }),
   Object.freeze({ id: 'modifier-formation', label: 'Bust · Assembly' }),
   Object.freeze({ id: 'modifier-fragmentation', label: 'Bust · Fragmentation' }),
   Object.freeze({ id: 'modifier-motion', label: 'Modifiers · Motion' }),
@@ -226,6 +245,7 @@ export const ABOUT_NARRATIVE_VISIBILITY_TRACK_CONTROL_GROUPS = Object.freeze([
 export const ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS = Object.freeze([
   numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
   numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
+  numberControl('distanceFogCurve', 'Fog curve', 0.45, 2.5, 0.05, '×', '', 1),
 ]);
 
 // Compatibility export for older contract checks. Camera keys no longer use
@@ -312,8 +332,14 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     id: 'material',
     label: 'Point material and pointer pressure',
     controls: Object.freeze([
-      numberControl('opacity', 'Opacity', 0.2, 1, 0.01),
-      numberControl('pointSize', 'Global point size', 2, 12, 0.1, 'px'),
+      numberControl('opacity', 'Circle population', 0.2, 1, 0.01),
+      numberControl('pointSize', 'Global point size', 2, 18, 0.1, 'px', '', 6),
+      numberControl('surfelCoverage', 'Surfel coverage', 0.6, 1.2, 0.01, '×', '', 0.7),
+      numberControl('backfaceRetention', 'Back surface reveal', 0, 1, 0.01, '×', '', 0),
+      numberControl('minPointSize', 'Minimum point size', 0.75, 4, 0.05, 'px', '', 1.15),
+      numberControl('perspectiveResponse', 'Depth scaling', 0.6, 1.2, 0.01, '×', '', 1),
+      numberControl('edgeSoftness', 'Circle edge', 0.65, 2.4, 0.05, '×', '', 1.35),
+      numberControl('atmosphereStrength', 'Visible haze', 0, 2, 0.05, '×', '', 1),
       numberControl('pointerRadiusPx', 'Pointer pressure radius', 40, 308, 2, 'px'),
       numberControl('pointerForcePx', 'Pointer pressure force', 0, 152, 1, 'px'),
       numberControl('pointerVariation', 'Pointer organic variation', 0, 1.04, 0.01),
@@ -364,8 +390,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
 export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
   'long-assembly-corridor-v1': Object.freeze({
     id: 'long-assembly-corridor-v1',
-    label: 'Blender World + Ocean',
-    description: 'The edited geometric Blender ride resolves into one vast animated point ocean.',
+    label: 'Blender World + Workbench',
+    description: 'The edited Blender ride passes through the parametric forest and stops at a monumental workshop finale.',
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
@@ -374,12 +400,13 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
       numberControl('heightScale', 'Corridor height', 0.5, 1.6, 0.01, '×', 'shape-dimensions'),
       numberControl('depthScale', 'Landmark spacing', 0.65, 1.35, 0.01, '×', 'shape-dimensions'),
       ABOUT_NARRATIVE_LONG_RIDE_LOOK_AHEAD_CONTROL,
-      numberControl('density', 'Presence', 0.02, 1, 0.01, '', 'shape-distribution'),
+      numberControl('density', 'Surface detail', 0.2, 2, 0.01, '×', 'shape-distribution', 1),
       numberControl('structureManifestationAmount', 'Fog emergence spread', 0, 1.8, 0.01, 'WU', 'shape-distribution'),
       numberControl('structureAmbientAmount', 'Particle drift amount', 0, 0.3, 0.005, 'WU', 'shape-distribution'),
+      numberControl('structureAmbientScaleWU', 'Motion scale', 2, 40, 0.1, 'WU', 'shape-distribution', 20),
       numberControl('structureAmbientSpeed', 'Particle drift speed', 0, 1.5, 0.01, '×', 'shape-distribution'),
-      numberControl('signalRadius', 'Signal radius', 0.7, 3, 0.05, 'WU', 'shape-signal'),
-      numberControl('signalYOffset', 'Signal height', -0.5, 5, 0.05, 'WU', 'shape-signal'),
+      numberControl('structureMotionCoherence', 'Model variation', 0, 1, 0.01, '', 'shape-distribution', 0.72),
+      numberControl('finaleMotionGain', 'Finale motion gain', 0, 2, 0.05, '×', 'shape-finale', 1.4),
       numberControl('hoopRadius', 'Hoop radius', 3, 6, 0.05, 'WU', 'shape-hoops'),
       numberControl('hoopCount', 'Hoop count', 10, 26, 1, '', 'shape-hoops'),
       numberControl('loopStartWU', 'Loop begins', 7.6, 9, 0.05, 'WU', 'shape-loop'),
@@ -388,16 +415,11 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
       numberControl('loopRadiusY', 'Loop height radius', 5, 12, 0.1, 'WU', 'shape-loop'),
       numberControl('loopRollDegrees', 'Physical loop roll', -720, 720, 5, '°', 'shape-loop'),
       numberControl('loopGateCount', 'Loop gate count', 14, 30, 1, '', 'shape-loop'),
-      numberControl('terminalDistanceWU', 'Ocean arrival distance', 0.6, 2.4, 0.05, 'WU', 'shape-finale'),
-      numberControl('oceanHeight', 'Ocean height', -8, 2, 0.05, 'WU', 'shape-finale'),
-      numberControl('oceanDensity', 'Ocean density', 0.1, 1, 0.01, '×', 'shape-finale'),
-      numberControl('oceanAmplitude', 'Ocean wave height', 0, 3, 0.01, 'WU', 'shape-finale'),
-      numberControl('oceanSpeed', 'Ocean wave speed', 0, 3, 0.01, '×', 'shape-finale'),
-      numberControl('oceanChop', 'Ocean horizontal chop', 0, 1.6, 0.01, 'WU', 'shape-finale'),
-      numberControl('oceanPointScale', 'Ocean dot size', 0.5, 1.6, 0.01, '×', 'shape-finale'),
-      numberControl('oceanFogDistanceScale', 'Ocean horizon depth', 1, 32, 0.05, '×', 'shape-finale'),
-      numberControl('oceanSplashAmount', 'Splash activity', 0, 1.5, 0.01, '×', 'shape-finale'),
-      numberControl('oceanSplashHeight', 'Splash height', 0, 6, 0.05, 'WU', 'shape-finale'),
+      numberControl('terminalDistanceWU', 'Finale tail distance', 0.6, 2.4, 0.05, 'WU', 'shape-finale'),
+      numberControl('finaleFogClearStartWU', 'Workbench reveal begins', 12, 22, 0.05, 'WU', 'shape-finale', 21),
+      numberControl('finaleFogClearEndWU', 'Workbench clear by', 12, 22, 0.05, 'WU', 'shape-finale', 21.8),
+      numberControl('finaleFogStartWU', 'Clear fog begins', 20, 400, 5, 'WU', 'shape-finale', 220),
+      numberControl('finaleFogEndWU', 'Clear fog fully faded', 80, 560, 5, 'WU', 'shape-finale', 560),
       derivedNumberControl('backgroundAnchorWU', 'Background anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
       derivedNumberControl('intersectionAnchorWU', 'Intersection anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
       derivedNumberControl('disciplinesAnchorWU', 'Disciplines anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
@@ -527,24 +549,28 @@ function findLongAssemblyControl(controlId) {
     .parameters.find((control) => control.id === controlId);
 }
 
-function pageParameter(scope, control, path = null) {
+function pageParameter(scope, control, path = null, controlOverrides = null) {
   if (!control) throw new Error('About V2 page parameter references an unknown control.');
   return Object.freeze({
     scope,
-    control,
+    control: controlOverrides ? Object.freeze({ ...control, ...controlOverrides }) : control,
     path: Object.freeze(path || [control.id]),
   });
 }
 
-const globalParameter = (ownerId, controlId, path) => pageParameter(
+const globalParameter = (ownerId, controlId, path, controlOverrides = null) => pageParameter(
   'globals',
   findGlobalControl(ownerId, controlId),
   path,
+  controlOverrides,
 );
-const rideParameter = (controlId) => pageParameter(
+const rideParameter = (controlId, controlOverrides = null) => pageParameter(
   'long-assembly',
   findLongAssemblyControl(controlId),
+  null,
+  controlOverrides,
 );
+const sessionParameter = (control) => pageParameter('session', control);
 
 /**
  * One page-wide V2 tuning surface assembled from the existing canonical
@@ -554,52 +580,54 @@ const rideParameter = (controlId) => pageParameter(
  */
 export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
   Object.freeze({
-    id: 'page-camera',
-    label: 'Camera & atmosphere',
+    id: 'page-point-cloud',
+    label: 'Point cloud',
     controls: Object.freeze([
-      globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing']),
-      globalParameter('camera', 'steadycamResponseMs', ['camera', 'steadycamResponseMs']),
-      globalParameter('camera', 'pointerPanDegrees', ['camera', 'pointerPanDegrees']),
-      globalParameter('camera', 'distanceFogStartWU', ['camera', 'distanceFogStartWU']),
-      globalParameter('camera', 'distanceFogEndWU', ['camera', 'distanceFogEndWU']),
+      sessionParameter(selectControl('qualityTier', 'Quality', [
+        { value: 'auto', label: 'Auto' },
+        { value: 'desktop', label: 'High · desktop' },
+        { value: 'mobile', label: 'Low · mobile' },
+        { value: 'master', label: 'Maximum · preview' },
+      ], 'auto')),
+      rideParameter('density'),
+      globalParameter('material', 'surfelCoverage', ['pointMaterial', 'surfelCoverage'], {
+        label: 'Surface fill',
+      }),
+      globalParameter('material', 'backfaceRetention', ['pointMaterial', 'backfaceRetention'], {
+        label: 'Back surface reveal',
+      }),
+      globalParameter('material', 'minPointSize', ['pointMaterial', 'minPointSize'], {
+        label: 'Min circle size',
+      }),
+      globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize'], {
+        label: 'Max circle size',
+        min: 4,
+        max: 18,
+      }),
+      globalParameter('material', 'perspectiveResponse', ['pointMaterial', 'perspectiveResponse']),
+      globalParameter('material', 'edgeSoftness', ['pointMaterial', 'edgeSoftness']),
     ]),
   }),
   Object.freeze({
-    id: 'page-world',
-    label: 'World & corridor',
+    id: 'page-atmosphere',
+    label: 'Atmosphere',
     controls: Object.freeze([
-      globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize']),
-      rideParameter('structureManifestationAmount'),
-      rideParameter('depthScale'),
-      rideParameter('signalRadius'),
-      rideParameter('hoopRadius'),
+      globalParameter('material', 'atmosphereStrength', ['pointMaterial', 'atmosphereStrength']),
+      globalParameter('camera', 'distanceFogStartWU', ['camera', 'distanceFogStartWU']),
+      globalParameter('camera', 'distanceFogEndWU', ['camera', 'distanceFogEndWU']),
+      globalParameter('camera', 'distanceFogCurve', ['camera', 'distanceFogCurve']),
+      rideParameter('finaleFogClearStartWU', { label: 'Finale reveal begins' }),
+      rideParameter('finaleFogClearEndWU', { label: 'Finale clear by' }),
     ]),
   }),
   Object.freeze({
     id: 'page-motion',
     label: 'Living motion',
     controls: Object.freeze([
-      rideParameter('structureAmbientAmount'),
-      rideParameter('structureAmbientSpeed'),
-    ]),
-  }),
-  Object.freeze({
-    id: 'page-titles',
-    label: 'Titles and text fades',
-    controls: Object.freeze([
-      globalParameter('textMotion', 'standardViewportY', ['textMotion', 'standardViewportY']),
-      globalParameter('textMotion', 'titleDrawDurationMs', ['textMotion', 'titleDrawDurationMs']),
-      globalParameter('textMotion', 'titleExitOpacity', ['textMotion', 'titleExitOpacity']),
-    ]),
-  }),
-  Object.freeze({
-    id: 'page-ocean',
-    label: 'Ocean finish',
-    controls: Object.freeze([
-      rideParameter('oceanDensity'),
-      rideParameter('oceanAmplitude'),
-      rideParameter('oceanSpeed'),
-      rideParameter('oceanFogDistanceScale'),
+      rideParameter('structureAmbientAmount', { label: 'Motion amount' }),
+      rideParameter('structureAmbientSpeed', { label: 'Motion speed' }),
+      rideParameter('structureMotionCoherence'),
+      rideParameter('finaleMotionGain'),
     ]),
   }),
 ]);

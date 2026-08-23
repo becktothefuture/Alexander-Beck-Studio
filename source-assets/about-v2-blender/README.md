@@ -51,7 +51,9 @@ From the repository root:
 node scripts/about-v2-blender/check-about-v2-edited-world.mjs
 ```
 
-Do not run `build-about-v2-blender-scene.py` over the edited working file. That script rebuilds the original procedural bootstrap and would replace the manual Blender edits.
+The original procedural builder has been removed from the active scripts because
+it could replace the manually edited working scene. Treat this folder as a
+read-only reconstruction archive.
 
 The exporter centres the `06_LIVING` finale collection on the final website camera key and anchors the ocean beyond that same key. At runtime, the ocean shifts with the measured Story Stack endpoint, so shorter or longer copy still reveals it only during the closing beat. This keeps the manually edited Blender geometry authoritative while preventing an older Blender camera endpoint from moving the website finale. The website editor exposes ocean height, wave height, speed, chop, point size, and reveal delay. Geometry changes still belong in Blender; regenerate the point assets after each approved scene edit.
 

@@ -2,8 +2,8 @@ export const ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION = 2;
 export const ABOUT_NARRATIVE_CORRESPONDENCE_VERSION = 'correspondence-registry-v2.1.0';
 
 export const ABOUT_NARRATIVE_POINT_PROFILES = Object.freeze({
-  desktop: Object.freeze({ id: 'desktop', pointCount: 12000, maximumPixelRatio: 1.5 }),
-  mobile: Object.freeze({ id: 'mobile', pointCount: 5000, maximumPixelRatio: 1.25 }),
+  desktop: Object.freeze({ id: 'desktop', pointCount: 30000, maximumPixelRatio: 1.5 }),
+  mobile: Object.freeze({ id: 'mobile', pointCount: 10000, maximumPixelRatio: 1.25 }),
 });
 
 export const ABOUT_NARRATIVE_CACHE_LIMITS = Object.freeze({
@@ -53,4 +53,6 @@ export const ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS = Object.freeze([
   Object.freeze({ id: 'toPresence', itemSize: 1, mutable: true }),
   Object.freeze({ id: 'fromPointSize', itemSize: 1, mutable: true }),
   Object.freeze({ id: 'toPointSize', itemSize: 1, mutable: true }),
+  Object.freeze({ id: 'fromFogAnchor', itemSize: 3, mutable: true }),
+  Object.freeze({ id: 'toFogAnchor', itemSize: 3, mutable: true }),
 ]);

@@ -9,7 +9,7 @@ import {
 
 export { ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION };
 export const ABOUT_NARRATIVE_WORKER_MAX_ENTRIES = 64;
-export const ABOUT_NARRATIVE_WORKER_MAX_POINT_COUNT = 12000;
+export const ABOUT_NARRATIVE_WORKER_MAX_POINT_COUNT = 30000;
 export const ABOUT_NARRATIVE_WORKER_MAX_ATTRIBUTES = 32;
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -41,7 +41,7 @@ const FAILURE_KEYS = new Set([
   'error',
 ]);
 const OUTPUT_WRAPPER_KEYS = new Set(['id', 'fingerprint', 'output']);
-const OUTPUT_KEYS = new Set(['positions', 'presence', 'size', 'attributes', 'bounds', 'fallbackReason']);
+const OUTPUT_KEYS = new Set(['positions', 'presence', 'size', 'attributes', 'bounds', 'assetId', 'fallbackReason']);
 const BOUNDS_KEYS = new Set(['min', 'max']);
 const PAIR_KEYS = new Set([
   'pairId',
@@ -255,6 +255,9 @@ function validateTypedOutput(output, pointCount, label, { scanValues = true } = 
   }
   if (output.fallbackReason !== undefined && (typeof output.fallbackReason !== 'string' || output.fallbackReason.length > 512)) {
     throw new Error(`${label} fallback reason is invalid.`);
+  }
+  if (output.assetId !== undefined) {
+    assertBoundedString(output.assetId, `${label} asset id`, 128, ID_PATTERN);
   }
 }
 

@@ -99,9 +99,9 @@ const primaryRouteSemanticCoverage = Object.freeze({
   ]),
   About: Object.freeze([
     {
-      path: 'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+      path: 'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
       renderer: 'webgl',
-      imports: ['getSimulationBodyMaterialAtlas', 'subscribeSimulationBodyMaterial'],
+      imports: [],
     },
   ]),
   Contact: Object.freeze([
@@ -337,39 +337,31 @@ function assertPrimaryRouteSemanticContracts() {
   );
 
   assertRequiredSourcePatterns(
-    'react-app/app/src/routes/about-narrative-lab/AboutNarrativePointWorld3D.jsx',
+    'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
     [
       {
-        label: 'About points must request the shared material atlas',
-        pattern: /\bgetSimulationBodyMaterialAtlas\s*\(\s*materialColors\b/,
+        label: 'About must draw Blender surfels as instanced circle quads',
+        pattern: /new\s+THREE\.InstancedBufferGeometry\s*\(\s*\)[\s\S]{0,900}?setAttribute\(\s*['"]iRadius['"]/,
       },
       {
-        label: 'About discipline balls must upload the shared atlas Canvas to WebGL',
-        pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)/,
+        label: 'About circle coverage must use a bounded whole-surfel reveal scale',
+        pattern: /radiusPx\s*=\s*clamp\([\s\S]{0,500}?radiusPx\s*\*=\s*mix\(0\.64,\s*1\.0,\s*revealProgress\)/,
       },
       {
-        label: 'About sphere atlas must preserve Canvas top-to-bottom orientation for gl_PointCoord',
-        pattern: /new\s+THREE\.CanvasTexture\s*\(\s*atlas\.canvas\s*\)[\s\S]{0,240}?texture\.flipY\s*=\s*false/,
+        label: 'About must discard only fragments outside the complete circle',
+        pattern: /float\s+circleRadius\s*=\s*length\(vCircle\);[\s\S]{0,120}?if\s*\(circleRadius\s*>\s*1\.0\)\s*discard/,
       },
       {
-        label: 'About must sample the atlas only for readable circles',
-        pattern: /uUseMaterialAtlas\s*>\s*0\.5\s*&&\s*pointMaterialWeight\s*>\s*0\.001[\s\S]{0,720}?texture2D\s*\(\s*uMaterialAtlas\b/,
+        label: 'About circle edges must remain softly anti-aliased',
+        pattern: /edgeWidth\s*=\s*max\(fwidth\(circleRadius\)[\s\S]{0,120}?smoothstep\(1\.0\s*-\s*edgeWidth,\s*1\.0,\s*circleRadius\)/,
       },
       {
-        label: 'About meaningful circles must cross one fixed 10 CSS pixel threshold',
-        pattern: /const\s+MATERIAL_POINT_THRESHOLD_PX\s*=\s*10;/,
+        label: 'About fog must admit whole opaque palette bodies with edge-only multisample coverage',
+        pattern: /revealProgress\s*=\s*smoothstep\([\s\S]*?revealProgress\s*<=\s*0\.0[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*1\.0\)[\s\S]*?alpha\s*=\s*edge[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*alpha\)/,
       },
       {
-        label: 'About meaningful circles must cross that threshold through a soft two-pixel band',
-        pattern: /readableMaterialWeight\s*=\s*smoothstep\([\s\S]{0,180}?uMaterialPointThresholdPx\s*-\s*1\.0[\s\S]{0,180}?uMaterialPointThresholdPx\s*\+\s*1\.0/,
-      },
-      {
-        label: 'About microscopic point material must remain the guarded flat fallback',
-        pattern: /if\s*\(uUseMaterialAtlas[\s\S]{0,1600}?\breturn;[\s\S]{0,180}?gl_FragColor\s*=\s*vec4\(pointTint\b/,
-      },
-      {
-        label: 'About must identify cached, thresholded, and flat point finishes',
-        pattern: /aboutPointMaterialFinish\s*=\s*nextAtlas\s*\?\s*['"]cached-sphere-sticker['"]\s*:\s*['"]flat-fill['"][\s\S]{0,180}?aboutPointMaterialPolicy\s*=\s*nextAtlas\s*\?\s*['"]meaningful-size-threshold['"]\s*:\s*['"]flat-fill['"]/,
+        label: 'About surfels must keep multisample depth ownership in both passes',
+        pattern: /transparent:\s*false,[\s\S]{0,120}?alphaToCoverage:\s*true,[\s\S]{0,120}?depthTest:\s*true,[\s\S]{0,120}?depthWrite:\s*true,[\s\S]{0,120}?blending:\s*THREE\.NoBlending/,
       },
     ],
   );

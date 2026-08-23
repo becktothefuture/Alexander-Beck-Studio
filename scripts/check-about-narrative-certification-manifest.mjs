@@ -28,11 +28,11 @@ function createPassingManifest() {
       playwright: '1.58.2', chromium: 'chromium-123', webkit: 'webkit-123',
     },
     versions: {
-      schema: 2,
-      compiler: 'aboutNarrativeCompiler-v1',
-      workerProtocol: 2,
-      correspondenceRegistry: 'correspondence-registry-v2.1.0',
-      pointBudgets: { desktop: 12000, mobile: 5000 },
+      documentSchema: 2,
+      assetSchema: 'about-point-scene',
+      assetVersion: 2,
+      rendererAdapter: 'blender-surfel-v2',
+      pointBudgets: { desktop: 30000, mobile: 10000 },
     },
     artifacts: {
       canonicalConfigSha256: HASH,
@@ -79,7 +79,7 @@ test('missing or stale evidence blocks release grade', () => {
 
 test('failed attempts remain visible and require warning acknowledgement after retry', () => {
   const manifest = createPassingManifest();
-  const command = manifest.commands.find((item) => item.id === 'certification-webkit-audit');
+  const command = manifest.commands.find((item) => item.id === 'production-webkit-audit');
   command.attempts.unshift({ status: 'failed', durationMs: 2, logPath: 'failed.log', logSha256: HASH, logIntegrity: true });
   let validation = validateAboutNarrativeCertificationManifest(manifest);
   assert.equal(validation.releaseGrade, false);

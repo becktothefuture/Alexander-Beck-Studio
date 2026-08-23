@@ -1,4 +1,9 @@
-# About Director
+# About Director — retired
+
+> The About Director no longer mounts on the development About page. Press `/` on
+> `/about.html` to open the replacement whole-scene parameter panel. The material
+> below is retained only as historical schema and migration documentation; its
+> editor routes, shortcuts, panels, and workflow are not current product behavior.
 
 About Director is the local authoring product for the canonical About narrative. The current
 canonical document is **schema v7**.

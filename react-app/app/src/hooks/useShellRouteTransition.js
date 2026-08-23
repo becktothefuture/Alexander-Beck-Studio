@@ -214,10 +214,6 @@ function buildCanonicalRouteHref(route, url) {
       if (value) canonical.searchParams.set(key, value);
     });
   }
-  if (__DEV__ && route.id === 'about') {
-    const editorMode = url.searchParams.get('edit');
-    if (editorMode === '0' || editorMode === '1') canonical.searchParams.set('edit', editorMode);
-  }
   if (route.id === 'playground') {
     const workId = url.searchParams.get('work');
     if (workId) canonical.searchParams.set('work', workId);

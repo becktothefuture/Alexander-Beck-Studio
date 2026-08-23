@@ -113,7 +113,7 @@ test('compiler creates one deterministic immutable preparation descriptor', () =
   assert.equal(Object.isFrozen(first.worldPreparationDescriptor.worlds), true);
   assert.equal(Object.isFrozen(first.worldPreparationDescriptor.worlds[0].shapeParameters), true);
   assert.equal(Object.isFrozen(first.worldPreparationDescriptor.pairs), true);
-  assert.equal(first.worldPreparationDescriptor.pointCount, 12000);
+  assert.equal(first.worldPreparationDescriptor.pointCount, 30000);
   assert.equal(first.worldPreparationDescriptor.worlds.length, first.worldSequence.length);
   assert.equal(first.worldPreparationDescriptor.pairs.length, first.worldSequence.length);
   assert.equal(first.worldPreparationDescriptor.pairs[0].requestedStrategy, 'index-v1');
@@ -138,13 +138,13 @@ test('layout profiles select explicit point-resource descriptors', () => {
 
   assert.equal(desktop.worldPreparationDescriptor.profile, 'desktop');
   assert.equal(desktop.worldPreparationDescriptor.quality, 'desktop');
-  assert.equal(desktop.worldPreparationDescriptor.pointCount, 12000);
+  assert.equal(desktop.worldPreparationDescriptor.pointCount, 30000);
   assert.equal(tablet.worldPreparationDescriptor.profile, 'mobile');
   assert.equal(tablet.worldPreparationDescriptor.quality, 'mobile');
-  assert.equal(tablet.worldPreparationDescriptor.pointCount, 5000);
+  assert.equal(tablet.worldPreparationDescriptor.pointCount, 10000);
   assert.equal(mobile.worldPreparationDescriptor.profile, 'mobile');
   assert.equal(mobile.worldPreparationDescriptor.quality, 'mobile');
-  assert.equal(mobile.worldPreparationDescriptor.pointCount, 5000);
+  assert.equal(mobile.worldPreparationDescriptor.pointCount, 10000);
   assert.throws(() => createAboutNarrativeWorldPreparationDescriptor({
     worldSequence: desktop.worldSequence,
     globals: canonical.globals,
@@ -196,7 +196,7 @@ test('preparation identity changes only when preparation inputs change', () => {
 
   const mobile = compileAboutNarrativeDocument(canonical, { profile: 'mobile' });
   assert.notEqual(mobile.worldSequenceKey, baseline.worldSequenceKey);
-  assert.equal(mobile.worldPreparationDescriptor.pointCount, 5000);
+  assert.equal(mobile.worldPreparationDescriptor.pointCount, 10000);
 });
 
 test('geometry identity covers adapter and every responsive transform without timing churn', () => {

@@ -24,10 +24,6 @@ import {
   serializeAboutNarrativePointFieldSource,
 } from './aboutNarrativePointFieldPersistence.js';
 
-export {
-  compareAboutNarrativeDocuments,
-} from './aboutNarrativeEditorHardening.js';
-
 export const ABOUT_NARRATIVE_RECOVERY_MAX_AGE_MS = 14 * 86400000;
 export const ABOUT_NARRATIVE_RECOVERY_KEY = 'abs:about-narrative:recovery:v2';
 export const ABOUT_NARRATIVE_CHECKPOINTS_KEY = 'abs:about-narrative:checkpoints:v2';

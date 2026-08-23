@@ -1026,12 +1026,50 @@ body.dark-mode .about-narrative-client-logos img {
 .about-narrative-finale-actions {
   position: relative;
   width: 100%;
-  margin-top: var(--gap-24);
+  margin-top: var(--gap-20, 1.25rem);
   pointer-events: auto;
 }
 
 .about-narrative-finale-email {
   position: relative;
+}
+
+.about-narrative-model-credits {
+  max-width: min(48rem, 92vw);
+  margin-top: var(--gap-12, 0.75rem);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+
+.about-narrative-model-credits summary {
+  width: fit-content;
+  margin-inline: auto;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 0.16em;
+}
+
+.about-narrative-model-credits p {
+  margin: var(--gap-8, 0.5rem) 0 0;
+}
+
+.about-narrative-model-credits[open] {
+  padding: var(--gap-12, 0.75rem);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+  border-radius: var(--radius-12, 0.75rem);
+  background: color-mix(in srgb, var(--studio-window-bg) 94%, transparent);
+}
+
+.about-narrative-model-credits a {
+  color: inherit;
+}
+
+.about-narrative-model-credits a:hover,
+.about-narrative-model-credits a:focus-visible {
+  color: var(--text-primary);
 }
 
 .about-narrative-visually-hidden {

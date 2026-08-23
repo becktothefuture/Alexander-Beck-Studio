@@ -2,16 +2,12 @@ export const ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION = 1;
 
 export const ABOUT_NARRATIVE_REQUIRED_COMMAND_IDS = Object.freeze([
   'hardening-tests',
-  'correspondence-tests',
-  'editor-hardening-tests',
   'certification-build',
   'hot-frame-audit',
   'runtime-fault-audit',
   'runtime-soak-desktop',
   'runtime-soak-mobile',
   'runtime-visual-audit',
-  'certification-chromium-audit',
-  'certification-webkit-audit',
   'site-gate',
   'production-isolation',
   'production-chromium-audit',
@@ -27,15 +23,6 @@ export const ABOUT_NARRATIVE_REQUIRED_EVIDENCE = Object.freeze([
   Object.freeze({ id: 'visual-contact-sheet-desktop', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-desktop.png', reviewRequired: true }),
   Object.freeze({ id: 'visual-contact-sheet-mobile', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-mobile.png', reviewRequired: true }),
   Object.freeze({ id: 'visual-contact-sheet-reduced-motion', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-reduced-motion.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-desktop-turbulent', path: 'output/playwright/about-narrative-hardening/runtime/desktop-turbulent.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-desktop-discipline', path: 'output/playwright/about-narrative-hardening/runtime/desktop-discipline-middle.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-mobile-discipline', path: 'output/playwright/about-narrative-hardening/runtime/mobile-discipline-middle.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-reduced-motion', path: 'output/playwright/about-narrative-hardening/runtime/reduced-motion-discipline.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-desktop-bust', path: 'output/playwright/about-narrative-hardening/runtime/desktop-bust-resolved.png', reviewRequired: true }),
-  Object.freeze({ id: 'certification-chromium-desktop', path: 'output/playwright/about-narrative-sectionless/chromium-editor-desktop.png' }),
-  Object.freeze({ id: 'certification-chromium-mobile', path: 'output/playwright/about-narrative-sectionless/chromium-editor-mobile.png' }),
-  Object.freeze({ id: 'certification-webkit-desktop', path: 'output/playwright/about-narrative-sectionless/webkit-editor-desktop.png' }),
-  Object.freeze({ id: 'certification-webkit-mobile', path: 'output/playwright/about-narrative-sectionless/webkit-editor-mobile.png' }),
   Object.freeze({ id: 'production-chromium-desktop', path: 'output/playwright/about-narrative-sectionless/chromium-production-desktop.png' }),
   Object.freeze({ id: 'production-chromium-tablet-portrait', path: 'output/playwright/about-narrative-sectionless/chromium-production-tablet-portrait.png' }),
   Object.freeze({ id: 'production-chromium-tablet-landscape', path: 'output/playwright/about-narrative-sectionless/chromium-production-tablet-landscape.png' }),
@@ -203,14 +190,14 @@ export function validateAboutNarrativeCertificationManifest(manifest) {
   });
 
   const versions = manifest.versions;
-  if (!Number.isInteger(versions?.schema) || !Number.isInteger(versions?.workerProtocol)) {
-    addError(errors, 'runtime-versions', 'versions', 'Schema and Worker protocol versions must be recorded.');
+  if (!Number.isInteger(versions?.documentSchema) || versions?.assetVersion !== 2) {
+    addError(errors, 'runtime-versions', 'versions', 'Document and v2 asset schema versions must be recorded.');
   }
-  if (!isNonEmptyString(versions?.compiler) || !isNonEmptyString(versions?.correspondenceRegistry)) {
-    addError(errors, 'runtime-version-labels', 'versions', 'Compiler and correspondence registry versions must be recorded.');
+  if (versions?.assetSchema !== 'about-point-scene' || versions?.rendererAdapter !== 'blender-surfel-v2') {
+    addError(errors, 'runtime-version-labels', 'versions', 'The v2 asset schema and surfel adapter must be recorded.');
   }
-  if (versions?.pointBudgets?.desktop !== 12000 || versions?.pointBudgets?.mobile !== 5000) {
-    addError(errors, 'point-budgets', 'versions.pointBudgets', 'Protected desktop/mobile point budgets must be 12000/5000.');
+  if (versions?.pointBudgets?.desktop !== 30000 || versions?.pointBudgets?.mobile !== 10000) {
+    addError(errors, 'point-budgets', 'versions.pointBudgets', 'Protected desktop/mobile surfel budgets must be 30000/10000.');
   }
 
   ['canonicalConfigSha256', 'productionArtifactSha256', 'certificationArtifactSha256'].forEach((field) => {

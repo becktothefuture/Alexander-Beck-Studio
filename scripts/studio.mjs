@@ -53,7 +53,6 @@ function printHelp() {
 
 Commands:
   npm run studio:dev       Start/reuse local Vite, start the safe public mirror, and open a tunnel
-  npm run studio:about-editor  Start/reuse local Vite and open the About Me editor
   npm run studio:status    Show server, tunnel, Git, and production-sync state
   npm run studio:stop      Stop only the processes started by studio:dev
   npm run studio:check     Run the canonical local production gate
@@ -655,33 +654,6 @@ Edits update both Vite servers automatically. Production is unchanged.`);
   }
 }
 
-async function openInBrowser(url) {
-  if (process.platform === 'darwin') {
-    await run('open', [url], { stdio: 'ignore' });
-    return;
-  }
-  if (process.platform === 'win32') {
-    await run('cmd', ['/c', 'start', '', url], { stdio: 'ignore' });
-    return;
-  }
-  await run('xdg-open', [url], { stdio: 'ignore' });
-}
-
-async function studioAboutEditor() {
-  const releaseLock = await acquireLifecycleLock();
-  try {
-    await ensureDependencies();
-    await ensureLocalDev();
-    const editorUrl = `${LOCAL_DEV_URL}/about.html`;
-    await openInBrowser(editorUrl);
-    console.log(`${good('About Me editor opened.')}
-Local authoring: ${editorUrl}
-Production is unchanged.`);
-  } finally {
-    await releaseLock();
-  }
-}
-
 function gitState() {
   const branch = capture('git', ['branch', '--show-current']) || '(detached)';
   const head = capture('git', ['rev-parse', '--short', 'HEAD']) || 'unknown';
@@ -805,9 +777,6 @@ async function main() {
   switch (command) {
     case 'dev':
       await studioDev();
-      break;
-    case 'about-editor':
-      await studioAboutEditor();
       break;
     case 'status':
       await studioStatus();

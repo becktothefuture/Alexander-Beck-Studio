@@ -70,16 +70,17 @@ function failure(category, message = category) {
   return Object.assign(new Error(message), { category });
 }
 
-test('runtime constants protect point profiles, caches, retry policy, and seven fixed attributes', () => {
+test('runtime constants protect point profiles, caches, retry policy, and fog-anchor attributes', () => {
   assert.equal(ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION, 2);
-  assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount, 12000);
-  assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount, 5000);
+  assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount, 30000);
+  assert.equal(ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount, 10000);
   assert.deepEqual(ABOUT_NARRATIVE_CACHE_LIMITS.shape, { maxEntries: 8, maxBytes: 4 * 1024 * 1024 });
   assert.deepEqual(ABOUT_NARRATIVE_CACHE_LIMITS.sequence, { maxEntries: 3, maxBytes: 16 * 1024 * 1024 });
   assert.deepEqual(ABOUT_NARRATIVE_RETRY_POLICY, { delayMs: 1000, maximumAutomaticRetries: 1 });
   assert.deepEqual(ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS.map((attribute) => attribute.id), [
     'position', 'targetPosition', 'pointSeed', 'fromPresence', 'toPresence',
     'fromPointSize', 'toPointSize',
+    'fromFogAnchor', 'toFogAnchor',
   ]);
   assert.equal(ABOUT_NARRATIVE_FIXED_ATTRIBUTE_SPECS.filter((attribute) => !attribute.mutable).length, 1);
 });

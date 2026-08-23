@@ -11,11 +11,6 @@ import { fileURLToPath } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import {
-  ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
-  ABOUT_NARRATIVE_POINT_PROFILES,
-  ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimeConstants.js';
-import {
   ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION,
   ABOUT_NARRATIVE_REQUIRED_EVIDENCE,
   ABOUT_NARRATIVE_REQUIREMENT_COVERAGE,
@@ -311,8 +306,6 @@ function certificationAuditCommands(baseUrl) {
     command('runtime-soak-desktop', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'desktop' }), browserRetries),
     command('runtime-soak-mobile', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'mobile' }), browserRetries),
     command('runtime-visual-audit', 'visual', 'node', ['scripts/audit-about-narrative-runtime-visuals.mjs'], browserEnvironment(baseUrl), browserRetries),
-    command('certification-chromium-audit', 'browser', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
-    command('certification-webkit-audit', 'browser', 'node', ['scripts/audit-about-narrative-sectionless.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit', ABS_ABOUT_EDITOR_ONLY: '1' }), browserRetries),
   ];
 }
 
@@ -438,8 +431,6 @@ const repository = {
 
 await runCommands([
   command('hardening-tests', 'pure', 'npm', ['run', 'check:about-narrative-hardening']),
-  command('correspondence-tests', 'pure', 'node', ['--test', 'scripts/check-about-narrative-correspondence-v2.mjs']),
-  command('editor-hardening-tests', 'pure', 'node', ['--test', 'scripts/check-about-narrative-editor-hardening.mjs']),
 ]);
 
 const certificationBuild = await runCommand(command(
@@ -465,6 +456,10 @@ repository.sourceHashEnd = await sourceHash();
 const canonicalConfigPath = resolve(repoRoot, 'react-app/app/public/config/contents-about.json');
 const canonicalConfigBytes = await readFile(canonicalConfigPath);
 const canonicalDocument = JSON.parse(canonicalConfigBytes.toString('utf8'));
+const assetMetadata = JSON.parse(await readFile(resolve(
+  repoRoot,
+  'react-app/app/public/models/about-v2-edited-world/meta.json',
+), 'utf8'));
 const playwrightVersion = require('playwright/package.json').version;
 const manifest = {
   schemaVersion: ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION,
@@ -485,17 +480,17 @@ const manifest = {
     webkit: browserDescription(webkit, 'webkit'),
   },
   versions: {
-    schema: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
-    compiler: `sha256:${sha256(await readFile(resolve(repoRoot, 'react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js')))}`,
-    workerProtocol: ABOUT_NARRATIVE_WORKER_PROTOCOL_VERSION,
-    correspondenceRegistry: ABOUT_NARRATIVE_CORRESPONDENCE_VERSION,
+    documentSchema: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
+    assetSchema: assetMetadata.schema,
+    assetVersion: assetMetadata.version,
+    rendererAdapter: 'blender-surfel-v2',
     canonicalWorldCount: canonicalDocument.tracks.pointField.stateDefinitions.length,
     canonicalTransitionCount: canonicalDocument.tracks.pointField.segments.filter((segment) => (
       segment.transition.type !== 'hold'
     )).length,
     pointBudgets: {
-      desktop: ABOUT_NARRATIVE_POINT_PROFILES.desktop.pointCount,
-      mobile: ABOUT_NARRATIVE_POINT_PROFILES.mobile.pointCount,
+      desktop: assetMetadata.profiles.desktop.surfelCount,
+      mobile: assetMetadata.profiles.mobile.surfelCount,
     },
   },
   artifacts: {

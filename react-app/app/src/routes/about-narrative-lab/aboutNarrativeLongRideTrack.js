@@ -147,7 +147,7 @@ function createBaseControlPoints(parameters = {}) {
     }),
     Object.freeze({ atWU: 15.1, x: -0.75, y: 1.6, bank: loopRollDegrees, deckWidth: 7.4 }),
     // Living structures move around a calm, level camera. Lateral movement
-    // narrows before the reveal so the final ocean approach settles onto one
+    // narrows before the reveal so the final approach settles onto one
     // straight centreline instead of weaving left and right.
     Object.freeze({ atWU: 16.1, x: 0, y: 0.65, bank: loopRollDegrees, deckWidth: 6.2 }),
     Object.freeze({ atWU: 17.1, x: 0.45, y: 0.85, bank: loopRollDegrees, deckWidth: 5.8 }),
@@ -157,8 +157,8 @@ function createBaseControlPoints(parameters = {}) {
     Object.freeze({ atWU: 20.1, x: 0, y: 2.1, bank: loopRollDegrees, deckWidth: 4.4 }),
     Object.freeze({ atWU: 22, x: 0, y: 2.2, bank: loopRollDegrees, deckWidth: 4.2 }),
     // The invisible rail keeps only a slight upward pitch beyond the last
-    // camera position. This leaves the CTA clear while lifting the horizon
-    // enough for the ocean to read as a deep field rather than a narrow band.
+    // camera position. The authored track owns the remaining depth, so the steadycam
+    // does not need a sharp final tilt.
     Object.freeze({ atWU: terminalWU, x: 0, y: 3.25, bank: loopRollDegrees, deckWidth: 3.9 }),
     Object.freeze({ atWU: terminalWU + 0.25, x: 0, y: 3.35, bank: loopRollDegrees, deckWidth: 3.8 }),
   ]);

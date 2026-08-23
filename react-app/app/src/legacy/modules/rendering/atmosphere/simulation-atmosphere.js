@@ -53,6 +53,7 @@ let geometryDirty = true;
 let staticFrameDirty = true;
 const frameSchedule = { nextFrameAt: 0 };
 let renderProfile = null;
+const sourceRenderProfile = {};
 let automaticQuality = QUALITY_LEVELS.balanced;
 let dynamicQuality = QUALITY_LEVELS.balanced;
 let pendingQuality = null;
@@ -583,6 +584,27 @@ function copyActiveSource() {
   return copyCanvasSource(activeSource);
 }
 
+function resolveSourceRenderProfile() {
+  const sourceOverrides = typeof activeSource?.getRenderProfileOverrides === 'function'
+    ? activeSource.getRenderProfileOverrides()
+    : activeSource?.renderProfileOverrides;
+  const intensityScale = Number(sourceOverrides?.intensityScale);
+  const colourStrengthScale = Number(sourceOverrides?.colourStrengthScale);
+  Object.assign(sourceRenderProfile, renderProfile);
+  sourceRenderProfile.intensity = Math.min(
+    1,
+    Math.max(0, renderProfile.intensity * (Number.isFinite(intensityScale) ? intensityScale : 1)),
+  );
+  sourceRenderProfile.colourStrength = Math.min(
+    1.6,
+    Math.max(
+      0,
+      renderProfile.colourStrength * (Number.isFinite(colourStrengthScale) ? colourStrengthScale : 1),
+    ),
+  );
+  return sourceRenderProfile;
+}
+
 function settleFirstFrame(source, now) {
   if (!source || source !== activeSource || source.firstFrame.settled) return;
   if (source.firstFrameTimeoutId) window.clearTimeout(source.firstFrameTimeoutId);
@@ -673,12 +695,13 @@ function renderComposite(now, frameBudget = null) {
   }
   const start = performance.now();
   if (!copyActiveSource()) return false;
+  const activeRenderProfile = resolveSourceRenderProfile();
   effectRenderArgs.sourceCanvas = host.sourceCanvas;
-  renderProfile.cadenceFps = cadence;
-  effectRenderArgs.config = renderProfile;
+  activeRenderProfile.cadenceFps = cadence;
+  effectRenderArgs.config = activeRenderProfile;
   effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
-  host.edgeLight.render(host.glowCanvas, renderProfile.edgeStrength);
+  host.edgeLight.render(host.glowCanvas, activeRenderProfile.edgeStrength);
   const costMs = performance.now() - start;
   recordCost(costMs);
   compositedFrameCount += 1;
@@ -690,7 +713,7 @@ function renderComposite(now, frameBudget = null) {
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = false;
-  host.edgeCanvas.hidden = transitionPhase !== 'idle' || renderProfile.edgeStrength <= 0;
+  host.edgeCanvas.hidden = transitionPhase !== 'idle' || activeRenderProfile.edgeStrength <= 0;
   host.root.dataset.atmosphereReady = 'true';
   host.root.dataset.atmosphereStatus = 'ready';
   settleFirstFrame(activeSource, now);
@@ -897,6 +920,8 @@ function getDiagnosticSnapshot() {
     temporalMemoryFrames: host?.effect?.temporalMemoryFrames || 0,
     memoryMs: renderProfile?.memoryMs ?? configuration.memoryMs,
     fieldMode: renderProfile?.fieldMode ?? configuration.fieldMode,
+    sourceIntensity: sourceRenderProfile.intensity ?? renderProfile?.intensity ?? 0,
+    sourceColourStrength: sourceRenderProfile.colourStrength ?? renderProfile?.colourStrength ?? 0,
     largeSpread: renderProfile?.largeSpread ?? configuration.largeSpread,
     smallSpread: renderProfile?.smallSpread ?? configuration.smallSpread,
     resolvedGlowRadiusCss,

@@ -15,15 +15,22 @@
     },
     "camera": {
       "distanceFogStartWU": 7,
-      "distanceFogEndWU": 34,
+      "distanceFogEndWU": 18,
+      "distanceFogCurve": 1,
       "forwardSpeedWU": 18.5,
-      "steadycamResponseMs": 260,
-      "pointerPanDegrees": 0.35,
+      "steadycamResponseMs": 0,
+      "pointerPanDegrees": 0,
       "pointerPanResponseMs": 620
     },
     "pointMaterial": {
       "opacity": 1,
-      "pointSize": 13,
+      "pointSize": 6,
+      "surfelCoverage": 0.7,
+      "backfaceRetention": 0,
+      "minPointSize": 1.15,
+      "perspectiveResponse": 1,
+      "edgeSoftness": 1.35,
+      "atmosphereStrength": 1,
       "pointerRadiusPx": 182,
       "pointerForcePx": 0,
       "pointerVariation": 0,
@@ -136,9 +143,9 @@
           "id": "move-ride-material-yard",
           "atWU": 1.4,
           "position": [
-            -1.2,
-            0.15,
-            -11.9
+            -0.961133,
+            0.127497,
+            -9.724558
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -152,9 +159,9 @@
           "id": "move-ride-hoops",
           "atWU": 2.55,
           "position": [
-            -7.02,
-            0.839,
-            -33.175
+            -6.21457,
+            0.706026,
+            -28.521881
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -168,9 +175,9 @@
           "id": "move-ride-archive",
           "atWU": 3.6,
           "position": [
-            -10.467,
-            1.902,
-            -52.6
+            -10.033584,
+            1.641439,
+            -45.90871
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -184,9 +191,9 @@
           "id": "move-ride-question-drop",
           "atWU": 7.15,
           "position": [
-            4.859,
-            -0.61,
-            -118.275
+            5.481822,
+            0.376012,
+            -103.292584
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -200,9 +207,9 @@
           "id": "move-ride-interchange",
           "atWU": 8.05,
           "position": [
-            0.933,
-            0.542,
-            -134.925
+            3.83791,
+            -0.635608,
+            -117.722352
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -216,9 +223,9 @@
           "id": "move-ride-workshops",
           "atWU": 8.95,
           "position": [
-            8.421,
-            4.975,
-            -151.575
+            0.616126,
+            0.443149,
+            -132.088212
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -232,9 +239,9 @@
           "id": "move-ride-assembly-hall",
           "atWU": 11.5,
           "position": [
-            -5.867,
-            15.666,
-            -198.75
+            8.457375,
+            12.655872,
+            -171.706462
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -248,9 +255,9 @@
           "id": "move-ride-pressure-wall",
           "atWU": 14.5,
           "position": [
-            1.057,
-            0.955,
-            -254.25
+            -8.720155,
+            12.041027,
+            -218.033836
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -264,9 +271,9 @@
           "id": "move-ride-transfer-bridge",
           "atWU": 15.3,
           "position": [
-            -0.782,
-            1.498,
-            -269.05
+            -8.892663,
+            5.978348,
+            -230.093708
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -280,9 +287,9 @@
           "id": "move-ride-city",
           "atWU": 16.1,
           "position": [
-            0,
-            0.65,
-            -283.85
+            -4.589521,
+            1.598717,
+            -242.088964
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -296,9 +303,9 @@
           "id": "move-ride-terminal",
           "atWU": 20.1,
           "position": [
-            0,
-            2.1,
-            -357.85
+            -0.00548,
+            1.560461,
+            -308.387603
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -314,7 +321,7 @@
           "position": [
             0,
             2.2,
-            -393
+            -340.639709
           ],
           "easing": "linear",
           "velocityMode": "fluid",
@@ -330,9 +337,9 @@
           "id": "look-ride-threshold",
           "atWU": 0,
           "rotation": [
-            -0.47,
-            0.57,
-            0
+            -0.375157,
+            0.174565,
+            0.001143
           ],
           "easing": "linear",
           "trigger": {
@@ -345,9 +352,9 @@
           "id": "look-ride-material-yard",
           "atWU": 1.4,
           "rotation": [
-            1.387,
-            -15.478,
-            0
+            1.795071,
+            15.126695,
+            1.030809
           ],
           "easing": "linear",
           "trigger": {
@@ -360,9 +367,9 @@
           "id": "look-ride-hoops",
           "atWU": 2.55,
           "rotation": [
-            2.826,
-            -12.204,
-            0
+            4.07672,
+            13.010915,
+            5.045886
           ],
           "easing": "linear",
           "trigger": {
@@ -375,9 +382,9 @@
           "id": "look-ride-archive",
           "atWU": 3.6,
           "rotation": [
-            2.997,
-            5.083,
-            0
+            3.223741,
+            -0.331295,
+            8.851643
           ],
           "easing": "linear",
           "trigger": {
@@ -390,9 +397,9 @@
           "id": "look-ride-question-drop",
           "atWU": 7.15,
           "rotation": [
-            -2.981,
-            -7.237,
-            0
+            -4.724358,
+            0.195832,
+            -5.154197
           ],
           "easing": "linear",
           "trigger": {
@@ -405,9 +412,9 @@
           "id": "look-ride-interchange",
           "atWU": 8.05,
           "rotation": [
-            8.477,
-            -18.586,
-            0
+            1.781351,
+            17.439713,
+            -5.168291
           ],
           "easing": "linear",
           "trigger": {
@@ -420,9 +427,9 @@
           "id": "look-ride-workshops",
           "atWU": 8.95,
           "rotation": [
-            32.015,
-            27.477,
-            0
+            7.896003,
+            -23.40029,
+            2.603017
           ],
           "easing": "linear",
           "trigger": {
@@ -435,9 +442,9 @@
           "id": "look-ride-assembly-hall",
           "atWU": 11.5,
           "rotation": [
-            0.387,
-            8.029,
-            0
+            -22.032471,
+            5.875563,
+            -116.28841
           ],
           "easing": "linear",
           "trigger": {
@@ -450,9 +457,9 @@
           "id": "look-ride-pressure-wall",
           "atWU": 14.5,
           "rotation": [
-            -3.719,
-            7.875,
-            0
+            1.644754,
+            26.553158,
+            104.23174
           ],
           "easing": "linear",
           "trigger": {
@@ -465,9 +472,9 @@
           "id": "look-ride-transfer-bridge",
           "atWU": 15.3,
           "rotation": [
-            -2.327,
-            4.506,
-            0
+            -27.686361,
+            -0.975424,
+            58.693127
           ],
           "easing": "linear",
           "trigger": {
@@ -480,9 +487,9 @@
           "id": "look-ride-city",
           "atWU": 16.1,
           "rotation": [
-            0.329,
-            8.251,
-            0
+            -4.380426,
+            -13.296853,
+            14.700271
           ],
           "easing": "linear",
           "trigger": {
@@ -495,7 +502,7 @@
           "id": "look-ride-terminal",
           "atWU": 20.1,
           "rotation": [
-            0.399,
+            1.856959,
             0,
             0
           ],
@@ -510,7 +517,7 @@
           "id": "look-ride-beyond",
           "atWU": 22,
           "rotation": [
-            0,
+            0.013821,
             0,
             0
           ],
@@ -588,9 +595,9 @@
             ],
             "scale": 1,
             "pointSizeScale": 1,
-            "mobileScale": 0.82,
-            "mobileXScale": 0.82,
-            "mobileYOffset": 0.2
+            "mobileScale": 1,
+            "mobileXScale": 1,
+            "mobileYOffset": 0
           },
           "shapeParameters": {
             "storyDurationWU": 22,
@@ -599,11 +606,12 @@
             "depthScale": 1,
             "cameraLookAheadWU": 0.82,
             "density": 1,
-            "structureManifestationAmount": 0.72,
-            "structureAmbientAmount": 0.055,
-            "structureAmbientSpeed": 0.28,
-            "signalRadius": 2.59,
-            "signalYOffset": 2.7,
+            "structureManifestationAmount": 0.24,
+            "structureAmbientAmount": 0.05,
+            "structureAmbientScaleWU": 20,
+            "structureAmbientSpeed": 0.36,
+            "structureMotionCoherence": 0.72,
+            "finaleMotionGain": 1.4,
             "hoopRadius": 4.35,
             "hoopCount": 18,
             "loopStartWU": 7.9,
@@ -613,15 +621,10 @@
             "loopRollDegrees": 360,
             "loopGateCount": 22,
             "terminalDistanceWU": 1.25,
-            "oceanHeight": -6.2,
-            "oceanDensity": 0.9,
-            "oceanAmplitude": 2.05,
-            "oceanSpeed": 1.04,
-            "oceanChop": 1.08,
-            "oceanPointScale": 1.18,
-            "oceanFogDistanceScale": 24,
-            "oceanSplashAmount": 1.2,
-            "oceanSplashHeight": 4.4,
+            "finaleFogClearStartWU": 21.05,
+            "finaleFogClearEndWU": 21.8,
+            "finaleFogStartWU": 220,
+            "finaleFogEndWU": 560,
             "backgroundAnchorWU": 3.6,
             "intersectionAnchorWU": 8.05,
             "disciplinesAnchorWU": 11.5,

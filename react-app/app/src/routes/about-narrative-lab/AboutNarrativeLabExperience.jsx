@@ -25,6 +25,57 @@ import {
 import './about-narrative-lab.css';
 
 const CANONICAL_ABOUT_EXPERIENCE_VERSION = 'v2';
+const ABOUT_SCENE_MODEL_CREDITS = Object.freeze([
+  Object.freeze({
+    title: 'CRT Computer Monitor',
+    author: 'Dan',
+    href: 'https://sketchfab.com/3d-models/crt-computer-monitor-f2ff0013f86e4cd0a2aee183a23bdfee',
+  }),
+  Object.freeze({
+    title: 'Cursor 3D',
+    author: 'ReliefRain',
+    href: 'https://sketchfab.com/3d-models/cursor-3d-fab4012385cc4d6fa7301d68df2ff271',
+  }),
+  Object.freeze({
+    title: 'Generic Mobile Phone',
+    author: 'AndrewHunt95',
+    href: 'https://sketchfab.com/3d-models/generic-mobile-phone-d771c29639364ace91f8e868b0dec4a3',
+  }),
+  Object.freeze({
+    title: 'Mouse with cable',
+    author: 'Aerell Animation',
+    href: 'https://sketchfab.com/3d-models/mouse-with-cable-4e673682d6a04cc986039cfc82cade02',
+  }),
+  Object.freeze({
+    title: 'Pencil',
+    author: 'farooq.smurf',
+    href: 'https://sketchfab.com/3d-models/pencil-9fe73cc296ae407e911d3e511f891b0e',
+  }),
+]);
+
+function AboutSceneModelCredits() {
+  return (
+    <details className="about-narrative-model-credits">
+      <summary>3D model credits</summary>
+      <p>
+        Adapted point-cloud versions of{' '}
+        {ABOUT_SCENE_MODEL_CREDITS.map((credit, index) => (
+          <span key={credit.href}>
+            {index > 0 ? (index === ABOUT_SCENE_MODEL_CREDITS.length - 1 ? ', and ' : ', ') : null}
+            <a href={credit.href} target="_blank" rel="noreferrer">
+              {credit.title} by {credit.author}
+            </a>
+          </span>
+        ))}
+        . Resampled and recoloured for this scene. Sources licensed under{' '}
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+          CC BY 4.0
+        </a>
+        .
+      </p>
+    </details>
+  );
+}
 
 function getRenderSpanStyle(span, storyField = null, storyGap = null) {
   const startWU = Number(span.scrollBounds.startWU);
@@ -651,6 +702,7 @@ function TitleField({
                 </div>
               </div>
             ) : null}
+            <AboutSceneModelCredits />
           </div>
         </div>
       ) : isOpener ? (
@@ -811,14 +863,10 @@ export function AboutNarrativeLabExperience({
 }) {
   const resolvedExperienceVersion = CANONICAL_ABOUT_EXPERIENCE_VERSION;
   const initialDocument = ABOUT_NARRATIVE_DOCUMENT;
-  const editorRequested = useMemo(() => {
-    if (typeof window === 'undefined' || routeContentId !== 'about') return false;
-    const requestedMode = new URLSearchParams(window.location.search).get('edit');
-    if (__DEV__) return requestedMode !== '0';
-    return __CERTIFY__ && requestedMode === '1';
-  }, [routeContentId]);
-  const [editorModule, setEditorModule] = useState(null);
-  const [editorStore, setEditorStore] = useState(null);
+  const [parameterPanelModule, setParameterPanelModule] = useState(null);
+  const [parameterPanelVisible, setParameterPanelVisible] = useState(false);
+  const [parameterStore, setParameterStore] = useState(null);
+  const [parameterQualityTier, setParameterQualityTier] = useState('auto');
   const indicatorHost = useMemo(() => (
     showIndicator && typeof document !== 'undefined'
       ? document.getElementById('shell-persistent-route-ui-host')
@@ -832,34 +880,56 @@ export function AboutNarrativeLabExperience({
   const worldInteractionRef = useRef(null);
   const indicatorLayerRef = useRef(null);
   const handleFinaleEmailPress = useCallback(() => {
-    worldRuntimeRef.current?.triggerOceanImpulse?.();
     void playContactRippleMotif({ unlockIfNeeded: false });
   }, []);
 
   useEffect(() => {
-    if ((!__DEV__ && !__CERTIFY__) || !editorRequested) return undefined;
+    if (!__DEV__ || routeContentId !== 'about') return undefined;
     let active = true;
     Promise.all([
-      import('./AboutNarrativeEditor.jsx'),
-      import('./aboutNarrativePointFieldEditorStore.js'),
-    ]).then(([editor, storeModule]) => {
+      import('./AboutNarrativeParameterPanel.jsx'),
+      import('./aboutNarrativeParameterStore.js'),
+    ]).then(([panel, storeModule]) => {
       if (!active) return;
-      const store = storeModule.createAboutNarrativePointFieldEditorStore(
-        initialDocument,
-        { fixedPointFieldStructure: resolvedExperienceVersion === 'v2' },
-      );
-      setEditorStore(store);
-      setEditorModule(() => editor.default);
-    }).catch((error) => console.error('[About narrative] Could not load the development editor.', error));
+      const store = storeModule.createAboutNarrativeParameterStore(initialDocument);
+      setParameterStore(store);
+      setParameterPanelModule(() => panel.default);
+    }).catch((error) => console.error('[About narrative] Could not load the development parameter panel.', error));
     return () => { active = false; };
-  }, [editorRequested, initialDocument, resolvedExperienceVersion]);
+  }, [initialDocument, resolvedExperienceVersion, routeContentId]);
 
   useEffect(() => {
-    if (!editorStore) return undefined;
-    const update = () => setPlaybackDocument(editorStore.getSnapshot().document);
+    if (!parameterStore) return undefined;
+    const update = () => {
+      const snapshot = parameterStore.getSnapshot();
+      setPlaybackDocument(snapshot.document);
+      setParameterQualityTier(snapshot.qualityTier);
+    };
     update();
-    return editorStore.subscribe(update);
-  }, [editorStore]);
+    return parameterStore.subscribe(update);
+  }, [parameterStore]);
+
+  useEffect(() => {
+    if (!__DEV__ || routeContentId !== 'about') return undefined;
+    const handleSlash = (event) => {
+      const slash = event.key === '/' || event.code === 'Slash';
+      if (!slash) return;
+      const target = event.target;
+      const typing = target instanceof Element && Boolean(target.closest(
+        'input, textarea, select, [contenteditable="true"]',
+      ));
+      if (typing) {
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!event.repeat) setParameterPanelVisible((visible) => !visible);
+    };
+    window.addEventListener('keydown', handleSlash, { capture: true });
+    return () => window.removeEventListener('keydown', handleSlash, { capture: true });
+  }, [routeContentId]);
 
   const {
     runtimePlan,
@@ -868,7 +938,7 @@ export function AboutNarrativeLabExperience({
     activeIndicatorStartIndex,
   } = useAboutNarrativeTimeline({
     document: playbackDocument,
-    editorStore,
+    editorStore: parameterStore,
     finaleContinuation: resolvedExperienceVersion === 'v2',
     solidTitles: resolvedExperienceVersion === 'v2',
     rootRef,
@@ -957,8 +1027,7 @@ export function AboutNarrativeLabExperience({
       ?.map((span) => textFieldsById.get(span.fieldIds[0]))
       .find((field) => field?.kind === 'title' && field.publishable)?.id || ''
   ), [runtimePlan, textFieldsById]);
-  const select = editorStore ? (selection) => editorStore.setSelection(selection) : null;
-  const Editor = editorModule;
+  const ParameterPanel = parameterPanelModule;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
@@ -982,7 +1051,9 @@ export function AboutNarrativeLabExperience({
       data-route-content={routeContentId}
       data-about-layout-profile={runtimePlan?.layoutProfile || 'desktop'}
       data-about-motion-profile={runtimePlan?.motionProfile || 'full'}
+      data-about-quality-tier={parameterQualityTier}
       data-about-experience-version={resolvedExperienceVersion}
+      data-about-parameter-panel={parameterPanelVisible ? 'open' : 'closed'}
       data-about-story-layout={runtimePlan?.storyLayout?.mode || 'legacy'}
       data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}
       style={rootStyle}
@@ -998,7 +1069,9 @@ export function AboutNarrativeLabExperience({
           rootRef={rootRef}
           interactionRef={worldInteractionRef}
           runtimeRef={worldRuntimeRef}
-          pointProfile={runtimePlan.pointProfile}
+          pointProfile={parameterQualityTier === 'auto'
+            ? runtimePlan.pointProfile
+            : parameterQualityTier}
           layoutProfile={runtimePlan.layoutProfile}
         />
       ) : null}
@@ -1025,7 +1098,7 @@ export function AboutNarrativeLabExperience({
                 isPrimaryTitle={field.id === primaryTitleId}
                 drawTitleEntrances={resolvedExperienceVersion === 'v2'}
                 onFinaleEmailPress={handleFinaleEmailPress}
-                onSelect={select}
+                onSelect={null}
                 showFinaleEmailAction={resolvedExperienceVersion === 'v2'}
                 motionProfile={runtimePlan?.motionProfile || 'full'}
                 scrollportRef={scrollportRef}
@@ -1049,15 +1122,12 @@ export function AboutNarrativeLabExperience({
           indicatorHost,
         )
         : null}
-      {Editor && editorStore && typeof document !== 'undefined'
+      {ParameterPanel && parameterStore && typeof document !== 'undefined'
         ? createPortal(
-          <Editor
-            experienceVersion={resolvedExperienceVersion}
-            persistenceScope="main"
-            store={editorStore}
-            runtimeRef={worldRuntimeRef}
-            rootRef={rootRef}
-            previewOnly={__CERTIFY__ && !__DEV__}
+          <ParameterPanel
+            visible={parameterPanelVisible}
+            store={parameterStore}
+            onRequestClose={() => setParameterPanelVisible(false)}
           />,
           document.body,
         )

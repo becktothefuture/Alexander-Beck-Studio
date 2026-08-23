@@ -21,6 +21,11 @@ const LOCAL_KEYBOARD_TARGET_SELECTOR = [
 ].join(', ');
 
 const OPEN_MODAL_SELECTOR = '[role="dialog"][aria-modal="true"]:not([aria-hidden="true"])';
+const GLOBAL_SHORTCUT_SUSPENSION_SELECTOR = [
+  '[data-global-keyboard-shortcuts="suspended"]',
+  ':not([hidden])',
+  ':not([aria-hidden="true"])',
+].join('');
 
 function closestMatch(target, selector) {
   return typeof target?.closest === 'function' ? target.closest(selector) : null;
@@ -44,6 +49,7 @@ export function shouldIgnoreGlobalKeyboardShortcut(event, options = {}) {
     || event.target?.ownerDocument
     || globalThis.document;
   if (documentObject?.querySelector?.(OPEN_MODAL_SELECTOR)) return true;
+  if (documentObject?.querySelector?.(GLOBAL_SHORTCUT_SUSPENSION_SELECTOR)) return true;
 
   if (options.allowRouteTab && closestMatch(event.target, '[data-route-tab]')) {
     return false;

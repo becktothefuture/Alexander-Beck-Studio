@@ -55,6 +55,27 @@ function collapseInactivePositions(positions, presence) {
   return positions;
 }
 
+function ensureFogAnchorAttributes(output, pointCount) {
+  const attributes = output.attributes || {};
+  if (attributes.fogAnchorX && attributes.fogAnchorY && attributes.fogAnchorZ) {
+    output.attributes = attributes;
+    return;
+  }
+  const fogAnchorX = new Float32Array(pointCount);
+  const fogAnchorY = new Float32Array(pointCount);
+  const fogAnchorZ = new Float32Array(pointCount);
+  for (let index = 0; index < pointCount; index += 1) {
+    const positionIndex = index * 3;
+    fogAnchorX[index] = output.positions[positionIndex];
+    fogAnchorY[index] = output.positions[positionIndex + 1];
+    fogAnchorZ[index] = output.positions[positionIndex + 2];
+  }
+  attributes.fogAnchorX = fogAnchorX;
+  attributes.fogAnchorY = fogAnchorY;
+  attributes.fogAnchorZ = fogAnchorZ;
+  output.attributes = attributes;
+}
+
 function createCluster(count, seeds, parameters) {
   const positions = new Float32Array(count * 3);
   const radiusScale = Number(parameters.radius ?? 2.7);
@@ -512,25 +533,53 @@ async function loadBust(count, quality, signal) {
   return normalizeBust(new Float32Array(await response.arrayBuffer()), count);
 }
 
-function normalizeEditedAboutWorld(source, count) {
-  const sourceCount = source.length / 8;
+function normalizeEditedAboutWorld(source, count, layout) {
+  const stride = Number(layout?.strideFloats || 8);
+  const attributeNames = Array.isArray(layout?.attributes) ? layout.attributes : [];
+  const fogAnchorOffset = attributeNames.indexOf('fogAnchor.x');
+  const sourceCount = source.length / stride;
   if (!Number.isInteger(sourceCount) || sourceCount <= 0) {
     throw new Error('Edited About world point data has an invalid stride.');
   }
+  if (stride < 8 || (fogAnchorOffset >= 0 && fogAnchorOffset + 2 >= stride)) {
+    throw new Error('Edited About world point data has an invalid layout.');
+  }
   const positions = new Float32Array(count * 3);
   const size = new Float32Array(count);
+  const densitySeed = new Float32Array(count);
+  const fogAnchorX = new Float32Array(count);
+  const fogAnchorY = new Float32Array(count);
+  const fogAnchorZ = new Float32Array(count);
   const materialSizeCodes = ABOUT_NARRATIVE_LONG_ASSEMBLY.materialSizeCodes;
   for (let index = 0; index < count; index += 1) {
-    const sourceIndex = (index % sourceCount) * 8;
+    const sourceIndex = (index % sourceCount) * stride;
     const targetIndex = index * 3;
     positions[targetIndex] = source[sourceIndex];
     positions[targetIndex + 1] = source[sourceIndex + 1];
     positions[targetIndex + 2] = source[sourceIndex + 2];
     const materialGroup = Math.min(5, Math.max(0, Math.round(source[sourceIndex + 7] || 0)));
-    const oceanMarker = source[sourceIndex + 6] < 0 ? 1 : 0;
-    size[index] = materialSizeCodes[materialGroup] + oceanMarker;
+    size[index] = materialSizeCodes[materialGroup];
+    densitySeed[index] = source[sourceIndex + 6];
+    fogAnchorX[index] = fogAnchorOffset >= 0
+      ? source[sourceIndex + fogAnchorOffset]
+      : source[sourceIndex];
+    fogAnchorY[index] = fogAnchorOffset >= 0
+      ? source[sourceIndex + fogAnchorOffset + 1]
+      : source[sourceIndex + 1];
+    fogAnchorZ[index] = fogAnchorOffset >= 0
+      ? source[sourceIndex + fogAnchorOffset + 2]
+      : source[sourceIndex + 2];
   }
-  return { positions, size };
+  return {
+    positions,
+    size,
+    attributes: {
+      densitySeed,
+      fogAnchorX,
+      fogAnchorY,
+      fogAnchorZ,
+    },
+  };
 }
 
 async function loadEditedAboutWorld(count, quality, signal) {
@@ -543,7 +592,11 @@ async function loadEditedAboutWorld(count, quality, signal) {
   if (!lod?.file) throw new Error(`Edited About world metadata has no ${qualityId} LOD.`);
   const response = await fetch(`${assetRoot}/${lod.file}`, { signal });
   if (!response.ok) throw new Error(`Edited About world points failed: ${response.status}`);
-  const output = normalizeEditedAboutWorld(new Float32Array(await response.arrayBuffer()), count);
+  const output = normalizeEditedAboutWorld(
+    new Float32Array(await response.arrayBuffer()),
+    count,
+    metadata.layout,
+  );
   output.assetId = metadata.name || 'about-v2-edited-world';
   return output;
 }
@@ -638,7 +691,15 @@ export async function generateAboutNarrativeShape({
   } else {
     output = GENERATORS[shapeId](pointCount, seeds, parameters || {}, { layoutProfile });
   }
-  output.presence = createPresence(pointCount, seeds, Number(parameters?.density ?? 1));
+  // Blender exports spatially shuffled strata for every prepared model.
+  // Applying one threshold keeps the visible percentage equal without using
+  // mesh traversal order, which would remove continuous regions of a form.
+  const densitySeeds = output.attributes?.densitySeed || seeds;
+  output.presence = createPresence(
+    pointCount,
+    densitySeeds,
+    Number(parameters?.density ?? 1),
+  );
   if (output.attributes?.disciplineGroup) {
     for (let index = 0; index < output.attributes.disciplineGroup.length; index += 1) {
       if (output.attributes.disciplineGroup[index] > 0) output.presence[index] = 1;
@@ -647,6 +708,7 @@ export async function generateAboutNarrativeShape({
   collapseInactivePositions(output.positions, output.presence);
   output.size = output.size || new Float32Array(pointCount).fill(1);
   output.attributes = output.attributes || {};
+  ensureFogAnchorAttributes(output, pointCount);
   output.bounds = calculateBounds(output.positions);
   return validateAboutNarrativeShapeOutput(output, pointCount);
 }

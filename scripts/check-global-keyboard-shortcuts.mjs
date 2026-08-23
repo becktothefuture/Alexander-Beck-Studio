@@ -12,10 +12,19 @@ const ITEMS = Object.freeze([
   Object.freeze({ routeId: 'about' }),
 ]);
 
-function createTarget({ interactive = false, routeTab = false, modalOpen = false } = {}) {
+function createTarget({
+  interactive = false,
+  modalOpen = false,
+  routeTab = false,
+  shortcutsSuspended = false,
+} = {}) {
   return {
     ownerDocument: {
-      querySelector: () => (modalOpen ? {} : null),
+      querySelector: (selector) => {
+        if (selector.includes('aria-modal')) return modalOpen ? {} : null;
+        if (selector.includes('data-global-keyboard-shortcuts')) return shortcutsSuspended ? {} : null;
+        return null;
+      },
     },
     closest(selector) {
       if (selector === '[data-route-tab]') return routeTab ? {} : null;
@@ -54,12 +63,13 @@ test('wrapped navigation chooses the directional edge when the active item is ab
   assert.equal(getWrappedAdjacentItem(ITEMS, 'missing', -1, getId)?.routeId, 'about');
 });
 
-test('global shortcuts ignore modified, repeated, composed, interactive, and modal events', () => {
+test('global shortcuts ignore modified, repeated, composed, interactive, modal, and suspended events', () => {
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ repeat: true })), true);
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ metaKey: true })), true);
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ isComposing: true })), true);
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ target: createTarget({ interactive: true }) })), true);
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ target: createTarget({ modalOpen: true }) })), true);
+  assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent({ target: createTarget({ shortcutsSuspended: true }) })), true);
   assert.equal(shouldIgnoreGlobalKeyboardShortcut(createEvent()), false);
 });
 

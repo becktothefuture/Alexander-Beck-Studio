@@ -1,0 +1,290 @@
+.about-scene-parameter-panel {
+  --parameterizer-panel-width: 280px;
+  --parameterizer-header-height: 28px;
+  --parameterizer-folder-height: 24px;
+  --parameterizer-row-height: 26px;
+  --parameterizer-panel-bg: #191a1d;
+  --parameterizer-header-bg: #111215;
+  --parameterizer-folder-bg: #222429;
+  --parameterizer-row-bg: #191a1d;
+  --parameterizer-row-hover: #202228;
+  --parameterizer-separator: #2d3036;
+  --parameterizer-text: #eceff3;
+  --parameterizer-muted: #8d939c;
+  --parameterizer-widget-bg: #2a2d33;
+  --parameterizer-widget-hover: #343842;
+  --parameterizer-accent: #5db7ff;
+
+  position: fixed;
+  z-index: 20000;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  display: grid;
+  grid-template-rows: var(--parameterizer-header-height) auto minmax(0, 1fr) auto;
+  width: min(var(--parameterizer-panel-width), calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow: hidden;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 4px;
+  background: var(--parameterizer-panel-bg);
+  box-shadow: 0 18px 52px rgb(0 0 0 / 34%);
+  font: 500 11px/1.25 var(--abs-font-sans);
+  pointer-events: auto;
+}
+
+.about-scene-parameter-panel,
+.about-scene-parameter-panel *,
+.about-scene-parameter-panel *::before,
+.about-scene-parameter-panel *::after {
+  box-sizing: border-box;
+}
+
+.about-scene-parameter-panel[hidden] {
+  display: none;
+}
+
+.about-scene-parameter-panel:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: -2px;
+}
+
+.about-scene-parameter-panel .parameterizer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--parameterizer-header-height);
+  padding-inline: 8px 4px;
+  border-bottom: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.about-scene-parameter-panel .parameterizer-header > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.about-scene-parameter-panel .parameterizer-header strong,
+.about-scene-parameter-panel .parameterizer-header span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-scene-parameter-panel .parameterizer-header strong {
+  font-weight: 700;
+}
+
+.about-scene-parameter-panel .parameterizer-header span {
+  color: var(--parameterizer-muted);
+  font-size: 9px;
+}
+
+.about-scene-parameter-panel button {
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  font: inherit;
+}
+
+.about-scene-parameter-panel button:not(:disabled):hover {
+  background: var(--parameterizer-widget-hover);
+}
+
+.about-scene-parameter-panel button:focus-visible,
+.about-scene-parameter-panel input:focus-visible,
+.about-scene-parameter-panel select:focus-visible,
+.about-scene-parameter-panel summary:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: -2px;
+}
+
+.about-scene-parameter-panel button:disabled {
+  opacity: 0.42;
+}
+
+.about-scene-parameter-panel .parameterizer-header button {
+  min-width: 42px;
+  height: 20px;
+  padding-inline: 5px;
+  color: var(--parameterizer-muted);
+  border-color: transparent;
+  background: transparent;
+  font-size: 9px;
+}
+
+.about-scene-parameter-panel__note {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--parameterizer-muted);
+  border-bottom: 1px solid var(--parameterizer-separator);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.about-scene-parameter-panel .parameterizer-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.about-scene-parameter-panel .parameterizer-folder {
+  border-bottom: 1px solid var(--parameterizer-separator);
+}
+
+.about-scene-parameter-panel .parameterizer-folder-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--parameterizer-folder-height);
+  padding-inline: 8px;
+  color: var(--parameterizer-text);
+  background: var(--parameterizer-folder-bg);
+  cursor: default;
+  font-weight: 650;
+  list-style: none;
+}
+
+.about-scene-parameter-panel .parameterizer-folder-title::-webkit-details-marker {
+  display: none;
+}
+
+.about-scene-parameter-panel .parameterizer-folder-title > span::before {
+  display: inline-block;
+  width: 12px;
+  color: var(--parameterizer-muted);
+  content: '▾';
+}
+
+.about-scene-parameter-panel .parameterizer-folder:not([open]) .parameterizer-folder-title > span::before {
+  content: '▸';
+}
+
+.about-scene-parameter-panel .parameterizer-folder-title small {
+  color: var(--parameterizer-muted);
+  font: 500 9px/1 var(--abs-font-mono);
+}
+
+.about-scene-parameter-panel .parameterizer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 44%) minmax(0, 56%);
+  align-items: center;
+  height: var(--parameterizer-row-height);
+  padding-inline: 8px 6px;
+  background: var(--parameterizer-row-bg);
+  cursor: default;
+}
+
+.about-scene-parameter-panel .parameterizer-row + .parameterizer-row {
+  border-top: 1px solid rgb(45 48 54 / 45%);
+}
+
+.about-scene-parameter-panel .parameterizer-row:hover {
+  background: var(--parameterizer-row-hover);
+}
+
+.about-scene-parameter-panel .parameterizer-label {
+  overflow: hidden;
+  padding-right: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-scene-parameter-panel .parameterizer-control {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: 5px;
+}
+
+.about-scene-parameter-panel input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--parameterizer-accent);
+}
+
+.about-scene-parameter-panel .parameterizer-control--select {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.about-scene-parameter-panel select {
+  width: 100%;
+  min-width: 0;
+  height: 20px;
+  padding-inline: 4px;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  font: 500 9px/1 var(--abs-font-mono);
+}
+
+.about-scene-parameter-panel .parameterizer-session-badge {
+  color: var(--parameterizer-muted);
+  font: 500 8px/1 var(--abs-font-mono);
+  text-transform: uppercase;
+}
+
+.about-scene-parameter-panel .parameterizer-value {
+  overflow: hidden;
+  padding: 3px 4px;
+  color: var(--parameterizer-accent);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  font: 500 9px/1 var(--abs-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-scene-parameter-panel .parameterizer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px;
+  border-top: 1px solid var(--parameterizer-separator);
+  background: var(--parameterizer-header-bg);
+}
+
+.about-scene-parameter-panel .parameterizer-actions output {
+  overflow: hidden;
+  padding-inline: 4px;
+  color: var(--parameterizer-muted);
+  font: 500 9px/1 var(--abs-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-scene-parameter-panel .parameterizer-actions button {
+  min-width: 46px;
+  height: 22px;
+  padding-inline: 7px;
+  font-size: 9px;
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .about-scene-parameter-panel {
+    --parameterizer-header-height: 36px;
+    --parameterizer-folder-height: 32px;
+    --parameterizer-row-height: 32px;
+    font-size: 13px;
+  }
+
+  .about-scene-parameter-panel .parameterizer-header button,
+  .about-scene-parameter-panel .parameterizer-actions button {
+    min-height: 28px;
+    font-size: 11px;
+  }
+
+  .about-scene-parameter-panel .parameterizer-value {
+    font-size: 10px;
+  }
+}

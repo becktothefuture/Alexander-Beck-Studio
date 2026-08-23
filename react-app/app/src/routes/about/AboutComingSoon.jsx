@@ -19,7 +19,7 @@ export function AboutComingSoon() {
   };
 
   return (
-    <div className="route-centered-page">
+    <div className="route-centered-page" data-route-content="about">
       <section className="route-centered-page__inner" aria-labelledby="about-coming-soon-title">
         <div className="about-coming-soon__title-row">
           <h1

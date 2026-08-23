@@ -1,921 +1,673 @@
 {
-  "version": 1,
+  "schema": "about-point-scene",
+  "version": 2,
   "name": "about-v2-edited-world",
-  "title": "About V2 edited Blender world",
+  "title": "About V2 authored Blender surfel scene",
   "creator": "Alexander Beck",
   "source": {
-    "file": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/source-assets/about-v2-blender-current/about-v2-track-working.blend",
-    "sha256": "6c1c4ca90ff8768179c56d010d572b09c9efefb3da0551a49547c378d2365ae1",
+    "file": "source-assets/about-v2-blender-current/about-v2-track-working.blend",
+    "sha256": "e2ddda92040368edcdaf9b6ae0cbc9a6f922a41139f2a463856ecc3619e3494a",
+    "objectCount": 16,
+    "triangleCount": 16179,
+    "surfaceArea": 38420.005755,
     "objects": [
       {
-        "name": "BEAM_056_living-trunk",
-        "triangles": 36,
-        "surfaceArea": 109.335358,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.001",
-        "triangles": 36,
-        "surfaceArea": 109.335263,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.002",
-        "triangles": 36,
-        "surfaceArea": 109.335299,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.003",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.004",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.005",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.006",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.007",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.008",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.009",
-        "triangles": 36,
-        "surfaceArea": 109.335278,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.010",
-        "triangles": 36,
-        "surfaceArea": 109.335305,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.011",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.012",
-        "triangles": 36,
-        "surfaceArea": 109.335296,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.013",
-        "triangles": 36,
-        "surfaceArea": 109.335296,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.014",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.015",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.016",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.017",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.018",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.019",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.020",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "BEAM_056_living-trunk.021",
-        "triangles": 36,
-        "surfaceArea": 109.335311,
-        "collections": [
-          "06_LIVING"
-        ]
-      },
-      {
-        "name": "Cube",
-        "triangles": 12,
-        "surfaceArea": 23.999973,
-        "collections": [
-          "Collection"
-        ]
-      },
-      {
-        "name": "Cube.001",
-        "triangles": 12,
-        "surfaceArea": 89.555536,
-        "collections": [
-          "Collection"
-        ]
-      },
-      {
-        "name": "Cube.002",
-        "triangles": 12,
-        "surfaceArea": 44.042989,
-        "collections": [
-          "Collection"
-        ]
-      },
-      {
-        "name": "Cube.003",
-        "triangles": 12,
-        "surfaceArea": 44.042988,
-        "collections": [
-          "Collection"
-        ]
-      },
-      {
-        "name": "Cube.004",
-        "triangles": 12,
-        "surfaceArea": 184.239064,
-        "collections": [
-          "Collection"
-        ]
-      },
-      {
-        "name": "GATE_029_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 17.827998,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_029_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 17.827999,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_029_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 17.828005,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_029_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 17.828004,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_030_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 18.152327,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_030_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 18.152323,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_030_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 18.152232,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_030_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 18.152231,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_031_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 18.469294,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_031_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 18.469295,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_031_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 18.4694,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_031_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 18.469401,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_032_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 18.772124,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_032_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 18.772124,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_032_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 18.77216,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_032_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 18.772161,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_033_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.053759,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_033_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.053765,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_033_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.053731,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_033_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.053729,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_034_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.308027,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_034_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.308025,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_034_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.308117,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_034_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.308114,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_035_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.529276,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_035_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.529278,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_035_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.529239,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_035_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.529232,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_036_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.712536,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_036_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.71255,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_036_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.712355,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_036_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.712355,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_037_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.853514,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_037_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.853517,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_037_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.853743,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_037_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.853749,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_038_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.949439,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_038_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.949434,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_038_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.949459,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_038_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.949457,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_039_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.998042,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_039_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.998053,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_039_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.998051,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_039_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.998059,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_040_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.997962,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_040_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.997962,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_040_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.997737,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_040_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.997746,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_041_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.949439,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_041_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.949442,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_041_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.949527,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_041_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.949526,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_043_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.712601,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_043_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.7126,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_043_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.7125,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_043_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.712498,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_045_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 19.308095,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_045_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 19.3081,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_045_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 19.307974,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_045_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 19.307972,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_047_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 18.772046,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_047_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 18.772044,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_047_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 18.772056,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_047_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 18.772067,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_049_rotating-loop-gate_LEFT",
-        "triangles": 12,
-        "surfaceArea": 18.152338,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_049_rotating-loop-gate_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 18.15234,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_049_rotating-loop-gate_SILL",
-        "triangles": 12,
-        "surfaceArea": 18.152393,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_049_rotating-loop-gate_TOP",
-        "triangles": 12,
-        "surfaceArea": 18.152394,
-        "collections": [
-          "04_LOOP"
-        ]
-      },
-      {
-        "name": "GATE_051_ignition-circuit_LEFT",
-        "triangles": 12,
-        "surfaceArea": 25.387996,
-        "collections": [
-          "05_IGNITION"
-        ]
-      },
-      {
-        "name": "GATE_051_ignition-circuit_RIGHT",
-        "triangles": 12,
-        "surfaceArea": 25.387915,
-        "collections": [
-          "05_IGNITION"
-        ]
-      },
-      {
-        "name": "GATE_051_ignition-circuit_SILL",
-        "triangles": 12,
-        "surfaceArea": 28.863882,
-        "collections": [
-          "05_IGNITION"
-        ]
-      },
-      {
-        "name": "GATE_051_ignition-circuit_TOP",
-        "triangles": 12,
-        "surfaceArea": 28.863968,
-        "collections": [
-          "05_IGNITION"
-        ]
-      },
-      {
-        "name": "HOOP_000_opening-signal-ring",
-        "triangles": 1152,
-        "surfaceArea": 59.70177,
-        "collections": [
-          "01_SIGNAL"
-        ]
-      },
-      {
-        "name": "HOOP_004_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 51.427653,
+        "name": "CRT_Monitor_monitor_plastic_0",
+        "objectKey": "floating.crt",
+        "modelKey": "crt_monitor",
+        "role": "floating-model",
+        "motionKey": "floating.crt.rigid",
+        "revealGroup": "floating.crt",
+        "componentPolicy": "semantic-material-projected-feature",
+        "densityGroup": "crt_monitor",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 3742,
+        "surfaceArea": 51.142348,
+        "surfelCount": 751,
+        "semanticAnchorCount": 2,
+        "connectedComponentCount": 25,
+        "protectedComponentCount": 23,
+        "componentAnchorCount": 23,
+        "requiredAnchorCount": 23,
+        "spacingTarget": 0.260958,
+        "bounds": {
+          "min": [
+            6.794491,
+            2.816206,
+            -98.475319
+          ],
+          "max": [
+            11.205203,
+            6.646855,
+            -94.178688
+          ]
+        }
+      },
+      {
+        "name": "Object_2",
+        "objectKey": "floating.cursor.primary",
+        "modelKey": "cursor_3d",
+        "role": "floating-model",
+        "motionKey": "floating.cursor.rigid",
+        "revealGroup": "floating.cursor",
+        "componentPolicy": "semantic-object-projected-feature",
+        "densityGroup": "cursor_3d",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 364,
+        "surfaceArea": 8.167879,
+        "surfelCount": 120,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 5,
+        "protectedComponentCount": 5,
+        "componentAnchorCount": 5,
+        "requiredAnchorCount": 5,
+        "spacingTarget": 0.260894,
+        "bounds": {
+          "min": [
+            -3.216871,
+            -0.669338,
+            -96.595703
+          ],
+          "max": [
+            -1.362986,
+            1.775999,
+            -94.85601
+          ]
+        }
+      },
+      {
+        "name": "Object_3.009",
+        "objectKey": "floating.cursor.secondary",
+        "modelKey": "cursor_3d",
+        "role": "floating-model",
+        "motionKey": "floating.cursor.rigid",
+        "revealGroup": "floating.cursor",
+        "componentPolicy": "semantic-object-projected-feature",
+        "densityGroup": "cursor_3d",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 24,
+        "surfaceArea": 4.674137,
+        "surfelCount": 69,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 9,
+        "protectedComponentCount": 9,
+        "componentAnchorCount": 9,
+        "requiredAnchorCount": 9,
+        "spacingTarget": 0.260271,
+        "bounds": {
+          "min": [
+            1.67465,
+            -3.033034,
+            -90.83213
+          ],
+          "max": [
+            3.171649,
+            -0.783722,
+            -89.156181
+          ]
+        }
+      },
+      {
+        "name": "ABS_FINALE_WORKBENCH_LAMP",
+        "objectKey": "finale.workbench.lamp",
+        "modelKey": "finale_workplace",
+        "role": "finale-workbench",
+        "motionKey": "finale.static",
+        "revealGroup": "finale.workbench",
+        "componentPolicy": "semantic-material-projected-coverage",
+        "densityGroup": "finale_workplace",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "07_FINALE_WORKBENCH"
+        ],
+        "triangles": 1386,
+        "surfaceArea": 140.349267,
+        "surfelCount": 2061,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 12,
+        "protectedComponentCount": 12,
+        "componentAnchorCount": 12,
+        "requiredAnchorCount": 12,
+        "spacingTarget": 0.260955,
+        "bounds": {
+          "min": [
+            7.165232,
+            -7.08,
+            -370.0
+          ],
+          "max": [
+            14.66,
+            7.03,
+            -366.0
+          ]
+        }
+      },
+      {
+        "name": "ABS_FINALE_WORKBENCH_LAPTOP",
+        "objectKey": "finale.workbench.laptop",
+        "modelKey": "finale_workplace",
+        "role": "finale-workbench",
+        "motionKey": "finale.static",
+        "revealGroup": "finale.workbench",
+        "componentPolicy": "semantic-material-projected-coverage",
+        "densityGroup": "finale_workplace",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "07_FINALE_WORKBENCH"
+        ],
+        "triangles": 308,
+        "surfaceArea": 108.821204,
+        "surfelCount": 1598,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 23,
+        "protectedComponentCount": 23,
+        "componentAnchorCount": 23,
+        "requiredAnchorCount": 23,
+        "spacingTarget": 0.260957,
+        "bounds": {
+          "min": [
+            -2.781127,
+            -7.02,
+            -368.096863
+          ],
+          "max": [
+            2.418873,
+            -3.597501,
+            -364.440002
+          ]
+        }
+      },
+      {
+        "name": "ABS_FINALE_WORKBENCH_PICTURE",
+        "objectKey": "finale.workbench.picture",
+        "modelKey": "finale_workplace",
+        "role": "finale-workbench",
+        "motionKey": "finale.static",
+        "revealGroup": "finale.workbench",
+        "componentPolicy": "semantic-material-projected-coverage",
+        "densityGroup": "finale_workplace",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "07_FINALE_WORKBENCH"
+        ],
+        "triangles": 148,
+        "surfaceArea": 81.158973,
+        "surfelCount": 1192,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 9,
+        "protectedComponentCount": 9,
+        "componentAnchorCount": 9,
+        "requiredAnchorCount": 9,
+        "spacingTarget": 0.260934,
+        "bounds": {
+          "min": [
+            -8.087364,
+            0.193417,
+            -370.946136
+          ],
+          "max": [
+            -2.887365,
+            4.393417,
+            -370.196136
+          ]
+        }
+      },
+      {
+        "name": "ABS_FINALE_WORKBENCH_STOOL",
+        "objectKey": "finale.workbench.stool",
+        "modelKey": "finale_workplace",
+        "role": "finale-workbench",
+        "motionKey": "finale.static",
+        "revealGroup": "finale.workbench",
+        "componentPolicy": "semantic-material-projected-coverage",
+        "densityGroup": "finale_workplace",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "07_FINALE_WORKBENCH"
+        ],
+        "triangles": 148,
+        "surfaceArea": 82.32529,
+        "surfelCount": 1209,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 9,
+        "protectedComponentCount": 9,
+        "componentAnchorCount": 9,
+        "requiredAnchorCount": 11,
+        "spacingTarget": 0.260948,
+        "bounds": {
+          "min": [
+            -5.33105,
+            -14.876348,
+            -361.475555
+          ],
+          "max": [
+            -0.597597,
+            -8.625,
+            -357.024445
+          ]
+        }
+      },
+      {
+        "name": "ABS_FINALE_WORKBENCH_TABLE",
+        "objectKey": "finale.workbench.table",
+        "modelKey": "finale_workplace",
+        "role": "finale-workbench",
+        "motionKey": "finale.static",
+        "revealGroup": "finale.workbench",
+        "componentPolicy": "semantic-material-projected-coverage",
+        "densityGroup": "finale_workplace",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "07_FINALE_WORKBENCH"
+        ],
+        "triangles": 168,
+        "surfaceArea": 850.682833,
+        "surfelCount": 12494,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 14,
+        "protectedComponentCount": 14,
+        "componentAnchorCount": 14,
+        "requiredAnchorCount": 19,
+        "spacingTarget": 0.260935,
+        "bounds": {
+          "min": [
+            -13.5,
+            -15.29,
+            -371.992157
+          ],
+          "max": [
+            13.5,
+            -7.125,
+            -363.607819
+          ]
+        }
+      },
+      {
+        "name": "GN_GATE_TUNNEL",
+        "objectKey": "path.gate-tunnel",
+        "modelKey": "gate_tunnel",
+        "role": "path-tunnel",
+        "motionKey": "path.static",
+        "revealGroup": "loop.gates",
+        "componentPolicy": "authored-instance-perimeter",
+        "densityGroup": "gate_tunnel",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
+        "collections": [
+          "04_LOOP"
+        ],
+        "triangles": 288,
+        "surfaceArea": 752.967499,
+        "surfelCount": 11059,
+        "semanticAnchorCount": 6,
+        "connectedComponentCount": 9,
+        "protectedComponentCount": 9,
+        "componentAnchorCount": 9,
+        "requiredAnchorCount": 9,
+        "spacingTarget": 0.260934,
+        "bounds": {
+          "min": [
+            -13.312366,
+            -3.931682,
+            -251.633881
+          ],
+          "max": [
+            13.281034,
+            21.028347,
+            -129.574463
+          ]
+        }
+      },
+      {
+        "name": "GN_HOOP_TUNNEL",
+        "objectKey": "path.hoop-tunnel",
+        "modelKey": "hoop_tunnel",
+        "role": "path-tunnel",
+        "motionKey": "path.static",
+        "revealGroup": "opening.hoops",
+        "componentPolicy": "authored-instance-angular-coverage",
+        "densityGroup": "hoop_tunnel",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
           "02_HOOPS"
-        ]
+        ],
+        "triangles": 2304,
+        "surfaceArea": 360.087141,
+        "surfelCount": 5288,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 12,
+        "protectedComponentCount": 12,
+        "componentAnchorCount": 12,
+        "requiredAnchorCount": 12,
+        "spacingTarget": 0.26095,
+        "bounds": {
+          "min": [
+            -14.159254,
+            -4.320213,
+            -77.242867
+          ],
+          "max": [
+            -1.551891,
+            5.929176,
+            -27.72962
+          ]
+        }
       },
       {
-        "name": "HOOP_006_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 63.894871,
+        "name": "Phone_Phone_0",
+        "objectKey": "floating.phone",
+        "modelKey": "mobile_phone",
+        "role": "floating-model",
+        "motionKey": "floating.phone.rigid",
+        "revealGroup": "floating.phone",
+        "componentPolicy": "semantic-material-projected-feature",
+        "densityGroup": "mobile_phone",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 1008,
+        "surfaceArea": 28.001966,
+        "surfelCount": 411,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 51,
+        "protectedComponentCount": 11,
+        "componentAnchorCount": 11,
+        "requiredAnchorCount": 11,
+        "spacingTarget": 0.26102,
+        "bounds": {
+          "min": [
+            -6.003626,
+            -2.359188,
+            -92.038124
+          ],
+          "max": [
+            -2.446645,
+            1.714398,
+            -87.398056
+          ]
+        }
       },
       {
-        "name": "HOOP_008_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 59.425676,
+        "name": "Object_3.001",
+        "objectKey": "floating.mouse.body",
+        "modelKey": "mouse_with_cable",
+        "role": "floating-model",
+        "motionKey": "floating.mouse.rigid",
+        "revealGroup": "floating.mouse",
+        "componentPolicy": "semantic-material-projected-feature",
+        "densityGroup": "mouse_with_cable",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 960,
+        "surfaceArea": 39.408978,
+        "surfelCount": 579,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 42,
+        "protectedComponentCount": 16,
+        "componentAnchorCount": 16,
+        "requiredAnchorCount": 16,
+        "spacingTarget": 0.260891,
+        "bounds": {
+          "min": [
+            1.231614,
+            2.888294,
+            -113.359604
+          ],
+          "max": [
+            4.609284,
+            7.607908,
+            -110.05497
+          ]
+        }
       },
       {
-        "name": "HOOP_009_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 65.224954,
+        "name": "Object_2.001",
+        "objectKey": "floating.mouse.cable",
+        "modelKey": "mouse_with_cable",
+        "role": "floating-model",
+        "motionKey": "floating.mouse.rigid",
+        "revealGroup": "floating.mouse",
+        "componentPolicy": "thin-feature-curvature",
+        "densityGroup": "mouse_with_cable",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 1152,
+        "surfaceArea": 12.041814,
+        "surfelCount": 177,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 1,
+        "protectedComponentCount": 1,
+        "componentAnchorCount": 1,
+        "requiredAnchorCount": 1,
+        "spacingTarget": 0.260831,
+        "bounds": {
+          "min": [
+            1.920273,
+            -4.140515,
+            -113.848328
+          ],
+          "max": [
+            7.607256,
+            3.096152,
+            -105.928505
+          ]
+        }
       },
       {
-        "name": "HOOP_010_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 54.043515,
+        "name": "Object_4.001",
+        "objectKey": "floating.mouse.detail",
+        "modelKey": "mouse_with_cable",
+        "role": "floating-model",
+        "motionKey": "floating.mouse.rigid",
+        "revealGroup": "floating.mouse",
+        "componentPolicy": "explicit-detail-projected-feature",
+        "densityGroup": "mouse_with_cable",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 479,
+        "surfaceArea": 5.946808,
+        "surfelCount": 87,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 31,
+        "protectedComponentCount": 23,
+        "componentAnchorCount": 23,
+        "requiredAnchorCount": 23,
+        "spacingTarget": 0.261446,
+        "bounds": {
+          "min": [
+            1.144965,
+            0.322395,
+            -107.723854
+          ],
+          "max": [
+            2.208399,
+            2.775228,
+            -106.07209
+          ]
+        }
       },
       {
-        "name": "HOOP_011_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 59.425677,
+        "name": "GN_PARAMETRIC_FOREST",
+        "objectKey": "environment.forest",
+        "modelKey": "parametric_forest",
+        "role": "parametric-forest",
+        "motionKey": "forest.instance-field",
+        "revealGroup": "living.forest",
+        "componentPolicy": "rail-cell-instance-coverage",
+        "densityGroup": "parametric_forest",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 0.1,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
+          "06_LIVING"
+        ],
+        "triangles": 3216,
+        "surfaceArea": 35879.912613,
+        "surfelCount": 52695,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 268,
+        "protectedComponentCount": 268,
+        "componentAnchorCount": 268,
+        "requiredAnchorCount": 268,
+        "spacingTarget": 0.825165,
+        "bounds": {
+          "min": [
+            -44.13723,
+            -28.963306,
+            -322.316406
+          ],
+          "max": [
+            43.603554,
+            30.475708,
+            -268.369934
+          ]
+        }
       },
       {
-        "name": "HOOP_012_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 64.548403,
+        "name": "Cylinder_Material.001_0",
+        "objectKey": "floating.pencil",
+        "modelKey": "pencil",
+        "role": "floating-model",
+        "motionKey": "floating.pencil.rigid",
+        "revealGroup": "floating.pencil",
+        "componentPolicy": "continuous-outline-object-fallback",
+        "densityGroup": "pencil",
+        "densityFactor": 1.0,
+        "featurePriority": 1.0,
+        "sceneDensityWeight": 1.0,
+        "preserveMinPx": 2.0,
         "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_013_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 52.941458,
-        "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_014_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 57.653519,
-        "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_015_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 62.067879,
-        "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_016_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 50.506894,
-        "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_017_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 54.640093,
-        "collections": [
-          "02_HOOPS"
-        ]
-      },
-      {
-        "name": "HOOP_018_centered-hoop",
-        "triangles": 1152,
-        "surfaceArea": 58.52644,
-        "collections": [
-          "02_HOOPS"
-        ]
+          "ABS_FLOATING_MODELS"
+        ],
+        "triangles": 484,
+        "surfaceArea": 14.317007,
+        "surfelCount": 210,
+        "semanticAnchorCount": 1,
+        "connectedComponentCount": 210,
+        "protectedComponentCount": 210,
+        "componentAnchorCount": 210,
+        "requiredAnchorCount": 210,
+        "spacingTarget": 0.261106,
+        "bounds": {
+          "min": [
+            7.073417,
+            0.027517,
+            -112.306351
+          ],
+          "max": [
+            9.101694,
+            4.941464,
+            -108.910347
+          ]
+        }
       }
     ],
-    "objectCount": 113,
-    "triangleCount": 17844,
-    "surfaceArea": 5019.864907,
-    "oceanMarker": null
+    "semanticFallbacks": [],
+    "samplingPolicy": {
+      "type": "progressive-semantic-best-candidate-v3",
+      "space": "WORLD",
+      "allocation": "role-weighted-world-surface-area-with-anchor-minimum",
+      "profileMinimum": "semantic-and-meaningful-component-anchor-union",
+      "environmentDensityWeight": 0.1,
+      "bestCandidatesPerSurfel": 8,
+      "profileSelection": "nested-per-model-prefix",
+      "featureConstraint": "relocate-semantic-and-meaningful-component-anchors-never-add",
+      "componentPolicies": {
+        "authored-instance-perimeter": {
+          "mode": "all"
+        },
+        "authored-instance-angular-coverage": {
+          "mode": "all"
+        },
+        "thin-feature-curvature": {
+          "mode": "all"
+        },
+        "rail-cell-instance-coverage": {
+          "mode": "all"
+        },
+        "continuous-outline-object-fallback": {
+          "mode": "all"
+        },
+        "semantic-material-projected-feature": {
+          "mode": "meaningful-area",
+          "relativeFloor": 0.0015
+        },
+        "semantic-object-projected-feature": {
+          "mode": "meaningful-area",
+          "relativeFloor": 0.0015
+        },
+        "semantic-material-projected-coverage": {
+          "mode": "meaningful-area",
+          "relativeFloor": 0.0015
+        },
+        "explicit-detail-projected-feature": {
+          "mode": "meaningful-area",
+          "relativeFloor": 0.0005
+        }
+      },
+      "densityFactorProperty": "abs_point_density",
+      "featurePriorityProperty": "abs_feature_priority",
+      "preserveMinimumProperty": "abs_preserve_min_px",
+      "fog": "runtime-depth-only"
+    }
   },
   "coordinateSystem": {
     "source": "Blender right-handed Z-up",
@@ -923,108 +675,777 @@
     "mapping": "Blender (x,y,z) -> website (x,z,-y)",
     "units": "metres / website world units"
   },
+  "exportControls": {
+    "owner": "Blender scene custom properties with optional command-line overrides",
+    "properties": {
+      "mobile": "abs_surfel_mobile_budget",
+      "desktop": "abs_surfel_desktop_budget",
+      "master": "abs_surfel_master_budget"
+    },
+    "resolvedBudgets": {
+      "mobile": 20000,
+      "desktop": 60000,
+      "master": 90000
+    }
+  },
+  "files": {
+    "surfels": {
+      "file": "surfels.bin",
+      "count": 90000,
+      "bytes": 2880000,
+      "sha256": "dd37bacbeb26161649ca312e5f11906ff2234f8939e0edfebef2495c2c4f4b1b"
+    },
+    "cameraTrack": {
+      "file": "camera-track.json",
+      "bytes": 272775,
+      "sha256": "178e7140685b0e63d958b517bc94c47d422928b80bab0896c37707c0b8268e6d"
+    }
+  },
   "layout": {
-    "format": "little-endian float32",
-    "strideFloats": 8,
+    "format": "little-endian-packed",
     "strideBytes": 32,
     "attributes": [
-      "position.x",
-      "position.y",
-      "position.z",
-      "normal.x",
-      "normal.y",
-      "normal.z",
-      "seed",
-      "colorGroup"
+      {
+        "name": "position",
+        "type": "float32x3",
+        "offset": 0
+      },
+      {
+        "name": "normalOct",
+        "type": "snorm16x2",
+        "offset": 12
+      },
+      {
+        "name": "radius",
+        "type": "unorm16",
+        "offset": 16
+      },
+      {
+        "name": "seed",
+        "type": "unorm16",
+        "offset": 18
+      },
+      {
+        "name": "modelId",
+        "type": "uint16",
+        "offset": 20
+      },
+      {
+        "name": "partId",
+        "type": "uint16",
+        "offset": 22
+      },
+      {
+        "name": "stableId",
+        "type": "uint32",
+        "offset": 24
+      },
+      {
+        "name": "paletteRole",
+        "type": "uint8",
+        "offset": 28
+      },
+      {
+        "name": "motionGroup",
+        "type": "uint8",
+        "offset": 29
+      },
+      {
+        "name": "featureClass",
+        "type": "uint8",
+        "offset": 30
+      },
+      {
+        "name": "flags",
+        "type": "uint8",
+        "offset": 31
+      }
+    ]
+  },
+  "quantization": {
+    "radiusWU": {
+      "min": 0,
+      "max": 6.5535,
+      "step": 0.0001
+    }
+  },
+  "bounds": {
+    "min": [
+      -44.13723,
+      -28.8423,
+      -371.992188
     ],
-    "oceanMarker": "seed < 0"
+    "max": [
+      43.603558,
+      30.361328,
+      -27.760065
+    ]
   },
   "palette": {
-    "owner": "Home simulation palette snapshot",
-    "groups": 6,
-    "policy": "balanced mixed groups; runtime colors only"
-  },
-  "ocean": {
-    "nearZ": -395.5,
-    "farZ": -2195.5,
-    "baseY": -6.2,
-    "nearHalfWidth": 50.0,
-    "farHalfWidth": 4400.0,
-    "cameraEnd": [
-      0.0,
-      2.2,
-      -393.0
+    "owner": "Blender semantic material roles",
+    "roles": [
+      "atmosphere",
+      "stone",
+      "steel",
+      "glass",
+      "signal",
+      "organic"
     ],
-    "blenderCameraEnd": [
-      0.0,
-      2.2,
-      -340.639709
-    ],
-    "nearOffset": 2.5
+    "runtimeResolution": "design-system Home palette"
   },
-  "finaleAlignment": {
-    "collections": [
-      "06_LIVING"
-    ],
-    "sourceMinY": -25.098303,
-    "sourceMaxY": 26.610708,
-    "sourceCenterY": 0.756203,
-    "cameraTrackY": 2.2,
-    "offsetY": 1.443797
-  },
-  "lods": {
-    "low": {
-      "file": "about-v2-edited-world-points-low.bin",
-      "count": 5000,
-      "bytes": 160000,
-      "environmentCount": 2000,
-      "oceanCount": 3000,
-      "bounds": {
-        "min": [
-          -3624.087706,
-          -23.654507,
-          -1951.061699
-        ],
-        "max": [
-          2170.608046,
-          28.054504,
-          0.48743
-        ]
-      },
-      "materialCounts": [
-        834,
-        834,
-        833,
-        833,
-        833,
-        833
-      ]
+  "motionGroups": [
+    {
+      "id": 0,
+      "key": "finale.static"
     },
-    "medium": {
-      "file": "about-v2-edited-world-points-medium.bin",
-      "count": 12000,
-      "bytes": 384000,
-      "environmentCount": 5000,
-      "oceanCount": 7000,
-      "bounds": {
-        "min": [
-          -3886.862724,
-          -23.654507,
-          -2036.078995
-        ],
-        "max": [
-          2557.503849,
-          28.054504,
-          0.497057
-        ]
+    {
+      "id": 1,
+      "key": "floating.crt.rigid"
+    },
+    {
+      "id": 2,
+      "key": "floating.cursor.rigid"
+    },
+    {
+      "id": 3,
+      "key": "floating.mouse.rigid"
+    },
+    {
+      "id": 4,
+      "key": "floating.pencil.rigid"
+    },
+    {
+      "id": 5,
+      "key": "floating.phone.rigid"
+    },
+    {
+      "id": 6,
+      "key": "forest.instance-field"
+    },
+    {
+      "id": 7,
+      "key": "path.static"
+    }
+  ],
+  "models": [
+    {
+      "id": 0,
+      "key": "crt_monitor",
+      "role": "floating-model",
+      "motionGroup": 1,
+      "motionKey": "floating.crt.rigid",
+      "revealGroup": "floating.crt",
+      "objectKeys": [
+        "floating.crt"
+      ],
+      "surfelRange": {
+        "offset": 0,
+        "count": 751,
+        "byteOffset": 0
       },
-      "materialCounts": [
-        2001,
-        2001,
-        2000,
-        2000,
-        1999,
-        1999
+      "profileCounts": {
+        "mobile": 166,
+        "desktop": 500,
+        "master": 751
+      },
+      "visibilityStartWU": 4.63,
+      "visibilityEndWU": 6.59
+    },
+    {
+      "id": 1,
+      "key": "cursor_3d",
+      "role": "floating-model",
+      "motionGroup": 2,
+      "motionKey": "floating.cursor.rigid",
+      "revealGroup": "floating.cursor",
+      "objectKeys": [
+        "floating.cursor.primary",
+        "floating.cursor.secondary"
+      ],
+      "surfelRange": {
+        "offset": 751,
+        "count": 189,
+        "byteOffset": 24032
+      },
+      "profileCounts": {
+        "mobile": 42,
+        "desktop": 126,
+        "master": 189
+      },
+      "visibilityStartWU": 4.19,
+      "visibilityEndWU": 6.31
+    },
+    {
+      "id": 2,
+      "key": "finale_workplace",
+      "role": "finale-workbench",
+      "motionGroup": 0,
+      "motionKey": "finale.static",
+      "revealGroup": "finale.workbench",
+      "objectKeys": [
+        "finale.workbench.lamp",
+        "finale.workbench.laptop",
+        "finale.workbench.picture",
+        "finale.workbench.stool",
+        "finale.workbench.table"
+      ],
+      "surfelRange": {
+        "offset": 940,
+        "count": 18554,
+        "byteOffset": 30080
+      },
+      "profileCounts": {
+        "mobile": 4089,
+        "desktop": 12355,
+        "master": 18554
+      },
+      "visibilityStartWU": 20.97,
+      "visibilityEndWU": 22.0
+    },
+    {
+      "id": 3,
+      "key": "gate_tunnel",
+      "role": "path-tunnel",
+      "motionGroup": 7,
+      "motionKey": "path.static",
+      "revealGroup": "loop.gates",
+      "objectKeys": [
+        "path.gate-tunnel"
+      ],
+      "surfelRange": {
+        "offset": 19494,
+        "count": 11059,
+        "byteOffset": 623808
+      },
+      "profileCounts": {
+        "mobile": 2437,
+        "desktop": 7364,
+        "master": 11059
+      },
+      "visibilityStartWU": 8.59,
+      "visibilityEndWU": 13.62
+    },
+    {
+      "id": 4,
+      "key": "hoop_tunnel",
+      "role": "path-tunnel",
+      "motionGroup": 7,
+      "motionKey": "path.static",
+      "revealGroup": "opening.hoops",
+      "objectKeys": [
+        "path.hoop-tunnel"
+      ],
+      "surfelRange": {
+        "offset": 30553,
+        "count": 5288,
+        "byteOffset": 977696
+      },
+      "profileCounts": {
+        "mobile": 1165,
+        "desktop": 3521,
+        "master": 5288
+      },
+      "visibilityStartWU": 0.45,
+      "visibilityEndWU": 5.37
+    },
+    {
+      "id": 5,
+      "key": "mobile_phone",
+      "role": "floating-model",
+      "motionGroup": 5,
+      "motionKey": "floating.phone.rigid",
+      "revealGroup": "floating.phone",
+      "objectKeys": [
+        "floating.phone"
+      ],
+      "surfelRange": {
+        "offset": 35841,
+        "count": 411,
+        "byteOffset": 1146912
+      },
+      "profileCounts": {
+        "mobile": 91,
+        "desktop": 274,
+        "master": 411
+      },
+      "visibilityStartWU": 3.98,
+      "visibilityEndWU": 6.02
+    },
+    {
+      "id": 6,
+      "key": "mouse_with_cable",
+      "role": "floating-model",
+      "motionGroup": 3,
+      "motionKey": "floating.mouse.rigid",
+      "revealGroup": "floating.mouse",
+      "objectKeys": [
+        "floating.mouse.body",
+        "floating.mouse.cable",
+        "floating.mouse.detail"
+      ],
+      "surfelRange": {
+        "offset": 36252,
+        "count": 843,
+        "byteOffset": 1160064
+      },
+      "profileCounts": {
+        "mobile": 186,
+        "desktop": 561,
+        "master": 843
+      },
+      "visibilityStartWU": 5.12,
+      "visibilityEndWU": 7.67
+    },
+    {
+      "id": 7,
+      "key": "parametric_forest",
+      "role": "parametric-forest",
+      "motionGroup": 6,
+      "motionKey": "forest.instance-field",
+      "revealGroup": "living.forest",
+      "objectKeys": [
+        "environment.forest"
+      ],
+      "surfelRange": {
+        "offset": 37095,
+        "count": 52695,
+        "byteOffset": 1187040
+      },
+      "profileCounts": {
+        "mobile": 11614,
+        "desktop": 35089,
+        "master": 52695
+      },
+      "visibilityStartWU": 15.76,
+      "visibilityEndWU": 20.36
+    },
+    {
+      "id": 8,
+      "key": "pencil",
+      "role": "floating-model",
+      "motionGroup": 4,
+      "motionKey": "floating.pencil.rigid",
+      "revealGroup": "floating.pencil",
+      "objectKeys": [
+        "floating.pencil"
+      ],
+      "surfelRange": {
+        "offset": 89790,
+        "count": 210,
+        "byteOffset": 2873280
+      },
+      "profileCounts": {
+        "mobile": 210,
+        "desktop": 210,
+        "master": 210
+      },
+      "visibilityStartWU": 5.57,
+      "visibilityEndWU": 7.12
+    }
+  ],
+  "pages": [
+    {
+      "id": "camera-page-01",
+      "modelIds": [
+        4
+      ],
+      "ranges": [
+        {
+          "modelId": 4,
+          "offset": 30553,
+          "count": 5288,
+          "byteOffset": 977696,
+          "profileCounts": {
+            "mobile": 1165,
+            "desktop": 3521,
+            "master": 5288
+          }
+        }
+      ],
+      "profileCounts": {
+        "mobile": 1165,
+        "desktop": 3521,
+        "master": 5288
+      },
+      "activeStartWU": 0.45,
+      "activeEndWU": 5.37,
+      "preloadStartWU": 0.0,
+      "releaseEndWU": 6.12,
+      "sharedModelIdsWithPrevious": [],
+      "handoff": "byte-identical-model-prefix"
+    },
+    {
+      "id": "camera-page-02",
+      "modelIds": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        8
+      ],
+      "ranges": [
+        {
+          "modelId": 0,
+          "offset": 0,
+          "count": 751,
+          "byteOffset": 0,
+          "profileCounts": {
+            "mobile": 166,
+            "desktop": 500,
+            "master": 751
+          }
+        },
+        {
+          "modelId": 1,
+          "offset": 751,
+          "count": 189,
+          "byteOffset": 24032,
+          "profileCounts": {
+            "mobile": 42,
+            "desktop": 126,
+            "master": 189
+          }
+        },
+        {
+          "modelId": 4,
+          "offset": 30553,
+          "count": 5288,
+          "byteOffset": 977696,
+          "profileCounts": {
+            "mobile": 1165,
+            "desktop": 3521,
+            "master": 5288
+          }
+        },
+        {
+          "modelId": 5,
+          "offset": 35841,
+          "count": 411,
+          "byteOffset": 1146912,
+          "profileCounts": {
+            "mobile": 91,
+            "desktop": 274,
+            "master": 411
+          }
+        },
+        {
+          "modelId": 6,
+          "offset": 36252,
+          "count": 843,
+          "byteOffset": 1160064,
+          "profileCounts": {
+            "mobile": 186,
+            "desktop": 561,
+            "master": 843
+          }
+        },
+        {
+          "modelId": 8,
+          "offset": 89790,
+          "count": 210,
+          "byteOffset": 2873280,
+          "profileCounts": {
+            "mobile": 210,
+            "desktop": 210,
+            "master": 210
+          }
+        }
+      ],
+      "profileCounts": {
+        "mobile": 1860,
+        "desktop": 5192,
+        "master": 7692
+      },
+      "activeStartWU": 3.98,
+      "activeEndWU": 7.67,
+      "preloadStartWU": 3.23,
+      "releaseEndWU": 8.42,
+      "sharedModelIdsWithPrevious": [
+        4
+      ],
+      "handoff": "byte-identical-model-prefix",
+      "handoffOverlapWU": 2.89
+    },
+    {
+      "id": "camera-page-03",
+      "modelIds": [
+        3,
+        6
+      ],
+      "ranges": [
+        {
+          "modelId": 3,
+          "offset": 19494,
+          "count": 11059,
+          "byteOffset": 623808,
+          "profileCounts": {
+            "mobile": 2437,
+            "desktop": 7364,
+            "master": 11059
+          }
+        },
+        {
+          "modelId": 6,
+          "offset": 36252,
+          "count": 843,
+          "byteOffset": 1160064,
+          "profileCounts": {
+            "mobile": 186,
+            "desktop": 561,
+            "master": 843
+          }
+        }
+      ],
+      "profileCounts": {
+        "mobile": 2623,
+        "desktop": 7925,
+        "master": 11902
+      },
+      "activeStartWU": 8.59,
+      "activeEndWU": 13.62,
+      "preloadStartWU": 7.84,
+      "releaseEndWU": 14.815,
+      "sharedModelIdsWithPrevious": [
+        6
+      ],
+      "handoff": "byte-identical-model-prefix",
+      "handoffOverlapWU": 0.58
+    },
+    {
+      "id": "camera-page-04",
+      "modelIds": [
+        3,
+        7
+      ],
+      "ranges": [
+        {
+          "modelId": 3,
+          "offset": 19494,
+          "count": 11059,
+          "byteOffset": 623808,
+          "profileCounts": {
+            "mobile": 2437,
+            "desktop": 7364,
+            "master": 11059
+          }
+        },
+        {
+          "modelId": 7,
+          "offset": 37095,
+          "count": 52695,
+          "byteOffset": 1187040,
+          "profileCounts": {
+            "mobile": 11614,
+            "desktop": 35089,
+            "master": 52695
+          }
+        }
+      ],
+      "profileCounts": {
+        "mobile": 14051,
+        "desktop": 42453,
+        "master": 63754
+      },
+      "activeStartWU": 15.76,
+      "activeEndWU": 20.36,
+      "preloadStartWU": 14.565,
+      "releaseEndWU": 21.11,
+      "sharedModelIdsWithPrevious": [
+        3
+      ],
+      "handoff": "byte-identical-model-prefix",
+      "handoffOverlapWU": 0.25
+    },
+    {
+      "id": "camera-page-05",
+      "modelIds": [
+        2,
+        7
+      ],
+      "ranges": [
+        {
+          "modelId": 2,
+          "offset": 940,
+          "count": 18554,
+          "byteOffset": 30080,
+          "profileCounts": {
+            "mobile": 4089,
+            "desktop": 12355,
+            "master": 18554
+          }
+        },
+        {
+          "modelId": 7,
+          "offset": 37095,
+          "count": 52695,
+          "byteOffset": 1187040,
+          "profileCounts": {
+            "mobile": 11614,
+            "desktop": 35089,
+            "master": 52695
+          }
+        }
+      ],
+      "profileCounts": {
+        "mobile": 15703,
+        "desktop": 47444,
+        "master": 71249
+      },
+      "activeStartWU": 20.97,
+      "activeEndWU": 22.0,
+      "preloadStartWU": 20.22,
+      "releaseEndWU": 22.75,
+      "sharedModelIdsWithPrevious": [
+        7
+      ],
+      "handoff": "byte-identical-model-prefix",
+      "handoffOverlapWU": 0.89
+    }
+  ],
+  "profiles": {
+    "mobile": {
+      "surfelCount": 20000,
+      "perModelCounts": {
+        "crt_monitor": 166,
+        "cursor_3d": 42,
+        "finale_workplace": 4089,
+        "gate_tunnel": 2437,
+        "hoop_tunnel": 1165,
+        "mobile_phone": 91,
+        "mouse_with_cable": 186,
+        "parametric_forest": 11614,
+        "pencil": 210
+      },
+      "perObjectCounts": {
+        "floating.crt": 166,
+        "floating.cursor.primary": 23,
+        "floating.cursor.secondary": 19,
+        "finale.workbench.lamp": 457,
+        "finale.workbench.laptop": 365,
+        "finale.workbench.picture": 266,
+        "finale.workbench.stool": 271,
+        "finale.workbench.table": 2730,
+        "path.gate-tunnel": 2437,
+        "path.hoop-tunnel": 1165,
+        "floating.phone": 91,
+        "floating.mouse.body": 118,
+        "floating.mouse.cable": 33,
+        "floating.mouse.detail": 35,
+        "environment.forest": 11614,
+        "floating.pencil": 210
+      },
+      "selection": "nested-per-model-prefix"
+    },
+    "desktop": {
+      "surfelCount": 60000,
+      "perModelCounts": {
+        "crt_monitor": 500,
+        "cursor_3d": 126,
+        "finale_workplace": 12355,
+        "gate_tunnel": 7364,
+        "hoop_tunnel": 3521,
+        "mobile_phone": 274,
+        "mouse_with_cable": 561,
+        "parametric_forest": 35089,
+        "pencil": 210
+      },
+      "perObjectCounts": {
+        "floating.crt": 500,
+        "floating.cursor.primary": 79,
+        "floating.cursor.secondary": 47,
+        "finale.workbench.lamp": 1374,
+        "finale.workbench.laptop": 1070,
+        "finale.workbench.picture": 795,
+        "finale.workbench.stool": 807,
+        "finale.workbench.table": 8309,
+        "path.gate-tunnel": 7364,
+        "path.hoop-tunnel": 3521,
+        "floating.phone": 274,
+        "floating.mouse.body": 381,
+        "floating.mouse.cable": 115,
+        "floating.mouse.detail": 65,
+        "environment.forest": 35089,
+        "floating.pencil": 210
+      },
+      "selection": "nested-per-model-prefix"
+    },
+    "master": {
+      "surfelCount": 90000,
+      "perModelCounts": {
+        "crt_monitor": 751,
+        "cursor_3d": 189,
+        "finale_workplace": 18554,
+        "gate_tunnel": 11059,
+        "hoop_tunnel": 5288,
+        "mobile_phone": 411,
+        "mouse_with_cable": 843,
+        "parametric_forest": 52695,
+        "pencil": 210
+      },
+      "perObjectCounts": {
+        "floating.crt": 751,
+        "floating.cursor.primary": 120,
+        "floating.cursor.secondary": 69,
+        "finale.workbench.lamp": 2061,
+        "finale.workbench.laptop": 1598,
+        "finale.workbench.picture": 1192,
+        "finale.workbench.stool": 1209,
+        "finale.workbench.table": 12494,
+        "path.gate-tunnel": 11059,
+        "path.hoop-tunnel": 5288,
+        "floating.phone": 411,
+        "floating.mouse.body": 579,
+        "floating.mouse.cable": 177,
+        "floating.mouse.detail": 87,
+        "environment.forest": 52695,
+        "floating.pencil": 210
+      },
+      "selection": "nested-per-model-prefix"
+    }
+  },
+  "cameraTrack": {
+    "file": "camera-track.json",
+    "source": "ABS_CAMERA",
+    "sampleCount": 3600,
+    "frameStart": 1,
+    "frameEnd": 3600,
+    "projection": {
+      "type": "perspective",
+      "fovAxis": "horizontal",
+      "horizontalFov": 85.0,
+      "referenceAspect": 1.777778,
+      "referenceVerticalFov": 54.536,
+      "portraitMaxVerticalFov": 115,
+      "sensorVerticalFov": 62.84,
+      "sensorFit": "HORIZONTAL"
+    },
+    "orientation": {
+      "path": "ABS_PARAMETRIC_RIDE_PATH",
+      "pathTwistMode": "Z_UP",
+      "neutralHorizon": "Z_UP",
+      "rollControl": "ABS_CAMERA_ROLL_DRIVER.abs_roll_degrees"
+    },
+    "rollControl": {
+      "object": "ABS_CAMERA_ROLL_DRIVER",
+      "property": "abs_roll_degrees",
+      "action": "ABS_CAMERA_PROGRESS_ACTION",
+      "keyframes": [
+        {
+          "frame": 1457.0,
+          "progress": 0.404557,
+          "degrees": 0.0
+        },
+        {
+          "frame": 2717.0,
+          "progress": 0.754654,
+          "degrees": 32.0
+        },
+        {
+          "frame": 2897.0,
+          "progress": 0.804668,
+          "degrees": 0.0
+        }
       ]
     }
   }

@@ -75,6 +75,7 @@ const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
 const GLOBAL_CAMERA_KEYS = new Set([
   'distanceFogStartWU',
   'distanceFogEndWU',
+  'distanceFogCurve',
   'forwardSpeedWU',
   'steadycamResponseMs',
   'pointerPanDegrees',
@@ -92,6 +93,12 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
 const POINT_MATERIAL_KEYS = new Set([
   'opacity',
   'pointSize',
+  'surfelCoverage',
+  'backfaceRetention',
+  'minPointSize',
+  'perspectiveResponse',
+  'edgeSoftness',
+  'atmosphereStrength',
   'pointerRadiusPx',
   'pointerForcePx',
   'pointerVariation',
@@ -274,6 +281,7 @@ function validateSafeText(value, diagnostics, path, { required = false, maximum 
 }
 
 function validateControlValue(value, control, diagnostics, path) {
+  if (value == null && control.defaultValue !== undefined) return;
   if (control.type === 'range') {
     if (!finite(value) || Number(value) < control.min || Number(value) > control.max) {
       diagnostic(diagnostics, 'parameter-range', path, `${control.label} must stay between ${control.min} and ${control.max}.`);
@@ -345,6 +353,38 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
+  const distanceFogCurve = Number(globals.camera?.distanceFogCurve);
+  if (globals.camera?.distanceFogCurve != null
+    && (!finite(distanceFogCurve) || distanceFogCurve < 0.45 || distanceFogCurve > 2.5)) {
+    diagnostic(diagnostics, 'camera-fog-curve', 'globals.camera.distanceFogCurve', 'Global camera fog curve must stay between 0.45 and 2.5.');
+  }
+  const surfelCoverage = Number(globals.pointMaterial?.surfelCoverage);
+  if (globals.pointMaterial?.surfelCoverage != null
+    && (!finite(surfelCoverage) || surfelCoverage < 0.6 || surfelCoverage > 1.2)) {
+    diagnostic(
+      diagnostics,
+      'point-material-surfel-coverage',
+      'globals.pointMaterial.surfelCoverage',
+      'Global surfel coverage must stay between 0.6 and 1.2.',
+    );
+  }
+  [
+    ['backfaceRetention', 0, 1, 'Back surface reveal'],
+    ['minPointSize', 0.75, 4, 'Minimum point size'],
+    ['perspectiveResponse', 0.6, 1.2, 'Depth scaling'],
+    ['edgeSoftness', 0.65, 2.4, 'Circle edge'],
+    ['atmosphereStrength', 0, 2, 'Visible haze'],
+  ].forEach(([key, minimum, maximum, label]) => {
+    const value = globals.pointMaterial?.[key];
+    if (value != null && (!finite(value) || Number(value) < minimum || Number(value) > maximum)) {
+      diagnostic(
+        diagnostics,
+        `point-material-${key}`,
+        `globals.pointMaterial.${key}`,
+        `${label} must stay between ${minimum} and ${maximum}.`,
+      );
+    }
+  });
   if (globals.camera?.forwardSpeedWU != null
     && (!finite(globals.camera.forwardSpeedWU)
       || Number(globals.camera.forwardSpeedWU) <= 0
