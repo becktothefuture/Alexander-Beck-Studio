@@ -180,6 +180,7 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   if (routeId === 'portfolio') {
     const deckFailed = body.classList.contains('portfolio-deck-failed');
     const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
+    const comingSoonTitle = document.getElementById('portfolio-coming-soon-title');
     const portfolioMount = document.getElementById('portfolioProjectMount');
     const deckPrepared = portfolioMount?.classList.contains('is-portfolio-boot-preparing');
     const runtime = getRuntimeSnapshot();
@@ -192,7 +193,8 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
     return Boolean(
       body.classList.contains('portfolio-page')
       && (
-        lockedGate
+        comingSoonTitle
+        || lockedGate
         || (
           runtime.routeId === 'portfolio'
           && runtime.status === 'ready'

@@ -1,9 +1,10 @@
 import homeContent from 'virtual:abs-content/home';
 import { PortfolioGateRoute } from './PortfolioGateRoute.jsx';
+import { PortfolioComingSoon } from './PortfolioComingSoon.jsx';
 
 const loadPortfolioRouteModule = () => import('../../legacy/modules/portfolio/app.js');
 
-export const PORTFOLIO_ROUTE_RUNTIME = {
+const PORTFOLIO_DEVELOPMENT_RUNTIME = {
   exportName: 'bootstrapPortfolio',
   loadModule: () => loadPortfolioRouteModule().then(async (module) => {
     await module.preloadPortfolioRoute?.();
@@ -23,7 +24,32 @@ export const PORTFOLIO_ROUTE_RUNTIME = {
   },
 };
 
+export const PORTFOLIO_ROUTE_RUNTIME = import.meta.env.DEV
+  ? PORTFOLIO_DEVELOPMENT_RUNTIME
+  : { legacyRuntime: false };
+
+function getPortfolioComingSoonRouteView() {
+  return {
+    bodyClass: 'body portfolio-page portfolio-page--coming-soon',
+    mainLandmarkHeadingId: 'portfolio-coming-soon-title',
+    legacyRuntime: false,
+    surfaceRouteId: 'portfolio',
+    routeRenderKey: 'portfolio-coming-soon',
+    contentRenderKey: 'portfolio-coming-soon',
+    studioWindowClassName: 'portfolio-simulation route-page-window w-embed',
+    simulationLayer: null,
+    uiLayer: {
+      chrome: null,
+      secondary: <PortfolioComingSoon />,
+    },
+  };
+}
+
 export function getPortfolioRouteView(canonicalHref, routeState = {}) {
+  if (!import.meta.env.DEV) {
+    return getPortfolioComingSoonRouteView();
+  }
+
   void canonicalHref;
   void routeState;
 

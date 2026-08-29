@@ -340,9 +340,12 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     'abs-home-post-boot-enter',
   );
 
-  // Portfolio owns its direct-load release because its measured card geometry
-  // and authored entrance must be ready before the boot overlay leaves.
-  if (routeId === 'portfolio') {
+  const isPortfolioComingSoon = routeId === 'portfolio'
+    && Boolean(document.getElementById('portfolio-coming-soon-title'));
+
+  // The development Portfolio owns its direct-load release because its measured
+  // card geometry and authored entrance must be ready before the boot overlay leaves.
+  if (routeId === 'portfolio' && !isPortfolioComingSoon) {
     root.dataset.absBootDetail = 'portfolio-preparing';
     return;
   }
@@ -361,6 +364,7 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
   const directEntrance = (
     isAboutRoute
+    || isPortfolioComingSoon
     || routeId === 'contact'
     || routeId === 'playground'
   ) && routeContent

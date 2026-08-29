@@ -8,6 +8,8 @@ const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
   ['portfolioStyles', '../react-app/app/public/css/portfolio.css'],
   ['portfolio', '../react-app/app/src/legacy/modules/portfolio/app.js'],
+  ['portfolioRoute', '../react-app/app/src/routes/portfolio/PortfolioRoute.jsx'],
+  ['portfolioComingSoon', '../react-app/app/src/routes/portfolio/PortfolioComingSoon.jsx'],
   ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
   ['playgroundComingSoon', '../react-app/app/src/routes/playground/PlaygroundComingSoon.jsx'],
@@ -30,6 +32,8 @@ test('every production route lockup consumes the shared title, rule, and descrip
   assert.match(sources.portfolio, /portfolio-deck-intro__title route-centered-page__title route-bookend-title/);
   assert.match(sources.portfolio, /route-title-lockup__rule/);
   assert.match(sources.portfolio, /portfolio-deck-intro__body route-centered-page__description route-intro-description/);
+  assert.match(sources.portfolioComingSoon, /route-centered-page__title route-bookend-title/);
+  assert.match(sources.portfolioComingSoon, /id="portfolio-coming-soon-title"/);
 
   assert.match(sources.contact, /route-centered-page__title route-bookend-title/);
   assert.match(sources.contact, /route-title-lockup__rule/);
@@ -156,6 +160,18 @@ test('About readiness accepts the production gate or the development narrative s
   assert.match(sources.routeReadiness, readySelector);
   assert.match(sources.routeReadiness, /getElementById\('about-coming-soon-title'\)/);
   assert.match(sources.siteApp, /routeId === 'about' && import\.meta\.env\.DEV/);
+});
+
+test('Work publishes a non-runtime hold while development retains the complete Portfolio route', () => {
+  assert.match(
+    sources.portfolioRoute,
+    /PORTFOLIO_ROUTE_RUNTIME = import\.meta\.env\.DEV[\s\S]*?PORTFOLIO_DEVELOPMENT_RUNTIME[\s\S]*?legacyRuntime: false/,
+  );
+  assert.match(sources.portfolioRoute, /if \(!import\.meta\.env\.DEV\)/);
+  assert.match(sources.portfolioRoute, /routeRenderKey: 'portfolio-coming-soon'/);
+  assert.match(sources.portfolioComingSoon, /data-route-content="portfolio"/);
+  assert.match(sources.routeReadiness, /getElementById\('portfolio-coming-soon-title'\)/);
+  assert.match(sources.siteApp, /routeId === 'portfolio'[\s\S]*?getElementById\('portfolio-coming-soon-title'\)/);
 });
 
 test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {
