@@ -93,7 +93,6 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain should make the window feel physical without muddying type or flattening surface separation.
-- The studio-window base may carry one static, theme-aware neutral micro-dot field. It stays below route material and grain, uses independent spacing, dot-size, and light/dark strength values, and is suppressed on Lab because Lab already owns a camera-coupled dot grid.
 - Home UI legibility comes from five static, background-matched fields behind the expertise legend, philosophy, socials, edge caption, and London/time groups. Interaction changes foreground emphasis only; it does not animate or multiply the fields.
 - All normal text must meet WCAG 2.2 AA contrast in both themes. Do not use opacity as the only way to create hierarchy when it makes the resolved color fail.
 

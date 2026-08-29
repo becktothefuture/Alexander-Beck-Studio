@@ -27,10 +27,6 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   frameInsetDesktopPx: 16,
   frameRadiusMobilePx: 32,
   frameRadiusDesktopPx: 72,
-  windowPatternSpacing: 28,
-  windowPatternDotSize: 0.65,
-  windowPatternOpacityLight: 0.07,
-  windowPatternOpacityDark: 0.055,
   innerWallRimSize: 8,
   innerWallRimBlur: 18,
   innerWallRimOpacityLight: 0.16,
@@ -98,18 +94,6 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
       { id: 'frameInsetDesktopPx', label: 'Desktop Size', min: 8, max: 48, step: 1, unit: 'px' },
       { id: 'frameRadiusMobilePx', label: 'Mobile Radius', min: 16, max: 64, step: 1, unit: 'px' },
       { id: 'frameRadiusDesktopPx', label: 'Desktop Radius', min: 32, max: 120, step: 1, unit: 'px' },
-    ],
-  },
-  {
-    key: 'windowPattern',
-    title: 'Interior Dot Field',
-    icon: '⠿',
-    defaultOpen: true,
-    controls: [
-      { id: 'windowPatternSpacing', label: 'Spacing', min: 16, max: 64, step: 1, unit: 'px' },
-      { id: 'windowPatternDotSize', label: 'Dot Size', min: 0.35, max: 1.5, step: 0.05, format: (value) => `${Number(value.toFixed(2))}px` },
-      { id: 'windowPatternOpacityLight', label: 'Light Strength', min: 0, max: 0.2, step: 0.005, format: (value) => `${Number((value * 100).toFixed(1))}%` },
-      { id: 'windowPatternOpacityDark', label: 'Dark Strength', min: 0, max: 0.2, step: 0.005, format: (value) => `${Number((value * 100).toFixed(1))}%` },
     ],
   },
   {
@@ -303,10 +287,6 @@ function readCurrentConfig() {
       const v = g?.frameRadiusDesktopPx;
       return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameRadiusDesktopPx;
     })(),
-    windowPatternSpacing: readNumber(rootStyle, '--studio-window-dot-spacing', DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternSpacing),
-    windowPatternDotSize: readNumber(rootStyle, '--studio-window-dot-size', DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternDotSize),
-    windowPatternOpacityLight: readNumber(rootStyle, '--studio-window-dot-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityLight),
-    windowPatternOpacityDark: readNumber(rootStyle, '--studio-window-dot-opacity-dark', DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityDark),
     innerWallRimSize: readNumber(rootStyle, '--inner-wall-rim-size', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize),
     innerWallRimBlur: readNumber(rootStyle, '--inner-wall-rim-blur', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur),
     innerWallRimOpacityLight: readNumber(rootStyle, '--inner-wall-rim-opacity-light', DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight),
@@ -423,10 +403,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
   const frameInset = normalizeFrameInsetEndpoints(config);
   const frameRadius = normalizeFrameRadiusEndpoints(config);
-  const windowPatternSpacing = Math.round(clamp(config.windowPatternSpacing, 16, 64, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternSpacing));
-  const windowPatternDotSize = clamp(config.windowPatternDotSize, 0.35, 1.5, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternDotSize);
-  const windowPatternOpacityLight = clamp(config.windowPatternOpacityLight, 0, 0.2, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityLight);
-  const windowPatternOpacityDark = clamp(config.windowPatternOpacityDark, 0, 0.2, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityDark);
   const innerWallRimSize = Math.round(clamp(config.innerWallRimSize, 0, 64, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize));
   const innerWallRimBlur = Math.round(clamp(config.innerWallRimBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur));
   const innerWallRimOpacityLight = clamp(config.innerWallRimOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight);
@@ -483,10 +459,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
     frameInsetDesktopPx: frameInset.desktop,
     frameRadiusMobilePx: frameRadius.mobile,
     frameRadiusDesktopPx: frameRadius.desktop,
-    windowPatternSpacing,
-    windowPatternDotSize,
-    windowPatternOpacityLight,
-    windowPatternOpacityDark,
     innerWallRimSize,
     innerWallRimBlur,
     innerWallRimOpacityLight,
@@ -526,10 +498,6 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   };
   window.__ABS_STUDIO_SURFACE_CONFIG__ = studioSurfaceSnapshot;
   patchShellSurface({
-    windowPatternSpacing: `${windowPatternSpacing}px`,
-    windowPatternDotSize: `${windowPatternDotSize}px`,
-    windowPatternOpacityLight,
-    windowPatternOpacityDark,
     innerWallRimSize: `${innerWallRimSize}px`,
     innerWallRimBlur: `${innerWallRimBlur}px`,
     innerWallRimOpacityLight,
@@ -747,10 +715,6 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   delete nextShell.layout.frameRadiusTablet;
   delete nextShell.layout.quoteMaxWidth;
   delete nextShell.surface.quoteButtonFillOpacity;
-  nextShell.surface.windowPatternSpacing = `${Math.round(clamp(config.windowPatternSpacing, 16, 64, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternSpacing))}px`;
-  nextShell.surface.windowPatternDotSize = `${Number(clamp(config.windowPatternDotSize, 0.35, 1.5, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternDotSize).toFixed(2))}px`;
-  nextShell.surface.windowPatternOpacityLight = Number(clamp(config.windowPatternOpacityLight, 0, 0.2, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityLight).toFixed(3));
-  nextShell.surface.windowPatternOpacityDark = Number(clamp(config.windowPatternOpacityDark, 0, 0.2, DEFAULT_STUDIO_SURFACE_CONFIG.windowPatternOpacityDark).toFixed(3));
   nextShell.surface.innerWallRimSize = `${Math.round(clamp(config.innerWallRimSize, 0, 64, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimSize))}px`;
   nextShell.surface.innerWallRimBlur = `${Math.round(clamp(config.innerWallRimBlur, 0, 160, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimBlur))}px`;
   nextShell.surface.innerWallRimOpacityLight = Number(clamp(config.innerWallRimOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.innerWallRimOpacityLight).toFixed(2));

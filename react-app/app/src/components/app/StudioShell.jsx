@@ -154,7 +154,6 @@ export function StudioShell({
             aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
           >
             <div id="scene-effects" className="scene-effects" aria-hidden="true">
-              <div className="studio-window-dot-pattern" data-studio-window-pattern="dots" />
               <div className="noise" />
             </div>
             <div className="inner-wall-gradient-edge" aria-hidden="true" />
