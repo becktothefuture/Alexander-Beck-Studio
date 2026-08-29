@@ -37,8 +37,7 @@ import { initQuotePuck } from './modules/ui/quote-puck.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
-import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
-import { setApplyVisualCSSVars, setUpdateTactileLayer } from './modules/ui/control-registry.js';
+import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 import { updateModeButtonsUI } from './modules/ui/mode-buttons.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
@@ -449,7 +448,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
   if (ABS_DEV) {
     try {
       setApplyVisualCSSVars?.(applyVisualCSSVars);
-      setUpdateTactileLayer?.(updateTactileLayer);
     } catch (e) { /* The development panel is optional to the production runtime. */ }
   }
 
@@ -526,13 +524,6 @@ export async function bootstrapHomePage(runtimeContext = {}) {
     mark('bb:input');
     log('✓ Custom cursor initialized');
 
-    // Initialize Tactile Layer (Unicorn Studio)
-    try {
-      initTactileLayer(config);
-      log('✓ Tactile layer initialized');
-    } catch (e) {
-      console.warn('Tactile layer init failed:', e);
-    }
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
 

@@ -51,9 +51,6 @@ export function hydrateSimulationAtmosphereControlState(g = getGlobals()) {
   g[getAtmosphereStateKey('largeSpread')] = config.largeSpread;
   g[getAtmosphereStateKey('smallSpread')] = config.smallSpread;
   g[getAtmosphereStateKey('memoryMs')] = config.memoryMs;
-  g[getAtmosphereStateKey('edgeStrength')] = config.edgeStrength;
-  g[getAtmosphereStateKey('edgeWidthPx')] = config.edgeWidthPx;
-  g[getAtmosphereStateKey('edgeInsetPx')] = config.edgeInsetPx;
   for (const theme of ['light', 'dark']) {
     for (const group of ATMOSPHERE_PROFILE_GROUPS) {
       for (const control of group.controls) {
@@ -79,9 +76,6 @@ export function buildSimulationAtmosphereConfigFromControlState(
     largeSpread: readAtmosphereState(g, getAtmosphereStateKey('largeSpread'), base.largeSpread),
     smallSpread: readAtmosphereState(g, getAtmosphereStateKey('smallSpread'), base.smallSpread),
     memoryMs: readAtmosphereState(g, getAtmosphereStateKey('memoryMs'), base.memoryMs),
-    edgeStrength: readAtmosphereState(g, getAtmosphereStateKey('edgeStrength'), base.edgeStrength),
-    edgeWidthPx: readAtmosphereState(g, getAtmosphereStateKey('edgeWidthPx'), base.edgeWidthPx),
-    edgeInsetPx: readAtmosphereState(g, getAtmosphereStateKey('edgeInsetPx'), base.edgeInsetPx),
     light: { ...base.light },
     dark: { ...base.dark },
   };
@@ -158,12 +152,6 @@ export const SIMULATION_ATMOSPHERE_CONTROL_SECTIONS = {
       'largeSpread',
       'memoryMs',
     ]),
-  },
-  atmosphereEdge: {
-    title: 'Edge Response',
-    icon: '🌗',
-    defaultOpen: true,
-    controls: createAtmosphereCommonControls(['edgeStrength', 'edgeWidthPx', 'edgeInsetPx']),
   },
   atmosphereLight: {
     title: 'Light Mode',

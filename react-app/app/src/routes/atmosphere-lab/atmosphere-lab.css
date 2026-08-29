@@ -32,8 +32,7 @@ html.entrance-complete body.atmosphere-lab-page.dark-mode.noise-ready .noise {
 }
 
 body.atmosphere-lab-page #simulations canvas.atmosphere-output-canvas,
-body.atmosphere-lab-page #simulations canvas.atmosphere-title-canvas,
-body.atmosphere-lab-page #simulations canvas.atmosphere-edge-light-canvas {
+body.atmosphere-lab-page #simulations canvas.atmosphere-title-canvas {
   inset: 0;
   width: 100%;
   height: 100%;
@@ -54,23 +53,6 @@ body.atmosphere-lab-page--hybridGlow #simulations canvas.atmosphere-output-canva
 
 body.atmosphere-lab-page #simulations canvas.atmosphere-title-canvas {
   z-index: 12;
-}
-
-body.atmosphere-lab-page #simulations .simulation-atmosphere-edge-light-layer {
-  z-index: 13;
-}
-
-body.atmosphere-lab-page #simulations canvas.atmosphere-edge-light-canvas {
-  inset: calc(-1 * var(--atmosphere-edge-width, 1.5px));
-  width: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
-  height: calc(100% + (2 * var(--atmosphere-edge-width, 1.5px)));
-  z-index: 0;
-  image-rendering: auto;
-  mix-blend-mode: normal;
-}
-
-body.atmosphere-lab-page.dark-mode #simulations canvas.atmosphere-edge-light-canvas {
-  mix-blend-mode: screen;
 }
 
 body.atmosphere-lab-page .atmosphere-parameterizer {

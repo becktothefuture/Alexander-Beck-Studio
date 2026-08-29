@@ -70,6 +70,10 @@ const DEFAULT_SHELL_CONFIG = {
     glowOpacityDark: 0.18,
     shadowBlur: '18px',
     shadowOffsetY: '6px',
+    windowPatternSpacing: '28px',
+    windowPatternDotSize: '0.65px',
+    windowPatternOpacityLight: 0.07,
+    windowPatternOpacityDark: 0.055,
     innerWallRimSize: '8px',
     innerWallRimBlur: '18px',
     innerWallRimOpacityLight: 0.16,
@@ -654,6 +658,42 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--abs-surface-glow-opacity', String(glowOpacity));
   root.style.setProperty('--abs-surface-shadow-blur', surface.shadowBlur);
   root.style.setProperty('--abs-surface-shadow-offset-y', surface.shadowOffsetY);
+  root.style.setProperty(
+    '--studio-window-dot-spacing',
+    `${numberInRange(
+      Number.parseFloat(surface.windowPatternSpacing),
+      16,
+      64,
+      Number.parseFloat(DEFAULT_SHELL_CONFIG.surface.windowPatternSpacing)
+    )}px`
+  );
+  root.style.setProperty(
+    '--studio-window-dot-size',
+    `${numberInRange(
+      Number.parseFloat(surface.windowPatternDotSize),
+      0.35,
+      1.5,
+      Number.parseFloat(DEFAULT_SHELL_CONFIG.surface.windowPatternDotSize)
+    )}px`
+  );
+  root.style.setProperty(
+    '--studio-window-dot-opacity-light',
+    String(numberInRange(
+      surface.windowPatternOpacityLight,
+      0,
+      0.2,
+      DEFAULT_SHELL_CONFIG.surface.windowPatternOpacityLight
+    ))
+  );
+  root.style.setProperty(
+    '--studio-window-dot-opacity-dark',
+    String(numberInRange(
+      surface.windowPatternOpacityDark,
+      0,
+      0.2,
+      DEFAULT_SHELL_CONFIG.surface.windowPatternOpacityDark
+    ))
+  );
   root.style.setProperty(
     '--inner-wall-rim-size',
     surface.innerWallRimSize || DEFAULT_SHELL_CONFIG.surface.innerWallRimSize

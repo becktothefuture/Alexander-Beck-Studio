@@ -38,6 +38,10 @@
   --studio-window-bg-dark: var(--bg-dark);
   --studio-window-bg: var(--studio-window-bg-light);
   --studio-window-color-scheme: light;
+  --studio-window-dot-spacing: 28px;
+  --studio-window-dot-size: 0.65px;
+  --studio-window-dot-opacity-light: 0.07;
+  --studio-window-dot-opacity-dark: 0.055;
   /* RGB zero is true black in sRGB and Display P3; no gamut override is needed. */
   --frame-color-site: #000000;
   --frame-color-site-light: var(--frame-color-site);

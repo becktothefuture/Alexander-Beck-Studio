@@ -23,9 +23,6 @@ export const DEFAULT_SIMULATION_ATMOSPHERE_CONFIG = Object.freeze({
   largeSpread: 0.15,
   smallSpread: 0.051,
   memoryMs: 100,
-  edgeStrength: 0.35,
-  edgeWidthPx: 1.5,
-  edgeInsetPx: 0,
   light: LIGHT_PROFILE,
   dark: DARK_PROFILE,
 });
@@ -63,9 +60,6 @@ export const SIMULATION_ATMOSPHERE_CONTROL_GROUPS = Object.freeze([
       { id: 'largeSpread', label: 'Large Spread', type: 'range', min: 0.06, max: 0.2, step: 0.005, display: 'percent' },
       { id: 'smallSpread', label: 'Small Spread', type: 'range', min: 0.02, max: 0.1, step: 0.001, display: 'percent' },
       { id: 'memoryMs', label: 'Memory', type: 'range', min: 0, max: 600, step: 25, display: 'ms' },
-      { id: 'edgeStrength', label: 'Edge', type: 'range', min: 0, max: 1.5, step: 0.05, display: 'percent' },
-      { id: 'edgeWidthPx', label: 'Thickness', type: 'range', min: 0.5, max: 4, step: 0.25, display: 'subpx' },
-      { id: 'edgeInsetPx', label: 'Inset', type: 'range', min: 0, max: 24, step: 1, display: 'px' },
     ]),
   }),
 ]);
@@ -117,24 +111,6 @@ export function normalizeSimulationAtmosphereConfig(input = {}) {
       600,
       DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.memoryMs,
     ),
-    edgeStrength: clampNumber(
-      source.edgeStrength,
-      0,
-      1.5,
-      DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.edgeStrength,
-    ),
-    edgeWidthPx: clampNumber(
-      source.edgeWidthPx,
-      0.5,
-      4,
-      DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.edgeWidthPx,
-    ),
-    edgeInsetPx: clampNumber(
-      source.edgeInsetPx,
-      0,
-      24,
-      DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.edgeInsetPx,
-    ),
     light: normalizeThemeProfile(source.light, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.light),
     dark: normalizeThemeProfile(source.dark, DEFAULT_SIMULATION_ATMOSPHERE_CONFIG.dark),
   };
@@ -155,9 +131,6 @@ export function resolveSimulationAtmosphereRenderProfile(config, theme = 'light'
     largeSpread: normalized.largeSpread,
     smallSpread: normalized.smallSpread,
     memoryMs: normalized.memoryMs,
-    edgeStrength: normalized.edgeStrength,
-    edgeWidthPx: normalized.edgeWidthPx,
-    edgeInsetPx: normalized.edgeInsetPx,
     intensity: visual.intensity,
     colourStrength: visual.colourStrength,
   };

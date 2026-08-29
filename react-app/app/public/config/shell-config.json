@@ -35,6 +35,10 @@
     "sheenMidOpacityDark": 0.018,
     "shadowBlur": "18px",
     "shadowOffsetY": "6px",
+    "windowPatternSpacing": "16px",
+    "windowPatternDotSize": "0.65px",
+    "windowPatternOpacityLight": 0.135,
+    "windowPatternOpacityDark": 0.14,
     "innerWallRimSize": "25px",
     "innerWallRimBlur": "160px",
     "innerWallRimOpacityLight": 0.85,
@@ -68,9 +72,6 @@
       "largeSpread": 0.08,
       "smallSpread": 0.02,
       "memoryMs": 400,
-      "edgeStrength": 0,
-      "edgeWidthPx": 3.5,
-      "edgeInsetPx": 0,
       "light": {
         "intensity": 0.34,
         "colourStrength": 0.96

@@ -141,7 +141,6 @@ async function waitForSettledAtmosphere(page, scenario) {
         && snapshot.compositorCount === 1
         && snapshot.activeSourceCount === 1
         && snapshot.glowCanvasCount === 1
-        && snapshot.edgeCanvasCount === 1
         && statusReady
       );
     },
@@ -182,14 +181,8 @@ async function readAtmosphereState(page) {
     const wall = document.getElementById('simulations');
     const wallRect = wall?.getBoundingClientRect() || null;
     const glow = document.getElementById('simulation-atmosphere-glow-canvas');
-    const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
     const glowRect = glow?.getBoundingClientRect() || null;
-    const edgeRect = edge?.getBoundingClientRect() || null;
-    const edgeLayer = edge?.closest('.simulation-atmosphere-edge-light-layer') || null;
     const wallStyle = wall ? getComputedStyle(wall) : null;
-    const edgeStyle = edge ? getComputedStyle(edge) : null;
-    const edgeLayerStyle = edgeLayer ? getComputedStyle(edgeLayer) : null;
-    const edgeLayerRect = edgeLayer?.getBoundingClientRect() || null;
     const homeSource = document.getElementById('c');
     return {
       snapshot,
@@ -201,26 +194,14 @@ async function readAtmosphereState(page) {
         glowCount: document.querySelectorAll('#simulation-atmosphere-glow-canvas').length,
         edgeCount: document.querySelectorAll('#simulation-atmosphere-edge-light-canvas').length,
         glowHidden: glow?.hidden ?? null,
-        edgeHidden: edge?.hidden ?? null,
         glowPointerEvents: glow ? getComputedStyle(glow).pointerEvents : '',
-        edgePointerEvents: edge ? getComputedStyle(edge).pointerEvents : '',
         glowRect: glowRect ? { width: glowRect.width, height: glowRect.height } : null,
-        edgeRect: edgeRect ? { width: edgeRect.width, height: edgeRect.height } : null,
         edgeLayerCount: document.querySelectorAll('.simulation-atmosphere-edge-light-layer').length,
         legacyEdgeContourCount: document.querySelectorAll('.atmosphere-edge-light-defs').length,
         wallRadius: wallStyle?.borderTopLeftRadius || '',
         wallCornerShape: wallStyle?.cornerTopLeftShape || wallStyle?.cornerShape || '',
-        edgeLayerRadius: edgeLayerStyle?.borderTopLeftRadius || '',
-        edgeLayerCornerShape: edgeLayerStyle?.cornerTopLeftShape || edgeLayerStyle?.cornerShape || '',
-        edgeLayerMaskImage: edgeLayerStyle?.maskImage || edgeLayerStyle?.webkitMaskImage || '',
         fallbackBackgroundImage: wallStyle?.backgroundImage || '',
-        edgeClipPath: edgeStyle?.clipPath || '',
-        edgeLayerRect: edgeLayerRect ? {
-          width: edgeLayerRect.width,
-          height: edgeLayerRect.height,
-        } : null,
         glowFilter: glow ? getComputedStyle(glow).filter : '',
-        edgeFilter: edge ? getComputedStyle(edge).filter : '',
         glowAlpha: sampleAlpha(glow),
         homeSourceAlpha: sampleAlpha(homeSource),
       },
@@ -239,16 +220,14 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(snapshot.compositorCount === 1, `${scenario.id}: expected one compositor`, state);
   assert(snapshot.activeSourceCount === 1, `${scenario.id}: expected one active source`, state);
   assert(snapshot.glowCanvasCount === 1 && state.dom.glowCount === 1, `${scenario.id}: glow canvas count is wrong`, state);
-  assert(snapshot.edgeCanvasCount === 1 && state.dom.edgeCount === 1, `${scenario.id}: edge canvas count is wrong`, state);
+  assert(state.dom.edgeCount === 0, `${scenario.id}: retired edge canvas is still mounted`, state);
   assert(
     ['native-filter', 'spread-pyramid-fallback'].includes(snapshot.glowRenderMode),
     `${scenario.id}: glow render mode is missing`,
     state,
   );
   assert(snapshot.glowCanvasId === 'simulation-atmosphere-glow-canvas', `${scenario.id}: glow canvas identity is wrong`, state);
-  assert(snapshot.edgeCanvasId === 'simulation-atmosphere-edge-light-canvas', `${scenario.id}: edge canvas identity is wrong`, state);
   assert(state.dom.glowPointerEvents === 'none', `${scenario.id}: glow canvas captures pointer input`, state);
-  assert(state.dom.edgePointerEvents === 'none', `${scenario.id}: edge canvas captures pointer input`, state);
   if (!ambientSource && !snapshot.fallbackActive) {
     assert(
       Math.abs((state.dom.glowRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
@@ -257,39 +236,9 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
       state,
     );
   }
-  assert(state.dom.edgeLayerCount === 1, `${scenario.id}: expected one edge-light layer`, state);
+  assert(state.dom.edgeLayerCount === 0, `${scenario.id}: retired edge-light layer is still mounted`, state);
   assert(state.dom.legacyEdgeContourCount === 0, `${scenario.id}: legacy edge contour is still mounted`, state);
-  assert(state.dom.edgeClipPath === 'none', `${scenario.id}: edge Canvas has an independent clip path`, state);
-  assert(state.dom.edgeLayerMaskImage !== 'none', `${scenario.id}: edge layer has no inset mask`, state);
-  assert(
-    state.dom.edgeLayerRadius === state.dom.wallRadius,
-    `${scenario.id}: edge layer radius diverges from the wall radius`,
-    state,
-  );
-  assert(
-    state.dom.edgeLayerCornerShape === state.dom.wallCornerShape,
-    `${scenario.id}: edge layer corner shape diverges from the wall`,
-    state,
-  );
-  assert(
-    Math.abs((state.dom.edgeLayerRect?.width || 0) - (state.wallRect?.width || 0)) <= 0.25
-      && Math.abs((state.dom.edgeLayerRect?.height || 0) - (state.wallRect?.height || 0)) <= 0.25,
-    `${scenario.id}: edge layer geometry diverges from the wall`,
-    state,
-  );
   assert(state.dom.glowFilter === 'none', `${scenario.id}: glow canvas received source-material blur`, state);
-  assert(
-    !state.dom.edgeFilter.includes('blur('),
-    `${scenario.id}: edge canvas received source-material blur`,
-    state,
-  );
-  if (!ambientSource && !snapshot.fallbackActive && snapshot.edgeStrength > 0) {
-    assert(
-      state.dom.edgeFilter.includes('brightness(') && state.dom.edgeFilter.includes('saturate('),
-      `${scenario.id}: edge canvas is missing its compositor-only colour treatment`,
-      state,
-    );
-  }
   assert(snapshot.sourceGeneration > 0, `${scenario.id}: source generation is missing`, state);
 
   if (snapshot.status === 'failed-open') {
@@ -303,7 +252,6 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
     assert(snapshot.lowQualityMode === 'css-static', `${scenario.id}: low-quality fallback is not configured`, state);
     assert(snapshot.quality === 'low', `${scenario.id}: static atmosphere activated outside Low quality`, state);
     assert(state.dom.glowHidden === true, `${scenario.id}: static atmosphere retained the glow Canvas`, state);
-    assert(state.dom.edgeHidden === true, `${scenario.id}: static atmosphere retained the edge Canvas`, state);
     assert(snapshot.schedulerActive === false, `${scenario.id}: static atmosphere retained source scheduling`, state);
     assert(snapshot.internalRafCount === 0, `${scenario.id}: static atmosphere retained an internal RAF`, state);
     assert(
@@ -332,7 +280,6 @@ function assertAtmosphereState(state, scenario, expectedResponsive = null) {
   assert(state.wallRect?.width > 1 && state.wallRect?.height > 1, `${scenario.id}: wall geometry is missing`, state);
   if (ambientSource) {
     assert(state.dom.glowHidden === true, `${scenario.id}: ambient glow canvas remained visible`, state);
-    assert(state.dom.edgeHidden === true, `${scenario.id}: ambient edge canvas remained visible`, state);
     assert(snapshot.sourceLightCount === 0, `${scenario.id}: ambient fallback retained source lights`, state);
     assert(snapshot.sampledEmitterCount === 0, `${scenario.id}: ambient fallback retained synthetic emitters`, state);
     assert(
@@ -486,12 +433,8 @@ async function markStableOutputNodes(page) {
   return page.evaluate(() => {
     window.__ABS_ATMOSPHERE_AUDIT_OUTPUTS__ = {
       glow: document.getElementById('simulation-atmosphere-glow-canvas'),
-      edge: document.getElementById('simulation-atmosphere-edge-light-canvas'),
     };
-    return Boolean(
-      window.__ABS_ATMOSPHERE_AUDIT_OUTPUTS__.glow
-      && window.__ABS_ATMOSPHERE_AUDIT_OUTPUTS__.edge
-    );
+    return Boolean(window.__ABS_ATMOSPHERE_AUDIT_OUTPUTS__.glow);
   });
 }
 
@@ -501,10 +444,11 @@ async function assertStableOutputNodes(page, label) {
     return Boolean(
       marked
       && marked.glow === document.getElementById('simulation-atmosphere-glow-canvas')
-      && marked.edge === document.getElementById('simulation-atmosphere-edge-light-canvas')
+      && document.querySelectorAll('#simulation-atmosphere-edge-light-canvas').length === 0
+      && document.querySelectorAll('.simulation-atmosphere-edge-light-layer').length === 0
     );
   });
-  assert(stable, `${label}: SPA navigation replaced the stable atmosphere outputs`);
+  assert(stable, `${label}: SPA navigation replaced the glow output or remounted retired edge output`);
 }
 
 async function clickPrimaryRoute(page, scenario) {
@@ -1357,9 +1301,6 @@ async function runCrispPersistenceContract(browser) {
         smallSpread: -2,
         contentClearance: -2,
         memoryMs: -2,
-        edgeStrength: -2,
-        edgeWidthPx: -2,
-        edgeInsetPx: -2,
         light: { intensity: -2, colourStrength: -2 },
       });
       const aboveConfig = module.normalizeSimulationAtmosphereConfig({
@@ -1381,6 +1322,9 @@ async function runCrispPersistenceContract(browser) {
         legacyClearanceRetired: !Object.hasOwn(aboveConfig, 'contentClearance')
           && !Object.hasOwn(belowConfig, 'contentClearance'),
         legacySpreadRetired: !Object.hasOwn(aboveConfig, 'spread'),
+        edgeResponseRetired: !Object.hasOwn(aboveConfig, 'edgeStrength')
+          && !Object.hasOwn(aboveConfig, 'edgeWidthPx')
+          && !Object.hasOwn(aboveConfig, 'edgeInsetPx'),
       };
     });
     assert(
@@ -1388,25 +1332,20 @@ async function runCrispPersistenceContract(browser) {
         && clampResults.below.lowQualityMode === 'canvas'
         && clampResults.below.smallSpread === 0.02
         && clampResults.below.memoryMs === 0
-        && clampResults.below.edgeStrength === 0
-        && clampResults.below.edgeWidthPx === 0.5
-        && clampResults.below.edgeInsetPx === 0
         && clampResults.below.light.intensity === 0
         && clampResults.below.light.colourStrength === 0
         && clampResults.above.largeSpread === 0.2
         && clampResults.above.lowQualityMode === 'css-static'
         && clampResults.above.smallSpread === 0.1
         && clampResults.above.memoryMs === 600
-        && clampResults.above.edgeStrength === 1.5
-        && clampResults.above.edgeWidthPx === 4
-        && clampResults.above.edgeInsetPx === 24
         && clampResults.above.dark.intensity === 1
         && clampResults.above.dark.colourStrength === 1.6
         && clampResults.legacy.largeSpread === 0.12
         && Math.abs(clampResults.legacy.smallSpread - 0.0408) < 0.000001
         && clampResults.legacyAfterglowRetired
         && clampResults.legacyClearanceRetired
-        && clampResults.legacySpreadRetired,
+        && clampResults.legacySpreadRetired
+        && clampResults.edgeResponseRetired,
       'Diffuse atmosphere normalization ranges are wrong',
       clampResults,
     );
@@ -1571,9 +1510,6 @@ async function runStatelessGlowContract(browser) {
       const { DiffuseGlowEffect } = await import(
         '/src/legacy/modules/rendering/atmosphere/diffuse-glow-effect.js'
       );
-      const { AtmosphereEdgeLight } = await import(
-        '/src/legacy/modules/rendering/atmosphere/atmosphere-edge-light.js'
-      );
       const {
         resolveSimulationAtmosphereCadence,
         shouldRenderSimulationAtmosphereFrame,
@@ -1692,20 +1628,6 @@ async function runStatelessGlowContract(browser) {
       const fullWallCenterAlpha = readAlpha(80);
       effect.destroy();
 
-      const edgeOutput = document.createElement('canvas');
-      edgeOutput.width = source.width;
-      edgeOutput.height = source.height;
-      sourceContext.clearRect(0, 0, source.width, source.height);
-      sourceContext.fillStyle = '#00ff88';
-      sourceContext.fillRect(0, 0, source.width, source.height);
-      const edgeEffect = new AtmosphereEdgeLight(edgeOutput);
-      edgeEffect.render(source, 1.2);
-      const edgeContext = edgeOutput.getContext('2d', { alpha: true, willReadFrequently: true });
-      const edgeAlpha = edgeContext.getImageData(0, 32, 1, 1).data[3];
-      const centerAlpha = edgeContext.getImageData(80, 32, 1, 1).data[3];
-      const cornerAlpha = edgeContext.getImageData(12, 12, 1, 1).data[3];
-      const edgeDrawCallCount = edgeEffect.lastDrawCallCount;
-      edgeEffect.destroy();
       return {
         firstOldAlpha,
         broadFieldEnergy,
@@ -1724,10 +1646,6 @@ async function runStatelessGlowContract(browser) {
         resetOldAlpha,
         fullWallCenterAlpha,
         temporalMemoryFrames,
-        edgeAlpha,
-        centerAlpha,
-        cornerAlpha,
-        edgeDrawCallCount,
         cadenceContract,
       };
     });
@@ -1766,12 +1684,6 @@ async function runStatelessGlowContract(browser) {
     assert(
       result.fullWallCenterAlpha > 20,
       'Retired quiet-zone input still removed the middle of the atmosphere',
-      result,
-    );
-    assert(result.edgeAlpha > 20, 'Edge response did not render its colour texture', result);
-    assert(
-      result.centerAlpha > 20 && result.cornerAlpha > 20 && result.edgeDrawCallCount === 2,
-      'Edge colour texture is not continuous across straight, centre, and corner samples',
       result,
     );
     assert(
@@ -1861,104 +1773,30 @@ async function runConfigPanelContract(browser) {
       state,
     );
 
-    const edgeControl = page.locator('#atmosphereEdgeStrengthSlider');
-    const edgeWidthControl = page.locator('#atmosphereEdgeWidthPxSlider');
-    const edgeInsetControl = page.locator('#atmosphereEdgeInsetPxSlider');
-    assert(
-      await edgeControl.count() === 1,
-      'Surface Finish must expose exactly one edge-strength control',
-      { count: await edgeControl.count() },
-    );
-    assert(
-      await edgeWidthControl.count() === 1,
-      'Surface Finish must expose exactly one edge-thickness control',
-      { count: await edgeWidthControl.count() },
-    );
-    assert(
-      await edgeInsetControl.count() === 1,
-      'Surface Finish must expose exactly one edge-inset control',
-      { count: await edgeInsetControl.count() },
-    );
-    const readEdgeControlState = (control) => {
-      const group = control.closest('details[data-group-id]');
-      const section = control.closest('.panel-section-accordion');
+    const retiredEdgeState = await page.evaluate(async () => {
+      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
+      const config = module.getSimulationAtmosphereConfig();
       return {
-        groupId: group?.dataset.groupId ?? null,
-        sectionTitle: section?.querySelector(':scope > summary')?.textContent
-          ?.trim()
-          .replace(/\s+/g, ' ') ?? null,
-        min: control.min,
-        max: control.max,
-        step: control.step,
+        edgeControlCount: document.querySelectorAll(
+          '#atmosphereEdgeStrengthSlider, #atmosphereEdgeWidthPxSlider, #atmosphereEdgeInsetPxSlider',
+        ).length,
+        edgeSectionCount: Array.from(document.querySelectorAll('.panel-section-accordion > summary'))
+          .filter((summary) => summary.textContent.includes('Edge Response')).length,
+        edgeCanvasCount: document.querySelectorAll('#simulation-atmosphere-edge-light-canvas').length,
+        edgeLayerCount: document.querySelectorAll('.simulation-atmosphere-edge-light-layer').length,
+        edgeConfigKeys: ['edgeStrength', 'edgeWidthPx', 'edgeInsetPx']
+          .filter((key) => Object.hasOwn(config, key)),
       };
-    };
-    const edgeControlState = await edgeControl.evaluate(readEdgeControlState);
-    const edgeWidthControlState = await edgeWidthControl.evaluate(readEdgeControlState);
-    const edgeInsetControlState = await edgeInsetControl.evaluate(readEdgeControlState);
-    assert(
-      edgeControlState.groupId === 'finish'
-        && edgeControlState.sectionTitle?.includes('Edge Response')
-        && edgeWidthControlState.groupId === 'finish'
-        && edgeWidthControlState.sectionTitle?.includes('Edge Response')
-        && edgeInsetControlState.groupId === 'finish'
-        && edgeInsetControlState.sectionTitle?.includes('Edge Response'),
-      'Atmosphere edge controls are not grouped together with Surface Finish',
-      { edgeControlState, edgeWidthControlState, edgeInsetControlState },
-    );
-    assert(
-      edgeWidthControlState.min === '0.5'
-        && edgeWidthControlState.max === '4'
-        && edgeWidthControlState.step === '0.25',
-      'Atmosphere edge-thickness control range is wrong',
-      edgeWidthControlState,
-    );
-    assert(
-      edgeInsetControlState.min === '0'
-        && edgeInsetControlState.max === '24'
-        && edgeInsetControlState.step === '1',
-      'Atmosphere edge-inset control range is wrong',
-      edgeInsetControlState,
-    );
-
-    const originalEdgeWidth = await edgeWidthControl.inputValue();
-    await edgeWidthControl.evaluate((control) => {
-      control.value = '4';
-      control.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    await page.waitForFunction(async () => {
-      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
-      const config = module.getSimulationAtmosphereConfig();
-      const wall = document.getElementById('simulations');
-      return config.edgeWidthPx === 4
-        && getComputedStyle(wall).getPropertyValue('--atmosphere-edge-width').trim() === '4px';
-    }, null, { timeout: WAIT_MS });
-    await edgeWidthControl.evaluate((control, value) => {
-      control.value = value;
-      control.dispatchEvent(new Event('input', { bubbles: true }));
-    }, originalEdgeWidth);
-
-    const originalEdgeInset = await edgeInsetControl.inputValue();
-    await edgeInsetControl.evaluate((control) => {
-      control.value = '12';
-      control.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await page.waitForFunction(async () => {
-      const module = await import('/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js');
-      const config = module.getSimulationAtmosphereConfig();
-      const wall = document.getElementById('simulations');
-      const edgeLayer = wall?.querySelector(':scope > .simulation-atmosphere-edge-light-layer');
-      if (!wall || !edgeLayer) return false;
-      const wallRect = wall.getBoundingClientRect();
-      const edgeRect = edgeLayer.getBoundingClientRect();
-      return config.edgeInsetPx === 12
-        && getComputedStyle(wall).getPropertyValue('--atmosphere-edge-inset').trim() === '12px'
-        && Math.abs(edgeRect.left - wallRect.left - 12) <= 0.25
-        && Math.abs(edgeRect.top - wallRect.top - 12) <= 0.25;
-    }, null, { timeout: WAIT_MS });
-    await edgeInsetControl.evaluate((control, value) => {
-      control.value = value;
-      control.dispatchEvent(new Event('input', { bubbles: true }));
-    }, originalEdgeInset);
+    assert(
+      retiredEdgeState.edgeControlCount === 0
+        && retiredEdgeState.edgeSectionCount === 0
+        && retiredEdgeState.edgeCanvasCount === 0
+        && retiredEdgeState.edgeLayerCount === 0
+        && retiredEdgeState.edgeConfigKeys.length === 0,
+      'Retired Edge Response controls, configuration, or rendering layers are still present',
+      retiredEdgeState,
+    );
 
     await group.locator(':scope > summary').click();
     const globalSummary = group.locator('.panel-section-accordion > summary').first();
@@ -1992,14 +1830,10 @@ async function runConfigPanelContract(browser) {
       controlCount: state.controlIds.length,
       sectionTitles: state.sectionTitles,
       intensityMaxima: state.intensityMaxima,
-      edgeControl: edgeControlState,
-      edgeWidthControl: edgeWidthControlState,
-      edgeInsetControl: edgeInsetControlState,
+      retiredEdgeState,
       fieldModeLiveApply: true,
       broadSpreadLiveApply: true,
       memoryLiveApply: true,
-      edgeWidthLiveApply: true,
-      edgeInsetLiveApply: true,
       lowQualityModeControlAvailable: true,
     };
   } finally {

@@ -65,12 +65,6 @@ export function setApplyVisualCSSVars(fn) {
   applyVisualCSSVars = fn;
 }
 
-// Will be set by main.js
-let updateTactileLayerFn = null;
-export function setUpdateTactileLayer(fn) {
-  updateTactileLayerFn = fn;
-}
-
 function getUiDocument(uiDocument) {
   return resolvePanelUiDocument(uiDocument);
 }
@@ -216,13 +210,6 @@ const RETIRED_CONTROL_IDS = new Set([
   'frameInnerSurface',
   'logoBlurInactive',
   'logoBlurActive',
-  'tactileEnabled',
-  'tactileProjectId',
-  'tactileScale',
-  'tactileDpi',
-  'tactileOpacity',
-  'tactileBlendMode',
-  'tactilePointerEvents',
   'noiseSeed',
   'noiseTextureSize',
   'noiseDistribution',
@@ -304,7 +291,6 @@ export const MASTER_GROUPS = [
     title: 'Surface Finish',
     icon: '✨',
     sections: [
-      'atmosphereEdge',
       'noise'
     ]
   },
@@ -316,14 +302,6 @@ export const MASTER_GROUPS = [
       'atmosphereCommon',
       'atmosphereLight',
       'atmosphereDark'
-    ]
-  },
-  {
-    id: 'structure',
-    title: 'Wall & Frame',
-    icon: '🖼️',
-    sections: [
-      'wallGeometry'
     ]
   },
   {
@@ -2053,17 +2031,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Release duration (“bounce out” length).'
       },
       {
-        id: 'sceneImpactAnticipation',
-        label: 'Anticipation',
-        stateKey: 'sceneImpactAnticipation',
-        type: 'range',
-        min: 0.0, max: 1, step: 0.01,
-        default: 0.0,
-        format: (v) => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Micro pre-pop before the click-in (0 = off).'
-      },
-      {
         id: 'sceneChangeSoundEnabled',
         label: 'Scene Sound',
         stateKey: 'sceneChangeSoundEnabled',
@@ -2272,104 +2239,7 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  // TACTILE LAYER - Unicorn Studio
   // ═══════════════════════════════════════════════════════════════════════════
-  tactileLayer: {
-    title: 'Tactile Layer',
-    icon: '🦄',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'tactileEnabled',
-        label: 'Enabled',
-        stateKey: 'tactileEnabled',
-        type: 'checkbox',
-        default: false,
-        hint: 'Enable Unicorn Studio WebGL layer',
-        onChange: (g, val) => {
-          void val;
-          if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactileProjectId',
-        label: 'Project ID',
-        stateKey: 'tactileProjectId',
-        type: 'text',
-        default: 'qBFxB3kkFBqgLxFNFleF',
-        hint: 'Unicorn Studio Project ID',
-        onChange: (g, val) => {
-          void val;
-          if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactileScale',
-        label: 'Scale',
-        stateKey: 'tactileScale',
-        type: 'range',
-        min: 0.1, max: 1, step: 0.1,
-        default: 1.0,
-        hint: 'Resolution scale (lower for performance)',
-        onChange: (g, val) => {
-          void val;
-           if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactileDpi',
-        label: 'DPI',
-        stateKey: 'tactileDpi',
-        type: 'range',
-        min: 0.5, max: 2, step: 0.1,
-        default: 1.0,
-        hint: 'Device Pixel Ratio (Keep low for performance)',
-        onChange: (g, val) => {
-          void val;
-           if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactileOpacity',
-        label: 'Opacity',
-        stateKey: 'tactileOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 1.0,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        onChange: (g, val) => {
-          void val;
-           if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactileBlendMode',
-        label: 'Blend Mode',
-        stateKey: 'tactileBlendMode',
-        type: 'select',
-        options: ['normal', 'overlay', 'screen', 'multiply', 'color-burn', 'linear-burn', 'soft-light', 'hard-light', 'lighten', 'difference'],
-        default: 'overlay',
-        onChange: (g, val) => {
-          void val;
-           if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      },
-      {
-        id: 'tactilePointerEvents',
-        label: 'Interactive',
-        stateKey: 'tactilePointerEvents',
-        type: 'checkbox',
-        default: false,
-        hint: 'If true, blocks underlying elements. Enable if visual requires direct interaction.',
-        onChange: (g, val) => {
-          void val;
-           if (updateTactileLayerFn) updateTactileLayerFn(g);
-        }
-      }
-    ]
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // COLORS - Full color system (backgrounds, text, links, logo)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2622,27 +2492,6 @@ export const CONTROL_SECTIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
   // WALL GEOMETRY - Basic wall structure and frame
   // ═══════════════════════════════════════════════════════════════════════════
-  wallGeometry: {
-    title: 'Wall · Frame',
-    icon: '🖼️',
-    defaultOpen: false,
-    controls: [
-      { type: 'divider', label: 'Wall Layout' },
-      {
-        id: 'restitution',
-        label: 'Bounce',
-        stateKey: 'restitution',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.70,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Material',
-        hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
-      },
-    ]
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // PUCK LIGHT — quote button disk shadow, rim, and edge
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3144,16 +2993,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'critterTurnDamp',
-        label: 'Turn Inertia',
-        stateKey: 'critterTurnDamp',
-        type: 'range',
-        min: 0.5, max: 30, step: 0.5,
-        default: 10.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
         id: 'critterTurnSeek',
         label: 'Steering',
         stateKey: 'critterTurnSeek',
@@ -3268,17 +3107,6 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(1) + 's',
         parse: parseFloat,
         hint: 'Seconds between activity waves'
-      },
-      {
-        id: 'critterHiveStirStrength',
-        label: 'Stir Strength',
-        stateKey: 'critterHiveStirStrength',
-        type: 'range',
-        min: 0, max: 6, step: 0.1,
-        default: 2.5,
-        format: v => v.toFixed(1) + 'x',
-        parse: parseFloat,
-        hint: 'Force of activity waves'
       },
       {
         id: 'critterHiveWaveSpeed',
@@ -3796,15 +3624,6 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10)
       },
       {
-        id: 'kaleiMirror',
-        label: 'Mirror',
-        type: 'range',
-        min: 0, max: 1, step: 1,
-        default: 1,
-        format: v => (v ? 'On' : 'Off'),
-        parse: v => parseInt(v, 10)
-      },
-      {
         id: 'kaleiSpeed',
         label: 'Speed',
         stateKey: 'kaleidoscope3Speed',
@@ -3922,167 +3741,6 @@ export const CONTROL_SECTIONS = {
       }
     ]
   },
-  starfield3d: {
-    title: 'Perspective',
-    icon: '✨',
-    mode: 'starfield-3d',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'starfieldCount',
-        label: 'Star Count',
-        stateKey: 'starfieldCount',
-        type: 'range',
-        min: 20, max: 320, step: 2,
-        default: 150,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'starfieldSpanX',
-        label: 'Span X',
-        stateKey: 'starfieldSpanX',
-        type: 'range',
-        min: 0.4, max: 3.5, step: 0.05,
-        default: 1.5,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'starfieldSpanY',
-        label: 'Span Y',
-        stateKey: 'starfieldSpanY',
-        type: 'range',
-        min: 0.4, max: 3.5, step: 0.05,
-        default: 1.2,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'starfieldMobileSpanMultiplier',
-        label: 'Mobile Field Span',
-        stateKey: 'starfieldMobileSpanMultiplier',
-        type: 'range',
-        min: 1, max: 4, step: 0.05,
-        default: 1.7,
-        format: v => `${v.toFixed(2)}×`,
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'starfieldZNear',
-        label: 'Z Near',
-        stateKey: 'starfieldZNear',
-        type: 'range',
-        min: 40, max: 800, step: 10,
-        default: 70,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'starfieldZFar',
-        label: 'Z Far',
-        stateKey: 'starfieldZFar',
-        type: 'range',
-        min: 400, max: 4000, step: 50,
-        default: 4000,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'starfieldFocalLength',
-        label: 'Focal Length',
-        stateKey: 'starfieldFocalLength',
-        type: 'range',
-        min: 120, max: 2000, step: 10,
-        default: 310,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'starfieldParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'starfieldParallaxStrength',
-        type: 'range',
-        min: 0, max: 1200, step: 10,
-        default: 320,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'starfieldSpeed',
-        label: 'Flow Speed',
-        stateKey: 'starfieldSpeed',
-        type: 'range',
-        min: 60, max: 1600, step: 10,
-        default: 390,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'starfieldFogStart',
-        label: 'Fog Start',
-        stateKey: 'starfieldFogStart',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.86,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Normalized depth where far-space fog begins clearing toward the viewer.'
-      },
-      {
-        id: 'starfieldFogMin',
-        label: 'Fog Floor',
-        stateKey: 'starfieldFogMin',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.32,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Minimum opacity for stars deepest in the distance fog.'
-      },
-      {
-        id: 'starfieldMobileFogMin',
-        label: 'Mobile Fog Floor',
-        stateKey: 'starfieldMobileFogMin',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.38,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Mobile-only minimum opacity for stars deepest in the distance fog.'
-      },
-      {
-        id: 'starfieldIdleJitter',
-        label: 'Idle Drift',
-        stateKey: 'starfieldIdleJitter',
-        type: 'range',
-        min: 0, max: 20, step: 0.5,
-        default: 20.0,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat,
-        hint: 'Subtle twinkle when idle; disabled for reduced-motion.'
-      },
-      {
-        id: 'starfieldFadeDuration',
-        label: 'Fade Duration',
-        stateKey: 'starfieldFadeDuration',
-        type: 'range',
-        min: 0, max: 3, step: 0.1,
-        default: 0.5,
-        format: v => v.toFixed(1) + 's',
-        parse: parseFloat,
-        hint: 'Duration of fade in/out when stars appear and disappear.'
-      },
-      warmupFramesControl('starfield3dWarmupFrames')
-    ]
-  },
-
   flubberBlob: {
     title: 'Cohesion',
     icon: '🫠',
@@ -4733,22 +4391,6 @@ export const CONTROL_SECTIONS = {
     icon: '🎭',
     defaultOpen: false,
     controls: [
-      {
-        id: 'entranceEnabled',
-        label: 'Enabled',
-        stateKey: 'entranceEnabled',
-        type: 'checkbox',
-        default: true,
-        format: v => (v ? 'On' : 'Off'),
-        parse: v => !!v,
-        hint: 'Enable dramatic entrance animation (browser default → wall-state)',
-        onChange: () => {
-          // Reload page to apply changes
-          if (typeof window !== 'undefined') {
-            setTimeout(() => window.location.reload(), 300);
-          }
-        }
-      },
       {
         id: 'entranceWallTransitionDelay',
         label: 'Wall Transition Delay',
@@ -5832,7 +5474,7 @@ export function syncSlidersToState(options = {}) {
           if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
         }
 
-        if (runOnChange && control.onChange && control.id !== 'entranceEnabled' && control.id !== 'contentFadeInDuration') {
+        if (runOnChange && control.onChange && control.id !== 'contentFadeInDuration') {
           control.onChange(g, stateVal);
         }
       }

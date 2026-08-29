@@ -630,7 +630,6 @@ export function renderKaleidoscope(ctx) {
     ? (g.kaleidoscope3WedgesMobile ?? 5)
     : (getKaleidoscopeParams(g).wedges ?? 12);
   const wedges = clamp(Math.round(wedgesRaw), 3, 24);
-  const mirror = Boolean(g.kaleidoscopeMirror ?? true);
 
   const cx = getLensCenterX(canvas);
   const cy = getLensCenterY(canvas);
@@ -818,14 +817,12 @@ export function renderKaleidoscope(ctx) {
     const r = Math.hypot(rx, ry) * fillScale * zoom;
     if (r < EPS) continue;
 
-    // Canonical kaleidoscope fold:
-    // - If mirror is enabled: fold angle into [0, wedgeAngle] using a 2*wedgeAngle period reflection.
-    //   This guarantees continuity across wedge boundaries (no “flip seams”).
-    // - If mirror is disabled: simple modulo into [0, wedgeAngle).
-    const period = mirror ? (2 * wedgeAngle) : wedgeAngle;
+    // Canonical mirrored fold into [0, wedgeAngle]. The two-wedge period keeps
+    // the mapping continuous at every wedge boundary.
+    const period = 2 * wedgeAngle;
     let local = Math.atan2(ry, rx) + phase;
     local = ((local % period) + period) % period; // wrap to [0, period)
-    if (mirror && local > wedgeAngle) local = period - local; // reflect into [0, wedgeAngle]
+    if (local > wedgeAngle) local = period - local; // reflect into [0, wedgeAngle]
 
     // Avoid exact seam angles (helps prevent razor-thin discontinuities from float/AA).
     local = clamp(local, seamEps, wedgeAngle - seamEps);

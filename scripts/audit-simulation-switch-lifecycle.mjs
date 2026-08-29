@@ -490,7 +490,7 @@ function analyzeSuccessfulTrace(trace, baseline, baselineSamples, flow) {
     if (!atmosphere) issues.push('atmosphere-snapshot-missing-at-in');
     else {
       if (atmosphere.activeSourceCount !== 1) issues.push(`active-source-count:${atmosphere.activeSourceCount}`);
-      if (atmosphere.compositorCount !== 1 || atmosphere.glowCanvasCount !== 1 || atmosphere.edgeCanvasCount !== 1) {
+      if (atmosphere.compositorCount !== 1 || atmosphere.glowCanvasCount !== 1) {
         issues.push('persistent-compositor-count');
       }
       if (atmosphere.status !== 'failed-open') {

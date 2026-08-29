@@ -391,6 +391,44 @@ test('every active control preserves parse and format behavior at its default bo
   assertParseFormatContract(parseFormatResults, fixture);
 });
 
+test('every control section is reachable and every active control has an application path', () => {
+  const modeMarkup = registry.generateModeSpecificSectionsHTML({ showAllModes: true });
+  for (const [key, section] of Object.entries(registry.CONTROL_SECTIONS)) {
+    if (section.mode) {
+      assert.match(modeMarkup, new RegExp(`data-section-key="${key}"`), `${key} is an unreachable mode section.`);
+    } else {
+      assert(
+        registry.MASTER_SECTION_KEYS.includes(key),
+        `${key} is an unreachable non-mode section.`,
+      );
+    }
+    for (const control of section.controls || []) {
+      if (!control.id) continue;
+      assert(
+        Boolean(control.stateKey || control.onChange || control.cssVar),
+        `${control.id} has no state, CSS, or live application path.`,
+      );
+    }
+  }
+
+  const retiredIds = [
+    'atmosphereEdgeStrength',
+    'atmosphereEdgeWidthPx',
+    'atmosphereEdgeInsetPx',
+    'restitution',
+    'entranceEnabled',
+    'critterTurnDamp',
+    'critterHiveStirStrength',
+    'sceneImpactAnticipation',
+    'starfieldIdleJitter',
+    'kaleiMirror',
+  ];
+  const activeIds = new Set(controls.map((control) => control.id).filter(Boolean));
+  for (const id of retiredIds) {
+    assert.equal(activeIds.has(id), false, `${id} returned to the active panel contract.`);
+  }
+});
+
 test('registered control binding preserves state, CSS/runtime, and atmosphere application', () => {
   const bgLight = createEventElement({ value: '#d8d8d8' });
   const bgLightVal = createEventElement();

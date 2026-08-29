@@ -1,7 +1,6 @@
 {
   "sectionOrder": [
     "atmosphereCommon",
-    "atmosphereEdge",
     "atmosphereLight",
     "atmosphereDark",
     "bodyMaterialCommon",
@@ -18,10 +17,8 @@
     "links",
     "scene",
     "overlay",
-    "tactileLayer",
     "colors",
     "colorDistribution",
-    "wallGeometry",
     "puckLight",
     "noise",
     "critters",
@@ -32,7 +29,6 @@
     "magnetic",
     "kaleidoscope",
     "kaleidoscopeRift",
-    "starfield3d",
     "flubberBlob",
     "pressureCrucible",
     "particleFountain",
@@ -40,12 +36,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 315,
-  "descriptorDigest": "a32caaf59c3cbdf03f44ce0a83eefbfa9d882f1bdbd25d6fc08bdaf18fbad5a3",
-  "renderedControlCount": 300,
-  "renderedIdDigest": "3e9cc58bda710feb71a403cf99b06dc816de702f721652fa7574a1fe37f3050f",
-  "generatedMarkupDigest": "6ca179970f4eea2720d4b88b1fed414a56daa0c66aae45dcc617f5b4b18223d8",
-  "parseFormatDigest": "748290dc85b8027d4b048fc5b62c1a1c3149d3829a1e10aac161fa60fb61f383",
+  "controlCount": 291,
+  "descriptorDigest": "48b56eef62401f60de0b100de370057ee91c814cf5cf7f82dae2e8b3e25f864d",
+  "renderedControlCount": 291,
+  "renderedIdDigest": "4ad52931859d02d047c8a316408f363add7480741b75b37947c8f181945cc0fd",
+  "generatedMarkupDigest": "52e30399358d2685e2fec2b6c87a3ef389c9a5b6820ae68f91b1daae4579d91a",
+  "parseFormatDigest": "d0166921066611b4f14e8609a2d135c8b9d7c0d2c18e752f704c305c6b33be99",
   "sentinels": [
     {
       "id": "ballMassKg",

@@ -3,7 +3,6 @@ import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
 } from '../../../../palette/simulationPaletteController.js';
-import { AtmosphereEdgeLight } from './atmosphere-edge-light.js';
 import { DiffuseGlowEffect } from './diffuse-glow-effect.js';
 import {
   DEFAULT_SIMULATION_ATMOSPHERE_CADENCE_FPS,
@@ -176,9 +175,9 @@ function validateSource(definition) {
   if (
     host
     && definition.canvas
-    && (definition.canvas === host.glowCanvas || definition.canvas === host.edgeCanvas)
+    && definition.canvas === host.glowCanvas
   ) {
-    throw new TypeError('The atmosphere compositor cannot sample one of its output canvases.');
+    throw new TypeError('The atmosphere compositor cannot sample its output canvas.');
   }
   return { id, kind, scheduler };
 }
@@ -291,7 +290,6 @@ function recordCost(costMs) {
 
 function clearOutput({ preservePresentation = false } = {}) {
   host?.effect?.clear();
-  host?.edgeLight?.clear();
   if (host?.sourceContext) {
     host.sourceContext.clearRect(0, 0, host.sourceCanvas.width, host.sourceCanvas.height);
   }
@@ -306,7 +304,6 @@ function clearOutput({ preservePresentation = false } = {}) {
   if (!preservePresentation && host) {
     const fallbackActive = isCssAtmosphereFallbackActive();
     host.glowCanvas.hidden = true;
-    host.edgeCanvas.hidden = true;
     host.root.dataset.atmosphereReady = String(fallbackActive);
     host.root.dataset.atmosphereStatus = fallbackActive
       ? 'ready'
@@ -356,8 +353,6 @@ function applyPresentationState() {
   const fallbackActive = isCssAtmosphereFallbackActive();
   const enabled = isCanvasAtmosphereEnabled() && Boolean(activeSource) && !failureReason;
   const root = host.root;
-  root.style.setProperty('--atmosphere-edge-width', `${renderProfile.edgeWidthPx}px`);
-  root.style.setProperty('--atmosphere-edge-inset', `${renderProfile.edgeInsetPx}px`);
   root.dataset.atmosphereActive = String(enabled);
   root.dataset.atmosphereFallbackActive = String(fallbackActive);
   root.dataset.atmosphereReady = String(fallbackActive || firstCompositeAt > 0);
@@ -367,7 +362,6 @@ function applyPresentationState() {
   if (!enabled) {
     markSourceElement(activeSource, false);
     host.glowCanvas.hidden = true;
-    host.edgeCanvas.hidden = true;
   }
 }
 
@@ -415,7 +409,6 @@ function syncGeometry() {
   smallResponsiveScale = blurGeometry.smallResponsiveScale;
   renderProfile.largeBlurRadiusBackingPx = blurGeometry.largeRadiusBackingPx;
   renderProfile.smallBlurRadiusBackingPx = blurGeometry.smallRadiusBackingPx;
-  host.edgeLight.resize(width, height);
   host.geometry.left = rect.left;
   host.geometry.top = rect.top;
   host.geometry.width = rect.width;
@@ -473,7 +466,6 @@ function clearAmbientSource() {
 function renderAmbientSource(now) {
   clearAmbientSource();
   host.effect.clear();
-  host.edgeLight.clear();
   compositedFrameCount += 1;
   firstCompositeAt ||= now;
   if (lastCompositeAt > 0) {
@@ -483,7 +475,6 @@ function renderAmbientSource(now) {
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = true;
-  host.edgeCanvas.hidden = true;
   host.root.dataset.atmosphereReady = 'true';
   host.root.dataset.atmosphereStatus = 'ready';
   settleFirstFrame(activeSource, now);
@@ -701,7 +692,6 @@ function renderComposite(now, frameBudget = null) {
   effectRenderArgs.config = activeRenderProfile;
   effectRenderArgs.nowMs = now;
   host.effect.render(effectRenderArgs);
-  host.edgeLight.render(host.glowCanvas, activeRenderProfile.edgeStrength);
   const costMs = performance.now() - start;
   recordCost(costMs);
   compositedFrameCount += 1;
@@ -713,7 +703,6 @@ function renderComposite(now, frameBudget = null) {
   consecutiveErrors = 0;
   staticFrameDirty = false;
   host.glowCanvas.hidden = false;
-  host.edgeCanvas.hidden = transitionPhase !== 'idle' || activeRenderProfile.edgeStrength <= 0;
   host.root.dataset.atmosphereReady = 'true';
   host.root.dataset.atmosphereStatus = 'ready';
   settleFirstFrame(activeSource, now);
@@ -888,15 +877,7 @@ function getDiagnosticSnapshot() {
     activeSourceCount: activeSource ? 1 : 0,
     compositorCount: host ? 1 : 0,
     glowCanvasCount: host ? 1 : 0,
-    edgeCanvasCount: host ? 1 : 0,
     glowCanvasId: host?.glowCanvas.id || '',
-    edgeCanvasId: host?.edgeCanvas.id || '',
-    edgeWidth: host?.edgeCanvas.width || 0,
-    edgeHeight: host?.edgeCanvas.height || 0,
-    edgeStrength: renderProfile?.edgeStrength ?? configuration.edgeStrength,
-    edgeWidthPx: renderProfile?.edgeWidthPx ?? configuration.edgeWidthPx,
-    edgeInsetPx: renderProfile?.edgeInsetPx ?? configuration.edgeInsetPx,
-    edgeDrawCallCount: host?.edgeLight?.lastDrawCallCount || 0,
     scheduler: activeSource?.scheduler || '',
     schedulerActive: isCanvasAtmosphereEnabled()
       && (activeSource?.scheduler === 'internal' ? Boolean(internalFrameId) : Boolean(activeSource)),
@@ -986,12 +967,12 @@ function installDiagnosticHandle() {
   });
 }
 
-export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, scope = 'production' }) {
+export function attachSimulationAtmosphereHost({ root, glowCanvas, scope = 'production' }) {
   if (!(root instanceof HTMLElement)) throw new TypeError('Simulation atmosphere host requires a root element.');
-  if (!(glowCanvas instanceof HTMLCanvasElement) || !(edgeCanvas instanceof HTMLCanvasElement)) {
-    throw new TypeError('Simulation atmosphere host requires stable glow and edge canvases.');
+  if (!(glowCanvas instanceof HTMLCanvasElement)) {
+    throw new TypeError('Simulation atmosphere host requires a stable glow canvas.');
   }
-  if (host?.root === root && host.glowCanvas === glowCanvas && host.edgeCanvas === edgeCanvas) {
+  if (host?.root === root && host.glowCanvas === glowCanvas) {
     return host.detach;
   }
   host?.detach?.();
@@ -1000,7 +981,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   const sourceContext = sourceCanvas.getContext('2d', { alpha: true, desynchronized: true });
   if (!sourceContext) throw new Error('Simulation atmosphere source context unavailable.');
   const effect = new DiffuseGlowEffect(glowCanvas);
-  const edgeLight = new AtmosphereEdgeLight(edgeCanvas);
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(() => invalidateSimulationAtmosphereGeometry('resize-observer'))
     : null;
@@ -1019,11 +999,9 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     generation,
     root,
     glowCanvas,
-    edgeCanvas,
     sourceCanvas,
     sourceContext,
     effect,
-    edgeLight,
     resizeObserver,
     reducedMotionQuery,
     unsubscribePalette,
@@ -1036,7 +1014,6 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
   window.addEventListener(THEME_CHANGE_EVENT, handleThemeChange);
   reducedMotionQuery?.addEventListener?.('change', handleReducedMotionChange);
   glowCanvas.hidden = true;
-  edgeCanvas.hidden = true;
   installDiagnosticHandle();
   rebuildProfile({ resetQuality: true });
   resetCostMetrics();
@@ -1056,16 +1033,12 @@ export function attachSimulationAtmosphereHost({ root, glowCanvas, edgeCanvas, s
     unsubscribePalette();
     resizeObserver?.disconnect();
     markSourceElement(activeSource, false);
-    edgeLight.destroy();
     effect.destroy();
     glowCanvas.hidden = true;
-    edgeCanvas.hidden = true;
     delete root.dataset.atmosphereActive;
     delete root.dataset.atmosphereFallbackActive;
     delete root.dataset.atmosphereReady;
     delete root.dataset.atmosphereStatus;
-    root.style.removeProperty('--atmosphere-edge-width');
-    root.style.removeProperty('--atmosphere-edge-inset');
     if (window.__ABS_SIMULATION_ATMOSPHERE__) delete window.__ABS_SIMULATION_ATMOSPHERE__;
     host = null;
   };
@@ -1468,7 +1441,6 @@ export function registerSimulationAtmosphereSource(definition) {
     activeSourceGeneration = 0;
     if (preserveOutput && host) {
       host.root.dataset.atmosphereStatus = 'frozen';
-      host.edgeCanvas.hidden = true;
     } else {
       applyPresentationState();
       if (host) host.root.dataset.atmosphereStatus = 'waiting-source';
@@ -1523,7 +1495,6 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
   transitionPhase = nextPhase;
   if (!host) return;
   if (transitionPhase !== 'idle') {
-    host.edgeCanvas.hidden = true;
     // Freeze the source that was visible when route-out began. A newly
     // registered incoming internal source still owns its first clear or
     // composite frame during route-in.
@@ -1542,9 +1513,6 @@ export function setSimulationAtmosphereTransitionState(phase = 'idle') {
     host.root.dataset.atmosphereStatus = 'waiting-source';
     return;
   }
-  host.edgeCanvas.hidden = isCssAtmosphereFallbackActive()
-    || !firstCompositeAt
-    || renderProfile.edgeStrength <= 0;
   staticFrameDirty = true;
   if (isCanvasAtmosphereEnabled()) {
     armSourceFirstFrameTimeout(activeSource);

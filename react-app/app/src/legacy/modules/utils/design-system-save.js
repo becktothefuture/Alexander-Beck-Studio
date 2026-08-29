@@ -144,7 +144,10 @@ export async function buildDesignSystemSnapshot({
   cvSnapshot = null,
 } = {}) {
   const base = normalizeDesignSystemConfig(await loadDesignSystemConfig());
-  const nextRuntime = clone(runtimeSnapshot || buildRuntimeConfigSnapshot());
+  const nextRuntime = {
+    ...clone(base.runtime),
+    ...clone(runtimeSnapshot || buildRuntimeConfigSnapshot()),
+  };
 
   return {
     ...base,

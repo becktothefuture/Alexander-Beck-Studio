@@ -105,7 +105,6 @@ export function StudioShell({
   onRoutePrewarm,
 }) {
   const atmosphereGlowCanvasRef = useRef(null);
-  const atmosphereEdgeCanvasRef = useRef(null);
   const titleCanvasRef = useRef(null);
   const routeWindowClassName = studioWindowClassName ?? wallClassName;
   const windowLayerClassName = ['studio-window-layer', 'simulation-wall-layer', routeWindowClassName].filter(Boolean).join(' ');
@@ -120,7 +119,6 @@ export function StudioShell({
       return attachSimulationAtmosphereHost({
         root: document.getElementById('simulations'),
         glowCanvas: atmosphereGlowCanvasRef.current,
-        edgeCanvas: atmosphereEdgeCanvasRef.current,
         scope: atmosphereHostScope,
       });
     } catch (error) {
@@ -156,6 +154,7 @@ export function StudioShell({
             aria-busy={transitionPhase !== 'idle' ? 'true' : 'false'}
           >
             <div id="scene-effects" className="scene-effects" aria-hidden="true">
+              <div className="studio-window-dot-pattern" data-studio-window-pattern="dots" />
               <div className="noise" />
             </div>
             <div className="inner-wall-gradient-edge" aria-hidden="true" />
@@ -211,19 +210,6 @@ export function StudioShell({
                 {simulationFocusControls}
               </div>
             </div>
-            {atmosphereHostScope ? (
-              <div className="simulation-atmosphere-edge-light-layer" aria-hidden="true">
-                <canvas
-                  id="simulation-atmosphere-edge-light-canvas"
-                  ref={atmosphereEdgeCanvasRef}
-                  className="simulation-atmosphere-edge-light-canvas"
-                  data-atmosphere-layer="edge-light"
-                  data-simulation-snapshot-id="atmosphere-edge-light"
-                  data-simulation-snapshot-order="40"
-                  aria-hidden="true"
-                />
-              </div>
-            ) : null}
             <div className="frame-vignette" aria-hidden="true" />
             <div
               ref={surfaceRefs?.ui}

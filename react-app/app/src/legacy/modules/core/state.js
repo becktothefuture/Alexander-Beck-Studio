@@ -175,7 +175,6 @@ const state = {
   starfieldFogStart: 0.86,
   starfieldFogMin: 0.32,
   starfieldMobileFogMin: 0.38,
-  starfieldIdleJitter: 0,
   starfieldFadeDuration: 0.5,
   starfield3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
@@ -334,7 +333,6 @@ const state = {
   critterStepHz: 4.8,         // step cadence
   critterStepSharpness: 1.8,  // higher = more staccato steps
   critterTurnNoise: 1.5,      // wander
-  critterTurnDamp: 10.0,      // turning inertia damping
   critterTurnSeek: 7.5,       // steering toward desired heading
   critterAvoidRadius: 90,     // px (tighter packs; separation is now mostly near-field)
   critterAvoidForce: 9500,    // separation acceleration
@@ -346,7 +344,6 @@ const state = {
   
   // Hive behavior parameters
   critterHiveStirInterval: 5.0,   // seconds between hive stir waves
-  critterHiveStirStrength: 2.5,   // force multiplier for stir impulse
   critterHiveWaveSpeed: 0.4,      // how fast stir wave expands (canvas/sec)
   
   // Character trait ranges (personality variation)
@@ -563,7 +560,6 @@ const state = {
   weightlessRepelSoft: 5.4,
   
   // Kaleidoscope mode (mouse-driven mirrored wedges) - using KALEIDOSCOPE_3 parameters
-  kaleidoscopeMirror: 1,
   // Normalized idle drift (0..0.05). Subtle movement when idle.
   kaleidoscopeIdleDrift: 0.012,
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
@@ -632,7 +628,6 @@ const state = {
   // Logo counter-scale gain (multiplies the compensation so the logo stays "anchored")
   sceneImpactLogoCompMul: 1.8,
   sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
-  sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
   sceneImpactPressMs: 0,        // ms (press-in duration)
   sceneImpactReleaseMs: 620,    // ms (bounce-out duration)
 
@@ -861,7 +856,6 @@ const state = {
   logoBlurActive: 12,                // Logo blur when gate is active (px)
   
   // Entrance Animation (browser default → wall-state)
-  entranceEnabled: true,            // Enable dramatic entrance animation
   entranceWallTransitionDelay: 300,  // Delay before wall-state transition starts (ms)
   entranceWallTransitionDuration: 800, // Wall growth animation duration (ms)
   entranceWallInitialScale: 1.1,    // Initial scale (wall starts slightly larger, scales down to 1.0)
@@ -1694,9 +1688,6 @@ export function initState(config) {
   } else if (config.kaleidoscopeSegments !== undefined) {
     state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeSegments, 3, 24, state.kaleidoscopeWedges);
   }
-  if (config.kaleidoscopeMirror !== undefined) {
-    state.kaleidoscopeMirror = clampNumber(config.kaleidoscopeMirror, 0, 1, state.kaleidoscopeMirror);
-  }
   // New key: kaleidoscopeSpeed (preferred). Back-compat: kaleidoscopeSwirlStrength (mapped).
   if (config.kaleidoscopeSpeed !== undefined) {
     state.kaleidoscopeSpeed = clampNumber(config.kaleidoscopeSpeed, 0.2, 2.0, state.kaleidoscopeSpeed);
@@ -1713,7 +1704,6 @@ export function initState(config) {
   if (config.critterStepHz !== undefined) state.critterStepHz = config.critterStepHz;
   if (config.critterStepSharpness !== undefined) state.critterStepSharpness = config.critterStepSharpness;
   if (config.critterTurnNoise !== undefined) state.critterTurnNoise = config.critterTurnNoise;
-  if (config.critterTurnDamp !== undefined) state.critterTurnDamp = config.critterTurnDamp;
   if (config.critterTurnSeek !== undefined) state.critterTurnSeek = config.critterTurnSeek;
   if (config.critterAvoidRadius !== undefined) state.critterAvoidRadius = config.critterAvoidRadius;
   if (config.critterAvoidForce !== undefined) state.critterAvoidForce = config.critterAvoidForce;
@@ -1728,7 +1718,6 @@ export function initState(config) {
   
   // Hive behavior
   if (config.critterHiveStirInterval !== undefined) state.critterHiveStirInterval = config.critterHiveStirInterval;
-  if (config.critterHiveStirStrength !== undefined) state.critterHiveStirStrength = config.critterHiveStirStrength;
   if (config.critterHiveWaveSpeed !== undefined) state.critterHiveWaveSpeed = config.critterHiveWaveSpeed;
   
   // Character traits
@@ -1792,7 +1781,6 @@ export function initState(config) {
   if (config.starfieldFogStart !== undefined) state.starfieldFogStart = clampNumber(config.starfieldFogStart, 0, 1, state.starfieldFogStart);
   if (config.starfieldFogMin !== undefined) state.starfieldFogMin = clampNumber(config.starfieldFogMin, 0, 1, state.starfieldFogMin);
   if (config.starfieldMobileFogMin !== undefined) state.starfieldMobileFogMin = clampNumber(config.starfieldMobileFogMin, 0, 1, state.starfieldMobileFogMin);
-  if (config.starfieldIdleJitter !== undefined) state.starfieldIdleJitter = clampNumber(config.starfieldIdleJitter, 0, 20, state.starfieldIdleJitter);
   if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
   
@@ -1905,11 +1893,6 @@ export function initState(config) {
     state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 1, state.sceneImpactOvershoot);
   } else if (config.brandLogoOvershoot !== undefined) {
     state.sceneImpactOvershoot = clampNumber(config.brandLogoOvershoot, 0, 1, state.sceneImpactOvershoot);
-  }
-  if (config.sceneImpactAnticipation !== undefined) {
-    state.sceneImpactAnticipation = clampNumber(config.sceneImpactAnticipation, 0, 1, state.sceneImpactAnticipation);
-  } else if (config.brandLogoAnticipation !== undefined) {
-    state.sceneImpactAnticipation = clampNumber(config.brandLogoAnticipation, 0, 1, state.sceneImpactAnticipation);
   }
   if (config.sceneImpactPressMs !== undefined) {
     state.sceneImpactPressMs = clampNumber(config.sceneImpactPressMs, 20, 300, state.sceneImpactPressMs);

@@ -498,13 +498,11 @@ async function auditCrispGlowTitleDepth(page) {
     continuity.depthLayerActive !== true
     || continuity.dedicatedTitleCanvasCount !== 0
     || continuity.experimentalTitleCanvasCount !== 0
-    || continuity.edgeCanvasCount !== 1
+    || continuity.edgeCanvasCount !== 0
     || continuity.edgeClipCount !== 0
     || !(continuity.materialZ < continuity.frontZ)
     || continuity.materialFilter !== 'none'
     || continuity.frontFilter !== 'none'
-    || continuity.edgeWidth <= 0
-    || continuity.edgeHeight <= 0
   ) {
     throw new Error(`Crisp + Glow layer contract invalid: ${JSON.stringify(continuity)}`);
   }
@@ -516,9 +514,6 @@ async function auditCrispGlowTitleDepth(page) {
     'largeSpread',
     'smallSpread',
     'memoryMs',
-    'edgeStrength',
-    'edgeWidthPx',
-    'edgeInsetPx',
   ];
   const compositionControlIds = await page.$$eval(
     '[data-parameter-id]',
@@ -544,9 +539,6 @@ async function auditCrispGlowTitleDepth(page) {
       largeSpread: '0.12',
       smallSpread: '0.04',
       memoryMs: '150',
-      edgeStrength: '0.25',
-      edgeWidthPx: '2.5',
-      edgeInsetPx: '12',
     };
     Object.entries(values).forEach(([id, value]) => {
       const input = document.querySelector(`input[data-parameter-id="${id}"]`);
@@ -557,18 +549,14 @@ async function auditCrispGlowTitleDepth(page) {
   await page.waitForFunction(() => {
     const snap = window.__ABS_ATMOSPHERE_LAB__?.getSnapshot?.();
     const material = document.getElementById('c');
-    const edge = document.getElementById('simulation-atmosphere-edge-light-canvas');
     return snap?.config?.dark?.intensity === 0.42
       && snap?.config?.dark?.colourStrength === 1.1
       && snap?.config?.largeSpread === 0.12
       && snap?.config?.smallSpread === 0.04
       && snap?.config?.memoryMs === 150
-      && snap?.config?.edgeStrength === 0.25
-      && snap?.config?.edgeWidthPx === 2.5
-      && snap?.config?.edgeInsetPx === 12
       && snap?.temporalMemoryFrames === 1
       && getComputedStyle(material).filter === 'none'
-      && !getComputedStyle(edge).filter.includes('blur');
+      && document.querySelectorAll('.simulation-atmosphere-edge-light-canvas').length === 0;
   }, undefined, { timeout: WAIT_MS });
 
   await page.getByRole('button', { name: 'Reset' }).click();
