@@ -7,7 +7,10 @@ import {
   PLAYGROUND_CONFIG_BOUNDS,
   normalizePlaygroundConfig,
 } from './config/playgroundConfig.js';
-import { createPlaygroundActiveMediaOwnership } from './media/activeMediaOwnership.js';
+import {
+  createPlaygroundActiveMediaOwnership,
+  selectBoundedActiveWorldMediaIds,
+} from './media/activeMediaOwnership.js';
 import {
   PlaygroundContentValidationError,
   validatePlaygroundContent,
@@ -29,7 +32,7 @@ import {
   placePlaygroundItems,
 } from './spatial/index.js';
 
-const CONTENT_URL = new URL('../../../public/config/contents-playground.json', import.meta.url);
+const CONTENT_URL = new URL('../../../public/config/contents-portfolio.json', import.meta.url);
 const PLACEMENT_OPTIONS = Object.freeze({
   ...DEFAULT_PLAYGROUND_CONFIG,
   includeTypeRow: false,
@@ -38,7 +41,13 @@ const PLACEMENT_OPTIONS = Object.freeze({
 });
 
 async function readContent() {
-  return JSON.parse(await readFile(CONTENT_URL, 'utf8'));
+  const source = JSON.parse(await readFile(CONTENT_URL, 'utf8'));
+  return {
+    version: source.version,
+    title: source.title,
+    description: source.description,
+    items: source.snippets,
+  };
 }
 
 function toPlacementItem(item) {
@@ -196,7 +205,7 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(offsets.some(([, y]) => Math.abs(y) === expanded.world.heightPx));
 });
 
-test('canonical salon placement keeps homogeneous project clearance across world seams', async () => {
+test('canonical Work snippets keep collision clearance across world seams', async () => {
   const source = await readContent();
   const runtimeOptions = {
     ...applyPlaygroundResponsiveProfile(
@@ -210,17 +219,8 @@ test('canonical salon placement keeps homogeneous project clearance across world
   const result = buildWorld(source.items, runtimeOptions);
   const clearances = getToroidalProjectClearances(result.placed.placements, result.world);
   const minimum = Math.min(...clearances);
-  const maximum = Math.max(...clearances);
-  const average = clearances.reduce((sum, value) => sum + value, 0) / clearances.length;
-  const deviation = Math.sqrt(clearances.reduce(
-    (sum, value) => sum + ((value - average) ** 2),
-    0,
-  ) / clearances.length);
-
   assert.equal(result.placed.diagnostics.maximumPassIndex, 0);
   assert.ok(minimum >= 3);
-  assert.ok(maximum <= 9);
-  assert.ok(deviation / average <= 0.35);
 });
 
 test('larger item spans expand their footprint and a seed change regenerates deterministically', async () => {
@@ -247,7 +247,7 @@ test('work URL selection is validated, shareable, Back-aware, and safely clearab
   const content = validatePlaygroundContent(await readContent());
   const ids = content.items.map((item) => item.id);
   const selectedId = ids[0];
-  const locationLike = { href: 'https://beck.fyi/playground.html?theme=dark', search: '?theme=dark' };
+  const locationLike = { href: 'https://beck.fyi/portfolio.html?theme=dark', search: '?theme=dark' };
   const calls = [];
   const historyLike = {
     state: {},
@@ -262,7 +262,7 @@ test('work URL selection is validated, shareable, Back-aware, and safely clearab
     back() { calls.push({ method: 'back' }); },
   };
 
-  assert.equal(buildPlaygroundWorkUrl(selectedId, { locationLike, itemsOrIds: ids }), `/playground.html?theme=dark&work=${selectedId}`);
+  assert.equal(buildPlaygroundWorkUrl(selectedId, { locationLike, itemsOrIds: ids }), `/portfolio.html?theme=dark&work=${selectedId}`);
   assert.equal(updatePlaygroundWorkSelection(selectedId, { historyLike, locationLike, itemsOrIds: ids }), true);
   assert.equal(calls[0].state[PLAYGROUND_WORK_HISTORY_KEY], selectedId);
   assert.equal(parsePlaygroundWorkSelection(`?work=${selectedId}`, ids), selectedId);
@@ -270,7 +270,7 @@ test('work URL selection is validated, shareable, Back-aware, and safely clearab
   assert.equal(updatePlaygroundWorkSelection('unknown-project', { historyLike, locationLike, itemsOrIds: ids }), false);
 
   const selectedLocation = {
-    href: `https://beck.fyi/playground.html?work=${selectedId}`,
+    href: `https://beck.fyi/portfolio.html?work=${selectedId}`,
     search: `?work=${selectedId}`,
   };
   assert.equal(clearPlaygroundWorkSelection({ historyLike, locationLike: selectedLocation }), 'back');
@@ -278,7 +278,7 @@ test('work URL selection is validated, shareable, Back-aware, and safely clearab
 
   historyLike.state = {};
   assert.equal(clearPlaygroundWorkSelection({ historyLike, locationLike: selectedLocation }), 'replace');
-  assert.equal(calls.at(-1).url, '/playground.html');
+  assert.equal(calls.at(-1).url, '/portfolio.html');
 });
 
 test('active media ownership selects one nearest visible instance per logical item', () => {
@@ -320,6 +320,25 @@ test('active media ownership selects one nearest visible instance per logical it
   second.release();
   iframe.release();
   ownership.clear();
+});
+
+test('visible world media activates at most one video and one code runtime', () => {
+  const items = [
+    { id: 'image-one', type: 'image' },
+    { id: 'video-one', type: 'video' },
+    { id: 'code-one', type: 'code' },
+    { id: 'video-two', type: 'video' },
+    { id: 'code-two', type: 'code' },
+  ];
+  const active = selectBoundedActiveWorldMediaIds(
+    items,
+    new Set(['image-one', 'video-one', 'code-one', 'video-two', 'code-two']),
+  );
+  assert.deepEqual([...active], ['video-one', 'code-one']);
+  assert.deepEqual(
+    [...selectBoundedActiveWorldMediaIds(items, new Set(['video-two', 'code-two']))],
+    ['video-two', 'code-two'],
+  );
 });
 
 test('configuration normalization clamps every control and retains canonical defaults', () => {

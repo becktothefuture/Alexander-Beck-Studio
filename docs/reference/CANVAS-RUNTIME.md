@@ -14,7 +14,7 @@ The runtime owns:
 - per-frame loop timing;
 - pointer, cursor, sound, and material responses tied to simulation state;
 - direct-load boot completion after the canvas route is visually ready;
-- route-specific imperative modules such as the Portfolio runtime.
+- route-specific imperative modules such as the Work case-study drawer and handoff.
 
 React mounts the DOM structure and route slots. The runtime bootstraps imperative behavior into those slots.
 
@@ -48,7 +48,7 @@ export const HOME_ROUTE_RUNTIME = {
 Direct-load boot completion has one active owner per route family:
 
 - home canvas direct loads: `legacy/modules/visual/page-orchestrator.js`;
-- non-home shell routes such as Portfolio, About Me, Contact, styleguide, simulations, and palette-lab: `SiteApp.jsx`;
+- non-home shell routes such as Work, About, Contact, styleguide, simulations, and palette-lab: `SiteApp.jsx`;
 - route-backed Daily Focus direct loads: `routes/daily-focus/DailyFocusShellBridge.jsx`;
 - standalone lab/dashboard entries: their lightweight page bootstrap, without the full shell boot overlay.
 
@@ -86,7 +86,7 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work / Portfolio, About, Contact, and the Home quote puck all use their existing flat fallback path. The Lab dot field is a separate neutral grid material.
+Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work, About, Contact, and the Home quote puck all use their existing flat fallback path. The Work depth field is a separate neutral three-layer material.
 
 This is a performance contract as well as a visual choice. Renderers may batch compatible flat bodies by colour and must not replace that batching with one scaled texture draw per body. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
@@ -96,7 +96,7 @@ The retained sphere-material cache is compatibility and development infrastructu
 
 `modules/rendering/atmosphere/simulation-atmosphere.js` owns one route-neutral compositor. `StudioShell` supplies one stable glow Canvas inside the wall slot and one stable edge-light Canvas inside the wall-radius-inheriting edge layer; route runtimes supply material through `registerSimulationAtmosphereSource()` and never create another production compositor.
 
-Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Portfolio, About, and Contact. Development scene parameters tune the mounted About route directly, so there is no separate editor preview or compositor host. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. The Atmospheric Glow performance lab owns one isolated broad-field compositor and never mounts the production host. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
+Production eligibility covers Home and its Daily modes, the four route-backed Daily runtimes, Work, About, and Contact. Development scene parameters tune the mounted About route directly, so there is no separate editor preview or compositor host. The Crisp + Glow lab mounts the compositor under a lab scope for authoring. The Atmospheric Glow performance lab owns one isolated broad-field compositor and never mounts the production host. Other labs and incidental canvases are ineligible unless the shell explicitly mounts a host and the runtime explicitly registers a source.
 
 The registration boundary is:
 
@@ -127,7 +127,7 @@ Scheduling and performance are part of the contract:
 - High and Balanced atmosphere cadence is 24 FPS. Low quality uses 20 FPS to free frame time on constrained or over-budget surfaces; source physics/renderers retain their own cadence;
 - an already-presented, clean, steady-state atmosphere frame may defer when its measured compositor cost would miss the next display deadline. First, dirty, transition, and replacement frames remain mandatory. The scheduler does not deliberately defer when the next nominal display interval would retain output beyond one atmosphere interval plus one display interval;
 - each production compositor frame samples the current completed source frame, applies the broad field across the complete wall, then preserves only the previous clean field behind the current one. The removed tight field must not be simulated by raising opacity or shrinking the broad radius. Browsers with a reliable Canvas filter use the native blur; other browsers use a bounded spread pyramid tuned to the same apparent footprint. That one-frame blend is deterministic rather than frame-time-weighted, so deadline jitter cannot pulse its brightness; it is primed from the first clean field, resets on source/mode/theme/geometry changes, and is disabled for Reduced Motion. There is no content mask, recursive feedback, multi-buffer diffusion, unbounded accumulation, or mode-to-mode trail;
-- the wall `ResizeObserver` must update glow and edge backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Portfolio, About, and Contact in both themes;
+- the wall `ResizeObserver` must update glow and edge backing geometry in place across desktop, tablet, portrait mobile, short landscape, and return-to-desktop resizing; the production audit exercises that live resize cycle for Home, Work, About, and Contact in both themes;
 - Canvas sources use one downsampled `drawImage` per visible final-frame layer; emitter sources use a bounded stride; there is no pixel readback, full-resolution fog pass, or per-body edge-distance loop;
 - the edge-light Canvas samples only the narrow quality-scaled band exposed by the shell mask; authored inset moves that band inward while its corner radius remains concentric with the studio window. Brightness and saturation belong to the masked CSS compositor layer so Canvas does not run a filtered full-frame raster pass for the edge response;
 - simulation bodies stay crisp; broad softness belongs to the shared atmosphere output and never to source-body `CanvasRenderingContext2D.filter`, `shadowBlur`, or a whole-source CSS blur;

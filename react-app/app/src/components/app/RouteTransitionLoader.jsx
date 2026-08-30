@@ -6,7 +6,6 @@ const ROUTE_LABELS = Object.freeze({
   portfolio: 'Work',
   about: 'About',
   contact: 'Contact',
-  playground: 'Lab',
 });
 
 const ACTIVE_PHASES = new Set(['route-out', 'route-loading', 'route-in']);

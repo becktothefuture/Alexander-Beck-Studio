@@ -266,6 +266,44 @@ test('camera controller follows display frames and coalesces explicit render req
   controller.destroy();
 });
 
+test('camera controller centres with cancellable native-frame motion', async () => {
+  const target = new FakePointerTarget();
+  const windowObject = new FakeWindow();
+  const documentObject = new FakeEventTarget();
+  documentObject.visibilityState = 'visible';
+  const controller = createPlaygroundCameraController({
+    target,
+    worldWidthPx: 1000,
+    worldHeightPx: 800,
+    viewportWidthPx: 800,
+    viewportHeightPx: 600,
+    windowObject,
+    documentObject,
+  });
+
+  const completedMotion = controller.animateTo(240, -120, {
+    durationMs: 100,
+    easing: (progress) => progress,
+  });
+  windowObject.flushAnimationFrames(0);
+  windowObject.flushAnimationFrames(50);
+  assert.deepEqual(
+    { x: controller.getSnapshot().logicalX, y: controller.getSnapshot().logicalY },
+    { x: 120, y: -60 },
+  );
+  windowObject.flushAnimationFrames(100);
+  assert.equal(await completedMotion, true);
+  assert.equal(controller.getSnapshot().cameraAnimationActive, false);
+
+  const interruptedMotion = controller.animateTo(480, 120, { durationMs: 400 });
+  windowObject.flushAnimationFrames(120);
+  target.dispatch('pointerdown', pointerEvent({ clientX: 20, clientY: 20, timeStamp: 125 }));
+  assert.equal(await interruptedMotion, false);
+  assert.equal(controller.getSnapshot().cameraAnimationActive, false);
+
+  controller.destroy();
+});
+
 test('camera and dot field share one frame and one canvas draw while dragging', () => {
   const target = new FakePointerTarget();
   const windowObject = new FakeWindow();
@@ -457,5 +495,73 @@ test('dot renderer exposes only the neutral grid material', () => {
     [],
   );
   assert.equal(windowObject.frames.size, 0);
+  renderer.destroy();
+});
+
+test('Work depth field is deterministic, bounded, redraw-on-change, and parallax-scaled', () => {
+  const windowObject = new FakeWindow();
+  const documentObject = new FakeEventTarget();
+  documentObject.visibilityState = 'visible';
+  const fills = [];
+  let activePoints = [];
+  const context = {
+    globalAlpha: 1,
+    fillStyle: '',
+    beginPath() { activePoints = []; },
+    moveTo() {},
+    arc(x, y, radius) { activePoints.push({ x, y, radius }); },
+    fill() {
+      fills.push({
+        alpha: this.globalAlpha,
+        color: this.fillStyle,
+        points: activePoints,
+      });
+    },
+    clearRect() {},
+    setTransform() {},
+  };
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: () => context,
+    getBoundingClientRect: () => ({ width: 320, height: 240 }),
+  };
+  const renderer = createPlaygroundDotFieldRenderer(canvas, {
+    windowObject,
+    documentObject,
+    fieldMode: 'depth',
+    gridSpacingPx: 48,
+    maximumVisibleDots: 512,
+    viewportCenterX: 160,
+    viewportCenterY: 120,
+  });
+
+  renderer.start();
+  windowObject.flushAnimationFrames(16.67);
+  const firstSnapshot = renderer.getSnapshot();
+  const firstFarPoint = fills[0].points[0];
+  assert.equal(firstSnapshot.fieldMode, 'depth');
+  assert.equal(firstSnapshot.depthLayerCount, 3);
+  assert.equal(fills.length, 3);
+  assert.equal(
+    firstSnapshot.drawnDotCount,
+    fills.reduce((total, fill) => total + fill.points.length, 0),
+  );
+  assert.ok(firstSnapshot.drawnDotCount <= firstSnapshot.visibleDotCount);
+  assert.ok(fills[0].alpha < fills[1].alpha && fills[1].alpha < fills[2].alpha);
+  assert.ok(
+    fills[0].points[0].radius < fills[1].points[0].radius
+      && fills[1].points[0].radius < fills[2].points[0].radius,
+  );
+  assert.equal(windowObject.frames.size, 0, 'stable depth field should sleep');
+
+  fills.length = 0;
+  renderer.setCamera(4, 0, 160, 120);
+  assert.equal(windowObject.frames.size, 1);
+  windowObject.flushAnimationFrames(33.34);
+  const secondFarPoint = fills[0].points[0];
+  assert.ok(Math.abs((secondFarPoint.x - firstFarPoint.x) + 0.64) < 0.001);
+  assert.equal(windowObject.frames.size, 0, 'camera redraw should settle in one frame');
+
   renderer.destroy();
 });

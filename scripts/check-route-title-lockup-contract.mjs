@@ -6,13 +6,9 @@ const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const designConfig = JSON.parse(await read('../react-app/app/public/config/design-system.json'));
 const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
-  ['portfolioStyles', '../react-app/app/public/css/portfolio.css'],
-  ['portfolio', '../react-app/app/src/legacy/modules/portfolio/app.js'],
   ['portfolioRoute', '../react-app/app/src/routes/portfolio/PortfolioRoute.jsx'],
-  ['portfolioComingSoon', '../react-app/app/src/routes/portfolio/PortfolioComingSoon.jsx'],
   ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
-  ['playgroundComingSoon', '../react-app/app/src/routes/playground/PlaygroundComingSoon.jsx'],
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
@@ -29,12 +25,6 @@ const sources = Object.fromEntries(await Promise.all([
 ].map(async ([key, path]) => [key, await read(path)])));
 
 test('every production route lockup consumes the shared title, rule, and description roles', () => {
-  assert.match(sources.portfolio, /portfolio-deck-intro__title route-centered-page__title route-bookend-title/);
-  assert.match(sources.portfolio, /route-title-lockup__rule/);
-  assert.match(sources.portfolio, /portfolio-deck-intro__body route-centered-page__description route-intro-description/);
-  assert.match(sources.portfolioComingSoon, /route-centered-page__title route-bookend-title/);
-  assert.match(sources.portfolioComingSoon, /id="portfolio-coming-soon-title"/);
-
   assert.match(sources.contact, /route-centered-page__title route-bookend-title/);
   assert.match(sources.contact, /route-title-lockup__rule/);
   assert.match(sources.contact, /route-centered-page__description route-intro-description/);
@@ -73,8 +63,6 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.doesNotMatch(sources.playground, /playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.doesNotMatch(sources.playgroundStyles, /playground-title-lockup h1|playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.match(sources.playgroundResponsive, /titleScale: 1/);
-  assert.match(sources.portfolioStyles, /is-portfolio-deck-revealing \.portfolio-deck-intro__body \{\s*opacity: var\(--route-intro-description-opacity\)/);
-
   const finaleTitleRule = sources.aboutStyles.match(/about-narrative-spatial-copy\.is-finale[\s\S]*?route-bookend-title \{([^}]*)\}/)?.[1] || '';
   assert.doesNotMatch(finaleTitleRule, /font-(?:family|size|weight)|letter-spacing|line-height/);
   assert.doesNotMatch(sources.aboutStyles, /--about-bookend-description-max-width/);
@@ -108,11 +96,9 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
     (sources.homeRoute.match(/data-route-enter-variant="bookend-title"/g) || []).length,
     2,
   );
-  assert.match(sources.portfolio, /heading\.dataset\.routeEnterVariant = 'bookend-title'/);
   assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.about, /data-route-enter-variant="bookend-title"/);
-  assert.match(sources.playgroundComingSoon, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.playground, /data-route-enter-variant="bookend-title"/);
 
   assert.match(sources.entranceSequence, /const bookendEndpointByElement = new WeakMap\(\)/);
@@ -162,16 +148,19 @@ test('About readiness accepts the production gate or the development narrative s
   assert.match(sources.siteApp, /routeId === 'about' && import\.meta\.env\.DEV/);
 });
 
-test('Work publishes a non-runtime hold while development retains the complete Portfolio route', () => {
+test('Work holds production at Coming soon and prewarms the canvas only in development', () => {
   assert.match(
     sources.portfolioRoute,
-    /PORTFOLIO_ROUTE_RUNTIME = import\.meta\.env\.DEV[\s\S]*?PORTFOLIO_DEVELOPMENT_RUNTIME[\s\S]*?legacyRuntime: false/,
+    /PORTFOLIO_ROUTE_RUNTIME = \{[\s\S]*?legacyRuntime: false,[\s\S]*?prewarm:/,
   );
-  assert.match(sources.portfolioRoute, /if \(!import\.meta\.env\.DEV\)/);
-  assert.match(sources.portfolioRoute, /routeRenderKey: 'portfolio-coming-soon'/);
-  assert.match(sources.portfolioComingSoon, /data-route-content="portfolio"/);
-  assert.match(sources.routeReadiness, /getElementById\('portfolio-coming-soon-title'\)/);
-  assert.match(sources.siteApp, /routeId === 'portfolio'[\s\S]*?getElementById\('portfolio-coming-soon-title'\)/);
+  assert.match(sources.portfolioRoute, /const WorkExperience = import\.meta\.env\.DEV \? lazy/);
+  assert.match(sources.portfolioRoute, /if \(!import\.meta\.env\.DEV\) return Promise\.resolve\(\)/);
+  assert.match(sources.portfolioRoute, /if \(!import\.meta\.env\.DEV\) \{[\s\S]*?secondary: <PortfolioComingSoon \/>/);
+  assert.doesNotMatch(sources.portfolioRoute, /location\.|searchParams|localStorage|sessionStorage/);
+  assert.match(sources.portfolioRoute, /routeRenderKey: 'portfolio'/);
+  assert.match(sources.portfolioRoute, /experience="work"/);
+  assert.match(sources.routeReadiness, /portfolio-coming-soon-title/);
+  assert.match(sources.siteApp, /const isPortfolioWorkCanvas = routeId === 'portfolio' && import\.meta\.env\.DEV/);
 });
 
 test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {

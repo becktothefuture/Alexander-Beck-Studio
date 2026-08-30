@@ -6,13 +6,13 @@ The live reference is `/styleguide.html`. It must describe production components
 
 `ShellButtonBar.jsx` renders the persistent bottom navigation from `SHELL_ROUTE_TABS` in `src/lib/routes.js`.
 
-- Route buttons: Home, Work (Portfolio route), About, Lab, Contact. Every route renders an accessible Tabler outline icon with a visible label.
+- Route buttons: Home, Work, About, Contact. Every route renders an accessible Tabler outline icon with a visible label.
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: none; theme and sound belong to the separate shell-owned Utility Rail
-- Anatomy: one undivided five-route group; separators and route-group parameters are absent
+- Anatomy: one undivided four-route group; separators and route-group parameters are absent
 - Active geometry: one shared graphite key follows the active or pending route cell, resizes with its label, and applies the configured key inset equally on all four sides
 - Responsive type and spacing: mobile route cells shrink evenly below their configured `62px` maximum, pair `21px` icons with sentence-case `8px` labels across a `5px` gap, and retain a minimum 51px route target at a 320px viewport. Desktop scales the same composition to equal `85px` route cells with `25px` icons, sentence-case `11px` labels, and a `6px` gap. Labels use Geist at weight `700` with slightly tightened `-0.02em` tracking.
-- Mobile: all five routes remain visible without horizontal scrolling
+- Mobile: all four routes remain visible without horizontal scrolling
 
 ## Global utility controls: Utility Rail
 
@@ -35,7 +35,7 @@ Production DOM actions declare `data-sound-action="press|close|step|manual|none"
 
 ### Quiet control material
 
-The quiet controls use exactly two reusable CSS families. `.abs-labelled-action` owns the Home simulation switcher and the Contact/About email-copy and LinkedIn capsules. `.abs-circular-utility` extends `.abs-icon-btn` for the Portfolio access-gate close, Portfolio project return, and Lab media close controls. The broad `.abs-icon-btn` frame remains available to unrelated shell utilities and does not opt them into this audit family.
+The quiet controls use exactly two reusable CSS families. `.abs-labelled-action` owns the Home simulation switcher and the Contact/About email-copy and LinkedIn capsules. `.abs-circular-utility` extends `.abs-icon-btn` for the Work access-gate close, Work project return, and other in-window icon-only close controls. The broad `.abs-icon-btn` frame remains available to unrelated shell utilities and does not opt them into this audit family.
 
 Both families share the `--abs-soft-control-*` material tokens, a 16px backdrop blur, paired inset-edge depth, focus treatment, interaction timing, and motion reduction. There is no outer border or drop shadow. The light-facing inset is a sharp 0.5px edge; its dark-theme opacity is 20% quieter than the approved audit prototype. Hover lifts by 2px with a bounded elastic settle, keyboard focus lifts by 1px with a 3px outline, and press moves down by 1px over 90ms. No state scales the control, text, or icon. Labelled actions retain a 44px minimum height; circular utilities use a true 56px circle with a 26px glyph.
 
@@ -47,23 +47,23 @@ Use `header.ui-top > .ui-top-main.route-topbar` only when a route or lab needs a
 
 ## Typography and content specimens
 
-The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, Portfolio gate, Portfolio drawer, centered About/Contact route copy, and the Lab route-entry family. Exact values come from tokens and production CSS rather than this document.
+The live styleguide covers Home hero/legend, Button Bar labels, supporting script copy, edge/meta copy, the Work gate and drawer, and centred Work/About/Contact route copy. Exact values come from tokens and production CSS rather than this document.
 
 ### Headline contract
 
 Top-level route headlines use Instrument Serif through `--abs-font-headline`, optically scaled by `--abs-font-headline-scale`, with headline-specific leading and tracking tokens. The contrast with Geist is intentional: the serif creates a warmer, more editorial arrival while the rest of the interface stays precise and system-led.
 
-- Allowed: the Home canvas title and `.route-centered-page__title` on Portfolio, About Me, Contact, Lab, and the Portfolio gate.
-- Not allowed: navigation, descriptions, Portfolio card titles, project-detail titles, controls, metadata, or general section headings.
+- Allowed: the Home canvas title and `.route-centered-page__title` on Work, About, Contact, and the Work gate.
+- Not allowed: navigation, descriptions, Work card titles, project-detail titles, controls, metadata, or general section headings.
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
 - Implementation: consume the resolved `--route-entry-title-size` with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The optical scale is already included in the resolved size; do not repeat it in component CSS.
 
-Work, About Me, Contact, and Lab pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, settled opacity, and balanced wrapping; route CSS owns only placement, animation progress, or an explicit responsive measure override. The Portfolio access gate deliberately keeps the narrower base description measure.
+Work, About, and Contact pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, settled opacity, and balanced wrapping; route CSS owns only placement, animation progress, or an explicit responsive measure override. The Work access gate deliberately keeps the narrower base description measure.
 
-## Lab work item and dialog
+## Work item and presentation
 
-Lab renders one semantic ordered collection. Each work item is one button with a minimum 44px target, visible keyboard focus, a unique accessible name, and its media label below the preview. Repeated spatial copies are presentation only and must stay `aria-hidden` and non-interactive.
+Work renders one semantic ordered collection. Each item is one button with a minimum 44px target, visible keyboard focus, a unique accessible name, and its label below or within the preview. Full case studies use the larger primary card treatment; snippets use the smaller exploration treatment. Repeated spatial copies are presentation only and must stay `aria-hidden` and non-interactive.
 
-The selected-work surface is a named `role="dialog"` inside the studio window. It uses one close control, traps focus, makes the world inert, and restores focus to the exact logical item. Image, video, and local code media keep their intrinsic aspect ratio. The field uses posters; only the selected media can own an active video or sandboxed code iframe. See [`PLAYGROUND.md`](PLAYGROUND.md).
+The snippet stage is a named `role="dialog"` inside the studio window. It uses one close control, traps focus, makes the world inert, and restores focus to the exact logical item after reversal. Image, video, and local code media keep their intrinsic aspect ratio. The field uses posters; only the selected media can own an active video or sandboxed code iframe. Case studies use the protected Work gate and existing full project drawer. See [`PORTFOLIO.md`](PORTFOLIO.md) and [`PLAYGROUND.md`](PLAYGROUND.md).
 
 Resolved values come from the headline tokens. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.

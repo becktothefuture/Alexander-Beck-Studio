@@ -48,11 +48,10 @@ When those circles are semantic production balls, they use the same flat palette
 
 The semantic ball contract is route-wide:
 - Home simulation bodies and the quote puck;
-- Work / Portfolio speed-field particles and pit project bodies;
 - the six About discipline balls;
 - Contact ripple balls.
 
-The neutral, hover-inert Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are not semantic balls. They keep their own documented finish.
+The neutral, hover-inert Work depth field, generic About point-field particles, Work DOM cards, UI controls and indicators, editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters are not semantic balls. They keep their own documented finish.
 
 Do not make large, hero-visible bodies into generic circles when they should read as site pebbles.
 
@@ -62,7 +61,7 @@ Future simulations must preserve cross-mode size coherence.
 
 Use the existing radius scale and count budgets as the reference:
 - home pit bodies define the baseline material family;
-- Portfolio cards are DOM navigation objects and are not part of the simulation radius scale;
+- Work cards are DOM navigation objects and are not part of the simulation radius scale;
 - point-cloud modes can be smaller, but only when the concept is depth, flocking, or field sampling;
 - lab defaults must preserve the same readable pebble contour used by the current rotation.
 

@@ -13,6 +13,7 @@ const browserName = String(process.env.ABS_BROWSER || 'chromium').trim().toLower
 const browserType = browserName === 'webkit' ? webkit : browserName === 'chromium' ? chromium : null;
 const shouldStartDevServer = !process.env.ABS_DEV_URL;
 const waitMs = Number(process.env.ABS_TITLE_SETTLEMENT_WAIT_MS || 30000);
+const routeFilter = String(process.env.ABS_TITLE_SETTLEMENT_ROUTE || '').trim();
 const outputRoot = resolve(repoRoot, 'output', 'playwright', 'bookend-title-settlement', browserName);
 const BOOKEND_TITLE_SELECTOR = '[data-route-enter-variant="bookend-title"]';
 const START_VIEWPORT = Object.freeze({ width: 1200, height: 900 });
@@ -42,13 +43,10 @@ const routes = Object.freeze([
     selector: BOOKEND_TITLE_SELECTOR,
     descriptionSelector: '[data-route-enter-variant="bookend-description"]',
   }),
-  Object.freeze({
-    id: 'playground',
-    path: '/playground.html',
-    selector: BOOKEND_TITLE_SELECTOR,
-    descriptionSelector: '[data-route-enter-variant="bookend-description"]',
-  }),
-]);
+].filter((route) => !routeFilter || route.id === routeFilter));
+if (routeFilter && routes.length === 0) {
+  throw new Error(`Unknown ABS_TITLE_SETTLEMENT_ROUTE "${routeFilter}".`);
+}
 
 function url(pathname) {
   return new URL(pathname, `${baseUrl}/`).toString();
@@ -499,15 +497,18 @@ async function auditRoute(page, route) {
   }));
   const settled = await readGlyphState(page, route.selector);
   assert(settled, `${route.id}: settled glyph state was unavailable`);
-  if (route.descriptionSelector) {
+  const workHeld = route.id === 'portfolio'
+    && await page.locator('[data-work-publication="held"]').count() === 1;
+  const descriptionSelector = workHeld ? null : route.descriptionSelector;
+  if (descriptionSelector) {
     await page.waitForFunction((selector) => {
       const description = document.querySelector(selector);
       return description
         && description.getAnimations({ subtree: true }).length === 0
         && description.style.opacity === '';
-    }, route.descriptionSelector, { timeout: waitMs, polling: 'raf' });
+    }, descriptionSelector, { timeout: waitMs, polling: 'raf' });
   }
-  const description = await readDescriptionState(page, route.descriptionSelector);
+  const description = await readDescriptionState(page, descriptionSelector);
 
   const titleDelta = rectDelta(animated.titleRect, settled.titleRect);
   const glyphDelta = rectDelta(animated.glyphRect, settled.glyphRect);
@@ -518,7 +519,7 @@ async function auditRoute(page, route) {
   assert(settled.glyphColor === settled.titleColor, `${route.id}: settled glyph does not inherit title colour`, details);
   assert(settled.glyphWillChange === 'auto', `${route.id}: glyph kept a compositor hint after cleanup`, details);
   assert(settled.animationCount === 0, `${route.id}: glyph animations remained attached after cleanup`, details);
-  if (route.descriptionSelector) {
+  if (descriptionSelector) {
     assert(description, `${route.id}: settled description state was unavailable`);
     assert(
       Number.isFinite(description.opacity) && description.opacity > 0 && description.opacity < 1,

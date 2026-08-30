@@ -1,6 +1,39 @@
 const DEFAULT_DPR_CAP = 2;
 const DEFAULT_MAX_VISIBLE_DOTS = 20000;
 const TWO_PI = Math.PI * 2;
+const FIELD_MODE_GRID = 'grid';
+const FIELD_MODE_DEPTH = 'depth';
+const UINT32_RANGE = 4294967296;
+
+const DEPTH_FIELD_LAYERS = Object.freeze([
+  Object.freeze({
+    density: 0.72,
+    jitter: 0.78,
+    opacityMultiplier: 0.34,
+    parallax: 0.16,
+    radiusMultiplier: 0.42,
+    seed: 0x14f3a72d,
+    spacingMultiplier: 1.7,
+  }),
+  Object.freeze({
+    density: 0.42,
+    jitter: 0.72,
+    opacityMultiplier: 0.52,
+    parallax: 0.34,
+    radiusMultiplier: 0.64,
+    seed: 0x6c8e9cf5,
+    spacingMultiplier: 1.15,
+  }),
+  Object.freeze({
+    density: 0.18,
+    jitter: 0.66,
+    opacityMultiplier: 0.72,
+    parallax: 0.58,
+    radiusMultiplier: 0.92,
+    seed: 0x9e3779b9,
+    spacingMultiplier: 0.82,
+  }),
+]);
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -9,6 +42,18 @@ function clamp(value, minimum, maximum) {
 function finite(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function hashCell(column, row, seed) {
+  let hash = Math.imul(column | 0, 0x1f123bb5)
+    ^ Math.imul(row | 0, 0x5f356495)
+    ^ seed;
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x7feb352d);
+  hash ^= hash >>> 15;
+  hash = Math.imul(hash, 0x846ca68b);
+  hash ^= hash >>> 16;
+  return (hash >>> 0) / UINT32_RANGE;
 }
 
 /**
@@ -54,6 +99,9 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let dotOpacity = clamp(finite(options.dotOpacity, 0.28), 0, 1);
   let routeVisualScale = clamp(finite(options.routeVisualScale, 1), 0, 1);
   let neutralColor = String(options.neutralColor || '#8a8a8a');
+  const fieldMode = options.fieldMode === FIELD_MODE_DEPTH
+    ? FIELD_MODE_DEPTH
+    : FIELD_MODE_GRID;
   let maximumDpr = clamp(finite(options.maximumDpr, DEFAULT_DPR_CAP), 1, 3);
   let maximumVisibleDots = Math.max(
     256,
@@ -93,6 +141,82 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     context.fill();
   }
 
+  function calculateDepthCandidateCount() {
+    let candidateCount = 0;
+    for (let index = 0; index < DEPTH_FIELD_LAYERS.length; index += 1) {
+      const layer = DEPTH_FIELD_LAYERS[index];
+      const spacing = gridSpacingPx * layer.spacingMultiplier;
+      const layerCameraX = cameraX * layer.parallax;
+      const layerCameraY = cameraY * layer.parallax;
+      const minimumColumn = Math.floor(
+        (layerCameraX - (viewportCenterX / worldScale)) / spacing,
+      ) - 1;
+      const maximumColumn = Math.ceil(
+        (layerCameraX + ((width - viewportCenterX) / worldScale)) / spacing,
+      ) + 1;
+      const minimumRow = Math.floor(
+        (layerCameraY - (viewportCenterY / worldScale)) / spacing,
+      ) - 1;
+      const maximumRow = Math.ceil(
+        (layerCameraY + ((height - viewportCenterY) / worldScale)) / spacing,
+      ) + 1;
+      candidateCount += Math.max(0, maximumColumn - minimumColumn + 1)
+        * Math.max(0, maximumRow - minimumRow + 1);
+    }
+    return candidateCount;
+  }
+
+  function drawDepthDots(samplingStride) {
+    let drawnCount = 0;
+    context.fillStyle = neutralColor;
+    for (let index = 0; index < DEPTH_FIELD_LAYERS.length; index += 1) {
+      const layer = DEPTH_FIELD_LAYERS[index];
+      const spacing = gridSpacingPx * layer.spacingMultiplier;
+      const layerCameraX = cameraX * layer.parallax;
+      const layerCameraY = cameraY * layer.parallax;
+      const minimumColumn = Math.floor(
+        (layerCameraX - (viewportCenterX / worldScale)) / spacing,
+      ) - 1;
+      const maximumColumn = Math.ceil(
+        (layerCameraX + ((width - viewportCenterX) / worldScale)) / spacing,
+      ) + 1;
+      const minimumRow = Math.floor(
+        (layerCameraY - (viewportCenterY / worldScale)) / spacing,
+      ) - 1;
+      const maximumRow = Math.ceil(
+        (layerCameraY + ((height - viewportCenterY) / worldScale)) / spacing,
+      ) + 1;
+      const radius = dotRadiusPx
+        * layer.radiusMultiplier
+        * worldScale
+        * routeVisualScale;
+      if (radius <= 0.01) continue;
+
+      context.globalAlpha = dotOpacity * layer.opacityMultiplier;
+      context.beginPath();
+      let layerDrawnCount = 0;
+      for (let row = minimumRow; row <= maximumRow; row += samplingStride) {
+        for (let column = minimumColumn; column <= maximumColumn; column += samplingStride) {
+          if (hashCell(column, row, layer.seed) > layer.density) continue;
+          const jitterX = (hashCell(column, row, layer.seed ^ 0x68bc21eb) - 0.5)
+            * layer.jitter;
+          const jitterY = (hashCell(column, row, layer.seed ^ 0x02e5be93) - 0.5)
+            * layer.jitter;
+          const screenX = viewportCenterX + (((column + jitterX) * spacing - layerCameraX)
+            * worldScale);
+          const screenY = viewportCenterY + (((row + jitterY) * spacing - layerCameraY)
+            * worldScale);
+          context.moveTo(screenX + radius, screenY);
+          context.arc(screenX, screenY, radius, 0, TWO_PI);
+          layerDrawnCount += 1;
+        }
+      }
+      if (layerDrawnCount > 0) context.fill();
+      drawnCount += layerDrawnCount;
+    }
+    return drawnCount;
+  }
+
   function completeDraw() {
     drawCount += 1;
     onDraw?.();
@@ -112,21 +236,24 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       completeDraw();
       return;
     }
-    const minimumColumn = Math.ceil(
+    const depthMode = fieldMode === FIELD_MODE_DEPTH;
+    const minimumColumn = depthMode ? 0 : Math.ceil(
       (cameraX - (viewportCenterX / worldScale) - dotRadiusPx) / gridSpacingPx,
     );
-    const maximumColumn = Math.floor(
+    const maximumColumn = depthMode ? -1 : Math.floor(
       (cameraX + ((width - viewportCenterX) / worldScale) + dotRadiusPx) / gridSpacingPx,
     );
-    const minimumRow = Math.ceil(
+    const minimumRow = depthMode ? 0 : Math.ceil(
       (cameraY - (viewportCenterY / worldScale) - dotRadiusPx) / gridSpacingPx,
     );
-    const maximumRow = Math.floor(
+    const maximumRow = depthMode ? -1 : Math.floor(
       (cameraY + ((height - viewportCenterY) / worldScale) + dotRadiusPx) / gridSpacingPx,
     );
-    const columnCount = Math.max(0, maximumColumn - minimumColumn + 1);
-    const rowCount = Math.max(0, maximumRow - minimumRow + 1);
-    const visibleDotCount = columnCount * rowCount;
+    const columnCount = depthMode ? 0 : Math.max(0, maximumColumn - minimumColumn + 1);
+    const rowCount = depthMode ? 0 : Math.max(0, maximumRow - minimumRow + 1);
+    const visibleDotCount = depthMode
+      ? calculateDepthCandidateCount()
+      : columnCount * rowCount;
     const samplingStride = visibleDotCount > maximumVisibleDots
       ? Math.ceil(Math.sqrt(visibleDotCount / maximumVisibleDots))
       : 1;
@@ -138,16 +265,20 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     const sampledRowCount = rowCount
       ? Math.floor((rowCount - 1) / samplingStride) + 1
       : 0;
-    lastDrawnDotCount = sampledColumnCount * sampledRowCount;
-    context.globalAlpha = dotOpacity;
-    context.fillStyle = neutralColor;
-    drawNeutralDots(
-      minimumColumn,
-      maximumColumn,
-      minimumRow,
-      maximumRow,
-      samplingStride,
-    );
+    if (depthMode) {
+      lastDrawnDotCount = drawDepthDots(samplingStride);
+    } else {
+      lastDrawnDotCount = sampledColumnCount * sampledRowCount;
+      context.globalAlpha = dotOpacity;
+      context.fillStyle = neutralColor;
+      drawNeutralDots(
+        minimumColumn,
+        maximumColumn,
+        minimumRow,
+        maximumRow,
+        samplingStride,
+      );
+    }
     context.globalAlpha = 1;
     renderDirty = false;
     completeDraw();
@@ -342,6 +473,8 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       dotOpacity,
       routeVisualScale,
       neutralColor,
+      fieldMode,
+      depthLayerCount: fieldMode === FIELD_MODE_DEPTH ? DEPTH_FIELD_LAYERS.length : 0,
       visibleDotCount: lastVisibleDotCount,
       drawnDotCount: lastDrawnDotCount,
       samplingStride: lastSamplingStride,

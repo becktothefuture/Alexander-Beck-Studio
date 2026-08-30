@@ -6,7 +6,6 @@
       "src/entries/about.jsx",
       "src/entries/contact.jsx",
       "src/entries/index.jsx",
-      "src/entries/playground.jsx",
       "src/entries/portfolio.jsx"
     ],
     "imports": "relative static imports, re-exports, and literal dynamic imports"

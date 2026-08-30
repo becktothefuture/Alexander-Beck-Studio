@@ -13,9 +13,21 @@ const primaryRouteIds = Object.values(ROUTE_MANIFEST)
   .sort((left, right) => left.shellTab.order - right.shellTab.order)
   .map((route) => route.id);
 assert.deepEqual(routeIds, primaryRouteIds);
+assert.equal(
+  RELEASE_SMOKE_ROUTES.find((route) => route.id === 'portfolio')?.identitySelector,
+  '[data-work-publication="held"] #portfolio-coming-soon-title',
+);
+assert.equal(
+  RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.renderedRouteId,
+  'about-coming-soon',
+);
+assert.equal(
+  RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.semanticContract.mainSelector,
+  '#simulations[role="main"][data-route-content="about-coming-soon"]',
+);
 
 const focusRoutes = RELEASE_SMOKE_ROUTES.filter((route) => route.representativeFocus);
-assert.deepEqual(focusRoutes.map((route) => route.id), ['about', 'playground']);
+assert.deepEqual(focusRoutes.map((route) => route.id), ['about']);
 for (const route of focusRoutes) {
   assert.equal(typeof route.representativeFocus.selector, 'string');
   assert.ok(route.representativeFocus.selector.length > 0);
@@ -71,11 +83,11 @@ for (const route of focusRoutes) {
   assert.equal(result.focusIndicatorVisible, true);
 }
 
-const playground = focusRoutes.find((route) => route.id === 'playground');
+const representativeRoute = focusRoutes[0];
 const underlinedFocus = await assertRepresentativeKeyboardFocus(
   createFocusPage({
-    targetSelector: playground.representativeFocus.selector,
-    focusSequence: [playground.representativeFocus.selector],
+    targetSelector: representativeRoute.representativeFocus.selector,
+    focusSequence: [representativeRoute.representativeFocus.selector],
     styles: {
       outlineStyle: 'none',
       outlineWidth: 0,
@@ -84,15 +96,15 @@ const underlinedFocus = await assertRepresentativeKeyboardFocus(
       indicatorKinds: ['descendant-underline'],
     },
   }),
-  playground,
+  representativeRoute,
 );
 assert.deepEqual(underlinedFocus.indicatorKinds, ['descendant-underline']);
 
 await assert.rejects(
   assertRepresentativeKeyboardFocus(
     createFocusPage({
-      targetSelector: playground.representativeFocus.selector,
-      focusSequence: [playground.representativeFocus.selector],
+      targetSelector: representativeRoute.representativeFocus.selector,
+      focusSequence: [representativeRoute.representativeFocus.selector],
       styles: {
         outlineStyle: 'none',
         outlineWidth: 0,
@@ -101,21 +113,21 @@ await assert.rejects(
         indicatorKinds: [],
       },
     }),
-    playground,
+    representativeRoute,
   ),
-  (error) => error.routeId === 'playground'
+  (error) => error.routeId === representativeRoute.id
     && error.assertion === 'representative-focus-visible-style',
 );
 
 await assert.rejects(
   assertRepresentativeKeyboardFocus(
     createFocusPage({
-      targetSelector: playground.representativeFocus.selector,
+      targetSelector: representativeRoute.representativeFocus.selector,
       focusSequence: ['[data-fixture-never-target]'],
     }),
-    playground,
+    representativeRoute,
   ),
-  (error) => error.routeId === 'playground'
+  (error) => error.routeId === representativeRoute.id
     && error.assertion === 'representative-keyboard-focus-target',
 );
 

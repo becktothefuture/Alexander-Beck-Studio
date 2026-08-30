@@ -381,6 +381,7 @@ function createProjectDrawerMarkup() {
           type="button"
           aria-label="Back to portfolio projects"
           data-portfolio-project-back
+          data-focus-contrast="complementary"
           data-sound-action="manual"
           data-sound-source="portfolio-project-close"
         >

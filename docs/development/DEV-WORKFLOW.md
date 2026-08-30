@@ -20,7 +20,9 @@ npm run preview
 
 Use focused Playwright audits after the server is running. Run transition audits serially in Chromium and WebKit; add `ABS_TRANSITION_STRICT_RAF=1` when motion cadence changed. Run `npm run certify:screens` only from a fresh build.
 
-`npm run audit:playground` checks Playground route and alias readiness, two-axis input and wrapping, neutral grid hover inertia, catalogue semantics, selected-media ownership, dialog focus/URL behavior, docked/detached panel parity, canonical save and reload parity, Reduced Motion, shared mute state, SPA disposal, and local loading errors. It uses Chromium by default. Set `ABS_BROWSER=webkit` to run the same contract in WebKit.
+`npm run audit:work-canvas` checks Work route and compatibility-alias readiness, four-tab navigation, the case-study/snippet hierarchy, two-axis input and wrapping, the deterministic three-layer depth field, centre-before-open sequencing, protected access, case-study drawer, snippet stage, focus/history behavior, Reduced Motion, mobile geometry, theme switching, disposal, and local loading errors. It uses Chromium by default. Set `ABS_BROWSER=webkit` to run the same contract in WebKit. `audit:playground` remains an alias only.
+
+Work remains under construction in production. `npm run dev` and the safe public development mirror show the full canvas; `npm run preview` shows the held production screen. The root build enforces this boundary with `check:work-publication`, and `audit:work-publication` verifies direct URLs, old Lab aliases, query/access attempts, SPA navigation, and history. Publishing does not remove the hold. A separate launch decision is required.
 
 These are three complementary layers: source/configuration checks and build validation, Node tests, and browser audits. A green non-browser gate does not replace the focused Playwright checks required for a changed route or interaction.
 
@@ -32,8 +34,7 @@ These are three complementary layers: source/configuration checks and build vali
 
 - application: `react-app/app/src/`
 - authored design config: `react-app/app/public/config/design-system.json`
-- Home and Portfolio editorial content: `react-app/app/public/config/contents-home.json`, `react-app/app/public/config/contents-portfolio.json`
-- Playground catalogue content: `react-app/app/public/config/contents-playground.json`
+- Home and Work editorial content: `react-app/app/public/config/contents-home.json`, `react-app/app/public/config/contents-portfolio.json`
 - About narrative content and choreography: `react-app/app/public/config/contents-about.json`
 - generated runtime config: `default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 - build output: `react-app/app/dist/`
@@ -51,10 +52,8 @@ npm run check:about-narrative
 npm run audit:canvas-spa
 npm run audit:about-narrative
 npm run audit:about-interactive-stack
-npm run audit:portfolio-gate
-npm run audit:portfolio-carousel
-npm run audit:portfolio-drawer
-npm run audit:playground
+npm run check:work-canvas
+npm run audit:work-canvas
 npm run audit:transition-flows
 npm run certify:screens
 ```

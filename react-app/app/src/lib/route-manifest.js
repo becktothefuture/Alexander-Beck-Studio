@@ -62,7 +62,7 @@ export const ROUTE_MANIFEST = Object.freeze({
     layout: 'shared-shell',
     title: 'Contact - Alexander Beck Studio',
     shellTab: {
-      order: 4,
+      order: 3,
       label: 'Contact',
       ariaLabel: 'Contact',
       icon: 'ti-mail',
@@ -72,10 +72,10 @@ export const ROUTE_MANIFEST = Object.freeze({
   portfolio: {
     id: 'portfolio',
     path: '/portfolio.html',
-    aliases: ['/portfolio.html', '/portfolio'],
+    aliases: ['/portfolio.html', '/portfolio', '/playground.html', '/playground'],
     gated: false,
     layout: 'shared-shell',
-    title: 'Portfolio - Alexander Beck',
+    title: 'Work - Alexander Beck Studio',
     shellTab: {
       order: 1,
       label: 'Work',
@@ -96,21 +96,6 @@ export const ROUTE_MANIFEST = Object.freeze({
       label: 'About',
       ariaLabel: 'About',
       icon: 'ti-user',
-      iconOnly: false,
-    },
-  },
-  playground: {
-    id: 'playground',
-    path: '/playground.html',
-    aliases: ['/playground.html', '/playground'],
-    gated: false,
-    layout: 'shared-shell',
-    title: 'Lab - Alexander Beck Studio',
-    shellTab: {
-      order: 3,
-      label: 'Lab',
-      ariaLabel: 'Lab',
-      icon: 'ti-flask',
       iconOnly: false,
     },
   },

@@ -95,9 +95,9 @@ export function getRouteMaterialExitTiming({ reducedMotion = prefersReducedMotio
 /**
  * Shared presentation frame for route-owned cards.
  *
- * Layout transforms stay on the card's positioning element. Work and Lab
- * apply this frame to a centred inner surface so both routes use the same
- * lift, tilt, and scale without changing their settled geometry. Opacity is
+ * Layout transforms stay on the card's positioning element. The Work canvas
+ * applies this frame to a centred inner surface so cards share one lift, tilt,
+ * and scale without changing their settled geometry. Opacity is
  * deliberately absent: cards enter and leave through geometry, never by fading.
  * Animation controllers pass a reusable output object to avoid per-frame GC.
  */

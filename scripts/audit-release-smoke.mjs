@@ -172,7 +172,11 @@ async function auditSpaNavigation(baseUrl) {
     await waitForRouteReady(page, destination, waitMs);
     await assertRouteIdentity(page, destination);
     await assertRouteSemanticContract(page, destination);
-    await assertStableSimulationsNode(page, destination.id);
+    await assertStableSimulationsNode(
+      page,
+      destination.id,
+      destination.renderedRouteId || destination.id,
+    );
     assertSmoke(
       await page.evaluate((expected) => window.__ABS_RELEASE_SMOKE_DOCUMENT_ID__ === expected, documentId),
       destination.id,

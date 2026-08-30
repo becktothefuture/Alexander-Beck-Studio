@@ -89,8 +89,8 @@
   },
   "gates": {
     "portfolio": {
-      "title": "View Portfolio",
-      "description": "Some projects include confidential finance, mobility, identity and product work. Enter the access code to view the selected case studies."
+      "title": "View Work",
+      "description": "Some case studies include confidential finance, mobility, identity, and product work. Enter the access code to continue with the selected case study."
     }
   }
 }

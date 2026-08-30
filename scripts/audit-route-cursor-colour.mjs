@@ -13,7 +13,6 @@ const routePaths = {
   portfolio: '/portfolio.html',
   about: '/about.html',
   contact: '/contact.html',
-  playground: '/playground.html',
 };
 const routeOrder = Object.keys(routePaths);
 const routeWaitMs = Number(process.env.ABS_ROUTE_CURSOR_WAIT_MS || 20000);

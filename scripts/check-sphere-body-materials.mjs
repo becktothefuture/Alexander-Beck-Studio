@@ -81,22 +81,6 @@ const primaryRouteSemanticCoverage = Object.freeze({
       ],
     },
   ]),
-  'Work / Portfolio': Object.freeze([
-    {
-      path: 'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
-      renderer: 'canvas',
-      imports: [
-        'getSimulationBodyMaterialConfig',
-        'getSimulationBodyMaterialSprite',
-        'subscribeSimulationBodyMaterial',
-      ],
-    },
-    {
-      path: 'react-app/app/src/legacy/modules/portfolio/pit-mode.js',
-      renderer: 'canvas',
-      imports: ['drawClippedSimulationBodyMaterial'],
-    },
-  ]),
   About: Object.freeze([
     {
       path: 'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
@@ -243,9 +227,9 @@ function assertRequiredSourcePatterns(relativePath, requirements) {
 }
 
 function assertPrimaryRouteSemanticContracts() {
-  const expectedRoutes = ['Home', 'Work / Portfolio', 'About', 'Contact'];
+  const expectedRoutes = ['Home', 'About', 'Contact'];
   if (JSON.stringify(Object.keys(primaryRouteSemanticCoverage)) !== JSON.stringify(expectedRoutes)) {
-    addFailure('primary route sphere coverage must explicitly include Home, Work / Portfolio, About, and Contact');
+    addFailure('primary route sphere coverage must explicitly include Home, About, and Contact; Work uses neutral depth dots');
   }
 
   assertRequiredSourcePatterns(

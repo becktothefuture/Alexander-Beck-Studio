@@ -64,7 +64,7 @@ Implementation:
 
 Route coverage includes Home simulation bodies and the quote puck, Portfolio speed-field particles and pit project bodies, the six About discipline balls, and Contact ripple balls.
 
-Neutral grid dots and generic point particles are not pebbles only because they are round. The neutral, hover-inert Playground grid, generic About point-field particles, Portfolio DOM cards, UI and editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters keep their own material.
+Neutral grid dots and generic point particles are not pebbles only because they are round. The neutral, hover-inert Work depth field, generic About point-field particles, Work DOM cards, UI and editorial dots, artwork circles, the cursor, loaders, navigation, and atmosphere emitters keep their own material.
 
 ### 3. Portfolio Physics Tuning
 

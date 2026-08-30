@@ -1,5 +1,6 @@
 export {
   createPlaygroundActiveMediaOwnership,
+  selectBoundedActiveWorldMediaIds,
 } from './activeMediaOwnership.js';
 export {
   getPlaygroundCodeDemoSrcDoc,

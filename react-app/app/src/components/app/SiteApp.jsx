@@ -5,10 +5,6 @@ import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRout
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
 import { ABOUT_ROUTE_RUNTIME, getAboutRouteView } from '../../routes/about/AboutRoute.jsx';
 import { CONTACT_ROUTE_RUNTIME, getContactRouteView } from '../../routes/contact/ContactRoute.jsx';
-import {
-  getPlaygroundRouteView,
-  PLAYGROUND_ROUTE_RUNTIME,
-} from '../../routes/playground/PlaygroundRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import {
   getSimulationLaunchpadRouteView,
@@ -117,10 +113,6 @@ const ROUTE_DESCRIPTORS = Object.freeze({
   contact: defineRouteDescriptor('contact', { getView: getContactRouteView, runtime: CONTACT_ROUTE_RUNTIME }),
   portfolio: defineRouteDescriptor('portfolio', { getView: getPortfolioRouteView, runtime: PORTFOLIO_ROUTE_RUNTIME }),
   about: defineRouteDescriptor('about', { getView: getAboutRouteView, runtime: ABOUT_ROUTE_RUNTIME }),
-  playground: defineRouteDescriptor('playground', {
-    getView: getPlaygroundRouteView,
-    runtime: PLAYGROUND_ROUTE_RUNTIME,
-  }),
   styleguide: defineRouteDescriptor('styleguide', { getView: getStyleguideRouteView, runtime: STYLEGUIDE_ROUTE_RUNTIME }),
   simulations: defineRouteDescriptor('simulations', { getView: getSimulationLaunchpadRouteView, runtime: SIMULATION_LAUNCHPAD_ROUTE_RUNTIME }),
   'palette-lab': defineRouteDescriptor('palette-lab', { getView: getPaletteLabRouteView, runtime: PALETTE_LAB_ROUTE_RUNTIME }),
@@ -306,9 +298,9 @@ function waitForAboutNarrativeSceneReady(isCancelled) {
   });
 }
 
-async function waitForPlaygroundRouteReady() {
+async function waitForSpatialRouteReady(routeId) {
   const waiter = waitForObservedRouteReady(
-    'playground',
+    routeId,
     PLAYGROUND_ROUTE_READY_TIMEOUT_MS,
     {},
     () => ({ generation: 0 }),
@@ -340,33 +332,26 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
     'abs-home-post-boot-enter',
   );
 
-  const isPortfolioComingSoon = routeId === 'portfolio'
-    && Boolean(document.getElementById('portfolio-coming-soon-title'));
+  const isPortfolioWorkCanvas = routeId === 'portfolio' && import.meta.env.DEV;
 
-  // The development Portfolio owns its direct-load release because its measured
+  // Work owns its direct-load release because its measured
   // card geometry and authored entrance must be ready before the boot overlay leaves.
-  if (routeId === 'portfolio' && !isPortfolioComingSoon) {
-    root.dataset.absBootDetail = 'portfolio-preparing';
-    return;
-  }
-
   const isAboutRoute = routeId === 'about';
   const waitsForAboutNarrativeScene = routeId === 'about' && import.meta.env.DEV;
   if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;
   }
-  if (routeId === 'playground' && import.meta.env.DEV) {
-    await waitForPlaygroundRouteReady();
+  if (isPortfolioWorkCanvas) {
+    await waitForSpatialRouteReady(routeId);
     if (options.isCancelled?.()) return;
   }
 
   const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
   const directEntrance = (
     isAboutRoute
-    || isPortfolioComingSoon
+    || routeId === 'portfolio'
     || routeId === 'contact'
-    || routeId === 'playground'
   ) && routeContent
     ? createEntranceSequence({ scopes: routeContent, profile: 'direct' })
     : null;

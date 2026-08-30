@@ -124,6 +124,7 @@ export function createPlaygroundCameraController({
   let wheelActive = false;
   let wheelTargetX = finite(initialX, 0);
   let wheelTargetY = finite(initialY, 0);
+  let cameraAnimation = null;
   let suppressClickUntil = 0;
   let resolvedWheelSensitivity = clamp(finite(wheelSensitivity, 0.82), 0, 8);
   let resolvedDragMomentum = clamp(finite(dragMomentum, 0.88), 0, 0.98);
@@ -199,10 +200,33 @@ export function createPlaygroundCameraController({
     if (!inertiaActive) lastFrameAt = 0;
   }
 
+  function cancelCameraAnimation(completed = false) {
+    if (!cameraAnimation) return false;
+    const resolve = cameraAnimation.resolve;
+    cameraAnimation = null;
+    resolve(completed);
+    return true;
+  }
+
   function handleFrame(timestamp) {
     frameId = 0;
     if (disposed || paused) return;
-    if ((inertiaActive || wheelActive) && !reducedMotion && enabled) {
+    if (cameraAnimation && enabled) {
+      if (cameraAnimation.startedAt == null) cameraAnimation.startedAt = timestamp;
+      const elapsed = Math.max(0, timestamp - cameraAnimation.startedAt);
+      const progress = clamp(elapsed / cameraAnimation.durationMs, 0, 1);
+      const eased = clamp(cameraAnimation.easing(progress), 0, 1);
+      state.logicalX = cameraAnimation.startX
+        + ((cameraAnimation.targetX - cameraAnimation.startX) * eased);
+      state.logicalY = cameraAnimation.startY
+        + ((cameraAnimation.targetY - cameraAnimation.startY) * eased);
+      if (progress >= 1) {
+        state.logicalX = cameraAnimation.targetX;
+        state.logicalY = cameraAnimation.targetY;
+        cancelCameraAnimation(true);
+      }
+      dirty = true;
+    } else if ((inertiaActive || wheelActive) && !reducedMotion && enabled) {
       const deltaMs = lastFrameAt
         ? clamp(timestamp - lastFrameAt, 1, 50)
         : FRAME_DURATION_MS;
@@ -233,7 +257,7 @@ export function createPlaygroundCameraController({
     if (dirty) {
       updateProjection();
     }
-    if (inertiaActive || wheelActive) scheduleFrame();
+    if (cameraAnimation || inertiaActive || wheelActive) scheduleFrame();
   }
 
   function requestUpdate() {
@@ -261,6 +285,7 @@ export function createPlaygroundCameraController({
   function handlePointerDown(event) {
     if (disposed || !enabled || paused || pointerActive) return;
     if (!isPrimaryPanPointer(event) || !shouldStartPointer(event)) return;
+    cancelCameraAnimation(false);
     stopWheel();
     stopInertia();
     pointerActive = true;
@@ -368,6 +393,7 @@ export function createPlaygroundCameraController({
     const deltaY = normalizeWheelDelta(event.deltaY, event.deltaMode, state.viewportHeightPx);
     if (deltaX === 0 && deltaY === 0) return;
     event.preventDefault();
+    cancelCameraAnimation(false);
     stopInertia();
     if (reducedMotion) {
       stopWheel();
@@ -406,6 +432,7 @@ export function createPlaygroundCameraController({
     } else handled = false;
     if (!handled) return;
     event.preventDefault();
+    cancelCameraAnimation(false);
     stopWheel();
     stopInertia();
     state.logicalX += deltaX;
@@ -417,6 +444,11 @@ export function createPlaygroundCameraController({
   function handleReducedMotionChange(event) {
     reducedMotion = event.matches === true;
     if (reducedMotion) {
+      if (cameraAnimation) {
+        state.logicalX = cameraAnimation.targetX;
+        state.logicalY = cameraAnimation.targetY;
+        cancelCameraAnimation(true);
+      }
       stopWheel();
       stopInertia();
     }
@@ -429,6 +461,7 @@ export function createPlaygroundCameraController({
     paused = hidden;
     state.paused = paused;
     if (hidden) {
+      cancelCameraAnimation(false);
       cancelFrame();
       cancelPointer();
       stopWheel();
@@ -440,6 +473,7 @@ export function createPlaygroundCameraController({
   }
 
   function handleWindowBlur() {
+    cancelCameraAnimation(false);
     cancelPointer();
     stopWheel();
     stopInertia();
@@ -448,6 +482,7 @@ export function createPlaygroundCameraController({
   }
 
   function setCamera(x, y, { immediate = false } = {}) {
+    cancelCameraAnimation(false);
     state.logicalX = finite(x, state.logicalX);
     state.logicalY = finite(y, state.logicalY);
     stopWheel();
@@ -455,6 +490,45 @@ export function createPlaygroundCameraController({
     dirty = true;
     if (immediate && !paused) updateProjection();
     else scheduleFrame();
+  }
+
+  function animateTo(x, y, {
+    durationMs = 520,
+    easing = (progress) => 1 - ((1 - progress) ** 4),
+  } = {}) {
+    const targetX = finite(x, state.logicalX);
+    const targetY = finite(y, state.logicalY);
+    const duration = Math.max(0, finite(durationMs, 520));
+    if (disposed || paused || !enabled) return Promise.resolve(false);
+    cancelCameraAnimation(false);
+    stopWheel();
+    stopInertia();
+    if (reducedMotion || duration === 0
+      || (Math.abs(targetX - state.logicalX) < 0.01
+        && Math.abs(targetY - state.logicalY) < 0.01)) {
+      state.logicalX = targetX;
+      state.logicalY = targetY;
+      dirty = true;
+      updateProjection();
+      return Promise.resolve(true);
+    }
+    const easingFunction = typeof easing === 'function'
+      ? easing
+      : (progress) => 1 - ((1 - progress) ** 4);
+    return new Promise((resolve) => {
+      cameraAnimation = {
+        startX: state.logicalX,
+        startY: state.logicalY,
+        targetX,
+        targetY,
+        durationMs: duration,
+        easing: easingFunction,
+        startedAt: null,
+        resolve,
+      };
+      dirty = true;
+      scheduleFrame();
+    });
   }
 
   function recenter(options) {
@@ -528,6 +602,7 @@ export function createPlaygroundCameraController({
     enabled = nextEnabled !== false;
     state.enabled = enabled;
     if (!enabled) {
+      cancelCameraAnimation(false);
       cancelPointer();
       stopWheel();
       stopInertia();
@@ -540,6 +615,7 @@ export function createPlaygroundCameraController({
     paused = nextPaused === true;
     state.paused = paused;
     if (paused) {
+      cancelCameraAnimation(false);
       cancelFrame();
       cancelPointer();
       stopWheel();
@@ -568,6 +644,7 @@ export function createPlaygroundCameraController({
       dragging,
       inertiaActive,
       wheelActive,
+      cameraAnimationActive: Boolean(cameraAnimation),
       reducedMotion,
       enabled,
       paused,
@@ -578,6 +655,7 @@ export function createPlaygroundCameraController({
   function destroy() {
     if (disposed) return;
     disposed = true;
+    cancelCameraAnimation(false);
     detachObserver?.disconnect();
     detachObserver = null;
     cancelFrame();
@@ -618,6 +696,7 @@ export function createPlaygroundCameraController({
 
   return Object.freeze({
     setCamera,
+    animateTo,
     recenter,
     setWorldSize,
     resizeViewport,

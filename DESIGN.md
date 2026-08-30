@@ -2,9 +2,9 @@
 
 ## Purpose and scope
 
-This is the design constitution for the production Alexander Beck Studio website. It covers the shared shell and the five main routes: Home, Work/Portfolio, About Me, Lab, and Contact. The Portfolio gate and project drawer are included because they are part of the production route.
+This is the design constitution for the production Alexander Beck Studio website. It covers the shared shell and the four main routes: Home, Work, About, and Contact. The Work access gate, snippet stage, and case-study drawer are included because they are part of the production route.
 
-Standalone development labs, playgrounds, dashboards, test fixtures, audit pages, and the live styleguide are not design evidence for this document. The production Lab route is part of this constitution. The styleguide is a verification surface for production patterns.
+Standalone development labs, historical `playground` source names, dashboards, test fixtures, audit pages, and the live styleguide are not separate production routes or design evidence for this document. The styleguide is a verification surface for production patterns.
 
 This file owns intent, cross-route rules, responsive policy, and exception governance. It does not replace the authored values in `react-app/app/public/config/design-system.json`, the runtime CSS tokens, or the focused technical contracts in `docs/reference/`.
 
@@ -33,7 +33,7 @@ The useful reference is the product-minded precision of Teenage Engineering, not
 | Current visual pattern index | `docs/reference/SITE-STYLEGUIDE.md` | Keep aligned with the live production styleguide. |
 | Theme behavior | `docs/reference/THEME-STATE.md` | Implementation must also satisfy the locked boundary below. |
 | Home canvas and title rendering | `CANVAS-RUNTIME.md`, `SIMULATION-DESIGN-GUIDELINES.md` | DOM and Canvas title geometry are one contract. |
-| Portfolio deck, gate, drawer, and handoff | `docs/reference/PORTFOLIO.md` | Preserve route-specific art direction and reversal. |
+| Work canvas, gate, snippet stage, drawer, and handoff | `docs/reference/PORTFOLIO.md`, `docs/reference/PLAYGROUND.md` | Preserve hierarchy, centre-before-open ordering, and reversal. |
 | Motion rationale and implementation | `MATERIAL-PRESENCE.md`, `SCENE-ENTRANCE-PRINCIPLE.md`, `TRANSITION-ORCHESTRATION.md` | Rationale, visual rules, and state ownership remain separate. |
 
 Generated configs, browser storage, and inline runtime state are outputs, not design sources.
@@ -46,14 +46,14 @@ The system is distributed across these production surfaces. A design change is c
 | --- | --- |
 | Core tokens, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
 | Stable simulation palette registry and twice-daily schedule | `src/palette/londonPalettes.js`, `src/palette/timeOfDayPalette.js` |
-| Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html`, `playground.html` |
+| Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html`; `playground.html` is a Work compatibility entry |
 | Persistent shell, surface slots, Home footer, overlay hosts, Button Bar, and Utility Rail | `StudioShell.jsx`, `ShellButtonBar.jsx`, `ShellUtilityRail.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css`, `shell-utility-rail.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
-| Portfolio intro, linear deck, project access gate, cards, project drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
+| Work title, spatial catalogue, access gate, snippet stage, case-study drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PlaygroundExperience.jsx`, `routes/portfolio/work/`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
 | About Me production gate, canonical Long Assembly development narrative, point field, and scene parameters | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
-| Lab title, deterministic spatial catalogue, dot field, media dialog, and authoring surface | `routes/playground/`, `public/config/contents-playground.json`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
+| Internal Work spatial engine, deterministic placement, depth field, media runtimes, and authoring controls | `routes/playground/`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
 | Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
@@ -67,15 +67,15 @@ Paths above are relative to `react-app/app/` unless they start with `docs/`.
 
 The core pairing is Instrument Serif plus Geist.
 
-- Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Portfolio intro and gate, plus the explicit About sequence beats below.
+- Instrument Serif is the editorial route-entry voice. Use it for the Home title and top-level route-entry titles, including the Work introduction and gate, plus the explicit About sequence beats below.
 - About adds three deliberate display beats in the continuous spatial narrative: its opening, exact midpoint, and finale. All other travelling spatial titles stay in Geist at a smaller scale between display and editorial copy.
-- The Home identity, Work introduction, About opening/finale, Contact title, and Lab title share one viewport-stable bookend motion after a `500ms` pause. Individual letters appear in reading order through five instant colours sampled from the current ball palette. Dark mode orders each random sample from darkest to lightest; light mode reverses that order. Each glyph travels `10%` from left to right over the same `196ms` colour cycle, with `84%` overlap and no opacity fade or blur. Every palette frame renders at full opacity, then the final frame steps directly to the title's authored resting opacity. Home keeps its secondary lines at the quieter authored endpoint. Where a title uses the shared lockup, its short rule begins exactly when the final coloured letter settles, then scales from the centre while the rendered description lines fade in from top to bottom. The complete description rises on a long cubic ease-out while each line uses a slower, softer opacity curve, so the supporting elements decelerate as one gesture without splitting glyphs or changing kerning. Bookend motion never moves the title vertically, clips, or crops title glyphs. All five route identities use the shared `--route-bookend-title-size` at a `1.61568` optical scale and shared tighter headline leading. Reduced motion settles the complete hierarchy immediately.
-- Geist is the structural voice for navigation, descriptions, controls, the Contact email action, Portfolio cards, project names, project-detail titles, and ordinary headings.
+- The Home identity, Work introduction, About opening/finale, and Contact title share one viewport-stable bookend motion after a `500ms` pause. Individual letters appear in reading order through five instant colours sampled from the current ball palette. Dark mode orders each random sample from darkest to lightest; light mode reverses that order. Each glyph travels `10%` from left to right over the same `196ms` colour cycle, with `84%` overlap and no opacity fade or blur. Every palette frame renders at full opacity, then the final frame steps directly to the title's authored resting opacity. Home keeps its secondary lines at the quieter authored endpoint. Where a title uses the shared lockup, its short rule begins exactly when the final coloured letter settles, then scales from the centre while the rendered description lines fade in from top to bottom. The complete description rises on a long cubic ease-out while each line uses a slower, softer opacity curve, so the supporting elements decelerate as one gesture without splitting glyphs or changing kerning. Bookend motion never moves the title vertically, clips, or crops title glyphs. All four route identities use the shared `--route-bookend-title-size` at a `1.61568` optical scale and shared tighter headline leading. Reduced motion settles the complete hierarchy immediately.
+- Geist is the structural voice for navigation, descriptions, controls, the Contact email action, Work cards, project names, project-detail titles, and ordinary headings.
 - Geist Mono is operational: kickers, metadata, access inputs, and compact technical labels.
 - The handwritten LDN 26 SVG is the rare London signature. It is artwork, not another type role or heading style.
 - Do not inherit Instrument Serif through a section or route. Apply the headline role explicitly.
 - Project titles stay Geist. The editorial route voice and the project-information voice must not compete.
-- The Work, Contact, Lab, and both About Me bookend title/description lockups share one short title-colour rule and one ordered entrance: title, centre-out rule, then description. Its line-to-description gap is a single shell-authored value across every instance.
+- The Work, Contact, and both About bookend title/description lockups share one short title-colour rule and one ordered entrance: title, centre-out rule, then description. Its line-to-description gap is a single shell-authored value across every instance.
 - Tracking and leading belong to named roles. Do not apply a broad optical correction and repair it component by component.
 - The visible Home title is rendered by Canvas from the semantic DOM title's computed metrics. Font family, size, leading, tracking, wrapping, and font-load timing must remain synchronized.
 
@@ -87,10 +87,10 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
 - Manual site theme affects the studio-window interior and the temporary in-window route cover at every viewport width. `auto` follows `prefers-color-scheme`; explicit light or dark choices persist across responsive changes. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
-- The Button Bar belongs to the stable dark outer shell. Mobile is the proportional master at `62px` high; desktop carries the same composition at a slightly enlarged `68px`. Both retain the `#141414` to `#000000` vertical gradient and two inset highlights in every site theme. Mobile uses a `20px` capsule radius and desktop uses `22px`. Home, Work, About, Lab, and Contact are one undivided route group. Every route pairs a Tabler outline icon with a sentence-case Geist label: mobile uses `21px` icons, `10px` labels, and a `5px` gap in equal `62px` route cells; desktop uses `25px` icons, `12px` labels, and a `6px` gap in equal `85px` route cells. Labels use slightly tightened `-0.02em` tracking. Inactive labels use the readable neutral `#767881`; the active pair is white above one shared graphite key surface. Route separators are absent.
+- The Button Bar belongs to the stable dark outer shell. Mobile is the proportional master at `62px` high; desktop carries the same composition at a slightly enlarged `68px`. Both retain the `#141414` to `#000000` vertical gradient and two inset highlights in every site theme. Mobile uses a `20px` capsule radius and desktop uses `22px`. Home, Work, About, and Contact are one undivided route group. Every route pairs a Tabler outline icon with a sentence-case Geist label: mobile uses `21px` icons, `10px` labels, and a `5px` gap in equal `62px` route cells; desktop uses `25px` icons, `12px` labels, and a `6px` gap in equal `85px` route cells. Labels use slightly tightened `-0.02em` tracking. Inactive labels use the readable neutral `#767881`; the active pair is white above one shared graphite key surface. Route separators are absent.
 - The Utility Rail is a separate shell fixture attached to the studio window's right edge. Desktop stays vertically centred at `50svh` with `32px` visible controls. Mobile deliberately becomes quieter: `25px` visible controls, an `-11px` outward offset, and a centre at `76svh` in the viewport's bottom half. Coarse-pointer hit areas expand invisibly to `44px` without allowing the two controls to overlap. The **Utility Rail** panel owns separate desktop and mobile size and horizontal-position controls plus the mobile vertical anchor; both horizontal ranges run from `-160px` to `160px`, the mobile size runs from `22px` to `44px`, and its vertical anchor runs from `55%` to `90%`. The rail uses stable outer-shell ink and material in every theme, persists through route transitions, and never becomes part of route content or the Button Bar.
-- Route accents remain stable: Home green, Work acid, About blue, Contact orange, and Lab pink.
-- Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About Me, Contact, and Lab consume the same resolved ball palette, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides.
+- Route accents remain stable: Home green, Work acid, About blue, and Contact orange.
+- Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About, and Contact consume the same resolved ball palette where route material needs it, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides. Work's depth dots remain neutral.
 - Neutrals dominate simulations. Use acid, blue, orange, and green as controlled focal material.
 - Grain should make the window feel physical without muddying type or flattening surface separation.
 - Home UI legibility comes from five static, background-matched fields behind the expertise legend, philosophy, socials, edge caption, and London/time groups. Interaction changes foreground emphasis only; it does not animate or multiply the fields.
@@ -113,7 +113,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - True circles remain circles. Squircle treatment applies only to eligible framed surfaces and controls.
 - Pills indicate selection, compact controls, or grouped actions; do not turn every container into a pill.
 - Prefer contact edges, inset light, broad recesses, and restrained shadow to generic floating-card elevation.
-- The Portfolio drawer inherits the window geometry and reads as an inserted surface, not a detached modal.
+- The Work case-study drawer inherits the window geometry and reads as an inserted surface, not a detached modal.
 - Do not add thin force lines, helper rings, or decorative outlines to explain simulation behavior.
 
 ### Iconography and controls
@@ -121,21 +121,21 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
 - Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
-- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not five independent selected backgrounds. All five routes pair an icon with a sentence-case label: mobile uses `21px` Tabler outline icons with `10px` labels and a `5px` gap; desktop scales that relationship to `25px` icons with `12px` labels and a `6px` gap. Labels use Geist weight `700` with slightly tightened `-0.02em` tracking. The mobile key is `50px` inside its `62px` cell; the desktop key is `71px` inside its `85px` cell, leaving the larger desktop stack with approximately `6px` of vertical breathing room. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
+- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not four independent selected backgrounds. All four routes pair an icon with a sentence-case label: mobile uses `21px` Tabler outline icons with `10px` labels and a `5px` gap; desktop scales that relationship to `25px` icons with `12px` labels and a `6px` gap. Labels use Geist weight `700` with slightly tightened `-0.02em` tracking. The mobile key is `50px` inside its `62px` cell; the desktop key is `71px` inside its `85px` cell, leaving the larger desktop stack with approximately `6px` of vertical breathing room. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
-- Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content or carousel advances use one step click. About, Lab, and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work deck sounds only when a distinct project reaches centre, not throughout travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
+- Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content advances use one step click. About and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work field sounds only when a distinct item is selected, not throughout camera travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
 
 #### Quiet control material and emphasis
 
-The quiet material has exactly two reusable control families. `.abs-labelled-action` covers the Home simulation switcher and Contact/About email-copy and LinkedIn capsules. `.abs-circular-utility` covers the Portfolio drawer return, Portfolio access-gate close, and Lab media close controls. Both consume the semantic `--abs-soft-control-*` tokens; capsules contain labelled actions and circles contain icon-only close and return actions.
+The quiet material has exactly two reusable control families. `.abs-labelled-action` covers the Home simulation switcher and Contact/About email-copy and LinkedIn capsules. `.abs-circular-utility` covers the Work drawer return, Work access-gate close, and other in-window icon-only close controls. Both consume the semantic `--abs-soft-control-*` tokens; capsules contain labelled actions and circles contain icon-only close and return actions.
 
 - The resting material uses one restrained translucent fill per studio-window theme. A 16px backdrop blur and gentle saturation preserve local context without flattening the material behind it.
 - Every quiet control has no outer border and no drop shadow. Physical depth comes only from two complementary inset shadows: one sharp 0.5px light-facing edge and one softer occluded edge. The dark-theme light edge is 20% quieter than the approved audit prototype.
 - Hover lifts the complete control by 2px with a bounded elastic settle. Keyboard focus lifts it by 1px and adds a clear 3px outline. Press moves it down by 1px over 90ms. These states never scale text, icons, or the control surface.
 - Contact copy keeps one fixed-width label window. The email label exits upward and the Copied/check or error state enters from below using the shared restrained label motion. The Contact background ripple still starts in the same click frame; the retired contained colour wash is not part of the control.
 - Do not stack a colored halo, glow, outer shadow, or second hover field on top of this material. State must remain calm and legible over moving simulation content.
-- The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Lab keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
+- The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Work keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
 The Home switcher is a labelled next action, not a selector or dialog trigger. It shows the current simulation name and a refresh glyph. On activation, the current label exits in `160ms`; the refresh glyph moves to the centre and holds there for `880ms` while the pill width settles; the new label then enters over `400ms` as the glyph returns. One restrained 360-degree refresh rotation spans the full `1440ms` handoff. Reduced motion commits the next label and simulation immediately without travel, blur, scale, or rotation.
@@ -148,13 +148,13 @@ The Home switcher is a labelled next action, not a selector or dialog trigger. I
 - Entrance order is identity, context, action, then supporting detail. Returning from an interruption is faster and simpler than the first entrance.
 - Hover and press motion should feel compact, tactile, and bounded.
 - Reduced motion removes travel, blur, scale, stagger, parallax, continuous field motion, and Ken Burns effects while preserving hierarchy and state.
-- Preserve selected media as the physical object during the Portfolio card-to-drawer handoff.
+- Preserve selected media as the physical object during Work snippet and case-study expansion and reversal.
 
 ## Shared shell and route patterns
 
 ### Persistent shell
 
-The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, Button Bar, Utility Rail, modal hosts, and Portfolio sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme. The social/time footer and edge caption are Home-owned content and are not shown on Portfolio, About Me, Contact, or Lab.
+The shell is one stable instrument: exposed band, wall/frame geometry, studio-window host, Button Bar, Utility Rail, modal hosts, and Work sheet host. Page changes must not recreate or reanimate it; only the studio-window interior surface and content change theme. The social/time footer and edge caption are Home-owned content and are not shown on Work, About, or Contact.
 
 ### Home
 
@@ -165,16 +165,23 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - The settled/default simulation must leave all three title lines legible. Solve occlusion with density, placement, color, and motion—not text outlines, shadows, or a plate.
 - Expertise filtering is a real interaction and must have full keyboard and assistive-technology semantics.
 
-### Work / Portfolio
+### Work
 
-- “Work” is the Button Bar label; “Portfolio” is the route and experience name.
-- The live route is a linear, drag/scroll-controlled media deck available as the unauthorised preview. The centred card is full size, every inactive card is 90% size, and the complete track stays on one horizontal axis. It is not a grid or a physics pit.
-- The route intro and gate use the editorial route-entry voice. Card and project-detail titles remain Geist.
-- Every project declares `access: "public" | "protected"`. Missing or unsupported runtime values fail closed as protected.
-- The access gate appears only when an unauthorised visitor opens a protected project. It blurs the live deck inside the studio window, stores one Portfolio-wide grant, closes completely, then continues the exact selected card through the existing drawer handoff. Public projects bypass it.
-- This gate is client-side access friction, not secure authentication; truly private assets require server or edge enforcement.
+- Production is held at **Coming soon.** until a separate launch decision. This is a build-time route boundary with no URL, browser-storage, or password bypass. Development and the safe public development mirror render the full canvas below; production does not mount or prewarm it.
+- Work is one exploratory canvas, not a separate Portfolio plus Lab. The public route label and experience name are both **Work**.
+- The field has two clear hierarchies. Full case studies are materially larger primary objects with editorial summary cards. Image, video, and local-code snippets are smaller secondary discoveries with concise descriptions.
+- Case studies stay within a compact primary band rather than becoming billboard-scale. Every Work preview uses one generous rounded media edge; hover or keyboard focus adds a small bounded lift, contact shadow, and clearer inset edge without moving the caption or changing the placement footprint. Reduced Motion keeps the edge and shadow response but removes lift and scale.
+- The opening title belongs to the pannable world. Items surround it as a deliberate salon-like composition with enough initial peeking content to invite movement without overwhelming the identity.
+- A restrained three-layer neutral dot field replaces the old flat grid. Camera parallax creates depth only while the visitor moves; the background has no independent drift or competing animation.
+- Pointer drag, touch, wheel/trackpad, arrows, WASD, and roving-item keyboard navigation share one logical camera. Every selection first centres the complete source object, then expands it. There is no hard lightbox pop or geometry break.
+- Snippets expand into a full in-window editorial stage and reverse into their source. Case studies reuse the existing drawer and geometry handoff. The field stays mounted and becomes inert behind either presentation.
+- The route introduction and access gate use the editorial route-entry voice. Work cards, captions, snippet copy, and project-detail titles remain Geist.
+- Every case study declares `access: "protected"`; missing or unsupported values fail closed. Snippets are public.
+- The access gate appears only after a protected case study has centred. It stores one Work-wide grant, closes completely, then continues the exact pending case study. Dismissal restores the originating card and focus.
+- The gate is client-side access friction, not secure authentication; truly private assets require server or edge enforcement.
 - The drawer covers route content to the studio-window boundary behind the overlapping Button Bar, supports native reading/selection behavior, and preserves focus restoration.
 - Project-specific editorial treatments must be named content variants, not selector rules tied only to a project ID.
+- Reduced Motion preserves hierarchy, centring, state, history, focus, and reversal while removing large spatial travel and parallax.
 
 ### About Me
 
@@ -198,39 +205,30 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - The email address uses Geist within a borderless quiet-control capsule; its momentary pressed light starts with the background ripple, while copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
 - Contact retains the shared spacing/type roles even though its simulation and action are unique.
 
-### Lab
-
-- Lab is the fifth primary route. It is a spatial catalogue, not a masonry page, dashboard, whiteboard, or replacement for Work.
-- The opening lockup is part of the pannable world. Instrument Serif is limited to the route H1. Work descriptions use the Portfolio caption treatment and wrap in full below their left-aligned names; visible media-type tags are omitted.
-- The dot field and work placement share one grid, camera phase, and pre-paint camera sample. Drag rendering is frame-coalesced for a stable 60fps-or-better camera cadence on both ordinary and high-refresh displays, and the Lab atmosphere sleeps when its renderer is idle. The Canvas backing store preserves true circular dots across fractional viewport sizes and pixel densities. Dots are low-opacity neutral grey, remain a flat grid material, and do not respond to pointer hover. The grid tiles homogeneously behind the title and every project without a title-area mask or empty seam. Seamless copies support continuity, but only one logical item per work may be interactive or exposed to assistive technology.
-- Work opens in an in-window dialog with shareable `?work=<id>` state, complete keyboard behavior, focus trapping, focus restoration, and browser Back support.
-- Reduced Motion retains panning, wrapping, hierarchy, selection, and focus. It removes inertia, pointer attraction, scale/blur travel, and stagger.
-- The initial 20 entries and their local media are explicit placeholders. They must not be presented as real projects, client work, contributions, or outcomes. The content and authoring contract is [`docs/reference/PLAYGROUND.md`](docs/reference/PLAYGROUND.md).
-
 ### Footer
 
 - The footer is quiet edge metadata: social links, studio statement, and London time/signature.
 - It remains subordinate to route content and must stay readable without becoming a second navigation bar.
-- Portfolio may suppress the long edge caption where it would compete with the deck.
+- Work suppresses the Home-only edge caption.
 
 ## Simulation language
 
 - Every semantic production ball uses its approved circle or pebble geometry with a flat fill from the active time-of-day palette.
-- Route coverage is explicit: Home simulation bodies and the quote puck; Work / Portfolio speed-field particles and pit project bodies; readable About point-field circles including the six discipline balls; and Contact ripple balls.
+- Route coverage is explicit: Home simulation bodies and the quote puck; readable About point-field circles including the six discipline balls; and Contact ripple balls. Work's neutral depth dots and DOM work cards are not semantic balls.
 - The cached sphere sticker/atlas finish is disabled globally. Production renderers retain colour batching and do not issue one scaled texture draw per body.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
-- Exclusions are role-based, not shape-based. The neutral Lab grid, generic About point-field particles, Portfolio DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
+- Exclusions are role-based, not shape-based. The neutral Work depth field, generic About point-field particles, Work DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
 
 ### Shared simulation atmosphere
 
-Home and Daily simulations, Work / Portfolio, About Me, Contact, and Lab share one shell-owned Crisp + Diffuse Glow material system. It unifies a wall-wide low-frequency colour field and crisp source material; it does not replace route-specific motion or flatten every route into the same simulation. A static inner-wall rim describes a soft all-around reflection inside the studio window. A paired two-layer outer-wall glow reflects that light onto the exposed wall: light mode is stronger, dark mode stays quieter, and the narrower mobile band uses a tighter configurable far layer so both falloff stages remain visible, while the black frame and wall geometry remain unchanged. The Button Bar replaces its original inset finish with independent near/far reflections; their default shifts contain the reflection along its upper inner edge. Shell grain and contrast finish remain independent and never intensify because the atmosphere is active.
+Home and Daily simulations, Work, About, and Contact share one shell-owned Crisp + Diffuse Glow material system. It unifies a wall-wide low-frequency colour field and crisp source material; it does not replace route-specific motion or flatten every route into the same simulation. A static inner-wall rim describes a soft all-around reflection inside the studio window. A paired two-layer outer-wall glow reflects that light onto the exposed wall: light mode is stronger, dark mode stays quieter, and the narrower mobile band uses a tighter configurable far layer so both falloff stages remain visible, while the black frame and wall geometry remain unchanged. The Button Bar replaces its original inset finish with independent near/far reflections; their default shifts contain the reflection along its upper inner edge. Shell grain and contrast finish remain independent and never intensify because the atmosphere is active.
 
 - The source material remains the only direct colour layer. Glow is a broad projection of the current completed source frame. The shell rim remains neutral and static; it never samples ball colours or requires a full-window masked Canvas layer.
 - Home preserves its Canvas title placement: ordinary material passes in front of the title, while the established depth modes may place stable material on both sides. Other routes keep readable DOM copy above their route material while the atmosphere remains continuous behind it.
-- Portfolio and the full About narrative use their live colour canvases when available. Contact uses its ripple canvas. Lab uses its neutral dot field. Canvas-less, suspended, error, and editorial-only states stay on the base studio-window surface; the compositor must not invent placeholder colour, glow, or simulated material for them.
+- Work uses its completed neutral depth-field Canvas, the full About narrative uses its live colour Canvas when available, and Contact uses its ripple Canvas. Canvas-less, suspended, error, and editorial-only states stay on the base studio-window surface; the compositor must not invent placeholder colour, glow, or simulated material for them.
 - Standalone simulation labs, launchers, loaders, and decorative dots do not inherit the production atmosphere merely because they contain a Canvas. Eligibility and source registration are explicit.
 - Reduced Motion retains one static diffused colour response. Mobile keeps the same visual hierarchy at reduced output scale rather than disabling the material.
 - The glow may retain one short, bounded history frame behind the current field. It has no drift, multi-buffer diffusion, unbounded accumulation, or memory across source, mode, theme, or geometry boundaries.
@@ -261,12 +259,12 @@ The route-entry title family is implemented. The remaining rows are proposals an
 
 | Status | Family | Merge | Exceptions to preserve |
 | --- | --- | --- | --- |
-| Implemented | Route-entry title | One resolved `--route-entry-title-size`, `1.32` bookend scale, and shared optical leading used by Home, Portfolio intro/gate, About, and Contact | Home Canvas continues to read the DOM result. |
-| Implemented | Route description | One continuous size token and one editorial measure/leading modifier shared by the Work, About Me, Contact, and Lab intros | The Portfolio access gate keeps its narrower description measure. |
+| Implemented | Route-entry title | One resolved `--route-entry-title-size`, `1.32` bookend scale, and shared optical leading used by Home, Work intro/gate, About, and Contact | Home Canvas continues to read the DOM result. |
+| Implemented | Route description | One continuous size token and one editorial measure/leading modifier shared by the Work, About, and Contact intros | The Work access gate keeps its narrower description measure. |
 | Proposed | Centered route spacing | Shared content-only page padding, stack gap, description gap, and action gap tokens | Do not apply these tokens to the Button Bar, frame, deck geometry, or drawer handoff. |
 | Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
-| Proposed | Portfolio card type | Local fluid client/title tokens | Keep Geist and preserve fixed card geometry/legibility. |
-| Proposed | Portfolio detail title | Local continuous Geist title token | Named editorial variants may opt into documented alternatives. |
+| Proposed | Work card type | Local fluid client/title tokens | Keep Geist and preserve the primary/secondary hierarchy. |
+| Proposed | Work detail title | Local continuous Geist title token | Named editorial variants may opt into documented alternatives. |
 | Proposed | Contact email | Local continuous Geist size token across the narrow safeguard | Preserve 44px+ hit target and readable address wrapping. |
 
 The shared title token uses a direct mobile clamp, bridges the 601–1024px interval, and retains the existing desktop value from 1025px upward:
@@ -319,7 +317,7 @@ Recalculate these from approved computed endpoints before implementation if the 
 
 - Button Bar geometry, touch targets, safe-area offsets, active-key material, label sizing, and icon frames.
 - Frame inset/radius; they already have a canonical endpoint interpolation.
-- Portfolio linear-track geometry, drawer handoff geometry, and height-led project art direction.
+- Work placement anchors, centre-to-open geometry, drawer handoff geometry, and height-led project art direction.
 - Home short-height compression and narrow landscape safeguards.
 - Borders, focus-ring widths, the fixed cursor diameter, or motion timing.
 - Project titles through the route-entry serif token.
@@ -349,7 +347,7 @@ An exception is allowed only when it strengthens the design thesis and is record
 - accessibility impact;
 - verification command and screenshots.
 
-Current intentional exceptions are the Home Canvas title, Home expertise composition, Portfolio linear deck, Portfolio media handoff, Portfolio gate, Contact ripple field, and the London signature.
+Current intentional exceptions are the Home Canvas title, Home expertise composition, Work spatial hierarchy, Work media handoffs, Work access gate, Contact ripple field, and the London signature.
 
 ## Outlier register and proposed resolutions
 
@@ -364,7 +362,7 @@ These are implementation/documentation findings, not permission for a broad refa
 | P1 | Authored content-inset tokens do not own layout | `contentInset*` values are stamped, while runtime `contentPadding*` values drive the visible page. | Choose one endpoint contract and feed the same resolved value to CSS, overlays, and runtime geometry. |
 | P1 | Project-detail title drops at `640→641` | The normal Geist title falls from roughly `61.6px` to `44.9px`. | Add a local continuous project-detail title bridge; do not use the route-entry serif. |
 | P1 | Contact email and mobile type multiplier jump | Narrow email guard and global `--mobile-type-scale` switch values abruptly. | Replace local size switches with content-role fluid tokens while retaining structural breakpoints. |
-| P1 | Portfolio reading surface blocks selection | Global `user-select: none` is not restored in the drawer body. | Restore native selection/cursor behavior inside the reading surface; keep drag suppression on the deck only. |
+| P1 | Work reading surface blocks selection | Global `user-select: none` is not restored in the drawer body. | Restore native selection/cursor behavior inside the reading surface; keep drag suppression on the spatial canvas only. |
 | P2 | Global Geist tracking creates repair overrides | Body uses very tight global tracking; drawer and components reset it locally. | Default body to neutral tracking and apply named compact/normal/loose/mono/headline roles explicitly. |
 | P2 | Project editorial style is tied to one ID | Extensive `chapter-7` selectors encode a reusable art direction as an exception. | Promote it to a named content variant and preserve the current output exactly during migration. |
 | P2 | Tap-target token name is unsafe | `--abs-tap-target` resolves below the actual 44px control minimum. | Rename it for what it sizes or redefine it as the true minimum and separate glyph/frame sizes. |
@@ -376,7 +374,7 @@ Every design-system implementation change starts with a production build and end
 
 Minimum matrix:
 
-- Routes: Home, Work/Portfolio gate and unlocked deck, About Me, Contact, Lab default and selected-work dialog, Portfolio drawer.
+- Routes: Home, the production Work construction screen, development Work field/gate/snippet stage/case-study drawer, About, and Contact.
 - Widths: 320, 375/390, 480, 600, 601, 640, 641, 767, 768, 900, 991, 992, 1024, 1025, 1440, and 3440 where Portfolio is affected.
 - Heights: common phone, short landscape, standard desktop, and the approved desktop capture height.
 - Themes: light and dark.

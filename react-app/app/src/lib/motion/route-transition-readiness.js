@@ -19,16 +19,6 @@ function isRectUsable(rect) {
   return Boolean(rect && rect.width > 0 && rect.height > 0);
 }
 
-function rectHasUsableVisibleArea(innerRect, outerRect) {
-  if (!isRectUsable(innerRect) || !isRectUsable(outerRect)) return false;
-  const visibleWidth = Math.max(0, Math.min(innerRect.right, outerRect.right) - Math.max(innerRect.left, outerRect.left));
-  const visibleHeight = Math.max(0, Math.min(innerRect.bottom, outerRect.bottom) - Math.max(innerRect.top, outerRect.top));
-  return (
-    visibleWidth >= Math.min(240, outerRect.width * 0.5)
-    && visibleHeight >= Math.min(96, innerRect.height * 0.5)
-  );
-}
-
 function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
   if (!isRectUsable(previous) || !isRectUsable(next)) return false;
   return (
@@ -36,16 +26,6 @@ function rectsMatchWithinThreshold(previous, next, thresholdPx = 2) {
     && Math.abs(previous.left - next.left) <= thresholdPx
     && Math.abs(previous.width - next.width) <= thresholdPx
     && Math.abs(previous.height - next.height) <= thresholdPx
-  );
-}
-
-function isElementVisiblyRevealed(element) {
-  if (!element) return false;
-  const styles = window.getComputedStyle(element);
-  return (
-    styles.display !== 'none'
-    && styles.visibility !== 'hidden'
-    && Number(styles.opacity) > 0.9
   );
 }
 
@@ -57,30 +37,6 @@ function isCanvasSurfacePrepared(selector) {
     && rect.height >= 64
     && canvas.width >= 64
     && canvas.height >= 64;
-}
-
-function isPortfolioScrollRailReady() {
-  const wall = document.getElementById('simulations');
-  const mount = document.getElementById('portfolioProjectMount');
-  const firstCard = mount?.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label');
-  if (!wall || !mount || !firstCard) return false;
-  const wallRect = wall.getBoundingClientRect();
-  const cardRect = firstCard.getBoundingClientRect();
-  const deckPrepared = mount.classList.contains('is-portfolio-boot-preparing');
-  const hasUsableGeometry = (
-    isRectUsable(wallRect)
-    && isRectUsable(cardRect)
-    && cardRect.width >= Math.min(240, wallRect.width * 0.5)
-    && cardRect.height >= 96
-    && rectHasUsableVisibleArea(cardRect, wallRect)
-  );
-  return (
-    hasUsableGeometry
-    && (
-      deckPrepared
-      || (isElementVisiblyRevealed(mount) && isElementVisiblyRevealed(firstCard))
-    )
-  );
 }
 
 function isDailyLabRouteReady(routeId) {
@@ -115,9 +71,10 @@ function readRouteReadySnapshot(routeId) {
   if (routeId === 'portfolio') {
     return {
       wallRect: document.getElementById('simulations')?.getBoundingClientRect() || null,
-      heroRect: document.getElementById('hero-title')?.getBoundingClientRect() || null,
-      cardRect: document.querySelector('.portfolio-deck-card.is-active, .portfolio-project-label')?.getBoundingClientRect() || null,
-      topbarRect: document.querySelector('.ui-top-main.route-topbar')?.getBoundingClientRect() || null,
+      titleRect: document.getElementById('playground-route-title')?.getBoundingClientRect() || null,
+      cardRect: document.querySelector(
+        '.playground-item--case-study .portfolio-project-card[tabindex="0"]',
+      )?.getBoundingClientRect() || null,
     };
   }
 
@@ -128,20 +85,10 @@ function isRouteReadySnapshotStable(routeId, previous, next, options = {}) {
   if (routeId !== 'portfolio') return true;
   if (options.lockedGateId === 'portfolio') return true;
   if (!previous || !next) return false;
-  const deckFailed = document.body?.classList.contains('portfolio-deck-failed');
-  const deckPrepared = document.getElementById('portfolioProjectMount')
-    ?.classList.contains('is-portfolio-boot-preparing');
-  if (deckPrepared) {
-    return (
-      rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
-      && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
-    );
-  }
   return (
     rectsMatchWithinThreshold(previous.wallRect, next.wallRect, 2)
-    && (!previous.heroRect || !next.heroRect || rectsMatchWithinThreshold(previous.heroRect, next.heroRect, 2))
-    && (deckFailed || rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2))
-    && rectsMatchWithinThreshold(previous.topbarRect, next.topbarRect, 2)
+    && rectsMatchWithinThreshold(previous.titleRect, next.titleRect, 2)
+    && rectsMatchWithinThreshold(previous.cardRect, next.cardRect, 2)
   );
 }
 
@@ -166,7 +113,7 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
     return Boolean(
       isHomeRoute
       && hero
-      && routeTabs.length >= 5
+      && routeTabs.length >= 4
       && hasCanvasBufferReady()
       && !bootOverlay
       && bootState !== 'booting'
@@ -178,12 +125,11 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   }
 
   if (routeId === 'portfolio') {
-    const deckFailed = body.classList.contains('portfolio-deck-failed');
     const lockedGate = document.querySelector('[data-route-content="portfolio-gate"]');
     const comingSoonTitle = document.getElementById('portfolio-coming-soon-title');
-    const portfolioMount = document.getElementById('portfolioProjectMount');
-    const deckPrepared = portfolioMount?.classList.contains('is-portfolio-boot-preparing');
-    const runtime = getRuntimeSnapshot();
+    const workExperience = document.querySelector(
+      '[data-route-content="portfolio"] [data-work-experience="true"]',
+    );
     if (options.lockedGateId === 'portfolio') {
       return Boolean(body.classList.contains('portfolio-page') && lockedGate);
     }
@@ -195,14 +141,7 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
       && (
         comingSoonTitle
         || lockedGate
-        || (
-          runtime.routeId === 'portfolio'
-          && runtime.status === 'ready'
-          && (
-            portfolioMount
-            && (deckFailed || deckPrepared || isPortfolioScrollRailReady())
-          )
-        )
+        || workExperience?.dataset.playgroundReady === 'true'
       )
     );
   }
@@ -231,23 +170,6 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
     );
   }
 
-  if (routeId === 'playground') {
-    const routeContent = document.querySelector('[data-route-content="playground"]');
-    const experience = routeContent?.querySelector('[data-playground-experience]');
-    const comingSoonTitle = document.getElementById('playground-coming-soon-title');
-    return Boolean(
-      body.classList.contains('playground-page')
-      && routeContent
-      && (
-        comingSoonTitle
-        || (
-          document.getElementById('playground-route-title')
-          && experience?.dataset.playgroundReady === 'true'
-        )
-      )
-    );
-  }
-
   if (isDailyLabRouteId(routeId)) {
     return isDailyLabRouteReady(routeId);
   }
@@ -271,8 +193,8 @@ export function waitForObservedRouteReady(routeId, timeoutMs, options = {}, getR
       : 0;
     const readinessStartedAt = Number(options.readinessStartedAt) || performance.now();
     const auditReadyNotBefore = readinessStartedAt + auditDelayMs;
-    // Portfolio's runtime and participant each own painted-geometry barriers;
-    // repeating them in the shell delayed a fully prepared deck by three more
+    // Work's spatial participant owns its painted-geometry barrier;
+    // repeating it in the shell delays a fully prepared field
     // frames without adding a stronger invariant.
     const REQUIRED_STABLE_FRAMES = 0;
     const maybeSettleReady = () => {

@@ -16,11 +16,10 @@ These generated files exist for development and compatibility previews. Producti
 ## Content files
 
 - `contents-home.json` — runtime copy for UI strings (copied to `dist/config/contents-home.json` + `dist/js/contents-home.json`).
-- `contents-portfolio.json` — portfolio projects (copied to `dist/config/contents-portfolio.json` + `dist/js/contents-portfolio.json`).
-- `contents-playground.json` — the production Playground catalogue, including stable placement order, local media references, intrinsic dimensions, and preferred grid spans.
-- Do not add a parallel `portfolio-data.json` content source. `contents-portfolio.json` is the only live portfolio content file.
+- `contents-portfolio.json` — the unified Work catalogue: protected full case studies plus public snippets (copied to `dist/config/contents-portfolio.json` + `dist/js/contents-portfolio.json`).
+- Do not add a parallel `portfolio-data.json`, `contents-playground.json`, or other Work content source. `contents-portfolio.json` is the only live Work content file.
 
-Playground starts with 30 explicit placeholders: 18 image, 6 video, and 6 local code studies. They are not evidence for portfolio claims. Replace each placeholder with reviewed copy and local media. Append item 31 with a new stable lower-kebab-case `id` and `placementOrder: 31`; do not reorder earlier items if their deterministic positions must stay unchanged. See `docs/reference/PLAYGROUND.md` from the repository root for the full schema, asset, code-demo, placement, and verification contract.
+The `projects` array owns full case-study records. The `snippets` array owns compact image, video, and local-code explorations with stable IDs, reviewed copy, accessibility text, local media, true intrinsic dimensions, and preferred spans. IDs must remain unique across both arrays. See `docs/reference/PORTFOLIO.md` for the product/content contract and `docs/reference/PLAYGROUND.md` for the retained internal spatial engine.
 
 ## Workflow
 
@@ -33,7 +32,7 @@ Playground starts with 30 explicit placeholders: 18 image, 6 video, and 6 local 
   - flattening into the generated config files used by build/preview
 - Shared finish such as light edge, wall atmosphere, quote treatment, and edge-caption spacing should land in `shell`, not be duplicated as separate page-local truths.
 - Page-local config should own layout, composition, and page-specific motion. It should not redefine the global shell/material system unless there is a deliberate exception.
-- Playground layout, work sizing, dot-field, and motion values belong in the canonical `playground` namespace. Use the shared Playground panel schema for live apply. Shift-click the development settings launcher for the detached host. Generate a new seed only for a deliberate full-field re-composition, then save it through the canonical design configuration flow.
+- Work layout, hierarchy sizing, depth-field, and camera values belong in the historical canonical `playground` namespace. Use its shared development panel schema for live apply. Shift-click the settings launcher for the detached host. Generate a new seed only for a deliberate full-field recomposition, then save it through the canonical design-configuration flow.
 - If a control is removed from the visible panel, also remove or bypass its persistence path if it should no longer affect saved config.
 
 ## Performance rollout keys (`default-config.json`)

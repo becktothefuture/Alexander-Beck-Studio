@@ -77,7 +77,7 @@ export const PLAYGROUND_PANEL_SCHEMA = deepFreeze([
     actions: [
       { id: 'recenter', label: 'Recenter on title' },
       { id: 'new-seed', label: 'Generate new seed' },
-      { id: 'reset', label: 'Reset Lab values' },
+      { id: 'reset', label: 'Reset Work values' },
     ],
   },
   {
@@ -309,7 +309,7 @@ export function bindPlaygroundPanel(panel, options = {}) {
     if (action === 'reset') {
       const config = resetPlaygroundConfig();
       options.onReset?.(config);
-      setActionStatus('Lab values reset.');
+      setActionStatus('Work values reset.');
       return;
     }
 
@@ -363,10 +363,10 @@ export function bindPlaygroundPanel(panel, options = {}) {
 export function createPlaygroundPanelRouteOptions(options = {}) {
   return {
     page: 'playground',
-    pageLabel: 'Lab',
+    pageLabel: 'Work',
     productLabel: 'Alexander Beck Studio',
-    panelTitle: 'Lab Controls',
-    pageSectionTitle: 'Lab',
+    panelTitle: 'Work Canvas Controls',
+    pageSectionTitle: 'Work',
     pageSectionIcon: '◉',
     pageHTML: generatePlaygroundPanelHTML(),
     includePageSaveButton: true,

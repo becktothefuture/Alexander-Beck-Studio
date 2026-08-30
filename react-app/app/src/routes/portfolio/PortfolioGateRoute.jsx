@@ -31,7 +31,7 @@ function clampGateCloseDuration(durationMs) {
 
 export function PortfolioGateRoute() {
   const gateCopy = homeContent.gates?.portfolio || {};
-  const title = gateCopy.title || 'View Portfolio';
+  const title = gateCopy.title || 'View Work';
   const description = gateCopy.description
     || 'Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.';
   const codeLength = getGateCodeLength(GATE_ID) || 6;
@@ -284,7 +284,7 @@ export function PortfolioGateRoute() {
       <button
         type="button"
         className="portfolio-access-gate__close abs-icon-btn abs-circular-utility"
-        aria-label="Close portfolio access prompt"
+        aria-label="Close Work access prompt"
         data-sound-action="manual"
         data-sound-source="portfolio-gate-close"
         disabled={accepted || phase === 'closing'}
@@ -299,13 +299,13 @@ export function PortfolioGateRoute() {
       </button>
 
       <section className="route-centered-page__inner portfolio-access-gate__inner">
-        <p className="route-kicker">Private project</p>
+        <p className="route-kicker">Private case study</p>
         <h1 id="portfolio-access-gate-title" className="route-centered-page__title">{title}</h1>
         <p id="portfolio-access-gate-description" className="route-centered-page__description">{description}</p>
         <div
           className={`portfolio-gate-inputs portfolio-access-gate__inputs${statusMessage && !accepted ? ' is-error' : ''}${accepted ? ' pulse-energy' : ''}`}
           role="group"
-          aria-label="Portfolio invite code"
+          aria-label="Work access code"
         >
           {digits.map((digit, index) => (
             <input
@@ -319,7 +319,7 @@ export function PortfolioGateRoute() {
               inputMode="numeric"
               pattern="[0-9]"
               data-index={index}
-              aria-label={`Portfolio invite code digit ${index + 1} of ${codeLength}`}
+              aria-label={`Work access code digit ${index + 1} of ${codeLength}`}
               autoComplete="off"
               value={digit}
               disabled={accepted || phase === 'closing'}

@@ -22,7 +22,7 @@ function smoothstep(value) {
 }
 
 /**
- * Derives a visual-density profile from the usable Lab width. The authored
+ * Derives a visual-density profile from the usable Work width. The authored
  * configuration stays desktop-first; this profile only adapts its presentation.
  */
 export function createPlaygroundResponsiveProfile(viewportWidthPx = DESKTOP_VIEWPORT_WIDTH_PX) {

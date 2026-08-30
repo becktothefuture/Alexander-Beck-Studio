@@ -18,22 +18,23 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     }),
   }),
   portfolio: Object.freeze({
-    identitySelector: '#portfolioProjectMount',
-    runtime: true,
+    identitySelector: '[data-work-publication="held"] #portfolio-coming-soon-title',
+    runtime: false,
     semanticContract: Object.freeze({
       mainSelector: '#simulations[role="main"][data-route-content="portfolio"]',
-      headingSelector: 'h1#hero-title.hero-title--portfolio',
+      headingSelector: 'h1#portfolio-coming-soon-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
   }),
   about: Object.freeze({
     identitySelector: '#about-coming-soon-title',
+    renderedRouteId: 'about-coming-soon',
     runtime: false,
     representativeFocus: Object.freeze({
       selector: '[data-route-tab="portfolio"]',
     }),
     semanticContract: Object.freeze({
-      mainSelector: '#simulations[role="main"][data-route-content="about"]',
+      mainSelector: '#simulations[role="main"][data-route-content="about-coming-soon"]',
       headingSelector: 'h1#about-coming-soon-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
@@ -44,18 +45,6 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     semanticContract: Object.freeze({
       mainSelector: '#simulations[role="main"][data-route-content="contact"]',
       headingSelector: 'h1#contact-route-title[data-route-focus-target]',
-      labelHostSelector: '#simulations',
-    }),
-  }),
-  playground: Object.freeze({
-    identitySelector: '#simulations[role="main"][data-route-content="playground"]',
-    runtime: false,
-    representativeFocus: Object.freeze({
-      selector: '[data-route-tab="portfolio"]',
-    }),
-    semanticContract: Object.freeze({
-      mainSelector: '#simulations[role="main"][data-route-content="playground"]',
-      headingSelector: 'h1#playground-coming-soon-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
   }),
@@ -243,7 +232,7 @@ export async function waitForRouteReady(page, route, timeoutMs) {
   let outcome;
   try {
     const outcomeHandle = await page.waitForFunction(
-      ({ expectedRoute, identitySelector, needsRuntime }) => {
+      ({ expectedRoute, expectedRenderedRoute, identitySelector, needsRuntime }) => {
         const failures = window.__ABS_RELEASE_SMOKE_EVENTS__?.routeFailures || [];
         const failure = failures.at(-1) || null;
         if (failure) return { status: 'route-failure', failure };
@@ -273,7 +262,7 @@ export async function waitForRouteReady(page, route, timeoutMs) {
           root.dataset.absBootState === 'ready'
           && (root.dataset.absTransitionPhase || 'idle') === 'idle'
           && overlayHidden
-          && routeView === expectedRoute
+          && routeView === expectedRenderedRoute
           && activeRoute === expectedRoute
           && readyElementPresent
           && runtimeReady
@@ -283,6 +272,7 @@ export async function waitForRouteReady(page, route, timeoutMs) {
       },
       {
         expectedRoute: route.id,
+        expectedRenderedRoute: route.renderedRouteId || route.id,
         identitySelector: route.identitySelector,
         needsRuntime: route.runtime,
       },
@@ -329,9 +319,13 @@ export async function readRouteState(page) {
 
 export async function assertRouteIdentity(page, route) {
   const state = await readRouteState(page);
+  const expectedRenderedRoute = route.renderedRouteId || route.id;
   assertSmoke(new URL(state.url).pathname === route.path, route.id, 'route-path', state);
   assertSmoke(state.shellRoute === route.id, route.id, 'shell-route', state);
-  assertSmoke(state.renderedRoute === route.id, route.id, 'rendered-route', state);
+  assertSmoke(state.renderedRoute === expectedRenderedRoute, route.id, 'rendered-route', {
+    ...state,
+    expectedRenderedRoute,
+  });
   assertSmoke(state.activeRoute === route.id, route.id, 'active-route-tab', state);
   assertSmoke(state.bootState === 'ready', route.id, 'boot-ready', state);
   assertSmoke(state.transitionPhase === 'idle', route.id, 'transition-idle', state);
@@ -407,8 +401,8 @@ export async function captureStableSimulationsNode(page) {
   return snapshot;
 }
 
-export async function assertStableSimulationsNode(page, routeId) {
-  const snapshot = await page.evaluate((expectedRouteId) => {
+export async function assertStableSimulationsNode(page, routeId, expectedContentRoute = routeId) {
+  const snapshot = await page.evaluate(({ expectedRouteId, expectedRouteContent }) => {
     const element = document.getElementById('simulations');
     return {
       sameNode: element === window.__ABS_RELEASE_SMOKE_SIMULATIONS_NODE__,
@@ -418,14 +412,15 @@ export async function assertStableSimulationsNode(page, routeId) {
       routeContent: element?.dataset.routeContent || '',
       labelledBy: element?.getAttribute('aria-labelledby') || '',
       expectedRouteId,
+      expectedRouteContent,
     };
-  }, routeId);
+  }, { expectedRouteId: routeId, expectedRouteContent: expectedContentRoute });
   assertSmoke(
     snapshot.sameNode
       && snapshot.tagName === 'DIV'
       && snapshot.connected
       && snapshot.role === 'main'
-      && snapshot.routeContent === routeId
+      && snapshot.routeContent === expectedContentRoute
       && Boolean(snapshot.labelledBy),
     routeId,
     'stable-simulations-node-preserved',

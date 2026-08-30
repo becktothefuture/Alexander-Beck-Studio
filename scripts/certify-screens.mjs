@@ -26,6 +26,7 @@ const contactRequiredText = [
   homeContent.contact?.title || "Let's talk",
   homeContent.contact?.email || 'alexander@beck.fyi',
 ];
+const primaryRouteLabels = ['Home', 'About', 'Contact', 'Work'];
 const previewHost = process.env.ABS_CERT_HOST || '127.0.0.1';
 const configuredPreviewPort = Number(process.env.ABS_CERT_PORT || 0);
 let previewPort = configuredPreviewPort || 8014;
@@ -51,9 +52,9 @@ const matrix = [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       {
         selector: '[data-route-tab]',
-        minCount: 5,
+        minCount: 4,
         minArea: 400,
-        requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab']
+        requiredText: primaryRouteLabels
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -77,9 +78,9 @@ const matrix = [
         { selector: '#app-frame', minArea: 200000, requiredText: [] },
         {
           selector: '[data-route-tab]',
-          minCount: 5,
+          minCount: 4,
           minArea: 400,
-          requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab']
+          requiredText: primaryRouteLabels
         },
         {
           selector: '#expertise-legend .legend__item',
@@ -102,14 +103,19 @@ const matrix = [
     sessionStorage: {
       abs_portfolio_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '[data-route-tab="portfolio"]', '#portfolioProjectMount', '.portfolio-deck-card.is-active'],
+    requireBootState: true,
+    readySettleMs: 800,
+    readySelectors: [
+      '#app-frame',
+      '[data-route-tab="portfolio"][aria-current="page"]',
+      '[data-work-publication="held"] #portfolio-coming-soon-title',
+    ],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
-      { selector: '.portfolio-deck-card.is-active', minCount: 1, minArea: 60000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] }
-    ]
+      { selector: '[data-work-publication="held"]', minArea: 60000, requiredText: ['Coming soon.'] },
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: primaryRouteLabels },
+    ],
   },
   {
     page: 'about',
@@ -120,7 +126,7 @@ const matrix = [
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: primaryRouteLabels },
       { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   },
@@ -136,26 +142,9 @@ const matrix = [
     minReadySelectors: 4,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
+      { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: primaryRouteLabels },
       { selector: '[data-route-content="contact"]', minArea: 60000, requiredText: contactRequiredText },
       { selector: '[data-contact-ripple-canvas]', minArea: 60000, requiredText: [] }
-    ]
-  },
-  {
-    page: 'playground',
-    path: '/playground.html',
-    requireBootState: true,
-    readySettleMs: 500,
-    readySelectors: [
-      '#app-frame',
-      '[data-route-tab="playground"][aria-current="page"]',
-      '[data-route-content="playground"]'
-    ],
-    minReadySelectors: 3,
-    selectors: [
-      { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '[data-route-tab]', minCount: 5, minArea: 400, requiredText: ['Home', 'About', 'Contact', 'Work', 'Lab'] },
-      { selector: '[data-route-content="playground"]', minArea: 60000, requiredText: ['Coming soon.'] }
     ]
   }
 ];

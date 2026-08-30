@@ -85,7 +85,7 @@ export function PlaygroundCodePreview({
           ref={iframeRef}
           className="playground-media__asset"
           srcDoc={srcDoc}
-          title={`${item?.label || 'Lab'} code demonstration`}
+          title={`${item?.label || 'Work'} code demonstration`}
           sandbox="allow-scripts"
           referrerPolicy="no-referrer"
           tabIndex={pointerInteractive ? 0 : -1}

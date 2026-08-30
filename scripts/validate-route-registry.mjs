@@ -10,16 +10,15 @@ const appRoot = resolve(repoRoot, 'react-app/app');
 const BASELINE_COUNTS = Object.freeze({
   viteInputs: 32,
   htmlEntries: 32,
-  entryModules: 26,
-  routeDefinitions: 22,
-  shellTabs: 5,
+  entryModules: 25,
+  routeDefinitions: 21,
+  shellTabs: 4,
 });
 
 const EXPECTED_SHELL_TAB_ORDER = Object.freeze([
   'home',
   'portfolio',
   'about',
-  'playground',
   'contact',
 ]);
 
@@ -764,14 +763,14 @@ async function runFixtures() {
     ['unknown path Home fallback', 'unknown-path-internal-match', (snapshot) => { snapshot.routeResolution.unknownPathRouteId = 'home'; }],
     ['unknown id Home fallback', 'unknown-id-internal-match', (snapshot) => { snapshot.routeResolution.unknownRouteId = 'home'; }],
     ['standalone SPA eligibility drift', 'route-spa-eligibility-drift', (snapshot) => { snapshot.routeResolution.spaEligibility.find((route) => route.routeId === 'loader-playground').actual = true; }],
-    ['missing fifth manifest shell tab', 'shell-tab-count-drift', (snapshot) => { snapshot.routes.find((route) => route.id === 'playground').shellTab = null; }],
+    ['missing fourth manifest shell tab', 'shell-tab-count-drift', (snapshot) => { snapshot.routes.find((route) => route.id === 'portfolio').shellTab = null; }],
     ['missing manifest shell tab', 'shell-tab-runtime-extra', (snapshot) => { snapshot.routes.find((route) => route.id === 'contact').shellTab = null; }],
     ['shell tab metadata omission', 'shell-tab-metadata-missing', (snapshot) => { snapshot.routes.find((route) => route.id === 'about').shellTab.ariaLabel = null; }],
     ['shell tab icon omission', 'shell-tab-icon-missing', (snapshot) => { snapshot.routes.find((route) => route.id === 'home').shellTab.icon = null; }],
     ['shell tab semantic order drift', 'shell-tab-semantic-order-drift', (snapshot) => {
       const contactOrder = snapshot.routes.find((route) => route.id === 'contact').shellTab.order;
-      snapshot.routes.find((route) => route.id === 'contact').shellTab.order = snapshot.routes.find((route) => route.id === 'playground').shellTab.order;
-      snapshot.routes.find((route) => route.id === 'playground').shellTab.order = contactOrder;
+      snapshot.routes.find((route) => route.id === 'contact').shellTab.order = snapshot.routes.find((route) => route.id === 'portfolio').shellTab.order;
+      snapshot.routes.find((route) => route.id === 'portfolio').shellTab.order = contactOrder;
       snapshot.shellTabs = snapshot.shellTabs.map((tab) => ({ ...tab })).sort((left, right) => (
         snapshot.routes.find((route) => route.id === left.routeId).shellTab.order
         - snapshot.routes.find((route) => route.id === right.routeId).shellTab.order

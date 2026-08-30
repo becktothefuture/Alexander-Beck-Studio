@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { hasGateAccess } from '../../lib/access-gates.js';
 import { triggerHaptic } from '../../lib/haptics.js';
 import {
   createRouteMaterialEntranceController,
@@ -31,6 +32,12 @@ import {
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { useDailyFocusReducedMotion } from '../daily-focus/dailyFocusTheme.js';
 import {
+  WORK_ITEM_KINDS,
+  loadWorkCatalog,
+} from '../portfolio/work/workCatalog.js';
+import { WorkCaseStudyPresenter } from '../portfolio/work/WorkCaseStudyPresenter.js';
+import { WorkSnippetStage } from '../portfolio/work/WorkSnippetStage.jsx';
+import {
   getPlaygroundConfigSnapshot,
   setPlaygroundConfig,
   subscribePlaygroundConfig,
@@ -47,6 +54,7 @@ import {
   getPlaygroundItem,
   loadPlaygroundContent,
   parsePlaygroundWorkSelection,
+  selectBoundedActiveWorldMediaIds,
   updatePlaygroundWorkSelection,
 } from './media/index.js';
 import {
@@ -62,6 +70,7 @@ import {
   placePlaygroundItems,
 } from './spatial/index.js';
 import './playground.css';
+import '../portfolio/work/workCanvas.css';
 
 const INITIAL_POSTER_TIMEOUT_MS = 2200;
 const TITLE_SAFE_PADDING_CELLS = 0;
@@ -91,6 +100,45 @@ function getMediaTypeLabel(type) {
   if (type === 'video') return 'Video';
   if (type === 'code') return 'Code demo';
   return 'Image';
+}
+
+function isCaseStudy(item) {
+  return item?.kind === WORK_ITEM_KINDS.caseStudy;
+}
+
+function CaseStudyCardContent({ item }) {
+  return (
+    <>
+      <span className="portfolio-project-card__surface">
+        <span className="portfolio-project-card__material">
+          <span className="portfolio-project-card__media">
+            <img
+              className="portfolio-project-card__image"
+              src={item.source}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              draggable="false"
+            />
+            <span className="portfolio-project-card__media-veil" aria-hidden="true" />
+          </span>
+          <span className="portfolio-project-card__copy" aria-hidden="true">
+            {item.client ? (
+              <span className="portfolio-project-card__client">{item.client}</span>
+            ) : null}
+            <span className="portfolio-project-card__title">
+              <span className="portfolio-project-card__title-text">{item.label}</span>
+            </span>
+          </span>
+        </span>
+      </span>
+      <span className="work-case-study-caption" aria-hidden="true">
+        <span className="work-case-study-caption__kind">Case study</span>
+        <span className="work-case-study-caption__summary">{item.description}</span>
+      </span>
+    </>
+  );
 }
 
 function createLayoutKey(config) {
@@ -241,11 +289,17 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
       <div className="playground-collection" role="presentation">
         {model.placements.map((placement) => {
           const item = getPlaygroundItem(content, placement.id);
+          const caseStudy = isCaseStudy(item);
           return (
             <div
               key={placement.id}
-              className="playground-item playground-item--decorative"
+              className={[
+                'playground-item',
+                'playground-item--decorative',
+                caseStudy ? 'playground-item--case-study' : 'playground-item--snippet',
+              ].join(' ')}
               data-playground-decorative-item={placement.id}
+              data-work-item-kind={item?.kind || WORK_ITEM_KINDS.snippet}
               data-playground-copy-column={copy.column}
               data-playground-copy-row={copy.row}
               style={{
@@ -255,12 +309,19 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
                 '--playground-item-height-px': `${placement.mediaHeightCells * config.gridSpacingPx}px`,
               }}
             >
-              <div className="playground-item__route-surface">
-                <PlaygroundPoster item={item} decorative />
-                <div className="playground-item__label" aria-hidden="true">
-                  <p className="playground-item__title">{item.label}</p>
-                  <p className="playground-item__description">{item.description}</p>
-                </div>
+              <div className={[
+                'playground-item__route-surface',
+                caseStudy ? 'work-canvas-card portfolio-project-card' : '',
+              ].filter(Boolean).join(' ')}>
+                {caseStudy ? <CaseStudyCardContent item={item} /> : (
+                  <>
+                    <PlaygroundPoster item={item} decorative />
+                    <div className="playground-item__label" aria-hidden="true">
+                      <p className="playground-item__title">{item.label}</p>
+                      <p className="playground-item__description">{item.description}</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -270,7 +331,13 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
   );
 }
 
-export function PlaygroundExperience() {
+export function PlaygroundExperience({ experience = 'work' }) {
+  const isWorkExperience = experience === 'work';
+  const routeId = isWorkExperience ? 'portfolio' : 'playground';
+  const routeLabel = isWorkExperience ? 'Work' : 'Lab';
+  const participantId = `${routeId}-spatial-view-material`;
+  const atmosphereSourceId = `${routeId}:dot-field`;
+  const diagnosticGlobalKey = isWorkExperience ? '__ABS_WORK__' : '__ABS_PLAYGROUND__';
   const routeRef = useRef(null);
   const viewportRef = useRef(null);
   const worldRef = useRef(null);
@@ -282,6 +349,7 @@ export function PlaygroundExperience() {
   const configRef = useRef(getPlaygroundConfigSnapshot());
   const contentRef = useRef(null);
   const selectedIdRef = useRef(null);
+  const presentedIdRef = useRef(null);
   const semanticItemNodesRef = useRef(new Map());
   const focusItemNodesRef = useRef(new Map());
   const decorativeInstancesRef = useRef([]);
@@ -297,6 +365,10 @@ export function PlaygroundExperience() {
   const activeIframeOwnersRef = useRef(new Set());
   const applyCameraFrameRef = useRef(() => {});
   const returnFocusIdRef = useRef(null);
+  const requestCloseHandlerRef = useRef(() => {});
+  const workPresenterRef = useRef(null);
+  const workPresentationTokenRef = useRef(0);
+  const workPendingAccessIdRef = useRef(null);
   const materialEntranceRef = useRef(null);
   const dotMaterialTargetRef = useRef(Object.freeze({ kind: 'dot-field' }));
   const dotMaterialScaleRef = useRef(0);
@@ -310,6 +382,7 @@ export function PlaygroundExperience() {
   const [viewportNode, setViewportNodeState] = useState(null);
   const [viewportWidthPx, setViewportWidthPx] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
+  const [presentedId, setPresentedId] = useState(null);
   const [keyboardItemId, setKeyboardItemId] = useState(null);
   const [activeWorldMediaIds, setActiveWorldMediaIds] = useState(() => new Set());
   const [readyWorldMediaIds, setReadyWorldMediaIds] = useState(() => new Set());
@@ -330,16 +403,27 @@ export function PlaygroundExperience() {
     () => getPlaygroundItem(content, selectedId),
     [content, selectedId],
   );
+  const presentedItem = useMemo(
+    () => getPlaygroundItem(content, presentedId),
+    [content, presentedId],
+  );
   const ready = Boolean(model && readyModel === model && !loadError);
   const interactive = Boolean(model && interactiveModel === model && !loadError);
-  const defaultKeyboardItemId = useMemo(() => model?.placements.reduce((nearest, placement) => {
-    const centreX = placement.xCell + (placement.footprintWidthCells / 2);
-    const centreY = placement.yCell + (placement.footprintHeightCells / 2);
-    const distance = Math.hypot(centreX, centreY);
-    return !nearest || distance < nearest.distance
-      ? { id: placement.id, distance }
-      : nearest;
-  }, null)?.id || null, [model]);
+  const defaultKeyboardItemId = useMemo(() => {
+    const placements = model?.placements || [];
+    const primaryPlacements = isWorkExperience
+      ? placements.filter((placement) => isCaseStudy(getPlaygroundItem(content, placement.id)))
+      : placements;
+    const keyboardPlacements = primaryPlacements.length > 0 ? primaryPlacements : placements;
+    return keyboardPlacements.reduce((nearest, placement) => {
+      const centreX = placement.xCell + (placement.footprintWidthCells / 2);
+      const centreY = placement.yCell + (placement.footprintHeightCells / 2);
+      const distance = Math.hypot(centreX, centreY);
+      return !nearest || distance < nearest.distance
+        ? { id: placement.id, distance }
+        : nearest;
+    }, null)?.id || null;
+  }, [content, isWorkExperience, model]);
   const rovingKeyboardItemId = keyboardItemId && model?.placementById.has(keyboardItemId)
     ? keyboardItemId
     : defaultKeyboardItemId;
@@ -349,7 +433,8 @@ export function PlaygroundExperience() {
     contentRef.current = content;
     modelRef.current = model;
     selectedIdRef.current = selectedId;
-  }, [content, model, runtimeConfig, selectedId]);
+    presentedIdRef.current = presentedId;
+  }, [content, model, presentedId, runtimeConfig, selectedId]);
 
   useLayoutEffect(() => {
     const route = routeRef.current;
@@ -406,8 +491,8 @@ export function PlaygroundExperience() {
     };
     const cardMotionFrame = {};
     const controller = createRouteMaterialEntranceController({
-      id: 'playground-view-material',
-      routeId: 'playground',
+      id: participantId,
+      routeId,
       diagnosticRoot: route,
       getTargets: () => getMaterialLayoutSnapshot().targets,
       setTargetScale: (target, progress, index, detail) => {
@@ -434,8 +519,8 @@ export function PlaygroundExperience() {
     materialEntranceRef.current = controller;
     controller.prepare({ reducedMotion });
     const unregisterParticipant = registerRouteTransitionParticipant({
-      id: 'playground-view-material',
-      routeId: 'playground',
+      id: participantId,
+      routeId,
       prepare: ({ signal }) => {
         invalidateMaterialLayoutSnapshot();
         return controller.prepare({ signal, reducedMotion });
@@ -454,7 +539,7 @@ export function PlaygroundExperience() {
       cancel: ({ reason }) => controller.cancel(reason),
     });
     const handleDirectRouteEntrance = (event) => {
-      if (event.detail?.routeId !== 'playground' || event.detail?.mode !== 'direct') return;
+      if (event.detail?.routeId !== routeId || event.detail?.mode !== 'direct') return;
       invalidateMaterialLayoutSnapshot();
       void controller.enter({ reducedMotion });
     };
@@ -467,7 +552,7 @@ export function PlaygroundExperience() {
       materialLayoutSnapshot = null;
       if (materialEntranceRef.current === controller) materialEntranceRef.current = null;
     };
-  }, [reducedMotion]);
+  }, [participantId, reducedMotion, routeId]);
 
   const publishDiagnostics = useCallback((patch = {}) => {
     diagnosticsRef.current = Object.freeze({
@@ -535,7 +620,9 @@ export function PlaygroundExperience() {
     }, { emitInitial: true });
 
     Promise.all([
-      loadPlaygroundContent({ signal: controller.signal }),
+      isWorkExperience
+        ? loadWorkCatalog({ signal: controller.signal })
+        : loadPlaygroundContent({ signal: controller.signal }),
       loadDesignSystemConfig(),
       waitForFonts(),
     ]).then(([nextContent, designSystem]) => {
@@ -553,9 +640,9 @@ export function PlaygroundExperience() {
       }
     }).catch((error) => {
       if (cancelled || error?.name === 'AbortError') return;
-      setLoadError(error?.message || 'Lab could not be prepared.');
+      setLoadError(error?.message || `${routeLabel} could not be prepared.`);
       window.dispatchEvent(new CustomEvent('abs:route-failed', {
-        detail: { routeId: 'playground', reason: 'content-or-config' },
+        detail: { routeId, reason: 'content-or-config' },
       }));
     });
 
@@ -564,7 +651,7 @@ export function PlaygroundExperience() {
       controller.abort();
       unsubscribe();
     };
-  }, []);
+  }, [isWorkExperience, routeId, routeLabel]);
 
   useLayoutEffect(() => {
     if (!content || !fontsReady || !configLoaded || !titleRef.current) return;
@@ -575,48 +662,68 @@ export function PlaygroundExperience() {
       setLoadError('');
     } catch (error) {
       setModel(null);
-      setLoadError(error?.message || 'Lab layout could not be calculated.');
+      setLoadError(error?.message || `${routeLabel} layout could not be calculated.`);
     }
-  }, [content, configLoaded, fontsReady, layoutKey, runtimeConfig]);
+  }, [content, configLoaded, fontsReady, layoutKey, routeLabel, runtimeConfig]);
 
   useEffect(() => {
     const handlePopState = () => {
-      const isPlaygroundLocation = window.location.pathname === '/playground'
-        || window.location.pathname === '/playground.html';
-      if (!isPlaygroundLocation) {
+      const routePathnames = isWorkExperience
+        ? ['/portfolio', '/portfolio.html']
+        : ['/playground', '/playground.html'];
+      if (!routePathnames.includes(window.location.pathname)) {
         spatialCleanupRef.current?.();
         return;
       }
       const nextId = parsePlaygroundWorkSelection(window.location, contentRef.current?.items);
       if (selectedIdRef.current && !nextId) {
-        playInteractionSound('close', { source: 'lab-project-close' });
+        playInteractionSound('close', { source: `${routeId}-project-close` });
         triggerHaptic('close');
+      }
+      if (isWorkExperience && !nextId) {
+        const currentPresentedItem = getPlaygroundItem(
+          contentRef.current,
+          presentedIdRef.current,
+        );
+        if (isCaseStudy(currentPresentedItem)) setPresentedId(null);
       }
       setSelectedId(nextId);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [isWorkExperience, routeId]);
 
   const openItem = useCallback((itemId, event) => {
     const activeContent = contentRef.current;
     if (!getPlaygroundItem(activeContent, itemId)) return;
     returnFocusIdRef.current = itemId;
+    if (isWorkExperience && presentedId !== itemId) setPresentedId(null);
     updatePlaygroundWorkSelection(itemId, { itemsOrIds: activeContent.items });
     setSelectedId(itemId);
-    playInteractionSound('project-open', { source: `lab-project-${itemId}` });
+    playInteractionSound('project-open', { source: `${routeId}-project-${itemId}` });
     triggerHaptic('open', { event });
-  }, []);
+  }, [isWorkExperience, presentedId, routeId]);
 
   const requestClose = useCallback(({ reason } = {}) => {
     const result = clearPlaygroundWorkSelection({ preferBack: true });
-    if (result !== 'back') {
-      playInteractionSound('close', { source: 'lab-project-close' });
+    if (isWorkExperience || result !== 'back') {
+      playInteractionSound('close', { source: `${routeId}-project-close` });
       triggerHaptic('close');
+      if (isWorkExperience) {
+        const currentPresentedItem = getPlaygroundItem(
+          contentRef.current,
+          presentedIdRef.current,
+        );
+        if (isCaseStudy(currentPresentedItem)) setPresentedId(null);
+      }
       setSelectedId(null);
     }
     if (reason === 'programmatic') return;
-  }, []);
+  }, [isWorkExperience, routeId]);
+
+  useLayoutEffect(() => {
+    requestCloseHandlerRef.current = requestClose;
+  }, [requestClose]);
 
   const setWorldInert = useCallback((isInert) => {
     const world = worldRef.current;
@@ -634,10 +741,24 @@ export function PlaygroundExperience() {
     focusItemNodesRef.current.get(itemId)?.focus({ preventScroll: true });
   }, []);
 
-  const focusLogicalItem = useCallback((itemId, { forceCenter = false } = {}) => {
+  const handleWorkSnippetExited = useCallback((itemId) => {
+    setPresentedId((currentId) => (currentId === itemId ? null : currentId));
+    if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'idle';
+  }, []);
+
+  const handleWorkSnippetPhaseChange = useCallback((phase) => {
+    if (routeRef.current) routeRef.current.dataset.workOpenPhase = phase;
+  }, []);
+
+  const getWorkSourceElement = useCallback(
+    (itemId) => focusItemNodesRef.current.get(itemId) || null,
+    [],
+  );
+
+  const getItemCameraTarget = useCallback((itemId) => {
     const placement = modelRef.current?.placementById.get(itemId);
     const camera = cameraRef.current;
-    if (!placement || !camera) return;
+    if (!placement || !camera) return null;
     const snapshot = camera.getSnapshot();
     const spacing = configRef.current.gridSpacingPx;
     const worldScale = responsiveProfile.worldScale;
@@ -658,8 +779,25 @@ export function PlaygroundExperience() {
       || screenX + (itemWidth / 2) > snapshot.viewportWidthPx - margin
       || screenY - (itemHeight / 2) < margin
       || screenY + (itemHeight / 2) > snapshot.viewportHeightPx - margin;
-    if (forceCenter || clipped) {
-      camera.setCamera(targetX, targetY, { immediate: true });
+    return { camera, snapshot, targetX, targetY, clipped };
+  }, [responsiveProfile.worldScale]);
+
+  const focusLogicalItem = useCallback((itemId, { forceCenter = false } = {}) => {
+    const target = getItemCameraTarget(itemId);
+    if (!target) return;
+    if (forceCenter || target.clipped) {
+      if (isWorkExperience) {
+        const travel = Math.hypot(
+          target.targetX - target.snapshot.logicalX,
+          target.targetY - target.snapshot.logicalY,
+        );
+        const durationMs = reducedMotion || travel < 4
+          ? 0
+          : Math.min(380, Math.max(220, 180 + (travel * 0.12)));
+        void target.camera.animateTo(target.targetX, target.targetY, { durationMs });
+      } else {
+        target.camera.setCamera(target.targetX, target.targetY, { immediate: true });
+      }
     }
     const resetViewportScroll = () => {
       if (!viewportRef.current) return;
@@ -668,7 +806,130 @@ export function PlaygroundExperience() {
     };
     resetViewportScroll();
     requestAnimationFrame(resetViewportScroll);
-  }, [responsiveProfile.worldScale]);
+  }, [getItemCameraTarget, isWorkExperience, reducedMotion]);
+
+  useLayoutEffect(() => {
+    if (!isWorkExperience) return undefined;
+    const host = document.getElementById('portfolio-sheet-host');
+    if (!host) return undefined;
+    const presenter = new WorkCaseStudyPresenter({
+      host,
+      getCanvasStage: () => worldRef.current,
+      shouldReduceMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      onRequestClose: (detail) => requestCloseHandlerRef.current(detail),
+      onBackgroundInertChange: setWorldInert,
+      onRestoreFocus: restoreItemFocus,
+      onPhaseChange: (phase) => {
+        if (routeRef.current) routeRef.current.dataset.workOpenPhase = phase;
+      },
+    });
+    presenter.mount();
+    workPresenterRef.current = presenter;
+    return () => {
+      presenter.destroy();
+      if (workPresenterRef.current === presenter) workPresenterRef.current = null;
+    };
+  }, [isWorkExperience, restoreItemFocus, setWorldInert]);
+
+  useEffect(() => {
+    if (!isWorkExperience) return undefined;
+    const handleAccessGranted = (event) => {
+      if (event?.detail?.gateId !== 'portfolio') return;
+      const pendingId = workPendingAccessIdRef.current;
+      if (!pendingId || pendingId !== selectedIdRef.current || !hasGateAccess('portfolio')) return;
+      workPendingAccessIdRef.current = null;
+      if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'expanding';
+      setPresentedId(pendingId);
+    };
+    const handleAccessDismissed = (event) => {
+      if (event?.detail?.gateId !== 'portfolio' || !workPendingAccessIdRef.current) return;
+      const pendingId = workPendingAccessIdRef.current;
+      workPendingAccessIdRef.current = null;
+      setWorldInert(false);
+      requestCloseHandlerRef.current({ reason: 'access-dismissed' });
+      restoreItemFocus(pendingId);
+    };
+    window.addEventListener('abs:portfolio:access-granted', handleAccessGranted);
+    window.addEventListener('abs:portfolio:access-dismissed', handleAccessDismissed);
+    return () => {
+      window.removeEventListener('abs:portfolio:access-granted', handleAccessGranted);
+      window.removeEventListener('abs:portfolio:access-dismissed', handleAccessDismissed);
+    };
+  }, [isWorkExperience, restoreItemFocus, setWorldInert]);
+
+  useEffect(() => {
+    if (!isWorkExperience || !ready) return undefined;
+    if (!selectedItem) {
+      workPresentationTokenRef.current += 1;
+      workPendingAccessIdRef.current = null;
+      const camera = cameraRef.current;
+      const snapshot = camera?.getSnapshot();
+      if (camera && snapshot?.cameraAnimationActive) {
+        camera.setCamera(snapshot.logicalX, snapshot.logicalY, { immediate: true });
+      }
+      return undefined;
+    }
+    if (presentedId === selectedItem.id || workPendingAccessIdRef.current === selectedItem.id) {
+      return undefined;
+    }
+
+    const target = getItemCameraTarget(selectedItem.id);
+    if (!target) return undefined;
+    const token = workPresentationTokenRef.current + 1;
+    workPresentationTokenRef.current = token;
+    target.camera.setEnabled(true);
+    if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'centering';
+    const travel = Math.hypot(
+      target.targetX - target.snapshot.logicalX,
+      target.targetY - target.snapshot.logicalY,
+    );
+    const durationMs = reducedMotion || travel < 4
+      ? 0
+      : Math.min(560, Math.max(260, 240 + (travel * 0.16)));
+    let cancelled = false;
+    target.camera.animateTo(target.targetX, target.targetY, { durationMs }).then((centred) => {
+      if (cancelled || !centred || token !== workPresentationTokenRef.current) return;
+      if (selectedIdRef.current !== selectedItem.id) return;
+      if (selectedItem.access === 'protected' && !hasGateAccess('portfolio')) {
+        workPendingAccessIdRef.current = selectedItem.id;
+        if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'access-pending';
+        setWorldInert(true);
+        window.dispatchEvent(new CustomEvent('abs:portfolio:request-access', {
+          detail: {
+            gateId: 'portfolio',
+            projectId: selectedItem.projectId || selectedItem.id,
+          },
+        }));
+        return;
+      }
+      if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'expanding';
+      setPresentedId(selectedItem.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    getItemCameraTarget,
+    isWorkExperience,
+    presentedId,
+    ready,
+    reducedMotion,
+    selectedItem,
+    setWorldInert,
+  ]);
+
+  useEffect(() => {
+    if (!isWorkExperience) return;
+    const presenter = workPresenterRef.current;
+    if (!isCaseStudy(presentedItem)) {
+      if (presenter?.activeItemId) presenter.close();
+      return;
+    }
+    const sourceCard = focusItemNodesRef.current.get(presentedItem.id);
+    if (!sourceCard || !presenter) return;
+    setWorldInert(true);
+    void presenter.open(presentedItem, sourceCard);
+  }, [isWorkExperience, presentedItem, setWorldInert]);
 
   const handleItemKeyDown = useCallback((event, itemId) => {
     const direction = PROJECT_NAVIGATION_DIRECTIONS[event.key];
@@ -717,8 +978,10 @@ export function PlaygroundExperience() {
       dotRadiusPx: configRef.current.dotRadiusPx,
       dotOpacity: configRef.current.dotOpacity,
       neutralColor: getComputedStyle(route).getPropertyValue('--text-muted').trim() || '#777777',
+      fieldMode: isWorkExperience ? 'depth' : 'grid',
+      maximumVisibleDots: isWorkExperience ? 1800 : undefined,
       requestRenderFrame: () => cameraRef.current?.requestUpdate() || false,
-      onDraw: () => tickSimulationAtmosphere(performance.now(), 'playground:dot-field'),
+      onDraw: () => tickSimulationAtmosphere(performance.now(), atmosphereSourceId),
     });
     dotRendererRef.current = dotRenderer;
 
@@ -744,7 +1007,7 @@ export function PlaygroundExperience() {
 
     const scrollSoundController = createScrollSoundController({
       playDetent: playScrollDetent,
-      source: 'lab-camera',
+      source: `${routeId}-camera`,
     });
     scrollSoundControllerRef.current = scrollSoundController;
     const updateSound = (cameraState) => {
@@ -769,8 +1032,8 @@ export function PlaygroundExperience() {
       lastLogicalCameraRef.current.x = cameraState.logicalX;
       lastLogicalCameraRef.current.y = cameraState.logicalY;
       dotRenderer.setCamera(
-        cameraState.renderedX,
-        cameraState.renderedY,
+        isWorkExperience ? cameraState.logicalX : cameraState.renderedX,
+        isWorkExperience ? cameraState.logicalY : cameraState.renderedY,
         cameraState.viewportCenterX,
         cameraState.viewportCenterY,
         true,
@@ -861,7 +1124,7 @@ export function PlaygroundExperience() {
       },
     });
     cameraRef.current = camera;
-    camera.setEnabled(!selectedIdRef.current);
+    camera.setEnabled(isWorkExperience || !selectedIdRef.current);
     setInteractiveModel(model);
     const firstFrame = camera.getSnapshot();
     syncCopies(firstFrame, true);
@@ -869,14 +1132,14 @@ export function PlaygroundExperience() {
     dotRenderer.start();
 
     const unregisterAtmosphere = registerSimulationAtmosphereSource({
-      id: 'playground:dot-field',
-      routeId: 'playground',
+      id: atmosphereSourceId,
+      routeId,
       kind: 'canvas',
       canvas,
       scheduler: 'renderer-coupled',
       opacityElement: canvas,
     });
-    tickSimulationAtmosphere(performance.now(), 'playground:dot-field');
+    tickSimulationAtmosphere(performance.now(), atmosphereSourceId);
 
     const resizeObserver = new ResizeObserver(() => {
       const rect = viewport.getBoundingClientRect();
@@ -946,7 +1209,7 @@ export function PlaygroundExperience() {
       cleanup();
       if (spatialCleanupRef.current === cleanup) spatialCleanupRef.current = null;
     };
-  }, [content, model, publishDiagnostics, responsiveProfile.worldScale, viewportNode]);
+  }, [atmosphereSourceId, content, isWorkExperience, model, publishDiagnostics, responsiveProfile.worldScale, routeId, viewportNode]);
 
   useEffect(() => {
     cameraRef.current?.configure({
@@ -1006,10 +1269,11 @@ export function PlaygroundExperience() {
         if (entry.isIntersecting && entry.intersectionRatio >= 0.2) visibleIds.add(itemId);
         else visibleIds.delete(itemId);
       });
+      const activeIds = selectBoundedActiveWorldMediaIds(model.items, visibleIds);
       setActiveWorldMediaIds((current) => {
-        if (current.size === visibleIds.size
-          && [...visibleIds].every((itemId) => current.has(itemId))) return current;
-        return new Set(visibleIds);
+        if (current.size === activeIds.size
+          && [...activeIds].every((itemId) => current.has(itemId))) return current;
+        return activeIds;
       });
     }, {
       root: viewportNode,
@@ -1085,28 +1349,29 @@ export function PlaygroundExperience() {
       recenter,
       setCamera: (x, y) => cameraRef.current?.setCamera(x, y, { immediate: true }),
     });
-    Object.defineProperty(window, '__ABS_PLAYGROUND__', {
+    Object.defineProperty(window, diagnosticGlobalKey, {
       configurable: true,
       enumerable: false,
       value: diagnosticApi,
     });
     return () => {
-      if (window.__ABS_PLAYGROUND__ === diagnosticApi) delete window.__ABS_PLAYGROUND__;
+      if (window[diagnosticGlobalKey] === diagnosticApi) delete window[diagnosticGlobalKey];
     };
-  }, [model, ready, recenter]);
+  }, [diagnosticGlobalKey, model, ready, recenter]);
 
   useLayoutEffect(() => {
     if (!ready) return;
     window.dispatchEvent(new CustomEvent('abs:route-ready', {
-      detail: { routeId: 'playground' },
+      detail: { routeId },
     }));
-  }, [ready]);
+  }, [ready, routeId]);
 
   useEffect(() => {
     const route = routeRef.current;
     if (!route) return;
-    route.dataset.playgroundLightboxOpen = selectedItem ? 'true' : 'false';
-  }, [selectedItem]);
+    const openItem = isWorkExperience ? presentedItem : selectedItem;
+    route.dataset.playgroundLightboxOpen = openItem ? 'true' : 'false';
+  }, [isWorkExperience, presentedItem, selectedItem]);
 
   useEffect(() => () => {
     activeVideoOwnersRef.current.clear();
@@ -1129,8 +1394,9 @@ export function PlaygroundExperience() {
   return (
     <div
       ref={routeRef}
-      className="playground-route"
+      className={isWorkExperience ? 'playground-route work-canvas-route' : 'playground-route'}
       data-playground-experience
+      data-work-experience={isWorkExperience ? 'true' : undefined}
       data-playground-ready={ready ? 'true' : 'false'}
       data-playground-interactive={interactive ? 'true' : 'false'}
       data-playground-error={loadError ? 'true' : 'false'}
@@ -1150,7 +1416,7 @@ export function PlaygroundExperience() {
         data-cursor-default-surface
         tabIndex={0}
         role="group"
-        aria-label="Lab spatial collection. Drag or use W, A, S, and D to explore. Tab into the projects, then use the arrow keys to move between them. Press Home to return to the title."
+        aria-label={`${routeLabel} spatial collection. Drag or use W, A, S, and D to explore. Tab into the projects, then use the arrow keys to move between them. Press Home to return to the title.`}
         aria-describedby="playground-spatial-instructions"
       >
         <canvas
@@ -1159,6 +1425,11 @@ export function PlaygroundExperience() {
           data-playground-dot-field
           aria-hidden="true"
           style={{ pointerEvents: 'none' }}
+        />
+        <span
+          className="playground-viewport-focus-proxy"
+          data-focus-indicator-proxy
+          aria-hidden="true"
         />
 
         <div ref={worldRef} className="playground-world" data-playground-world>
@@ -1189,7 +1460,7 @@ export function PlaygroundExperience() {
                 data-route-focus-target
                 tabIndex={-1}
               >
-                {content?.title || 'Lab'}
+                {content?.title || routeLabel}
               </h1>
               <span
                 className="route-title-lockup__rule"
@@ -1222,7 +1493,7 @@ export function PlaygroundExperience() {
           {model && content ? (
             <ol
               className="playground-collection playground-semantic-collection"
-              aria-label="Lab work"
+              aria-label={`${routeLabel} projects`}
             >
               {model.placements.map((placement) => {
                 const item = getPlaygroundItem(content, placement.id);
@@ -1230,13 +1501,21 @@ export function PlaygroundExperience() {
                 const worldRuntimeActive = worldMediaActive
                   && (item.type === 'video' || item.type === 'code');
                 const worldRuntimeReady = worldRuntimeActive && readyWorldMediaIds.has(item.id);
-                const accessibleName = `${item.label}, ${getMediaTypeLabel(item.type)}. ${item.accessibilityText}`;
+                const caseStudy = isCaseStudy(item);
+                const accessibleName = caseStudy
+                  ? `${item.label}, case study. ${item.accessibilityText}`
+                  : `${item.label}, ${getMediaTypeLabel(item.type)}. ${item.accessibilityText}`;
                 return (
                   <li
                     key={item.id}
-                    className="playground-item playground-item--semantic"
+                    className={[
+                      'playground-item',
+                      'playground-item--semantic',
+                      caseStudy ? 'playground-item--case-study' : 'playground-item--snippet',
+                    ].join(' ')}
                     data-playground-item={item.id}
                     data-playground-item-type={item.type}
+                    data-work-item-kind={item.kind || WORK_ITEM_KINDS.snippet}
                     data-playground-media-active={worldMediaActive ? 'true' : 'false'}
                     data-playground-media-ready={worldRuntimeReady ? 'true' : 'false'}
                     ref={(node) => {
@@ -1269,11 +1548,14 @@ export function PlaygroundExperience() {
                           else focusItemNodesRef.current.delete(item.id);
                         }}
                         type="button"
+                        className={caseStudy ? 'work-canvas-card portfolio-project-card' : undefined}
                         tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
                         aria-label={accessibleName}
                         aria-haspopup="dialog"
+                        aria-controls={caseStudy ? 'portfolio-sheet-host' : 'work-snippet-stage'}
+                        aria-expanded={presentedId === item.id}
                         data-sound-action="manual"
-                        data-sound-source={`lab-project-${item.id}`}
+                        data-sound-source={`${routeId}-project-${item.id}`}
                         onFocus={() => {
                           setKeyboardItemId(item.id);
                           focusLogicalItem(item.id);
@@ -1281,17 +1563,21 @@ export function PlaygroundExperience() {
                         onKeyDown={(event) => handleItemKeyDown(event, item.id)}
                         onClick={(event) => openItem(item.id, event)}
                       >
-                        <PlaygroundMedia
-                          item={item}
-                          renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
-                          active={item.type === 'image' && worldMediaActive}
-                          visible
-                          decorative
-                        />
-                        <span className="playground-item__label" aria-hidden="true">
-                          <span className="playground-item__title">{item.label}</span>
-                          <span className="playground-item__description">{item.description}</span>
-                        </span>
+                        {caseStudy ? <CaseStudyCardContent item={item} /> : (
+                          <>
+                            <PlaygroundMedia
+                              item={item}
+                              renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
+                              active={item.type === 'image' && worldMediaActive}
+                              visible
+                              decorative
+                            />
+                            <span className="playground-item__label" aria-hidden="true">
+                              <span className="playground-item__title">{item.label}</span>
+                              <span className="playground-item__description">{item.description}</span>
+                            </span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </li>
@@ -1304,33 +1590,50 @@ export function PlaygroundExperience() {
         <p id="playground-spatial-instructions" className="playground-sr-instructions">
           Drag or use W, A, S, and D to move in two dimensions. Tab into the project field,
           then use the arrow keys to move to the nearest project in that direction.
-          Press Home to return to the Lab title. Select any project to open it in a dialog.
+          Press Home to return to the {routeLabel} title. Select any project to open it.
         </p>
 
         {loadError ? (
           <div className="playground-load-error" role="alert">
-            <p>Lab is temporarily unavailable.</p>
+            <p>{routeLabel} is temporarily unavailable.</p>
             <p>{loadError}</p>
           </div>
         ) : null}
 
         {content?.validationIssues?.length ? (
           <p className="playground-sr-instructions" role="status">
-            {content.validationIssues.length} invalid Lab content field
+            {content.validationIssues.length} invalid {routeLabel} content field
             {content.validationIssues.length === 1 ? ' was' : 's were'} omitted.
           </p>
         ) : null}
 
-        <PlaygroundLightbox
-          item={selectedItem}
-          returnFocusId={selectedId}
-          onRequestClose={requestClose}
-          onBackgroundInertChange={setWorldInert}
-          onRestoreFocus={restoreItemFocus}
-          closeOnMediaShell
-          motionAllowed={!reducedMotion}
-          onRuntimeStateChange={handleMediaRuntimeStateChange}
-        />
+        {isWorkExperience && presentedItem?.kind === WORK_ITEM_KINDS.snippet ? (
+          <WorkSnippetStage
+            item={presentedItem}
+            open={selectedId === presentedItem.id}
+            getSourceElement={getWorkSourceElement}
+            motionAllowed={!reducedMotion}
+            onRequestClose={requestClose}
+            onBackgroundInertChange={setWorldInert}
+            onRestoreFocus={restoreItemFocus}
+            onExited={handleWorkSnippetExited}
+            onPhaseChange={handleWorkSnippetPhaseChange}
+            onRuntimeStateChange={handleMediaRuntimeStateChange}
+          />
+        ) : null}
+
+        {!isWorkExperience ? (
+          <PlaygroundLightbox
+            item={selectedItem}
+            returnFocusId={selectedId}
+            onRequestClose={requestClose}
+            onBackgroundInertChange={setWorldInert}
+            onRestoreFocus={restoreItemFocus}
+            closeOnMediaShell
+            motionAllowed={!reducedMotion}
+            onRuntimeStateChange={handleMediaRuntimeStateChange}
+          />
+        ) : null}
       </div>
     </div>
   );

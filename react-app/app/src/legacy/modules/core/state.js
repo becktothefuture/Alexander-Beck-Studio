@@ -940,6 +940,12 @@ export function getLayoutViewportWidthPx() {
   // IMPORTANT: keep this O(1) and allocation-free.
   const forced = Number(state.layoutViewportWidthPx);
   if (Number.isFinite(forced) && forced > 0) return forced;
+  // CSS viewport units resolve against the document's layout viewport. Some
+  // mobile Chromium contexts report an innerWidth that includes a synthetic
+  // scrollbar gutter, so using it can desynchronise physics from the rendered
+  // shell radius and inset. clientWidth follows the CSS geometry contract.
+  const layoutWidth = Number(document.documentElement?.clientWidth);
+  if (Number.isFinite(layoutWidth) && layoutWidth > 0) return layoutWidth;
   return Math.max(1, window.innerWidth || 1);
 }
 

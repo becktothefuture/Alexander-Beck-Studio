@@ -7,6 +7,19 @@ function makeClaimKey(itemId, instanceId) {
   return `${itemId}\u0000${instanceId}`;
 }
 
+export function selectBoundedActiveWorldMediaIds(items, visibleIds) {
+  const visible = visibleIds instanceof Set ? visibleIds : new Set(visibleIds || []);
+  const claimedTypes = new Set();
+  const activeIds = new Set();
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    if (!visible.has(item?.id) || (item?.type !== 'video' && item?.type !== 'code')) return;
+    if (claimedTypes.has(item.type)) return;
+    claimedTypes.add(item.type);
+    activeIds.add(item.id);
+  });
+  return activeIds;
+}
+
 export function createPlaygroundActiveMediaOwnership() {
   const claims = new Map();
   const winnerByItem = new Map();

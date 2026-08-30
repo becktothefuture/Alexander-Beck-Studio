@@ -218,7 +218,7 @@ test('normal route transaction follows the only legal phase order', () => {
 });
 
 test('persistent backplane handoff covers every primary shared-shell route', () => {
-  const sharedShellRouteIds = ['home', 'portfolio', 'about', 'contact', 'playground'];
+  const sharedShellRouteIds = ['home', 'portfolio', 'about', 'contact'];
 
   sharedShellRouteIds.forEach((fromRouteId) => {
     sharedShellRouteIds.forEach((toRouteId) => {
@@ -940,10 +940,18 @@ test('superseded Canvas material transitions settle without waiting for a timeou
   }
 });
 
-test('Portfolio readiness supports gate, prepared deck, and visible geometry contracts', () => {
+test('Work readiness supports the production hold, protected gate, and development canvas', () => {
   const harness = createReadinessHarness();
   try {
     harness.body.classList.add('portfolio-page');
+    const comingSoonTitle = createFakeElement();
+    harness.elementsById.set('portfolio-coming-soon-title', comingSoonTitle);
+    assert.equal(observeRouteBaselineReady(
+      'portfolio',
+      { lockedGateId: null },
+      harness.getRuntimeSnapshot,
+    ), true);
+    harness.elementsById.delete('portfolio-coming-soon-title');
     const gate = createFakeElement();
     harness.selectors.set('[data-route-content="portfolio-gate"]', gate);
     assert.equal(observeRouteBaselineReady(
@@ -953,32 +961,18 @@ test('Portfolio readiness supports gate, prepared deck, and visible geometry con
     ), true);
 
     harness.selectors.delete('[data-route-content="portfolio-gate"]');
-    const mount = createFakeElement({ classes: ['is-portfolio-boot-preparing'] });
-    harness.elementsById.set('portfolioProjectMount', mount);
-    harness.setRuntimeSnapshot({ generation: 8, routeId: 'portfolio', status: 'ready' });
+    const workExperience = createFakeElement({ dataset: { playgroundReady: 'true' } });
+    harness.selectors.set(
+      '[data-route-content="portfolio"] [data-work-experience="true"]',
+      workExperience,
+    );
     assert.equal(observeRouteBaselineReady(
       'portfolio',
       { lockedGateId: null },
       harness.getRuntimeSnapshot,
     ), true);
 
-    mount.classList.remove('is-portfolio-boot-preparing');
-    const wall = createFakeElement({
-      rect: { top: 0, left: 0, right: 800, bottom: 600, width: 800, height: 600 },
-    });
-    const card = createFakeElement({
-      rect: { top: 100, left: 100, right: 500, bottom: 400, width: 400, height: 300 },
-    });
-    mount.querySelector = () => card;
-    harness.elementsById.set('simulations', wall);
-    harness.selectors.set('.portfolio-deck-card.is-active, .portfolio-project-label', card);
-    assert.equal(observeRouteBaselineReady(
-      'portfolio',
-      { lockedGateId: null },
-      harness.getRuntimeSnapshot,
-    ), true);
-
-    card.styles.opacity = '0';
+    workExperience.dataset.playgroundReady = 'false';
     assert.equal(observeRouteBaselineReady(
       'portfolio',
       { lockedGateId: null },

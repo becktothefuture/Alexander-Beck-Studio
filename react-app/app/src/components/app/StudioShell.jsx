@@ -22,8 +22,6 @@ function RouteSceneMount({ routeRenderKey, children }) {
       return <div data-sfid="sfid:shell/contact" data-shell-route-view="contact">{children}</div>;
     case 'about':
       return <div data-sfid="sfid:shell/about" data-shell-route-view="about">{children}</div>;
-    case 'playground':
-      return <div data-sfid="sfid:shell/playground" data-shell-route-view="playground">{children}</div>;
     case 'styleguide':
       return <div data-sfid="sfid:shell/styleguide">{children}</div>;
     case 'palette-lab':

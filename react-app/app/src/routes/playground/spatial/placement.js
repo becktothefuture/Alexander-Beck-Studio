@@ -396,6 +396,13 @@ function validatePlacementInput(items, options) {
     if (!Number.isFinite(Number(preferredHeightCells)) || Number(preferredHeightCells) <= 0) {
       issues.push(`Item "${id || index}" needs preferredHeightCells greater than zero.`);
     }
+    if (item?.preferredAnchorCells != null) {
+      const anchorX = Number(item.preferredAnchorCells?.x);
+      const anchorY = Number(item.preferredAnchorCells?.y);
+      if (!Number.isFinite(anchorX) || !Number.isFinite(anchorY)) {
+        issues.push(`Item "${id || index}" needs a finite preferredAnchorCells x and y.`);
+      }
+    }
   }
   const preset = options.layoutPreset ?? 'balanced';
   if (!PLACEMENT_PRESETS.has(preset)) issues.push(`Unknown layoutPreset "${preset}".`);
@@ -555,6 +562,28 @@ export function placePlaygroundItems(items, options = {}) {
     let acceptedBaseBounds = null;
     let attempts = 0;
     let acceptedPass = -1;
+    if (item.preferredAnchorCells) {
+      attempts += 1;
+      const anchoredBounds = createCandidateBounds(
+        Number(item.preferredAnchorCells.x),
+        Number(item.preferredAnchorCells.y),
+        footprint,
+      );
+      const anchorIsClear = preset === 'salon'
+        ? getWrappedSalonClearanceSquared(
+            anchoredBounds,
+            basePlacements,
+            titleSafeArea,
+            gapCells,
+            salonColumns,
+            salonRows,
+          ) >= 0
+        : !collides(anchoredBounds, basePlacements, titleSafeArea, gapCells);
+      if (anchorIsClear) {
+        acceptedBaseBounds = anchoredBounds;
+        acceptedPass = 0;
+      }
+    }
     for (let passIndex = 0; passIndex < maxPasses && !acceptedBaseBounds; passIndex += 1) {
       const candidatesThisPass = preset === 'salon'
         ? Math.min(maxCandidatesPerPass, SALON_CLEARANCE_CANDIDATES_PER_PASS)

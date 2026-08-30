@@ -1,6 +1,6 @@
 import { hasPlaygroundCodeDemo } from './codeDemos.js';
 
-export const PLAYGROUND_CONTENT_URL = '/config/contents-playground.json';
+export const PLAYGROUND_CONTENT_URL = '/config/contents-portfolio.json';
 
 const PLAYGROUND_ITEM_TYPES = new Set(['image', 'video', 'code']);
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -267,5 +267,14 @@ export async function loadPlaygroundContent({
   if (!response.ok) {
     throw new Error(`Could not load Playground content (${response.status}).`);
   }
-  return validatePlaygroundContentForRuntime(await response.json());
+  const source = await response.json();
+  const contentDocument = Array.isArray(source?.snippets)
+    ? {
+      version: source.version,
+      title: source.title,
+      description: source.description,
+      items: source.snippets,
+    }
+    : source;
+  return validatePlaygroundContentForRuntime(contentDocument);
 }

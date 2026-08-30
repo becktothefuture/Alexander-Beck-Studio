@@ -129,6 +129,30 @@
   box-shadow: none;
 }
 
+.playground-route .playground-viewport-focus-proxy {
+  --playground-focus-proxy-inset: calc(
+    var(--playground-focus-offset) + var(--playground-focus-width)
+  );
+  position: absolute;
+  inset: var(--playground-focus-proxy-inset);
+  inset-inline-end: max(44px, var(--playground-focus-proxy-inset));
+  inset-block-end: max(48px, var(--playground-focus-proxy-inset));
+  z-index: 50;
+  display: block;
+  border-radius: var(--abs-radius-9);
+  outline: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.playground-route
+  .playground-world-viewport:focus-visible
+  > .playground-viewport-focus-proxy {
+  outline: var(--playground-focus-width) solid #ffffff;
+  outline-offset: var(--playground-focus-width);
+  box-shadow: 0 0 0 var(--playground-focus-width) #000000;
+}
+
 .playground-route .playground-world-viewport:focus-visible::after {
   content: none;
 }

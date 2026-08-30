@@ -13,7 +13,7 @@ const browserType = browserName === 'webkit' ? webkit : chromium;
 const viewportFilter = String(process.env.ABS_THEME_WALL_VIEWPORT || '').trim().toLowerCase();
 const routeFilter = String(process.env.ABS_THEME_WALL_ROUTE || '').trim();
 const NAVIGATION_TIMEOUT_MS = 60_000;
-const routes = ['/', '/portfolio.html', '/about.html', '/contact.html', '/playground.html']
+const routes = ['/', '/portfolio.html', '/about.html', '/contact.html']
   .filter((route) => !routeFilter || route === routeFilter);
 if (routeFilter && routes.length === 0) {
   throw new Error(`Unknown ABS_THEME_WALL_ROUTE "${routeFilter}".`);

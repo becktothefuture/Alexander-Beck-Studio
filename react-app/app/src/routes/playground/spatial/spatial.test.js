@@ -22,7 +22,7 @@ import {
   writeWorldToScreen,
 } from './index.js';
 
-test('responsive Lab profile preserves desktop intent and compacts continuously toward phone', () => {
+test('responsive Work profile preserves desktop intent and compacts continuously toward phone', () => {
   const desktop = createPlaygroundResponsiveProfile(1440);
   const tablet = createPlaygroundResponsiveProfile(768);
   const phone = createPlaygroundResponsiveProfile(390);
@@ -224,6 +224,39 @@ test('placement is deterministic, collision-free, and append-stable for every pr
       }
     }
   }
+});
+
+test('authored anchors place hierarchy deterministically and fall back when blocked', () => {
+  const anchoredItems = [{
+    ...createItems(1)[0],
+    preferredAnchorCells: { x: 16, y: -12 },
+  }, {
+    ...createItems(2)[1],
+    preferredAnchorCells: { x: 16, y: -12 },
+  }];
+  const options = {
+    ...PLACEMENT_OPTIONS,
+    layoutPreset: 'balanced',
+    itemScale: 1,
+    sizeVariation: 0,
+    projectSpacing: 1,
+  };
+  const first = placePlaygroundItems(anchoredItems, options);
+  const repeated = placePlaygroundItems(anchoredItems, options);
+
+  assert.deepEqual(first, repeated);
+  assert.deepEqual(
+    { x: first.placements[0].xCell, y: first.placements[0].yCell },
+    { x: 16, y: -12 },
+  );
+  assert.notDeepEqual(
+    { x: first.placements[1].xCell, y: first.placements[1].yCell },
+    { x: 16, y: -12 },
+  );
+  assert.equal(
+    cellRectsOverlap(first.placements[0].bounds, first.placements[1].bounds, options.itemGapCells),
+    false,
+  );
 });
 
 test('invalid placement input fails with a bounded diagnostic', () => {

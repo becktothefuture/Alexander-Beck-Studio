@@ -1,95 +1,132 @@
-# Portfolio
+# Work
 
-Production design intent and shared responsive rules live in [`DESIGN.md`](../../DESIGN.md). This file owns the Portfolio-specific deck, gate, drawer, and handoff contract.
+## Product contract
 
-## Current experience
+Work is the second of four primary production routes: Home, Work, About, and Contact. Its canonical URL is `/portfolio.html`. `/portfolio`, `/playground.html`, and `/playground` resolve to the same Work route so old links remain valid. There is no separate public Lab tab.
 
-Portfolio is a linear, scroll/drag-controlled DOM card deck managed by `PortfolioScrollApp`. Selecting a card opens a project drawer mounted in `#portfolio-sheet-host`.
+Work combines two levels of authored material in one pannable field:
 
-Every project seat shares one horizontal axis. The centred card uses the complete responsive card size; every inactive card settles at 90% size. During travel, the outgoing and incoming cards interpolate continuously between those endpoints. The horizontal step is derived from half the active width, half the inactive width, and the authored minimum gap, so cards retain that gap even halfway between projects.
+- **Case studies** are the primary hierarchy. They are deliberately larger, retain the existing editorial card summary, and open the full project drawer.
+- **Snippets** are the secondary hierarchy. They are smaller image, video, or local-code explorations with short descriptions and open in a focused media stage.
 
-The pagination track is the 90-degree carousel counterpart of the shared scroll-progress instrument: 18 tall, narrow vertical capsules in one straight horizontal row, with exactly two adjacent active marks at full opacity and every other mark using the quiet indicator material. The active pair advances through the fixed row and wraps continuously, independently from the project count.
+The mixed scale is functional hierarchy, not random variation. A visitor should understand that a larger object contains a substantial case study while still discovering smaller experiments between it and the next primary project.
 
-Card sizing responds to both axes of the measured deck stage, normally bounded by the authored `220px` minimum and `420px` maximum. Mobile begins from 56% of the stage width. Wider viewports combine 15% of the stage width with 12% of its height, then reduce the result only when the complete title-and-carousel composition would exceed its usable vertical region. A short landscape window may pass below the authored minimum so the card remains inside the studio frame. Height is always derived from the `316:461` aspect ratio. Card copy and corner geometry scale directly from the resolved card width once it exceeds the original `316px` reference width.
+Case-study previews use a compact primary band: they remain larger on average than snippets but do not exceed roughly one third of the approved desktop viewport in either axis. Every Work media preview shares one generous rounded edge. Hover and keyboard focus add a restrained 4px lift, approximately 1% scale, a stronger contact shadow, and a clearer inset edge; captions stay fixed. Reduced Motion preserves the edge and shadow response without travel or scale.
 
-The title, rule, description, responsive gap, and active card are one measured vertical composition. The runtime centres that complete unit between the route's safe top boundary and the pagination track, then applies one small shared optical correction. The title and cards cannot move independently. On narrow portrait viewports, the pagination track remains anchored near the bottom of the studio window. The three regions must keep visible separation without borrowing space from the persistent Button Bar.
+The complete Work system remains available in development and the safe public development mirror. Production builds deliberately render **Coming soon.** instead. `import.meta.env.DEV` is the build-time boundary: production does not mount or prewarm the canvas, gate, or presenters, and there is no URL, browser-storage, or password bypass. Canonical Work URLs, old Lab aliases, shared project URLs, and SPA navigation all use the same held descriptor. Removing this hold requires a separate launch decision. This is a publication control, not asset security: static assets still require server or edge enforcement if they are confidential.
 
-The development panel exposes one signed **Composition Y** offset after automatic centring resolves. It moves the complete Work title and carousel together in `dvh`, defaults to `-1.5dvh`, and never changes their internal relationship.
+## Sources and ownership
 
-The deck uses a fixed repeated-card pool rather than growing the DOM. Sustained wheel or trackpad input advances through rebased project coordinates indefinitely while a bounded target lead prevents an unbounded catch-up queue. A Portfolio-owned Canvas 2D field continuously draws three deterministic layers of solid circles behind the cards. It drifts slowly at rest, responds to signed measured deck velocity, and remains visible as a static composition under reduced motion.
+| Concern | Source |
+| --- | --- |
+| Route identity, aliases, and Button Bar label | `react-app/app/src/lib/route-manifest.js` |
+| Route view and readiness prewarm | `react-app/app/src/routes/portfolio/PortfolioRoute.jsx` |
+| Production construction screen | `react-app/app/src/routes/portfolio/PortfolioComingSoon.jsx` |
+| Unified catalogue adapter | `react-app/app/src/routes/portfolio/work/workCatalog.js` |
+| Spatial route composition and interaction | `react-app/app/src/routes/playground/PlaygroundExperience.jsx` |
+| Camera, placement, world copies, and depth field | `react-app/app/src/routes/playground/spatial/` |
+| Snippet media runtimes | `react-app/app/src/routes/playground/media/` |
+| Snippet expansion | `react-app/app/src/routes/portfolio/work/WorkSnippetStage.jsx` |
+| Case-study expansion | `react-app/app/src/routes/portfolio/work/WorkCaseStudyPresenter.js` |
+| Gate, drawer, and media handoff | `react-app/app/src/routes/portfolio/PortfolioGateRoute.jsx`, `react-app/app/src/legacy/modules/portfolio/` |
+| Work-specific styling | `react-app/app/src/routes/portfolio/work/workCanvas.css`, `react-app/app/src/routes/playground/playground.css`, `react-app/app/public/css/portfolio.css` |
+| Editorial content | `react-app/app/public/config/contents-portfolio.json` |
+| Authored spatial values | `react-app/app/public/config/design-system.json` under the historical `playground` namespace |
 
-The field has a soft horizontal quiet band centred on the resolved card track. Its nine authored controls cover idle/fast opacity, quiet-band height/opacity, density, far/near circle size, motion response, and parallax depth. During route-in it paints one deterministic static composition without scheduling drift; movement resumes only after the route returns to idle. It clears or pauses while the route is hidden, drawer-open, explicitly suspended, or unmounted. It does not own the legacy `#c` canvas.
+The `playground` source/config name is retained internal infrastructure. It is not a public route identity. See [`PLAYGROUND.md`](PLAYGROUND.md).
 
-The visible project media is the shared handoff object. `project-handoff.js` measures the selected card media and animates its `left`, `top`, `width`, and `height` into the drawer hero geometry. Reversal, interruption, and reduced-motion paths must preserve ownership and focus.
+## Publication checks
 
-There is no visible Portfolio physics pit or archived slider pipeline.
+`npm run build` checks the compiled production bundle for the hold and rejects emitted Work canvas or presenter code. `npm run audit:work-publication` starts a disposable production preview and tests canonical/legacy URLs, preview/project query attempts, existing access grants, SPA returns, and browser history on desktop/light and mobile/dark/reduced-motion profiles. Run it serially with `ABS_BROWSER=chromium` and `ABS_BROWSER=webkit`. `ABS_WORK_PUBLICATION_URL=https://www.beck.fyi` targets the published site without starting a preview.
 
-## Typography
+The release-smoke and screen-certification commands expect the held production surface. Use `ABS_WORK_URL=http://localhost:8012 ABS_AUDIT_ROUTE=portfolio npm run audit:focus-contrast` for the development canvas and its gate/drawer focus states. The Work-canvas audit also defaults to development on port 8012.
 
-Portfolio deliberately separates the route voice from the project-information voice.
+## Catalogue contract
 
-- The deck intro and protected-project access title are route-entry headlines, so they use Instrument Serif through `.route-centered-page__title` and the shared headline tokens.
-- The deck intro description uses the same Geist size, weight, leading, tracking, measure, colour, and quiet opacity as the Contact description.
-- Portfolio card titles and the project-drawer title remain Geist. They identify work and support interaction, so they should retain the site's precise structural voice.
-- Card labels and titles stay compact and media-led, supported by a broad low-contrast scrim. Cards do not cast an exterior shadow.
-- Portfolio cards are the complete interaction target and do not carry a separate visible “View” pill.
-- Do not make the drawer title serif merely to create continuity with the route intro. The contrast is the hierarchy: editorial arrival first, clear project information second.
-- Instrument Serif may be considered later for an occasional pull quote or chapter opener inside a case study, but only as an explicitly art-directed exception.
+`contents-portfolio.json` is the single live Work content file. It owns the route title and description plus two arrays:
 
-## Ownership
+- `projects`: full case-study records consumed by the established drawer and adapted into primary canvas items;
+- `snippets`: compact image, video, or code records adapted into secondary canvas items.
 
-- React route/window: `src/routes/portfolio/PortfolioRoute.jsx`
-- Protected-project gate: `src/routes/portfolio/PortfolioGateRoute.jsx`
-- Deck and route lifecycle: `src/legacy/modules/portfolio/app.js`
-- Project data, asset paths, access defaults, and cached configuration loading: `src/legacy/modules/portfolio/portfolio-data.js`
-- Route data/media prewarming and its audit diagnostics: `src/legacy/modules/portfolio/portfolio-prewarm.js`
-- Stable selector and state-marker vocabulary: `src/legacy/modules/portfolio/portfolio-dom-contract.js`
-- Persistent particle field: `src/legacy/modules/portfolio/portfolio-speed-field.js`
-- Drawer: `project-drawer.js`
-- Media handoff: `project-handoff.js`
-- Project content/media: `public/config/contents-portfolio.json`
-- Access storage and invite-code contract: `src/lib/access-gates.js`
-- Content access validation: `scripts/check-portfolio-content.mjs`
-- Authored controls: `public/config/design-system.json > portfolio`
-- Generated runtime config: `public/config/portfolio-config.json`
-- Styling: `public/css/portfolio.css`
+`loadWorkCatalog()` loads both arrays and returns one semantic ordered list. It fails when either hierarchy is empty. IDs must be unique across both arrays. Every case study must declare `access: "protected"`; missing access fails closed. Snippets are public.
 
-## Entrance orchestration
+Case-study placement order is derived from project order. Their larger spans and reviewed anchors are code-owned in `workCatalog.js`. Snippet placement order follows the case studies and retains the established media schema: stable ID, type, reviewed label and description, accessibility text, local poster/preview/source or local code demo, true intrinsic dimensions, and preferred grid span.
 
-Portfolio prepares its final title, description, field, card, and indicator geometry before release. Direct loads hold those prepared states behind `#abs-boot-overlay`; SPA arrivals wait for the shell's `abs:portfolio:reveal` boundary. Both paths then follow `identity → context → action → support`: title at release, description at approximately `210ms`, active card at `300ms` with the existing `40ms` visual-order stagger, and indicator at `360ms`. Deck input unlocks when the lead card starts to appear, independently of the remaining title and support animation. Ambient field and video motion still begin only after the entrance geometry settles. Reduced motion resolves the same final geometry immediately with a static field.
+Do not create another Work, Portfolio, or Lab content file. Do not promote current website copy into factual authority for new case-study claims. Follow `docs/portfolio/router.yaml` and the portfolio knowledge records before changing project facts.
 
-The shell remains the route-transition owner. The Portfolio runtime owns only its local material reveal, exposed in audit state as `preparing`, `entering`, or `complete` plus the release reason. Never add generic entrance transforms to the cards because that would replace their authored track transforms.
+## Spatial field
 
-SPA arrivals use the normalized `portfolio.runtime.entrance` profile. Only the nearest visible permanent card instances receive stable visual ranks in the order centre, right one, left one, right two, left two. Opacity and media blur use those ranks; linear track transforms remain entirely runtime-owned. Completion follows the real visible-card and indicator animation promises with a guarded timeout, so offscreen repeated copies cannot extend the global transition.
+The opening title is part of the pannable world. Case studies, snippets, and title exclusion geometry are placed deterministically from stable authored inputs. Existing positions remain append-stable when earlier IDs, ordering, dimensions, spans, anchors, and the layout seed do not change.
 
-## Route prewarming and readiness
+The camera supports pointer drag, touch, wheel, trackpad, arrow keys, and WASD. `Home` recentres the title. Tab enters one roving Work item; directional keys choose the nearest item in that direction and animate its complete footprint to the viewport centre. The logical camera is unbounded and visual copies repeat the finite authored field. Copies are decorative, are hidden from assistive technology, and cannot create extra media runtimes.
 
-`preloadPortfolioRoute()` participates in the shell's document-scoped readiness registry and is used by initial data preparation, eligible background media preparation, Button Bar intent, and navigation. It may load Portfolio data and normalized configuration and decode only the five readiness-critical first-view thumbnail sources. It never constructs `PortfolioScrollApp`, mounts cards, starts the particle field, starts the deck loop, plays video, opens access UI, or creates a project handoff.
+The background is a restrained three-layer depth field, not a flat dot grid. Its deterministic parallax factors are `0.16`, `0.34`, and `0.58`. The renderer caps total visible work at 1,800 dots, commits the same camera sample as the foreground before paint, redraws only when geometry/camera/theme state changes, and sleeps when idle. Dots remain neutral, circular, and hover-inert.
 
-The real route bootstrap reuses those exact decoded-image promises. Readiness-critical media is limited to the visible first-view posters/images or an existing fallback. Video playback and project-detail/lazy case-study media are explicitly outside the route-ready barrier. Failed image promises are released so route bootstrap can retry or install the existing fallback; no prewarm result is persisted across reloads.
+Do not add a second decorative background animation. Depth comes from the relationship between camera movement, the three dot layers, and the foreground catalogue.
 
-`window.__ABS_PORTFOLIO_PREWARM__` is an audit-only snapshot of prewarm status and critical/ready source counts. It is output, never product or design truth.
+## Centre-then-open interaction
 
-During a route transition, the runtime may publish the first valid measured deck geometry as its readiness boundary because the Portfolio route participant then confirms that geometry across two painted frames before the shell begins route-in. Direct loads retain their self-contained two-pass geometry check.
+Opening is one continuous spatial transaction:
 
-## Stable DOM contract
+```text
+idle -> centering -> access-pending or expanding -> open -> closing -> idle
+```
 
-`portfolio-dom-contract.js` is the explicit selector and state-marker boundary for CSS ownership work. M16 may consolidate existing CSS against that vocabulary, but it must not rename, duplicate, or move those nodes and markers. The frozen contract covers the route scene/frame/wall/canvas/title/top bar, deck mount/cards/labels, drawer host/view, and the load, entrance, input-release, media-ready, and active-project attributes. `check-portfolio-characterization.mjs` fails if that contract drifts. Permanently hidden project-tag lists are not card DOM. Card palette work is generation-gated after construction, so normal mount skips its duplicate pass; a shared palette event forces the required rerun.
+Selection first animates the chosen item's complete media-and-caption footprint to the viewport centre. Expansion cannot begin until centering settles or Reduced Motion resolves the same geometry immediately. A stale or superseded selection must not open.
 
-## Project-triggered access gate
+### Case studies
 
-Portfolio always boots the full live deck on route entry, regardless of access storage. Each project explicitly declares `access: "public" | "protected"`; missing values fail closed at runtime and the content validator rejects missing or unsupported authored values.
+Protected case studies open the Work access gate after centering. The live spatial route remains mounted while the gate owns focus. Invalid codes preserve the pending item. Close, Escape, or backdrop dismissal clears the intent and restores focus to the originating case-study card. A valid code closes the gate before expansion and grants the existing `abs_portfolio_ok` session/cookie access to all protected case studies.
 
-Public projects open directly with the shared press-plus-soft-tail project sound. Opening a protected project without access plays only the ordinary press, freezes deck input and ambient media, stores one pending project identity/focus source inside `PortfolioScrollApp`, and opens `PortfolioGateRoute` in the shell-owned in-window overlay. The quieter opening tail, drawer, hero bridge, and open haptic wait until acceptance. Close, Escape, or backdrop dismissal clears the intent and restores the same card, field, video, and focus without replaying the route entrance.
+`WorkCaseStudyPresenter` reuses `PortfolioProjectDrawer` and `PortfolioProjectHandoff`. The selected card geometry grows into the drawer hero; closing reverses toward the live source card. The sheet covers route content but stops above the Button Bar. The Button Bar retains paint and input ownership over the intentional overlap. Route change or unmount cancels the local presentation and removes temporary handoff state.
 
-The deck emits one step click only when a distinct project reaches centre. It emits no continuous travel detents. The open project drawer uses the speed-responsive Scroll Crystal voice on vertical user scrolling and resets the voice before open, close, or programmatic scroll restoration. Every drawer pairs that continuous movement with the same 18-tick, two-active-tick progress instrument and left-centred shell position as About. Its percentage is normalized against the open project's own scrollable extent, so projects with different content lengths share the same complete visual range.
+This is client-side access friction, not secure authentication. Static assets and client code are still delivered to the browser. Do not describe the gate as a security boundary.
 
-A correct code uses the existing `abs_portfolio_ok` cookie/session contract. The gate closes completely, the deck returns to stable final geometry, and the runtime remeasures the selected card before invoking the existing drawer/handoff path. The grant applies to every protected project and survives reload. The URL and route history do not change.
+### Snippets
 
-The old `PortfolioGateScene` and same-route gate-success bridge are dormant compatibility/rollback surfaces, not production behavior. Do not restore them as the route-entry experience. This remains client-side access friction rather than secure authentication: the static deployment still ships code and media to the browser.
+`WorkSnippetStage` expands the selected media from its measured source rectangle into an in-window editorial stage using native Web Animations. The existing field remains mounted and inert behind it. The stage traps focus, supports Escape and backdrop/button dismissal, and reverses into the source before restoring focus. It writes `?work=<item-id>`; browser Back closes the stage before leaving Work.
 
-## Required verification
+Reduced Motion keeps the same centering, state, history, focus, and cleanup order with short opacity-led transitions and no large spatial travel.
 
-Use a fresh production build, then run the Portfolio gate in Chromium and WebKit, followed by the carousel, drawer, pointer, and project-transition audits. The gate audit covers public bypass, protected intent, invalid/valid code, exact-project continuation, Portfolio-wide persistence, reset, click/keyboard cancellation, focus, route interruption, reduced motion, desktop/mobile, and light/dark. The carousel audit must cover linear card and indicator geometry, full-size active and 90% inactive scale endpoints, sustained traversal beyond ten project cycles in both directions, bounded lead and coordinates, fixed card and particle counts, rapid reversal, reduced motion, settlement, and active-field frame timing. The route-transition audit must also send real wheel input while the lead card is entering and before the title sequence completes. Run project/route transitions in Chromium and WebKit serially. Manually inspect entrance and gate screenshots for hierarchy, live-deck recognisability, stable card geometry, and Button Bar clearance.
+## Performance and accessibility guardrails
 
-The carousel audit is process-bounded by `ABS_PORTFOLIO_AUDIT_TIMEOUT_MS` (240000ms by default) and reports the active viewport/step on timeout so headless SwiftShader stalls cannot run indefinitely.
+- Keep high-frequency camera and Canvas work outside React state.
+- Coalesce pointer movement to animation frames and keep each frame bounded and allocation-light.
+- Do not animate layout properties during pan, centre, open, or close. Prefer compositor transforms and opacity.
+- Decode only readiness-critical first-view media. Detail media, off-screen snippets, and video playback are not route-ready dependencies.
+- Stop off-screen or unowned video/code runtimes. Decorative copies never own a runtime.
+- Keep one semantic list item per logical Work item and one roving item in the tab order.
+- Preserve visible focus, focus trapping in overlays, focus return, Escape, Back, touch, and keyboard navigation.
+- Keep the route world mounted during local overlays; use `inert` for interaction isolation.
+- Preserve Button Bar clearance, window clipping, theme boundaries, and the fixed custom cursor contract.
+- Never let the dot field keep an idle animation loop solely for visual drift.
+- Keep drag input-to-next-paint at or below the audited 180 ms ceiling, keep one gesture below the 120-draw tail ceiling, and prove the camera and dot renderer return to sleep after settlement.
+
+## Release gate
+
+Changes to the production Work route may ship only after:
+
+1. Work catalogue and content validation pass;
+2. Chromium and WebKit Work audits pass on desktop and mobile;
+3. gate rejection, acceptance, exact-project continuation, and access persistence pass;
+4. case-study and snippet open/reverse/focus/history paths pass with and without Reduced Motion;
+5. route, theme, frame, transition, and screen certification pass;
+6. screenshots are visually inspected in both themes and representative viewports;
+7. the final diff is reviewed against unrelated working-tree changes.
+
+Run from the repository root:
+
+```bash
+npm run check:work-canvas
+npm run check:portfolio-content
+npm run check:site
+ABS_BROWSER=chromium npm run audit:work-canvas
+ABS_BROWSER=webkit npm run audit:work-canvas
+ABS_AUDIT_ROUTE=portfolio npm run audit:focus-contrast
+ABS_BROWSER=chromium npm run audit:transition-flows
+ABS_BROWSER=webkit npm run audit:transition-flows
+npm run audit:release-smoke
+npm run certify:screens
+```
+
+Build/preview evidence alone is not enough. Inspect the Work field, both overlay types, the protected gate, drawer/Button Bar stacking, focus, and motion on the real rendered surface.

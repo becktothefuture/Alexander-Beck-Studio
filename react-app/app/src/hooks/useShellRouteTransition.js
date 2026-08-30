@@ -209,14 +209,10 @@ function consumeStaleRouteRequests(url) {
 function buildCanonicalRouteHref(route, url) {
   const canonical = new URL(buildRouteHref(route.id), window.location.origin);
   if (route.id === 'portfolio') {
-    ['portfolio', 'portfolioCode', 'access'].forEach((key) => {
+    ['portfolio', 'portfolioCode', 'access', 'work'].forEach((key) => {
       const value = url.searchParams.get(key);
       if (value) canonical.searchParams.set(key, value);
     });
-  }
-  if (route.id === 'playground') {
-    const workId = url.searchParams.get('work');
-    if (workId) canonical.searchParams.set('work', workId);
   }
   if (route.id.startsWith('atmosphere-')) {
     ['mode', 'panel', 'absAudit'].forEach((key) => {

@@ -2,7 +2,7 @@
 
 ## Scope
 
-The production design intent and responsive rules live in [`DESIGN.md`](../../DESIGN.md). This pattern index covers Home, Portfolio, About Me, Contact, Playground, the persistent shell, Portfolio gate/drawer, and lab utility chrome; lab patterns are not evidence for the production design constitution.
+The production design intent and responsive rules live in [`DESIGN.md`](../../DESIGN.md). This pattern index covers Home, Work, About, Contact, the persistent shell, Work gate/drawer/stage, and development-lab utility chrome; lab patterns are not evidence for the production design constitution.
 
 ## Navigation
 
@@ -19,9 +19,9 @@ Preserve visible separation between browser frame, outer wall, inner wall, canva
 ## Route language
 
 - Home: simulation material, semantic title source, expertise legend, supporting philosophy copy
-- Portfolio: linear deck, media-first handoff, editorial drawer, in-window gate
+- Work: hierarchical spatial field, media-first snippet/case-study handoff, editorial drawer, and in-window gate
 - About Me and Contact: centered route content inside the same physical window
-- Playground: pannable dot-aligned catalogue, restrained work labels, and in-window selected-work dialog
+- Internal Work engine: pannable deterministic catalogue, restrained labels, and three-layer depth field
 - Labs: local back/utility top chrome when needed
 
 ## Typography and voice
@@ -33,9 +33,9 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Geist Mono remains the operational voice for metadata and compact technical labels.
 - The handwritten LDN 26 SVG is a small signature moment, not another general-purpose display style or type role.
 
-Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Portfolio intro, gate, and Playground opening. The production tokens are:
+Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Work intro and gate. The production tokens are:
 
-Work, Contact, Playground, and both About Me bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`. About's opening and finale lockups remain vertically centred. The finale keeps its contact action as an inline text link inside the description, not a separate button row.
+Work, Contact, and both About bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`. About's opening and finale lockups remain vertically centred. The finale keeps its contact action as an inline text link inside the description, not a separate button row.
 
 - `--abs-font-headline: "Instrument Serif", ...`
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles
@@ -53,4 +53,4 @@ Instrument Serif's finer strokes are more vulnerable to visual interruption than
 
 ## Verification matrix
 
-Visual changes require a fresh root build and coverage of Home, Portfolio, About Me, Contact, and Playground at desktop/mobile and light/dark. Playground also requires its selected-work dialog at desktop, tablet, and mobile sizes. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with production markup.
+Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Work also requires its gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with production markup.

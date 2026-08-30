@@ -21,7 +21,6 @@ const routeSteps = [
   { id: 'about', path: '/about.html' },
   { id: 'contact', path: '/contact.html' },
   { id: 'portfolio', path: '/portfolio.html' },
-  { id: 'playground', path: '/playground.html' },
   { id: 'home', path: '/index.html' },
 ];
 const auxiliaryRouteSteps = [

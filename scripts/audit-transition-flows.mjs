@@ -59,24 +59,26 @@ const runStem = [
 ].filter(Boolean).join('-');
 
 const ROUTE_DEFINITIONS = Object.freeze({
-  portfolio: Object.freeze({ id: 'portfolio', href: '/portfolio.html', ready: '#portfolioProjectMount' }),
+  portfolio: Object.freeze({
+    id: 'portfolio',
+    href: '/portfolio.html',
+    ready: '#portfolio-coming-soon-title, [data-work-experience="true"][data-playground-ready="true"]',
+  }),
   home: Object.freeze({ id: 'home', href: '/index.html', ready: '#c, #simulation-stage' }),
   about: Object.freeze({ id: 'about', href: '/about.html', ready: '[data-route-content="about"]' }),
   contact: Object.freeze({ id: 'contact', href: '/contact.html', ready: '[data-route-content="contact"]' }),
-  playground: Object.freeze({
-    id: 'playground',
-    href: '/playground.html',
-    ready: '[data-playground-experience][data-playground-ready="true"], #playground-coming-soon-title',
-  }),
 });
 const DAILY_FOCUS_ROUTE_IDS = Object.freeze([
   'repel-room',
   'flock-of-birds',
 ]);
+const ROUTE_VIEW_ALIASES = Object.freeze({
+  about: Object.freeze(['about-coming-soon', 'about-narrative']),
+});
 const requestedSequence = String(process.env.ABS_TRANSITION_SEQUENCE || '').trim();
 const ROUTE_STEPS = (requestedSequence
   ? requestedSequence.split(',').map((routeId) => routeId.trim()).filter(Boolean)
-  : ['portfolio', 'home', 'about', 'home', 'contact', 'home', 'playground', 'home']
+  : ['portfolio', 'home', 'about', 'home', 'contact', 'home']
 ).map((routeId) => {
   const step = ROUTE_DEFINITIONS[routeId];
   if (!step) throw new Error(`Unknown ABS_TRANSITION_SEQUENCE route "${routeId}".`);
@@ -110,6 +112,7 @@ function compress(values) {
 
 function isRouteViewForDestination(routeViewId, destinationRouteId) {
   return routeViewId === destinationRouteId
+    || (ROUTE_VIEW_ALIASES[destinationRouteId] || []).includes(routeViewId)
     || (destinationRouteId === 'home' && DAILY_FOCUS_ROUTE_IDS.includes(routeViewId));
 }
 
@@ -346,32 +349,31 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         };
       }
       if (routeId === 'portfolio') {
-        const mount = document.getElementById('portfolioProjectMount');
-        const card = mount?.querySelector('.portfolio-deck-card.is-active')
-          || mount?.querySelector('.portfolio-project-label[data-ring-nearest="true"]');
-        const failed = body?.classList.contains('portfolio-deck-failed') || false;
+        if (document.getElementById('portfolio-coming-soon-title')) {
+          return { ready: body?.classList.contains('portfolio-page'), productionFallback: true };
+        }
+        const route = document.querySelector('[data-work-experience="true"]');
+        const card = route?.querySelector(
+          '.playground-item--case-study .portfolio-project-card[tabindex="0"]',
+        );
         const gate = document.querySelector('[data-route-content="portfolio-gate"]');
-        const cardRect = card?.getBoundingClientRect();
-        const cardReady = Boolean(cardRect && cardRect.width >= 64 && cardRect.height >= 64);
+        // The Work entrance intentionally starts primary cards at scale(0).
+        // Use their laid-out box for readiness so the audit does not create a
+        // circular dependency between route readiness and route-in animation.
+        // Transformed visual geometry is asserted separately during route-in.
+        const cardReady = Boolean(card && card.offsetWidth >= 64 && card.offsetHeight >= 64);
         const ready = Boolean(
-          body?.classList.contains('portfolio-page')
-          && (gate || (
-            root.dataset.absRuntimeRoute === 'portfolio'
-            && root.dataset.absRuntimeStatus === 'ready'
-            && hasCanvasBuffer(canvas)
-            && mount
-            && (failed || cardReady)
-          ))
+          body?.classList.contains('work-canvas-page')
+          && route?.dataset.playgroundReady === 'true'
+          && (gate || cardReady)
         );
         return {
           ready,
-          runtimeRoute: root.dataset.absRuntimeRoute || '',
-          runtimeStatus: root.dataset.absRuntimeStatus || '',
-          canvasBufferReady: hasCanvasBuffer(canvas),
-          mountPhase: mount?.dataset.portfolioEntrancePhase || '',
+          routeReady: route?.dataset.playgroundReady || '',
+          interactive: route?.dataset.playgroundInteractive || '',
+          openPhase: route?.dataset.workOpenPhase || '',
           cardReady,
           gate: Boolean(gate),
-          failed,
         };
       }
       if (routeId === 'about') {
@@ -393,27 +395,6 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
             body?.classList.contains('contact-page')
             && document.querySelector('[data-route-content="contact"]')
           ),
-        };
-      }
-      if (routeId === 'playground') {
-        const experience = document.querySelector('[data-playground-experience]');
-        const productionFallback = Boolean(
-          document.getElementById('playground-coming-soon-title') && !experience
-        );
-        return {
-          ready: Boolean(
-            body?.classList.contains('playground-page')
-            && (
-              productionFallback
-              || (
-                experience?.dataset.playgroundReady === 'true'
-                && window.__ABS_PLAYGROUND__
-              )
-            )
-          ),
-          routeReady: experience?.dataset.playgroundReady || '',
-          projectCount: Number(experience?.dataset.playgroundProjectCount || 0),
-          productionFallback,
         };
       }
       return { ready: Boolean(document.getElementById('app-frame')) };
@@ -501,11 +482,10 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           targetCount: Number(snapshot.count || 0),
         } : null;
       }
-      if (routeId === 'contact' || routeId === 'playground' || routeId === 'portfolio' || routeId === 'about') {
+      if (routeId === 'contact' || routeId === 'portfolio' || routeId === 'about') {
         const id = {
           contact: 'contact-ripple-material',
-          playground: 'playground-view-material',
-          portfolio: 'portfolio-view-material',
+          portfolio: 'portfolio-spatial-view-material',
           about: 'about-point-field-material',
         }[routeId];
         const root = document.querySelector(`[data-route-material-id="${id}"]`);
@@ -535,6 +515,14 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
             } : null),
           };
         }
+        if (routeId === 'portfolio' && document.getElementById('portfolio-coming-soon-title')) {
+          return {
+            id: 'portfolio-production-placeholder',
+            state: 'placeholder',
+            available: false,
+            targetCount: 0,
+          };
+        }
         if (routeId === 'about') {
           const aboutRoot = document.querySelector('[data-about-entrance-state]');
           if (aboutRoot) return {
@@ -553,14 +541,6 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           };
           return null;
         }
-        if (routeId === 'playground' && document.getElementById('playground-coming-soon-title')) {
-          return {
-            id: 'playground-production-placeholder',
-            state: 'placeholder',
-            available: false,
-            targetCount: 0,
-          };
-        }
         return null;
       }
       return null;
@@ -568,22 +548,13 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
     const readCardEntrance = (routeId) => {
       const definition = routeId === 'portfolio'
         ? {
-            selector: '.portfolio-project-card[data-portfolio-reveal-rank]',
-            opacityOverride: '--portfolio-card-route-opacity',
-            scale: '--portfolio-card-route-entrance-scale',
-            travel: '--portfolio-card-route-y',
-            tilt: '--portfolio-card-route-tilt',
-            surface: '.portfolio-project-card__surface',
-          }
-        : routeId === 'playground'
-        ? {
-            selector: '.playground-item[style*="--playground-route-card-scale"]',
-            opacityOverride: '--playground-route-card-opacity',
-            scale: '--playground-route-card-scale',
-            travel: '--playground-route-card-y',
-            tilt: '--playground-route-card-rotate',
-            surface: '.playground-item__route-surface',
-          }
+          selector: '.playground-item[style*="--playground-route-card-scale"]',
+          opacityOverride: '--playground-route-card-opacity',
+          scale: '--playground-route-card-scale',
+          travel: '--playground-route-card-y',
+          tilt: '--playground-route-card-rotate',
+          surface: '.playground-item__route-surface',
+        }
         : null;
       if (!definition) return null;
       const values = Array.from(document.querySelectorAll(definition.selector)).map((element) => {
@@ -953,7 +924,7 @@ function assertTransitionTrace(trace, {
   const loadingIndex = samples.findIndex((sample) => sample.phase === 'route-loading');
   const routeInIndex = samples.findIndex((sample) => sample.phase === 'route-in');
   const finalIdleIndex = samples.findLastIndex((sample) => sample.phase === 'idle');
-  const materialRoutes = new Set(['home', 'portfolio', 'about', 'contact', 'playground']);
+  const materialRoutes = new Set(['home', 'portfolio', 'about', 'contact']);
   const initialButtonBarRect = samples.find((sample) => sample.buttonBar?.rect)?.buttonBar?.rect;
   const expectedLoaderBackdropMode = resolveRouteLoaderBackdropMode(
     trace.fromRouteId,
@@ -1446,7 +1417,7 @@ function assertTransitionTrace(trace, {
   if (
     !REDUCED_MOTION
     && !destinationUsesProductionFallback
-    && (trace.toRouteId === 'portfolio' || trace.toRouteId === 'playground')
+    && trace.toRouteId === 'portfolio'
   ) {
     const cardSamples = samples
       .slice(routeInIndex, finalIdleIndex + 1)
@@ -1465,13 +1436,11 @@ function assertTransitionTrace(trace, {
       `${trace.label}: cards used a route-owned opacity fade`,
       { firstCards, cardSamples },
     );
-    if (trace.toRouteId === 'playground') {
-      assert(
-        cardSamples.every((sample) => sample.minComputedOpacity >= 0.98),
-        `${trace.label}: Lab cards faded through computed opacity`,
-        { cardSamples },
-      );
-    }
+    assert(
+      cardSamples.every((sample) => sample.minComputedOpacity >= 0.98),
+      `${trace.label}: Work cards faded through computed opacity`,
+      { cardSamples },
+    );
     assert(
       firstCards.minScale <= 0.003 && firstCards.maxScale <= 0.003,
       `${trace.label}: cards did not start at scale zero`,
@@ -1544,7 +1513,7 @@ function assertTransitionTrace(trace, {
 
 async function waitForTargetSettled(page, step) {
   await page.waitForSelector(step.ready, { timeout: WAIT_MS, state: 'attached' });
-  await page.waitForFunction(({ routeId, pathname, dailyFocusRouteIds }) => {
+  await page.waitForFunction(({ routeId, pathname, dailyFocusRouteIds, routeViewAliases }) => {
     const root = document.documentElement;
     const loader = document.querySelector('[data-route-transition-loader]');
     const loaderStyle = loader ? getComputedStyle(loader) : null;
@@ -1555,6 +1524,7 @@ async function waitForTargetSettled(page, step) {
     const renderedRoute = document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || committedRoute;
     const pendingRoute = document.querySelector('[data-route-tabs]')?.dataset.pendingRoute || '';
     const renderedDestination = renderedRoute === routeId
+      || (routeViewAliases[routeId] || []).includes(renderedRoute)
       || (routeId === 'home' && dailyFocusRouteIds.includes(renderedRoute));
     return (
       (root.dataset.absTransitionPhase || 'idle') === 'idle'
@@ -1569,83 +1539,21 @@ async function waitForTargetSettled(page, step) {
     routeId: step.id,
     pathname: step.href,
     dailyFocusRouteIds: DAILY_FOCUS_ROUTE_IDS,
+    routeViewAliases: ROUTE_VIEW_ALIASES,
   }, { timeout: WAIT_MS, polling: 'raf' });
 
   if (step.id === 'portfolio') {
     await page.waitForFunction(() => {
-      const mount = document.getElementById('portfolioProjectMount');
-      return !mount || mount.dataset.portfolioEntrancePhase === 'complete';
+      if (document.getElementById('portfolio-coming-soon-title')) return true;
+      const route = document.querySelector('[data-work-experience="true"]');
+      return route?.dataset.playgroundReady === 'true'
+        && route.dataset.playgroundInteractive === 'true';
     }, null, { timeout: WAIT_MS, polling: 'raf' });
   }
 }
 
 async function clickRouteTab(page, routeId) {
   await page.locator(`[data-route-tab="${routeId}"]`).click({ timeout: WAIT_MS });
-}
-
-async function probePortfolioInputDuringEntrance(page) {
-  await page.waitForFunction(() => {
-    const mount = document.getElementById('portfolioProjectMount');
-    const wall = document.getElementById('shell-wall-slot');
-    return Boolean(
-      (document.documentElement.dataset.absTransitionPhase || '') === 'route-in'
-      && mount?.dataset.portfolioEntrancePhase === 'entering'
-      && mount.dataset.portfolioInputReleaseState === 'ready'
-      && !mount.inert
-      && !wall?.inert
-    );
-  }, null, { timeout: WAIT_MS, polling: 'raf' });
-
-  const readState = () => page.evaluate(() => {
-    const mount = document.getElementById('portfolioProjectMount');
-    const wall = document.getElementById('shell-wall-slot');
-    const leadCard = mount?.querySelector(
-      '.portfolio-project-card[data-portfolio-reveal-rank="0"]'
-    );
-    const deck = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
-    return {
-      routePhase: document.documentElement.dataset.absTransitionPhase || '',
-      entrancePhase: mount?.dataset.portfolioEntrancePhase || '',
-      inputState: mount?.dataset.carouselInputState || '',
-      releaseState: mount?.dataset.portfolioInputReleaseState || '',
-      releaseReason: mount?.dataset.portfolioInputReleaseReason || '',
-      mountInert: Boolean(mount?.inert),
-      wallInert: Boolean(wall?.inert),
-      pointerEvents: mount ? getComputedStyle(mount).pointerEvents : '',
-      leadScale: Number.parseFloat(
-        leadCard?.style.getPropertyValue('--portfolio-card-route-entrance-scale') || '0'
-      ),
-      targetPosition: Number(deck?.targetPosition || 0),
-      displayPosition: Number(deck?.displayPosition || 0),
-    };
-  });
-
-  const before = await readState();
-  assert(before.entrancePhase === 'entering', 'Portfolio input released after its entrance completed', before);
-  assert(before.mountInert === false, 'Portfolio deck remained inert after the destination became visible', before);
-  assert(before.wallInert === false, 'Portfolio wall remained inert after the destination became visible', before);
-  assert(before.pointerEvents !== 'none', 'Portfolio deck still blocked pointer input after the destination became visible', before);
-
-  const stage = page.locator('.portfolio-deck-stage');
-  const stageRect = await stage.boundingBox();
-  assert(stageRect, 'Portfolio deck stage had no interactive geometry during entrance', before);
-  await page.mouse.move(
-    stageRect.x + (stageRect.width / 2),
-    stageRect.y + (stageRect.height / 2),
-  );
-  await page.mouse.wheel(0, 700);
-  await page.waitForFunction((initialTarget) => {
-    const deck = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
-    return Math.abs(Number(deck?.targetPosition || 0) - initialTarget) > 0.01;
-  }, before.targetPosition, { timeout: 2000, polling: 'raf' });
-
-  const after = await readState();
-  assert(
-    Math.abs(after.targetPosition - before.targetPosition) > 0.01,
-    'Portfolio ignored wheel input while its entrance animation was still running',
-    { before, after },
-  );
-  return { before, after };
 }
 
 async function waitForTransitionObserved(page) {
@@ -1668,7 +1576,6 @@ async function runTransition(page, {
 }) {
   await startRafRecorder(page, { fromRouteId, toRouteId: step.id, label });
   let trace = null;
-  let portfolioInputProbe = null;
   try {
     await activate();
     // A destination can commit in the same task that schedules the shell phase.
@@ -1676,12 +1583,8 @@ async function runTransition(page, {
     // the RAF recorder while the visible transition is only just beginning.
     await waitForTransitionObserved(page);
     await afterActivate?.();
-    if (step.id === 'portfolio' && !REDUCED_MOTION) {
-      portfolioInputProbe = await probePortfolioInputDuringEntrance(page);
-    }
     await waitForTargetSettled(page, step);
     trace = await stopRafRecorder(page);
-    if (portfolioInputProbe) trace.portfolioInputProbe = portfolioInputProbe;
     assertTransitionTrace(trace, { requireRouteOut, allowIndicatorReversal });
     return trace;
   } catch (error) {
@@ -1776,7 +1679,7 @@ async function runPreloadFailureProbe(page, traces, nextIndex) {
     }));
   }
 
-  const label = `${String(nextIndex + 1).padStart(2, '0')}-portfolio-preload-failure-restore`;
+  const label = `${String(nextIndex + 1).padStart(2, '0')}-work-preload-failure-restore`;
   await startRafRecorder(page, {
     fromRouteId: 'portfolio',
     toRouteId: 'home',
@@ -1793,18 +1696,16 @@ async function runPreloadFailureProbe(page, traces, nextIndex) {
     const rendered = document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView || '';
     const loaderState = document.querySelector('[data-route-transition-loader]')
       ?.getAttribute('data-route-transition-loader-state') || '';
-    const mount = document.getElementById('portfolioProjectMount');
-    const snapshot = window.__ABS_PORTFOLIO_AUDIT__?.getApp?.()?.getDeckDebugSnapshot?.();
+    const route = document.querySelector('[data-work-experience="true"]');
     return (
       phase === 'idle'
       && loaderState === 'idle'
       && rendered === 'portfolio'
       && location.pathname.endsWith('/portfolio.html')
-      && mount?.dataset.portfolioEntrancePhase === 'complete'
-      && mount?.inert === false
-      && !mount?.hasAttribute('aria-busy')
-      && snapshot?.inputState === 'idle'
-      && snapshot?.particleField?.suspended === false
+      && route?.dataset.playgroundReady === 'true'
+      && route?.dataset.playgroundInteractive === 'true'
+      && route?.inert === false
+      && !route?.hasAttribute('aria-busy')
     );
   }, null, { timeout: WAIT_MS, polling: 'raf' });
 

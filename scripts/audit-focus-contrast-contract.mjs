@@ -24,18 +24,20 @@ const themeOption = String(process.env.ABS_AUDIT_THEME || 'all').trim().toLowerC
 const themes = themeOption === 'all' ? ['light', 'dark'] : [themeOption];
 const profileOption = String(process.env.ABS_AUDIT_PROFILE || 'all').trim().toLowerCase();
 const routeOption = String(process.env.ABS_AUDIT_ROUTE || 'all').trim().toLowerCase();
+const workCanvasUrl = process.env.ABS_WORK_URL;
 const ROUTE_READINESS_TIMEOUT_MS = 45_000;
 const profiles = Object.freeze([
   Object.freeze({ id: 'desktop', viewport: Object.freeze({ width: 1280, height: 900 }), reducedMotion: 'no-preference' }),
   Object.freeze({ id: 'mobile-reduced', viewport: Object.freeze({ width: 390, height: 844 }), reducedMotion: 'reduce' }),
 ].filter((profile) => profileOption === 'all' || profile.id === profileOption));
 const PORTFOLIO_INVITE_CODE = process.env.ABS_PORTFOLIO_CODE || '739284';
+const WORK_CASE_STUDY_SELECTOR = '.playground-item--case-study .portfolio-project-card[tabindex="0"]';
 const focusableSelector = [
-  'a[href]',
-  'button:not(:disabled)',
-  'input:not(:disabled)',
-  'select:not(:disabled)',
-  'textarea:not(:disabled)',
+  'a[href]:not([tabindex="-1"])',
+  'button:not(:disabled):not([tabindex="-1"])',
+  'input:not(:disabled):not([tabindex="-1"])',
+  'select:not(:disabled):not([tabindex="-1"])',
+  'textarea:not(:disabled):not([tabindex="-1"])',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 const contrastContracts = Object.freeze({
@@ -48,7 +50,7 @@ const contrastContracts = Object.freeze({
       Object.freeze({ selector: '.legend__item span', count: 6 }),
     ]),
   }),
-  portfolio: Object.freeze({
+  portfolio: Object.freeze(workCanvasUrl ? {
     applicable: true,
     state: 'protected-project-gate',
     expectations: Object.freeze([
@@ -57,6 +59,13 @@ const contrastContracts = Object.freeze({
         count: 1,
       }),
     ]),
+  } : {
+    applicable: false,
+    state: 'production-coming-soon',
+    reason: 'The production Work hold has a title and no supporting normal text.',
+    markerSelector: '#portfolio-coming-soon-title.route-centered-page__title',
+    markerCount: 1,
+    unexpectedSelector: '.route-centered-page__description, .route-intro-description, .gate-description',
   }),
   about: Object.freeze({
     applicable: false,
@@ -73,19 +82,12 @@ const contrastContracts = Object.freeze({
       Object.freeze({ selector: '#contact-route-description.route-centered-page__description', count: 1 }),
     ]),
   }),
-  playground: Object.freeze({
-    applicable: false,
-    state: 'production-coming-soon',
-    reason: 'The production Lab contract renders only the Coming soon title and has no supporting normal text.',
-    markerSelector: '#playground-coming-soon-title.route-centered-page__title',
-    markerCount: 1,
-    unexpectedSelector: '.route-centered-page__description, .route-intro-description, .gate-description',
-  }),
 });
 
 function getFocusContract(routeId, profile) {
+  const routeTabIndicator = profile.id === 'mobile-reduced' ? 'outline' : 'underline';
   const shellExpectations = [
-    { selector: '[data-button-bar-item]', count: 5, indicator: 'underline' },
+    { selector: '[data-button-bar-item]', count: 4, indicator: routeTabIndicator },
     {
       selector: '.button-bar__sound-toggle',
       count: 1,
@@ -111,7 +113,19 @@ function getFocusContract(routeId, profile) {
       ...shellExpectations,
     ],
     portfolio: [
-      { selector: '.portfolio-project-card.is-active[tabindex="0"]', count: 1, indicator: 'underline' },
+      {
+        selector: '[data-playground-viewport][tabindex="0"]',
+        count: 1,
+        indicator: 'dual-ring',
+        minimumPassingEdges: 3,
+      },
+      {
+        selector: WORK_CASE_STUDY_SELECTOR,
+        count: 1,
+        indicator: 'dual-ring',
+        allowFocusReposition: true,
+        outlineRasterTolerancePx: 2,
+      },
       ...shellExpectations,
     ],
     about: [...shellExpectations],
@@ -120,12 +134,11 @@ function getFocusContract(routeId, profile) {
       { selector: '.contact-linkedin-action', count: 1, indicator: 'dual-ring' },
       ...shellExpectations,
     ],
-    playground: [...shellExpectations],
   };
   return {
     id: `${routeId}-settled`,
     scopeSelector: null,
-    expectations: routeExpectations[routeId],
+    expectations: routeId === 'portfolio' && !workCanvasUrl ? shellExpectations : routeExpectations[routeId],
   };
 }
 
@@ -163,7 +176,9 @@ const focusSuppressionMutationContracts = Object.freeze({
       selector: '#expertise-legend .legend__item--interactive:not(:first-child)',
     }),
   ]),
-  'portfolio-settled': Object.freeze({ family: 'underline', selector: '.portfolio-project-card.is-active[tabindex="0"]' }),
+  'portfolio-settled': Object.freeze(workCanvasUrl
+    ? { family: 'dual-ring', selector: WORK_CASE_STUDY_SELECTOR }
+    : { family: 'outline', selector: '.button-bar__sound-toggle, .button-bar__theme-toggle' }),
   'portfolio-project-drawer': Object.freeze({ family: 'localized-cue', selector: '.portfolio-project-view__scroll[tabindex="0"]' }),
 });
 
@@ -491,6 +506,9 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
           expectedIndicator: expectation?.indicator || 'outline',
           allowFocusReposition: Boolean(expectation?.allowFocusReposition),
           allowPartialViewport: Boolean(expectation?.allowPartialViewport),
+          outlineRasterTolerancePx: Number.isFinite(expectation?.outlineRasterTolerancePx)
+            ? Math.max(0, Math.min(2, expectation.outlineRasterTolerancePx))
+            : 0,
           minimumPassingEdges: Number.isInteger(expectation?.minimumPassingEdges)
             ? expectation.minimumPassingEdges
             : null,
@@ -554,12 +572,18 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
       const indicatorRect = indicatorElement.getBoundingClientRect();
       const indicatorUsesProxy = indicatorElement !== element;
       const outlineWidth = Number.parseFloat(indicatorStyle.outlineWidth || '0');
+      const indicatorLayoutWidth = Number(indicatorElement.offsetWidth);
+      const indicatorLayoutHeight = Number(indicatorElement.offsetHeight);
       const proxyProbeTolerance = indicatorUsesProxy
         ? Math.max(
             outlineWidth,
             (Math.max(
-              Math.abs(indicatorRect.width - indicatorElement.offsetWidth),
-              Math.abs(indicatorRect.height - indicatorElement.offsetHeight),
+              Math.abs(indicatorRect.width - (
+                Number.isFinite(indicatorLayoutWidth) ? indicatorLayoutWidth : indicatorRect.width
+              )),
+              Math.abs(indicatorRect.height - (
+                Number.isFinite(indicatorLayoutHeight) ? indicatorLayoutHeight : indicatorRect.height
+              )),
             ) / 2) + outlineWidth,
           )
         : 0;
@@ -669,6 +693,7 @@ async function writeFocusEvidenceCrop(image, indicator, label, auditId, variant)
   const top = Math.max(0, Math.floor(indicator.rect.y - margin));
   const right = Math.min(image.width, Math.ceil(indicator.rect.x + indicator.rect.width + margin));
   const bottom = Math.min(image.height, Math.ceil(indicator.rect.y + indicator.rect.height + margin));
+  if (right <= left || bottom <= top) return null;
   const crop = new PNG({ width: right - left, height: bottom - top });
   for (let row = 0; row < crop.height; row += 1) {
     const sourceStart = (((top + row) * image.width) + left) * image.channels;
@@ -710,6 +735,16 @@ function buildIndicatorProbePairs(indicator) {
       [0.2, 0.35, 0.5, 0.65, 0.8].map((position) => ({
         edge: `underline-line-${lineIndex + 1}`,
         bands: [
+          {
+            name: 'underline-element-inset-edge',
+            points: buildBandPoints({
+              x: lineRect.x + (lineRect.width * position),
+              // The shell label pairs text-decoration with a 2 px inset
+              // bottom stroke. Probe the underlined element's painted edge,
+              // whose box is tighter than the DOM Range line box.
+              y: rect.y + rect.height - (indicator.width / 2),
+            }, 'bottom', indicator.width),
+          },
           {
             name: 'underline-line-box',
             points: buildBandPoints({
@@ -917,7 +952,16 @@ async function readIndicatorGeometry(locator, indicatorKind) {
         }
       } else {
         const proxy = element.querySelector('[data-focus-indicator-proxy]');
-        if (proxy && getComputedStyle(proxy).outlineStyle !== 'none') {
+        const elementStyle = getComputedStyle(element);
+        const elementOutlineVisible = elementStyle.outlineStyle !== 'none'
+          && Number.parseFloat(elementStyle.outlineWidth || '0') >= 2
+          && elementStyle.outlineColor !== 'transparent';
+        const proxyStyle = proxy ? getComputedStyle(proxy) : null;
+        const proxyOutlineVisible = Boolean(proxyStyle)
+          && proxyStyle.outlineStyle !== 'none'
+          && Number.parseFloat(proxyStyle.outlineWidth || '0') >= 2
+          && proxyStyle.outlineColor !== 'transparent';
+        if (!elementOutlineVisible && proxyOutlineVisible) {
           indicatorRect = proxy.getBoundingClientRect();
         }
       }
@@ -941,7 +985,8 @@ async function readIndicatorGeometry(locator, indicatorKind) {
 }
 
 function analyzeFocusPixelFrames(unfocusedImage, unfocusedVerificationImage, focusedImage, indicator) {
-  const pairs = buildIndicatorProbePairs(indicator).filter(({ bands }) => (
+  const candidatePairs = buildIndicatorProbePairs(indicator);
+  const pairs = candidatePairs.filter(({ bands }) => (
     bands.every(({ points }) => points.every(({ x, y }) => (
       x >= 0 && x < focusedImage.width && y >= 0 && y < focusedImage.height
     )))
@@ -1043,6 +1088,9 @@ function analyzeFocusPixelFrames(unfocusedImage, unfocusedVerificationImage, foc
       ? edgeSummaries.length
       : 4;
   return {
+    focusedFrame: { width: focusedImage.width, height: focusedImage.height },
+    candidateProbePairCount: candidatePairs.length,
+    inFrameProbePairCount: pairs.length,
     requiredPassingEdges,
     passingEdgeCount: passingEdges.length,
     passes: passingEdges.length >= requiredPassingEdges,
@@ -1094,6 +1142,13 @@ async function captureFocusIndicatorEvidence(page, target, label, { suppressFocu
   }
     const indicator = {
       ...target.indicator,
+      // Chromium can rasterize a transformed fractional outline up to its own
+      // 2 CSS px width inside the computed band. Keep the tolerance explicit
+      // and target-scoped while still requiring every edge to pass.
+      proxyProbeTolerance: Math.max(
+        target.indicator.proxyProbeTolerance || 0,
+        target.outlineRasterTolerancePx || 0,
+      ),
       allowPartialViewport: target.allowPartialViewport,
       minimumPassingEdges: target.minimumPassingEdges,
       minimumPassingEdgesWhenClipped: target.minimumPassingEdgesWhenClipped,
@@ -1115,7 +1170,11 @@ async function captureFocusIndicatorEvidence(page, target, label, { suppressFocu
 }
 
 function validateFocusPixelEvidence(observation, target, label) {
-  assert(observation.actualPixelSamples.length > 0, `${label}: ${target.label} had no in-frame focus-pixel probes`, target);
+  assert(
+    observation.actualPixelSamples.length > 0,
+    `${label}: ${target.label} had no in-frame focus-pixel probes`,
+    { ...target, ...observation },
+  );
   for (const sample of observation.actualPixelSamples) {
     for (const band of sample.bandSamples) {
       for (const pixel of band.pixels) {
@@ -1192,12 +1251,13 @@ async function prepareSettledRouteState(page, routeId) {
   if (routeId === 'home') {
     await page.locator('.simulation-focus-switcher').waitFor({ state: 'visible', timeout: 30_000 });
   }
-  if (routeId !== 'portfolio') return;
+  if (routeId !== 'portfolio' || !workCanvasUrl) return;
   await page.waitForFunction(() => {
-    const mount = document.getElementById('portfolioProjectMount');
-    const activeCard = mount?.querySelector('.portfolio-project-card.is-active');
-    return mount?.dataset?.portfolioEntrancePhase === 'complete'
-      && activeCard?.getAttribute('tabindex') === '0';
+    const route = document.querySelector('[data-work-experience="true"]');
+    const activeCard = route?.querySelector(
+      '.playground-item--case-study .portfolio-project-card[tabindex="0"]',
+    );
+    return route?.dataset?.playgroundReady === 'true' && Boolean(activeCard);
   }, undefined, { timeout: 30_000, polling: 25 });
 }
 
@@ -1273,20 +1333,6 @@ async function auditFocusState(page, contract, keyboardKey, label) {
 
 async function auditContrastState(page, routeId, label) {
   const contract = contrastContracts[routeId];
-  if (routeId === 'playground' && contract.applicable) {
-    await page.evaluate(() => window.__ABS_PLAYGROUND__?.recenter?.());
-    await page.waitForFunction(() => {
-      const description = document.querySelector('#playground-route-description');
-      const rect = description?.getBoundingClientRect();
-      return Boolean(
-        rect
-        && rect.bottom > 0
-        && rect.top < innerHeight
-        && rect.right > 0
-        && rect.left < innerWidth
-      );
-    }, undefined, { timeout: 10_000, polling: 'raf' });
-  }
   const frameCount = routeId === 'home' ? 3 : 1;
   const frames = [];
   for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
@@ -1551,7 +1597,12 @@ async function run() {
   assert(profiles.length > 0, `Unsupported ABS_AUDIT_PROFILE=${profileOption}`);
 
   await mkdir(outputRoot, { recursive: true });
-  const preview = await startProductionPreview({ repoRoot, host: '127.0.0.1', port: 8029 });
+  const preview = workCanvasUrl
+    ? { baseUrl: workCanvasUrl, stop: async () => {}, getLogs: () => '' }
+    : await startProductionPreview({ repoRoot, host: '127.0.0.1', port: 8029 });
+  const auditRoutes = RELEASE_SMOKE_ROUTES.map((route) => route.id === 'portfolio' && workCanvasUrl
+    ? { ...route, identitySelector: '[data-work-experience="true"][data-playground-ready="true"]' }
+    : route);
   const results = [];
   try {
     for (const browserName of browserNames) {
@@ -1575,7 +1626,7 @@ async function run() {
               window.__ABS_RELEASE_SMOKE_EVENTS__ = { routeFailures: [], pageErrors: [] };
             }, theme);
             try {
-              for (const route of RELEASE_SMOKE_ROUTES.filter((candidate) => (
+              for (const route of auditRoutes.filter((candidate) => (
                 routeOption === 'all' || candidate.id === routeOption
               ))) {
                 const page = await context.newPage();
@@ -1601,8 +1652,8 @@ async function run() {
 
                   let contrastObservation;
                   const reverseNavigation = {};
-                  if (route.id === 'portfolio') {
-                    const activeCard = page.locator('.portfolio-project-card.is-active[tabindex="0"]');
+                  if (route.id === 'portfolio' && workCanvasUrl) {
+                    const activeCard = page.locator(WORK_CASE_STUDY_SELECTOR);
                     await activeCard.click();
                     await waitForPortfolioGate(page);
                     contrastObservation = await auditContrastState(page, route.id, `${label}/gate`);
@@ -1621,7 +1672,7 @@ async function run() {
                     await page.keyboard.press('Escape');
                     await waitForPortfolioGateClosed(page);
                     await page.waitForFunction(() => (
-                      document.activeElement?.matches('.portfolio-project-card.is-active[tabindex="0"]')
+                      document.activeElement?.matches('.playground-item--case-study .portfolio-project-card[tabindex="0"]')
                     ), undefined, { timeout: 2_000, polling: 25 });
                     reverseNavigation.gateReturnedToCard = await activeCard.evaluate((element) => document.activeElement === element);
                     assert(reverseNavigation.gateReturnedToCard, `${label}: closing the gate did not restore active-card focus`);
@@ -1647,12 +1698,12 @@ async function run() {
                     await page.keyboard.press('Enter');
                     await waitForPortfolioDrawer(page, false);
                     await page.waitForFunction(() => (
-                      document.activeElement?.matches('.portfolio-project-card.is-active[tabindex="0"]')
+                      document.activeElement?.matches('.playground-item--case-study .portfolio-project-card[tabindex="0"]')
                     ), undefined, { timeout: 2_000, polling: 25 });
                     reverseNavigation.drawerReturnedToCard = await activeCard.evaluate((element) => document.activeElement === element);
                     assert(reverseNavigation.drawerReturnedToCard, `${label}: closing the drawer did not restore active-card focus`);
 
-                    const restoredCard = page.locator('.portfolio-project-card.is-active[tabindex="0"]');
+                    const restoredCard = page.locator(WORK_CASE_STUDY_SELECTOR);
                     await restoredCard.click();
                     await waitForPortfolioDrawer(page);
                     const liveOriginBack = page.locator('.portfolio-project-view__back--top');
@@ -1660,7 +1711,7 @@ async function run() {
                     await page.keyboard.press('Enter');
                     await waitForPortfolioDrawer(page, false);
                     await page.waitForFunction(() => (
-                      document.activeElement?.matches('.portfolio-project-card.is-active[tabindex="0"]')
+                      document.activeElement?.matches('.playground-item--case-study .portfolio-project-card[tabindex="0"]')
                     ), undefined, { timeout: 2_000, polling: 25 });
                     reverseNavigation.drawerReturnedToLiveCard = await restoredCard.evaluate((element) => (
                       document.activeElement === element

@@ -13,7 +13,6 @@ const routes = [
   ['home', '/index.html'],
   ['work', '/portfolio.html'],
   ['about', '/about.html'],
-  ['lab', '/playground.html'],
   ['contact', '/contact.html'],
 ];
 

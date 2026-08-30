@@ -1,6 +1,6 @@
 export function PortfolioComingSoon() {
   return (
-    <div className="route-centered-page" data-route-content="portfolio">
+    <div className="route-centered-page" data-route-content="portfolio" data-work-publication="held">
       <section
         className="route-centered-page__inner"
         aria-labelledby="portfolio-coming-soon-title"

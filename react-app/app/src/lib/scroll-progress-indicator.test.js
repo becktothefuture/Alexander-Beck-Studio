@@ -7,7 +7,7 @@ import {
   SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
 } from './scroll-progress-indicator.js';
 
-test('the shared About and Portfolio tracker moves two active ticks across eighteen positions', () => {
+test('the Portfolio tracker moves two active ticks across eighteen positions', () => {
   assert.equal(SCROLL_PROGRESS_INDICATOR_TICK_COUNT, 18);
   assert.equal(SCROLL_PROGRESS_INDICATOR_ACTIVE_TICK_COUNT, 2);
   assert.deepEqual(resolveScrollProgressIndicatorState(0), {

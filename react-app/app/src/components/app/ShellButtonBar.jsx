@@ -365,13 +365,14 @@ export function ShellButtonBar({
       <nav
         ref={primaryNavRef}
         className={primaryNavClassName}
-        aria-label={preview ? 'Playground route buttons' : 'Primary buttons'}
+        aria-label={preview ? 'Preview route buttons' : 'Primary buttons'}
         aria-keyshortcuts={!preview ? 'ArrowLeft ArrowRight' : undefined}
         data-button-group="primary-buttons"
         data-button-bar-nav
         data-route-tabs
         data-active-route={activeRouteTab?.routeId}
         data-pending-route={normalizedPendingRouteId || undefined}
+        style={{ '--shell-route-tab-count': SHELL_ROUTE_TABS.length }}
       >
         <span className="button-bar__active-pill" aria-hidden="true" />
         <div className="button-bar__route-cluster">

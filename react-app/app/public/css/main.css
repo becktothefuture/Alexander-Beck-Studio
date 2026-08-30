@@ -2692,6 +2692,13 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   translate: 0 -1px;
 }
 
+.abs-circular-utility.abs-icon-btn[data-focus-contrast='complementary']:focus-visible {
+  outline: var(--abs-focus-ring-width) solid rgb(var(--abs-rgb-white));
+  outline-offset: var(--abs-focus-ring-offset);
+  box-shadow: 0 0 0 calc(var(--abs-focus-ring-offset) + var(--abs-focus-ring-width))
+    rgb(var(--abs-rgb-black));
+}
+
 @media (hover: hover) and (pointer: fine) {
   :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):hover:where(:not(:focus-visible, :disabled)) {
     background: var(--abs-soft-control-fill-hover);
@@ -4127,7 +4134,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 
 .shell-tab-nav {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
   align-items: stretch;
   gap: var(--shell-tab-gap, 12px);
   width: 100%;
@@ -4816,13 +4823,13 @@ svg.shell-tab__icon {
   }
 
   .shell-tab-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
     gap: var(--shell-tab-gap, 10px);
     min-height: var(--shell-tab-height, 48px);
   }
 
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
     --button-bar-primary-inner-gap: 2px;
     gap: var(--button-bar-primary-inner-gap);
   }
@@ -4908,7 +4915,7 @@ svg.shell-tab__icon {
 
 @media (max-width: 480px) {
   .button-bar__primary-buttons.shell-tab-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
   }
 
   .button-bar__primary-buttons .shell-tab {
@@ -4925,7 +4932,7 @@ svg.shell-tab__icon {
 
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 2px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
   }
 
   .button-bar__divider {
@@ -4943,7 +4950,7 @@ svg.shell-tab__icon {
 @media (min-width: 601px) and (max-width: 680px) {
   .button-bar__primary-buttons.shell-tab-nav {
     --button-bar-primary-inner-gap: 8px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--shell-route-tab-count, 4), minmax(0, 1fr));
     gap: var(--button-bar-primary-inner-gap);
   }
 
