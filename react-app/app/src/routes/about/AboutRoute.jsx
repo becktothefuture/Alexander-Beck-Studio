@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { AboutComingSoon } from './AboutComingSoon.jsx';
+import { AboutNarrativeLoadingFrame } from './AboutNarrativeLoadingFrame.jsx';
 
 let aboutNarrativeExperiencePromise = null;
 
@@ -67,7 +68,7 @@ export function getAboutRouteView(canonicalHref) {
     contentRenderKey: 'about-narrative',
     studioWindowClassName: 'about-simulation route-page-window w-embed',
     simulationLayer: (
-      <Suspense fallback={null}>
+      <Suspense fallback={<AboutNarrativeLoadingFrame />}>
         <AboutNarrativeExperience
           routeContentId="about"
           showIndicator

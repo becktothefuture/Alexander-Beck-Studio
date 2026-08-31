@@ -26,16 +26,46 @@ const composerSource = await readFile(new URL(
   import.meta.url,
 ), 'utf8');
 
-function compile(layoutProfile = 'desktop') {
+function compile(layoutProfile = 'desktop', motionProfile = 'full') {
   const plan = compileAboutNarrativeComposerPlan(canonical, {
     previewLayoutProfile: layoutProfile,
-    previewMotionProfile: 'full',
+    previewMotionProfile: motionProfile,
     inlineSize: layoutProfile === 'mobile' ? 390 : layoutProfile === 'tablet' ? 1024 : 1440,
     blockSize: layoutProfile === 'mobile' ? 844 : 1000,
   });
   assert.equal(plan.valid, true, JSON.stringify(plan.diagnostics, null, 2));
   return plan;
 }
+
+test('Composer ambient motion advances independently of a held story position', () => {
+  const plan = compile();
+  const frame = createAboutNarrativeComposerFrameSample();
+  const first = sampleAboutNarrativeComposerPlanInto(
+    plan,
+    10.5,
+    frame,
+    { ambientSeconds: 2, deltaSeconds: 1 / 60 },
+  );
+  assert.equal(first.storyWU, 10.5);
+  assert.equal(first.ambientTime, 2);
+  const second = sampleAboutNarrativeComposerPlanInto(
+    plan,
+    10.5,
+    frame,
+    { ambientSeconds: 4.25, deltaSeconds: 1 / 60 },
+  );
+  assert.equal(second.storyWU, 10.5);
+  assert.equal(second.ambientTime, 4.25);
+
+  const reducedPlan = compile('desktop', 'reduced');
+  const reduced = sampleAboutNarrativeComposerPlanInto(
+    reducedPlan,
+    10.5,
+    createAboutNarrativeComposerFrameSample(),
+    { ambientSeconds: 4.25, deltaSeconds: 1 / 60 },
+  );
+  assert.equal(reduced.ambientTime, 0);
+});
 
 test('the production Composer has no legacy renderer bridge or v5 runtime delegation', () => {
   assert.doesNotMatch(composerSource, /PointFieldRendererBridge/);
@@ -61,7 +91,6 @@ test('Composer preparation and sampling retain caller-owned hot-frame containers
     active: frame.interactions.activeClipIds,
     activated: frame.interactions.activatedClipIds,
     pointField: frame._pointFieldFrame,
-    disciplineWeights: frame._disciplineReveal.weights,
   };
   for (let storyWU = 0; storyWU <= plan.durationWU; storyWU += 0.025) {
     const sampled = sampleAboutNarrativeComposerPlanInto(plan, storyWU, frame);
@@ -75,10 +104,9 @@ test('Composer preparation and sampling retain caller-owned hot-frame containers
     assert.equal(sampled.interactions.activeClipIds, identities.active);
     assert.equal(sampled.interactions.activatedClipIds, identities.activated);
     assert.equal(sampled._pointFieldFrame, identities.pointField);
-    assert.equal(sampled._disciplineReveal.weights, identities.disciplineWeights);
   }
   const request = getAboutNarrativeComposerPreparationRequest(plan, 9.5);
-  assert.equal(request.targetWorldId, 'world-grid');
+  assert.equal(request.targetWorldId, 'v2-long-assembly');
   assert.equal(request.sequenceKey, plan.worldSequenceKey);
 });
 

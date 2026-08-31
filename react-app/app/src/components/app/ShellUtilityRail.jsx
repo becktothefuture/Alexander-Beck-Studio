@@ -8,6 +8,7 @@ export function ShellUtilityRail() {
       data-shell-utility-rail
     >
       <ShellUtilityControls />
+      <div id="shell-route-utility-slot" className="shell-route-utility-slot" />
     </div>
   );
 }

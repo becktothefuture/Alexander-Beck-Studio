@@ -1,0 +1,130 @@
+{
+  "schema": "about-cinematic-copy-candidate/v1",
+  "status": "draft_for_review_not_applied",
+  "preparedAt": "2026-08-31",
+  "sourceDocument": "react-app/app/public/config/contents-about.json",
+  "sourceSha256": "e0a1d09e5abbf50cc266949458cf02813f8cf9cb28ebfb7607c7478c3a16d7eb",
+  "purpose": "Complete, concise copy proposal for the existing About narrative. This is an editorial change manifest, not a runtime configuration.",
+  "revision": {
+    "reason": "Alex clarified that he studied Computer Science for only two semesters. Focus the title pair on visual language, not a transition between courses.",
+    "previousSourceSha256": "4aa44aabc6be9e0a128f5f448302699666bdc69c613e5d76f7f0744d02943936",
+    "baselineReconciliation": "All six original field changes, five prose changes and three removals already match the current development document. Rebase this copy-only proposal to that verified source. No canonical file was edited during this revision."
+  },
+  "fieldChanges": [
+    {
+      "id": "text-promise-main",
+      "text": "Hi, I’m Alex.",
+      "description": "I’m a designer at heart. I work across product design, visual systems, motion, 3D and code."
+    },
+    {
+      "id": "text-complexity-idea",
+      "text": "I’ve always been fascinated by…"
+    },
+    {
+      "id": "text-complexity-conditions",
+      "text": "…how ideas become visual."
+    },
+    {
+      "id": "text-complexity-curiosity",
+      "text": "The problems that interest me…"
+    },
+    {
+      "id": "text-complexity-listen",
+      "text": "…rarely belong to one discipline."
+    },
+    {
+      "id": "text-life-momentum",
+      "text": "Make the work visible early."
+    }
+  ],
+  "moduleChanges": [
+    {
+      "fieldId": "text-background-unit",
+      "moduleId": "context",
+      "text": "I studied Communication Design in Mainz after two semesters of Computer Science. I wanted to explore visual language."
+    },
+    {
+      "fieldId": "text-background-unit",
+      "moduleId": "practice",
+      "text": "I look for the thought that gives the work its direction. I want to make things clear without losing their character."
+    },
+    {
+      "fieldId": "text-disciplines-title",
+      "moduleId": "ai-judgement",
+      "text": "A decision in one discipline changes what’s possible in another. I use motion, code and AI to turn assumptions into things we can test."
+    },
+    {
+      "fieldId": "text-life-character",
+      "moduleId": "begin",
+      "text": "I question the brief, then make something early. A real thing reveals more than a long explanation."
+    },
+    {
+      "fieldId": "text-life-character",
+      "moduleId": "make",
+      "text": "With a working prototype, we can test behaviour and motion together. If an interaction is hard to follow, I can change it in code and test it again."
+    },
+    {
+      "fieldId": "text-life-character",
+      "moduleId": "collaborate",
+      "text": "I set a clear direction and invite collaborators to challenge it while decisions are open. I stay involved through delivery, keeping the central idea visible as the details evolve."
+    }
+  ],
+  "removeFields": [],
+  "removeModules": [],
+  "preserve": {
+    "careerItemIds": [
+      "dennerlein",
+      "yoti",
+      "hugo-and-cat",
+      "mrm",
+      "critical-mass"
+    ],
+    "disciplineItemIds": [
+      "product-design",
+      "experience-design",
+      "art-direction",
+      "motion-and-3d",
+      "creative-engineering",
+      "parametric-systems"
+    ],
+    "clientItemCount": 15,
+    "unchangedModules": [
+      "career-turns",
+      "career-sequence",
+      "selected-clients"
+    ],
+    "unchangedFields": [
+      "text-discipline-labels",
+      "text-epilogue-shaping",
+      "text-epilogue-thinking",
+      "text-epilogue-invitation"
+    ],
+    "contactActions": [
+      "email-copy",
+      "linkedin"
+    ]
+  },
+  "limits": {
+    "coreWords": 280,
+    "readerFacingWords": 419,
+    "textFields": 13
+  },
+  "expectedCounts": {
+    "coreWords": 261,
+    "readerFacingWords": 400,
+    "textFields": 13,
+    "careerWords": 35
+  },
+  "factualHandling": {
+    "retainedCopy": "Existing biographical claims are retained from the authored About document; this draft does not independently verify them.",
+    "education": "Alex confirmed on 31 August 2026 that Computer Science lasted two semesters. Keep that as brief body context, not a title, degree claim or defining career transition. Communication Design in Mainz remains the design education in focus.",
+    "newMethodCopy": "A proposed description of working practice, not a claim that a particular client project or outcome occurred.",
+    "projectProof": "No new client anecdote is supplied. An approved decision-and-consequence account may replace the existing make module within the same word allowance; it must not add another block.",
+    "mrm": "Keep Joined 2024; do not infer a leaving date or current employment.",
+    "hugoAndCat": "Keep the authored Associate Design Director role. Do not invent intermediate promotions.",
+    "criticalMass": "Keep the user-supplied May–Sep 2026 range in the review draft. September is after the preparation date; confirm whether this is a planned contract end or a year correction before public release.",
+    "yoti": "Retain the user's provisional acceptance of the existing dates; do not add a new project outcome.",
+    "aha": "No new American Heart Association project copy or outcome claims. Existing client-mark retention does not remove the portfolio hold."
+  },
+  "implementationDependency": "The current source already retires text-life-form and the two repeated synthesis modules. Preserve the method's camera/journey migration to text-life-momentum:focus and recompile measured story layout after copy changes. This copy-only reconciliation does not certify the animation or its bindings. Do not paste this manifest into production as a full document."
+}

@@ -5,7 +5,7 @@ import {
 const RESPONSE_99_PERCENT = 4.60517;
 
 export const ABOUT_NARRATIVE_CAMERA_STEADYCAM_DEFAULTS = Object.freeze({
-  responseMs: 260,
+  responseMs: 420,
 });
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));

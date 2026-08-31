@@ -220,8 +220,8 @@ export function normalizeAboutNarrativeDocument(input = {}) {
         cadence: Number(camera.cadence ?? 1),
         cadenceLocked: camera.cadenceLocked !== false,
         fov: fallbackFov,
-        distanceFogStartWU: Number(camera.distanceFogStartWU ?? 8),
-        distanceFogEndWU: Number(camera.distanceFogEndWU ?? 18),
+        distanceFogStartWU: Number(camera.distanceFogStartWU ?? 14),
+        distanceFogEndWU: Number(camera.distanceFogEndWU ?? 70),
       },
       pointMaterial: {
         opacity: Number(pointMaterial.opacity ?? 0.96),
@@ -361,7 +361,7 @@ export function validateAboutNarrativeDocument(input, {
   });
   [
     ['camera.distanceFogStartWU', globals.camera?.distanceFogStartWU, 0, 40],
-    ['camera.distanceFogEndWU', globals.camera?.distanceFogEndWU, 0.1, 80],
+    ['camera.distanceFogEndWU', globals.camera?.distanceFogEndWU, 0.1, 240],
   ].forEach(([path, value, min, max]) => {
     if (value != null && (!finite(value) || Number(value) < min || Number(value) > max)) {
       diagnostics.push({ level: 'error', code: 'global-range', path: `globals.${path}`, message: `Value must be finite and between ${min} and ${max}.` });

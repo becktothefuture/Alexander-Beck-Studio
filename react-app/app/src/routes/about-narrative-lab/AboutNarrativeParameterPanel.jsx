@@ -171,12 +171,29 @@ function getPanelStatus(snapshot, message) {
   return 'Ready';
 }
 
+function createParameterSnapshotReader(store) {
+  let previous = null;
+  let parameters = null;
+  return () => {
+    const next = store.getSnapshot();
+    // The form does not display the playhead. Scroll transport updates must
+    // not render all of its controls, including while the panel is hidden.
+    if (!previous || Object.keys(next).some((key) => key !== 'transport' && next[key] !== previous[key])) {
+      parameters = { ...next };
+      delete parameters.transport;
+    }
+    previous = next;
+    return parameters;
+  };
+}
+
 export default function AboutNarrativeParameterPanel({
   onRequestClose,
   store,
   visible,
 }) {
-  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const getParameterSnapshot = useMemo(() => createParameterSnapshotReader(store), [store]);
+  const snapshot = useSyncExternalStore(store.subscribe, getParameterSnapshot, getParameterSnapshot);
   const panelRef = useRef(null);
   const [message, setMessage] = useState('Loading canonical source…');
   const controls = useMemo(() => ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.flatMap(
@@ -282,7 +299,7 @@ export default function AboutNarrativeParameterPanel({
       </header>
 
       <p className="about-scene-parameter-panel__note">
-        Camera path, roll, and geometry stay Blender-authored. These controls tune the complete rendered experience.
+        Blender owns rail shape, gates, roll, and 65° FOV. These live controls tune the rendered scene and save to the About source.
       </p>
 
       <div className="parameterizer-scroll">

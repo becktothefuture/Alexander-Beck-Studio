@@ -12,6 +12,10 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
 import { createAboutSurfelPaletteRoles } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelPalette.js';
 import {
+  createAboutNarrativeCameraSteadycamController,
+  createAboutNarrativeCameraSteadycamSample,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
+import {
   SIMULATION_MATERIAL_ROLE_COUNT,
 } from '../react-app/app/src/palette/simulationPaletteContract.js';
 
@@ -81,7 +85,7 @@ test('the canonical About source preserves the complete authored text spine and 
   });
   assert.equal(loaded.valid, true, loaded.message);
   const textById = new Map(document.tracks.text.fields.map((field) => [field.id, field]));
-  assert.equal(document.tracks.text.fields.length, 12);
+  assert.equal(document.tracks.text.fields.length, 13);
   assert(document.tracks.text.fields.every((field) => field.flow));
   assertMomentBound(document.tracks.pointField.keys, textById, 'Point-field key');
   assertMomentBound(document.tracks.visibility.keys, textById, 'Visibility key');
@@ -102,6 +106,9 @@ test('the canonical graph keeps one permanent Blender-backed world', () => {
   assert.equal(document.tracks.camera.orbit, undefined);
   assert.equal(document.globals.pointMaterial.opacity, 1);
   assert.equal(document.globals.pointMaterial.pointerForcePx, 0);
+  assert.equal(document.globals.camera.steadycamResponseMs, 0);
+  assert.equal(document.globals.camera.pointerPanDegrees, 0);
+  assert.equal(document.globals.scrollSmoothing, 0);
   assert(document.tracks.visibility.keys.every((key) => key.visibility === 1));
   const activeGraph = JSON.stringify({
     camera: document.tracks.camera,
@@ -131,20 +138,64 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
   assert.equal(assetMeta.schema, 'about-point-scene');
   assert.equal(assetMeta.version, 2);
   assert.equal(assetMeta.layout.strideBytes, SURFEL_STRIDE_BYTES);
-  assert.equal(assetMeta.profiles.desktop.surfelCount, 60_000);
-  assert.equal(assetMeta.profiles.mobile.surfelCount, 20_000);
+  assert.equal(assetMeta.profiles.desktop.surfelCount, 90_000);
+  assert.equal(assetMeta.profiles.mobile.surfelCount, 30_000);
   assert(assetMeta.profiles.mobile.surfelCount <= assetMeta.profiles.desktop.surfelCount);
   assert.equal(assetMeta.profiles.master.surfelCount, assetMeta.files.surfels.count);
-  assert.equal(assetMeta.models.length, 9);
+  assert.equal(assetMeta.models.length, 6);
+  assert.deepEqual(
+    new Set(assetMeta.models.map((model) => model.key)),
+    new Set(['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05']),
+  );
+  const expectedVisibilityCues = new Map([
+    ['about.00', ['opening', 'inciting-question']],
+    ['about.01', ['inciting-question', 'portal-entry']],
+    ['about.02', ['portal-entry', 'portal-exit']],
+    ['about.03', ['portal-exit', 'gate-entry']],
+    ['about.04', ['gate-entry', 'gate-exit']],
+    ['about.05', ['gate-exit', 'terminal-hold']],
+  ]);
   for (const model of assetMeta.models) {
     assert(model.surfelRange.count > 0, `${model.id} has no master surfels`);
     assert(assetMeta.profiles.desktop.perModelCounts[model.key] > 0, `${model.key} has no desktop surfels`);
     assert(assetMeta.profiles.mobile.perModelCounts[model.key] > 0, `${model.key} has no mobile surfels`);
+    assert(Number.isFinite(model.visibilityStartWU), `${model.key} has no visibility start`);
+    assert(Number.isFinite(model.visibilityEndWU), `${model.key} has no visibility end`);
+    assert(model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.2);
+    assert.deepEqual(
+      [model.visibilityStartCue, model.visibilityEndCue],
+      expectedVisibilityCues.get(model.key),
+      `${model.key} is not bound to its semantic story interval`,
+    );
+    assert(Number.isFinite(model.visibilityStartOffsetWU));
+    assert(Number.isFinite(model.visibilityEndOffsetWU));
   }
+  assert.equal(assetMeta.source.objects.some((object) => object.objectKey === 'gn.lens.chamber'), false);
   assert.match(sceneSource, /const SURFEL_STRIDE_BYTES = 32;/);
   assert.match(sceneSource, /createProgressiveSourceOrder\(meta, qualityTier, totalCount\)/);
   assert.match(sceneSource, /new THREE\.InstancedBufferGeometry\(\)/);
-  for (const attribute of ['iPosition', 'iNormalOct', 'iRadius', 'iPalette', 'iLodRank', 'iRevealRank', 'iMotionGroup', 'iFeatureClass', 'iPreserve']) {
+  assert.match(sceneSource, /function finiteNumberOrNull\(value\)/);
+  assert.match(sceneSource, /value === null \|\| value === undefined \|\| value === ''/);
+  assert.match(sceneSource, /resolveAboutBlenderSceneContract\(/);
+  assert.match(sceneSource, /validateAboutBlenderSceneBundle\(/);
+  assert.doesNotMatch(sceneSource, /unbounded-fallback/);
+  assert.match(sceneSource, /applyResolvedVisibilityWindows\(/);
+  assert.match(sceneSource, /attribute\.needsUpdate = true/);
+  assert.match(sceneSource, /visibilityWindows/);
+  for (const attribute of [
+    'iPosition',
+    'iNormalOct',
+    'iRadius',
+    'iPalette',
+    'iLodRank',
+    'iRevealRank',
+    'iMotionGroup',
+    'iFeatureClass',
+    'iPreserve',
+    'iVisibilityStartWU',
+    'iVisibilityEndWU',
+    'iVisibilityHandoffWU',
+  ]) {
     assert(sceneSource.includes(`setAttribute('${attribute}'`), `runtime omits ${attribute}`);
   }
   for (const retiredAttribute of ['iModel', 'iMotion', 'iFeature']) {
@@ -161,8 +212,13 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /surfaceFacing < -clamp\(uBackfaceRetention/);
   assert.match(sceneSource, /revealVisibility = min\([\s\S]*?fogVisibility[\s\S]*?uSceneVisibility[\s\S]*?uEntranceScale[\s\S]*?uOpacity/);
   assert.match(sceneSource, /revealProgress = smoothstep\([\s\S]*?revealRank \+ 0\.08/);
-  assert.match(sceneSource, /revealRank = min\(iRevealRank \* 0\.12, 0\.119\)/);
+  assert.match(sceneSource, /float manifestationSpread = clamp\(uManifestationSpread, 0\.0, 0\.8\)/);
+  assert.match(sceneSource, /revealRank = min\([\s\S]*?iRevealRank \* manifestationSpread[\s\S]*?manifestationSpread - 0\.001/);
+  assert.match(sceneSource, /uniforms\.uManifestationSpread\.value = controls\.manifestationSpread/);
   assert.match(sceneSource, /revealProgress <= 0\.0[\s\S]*?gl_Position = vec4\(2\.0, 2\.0, 2\.0, 1\.0\)/);
+  assert.match(sceneSource, /stageRevealProgress = smoothstep\(/);
+  assert.match(sceneSource, /uniforms\.uStoryWU\.value = Number\(frame\?\.storyWU\) \|\| 0/);
+  assert.match(sceneSource, /stageVisibilityMode: 'authored-bounded-whole-surfel-handoff'/);
   assert.match(sceneSource, /radiusPx \*= mix\(0\.64, 1\.0, revealProgress\)/);
   assert.doesNotMatch(sceneSource, /radiusPx \*= clamp\(uEntranceScale/);
   assert.match(sceneSource, /float circleRadius = length\(vCircle\);[\s\S]*?if \(circleRadius > 1\.0\) discard;/);
@@ -214,7 +270,8 @@ test('every Blender material keeps its semantic structure inside the Home palett
 
   assert.match(sceneSource, /materialPaletteKey = `\$\{partKey\}:\$\{semanticRole\}`/);
   assert.match(sceneSource, /createAboutSurfelPaletteRoles\(partCount,/);
-  assert.doesNotMatch(sceneSource, /paletteRoles\[index\] = view\.getUint8\(offset \+ 28\)/);
+  assert.match(sceneSource, /sourceObjects\.get\(objectKey\)\?\.role === 'path-tunnel'/);
+  assert.match(sceneSource, /semanticRole % PALETTE_ROLE_COUNT/);
   assert.match(sceneSource, /vec3 shaded = paletteColor\(vPalette\);/);
   assert.doesNotMatch(sceneSource, /normalLight|depthLight/);
 });
@@ -231,19 +288,9 @@ test('all About circles subscribe to the shared scheduled palette', () => {
   assert.match(stylesSource, /--simulation-role-parametric-systems/);
 });
 
-test('the public About finale carries complete third-party model attribution', () => {
-  for (const requiredCredit of [
-    'CRT Computer Monitor',
-    'Cursor 3D',
-    'Generic Mobile Phone',
-    'Mouse with cable',
-    'Pencil',
-    'CC BY 4.0',
-  ]) {
-    assert(experienceSource.includes(requiredCredit), `About finale omits ${requiredCredit}`);
-  }
-  assert.match(experienceSource, /Resampled and recoloured for this scene/);
-  assert.match(experienceSource, /creativecommons\.org\/licenses\/by\/4\.0/);
+test('the public About finale has no model-credit disclosure', () => {
+  assert.doesNotMatch(experienceSource, /3D model credit|ABOUT_SCENE_MODEL_CREDITS/);
+  assert.doesNotMatch(stylesSource, /about-narrative-model-credits/);
 });
 
 test('runtime controls change projected detail, coverage, fog, and coherent motion without rebuilding buffers', () => {
@@ -255,7 +302,7 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
   assert.match(sceneSource, /uniforms\.uFogStartWU\.value = controls\.fogStartWU/);
   assert.match(sceneSource, /uniforms\.uFogEndWU\.value = Math\.max\(controls\.fogStartWU \+ 0\.001, controls\.fogEndWU\)/);
   assert.match(sceneSource, /uniforms\.uMotionAmountWU\.value = controls\.motionAmountWU/);
-  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale\)/);
+  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample\)/);
   assert.match(sceneSource, /stableAttributeIdentities\(surfelGeometry\)/);
   assert.match(sceneSource, /lodRadiusScaleMode: 'per-object'/);
   assert.match(sceneSource, /Math\.sqrt\(masterCount \/ Math\.max\(1, profileCount\)\)/);
@@ -271,18 +318,42 @@ test('the exported Blender camera has one sparse roll control and a level ending
   assert.equal(cameraTrack.source, 'ABS_CAMERA');
   assert.equal(cameraTrack.projection.type, 'perspective');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 85);
+  assert.equal(cameraTrack.projection.horizontalFov, 65);
   assert.equal(cameraTrack.sampleCount, cameraTrack.frameEnd - cameraTrack.frameStart + 1);
-  assert(cameraTrack.rollControl.keyframes.length <= 3);
-  assert.equal(cameraTrack.rollControl.keyframes[0].degrees, 0);
-  assert.equal(cameraTrack.rollControl.keyframes.at(-1).degrees, 0);
+  assert.equal(cameraTrack.rollControl.keyframes.length, 9);
+  assert.deepEqual(
+    cameraTrack.rollControl.keyframes.slice(0, 4).map((keyframe) => keyframe.degrees),
+    [0, -8, 8, 0],
+  );
+  assert.deepEqual(
+    cameraTrack.rollControl.keyframes.slice(-5).map((keyframe) => keyframe.degrees),
+    [0, -6, 8, -4, 0],
+  );
   const finalQuaternion = cameraTrack.samples.at(-1).slice(3);
   assert(Math.abs(finalQuaternion[0]) < 0.002);
   assert(Math.abs(finalQuaternion[1]) < 0.002);
   assert(Math.abs(finalQuaternion[2]) < 0.002);
   assert(Math.abs(Math.hypot(...finalQuaternion) - 1) < 0.00001);
-  assert.match(sceneSource, /sampleCameraTrack\([\s\S]{0,160}?cameraTrack,[\s\S]{0,80}?progress,[\s\S]{0,80}?camera\.position,[\s\S]{0,80}?camera\.quaternion,[\s\S]{0,80}?cameraTargetQuaternion/);
+  assert.equal(cameraTrack.orientation.steadycam.lookAheadMetres, 17.73);
+  assert.match(sceneSource, /sampleCameraTrack\([\s\S]{0,160}?cameraTrack,[\s\S]{0,80}?progress,[\s\S]{0,80}?cameraAuthoredPosition,[\s\S]{0,80}?cameraAuthoredQuaternion,[\s\S]{0,80}?cameraTargetQuaternion/);
+  assert.match(sceneSource, /steadycamController\.sampleInto\([\s\S]{0,220}?steadycamSample/);
+  assert.match(sceneSource, /camera\.position\.set\([\s\S]{0,180}?steadycamSample\.position/);
   assert.match(sceneSource, /sampleAuthoredRollDegrees\(cameraTrack, progress\)/);
+});
+
+test('the canonical camera directly follows each scroll sample without drift or settling', () => {
+  const controller = createAboutNarrativeCameraSteadycamController({ initialNowMs: 0 });
+  const sample = createAboutNarrativeCameraSteadycamSample();
+  controller.configure({ steadycamResponseMs: document.globals.camera.steadycamResponseMs });
+  controller.sampleInto(sample, [0, 0, 0], [0, 0, 0, 1], 0, true);
+  controller.sampleInto(sample, [10, 0, 0], [0, 0, 1, 0], 16, false);
+  assert.deepEqual(sample.position, [10, 0, 0]);
+  assert.deepEqual(sample.quaternion, [0, 0, 1, 0]);
+  controller.sampleInto(sample, [10, 0, 0], [0, 0, 1, 0], 1000, false);
+  assert.deepEqual(sample.position, [10, 0, 0], 'Stopping scroll leaves no camera catch-up.');
+  controller.sampleInto(sample, [20, 1, -4], [0, 0, 0, 1], 32, true);
+  assert.deepEqual(sample.position, [20, 1, -4]);
+  assert.deepEqual(sample.quaternion, [0, 0, 0, 1]);
 });
 
 test('canonical titles retain their fast entrance, fade floor, and opaque finale', () => {

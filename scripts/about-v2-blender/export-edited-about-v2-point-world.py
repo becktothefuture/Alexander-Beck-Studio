@@ -24,27 +24,24 @@ BEST_CANDIDATES_PER_SURFEL = 8
 SURFEL_RADIUS_TO_SPACING = 0.56
 ENVIRONMENT_DENSITY_WEIGHT = 0.10
 PORTRAIT_MAX_VERTICAL_FOV_DEGREES = 115
-DEFAULT_SURFEL_BUDGETS = {"mobile": 20000, "desktop": 60000, "master": 90000}
+DEFAULT_SURFEL_BUDGETS = {"mobile": 30000, "desktop": 90000, "master": 135000}
 EXCLUDED_COLLECTIONS = {
-    "07_TERMINAL_BUST", "99_REMOVED_BOTTOM_TRACK_BACKUP", "ABS_CAMERA_RIG",
-    "ABS_GUIDES", "ABS_PREVIEW_LIGHTS",
+    "ABS_CAMERA_RIG", "ABS_GUIDES", "ABS_NARRATIVE_GUIDES", "ABS_PREVIEW_LIGHTS",
+}
+DEPRECATED_SCENE_COLLECTIONS = {
+    "01_SIGNAL", "02_HOOPS", "03_YARD", "03A_ABSTRACT_FIELD", "04_LOOP",
+    "05_IGNITION", "06_LIVING", "ABS_FLOATING_MODELS",
+    "99_ABSTRACT_FIELD_REBUILD_BACKUP", "99_FLOATING_CUBE_BACKUP",
+    "99_PRE_NARRATIVE_WORLD_BACKUP", "99_REMOVED_BOTTOM_TRACK_BACKUP",
+    "99_REPLACED_FLOATING_PROPS_BACKUP",
 }
 REMOVED_GEOMETRY_PATTERN = re.compile(r"(?:^|[_-])(TRACK|RAIL|SLEEPER)(?:$|[_-])", re.I)
 ABS_MATERIAL_ROLE_PATTERN = re.compile(r"^ABS_([0-5])_")
 SITE_BASIS = Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
 PALETTE_ROLES = ("atmosphere", "stone", "steel", "glass", "signal", "organic")
 ROLE_TO_PALETTE = {role: index for index, role in enumerate(PALETTE_ROLES)}
-FALLBACK_ROLE_BY_COLLECTION = {
-    "07_FINALE_WORKBENCH": "finale-workbench",
-    "02_HOOPS": "path-tunnel",
-    "04_LOOP": "path-tunnel",
-    "06_LIVING": "parametric-forest",
-    "ABS_FLOATING_MODELS": "floating-model",
-}
-FALLBACK_PALETTE_BY_ROLE = {
-    "finale-workbench": 2, "path-tunnel": 4,
-    "parametric-forest": 5, "floating-model": 2,
-}
+FALLBACK_ROLE_BY_COLLECTION = {}
+FALLBACK_PALETTE_BY_ROLE = {}
 COMPONENT_POLICY_RULES = {
     "authored-instance-perimeter": {"mode": "all"},
     "authored-instance-angular-coverage": {"mode": "all"},
@@ -64,19 +61,70 @@ COMPONENT_POLICY_RULES = {
         "mode": "meaningful-area", "relativeFloor": 0.0005,
     },
 }
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CANONICAL_ASSET_DIR = (
+    REPO_ROOT / "react-app/app/public/models/about-v2-edited-world"
+).resolve()
 
 
 def parse_args():
     argv = sys.argv
     argv = argv[argv.index("--") + 1:] if "--" in argv else []
     parser = argparse.ArgumentParser(description="Export the About Blender surfel scene.")
-    parser.add_argument("--output-dir", required=True)
+    output_group = parser.add_mutually_exclusive_group(required=True)
+    output_group.add_argument(
+        "--output-dir",
+        help="Explicit export directory. Canonical output requires --allow-canonical-output.",
+    )
+    output_group.add_argument(
+        "--candidate-output-dir",
+        help="Explicit candidate directory for validation before public asset promotion.",
+    )
+    parser.add_argument(
+        "--allow-canonical-output",
+        action="store_true",
+        help="Explicitly permit writing directly to the canonical public asset directory.",
+    )
+    parser.add_argument(
+        "--validate-output-only",
+        action="store_true",
+        help="Validate and report the output directory without exporting files.",
+    )
     parser.add_argument("--slug", default="about-v2-edited-world")
     parser.add_argument("--low", "--mobile", dest="mobile", type=int)
     parser.add_argument("--medium", "--desktop", dest="desktop", type=int)
     parser.add_argument("--master", type=int)
     parser.add_argument("--seed", type=int, default=506832829)
+    parser.add_argument(
+        "--preserve-allocations-from",
+        help="Candidate-only baseline meta.json whose object and profile budgets must remain fixed.",
+    )
     return parser.parse_args(argv)
+
+
+def resolve_export_output_dir(args):
+    raw_output = args.candidate_output_dir or args.output_dir
+    output_dir = Path(raw_output).expanduser()
+    if not output_dir.is_absolute():
+        output_dir = Path.cwd() / output_dir
+    output_dir = output_dir.resolve()
+    study_mode = args.preserve_allocations_from or bpy.context.scene.get("abs_terminal_study")
+    if study_mode and (not args.candidate_output_dir or output_dir == CANONICAL_ASSET_DIR):
+        raise RuntimeError("A terminal study must use a non-canonical candidate directory.")
+    if output_dir == CANONICAL_ASSET_DIR and not args.allow_canonical_output:
+        raise RuntimeError(
+            "Refusing to overwrite canonical About V2 assets. Export to "
+            "--candidate-output-dir first, or pass --allow-canonical-output explicitly."
+        )
+    forbidden_directories = {
+        REPO_ROOT,
+        (REPO_ROOT / "react-app/app/public").resolve(),
+        (REPO_ROOT / "react-app/app/public/models").resolve(),
+        (REPO_ROOT / "source-assets").resolve(),
+    }
+    if output_dir in forbidden_directories:
+        raise RuntimeError(f"Export directory is too broad or source-owned: {output_dir}")
+    return output_dir
 
 
 def blender_to_site(vector):
@@ -124,11 +172,61 @@ def radical_inverse(index, base):
 
 
 def portable_source_path(source_path):
-    repo_root = Path(__file__).resolve().parents[2]
     try:
-        return source_path.relative_to(repo_root).as_posix()
+        return source_path.relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return source_path.name
+
+
+def rounded_vector(values):
+    return [round(float(value), 6) for value in values]
+
+
+def describe_route(scene):
+    route = bpy.data.objects.get("ABS_PARAMETRIC_RIDE_PATH")
+    if route is None or route.type != "CURVE":
+        raise RuntimeError("The scene has no authoritative ABS_PARAMETRIC_RIDE_PATH curve.")
+    splines = []
+    control_point_count = 0
+    for spline in route.data.splines:
+        points = []
+        if spline.type == "BEZIER":
+            for point in spline.bezier_points:
+                points.append({
+                    "co": rounded_vector(point.co),
+                    "handleLeft": rounded_vector(point.handle_left),
+                    "handleRight": rounded_vector(point.handle_right),
+                    "tilt": round(float(point.tilt), 6),
+                })
+        else:
+            for point in spline.points:
+                points.append({
+                    "co": rounded_vector(point.co[:3]),
+                    "tilt": round(float(point.tilt), 6),
+                })
+        control_point_count += len(points)
+        splines.append({
+            "type": spline.type,
+            "cyclic": bool(spline.use_cyclic_u),
+            "points": points,
+        })
+    serialized_shape = json.dumps(splines, sort_keys=True, separators=(",", ":"))
+    evaluated_length = sum(float(spline.calc_length()) for spline in route.data.splines)
+    stage_ranges = None
+    raw_stage_ranges = scene.get("abs_narrative_stage_ranges")
+    if raw_stage_ranges:
+        try:
+            stage_ranges = json.loads(str(raw_stage_ranges))
+        except json.JSONDecodeError as error:
+            raise RuntimeError("Scene abs_narrative_stage_ranges is invalid JSON.") from error
+    return {
+        "object": route.name,
+        "controlPointCount": control_point_count,
+        "evaluatedLength": round(evaluated_length, 6),
+        "shapeSha256": hashlib.sha256(serialized_shape.encode("utf-8")).hexdigest(),
+        "splineCount": len(splines),
+        "stageRanges": stage_ranges,
+    }
 
 
 def eligible_mesh_objects(scene):
@@ -144,6 +242,23 @@ def eligible_mesh_objects(scene):
         semantic_string(item.get("abs_model_id"), item.get("abs_density_group") or item.name),
         semantic_string(item.get("abs_object_id"), item.name),
     ))
+
+
+def assert_clean_scene(scene):
+    deprecated_collections = sorted(
+        name for name in DEPRECATED_SCENE_COLLECTIONS if bpy.data.collections.get(name) is not None
+    )
+    deprecated_objects = sorted(
+        obj.name for obj in scene.objects
+        if obj.name.startswith("ARCHIVED_")
+        or obj.get("abs_archive_reason")
+        or obj.name in {"ABS_CAMERA_PATH", "ABS_BACKUP_RIDE_PATH_PRE_NARRATIVE"}
+    )
+    if deprecated_collections or deprecated_objects:
+        raise RuntimeError(
+            "The About Blender scene still contains deprecated infrastructure: "
+            f"collections={deprecated_collections}, objects={deprecated_objects[:12]}"
+        )
 
 
 def fallback_role(collection_names):
@@ -174,6 +289,9 @@ def object_semantics(obj, collection_names, fallbacks):
     if not motion_key:
         motion_key = f"{model_key}.rigid"
         record_fallback(fallbacks, obj.name, "abs_motion_group", motion_key)
+    motion_subgroups = max(1, int(round(finite_number(obj.get("abs_motion_subgroups"), 1))))
+    if motion_subgroups > 64:
+        raise RuntimeError(f"{obj.name} requests more than 64 coherent motion subgroups.")
     reveal_key = str(obj.get("abs_reveal_group") or "").strip()
     if not reveal_key:
         reveal_key = model_key
@@ -191,19 +309,49 @@ def object_semantics(obj, collection_names, fallbacks):
     feature_priority = finite_number(obj.get("abs_feature_priority"), 1.0)
     if feature_priority is None or feature_priority <= 0:
         raise RuntimeError(f"{obj.name} has invalid abs_feature_priority.")
+    radius_scale = finite_number(obj.get("abs_surfel_radius_scale"), 1.0)
+    if radius_scale is None or radius_scale < 0.25 or radius_scale > 2.5:
+        raise RuntimeError(f"{obj.name} has invalid abs_surfel_radius_scale.")
     return {
         "role": role,
         "modelKey": model_key,
         "objectKey": object_key,
         "motionKey": motion_key,
+        "motionSubgroups": motion_subgroups,
         "revealKey": reveal_key,
         "componentPolicy": component_policy,
         "densityGroup": semantic_string(obj.get("abs_density_group"), model_key),
         "densityFactor": density_factor,
+        "samplingDensityAttribute": str(
+            obj.get("abs_sampling_density_attribute") or ""
+        ).strip() or None,
         "visibilityStartWU": finite_number(obj.get("abs_visibility_start_wu")),
         "visibilityEndWU": finite_number(obj.get("abs_visibility_end_wu")),
+        "visibilityHandoffWU": finite_number(obj.get("abs_visibility_handoff_wu")),
+        "visibilityStartCue": semantic_string(
+            obj.get("abs_visibility_start_cue"), ""
+        ) or None,
+        "visibilityStartOffsetWU": finite_number(
+            obj.get("abs_visibility_start_offset_wu"), 0.0
+        ),
+        "visibilityEndCue": semantic_string(
+            obj.get("abs_visibility_end_cue"), ""
+        ) or None,
+        "visibilityEndOffsetWU": finite_number(
+            obj.get("abs_visibility_end_offset_wu"), 0.0
+        ),
         "preserveMinPx": finite_number(obj.get("abs_preserve_min_px")),
         "featurePriority": feature_priority,
+        "surfelRadiusScale": radius_scale,
+        "geometryKind": str(obj.get("abs_geometry_kind") or "").strip() or None,
+        "cameraPassFrame": finite_number(obj.get("abs_camera_pass_frame")),
+        "cameraClearanceWU": finite_number(obj.get("abs_camera_clearance_wu")),
+        "proximityRole": str(obj.get("abs_proximity_role") or "").strip() or None,
+        "traversalMode": str(obj.get("abs_traversal_mode") or "").strip() or None,
+        "holeRadiusWU": finite_number(obj.get("abs_hole_radius_wu")),
+        "viewportSpan": bool(obj.get("abs_viewport_span", False)),
+        "spanWU": finite_number(obj.get("abs_span_wu")),
+        "instanceCount": max(1, int(round(finite_number(obj.get("abs_instance_count"), 1)))),
     }
 
 
@@ -300,7 +448,7 @@ def collect_scene_geometry(objects):
     fallbacks = []
     for obj in objects:
         evaluated = obj.evaluated_get(depsgraph)
-        mesh = evaluated.to_mesh(preserve_all_data_layers=False, depsgraph=depsgraph)
+        mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
         try:
             mesh.calc_loop_triangles()
             if not mesh.loop_triangles:
@@ -308,6 +456,23 @@ def collect_scene_geometry(objects):
             matrix = evaluated.matrix_world
             collection_names = {collection.name for collection in obj.users_collection}
             semantics = object_semantics(obj, collection_names, fallbacks)
+            sampling_density_attribute = None
+            if semantics["samplingDensityAttribute"]:
+                sampling_density_attribute = mesh.attributes.get(
+                    semantics["samplingDensityAttribute"]
+                )
+                if sampling_density_attribute is None:
+                    raise RuntimeError(
+                        f'{obj.name} is missing authored sampling-density attribute '
+                        f'{semantics["samplingDensityAttribute"]}.'
+                    )
+                if (
+                    sampling_density_attribute.domain != "POINT"
+                    or sampling_density_attribute.data_type != "FLOAT"
+                ):
+                    raise RuntimeError(
+                        f'{obj.name} sampling-density attribute must be POINT/FLOAT.'
+                    )
             fallback_palette = FALLBACK_PALETTE_BY_ROLE.get(semantics["role"], 2)
             transformed = []
             normals = []
@@ -326,9 +491,11 @@ def collect_scene_geometry(objects):
             classes = feature_classes(mesh, normals)
             component_ids = triangle_component_ids(mesh)
             triangles = []
-            cumulative_area = []
+            sampling_triangles = []
+            cumulative_sampling_area = []
             component_areas = {}
             surface_area = 0.0
+            sampling_area = 0.0
             bounds_min = [math.inf, math.inf, math.inf]
             bounds_max = [-math.inf, -math.inf, -math.inf]
             for triangle_index, triangle in enumerate(mesh.loop_triangles):
@@ -345,31 +512,50 @@ def collect_scene_geometry(objects):
                 palette_role = palette_role_from_material(
                     material, fallback_palette, fallbacks, obj.name,
                 )
+                sampling_weight = 1.0
+                if sampling_density_attribute is not None:
+                    sampling_weight = sum(
+                        sampling_density_attribute.data[index].value
+                        for index in triangle.vertices
+                    ) / 3.0
+                    sampling_weight = max(0.0, min(1.0, sampling_weight))
+                weighted_area = area * sampling_weight
                 surface_area += area
-                cumulative_area.append(surface_area)
                 component_id = component_ids[triangle_index]
                 component_areas[component_id] = component_areas.get(component_id, 0.0) + area
-                triangles.append({
+                triangle_record = {
                     "index": len(triangles),
                     "vertices": vertices,
                     "normal": normals[triangle_index],
                     "area": area,
+                    "samplingWeight": sampling_weight,
+                    "weightedArea": weighted_area,
                     "paletteRole": palette_role,
                     "featureClass": classes[triangle_index],
                     "componentId": component_id,
-                })
+                }
+                triangles.append(triangle_record)
+                if weighted_area > 1e-12:
+                    sampling_area += weighted_area
+                    sampling_triangles.append(triangle_record)
+                    cumulative_sampling_area.append(sampling_area)
                 for point in vertices:
                     for axis in range(3):
                         bounds_min[axis] = min(bounds_min[axis], point[axis])
                         bounds_max[axis] = max(bounds_max[axis], point[axis])
             if triangles:
+                if not sampling_triangles or sampling_area <= 1e-12:
+                    raise RuntimeError(f"{obj.name} sampling-density attribute removed its full surface.")
                 surfaces.append({
                     "name": obj.name,
                     **semantics,
+                    "worldOrigin": blender_to_site(matrix.translation),
                     "collections": sorted(collection_names),
                     "triangles": triangles,
-                    "cumulativeArea": cumulative_area,
+                    "samplingTriangles": sampling_triangles,
+                    "cumulativeSamplingArea": cumulative_sampling_area,
                     "surfaceArea": surface_area,
+                    "samplingArea": sampling_area,
                     "componentAreas": component_areas,
                     "connectedComponentCount": len(component_areas),
                     "triangleCount": len(triangles),
@@ -446,9 +632,11 @@ def nearest_grid_distance_squared(point, grid, cell_size):
 def candidate_on_surface(surface, serial, phase):
     progress = (radical_inverse(serial + 1, 2) + phase[0]) % 1.0
     triangle_index = bisect.bisect_left(
-        surface["cumulativeArea"], progress * surface["surfaceArea"],
+        surface["cumulativeSamplingArea"], progress * surface["samplingArea"],
     )
-    triangle = surface["triangles"][min(triangle_index, len(surface["triangles"]) - 1)]
+    triangle = surface["samplingTriangles"][
+        min(triangle_index, len(surface["samplingTriangles"]) - 1)
+    ]
     u = (radical_inverse(serial + 1, 3) + phase[1]) % 1.0
     v = (radical_inverse(serial + 1, 5) + phase[2]) % 1.0
     root_u = math.sqrt(u)
@@ -489,10 +677,13 @@ def prepare_surface_anchor_plan(surface, reference_count):
     component_triangles = {}
     for triangle in surface["triangles"]:
         existing = semantic_triangles.get(triangle["paletteRole"])
-        if existing is None or triangle["area"] > existing["area"]:
+        if existing is None or triangle["weightedArea"] > existing["weightedArea"]:
             semantic_triangles[triangle["paletteRole"]] = triangle
         existing_component = component_triangles.get(triangle["componentId"])
-        if existing_component is None or triangle["area"] > existing_component["area"]:
+        if (
+            existing_component is None
+            or triangle["weightedArea"] > existing_component["weightedArea"]
+        ):
             component_triangles[triangle["componentId"]] = triangle
     protected_components = protected_component_ids(surface, max(1, reference_count))
     anchor_triangle_ids = {
@@ -511,7 +702,7 @@ def scene_density_weight(surface):
 
 
 def sample_surface_progressively(surface, count, export_seed):
-    spacing = math.sqrt(surface["surfaceArea"] / max(1, count))
+    spacing = math.sqrt(surface["samplingArea"] / max(1, count))
     cell_size = max(spacing, 1e-6)
     phase = tuple(stable_phase(export_seed, surface["objectKey"], axis) for axis in range(3))
     grid = {}
@@ -537,10 +728,13 @@ def sample_surface_progressively(surface, count, export_seed):
     component_anchors = {}
     for triangle in surface["triangles"]:
         existing = semantic_anchors.get(triangle["paletteRole"])
-        if existing is None or triangle["area"] > existing["area"]:
+        if existing is None or triangle["weightedArea"] > existing["weightedArea"]:
             semantic_anchors[triangle["paletteRole"]] = triangle
         existing_component = component_anchors.get(triangle["componentId"])
-        if existing_component is None or triangle["area"] > existing_component["area"]:
+        if (
+            existing_component is None
+            or triangle["weightedArea"] > existing_component["weightedArea"]
+        ):
             component_anchors[triangle["componentId"]] = triangle
     protected_components = surface["protectedComponentIds"]
     anchors_by_triangle = {}
@@ -574,6 +768,20 @@ def sample_surface_progressively(surface, count, export_seed):
             "componentAnchor": bool(anchor["componentIds"]),
         }
     surface["protectedComponentCount"] = len(protected_components)
+    if surface["role"] == "narrative-lattice":
+        # A low-detail prefix must sample every strand, not just whichever side
+        # won the earliest best-candidate rounds. Keep the protected anchors and
+        # every point/ordinal intact; only stratify the remaining nested stream.
+        strands = {}
+        for sample in samples[len(anchors):]:
+            strands.setdefault(sample["componentId"], []).append(sample)
+        remainder = []
+        for component_id, strand in strands.items():
+            for index, sample in enumerate(strand):
+                remainder.append(((index + 0.5) / len(strand), component_id, sample))
+        remainder.sort(key=lambda item: (item[0], item[1]))
+        samples = samples[:len(anchors)] + [item[2] for item in remainder]
+        surface["profilePrefixOrder"] = "component-stratified-after-protected-anchors"
     return samples, spacing
 
 
@@ -655,6 +863,70 @@ def sha256_file(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def describe_square_gate_apertures(scene):
+    """Export openings from the evaluated mesh, independently of camera samples."""
+    gate = scene.objects.get("GN_SQUARE_LOOP")
+    if gate is None:
+        return None
+    evaluated = gate.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    mesh = evaluated.to_mesh()
+    try:
+        vertices = [blender_to_site(evaluated.matrix_world @ vertex.co) for vertex in mesh.vertices]
+        neighbours = [set() for _ in vertices]
+        for edge in mesh.edges:
+            first, second = edge.vertices
+            neighbours[first].add(second)
+            neighbours[second].add(first)
+        unseen = set(range(len(vertices)))
+        apertures = []
+        while unseen:
+            pending = [min(unseen)]
+            component = set()
+            while pending:
+                index = pending.pop()
+                if index in component:
+                    continue
+                component.add(index)
+                unseen.discard(index)
+                pending.extend(neighbours[index] - component)
+            if len(component) != 16:
+                raise RuntimeError("Square gate aperture verification requires closed 16-vertex annuli.")
+            points = [vertices[index] for index in sorted(component)]
+            centre = sum(points, Vector()) / len(points)
+            edges = [vertices[second] - vertices[first]
+                     for first in sorted(component) for second in sorted(neighbours[first])
+                     if first < second]
+            right = max(edges, key=lambda edge: edge.length_squared).normalized()
+            perpendicular = [edge for edge in edges
+                             if edge.length > 0.0001 and abs(edge.normalized().dot(right)) < 0.001]
+            up = max(perpendicular, key=lambda edge: edge.length_squared).normalized()
+            normal = right.cross(up).normalized()
+            extents = [[abs((point - centre).dot(axis)) for point in points]
+                       for axis in (right, up, normal)]
+            inner = [min(values) for values in extents[:2]]
+            outer = [max(values) for values in extents[:2]]
+            if any(size <= 0 or rim <= size for size, rim in zip(inner, outer)):
+                raise RuntimeError("The square gate no longer has an open rectangular aperture.")
+            apertures.append({
+                "id": len(apertures) + 1,
+                "centre": [round(value, 6) for value in centre],
+                "right": [round(value, 8) for value in right],
+                "up": [round(value, 8) for value in up],
+                "normal": [round(value, 8) for value in normal],
+                "innerHalfSize": [round(value, 6) for value in inner],
+                "outerHalfSize": [round(value, 6) for value in outer],
+                "halfDepth": round(max(extents[2]), 6),
+            })
+        if len(apertures) != int(gate.get("abs_instance_count", 0)):
+            raise RuntimeError("Gate aperture count does not match the source instance count.")
+        return {
+            "schema": "about-square-gate-apertures/v1", "source": gate.name,
+            "coordinateSystem": "website-world", "apertures": apertures,
+        }
+    finally:
+        evaluated.to_mesh_clear()
+
+
 def export_camera_track(output_dir, scene, camera):
     frame_start, frame_end = int(scene.frame_start), int(scene.frame_end)
     if frame_end <= frame_start:
@@ -696,6 +968,33 @@ def export_camera_track(output_dir, scene, camera):
         "neutralHorizon": "Z_UP",
         "rollControl": "ABS_CAMERA_ROLL_DRIVER.abs_roll_degrees",
     }
+    world_controls = bpy.data.objects.get("ABS_WORLD_CONTROLS")
+    lookahead = bpy.data.objects.get("ABS_CAMERA_LOOKAHEAD_FOLLOWER")
+    target = bpy.data.objects.get("ABS_CAMERA_LOOKAHEAD_TARGET")
+    if world_controls and lookahead and target:
+        orientation["steadycam"] = {
+            "mode": "rail-position-world-up-look-ahead-aim",
+            "positionFollower": "ABS_CAMERA_PATH_FOLLOWER",
+            "lookAheadFollower": lookahead.name,
+            "target": target.name,
+            "lookAheadMetres": round(float(
+                world_controls.get("camera_steadycam_look_ahead_metres", 55.0)
+            ), 3),
+            "targetExtensionMetres": round(float(
+                world_controls.get("camera_steadycam_target_extension_metres", 10.0)
+            ), 3),
+        }
+    gate_aim = bpy.data.objects.get("ABS_CAMERA_GATE_AIM")
+    gate_controls = bpy.data.objects.get("ABS_SQUARE_ROLLERCOASTER_CONTROLS")
+    if gate_aim and gate_controls:
+        orientation["gateAim"] = {
+            "mode": "same-rail-continuous-right-axis",
+            "target": gate_aim.name,
+            "path": ride_path.name if ride_path else None,
+            "rightReference": "world-X",
+            "leadGateSpacings": round(float(gate_controls["Camera Lead Gates"]), 6),
+            "blendFrames": json.loads(gate_aim["abs_blend_profile"]),
+        }
     roll_control = None
     roll_driver = bpy.data.objects.get("ABS_CAMERA_ROLL_DRIVER")
     if roll_driver and roll_driver.animation_data and roll_driver.animation_data.action:
@@ -739,6 +1038,9 @@ def export_camera_track(output_dir, scene, camera):
     }
     if roll_control:
         track["rollControl"] = roll_control
+    gate_passage = describe_square_gate_apertures(scene)
+    if gate_passage:
+        track["gatePassage"] = gate_passage
     path = output_dir / "camera-track.json"
     path.write_text(json.dumps(track, separators=(",", ":")) + "\n", encoding="utf-8")
     return path, track
@@ -754,6 +1056,23 @@ def build_scene_contract(surfaces, args):
         * scene_density_weight(surface)
         for surface in surfaces
     ]
+    allocation_baseline = None
+    if args.preserve_allocations_from:
+        if not args.candidate_output_dir:
+            raise RuntimeError("Fixed baseline allocations are limited to candidate exports.")
+        allocation_baseline = json.loads(Path(args.preserve_allocations_from).read_text())
+        baseline_objects = {
+            item["objectKey"]: item for item in allocation_baseline["source"]["objects"]
+        }
+        if set(baseline_objects) != {surface["objectKey"] for surface in surfaces}:
+            raise RuntimeError("A fixed-allocation candidate must preserve the object keys.")
+        sampling_weights = [
+            baseline_objects[surface["objectKey"]]["surfaceArea"]
+            * baseline_objects[surface["objectKey"]]["densityFactor"]
+            * baseline_objects[surface["objectKey"]]["featurePriority"]
+            * baseline_objects[surface["objectKey"]]["sceneDensityWeight"]
+            for surface in surfaces
+        ]
     preliminary_allocations = allocate_exact(
         sampling_weights, args.master, [0] * len(surfaces),
     )
@@ -764,6 +1083,15 @@ def build_scene_contract(surfaces, args):
         args.master,
         [surface["requiredAnchorCount"] for surface in surfaces],
     )
+    if allocation_baseline:
+        master_allocations = [
+            baseline_objects[surface["objectKey"]]["surfelCount"] for surface in surfaces
+        ]
+        if sum(master_allocations) != args.master:
+            raise RuntimeError("The candidate master budget differs from the baseline.")
+        for surface, count in zip(surfaces, master_allocations):
+            if count < surface["requiredAnchorCount"]:
+                raise RuntimeError(f'{surface["objectKey"]} exceeds its preserved allocation.')
     for surface, count in zip(surfaces, master_allocations):
         surface["samples"], surface["spacingTarget"] = sample_surface_progressively(
             surface, count, args.seed,
@@ -802,12 +1130,30 @@ def build_scene_contract(surfaces, args):
         args.desktop,
         mobile_model_counts,
     )
+    if allocation_baseline:
+        mobile_model_counts, desktop_model_counts = [
+            [allocation_baseline["profiles"][profile]["perModelCounts"][key] for key in model_keys]
+            for profile in ("mobile", "desktop")
+        ]
+        if sum(mobile_model_counts) != args.mobile or sum(desktop_model_counts) != args.desktop:
+            raise RuntimeError("The candidate profile budgets differ from the baseline.")
+        for minimum, mobile, desktop, master in zip(
+            mobile_model_minimums, mobile_model_counts, desktop_model_counts, model_master_counts,
+        ):
+            if not minimum <= mobile <= desktop <= master:
+                raise RuntimeError("Preserved profile allocations cannot contain all required anchors.")
     profile_model_counts = {
         "mobile": mobile_model_counts,
         "desktop": desktop_model_counts,
         "master": model_master_counts,
     }
-    motion_keys = sorted({surface["motionKey"] for surface in surfaces})
+    motion_keys = set()
+    for surface in surfaces:
+        motion_keys.add(surface["motionKey"])
+        for subgroup in range(surface["motionSubgroups"]):
+            if surface["motionSubgroups"] > 1:
+                motion_keys.add(f'{surface["motionKey"]}.strand-{subgroup:02d}')
+    motion_keys = sorted(motion_keys)
     if len(motion_keys) > 256:
         raise RuntimeError("The packed contract supports at most 256 motion groups.")
     motion_id_by_key = {key: index for index, key in enumerate(motion_keys)}
@@ -820,11 +1166,19 @@ def build_scene_contract(surfaces, args):
         for _progress, _object_key, part_id, surface, sample in model_records:
             records.append({
                 **sample,
-                "radius": surface["spacingTarget"] * SURFEL_RADIUS_TO_SPACING,
+                "radius": (
+                    surface["spacingTarget"]
+                    * SURFEL_RADIUS_TO_SPACING
+                    * surface["surfelRadiusScale"]
+                ),
                 "modelId": model_id,
                 "partId": part_id,
                 "stableKey": f'{args.seed}:{surface["objectKey"]}:{sample["objectOrdinal"]}',
-                "motionGroup": motion_id_by_key[surface["motionKey"]],
+                "motionGroup": motion_id_by_key[
+                    f'{surface["motionKey"]}.strand-{sample["componentId"] % surface["motionSubgroups"]:02d}'
+                    if surface["motionSubgroups"] > 1
+                    else surface["motionKey"]
+                ],
                 "flags": (
                     (1 if surface["preserveMinPx"] is not None else 0)
                     | (2 if sample.get("semanticAnchor") else 0)
@@ -839,12 +1193,50 @@ def build_scene_contract(surfaces, args):
             for _progress, object_key, _part_id, _surface, _sample in model_records[:prefix_count]:
                 counts[object_key] += 1
             profile_object_counts[profile_name].update(counts)
+        def shared_model_value(key):
+            values = {
+                surface[key] for surface in model_surfaces
+                if surface[key] is not None
+            }
+            if len(values) > 1:
+                raise RuntimeError(
+                    f"Model {model_key} has conflicting {key} values: {sorted(values)}"
+                )
+            return next(iter(values), None)
+
+        visibility_start_wu = shared_model_value("visibilityStartWU")
+        visibility_end_wu = shared_model_value("visibilityEndWU")
+        visibility_handoff_wu = shared_model_value("visibilityHandoffWU")
+        visibility_start_cue = shared_model_value("visibilityStartCue")
+        visibility_start_offset_wu = shared_model_value("visibilityStartOffsetWU")
+        visibility_end_cue = shared_model_value("visibilityEndCue")
+        visibility_end_offset_wu = shared_model_value("visibilityEndOffsetWU")
+        if (visibility_start_wu is None) != (visibility_end_wu is None):
+            raise RuntimeError(
+                f"Model {model_key} must author both visibility window bounds or neither."
+            )
+        if visibility_start_wu is not None:
+            if visibility_end_wu <= visibility_start_wu:
+                raise RuntimeError(f"Model {model_key} has an empty visibility window.")
+            if visibility_handoff_wu is None or visibility_handoff_wu <= 0:
+                raise RuntimeError(
+                    f"Model {model_key} needs a positive visibility handoff duration."
+                )
+            if visibility_handoff_wu * 2 >= visibility_end_wu - visibility_start_wu:
+                raise RuntimeError(
+                    f"Model {model_key}'s visibility handoff consumes its full window."
+                )
+        if (visibility_start_cue is None) != (visibility_end_cue is None):
+            raise RuntimeError(
+                f"Model {model_key} must author both semantic visibility cues or neither."
+            )
         models.append({
             "id": model_id,
             "key": model_key,
             "role": model_surfaces[0]["role"],
             "motionGroup": motion_id_by_key[model_surfaces[0]["motionKey"]],
             "motionKey": model_surfaces[0]["motionKey"],
+            "motionSubgroups": max(surface["motionSubgroups"] for surface in model_surfaces),
             "revealGroup": model_surfaces[0]["revealKey"],
             "objectKeys": [surface["objectKey"] for surface in model_surfaces],
             "surfelRange": {
@@ -853,14 +1245,13 @@ def build_scene_contract(surfaces, args):
                 "byteOffset": range_offset * SURFEL_STRIDE_BYTES,
             },
             "profileCounts": model_profile_counts,
-            "visibilityStartWU": next((
-                surface["visibilityStartWU"] for surface in model_surfaces
-                if surface["visibilityStartWU"] is not None
-            ), None),
-            "visibilityEndWU": next((
-                surface["visibilityEndWU"] for surface in model_surfaces
-                if surface["visibilityEndWU"] is not None
-            ), None),
+            "visibilityStartWU": visibility_start_wu,
+            "visibilityEndWU": visibility_end_wu,
+            "visibilityHandoffWU": visibility_handoff_wu,
+            "visibilityStartCue": visibility_start_cue,
+            "visibilityStartOffsetWU": visibility_start_offset_wu,
+            "visibilityEndCue": visibility_end_cue,
+            "visibilityEndOffsetWU": visibility_end_offset_wu,
         })
     profiles = {}
     for profile_name, model_counts in profile_model_counts.items():
@@ -984,7 +1375,17 @@ def build_camera_pages(models, profiles):
 
 def main():
     args = parse_args()
-    output_dir = Path(args.output_dir).resolve()
+    output_dir = resolve_export_output_dir(args)
+    if args.validate_output_only:
+        print(json.dumps({
+            "status": "ok",
+            "output": str(output_dir),
+            "canonicalOutput": output_dir == CANONICAL_ASSET_DIR,
+            "candidateOutput": output_dir != CANONICAL_ASSET_DIR,
+        }, separators=(",", ":")))
+        return
+    if (args.preserve_allocations_from or bpy.context.scene.get("abs_terminal_study")) and not args.candidate_output_dir:
+        raise RuntimeError("Study contracts and fixed allocations require a candidate directory.")
     output_dir.mkdir(parents=True, exist_ok=True)
     source_blend = Path(bpy.data.filepath).resolve()
     if not source_blend.is_file():
@@ -992,6 +1393,8 @@ def main():
     scene = bpy.context.scene
     if scene.camera is None:
         raise RuntimeError("The Blender scene has no active camera.")
+    assert_clean_scene(scene)
+    route_contract = describe_route(scene)
     resolve_surfel_budgets(scene, args)
     surfaces, fallbacks = collect_scene_geometry(
         eligible_mesh_objects(scene),
@@ -1017,12 +1420,29 @@ def main():
         "componentPolicy": surface["componentPolicy"],
         "densityGroup": surface["densityGroup"],
         "densityFactor": round(surface["densityFactor"], 6),
+        "profilePrefixOrder": surface.get("profilePrefixOrder", "progressive-best-candidate"),
+        "samplingDensityAttribute": surface["samplingDensityAttribute"],
         "featurePriority": round(surface["featurePriority"], 6),
+        "surfelRadiusScale": round(surface["surfelRadiusScale"], 6),
+        "geometryKind": surface["geometryKind"],
+        "cameraPassFrame": (
+            int(round(surface["cameraPassFrame"]))
+            if surface["cameraPassFrame"] is not None else None
+        ),
+        "cameraClearanceWU": surface["cameraClearanceWU"],
+        "proximityRole": surface["proximityRole"],
+        "traversalMode": surface["traversalMode"],
+        "holeRadiusWU": surface["holeRadiusWU"],
+        "viewportSpan": surface["viewportSpan"],
+        "spanWU": surface["spanWU"],
+        "instanceCount": surface["instanceCount"],
+        "worldOrigin": [round(value, 6) for value in surface["worldOrigin"]],
         "sceneDensityWeight": scene_density_weight(surface),
         "preserveMinPx": surface["preserveMinPx"],
         "collections": surface["collections"],
         "triangles": surface["triangleCount"],
         "surfaceArea": round(surface["surfaceArea"], 6),
+        "samplingSurfaceArea": round(surface["samplingArea"], 6),
         "surfelCount": surface["surfelCount"],
         "semanticAnchorCount": surface["semanticAnchorCount"],
         "connectedComponentCount": surface["connectedComponentCount"],
@@ -1036,6 +1456,16 @@ def main():
         },
     } for surface in surfaces]
     source_hash = sha256_file(source_blend)
+    topology = {
+        "modelCount": len(models),
+        "modelKeys": [model["key"] for model in models],
+        "objectCount": len(source_objects),
+        "objectKeys": [item["objectKey"] for item in source_objects],
+        "models": [{
+            "key": model["key"],
+            "objectKeys": list(model["objectKeys"]),
+        } for model in models],
+    }
     meta = {
         "schema": SCHEMA,
         "version": SCHEMA_VERSION,
@@ -1045,6 +1475,8 @@ def main():
         "source": {
             "file": portable_source_path(source_blend),
             "sha256": source_hash,
+            "route": route_contract,
+            "topology": topology,
             "objectCount": len(source_objects),
             "triangleCount": sum(surface["triangleCount"] for surface in surfaces),
             "surfaceArea": round(sum(surface["surfaceArea"] for surface in surfaces), 6),
@@ -1061,8 +1493,10 @@ def main():
                 "featureConstraint": "relocate-semantic-and-meaningful-component-anchors-never-add",
                 "componentPolicies": COMPONENT_POLICY_RULES,
                 "densityFactorProperty": "abs_point_density",
+                "samplingDensityAttributeProperty": "abs_sampling_density_attribute",
                 "featurePriorityProperty": "abs_feature_priority",
                 "preserveMinimumProperty": "abs_preserve_min_px",
+                "radiusScaleProperty": "abs_surfel_radius_scale",
                 "fog": "runtime-depth-only",
             },
         },
@@ -1135,6 +1569,16 @@ def main():
             "rollControl": camera_track.get("rollControl"),
         },
     }
+    if args.preserve_allocations_from:
+        meta["source"]["samplingPolicy"]["allocation"] = "fixed-candidate-baseline"
+        meta["source"]["samplingPolicy"]["allocationBaselineSha256"] = sha256_file(
+            Path(args.preserve_allocations_from)
+        )
+    study_contract = scene.get("abs_terminal_study")
+    if study_contract:
+        if not args.candidate_output_dir:
+            raise RuntimeError("A terminal study may only be exported to a candidate directory.")
+        meta["terminalStudy"] = json.loads(study_contract)
     (output_dir / "meta.json").write_text(
         json.dumps(meta, indent=2) + "\n", encoding="utf-8",
     )
@@ -1148,4 +1592,9 @@ def main():
     }, indent=2))
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as error:
+        print(f"ABOUT_V2_EXPORT_ERROR={error}", file=sys.stderr)
+        raise SystemExit(2) from error

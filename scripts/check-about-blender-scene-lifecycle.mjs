@@ -1,0 +1,477 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import * as Three from '../react-app/app/node_modules/three/build/three.module.js';
+import {
+  resolveAboutBlenderSceneContract,
+  validateAboutBlenderSceneBundle,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutBlenderSceneContract.js';
+import {
+  ABOUT_NARRATIVE_JOURNEY_ROLES,
+  createAboutNarrativeJourneySample,
+  sampleAboutNarrativeJourneyMapInto,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
+import { resolveResponsiveVerticalFovFromHorizontalFov } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraProjection.js';
+import {
+  createAboutNarrativeCameraPointerPanController,
+  createAboutNarrativeCameraPointerPanSample,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraPointerPan.js';
+import {
+  createAboutNarrativeCameraSteadycamController,
+  createAboutNarrativeCameraSteadycamSample,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
+import { writeAboutSceneLook } from '../react-app/app/src/routes/about-narrative-lab/aboutSceneLook.js';
+import { compileAboutNarrativeComposerPlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
+import { loadAboutNarrativePointFieldPersistenceSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
+
+const source = await readFile(new URL(
+  '../react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js', import.meta.url,
+), 'utf8');
+// Exercise the complete runtime through its public Interface. Only browser I/O,
+// WebGL submission and imported dependencies are supplied to this local harness.
+// This follows the existing check-geometry-fault-contract new Function pattern;
+// production gains no test-only exports and requires no experimental VM flags.
+const runtimeBody = source.replace(/^import[\s\S]*?;\n/gm, '')
+  .replace('export function createBlenderPointScene', 'function createBlenderPointScene')
+  .replaceAll('import.meta.env.DEV', 'false')
+  .replaceAll('__CERTIFY__', 'false');
+const canonical = JSON.parse(await readFile(new URL(
+  '../react-app/app/public/config/contents-about.json', import.meta.url,
+), 'utf8'));
+const document = loadAboutNarrativePointFieldPersistenceSource(canonical).document;
+const plan = compileAboutNarrativeComposerPlan(document, { inlineSize: 1440, blockSize: 900 });
+assert.equal(plan.valid, true);
+const frame = (overrides = {}) => ({
+  storyWU: 0, durationWU: plan.durationWU, journeyMap: plan.journeyMap,
+  globals: {}, world: {}, ambientTime: 0, reducedMotion: false, ...overrides,
+});
+const sha256 = (bytes) => createHash('sha256').update(new Uint8Array(bytes)).digest('hex');
+const encode = (value) => new TextEncoder().encode(JSON.stringify(value)).buffer;
+const deferred = () => {
+  let resolve;
+  const promise = new Promise((complete) => { resolve = complete; });
+  return { promise, resolve };
+};
+
+function bundleFixture({ missingCue = false } = {}) {
+  const points = [];
+  const tanHalfFov = Math.tan(65 * Math.PI / 360);
+  // Eight occupied bins: two rows, four columns, three points in every bin.
+  for (const row of [4, 7]) {
+    for (const column of [2, 4, 7, 9]) {
+      for (let point = 0; point < 3; point += 1) {
+        points.push([
+          ((column + 0.5) / 6 - 1) * 20 * tanHalfFov + point * 0.0001,
+          ((row + 0.5) / 6 - 1) * 20 * tanHalfFov / (1440 / 900),
+          -20,
+        ]);
+      }
+    }
+  }
+  const surfelBytes = new ArrayBuffer(points.length * 32);
+  const view = new DataView(surfelBytes);
+  points.forEach((position, index) => {
+    position.forEach((value, axis) => view.setFloat32(index * 32 + axis * 4, value, true));
+    view.setUint16(index * 32 + 16, 100, true);
+    view.setUint32(index * 32 + 24, index, true);
+    view.setUint8(index * 32 + 31, 1);
+  });
+  const cues = new Map();
+  for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
+    const name = role.requiredCueName || role.cueNames[0];
+    if (missingCue && name === 'ABS_ROUND_PORTALS_CLEAR') continue;
+    cues.set(name, { name, progress: role.fallbackProgress });
+  }
+  const cameraTrack = {
+    schema: 'about-camera-track', version: 5, source: 'SYNTHETIC_LIFECYCLE_CAMERA',
+    sampleCount: 2, samples: [[0, 0, 0, 0, 0, 0, 1], [0, 0, -100, 0, 0, 0, 1]],
+    projection: { type: 'perspective', fovAxis: 'horizontal', horizontalFov: 65, portraitMaxVerticalFov: 115 },
+    journeyCues: [...cues.values()],
+  };
+  const cameraTrackBytes = encode(cameraTrack);
+  const count = points.length;
+  const profile = { surfelCount: count, perObjectCounts: { 'fixture.form': count } };
+  const meta = {
+    schema: 'about-point-scene', version: 2,
+    source: { sha256: 'c'.repeat(64), objects: [{ objectKey: 'fixture.form', role: 'narrative-lattice', surfelCount: count }] },
+    files: {
+      cameraTrack: { file: 'camera-track.json', bytes: cameraTrackBytes.byteLength, sha256: sha256(cameraTrackBytes) },
+      surfels: { file: 'surfels.bin', count, bytes: surfelBytes.byteLength, sha256: sha256(surfelBytes) },
+    },
+    profiles: { mobile: profile, desktop: profile, master: profile },
+    models: [{
+      id: 0, key: 'about.00', objectKeys: ['fixture.form'], surfelRange: { offset: 0, count },
+      profileCounts: { mobile: count, desktop: count, master: count },
+      visibilityStartWU: 0, visibilityEndWU: 40, visibilityHandoffWU: 0.12,
+      visibilityStartCue: 'opening', visibilityStartOffsetWU: 0,
+      visibilityEndCue: 'terminal-hold', visibilityEndOffsetWU: 1,
+    }],
+    pages: [], quantization: { radiusWU: { step: 0.0001 } },
+  };
+  return { meta, cameraTrackBytes, surfelBytes };
+}
+
+function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch } = {}) {
+  let bundle = initialBundle;
+  let paletteListener;
+  const stats = {
+    fetches: [], hashes: 0, contracts: 0, draws: 0, clears: 0,
+    worldReady: 0, editorialReady: 0, geometryDisposals: 0, materialDisposals: 0,
+    rendererDisposals: 0, warnings: [], order: [], lastGeometry: null,
+  };
+  class Element extends EventTarget {
+    dataset = {};
+    getBoundingClientRect() { return { left: 0, top: 0, width: 1440, height: 900 }; }
+  }
+  class Canvas extends Element {}
+  class Geometry extends Three.InstancedBufferGeometry {
+    constructor() {
+      super();
+      this.addEventListener('dispose', () => { stats.geometryDisposals += 1; });
+    }
+  }
+  class Material extends Three.ShaderMaterial {
+    constructor(options) {
+      super(options);
+      this.addEventListener('dispose', () => { stats.materialDisposals += 1; });
+    }
+  }
+  class Renderer {
+    info = { render: { calls: 0 } };
+    setClearColor() {}
+    setPixelRatio() {}
+    setSize() {}
+    clear() { stats.clears += 1; }
+    render(scene, camera) {
+      stats.draws += 1;
+      stats.order.push('draw');
+      this.info.render.calls = scene.children[0].children.length;
+      assert.equal(this.info.render.calls, 2, 'Retry must not leave duplicate meshes installed.');
+      stats.lastGeometry = scene.children[0].children[0].geometry;
+      camera.updateMatrixWorld();
+    }
+    dispose() { stats.rendererDisposals += 1; }
+  }
+  const root = new Element();
+  root.dataset.aboutEntranceState = 'complete';
+  const canvas = new Canvas();
+  const window = new EventTarget();
+  window.devicePixelRatio = 1;
+  window.matchMedia = () => ({ matches: true });
+  root.addEventListener('about:world-runtime-ready', () => {
+    stats.worldReady += 1;
+    stats.order.push('world-ready');
+  });
+  window.addEventListener('abs:about-scene-ready', () => { stats.editorialReady += 1; });
+  const palette = { paletteId: 'fixture', colors: ['#777777'] };
+  const dependencies = {
+    THREE: { ...Three, WebGLRenderer: Renderer, InstancedBufferGeometry: Geometry, ShaderMaterial: Material },
+    resolveResponsiveVerticalFovFromHorizontalFov,
+    createAboutNarrativeCameraPointerPanController,
+    createAboutNarrativeCameraPointerPanSample,
+    createAboutNarrativeCameraSteadycamController,
+    createAboutNarrativeCameraSteadycamSample,
+    createAboutNarrativeJourneySample,
+    sampleAboutNarrativeJourneyMapInto,
+    writeAboutSceneLook,
+    createAboutSurfelPaletteRoles: () => [0],
+    getSimulationPaletteSnapshot: () => palette,
+    subscribeSimulationPalette: (listener) => { paletteListener = listener; return () => { paletteListener = null; }; },
+    resolveAboutBlenderSceneContract: (input) => {
+      stats.contracts += 1;
+      return resolveAboutBlenderSceneContract(input);
+    },
+    validateAboutBlenderSceneBundle: (input) => validateAboutBlenderSceneBundle({
+      ...input,
+      digestSha256: async (bytes) => {
+        stats.hashes += 1;
+        await hashWait?.(stats.hashes);
+        return sha256(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      },
+    }),
+    window,
+    document: { hidden: false },
+    HTMLElement: Element,
+    HTMLCanvasElement: Canvas,
+    ResizeObserver: class { observe() {} disconnect() {} },
+    fetch: async (url, options) => {
+      stats.fetches.push({ url, options });
+      const selected = bundle;
+      await beforeFetch?.(url, stats.fetches.length);
+      if (options.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      return {
+        ok: true,
+        json: async () => structuredClone(selected.meta),
+        arrayBuffer: async () => (url.endsWith('camera-track.json')
+          ? selected.cameraTrackBytes.slice(0) : selected.surfelBytes.slice(0)),
+      };
+    },
+    CustomEvent,
+    AbortController,
+    performance,
+    console: { warn: (...message) => stats.warnings.push(message) },
+  };
+  const createScene = new Function(...Object.keys(dependencies), `${runtimeBody}\nreturn createBlenderPointScene;`)(...Object.values(dependencies));
+  const scene = createScene({ canvas, root });
+  return {
+    scene, root, canvas, stats,
+    replaceBundle: (next) => { bundle = next; },
+    notifyPalette: () => paletteListener?.(palette),
+    contextLost: () => canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true })),
+    contextRestored: () => canvas.dispatchEvent(new Event('webglcontextrestored')),
+  };
+}
+
+test('data-first startup stays pending until a valid frame, then announces after drawing', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  await h.scene.preparePlan({});
+  assert.equal(h.scene.getMetrics().bundleIntegrityVerified, true);
+  assert.equal(h.scene.getMetrics().state, 'loading');
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'pending');
+  assert.equal(h.stats.draws, 0);
+  assert.equal(h.root.dataset.aboutSceneReady, undefined);
+  assert.equal(h.scene.render(frame()), true);
+  assert.equal(h.scene.getMetrics().state, 'ready');
+  assert.deepEqual(h.stats.order, ['draw', 'world-ready']);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(h.stats.contracts, 1);
+  assert.equal(h.root.dataset.sceneContractStatus, 'compatible');
+});
+
+test('frame-first startup caches the frame without waiting for readiness', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  assert.equal(h.scene.render(frame()), false);
+  await h.scene.preparePlan({});
+  assert.equal(h.stats.draws, 1);
+  assert.equal(h.stats.worldReady, 1);
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'compatible');
+});
+
+test('repeated pending and invalid frames never draw, rehash or repeat fallback events', async (t) => {
+  const h = createHarness(bundleFixture({ missingCue: true }));
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame({ journeyMap: null }));
+  await h.scene.preparePlan({});
+  for (let index = 0; index < 4; index += 1) assert.equal(h.scene.render(frame({ journeyMap: null })), false);
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'pending');
+  assert.equal(h.stats.contracts, 1);
+  assert.equal(h.scene.render(frame()), false);
+  const rejected = h.scene.getMetrics();
+  assert.equal(rejected.state, 'unavailable');
+  assert.equal(rejected.bundleIntegrityVerified, true);
+  assert.equal(rejected.sceneContractStatus, 'incompatible');
+  assert.ok(rejected.sceneContractDiagnostics.some((item) => item.code === 'scene-journey-incompatible'));
+  for (let index = 0; index < 8; index += 1) assert.equal(h.scene.render(frame()), false);
+  h.notifyPalette();
+  h.scene.setEntranceScale(1);
+  h.scene.setVisible(true);
+  await h.scene.preparePlan({});
+  assert.equal(h.stats.contracts, 2);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(h.stats.fetches.length, 3);
+  assert.equal(h.stats.draws, 0);
+  assert.equal(h.stats.clears, 1);
+  assert.equal(h.stats.worldReady, 0);
+  assert.equal(h.stats.editorialReady, 1);
+  assert.equal(h.root.dataset.aboutSceneReady, 'true');
+  assert.equal(h.root.dataset.pointAsset, undefined);
+});
+
+test('omitted and null story maps share one pending identity', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame({ journeyMap: undefined }));
+  await h.scene.preparePlan({});
+  for (let index = 0; index < 8; index += 1) {
+    assert.equal(h.scene.render(frame({ journeyMap: index % 2 ? null : undefined })), false);
+  }
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'pending');
+  assert.equal(h.stats.contracts, 1);
+  assert.equal(h.stats.draws, 0);
+  assert.equal(h.stats.hashes, 2);
+});
+
+test('supplied malformed story maps reject instead of being treated as absent', async (t) => {
+  for (const journeyMap of [false, 0, '']) {
+    const h = createHarness();
+    t.after(() => h.scene.destroy());
+    h.scene.render(frame({ journeyMap }));
+    await h.scene.preparePlan({});
+    const metrics = h.scene.getMetrics();
+    assert.equal(metrics.sceneContractStatus, 'incompatible');
+    assert.equal(metrics.state, 'unavailable');
+    assert.ok(metrics.sceneContractDiagnostics.some((item) => item.code === 'scene-story-map-invalid'));
+    assert.equal(h.scene.render(frame({ journeyMap })), false);
+    assert.equal(h.stats.contracts, 1);
+    assert.equal(h.stats.draws, 0);
+  }
+});
+
+test('a changed incompatible map clears the old frame once and a corrected map can recover', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  const invalidMap = structuredClone(plan.journeyMap);
+  invalidMap.anchors = invalidMap.anchors.filter((anchor) => anchor.id !== 'terminal-hold');
+  assert.equal(h.scene.render(frame({ journeyMap: invalidMap })), false);
+  assert.equal(h.scene.getMetrics().state, 'unavailable');
+  assert.deepEqual(h.scene.getMetrics().modelFraming, {});
+  for (let index = 0; index < 4; index += 1) h.scene.render(frame({ journeyMap: invalidMap }));
+  assert.equal(h.stats.clears, 1);
+  assert.equal(h.stats.draws, 1);
+  assert.equal(h.scene.render(frame()), true);
+  assert.equal(h.scene.getMetrics().state, 'ready');
+  assert.equal(h.stats.contracts, 3);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(h.scene.getMetrics().gpuBufferBuilds, 1);
+  assert.deepEqual(h.stats.order, ['draw', 'world-ready', 'draw', 'world-ready']);
+});
+
+test('map identity changes revalidate once without hashing or rebuilding geometry', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  const geometry = h.stats.lastGeometry;
+  const attribute = geometry.getAttribute('iVisibilityEndWU');
+  const version = attribute.version;
+  for (let index = 0; index < 10; index += 1) h.scene.render(frame({ storyWU: index / 100 }));
+  assert.equal(attribute.version, version);
+  const nextMap = structuredClone(plan.journeyMap);
+  nextMap.anchors.find((anchor) => anchor.id === 'terminal-hold').storyWU += 1;
+  nextMap.durationWU += 1;
+  h.scene.render(frame({ journeyMap: nextMap }));
+  assert.equal(h.stats.contracts, 2);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(attribute.version, version + 1);
+  assert.equal(h.stats.lastGeometry, geometry);
+  assert.equal(h.stats.worldReady, 1);
+});
+
+test('explicit retry replaces a rejected decoded bundle and disposes its resources', async (t) => {
+  const h = createHarness(bundleFixture({ missingCue: true }));
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  h.replaceBundle(bundleFixture());
+  await h.scene.retryPreparation();
+  assert.equal(h.scene.getMetrics().state, 'ready');
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'compatible');
+  assert.equal(h.stats.fetches.length, 6);
+  assert.equal(h.stats.hashes, 4);
+  assert.equal(h.stats.geometryDisposals, 1);
+  assert.equal(h.stats.materialDisposals, 2);
+  assert.equal(h.stats.worldReady, 1);
+  assert.ok(h.stats.fetches.every(({ options }) => options.cache === 'no-cache'));
+});
+
+test('an old load finally cannot clear a retry started by a rejection subscriber', async (t) => {
+  const retryGate = deferred();
+  const h = createHarness(bundleFixture({ missingCue: true }), {
+    beforeFetch: async (url, count) => { if (count === 4) await retryGate.promise; },
+  });
+  t.after(() => h.scene.destroy());
+  let retry;
+  let retried = false;
+  h.scene.subscribeDiagnostics(() => {
+    if (h.scene.getMetrics().state !== 'unavailable' || retried) return;
+    retried = true;
+    h.replaceBundle(bundleFixture());
+    retry = h.scene.retryPreparation();
+  });
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  assert.equal(h.scene.preparePlan({}), retry);
+  retryGate.resolve();
+  await retry;
+  assert.equal(h.scene.getMetrics().state, 'ready');
+  assert.equal(h.stats.fetches.length, 6);
+});
+
+test('mismatched bytes never install geometry or claim bundle integrity', async (t) => {
+  const bundle = bundleFixture();
+  new Uint8Array(bundle.surfelBytes)[0] ^= 1;
+  const h = createHarness(bundle);
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  const metrics = h.scene.getMetrics();
+  assert.equal(metrics.state, 'unavailable');
+  assert.equal(metrics.bundleIntegrityVerified, false);
+  assert.equal(metrics.gpuBufferBuilds, 0);
+  assert.ok(metrics.sceneContractDiagnostics.some((item) => item.code === 'scene-file-hash-mismatch'));
+  assert.equal(h.stats.worldReady, 0);
+  assert.equal(h.stats.editorialReady, 1);
+});
+
+test('disposal during non-abortable hashing prevents late installation and events', async () => {
+  const entered = deferred();
+  const finishHash = deferred();
+  const h = createHarness(bundleFixture(), {
+    hashWait: async () => { entered.resolve(); await finishHash.promise; },
+  });
+  h.scene.render(frame());
+  const loading = h.scene.preparePlan({});
+  await entered.promise;
+  h.scene.destroy();
+  finishHash.resolve();
+  await loading;
+  assert.equal(h.scene.getMetrics().gpuBufferBuilds, 0);
+  assert.equal(h.stats.draws, 0);
+  assert.equal(h.stats.worldReady, 0);
+  assert.equal(h.stats.editorialReady, 0);
+  assert.equal(h.stats.rendererDisposals, 1);
+  assert.equal(h.root.dataset.pointWorldState, undefined);
+  assert.equal(h.root.dataset.sceneContractStatus, undefined);
+});
+
+test('context restoration cannot promote an incompatible scene', async (t) => {
+  const h = createHarness(bundleFixture({ missingCue: true }));
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  h.contextLost();
+  h.contextRestored();
+  assert.equal(h.scene.getMetrics().state, 'unavailable');
+  assert.equal(h.scene.getMetrics().sceneContractStatus, 'incompatible');
+  assert.equal(h.stats.draws, 0);
+  assert.equal(h.stats.worldReady, 0);
+  assert.equal(h.stats.editorialReady, 1);
+  assert.equal(h.root.dataset.aboutSceneReady, 'true');
+});
+
+test('valid context restoration announces readiness only after a new draw', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  h.contextLost();
+  assert.equal(h.scene.getMetrics().state, 'context-lost');
+  assert.equal(h.scene.render(frame()), false);
+  h.contextRestored();
+  assert.equal(h.scene.getMetrics().state, 'ready');
+  assert.deepEqual(h.stats.order, ['draw', 'world-ready', 'draw', 'world-ready']);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(h.stats.contracts, 1);
+});
+
+test('explicit framing diagnostics expose coherent grid spread, not just point totals', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  const framing = h.scene.getMetrics().modelFraming['about.00'];
+  assert.equal(framing.occupiedBinCount, 8);
+  assert.equal(framing.occupiedRowCount, 2);
+  assert.equal(framing.occupiedColumnCount, 4);
+  assert.equal(framing.leftOccupiedColumnCount, 2);
+  assert.equal(framing.rightOccupiedColumnCount, 2);
+  assert.equal(framing.leftOccupiedBinCount, 4);
+  assert.equal(framing.rightOccupiedBinCount, 4);
+  assert.equal(h.stats.hashes, 2);
+  assert.equal(h.stats.contracts, 1);
+});

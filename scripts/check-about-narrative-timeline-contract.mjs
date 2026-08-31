@@ -29,14 +29,16 @@ test('live timeline hook consumes only the sectionless runtime contract', () => 
   ].forEach((token) => assert.equal(source.includes(token), false, `forbidden ${token}`));
 });
 
-test('timeline return contract is global and runtime-plan based', () => {
+test('timeline exposes the global plan without sending animation frames through React state', () => {
   assert.match(
     source,
-    /return \{ runtimePlan, storyWU, storyProgress, activeIndicatorStartIndex \};/,
+    /return \{ runtimePlan, layoutReady \};/,
   );
-  assert.ok(source.includes('storyWUFromScrollWU'));
-  assert.ok(source.includes('scrollWUFromStoryWU'));
-  assert.ok(source.includes('remapAboutNarrativeScrollTop'));
+  assert.doesNotMatch(source, /setStoryWU|setStoryProgress|--narrative-story-wu/);
+  assert.ok(source.includes('onStoryProgress?.('));
+  assert.ok(source.includes('getCurrentStoryWU'));
+  assert.ok(source.includes('setScrollFromStoryWU'));
+  assert.ok(source.includes('const preservedStoryWU = getCurrentStoryWU()'));
 });
 
 test('DOM geometry is isolated to the cached content-measurement pass', () => {

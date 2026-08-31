@@ -43,6 +43,10 @@ body.about-narrative-page .route-simulation-layer {
   container-type: size;
 }
 
+.about-narrative-lab[data-about-restoring='true'] {
+  visibility: hidden;
+}
+
 /*
  * V2 is one forward camera journey through a permanent dot-built corridor.
  * Typography supplies the page rhythm while fixed architecture occupies
@@ -101,6 +105,8 @@ body.about-narrative-page .route-simulation-layer {
   z-index: 2;
   overflow-x: hidden;
   overflow-y: auto;
+  /* The narrative restores its own reading position after measured reflow. */
+  overflow-anchor: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y pinch-zoom;
@@ -350,6 +356,38 @@ body.about-narrative-page .route-simulation-layer {
   margin-inline: auto;
 }
 
+/* Once inside the lattice, read down its central aisle. Keep the original
+   type size and full-height banks instead of thinning the environment. */
+.about-narrative-lab[data-about-experience-version='v2']
+  .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+  width: min(100%, 23rem);
+}
+
+/* Copy passes through the complete viewport with a small edge feather.
+   No internal horizon or landscape band hides the editorial layer. */
+.about-narrative-lab[data-about-experience-version='v2']:not([data-editor-active='true'])
+  .about-narrative-render-span--editorial > [data-text-field-id] {
+  clip-path: inset(var(--reading-stage-clip-top, 0px) 0 var(--reading-stage-clip-bottom, 0px));
+  mask-image: linear-gradient(to bottom,
+    transparent var(--reading-stage-start, -10000px),
+    #000 calc(var(--reading-stage-start, -10000px) + var(--reading-stage-feather, 18px)),
+    #000 calc(var(--reading-stage-end, 10000px) - var(--reading-stage-feather, 18px)),
+    transparent var(--reading-stage-end, 10000px));
+}
+
+/* Keep lines opaque throughout their native journey, including the lower half.
+   Only the viewport-edge feather owns entry and exit. */
+.about-narrative-lab[data-about-experience-version='v2']:not([data-editor-active='true'])
+  .about-narrative-render-span--editorial [data-editorial-reveal] {
+  opacity: 1;
+}
+
+.about-narrative-lab[data-about-experience-version='v2']:not([data-editor-active='true'])
+  .about-narrative-render-span--editorial > [data-text-field-id]:focus-within {
+  clip-path: none;
+  mask-image: none;
+}
+
 /*
  * Content-flow mode makes the Text stack real document geometry. Titles keep
  * their sticky viewport stage, but each wrapper contributes only its measured
@@ -532,6 +570,25 @@ body.about-narrative-page .route-simulation-layer {
   text-transform: uppercase;
 }
 
+.shell-route-utility-slot:has(.about-narrative-motion-toggle) {
+  display: grid;
+  place-items: center;
+  margin-block-start: 12px;
+}
+
+.shell-utility-control.about-narrative-motion-toggle {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+.shell-utility-control.about-narrative-motion-toggle::before {
+  content: none;
+}
+
+.shell-utility-control.about-narrative-motion-toggle:disabled {
+  cursor: default;
+}
+
 .about-narrative-editorial-list ul,
 .about-narrative-discipline-list,
 .about-narrative-client-logos {
@@ -562,6 +619,79 @@ body.about-narrative-page .route-simulation-layer {
   background: currentColor;
   content: '';
   opacity: 0.54;
+}
+
+.about-narrative-career-sequence {
+  width: min(100%, 46rem);
+  margin-block: 0;
+}
+
+.about-narrative-career-sequence__label {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.about-narrative-career-sequence__list {
+  padding: 0;
+  margin: 0;
+  border-block-start: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  list-style: none;
+}
+
+.about-narrative-career-sequence__row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.7fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  align-items: baseline;
+  padding-block: 0.9rem;
+  border-block-end: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  font-size: calc(var(--about-editorial-type-size) * 0.72);
+  line-height: 1.4;
+}
+
+.about-narrative-career-sequence__year,
+.about-narrative-career-sequence__independent-label {
+  color: var(--text-muted);
+  font-family: var(--abs-font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.about-narrative-career-sequence__employer {
+  min-width: 0;
+  color: var(--about-editorial-ink);
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.about-narrative-career-sequence__role {
+  min-width: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.about-narrative-career-sequence__independent-work {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.7fr) minmax(0, 2.2fr);
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  align-items: baseline;
+  margin: 0;
+  padding-block-start: 0.9rem;
+  color: var(--text-muted);
+  font-size: calc(var(--about-editorial-type-size) * 0.64);
+  line-height: 1.45;
+}
+
+.about-narrative-career-sequence__independent-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .about-narrative-client-field {
@@ -636,7 +766,7 @@ body.about-narrative-page .route-simulation-layer {
     var(--client-logo-offset-x, 0%),
     var(--client-logo-offset-y, 0%),
     0
-  ) scale(calc(var(--client-logo-scale, 1) * var(--client-logo-display-scale, 1)));
+  ) scale(calc(var(--client-logo-scale, 1) * var(--client-logo-display-scale, 1) * var(--client-logo-artwork-scale, 1)));
   transform-origin: center;
   opacity: 0.96;
 }
@@ -955,7 +1085,7 @@ body.dark-mode .about-narrative-client-logos img {
 .about-narrative-lab[data-about-experience-version='v2']
   .about-narrative-spatial-copy.is-finale
   .about-narrative-spatial-title.route-bookend-title {
-  opacity: 1;
+  opacity: var(--spatial-context-opacity, 0);
 }
 
 .about-narrative-finale-content {
@@ -992,7 +1122,8 @@ body.dark-mode .about-narrative-client-logos img {
   transform: translate3d(0, -50%, 0);
 }
 
-.about-narrative-finale-description {
+.about-narrative-spatial-copy.is-finale
+  .about-narrative-finale-description.route-centered-page__description {
   max-width: min(var(--route-intro-description-max-width), 100%);
   opacity: calc(
     var(--route-intro-description-opacity)
@@ -1027,49 +1158,18 @@ body.dark-mode .about-narrative-client-logos img {
   position: relative;
   width: 100%;
   margin-top: var(--gap-20, 1.25rem);
+  opacity: var(--spatial-action-opacity, 0);
+  pointer-events: none;
+  transform: translate3d(0, var(--spatial-context-y, 0px), 0);
+}
+
+.about-narrative-text-field.is-finale[data-actions-visible='true']
+  .about-narrative-finale-actions {
   pointer-events: auto;
 }
 
 .about-narrative-finale-email {
   position: relative;
-}
-
-.about-narrative-model-credits {
-  max-width: min(48rem, 92vw);
-  margin-top: var(--gap-12, 0.75rem);
-  color: var(--text-muted);
-  font-size: 0.6875rem;
-  line-height: 1.45;
-  pointer-events: auto;
-}
-
-.about-narrative-model-credits summary {
-  width: fit-content;
-  margin-inline: auto;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
-  text-underline-offset: 0.16em;
-}
-
-.about-narrative-model-credits p {
-  margin: var(--gap-8, 0.5rem) 0 0;
-}
-
-.about-narrative-model-credits[open] {
-  padding: var(--gap-12, 0.75rem);
-  border: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
-  border-radius: var(--radius-12, 0.75rem);
-  background: color-mix(in srgb, var(--studio-window-bg) 94%, transparent);
-}
-
-.about-narrative-model-credits a {
-  color: inherit;
-}
-
-.about-narrative-model-credits a:hover,
-.about-narrative-model-credits a:focus-visible {
-  color: var(--text-primary);
 }
 
 .about-narrative-visually-hidden {
@@ -1198,6 +1298,21 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-editorial-copy,
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-editorial-detail {
   line-height: 1.5;
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-career-sequence__row,
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-career-sequence__independent-work {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-career-sequence__row {
+  padding-block: 1rem;
+  font-size: calc(var(--about-editorial-type-size) * 0.9);
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-career-sequence__independent-work {
+  font-size: calc(var(--about-editorial-type-size) * 0.8);
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos {
@@ -1344,11 +1459,11 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 }
 
 /* The complete closing lockup shares Contact's centred title, rule,
-   description, and action rhythm. */
+   description, and action rhythm, with clear space below for the material. */
 .about-narrative-lab[data-about-experience-version='v2']
   .about-narrative-spatial-copy.is-finale
   .about-narrative-finale-content {
-  top: 50%;
+  top: 40%;
   right: 0;
   left: 0;
   justify-items: center;
@@ -1366,6 +1481,40 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
     var(--fragment-y, 0px),
     var(--fragment-z, 0px)
   );
+}
+
+@media (max-width: 720px) and (min-height: 601px) {
+  .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+    .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+    width: min(100%, 68vw);
+  }
+
+  @media (max-width: 360px) {
+    .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+      .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+      width: 100%;
+    }
+  }
+
+  .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+    .about-narrative-spatial-copy.is-finale
+    .about-narrative-finale-content {
+    --route-intro-description-max-width: 24ch;
+    top: auto;
+    /* Keep actions above the near banks without pushing the lockup off a
+       shorter portrait viewport. */
+    bottom: min(calc(50% + 2.5rem), calc(100% - 19rem));
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) and (max-height: 600px) and (orientation: portrait) {
+  /* Keep contact above the expansive ground without shrinking the world or type. */
+  .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+    .about-narrative-spatial-copy.is-finale
+    .about-narrative-finale-content {
+    top: 29%;
+  }
 }
 
 .about-narrative-lab[data-about-motion-profile='reduced'] [data-editorial-reveal],

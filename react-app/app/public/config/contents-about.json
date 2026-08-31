@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "globals": {
-    "scrollSmoothing": 1,
+    "scrollSmoothing": 0,
     "readingWidthRem": 50,
     "editorialRevealThreshold": 0.78,
     "editorialMotion": {
@@ -14,9 +14,9 @@
       "unitsPerWU": 18.5
     },
     "camera": {
-      "distanceFogStartWU": 7,
-      "distanceFogEndWU": 18,
-      "distanceFogCurve": 1,
+      "distanceFogStartWU": 14,
+      "distanceFogEndWU": 150,
+      "distanceFogCurve": 1.2,
       "forwardSpeedWU": 18.5,
       "steadycamResponseMs": 0,
       "pointerPanDegrees": 0,
@@ -26,7 +26,7 @@
       "opacity": 1,
       "pointSize": 6,
       "surfelCoverage": 0.7,
-      "backfaceRetention": 0,
+      "backfaceRetention": 1,
       "minPointSize": 1.15,
       "perspectiveResponse": 1,
       "edgeSoftness": 1.35,
@@ -269,7 +269,7 @@
         },
         {
           "id": "move-ride-transfer-bridge",
-          "atWU": 15.3,
+          "atWU": 14.85,
           "position": [
             -8.892663,
             5.978348,
@@ -278,8 +278,8 @@
           "easing": "linear",
           "velocityMode": "fluid",
           "trigger": {
-            "momentId": "text-life-form",
-            "phase": "enter",
+            "momentId": "text-life-momentum",
+            "phase": "focus",
             "offsetWU": 0
           }
         },
@@ -301,7 +301,7 @@
         },
         {
           "id": "move-ride-terminal",
-          "atWU": 20.1,
+          "atWU": 18.75,
           "position": [
             -0.00548,
             1.560461,
@@ -310,23 +310,7 @@
           "easing": "linear",
           "velocityMode": "fluid",
           "trigger": {
-            "momentId": "text-epilogue-invitation",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "move-ride-beyond",
-          "atWU": 22,
-          "position": [
-            0,
-            2.2,
-            -340.639709
-          ],
-          "easing": "linear",
-          "velocityMode": "fluid",
-          "trigger": {
-            "momentId": "text-epilogue-invitation",
+            "momentId": "text-epilogue-thinking",
             "phase": "exit",
             "offsetWU": 0
           }
@@ -470,7 +454,7 @@
         },
         {
           "id": "look-ride-transfer-bridge",
-          "atWU": 15.3,
+          "atWU": 14.85,
           "rotation": [
             -27.686361,
             -0.975424,
@@ -478,8 +462,8 @@
           ],
           "easing": "linear",
           "trigger": {
-            "momentId": "text-life-form",
-            "phase": "enter",
+            "momentId": "text-life-momentum",
+            "phase": "focus",
             "offsetWU": 0
           }
         },
@@ -500,7 +484,7 @@
         },
         {
           "id": "look-ride-terminal",
-          "atWU": 20.1,
+          "atWU": 18.75,
           "rotation": [
             1.856959,
             0,
@@ -508,22 +492,7 @@
           ],
           "easing": "linear",
           "trigger": {
-            "momentId": "text-epilogue-invitation",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "look-ride-beyond",
-          "atWU": 22,
-          "rotation": [
-            0.013821,
-            0,
-            0
-          ],
-          "easing": "linear",
-          "trigger": {
-            "momentId": "text-epilogue-invitation",
+            "momentId": "text-epilogue-thinking",
             "phase": "exit",
             "offsetWU": 0
           }
@@ -607,9 +576,9 @@
             "cameraLookAheadWU": 0.82,
             "density": 1,
             "structureManifestationAmount": 0.24,
-            "structureAmbientAmount": 0.05,
+            "structureAmbientAmount": 0.15,
             "structureAmbientScaleWU": 20,
-            "structureAmbientSpeed": 0.36,
+            "structureAmbientSpeed": 0.44,
             "structureMotionCoherence": 0.72,
             "finaleMotionGain": 1.4,
             "hoopRadius": 4.35,
@@ -704,8 +673,8 @@
           "movement": "spatial",
           "preset": "opener-v1",
           "titleStyle": "display",
-          "text": "About Me",
-          "description": "Hi, I’m Alex. I’m a designer by heart, and I love the moment when a complicated idea starts to feel possible."
+          "text": "Hi, I’m Alex.",
+          "description": "I’m a designer at heart. I work across product design, visual systems, motion, 3D and code."
         },
         {
           "id": "text-complexity-idea",
@@ -725,7 +694,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Most new things arrive before we know what to do with them…"
+          "text": "I’ve always been fascinated by…"
         },
         {
           "id": "text-complexity-conditions",
@@ -736,7 +705,7 @@
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
-            "gapAfter": "standard",
+            "gapAfter": "passage",
             "focusMode": "middle"
           },
           "presentation": {
@@ -745,7 +714,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…or how to feel about them."
+          "text": "…how ideas become visual."
         },
         {
           "id": "text-background-unit",
@@ -769,34 +738,182 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "That is the part I find interesting. A product, service or technology can be useful long before it feels familiar. You can explain what it does, but that does not automatically make people want to use it, trust it or care about it."
+                "text": "I studied Communication Design in Mainz after two semesters of Computer Science. I wanted to explore visual language."
               },
               {
-                "id": "context-emphasis",
-                "kind": "list",
-                "items": [
-                  "Design should give people a way in."
-                ]
-              },
-              {
-                "id": "understanding",
+                "id": "career-turns",
                 "kind": "prose",
-                "text": "Sometimes that means simplifying. Sometimes it means slowing things down just enough for a decision to become visible. What matters is that the experience makes sense to the person using it, not only to the person who built it."
-              },
-              {
-                "id": "education",
-                "kind": "prose",
-                "text": "People need a way to relate to something new. Language, appearance, behaviour and movement all influence whether an idea feels credible or worth their time."
+                "text": "In early digital work, I designed interfaces, icon systems and motion alongside developers. Identity work brought product, brand and trust into the same problem."
               },
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "That is why multidisciplinary design feels right for the age we are in."
+                "text": "I look for the thought that gives the work its direction. I want to make things clear without losing their character."
+              },
+              {
+                "id": "career-sequence",
+                "kind": "career-sequence",
+                "label": "Experience",
+                "items": [
+                  {
+                    "id": "dennerlein",
+                    "yearLabel": "2014–2017",
+                    "employer": "Dennerlein GmbH",
+                    "role": "Art Director"
+                  },
+                  {
+                    "id": "yoti",
+                    "yearLabel": "2017–2019",
+                    "employer": "Yoti",
+                    "role": "Senior Product Designer"
+                  },
+                  {
+                    "id": "hugo-and-cat",
+                    "yearLabel": "2020–2024",
+                    "employer": "Hugo & Cat",
+                    "role": "Associate Design Director"
+                  },
+                  {
+                    "id": "mrm",
+                    "yearLabel": "Joined 2024",
+                    "employer": "MRM (McCann)",
+                    "role": "Associate Design Director"
+                  },
+                  {
+                    "id": "critical-mass",
+                    "yearLabel": "May–Sep 2026",
+                    "employer": "Critical Mass",
+                    "role": "Associate Design Director"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-complexity-curiosity",
+          "kind": "title",
+          "startWU": 7.15,
+          "focusWU": 7.55,
+          "endWU": 7.95,
+          "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "The problems that interest me…"
+        },
+        {
+          "id": "text-complexity-listen",
+          "kind": "title",
+          "startWU": 8.05,
+          "focusWU": 8.45,
+          "endWU": 8.85,
+          "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "standard",
+            "focusMode": "middle"
+          },
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "…rarely belong to one discipline."
+        },
+        {
+          "id": "text-discipline-labels",
+          "kind": "scroll-block",
+          "startWU": 8.95,
+          "focusWU": 9.7,
+          "endWU": 11.4,
+          "publishable": true,
+          "flow": {
+            "minScreens": 1.6,
+            "gapAfter": "standard",
+            "focusMode": "reading-start"
+          },
+          "presentation": {
+            "layout": "disciplines"
+          },
+          "block": {
+            "id": "discipline-labels",
+            "kind": "disciplines",
+            "label": "Disciplines",
+            "items": [
+              {
+                "id": "product-design",
+                "label": "Product Design",
+                "description": "I shape how something works, so a complex product feels clear from the first interaction."
+              },
+              {
+                "id": "experience-design",
+                "label": "Experience Design",
+                "description": "I connect the moments around a product, so the experience makes sense as people move through it."
+              },
+              {
+                "id": "art-direction",
+                "label": "Art Direction",
+                "description": "I give the work a visual point of view, because appearance is part of how it communicates."
+              },
+              {
+                "id": "motion-and-3d",
+                "label": "Motion & 3D",
+                "description": "I use movement and space to explain change and make unfamiliar ideas easier to grasp."
+              },
+              {
+                "id": "creative-engineering",
+                "label": "Creative Engineering",
+                "description": "I combine code and AI to turn early thinking into prototypes we can test."
+              },
+              {
+                "id": "parametric-systems",
+                "label": "Parametric Systems",
+                "description": "I build systems that help the work scale without losing the details that give it character."
+              }
+            ]
+          },
+          "reveal": {
+            "fadeDurationWU": 0.2
+          }
+        },
+        {
+          "id": "text-disciplines-title",
+          "kind": "scroll-block",
+          "startWU": 11.5,
+          "focusWU": 12.1,
+          "endWU": 14.4,
+          "publishable": true,
+          "flow": {
+            "minScreens": 1.8,
+            "gapAfter": "passage",
+            "focusMode": "reading-start"
+          },
+          "presentation": {
+            "layout": "disciplines"
+          },
+          "block": {
+            "id": "disciplines-passage",
+            "kind": "stack",
+            "modules": [
+              {
+                "id": "ai-judgement",
+                "kind": "prose",
+                "text": "A decision in one discipline changes what’s possible in another. I use motion, code and AI to turn assumptions into things we can test."
               },
               {
                 "id": "selected-clients",
                 "kind": "logo-grid",
-                "label": "I’ve been fortunate to work with influential organisations across automotive, aviation, charity, finance and technology.",
+                "label": "Selected clients",
                 "items": [
                   {
                     "id": "yoti",
@@ -895,166 +1012,6 @@
           }
         },
         {
-          "id": "text-complexity-curiosity",
-          "kind": "title",
-          "startWU": 7.15,
-          "focusWU": 7.55,
-          "endWU": 7.95,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.8,
-            "gapAfter": "tight",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "A product can work beautifully…"
-        },
-        {
-          "id": "text-complexity-listen",
-          "kind": "title",
-          "startWU": 8.05,
-          "focusWU": 8.45,
-          "endWU": 8.85,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.8,
-            "gapAfter": "standard",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "…and still tell the wrong story."
-        },
-        {
-          "id": "text-discipline-labels",
-          "kind": "scroll-block",
-          "startWU": 8.95,
-          "focusWU": 9.7,
-          "endWU": 11.4,
-          "publishable": true,
-          "flow": {
-            "minScreens": 1.6,
-            "gapAfter": "standard",
-            "focusMode": "reading-start"
-          },
-          "presentation": {
-            "layout": "disciplines"
-          },
-          "block": {
-            "id": "discipline-labels",
-            "kind": "disciplines",
-            "label": "Disciplines",
-            "items": [
-              {
-                "id": "product-design",
-                "label": "Product Design",
-                "description": "I shape how something works, so a complex product feels clear from the first interaction."
-              },
-              {
-                "id": "experience-design",
-                "label": "Experience Design",
-                "description": "I connect the moments around a product, so the experience makes sense as people move through it."
-              },
-              {
-                "id": "art-direction",
-                "label": "Art Direction",
-                "description": "I give the work a visual point of view, because appearance is part of how it communicates."
-              },
-              {
-                "id": "motion-and-3d",
-                "label": "Motion & 3D",
-                "description": "I use movement and space to explain change and make unfamiliar ideas easier to grasp."
-              },
-              {
-                "id": "creative-engineering",
-                "label": "Creative Engineering",
-                "description": "I combine code and AI to turn early thinking into prototypes we can test."
-              },
-              {
-                "id": "parametric-systems",
-                "label": "Parametric Systems",
-                "description": "I build systems that help the work scale without losing the details that give it character."
-              }
-            ]
-          },
-          "reveal": {
-            "fadeDurationWU": 0.2
-          }
-        },
-        {
-          "id": "text-disciplines-title",
-          "kind": "scroll-block",
-          "startWU": 11.5,
-          "focusWU": 12.1,
-          "endWU": 14.4,
-          "publishable": true,
-          "flow": {
-            "minScreens": 1.8,
-            "gapAfter": "chapter",
-            "focusMode": "reading-start"
-          },
-          "presentation": {
-            "layout": "disciplines"
-          },
-          "block": {
-            "id": "disciplines-passage",
-            "kind": "stack",
-            "modules": [
-              {
-                "id": "attention",
-                "kind": "prose",
-                "text": "Products do not arrive in the world as wireframes. They arrive as things people see, read, feel, use and remember."
-              },
-              {
-                "id": "brief-emphasis",
-                "kind": "list",
-                "items": [
-                  "The interesting part is how disciplines alter one another."
-                ]
-              },
-              {
-                "id": "friction-judgement",
-                "kind": "prose",
-                "text": "Product design, visual communication, art direction, motion, systems and code all shape this relationship. Each offers a different way to understand the problem and make the answer feel coherent. When they begin influencing one another early, the work starts to feel like one thing rather than a collection of good decisions."
-              },
-              {
-                "id": "trend-judgement",
-                "kind": "prose",
-                "text": "I began in Communication Design, and the work gradually took me into products, experiences, visual identities, motion, 3D, systems and code. Over thirteen years, I’ve done that inside companies, in agencies, independently and as a consultant. The contexts have changed, but the pleasure has stayed the same: bringing different ways of thinking together around one thing."
-              },
-              {
-                "id": "making-early",
-                "kind": "prose",
-                "text": "Aesthetics matter to me because they do real work. They can give an unfamiliar service character, make new technology feel less alien and show people that someone has paid attention to the details."
-              },
-              {
-                "id": "ai-judgement",
-                "kind": "prose",
-                "text": "I use AI most days, usually alongside code, to explore directions, make prototypes and see how an idea behaves before it becomes expensive to change. It has opened up a remarkable amount of creative territory. It also has a habit of making everything look convincing."
-              },
-              {
-                "id": "ambitious-teams",
-                "kind": "prose",
-                "text": "The questions I keep coming back to are simple: is it useful, does it have character, and is it responsible? AI can generate options, but it cannot decide which one should exist. That is still human work."
-              },
-              {
-                "id": "unfinished-projects",
-                "kind": "prose",
-                "text": "I’m at my best when there is no established answer yet, when a product, service or idea needs to become approachable without being made ordinary. I like getting close to the craft, staying with the question and giving it a form people can relate to. It is the work I love, and after thirteen years, I know I’m good at it."
-              }
-            ]
-          }
-        },
-        {
           "id": "text-life-momentum",
           "kind": "title",
           "startWU": 14.5,
@@ -1062,7 +1019,7 @@
           "endWU": 15.2,
           "publishable": true,
           "flow": {
-            "minScreens": 0.7,
+            "minScreens": 0.95,
             "gapAfter": "tight",
             "focusMode": "middle"
           },
@@ -1072,38 +1029,55 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "New ideas need a way in…"
-        },
-        {
-          "id": "text-life-form",
-          "kind": "title",
-          "startWU": 15.3,
-          "focusWU": 15.65,
-          "endWU": 16,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.7,
-            "gapAfter": "tight",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "…and the right disciplines to shape them…"
+          "text": "Make the work visible early."
         },
         {
           "id": "text-life-character",
-          "kind": "title",
+          "kind": "scroll-block",
           "startWU": 16.1,
           "focusWU": 16.45,
           "endWU": 16.8,
           "publishable": true,
           "flow": {
+            "minScreens": 1.8,
+            "gapAfter": "arrival",
+            "focusMode": "reading-start"
+          },
+          "presentation": {
+            "layout": "reading"
+          },
+          "block": {
+            "id": "working-method",
+            "kind": "stack",
+            "modules": [
+              {
+                "id": "begin",
+                "kind": "prose",
+                "text": "I question the brief, then make something early. A real thing reveals more than a long explanation."
+              },
+              {
+                "id": "make",
+                "kind": "prose",
+                "text": "With a working prototype, we can test behaviour and motion together. If an interaction is hard to follow, I can change it in code and test it again."
+              },
+              {
+                "id": "collaborate",
+                "kind": "prose",
+                "text": "I set a clear direction and invite collaborators to challenge it while decisions are open. I stay involved through delivery, keeping the central idea visible as the details evolve."
+              }
+            ]
+          }
+        },
+        {
+          "id": "text-epilogue-shaping",
+          "kind": "title",
+          "startWU": 17.1,
+          "focusWU": 17.45,
+          "endWU": 17.8,
+          "publishable": true,
+          "flow": {
             "minScreens": 0.7,
-            "gapAfter": "chapter",
+            "gapAfter": "tight",
             "focusMode": "middle"
           },
           "presentation": {
@@ -1112,7 +1086,27 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…then something new becomes possible."
+          "text": "If you’re shaping something…"
+        },
+        {
+          "id": "text-epilogue-thinking",
+          "kind": "title",
+          "startWU": 18.05,
+          "focusWU": 18.4,
+          "endWU": 18.75,
+          "publishable": true,
+          "flow": {
+            "minScreens": 0.7,
+            "gapAfter": "standard",
+            "focusMode": "middle"
+          },
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "…that needs more than one way of thinking…"
         },
         {
           "id": "text-epilogue-invitation",
@@ -1133,7 +1127,7 @@
           "preset": "finale-v1",
           "titleStyle": "display",
           "text": "Let’s begin.",
-          "description": "If you’re working on something new, complex or still taking shape, I’d love to hear about it."
+          "description": "Tell me what you’re trying to make possible."
         }
       ]
     },

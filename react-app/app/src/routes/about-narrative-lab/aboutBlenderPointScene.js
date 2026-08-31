@@ -2,6 +2,22 @@ import * as THREE from 'three';
 import {
   resolveResponsiveVerticalFovFromHorizontalFov,
 } from './aboutNarrativeCameraProjection.js';
+import {
+  createAboutNarrativeCameraPointerPanController,
+  createAboutNarrativeCameraPointerPanSample,
+} from './aboutNarrativeCameraPointerPan.js';
+import {
+  createAboutNarrativeCameraSteadycamController,
+  createAboutNarrativeCameraSteadycamSample,
+} from './aboutNarrativeCameraSteadycam.js';
+import {
+  createAboutNarrativeJourneySample,
+  sampleAboutNarrativeJourneyMapInto,
+} from './aboutNarrativeJourneyMap.js';
+import {
+  resolveAboutBlenderSceneContract,
+  validateAboutBlenderSceneBundle,
+} from './aboutBlenderSceneContract.js';
 import { writeAboutSceneLook } from './aboutSceneLook.js';
 import { createAboutSurfelPaletteRoles } from './aboutSurfelPalette.js';
 import {
@@ -11,16 +27,25 @@ import {
 
 const ASSET_ROOT = '/models/about-v2-edited-world';
 const META_URL = `${ASSET_ROOT}/meta.json`;
-const CAMERA_TRACK_URL = `${ASSET_ROOT}/camera-track.json`;
 const SURFEL_STRIDE_BYTES = 32;
-const CAMERA_SAMPLE_STRIDE = 7;
 const DEFAULT_HORIZONTAL_FOV = 85;
 const DEFAULT_PORTRAIT_MAX_VERTICAL_FOV = 115;
 const FULL_SURFEL_REVEAL_VISIBILITY = 0.2;
 const CAMERA_FAR_WU = 560;
+const DEFAULT_VISIBILITY_HANDOFF_WU = 0.18;
+const EMPTY_DIAGNOSTICS = Object.freeze([]);
+const EMPTY_MODEL_FRAMING = Object.freeze({});
+const EMPTY_VISIBILITY_WINDOWS = Object.freeze([]);
 const PALETTE_ROLE_COUNT = 6;
+const POINTER_LOOK_DISTANCE_WU = 18;
 const ADAPTER_ID = 'blender-surfel-v2';
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
+
+function finiteNumberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 
 const SURFEL_VERTEX_SHADER = `
   precision highp float;
@@ -33,6 +58,9 @@ const SURFEL_VERTEX_SHADER = `
   attribute float iMotionGroup;
   attribute float iFeatureClass;
   attribute float iPreserve;
+  attribute float iVisibilityStartWU;
+  attribute float iVisibilityEndWU;
+  attribute float iVisibilityHandoffWU;
 
   uniform vec2 uViewportPx;
   uniform float uProjectionScalePx;
@@ -48,12 +76,42 @@ const SURFEL_VERTEX_SHADER = `
   uniform float uSceneVisibility;
   uniform float uEntranceScale;
   uniform float uOpacity;
+  uniform float uManifestationSpread;
   uniform float uMotionTime;
   uniform float uMotionAmountWU;
+  uniform float uMotionScaleWU;
   uniform float uMotionCoherence;
+  uniform float uStoryWU;
+  uniform vec2 uTerminalMotionGroups;
+  uniform vec2 uTerminalTravelXWU;
+  uniform float uTerminalPhase;
+  uniform float uTerminalAmplitudeWU;
 
   varying vec2 vCircle;
   varying float vPalette;
+
+  float separatedSurfelRadius(
+    float physicalRadiusPx,
+    float surfaceFacing,
+    float coverage,
+    float minimumRadiusPx,
+    float maximumRadiusPx
+  ) {
+    // Bound the billboard by its radius-derived projected spacing. At grazing
+    // angles its source area is foreshortened; a fixed pixel floor otherwise
+    // turns distant rows into solid colour bands. Keep every source point and
+    // its round silhouette, but let physical spacing override that size floor.
+    float projectedSpacingPx = physicalRadiusPx / 0.56;
+    float facingArea = clamp(abs(surfaceFacing), 0.16, 1.0);
+    // A grazing surface compresses one axis more than its projected area.
+    // Correct only that local footprint; face-on dots retain their size.
+    float facingAxis = clamp(abs(surfaceFacing), 0.30, 1.0);
+    float grazingWeight = 0.5 * (1.0 - smoothstep(0.15, 0.55, abs(surfaceFacing)));
+    float footprint = mix(sqrt(facingArea), facingAxis, grazingWeight);
+    float spacingCapPx = 0.42 * projectedSpacingPx * footprint;
+    float preferredRadiusPx = max(physicalRadiusPx * coverage, minimumRadiusPx);
+    return min(maximumRadiusPx, min(preferredRadiusPx, spacingCapPx));
+  }
 
   vec3 octDecodeNormal(vec2 encoded) {
     vec3 normal = vec3(encoded.xy, 1.0 - abs(encoded.x) - abs(encoded.y));
@@ -71,7 +129,31 @@ const SURFEL_VERTEX_SHADER = `
       cos((uMotionTime * 0.83) + (groupPhase * 1.31)) * 0.8,
       sin((uMotionTime * 0.47) + (groupPhase * 0.73)) * 0.4
     ) * uMotionAmountWU;
-    vec4 viewCenter = modelViewMatrix * vec4(iPosition + rigidMotion, 1.0);
+    float pointPhase = dot(
+      iPosition,
+      vec3(0.62, 0.94, 1.18) / max(0.001, uMotionScaleWU)
+    )
+      + (iRevealRank * 5.3)
+      + (iLodRank * 9.7);
+    float individualStrength = mix(0.12, 0.28, 1.0 - uMotionCoherence);
+    vec3 individualMotion = vec3(
+      sin((uMotionTime * 0.53) + pointPhase),
+      cos((uMotionTime * 0.61) + (pointPhase * 0.79)),
+      sin((uMotionTime * 0.43) + (pointPhase * 1.17))
+    ) * (uMotionAmountWU * individualStrength);
+    if (uTerminalMotionGroups.x >= 0.0
+      && iMotionGroup >= uTerminalMotionGroups.x
+      && iMotionGroup <= uTerminalMotionGroups.y) {
+      // Candidate-only connected response. Adjacent positions share a phase
+      // delay, unlike the existing component-ID phases. One bounded pulse moves
+      // through both shoulders and their saddle without reseeding or a new loop.
+      float region = (iPosition.x - uTerminalTravelXWU.x)
+        / max(0.001, uTerminalTravelXWU.y - uTerminalTravelXWU.x);
+      float response = pow(max(0.0, cos(uTerminalPhase - region * 4.08407045)), 4.0);
+      rigidMotion = vec3(0.0, uTerminalAmplitudeWU * response, 0.0);
+      individualMotion = vec3(0.0);
+    }
+    vec4 viewCenter = modelViewMatrix * vec4(iPosition + rigidMotion + individualMotion, 1.0);
     vec3 viewNormal = normalize(normalMatrix * octDecodeNormal(iNormalOct));
     float surfaceFacing = dot(viewNormal, normalize(-viewCenter.xyz));
     float cameraDepth = max(0.0001, -viewCenter.z);
@@ -81,16 +163,40 @@ const SURFEL_VERTEX_SHADER = `
       cameraDepth
     );
     float fogVisibility = 1.0 - pow(fogAmount, max(0.05, uFogCurve));
+    float handoffWU = max(0.001, iVisibilityHandoffWU);
+    float stageEntrance = iVisibilityStartWU <= 0.0
+      ? 1.0
+      : smoothstep(iVisibilityStartWU, iVisibilityStartWU + handoffWU, uStoryWU);
+    float stageExit = 1.0 - smoothstep(
+      max(iVisibilityStartWU, iVisibilityEndWU - handoffWU),
+      iVisibilityEndWU,
+      uStoryWU
+    );
+    float stageVisibility = min(stageEntrance, stageExit);
     float revealVisibility = min(
       min(fogVisibility, clamp(uSceneVisibility, 0.0, 1.0)),
       min(clamp(uEntranceScale, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
     );
-    float revealRank = min(iRevealRank * 0.12, 0.119);
+    float manifestationSpread = clamp(uManifestationSpread, 0.0, 0.8);
+    float revealRank = min(
+      iRevealRank * manifestationSpread,
+      max(0.0, manifestationSpread - 0.001)
+    );
     float revealProgress = smoothstep(
       revealRank,
       min(1.0, revealRank + 0.08),
       revealVisibility
     );
+    // Stage handoffs admit or release complete, opaque surfels in a stable
+    // authored order. They never fade individual circle colours or punch a
+    // screen-space hole around the copy.
+    float stageRevealRank = min(iRevealRank * 0.92, 0.919);
+    float stageRevealProgress = smoothstep(
+      stageRevealRank,
+      stageRevealRank + 0.08,
+      stageVisibility
+    );
+    revealProgress = min(revealProgress, stageRevealProgress);
     float referenceDepthWU = 8.0;
     float resolvedDepth = referenceDepthWU * pow(
       cameraDepth / referenceDepthWU,
@@ -112,8 +218,10 @@ const SURFEL_VERTEX_SHADER = `
       vPalette = iPalette;
       return;
     }
-    float radiusPx = clamp(
-      physicalRadiusPx * uCoverage,
+    float radiusPx = separatedSurfelRadius(
+      physicalRadiusPx,
+      surfaceFacing,
+      uCoverage,
       uMinPointSizePx,
       max(uMinPointSizePx, uMaxPointSizePx)
     );
@@ -203,35 +311,19 @@ function fileCount(fileSpec, fallback = 0) {
 }
 
 async function fetchJson(url, signal) {
-  const response = await fetch(url, { signal });
+  const response = await fetch(url, { signal, cache: 'no-cache' });
   if (!response.ok) throw new Error(`Asset request failed (${response.status}): ${url}`);
   return response.json();
 }
 
 async function fetchBuffer(url, signal) {
-  const response = await fetch(url, { signal });
+  const response = await fetch(url, { signal, cache: 'no-cache' });
   if (!response.ok) throw new Error(`Asset request failed (${response.status}): ${url}`);
   return response.arrayBuffer();
 }
 
 function assetUrl(name) {
   return `${ASSET_ROOT}/${String(name || '').replace(/^\/+/, '')}`;
-}
-
-function validateCameraTrack(value) {
-  const sampleCount = Number(value?.sampleCount);
-  const projection = value?.projection;
-  if (!Number.isInteger(sampleCount) || sampleCount < 2
-    || !Array.isArray(value?.samples) || value.samples.length !== sampleCount
-    || value.samples.some((sample) => (
-      !Array.isArray(sample) || sample.length !== CAMERA_SAMPLE_STRIDE
-      || sample.some((component) => !Number.isFinite(component))
-    ))
-    || projection?.type !== 'perspective'
-    || projection?.fovAxis !== 'horizontal') {
-    throw new Error('The exported Blender camera track is invalid.');
-  }
-  return value;
 }
 
 function sampleCameraTrack(track, progress, position, quaternion, targetQuaternion) {
@@ -383,6 +475,9 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
   const motionGroups = new Uint8Array(count);
   const featureClasses = new Uint8Array(count);
   const preserveFlags = new Uint8Array(count);
+  const visibilityStartsWU = new Float32Array(count);
+  const visibilityEndsWU = new Float32Array(count);
+  const visibilityHandoffsWU = new Float32Array(count);
   const partOrdinals = new Map();
   const partPaletteRoles = new Map();
   const perModelCounts = Object.freeze(Object.fromEntries(
@@ -405,7 +500,10 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     normalOct[normalOffset] = view.getInt16(offset + 12, true);
     normalOct[normalOffset + 1] = view.getInt16(offset + 14, true);
     const modelId = view.getUint16(offset + 20, true);
-    modelPointIndices[modelId]?.push(index);
+    if (!modelPointIndices[modelId]) throw new Error(`Surfel references unknown model ${modelId}.`);
+    // Visibility arrays remain zeroed until the complete semantic contract is
+    // accepted. Decoding never manufactures an unbounded visibility interval.
+    modelPointIndices[modelId].push(index);
     const partId = view.getUint16(offset + 22, true);
     const objectKey = meta?.models?.[modelId]?.objectKeys?.[partId];
     const partKey = `${modelId}:${partId}`;
@@ -431,7 +529,9 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
       });
       partPaletteRoles.set(materialPaletteKey, objectPaletteRoles);
     }
-    paletteRoles[index] = objectPaletteRoles[partOrdinal % objectPaletteRoles.length];
+    paletteRoles[index] = sourceObjects.get(objectKey)?.role === 'path-tunnel'
+      ? semanticRole % PALETTE_ROLE_COUNT
+      : objectPaletteRoles[partOrdinal % objectPaletteRoles.length];
     motionGroups[index] = view.getUint8(offset + 29);
     featureClasses[index] = view.getUint8(offset + 30);
     preserveFlags[index] = view.getUint8(offset + 31) ? 1 : 0;
@@ -451,7 +551,30 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     motionGroups,
     featureClasses,
     preserveFlags,
+    visibilityStartsWU,
+    visibilityEndsWU,
+    visibilityHandoffsWU,
   };
+}
+
+function applyResolvedVisibilityWindows(decoded, windows, geometry) {
+  windows.forEach((window) => {
+    const pointIndices = decoded.modelPointIndices[window.modelId];
+    pointIndices.forEach((pointIndex) => {
+      decoded.visibilityStartsWU[pointIndex] = window.startWU;
+      decoded.visibilityEndsWU[pointIndex] = window.endWU;
+      decoded.visibilityHandoffsWU[pointIndex] = window.handoffWU;
+    });
+  });
+  for (const attributeName of [
+    'iVisibilityStartWU',
+    'iVisibilityEndWU',
+    'iVisibilityHandoffWU',
+  ]) {
+    const attribute = geometry?.getAttribute(attributeName);
+    if (attribute) attribute.needsUpdate = true;
+  }
+  return windows;
 }
 
 function createSurfelGeometry(decoded) {
@@ -473,6 +596,9 @@ function createSurfelGeometry(decoded) {
   geometry.setAttribute('iMotionGroup', new THREE.InstancedBufferAttribute(decoded.motionGroups, 1));
   geometry.setAttribute('iFeatureClass', new THREE.InstancedBufferAttribute(decoded.featureClasses, 1));
   geometry.setAttribute('iPreserve', new THREE.InstancedBufferAttribute(decoded.preserveFlags, 1));
+  geometry.setAttribute('iVisibilityStartWU', new THREE.InstancedBufferAttribute(decoded.visibilityStartsWU, 1));
+  geometry.setAttribute('iVisibilityEndWU', new THREE.InstancedBufferAttribute(decoded.visibilityEndsWU, 1));
+  geometry.setAttribute('iVisibilityHandoffWU', new THREE.InstancedBufferAttribute(decoded.visibilityHandoffsWU, 1));
   geometry.instanceCount = decoded.count;
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), Number.POSITIVE_INFINITY);
   return geometry;
@@ -488,15 +614,22 @@ function createUniforms() {
     uBackfaceRetention: { value: 0 },
     uDetailBias: { value: 1 },
     uPerspectiveResponse: { value: 1 },
-    uFogStartWU: { value: 7 },
-    uFogEndWU: { value: 18 },
+    uFogStartWU: { value: 14 },
+    uFogEndWU: { value: 70 },
     uFogCurve: { value: 1 },
     uSceneVisibility: { value: 1 },
     uEntranceScale: { value: 1 },
     uOpacity: { value: 1 },
+    uManifestationSpread: { value: 0.24 },
     uMotionTime: { value: 0 },
     uMotionAmountWU: { value: 0 },
+    uMotionScaleWU: { value: 20 },
     uMotionCoherence: { value: 0.72 },
+    uStoryWU: { value: 0 },
+    uTerminalMotionGroups: { value: new THREE.Vector2(-1, -1) },
+    uTerminalTravelXWU: { value: new THREE.Vector2(-38, 38) },
+    uTerminalPhase: { value: 0 },
+    uTerminalAmplitudeWU: { value: 0 },
     uEdgeSoftness: { value: 1.35 },
     uPalette0: { value: new THREE.Color('#7e7e7e') },
     uPalette1: { value: new THREE.Color('#ffd019') },
@@ -543,7 +676,10 @@ function arrayBytes(decoded) {
     + decoded.revealRanks.byteLength
     + decoded.motionGroups.byteLength
     + decoded.featureClasses.byteLength
-    + decoded.preserveFlags.byteLength;
+    + decoded.preserveFlags.byteLength
+    + decoded.visibilityStartsWU.byteLength
+    + decoded.visibilityEndsWU.byteLength
+    + decoded.visibilityHandoffsWU.byteLength;
 }
 
 function stableAttributeIdentities(geometry) {
@@ -556,11 +692,32 @@ function attributesStillStable(geometry, identities) {
   return Object.entries(identities).every(([name, attribute]) => geometry.getAttribute(name) === attribute);
 }
 
-function modelFramingSnapshot(meta, camera, controls, decoded) {
+function modelStageVisibility(model, storyWU) {
+  const startWU = finiteNumberOrNull(model?.visibilityStartWU);
+  const endWU = finiteNumberOrNull(model?.visibilityEndWU);
+  const handoffWU = Math.max(
+    0.001,
+    finiteNumberOrNull(model?.visibilityHandoffWU) ?? DEFAULT_VISIBILITY_HANDOFF_WU,
+  );
+  if (startWU === null || endWU === null || endWU <= startWU) return 0;
+  const entrance = startWU <= 0 ? 1 : smoothstep(startWU, startWU + handoffWU, storyWU);
+  const exit = 1 - smoothstep(Math.max(startWU, endWU - handoffWU), endWU, storyWU);
+  return Math.min(entrance, exit);
+}
+
+function modelFramingSnapshot(
+  meta,
+  camera,
+  controls,
+  decoded,
+  storyWU,
+  protectedNdcBounds = null,
+  resolvedVisibilityWindows = null,
+) {
   if (!meta || !camera || !decoded) return Object.freeze({});
   camera.updateMatrixWorld(true);
-  const floatingModels = (meta.models || []).filter((model) => model.role === 'floating-model');
-  return Object.freeze(Object.fromEntries(floatingModels.map((model) => {
+  const diagnosticModels = meta.models || [];
+  return Object.freeze(Object.fromEntries(diagnosticModels.map((model) => {
     const pointIndices = decoded.modelPointIndices[model.id] || [];
     let minX = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
@@ -569,6 +726,24 @@ function modelFramingSnapshot(meta, camera, controls, decoded) {
     let minimumFogVisibility = 1;
     let visibleCount = 0;
     let framedVisibleCount = 0;
+    let framedLeftCount = 0;
+    let framedRightCount = 0;
+    let protectedCenterVisibleCount = 0;
+    // Explicit diagnostics only, never render/RAF. Three projected points are
+    // needed to occupy a bin; this measures spread, not rendered visual quality.
+    const occupancy = new Uint16Array(12 * 12);
+    const visibilityWindow = resolvedVisibilityWindows?.[model.id];
+    const stageVisibility = modelStageVisibility(visibilityWindow ? {
+      visibilityStartWU: visibilityWindow.startWU,
+      visibilityEndWU: visibilityWindow.endWU,
+      visibilityHandoffWU: visibilityWindow.handoffWU,
+    } : model, storyWU);
+    const protectedBounds = protectedNdcBounds || {
+      minX: camera.aspect < 0.7 ? -0.72 : -0.46,
+      maxX: camera.aspect < 0.7 ? 0.72 : 0.46,
+      minY: -0.22,
+      maxY: 0.22,
+    };
     pointIndices.forEach((pointIndex) => {
       const positionOffset = pointIndex * 3;
       const point = new THREE.Vector3(
@@ -582,8 +757,15 @@ function modelFramingSnapshot(meta, camera, controls, decoded) {
       const fogAmount = smoothstep(controls.fogStartWU, controls.fogEndWU, cameraDepth);
       const fogVisibility = 1 - Math.pow(fogAmount, Math.max(0.05, controls.fogCurve));
       minimumFogVisibility = Math.min(minimumFogVisibility, fogVisibility);
-      const revealRank = Math.min((decoded.revealRanks[pointIndex] / 65535) * 0.12, 0.119);
-      const revealed = inFront && fogVisibility > revealRank;
+      const normalizedRevealRank = decoded.revealRanks[pointIndex] / 65535;
+      const fogRevealRank = Math.min(
+        normalizedRevealRank * controls.manifestationSpread,
+        Math.max(0, controls.manifestationSpread - 0.001),
+      );
+      const stageRevealRank = Math.min(normalizedRevealRank * 0.92, 0.919);
+      const revealed = inFront
+        && fogVisibility > fogRevealRank
+        && stageVisibility > stageRevealRank;
       const projected = point.project(camera);
       minX = Math.min(minX, projected.x);
       maxX = Math.max(maxX, projected.x);
@@ -592,17 +774,69 @@ function modelFramingSnapshot(meta, camera, controls, decoded) {
       const framed = inFront && projected.x >= -1 && projected.x <= 1
         && projected.y >= -1 && projected.y <= 1;
       if (revealed) visibleCount += 1;
-      if (revealed && framed) framedVisibleCount += 1;
+      if (revealed && framed) {
+        framedVisibleCount += 1;
+        if (projected.x < 0) framedLeftCount += 1;
+        else framedRightCount += 1;
+        const column = Math.min(11, Math.floor((projected.x + 1) * 6));
+        const row = Math.min(11, Math.floor((projected.y + 1) * 6));
+        const bin = row * 12 + column;
+        if (occupancy[bin] < 65535) occupancy[bin] += 1;
+      }
+      if (revealed && framed
+        && projected.x >= protectedBounds.minX
+        && projected.x <= protectedBounds.maxX
+        && projected.y >= protectedBounds.minY
+        && projected.y <= protectedBounds.maxY) {
+        protectedCenterVisibleCount += 1;
+      }
     });
+    let occupiedBinCount = 0;
+    let leftOccupiedBinCount = 0;
+    let rightOccupiedBinCount = 0;
+    let rowMask = 0;
+    let columnMask = 0;
+    for (let bin = 0; bin < occupancy.length; bin += 1) {
+      if (occupancy[bin] < 3) continue;
+      const column = bin % 12;
+      occupiedBinCount += 1;
+      if (column < 6) leftOccupiedBinCount += 1;
+      else rightOccupiedBinCount += 1;
+      rowMask |= 1 << Math.floor(bin / 12);
+      columnMask |= 1 << column;
+    }
+    let occupiedRowCount = 0;
+    let occupiedColumnCount = 0;
+    let leftOccupiedColumnCount = 0;
+    let rightOccupiedColumnCount = 0;
+    for (let index = 0; index < 12; index += 1) {
+      if (rowMask & (1 << index)) occupiedRowCount += 1;
+      if (!(columnMask & (1 << index))) continue;
+      occupiedColumnCount += 1;
+      if (index < 6) leftOccupiedColumnCount += 1;
+      else rightOccupiedColumnCount += 1;
+    }
     const pointCount = pointIndices.length;
     return [model.key, Object.freeze({
       fullyFramed: minX >= -1 && maxX <= 1 && minY >= -1 && maxY <= 1,
       ndcBounds: Object.freeze({ minX, maxX, minY, maxY }),
       minimumFogVisibility,
       fullyRevealedByFog: minimumFogVisibility >= FULL_SURFEL_REVEAL_VISIBILITY,
+      stageVisibility,
+      visibilityWindow,
       pointCount,
       visibleCount,
       framedVisibleCount,
+      framedLeftCount,
+      framedRightCount,
+      protectedCenterVisibleCount,
+      occupiedBinCount,
+      occupiedRowCount,
+      occupiedColumnCount,
+      leftOccupiedColumnCount,
+      rightOccupiedColumnCount,
+      leftOccupiedBinCount,
+      rightOccupiedBinCount,
       visibleFraction: pointCount ? visibleCount / pointCount : 0,
       framedVisibleFraction: pointCount ? framedVisibleCount / pointCount : 0,
     })];
@@ -637,7 +871,27 @@ export function createBlenderPointScene({
   const sceneGroup = new THREE.Group();
   scene.add(sceneGroup);
   const camera = new THREE.PerspectiveCamera(48, 1, 0.05, CAMERA_FAR_WU);
+  const cameraAuthoredPosition = new THREE.Vector3();
+  const cameraAuthoredQuaternion = new THREE.Quaternion();
   const cameraTargetQuaternion = new THREE.Quaternion();
+  const cameraBasePosition = new THREE.Vector3();
+  const cameraForward = new THREE.Vector3();
+  const cameraRight = new THREE.Vector3();
+  const cameraUp = new THREE.Vector3();
+  const cameraLookTarget = new THREE.Vector3();
+  const cameraLookMatrix = new THREE.Matrix4();
+  const pointerPanController = createAboutNarrativeCameraPointerPanController({
+    initialNowMs: performance.now(),
+  });
+  const pointerPanSample = createAboutNarrativeCameraPointerPanSample();
+  const steadycamController = createAboutNarrativeCameraSteadycamController({
+    initialNowMs: performance.now(),
+  });
+  const steadycamSample = createAboutNarrativeCameraSteadycamSample();
+  const steadycamAuthoredPosition = [0, 0, 0];
+  const steadycamAuthoredQuaternion = [0, 0, 0, 1];
+  const journeySample = createAboutNarrativeJourneySample();
+  const finePointerQuery = window.matchMedia('(pointer: fine)');
   const uniforms = createUniforms();
   const listeners = new Set();
   const abortController = new AbortController();
@@ -646,6 +900,16 @@ export function createBlenderPointScene({
   let errorMessage = '';
   let meta = null;
   let cameraTrack = null;
+  let bundleIntegrityVerified = false;
+  let sceneContractStatus = 'pending';
+  let sceneContractDiagnostics = EMPTY_DIAGNOSTICS;
+  let resolvedJourneyMap = null;
+  let resolvedStoryJourneyMap = null;
+  let resolvedJourneyCameraTrack = null;
+  let resolvedJourneyMeta = null;
+  let resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
+  let readyAnnounced = false;
+  let editorialFallbackAnnounced = false;
   let surfelGeometry = null;
   let surfelCoreMaterial = null;
   let surfelSoftMaterial = null;
@@ -666,12 +930,18 @@ export function createBlenderPointScene({
   let frameTimeMs = 0;
   let drawCalls = 0;
   let cameraRollDegrees = 0;
+  let lastCameraProgress = null;
+  let lastCameraLocked = null;
+  let motionTime = 0;
+  let terminalStudy = null;
   let bufferBuilds = 0;
   const controls = writeAboutSceneLook({}, null, entranceScale);
   let paletteId = '';
 
   const notify = () => listeners.forEach((listener) => listener());
   const setState = (nextState, nextError = '') => {
+    if (state === nextState && errorMessage === nextError
+      && root.dataset.pointWorldState === nextState) return;
     state = nextState;
     errorMessage = nextError;
     root.dataset.pointWorldState = nextState;
@@ -680,10 +950,54 @@ export function createBlenderPointScene({
     notify();
   };
 
+  const setSceneContract = (status, diagnostics = EMPTY_DIAGNOSTICS) => {
+    sceneContractStatus = status;
+    sceneContractDiagnostics = diagnostics;
+    root.dataset.sceneContractStatus = status;
+    root.dataset.aboutJourneyCertifiable = status === 'compatible' ? 'true' : 'false';
+  };
+
+  const resetPresentation = ({ clear = false } = {}) => {
+    readyAnnounced = false;
+    activeCount = 0;
+    drawCalls = 0;
+    delete root.dataset.pointAsset;
+    delete root.dataset.worldStage;
+    delete root.dataset.aboutSceneReady;
+    if (clear && contextAvailable && !disposed) renderer.clear();
+  };
+
+  const rejectScene = (diagnostics, message) => {
+    if (disposed) return;
+    const firstRejection = sceneContractStatus !== 'incompatible' || state !== 'unavailable';
+    setSceneContract('incompatible', diagnostics);
+    resolvedJourneyMap = null;
+    resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
+    sampleAboutNarrativeJourneyMapInto(null, latestFrame?.storyWU, journeySample);
+    root.dataset.aboutCameraLocked = 'false';
+    if (firstRejection) resetPresentation({ clear: true });
+    setState('unavailable', message);
+    // A diagnostic subscriber may have started an explicit retry synchronously.
+    if (disposed || state !== 'unavailable' || sceneContractStatus !== 'incompatible') return;
+    if (!editorialFallbackAnnounced) {
+      editorialFallbackAnnounced = true;
+      root.dataset.aboutSceneReady = 'true';
+      // Release editorial boot readiness only. The world-runtime-ready event
+      // would schedule another preparation attempt and mislabel this failure.
+      window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+    }
+  };
+
   const markReady = () => {
+    if (readyAnnounced || disposed || !contextAvailable || !bundleIntegrityVerified
+      || sceneContractStatus !== 'compatible') return;
+    readyAnnounced = true;
+    editorialFallbackAnnounced = false;
     root.dataset.pointAsset = 'blender-surfel-v2';
     root.dataset.aboutSceneReady = 'true';
     root.dataset.worldStage = 'blender-surfel-scene';
+    setState('ready');
+    if (disposed || state !== 'ready') return;
     root.dispatchEvent(new CustomEvent('about:world-runtime-ready'));
     window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
   };
@@ -706,14 +1020,59 @@ export function createBlenderPointScene({
     uniforms.uViewportPx.value.set(width * pixelRatio, height * pixelRatio);
     uniforms.uProjectionScalePx.value = (height * pixelRatio)
       / Math.max(0.0001, 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
+    pointerPanController.setViewport(rect.left, rect.top, rect.width, rect.height);
+  };
+
+  const disposeDecodedScene = () => {
+    if (surfelCore) sceneGroup.remove(surfelCore);
+    if (surfelSoft) sceneGroup.remove(surfelSoft);
+    surfelGeometry?.dispose();
+    surfelCoreMaterial?.dispose();
+    surfelSoftMaterial?.dispose();
+    surfelCore = null;
+    surfelSoft = null;
+    surfelGeometry = null;
+    surfelCoreMaterial = null;
+    surfelSoftMaterial = null;
+    attributeIdentities = null;
+    decoded = null;
+    meta = null;
+    cameraTrack = null;
+    resolvedJourneyMap = null;
+    resolvedStoryJourneyMap = null;
+    resolvedJourneyCameraTrack = null;
+    resolvedJourneyMeta = null;
+    resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
+    lastCameraProgress = null;
+    lastCameraLocked = null;
+    activeCount = 0;
+    drawCalls = 0;
   };
 
   const installDecodedScene = ({ nextMeta, nextCameraTrack, nextDecoded }) => {
     if (disposed) return;
     meta = nextMeta;
+    terminalStudy = RUNTIME_DIAGNOSTICS_ENABLED
+      && meta.terminalStudy?.schema === 'about-terminal-study/v1'
+      ? meta.terminalStudy : null;
+    uniforms.uTerminalMotionGroups.value.set(-1, -1);
+    if (terminalStudy) {
+      const model = meta.models.find((entry) => entry.key === terminalStudy.modelKey);
+      const groups = meta.motionGroups.filter((entry) => entry.key === model?.motionKey
+        || entry.key.startsWith(`${model?.motionKey}.`)).map((entry) => entry.id);
+      if (groups.length) {
+        uniforms.uTerminalMotionGroups.value.set(Math.min(...groups), Math.max(...groups));
+        uniforms.uTerminalTravelXWU.value.fromArray(terminalStudy.travelXWU);
+      }
+    }
     cameraTrack = nextCameraTrack;
+    resolvedJourneyMap = null;
+    resolvedStoryJourneyMap = null;
+    resolvedJourneyCameraTrack = null;
+    resolvedJourneyMeta = null;
     decoded = nextDecoded;
     surfelGeometry = createSurfelGeometry(decoded);
+    resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
     surfelCoreMaterial = createSurfelMaterial(uniforms, { depthCore: true });
     surfelSoftMaterial = createSurfelMaterial(uniforms);
     surfelCoreMaterial.depthFunc = THREE.LessEqualDepth;
@@ -728,56 +1087,188 @@ export function createBlenderPointScene({
     attributeIdentities = stableAttributeIdentities(surfelGeometry);
     bufferBuilds += 1;
     resize();
-    setState('ready');
-    markReady();
+    // Loading remains pending until an actual frame supplies a compatible map.
     if (latestFrame) render(latestFrame);
   };
 
-  const load = (controller = activeAbortController) => {
-    if (decoded || disposed) return loadPromise || Promise.resolve();
+  const load = (controller = activeAbortController, explicitRetry = false) => {
+    if (disposed || decoded || (state === 'unavailable' && !explicitRetry)) {
+      return loadPromise || Promise.resolve();
+    }
     if (loadPromise) return loadPromise;
-    setState('loading');
-    loadPromise = Promise.all([
-      fetchJson(META_URL, controller.signal),
-      fetchJson(CAMERA_TRACK_URL, controller.signal),
-    ]).then(async ([nextMeta, cameraValue]) => {
-      const nextCameraTrack = validateCameraTrack(cameraValue);
-      if (nextMeta?.schema !== 'about-point-scene' || Number(nextMeta?.version) !== 2) {
-        throw new Error('The Blender surfel asset is not the required v2 contract.');
+    const ownsLoad = () => !disposed && !controller.signal.aborted
+      && activeAbortController === controller;
+    bundleIntegrityVerified = false;
+    root.dataset.bundleIntegrityVerified = 'false';
+    editorialFallbackAnnounced = false;
+    setSceneContract('pending');
+    resetPresentation();
+    // Register the promise before notifying subscribers. A preparation callback
+    // cannot start a second load during a synchronous loading-state notification.
+    const attempt = Promise.resolve().then(async () => {
+      if (!ownsLoad()) return;
+      const nextMeta = await fetchJson(META_URL, controller.signal);
+      if (!ownsLoad()) return;
+      const [cameraTrackBytes, surfelBuffer] = await Promise.all([
+        fetchBuffer(assetUrl(fileName(nextMeta?.files?.cameraTrack, 'camera-track.json')), controller.signal),
+        fetchBuffer(assetUrl(fileName(nextMeta?.files?.surfels, 'surfels.bin')), controller.signal),
+      ]);
+      if (!ownsLoad()) return;
+      const bundle = await validateAboutBlenderSceneBundle({
+        meta: nextMeta,
+        cameraTrackBytes,
+        surfelBytes: surfelBuffer,
+      });
+      // Web Crypto is not abortable. A disposed or superseded load must not
+      // install its verified-but-stale bytes after hashing completes.
+      if (!ownsLoad()) return;
+      if (bundle.status !== 'compatible') {
+        rejectScene(bundle.diagnostics, bundle.diagnostics.map((item) => item.message).join(' '));
+        return;
       }
-      const surfelBuffer = await fetchBuffer(
-        assetUrl(fileName(nextMeta.files?.surfels, 'surfels.bin')),
-        controller.signal,
-      );
+      bundleIntegrityVerified = true;
+      root.dataset.bundleIntegrityVerified = 'true';
       const nextDecoded = decodeV2Surfels(nextMeta, surfelBuffer, qualityTier);
-      installDecodedScene({ nextMeta, nextCameraTrack, nextDecoded });
+      installDecodedScene({ nextMeta, nextCameraTrack: bundle.cameraTrack, nextDecoded });
     }).catch((error) => {
-      if (disposed || error?.name === 'AbortError') return;
+      if (!ownsLoad() || error?.name === 'AbortError') return;
       const message = loadErrorMessage(error);
-      setState('unavailable', message);
-      root.dataset.aboutSceneReady = 'true';
-      window.dispatchEvent(new CustomEvent('abs:about-scene-ready'));
+      rejectScene(Object.freeze([Object.freeze({
+        code: 'scene-load-failed', path: 'bundle', message,
+      })]), message);
       console.warn('[About narrative] Blender surfel scene unavailable; editorial content remains visible.', error);
     }).finally(() => {
-      loadPromise = null;
+      if (loadPromise === attempt) loadPromise = null;
     });
-    return loadPromise;
+    loadPromise = attempt;
+    setState('loading');
+    return attempt;
   };
 
   const applyFrame = (frame) => {
-    writeAboutSceneLook(controls, frame, entranceScale);
-    const progress = frame?.durationWU > 0 ? frame.storyWU / frame.durationWU : 0;
+    if (
+      (frame?.journeyMap ?? null) !== resolvedStoryJourneyMap
+      || cameraTrack !== resolvedJourneyCameraTrack
+      || meta !== resolvedJourneyMeta
+    ) {
+      resolvedStoryJourneyMap = frame?.journeyMap ?? null;
+      resolvedJourneyCameraTrack = cameraTrack;
+      resolvedJourneyMeta = meta;
+      const contract = resolveAboutBlenderSceneContract({
+        meta,
+        cameraTrack,
+        storyMap: resolvedStoryJourneyMap,
+      });
+      if (contract.status === 'incompatible') {
+        rejectScene(contract.diagnostics, contract.diagnostics.map((item) => item.message).join(' '));
+        return false;
+      }
+      if (contract.status === 'pending') {
+        setSceneContract('pending', contract.diagnostics);
+        resolvedJourneyMap = null;
+        resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
+        sampleAboutNarrativeJourneyMapInto(null, frame?.storyWU, journeySample);
+        resetPresentation({ clear: readyAnnounced });
+        setState('loading');
+        return false;
+      }
+      resolvedJourneyMap = contract.journeyMap;
+      resolvedModelVisibilityWindows = applyResolvedVisibilityWindows(
+        decoded,
+        contract.visibilityWindows,
+        surfelGeometry,
+      );
+      setSceneContract('compatible', contract.diagnostics);
+    }
+    // Persist the gate on unchanged frames and all alternate render callers.
+    if (!bundleIntegrityVerified || sceneContractStatus !== 'compatible') return false;
+    sampleAboutNarrativeJourneyMapInto(
+      resolvedJourneyMap,
+      frame?.storyWU,
+      journeySample,
+      frame?.reducedMotion,
+    );
+    const progress = journeySample.valid
+      ? journeySample.progress
+      : (frame?.durationWU > 0 ? frame.storyWU / frame.durationWU : 0);
+    const cameraLocked = journeySample.valid && journeySample.locked;
+    writeAboutSceneLook(controls, frame, entranceScale, journeySample);
     if (cameraTrack) {
       sampleCameraTrack(
         cameraTrack,
         progress,
-        camera.position,
-        camera.quaternion,
+        cameraAuthoredPosition,
+        cameraAuthoredQuaternion,
         cameraTargetQuaternion,
       );
+      steadycamAuthoredPosition[0] = cameraAuthoredPosition.x;
+      steadycamAuthoredPosition[1] = cameraAuthoredPosition.y;
+      steadycamAuthoredPosition[2] = cameraAuthoredPosition.z;
+      steadycamAuthoredQuaternion[0] = cameraAuthoredQuaternion.x;
+      steadycamAuthoredQuaternion[1] = cameraAuthoredQuaternion.y;
+      steadycamAuthoredQuaternion[2] = cameraAuthoredQuaternion.z;
+      steadycamAuthoredQuaternion[3] = cameraAuthoredQuaternion.w;
+      steadycamController.configure(frame?.globals?.camera);
+      const snapSteadycam = Boolean(
+        frame?.reducedMotion
+        || cameraLocked
+        || document.hidden
+        || lastCameraProgress == null
+        || Math.abs(progress - lastCameraProgress) > 0.08
+      );
+      steadycamController.sampleInto(
+        steadycamSample,
+        steadycamAuthoredPosition,
+        steadycamAuthoredQuaternion,
+        performance.now(),
+        snapSteadycam,
+      );
+      lastCameraProgress = progress;
+      camera.position.set(
+        steadycamSample.position[0],
+        steadycamSample.position[1],
+        steadycamSample.position[2],
+      );
+      camera.quaternion.set(
+        steadycamSample.quaternion[0],
+        steadycamSample.quaternion[1],
+        steadycamSample.quaternion[2],
+        steadycamSample.quaternion[3],
+      ).normalize();
       cameraRollDegrees = sampleAuthoredRollDegrees(cameraTrack, progress);
+      cameraBasePosition.copy(camera.position);
+      cameraForward.set(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
+      cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+      cameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+      pointerPanController.configure(frame?.globals?.camera);
+      pointerPanController.sampleInto(
+        pointerPanSample,
+        performance.now(),
+        Boolean(frame?.reducedMotion || cameraLocked),
+        document.hidden,
+        finePointerQuery.matches,
+      );
+      const lateralWU = Math.tan(THREE.MathUtils.degToRad(-pointerPanSample.yawDegrees))
+        * POINTER_LOOK_DISTANCE_WU;
+      const verticalWU = Math.tan(THREE.MathUtils.degToRad(pointerPanSample.pitchDegrees))
+        * POINTER_LOOK_DISTANCE_WU * 0.35;
+      camera.position
+        .addScaledVector(cameraRight, lateralWU)
+        .addScaledVector(cameraUp, verticalWU);
+      cameraLookTarget.copy(cameraBasePosition)
+        .addScaledVector(cameraForward, POINTER_LOOK_DISTANCE_WU);
+      cameraLookMatrix.lookAt(camera.position, cameraLookTarget, cameraUp);
+      camera.quaternion.setFromRotationMatrix(cameraLookMatrix);
     }
-    const motionTime = Number(frame?.ambientTime ?? frame?.storyTime ?? 0) * controls.motionSpeed;
+    if (lastCameraLocked !== cameraLocked) {
+      lastCameraLocked = cameraLocked;
+      root.dataset.aboutCameraLocked = cameraLocked ? 'true' : 'false';
+    }
+    // Every temporal shader frequency is an integer multiple of 0.01. This
+    // shared period bounds GPU phase without changing any point's pose at wrap.
+    const motionPeriod = Math.PI * 200;
+    motionTime = ((Number(frame?.ambientTime ?? frame?.storyTime ?? 0) * controls.motionSpeed)
+      % motionPeriod + motionPeriod) % motionPeriod;
     const count = decoded?.count || 0;
     activeCount = count;
     if (surfelGeometry) surfelGeometry.instanceCount = activeCount;
@@ -793,29 +1284,43 @@ export function createBlenderPointScene({
     uniforms.uSceneVisibility.value = controls.sceneVisibility;
     uniforms.uEntranceScale.value = controls.entranceScale;
     uniforms.uOpacity.value = controls.opacity;
+    uniforms.uManifestationSpread.value = controls.manifestationSpread;
     uniforms.uMotionTime.value = motionTime;
     uniforms.uMotionAmountWU.value = controls.motionAmountWU;
+    uniforms.uMotionScaleWU.value = controls.motionScaleWU;
     uniforms.uMotionCoherence.value = controls.motionCoherence;
+    uniforms.uStoryWU.value = Number(frame?.storyWU) || 0;
+    if (terminalStudy) {
+      const period = Math.max(1, Number(terminalStudy.periodSeconds) || 8);
+      uniforms.uTerminalPhase.value = ((Number(frame?.ambientTime) || 0) % period) / period * Math.PI * 2;
+      uniforms.uTerminalAmplitudeWU.value = Math.min(4, Number(terminalStudy.amplitudeWU) || 0)
+        * Math.min(1, controls.motionAmountWU / 0.15);
+    }
     uniforms.uEdgeSoftness.value = controls.edgeSoftness;
+    return true;
   };
 
   const render = (frame = latestFrame) => {
     if (frame) latestFrame = frame;
     if (disposed || !visible || !contextAvailable || !decoded || !latestFrame) return false;
-    applyFrame(latestFrame);
     const startedAt = performance.now();
+    if (!applyFrame(latestFrame)) return false;
     renderer.render(scene, camera);
     frameTimeMs = Math.max(0, performance.now() - startedAt);
     drawCalls = renderer.info.render.calls;
+    if (!readyAnnounced) markReady();
     return true;
   };
 
-  const getDiagnosticsSnapshot = () => Object.freeze({
+  const getDiagnosticsSnapshot = ({ protectedNdcBounds = null } = {}) => Object.freeze({
     state,
     adapterId: ADAPTER_ID,
     assetVersion: Number(meta?.version || 0),
     assetSchema: meta?.schema || '',
     assetSourceHash: meta?.source?.sha256 || '',
+    bundleIntegrityVerified,
+    sceneContractStatus,
+    sceneContractDiagnostics,
     fallbackAsset: false,
     qualityTier,
     pointProfile: qualityTier,
@@ -845,8 +1350,39 @@ export function createBlenderPointScene({
       && attributesStillStable(surfelGeometry, attributeIdentities)
     ),
     cameraRollDegrees,
+    journeyProgress: journeySample.progress,
+    cameraDistanceWU: journeySample.cameraDistanceWU,
+    cameraPathLengthWU: resolvedJourneyMap?.pathLengthWU || 0,
+    cameraDistancePerStoryWU: resolvedJourneyMap?.durationWU > 0
+      ? resolvedJourneyMap.pathLengthWU / resolvedJourneyMap.durationWU : 0,
+    journeyMapValid: journeySample.valid,
+    journeyMapCertifiable: journeySample.certifiable,
+    cameraLocked: journeySample.locked,
+    atInvitation: journeySample.atInvitation,
+    storyWU: Number(latestFrame?.storyWU) || 0,
+    ambientTime: Number(latestFrame?.ambientTime) || 0,
+    motionTime,
+    terminalStudy: terminalStudy ? {
+      schema: terminalStudy.schema,
+      periodSeconds: terminalStudy.periodSeconds,
+      phase: uniforms.uTerminalPhase.value,
+      amplitudeWU: uniforms.uTerminalAmplitudeWU.value,
+    } : null,
     cameraPosition: Object.freeze(camera.position.toArray()),
-    modelFraming: modelFramingSnapshot(meta, camera, controls, decoded),
+    cameraQuaternion: Object.freeze(camera.quaternion.toArray()),
+    steadycam: steadycamController.getSnapshot(steadycamSample),
+    pointerPan: Object.freeze({ ...pointerPanSample }),
+    stageVisibilityMode: 'authored-bounded-whole-surfel-handoff',
+    resolvedVisibilityWindows: Object.freeze(resolvedModelVisibilityWindows),
+    modelFraming: sceneContractStatus === 'compatible' && state === 'ready' ? modelFramingSnapshot(
+      meta,
+      camera,
+      controls,
+      decoded,
+      Number(latestFrame?.storyWU) || 0,
+      protectedNdcBounds,
+      resolvedModelVisibilityWindows,
+    ) : EMPTY_MODEL_FRAMING,
     pixelRatio,
     viewportWidth: width,
     viewportHeight: height,
@@ -857,8 +1393,8 @@ export function createBlenderPointScene({
     error: errorMessage,
   });
 
-  const getMetrics = () => Object.freeze({
-    ...getDiagnosticsSnapshot(),
+  const getMetrics = (options) => Object.freeze({
+    ...getDiagnosticsSnapshot(options),
     pointCount: activeCount,
     frameTimeMs,
     fixedAttributeIdentityStable: Boolean(
@@ -880,7 +1416,9 @@ export function createBlenderPointScene({
     if (state !== 'unavailable' || disposed) return loadPromise;
     activeAbortController.abort();
     activeAbortController = new AbortController();
-    return load(activeAbortController);
+    loadPromise = null;
+    disposeDecodedScene();
+    return load(activeAbortController, true);
   };
 
   const setVisible = (nextVisible) => {
@@ -897,16 +1435,30 @@ export function createBlenderPointScene({
   const handleContextLost = (event) => {
     event.preventDefault();
     contextAvailable = false;
+    if (sceneContractStatus === 'incompatible') return;
+    resetPresentation();
     setState('context-lost');
   };
   const handleContextRestored = () => {
+    if (disposed) return;
     contextAvailable = true;
     Object.values(surfelGeometry?.attributes || {}).forEach((attribute) => {
       attribute.needsUpdate = true;
     });
-    setState('ready');
+    if (sceneContractStatus !== 'incompatible') setState('loading');
     resize();
     if (latestFrame) render(latestFrame);
+  };
+  const handlePointerMove = (event) => {
+    pointerPanController.setPointerFromClient(
+      event.clientX,
+      event.clientY,
+      event.pointerType,
+      event.buttons,
+    );
+  };
+  const handlePointerLeave = (event) => {
+    pointerPanController.setPointerOutside(event.pointerType);
   };
 
   const resizeObserver = new ResizeObserver(resize);
@@ -914,6 +1466,8 @@ export function createBlenderPointScene({
   resizeObserver.observe(canvas);
   canvas.addEventListener('webglcontextlost', handleContextLost);
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
+  root.addEventListener('pointermove', handlePointerMove, { passive: true });
+  root.addEventListener('pointerleave', handlePointerLeave, { passive: true });
   window.addEventListener('resize', resize, { passive: true });
   const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
     paletteId = snapshot.paletteId;
@@ -932,14 +1486,12 @@ export function createBlenderPointScene({
       resizeObserver.disconnect();
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+      root.removeEventListener('pointermove', handlePointerMove);
+      root.removeEventListener('pointerleave', handlePointerLeave);
       window.removeEventListener('resize', resize);
       unsubscribePalette();
       listeners.clear();
-      if (surfelCore) sceneGroup.remove(surfelCore);
-      if (surfelSoft) sceneGroup.remove(surfelSoft);
-      surfelGeometry?.dispose();
-      surfelCoreMaterial?.dispose();
-      surfelSoftMaterial?.dispose();
+      disposeDecodedScene();
       renderer.dispose();
       if (RUNTIME_DIAGNOSTICS_ENABLED && window.__aboutNarrativeRuntime === api) {
         delete window.__aboutNarrativeRuntime;
@@ -948,6 +1500,11 @@ export function createBlenderPointScene({
       delete root.dataset.pointAsset;
       delete root.dataset.worldStage;
       delete root.dataset.worldError;
+      delete root.dataset.aboutCameraLocked;
+      delete root.dataset.aboutJourneyCertifiable;
+      delete root.dataset.bundleIntegrityVerified;
+      delete root.dataset.sceneContractStatus;
+      delete root.dataset.aboutSceneReady;
     },
     getDiagnosticsSnapshot,
     getMetrics,

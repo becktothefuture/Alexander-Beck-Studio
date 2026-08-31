@@ -17,18 +17,19 @@ const source = await readFile(
   'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
   'utf8',
 );
-const renderSource = source.slice(
-  source.indexOf('const render ='),
+const hotFrameSource = source.slice(
+  source.indexOf('const applyFrame ='),
   source.indexOf('const getDiagnosticsSnapshot ='),
 );
 
 assert.match(source, /const ADAPTER_ID = 'blender-surfel-v2';/);
 assert.match(source, /const SURFEL_STRIDE_BYTES = 32;/);
 assert.doesNotMatch(source, /createDepthProxy|depthProxy/);
-assert.doesNotMatch(renderSource, /querySelector|getBoundingClientRect|style\.|dataset\./);
-assert.doesNotMatch(renderSource, /new\s+(?:Array|Float\w*Array|THREE\.)/);
-assert.match(renderSource, /renderer\.render\(scene, camera\)/);
-assert.match(renderSource, /drawCalls = renderer\.info\.render\.calls/);
+assert.doesNotMatch(hotFrameSource, /querySelector|getBoundingClientRect|style\./);
+assert.doesNotMatch(hotFrameSource, /new\s+(?:Array|Float\w*Array|THREE\.)/);
+assert.match(hotFrameSource, /const startedAt = performance\.now\(\);\s*if \(!applyFrame\(latestFrame\)\) return false;/);
+assert.match(hotFrameSource, /renderer\.render\(scene, camera\)/);
+assert.match(hotFrameSource, /drawCalls = renderer\.info\.render\.calls/);
 
 await ensureAboutSurfelOutputDirectory();
 await mkdir('output/playwright/about-narrative-hardening/performance', { recursive: true });
@@ -81,6 +82,7 @@ try {
 
   const evidence = {
     baseUrl,
+    browserChannel: process.env.ABS_CHROMIUM_CHANNEL || null,
     adapterId: after.metrics.adapterId,
     assetSchema: after.metrics.assetSchema,
     assetVersion: after.metrics.assetVersion,

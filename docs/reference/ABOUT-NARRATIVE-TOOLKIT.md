@@ -450,12 +450,26 @@ The protected reduced-motion profile step-samples camera and visibility, removes
 depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled Form
 states, and the six labels only during their authored interval.
 
-The protected finale owns one target-locked camera orbit. Once the authored timeline reaches its
-physical scroll boundary, further downward wheel, trackpad, touch, Page Down, Space, or Arrow Down
-input continues that same orbit for unlimited revolutions. The runtime stores only the nearest
-equivalent angular phase so long sessions stay numerically stable. Upward input remains ordinary
-page navigation and fades the retained offset through the authored orbit, so the endpoint never
-becomes a scroll trap. Reduced motion keeps the settled final pose and ignores continued-orbit input.
+The Blender camera maps native scroll position to cumulative distance along the exported rail.
+Equal scroll distances produce equal physical travel, including during the invitation and in reverse.
+Text cues do not retime the camera. Native scrolling, zero camera settling and zero pointer pan keep
+camera position tied to scrolling without a second motion clock. The authored endpoint is reached
+at the native page end; there is no extra brake or stationary scroll tail. Model visibility follows
+physical distance cues rather than the old editorial timings.
+
+The square-gate camera uses a close aim on the same Blender rail. Its continuous
+world-X right-axis reference carries the frame through the vertical loop without
+the former world-up flip. The original aim blends back after the passage; the rail,
+point geometry, nine authored bank keys and FOV stay unchanged. The first gate is
+fully admitted before entry. The camera export includes the evaluated apertures,
+so validation checks all 14 physical crossings and their approach framing, plus
+full-quaternion change per physical distance rather than forward direction alone.
+
+Editorial text passes through the full viewport with only an edge feather. Narrative titles use their
+authored viewport anchor without upper-half correction rules. Contact reveals on elapsed visible time
+at partial invitation stops and does not require the endpoint. Ambient material motion remains
+independent and pausable. Reduced Motion cuts between authored camera poses and keeps the same final
+composition with zero ambient displacement. No source geometry or camera samples are regenerated during playback.
 
 ## Adding a new Shape generator
 
@@ -477,16 +491,18 @@ An adapter must support preparation cancellation, explicit activation weight, de
 ```bash
 npm run check:about-narrative
 npm run check:about-narrative-hardening
+node scripts/audit-about-gate-passage.mjs
+ABS_BROWSER=webkit node scripts/audit-about-gate-passage.mjs
 npm run audit:about-narrative
 ABS_BROWSER=webkit npm run audit:about-narrative
-npm run audit:about-narrative-infinite-finale
-ABS_BROWSER=webkit npm run audit:about-narrative-infinite-finale
+npm run audit:about-narrative-terminal-hold
+ABS_BROWSER=webkit npm run audit:about-narrative-terminal-hold
 npm run audit:about-narrative-runtime-soak
 npm run check:site
 npm run certify:about-narrative
 ```
 
-The browser audit verifies exact-WU sampling, the Position/Rotation/FOV camera lanes, final orbit, global fog,
+The browser audit verifies exact-WU sampling, the Position/Rotation/FOV camera lanes, the held final camera with continuous material motion, global fog,
 continuous visibility, editor/playback presence, typography roles, portal placement, protected
 boundaries, keyframe navigation, native discipline labels, uninterrupted palette, text edit/undo, WebGL
 readiness, timeline collapse, and editor clearance above the persistent Button Bar.

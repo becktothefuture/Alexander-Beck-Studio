@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Pause, Play } from 'lucide-react';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
+import {
+  resolveScrollProgressIndicatorState,
+  SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+} from '../../lib/scroll-progress-indicator.js';
+import {
+  readAboutNarrativeHistoryProgress,
+  createAboutNarrativeScrollPersistence,
+} from '../about/aboutNarrativeScrollRestoration.js';
 import {
   ABOUT_NARRATIVE_CONTACT,
   ABOUT_NARRATIVE_DOCUMENT,
 } from './aboutNarrativeLabData.js';
 import { ABOUT_INTERACTIVE_STACK_KIND } from './aboutInteractiveStackContract.js';
+import { ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND } from './aboutNarrativeTrackSchema.js';
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
-import {
-  ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
-  ABOUT_SCROLL_INDICATOR_TICK_COUNT,
-  useAboutNarrativeTimeline,
-} from './useAboutNarrativeTimeline.js';
+import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
@@ -25,57 +31,6 @@ import {
 import './about-narrative-lab.css';
 
 const CANONICAL_ABOUT_EXPERIENCE_VERSION = 'v2';
-const ABOUT_SCENE_MODEL_CREDITS = Object.freeze([
-  Object.freeze({
-    title: 'CRT Computer Monitor',
-    author: 'Dan',
-    href: 'https://sketchfab.com/3d-models/crt-computer-monitor-f2ff0013f86e4cd0a2aee183a23bdfee',
-  }),
-  Object.freeze({
-    title: 'Cursor 3D',
-    author: 'ReliefRain',
-    href: 'https://sketchfab.com/3d-models/cursor-3d-fab4012385cc4d6fa7301d68df2ff271',
-  }),
-  Object.freeze({
-    title: 'Generic Mobile Phone',
-    author: 'AndrewHunt95',
-    href: 'https://sketchfab.com/3d-models/generic-mobile-phone-d771c29639364ace91f8e868b0dec4a3',
-  }),
-  Object.freeze({
-    title: 'Mouse with cable',
-    author: 'Aerell Animation',
-    href: 'https://sketchfab.com/3d-models/mouse-with-cable-4e673682d6a04cc986039cfc82cade02',
-  }),
-  Object.freeze({
-    title: 'Pencil',
-    author: 'farooq.smurf',
-    href: 'https://sketchfab.com/3d-models/pencil-9fe73cc296ae407e911d3e511f891b0e',
-  }),
-]);
-
-function AboutSceneModelCredits() {
-  return (
-    <details className="about-narrative-model-credits">
-      <summary>3D model credits</summary>
-      <p>
-        Adapted point-cloud versions of{' '}
-        {ABOUT_SCENE_MODEL_CREDITS.map((credit, index) => (
-          <span key={credit.href}>
-            {index > 0 ? (index === ABOUT_SCENE_MODEL_CREDITS.length - 1 ? ', and ' : ', ') : null}
-            <a href={credit.href} target="_blank" rel="noreferrer">
-              {credit.title} by {credit.author}
-            </a>
-          </span>
-        ))}
-        . Resampled and recoloured for this scene. Sources licensed under{' '}
-        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
-          CC BY 4.0
-        </a>
-        .
-      </p>
-    </details>
-  );
-}
 
 function getRenderSpanStyle(span, storyField = null, storyGap = null) {
   const startWU = Number(span.scrollBounds.startWU);
@@ -257,6 +212,45 @@ function getEditorialLines(text = '') {
     .filter(Boolean);
 }
 
+const clientLogoArtworkScale = new Map();
+
+function normalizeClientLogoArtwork(image) {
+  let scale = clientLogoArtworkScale.get(image.currentSrc);
+  if (scale == null) {
+    // Supplied logo files include different amounts of transparent padding.
+    // Measure artwork once at load; never enlarge a cell or alter the source.
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.min(640, image.naturalWidth);
+    canvas.height = Math.max(1, Math.round(canvas.width * image.naturalHeight / image.naturalWidth));
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context || !canvas.width) return;
+    try {
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let left = canvas.width;
+      let top = canvas.height;
+      let right = 0;
+      let bottom = 0;
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          if (pixels[(y * canvas.width + x) * 4 + 3] <= 32) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x + 1);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y + 1);
+        }
+      }
+      const extent = Math.max((right - left) / canvas.width, (bottom - top) / canvas.height);
+      scale = extent > 0 ? Math.min(3, 1 / extent) : 1;
+      clientLogoArtworkScale.set(image.currentSrc, scale);
+    } catch {
+      // Cross-origin or undecodable future artwork retains its authored scale.
+      return;
+    }
+  }
+  image.style.setProperty('--client-logo-artwork-scale', String(scale));
+}
+
 function ClientLogoItem({ item, onSettled, reveal = false }) {
   const record = typeof item === 'string'
     ? { id: item.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: item, src: '', alt: item }
@@ -282,7 +276,10 @@ function ClientLogoItem({ item, onSettled, reveal = false }) {
             alt={record.alt || record.label}
             loading="eager"
             decoding="async"
-            onLoad={() => onSettled?.(record.id)}
+            onLoad={(event) => {
+              normalizeClientLogoArtwork(event.currentTarget);
+              onSettled?.(record.id);
+            }}
             onError={(event) => {
               event.currentTarget.hidden = true;
               if (event.currentTarget.nextElementSibling) event.currentTarget.nextElementSibling.hidden = false;
@@ -454,6 +451,46 @@ function EditorialList({
   );
 }
 
+function EditorialCareerSequence({ module, labelId }) {
+  return (
+    <section
+      className="about-narrative-career-sequence"
+      aria-labelledby={labelId}
+    >
+      <h2 id={labelId} className="about-narrative-career-sequence__label">
+        {module.label}
+      </h2>
+      <ol className="about-narrative-career-sequence__list">
+        {(module.items || []).map((item) => (
+          <li
+            className="about-narrative-career-sequence__row"
+            data-editorial-atomic-row="true"
+            data-editorial-reveal="career-row"
+            key={item.id}
+          >
+            <span className="about-narrative-career-sequence__year">{item.yearLabel}</span>
+            <strong className="about-narrative-career-sequence__employer">{item.employer}</strong>
+            <span className="about-narrative-career-sequence__role">{item.role}</span>
+          </li>
+        ))}
+      </ol>
+      {module.independentWork ? (
+        <p
+          className="about-narrative-career-sequence__independent-work"
+          data-editorial-reveal="career-independent-work"
+        >
+          <span className="about-narrative-career-sequence__independent-label">
+            {module.independentWork.label}
+          </span>
+          <span className="about-narrative-career-sequence__independent-text">
+            {module.independentWork.text}
+          </span>
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function EditorialStack({ block, motionProfile, scrollportRef }) {
   const moduleGapRem = Number(block.moduleGapRem);
   return (
@@ -478,6 +515,15 @@ function EditorialStack({ block, motionProfile, scrollportRef }) {
               label={module.label}
               labelId={`${block.id}-${module.id}-label`}
               emphasis={module.emphasis}
+            />
+          );
+        }
+        if (module.kind === ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
+          return (
+            <EditorialCareerSequence
+              key={module.id}
+              module={module}
+              labelId={`${block.id}-${module.id}-label`}
             />
           );
         }
@@ -685,7 +731,11 @@ function TitleField({
               </p>
             ) : null}
             {showFinaleEmailAction ? (
-              <div className="about-narrative-finale-actions contact-action-stack">
+              <div
+                className="about-narrative-finale-actions contact-action-stack"
+                aria-hidden="true"
+                inert
+              >
                 <div className="about-narrative-finale-email contact-action-stack__primary">
                   <CopyEmailAction
                     email={ABOUT_NARRATIVE_CONTACT.email}
@@ -702,7 +752,6 @@ function TitleField({
                 </div>
               </div>
             ) : null}
-            <AboutSceneModelCredits />
           </div>
         </div>
       ) : isOpener ? (
@@ -783,6 +832,9 @@ function TextRenderSpan({
       <div
         className={`about-narrative-render-span about-narrative-render-span--title about-narrative-render-span--${layout}`}
         data-render-span-id={span.id}
+        data-story-start-wu={storyField?.startWU}
+        data-story-focus-wu={storyField?.focusWU}
+        data-story-end-wu={storyField?.endWU}
         data-presentation-layout={layout}
         style={getRenderSpanStyle(span, storyField, storyGap)}
       >
@@ -805,6 +857,9 @@ function TextRenderSpan({
       <div
         className={`about-narrative-render-span about-narrative-render-span--editorial about-narrative-render-span--${layout}`}
         data-render-span-id={span.id}
+        data-story-start-wu={storyField?.startWU}
+        data-story-focus-wu={storyField?.focusWU}
+        data-story-end-wu={storyField?.endWU}
         data-presentation-layout={layout}
         style={getRenderSpanStyle(span, storyField, storyGap)}
       >
@@ -820,29 +875,26 @@ function TextRenderSpan({
   return null;
 }
 
-function ScrollProgressIndicator({ activeStartIndex, progress }) {
-  const maxStartIndex = Math.max(
-    1,
-    ABOUT_SCROLL_INDICATOR_TICK_COUNT - ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT,
-  );
-  const progressValue = Math.round(Math.min(1, Math.max(0, Number(progress) || 0)) * 100);
-  const resolvedStartIndex = Number.isFinite(activeStartIndex)
-    ? activeStartIndex
-    : Math.round((progressValue / 100) * maxStartIndex);
+function ScrollProgressIndicator({ indicatorRef }) {
+  const progress = 0;
+  const indicatorState = resolveScrollProgressIndicatorState(progress, {
+    tickCount: SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+  });
   return (
     <div
+      ref={indicatorRef}
       className="about-narrative-indicator"
       data-about-indicator-layer="ui"
       role="progressbar"
       aria-label="About page scroll progress"
       aria-valuemin="0"
       aria-valuemax="100"
-      aria-valuenow={progressValue}
-      aria-valuetext={`${progressValue}% through the About narrative`}
+      aria-valuenow={indicatorState.progressValue}
+      aria-valuetext={`${indicatorState.progressValue}% through the About narrative`}
     >
-      {Array.from({ length: ABOUT_SCROLL_INDICATOR_TICK_COUNT }, (_, index) => {
-        const isActive = index >= resolvedStartIndex
-          && index < resolvedStartIndex + ABOUT_SCROLL_INDICATOR_ACTIVE_TICK_COUNT;
+      {Array.from({ length: SCROLL_PROGRESS_INDICATOR_TICK_COUNT }, (_, index) => {
+        const isActive = index >= indicatorState.activeStartIndex
+          && index < indicatorState.activeStartIndex + indicatorState.activeTickCount;
         return (
           <div
             aria-hidden="true"
@@ -872,6 +924,15 @@ export function AboutNarrativeLabExperience({
       ? document.getElementById('shell-persistent-route-ui-host')
       : null
   ), [showIndicator]);
+  const utilityHost = useMemo(() => (
+    typeof document !== 'undefined' ? document.getElementById('shell-route-utility-slot') : null
+  ), []);
+  const [motionPaused, setMotionPaused] = useState(false);
+  const motionPausedRef = useRef(false);
+  const toggleMotion = useCallback(() => {
+    motionPausedRef.current = !motionPausedRef.current;
+    setMotionPaused(motionPausedRef.current);
+  }, []);
   const [playbackDocument, setPlaybackDocument] = useState(initialDocument);
   const rootRef = useRef(null);
   const scrollportRef = useRef(null);
@@ -879,6 +940,33 @@ export function AboutNarrativeLabExperience({
   const worldRuntimeRef = useRef(null);
   const worldInteractionRef = useRef(null);
   const indicatorLayerRef = useRef(null);
+  const indicatorRef = useRef(null);
+  const indicatorStateRef = useRef(null);
+  const updateStoryProgress = useCallback((progress) => {
+    const node = indicatorRef.current;
+    if (!node) return;
+    const state = resolveScrollProgressIndicatorState(progress, {
+      tickCount: SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
+    });
+    const previous = indicatorStateRef.current;
+    if (previous?.node !== node || previous.progressValue !== state.progressValue) {
+      node.setAttribute('aria-valuenow', String(state.progressValue));
+      node.setAttribute('aria-valuetext', `${state.progressValue}% through the About narrative`);
+    }
+    if (previous?.node !== node || previous.activeStartIndex !== state.activeStartIndex) {
+      Array.from(node.children).forEach((line, index) => {
+        const active = index >= state.activeStartIndex
+          && index < state.activeStartIndex + state.activeTickCount;
+        line.classList.toggle('is-active', active);
+        line.dataset.active = active ? 'true' : 'false';
+      });
+    }
+    indicatorStateRef.current = { ...state, node };
+  }, []);
+  const [restoredProgress] = useState(() => readAboutNarrativeHistoryProgress());
+  const [restorationPending, setRestorationPending] = useState(
+    () => restoredProgress > 0.0001,
+  );
   const handleFinaleEmailPress = useCallback(() => {
     void playContactRippleMotif({ unlockIfNeeded: false });
   }, []);
@@ -933,20 +1021,47 @@ export function AboutNarrativeLabExperience({
 
   const {
     runtimePlan,
-    storyWU,
-    storyProgress,
-    activeIndicatorStartIndex,
+    layoutReady,
   } = useAboutNarrativeTimeline({
     document: playbackDocument,
     editorStore: parameterStore,
-    finaleContinuation: resolvedExperienceVersion === 'v2',
+    finaleContinuation: false,
     solidTitles: resolvedExperienceVersion === 'v2',
     rootRef,
     worldRuntimeRef,
     scrollportRef,
     contentRef,
     playScrollDetent,
+    motionPausedRef,
+    onStoryProgress: updateStoryProgress,
   });
+
+  useLayoutEffect(() => {
+    if (!restorationPending || !layoutReady) return undefined;
+    const scrollport = scrollportRef.current;
+    if (!scrollport) return undefined;
+    const scrollTravel = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+    scrollport.scrollTop = scrollTravel * restoredProgress;
+    scrollport.dispatchEvent(new Event('scroll', { bubbles: true }));
+    const frame = window.requestAnimationFrame(() => setRestorationPending(false));
+    return () => window.cancelAnimationFrame(frame);
+  }, [layoutReady, restorationPending, restoredProgress, runtimePlan]);
+
+  useEffect(() => {
+    if (restorationPending) return undefined;
+    const scrollport = scrollportRef.current;
+    if (!scrollport) return undefined;
+    const persistence = createAboutNarrativeScrollPersistence(scrollport);
+    const unregister = registerRouteTransitionParticipant({
+      id: 'about-scroll-history',
+      routeId: 'about',
+      exit: persistence.flush,
+    });
+    return () => {
+      unregister();
+      persistence.destroy();
+    };
+  }, [restorationPending]);
 
   useLayoutEffect(() => {
     const layer = indicatorLayerRef.current;
@@ -1055,7 +1170,8 @@ export function AboutNarrativeLabExperience({
       data-about-experience-version={resolvedExperienceVersion}
       data-about-parameter-panel={parameterPanelVisible ? 'open' : 'closed'}
       data-about-story-layout={runtimePlan?.storyLayout?.mode || 'legacy'}
-      data-narrative-story-wu={Number(storyWU || 0).toFixed(4)}
+      data-about-restoring={restorationPending ? 'true' : 'false'}
+      data-about-layout-ready={layoutReady ? 'true' : 'false'}
       style={rootStyle}
     >
       <div
@@ -1081,7 +1197,7 @@ export function AboutNarrativeLabExperience({
         data-cursor-default-surface
         data-lenis-prevent-touch
         tabIndex={0}
-        aria-label="About Alexander narrative"
+        aria-label="About Me: Alex’s story"
       >
         <div ref={contentRef} className="about-narrative-content" style={contentStyle}>
           {(runtimePlan?.renderSpans || []).map((span) => {
@@ -1114,10 +1230,7 @@ export function AboutNarrativeLabExperience({
             className="about-narrative-indicator-layer"
             data-about-indicator-host="shell-persistent"
           >
-            <ScrollProgressIndicator
-              activeStartIndex={activeIndicatorStartIndex}
-              progress={storyProgress}
-            />
+            <ScrollProgressIndicator indicatorRef={indicatorRef} />
           </div>,
           indicatorHost,
         )
@@ -1132,6 +1245,28 @@ export function AboutNarrativeLabExperience({
           document.body,
         )
         : null}
+      {utilityHost ? createPortal(
+        <button
+          type="button"
+          className="shell-utility-control about-narrative-motion-toggle"
+          aria-label={runtimePlan.reducedMotion ? 'Scene motion off: reduced motion' : motionPaused ? 'Resume scene motion' : 'Pause scene motion'}
+          aria-pressed={motionPaused || runtimePlan.reducedMotion}
+          disabled={runtimePlan.reducedMotion}
+          data-about-motion-control
+          data-motion-paused={motionPaused || runtimePlan.reducedMotion ? 'true' : 'false'}
+          data-sound-action="press"
+          data-sound-source="about-motion-toggle"
+          onClick={toggleMotion}
+          title={motionPaused ? 'Resume scene motion' : 'Pause scene motion'}
+        >
+          <span className="shell-utility-control__icon" aria-hidden="true">
+            {motionPaused || runtimePlan.reducedMotion
+              ? <Play className="shell-utility-control__glyph" />
+              : <Pause className="shell-utility-control__glyph" />}
+          </span>
+        </button>,
+        utilityHost,
+      ) : null}
     </div>
   );
 }

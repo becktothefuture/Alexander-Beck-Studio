@@ -300,12 +300,33 @@ function browserEnvironment(baseUrl, extra = {}) {
 }
 
 function certificationAuditCommands(baseUrl) {
+  const fullVisualMatrix = {
+    ABS_ABOUT_VISUAL_CONTEXT_CHECKPOINTS: '8',
+    ABS_ABOUT_PROTECTED_CENTER_MAX: '0',
+    ABS_ABOUT_VISUAL_CHECKPOINTS: '',
+    ABS_ABOUT_VISUAL_GROUPS: 'desktop,mobile,reduced-motion',
+  };
+  const fullTerminalMatrix = {
+    ABS_ABOUT_TERMINAL_CAPTURE: '1',
+    ABS_ABOUT_TERMINAL_PROFILES: 'desktop,mobile-touch,reduced-motion',
+  };
   return [
     command('hot-frame-audit', 'runtime', 'node', ['scripts/audit-about-narrative-hot-frame.mjs'], browserEnvironment(baseUrl), browserRetries),
     command('runtime-fault-audit', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-faults.mjs'], browserEnvironment(baseUrl), browserRetries),
     command('runtime-soak-desktop', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'desktop' }), browserRetries),
     command('runtime-soak-mobile', 'runtime', 'node', ['scripts/audit-about-narrative-runtime-soak.mjs'], browserEnvironment(baseUrl, { ABS_ABOUT_SOAK_PROFILE: 'mobile' }), browserRetries),
-    command('runtime-visual-audit', 'visual', 'node', ['scripts/audit-about-narrative-runtime-visuals.mjs'], browserEnvironment(baseUrl), browserRetries),
+    command('runtime-visual-chromium-critical-audit', 'visual', 'node', ['scripts/audit-about-narrative-runtime-visuals.mjs'], browserEnvironment(baseUrl, {
+      ...fullVisualMatrix,
+      ABS_ABOUT_POINT_WORLD_CAPTURE: '0',
+      ABS_ABOUT_VISUAL_CHECKPOINTS: 'personal-origin,method,terminal-hold',
+      ABS_ABOUT_VISUAL_SCREENSHOT_CHECKPOINTS: 'personal-origin',
+      ABS_BROWSER: 'chromium',
+    }), browserRetries),
+    command('runtime-visual-webkit-audit', 'visual', 'node', ['scripts/audit-about-narrative-runtime-visuals.mjs'], browserEnvironment(baseUrl, { ...fullVisualMatrix, ABS_ABOUT_POINT_WORLD_CAPTURE: '1', ABS_BROWSER: 'webkit' }), browserRetries),
+    command('terminal-hold-audit', 'visual', 'node', ['scripts/audit-about-narrative-terminal-hold.mjs'], browserEnvironment(baseUrl, { ...fullTerminalMatrix, ABS_BROWSER: 'chromium' }), browserRetries),
+    command('terminal-hold-webkit-audit', 'visual', 'node', ['scripts/audit-about-narrative-terminal-hold.mjs'], browserEnvironment(baseUrl, { ...fullTerminalMatrix, ABS_BROWSER: 'webkit' }), browserRetries),
+    command('restoration-chromium-audit', 'routing', 'node', ['scripts/audit-about-narrative-restoration.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'chromium' }), browserRetries),
+    command('restoration-webkit-audit', 'routing', 'node', ['scripts/audit-about-narrative-restoration.mjs'], browserEnvironment(baseUrl, { ABS_BROWSER: 'webkit' }), browserRetries),
   ];
 }
 

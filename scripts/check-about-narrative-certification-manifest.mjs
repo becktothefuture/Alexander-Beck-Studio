@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION,
+  ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS,
   ABOUT_NARRATIVE_REQUIRED_COMMAND_IDS,
   ABOUT_NARRATIVE_REQUIRED_EVIDENCE,
   ABOUT_NARRATIVE_REQUIREMENT_COVERAGE,
@@ -32,7 +33,7 @@ function createPassingManifest() {
       assetSchema: 'about-point-scene',
       assetVersion: 2,
       rendererAdapter: 'blender-surfel-v2',
-      pointBudgets: { desktop: 30000, mobile: 10000 },
+      pointBudgets: { ...ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS },
     },
     artifacts: {
       canonicalConfigSha256: HASH,
@@ -65,6 +66,33 @@ test('a complete current manifest is release-grade', () => {
   const validation = validateAboutNarrativeCertificationManifest(createPassingManifest());
   assert.equal(validation.releaseGrade, true);
   assert.deepEqual(validation.errors, []);
+});
+
+test('obsolete point budgets cannot certify the current renderer', () => {
+  const manifest = createPassingManifest();
+  manifest.versions.pointBudgets = { desktop: 30_000, mobile: 10_000 };
+  const validation = validateAboutNarrativeCertificationManifest(manifest);
+  assert.equal(validation.releaseGrade, false);
+  assert(validation.errors.some((error) => error.code === 'point-budgets'));
+});
+
+test('strict WebKit and restoration proof are mandatory', () => {
+  const manifest = createPassingManifest();
+  manifest.commands = manifest.commands.filter((item) => ![
+    'runtime-visual-webkit-audit',
+    'terminal-hold-webkit-audit',
+    'restoration-chromium-audit',
+    'restoration-webkit-audit',
+  ].includes(item.id));
+  manifest.evidence = manifest.evidence.filter((item) => ![
+    'runtime-visuals-webkit',
+    'restoration-chromium-report',
+    'restoration-webkit-report',
+  ].includes(item.id));
+  const validation = validateAboutNarrativeCertificationManifest(manifest);
+  assert.equal(validation.releaseGrade, false);
+  assert(validation.errors.some((error) => error.code === 'required-command-missing'));
+  assert(validation.errors.some((error) => error.code === 'required-evidence-missing'));
 });
 
 test('missing or stale evidence blocks release grade', () => {

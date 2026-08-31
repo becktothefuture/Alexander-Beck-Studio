@@ -9,6 +9,7 @@ import {
   compileAboutNarrativeLongRideTrack,
   sampleAboutNarrativeLongRidePositionInto,
 } from './aboutNarrativeLongRideTrack.js';
+import { ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND } from './aboutNarrativeTrackSchema.js';
 
 const FLOW_EPSILON = 0.000001;
 const DEFAULT_PROFILE_ID = 'desktop';
@@ -19,6 +20,8 @@ export const ABOUT_NARRATIVE_STORY_GAP_PRESETS = Object.freeze({
   standard: Object.freeze({ desktop: 0.32, tablet: 0.28, mobile: 0.22 }),
   chapter: Object.freeze({ desktop: 0.58, tablet: 0.5, mobile: 0.4 }),
   finale: Object.freeze({ desktop: 1.05, tablet: 0.92, mobile: 0.78 }),
+  passage: Object.freeze({ desktop: 2.4, tablet: 2.4, mobile: 2.4 }),
+  arrival: Object.freeze({ desktop: 0.8, tablet: 0.8, mobile: 0.8 }),
 });
 
 export const ABOUT_NARRATIVE_STORY_FOCUS_MODES = Object.freeze([
@@ -30,6 +33,9 @@ const PROFILE_ESTIMATES = Object.freeze({
   desktop: Object.freeze({
     charactersPerScreen: 1_750,
     disciplineItemScreens: 0.22,
+    careerHeadingScreens: 0.12,
+    careerItemScreens: 0.14,
+    careerIndependentWorkScreens: 0.1,
     editorialLeadScreens: 0.82,
     editorialTailScreens: 0.24,
     titleContentPaddingScreens: 0.2,
@@ -37,6 +43,9 @@ const PROFILE_ESTIMATES = Object.freeze({
   tablet: Object.freeze({
     charactersPerScreen: 1_350,
     disciplineItemScreens: 0.25,
+    careerHeadingScreens: 0.13,
+    careerItemScreens: 0.16,
+    careerIndependentWorkScreens: 0.12,
     editorialLeadScreens: 0.76,
     editorialTailScreens: 0.22,
     titleContentPaddingScreens: 0.22,
@@ -44,6 +53,9 @@ const PROFILE_ESTIMATES = Object.freeze({
   mobile: Object.freeze({
     charactersPerScreen: 840,
     disciplineItemScreens: 0.3,
+    careerHeadingScreens: 0.15,
+    careerItemScreens: 0.2,
+    careerIndependentWorkScreens: 0.15,
     editorialLeadScreens: 0.68,
     editorialTailScreens: 0.2,
     titleContentPaddingScreens: 0.26,
@@ -82,6 +94,12 @@ function mediaFootprintScreens(field, profile) {
     if (module.kind === 'logo-grid') return screens + 0.95;
     if (module.kind === 'media-deck' || module.kind === 'interactive-stack') return screens + 1.1;
     if (module.kind === 'list') return screens + 0.18;
+    if (module.kind === ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
+      return screens
+        + profile.careerHeadingScreens
+        + ((module.items?.length || 0) * profile.careerItemScreens)
+        + (module.independentWork ? profile.careerIndependentWorkScreens : 0);
+    }
     return screens;
   }, 0);
 }

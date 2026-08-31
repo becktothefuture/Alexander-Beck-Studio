@@ -29,6 +29,7 @@ import {
   compileAboutNarrativeStoryLayout,
   materializeAboutNarrativeStoryLayout,
 } from './aboutNarrativeStoryLayout.js';
+import { compileAboutNarrativeJourneyMap } from './aboutNarrativeJourneyMap.js';
 import {
   createAboutNarrativeTitleFieldSample,
   sampleAboutNarrativeTitleFieldInto,
@@ -109,21 +110,58 @@ export function sampleAboutNarrativeComposerTitleInto(field, storyWU, textMotion
 }
 
 export function createAboutNarrativeComposerContextSample() {
-  return { visible: false, titleOpacity: 0, ruleScale: 0, descriptionOpacity: 0, actionOpacity: 0, y: 16 };
+  return {
+    visible: false,
+    titleOpacity: 0,
+    ruleScale: 0,
+    descriptionOpacity: 0,
+    actionOpacity: 0,
+    y: 0,
+    elapsedMs: 0,
+    previousTimeMs: null,
+    complete: false,
+  };
 }
 
-export function sampleAboutNarrativeComposerContextInto(field, storyWU, reducedMotion, target) {
-  const postTitleProgress = storyWU >= Number(field.focusWU)
-    ? clamp01((storyWU - Number(field.focusWU)) / Math.max(0.000001, Number(field.endWU) - Number(field.focusWU)))
-    : 0;
-  target.visible = storyWU >= Number(field.startWU);
-  target.titleOpacity = target.visible
-    ? clamp01((storyWU - Number(field.startWU)) / Math.max(0.000001, Number(field.focusWU) - Number(field.startWU)))
-    : 0;
-  target.ruleScale = reducedMotion ? Number(target.visible) : smooth01(postTitleProgress / 0.24);
-  target.descriptionOpacity = reducedMotion ? Number(target.visible) : smooth01((postTitleProgress - 0.24) / 0.46);
-  target.actionOpacity = reducedMotion ? Number(target.visible) : smooth01((postTitleProgress - 0.7) / 0.3);
-  target.y = (1 - target.descriptionOpacity) * 16;
+export const ABOUT_NARRATIVE_ARRIVAL_DURATION_MS = 900;
+export const ABOUT_NARRATIVE_FINALE_PHASES = Object.freeze({
+  title: Object.freeze({ start: 0, end: 220 }),
+  rule: Object.freeze({ start: 100, end: 360 }),
+  description: Object.freeze({ start: 180, end: 600 }),
+  actions: Object.freeze({ start: 260, end: ABOUT_NARRATIVE_ARRIVAL_DURATION_MS }),
+});
+
+function sampleFinalePhase(elapsedMs, phase) {
+  return smooth01((elapsedMs - phase.start) / (phase.end - phase.start));
+}
+
+export function sampleAboutNarrativeComposerContextInto(
+  field, storyWU, reducedMotion, target, options = EMPTY_OPTIONS,
+) {
+  const wasVisible = target.visible;
+  target.visible = storyWU >= Number(field.startWU)
+    && storyWU <= Number(field.endWU) + TIME_EPSILON;
+  const nowMs = Math.max(0, Number(options.timestampMs) || 0);
+  const immediate = reducedMotion || storyWU >= Number(field.endWU) - 0.001;
+  if (!target.visible) target.elapsedMs = 0;
+  else if (immediate) target.elapsedMs = ABOUT_NARRATIVE_ARRIVAL_DURATION_MS;
+  else if (wasVisible && options.visible !== false && target.previousTimeMs != null) {
+    target.elapsedMs = Math.min(
+      ABOUT_NARRATIVE_ARRIVAL_DURATION_MS,
+      target.elapsedMs + Math.max(0, nowMs - target.previousTimeMs),
+    );
+  }
+  // Arrival stays usable at a partial scroll stop without an early camera lock.
+  // This clock belongs to the existing timeline, not scroll progress. Keeping
+  // it in the reusable sample also preserves arrival through DOM remeasurement.
+  target.previousTimeMs = target.visible && options.visible !== false ? nowMs : null;
+  target.complete = target.visible && target.elapsedMs >= ABOUT_NARRATIVE_ARRIVAL_DURATION_MS;
+  target.titleOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.title);
+  target.ruleScale = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.rule);
+  target.descriptionOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.description);
+  target.actionOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.actions);
+  // The complete invitation is composed at its final position from its first frame.
+  target.y = 0;
   return target;
 }
 
@@ -304,6 +342,7 @@ function invalidComposerPlan(pointPlan, diagnostics = []) {
     effects: [],
     renderSpans: [],
     storyLayout: null,
+    journeyMap: null,
   });
 }
 
@@ -328,6 +367,7 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
     measurements: options.storyLayoutMeasurements || options.contentPressure,
   });
   if (!storyLayout.valid) return invalidComposerPlan(null, storyLayout.diagnostics);
+  const journeyMap = compileAboutNarrativeJourneyMap(storyLayout);
   const runtimeInput = materializeAboutNarrativeStoryLayout(input, storyLayout);
   try {
     resolver = createProfileResolver(runtimeInput, options);
@@ -384,6 +424,7 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
   });
   const diagnostics = [
     ...storyLayout.diagnostics,
+    ...journeyMap.diagnostics,
     ...pointPlan.diagnostics,
     ...renderSpanPlan.diagnostics,
   ];
@@ -415,6 +456,7 @@ export function compileAboutNarrativeComposerPlan(input, options = EMPTY_OPTIONS
     effects,
     renderSpans: renderSpanPlan.spans,
     storyLayout,
+    journeyMap,
     worldSequenceKey: preparation.sequenceKey,
     worldPreparationDescriptor: preparation.descriptor,
   });
@@ -442,6 +484,7 @@ export function createAboutNarrativeComposerFrameSample() {
     pointProfile: 'desktop',
     reducedMotion: false,
     finaleOrbitWU: 0,
+    journeyMap: null,
     camera: {
       position: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
@@ -638,13 +681,14 @@ export function sampleAboutNarrativeComposerPlanInto(
   target.globals = plan.globals;
   target.storyWU = clampedStoryWU;
   target.storyTime = clampedStoryWU;
-  target.ambientTime = plan.reducedMotion ? 0 : clampedStoryWU;
+  target.ambientTime = plan.reducedMotion ? 0 : Number(options.ambientSeconds) || 0;
   target.deltaSeconds = Math.max(0, Number(options.deltaSeconds) || 0);
   target.durationWU = plan.durationWU;
   target.layoutProfile = plan.layoutProfile;
   target.pointProfile = plan.pointProfile;
   target.reducedMotion = plan.reducedMotion;
   target.finaleOrbitWU = plan.reducedMotion ? 0 : Number(options.finaleOrbitWU) || 0;
+  target.journeyMap = plan.journeyMap;
   // Reduced motion settles the complete destination composition at the start
   // of a morph. Sample the camera at the same semantic destination boundary so
   // geometry and viewpoint cut together instead of showing mismatched worlds.

@@ -223,7 +223,7 @@ export const ABOUT_NARRATIVE_SCROLL_SMOOTHING_CONTROL = numberControl(
 );
 
 export const ABOUT_NARRATIVE_CAMERA_STEADICAM_CONTROLS = Object.freeze([
-  numberControl('steadycamResponseMs', 'Track settling', 0, 1200, 20, 'ms'),
+  numberControl('steadycamResponseMs', 'Steadycam settling', 0, 1200, 20, 'ms'),
   numberControl('pointerPanDegrees', 'Mouse pan amount', 0, 8, 0.05, '°'),
   numberControl('pointerPanResponseMs', 'Mouse pan response', 80, 2000, 20, 'ms'),
 ]);
@@ -244,8 +244,8 @@ export const ABOUT_NARRATIVE_VISIBILITY_TRACK_CONTROL_GROUPS = Object.freeze([
 
 export const ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS = Object.freeze([
   numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
-  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 80, 0.1, 'WU'),
-  numberControl('distanceFogCurve', 'Fog curve', 0.45, 2.5, 0.05, '×', '', 1),
+  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 240, 0.1, 'WU'),
+  numberControl('distanceFogCurve', 'Fog curve', 0.45, 2.5, 0.05, '×', '', 1.2),
 ]);
 
 // Compatibility export for older contract checks. Camera keys no longer use
@@ -335,8 +335,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
       numberControl('opacity', 'Circle population', 0.2, 1, 0.01),
       numberControl('pointSize', 'Global point size', 2, 18, 0.1, 'px', '', 6),
       numberControl('surfelCoverage', 'Surfel coverage', 0.6, 1.2, 0.01, '×', '', 0.7),
-      numberControl('backfaceRetention', 'Back surface reveal', 0, 1, 0.01, '×', '', 0),
-      numberControl('minPointSize', 'Minimum point size', 0.75, 4, 0.05, 'px', '', 1.15),
+      numberControl('backfaceRetention', 'Back surface reveal', 0, 1, 0.01, '×', '', 1),
+      numberControl('minPointSize', 'Distant size target', 0.75, 4, 0.05, 'px', '', 1.15),
       numberControl('perspectiveResponse', 'Depth scaling', 0.6, 1.2, 0.01, '×', '', 1),
       numberControl('edgeSoftness', 'Circle edge', 0.65, 2.4, 0.05, '×', '', 1.35),
       numberControl('atmosphereStrength', 'Visible haze', 0, 2, 0.05, '×', '', 1),
@@ -590,6 +590,9 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
         { value: 'master', label: 'Maximum · preview' },
       ], 'auto')),
       rideParameter('density'),
+      globalParameter('material', 'opacity', ['pointMaterial', 'opacity'], {
+        label: 'Circle opacity',
+      }),
       globalParameter('material', 'surfelCoverage', ['pointMaterial', 'surfelCoverage'], {
         label: 'Surface fill',
       }),
@@ -597,7 +600,7 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
         label: 'Back surface reveal',
       }),
       globalParameter('material', 'minPointSize', ['pointMaterial', 'minPointSize'], {
-        label: 'Min circle size',
+        label: 'Distant size target',
       }),
       globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize'], {
         label: 'Max circle size',
@@ -622,12 +625,32 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
   }),
   Object.freeze({
     id: 'page-motion',
-    label: 'Living motion',
+    label: 'Emergence and motion',
     controls: Object.freeze([
+      rideParameter('structureManifestationAmount', {
+        label: 'Fog emergence spread',
+        max: 0.8,
+      }),
       rideParameter('structureAmbientAmount', { label: 'Motion amount' }),
+      rideParameter('structureAmbientScaleWU', { label: 'Motion scale' }),
       rideParameter('structureAmbientSpeed', { label: 'Motion speed' }),
       rideParameter('structureMotionCoherence'),
       rideParameter('finaleMotionGain'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-camera-flow',
+    label: 'Camera and flow',
+    controls: Object.freeze([
+      globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing'], {
+        label: 'Scroll glide',
+      }),
+      globalParameter('camera', 'pointerPanDegrees', ['camera', 'pointerPanDegrees'], {
+        label: 'Mouse drift amount',
+      }),
+      globalParameter('camera', 'pointerPanResponseMs', ['camera', 'pointerPanResponseMs'], {
+        label: 'Mouse drift response',
+      }),
     ]),
   }),
 ]);

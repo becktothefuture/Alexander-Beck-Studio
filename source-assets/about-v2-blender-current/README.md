@@ -1,120 +1,271 @@
-# About V2 current Blender editing scene
+# About V2 parametric Blender world
 
-Open `about-v2-track-working.blend` in Blender 4.3 or newer.
+Open `about-v2-track-working.blend` in Blender 4.3 or newer. This file is the
+authoritative source for the About V2 geometry, camera path, camera banking, stage
+boundaries, palette roles and export semantics.
 
-This manually edited `.blend` is the source of truth for the About V2 website world. It began as a non-destructive reconstruction of Alexander's previous scene; later edits in this file now own the shipped environment geometry.
+The scene is a six-stage, lens-free narrative world on one saved 17-point route. It
+remains directly editable in Blender through a small set of labelled Geometry Nodes
+controls. `scripts/about-v2-blender/refine-about-v2-stage-separation.py` records the
+restoration from the verified pre-cinematic backup into a separate candidate.
+The older full seven-stage builder is retired because it recreates the removed lens.
 
-## Camera
+## Start here
 
-- `ABS_CAMERA` is the source of the resolved desktop website ride.
-- `ABS_CAMERA_PATH` is a non-rendering 721-point editing guide.
-- `ABS_PARAMETRIC_RIDE_PATH` is the authoritative curve used by the camera and both repeating effects.
-- The ride path uses Blender's `Z-Up` twist method. This keeps its neutral horizon level instead of accumulating bank through the route and tilting the final camera.
-- `ABS_CAMERA_ROLL_DRIVER.abs_path_progress` is the single animated `0-1` travel value. Two linear keys drive the camera's Follow Path offset from frame `1` to `3600`.
-- `ABS_CAMERA_ROLL_DRIVER.abs_roll_degrees` has three Bezier keys: level at the first square gate, `32` degrees at the last square gate, and level again before the forest.
-- `ABS_CAMERA` has no keyed location, quaternion, or lens channels. The rail owns position and pitch/yaw; the separate roll controller adds local Z rotation.
-- The camera path is intentionally invisible. No rails, sleepers, floor line, or other bottom-track geometry appears beneath it at any point in the journey.
-- Frames `1-3600` run at `30 fps`, giving a two-minute ride.
-- The camera travels 373.734 metres and keeps a constant 85-degree horizontal field of view.
-- The website converts that horizontal field of view for each viewport aspect ratio, so compact windows keep the same Blender framing instead of leaving the path. Very narrow portrait views cap the vertical field of view at 115 degrees, balancing authored horizontal composition with readable model scale.
-- Website coordinates map to Blender as `X, -Z, Y`.
-- Timeline markers jump to the eight story sections and the sparse roll-control points.
+1. Select `ABS_WORLD_CONTROLS`. Its **Camera Horizontal FOV** property drives the
+   camera lens. The authored value is a constant **65 degrees**. **Camera Steadycam
+   Look Ahead** controls how far ahead the camera aims; the exported website value is
+   `17.73 m`.
+2. Select `ABS_PARAMETRIC_RIDE_PATH`, enter Edit Mode, and move one of its 17 aligned
+   Bezier anchors or handles when you want to reshape the ride.
+3. Select the `GN_…` object for a stage, then open **Modifiers → Geometry Nodes** to
+   change its labelled inputs.
+4. Select `ABS_CAMERA_ROLL_DRIVER` and use the Graph Editor only when you want to
+   change the restrained square-gate bank. `ABS_CAMERA_PATH_FOLLOWER` owns the
+   camera position, while `ABS_CAMERA_LOOKAHEAD_FOLLOWER` and
+   `ABS_CAMERA_LOOKAHEAD_TARGET` supply the general steadycam aim. The square passage
+   uses `ABS_CAMERA_GATE_AIM`; **Camera Lead Gates** on the square controller sets its
+   lead as a fraction of gate spacing. The child hierarchy is
+   `ABS_CAMERA_PATH_FOLLOWER → ABS_CAMERA_ROLL_DRIVER → ABS_CAMERA`.
+5. Do not key `ABS_CAMERA` transforms or lens. Do not add tilt to the ride-path points.
+6. Save the `.blend`, export the website assets, and check desktop and mobile frames.
 
-## Finale
+The Blender Text Editor also contains `ABOUT_PARAMETRIC_WORLD_README`.
 
-The previous ocean/end field and the later valley landscape are removed.
-`GN_PARAMETRIC_FOREST` widens the final column field around the camera corridor,
-then ends near Blender Y=322.3. The camera continues from that edge into an
-18-metre track-free clearing. Beyond it, `07_FINALE_WORKBENCH` forms a recognisable point-cloud
-workshop around the centred closing text: a monumental trestle table, a pulled-back
-stool, an open laptop on the left side of the tabletop, a compact framed landscape
-in the upper-left negative space, and an oversized articulated task lamp whose shade
-points down and left toward the work surface. The workbench fog reveal begins only
-after the camera has cleared the forest.
+## Camera contract
 
-## Scene collections
+- `ABS_PARAMETRIC_RIDE_PATH` is the `1,313.977 m` authoritative rail.
+- The editable source has 17 aligned Bezier anchors and a curve resolution of 128.
+  Blender evaluates the smooth arc-length path without exposing hundreds of sampled
+  points. The path uses `Z_UP`, and every anchor tilt is zero.
+- `ABS_CAMERA_ROLL_DRIVER.abs_path_progress` reaches route progress `0.80` at the
+  short gate exit, reaches the route endpoint at journey progress `0.91`, and holds
+  that endpoint unchanged through frame `3600`.
+- `ABS_CAMERA_PATH_FOLLOWER` follows the rail for position only. Outside the square
+  passage it aims towards `ABS_CAMERA_LOOKAHEAD_TARGET` with the existing global
+  look-ahead setting. That aim uses a neutral world-up reference.
+- `ABS_CAMERA_GATE_AIM` follows the same rail one third of a gate spacing ahead
+  (about `5.39 m` on the current rail). Its fixed world-X reference supplies camera
+  right continuously through the aerial loop. The camera can climb through the
+  vertical tangent without the former sudden world-up horizon turn. This is a live
+  Follow Path and Track To rig, not a second rail or a baked rotation animation.
+  `ABS_CAMERA_GATE_AIM_BLEND` blends in over timeline progress `0.60–0.632`, remains
+  fully active through `0.81`, and restores the original aim by `0.842`.
+- `ABS_CAMERA_LOOKAHEAD_TARGET` extends `10 m` beyond its follower. The extension keeps
+  the final view stable after both followers reach the route endpoint. The original
+  landscape aim is retained. The previous upward composition offset was removed
+  because it pushed the foreground out of the mobile frame.
+- `ABS_CAMERA_FINALE_AIM` is a fixed vanishing point `140 m` beyond the final camera
+  position. `ABS_CAMERA_PATH_FOLLOWER` blends its viewing direction toward this point
+  between timeline progress `0.80` and the retimed lattice entry at `0.833`. The
+  descending camera therefore looks through both lattice banks, rather than pitching
+  into the immediate rail tangent. This blend affects aim only, not position or roll.
+- The roll driver is the zeroed child of the position follower, and the camera is the
+  zeroed child of the roll driver. This keeps authored banking in the evaluated and
+  exported camera matrix without allowing it to change the steadycam aim.
+- `ABS_CAMERA_ROLL_DRIVER.abs_roll_degrees` has four restrained round-tunnel bank
+  keys (`0`, `-8`, `8`, `0`) and five restrained square-gate keys (`0`, `-6`, `8`,
+  `-4`, `0`). The square architecture still performs one complete twist, but the
+  camera follows the loop continuously and returns to a level finale.
+- `ABS_WORLD_CONTROLS.camera_horizontal_fov` drives the lens. It is 65 degrees at
+  every frame; there is no lens animation.
+- The path is invisible. No rails, sleepers or other bottom-track geometry are
+  exported.
+- Website coordinates map from Blender as `X, Z, -Y`.
 
-- `01_SIGNAL` - reserved for the future Blender-authored first moment; the previous floor arrow has been removed.
-- `02_HOOPS` - mixed-colour circular hoop corridor; its nearest opening hoop has been removed so the replacement first moment has room before the circles begin.
-- `03_YARD` - authored geometric transition.
-- `04_LOOP` - long roll and camera-aligned rectangular gates.
-- `05_IGNITION` - activation transition.
-- `06_LIVING` - final retained authored structures and the parametric column forest.
-- `07_FINALE_WORKBENCH` - the table, stool, open laptop, framed picture, and downward-facing task lamp.
-- `99_REMOVED_BOTTOM_TRACK_BACKUP` - hidden, non-rendering, non-exporting recovery geometry for the removed rails and buffers.
-- `ABS_CAMERA_RIG` - animated camera.
-- `ABS_GUIDES` - non-rendering path and camera-roll controls.
+To reshape the route, edit `ABS_PARAMETRIC_RIDE_PATH` in Edit Mode. Its
+`abs_control_anchors` custom property maps each control-point index to a narrative
+label. Keep the handles aligned and point tilt at zero. All path-bound geometry and
+both aim targets follow this curve live. The website resamples the exported camera
+by cumulative physical distance, so unequal source-frame speeds cannot change the
+camera-distance-per-scroll ratio. Moving a gate range also requires checking its
+aim-blend interval and every aperture; do not assume shared path ownership proves framing.
 
-### Floating model replacements
+**Camera Steadycam Look Ahead** on `ABS_WORLD_CONTROLS` controls the general aim.
+The square passage instead uses **Camera Lead Gates**. A distant aim can skip over
+an approaching opening even when the camera position crosses its centre. Verify
+both the physical crossing and the viewing direction after tuning either control.
+Neither control changes the rail, the `65°` FOV, or the authored bank keys.
 
-The five temporary floating cubes have been replaced with imported models in
-`ABS_FLOATING_MODELS`:
+## Six editable stages
 
-- `FLOATING_CRT_MONITOR` replaces `Cube`.
-- `FLOATING_CURSOR_3D` replaces `Cube.001`.
-- `FLOATING_MOBILE_PHONE` replaces `Cube.002`.
-- `FLOATING_MOUSE_WITH_CABLE` replaces `Cube.003`.
-- `FLOATING_PENCIL` replaces `Cube.004`.
+| Stage | Path range | Approx. length | Generator |
+| --- | --- | ---: | --- |
+| Quiet field and aperture | 0.000–0.095 | 125 m | `GN_SIGNAL_FIELD`, `GN_SIGNAL_APERTURE` |
+| Irregular nebula | 0.075–0.165 | 118 m | `GN_NEBULA_FIELD` |
+| Round portals | 0.180–0.280 | 131 m | `GN_ROUND_PORTALS` |
+| Mountain terrain | 0.310–0.610 | 394 m | `GN_RIBBON_CANYON` |
+| Short square-gate bank | 0.640–0.800 | 210 m | `GN_SQUARE_LOOP` |
+| Split-lattice finale | 0.860–1.000 | 184 m rail section | `GN_RESPONSIVE_LATTICE` |
 
-Move, rotate, or scale these five root empties rather than their nested mesh objects.
-Each model was centred on its previous cube and scaled to roughly match that cube's
-world-space envelope. The original cubes remain in the hidden
-`99_FLOATING_CUBE_BACKUP` collection with website export disabled.
+Physical gaps separate the chapters. Runtime visibility follows each structure's
+physical camera cue, with bounded handoffs. The square bank starts `0.55 story WU`
+before `gate-entry`, retaining its `0.18 WU` reveal interval. This lets the first
+opening appear before the camera enters it; it does not change the geometry or
+delay travel. The existing tall lattice remains through the closing invitation.
 
-`IMPORTED_FLOATING_MODEL_CREDITS` in Blender's Text Editor records the supplied source
-details. All five models are licensed under CC BY 4.0. Four imports include separate
-Sketchfab licence files; `generic_mobile_phone.glb` records its author, source URL, and
-CC BY 4.0 licence in the glTF `asset.extras` metadata. The durable attribution record is
-[`THIRD-PARTY-MODELS.md`](./THIRD-PARTY-MODELS.md), and the website repeats it in the
-finale. The imported texture images are packed into the `.blend` so the editing file
-remains self-contained. The website point-cloud export uses the evaluated mesh geometry
-rather than these textures.
+Text owns the page length and uses the full viewport, including in portrait.
+Semantic text cues do not accelerate or slow the camera. Equal native scroll
+distances produce equal physical camera travel through every passage and the
+invitation. The camera stops wherever scrolling stops and reaches the unchanged
+endpoint only at the native page end, with no separate settling or finale brake.
 
-### Parametric path effects
+Do not substitute physical `ABS_STAGE_03` or `ABS_STAGE_05` markers for the semantic
+`ABS_TERRAIN_THESIS` and `ABS_SPLIT_LATTICE_ENTRY` reading cues. The browser verifies
+both export files against their metadata hashes and rejects an incompatible cue
+bundle instead of giving missing or inverted windows an unlimited lifetime.
 
-The opening hoops and square-gate loop are active Geometry Nodes generators rather
-than fixed repeated topology:
+The camera export includes each evaluated square aperture's centre, axes, inner
+size and depth. `npm run check:about-v2-assets` checks all three planes of all
+14 openings, close-approach framing and complete quaternion change per physical
+distance. `node scripts/audit-about-gate-passage.mjs` checks the rendered camera,
+early visibility, reversal and stopped scrolling across desktop and phone sizes.
+Set `ABS_BROWSER=webkit` for the second browser. After a source edit, save and reopen
+the scene in a fresh process before export; newly added driver relations must be
+evaluated from the saved file.
 
-- `GN_HOOP_TUNNEL` in `02_HOOPS`
-- `GN_GATE_TUNNEL` in `04_LOOP`
+The terrain's narrative range still ends at `0.610`, but its final full geometry row
+stops at `0.604`. The small trim keeps the wide landscape above `375 m` long while
+leaving a measured physical gap before the first aerial square gate.
 
-Select either object and use its Geometry Nodes modifier inputs. `Start on Path (0-1)`
-and `End on Path (0-1)` choose the part of the route using the same normalized progress
-as the camera. `Instance Count` controls the distribution. `Start Scale` and `End Scale`
-create a smooth taper. The opening circles currently taper from `1.0` to `0.35`.
+### Quiet field and nebula
 
-`GN_GATE_TUNNEL` also exposes `Start Roll (degrees)` and `Roll per Shape (degrees)`.
-The sequence is deterministic; the unused random-roll branch has been removed. The
-current `4` degrees per shape across `17` squares produces `64` degrees of total roll.
-Both wrappers use `ABS_GN_PATH_REPEATER`. Its four labelled frames explain path
-trimming, distribution and taper, roll, and export.
+The two field objects share `ABS_GN_NARRATIVE_POINT_FIELD`. Their useful controls are:
 
-`ABS_PARAMETRIC_RIDE_PATH` is the authoritative 721-point travel path. Its `Z-Up`
-twist method provides a stable neutral horizon. `ABS_CAMERA`
-follows it with `ABS_FOLLOW_RIDE_PATH`. The hidden `ABS_CAMERA_ROLL_DRIVER` owns two
-linear travel keys and drives the Follow Path offset. `ABS_SQUARE_TUNNEL_ROLL` copies
-the controller's local Z rotation after the path has supplied pitch and yaw. Run
-`scripts/about-v2-blender/simplify-about-v2-camera-rig.py` after changing the square
-tunnel's path range, count, or roll values. It rebuilds only three roll keys from those
-modifier inputs. Set `GN_GATE_TUNNEL.abs_camera_roll_influence` between `0` and `1`
-when you want to reduce the added roll.
+- **Start / End on Path**: longitudinal extent;
+- **Particle Count**: active Blender dot bodies;
+- **Field Radius** and **Corridor Radius**: breadth and camera clearance;
+- **Vertical Scale**: flatten or stretch the field without changing its corridor;
+- **Dot Radius**: preview-body size;
+- **Cluster Strength** and **Erosion**: even field versus irregular islands;
+- **Longitudinal Jitter**: breaks regular spacing along the rail.
 
-`00_PARAMETRIC_MODULES` holds the reusable hoop profile and six gate material variants.
-The hoop proxy has `96` vertices and each square proxy has `16`; they are deliberately
-simple because the website converts the evaluated result into point-cloud geometry.
-The previous fixed hoop and square-gate topology has been removed after evaluated
-geometry verification. Do not remove the final `Realize Instances` node: the website
-exporter samples evaluated mesh geometry. The historical
-`parameterize-path-tunnels.py` migration is guarded and must not be rerun on this file.
+`GN_SIGNAL_APERTURE` and `GN_ROUND_PORTALS` reuse the shared path repeater. Use
+**Start / End on Path**, **Instance Count**, **Start / End Scale**, and the profile
+variant collection. Each portal is one colour; the sequence cycles through all six
+palette roles. The aperture and all 36 original round portals are centred on the camera rail.
+Do not translate their complete objects away from the rail to protect copy: that
+produces empty views and clipped edge fragments. Use their open centres, scale, and
+bounded semantic visibility windows instead.
 
-Open Blender's Text Editor and select `PARAMETRIC_PATH_EFFECTS_README` for the same
-control guide inside the `.blend` file.
+The website's normal fog end is `150 WU`. The old `70 WU` range hid most of the
+wide point fields and landscape before they could enter the camera frame. Fog still
+reveals whole dots; adjacent stages remain hidden by their own visibility windows.
 
-There is no bust, deck, conduit, ground-support, rail, sleeper, floor line, or other
-bottom-track geometry in the exported reconstruction. The removed rail and buffer
-meshes remain only as recovery objects inside `99_REMOVED_BOTTOM_TRACK_BACKUP`; that
-collection is hidden in the viewport and render and is explicitly excluded from the
-website exporter. Do not restore it without a new explicit direction.
+### Mountain terrain
+
+Select `GN_RIBBON_CANYON`. The default surface starts nearly flat, becomes hilly, and
+then becomes mountainous. The camera stays low over the flat and hilly sections, then
+climbs like an aircraft across the late mountain section and its empty transition into
+the aerial square loop.
+
+The first controls to change are:
+
+- **Flat End**: how long the opening remains calm;
+- **Hill Height** and **Hill Scale**: early relief and hill width;
+- **Mountain Start**, **Mountain Height**, and **Mountain Scale**: onset, relief and
+  detail of the mountainous exit;
+- **Wall Lift**: raises the outer ribbons into a stronger valley;
+- **Interaction**: cross-ribbon wave influence;
+- **Terrain Seed**: reproducible terrain character;
+- **Camera Clearance**: vertical distance between rail and floor;
+- **Protected Corridor**: calm normalized half-width beneath the rail;
+- **Centre Relief**: how much hill and mountain elevation remains under the camera;
+- **Density Fade In / Out**: website-dot density at each end without narrowing the mesh;
+- **Canyon Width**: total span of the one connected, six-palette terrain surface.
+
+The Geometry Nodes tree writes `abs_density_weight` onto the evaluated surface. The
+website exporter samples against that live attribute, so changing either density-fade
+control changes the exported dots while the terrain footprint remains broad and free
+of triangular or straight-cut corners.
+
+### Square loop and camera bank
+
+`GN_SQUARE_LOOP` controls the gate range, count, taper and architectural twist. Its 14
+square gates each use one palette role and complete one full architectural turn. The
+matching camera bank remains a separate sparse control, so the architecture can twist
+while the reading horizon stays calm.
+
+The visible gate chapter starts at route progress `0.64` and ends at `0.80`. The five
+sparse bank keys sit at `0.64`, `0.68`, `0.72`, `0.76`, and `0.80`, resolving through
+`0°`, `-6°`, `8°`, `-4°`, and `0°` before the empty connector into the split lattice.
+
+Select `ABS_CAMERA_ROLL_DRIVER`, open the Graph Editor, and expand **Camera Roll**.
+The final five keys control the square-gate camera bank: entry, left bank, right bank,
+settle and level exit. Keep them at `0`, `-6`, `8`, `-4` and `0`. The gate instances
+own the complete architectural twist. The first four keys control the small
+round-tunnel corner bank. Translation remains controlled by only the two **Rail
+Travel** keys before the final acceleration and stationary hold.
+
+If you change the square-loop stage range, update its five sparse roll keys and
+semantic transition markers together in Blender, save a candidate copy and export
+it. The recorded recovery script is not a blanket modifier for a newly edited scene.
+
+### Responsive lattice
+
+`GN_RESPONSIVE_LATTICE` is the multicolour kinetic field. Use:
+
+- **Lattice Width / Depth** and **Columns Across / Rows Deep** for its extent and
+  density;
+- **Corridor Width** for camera safety;
+- **Strand Keep** for stable empty windows through the field;
+- **Strand Thickness** and **Height Min / Max** for mass;
+- **Wave Amplitude / Length / Speed** and **Response Delay** for motion;
+- **Position Jitter** to loosen the grid.
+
+Set **Wave Amplitude** to zero for a reduced-motion preview. The `50 m` central
+corridor divides the original full-height lattice into two banks. The approximately
+`167 × 230 m` field is anchored at route progress `0.99`, leaving a physical gap
+after the gates. Original 41-column/58-row density, 15–90 m heights and 0.82 strand
+retention are preserved; there is no widening far taper or flattened bank profile.
+The camera enters the lattice after the gates and it remains through the method,
+both closing titles and the invitation. A monotone terminal arrival in the website
+journey reaches zero speed at the source camera lock (`0.91`). Ambient motion also
+stops there. No finale halo or replacement object is added.
+
+Every exported generator also has **Custom Properties → Website Circle Radius**
+(`abs_surfel_radius_scale`). This controls the baked circle radius for that model on
+the website without changing its Blender mesh. Save and re-export after changing it.
+
+## Scene organisation and recovery
+
+`ABS_NARRATIVE_WORLD` contains only the six live `ABOUT_STAGE_…` collections,
+`ABS_NARRATIVE_GUIDES`, and their shared modules. Superseded scene objects and the
+old `99_…` archive collections are removed. The exporter now refuses to run if they
+return. The recoverable pre-rebuild file is:
+
+`backups/about-v2-track-working.pre-parametric-narrative-20260823.blend`
+
+The saved scene before the camera-framing repair is preserved separately:
+
+`backups/about-v2-track-working.pre-camera-framing-20260830.blend`
+
+The pre-contact-sheet-refinement backup is:
+
+`backups/about-v2-track-working.pre-retime-cleanup-20260824.blend`
+
+The exact pre-cinematic-refinement source is:
+
+`backups/about-v2-track-working.pre-cinematic-implementation-20260829-135523.blend`
+
+The exact source before the final cross-browser portal-clearance adjustment is:
+
+`backups/about-v2-track-working.pre-webkit-clearance-20260829-2200.blend`
+
+Create and validate a candidate before replacing the canonical source:
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+  source-assets/about-v2-blender-current/backups/about-v2-track-working.pre-cinematic-implementation-20260829-135523.blend \
+  --python scripts/about-v2-blender/refine-about-v2-stage-separation.py -- \
+  --restore-scene-identity \
+  --output-blend output/about-v2-stage-separated-candidate/about-v2-restored-review.blend
+```
+
+The obsolete `build-parametric-narrative-world.py` is deliberately fail-closed. Keep
+normal design changes in the live modifier controls. The sparse-scene refinement
+mode is also retired; the recovery flag requires the exact recorded backup hash.
+Never run a blanket refinement against an edited canonical scene.
 
 ## Export to the website
 
@@ -124,89 +275,27 @@ From the repository root:
 /Applications/Blender.app/Contents/MacOS/Blender --background \
   source-assets/about-v2-blender-current/about-v2-track-working.blend \
   --python scripts/about-v2-blender/export-edited-about-v2-point-world.py -- \
-  --output-dir react-app/app/public/models/about-v2-edited-world
+  --output-dir react-app/app/public/models/about-v2-edited-world --allow-canonical-output
 
 node scripts/about-v2-blender/check-about-v2-edited-world.mjs
 ```
 
-Every exported mesh carries stable Blender semantics: object and model IDs, role,
-density group, motion group, reveal group, component policy, and material palette
-role. Multi-mesh props such as the mouse, cursor, and workplace therefore remain one
-recognisable model without inferring meaning from mesh islands or traversal order.
+The exporter samples evaluated triangle surfaces, not Blender vertices. Generated
+instances are realised before output, and every stage carries explicit object, model,
+role, density, motion, reveal, component and palette semantics. The progressive packed
+profiles are 30,000 mobile, 90,000 desktop and 135,000 master surfels.
 
-The exporter samples evaluated triangle surfaces with one world-space density rule.
-Its progressive Poisson-style sequence avoids the old vertex clustering while small
-semantic materials and meaningful connected components retain exact anchor samples.
-There is no general per-object quota: authored models, paths, and workplace surfaces
-share one area-proportional density unless a feature needs an anchor to stay present.
-The forest is an environmental field rather than a recognition model, so it uses a
-separate lower density weight and cannot consume nearly the whole fixed profile. The
-packed `surfels.bin`
-contains stable position, normal, radius, seed, model, part, palette, motion, and
-feature data. The current profiles are 20,000 mobile, 60,000 desktop, and 90,000
-master surfels. The runtime scales each Blender object's nested profile radius by that
-object's own square root master-to-profile count ratio. This keeps physical surface
-coverage consistent at every quality tier without letting a large model sibling or
-the forest overfill small props. Protected connected-component anchors keep meaningful
-bezels, cables, controls, and other authored sub-parts present in every profile.
+The website resolves the six Blender palette roles through the current shared
+simulation colour scheme. It uses the evaluated camera track and the 65-degree
+horizontal projection, retains both sides of the authored surfaces, then adds runtime
+fog, complete-circle reveal and coherent stage motion. The Blender file remains the
+source of geometry and camera truth.
 
-The scene can own the three export budgets through its Custom Properties:
-`abs_surfel_mobile_budget`, `abs_surfel_desktop_budget`, and
-`abs_surfel_master_budget`. The command-line flags remain optional overrides. Keep
-`abs_point_density` at `1` for equal world-space density; use
-`abs_feature_priority` only for a deliberate recognition boost on thin or important
-objects. `abs_preserve_min_px` marks an object as non-droppable at adaptive runtime
-detail levels.
+For a full visual sequence after export:
 
-Timeline markers are exported as sparse `journeyCues` in `camera-track.json`. Use
-them for named beats such as the gate-tunnel roll and the final level horizon. The
-website still reads the evaluated camera samples for smooth travel; the editable
-Blender rig remains the camera source of truth.
-
-The website renders the selected profile in two ordered passes that share one geometry
-and one set of GPU buffers. The opaque circle interior owns depth; only the antialiased
-rim uses multisample coverage. There is no triangle proxy to slice billboards into
-crescents, and faint fragments cannot punch holes through later circles. Distance fog
-uses each packed surfel seed to reveal complete coloured circles as a progressively
-denser population. A short scale ramp supplies the arrival motion without shrinking
-coloured bodies into pale sub-pixel coverage. Living motion translates the complete
-authored scene coherently instead of oscillating individual points through one another.
-Packed Blender normals cull rear-facing surface samples by default, so dense props read
-as authored shells instead of transparent volumes; the `/` panel can reveal those back
-surfaces when a more cloud-like look is wanted.
-
-Palette roles resolve through the shared simulation palette. Do not introduce a
-separate scene-specific colour override.
-
-The exporter writes `surfels.bin`, `meta.json`, and `camera-track.json`. The website
-samples the Blender camera track and horizontal projection directly, including the
-square-gate tunnel, so a camera or roll edit returns to the development renderer on
-export. The export preserves the manually edited `.blend`; do not run the procedural
-scene builder when returning an edited scene to the website.
-
-## Camera roll
-
-Select `ABS_CAMERA_ROLL_DRIVER`, then edit **Camera Roll (degrees)** in the Graph
-Editor. The whole camera rig has five authored key points: two for rail travel and
-three for roll. Timeline markers identify the gate entrance, last gate, and horizon
-return. The default roll profile is 0° at the first gate, 32° at the last gate, and
-0° before the forest. Constant extrapolation keeps the camera level before and after
-those three points, so endpoint roll keys are unnecessary. The property drives the
-Empty's local Z rotation; `ABS_CAMERA` copies that rotation after following
-`ABS_PARAMETRIC_RIDE_PATH`. Do not key `ABS_CAMERA` transforms directly and do not
-change the path's twist method back to `Minimum`; that mode accumulates bank through
-the non-planar route and leaves the final horizon tilted.
-
-The website exporter still evaluates the resolved rig on every frame and writes those
-samples to `camera-track.json`. That dense file is a runtime playback cache, not an
-editable Blender action. The simplification script deliberately does not save the
-open `.blend`; review the ride first, then save the Blender file manually when the
-rest of the open scene is ready to be preserved.
-
-## Historical reconstruction
-
-The procedural bootstrap, its ocean-era JSON export, and its checker were removed
-from the active workflow because they could overwrite the manually edited scene.
-The original reconstruction artifacts remain read-only in the sibling
-`source-assets/about-v2-blender/` archive. Use only the export workflow above to
-return Blender edits to the website.
+```bash
+ABS_CONTACT_SHEET_PHASE=my-review \
+ABS_CONTACT_SHEET_VIEWPORT=desktop \
+ABS_CONTACT_SHEET_SEQUENCES=page \
+npm exec -- node scripts/capture-about-narrative-contact-sheets.mjs
+```

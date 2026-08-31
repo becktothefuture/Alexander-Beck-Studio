@@ -13,6 +13,13 @@ const canonicalSource = await readFile(
   'utf8',
 );
 const canonicalDocument = JSON.parse(canonicalSource);
+const cameraTrack = JSON.parse(await readFile(
+  'react-app/app/public/models/about-v2-edited-world/camera-track.json',
+  'utf8',
+));
+const stageCues = (cameraTrack.journeyCues || [])
+  .filter((cue) => /^ABS_STAGE_0[0-6]$/.test(cue.name))
+  .sort((left, right) => left.progress - right.progress);
 // The profile value is only a persisted diagnostic cache in content-flow mode.
 // Replace it with the measured browser extent once the Story Stack has laid out.
 let durationWU = Number(canonicalDocument.profiles.desktop.storyDurationWU);
@@ -22,15 +29,23 @@ const viewports = Object.freeze({
   laptop: Object.freeze({ width: 1280, height: 720 }),
   tablet: Object.freeze({ width: 1024, height: 768 }),
   mobile: Object.freeze({ width: 390, height: 844 }),
+  tinyMobile: Object.freeze({ width: 320, height: 740 }),
+  shortPortrait: Object.freeze({ width: 390, height: 600 }),
   narrowMobile: Object.freeze({ width: 375, height: 667 }),
   shortWide: Object.freeze({ width: 844, height: 390 }),
 });
 const viewportId = process.env.ABS_CONTACT_SHEET_VIEWPORT || 'desktop';
 const viewport = viewports[viewportId] || viewports.desktop;
 const reducedMotion = process.env.ABS_CONTACT_SHEET_REDUCED === '1' ? 'reduce' : 'no-preference';
+const pageSampleCount = Math.max(3, Number.parseInt(process.env.ABS_CONTACT_SHEET_PAGE_SAMPLES, 10) || 29);
+const deviceScaleFactor = Math.max(1, Math.min(3, Number(process.env.ABS_CONTACT_SHEET_DPR) || 1));
+const colorScheme = process.env.ABS_CONTACT_SHEET_THEME === 'dark' ? 'dark' : 'light';
 // Each sequence answers one visual question. Keep `rhythm` aligned with every
 // authored text handoff; the focused probes may sample the material more densely.
 const sequences = {
+  fields: [],
+  reading: [],
+  craft: [],
   page: [],
   overlay: [0],
   opening: [0, 0.12, 0.28, 0.42, 0.58, 0.7, 0.9, 1.15, 1.35],
@@ -83,8 +98,14 @@ async function setStoryWU(page, storyWU) {
   await page.waitForTimeout(180);
 }
 
+function stageAtJourneyProgress(progress) {
+  return [...stageCues].reverse().find((cue) => progress >= cue.progress)?.name
+    || stageCues[0]?.name
+    || 'ABS_STAGE_UNKNOWN';
+}
+
 async function readFrameState(page, requestedWU) {
-  return page.evaluate((value) => {
+  const state = await page.evaluate(({ value }) => {
     const root = document.querySelector('.about-narrative-lab');
     const disciplineLabels = [...document.querySelectorAll('.about-narrative-discipline-reveal li')]
       .map((node) => {
@@ -145,11 +166,31 @@ async function readFrameState(page, requestedWU) {
     const finaleRect = finale?.getBoundingClientRect();
     return {
       requestedWU: value,
+      browserViewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+      theme: document.documentElement.dataset.absTheme || '',
+      runtime: (() => {
+        const metrics = window.__aboutNarrativeRuntime?.getMetrics?.();
+        if (!metrics) return null;
+        return {
+          cameraPosition: metrics.cameraPosition,
+          journeyProgress: metrics.journeyProgress,
+          cameraLocked: metrics.cameraLocked,
+          paletteId: metrics.paletteId,
+          pixelRatio: metrics.pixelRatio,
+          viewportWidth: metrics.viewportWidth,
+          viewportHeight: metrics.viewportHeight,
+          cameraRollDegrees: metrics.cameraRollDegrees,
+          cameraFovDegrees: metrics.cameraFovDegrees,
+          perModelCounts: metrics.perModelCounts,
+          residentSurfelCount: metrics.residentSurfelCount,
+          modelFraming: metrics.modelFraming,
+          controls: metrics.controls,
+        };
+      })(),
       storyWU: Number(root?.dataset.narrativeStoryWu),
-      stage: root?.dataset.worldStage || '',
       worldFrom: root?.dataset.worldFrom || '',
       worldTo: root?.dataset.worldTo || '',
-      visibility: Number(root?.dataset.worldVisibility),
+      visibility: Number(root?.dataset.worldVisibility ?? root?.dataset.routeMaterialProgress ?? 1),
       gridBackground: Number(root?.dataset.worldGridBackground || 0),
       bustYaw: Number(root?.dataset.worldBustShaderYaw || 0),
       finaleBounds: finaleRect ? {
@@ -164,7 +205,9 @@ async function readFrameState(page, requestedWU) {
       visibleLabels,
       visibleTitles,
     };
-  }, requestedWU);
+  }, { value: requestedWU });
+  state.stage = stageAtJourneyProgress(state.runtime?.journeyProgress ?? 0);
+  return state;
 }
 
 async function createContactSheet(id, evidence) {
@@ -240,22 +283,27 @@ await mkdir(outputDir, { recursive: true });
 const configFingerprint = createHash('sha256').update(canonicalSource).digest('hex');
 const browserName = process.env.ABS_BROWSER === 'webkit' ? 'webkit' : 'chromium';
 const browserType = browserName === 'webkit' ? webkit : chromium;
+const browserChannel = browserName === 'chromium' ? process.env.ABS_CHROMIUM_CHANNEL : undefined;
 const browser = await browserType.launch({
   headless: true,
-  args: browserName === 'chromium' ? [
+  ...(browserChannel ? { channel: browserChannel } : {}),
+  args: browserName === 'chromium' && !browserChannel ? [
     '--use-gl=angle',
     '--use-angle=swiftshader-webgl',
     '--enable-unsafe-swiftshader',
     '--disable-gpu-sandbox',
   ] : [],
 });
-const context = await browser.newContext({ viewport, reducedMotion });
+const context = await browser.newContext({ viewport, reducedMotion, deviceScaleFactor, colorScheme });
 const page = await context.newPage();
 await page.goto(
-  `${baseUrl}/about.html?edit=0`,
+  `${baseUrl}/about.html?preview=about&edit=0`,
   { waitUntil: 'domcontentloaded' },
 );
-await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', { timeout: 30_000 });
+await page.waitForSelector(
+  '.about-narrative-lab[data-about-scene-ready="true"][data-point-world-state="ready"]',
+  { timeout: 30_000 },
+);
 await page.waitForFunction(
   () => document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete',
   undefined,
@@ -267,11 +315,46 @@ durationWU = await page.locator('.about-narrative-scrollport').evaluate((node) =
 ));
 // `page` is the canonical whole-story sheet: evenly sampling the measured
 // extent keeps it complete when copy is added, removed, or rewrapped.
-sequences.page = Array.from({ length: 29 }, (_, index) => (
-  durationWU * (index / 28)
+sequences.page = Array.from({ length: pageSampleCount }, (_, index) => (
+  durationWU * (index / (pageSampleCount - 1))
 ));
 
-const report = { baseUrl, phase, experienceVersion, canonicalConfigName, browserName, viewportId, viewport, reducedMotion, durationWU, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
+const storyFields = await page.locator('[data-render-span-id]').evaluateAll((nodes) => nodes.map((node) => ({
+  id: node.querySelector('[data-text-field-id]')?.dataset.textFieldId,
+  startWU: Number(node.dataset.storyStartWu),
+  focusWU: Number(node.dataset.storyFocusWu),
+  endWU: Number(node.dataset.storyEndWu),
+})).filter((field) => field.id));
+sequences.fields = storyFields.flatMap((field) => [field.startWU, field.focusWU, field.endWU]);
+sequences.craft = [0, ...storyFields.filter((field) => [
+  'text-background-unit', 'text-discipline-labels', 'text-disciplines-title',
+  'text-life-momentum', 'text-life-character', 'text-epilogue-invitation',
+].includes(field.id)).map((field) => field.focusWU), durationWU];
+const readingStops = await page.evaluate(() => {
+  const scrollport = document.querySelector('.about-narrative-scrollport');
+  const port = scrollport.getBoundingClientRect();
+  const height = scrollport.clientHeight;
+  return Array.from(document.querySelectorAll([
+    '.about-narrative-render-span--editorial .about-narrative-editorial-copy',
+    '[data-editorial-reveal="career-row"]',
+    '[data-editorial-reveal="career-independent-work"]',
+    '[data-editorial-reveal="discipline"]',
+    '.about-narrative-client-logos > li',
+  ].join(','))).map((node, index) => {
+    const bounds = node.getBoundingClientRect();
+    const fieldId = node.closest('[data-text-field-id]')?.dataset.textFieldId;
+    const clearHeightPx = height - 36;
+    return {
+      index, fieldId, text: node.innerText.trim().replace(/\s+/g, ' '),
+      storyWU: (scrollport.scrollTop + bounds.top - port.top + bounds.height / 2
+        - 0.5 * height) / height,
+      heightPx: bounds.height, clearHeightPx, fullyFits: bounds.height <= clearHeightPx,
+      kind: node.dataset.editorialReveal || node.className,
+    };
+  });
+});
+sequences.reading = readingStops.map((stop) => stop.storyWU);
+const report = { baseUrl, phase, experienceVersion, canonicalConfigName, browserName, browserChannel, viewportId, viewport, deviceScaleFactor, colorScheme, reducedMotion, durationWU, storyFields, readingStops, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
 for (const [id, requestedStoryValues] of Object.entries(sequences)) {
   if (!requestedSequenceIds.has(id)) continue;
   const storyValues = [...new Set(requestedStoryValues.map((value) => (

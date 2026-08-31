@@ -60,8 +60,11 @@ export const ABOUT_NARRATIVE_TRACK_TEXT_KINDS = Object.freeze([
   'stub',
   'discipline-reveal',
 ]);
+export const ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND = 'career-sequence';
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
+const CAREER_SEQUENCE_MAX_WORDS = 56;
 const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:/i;
 const SECTIONLIKE_KEYS = new Set(['sections', 'groups', 'bands', 'chapters']);
 const LEGACY_CAMERA_BAKE_MAX_POSITION_ERROR_WU = 0.12;
@@ -156,21 +159,30 @@ const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
 const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
 const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
 const STORY_FLOW_KEYS = new Set(['minScreens', 'gapAfter', 'focusMode', 'focusOffsetScreens']);
-const STORY_GAP_PRESETS = new Set(['none', 'tight', 'standard', 'chapter', 'finale']);
+const STORY_GAP_PRESETS = new Set(['none', 'tight', 'standard', 'chapter', 'finale', 'passage', 'arrival']);
 const STORY_FOCUS_MODES = new Set(['middle', 'reading-start']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
 const BLOCK_DISCIPLINE_ITEM_KEYS = new Set(['id', 'label', 'description']);
 const EMPHASIS_KEYS = new Set(['text', 'tone']);
 const REVEAL_KEYS = new Set(['fadeDurationWU']);
 const LEGACY_REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
-const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'parameters', 'emphasis']);
+const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'parameters', 'emphasis', 'independentWork']);
 const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale', 'offsetX', 'offsetY']);
+const CAREER_SEQUENCE_ITEM_KEYS = new Set(['id', 'yearLabel', 'employer', 'role']);
+const CAREER_SEQUENCE_INDEPENDENT_WORK_KEYS = new Set(['label', 'text']);
 const INTERACTIVE_STACK_ITEM_KEYS = new Set(['id', 'type', 'src', 'poster', 'alt', 'width', 'height', 'aspectRatio', 'fit']);
 const INTERACTIVE_STACK_PARAMETER_KEYS = new Set([
   ABOUT_INTERACTIVE_STACK_SEED_CONTROL.id,
   ...ABOUT_INTERACTIVE_STACK_CONTROLS.map((control) => control.id),
 ]);
-const MODULE_KINDS = new Set(['prose', 'list', 'logo-grid', 'media-deck', ABOUT_INTERACTIVE_STACK_KIND]);
+const MODULE_KINDS = new Set([
+  'prose',
+  'list',
+  'logo-grid',
+  'media-deck',
+  ABOUT_INTERACTIVE_STACK_KIND,
+  ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND,
+]);
 const CHOREOGRAPHY_KEYS = new Set(['staggerWU', 'backgroundFadeWU', 'backgroundOpacity', 'reconnectOpacity', 'pointScale', 'labelOffsetPx', 'labelScale', 'labelDurationWU', 'holdWU', 'items']);
 const LEGACY_CHOREOGRAPHY_KEYS = new Set(['fieldTravelWU', 'fieldFogStartWU', 'fieldFogEndWU', 'fieldFogStrength', ...CHOREOGRAPHY_KEYS]);
 const DISCIPLINE_ITEM_KEYS = new Set(['group', 'label', 'description', 'position', 'mobilePosition']);
@@ -347,8 +359,8 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   if (!finite(fogStartWU) || fogStartWU < 0 || fogStartWU > 40) {
     diagnostic(diagnostics, 'camera-fog-start', 'globals.camera.distanceFogStartWU', 'Global camera fog start must stay between 0 and 40 WU.');
   }
-  if (!finite(fogEndWU) || fogEndWU < 0.1 || fogEndWU > 80) {
-    diagnostic(diagnostics, 'camera-fog-end', 'globals.camera.distanceFogEndWU', 'Global camera fog end must stay between 0.1 and 80 WU.');
+  if (!finite(fogEndWU) || fogEndWU < 0.1 || fogEndWU > 240) {
+    diagnostic(diagnostics, 'camera-fog-end', 'globals.camera.distanceFogEndWU', 'Global camera fog end must stay between 0.1 and 240 WU.');
   }
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
@@ -574,7 +586,7 @@ function validateProfileOverrides(overrides, diagnostics, profilePath, durationW
         if (override.fov != null && (!finite(override.fov) || override.fov < 20 || override.fov > 90)) diagnostic(diagnostics, 'camera-fov', `${itemPath}.fov`, 'FOV must stay between 20 and 90.');
         if (schemaVersion <= 4) {
           if (override.distanceFogStartWU != null && (!finite(override.distanceFogStartWU) || override.distanceFogStartWU < 0 || override.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${itemPath}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
-          if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+          if (override.distanceFogEndWU != null && (!finite(override.distanceFogEndWU) || override.distanceFogEndWU < 0.1 || override.distanceFogEndWU > 240)) diagnostic(diagnostics, 'camera-fog-end', `${itemPath}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 240 WU.');
           const fogStartWU = Number(override.distanceFogStartWU ?? base?.distanceFogStartWU);
           const fogEndWU = Number(override.distanceFogEndWU ?? base?.distanceFogEndWU);
           if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', itemPath, 'Camera fog must begin before circles are fully faded.');
@@ -807,13 +819,93 @@ function validateInteractiveStackParameters(parameters, diagnostics, path) {
   });
 }
 
+function validateCareerSequenceItem(item, diagnostics, path, seenIds) {
+  unknownKeys(diagnostics, item, CAREER_SEQUENCE_ITEM_KEYS, path);
+  if (!isObject(item)) return;
+  validateId(item.id, seenIds, diagnostics, `${path}.id`);
+  validateSafeText(item.yearLabel, diagnostics, `${path}.yearLabel`, { required: true, maximum: 24 });
+  validateSafeText(item.employer, diagnostics, `${path}.employer`, { required: true, maximum: 80 });
+  validateSafeText(item.role, diagnostics, `${path}.role`, { required: true, maximum: 100 });
+}
+
+function countCareerSequenceWords(module) {
+  const authoredValues = [
+    module?.label,
+    ...(module?.items || []).flatMap((item) => [
+      item?.yearLabel,
+      item?.employer,
+      item?.role,
+    ]),
+    module?.independentWork?.label,
+    module?.independentWork?.text,
+  ];
+  return authoredValues.reduce((total, value) => (
+    total + (String(value || '').match(WORD_PATTERN)?.length || 0)
+  ), 0);
+}
+
+function validateCareerSequence(module, diagnostics, path) {
+  validateSafeText(module.label, diagnostics, `${path}.label`, { required: true, maximum: 48 });
+  if (!Array.isArray(module.items) || module.items.length < 4 || module.items.length > 5) {
+    diagnostic(
+      diagnostics,
+      'career-sequence-item-count',
+      `${path}.items`,
+      'Career sequences require four or five jobs, ordered oldest to newest.',
+    );
+  } else {
+    const seenItemIds = new Set();
+    module.items.forEach((item, index) => validateCareerSequenceItem(
+      item,
+      diagnostics,
+      `${path}.items.${index}`,
+      seenItemIds,
+    ));
+  }
+  if (module.independentWork != null) {
+    const independentPath = `${path}.independentWork`;
+    unknownKeys(
+      diagnostics,
+      module.independentWork,
+      CAREER_SEQUENCE_INDEPENDENT_WORK_KEYS,
+      independentPath,
+    );
+    if (isObject(module.independentWork)) {
+      validateSafeText(module.independentWork.label, diagnostics, `${independentPath}.label`, { required: true, maximum: 40 });
+      validateSafeText(module.independentWork.text, diagnostics, `${independentPath}.text`, { required: true, maximum: 120 });
+    }
+  }
+  ['text', 'parameters', 'emphasis'].forEach((key) => {
+    if (module[key] != null) {
+      diagnostic(
+        diagnostics,
+        'career-sequence-field',
+        `${path}.${key}`,
+        `Career sequences cannot define “${key}”.`,
+      );
+    }
+  });
+  if (countCareerSequenceWords(module) > CAREER_SEQUENCE_MAX_WORDS) {
+    diagnostic(
+      diagnostics,
+      'career-sequence-word-budget',
+      path,
+      `Career sequence reader copy must stay within ${CAREER_SEQUENCE_MAX_WORDS} words.`,
+    );
+  }
+}
+
 function validateEditorialModule(module, diagnostics, path) {
   unknownKeys(diagnostics, module, MODULE_KEYS, path);
   if (!isObject(module)) return;
   if (!ID_PATTERN.test(module.id || '')) diagnostic(diagnostics, 'module-id', `${path}.id`, 'Module ID must be a lower-case slug.');
   if (!MODULE_KINDS.has(module.kind)) diagnostic(diagnostics, 'module-kind', `${path}.kind`, 'Unsupported editorial module kind.');
   if (module.kind === 'prose') validateSafeText(module.text, diagnostics, `${path}.text`, { required: true });
-  if (module.label != null) validateSafeText(module.label, diagnostics, `${path}.label`, { maximum: 120 });
+  if (module.kind === ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
+    validateCareerSequence(module, diagnostics, path);
+  } else if (module.label != null) {
+    validateSafeText(module.label, diagnostics, `${path}.label`, { maximum: 120 });
+  }
   if (module.kind === 'list') {
     if (!Array.isArray(module.items) || module.items.length === 0) {
       diagnostic(diagnostics, 'module-items-required', `${path}.items`, 'Editorial lists require at least one item.');
@@ -850,10 +942,13 @@ function validateEditorialModule(module, diagnostics, path) {
       ));
     }
     validateInteractiveStackParameters(module.parameters, diagnostics, `${path}.parameters`);
-  } else if (module.parameters != null) {
+  } else if (module.parameters != null && module.kind !== ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
     diagnostic(diagnostics, 'interactive-stack-parameters-owner', `${path}.parameters`, 'Only interactive stacks may define stack parameters.');
   }
-  if (module.emphasis != null) {
+  if (module.independentWork != null && module.kind !== ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
+    diagnostic(diagnostics, 'career-sequence-independent-work-owner', `${path}.independentWork`, 'Only career sequences may define independent work.');
+  }
+  if (module.emphasis != null && module.kind !== ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
     if (!Array.isArray(module.emphasis)) diagnostic(diagnostics, 'module-emphasis', `${path}.emphasis`, 'Module emphasis must be an array.');
     else module.emphasis.forEach((item, index) => {
       const itemPath = `${path}.emphasis.${index}`;
@@ -970,7 +1065,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
           diagnostics,
           'story-flow-gap',
           `${path}.flow.gapAfter`,
-          'Story block gapAfter must be none, tight, standard, chapter, or finale.',
+          'Story block gapAfter must be none, tight, standard, chapter, finale, passage, or arrival.',
         );
       }
       if (!STORY_FOCUS_MODES.has(field.flow.focusMode)) {
@@ -1254,7 +1349,7 @@ export function validateAboutNarrativeTrackDocument(input, {
       // Per-key fog is optional for existing v3 documents. When absent, the
       // canonical global camera fog values are materialized by v4 normalization.
       if (key.distanceFogStartWU != null && (!finite(key.distanceFogStartWU) || key.distanceFogStartWU < 0 || key.distanceFogStartWU > 40)) diagnostic(diagnostics, 'camera-fog-start', `${path}.distanceFogStartWU`, 'Camera fog start must stay between 0 and 40 WU.');
-      if (key.distanceFogEndWU != null && (!finite(key.distanceFogEndWU) || key.distanceFogEndWU < 0.1 || key.distanceFogEndWU > 80)) diagnostic(diagnostics, 'camera-fog-end', `${path}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 80 WU.');
+      if (key.distanceFogEndWU != null && (!finite(key.distanceFogEndWU) || key.distanceFogEndWU < 0.1 || key.distanceFogEndWU > 240)) diagnostic(diagnostics, 'camera-fog-end', `${path}.distanceFogEndWU`, 'Camera fog end must stay between 0.1 and 240 WU.');
       const fogStartWU = Number(key.distanceFogStartWU ?? input.globals?.camera?.distanceFogStartWU ?? 8);
       const fogEndWU = Number(key.distanceFogEndWU ?? input.globals?.camera?.distanceFogEndWU ?? 18);
       if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) diagnostic(diagnostics, 'camera-fog-order', path, 'Camera fog must begin before circles are fully faded.');
@@ -1353,6 +1448,58 @@ export function validateAboutNarrativeTrackDocument(input, {
     if (Number(field?.startWU) < previousTextWU) diagnostic(diagnostics, 'text-track-order', `tracks.text.fields.${index}.startWU`, 'Text fields must be ordered by startWU.');
     previousTextWU = Number(field?.startWU);
   });
+  const careerSequenceLocations = (textFields || []).flatMap((field, fieldIndex) => (
+    (field?.block?.modules || []).flatMap((module, moduleIndex) => (
+      module?.kind === ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND
+        ? [{ field, fieldIndex, module, moduleIndex }]
+        : []
+    ))
+  ));
+  if (careerSequenceLocations.length > 1) {
+    diagnostic(
+      diagnostics,
+      'career-sequence-count',
+      'tracks.text.fields',
+      'The public About narrative can contain at most one career sequence.',
+    );
+  }
+  if (careerSequenceLocations.length === 1) {
+    const [{ field, fieldIndex, module, moduleIndex }] = careerSequenceLocations;
+    const modules = field.block.modules;
+    const practiceIndex = modules.findIndex((candidate) => candidate?.id === 'practice');
+    const path = `tracks.text.fields.${fieldIndex}.block.modules.${moduleIndex}`;
+    if (field.id !== 'text-background-unit' || practiceIndex < 0 || moduleIndex !== practiceIndex + 1) {
+      diagnostic(
+        diagnostics,
+        'career-sequence-placement',
+        path,
+        'The career sequence must appear in text-background-unit immediately after practice.',
+      );
+    }
+    if (module.id !== ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND) {
+      diagnostic(
+        diagnostics,
+        'career-sequence-id',
+        `${path}.id`,
+        'The canonical career sequence ID must be career-sequence.',
+      );
+    }
+    const genericBackgroundLocation = (textFields || []).flatMap((candidateField, candidateFieldIndex) => (
+      (candidateField?.block?.modules || []).map((candidateModule, candidateModuleIndex) => ({
+        fieldIndex: candidateFieldIndex,
+        module: candidateModule,
+        moduleIndex: candidateModuleIndex,
+      }))
+    )).find(({ module: candidateModule }) => candidateModule?.id === 'background');
+    if (genericBackgroundLocation) {
+      diagnostic(
+        diagnostics,
+        'career-sequence-generic-background',
+        `tracks.text.fields.${genericBackgroundLocation.fieldIndex}.block.modules.${genericBackgroundLocation.moduleIndex}`,
+        'Remove the temporary generic career paragraph when the approved career sequence is present.',
+      );
+    }
+  }
   let previousClipWU = -1;
   (clips || []).forEach((clip, index) => {
     const path = `tracks.interactions.clips.${index}`;

@@ -1,4 +1,9 @@
-export const ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION = 1;
+export const ABOUT_NARRATIVE_CERTIFICATION_SCHEMA_VERSION = 2;
+
+export const ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS = Object.freeze({
+  desktop: 90_000,
+  mobile: 30_000,
+});
 
 export const ABOUT_NARRATIVE_REQUIRED_COMMAND_IDS = Object.freeze([
   'hardening-tests',
@@ -7,7 +12,12 @@ export const ABOUT_NARRATIVE_REQUIRED_COMMAND_IDS = Object.freeze([
   'runtime-fault-audit',
   'runtime-soak-desktop',
   'runtime-soak-mobile',
-  'runtime-visual-audit',
+  'runtime-visual-chromium-critical-audit',
+  'runtime-visual-webkit-audit',
+  'terminal-hold-audit',
+  'terminal-hold-webkit-audit',
+  'restoration-chromium-audit',
+  'restoration-webkit-audit',
   'site-gate',
   'production-isolation',
   'production-chromium-audit',
@@ -19,10 +29,31 @@ export const ABOUT_NARRATIVE_REQUIRED_EVIDENCE = Object.freeze([
   Object.freeze({ id: 'runtime-faults', path: 'output/playwright/about-narrative-hardening/runtime/runtime-fault-matrix.json' }),
   Object.freeze({ id: 'runtime-soak-desktop', path: 'output/playwright/about-narrative-hardening/runtime/soak-metrics-desktop.json' }),
   Object.freeze({ id: 'runtime-soak-mobile', path: 'output/playwright/about-narrative-hardening/runtime/soak-metrics-mobile.json' }),
-  Object.freeze({ id: 'runtime-visuals', path: 'output/playwright/about-narrative-hardening/runtime/visual-checkpoints.json' }),
+  Object.freeze({ id: 'runtime-visuals-chromium-critical', path: 'output/playwright/about-narrative-hardening/runtime/visual-checkpoints-desktop-mobile-reduced-motion-selected-method_personal-origin_terminal-hold.json' }),
+  Object.freeze({ id: 'runtime-visuals-webkit', path: 'output/playwright/about-narrative-hardening/runtime/visual-checkpoints-webkit.json' }),
+  Object.freeze({ id: 'terminal-hold-report', path: 'output/playwright/about-narrative-terminal-hold/chromium-report.json' }),
+  Object.freeze({ id: 'terminal-hold-webkit-report', path: 'output/playwright/about-narrative-terminal-hold/webkit-report.json' }),
+  Object.freeze({ id: 'terminal-hold-desktop-before', path: 'output/playwright/about-narrative-terminal-hold/chromium-desktop-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-desktop-after', path: 'output/playwright/about-narrative-terminal-hold/chromium-desktop-after.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-mobile-before', path: 'output/playwright/about-narrative-terminal-hold/chromium-mobile-touch-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-mobile-after', path: 'output/playwright/about-narrative-terminal-hold/chromium-mobile-touch-after.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-reduced-motion-before', path: 'output/playwright/about-narrative-terminal-hold/chromium-reduced-motion-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-reduced-motion-after', path: 'output/playwright/about-narrative-terminal-hold/chromium-reduced-motion-after.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-desktop-before', path: 'output/playwright/about-narrative-terminal-hold/webkit-desktop-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-desktop-after', path: 'output/playwright/about-narrative-terminal-hold/webkit-desktop-after.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-mobile-before', path: 'output/playwright/about-narrative-terminal-hold/webkit-mobile-touch-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-mobile-after', path: 'output/playwright/about-narrative-terminal-hold/webkit-mobile-touch-after.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-reduced-motion-before', path: 'output/playwright/about-narrative-terminal-hold/webkit-reduced-motion-before.png', reviewRequired: true }),
+  Object.freeze({ id: 'terminal-hold-webkit-reduced-motion-after', path: 'output/playwright/about-narrative-terminal-hold/webkit-reduced-motion-after.png', reviewRequired: true }),
   Object.freeze({ id: 'visual-contact-sheet-desktop', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-desktop.png', reviewRequired: true }),
   Object.freeze({ id: 'visual-contact-sheet-mobile', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-mobile.png', reviewRequired: true }),
-  Object.freeze({ id: 'visual-contact-sheet-reduced-motion', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-reduced-motion.png', reviewRequired: true }),
+  Object.freeze({ id: 'visual-contact-sheet-webkit-desktop', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-webkit-desktop.png', reviewRequired: true }),
+  Object.freeze({ id: 'visual-contact-sheet-webkit-mobile', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-webkit-mobile.png', reviewRequired: true }),
+  Object.freeze({ id: 'visual-contact-sheet-webkit-reduced-motion', path: 'output/playwright/about-narrative-hardening/runtime/contact-sheet-webkit-reduced-motion.png', reviewRequired: true }),
+  Object.freeze({ id: 'restoration-chromium-report', path: 'output/playwright/about-narrative-restoration/chromium-report.json' }),
+  Object.freeze({ id: 'restoration-chromium-frame', path: 'output/playwright/about-narrative-restoration/chromium-restored-mid-story.png', reviewRequired: true }),
+  Object.freeze({ id: 'restoration-webkit-report', path: 'output/playwright/about-narrative-restoration/webkit-report.json' }),
+  Object.freeze({ id: 'restoration-webkit-frame', path: 'output/playwright/about-narrative-restoration/webkit-restored-mid-story.png', reviewRequired: true }),
   Object.freeze({ id: 'production-chromium-desktop', path: 'output/playwright/about-narrative-sectionless/chromium-production-desktop.png' }),
   Object.freeze({ id: 'production-chromium-tablet-portrait', path: 'output/playwright/about-narrative-sectionless/chromium-production-tablet-portrait.png' }),
   Object.freeze({ id: 'production-chromium-tablet-landscape', path: 'output/playwright/about-narrative-sectionless/chromium-production-tablet-landscape.png' }),
@@ -196,8 +227,16 @@ export function validateAboutNarrativeCertificationManifest(manifest) {
   if (versions?.assetSchema !== 'about-point-scene' || versions?.rendererAdapter !== 'blender-surfel-v2') {
     addError(errors, 'runtime-version-labels', 'versions', 'The v2 asset schema and surfel adapter must be recorded.');
   }
-  if (versions?.pointBudgets?.desktop !== 30000 || versions?.pointBudgets?.mobile !== 10000) {
-    addError(errors, 'point-budgets', 'versions.pointBudgets', 'Protected desktop/mobile surfel budgets must be 30000/10000.');
+  if (
+    versions?.pointBudgets?.desktop !== ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS.desktop
+    || versions?.pointBudgets?.mobile !== ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS.mobile
+  ) {
+    addError(
+      errors,
+      'point-budgets',
+      'versions.pointBudgets',
+      `Protected desktop/mobile surfel budgets must be ${ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS.desktop}/${ABOUT_NARRATIVE_CERTIFIED_POINT_BUDGETS.mobile}.`,
+    );
   }
 
   ['canonicalConfigSha256', 'productionArtifactSha256', 'certificationArtifactSha256'].forEach((field) => {
