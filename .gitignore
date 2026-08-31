@@ -12,6 +12,13 @@ source-assets/napoleon-bust/
 source-assets/spatial-scan/
 react-app/app/public/models/napoleon-bust/source/
 
+# Local About scene recovery files and raw third-party downloads.
+# Keep the canonical .blend and processed runtime assets tracked.
+source-assets/about-v2-blender-current/*.blend[0-9]
+source-assets/about-v2-blender-current/*.pre-*.blend
+source-assets/about-v2-blender-current/backups/
+source-assets/about-v2-blender-current/external/
+
 # Dependencies
 node_modules/
 
@@ -24,6 +31,12 @@ playwright-report/
 output/playwright/
 # Figma token / mapping exports (regenerate locally if needed)
 output/figma/
+# Local candidate exports and review artifacts (repository-artifact policy).
+output/about-v2-spacing-baseline/
+output/about-v2-stage-separated-candidate/
+output/imagegen/about-v2-finale-concepts/
+output/imagegen/work-canvas-explainer-prompt.md
+react-app/app/output/
 studioflow/
 
 # OS files

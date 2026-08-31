@@ -4,11 +4,17 @@
 
 - The production site is the Vite/React app in `react-app/app/`.
 - Every production entry mounts `SiteApp`, which renders `StudioShell` and a route descriptor.
-- Routes are Home, Portfolio, About Me, and Contact. The persistent `ShellButtonBar` is the primary navigation.
+- Public route labels are Home, Work, About, and Contact. The persistent `ShellButtonBar` is the primary navigation; `portfolio` remains an internal route/source name.
 - The Canvas 2D simulation runtime in `src/legacy/` is active infrastructure. Its directory name is historical; do not delete or rewrite it merely for modernization.
 - The canonical authored design source is `react-app/app/public/config/design-system.json`. Generated runtime configs are never hand-edited.
 
 ## Agent skills
+
+### Product UI and design system
+
+- Before changing product UI, read `PRODUCT.md` and `DESIGN.md`, then use `.agents/skills/design-system-ui/SKILL.md` (`$design-system-ui`). This is the repository workflow for the existing website; generic frontend-design guidance must not replace its approved direction.
+- Inspect and reuse the existing components, semantic tokens, and focused reference before adding a pattern. New tokens, components, variants, radii, breakpoints, or interactions require approval unless the current request already covers them.
+- After an approved design-system change is implemented in its authoritative source, update the affected design guidance. Do not present a proposed behavior as implemented.
 
 ### Issue tracker
 
@@ -38,7 +44,8 @@ This repository uses a single-context domain-documentation layout. See `docs/age
 - `npm run audit:outer-wall-frame` — browser-scheme × site-theme frame/window matrix
 - `npm run audit:theme-consistency` — theme persistence, routes, tabs, and independent browser harmony
 - `npm run audit:portfolio-gate` — current in-window Portfolio gate flow
-- `npm run audit:portfolio-carousel` — current orbital Portfolio deck
+- `npm run audit:work-canvas` — current Work spatial catalogue and interaction contracts
+- `npm run audit:portfolio-carousel` — compatibility alias for `audit:work-canvas`
 - `npm run audit:portfolio-drawer` — Portfolio project drawer
 - `npm run audit:transition-flows` — route and project transitions; run serially in Chromium and WebKit
 
@@ -62,19 +69,23 @@ This repository uses a single-context domain-documentation layout. See `docs/age
 
 ## Architecture and ownership
 
+Paths beginning with `src/` or `public/` below are relative to `react-app/app/`; other paths are repository-relative.
+
 - Entry: `react-app/app/src/entries/*.jsx`
 - App/router: `src/components/app/SiteApp.jsx`
 - Shared shell: `src/components/app/StudioShell.jsx`
 - Primary navigation: `src/components/app/ShellButtonBar.jsx` + `src/lib/routes.js`
 - Route views: `src/routes/`
 - Home simulation runtime: `src/legacy/main.js` and `src/legacy/modules/`
-- Portfolio deck/drawer/handoff: `src/legacy/modules/portfolio/`
+- Work spatial field: `src/routes/playground/`; catalogue and presentation: `src/routes/portfolio/work/`
+- Work case-study drawer/handoff: `src/legacy/modules/portfolio/`
 - Editorial content: `public/config/contents-home.json` and `contents-portfolio.json`
 - Design config: `public/config/design-system.json`
+- Product intent and visitor journey: `PRODUCT.md`
 - Production design constitution: `DESIGN.md`
 - Live component reference: `/styleguide.html` and `docs/reference/COMPONENT-LIBRARY.md`
 
-Read `DESIGN.md` before changing the production visual system, then read the focused reference for the affected contract: `SYSTEM-ARCHITECTURE.md`, `SITE-STYLEGUIDE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`.
+Read the focused reference under `docs/reference/` for the affected contract: `SYSTEM-ARCHITECTURE.md`, `SITE-STYLEGUIDE.md`, `CANVAS-RUNTIME.md`, `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, `LAYER-STACKING.md`, `CONFIGURATION.md`, or `CUSTOM-CURSOR.md`. Check the production/development route boundaries in `README.md`; a UI task does not authorize changing a launch gate or preview policy.
 
 ## Implementation rules
 
@@ -99,7 +110,7 @@ Read `DESIGN.md` before changing the production visual system, then read the foc
 ## Locked visual contracts
 
 - The physical window, outer frame, Button Bar, and outside-window shell do not enter/exit with route content.
-- Portfolio project sheets cover route content but stop above the Button Bar. See `LAYER-STACKING.md`.
+- Work project sheets cover route content to the studio-window boundary behind the overlapping Button Bar; the bar remains above them and receives input. See `docs/reference/LAYER-STACKING.md`.
 - Portfolio detail handoff animates the selected media geometry into the drawer hero; preserve reversal and reduced-motion behavior.
 - The home canvas owns balls plus the visual title path; semantic DOM copy remains for accessibility.
 - Instrument Serif is reserved for route-entry headlines through the headline tokens. Keep navigation, descriptions, Portfolio cards, and project-detail titles in Geist; do not spread the serif through inheritance or use it as a general heading font.

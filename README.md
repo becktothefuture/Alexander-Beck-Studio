@@ -30,7 +30,9 @@ Git operations use the system `git` binary and do not require GitHub CLI or Home
 
 ## Design
 
-[`DESIGN.md`](DESIGN.md) is the production design constitution for Home, Work/Portfolio, About Me, Contact, and the shared shell. It records the design thesis, cross-route rules, fluid responsive policy, intentional exceptions, and current outliers. Exact authored values remain in `react-app/app/public/config/design-system.json`; component-level usage remains in `docs/reference/SITE-STYLEGUIDE.md` and `docs/reference/COMPONENT-LIBRARY.md`.
+[`PRODUCT.md`](PRODUCT.md) records the approved product purpose, visitor journey, non-goals, and open strategic questions. [`DESIGN.md`](DESIGN.md) is the design constitution for Home, Work, About, Contact, and the shared shell. It records the design thesis, cross-route rules, fluid responsive policy, intentional exceptions, and audit items that need verification. Exact authored values remain in `react-app/app/public/config/design-system.json`; component-level usage remains in `docs/reference/SITE-STYLEGUIDE.md` and `docs/reference/COMPONENT-LIBRARY.md`.
+
+Codex UI work should use the repository skill [`design-system-ui`](.agents/skills/design-system-ui/SKILL.md), following [`AGENTS.md`](AGENTS.md). Start with `$design-system-ui` for an explicit invocation.
 
 ## Production
 
@@ -39,7 +41,7 @@ npm run check:site
 npm run preview
 ```
 
-The root build is canonical. It verifies shared production entry shells, flattens `design-system.json` into runtime configs, then builds all Vite entries into `react-app/app/dist/`.
+The root build is canonical. It verifies shared production entry shells, flattens `design-system.json` into runtime configs, builds all Vite entries into `react-app/app/dist/`, and checks the About and Work publication boundaries. `npm run check:site` includes that build; `npm run studio:check` wraps the same gate. `npm run preview` serves the resulting production build on port 8013. A successful local build is not a deployment.
 
 ## Current structure
 
@@ -47,7 +49,7 @@ The root build is canonical. It verifies shared production entry shells, flatten
 react-app/app/
 ├── src/
 │   ├── components/app/   SiteApp, StudioShell, Button Bar
-│   ├── routes/           Home, Portfolio, About, Contact, tools/labs
+│   ├── routes/           Home, Work (portfolio/playground), About, Contact, tools/labs
 │   ├── entries/          Vite entry mounts
 │   └── legacy/           active Canvas 2D and imperative route runtimes
 ├── public/
@@ -59,20 +61,22 @@ scripts/                  validation, flattening, audits, capture
 docs/reference/           current contracts only
 ```
 
-The `legacy/` name does not mean unused: it contains the active simulation engine and Portfolio imperative runtime. Obsolete parallel page/template pipelines and historical task packets have been removed.
+The `legacy/` name does not mean unused: it contains the active simulation engine and the reused Work case-study drawer/handoff runtime. The current Work spatial field lives in `src/routes/playground/`, with catalogue and presentation modules in `src/routes/portfolio/work/`. Historical source names do not imply separate public products.
 
 ## Routes
 
-- Home — interactive simulation wall and Daily Simulation focus
-- Portfolio — orbital project deck, in-window access gate, detail drawer
-- About Me — production spatial narrative; the authoring editor remains development-only
-- Contact — current contact route
+| Route | Production build | Development |
+| --- | --- | --- |
+| Home (`/index.html`, also `/`) | Interactive simulation wall, identity, expertise, and Daily Simulation | Same route plus local authoring tools |
+| Work (`/portfolio.html`) | **Coming soon.** The full canvas is excluded at build time; URL parameters, browser storage, and case-study access grants cannot enable it. | Spatial catalogue with snippets, protected case studies, an in-window access gate, and a detail drawer |
+| About (`/about.html`) | **Coming soon.** by default. The intentional `/about.html?preview=about` path loads the narrative on demand; its authoring panel remains development-only. | Canonical spatial narrative and local authoring controls |
+| Contact (`/contact.html`) | Contact invitation, email-copy feedback, and LinkedIn | Same visitor-facing route |
 
-The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
+These are the current source/build contracts, not a claim about the latest deployed site. Work and About require separate launch decisions; their preview policies are intentionally different. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
 
 ## Source of truth
 
-- Routes and Button Bar labels: `react-app/app/src/lib/routes.js`
+- Route manifest and Button Bar labels: `react-app/app/src/lib/route-manifest.js` and `react-app/app/src/lib/routes.js`
 - Shared shell: `react-app/app/src/components/app/StudioShell.jsx`
 - Editorial copy: `react-app/app/public/config/contents-home.json` and `contents-portfolio.json`
 - About narrative content and choreography: `react-app/app/public/config/contents-about.json`
@@ -83,10 +87,11 @@ See `docs/reference/GENERATED-CONFIG.md` for the compatibility-output boundary.
 
 ## Verification
 
-Verification has three layers. `npm run check:site` is the canonical source/configuration and production-build gate. It includes substantial Node test coverage through the built-in `node:test` runner, including the About narrative, geometry, and route/simulation transaction suites. Focused Playwright audits supply the browser layer, including screen certification, Portfolio gate/carousel/drawer, Canvas SPA stability, boot overlay, performance, and route transitions.
+Verification has three layers. `npm run check:site` is the canonical source/configuration and production-build gate. It includes substantial Node test coverage through the built-in `node:test` runner, including the About narrative, geometry, and route/simulation transaction suites, plus app lint. There is no separate typecheck script. Focused Playwright audits supply the browser layer, including screen certification, Work canvas/gate/drawer, Canvas SPA stability, boot overlay, performance, and route transitions. Check the production gates on a production preview and the full Work experience on development; do not treat one as coverage of the other.
 
 Current architecture and behavior are documented in:
 
+- `PRODUCT.md`
 - `DESIGN.md`
 - `docs/reference/SYSTEM-ARCHITECTURE.md`
 - `docs/reference/CONFIGURATION.md`

@@ -10,8 +10,8 @@ The live reference is `/styleguide.html`. It must describe production components
 - States: idle, hover/focus, pressed, active/current
 - Secondary controls: none; theme and sound belong to the separate shell-owned Utility Rail
 - Anatomy: one undivided four-route group; separators and route-group parameters are absent
-- Active geometry: one shared graphite key follows the active or pending route cell, resizes with its label, and applies the configured key inset equally on all four sides
-- Responsive type and spacing: mobile route cells shrink evenly below their configured `62px` maximum, pair `21px` icons with sentence-case `8px` labels across a `5px` gap, and retain a minimum 51px route target at a 320px viewport. Desktop scales the same composition to equal `85px` route cells with `25px` icons, sentence-case `11px` labels, and a `6px` gap. Labels use Geist at weight `700` with slightly tightened `-0.02em` tracking.
+- Active geometry: one shared graphite key follows the active or pending route cell, resizes to that cell, and applies the configured key inset equally on all four sides
+- Responsive type and spacing: mobile route cells shrink evenly as available width decreases; desktop uses the same four-route composition. Read authored `runtime.buttonBar*` values in `react-app/app/public/config/design-system.json` and their mapping in `react-app/app/src/lib/buttonBarControls.js` for current geometry, icon size, label size/gap, and inset. Compatibility defaults are not the current authored specification. Labels use Geist at weight `700` with slightly tightened `-0.02em` tracking.
 - Mobile: all four routes remain visible without horizontal scrolling
 
 ## Global utility controls: Utility Rail
@@ -56,13 +56,15 @@ Top-level route headlines use Instrument Serif through `--abs-font-headline`, op
 - Allowed: the Home canvas title and `.route-centered-page__title` on Work, About, Contact, and the Work gate.
 - Not allowed: navigation, descriptions, Work card titles, project-detail titles, controls, metadata, or general section headings.
 - Possible future exception: a deliberately art-directed pull quote or case-study chapter opener. This requires explicit scope; it is not inherited by default.
-- Implementation: consume the resolved `--route-entry-title-size` with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The optical scale is already included in the resolved size; do not repeat it in component CSS.
+- Implementation: reuse the existing headline selectors and the resolved `--route-entry-title-size` / `--route-bookend-title-size` roles with `--abs-font-headline`, `--abs-font-headline-line-height-scale`, and `--abs-font-headline-letter-spacing`. The CSS source resolves the optical scale; do not repeat it in component CSS.
 
 Work, About, and Contact pair this title with `.route-centered-page__description.route-intro-description`. The shared modifier owns their description measure, leading, settled opacity, and balanced wrapping; route CSS owns only placement, animation progress, or an explicit responsive measure override. The Work access gate deliberately keeps the narrower base description measure.
 
 ## Work item and presentation
 
-Work renders one semantic ordered collection. Each item is one button with a minimum 44px target, visible keyboard focus, a unique accessible name, and its label below or within the preview. Full case studies use the larger primary card treatment; snippets use the smaller exploration treatment. Repeated spatial copies are presentation only and must stay `aria-hidden` and non-interactive.
+The full Work experience is currently development-only. The default production route is **Coming soon.**; see the [route availability table](../../README.md#routes). These component patterns do not authorize changing that boundary.
+
+Work renders one semantic ordered collection. Each logical item has one accessible button with a minimum 44px target, visible keyboard focus, a unique accessible name, and its label below or within the preview. Full case studies use the larger primary card treatment; snippets use the smaller exploration treatment. Repeated spatial copies remain `aria-hidden` and outside the tab order. Their pointer actions select the same logical item and preserve the tapped repeat; they must not create a second semantic item or active media owner. See `DecorativeWorldCopy` in `react-app/app/src/routes/playground/PlaygroundExperience.jsx`.
 
 The snippet stage is a named `role="dialog"` inside the studio window. It uses one close control, traps focus, makes the world inert, and restores focus to the exact logical item after reversal. Image, video, and local code media keep their intrinsic aspect ratio. The field uses posters; only the selected media can own an active video or sandboxed code iframe. Case studies use the protected Work gate and existing full project drawer. See [`PORTFOLIO.md`](PORTFOLIO.md) and [`PLAYGROUND.md`](PLAYGROUND.md).
 

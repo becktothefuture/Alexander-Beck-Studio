@@ -1,0 +1,4 @@
+interface:
+  display_name: "Website Design System UI"
+  short_description: "Build and review UI using the website system"
+  default_prompt: "Use $design-system-ui to inspect the relevant product and design sources, reuse existing website patterns, and implement the requested UI change within its approved scope."

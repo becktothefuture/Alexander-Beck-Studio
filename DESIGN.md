@@ -1,12 +1,24 @@
+---
+status: active
+sources:
+  product: PRODUCT.md
+  authored_config: react-app/app/public/config/design-system.json
+  tokens: react-app/app/public/css/tokens.css
+  components: docs/reference/COMPONENT-LIBRARY.md
+  pattern_index: docs/reference/SITE-STYLEGUIDE.md
+---
+
 # Design system
 
 ## Purpose and scope
 
-This is the design constitution for the production Alexander Beck Studio website. It covers the shared shell and the four main routes: Home, Work, About, and Contact. The Work access gate, snippet stage, and case-study drawer are included because they are part of the production route.
+This is the design constitution for the Alexander Beck Studio website. It covers the shared shell and the four main routes: Home, Work, About, and Contact. The Work access gate, snippet stage, and case-study drawer are included as site patterns, subject to the publication boundaries in [README.md](README.md#routes). Their presence here does not mean they are publicly launched.
 
 Standalone development labs, historical `playground` source names, dashboards, test fixtures, audit pages, and the live styleguide are not separate production routes or design evidence for this document. The styleguide is a verification surface for production patterns.
 
 This file owns intent, cross-route rules, responsive policy, and exception governance. It does not replace the authored values in `react-app/app/public/config/design-system.json`, the runtime CSS tokens, or the focused technical contracts in `docs/reference/`.
+
+[PRODUCT.md](PRODUCT.md) owns product purpose, audience, and the visitor journey. Use the repository [design-system-ui skill](.agents/skills/design-system-ui/SKILL.md) to apply these documents to a scoped UI task.
 
 ## Design thesis
 
@@ -25,6 +37,7 @@ The useful reference is the product-minded precision of Teenage Engineering, not
 
 | Concern | Authority | Rule |
 | --- | --- | --- |
+| Product intent, visitor jobs, and non-goals | `PRODUCT.md` | Keep visual decisions aligned with the approved product baseline. |
 | Design intent and cross-route consistency | `DESIGN.md` | Change this when the design language changes. |
 | Authored numeric values and configurable behavior | `react-app/app/public/config/design-system.json` | This is the only authored configuration. |
 | Runtime CSS vocabulary and first-paint fallbacks | `react-app/app/public/css/tokens.css` | Consume semantic tokens; do not create parallel scales. |
@@ -45,13 +58,13 @@ The system is distributed across these production surfaces. A design change is c
 | Artefact | Production source |
 | --- | --- |
 | Core tokens, type roles, spacing, radii, finish, and motion values | `public/config/design-system.json`, `public/css/tokens.css` |
-| Stable simulation palette registry and twice-daily schedule | `src/palette/londonPalettes.js`, `src/palette/timeOfDayPalette.js` |
+| Stable simulation palette registry and shared time-of-day schedule | `src/palette/londonPalettes.js`, `src/palette/timeOfDayPalette.js` |
 | Font loading and first-paint shell | `index.html`, `portfolio.html`, `about.html`, `contact.html`; `playground.html` is a Work compatibility entry |
 | Persistent shell, surface slots, Home footer, overlay hosts, Button Bar, and Utility Rail | `StudioShell.jsx`, `ShellButtonBar.jsx`, `ShellUtilityRail.jsx`, `SiteFooter.jsx`, `main.css`, `shell-button-bar-dominant.css`, `shell-utility-rail.css` |
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Work title, spatial catalogue, access gate, snippet stage, case-study drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PlaygroundExperience.jsx`, `routes/portfolio/work/`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About Me production gate, canonical Long Assembly development narrative, point field, and scene parameters | `routes/about/AboutRoute.jsx`, `routes/about/AboutComingSoon.jsx`, `routes/about-narrative-lab/`, `routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
+| About production gate, intentional narrative preview, point field, and development scene parameters | `src/routes/about/AboutRoute.jsx`, `src/routes/about/AboutComingSoon.jsx`, `src/routes/about-narrative-lab/`, `src/routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Internal Work spatial engine, deterministic placement, depth field, media runtimes, and authoring controls | `routes/playground/`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -59,7 +72,7 @@ The system is distributed across these production surfaces. A design change is c
 | Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
 | Copy tone and content ownership | `docs/reference/TONE-OF-VOICE.md`, `docs/reference/SITE-COPY.md`, production content JSON |
 
-Paths above are relative to `react-app/app/` unless they start with `docs/`.
+App paths above are relative to `react-app/app/`; `docs/` paths are repository-relative. Bare filenames identify source modules and focused references; resolve them through the ownership map in `AGENTS.md` or repository search rather than assuming they sit at the app root.
 
 ## Foundations
 
@@ -87,7 +100,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Preserve distinct layers for the browser/page band, outer wall, physical frame, studio-window interior, in-window finish, controls, and route content.
 - Manual site theme affects the studio-window interior and the temporary in-window route cover at every viewport width. `auto` follows `prefers-color-scheme`; explicit light or dark choices persist across responsive changes. The exposed band, physical frame, direct-load boot preloader, and stable outer shell use opaque true black (`#000000`) in every site theme, browser scheme, browser family, and display gamut. The separate wall surface remains `#141414`. The SPA route cover must match `--studio-window-bg` and its spinner ink must resolve from the in-window text tokens.
-- The Button Bar belongs to the stable dark outer shell. Mobile is the proportional master at `62px` high; desktop carries the same composition at a slightly enlarged `68px`. Both retain the `#141414` to `#000000` vertical gradient and two inset highlights in every site theme. Mobile uses a `20px` capsule radius and desktop uses `22px`. Home, Work, About, and Contact are one undivided route group. Every route pairs a Tabler outline icon with a sentence-case Geist label: mobile uses `21px` icons, `10px` labels, and a `5px` gap in equal `62px` route cells; desktop uses `25px` icons, `12px` labels, and a `6px` gap in equal `85px` route cells. Labels use slightly tightened `-0.02em` tracking. Inactive labels use the readable neutral `#767881`; the active pair is white above one shared graphite key surface. Route separators are absent.
+- The Button Bar belongs to the stable dark outer shell. Its resting gradient, inset highlights, and shell-owned ink remain independent of the site theme. Home, Work, About, and Contact form one undivided route group with no separators. Each route pairs a Tabler outline icon with a sentence-case Geist label; the active pair sits above one shared graphite key surface. Geometry and type sizes come from the authored `runtime.buttonBar*` endpoints, not duplicated numbers in this document. See the spacing and control rules below.
 - The Utility Rail is a separate shell fixture attached to the studio window's right edge. Desktop stays vertically centred at `50svh` with `32px` visible controls. Mobile deliberately becomes quieter: `25px` visible controls, an `-11px` outward offset, and a centre at `76svh` in the viewport's bottom half. Coarse-pointer hit areas expand invisibly to `44px` without allowing the two controls to overlap. The **Utility Rail** panel owns separate desktop and mobile size and horizontal-position controls plus the mobile vertical anchor; both horizontal ranges run from `-160px` to `160px`, the mobile size runs from `22px` to `44px`, and its vertical anchor runs from `55%` to `90%`. The rail uses stable outer-shell ink and material in every theme, persists through route transitions, and never becomes part of route content or the Button Bar.
 - Route accents remain stable: Home green, Work acid, About blue, and Contact orange.
 - Simulation colours have one stable time-of-day owner. Bow / Worn Signal, Silvertown / Cobalt Voltage, Rye / After Closing, and Rye / After Closing (Turmeric) are the approved production set in `src/palette/londonPalettes.js`. Home, Work, About, and Contact consume the same resolved ball palette where route material needs it, update together on the eight three-hour boundaries at 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, and 21:00 visitor-local time, and do not select route-, config-, fallback-, or URL-specific palette overrides. Work's restrained coloured depth dots use this same owner.
@@ -100,7 +113,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 
 - Use the existing 4px sub-unit and 8px rhythm for static endpoints. Tight icon/text pairings may use the smaller step.
 - Reuse semantic gaps and content insets. Do not create a route-specific spacing scale.
-- The studio window derives its reserve from the active Button Bar endpoint. Mobile overlaps the window by `30px`; the slightly enlarged desktop endpoint uses `32px`, preserving the same approximately half-overlapped placement. Both sit `10.5px + safe-area` above the viewport edge. Window backgrounds and overlays continue behind the overlap; route-owned interactive content consumes `--button-bar-content-clearance`.
+- The studio window derives its reserve from the active Button Bar endpoint. Height, overlap, radius, and bottom inset come from the authored `runtime.buttonBar*` values in `public/config/design-system.json`, resolved by `src/lib/buttonBarControls.js`; mobile and desktop have separate configured endpoints. Preserve the safe-area contribution. Window backgrounds and overlays continue behind the overlap; route-owned interactive content consumes `--button-bar-content-clearance`.
 - Readable text measure uses `ch`; layout width uses percentages, container units, or explicit maximums.
 - Width-owned typography and horizontal spacing use width-based fluid interpolation. Height-owned composition may use `svh`, `dvh`, or container height units.
 - Avoid `vmin` for values whose intent is horizontal; it can collapse spacing in short landscape viewports.
@@ -121,7 +134,7 @@ The neutral structure carries the interface. Accent colors signal route, interac
 - Tabler Outline is the default icon language. Use custom SVG only where exact brand or control geometry is required.
 - Every icon-only control has an accessible name, a visible keyboard focus state, and an effective target of at least 44px.
 - Full-window scroll and drag regions keep keyboard access but never draw a focus ring around the studio-window perimeter. Move their focus cue to a compact in-window progress or interaction indicator.
-- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not four independent selected backgrounds. All four routes pair an icon with a sentence-case label: mobile uses `21px` Tabler outline icons with `10px` labels and a `5px` gap; desktop scales that relationship to `25px` icons with `12px` labels and a `6px` gap. Labels use Geist weight `700` with slightly tightened `-0.02em` tracking. The mobile key is `50px` inside its `62px` cell; the desktop key is `71px` inside its `85px` cell, leaving the larger desktop stack with approximately `6px` of vertical breathing room. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
+- The Button Bar is the only primary navigation. Its raised active key is one shared inert surface, not four independent selected backgrounds. All four routes pair a Tabler outline icon with a sentence-case Geist label at weight `700` and slightly tightened `-0.02em` tracking. Use the authored mobile and desktop cell, icon, label, gap, and active-inset values through `src/lib/buttonBarControls.js`; its compatibility defaults do not override `design-system.json`. The key follows the active or pending cell geometry with compositor-only travel, resizes to the destination cell, and uses the responsive configured key inset equally on all four sides; `aria-current` remains on the committed route.
 - Route top bars are local utility/back strips only.
 - Sound and haptics reinforce a state change but never carry its meaning alone.
 - Production sound follows committed interaction, not hover or focus. Ordinary buttons and links use one crisp press; project opening adds one quieter 35ms tail; close actions use one lower detent; and discrete content advances use one step click. About and open Work drawers use the gentle speed-responsive Scroll Crystal voice for continuous movement. The Work field sounds only when a distinct item is selected, not throughout camera travel. Only the sound toggle may unlock audio; all other actions stay silent until the visitor opts in. Reduced-motion preference suppresses interaction sound with motion.
@@ -187,7 +200,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- Production deliberately renders the centered **Coming soon.** gate inside the stable shell. The Long Assembly and its scene parameter panel are development-only until a separate launch decision.
+- Production deliberately renders the centered **Coming soon.** gate inside the stable shell by default. The intentional `/about.html?preview=about` path can load the narrative on demand; the scene parameter panel and authoring controls remain development-only. This preview path does not remove the default gate or authorize a public launch.
 - Development always renders one canonical scroll narrative. URL `version` and legacy `edit` parameters are ignored. Press `/` to open or close the development-only whole-scene parameter panel.
 - `public/config/contents-about.json` is the sole authored About document. The parameter panel, local authoring endpoint, build input, and playback all resolve that source; no V1/V2 source split or second write endpoint remains.
 - The narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
@@ -257,11 +270,11 @@ Generate coefficients at build/runtime precision. Do not hand-tune the middle by
 
 ### Responsive merge status
 
-The route-entry title family is implemented. The remaining rows are proposals and are not applied production changes.
+Rows marked **Implemented** describe the current title and description families. Rows marked **Proposed** are not applied production changes.
 
 | Status | Family | Merge | Exceptions to preserve |
 | --- | --- | --- | --- |
-| Implemented | Route-entry title | One resolved `--route-entry-title-size`, `1.32` bookend scale, and shared optical leading used by Home, Work intro/gate, About, and Contact | Home Canvas continues to read the DOM result. |
+| Implemented | Route-entry title | Shared `--route-entry-title-size`, `--route-bookend-title-size`, optical scale, and leading resolved in `public/css/main.css` for Home, Work intro/gate, About, and Contact | Home Canvas continues to read the DOM result; do not repeat the scale in component CSS. |
 | Implemented | Route description | One continuous size token and one editorial measure/leading modifier shared by the Work, About, and Contact intros | The Work access gate keeps its narrower description measure. |
 | Proposed | Centered route spacing | Shared content-only page padding, stack gap, description gap, and action gap tokens | Do not apply these tokens to the Button Bar, frame, deck geometry, or drawer handoff. |
 | Proposed | Home support system | Replace repeated tablet/mobile selectors with semantic legend-size, supporting-size, and top-gap tokens | Column count and short-height layout remain structural breakpoints. |
@@ -353,12 +366,12 @@ Current intentional exceptions are the Home Canvas title, Home expertise composi
 
 ## Outlier register and proposed resolutions
 
-These are implementation/documentation findings, not permission for a broad refactor. Resolve them in small verified waves.
+This register contains historical audit items, not permission for a broad refactor. The setup review on 31 August 2026 refreshed the source evidence for focus styling and Home expertise markup below; it did not complete a full accessibility audit. Other rows and their priorities still need current reproduction before they become implementation work. Resolve confirmed issues in small verified waves.
 
 | Priority | Outlier | Evidence | Proposed resolution |
 | --- | --- | --- | --- |
-| P0 | Focus visibility is broadly suppressed | Global and component `:focus-visible` rules remove outline/shadow in `main.css` and Button Bar CSS. | Define semantic focus-ring tokens, remove blanket suppression, and verify every main-page interactive state. |
-| P0 | Home expertise is click-only | Legend items are `div` elements with JS click listeners. | Render buttons or add complete button semantics, Enter/Space handling, and pressed/expanded state without changing the visual design. |
+| Recheck (was P0) | Focus coverage needs a current browser audit | `public/css/main.css` now defines semantic `--abs-focus-ring-*` values and focus rules; earlier suppression rules alone do not establish the resolved state. | Verify visible focus on every affected control in both themes, including component overrides and focus restoration. Do not claim full coverage from source inspection. |
+| Recheck (was P0) | Home expertise keyboard behavior needs verification | `src/routes/home/HomeRoute.jsx` now renders native buttons with `aria-pressed` and `aria-controls`; the earlier `div`-only finding is obsolete. | Confirm Enter/Space activation, pressed-state updates, and announcements in the real browser. Native markup alone does not prove the complete interaction. |
 | P1 | Light supporting copy is likely under contrast | Muted text plus `0.64` opacity resolves near a 3.25:1 contrast on the common light interior. | Use an opaque semantic muted color or raise resolved contrast; verify real composited colors in both themes. |
 | P1 | Config and CSS fallbacks disagree | Frame colors, desktop inset/radius, interior light color, and some motion fallbacks differ from authored config. | Generate critical first-paint fallbacks from `design-system.json` or share one endpoint builder. |
 | P1 | Authored content-inset tokens do not own layout | `contentInset*` values are stamped, while runtime `contentPadding*` values drive the visible page. | Choose one endpoint contract and feed the same resolved value to CSS, overlays, and runtime geometry. |

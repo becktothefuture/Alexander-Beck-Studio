@@ -8,7 +8,9 @@ The production design intent and responsive rules live in [`DESIGN.md`](../../DE
 
 The bottom Button Bar is the primary navigation object. Its labels come from `SHELL_ROUTE_TABS`; the About route uses the concise `About` label. Route top bars are optional back/utility strips only.
 
-The dark outer shell owns the Button Bar’s resting material. Mobile is the proportional master at `62px` high with a `30px` studio-window overlap and `20px` radius. Desktop scales the same composition to `68px` high with a `32px` overlap and `22px` radius. Both retain the same `#141414` to black gradient and inset highlights in every theme. Home through Contact form one continuous route group without separators. Every route pairs a Tabler outline icon with a small sentence-case Geist label at weight `700` and slightly tightened `-0.02em` tracking; mobile uses equal `62px` route cells with `21px` icons, `8px` labels, and a `5px` gap, while desktop uses equal `85px` route cells with `25px` icons, `11px` labels, and a `6px` gap. One shared graphite key follows the active or pending route cell and uses `6px` equal inset on mobile and `7px` on desktop. Hover, press, and keyboard focus change ink or add a compact focus cue, never a per-tab background.
+The dark outer shell owns the Button Bar’s resting material in every theme. Mobile and desktop use separately authored endpoints from `runtime.buttonBar*` in `react-app/app/public/config/design-system.json`, resolved through `react-app/app/src/lib/buttonBarControls.js`. Read those sources for height, window overlap, radius, route-cell width, icon size, label size/gap, and active-key inset; do not substitute compatibility defaults or copied values from documentation.
+
+Home through Contact form one continuous route group without separators. Every route pairs a Tabler outline icon with a small sentence-case Geist label at weight `700` and slightly tightened `-0.02em` tracking. One shared graphite key follows the active or pending route cell and uses the configured equal inset on all four sides. Hover, press, and keyboard focus change ink or add a compact focus cue, never a per-tab background.
 
 The separate Utility Rail is attached to the studio-window right edge and stays fixed across routes. Its vertical capsule places theme above sound and keeps its dark shell material in both themes. Desktop uses `32px` visible controls centred at `50svh`. Mobile uses `25px` visible controls, moves outward by `11px`, and centres at `76svh` so it sits quietly in the bottom half without competing with the primary menu. Coarse-pointer hit areas expand invisibly to `44px` without overlapping. The **Utility Rail** panel group owns separate desktop and mobile size and horizontal-position controls, plus the mobile `55%` to `90%` vertical-position range.
 
@@ -18,9 +20,12 @@ Preserve visible separation between browser frame, outer wall, inner wall, canva
 
 ## Route language
 
+Availability follows the [production/development route table](../../README.md#routes). The full Work patterns below are visible in development; About has an intentional narrative preview in addition to its default production gate.
+
 - Home: simulation material, semantic title source, expertise legend, supporting philosophy copy
 - Work: hierarchical spatial field, media-first snippet/case-study handoff, editorial drawer, and in-window gate
-- About Me and Contact: centered route content inside the same physical window
+- About: centered default gate and a continuous spatial narrative in development or the intentional preview
+- Contact: centered invitation and contact actions inside the same physical window
 - Internal Work engine: pannable deterministic catalogue, restrained labels, and three-layer depth field
 - Labs: local back/utility top chrome when needed
 
@@ -33,17 +38,17 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Geist Mono remains the operational voice for metadata and compact technical labels.
 - The handwritten LDN 26 SVG is a small signature moment, not another general-purpose display style or type role.
 
-Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Work intro and gate. The production tokens are:
+Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Work intro and gate. The runtime roles below are defined in `react-app/app/public/css/tokens.css` and `react-app/app/public/css/main.css`; read their resolved values instead of keeping a second numeric type scale here.
 
 Work, Contact, and both About bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`. About's opening and finale lockups remain vertically centred. The finale keeps its contact action as an inline text link inside the description, not a separate button row.
 
-- `--abs-font-headline: "Instrument Serif", ...`
+- `--abs-font-headline`: Instrument Serif with its defined fallbacks
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles
-- `--route-bookend-title-scale: 1.32`: shared optical route-identity scale
-- `--route-title-line-height: 1.008`: shared tighter headline leading before the font optical multiplier
-- `--abs-font-headline-scale: 1.22`
-- `--abs-font-headline-line-height-scale: 0.92`
-- `--abs-font-headline-letter-spacing: -0.01ch`
+- `--route-bookend-title-scale` and `--route-bookend-title-size`: shared route-identity scale and resolved size
+- `--route-title-line-height`: shared headline leading before the font optical multiplier
+- `--abs-font-headline-scale`: font optical-size adjustment
+- `--abs-font-headline-line-height-scale`: font optical-leading adjustment
+- `--abs-font-headline-letter-spacing`: headline tracking
 
 The regular Instrument Serif webfont is self-hosted under `public/fonts/instrument-serif/`, preloaded by every production HTML shell, and included in the runtime font-readiness gate before canvas or route content is revealed. Do not restore it to the external Google Fonts request or remove it from the readiness gate.
 
@@ -53,4 +58,4 @@ Instrument Serif's finer strokes are more vulnerable to visual interruption than
 
 ## Verification matrix
 
-Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Work also requires its gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with production markup.
+Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Check the default Work/About gates on production preview; use development for the full Work gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Check the intentional About narrative preview separately when affected. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with the actual component markup.

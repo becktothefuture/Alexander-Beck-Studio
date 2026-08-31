@@ -1,6 +1,7 @@
 # Codebase map
 
-Last verified: 2026-07-30
+Last verified: 2026-08-29
+Route publication boundaries checked: 2026-08-31
 Repository: Alexander Beck Studio Website
 Production application: `react-app/app/`
 
@@ -22,13 +23,15 @@ flowchart TD
     Router --> View["React route view"]
     Router --> Bridge["useLegacyRouteRuntime"]
     Bridge --> HomeRuntime["Home Canvas 2D runtime"]
-    Bridge --> PortfolioRuntime["Portfolio orbital deck and drawer"]
+    Bridge --> WorkPresentation["Work case-study drawer and handoff"]
+    View --> WorkSpatial["Work spatial camera and depth field"]
     Bridge --> OtherRuntime["Route-specific imperative runtime"]
     Config["public/config authored JSON"] --> Virtual["Vite virtual content modules"]
     Config --> Fetch["Runtime fetch loaders"]
     Virtual --> View
     Fetch --> HomeRuntime
-    Fetch --> PortfolioRuntime
+    Fetch --> WorkPresentation
+    Fetch --> WorkSpatial
     DevApi["Local Vite authoring APIs"] --> Config
     Scripts["Validation, build, browser audits"] --> SiteApp
     Scripts --> Config
@@ -42,7 +45,7 @@ flowchart TD
 | --- | --- |
 | Vite 7 | Multi-entry development and production build. |
 | React 19 | Stable application shell, route views, and lifecycle ownership. |
-| Canvas 2D | Home simulation, Portfolio effects, and route-specific visual systems. |
+| Canvas 2D | Home simulation, Work depth field, and route-specific visual systems. |
 | Three.js | About narrative point world and selected spatial labs. |
 | JavaScript ES modules | Production source, build tooling, validators, and audits. |
 | CSS custom properties and JSON tokens | Design-system and runtime configuration. |
@@ -74,7 +77,7 @@ The active legacy runtime uses a measured lint ratchet rather than a directory-w
 
 Route identity is authored once in `react-app/app/src/lib/route-manifest.js`: IDs, canonical paths, aliases, titles, shared-shell/standalone layout, and Button Bar metadata. `routes.js` supplies runtime lookup and URL helpers from that manifest; `SiteApp.jsx` intentionally keeps explicit view/runtime imports for readable bundling. Unknown and standalone destinations decline the shared-shell SPA bridge so normal browser navigation owns them.
 
-Refactoring characterization is split by hotspot. `scripts/check-route-transition-transaction.mjs` freezes legal route participant and transaction behavior, `scripts/check-control-registry-characterization.mjs` records the active control schema, metadata, parse/format behavior, representative apply/hydration callbacks, and generated semantics, and `scripts/check-portfolio-characterization.mjs` plus `scripts/audit-portfolio-characterization.mjs` cover Portfolio normalization and observable direct/SPA lifecycle behavior. The browser audit must begin from canonical Home readiness, including the explicit Daily Focus ready state when no legacy runtime snapshot exists.
+Refactoring characterization is split by hotspot. `scripts/check-route-transition-transaction.mjs` freezes legal route participant and transaction behavior, `scripts/check-control-registry-characterization.mjs` records the active control schema, metadata, parse/format behavior, representative apply/hydration callbacks, and generated semantics, and `check:work-canvas` plus `audit:work-canvas` cover the unified catalogue, spatial runtime, hierarchy, and local presentation behavior. Retained Portfolio characterization scripts protect the reused drawer/handoff implementation but no longer describe the public route composition. Browser audits must begin from canonical Home readiness, including the explicit Daily Focus ready state when no legacy runtime snapshot exists.
 
 ## Application entry and route flow
 
@@ -111,10 +114,9 @@ sequenceDiagram
 | Route | React view | Imperative/runtime owner | Current production behavior |
 | --- | --- | --- | --- |
 | Home | `src/routes/home/HomeRoute.jsx` | `src/legacy/main.js` | Canvas balls and visual title; semantic title remains in the DOM. |
-| Portfolio | `src/routes/portfolio/PortfolioRoute.jsx` | `src/legacy/modules/portfolio/app.js` | Gate, orbital project deck, project handoff, and drawer. |
-| About Me | `src/routes/about/AboutRoute.jsx` | React-owned Three.js point world | Production and development load the spatial narrative; the editor remains development-only. |
+| Work | `src/routes/portfolio/PortfolioRoute.jsx`, `src/routes/playground/PlaygroundExperience.jsx` | Route-local camera/depth renderer plus retained gate, handoff, and drawer | Production shows Coming soon and excludes the full canvas at build time. Development renders the spatial catalogue. |
+| About | `src/routes/about/AboutRoute.jsx` | React-owned Three.js point world | Production shows Coming soon by default; `?preview=about` loads the narrative on demand. Development loads the narrative with local authoring controls. |
 | Contact | `src/routes/contact/ContactRoute.jsx` | React-owned simulation/content | Contact information and ripple interaction. |
-| Playground | `src/routes/playground/PlaygroundRoute.jsx` | React lifecycle with route-local imperative camera and Canvas renderer | Pannable deterministic catalogue, local media, and selected-work dialog. |
 
 The stable primary navigation is `ShellButtonBar` plus `src/lib/routes.js`. Route-local top bars are utilities, not a second primary navigation system.
 
@@ -122,7 +124,7 @@ The Home legend is a semantic button group. Each control owns pressed state and 
 
 ### Additional routes and labs
 
-`vite.config.js` builds the five primary routes plus the style guide, simulation launchpad, palette lab, About narrative lab, and multiple visual/interaction labs. These routes use the same descriptor system, but only shared-shell views render a `StudioShell` scene. The production Playground route is a primary shared-shell destination. Loader Playground and the simulation launchpad remain standalone views and are unrelated to the production route.
+`vite.config.js` builds the four primary routes plus the Work compatibility entry, style guide, simulation launchpad, palette lab, About narrative lab, and multiple visual/interaction labs. These routes use the same descriptor system, but only shared-shell views render a `StudioShell` scene. `playground.html` resolves to Work and is not a fifth destination. Loader Playground and the simulation launchpad remain standalone views.
 
 Route metadata currently exists in several places:
 
@@ -148,7 +150,7 @@ See `ARCH-001` in `codebase-audit.md` before adding or renaming a route.
 - the persistent Button Bar;
 - global atmosphere and title planes;
 - transition and route overlays;
-- Portfolio sheet, quote, modal, and legacy host layers.
+- Work sheet, quote, modal, and legacy host layers.
 
 Do not move stable shell layers into a route view. Do not make them depend on a route theme token when the design constitution assigns them to the invariant outer shell. Read `DESIGN.md`, `LAYER-STACKING.md`, and `SYSTEM-ARCHITECTURE.md` before changing this layer.
 
@@ -167,13 +169,13 @@ React owns:
 
 ### Imperative runtime state
 
-The Canvas and Portfolio runtimes own high-frequency state outside React:
+The Canvas and Work runtimes own high-frequency state outside React:
 
 - physics bodies, velocities, collision structures, and fixed-step accumulation;
 - Canvas backing stores and render-loop timing;
 - pointer/gesture state;
 - simulation mode state;
-- portfolio orbital geometry, inertia, selection, and drawer handoff;
+- Work camera geometry, momentum, deterministic depth rendering, and drawer handoff;
 - pooled audio, particles, and other allocation-sensitive resources.
 
 Do not move high-frequency physics or render state into React component state. The bridge is intentionally lifecycle-oriented instead of frame-oriented.
@@ -207,18 +209,23 @@ The simulation runtime uses a bounded `requestAnimationFrame` loop and fixed-ste
 
 The public Daily Simulation system selects a cataloged simulation and loads its route-backed runtime while settling the public URL on clean Home. It is not a second independent simulation implementation.
 
-## Portfolio system
+## Work system
 
-Entry: `src/legacy/modules/portfolio/app.js`
-View shell: `src/routes/portfolio/PortfolioRoute.jsx`
+Route boundary: `src/routes/portfolio/PortfolioRoute.jsx`
+Spatial experience: `src/routes/playground/PlaygroundExperience.jsx`
+Unified catalogue: `src/routes/portfolio/work/workCatalog.js`
 Content: `public/config/contents-portfolio.json`
-Data/config and project normalization: `src/legacy/modules/portfolio/portfolio-data.js`, `portfolio-config.js`, and `portfolio-content.js`
-First-view media prewarming: `src/legacy/modules/portfolio/portfolio-prewarm.js`
-Stable selector/state vocabulary: `src/legacy/modules/portfolio/portfolio-dom-contract.js`
+Camera, placement, and depth field: `src/routes/playground/spatial/`
+Snippet media: `src/routes/playground/media/`
+Snippet stage: `src/routes/portfolio/work/WorkSnippetStage.jsx`
+Case-study presenter: `src/routes/portfolio/work/WorkCaseStudyPresenter.js`
+Project data/normalization: `src/legacy/modules/portfolio/portfolio-data.js`, `portfolio-config.js`, and `portfolio-content.js`
 Drawer: `src/legacy/modules/portfolio/project-drawer.js`
 Selected-media handoff: `src/legacy/modules/portfolio/project-handoff.js`
 
-The Portfolio system is an imperative interaction application hosted by the React shell. `app.js` controls orbital layout, drag/inertia input, cards, selection, entrance readiness, project-sheet handoff, and drawer interaction. Focused data, configuration, content, and prewarm modules prepare normalized inputs without owning the orbital/input core. `PORTFOLIO_DOM_CONTRACT` is the frozen selector and state-marker boundary for later CSS ownership work. The project sheet must stop above the stable Button Bar. Read `PORTFOLIO.md`, `TRANSITION-ORCHESTRATION.md`, and `LAYER-STACKING.md` before modifying it.
+Work is a React-owned spatial catalogue hosted by the shared shell. `PlaygroundExperience` controls semantic items, selection, centring, history, inert state, focus, and presentation lifecycle. Its imperative camera and Canvas renderer keep high-frequency input and drawing outside React state. `workCatalog.js` adapts full case-study records and compact snippets into one validated list with explicit primary/secondary hierarchy.
+
+Case studies reuse the established legacy drawer and media handoff through `WorkCaseStudyPresenter`; the old orbital `portfolio/app.js` is no longer the public route owner. The project sheet must stop above the stable Button Bar. Snippets expand through `WorkSnippetStage` while the spatial world remains mounted behind them. Read `PORTFOLIO.md`, `PLAYGROUND.md`, `TRANSITION-ORCHESTRATION.md`, and `LAYER-STACKING.md` before modifying this system.
 
 ## About narrative authoring system
 
@@ -246,12 +253,11 @@ Old schema/compiler modules remain compatibility dependencies for migration. Do 
 | --- | --- |
 | `public/config/design-system.json` | Canonical authored design configuration. |
 | `public/config/contents-home.json` | Home editorial and semantic content. |
-| `public/config/contents-portfolio.json` | Portfolio project/card content. |
+| `public/config/contents-portfolio.json` | Unified Work case-study and snippet content. |
 | `public/config/contents-about.json` | About narrative schema and authored track. |
-| `public/config/contents-playground.json` | Playground catalogue, local media references, stable placement order, and preferred grid spans. |
 | `src/data/simulationCatalog.js` and related config | Simulation route/catalog metadata. |
 
-Home and About content are exposed to source modules through Vite virtual imports. Portfolio content is loaded at runtime. Development authoring APIs can write canonical JSON; the public development mirror blocks `/api/*` and `/@fs/*`.
+Home and About content are exposed to source modules through Vite virtual imports. Work content is loaded at runtime from the single portfolio file. Development authoring APIs can write canonical JSON; the public development mirror blocks `/api/*` and `/@fs/*`.
 
 ### Generated configuration
 
@@ -336,7 +342,10 @@ Primary commands:
 - `npm run certify:screens` — route/theme/viewport screenshot matrix.
 - `npm run audit:canvas-spa` — Canvas backing-store and SPA route-generation checks.
 - `npm run audit:transition-flows` — Chromium and WebKit route/project transitions.
-- `docs/reference/PLAYGROUND.md` — Playground route, content, deterministic placement, controls, and verification contract.
+- `npm run check:work-canvas` — unified Work catalogue, placement, camera, depth-field, and interaction contracts.
+- `npm run audit:work-canvas` — complete Work browser contract in Chromium or WebKit.
+- `docs/reference/PORTFOLIO.md` — Work hierarchy, centre-to-open state, access, overlays, and release gate.
+- `docs/reference/PLAYGROUND.md` — retained internal spatial-engine, configuration, and performance contract.
 - `npm run studio:dev` — local authoring plus read-only public development mirror.
 - `npm run studio:publish` — explicit validated push of clean committed `main`.
 
@@ -374,11 +383,11 @@ See `docs/codebase-audit.md` for evidence, issue IDs, priorities, and acceptance
 | Application and shell | `SYSTEM-ARCHITECTURE.md`, `LAYER-STACKING.md` |
 | Route transitions | `TRANSITION-ORCHESTRATION.md` |
 | Canvas simulation | `CANVAS-RUNTIME.md` |
-| Portfolio | `PORTFOLIO.md` |
+| Work | `PORTFOLIO.md`, `PLAYGROUND.md` |
 | Config and authoring | `CONFIGURATION.md`, `GENERATED-CONFIG.md` |
 | Cursor | `CUSTOM-CURSOR.md` |
 | About narrative | `docs/reference/ABOUT-NARRATIVE-TOOLKIT.md` |
-| Portfolio facts/copy | `docs/portfolio/router.yaml`, then the catalog and project records |
+| Work case-study facts/copy | `docs/portfolio/router.yaml`, then the catalog and project records |
 | Release and preview | `docs/deployment/`, `docs/development/DEV-WORKFLOW.md` |
 
 ## Roadmap use
@@ -407,7 +416,7 @@ This section records the 2026-07-30 checkpoint without changing its historical v
 
 Current independent-review issues are recorded as `ARCH-003`, `ARCH-004`, `A11Y-006`, `DEP-001`, `DOC-002`, `OPS-002`, `OPS-003`, and `TEST-003` in `docs/codebase-audit.md`.
 
-## Current verification snapshot — 2026-07-31
+## Historical verification snapshot — 2026-07-31
 
 - The route registry has 30 Vite inputs, 25 entry modules, 22 `SiteApp` route descriptors, and 16 shell scenes.
 - The active legacy lint inventory has 129 JavaScript/JSX files, zero unused-variable findings, and zero empty catches. Strict mutation probes preserve the zero-debt boundary.
@@ -428,3 +437,17 @@ Current independent-review issues are recorded as `ARCH-003`, `ARCH-004`, `A11Y-
 - M16 is completed locally. Fourteen approved Portfolio rule blocks moved from `main.css` to `portfolio.css`; overlap and ownership checks pass without changing the accepted computed-style signature.
 - The published CI workflow has one of five qualifying smoke runs. Five later main runs fail before smoke at the published lint-ratchet baseline; the local zero-debt cleanup passes but is not yet integrated, and `main` has no protection or ruleset.
 - `OPS-002` remains open until the integrated work has an authorized, reviewable commit boundary and the checks are reproduced from it.
+
+## Historical Work consolidation snapshot — 2026-08-29
+
+This records the candidate and QA state on 29 August. The route table above owns the current production boundaries.
+
+- The route registry has 32 Vite inputs, 25 entry modules, 21 `SiteApp` route descriptors, and 14 shell scenes.
+- Primary navigation has four routes: Home, Work, About, and Contact. `/playground.html` and `/playground` are compatibility aliases for Work.
+- `contents-portfolio.json` is the single Work content source. It contains six protected case studies and 30 public snippets; the separate Playground content file has been removed.
+- The source and production-build candidate now render the complete Work canvas. Deployment remains a separate state: a local build or committed route change does not prove that the published Coming Soon hold has been replaced.
+- The canonical Work checks are `check:work-canvas` and `audit:work-canvas`; the old Playground command names are compatibility aliases.
+- The public Work route no longer uses the orbital deck. It uses the spatial camera and three-layer bounded depth field; case studies reuse only the established gate, drawer, and media handoff.
+- Chromium and WebKit Work audits pass the hierarchy, centre-to-open, snippet, protected-gate, case-study, mobile, theme, Reduced Motion, cleanup, idle-sleep, bounded-render-tail, and input-to-next-paint contracts. The latest measured drag response is 45.1 ms in Chromium and 37 ms in WebKit.
+- The Work-only focus matrix passes all eight browser/theme/viewport states. Release smoke passes direct loads, SPA returns, and unknown-route fallback with zero browser errors; the 24-state Chromium/WebKit screen matrix and Work↔Home transition flows also pass.
+- The current shared checkout still contains unrelated About V2 edits whose non-normalized canonical JSON stops `studio:check` there. An isolated Work-only candidate reproduced from committed baseline `f8afeaa5` passes the complete canonical gate, including baseline About checks, lint, configuration parity, and the production build. `OPS-002` remains open only until that reviewed boundary receives explicit commit/publish authorization and published-site verification succeeds.
