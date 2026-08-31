@@ -312,12 +312,21 @@ def object_semantics(obj, collection_names, fallbacks):
     radius_scale = finite_number(obj.get("abs_surfel_radius_scale"), 1.0)
     if radius_scale is None or radius_scale < 0.25 or radius_scale > 2.5:
         raise RuntimeError(f"{obj.name} has invalid abs_surfel_radius_scale.")
+    manifestation_scale = (finite_number(obj['abs_manifestation_spread_scale'])
+                           if 'abs_manifestation_spread_scale' in obj else 1.0)
+    detail_scale = (finite_number(obj['abs_detail_bias_scale'])
+                    if 'abs_detail_bias_scale' in obj else 1.0)
+    if manifestation_scale is None or not 0.001 <= manifestation_scale <= 1:
+        raise RuntimeError(f'{obj.name} has invalid abs_manifestation_spread_scale.')
+    if detail_scale is None or not 0.2 <= detail_scale <= 2:
+        raise RuntimeError(f'{obj.name} has invalid abs_detail_bias_scale.')
     return {
         "role": role,
         "modelKey": model_key,
         "objectKey": object_key,
         "motionKey": motion_key,
         "motionSubgroups": motion_subgroups,
+        "material": {"manifestationSpreadScale": manifestation_scale, "detailBiasScale": detail_scale},
         "revealKey": reveal_key,
         "componentPolicy": component_policy,
         "densityGroup": semantic_string(obj.get("abs_density_group"), model_key),
@@ -1057,6 +1066,35 @@ def build_scene_contract(surfaces, args):
         for surface in surfaces
     ]
     allocation_baseline = None
+    source_allocation = bpy.context.scene.get('abs_surfel_allocation')
+    if source_allocation and not args.preserve_allocations_from:
+        allocation = json.loads(source_allocation)
+        if allocation.get('schema') != 'about-surfel-allocation/v1':
+            raise RuntimeError('Unsupported saved-source allocation contract.')
+        objects = allocation.get('objects', {})
+        if set(objects) != {surface['objectKey'] for surface in surfaces}:
+            raise RuntimeError('Saved allocations must cover exactly the exported objects.')
+        for item in objects.values():
+            if (not isinstance(item.get('master'), int) or item['master'] <= 0
+                    or not isinstance(item.get('weight'), (int, float))
+                    or not math.isfinite(item['weight']) or item['weight'] <= 0):
+                raise RuntimeError('Saved object allocations must be positive and finite.')
+        model_keys = {surface['modelKey'] for surface in surfaces}
+        for profile, count in [('mobile', args.mobile), ('desktop', args.desktop), ('master', args.master)]:
+            record = allocation.get('profiles', {}).get(profile, {})
+            counts = record.get('models', {})
+            if (record.get('count') != count or set(counts) != model_keys
+                    or any(not isinstance(value, int) or value <= 0 for value in counts.values())
+                    or sum(counts.values()) != count):
+                raise RuntimeError(f'Invalid saved {profile} model allocations.')
+        # Use the same bounded sampler as a study, but obtain every population
+        # and weight from the saved .blend, never an external candidate file.
+        allocation_baseline = {'profiles': {
+            key: {'perModelCounts': value['models']}
+            for key, value in allocation['profiles'].items()
+        }}
+        baseline_objects = {key: {'surfelCount': value['master']} for key, value in objects.items()}
+        sampling_weights = [objects[surface['objectKey']]['weight'] for surface in surfaces]
     if args.preserve_allocations_from:
         if not args.candidate_output_dir:
             raise RuntimeError("Fixed baseline allocations are limited to candidate exports.")
@@ -1115,6 +1153,10 @@ def build_scene_contract(surfaces, args):
         sum(surface["surfelCount"] for surface in models_by_key[key])
         for key in model_keys
     ]
+    if allocation_baseline:
+        saved_master_counts = allocation_baseline['profiles']['master']['perModelCounts']
+        if saved_master_counts != dict(zip(model_keys, model_master_counts)):
+            raise RuntimeError('Saved master model allocations differ from their object populations.')
     mobile_model_minimums = [
         sum(
             surface["requiredAnchorCount"]
@@ -1230,6 +1272,9 @@ def build_scene_contract(surfaces, args):
             raise RuntimeError(
                 f"Model {model_key} must author both semantic visibility cues or neither."
             )
+        materials = [surface['material'] for surface in model_surfaces]
+        if any(material != materials[0] for material in materials):
+            raise RuntimeError(f'Model {model_key} has conflicting source material scales.')
         models.append({
             "id": model_id,
             "key": model_key,
@@ -1252,6 +1297,9 @@ def build_scene_contract(surfaces, args):
             "visibilityStartOffsetWU": visibility_start_offset_wu,
             "visibilityEndCue": visibility_end_cue,
             "visibilityEndOffsetWU": visibility_end_offset_wu,
+            **({'material': materials[0]} if materials[0] != {
+                'manifestationSpreadScale': 1.0, 'detailBiasScale': 1.0,
+            } else {}),
         })
     profiles = {}
     for profile_name, model_counts in profile_model_counts.items():
@@ -1373,6 +1421,44 @@ def build_camera_pages(models, profiles):
     return pages
 
 
+def preflight_source_properties(scene):
+    """Reject malformed saved contracts before any bundle file is replaced."""
+    properties = {}
+    for key in ('abs_surfel_allocation', 'abs_reading_space_fit', 'abs_terminal_study', 'abs_terminal_response'):
+        if scene.get(key):
+            value = json.loads(scene[key])
+            if not isinstance(value, dict):
+                raise RuntimeError(f'{key} must be a JSON object.')
+            properties[key] = value
+    allocation = properties.get('abs_surfel_allocation')
+    if allocation is not None and not re.fullmatch(r'[a-fA-F0-9]{64}', str(allocation.get('basisSourceSha256', ''))):
+        raise RuntimeError('Saved allocations need a valid basis source SHA-256.')
+    response = properties.get('abs_terminal_response')
+    if response is not None:
+        def bounded(key, low, high):
+            value = response.get(key)
+            return type(value) in (int, float) and math.isfinite(value) and low <= value <= high
+        if (response.get('schema') != 'about-terminal-response/v1'
+                or response.get('modelKey') != 'about.05'
+                or not bounded('periodSeconds', 6, 20)
+                or not bounded('amplitudeWU', 0, 4)
+                or not bounded('responseDelaySeconds', 0.5, 4)
+                or not bounded('pulseDurationSeconds', 0.5, 3)
+                or response['periodSeconds'] <= response['responseDelaySeconds'] + response['pulseDurationSeconds']):
+            raise RuntimeError('Unsupported or invalid saved terminal response timing.')
+        travel = response.get('travelXWU')
+        bounds = response.get('landscapeBounds', {})
+        minimum, maximum = bounds.get('min'), bounds.get('max')
+        finite_vector = lambda vector, count: (isinstance(vector, list) and len(vector) == count
+            and all(type(value) in (int, float) and math.isfinite(value) for value in vector))
+        if (not finite_vector(travel, 2) or not 80 <= travel[1] - travel[0] <= 300
+                or not finite_vector(minimum, 3) or not finite_vector(maximum, 3)
+                or any(high <= low for low, high in zip(minimum, maximum))
+                or not bounded('bankEndSiteZ', -1e9, 1e9)):
+            raise RuntimeError('Invalid saved terminal landscape bounds.')
+    return properties
+
+
 def main():
     args = parse_args()
     output_dir = resolve_export_output_dir(args)
@@ -1391,6 +1477,7 @@ def main():
     if not source_blend.is_file():
         raise RuntimeError("Save the Blender scene before exporting it.")
     scene = bpy.context.scene
+    saved_properties = preflight_source_properties(scene)
     if scene.camera is None:
         raise RuntimeError("The Blender scene has no active camera.")
     assert_clean_scene(scene)
@@ -1574,11 +1661,21 @@ def main():
         meta["source"]["samplingPolicy"]["allocationBaselineSha256"] = sha256_file(
             Path(args.preserve_allocations_from)
         )
+    elif scene.get('abs_surfel_allocation'):
+        allocation = saved_properties['abs_surfel_allocation']
+        meta['source']['samplingPolicy']['allocation'] = 'saved-source-profile-budgets'
+        meta['source']['samplingPolicy']['allocationBasisSourceSha256'] = allocation['basisSourceSha256']
+        meta['source']['surfelAllocation'] = allocation
+    if scene.get('abs_reading_space_fit'):
+        meta['source']['readingSpaceFit'] = saved_properties['abs_reading_space_fit']
     study_contract = scene.get("abs_terminal_study")
     if study_contract:
         if not args.candidate_output_dir:
             raise RuntimeError("A terminal study may only be exported to a candidate directory.")
-        meta["terminalStudy"] = json.loads(study_contract)
+        meta["terminalStudy"] = saved_properties['abs_terminal_study']
+    response_contract = scene.get('abs_terminal_response')
+    if response_contract:
+        meta['terminalResponse'] = saved_properties['abs_terminal_response']
     (output_dir / "meta.json").write_text(
         json.dumps(meta, indent=2) + "\n", encoding="utf-8",
     )

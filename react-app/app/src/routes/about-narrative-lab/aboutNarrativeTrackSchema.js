@@ -829,9 +829,10 @@ function validateCareerSequenceItem(item, diagnostics, path, seenIds) {
 }
 
 function countCareerSequenceWords(module) {
+  const items = Array.isArray(module?.items) ? module.items : [];
   const authoredValues = [
     module?.label,
-    ...(module?.items || []).flatMap((item) => [
+    ...items.flatMap((item) => [
       item?.yearLabel,
       item?.employer,
       item?.role,

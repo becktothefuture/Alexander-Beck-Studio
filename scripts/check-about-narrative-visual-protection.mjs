@@ -1,9 +1,115 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { aboutSurfelIntersectsRect, aboutSurfelSweepIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProjection.js';
+
+test('terminal sweep catches between-sample intrusion with independent pixel axes', () => {
+  const rect = { minX: -0.1, maxX: 0.1, minY: -0.1, maxY: 0.1 };
+  assert.equal(aboutSurfelSweepIntersectsRect([0, -0.5], [0, 0.5], 5, 1000, 500, rect), true);
+  assert.equal(aboutSurfelSweepIntersectsRect([0.111, -0.5], [0.111, 0.5], 5, 1000, 500, rect), false);
+  assert.equal(aboutSurfelSweepIntersectsRect([-0.5, 0.119], [0.5, 0.119], 5, 1000, 500, rect), true);
+  assert.equal(aboutSurfelSweepIntersectsRect([-0.5, 0.121], [0.5, 0.121], 5, 1000, 500, rect), false);
+  assert.equal(aboutSurfelSweepIntersectsRect([-0.5, 0.119], [0.5, 0.119], 10, 2000, 1000, rect), true);
+  assert.throws(() => aboutSurfelSweepIntersectsRect([NaN, 0], [0, 1], 5, 1000, 500, rect));
+});
+
+test('projected point diagnostics preserve shader admission and physical spacing', () => {
+  const controls = { perspectiveResponse: 1, minPointSizePx: 0.5, maxPointSizePx: 6,
+    surfelCoverage: 0.85, detailBias: 1, backfaceRetention: 0.25 };
+  const point = { radiusWU: 0.1, cameraDepthWU: 10, projectionScalePx: 100,
+    surfaceFacing: 1, lodRank: 0.1, featureClass: 0, preserve: false, revealProgress: 1 };
+  const radius = (overrides = {}) => resolveAboutSurfelRadiusPx({ ...point, ...overrides }, controls);
+  assert.ok(Math.abs(radius() - 0.75) < 1e-12);
+  assert.equal(radius({ lodRank: 0.6 }), 0);
+  assert.equal(radius({ lodRank: 0.6, preserve: true }), radius());
+  assert.equal(radius({ surfaceFacing: -0.26 }), 0);
+  assert.equal(radius({ revealProgress: 0 }), 0);
+  assert.ok(radius({ revealProgress: 0.5 }) > radius() * 0.64);
+  assert.ok(radius({ revealProgress: 0.5 }) < radius());
+  assert.ok(radius({ surfaceFacing: 0 }) < radius() / 2);
+  assert.ok(radius({ cameraDepthWU: 100 }) < controls.minPointSizePx,
+    'Distant physical spacing must override the nominal pixel floor.');
+  assert.throws(() => resolveAboutSurfelRadiusPx(point, { ...controls, surfelCoverage: undefined }),
+    /Invalid projected surfel radius/, 'Broken diagnostics must not silently report clear copy.');
+});
+
+test('copy intersection uses circular edges and independent viewport axes', () => {
+  const rectangle = { minX: -0.1, maxX: 0.1, minY: -0.1, maxY: 0.1 };
+  assert.equal(aboutSurfelIntersectsRect(0.109, 0, 5, 1000, 500, rectangle), true);
+  assert.equal(aboutSurfelIntersectsRect(0, 0.119, 5, 1000, 500, rectangle), true);
+  assert.equal(aboutSurfelIntersectsRect(0.109, 0.119, 5, 1000, 500, rectangle), false,
+    'An AABB corner beyond the disk is clear.');
+  assert.equal(aboutSurfelIntersectsRect(0.109, 0, 10, 2000, 1000, rectangle), true,
+    'Physical pixels and radius scale together at higher DPR.');
+  assert.equal(aboutSurfelIntersectsRect(0, 0, 0, 1000, 500, rectangle), false);
+});
+
+test('octahedral normal decoding retains signed axes and folded hemispheres', () => {
+  assert.deepEqual(decodeAboutSurfelNormal(0, 0), [0, 0, 1]);
+  assert.deepEqual(decodeAboutSurfelNormal(32767, 0), [1, 0, 0]);
+  assert.deepEqual(decodeAboutSurfelNormal(-32768, 0), [-1, 0, 0]);
+  assert.deepEqual(decodeAboutSurfelNormal(32767, 32767), [0, 0, -1]);
+  const normal = decodeAboutSurfelNormal(24000, -18000);
+  assert.ok(Math.abs(Math.hypot(...normal) - 1) < 1e-12);
+  assert.ok(normal[0] > 0 && normal[1] < 0 && normal[2] < 0);
+});
 
 const helperSource = await readFile(new URL('./audit-about-narrative-surfel-v2-helpers.mjs', import.meta.url), 'utf8');
 const auditSource = await readFile(new URL('./audit-about-narrative-runtime-visuals.mjs', import.meta.url), 'utf8');
+const footprintStart = helperSource.indexOf('export const ABOUT_SURFEL_FOOTPRINTS');
+const footprintEnd = helperSource.indexOf('export async function getAboutSurfelState(', footprintStart);
+const assertFootprint = new Function('assert', `${helperSource.slice(footprintStart, footprintEnd)
+  .replaceAll('export ', '')}; return assertAboutSurfelFootprint;`)(assert);
+
+test('ground footprint rejects a thin horizon, disconnected banks and a missing outside edge', () => {
+  const ground = {
+    readingLeftOccupiedRowCount: 0, readingRightOccupiedRowCount: 0,
+    readingLeftOccupiedBinCount: 0, readingRightOccupiedBinCount: 0,
+    readingLeftSecondaryColumnRows: 0, readingRightSecondaryColumnRows: 0,
+    renderedVisibleCount: 4000, occupiedBinCount: 60, occupiedRowCount: 5, occupiedColumnCount: 12,
+    leftOccupiedColumnCount: 6, rightOccupiedColumnCount: 6,
+    leftOccupiedBinCount: 30, rightOccupiedBinCount: 30,
+    fullWidthRowCount: 5, leftEdgeOccupiedRowCount: 5, rightEdgeOccupiedRowCount: 5,
+    framedLeftDepthSpanWU: 250.5, framedRightDepthSpanWU: 240.2,
+    groundFullWidthRowCount: 5, groundOuterEdgeFullWidthRowCount: 5,
+    groundLeftPopulatedDepthWU: 140, groundRightPopulatedDepthWU: 140,
+  };
+  assert.doesNotThrow(() => assertFootprint(ground, 'terminal-ground', 'connected ground'));
+  for (const change of [{ fullWidthRowCount: 1 }, { fullWidthRowCount: 0 },
+    { leftEdgeOccupiedRowCount: 0 }, { framedRightDepthSpanWU: 0 },
+    { groundFullWidthRowCount: 0 }, { groundOuterEdgeFullWidthRowCount: 0 },
+    { groundLeftPopulatedDepthWU: 0 }]) {
+    assert.throws(() => assertFootprint({ ...ground, ...change }, 'terminal-ground', 'bad ground'),
+      /footprint failed|subsets disagree/);
+  }
+  assert.throws(() => assertFootprint({ ...ground, groundFullWidthRowCount: 0,
+    groundOuterEdgeFullWidthRowCount: 0, framedDepthSpanWU: 250 }, 'ground-approach', 'empty approach'), /footprint failed/);
+  assert.throws(() => assertFootprint({ ...ground, groundFullWidthRowCount: 1e9 }, 'terminal-ground', 'impossible'), /valid 12×12/);
+});
+
+test('reading footprint requires populated depth on both sides of the copy', () => {
+  const banks = {
+    groundFullWidthRowCount: 0, groundOuterEdgeFullWidthRowCount: 0,
+    renderedVisibleCount: 600, occupiedBinCount: 32, occupiedRowCount: 10, occupiedColumnCount: 4,
+    leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
+    leftOccupiedBinCount: 16, rightOccupiedBinCount: 16,
+    fullWidthRowCount: 0, leftEdgeOccupiedRowCount: 10, rightEdgeOccupiedRowCount: 10,
+    framedLeftDepthSpanWU: 30.2, framedRightDepthSpanWU: 30.7,
+    readingLeftOccupiedRowCount: 10, readingRightOccupiedRowCount: 10,
+    readingLeftOccupiedBinCount: 16, readingRightOccupiedBinCount: 16,
+    readingLeftSecondaryColumnRows: 6, readingRightSecondaryColumnRows: 6,
+    readingLeftPopulatedDepthWU: 20, readingRightPopulatedDepthWU: 20,
+  };
+  assert.doesNotThrow(() => assertFootprint(banks, 'reading-banks', 'reading banks'));
+  for (const change of [{ renderedVisibleCount: 50 }, { occupiedRowCount: 2 },
+    { framedLeftDepthSpanWU: 0 }, { leftOccupiedBinCount: 1, rightOccupiedBinCount: 31 },
+    { readingLeftOccupiedRowCount: 4 }, { readingLeftSecondaryColumnRows: 1 },
+    { readingRightPopulatedDepthWU: 0 }]) {
+    assert.throws(() => assertFootprint({ ...banks, ...change }, 'reading-banks', 'bad banks'),
+      /footprint failed/);
+  }
+});
+
 const helperStart = helperSource.indexOf('export async function getAboutSurfelState(');
 const helperEnd = helperSource.indexOf('export async function driveAboutStoryWU(', helperStart);
 assert.ok(helperStart >= 0 && helperEnd > helperStart, 'The actual state collector must be available to the DOM harness.');
@@ -138,10 +244,14 @@ async function collectState({
     opacity: String(node.alpha), visibility: 'visible', display: 'block', clipPath: node.clipPath,
     getPropertyValue: (name) => node.properties[name] || '',
   });
-  const diagnostics = ({ protectedNdcBounds: area } = {}) => ({
-    modelFraming: { 'about.05': { protectedCenterVisibleCount: area ? scenePoints.filter(({ x, y }) => (
+  const count = (area) => area ? scenePoints.filter(({ x, y }) => (
       x >= area.minX && x <= area.maxX && y >= area.minY && y <= area.maxY
-    )).length : 0 } },
+    )).length : 0;
+  const diagnostics = ({ protectedNdcBounds: area, protectedNdcRegions = [] } = {}) => ({
+    modelFraming: { 'about.05': {
+      protectedRenderedVisibleCount: count(area),
+      protectedRegionVisibleCounts: protectedNdcRegions.map(count),
+    } },
   });
   const window = { __aboutNarrativeRuntime: { getMetrics: diagnostics, getDiagnosticsSnapshot: diagnostics } };
   const getState = new Function('document', 'HTMLElement', 'getComputedStyle', 'window',

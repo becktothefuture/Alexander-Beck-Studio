@@ -22,6 +22,7 @@ import {
   createAboutNarrativeCameraSteadycamSample,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
 import { writeAboutSceneLook } from '../react-app/app/src/routes/about-narrative-lab/aboutSceneLook.js';
+import { aboutSurfelIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProjection.js';
 import { compileAboutNarrativeComposerPlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
 import { loadAboutNarrativePointFieldPersistenceSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
 
@@ -149,6 +150,7 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
       this.info.render.calls = scene.children[0].children.length;
       assert.equal(this.info.render.calls, 2, 'Retry must not leave duplicate meshes installed.');
       stats.lastGeometry = scene.children[0].children[0].geometry;
+      stats.lastUniforms = scene.children[0].children[0].material.uniforms;
       camera.updateMatrixWorld();
     }
     dispose() { stats.rendererDisposals += 1; }
@@ -175,6 +177,9 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
     createAboutNarrativeJourneySample,
     sampleAboutNarrativeJourneyMapInto,
     writeAboutSceneLook,
+    aboutSurfelIntersectsRect,
+    decodeAboutSurfelNormal,
+    resolveAboutSurfelRadiusPx,
     createAboutSurfelPaletteRoles: () => [0],
     getSimulationPaletteSnapshot: () => palette,
     subscribeSimulationPalette: (listener) => { paletteListener = listener; return () => { paletteListener = null; }; },
@@ -248,6 +253,38 @@ test('frame-first startup caches the frame without waiting for readiness', async
   assert.equal(h.stats.draws, 1);
   assert.equal(h.stats.worldReady, 1);
   assert.equal(h.scene.getMetrics().sceneContractStatus, 'compatible');
+});
+
+test('reduced-motion cuts hold camera, visibility and fog between authored poses', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame({ reducedMotion: true }));
+  await h.scene.preparePlan({});
+  const contract = resolveAboutBlenderSceneContract({
+    meta: bundleFixture().meta,
+    cameraTrack: JSON.parse(new TextDecoder().decode(bundleFixture().cameraTrackBytes)),
+    storyMap: plan.journeyMap,
+  });
+  const cues = [...new Set(contract.journeyMap.anchors.map((anchor) => anchor.cameraStoryWU))];
+  for (let index = 0; index < cues.length - 1; index += 1) {
+    const start = cues[index], end = cues[index + 1];
+    let before;
+    for (const fraction of [0.2, 0.8]) {
+      h.scene.render(frame({ reducedMotion: true, storyWU: start + (end - start) * fraction }));
+      const metrics = h.scene.getMetrics();
+      const sample = { camera: metrics.cameraPosition, clock: h.stats.lastUniforms.uStoryWU.value,
+        visibility: metrics.modelFraming['about.00'].stageVisibility,
+        fog: [h.stats.lastUniforms.uFogStartWU.value, h.stats.lastUniforms.uFogEndWU.value] };
+      assert.equal(h.stats.lastUniforms.uReducedMotion.value, 1);
+      assert.equal(h.stats.lastUniforms.uMotionAmountWU.value, 0);
+      assert.ok([0, 1].includes(sample.visibility));
+      if (before) assert.deepEqual(sample, before);
+      before = sample;
+    }
+  }
+  h.scene.render(frame({ storyWU: cues[1] * 0.5 }));
+  assert.equal(h.stats.lastUniforms.uReducedMotion.value, 0);
+  assert.equal(h.stats.lastUniforms.uStoryWU.value, cues[1] * 0.5);
 });
 
 test('repeated pending and invalid frames never draw, rehash or repeat fallback events', async (t) => {

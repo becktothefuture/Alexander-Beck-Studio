@@ -1483,17 +1483,12 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
   );
 }
 
-@media (max-width: 720px) and (min-height: 601px) {
+@media (max-width: 720px) and (orientation: portrait) {
+  /* Reuse the method's reading measure across the essay. Type keeps its size
+     and travels through the full height while both physical banks stay clear. */
   .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
-    .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+    .about-narrative-render-span--editorial > [data-text-field-id] {
     width: min(100%, 68vw);
-  }
-
-  @media (max-width: 360px) {
-    .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
-      .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
-      width: 100%;
-    }
   }
 
   .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']

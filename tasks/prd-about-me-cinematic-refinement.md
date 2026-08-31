@@ -2,7 +2,7 @@
 
 Date: 31 August 2026
 
-Status: the revised copy, full-viewport reading, direct scroll/camera mapping and arrival fixes are applied in development. The isolated expansive ending study is recorded and ready for review. Canonical finale integration and release remain separate approval steps.
+Status: the canonical development implementation is complete and the final verification evidence is recorded in the completion sweep. The revised copy, full-viewport reading, direct scroll/camera mapping, all fourteen repaired gates, expansive point fields and connected ending are available in the safe phone preview. Production launch remains separate. Track current requirements and evidence in the [completion sweep](about-cinematic-completion-sweep.md); the historical checkpoints below are not a full completion claim.
 
 Audience: prospective clients, hiring teams and collaborators.
 
@@ -273,27 +273,27 @@ As a visitor, I want to meet Alex and scan his work history without decoding rep
 - [x] Keep Computer Science out of titles. If mentioned in body copy, state the two-semester duration without implying a completed degree.
 - [x] Migrate every retired-field binding; no empty gap, stale trigger or weakened budget test.
 - [x] Editorial text uses the full viewport; the affected narrative titles have no forced upward offsets.
-- [ ] Full thoughts and complete career rows remain readable at natural forward/reverse stops.
-- [ ] Relevant tests and lint pass. Verify in browser using dev-browser skill.
+- [x] Full thoughts and complete career rows remain readable at natural forward/reverse stops.
+- [x] Relevant tests and lint pass. Verify in browser using dev-browser skill.
 
 ### US-003 — See separate dots and recognisable forms
 
 As a visitor, I want depth and detail without dense colour blocks or missing landmarks.
 
-- [ ] Opener, terrain release, gate joins and terminal bounds pass desktop/portrait inspection in both themes.
+- [x] Opener, terrain release, gate joins and terminal bounds pass desktop/portrait inspection in both themes.
 - [x] No global population reduction, opacity washing, projected clearance mask or hidden landmark is used as a repair.
-- [ ] Check near/far dots, grazing angles, DPR 1/2/3 and representative existing palettes.
-- [ ] Relevant material/scene checks and lint pass. Verify in browser using dev-browser skill.
+- [x] Check near/far dots, grazing angles, DPR 1/2/3 and representative existing palettes.
+- [x] Relevant material/scene checks and lint pass. Verify in browser using dev-browser skill.
 
 ### US-004 — Experience an earned, distinct final shot
 
 As a visitor, I want the ending to reveal something new rather than another corridor.
 
-- [ ] A real-renderer 8–12-second study shows plant → response → open expanse; the surface fills desktop and portrait width without visible outer bounds.
+- [x] A real-renderer 8–12-second study shows plant → response → open expanse; the surface fills desktop and portrait width without visible outer bounds.
 - [ ] An unfamiliar viewer can locate the initial change and its consequence without a concept caption. This proves causal legibility only; the separate personal-specificity gate needs an approved real example and unprompted understanding.
-- [x] At least two complete final-motion cycles remain composed and clear of text/actions; no reset, pop or special good pose. Verified in the isolated candidate at desktop and portrait; this is not canonical integration or unfamiliar-viewer proof.
+- [x] At least two complete final-motion cycles remain composed and clear of text/actions; no reset, pop or special good pose. Verified in the canonical desktop and portrait experience; this is not unfamiliar-viewer proof.
 - [x] Earlier scene hashes/landmarks remain intact outside the explicitly approved terminal change.
-- [ ] Relevant checks and lint pass. Verify in browser using dev-browser skill.
+- [x] Relevant checks and lint pass. Verify in browser using dev-browser skill.
 
 ### US-005 — Travel smoothly and contact Alex immediately
 
@@ -303,7 +303,7 @@ As a visitor, I want to control the pace, arrive comfortably and act when invite
 - [x] Final camera translation, rotation and FOV stop; material motion continues independently.
 - [x] Stop at 10%, 25% and 50% of the invitation: support/actions become usable within 1.2 seconds without scrolling.
 - [x] Direct-end, keyboard focus, reverse/re-entry and SPA restoration behave correctly.
-- [x] The matched-viewport route is shorter without compromising the preserved reading intervals.
+- [x] Earlier shortening target is superseded by the constant-distance and full-reading corrections: the fitted rail adds open reading space while retaining every gate. Do not claim the current route is shorter than the prior 24-screen snapshot.
 - [x] Relevant journey, arrival and restoration checks and lint pass. Verify in browser using dev-browser skill.
 
 ### US-006 — Control motion and retain access
@@ -311,10 +311,10 @@ As a visitor, I want to control the pace, arrive comfortably and act when invite
 As a visitor, I want to pause non-essential motion and use the content even if the 3D fails.
 
 - [x] Pause/resume is named, focusable and operable, with a 44px effective target and no focus trap.
-- [ ] Reduced motion gives a stable complete scene and immediate contact; hidden-tab resume does not jump.
-- [ ] Biography and contact survive model/WebGL load failure; no growing renderer/buffer count across route cycles.
-- [ ] Test 200% zoom, narrow reflow, short portrait, keyboard/screen-reader reading and the existing landscape guard.
-- [ ] Relevant lifecycle/accessibility checks and lint pass. Verify in browser using dev-browser skill.
+- [x] Reduced motion gives a stable complete scene and immediate contact; hidden-tab resume does not jump.
+- [x] Biography and contact survive model/WebGL load failure; no growing renderer/buffer count across route cycles.
+- [ ] Automated 200% zoom, narrow reflow, short portrait, keyboard reading and the existing landscape guard pass. Manual screen-reader use remains unverified.
+- [x] Relevant lifecycle/accessibility checks and lint pass. Verify in browser using dev-browser skill.
 
 ### Functional requirements
 

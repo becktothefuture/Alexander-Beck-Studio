@@ -34,6 +34,80 @@ function metadataDiagnostics(meta) {
       'The bundle must declare its authored-source SHA-256.',
     ));
   }
+  const models = Array.isArray(meta?.models) ? meta.models : [];
+  for (const [index, model] of models.entries()) {
+    if (model?.material == null) continue;
+    const material = model.material;
+    const groups = Array.isArray(meta.motionGroups) ? meta.motionGroups : [];
+    const validGroups = groups.length > 0 && groups.every((group) =>
+      Number.isInteger(group?.id) && group.id >= 0 && group.id <= 255
+      && typeof group.key === 'string' && group.key.length > 0)
+      && new Set(groups.map((group) => group.id)).size === groups.length;
+    const owned = typeof model.motionKey === 'string' && model.motionKey.length > 0
+      ? groups.filter((group) => typeof group?.key === 'string'
+        && (group.key === model.motionKey || group.key.startsWith(`${model.motionKey}.`))) : [];
+    const ids = owned.map((group) => group.id);
+    const first = Math.min(...ids);
+    const last = Math.max(...ids);
+    if (index >= 6 || !validGroups || !Number.isFinite(material.manifestationSpreadScale)
+      || material.manifestationSpreadScale < 0.001 || material.manifestationSpreadScale > 1
+      || !Number.isFinite(material.detailBiasScale)
+      || material.detailBiasScale < 0.2 || material.detailBiasScale > 2
+      || !ids.length || ids.some((id) => !Number.isInteger(id) || id < 0 || id > 255)
+      || new Set(ids).size !== ids.length || last - first + 1 !== ids.length
+      || groups.some((group) => group?.id >= first && group.id <= last && !owned.includes(group))
+      || models.some((other) => other !== model && other?.motionKey
+        && owned.some((group) => group.key === other.motionKey || group.key.startsWith(`${other.motionKey}.`)))) {
+      diagnostics.push(diagnostic('scene-model-material-invalid', `meta.models[${index}].material`,
+        'Source material scales need finite bounds and a unique contiguous model-owned motion group range.'));
+    }
+  }
+  const response = meta?.terminalResponse;
+  if (response != null) {
+    const finiteBetween = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
+    const travel = response.travelXWU;
+    const bounds = response.landscapeBounds;
+    if (response.schema !== 'about-terminal-response/v1' || response.modelKey !== 'about.05'
+      || !finiteBetween(response.periodSeconds, 6, 20)
+      || !finiteBetween(response.amplitudeWU, 0, 4)
+      || !finiteBetween(response.responseDelaySeconds, 0.5, 4)
+      || !finiteBetween(response.pulseDurationSeconds, 0.5, 3)
+      || response.periodSeconds <= response.responseDelaySeconds + response.pulseDurationSeconds
+      || !Array.isArray(travel) || travel.length !== 2 || !travel.every(Number.isFinite)
+      || !finiteBetween(travel[1] - travel[0], 80, 300)
+      || !Array.isArray(bounds?.min) || !Array.isArray(bounds?.max)
+      || bounds.min.length !== 3 || bounds.max.length !== 3
+      || !bounds.min.every((value, index) => Number.isFinite(value)
+        && Number.isFinite(bounds.max[index]) && bounds.max[index] > value)
+      || !Number.isFinite(response.bankEndSiteZ)
+      || !Array.isArray(meta.models) || !meta.models.some((model) => model?.key === response.modelKey)) {
+      diagnostics.push(diagnostic(
+        'scene-terminal-response-invalid', 'meta.terminalResponse',
+        'The connected surface needs a bounded, finite source-authored response and landscape.',
+      ));
+    }
+    const model = Array.isArray(meta.models)
+      ? meta.models.find((entry) => entry?.key === response.modelKey) : null;
+    const groups = meta.motionGroups;
+    const validGroups = Array.isArray(groups) && groups.length > 0
+      && groups.every((entry) => Number.isInteger(entry?.id) && entry.id >= 0 && entry.id <= 255
+        && typeof entry.key === 'string' && entry.key.length > 0)
+      && new Set(groups.map((entry) => entry.id)).size === groups.length;
+    const motionKey = model?.motionKey;
+    const matches = typeof motionKey === 'string' && motionKey.length > 0 && validGroups
+      ? groups.filter((entry) => entry.key === motionKey || entry.key.startsWith(`${motionKey}.`)) : [];
+    const ids = matches.map((entry) => entry.id);
+    // The shader selects an inclusive range. No other model may occupy a gap.
+    if (!matches.length || Math.max(...ids) - Math.min(...ids) + 1 !== matches.length
+      || (Array.isArray(meta.models) && meta.models.some((entry) => entry !== model && entry?.motionKey
+        && matches.some((group) => group.key === entry.motionKey
+          || group.key.startsWith(`${entry.motionKey}.`))))) {
+      diagnostics.push(diagnostic(
+        'scene-terminal-binding-invalid', 'meta.motionGroups',
+        'The terminal response needs a unique contiguous range of bounded motion groups owned by its model.',
+      ));
+    }
+  }
   return diagnostics;
 }
 

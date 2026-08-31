@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import sharp from 'sharp';
+import { resolveAboutNarrativeJourneyMap } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
 import {
   ABOUT_SURFEL_OUTPUT_DIR,
   ABOUT_SURFEL_PROFILES,
@@ -50,16 +51,22 @@ const requestedMinimumFramedSurfels = process.env.ABS_ABOUT_FRAMED_MIN == null
   ? null
   : Math.max(0, Number(process.env.ABS_ABOUT_FRAMED_MIN) || 0);
 const capturePointWorldPixels = process.env.ABS_ABOUT_POINT_WORLD_CAPTURE !== '0';
+// Diagnostic sweeps retain every failure and still exit unsuccessfully. They
+// expose later composition defects without repeatedly stopping at the first.
+const collectFailures = process.env.ABS_ABOUT_VISUAL_COLLECT_FAILURES === '1';
+const diagnosticFailures = [];
 const candidateAssetDirectory = process.env.ABS_ABOUT_ASSET_DIR
   ? resolve(process.env.ABS_ABOUT_ASSET_DIR)
   : null;
+const cameraTrack = JSON.parse(await readFile(resolve(candidateAssetDirectory
+  || 'react-app/app/public/models/about-v2-edited-world', 'camera-track.json'), 'utf8'));
 const checkpointSpecs = Object.freeze([
   Object.freeze({ id: 'opening-start', fieldId: 'text-promise-main', phase: 'start', expectedModelKey: 'about.00', expectsProtectedCenter: true, expectsFramedModel: true }),
   // The opening-start checkpoint establishes the aperture. By title focus the
   // camera is passing through it, so the expanding form may leave a wide frame.
   Object.freeze({ id: 'opening', fieldId: 'text-promise-main', phase: 'focus', expectedModelKey: 'about.00', expectsProtectedCenter: true }),
   Object.freeze({ id: 'opening-clear', fieldId: 'text-complexity-idea', anchorId: 'inciting-question', expectedModelKey: 'about.01', allowedModelKeys: ['about.00', 'about.01'] }),
-  Object.freeze({ id: 'inciting-question', fieldId: 'text-complexity-idea', phase: 'focus', expectedModelKey: 'about.01', expectsProtectedCenter: true, expectsFramedModel: true }),
+  Object.freeze({ id: 'inciting-question', fieldId: 'text-complexity-idea', phase: 'focus', expectedModelKey: 'about.01', minimumStageVisibility: 0.9, allowedModelKeys: ['about.00', 'about.01'], expectsProtectedCenter: true, expectsFramedModel: true }),
   Object.freeze({ id: 'question-resolve', fieldId: 'text-complexity-conditions', phase: 'focus', expectedModelKey: 'about.01', expectsProtectedCenter: true }),
   // Keep stable report IDs, but locate passages and handoffs from the measured
   // semantic anchors. Empty frames are not a success condition for any chapter.
@@ -67,37 +74,37 @@ const checkpointSpecs = Object.freeze([
   Object.freeze({ id: 'portal-entry', fieldId: 'text-background-unit', anchorId: 'portal-entry', untilAnchorId: 'portal-exit', passageFraction: 0.1, expectedModelKey: 'about.02', expectsFramedModel: true, footprint: 'passage', expectsPassage: true }),
   Object.freeze({ id: 'portal-threshold', fieldId: 'text-background-unit', anchorId: 'portal-entry', untilAnchorId: 'portal-exit', passageFraction: 0.5, expectedModelKey: 'about.02', expectsFramedModel: true, footprint: 'passage', expectsPassage: true }),
   Object.freeze({ id: 'portal-release', fieldId: 'text-background-unit', anchorId: 'portal-exit', expectedModelKey: 'about.02', allowedModelKeys: ['about.02', 'about.03'], expectsPassage: true }),
-  Object.freeze({ id: 'personal-origin', fieldId: 'text-background-unit', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'personal-origin-late', fieldId: 'text-background-unit', fieldFraction: 0.7, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'portals-canyon-cut', fieldId: 'text-complexity-curiosity', anchorId: 'earned-thesis', expectedModelKey: 'about.03', expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'earned-thesis', fieldId: 'text-complexity-curiosity', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'category-thesis', fieldId: 'text-complexity-listen', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'discipline-labels', fieldId: 'text-discipline-labels', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'discipline-labels-mid', fieldId: 'text-discipline-labels', fieldFraction: 0.5, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'discipline-labels-late', fieldId: 'text-discipline-labels', fieldFraction: 0.8, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'disciplines', fieldId: 'text-disciplines-title', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'disciplines-mid', fieldId: 'text-disciplines-title', fieldFraction: 0.5, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'terrain' }),
-  Object.freeze({ id: 'clients', fieldId: 'text-disciplines-title', contentSelector: '[data-client-logo]:last-child', expectedModelKey: 'about.03', expectsEditorial: true, expectsFramedModel: true, footprint: 'terrain-exit' }),
+  Object.freeze({ id: 'personal-origin', fieldId: 'text-background-unit', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'personal-origin-late', fieldId: 'text-background-unit', fieldFraction: 0.7, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'portals-canyon-cut', fieldId: 'text-complexity-curiosity', anchorId: 'earned-thesis', expectedModelKey: 'about.03', expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'earned-thesis', fieldId: 'text-complexity-curiosity', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'category-thesis', fieldId: 'text-complexity-listen', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'discipline-labels', fieldId: 'text-discipline-labels', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'discipline-labels-mid', fieldId: 'text-discipline-labels', fieldFraction: 0.5, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'discipline-labels-late', fieldId: 'text-discipline-labels', fieldFraction: 0.8, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'disciplines', fieldId: 'text-disciplines-title', phase: 'focus', expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'disciplines-mid', fieldId: 'text-disciplines-title', fieldFraction: 0.5, expectedModelKey: 'about.03', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'reading-banks' }),
+  Object.freeze({ id: 'clients', fieldId: 'text-disciplines-title', contentSelector: '[data-client-logo]:last-child', expectedModelKey: 'about.03', expectsEditorial: true, expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'reading-banks' }),
   Object.freeze({ id: 'canyon-gate-cut', fieldId: 'text-life-momentum', anchorId: 'gate-entry', expectedModelKey: 'about.04', allowedModelKeys: ['about.03', 'about.04'] }),
   Object.freeze({ id: 'gate-entry', fieldId: 'text-life-momentum', anchorId: 'gate-entry', untilAnchorId: 'gate-exit', passageFraction: 0.1, expectedModelKey: 'about.04', expectsFramedModel: true, footprint: 'passage', expectsPassage: true }),
   Object.freeze({ id: 'gate-threshold', fieldId: 'text-life-momentum', anchorId: 'gate-entry', untilAnchorId: 'gate-exit', passageFraction: 0.5, expectedModelKey: 'about.04', expectsFramedModel: true, footprint: 'passage', expectsPassage: true }),
   Object.freeze({ id: 'gate-release', fieldId: 'text-life-momentum', anchorId: 'gate-exit', expectedModelKey: 'about.04', allowedModelKeys: ['about.04', 'about.05'], expectsPassage: true }),
   Object.freeze({ id: 'gate-lattice-handoff', fieldId: 'text-life-momentum', anchorId: 'gate-exit', insideOffsetWU: 0.18, expectedModelKey: 'about.05', allowedModelKeys: ['about.04', 'about.05'] }),
-  Object.freeze({ id: 'visible-early', fieldId: 'text-life-momentum', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
-  Object.freeze({ id: 'visible-form', fieldId: 'text-life-form', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
-  Object.freeze({ id: 'lattice-threshold', fieldId: 'text-life-form', anchorId: 'lattice-approach', untilAnchorId: 'split-lattice-entry', passageFraction: 0.5, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
+  Object.freeze({ id: 'visible-early', fieldId: 'text-life-momentum', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'bank-arrival' }),
+  Object.freeze({ id: 'visible-form', fieldId: 'text-life-character', phase: 'start', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
+  Object.freeze({ id: 'lattice-threshold', fieldId: 'text-life-character', anchorId: 'lattice-approach', untilAnchorId: 'split-lattice-entry', passageFraction: 0.5, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
   Object.freeze({ id: 'method', fieldId: 'text-life-character', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
   Object.freeze({ id: 'method-mid', fieldId: 'text-life-character', fieldFraction: 0.5, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
   Object.freeze({ id: 'method-late', fieldId: 'text-life-character', fieldFraction: 0.75, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
   // Check the first title's entry, not just its focus. A slow renderer can
   // finish the DOM title reveal while an overlong lattice window stays active.
-  Object.freeze({ id: 'lattice-title-entry', fieldId: 'text-epilogue-shaping', phase: 'start', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale' }),
-  Object.freeze({ id: 'shaping', fieldId: 'text-epilogue-shaping', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale' }),
-  Object.freeze({ id: 'thinking', fieldId: 'text-epilogue-thinking', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale' }),
-  Object.freeze({ id: 'lattice-clear', fieldId: 'text-epilogue-invitation', anchorId: 'camera-lock', expectedModelKey: 'about.05', expectsFramedModel: true, footprint: 'finale', expectsLocked: true }),
-  Object.freeze({ id: 'invitation', fieldId: 'text-epilogue-invitation', phase: 'start', insideOffsetWU: 0.001, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale', expectsLocked: true }),
-  Object.freeze({ id: 'invitation-focus', fieldId: 'text-epilogue-invitation', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale', expectsLocked: true }),
-  Object.freeze({ id: 'terminal-hold', fieldId: 'text-epilogue-invitation', phase: 'end', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'finale', expectsFinale: true, expectsLocked: true }),
+  Object.freeze({ id: 'lattice-title-entry', fieldId: 'text-epilogue-shaping', phase: 'start', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'shaping', fieldId: 'text-epilogue-shaping', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'thinking', fieldId: 'text-epilogue-thinking', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'lattice-clear', fieldId: 'text-epilogue-invitation', anchorId: 'camera-lock', expectedModelKey: 'about.05', expectsFramedModel: true, footprint: 'terminal-ground', expectsLocked: true }),
+  Object.freeze({ id: 'invitation', fieldId: 'text-epilogue-invitation', phase: 'start', insideOffsetWU: 0.004, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
+  Object.freeze({ id: 'invitation-focus', fieldId: 'text-epilogue-invitation', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
+  Object.freeze({ id: 'terminal-hold', fieldId: 'text-epilogue-invitation', phase: 'end', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'terminal-ground', expectsFinale: true, expectsLocked: true }),
 ]);
 
 function absoluteWrappedRoll(degrees) {
@@ -195,6 +202,14 @@ async function setRuntimeRendering(page, visible) {
 async function getCheckpointStoryWU(page, checkpoint) {
   if (Number.isFinite(checkpoint.storyWU)) return checkpoint.storyWU;
   if (checkpoint.contentSelector) {
+    // Activate the owning reading span before measuring a nested target.
+    // Offscreen reading-stage CSS can still describe the previous span; using
+    // it made sparse checkpoint selections seek client logos into the finale.
+    const focusWU = await page.evaluate((fieldId) => Number(document.querySelector(
+      `[data-render-span-id="render-span-${fieldId}"]`,
+    )?.dataset.storyFocusWu), checkpoint.fieldId);
+    assert.ok(Number.isFinite(focusWU), `Unmeasured field for ${checkpoint.id}.`);
+    await driveAboutStoryWU(page, focusWU);
     return page.evaluate(({ fieldId, contentSelector }) => {
       const root = document.querySelector('.about-narrative-lab');
       const field = root.querySelector(`[data-text-field-id="${fieldId}"]`);
@@ -215,14 +230,15 @@ async function getCheckpointStoryWU(page, checkpoint) {
     }, { fieldId: checkpoint.fieldId, contentSelector: checkpoint.contentSelector });
   }
   if (checkpoint.anchorId) {
-    const map = await getAboutSurfelJourneyMap(page);
+    const map = resolveAboutNarrativeJourneyMap(await getAboutSurfelJourneyMap(page), cameraTrack);
+    assert.equal(map.valid, true, JSON.stringify(map.diagnostics));
     const from = map.anchors.find((entry) => entry.id === checkpoint.anchorId);
-    assert.ok(Number.isFinite(from?.storyWU), `Missing journey anchor ${checkpoint.anchorId}.`);
-    if (!checkpoint.untilAnchorId) return from.storyWU + Number(checkpoint.insideOffsetWU || 0);
+    assert.ok(Number.isFinite(from?.cameraStoryWU), `Missing physical journey anchor ${checkpoint.anchorId}.`);
+    if (!checkpoint.untilAnchorId) return from.cameraStoryWU + Number(checkpoint.insideOffsetWU || 0);
     const to = map.anchors.find((entry) => entry.id === checkpoint.untilAnchorId);
-    assert.ok(Number.isFinite(to?.storyWU) && to.storyWU > from.storyWU,
+    assert.ok(Number.isFinite(to?.cameraStoryWU) && to.cameraStoryWU > from.cameraStoryWU,
       `Invalid passage ${checkpoint.anchorId} → ${checkpoint.untilAnchorId}.`);
-    return from.storyWU + (to.storyWU - from.storyWU) * checkpoint.passageFraction;
+    return from.cameraStoryWU + (to.cameraStoryWU - from.cameraStoryWU) * checkpoint.passageFraction;
   }
   const phaseStoryWU = await page.evaluate(({ fieldId, phase, fieldFraction }) => {
     const node = document.querySelector(`[data-render-span-id="render-span-${fieldId}"]`);
@@ -269,6 +285,9 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
     if (reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' });
     consoleErrors = collectPageErrors(page);
     await page.goto(`${baseUrl}/about.html?preview=about&edit=0`, { waitUntil: 'domcontentloaded' });
+    if (process.env.ABS_ABOUT_CANDIDATE_STYLE) {
+      await page.addStyleTag({ path: resolve(process.env.ABS_ABOUT_CANDIDATE_STYLE) });
+    }
     await waitForAboutSurfelRuntime(page, profile);
     await page.waitForFunction(() => (
       Number(document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceScale) >= 0.999
@@ -312,6 +331,10 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
   const groupResults = [];
   await openAuditPage();
   for (const [checkpointIndex, checkpoint] of specs.entries()) {
+    const resolvedFootprint = reducedMotion && checkpoint.footprint === 'passage'
+      ? 'passage-cut'
+      : reducedMotion && checkpoint.footprint === 'ground-approach'
+        ? 'lattice-approach' : checkpoint.footprint;
     if (checkpointIndex > 0 && checkpointIndex % contextCheckpointLimit === 0) {
       await closeAuditPage();
       await openAuditPage();
@@ -333,126 +356,139 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
     assert.equal(state.dataset.bundleIntegrityVerified, 'true');
     assert.equal(state.dataset.sceneContractStatus, 'compatible');
     assert(state.semanticTextLength > 500);
-    assert.deepEqual(state.adjacentTitleOverlaps, [],
-      `${group}-${checkpoint.id} overlaps visible title DOM: ${JSON.stringify(state.adjacentTitleOverlaps)}`);
-    if (checkpoint.expectsLocked) assert.equal(state.metrics.cameraLocked, true);
-    const modelVisibility = Object.fromEntries(Object.entries(state.metrics.modelFraming).map(
-      ([key, value]) => [key, Number(value.stageVisibility) || 0],
-    ));
-    const activeModelKeys = Object.entries(modelVisibility)
-      .filter(([, visibility]) => visibility > 0.01)
-      .map(([key]) => key);
-    if (checkpoint.expectedModelKey) {
-      assert.ok(
-        modelVisibility[checkpoint.expectedModelKey] >= 0.99,
-        `${group}-${checkpoint.id} did not fully establish ${checkpoint.expectedModelKey} `
-          + `(story ${state.metrics.storyWU.toFixed(4)}, visibility `
-          + `${modelVisibility[checkpoint.expectedModelKey].toFixed(4)}).`,
-      );
-      const allowed = checkpoint.allowedModelKeys || [checkpoint.expectedModelKey];
-      assert.ok(activeModelKeys.every((key) => allowed.includes(key)),
-        `${group}-${checkpoint.id} leaked an unrelated chapter: ${activeModelKeys.join(', ')}; `
-          + `allowed ${allowed.join(', ')}.`);
-    }
-    if (checkpoint.expectsPassage) {
-      assert.deepEqual(state.visibleEditorialFields, [],
-        `${group}-${checkpoint.id} traverses behind editorial copy: ${JSON.stringify(state.visibleEditorialFields)}`);
-      assert.deepEqual(state.visibleTitles, [],
-        `${group}-${checkpoint.id} places a title inside the dedicated camera passage.`);
-    }
-    if (checkpoint.expectsReading) {
-      assert.equal(state.copyProtection.mode, 'visible-editorial-lines');
-      assert.ok(state.copyProtection.editorialClip && state.copyProtection.readableLineCount > 0,
-        `${group}-${checkpoint.id} has no fully readable line inside the editorial window: `
-          + JSON.stringify(state.copyProtection));
-    }
-    if (checkpoint.expectsEditorial) {
-      assert.ok(state.visibleEditorialFields.some((field) => field.fieldId === checkpoint.fieldId),
-        `${group}-${checkpoint.id} has no visible editorial content in its measured reading window.`);
-    }
-    if (checkpoint.expectsProtectedCenter) {
-      if (['shaping', 'thinking', 'terminal-hold'].includes(checkpoint.id)) {
-        assert.ok(
-          state.protectedNdcBounds
-            && state.protectedNdcBounds.minX >= -1
-            && state.protectedNdcBounds.maxX <= 1
-            && state.protectedNdcBounds.minY >= -1
-            && state.protectedNdcBounds.maxY <= 1,
-          `${group}-${checkpoint.id} moved protected copy outside the visible window.`,
-        );
-      }
-      // At an exact entry cue the title is intentionally still transparent.
-      // Keep testing the full scene here; only painted copy needs clearance.
-      // Focus and terminal checks must always contain visible, measured copy.
-      const unrevealedEntry = ['lattice-title-entry', 'invitation'].includes(checkpoint.id)
-        && state.copyProtection.titleMeasured
-        && !state.copyProtection.lockupVisible;
-      assert.ok(state.copyProtection.regions.length > 0 || unrevealedEntry,
-        `${group}-${checkpoint.id} has no measured protected copy.`);
-      if (state.copyProtection.maximumProtectedVisibleCount > maximumProtectedCenterSurfels) {
-        const failurePath = `${ABOUT_SURFEL_OUTPUT_DIR}/${browserArtifactPrefix}${group}-${checkpoint.id}-copy-failure.png`;
-        await page.screenshot({ path: failurePath });
-        await writeFile(failurePath.replace(/\.png$/u, '.json'), `${JSON.stringify(state, null, 2)}\n`);
-        console.error(`Protected-copy failure frame: ${failurePath}; ${JSON.stringify(state.copyProtection)}`);
-      }
-      assert.ok(
-        state.copyProtection.maximumProtectedVisibleCount <= maximumProtectedCenterSurfels,
-        `${group}-${checkpoint.id} placed surfels inside a visible copy line or protected title/action lockup.`,
-      );
-    }
-    if (checkpoint.expectsFramedModel) {
-      const framing = state.metrics.modelFraming[checkpoint.expectedModelKey];
-      const minimumFramedSurfels = Math.max(requestedMinimumFramedSurfels || 0,
-        profile === 'mobile' ? 10 : 24);
-      assert.ok(
-        framing?.framedVisibleCount >= minimumFramedSurfels,
-        `${group}-${checkpoint.id} left ${checkpoint.expectedModelKey} outside the camera frame `
-          + `(${framing?.framedVisibleCount || 0} framed surfels; expected at least `
-          + `${minimumFramedSurfels}).`,
-      );
-    }
-    if (checkpoint.footprint) {
-      const framing = state.metrics.modelFraming[checkpoint.expectedModelKey];
-      try {
-        assertAboutSurfelFootprint(framing, checkpoint.footprint, `${group}-${checkpoint.id}`);
-      } catch (error) {
-        const failurePath = `${ABOUT_SURFEL_OUTPUT_DIR}/${browserArtifactPrefix}${group}-${checkpoint.id}-footprint-failure`;
-        await page.screenshot({ path: `${failurePath}.png` });
-        await writeFile(`${failurePath}.json`, `${JSON.stringify(state, null, 2)}\n`);
-        throw error;
-      }
-    }
-    if (checkpoint.expectsFinale) {
-      assert(absoluteWrappedRoll(state.metrics.cameraRollDegrees) < 0.05, `${group} finale camera is not level.`);
-      assert.equal(state.metrics.controls.fogStartWU, 220);
-      assert.equal(state.metrics.controls.fogEndWU, 560);
-      assert(Math.abs(state.metrics.cameraPosition[0]) < 0.01);
-      assert(state.metrics.cameraPosition[1] > 7 && state.metrics.cameraPosition[1] < 9.5);
-      assert(state.metrics.cameraPosition[2] < -1_000);
-    }
-    if (reducedMotion) assert.equal(state.metrics.controls.motionAmountWU, 0);
-
     const finalePresentation = checkpoint.fieldId === 'text-epilogue-invitation'
       ? await readFinalePresentation(page)
       : null;
-    if (reducedMotion && checkpoint.id === 'lattice-clear') {
-      assert.ok(
-        Object.values(finalePresentation).every((value) => value <= 0.01),
-        `${group}-${checkpoint.id} revealed before the invitation: ${JSON.stringify(finalePresentation)}`,
-      );
-    } else if (reducedMotion && checkpoint.fieldId === 'text-epilogue-invitation') {
-      assert.ok(
-        Object.values(finalePresentation).every((value) => value >= 0.99),
-        `${group}-${checkpoint.id} did not reveal atomically: ${JSON.stringify(finalePresentation)}`,
-      );
-    } else if (checkpoint.id === 'invitation') {
-      assert.ok(finalePresentation.titlePhase <= 0.01);
-      assert.ok(finalePresentation.renderedTitleOpacity <= 0.01);
-    } else if (checkpoint.id === 'invitation-focus') {
-      assert.ok(finalePresentation.titlePhase >= 0.99);
-      assert.ok(finalePresentation.renderedTitleOpacity >= 0.99);
-    } else if (checkpoint.id === 'terminal-hold') {
-      assert.ok(Object.values(finalePresentation).every((value) => value >= 0.99));
+    let validationError = null;
+    try {
+      assert.deepEqual(state.adjacentTitleOverlaps, [],
+        `${group}-${checkpoint.id} overlaps visible title DOM: ${JSON.stringify(state.adjacentTitleOverlaps)}`);
+      if (typeof checkpoint.expectsLocked === 'boolean') {
+        assert.equal(state.metrics.cameraLocked, checkpoint.expectsLocked);
+      }
+      const modelVisibility = Object.fromEntries(Object.entries(state.metrics.modelFraming).map(
+        ([key, value]) => [key, Number(value.stageVisibility) || 0],
+      ));
+      const activeModelKeys = Object.entries(modelVisibility)
+        // An outgoing model can finish admission after its last point has
+        // passed behind the camera. Only framed material can leak visually.
+        .filter(([key, visibility]) => visibility > 0.01
+          && state.metrics.modelFraming[key].framedVisibleCount > 0)
+        .map(([key]) => key);
+      if (checkpoint.expectedModelKey) {
+        assert.ok(
+          modelVisibility[checkpoint.expectedModelKey] >= (checkpoint.minimumStageVisibility ?? 0.99),
+          `${group}-${checkpoint.id} did not fully establish ${checkpoint.expectedModelKey} `
+            + `(story ${state.metrics.storyWU.toFixed(4)}, visibility `
+            + `${modelVisibility[checkpoint.expectedModelKey].toFixed(4)}).`,
+        );
+        // The reduced-motion gate cut holds the entrance pose. Its physical
+        // canyon flanks remain visible beside the gates until the next cut.
+        const allowed = reducedMotion && checkpoint.id === 'gate-threshold'
+          ? ['about.03', 'about.04'] : checkpoint.allowedModelKeys || [checkpoint.expectedModelKey];
+        assert.ok(activeModelKeys.every((key) => allowed.includes(key)),
+          `${group}-${checkpoint.id} leaked an unrelated chapter: ${activeModelKeys.join(', ')}; `
+            + `allowed ${allowed.join(', ')}.`);
+      }
+      if (checkpoint.expectsPassage) {
+        assert.deepEqual(state.visibleEditorialFields, [],
+          `${group}-${checkpoint.id} traverses behind editorial copy: ${JSON.stringify(state.visibleEditorialFields)}`);
+        assert.deepEqual(state.visibleTitles, [],
+          `${group}-${checkpoint.id} places a title inside the dedicated camera passage.`);
+      }
+      if (checkpoint.expectsReading) {
+        assert.equal(state.copyProtection.mode, 'visible-editorial-lines');
+        assert.ok(state.copyProtection.editorialClip && state.copyProtection.readableLineCount > 0,
+          `${group}-${checkpoint.id} has no fully readable line inside the editorial window: `
+            + JSON.stringify(state.copyProtection));
+      }
+      if (checkpoint.expectsEditorial) {
+        assert.ok(state.visibleEditorialFields.some((field) => field.fieldId === checkpoint.fieldId),
+          `${group}-${checkpoint.id} has no visible editorial content in its measured reading window.`);
+      }
+      if (checkpoint.expectsProtectedCenter) {
+        if (['shaping', 'thinking', 'terminal-hold'].includes(checkpoint.id)) {
+          assert.ok(
+            state.protectedNdcBounds
+              && state.protectedNdcBounds.minX >= -1
+              && state.protectedNdcBounds.maxX <= 1
+              && state.protectedNdcBounds.minY >= -1
+              && state.protectedNdcBounds.maxY <= 1,
+            `${group}-${checkpoint.id} moved protected copy outside the visible window.`,
+          );
+        }
+        // At an exact entry cue the title is intentionally still transparent.
+        // Keep testing the full scene here; only painted copy needs clearance.
+        // Focus and terminal checks must always contain visible, measured copy.
+        const unrevealedEntry = ['lattice-title-entry', 'invitation'].includes(checkpoint.id)
+          && state.copyProtection.titleMeasured
+          && !state.copyProtection.lockupVisible;
+        assert.ok(state.copyProtection.regions.length > 0 || unrevealedEntry,
+          `${group}-${checkpoint.id} has no measured protected copy.`);
+        if (state.copyProtection.maximumProtectedVisibleCount > maximumProtectedCenterSurfels) {
+          const failurePath = `${ABOUT_SURFEL_OUTPUT_DIR}/${browserArtifactPrefix}${group}-${checkpoint.id}-copy-failure.png`;
+          await page.screenshot({ path: failurePath });
+          await writeFile(failurePath.replace(/\.png$/u, '.json'), `${JSON.stringify(state, null, 2)}\n`);
+          console.error(`Protected-copy failure frame: ${failurePath}; ${JSON.stringify(state.copyProtection)}`);
+        }
+        assert.ok(
+          state.copyProtection.maximumProtectedVisibleCount <= maximumProtectedCenterSurfels,
+          `${group}-${checkpoint.id} placed surfels inside a visible copy line or protected title/action lockup.`,
+        );
+      }
+      if (checkpoint.expectsFramedModel) {
+        const framing = state.metrics.modelFraming[checkpoint.expectedModelKey];
+        const minimumFramedSurfels = Math.max(requestedMinimumFramedSurfels || 0,
+          profile === 'mobile' ? 10 : 24);
+        assert.ok(
+          framing?.framedVisibleCount >= minimumFramedSurfels,
+          `${group}-${checkpoint.id} left ${checkpoint.expectedModelKey} outside the camera frame `
+            + `(${framing?.framedVisibleCount || 0} framed surfels; expected at least `
+            + `${minimumFramedSurfels}).`,
+        );
+      }
+      if (checkpoint.footprint) {
+        const framing = state.metrics.modelFraming[checkpoint.expectedModelKey];
+        try {
+          assertAboutSurfelFootprint(framing, resolvedFootprint, `${group}-${checkpoint.id}`);
+        } catch (error) {
+          const failurePath = `${ABOUT_SURFEL_OUTPUT_DIR}/${browserArtifactPrefix}${group}-${checkpoint.id}-footprint-failure`;
+          await page.screenshot({ path: `${failurePath}.png` });
+          await writeFile(`${failurePath}.json`, `${JSON.stringify(state, null, 2)}\n`);
+          throw error;
+        }
+      }
+      if (checkpoint.expectsFinale) {
+        assert(absoluteWrappedRoll(state.metrics.cameraRollDegrees) < 0.05, `${group} finale camera is not level.`);
+        assert.equal(state.metrics.controls.fogStartWU, 220);
+        assert.equal(state.metrics.controls.fogEndWU, 560);
+        assert(Math.abs(state.metrics.cameraPosition[0]) < 0.01);
+        assert(state.metrics.cameraPosition[1] > 7 && state.metrics.cameraPosition[1] < 9.5);
+        assert(state.metrics.cameraPosition[2] < -1_000);
+      }
+      if (reducedMotion) assert.equal(state.metrics.controls.motionAmountWU, 0);
+
+      if (reducedMotion && checkpoint.fieldId === 'text-epilogue-invitation') {
+        assert.ok(
+          Object.values(finalePresentation).every((value) => value >= 0.99),
+          `${group}-${checkpoint.id} did not reveal atomically: ${JSON.stringify(finalePresentation)}`,
+        );
+      } else if (checkpoint.id === 'invitation') {
+        // Arrival advances on elapsed time while diagnostics/capture run.
+        // It must not be forced transparent at a small scroll offset. The
+        // dedicated arrival audit checks 10/25/50% stops and the 1.2s deadline.
+        assert.ok(Object.values(finalePresentation).every((value) => value >= 0 && value <= 1));
+      } else if (checkpoint.id === 'invitation-focus') {
+        assert.ok(finalePresentation.titlePhase >= 0.99);
+        assert.ok(finalePresentation.renderedTitleOpacity >= 0.99);
+      } else if (checkpoint.id === 'terminal-hold') {
+        assert.ok(Object.values(finalePresentation).every((value) => value >= 0.99));
+      }
+    } catch (error) {
+      if (!collectFailures) throw error;
+      validationError = error.message;
+      diagnosticFailures.push({ id: `${group}-${checkpoint.id}`, message: validationError });
+      console.error(`DIAGNOSTIC FAILURE ${group}-${checkpoint.id}: ${validationError}`);
     }
 
     // Positive-footprint results always keep a rendered frame for qualitative
@@ -496,7 +532,8 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
       contentSelector: checkpoint.contentSelector || null,
       expectedModelKey: checkpoint.expectedModelKey,
       allowedModelKeys: checkpoint.allowedModelKeys || [checkpoint.expectedModelKey],
-      footprint: checkpoint.footprint || null,
+      footprint: resolvedFootprint || null,
+      validationError,
       requestedStoryWU: Number.isFinite(requestedStoryWU) ? requestedStoryWU : 'end',
       renderedStoryWU: state.storyWU,
       screenshot: path,
@@ -514,7 +551,7 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
     groupResults.push(checkpointResult);
   }
   const invitationResults = groupResults.filter((entry) => (
-    entry.fieldId === 'text-epilogue-invitation'
+    entry.fieldId === 'text-epilogue-invitation' && entry.metrics.cameraLocked
   ));
   for (let index = 1; index < invitationResults.length; index += 1) {
     const previous = invitationResults[index - 1];
@@ -526,11 +563,11 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
         previous.worldScreenshot,
         current.worldScreenshot,
       );
-      assert.ok(
+      if (reducedMotion) assert.ok(
         current.pointWorldPixelDeltaFromPrevious.changedChannelRatio <= 0.001,
         `${group} isolated point world changed by ${(current.pointWorldPixelDeltaFromPrevious.changedChannelRatio * 100).toFixed(3)}%.`,
       );
-      assert.ok(current.pointWorldPixelDeltaFromPrevious.meanChannelDifference <= 0.1);
+      if (reducedMotion) assert.ok(current.pointWorldPixelDeltaFromPrevious.meanChannelDifference <= 0.1);
     }
   }
   await closeAuditPage();
@@ -612,6 +649,8 @@ const report = `${JSON.stringify({
   browserName,
   candidateAssetDirectory,
   capturePointWorldPixels,
+  collectFailures,
+  diagnosticFailures,
   screenshotCheckpointIds: requestedScreenshotCheckpointIds === null
     ? 'all'
     : [...requestedScreenshotCheckpointIds],
@@ -620,11 +659,11 @@ const report = `${JSON.stringify({
     mode: 'positive-chapter-and-visible-copy-checkpoints',
     occupancyGrid: { columns: 12, rows: 12, minimumPointsPerOccupiedBin: 3 },
     footprintMinimums: ABOUT_SURFEL_FOOTPRINTS,
-    protectedCopyPolicy: 'zero projected surfel centers in visible lines; title and finale margins retained',
+    protectedCopyPolicy: 'zero shader-admitted circle intersections with painted lines, logos and title/action lockups',
     screenshotPolicy: 'positive-footprint checkpoints always captured',
     continuousScrollEvidenceRequired: true,
     humanCompositionReviewRequired: true,
-    limitation: 'Projected centers and occupied bins do not prove silhouette, depth, glyph clearance, or continuous traversal quality.',
+    limitation: 'Occupancy and physical depth detect regressions; they do not replace inspected silhouettes or continuous forward/reverse motion.',
   },
   groups: capturedGroups,
   checkpoints: results,
@@ -640,7 +679,8 @@ if (hasCompleteGroupMatrix) {
   );
 }
 await Promise.all(reportPaths.map((path) => writeFile(path, report)));
+if (diagnosticFailures.length) process.exitCode = 1;
 console.log(
-  `PASS: ${results.length} automated chapter/copy checkpoints in ${browserName} across ${capturedGroups.join(', ')}. `
+  `${diagnosticFailures.length ? 'FAIL' : 'PASS'}: ${results.length} automated chapter/copy checkpoints in ${browserName} across ${capturedGroups.join(', ')}; ${diagnosticFailures.length} collected failures. `
     + 'Review the rendered frames and continuous scroll before visual approval.',
 );

@@ -212,13 +212,13 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /surfaceFacing < -clamp\(uBackfaceRetention/);
   assert.match(sceneSource, /revealVisibility = min\([\s\S]*?fogVisibility[\s\S]*?uSceneVisibility[\s\S]*?uEntranceScale[\s\S]*?uOpacity/);
   assert.match(sceneSource, /revealProgress = smoothstep\([\s\S]*?revealRank \+ 0\.08/);
-  assert.match(sceneSource, /float manifestationSpread = clamp\(uManifestationSpread, 0\.0, 0\.8\)/);
+  assert.match(sceneSource, /float manifestationSpread = clamp\(uManifestationSpread \* materialScale\.x, 0\.0, 0\.8\)/);
   assert.match(sceneSource, /revealRank = min\([\s\S]*?iRevealRank \* manifestationSpread[\s\S]*?manifestationSpread - 0\.001/);
   assert.match(sceneSource, /uniforms\.uManifestationSpread\.value = controls\.manifestationSpread/);
   assert.match(sceneSource, /revealProgress <= 0\.0[\s\S]*?gl_Position = vec4\(2\.0, 2\.0, 2\.0, 1\.0\)/);
   assert.match(sceneSource, /stageRevealProgress = smoothstep\(/);
-  assert.match(sceneSource, /uniforms\.uStoryWU\.value = Number\(frame\?\.storyWU\) \|\| 0/);
-  assert.match(sceneSource, /stageVisibilityMode: 'authored-bounded-whole-surfel-handoff'/);
+  assert.match(sceneSource, /uniforms\.uStoryWU\.value = journeySample\.sceneStoryWU/);
+  assert.match(sceneSource, /stageVisibilityMode: latestFrame\?\.reducedMotion[\s\S]*?'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff'/);
   assert.match(sceneSource, /radiusPx \*= mix\(0\.64, 1\.0, revealProgress\)/);
   assert.doesNotMatch(sceneSource, /radiusPx \*= clamp\(uEntranceScale/);
   assert.match(sceneSource, /float circleRadius = length\(vCircle\);[\s\S]*?if \(circleRadius > 1\.0\) discard;/);

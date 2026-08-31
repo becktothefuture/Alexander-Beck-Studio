@@ -779,8 +779,6 @@ function TitleField({
               <p
                 id={descriptionId}
                 className="route-centered-page__description route-intro-description"
-                data-route-enter="context"
-                data-route-enter-variant="bookend-description"
               >
                 {field.description}
               </p>

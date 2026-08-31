@@ -86,7 +86,7 @@ const RESPONSIVE_PROFILES = Object.freeze([
 ]);
 const VISIBILITY_BINDINGS = Object.freeze([
   ['about.00', 'opening', 0, 'inciting-question', 0.18],
-  ['about.01', 'inciting-question', -0.18, 'portal-entry', 0.18],
+  ['about.01', 'inciting-question', -0.28, 'portal-entry', 0.18],
   ['about.02', 'portal-entry', -0.18, 'portal-exit', 0.18],
   ['about.03', 'portal-exit', -0.18, 'gate-entry', 0.18],
   ['about.04', 'gate-entry', -0.55, 'gate-exit', 0.18],
@@ -194,7 +194,7 @@ for (const [profileId, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
           fields.get(role.fieldId)[phaseKey] + (role.offsetWU || 0), role.id);
       }
       const gaps = responsivePlan.storyLayout.gaps.filter((gap) => gap.preset === 'passage');
-      assert.equal(ABOUT_NARRATIVE_STORY_GAP_PRESETS.passage[profileId], 2.4);
+      assert.equal(ABOUT_NARRATIVE_STORY_GAP_PRESETS.passage[profileId], 3.8);
       assert.deepEqual(gaps.map((gap) => gap.fromFieldId), [
         'text-complexity-conditions', 'text-disciplines-title',
       ]);
@@ -250,8 +250,9 @@ test('real model windows follow camera distance and keep every physical passage 
     windows.forEach((window, index) => {
       assert.ok(window.endWU > window.startWU);
       if (index) {
-        // Admit the square gates early enough to frame the first opening on approach.
-        const overlapWU = window.key === 'about.04' ? 0.73 : 0.36;
+        // Admit the interest field before its title and the square gates
+        // early enough to frame the first opening on approach.
+        const overlapWU = window.key === 'about.04' ? 0.73 : window.key === 'about.01' ? 0.46 : 0.36;
         closeWU(windows[index - 1].endWU - window.startWU, overlapWU, 'Adjacent overlap');
       }
       const model = assetMeta.models[index];
@@ -294,9 +295,30 @@ test('reduced motion cuts between authored poses while retaining the endpoint', 
     const first = sampleAboutNarrativeJourneyMapInto(journeyMap, start + (end - start) * 0.2, undefined, true);
     const second = sampleAboutNarrativeJourneyMapInto(journeyMap, start + (end - start) * 0.8, undefined, true);
     assert.equal(first.progress, second.progress, 'Reduced motion must not fly between cues.');
+    assert.ok(journeyMap.anchors.some((anchor) => anchor.cameraStoryWU === first.sceneStoryWU),
+      'Material visibility must use an existing authored camera cue.');
+    assert.equal(second.sceneStoryWU, first.sceneStoryWU);
+    assert.equal(second.finaleProgress, first.finaleProgress, 'Fog must not change between cuts.');
+    assert.equal(second.runwayApproachProgress, first.runwayApproachProgress);
   }
   const end = sampleAboutNarrativeJourneyMapInto(journeyMap, journeyMap.durationWU, undefined, true);
   assert.equal(end.progress, journeyMap.lockProgress);
+});
+
+test('reduced motion settles after passages and never steps backwards through reading', () => {
+  for (const [exitId, readingId] of [['portal-exit', 'personal-origin'], ['gate-exit', 'lattice-approach']]) {
+    const exit = journeyMap.anchors.find((anchor) => anchor.id === exitId);
+    const reading = journeyMap.anchors.find((anchor) => anchor.id === readingId);
+    const sample = sampleAboutNarrativeJourneyMapInto(journeyMap, exit.cameraStoryWU + 0.001, undefined, true);
+    assert.equal(sample.cameraDistanceWU, reading.cameraDistanceWU);
+    assert.equal(sample.sceneStoryWU, reading.cameraStoryWU);
+  }
+  let previous = 0;
+  for (let index = 0; index <= 1000; index += 1) {
+    const sample = sampleAboutNarrativeJourneyMapInto(journeyMap, journeyMap.durationWU * index / 1000, undefined, true);
+    assert.ok(sample.cameraDistanceWU >= previous);
+    previous = sample.cameraDistanceWU;
+  }
 });
 
 test('a stationary camera rail fails before a partial distance map can render', () => {

@@ -163,6 +163,11 @@ for (const sequence of [FICTIONAL_CAREER_SEQUENCE, FICTIONAL_FIVE_ROW_SEQUENCE])
 }
 
 test('career sequence validation is exact and rejects unsupported biography data', () => {
+  for (const malformedItems of ['bad', {}, null, 1, true]) {
+    const rejected = invalidCareer((career) => { career.items = malformedItems; });
+    assert.equal(rejected.valid, false);
+    assert.ok(hasDiagnostic(rejected, 'career-sequence-item-count'));
+  }
   for (const itemCount of [0, 3, 6]) {
     const wrongCount = invalidCareer((career) => {
       career.items = Array.from({ length: itemCount }, (_, index) => ({

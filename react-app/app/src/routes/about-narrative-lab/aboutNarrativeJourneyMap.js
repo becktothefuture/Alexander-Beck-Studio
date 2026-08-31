@@ -355,6 +355,16 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
     anchor.cameraStoryWU = pathLengthWU > EPSILON
       ? anchor.cameraDistanceWU / pathLengthWU * storyMap.durationWU : 0;
   }
+  const reducedReadingCuts = [
+    ['portal-exit', 'personal-origin'], ['gate-exit', 'lattice-approach'],
+  ].flatMap(([startId, endId]) => {
+    const start = anchors.find((anchor) => anchor.id === startId);
+    const end = anchors.find((anchor) => anchor.id === endId);
+    return start && end && end.cameraStoryWU > start.cameraStoryWU ? [{
+      startWU: start.cameraStoryWU, endWU: end.cameraStoryWU,
+      cameraDistanceWU: end.cameraDistanceWU,
+    }] : [];
+  });
 
   return deepFreeze({
     valid: !diagnostics.some((item) => item.level === 'error'),
@@ -370,6 +380,7 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
     lockProgress,
     pathDistances,
     pathLengthWU,
+    reducedReadingCuts,
     invitationStoryWU: storyMap.invitationStoryWU,
     durationWU: storyMap.durationWU,
   });
@@ -381,6 +392,7 @@ export function createAboutNarrativeJourneySample() {
     certifiable: false,
     progress: 0,
     cameraDistanceWU: 0,
+    sceneStoryWU: 0,
     finaleProgress: 0,
     runwayProgress: 0,
     runwayApproachProgress: 0,
@@ -392,6 +404,7 @@ export function createAboutNarrativeJourneySample() {
 export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reducedMotion = false) {
   const output = target || createAboutNarrativeJourneySample();
   const time = Math.max(0, Number(storyWU) || 0);
+  output.sceneStoryWU = time;
   if (!map?.valid || map.anchors.length < 2) {
     output.valid = false;
     output.certifiable = false;
@@ -412,21 +425,35 @@ export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reduced
     // Accessible playback cuts between existing authored poses. It never flies
     // continuously, and it still resolves to the same final world and camera.
     output.cameraDistanceWU = 0;
+    output.sceneStoryWU = 0;
     for (const anchor of map.anchors) {
       if (anchor.cameraStoryWU > time + EPSILON) break;
       output.cameraDistanceWU = anchor.cameraDistanceWU;
+      output.sceneStoryWU = anchor.cameraStoryWU;
+    }
+    // Settle directly into the authored reading pose after each passage. The
+    // exit pose can still be turned toward the last portal/gate; holding it
+    // throughout prose leaves a clipped world beside the text. These cuts use
+    // existing camera cues, preserve one scene clock, and never affect normal
+    // scroll travel or introduce continuous movement under Reduced Motion.
+    for (const cut of map.reducedReadingCuts || []) {
+      if (output.sceneStoryWU >= cut.startWU - EPSILON && output.sceneStoryWU < cut.endWU) {
+        output.cameraDistanceWU = cut.cameraDistanceWU;
+        output.sceneStoryWU = cut.endWU;
+      }
     }
   }
+  const sceneTime = output.sceneStoryWU;
   output.finaleProgress = clamp01(
-    (time - map.finaleStartWU)
+    (sceneTime - map.finaleStartWU)
     / Math.max(EPSILON, map.lockStoryWU - map.finaleStartWU),
   );
   output.runwayProgress = clamp01(
-    (time - map.runwayStartWU)
+    (sceneTime - map.runwayStartWU)
     / Math.max(EPSILON, map.finaleStartWU - map.runwayStartWU),
   );
   output.runwayApproachProgress = clamp01(
-    (time - (map.runwayStartWU - RUNWAY_APPROACH_WU)) / RUNWAY_APPROACH_WU,
+    (sceneTime - (map.runwayStartWU - RUNWAY_APPROACH_WU)) / RUNWAY_APPROACH_WU,
   );
   output.locked = time >= map.lockStoryWU - EPSILON;
   output.atInvitation = time >= map.invitationStoryWU - EPSILON;

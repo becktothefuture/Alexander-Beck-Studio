@@ -15,6 +15,7 @@ function readViewport() {
     width,
     height,
     mode: getViewportCoverMode(width, height),
+    finePointer: window.matchMedia('(pointer: fine)').matches,
   };
 }
 
@@ -32,20 +33,28 @@ function useViewportGuard() {
 
     window.addEventListener('resize', update, { passive: true });
     window.addEventListener('orientationchange', update, { passive: true });
+    const pointerQuery = window.matchMedia('(pointer: fine)');
+    pointerQuery.addEventListener('change', update);
     return () => {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
+      pointerQuery.removeEventListener('change', update);
     };
   }, []);
 
   return viewport;
 }
 
-export function ViewportCover() {
+export function ViewportCover({ allowFinePointer = false }) {
   const viewport = useViewportGuard();
   const headingRef = useRef(null);
-  const isActive = Boolean(viewport.mode);
+  // About supports desktop text reflow at small CSS viewport sizes. Keep the
+  // existing short-landscape cover on touch devices and on every other route.
+  // DPR cannot distinguish browser zoom from a retina display.
+  const supportsTextReflow = allowFinePointer && viewport.finePointer
+    && ['short', 'mobile-landscape'].includes(viewport.mode);
+  const isActive = Boolean(viewport.mode) && !supportsTextReflow;
 
   useLayoutEffect(() => {
     if (!isActive) return undefined;

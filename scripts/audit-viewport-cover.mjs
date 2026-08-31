@@ -89,8 +89,18 @@ const results = { browser: browserName, baseUrl, covered: [], supported: [] };
 try {
   for (const [routeId, routePath] of routes) {
     for (const [mode, viewport] of coveredViewports) {
-      const page = await browser.newPage({ viewport });
+      const page = await browser.newPage({ viewport,
+        hasTouch: routeId === 'about' && mode === 'mobile-landscape' });
       await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      if (routeId === 'about' && mode === 'short') {
+        await page.waitForFunction(() => document.documentElement.dataset.absBootState !== 'booting');
+        const state = await readCoverState(page);
+        assert(!state.mode && !state.rootInert && !state.rootHidden,
+          'About desktop text reflow must remain accessible on short CSS viewports');
+        results.supported.push({ name: 'about-desktop-reflow', viewport, state });
+        await page.close();
+        continue;
+      }
       const state = await assertCovered(page, routeId, mode);
       const screenshot = path.join(outputDir, `${routeId}-${mode}.png`);
       await page.screenshot({ path: screenshot, animations: 'disabled', timeout: 60_000 });

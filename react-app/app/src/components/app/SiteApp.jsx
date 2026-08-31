@@ -646,7 +646,7 @@ export function SiteApp() {
           />
         </SimulationFocusProvider>
       )}
-      <ViewportCover />
+      <ViewportCover allowFinePointer={routeState.route.id === 'about'} />
     </>
   );
 }

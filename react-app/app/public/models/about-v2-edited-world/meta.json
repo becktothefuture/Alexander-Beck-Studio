@@ -5,37 +5,37 @@
   "title": "About V2 authored Blender surfel scene",
   "creator": "Alexander Beck",
   "source": {
-    "file": "source-assets/about-v2-blender-current/about-v2-track-working.blend",
-    "sha256": "550af31a4ba5e64fde3098fcd0374a47a7632aa3b011c7811bcfcd6248c4b6a7",
+    "file": "output/playwright/about-completion-sweep-20260831/repro-final/source.blend",
+    "sha256": "72ddd07e441b7b1dbe9931e053bb745deb36ab1826cd3de0dd7aab158ae0e3c8",
     "route": {
       "object": "ABS_PARAMETRIC_RIDE_PATH",
       "controlPointCount": 17,
-      "evaluatedLength": 1313.977173,
-      "shapeSha256": "da14ccf9f9834680035eb43644ab863ca55e18c3318fb885a325b9aaf3fae072",
+      "evaluatedLength": 2399.98584,
+      "shapeSha256": "bfa9513a6178458c734937dedce3853edc271de384c21220192e813f87e91db8",
       "splineCount": 1,
       "stageRanges": {
         "00": [
           0.0,
-          0.095
+          0.103275338802481
         ],
         "01": [
-          0.075,
-          0.165
+          0.08153316221248501,
+          0.16200347376435514
         ],
         "02": [
-          0.18,
-          0.28
+          0.17021586716579476,
+          0.22496515631556938
         ],
         "03": [
-          0.31,
-          0.61
+          0.24138994279646855,
+          0.622019704424249
         ],
         "04": [
-          0.64,
-          0.8
+          0.6384444849972076,
+          0.726043338885978
         ],
         "05": [
-          0.86,
+          0.7588928999974341,
           1.0
         ]
       }
@@ -101,8 +101,8 @@
       ]
     },
     "objectCount": 7,
-    "triangleCount": 50912,
-    "surfaceArea": 287753.383464,
+    "triangleCount": 178972,
+    "surfaceArea": 4019981.971582,
     "objects": [
       {
         "name": "GN_SIGNAL_APERTURE",
@@ -138,25 +138,25 @@
           "ABOUT_STAGE_00_SEED"
         ],
         "triangles": 192,
-        "surfaceArea": 47.523073,
-        "samplingSurfaceArea": 47.523073,
-        "surfelCount": 80,
+        "surfaceArea": 10692.650664,
+        "samplingSurfaceArea": 10692.650664,
+        "surfelCount": 1000,
         "semanticAnchorCount": 1,
         "connectedComponentCount": 1,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
         "requiredAnchorCount": 1,
-        "spacingTarget": 0.770739,
+        "spacingTarget": 3.269962,
         "bounds": {
           "min": [
-            -4.59,
-            -4.439998,
-            -94.849098
+            -68.849998,
+            -68.699989,
+            -206.231613
           ],
           "max": [
-            4.59,
-            4.740001,
-            -94.219093
+            68.849998,
+            68.999992,
+            -196.781601
           ]
         }
       },
@@ -193,26 +193,26 @@
         "collections": [
           "ABOUT_STAGE_00_SEED"
         ],
-        "triangles": 6420,
-        "surfaceArea": 355.268027,
-        "samplingSurfaceArea": 355.268027,
-        "surfelCount": 321,
+        "triangles": 46960,
+        "surfaceArea": 9497.620499,
+        "samplingSurfaceArea": 9497.620499,
+        "surfelCount": 2500,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 321,
-        "protectedComponentCount": 321,
-        "componentAnchorCount": 321,
-        "requiredAnchorCount": 321,
-        "spacingTarget": 1.052024,
+        "connectedComponentCount": 2348,
+        "protectedComponentCount": 1,
+        "componentAnchorCount": 1,
+        "requiredAnchorCount": 7,
+        "spacingTarget": 1.949115,
         "bounds": {
           "min": [
-            -30.043859,
-            -22.954275,
-            -115.859047
+            -72.58136,
+            -62.421162,
+            -242.1465
           ],
           "max": [
-            29.329987,
-            23.68401,
-            19.308878
+            72.58136,
+            62.912891,
+            19.751755
           ]
         }
       },
@@ -249,26 +249,26 @@
         "collections": [
           "ABOUT_STAGE_01_NEBULA"
         ],
-        "triangles": 11180,
-        "surfaceArea": 618.673992,
-        "samplingSurfaceArea": 618.673992,
-        "surfelCount": 559,
+        "triangles": 46040,
+        "surfaceArea": 9311.543498,
+        "samplingSurfaceArea": 9311.543498,
+        "surfelCount": 3000,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 559,
-        "protectedComponentCount": 559,
-        "componentAnchorCount": 559,
-        "requiredAnchorCount": 559,
-        "spacingTarget": 1.052022,
+        "connectedComponentCount": 2302,
+        "protectedComponentCount": 1,
+        "componentAnchorCount": 1,
+        "requiredAnchorCount": 6,
+        "spacingTarget": 1.761774,
         "bounds": {
           "min": [
-            -50.199924,
-            -61.590038,
-            -213.775375
+            -72.58136,
+            -94.083115,
+            -388.516022
           ],
           "max": [
-            50.500591,
-            60.559021,
-            -74.114067
+            72.58136,
+            94.608879,
+            -171.108871
           ]
         }
       },
@@ -306,25 +306,25 @@
           "ABOUT_STAGE_02_ROUND_PORTALS"
         ],
         "triangles": 6912,
-        "surfaceArea": 2070.73039,
-        "samplingSurfaceArea": 2070.73039,
+        "surfaceArea": 2070.731486,
+        "samplingSurfaceArea": 2070.731486,
         "surfelCount": 2427,
         "semanticAnchorCount": 6,
         "connectedComponentCount": 36,
         "protectedComponentCount": 36,
         "componentAnchorCount": 36,
         "requiredAnchorCount": 36,
-        "spacingTarget": 0.923691,
+        "spacingTarget": 0.923692,
         "bounds": {
           "min": [
-            -16.534855,
-            -5.867999,
-            -349.45108
+            -16.534796,
+            -5.867998,
+            -521.451294
           ],
           "max": [
-            15.537854,
-            6.168002,
-            -222.241592
+            15.537923,
+            6.168001,
+            -394.243103
           ]
         }
       },
@@ -361,26 +361,26 @@
         "collections": [
           "ABOUT_STAGE_03_RIBBON_CANYON"
         ],
-        "triangles": 9236,
-        "surfaceArea": 202411.281253,
-        "samplingSurfaceArea": 148820.808074,
-        "surfelCount": 69823,
+        "triangles": 13460,
+        "surfaceArea": 2057517.931645,
+        "samplingSurfaceArea": 340417.032984,
+        "surfelCount": 66723,
         "semanticAnchorCount": 6,
         "connectedComponentCount": 1,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
         "requiredAnchorCount": 6,
-        "spacingTarget": 1.459932,
+        "spacingTarget": 2.258748,
         "bounds": {
           "min": [
-            -129.579697,
-            -6.98589,
-            -764.600708
+            -129.587814,
+            -285.930115,
+            -1642.377808
           ],
           "max": [
-            129.58313,
-            28.772081,
-            -388.484772
+            129.790237,
+            133.749802,
+            -560.484924
           ]
         }
       },
@@ -418,25 +418,25 @@
           "ABOUT_STAGE_04_SQUARE_LOOP"
         ],
         "triangles": 448,
-        "surfaceArea": 1348.42225,
-        "samplingSurfaceArea": 1348.42225,
+        "surfaceArea": 1348.419419,
+        "samplingSurfaceArea": 1348.419419,
         "surfelCount": 2553,
         "semanticAnchorCount": 6,
         "connectedComponentCount": 14,
         "protectedComponentCount": 14,
         "componentAnchorCount": 14,
         "requiredAnchorCount": 14,
-        "spacingTarget": 0.726754,
+        "spacingTarget": 0.726753,
         "bounds": {
           "min": [
             -5.441596,
-            26.277012,
-            -938.204956
+            26.277035,
+            -1629.504639
           ],
           "max": [
-            18.823061,
-            107.67662,
-            -812.806152
+            18.823792,
+            107.676414,
+            -1504.106201
           ]
         }
       },
@@ -451,10 +451,10 @@
         "densityGroup": "about.05",
         "densityFactor": 0.54,
         "profilePrefixOrder": "component-stratified-after-protected-anchors",
-        "samplingDensityAttribute": null,
+        "samplingDensityAttribute": "terminal_study_density",
         "featurePriority": 3.61,
         "surfelRadiusScale": 0.48,
-        "geometryKind": "split-lattice-finale",
+        "geometryKind": "expansive-connected-landscape",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
         "proximityRole": null,
@@ -464,35 +464,35 @@
         "spanWU": null,
         "instanceCount": 1,
         "worldOrigin": [
-          -0.000283,
-          8.125185,
-          -1067.260986
+          0.0,
+          0.0,
+          -0.0
         ],
         "sceneDensityWeight": 1.0,
         "preserveMinPx": 0.9,
         "collections": [
           "ABOUT_STAGE_05_RESPONSIVE_LATTICE"
         ],
-        "triangles": 16524,
-        "surfaceArea": 80901.484478,
-        "samplingSurfaceArea": 80901.484478,
-        "surfelCount": 59237,
+        "triangles": 64960,
+        "surfaceArea": 1929543.07437,
+        "samplingSurfaceArea": 498764.871599,
+        "surfelCount": 56797,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 1377,
+        "connectedComponentCount": 721,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
-        "requiredAnchorCount": 6,
-        "spacingTarget": 1.168643,
+        "requiredAnchorCount": 7,
+        "spacingTarget": 2.963366,
         "bounds": {
           "min": [
-            -85.250946,
-            -37.948051,
-            -1184.199829
+            -420.0,
+            -1348.285767,
+            -2826.400635
           ],
           "max": [
-            85.227943,
-            54.197094,
-            -950.385986
+            420.0,
+            256.49585,
+            -1516.400635
           ]
         }
       }
@@ -501,7 +501,7 @@
     "samplingPolicy": {
       "type": "progressive-semantic-best-candidate-v3",
       "space": "WORLD",
-      "allocation": "role-weighted-world-surface-area-with-anchor-minimum",
+      "allocation": "saved-source-profile-budgets",
       "profileMinimum": "semantic-and-meaningful-component-anchor-union",
       "environmentDensityWeight": 0.1,
       "bestCandidatesPerSurfel": 8,
@@ -545,7 +545,134 @@
       "featurePriorityProperty": "abs_feature_priority",
       "preserveMinimumProperty": "abs_preserve_min_px",
       "radiusScaleProperty": "abs_surfel_radius_scale",
-      "fog": "runtime-depth-only"
+      "fog": "runtime-depth-only",
+      "allocationBasisSourceSha256": "550af31a4ba5e64fde3098fcd0374a47a7632aa3b011c7811bcfcd6248c4b6a7"
+    },
+    "surfelAllocation": {
+      "schema": "about-surfel-allocation/v1",
+      "basisSourceSha256": "550af31a4ba5e64fde3098fcd0374a47a7632aa3b011c7811bcfcd6248c4b6a7",
+      "objects": {
+        "gn.signal.aperture": {
+          "master": 1000,
+          "weight": 213.85382849999996
+        },
+        "gn.signal.field": {
+          "master": 2500,
+          "weight": 646.58780914
+        },
+        "gn.nebula.field": {
+          "master": 3000,
+          "weight": 1121.3466105
+        },
+        "gn.round.portals": {
+          "master": 2427,
+          "weight": 6460.6788168
+        },
+        "gn.ribbon.canyon": {
+          "master": 66723,
+          "weight": 185894.5207027552
+        },
+        "gn.square.loop": {
+          "master": 2553,
+          "weight": 6796.048140000001
+        },
+        "gn.responsive.lattice": {
+          "master": 56797,
+          "weight": 157709.3538414132
+        }
+      },
+      "profiles": {
+        "mobile": {
+          "count": 30000,
+          "models": {
+            "about.00": 3000,
+            "about.01": 3000,
+            "about.02": 527,
+            "about.03": 12500,
+            "about.04": 555,
+            "about.05": 10418
+          }
+        },
+        "desktop": {
+          "count": 90000,
+          "models": {
+            "about.00": 3000,
+            "about.01": 3000,
+            "about.02": 1614,
+            "about.03": 43823,
+            "about.04": 1697,
+            "about.05": 36866
+          }
+        },
+        "master": {
+          "count": 135000,
+          "models": {
+            "about.00": 3500,
+            "about.01": 3000,
+            "about.02": 2427,
+            "about.03": 66723,
+            "about.04": 2553,
+            "about.05": 56797
+          }
+        }
+      }
+    },
+    "readingSpaceFit": {
+      "schema": "about-reading-space-fit/v1",
+      "baselineSourceSha256": "550af31a4ba5e64fde3098fcd0374a47a7632aa3b011c7811bcfcd6248c4b6a7",
+      "extensionsWU": [
+        172.0,
+        519.3,
+        394.7
+      ],
+      "oldLengthWU": 1313.9741548286818,
+      "lengthWU": 2399.9839451881926,
+      "oldArcKnots": [
+        0.0,
+        174.51074321121885,
+        261.7661141261337,
+        297.90432417573413,
+        368.7833967131461,
+        404.9216073702392,
+        448.54929273412455,
+        724.8644753199824,
+        884.2191188347456,
+        927.8423258294638,
+        995.0633845889544,
+        1027.7358744585063,
+        1092.94756888336,
+        1211.908320889845,
+        1284.8897340436554,
+        1299.4315522893232,
+        1313.9741548286818
+      ],
+      "arcKnots": [
+        0.0,
+        346.51074377954717,
+        433.76611466167674,
+        469.90432468256824,
+        540.7833967393298,
+        576.92160661975,
+        620.5492918934716,
+        1416.1775741892357,
+        1575.5321572009157,
+        1619.1553645483702,
+        1686.3764474750274,
+        1719.048915960445,
+        1784.2605866641222,
+        1903.221291104931,
+        1976.202701838981,
+        2188.0913682138844,
+        2399.9839451881926
+      ],
+      "gateTranslation": [
+        0,
+        691.3,
+        0
+      ],
+      "terrainShoulderLiftWU": 105,
+      "terrainBankMinXWU": 75,
+      "terrainEndOnPath": 0.69
     }
   },
   "coordinateSystem": {
@@ -572,12 +699,12 @@
       "file": "surfels.bin",
       "count": 135000,
       "bytes": 4320000,
-      "sha256": "95f815143f8b25e71ed6ea94f0942c9e17203ebfd2e01b09858e2248e76ad077"
+      "sha256": "adfc80c48f1c7bc28523e80460cd171828db15a5732210859136517a92c1c4de"
     },
     "cameraTrack": {
       "file": "camera-track.json",
-      "bytes": 233245,
-      "sha256": "f8ffc792cf4d59408276fad9de8870e4ca7149fe8408f15c2fd01b903f6376b9"
+      "bytes": 234566,
+      "sha256": "e8bb88304d09746fde1a9d896e1280c8e56b95bc63cadf6ba7bc16fac0dbf95b"
     }
   },
   "layout": {
@@ -650,14 +777,14 @@
   },
   "bounds": {
     "min": [
-      -129.555511,
-      -61.035339,
-      -1184.199829
+      -419.687073,
+      -1347.249512,
+      -2825.833008
     ],
     "max": [
-      129.567047,
-      107.551941,
-      18.863693
+      419.599976,
+      256.466156,
+      19.706022
     ]
   },
   "palette": {
@@ -809,13 +936,13 @@
       ],
       "surfelRange": {
         "offset": 0,
-        "count": 401,
+        "count": 3500,
         "byteOffset": 0
       },
       "profileCounts": {
-        "mobile": 322,
-        "desktop": 322,
-        "master": 401
+        "mobile": 3000,
+        "desktop": 3000,
+        "master": 3500
       },
       "visibilityStartWU": 0.0,
       "visibilityEndWU": 1.96,
@@ -823,7 +950,11 @@
       "visibilityStartCue": "opening",
       "visibilityStartOffsetWU": 0.0,
       "visibilityEndCue": "inciting-question",
-      "visibilityEndOffsetWU": 0.18
+      "visibilityEndOffsetWU": 0.18,
+      "material": {
+        "manifestationSpreadScale": 0.01,
+        "detailBiasScale": 1.0
+      }
     },
     {
       "id": 1,
@@ -837,22 +968,26 @@
         "gn.nebula.field"
       ],
       "surfelRange": {
-        "offset": 401,
-        "count": 559,
-        "byteOffset": 12832
+        "offset": 3500,
+        "count": 3000,
+        "byteOffset": 112000
       },
       "profileCounts": {
-        "mobile": 559,
-        "desktop": 559,
-        "master": 559
+        "mobile": 3000,
+        "desktop": 3000,
+        "master": 3000
       },
       "visibilityStartWU": 1.6,
       "visibilityEndWU": 3.84,
       "visibilityHandoffWU": 0.18,
       "visibilityStartCue": "inciting-question",
-      "visibilityStartOffsetWU": -0.18,
+      "visibilityStartOffsetWU": -0.28,
       "visibilityEndCue": "portal-entry",
-      "visibilityEndOffsetWU": 0.18
+      "visibilityEndOffsetWU": 0.18,
+      "material": {
+        "manifestationSpreadScale": 0.01,
+        "detailBiasScale": 1.0
+      }
     },
     {
       "id": 2,
@@ -866,9 +1001,9 @@
         "gn.round.portals"
       ],
       "surfelRange": {
-        "offset": 960,
+        "offset": 6500,
         "count": 2427,
-        "byteOffset": 30720
+        "byteOffset": 208000
       },
       "profileCounts": {
         "mobile": 527,
@@ -895,14 +1030,14 @@
         "gn.ribbon.canyon"
       ],
       "surfelRange": {
-        "offset": 3387,
-        "count": 69823,
-        "byteOffset": 108384
+        "offset": 8927,
+        "count": 66723,
+        "byteOffset": 285664
       },
       "profileCounts": {
-        "mobile": 15168,
-        "desktop": 46423,
-        "master": 69823
+        "mobile": 12500,
+        "desktop": 43823,
+        "master": 66723
       },
       "visibilityStartWU": 4.58,
       "visibilityEndWU": 15.08,
@@ -910,7 +1045,11 @@
       "visibilityStartCue": "portal-exit",
       "visibilityStartOffsetWU": -0.18,
       "visibilityEndCue": "gate-entry",
-      "visibilityEndOffsetWU": 0.18
+      "visibilityEndOffsetWU": 0.18,
+      "material": {
+        "manifestationSpreadScale": 0.01,
+        "detailBiasScale": 1.6
+      }
     },
     {
       "id": 4,
@@ -924,9 +1063,9 @@
         "gn.square.loop"
       ],
       "surfelRange": {
-        "offset": 73210,
+        "offset": 75650,
         "count": 2553,
-        "byteOffset": 2342720
+        "byteOffset": 2420800
       },
       "profileCounts": {
         "mobile": 555,
@@ -953,14 +1092,14 @@
         "gn.responsive.lattice"
       ],
       "surfelRange": {
-        "offset": 75763,
-        "count": 59237,
-        "byteOffset": 2424416
+        "offset": 78203,
+        "count": 56797,
+        "byteOffset": 2502496
       },
       "profileCounts": {
-        "mobile": 12869,
-        "desktop": 39385,
-        "master": 59237
+        "mobile": 10418,
+        "desktop": 36866,
+        "master": 56797
       },
       "visibilityStartWU": 15.82,
       "visibilityEndWU": 27.78,
@@ -968,7 +1107,11 @@
       "visibilityStartCue": "gate-exit",
       "visibilityStartOffsetWU": -0.18,
       "visibilityEndCue": "terminal-hold",
-      "visibilityEndOffsetWU": 1.0
+      "visibilityEndOffsetWU": 1.0,
+      "material": {
+        "manifestationSpreadScale": 0.01,
+        "detailBiasScale": 1.6
+      }
     }
   ],
   "pages": [
@@ -984,30 +1127,30 @@
         {
           "modelId": 0,
           "offset": 0,
-          "count": 401,
+          "count": 3500,
           "byteOffset": 0,
           "profileCounts": {
-            "mobile": 322,
-            "desktop": 322,
-            "master": 401
+            "mobile": 3000,
+            "desktop": 3000,
+            "master": 3500
           }
         },
         {
           "modelId": 1,
-          "offset": 401,
-          "count": 559,
-          "byteOffset": 12832,
+          "offset": 3500,
+          "count": 3000,
+          "byteOffset": 112000,
           "profileCounts": {
-            "mobile": 559,
-            "desktop": 559,
-            "master": 559
+            "mobile": 3000,
+            "desktop": 3000,
+            "master": 3000
           }
         },
         {
           "modelId": 2,
-          "offset": 960,
+          "offset": 6500,
           "count": 2427,
-          "byteOffset": 30720,
+          "byteOffset": 208000,
           "profileCounts": {
             "mobile": 527,
             "desktop": 1614,
@@ -1016,20 +1159,20 @@
         },
         {
           "modelId": 3,
-          "offset": 3387,
-          "count": 69823,
-          "byteOffset": 108384,
+          "offset": 8927,
+          "count": 66723,
+          "byteOffset": 285664,
           "profileCounts": {
-            "mobile": 15168,
-            "desktop": 46423,
-            "master": 69823
+            "mobile": 12500,
+            "desktop": 43823,
+            "master": 66723
           }
         }
       ],
       "profileCounts": {
-        "mobile": 16576,
-        "desktop": 48918,
-        "master": 73210
+        "mobile": 19027,
+        "desktop": 51437,
+        "master": 75650
       },
       "activeStartWU": 0.0,
       "activeEndWU": 15.08,
@@ -1048,20 +1191,20 @@
       "ranges": [
         {
           "modelId": 3,
-          "offset": 3387,
-          "count": 69823,
-          "byteOffset": 108384,
+          "offset": 8927,
+          "count": 66723,
+          "byteOffset": 285664,
           "profileCounts": {
-            "mobile": 15168,
-            "desktop": 46423,
-            "master": 69823
+            "mobile": 12500,
+            "desktop": 43823,
+            "master": 66723
           }
         },
         {
           "modelId": 4,
-          "offset": 73210,
+          "offset": 75650,
           "count": 2553,
-          "byteOffset": 2342720,
+          "byteOffset": 2420800,
           "profileCounts": {
             "mobile": 555,
             "desktop": 1697,
@@ -1070,20 +1213,20 @@
         },
         {
           "modelId": 5,
-          "offset": 75763,
-          "count": 59237,
-          "byteOffset": 2424416,
+          "offset": 78203,
+          "count": 56797,
+          "byteOffset": 2502496,
           "profileCounts": {
-            "mobile": 12869,
-            "desktop": 39385,
-            "master": 59237
+            "mobile": 10418,
+            "desktop": 36866,
+            "master": 56797
           }
         }
       ],
       "profileCounts": {
-        "mobile": 28592,
-        "desktop": 87505,
-        "master": 131613
+        "mobile": 23473,
+        "desktop": 82386,
+        "master": 126073
       },
       "activeStartWU": 14.35,
       "activeEndWU": 27.78,
@@ -1100,63 +1243,63 @@
     "mobile": {
       "surfelCount": 30000,
       "perModelCounts": {
-        "about.00": 322,
-        "about.01": 559,
+        "about.00": 3000,
+        "about.01": 3000,
         "about.02": 527,
-        "about.03": 15168,
+        "about.03": 12500,
         "about.04": 555,
-        "about.05": 12869
+        "about.05": 10418
       },
       "perObjectCounts": {
-        "gn.signal.aperture": 1,
-        "gn.signal.field": 321,
-        "gn.nebula.field": 559,
+        "gn.signal.aperture": 857,
+        "gn.signal.field": 2143,
+        "gn.nebula.field": 3000,
         "gn.round.portals": 527,
-        "gn.ribbon.canyon": 15168,
+        "gn.ribbon.canyon": 12500,
         "gn.square.loop": 555,
-        "gn.responsive.lattice": 12869
+        "gn.responsive.lattice": 10418
       },
       "selection": "nested-per-model-prefix"
     },
     "desktop": {
       "surfelCount": 90000,
       "perModelCounts": {
-        "about.00": 322,
-        "about.01": 559,
+        "about.00": 3000,
+        "about.01": 3000,
         "about.02": 1614,
-        "about.03": 46423,
+        "about.03": 43823,
         "about.04": 1697,
-        "about.05": 39385
+        "about.05": 36866
       },
       "perObjectCounts": {
-        "gn.signal.aperture": 1,
-        "gn.signal.field": 321,
-        "gn.nebula.field": 559,
+        "gn.signal.aperture": 857,
+        "gn.signal.field": 2143,
+        "gn.nebula.field": 3000,
         "gn.round.portals": 1614,
-        "gn.ribbon.canyon": 46423,
+        "gn.ribbon.canyon": 43823,
         "gn.square.loop": 1697,
-        "gn.responsive.lattice": 39385
+        "gn.responsive.lattice": 36866
       },
       "selection": "nested-per-model-prefix"
     },
     "master": {
       "surfelCount": 135000,
       "perModelCounts": {
-        "about.00": 401,
-        "about.01": 559,
+        "about.00": 3500,
+        "about.01": 3000,
         "about.02": 2427,
-        "about.03": 69823,
+        "about.03": 66723,
         "about.04": 2553,
-        "about.05": 59237
+        "about.05": 56797
       },
       "perObjectCounts": {
-        "gn.signal.aperture": 80,
-        "gn.signal.field": 321,
-        "gn.nebula.field": 559,
+        "gn.signal.aperture": 1000,
+        "gn.signal.field": 2500,
+        "gn.nebula.field": 3000,
         "gn.round.portals": 2427,
-        "gn.ribbon.canyon": 69823,
+        "gn.ribbon.canyon": 66723,
         "gn.square.loop": 2553,
-        "gn.responsive.lattice": 59237
+        "gn.responsive.lattice": 56797
       },
       "selection": "nested-per-model-prefix"
     }
@@ -1231,50 +1374,91 @@
       "keyframes": [
         {
           "frame": 649.0,
-          "progress": 0.180063,
+          "progress": 0.17025,
           "degrees": 0.0
         },
         {
           "frame": 771.0,
-          "progress": 0.213963,
+          "progress": 0.18881,
           "degrees": -8.0
         },
         {
           "frame": 894.0,
-          "progress": 0.248142,
+          "progress": 0.207523,
           "degrees": 8.0
         },
         {
           "frame": 1009.0,
-          "progress": 0.280097,
+          "progress": 0.225018,
           "degrees": 0.0
         },
         {
           "frame": 2304.0,
-          "progress": 0.639944,
+          "progress": 0.638414,
           "degrees": 0.0
         },
         {
           "frame": 2448.0,
-          "progress": 0.679958,
+          "progress": 0.660321,
           "degrees": -6.0
         },
         {
           "frame": 2592.0,
-          "progress": 0.719972,
+          "progress": 0.682229,
           "degrees": 8.0
         },
         {
           "frame": 2736.0,
-          "progress": 0.759986,
+          "progress": 0.704136,
           "degrees": -4.0
         },
         {
           "frame": 2880.0,
-          "progress": 0.8,
+          "progress": 0.726043,
           "degrees": 0.0
         }
       ]
     }
+  },
+  "terminalResponse": {
+    "schema": "about-terminal-response/v1",
+    "baselineSourceSha256": "7ae1a8fc6f513abf332ade4f447d10d51db868fb2b8f0f2154b9d10793fae05d",
+    "modelKey": "about.05",
+    "periodSeconds": 8.0,
+    "amplitudeWU": 3.2,
+    "travelXWU": [
+      -60.0,
+      60.0
+    ],
+    "responseDelaySeconds": 2.6,
+    "pulseDurationSeconds": 2.0,
+    "landscapeBounds": {
+      "min": [
+        -420.0,
+        -1348.2857142857142,
+        -2826.400634765625
+      ],
+      "max": [
+        420.0,
+        -181.66699164178866,
+        -1516.400634765625
+      ]
+    },
+    "composition": "expansive-full-width-no-visible-perimeter",
+    "bankEndSiteZ": -2096.400634765625,
+    "bankBounds": {
+      "min": [
+        -164.74990844726562,
+        -158.99424743652344,
+        -2091.84814453125
+      ],
+      "max": [
+        164.67919921875,
+        256.495849609375,
+        -1660.733154296875
+      ]
+    },
+    "bankComponents": 720,
+    "cameraPolicy": "unchanged-authored-track"
   }
 }

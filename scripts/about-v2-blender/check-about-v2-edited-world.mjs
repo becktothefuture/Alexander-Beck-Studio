@@ -106,6 +106,24 @@ function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
 }
 
+function fittedProgress(metadata, progress) {
+  const fit = metadata.source.readingSpaceFit;
+  if (!fit) return progress;
+  assert.equal(fit.schema, 'about-reading-space-fit/v1');
+  const { oldArcKnots, arcKnots, oldLengthWU, lengthWU } = fit;
+  assert.equal(oldArcKnots.length, 17);
+  assert.equal(arcKnots.length, 17);
+  for (const knots of [oldArcKnots, arcKnots]) {
+    assert.equal(knots[0], 0);
+    assert.ok(knots.every((value, index) => Number.isFinite(value) && (!index || value > knots[index - 1])));
+  }
+  const distance = progress * oldLengthWU;
+  const index = Math.min(15, oldArcKnots.findIndex((value, i) => i < 16 && distance < oldArcKnots[i + 1]));
+  const from = index < 0 ? 15 : index;
+  const mix = (distance - oldArcKnots[from]) / (oldArcKnots[from + 1] - oldArcKnots[from]);
+  return (arcKnots[from] + mix * (arcKnots[from + 1] - arcKnots[from])) / lengthWU;
+}
+
 function assetBytes(fileRecord) {
   assert.ok(fileRecord?.file, 'Asset metadata is missing a filename.');
   assert.equal(
@@ -240,7 +258,8 @@ function validateSource(metadata) {
     const object = metadata.source.objects.find((item) => item.objectKey === objectKey);
     assert.equal(object.modelKey, modelKey);
     assert.equal(object.role, role);
-    assert.equal(object.geometryKind, geometryKind);
+    assert.equal(object.geometryKind, objectKey === 'gn.responsive.lattice' && metadata.terminalResponse
+      ? 'expansive-connected-landscape' : geometryKind);
     assert.ok(object.collections.includes(collection));
   }
   const byKey = Object.fromEntries(metadata.source.objects.map((object) => [object.objectKey, object]));
@@ -259,7 +278,11 @@ function validateSource(metadata) {
   const forwardGap = (previous, next) => previous.bounds.min[2] - next.bounds.max[2];
   assert.ok(extent(byKey['gn.ribbon.canyon'], 0) >= 200, 'The terrain is no longer a wide landscape.');
   assert.ok(extent(byKey['gn.ribbon.canyon'], 1) >= 25, 'The terrain has lost its mountain relief.');
-  assert.ok(extent(byKey['gn.ribbon.canyon'], 1) <= 48, 'The terrain mountains are too tall for the low flight.');
+  const shoulderLift = Number(metadata.source.readingSpaceFit?.terrainShoulderLiftWU) || 0;
+  assert.ok(byKey['gn.ribbon.canyon'].bounds.max[1] <= 48 + shoulderLift,
+    'The terrain exceeds its authored shoulder elevation.');
+  if (metadata.source.readingSpaceFit) assert.ok(byKey['gn.ribbon.canyon'].bounds.min[1] <= -250,
+    'The fitted terrain lost its deep continuous reading valley.');
   const minimumTerrainDepth = route ? route.evaluatedLength * 0.25 : 300;
   assert.ok(
     extent(byKey['gn.ribbon.canyon'], 2) >= minimumTerrainDepth,
@@ -270,7 +293,13 @@ function validateSource(metadata) {
     ['gn.ribbon.canyon', 'gn.square.loop', 10],
     ['gn.square.loop', 'gn.responsive.lattice', 6],
   ]) {
-    const gap = forwardGap(byKey[previousKey], byKey[nextKey]);
+    const next = nextKey === 'gn.responsive.lattice' && metadata.terminalResponse
+      ? { bounds: metadata.terminalResponse.bankBounds } : byKey[nextKey];
+    const gap = forwardGap(byKey[previousKey], next);
+    // The fitted valley surrounds the approach to the gates. Overlapping
+    // longitudinal bounds alone cannot establish a collision. Validate its
+    // exported point geometry against the gate volume below instead.
+    if (previousKey === 'gn.ribbon.canyon' && metadata.source.readingSpaceFit?.terrainEndOnPath) continue;
     assert.ok(
       gap >= minimumGap,
       `${previousKey} and ${nextKey} overlap or have no deliberate handoff gap (${gap.toFixed(1)} WU).`,
@@ -278,7 +307,7 @@ function validateSource(metadata) {
   }
   assert.equal(byKey['gn.square.loop'].connectedComponentCount, 14);
   assert.ok(
-    byKey['gn.responsive.lattice'].connectedComponentCount >= 1000,
+    byKey['gn.responsive.lattice'].connectedComponentCount >= (metadata.terminalResponse ? 100 : 1000),
     'The responsive lattice lost its substantial authored strand population.',
   );
   assert.ok(extent(byKey['gn.responsive.lattice'], 1) >= 80,
@@ -286,6 +315,16 @@ function validateSource(metadata) {
   assert.ok(extent(byKey['gn.responsive.lattice'], 0) >= 160,
     'The restored lattice has lost its authored width.');
   const latticeModel = metadata.models.find((model) => model.key === 'about.05');
+  if (metadata.terminalResponse) {
+    const response = metadata.terminalResponse;
+    assert.equal(response.schema, 'about-terminal-response/v1');
+    assert.equal(response.modelKey, 'about.05');
+    assert.equal(byKey['gn.responsive.lattice'].connectedComponentCount, response.bankComponents + 1,
+      'The terminal export must retain every finite bank component plus one connected surface.');
+    assert.ok(response.landscapeBounds.max[1] < byKey['gn.square.loop'].bounds.min[1] - 6,
+      'The deep approach must pass physically below the square gates, including deformation.');
+    assert.ok(response.bankBounds.max[2] < byKey['gn.square.loop'].bounds.min[2] - 6);
+  }
   assert.equal(latticeModel.motionSubgroups, 24);
   assert.equal(
     byKey['gn.responsive.lattice'].profilePrefixOrder,
@@ -295,8 +334,8 @@ function validateSource(metadata) {
   assert.ok(metadata.motionGroups.length >= 30, 'The packed asset lost coherent strand motion groups.');
   assert.equal(objectKeys.has('gn.lens.chamber'), false, 'The retired finale lens returned.');
   assert.equal(modelKeys.has('about.06'), false, 'The retired finale model returned.');
-  assert.deepEqual(route?.stageRanges?.['04'], [0.64, 0.8]);
-  assert.deepEqual(route?.stageRanges?.['05'], [0.86, 1]);
+  assert.deepEqual(route?.stageRanges?.['04'], [0.64, 0.8].map(value => fittedProgress(metadata, value)));
+  assert.deepEqual(route?.stageRanges?.['05'], [0.86, 1].map(value => fittedProgress(metadata, value)));
   const orderedModels = [...metadata.models].sort(
     (left, right) => left.visibilityStartWU - right.visibilityStartWU,
   );
@@ -317,7 +356,9 @@ function validateSource(metadata) {
         model.visibilityEndCue,
         model.visibilityEndOffsetWU,
       ],
-      EXPECTED_VISIBILITY_BINDINGS.get(model.key),
+      model.key === 'about.01' && metadata.source.readingSpaceFit?.terrainEndOnPath
+        ? ['inciting-question', -0.28, 'portal-entry', 0.18]
+        : EXPECTED_VISIBILITY_BINDINGS.get(model.key),
       `${model.key} is not bound to its semantic story handoff.`,
     );
   }
@@ -365,6 +406,25 @@ function validateSource(metadata) {
     )),
     'Every Blender object must author a bounded website circle-radius scale.',
   );
+}
+
+function validateTerrainGateClearance(metadata, surfelBytes) {
+  if (!metadata.source.readingSpaceFit?.terrainEndOnPath) return;
+  const terrain = metadata.models.find((model) => model.key === 'about.03');
+  const gates = metadata.source.objects.find((object) => object.objectKey === 'gn.square.loop');
+  assert.ok(terrain && gates, 'Fitted terrain requires the complete gate model.');
+  let minimumClearance = Infinity;
+  for (let index = terrain.surfelRange.offset; index < terrain.surfelRange.offset + terrain.surfelRange.count; index += 1) {
+    let squaredDistance = 0;
+    for (let axis = 0; axis < 3; axis += 1) {
+      const coordinate = surfelBytes.readFloatLE(index * 32 + axis * 4);
+      const distance = Math.max(gates.bounds.min[axis] - coordinate, 0, coordinate - gates.bounds.max[axis]);
+      squaredDistance += distance * distance;
+    }
+    minimumClearance = Math.min(minimumClearance, Math.sqrt(squaredDistance));
+  }
+  assert.ok(minimumClearance >= 10,
+    `The fitted valley encroaches on the gate volume (${minimumClearance.toFixed(2)} WU clearance).`);
 }
 
 function validateSurfels(metadata, bytes) {
@@ -504,6 +564,25 @@ function validateSurfels(metadata, bytes) {
       );
     });
   }
+  if (metadata.source.samplingPolicy.allocation === 'saved-source-profile-budgets') {
+    const allocation = metadata.source.surfelAllocation;
+    assert.equal(allocation?.schema, 'about-surfel-allocation/v1');
+    assert.match(allocation.basisSourceSha256, /^[a-f0-9]{64}$/);
+    assert.deepEqual(new Set(Object.keys(allocation.objects)),
+      new Set(metadata.source.objects.map(object => object.objectKey)));
+    for (const object of metadata.source.objects) {
+      const authored = allocation.objects[object.objectKey];
+      assert.ok(Number.isFinite(authored.weight) && authored.weight > 0);
+      assert.equal(authored.master, object.surfelCount,
+        `${object.objectKey} diverges from its saved-source population.`);
+    }
+    for (const profileName of ['mobile', 'desktop', 'master']) {
+      assert.equal(allocation.profiles[profileName].count, metadata.profiles[profileName].surfelCount);
+      assert.deepEqual(allocation.profiles[profileName].models, metadata.profiles[profileName].perModelCounts,
+        `${profileName} diverges from its saved-source model populations.`);
+    }
+    return;
+  }
   const weightedSurfaceArea = metadata.source.objects.reduce(
     (sum, object) => sum + (
       object.surfaceArea
@@ -613,7 +692,7 @@ function validateCamera(metadata, bytes) {
     .map((keyframe) => keyframe.progress);
   [0.64, 0.68, 0.72, 0.76, 0.80].forEach((expected, index) => {
     assert.ok(
-      Math.abs(squareRollProgress[index] - expected) < 0.0005,
+      Math.abs(squareRollProgress[index] - fittedProgress(metadata, expected)) < 0.0005,
       'The square-gate camera bank no longer aligns with its authored story chapter.',
     );
   });
@@ -711,6 +790,12 @@ function validateCamera(metadata, bytes) {
   assert.ok(Math.max(...loopHeights) - Math.min(...loopHeights) > 40, 'The square tunnel is no longer an aerial loop.');
   assert.ok(Math.max(...loopDepths) - Math.min(...loopDepths) > 35, 'The square tunnel lost its forward-return rollercoaster bend.');
   const finalSample = cameraTrack.samples.at(-1);
+  if (metadata.terminalResponse) {
+    const bounds = metadata.terminalResponse.landscapeBounds;
+    assert.ok(bounds.min[0] < finalSample[0] - 300 && bounds.max[0] > finalSample[0] + 300);
+    assert.ok(bounds.max[2] > finalSample[2] + 10 && bounds.min[2] < finalSample[2] - 500,
+      'The terminal surface must continue behind the camera and beyond the far atmosphere.');
+  }
   assert.ok(
     Math.hypot(finalSample[4], finalSample[5]) < 0.0001,
     'The final Blender camera must return to a level horizon.',
@@ -730,10 +815,18 @@ function validateCamera(metadata, bytes) {
   }
   assert.ok(travelledDistance >= 1200, `The authored ride is too short (${travelledDistance.toFixed(1)} WU).`);
   const steadyRailDistances = sampleDistances.slice(0, Math.round(sampleDistances.length * 0.8));
-  assert.ok(
-    Math.max(...steadyRailDistances) - Math.min(...steadyRailDistances) < 0.01,
-    'The camera rail no longer advances smoothly before the authored finale segment.',
-  );
+  if (metadata.source.readingSpaceFit) {
+    // Export frames are source editing time. Runtime resamples cumulative
+    // physical distance; the fitted straight approaches need more distance in
+    // the same source frame span. Reject teleports/holds without demanding an
+    // obsolete uniform frame-time schedule.
+    assert.ok(steadyRailDistances.every(distance => distance > 0 && distance < 3),
+      'The fitted source rail contains a hold or a positional discontinuity.');
+    assert.ok(Math.abs(travelledDistance - metadata.source.readingSpaceFit.lengthWU) < 0.1);
+  } else {
+    assert.ok(Math.max(...steadyRailDistances) - Math.min(...steadyRailDistances) < 0.01,
+      'The camera rail no longer advances smoothly before the authored finale segment.');
+  }
   const cueNames = new Set(cameraTrack.journeyCues.map((cue) => cue.name));
   for (const cue of [
     'ABS_STAGE_00',
@@ -839,6 +932,7 @@ function main() {
   const surfelBytes = assetBytes(metadata.files.surfels);
   const cameraBytes = assetBytes(metadata.files.cameraTrack);
   validateSurfels(metadata, surfelBytes);
+  validateTerrainGateClearance(metadata, surfelBytes);
   validatePages(metadata);
   validateCamera(metadata, cameraBytes);
   validateFinalBankPrefixes(metadata, surfelBytes, cameraBytes);

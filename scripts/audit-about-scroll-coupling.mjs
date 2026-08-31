@@ -94,6 +94,7 @@ try {
       });
       await page.mouse.move(options.viewport.width / 2, options.viewport.height / 2);
       for (const delta of [42, 140, 280, 420, -70, -210]) {
+        const beforeTop = await page.locator('.about-narrative-scrollport').evaluate((port) => port.scrollTop);
         await page.mouse.wheel(0, delta);
         await page.waitForTimeout(160);
         const sample = await page.evaluate(() => {
@@ -101,6 +102,8 @@ try {
           return { scrollTop: port.scrollTop, maximum: port.scrollHeight - port.clientHeight,
             position: window.__aboutNarrativeRuntime.getMetrics().cameraPosition };
         });
+        assert.ok((sample.scrollTop - beforeTop) * Math.sign(delta) > Math.abs(delta) * 0.5,
+          `${id}: native wheel input did not move the page in the requested direction.`);
         const expected = positionAtDistance(sample.scrollTop / sample.maximum * pathLength);
         const error = Math.hypot(...expected.map((value, axis) => value - sample.position[axis]));
         assert.ok(error < 0.0001, `${id}: native wheel movement diverged by ${error} WU.`);

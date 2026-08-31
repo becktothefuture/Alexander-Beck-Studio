@@ -76,6 +76,7 @@ try {
         stats.initialTop = port.scrollTop;
         stats.initialEditorRenders = window.__aboutPanelRenderCount || 0;
         stats.previous = 0;
+        stats.longFrameSupported = PerformanceObserver.supportedEntryTypes.includes('long-animation-frame');
         stats.observe = new PerformanceObserver(list => {
           for (const entry of list.getEntries()) stats.longFrames.push({ start: entry.startTime, duration: entry.duration, blocking: entry.blockingDuration, scripts: entry.scripts?.map(s => ({ function: s.sourceFunctionName, url: s.sourceURL, duration: s.duration, forcedStyleAndLayoutDuration: s.forcedStyleAndLayoutDuration })) });
         });
@@ -105,7 +106,7 @@ try {
         const stats = window.__scrollProfile;
         cancelAnimationFrame(stats.frame);
         stats.observe.disconnect();
-        return { duration: performance.now() - stats.started, initialTop: stats.initialTop, finalTop: document.querySelector('.about-narrative-scrollport').scrollTop, historyWrites: stats.historyWrites, editorRenders: (window.__aboutPanelRenderCount || 0) - stats.initialEditorRenders, frames: stats.raf, longFrames: stats.longFrames };
+        return { duration: performance.now() - stats.started, initialTop: stats.initialTop, finalTop: document.querySelector('.about-narrative-scrollport').scrollTop, historyWrites: stats.historyWrites, editorRenders: (window.__aboutPanelRenderCount || 0) - stats.initialEditorRenders, frames: stats.raf, longFrames: stats.longFrames, longFrameSupported: stats.longFrameSupported };
       });
       if (process.env.ABS_CPU_PROFILE === '1') {
         const { profile: cpu } = await session.send('Profiler.stop');
@@ -115,7 +116,17 @@ try {
       const percentile = p => intervals[Math.min(intervals.length - 1, Math.floor(intervals.length * p))];
       const beforeMap = Object.fromEntries(before.metrics.map(m => [m.name, m.value]));
       const costs = Object.fromEntries(after.metrics.filter(m => /Duration|Count/.test(m.name)).map(m => [m.name, Number((m.value - beforeMap[m.name]).toFixed(6))]));
-      assert.ok(Math.abs(stats.finalTop - stats.initialTop) > speed * duration * 0.9, `${name}: the native gesture was intercepted`);
+      assert.ok((stats.finalTop - stats.initialTop) * segment.direction > speed * duration * 0.9, `${name}: the native gesture was intercepted or reversed`);
+      assert.equal(stats.longFrameSupported, true, `${name}: this browser cannot observe long animation frames`);
+      assert.ok(intervals.length >= duration * 30, `${name}: fewer than 30 presented frame samples per second`);
+      assert.ok(intervals.every(value => Number.isFinite(value) && value > 0), `${name}: invalid frame timing sample`);
+      // A 60 Hz desktop/mobile review allows isolated compositor misses, but
+      // rejects sustained half-rate rendering or user-visible stalls. Run
+      // without video capture; CPU throttling is a separate stress profile.
+      assert.ok(percentile(0.95) <= 20, `${name}: p95 frame interval exceeds the 60 Hz review budget`);
+      assert.ok(intervals.filter(value => value > 50).length / intervals.length <= 0.01,
+        `${name}: more than 1% of frames exceed 50 ms`);
+      assert.ok(intervals.at(-1) <= 100, `${name}: a scroll frame stalled for more than 100 ms`);
       assert.ok(stats.historyWrites <= Math.ceil(stats.duration / 250) + 2, `${name}: scroll frames are writing history`);
       if (checkEditor) assert.ok(stats.editorRenders <= 1, `${name}: scrolling repeatedly renders the parameter form`);
       const settled = await page.evaluate(async () => {

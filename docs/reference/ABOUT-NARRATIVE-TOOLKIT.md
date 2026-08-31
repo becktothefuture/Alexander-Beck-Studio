@@ -471,6 +471,45 @@ at partial invitation stops and does not require the endpoint. Ambient material 
 independent and pausable. Reduced Motion cuts between authored camera poses and keeps the same final
 composition with zero ambient displacement. No source geometry or camera samples are regenerated during playback.
 
+On About, fine-pointer desktop viewports remain accessible at short heights, including native 200%
+page zoom. The short/mobile-landscape cover still applies to coarse-pointer devices. Other routes and
+the wide/tall aspect safeguards retain their existing guard rules. Reduced-motion cuts share one
+scene clock for camera pose, whole-model admission and fog; scrolling between cuts must not animate
+a visibility handoff. Passage exits settle directly at the next authored reading pose, avoiding a
+held view back into gates beside the prose. Invalid career-item arrays return diagnostics instead of throwing.
+
+The Blender exporter supports optional per-model material scales through the object's
+`abs_manifestation_spread_scale` and `abs_detail_bias_scale` properties. Missing properties retain
+the existing look. Present values must be finite and bounded; all objects within a model must agree.
+The runtime binds them once through a validated, model-owned motion-group range. They change only
+fog admission and detail selection, never geometry, camera sampling, opacity, stage timing or the
+resident point budget. The canonical reading composition uses tighter manifestation spread in the
+opening fields and side banks, plus additional bank detail. Portals and square gates retain their
+default materials. Whole instances and connected terrain are composed in Blender around the reading
+column; there is no projected text mask. Portrait prose uses a 68vw measure without changing type size
+or restricting its vertical reading window. The opening field rebuilds 2,400 signal and 2,800 nebula
+seed points before the existing Geometry Nodes generators; this removes the former seed-cap bottleneck
+while retaining the 135k/90k/30k master, desktop and mobile point budgets. Its introductory paragraph
+is present at the first rendered opener pose rather than entering through the delayed bookend sequence.
+
+The finite method banks open onto one connected, full-width ground surface. Its source-authored
+8-second response travels across X with a 2.6-second delay, 2-second pulse and 3.2-WU displacement.
+The source continues outside the side/foreground frustum and beyond the distance fog. Both motion
+pause and reduced motion freeze its deformation. The canonical source and export are rebuilt through
+`fit-about-reading-spaces.py`, `create-about-terminal-study.py`, and the existing exporter; copying an
+old candidate camera is not an integration procedure.
+
+The composition audit covers career text, client artwork, prose, titles and action contents. Its
+intrusion test uses decoded normals, actual ambient/terminal displacement, shader LOD/admission and
+projected circular radius. A separate maximum-radius envelope remains available as a conservative
+diagnostic. Terminal clearance also projects the complete source-to-maximum-displacement segment for
+every ending point, so a one-second sample cannot miss a pulse peak. Painted regions are batched into
+one projection pass; this work never runs in the RAF loop.
+Optional failure collection keeps later checkpoint evidence but still exits unsuccessfully. Reading
+banks require height, population and depth on both sides of the copy. The terminal ground must fill
+two complete horizontal grid rows and both outside 2% strips, with depth on each side. Continuous
+forward/reverse recordings and inspected frames remain required; occupancy alone is not visual approval.
+
 ## Adding a new Shape generator
 
 1. Add a registered Shape definition and bounded controls in `aboutNarrativeDefinitions.js`.

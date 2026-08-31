@@ -4,7 +4,8 @@ import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
 import { compileAboutNarrativeJourneyMap } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
 
-export const ABOUT_SURFEL_OUTPUT_DIR = 'output/playwright/about-narrative-hardening/runtime';
+export const ABOUT_SURFEL_OUTPUT_DIR = process.env.ABS_ABOUT_VISUAL_OUTPUT
+  || 'output/playwright/about-narrative-hardening/runtime';
 const expectedAssetMetadata = JSON.parse(await readFile(resolve(
   process.env.ABS_ABOUT_ASSET_DIR || 'react-app/app/public/models/about-v2-edited-world',
   'meta.json',
@@ -144,7 +145,8 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert.equal(metrics.controls.opacity, 1);
   assert(metrics.controls.fogEndWU > metrics.controls.fogStartWU);
   assert.equal(metrics.error, '');
-  assert.equal(metrics.stageVisibilityMode, 'authored-bounded-whole-surfel-handoff');
+  assert.equal(metrics.stageVisibilityMode, metrics.reducedMotion
+    ? 'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff');
   assert.equal(Object.keys(metrics.resolvedVisibilityWindows).length, metrics.modelCount);
   for (const [key, window] of Object.entries(metrics.resolvedVisibilityWindows)) {
     assert.ok(Number.isFinite(window.startWU) && Number.isFinite(window.endWU)
@@ -172,44 +174,80 @@ export async function getAboutSurfelJourneyMap(page) {
 
 export const ABOUT_SURFEL_FOOTPRINTS = Object.freeze({
   passage: Object.freeze({ occupiedBinCount: 6, occupiedRowCount: 3, occupiedColumnCount: 3 }),
-  terrain: Object.freeze({
-    // Verified original-camera probes at p.40–.48 show 3 portrait rows and
-    // 7–9 landscape rows. Four rows everywhere would reject the original world.
-    framedVisibleCount: 1200,
-    occupiedBinCount: 24, occupiedRowCount: 3, occupiedColumnCount: 8,
+  // Reduced motion holds the authored entrance rather than flying through it.
+  'passage-cut': Object.freeze({ occupiedBinCount: 6, occupiedRowCount: 2, occupiedColumnCount: 3 }),
+  'reading-banks': Object.freeze({
+    // The text owns the central reading column. Require two populated columns
+    // on EACH side, at least two thirds of the height, and real physical depth.
+    // Raw population cannot substitute for spread or clear painted copy.
+    renderedVisibleCount: 300,
+    occupiedBinCount: 24, occupiedRowCount: 8, occupiedColumnCount: 4,
     leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
-    leftOccupiedBinCount: 6, rightOccupiedBinCount: 6,
+    leftOccupiedBinCount: 12, rightOccupiedBinCount: 12,
+    framedLeftDepthSpanWU: 20, framedRightDepthSpanWU: 20,
+    readingLeftOccupiedRowCount: 8, readingRightOccupiedRowCount: 8,
+    readingLeftOccupiedBinCount: 12, readingRightOccupiedBinCount: 12,
+    readingLeftSecondaryColumnRows: 4, readingRightSecondaryColumnRows: 4,
+    readingLeftPopulatedDepthWU: 10, readingRightPopulatedDepthWU: 10,
   }),
-  'terrain-exit': Object.freeze({
-    // The last client row rides the valley exit. Keep a broad, populated plane;
-    // two rows alone must not admit the trailing 130-point fragments at p.57.
-    framedVisibleCount: 1200,
-    occupiedBinCount: 24, occupiedRowCount: 2, occupiedColumnCount: 8,
-    leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
-    leftOccupiedBinCount: 6, rightOccupiedBinCount: 6,
+  'bank-arrival': Object.freeze({
+    // The first method title still looks out from the gate exit. The next
+    // checkpoint must establish the thicker reading banks on both sides.
+    renderedVisibleCount: 100,
+    occupiedBinCount: 16, occupiedRowCount: 10, occupiedColumnCount: 2,
+    leftOccupiedColumnCount: 1, rightOccupiedColumnCount: 1,
+    leftOccupiedBinCount: 4, rightOccupiedBinCount: 4,
+    framedDepthSpanWU: 20,
   }),
   'lattice-approach': Object.freeze({
-    occupiedBinCount: 12, occupiedRowCount: 3, occupiedColumnCount: 4,
-    leftOccupiedColumnCount: 1, rightOccupiedColumnCount: 1,
-    leftOccupiedBinCount: 3, rightOccupiedBinCount: 3,
+    renderedVisibleCount: 300,
+    occupiedBinCount: 24, occupiedRowCount: 7, occupiedColumnCount: 4,
+    leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
+    leftOccupiedBinCount: 12, rightOccupiedBinCount: 12,
+    framedLeftDepthSpanWU: 20, framedRightDepthSpanWU: 20,
+    readingLeftOccupiedRowCount: 7, readingRightOccupiedRowCount: 7,
+    readingLeftOccupiedBinCount: 12, readingRightOccupiedBinCount: 12,
+    readingLeftSecondaryColumnRows: 4, readingRightSecondaryColumnRows: 4,
+    readingLeftPopulatedDepthWU: 10, readingRightPopulatedDepthWU: 10,
   }),
-  finale: Object.freeze({
-    occupiedBinCount: 24, occupiedRowCount: 6, occupiedColumnCount: 6,
-    leftOccupiedColumnCount: 3, rightOccupiedColumnCount: 3,
-    leftOccupiedBinCount: 9, rightOccupiedBinCount: 9,
+  'ground-approach': Object.freeze({
+    // The ground first enters as a distant full-width horizon beneath titles.
+    renderedVisibleCount: 600,
+    occupiedBinCount: 12, occupiedRowCount: 1, occupiedColumnCount: 12,
+    leftOccupiedColumnCount: 6, rightOccupiedColumnCount: 6,
+    leftOccupiedBinCount: 6, rightOccupiedBinCount: 6,
+    fullWidthRowCount: 1, groundFullWidthRowCount: 1, framedDepthSpanWU: 20,
+  }),
+  'terminal-ground': Object.freeze({
+    // At rest require a deep, continuous foreground, including both outer 2%
+    // strips. A wide but shallow horizon or two disconnected banks must fail.
+    renderedVisibleCount: 2000,
+    occupiedBinCount: 48, occupiedRowCount: 4, occupiedColumnCount: 12,
+    leftOccupiedColumnCount: 6, rightOccupiedColumnCount: 6,
+    leftOccupiedBinCount: 24, rightOccupiedBinCount: 24,
+    fullWidthRowCount: 2,
+    leftEdgeOccupiedRowCount: 2, rightEdgeOccupiedRowCount: 2,
+    framedLeftDepthSpanWU: 200, framedRightDepthSpanWU: 200,
+    groundFullWidthRowCount: 2, groundOuterEdgeFullWidthRowCount: 2,
+    groundLeftPopulatedDepthWU: 90, groundRightPopulatedDepthWU: 90,
   }),
 });
 
 export function assertAboutSurfelFootprint(framing, footprintId, label) {
   const required = ABOUT_SURFEL_FOOTPRINTS[footprintId];
   assert.ok(required, `Unknown footprint ${footprintId}.`);
-  // Runtime diagnostics use a 12×12 NDC grid, with at least three revealed
-  // points per occupied bin. Broad terrain and thick, tall banks must survive;
-  // a few points or a single edge column cannot certify a recovered scene.
+  // Runtime diagnostics use a 12×12 NDC grid and shader-admitted points only.
+  // Three visible circles are needed per bin. These are regression gates;
+  // rendered frames and continuous motion still require visual inspection.
   const maxima = {
     occupiedBinCount: 144, occupiedRowCount: 12, occupiedColumnCount: 12,
     leftOccupiedColumnCount: 6, rightOccupiedColumnCount: 6,
     leftOccupiedBinCount: 72, rightOccupiedBinCount: 72,
+    fullWidthRowCount: 12, leftEdgeOccupiedRowCount: 12, rightEdgeOccupiedRowCount: 12,
+    readingLeftOccupiedRowCount: 12, readingRightOccupiedRowCount: 12,
+    readingLeftOccupiedBinCount: 72, readingRightOccupiedBinCount: 72,
+    readingLeftSecondaryColumnRows: 12, readingRightSecondaryColumnRows: 12,
+    groundFullWidthRowCount: 12, groundOuterEdgeFullWidthRowCount: 12,
   };
   for (const [key, maximum] of Object.entries(maxima)) {
     assert.ok(Number.isInteger(framing?.[key]) && framing[key] >= 0 && framing[key] <= maximum,
@@ -219,16 +257,19 @@ export function assertAboutSurfelFootprint(framing, footprintId, label) {
     framing.occupiedColumnCount, `${label} occupied column totals disagree.`);
   assert.equal(framing.leftOccupiedBinCount + framing.rightOccupiedBinCount,
     framing.occupiedBinCount, `${label} occupied bin totals disagree.`);
+  assert.ok(framing.groundOuterEdgeFullWidthRowCount <= framing.groundFullWidthRowCount
+    && framing.groundFullWidthRowCount <= framing.fullWidthRowCount,
+  `${label} ground row subsets disagree.`);
   for (const [key, minimum] of Object.entries(required)) {
     const value = framing?.[key];
-    assert.ok(Number.isInteger(value) && value >= minimum,
+    assert.ok(Number.isFinite(value) && value >= minimum,
       `${label} ${footprintId} footprint failed: ${key}=${value}; required >=${minimum}. `
         + `Diagnostics: ${JSON.stringify(framing)}`);
   }
 }
 
-export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0 } = {}) {
-  return page.evaluate(({ protectedFieldId, protectedMarginPx }) => {
+export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, terminalSweep = false } = {}) {
+  return page.evaluate(({ protectedFieldId, protectedMarginPx, checkTerminalSweep }) => {
     const root = document.querySelector('.about-narrative-lab');
     const scrollport = document.querySelector('.about-narrative-scrollport');
     const canvas = document.querySelector('.about-narrative-world__canvas');
@@ -304,11 +345,20 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0 } =
         '.about-narrative-discipline-list__label',
         '.about-narrative-discipline-list__description',
         '.about-narrative-editorial-pull-sentence',
+        '.about-narrative-career-sequence__label',
+        '.about-narrative-career-sequence__year',
+        '.about-narrative-career-sequence__employer',
+        '.about-narrative-career-sequence__role',
+        '.about-narrative-career-sequence__independent-label',
+        '.about-narrative-career-sequence__independent-text',
+        '.about-narrative-client-logos img',
+        '.about-narrative-client-logos li > span',
       ].join(', '));
       for (const node of lineNodes) {
         const effectiveOpacity = opacity(node);
         if (effectiveOpacity <= 0.05) continue;
-        for (const bounds of paintedRects(node)) {
+        for (const bounds of node.matches('img')
+          ? [rect(node.getBoundingClientRect())] : paintedRects(node)) {
           const clipped = intersection(bounds, editorialClip);
           if (!clipped) continue;
           const readable = intersection(bounds, editorialReadingBounds);
@@ -377,20 +427,20 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0 } =
     copyRect = editorialField ? union(visibleCopyLines.map((line) => line.bounds))
       : copyRect || (title ? null : field?.getBoundingClientRect()) || null;
     const protectedNdcBounds = toNdc(copyRect, editorialField ? 0 : protectedMarginPx);
-    const diagnosticOptions = protectedNdcBounds ? { protectedNdcBounds } : undefined;
-    const metrics = window.__aboutNarrativeRuntime.getMetrics(diagnosticOptions);
     const protectedCopyRegions = editorialField ? visibleCopyLines : title ? visibleLockupRegions : protectedNdcBounds ? [{
       text: title?.textContent.replace(/\s+/gu, ' ').trim() || '',
       protectedNdcBounds,
     }] : [];
-    const copyRegionDiagnostics = protectedCopyRegions.map((region) => {
-      const framing = editorialField || title
-        ? window.__aboutNarrativeRuntime.getDiagnosticsSnapshot({
-          protectedNdcBounds: region.protectedNdcBounds,
-        }).modelFraming
-        : metrics.modelFraming;
-      const perModelCounts = Object.fromEntries(Object.entries(framing).map(([key, model]) => (
-        [key, model.protectedCenterVisibleCount]
+    // Project the scene once per frame, then test each painted line/word against
+    // those same disks. Re-projecting 90,000 points for every word stalls QA.
+    const metrics = window.__aboutNarrativeRuntime.getMetrics({
+      protectedNdcBounds,
+      protectedNdcRegions: protectedCopyRegions.map((region) => region.protectedNdcBounds),
+      terminalSweep: checkTerminalSweep,
+    });
+    const copyRegionDiagnostics = protectedCopyRegions.map((region, index) => {
+      const perModelCounts = Object.fromEntries(Object.entries(metrics.modelFraming).map(([key, model]) => (
+        [key, model.protectedRegionVisibleCounts[index]]
       )));
       return {
         ...region,
@@ -465,7 +515,7 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0 } =
       scrollMaximum: Math.max(0, scrollport.scrollHeight - scrollport.clientHeight),
       semanticTextLength: root.textContent.replace(/\s+/gu, ' ').trim().length,
     };
-  }, { protectedFieldId: fieldId, protectedMarginPx: marginPx });
+  }, { protectedFieldId: fieldId, protectedMarginPx: marginPx, checkTerminalSweep: terminalSweep });
 }
 
 export async function driveAboutStoryWU(page, targetWU) {
@@ -473,9 +523,13 @@ export async function driveAboutStoryWU(page, targetWU) {
   await page.evaluate(async (target) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
     const maximum = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
-    const destination = target === null
+    const duration = Math.max(...Array.from(document.querySelectorAll('[data-render-span-id]'),
+      (node) => Number(node.dataset.storyEndWu) || 0));
+    // Match the production native-range map. storyWU * viewportHeight loses
+    // fractional CSS pixels and can stop WebKit one pixel before the endpoint.
+    const destination = target === null || target >= duration - 0.00001
       ? maximum
-      : Math.min(maximum, target * scrollport.clientHeight);
+      : Math.min(maximum, target / duration * maximum);
     // Hold the native destination across several frames so Lenis synchronises
     // its internal target instead of restoring the previous audit checkpoint.
     await new Promise((resolve) => {

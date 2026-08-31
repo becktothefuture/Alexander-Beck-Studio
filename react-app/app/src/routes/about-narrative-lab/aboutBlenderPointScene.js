@@ -20,6 +20,7 @@ import {
 } from './aboutBlenderSceneContract.js';
 import { writeAboutSceneLook } from './aboutSceneLook.js';
 import { createAboutSurfelPaletteRoles } from './aboutSurfelPalette.js';
+import { aboutSurfelIntersectsRect, aboutSurfelSweepIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from './aboutSurfelProjection.js';
 import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
@@ -77,15 +78,20 @@ const SURFEL_VERTEX_SHADER = `
   uniform float uEntranceScale;
   uniform float uOpacity;
   uniform float uManifestationSpread;
+  uniform vec4 uModelMaterials[6];
   uniform float uMotionTime;
   uniform float uMotionAmountWU;
   uniform float uMotionScaleWU;
   uniform float uMotionCoherence;
   uniform float uStoryWU;
+  uniform float uReducedMotion;
   uniform vec2 uTerminalMotionGroups;
   uniform vec2 uTerminalTravelXWU;
   uniform float uTerminalPhase;
   uniform float uTerminalAmplitudeWU;
+  uniform float uTerminalPeriod;
+  uniform float uTerminalDelay;
+  uniform float uTerminalPulseDuration;
 
   varying vec2 vCircle;
   varying float vPalette;
@@ -144,12 +150,14 @@ const SURFEL_VERTEX_SHADER = `
     if (uTerminalMotionGroups.x >= 0.0
       && iMotionGroup >= uTerminalMotionGroups.x
       && iMotionGroup <= uTerminalMotionGroups.y) {
-      // Candidate-only connected response. Adjacent positions share a phase
-      // delay, unlike the existing component-ID phases. One bounded pulse moves
-      // through both shoulders and their saddle without reseeding or a new loop.
+      // One local bend reaches neighbouring material after a spatial delay.
+      // The smooth pulse has a clear rest between events; all points on the
+      // shared surface respond to location rather than independent random IDs.
       float region = (iPosition.x - uTerminalTravelXWU.x)
         / max(0.001, uTerminalTravelXWU.y - uTerminalTravelXWU.x);
-      float response = pow(max(0.0, cos(uTerminalPhase - region * 4.08407045)), 4.0);
+      float localTime = mod(uTerminalPhase - region * uTerminalDelay, uTerminalPeriod);
+      float pulse = sin(3.14159265 * clamp(localTime / uTerminalPulseDuration, 0.0, 1.0));
+      float response = pulse * pulse;
       rigidMotion = vec3(0.0, uTerminalAmplitudeWU * response, 0.0);
       individualMotion = vec3(0.0);
     }
@@ -173,11 +181,22 @@ const SURFEL_VERTEX_SHADER = `
       uStoryWU
     );
     float stageVisibility = min(stageEntrance, stageExit);
+    if (uReducedMotion > 0.5) {
+      stageVisibility = step(iVisibilityStartWU, uStoryWU)
+        * (1.0 - step(iVisibilityEndWU, uStoryWU));
+    }
     float revealVisibility = min(
       min(fogVisibility, clamp(uSceneVisibility, 0.0, 1.0)),
       min(clamp(uEntranceScale, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
     );
-    float manifestationSpread = clamp(uManifestationSpread, 0.0, 0.8);
+    vec2 materialScale = vec2(1.0);
+    for (int model = 0; model < 6; model++) {
+      vec4 material = uModelMaterials[model];
+      if (iMotionGroup >= material.x && iMotionGroup <= material.y) {
+        materialScale = material.zw;
+      }
+    }
+    float manifestationSpread = clamp(uManifestationSpread * materialScale.x, 0.0, 0.8);
     float revealRank = min(
       iRevealRank * manifestationSpread,
       max(0.0, manifestationSpread - 0.001)
@@ -197,6 +216,7 @@ const SURFEL_VERTEX_SHADER = `
       stageVisibility
     );
     revealProgress = min(revealProgress, stageRevealProgress);
+    if (uReducedMotion > 0.5) revealProgress = step(0.001, revealProgress);
     float referenceDepthWU = 8.0;
     float resolvedDepth = referenceDepthWU * pow(
       cameraDepth / referenceDepthWU,
@@ -206,7 +226,7 @@ const SURFEL_VERTEX_SHADER = `
     float projectedSpacingPx = max(physicalRadiusPx, uMinPointSizePx) / 0.56;
     float featureRetention = mix(1.0, 1.12, clamp(iFeatureClass * 0.5, 0.0, 1.0));
     float detailFraction = clamp(
-      (projectedSpacingPx * uDetailBias * featureRetention) / 3.5,
+      (projectedSpacingPx * uDetailBias * materialScale.y * featureRetention) / 3.5,
       0.12,
       1.0
     );
@@ -621,15 +641,20 @@ function createUniforms() {
     uEntranceScale: { value: 1 },
     uOpacity: { value: 1 },
     uManifestationSpread: { value: 0.24 },
+    uModelMaterials: { value: Array.from({ length: 6 }, () => new THREE.Vector4(-1, -1, 1, 1)) },
     uMotionTime: { value: 0 },
     uMotionAmountWU: { value: 0 },
     uMotionScaleWU: { value: 20 },
     uMotionCoherence: { value: 0.72 },
     uStoryWU: { value: 0 },
+    uReducedMotion: { value: 0 },
     uTerminalMotionGroups: { value: new THREE.Vector2(-1, -1) },
     uTerminalTravelXWU: { value: new THREE.Vector2(-38, 38) },
     uTerminalPhase: { value: 0 },
     uTerminalAmplitudeWU: { value: 0 },
+    uTerminalPeriod: { value: 8 },
+    uTerminalDelay: { value: 2.6 },
+    uTerminalPulseDuration: { value: 2 },
     uEdgeSoftness: { value: 1.35 },
     uPalette0: { value: new THREE.Color('#7e7e7e') },
     uPalette1: { value: new THREE.Color('#ffd019') },
@@ -692,7 +717,7 @@ function attributesStillStable(geometry, identities) {
   return Object.entries(identities).every(([name, attribute]) => geometry.getAttribute(name) === attribute);
 }
 
-function modelStageVisibility(model, storyWU) {
+function modelStageVisibility(model, storyWU, reducedMotion = false) {
   const startWU = finiteNumberOrNull(model?.visibilityStartWU);
   const endWU = finiteNumberOrNull(model?.visibilityEndWU);
   const handoffWU = Math.max(
@@ -700,6 +725,7 @@ function modelStageVisibility(model, storyWU) {
     finiteNumberOrNull(model?.visibilityHandoffWU) ?? DEFAULT_VISIBILITY_HANDOFF_WU,
   );
   if (startWU === null || endWU === null || endWU <= startWU) return 0;
+  if (reducedMotion) return storyWU >= startWU && storyWU < endWU ? 1 : 0;
   const entrance = startWU <= 0 ? 1 : smoothstep(startWU, startWU + handoffWU, storyWU);
   const exit = 1 - smoothstep(Math.max(startWU, endWU - handoffWU), endWU, storyWU);
   return Math.min(entrance, exit);
@@ -713,12 +739,17 @@ function modelFramingSnapshot(
   storyWU,
   protectedNdcBounds = null,
   resolvedVisibilityWindows = null,
+  reducedMotion = false,
+  terminalMotion = null,
+  renderState = null,
 ) {
   if (!meta || !camera || !decoded) return Object.freeze({});
   camera.updateMatrixWorld(true);
+  const normalMatrix = new THREE.Matrix3().getNormalMatrix(camera.matrixWorldInverse);
   const diagnosticModels = meta.models || [];
   return Object.freeze(Object.fromEntries(diagnosticModels.map((model) => {
     const pointIndices = decoded.modelPointIndices[model.id] || [];
+    const manifestationSpread = controls.manifestationSpread * (model.material?.manifestationSpreadScale ?? 1);
     let minX = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
@@ -729,15 +760,35 @@ function modelFramingSnapshot(
     let framedLeftCount = 0;
     let framedRightCount = 0;
     let protectedCenterVisibleCount = 0;
+    let protectedEnvelopeVisibleCount = 0;
+    let protectedRenderedVisibleCount = 0;
+    const terminalSweptProtectedRegionVisibleCounts = (renderState?.protectedNdcRegions || []).map(() => 0);
+    let renderedVisibleCount = 0;
+    let nearestFramedDepthWU = Infinity;
+    let farthestFramedDepthWU = -Infinity;
+    const protectedRegionVisibleCounts = (renderState?.protectedNdcRegions || []).map(() => 0);
+    // A conservative silhouette bound: include every fog-admitted source
+    // point, even one rejected by LOD, at the maximum possible shader radius.
+    // This can over-report intrusion; it cannot certify a hidden point edge.
+    const radiusNdcX = renderState ? 2 * controls.maxPointSizePx / renderState.widthPx : 0;
+    const radiusNdcY = renderState ? 2 * controls.maxPointSizePx / renderState.heightPx : 0;
     // Explicit diagnostics only, never render/RAF. Three projected points are
     // needed to occupy a bin; this measures spread, not rendered visual quality.
     const occupancy = new Uint16Array(12 * 12);
+    const leftEdgeRows = new Uint16Array(12);
+    const rightEdgeRows = new Uint16Array(12);
+    const depthBySide = [[Infinity, -Infinity], [Infinity, -Infinity]];
+    const readingOccupancy = new Uint16Array(144);
+    const groundOccupancy = new Uint16Array(144);
+    const groundEdgeRows = [new Uint16Array(12), new Uint16Array(12)];
+    const readingDepths = [[], []];
+    const groundDepths = [[], []];
     const visibilityWindow = resolvedVisibilityWindows?.[model.id];
     const stageVisibility = modelStageVisibility(visibilityWindow ? {
       visibilityStartWU: visibilityWindow.startWU,
       visibilityEndWU: visibilityWindow.endWU,
       visibilityHandoffWU: visibilityWindow.handoffWU,
-    } : model, storyWU);
+    } : model, storyWU, reducedMotion);
     const protectedBounds = protectedNdcBounds || {
       minX: camera.aspect < 0.7 ? -0.72 : -0.46,
       maxX: camera.aspect < 0.7 ? 0.72 : 0.46,
@@ -751,7 +802,72 @@ function modelFramingSnapshot(
         decoded.positions[positionOffset + 1],
         decoded.positions[positionOffset + 2],
       );
-      const rawCameraDepth = -point.clone().applyMatrix4(camera.matrixWorldInverse).z;
+      if (terminalMotion && model.key === terminalMotion.modelKey) {
+        const { phase, amplitude, periodSeconds, responseDelaySeconds, pulseDurationSeconds, travelXWU } = terminalMotion;
+        if (renderState?.terminalSweep && stageVisibility > 0 && renderState.protectedNdcRegions.length) {
+          const startWorld = point.clone();
+          const endWorld = point.clone();
+          endWorld.y += amplitude;
+          const startDepth = -startWorld.clone().applyMatrix4(camera.matrixWorldInverse).z;
+          const endDepth = -endWorld.clone().applyMatrix4(camera.matrixWorldInverse).z;
+          if (Math.max(startDepth, endDepth) >= camera.near
+            && Math.min(startDepth, endDepth) < Math.min(camera.far, controls.fogEndWU)) {
+            // A near-plane crossing cannot safely certify projected clearance.
+            // Otherwise perspective maps this entire physical line to a line.
+            const start = startWorld.clone().project(camera);
+            const end = endWorld.clone().project(camera);
+            const normalOffset = pointIndex * 2;
+            const sweepNormal = new THREE.Vector3(...decodeAboutSurfelNormal(
+              decoded.normalOct[normalOffset], decoded.normalOct[normalOffset + 1],
+            )).applyMatrix3(normalMatrix).normalize();
+            const radiusAt = (position) => {
+              const view = position.clone().applyMatrix4(camera.matrixWorldInverse);
+              return resolveAboutSurfelRadiusPx({
+                radiusWU: decoded.radii[pointIndex], cameraDepthWU: -view.z,
+                projectionScalePx: renderState.projectionScalePx,
+                surfaceFacing: sweepNormal.dot(view.multiplyScalar(-1).normalize()),
+                lodRank: decoded.lodRanks[pointIndex], featureClass: decoded.featureClasses[pointIndex],
+                preserve: decoded.preserveFlags[pointIndex] >= 0.5, revealProgress: 1,
+                detailBiasScale: model.material?.detailBiasScale ?? 1,
+              }, controls);
+            };
+            const middle = startWorld.clone();
+            middle.y += amplitude * 0.5;
+            const radiusPx = Math.max(radiusAt(startWorld), radiusAt(middle), radiusAt(endWorld));
+            const crossesNearPlane = Math.min(startDepth, endDepth) <= camera.near;
+            const startNdc = [start.x, start.y], endNdc = [end.x, end.y];
+            // Most terminal points are below the lockup. Reject them against
+            // its union before checking every measured title/action line.
+            if (crossesNearPlane || aboutSurfelSweepIntersectsRect(startNdc, endNdc, radiusPx,
+              renderState.widthPx, renderState.heightPx, protectedNdcBounds)) {
+              renderState.protectedNdcRegions.forEach((bounds, index) => {
+                if (crossesNearPlane || aboutSurfelSweepIntersectsRect(startNdc, endNdc, radiusPx,
+                  renderState.widthPx, renderState.heightPx, bounds)) {
+                  terminalSweptProtectedRegionVisibleCounts[index] += 1;
+                }
+              });
+            }
+          }
+        }
+        const region = (point.x - travelXWU[0]) / (travelXWU[1] - travelXWU[0]);
+        const time = ((phase - region * responseDelaySeconds) % periodSeconds + periodSeconds) % periodSeconds;
+        const pulse = Math.sin(Math.PI * Math.min(1, time / pulseDurationSeconds));
+        point.y += amplitude * pulse * pulse;
+      } else if (renderState && controls.motionAmountWU > 0) {
+        const time = renderState.motionTime;
+        const groupPhase = decoded.motionGroups[pointIndex] * 2.39996323 * controls.motionCoherence;
+        const pointPhase = (point.x * 0.62 + point.y * 0.94 + point.z * 1.18) / controls.motionScaleWU
+          + decoded.revealRanks[pointIndex] / 65535 * 5.3 + decoded.lodRanks[pointIndex] * 9.7;
+        const individual = 0.12 + 0.16 * (1 - controls.motionCoherence);
+        point.x += controls.motionAmountWU * (Math.sin(time * 0.71 + groupPhase) * 0.6
+          + Math.sin(time * 0.53 + pointPhase) * individual);
+        point.y += controls.motionAmountWU * (Math.cos(time * 0.83 + groupPhase * 1.31) * 0.8
+          + Math.cos(time * 0.61 + pointPhase * 0.79) * individual);
+        point.z += controls.motionAmountWU * (Math.sin(time * 0.47 + groupPhase * 0.73) * 0.4
+          + Math.sin(time * 0.43 + pointPhase * 1.17) * individual);
+      }
+      const viewPoint = point.clone().applyMatrix4(camera.matrixWorldInverse);
+      const rawCameraDepth = -viewPoint.z;
       const inFront = rawCameraDepth > 0.0001;
       const cameraDepth = Math.max(0.0001, rawCameraDepth);
       const fogAmount = smoothstep(controls.fogStartWU, controls.fogEndWU, cameraDepth);
@@ -759,8 +875,8 @@ function modelFramingSnapshot(
       minimumFogVisibility = Math.min(minimumFogVisibility, fogVisibility);
       const normalizedRevealRank = decoded.revealRanks[pointIndex] / 65535;
       const fogRevealRank = Math.min(
-        normalizedRevealRank * controls.manifestationSpread,
-        Math.max(0, controls.manifestationSpread - 0.001),
+        normalizedRevealRank * manifestationSpread,
+        Math.max(0, manifestationSpread - 0.001),
       );
       const stageRevealRank = Math.min(normalizedRevealRank * 0.92, 0.919);
       const revealed = inFront
@@ -778,10 +894,6 @@ function modelFramingSnapshot(
         framedVisibleCount += 1;
         if (projected.x < 0) framedLeftCount += 1;
         else framedRightCount += 1;
-        const column = Math.min(11, Math.floor((projected.x + 1) * 6));
-        const row = Math.min(11, Math.floor((projected.y + 1) * 6));
-        const bin = row * 12 + column;
-        if (occupancy[bin] < 65535) occupancy[bin] += 1;
       }
       if (revealed && framed
         && projected.x >= protectedBounds.minX
@@ -789,6 +901,72 @@ function modelFramingSnapshot(
         && projected.y >= protectedBounds.minY
         && projected.y <= protectedBounds.maxY) {
         protectedCenterVisibleCount += 1;
+      }
+      if (revealed
+        && projected.x + radiusNdcX >= protectedBounds.minX
+        && projected.x - radiusNdcX <= protectedBounds.maxX
+        && projected.y + radiusNdcY >= protectedBounds.minY
+        && projected.y - radiusNdcY <= protectedBounds.maxY) protectedEnvelopeVisibleCount += 1;
+      if (renderState && rawCameraDepth >= camera.near && rawCameraDepth <= camera.far) {
+        const revealVisibility = Math.min(fogVisibility, renderState.revealVisibility);
+        let revealProgress = Math.min(
+          smoothstep(fogRevealRank, Math.min(1, fogRevealRank + 0.08), revealVisibility),
+          smoothstep(stageRevealRank, stageRevealRank + 0.08, stageVisibility),
+        );
+        if (reducedMotion) revealProgress = revealProgress >= 0.001 ? 1 : 0;
+        const normalOffset = pointIndex * 2;
+        const normal = new THREE.Vector3(...decodeAboutSurfelNormal(
+          decoded.normalOct[normalOffset], decoded.normalOct[normalOffset + 1],
+        )).applyMatrix3(normalMatrix).normalize();
+        const surfaceFacing = normal.dot(viewPoint.multiplyScalar(-1).normalize());
+        const renderedRadiusPx = resolveAboutSurfelRadiusPx({
+          radiusWU: decoded.radii[pointIndex], cameraDepthWU: rawCameraDepth,
+          projectionScalePx: renderState.projectionScalePx, surfaceFacing,
+          lodRank: decoded.lodRanks[pointIndex], featureClass: decoded.featureClasses[pointIndex],
+          preserve: decoded.preserveFlags[pointIndex] >= 0.5, revealProgress,
+          detailBiasScale: model.material?.detailBiasScale ?? 1,
+        }, controls);
+        if (renderedRadiusPx > 0 && framed) {
+          renderedVisibleCount += 1;
+          nearestFramedDepthWU = Math.min(nearestFramedDepthWU, rawCameraDepth);
+          farthestFramedDepthWU = Math.max(farthestFramedDepthWU, rawCameraDepth);
+          const column = Math.min(11, Math.floor((projected.x + 1) * 6));
+          const row = Math.min(11, Math.floor((projected.y + 1) * 6));
+          const bin = row * 12 + column;
+          if (occupancy[bin] < 65535) occupancy[bin] += 1;
+          const side = projected.x < 0 ? 0 : 1;
+          if (projected.x < protectedBounds.minX || projected.x > protectedBounds.maxX) {
+            readingOccupancy[bin] += 1;
+            readingDepths[side].push(rawCameraDepth);
+          }
+          const belowLockup = projected.y < protectedBounds.minY;
+          if (belowLockup) {
+            groundOccupancy[bin] += 1;
+            groundDepths[side].push(rawCameraDepth);
+          }
+          // Edge coverage measures the painted disk, not only its centre.
+          const leftEdge = aboutSurfelIntersectsRect(projected.x, projected.y, renderedRadiusPx,
+            renderState.widthPx, renderState.heightPx,
+            { minX: -1, maxX: -0.96, minY: -1, maxY: 1 });
+          const rightEdge = aboutSurfelIntersectsRect(projected.x, projected.y, renderedRadiusPx,
+            renderState.widthPx, renderState.heightPx,
+            { minX: 0.96, maxX: 1, minY: -1, maxY: 1 });
+          if (leftEdge) leftEdgeRows[row] += 1;
+          if (rightEdge) rightEdgeRows[row] += 1;
+          if (belowLockup && leftEdge) groundEdgeRows[0][row] += 1;
+          if (belowLockup && rightEdge) groundEdgeRows[1][row] += 1;
+          const sideDepth = depthBySide[projected.x < 0 ? 0 : 1];
+          sideDepth[0] = Math.min(sideDepth[0], rawCameraDepth);
+          sideDepth[1] = Math.max(sideDepth[1], rawCameraDepth);
+        }
+        if (aboutSurfelIntersectsRect(projected.x, projected.y, renderedRadiusPx,
+          renderState.widthPx, renderState.heightPx, protectedBounds)) protectedRenderedVisibleCount += 1;
+        if (renderedRadiusPx > 0) {
+          renderState.protectedNdcRegions.forEach((bounds, index) => {
+            if (aboutSurfelIntersectsRect(projected.x, projected.y, renderedRadiusPx,
+              renderState.widthPx, renderState.heightPx, bounds)) protectedRegionVisibleCounts[index] += 1;
+          });
+        }
       }
     });
     let occupiedBinCount = 0;
@@ -809,7 +987,9 @@ function modelFramingSnapshot(
     let occupiedColumnCount = 0;
     let leftOccupiedColumnCount = 0;
     let rightOccupiedColumnCount = 0;
+    let fullWidthRowCount = 0;
     for (let index = 0; index < 12; index += 1) {
+      if (occupancy.subarray(index * 12, index * 12 + 12).every((count) => count >= 3)) fullWidthRowCount += 1;
       if (rowMask & (1 << index)) occupiedRowCount += 1;
       if (!(columnMask & (1 << index))) continue;
       occupiedColumnCount += 1;
@@ -817,6 +997,30 @@ function modelFramingSnapshot(
       else rightOccupiedColumnCount += 1;
     }
     const pointCount = pointIndices.length;
+    const readingSides = [0, 1].map((side) => {
+      const columns = new Uint8Array(6);
+      let rows = 0, bins = 0;
+      for (let row = 0; row < 12; row += 1) {
+        let occupied = false;
+        for (let column = 0; column < 6; column += 1) {
+          if (readingOccupancy[row * 12 + side * 6 + column] < 3) continue;
+          occupied = true; bins += 1; columns[column] += 1;
+        }
+        if (occupied) rows += 1;
+      }
+      return { rows, bins, secondaryColumnRows: [...columns].sort((a, b) => b - a)[1] };
+    });
+    let groundFullWidthRowCount = 0, groundOuterEdgeFullWidthRowCount = 0;
+    for (let row = 0; row < 12; row += 1) {
+      if (!groundOccupancy.subarray(row * 12, row * 12 + 12).every((count) => count >= 3)) continue;
+      groundFullWidthRowCount += 1;
+      if (groundEdgeRows[0][row] && groundEdgeRows[1][row]) groundOuterEdgeFullWidthRowCount += 1;
+    }
+    const populatedDepthSpan = (depths) => {
+      if (depths.length < 3) return 0;
+      depths.sort((a, b) => a - b);
+      return depths[Math.floor((depths.length - 1) * 0.9)] - depths[Math.floor((depths.length - 1) * 0.1)];
+    };
     return [model.key, Object.freeze({
       fullyFramed: minX >= -1 && maxX <= 1 && minY >= -1 && maxY <= 1,
       ndcBounds: Object.freeze({ minX, maxX, minY, maxY }),
@@ -830,6 +1034,31 @@ function modelFramingSnapshot(
       framedLeftCount,
       framedRightCount,
       protectedCenterVisibleCount,
+      protectedEnvelopeVisibleCount,
+      protectedRenderedVisibleCount,
+      terminalSweptProtectedRegionVisibleCounts,
+      renderedVisibleCount,
+      framedDepthSpanWU: renderedVisibleCount ? farthestFramedDepthWU - nearestFramedDepthWU : 0,
+      framedLeftDepthSpanWU: Number.isFinite(depthBySide[0][0]) ? depthBySide[0][1] - depthBySide[0][0] : 0,
+      framedRightDepthSpanWU: Number.isFinite(depthBySide[1][0]) ? depthBySide[1][1] - depthBySide[1][0] : 0,
+      fullWidthRowCount,
+      readingLeftOccupiedRowCount: readingSides[0].rows,
+      readingRightOccupiedRowCount: readingSides[1].rows,
+      readingLeftOccupiedBinCount: readingSides[0].bins,
+      readingRightOccupiedBinCount: readingSides[1].bins,
+      readingLeftSecondaryColumnRows: readingSides[0].secondaryColumnRows,
+      readingRightSecondaryColumnRows: readingSides[1].secondaryColumnRows,
+      readingLeftPopulatedDepthWU: populatedDepthSpan(readingDepths[0]),
+      readingRightPopulatedDepthWU: populatedDepthSpan(readingDepths[1]),
+      groundFullWidthRowCount,
+      groundOuterEdgeFullWidthRowCount,
+      groundLeftPopulatedDepthWU: populatedDepthSpan(groundDepths[0]),
+      groundRightPopulatedDepthWU: populatedDepthSpan(groundDepths[1]),
+      // A 2% edge strip has 24% of a normal grid cell's area. One painted
+      // circle is the area-equivalent threshold to three in an 8.33% cell.
+      leftEdgeOccupiedRowCount: leftEdgeRows.filter((count) => count >= 1).length,
+      rightEdgeOccupiedRowCount: rightEdgeRows.filter((count) => count >= 1).length,
+      protectedRegionVisibleCounts,
       occupiedBinCount,
       occupiedRowCount,
       occupiedColumnCount,
@@ -1052,9 +1281,17 @@ export function createBlenderPointScene({
   const installDecodedScene = ({ nextMeta, nextCameraTrack, nextDecoded }) => {
     if (disposed) return;
     meta = nextMeta;
-    terminalStudy = RUNTIME_DIAGNOSTICS_ENABLED
+    for (const material of uniforms.uModelMaterials.value) material.set(-1, -1, 1, 1);
+    for (const [index, model] of meta.models.entries()) {
+      if (!model.material) continue;
+      const groups = meta.motionGroups.filter((entry) => entry.key === model.motionKey
+        || entry.key.startsWith(`${model.motionKey}.`)).map((entry) => entry.id);
+      uniforms.uModelMaterials.value[index].set(Math.min(...groups), Math.max(...groups),
+        model.material.manifestationSpreadScale, model.material.detailBiasScale);
+    }
+    terminalStudy = meta.terminalResponse || (RUNTIME_DIAGNOSTICS_ENABLED
       && meta.terminalStudy?.schema === 'about-terminal-study/v1'
-      ? meta.terminalStudy : null;
+      ? meta.terminalStudy : null);
     uniforms.uTerminalMotionGroups.value.set(-1, -1);
     if (terminalStudy) {
       const model = meta.models.find((entry) => entry.key === terminalStudy.modelKey);
@@ -1063,6 +1300,9 @@ export function createBlenderPointScene({
       if (groups.length) {
         uniforms.uTerminalMotionGroups.value.set(Math.min(...groups), Math.max(...groups));
         uniforms.uTerminalTravelXWU.value.fromArray(terminalStudy.travelXWU);
+        uniforms.uTerminalPeriod.value = terminalStudy.periodSeconds;
+        uniforms.uTerminalDelay.value = terminalStudy.responseDelaySeconds ?? 2.6;
+        uniforms.uTerminalPulseDuration.value = terminalStudy.pulseDurationSeconds ?? 2;
       }
     }
     cameraTrack = nextCameraTrack;
@@ -1289,10 +1529,11 @@ export function createBlenderPointScene({
     uniforms.uMotionAmountWU.value = controls.motionAmountWU;
     uniforms.uMotionScaleWU.value = controls.motionScaleWU;
     uniforms.uMotionCoherence.value = controls.motionCoherence;
-    uniforms.uStoryWU.value = Number(frame?.storyWU) || 0;
+    uniforms.uStoryWU.value = journeySample.sceneStoryWU;
+    uniforms.uReducedMotion.value = frame?.reducedMotion ? 1 : 0;
     if (terminalStudy) {
       const period = Math.max(1, Number(terminalStudy.periodSeconds) || 8);
-      uniforms.uTerminalPhase.value = ((Number(frame?.ambientTime) || 0) % period) / period * Math.PI * 2;
+      uniforms.uTerminalPhase.value = (Number(frame?.ambientTime) || 0) % period;
       uniforms.uTerminalAmplitudeWU.value = Math.min(4, Number(terminalStudy.amplitudeWU) || 0)
         * Math.min(1, controls.motionAmountWU / 0.15);
     }
@@ -1312,7 +1553,7 @@ export function createBlenderPointScene({
     return true;
   };
 
-  const getDiagnosticsSnapshot = ({ protectedNdcBounds = null } = {}) => Object.freeze({
+  const getDiagnosticsSnapshot = ({ protectedNdcBounds = null, protectedNdcRegions = [], terminalSweep = false } = {}) => Object.freeze({
     state,
     adapterId: ADAPTER_ID,
     assetVersion: Number(meta?.version || 0),
@@ -1360,9 +1601,18 @@ export function createBlenderPointScene({
     cameraLocked: journeySample.locked,
     atInvitation: journeySample.atInvitation,
     storyWU: Number(latestFrame?.storyWU) || 0,
+    sceneStoryWU: uniforms.uStoryWU.value,
     ambientTime: Number(latestFrame?.ambientTime) || 0,
     motionTime,
-    terminalStudy: terminalStudy ? {
+    terminalResponse: terminalStudy ? {
+      schema: terminalStudy.schema,
+      periodSeconds: terminalStudy.periodSeconds,
+      phase: uniforms.uTerminalPhase.value,
+      amplitudeWU: uniforms.uTerminalAmplitudeWU.value,
+      responseDelaySeconds: uniforms.uTerminalDelay.value,
+      pulseDurationSeconds: uniforms.uTerminalPulseDuration.value,
+    } : null,
+    terminalStudy: terminalStudy?.schema === 'about-terminal-study/v1' ? {
       schema: terminalStudy.schema,
       periodSeconds: terminalStudy.periodSeconds,
       phase: uniforms.uTerminalPhase.value,
@@ -1372,16 +1622,34 @@ export function createBlenderPointScene({
     cameraQuaternion: Object.freeze(camera.quaternion.toArray()),
     steadycam: steadycamController.getSnapshot(steadycamSample),
     pointerPan: Object.freeze({ ...pointerPanSample }),
-    stageVisibilityMode: 'authored-bounded-whole-surfel-handoff',
+    stageVisibilityMode: latestFrame?.reducedMotion
+      ? 'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff',
+    reducedMotion: Boolean(latestFrame?.reducedMotion),
     resolvedVisibilityWindows: Object.freeze(resolvedModelVisibilityWindows),
     modelFraming: sceneContractStatus === 'compatible' && state === 'ready' ? modelFramingSnapshot(
       meta,
       camera,
       controls,
       decoded,
-      Number(latestFrame?.storyWU) || 0,
+      uniforms.uStoryWU.value,
       protectedNdcBounds,
       resolvedModelVisibilityWindows,
+      Boolean(latestFrame?.reducedMotion),
+      terminalStudy ? {
+        ...terminalStudy,
+        phase: uniforms.uTerminalPhase.value,
+        amplitude: uniforms.uTerminalAmplitudeWU.value,
+        responseDelaySeconds: uniforms.uTerminalDelay.value,
+        pulseDurationSeconds: uniforms.uTerminalPulseDuration.value,
+      } : null,
+      {
+        motionTime, widthPx: width * pixelRatio, heightPx: height * pixelRatio,
+        projectionScalePx: uniforms.uProjectionScalePx.value,
+        revealVisibility: Math.min(uniforms.uSceneVisibility.value,
+          uniforms.uEntranceScale.value, uniforms.uOpacity.value),
+        protectedNdcRegions,
+        terminalSweep,
+      },
     ) : EMPTY_MODEL_FRAMING,
     pixelRatio,
     viewportWidth: width,

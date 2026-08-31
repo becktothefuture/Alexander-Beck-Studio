@@ -95,6 +95,67 @@ const storyMapFor = (inlineSize = 1440, blockSize = 900) => {
   return plan.journeyMap;
 };
 const hasCode = (value, code) => value.diagnostics.some((item) => item.code === code);
+
+test('source material scales preserve defaults and reject unsafe values or shared model bindings', () => {
+  const { meta, cameraTrack } = semanticFixture();
+  meta.models[3].motionKey = 'about.03.coherent';
+  meta.motionGroups = [{ id: 3, key: 'about.03.coherent' }];
+  const resolve = (material, groups = meta.motionGroups, models = meta.models) => resolveAboutBlenderSceneContract({
+    meta: { ...meta, motionGroups: groups, models: models.map((model, index) => index === 3
+      ? { ...model, material } : model) }, cameraTrack, storyMap: storyMapFor(),
+  });
+  assert.equal(resolve(undefined).status, 'compatible');
+  const material = { manifestationSpreadScale: 0.01, detailBiasScale: 1.6 };
+  assert.equal(resolve(material).status, 'compatible');
+  for (const invalid of [{}, 'invalid', { ...material, manifestationSpreadScale: 0 },
+    { ...material, manifestationSpreadScale: Infinity }, { ...material, detailBiasScale: 3 }]) {
+    assert.ok(hasCode(resolve(invalid), 'scene-model-material-invalid'));
+  }
+  for (const groups of [[], [null], [{ id: NaN, key: 'about.03.coherent' }],
+    [...meta.motionGroups, null], [...meta.motionGroups, { id: 4, key: 3 }],
+    [...meta.motionGroups, { id: 4 }],
+    [{ id: 3, key: 'about.03.coherent' }, { id: 3, key: 'another-model' }],
+    [{ id: 3, key: 'about.03.coherent' }, { id: 5, key: 'about.03.coherent.1' }]]) {
+    assert.ok(hasCode(resolve(material, groups), 'scene-model-material-invalid'));
+  }
+  const shared = structuredClone(meta.models);
+  shared[2].motionKey = 'about.03';
+  assert.ok(hasCode(resolve(material, meta.motionGroups, shared), 'scene-model-material-invalid'));
+});
+
+test('source-authored terminal response rejects unsafe timing, geometry and model bindings', () => {
+  const { meta, cameraTrack } = semanticFixture();
+  meta.models[5].motionKey = 'about.05.coherent';
+  const motionGroups = [{ id: 5, key: 'about.05.coherent' }, { id: 6, key: 'about.05.coherent.1' }];
+  const response = {
+    schema: 'about-terminal-response/v1', modelKey: 'about.05', periodSeconds: 8,
+    amplitudeWU: 3.2, responseDelaySeconds: 2.6, pulseDurationSeconds: 2,
+    travelXWU: [-60, 60], bankEndSiteZ: -1900,
+    landscapeBounds: { min: [-420, -1200, -2800], max: [420, 0, -1500] },
+  };
+  const resolve = (terminalResponse, models = meta.models, groups = motionGroups) => resolveAboutBlenderSceneContract({
+    meta: { ...meta, models, motionGroups: groups, terminalResponse }, cameraTrack, storyMap: storyMapFor(),
+  });
+  assert.equal(resolve(response).status, 'compatible');
+  for (const change of [
+    { amplitudeWU: Infinity }, { amplitudeWU: 10 }, { periodSeconds: 2 },
+    { responseDelaySeconds: -1 }, { pulseDurationSeconds: NaN },
+    { travelXWU: [60, -60] }, { modelKey: 'about.99' },
+    { landscapeBounds: { min: [0, 0, 0], max: [0, 0, 0] } },
+  ]) assert.equal(hasCode(resolve({ ...response, ...change }), 'scene-terminal-response-invalid'), true);
+  assert.equal(hasCode(resolve(response, {}), 'scene-terminal-response-invalid'), true);
+  assert.equal(hasCode(resolve(response, { some: 1 }), 'scene-terminal-response-invalid'), true);
+  assert.doesNotThrow(() => resolve(response, [null, ...meta.models]));
+  for (const groups of [
+    [], null, [null], [{ id: NaN, key: 'about.05.coherent' }],
+    [{ id: 256, key: 'about.05.coherent' }],
+    [{ id: 5, key: 'about.05.coherent' }, { id: 5, key: 'about.05.coherent.1' }],
+    [{ id: 5, key: 'about.05.coherent' }, { id: 6, key: 'about.04.coherent' }, { id: 7, key: 'about.05.coherent.1' }],
+  ]) assert.equal(hasCode(resolve(response, meta.models, groups), 'scene-terminal-binding-invalid'), true);
+  const unboundModels = structuredClone(meta.models);
+  delete unboundModels[5].motionKey;
+  assert.equal(hasCode(resolve(response, unboundModels), 'scene-terminal-binding-invalid'), true);
+});
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const encode = (value) => new TextEncoder().encode(JSON.stringify(value));
 

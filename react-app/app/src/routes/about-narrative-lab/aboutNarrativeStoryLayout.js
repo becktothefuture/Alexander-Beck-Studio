@@ -20,7 +20,9 @@ export const ABOUT_NARRATIVE_STORY_GAP_PRESETS = Object.freeze({
   standard: Object.freeze({ desktop: 0.32, tablet: 0.28, mobile: 0.22 }),
   chapter: Object.freeze({ desktop: 0.58, tablet: 0.5, mobile: 0.4 }),
   finale: Object.freeze({ desktop: 1.05, tablet: 0.92, mobile: 0.78 }),
-  passage: Object.freeze({ desktop: 2.4, tablet: 2.4, mobile: 2.4 }),
+  // Includes the complete physical passage plus the reading lead/tail. The
+  // same authored gap works with the fitted rail at narrow and zoomed layouts.
+  passage: Object.freeze({ desktop: 3.8, tablet: 3.8, mobile: 3.8 }),
   arrival: Object.freeze({ desktop: 0.8, tablet: 0.8, mobile: 0.8 }),
 });
 
