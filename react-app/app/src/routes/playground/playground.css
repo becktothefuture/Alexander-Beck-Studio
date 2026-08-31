@@ -110,7 +110,9 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
+  /* The camera owns panning. Native focus/scrollIntoView must not create a
+     second, hidden scroll offset when a partially visible tile is activated. */
+  overflow: clip;
   inline-size: 100%;
   block-size: 100%;
   min-inline-size: 0;
@@ -184,6 +186,7 @@
   inline-size: 100%;
   block-size: 100%;
   pointer-events: none;
+  will-change: transform;
 }
 
 .playground-route .playground-world-copy {
@@ -193,21 +196,12 @@
   inline-size: var(--playground-world-width);
   block-size: var(--playground-world-height);
   transform: translate3d(
-    calc(
-      var(--playground-viewport-center-x-px, 50vw)
-      - var(--playground-render-camera-x-px, 0px)
-      + var(--playground-copy-x-px, 0px)
-    ),
-    calc(
-      var(--playground-viewport-center-y-px, 50vh)
-      - var(--playground-render-camera-y-px, 0px)
-      + var(--playground-copy-y-px, 0px)
-    ),
+    var(--playground-copy-x-px, 0px),
+    var(--playground-copy-y-px, 0px),
     0
   ) scale(var(--playground-world-scale, 1));
   transform-origin: 0 0;
   transition: none;
-  will-change: transform;
   pointer-events: none;
 }
 
@@ -308,12 +302,29 @@
   pointer-events: none;
 }
 
+.playground-route .playground-depth-plane {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+.playground-route .playground-depth-plane[data-work-plane='snippets'] {
+  will-change: transform;
+}
+
+.playground-route .playground-depth-plane[data-work-plane='case-studies'] {
+  z-index: 1;
+}
+
 .playground-route .playground-item--semantic {
   inset-block-start: 0;
   inset-inline-start: 0;
   transform: none;
   transform-origin: 0 0;
-  will-change: transform;
 }
 
 .playground-route .playground-item--decorative {

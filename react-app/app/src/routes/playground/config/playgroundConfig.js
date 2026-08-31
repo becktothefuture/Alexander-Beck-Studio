@@ -17,10 +17,16 @@ export const DEFAULT_PLAYGROUND_CONFIG = Object.freeze({
   projectSpacing: 1,
   itemGapCells: 1,
   itemScale: 1.35,
+  itemDiagonalViewportRatio: 0.36,
+  itemDiagonalMinPx: 484,
+  itemDiagonalMaxPx: 576,
+  snippetDepth: 0.12,
   sizeVariation: 0.5,
   labelGapPx: 8,
   dotRadiusPx: 2,
-  dotOpacity: 0.16,
+  dotOpacity: 1,
+  dotDensity: 0.58,
+  dotRandomness: 0.65,
   wheelSensitivity: 0.82,
   dragMomentum: 0.88,
 });
@@ -34,10 +40,16 @@ export const PLAYGROUND_CONFIG_BOUNDS = Object.freeze({
   projectSpacing: Object.freeze({ min: 1, max: 2.5, step: 0.05 }),
   itemGapCells: Object.freeze({ min: 1, max: 6, step: 1, integer: true }),
   itemScale: Object.freeze({ min: 0.75, max: 2, step: 0.01 }),
+  itemDiagonalViewportRatio: Object.freeze({ min: 0.2, max: 0.6, step: 0.01 }),
+  itemDiagonalMinPx: Object.freeze({ min: 320, max: 520, step: 4, integer: true }),
+  itemDiagonalMaxPx: Object.freeze({ min: 520, max: 720, step: 4, integer: true }),
+  snippetDepth: Object.freeze({ min: 0, max: 0.2, step: 0.01 }),
   sizeVariation: Object.freeze({ min: 0, max: 0.5, step: 0.01 }),
   labelGapPx: Object.freeze({ min: 4, max: 16, step: 1, integer: true }),
   dotRadiusPx: Object.freeze({ min: 2, max: 7, step: 0.25 }),
-  dotOpacity: Object.freeze({ min: 0.12, max: 0.6, step: 0.01 }),
+  dotOpacity: Object.freeze({ min: 0.12, max: 1, step: 0.01 }),
+  dotDensity: Object.freeze({ min: 0, max: 1, step: 0.01 }),
+  dotRandomness: Object.freeze({ min: 0, max: 1, step: 0.01 }),
   wheelSensitivity: Object.freeze({ min: 0.5, max: 1.6, step: 0.01 }),
   dragMomentum: Object.freeze({ min: 0, max: 0.96, step: 0.01 }),
 });
@@ -105,6 +117,13 @@ export function getPlaygroundConfigSnapshot() {
 
 export function buildPlaygroundCanonicalSnapshot(input = currentPlaygroundConfig) {
   return normalizePlaygroundConfig(input);
+}
+
+export function buildPlaygroundScopedDesignSnapshot(canonical, input = currentPlaygroundConfig) {
+  if (!canonical?.runtime || !canonical?.shell) {
+    throw new Error('Invalid canonical design configuration.');
+  }
+  return { ...canonical, playground: buildPlaygroundCanonicalSnapshot(input) };
 }
 
 export function setPlaygroundConfig(input = {}, { emit = true, reason = 'set' } = {}) {

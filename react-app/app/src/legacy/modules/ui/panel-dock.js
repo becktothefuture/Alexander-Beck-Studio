@@ -610,7 +610,9 @@ function createMasterPanel({
       panel.style.width = `${restoreW}px`;
       const maxHeight = targetWindow.innerHeight * (isDev() ? 0.92 : 0.9);
       panel.style.height = `${Math.min(Math.max(restoreH, isDev() ? getDevPanelMinHeightPx() : 0), maxHeight)}px`;
-      panel.style.maxHeight = isDev() ? "var(--size-92)" : "var(--size-90)";
+      // Keep the restored preference, but let CSS cap it on every viewport
+      // resize. An inline percentage cap has no definite parent height here.
+      panel.style.removeProperty('max-height');
     }
     // Otherwise, let CSS defaults apply
   }

@@ -81,6 +81,9 @@ async function createAuditPage(browser, options = {}) {
     viewport: options.viewport || { width: 1440, height: 900 },
     reducedMotion: options.reducedMotion || 'no-preference',
     colorScheme: options.colorScheme || 'light',
+    hasTouch: options.hasTouch || false,
+    isMobile: options.isMobile || false,
+    deviceScaleFactor: options.deviceScaleFactor || 1,
   });
   const page = await context.newPage();
   const failures = bindFailures(page);
@@ -188,19 +191,19 @@ function assertBaseState(state, label) {
       caseStudies: caseStudies.length,
       snippets: snippets.length,
     });
-  assert(averageArea(caseStudies) > averageArea(snippets) * 1.25,
+  assert(averageArea(caseStudies) > averageArea(snippets) * 2,
     `${label} must make case studies materially larger than snippets`, {
       caseStudyArea: round(averageArea(caseStudies)),
       snippetArea: round(averageArea(snippets)),
     });
-  assert(averageMediaArea(caseStudies) > averageMediaArea(snippets) * 1.25,
+  assert(averageMediaArea(caseStudies) > averageMediaArea(snippets) * 2,
     `${label} case-study media must preserve the primary hierarchy`, {
       caseStudyArea: round(averageMediaArea(caseStudies)),
       snippetArea: round(averageMediaArea(snippets)),
     });
   const compactViewport = state.viewport?.width <= 700;
   const maximumCaseStudyWidth = state.viewport.width * (compactViewport ? 0.9 : 0.35);
-  const maximumCaseStudyHeight = state.viewport.height * (compactViewport ? 0.44 : 0.35);
+  const maximumCaseStudyHeight = state.viewport.height * 0.6;
   assert(caseStudies.every((item) => item.mediaWidth <= maximumCaseStudyWidth + 1),
     `${label} case studies must stay within the compact primary width band`, {
       maximumAllowed: round(maximumCaseStudyWidth),
@@ -211,6 +214,8 @@ function assertBaseState(state, label) {
       maximumAllowed: round(maximumCaseStudyHeight),
       heights: caseStudies.map((item) => round(item.mediaHeight)),
     });
+  assert(caseStudies.every((item) => Math.abs((item.mediaWidth / item.mediaHeight) - 0.8) < 0.005),
+    `${label} case-study covers must preserve the authored 4:5 portrait format`, caseStudies);
   assert(state.itemState.every((item) => item.mediaRadius >= 17.5),
     `${label} every Work image needs the generous rounded media edge`, {
       radii: state.itemState.map((item) => ({ id: item.id, radius: round(item.mediaRadius) })),
@@ -248,7 +253,7 @@ async function setItemOffset(page, itemId, offsetX = 170, offsetY = 0) {
     const placement = snapshot?.placements?.find((candidate) => candidate.id === id);
     if (!api || !placement || !snapshot?.dotField) throw new Error(`Missing placement for ${id}`);
     const spacing = snapshot.dotField.gridSpacingPx;
-    const scale = snapshot.dotField.worldScale;
+    const scale = snapshot.dotField.worldScale * placement.parallax;
     const centerX = (placement.xCell + (placement.footprintWidthCells / 2)) * spacing;
     const centerY = (placement.yCell + (placement.footprintHeightCells / 2)) * spacing;
     api.setCamera(centerX - (x / scale), centerY - (y / scale));
@@ -285,6 +290,8 @@ async function auditWorkItemPresence(page) {
         } : null,
         radius: Number.parseFloat(style?.borderTopLeftRadius || '0') || 0,
         shadow: style?.boxShadow || 'none',
+        imageTransform: media?.querySelector('img')
+          ? getComputedStyle(media.querySelector('img')).transform : 'none',
       };
     }, target);
     const before = await readState();
@@ -292,10 +299,14 @@ async function auditWorkItemPresence(page) {
     await page.waitForTimeout(520);
     const hovered = await readState();
     assert(before.rect && hovered.rect, `${target.kind} hover needs measurable media geometry`);
-    assert(hovered.rect.top <= before.rect.top - 2,
-      `${target.kind} hover must add a compact upward presence`, { before, hovered });
-    assert(hovered.rect.width >= before.rect.width + 1,
-      `${target.kind} hover must add a restrained scale response`, { before, hovered });
+    assert(Math.abs(hovered.rect.top - before.rect.top) < 0.5
+      && Math.abs(hovered.rect.left - before.rect.left) < 0.5,
+    `${target.kind} hover must keep the tile still`, { before, hovered });
+    assert(Math.abs(hovered.rect.width - before.rect.width) < 0.5
+      && Math.abs(hovered.rect.height - before.rect.height) < 0.5,
+    `${target.kind} hover must not zoom or resize the media`, { before, hovered });
+    assert(hovered.imageTransform === before.imageTransform,
+      `${target.kind} hover must not add a nested image zoom`, { before, hovered });
     assert(hovered.shadow !== before.shadow && hovered.shadow !== 'none',
       `${target.kind} hover must strengthen the contact shadow`, { before, hovered });
     assert(hovered.radius >= 17.5,
@@ -320,12 +331,12 @@ async function installPhaseRecorder(page, itemId) {
     window.__ABS_WORK_AUDIT_PHASES__ = [];
     const root = document.querySelector('[data-work-experience="true"]');
     const viewport = root?.querySelector('[data-playground-viewport]');
-    const capture = () => {
+    const capture = (phase = root?.dataset.workOpenPhase || 'idle') => {
       const source = root?.querySelector(`[data-playground-item="${CSS.escape(id)}"] button`);
       const sourceRect = source?.getBoundingClientRect();
       const viewportRect = viewport?.getBoundingClientRect();
       window.__ABS_WORK_AUDIT_PHASES__.push({
-        phase: root?.dataset.workOpenPhase || 'idle',
+        phase,
         time: performance.now(),
         sourceCenter: sourceRect ? {
           x: sourceRect.left + (sourceRect.width / 2),
@@ -337,8 +348,15 @@ async function installPhaseRecorder(page, itemId) {
         } : null,
       });
     };
-    const observer = new MutationObserver(capture);
-    observer.observe(root, { attributes: true, attributeFilter: ['data-work-open-phase'] });
+    const observer = new MutationObserver((mutations) => {
+      // Direct activation starts centering and expansion in one React commit.
+      // Preserve both transitions when MutationObserver batches that commit.
+      mutations.forEach((mutation, index) => {
+        capture(mutations[index + 1]?.oldValue || root.dataset.workOpenPhase || 'idle');
+      });
+    });
+    observer.observe(root, { attributes: true, attributeOldValue: true,
+      attributeFilter: ['data-work-open-phase'] });
     window.__ABS_WORK_AUDIT_OBSERVER__ = observer;
     capture();
   }, itemId);
@@ -348,20 +366,17 @@ async function readPhaseRecords(page) {
   return page.evaluate(() => [...(window.__ABS_WORK_AUDIT_PHASES__ || [])]);
 }
 
-function assertCenterThenOpen(records, terminalPhases, label) {
+function assertCenterAndOpen(records, terminalPhases, label) {
   const phases = records.map((record) => record.phase);
   const centeringIndex = phases.indexOf('centering');
   const terminalIndex = phases.findIndex((phase) => terminalPhases.includes(phase));
   assert(centeringIndex >= 0 && terminalIndex > centeringIndex,
-    `${label} must centre before presentation`, { phases });
+    `${label} must start source-specific centering before presentation`, { phases });
   const centered = [...records]
     .reverse()
     .find((record) => [
-      'centering',
-      'expanding',
       'access-pending',
-      'preparing',
-      'opening',
+      'open',
     ].includes(record.phase));
   assert(centered?.sourceCenter && centered?.viewportCenter,
     `${label} needs a measurable centred source state`, records);
@@ -369,7 +384,7 @@ function assertCenterThenOpen(records, terminalPhases, label) {
     centered.sourceCenter.x - centered.viewportCenter.x,
     centered.sourceCenter.y - centered.viewportCenter.y,
   );
-  assert(distance <= 72, `${label} source must settle near the viewport centre before opening`, {
+  assert(distance <= 3, `${label} source must finish centering by the settled presentation`, {
     distance: round(distance),
     centered,
     phases,
@@ -489,7 +504,8 @@ async function auditKeyboardNavigation(page) {
       ? activeItem.querySelector('.portfolio-project-card__surface')
       : activeItem?.querySelector('.playground-media');
     if (!activeMedia) return false;
-    return (Number.parseFloat(getComputedStyle(activeMedia).scale || '1') || 1) >= 1.005;
+    return Number.parseFloat(getComputedStyle(activeMedia).translate || '0') <= -0.95
+      || getComputedStyle(activeMedia).translate.split(' ').some((value) => Number.parseFloat(value) <= -0.95);
   }, null, { timeout: timeoutMs, polling: 'raf' });
   const next = await page.evaluate(() => {
     const activeItem = document.activeElement?.closest?.('[data-playground-item]');
@@ -511,6 +527,7 @@ async function auditKeyboardNavigation(page) {
       outlineStyle: style?.outlineStyle || '',
       boxShadow: style?.boxShadow || '',
       mediaScale: Number.parseFloat(mediaStyle?.scale || '1') || 1,
+      mediaTranslate: mediaStyle?.translate || 'none',
       mediaShadow: mediaStyle?.boxShadow || 'none',
     };
   });
@@ -521,8 +538,9 @@ async function auditKeyboardNavigation(page) {
   assert(next.focusVisible && next.outlineStyle !== 'none' && next.outlineWidth >= 2
       && next.boxShadow !== 'none',
     'Arrow-focused Work projects must expose the dual-ring focus cue', next);
-  assert(next.mediaScale >= 1.005 && next.mediaShadow !== 'none',
-    'Keyboard focus must give Work media the same restrained presence as hover', next);
+  assert(next.mediaScale === 1 && next.mediaShadow !== 'none'
+      && next.mediaTranslate.split(' ').some((value) => Number.parseFloat(value) <= -0.95),
+    'Keyboard focus must lift media by one pixel without covering its contrasting focus ring', next);
   return { first, next };
 }
 
@@ -533,7 +551,11 @@ async function auditSnippetFlow(page) {
   await page.locator(selector).click();
   await page.waitForSelector('[data-work-snippet-stage][data-phase="open"]', { timeout: timeoutMs });
   const records = await readPhaseRecords(page);
-  assertCenterThenOpen(records, ['opening', 'open'], 'Snippet');
+  assertCenterAndOpen(records, ['opening', 'open'], 'Snippet');
+  const opening = records.find((record) => record.phase === 'opening');
+  const centering = records.find((record) => record.phase === 'centering');
+  assert(opening.time - centering.time < 160,
+    'Snippet expansion must overlap centering without a serialized wait', records);
   const openState = await page.evaluate((id) => ({
     workId: new URL(location.href).searchParams.get('work'),
     worldHidden: document.querySelector('[data-playground-world]')?.getAttribute('aria-hidden'),
@@ -572,8 +594,11 @@ async function auditProtectedGate(browser) {
     await audit.page.waitForSelector('[data-portfolio-access-gate][data-phase="open"]', {
       timeout: timeoutMs,
     });
+    // The gate focuses its enabled input on the next animation frame.
+    await audit.page.waitForFunction(() => document.querySelector('[data-portfolio-access-gate]')
+      ?.contains(document.activeElement), null, { timeout: timeoutMs, polling: 'raf' });
     const records = await readPhaseRecords(audit.page);
-    assertCenterThenOpen(records, ['access-pending'], 'Protected case study');
+    assertCenterAndOpen(records, ['access-pending'], 'Protected case study');
     const gatedState = await audit.page.evaluate(() => ({
       gatePhase: document.documentElement.dataset.absPortfolioAccessGatePhase,
       drawerOpen: Boolean(document.querySelector('.portfolio-project-view.is-open')),
@@ -641,7 +666,7 @@ async function auditUnlockedCaseStudy(browser) {
     });
     await audit.page.waitForSelector('[data-work-presentation-phase="open"]', { timeout: timeoutMs });
     const records = await readPhaseRecords(audit.page);
-    assertCenterThenOpen(records, ['preparing', 'opening', 'open'], 'Case study');
+    assertCenterAndOpen(records, ['preparing', 'opening', 'open'], 'Case study');
     const drawerState = await audit.page.evaluate((id) => {
       const drawer = document.querySelector('.portfolio-project-view__drawer');
       const host = document.querySelector('#portfolio-sheet-host');
@@ -684,11 +709,11 @@ async function auditUnlockedCaseStudy(browser) {
     assert(drawerState.phase === 'open' && drawerState.activeInsideDrawer && drawerState.expanded === 'true',
       'Case study drawer must settle open with focus ownership and expanded state', drawerState);
     assert(drawerState.drawerRect && drawerState.hostRect
-      && drawerState.drawerRect.top >= drawerState.hostRect.top - 3
-      && drawerState.drawerRect.bottom <= drawerState.hostRect.bottom + 3
-      && drawerState.drawerRect.left >= drawerState.hostRect.left - 3
-      && drawerState.drawerRect.right <= drawerState.hostRect.right + 3,
-    'Case study drawer must retain its deliberate two-pixel bleed inside the clipped shell host', drawerState);
+      && Math.abs(drawerState.drawerRect.top - drawerState.hostRect.top) <= 3
+      && Math.abs(drawerState.drawerRect.bottom - drawerState.hostRect.bottom) <= 3
+      && Math.abs(drawerState.drawerRect.left - drawerState.hostRect.left) <= 3
+      && Math.abs(drawerState.drawerRect.right - drawerState.hostRect.right) <= 3,
+    'Case study drawer must fill the clipped studio-window host on all four sides', drawerState);
     assert(drawerState.buttonBarTop !== null
       && drawerState.drawerRect.bottom > drawerState.buttonBarTop
       && drawerState.hostZIndex < drawerState.buttonBarZIndex
@@ -729,7 +754,9 @@ async function auditUnlockedCaseStudy(browser) {
 }
 
 async function auditMobile(browser) {
-  const audit = await createAuditPage(browser, { viewport: { width: 390, height: 844 } });
+  const audit = await createAuditPage(browser, {
+    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
+  });
   try {
     await waitForWorkReady(audit.page, `/portfolio.html?work=${SNIPPET_ID}`);
     await audit.page.waitForSelector('[data-work-snippet-stage][data-phase="open"]', { timeout: timeoutMs });
@@ -768,19 +795,22 @@ async function auditMobile(browser) {
       && geometry.surface.top >= geometry.workViewport.top - 1
       && geometry.surface.bottom <= geometry.workViewport.bottom + 1,
     'Mobile snippet presentation must remain within the clipped Work window', geometry);
-    assert(geometry.surface.bottom > geometry.buttonBarTop && geometry.buttonBarOwnsOverlap,
+    assert(geometry.buttonBarOwnsOverlap,
       'The mobile Button Bar must retain paint and input ownership over the window overlap', geometry);
     assert(geometry.close.left >= 0 && geometry.close.right <= geometry.viewport.width
       && geometry.close.top >= 0 && geometry.close.bottom <= geometry.viewport.height,
     'Mobile snippet close control must remain fully reachable', geometry);
+    assert(geometry.close.right - geometry.close.left >= 43.5
+      && geometry.close.bottom - geometry.close.top >= 43.5,
+    'Mobile snippet close control must retain a 44-pixel tap area', geometry);
     await audit.page.screenshot({ path: resolve(runRoot, 'mobile-snippet-open.png') });
-    await audit.page.keyboard.press('Escape');
+    await audit.page.locator('.work-snippet-stage__close').tap();
     await audit.page.waitForSelector('[data-work-snippet-stage]', { state: 'detached', timeout: timeoutMs });
     await waitForWorkReady(audit.page, '/playground.html');
     const aliasState = await readBaseState(audit.page);
     assertBaseState(aliasState, 'Legacy Work alias');
     await setItemOffset(audit.page, CASE_STUDY_ID, -120, 36);
-    await audit.page.locator(`[data-playground-item="${CASE_STUDY_ID}"] button`).click();
+    await audit.page.locator(`[data-playground-item="${CASE_STUDY_ID}"] button`).tap();
     await audit.page.waitForSelector('[data-portfolio-access-gate][data-phase="open"]', {
       timeout: timeoutMs,
     });
@@ -816,8 +846,51 @@ async function auditMobile(browser) {
       state: 'detached',
       timeout: timeoutMs,
     });
+    assert(await audit.page.evaluate(() => Boolean(window.__ABS_WORK__?.getSnapshot()?.camera)),
+      'Closing a gate on the legacy Work alias must retain the live canvas controller');
+    await audit.page.locator(`[data-playground-item="${CASE_STUDY_ID}"] button`).tap();
+    await audit.page.waitForSelector('[data-portfolio-access-gate][data-phase="open"]', { timeout: timeoutMs });
+    const mobileCode = getGateInviteCode('portfolio');
+    for (let index = 0; index < mobileCode.length; index += 1) {
+      await audit.page.locator('.portfolio-access-gate .portfolio-digit').nth(index).fill(mobileCode[index]);
+    }
+    await audit.page.waitForSelector('[data-work-presentation-phase="open"]', { timeout: timeoutMs });
+    const mobileSheet = await audit.page.evaluate(() => {
+      const drawer = document.querySelector('.portfolio-project-view__drawer');
+      const host = document.querySelector('#portfolio-sheet-host');
+      const drawerRect = drawer.getBoundingClientRect();
+      const hostRect = host.getBoundingClientRect();
+      const image = document.querySelector('.portfolio-project-view__image');
+      return {
+        edgeErrors: ['left', 'top', 'right', 'bottom'].map((key) => Math.abs(drawerRect[key] - hostRect[key])),
+        background: getComputedStyle(drawer).backgroundColor,
+        worldOpacity: getComputedStyle(document.querySelector('[data-playground-world]')).opacity,
+        sourceCaptionOpacity: getComputedStyle(document.querySelector(
+          '.work-canvas-card[aria-expanded="true"] .work-case-study-caption',
+        )).opacity,
+        imageStyleRestored: !image.style.width && !image.style.height && !image.style.transform,
+      };
+    });
+    assert(mobileSheet.edgeErrors.every((error) => error <= 3),
+      'The touch case-study sheet must fill the studio window, not become a floating modal', mobileSheet);
+    assert(mobileSheet.imageStyleRestored && mobileSheet.worldOpacity === '1'
+      && mobileSheet.sourceCaptionOpacity === '0'
+      && /(?:,|\/)\s*0?\.9\s*\)/.test(mobileSheet.background),
+    'The mobile sheet must restore image geometry and retain a translucent ground over the live field', mobileSheet);
+    await audit.page.screenshot({ path: resolve(runRoot, 'mobile-case-study-open.png') });
+    await audit.page.locator('.portfolio-project-view__scroll').evaluate((element) => {
+      element.scrollTop = element.clientHeight;
+    });
+    await audit.page.waitForFunction(() => {
+      const overview = document.querySelector('.portfolio-project-view__overview');
+      return overview && Number(getComputedStyle(overview).opacity) >= 0.999;
+    }, null, { timeout: timeoutMs });
+    await audit.page.screenshot({ path: resolve(runRoot, 'mobile-case-study-body.png') });
+    await audit.page.locator('.portfolio-project-view__back--top').tap();
+    await audit.page.waitForFunction(() => !new URL(location.href).searchParams.has('work')
+      && !document.querySelector('.portfolio-project-view.is-open'), null, { timeout: timeoutMs });
     assertNoFailures(audit.failures, 'Mobile Work');
-    return { geometry, gateGeometry, aliasRoute: audit.page.url() };
+    return { geometry, gateGeometry, mobileSheet, aliasRoute: audit.page.url() };
   } finally {
     await audit.context.close();
   }
@@ -871,19 +944,34 @@ async function auditReducedMotion(browser) {
     await audit.page.mouse.move(2, 2);
     await audit.page.waitForTimeout(220);
     await installPhaseRecorder(audit.page, SNIPPET_ID);
+    await audit.page.evaluate(() => {
+      // A 120ms fade can finish between the click and a remote getAnimations()
+      // sample. Capture its actual timing at creation, not at a guessed frame.
+      const animate = Element.prototype.animate;
+      window.__ABS_WORK_AUDIT_OPEN_DURATIONS__ = [];
+      Element.prototype.animate = function (...args) {
+        const animation = animate.apply(this, args);
+        if (this.closest('[data-work-snippet-stage]')) {
+          window.__ABS_WORK_AUDIT_OPEN_DURATIONS__.push(
+            Number(animation.effect?.getTiming?.().duration || 0),
+          );
+        }
+        return animation;
+      };
+      window.__ABS_WORK_AUDIT_RESTORE_ANIMATE__ = () => {
+        Element.prototype.animate = animate;
+      };
+    });
     await reducedButton.click();
-    await audit.page.waitForSelector('[data-work-snippet-stage]');
+    await audit.page.waitForSelector('[data-work-snippet-stage][data-phase="open"]', { timeout: timeoutMs });
     const durations = await audit.page.evaluate(() => {
-      const stage = document.querySelector('[data-work-snippet-stage]');
-      return [stage, ...(stage?.querySelectorAll('*') || [])]
-        .flatMap((element) => element?.getAnimations?.() || [])
-        .map((animation) => Number(animation.effect?.getTiming?.().duration || 0));
+      window.__ABS_WORK_AUDIT_RESTORE_ANIMATE__();
+      return window.__ABS_WORK_AUDIT_OPEN_DURATIONS__;
     });
     assert(durations.length >= 3 && Math.max(...durations) <= 150,
       'Reduced-motion snippet presentation must use only its short fade timing', durations);
-    await audit.page.waitForSelector('[data-work-snippet-stage][data-phase="open"]', { timeout: timeoutMs });
     const records = await readPhaseRecords(audit.page);
-    assertCenterThenOpen(records, ['opening', 'open'], 'Reduced-motion snippet');
+    assertCenterAndOpen(records, ['opening', 'open'], 'Reduced-motion snippet');
     await audit.page.keyboard.press('Escape');
     await audit.page.waitForSelector('[data-work-snippet-stage]', { state: 'detached', timeout: timeoutMs });
     assertNoFailures(audit.failures, 'Reduced-motion Work');

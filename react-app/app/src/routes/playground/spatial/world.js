@@ -33,8 +33,8 @@ function includeBounds(accumulator, bounds) {
 }
 
 /**
- * Builds a centred toroidal period. Centring the quantized boundary on logical
- * origin keeps the title anchor fixed while later items enlarge the period.
+ * Uses the exact period proven by the periodic packer. Unbounded presets retain
+ * their content-sized, centred world. Crossing a seam must not grow that seam.
  */
 export function calculateContentWorld(placements, options = {}) {
   if (!Array.isArray(placements)) {
@@ -50,7 +50,8 @@ export function calculateContentWorld(placements, options = {}) {
     Math.ceil(finiteNumber(options.minimumWorldRows, MINIMUM_WORLD_ROWS)),
   );
   const paddingCells = Math.max(0, Math.ceil(finiteNumber(options.worldPaddingCells, 1)));
-  const gapCells = Math.max(0, Math.ceil(finiteNumber(options.itemGapCells, 2)));
+  const gapCells = Math.max(0, Math.ceil(finiteNumber(options.itemGapCells, 2)),
+    Math.ceil(finiteNumber(options.projectClearanceCells, 0)));
   const quantumCells = Math.max(
     1,
     Math.ceil(finiteNumber(options.worldQuantumCells, DEFAULT_WORLD_QUANTUM_CELLS)),
@@ -67,8 +68,19 @@ export function calculateContentWorld(placements, options = {}) {
   let largestItemWidthCells = 0;
   let largestItemHeightCells = 0;
   let occupiedCellArea = 0;
+  const repeatColumns = placements[0]?.repeatColumns;
+  const repeatRows = placements[0]?.repeatRows;
+  const periodic = repeatColumns != null || repeatRows != null;
+  if (periodic && (!Number.isFinite(repeatColumns) || repeatColumns <= 0
+    || !Number.isFinite(repeatRows) || repeatRows <= 0
+    || repeatColumns % quantumCells !== 0 || repeatRows % quantumCells !== 0)) {
+    throw new RangeError('A packed repeat period must be positive and quantized.');
+  }
   for (let index = 0; index < placements.length; index += 1) {
     const placement = placements[index];
+    if (placement?.repeatColumns !== repeatColumns || placement?.repeatRows !== repeatRows) {
+      throw new RangeError('Every placement must use the same repeat period.');
+    }
     const bounds = placement?.bounds || {
       left: placement?.xCell,
       top: placement?.yCell,
@@ -76,6 +88,7 @@ export function calculateContentWorld(placements, options = {}) {
       bottom: Number(placement?.yCell) + Number(placement?.footprintHeightCells),
     };
     includeBounds(extents, bounds);
+    includeBounds(extents, placement?.packingBounds);
     const width = Math.max(0, Number(bounds.right) - Number(bounds.left));
     const height = Math.max(0, Number(bounds.bottom) - Number(bounds.top));
     largestItemWidthCells = Math.max(largestItemWidthCells, width);
@@ -87,11 +100,11 @@ export function calculateContentWorld(placements, options = {}) {
   const verticalRadius = Math.max(Math.abs(extents.minimumY), Math.abs(extents.maximumY));
   const contentColumns = Math.ceil((horizontalRadius + paddingCells + gapCells) * 2);
   const contentRows = Math.ceil((verticalRadius + paddingCells + gapCells) * 2);
-  const columns = quantizeCells(
+  const columns = periodic ? repeatColumns : quantizeCells(
     Math.max(minimumColumns, contentColumns),
     quantumCells,
   );
-  const rows = quantizeCells(
+  const rows = periodic ? repeatRows : quantizeCells(
     Math.max(minimumRows, contentRows),
     quantumCells,
   );

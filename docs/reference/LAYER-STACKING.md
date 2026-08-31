@@ -37,6 +37,8 @@ The Work case-study drawer keeps its media, scrolling content, project title, ey
 
 `#portfolio-sheet-host` is a sibling overlay host within `#abs-scene`, after route content. The open Work sheet covers the Work field and reaches the same studio-window boundary as the route surface; the overlapping Button Bar paints and receives input above it. Its project scroll cue is drawer-owned and independent of the Home footer. Preserve the host radius and clipping contract.
 
+Work case studies fill this host on all four edges with a subtly translucent drawer ground. Keep the inert foreground world mounted and visible behind the sheet; do not fade it away and thereby erase the transparency. Snippet media has a separate full-window backdrop, a uniformly scaled media frame, unscaled rationale, and a close action with its own clear space. Neither overlay moves or resizes the physical shell.
+
 The protected-project access gate uses the shell-owned `.window-overlay-layer` inside the same studio-window clip. It softens the live Work field but never the Button Bar. The legacy fixed `#modal-blur-layer` and `#modal-content-layer` may retain modal timing/depth state, but they must not paint while the project gate is open or closing. The project sheet may begin opening only after the access overlay is fully closed.
 
 `#shell-persistent-route-ui-host` is a shell-owned sibling outside `#abs-scene` and `#app-frame`. Route instruments that must not disappear during scene boot or route-content transitions mount here, remain clipped to the complete studio-window viewport behind the Button Bar, and stay pointer-transparent.

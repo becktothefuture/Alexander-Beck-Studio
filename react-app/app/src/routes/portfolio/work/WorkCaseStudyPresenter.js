@@ -7,8 +7,8 @@ import {
 import { PortfolioProjectDrawer } from '../../../legacy/modules/portfolio/project-drawer.js';
 import { PortfolioProjectHandoff } from '../../../legacy/modules/portfolio/project-handoff.js';
 
-const OPEN_DURATION_MS = 680;
-const CLOSE_DURATION_MS = 500;
+const OPEN_DURATION_MS = 500;
+const CLOSE_DURATION_MS = 380;
 
 function setSheetHostHidden(host, hidden) {
   if (!host) return;
@@ -51,6 +51,7 @@ export class WorkCaseStudyPresenter {
       onRequestClose: () => this.onRequestClose?.({ reason: 'drawer' }),
     });
     this.root = this.drawer.mount();
+    this.root.dataset.workCaseStudy = 'true';
     this.drawer.commitSharedClosed?.();
     setSheetHostHidden(this.host, true);
     this.handoff = new PortfolioProjectHandoff({
@@ -58,6 +59,7 @@ export class WorkCaseStudyPresenter {
       drawerView: this.drawer,
       getDeckStage: () => this.getCanvasStage?.(),
       shouldReduceMotion: () => this.shouldReduceMotion?.() === true,
+      backgroundOpacity: 1,
       onStateChange: (snapshot) => this.setPhase(snapshot.state),
       onOpened: () => this.finishOpen(),
       onClosed: () => this.finishClose(),

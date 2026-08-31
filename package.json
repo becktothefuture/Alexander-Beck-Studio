@@ -50,6 +50,7 @@
     "audit:outer-wall-frame" : "node scripts\/audit-outer-wall-frame.mjs",
     "audit:palette-surface-contract" : "node scripts\/audit-palette-surface-contract.mjs",
     "audit:work-canvas" : "node scripts\/audit-work-canvas.mjs",
+    "audit:work-repeat" : "node scripts/audit-work-repeat.mjs",
     "audit:playground" : "npm run audit:work-canvas",
     "audit:simulation-palette-runtime" : "node scripts\/audit-simulation-palette-runtime.mjs",
     "audit:simulation-palette-boundaries" : "node scripts\/audit-simulation-palette-boundaries.mjs",

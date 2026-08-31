@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { createWorkCatalog } from '../portfolio/work/workCatalog.js';
 
 import {
   DEFAULT_PLAYGROUND_CONFIG,
   PLAYGROUND_CONFIG_BOUNDS,
+  buildPlaygroundScopedDesignSnapshot,
   normalizePlaygroundConfig,
 } from './config/playgroundConfig.js';
 import {
@@ -33,6 +35,26 @@ import {
 } from './spatial/index.js';
 
 const CONTENT_URL = new URL('../../../public/config/contents-portfolio.json', import.meta.url);
+
+test('Work control saves preserve every unrelated canonical scope', () => {
+  const canonical = {
+    version: 1,
+    runtime: Object.freeze({ gravityMultiplier: 7, authorOnlyValue: 'keep' }),
+    shell: Object.freeze({ theme: 'keep' }),
+    about: Object.freeze({ revision: 12 }),
+    futureScope: Object.freeze({ approved: true }),
+    playground: Object.freeze({ ...DEFAULT_PLAYGROUND_CONFIG }),
+  };
+  const result = buildPlaygroundScopedDesignSnapshot(canonical, {
+    ...canonical.playground, dotDensity: 0.31, dotRandomness: 0.19,
+  });
+  for (const key of ['runtime', 'shell', 'about', 'futureScope']) assert.deepEqual(result[key], canonical[key]);
+  assert.equal(result.playground.dotDensity, 0.31);
+  assert.equal(result.playground.dotRandomness, 0.19);
+  assert.equal(canonical.playground.dotDensity, DEFAULT_PLAYGROUND_CONFIG.dotDensity);
+  assert.equal(buildPlaygroundScopedDesignSnapshot(canonical, { dotDensity: 2 }).playground.dotDensity, 1);
+  assert.throws(() => buildPlaygroundScopedDesignSnapshot(null), /Invalid canonical/);
+});
 const PLACEMENT_OPTIONS = Object.freeze({
   ...DEFAULT_PLAYGROUND_CONFIG,
   includeTypeRow: false,
@@ -114,6 +136,8 @@ test('canonical content validates the exact catalogue and accepts project 31 wit
 
   assert.equal(content.items.length, 30);
   assert.deepEqual(typeCounts, { image: 18, video: 6, code: 6 });
+  assert.ok(content.items.every((item) => item.label.trim().split(/\s+/).length <= 5),
+    'Authored snippet captions must remain short descriptions of at most five words.');
 
   const withProject31 = validatePlaygroundContent({
     ...source,
@@ -157,7 +181,7 @@ test('runtime content validation omits one invalid item without hiding the valid
   assert.throws(() => validatePlaygroundContent(invalid), PlaygroundContentValidationError);
 });
 
-test('world growth is append-stable, content-sized, repeatable, and has no catalogue limit', async () => {
+test('world growth repacks one content-sized period deterministically with no catalogue limit', async () => {
   const source = await readContent();
   const baseItems = source.items;
   const project31 = makeAddedItem(source.items[0], 31);
@@ -168,7 +192,8 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(base.world.heightPx > 1400);
   assert.ok(base.world.columns >= 80);
   assert.ok(base.world.rows >= 56);
-  assert.deepEqual(appended.placed.placements.slice(0, baseItems.length), base.placed.placements);
+  assert.deepEqual(appended.placed.placements.slice(0, baseItems.length).map((item) => item.id),
+    base.placed.placements.map((item) => item.id));
   assert.deepEqual(buildWorld([...baseItems, project31]), appended);
 
   const expandedItems = [...baseItems];
@@ -183,7 +208,9 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(expanded.world.columns > base.world.columns);
   assert.ok(expanded.world.rows > base.world.rows);
   assert.ok(expanded.world.occupiedCellArea > base.world.occupiedCellArea);
-  assert.deepEqual(expanded.placed.placements.slice(0, baseItems.length), base.placed.placements);
+  assert.deepEqual(buildWorld(expandedItems), expanded);
+  assert.ok(expanded.placed.placements.every((item) => item.repeatColumns === expanded.world.columns
+    && item.repeatRows === expanded.world.rows && item.passIndex === expanded.placed.diagnostics.maximumPassIndex));
   assert.deepEqual(expanded.placed.titleSafeArea, base.placed.titleSafeArea);
 
   const seamCoverage = calculateNeighbouringCopyCoverage({
@@ -205,22 +232,161 @@ test('world growth is append-stable, content-sized, repeatable, and has no catal
   assert.ok(offsets.some(([, y]) => Math.abs(y) === expanded.world.heightPx));
 });
 
-test('canonical Work snippets keep collision clearance across world seams', async () => {
-  const source = await readContent();
-  const runtimeOptions = {
-    ...applyPlaygroundResponsiveProfile(
-      DEFAULT_PLAYGROUND_CONFIG,
-      createPlaygroundResponsiveProfile(1440),
-    ),
-    includeTypeRow: false,
-    titleSafePaddingCells: 0,
-    titleSafeAreaCells: { left: -14, top: -4, right: 14, bottom: 4 },
-  };
-  const result = buildWorld(source.items, runtimeOptions);
-  const clearances = getToroidalProjectClearances(result.placed.placements, result.world);
-  const minimum = Math.min(...clearances);
-  assert.equal(result.placed.diagnostics.maximumPassIndex, 0);
-  assert.ok(minimum >= 3);
+test('canonical mixed Work field has breathing room without sparse overflow corridors', async () => {
+  const source = JSON.parse(await readFile(CONTENT_URL, 'utf8'));
+  const catalog = createWorkCatalog({
+    portfolioContent: source,
+    snippetContent: { items: source.snippets },
+    resolveAsset: (value) => value,
+  });
+  for (const [width, height] of [[390, 844], [1440, 900]]) {
+    const runtimeOptions = {
+      ...applyPlaygroundResponsiveProfile(
+        DEFAULT_PLAYGROUND_CONFIG,
+        createPlaygroundResponsiveProfile(width, height),
+      ),
+      includeTypeRow: false,
+      titleSafePaddingCells: 2,
+      titleSafeAreaCells: { left: -10, top: -7, right: 10, bottom: 7 },
+    };
+    const result = buildWorld(catalog.items, runtimeOptions);
+    const clearances = getToroidalProjectClearances(result.placed.placements, result.world);
+    assert.ok(result.placed.diagnostics.maximumPassIndex <= 2,
+      'The current catalogue may grow gently but must not need a distant overflow region.');
+    assert.ok(result.world.columns <= 160 && result.world.rows <= 128,
+      'Keep the default repeating field bounded instead of doubling it.');
+    assert.ok(Math.min(...clearances) >= runtimeOptions.projectClearanceCells,
+      'Complete media and caption footprints must remain separated at every seam.');
+    assert.ok(Math.max(...clearances) <= 14,
+      'Even the most isolated project must have a neighbour within one primary-card width.');
+    assert.ok(result.world.occupancy >= 0.17 && result.world.occupancy <= 0.32,
+      'Preserve a breathable field without returning to crowded packing or oversized empty corridors.');
+  }
+});
+
+test('salon fills the same fixed period that the renderer repeats, including its edges', async () => {
+  const source = JSON.parse(await readFile(CONTENT_URL, 'utf8'));
+  const { items } = createWorkCatalog({
+    portfolioContent: source, snippetContent: { items: source.snippets }, resolveAsset: (value) => value,
+  });
+  const scenarios = [[390, 844], [1440, 900]].flatMap(([width, height]) => (
+    [0, 0.12, 0.2].flatMap((snippetDepth) => [0.2, 0.36, 0.6].flatMap((itemDiagonalViewportRatio) => (
+      [DEFAULT_PLAYGROUND_CONFIG.layoutSeed, 1, 92731].map((layoutSeed) => ({
+        width, height, snippetDepth, itemDiagonalViewportRatio, layoutSeed,
+        itemDiagonalMinPx: itemDiagonalViewportRatio === 0.2 ? 320 : 484,
+        itemDiagonalMaxPx: itemDiagonalViewportRatio === 0.6 ? 720 : 576,
+      }))
+    )))
+  ));
+  for (const { width, height, ...variant } of scenarios) {
+    const options = {
+      ...applyPlaygroundResponsiveProfile({ ...DEFAULT_PLAYGROUND_CONFIG, ...variant },
+        createPlaygroundResponsiveProfile(width, height)),
+      includeTypeRow: false, titleSafePaddingCells: 2,
+      titleSafeAreaCells: { left: -10, top: -7, right: 10, bottom: 7 },
+    };
+    const { placed, world } = buildWorld(items, options);
+    for (const placement of placed.placements) {
+      assert.equal(placement.repeatColumns, world.columns,
+        'The world must not grow an empty border around the accepted packing period.');
+      assert.equal(placement.repeatRows, world.rows);
+      assert.equal(placement.passIndex, placed.diagnostics.maximumPassIndex,
+        'A larger period must rebuild all projects, not just late outliers.');
+    }
+    assert.ok(placed.placements.some(({ bounds }) => bounds.left < -world.columns / 2
+      || bounds.right > world.columns / 2 || bounds.top < -world.rows / 2
+      || bounds.bottom > world.rows / 2), 'Project footprints can cross a repeat boundary.');
+
+    const samples = [];
+    const viewWidth = options.viewportWidthCells;
+    const viewHeight = options.viewportHeightCells;
+    // Integrate actual projected media rectangles, not captions or one-pixel
+    // visibility counts. Sample both sides, all corners, and the interior.
+    for (let column = 0; column < 12; column += 1) {
+      for (let row = 0; row < 12; row += 1) {
+        const cameraX = (column / 12 - 0.5) * world.columns;
+        const cameraY = (row / 12 - 0.5) * world.rows;
+        let imageArea = 0;
+        for (const item of placed.placements) {
+          for (const copyX of [-1, 0, 1]) for (const copyY of [-1, 0, 1]) {
+            const x = item.parallax * (item.xCell + item.footprintWidthCells / 2
+              + copyX * world.columns - cameraX) - item.footprintWidthCells / 2;
+            const y = item.parallax * (item.yCell + item.footprintHeightCells / 2
+              + copyY * world.rows - cameraY) - item.footprintHeightCells / 2;
+            const visibleWidth = Math.max(0, Math.min(viewWidth / 2, x + item.mediaWidthCells)
+              - Math.max(-viewWidth / 2, x));
+            const visibleHeight = Math.max(0, Math.min(viewHeight / 2, y + item.mediaHeightCells)
+              - Math.max(-viewHeight / 2, y));
+            imageArea += visibleWidth * visibleHeight;
+          }
+        }
+        const coverage = imageArea / (viewWidth * viewHeight);
+        const title = placed.titleSafeArea;
+        const titleCoverage = Math.max(0, Math.min(viewWidth / 2, title.right - cameraX)
+          - Math.max(-viewWidth / 2, title.left - cameraX))
+          * Math.max(0, Math.min(viewHeight / 2, title.bottom - cameraY)
+          - Math.max(-viewHeight / 2, title.top - cameraY)) / (viewWidth * viewHeight);
+        assert.ok(coverage >= 0.025 || titleCoverage >= 0.15,
+          `${width}x${height} ${JSON.stringify(variant)}: camera ${column},${row} has only ${(coverage * 100).toFixed(2)}% image coverage.`);
+        samples.push({ seam: column === 0 || row === 0, coverage });
+      }
+    }
+    const mean = (seam) => {
+      const group = samples.filter((sample) => sample.seam === seam);
+      return group.reduce((sum, sample) => sum + sample.coverage, 0) / group.length;
+    };
+    assert.ok(mean(true) >= mean(false) * 0.8,
+      `${width}x${height} ${JSON.stringify(variant)}: repeat boundaries must have at least 80% of interior image coverage.`);
+  }
+});
+
+test('depth-aware media and caption clearances hold at every visible camera position and repeat', async () => {
+  const source = JSON.parse(await readFile(CONTENT_URL, 'utf8'));
+  const catalog = createWorkCatalog({
+    portfolioContent: source, snippetContent: { items: source.snippets }, resolveAsset: (value) => value,
+  });
+  for (const [width, height] of [[320, 568], [390, 844], [600, 900], [768, 900], [1024, 768], [1440, 900], [1634, 1282], [3440, 1440]]) {
+    for (const snippetDepth of [0, 0.12, 0.2]) {
+      for (const itemDiagonalMaxPx of [576, 720]) {
+        const profile = createPlaygroundResponsiveProfile(width, height);
+        const options = {
+          ...applyPlaygroundResponsiveProfile({ ...DEFAULT_PLAYGROUND_CONFIG, snippetDepth,
+            itemDiagonalViewportRatio: 0.6, itemDiagonalMaxPx }, profile),
+          includeTypeRow: false,
+          titleSafePaddingCells: 0,
+          titleSafeAreaCells: { left: -14, top: -8, right: 14, bottom: 8 },
+        };
+        const { placed, world } = buildWorld(catalog.items, options);
+        const title = placed.titleSafeArea;
+        const items = [...placed.placements, {
+          id: 'title', xCell: title.left, yCell: title.top,
+          footprintWidthCells: title.right - title.left,
+          footprintHeightCells: title.bottom - title.top, parallax: 1,
+        }];
+        for (const a of items) {
+          for (const b of items) {
+            for (let column = -1; column <= 1; column += 1) {
+              for (let row = -1; row <= 1; row += 1) {
+                if (a === b && column === 0 && row === 0) continue;
+                const dx = Math.abs(a.xCell + a.footprintWidthCells / 2
+                  - b.xCell - b.footprintWidthCells / 2 - column * world.columns);
+                const dy = Math.abs(a.yCell + a.footprintHeightCells / 2
+                  - b.yCell - b.footprintHeightCells / 2 - row * world.rows);
+                const difference = Math.abs(1 / a.parallax - 1 / b.parallax);
+                const gapX = dx - a.footprintWidthCells / (2 * a.parallax)
+                  - b.footprintWidthCells / (2 * b.parallax) - options.viewportWidthCells / 2 * difference;
+                const gapY = dy - a.footprintHeightCells / (2 * a.parallax)
+                  - b.footprintHeightCells / (2 * b.parallax) - options.viewportHeightCells / 2 * difference;
+                const minimumGap = Math.max(gapX, gapY) * Math.min(a.parallax, b.parallax);
+                assert.ok(minimumGap >= options.projectClearanceCells - 0.001,
+                  `${width}x${height}, depth=${snippetDepth}, diagonal=${itemDiagonalMaxPx}: ${a.id}/${b.id} repeat=${column},${row} gap=${minimumGap}`);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 });
 
 test('larger item spans expand their footprint and a seed change regenerates deterministically', async () => {
@@ -339,6 +505,18 @@ test('visible world media activates at most one video and one code runtime', () 
     [...selectBoundedActiveWorldMediaIds(items, new Set(['video-two', 'code-two']))],
     ['video-two', 'code-two'],
   );
+});
+
+test('Work dot opacity defaults to full foreground opacity and can save the entire range', async () => {
+  const canonical = JSON.parse(await readFile(new URL('../../../public/config/design-system.json', import.meta.url), 'utf8'));
+  assert.equal(normalizePlaygroundConfig(canonical.playground).dotOpacity, canonical.playground.dotOpacity);
+  assert.equal(DEFAULT_PLAYGROUND_CONFIG.dotOpacity, 1);
+  assert.equal(PLAYGROUND_CONFIG_BOUNDS.dotOpacity.max, 1);
+  for (const dotOpacity of [0.12, 0.81, 1]) {
+    assert.equal(normalizePlaygroundConfig({ dotOpacity }).dotOpacity, dotOpacity);
+    assert.equal(buildPlaygroundScopedDesignSnapshot(canonical, { dotOpacity }).playground.dotOpacity, dotOpacity);
+  }
+  assert.equal(normalizePlaygroundConfig({ dotOpacity: 2 }).dotOpacity, 1);
 });
 
 test('configuration normalization clamps every control and retains canonical defaults', () => {

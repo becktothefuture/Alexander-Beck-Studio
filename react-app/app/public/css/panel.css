@@ -89,6 +89,7 @@ body:not(.dark-mode) {
    BASE PANEL — Card-like container
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel {
+  box-sizing: border-box;
   font-family: var(--panel-font);
   font-size: 12.5px;
   line-height: 1.35;
@@ -1753,6 +1754,7 @@ body:not(.dark-mode) .panel-section--action {
   width: var(--panel-width, 368px);
   height: var(--dock-panel-height);
   max-width: calc(100vw - (var(--dock-edge) * 2) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-height: var(--dock-panel-max-height);
   min-width: 280px;
   /* Avoid conflicting heights; dock already defines the available height. */
 

@@ -8,28 +8,28 @@ import { validatePlaygroundContentForRuntime } from '../../playground/media/play
 
 const CASE_STUDY_LAYOUTS = Object.freeze([
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 12, rows: 8 }),
-    preferredAnchorCells: Object.freeze({ x: 9, y: -17 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: -27, y: -17 }),
   }),
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 11, rows: 8 }),
-    preferredAnchorCells: Object.freeze({ x: -27, y: -15 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: 17, y: -21 }),
   }),
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 10, rows: 7 }),
-    preferredAnchorCells: Object.freeze({ x: 9, y: 8 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: 8, y: 12 }),
   }),
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 9, rows: 6 }),
-    preferredAnchorCells: Object.freeze({ x: -27, y: 8 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: -26, y: 12 }),
   }),
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 10, rows: 7 }),
-    preferredAnchorCells: Object.freeze({ x: 34, y: -9 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: 32, y: 6 }),
   }),
   Object.freeze({
-    preferredGridSpan: Object.freeze({ columns: 14, rows: 10 }),
-    preferredAnchorCells: Object.freeze({ x: -50, y: -5 }),
+    preferredGridSpan: Object.freeze({ columns: 11, rows: 14 }),
+    preferredAnchorCells: Object.freeze({ x: -8, y: -31 }),
   }),
 ]);
 
@@ -86,6 +86,7 @@ export function normalizeWorkCaseStudy(project, index, {
     preferredGridSpan: { ...layout.preferredGridSpan },
     preferredAnchorCells: { ...layout.preferredAnchorCells },
     presentationVariant: 'case-study',
+    previewAspectRatio: 4 / 5,
     access: getProjectAccessMode(project),
     client,
     project,

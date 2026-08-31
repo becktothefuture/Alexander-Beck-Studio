@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -8,6 +9,7 @@ import {
 } from 'react';
 import { hasGateAccess } from '../../lib/access-gates.js';
 import { triggerHaptic } from '../../lib/haptics.js';
+import { resolveRouteFromPathname } from '../../lib/routes.js';
 import {
   createRouteMaterialEntranceController,
   getRouteCardMotionFrame,
@@ -31,6 +33,10 @@ import {
 } from '../../legacy/modules/utils/design-config.js';
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { useDailyFocusReducedMotion } from '../daily-focus/dailyFocusTheme.js';
+import {
+  getSimulationPaletteSnapshot,
+  subscribeSimulationPalette,
+} from '../../palette/simulationPaletteController.js';
 import {
   WORK_ITEM_KINDS,
   loadWorkCatalog,
@@ -68,6 +74,8 @@ import {
   findDirectionalPlaygroundItem,
   forEachNeighbouringCopy,
   placePlaygroundItems,
+  projectDepthCoordinate,
+  resolveDepthSource,
 } from './spatial/index.js';
 import './playground.css';
 import '../portfolio/work/workCanvas.css';
@@ -92,8 +100,14 @@ const LAYOUT_CONFIG_KEYS = Object.freeze([
   'projectSpacing',
   'itemGapCells',
   'itemScale',
+  'itemViewportScale',
   'sizeVariation',
   'labelGapPx',
+  'maximumCaseStudyWidthPx',
+  'snippetDepth',
+  'projectClearanceCells',
+  'viewportWidthCells',
+  'viewportHeightCells',
 ]);
 
 function getMediaTypeLabel(type) {
@@ -121,21 +135,14 @@ function CaseStudyCardContent({ item }) {
               decoding="async"
               draggable="false"
             />
-            <span className="portfolio-project-card__media-veil" aria-hidden="true" />
-          </span>
-          <span className="portfolio-project-card__copy" aria-hidden="true">
-            {item.client ? (
-              <span className="portfolio-project-card__client">{item.client}</span>
-            ) : null}
-            <span className="portfolio-project-card__title">
-              <span className="portfolio-project-card__title-text">{item.label}</span>
-            </span>
           </span>
         </span>
       </span>
       <span className="work-case-study-caption" aria-hidden="true">
-        <span className="work-case-study-caption__kind">Case study</span>
-        <span className="work-case-study-caption__summary">{item.description}</span>
+        <span className="work-case-study-caption__title">{item.label}</span>
+        <span className="work-case-study-caption__kind">
+          {item.client ? `${item.client} · ` : ''}Case study
+        </span>
       </span>
     </>
   );
@@ -166,7 +173,7 @@ function createTitleSafeArea(titleRect, gridSpacingPx) {
 
 function buildSpatialModel(content, config, titleRect) {
   const items = mapContentItemsForPlacement(content.items);
-  const titleSafeAreaCells = createTitleSafeArea(titleRect, config.gridSpacingPx);
+  const titleSafeAreaCells = createTitleSafeArea(titleRect, config.gridSpacingPx * config.worldScale);
   const placementResult = placePlaygroundItems(items, {
     ...config,
     includeTypeRow: false,
@@ -184,6 +191,10 @@ function buildSpatialModel(content, config, titleRect) {
   return {
     items,
     placements: placementResult.placements,
+    planes: [
+      { id: 'case-studies', placements: placementResult.placements.filter((item) => item.kind !== WORK_ITEM_KINDS.snippet) },
+      { id: 'snippets', placements: placementResult.placements.filter((item) => item.kind === WORK_ITEM_KINDS.snippet) },
+    ].filter((plane) => plane.placements.length),
     placementById,
     placementDiagnostics: placementResult.diagnostics,
     titleSafeArea: placementResult.titleSafeArea,
@@ -249,7 +260,7 @@ async function waitForInitialPosters(root, timeoutMs = INITIAL_POSTER_TIMEOUT_MS
   await waitForPaint();
   if (!root) return;
   const viewportRect = root.getBoundingClientRect();
-  const images = Array.from(root.querySelectorAll('.playground-semantic-collection img'))
+  const images = Array.from(root.querySelectorAll('[data-playground-item] img'))
     .filter((image) => {
       const rect = image.getBoundingClientRect();
       return rect.right > viewportRect.left
@@ -275,19 +286,19 @@ async function waitForInitialPosters(root, timeoutMs = INITIAL_POSTER_TIMEOUT_MS
   ]);
 }
 
-function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
+const DecorativeWorldCopy = memo(function DecorativeWorldCopy({ copy, content, placements, parallax, config, worldScale, onOpen }) {
   return (
     <div
       className="playground-world-copy"
       data-playground-copy={`${copy.column},${copy.row}`}
       aria-hidden="true"
       style={{
-        '--playground-copy-x-px': `${copy.offsetX * worldScale}px`,
-        '--playground-copy-y-px': `${copy.offsetY * worldScale}px`,
+        '--playground-copy-x-px': `${copy.offsetX * worldScale * parallax}px`,
+        '--playground-copy-y-px': `${copy.offsetY * worldScale * parallax}px`,
       }}
     >
       <div className="playground-collection" role="presentation">
-        {model.placements.map((placement) => {
+        {placements.map((placement) => {
           const item = getPlaygroundItem(content, placement.id);
           const caseStudy = isCaseStudy(item);
           return (
@@ -303,25 +314,32 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
               data-playground-copy-column={copy.column}
               data-playground-copy-row={copy.row}
               style={{
-                '--playground-item-x-px': `${placement.xCell * config.gridSpacingPx}px`,
-                '--playground-item-y-px': `${placement.yCell * config.gridSpacingPx}px`,
+                '--playground-item-x-px': `${projectDepthCoordinate(placement.xCell, placement.footprintWidthCells, parallax) * config.gridSpacingPx}px`,
+                '--playground-item-y-px': `${projectDepthCoordinate(placement.yCell, placement.footprintHeightCells, parallax) * config.gridSpacingPx}px`,
                 '--playground-item-width-px': `${placement.mediaWidthCells * config.gridSpacingPx}px`,
                 '--playground-item-height-px': `${placement.mediaHeightCells * config.gridSpacingPx}px`,
               }}
             >
-              <div className={[
-                'playground-item__route-surface',
-                caseStudy ? 'work-canvas-card portfolio-project-card' : '',
-              ].filter(Boolean).join(' ')}>
+              <div className="playground-item__route-surface">
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  data-work-repeat-action
+                  data-sound-action="manual"
+                  aria-label={item.label}
+                  className={caseStudy ? 'work-canvas-card portfolio-project-card' : undefined}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={(event) => onOpen(item.id, event)}
+                >
                 {caseStudy ? <CaseStudyCardContent item={item} /> : (
                   <>
                     <PlaygroundPoster item={item} decorative />
                     <div className="playground-item__label" aria-hidden="true">
                       <p className="playground-item__title">{item.label}</p>
-                      <p className="playground-item__description">{item.description}</p>
                     </div>
                   </>
                 )}
+                </button>
               </div>
             </div>
           );
@@ -329,7 +347,7 @@ function DecorativeWorldCopy({ copy, content, model, config, worldScale }) {
       </div>
     </div>
   );
-}
+});
 
 export function PlaygroundExperience({ experience = 'work' }) {
   const isWorkExperience = experience === 'work';
@@ -341,6 +359,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
   const routeRef = useRef(null);
   const viewportRef = useRef(null);
   const worldRef = useRef(null);
+  const snippetPlaneRef = useRef(null);
   const titleRef = useRef(null);
   const canvasRef = useRef(null);
   const cameraRef = useRef(null);
@@ -369,6 +388,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
   const workPresenterRef = useRef(null);
   const workPresentationTokenRef = useRef(0);
   const workPendingAccessIdRef = useRef(null);
+  const workSourceRef = useRef(null);
   const materialEntranceRef = useRef(null);
   const dotMaterialTargetRef = useRef(Object.freeze({ kind: 'dot-field' }));
   const dotMaterialScaleRef = useRef(0);
@@ -380,8 +400,9 @@ export function PlaygroundExperience({ experience = 'work' }) {
   const [model, setModel] = useState(null);
   const [copies, setCopies] = useState([]);
   const [viewportNode, setViewportNodeState] = useState(null);
-  const [viewportWidthPx, setViewportWidthPx] = useState(0);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [selectedId, setSelectedId] = useState(null);
+  const [selectionRevision, setSelectionRevision] = useState(0);
   const [presentedId, setPresentedId] = useState(null);
   const [keyboardItemId, setKeyboardItemId] = useState(null);
   const [activeWorldMediaIds, setActiveWorldMediaIds] = useState(() => new Set());
@@ -391,8 +412,8 @@ export function PlaygroundExperience({ experience = 'work' }) {
   const [readyModel, setReadyModel] = useState(null);
   const reducedMotion = useDailyFocusReducedMotion();
   const responsiveProfile = useMemo(
-    () => createPlaygroundResponsiveProfile(viewportWidthPx),
-    [viewportWidthPx],
+    () => createPlaygroundResponsiveProfile(viewportSize.width, viewportSize.height),
+    [viewportSize],
   );
   const runtimeConfig = useMemo(
     () => applyPlaygroundResponsiveProfile(config, responsiveProfile),
@@ -609,7 +630,8 @@ export function PlaygroundExperience({ experience = 'work' }) {
     }
     viewportRef.current = node;
     setViewportNodeState(node);
-    setViewportWidthPx(node ? Math.round(node.getBoundingClientRect().width) : 0);
+    const rect = node?.getBoundingClientRect();
+    setViewportSize({ width: Math.round(rect?.width || 0), height: Math.round(rect?.height || 0) });
   }, []);
 
   useEffect(() => {
@@ -655,23 +677,25 @@ export function PlaygroundExperience({ experience = 'work' }) {
 
   useLayoutEffect(() => {
     if (!content || !fontsReady || !configLoaded || !titleRef.current) return;
-    const titleRect = titleRef.current.getBoundingClientRect();
+    // The safe area describes settled layout, not a temporary route entrance
+    // scale on an ancestor. Camera transforms must not affect packing either.
+    const titleRect = { width: titleRef.current.offsetWidth, height: titleRef.current.offsetHeight };
     if (titleRect.width <= 0 || titleRect.height <= 0) return;
     try {
-      setModel(buildSpatialModel(content, runtimeConfig, titleRect));
+      setModel(buildSpatialModel(content, configRef.current, titleRect));
       setLoadError('');
     } catch (error) {
       setModel(null);
       setLoadError(error?.message || `${routeLabel} layout could not be calculated.`);
     }
-  }, [content, configLoaded, fontsReady, layoutKey, routeLabel, runtimeConfig]);
+  }, [content, configLoaded, fontsReady, layoutKey, routeLabel]);
 
   useEffect(() => {
     const handlePopState = () => {
-      const routePathnames = isWorkExperience
-        ? ['/portfolio', '/portfolio.html']
-        : ['/playground', '/playground.html'];
-      if (!routePathnames.includes(window.location.pathname)) {
+      const remainsOnRoute = isWorkExperience
+        ? resolveRouteFromPathname(window.location.pathname)?.id === routeId
+        : ['/playground', '/playground.html'].includes(window.location.pathname);
+      if (!remainsOnRoute) {
         spatialCleanupRef.current?.();
         return;
       }
@@ -695,14 +719,49 @@ export function PlaygroundExperience({ experience = 'work' }) {
 
   const openItem = useCallback((itemId, event) => {
     const activeContent = contentRef.current;
-    if (!getPlaygroundItem(activeContent, itemId)) return;
+    const item = getPlaygroundItem(activeContent, itemId);
+    if (!item) return;
     returnFocusIdRef.current = itemId;
-    if (isWorkExperience && presentedId !== itemId) setPresentedId(null);
+    const camera = cameraRef.current;
+    const snapshot = camera?.getSnapshot();
+    const rect = event?.currentTarget?.getBoundingClientRect();
+    const viewportRect = viewportRef.current?.getBoundingClientRect();
+    const placement = modelRef.current?.placementById.get(itemId);
+    if (isWorkExperience && placement && snapshot && rect && viewportRect) {
+      const spacing = configRef.current.gridSpacingPx;
+      workSourceRef.current = {
+        itemId,
+        ...resolveDepthSource({
+          rect, viewportRect, camera: snapshot, worldScale: responsiveProfile.worldScale,
+          parallax: reducedMotion ? 1 : placement.parallax,
+          width: placement.footprintWidthCells * spacing,
+          height: placement.footprintHeightCells * spacing,
+        }),
+      };
+      // Keep the persistent semantic item on this exact visible repeat. The
+      // swap has identical geometry and cannot change media runtime ownership.
+      camera.setCamera(snapshot.logicalX, snapshot.logicalY, { immediate: true });
+    }
+    if (isWorkExperience && presentedIdRef.current !== itemId) setPresentedId(null);
     updatePlaygroundWorkSelection(itemId, { itemsOrIds: activeContent.items });
     setSelectedId(itemId);
+    setSelectionRevision((revision) => revision + 1);
+    if (isWorkExperience && ready && workSourceRef.current && camera
+      && (item.access !== 'protected' || hasGateAccess('portfolio'))) {
+      const target = workSourceRef.current;
+      const travel = Math.hypot(target.targetX - snapshot.logicalX, target.targetY - snapshot.logicalY);
+      const durationMs = reducedMotion || travel < 4
+        ? 0 : Math.min(340, Math.max(220, 180 + travel * 0.12));
+      if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'centering';
+      camera.setEnabled(true);
+      void camera.animateTo(target.targetX, target.targetY, { durationMs });
+      // A direct activation already has a measured source. Mount its stage in
+      // this same update, without paying for another render and animation frame.
+      setPresentedId(itemId);
+    }
     playInteractionSound('project-open', { source: `${routeId}-project-${itemId}` });
     triggerHaptic('open', { event });
-  }, [isWorkExperience, presentedId, routeId]);
+  }, [isWorkExperience, ready, reducedMotion, responsiveProfile.worldScale, routeId]);
 
   const requestClose = useCallback(({ reason } = {}) => {
     const result = clearPlaygroundWorkSelection({ preferBack: true });
@@ -732,11 +791,13 @@ export function PlaygroundExperience({ experience = 'work' }) {
       if (isInert) world.setAttribute('aria-hidden', 'true');
       else world.removeAttribute('aria-hidden');
     }
-    cameraRef.current?.setEnabled(!isInert);
+    cameraRef.current?.setEnabled(!isInert, { preserveAnimation: isInert });
     if (isInert) scrollSoundControllerRef.current?.reset();
   }, []);
 
   const restoreItemFocus = useCallback((itemId) => {
+    workSourceRef.current = null;
+    cameraRef.current?.requestUpdate();
     setKeyboardItemId(itemId);
     focusItemNodesRef.current.get(itemId)?.focus({ preventScroll: true });
   }, []);
@@ -762,14 +823,24 @@ export function PlaygroundExperience({ experience = 'work' }) {
     const snapshot = camera.getSnapshot();
     const spacing = configRef.current.gridSpacingPx;
     const worldScale = responsiveProfile.worldScale;
+    const cameraScale = worldScale * (reducedMotion ? 1 : placement.parallax);
     const itemCenterX = (placement.xCell + (placement.footprintWidthCells / 2)) * spacing;
     const itemCenterY = (placement.yCell + (placement.footprintHeightCells / 2)) * spacing;
-    const nearestColumn = Math.round((snapshot.renderedX - itemCenterX) / snapshot.worldWidthPx);
-    const nearestRow = Math.round((snapshot.renderedY - itemCenterY) / snapshot.worldHeightPx);
-    const targetX = itemCenterX + (nearestColumn * snapshot.worldWidthPx);
-    const targetY = itemCenterY + (nearestRow * snapshot.worldHeightPx);
-    const screenX = snapshot.viewportCenterX + ((targetX - snapshot.renderedX) * worldScale);
-    const screenY = snapshot.viewportCenterY + ((targetY - snapshot.renderedY) * worldScale);
+    const nearestColumn = Math.round((snapshot.logicalX - itemCenterX) / snapshot.worldWidthPx);
+    const nearestRow = Math.round((snapshot.logicalY - itemCenterY) / snapshot.worldHeightPx);
+    const pinned = workSourceRef.current?.itemId === itemId ? workSourceRef.current : null;
+    let targetX = pinned?.targetX ?? itemCenterX + (nearestColumn * snapshot.worldWidthPx);
+    let targetY = pinned?.targetY ?? itemCenterY + (nearestRow * snapshot.worldHeightPx);
+    const sourceRect = focusItemNodesRef.current.get(itemId)?.getBoundingClientRect();
+    const viewportRect = viewportRef.current?.getBoundingClientRect();
+    if (!pinned && sourceRect?.width && viewportRect) {
+      targetX = snapshot.logicalX
+        + (sourceRect.left + sourceRect.width / 2 - viewportRect.left - snapshot.viewportCenterX) / cameraScale;
+      targetY = snapshot.logicalY
+        + (sourceRect.top + sourceRect.height / 2 - viewportRect.top - snapshot.viewportCenterY) / cameraScale;
+    }
+    const screenX = snapshot.viewportCenterX + ((targetX - snapshot.logicalX) * cameraScale);
+    const screenY = snapshot.viewportCenterY + ((targetY - snapshot.logicalY) * cameraScale);
     const itemWidth = placement.footprintWidthCells * spacing * worldScale;
     const itemHeight = placement.footprintHeightCells * spacing * worldScale;
     const margin = Math.max(16, Math.min(40,
@@ -780,9 +851,10 @@ export function PlaygroundExperience({ experience = 'work' }) {
       || screenY - (itemHeight / 2) < margin
       || screenY + (itemHeight / 2) > snapshot.viewportHeightPx - margin;
     return { camera, snapshot, targetX, targetY, clipped };
-  }, [responsiveProfile.worldScale]);
+  }, [reducedMotion, responsiveProfile.worldScale]);
 
   const focusLogicalItem = useCallback((itemId, { forceCenter = false } = {}) => {
+    if (selectedIdRef.current || presentedIdRef.current) return;
     const target = getItemCameraTarget(itemId);
     if (!target) return;
     if (forceCenter || target.clipped) {
@@ -848,6 +920,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
       setWorldInert(false);
       requestCloseHandlerRef.current({ reason: 'access-dismissed' });
       restoreItemFocus(pendingId);
+      if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'idle';
     };
     window.addEventListener('abs:portfolio:access-granted', handleAccessGranted);
     window.addEventListener('abs:portfolio:access-dismissed', handleAccessDismissed);
@@ -885,12 +958,30 @@ export function PlaygroundExperience({ experience = 'work' }) {
     );
     const durationMs = reducedMotion || travel < 4
       ? 0
-      : Math.min(560, Math.max(260, 240 + (travel * 0.16)));
+      : Math.min(340, Math.max(220, 180 + (travel * 0.12)));
     let cancelled = false;
-    target.camera.animateTo(target.targetX, target.targetY, { durationMs }).then((centred) => {
-      if (cancelled || !centred || token !== workPresentationTokenRef.current) return;
+    const needsAccess = selectedItem.access === 'protected' && !hasGateAccess('portfolio');
+    const centering = target.camera.animateTo(target.targetX, target.targetY, { durationMs });
+    // Public media and unlocked studies expand while the camera settles. Only
+    // the protected gate waits for centering; protected content stays unmounted.
+    const presentationFrame = needsAccess ? 0 : requestAnimationFrame(() => {
+      if (!cancelled && token === workPresentationTokenRef.current
+        && selectedIdRef.current === selectedItem.id) setPresentedId(selectedItem.id);
+    });
+    centering.then((centred) => {
+      if (cancelled || token !== workPresentationTokenRef.current) return;
+      if (!centred) {
+        if (!presentedIdRef.current) {
+          cancelAnimationFrame(presentationFrame);
+          workSourceRef.current = null;
+          clearPlaygroundWorkSelection({ preferBack: false });
+          setSelectedId(null);
+          if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'idle';
+        }
+        return;
+      }
       if (selectedIdRef.current !== selectedItem.id) return;
-      if (selectedItem.access === 'protected' && !hasGateAccess('portfolio')) {
+      if (needsAccess) {
         workPendingAccessIdRef.current = selectedItem.id;
         if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'access-pending';
         setWorldInert(true);
@@ -902,11 +993,10 @@ export function PlaygroundExperience({ experience = 'work' }) {
         }));
         return;
       }
-      if (routeRef.current) routeRef.current.dataset.workOpenPhase = 'expanding';
-      setPresentedId(selectedItem.id);
     });
     return () => {
       cancelled = true;
+      cancelAnimationFrame(presentationFrame);
     };
   }, [
     getItemCameraTarget,
@@ -915,6 +1005,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
     ready,
     reducedMotion,
     selectedItem,
+    selectionRevision,
     setWorldInert,
   ]);
 
@@ -925,21 +1016,24 @@ export function PlaygroundExperience({ experience = 'work' }) {
       if (presenter?.activeItemId) presenter.close();
       return;
     }
-    const sourceCard = focusItemNodesRef.current.get(presentedItem.id);
+    const sourceCard = getWorkSourceElement(presentedItem.id);
     if (!sourceCard || !presenter) return;
     setWorldInert(true);
     void presenter.open(presentedItem, sourceCard);
-  }, [isWorkExperience, presentedItem, setWorldInert]);
+  }, [getWorkSourceElement, isWorkExperience, presentedItem, setWorldInert]);
 
   const handleItemKeyDown = useCallback((event, itemId) => {
     const direction = PROJECT_NAVIGATION_DIRECTIONS[event.key];
     const activeModel = modelRef.current;
     if (!direction || !activeModel) return;
+    const camera = cameraRef.current?.getSnapshot();
+    const spacing = configRef.current.gridSpacingPx;
     const nextPlacement = findDirectionalPlaygroundItem(
       activeModel.placements,
       itemId,
       direction,
-      activeModel.world,
+      { ...activeModel.world, cameraXCells: camera?.logicalX / spacing,
+        cameraYCells: camera?.logicalY / spacing, reducedMotion },
     );
     if (!nextPlacement) return;
     event.preventDefault();
@@ -949,7 +1043,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
     requestAnimationFrame(() => {
       focusItemNodesRef.current.get(nextPlacement.id)?.focus({ preventScroll: true });
     });
-  }, [focusLogicalItem]);
+  }, [focusLogicalItem, reducedMotion]);
 
   useLayoutEffect(() => {
     if (!model || !content || !viewportNode || !canvasRef.current || !routeRef.current) {
@@ -963,6 +1057,9 @@ export function PlaygroundExperience({ experience = 'work' }) {
     const initialX = lastLogicalCameraRef.current.x;
     const initialY = lastLogicalCameraRef.current.y;
     const worldScale = responsiveProfile.worldScale;
+    const snippetParallax = reducedMotion ? 1
+      : model.planes.find((plane) => plane.id === 'snippets')?.placements[0].parallax || 1;
+    const coverageScale = worldScale * snippetParallax;
 
     const dotRenderer = createPlaygroundDotFieldRenderer(canvas, {
       resizeTarget: viewport,
@@ -977,6 +1074,10 @@ export function PlaygroundExperience({ experience = 'work' }) {
       routeVisualScale: dotMaterialScaleRef.current,
       dotRadiusPx: configRef.current.dotRadiusPx,
       dotOpacity: configRef.current.dotOpacity,
+      dotDensity: configRef.current.dotDensity,
+      dotRandomness: configRef.current.dotRandomness,
+      colors: getSimulationPaletteSnapshot().colors,
+      reducedMotion,
       neutralColor: getComputedStyle(route).getPropertyValue('--text-muted').trim() || '#777777',
       fieldMode: isWorkExperience ? 'depth' : 'grid',
       maximumVisibleDots: isWorkExperience ? 1800 : undefined,
@@ -987,14 +1088,14 @@ export function PlaygroundExperience({ experience = 'work' }) {
 
     const syncCopies = (cameraState, force = false) => {
       const coverage = calculateNeighbouringCopyCoverage({
-        viewportWidthPx: cameraState.viewportWidthPx / worldScale,
-        viewportHeightPx: cameraState.viewportHeightPx / worldScale,
+        viewportWidthPx: cameraState.viewportWidthPx / coverageScale,
+        viewportHeightPx: cameraState.viewportHeightPx / coverageScale,
         worldWidthPx: model.world.widthPx,
         worldHeightPx: model.world.heightPx,
         cameraX: cameraState.renderedX,
         cameraY: cameraState.renderedY,
-        largestItemWidthPx: model.world.largestItemWidthPx,
-        largestItemHeightPx: model.world.largestItemHeightPx,
+        largestItemWidthPx: model.world.largestItemWidthPx / snippetParallax,
+        largestItemHeightPx: model.world.largestItemHeightPx / snippetParallax,
       });
       const signature = `${coverage.minimumColumn}:${coverage.maximumColumn}:${coverage.minimumRow}:${coverage.maximumRow}`;
       if (force || signature !== copySignatureRef.current) {
@@ -1022,12 +1123,16 @@ export function PlaygroundExperience({ experience = 'work' }) {
     let lastRenderedCameraY = Number.NaN;
     let lastViewportCenterX = Number.NaN;
     let lastViewportCenterY = Number.NaN;
+    let lastPinnedSource = null;
+    let lastTitleColumn = Number.NaN;
+    let lastTitleRow = Number.NaN;
 
     applyCameraFrameRef.current = (cameraState) => {
       const cameraGeometryChanged = cameraState.renderedX !== lastRenderedCameraX
         || cameraState.renderedY !== lastRenderedCameraY
         || cameraState.viewportCenterX !== lastViewportCenterX
-        || cameraState.viewportCenterY !== lastViewportCenterY;
+        || cameraState.viewportCenterY !== lastViewportCenterY
+        || workSourceRef.current !== lastPinnedSource;
       cameraFrameRef.current = cameraState;
       lastLogicalCameraRef.current.x = cameraState.logicalX;
       lastLogicalCameraRef.current.y = cameraState.logicalY;
@@ -1039,20 +1144,24 @@ export function PlaygroundExperience({ experience = 'work' }) {
         true,
       );
       if (!cameraGeometryChanged) return;
+      const firstGeometryFrame = Number.isNaN(lastRenderedCameraX);
       lastRenderedCameraX = cameraState.renderedX;
       lastRenderedCameraY = cameraState.renderedY;
       lastViewportCenterX = cameraState.viewportCenterX;
       lastViewportCenterY = cameraState.viewportCenterY;
-      route.style.setProperty(
-        '--playground-render-camera-x-px',
-        `${cameraState.renderedX * worldScale}px`,
-      );
-      route.style.setProperty(
-        '--playground-render-camera-y-px',
-        `${cameraState.renderedY * worldScale}px`,
-      );
-      route.style.setProperty('--playground-viewport-center-x-px', `${cameraState.viewportCenterX}px`);
-      route.style.setProperty('--playground-viewport-center-y-px', `${cameraState.viewportCenterY}px`);
+      lastPinnedSource = workSourceRef.current;
+      // Two compositor translations share one camera sample. No inherited
+      // per-frame variables or per-tile transforms invalidate all the captions.
+      if (worldRef.current) {
+        const x = cameraState.viewportCenterX - cameraState.renderedX * worldScale;
+        const y = cameraState.viewportCenterY - cameraState.renderedY * worldScale;
+        worldRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      }
+      if (snippetPlaneRef.current) {
+        const x = cameraState.renderedX * worldScale * (1 - snippetParallax);
+        const y = cameraState.renderedY * worldScale * (1 - snippetParallax);
+        snippetPlaneRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      }
       if (viewport.scrollLeft || viewport.scrollTop) {
         viewport.scrollLeft = 0;
         viewport.scrollTop = 0;
@@ -1060,34 +1169,45 @@ export function PlaygroundExperience({ experience = 'work' }) {
 
       const titleColumn = Math.round(cameraState.renderedX / model.world.widthPx);
       const titleRow = Math.round(cameraState.renderedY / model.world.heightPx);
-      if (titleRef.current) {
-        titleRef.current.style.left = `${cameraState.viewportCenterX
-          + ((titleColumn * model.world.widthPx) - cameraState.renderedX) * worldScale}px`;
-        titleRef.current.style.top = `${cameraState.viewportCenterY
-          + ((titleRow * model.world.heightPx) - cameraState.renderedY) * worldScale}px`;
+      if (titleRef.current && (titleColumn !== lastTitleColumn || titleRow !== lastTitleRow)) {
+        titleRef.current.style.left = `${titleColumn * model.world.widthPx * worldScale}px`;
+        titleRef.current.style.top = `${titleRow * model.world.heightPx * worldScale}px`;
+        lastTitleColumn = titleColumn;
+        lastTitleRow = titleRow;
       }
 
       const spacing = configRef.current.gridSpacingPx;
+      let wrappedItemChanged = firstGeometryFrame;
       for (let index = 0; index < model.placements.length; index += 1) {
         const placement = model.placements[index];
         const x = placement.xCell * spacing;
         const y = placement.yCell * spacing;
-        const nearestColumn = Math.round((cameraState.renderedX - x) / model.world.widthPx);
-        const nearestRow = Math.round((cameraState.renderedY - y) / model.world.heightPx);
-        placement.nearestColumn = nearestColumn;
-        placement.nearestRow = nearestRow;
-        const screenX = cameraState.viewportCenterX + ((x
-          + (nearestColumn * model.world.widthPx) - cameraState.renderedX) * worldScale);
-        const screenY = cameraState.viewportCenterY + ((y
-          + (nearestRow * model.world.heightPx) - cameraState.renderedY) * worldScale);
-        const node = semanticItemNodesRef.current.get(placement.id);
-        if (node) {
-          node.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${worldScale})`;
+        const pinned = workSourceRef.current?.itemId === placement.id ? workSourceRef.current : null;
+        const nearestColumn = pinned
+          ? Math.round((pinned.x - x - (cameraState.logicalX - cameraState.renderedX)) / model.world.widthPx)
+          : Math.round((cameraState.renderedX - x - placement.footprintWidthCells * spacing / 2) / model.world.widthPx);
+        const nearestRow = pinned
+          ? Math.round((pinned.y - y - (cameraState.logicalY - cameraState.renderedY)) / model.world.heightPx)
+          : Math.round((cameraState.renderedY - y - placement.footprintHeightCells * spacing / 2) / model.world.heightPx);
+        if (firstGeometryFrame || nearestColumn !== placement.nearestColumn
+          || nearestRow !== placement.nearestRow) {
+          wrappedItemChanged = true;
+          placement.nearestColumn = nearestColumn;
+          placement.nearestRow = nearestRow;
+          const parallax = reducedMotion ? 1 : placement.parallax;
+          const worldX = projectDepthCoordinate(x + nearestColumn * model.world.widthPx,
+            placement.footprintWidthCells * spacing, parallax) * worldScale;
+          const worldY = projectDepthCoordinate(y + nearestRow * model.world.heightPx,
+            placement.footprintHeightCells * spacing, parallax) * worldScale;
+          const node = semanticItemNodesRef.current.get(placement.id);
+          if (node) {
+            node.style.transform = `translate3d(${worldX}px, ${worldY}px, 0) scale(${worldScale})`;
+          }
         }
       }
 
       const decorativeInstances = decorativeInstancesRef.current;
-      for (let index = 0; index < decorativeInstances.length; index += 1) {
+      for (let index = 0; wrappedItemChanged && index < decorativeInstances.length; index += 1) {
         const instance = decorativeInstances[index];
         const placement = model.placementById.get(instance.itemId);
         const hidden = Boolean(placement
@@ -1124,7 +1244,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
       },
     });
     cameraRef.current = camera;
-    camera.setEnabled(isWorkExperience || !selectedIdRef.current);
+    camera.setEnabled(!worldRef.current?.inert && (isWorkExperience || !selectedIdRef.current));
     setInteractiveModel(model);
     const firstFrame = camera.getSnapshot();
     syncCopies(firstFrame, true);
@@ -1144,10 +1264,12 @@ export function PlaygroundExperience({ experience = 'work' }) {
     const resizeObserver = new ResizeObserver(() => {
       const rect = viewport.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
-      setViewportWidthPx((current) => {
-        const next = Math.round(rect.width);
-        return current === next ? current : next;
+      setViewportSize((current) => {
+        const width = Math.round(rect.width);
+        const height = Math.round(rect.height);
+        return current.width === width && current.height === height ? current : { width, height };
       });
+      publishDiagnostics({ viewportDiagonalPx: Math.hypot(rect.width, rect.height) });
       camera.resizeViewport(rect.width, rect.height, rect.width / 2, rect.height / 2);
       dotRenderer.resize(true);
     });
@@ -1159,25 +1281,31 @@ export function PlaygroundExperience({ experience = 'work' }) {
       });
     };
     window.addEventListener('abs:theme-changed', syncTheme);
+    const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
+      dotRenderer.configure({ colors: snapshot.colors });
+    });
 
     const spatialDiagnostics = createPlaygroundSpatialDiagnostics({
       items: model.items,
       placements: model.placements,
       world: model.world,
       coverage: calculateNeighbouringCopyCoverage({
-        viewportWidthPx: viewportRect.width / worldScale,
-        viewportHeightPx: viewportRect.height / worldScale,
+        viewportWidthPx: viewportRect.width / coverageScale,
+        viewportHeightPx: viewportRect.height / coverageScale,
         worldWidthPx: model.world.widthPx,
         worldHeightPx: model.world.heightPx,
         cameraX: firstFrame.renderedX,
         cameraY: firstFrame.renderedY,
-        largestItemWidthPx: model.world.largestItemWidthPx,
-        largestItemHeightPx: model.world.largestItemHeightPx,
+        largestItemWidthPx: model.world.largestItemWidthPx / snippetParallax,
+        largestItemHeightPx: model.world.largestItemHeightPx / snippetParallax,
       }),
       placementDiagnostics: model.placementDiagnostics,
     });
     publishDiagnostics({
       projectCount: spatialDiagnostics.itemCount,
+      viewportDiagonalPx: Math.hypot(viewportRect.width, viewportRect.height),
+      itemDiagonalPx: configRef.current.itemDiagonalPx,
+      projectClearancePx: configRef.current.projectClearanceCells * configRef.current.gridSpacingPx * worldScale,
       worldColumns: spatialDiagnostics.worldColumns,
       worldRows: spatialDiagnostics.worldRows,
       worldWidthPx: spatialDiagnostics.worldWidthPx,
@@ -1193,6 +1321,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
       cleaned = true;
       resizeObserver.disconnect();
       window.removeEventListener('abs:theme-changed', syncTheme);
+      unsubscribePalette();
       unregisterAtmosphere();
       camera.destroy();
       dotRenderer.destroy();
@@ -1209,7 +1338,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
       cleanup();
       if (spatialCleanupRef.current === cleanup) spatialCleanupRef.current = null;
     };
-  }, [atmosphereSourceId, content, isWorkExperience, model, publishDiagnostics, responsiveProfile.worldScale, routeId, viewportNode]);
+  }, [atmosphereSourceId, content, isWorkExperience, model, publishDiagnostics, reducedMotion, responsiveProfile.worldScale, routeId, viewportNode]);
 
   useEffect(() => {
     cameraRef.current?.configure({
@@ -1220,10 +1349,15 @@ export function PlaygroundExperience({ experience = 'work' }) {
     dotRendererRef.current?.configure({
       dotRadiusPx: runtimeConfig.dotRadiusPx,
       dotOpacity: config.dotOpacity,
+      dotDensity: config.dotDensity,
+      dotRandomness: config.dotRandomness,
+      reducedMotion,
       worldScale: responsiveProfile.worldScale,
     });
   }, [
     config.dotOpacity,
+    config.dotDensity,
+    config.dotRandomness,
     config.dragMomentum,
     config.wheelSensitivity,
     reducedMotion,
@@ -1343,6 +1477,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
           heightCells: placement.mediaHeightCells,
           footprintWidthCells: placement.footprintWidthCells,
           footprintHeightCells: placement.footprintHeightCells,
+          parallax: reducedMotion ? 1 : placement.parallax,
         })) || [],
         ready: route.dataset.playgroundReady === 'true',
       }),
@@ -1357,7 +1492,7 @@ export function PlaygroundExperience({ experience = 'work' }) {
     return () => {
       if (window[diagnosticGlobalKey] === diagnosticApi) delete window[diagnosticGlobalKey];
     };
-  }, [diagnosticGlobalKey, model, ready, recenter]);
+  }, [diagnosticGlobalKey, model, ready, recenter, reducedMotion]);
 
   useLayoutEffect(() => {
     if (!ready) return;
@@ -1430,20 +1565,11 @@ export function PlaygroundExperience({ experience = 'work' }) {
           className="playground-viewport-focus-proxy"
           data-focus-indicator-proxy
           aria-hidden="true"
-        />
+        >
+          {isWorkExperience ? 'W A S D' : null}
+        </span>
 
         <div ref={worldRef} className="playground-world" data-playground-world>
-          {model && content ? copies.map((copy) => (
-            <DecorativeWorldCopy
-              key={copy.key}
-              copy={copy}
-              content={content}
-              model={model}
-              config={runtimeConfig}
-              worldScale={responsiveProfile.worldScale}
-            />
-          )) : null}
-
           <section
             ref={titleRef}
             className="playground-title-anchor"
@@ -1476,15 +1602,12 @@ export function PlaygroundExperience({ experience = 'work' }) {
                   || 'Small projects, experiments, aesthetic studies, and miscellaneous experience work.'}
               </p>
               <div className="playground-drag-instruction" data-route-enter="action">
-                <svg
-                  className="playground-drag-instruction__icon"
-                  data-focus-indicator-proxy
-                  viewBox="0 0 24 24"
+                <span
+                  className="playground-drag-instruction__label"
                   aria-hidden="true"
-                  focusable="false"
                 >
-                  <path d="M18 9l3 3-3 3M15 12h6M6 9l-3 3 3 3M3 12h6M9 18l3 3 3-3M12 15v6M15 6l-3-3-3 3M12 3v6" />
-                </svg>
+                  Drag
+                </span>
                 <span className="playground-sr-instructions">Drag to explore.</span>
               </div>
             </div>
@@ -1493,96 +1616,122 @@ export function PlaygroundExperience({ experience = 'work' }) {
           {model && content ? (
             <ol
               className="playground-collection playground-semantic-collection"
+              role="list"
               aria-label={`${routeLabel} projects`}
             >
-              {model.placements.map((placement) => {
-                const item = getPlaygroundItem(content, placement.id);
-                const worldMediaActive = activeWorldMediaIds.has(item.id);
-                const worldRuntimeActive = worldMediaActive
-                  && (item.type === 'video' || item.type === 'code');
-                const worldRuntimeReady = worldRuntimeActive && readyWorldMediaIds.has(item.id);
-                const caseStudy = isCaseStudy(item);
-                const accessibleName = caseStudy
-                  ? `${item.label}, case study. ${item.accessibilityText}`
-                  : `${item.label}, ${getMediaTypeLabel(item.type)}. ${item.accessibilityText}`;
-                return (
-                  <li
-                    key={item.id}
-                    className={[
-                      'playground-item',
-                      'playground-item--semantic',
-                      caseStudy ? 'playground-item--case-study' : 'playground-item--snippet',
-                    ].join(' ')}
-                    data-playground-item={item.id}
-                    data-playground-item-type={item.type}
-                    data-work-item-kind={item.kind || WORK_ITEM_KINDS.snippet}
-                    data-playground-media-active={worldMediaActive ? 'true' : 'false'}
-                    data-playground-media-ready={worldRuntimeReady ? 'true' : 'false'}
-                    ref={(node) => {
-                      if (node) semanticItemNodesRef.current.set(item.id, node);
-                      else semanticItemNodesRef.current.delete(item.id);
-                    }}
-                    style={{
-                      '--playground-item-width-px': `${placement.mediaWidthCells * runtimeConfig.gridSpacingPx}px`,
-                      '--playground-item-height-px': `${placement.mediaHeightCells * runtimeConfig.gridSpacingPx}px`,
-                    }}
-                  >
-                    <div className="playground-item__route-surface">
-                      {worldRuntimeActive ? (
-                        <div className="playground-item__runtime" aria-hidden="true">
-                          <PlaygroundMedia
-                            item={item}
-                            renderMode="active"
-                            active
-                            visible
-                            motionAllowed={!reducedMotion}
-                            decorative
-                            runtimeOwnerId={`world:${item.id}`}
-                            onRuntimeStateChange={handleMediaRuntimeStateChange}
-                          />
-                        </div>
-                      ) : null}
-                      <button
+              {model.planes.map((plane) => (
+                <li
+                  key={plane.id}
+                  role="presentation"
+                  className="playground-depth-plane"
+                  data-work-plane={plane.id}
+                  data-work-parallax={reducedMotion ? 1 : plane.placements[0].parallax}
+                  ref={plane.id === 'snippets' ? snippetPlaneRef : undefined}
+                >
+                  {copies.map((copy) => (
+                    <DecorativeWorldCopy
+                      key={copy.key}
+                      copy={copy}
+                      content={content}
+                      placements={plane.placements}
+                      parallax={reducedMotion ? 1 : plane.placements[0].parallax}
+                      config={runtimeConfig}
+                      worldScale={responsiveProfile.worldScale}
+                      onOpen={openItem}
+                    />
+                  ))}
+                  {plane.placements.map((placement) => {
+                    const item = getPlaygroundItem(content, placement.id);
+                    const worldMediaActive = activeWorldMediaIds.has(item.id);
+                    // The selected stage owns playback. Keep poster geometry in
+                    // the field without running hidden videos or duplicate demos.
+                    const worldRuntimeActive = worldMediaActive && !selectedId && !presentedId
+                      && (item.type === 'video' || item.type === 'code');
+                    const worldRuntimeReady = worldRuntimeActive && readyWorldMediaIds.has(item.id);
+                    const caseStudy = isCaseStudy(item);
+                    const accessibleName = caseStudy
+                      ? `${item.label}, case study. ${item.accessibilityText}`
+                      : `${item.label}, ${getMediaTypeLabel(item.type)}. ${item.accessibilityText}`;
+                    return (
+                      <div
+                        key={item.id}
+                        role="listitem"
+                        className={[
+                          'playground-item',
+                          'playground-item--semantic',
+                          caseStudy ? 'playground-item--case-study' : 'playground-item--snippet',
+                        ].join(' ')}
+                        data-playground-item={item.id}
+                        data-playground-item-type={item.type}
+                        data-work-item-kind={item.kind || WORK_ITEM_KINDS.snippet}
+                        data-playground-media-active={worldMediaActive ? 'true' : 'false'}
+                        data-playground-media-ready={worldRuntimeReady ? 'true' : 'false'}
                         ref={(node) => {
-                          if (node) focusItemNodesRef.current.set(item.id, node);
-                          else focusItemNodesRef.current.delete(item.id);
+                          if (node) semanticItemNodesRef.current.set(item.id, node);
+                          else semanticItemNodesRef.current.delete(item.id);
                         }}
-                        type="button"
-                        className={caseStudy ? 'work-canvas-card portfolio-project-card' : undefined}
-                        tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
-                        aria-label={accessibleName}
-                        aria-haspopup="dialog"
-                        aria-controls={caseStudy ? 'portfolio-sheet-host' : 'work-snippet-stage'}
-                        aria-expanded={presentedId === item.id}
-                        data-sound-action="manual"
-                        data-sound-source={`${routeId}-project-${item.id}`}
-                        onFocus={() => {
-                          setKeyboardItemId(item.id);
-                          focusLogicalItem(item.id);
+                        style={{
+                          '--playground-item-width-px': `${placement.mediaWidthCells * runtimeConfig.gridSpacingPx}px`,
+                          '--playground-item-height-px': `${placement.mediaHeightCells * runtimeConfig.gridSpacingPx}px`,
                         }}
-                        onKeyDown={(event) => handleItemKeyDown(event, item.id)}
-                        onClick={(event) => openItem(item.id, event)}
                       >
-                        {caseStudy ? <CaseStudyCardContent item={item} /> : (
-                          <>
-                            <PlaygroundMedia
-                              item={item}
-                              renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
-                              active={item.type === 'image' && worldMediaActive}
-                              visible
-                              decorative
-                            />
-                            <span className="playground-item__label" aria-hidden="true">
-                              <span className="playground-item__title">{item.label}</span>
-                              <span className="playground-item__description">{item.description}</span>
-                            </span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
+                        <div className="playground-item__route-surface">
+                          {worldRuntimeActive ? (
+                            <div className="playground-item__runtime" aria-hidden="true">
+                              <PlaygroundMedia
+                                item={item}
+                                renderMode="active"
+                                active
+                                visible
+                                motionAllowed={!reducedMotion}
+                                decorative
+                                runtimeOwnerId={`world:${item.id}`}
+                                onRuntimeStateChange={handleMediaRuntimeStateChange}
+                              />
+                            </div>
+                          ) : null}
+                          <button
+                            ref={(node) => {
+                              if (node) focusItemNodesRef.current.set(item.id, node);
+                              else focusItemNodesRef.current.delete(item.id);
+                            }}
+                            type="button"
+                            className={caseStudy ? 'work-canvas-card portfolio-project-card' : undefined}
+                            tabIndex={rovingKeyboardItemId === item.id ? 0 : -1}
+                            aria-label={accessibleName}
+                            aria-haspopup="dialog"
+                            aria-controls={caseStudy ? 'portfolio-sheet-host' : 'work-snippet-stage'}
+                            aria-expanded={presentedId === item.id}
+                            data-sound-action="manual"
+                            data-sound-source={`${routeId}-project-${item.id}`}
+                            onFocus={(event) => {
+                              setKeyboardItemId(item.id);
+                              if (event.currentTarget.matches(':focus-visible')) focusLogicalItem(item.id);
+                            }}
+                            onKeyDown={(event) => handleItemKeyDown(event, item.id)}
+                            onClick={(event) => openItem(item.id, event)}
+                          >
+                            {caseStudy ? <CaseStudyCardContent item={item} /> : (
+                              <>
+                                <PlaygroundMedia
+                                  item={item}
+                                  renderMode={item.type === 'image' && worldMediaActive ? 'active' : 'poster'}
+                                  active={item.type === 'image' && worldMediaActive}
+                                  visible
+                                  decorative
+                                />
+                                <span className="playground-item__label" aria-hidden="true">
+                                  <span className="playground-item__title">{item.label}</span>
+                                </span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </li>
+              ))}
             </ol>
           ) : null}
         </div>

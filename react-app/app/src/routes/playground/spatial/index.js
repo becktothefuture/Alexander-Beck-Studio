@@ -50,3 +50,9 @@ export {
 } from './responsiveProfile.js';
 
 export { createPlaygroundSpatialDiagnostics } from './diagnostics.js';
+
+export {
+  getProjectParallaxFactor,
+  projectDepthCoordinate,
+  resolveDepthSource,
+} from './projectDepth.js';

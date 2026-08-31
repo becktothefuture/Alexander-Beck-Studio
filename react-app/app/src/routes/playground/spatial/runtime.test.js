@@ -371,6 +371,144 @@ test('camera and dot field share one frame and one canvas draw while dragging', 
   assert.equal(windowObject.frames.size, 0);
 });
 
+test('an inert Work background can finish its camera transaction without accepting input', async () => {
+  const target = new FakePointerTarget();
+  const windowObject = new FakeWindow();
+  const documentObject = new FakeEventTarget();
+  documentObject.visibilityState = 'visible';
+  const camera = createPlaygroundCameraController({
+    target, windowObject, documentObject,
+    worldWidthPx: 1000, worldHeightPx: 800,
+    viewportWidthPx: 800, viewportHeightPx: 600,
+  });
+  const settled = camera.animateTo(2240, -1720, { durationMs: 100 });
+  windowObject.flushAnimationFrames(0);
+  camera.setEnabled(false, { preserveAnimation: true });
+  target.dispatch('pointerdown', pointerEvent({ clientX: 80, clientY: 80 }));
+  windowObject.flushAnimationFrames(50);
+  assert.equal(camera.getSnapshot().enabled, false);
+  assert.equal(camera.getSnapshot().cameraAnimationActive, true);
+  windowObject.flushAnimationFrames(100);
+  assert.equal(await settled, true);
+  assert.equal(camera.getSnapshot().logicalX, 2240);
+  assert.equal(camera.getSnapshot().logicalY, -1720);
+  assert.equal(windowObject.frames.size, 0);
+  camera.destroy();
+});
+
+function depthFixture(options = {}, width = 1440, height = 900) {
+  const windowObject = new FakeWindow();
+  const documentObject = new FakeEventTarget();
+  documentObject.visibilityState = 'visible';
+  let points = [];
+  const context = {
+    globalAlpha: 1, fillStyle: '',
+    beginPath() {}, moveTo() {}, fill() {}, setTransform() {},
+    arc(x, y, radius) { points.push({ x, y, radius, alpha: this.globalAlpha, color: this.fillStyle }); },
+    clearRect() { points = []; },
+  };
+  const canvas = {
+    width: 0, height: 0,
+    getContext: () => context,
+    getBoundingClientRect: () => ({ width, height }),
+  };
+  const renderer = createPlaygroundDotFieldRenderer(canvas, {
+    windowObject, documentObject, fieldMode: 'depth',
+    maximumVisibleDots: 1800, dotRadiusPx: 2, dotOpacity: 1,
+    colors: ['#fa5440', '#5c85ea', '#b4d672'], ...options,
+  });
+  renderer.start();
+  windowObject.flushAnimationFrames();
+  return { renderer, windowObject, getPoints: () => points.slice() };
+}
+
+test('depth opacity keeps the nearest layer solid and fades the layers behind without changing points', () => {
+  const { renderer, windowObject, getPoints } = depthFixture();
+  const opaque = getPoints();
+  assert.deepEqual([...new Set(opaque.map((point) => point.alpha))], [0.34, 0.52, 1]);
+  renderer.configure({ dotOpacity: 0.8 });
+  windowObject.flushAnimationFrames();
+  assert.deepEqual(getPoints(), opaque.map((point) => ({ ...point, alpha: point.alpha * 0.8 })));
+  assert.equal(windowObject.frames.size, 0, 'opacity changes must settle without an idle animation loop');
+  renderer.configure({ dotOpacity: 1 });
+  windowObject.flushAnimationFrames();
+  assert.deepEqual(getPoints(), opaque);
+  renderer.destroy();
+});
+
+test('depth cells do not pop or change sampling phase when the camera crosses grid and world seams', () => {
+  const fixture = depthFixture({ maximumVisibleDots: 512, dotDensity: 0.8 });
+  const { renderer, windowObject, getPoints } = fixture;
+  const layers = [
+    { alpha: 0.34, radius: 0.42, parallax: 0.16 },
+    { alpha: 0.52, radius: 0.64, parallax: 0.34 },
+    { alpha: 1, radius: 0.92, parallax: 0.58 },
+  ];
+  assert.ok(renderer.getSnapshot().samplingStride > 1, 'exercise the bounded sampling path');
+  for (const origin of [-4096.5, -0.5, 122.1, 4095.5, 12287.5]) {
+    renderer.setCamera(origin, origin, 720, 450);
+    windowObject.flushAnimationFrames();
+    const before = getPoints();
+    const stride = renderer.getSnapshot().samplingStride;
+    renderer.setCamera(origin + 2, origin + 1, 720, 450);
+    windowObject.flushAnimationFrames();
+    const after = getPoints();
+    assert.equal(renderer.getSnapshot().samplingStride, stride);
+    for (const point of before.filter((p) => p.x > 16 && p.x < 1424 && p.y > 16 && p.y < 884)) {
+      const layer = layers.find((value) => value.alpha === point.alpha);
+      const depth = layer.parallax * point.radius / (2 * layer.radius);
+      assert.ok(after.some((next) => next.color === point.color
+        && Math.abs(next.radius - point.radius) < 1e-8
+        && Math.abs(next.x - (point.x - 2 * depth)) < 1e-7
+        && Math.abs(next.y - (point.y - depth)) < 1e-7), 'every interior point must move continuously');
+    }
+    assert.ok(after.length <= 512);
+    assert.equal(windowObject.frames.size, 0);
+  }
+  renderer.destroy();
+});
+
+test('depth controls preserve point identity, form a precise grid at zero randomness, and honor reduced motion', () => {
+  const { renderer, windowObject, getPoints } = depthFixture({ dotDensity: 0.2, dotRandomness: 0 });
+  const sparse = getPoints();
+  assert.ok(sparse.length > 0);
+  renderer.configure({ dotDensity: 1 });
+  windowObject.flushAnimationFrames();
+  const dense = getPoints();
+  assert.ok(dense.length > sparse.length);
+  assert.ok(sparse.every((point) => dense.some((next) => JSON.stringify(next) === JSON.stringify(point))));
+  const spacingByAlpha = new Map([[0.34, 72 * 1.7], [0.52, 72 * 1.15], [1, 72 * 0.82]]);
+  for (const point of dense) {
+    const spacing = spacingByAlpha.get(point.alpha);
+    const x = (point.x - 720) / spacing;
+    const y = (point.y - 450) / spacing;
+    assert.ok(Math.abs(x - Math.round(x)) < 1e-8);
+    assert.ok(Math.abs(y - Math.round(y)) < 1e-8);
+  }
+  renderer.configure({ dotRandomness: 1 });
+  windowObject.flushAnimationFrames();
+  assert.notDeepEqual(getPoints(), dense);
+  renderer.configure({ reducedMotion: true });
+  windowObject.flushAnimationFrames();
+  const staticField = getPoints();
+  renderer.setCamera(7000, -6000, 720, 450);
+  windowObject.flushAnimationFrames();
+  assert.deepEqual(getPoints(), staticField);
+  renderer.configure({ dotDensity: 0 });
+  windowObject.flushAnimationFrames();
+  assert.equal(getPoints().length, 0);
+  assert.equal(renderer.getSnapshot().drawnDotCount, 0);
+  renderer.destroy();
+});
+
+test('the full-density depth field remains bounded on an ultrawide high-DPR viewport', () => {
+  const { renderer, windowObject, getPoints } = depthFixture({ dotDensity: 1 }, 3440.5, 1600.5);
+  assert.ok(getPoints().length > 0 && getPoints().length <= 1800);
+  assert.equal(renderer.getSnapshot().dpr, 2);
+  assert.equal(windowObject.frames.size, 0);
+  renderer.destroy();
+});
+
 test('dot renderer clamps DPR, draws only on changes, pauses, and cleans up', () => {
   const windowObject = new FakeWindow();
   const documentObject = new FakeEventTarget();
@@ -531,6 +669,7 @@ test('Work depth field is deterministic, bounded, redraw-on-change, and parallax
     documentObject,
     fieldMode: 'depth',
     gridSpacingPx: 48,
+    dotRandomness: 0,
     maximumVisibleDots: 512,
     viewportCenterX: 160,
     viewportCenterY: 120,

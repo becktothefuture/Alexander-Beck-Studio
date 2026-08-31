@@ -211,7 +211,7 @@ export function createPlaygroundCameraController({
   function handleFrame(timestamp) {
     frameId = 0;
     if (disposed || paused) return;
-    if (cameraAnimation && enabled) {
+    if (cameraAnimation) {
       if (cameraAnimation.startedAt == null) cameraAnimation.startedAt = timestamp;
       const elapsed = Math.max(0, timestamp - cameraAnimation.startedAt);
       const progress = clamp(elapsed / cameraAnimation.durationMs, 0, 1);
@@ -598,11 +598,11 @@ export function createPlaygroundCameraController({
     scheduleFrame();
   }
 
-  function setEnabled(nextEnabled) {
+  function setEnabled(nextEnabled, { preserveAnimation = false } = {}) {
     enabled = nextEnabled !== false;
     state.enabled = enabled;
     if (!enabled) {
-      cancelCameraAnimation(false);
+      if (!preserveAnimation) cancelCameraAnimation(false);
       cancelPointer();
       stopWheel();
       stopInertia();

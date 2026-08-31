@@ -1,3 +1,5 @@
+import { getCoverImageExpansion, getMediaExpansionFrame } from '../../../lib/motion/media-expansion.js';
+
 const HANDOFF_EASING = 'cubic-bezier(0.22, 0, 0.16, 1)';
 const REDUCED_MOTION_DURATION_MS = 120;
 const DIRECT_CLOSE_DURATION_MS = 220;
@@ -43,6 +45,7 @@ export class PortfolioProjectHandoff {
     drawerView,
     getDeckStage,
     shouldReduceMotion,
+    backgroundOpacity = 0,
     onStateChange,
     onOpened,
     onClosed,
@@ -51,6 +54,7 @@ export class PortfolioProjectHandoff {
     this.drawerView = drawerView;
     this.getDeckStage = getDeckStage;
     this.shouldReduceMotion = shouldReduceMotion;
+    this.backgroundOpacity = backgroundOpacity;
     this.onStateChange = onStateChange;
     this.onOpened = onOpened;
     this.onClosed = onClosed;
@@ -61,6 +65,8 @@ export class PortfolioProjectHandoff {
     this.sourceMedia = null;
     this.mediaMotion = null;
     this.image = null;
+    this.imagePlane = null;
+    this.imageExpansion = null;
     this.animations = [];
     this.primaryAnimation = null;
     this.durationMs = 0;
@@ -141,6 +147,8 @@ export class PortfolioProjectHandoff {
 
     await waitForRenderableImage(this.image);
     if (token !== this.sequenceToken || this.state !== 'preparing') return false;
+    // The Work camera can still be centering while the hero decodes.
+    this.sourceRect = this.sourceMedia.getBoundingClientRect();
 
     if (this.shouldReduceMotion?.()) {
       this.runDirectOpen(token);
@@ -231,7 +239,7 @@ export class PortfolioProjectHandoff {
     bridge.dataset.handoffState = atTarget ? 'closing' : 'opening';
     bridge.dataset.mediaMode = this.drawerView.usesColorMedia?.() ? 'colour' : 'image';
     bridge.style.setProperty('--portfolio-project-hero-colour', this.drawerView.getHeroColor?.() || 'transparent');
-    const initialRect = atTarget ? this.targetRect : this.sourceRect;
+    const initialRect = this.targetRect;
     Object.assign(bridge.style, {
       left: `${initialRect.left}px`,
       top: `${initialRect.top}px`,
@@ -242,6 +250,8 @@ export class PortfolioProjectHandoff {
         ? (this.drawerView.getHeroColor?.() || sourceStyle.backgroundColor)
         : sourceStyle.backgroundColor,
       boxShadow: sourceMaterialStyle.boxShadow,
+      transformOrigin: '50% 50%',
+      willChange: 'transform, clip-path',
     });
 
     const sourceVeilElement = this.sourceMedia.querySelector('.portfolio-project-card__media-veil');
@@ -260,6 +270,18 @@ export class PortfolioProjectHandoff {
       ? (this.drawerView.getHeroColor?.() || 'transparent')
       : 'transparent';
     if (this.image) {
+      this.imageExpansion = getCoverImageExpansion(this.sourceRect, this.targetRect,
+        this.image.naturalWidth / this.image.naturalHeight,
+        this.sourceObjectPosition, this.targetObjectPosition);
+      if (this.imageExpansion) {
+        this.imagePlane = { element: this.image, cssText: this.image.style.cssText };
+        Object.assign(this.image.style, {
+          position: 'absolute', left: '0px', top: '0px',
+          width: `${this.imageExpansion.width}px`, height: `${this.imageExpansion.height}px`,
+          maxWidth: 'none', maxHeight: 'none', transformOrigin: '0 0', willChange: 'transform',
+          transform: atTarget ? this.imageExpansion.to : this.imageExpansion.from,
+        });
+      }
       this.image.style.objectPosition = atTarget ? this.targetObjectPosition : this.sourceObjectPosition;
       this.image.style.filter = atTarget ? this.targetFilter : this.sourceFilter;
     }
@@ -292,27 +314,25 @@ export class PortfolioProjectHandoff {
       return animation;
     };
 
+    const sourceFrame = getMediaExpansionFrame(this.sourceRect, this.targetRect,
+      Number.parseFloat(sourceStyle.borderRadius));
     this.primaryAnimation = add(this.bridge, [
       {
-        left: `${this.sourceRect.left}px`,
-        top: `${this.sourceRect.top}px`,
-        width: `${this.sourceRect.width}px`,
-        height: `${this.sourceRect.height}px`,
-        borderRadius: sourceStyle.borderRadius,
+        transform: sourceFrame.transform,
+        clipPath: sourceFrame.clipPath,
         boxShadow: sourceMaterialStyle.boxShadow,
       },
       {
-        left: `${this.targetRect.left}px`,
-        top: `${this.targetRect.top}px`,
-        width: `${this.targetRect.width}px`,
-        height: `${this.targetRect.height}px`,
-        borderRadius: targetStyle.borderRadius || '0px',
+        transform: 'none',
+        clipPath: `inset(0px round ${targetStyle.borderRadius || '0px'})`,
         boxShadow: 'none',
       },
     ]);
     add(this.image, [
-      { objectPosition: this.sourceObjectPosition, filter: this.sourceFilter },
-      { objectPosition: this.targetObjectPosition, filter: this.targetFilter },
+      { objectPosition: this.sourceObjectPosition, filter: this.sourceFilter,
+        ...(this.imageExpansion ? { transform: this.imageExpansion.from } : {}) },
+      { objectPosition: this.targetObjectPosition, filter: this.targetFilter,
+        ...(this.imageExpansion ? { transform: this.imageExpansion.to } : {}) },
     ]);
     add(this.mediaMotion, [
       { transform: 'none' },
@@ -326,8 +346,8 @@ export class PortfolioProjectHandoff {
     add(this.getDeckStage?.(), [
       { opacity: 1, offset: 0 },
       { opacity: 1, offset: 0.12 },
-      { opacity: 0, offset: 0.48 },
-      { opacity: 0, offset: 1 },
+      { opacity: this.backgroundOpacity, offset: 0.48 },
+      { opacity: this.backgroundOpacity, offset: 1 },
     ]);
     add(this.sourceCard?.querySelector('.portfolio-project-card__copy'), [
       { opacity: 1, offset: 0 },
@@ -384,7 +404,7 @@ export class PortfolioProjectHandoff {
     const deck = this.getDeckStage?.();
     const drawer = this.drawerView.drawer;
     const animations = [
-      deck?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: REDUCED_MOTION_DURATION_MS, fill: 'forwards' }),
+      deck?.animate([{ opacity: 1 }, { opacity: this.backgroundOpacity }], { duration: REDUCED_MOTION_DURATION_MS, fill: 'forwards' }),
       drawer?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REDUCED_MOTION_DURATION_MS, fill: 'forwards' }),
     ].filter(Boolean);
     this.animations = animations;
@@ -402,7 +422,7 @@ export class PortfolioProjectHandoff {
     const deck = this.getDeckStage?.();
     const drawer = this.drawerView.drawer;
     const animations = [
-      deck?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: durationMs, easing: HANDOFF_EASING, fill: 'forwards' }),
+      deck?.animate([{ opacity: this.backgroundOpacity }, { opacity: 1 }], { duration: durationMs, easing: HANDOFF_EASING, fill: 'forwards' }),
       drawer?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: durationMs, easing: HANDOFF_EASING, fill: 'forwards' }),
     ].filter(Boolean);
     if (durationMs > REDUCED_MOTION_DURATION_MS) {
@@ -432,7 +452,7 @@ export class PortfolioProjectHandoff {
       activateHeroMotion: !this.shouldReduceMotion?.(),
     });
     const deck = this.getDeckStage?.();
-    if (deck) deck.style.opacity = '0';
+    if (deck) deck.style.opacity = String(this.backgroundOpacity);
     if (this.image) {
       this.image.style.objectPosition = this.targetObjectPosition;
       this.image.style.filter = this.targetFilter;
@@ -468,6 +488,11 @@ export class PortfolioProjectHandoff {
   }
 
   removeBridge({ keepMedia = false } = {}) {
+    if (this.imagePlane) {
+      this.imagePlane.element.style.cssText = this.imagePlane.cssText;
+      this.imagePlane = null;
+      this.imageExpansion = null;
+    }
     if (keepMedia && this.bridge?.contains(this.mediaMotion)) {
       this.drawerView.restoreTransitionMedia?.(this.mediaMotion);
     }

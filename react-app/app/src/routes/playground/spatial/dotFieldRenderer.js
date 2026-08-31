@@ -4,11 +4,11 @@ const TWO_PI = Math.PI * 2;
 const FIELD_MODE_GRID = 'grid';
 const FIELD_MODE_DEPTH = 'depth';
 const UINT32_RANGE = 4294967296;
+const DEPTH_GRID_SPACING_PX = 72;
+const DEPTH_VARIATION = 0.18;
 
 const DEPTH_FIELD_LAYERS = Object.freeze([
   Object.freeze({
-    density: 0.72,
-    jitter: 0.78,
     opacityMultiplier: 0.34,
     parallax: 0.16,
     radiusMultiplier: 0.42,
@@ -16,8 +16,6 @@ const DEPTH_FIELD_LAYERS = Object.freeze([
     spacingMultiplier: 1.7,
   }),
   Object.freeze({
-    density: 0.42,
-    jitter: 0.72,
     opacityMultiplier: 0.52,
     parallax: 0.34,
     radiusMultiplier: 0.64,
@@ -25,9 +23,7 @@ const DEPTH_FIELD_LAYERS = Object.freeze([
     spacingMultiplier: 1.15,
   }),
   Object.freeze({
-    density: 0.18,
-    jitter: 0.66,
-    opacityMultiplier: 0.72,
+    opacityMultiplier: 1,
     parallax: 0.58,
     radiusMultiplier: 0.92,
     seed: 0x9e3779b9,
@@ -58,7 +54,8 @@ function hashCell(column, row, seed) {
 
 /**
  * Creates a redraw-on-change Canvas 2D dot renderer. Camera changes coalesce
- * into one frame and the neutral field sleeps whenever its geometry is stable.
+ * into one frame. Stable world cells own position, depth, colour, and density;
+ * moving the viewport never reseeds or changes the sampling lattice.
  */
 export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   const context = canvas?.getContext?.('2d', { alpha: true, desynchronized: true });
@@ -97,8 +94,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
   let worldRows = Math.max(1, Math.round(finite(options.worldRows, 56)));
   let dotRadiusPx = clamp(finite(options.dotRadiusPx, 2.25), 0.25, gridSpacingPx * 0.45);
   let dotOpacity = clamp(finite(options.dotOpacity, 0.28), 0, 1);
+  let dotDensity = clamp(finite(options.dotDensity, 0.58), 0, 1);
+  let dotRandomness = clamp(finite(options.dotRandomness, 0.65), 0, 1);
+  let reducedMotion = options.reducedMotion === true;
   let routeVisualScale = clamp(finite(options.routeVisualScale, 1), 0, 1);
   let neutralColor = String(options.neutralColor || '#8a8a8a');
+  let colors = Array.isArray(options.colors) && options.colors.length
+    ? options.colors.slice(0, 8)
+    : [neutralColor];
   const fieldMode = options.fieldMode === FIELD_MODE_DEPTH
     ? FIELD_MODE_DEPTH
     : FIELD_MODE_GRID;
@@ -141,50 +144,41 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     context.fill();
   }
 
-  function calculateDepthCandidateCount() {
+  function calculateDepthCandidateCount(stride = 1) {
     let candidateCount = 0;
     for (let index = 0; index < DEPTH_FIELD_LAYERS.length; index += 1) {
       const layer = DEPTH_FIELD_LAYERS[index];
-      const spacing = gridSpacingPx * layer.spacingMultiplier;
-      const layerCameraX = cameraX * layer.parallax;
-      const layerCameraY = cameraY * layer.parallax;
-      const minimumColumn = Math.floor(
-        (layerCameraX - (viewportCenterX / worldScale)) / spacing,
-      ) - 1;
-      const maximumColumn = Math.ceil(
-        (layerCameraX + ((width - viewportCenterX) / worldScale)) / spacing,
-      ) + 1;
-      const minimumRow = Math.floor(
-        (layerCameraY - (viewportCenterY / worldScale)) / spacing,
-      ) - 1;
-      const maximumRow = Math.ceil(
-        (layerCameraY + ((height - viewportCenterY) / worldScale)) / spacing,
-      ) + 1;
-      candidateCount += Math.max(0, maximumColumn - minimumColumn + 1)
-        * Math.max(0, maximumRow - minimumRow + 1);
+      // Use the worst-case cell extent, independent of camera and randomness.
+      // Otherwise a one-pixel pan can change stride and replace the whole field.
+      const spacing = DEPTH_GRID_SPACING_PX * layer.spacingMultiplier
+        * (1 - DEPTH_VARIATION) * worldScale;
+      const columns = Math.ceil(width / spacing) + 5;
+      const rows = Math.ceil(height / spacing) + 5;
+      candidateCount += Math.ceil(columns / stride) * Math.ceil(rows / stride);
     }
     return candidateCount;
   }
 
   function drawDepthDots(samplingStride) {
     let drawnCount = 0;
-    context.fillStyle = neutralColor;
+    if (dotDensity === 0) return 0;
+    const fieldCameraX = reducedMotion ? 0 : cameraX;
+    const fieldCameraY = reducedMotion ? 0 : cameraY;
     for (let index = 0; index < DEPTH_FIELD_LAYERS.length; index += 1) {
       const layer = DEPTH_FIELD_LAYERS[index];
-      const spacing = gridSpacingPx * layer.spacingMultiplier;
-      const layerCameraX = cameraX * layer.parallax;
-      const layerCameraY = cameraY * layer.parallax;
+      const spacing = DEPTH_GRID_SPACING_PX * layer.spacingMultiplier / layer.parallax;
+      const minimumDepth = layer.parallax * (1 - DEPTH_VARIATION);
       const minimumColumn = Math.floor(
-        (layerCameraX - (viewportCenterX / worldScale)) / spacing,
+        (fieldCameraX - (viewportCenterX / (worldScale * minimumDepth))) / spacing,
       ) - 1;
       const maximumColumn = Math.ceil(
-        (layerCameraX + ((width - viewportCenterX) / worldScale)) / spacing,
+        (fieldCameraX + ((width - viewportCenterX) / (worldScale * minimumDepth))) / spacing,
       ) + 1;
       const minimumRow = Math.floor(
-        (layerCameraY - (viewportCenterY / worldScale)) / spacing,
+        (fieldCameraY - (viewportCenterY / (worldScale * minimumDepth))) / spacing,
       ) - 1;
       const maximumRow = Math.ceil(
-        (layerCameraY + ((height - viewportCenterY) / worldScale)) / spacing,
+        (fieldCameraY + ((height - viewportCenterY) / (worldScale * minimumDepth))) / spacing,
       ) + 1;
       const radius = dotRadiusPx
         * layer.radiusMultiplier
@@ -193,26 +187,39 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       if (radius <= 0.01) continue;
 
       context.globalAlpha = dotOpacity * layer.opacityMultiplier;
-      context.beginPath();
-      let layerDrawnCount = 0;
-      for (let row = minimumRow; row <= maximumRow; row += samplingStride) {
-        for (let column = minimumColumn; column <= maximumColumn; column += samplingStride) {
-          if (hashCell(column, row, layer.seed) > layer.density) continue;
-          const jitterX = (hashCell(column, row, layer.seed ^ 0x68bc21eb) - 0.5)
-            * layer.jitter;
-          const jitterY = (hashCell(column, row, layer.seed ^ 0x02e5be93) - 0.5)
-            * layer.jitter;
-          const screenX = viewportCenterX + (((column + jitterX) * spacing - layerCameraX)
-            * worldScale);
-          const screenY = viewportCenterY + (((row + jitterY) * spacing - layerCameraY)
-            * worldScale);
-          context.moveTo(screenX + radius, screenY);
-          context.arc(screenX, screenY, radius, 0, TWO_PI);
-          layerDrawnCount += 1;
+      const firstRow = Math.ceil(minimumRow / samplingStride) * samplingStride;
+      const firstColumn = Math.ceil(minimumColumn / samplingStride) * samplingStride;
+      // A handful of palette batches, no per-dot state changes or frame allocations.
+      for (let colorIndex = 0; colorIndex < colors.length; colorIndex += 1) {
+        context.fillStyle = colors[colorIndex];
+        context.beginPath();
+        let batchCount = 0;
+        for (let row = firstRow; row <= maximumRow; row += samplingStride) {
+          for (let column = firstColumn; column <= maximumColumn; column += samplingStride) {
+            if (hashCell(column, row, layer.seed) >= dotDensity) continue;
+            if (Math.floor(hashCell(column, row, layer.seed ^ 0x40acbe19) * colors.length)
+              !== colorIndex) continue;
+            const jitterX = (hashCell(column, row, layer.seed ^ 0x68bc21eb) - 0.5)
+              * dotRandomness;
+            const jitterY = (hashCell(column, row, layer.seed ^ 0x02e5be93) - 0.5)
+              * dotRandomness;
+            const depth = layer.parallax * (1 + ((hashCell(column, row, layer.seed ^ 0x17b423d1)
+              * 2 - 1) * DEPTH_VARIATION * dotRandomness));
+            const screenX = viewportCenterX
+              + (((column + jitterX) * spacing - fieldCameraX) * depth * worldScale);
+            const screenY = viewportCenterY
+              + (((row + jitterY) * spacing - fieldCameraY) * depth * worldScale);
+            const pointRadius = radius * depth / layer.parallax;
+            if (screenX < -pointRadius || screenX > width + pointRadius
+              || screenY < -pointRadius || screenY > height + pointRadius) continue;
+            context.moveTo(screenX + pointRadius, screenY);
+            context.arc(screenX, screenY, pointRadius, 0, TWO_PI);
+            batchCount += 1;
+          }
         }
+        if (batchCount > 0) context.fill();
+        drawnCount += batchCount;
       }
-      if (layerDrawnCount > 0) context.fill();
-      drawnCount += layerDrawnCount;
     }
     return drawnCount;
   }
@@ -254,9 +261,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     const visibleDotCount = depthMode
       ? calculateDepthCandidateCount()
       : columnCount * rowCount;
-    const samplingStride = visibleDotCount > maximumVisibleDots
+    let samplingStride = visibleDotCount > maximumVisibleDots
       ? Math.ceil(Math.sqrt(visibleDotCount / maximumVisibleDots))
       : 1;
+    if (depthMode) {
+      while (calculateDepthCandidateCount(samplingStride) > maximumVisibleDots) {
+        samplingStride += 1;
+      }
+    }
     lastVisibleDotCount = visibleDotCount;
     lastSamplingStride = samplingStride;
     const sampledColumnCount = columnCount
@@ -326,7 +338,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     return true;
   }
 
-  /** Camera coordinates must be the modulo-rendered values from the camera controller. */
+  /** Depth uses the unbounded logical camera; the compatibility grid uses wrapped coordinates. */
   function setCamera(nextCameraX, nextCameraY, nextCenterX, nextCenterY, renderImmediately = false) {
     const resolvedX = finite(nextCameraX, cameraX);
     const resolvedY = finite(nextCameraY, cameraY);
@@ -395,6 +407,12 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     dotRadiusPx = nextRadius;
     worldScale = nextWorldScale;
     dotOpacity = nextOpacity;
+    dotDensity = clamp(finite(nextOptions.dotDensity, dotDensity), 0, 1);
+    dotRandomness = clamp(finite(nextOptions.dotRandomness, dotRandomness), 0, 1);
+    if (typeof nextOptions.reducedMotion === 'boolean') reducedMotion = nextOptions.reducedMotion;
+    if (Array.isArray(nextOptions.colors) && nextOptions.colors.length) {
+      colors = nextOptions.colors.slice(0, 8);
+    }
     neutralColor = nextNeutralColor;
     maximumDpr = nextMaximumDpr;
     maximumVisibleDots = nextMaximumVisibleDots;
@@ -471,6 +489,10 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       worldRows,
       dotRadiusPx,
       dotOpacity,
+      dotDensity,
+      dotRandomness,
+      reducedMotion,
+      colors: colors.slice(),
       routeVisualScale,
       neutralColor,
       fieldMode,

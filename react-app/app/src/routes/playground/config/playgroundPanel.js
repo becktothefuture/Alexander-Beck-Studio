@@ -1,8 +1,10 @@
+import { isDev } from '../../../legacy/modules/utils/logger.js';
 import {
   DEFAULT_PLAYGROUND_CONFIG,
   PLAYGROUND_CONFIG_BOUNDS,
   PLAYGROUND_LAYOUT_PRESETS,
   buildPlaygroundCanonicalSnapshot,
+  buildPlaygroundScopedDesignSnapshot,
   generateAndApplyPlaygroundLayoutSeed,
   getPlaygroundConfigSnapshot,
   resetPlaygroundConfig,
@@ -45,28 +47,42 @@ export const PLAYGROUND_PANEL_SCHEMA = deepFreeze([
       },
       numericControl('projectSpacing', 'Project spacing', {
         unit: '×',
-        hint: 'Higher spreads projects and grows the repeat area.',
+        hint: 'Breathing room follows image size. Higher spreads projects and grows the repeat area.',
       }),
-      numericControl('itemScale', 'Item scale', { unit: '×' }),
+      numericControl('itemDiagonalViewportRatio', 'Viewport share', {
+        display: 'percent',
+        hint: 'Image diagonal = viewport diagonal × share, between the clamps below. Smaller snippets keep their relative size.',
+      }),
+      numericControl('itemDiagonalMinPx', 'Mobile min diagonal', { unit: 'px' }),
+      numericControl('itemDiagonalMaxPx', 'Desktop max diagonal', { unit: 'px' }),
       numericControl('sizeVariation', 'Size variation', { display: 'percent' }),
+      numericControl('gridSpacingPx', 'Layout grid', { unit: 'px' }),
     ],
   },
   {
     id: 'grid',
     title: 'Dot field',
     controls: [
-      numericControl('gridSpacingPx', 'Grid spacing', {
-        unit: 'px',
-        hint: 'Lower is denser.',
+      numericControl('dotDensity', 'Density', { display: 'percent' }),
+      numericControl('dotRandomness', 'Grid randomness', {
+        display: 'percent',
+        hint: '0% is a precise depth grid; 100% scatters each point within its cell.',
       }),
       numericControl('dotRadiusPx', 'Dot radius', { unit: 'px' }),
-      numericControl('dotOpacity', 'Dot opacity', { display: 'percent' }),
+      numericControl('dotOpacity', 'Dot opacity', {
+        display: 'percent',
+        hint: 'Nearest-layer opacity. Middle and far layers use 52% and 34% of this value.',
+      }),
     ],
   },
   {
     id: 'motion',
     title: 'Motion',
     controls: [
+      numericControl('snippetDepth', 'Snippet depth', {
+        display: 'percent',
+        hint: 'Smaller projects move this much slower than case studies. 0% keeps one plane. Spacing is protected automatically.',
+      }),
       numericControl('wheelSensitivity', 'Wheel sensitivity', { unit: '×' }),
       numericControl('dragMomentum', 'Drag momentum', { display: 'percent' }),
     ],
@@ -85,6 +101,8 @@ export const PLAYGROUND_PANEL_SCHEMA = deepFreeze([
     title: 'Diagnostics',
     diagnostics: [
       { id: 'projectCount', label: 'Project count', integer: true },
+      { id: 'viewportDiagonalPx', label: 'Viewport diagonal', integer: true, unit: 'px' },
+      { id: 'itemDiagonalPx', label: 'Image reference', integer: true, unit: 'px' },
       { id: 'worldColumns', label: 'World columns', integer: true },
       { id: 'worldRows', label: 'World rows', integer: true },
       { id: 'occupiedCellPercentage', label: 'Occupied cells', unit: '%' },
@@ -245,10 +263,18 @@ export function syncPlaygroundPanelDiagnostics(panel, diagnostics = {}) {
 }
 
 export async function savePlaygroundDesignConfiguration() {
-  const { performDesignSystemSave } = await import('../../../legacy/modules/utils/design-system-save.js');
-  return performDesignSystemSave({
-    playgroundSnapshot: buildPlaygroundCanonicalSnapshot(),
-  });
+  const { persistDesignSystemConfig, downloadDesignSystemConfig } = await import(
+    '../../../legacy/modules/utils/design-system-save.js'
+  );
+  // A Work-only save must not capture uninitialised Home runtime globals, or
+  // overwrite another route's more recent canonical configuration.
+  const response = await fetch('/config/design-system.json', { cache: 'no-store' });
+  if (!response.ok) throw new Error('The canonical design configuration could not be read.');
+  const canonical = await response.json();
+  const snapshot = buildPlaygroundScopedDesignSnapshot(canonical);
+  const saved = await persistDesignSystemConfig(snapshot);
+  if (!saved) downloadDesignSystemConfig(snapshot);
+  return { snapshot, saved, downloaded: !saved };
 }
 
 export function bindPlaygroundPanel(panel, options = {}) {
@@ -350,8 +376,10 @@ export function bindPlaygroundPanel(panel, options = {}) {
   const unsubscribeDiagnostics = typeof options.subscribeDiagnostics === 'function'
     ? options.subscribeDiagnostics((diagnostics) => syncPlaygroundPanelDiagnostics(panel, diagnostics))
     : null;
+  panel.dataset.playgroundControlsReady = 'true';
 
   return () => {
+    delete panel.dataset.playgroundControlsReady;
     panel.removeEventListener('input', handleInput);
     panel.removeEventListener('change', handleChange);
     panel.removeEventListener('click', handleAction);
@@ -371,15 +399,16 @@ export function createPlaygroundPanelRouteOptions(options = {}) {
     pageHTML: generatePlaygroundPanelHTML(),
     includePageSaveButton: true,
     pageSaveButtonId: 'savePlaygroundConfigBtn',
-    pageSaveButtonLabel: '💾 Save Design JSON',
+    pageSaveButtonLabel: '💾 Save Work Settings',
     masterGroupIds: ['motion', 'audio'],
-    footerHint: '<kbd>/</kbd> panel · <kbd>Shift</kbd> + settings opens detached · canonical save',
+    footerHint: '<kbd>/</kbd> panel · <kbd>Shift</kbd> + settings opens detached · saves Work only',
     syncInitialControlSideEffects: false,
     setupPageControls: (panel) => bindPlaygroundPanel(panel, options),
   };
 }
 
 export async function registerPlaygroundPanelRoute(options = {}) {
+  if (!isDev()) return null;
   const { registerDevPanelRoute } = await import('../../../legacy/modules/ui/panel-popup-manager.js');
   const panelOptions = createPlaygroundPanelRouteOptions(options);
   registerDevPanelRoute(panelOptions);
@@ -387,6 +416,7 @@ export async function registerPlaygroundPanelRoute(options = {}) {
 }
 
 export async function unregisterPlaygroundPanelRoute() {
+  if (!isDev()) return null;
   const { unregisterDevPanelRoute } = await import('../../../legacy/modules/ui/panel-popup-manager.js');
   return unregisterDevPanelRoute('playground');
 }
@@ -397,6 +427,7 @@ export async function mountDetachedPlaygroundPanel({
   mountRoot = null,
   ...options
 } = {}) {
+  if (!isDev()) return null;
   const { mountDetachedPanel } = await import('../../../legacy/modules/ui/panel-dock.js');
   return mountDetachedPanel({
     ...createPlaygroundPanelRouteOptions(options),

@@ -156,7 +156,7 @@ const specialFocusContracts = Object.freeze({
     scopeSelector: '.portfolio-project-view.is-open[aria-hidden="false"]',
     expectations: Object.freeze([
       Object.freeze({ selector: '.portfolio-project-view__back--top', count: 1, indicator: 'dual-ring' }),
-      Object.freeze({ selector: '.portfolio-project-view__scroll[tabindex="0"]', count: 1, indicator: 'outline' }),
+      Object.freeze({ selector: '.portfolio-project-view__scroll[tabindex="0"]', count: 1, indicator: workCanvasUrl ? 'dual-ring' : 'outline' }),
     ]),
   }),
 });
@@ -538,6 +538,12 @@ async function readFocusableContract(page, contract, keyboardKey = 'Tab') {
     const activeAuditId = await page.evaluate(() => document.activeElement?.dataset?.absFocusAuditId || '');
     const activeTarget = targets.find((target) => target.auditId === activeAuditId);
     if (activeTarget?.expectedIndicator === 'dual-ring') await page.waitForTimeout(220);
+    if (activeTarget?.allowFocusReposition && workCanvasUrl) {
+      await page.waitForFunction(() => {
+        const camera = window.__ABS_WORK__?.getSnapshot()?.camera;
+        return camera && !camera.cameraAnimationActive && !camera.frameScheduled;
+      }, undefined, { timeout: 10_000, polling: 'raf' });
+    }
     const row = await page.evaluate(() => {
       const resolveColor = (value) => {
         const canvas = document.createElement('canvas');
@@ -1105,6 +1111,12 @@ function analyzeFocusPixelFrames(unfocusedImage, unfocusedVerificationImage, foc
 async function captureFocusIndicatorEvidence(page, target, label, { suppressFocusStyles = false } = {}) {
   const locator = page.locator(`[data-abs-focus-audit-id="${target.auditId}"]`);
   await locator.focus();
+  if (target.allowFocusReposition && workCanvasUrl) {
+    await page.waitForFunction(() => {
+      const camera = window.__ABS_WORK__?.getSnapshot()?.camera;
+      return camera && !camera.cameraAnimationActive && !camera.frameScheduled;
+    }, undefined, { timeout: 10_000, polling: 'raf' });
+  }
   await page.waitForTimeout(30);
   await locator.blur();
   await setFocusStyleSuppression(page, suppressFocusStyles);

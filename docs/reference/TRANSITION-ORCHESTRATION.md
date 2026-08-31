@@ -139,6 +139,8 @@ Canonical engineering contract for route and modal transitions.
 
 The Work case-study handoff is a local overlay state machine, not a route-transition owner. It may coordinate the selected spatial card, project drawer, and temporary media bridge, but it must not mutate `<html data-abs-transition-phase>` or compete with `useShellRouteTransition`. Route change or unmount must abort the local handoff and remove its temporary bridge.
 
+Work activation pins the exact tapped repeat in logical world coordinates. Public snippets and unlocked studies start centering and expansion together; a direct click must not wait for a second centering transaction. The background becomes inert while its intentional camera animation finishes. Media bridges use uniform scale and crop at final layout dimensions, not animated width/height or independent-axis scaling. Snippet rationale fades separately and never stretches. Re-measure the case-study source after image readiness, because centering may still be active. Closing or rapid reselection must invalidate earlier completion callbacks and restore focus only to the current source.
+
 The protected-project gate is also local to Work. It keeps the spatial world mounted, retains only one pending case-study intent, fully closes before drawer handoff begins, and cancels on dismissal or route unmount. Successful access continues the exact pending case study without a same-route navigation.
 
 Run on preview or dev server (serially, not in parallel):
