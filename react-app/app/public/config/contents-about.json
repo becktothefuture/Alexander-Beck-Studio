@@ -30,7 +30,7 @@
       "minPointSize": 1.15,
       "perspectiveResponse": 1,
       "edgeSoftness": 1.35,
-      "atmosphereStrength": 1,
+      "atmosphereStrength": 1.2,
       "pointerRadiusPx": 182,
       "pointerForcePx": 0,
       "pointerVariation": 0,

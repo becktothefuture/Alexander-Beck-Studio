@@ -24,8 +24,8 @@ test('projected point diagnostics preserve shader admission and physical spacing
   assert.equal(radius({ lodRank: 0.6, preserve: true }), radius());
   assert.equal(radius({ surfaceFacing: -0.26 }), 0);
   assert.equal(radius({ revealProgress: 0 }), 0);
-  assert.ok(radius({ revealProgress: 0.5 }) > radius() * 0.64);
-  assert.ok(radius({ revealProgress: 0.5 }) < radius());
+  assert.ok(Math.abs(radius({ revealProgress: 0.5 }) - radius() * 0.5) < 1e-12,
+    'Admitted circles must scale continuously from a true zero-radius origin.');
   assert.ok(radius({ surfaceFacing: 0 }) < radius() / 2);
   assert.ok(radius({ cameraDepthWU: 100 }) < controls.minPointSizePx,
     'Distant physical spacing must override the nominal pixel floor.');

@@ -1104,9 +1104,29 @@ body.dark-mode .about-narrative-client-logos img {
 }
 
 .about-narrative-finale-lockup {
+  position: relative;
   display: grid;
+  grid-row: 2;
   justify-items: center;
   width: 100%;
+}
+
+.about-narrative-finale-lockup > .route-title-lockup__rule {
+  position: absolute;
+  top: 100%;
+}
+
+.about-narrative-finale-support {
+  display: grid;
+  grid-row: 3;
+  align-content: start;
+  justify-items: center;
+  width: 100%;
+  padding-top: calc(
+    var(--route-title-rule-offset)
+    + var(--route-title-rule-thickness)
+    + var(--route-title-description-gap)
+  );
 }
 
 .about-narrative-spatial-copy.is-finale .about-narrative-finale-content {
@@ -1463,14 +1483,17 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 .about-narrative-lab[data-about-experience-version='v2']
   .about-narrative-spatial-copy.is-finale
   .about-narrative-finale-content {
-  top: 40%;
+  top: 0;
   right: 0;
+  bottom: 0;
   left: 0;
+  grid-template-rows: 1fr auto 1fr;
   justify-items: center;
+  height: 100%;
   width: min(100%, 42rem);
   margin-inline: auto;
   text-align: center;
-  transform: translate3d(0, -50%, 0);
+  transform: none;
 }
 
 .about-narrative-lab[data-about-experience-version='v2']
@@ -1495,10 +1518,8 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
     .about-narrative-spatial-copy.is-finale
     .about-narrative-finale-content {
     --route-intro-description-max-width: 24ch;
-    top: auto;
-    /* Keep actions above the near banks without pushing the lockup off a
-       shorter portrait viewport. */
-    bottom: min(calc(50% + 2.5rem), calc(100% - 19rem));
+    top: 0;
+    bottom: auto;
     transform: none;
   }
 }
@@ -1508,7 +1529,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
   .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
     .about-narrative-spatial-copy.is-finale
     .about-narrative-finale-content {
-    top: 29%;
+    top: 0;
   }
 }
 

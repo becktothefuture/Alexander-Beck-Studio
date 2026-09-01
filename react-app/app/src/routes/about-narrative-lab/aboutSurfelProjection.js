@@ -39,7 +39,7 @@ export function resolveAboutSurfelRadiusPx(point, controls) {
   const spacingCap = 0.42 * physicalRadiusPx / 0.56 * footprint;
   const preferred = Math.max(physicalRadiusPx * controls.surfelCoverage, controls.minPointSizePx);
   const radius = Math.min(Math.max(controls.minPointSizePx, controls.maxPointSizePx),
-    preferred, spacingCap) * (0.64 + 0.36 * revealProgress);
+    preferred, spacingCap) * revealProgress;
   if (!Number.isFinite(radius)) throw new RangeError('Invalid projected surfel radius.');
   return radius;
 }

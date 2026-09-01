@@ -127,7 +127,7 @@ test('new surfel controls are canonical and schema-valid', () => {
   assert.equal(document.globals.pointMaterial.surfelCoverage, 0.7);
   assert.equal(document.globals.pointMaterial.backfaceRetention, 1);
   assert.equal(document.globals.pointMaterial.minPointSize, 1.15);
-  assert.equal(document.globals.pointMaterial.atmosphereStrength, 1);
+  assert.equal(document.globals.pointMaterial.atmosphereStrength, 1.2);
   assert.equal(document.globals.camera.distanceFogCurve, 1.2);
   assert.equal(document.globals.camera.distanceFogEndWU, 150);
   assert.equal(

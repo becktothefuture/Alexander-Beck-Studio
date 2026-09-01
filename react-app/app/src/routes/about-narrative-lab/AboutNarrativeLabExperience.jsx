@@ -708,6 +708,8 @@ function TitleField({
               {field.text}
             </Heading>
             <span className="route-title-lockup__rule" aria-hidden="true" />
+          </div>
+          <div className="about-narrative-finale-support">
             {field.description ? (
               <p
                 id={descriptionId}

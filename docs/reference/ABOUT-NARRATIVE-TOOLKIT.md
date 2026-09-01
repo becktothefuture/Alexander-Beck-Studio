@@ -499,6 +499,13 @@ pause and reduced motion freeze its deformation. The canonical source and export
 `fit-about-reading-spaces.py`, `create-about-terminal-study.py`, and the existing exporter; copying an
 old candidate camera is not an integration procedure.
 
+Surfel admission uses opaque geometric scale rather than opacity. Route entry, depth fog and bounded
+stage handoffs grow each circle from zero radius; exiting stages shrink before their visibility window
+closes. Fully inactive stages return in the vertex shader before motion and matrix work, retaining the
+stable shared buffers and two-draw-call renderer. About uses the existing reduced-resolution layered
+atmosphere compositor for broad haze, so the fuller fog does not add a ray-marched volume or another
+WebGL scene pass. The final bookend lockup remains vertically centred in the usable viewport.
+
 The composition audit covers career text, client artwork, prose, titles and action contents. Its
 intrusion test uses decoded normals, actual ambient/terminal displacement, shader LOD/admission and
 projected circular radius. A separate maximum-radius envelope remains available as a conservative

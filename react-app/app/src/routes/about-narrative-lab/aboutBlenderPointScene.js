@@ -129,6 +129,33 @@ const SURFEL_VERTEX_SHADER = `
   }
 
   void main() {
+    float handoffWU = max(0.001, iVisibilityHandoffWU);
+    float stageEntrance = iVisibilityStartWU <= 0.0
+      ? 1.0
+      : smoothstep(iVisibilityStartWU, iVisibilityStartWU + handoffWU, uStoryWU);
+    float stageExit = 1.0 - smoothstep(
+      max(iVisibilityStartWU, iVisibilityEndWU - handoffWU),
+      iVisibilityEndWU,
+      uStoryWU
+    );
+    float stageVisibility = min(stageEntrance, stageExit);
+    if (uReducedMotion > 0.5) {
+      stageVisibility = step(iVisibilityStartWU, uStoryWU)
+        * (1.0 - step(iVisibilityEndWU, uStoryWU));
+    }
+    float presentationScale = min(
+      min(clamp(uSceneVisibility, 0.0, 1.0), clamp(uEntranceScale, 0.0, 1.0)),
+      clamp(uOpacity, 0.0, 1.0)
+    );
+    // Most resident points belong to stages outside the current story window.
+    // Reject them before trigonometry and matrix work. This preserves stable
+    // buffers and two draw calls while making passed scenery cheap to retain.
+    if (stageVisibility <= 0.0 || presentationScale <= 0.0) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      vCircle = vec2(2.0);
+      vPalette = iPalette;
+      return;
+    }
     float groupPhase = iMotionGroup * 2.39996323 * uMotionCoherence;
     vec3 rigidMotion = vec3(
       sin((uMotionTime * 0.71) + groupPhase) * 0.6,
@@ -171,23 +198,9 @@ const SURFEL_VERTEX_SHADER = `
       cameraDepth
     );
     float fogVisibility = 1.0 - pow(fogAmount, max(0.05, uFogCurve));
-    float handoffWU = max(0.001, iVisibilityHandoffWU);
-    float stageEntrance = iVisibilityStartWU <= 0.0
-      ? 1.0
-      : smoothstep(iVisibilityStartWU, iVisibilityStartWU + handoffWU, uStoryWU);
-    float stageExit = 1.0 - smoothstep(
-      max(iVisibilityStartWU, iVisibilityEndWU - handoffWU),
-      iVisibilityEndWU,
-      uStoryWU
-    );
-    float stageVisibility = min(stageEntrance, stageExit);
-    if (uReducedMotion > 0.5) {
-      stageVisibility = step(iVisibilityStartWU, uStoryWU)
-        * (1.0 - step(iVisibilityEndWU, uStoryWU));
-    }
     float revealVisibility = min(
-      min(fogVisibility, clamp(uSceneVisibility, 0.0, 1.0)),
-      min(clamp(uEntranceScale, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
+      fogVisibility,
+      min(clamp(uSceneVisibility, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
     );
     vec2 materialScale = vec2(1.0);
     for (int model = 0; model < 6; model++) {
@@ -245,10 +258,11 @@ const SURFEL_VERTEX_SHADER = `
       uMinPointSizePx,
       max(uMinPointSizePx, uMaxPointSizePx)
     );
-    // Fog selects complete surfels by their deterministic reveal rank. A short
-    // scale ramp keeps the arrival alive without shrinking coloured bodies into
-    // pale sub-pixel coverage against the light page background.
-    radiusPx *= mix(0.64, 1.0, revealProgress);
+    // Keep palette colour and depth ownership intact while circles grow from a
+    // true zero-radius origin. The shared route scale follows the same material
+    // entrance timing as the rest of the site; stage visibility also shrinks
+    // passed geometry instead of leaving the last admitted points full size.
+    radiusPx *= revealProgress * stageVisibility * clamp(uEntranceScale, 0.0, 1.0);
 
     vec2 ndcOffset = position.xy * radiusPx * 2.0 / max(vec2(1.0), uViewportPx);
     vec4 clip = projectionMatrix * viewCenter;
@@ -914,6 +928,7 @@ function modelFramingSnapshot(
           smoothstep(stageRevealRank, stageRevealRank + 0.08, stageVisibility),
         );
         if (reducedMotion) revealProgress = revealProgress >= 0.001 ? 1 : 0;
+        revealProgress *= stageVisibility * renderState.presentationScale;
         const normalOffset = pointIndex * 2;
         const normal = new THREE.Vector3(...decodeAboutSurfelNormal(
           decoded.normalOct[normalOffset], decoded.normalOct[normalOffset + 1],
@@ -1645,8 +1660,8 @@ export function createBlenderPointScene({
       {
         motionTime, widthPx: width * pixelRatio, heightPx: height * pixelRatio,
         projectionScalePx: uniforms.uProjectionScalePx.value,
-        revealVisibility: Math.min(uniforms.uSceneVisibility.value,
-          uniforms.uEntranceScale.value, uniforms.uOpacity.value),
+        revealVisibility: Math.min(uniforms.uSceneVisibility.value, uniforms.uOpacity.value),
+        presentationScale: uniforms.uEntranceScale.value,
         protectedNdcRegions,
         terminalSweep,
       },

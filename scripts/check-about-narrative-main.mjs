@@ -132,6 +132,13 @@ test('the React seam is a thin adapter over the Blender surfel scene', () => {
   assert.doesNotMatch(experienceSource, /AboutNarrativeEditor|aboutNarrativePointFieldEditorStore|PointFieldLane/);
   assert.match(experienceSource, /import\('\.\/AboutNarrativeParameterPanel\.jsx'\)/);
   assert.match(experienceSource, /event\.stopImmediatePropagation\(\)/);
+  assert.match(pointWorldSource, /let entranceStarted = entranceAlreadyComplete;/);
+  assert.match(pointWorldSource, /if \(entranceStarted\) return Promise\.resolve\(true\);/);
+  assert.doesNotMatch(
+    pointWorldSource,
+    /if \(!entranceAlreadyComplete\) \{\s*void routeMaterial\.enter/,
+    'The direct-load adapter must not start once before the shell releases it and then restart.',
+  );
 });
 
 test('the runtime consumes the v2 progressive surfel manifest without procedural regeneration', () => {
@@ -210,7 +217,7 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /InstancedBufferAttribute\(decoded\.revealRanks, 1, true\)/);
   assert.match(sceneSource, /octDecodeNormal\(iNormalOct\)/);
   assert.match(sceneSource, /surfaceFacing < -clamp\(uBackfaceRetention/);
-  assert.match(sceneSource, /revealVisibility = min\([\s\S]*?fogVisibility[\s\S]*?uSceneVisibility[\s\S]*?uEntranceScale[\s\S]*?uOpacity/);
+  assert.match(sceneSource, /revealVisibility = min\([\s\S]*?fogVisibility[\s\S]*?uSceneVisibility[\s\S]*?uOpacity/);
   assert.match(sceneSource, /revealProgress = smoothstep\([\s\S]*?revealRank \+ 0\.08/);
   assert.match(sceneSource, /float manifestationSpread = clamp\(uManifestationSpread \* materialScale\.x, 0\.0, 0\.8\)/);
   assert.match(sceneSource, /revealRank = min\([\s\S]*?iRevealRank \* manifestationSpread[\s\S]*?manifestationSpread - 0\.001/);
@@ -219,8 +226,9 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /stageRevealProgress = smoothstep\(/);
   assert.match(sceneSource, /uniforms\.uStoryWU\.value = journeySample\.sceneStoryWU/);
   assert.match(sceneSource, /stageVisibilityMode: latestFrame\?\.reducedMotion[\s\S]*?'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff'/);
-  assert.match(sceneSource, /radiusPx \*= mix\(0\.64, 1\.0, revealProgress\)/);
-  assert.doesNotMatch(sceneSource, /radiusPx \*= clamp\(uEntranceScale/);
+  assert.match(sceneSource, /presentationScale <= 0\.0[\s\S]*?gl_Position = vec4\(2\.0, 2\.0, 2\.0, 1\.0\)/);
+  assert.match(sceneSource, /radiusPx \*= revealProgress \* stageVisibility \* clamp\(uEntranceScale, 0\.0, 1\.0\)/);
+  assert.doesNotMatch(sceneSource, /mix\(0\.64, 1\.0, revealProgress\)/);
   assert.match(sceneSource, /float circleRadius = length\(vCircle\);[\s\S]*?if \(circleRadius > 1\.0\) discard;/);
   assert.doesNotMatch(sceneSource, /vFogVisibility|vVisibility|visibility \* edge/);
   assert.match(sceneSource, /float edge = 1\.0 - smoothstep\(/);

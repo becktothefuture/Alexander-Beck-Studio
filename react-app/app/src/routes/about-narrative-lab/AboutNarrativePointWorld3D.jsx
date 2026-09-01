@@ -50,7 +50,9 @@ function createRuntimeAdapter({
   let atmosphereCleanup = null;
   const atmosphereProfileOverrides = {
     intensityScale: 1,
-    colourStrengthScale: 1,
+    // Keep the existing low-resolution broad+tight compositor, but bias the
+    // field toward haze rather than saturated glow for a little more volume.
+    colourStrengthScale: 0.84,
   };
   const atmosphereCanvas = document.getElementById('simulation-atmosphere-glow-canvas');
   if (atmosphereCanvas) {
@@ -99,11 +101,19 @@ function createRuntimeAdapter({
   if (entranceAlreadyComplete) routeMaterial.settle('adapter-restored');
   else routeMaterial.prepare();
 
+  let entranceStarted = entranceAlreadyComplete;
+  const enterRouteMaterial = (options = {}) => {
+    if (entranceStarted) return Promise.resolve(true);
+    entranceStarted = true;
+    return routeMaterial.enter(options);
+  };
+
   const unregisterRouteMaterialParticipant = registerRouteTransitionParticipant({
     id: `about-blender-surfel-material-${runtimeInstanceId}`,
     routeId: 'about',
     prepare: ({ signal }) => {
       routeMaterialOnly = false;
+      entranceStarted = false;
       return routeMaterial.prepare({ signal, reducedMotion: Boolean(latestFrame?.reducedMotion) });
     },
     exit: ({ signal }) => {
@@ -112,10 +122,11 @@ function createRuntimeAdapter({
     },
     enter: ({ signal }) => {
       routeMaterialOnly = false;
-      return routeMaterial.enter({ signal, reducedMotion: Boolean(latestFrame?.reducedMotion) });
+      return enterRouteMaterial({ signal, reducedMotion: Boolean(latestFrame?.reducedMotion) });
     },
     restore: () => {
       routeMaterialOnly = false;
+      entranceStarted = true;
       return routeMaterial.settle('route-restored');
     },
     cancel: ({ reason }) => {
@@ -124,17 +135,20 @@ function createRuntimeAdapter({
     },
   });
 
-  if (!entranceAlreadyComplete) {
-    void routeMaterial.enter({ reducedMotion: false });
-  }
   const handleRouteEntranceStart = (event) => {
     if (event?.detail?.routeId !== 'about' || event?.detail?.mode !== 'direct') return;
     routeMaterialOnly = false;
-    void routeMaterial.enter({ reducedMotion: Boolean(latestFrame?.reducedMotion) });
+    void enterRouteMaterial({ reducedMotion: Boolean(latestFrame?.reducedMotion) });
   };
   const handleVisibilityChange = () => scene.setVisible(!document.hidden);
   window.addEventListener(ROUTE_ENTRANCE_START_EVENT, handleRouteEntranceStart);
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  // Direct boot can release between the deferred adapter setup and this
+  // listener registration. Adopt that one already-started entrance without
+  // replaying it or resetting the material scale.
+  if (!entranceStarted && root.dataset.routeEntranceStarted === 'true') {
+    void enterRouteMaterial({ reducedMotion: Boolean(latestFrame?.reducedMotion) });
+  }
 
   const runtimeApi = Object.freeze({
     adapterId: scene.adapterId,
