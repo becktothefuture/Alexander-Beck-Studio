@@ -34,9 +34,9 @@ Removing a control also means removing its persistence/export path. Browser stor
 
 ### Production simulation body material
 
-`shell.surface.simulationBodyMaterial.enabled` is canonically `false`. The code default is also `false`, so a missing or incomplete configuration cannot turn the sphere finish back on. Production bodies keep their active palette colour and use the existing flat render path across Home, Work, About, Contact, and the Home quote puck. The Work depth field remains a separate flat material even though it shares the active palette.
+`shell.surface.simulationBodyMaterial.enabled` is canonically `true` with a `24px` cache detail. The code default remains `false`, so missing or incomplete configuration still fails closed. Home bodies and the quote puck, the simplified About point world, and Contact ripple balls reuse the shared cached sphere material from the active palette. The Work depth field remains a separate flat material even though it shares the active palette.
 
-The remaining cache-detail and Light/Dark profile fields preserve configuration compatibility for development experiments. They do not affect production while the material is disabled. Any later production reactivation requires an explicit visual decision and measured frame-time evidence; ordinary production rendering must retain colour batching and avoid one scaled texture draw per body.
+The cache-detail and Light/Dark profile fields define the production material bake. Changes require an explicit visual decision and measured frame-time evidence. Renderers prewarm the active palette and retain the resulting sprites or atlas so no gradient construction, colour parsing, or lighting calculation occurs per body during a frame.
 
 `shell.surface.simulationAtmosphere` remains a separate compositor and does not own or modify body shading.
 

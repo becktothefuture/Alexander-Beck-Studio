@@ -86,9 +86,9 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Production simulation bodies use flat fills from the active time-of-day palette. The sphere sticker/atlas finish is disabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, Work, About, Contact, and the Home quote puck all use their existing flat fallback path. The Work depth field is a separate neutral three-layer material.
+Production semantic simulation bodies reuse cached matte sphere stickers or atlases from the active time-of-day palette. The finish is enabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, the Home quote puck, the simplified About point world, and Contact consume the shared cached material; flat circles remain a guarded missing-material fallback. The Work depth field is a separate neutral three-layer material.
 
-This is a performance contract as well as a visual choice. Renderers may batch compatible flat bodies by colour and must not replace that batching with one scaled texture draw per body. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
+This is a performance contract as well as a visual choice. Renderers prewarm the active palette and retain the resulting sprites or atlas; they do not construct gradients, parse colours, or calculate lighting per body during a frame. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
 The retained sphere-material cache is compatibility and development infrastructure only. It must remain inactive in production unless a later, explicit visual decision includes measured frame-time evidence across the route matrix. The shared atmosphere compositor below remains separate and may sample the completed flat route material.
 

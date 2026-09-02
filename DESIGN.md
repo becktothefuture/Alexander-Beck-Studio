@@ -64,7 +64,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Work title, spatial catalogue, access gate, snippet stage, case-study drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PlaygroundExperience.jsx`, `routes/portfolio/work/`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About public narrative, point field, and development scene parameters | `src/routes/about/AboutRoute.jsx`, `src/routes/about-narrative-lab/`, `src/routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
+| About public narrative and point world | `src/routes/about/AboutRoute.jsx`, `src/routes/about-simple/`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Internal Work spatial engine, deterministic placement, depth field, media runtimes, and authoring controls | `routes/playground/`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -225,14 +225,14 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ## Simulation language
 
-- Every semantic production ball uses its approved circle or pebble geometry with a flat fill from the active time-of-day palette.
-- Route coverage is explicit: Home simulation bodies and the quote puck; readable About point-field circles including the six discipline balls; and Contact ripple balls. Work's depth dots and DOM work cards are not semantic balls.
-- The cached sphere sticker/atlas finish is disabled globally. Production renderers retain colour batching and do not issue one scaled texture draw per body.
+- Every semantic production ball uses its approved circle or pebble geometry with the cached matte material from the active time-of-day palette. Flat fill remains the guarded missing-material fallback.
+- Route coverage is explicit: Home simulation bodies and the quote puck; the simplified About field, square gates, and landscape; and Contact ripple balls. Work's depth dots and DOM work cards are not semantic balls.
+- The cached sphere sticker/atlas finish is enabled in the canonical surface config. Renderers prewarm the active palette and reuse shared cached material; they do not build gradients, parse colours, or calculate lighting per body during a frame.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
-- Exclusions are role-based, not shape-based. The Work depth field, generic About point-field particles, Work DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
+- Exclusions are role-based, not shape-based. The Work depth field, Work DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
 
 ### Shared simulation atmosphere
 

@@ -83,9 +83,14 @@ const primaryRouteSemanticCoverage = Object.freeze({
   ]),
   About: Object.freeze([
     {
-      path: 'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
-      renderer: 'webgl',
-      imports: [],
+      path: 'react-app/app/src/routes/about-simple/AboutSimpleWorld.js',
+      renderer: 'canvas',
+      imports: [
+        'getSimulationBodyMaterialConfig',
+        'getSimulationBodyMaterialSprite',
+        'prewarmSimulationBodyMaterial',
+        'subscribeSimulationBodyMaterial',
+      ],
     },
   ]),
   Contact: Object.freeze([
@@ -321,35 +326,35 @@ function assertPrimaryRouteSemanticContracts() {
   );
 
   assertRequiredSourcePatterns(
-    'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+    'react-app/app/src/routes/about-simple/AboutSimpleWorld.js',
     [
       {
-        label: 'About must draw Blender surfels as instanced circle quads',
-        pattern: /new\s+THREE\.InstancedBufferGeometry\s*\(\s*\)[\s\S]{0,900}?setAttribute\(\s*['"]iRadius['"]/,
+        label: 'About must prewarm its active palette before rendering bodies',
+        pattern: /function\s+syncMaterialSprites\s*\([\s\S]{0,480}?prewarmSimulationBodyMaterial\s*\(\s*palette/,
       },
       {
-        label: 'About circle coverage must use a bounded whole-surfel reveal scale',
-        pattern: /radiusPx\s*=\s*separatedSurfelRadius\([\s\S]{0,800}?radiusPx\s*\*=\s*revealProgress\s*\*\s*clamp\(uEntranceScale,\s*0\.0,\s*1\.0\)/,
+        label: 'About must resolve shared cached sprites outside the point loops',
+        pattern: /materialSprites\s*=\s*palette\.map\([\s\S]{0,180}?getSimulationBodyMaterialSprite\s*\(/,
       },
       {
-        label: 'About circle footprint must stay below its spacing and maximum-radius bounds',
-        pattern: /float\s+separatedSurfelRadius\([\s\S]{0,1300}?return\s+min\(maximumRadiusPx,\s*min\(preferredRadiusPx,\s*spacingCapPx\)\)/,
+        label: 'About material points must draw the retained sprite canvas',
+        pattern: /function\s+drawPoint\s*\([\s\S]{0,420}?context\.drawImage\s*\(\s*sprite\.canvas/,
       },
       {
-        label: 'About must discard only fragments outside the complete circle',
-        pattern: /float\s+circleRadius\s*=\s*length\(vCircle\);[\s\S]{0,120}?if\s*\(circleRadius\s*>\s*1\.0\)\s*discard/,
+        label: 'About flat circles must remain the guarded missing-sprite fallback',
+        pattern: /if\s*\(bodyMaterialEnabled\s*&&\s*sprite\?\.canvas\)\s*\{[\s\S]{0,360}?\breturn;[\s\S]{0,240}?context\.arc\s*\(/,
       },
       {
-        label: 'About circle edges must remain softly anti-aliased',
-        pattern: /edgeWidth\s*=\s*max\(fwidth\(circleRadius\)[\s\S]{0,120}?smoothstep\(1\.0\s*-\s*edgeWidth,\s*1\.0,\s*circleRadius\)/,
+        label: 'About must identify the cached sphere finish for browser QA',
+        pattern: /aboutPointFinish\s*=\s*completeSpriteSet[\s\S]{0,100}?['"]cached-sphere-sticker['"]/,
       },
       {
-        label: 'About fog must admit whole opaque palette bodies with edge-only multisample coverage',
-        pattern: /revealProgress\s*=\s*smoothstep\([\s\S]*?revealProgress\s*<=\s*0\.0[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*1\.0\)[\s\S]*?alpha\s*=\s*edge[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*alpha\)/,
+        label: 'About material changes must rebuild retained sprites before a new frame',
+        pattern: /subscribeSimulationBodyMaterial\s*\(\s*\(\)\s*=>\s*\{[\s\S]{0,180}?syncMaterialSprites\s*\(\s*\)[\s\S]{0,100}?scheduleRender\s*\(\s*\)/,
       },
       {
-        label: 'About surfels must keep multisample depth ownership in both passes',
-        pattern: /transparent:\s*false,[\s\S]{0,120}?alphaToCoverage:\s*true,[\s\S]{0,120}?depthTest:\s*true,[\s\S]{0,120}?depthWrite:\s*true,[\s\S]{0,120}?blending:\s*THREE\.NoBlending/,
+        label: 'About must release its shared material subscription on teardown',
+        pattern: /unsubscribeSimulationBodyMaterial\s*\(\s*\)/,
       },
     ],
   );

@@ -1,3 +1,11 @@
+import {
+  getSimulationBodyMaterialConfig,
+  getSimulationBodyMaterialSprite,
+  getSimulationBodyMaterialStats,
+  prewarmSimulationBodyMaterial,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
+
 const TAU = Math.PI * 2;
 const PALETTE_SIZE = 6;
 const FIELD_LAYER_COUNT = 3;
@@ -21,6 +29,13 @@ const LANDSCAPE_START = 0.58;
 const LANDSCAPE_REVEAL_END = 0.66;
 const REDUCED_MOTION_RENDER_PROGRESS = 0.82;
 const UINT32_RANGE = 4294967296;
+const FIELD_RADIUS_MULTIPLIER = 3.4;
+const FIELD_DESKTOP_STRIDE = 3;
+const FIELD_MOBILE_STRIDE = 4;
+const GATE_DESKTOP_STRIDE = 2;
+const GATE_MOBILE_STRIDE = 3;
+const LANDSCAPE_DESKTOP_STRIDE = 2;
+const LANDSCAPE_MOBILE_STRIDE = 3;
 
 const POINT_FAMILY_FIELD = 'field';
 const POINT_FAMILY_GATES = 'field,gates';
@@ -48,7 +63,7 @@ const PALETTE_FALLBACKS = Object.freeze([
   '#bd9530',
 ]);
 
-const FIELD_LAYER_OPACITY = Object.freeze([0.2, 0.32, 0.48]);
+const FIELD_LAYER_OPACITY = Object.freeze([0.3, 0.52, 0.84]);
 const FIELD_LAYER_PARALLAX = Object.freeze([0.08, 0.2, 0.42]);
 const FIELD_LAYER_SCALE = Object.freeze([0.62, 0.9, 1.2]);
 const GATE_COUNT_LABELS = Object.freeze([
@@ -226,6 +241,9 @@ export function mountAboutSimpleWorld(canvas, root) {
   }
 
   const palette = PALETTE_FALLBACKS.slice();
+  let materialSprites = [];
+  let materialTheme = 'light';
+  let bodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
   const reducedMotionQuery = windowObject.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
   let reducedMotion = reducedMotionQuery?.matches === true;
   let destroyed = false;
@@ -235,7 +253,13 @@ export function mountAboutSimpleWorld(canvas, root) {
   let height = 1;
   let dpr = 1;
   let narrowViewport = false;
-  let samplingStride = 1;
+  let fieldSamplingStride = FIELD_DESKTOP_STRIDE;
+  let gateSamplingStride = GATE_DESKTOP_STRIDE;
+  let landscapeSamplingStride = LANDSCAPE_DESKTOP_STRIDE;
+  let frameDrawCount = 0;
+  let frameMaterialDrawCount = 0;
+  let frameFlatDrawCount = 0;
+  let maximumRenderMs = 0;
   let readySettled = false;
   let resolveReady;
   let rejectReady;
@@ -250,6 +274,54 @@ export function mountAboutSimpleWorld(canvas, root) {
       palette[index] = styles.getPropertyValue(PALETTE_VARIABLES[index]).trim()
         || PALETTE_FALLBACKS[index];
     }
+  }
+
+  function resolveMaterialTheme() {
+    const body = root.ownerDocument?.body;
+    const dark = documentElement?.classList?.contains('dark-mode')
+      || documentElement?.dataset?.absTheme === 'dark'
+      || body?.classList?.contains('dark-mode');
+    return dark ? 'dark' : 'light';
+  }
+
+  function syncMaterialSprites() {
+    materialTheme = resolveMaterialTheme();
+    bodyMaterialEnabled = getSimulationBodyMaterialConfig().enabled;
+    if (bodyMaterialEnabled) {
+      prewarmSimulationBodyMaterial(palette, { theme: materialTheme });
+      materialSprites = palette.map((color) => (
+        getSimulationBodyMaterialSprite(color, { theme: materialTheme })
+      ));
+    } else {
+      materialSprites = [];
+    }
+    const completeSpriteSet = bodyMaterialEnabled
+      && materialSprites.length === PALETTE_SIZE
+      && materialSprites.every((sprite) => Boolean(sprite?.canvas));
+    root.dataset.aboutPointFinish = completeSpriteSet
+      ? 'cached-sphere-sticker'
+      : 'flat-fill';
+    root.dataset.aboutPointMaterialTheme = materialTheme;
+    root.dataset.aboutPointSpriteCount = String(
+      materialSprites.filter((sprite) => Boolean(sprite?.canvas)).length,
+    );
+  }
+
+  function drawPoint(colorIndex, x, y, radius) {
+    if (radius <= 0.05) return;
+    frameDrawCount += 1;
+    const sprite = materialSprites[colorIndex];
+    if (bodyMaterialEnabled && sprite?.canvas) {
+      const diameter = radius * 2;
+      context.drawImage(sprite.canvas, x - radius, y - radius, diameter, diameter);
+      frameMaterialDrawCount += 1;
+      return;
+    }
+    context.fillStyle = palette[colorIndex];
+    context.beginPath();
+    context.arc(x, y, radius, 0, TAU);
+    context.fill();
+    frameFlatDrawCount += 1;
   }
 
   function scheduleRender() {
@@ -277,23 +349,21 @@ export function mountAboutSimpleWorld(canvas, root) {
         const rangeIndex = (layerIndex * PALETTE_SIZE) + colorIndex;
         const rangeStart = FIELD.ranges[rangeIndex];
         const rangeEnd = FIELD.ranges[rangeIndex + 1];
-        context.fillStyle = palette[colorIndex];
-        context.beginPath();
-
         for (let pointIndex = rangeStart;
           pointIndex < rangeEnd;
-          pointIndex += samplingStride) {
+          pointIndex += fieldSamplingStride) {
           let normalizedX = FIELD.x[pointIndex] - travelX;
           let normalizedY = FIELD.y[pointIndex] + travelY;
           normalizedX -= Math.floor(normalizedX + 0.5);
           normalizedY -= Math.floor(normalizedY + 0.5);
           const screenX = (width * 0.5) + (normalizedX * fieldWidth);
           const screenY = (height * 0.5) + (normalizedY * fieldHeight);
-          const radius = FIELD.size[pointIndex] * fieldScale * shortSideScale;
-          context.moveTo(screenX + radius, screenY);
-          context.arc(screenX, screenY, radius, 0, TAU);
+          const radius = FIELD.size[pointIndex]
+            * fieldScale
+            * shortSideScale
+            * FIELD_RADIUS_MULTIPLIER;
+          drawPoint(colorIndex, screenX, screenY, radius);
         }
-        context.fill();
       }
     }
   }
@@ -319,14 +389,13 @@ export function mountAboutSimpleWorld(canvas, root) {
       if (gateAlpha <= 0.01) continue;
       visibleGateCount += 1;
       context.globalAlpha = gateAlpha;
-      context.fillStyle = palette[(gateIndex + 3) % PALETTE_SIZE];
-      context.beginPath();
+      const colorIndex = (gateIndex + 3) % PALETTE_SIZE;
 
       const rangeStart = GATES.offsets[gateIndex];
       const rangeEnd = GATES.offsets[gateIndex + 1];
       for (let pointIndex = rangeStart;
         pointIndex < rangeEnd;
-        pointIndex += samplingStride) {
+        pointIndex += gateSamplingStride) {
         const pointDepth = GATES.z[pointIndex] - cameraZ;
         const perspective = focalLength / pointDepth;
         const screenX = (width * 0.5) + ((GATES.x[pointIndex] - cameraX) * perspective);
@@ -335,13 +404,11 @@ export function mountAboutSimpleWorld(canvas, root) {
           continue;
         }
         const radius = Math.min(
-          4.8,
-          GATES.size[pointIndex] * (0.56 + (perspective * 0.18)),
+          7.2,
+          GATES.size[pointIndex] * (1.15 + (perspective * 0.34)),
         );
-        context.moveTo(screenX + radius, screenY);
-        context.arc(screenX, screenY, radius, 0, TAU);
+        drawPoint(colorIndex, screenX, screenY, radius);
       }
-      context.fill();
     }
 
     root.dataset.aboutVisibleGateCount = GATE_COUNT_LABELS[visibleGateCount];
@@ -358,14 +425,12 @@ export function mountAboutSimpleWorld(canvas, root) {
     context.globalAlpha = reveal * 0.62;
 
     for (let colorIndex = 0; colorIndex < PALETTE_SIZE; colorIndex += 1) {
-      context.fillStyle = palette[colorIndex];
-      context.beginPath();
       const rangeStart = LANDSCAPE.ranges[colorIndex];
       const rangeEnd = LANDSCAPE.ranges[colorIndex + 1];
 
       for (let pointIndex = rangeStart;
         pointIndex < rangeEnd;
-        pointIndex += samplingStride) {
+        pointIndex += landscapeSamplingStride) {
         const depth = LANDSCAPE.z[pointIndex] - cameraZ;
         if (depth <= 2 || depth > 510) continue;
         const perspective = focalLength / depth;
@@ -377,13 +442,11 @@ export function mountAboutSimpleWorld(canvas, root) {
           continue;
         }
         const radius = Math.min(
-          4.4,
-          LANDSCAPE.size[pointIndex] * (0.55 + (perspective * 0.2)),
+          7,
+          LANDSCAPE.size[pointIndex] * (1.08 + (perspective * 0.38)),
         );
-        context.moveTo(screenX + radius, screenY);
-        context.arc(screenX, screenY, radius, 0, TAU);
+        drawPoint(colorIndex, screenX, screenY, radius);
       }
-      context.fill();
     }
     return true;
   }
@@ -393,6 +456,11 @@ export function mountAboutSimpleWorld(canvas, root) {
     if (destroyed || width <= 0 || height <= 0) return;
 
     try {
+      const startedAt = windowObject.performance?.now?.() ?? Date.now();
+      const bakeCountBefore = getSimulationBodyMaterialStats().bakeCount;
+      frameDrawCount = 0;
+      frameMaterialDrawCount = 0;
+      frameFlatDrawCount = 0;
       const renderProgress = reducedMotion ? REDUCED_MOTION_RENDER_PROGRESS : progress;
       context.clearRect(0, 0, width, height);
       const cameraZ = CAMERA_START_Z + (renderProgress * CAMERA_TRAVEL_Z);
@@ -424,6 +492,16 @@ export function mountAboutSimpleWorld(canvas, root) {
       root.dataset.aboutRenderProgress = reducedMotion
         ? RENDER_PROGRESS_REDUCED
         : RENDER_PROGRESS_DIRECT;
+      const renderMs = (windowObject.performance?.now?.() ?? Date.now()) - startedAt;
+      maximumRenderMs = Math.max(maximumRenderMs, renderMs);
+      root.dataset.aboutLastRenderMs = renderMs.toFixed(3);
+      root.dataset.aboutMaxRenderMs = maximumRenderMs.toFixed(3);
+      root.dataset.aboutDrawCount = String(frameDrawCount);
+      root.dataset.aboutMaterialDrawCount = String(frameMaterialDrawCount);
+      root.dataset.aboutFlatDrawCount = String(frameFlatDrawCount);
+      root.dataset.aboutMaterialBakesInFrame = String(
+        getSimulationBodyMaterialStats().bakeCount - bakeCountBefore,
+      );
       context.globalAlpha = 1;
       if (!readySettled) {
         readySettled = true;
@@ -462,13 +540,18 @@ export function mountAboutSimpleWorld(canvas, root) {
     height = nextHeight;
     dpr = nextDpr;
     narrowViewport = nextNarrowViewport;
-    samplingStride = narrowViewport ? 2 : 1;
+    fieldSamplingStride = narrowViewport ? FIELD_MOBILE_STRIDE : FIELD_DESKTOP_STRIDE;
+    gateSamplingStride = narrowViewport ? GATE_MOBILE_STRIDE : GATE_DESKTOP_STRIDE;
+    landscapeSamplingStride = narrowViewport
+      ? LANDSCAPE_MOBILE_STRIDE
+      : LANDSCAPE_DESKTOP_STRIDE;
     if (changed) {
       canvas.width = bufferWidth;
       canvas.height = bufferHeight;
       context.setTransform(bufferWidth / width, 0, 0, bufferHeight / height, 0, 0);
     }
     syncPalette();
+    syncMaterialSprites();
     scheduleRender();
     return changed;
   }
@@ -484,6 +567,7 @@ export function mountAboutSimpleWorld(canvas, root) {
   function handleThemeMutation() {
     if (destroyed) return;
     syncPalette();
+    syncMaterialSprites();
     scheduleRender();
   }
 
@@ -514,6 +598,11 @@ export function mountAboutSimpleWorld(canvas, root) {
     });
   }
   reducedMotionQuery?.addEventListener?.('change', handleReducedMotionChange);
+  const unsubscribeSimulationBodyMaterial = subscribeSimulationBodyMaterial(() => {
+    if (destroyed) return;
+    syncMaterialSprites();
+    scheduleRender();
+  });
   resize();
 
   return {
@@ -528,6 +617,7 @@ export function mountAboutSimpleWorld(canvas, root) {
       resizeObserver?.disconnect();
       themeObserver?.disconnect();
       reducedMotionQuery?.removeEventListener?.('change', handleReducedMotionChange);
+      unsubscribeSimulationBodyMaterial();
       windowObject.removeEventListener('resize', resize);
       if (!readySettled) {
         readySettled = true;
@@ -540,6 +630,15 @@ export function mountAboutSimpleWorld(canvas, root) {
       delete root.dataset.aboutPointFamilies;
       delete root.dataset.aboutMotionMode;
       delete root.dataset.aboutRenderProgress;
+      delete root.dataset.aboutPointFinish;
+      delete root.dataset.aboutPointMaterialTheme;
+      delete root.dataset.aboutPointSpriteCount;
+      delete root.dataset.aboutLastRenderMs;
+      delete root.dataset.aboutMaxRenderMs;
+      delete root.dataset.aboutDrawCount;
+      delete root.dataset.aboutMaterialDrawCount;
+      delete root.dataset.aboutFlatDrawCount;
+      delete root.dataset.aboutMaterialBakesInFrame;
     },
   };
 }
