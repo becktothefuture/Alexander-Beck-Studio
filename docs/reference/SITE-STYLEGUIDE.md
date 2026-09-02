@@ -20,11 +20,11 @@ Preserve visible separation between browser frame, outer wall, inner wall, canva
 
 ## Route language
 
-Availability follows the [production/development route table](../../README.md#routes). The full Work patterns below are visible in development; About has an intentional narrative preview in addition to its default production gate.
+Availability follows the [production/development route table](../../README.md#routes). The full Work patterns below are visible in development; About uses its canonical narrative in both production and development.
 
 - Home: simulation material, semantic title source, expertise legend, supporting philosophy copy
 - Work: hierarchical spatial field, media-first snippet/case-study handoff, editorial drawer, and in-window gate
-- About: centered default gate and a continuous spatial narrative in development or the intentional preview
+- About: continuous spatial narrative in production and development
 - Contact: centered invitation and contact actions inside the same physical window
 - Internal Work engine: pannable deterministic catalogue, restrained labels, and three-layer depth field
 - Labs: local back/utility top chrome when needed
@@ -36,7 +36,7 @@ The typography is a deliberate contrast system rather than one family applied ev
 - Instrument Serif is the editorial arrival voice. It gives the main route titles more authorship, warmth, and cultural character.
 - Geist remains the structural voice for navigation, descriptions, controls, Portfolio cards, and project-detail titles. It preserves the site's technical precision and keeps the interface feeling like one engineered object.
 - Geist Mono remains the operational voice for metadata and compact technical labels.
-- The handwritten LDN 26 SVG is a small signature moment, not another general-purpose display style or type role.
+- London and its local time use the same quiet Geist metadata role in the Home footer.
 
 Instrument Serif is limited to the Home canvas title, route-level titles using `.route-centered-page__title`, and the About narrative's two-scale spatial-title sequence. This includes the Work intro and gate. The runtime roles below are defined in `react-app/app/public/css/tokens.css` and `react-app/app/public/css/main.css`; read their resolved values instead of keeping a second numeric type scale here.
 
@@ -58,4 +58,4 @@ Instrument Serif's finer strokes are more vulnerable to visual interruption than
 
 ## Verification matrix
 
-Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Check the default Work/About gates on production preview; use development for the full Work gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Check the intentional About narrative preview separately when affected. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with the actual component markup.
+Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Check the default Work gate on production preview; use development for the full Work gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Check the public About narrative at desktop and mobile when affected. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with the actual component markup.

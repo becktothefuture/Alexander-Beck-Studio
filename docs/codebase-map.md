@@ -115,7 +115,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | Home | `src/routes/home/HomeRoute.jsx` | `src/legacy/main.js` | Canvas balls and visual title; semantic title remains in the DOM. |
 | Work | `src/routes/portfolio/PortfolioRoute.jsx`, `src/routes/playground/PlaygroundExperience.jsx` | Route-local camera/depth renderer plus retained gate, handoff, and drawer | Production shows Coming soon and excludes the full canvas at build time. Development renders the spatial catalogue. |
-| About | `src/routes/about/AboutRoute.jsx` | React-owned Three.js point world | Production shows Coming soon by default; `?preview=about` loads the narrative on demand. Development loads the narrative with local authoring controls. |
+| About | `src/routes/about/AboutRoute.jsx` | React-owned Three.js point world | Production and development load the canonical narrative. Authoring controls remain development-only. |
 | Contact | `src/routes/contact/ContactRoute.jsx` | React-owned simulation/content | Contact information and ripple interaction. |
 
 The stable primary navigation is `ShellButtonBar` plus `src/lib/routes.js`. Route-local top bars are utilities, not a second primary navigation system.

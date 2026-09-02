@@ -20,7 +20,7 @@ const JOURNEY_ROLES = Object.freeze([
     fieldId: 'text-complexity-idea',
     phase: 'enter',
     cueNames: Object.freeze(['ABS_STAGE_01']),
-    fallbackProgress: 0.075,
+    fallbackProgress: 0.05,
   }),
   Object.freeze({
     id: 'portal-entry',
@@ -28,7 +28,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     offsetWU: -2.1,
     cueNames: Object.freeze(['ABS_STAGE_02']),
-    fallbackProgress: 0.18,
+    fallbackProgress: 0.091667,
   }),
   Object.freeze({
     id: 'portal-exit',
@@ -37,7 +37,7 @@ const JOURNEY_ROLES = Object.freeze([
     offsetWU: -1,
     cueNames: Object.freeze(['ABS_ROUND_PORTALS_EXIT']),
     requiredCueName: 'ABS_ROUND_PORTALS_EXIT',
-    fallbackProgress: 0.285,
+    fallbackProgress: 0.183333,
   }),
   Object.freeze({
     id: 'portal-release',
@@ -46,7 +46,7 @@ const JOURNEY_ROLES = Object.freeze([
     offsetWU: -0.16,
     cueNames: Object.freeze(['ABS_ROUND_PORTALS_CLEAR']),
     requiredCueName: 'ABS_ROUND_PORTALS_CLEAR',
-    fallbackProgress: 0.3816,
+    fallbackProgress: 0.2,
   }),
   Object.freeze({
     id: 'personal-origin',
@@ -54,7 +54,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     cueNames: Object.freeze(['ABS_PERSONAL_ORIGIN']),
     requiredCueName: 'ABS_PERSONAL_ORIGIN',
-    fallbackProgress: 0.40,
+    fallbackProgress: 0.216667,
   }),
   Object.freeze({
     id: 'earned-thesis',
@@ -62,7 +62,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     cueNames: Object.freeze(['ABS_TERRAIN_THESIS']),
     requiredCueName: 'ABS_TERRAIN_THESIS',
-    fallbackProgress: 0.42,
+    fallbackProgress: 0.266667,
   }),
   Object.freeze({
     id: 'landscape-release',
@@ -71,7 +71,7 @@ const JOURNEY_ROLES = Object.freeze([
     offsetWU: -0.16,
     cueNames: Object.freeze(['ABS_CANYON_CLEAR']),
     requiredCueName: 'ABS_CANYON_CLEAR',
-    fallbackProgress: 0.48,
+    fallbackProgress: 0.458333,
   }),
   Object.freeze({
     id: 'gate-entry',
@@ -79,7 +79,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     offsetWU: -2.1,
     cueNames: Object.freeze(['ABS_ROLL_GATE_START', 'ABS_STAGE_04']),
-    fallbackProgress: 0.64,
+    fallbackProgress: 0.463333,
   }),
   Object.freeze({
     id: 'gate-exit',
@@ -87,7 +87,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     offsetWU: -1,
     cueNames: Object.freeze(['ABS_ROLL_GATE_END']),
-    fallbackProgress: 0.8,
+    fallbackProgress: 0.676667,
   }),
   Object.freeze({
     id: 'gate-release',
@@ -96,7 +96,7 @@ const JOURNEY_ROLES = Object.freeze([
     offsetWU: -0.16,
     cueNames: Object.freeze(['ABS_GATE_PASSAGE_CLEAR']),
     requiredCueName: 'ABS_GATE_PASSAGE_CLEAR',
-    fallbackProgress: 0.8649,
+    fallbackProgress: 0.7,
   }),
   Object.freeze({
     id: 'method',
@@ -104,7 +104,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     cueNames: Object.freeze(['ABS_METHOD_RELEASE']),
     requiredCueName: 'ABS_METHOD_RELEASE',
-    fallbackProgress: 0.877,
+    fallbackProgress: 0.725,
   }),
   Object.freeze({
     id: 'lattice-approach',
@@ -112,7 +112,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'focus',
     cueNames: Object.freeze(['ABS_LATTICE_APPROACH']),
     requiredCueName: 'ABS_LATTICE_APPROACH',
-    fallbackProgress: 0.8825,
+    fallbackProgress: 0.75,
   }),
   Object.freeze({
     id: 'split-lattice-entry',
@@ -120,7 +120,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     cueNames: Object.freeze(['ABS_SPLIT_LATTICE_ENTRY']),
     requiredCueName: 'ABS_SPLIT_LATTICE_ENTRY',
-    fallbackProgress: 0.888,
+    fallbackProgress: 0.758333,
   }),
   Object.freeze({
     id: 'finale-deceleration',
@@ -128,7 +128,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'exit',
     cueNames: Object.freeze(['ABS_FINALE_DECEL']),
     requiredCueName: 'ABS_FINALE_DECEL',
-    fallbackProgress: 0.89625,
+    fallbackProgress: 0.791667,
   }),
   Object.freeze({
     id: 'camera-lock',
@@ -136,7 +136,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'exit',
     cueNames: Object.freeze(['ABS_CAMERA_LOCK']),
     requiredCueName: 'ABS_CAMERA_LOCK',
-    fallbackProgress: 0.91,
+    fallbackProgress: 0.833333,
   }),
   Object.freeze({
     id: 'invitation',
@@ -144,7 +144,7 @@ const JOURNEY_ROLES = Object.freeze([
     phase: 'enter',
     cueNames: Object.freeze(['ABS_CAMERA_LOCK']),
     requiredCueName: 'ABS_CAMERA_LOCK',
-    fallbackProgress: 0.91,
+    fallbackProgress: 0.833333,
   }),
   Object.freeze({
     id: 'terminal-hold',

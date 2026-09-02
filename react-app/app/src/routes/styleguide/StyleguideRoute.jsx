@@ -149,12 +149,8 @@ export function getStyleguideRouteView() {
                 aria-label="London local time, 12:00 PM"
               >
                 <span className="meta-stack">
-                  <span className="meta-location">
-                    <strong
-                      className="location-name location-name--ldn-26"
-                      aria-hidden="true"
-                    />
-                    <span className="meta-separator" aria-hidden="true">·</span>
+                  <span className="location-name">
+                    London<span className="location-punctuation" aria-hidden="true">,</span>
                   </span>
                   <time id="time-display">12:00:00 PM</time>
                 </span>

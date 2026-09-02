@@ -1,10 +1,18 @@
 # About V2 third-party model attribution
 
-The active six-stage, lens-free About V2 scene contains no third-party model geometry. Its
-point world is generated from project-authored fields, portals, terrain, square gates,
-and split-lattice strands.
+The canonical Blender source retains hidden, non-exporting donor objects and unused
+data blocks from earlier studies. They remain in the source file for provenance. The
+current public point-world export contains only the project-authored opening, shapes,
+round hoops, floor, mountain, logo atmosphere, square gates, Method field and finale.
 
-Historical imported source files may remain outside the active `.blend` for provenance
-and recovery. They are not linked to a live scene collection and are not exported to
-the website. The cleaned exporter treats any restored `99_…` archive collection or
-archived object as an error instead of silently shipping it.
+Historical donors retained in the `.blend` are:
+
+- [CRT Computer Monitor](https://sketchfab.com/3d-models/crt-computer-monitor-f2ff0013f86e4cd0a2aee183a23bdfee) by [Dan](https://sketchfab.com/fizyman), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- [Cursor 3D](https://sketchfab.com/3d-models/cursor-3d-fab4012385cc4d6fa7301d68df2ff271) by [ReliefRain](https://sketchfab.com/ReliefRain), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- [Generic Mobile Phone](https://sketchfab.com/3d-models/generic-mobile-phone-d771c29639364ace91f8e868b0dec4a3) by [AndrewHunt95](https://sketchfab.com/AndrewHunt95), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The original glTF records this attribution in `asset.extras`.
+- [Mouse with cable](https://sketchfab.com/3d-models/mouse-with-cable-4e673682d6a04cc986039cfc82cade02) by [Aerell Animation](https://sketchfab.com/aerell_animation), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- [Pencil](https://sketchfab.com/3d-models/pencil-9fe73cc296ae407e911d3e511f891b0e) by [farooq.smurf](https://sketchfab.com/farooq.smurf), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+The exporter excludes these donors because they are hidden, marked non-exporting and
+have no active `abs_model_id` in the seven-stage bundle. Re-run the source inventory
+and update this file before restoring any donor geometry to an exported stage.

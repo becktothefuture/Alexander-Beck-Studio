@@ -74,7 +74,11 @@ test('distant surfels shrink continuously below the preferred pixel floor withou
 });
 
 test('dispersion keeps opaque colour, point retention and the existing scene controls', () => {
-  assert.match(sceneSource, /radii\[index\] = decodeRadius[\s\S]*?radiusScaleByObject\[partKey\]/u);
+  assert.match(
+    sceneSource,
+    /radii\[destinationIndex\] = decodeRadius[\s\S]*?radiusScaleByObject\[partKey\]/u,
+    'Model-contiguous decode must retain the per-object authored radius scale.',
+  );
   assert.doesNotMatch(footprintBody, /iPreserve|iLodRank|visibility|fog|position|palette|discard|motion/iu,
     'The footprint must not change point retention, placement, colour, visibility or motion.');
   assert.match(sceneSource, /gl_FragColor = vec4\(shaded, 1\.0\)/u);

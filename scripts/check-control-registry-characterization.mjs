@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { NARRATIVE_MODE_SEQUENCE } from '../react-app/app/src/legacy/modules/core/constants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
@@ -395,7 +396,12 @@ test('every control section is reachable and every active control has an applica
   const modeMarkup = registry.generateModeSpecificSectionsHTML({ showAllModes: true });
   for (const [key, section] of Object.entries(registry.CONTROL_SECTIONS)) {
     if (section.mode) {
-      assert.match(modeMarkup, new RegExp(`data-section-key="${key}"`), `${key} is an unreachable mode section.`);
+      const sectionPattern = new RegExp(`data-section-key="${key}"`);
+      if (NARRATIVE_MODE_SEQUENCE.includes(section.mode)) {
+        assert.match(modeMarkup, sectionPattern, `${key} is an unreachable active mode section.`);
+      } else {
+        assert.doesNotMatch(modeMarkup, sectionPattern, `${key} is a disabled mode section but remains visible.`);
+      }
     } else {
       assert(
         registry.MASTER_SECTION_KEYS.includes(key),

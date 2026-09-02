@@ -45,7 +45,7 @@ function assertTerminalWorld(metrics, profileId) {
   assert.equal(metrics.sceneContractStatus, 'compatible');
   assert.equal(metrics.journeyMapCertifiable, true);
   for (const [key, model] of Object.entries(metrics.modelFraming)) {
-    if (key === 'about.05') {
+    if (key === 'about.06') {
       assert.ok(model.stageVisibility > 0.99 && model.framedVisibleCount >= 400,
         `${profileId} lost the full lattice destination.`);
       assert.ok(model.leftOccupiedColumnCount >= 2 && model.rightOccupiedColumnCount >= 2

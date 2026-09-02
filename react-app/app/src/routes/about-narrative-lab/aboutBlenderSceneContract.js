@@ -3,6 +3,15 @@ import { resolveAboutNarrativeJourneyMap } from './aboutNarrativeJourneyMap.js';
 const SHA256_PATTERN = /^[a-f\d]{64}$/i;
 const FILE_KEYS = Object.freeze(['cameraTrack', 'surfels']);
 const EPSILON = 0.000001;
+const EXPECTED_MODEL_BINDINGS = Object.freeze([
+  Object.freeze(['about.00', 'opening', 0, 'inciting-question', 0.6]),
+  Object.freeze(['about.01', 'inciting-question', -0.6, 'portal-entry', 0.6]),
+  Object.freeze(['about.02', 'portal-entry', -0.6, 'portal-exit', 0.6]),
+  Object.freeze(['about.03', 'portal-exit', -0.6, 'gate-entry', 0.75]),
+  Object.freeze(['about.04', 'gate-entry', -0.75, 'gate-exit', 0.8]),
+  Object.freeze(['about.05', 'gate-exit', -1.1, 'split-lattice-entry', -0.45]),
+  Object.freeze(['about.06', 'split-lattice-entry', -1.65, 'terminal-hold', 1]),
+]);
 
 function isSha256(value) {
   return typeof value === 'string' && SHA256_PATTERN.test(value);
@@ -49,7 +58,7 @@ function metadataDiagnostics(meta) {
     const ids = owned.map((group) => group.id);
     const first = Math.min(...ids);
     const last = Math.max(...ids);
-    if (index >= 6 || !validGroups || !Number.isFinite(material.manifestationSpreadScale)
+    if (index >= 7 || !validGroups || !Number.isFinite(material.manifestationSpreadScale)
       || material.manifestationSpreadScale < 0.001 || material.manifestationSpreadScale > 1
       || !Number.isFinite(material.detailBiasScale)
       || material.detailBiasScale < 0.2 || material.detailBiasScale > 2
@@ -312,6 +321,40 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
   }
   if (meta != null && (!Array.isArray(meta.models) || !meta.models.length)) {
     diagnostics.push(diagnostic('scene-models-invalid', 'meta.models', 'The scene must declare its semantic models.'));
+  }
+  if (meta != null && Array.isArray(meta.models)) {
+    const actualKeys = meta.models.map((model) => model?.key);
+    const expectedKeys = EXPECTED_MODEL_BINDINGS.map(([key]) => key);
+    if (actualKeys.length !== expectedKeys.length
+      || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+      diagnostics.push(diagnostic(
+        'scene-model-sequence-invalid', 'meta.models',
+        'The About world must declare exactly seven ordered semantic stages.',
+        { expected: expectedKeys, actual: actualKeys },
+      ));
+    } else {
+      EXPECTED_MODEL_BINDINGS.forEach((binding, index) => {
+        const model = meta.models[index];
+        const actual = [
+          model.visibilityStartCue,
+          model.visibilityStartOffsetWU,
+          model.visibilityEndCue,
+          model.visibilityEndOffsetWU,
+        ];
+        const expected = binding.slice(1);
+        if (actual.some((value, bindingIndex) => (
+          typeof expected[bindingIndex] === 'number'
+            ? !Number.isFinite(value) || Math.abs(value - expected[bindingIndex]) > EPSILON
+            : value !== expected[bindingIndex]
+        ))) {
+          diagnostics.push(diagnostic(
+            'scene-model-binding-invalid', `meta.models.${index}`,
+            `${binding[0]} is not bound to its required story handoff.`,
+            { modelKey: binding[0], expected, actual },
+          ));
+        }
+      });
+    }
   }
   if (diagnostics.length) return result('incompatible', diagnostics, empty);
   if (pending.length) return result('pending', pending, empty);

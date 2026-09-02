@@ -329,7 +329,7 @@ function assertPrimaryRouteSemanticContracts() {
       },
       {
         label: 'About circle coverage must use a bounded whole-surfel reveal scale',
-        pattern: /radiusPx\s*=\s*separatedSurfelRadius\([\s\S]{0,800}?radiusPx\s*\*=\s*revealProgress\s*\*\s*stageVisibility\s*\*\s*clamp\(uEntranceScale,\s*0\.0,\s*1\.0\)/,
+        pattern: /radiusPx\s*=\s*separatedSurfelRadius\([\s\S]{0,800}?radiusPx\s*\*=\s*revealProgress\s*\*\s*clamp\(uEntranceScale,\s*0\.0,\s*1\.0\)/,
       },
       {
         label: 'About circle footprint must stay below its spacing and maximum-radius bounds',

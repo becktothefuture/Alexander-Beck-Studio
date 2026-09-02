@@ -337,7 +337,7 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   // Work owns its direct-load release because its measured
   // card geometry and authored entrance must be ready before the boot overlay leaves.
   const isAboutRoute = routeId === 'about';
-  const waitsForAboutNarrativeScene = routeId === 'about' && import.meta.env.DEV;
+  const waitsForAboutNarrativeScene = routeId === 'about';
   if (waitsForAboutNarrativeScene) {
     await waitForAboutNarrativeSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;

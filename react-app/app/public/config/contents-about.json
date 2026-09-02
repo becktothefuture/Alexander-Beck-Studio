@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "globals": {
-    "scrollSmoothing": 0,
+    "scrollSmoothing": 0.64,
     "readingWidthRem": 50,
     "editorialRevealThreshold": 0.78,
     "editorialMotion": {
@@ -668,7 +668,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "opener"
+            "layout": "opener",
+            "viewportY": {
+              "desktop": 51,
+              "mobile": 48
+            }
           },
           "movement": "spatial",
           "preset": "opener-v1",
@@ -689,7 +693,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 70,
+              "mobile": 72
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -709,7 +717,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 28,
+              "mobile": 28
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -803,7 +815,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 60,
+              "mobile": 63
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -823,7 +839,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 60,
+              "mobile": 63
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1020,11 +1040,15 @@
           "publishable": true,
           "flow": {
             "minScreens": 0.95,
-            "gapAfter": "tight",
+            "gapAfter": "passage",
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 77,
+              "mobile": 76
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1081,7 +1105,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 51,
+              "mobile": 51
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1101,7 +1129,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center"
+            "layout": "center",
+            "viewportY": {
+              "desktop": 51,
+              "mobile": 51
+            }
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1121,7 +1153,11 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "text-finale-cta"
+            "layout": "text-finale-cta",
+            "viewportY": {
+              "desktop": 48,
+              "mobile": 48
+            }
           },
           "movement": "spatial",
           "preset": "finale-v1",

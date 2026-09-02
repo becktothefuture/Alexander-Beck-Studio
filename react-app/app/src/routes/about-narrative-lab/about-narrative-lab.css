@@ -12,6 +12,7 @@ body.about-narrative-page .route-simulation-layer {
    * About tuning never leaks into the shared site type scale.
    */
   --about-reading-width: 54rem;
+  --about-editorial-measure: min(100%, var(--about-reading-width));
   --about-bookend-lockup-width: 48rem;
   --about-text-corridor-inset-left: max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-left));
   --about-text-corridor-inset-right: max(clamp(1.25rem, 9vw, 9rem), env(safe-area-inset-right));
@@ -352,15 +353,17 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-render-span--editorial > [data-text-field-id] {
-  width: min(100%, var(--about-reading-width));
+  width: var(--about-editorial-measure);
   margin-inline: auto;
 }
 
-/* Once inside the lattice, read down its central aisle. Keep the original
-   type size and full-height banks instead of thinning the environment. */
+/* The working method reads inside the quiet centre of its particle banks.
+   Its extra trailing air keeps the final paragraph above the persistent bar. */
 .about-narrative-lab[data-about-experience-version='v2']
   .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+  box-sizing: border-box;
   width: min(100%, 23rem);
+  padding-block-end: clamp(5rem, 13svh, 8rem);
 }
 
 /* Copy passes through the complete viewport with a small edge feather.
@@ -695,10 +698,28 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-client-field {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: clamp(2rem, 4vw, 3rem);
   width: 100%;
   margin: 0;
+}
+
+/* A soft exposure correction quiets the denser lower field without drawing a
+   card edge or changing the authored logo artwork, scale, or spacing. */
+.about-narrative-client-field::before {
+  position: absolute;
+  z-index: -1;
+  inset: 18% -10% -8%;
+  background: radial-gradient(
+    ellipse 76% 62% at 50% 68%,
+    color-mix(in srgb, var(--studio-window-bg) 78%, transparent) 0%,
+    color-mix(in srgb, var(--studio-window-bg) 46%, transparent) 54%,
+    transparent 100%
+  );
+  content: '';
+  pointer-events: none;
 }
 
 .about-narrative-client-field figcaption {
@@ -738,7 +759,7 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-client-logos li[data-client-logo='yoti'] {
-  --client-logo-display-scale: 1.1;
+  --client-logo-display-scale: 0.58;
 }
 
 .about-narrative-lab[data-about-experience-version='v2'] .about-narrative-client-field {
@@ -746,16 +767,30 @@ body.about-narrative-page .route-simulation-layer {
 }
 
 .about-narrative-lab[data-about-experience-version='v2'] .about-narrative-client-logos li {
-  --client-logo-display-scale: 0.86;
-  height: clamp(7rem, 10vw, 8.25rem);
-  padding: clamp(1.1rem, 1.8vw, 1.5rem) clamp(1.2rem, 2.4vw, 1.85rem);
+  --client-logo-display-scale: 0.72;
+  height: clamp(5.5rem, 7.5vw, 6.5rem);
+  padding: clamp(1rem, 1.6vw, 1.3rem) clamp(1.15rem, 2.2vw, 1.7rem);
 }
 
 .about-narrative-lab[data-about-experience-version='v2']
   .about-narrative-client-logos
   li[data-client-logo='yoti'] {
-  --client-logo-display-scale: 0.98;
+  --client-logo-display-scale: 0.72;
+  --client-logo-optical-scale: 0.68;
 }
+
+.about-narrative-client-logos li[data-client-logo='sp-global'] { --client-logo-optical-scale: 0.9; }
+.about-narrative-client-logos li[data-client-logo='bentley'] { --client-logo-optical-scale: 0.86; }
+.about-narrative-client-logos li[data-client-logo='sunexpress'] { --client-logo-optical-scale: 0.94; }
+.about-narrative-client-logos li[data-client-logo='american-heart-association'] { --client-logo-optical-scale: 0.8; }
+.about-narrative-client-logos li[data-client-logo='sony'] { --client-logo-optical-scale: 0.9; }
+.about-narrative-client-logos li[data-client-logo='jaguar-land-rover'] { --client-logo-optical-scale: 0.72; }
+.about-narrative-client-logos li[data-client-logo='experian'] { --client-logo-optical-scale: 0.96; }
+.about-narrative-client-logos li[data-client-logo='dcc'] { --client-logo-optical-scale: 0.94; }
+.about-narrative-client-logos li[data-client-logo='tourism-ireland'] { --client-logo-optical-scale: 0.95; }
+.about-narrative-client-logos li[data-client-logo='lufthansa'] { --client-logo-optical-scale: 0.95; }
+.about-narrative-client-logos li[data-client-logo='general-motors'] { --client-logo-optical-scale: 0.92; }
+.about-narrative-client-logos li[data-client-logo='think-money-think-life'] { --client-logo-optical-scale: 0.92; }
 
 .about-narrative-client-logos img {
   display: block;
@@ -766,7 +801,7 @@ body.about-narrative-page .route-simulation-layer {
     var(--client-logo-offset-x, 0%),
     var(--client-logo-offset-y, 0%),
     0
-  ) scale(calc(var(--client-logo-scale, 1) * var(--client-logo-display-scale, 1) * var(--client-logo-artwork-scale, 1)));
+  ) scale(calc(var(--client-logo-scale, 1) * var(--client-logo-display-scale, 1) * var(--client-logo-optical-scale, 1) * var(--client-logo-artwork-scale, 1)));
   transform-origin: center;
   opacity: 0.96;
 }
@@ -1144,7 +1179,9 @@ body.dark-mode .about-narrative-client-logos img {
 
 .about-narrative-spatial-copy.is-finale
   .about-narrative-finale-description.route-centered-page__description {
+  --route-intro-description-opacity: 0.88;
   max-width: min(var(--route-intro-description-max-width), 100%);
+  color: color-mix(in srgb, var(--text-primary) 90%, transparent);
   opacity: calc(
     var(--route-intro-description-opacity)
     * var(--spatial-description-opacity, var(--spatial-context-opacity, 0))
@@ -1178,9 +1215,14 @@ body.dark-mode .about-narrative-client-logos img {
   position: relative;
   width: 100%;
   margin-top: var(--gap-20, 1.25rem);
+  color: var(--text-primary);
   opacity: var(--spatial-action-opacity, 0);
   pointer-events: none;
   transform: translate3d(0, var(--spatial-context-y, 0px), 0);
+}
+
+.about-narrative-finale-actions :is(.contact-email-row, .contact-linkedin-action) {
+  color: var(--text-primary);
 }
 
 .about-narrative-text-field.is-finale[data-actions-visible='true']
@@ -1266,6 +1308,7 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] {
+  --about-editorial-measure: 100%;
   --about-text-corridor-inset-left: max(2rem, env(safe-area-inset-left));
   --about-text-corridor-inset-right: max(2rem, env(safe-area-inset-right));
   --about-editorial-type-size: clamp(1.0625rem, 4.45vw, 1.125rem);
@@ -1275,6 +1318,12 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 
 .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile'] {
   --about-editorial-stack-gap: 4.25rem;
+}
+
+.about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+  .about-narrative-render-span--editorial > [data-text-field-id='text-life-character'] {
+  width: min(100%, 68vw);
+  padding-block-end: max(7rem, calc(16svh + env(safe-area-inset-bottom)));
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-spatial-stage {
@@ -1336,8 +1385,18 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
+}
+
+.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-field::before {
+  inset: 12% -18% -5%;
+  background: radial-gradient(
+    ellipse 82% 70% at 50% 72%,
+    color-mix(in srgb, var(--studio-window-bg) 84%, transparent) 0%,
+    color-mix(in srgb, var(--studio-window-bg) 52%, transparent) 58%,
+    transparent 100%
+  );
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos li {
@@ -1347,21 +1406,31 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
   padding: clamp(0.55rem, 2.8vw, 0.8rem) clamp(0.45rem, 2.5vw, 0.7rem);
 }
 
-.about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos li[data-client-logo='yoti'] {
+.about-narrative-lab[data-about-layout-profile='mobile']
+  .about-narrative-client-logos
+  li[data-client-logo='yoti'] {
   --client-logo-display-scale: 1.08;
 }
 
 .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
   .about-narrative-client-logos li {
-  --client-logo-display-scale: 0.78;
-  height: clamp(5.75rem, 25vw, 6.5rem);
+  --client-logo-display-scale: 0.66;
+  height: clamp(4.75rem, 21vw, 5.5rem);
   padding: clamp(0.8rem, 3.5vw, 1rem) clamp(0.65rem, 3vw, 0.9rem);
+}
+
+.about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
+  .about-narrative-client-logos li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 50%;
 }
 
 .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
   .about-narrative-client-logos
   li[data-client-logo='yoti'] {
-  --client-logo-display-scale: 0.9;
+  --client-logo-display-scale: 0.66;
+  --client-logo-optical-scale: 0.66;
 }
 
 .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-media-deck {
@@ -1399,11 +1468,6 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
     padding-block:
       max(2.5rem, env(safe-area-inset-top))
       max(3rem, env(safe-area-inset-bottom));
-  }
-
-  .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0;
   }
 
   .about-narrative-lab[data-about-layout-profile='mobile'] .about-narrative-client-logos li {
@@ -1507,13 +1571,6 @@ html:has(.about-narrative-scrollport:focus-visible) .about-narrative-indicator__
 }
 
 @media (max-width: 720px) and (orientation: portrait) {
-  /* Reuse the method's reading measure across the essay. Type keeps its size
-     and travels through the full height while both physical banks stay clear. */
-  .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
-    .about-narrative-render-span--editorial > [data-text-field-id] {
-    width: min(100%, 68vw);
-  }
-
   .about-narrative-lab[data-about-experience-version='v2'][data-about-layout-profile='mobile']
     .about-narrative-spatial-copy.is-finale
     .about-narrative-finale-content {

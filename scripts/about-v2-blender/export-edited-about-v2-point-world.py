@@ -25,6 +25,8 @@ SURFEL_RADIUS_TO_SPACING = 0.56
 ENVIRONMENT_DENSITY_WEIGHT = 0.10
 PORTRAIT_MAX_VERTICAL_FOV_DEGREES = 115
 DEFAULT_SURFEL_BUDGETS = {"mobile": 30000, "desktop": 90000, "master": 135000}
+PROFILE_ORDER = ("mobile", "desktop", "master")
+PROFILE_INDEX = {profile: index for index, profile in enumerate(PROFILE_ORDER)}
 EXCLUDED_COLLECTIONS = {
     "ABS_CAMERA_RIG", "ABS_GUIDES", "ABS_NARRATIVE_GUIDES", "ABS_PREVIEW_LIGHTS",
 }
@@ -145,6 +147,36 @@ def resolve_surfel_budgets(scene, args):
         scene_value = finite_number(scene.get(f"abs_surfel_{profile_name}_budget"))
         resolved = command_value if command_value is not None else scene_value
         setattr(args, profile_name, int(resolved if resolved is not None else fallback))
+
+
+def resolve_model_budget_contract(scene, surfaces, args):
+    raw = scene.get("abs_surfel_budgets")
+    if not raw:
+        return None
+    try:
+        contract = json.loads(str(raw))
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Scene abs_surfel_budgets is invalid JSON.") from error
+    model_keys = sorted({surface["modelKey"] for surface in surfaces})
+    expected = set(model_keys)
+    resolved = {}
+    for profile_name in ("mobile", "desktop", "master"):
+        profile = contract.get(profile_name)
+        if not isinstance(profile, dict):
+            raise RuntimeError(f"Missing saved {profile_name} model budgets.")
+        counts = {key: profile.get(key) for key in model_keys}
+        if (set(profile) - {"total"}) != expected:
+            raise RuntimeError(f"Saved {profile_name} model budgets do not match exported models.")
+        if any(not isinstance(value, int) or value <= 0 for value in counts.values()):
+            raise RuntimeError(f"Saved {profile_name} model budgets must be positive integers.")
+        expected_total = getattr(args, profile_name)
+        if sum(counts.values()) != expected_total or profile.get("total") != expected_total:
+            raise RuntimeError(f"Saved {profile_name} model budgets do not total {expected_total}.")
+        resolved[profile_name] = counts
+    for key in model_keys:
+        if not (resolved["mobile"][key] <= resolved["desktop"][key] <= resolved["master"][key]):
+            raise RuntimeError(f"Saved profile budgets for {key} are not nested.")
+    return resolved
 
 
 def semantic_string(value, fallback):
@@ -310,7 +342,7 @@ def object_semantics(obj, collection_names, fallbacks):
     if feature_priority is None or feature_priority <= 0:
         raise RuntimeError(f"{obj.name} has invalid abs_feature_priority.")
     radius_scale = finite_number(obj.get("abs_surfel_radius_scale"), 1.0)
-    if radius_scale is None or radius_scale < 0.25 or radius_scale > 2.5:
+    if radius_scale is None or radius_scale < 0.12 or radius_scale > 2.5:
         raise RuntimeError(f"{obj.name} has invalid abs_surfel_radius_scale.")
     manifestation_scale = (finite_number(obj['abs_manifestation_spread_scale'])
                            if 'abs_manifestation_spread_scale' in obj else 1.0)
@@ -320,6 +352,11 @@ def object_semantics(obj, collection_names, fallbacks):
         raise RuntimeError(f'{obj.name} has invalid abs_manifestation_spread_scale.')
     if detail_scale is None or not 0.2 <= detail_scale <= 2:
         raise RuntimeError(f'{obj.name} has invalid abs_detail_bias_scale.')
+    minimum_profile = str(obj.get("abs_min_profile") or "mobile").strip().lower()
+    if minimum_profile not in PROFILE_INDEX:
+        raise RuntimeError(
+            f'{obj.name} has unsupported abs_min_profile "{minimum_profile}".'
+        )
     return {
         "role": role,
         "modelKey": model_key,
@@ -327,6 +364,7 @@ def object_semantics(obj, collection_names, fallbacks):
         "motionKey": motion_key,
         "motionSubgroups": motion_subgroups,
         "material": {"manifestationSpreadScale": manifestation_scale, "detailBiasScale": detail_scale},
+        "minimumProfile": minimum_profile,
         "revealKey": reveal_key,
         "componentPolicy": component_policy,
         "densityGroup": semantic_string(obj.get("abs_density_group"), model_key),
@@ -820,6 +858,44 @@ def interleave_model_samples(model_surfaces):
     return output
 
 
+def interleave_nested_profile_samples(model_surfaces, profile_surface_counts):
+    """Order a model so each quality tier is an exact nested prefix.
+
+    A desktop-only surface starts after the mobile prefix. This lets portrait
+    and landscape compositions share one binary, one geometry, and two draw
+    calls without making mobile decode or render desktop-specific points.
+    """
+    output = []
+    previous_counts = {surface["objectKey"]: 0 for surface in model_surfaces}
+    for profile_name in PROFILE_ORDER:
+        current_counts = profile_surface_counts[profile_name]
+        segment = []
+        for part_id, surface in enumerate(model_surfaces):
+            object_key = surface["objectKey"]
+            start = previous_counts[object_key]
+            end = current_counts[object_key]
+            if end < start or end > len(surface["samples"]):
+                raise RuntimeError(
+                    f"{object_key} has a non-nested {profile_name} profile count."
+                )
+            span = max(1, end - start)
+            for ordinal in range(start, end):
+                segment.append((
+                    ((ordinal - start) + 0.5) / span,
+                    object_key,
+                    part_id,
+                    surface,
+                    surface["samples"][ordinal],
+                ))
+            previous_counts[object_key] = end
+        segment.sort(key=lambda item: (item[0], item[1]))
+        output.extend(segment)
+    expected = sum(surface["surfelCount"] for surface in model_surfaces)
+    if len(output) != expected:
+        raise RuntimeError("Nested profile ordering omitted model surfels.")
+    return output
+
+
 def oct_encode(normal):
     divisor = abs(normal.x) + abs(normal.y) + abs(normal.z)
     if divisor <= 1e-12:
@@ -874,6 +950,54 @@ def sha256_file(path):
 
 def describe_square_gate_apertures(scene):
     """Export openings from the evaluated mesh, independently of camera samples."""
+    authored_gates = sorted(
+        (obj for obj in scene.objects if obj.name.startswith("ABS_GATE_")
+         and obj.type == "MESH" and obj.get("abs_gate_index") is not None),
+        key=lambda obj: int(obj["abs_gate_index"]),
+    )
+    if authored_gates:
+        apertures = []
+        for gate_index, gate in enumerate(authored_gates):
+            if int(gate["abs_gate_index"]) != gate_index:
+                raise RuntimeError("Individual square gate indices must be contiguous from zero.")
+            inner = [float(value) for value in gate["abs_aperture_half_size"]]
+            half_depth = float(gate["abs_half_depth"])
+            evaluated = gate.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            mesh = evaluated.to_mesh()
+            try:
+                centre_blender = sum(
+                    (evaluated.matrix_world @ vertex.co for vertex in mesh.vertices),
+                    Vector(),
+                ) / len(mesh.vertices)
+            finally:
+                evaluated.to_mesh_clear()
+            centre = blender_to_site(centre_blender)
+            # B02 gates are authored in Blender X/Z with their depth along Y.
+            right = blender_to_site(gate.matrix_world.to_3x3() @ Vector((1, 0, 0))).normalized()
+            up = blender_to_site(gate.matrix_world.to_3x3() @ Vector((0, 0, 1))).normalized()
+            normal = blender_to_site(gate.matrix_world.to_3x3() @ Vector((0, 1, 0))).normalized()
+            thickness = 0.72
+            apertures.append({
+                "id": gate_index + 1,
+                "centre": rounded_vector(centre),
+                "right": rounded_vector(right),
+                "up": rounded_vector(up),
+                "normal": rounded_vector(normal),
+                "innerHalfSize": [round(value, 6) for value in inner],
+                "outerHalfSize": [round(value + thickness, 6) for value in inner],
+                "halfDepth": round(half_depth, 6),
+            })
+        return {
+            "schema": "about-square-gate-apertures/v1",
+            "source": "ABS_GATE_00..15",
+            "coordinateSystem": "website-world",
+            "traversal": {
+                "forward": True,
+                "reverse": True,
+                "mode": "same-centreline-reversible",
+            },
+            "apertures": apertures,
+        }
     gate = scene.objects.get("GN_SQUARE_LOOP")
     if gate is None:
         return None
@@ -934,6 +1058,81 @@ def describe_square_gate_apertures(scene):
         }
     finally:
         evaluated.to_mesh_clear()
+
+
+def describe_round_tunnel_apertures(scene):
+    """Export authored round-tunnel openings independently of camera samples."""
+    hoops = sorted(
+        (
+            obj for obj in scene.objects
+            if obj.type == "MESH"
+            and obj.get("abs_geometry_kind") == "curved-round-tunnel-hoop"
+            and obj.get("abs_tunnel_index") is not None
+        ),
+        key=lambda obj: int(obj["abs_tunnel_index"]),
+    )
+    if not hoops:
+        return None
+    if len(hoops) < 8:
+        raise RuntimeError("The curved round tunnel requires at least eight authored apertures.")
+
+    apertures = []
+    for index, hoop in enumerate(hoops):
+        if int(hoop["abs_tunnel_index"]) != index:
+            raise RuntimeError("Round tunnel indices must be contiguous from zero.")
+
+        required = (
+            "abs_aperture_centre_blender",
+            "abs_aperture_right_blender",
+            "abs_aperture_up_blender",
+            "abs_aperture_normal_blender",
+            "abs_aperture_radius_wu",
+            "abs_aperture_half_depth_wu",
+        )
+        missing = [name for name in required if hoop.get(name) is None]
+        if missing:
+            raise RuntimeError(
+                f"{hoop.name} is missing authored round-aperture properties: {', '.join(missing)}."
+            )
+
+        centre = blender_to_site(Vector(hoop["abs_aperture_centre_blender"]))
+        right = blender_to_site(Vector(hoop["abs_aperture_right_blender"])).normalized()
+        up = blender_to_site(Vector(hoop["abs_aperture_up_blender"])).normalized()
+        normal = blender_to_site(Vector(hoop["abs_aperture_normal_blender"])).normalized()
+        if max(abs(right.dot(up)), abs(right.dot(normal)), abs(up.dot(normal))) > 0.001:
+            raise RuntimeError(f"{hoop.name} round-aperture basis is not orthogonal.")
+        if right.cross(up).dot(normal) < 0:
+            normal.negate()
+
+        inner_radius = float(hoop["abs_aperture_radius_wu"])
+        half_depth = float(hoop["abs_aperture_half_depth_wu"])
+        rim = float(hoop.get("abs_aperture_rim_wu", half_depth))
+        if not all(math.isfinite(value) and value > 0 for value in (
+            inner_radius, half_depth, rim,
+        )):
+            raise RuntimeError(f"{hoop.name} has an invalid round aperture size.")
+        apertures.append({
+            "id": index + 1,
+            "centre": rounded_vector(centre),
+            "right": rounded_vector(right),
+            "up": rounded_vector(up),
+            "normal": rounded_vector(normal),
+            "innerRadius": round(inner_radius, 6),
+            "outerRadius": round(inner_radius + rim, 6),
+            "halfDepth": round(half_depth, 6),
+        })
+
+    return {
+        "schema": "about-round-tunnel-apertures/v1",
+        "source": f"{hoops[0].name}..{hoops[-1].name}",
+        "coordinateSystem": "website-world",
+        "traversal": {
+            "forward": True,
+            "reverse": True,
+            "mode": "same-centreline-reversible",
+        },
+        "apertures": apertures,
+    }
 
 
 def export_camera_track(output_dir, scene, camera):
@@ -1050,6 +1249,9 @@ def export_camera_track(output_dir, scene, camera):
     gate_passage = describe_square_gate_apertures(scene)
     if gate_passage:
         track["gatePassage"] = gate_passage
+    round_tunnel_passage = describe_round_tunnel_apertures(scene)
+    if round_tunnel_passage:
+        track["roundTunnelPassage"] = round_tunnel_passage
     path = output_dir / "camera-track.json"
     path.write_text(json.dumps(track, separators=(",", ":")) + "\n", encoding="utf-8")
     return path, track
@@ -1066,6 +1268,7 @@ def build_scene_contract(surfaces, args):
         for surface in surfaces
     ]
     allocation_baseline = None
+    model_budget_contract = resolve_model_budget_contract(bpy.context.scene, surfaces, args)
     source_allocation = bpy.context.scene.get('abs_surfel_allocation')
     if source_allocation and not args.preserve_allocations_from:
         allocation = json.loads(source_allocation)
@@ -1111,15 +1314,33 @@ def build_scene_contract(surfaces, args):
             * baseline_objects[surface["objectKey"]]["sceneDensityWeight"]
             for surface in surfaces
         ]
-    preliminary_allocations = allocate_exact(
-        sampling_weights, args.master, [0] * len(surfaces),
+    models_by_key = {}
+    for index, surface in enumerate(surfaces):
+        models_by_key.setdefault(surface["modelKey"], []).append(index)
+
+    def allocate_by_model(profile_name, minimums):
+        allocations = [0] * len(surfaces)
+        for model_key, indices in models_by_key.items():
+            model_weights = [sampling_weights[index] for index in indices]
+            model_minimums = [minimums[index] for index in indices]
+            model_total = model_budget_contract[profile_name][model_key]
+            model_allocations = allocate_exact(model_weights, model_total, model_minimums)
+            for index, count in zip(indices, model_allocations):
+                allocations[index] = count
+        return allocations
+
+    preliminary_allocations = (
+        allocate_by_model("master", [0] * len(surfaces))
+        if model_budget_contract
+        else allocate_exact(sampling_weights, args.master, [0] * len(surfaces))
     )
     for surface, reference_count in zip(surfaces, preliminary_allocations):
         prepare_surface_anchor_plan(surface, reference_count)
-    master_allocations = allocate_exact(
-        sampling_weights,
-        args.master,
-        [surface["requiredAnchorCount"] for surface in surfaces],
+    required_anchor_counts = [surface["requiredAnchorCount"] for surface in surfaces]
+    master_allocations = (
+        allocate_by_model("master", required_anchor_counts)
+        if model_budget_contract
+        else allocate_exact(sampling_weights, args.master, required_anchor_counts)
     )
     if allocation_baseline:
         master_allocations = [
@@ -1145,12 +1366,12 @@ def build_scene_contract(surfaces, args):
             1 for sample in surface["samples"]
             if sample.get("semanticAnchor") or sample.get("componentAnchor")
         )
-    models_by_key = {}
+    model_surfaces_by_key = {}
     for surface in surfaces:
-        models_by_key.setdefault(surface["modelKey"], []).append(surface)
-    model_keys = sorted(models_by_key)
+        model_surfaces_by_key.setdefault(surface["modelKey"], []).append(surface)
+    model_keys = sorted(model_surfaces_by_key)
     model_master_counts = [
-        sum(surface["surfelCount"] for surface in models_by_key[key])
+        sum(surface["surfelCount"] for surface in model_surfaces_by_key[key])
         for key in model_keys
     ]
     if allocation_baseline:
@@ -1160,18 +1381,28 @@ def build_scene_contract(surfaces, args):
     mobile_model_minimums = [
         sum(
             surface["requiredAnchorCount"]
-            for surface in models_by_key[key]
+            for surface in model_surfaces_by_key[key]
+            if surface["minimumProfile"] == "mobile"
         )
         for key in model_keys
     ]
-    mobile_model_counts = allocate_progressive_prefix(
-        model_master_counts, args.mobile, mobile_model_minimums,
-    )
-    desktop_model_counts = allocate_progressive_prefix(
-        model_master_counts,
-        args.desktop,
-        mobile_model_counts,
-    )
+    if model_budget_contract:
+        mobile_model_counts = [model_budget_contract["mobile"][key] for key in model_keys]
+        desktop_model_counts = [model_budget_contract["desktop"][key] for key in model_keys]
+        for minimum, mobile, desktop, master in zip(
+            mobile_model_minimums, mobile_model_counts, desktop_model_counts, model_master_counts,
+        ):
+            if not minimum <= mobile <= desktop <= master:
+                raise RuntimeError("Saved profile model budgets cannot contain all required anchors.")
+    else:
+        mobile_model_counts = allocate_progressive_prefix(
+            model_master_counts, args.mobile, mobile_model_minimums,
+        )
+        desktop_model_counts = allocate_progressive_prefix(
+            model_master_counts,
+            args.desktop,
+            mobile_model_counts,
+        )
     if allocation_baseline:
         mobile_model_counts, desktop_model_counts = [
             [allocation_baseline["profiles"][profile]["perModelCounts"][key] for key in model_keys]
@@ -1202,8 +1433,47 @@ def build_scene_contract(surfaces, args):
     records, models = [], []
     profile_object_counts = {name: {} for name in profile_model_counts}
     for model_id, model_key in enumerate(model_keys):
-        model_surfaces = sorted(models_by_key[model_key], key=lambda item: item["objectKey"])
-        model_records = interleave_model_samples(model_surfaces)
+        model_surfaces = sorted(model_surfaces_by_key[model_key], key=lambda item: item["objectKey"])
+        model_profile_totals = {
+            profile_name: profile_model_counts[profile_name][model_id]
+            for profile_name in PROFILE_ORDER
+        }
+        surface_profile_counts = {profile_name: {} for profile_name in PROFILE_ORDER}
+        previous = [0] * len(model_surfaces)
+        for profile_name in PROFILE_ORDER:
+            eligible_capacities = [
+                surface["surfelCount"]
+                if PROFILE_INDEX[surface["minimumProfile"]] <= PROFILE_INDEX[profile_name]
+                else 0
+                for surface in model_surfaces
+            ]
+            minimums = [
+                max(
+                    previous[index],
+                    surface["requiredAnchorCount"]
+                    if PROFILE_INDEX[surface["minimumProfile"]] <= PROFILE_INDEX[profile_name]
+                    else 0,
+                )
+                for index, surface in enumerate(model_surfaces)
+            ]
+            counts = allocate_progressive_prefix(
+                eligible_capacities,
+                model_profile_totals[profile_name],
+                minimums,
+            )
+            surface_profile_counts[profile_name] = {
+                surface["objectKey"]: count
+                for surface, count in zip(model_surfaces, counts)
+            }
+            previous = counts
+        for surface in model_surfaces:
+            surface["profilePrefixOrder"] = (
+                f'nested-minimum-profile-{surface["minimumProfile"]}'
+            )
+        model_records = interleave_nested_profile_samples(
+            model_surfaces,
+            surface_profile_counts,
+        )
         range_offset = len(records)
         for _progress, _object_key, part_id, surface, sample in model_records:
             records.append({
@@ -1230,11 +1500,8 @@ def build_scene_contract(surfaces, args):
         model_profile_counts = {
             name: profile_model_counts[name][model_id] for name in profile_model_counts
         }
-        for profile_name, prefix_count in model_profile_counts.items():
-            counts = {surface["objectKey"]: 0 for surface in model_surfaces}
-            for _progress, object_key, _part_id, _surface, _sample in model_records[:prefix_count]:
-                counts[object_key] += 1
-            profile_object_counts[profile_name].update(counts)
+        for profile_name in PROFILE_ORDER:
+            profile_object_counts[profile_name].update(surface_profile_counts[profile_name])
         def shared_model_value(key):
             values = {
                 surface[key] for surface in model_surfaces
@@ -1268,9 +1535,13 @@ def build_scene_contract(surfaces, args):
                 raise RuntimeError(
                     f"Model {model_key}'s visibility handoff consumes its full window."
                 )
-        if (visibility_start_cue is None) != (visibility_end_cue is None):
+        if visibility_start_cue is None or visibility_end_cue is None:
             raise RuntimeError(
-                f"Model {model_key} must author both semantic visibility cues or neither."
+                f"Model {model_key} must author both semantic visibility cues; authored-WU fallback is unsupported."
+            )
+        if visibility_start_offset_wu is None or visibility_end_offset_wu is None:
+            raise RuntimeError(
+                f"Model {model_key} must author finite semantic visibility cue offsets."
             )
         materials = [surface['material'] for surface in model_surfaces]
         if any(material != materials[0] for material in materials):
@@ -1486,6 +1757,7 @@ def main():
     surfaces, fallbacks = collect_scene_geometry(
         eligible_mesh_objects(scene),
     )
+    model_budget_contract = resolve_model_budget_contract(scene, surfaces, args)
     records, models, profiles, motion_keys, pages = build_scene_contract(surfaces, args)
     surfel_path = output_dir / "surfels.bin"
     camera_path, camera_track = export_camera_track(output_dir, scene, scene.camera)
@@ -1507,6 +1779,7 @@ def main():
         "componentPolicy": surface["componentPolicy"],
         "densityGroup": surface["densityGroup"],
         "densityFactor": round(surface["densityFactor"], 6),
+        "minimumProfile": surface["minimumProfile"],
         "profilePrefixOrder": surface.get("profilePrefixOrder", "progressive-best-candidate"),
         "samplingDensityAttribute": surface["samplingDensityAttribute"],
         "featurePriority": round(surface["featurePriority"], 6),
@@ -1568,11 +1841,16 @@ def main():
             "triangleCount": sum(surface["triangleCount"] for surface in surfaces),
             "surfaceArea": round(sum(surface["surfaceArea"] for surface in surfaces), 6),
             "objects": source_objects,
+            **({"surfelBudgetContract": model_budget_contract} if model_budget_contract else {}),
             "semanticFallbacks": fallbacks,
             "samplingPolicy": {
                 "type": "progressive-semantic-best-candidate-v3",
                 "space": "WORLD",
-                "allocation": "role-weighted-world-surface-area-with-anchor-minimum",
+                "allocation": (
+                    "saved-source-model-profile-budgets"
+                    if model_budget_contract
+                    else "role-weighted-world-surface-area-with-anchor-minimum"
+                ),
                 "profileMinimum": "semantic-and-meaningful-component-anchor-union",
                 "environmentDensityWeight": ENVIRONMENT_DENSITY_WEIGHT,
                 "bestCandidatesPerSurfel": BEST_CANDIDATES_PER_SURFEL,

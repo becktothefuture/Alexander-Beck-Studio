@@ -86,6 +86,23 @@ export function SiteFooter() {
             </div>
           </div>
 
+          <div
+            id="edge-caption"
+            className="edge-caption"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            data-route-enter="footer"
+            data-route-enter-order="3"
+          >
+            <span
+              id="edge-caption-tagline"
+              className="edge-caption__line edge-caption__line--tagline"
+            >
+              {EDGE_CAPTION}
+            </span>
+          </div>
+
           <div className="ui-meta-right">
             <div
               id="site-year"
@@ -95,12 +112,8 @@ export function SiteFooter() {
               data-route-enter-order="2"
             >
               <span className="meta-stack">
-                <span className="meta-location">
-                  <strong
-                    className="location-name location-name--ldn-26"
-                    aria-hidden="true"
-                  />
-                  <span className="meta-separator" aria-hidden="true">·</span>
+                <span className="location-name">
+                  London<span className="location-punctuation" aria-hidden="true">,</span>
                 </span>
                 <LondonClock />
               </span>
@@ -108,22 +121,6 @@ export function SiteFooter() {
           </div>
         </div>
       </footer>
-      <div
-        id="edge-caption"
-        className="edge-caption"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        data-route-enter="footer"
-        data-route-enter-order="3"
-      >
-        <span
-          id="edge-caption-tagline"
-          className="edge-caption__line edge-caption__line--tagline"
-        >
-          {EDGE_CAPTION}
-        </span>
-      </div>
     </>
   );
 }

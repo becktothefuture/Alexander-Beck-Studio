@@ -19,11 +19,11 @@ assert.equal(
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.renderedRouteId,
-  'about-coming-soon',
+  'about',
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.semanticContract.mainSelector,
-  '#simulations[role="main"][data-route-content="about-coming-soon"]',
+  '#simulations[role="main"][data-route-content="about-narrative"]',
 );
 
 const focusRoutes = RELEASE_SMOKE_ROUTES.filter((route) => route.representativeFocus);

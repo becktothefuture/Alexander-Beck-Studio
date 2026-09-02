@@ -8,6 +8,10 @@ const baseUrl = (process.env.ABS_DEV_URL || 'http://localhost:8012').trim().repl
 const browserName = (process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
 const canonical = JSON.parse(await readFile('react-app/app/public/config/contents-about.json', 'utf8'));
 const expectedFieldIds = canonical.tracks.text.fields.map((field) => field.id);
+const gapPresetByFieldId = new Map(canonical.tracks.text.fields.map((field) => [
+  field.id,
+  field.flow?.gapAfter || 'standard',
+]));
 const outputDir = path.resolve('output/playwright/about-responsive-sequence', browserName);
 const viewportDefinitions = [
   ['large-desktop', { width: 1920, height: 1080 }],
@@ -131,8 +135,8 @@ try {
     layout.fields.forEach((field, index) => {
       if (index > 0) assert(field.topWU > layout.fields[index - 1].topWU, `${viewportId}: ${field.id} is out of reading order.`);
       assert(Number.isFinite(field.durationWU) && field.durationWU > 0, `${viewportId}: ${field.id} has no measured duration.`);
-      const maximumGapWU = ['text-complexity-conditions', 'text-disciplines-title'].includes(field.id)
-        ? 2.4 : field.id === 'text-life-character' ? 0.8 : 0.58;
+      const maximumGapWU = gapPresetByFieldId.get(field.id) === 'passage'
+        ? 3.8 : field.id === 'text-life-character' ? 0.8 : 0.58;
       assert(field.gapWU <= maximumGapWU + 0.001,
         `${viewportId}: ${field.id} exceeds its ${maximumGapWU} WU gap allowance (${field.gapWU}).`);
       assert(
@@ -168,12 +172,12 @@ try {
       samples.push(state);
     }
     const stages = [...new Set(samples.flatMap((sample) => sample.activeModels))];
-    ['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05'].forEach((stage) => {
+    ['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06'].forEach((stage) => {
       assert(stages.includes(stage), `${viewportId}: responsive sequence never reached ${stage}.`);
     });
     assert(samples.every((sample) => sample.stage === 'blender-surfel-scene'),
       `${viewportId}: a procedural replacement world was used.`);
-    assert(samples[0].activeModels.includes('about.00') && samples.at(-1).activeModels.join() === 'about.05',
+    assert(samples[0].activeModels.includes('about.00') && samples.at(-1).activeModels.join() === 'about.06',
       `${viewportId}: Blender sequence endpoints are wrong (${stages.join(' → ')}).`);
 
     const screenshots = [];

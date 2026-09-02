@@ -170,7 +170,7 @@ html.entrance-pre-transition #app-frame {
 }
 
 /* Background elements (#simulations, #abs-scene) are visible immediately (no fade-in).
-   #edge-caption uses .edge-caption only – no overrides – so it keeps 0.66 from the start.
+   #edge-caption uses .edge-caption only – no overrides – so it keeps its quiet resting opacity.
    #brand-logo and #main-links use inline styles + JS for late reveal. */
 html.entrance-pre-transition #simulations,
 html.entrance-pre-transition #abs-scene {
@@ -310,11 +310,10 @@ body.body.dark-mode {
    EDGE CAPTION (Bottom, centered; engraved inline statement)
    ───────────────────────────────────────────────────────────────────────────── */
 .edge-caption {
-  position: absolute;
-  top: 50%;
-  bottom: auto;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
+  grid-column: 2;
+  justify-self: stretch;
+  transform: translateY(-18px);
   z-index: 3; /* Within .fade-content stacking context */
   pointer-events: none;
   display: inline-flex;
@@ -326,9 +325,10 @@ body.body.dark-mode {
   padding: 0;
   border-radius: 0;
   background: transparent;
-  max-width: min(800px, calc(100% - (var(--content-padding-x) * 2)));
+  width: 100%;
+  max-width: 800px;
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
-  opacity: 0.66;
+  opacity: 0.38;
 }
 
 .edge-caption__line {
@@ -350,7 +350,12 @@ body.body.dark-mode {
 
 @media (max-width: 600px) {
   .edge-caption {
-    display: var(--edge-label-mobile-display, flex);
+    display: inline-flex;
+    grid-area: caption;
+    justify-self: center;
+    transform: none;
+    width: 100%;
+    max-width: 320px;
   }
 
   .edge-caption__line {
@@ -2183,11 +2188,7 @@ html[data-shell-route='home'] body {
     - clamp(0px, calc((768px - 100vw) * 0.035714), 6px)
   );
   --home-footer-meta-font-size: clamp(14px, calc(6.857px + 1.1905vw), 16px);
-  --home-footer-side-padding: clamp(
-    0px,
-    calc((100vw - 768px) * 0.285714),
-    16px
-  );
+  --home-footer-side-padding: 0px;
   --home-footer-social-overlap: clamp(
     0px,
     calc((768px - 100vw) * 0.047619),
@@ -2989,10 +2990,10 @@ body.dark-mode .ui-main-nav .footer_link {
     var(--ui-icon-frame-size)
   );
 
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end; /* Bottom-align so Apple/LinkedIn icons match London button level */
-  gap: 0px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 800px) minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
   width: 100%;
   pointer-events: none;
 }
@@ -3011,6 +3012,16 @@ html[data-shell-route='home'] body .ui-meta-row {
 
 .ui-meta-left, .ui-meta-right {
   pointer-events: auto;
+}
+
+.ui-meta-left {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.ui-meta-right {
+  grid-column: 3;
+  justify-self: end;
 }
 
 /* Bottom-right meta button (London · time): text stays identical, hit-area matches icon buttons */
@@ -3062,7 +3073,7 @@ button.abs-meta-btn,
 }
 
 #social-links {
-  margin-inline-start: calc(var(--home-footer-social-frame-offset, 0px) + 16px);
+  margin-inline-start: 0;
 }
 
 .home-footer-social-link {
@@ -3430,45 +3441,44 @@ button.abs-meta-btn,
   color: var(--text-muted);
 }
 
-/* Meta (London · time) is a button using `.abs-meta-btn` while keeping `.caption` text styling. */
-/* Location name (London) keeps the script/display face; the rest of the caption uses Geist. */
-.location-name {
-  font-family: var(--abs-font-display);
+/* London and its local time share the same quiet Geist metadata role. */
+#site-year.meta-caption {
+  font-family: var(--abs-font-sans);
+  font-size: var(--home-footer-meta-font-size, var(--caption-font-size));
   font-style: normal;
   font-weight: var(--abs-weight-regular);
-  font-size: 1.5em;
-  letter-spacing: normal;
   line-height: 1;
+  letter-spacing: var(--meta-time-letter-spacing);
 }
 
-/* Meta stack: inline by default, stacked on mobile */
+.location-name {
+  display: inline-block;
+  font-family: var(--abs-font-sans);
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  letter-spacing: inherit;
+}
+
+/* Keep the location and time on one stable baseline at every viewport size. */
 .meta-stack {
   display: inline-flex;
   align-items: baseline;
   justify-content: flex-end;
-  gap: clamp(4px, 0.45vw, 8px);
+  gap: 0.35em;
 }
 
-.meta-location {
-  display: inline-flex;
-  align-items: baseline;
-  gap: clamp(2px, 0.2vw, 4px);
-}
-
-.meta-separator {
-  line-height: 1;
-}
-
-/* Time Display - Geist, 80% size; min-width keeps layout stable before/without JS */
+/* Time display shares the London metadata role; min-width prevents clock jitter. */
 #time-display {
   display: inline-block;
   contain: strict;
   inline-size: 8.5ch;
   block-size: 1em;
   font-family: var(--abs-font-sans);
-  font-style: normal;
-  font-size: 0.84em;
-  font-weight: 400;
+  font-size: inherit;
+  font-style: inherit;
+  font-weight: inherit;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
@@ -5702,6 +5712,23 @@ html.is-safari .noise::before {
     align-items: center;
   }
 
+  html[data-shell-route='home'] body .ui-meta-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'caption caption'
+      'left right';
+    row-gap: 6px;
+    padding-inline-end: clamp(48px, 14vw, 56px);
+  }
+
+  html[data-shell-route='home'] body .ui-meta-left {
+    grid-area: left;
+  }
+
+  html[data-shell-route='home'] body .ui-meta-right {
+    grid-area: right;
+  }
+
   .caption {
     font-size: calc(var(--caption-font-size) - 1px);
   }
@@ -5726,27 +5753,18 @@ html.is-safari .noise::before {
   .ui-meta-right .sound-toggle {
     align-self: center;
   }
-  
-  /* London/time: stack vertically, right aligned */
+
   #site-year .meta-stack {
-    display: flex;
     flex-direction: column;
     align-items: flex-end;
-    justify-content: center;
-    gap: 0;
-  }
-
-  #site-year .meta-location {
-    gap: 0;
-    line-height: 0.92;
+    gap: 2px;
   }
 
   #site-year .location-name {
-    display: block;
+    text-transform: uppercase;
   }
 
-  /* Hide separator dot on mobile */
-  .meta-separator {
+  #site-year .location-punctuation {
     display: none;
   }
   
@@ -7849,7 +7867,7 @@ body.dark-mode .cv-photo {
   }
 
   #time-display {
-    font-size: 0.9em;
+    font-size: 1em;
     inline-size: 8.4ch;
     min-width: 8.4ch;
   }
@@ -8039,7 +8057,7 @@ body.dark-mode .cv-photo {
   }
 
   .edge-caption {
-    display: none;
+    display: inline-flex;
   }
 }
 
@@ -8756,31 +8774,14 @@ body.cv-page .cv-section--signals {
   }
 }
 
-/* LDN 26 signature: self-hosted artwork, inline with time on desktop and stacked on mobile. */
-.location-name--ldn-26 {
-  box-sizing: border-box;
-  display: inline-block;
-  flex: 0 0 auto;
-  inline-size: 70.5px;
-  aspect-ratio: 1693 / 625;
-  color: inherit;
-  background-color: currentColor;
-  font-size: 0;
-  line-height: 0;
-  vertical-align: middle;
-  -webkit-mask: url('/assets/ldn-26.svg') center / contain no-repeat;
-  mask: url('/assets/ldn-26.svg') center / contain no-repeat;
-}
-
 #site-year .meta-stack {
   position: static;
 }
 
-#site-year .meta-location {
-  position: static;
-  pointer-events: none;
-}
-
-#site-year .meta-separator {
-  display: none;
+@media (min-width: 601px) {
+  html[data-shell-route='home'] body #site-year {
+    block-size: var(--home-footer-social-touch-size);
+    height: var(--home-footer-social-touch-size);
+    min-height: var(--home-footer-social-touch-size);
+  }
 }

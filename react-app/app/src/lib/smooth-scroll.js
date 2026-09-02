@@ -19,11 +19,19 @@ export function createSmoothScrollMediaQueries(win = window) {
   };
 }
 
-export function shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery, win = window } = {}) {
+export function shouldUseNativeSmoothScroll({
+  reducedMotionQuery,
+  nativeScrollQuery,
+  allowCoarsePointer = false,
+  win = window,
+} = {}) {
+  const reducedMotionMatches = reducedMotionQuery?.matches
+    ?? win.matchMedia?.(SMOOTH_SCROLL_REDUCED_MOTION_QUERY).matches;
+  const nativeScrollMatches = nativeScrollQuery?.matches
+    ?? win.matchMedia?.(SMOOTH_SCROLL_NATIVE_QUERY).matches;
   return Boolean(
-    reducedMotionQuery?.matches
-    || nativeScrollQuery?.matches
-    || win.matchMedia?.(SMOOTH_SCROLL_NATIVE_QUERY).matches
+    reducedMotionMatches
+    || (!allowCoarsePointer && nativeScrollMatches)
   );
 }
 
@@ -31,9 +39,10 @@ export function createSmoothScroll({
   wrapper,
   content,
   smoothing = SMOOTH_SCROLL_DEFAULT_SMOOTHING,
+  allowCoarsePointer = false,
   ...options
 }) {
-  if (!wrapper || !content || shouldUseNativeSmoothScroll()) return null;
+  if (!wrapper || !content || shouldUseNativeSmoothScroll({ allowCoarsePointer })) return null;
   return new Lenis({
     wrapper,
     content,

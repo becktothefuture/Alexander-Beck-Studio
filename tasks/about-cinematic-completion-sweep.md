@@ -1,5 +1,7 @@
 # About cinematic completion sweep
 
+> **Recovery status — 1 September 2026:** the earlier `b172b8cd` completion claim remains withdrawn. The accepted B41 composition and B42 Blender controls have now been promoted to the canonical source. Treat the historical “Complete” labels below as evidence for the rejected baseline; current acceptance and final certification are recorded in [about-cinematic-recovery-plan-2026-09-01.md](about-cinematic-recovery-plan-2026-09-01.md) and [about-cinematic-recovery-rollout-2026-09-01.md](about-cinematic-recovery-rollout-2026-09-01.md).
+
 Started 31 August 2026. Implementation and browser verification are complete; the explicit human-review limits remain recorded below.
 
 This checklist covers the [cinematic PRD](prd-about-me-cinematic-refinement.md) and the subsequent requests for a vast scene, a full-width ending without visible outer bounds, full-viewport text, consistent camera travel through every square gate, and smooth desktop/mobile scrolling.

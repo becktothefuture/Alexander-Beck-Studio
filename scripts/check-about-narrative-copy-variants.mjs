@@ -157,13 +157,9 @@ test('both word budgets include all five career rows and the qualified date word
   assert.equal(countWords(authoredText), 400);
 });
 
-test('development owns canonical playback while production keeps the About coming-soon gate', () => {
-  assert.match(aboutRouteSource, /import \{ AboutComingSoon \}/);
-  assert.match(aboutRouteSource, /if \(!import\.meta\.env\.DEV\)/);
-  assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-coming-soon-title'/);
-  assert.match(aboutRouteSource, /secondary: <AboutComingSoon \/>/);
+test('development and production share canonical About playback without authoring controls', () => {
   assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-route-title'/);
-  assert.match(aboutRouteSource, /new URLSearchParams\(window\.location\.search\)\.get\('preview'\) === 'about'/);
+  assert.doesNotMatch(aboutRouteSource, /AboutComingSoon|about-coming-soon|preview.*about/);
   assert.doesNotMatch(aboutRouteSource, /getAboutExperienceVersion|experienceVersion=/);
   assert.match(aboutExperienceSource, /const initialDocument = ABOUT_NARRATIVE_DOCUMENT/);
   assert.match(aboutExperienceSource, /const resolvedExperienceVersion = CANONICAL_ABOUT_EXPERIENCE_VERSION/);

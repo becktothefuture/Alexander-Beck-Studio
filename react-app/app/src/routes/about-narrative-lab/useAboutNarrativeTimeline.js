@@ -94,6 +94,7 @@ const FINALE_SOUND_WRAP_WU = 1_024;
 const EMPTY_MEASUREMENTS = Object.freeze({
   dirty: true,
   viewportHeight: 0,
+  readingBottomInsetPx: 0,
   editorialFields: [],
   editorialLines: [],
   editorialStacks: [],
@@ -219,7 +220,7 @@ export function useAboutNarrativeTimeline({
     let lastStoreDocument = editorStore?.getSnapshot?.()?.document || null;
     let lastStorePreviewKey = JSON.stringify(editorStore?.getSnapshot?.()?.previewState || null);
 
-    const getCurrentStoryWU = () => {
+    const getCurrentStoryWU = (paintedScrollTop = scrollport.scrollTop) => {
       const transport = getTransport(editorStore);
       if (transport && transport.owner !== 'scroll') return Number(transport.storyWU) || 0;
       const maximumScrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
@@ -234,7 +235,7 @@ export function useAboutNarrativeTimeline({
         return lastScrollStoryWU;
       }
       lastScrollStoryWU = maximumScrollTop > 0
-        ? clamp01(scrollport.scrollTop / maximumScrollTop) * (planRef.current?.durationWU || 0)
+        ? clamp01(paintedScrollTop / maximumScrollTop) * (planRef.current?.durationWU || 0)
         : 0;
       return lastScrollStoryWU;
     };
@@ -242,8 +243,10 @@ export function useAboutNarrativeTimeline({
     const setScrollFromStoryWU = (nextStoryWU) => {
       const durationWU = planRef.current?.durationWU;
       if (!(durationWU > 0)) return;
-      scrollport.scrollTop = clamp01(nextStoryWU / durationWU)
+      const nextScrollTop = clamp01(nextStoryWU / durationWU)
         * Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      if (lenis) lenis.scrollTo(nextScrollTop, { immediate: true, force: true });
+      else scrollport.scrollTop = nextScrollTop;
       lastScrollStoryWU = clamp01(nextStoryWU / durationWU) * durationWU;
     };
 
@@ -252,7 +255,20 @@ export function useAboutNarrativeTimeline({
       if (planRef.current?.resolver) {
         root.style.setProperty('--narrative-content-extent-wu', planRef.current.resolver.contentExtentWU);
       }
-      measurementsRef.current = { ...measurementsRef.current, viewportHeight };
+      const scrollportBounds = scrollport.getBoundingClientRect();
+      const buttonBarBounds = root.ownerDocument
+        .querySelector('[data-button-bar]')?.getBoundingClientRect();
+      const readingBottomInsetPx = buttonBarBounds
+        ? Math.max(0, Math.min(
+          viewportHeight - 1,
+          scrollportBounds.bottom - buttonBarBounds.top + 8,
+        ))
+        : 0;
+      measurementsRef.current = {
+        ...measurementsRef.current,
+        viewportHeight,
+        readingBottomInsetPx,
+      };
       setScrollFromStoryWU(preservedStoryWU);
       measuredViewportWidth = viewportWidth;
       measuredViewportHeight = viewportHeight;
@@ -357,7 +373,11 @@ export function useAboutNarrativeTimeline({
       const transport = getTransport(editorStore);
       if (transport && transport.owner !== 'scroll') return;
       if (planRef.current?.motionProfile === 'reduced') return;
-      if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
+      if (shouldUseNativeSmoothScroll({
+        reducedMotionQuery,
+        nativeScrollQuery,
+        allowCoarsePointer: true,
+      })) return;
       const smoothing = planRef.current?.model?.globals?.scrollSmoothing
         ?? documentRef.current.globals.scrollSmoothing;
       // Zero means native scrolling, not Lenis's remaining 0.22 interpolation.
@@ -366,6 +386,10 @@ export function useAboutNarrativeTimeline({
         wrapper: scrollport,
         content,
         smoothing,
+        allowCoarsePointer: true,
+        // Native touch momentum remains the interpolation owner on phones.
+        // Lenis owns wheel smoothing only, avoiding its unstable touch inertia.
+        syncTouch: false,
         virtualScroll: (input) => {
           // Lenis exposes the destination before the rendered scroll catches
           // up. Split the same uninterrupted gesture at that destination so
@@ -677,7 +701,12 @@ export function useAboutNarrativeTimeline({
       for (const record of measurementsRef.current.editorialFields) {
         const fieldTopPx = (record.startScrollWU + viewportThreshold - scrollWU) * viewportHeight;
         const stage = writeAboutNarrativeReadingStage(
-          record.readingStage, fieldTopPx, record.measuredHeightPx, viewportHeight,
+          record.readingStage,
+          fieldTopPx,
+          record.measuredHeightPx,
+          viewportHeight,
+          undefined,
+          measurementsRef.current.readingBottomInsetPx,
         );
         if (!stage.visible && record.visible === false) continue;
         record.visible = stage.visible;
@@ -778,11 +807,11 @@ export function useAboutNarrativeTimeline({
       }
     };
 
-    const readTransport = (deltaSeconds) => {
+    const readTransport = (deltaSeconds, paintedScrollTop) => {
       const transport = getTransport(editorStore);
       if (!transport || transport.owner === 'scroll') {
         previousTransportOwner = 'scroll';
-        return getCurrentStoryWU();
+        return getCurrentStoryWU(paintedScrollTop);
       }
       lenis?.stop?.();
       if (transport.owner === 'playback' && transport.playing) {
@@ -805,12 +834,16 @@ export function useAboutNarrativeTimeline({
 
     const renderFrame = (time) => {
       lenis?.raf(time);
+      // Lenis (wheel) or the browser (touch/native/reduced motion) paints the
+      // scroll position first. Semantic DOM and the camera then sample that
+      // one position in this RAF; the camera has no independent easing layer.
+      const paintedScrollTop = scrollport.scrollTop;
       const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
       previousTime = time;
       if (!planRef.current.reducedMotion && !motionPausedRef?.current && !window.document.hidden) {
         ambientSeconds += deltaSeconds;
       }
-      const nextStoryWU = readTransport(deltaSeconds);
+      const nextStoryWU = readTransport(deltaSeconds, paintedScrollTop);
       const continuation = getFinaleContinuation(planRef.current);
       // The smooth-scroll target can cross the physical page end before the
       // painted scroll position catches up. Preserve that gesture overflow
@@ -838,7 +871,7 @@ export function useAboutNarrativeTimeline({
 
       if (frame) {
         const openingScrollCueOpacity = getAboutNarrativeOpeningScrollCueOpacity(
-          scrollport.scrollTop,
+          paintedScrollTop,
           measurementsRef.current.viewportHeight || scrollport.clientHeight,
         );
         if (Math.abs(openingScrollCueOpacity - lastOpeningScrollCueOpacity) >= 0.001) {
@@ -848,7 +881,7 @@ export function useAboutNarrativeTimeline({
             openingScrollCueOpacity.toFixed(4),
           );
         }
-        const openingScrollCueState = scrollport.scrollTop <= 0.5 ? 'visible' : 'hidden';
+        const openingScrollCueState = paintedScrollTop <= 0.5 ? 'visible' : 'hidden';
         if (openingScrollCueState !== lastOpeningScrollCueState) {
           lastOpeningScrollCueState = openingScrollCueState;
           root.dataset.openingScrollCue = openingScrollCueState;

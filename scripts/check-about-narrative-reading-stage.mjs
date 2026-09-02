@@ -41,6 +41,21 @@ test('reading stage is deterministic in reverse and does not change document hei
   assert.equal(fieldHeight, 1300);
 });
 
+test('the reading window stops above the overlapping Button Bar without shrinking document flow', () => {
+  const height = 779;
+  const inset = 62;
+  const fieldHeight = 1300;
+  for (const top of [height, 400, 0, -600]) {
+    const stage = writeAboutNarrativeReadingStage(
+      {}, top, fieldHeight, height, undefined, inset,
+    );
+    assert.ok(Math.abs(top + stage.endPx - (height - inset)) < 0.00001);
+    assert.ok(stage.clipTopPx >= 0 && stage.clipTopPx <= fieldHeight);
+    assert.ok(stage.clipBottomPx >= 0 && stage.clipBottomPx <= fieldHeight);
+  }
+  assert.equal(fieldHeight, 1300);
+});
+
 test('a complete line remains visible in the lower, middle and upper viewport', () => {
   for (const height of [331, 779, 943]) {
     for (const fraction of [0.8, 0.5, 0.2]) {

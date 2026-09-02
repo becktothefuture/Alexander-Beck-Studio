@@ -39,6 +39,9 @@ const EMPTY_MODEL_FRAMING = Object.freeze({});
 const EMPTY_VISIBILITY_WINDOWS = Object.freeze([]);
 const PALETTE_ROLE_COUNT = 6;
 const POINTER_LOOK_DISTANCE_WU = 18;
+const CONTINUITY_GRID_COLUMNS = 12;
+const CONTINUITY_GRID_ROWS = 8;
+const CONTINUITY_SAMPLES_PER_ACTIVE_MODEL = 2048;
 const ADAPTER_ID = 'blender-surfel-v2';
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 
@@ -61,7 +64,8 @@ const SURFEL_VERTEX_SHADER = `
   attribute float iPreserve;
   attribute float iVisibilityStartWU;
   attribute float iVisibilityEndWU;
-  attribute float iVisibilityHandoffWU;
+  attribute float iVisibilityEntranceHandoffWU;
+  attribute float iVisibilityExitHandoffWU;
 
   uniform vec2 uViewportPx;
   uniform float uProjectionScalePx;
@@ -78,7 +82,7 @@ const SURFEL_VERTEX_SHADER = `
   uniform float uEntranceScale;
   uniform float uOpacity;
   uniform float uManifestationSpread;
-  uniform vec4 uModelMaterials[6];
+  uniform vec4 uModelMaterials[7];
   uniform float uMotionTime;
   uniform float uMotionAmountWU;
   uniform float uMotionScaleWU;
@@ -129,12 +133,17 @@ const SURFEL_VERTEX_SHADER = `
   }
 
   void main() {
-    float handoffWU = max(0.001, iVisibilityHandoffWU);
+    float entranceHandoffWU = max(0.001, iVisibilityEntranceHandoffWU);
+    float exitHandoffWU = max(0.001, iVisibilityExitHandoffWU);
     float stageEntrance = iVisibilityStartWU <= 0.0
       ? 1.0
-      : smoothstep(iVisibilityStartWU, iVisibilityStartWU + handoffWU, uStoryWU);
+      : smoothstep(
+        iVisibilityStartWU,
+        iVisibilityStartWU + entranceHandoffWU,
+        uStoryWU
+      );
     float stageExit = 1.0 - smoothstep(
-      max(iVisibilityStartWU, iVisibilityEndWU - handoffWU),
+      max(iVisibilityStartWU, iVisibilityEndWU - exitHandoffWU),
       iVisibilityEndWU,
       uStoryWU
     );
@@ -192,18 +201,29 @@ const SURFEL_VERTEX_SHADER = `
     vec3 viewNormal = normalize(normalMatrix * octDecodeNormal(iNormalOct));
     float surfaceFacing = dot(viewNormal, normalize(-viewCenter.xyz));
     float cameraDepth = max(0.0001, -viewCenter.z);
+    // Break the fog boundary into a shallow, stable volume in world space.
+    // One bounded analytic sample avoids textures, mutable buffers and
+    // per-frame allocation while keeping neighbouring surfaces coherent.
+    float fogSpanWU = max(0.001, uFogEndWU - uFogStartWU);
+    float fogVolumeField = sin(
+      dot(iPosition, vec3(0.031, 0.047, 0.019)) + (iMotionGroup * 0.37)
+    );
+    float fogVolumeOffsetWU = fogVolumeField * min(3.5, fogSpanWU * 0.025);
     float fogAmount = smoothstep(
       uFogStartWU,
       max(uFogStartWU + 0.001, uFogEndWU),
-      cameraDepth
+      cameraDepth + fogVolumeOffsetWU
     );
     float fogVisibility = 1.0 - pow(fogAmount, max(0.05, uFogCurve));
     float revealVisibility = min(
-      fogVisibility,
-      min(clamp(uSceneVisibility, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
+      stageVisibility,
+      min(
+        fogVisibility,
+        min(clamp(uSceneVisibility, 0.0, 1.0), clamp(uOpacity, 0.0, 1.0))
+      )
     );
     vec2 materialScale = vec2(1.0);
-    for (int model = 0; model < 6; model++) {
+    for (int model = 0; model < 7; model++) {
       vec4 material = uModelMaterials[model];
       if (iMotionGroup >= material.x && iMotionGroup <= material.y) {
         materialScale = material.zw;
@@ -219,16 +239,6 @@ const SURFEL_VERTEX_SHADER = `
       min(1.0, revealRank + 0.08),
       revealVisibility
     );
-    // Stage handoffs admit or release complete, opaque surfels in a stable
-    // authored order. They never fade individual circle colours or punch a
-    // screen-space hole around the copy.
-    float stageRevealRank = min(iRevealRank * 0.92, 0.919);
-    float stageRevealProgress = smoothstep(
-      stageRevealRank,
-      stageRevealRank + 0.08,
-      stageVisibility
-    );
-    revealProgress = min(revealProgress, stageRevealProgress);
     if (uReducedMotion > 0.5) revealProgress = step(0.001, revealProgress);
     float referenceDepthWU = 8.0;
     float resolvedDepth = referenceDepthWU * pow(
@@ -258,11 +268,10 @@ const SURFEL_VERTEX_SHADER = `
       uMinPointSizePx,
       max(uMinPointSizePx, uMaxPointSizePx)
     );
-    // Keep palette colour and depth ownership intact while circles grow from a
-    // true zero-radius origin. The shared route scale follows the same material
-    // entrance timing as the rest of the site; stage visibility also shrinks
-    // passed geometry instead of leaving the last admitted points full size.
-    radiusPx *= revealProgress * stageVisibility * clamp(uEntranceScale, 0.0, 1.0);
+    // Fog admits each circle with one local zero-to-full growth. The route
+    // entrance can scale that first material arrival once; stage windows only
+    // reject inactive sets and never collapse a settled structure.
+    radiusPx *= revealProgress * clamp(uEntranceScale, 0.0, 1.0);
 
     vec2 ndcOffset = position.xy * radiusPx * 2.0 / max(vec2(1.0), uViewportPx);
     vec4 clip = projectionMatrix * viewCenter;
@@ -490,6 +499,19 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
   if (declaredCount !== sourceCount) throw new Error('The surfel count does not match meta.json.');
   const sourceOrder = createProgressiveSourceOrder(meta, qualityTier, sourceCount);
   const count = sourceOrder.length;
+  const modelCount = meta.models?.length || 0;
+  const view = new DataView(buffer);
+  const modelCounts = new Uint32Array(modelCount);
+  for (let index = 0; index < count; index += 1) {
+    const modelId = view.getUint16(sourceOrder[index] * SURFEL_STRIDE_BYTES + 20, true);
+    if (modelId >= modelCount) throw new Error(`Surfel references unknown model ${modelId}.`);
+    modelCounts[modelId] += 1;
+  }
+  const modelRanges = Array.from({ length: modelCount }, (_, modelId) => ({
+    start: modelCounts.slice(0, modelId).reduce((sum, value) => sum + value, 0),
+    count: modelCounts[modelId],
+  }));
+  const modelCursors = new Uint32Array(modelCount);
   const sourceObjects = new Map((meta?.source?.objects || []).map((object) => [object.objectKey, object]));
   const profileObjectCounts = meta?.profiles?.[qualityTier]?.perObjectCounts || {};
   const radiusScaleByObject = Object.freeze(Object.fromEntries(
@@ -511,7 +533,8 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
   const preserveFlags = new Uint8Array(count);
   const visibilityStartsWU = new Float32Array(count);
   const visibilityEndsWU = new Float32Array(count);
-  const visibilityHandoffsWU = new Float32Array(count);
+  const visibilityEntranceHandoffsWU = new Float32Array(count);
+  const visibilityExitHandoffsWU = new Float32Array(count);
   const partOrdinals = new Map();
   const partPaletteRoles = new Map();
   const perModelCounts = Object.freeze(Object.fromEntries(
@@ -520,37 +543,33 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
       modelProfileCount(model, qualityTier, Number(model?.surfelRange?.count) || sourceCount),
     ]),
   ));
-  const modelPointIndices = Array.from({ length: meta.models?.length || 0 }, () => []);
-  const view = new DataView(buffer);
   const decodeRadius = resolveRadiusQuantization(meta);
   for (let index = 0; index < count; index += 1) {
     const sourceIndex = sourceOrder[index];
     const offset = sourceIndex * SURFEL_STRIDE_BYTES;
-    const positionOffset = index * 3;
+    const modelId = view.getUint16(offset + 20, true);
+    const destinationIndex = modelRanges[modelId].start + modelCursors[modelId];
+    modelCursors[modelId] += 1;
+    const positionOffset = destinationIndex * 3;
     positions[positionOffset] = view.getFloat32(offset, true);
     positions[positionOffset + 1] = view.getFloat32(offset + 4, true);
     positions[positionOffset + 2] = view.getFloat32(offset + 8, true);
-    const normalOffset = index * 2;
+    const normalOffset = destinationIndex * 2;
     normalOct[normalOffset] = view.getInt16(offset + 12, true);
     normalOct[normalOffset + 1] = view.getInt16(offset + 14, true);
-    const modelId = view.getUint16(offset + 20, true);
-    if (!modelPointIndices[modelId]) throw new Error(`Surfel references unknown model ${modelId}.`);
-    // Visibility arrays remain zeroed until the complete semantic contract is
-    // accepted. Decoding never manufactures an unbounded visibility interval.
-    modelPointIndices[modelId].push(index);
     const partId = view.getUint16(offset + 22, true);
     const objectKey = meta?.models?.[modelId]?.objectKeys?.[partId];
     const partKey = `${modelId}:${partId}`;
     const partOrdinal = partOrdinals.get(partKey) || 0;
     const partCount = Number(profileObjectCounts[objectKey]) || 1;
-    lodRanks[index] = Math.min(1, (partOrdinal + 0.5) / Math.max(1, partCount));
+    lodRanks[destinationIndex] = Math.min(1, (partOrdinal + 0.5) / Math.max(1, partCount));
     partOrdinals.set(partKey, partOrdinal + 1);
     // Recognition floors give every Blender object its own profile ratio.
     // Scale from the exact object/part ratio so a table, cable, or control does
     // not inherit a larger model sibling's coverage error.
-    radii[index] = decodeRadius(view.getUint16(offset + 16, true))
+    radii[destinationIndex] = decodeRadius(view.getUint16(offset + 16, true))
       * (radiusScaleByObject[partKey] || 1);
-    revealRanks[index] = view.getUint16(offset + 18, true);
+    revealRanks[destinationIndex] = view.getUint16(offset + 18, true);
     const semanticRole = view.getUint8(offset + 28);
     const materialPaletteKey = `${partKey}:${semanticRole}`;
     let objectPaletteRoles = partPaletteRoles.get(materialPaletteKey);
@@ -563,13 +582,17 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
       });
       partPaletteRoles.set(materialPaletteKey, objectPaletteRoles);
     }
-    paletteRoles[index] = sourceObjects.get(objectKey)?.role === 'path-tunnel'
+    paletteRoles[destinationIndex] = sourceObjects.get(objectKey)?.role === 'path-tunnel'
       ? semanticRole % PALETTE_ROLE_COUNT
       : objectPaletteRoles[partOrdinal % objectPaletteRoles.length];
-    motionGroups[index] = view.getUint8(offset + 29);
-    featureClasses[index] = view.getUint8(offset + 30);
-    preserveFlags[index] = view.getUint8(offset + 31) ? 1 : 0;
+    motionGroups[destinationIndex] = view.getUint8(offset + 29);
+    featureClasses[destinationIndex] = view.getUint8(offset + 30);
+    preserveFlags[destinationIndex] = view.getUint8(offset + 31) ? 1 : 0;
   }
+  const modelPointIndices = modelRanges.map(({ start, count: modelPointCount }) => Uint32Array.from(
+    { length: modelPointCount },
+    (_, index) => start + index,
+  ));
   return {
     count,
     sourceCount,
@@ -578,7 +601,8 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     normalOct,
     radii,
     perModelCounts,
-    modelPointIndices: modelPointIndices.map((indices) => Uint32Array.from(indices)),
+    modelRanges: Object.freeze(modelRanges.map((range) => Object.freeze(range))),
+    modelPointIndices,
     paletteRoles,
     lodRanks,
     revealRanks,
@@ -587,31 +611,76 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     preserveFlags,
     visibilityStartsWU,
     visibilityEndsWU,
-    visibilityHandoffsWU,
+    visibilityEntranceHandoffsWU,
+    visibilityExitHandoffsWU,
   };
 }
 
-function applyResolvedVisibilityWindows(decoded, windows, geometry) {
-  windows.forEach((window) => {
-    const pointIndices = decoded.modelPointIndices[window.modelId];
-    pointIndices.forEach((pointIndex) => {
-      decoded.visibilityStartsWU[pointIndex] = window.startWU;
-      decoded.visibilityEndsWU[pointIndex] = window.endWU;
-      decoded.visibilityHandoffsWU[pointIndex] = window.handoffWU;
+function resolveEffectiveVisibilityWindows(windows) {
+  return Object.freeze(windows.map((window, index) => {
+    const previous = windows[index - 1];
+    const next = windows[index + 1];
+    const authoredHandoffWU = Math.max(
+      0.001,
+      finiteNumberOrNull(window.handoffWU) ?? DEFAULT_VISIBILITY_HANDOFF_WU,
+    );
+    const incomingOverlapWU = previous
+      ? Math.max(0, Number(previous.endWU) - Number(window.startWU))
+      : Number.POSITIVE_INFINITY;
+    const outgoingOverlapWU = next
+      ? Math.max(0, Number(window.endWU) - Number(next.startWU))
+      : Number.POSITIVE_INFINITY;
+    // Split each adjacent overlap into complementary halves. The arriving
+    // stage settles before the departing stage recedes, so the combined
+    // population never falls below one full stage and physical passages are
+    // fully admitted before the camera reaches them.
+    const entranceHandoffWU = Number.isFinite(incomingOverlapWU)
+      ? Math.max(0.001, incomingOverlapWU * 0.5)
+      : authoredHandoffWU;
+    const exitHandoffWU = Number.isFinite(outgoingOverlapWU)
+      ? Math.max(0.001, outgoingOverlapWU * 0.5)
+      : authoredHandoffWU;
+    return Object.freeze({
+      ...window,
+      handoffWU: Math.min(entranceHandoffWU, exitHandoffWU),
+      entranceHandoffWU,
+      exitHandoffWU,
+      incomingOverlapWU,
+      outgoingOverlapWU,
     });
+  }));
+}
+
+function applyResolvedVisibilityWindows(decoded, windows, geometries) {
+  const resolvedWindows = resolveEffectiveVisibilityWindows(windows);
+  resolvedWindows.forEach((window) => {
+    const range = decoded.modelRanges[window.modelId];
+    const end = range.start + range.count;
+    decoded.visibilityStartsWU.fill(window.startWU, range.start, end);
+    decoded.visibilityEndsWU.fill(window.endWU, range.start, end);
+    decoded.visibilityEntranceHandoffsWU.fill(window.entranceHandoffWU, range.start, end);
+    decoded.visibilityExitHandoffsWU.fill(window.exitHandoffWU, range.start, end);
   });
   for (const attributeName of [
     'iVisibilityStartWU',
     'iVisibilityEndWU',
-    'iVisibilityHandoffWU',
+    'iVisibilityEntranceHandoffWU',
+    'iVisibilityExitHandoffWU',
   ]) {
-    const attribute = geometry?.getAttribute(attributeName);
-    if (attribute) attribute.needsUpdate = true;
+    geometries.forEach((geometry) => {
+      const attribute = geometry?.getAttribute(attributeName);
+      if (attribute) attribute.needsUpdate = true;
+    });
   }
-  return windows;
+  return resolvedWindows;
 }
 
-function createSurfelGeometry(decoded) {
+function createSurfelGeometry(decoded, modelRange) {
+  const { start, count } = modelRange;
+  const view = (array, itemSize = 1) => array.subarray(
+    start * itemSize,
+    (start + count) * itemSize,
+  );
   const geometry = new THREE.InstancedBufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
     -1, -1, 0,
@@ -621,19 +690,20 @@ function createSurfelGeometry(decoded) {
     1, 1, 0,
     -1, 1, 0,
   ]), 3));
-  geometry.setAttribute('iPosition', new THREE.InstancedBufferAttribute(decoded.positions, 3));
-  geometry.setAttribute('iNormalOct', new THREE.InstancedBufferAttribute(decoded.normalOct, 2, true));
-  geometry.setAttribute('iRadius', new THREE.InstancedBufferAttribute(decoded.radii, 1));
-  geometry.setAttribute('iPalette', new THREE.InstancedBufferAttribute(decoded.paletteRoles, 1));
-  geometry.setAttribute('iLodRank', new THREE.InstancedBufferAttribute(decoded.lodRanks, 1));
-  geometry.setAttribute('iRevealRank', new THREE.InstancedBufferAttribute(decoded.revealRanks, 1, true));
-  geometry.setAttribute('iMotionGroup', new THREE.InstancedBufferAttribute(decoded.motionGroups, 1));
-  geometry.setAttribute('iFeatureClass', new THREE.InstancedBufferAttribute(decoded.featureClasses, 1));
-  geometry.setAttribute('iPreserve', new THREE.InstancedBufferAttribute(decoded.preserveFlags, 1));
-  geometry.setAttribute('iVisibilityStartWU', new THREE.InstancedBufferAttribute(decoded.visibilityStartsWU, 1));
-  geometry.setAttribute('iVisibilityEndWU', new THREE.InstancedBufferAttribute(decoded.visibilityEndsWU, 1));
-  geometry.setAttribute('iVisibilityHandoffWU', new THREE.InstancedBufferAttribute(decoded.visibilityHandoffsWU, 1));
-  geometry.instanceCount = decoded.count;
+  geometry.setAttribute('iPosition', new THREE.InstancedBufferAttribute(view(decoded.positions, 3), 3));
+  geometry.setAttribute('iNormalOct', new THREE.InstancedBufferAttribute(view(decoded.normalOct, 2), 2, true));
+  geometry.setAttribute('iRadius', new THREE.InstancedBufferAttribute(view(decoded.radii), 1));
+  geometry.setAttribute('iPalette', new THREE.InstancedBufferAttribute(view(decoded.paletteRoles), 1));
+  geometry.setAttribute('iLodRank', new THREE.InstancedBufferAttribute(view(decoded.lodRanks), 1));
+  geometry.setAttribute('iRevealRank', new THREE.InstancedBufferAttribute(view(decoded.revealRanks), 1, true));
+  geometry.setAttribute('iMotionGroup', new THREE.InstancedBufferAttribute(view(decoded.motionGroups), 1));
+  geometry.setAttribute('iFeatureClass', new THREE.InstancedBufferAttribute(view(decoded.featureClasses), 1));
+  geometry.setAttribute('iPreserve', new THREE.InstancedBufferAttribute(view(decoded.preserveFlags), 1));
+  geometry.setAttribute('iVisibilityStartWU', new THREE.InstancedBufferAttribute(view(decoded.visibilityStartsWU), 1));
+  geometry.setAttribute('iVisibilityEndWU', new THREE.InstancedBufferAttribute(view(decoded.visibilityEndsWU), 1));
+  geometry.setAttribute('iVisibilityEntranceHandoffWU', new THREE.InstancedBufferAttribute(view(decoded.visibilityEntranceHandoffsWU), 1));
+  geometry.setAttribute('iVisibilityExitHandoffWU', new THREE.InstancedBufferAttribute(view(decoded.visibilityExitHandoffsWU), 1));
+  geometry.instanceCount = 0;
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), Number.POSITIVE_INFINITY);
   return geometry;
 }
@@ -655,7 +725,7 @@ function createUniforms() {
     uEntranceScale: { value: 1 },
     uOpacity: { value: 1 },
     uManifestationSpread: { value: 0.24 },
-    uModelMaterials: { value: Array.from({ length: 6 }, () => new THREE.Vector4(-1, -1, 1, 1)) },
+    uModelMaterials: { value: Array.from({ length: 7 }, () => new THREE.Vector4(-1, -1, 1, 1)) },
     uMotionTime: { value: 0 },
     uMotionAmountWU: { value: 0 },
     uMotionScaleWU: { value: 20 },
@@ -718,30 +788,49 @@ function arrayBytes(decoded) {
     + decoded.preserveFlags.byteLength
     + decoded.visibilityStartsWU.byteLength
     + decoded.visibilityEndsWU.byteLength
-    + decoded.visibilityHandoffsWU.byteLength;
+    + decoded.visibilityEntranceHandoffsWU.byteLength
+    + decoded.visibilityExitHandoffsWU.byteLength;
 }
 
-function stableAttributeIdentities(geometry) {
-  return Object.freeze(Object.fromEntries(
+function stableAttributeIdentities(geometries) {
+  return Object.freeze(geometries.map((geometry) => Object.freeze(Object.fromEntries(
     Object.entries(geometry.attributes).map(([name, attribute]) => [name, attribute]),
+  ))));
+}
+
+function attributesStillStable(geometries, identities) {
+  return geometries.length === identities.length && geometries.every((geometry, index) => (
+    Object.entries(identities[index]).every(
+      ([name, attribute]) => geometry.getAttribute(name) === attribute,
+    )
   ));
 }
 
-function attributesStillStable(geometry, identities) {
-  return Object.entries(identities).every(([name, attribute]) => geometry.getAttribute(name) === attribute);
-}
-
 function modelStageVisibility(model, storyWU, reducedMotion = false) {
-  const startWU = finiteNumberOrNull(model?.visibilityStartWU);
-  const endWU = finiteNumberOrNull(model?.visibilityEndWU);
-  const handoffWU = Math.max(
+  const startWU = finiteNumberOrNull(model?.startWU ?? model?.visibilityStartWU);
+  const endWU = finiteNumberOrNull(model?.endWU ?? model?.visibilityEndWU);
+  const entranceHandoffWU = Math.max(
     0.001,
-    finiteNumberOrNull(model?.visibilityHandoffWU) ?? DEFAULT_VISIBILITY_HANDOFF_WU,
+    finiteNumberOrNull(model?.entranceHandoffWU ?? model?.visibilityHandoffWU)
+      ?? DEFAULT_VISIBILITY_HANDOFF_WU,
+  );
+  const exitHandoffWU = Math.max(
+    0.001,
+    finiteNumberOrNull(model?.exitHandoffWU ?? model?.visibilityHandoffWU)
+      ?? DEFAULT_VISIBILITY_HANDOFF_WU,
   );
   if (startWU === null || endWU === null || endWU <= startWU) return 0;
   if (reducedMotion) return storyWU >= startWU && storyWU < endWU ? 1 : 0;
-  const entrance = startWU <= 0 ? 1 : smoothstep(startWU, startWU + handoffWU, storyWU);
-  const exit = 1 - smoothstep(Math.max(startWU, endWU - handoffWU), endWU, storyWU);
+  const entrance = startWU <= 0 ? 1 : smoothstep(
+    startWU,
+    startWU + entranceHandoffWU,
+    storyWU,
+  );
+  const exit = 1 - smoothstep(
+    Math.max(startWU, endWU - exitHandoffWU),
+    endWU,
+    storyWU,
+  );
   return Math.min(entrance, exit);
 }
 
@@ -789,6 +878,11 @@ function modelFramingSnapshot(
     // Explicit diagnostics only, never render/RAF. Three projected points are
     // needed to occupy a bin; this measures spread, not rendered visual quality.
     const occupancy = new Uint16Array(12 * 12);
+    const recoveryOccupancy = new Uint16Array(12 * 8);
+    const recoveryHorizontalBandCounts = new Uint32Array(3);
+    const recoveryCentralVerticalBandCounts = new Uint32Array(3);
+    const recoveryDepthPopulationCounts = new Uint32Array(3);
+    const recoveryRenderedDepths = [];
     const leftEdgeRows = new Uint16Array(12);
     const rightEdgeRows = new Uint16Array(12);
     const depthBySide = [[Infinity, -Infinity], [Infinity, -Infinity]];
@@ -802,6 +896,8 @@ function modelFramingSnapshot(
       visibilityStartWU: visibilityWindow.startWU,
       visibilityEndWU: visibilityWindow.endWU,
       visibilityHandoffWU: visibilityWindow.handoffWU,
+      entranceHandoffWU: visibilityWindow.entranceHandoffWU,
+      exitHandoffWU: visibilityWindow.exitHandoffWU,
     } : model, storyWU, reducedMotion);
     const protectedBounds = protectedNdcBounds || {
       minX: camera.aspect < 0.7 ? -0.72 : -0.46,
@@ -816,6 +912,12 @@ function modelFramingSnapshot(
         decoded.positions[positionOffset + 1],
         decoded.positions[positionOffset + 2],
       );
+      const fogSpanWU = Math.max(0.001, controls.fogEndWU - controls.fogStartWU);
+      const fogVolumeField = Math.sin(
+        point.x * 0.031 + point.y * 0.047 + point.z * 0.019
+          + decoded.motionGroups[pointIndex] * 0.37,
+      );
+      const fogVolumeOffsetWU = fogVolumeField * Math.min(3.5, fogSpanWU * 0.025);
       if (terminalMotion && model.key === terminalMotion.modelKey) {
         const { phase, amplitude, periodSeconds, responseDelaySeconds, pulseDurationSeconds, travelXWU } = terminalMotion;
         if (renderState?.terminalSweep && stageVisibility > 0 && renderState.protectedNdcRegions.length) {
@@ -884,7 +986,11 @@ function modelFramingSnapshot(
       const rawCameraDepth = -viewPoint.z;
       const inFront = rawCameraDepth > 0.0001;
       const cameraDepth = Math.max(0.0001, rawCameraDepth);
-      const fogAmount = smoothstep(controls.fogStartWU, controls.fogEndWU, cameraDepth);
+      const fogAmount = smoothstep(
+        controls.fogStartWU,
+        controls.fogEndWU,
+        cameraDepth + fogVolumeOffsetWU,
+      );
       const fogVisibility = 1 - Math.pow(fogAmount, Math.max(0.05, controls.fogCurve));
       minimumFogVisibility = Math.min(minimumFogVisibility, fogVisibility);
       const normalizedRevealRank = decoded.revealRanks[pointIndex] / 65535;
@@ -892,10 +998,9 @@ function modelFramingSnapshot(
         normalizedRevealRank * manifestationSpread,
         Math.max(0, manifestationSpread - 0.001),
       );
-      const stageRevealRank = Math.min(normalizedRevealRank * 0.92, 0.919);
       const revealed = inFront
         && fogVisibility > fogRevealRank
-        && stageVisibility > stageRevealRank;
+        && stageVisibility > 0;
       const projected = point.project(camera);
       minX = Math.min(minX, projected.x);
       maxX = Math.max(maxX, projected.x);
@@ -922,13 +1027,14 @@ function modelFramingSnapshot(
         && projected.y + radiusNdcY >= protectedBounds.minY
         && projected.y - radiusNdcY <= protectedBounds.maxY) protectedEnvelopeVisibleCount += 1;
       if (renderState && rawCameraDepth >= camera.near && rawCameraDepth <= camera.far) {
-        const revealVisibility = Math.min(fogVisibility, renderState.revealVisibility);
-        let revealProgress = Math.min(
-          smoothstep(fogRevealRank, Math.min(1, fogRevealRank + 0.08), revealVisibility),
-          smoothstep(stageRevealRank, stageRevealRank + 0.08, stageVisibility),
+        const revealVisibility = Math.min(stageVisibility, fogVisibility, renderState.revealVisibility);
+        let revealProgress = smoothstep(
+          fogRevealRank,
+          Math.min(1, fogRevealRank + 0.08),
+          revealVisibility,
         );
         if (reducedMotion) revealProgress = revealProgress >= 0.001 ? 1 : 0;
-        revealProgress *= stageVisibility * renderState.presentationScale;
+        revealProgress *= renderState.presentationScale;
         const normalOffset = pointIndex * 2;
         const normal = new THREE.Vector3(...decodeAboutSurfelNormal(
           decoded.normalOct[normalOffset], decoded.normalOct[normalOffset + 1],
@@ -949,6 +1055,21 @@ function modelFramingSnapshot(
           const row = Math.min(11, Math.floor((projected.y + 1) * 6));
           const bin = row * 12 + column;
           if (occupancy[bin] < 65535) occupancy[bin] += 1;
+          const recoveryRow = Math.min(7, Math.floor((projected.y + 1) * 4));
+          const recoveryBin = recoveryRow * 12 + column;
+          if (recoveryOccupancy[recoveryBin] < 65535) recoveryOccupancy[recoveryBin] += 1;
+          const recoveryHorizontalBand = projected.x < -0.6 ? 0 : projected.x > 0.6 ? 2 : 1;
+          recoveryHorizontalBandCounts[recoveryHorizontalBand] += 1;
+          if (recoveryHorizontalBand === 1) {
+            recoveryCentralVerticalBandCounts[Math.min(2, Math.floor((projected.y + 1) * 1.5))] += 1;
+          }
+          const recoveryFogSpanWU = Math.max(0.001, controls.fogEndWU - controls.fogStartWU);
+          const recoveryNearCutWU = controls.fogStartWU + recoveryFogSpanWU * 0.2;
+          const recoveryMiddleCutWU = controls.fogStartWU + recoveryFogSpanWU * 0.55;
+          const recoveryDepthBand = rawCameraDepth < recoveryNearCutWU
+            ? 0 : rawCameraDepth < recoveryMiddleCutWU ? 1 : 2;
+          recoveryDepthPopulationCounts[recoveryDepthBand] += 1;
+          recoveryRenderedDepths.push(rawCameraDepth);
           const side = projected.x < 0 ? 0 : 1;
           if (projected.x < protectedBounds.minX || projected.x > protectedBounds.maxX) {
             readingOccupancy[bin] += 1;
@@ -1036,6 +1157,24 @@ function modelFramingSnapshot(
       depths.sort((a, b) => a - b);
       return depths[Math.floor((depths.length - 1) * 0.9)] - depths[Math.floor((depths.length - 1) * 0.1)];
     };
+    recoveryRenderedDepths.sort((a, b) => a - b);
+    const recoveryDepthLowWU = recoveryRenderedDepths.length
+      ? recoveryRenderedDepths[Math.floor((recoveryRenderedDepths.length - 1) * 0.05)]
+      : 0;
+    const recoveryDepthHighWU = recoveryRenderedDepths.length
+      ? recoveryRenderedDepths[Math.floor((recoveryRenderedDepths.length - 1) * 0.95)]
+      : 0;
+    const recoveryAdaptiveDepthSpanWU = Math.max(0, recoveryDepthHighWU - recoveryDepthLowWU);
+    const recoveryAdaptiveDepthCutsWU = [
+      recoveryDepthLowWU + recoveryAdaptiveDepthSpanWU / 3,
+      recoveryDepthLowWU + recoveryAdaptiveDepthSpanWU * 2 / 3,
+    ];
+    const recoveryAdaptiveDepthPopulationCounts = [0, 0, 0];
+    recoveryRenderedDepths.forEach((depthWU) => {
+      const band = depthWU < recoveryAdaptiveDepthCutsWU[0]
+        ? 0 : depthWU < recoveryAdaptiveDepthCutsWU[1] ? 1 : 2;
+      recoveryAdaptiveDepthPopulationCounts[band] += 1;
+    });
     return [model.key, Object.freeze({
       fullyFramed: minX >= -1 && maxX <= 1 && minY >= -1 && maxY <= 1,
       ndcBounds: Object.freeze({ minX, maxX, minY, maxY }),
@@ -1075,6 +1214,17 @@ function modelFramingSnapshot(
       rightEdgeOccupiedRowCount: rightEdgeRows.filter((count) => count >= 1).length,
       protectedRegionVisibleCounts,
       occupiedBinCount,
+      recoveryOccupancy12x8: Object.freeze(Array.from(recoveryOccupancy)),
+      recoveryHorizontalBandCounts: Object.freeze(Array.from(recoveryHorizontalBandCounts)),
+      recoveryCentralVerticalBandCounts: Object.freeze(Array.from(recoveryCentralVerticalBandCounts)),
+      recoveryDepthPopulationCounts: Object.freeze(Array.from(recoveryDepthPopulationCounts)),
+      recoveryDepthCutsWU: Object.freeze([
+        controls.fogStartWU + (controls.fogEndWU - controls.fogStartWU) * 0.2,
+        controls.fogStartWU + (controls.fogEndWU - controls.fogStartWU) * 0.55,
+      ]),
+      recoveryAdaptiveDepthPopulationCounts: Object.freeze(recoveryAdaptiveDepthPopulationCounts),
+      recoveryAdaptiveDepthCutsWU: Object.freeze(recoveryAdaptiveDepthCutsWU),
+      recoveryAdaptiveDepthSpanWU,
       occupiedRowCount,
       occupiedColumnCount,
       leftOccupiedColumnCount,
@@ -1124,6 +1274,11 @@ export function createBlenderPointScene({
   const cameraUp = new THREE.Vector3();
   const cameraLookTarget = new THREE.Vector3();
   const cameraLookMatrix = new THREE.Matrix4();
+  const continuityNormalMatrix = new THREE.Matrix3();
+  const continuityPoint = new THREE.Vector3();
+  const continuityViewPoint = new THREE.Vector3();
+  const continuityProjectedPoint = new THREE.Vector3();
+  const continuityNormal = new THREE.Vector3();
   const pointerPanController = createAboutNarrativeCameraPointerPanController({
     initialNowMs: performance.now(),
   });
@@ -1154,11 +1309,10 @@ export function createBlenderPointScene({
   let resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
   let readyAnnounced = false;
   let editorialFallbackAnnounced = false;
-  let surfelGeometry = null;
+  let surfelGeometries = [];
   let surfelCoreMaterial = null;
   let surfelSoftMaterial = null;
-  let surfelCore = null;
-  let surfelSoft = null;
+  let modelRenderBatches = [];
   let attributeIdentities = null;
   let decoded = null;
   let loadPromise = null;
@@ -1173,6 +1327,7 @@ export function createBlenderPointScene({
   let activeCount = 0;
   let frameTimeMs = 0;
   let drawCalls = 0;
+  let stageRadiusCoupledToVisibility = false;
   let cameraRollDegrees = 0;
   let lastCameraProgress = null;
   let lastCameraLocked = null;
@@ -1268,14 +1423,12 @@ export function createBlenderPointScene({
   };
 
   const disposeDecodedScene = () => {
-    if (surfelCore) sceneGroup.remove(surfelCore);
-    if (surfelSoft) sceneGroup.remove(surfelSoft);
-    surfelGeometry?.dispose();
+    modelRenderBatches.forEach(({ core, soft }) => sceneGroup.remove(core, soft));
+    surfelGeometries.forEach((geometry) => geometry.dispose());
     surfelCoreMaterial?.dispose();
     surfelSoftMaterial?.dispose();
-    surfelCore = null;
-    surfelSoft = null;
-    surfelGeometry = null;
+    modelRenderBatches = [];
+    surfelGeometries = [];
     surfelCoreMaterial = null;
     surfelSoftMaterial = null;
     attributeIdentities = null;
@@ -1326,20 +1479,25 @@ export function createBlenderPointScene({
     resolvedJourneyCameraTrack = null;
     resolvedJourneyMeta = null;
     decoded = nextDecoded;
-    surfelGeometry = createSurfelGeometry(decoded);
+    surfelGeometries = decoded.modelRanges.map((range) => createSurfelGeometry(decoded, range));
     resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
     surfelCoreMaterial = createSurfelMaterial(uniforms, { depthCore: true });
     surfelSoftMaterial = createSurfelMaterial(uniforms);
     surfelCoreMaterial.depthFunc = THREE.LessEqualDepth;
     surfelSoftMaterial.depthFunc = THREE.LessEqualDepth;
-    surfelCore = new THREE.Mesh(surfelGeometry, surfelCoreMaterial);
-    surfelSoft = new THREE.Mesh(surfelGeometry, surfelSoftMaterial);
-    surfelCore.frustumCulled = false;
-    surfelSoft.frustumCulled = false;
-    surfelCore.renderOrder = 0;
-    surfelSoft.renderOrder = 1;
-    sceneGroup.add(surfelCore, surfelSoft);
-    attributeIdentities = stableAttributeIdentities(surfelGeometry);
+    modelRenderBatches = surfelGeometries.map((geometry, modelId) => {
+      const core = new THREE.Mesh(geometry, surfelCoreMaterial);
+      const soft = new THREE.Mesh(geometry, surfelSoftMaterial);
+      core.frustumCulled = false;
+      soft.frustumCulled = false;
+      core.renderOrder = modelId * 2;
+      soft.renderOrder = modelId * 2 + 1;
+      core.visible = false;
+      soft.visible = false;
+      sceneGroup.add(core, soft);
+      return Object.freeze({ modelId, geometry, core, soft, count: decoded.modelRanges[modelId].count });
+    });
+    attributeIdentities = stableAttributeIdentities(surfelGeometries);
     bufferBuilds += 1;
     resize();
     // Loading remains pending until an actual frame supplies a compatible map.
@@ -1431,7 +1589,7 @@ export function createBlenderPointScene({
       resolvedModelVisibilityWindows = applyResolvedVisibilityWindows(
         decoded,
         contract.visibilityWindows,
-        surfelGeometry,
+        surfelGeometries,
       );
       setSceneContract('compatible', contract.diagnostics);
     }
@@ -1524,9 +1682,28 @@ export function createBlenderPointScene({
     const motionPeriod = Math.PI * 200;
     motionTime = ((Number(frame?.ambientTime ?? frame?.storyTime ?? 0) * controls.motionSpeed)
       % motionPeriod + motionPeriod) % motionPeriod;
-    const count = decoded?.count || 0;
-    activeCount = count;
-    if (surfelGeometry) surfelGeometry.instanceCount = activeCount;
+    activeCount = 0;
+    stageRadiusCoupledToVisibility = false;
+    for (let modelId = 0; modelId < modelRenderBatches.length; modelId += 1) {
+      const batch = modelRenderBatches[modelId];
+      const window = resolvedModelVisibilityWindows[modelId] || meta.models[modelId];
+      const stageVisibility = modelStageVisibility(
+        window,
+        journeySample.sceneStoryWU,
+        Boolean(frame?.reducedMotion),
+      );
+      const active = stageVisibility > 0;
+      // The current shader feeds fractional stage visibility into the local
+      // reveal radius. Report coupling only while that path is active; settled
+      // and binary reduced-motion frames are not radius-coupled.
+      if (!frame?.reducedMotion && stageVisibility > 0 && stageVisibility < 1) {
+        stageRadiusCoupledToVisibility = true;
+      }
+      batch.geometry.instanceCount = active ? batch.count : 0;
+      batch.core.visible = active;
+      batch.soft.visible = active;
+      if (active) activeCount += batch.count;
+    }
     uniforms.uMinPointSizePx.value = controls.minPointSizePx;
     uniforms.uMaxPointSizePx.value = controls.maxPointSizePx;
     uniforms.uCoverage.value = controls.surfelCoverage;
@@ -1568,6 +1745,237 @@ export function createBlenderPointScene({
     return true;
   };
 
+  // Keep motion certification allocation-light. The full diagnostics snapshot
+  // projects every point and is intentionally reserved for one-shot framing
+  // checks; continuous Playwright sampling reads only this authored state.
+  const getMotionSnapshot = () => Object.freeze({
+    storyWU: Number(latestFrame?.storyWU) || 0,
+    cameraDistanceWU: journeySample.cameraDistanceWU,
+    cameraPosition: Object.freeze(camera.position.toArray()),
+    cameraQuaternion: Object.freeze(camera.quaternion.toArray()),
+    cameraLocked: Boolean(journeySample.locked),
+    entranceScale,
+    stageVisibilityByModel: Object.freeze(Object.fromEntries((meta?.models || []).map((model) => {
+      const visibilityWindow = resolvedModelVisibilityWindows?.[model.id];
+      return [model.key, modelStageVisibility(visibilityWindow ? {
+        visibilityStartWU: visibilityWindow.startWU,
+        visibilityEndWU: visibilityWindow.endWU,
+        visibilityHandoffWU: visibilityWindow.handoffWU,
+        entranceHandoffWU: visibilityWindow.entranceHandoffWU,
+        exitHandoffWU: visibilityWindow.exitHandoffWU,
+      } : model, uniforms.uStoryWU.value, Boolean(latestFrame?.reducedMotion))];
+    }))),
+    stageRadiusCoupledToVisibility,
+  });
+
+  const getContinuitySnapshot = () => {
+    const occupancy = new Uint8Array(CONTINUITY_GRID_COLUMNS * CONTINUITY_GRID_ROWS);
+    const modelOccupancy = {};
+    const stageVisibilityByModel = {};
+    const activeModelIds = [];
+    const visibleModelIds = [];
+    let sampledSurfelCount = 0;
+    let sampledVisibleSurfelCount = 0;
+    let visibleStageSurfelCount = 0;
+    const canSample = sceneContractStatus === 'compatible' && state === 'ready'
+      && Boolean(meta && decoded && latestFrame);
+
+    if (canSample) {
+      camera.updateMatrixWorld(true);
+      continuityNormalMatrix.getNormalMatrix(camera.matrixWorldInverse);
+      const reducedMotion = Boolean(latestFrame?.reducedMotion);
+      const presentationScale = Math.min(
+        controls.sceneVisibility,
+        controls.entranceScale,
+        controls.opacity,
+      );
+      for (const model of meta.models || []) {
+        const visibilityWindow = resolvedModelVisibilityWindows?.[model.id];
+        const stageVisibility = modelStageVisibility(visibilityWindow ? {
+          visibilityStartWU: visibilityWindow.startWU,
+          visibilityEndWU: visibilityWindow.endWU,
+          visibilityHandoffWU: visibilityWindow.handoffWU,
+          entranceHandoffWU: visibilityWindow.entranceHandoffWU,
+          exitHandoffWU: visibilityWindow.exitHandoffWU,
+        } : model, uniforms.uStoryWU.value, reducedMotion);
+        stageVisibilityByModel[model.key] = stageVisibility;
+        const windowStartWU = Number(visibilityWindow?.startWU ?? model.visibilityStartWU);
+        const windowEndWU = Number(visibilityWindow?.endWU ?? model.visibilityEndWU);
+        if (Number.isFinite(windowStartWU) && Number.isFinite(windowEndWU)
+          && uniforms.uStoryWU.value >= windowStartWU
+          && uniforms.uStoryWU.value < windowEndWU) activeModelIds.push(model.key);
+        if (!(stageVisibility > 0)) continue;
+        visibleStageSurfelCount += Number(decoded.perModelCounts?.[model.id]) || 0;
+        const pointIndices = decoded.modelPointIndices[model.id] || [];
+        const sampleCount = Math.min(CONTINUITY_SAMPLES_PER_ACTIVE_MODEL, pointIndices.length);
+        const currentModelOccupancy = new Uint8Array(occupancy.length);
+        let currentModelVisibleCount = 0;
+        for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+          const pointIndex = pointIndices[Math.min(
+            pointIndices.length - 1,
+            Math.floor(sampleIndex * pointIndices.length / sampleCount),
+          )];
+          const positionOffset = pointIndex * 3;
+          continuityPoint.set(
+            decoded.positions[positionOffset],
+            decoded.positions[positionOffset + 1],
+            decoded.positions[positionOffset + 2],
+          );
+          const sourceX = continuityPoint.x;
+          const sourceY = continuityPoint.y;
+          const sourceZ = continuityPoint.z;
+          if (terminalStudy && model.key === terminalStudy.modelKey) {
+            const travelXWU = terminalStudy.travelXWU;
+            const region = (continuityPoint.x - travelXWU[0])
+              / Math.max(0.001, travelXWU[1] - travelXWU[0]);
+            const period = Math.max(1, uniforms.uTerminalPeriod.value);
+            const time = ((uniforms.uTerminalPhase.value - region * uniforms.uTerminalDelay.value)
+              % period + period) % period;
+            const pulse = Math.sin(Math.PI * Math.min(1, time / uniforms.uTerminalPulseDuration.value));
+            continuityPoint.y += uniforms.uTerminalAmplitudeWU.value * pulse * pulse;
+          } else if (controls.motionAmountWU > 0) {
+            const groupPhase = decoded.motionGroups[pointIndex] * 2.39996323
+              * controls.motionCoherence;
+            const pointPhase = (sourceX * 0.62 + sourceY * 0.94 + sourceZ * 1.18)
+              / controls.motionScaleWU + decoded.revealRanks[pointIndex] / 65535 * 5.3
+              + decoded.lodRanks[pointIndex] * 9.7;
+            const individual = 0.12 + 0.16 * (1 - controls.motionCoherence);
+            continuityPoint.x += controls.motionAmountWU
+              * (Math.sin(motionTime * 0.71 + groupPhase) * 0.6
+                + Math.sin(motionTime * 0.53 + pointPhase) * individual);
+            continuityPoint.y += controls.motionAmountWU
+              * (Math.cos(motionTime * 0.83 + groupPhase * 1.31) * 0.8
+                + Math.cos(motionTime * 0.61 + pointPhase * 0.79) * individual);
+            continuityPoint.z += controls.motionAmountWU
+              * (Math.sin(motionTime * 0.47 + groupPhase * 0.73) * 0.4
+                + Math.sin(motionTime * 0.43 + pointPhase * 1.17) * individual);
+          }
+          continuityViewPoint.copy(continuityPoint).applyMatrix4(camera.matrixWorldInverse);
+          const cameraDepthWU = -continuityViewPoint.z;
+          if (cameraDepthWU < camera.near || cameraDepthWU > camera.far) continue;
+          const fogSpanWU = Math.max(0.001, controls.fogEndWU - controls.fogStartWU);
+          const fogVolumeField = Math.sin(sourceX * 0.031 + sourceY * 0.047 + sourceZ * 0.019
+            + decoded.motionGroups[pointIndex] * 0.37);
+          const fogAmount = smoothstep(
+            controls.fogStartWU,
+            controls.fogEndWU,
+            cameraDepthWU + fogVolumeField * Math.min(3.5, fogSpanWU * 0.025),
+          );
+          const fogVisibility = 1 - Math.pow(fogAmount, Math.max(0.05, controls.fogCurve));
+          const manifestationSpread = controls.manifestationSpread
+            * (model.material?.manifestationSpreadScale ?? 1);
+          const fogRevealRank = Math.min(
+            decoded.revealRanks[pointIndex] / 65535 * manifestationSpread,
+            Math.max(0, manifestationSpread - 0.001),
+          );
+          const revealVisibility = Math.min(
+            stageVisibility,
+            fogVisibility,
+            controls.sceneVisibility,
+            controls.opacity,
+          );
+          let revealProgress = smoothstep(
+            fogRevealRank,
+            Math.min(1, fogRevealRank + 0.08),
+            revealVisibility,
+          );
+          if (reducedMotion) revealProgress = revealProgress >= 0.001 ? 1 : 0;
+          revealProgress *= presentationScale;
+          const normalOffset = pointIndex * 2;
+          let normalX = Math.max(decoded.normalOct[normalOffset] / 32767, -1);
+          let normalY = Math.max(decoded.normalOct[normalOffset + 1] / 32767, -1);
+          const normalZ = 1 - Math.abs(normalX) - Math.abs(normalY);
+          if (normalZ < 0) {
+            const oldX = normalX;
+            normalX = (1 - Math.abs(normalY)) * (normalX >= 0 ? 1 : -1);
+            normalY = (1 - Math.abs(oldX)) * (normalY >= 0 ? 1 : -1);
+          }
+          continuityNormal.set(normalX, normalY, normalZ).normalize()
+            .applyMatrix3(continuityNormalMatrix).normalize();
+          const surfaceFacing = continuityNormal.dot(
+            continuityViewPoint.multiplyScalar(-1).normalize(),
+          );
+          const renderedRadiusPx = resolveAboutSurfelRadiusPx({
+            radiusWU: decoded.radii[pointIndex],
+            cameraDepthWU,
+            projectionScalePx: uniforms.uProjectionScalePx.value,
+            surfaceFacing,
+            lodRank: decoded.lodRanks[pointIndex],
+            featureClass: decoded.featureClasses[pointIndex],
+            preserve: decoded.preserveFlags[pointIndex] >= 0.5,
+            revealProgress,
+            detailBiasScale: model.material?.detailBiasScale ?? 1,
+          }, controls);
+          if (!(renderedRadiusPx > 0)) continue;
+          continuityProjectedPoint.copy(continuityPoint).project(camera);
+          if (continuityProjectedPoint.x < -1 || continuityProjectedPoint.x > 1
+            || continuityProjectedPoint.y < -1 || continuityProjectedPoint.y > 1) continue;
+          const column = Math.min(CONTINUITY_GRID_COLUMNS - 1, Math.floor(
+            (continuityProjectedPoint.x + 1) * CONTINUITY_GRID_COLUMNS / 2,
+          ));
+          const row = Math.min(CONTINUITY_GRID_ROWS - 1, Math.floor(
+            (continuityProjectedPoint.y + 1) * CONTINUITY_GRID_ROWS / 2,
+          ));
+          const bin = row * CONTINUITY_GRID_COLUMNS + column;
+          occupancy[bin] = 1;
+          currentModelOccupancy[bin] = 1;
+          currentModelVisibleCount += 1;
+        }
+        sampledSurfelCount += sampleCount;
+        sampledVisibleSurfelCount += currentModelVisibleCount;
+        modelOccupancy[model.key] = Object.freeze(Array.from(currentModelOccupancy));
+        if (currentModelVisibleCount > 0) visibleModelIds.push(model.key);
+      }
+    }
+
+    const anchors = resolvedJourneyMap?.anchors || [];
+    let fromCue = anchors[0] || null;
+    let toCue = anchors.at(-1) || null;
+    for (let index = 1; index < anchors.length; index += 1) {
+      if (journeySample.progress <= anchors[index].journeyProgress) {
+        fromCue = anchors[index - 1];
+        toCue = anchors[index];
+        break;
+      }
+    }
+    const cueSpan = Math.max(0.000001,
+      Number(toCue?.journeyProgress) - Number(fromCue?.journeyProgress));
+    const cueProgress = fromCue && toCue ? Object.freeze({
+      fromId: fromCue.id,
+      fromCueName: fromCue.cueName,
+      toId: toCue.id,
+      toCueName: toCue.cueName,
+      progress: clamp((journeySample.progress - fromCue.journeyProgress) / cueSpan, 0, 1),
+    }) : null;
+    return Object.freeze({
+      state,
+      adapterId: ADAPTER_ID,
+      error: errorMessage,
+      assetSourceHash: meta?.source?.sha256 || '',
+      bundleIntegrityVerified,
+      sceneContractStatus,
+      sceneContractDiagnostics,
+      modelIds: Object.freeze((meta?.models || []).map((model) => model.key)),
+      residentSurfelCount: decoded?.count || 0,
+      renderedSurfelCount: activeCount,
+      visibleStageSurfelCount,
+      sampledSurfelCount,
+      sampledVisibleSurfelCount,
+      occupancy12x8: Object.freeze(Array.from(occupancy)),
+      occupiedBinCount: occupancy.reduce((sum, occupied) => sum + occupied, 0),
+      modelOccupancy12x8: Object.freeze(modelOccupancy),
+      activeStageIds: Object.freeze([...activeModelIds]),
+      visibleStageIds: Object.freeze([...visibleModelIds]),
+      activeModelIds: Object.freeze(activeModelIds),
+      visibleModelIds: Object.freeze(visibleModelIds),
+      stageVisibilityByModel: Object.freeze(stageVisibilityByModel),
+      journeyProgress: journeySample.progress,
+      cameraDistanceWU: journeySample.cameraDistanceWU,
+      cueProgress,
+      storyWU: Number(latestFrame?.storyWU) || 0,
+    });
+  };
+
   const getDiagnosticsSnapshot = ({ protectedNdcBounds = null, protectedNdcRegions = [], terminalSweep = false } = {}) => Object.freeze({
     state,
     adapterId: ADAPTER_ID,
@@ -1602,8 +2010,8 @@ export function createBlenderPointScene({
     gpuBytes: decoded ? arrayBytes(decoded) : 0,
     gpuBufferBuilds: bufferBuilds,
     gpuBufferIdentityStable: Boolean(
-      surfelGeometry && attributeIdentities
-      && attributesStillStable(surfelGeometry, attributeIdentities)
+      surfelGeometries.length && attributeIdentities
+      && attributesStillStable(surfelGeometries, attributeIdentities)
     ),
     cameraRollDegrees,
     journeyProgress: journeySample.progress,
@@ -1639,6 +2047,7 @@ export function createBlenderPointScene({
     pointerPan: Object.freeze({ ...pointerPanSample }),
     stageVisibilityMode: latestFrame?.reducedMotion
       ? 'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff',
+    stageRadiusCoupledToVisibility,
     reducedMotion: Boolean(latestFrame?.reducedMotion),
     resolvedVisibilityWindows: Object.freeze(resolvedModelVisibilityWindows),
     modelFraming: sceneContractStatus === 'compatible' && state === 'ready' ? modelFramingSnapshot(
@@ -1681,11 +2090,14 @@ export function createBlenderPointScene({
     pointCount: activeCount,
     frameTimeMs,
     fixedAttributeIdentityStable: Boolean(
-      surfelGeometry && attributeIdentities
-      && attributesStillStable(surfelGeometry, attributeIdentities)
+      surfelGeometries.length && attributeIdentities
+      && attributesStillStable(surfelGeometries, attributeIdentities)
     ),
     bufferRebuilds: bufferBuilds,
-    gpuBufferCount: surfelGeometry ? Object.keys(surfelGeometry.attributes).length : 0,
+    gpuBufferCount: surfelGeometries.reduce(
+      (sum, geometry) => sum + Object.keys(geometry.attributes).length,
+      0,
+    ),
     gpuBufferBytes: decoded ? arrayBytes(decoded) : 0,
     correspondenceSequenceState: state === 'ready' || state === 'fallback-ready' ? 'ready' : state,
   });
@@ -1725,8 +2137,10 @@ export function createBlenderPointScene({
   const handleContextRestored = () => {
     if (disposed) return;
     contextAvailable = true;
-    Object.values(surfelGeometry?.attributes || {}).forEach((attribute) => {
-      attribute.needsUpdate = true;
+    surfelGeometries.forEach((geometry) => {
+      Object.values(geometry.attributes).forEach((attribute) => {
+        attribute.needsUpdate = true;
+      });
     });
     if (sceneContractStatus !== 'incompatible') setState('loading');
     resize();
@@ -1790,6 +2204,8 @@ export function createBlenderPointScene({
       delete root.dataset.aboutSceneReady;
     },
     getDiagnosticsSnapshot,
+    getContinuitySnapshot,
+    getMotionSnapshot,
     getMetrics,
     getPointerPressureSnapshot: () => Object.freeze({ active: false, strength: 0 }),
     preparePlan,

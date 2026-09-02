@@ -29,10 +29,14 @@ import {
   migrateAboutNarrativeVersion2To5,
   migrateAboutNarrativeVersion3To4,
   migrateAboutNarrativeVersion4To5,
+  normalizeAboutNarrativeTrackDocument,
+  validateAboutNarrativeTrackDocument,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeTrackSchema.js';
 
 const canonicalPath = new URL('./fixtures/about-narrative/contents-about-v2.json', import.meta.url);
 const canonicalV2 = JSON.parse(await readFile(canonicalPath, 'utf8'));
+const canonicalV5Path = new URL('./fixtures/about-narrative/contents-about-v5.json', import.meta.url);
+const canonicalV5 = JSON.parse(await readFile(canonicalV5Path, 'utf8'));
 const divergentFogV3Source = await readFile(
   new URL('./fixtures/about-narrative/contents-about-v3.json', import.meta.url),
   'utf8',
@@ -99,35 +103,55 @@ test('the opener description survives migration, normalization, and serializatio
   assert.equal(persistedOpener.description, opener.description);
 });
 
-test('shared title viewport placement survives validation and serialization', () => {
-  const source = migrateAboutNarrativeVersion2To5(canonicalV2);
+test('shared and responsive title viewport placement survive validation and normalization', () => {
+  const source = clone(canonicalV5);
   source.globals.textMotion.bookendViewportY = 76;
   source.globals.textMotion.standardViewportY = 55;
   source.globals.textMotion.titleShadowOpacity = 0.65;
   source.globals.textMotion.titleShadowBlurPx = 72;
+  const responsiveTitle = source.tracks.text.fields.find((field) => (
+    field.kind === 'title' && !['opener-v1', 'finale-v1'].includes(field.preset)
+  ));
+  responsiveTitle.presentation.viewportY = { desktop: 70, mobile: 72 };
 
-  const serialized = serializeAboutNarrativeTrackSource(source);
-  const loaded = loadAboutNarrativeTrackSource(serialized);
-  assert.equal(loaded.status, 'current');
-  assert.equal(loaded.document.globals.textMotion.bookendViewportY, 76);
-  assert.equal(loaded.document.globals.textMotion.standardViewportY, 55);
-  assert.equal(loaded.document.globals.textMotion.titleShadowOpacity, 0.65);
-  assert.equal(loaded.document.globals.textMotion.titleShadowBlurPx, 72);
-  loaded.document.tracks.text.fields.filter((field) => field.kind === 'title').forEach((field) => {
-    assert.equal(field.presentation.viewportY, undefined);
-  });
+  const viewportDiagnostics = validateAboutNarrativeTrackDocument(source)
+    .filter((item) => item.path.includes('viewportY'));
+  assert.deepEqual(viewportDiagnostics, []);
+  const normalized = normalizeAboutNarrativeTrackDocument(source);
+  assert.equal(normalized.globals.textMotion.bookendViewportY, 76);
+  assert.equal(normalized.globals.textMotion.standardViewportY, 55);
+  assert.equal(normalized.globals.textMotion.titleShadowOpacity, 0.65);
+  assert.equal(normalized.globals.textMotion.titleShadowBlurPx, 72);
+  assert.deepEqual(
+    normalized.tracks.text.fields.find((field) => field.id === responsiveTitle.id).presentation.viewportY,
+    { desktop: 70, mobile: 72 },
+  );
+  normalized.tracks.text.fields
+    .filter((field) => field.kind === 'title' && field.id !== responsiveTitle.id)
+    .forEach((field) => assert.equal(field.presentation.viewportY, undefined));
 
   source.globals.textMotion.bookendViewportY = -1;
-  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => item.path.includes('bookendViewportY')));
   source.globals.textMotion.bookendViewportY = 76;
   source.globals.textMotion.standardViewportY = 101;
-  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|viewportY/i);
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => item.path.includes('standardViewportY')));
   source.globals.textMotion.standardViewportY = 55;
   source.globals.textMotion.titleShadowOpacity = 1.01;
-  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|shadow/i);
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => item.path.includes('titleShadowOpacity')));
   source.globals.textMotion.titleShadowOpacity = 0.65;
   source.globals.textMotion.titleShadowBlurPx = 121;
-  assert.throws(() => serializeAboutNarrativeTrackSource(source), /persistable|shadow/i);
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => item.path.includes('titleShadowBlurPx')));
+
+  source.globals.textMotion.titleShadowBlurPx = 72;
+  responsiveTitle.presentation.viewportY.mobile = 101;
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => (
+    item.path.endsWith('presentation.viewportY.mobile') && item.code === 'title-viewport-y'
+  )));
+  responsiveTitle.presentation.viewportY.mobile = 72;
+  responsiveTitle.presentation.viewportY.tablet = 60;
+  assert(validateAboutNarrativeTrackDocument(source).some((item) => (
+    item.path.endsWith('presentation.viewportY.tablet') && item.code === 'unknown-key'
+  )));
 });
 
 test('v5 Visibility keys and profile overrides roundtrip without loss', () => {

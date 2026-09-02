@@ -158,6 +158,7 @@ const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
 const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
 const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
 const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
+const VIEWPORT_Y_KEYS = new Set(['desktop', 'mobile']);
 const STORY_FLOW_KEYS = new Set(['minScreens', 'gapAfter', 'focusMode', 'focusOffsetScreens']);
 const STORY_GAP_PRESETS = new Set(['none', 'tight', 'standard', 'chapter', 'finale', 'passage', 'arrival']);
 const STORY_FOCUS_MODES = new Set(['middle', 'reading-start']);
@@ -1095,16 +1096,45 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
     if (isObject(field.presentation)) {
       validateSafeText(field.presentation.layout, diagnostics, `${path}.presentation.layout`, { required: true, maximum: 80 });
       if (field.presentation.viewportY != null) {
-        const viewportY = Number(field.presentation.viewportY);
         const minimumViewportY = 0;
         const maximumViewportY = 100;
-        if (!Number.isFinite(viewportY) || viewportY < minimumViewportY || viewportY > maximumViewportY) {
-          diagnostic(
+        const validateViewportY = (value, valuePath) => {
+          const viewportY = Number(value);
+          if (!Number.isFinite(viewportY) || viewportY < minimumViewportY || viewportY > maximumViewportY) {
+            diagnostic(
+              diagnostics,
+              'title-viewport-y',
+              valuePath,
+              'Title viewportY must be between 0 and 100 percent.',
+            );
+          }
+        };
+        if (isObject(field.presentation.viewportY)) {
+          unknownKeys(
             diagnostics,
-            'title-viewport-y',
+            field.presentation.viewportY,
+            VIEWPORT_Y_KEYS,
             `${path}.presentation.viewportY`,
-            'Title viewportY must be between 0 and 100 percent.',
           );
+          for (const profileId of VIEWPORT_Y_KEYS) {
+            if (field.presentation.viewportY[profileId] != null) {
+              validateViewportY(
+                field.presentation.viewportY[profileId],
+                `${path}.presentation.viewportY.${profileId}`,
+              );
+            }
+          }
+          if (field.presentation.viewportY.desktop == null
+            && field.presentation.viewportY.mobile == null) {
+            diagnostic(
+              diagnostics,
+              'title-viewport-y-responsive',
+              `${path}.presentation.viewportY`,
+              'Responsive title viewportY requires a desktop or mobile value.',
+            );
+          }
+        } else {
+          validateViewportY(field.presentation.viewportY, `${path}.presentation.viewportY`);
         }
         if (field.kind !== 'title') {
           diagnostic(
@@ -1631,8 +1661,8 @@ export function normalizeAboutNarrativeTrackDocument(input) {
   const source = cloneAboutNarrativeDocument(input);
   const textFields = [...source.tracks.text.fields];
   const firstEditorialReveal = textFields.find((field) => field.kind === 'scroll-block' && field.reveal)?.reveal;
-  const openerViewportY = textFields.find((field) => field.kind === 'title' && ['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
-  const standardViewportY = textFields.find((field) => field.kind === 'title' && !['opener-v1', 'finale-v1'].includes(field.preset) && field.presentation?.viewportY != null)?.presentation?.viewportY;
+  const openerViewportY = textFields.find((field) => field.kind === 'title' && ['opener-v1', 'finale-v1'].includes(field.preset) && Number.isFinite(Number(field.presentation?.viewportY)))?.presentation?.viewportY;
+  const standardViewportY = textFields.find((field) => field.kind === 'title' && !['opener-v1', 'finale-v1'].includes(field.preset) && Number.isFinite(Number(field.presentation?.viewportY)))?.presentation?.viewportY;
   const editorialMotion = {
     ...firstEditorialReveal,
     ...source.globals.editorialMotion,
@@ -1701,7 +1731,11 @@ export function normalizeAboutNarrativeTrackDocument(input) {
       text: { fields: textFields.map((field) => {
         const normalizedField = cloneAboutNarrativeDocument(field);
         if (normalizedField.kind === 'scroll-block') delete normalizedField.reveal;
-        if (normalizedField.kind === 'title' && normalizedField.presentation) delete normalizedField.presentation.viewportY;
+        if (normalizedField.kind === 'title'
+          && normalizedField.presentation
+          && !isObject(normalizedField.presentation.viewportY)) {
+          delete normalizedField.presentation.viewportY;
+        }
         return normalizedField;
       }).sort((left, right) => left.startWU - right.startWU || left.focusWU - right.focusWU || left.id.localeCompare(right.id)) },
       interactions: { clips: [...source.tracks.interactions.clips].sort((left, right) => left.startWU - right.startWU || left.id.localeCompare(right.id)) },

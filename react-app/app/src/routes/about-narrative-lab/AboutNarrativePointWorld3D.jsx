@@ -50,9 +50,9 @@ function createRuntimeAdapter({
   let atmosphereCleanup = null;
   const atmosphereProfileOverrides = {
     intensityScale: 1,
-    // Keep the existing low-resolution broad+tight compositor, but bias the
-    // field toward haze rather than saturated glow for a little more volume.
-    colourStrengthScale: 0.84,
+    // Preserve palette separation in the low-resolution broad+tight haze.
+    // Spatial volume is resolved by the surfel fog boundary, not desaturation.
+    colourStrengthScale: 1,
   };
   const atmosphereCanvas = document.getElementById('simulation-atmosphere-glow-canvas');
   if (atmosphereCanvas) {
@@ -153,7 +153,9 @@ function createRuntimeAdapter({
   const runtimeApi = Object.freeze({
     adapterId: scene.adapterId,
     destroy: scene.destroy,
+    getContinuitySnapshot: scene.getContinuitySnapshot,
     getDiagnosticsSnapshot: scene.getDiagnosticsSnapshot,
+    getMotionSnapshot: scene.getMotionSnapshot,
     getMetrics: scene.getMetrics,
     getPointerPressureSnapshot: scene.getPointerPressureSnapshot,
     preparePlan: scene.preparePlan,

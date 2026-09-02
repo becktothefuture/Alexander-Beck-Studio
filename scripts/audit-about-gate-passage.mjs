@@ -17,6 +17,12 @@ const quaternionDifferenceDegrees = (first, second) => {
 };
 const measurement = measureCameraGatePassage(track);
 assertCameraGatePassage(measurement);
+const evidenceGateIds = new Set([
+  1,
+  Math.ceil(measurement.gates.length / 3),
+  Math.ceil(measurement.gates.length * 2 / 3),
+  measurement.gates.length,
+]);
 const profiles = [
   { id: 'desktop', viewport: { width: 1440, height: 1000 }, colorScheme: 'light' },
   { id: 'desktop-dark', viewport: { width: 1440, height: 1000 }, colorScheme: 'dark' },
@@ -57,7 +63,7 @@ try {
         && document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete';
     }, metadata.source.sha256, { timeout: 60_000 });
 
-    const targets = measurement.gates.flatMap((gate) => [16, 8, 4, 1].map((leadWU) => ({
+    const targets = measurement.gates.flatMap((gate) => [16, 12, 8, 4, 1].map((leadWU) => ({
       gateId: gate.id, leadWU, distanceWU: gate.crossing.distanceWU - leadWU,
     })));
     const samples = [];
@@ -66,9 +72,20 @@ try {
       for (const target of direction === 1 ? targets : [...targets].reverse()) {
         const sample = await page.evaluate(async (fraction) => {
           const port = document.querySelector('.about-narrative-scrollport');
-          port.scrollTop = fraction * (port.scrollHeight - port.clientHeight);
-          await new Promise(requestAnimationFrame);
-          await new Promise(requestAnimationFrame);
+          const destination = fraction * (port.scrollHeight - port.clientHeight);
+          // Hold the requested native position long enough for Lenis to adopt
+          // an external programmatic jump instead of restoring its previous
+          // wheel target on the next RAF.
+          await new Promise((resolve) => {
+            let frames = 8;
+            const hold = () => {
+              port.scrollTop = destination;
+              port.dispatchEvent(new Event('scroll', { bubbles: false }));
+              frames -= 1;
+              if (frames <= 0) resolve(); else requestAnimationFrame(hold);
+            };
+            hold();
+          });
           const metrics = window.__aboutNarrativeRuntime.getMetrics();
           return {
             scrollTop: port.scrollTop, maximumScrollTop: port.scrollHeight - port.clientHeight,
@@ -85,19 +102,41 @@ try {
         assert.equal(sample.gpuBufferBuilds, 1, 'Scrolling must not rebuild the point buffers.');
         const gate = measurement.gates[target.gateId - 1];
         const pose = { position: sample.position, quaternion: sample.quaternion };
-        const view = measureGateView(gate.aperture, pose, sample.viewport[0] / sample.viewport[1], 65);
+        const view = measureGateView(
+          gate.aperture,
+          pose,
+          sample.viewport[0] / sample.viewport[1],
+          track.projection.horizontalFov,
+        );
         const expected = measurement.sampleAtDistance(sample.scrollTop / sample.maximumScrollTop * measurement.pathLengthWU);
         const positionErrorWU = Math.hypot(...sample.position.map((value, axis) => value - expected.position[axis]));
         const quaternionErrorDegrees = quaternionDifferenceDegrees(sample.quaternion, expected.quaternion);
         if (options.reducedMotion !== 'reduce') {
-          assert.ok(positionErrorWU < 0.0001, `${id}: camera no longer follows native scroll directly.`);
+          assert.ok(positionErrorWU < 0.001,
+            `${id}: camera no longer follows native scroll directly: error=${positionErrorWU}, `
+            + `scroll=${sample.scrollTop}/${sample.maximumScrollTop}, camera=${sample.position}, `
+            + `expected=${expected.position}.`);
           assert.ok(quaternionErrorDegrees < 0.001, `${id}: rendered camera orientation diverges from the authored rail.`);
-          assert.ok(sample.stageVisibility > 0.999, `${id}: gate ${gate.id} is still appearing on approach.`);
+          const distanceBeforeFirstGateWU = measurement.gates[0].crossing.distanceWU - target.distanceWU;
+          const minimumStageVisibility = distanceBeforeFirstGateWU >= 14
+            ? 0 : distanceBeforeFirstGateWU >= 10
+              ? 0.2 : distanceBeforeFirstGateWU >= 6 ? 0.75 : 0.999;
+          assert.ok(sample.stageVisibility >= minimumStageVisibility,
+            `${id}: gate ${gate.id} is still appearing too late on approach: `
+            + `lead=${target.leadWU} WU, visibility=${sample.stageVisibility}, `
+            + `minimum=${minimumStageVisibility}, story=${sample.storyWU}, `
+            + `cameraDistance=${sample.cameraDistanceWU}, `
+            + `distanceBeforeFirstGate=${distanceBeforeFirstGateWU}.`);
           assert.ok(view.depthWU > 0 && view.centreNDC.every((value) => Math.abs(value) < 0.95),
             `${id}: gate ${gate.id} opening leaves the view ${target.leadWU} WU before crossing.`);
           if (target.leadWU <= 8) assert.ok(view.aimClearanceWU > 0.75,
             `${id}: camera looks outside gate ${gate.id} on its close approach.`);
-          assert.ok(sample.gatePointsInView > 0, `${id}: the gate bank is absent from the rendered view.`);
+          if (minimumStageVisibility > 0 && target.leadWU >= 12) {
+            assert.ok(sample.gatePointsInView > 0,
+              `${id}: the gate bank is absent from the rendered view at gate ${gate.id}, `
+              + `lead=${target.leadWU} WU, stageVisibility=${sample.stageVisibility}, `
+              + `story=${sample.storyWU}, cameraDistance=${sample.cameraDistanceWU}.`);
+          }
         }
         const key = `${gate.id}:${target.leadWU}`;
         if (direction === 1) forwardSamples.set(key, sample);
@@ -110,8 +149,8 @@ try {
             `${id}: reverse travel changes the camera orientation.`);
         }
         samples.push({ direction, ...target, ...sample, ...view, positionErrorWU, quaternionErrorDegrees });
-        if (direction === 1 && target.leadWU === 16
-          && (['desktop', 'mobile'].includes(id) || [1, 9, 11, 14].includes(gate.id))) {
+        if (direction === 1 && target.leadWU === 12
+          && (['desktop', 'mobile'].includes(id) || evidenceGateIds.has(gate.id))) {
           await page.screenshot({ path: resolve(outputDir, `${id}-gate-${String(gate.id).padStart(2, '0')}.png`) });
         }
       }

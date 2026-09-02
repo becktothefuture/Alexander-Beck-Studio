@@ -56,13 +56,13 @@ const deferred = () => {
 };
 
 function bundleFixture({ missingCue = false } = {}) {
-  const points = [];
+  const fixturePoints = [];
   const tanHalfFov = Math.tan(65 * Math.PI / 360);
   // Eight occupied bins: two rows, four columns, three points in every bin.
   for (const row of [4, 7]) {
     for (const column of [2, 4, 7, 9]) {
       for (let point = 0; point < 3; point += 1) {
-        points.push([
+        fixturePoints.push([
           ((column + 0.5) / 6 - 1) * 20 * tanHalfFov + point * 0.0001,
           ((row + 0.5) / 6 - 1) * 20 * tanHalfFov / (1440 / 900),
           -20,
@@ -70,11 +70,23 @@ function bundleFixture({ missingCue = false } = {}) {
       }
     }
   }
+  const modelBindings = [
+    ['about.00', 'opening', 0, 'inciting-question', 0.6],
+    ['about.01', 'inciting-question', -0.6, 'portal-entry', 0.6],
+    ['about.02', 'portal-entry', -0.6, 'portal-exit', 0.6],
+    ['about.03', 'portal-exit', -0.6, 'gate-entry', 0.75],
+    ['about.04', 'gate-entry', -0.75, 'gate-exit', 0.8],
+    ['about.05', 'gate-exit', -1.1, 'split-lattice-entry', -0.45],
+    ['about.06', 'split-lattice-entry', -1.65, 'terminal-hold', 1],
+  ];
+  const points = modelBindings.flatMap(() => fixturePoints);
+  const pointsPerModel = fixturePoints.length;
   const surfelBytes = new ArrayBuffer(points.length * 32);
   const view = new DataView(surfelBytes);
   points.forEach((position, index) => {
     position.forEach((value, axis) => view.setFloat32(index * 32 + axis * 4, value, true));
     view.setUint16(index * 32 + 16, 100, true);
+    view.setUint16(index * 32 + 20, Math.floor(index / pointsPerModel), true);
     view.setUint32(index * 32 + 24, index, true);
     view.setUint8(index * 32 + 31, 1);
   });
@@ -92,22 +104,48 @@ function bundleFixture({ missingCue = false } = {}) {
   };
   const cameraTrackBytes = encode(cameraTrack);
   const count = points.length;
-  const profile = { surfelCount: count, perObjectCounts: { 'fixture.form': count } };
+  const perObjectCounts = Object.fromEntries(modelBindings.map((_, index) => [
+    `fixture.form.${index}`, pointsPerModel,
+  ]));
+  const perModelCounts = Object.fromEntries(modelBindings.map(([key]) => [key, pointsPerModel]));
+  const profile = { surfelCount: count, perObjectCounts, perModelCounts };
+  const models = modelBindings.map(([
+    key, visibilityStartCue, visibilityStartOffsetWU,
+    visibilityEndCue, visibilityEndOffsetWU,
+  ], id) => ({
+    id,
+    key,
+    objectKeys: [`fixture.form.${id}`],
+    surfelRange: { offset: id * pointsPerModel, count: pointsPerModel },
+    profileCounts: {
+      mobile: pointsPerModel,
+      desktop: pointsPerModel,
+      master: pointsPerModel,
+    },
+    visibilityStartWU: id * 4,
+    visibilityEndWU: id * 4 + 8,
+    visibilityHandoffWU: 0.18,
+    visibilityStartCue,
+    visibilityStartOffsetWU,
+    visibilityEndCue,
+    visibilityEndOffsetWU,
+  }));
   const meta = {
     schema: 'about-point-scene', version: 2,
-    source: { sha256: 'c'.repeat(64), objects: [{ objectKey: 'fixture.form', role: 'narrative-lattice', surfelCount: count }] },
+    source: {
+      sha256: 'c'.repeat(64),
+      objects: modelBindings.map((_, index) => ({
+        objectKey: `fixture.form.${index}`,
+        role: 'narrative-lattice',
+        surfelCount: pointsPerModel,
+      })),
+    },
     files: {
       cameraTrack: { file: 'camera-track.json', bytes: cameraTrackBytes.byteLength, sha256: sha256(cameraTrackBytes) },
       surfels: { file: 'surfels.bin', count, bytes: surfelBytes.byteLength, sha256: sha256(surfelBytes) },
     },
     profiles: { mobile: profile, desktop: profile, master: profile },
-    models: [{
-      id: 0, key: 'about.00', objectKeys: ['fixture.form'], surfelRange: { offset: 0, count },
-      profileCounts: { mobile: count, desktop: count, master: count },
-      visibilityStartWU: 0, visibilityEndWU: 40, visibilityHandoffWU: 0.12,
-      visibilityStartCue: 'opening', visibilityStartOffsetWU: 0,
-      visibilityEndCue: 'terminal-hold', visibilityEndOffsetWU: 1,
-    }],
+    models,
     pages: [], quantization: { radiusWU: { step: 0.0001 } },
   };
   return { meta, cameraTrackBytes, surfelBytes };
@@ -120,6 +158,7 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
     fetches: [], hashes: 0, contracts: 0, draws: 0, clears: 0,
     worldReady: 0, editorialReady: 0, geometryDisposals: 0, materialDisposals: 0,
     rendererDisposals: 0, warnings: [], order: [], lastGeometry: null,
+    visibleGeometries: [], sceneGeometries: [],
   };
   class Element extends EventTarget {
     dataset = {};
@@ -147,10 +186,14 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
     render(scene, camera) {
       stats.draws += 1;
       stats.order.push('draw');
-      this.info.render.calls = scene.children[0].children.length;
-      assert.equal(this.info.render.calls, 2, 'Retry must not leave duplicate meshes installed.');
-      stats.lastGeometry = scene.children[0].children[0].geometry;
-      stats.lastUniforms = scene.children[0].children[0].material.uniforms;
+      const meshes = scene.children[0].children;
+      const visibleMeshes = meshes.filter((mesh) => mesh.visible && mesh.geometry.instanceCount > 0);
+      this.info.render.calls = visibleMeshes.length;
+      assert.equal(meshes.length, 14, 'Retry must leave exactly two stable meshes per model.');
+      stats.sceneGeometries = [...new Set(meshes.map((mesh) => mesh.geometry))];
+      stats.visibleGeometries = [...new Set(visibleMeshes.map((mesh) => mesh.geometry))];
+      stats.lastGeometry = visibleMeshes[0]?.geometry || null;
+      stats.lastUniforms = visibleMeshes[0]?.material.uniforms || meshes[0].material.uniforms;
       camera.updateMatrixWorld();
     }
     dispose() { stats.rendererDisposals += 1; }
@@ -400,7 +443,7 @@ test('explicit retry replaces a rejected decoded bundle and disposes its resourc
   assert.equal(h.scene.getMetrics().sceneContractStatus, 'compatible');
   assert.equal(h.stats.fetches.length, 6);
   assert.equal(h.stats.hashes, 4);
-  assert.equal(h.stats.geometryDisposals, 1);
+  assert.equal(h.stats.geometryDisposals, 7);
   assert.equal(h.stats.materialDisposals, 2);
   assert.equal(h.stats.worldReady, 1);
   assert.ok(h.stats.fetches.every(({ options }) => options.cache === 'no-cache'));
@@ -496,10 +539,92 @@ test('valid context restoration announces readiness only after a new draw', asyn
   assert.equal(h.stats.contracts, 1);
 });
 
-test('explicit framing diagnostics expose coherent grid spread, not just point totals', async (t) => {
+test('per-model typed-array views and attribute identities stay stable across frames', async (t) => {
   const h = createHarness();
   t.after(() => h.scene.destroy());
   h.scene.render(frame());
+  await h.scene.preparePlan({});
+  assert.equal(h.stats.sceneGeometries.length, 7);
+  const geometries = [...h.stats.sceneGeometries];
+  const attributes = geometries.map((geometry) => geometry.getAttribute('iPosition'));
+  assert.ok(attributes.every((attribute) => attribute.array.buffer === attributes[0].array.buffer));
+  assert.deepEqual(attributes.map((attribute) => attribute.array.byteOffset), [0, 288, 576, 864, 1152, 1440, 1728]);
+  for (const storyWU of [0.4, 1.2, 2.8, 4.5, 7.5]) h.scene.render(frame({ storyWU }));
+  assert.deepEqual(h.stats.sceneGeometries, geometries);
+  assert.deepEqual(
+    geometries.map((geometry) => geometry.getAttribute('iPosition')),
+    attributes,
+  );
+  const metrics = h.scene.getMetrics();
+  assert.equal(metrics.gpuBufferBuilds, 1);
+  assert.equal(metrics.gpuBufferIdentityStable, true);
+  assert.equal(metrics.fixedAttributeIdentityStable, true);
+});
+
+test('overlap-aware handoffs preserve population and retire inactive stages', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  h.scene.render(frame());
+  await h.scene.preparePlan({});
+  const initialMetrics = h.scene.getMetrics();
+  const windows = initialMetrics.resolvedVisibilityWindows;
+  const counts = initialMetrics.perModelCounts;
+  let checkedOverlapCount = 0;
+  for (let index = 0; index < windows.length - 1; index += 1) {
+    const current = windows[index];
+    const next = windows[index + 1];
+    const overlapStart = next.startWU;
+    const overlapEnd = current.endWU;
+    if (!(overlapEnd > overlapStart)) continue;
+    checkedOverlapCount += 1;
+    assert.ok(Math.abs(current.exitHandoffWU - (overlapEnd - overlapStart) * 0.5) <= 1e-9);
+    assert.ok(Math.abs(next.entranceHandoffWU - (overlapEnd - overlapStart) * 0.5) <= 1e-9);
+    for (const fraction of [0.25, 0.5, 0.75]) {
+      const storyWU = overlapStart + (overlapEnd - overlapStart) * fraction;
+      h.scene.render(frame({ storyWU }));
+      const motion = h.scene.getMotionSnapshot();
+      assert.ok(
+        motion.stageVisibilityByModel[`about.${String(index).padStart(2, '0')}`]
+          + motion.stageVisibilityByModel[`about.${String(index + 1).padStart(2, '0')}`] >= 1,
+        `Adjacent stage population collapsed at overlap ${index}.`,
+      );
+      const metrics = h.scene.getMetrics();
+      const activeModelKeys = Object.entries(motion.stageVisibilityByModel)
+        .filter(([, visibility]) => visibility > 0)
+        .map(([key]) => key);
+      const expectedActiveCount = activeModelKeys.reduce(
+        (sum, key) => sum + counts[String(Number(key.split('.')[1]))],
+        0,
+      );
+      assert.equal(metrics.activeSurfelCount, expectedActiveCount);
+      assert.equal(metrics.drawCalls, activeModelKeys.length * 2);
+      const hasFractionalStage = Object.values(motion.stageVisibilityByModel)
+        .some((visibility) => visibility > 0 && visibility < 1);
+      assert.equal(
+        motion.stageRadiusCoupledToVisibility,
+        hasFractionalStage,
+        'Radius-coupling metric must follow fractional handoff state.',
+      );
+    }
+  }
+  assert.ok(checkedOverlapCount >= 6);
+  const finalWindow = windows.at(-1);
+  h.scene.render(frame({
+    storyWU: finalWindow.startWU + Math.max(finalWindow.entranceHandoffWU, 0.01),
+  }));
+  assert.equal(h.stats.sceneGeometries[0].instanceCount, 0);
+  assert.equal(h.stats.sceneGeometries[1].instanceCount, 0);
+  assert.ok(h.stats.sceneGeometries.at(-1).instanceCount > 0);
+  assert.equal(h.scene.getMetrics().gpuBufferBuilds, 1);
+});
+
+test('explicit framing diagnostics expose coherent grid spread, not just point totals', async (t) => {
+  const h = createHarness();
+  t.after(() => h.scene.destroy());
+  // The opening stage now grows out of fog from zero instead of arriving as a
+  // complete wall on the first frame. Sample after its authored handoff here;
+  // this test owns framing spread, not entrance timing.
+  h.scene.render(frame({ storyWU: 0.36 }));
   await h.scene.preparePlan({});
   const framing = h.scene.getMetrics().modelFraming['about.00'];
   assert.equal(framing.occupiedBinCount, 8);

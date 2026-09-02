@@ -15,8 +15,7 @@ export function StyleguideTypographySection() {
         ). Each HTML shell loads <code className="styleguide-doc__code">Geist</code> and{' '}
         <code className="styleguide-doc__code">Geist Mono</code> through Google Fonts. Instrument Serif is self-hosted,
         preloaded, and included in the page-ready font gate. Route-level headlines use{' '}
-        <code className="styleguide-doc__code">--abs-font-headline</code>. The London signature is the self-hosted LDN 26 SVG;
-        it does not require a display-script font.
+        <code className="styleguide-doc__code">--abs-font-headline</code>. London and its local time use the same quiet Geist metadata role.
       </p>
       <p className="styleguide-section__hint">
         Instrument Serif is the editorial route-entry voice; Geist remains the precise structural voice for UI and project information.
@@ -44,12 +43,6 @@ export function StyleguideTypographySection() {
           <p className="styleguide-type-card__sample" lang="en">
             Instrument Serif — route headlines
           </p>
-        </div>
-        <div className="styleguide-type-card styleguide-type-card--display" role="group" aria-label="London signature">
-          <div className="styleguide-type-card__meta">LDN 26 · SVG signature</div>
-          <div className="styleguide-type-card__sample">
-            <span className="location-name location-name--ldn-26" aria-hidden="true" />
-          </div>
         </div>
       </div>
 

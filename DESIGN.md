@@ -29,7 +29,7 @@ The site is an engineered studio instrument with editorial warmth.
 - Contemporary and authored: Instrument Serif creates an editorial arrival; Geist keeps the interface technically exact.
 - Persistent and spatially reliable: the frame, window, Button Bar, Utility Rail, and outside shell read as one object.
 - Restrained in its effects: color, blur, grain, depth, sound, and motion earn their place by clarifying hierarchy or interaction.
-- Human at the edges: the London signature, direct copy, and occasional irregular physical behavior soften the engineered structure.
+- Human at the edges: the quiet London clock, direct copy, and occasional irregular physical behavior soften the engineered structure.
 
 The useful reference is the product-minded precision of Teenage Engineering, not a literal imitation of its typography, hardware, or skeuomorphism.
 
@@ -64,10 +64,10 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Work title, spatial catalogue, access gate, snippet stage, case-study drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PlaygroundExperience.jsx`, `routes/portfolio/work/`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About production gate, intentional narrative preview, point field, and development scene parameters | `src/routes/about/AboutRoute.jsx`, `src/routes/about/AboutComingSoon.jsx`, `src/routes/about-narrative-lab/`, `src/routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
+| About public narrative, point field, and development scene parameters | `src/routes/about/AboutRoute.jsx`, `src/routes/about-narrative-lab/`, `src/routes/about-narrative-lab/about-narrative-lab.css`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Internal Work spatial engine, deterministic placement, depth field, media runtimes, and authoring controls | `routes/playground/`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
-| Home footer signature, social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
+| Home footer social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
 | Theme, frame, wall, noise, and browser harmony | `dark-mode-v2.js`, `site-shell.js`, `chrome-harmony.js`, `tokens.css` |
 | Cursor states and pointer mapping | `cursor.js`, `main.css`, `CUSTOM-CURSOR.md` |
 | Copy tone and content ownership | `docs/reference/TONE-OF-VOICE.md`, `docs/reference/SITE-COPY.md`, production content JSON |
@@ -85,7 +85,7 @@ The core pairing is Instrument Serif plus Geist.
 - The Home identity, Work introduction, About opening/finale, and Contact title share one viewport-stable bookend motion after a `500ms` pause. Individual letters appear in reading order through five instant colours sampled from the current ball palette. Dark mode orders each random sample from darkest to lightest; light mode reverses that order. Each glyph travels `10%` from left to right over the same `196ms` colour cycle, with `84%` overlap and no opacity fade or blur. Every palette frame renders at full opacity, then the final frame steps directly to the title's authored resting opacity. Home keeps its secondary lines at the quieter authored endpoint. Where a title uses the shared lockup, its short rule begins exactly when the final coloured letter settles, then scales from the centre while the rendered description lines fade in from top to bottom. The complete description rises on a long cubic ease-out while each line uses a slower, softer opacity curve, so the supporting elements decelerate as one gesture without splitting glyphs or changing kerning. Bookend motion never moves the title vertically, clips, or crops title glyphs. All four route identities use the shared `--route-bookend-title-size` at a `1.61568` optical scale and shared tighter headline leading. Reduced motion settles the complete hierarchy immediately.
 - Geist is the structural voice for navigation, descriptions, controls, the Contact email action, Work cards, project names, project-detail titles, and ordinary headings.
 - Geist Mono is operational: access inputs and compact technical labels. Work captions, client metadata, and case-study eyebrows use Geist, not Mono.
-- The handwritten LDN 26 SVG is the rare London signature. It is artwork, not another type role or heading style.
+- The Home footer presents London and its local time as one quiet Geist metadata line.
 - Do not inherit Instrument Serif through a section or route. Apply the headline role explicitly.
 - Project titles stay Geist. The editorial route voice and the project-information voice must not compete.
 - The Work, Contact, and both About bookend title/description lockups share one short title-colour rule and one ordered entrance: title, centre-out rule, then description. Its line-to-description gap is a single shell-authored value across every instance.
@@ -200,7 +200,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- Production deliberately renders the centered **Coming soon.** gate inside the stable shell by default. The intentional `/about.html?preview=about` path can load the narrative on demand; the scene parameter panel and authoring controls remain development-only. This preview path does not remove the default gate or authorize a public launch.
+- Production and development render the same canonical spatial narrative. The scene parameter panel, Save client, and authoring controls remain development-only.
 - Development always renders one canonical scroll narrative. URL `version` and legacy `edit` parameters are ignored. Press `/` to open or close the development-only whole-scene parameter panel.
 - `public/config/contents-about.json` is the sole authored About document. The parameter panel, local authoring endpoint, build input, and playback all resolve that source; no V1/V2 source split or second write endpoint remains.
 - The narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
@@ -222,7 +222,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### Footer
 
-- The footer is quiet edge metadata: social links, studio statement, and London time/signature.
+- The footer is quiet edge metadata: social links, studio statement, and London time.
 - It remains subordinate to route content and must stay readable without becoming a second navigation bar.
 - Work suppresses the Home-only edge caption.
 
@@ -362,7 +362,7 @@ An exception is allowed only when it strengthens the design thesis and is record
 - accessibility impact;
 - verification command and screenshots.
 
-Current intentional exceptions are the Home Canvas title, Home expertise composition, Work spatial hierarchy, Work media handoffs, Work access gate, Contact ripple field, and the London signature.
+Current intentional exceptions are the Home Canvas title, Home expertise composition, Work spatial hierarchy, Work media handoffs, Work access gate, and Contact ripple field.
 
 ## Outlier register and proposed resolutions
 

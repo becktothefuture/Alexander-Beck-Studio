@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import {
+  resolveSmoothScrollLerp,
+  shouldUseNativeSmoothScroll,
+} from '../react-app/app/src/lib/smooth-scroll.js';
 
 const source = await readFile(new URL(
   '../react-app/app/src/routes/about-narrative-lab/useAboutNarrativeTimeline.js',
+  import.meta.url,
+), 'utf8');
+const smoothScrollSource = await readFile(new URL(
+  '../react-app/app/src/lib/smooth-scroll.js',
   import.meta.url,
 ), 'utf8');
 
@@ -39,6 +47,53 @@ test('timeline exposes the global plan without sending animation frames through 
   assert.ok(source.includes('getCurrentStoryWU'));
   assert.ok(source.includes('setScrollFromStoryWU'));
   assert.ok(source.includes('const preservedStoryWU = getCurrentStoryWU()'));
+});
+
+test('About uses one painted scroll position for semantic and camera rendering', () => {
+  assert.match(source, /lenis\?\.raf\(time\);[\s\S]{0,320}?const paintedScrollTop = scrollport\.scrollTop;/);
+  assert.match(source, /readTransport\(deltaSeconds, paintedScrollTop\)/);
+  assert.match(source, /getCurrentStoryWU\(paintedScrollTop\)/);
+  assert.match(source, /getAboutNarrativeOpeningScrollCueOpacity\([\s\S]{0,100}?paintedScrollTop/);
+  assert.doesNotMatch(source, /camera(?:Position)?(?:Lerp|Spring)|lerpCamera/);
+});
+
+test('About opts into touch-safe mobile transport while preserving native touch momentum', () => {
+  assert.match(source, /allowCoarsePointer: true/);
+  assert.match(source, /syncTouch: false/);
+  assert.match(smoothScrollSource, /allowCoarsePointer = false/);
+  assert.match(smoothScrollSource, /!allowCoarsePointer/);
+  assert.match(smoothScrollSource, /SMOOTH_SCROLL_REDUCED_MOTION_QUERY/);
+});
+
+test('smooth-scroll policy keeps reduced motion native and requires an explicit coarse-pointer opt-in', () => {
+  const win = { matchMedia: () => ({ matches: true }) };
+  assert.equal(shouldUseNativeSmoothScroll({
+    reducedMotionQuery: { matches: true },
+    nativeScrollQuery: { matches: false },
+    allowCoarsePointer: true,
+    win,
+  }), true);
+  assert.equal(shouldUseNativeSmoothScroll({
+    reducedMotionQuery: { matches: false },
+    nativeScrollQuery: { matches: true },
+    win,
+  }), true);
+  assert.equal(shouldUseNativeSmoothScroll({
+    reducedMotionQuery: { matches: false },
+    nativeScrollQuery: { matches: true },
+    allowCoarsePointer: true,
+    win,
+  }), false);
+  assert.equal(shouldUseNativeSmoothScroll({
+    allowCoarsePointer: true,
+    win: { matchMedia: (query) => ({ matches: query.includes('reduced-motion') }) },
+  }), true);
+  assert.equal(resolveSmoothScrollLerp(0.64), 0.1048);
+});
+
+test('programmatic and editor jumps synchronize the painted position immediately', () => {
+  assert.match(source, /lenis\.scrollTo\(nextScrollTop, \{ immediate: true, force: true \}\)/);
+  assert.match(source, /else scrollport\.scrollTop = nextScrollTop/);
 });
 
 test('DOM geometry is isolated to the cached content-measurement pass', () => {

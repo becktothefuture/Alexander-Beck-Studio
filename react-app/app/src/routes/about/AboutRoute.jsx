@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react';
-import { AboutComingSoon } from './AboutComingSoon.jsx';
 import { AboutNarrativeLoadingFrame } from './AboutNarrativeLoadingFrame.jsx';
 
 let aboutNarrativeExperiencePromise = null;
@@ -18,47 +17,15 @@ function loadAboutNarrativeExperience() {
 
 const AboutNarrativeExperience = lazy(loadAboutNarrativeExperience);
 
-function isAboutPreviewRequested(canonicalHref = '') {
-  if (import.meta.env.DEV) return true;
-  if (typeof window !== 'undefined') {
-    return new URLSearchParams(window.location.search).get('preview') === 'about';
-  }
-
-  try {
-    const url = new URL(canonicalHref, 'https://beck.fyi');
-    return url.searchParams.get('preview') === 'about';
-  } catch {
-    return false;
-  }
-}
-
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
   prewarm: ({ stage } = {}) => {
-    if (!import.meta.env.DEV) return true;
     if (stage === 'data') return true;
     return loadAboutNarrativeExperience();
   },
 };
 
-export function getAboutRouteView(canonicalHref) {
-  if (!isAboutPreviewRequested(canonicalHref)) {
-    return {
-      bodyClass: 'body about-page',
-      mainLandmarkHeadingId: 'about-coming-soon-title',
-      legacyRuntime: false,
-      surfaceRouteId: 'about',
-      routeRenderKey: 'about-coming-soon',
-      contentRenderKey: 'about-coming-soon',
-      studioWindowClassName: 'about-simulation route-page-window w-embed',
-      simulationLayer: null,
-      uiLayer: {
-        chrome: null,
-        secondary: <AboutComingSoon />,
-      },
-    };
-  }
-
+export function getAboutRouteView() {
   return {
     bodyClass: 'body about-page about-narrative-page',
     mainLandmarkHeadingId: 'about-route-title',

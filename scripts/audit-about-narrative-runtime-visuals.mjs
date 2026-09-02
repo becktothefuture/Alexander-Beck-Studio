@@ -98,13 +98,13 @@ const checkpointSpecs = Object.freeze([
   Object.freeze({ id: 'method-late', fieldId: 'text-life-character', fieldFraction: 0.75, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsReading: true, expectsFramedModel: true, footprint: 'lattice-approach' }),
   // Check the first title's entry, not just its focus. A slow renderer can
   // finish the DOM title reveal while an overlong lattice window stays active.
-  Object.freeze({ id: 'lattice-title-entry', fieldId: 'text-epilogue-shaping', phase: 'start', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
-  Object.freeze({ id: 'shaping', fieldId: 'text-epilogue-shaping', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
-  Object.freeze({ id: 'thinking', fieldId: 'text-epilogue-thinking', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
-  Object.freeze({ id: 'lattice-clear', fieldId: 'text-epilogue-invitation', anchorId: 'camera-lock', expectedModelKey: 'about.05', expectsFramedModel: true, footprint: 'terminal-ground', expectsLocked: true }),
-  Object.freeze({ id: 'invitation', fieldId: 'text-epilogue-invitation', phase: 'start', insideOffsetWU: 0.004, expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
-  Object.freeze({ id: 'invitation-focus', fieldId: 'text-epilogue-invitation', phase: 'focus', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
-  Object.freeze({ id: 'terminal-hold', fieldId: 'text-epilogue-invitation', phase: 'end', expectedModelKey: 'about.05', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'terminal-ground', expectsFinale: true, expectsLocked: true }),
+  Object.freeze({ id: 'lattice-title-entry', fieldId: 'text-epilogue-shaping', phase: 'start', expectedModelKey: 'about.06', allowedModelKeys: ['about.05', 'about.06'], expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'shaping', fieldId: 'text-epilogue-shaping', phase: 'focus', expectedModelKey: 'about.06', allowedModelKeys: ['about.05', 'about.06'], expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'thinking', fieldId: 'text-epilogue-thinking', phase: 'focus', expectedModelKey: 'about.06', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach' }),
+  Object.freeze({ id: 'lattice-clear', fieldId: 'text-epilogue-invitation', anchorId: 'camera-lock', expectedModelKey: 'about.06', expectsFramedModel: true, footprint: 'terminal-ground', expectsLocked: true }),
+  Object.freeze({ id: 'invitation', fieldId: 'text-epilogue-invitation', phase: 'start', insideOffsetWU: 0.004, expectedModelKey: 'about.06', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
+  Object.freeze({ id: 'invitation-focus', fieldId: 'text-epilogue-invitation', phase: 'focus', expectedModelKey: 'about.06', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'ground-approach', expectsLocked: false }),
+  Object.freeze({ id: 'terminal-hold', fieldId: 'text-epilogue-invitation', phase: 'end', expectedModelKey: 'about.06', expectsProtectedCenter: true, expectsFramedModel: true, footprint: 'terminal-ground', expectsFinale: true, expectsLocked: true }),
 ]);
 
 function absoluteWrappedRoll(degrees) {
@@ -462,9 +462,12 @@ async function captureGroupInBrowser(browser, { profile, reducedMotion = false }
         assert(absoluteWrappedRoll(state.metrics.cameraRollDegrees) < 0.05, `${group} finale camera is not level.`);
         assert.equal(state.metrics.controls.fogStartWU, 220);
         assert.equal(state.metrics.controls.fogEndWU, 560);
-        assert(Math.abs(state.metrics.cameraPosition[0]) < 0.01);
-        assert(state.metrics.cameraPosition[1] > 7 && state.metrics.cameraPosition[1] < 9.5);
-        assert(state.metrics.cameraPosition[2] < -1_000);
+        const terminalPosition = cameraTrack.samples.at(-1).slice(0, 3);
+        assert.ok(
+          Math.hypot(...state.metrics.cameraPosition.map((value, axis) => value - terminalPosition[axis])) < 0.001,
+          `${group} finale camera diverges from the authored terminal hold.`,
+        );
+        assert.equal(cameraTrack.projection.horizontalFov, 85);
       }
       if (reducedMotion) assert.equal(state.metrics.controls.motionAmountWU, 0);
 

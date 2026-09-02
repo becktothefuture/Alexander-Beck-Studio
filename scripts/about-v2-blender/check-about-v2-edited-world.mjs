@@ -5,7 +5,18 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertCameraGatePassage, measureCameraGatePassage } from './camera-gate-metrics.mjs';
+import {
+  assertCameraGatePassage,
+  assertCameraRoundTunnelPassage,
+  measureCameraGatePassage,
+  measureCameraRoundTunnelPassage,
+} from './camera-gate-metrics.mjs';
+import { compileAboutNarrativeComposerPlan } from '../../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
+import { resolveAboutNarrativeJourneyMap } from '../../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
+import {
+  loadAboutNarrativePointFieldPersistenceSource,
+  preflightAboutNarrativePointFieldRuntimePlans,
+} from '../../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '../..');
@@ -77,26 +88,52 @@ const SUPPORTED_COMPONENT_POLICIES = new Set([
   'semantic-material-projected-coverage',
   'explicit-detail-projected-feature',
 ]);
-const CURRENT_EXPECTED_OBJECTS = new Map([
-  ['gn.signal.aperture', ['about.00', 'path-tunnel', 'signal-aperture', 'ABOUT_STAGE_00_SEED']],
-  ['gn.signal.field', ['about.00', 'narrative-field', 'quiet-particle-field', 'ABOUT_STAGE_00_SEED']],
-  ['gn.nebula.field', ['about.01', 'narrative-field', 'eroded-nebula', 'ABOUT_STAGE_01_NEBULA']],
-  ['gn.round.portals', ['about.02', 'path-tunnel', 'round-portals', 'ABOUT_STAGE_02_ROUND_PORTALS']],
-  ['gn.ribbon.canyon', ['about.03', 'narrative-surface', 'continuous-mountain-terrain', 'ABOUT_STAGE_03_RIBBON_CANYON']],
-  ['gn.square.loop', ['about.04', 'path-tunnel', 'square-gates', 'ABOUT_STAGE_04_SQUARE_LOOP']],
-  ['gn.responsive.lattice', ['about.05', 'narrative-lattice', 'split-lattice-finale', 'ABOUT_STAGE_05_RESPONSIVE_LATTICE']],
-]);
-const CURRENT_EXPECTED_MODEL_KEYS = new Set(
-  [...CURRENT_EXPECTED_OBJECTS.values()].map(([modelKey]) => modelKey),
+const CURRENT_EXPECTED_MODEL_KEYS = [
+  'about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06',
+];
+const EXPECTED_PROFILE_COUNTS = {
+  mobile: [2000, 2000, 2000, 10000, 3000, 5000, 6000],
+  desktop: [5000, 5000, 6000, 30000, 8000, 16000, 20000],
+  master: [7500, 7500, 9000, 45000, 12000, 24000, 30000],
+};
+const PROFILE_INDEX = { mobile: 0, desktop: 1, master: 2 };
+const EXPECTED_GATE_OBJECT_KEYS = Array.from(
+  { length: 16 },
+  (_, index) => `abs.gate.${String(index).padStart(2, '0')}`,
 );
+const EXPECTED_GATE_AMBIENT_OBJECT_KEY = 'abs_b27_gate_ambient_triplet';
+const EXPECTED_GATE_PROFILE_COUNTS = {
+  mobile: [190, 192, 192, 190, 186, 182, 180, 180, 182, 187, 191, 194, 193, 190, 186, 182],
+  desktop: [505, 512, 513, 507, 497, 487, 479, 479, 487, 498, 510, 517, 515, 508, 497, 486],
+  master: [758, 768, 770, 761, 746, 730, 719, 719, 730, 747, 765, 775, 773, 762, 745, 729],
+};
 const EXPECTED_VISIBILITY_BINDINGS = new Map([
-  ['about.00', ['opening', 0, 'inciting-question', 0.18]],
-  ['about.01', ['inciting-question', -0.18, 'portal-entry', 0.18]],
-  ['about.02', ['portal-entry', -0.18, 'portal-exit', 0.18]],
-  ['about.03', ['portal-exit', -0.18, 'gate-entry', 0.18]],
-  ['about.04', ['gate-entry', -0.55, 'gate-exit', 0.18]],
-  ['about.05', ['gate-exit', -0.18, 'terminal-hold', 1]],
+  ['about.00', ['opening', 0, 'inciting-question', 0.6]],
+  ['about.01', ['inciting-question', -0.6, 'portal-entry', 0.6]],
+  ['about.02', ['portal-entry', -0.6, 'portal-exit', 0.6]],
+  ['about.03', ['portal-exit', -0.6, 'gate-entry', 0.75]],
+  ['about.04', ['gate-entry', -0.75, 'gate-exit', 0.8]],
+  ['about.05', ['gate-exit', -1.1, 'split-lattice-entry', -0.45]],
+  ['about.06', ['split-lattice-entry', -1.65, 'terminal-hold', 1]],
 ]);
+const REQUIRED_CAMERA_CUES = [
+  'ABS_STAGE_00',
+  'ABS_STAGE_01',
+  'ABS_STAGE_02',
+  'ABS_ROUND_PORTALS_EXIT',
+  'ABS_ROUND_PORTALS_CLEAR',
+  'ABS_STAGE_03',
+  'ABS_STAGE_04',
+  'ABS_GATE_PASSAGE_CLEAR',
+  'ABS_STAGE_05',
+  'ABS_SPLIT_LATTICE_ENTRY',
+  'ABS_STAGE_06',
+  'ABS_FINALE_DECEL',
+  'ABS_CAMERA_LOCK',
+  'ABS_TERMINAL_FRAME',
+];
+const SURFACE_ROLE_PATTERN = /(?:world|surface|ground|floor|terrain|landscape|finale)/i;
+const SURFACE_GEOMETRY_PATTERN = /(?:floor|ground|horizon|terrain|landscape|surface|finale)/i;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -104,24 +141,6 @@ function readJson(filePath) {
 
 function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
-}
-
-function fittedProgress(metadata, progress) {
-  const fit = metadata.source.readingSpaceFit;
-  if (!fit) return progress;
-  assert.equal(fit.schema, 'about-reading-space-fit/v1');
-  const { oldArcKnots, arcKnots, oldLengthWU, lengthWU } = fit;
-  assert.equal(oldArcKnots.length, 17);
-  assert.equal(arcKnots.length, 17);
-  for (const knots of [oldArcKnots, arcKnots]) {
-    assert.equal(knots[0], 0);
-    assert.ok(knots.every((value, index) => Number.isFinite(value) && (!index || value > knots[index - 1])));
-  }
-  const distance = progress * oldLengthWU;
-  const index = Math.min(15, oldArcKnots.findIndex((value, i) => i < 16 && distance < oldArcKnots[i + 1]));
-  const from = index < 0 ? 15 : index;
-  const mix = (distance - oldArcKnots[from]) / (oldArcKnots[from + 1] - oldArcKnots[from]);
-  return (arcKnots[from] + mix * (arcKnots[from + 1] - arcKnots[from])) / lengthWU;
 }
 
 function assetBytes(fileRecord) {
@@ -135,6 +154,27 @@ function assetBytes(fileRecord) {
   assert.equal(bytes.byteLength, fileRecord.bytes, `${fileRecord.file} has a stale byte count.`);
   assert.equal(sha256(bytes), fileRecord.sha256, `${fileRecord.file} has a stale hash.`);
   return bytes;
+}
+
+function extent(object, axis) {
+  return object.bounds.max[axis] - object.bounds.min[axis];
+}
+
+function isSemanticSurface(object) {
+  return SURFACE_ROLE_PATTERN.test(object.role)
+    && SURFACE_GEOMETRY_PATTERN.test(object.geometryKind || '');
+}
+
+function largestSemanticSurface(metadata, modelKey, description) {
+  const candidates = metadata.source.objects.filter(
+    (object) => object.modelKey === modelKey && isSemanticSurface(object),
+  );
+  assert.ok(candidates.length > 0, `${description} has no authored semantic surface.`);
+  return candidates.reduce((largest, candidate) => (
+    extent(candidate, 0) * extent(candidate, 2) > extent(largest, 0) * extent(largest, 2)
+      ? candidate
+      : largest
+  ));
 }
 
 function validateMetadata(metadata) {
@@ -212,28 +252,56 @@ function validateSource(metadata) {
     );
     assert.ok(!/(?:^|[_-])(track|rail|sleeper)(?:$|[_-])/i.test(object.name));
     assert.ok(!object.collections.includes('99_REMOVED_BOTTOM_TRACK_BACKUP'));
+    assert.ok(
+      object.bounds?.min?.length === 3
+        && object.bounds?.max?.length === 3
+        && object.bounds.min.every(Number.isFinite)
+        && object.bounds.max.every(Number.isFinite),
+      `${object.objectKey} has invalid world bounds.`,
+    );
+    assert.ok(
+      [0, 1, 2].every((axis) => object.bounds.max[axis] > object.bounds.min[axis]),
+      `${object.objectKey} has empty world bounds.`,
+    );
   }
   assert.equal(
     metadata.source.objects.reduce((sum, object) => sum + object.triangles, 0),
     metadata.source.triangleCount,
   );
   const route = metadata.source.route;
-  if (route) {
-    assert.equal(route.object, 'ABS_PARAMETRIC_RIDE_PATH');
-    assert.ok(Number.isInteger(route.controlPointCount) && route.controlPointCount > 1);
-    assert.ok(Number.isFinite(route.evaluatedLength) && route.evaluatedLength > 0);
-    assert.match(route.shapeSha256, /^[a-f0-9]{64}$/);
-    assert.ok(Number.isInteger(route.splineCount) && route.splineCount > 0);
-    if (route.stageRanges != null) {
-      assert.equal(typeof route.stageRanges, 'object');
-      Object.values(route.stageRanges).forEach((range) => {
-        assert.ok(Array.isArray(range) && range.length === 2);
-        assert.ok(range.every(Number.isFinite));
-        assert.ok(range[0] >= 0 && range[1] <= 1 && range[0] <= range[1]);
-      });
-    }
+  assert.ok(route, 'The source does not expose its evaluated camera route.');
+  assert.equal(route.object, 'ABS_PARAMETRIC_RIDE_PATH');
+  assert.ok(
+    Number.isInteger(route.controlPointCount) && route.controlPointCount >= 4,
+    'The camera route must be an evaluated curve with at least four control points.',
+  );
+  assert.ok(Number.isFinite(route.evaluatedLength) && route.evaluatedLength > 100,
+    'The evaluated camera route is missing or too short for the seven-stage journey.');
+  assert.match(route.shapeSha256, /^[a-f0-9]{64}$/);
+  assert.equal(route.splineCount, 1, 'The camera journey must remain one continuous spline.');
+  const stageIds = CURRENT_EXPECTED_MODEL_KEYS.map((_, index) => String(index).padStart(2, '0'));
+  assert.deepEqual(Object.keys(route.stageRanges || {}), stageIds,
+    'The camera route must expose seven ordered stage ranges.');
+  let previousStart = -Infinity;
+  let previousEnd = -Infinity;
+  for (const stageId of stageIds) {
+    const range = route.stageRanges[stageId];
+    assert.ok(Array.isArray(range) && range.length === 2 && range.every(Number.isFinite),
+      `Route stage ${stageId} has an invalid range.`);
+    assert.ok(range[0] >= 0 && range[1] <= 1 && range[0] < range[1],
+      `Route stage ${stageId} falls outside the normalized journey.`);
+    assert.ok(range[0] >= previousStart && range[1] >= previousEnd,
+      `Route stage ${stageId} is out of physical order.`);
+    previousStart = range[0];
+    previousEnd = range[1];
   }
-  const modelKeys = new Set(metadata.models.map((model) => model.key));
+  assert.equal(route.stageRanges[stageIds[0]][0], 0,
+    'The first route stage must begin at the path origin.');
+  assert.equal(route.stageRanges[stageIds.at(-1)][1], 1,
+    'The final route stage must reach the path endpoint.');
+
+  const orderedModelKeys = metadata.models.map((model) => model.key);
+  const modelKeys = new Set(orderedModelKeys);
   const topology = metadata.source.topology;
   if (topology) {
     assert.equal(topology.modelCount, metadata.models.length);
@@ -249,159 +317,106 @@ function validateSource(metadata) {
     );
   }
   assert.deepEqual(
-    modelKeys,
+    orderedModelKeys,
     CURRENT_EXPECTED_MODEL_KEYS,
-    'The exported model set does not match the six-stage lens-free narrative world.',
+    'The exported model set does not match the seven-stage recovery world.',
   );
-  assert.deepEqual(objectKeys, new Set(CURRENT_EXPECTED_OBJECTS.keys()), 'The active Blender export contains stale or missing narrative objects.');
-  for (const [objectKey, [modelKey, role, geometryKind, collection]] of CURRENT_EXPECTED_OBJECTS) {
-    const object = metadata.source.objects.find((item) => item.objectKey === objectKey);
-    assert.equal(object.modelKey, modelKey);
-    assert.equal(object.role, role);
-    assert.equal(object.geometryKind, objectKey === 'gn.responsive.lattice' && metadata.terminalResponse
-      ? 'expansive-connected-landscape' : geometryKind);
-    assert.ok(object.collections.includes(collection));
-  }
-  const byKey = Object.fromEntries(metadata.source.objects.map((object) => [object.objectKey, object]));
-  assert.equal(byKey['gn.signal.aperture'].instanceCount, 1);
-  assert.ok(byKey['gn.signal.field'].connectedComponentCount >= 150, 'The quiet field is too sparse.');
-  assert.ok(byKey['gn.nebula.field'].connectedComponentCount >= 400, 'The nebula is too sparse.');
-  assert.equal(byKey['gn.round.portals'].connectedComponentCount, 36);
-  assert.equal(byKey['gn.round.portals'].instanceCount, 36);
-  assert.equal(byKey['gn.ribbon.canyon'].connectedComponentCount, 1);
-  assert.equal(byKey['gn.ribbon.canyon'].samplingDensityAttribute, 'abs_density_weight');
-  assert.ok(
-    byKey['gn.ribbon.canyon'].samplingSurfaceArea < byKey['gn.ribbon.canyon'].surfaceArea * 0.9,
-    'The terrain no longer has a meaningful density fade at both ends.',
-  );
-  const extent = (object, axis) => object.bounds.max[axis] - object.bounds.min[axis];
-  const forwardGap = (previous, next) => previous.bounds.min[2] - next.bounds.max[2];
-  assert.ok(extent(byKey['gn.ribbon.canyon'], 0) >= 200, 'The terrain is no longer a wide landscape.');
-  assert.ok(extent(byKey['gn.ribbon.canyon'], 1) >= 25, 'The terrain has lost its mountain relief.');
-  const shoulderLift = Number(metadata.source.readingSpaceFit?.terrainShoulderLiftWU) || 0;
-  assert.ok(byKey['gn.ribbon.canyon'].bounds.max[1] <= 48 + shoulderLift,
-    'The terrain exceeds its authored shoulder elevation.');
-  if (metadata.source.readingSpaceFit) assert.ok(byKey['gn.ribbon.canyon'].bounds.min[1] <= -250,
-    'The fitted terrain lost its deep continuous reading valley.');
-  const minimumTerrainDepth = route ? route.evaluatedLength * 0.25 : 300;
-  assert.ok(
-    extent(byKey['gn.ribbon.canyon'], 2) >= minimumTerrainDepth,
-    'The terrain journey no longer occupies a substantial share of the authored route.',
-  );
-  for (const [previousKey, nextKey, minimumGap] of [
-    ['gn.round.portals', 'gn.ribbon.canyon', 30],
-    ['gn.ribbon.canyon', 'gn.square.loop', 10],
-    ['gn.square.loop', 'gn.responsive.lattice', 6],
-  ]) {
-    const next = nextKey === 'gn.responsive.lattice' && metadata.terminalResponse
-      ? { bounds: metadata.terminalResponse.bankBounds } : byKey[nextKey];
-    const gap = forwardGap(byKey[previousKey], next);
-    // The fitted valley surrounds the approach to the gates. Overlapping
-    // longitudinal bounds alone cannot establish a collision. Validate its
-    // exported point geometry against the gate volume below instead.
-    if (previousKey === 'gn.ribbon.canyon' && metadata.source.readingSpaceFit?.terrainEndOnPath) continue;
-    assert.ok(
-      gap >= minimumGap,
-      `${previousKey} and ${nextKey} overlap or have no deliberate handoff gap (${gap.toFixed(1)} WU).`,
+  for (const model of metadata.models) {
+    assert.deepEqual(
+      model.objectKeys,
+      metadata.source.objects
+        .filter((object) => object.modelKey === model.key)
+        .map((object) => object.objectKey),
+      `${model.key} object order diverges from the saved source topology.`,
     );
   }
-  assert.equal(byKey['gn.square.loop'].connectedComponentCount, 14);
-  assert.ok(
-    byKey['gn.responsive.lattice'].connectedComponentCount >= (metadata.terminalResponse ? 100 : 1000),
-    'The responsive lattice lost its substantial authored strand population.',
+  assert.ok(Array.isArray(metadata.source.semanticFallbacks),
+    'The source metadata does not report semantic fallbacks.');
+  assert.equal(metadata.source.semanticFallbacks.length, 0, 'Recovery objects require explicit semantics.');
+  const byKey = Object.fromEntries(metadata.source.objects.map((object) => [object.objectKey, object]));
+
+  const gateModel = metadata.models[4];
+  assert.equal(gateModel.key, 'about.04');
+  assert.deepEqual(
+    gateModel.objectKeys.filter((objectKey) => EXPECTED_GATE_OBJECT_KEYS.includes(objectKey)),
+    EXPECTED_GATE_OBJECT_KEYS,
+    'The square-gate stage must contain exactly 16 ordered semantic gate objects.',
   );
-  assert.ok(extent(byKey['gn.responsive.lattice'], 1) >= 80,
-    'The restored lattice must retain full-height banks, not shallow edge fragments.');
-  assert.ok(extent(byKey['gn.responsive.lattice'], 0) >= 160,
-    'The restored lattice has lost its authored width.');
-  const latticeModel = metadata.models.find((model) => model.key === 'about.05');
-  if (metadata.terminalResponse) {
-    const response = metadata.terminalResponse;
-    assert.equal(response.schema, 'about-terminal-response/v1');
-    assert.equal(response.modelKey, 'about.05');
-    assert.equal(byKey['gn.responsive.lattice'].connectedComponentCount, response.bankComponents + 1,
-      'The terminal export must retain every finite bank component plus one connected surface.');
-    assert.ok(response.landscapeBounds.max[1] < byKey['gn.square.loop'].bounds.min[1] - 6,
-      'The deep approach must pass physically below the square gates, including deformation.');
-    assert.ok(response.bankBounds.max[2] < byKey['gn.square.loop'].bounds.min[2] - 6);
-  }
-  assert.equal(latticeModel.motionSubgroups, 24);
-  assert.equal(
-    byKey['gn.responsive.lattice'].profilePrefixOrder,
-    'component-stratified-after-protected-anchors',
-    'The final banks must retain spatial coverage in every detail tier.',
+  assert.deepEqual(
+    gateModel.objectKeys.filter((objectKey) => !EXPECTED_GATE_OBJECT_KEYS.includes(objectKey)),
+    [EXPECTED_GATE_AMBIENT_OBJECT_KEY],
+    'The square-gate stage must contain only the bounded ambient continuity triplet besides its 16 gates.',
   );
-  assert.ok(metadata.motionGroups.length >= 30, 'The packed asset lost coherent strand motion groups.');
-  assert.equal(objectKeys.has('gn.lens.chamber'), false, 'The retired finale lens returned.');
-  assert.equal(modelKeys.has('about.06'), false, 'The retired finale model returned.');
-  assert.deepEqual(route?.stageRanges?.['04'], [0.64, 0.8].map(value => fittedProgress(metadata, value)));
-  assert.deepEqual(route?.stageRanges?.['05'], [0.86, 1].map(value => fittedProgress(metadata, value)));
-  const orderedModels = [...metadata.models].sort(
-    (left, right) => left.visibilityStartWU - right.visibilityStartWU,
-  );
+  const gateObjects = EXPECTED_GATE_OBJECT_KEYS.map((objectKey) => byKey[objectKey]);
+  gateObjects.forEach((object, index) => {
+    assert.ok(object, `Square gate ${index + 1} is missing from the saved source.`);
+    assert.equal(object.modelKey, 'about.04');
+    assert.equal(object.role, 'path-tunnel');
+    assert.equal(object.geometryKind, 'rounded-square-loop');
+    assert.equal(object.connectedComponentCount, 1,
+      `${object.objectKey} must remain one continuous gate.`);
+    assert.equal(object.instanceCount, 1, `${object.objectKey} must represent one gate aperture.`);
+  });
+  const gateAmbient = byKey[EXPECTED_GATE_AMBIENT_OBJECT_KEY];
+  assert.equal(gateAmbient.modelKey, 'about.04');
+  assert.equal(gateAmbient.geometryKind, 'gate-peripheral-ambient-continuity');
+  assert.equal(gateAmbient.connectedComponentCount, 3);
+  assert.equal(gateAmbient.requiredAnchorCount, 3);
+  assert.equal(gateAmbient.surfelCount, 3);
+
+  const roundTunnelObjects = metadata.source.objects.filter((object) => (
+    object.modelKey === 'about.02' && object.geometryKind === 'curved-round-tunnel-hoop'
+  ));
+  assert.ok(roundTunnelObjects.length >= 8,
+    'The round-tunnel stage needs at least eight authored aperture objects.');
+  assert.ok(roundTunnelObjects.every((object) => (
+    object.connectedComponentCount === 1 && object.instanceCount === 1
+  )), 'Each round-tunnel aperture must remain one continuous authored hoop.');
+
+  const continuousFloor = largestSemanticSurface(metadata, 'about.03', 'The continuous middle journey');
+  assert.equal(continuousFloor.connectedComponentCount, 1,
+    'The middle journey floor must remain one continuous semantic surface.');
+  assert.ok(extent(continuousFloor, 0) >= 128,
+    'The continuous floor no longer overscans the camera corridor horizontally.');
+  assert.ok(extent(continuousFloor, 2) >= Math.max(80, route.evaluatedLength * 0.2),
+    'The continuous floor no longer spans a substantial section of the route.');
+
+  const finaleSurface = largestSemanticSurface(metadata, 'about.06', 'The finale');
+  assert.equal(finaleSurface.connectedComponentCount, 1,
+    'The finale ground must remain one continuous semantic surface.');
+  assert.ok(extent(finaleSurface, 0) >= 440,
+    'The finale surface no longer provides desktop and mobile horizontal overscan.');
+  assert.ok(extent(finaleSurface, 2) >= Math.max(120, route.evaluatedLength * 0.2),
+    'The finale surface no longer provides a boundless depth field.');
+
+  const orderedModels = metadata.models;
   for (const model of orderedModels) {
     assert.ok(Number.isFinite(model.visibilityStartWU), `${model.key} has no visibility start.`);
     assert.ok(Number.isFinite(model.visibilityEndWU), `${model.key} has no visibility end.`);
     assert.ok(model.visibilityEndWU > model.visibilityStartWU, `${model.key} has an empty visibility window.`);
-    assert.ok(
-      Number.isFinite(model.visibilityHandoffWU)
-        && model.visibilityHandoffWU > 0
-        && model.visibilityHandoffWU <= 0.2,
-      `${model.key} has an unsafe visibility handoff.`,
-    );
+    assert.ok(Number.isFinite(model.visibilityHandoffWU)
+      && model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.2,
+    `${model.key} has an unsafe visibility handoff.`);
+    assert.deepEqual([model.visibilityStartCue, model.visibilityStartOffsetWU,
+      model.visibilityEndCue, model.visibilityEndOffsetWU],
+    EXPECTED_VISIBILITY_BINDINGS.get(model.key),
+    `${model.key} is not bound to its semantic story handoff.`);
+  }
+  const methodModel = metadata.models.find((model) => model.key === 'about.05');
+  const finaleModel = metadata.models.find((model) => model.key === 'about.06');
+  assert.ok(methodModel.visibilityEndWU > finaleModel.visibilityStartWU,
+    'Method and finale require a soft authored handoff.');
+  for (const [profileName, expectedCounts] of Object.entries(EXPECTED_PROFILE_COUNTS)) {
     assert.deepEqual(
-      [
-        model.visibilityStartCue,
-        model.visibilityStartOffsetWU,
-        model.visibilityEndCue,
-        model.visibilityEndOffsetWU,
-      ],
-      model.key === 'about.01' && metadata.source.readingSpaceFit?.terrainEndOnPath
-        ? ['inciting-question', -0.28, 'portal-entry', 0.18]
-        : EXPECTED_VISIBILITY_BINDINGS.get(model.key),
-      `${model.key} is not bound to its semantic story handoff.`,
+      metadata.profiles[profileName].perModelCounts,
+      Object.fromEntries(metadata.models.map((model, index) => [model.key, expectedCounts[index]])),
+      `${profileName} model allocations changed.`,
     );
-  }
-  for (let index = 1; index < orderedModels.length; index += 1) {
-    const previous = orderedModels[index - 1];
-    const current = orderedModels[index];
-    const overlapWU = previous.visibilityEndWU - current.visibilityStartWU;
-    // The first square opening must finish appearing before camera entry.
-    // This advances its bank by 0.37 WU without lengthening the handoff fade.
-    const approachLeadWU = current.key === 'about.04' ? 0.37 : 0;
-    assert.ok(
-      overlapWU > 0 && overlapWU <= 0.360001 + approachLeadWU,
-      `${previous.key} and ${current.key} must meet in a bounded handoff, without forced blank intervals (${overlapWU.toFixed(3)} WU).`,
-    );
-  }
-  assert.ok(
-    latticeModel.visibilityEndCue === 'terminal-hold'
-      && latticeModel.visibilityEndOffsetWU >= 0.2,
-    'The final banks must remain present through the stationary terminal hold.',
-  );
-  for (const modelKey of ['about.02', 'about.04']) {
-    const model = metadata.models.find((candidate) => candidate.key === modelKey);
-    assert.ok(
-      model.visibilityEndWU - model.visibilityStartWU >= 1,
-      `${modelKey} has insufficient screen time for an actual camera passage.`,
-    );
-  }
-  for (const profileName of ['mobile', 'desktop']) {
-    assert.ok(
-      metadata.profiles[profileName].perObjectCounts['gn.responsive.lattice']
-        >= byKey['gn.responsive.lattice'].componentAnchorCount * 3,
-      `${profileName} reduces the final banks to isolated strand anchors.`,
-    );
-    for (const objectKey of ['gn.ribbon.canyon', 'gn.responsive.lattice']) {
-      assert.ok(metadata.profiles[profileName].perObjectCounts[objectKey]
-        >= metadata.profiles[profileName].surfelCount * 0.25,
-      `${profileName} starves ${objectKey} of useful scene material.`);
-    }
   }
   assert.ok(
     metadata.source.objects.every((object) => (
       Number.isFinite(object.surfelRadiusScale)
-        && object.surfelRadiusScale >= 0.25
+        && object.surfelRadiusScale >= 0.12
         && object.surfelRadiusScale <= 2.5
     )),
     'Every Blender object must author a bounded website circle-radius scale.',
@@ -411,17 +426,25 @@ function validateSource(metadata) {
 function validateTerrainGateClearance(metadata, surfelBytes) {
   if (!metadata.source.readingSpaceFit?.terrainEndOnPath) return;
   const terrain = metadata.models.find((model) => model.key === 'about.03');
-  const gates = metadata.source.objects.find((object) => object.objectKey === 'gn.square.loop');
-  assert.ok(terrain && gates, 'Fitted terrain requires the complete gate model.');
+  const gates = EXPECTED_GATE_OBJECT_KEYS.map((objectKey) => (
+    metadata.source.objects.find((object) => object.objectKey === objectKey)
+  ));
+  assert.ok(terrain && gates.every(Boolean), 'Fitted terrain requires all 16 semantic gates.');
   let minimumClearance = Infinity;
   for (let index = terrain.surfelRange.offset; index < terrain.surfelRange.offset + terrain.surfelRange.count; index += 1) {
-    let squaredDistance = 0;
-    for (let axis = 0; axis < 3; axis += 1) {
-      const coordinate = surfelBytes.readFloatLE(index * 32 + axis * 4);
-      const distance = Math.max(gates.bounds.min[axis] - coordinate, 0, coordinate - gates.bounds.max[axis]);
-      squaredDistance += distance * distance;
+    for (const gate of gates) {
+      let squaredDistance = 0;
+      for (let axis = 0; axis < 3; axis += 1) {
+        const coordinate = surfelBytes.readFloatLE(index * 32 + axis * 4);
+        const distance = Math.max(
+          gate.bounds.min[axis] - coordinate,
+          0,
+          coordinate - gate.bounds.max[axis],
+        );
+        squaredDistance += distance * distance;
+      }
+      minimumClearance = Math.min(minimumClearance, Math.sqrt(squaredDistance));
     }
-    minimumClearance = Math.min(minimumClearance, Math.sqrt(squaredDistance));
   }
   assert.ok(minimumClearance >= 10,
     `The fitted valley encroaches on the gate volume (${minimumClearance.toFixed(2)} WU clearance).`);
@@ -527,11 +550,15 @@ function validateSurfels(metadata, bytes) {
         `${model.key} part ${partId} has no protected component anchors.`,
       );
       for (const profileName of ['mobile', 'desktop']) {
-        assert.ok(
-          (componentAnchorPrefixes[profileName].get(`${model.id}:${partId}`) || 0)
-            >= object.componentAnchorCount,
-          `${profileName} prefix omits a protected component anchor from ${object.objectKey}.`,
-        );
+        const prefixAnchors = componentAnchorPrefixes[profileName]
+          .get(`${model.id}:${partId}`) || 0;
+        if (PROFILE_INDEX[profileName] < PROFILE_INDEX[object.minimumProfile]) {
+          assert.equal(prefixAnchors, 0,
+            `${profileName} prefix includes ineligible ${object.objectKey} anchors.`);
+        } else {
+          assert.ok(prefixAnchors >= object.componentAnchorCount,
+            `${profileName} prefix omits a protected component anchor from ${object.objectKey}.`);
+        }
       }
     });
   });
@@ -554,15 +581,37 @@ function validateSurfels(metadata, bytes) {
       assert.equal(profile.perModelCounts[model.key], model.profileCounts[profileName]);
     });
     metadata.source.objects.forEach((object) => {
-      assert.ok(
-        profile.perObjectCounts[object.objectKey] >= object.requiredAnchorCount,
-        `${profileName} omits a required recognition anchor from ${object.objectKey}.`,
-      );
-      assert.ok(
-        profile.perObjectCounts[object.objectKey] >= object.componentAnchorCount,
-        `${profileName} cannot retain protected components for ${object.objectKey}.`,
-      );
+      const objectCount = profile.perObjectCounts[object.objectKey];
+      if (PROFILE_INDEX[profileName] < PROFILE_INDEX[object.minimumProfile]) {
+        assert.equal(objectCount, 0,
+          `${profileName} includes ${object.objectKey} before its ${object.minimumProfile} tier.`);
+      } else {
+        assert.ok(objectCount >= object.requiredAnchorCount,
+          `${profileName} omits a required recognition anchor from ${object.objectKey}.`);
+        assert.ok(objectCount >= object.componentAnchorCount,
+          `${profileName} cannot retain protected components for ${object.objectKey}.`);
+      }
     });
+  }
+  for (const object of metadata.source.objects) {
+    const mobileCount = metadata.profiles.mobile.perObjectCounts[object.objectKey];
+    const desktopCount = metadata.profiles.desktop.perObjectCounts[object.objectKey];
+    const masterCount = metadata.profiles.master.perObjectCounts[object.objectKey];
+    assert.ok(mobileCount <= desktopCount && desktopCount <= masterCount,
+      `${object.objectKey} profile counts are not nested.`);
+    if (object.minimumProfile === 'desktop') {
+      assert.equal(mobileCount, 0, `${object.objectKey} leaked into mobile.`);
+      assert.ok(desktopCount > 0, `${object.objectKey} is missing from desktop.`);
+    }
+  }
+  for (const [profileName, expectedCounts] of Object.entries(EXPECTED_GATE_PROFILE_COUNTS)) {
+    assert.deepEqual(
+      Array.from({ length: 16 }, (_, index) => metadata.profiles[profileName].perObjectCounts[
+        `abs.gate.${String(index).padStart(2, '0')}`
+      ]),
+      expectedCounts,
+      `${profileName} gate allocation changed, including the final two gates.`,
+    );
   }
   if (metadata.source.samplingPolicy.allocation === 'saved-source-profile-budgets') {
     const allocation = metadata.source.surfelAllocation;
@@ -580,6 +629,39 @@ function validateSurfels(metadata, bytes) {
       assert.equal(allocation.profiles[profileName].count, metadata.profiles[profileName].surfelCount);
       assert.deepEqual(allocation.profiles[profileName].models, metadata.profiles[profileName].perModelCounts,
         `${profileName} diverges from its saved-source model populations.`);
+    }
+    return;
+  }
+  if (metadata.source.samplingPolicy.allocation === 'saved-source-model-profile-budgets') {
+    const contract = metadata.source.surfelBudgetContract;
+    assert.deepEqual(
+      contract,
+      Object.fromEntries(Object.entries(EXPECTED_PROFILE_COUNTS).map(([profile, counts]) => [
+        profile,
+        Object.fromEntries(metadata.models.map((model, index) => [model.key, counts[index]])),
+      ])),
+      'Saved seven-model budget contract changed.',
+    );
+    for (const model of metadata.models) {
+      const objects = metadata.source.objects.filter((object) => object.modelKey === model.key);
+      const weights = objects.map((object) => object.surfaceArea
+        * object.sceneDensityWeight * object.densityFactor * object.featurePriority);
+      const expected = objects.map((object) => object.requiredAnchorCount);
+      for (let remaining = model.profileCounts.master
+        - expected.reduce((sum, count) => sum + count, 0); remaining > 0; remaining -= 1) {
+        let selected = 0;
+        for (let index = 1; index < objects.length; index += 1) {
+          const selectedRatio = (expected[selected] + 0.5) / weights[selected];
+          const candidateRatio = (expected[index] + 0.5) / weights[index];
+          if (candidateRatio < selectedRatio) selected = index;
+        }
+        expected[selected] += 1;
+      }
+      objects.forEach((object, index) => {
+        const objectCount = metadata.profiles.master.perObjectCounts[object.objectKey];
+        assert.ok(Math.abs(objectCount - expected[index]) <= 1,
+          `${object.objectKey} diverges from its anchor-aware within-model density allocation.`);
+      });
     }
     return;
   }
@@ -656,150 +738,235 @@ function validatePages(metadata) {
   }
 }
 
+function validateSemanticVisibility(metadata, cameraTrack) {
+  const document = readJson(path.join(
+    REPO_ROOT, 'react-app/app/public/config/contents-about.json',
+  ));
+  const loaded = loadAboutNarrativePointFieldPersistenceSource(document, {
+    preflight: preflightAboutNarrativePointFieldRuntimePlans,
+  });
+  assert.equal(loaded.valid, true, loaded.message);
+  const smoothstep = (start, end, value) => {
+    if (value <= start) return 0;
+    if (value >= end) return 1;
+    const amount = (value - start) / (end - start);
+    return amount * amount * (3 - 2 * amount);
+  };
+  const results = [];
+  const gateMeasurement = measureCameraGatePassage(cameraTrack);
+  for (const [profile, inlineSize, blockSize] of [
+    ['desktop', 1440, 1000], ['mobile', 390, 844],
+  ]) {
+    const plan = compileAboutNarrativeComposerPlan(loaded.document, { inlineSize, blockSize });
+    assert.equal(plan.valid, true, JSON.stringify(plan.diagnostics));
+    const map = resolveAboutNarrativeJourneyMap(plan.journeyMap, cameraTrack);
+    assert.equal(map.valid, true, JSON.stringify(map.diagnostics));
+    assert.equal(map.certifiable, true, JSON.stringify(map.diagnostics));
+    const anchors = new Map(map.anchors.map((anchor) => [anchor.id, anchor.cameraStoryWU]));
+    const shapingFocusWU = plan.textFields.find(
+      (field) => field.id === 'text-epilogue-shaping',
+    ).focusWU;
+    const methodFocusWU = anchors.get('method');
+    const thinkingFocusWU = plan.textFields.find(
+      (field) => field.id === 'text-epilogue-thinking',
+    ).focusWU;
+    const finaleStartWU = anchors.get('finale-deceleration');
+    const finalHoldWU = anchors.get('terminal-hold');
+    const firstGatePassageWU = map.durationWU
+      * gateMeasurement.gates[0].crossing.distanceWU / map.pathLengthWU;
+    const resolvedWindows = metadata.models.map((model) => ({
+      model,
+      startWU: anchors.get(model.visibilityStartCue) + model.visibilityStartOffsetWU,
+      endWU: anchors.get(model.visibilityEndCue) + model.visibilityEndOffsetWU,
+    }));
+    const windows = Object.fromEntries(resolvedWindows.map((window, index) => {
+      const { model, startWU, endWU } = window;
+      const previous = resolvedWindows[index - 1];
+      const next = resolvedWindows[index + 1];
+      const entranceHandoffWU = previous
+        ? Math.max(0.001, (previous.endWU - startWU) * 0.5) : model.visibilityHandoffWU;
+      const exitHandoffWU = next
+        ? Math.max(0.001, (endWU - next.startWU) * 0.5) : model.visibilityHandoffWU;
+      const visibilityAt = (storyWU) => {
+        const entrance = startWU <= 0 ? 1 : smoothstep(
+          startWU, startWU + model.visibilityHandoffWU, storyWU,
+        );
+        const exit = 1 - smoothstep(
+          Math.max(startWU, endWU - model.visibilityHandoffWU), endWU, storyWU,
+        );
+        return Math.min(entrance, exit);
+      };
+      const effectiveVisibilityAt = (storyWU) => {
+        const entrance = startWU <= 0 ? 1 : smoothstep(
+          startWU, startWU + entranceHandoffWU, storyWU,
+        );
+        const exit = 1 - smoothstep(
+          Math.max(startWU, endWU - exitHandoffWU), endWU, storyWU,
+        );
+        return Math.min(entrance, exit);
+      };
+      return [model.key, {
+        startWU,
+        endWU,
+        handoffWU: model.visibilityHandoffWU,
+        entranceHandoffWU,
+        exitHandoffWU,
+        firstGatePassageVisibility: effectiveVisibilityAt(firstGatePassageWU),
+        methodFocusVisibility: effectiveVisibilityAt(methodFocusWU),
+        finaleStartVisibility: visibilityAt(finaleStartWU),
+        effectiveFinaleStartVisibility: effectiveVisibilityAt(finaleStartWU),
+        shapingFocusVisibility: visibilityAt(shapingFocusWU),
+        effectiveShapingFocusVisibility: effectiveVisibilityAt(shapingFocusWU),
+        thinkingFocusVisibility: visibilityAt(thinkingFocusWU),
+        effectiveThinkingFocusVisibility: effectiveVisibilityAt(thinkingFocusWU),
+        finalHoldVisibility: visibilityAt(finalHoldWU),
+        effectiveFinalHoldVisibility: effectiveVisibilityAt(finalHoldWU),
+      }];
+    }));
+    assert.ok(windows['about.04'].firstGatePassageVisibility >= 0.95,
+      `${profile} has not fully admitted the gates before the first physical passage.`);
+    assert.ok(windows['about.05'].methodFocusVisibility > 0,
+      `${profile} has no Method population at its semantic cue.`);
+    assert.equal(windows['about.04'].shapingFocusVisibility, 0,
+      `${profile} still shows passed square gates at shaping focus.`);
+    assert.equal(windows['about.05'].shapingFocusVisibility, 0,
+      `${profile} still shows Method geometry after the finale handoff is established.`);
+    assert.equal(windows['about.06'].shapingFocusVisibility, 1,
+      `${profile} has not fully established the finale by shaping focus.`);
+    assert.equal(windows['about.06'].thinkingFocusVisibility, 1,
+      `${profile} has not retained the finale through thinking focus.`);
+    assert.equal(windows['about.06'].finalHoldVisibility, 1,
+      `${profile} has not retained the finale through the terminal hold.`);
+    for (const retiredKey of CURRENT_EXPECTED_MODEL_KEYS.slice(0, -1)) {
+      assert.equal(windows[retiredKey].finaleStartVisibility, 0,
+        `${profile} still shows prior-stage ${retiredKey} at the finale.`);
+      assert.equal(windows[retiredKey].effectiveFinaleStartVisibility, 0,
+        `${profile} still shows prior-stage ${retiredKey} at the finale with the runtime ramp.`);
+      assert.equal(windows[retiredKey].thinkingFocusVisibility, 0,
+        `${profile} still shows ${retiredKey} at thinking focus.`);
+      assert.equal(windows[retiredKey].finalHoldVisibility, 0,
+        `${profile} still shows ${retiredKey} at the terminal hold.`);
+      assert.equal(windows[retiredKey].effectiveShapingFocusVisibility, 0,
+        `${profile} still shows ${retiredKey} at Shaping with the runtime ramp.`);
+      assert.equal(windows[retiredKey].effectiveThinkingFocusVisibility, 0,
+        `${profile} still shows ${retiredKey} at Thinking with the runtime ramp.`);
+      assert.equal(windows[retiredKey].effectiveFinalHoldVisibility, 0,
+        `${profile} still shows ${retiredKey} at the terminal hold with the runtime ramp.`);
+    }
+    assert.ok(windows['about.06'].effectiveShapingFocusVisibility > 0,
+      `${profile} has no finale population at Shaping with the runtime ramp.`);
+    assert.equal(windows['about.06'].effectiveThinkingFocusVisibility, 1,
+      `${profile} has not fully established the finale by Thinking with the runtime ramp.`);
+    assert.equal(windows['about.06'].effectiveFinalHoldVisibility, 1,
+      `${profile} has not retained the finale through the effective terminal hold.`);
+    const lateHandoffOverlapWU = windows['about.05'].endWU - windows['about.06'].startWU;
+    const requiredLateHandoffOverlapWU = (
+      windows['about.05'].handoffWU + windows['about.06'].handoffWU
+    );
+    assert.ok(lateHandoffOverlapWU >= requiredLateHandoffOverlapWU,
+      `${profile} method/finale handoff has no fully established overlap `
+      + `(${lateHandoffOverlapWU.toFixed(6)} < ${requiredLateHandoffOverlapWU.toFixed(6)} WU).`);
+    results.push({
+      profile, firstGatePassageWU, methodFocusWU, finaleStartWU,
+      shapingFocusWU, thinkingFocusWU, finalHoldWU, windows,
+    });
+  }
+  return results;
+}
+
 function validateCamera(metadata, bytes) {
   const cameraTrack = JSON.parse(bytes.toString('utf8'));
   assert.equal(cameraTrack.schema, 'about-camera-track');
   assert.equal(cameraTrack.version, 5);
+  assert.equal(cameraTrack.source, metadata.cameraTrack.source);
   assert.equal(cameraTrack.sampleCount, metadata.cameraTrack.sampleCount);
   assert.equal(cameraTrack.samples.length, cameraTrack.sampleCount);
+  assert.equal(cameraTrack.frameStart, metadata.cameraTrack.frameStart);
+  assert.equal(cameraTrack.frameEnd, metadata.cameraTrack.frameEnd);
+  assert.ok(Number.isFinite(cameraTrack.fps) && cameraTrack.fps > 0,
+    'The camera track has an invalid frame rate.');
+  assert.deepEqual(cameraTrack.projection, metadata.cameraTrack.projection,
+    'Camera projection metadata diverges from camera-track.json.');
+  assert.deepEqual(cameraTrack.orientation, metadata.cameraTrack.orientation,
+    'Camera orientation metadata diverges from camera-track.json.');
+  assert.deepEqual(cameraTrack.rollControl || null, metadata.cameraTrack.rollControl || null,
+    'Camera roll metadata diverges from camera-track.json.');
+  assert.ok(cameraTrack.samples.length >= 120,
+    'The camera track is too short to certify a continuous seven-stage journey.');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 65);
+  assert.equal(cameraTrack.projection.horizontalFov, 85);
+  assert.equal(cameraTrack.orientation.path, metadata.source.route.object,
+    'Camera orientation and source route refer to different paths.');
+  assert.ok(typeof cameraTrack.orientation.pathTwistMode === 'string'
+    && cameraTrack.orientation.pathTwistMode.length > 0,
+  'The evaluated camera path has no stable twist mode.');
   assert.equal(cameraTrack.orientation.neutralHorizon, 'Z_UP');
-  const steadycam = cameraTrack.orientation.steadycam;
-  assert.equal(steadycam.mode, 'rail-position-world-up-look-ahead-aim');
-  assert.equal(steadycam.positionFollower, 'ABS_CAMERA_PATH_FOLLOWER');
-  assert.equal(steadycam.lookAheadFollower, 'ABS_CAMERA_LOOKAHEAD_FOLLOWER');
-  assert.equal(steadycam.target, 'ABS_CAMERA_LOOKAHEAD_TARGET');
-  assert.ok(
-    Number.isFinite(steadycam.lookAheadMetres)
-      && steadycam.lookAheadMetres >= 5
-      && steadycam.lookAheadMetres <= 80,
-    `Steadycam look-ahead is outside its safe tuning range (${steadycam.lookAheadMetres}).`,
-  );
-  assert.ok(
-    Number.isFinite(steadycam.targetExtensionMetres)
-      && steadycam.targetExtensionMetres >= 0
-      && steadycam.targetExtensionMetres <= 25,
-    `Steadycam target extension is outside its safe tuning range (${steadycam.targetExtensionMetres}).`,
-  );
-  assert.equal(cameraTrack.rollControl.keyframes.length, 9);
-  assert.deepEqual(
-    cameraTrack.rollControl.keyframes.slice(-5).map((keyframe) => keyframe.degrees),
-    [0, -6, 8, -4, 0],
-  );
-  const squareRollProgress = cameraTrack.rollControl.keyframes
-    .slice(-5)
-    .map((keyframe) => keyframe.progress);
-  [0.64, 0.68, 0.72, 0.76, 0.80].forEach((expected, index) => {
-    assert.ok(
-      Math.abs(squareRollProgress[index] - fittedProgress(metadata, expected)) < 0.0005,
-      'The square-gate camera bank no longer aligns with its authored story chapter.',
-    );
-  });
-  assert.deepEqual(
-    cameraTrack.rollControl.keyframes.slice(0, 4).map((keyframe) => keyframe.degrees),
-    [0, -8, 8, 0],
-  );
   cameraTrack.samples.forEach((sample) => {
     assert.equal(sample.length, 7);
     assert.ok(sample.every(Number.isFinite));
+    const quaternionLength = Math.hypot(...sample.slice(3));
+    assert.ok(Math.abs(quaternionLength - 1) <= 0.001,
+      `Camera quaternion is not normalized (${quaternionLength.toFixed(6)}).`);
   });
-  const cameraSampleAt = (progress) => cameraTrack.samples[
-    Math.round(progress * (cameraTrack.samples.length - 1))
-  ];
-  const openingSamples = cameraTrack.samples.slice(0, Math.round(cameraTrack.samples.length * 0.17));
-  assert.ok(
-    openingSamples.every((sample) => Math.abs(sample[0]) < 0.05),
-    'The camera no longer flies straight through the opening star field.',
-  );
-  const roundTunnelLeadIn = cameraTrack.samples.slice(
-    Math.round(cameraTrack.samples.length * 0.17),
-    Math.round(cameraTrack.samples.length * 0.18),
-  );
-  assert.ok(
-    roundTunnelLeadIn.every((sample) => Math.abs(sample[0]) < 0.35),
-    'The camera no longer eases gently from the straight field into the round tunnel.',
-  );
-  const roundSamples = cameraTrack.samples.slice(
-    Math.round(cameraTrack.samples.length * 0.18),
-    Math.round(cameraTrack.samples.length * 0.3),
-  );
-  assert.ok(
-    Math.min(...roundSamples.map((sample) => sample[0])) < -8
-      && Math.max(...roundSamples.map((sample) => sample[0])) > 4,
-    'The round tunnel lost its gentle left-right rollercoaster curve.',
-  );
-  const rotateVector = (sample, vector) => {
-    const quaternion = sample.slice(3);
-    const [qx, qy, qz, qw] = quaternion;
-    const [vx, vy, vz] = vector;
-    const tx = 2 * ((qy * vz) - (qz * vy));
-    const ty = 2 * ((qz * vx) - (qx * vz));
-    const tz = 2 * ((qx * vy) - (qy * vx));
-    return [
-      vx + (qw * tx) + ((qy * tz) - (qz * ty)),
-      vy + (qw * ty) + ((qz * tx) - (qx * tz)),
-      vz + (qw * tz) + ((qx * ty) - (qy * tx)),
-    ];
+
+  const quaternionAngleDegrees = (first, second) => {
+    const firstQuaternion = first.slice(3);
+    const secondQuaternion = second.slice(3);
+    const divisor = Math.hypot(...firstQuaternion) * Math.hypot(...secondQuaternion);
+    const cosine = Math.abs(firstQuaternion.reduce(
+      (sum, value, index) => sum + value * secondQuaternion[index], 0,
+    ) / divisor);
+    return 2 * Math.acos(Math.min(1, Math.max(-1, cosine))) * 180 / Math.PI;
   };
-  const angularChangeDegrees = (first, second) => {
-    const firstLength = Math.max(0.000001, Math.hypot(...first));
-    const secondLength = Math.max(0.000001, Math.hypot(...second));
-    const cosine = first.reduce(
-      (sum, value, index) => sum + ((value / firstLength) * (second[index] / secondLength)),
-      0,
-    );
-    return Math.acos(Math.min(1, Math.max(-1, cosine))) * 180 / Math.PI;
-  };
-  const forwardAngularChanges = cameraTrack.samples.slice(1).map((sample, index) => (
-    angularChangeDegrees(
-      rotateVector(cameraTrack.samples[index], [0, 0, -1]),
-      rotateVector(sample, [0, 0, -1]),
-    )
+  const angularVelocity = cameraTrack.samples.slice(1).map((sample, index) => (
+    quaternionAngleDegrees(cameraTrack.samples[index], sample)
   ));
-  const orderedForwardAngularChanges = [...forwardAngularChanges].sort((left, right) => left - right);
-  const forwardAngularP95 = orderedForwardAngularChanges[
-    Math.floor((orderedForwardAngularChanges.length - 1) * 0.95)
-  ];
+  const angularAcceleration = angularVelocity.slice(1).map(
+    (value, index) => value - angularVelocity[index],
+  );
+  const angularJerk = angularAcceleration.slice(1).map(
+    (value, index) => value - angularAcceleration[index],
+  );
+  const percentile = (values, fraction) => {
+    const ordered = [...values].sort((left, right) => left - right);
+    return ordered[Math.floor((ordered.length - 1) * fraction)];
+  };
+  const angularVelocityP95 = percentile(angularVelocity, 0.95);
   assert.ok(
-    forwardAngularP95 < 1.1,
-    `The camera viewing direction is too reactive at p95 (${forwardAngularP95.toFixed(3)} degrees/frame).`,
+    angularVelocityP95 < 1.1,
+    `Camera angular velocity is too reactive at p95 (${angularVelocityP95.toFixed(3)} degrees/frame).`,
   );
   assert.ok(
-    Math.max(...forwardAngularChanges) < 1.6,
-    `The camera still contains a sharp viewing-direction spike (${Math.max(...forwardAngularChanges).toFixed(3)} degrees/frame).`,
+    Math.max(...angularVelocity) < 1.6,
+    `Camera angular velocity spikes to ${Math.max(...angularVelocity).toFixed(3)} degrees/frame.`,
   );
-  const latticeApproachForward = rotateVector(cameraSampleAt(0.84), [0, 0, -1]);
-  assert.ok(
-    Math.abs(latticeApproachForward[0]) < 0.15
-      && Math.abs(latticeApproachForward[1]) < 0.2
-      && latticeApproachForward[2] < -0.97,
-    'The descending camera must aim through the final corridor, not into a lattice edge.',
-  );
-  const gateAim = cameraTrack.orientation.gateAim;
-  assert.equal(gateAim?.mode, 'same-rail-continuous-right-axis');
-  assert.equal(gateAim.path, 'ABS_PARAMETRIC_RIDE_PATH');
-  assert.equal(gateAim.target, 'ABS_CAMERA_GATE_AIM');
-  assert.equal(gateAim.rightReference, 'world-X');
-  assert.ok(gateAim.leadGateSpacings >= 0.1 && gateAim.leadGateSpacings <= 0.5);
-  assert.equal(cameraTrack.gatePassage?.source, 'GN_SQUARE_LOOP');
-  assertCameraGatePassage(measureCameraGatePassage(cameraTrack));
-  const loopPositions = [0.64, 0.68, 0.72, 0.76, 0.80].map(cameraSampleAt);
-  const loopHeights = loopPositions.map((sample) => sample[1]);
-  const loopDepths = loopPositions.map((sample) => sample[2]);
-  assert.ok(Math.max(...loopHeights) - Math.min(...loopHeights) > 40, 'The square tunnel is no longer an aerial loop.');
-  assert.ok(Math.max(...loopDepths) - Math.min(...loopDepths) > 35, 'The square tunnel lost its forward-return rollercoaster bend.');
-  const finalSample = cameraTrack.samples.at(-1);
-  if (metadata.terminalResponse) {
-    const bounds = metadata.terminalResponse.landscapeBounds;
-    assert.ok(bounds.min[0] < finalSample[0] - 300 && bounds.max[0] > finalSample[0] + 300);
-    assert.ok(bounds.max[2] > finalSample[2] + 10 && bounds.min[2] < finalSample[2] - 500,
-      'The terminal surface must continue behind the camera and beyond the far atmosphere.');
-  }
-  assert.ok(
-    Math.hypot(finalSample[4], finalSample[5]) < 0.0001,
-    'The final Blender camera must return to a level horizon.',
-  );
+  assert.ok(Math.max(...angularAcceleration.map(Math.abs)) < 0.25,
+    `Camera angular acceleration spikes to ${Math.max(...angularAcceleration.map(Math.abs)).toFixed(3)} degrees/frame².`);
+  assert.ok(Math.max(...angularJerk.map(Math.abs)) < 0.15,
+    `Camera angular jerk spikes to ${Math.max(...angularJerk.map(Math.abs)).toFixed(3)} degrees/frame³.`);
+
+  assert.equal(cameraTrack.gatePassage?.source, 'ABS_GATE_00..15');
+  assert.deepEqual(cameraTrack.gatePassage.traversal, {
+    forward: true,
+    reverse: true,
+    mode: 'same-centreline-reversible',
+  });
+  const gateMeasurement = measureCameraGatePassage(cameraTrack);
+  assertCameraGatePassage(gateMeasurement, EXPECTED_GATE_OBJECT_KEYS.length);
+
+  assert.deepEqual(cameraTrack.roundTunnelPassage?.traversal, {
+    forward: true,
+    reverse: true,
+    mode: 'same-centreline-reversible',
+  }, 'The round tunnel must expose the same reversible passage semantics as the square gates.');
+  const roundTunnelMeasurement = measureCameraRoundTunnelPassage(cameraTrack);
+  const roundTunnelObjects = metadata.source.objects.filter((object) => (
+    object.modelKey === 'about.02' && object.geometryKind === 'curved-round-tunnel-hoop'
+  ));
+  assert.equal(roundTunnelMeasurement.apertures.length, roundTunnelObjects.length,
+    'The round-tunnel passage record must cover every authored aperture object.');
+  assertCameraRoundTunnelPassage(roundTunnelMeasurement, roundTunnelObjects.length);
+
   let travelledDistance = 0;
   const sampleDistances = [];
   for (let index = 1; index < cameraTrack.samples.length; index += 1) {
@@ -813,45 +980,119 @@ function validateCamera(metadata, bytes) {
     travelledDistance += sampleDistance;
     sampleDistances.push(sampleDistance);
   }
-  assert.ok(travelledDistance >= 1200, `The authored ride is too short (${travelledDistance.toFixed(1)} WU).`);
-  const steadyRailDistances = sampleDistances.slice(0, Math.round(sampleDistances.length * 0.8));
-  if (metadata.source.readingSpaceFit) {
-    // Export frames are source editing time. Runtime resamples cumulative
-    // physical distance; the fitted straight approaches need more distance in
-    // the same source frame span. Reject teleports/holds without demanding an
-    // obsolete uniform frame-time schedule.
-    assert.ok(steadyRailDistances.every(distance => distance > 0 && distance < 3),
-      'The fitted source rail contains a hold or a positional discontinuity.');
-    assert.ok(Math.abs(travelledDistance - metadata.source.readingSpaceFit.lengthWU) < 0.1);
-  } else {
-    assert.ok(Math.max(...steadyRailDistances) - Math.min(...steadyRailDistances) < 0.01,
-      'The camera rail no longer advances smoothly before the authored finale segment.');
+  const movementToleranceWU = 0.00001;
+  const lastMovingInterval = sampleDistances.findLastIndex(
+    (distance) => distance > movementToleranceWU,
+  );
+  assert.ok(lastMovingInterval >= 0, 'The camera track contains no physical travel.');
+  assert.ok(lastMovingInterval < sampleDistances.length - 1,
+    'The camera track has no stationary terminal hold.');
+  const movingDistances = sampleDistances.slice(0, lastMovingInterval + 1);
+  const terminalDistances = sampleDistances.slice(lastMovingInterval + 1);
+  assert.ok(movingDistances.every((distance) => distance > movementToleranceWU),
+    'The moving camera path contains a pause before the terminal hold.');
+  assert.ok(terminalDistances.every((distance) => distance <= movementToleranceWU),
+    'The stationary terminal hold contains camera movement.');
+  assert.ok(terminalDistances.length >= Math.max(5, Math.floor(cameraTrack.samples.length * 0.05)),
+    'The stationary terminal hold is too short to establish the finale.');
+  const movingDistance = movingDistances.reduce((sum, distance) => sum + distance, 0);
+  const meanDistance = movingDistance / movingDistances.length;
+  const distanceVariance = movingDistances.reduce(
+    (sum, distance) => sum + (distance - meanDistance) ** 2,
+    0,
+  ) / movingDistances.length;
+  const distanceCv = Math.sqrt(distanceVariance) / meanDistance;
+  const maximumCadenceError = Math.max(...movingDistances.map(
+    (distance) => Math.abs(distance - meanDistance) / meanDistance,
+  ));
+  assert.ok(distanceCv <= 0.02 && maximumCadenceError <= 0.05,
+    `Camera distance cadence is nonconstant (CV ${distanceCv.toFixed(4)}, max error ${(maximumCadenceError * 100).toFixed(2)}%).`);
+  const routeLengthTolerance = Math.max(0.01, metadata.source.route.evaluatedLength * 0.00005);
+  assert.ok(Math.abs(metadata.source.route.evaluatedLength - movingDistance) <= routeLengthTolerance,
+    `Evaluated route length (${metadata.source.route.evaluatedLength.toFixed(6)} WU) does not match moving camera travel (${movingDistance.toFixed(6)} WU).`);
+  assert.ok(Math.abs(travelledDistance - movingDistance) <= movementToleranceWU,
+    'Camera travel continues after the terminal hold begins.');
+
+  const startPosition = cameraTrack.samples[0].slice(0, 3);
+  const heldPosition = cameraTrack.samples[lastMovingInterval + 1].slice(0, 3);
+  const chord = heldPosition.map((value, index) => value - startPosition[index]);
+  const chordLength = Math.hypot(...chord);
+  assert.ok(movingDistance >= chordLength * 1.001,
+    'The evaluated camera route is effectively straight rather than nontrivially curved.');
+  const chordLengthSquared = chord.reduce((sum, value) => sum + value * value, 0);
+  const maximumChordDeviation = Math.max(...cameraTrack.samples
+    .slice(0, lastMovingInterval + 2)
+    .map((sample) => {
+      const offset = sample.slice(0, 3).map((value, index) => value - startPosition[index]);
+      const amount = Math.min(1, Math.max(0, offset.reduce(
+        (sum, value, index) => sum + value * chord[index], 0,
+      ) / chordLengthSquared));
+      return Math.hypot(...offset.map((value, index) => value - chord[index] * amount));
+    }));
+  assert.ok(maximumChordDeviation >= Math.max(1, chordLength * 0.002),
+    `The evaluated route has no meaningful curvature (${maximumChordDeviation.toFixed(3)} WU deviation).`);
+
+  assert.ok(Array.isArray(cameraTrack.journeyCues) && cameraTrack.journeyCues.length > 0,
+    'The camera track has no semantic journey cues.');
+  const cueByName = new Map();
+  let previousCueFrame = -Infinity;
+  for (const cue of cameraTrack.journeyCues) {
+    assert.ok(typeof cue.name === 'string' && cue.name.length > 0 && !cueByName.has(cue.name),
+      `Camera cue ${cue.name || '<unnamed>'} is missing or duplicated.`);
+    assert.ok(Number.isInteger(cue.frame)
+      && cue.frame >= cameraTrack.frameStart && cue.frame <= cameraTrack.frameEnd,
+    `Camera cue ${cue.name} falls outside the exported frame range.`);
+    assert.ok(Number.isFinite(cue.progress) && cue.progress >= 0 && cue.progress <= 1,
+      `Camera cue ${cue.name} has invalid normalized progress.`);
+    const expectedProgress = (cue.frame - cameraTrack.frameStart)
+      / (cameraTrack.frameEnd - cameraTrack.frameStart);
+    assert.ok(Math.abs(cue.progress - expectedProgress) <= 0.000001,
+      `Camera cue ${cue.name} disagrees with its authored frame.`);
+    assert.ok(cue.frame >= previousCueFrame, `Camera cue ${cue.name} is out of frame order.`);
+    previousCueFrame = cue.frame;
+    cueByName.set(cue.name, cue);
   }
-  const cueNames = new Set(cameraTrack.journeyCues.map((cue) => cue.name));
-  for (const cue of [
-    'ABS_STAGE_00',
-    'ABS_STAGE_01',
-    'ABS_STAGE_02',
-    'ABS_STAGE_03',
-    'ABS_STAGE_04',
-    'ABS_STAGE_05',
-    'ABS_SPLIT_LATTICE_ENTRY',
-    'ABS_FINALE_DECEL',
-    'ABS_CAMERA_LOCK',
-    'ABS_TERMINAL_FRAME',
-  ]) {
-    assert.ok(cueNames.has(cue), `The camera track omits ${cue}.`);
+  for (const cueName of REQUIRED_CAMERA_CUES) {
+    assert.ok(cueByName.has(cueName), `The camera track omits ${cueName}.`);
   }
-  for (const retiredCue of ['ABS_STAGE_06', 'ABS_STAGE_06_LENS_CENTRE']) {
-    assert.equal(cueNames.has(retiredCue), false, `The retired lens cue ${retiredCue} returned.`);
-  }
-  const cameraLock = cameraTrack.journeyCues.find((cue) => cue.name === 'ABS_CAMERA_LOCK');
-  const terminal = cameraTrack.journeyCues.find((cue) => cue.name === 'ABS_TERMINAL_FRAME');
-  assert.ok(cameraLock.progress >= 0.9 && cameraLock.progress <= 0.92);
-  assert.equal(terminal.progress, 1);
-  const lockIndex = Math.round(cameraLock.progress * (cameraTrack.samples.length - 1));
-  const lockSample = cameraTrack.samples[lockIndex];
-  const stationaryTail = cameraTrack.samples.slice(lockIndex);
+  assert.equal(cueByName.has('ABS_STAGE_06_LENS_CENTRE'), false, 'The retired lens cue returned.');
+  const stageCues = CURRENT_EXPECTED_MODEL_KEYS.map((_, index) => (
+    cueByName.get(`ABS_STAGE_0${index}`)
+  ));
+  assert.ok(stageCues.every((cue, index) => !index || cue.progress > stageCues[index - 1].progress),
+    'The seven camera stage cues are not in strict journey order.');
+
+  const holdStartIndex = lastMovingInterval + 1;
+  const holdStartProgress = holdStartIndex / (cameraTrack.samples.length - 1);
+  const cueTolerance = 1 / (cameraTrack.samples.length - 1) + 0.000001;
+  const cameraLock = cueByName.get('ABS_CAMERA_LOCK');
+  const terminal = cueByName.get('ABS_TERMINAL_FRAME');
+  assert.ok(Math.abs(cameraLock.progress - holdStartProgress) <= cueTolerance,
+    `ABS_CAMERA_LOCK (${cameraLock.progress.toFixed(6)}) does not begin the terminal hold (${holdStartProgress.toFixed(6)}).`);
+  assert.ok(terminal.progress >= holdStartProgress - cueTolerance,
+    'ABS_TERMINAL_FRAME occurs before the stationary terminal hold.');
+  assert.ok(cueByName.get('ABS_FINALE_DECEL').progress < cameraLock.progress
+    && cameraLock.progress <= terminal.progress,
+  'Finale deceleration, camera lock, and terminal hold cues are out of order.');
+
+  const firstRoundCrossing = roundTunnelMeasurement.apertures[0].crossing.progress;
+  const lastRoundCrossing = roundTunnelMeasurement.apertures.at(-1).crossing.progress;
+  assert.ok(cueByName.get('ABS_STAGE_02').progress <= firstRoundCrossing,
+    'The round tunnel begins before its semantic stage cue.');
+  assert.ok(cueByName.get('ABS_ROUND_PORTALS_EXIT').progress >= lastRoundCrossing,
+    'The round-tunnel exit cue occurs before the final authored aperture is crossed.');
+  assert.ok(cueByName.get('ABS_ROUND_PORTALS_CLEAR').progress
+    >= cueByName.get('ABS_ROUND_PORTALS_EXIT').progress,
+  'The round-tunnel clear cue occurs before its exit cue.');
+  const firstGateCrossing = gateMeasurement.gates[0].crossing.progress;
+  const lastGateCrossing = gateMeasurement.gates.at(-1).crossing.progress;
+  assert.ok(cueByName.get('ABS_STAGE_04').progress <= firstGateCrossing,
+    'The square gates begin before their semantic stage cue.');
+  assert.ok(cueByName.get('ABS_GATE_PASSAGE_CLEAR').progress >= lastGateCrossing,
+    'The square-gate discard cue occurs before all 16 gates are crossed.');
+
+  const lockSample = cameraTrack.samples[holdStartIndex];
+  const stationaryTail = cameraTrack.samples.slice(holdStartIndex);
   const maximumTailPositionDrift = Math.max(...stationaryTail.map((sample) => Math.hypot(
     sample[0] - lockSample[0],
     sample[1] - lockSample[1],
@@ -872,13 +1113,64 @@ function validateCamera(metadata, bytes) {
     maximumTailQuaternionDrift <= 0.001,
     `The terminal camera rotates by ${maximumTailQuaternionDrift.toFixed(6)} degrees after lock.`,
   );
+
+  const rotateVector = (sample, vector) => {
+    const [qx, qy, qz, qw] = sample.slice(3);
+    const [vx, vy, vz] = vector;
+    const tx = 2 * (qy * vz - qz * vy);
+    const ty = 2 * (qz * vx - qx * vz);
+    const tz = 2 * (qx * vy - qy * vx);
+    return [
+      vx + qw * tx + qy * tz - qz * ty,
+      vy + qw * ty + qz * tx - qx * tz,
+      vz + qw * tz + qx * ty - qy * tx,
+    ];
+  };
+  const finalRight = rotateVector(lockSample, [1, 0, 0]);
+  const finalUp = rotateVector(lockSample, [0, 1, 0]);
+  const finalForward = rotateVector(lockSample, [0, 0, -1]);
+  const finaleSurface = largestSemanticSurface(metadata, 'about.06', 'The finale');
+  const finaleCorners = [];
+  for (const x of [finaleSurface.bounds.min[0], finaleSurface.bounds.max[0]]) {
+    for (const y of [finaleSurface.bounds.min[1], finaleSurface.bounds.max[1]]) {
+      for (const z of [finaleSurface.bounds.min[2], finaleSurface.bounds.max[2]]) {
+        const offset = [x - lockSample[0], y - lockSample[1], z - lockSample[2]];
+        finaleCorners.push({
+          right: offset.reduce((sum, value, index) => sum + value * finalRight[index], 0),
+          up: offset.reduce((sum, value, index) => sum + value * finalUp[index], 0),
+          forward: offset.reduce((sum, value, index) => sum + value * finalForward[index], 0),
+        });
+      }
+    }
+  }
+  const rightExtents = finaleCorners.map((corner) => corner.right);
+  const upExtents = finaleCorners.map((corner) => corner.up);
+  const forwardExtents = finaleCorners.map((corner) => corner.forward);
+  assert.ok(Math.min(...rightExtents) <= -220 && Math.max(...rightExtents) >= 220,
+    'The finale surface does not overscan both sides of the held camera.');
+  assert.ok(Math.max(...upExtents) <= -0.5,
+    'The finale surface rises through the held camera instead of remaining a ground field.');
+  assert.ok(Math.min(...forwardExtents) <= -20 && Math.max(...forwardExtents) >= 60,
+    'The finale surface does not overscan the held camera in depth.');
+
+  const continuousFloor = largestSemanticSurface(metadata, 'about.03', 'The continuous middle journey');
+  const floorSamples = cameraTrack.samples.slice(0, holdStartIndex + 1).filter((sample) => (
+    sample[2] >= continuousFloor.bounds.min[2] && sample[2] <= continuousFloor.bounds.max[2]
+  ));
+  assert.ok(floorSamples.length > 0, 'The camera never travels over the continuous floor.');
+  assert.ok(floorSamples.every((sample) => (
+    sample[0] >= continuousFloor.bounds.min[0] + 32
+      && sample[0] <= continuousFloor.bounds.max[0] - 32
+      && continuousFloor.bounds.max[1] <= sample[1] - 0.5
+  )), 'The continuous floor loses its camera overscan or crosses the camera path.');
+  return cameraTrack;
 }
 
 function validateFinalBankPrefixes(metadata, surfelBytes, cameraBytes) {
   const track = JSON.parse(cameraBytes.toString('utf8'));
   const pose = track.samples.at(-1);
   const [qx, qy, qz, qw] = [-pose[3], -pose[4], -pose[5], pose[6]];
-  const model = metadata.models.find((candidate) => candidate.key === 'about.05');
+  const model = metadata.models.find((candidate) => candidate.key === 'about.06');
   const tanHalfFov = Math.tan(metadata.cameraTrack.projection.horizontalFov * Math.PI / 360);
   const countBanks = (count, aspect) => {
     const banks = [0, 0];
@@ -909,7 +1201,7 @@ function validateFinalBankPrefixes(metadata, surfelBytes, cameraBytes) {
       const minimum = Math.max(profile === 'mobile' ? 25 : 60, masterBanks[side] * fraction * 0.6);
       assert.ok(
         visible >= minimum,
-        `${profile} starves the ${side === 0 ? 'left' : 'right'} final bank in its nested point prefix `
+        `${profile} starves the ${side === 0 ? 'left' : 'right'} finale half in its nested point prefix `
           + `(${visible} visible; expected at least ${Math.ceil(minimum)}).`,
       );
     });
@@ -934,7 +1226,8 @@ function main() {
   validateSurfels(metadata, surfelBytes);
   validateTerrainGateClearance(metadata, surfelBytes);
   validatePages(metadata);
-  validateCamera(metadata, cameraBytes);
+  const cameraTrack = validateCamera(metadata, cameraBytes);
+  const semanticVisibility = validateSemanticVisibility(metadata, cameraTrack);
   validateFinalBankPrefixes(metadata, surfelBytes, cameraBytes);
   process.stdout.write(`${JSON.stringify({
     status: 'ok',
@@ -953,6 +1246,7 @@ function main() {
     surfels: metadata.files.surfels.count,
     cameraSamples: metadata.cameraTrack.sampleCount,
     semanticFallbacks: metadata.source.semanticFallbacks.length,
+    semanticVisibility,
   }, null, 2)}\n`);
 }
 

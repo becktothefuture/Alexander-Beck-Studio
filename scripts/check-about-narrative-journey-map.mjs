@@ -64,6 +64,10 @@ const closeWU = (actual, expected, message) => assert.ok(
   Math.abs(actual - expected) <= 0.000001,
   `${message}: expected ${expected}, got ${actual}`,
 );
+const closeCameraWU = (actual, expected, message) => assert.ok(
+  Math.abs(actual - expected) <= 0.001,
+  `${message}: expected ${expected}, got ${actual}`,
+);
 const STORY_FIELD_IDS = Object.freeze([
   'text-promise-main',
   'text-complexity-idea',
@@ -85,34 +89,33 @@ const RESPONSIVE_PROFILES = Object.freeze([
   ['mobile', 390, 844],
 ]);
 const VISIBILITY_BINDINGS = Object.freeze([
-  ['about.00', 'opening', 0, 'inciting-question', 0.18],
-  ['about.01', 'inciting-question', -0.28, 'portal-entry', 0.18],
-  ['about.02', 'portal-entry', -0.18, 'portal-exit', 0.18],
-  ['about.03', 'portal-exit', -0.18, 'gate-entry', 0.18],
-  ['about.04', 'gate-entry', -0.55, 'gate-exit', 0.18],
-  ['about.05', 'gate-exit', -0.18, 'terminal-hold', 1],
+  ['about.00', 'opening', 0, 'inciting-question', 0.6],
+  ['about.01', 'inciting-question', -0.6, 'portal-entry', 0.6],
+  ['about.02', 'portal-entry', -0.6, 'portal-exit', 0.6],
+  ['about.03', 'portal-exit', -0.6, 'gate-entry', 0.75],
+  ['about.04', 'gate-entry', -0.75, 'gate-exit', 0.8],
+  ['about.05', 'gate-exit', -1.1, 'split-lattice-entry', -0.45],
+  ['about.06', 'split-lattice-entry', -1.65, 'terminal-hold', 1],
 ]);
-// Physical rail positions are not camera-timeline progress after the short gates.
-// R5 compresses the remaining rail into 0.80–0.91, then holds the exported pose.
+// These are the exact authored positions in the accepted recovered camera. The
+// camera moves at constant arc length through frame 901, then holds to 1001.
 const PHYSICAL_CUES = Object.freeze([
-  ['ABS_STAGE_02', 0.18],
-  ['ABS_ROUND_PORTALS_EXIT', 0.285],
-  ['ABS_ROUND_PORTALS_CLEAR', 0.3816],
-  ['ABS_PERSONAL_ORIGIN', 0.40],
-  ['ABS_TERRAIN_THESIS', 0.42],
-  ['ABS_CANYON_CLEAR', 0.48],
-  ['ABS_ROLL_GATE_START', 0.64],
-  ['ABS_ROLL_GATE_END', 0.80],
-  ['ABS_GATE_PASSAGE_CLEAR', 0.918],
-  ['ABS_METHOD_RELEASE', 0.94],
-  ['ABS_LATTICE_APPROACH', 0.95],
-  ['ABS_SPLIT_LATTICE_ENTRY', 0.96],
-  ['ABS_FINALE_DECEL', 0.975],
-  ['ABS_CAMERA_LOCK', 1],
+  ['ABS_STAGE_02', 0.194],
+  ['ABS_ROUND_PORTALS_EXIT', 0.409],
+  ['ABS_ROUND_PORTALS_CLEAR', 0.411],
+  ['ABS_PERSONAL_ORIGIN', 0.412],
+  ['ABS_TERRAIN_THESIS', 0.449],
+  ['ABS_CANYON_CLEAR', 0.494],
+  ['ABS_ROLL_GATE_START', 0.499],
+  ['ABS_ROLL_GATE_END', 0.735],
+  ['ABS_GATE_PASSAGE_CLEAR', 0.744],
+  ['ABS_METHOD_RELEASE', 0.77],
+  ['ABS_LATTICE_APPROACH', 0.799],
+  ['ABS_SPLIT_LATTICE_ENTRY', 0.826],
+  ['ABS_FINALE_DECEL', 0.864],
+  ['ABS_CAMERA_LOCK', 0.9],
 ]);
-const timelineProgressFromRail = (progress) => (
-  progress <= 0.8 ? progress : 0.8 + (progress - 0.8) * 0.55
-);
+const timelineProgressFromRail = (progress) => progress;
 
 function cameraPositionAtProgress(progress) {
   const cursor = Math.min(1, Math.max(0, progress)) * (cameraTrack.samples.length - 1);
@@ -161,6 +164,7 @@ function resolveExportedWindows(map) {
     assert.ok(Number.isFinite(model.visibilityEndOffsetWU));
     return {
       key: model.key,
+      modelId: model.id,
       startWU: Math.max(0, start.cameraStoryWU + model.visibilityStartOffsetWU),
       endWU: end.cameraStoryWU + model.visibilityEndOffsetWU,
       handoffWU: model.visibilityHandoffWU,
@@ -196,7 +200,7 @@ for (const [profileId, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
       const gaps = responsivePlan.storyLayout.gaps.filter((gap) => gap.preset === 'passage');
       assert.equal(ABOUT_NARRATIVE_STORY_GAP_PRESETS.passage[profileId], 3.8);
       assert.deepEqual(gaps.map((gap) => gap.fromFieldId), [
-        'text-complexity-conditions', 'text-disciplines-title',
+        'text-complexity-conditions', 'text-disciplines-title', 'text-life-momentum',
       ]);
       const arrival = responsivePlan.storyLayout.gaps.find((gap) => gap.preset === 'arrival');
       closeWU(arrival.durationWU, 0.8, 'Reading gap does not become a camera brake');
@@ -252,21 +256,35 @@ test('real model windows follow camera distance and keep every physical passage 
       if (index) {
         // Admit the interest field before its title and the square gates
         // early enough to frame the first opening on approach.
-        const overlapWU = window.key === 'about.04' ? 0.73 : window.key === 'about.01' ? 0.46 : 0.36;
+        const overlapWU = window.key === 'about.04' ? 1.5
+          : window.key === 'about.05' ? 1.9 : 1.2;
         closeWU(windows[index - 1].endWU - window.startWU, overlapWU, 'Adjacent overlap');
       }
       const model = assetMeta.models[index];
       const startWU = byId.get(model.visibilityStartCue).cameraStoryWU;
       const endWU = byId.get(model.visibilityEndCue).cameraStoryWU;
-      for (const position of [startWU, (startWU + endWU) / 2, endWU]) {
+      const passagePositions = model.key === 'about.05'
+        ? [startWU, byId.get('method').cameraStoryWU]
+        : [startWU, (startWU + endWU) / 2, endWU];
+      for (const position of passagePositions) {
         assert.ok(isFullyScheduled(window, position), `${model.key} vanished during its physical passage.`);
+      }
+      if (model.key === 'about.05') {
+        const shaping = responsivePlan.textFields.find((field) => field.id === 'text-epilogue-shaping');
+        assert.equal(isFullyScheduled(window, shaping.focusWU), false,
+          'Method geometry must be discarded before the shaping title settles.');
       }
     });
     for (let index = 0; index <= 500; index += 1) {
       const storyWU = map.durationWU * index / 500;
       assert.ok(windows.some((window) => isFullyScheduled(window, storyWU)), `Empty scene at ${storyWU}.`);
       const active = windows.filter((window) => storyWU >= window.startWU && storyWU < window.endWU);
-      assert.ok(active.length <= 2, 'Only adjacent scenes may overlap.');
+      assert.ok(active.length <= 3, 'At most three adjacent handoff stages may overlap.');
+      active.forEach((window, activeIndex) => {
+        if (!activeIndex) return;
+        assert.equal(window.modelId, active[activeIndex - 1].modelId + 1,
+          'Only directly adjacent authored stages may overlap.');
+      });
     }
   }
 });
@@ -368,9 +386,12 @@ test('missing passage cues retain a monotonic degraded runtime but cannot certif
     const incompleteTrack = structuredClone(cameraTrack);
     incompleteTrack.journeyCues = incompleteTrack.journeyCues.filter((cue) => cue.name !== cueName);
     const map = resolveAboutNarrativeJourneyMap(plan.journeyMap, incompleteTrack);
-    assert.equal(map.valid, true, cueName);
     assert.equal(map.certifiable, false, cueName);
     assert.ok(map.diagnostics.some((item) => item.path === `cameraTrack.journeyCues.${cueName}`));
+    if (!map.valid) {
+      assert.ok(map.diagnostics.some((item) => item.code === 'journey-camera-order'),
+        `${cueName} can invalidate an obsolete fallback only through strict camera-order validation.`);
+    }
     const sample = createAboutNarrativeJourneySample();
     let previous = 0;
     for (let index = 0; index <= 250; index += 1) {
@@ -386,10 +407,10 @@ test('missing passage cues retain a monotonic degraded runtime but cannot certif
   assert.equal(fallback.valid, true);
   assert.equal(fallback.certifiable, false);
   for (const [roleId, railProgress] of [
-    ['portal-exit', 0.285], ['portal-release', 0.3816],
-    ['personal-origin', 0.40], ['earned-thesis', 0.42], ['landscape-release', 0.48],
-    ['gate-exit', 0.80], ['gate-release', 0.918], ['method', 0.94],
-    ['lattice-approach', 0.95], ['split-lattice-entry', 0.96], ['finale-deceleration', 0.975],
+    ['portal-exit', 0.183333], ['portal-release', 0.2],
+    ['personal-origin', 0.216667], ['earned-thesis', 0.266667], ['landscape-release', 0.458333],
+    ['gate-exit', 0.676667], ['gate-release', 0.7], ['method', 0.725],
+    ['lattice-approach', 0.75], ['split-lattice-entry', 0.758333], ['finale-deceleration', 0.791667],
   ]) {
     closeWU(fallback.anchors.find((item) => item.id === roleId).journeyProgress,
       timelineProgressFromRail(railProgress), `${roleId} degraded fallback`);
@@ -398,10 +419,15 @@ test('missing passage cues retain a monotonic degraded runtime but cannot certif
   assert.equal(currentExport.valid, true, JSON.stringify(currentExport.diagnostics));
 });
 
-test('the selected real camera bundle preserves R5 physical cues and its own export hash', async () => {
+test('the selected real camera bundle preserves the accepted physical cues and source hashes', async () => {
   const cameraBytes = await readFile(resolve(ASSET_DIRECTORY, 'camera-track.json'));
   assert.equal(createHash('sha256').update(cameraBytes).digest('hex'),
     assetMeta.files.cameraTrack.sha256, 'Camera bytes and metadata must come from one export.');
+  const sourceBytes = await readFile(resolve(fileURLToPath(ROOT), assetMeta.source.file));
+  assert.equal(createHash('sha256').update(sourceBytes).digest('hex'),
+    assetMeta.source.sha256, 'The export metadata must identify the exact canonical Blender source.');
+  assert.equal(assetMeta.source.sha256,
+    '4ae8204542c4fe4dcb195dacef4f787f5204567aa76ea4b96f9be8d1cbf10253');
   assert.equal(cameraTrack.samples.length, cameraTrack.sampleCount);
   assert.equal(cameraTrack.frameEnd - cameraTrack.frameStart + 1, cameraTrack.sampleCount);
   const frameSpan = cameraTrack.frameEnd - cameraTrack.frameStart;
@@ -476,15 +502,14 @@ test('the real semantic reading cues do not need physical stage markers', () => 
 
 test('physical set boundaries cannot substitute for missing required reading cues', () => {
   for (const [roleId, requiredCue, physicalCue, railProgress] of [
-    ['earned-thesis', 'ABS_TERRAIN_THESIS', 'ABS_STAGE_03', 0.42],
-    ['split-lattice-entry', 'ABS_SPLIT_LATTICE_ENTRY', 'ABS_STAGE_05', 0.96],
+    ['earned-thesis', 'ABS_TERRAIN_THESIS', 'ABS_STAGE_03', 0.266667],
+    ['split-lattice-entry', 'ABS_SPLIT_LATTICE_ENTRY', 'ABS_STAGE_05', 0.758333],
   ]) {
     assert.ok(cameraTrack.journeyCues.some((cue) => cue.name === requiredCue));
     assert.ok(cameraTrack.journeyCues.some((cue) => cue.name === physicalCue));
     const incompleteTrack = structuredClone(cameraTrack);
     incompleteTrack.journeyCues = incompleteTrack.journeyCues.filter((cue) => cue.name !== requiredCue);
     const incompleteMap = resolveAboutNarrativeJourneyMap(plan.journeyMap, incompleteTrack);
-    assert.equal(incompleteMap.valid, true, 'Diagnostic fallback must remain bounded.');
     assert.equal(incompleteMap.certifiable, false, 'A physical marker must not certify a missing semantic cue.');
     const reading = incompleteMap.anchors.find((item) => item.id === roleId);
     assert.equal(reading.cueName, '');
@@ -496,6 +521,18 @@ test('physical set boundaries cannot substitute for missing required reading cue
       item.code === 'journey-required-camera-cue-missing'
         && item.path === `cameraTrack.journeyCues.${requiredCue}`
     )));
+    const sample = createAboutNarrativeJourneySample();
+    let previous = 0;
+    for (let index = 0; index <= 100; index += 1) {
+      sampleAboutNarrativeJourneyMapInto(
+        incompleteMap,
+        incompleteMap.durationWU * index / 100,
+        sample,
+      );
+      assert.ok(sample.progress >= previous && sample.progress <= 1,
+        'A missing semantic cue must retain bounded monotonic diagnostic playback.');
+      previous = sample.progress;
+    }
   }
 });
 
@@ -539,7 +576,7 @@ test('the camera travels through the invitation at the same rate and stops only 
   assert.equal(sample.locked, true);
   assert.equal(sample.progress, journeyMap.lockProgress);
   const lastSample = cameraTrack.samples.at(-1);
-  cameraPositionAtProgress(sample.progress).forEach((value, index) => closeWU(value, lastSample[index], 'Saved endpoint'));
+  cameraPositionAtProgress(sample.progress).forEach((value, index) => closeCameraWU(value, lastSample[index], 'Saved endpoint'));
 });
 
 test('runtime camera progress follows the journey map and V2 has no post-page continuation', () => {

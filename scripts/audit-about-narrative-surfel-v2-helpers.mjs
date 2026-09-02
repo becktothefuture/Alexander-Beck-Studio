@@ -11,10 +11,6 @@ const expectedAssetMetadata = JSON.parse(await readFile(resolve(
   'meta.json',
 ), 'utf8'));
 const expectedCameraPageIds = expectedAssetMetadata.pages.map((page) => page.id);
-const expectedObjectInstances = Object.freeze({
-  'gn.round.portals': 36,
-  'gn.square.loop': 14,
-});
 export const ABOUT_SURFEL_PROFILES = Object.freeze({
   desktop: Object.freeze({
     viewport: Object.freeze({ width: 1440, height: 1000 }),
@@ -110,13 +106,16 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert.equal(metrics.activeSurfelCount, expected.residentSurfelCount);
   assert.equal(metrics.pointCount, expected.residentSurfelCount);
   assert.equal(metrics.masterSurfelCount, 135_000);
-  assert.equal(metrics.modelCount, 6);
-  assert.equal(Object.keys(metrics.perModelCounts).length, 6);
+  assert.equal(metrics.modelCount, 7);
+  assert.equal(Object.keys(metrics.perModelCounts).length, 7);
   assert(Object.values(metrics.perModelCounts).every((count) => count > 0));
   assert.equal(metrics.drawCalls, 2);
   assert.equal(metrics.occlusionMode, 'depth-owned-whole-surfel-reveal');
   assert.equal(metrics.lodRadiusScaleMode, 'per-object');
-  assert.equal(Object.keys(metrics.lodRadiusScaleByObject).length, 7);
+  assert.equal(
+    Object.keys(metrics.lodRadiusScaleByObject).length,
+    expectedAssetMetadata.source.objects.length,
+  );
   assert(Object.values(metrics.lodRadiusScaleByObject).every((scale) => Number.isFinite(scale) && scale >= 1));
   assert.equal(metrics.gpuBufferBuilds, 1);
   assert.equal(metrics.bufferRebuilds, 1);
@@ -127,11 +126,21 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert(metrics.gpuBufferBytes > 0 && metrics.gpuBufferBytes <= expected.maximumGpuBytes);
   assert.deepEqual(metrics.zones, expectedCameraPageIds);
   assert.equal(metrics.assetSourceHash, expectedAssetMetadata.source.sha256);
-  for (const [objectKey, instanceCount] of Object.entries(expectedObjectInstances)) {
-    const object = expectedAssetMetadata.source.objects.find((entry) => entry.objectKey === objectKey);
-    assert.equal(object?.instanceCount, instanceCount, `${objectKey} lost its restored source instances.`);
-    assert.equal(object?.connectedComponentCount, instanceCount, `${objectKey} lost an authored component.`);
-  }
+  const portalObjects = expectedAssetMetadata.source.objects
+    .filter((entry) => entry.modelKey === 'about.02' && entry.objectKey.startsWith('abs.hoop.'));
+  assert.equal(portalObjects.length, 14, 'The recovered round portal sequence is incomplete.');
+  assert(portalObjects.every((entry) => entry.instanceCount === 1 && entry.connectedComponentCount === 1),
+    'A recovered round portal lost its authored component.');
+  const gateObjects = expectedAssetMetadata.source.objects
+    .filter((entry) => entry.modelKey === 'about.04' && entry.objectKey.startsWith('abs.gate.'));
+  assert.equal(gateObjects.length, 16, 'The recovered square gate sequence is incomplete.');
+  assert(gateObjects.every((entry) => entry.instanceCount === 1 && entry.connectedComponentCount === 1),
+    'A recovered square gate lost its authored component.');
+  const finaleSurface = expectedAssetMetadata.source.objects
+    .find((entry) => entry.objectKey === 'abs.finale.boundless.surface');
+  assert.equal(finaleSurface?.modelKey, 'about.06');
+  assert.equal(finaleSurface?.connectedComponentCount, 1,
+    'The boundless finale surface must stay physically connected.');
   assert(
     metrics.activeZones.every((zone) => metrics.zones.includes(zone)),
     'The runtime reported an unknown active GPU page.',

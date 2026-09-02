@@ -108,7 +108,7 @@ test('the canonical graph keeps one permanent Blender-backed world', () => {
   assert.equal(document.globals.pointMaterial.pointerForcePx, 0);
   assert.equal(document.globals.camera.steadycamResponseMs, 0);
   assert.equal(document.globals.camera.pointerPanDegrees, 0);
-  assert.equal(document.globals.scrollSmoothing, 0);
+  assert.equal(document.globals.scrollSmoothing, 0.64);
   assert(document.tracks.visibility.keys.every((key) => key.visibility === 1));
   const activeGraph = JSON.stringify({
     camera: document.tracks.camera,
@@ -149,10 +149,10 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
   assert.equal(assetMeta.profiles.mobile.surfelCount, 30_000);
   assert(assetMeta.profiles.mobile.surfelCount <= assetMeta.profiles.desktop.surfelCount);
   assert.equal(assetMeta.profiles.master.surfelCount, assetMeta.files.surfels.count);
-  assert.equal(assetMeta.models.length, 6);
+  assert.equal(assetMeta.models.length, 7);
   assert.deepEqual(
     new Set(assetMeta.models.map((model) => model.key)),
-    new Set(['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05']),
+    new Set(['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06']),
   );
   const expectedVisibilityCues = new Map([
     ['about.00', ['opening', 'inciting-question']],
@@ -160,7 +160,8 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
     ['about.02', ['portal-entry', 'portal-exit']],
     ['about.03', ['portal-exit', 'gate-entry']],
     ['about.04', ['gate-entry', 'gate-exit']],
-    ['about.05', ['gate-exit', 'terminal-hold']],
+    ['about.05', ['gate-exit', 'split-lattice-entry']],
+    ['about.06', ['split-lattice-entry', 'terminal-hold']],
   ]);
   for (const model of assetMeta.models) {
     assert(model.surfelRange.count > 0, `${model.id} has no master surfels`);
@@ -201,7 +202,8 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
     'iPreserve',
     'iVisibilityStartWU',
     'iVisibilityEndWU',
-    'iVisibilityHandoffWU',
+    'iVisibilityEntranceHandoffWU',
+    'iVisibilityExitHandoffWU',
   ]) {
     assert(sceneSource.includes(`setAttribute('${attribute}'`), `runtime omits ${attribute}`);
   }
@@ -213,8 +215,9 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
 
 test('the shared-buffer surfel shader reveals whole, fully coloured circles from fog', () => {
   assert.doesNotMatch(sceneSource, /createDepthProxy|depthProxy|proxyReady|proxyTriangles/);
-  assert.match(sceneSource, /revealRanks\[index\] = view\.getUint16\(offset \+ 18, true\)/);
-  assert.match(sceneSource, /InstancedBufferAttribute\(decoded\.revealRanks, 1, true\)/);
+  assert.match(sceneSource, /const destinationIndex = modelRanges\[modelId\]\.start \+ modelCursors\[modelId\]/);
+  assert.match(sceneSource, /revealRanks\[destinationIndex\] = view\.getUint16\(offset \+ 18, true\)/);
+  assert.match(sceneSource, /InstancedBufferAttribute\(view\(decoded\.revealRanks\), 1, true\)/);
   assert.match(sceneSource, /octDecodeNormal\(iNormalOct\)/);
   assert.match(sceneSource, /surfaceFacing < -clamp\(uBackfaceRetention/);
   assert.match(sceneSource, /revealVisibility = min\([\s\S]*?fogVisibility[\s\S]*?uSceneVisibility[\s\S]*?uOpacity/);
@@ -223,11 +226,18 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /revealRank = min\([\s\S]*?iRevealRank \* manifestationSpread[\s\S]*?manifestationSpread - 0\.001/);
   assert.match(sceneSource, /uniforms\.uManifestationSpread\.value = controls\.manifestationSpread/);
   assert.match(sceneSource, /revealProgress <= 0\.0[\s\S]*?gl_Position = vec4\(2\.0, 2\.0, 2\.0, 1\.0\)/);
-  assert.match(sceneSource, /stageRevealProgress = smoothstep\(/);
+  assert.doesNotMatch(sceneSource, /stageRevealProgress|stageRevealRank/);
   assert.match(sceneSource, /uniforms\.uStoryWU\.value = journeySample\.sceneStoryWU/);
+  assert.match(sceneSource, /float stageEntrance = iVisibilityStartWU <= 0\.0[\s\S]*?iVisibilityStartWU \+ entranceHandoffWU,[\s\S]*?uStoryWU/);
+  assert.match(sceneSource, /float stageExit = 1\.0 - smoothstep\([\s\S]*?iVisibilityEndWU - exitHandoffWU[\s\S]*?iVisibilityEndWU,[\s\S]*?uStoryWU/);
+  assert.match(sceneSource, /const entrance = startWU <= 0 \? 1 : smoothstep\([\s\S]*?startWU \+ entranceHandoffWU,[\s\S]*?storyWU/);
+  assert.match(sceneSource, /const exit = 1 - smoothstep\([\s\S]*?endWU - exitHandoffWU[\s\S]*?endWU,[\s\S]*?storyWU/);
   assert.match(sceneSource, /stageVisibilityMode: latestFrame\?\.reducedMotion[\s\S]*?'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff'/);
   assert.match(sceneSource, /presentationScale <= 0\.0[\s\S]*?gl_Position = vec4\(2\.0, 2\.0, 2\.0, 1\.0\)/);
-  assert.match(sceneSource, /radiusPx \*= revealProgress \* stageVisibility \* clamp\(uEntranceScale, 0\.0, 1\.0\)/);
+  assert.match(sceneSource, /radiusPx \*= revealProgress \* clamp\(uEntranceScale, 0\.0, 1\.0\)/);
+  assert.doesNotMatch(sceneSource, /radiusPx \*= revealProgress \* stageVisibility/);
+  assert.match(sceneSource, /fogVolumeOffsetWU = fogVolumeField \* min\(3\.5, fogSpanWU \* 0\.025\)/);
+  assert.match(sceneSource, /cameraDepth \+ fogVolumeOffsetWU/);
   assert.doesNotMatch(sceneSource, /mix\(0\.64, 1\.0, revealProgress\)/);
   assert.match(sceneSource, /float circleRadius = length\(vCircle\);[\s\S]*?if \(circleRadius > 1\.0\) discard;/);
   assert.doesNotMatch(sceneSource, /vFogVisibility|vVisibility|visibility \* edge/);
@@ -236,7 +246,7 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /if \(circleRadius <= 0\.96\) discard;[\s\S]*?float alpha = edge;[\s\S]*?vec4\(shaded, alpha\)/);
   assert.match(sceneSource, /transparent: false,[\s\S]*?alphaToCoverage: true,[\s\S]*?depthWrite: true,[\s\S]*?blending: THREE\.NoBlending/);
   assert.match(sceneSource, /antialias: true/);
-  assert.match(sceneSource, /sceneGroup\.add\(surfelCore, surfelSoft\)/);
+  assert.match(sceneSource, /sceneGroup\.add\(core, soft\)/);
   assert.match(sceneSource, /drawCalls = renderer\.info\.render\.calls/);
   assert.match(sceneSource, /occlusionMode: 'depth-owned-whole-surfel-reveal'/);
 });
@@ -302,8 +312,13 @@ test('the public About finale has no model-credit disclosure', () => {
 });
 
 test('runtime controls change projected detail, coverage, fog, and coherent motion without rebuilding buffers', () => {
-  assert.match(sceneSource, /activeCount = count/);
-  assert.match(sceneSource, /surfelGeometry\.instanceCount = activeCount/);
+  assert.match(sceneSource, /surfelGeometries = decoded\.modelRanges\.map\(\(range\) => createSurfelGeometry\(decoded, range\)\)/);
+  assert.match(sceneSource, /modelRenderBatches = surfelGeometries\.map\(\(geometry, modelId\) =>/);
+  assert.match(sceneSource, /geometry\.instanceCount = 0/);
+  assert.match(sceneSource, /batch\.geometry\.instanceCount = active \? batch\.count : 0/);
+  assert.match(sceneSource, /batch\.core\.visible = active/);
+  assert.match(sceneSource, /batch\.soft\.visible = active/);
+  assert.match(sceneSource, /if \(active\) activeCount \+= batch\.count/);
   assert.match(sceneSource, /uniforms\.uCoverage\.value = controls\.surfelCoverage/);
   assert.match(sceneSource, /uniforms\.uBackfaceRetention\.value = controls\.backfaceRetention/);
   assert.match(sceneSource, /uniforms\.uDetailBias\.value = controls\.detailBias/);
@@ -311,7 +326,7 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
   assert.match(sceneSource, /uniforms\.uFogEndWU\.value = Math\.max\(controls\.fogStartWU \+ 0\.001, controls\.fogEndWU\)/);
   assert.match(sceneSource, /uniforms\.uMotionAmountWU\.value = controls\.motionAmountWU/);
   assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample\)/);
-  assert.match(sceneSource, /stableAttributeIdentities\(surfelGeometry\)/);
+  assert.match(sceneSource, /stableAttributeIdentities\(surfelGeometries\)/);
   assert.match(sceneSource, /lodRadiusScaleMode: 'per-object'/);
   assert.match(sceneSource, /Math\.sqrt\(masterCount \/ Math\.max\(1, profileCount\)\)/);
   assert.match(sceneSource, /view\.getUint16\(offset \+ 22, true\)/);
@@ -321,28 +336,46 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
   assert.match(sceneSource, /frameTimeMs,/);
 });
 
-test('the exported Blender camera has one sparse roll control and a level ending', () => {
+test('the recovered Blender camera keeps a fixed wide projection, constant curved travel, and a late hold', () => {
   assert.equal(cameraTrack.version, 5);
   assert.equal(cameraTrack.source, 'ABS_CAMERA');
   assert.equal(cameraTrack.projection.type, 'perspective');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 65);
+  assert.equal(cameraTrack.projection.horizontalFov, 85);
+  assert.equal(cameraTrack.projection.sensorFit, 'HORIZONTAL');
   assert.equal(cameraTrack.sampleCount, cameraTrack.frameEnd - cameraTrack.frameStart + 1);
-  assert.equal(cameraTrack.rollControl.keyframes.length, 9);
-  assert.deepEqual(
-    cameraTrack.rollControl.keyframes.slice(0, 4).map((keyframe) => keyframe.degrees),
-    [0, -8, 8, 0],
-  );
-  assert.deepEqual(
-    cameraTrack.rollControl.keyframes.slice(-5).map((keyframe) => keyframe.degrees),
-    [0, -6, 8, -4, 0],
-  );
+  assert.equal(cameraTrack.rollControl, undefined);
+  assert.equal(cameraTrack.orientation.path, 'ABS_PARAMETRIC_RIDE_PATH');
+  assert.equal(cameraTrack.orientation.pathTwistMode, 'MINIMUM');
+  assert.equal(cameraTrack.orientation.neutralHorizon, 'Z_UP');
+  const lockCue = cameraTrack.journeyCues.find((cue) => cue.name === 'ABS_CAMERA_LOCK');
+  const lockIndex = lockCue.frame - cameraTrack.frameStart;
+  const movingSteps = [];
+  const rotationSteps = [];
+  for (let index = 1; index <= lockIndex; index += 1) {
+    const from = cameraTrack.samples[index - 1];
+    const to = cameraTrack.samples[index];
+    movingSteps.push(Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]));
+    const quaternionDot = Math.abs(from.slice(3).reduce((sum, value, axis) => (
+      sum + value * to[axis + 3]
+    ), 0));
+    rotationSteps.push(2 * Math.acos(Math.min(1, quaternionDot)) * 180 / Math.PI);
+  }
+  const meanStep = movingSteps.reduce((sum, value) => sum + value, 0) / movingSteps.length;
+  assert.ok(movingSteps.every((step) => Math.abs(step - meanStep) / meanStep < 0.001),
+    'Every moving frame must retain near-constant arc length.');
+  assert.ok(Math.max(...rotationSteps) < 1, 'Authored rotation must remain continuous between frames.');
+  assert.ok(Math.max(...rotationSteps) > 0.05, 'The accepted path must retain its authored curvature.');
+  assert.ok(Math.max(...cameraTrack.samples.slice(0, lockIndex + 1).map((sample) => Math.abs(sample[0]))) > 5,
+    'The camera path must retain its lateral rollercoaster sweep.');
+  for (let index = lockIndex + 1; index < cameraTrack.samples.length; index += 1) {
+    assert.deepEqual(cameraTrack.samples[index], cameraTrack.samples[lockIndex]);
+  }
   const finalQuaternion = cameraTrack.samples.at(-1).slice(3);
   assert(Math.abs(finalQuaternion[0]) < 0.002);
   assert(Math.abs(finalQuaternion[1]) < 0.002);
   assert(Math.abs(finalQuaternion[2]) < 0.002);
   assert(Math.abs(Math.hypot(...finalQuaternion) - 1) < 0.00001);
-  assert.equal(cameraTrack.orientation.steadycam.lookAheadMetres, 17.73);
   assert.match(sceneSource, /sampleCameraTrack\([\s\S]{0,160}?cameraTrack,[\s\S]{0,80}?progress,[\s\S]{0,80}?cameraAuthoredPosition,[\s\S]{0,80}?cameraAuthoredQuaternion,[\s\S]{0,80}?cameraTargetQuaternion/);
   assert.match(sceneSource, /steadycamController\.sampleInto\([\s\S]{0,220}?steadycamSample/);
   assert.match(sceneSource, /camera\.position\.set\([\s\S]{0,180}?steadycamSample\.position/);
@@ -382,6 +415,38 @@ test('canonical titles retain their fast entrance, fade floor, and opaque finale
   assert.match(timelineSource, /field\.preset === 'finale-v1'[\s\S]*?glyph\.style\.opacity = '1'/);
   assert.match(experienceSource, /<CopyEmailAction[\s\S]*?onActivate=\{onFinaleEmailPress\}/);
   assert.match(experienceSource, /<LinkedInAction[\s\S]*?href=\{ABOUT_NARRATIVE_CONTACT\.linkedin\}/);
+});
+
+test('canonical titles resolve frozen desktop and mobile viewport positions with global fallbacks', () => {
+  const expectedViewportY = new Map([
+    ['text-promise-main', [51, 48]],
+    ['text-complexity-idea', [70, 72]],
+    ['text-complexity-conditions', [28, 28]],
+    ['text-complexity-curiosity', [60, 63]],
+    ['text-complexity-listen', [60, 63]],
+    ['text-life-momentum', [77, 76]],
+    ['text-epilogue-shaping', [51, 51]],
+    ['text-epilogue-thinking', [51, 51]],
+    ['text-epilogue-invitation', [48, 48]],
+  ]);
+  for (const [fieldId, [desktop, mobile]] of expectedViewportY) {
+    const field = document.tracks.text.fields.find((candidate) => candidate.id === fieldId);
+    assert.deepEqual(field.presentation.viewportY, { desktop, mobile }, fieldId);
+  }
+  assert.match(experienceSource, /responsiveViewportY\[layoutProfile === 'mobile' \? 'mobile' : 'desktop'\]/);
+  assert.match(experienceSource, /fieldViewportY \?\? \(isOpener \|\| isFinale[\s\S]*?textMotion\.bookendViewportY[\s\S]*?textMotion\.standardViewportY/);
+});
+
+test('mobile client logos remain a two-column grid in short and tall viewports', () => {
+  const mobileGridDeclarations = [...stylesSource.matchAll(
+    /\.about-narrative-lab\[data-about-layout-profile='mobile'\] \.about-narrative-client-logos\s*\{[\s\S]*?grid-template-columns:\s*repeat\((\d),/g,
+  )];
+  assert.ok(mobileGridDeclarations.length > 0);
+  assert(mobileGridDeclarations.every((match) => match[1] === '2'));
+  assert.doesNotMatch(
+    stylesSource,
+    /@media \(max-height: 600px\)[\s\S]*?\.about-narrative-client-logos\s*\{[\s\S]*?grid-template-columns/,
+  );
 });
 
 test('discipline markers retain complete copy and live scene palette roles', () => {

@@ -218,7 +218,8 @@ function normalizeClientLogoArtwork(image) {
   let scale = clientLogoArtworkScale.get(image.currentSrc);
   if (scale == null) {
     // Supplied logo files include different amounts of transparent padding.
-    // Measure artwork once at load; never enlarge a cell or alter the source.
+    // Measure artwork once at load so the historical grid sizes visible marks,
+    // while each authored scale remains the optical source of truth.
     const canvas = document.createElement('canvas');
     canvas.width = Math.min(640, image.naturalWidth);
     canvas.height = Math.max(1, Math.round(canvas.width * image.naturalHeight / image.naturalWidth));
@@ -660,6 +661,7 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
 
 function TitleField({
   field,
+  layoutProfile,
   textMotion,
   isPrimaryTitle,
   drawTitleEntrances,
@@ -675,9 +677,13 @@ function TitleField({
   const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
     || (isOpener || isFinale ? 'display' : 'standard');
-  const authoredViewportY = Number(isOpener || isFinale
+  const responsiveViewportY = field.presentation?.viewportY;
+  const fieldViewportY = responsiveViewportY && typeof responsiveViewportY === 'object'
+    ? responsiveViewportY[layoutProfile === 'mobile' ? 'mobile' : 'desktop']
+    : responsiveViewportY;
+  const authoredViewportY = Number(fieldViewportY ?? (isOpener || isFinale
     ? textMotion.bookendViewportY
-    : textMotion.standardViewportY);
+    : textMotion.standardViewportY));
   const viewportYBounds = { min: 0, max: 100 };
   const viewportY = Number.isFinite(authoredViewportY)
     ? Math.min(viewportYBounds.max, Math.max(viewportYBounds.min, authoredViewportY))
@@ -813,6 +819,7 @@ function TitleField({
 
 function TextRenderSpan({
   field,
+  layoutProfile,
   span,
   storyField,
   storyGap,
@@ -841,6 +848,7 @@ function TextRenderSpan({
         <div className="about-narrative-spatial-stage">
           <TitleField
             field={field}
+            layoutProfile={layoutProfile}
             textMotion={textMotion}
             isPrimaryTitle={isPrimaryTitle}
             drawTitleEntrances={drawTitleEntrances}
@@ -1207,6 +1215,7 @@ export function AboutNarrativeLabExperience({
               <TextRenderSpan
                 key={span.id}
                 field={field}
+                layoutProfile={runtimePlan.layoutProfile}
                 span={span}
                 storyField={storyFieldsById.get(field.id)}
                 storyGap={storyGapsByFieldId.get(field.id)}

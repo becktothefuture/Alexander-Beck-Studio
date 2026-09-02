@@ -150,16 +150,10 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
     const aboutRoute = document.querySelector(
       '.about-narrative-lab[data-route-content="about"]',
     );
-    const comingSoonTitle = document.getElementById('about-coming-soon-title');
     return Boolean(
       body.classList.contains('about-page')
-      && (
-        comingSoonTitle
-        || (
-          aboutRoute
-          && aboutRoute.dataset.aboutSceneReady === 'true'
-        )
-      )
+      && aboutRoute
+      && aboutRoute.dataset.aboutSceneReady === 'true'
     );
   }
 

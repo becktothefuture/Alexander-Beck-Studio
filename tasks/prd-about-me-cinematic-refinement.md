@@ -1,5 +1,7 @@
 # PRD: About Me — a personal story with a living ending
 
+> **Recovery status — 1 September 2026:** the matched capture at `b172b8cd` remains rejected. The accepted B41 composition and B42 Blender authoring controls have now been promoted to the canonical source for final certification. Existing checked boxes below describe the earlier implementation and do not replace the current evidence in [about-cinematic-recovery-plan-2026-09-01.md](about-cinematic-recovery-plan-2026-09-01.md) and [about-cinematic-recovery-rollout-2026-09-01.md](about-cinematic-recovery-rollout-2026-09-01.md).
+
 Date: 31 August 2026
 
 Status: the canonical development implementation is complete and the final verification evidence is recorded in the completion sweep. The revised copy, full-viewport reading, direct scroll/camera mapping, all fourteen repaired gates, expansive point fields and connected ending are available in the safe phone preview. Production launch remains separate. Track current requirements and evidence in the [completion sweep](about-cinematic-completion-sweep.md); the historical checkpoints below are not a full completion claim.

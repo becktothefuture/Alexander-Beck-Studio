@@ -140,12 +140,12 @@ test('bookend palette frames stay fully opaque before their quieter resting endp
   );
 });
 
-test('About readiness accepts the production gate or the development narrative scene root', () => {
+test('About readiness waits for the narrative scene root in production and development', () => {
   const readySelector = /\.about-narrative-lab\[data-route-content=["']about["']\]/;
   assert.match(sources.siteApp, readySelector);
   assert.match(sources.routeReadiness, readySelector);
-  assert.match(sources.routeReadiness, /getElementById\('about-coming-soon-title'\)/);
-  assert.match(sources.siteApp, /routeId === 'about' && import\.meta\.env\.DEV/);
+  assert.doesNotMatch(sources.routeReadiness, /getElementById\('about-coming-soon-title'\)/);
+  assert.match(sources.siteApp, /const waitsForAboutNarrativeScene = routeId === 'about'/);
 });
 
 test('Work holds production at Coming soon and prewarms the canvas only in development', () => {
