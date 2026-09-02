@@ -19,6 +19,7 @@ import { shouldBatchFlatCircleBodies } from '../rendering/simulation-render-stra
 import { RENDER_REFERENCE_HZ, normalizePerStepMultiplier } from '../utils/time-normalization.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
+import { advanceKaleidoscopeRiftPhase } from './kaleidoscope-rift-phase.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -567,7 +568,11 @@ function updateKaleidoscopeRiftMotion(g, dt) {
   const speed = clamp(params.speed, 0.2, 2.4);
   const idleRate = g.prefersReducedMotion ? 0.025 : 0.12;
   const activeRate = state.activity.x * speed * 0.48;
-  state.phase = wrapAngleSigned(state.phase + (idleRate + activeRate) * updateDt);
+  state.phase = advanceKaleidoscopeRiftPhase(
+    state.phase,
+    idleRate + activeRate,
+    updateDt,
+  );
 
   return state;
 }
