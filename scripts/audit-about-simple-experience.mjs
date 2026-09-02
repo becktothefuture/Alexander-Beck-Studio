@@ -189,21 +189,28 @@ async function readTextContract(page, scrollport) {
 async function assertKeyboardAndScrollContract(page, scrollport, profile) {
   const contract = await scrollport.evaluate((node) => {
     const styles = getComputedStyle(node);
+    const canvas = node.closest('[data-about-simple]')?.querySelector('canvas');
+    const canvasStyles = canvas ? getComputedStyle(canvas) : null;
     return {
+      canvasPointerEvents: canvasStyles?.pointerEvents || '',
+      canvasZIndex: canvasStyles?.zIndex || '',
       overflowY: styles.overflowY,
+      pointerEvents: styles.pointerEvents,
       scrollBehavior: styles.scrollBehavior,
       touchAction: styles.touchAction,
     };
   });
+  assert.equal(contract.canvasPointerEvents, 'none', `${profile.id} point canvas intercepts scroll input`);
+  assert.equal(contract.canvasZIndex, '0', `${profile.id} point canvas sits above the scroll surface`);
   assert.ok(['auto', 'scroll'].includes(contract.overflowY), `${profile.id} scrollport is not native`);
+  assert.equal(contract.pointerEvents, 'auto', `${profile.id} scrollport does not accept direct input`);
   assert.equal(contract.scrollBehavior, 'auto', `${profile.id} adds scroll interpolation`);
   if (profile.hasTouch) {
     assert.ok(contract.touchAction.includes('pan-y'), 'mobile scrollport does not allow native vertical touch');
   }
 
+  await sampleAt(scrollport, 0);
   await scrollport.focus();
-  await page.keyboard.press('Home');
-  await page.waitForTimeout(80);
   await page.keyboard.press('PageDown');
   await page.waitForTimeout(180);
   const keyboardState = await scrollport.evaluate((node) => ({
@@ -213,6 +220,45 @@ async function assertKeyboardAndScrollContract(page, scrollport, profile) {
   assert.ok(
     keyboardState.scrollTop > 0 && keyboardState.progress > 0,
     `${profile.id} keyboard scrolling did not advance the narrative`,
+  );
+
+  await sampleAt(scrollport, 0);
+  const bounds = await scrollport.boundingBox();
+  assert.ok(bounds, `${profile.id} scrollport has no interactive bounds`);
+  const inputX = bounds.x + (bounds.width * 0.5);
+  if (profile.hasTouch) {
+    const cdp = await page.context().newCDPSession(page);
+    const startY = bounds.y + (bounds.height * 0.72);
+    const endY = bounds.y + (bounds.height * 0.28);
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ id: 1, x: inputX, y: startY }],
+    });
+    for (let step = 1; step <= 6; step += 1) {
+      const y = startY + ((endY - startY) * (step / 6));
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ id: 1, x: inputX, y }],
+      });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach();
+  } else {
+    await page.mouse.move(inputX, bounds.y + (bounds.height * 0.5));
+    await page.mouse.wheel(0, Math.min(720, bounds.height * 0.75));
+  }
+
+  await page.waitForFunction(() => {
+    const node = document.querySelector('[data-about-simple-scrollport]');
+    return Number(node?.scrollTop || 0) > 0 && Number(node?.dataset.aboutProgress || 0) > 0;
+  }, null, { timeout: 2_000 });
+  const directInputState = await scrollport.evaluate((node) => ({
+    progress: Number(node.dataset.aboutProgress || 0),
+    scrollTop: node.scrollTop,
+  }));
+  assert.ok(
+    directInputState.scrollTop > 0 && directInputState.progress > 0,
+    `${profile.id} direct scroll input did not advance the narrative`,
   );
 }
 

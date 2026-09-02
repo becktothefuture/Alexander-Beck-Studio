@@ -17,7 +17,7 @@
   isolation: isolate;
 }
 
-.about-simple__canvas {
+#simulations .about-simple__canvas {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -25,12 +25,14 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  touch-action: auto;
 }
 
 .about-simple__scrollport {
   position: absolute;
   z-index: 1;
   inset: 0;
+  pointer-events: auto;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
