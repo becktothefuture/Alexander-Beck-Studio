@@ -5718,15 +5718,17 @@ html.is-safari .noise::before {
       'caption caption'
       'left right';
     row-gap: 6px;
-    padding-inline-end: clamp(48px, 14vw, 56px);
+    padding-inline-end: 0;
   }
 
   html[data-shell-route='home'] body .ui-meta-left {
     grid-area: left;
+    align-self: end;
   }
 
   html[data-shell-route='home'] body .ui-meta-right {
     grid-area: right;
+    align-self: end;
   }
 
   .caption {
