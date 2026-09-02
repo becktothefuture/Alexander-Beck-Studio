@@ -365,6 +365,10 @@ export function prepareBookendTitleGlyphs(element) {
 
 function resolveProfile(name, timingMode = 'repeat', {
   bookendDelayMs = null,
+  bookendDurationMs = null,
+  bookendOverlapPercent = null,
+  compactFlow = null,
+  compactStartMs = null,
 } = {}) {
   const baseProfile = PROFILES[name] || PROFILES.route;
   const config = getShellRouteTransitionConfig();
@@ -379,6 +383,14 @@ function resolveProfile(name, timingMode = 'repeat', {
   const resolvedBookendDelayMs = Number.isFinite(Number(bookendDelayMs))
     ? Math.max(0, Number(bookendDelayMs))
     : config.typographyDelayMs;
+  const resolvedBookendDurationMs = bookendDurationMs !== null
+    && Number.isFinite(Number(bookendDurationMs))
+    ? Math.max(0, Number(bookendDurationMs))
+    : config.routeBookendDurationMs;
+  const resolvedBookendOverlapPercent = bookendOverlapPercent !== null
+    && Number.isFinite(Number(bookendOverlapPercent))
+    ? Math.min(99, Math.max(0, Number(bookendOverlapPercent)))
+    : config.routeBookendOverlapPercent;
   const group = (groupName, durationMs, stepMs = step) => ({
     ...baseProfile.groups[groupName],
     startMs: reduced ? 0 : baseProfile.groups[groupName].startMs + routeTypographyOffsetMs,
@@ -387,7 +399,10 @@ function resolveProfile(name, timingMode = 'repeat', {
   });
   return {
     ...baseProfile,
-    compactFlow: name === 'route',
+    compactFlow: typeof compactFlow === 'boolean' ? compactFlow : name === 'route',
+    compactStartMs: compactStartMs !== null && Number.isFinite(Number(compactStartMs))
+      ? Math.max(0, Number(compactStartMs))
+      : null,
     identityLineStepMs: reduced ? 0 : 50,
     contextGapMs: reduced ? 0 : 40,
     actionGapMs: reduced ? 0 : 60,
@@ -397,8 +412,8 @@ function resolveProfile(name, timingMode = 'repeat', {
       ...baseProfile.bookendTitle,
       delayMs: reduced ? 0 : resolvedBookendDelayMs,
       colorCount: config.routeBookendColorCount,
-      durationMs: reduced ? 0 : config.routeBookendDurationMs,
-      overlapPercent: config.routeBookendOverlapPercent,
+      durationMs: reduced ? 0 : resolvedBookendDurationMs,
+      overlapPercent: resolvedBookendOverlapPercent,
       lineOverlapMs: reduced ? 0 : config.routeBookendLineOverlapMs,
       ruleDurationMs: reduced ? 0 : config.routeBookendLineDurationMs,
       descriptionDelayMs: reduced ? 0 : config.routeBookendDescriptionDelayMs,
@@ -494,12 +509,15 @@ function sequenceTargets(targets, profile) {
   }
 
   if (profile.compactFlow) {
+    const compactStartMs = Number.isFinite(profile.compactStartMs)
+      ? profile.compactStartMs
+      : cursorMs;
     const starts = {
-      legend: cursorMs,
-      context: cursorMs,
-      action: cursorMs + profile.actionGapMs,
-      footer: cursorMs + profile.actionGapMs + profile.footerStepMs,
-      control: cursorMs + profile.actionGapMs + profile.footerStepMs + readGroup(profile, 'control').stepMs,
+      legend: compactStartMs,
+      context: compactStartMs,
+      action: compactStartMs + profile.actionGapMs,
+      footer: compactStartMs + profile.actionGapMs + profile.footerStepMs,
+      control: compactStartMs + profile.actionGapMs + profile.footerStepMs + readGroup(profile, 'control').stepMs,
     };
     SEQUENCED_GROUPS.forEach((groupName) => {
       const group = readGroup(profile, groupName);
@@ -912,9 +930,19 @@ export function createEntranceSequence({
   targetSelector = ENTRANCE_SELECTOR,
   targetDefaults = null,
   bookendDelayMs = null,
+  bookendDurationMs = null,
+  bookendOverlapPercent = null,
+  compactFlow = null,
+  compactStartMs = null,
   onAnimation,
 } = {}) {
-  const profile = resolveProfile(profileName, timingMode, { bookendDelayMs });
+  const profile = resolveProfile(profileName, timingMode, {
+    bookendDelayMs,
+    bookendDurationMs,
+    bookendOverlapPercent,
+    compactFlow,
+    compactStartMs,
+  });
   entranceSequenceGeneration += 1;
   const sequenceSeed = entranceSequenceGeneration;
   const targetOptions = {

@@ -105,7 +105,7 @@
   "motion": {
     "shellRevealMs": 180,
     "contentRevealMs": 420,
-    "simulationWarmupFrames": 90,
+    "simulationWarmupFrames": 12,
     "allowScaleEntrance": false,
     "modalOverlayOpacity": 0,
     "modalOverlayBlurPx": 13.2,

@@ -3442,7 +3442,10 @@ button.abs-meta-btn,
 }
 
 /* London and its local time share the same quiet Geist metadata role. */
-#site-year.meta-caption {
+#site-year.meta-caption,
+#site-year.meta-caption:hover,
+#site-year.meta-caption:focus,
+#site-year.meta-caption:active {
   font-family: var(--abs-font-sans);
   font-size: var(--home-footer-meta-font-size, var(--caption-font-size));
   font-style: normal;
@@ -3461,10 +3464,10 @@ button.abs-meta-btn,
   letter-spacing: inherit;
 }
 
-/* Keep the location and time on one stable baseline at every viewport size. */
+/* Keep the location and time on one optical centre line on desktop. */
 .meta-stack {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.35em;
 }
@@ -6165,10 +6168,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
   }
 }
 
-#site-year.meta-caption,
-#site-year.meta-caption:hover,
-#site-year.meta-caption:focus,
-#site-year.meta-caption:active {
+#site-year.meta-caption {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -6188,7 +6188,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
   cursor: default;
   filter: none;
   opacity: 0.7;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translateZ(0);
   transition: opacity 0.15s var(--ease-organic);
 }
@@ -8781,7 +8781,7 @@ body.cv-page .cv-section--signals {
 }
 
 @media (min-width: 601px) {
-  html[data-shell-route='home'] body #site-year {
+  html[data-shell-route='home'] body #site-year.meta-caption {
     block-size: var(--home-footer-social-touch-size);
     height: var(--home-footer-social-touch-size);
     min-height: var(--home-footer-social-touch-size);

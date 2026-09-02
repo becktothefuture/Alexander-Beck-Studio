@@ -994,6 +994,11 @@ export async function bootstrapHomePage(runtimeContext = {}) {
           directEntrance = createEntranceSequence({
             scopes: document,
             profile: 'direct',
+            bookendDelayMs: 120,
+            bookendDurationMs: 160,
+            bookendOverlapPercent: 92,
+            compactFlow: true,
+            compactStartMs: 440,
             diagnosticRoot: document.documentElement,
             reducedMotion: reduceMotion,
           });

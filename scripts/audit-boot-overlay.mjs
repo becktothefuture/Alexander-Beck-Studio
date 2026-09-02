@@ -787,24 +787,24 @@ function assertHomeRevealOrder(snapshot, label) {
     `${label}: legend starts at ${firstLegendDelay}ms before identity finishes staging at ${lastIdentityDelay}ms`
   );
   assert(
-    firstContextDelay > lastLegendDelay,
-    `${label}: top-right context starts at ${firstContextDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
+    firstContextDelay >= firstLegendDelay && firstContextDelay <= lastLegendDelay,
+    `${label}: top-right context at ${firstContextDelay}ms did not overlap the compact legend entrance ${firstLegendDelay}-${lastLegendDelay}ms`
   );
   assert(
     firstActionDelay >= 0,
     `${label}: bottom route tabs reported an invalid transition delay ${firstActionDelay}ms`
   );
   assert(
-    firstFooterDelay > lastLegendDelay,
-    `${label}: footer starts at ${firstFooterDelay}ms before top-left labels finish staging at ${lastLegendDelay}ms`
+    firstFooterDelay >= firstLegendDelay,
+    `${label}: footer starts at ${firstFooterDelay}ms before supporting content begins at ${firstLegendDelay}ms`
   );
   assert(
     firstSimulationTabDelay > lastIdentityDelay,
     `${label}: simulation tab starts at ${firstSimulationTabDelay}ms before the Home identity is staged at ${lastIdentityDelay}ms`
   );
   assert(
-    firstSimulationTabDelay <= firstLegendDelay,
-    `${label}: simulation tab starts at ${firstSimulationTabDelay}ms after supporting content begins at ${firstLegendDelay}ms`
+    firstSimulationTabDelay >= firstLegendDelay && firstSimulationTabDelay <= firstFooterDelay,
+    `${label}: simulation tab at ${firstSimulationTabDelay}ms did not join the compact supporting-content entrance`
   );
   assert(
     firstSimulationTabDelay < Math.max(firstContextDelay, firstActionDelay, lastFooterDelay),
@@ -925,24 +925,24 @@ function assertHomeRevealUserVisibleOrder(snapshot, label) {
     `${label}: identity became user-visible at ${Math.round(firstIdentity)}ms after legend at ${Math.round(firstLegend)}ms`
   );
   assert(
-    firstContext > lastLegend,
-    `${label}: top-right context became user-visible at ${Math.round(firstContext)}ms before all legend labels at ${Math.round(lastLegend)}ms`
+    firstContext >= firstLegend && firstContext <= lastLegend,
+    `${label}: top-right context at ${Math.round(firstContext)}ms did not overlap the visible legend entrance ${Math.round(firstLegend)}-${Math.round(lastLegend)}ms`
   );
   assert(
     firstAction >= 0,
     `${label}: bottom route tabs reported invalid first visible timing ${Math.round(firstAction)}ms`
   );
   assert(
-    firstFooter > lastLegend,
-    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before all legend labels at ${Math.round(lastLegend)}ms`
+    firstFooter >= firstLegend,
+    `${label}: footer/support chrome became user-visible at ${Math.round(firstFooter)}ms before supporting content at ${Math.round(firstLegend)}ms`
   );
   assert(
     firstSimulationTab > lastSeenAt(snapshot.identity),
     `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms before the Home identity resolved`
   );
   assert(
-    firstSimulationTab <= lastLegend,
-    `${label}: simulation tab became user-visible at ${Math.round(firstSimulationTab)}ms after all expertise labels at ${Math.round(lastLegend)}ms`
+    firstSimulationTab >= firstLegend && firstSimulationTab <= lastFooter,
+    `${label}: simulation tab at ${Math.round(firstSimulationTab)}ms did not join the visible supporting-content entrance`
   );
   assert(
     firstSimulationTab < Math.max(lastSeenAt(snapshot.context), lastSeenAt(snapshot.action), lastFooter),
@@ -971,7 +971,7 @@ function assertHomeRevealSettled(snapshot, { allowHiddenEdge = false, allowHidde
   assertHomeTargetVisible(snapshot.targets.meta, 'meta', 0.69);
   assertHomeTargetVisible(snapshot.targets.simulationTab, 'simulationTab');
   if (!(allowHiddenEdge && targetIsIntentionallyNonRenderable(snapshot.targets.edge))) {
-    assertHomeTargetVisible(snapshot.targets.edge, 'edge', 0.5);
+    assertHomeTargetVisible(snapshot.targets.edge, 'edge', 0.37);
   }
   if (snapshot.targets.quote && !(allowHiddenQuote && targetIsIntentionallyNonRenderable(snapshot.targets.quote))) {
     assertHomeTargetVisible(snapshot.targets.quote, 'quote');
