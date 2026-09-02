@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "updatedAt": "2026-08-06",
+  "version": 8,
+  "updatedAt": "2026-09-02",
   "stages": {
     "daily-rotation": "Eligible for the live Daily Simulation.",
     "collection": "Available to review or launch, but not part of Daily Simulation.",
@@ -36,12 +36,13 @@
       "id": "3d-cube",
       "name": "Scaffold",
       "chapter": "SCAFFOLD",
-      "stage": "daily-rotation",
+      "stage": "collection",
       "surface": "home-mode",
       "origin": "core-site",
       "launchPath": "/index.html?mode=3d-cube",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
+      "includeInNarrative": false,
+      "reviewStatus": "disabled",
+      "deactivationNote": "Disabled on 2026-09-02 because its 3D point-cloud structure differs from the other Home simulations and weakens their shared visual integrity.",
       "summary": "A breathing, pointer-tumbled circle lattice describes a rotating spatial frame."
     },
     {
@@ -91,12 +92,13 @@
       "id": "3d-sphere",
       "name": "Continuity",
       "chapter": "CONTINUITY",
-      "stage": "daily-rotation",
+      "stage": "collection",
       "surface": "home-mode",
       "origin": "core-site",
       "launchPath": "/index.html?mode=3d-sphere",
-      "includeInNarrative": true,
-      "reviewStatus": "stable",
+      "includeInNarrative": false,
+      "reviewStatus": "disabled",
+      "deactivationNote": "Disabled on 2026-09-02 because its 3D point-cloud structure differs from the other Home simulations and weakens their shared visual integrity.",
       "summary": "A dense breathing circle shell rotates through layered depth."
     },
     {
