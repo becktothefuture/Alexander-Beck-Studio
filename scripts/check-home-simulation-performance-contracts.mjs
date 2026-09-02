@@ -39,6 +39,27 @@ import {
   disposePointerGeometryObserver,
   observePointerGeometry,
 } from '../react-app/app/src/legacy/modules/input/pointer-geometry-observer.js';
+import { advanceKaleidoscopeRiftPhase } from '../react-app/app/src/legacy/modules/modes/kaleidoscope-rift-phase.js';
+
+test('Multiplicity phase stays continuous through the former signed-angle boundary', () => {
+  const before = Math.PI - 0.002;
+  const rate = 0.696;
+  const dt = 1 / 60;
+  const after = advanceKaleidoscopeRiftPhase(before, rate, dt);
+
+  assert.ok(after > Math.PI);
+  assert.ok(Math.abs(after - before - rate * dt) < 1e-12);
+
+  for (const frequency of [0.38, 0.8, 1, 1.4, 2.4, 3]) {
+    const sampledDelta = Math.abs(
+      Math.sin(after * frequency) - Math.sin(before * frequency),
+    );
+    assert.ok(
+      sampledDelta < 0.04,
+      `frequency ${frequency} stays continuous across the old boundary`,
+    );
+  }
+});
 
 test('canonical Home atmosphere keeps the broad field and disables the tight field', async () => {
   const designSystem = JSON.parse(await readFile(
