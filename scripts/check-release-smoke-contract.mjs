@@ -19,7 +19,7 @@ assert.equal(
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.renderedRouteId,
-  'about',
+  'about-narrative',
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.semanticContract.mainSelector,

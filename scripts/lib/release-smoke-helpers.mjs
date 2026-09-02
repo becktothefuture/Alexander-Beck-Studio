@@ -28,7 +28,7 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
   }),
   about: Object.freeze({
     identitySelector: '.about-narrative-lab[data-route-content="about"][data-about-scene-ready="true"]',
-    renderedRouteId: 'about',
+    renderedRouteId: 'about-narrative',
     runtime: false,
     representativeFocus: Object.freeze({
       selector: '[data-route-tab="portfolio"]',
