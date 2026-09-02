@@ -122,12 +122,20 @@ const matrix = [
     path: '/about.html',
     requireBootState: true,
     readySettleMs: 800,
-    readySelectors: ['#app-frame', '[data-route-tab="about"]', '[data-route-content="about"]'],
+    readySelectors: [
+      '#app-frame',
+      '[data-route-tab="about"]',
+      '.about-simple[data-route-content="about"][data-about-scene-ready="true"]'
+    ],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '[data-route-tab]', minCount: 4, minArea: 400, requiredText: primaryRouteLabels },
-      { selector: '[data-route-content="about"]', minArea: 60000, requiredText: ['Coming soon.'] }
+      {
+        selector: '[data-route-content="about"]',
+        minArea: 60000,
+        requiredText: ['Hi, I’m Alex.', 'Let’s begin.']
+      }
     ]
   },
   {

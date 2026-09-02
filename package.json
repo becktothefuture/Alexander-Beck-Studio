@@ -41,6 +41,7 @@
     "audit:about-recovery-motion": "node scripts/audit-about-motion-continuity.mjs",
     "audit:about-recovery-logos": "node scripts/audit-about-logo-bounds.mjs",
     "audit:about-particle-continuity": "node scripts/audit-about-particle-continuity.mjs",
+    "audit:about-simple": "node scripts/audit-about-simple-experience.mjs",
     "capture:about-cannes-jury": "node scripts/capture-about-cannes-jury-evidence.mjs",
     "audit:about-responsive-sequence": "node scripts/audit-about-responsive-sequence.mjs",
     "audit:about-interactive-stack": "node scripts/audit-about-interactive-stack.mjs",

@@ -12,7 +12,7 @@ const ABOUT_ROUTE_PATH = new URL(
   import.meta.url,
 );
 const ABOUT_EXPERIENCE_PATH = new URL(
-  '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx',
+  '../react-app/app/src/routes/about-simple/AboutSimpleExperience.jsx',
   import.meta.url,
 );
 const ROUTE_MANIFEST_PATH = new URL('../react-app/app/src/lib/route-manifest.js', import.meta.url);
@@ -161,8 +161,11 @@ test('development and production share canonical About playback without authorin
   assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-route-title'/);
   assert.doesNotMatch(aboutRouteSource, /AboutComingSoon|about-coming-soon|preview.*about/);
   assert.doesNotMatch(aboutRouteSource, /getAboutExperienceVersion|experienceVersion=/);
-  assert.match(aboutExperienceSource, /const initialDocument = ABOUT_NARRATIVE_DOCUMENT/);
-  assert.match(aboutExperienceSource, /const resolvedExperienceVersion = CANONICAL_ABOUT_EXPERIENCE_VERSION/);
+  assert.match(aboutExperienceSource, /import aboutContent from 'virtual:abs-content\/about'/);
+  assert.match(aboutExperienceSource, /data-about-act="arrival"/);
+  assert.match(aboutExperienceSource, /data-about-act="passage"/);
+  assert.match(aboutExperienceSource, /data-about-act="landscape-proof"/);
+  assert.match(aboutExperienceSource, /data-about-act="open-horizon"/);
   assert.doesNotMatch(aboutExperienceSource, /<main\b/, 'The shell owns the only main landmark.');
   assert.doesNotMatch(aboutExperienceSource, /copyVariant|aboutNarrativeCopyVariants/);
   assert.doesNotMatch(routeManifestSource, /['"]about-narrative-lab['"]\s*:/);

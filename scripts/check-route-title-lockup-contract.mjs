@@ -11,10 +11,10 @@ const sources = Object.fromEntries(await Promise.all([
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
-  ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
+  ['about', '../react-app/app/src/routes/about-simple/AboutSimpleExperience.jsx'],
   ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
-  ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
+  ['aboutStyles', '../react-app/app/src/routes/about-simple/about-simple.css'],
   ['siteApp', '../react-app/app/src/components/app/SiteApp.jsx'],
   ['routeReadiness', '../react-app/app/src/lib/motion/route-transition-readiness.js'],
   ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
@@ -39,7 +39,7 @@ test('every production route lockup consumes the shared title, rule, and descrip
   assert.equal((sources.about.match(/route-centered-page__title route-bookend-title/g) || []).length, 2);
   assert.equal((sources.about.match(/route-title-lockup__rule/g) || []).length, 2);
   assert.equal((sources.about.match(/route-centered-page__description route-intro-description/g) || []).length, 2);
-  assert.match(sources.about, /<LinkedInAction[\s\S]*?href=\{ABOUT_NARRATIVE_CONTACT\.linkedin\}/);
+  assert.match(sources.about, /<LinkedInAction[\s\S]*?href=\{homeContent\.socials\?\.items\?\.linkedin\?\.url\}/);
 
   assert.match(sources.home, /--home-hero-title-scale: var\(--route-bookend-title-scale\)/);
   assert.match(sources.home, /--home-hero-title-size-scale: 0\.9/);
@@ -63,7 +63,7 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.doesNotMatch(sources.playground, /playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.doesNotMatch(sources.playgroundStyles, /playground-title-lockup h1|playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.match(sources.playgroundResponsive, /titleScale: 1/);
-  const finaleTitleRule = sources.aboutStyles.match(/about-narrative-spatial-copy\.is-finale[\s\S]*?route-bookend-title \{([^}]*)\}/)?.[1] || '';
+  const finaleTitleRule = sources.aboutStyles.match(/about-simple__finale h2 \{([^}]*)\}/)?.[1] || '';
   assert.doesNotMatch(finaleTitleRule, /font-(?:family|size|weight)|letter-spacing|line-height/);
   assert.doesNotMatch(sources.aboutStyles, /--about-bookend-description-max-width/);
   assert.match(sources.aboutStyles, /--route-intro-description-max-width: 42ch/);
@@ -84,7 +84,7 @@ test('Contact and About share one centred, compact two-action family', () => {
   assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.match(
     sources.aboutStyles,
-    /data-about-experience-version='v2'[\s\S]*?\.about-narrative-finale-content \{[\s\S]*?top: 50%;[\s\S]*?justify-items: center;[\s\S]*?transform: translate3d\(0, -50%, 0\)/,
+    /\.about-simple__act--horizon \{[\s\S]*?place-items: center;[\s\S]*?\.about-simple__finale \{[\s\S]*?justify-items: center;/,
   );
   assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
   assert.doesNotMatch(sources.aboutStyles, /left: 50%;[\s\S]{0,120}width: 50%/);

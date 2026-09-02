@@ -200,17 +200,14 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- Production and development render the same canonical spatial narrative. The scene parameter panel, Save client, and authoring controls remain development-only.
-- Development always renders one canonical scroll narrative. URL `version` and legacy `edit` parameters are ignored. Press `/` to open or close the development-only whole-scene parameter panel.
-- `public/config/contents-about.json` is the sole authored About document. The parameter panel, local authoring endpoint, build input, and playback all resolve that source; no V1/V2 source split or second write endpoint remains.
-- The narrative is one continuous scroll experience inside the same physical window. The fixed point world and the text share one route-owned timeline; the shell, frame, and Button Bar remain stable.
-- The canonical experience is one permanent Blender-authored point world called **The Long Assembly**. Hoops and square gates lead through floating tools, a forest, and a workplace reveal. Removed rail, track, sleeper, and obsolete procedural-corridor geometry must not return.
-- The Story Stack acts as page geometry. Text order, measured copy height, and named gaps determine the complete scroll length. The camera follows the sparse Blender track while camera, visibility, Effects, and empty tracks never add page length.
-- Structures arrive through one persistent depth-fog field. A seeded, whole-surfel population reveal grows circles into view without fragment-alpha whitening or partial-circle clipping; visible circles retain their scheduled Home-palette colour. The development parameter panel exposes high-signal whole-scene controls that save to the canonical document.
-- Blender remains authoritative for scene geometry, camera path, sparse roll keys, and FOV. Exported models, paths, and workplace surfaces share one world-surface-area density with bounded semantic and meaningful-component anchors; the very large forest is a lower-density environmental field so it cannot consume the model-recognition budget. Topology cannot create vertex clumps, and small authored parts survive every nested quality profile.
-- The canonical experience protects title and editorial legibility through authored circulation and landmark placement. It does not use a projected clearance mask, text plate, world fade, opacity dissolve, hidden cut, or pointer pressure. Spatial titles remain solid Instrument Serif; editorial copy remains opaque Geist.
-- Every Title uses the shared route-bookend glyph language. The opener keeps its route entrance; each travelling Title and the finale replay the same left-to-right, full-opacity palette-colour draw when its Text moment becomes active, without changing that Title's authored size or position. Reduced Motion settles the complete title immediately.
-- The authored workplace owns the final invitation. The camera finishes level, the fog clears, and the final controls remain usable above the fixed point world. Reduced motion preserves the same geometry, final camera, text order, and spatial payoff.
+- Production and development render the same four-act narrative: Arrival, Passage, Landscape and proof, and Open horizon. `public/config/contents-about.json` remains the sole authored About copy and client source.
+- The route uses one continuous native scrollport inside the stable shell. Normal motion maps normalized scroll position directly to scene progress, without a delayed camera target or a second easing layer.
+- One seeded point field remains visible throughout the route. It establishes depth at Arrival, forms one curved passage of sixteen square gates, opens into a full-width landscape for career and client proof, and continues beyond the visible frame at the final horizon.
+- Passage owns the complete gate event. Editorial proof begins only after the final gate retires and the landscape is visible. The central reading zone stays quiet enough for opaque Geist copy and restrained client marks.
+- The opener and vertically centred finale use the shared route-bookend title language. All supporting copy remains reachable without completing or decoding the animation.
+- Client marks use deterministic authored optical scales. The runtime does not inspect logo pixels, and no one logo may dominate the proof grid.
+- Reduced Motion draws one stable representative point composition while the semantic content remains natively scrollable. It removes camera travel, gate traversal, parallax, and continuous interaction sound.
+- The retired Blender scene, circular portal, crafted-object sequence, method banks, lattices, and engineered finale may remain as inactive source. The public About route and production bundle do not load them.
 
 ### Contact
 
