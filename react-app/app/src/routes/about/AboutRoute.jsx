@@ -1,21 +1,21 @@
 import { lazy, Suspense } from 'react';
 import { AboutNarrativeLoadingFrame } from './AboutNarrativeLoadingFrame.jsx';
 
-let aboutExperiencePromise = null;
+let aboutNarrativeExperiencePromise = null;
 
 function loadAboutNarrativeExperience() {
-  if (!aboutExperiencePromise) {
-    aboutExperiencePromise = import('../about-simple/AboutSimpleExperience.jsx')
-      .then((module) => ({ default: module.AboutSimpleExperience }))
+  if (!aboutNarrativeExperiencePromise) {
+    aboutNarrativeExperiencePromise = import('../about-narrative-lab/AboutNarrativeLabExperience.jsx')
+      .then((module) => ({ default: module.AboutNarrativeLabExperience }))
       .catch((error) => {
-        aboutExperiencePromise = null;
+        aboutNarrativeExperiencePromise = null;
         throw error;
       });
   }
-  return aboutExperiencePromise;
+  return aboutNarrativeExperiencePromise;
 }
 
-const AboutExperience = lazy(loadAboutNarrativeExperience);
+const AboutNarrativeExperience = lazy(loadAboutNarrativeExperience);
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
@@ -36,7 +36,7 @@ export function getAboutRouteView() {
     studioWindowClassName: 'about-simulation route-page-window w-embed',
     simulationLayer: (
       <Suspense fallback={<AboutNarrativeLoadingFrame />}>
-        <AboutExperience
+        <AboutNarrativeExperience
           routeContentId="about"
           showIndicator
         />

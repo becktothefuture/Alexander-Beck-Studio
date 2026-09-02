@@ -373,11 +373,7 @@ export function useAboutNarrativeTimeline({
       const transport = getTransport(editorStore);
       if (transport && transport.owner !== 'scroll') return;
       if (planRef.current?.motionProfile === 'reduced') return;
-      if (shouldUseNativeSmoothScroll({
-        reducedMotionQuery,
-        nativeScrollQuery,
-        allowCoarsePointer: true,
-      })) return;
+      if (shouldUseNativeSmoothScroll({ reducedMotionQuery, nativeScrollQuery })) return;
       const smoothing = planRef.current?.model?.globals?.scrollSmoothing
         ?? documentRef.current.globals.scrollSmoothing;
       // Zero means native scrolling, not Lenis's remaining 0.22 interpolation.
@@ -386,9 +382,8 @@ export function useAboutNarrativeTimeline({
         wrapper: scrollport,
         content,
         smoothing,
-        allowCoarsePointer: true,
-        // Native touch momentum remains the interpolation owner on phones.
-        // Lenis owns wheel smoothing only, avoiding its unstable touch inertia.
+        // Coarse-pointer devices never reach this branch. Keep touch
+        // interpolation disabled for fine-pointer hybrid devices as well.
         syncTouch: false,
         virtualScroll: (input) => {
           // Lenis exposes the destination before the rendered scroll catches

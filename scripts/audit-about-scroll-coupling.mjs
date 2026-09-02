@@ -39,6 +39,42 @@ function positionAtDistance(distance) {
     .map((value, axis) => value + (track.samples[index][axis] - value) * mix);
 }
 
+async function waitForResizeCouplingSettled(page, viewport) {
+  const expectedProfile = viewport.width <= 600 ? 'mobile' : 'desktop';
+  await page.waitForFunction((profile) => (
+    document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile === profile
+  ), expectedProfile, { timeout: 5_000 });
+  return page.evaluate(async ({ expectedPathLengthWU, stableFrameTarget }) => {
+    const port = document.querySelector('.about-narrative-scrollport');
+    const started = performance.now();
+    let previous = null;
+    let stableFrames = 0;
+    while (performance.now() - started < 5_000) {
+      await new Promise(requestAnimationFrame);
+      const maximum = port.scrollHeight - port.clientHeight;
+      const metrics = window.__aboutNarrativeRuntime.getMetrics();
+      const expectedDistanceWU = maximum > 0
+        ? port.scrollTop / maximum * expectedPathLengthWU
+        : 0;
+      const sample = {
+        scrollTop: port.scrollTop,
+        maximum,
+        cameraDistanceWU: metrics.cameraDistanceWU,
+        errorWU: Math.abs(metrics.cameraDistanceWU - expectedDistanceWU),
+      };
+      const geometryStable = previous
+        && Math.abs(sample.scrollTop - previous.scrollTop) < 0.0001
+        && Math.abs(sample.maximum - previous.maximum) < 0.0001;
+      stableFrames = geometryStable && sample.errorWU < 0.0001
+        ? stableFrames + 1
+        : 0;
+      if (stableFrames >= stableFrameTarget) return sample;
+      previous = sample;
+    }
+    throw new Error('About resize did not restore exact scroll/camera coupling within 5 seconds.');
+  }, { expectedPathLengthWU: pathLength, stableFrameTarget: 3 });
+}
+
 await mkdir(outputDir, { recursive: true });
 const browser = await launchAboutAuditBrowser(browserName);
 const report = { browser: browserName, baseUrl, pathLengthWU: pathLength, profiles: [] };
@@ -88,12 +124,18 @@ try {
     }
     const wheelSamples = [];
     if (options.reducedMotion !== 'reduce') {
-      await page.evaluate(() => {
-        const port = document.querySelector('.about-narrative-scrollport');
-        port.scrollTop = (port.scrollHeight - port.clientHeight) * 0.45;
-      });
       await page.mouse.move(options.viewport.width / 2, options.viewport.height / 2);
       for (const delta of [42, 140, 280, 420, -70, -210]) {
+        await page.evaluate(async () => {
+          const port = document.querySelector('.about-narrative-scrollport');
+          port.scrollTop = (port.scrollHeight - port.clientHeight) * 0.45;
+          // Test each impulse from a settled midpoint. Back-to-back Lenis
+          // targets would otherwise make a small reverse impulse decelerate a
+          // larger unfinished forward target instead of testing direction.
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+        });
         const beforeTop = await page.locator('.about-narrative-scrollport').evaluate((port) => port.scrollTop);
         await page.mouse.wheel(0, delta);
         await page.waitForTimeout(160);
@@ -102,25 +144,64 @@ try {
           return { scrollTop: port.scrollTop, maximum: port.scrollHeight - port.clientHeight,
             position: window.__aboutNarrativeRuntime.getMetrics().cameraPosition };
         });
-        assert.ok((sample.scrollTop - beforeTop) * Math.sign(delta) > Math.abs(delta) * 0.5,
-          `${id}: native wheel input did not move the page in the requested direction.`);
+        const paintedDelta = sample.scrollTop - beforeTop;
+        assert.ok(paintedDelta * Math.sign(delta) > Math.abs(delta) * 0.5,
+          `${id}: native wheel delta ${delta}px painted only ${paintedDelta}px after 160ms.`);
         const expected = positionAtDistance(sample.scrollTop / sample.maximum * pathLength);
         const error = Math.hypot(...expected.map((value, axis) => value - sample.position[axis]));
         assert.ok(error < 0.0001, `${id}: native wheel movement diverged by ${error} WU.`);
         wheelSamples.push({ delta, ...sample, errorWU: error });
+        await page.locator('.about-narrative-scrollport').evaluate(async (port) => {
+          let previousTop = port.scrollTop;
+          let stableFrames = 0;
+          for (let frame = 0; frame < 240 && stableFrames < 12; frame += 1) {
+            await new Promise(requestAnimationFrame);
+            const nextTop = port.scrollTop;
+            stableFrames = Math.abs(nextTop - previousTop) < 0.01
+              ? stableFrames + 1
+              : 0;
+            previousTop = nextTop;
+          }
+          if (stableFrames < 12) throw new Error('Desktop wheel transport did not settle.');
+        });
       }
     }
     // A stopped native scroll must not cause another camera settle or mouse drift.
     const stopped = await page.evaluate(async () => {
       const port = document.querySelector('.about-narrative-scrollport');
       port.scrollTop = (port.scrollHeight - port.clientHeight) * 0.57;
-      await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame);
-      return window.__aboutNarrativeRuntime.getMetrics().cameraPosition;
+      let previousTop = port.scrollTop;
+      let stableFrames = 0;
+      for (let frame = 0; frame < 240 && stableFrames < 12; frame += 1) {
+        await new Promise(requestAnimationFrame);
+        const nextTop = port.scrollTop;
+        stableFrames = Math.abs(nextTop - previousTop) < 0.01
+          ? stableFrames + 1
+          : 0;
+        previousTop = nextTop;
+      }
+      await new Promise(requestAnimationFrame);
+      return {
+        scrollTop: port.scrollTop,
+        cameraPosition: window.__aboutNarrativeRuntime.getMetrics().cameraPosition,
+      };
     });
     await page.mouse.move(options.viewport.width - 30, options.viewport.height - 30);
     await page.waitForTimeout(600);
-    assert.deepEqual(await page.evaluate(() => window.__aboutNarrativeRuntime.getMetrics().cameraPosition), stopped,
-      `${id}: camera continues after scrolling stops.`);
+    const afterStop = await page.evaluate(() => {
+      const port = document.querySelector('.about-narrative-scrollport');
+      return {
+        scrollTop: port.scrollTop,
+        cameraPosition: window.__aboutNarrativeRuntime.getMetrics().cameraPosition,
+      };
+    });
+    const stoppedCameraErrorWU = Math.hypot(...afterStop.cameraPosition.map(
+      (value, axis) => value - stopped.cameraPosition[axis],
+    ));
+    assert.ok(Math.abs(afterStop.scrollTop - stopped.scrollTop) < 0.01,
+      `${id}: scroll transport continued after its settled position.`);
+    assert.ok(stoppedCameraErrorWU < 0.0001,
+      `${id}: camera continued ${stoppedCameraErrorWU} WU after scrolling stopped.`);
 
     const reading = [];
     for (const fieldId of ['text-background-unit', 'text-discipline-labels', 'text-life-character']) {
@@ -205,12 +286,12 @@ try {
       let previous = await readLifecycle();
       for (const viewport of [{ width: 390, height: 844 }, { width: 390, height: 600 }, options.viewport]) {
         await page.setViewportSize(viewport);
-        await page.waitForTimeout(700);
+        const settled = await waitForResizeCouplingSettled(page, viewport);
         const current = await readLifecycle();
         assert.ok(Math.abs(current.storyWU - previous.storyWU) < 0.05,
           `Resize lost the reading position: ${previous.storyWU} to ${current.storyWU} WU.`);
         assertCoupled(current, 'Resize');
-        lifecycle.push({ type: 'resize', viewport, before: previous, after: current });
+        lifecycle.push({ type: 'resize', viewport, before: previous, settled, after: current });
         previous = current;
       }
       await page.emulateMedia({ reducedMotion: 'reduce' });

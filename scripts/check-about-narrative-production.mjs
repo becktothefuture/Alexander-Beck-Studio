@@ -28,8 +28,7 @@ for (const file of textAssets) {
 
 assert.equal(files.some((file) => /AboutNarrativeEditor|about-narrative-editor/i.test(file)), false, 'Production emitted an About editor chunk.');
 assert.equal(files.some((file) => /AboutNarrativeParameterPanel|about-narrative-parameters/i.test(file)), false, 'Production emitted the development About parameter panel.');
-assert.equal(files.some((file) => /AboutSimpleExperience/i.test(file)), true, 'Production is missing the public simplified About chunk.');
-assert.equal(files.some((file) => /AboutNarrativeLabExperience/i.test(file)), false, 'Production still emits the retired multi-scene About runtime.');
+assert.equal(files.some((file) => /AboutNarrativeLabExperience/i.test(file)), true, 'Production is missing the public About narrative chunk.');
 assert.equal(files.some((file) => /aboutNarrativeResourceLedger/i.test(file)), false, 'Production emitted the About resource-ledger chunk.');
 assert.equal(files.some((file) => /aboutNarrativeRuntimeObserver\.certification/i.test(file)), false, 'Production emitted the certification runtime observer.');
-console.log('PASS: simplified public About is present; retired multi-scene runtime and editor diagnostics are absent from production assets');
+console.log('PASS: public About narrative is present; editor, ledger, and verbose runtime diagnostics are absent from production assets');

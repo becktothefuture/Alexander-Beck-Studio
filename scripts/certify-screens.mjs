@@ -125,7 +125,7 @@ const matrix = [
     readySelectors: [
       '#app-frame',
       '[data-route-tab="about"]',
-      '.about-simple[data-route-content="about"][data-about-scene-ready="true"]'
+      '.about-narrative-lab[data-route-content="about"][data-about-scene-ready="true"]'
     ],
     minReadySelectors: 3,
     selectors: [

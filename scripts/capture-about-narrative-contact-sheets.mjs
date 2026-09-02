@@ -313,6 +313,12 @@ await page.waitForFunction(
 durationWU = await page.locator('.about-narrative-scrollport').evaluate((node) => (
   (node.scrollHeight - node.clientHeight) / Math.max(1, node.clientHeight)
 ));
+// Focused sequences retain their authored probes, but their terminal frame
+// must follow the measured content-flow extent rather than the stale profile
+// estimate captured while this module was initialising.
+for (const sequenceId of ['late', 'ending', 'storyboard', 'rhythm', 'orbitProbe']) {
+  sequences[sequenceId] = [...sequences[sequenceId], durationWU];
+}
 // `page` is the canonical whole-story sheet: evenly sampling the measured
 // extent keeps it complete when copy is added, removed, or rewrapped.
 sequences.page = Array.from({ length: pageSampleCount }, (_, index) => (

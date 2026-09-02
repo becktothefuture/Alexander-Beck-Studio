@@ -34,7 +34,7 @@ Removing a control also means removing its persistence/export path. Browser stor
 
 ### Production simulation body material
 
-`shell.surface.simulationBodyMaterial.enabled` is canonically `true` with a `24px` cache detail. The code default remains `false`, so missing or incomplete configuration still fails closed. Home bodies and the quote puck, the simplified About point world, and Contact ripple balls reuse the shared cached sphere material from the active palette. The Work depth field remains a separate flat material even though it shares the active palette.
+`shell.surface.simulationBodyMaterial.enabled` is canonically `true` with a `24px` cache detail. The code default remains `false`, so missing or incomplete configuration still fails closed. Home bodies and the quote puck plus Contact ripple balls reuse the shared cached sphere material from the active palette. The Work depth field remains a separate flat material even though it shares the active palette. About's Blender surfels share the palette and shell atmosphere while retaining their instanced point-cloud material.
 
 The cache-detail and Light/Dark profile fields define the production material bake. Changes require an explicit visual decision and measured frame-time evidence. Renderers prewarm the active palette and retain the resulting sprites or atlas so no gradient construction, colour parsing, or lighting calculation occurs per body during a frame.
 

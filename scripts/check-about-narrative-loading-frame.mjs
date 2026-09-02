@@ -13,7 +13,7 @@ import {
 const ROOT = new URL('../', import.meta.url);
 const [loadingFrameSource, experienceSource] = await Promise.all([
   readFile(new URL('react-app/app/src/routes/about/AboutNarrativeLoadingFrame.jsx', ROOT), 'utf8'),
-  readFile(new URL('react-app/app/src/routes/about-simple/AboutSimpleExperience.jsx', ROOT), 'utf8'),
+  readFile(new URL('react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx', ROOT), 'utf8'),
 ]);
 
 test('About history progress is entry-local, clamped, and safely persisted', () => {
@@ -40,10 +40,10 @@ test('About history progress is entry-local, clamped, and safely persisted', () 
 test('the lazy frame shows the opener only at scroll top and hides restoration setup', () => {
   assert.match(loadingFrameSource, /hasAboutNarrativeRestoredProgress\(\)/);
   assert.match(loadingFrameSource, /data-about-opening-frame="restoring"/);
-  assert.match(experienceSource, /useRef\(readAboutNarrativeHistoryProgress\(\)\)/);
-  assert.match(experienceSource, /createAboutNarrativeScrollPersistence\(scrollportRef\.current\)/);
-  assert.match(experienceSource, /scrollport\.scrollTop = scrollRange \* restoredProgress/);
-  assert.match(experienceSource, /data-about-scene-ready="false"/);
+  assert.match(experienceSource, /readAboutNarrativeHistoryProgress\(\)/);
+  assert.match(experienceSource, /createAboutNarrativeScrollPersistence\(scrollport\)/);
+  assert.match(experienceSource, /if \(!restorationPending \|\| !layoutReady\) return undefined/);
+  assert.match(experienceSource, /data-about-restoring=\{restorationPending \? 'true' : 'false'\}/);
 });
 
 function createPersistenceFixture() {
@@ -165,9 +165,9 @@ test('same-route URL changes keep saving but a destination route is protected', 
   assert.deepEqual(win.history.state, { routeId: 'contact' });
 });
 
-test('About uses one direct native-scroll progress instrument', () => {
-  assert.match(experienceSource, /const progress = scrollRange > 0 \? scrollport\.scrollTop \/ scrollRange : 0/);
-  assert.match(experienceSource, /--about-simple-progress/);
-  assert.match(experienceSource, /runtimeRef\.current\?\.setProgress\(boundedProgress\)/);
-  assert.doesNotMatch(experienceSource, /resolveScrollProgressIndicatorState|activeTickCount|Lenis/);
+test('About uses the shared moving two-tick progress instrument', () => {
+  assert.match(experienceSource, /resolveScrollProgressIndicatorState\(progress/);
+  assert.match(experienceSource, /index >= indicatorState\.activeStartIndex/);
+  assert.match(experienceSource, /indicatorState\.activeTickCount/);
+  assert.doesNotMatch(experienceSource, /index <= resolvedActiveIndex/);
 });

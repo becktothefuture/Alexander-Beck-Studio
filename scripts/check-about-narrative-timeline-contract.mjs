@@ -57,8 +57,9 @@ test('About uses one painted scroll position for semantic and camera rendering',
   assert.doesNotMatch(source, /camera(?:Position)?(?:Lerp|Spring)|lerpCamera/);
 });
 
-test('About opts into touch-safe mobile transport while preserving native touch momentum', () => {
-  assert.match(source, /allowCoarsePointer: true/);
+test('About preserves native coarse-pointer momentum and smooths only fine-pointer wheel input', () => {
+  assert.match(source, /shouldUseNativeSmoothScroll\(\{ reducedMotionQuery, nativeScrollQuery \}\)/);
+  assert.doesNotMatch(source, /allowCoarsePointer:\s*true/);
   assert.match(source, /syncTouch: false/);
   assert.match(smoothScrollSource, /allowCoarsePointer = false/);
   assert.match(smoothScrollSource, /!allowCoarsePointer/);
@@ -98,13 +99,19 @@ test('programmatic and editor jumps synchronize the painted position immediately
 
 test('DOM geometry is isolated to the cached content-measurement pass', () => {
   const geometryReads = [...source.matchAll(/getBoundingClientRect\(\)/g)];
-  assert.equal(geometryReads.length, 3);
+  assert.equal(geometryReads.length, 5);
+  const geometryStart = source.indexOf('const installScrollGeometry');
+  const geometryEnd = source.indexOf('const publishFinaleOrbitWU');
   const pressureStart = source.indexOf('const collectContentPressure');
   const pressureEnd = source.indexOf('const cacheSemanticNodes');
+  assert.ok(geometryStart >= 0 && geometryEnd > geometryStart);
   assert.ok(pressureStart >= 0 && pressureEnd > pressureStart);
-  geometryReads.forEach((read) => {
-    assert.ok(read.index > pressureStart && read.index < pressureEnd);
-  });
+  assert.equal(geometryReads.filter((read) => (
+    read.index > geometryStart && read.index < geometryEnd
+  )).length, 2);
+  assert.equal(geometryReads.filter((read) => (
+    read.index > pressureStart && read.index < pressureEnd
+  )).length, 3);
   assert.ok(source.includes('getAboutNarrativeReadingOrderRevealMetrics'));
   assert.ok(source.includes('editorialRevealMetrics'));
 });

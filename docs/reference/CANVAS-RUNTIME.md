@@ -86,11 +86,11 @@ Do not rely on global patching as the first choice for new runtime code. Keep `l
 
 ## Production Simulation Body Material
 
-Production semantic simulation bodies reuse cached matte sphere stickers or atlases from the active time-of-day palette. The finish is enabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, the Home quote puck, the simplified About point world, and Contact consume the shared cached material; flat circles remain a guarded missing-material fallback. The Work depth field is a separate neutral three-layer material.
+Production semantic simulation bodies reuse cached matte sphere stickers or atlases from the active time-of-day palette. The finish is enabled at the canonical `shell.surface.simulationBodyMaterial.enabled` setting and defaults to disabled when configuration is missing. Home, the Home quote puck, and Contact consume the shared cached material; flat circles remain a guarded missing-material fallback. The Work depth field is a separate neutral three-layer material. About's Blender surfels use the same palette and shell atmosphere but retain their bounded instanced point-cloud material.
 
 This is a performance contract as well as a visual choice. Renderers prewarm the active palette and retain the resulting sprites or atlas; they do not construct gradients, parse colours, or calculate lighting per body during a frame. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
-The retained sphere-material cache is compatibility and development infrastructure only. It must remain inactive in production unless a later, explicit visual decision includes measured frame-time evidence across the route matrix. The shared atmosphere compositor below remains separate and may sample the completed flat route material.
+The sphere-material cache is bounded shared production infrastructure. A new renderer may opt into it only after an explicit visual decision and measured frame-time evidence across the route matrix. The shared atmosphere compositor below remains separate and may sample any completed eligible route material.
 
 ## Production Simulation Atmosphere
 

@@ -64,7 +64,7 @@ The system is distributed across these production surfaces. A design change is c
 | Route names, visible navigation labels, and accent ownership | `src/lib/routes.js`, `shell-button-bar-dominant.css` |
 | Home title, expertise legend, supporting copy, and simulation field | `HomeRoute.jsx`, `legacy/main.js`, `legacy/modules/rendering/`, `main.css`, `contents-home.json` |
 | Work title, spatial catalogue, access gate, snippet stage, case-study drawer, and media handoff | `PortfolioRoute.jsx`, `PortfolioGateRoute.jsx`, `PlaygroundExperience.jsx`, `routes/portfolio/work/`, `legacy/modules/portfolio/`, `portfolio.css`, `contents-portfolio.json` |
-| About public narrative and point world | `src/routes/about/AboutRoute.jsx`, `src/routes/about-simple/`, `public/config/contents-about.json` |
+| About public narrative and point world | `src/routes/about/AboutRoute.jsx`, `src/routes/about-narrative-lab/`, `public/config/contents-about.json` |
 | Contact title, description, email action, ripple field, sound, and haptics | `ContactRouteContent.jsx`, `ContactRippleSimulation.jsx`, `contactRippleRenderer.js`, `contact-route.css`, shared centered-route CSS |
 | Internal Work spatial engine, deterministic placement, depth field, media runtimes, and authoring controls | `routes/playground/`, `public/assets/playground/`, `docs/reference/PLAYGROUND.md` |
 | Home footer social links, edge caption, and London time | `SiteFooter.jsx`, `main.css`, `contents-home.json` |
@@ -200,14 +200,15 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ### About Me
 
-- Production and development render the same four-act narrative: Arrival, Passage, Landscape and proof, and Open horizon. `public/config/contents-about.json` remains the sole authored About copy and client source.
-- The route uses one continuous native scrollport inside the stable shell. Normal motion maps normalized scroll position directly to scene progress, without a delayed camera target or a second easing layer.
-- One seeded point field remains visible throughout the route. It establishes depth at Arrival, forms one curved passage of sixteen square gates, opens into a full-width landscape for career and client proof, and continues beyond the visible frame at the final horizon.
-- Passage owns the complete gate event. Editorial proof begins only after the final gate retires and the landscape is visible. The central reading zone stays quiet enough for opaque Geist copy and restrained client marks.
-- The opener and vertically centred finale use the shared route-bookend title language. All supporting copy remains reachable without completing or decoding the animation.
-- Client marks use deterministic authored optical scales. The runtime does not inspect logo pixels, and no one logo may dominate the proof grid.
-- Reduced Motion draws one stable representative point composition while the semantic content remains natively scrollable. It removes camera travel, gate traversal, parallax, and continuous interaction sound.
-- The retired Blender scene, circular portal, crafted-object sequence, method banks, lattices, and engineered finale may remain as inactive source. The public About route and production bundle do not load them.
+- Production and development render the same canonical Blender-authored spatial narrative. `public/config/contents-about.json` remains the sole authored About copy and client source; development scene controls tune that narrative without introducing a second public experience.
+- The journey has eight distinct beats: a deep irregular origin field; recognisable geometric forms; a long curved run of at least twenty-eight round hoops; a full-width living floor and mountain landscape; a quiet, optically balanced client constellation; a dense run of sixteen square gates; two broad method banks releasing into space; and a boundless full-width finale.
+- One native scroll state owns copy, camera, scene progress, and the progress indicator on the same frame. Camera motion follows the authored rail at constant arc-length speed, has no sway, lag, catch-up, braking, or independent easing, and reverses through the exact same spatial path.
+- Foreground, middle-distance, and far particles remain visible throughout. Incoming material occupies the viewport before outgoing geometry retires, so no handoff reveals an empty black frame. Passed hoops and gates cannot reappear later in the journey.
+- The simulation occupies the full viewport on desktop and mobile. Mobile reframes and crops the same world rather than reducing it to side decoration. Text may use the upper, middle, or lower viewport, and every authored field remains readable without completing or decoding the animation.
+- The opening, midpoint, travelling editorial fields, career rows, discipline fields, client proof, and finale retain their authored size and entrance behavior. The opening and final lockups use the shared route-bookend language; the final title and actions are vertically centred.
+- Client marks use deterministic authored optical scales and spacing. The runtime does not infer scale from logo pixels, and no mark, including Yoti, may dominate the proof field.
+- The finale is one connected point surface extending beyond every viewport edge. It may lock the camera once at the terminal scroll position while retaining quiet volumetric motion; no platform boundary, perimeter, isolated island, or earlier gate may be visible.
+- Reduced Motion preserves the complete semantic narrative, hierarchy, centred bookends, and reachable content while removing large camera travel and continuous interaction sound.
 
 ### Contact
 
@@ -225,14 +226,14 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 
 ## Simulation language
 
-- Every semantic production ball uses its approved circle or pebble geometry with the cached matte material from the active time-of-day palette. Flat fill remains the guarded missing-material fallback.
-- Route coverage is explicit: Home simulation bodies and the quote puck; the simplified About field, square gates, and landscape; and Contact ripple balls. Work's depth dots and DOM work cards are not semantic balls.
+- Every semantic production ball that belongs to the shared sphere family uses its approved circle or pebble geometry with the cached matte material from the active time-of-day palette. Flat fill remains the guarded missing-material fallback.
+- Route coverage is explicit: Home simulation bodies and the quote puck plus Contact ripple balls use the cached sphere finish. About's Blender surfels use the same resolved palette and broad physical atmosphere but retain their instanced point-cloud material so silhouettes, density, fog, and deep spatial layering remain legible. Work's depth dots and DOM work cards are not semantic balls.
 - The cached sphere sticker/atlas finish is enabled in the canonical surface config. Renderers prewarm the active palette and reuse shared cached material; they do not build gradients, parse colours, or calculate lighting per body during a frame.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.
 - Reduce body count before reducing readable body size.
-- Exclusions are role-based, not shape-based. The Work depth field, Work DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
+- Exclusions are role-based, not shape-based. About surfels, the Work depth field, Work DOM cards, UI controls and indicators, the cursor, loaders, navigation, editorial dots, artwork circles, and atmosphere emitters keep their own materials. A circle does not inherit the sphere finish only because it is round.
 
 ### Shared simulation atmosphere
 

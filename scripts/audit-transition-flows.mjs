@@ -483,27 +483,6 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
         } : null;
       }
       if (routeId === 'contact' || routeId === 'portfolio' || routeId === 'about') {
-        if (routeId === 'about') {
-          const simpleRoot = document.querySelector('[data-about-simple="true"]');
-          if (simpleRoot) {
-            const canvas = simpleRoot.querySelector('.about-simple__canvas');
-            const sceneReady = simpleRoot.dataset.aboutSceneReady === 'true';
-            return {
-              id: 'about-simple-point-material',
-              elementIdentity: identifyElement(simpleRoot),
-              canvasIdentity: identifyElement(canvas),
-              state: simpleRoot.dataset.aboutEntranceState || '',
-              available: true,
-              persistent: true,
-              minScale: sceneReady ? 1 : 0,
-              maxScale: sceneReady ? 1 : 0,
-              targetCount: canvas?.width > 0 && canvas?.height > 0 ? 1 : 0,
-              sceneReady: simpleRoot.dataset.aboutSceneReady || '',
-              worldState: simpleRoot.dataset.pointWorldState || '',
-              pointFamilies: simpleRoot.dataset.aboutPointFamilies || '',
-            };
-          }
-        }
         const id = {
           contact: 'contact-ripple-material',
           portfolio: 'portfolio-spatial-view-material',
@@ -1224,17 +1203,7 @@ function assertTransitionTrace(trace, {
         `${trace.label}: ${trace.fromRouteId} material exit was not observable`,
         { observedExitSamples },
       );
-      const usesPersistentAboutExit = trace.fromRouteId === 'about'
-        && materialExitSamples.some((sample) => sample.persistent === true);
-      if (usesPersistentAboutExit) {
-        const lastPersistentSample = materialExitSamples.at(-1);
-        assert(
-          materialExitSamples.every((sample) => sample.minScale >= 0.98 && sample.maxScale >= 0.98)
-            && lastPersistentSample.pointFamilies.includes('field'),
-          `${trace.label}: simplified About field changed scale during route exit`,
-          { materialExitSamples },
-        );
-      } else if (!REDUCED_MOTION) {
+      if (!REDUCED_MOTION) {
         const highestScale = Math.max(...materialExitSamples.map((sample) => sample.maxScale));
         const lowestScale = Math.min(...materialExitSamples.map((sample) => sample.maxScale));
         const progressiveSamples = materialExitSamples.filter((sample) => (
@@ -1411,17 +1380,7 @@ function assertTransitionTrace(trace, {
         `${trace.label}: ${trace.toRouteId} material did not settle at full size`,
         { settledMaterial, materialSamples },
       );
-      const usesPersistentAboutMaterial = trace.toRouteId === 'about'
-        && materialSamples.some((sample) => sample.persistent === true);
-      if (usesPersistentAboutMaterial) {
-        assert(
-          settledMaterial.sceneReady === 'true'
-            && settledMaterial.worldState === 'ready'
-            && settledMaterial.pointFamilies.includes('field'),
-          `${trace.label}: simplified About material did not settle as a painted persistent field`,
-          { settledMaterial, materialSamples },
-        );
-      } else if (!REDUCED_MOTION) {
+      if (!REDUCED_MOTION) {
         const firstMaterial = materialSamples[0];
         const lowestScale = Math.min(...materialSamples.map((sample) => sample.minScale));
         const progressiveSamples = materialSamples.filter((sample) => (

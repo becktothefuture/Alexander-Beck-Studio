@@ -50,7 +50,15 @@ try {
     if (process.env.ABS_CPU_RATE) await session.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.ABS_CPU_RATE) });
     const { result } = await session.send('Runtime.evaluate', { expression: 'document.querySelector(".about-narrative-scrollport")' });
     const { listeners } = await session.send('DOMDebugger.getEventListeners', { objectId: result.objectId });
-    assert.equal(listeners.filter(listener => ['wheel', 'touchmove'].includes(listener.type) && !listener.passive).length, 0, `${name}: About must not block native scroll input`);
+    const cancelableScrollListeners = listeners.filter((listener) => (
+      ['wheel', 'touchmove'].includes(listener.type) && !listener.passive
+    ));
+    if (mobile) {
+      assert.equal(cancelableScrollListeners.length, 0, `${name}: About must preserve native touch momentum`);
+    } else {
+      assert.ok(cancelableScrollListeners.some((listener) => listener.type === 'wheel'),
+        `${name}: the fine-pointer wheel transport is not active`);
+    }
     const profile = { name, browserVersion: browser.version(), checkEditor, deviceScaleFactor: mobile ? 3 : 1, cpuRate: Number(process.env.ABS_CPU_RATE || 1), listeners: listeners.map(({ type, passive, useCapture }) => ({ type, passive, useCapture })), segments: [], errors };
     const wholeJourney = process.env.ABS_PROFILE_JOURNEY === '1';
     const segments = wholeJourney
