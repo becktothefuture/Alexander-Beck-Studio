@@ -21,7 +21,7 @@ const stageCues = (cameraTrack.journeyCues || [])
   .filter((cue) => /^ABS_STAGE_0[0-6]$/.test(cue.name))
   .sort((left, right) => left.progress - right.progress);
 // The profile value is only a persisted diagnostic cache in content-flow mode.
-// Replace it with the measured browser extent once the Story Stack has laid out.
+// Replace it with the compiled final field boundary once the Story Stack lays out.
 let durationWU = Number(canonicalDocument.profiles.desktop.storyDurationWU);
 const viewports = Object.freeze({
   largeDesktop: Object.freeze({ width: 1920, height: 1080 }),
@@ -43,6 +43,7 @@ const colorScheme = process.env.ABS_CONTACT_SHEET_THEME === 'dark' ? 'dark' : 'l
 // Each sequence answers one visual question. Keep `rhythm` aligned with every
 // authored text handoff; the focused probes may sample the material more densely.
 const sequences = {
+  ecosystems: [],
   fields: [],
   reading: [],
   craft: [],
@@ -68,6 +69,7 @@ const sequences = {
   // Dense sampling makes the long nebula-to-floor gather visually auditable.
   floorProbe: [8.4, 9.4, 10.4, 11.4, 12.4, 14.4, 16.1, 16.8, 17.2],
   orbitProbe: [17.2, 18.2, 19.2, 20.2, 21.2, 21.6, durationWU],
+  finaleProbe: [23.5, 24.5, 25.5, 26.5, 27.25, 28, 28.75, 29.5, 30.25, durationWU],
 };
 const requestedSequenceIds = new Set(
   String(process.env.ABS_CONTACT_SHEET_SEQUENCES || Object.keys(sequences).join(','))
@@ -310,9 +312,29 @@ await page.waitForFunction(
   { timeout: 30_000 },
 );
 
-durationWU = await page.locator('.about-narrative-scrollport').evaluate((node) => (
-  (node.scrollHeight - node.clientHeight) / Math.max(1, node.clientHeight)
+durationWU = await page.locator('[data-render-span-id]').evaluateAll((nodes) => Math.max(
+  0,
+  ...nodes.map((node) => Number(node.dataset.storyEndWu) || 0),
 ));
+await setStoryWU(page, 0);
+const ecosystemWindows = await page.evaluate(() => (
+  window.__aboutNarrativeRuntime?.getMetrics?.().resolvedVisibilityWindows || []
+));
+for (const [modelId, visibilityWindow] of ecosystemWindows.entries()) {
+  let best = { storyWU: visibilityWindow.startWU, renderedVisibleCount: -1 };
+  for (let sample = 0; sample <= 10; sample += 1) {
+    const storyWU = visibilityWindow.startWU
+      + ((visibilityWindow.endWU - visibilityWindow.startWU) * sample / 10);
+    await setStoryWU(page, Math.min(durationWU, Math.max(0, storyWU)));
+    const renderedVisibleCount = await page.evaluate((key) => (
+      window.__aboutNarrativeRuntime?.getMetrics?.().modelFraming?.[key]?.renderedVisibleCount || 0
+    ), `about.${String(modelId).padStart(2, '0')}`);
+    if (renderedVisibleCount > best.renderedVisibleCount) {
+      best = { storyWU, renderedVisibleCount };
+    }
+  }
+  sequences.ecosystems.push(best.storyWU);
+}
 // Focused sequences retain their authored probes, but their terminal frame
 // must follow the measured content-flow extent rather than the stale profile
 // estimate captured while this module was initialising.

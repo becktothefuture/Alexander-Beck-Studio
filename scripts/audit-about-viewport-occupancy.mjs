@@ -12,6 +12,7 @@ import {
   summarizeFailures,
   writeRecoveryReport,
 } from './lib/about-recovery-audit-helpers.mjs';
+import { resolveAboutNarrativeJourneyMap } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER === 'webkit' ? 'webkit' : 'chromium';
@@ -319,8 +320,8 @@ function analyseCheckpoint(spec, state) {
 
 async function resolveStoryWU(page, journeyMap, spec) {
   if (spec.anchorStart) {
-    const start = journeyMap.anchors.find((anchor) => anchor.id === spec.anchorStart)?.storyWU;
-    const end = journeyMap.anchors.find((anchor) => anchor.id === spec.anchorEnd)?.storyWU;
+    const start = journeyMap.anchors.find((anchor) => anchor.id === spec.anchorStart)?.cameraStoryWU;
+    const end = journeyMap.anchors.find((anchor) => anchor.id === spec.anchorEnd)?.cameraStoryWU;
     assert(Number.isFinite(start) && Number.isFinite(end), `Missing journey anchors for ${spec.id}.`);
     return start + (end - start) * spec.fraction;
   }
@@ -408,7 +409,12 @@ if (process.env.ABS_ABOUT_OCCUPANCY_FIXTURE === '1') {
       bundleMetadata, context, errors, page,
     } = await openAboutRecoveryPage({ browser, profile, baseUrl, bundleDir });
     report.sourceSha256 ||= bundleMetadata?.source?.sha256 || null;
-    const journeyMap = await getAboutSurfelJourneyMap(page);
+    const storyMap = await getAboutSurfelJourneyMap(page);
+    const cameraTrack = await page.evaluate(async () => (
+      fetch('/models/about-v2-edited-world/camera-track.json').then((response) => response.json())
+    ));
+    const journeyMap = resolveAboutNarrativeJourneyMap(storyMap, cameraTrack);
+    assert.equal(journeyMap.valid, true, `About camera journey is invalid: ${JSON.stringify(journeyMap.diagnostics)}`);
     const checkpointResults = [];
     for (const spec of CHECKPOINTS) {
       const storyWU = await resolveStoryWU(page, journeyMap, spec);

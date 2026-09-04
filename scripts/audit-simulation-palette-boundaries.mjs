@@ -17,8 +17,8 @@ const allSurfaces = [
   { id: 'home-critters', path: '/index.html?mode=critters&absAudit=palette', homeMode: 'critters' },
   { id: 'home-pressure-crucible', path: '/index.html?mode=pressure-crucible&absAudit=palette', homeMode: 'pressure-crucible' },
   { id: 'portfolio', path: '/portfolio.html', drawer: true },
-  { id: 'about-discipline', path: '/about.html', storyWU: 8.72, stage: 'calm-field-v1' },
-  { id: 'about-bust', path: '/about.html', storyWU: 14.85, stage: 'bust-v1' },
+  { id: 'about-discipline', path: '/about.html', storyWU: 8.72, stage: 'blender-surfel-scene' },
+  { id: 'about-bust', path: '/about.html', storyWU: 14.85, stage: 'blender-surfel-scene' },
   { id: 'contact', path: '/contact.html' },
   { id: 'daily-repel-room', path: '/lab/repel-room.html?daily=1' },
   { id: 'daily-flock-of-birds', path: '/lab/flock-of-birds.html?daily=1' },
@@ -89,18 +89,15 @@ async function prepareState(page, surface) {
   }
   if (surface.storyWU) {
     await page.locator('.about-narrative-scrollport').evaluate((node, storyWU) => {
-      node.scrollTop = (node.scrollHeight - node.clientHeight) * (storyWU / 16.35);
+      const durationWU = Math.max(1, (node.scrollHeight - node.clientHeight) / node.clientHeight);
+      node.scrollTop = node.clientHeight * Math.min(durationWU, Math.max(0, storyWU));
       node.dispatchEvent(new Event('scroll', { bubbles: true }));
     }, surface.storyWU);
     try {
-      await page.waitForFunction(({ id, stage }) => {
+      await page.waitForFunction(({ stage }) => {
         const root = document.querySelector('.about-narrative-lab');
-        const narrativeStateReady = id === 'about-discipline'
-          ? Number(root?.dataset.worldDisciplineLabels || 0) > 0
-          : true;
         return root?.dataset.worldStage === stage
-          && root.dataset.worldPrepare === 'ready'
-          && narrativeStateReady;
+          && root.dataset.pointWorldState === 'ready';
       }, surface, { timeout: 30000, polling: 'raf' });
     } catch (error) {
       const state = await page.evaluate(() => ({
@@ -203,18 +200,25 @@ async function runBoundary(browser, surface) {
   await context.addInitScript(() => { globalThis.__ABS_ROUTE_PERF_AUDIT__ = true; document.cookie = 'abs_portfolio_ok=1; Path=/; SameSite=Lax; Max-Age=31536000'; sessionStorage.setItem('abs_portfolio_ok', 'palette-boundary-audit'); });
   const page = await context.newPage();
   try {
-    await page.clock.install({ time: new Date(2026, 6, 18, 8, 59, 30) });
+    await page.clock.install({ time: new Date('2026-07-18T06:59:30.000Z') });
     await page.goto(`${baseUrl}${surface.path}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await waitReady(page, surface); await page.clock.fastForward(4000); await prepareState(page, surface); await waitReady(page, surface);
-    await page.clock.setSystemTime(new Date(2026, 6, 18, 8, 59, 59, 800));
+    await page.clock.setSystemTime(new Date('2026-07-18T06:59:59.800Z'));
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     if (surface.storyWU) await prepareState(page, surface);
     if (surface.storyWU) {
       await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     }
     await installMarker(page, surface);
-    const before = await readState(page, surface); await page.clock.fastForward(400);
-    await page.waitForFunction((generation) => Number(document.documentElement.dataset.absSimulationPaletteGeneration || 0) > generation, before.snapshot.generation, { timeout: 5000, polling: 'raf' });
+    const before = await readState(page, surface);
+    await page.clock.setSystemTime(new Date('2026-07-18T08:00:00.200Z'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    try {
+      await page.waitForFunction((generation) => Number(document.documentElement.dataset.absSimulationPaletteGeneration || 0) > generation, before.snapshot.generation, { timeout: 5000, polling: 'raf' });
+    } catch (error) {
+      const stalled = await readState(page, surface);
+      throw new Error(`Palette boundary did not advance\n${JSON.stringify({ before, stalled }, null, 2)}`, { cause: error });
+    }
     await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     const after = await readState(page, surface); const evidence = { surface: surface.id, before, after };
     assert(after.snapshot.generation === before.snapshot.generation + 1, 'Boundary did not commit exactly one generation', evidence);

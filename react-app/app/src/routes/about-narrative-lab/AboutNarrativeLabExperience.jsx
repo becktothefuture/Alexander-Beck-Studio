@@ -20,6 +20,7 @@ import { ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND } from './aboutNarrativeTrackSchem
 import { AboutInteractiveStack } from './AboutInteractiveStack.jsx';
 import { AboutNarrativeWorld } from './AboutNarrativeWorld.jsx';
 import { useAboutNarrativeTimeline } from './useAboutNarrativeTimeline.js';
+import { useAboutBlenderDevRefresh } from './useAboutBlenderDevRefresh.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
@@ -927,6 +928,7 @@ export function AboutNarrativeLabExperience({
   const [parameterPanelVisible, setParameterPanelVisible] = useState(false);
   const [parameterStore, setParameterStore] = useState(null);
   const [parameterQualityTier, setParameterQualityTier] = useState('auto');
+  const blenderPreview = useAboutBlenderDevRefresh();
   const indicatorHost = useMemo(() => (
     showIndicator && typeof document !== 'undefined'
       ? document.getElementById('shell-persistent-route-ui-host')
@@ -1151,6 +1153,10 @@ export function AboutNarrativeLabExperience({
       .find((field) => field?.kind === 'title' && field.publishable)?.id || ''
   ), [runtimePlan, textFieldsById]);
   const ParameterPanel = parameterPanelModule;
+  const blenderWorldReady = !__DEV__ || blenderPreview.status !== 'loading';
+  const blenderAssetRoot = blenderPreview.status === 'ready'
+    ? blenderPreview.assetRoot
+    : undefined;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
@@ -1177,6 +1183,8 @@ export function AboutNarrativeLabExperience({
       data-about-quality-tier={parameterQualityTier}
       data-about-experience-version={resolvedExperienceVersion}
       data-about-parameter-panel={parameterPanelVisible ? 'open' : 'closed'}
+      data-about-blender-preview={blenderPreview.status}
+      data-about-blender-source={blenderPreview.sourceSha || undefined}
       data-about-story-layout={runtimePlan?.storyLayout?.mode || 'legacy'}
       data-about-restoring={restorationPending ? 'true' : 'false'}
       data-about-layout-ready={layoutReady ? 'true' : 'false'}
@@ -1187,8 +1195,10 @@ export function AboutNarrativeLabExperience({
         data-about-text-corridor
         aria-hidden="true"
       />
-      {runtimePlan ? (
+      {runtimePlan && blenderWorldReady ? (
         <AboutNarrativeWorld
+          key={blenderAssetRoot || 'canonical-about-blender-scene'}
+          assetRoot={blenderAssetRoot}
           rendererId="three-point-world-v1"
           rootRef={rootRef}
           interactionRef={worldInteractionRef}
@@ -1247,6 +1257,7 @@ export function AboutNarrativeLabExperience({
       {ParameterPanel && parameterStore && typeof document !== 'undefined'
         ? createPortal(
           <ParameterPanel
+            blenderPreview={blenderPreview}
             visible={parameterPanelVisible}
             store={parameterStore}
             onRequestClose={() => setParameterPanelVisible(false)}

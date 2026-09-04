@@ -16,10 +16,11 @@ import { writeAboutSceneLook } from '../react-app/app/src/routes/about-narrative
 const ROOT = new URL('../', import.meta.url);
 const readSource = (path) => readFile(new URL(path, ROOT), 'utf8');
 const document = JSON.parse(await readSource('react-app/app/public/config/contents-about.json'));
-const [panelSource, experienceSource, routeTransitionSource] = await Promise.all([
+const [panelSource, experienceSource, routeTransitionSource, blenderRefreshSource] = await Promise.all([
   readSource('react-app/app/src/routes/about-narrative-lab/AboutNarrativeParameterPanel.jsx'),
   readSource('react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'),
   readSource('react-app/app/src/hooks/useShellRouteTransition.js'),
+  readSource('react-app/app/src/routes/about-narrative-lab/useAboutBlenderDevRefresh.js'),
 ]);
 const sceneSource = await readSource('react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js');
 const footprintBody = sceneSource.match(/float separatedSurfelRadius\([\s\S]*?\) \{([\s\S]*?)\n  \}/u)?.[1];
@@ -84,8 +85,8 @@ test('dispersion keeps opaque colour, point retention and the existing scene con
   assert.match(sceneSource, /gl_FragColor = vec4\(shaded, 1\.0\)/u);
   assert.match(sceneSource, /transparent: false,[\s\S]*?alphaToCoverage: true,[\s\S]*?depthWrite: true/u);
   const sizeTarget = ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.flatMap((group) => group.controls)
-    .find((entry) => entry.path.join('.') === 'pointMaterial.minPointSize');
-  assert.equal(sizeTarget.control.label, 'Distant size target');
+    .find((entry) => entry.path.join('.') === 'pointMaterial.pointSize');
+  assert.equal(sizeTarget.control.label, 'Global point size');
 });
 
 test('parameter surface contains the compact whole-scene controls', () => {
@@ -93,38 +94,28 @@ test('parameter surface contains the compact whole-scene controls', () => {
   const keys = entries.map((entry) => `${entry.scope}:${entry.path.join('.')}`);
   assert.deepEqual(
     ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.map((group) => [group.label, group.controls.length]),
-    [['Point cloud', 9], ['Atmosphere', 6], ['Emergence and motion', 6], ['Camera and flow', 3]],
+    [['Rendering', 3], ['Atmosphere', 1], ['Movement', 3]],
   );
   assert.deepEqual(keys, [
     'session:qualityTier',
-    'long-assembly:density',
-    'globals:pointMaterial.opacity',
     'globals:pointMaterial.surfelCoverage',
-    'globals:pointMaterial.backfaceRetention',
-    'globals:pointMaterial.minPointSize',
     'globals:pointMaterial.pointSize',
-    'globals:pointMaterial.perspectiveResponse',
-    'globals:pointMaterial.edgeSoftness',
     'globals:pointMaterial.atmosphereStrength',
-    'globals:camera.distanceFogStartWU',
-    'globals:camera.distanceFogEndWU',
-    'globals:camera.distanceFogCurve',
-    'long-assembly:finaleFogClearStartWU',
-    'long-assembly:finaleFogClearEndWU',
-    'long-assembly:structureManifestationAmount',
-    'long-assembly:structureAmbientAmount',
-    'long-assembly:structureAmbientScaleWU',
-    'long-assembly:structureAmbientSpeed',
-    'long-assembly:structureMotionCoherence',
-    'long-assembly:finaleMotionGain',
     'globals:scrollSmoothing',
-    'globals:camera.pointerPanDegrees',
-    'globals:camera.pointerPanResponseMs',
+    'long-assembly:structureAmbientAmount',
+    'long-assembly:structureAmbientSpeed',
   ]);
   const quality = entries[0].control;
   assert.equal(quality.type, 'select');
   assert.deepEqual(quality.options.map((option) => option.value), ['auto', 'desktop', 'mobile', 'master']);
-  assert.match(panelSource, /Blender owns rail shape, gates, roll, and 65° FOV/);
+  assert.match(panelSource, /Blender owns every visible geometry/);
+  assert.match(panelSource, /draw-distance fog/);
+  assert.match(panelSource, /browser runtime only/);
+  assert.match(panelSource, /never write to or replace Blender parameters/);
+  assert.match(experienceSource, /useAboutBlenderDevRefresh/);
+  assert.match(blenderRefreshSource, /sourceSha !== baselineSha/);
+  assert.match(blenderRefreshSource, /writeAboutNarrativeHistoryProgress/);
+  assert.match(blenderRefreshSource, /window\.location\.reload\(\)/);
 });
 
 test('new surfel controls are canonical and schema-valid', () => {

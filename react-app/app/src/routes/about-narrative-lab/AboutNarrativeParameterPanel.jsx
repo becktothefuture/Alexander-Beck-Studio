@@ -188,6 +188,7 @@ function createParameterSnapshotReader(store) {
 }
 
 export default function AboutNarrativeParameterPanel({
+  blenderPreview,
   onRequestClose,
   store,
   visible,
@@ -292,15 +293,30 @@ export default function AboutNarrativeParameterPanel({
     >
       <header className="parameterizer-header">
         <div>
-          <strong>About scene</strong>
-          <span>Whole-page parameters</span>
+          <strong>About preview</strong>
+          <span>Runtime parameters</span>
         </div>
         <button type="button" onClick={onRequestClose}>Close</button>
       </header>
 
-      <p className="about-scene-parameter-panel__note">
-        Blender owns rail shape, gates, roll, and 65° FOV. These live controls tune the rendered scene and save to the About source.
-      </p>
+      <div className="about-scene-parameter-panel__note">
+        <p>
+          Blender owns every visible geometry, the camera, scene visibility, and draw-distance fog. Save the canonical Blender file to update this development preview.
+        </p>
+        <p
+          className="about-scene-parameter-panel__source"
+          data-blender-preview-status={blenderPreview?.status || 'inactive'}
+          title={blenderPreview?.sourceFile || 'Blender preview source'}
+        >
+          <span>{blenderPreview?.status === 'ready' ? 'Blender synced' : 'Blender preview'}</span>
+          {blenderPreview?.controlCount
+            ? ` · ${blenderPreview.controlCount} source controls · ${blenderPreview.sourceSha.slice(0, 8)}`
+            : ` · ${blenderPreview?.status || 'inactive'}`}
+        </p>
+        <p>
+          The controls below affect the browser runtime only. They never write to or replace Blender parameters.
+        </p>
+      </div>
 
       <div className="parameterizer-scroll">
         {ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.map((group, index) => (

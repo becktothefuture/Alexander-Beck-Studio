@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { spawn } from 'node:child_process';
-import { lstatSync, realpathSync } from 'node:fs';
+import { createReadStream, lstatSync, realpathSync } from 'node:fs';
 import {
   writeFile,
 } from 'node:fs/promises';
@@ -27,6 +27,23 @@ import {
 import { createAboutNarrativePersistenceService } from './src/routes/about-narrative-lab/aboutNarrativePersistenceServer.js';
 
 const repoRoot = SIMULATION_ADMIN_PATHS.repoRoot;
+const ABOUT_BLENDER_PREVIEW_ROOT = resolve(
+  repoRoot,
+  '.cache',
+  'about-v2-blender-preview',
+  'current',
+);
+const ABOUT_BLENDER_PREVIEW_LOCK = resolve(
+  repoRoot,
+  '.cache',
+  'about-v2-blender-preview',
+  '.updating',
+);
+const ABOUT_BLENDER_PREVIEW_FILES = Object.freeze({
+  'meta.json': 'application/json; charset=utf-8',
+  'camera-track.json': 'application/json; charset=utf-8',
+  'surfels.bin': 'application/octet-stream',
+});
 const KIBIBYTE = 1024;
 const LOCAL_JSON_WRITE_LIMITS = Object.freeze({
   aboutNarrative: ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
@@ -286,6 +303,71 @@ export function createDevAdminPlugin({
     name: 'design-system-dev-plugin',
     configureServer(server) {
       aboutPersistence.cleanup().catch(() => {});
+
+      server.middlewares.use('/__about-blender-preview', (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          if (!requestIsSameOrigin(req)) {
+            sendJson(res, 403, {
+              ok: false,
+              error: 'The request must come from this development origin.',
+              message: 'The request must come from this development origin.',
+            });
+            return;
+          }
+          sendJson(res, 405, {
+            ok: false,
+            error: 'Method Not Allowed',
+            message: 'Method Not Allowed',
+          });
+          return;
+        }
+        let fileName;
+        try {
+          fileName = decodeURIComponent(String(req.url || '').split('?', 1)[0])
+            .replace(/^\/+/, '');
+        } catch {
+          res.statusCode = 400;
+          res.end('Malformed preview path');
+          return;
+        }
+        const contentType = ABOUT_BLENDER_PREVIEW_FILES[fileName];
+        if (!contentType) {
+          res.statusCode = 404;
+          res.end('Not Found');
+          return;
+        }
+        try {
+          lstatSync(ABOUT_BLENDER_PREVIEW_LOCK);
+          res.statusCode = 503;
+          res.setHeader('Retry-After', '1');
+          res.end('Preview update in progress');
+          return;
+        } catch (error) {
+          if (error?.code !== 'ENOENT') {
+            res.statusCode = 500;
+            res.end('Preview state check failed');
+            return;
+          }
+        }
+        const filePath = resolve(ABOUT_BLENDER_PREVIEW_ROOT, fileName);
+        if (!pathIsWithin(ABOUT_BLENDER_PREVIEW_ROOT, filePath)) {
+          res.statusCode = 404;
+          res.end('Not Found');
+          return;
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Content-Type', contentType);
+        if (req.method === 'HEAD') {
+          res.end();
+          return;
+        }
+        const stream = createReadStream(filePath);
+        stream.once('error', (error) => {
+          if (!res.headersSent) res.statusCode = error?.code === 'ENOENT' ? 404 : 500;
+          res.end(error?.code === 'ENOENT' ? 'Not Found' : 'Preview read failed');
+        });
+        stream.pipe(res);
+      });
 
       const mountAboutNarrativePersistence = ({ endpoint, configPath, persistence, label }) => {
         const writeHandler = createLocalJsonWriteHandler({

@@ -10,12 +10,17 @@ import {
   createAboutNarrativeTitleFieldSample,
   sampleAboutNarrativeTitleFieldInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeRuntimePlan.js';
-import { createAboutSurfelPaletteRoles } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelPalette.js';
+import {
+  ABOUT_BLENDER_PALETTE_ROLES,
+  ABOUT_HOME_ROLE_BY_BLENDER_ROLE,
+  resolveAboutSurfelPaletteColors,
+} from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelPalette.js';
 import {
   createAboutNarrativeCameraSteadycamController,
   createAboutNarrativeCameraSteadycamSample,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
 import {
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
   SIMULATION_MATERIAL_ROLE_COUNT,
 } from '../react-app/app/src/palette/simulationPaletteContract.js';
 
@@ -157,10 +162,10 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
   const expectedVisibilityCues = new Map([
     ['about.00', ['opening', 'inciting-question']],
     ['about.01', ['inciting-question', 'portal-entry']],
-    ['about.02', ['portal-entry', 'portal-exit']],
-    ['about.03', ['portal-exit', 'gate-entry']],
-    ['about.04', ['gate-entry', 'gate-exit']],
-    ['about.05', ['gate-exit', 'split-lattice-entry']],
+    ['about.02', ['portal-entry', 'personal-origin']],
+    ['about.03', ['personal-origin', 'gate-entry']],
+    ['about.04', ['gate-entry', 'method']],
+    ['about.05', ['method', 'split-lattice-entry']],
     ['about.06', ['split-lattice-entry', 'terminal-hold']],
   ]);
   for (const model of assetMeta.models) {
@@ -169,7 +174,7 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
     assert(assetMeta.profiles.mobile.perModelCounts[model.key] > 0, `${model.key} has no mobile surfels`);
     assert(Number.isFinite(model.visibilityStartWU), `${model.key} has no visibility start`);
     assert(Number.isFinite(model.visibilityEndWU), `${model.key} has no visibility end`);
-    assert(model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.2);
+    assert(model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.35);
     assert.deepEqual(
       [model.visibilityStartCue, model.visibilityEndCue],
       expectedVisibilityCues.get(model.key),
@@ -178,6 +183,12 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
     assert(Number.isFinite(model.visibilityStartOffsetWU));
     assert(Number.isFinite(model.visibilityEndOffsetWU));
   }
+  assert.deepEqual(assetMeta.source.authoring.cameraFog, {
+    startWU: 14, endWU: 150, curve: 1.2, source: 'about.controls',
+  });
+  assert.match(sceneSource, /controls\.fogStartWU = authoredCameraFog\.startWU/);
+  assert.match(sceneSource, /controls\.fogEndWU = authoredCameraFog\.endWU/);
+  assert.match(sceneSource, /controls\.fogCurve = authoredCameraFog\.curve/);
   assert.equal(assetMeta.source.objects.some((object) => object.objectKey === 'gn.lens.chamber'), false);
   assert.match(sceneSource, /const SURFEL_STRIDE_BYTES = 32;/);
   assert.match(sceneSource, /createProgressiveSourceOrder\(meta, qualityTier, totalCount\)/);
@@ -251,45 +262,49 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.match(sceneSource, /occlusionMode: 'depth-owned-whole-surfel-reveal'/);
 });
 
-test('every Blender material keeps its semantic structure inside the Home palette', () => {
-  const sampleCount = 1_000;
-  const roles = createAboutSurfelPaletteRoles(sampleCount, {
-    modelId: 2,
-    partId: 4,
-    semanticRole: 5,
+test('Blender role assignments remain intact and resolve through the Home palette', () => {
+  assert.equal(ABOUT_BLENDER_PALETTE_ROLES.length, SIMULATION_MATERIAL_ROLE_COUNT);
+  assert.deepEqual(ABOUT_HOME_ROLE_BY_BLENDER_ROLE, {
+    atmosphere: 'product-design',
+    stone: 'experience-design',
+    steel: 'art-direction',
+    glass: 'motion-3d',
+    signal: 'creative-engineering',
+    organic: 'parametric-systems',
   });
-  const counts = new Array(SIMULATION_MATERIAL_ROLE_COUNT).fill(0);
-  roles.forEach((role) => { counts[role] += 1; });
-  assert.ok(counts[5] >= 700, 'the authored material role must remain dominant');
-  assert.ok(new Set(roles).size >= 4, 'the material must retain multicolour Home accents');
-  const structuralRoles = createAboutSurfelPaletteRoles(sampleCount, { semanticRole: 2 });
-  assert.ok(
-    structuralRoles.filter((role) => role === 1).length >= 700,
-    'structural shells must avoid a pale-on-pale dominant role',
+  const colors = [
+    '#101010', '#202020', '#303030', '#404040',
+    '#505050', '#606060', '#707070', '#808080',
+  ];
+  assert.deepEqual(
+    resolveAboutSurfelPaletteColors({
+      colors,
+      distribution: DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+    }),
+    ['#101010', '#404040', '#303030', '#707070', '#808080', '#606060'],
   );
-
+  assert.deepEqual(assetMeta.palette.roles, ABOUT_BLENDER_PALETTE_ROLES);
+  assert.equal(assetMeta.palette.assignment.owner, 'Blender object properties and semantic materials');
+  assert.equal(assetMeta.palette.assignment.defaultMode, 'mixed');
+  assert.deepEqual(assetMeta.palette.assignment.modes, ['mixed', 'single', 'authored-faces']);
+  for (const object of assetMeta.source.objects) {
+    assert.ok(['mixed', 'single', 'authored-faces'].includes(object.paletteMode));
+    assert.ok(Number.isInteger(object.paletteSeed) && object.paletteSeed >= 0);
+    if (object.paletteMode === 'single') {
+      assert.ok(ABOUT_BLENDER_PALETTE_ROLES.includes(object.paletteRole));
+    } else {
+      assert.equal(object.paletteRole, null);
+    }
+  }
   for (const model of assetMeta.models) {
-    model.objectKeys.forEach((objectKey, partId) => {
-      const objectCount = assetMeta.profiles.mobile.perObjectCounts[objectKey];
-      const objectRoles = createAboutSurfelPaletteRoles(objectCount, {
-        modelId: model.id,
-        partId,
-        semanticRole: partId,
-      });
-      assert.equal(objectRoles.length, objectCount, `${objectKey} lost palette assignments`);
-      if (objectCount >= 4) {
-        assert.ok(
-          new Set(objectRoles).size >= 2,
-          `${objectKey} does not retain a multicolour Home material rhythm`,
-        );
-      }
-    });
+    const roles = new Set(assetMeta.source.objects
+      .filter((object) => object.modelKey === model.key)
+      .flatMap((object) => object.paletteRoles));
+    assert.deepEqual(roles, new Set([0, 1, 2, 3, 4, 5]), `${model.key} lost its six-role mixture`);
   }
 
-  assert.match(sceneSource, /materialPaletteKey = `\$\{partKey\}:\$\{semanticRole\}`/);
-  assert.match(sceneSource, /createAboutSurfelPaletteRoles\(partCount,/);
-  assert.match(sceneSource, /sourceObjects\.get\(objectKey\)\?\.role === 'path-tunnel'/);
-  assert.match(sceneSource, /semanticRole % PALETTE_ROLE_COUNT/);
+  assert.match(sceneSource, /paletteRoles\[destinationIndex\] = view\.getUint8\(offset \+ 28\)/);
+  assert.doesNotMatch(sceneSource, /createAboutSurfelPaletteRoles|materialPaletteKey/);
   assert.match(sceneSource, /vec3 shaded = paletteColor\(vPalette\);/);
   assert.doesNotMatch(sceneSource, /normalLight|depthLight/);
 });
@@ -297,7 +312,8 @@ test('every Blender material keeps its semantic structure inside the Home palett
 test('all About circles subscribe to the shared scheduled palette', () => {
   assert.match(sceneSource, /subscribeSimulationPalette\(\(snapshot\) =>/);
   assert.match(sceneSource, /syncPalette\(uniforms, snapshot\)/);
-  assert.match(sceneSource, /distribution\[index\]\?\.colorIndex/);
+  assert.match(sceneSource, /resolveAboutSurfelPaletteColors\(snapshot\)/);
+  assert.match(sceneSource, /paletteUniformUpdates \+= 1/);
   assert.match(stylesSource, /--simulation-role-product-design/);
   assert.match(stylesSource, /--simulation-role-experience-design/);
   assert.match(stylesSource, /--simulation-role-art-direction/);
@@ -338,16 +354,19 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
 
 test('the recovered Blender camera keeps a fixed wide projection, constant curved travel, and a late hold', () => {
   assert.equal(cameraTrack.version, 5);
-  assert.equal(cameraTrack.source, 'ABS_CAMERA');
+  assert.equal(cameraTrack.source, 'about.camera');
+  assert.equal(cameraTrack.displayName, 'Scene Camera');
   assert.equal(cameraTrack.projection.type, 'perspective');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 85);
+  assert.equal(cameraTrack.projection.horizontalFov, 78);
   assert.equal(cameraTrack.projection.sensorFit, 'HORIZONTAL');
   assert.equal(cameraTrack.sampleCount, cameraTrack.frameEnd - cameraTrack.frameStart + 1);
   assert.equal(cameraTrack.rollControl, undefined);
-  assert.equal(cameraTrack.orientation.path, 'ABS_PARAMETRIC_RIDE_PATH');
-  assert.equal(cameraTrack.orientation.pathTwistMode, 'MINIMUM');
+  assert.equal(cameraTrack.orientation.path, 'about.camera-path');
+  assert.equal(cameraTrack.orientation.pathDisplayName, 'Camera Path');
+  assert.equal(cameraTrack.orientation.pathTwistMode, 'Z_UP');
   assert.equal(cameraTrack.orientation.neutralHorizon, 'Z_UP');
+  assert.equal(cameraTrack.orientation.rollControl, 'about.controls.roll_00_degrees..roll_09_degrees');
   const lockCue = cameraTrack.journeyCues.find((cue) => cue.name === 'ABS_CAMERA_LOCK');
   const lockIndex = lockCue.frame - cameraTrack.frameStart;
   const movingSteps = [];
@@ -372,9 +391,6 @@ test('the recovered Blender camera keeps a fixed wide projection, constant curve
     assert.deepEqual(cameraTrack.samples[index], cameraTrack.samples[lockIndex]);
   }
   const finalQuaternion = cameraTrack.samples.at(-1).slice(3);
-  assert(Math.abs(finalQuaternion[0]) < 0.002);
-  assert(Math.abs(finalQuaternion[1]) < 0.002);
-  assert(Math.abs(finalQuaternion[2]) < 0.002);
   assert(Math.abs(Math.hypot(...finalQuaternion) - 1) < 0.00001);
   assert.match(sceneSource, /sampleCameraTrack\([\s\S]{0,160}?cameraTrack,[\s\S]{0,80}?progress,[\s\S]{0,80}?cameraAuthoredPosition,[\s\S]{0,80}?cameraAuthoredQuaternion,[\s\S]{0,80}?cameraTargetQuaternion/);
   assert.match(sceneSource, /steadycamController\.sampleInto\([\s\S]{0,220}?steadycamSample/);

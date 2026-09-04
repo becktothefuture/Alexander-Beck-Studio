@@ -31,6 +31,16 @@ export const ABOUT_NARRATIVE_STORY_FOCUS_MODES = Object.freeze([
   'reading-start',
 ]);
 
+export const ABOUT_NARRATIVE_STAGE_IDS = Object.freeze([
+  'about.00',
+  'about.01',
+  'about.02',
+  'about.03',
+  'about.04',
+  'about.05',
+  'about.06',
+]);
+
 const PROFILE_ESTIMATES = Object.freeze({
   desktop: Object.freeze({
     charactersPerScreen: 1_750,
@@ -204,6 +214,153 @@ function compileLegacyLayout(fields, profileId) {
   });
 }
 
+function compileEqualStageLayout(document, fields, {
+  profileId,
+  profile,
+  measurements,
+  editorialLeadScreens,
+  diagnostics,
+}) {
+  const stageIds = ABOUT_NARRATIVE_STAGE_IDS;
+  const fieldsByStage = new Map(stageIds.map((stageId) => [stageId, []]));
+  fields.forEach((field) => fieldsByStage.get(field.stageId)?.push(field));
+  stageIds.forEach((stageId) => {
+    if (!fieldsByStage.get(stageId).length) {
+      diagnostics.push({
+        level: 'error',
+        code: 'story-stage-empty',
+        path: `tracks.text.fields.${stageId}`,
+        message: `Equal story stage “${stageId}” needs at least one Text field.`,
+      });
+    }
+  });
+
+  const measurementsById = new Map();
+  const durationById = new Map();
+  fields.forEach((field) => {
+    const flow = getFlow(field);
+    const measurement = getMeasurement(measurements, field.id);
+    const measuredScreens = measuredNaturalScreens(measurement);
+    const naturalScreens = measuredScreens ?? estimateNaturalScreens(field, profile);
+    const durationWU = getSectionDurationWU(
+      field,
+      flow,
+      naturalScreens,
+      profile,
+      editorialLeadScreens,
+    );
+    measurementsById.set(field.id, {
+      flow,
+      naturalScreens,
+      measured: measuredScreens != null,
+    });
+    durationById.set(field.id, durationWU);
+  });
+
+  const requestedTotalWU = Number(
+    document?.profiles?.[profileId]?.storyDurationWU
+    ?? document?.profiles?.desktop?.storyDurationWU,
+  );
+  const requestedStageWU = Number.isFinite(requestedTotalWU) && requestedTotalWU > 0
+    ? requestedTotalWU / stageIds.length
+    : 5;
+  const requiredStageWU = Math.max(...stageIds.map((stageId) => (
+    fieldsByStage.get(stageId)
+      .reduce((sum, field) => sum + durationById.get(field.id), 0)
+  )));
+  const stageDurationWU = cleanWU(Math.max(requestedStageWU, requiredStageWU));
+  const compiledFields = [];
+  const sections = stageIds.map((stageId, stageIndex) => {
+    const stageFields = fieldsByStage.get(stageId);
+    const startWU = cleanWU(stageIndex * stageDurationWU);
+    const endWU = cleanWU(startWU + stageDurationWU);
+    const occupiedWU = stageFields.reduce(
+      (sum, field) => sum + durationById.get(field.id),
+      0,
+    );
+    const slackWU = Math.max(0, stageDurationWU - occupiedWU);
+    // The route opener must be present at Story WU 0. Every later stage uses
+    // equal leading, inter-field, and trailing space within its one-seventh.
+    const edgeStage = stageIndex === 0 || stageIndex === stageIds.length - 1;
+    const gapCount = edgeStage ? Math.max(1, stageFields.length) : stageFields.length + 1;
+    const gapWU = slackWU / gapCount;
+    let cursorWU = startWU + (stageIndex === 0 ? 0 : gapWU);
+    stageFields.forEach((field) => {
+      const durationWU = durationById.get(field.id);
+      const flowData = measurementsById.get(field.id);
+      const fieldStartWU = cleanWU(cursorWU);
+      const fieldEndWU = cleanWU(fieldStartWU + durationWU);
+      compiledFields.push({
+        id: field.id,
+        stageId,
+        stageIndex,
+        kind: field.kind,
+        startWU: fieldStartWU,
+        focusWU: getFocusWU(field, flowData.flow, fieldStartWU, durationWU),
+        endWU: fieldEndWU,
+        durationWU,
+        naturalScreens: cleanWU(flowData.naturalScreens),
+        minScreens: flowData.flow.minScreens,
+        gapAfter: 'equal-stage',
+        measured: flowData.measured,
+      });
+      cursorWU = fieldEndWU + gapWU;
+    });
+    return {
+      id: stageId,
+      index: stageIndex,
+      startWU,
+      endWU,
+      durationWU: stageDurationWU,
+      fieldIds: stageFields.map((field) => field.id),
+    };
+  });
+
+  const gaps = compiledFields.slice(0, -1).map((field, index) => {
+    const next = compiledFields[index + 1];
+    return {
+      id: `gap-${field.id}-to-${next.id}`,
+      fromFieldId: field.id,
+      toFieldId: next.id,
+      preset: field.stageId === next.stageId ? 'equal-field' : 'equal-stage',
+      startWU: field.endWU,
+      endWU: next.startWU,
+      durationWU: cleanWU(Math.max(0, next.startWU - field.endWU)),
+    };
+  });
+  const durationWU = cleanWU(stageDurationWU * stageIds.length);
+  const signature = JSON.stringify({
+    profileId,
+    stageDurationWU,
+    sections: sections.map((section) => [
+      section.id,
+      section.startWU,
+      section.endWU,
+      section.fieldIds,
+    ]),
+    fields: compiledFields.map((field) => [field.id, field.startWU, field.focusWU, field.endWU]),
+  });
+  return Object.freeze({
+    mode: 'content-flow',
+    sectionMode: 'equal-camera-distance',
+    profileId,
+    valid: !diagnostics.some((item) => item.level === 'error'),
+    diagnostics: Object.freeze(diagnostics.map(Object.freeze)),
+    fields: Object.freeze(compiledFields.map(Object.freeze)),
+    gaps: Object.freeze(gaps.map(Object.freeze)),
+    sections: Object.freeze(sections.map((section) => Object.freeze({
+      ...section,
+      fieldIds: Object.freeze(section.fieldIds),
+    }))),
+    stageDurationWU,
+    durationWU,
+    contentExtentWU: cleanWU(durationWU + 1),
+    editorialLeadWU: cleanWU(editorialLeadScreens),
+    editorialTailWU: cleanWU(profile.editorialTailScreens),
+    signature,
+  });
+}
+
 /**
  * Compile the authored Story Stack into the only timing rail the renderer sees.
  *
@@ -232,6 +389,25 @@ export function compileAboutNarrativeStoryLayout(document, {
       code: 'story-flow-required',
       path: `tracks.text.fields.${field.id}.flow`,
       message: `Text block “${field.id}” requires Story Stack flow settings.`,
+    }));
+  }
+
+  const stagedFields = fields.filter((field) => typeof field.stageId === 'string');
+  if (stagedFields.length === fields.length) {
+    return compileEqualStageLayout(document, fields, {
+      profileId,
+      profile,
+      measurements,
+      editorialLeadScreens,
+      diagnostics,
+    });
+  }
+  if (stagedFields.length) {
+    fields.filter((field) => typeof field.stageId !== 'string').forEach((field) => diagnostics.push({
+      level: 'error',
+      code: 'story-stage-required',
+      path: `tracks.text.fields.${field.id}.stageId`,
+      message: `Text block “${field.id}” requires a Blender stage assignment.`,
     }));
   }
 

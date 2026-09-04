@@ -19,15 +19,14 @@ import {
   validateAboutBlenderSceneBundle,
 } from './aboutBlenderSceneContract.js';
 import { writeAboutSceneLook } from './aboutSceneLook.js';
-import { createAboutSurfelPaletteRoles } from './aboutSurfelPalette.js';
+import { resolveAboutSurfelPaletteColors } from './aboutSurfelPalette.js';
 import { aboutSurfelIntersectsRect, aboutSurfelSweepIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from './aboutSurfelProjection.js';
 import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
 } from '../../palette/simulationPaletteController.js';
 
-const ASSET_ROOT = '/models/about-v2-edited-world';
-const META_URL = `${ASSET_ROOT}/meta.json`;
+const DEFAULT_ASSET_ROOT = '/models/about-v2-edited-world';
 const SURFEL_STRIDE_BYTES = 32;
 const DEFAULT_HORIZONTAL_FOV = 85;
 const DEFAULT_PORTRAIT_MAX_VERTICAL_FOV = 115;
@@ -365,10 +364,6 @@ async function fetchBuffer(url, signal) {
   return response.arrayBuffer();
 }
 
-function assetUrl(name) {
-  return `${ASSET_ROOT}/${String(name || '').replace(/^\/+/, '')}`;
-}
-
 function sampleCameraTrack(track, progress, position, quaternion, targetQuaternion) {
   const cursor = clamp(progress, 0, 1) * (track.sampleCount - 1);
   const fromIndex = Math.floor(cursor);
@@ -536,7 +531,6 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
   const visibilityEntranceHandoffsWU = new Float32Array(count);
   const visibilityExitHandoffsWU = new Float32Array(count);
   const partOrdinals = new Map();
-  const partPaletteRoles = new Map();
   const perModelCounts = Object.freeze(Object.fromEntries(
     (meta.models || []).map((model) => [
       String(model.id),
@@ -570,21 +564,10 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     radii[destinationIndex] = decodeRadius(view.getUint16(offset + 16, true))
       * (radiusScaleByObject[partKey] || 1);
     revealRanks[destinationIndex] = view.getUint16(offset + 18, true);
-    const semanticRole = view.getUint8(offset + 28);
-    const materialPaletteKey = `${partKey}:${semanticRole}`;
-    let objectPaletteRoles = partPaletteRoles.get(materialPaletteKey);
-    if (!objectPaletteRoles) {
-      objectPaletteRoles = createAboutSurfelPaletteRoles(partCount, {
-        modelId,
-        partId,
-        semanticRole,
-        snapshot: getSimulationPaletteSnapshot(),
-      });
-      partPaletteRoles.set(materialPaletteKey, objectPaletteRoles);
-    }
-    paletteRoles[destinationIndex] = sourceObjects.get(objectKey)?.role === 'path-tunnel'
-      ? semanticRole % PALETTE_ROLE_COUNT
-      : objectPaletteRoles[partOrdinal % objectPaletteRoles.length];
+    // The exported byte is the complete Blender-owned semantic assignment.
+    // Quality, resize and scroll paths only select or transform these stable
+    // records; they never recolour individual surfels.
+    paletteRoles[destinationIndex] = view.getUint8(offset + 28);
     motionGroups[destinationIndex] = view.getUint8(offset + 29);
     featureClasses[destinationIndex] = view.getUint8(offset + 30);
     preserveFlags[destinationIndex] = view.getUint8(offset + 31) ? 1 : 0;
@@ -708,7 +691,8 @@ function createSurfelGeometry(decoded, modelRange) {
   return geometry;
 }
 
-function createUniforms() {
+function createUniforms(snapshot = getSimulationPaletteSnapshot()) {
+  const paletteColors = resolveAboutSurfelPaletteColors(snapshot);
   return {
     uViewportPx: { value: new THREE.Vector2(1, 1) },
     uProjectionScalePx: { value: 1 },
@@ -740,22 +724,19 @@ function createUniforms() {
     uTerminalDelay: { value: 2.6 },
     uTerminalPulseDuration: { value: 2 },
     uEdgeSoftness: { value: 1.35 },
-    uPalette0: { value: new THREE.Color('#7e7e7e') },
-    uPalette1: { value: new THREE.Color('#ffd019') },
-    uPalette2: { value: new THREE.Color('#1772a8') },
-    uPalette3: { value: new THREE.Color('#ffffff') },
-    uPalette4: { value: new THREE.Color('#ed2017') },
-    uPalette5: { value: new THREE.Color('#6740a4') },
+    uPalette0: { value: new THREE.Color(paletteColors[0]) },
+    uPalette1: { value: new THREE.Color(paletteColors[1]) },
+    uPalette2: { value: new THREE.Color(paletteColors[2]) },
+    uPalette3: { value: new THREE.Color(paletteColors[3]) },
+    uPalette4: { value: new THREE.Color(paletteColors[4]) },
+    uPalette5: { value: new THREE.Color(paletteColors[5]) },
   };
 }
 
 function syncPalette(uniforms, snapshot = getSimulationPaletteSnapshot()) {
-  const colors = snapshot?.colors || [];
-  const distribution = snapshot?.distribution || [];
+  const colors = resolveAboutSurfelPaletteColors(snapshot);
   for (let index = 0; index < PALETTE_ROLE_COUNT; index += 1) {
-    const colorIndex = Number(distribution[index]?.colorIndex ?? index);
-    const color = colors[colorIndex] || colors[index] || '#7e7e7e';
-    uniforms[`uPalette${index}`].value.setStyle(color);
+    uniforms[`uPalette${index}`].value.setStyle(colors[index]);
   }
 }
 
@@ -1247,9 +1228,15 @@ export function createBlenderPointScene({
   root,
   pointProfile = 'desktop',
   layoutProfile = 'desktop',
+  assetRoot = DEFAULT_ASSET_ROOT,
 } = {}) {
   if (!(canvas instanceof HTMLCanvasElement)) throw new TypeError('Blender point scenes need a canvas.');
   if (!(root instanceof HTMLElement)) throw new TypeError('Blender point scenes need a route root.');
+
+  const resolvedAssetRoot = String(assetRoot || DEFAULT_ASSET_ROOT).replace(/\/+$/u, '');
+  const resolveAssetUrl = (name) => (
+    `${resolvedAssetRoot}/${String(name || '').replace(/^\/+/, '')}`
+  );
 
   const qualityTier = pointProfile || (layoutProfile === 'mobile' ? 'mobile' : 'desktop');
   const maximumPixelRatio = qualityTier === 'mobile' ? 1.25 : 1.5;
@@ -1334,8 +1321,11 @@ export function createBlenderPointScene({
   let motionTime = 0;
   let terminalStudy = null;
   let bufferBuilds = 0;
+  let authoredCameraFog = Object.freeze({ startWU: 14, endWU: 150, curve: 1.2 });
   const controls = writeAboutSceneLook({}, null, entranceScale);
   let paletteId = '';
+  let paletteGeneration = 0;
+  let paletteUniformUpdates = 0;
 
   const notify = () => listeners.forEach((listener) => listener());
   const setState = (nextState, nextError = '') => {
@@ -1434,6 +1424,7 @@ export function createBlenderPointScene({
     attributeIdentities = null;
     decoded = null;
     meta = null;
+    authoredCameraFog = Object.freeze({ startWU: 14, endWU: 150, curve: 1.2 });
     cameraTrack = null;
     resolvedJourneyMap = null;
     resolvedStoryJourneyMap = null;
@@ -1449,6 +1440,12 @@ export function createBlenderPointScene({
   const installDecodedScene = ({ nextMeta, nextCameraTrack, nextDecoded }) => {
     if (disposed) return;
     meta = nextMeta;
+    const sourceFog = meta.source.authoring?.cameraFog;
+    authoredCameraFog = sourceFog ? Object.freeze({
+      startWU: Number(sourceFog.startWU),
+      endWU: Number(sourceFog.endWU),
+      curve: Number(sourceFog.curve),
+    }) : authoredCameraFog;
     for (const material of uniforms.uModelMaterials.value) material.set(-1, -1, 1, 1);
     for (const [index, model] of meta.models.entries()) {
       if (!model.material) continue;
@@ -1520,11 +1517,11 @@ export function createBlenderPointScene({
     // cannot start a second load during a synchronous loading-state notification.
     const attempt = Promise.resolve().then(async () => {
       if (!ownsLoad()) return;
-      const nextMeta = await fetchJson(META_URL, controller.signal);
+      const nextMeta = await fetchJson(resolveAssetUrl('meta.json'), controller.signal);
       if (!ownsLoad()) return;
       const [cameraTrackBytes, surfelBuffer] = await Promise.all([
-        fetchBuffer(assetUrl(fileName(nextMeta?.files?.cameraTrack, 'camera-track.json')), controller.signal),
-        fetchBuffer(assetUrl(fileName(nextMeta?.files?.surfels, 'surfels.bin')), controller.signal),
+        fetchBuffer(resolveAssetUrl(fileName(nextMeta?.files?.cameraTrack, 'camera-track.json')), controller.signal),
+        fetchBuffer(resolveAssetUrl(fileName(nextMeta?.files?.surfels, 'surfels.bin')), controller.signal),
       ]);
       if (!ownsLoad()) return;
       const bundle = await validateAboutBlenderSceneBundle({
@@ -1606,6 +1603,9 @@ export function createBlenderPointScene({
       : (frame?.durationWU > 0 ? frame.storyWU / frame.durationWU : 0);
     const cameraLocked = journeySample.valid && journeySample.locked;
     writeAboutSceneLook(controls, frame, entranceScale, journeySample);
+    controls.fogStartWU = authoredCameraFog.startWU;
+    controls.fogEndWU = authoredCameraFog.endWU;
+    controls.fogCurve = authoredCameraFog.curve;
     if (cameraTrack) {
       sampleCameraTrack(
         cameraTrack,
@@ -2079,6 +2079,8 @@ export function createBlenderPointScene({
     viewportWidth: width,
     viewportHeight: height,
     paletteId,
+    paletteGeneration,
+    paletteUniformUpdates,
     contextAvailable,
     visible,
     controls: Object.freeze({ ...controls }),
@@ -2168,6 +2170,8 @@ export function createBlenderPointScene({
   window.addEventListener('resize', resize, { passive: true });
   const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
     paletteId = snapshot.paletteId;
+    paletteGeneration = Number(snapshot.generation) || 0;
+    paletteUniformUpdates += 1;
     syncPalette(uniforms, snapshot);
     if (latestFrame && visible) render(latestFrame);
   });

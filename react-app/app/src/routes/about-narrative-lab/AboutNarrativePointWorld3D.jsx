@@ -25,6 +25,7 @@ function createEditorialFallback(root) {
 }
 
 function createRuntimeAdapter({
+  assetRoot,
   canvas,
   root,
   runtimeRef,
@@ -40,6 +41,7 @@ function createRuntimeAdapter({
   delete root.dataset.aboutSceneReady;
 
   const scene = createBlenderPointScene({
+    assetRoot,
     canvas,
     root,
     pointProfile,
@@ -185,6 +187,7 @@ function createRuntimeAdapter({
 }
 
 export function AboutNarrativePointWorld3D({
+  assetRoot,
   rootRef,
   interactionRef,
   runtimeRef,
@@ -208,6 +211,7 @@ export function AboutNarrativePointWorld3D({
       if (!active) return;
       try {
         disposeAdapter = createRuntimeAdapter({
+          assetRoot,
           canvas,
           root,
           runtimeRef,
@@ -224,7 +228,7 @@ export function AboutNarrativePointWorld3D({
       window.clearTimeout(setupTimer);
       disposeAdapter?.();
     };
-  }, [interactionRef, layoutProfile, pointProfile, rootRef, runtimeRef]);
+  }, [assetRoot, interactionRef, layoutProfile, pointProfile, rootRef, runtimeRef]);
 
   return <canvas ref={canvasRef} className="about-narrative-world__canvas" aria-hidden="true" />;
 }

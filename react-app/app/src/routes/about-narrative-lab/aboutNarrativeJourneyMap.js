@@ -1,155 +1,152 @@
 const EPSILON = 0.000001;
 const RUNWAY_APPROACH_WU = 0.5;
+const CAMERA_TRAVEL_PROGRESS = 0.9;
 
-const PHASE_FIELDS = Object.freeze({
-  enter: 'startWU',
-  focus: 'focusWU',
-  exit: 'endWU',
-});
+const cameraProgressAtStage = (stageIndex, stageProgress = 0) => (
+  (stageIndex + stageProgress) / 7 * CAMERA_TRAVEL_PROGRESS
+);
 
 const JOURNEY_ROLES = Object.freeze([
   Object.freeze({
     id: 'opening',
-    fieldId: 'text-promise-main',
-    phase: 'enter',
+    stageId: 'about.00',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_STAGE_00']),
+    requiredCueName: 'ABS_STAGE_00',
     fallbackProgress: 0,
   }),
   Object.freeze({
     id: 'inciting-question',
-    fieldId: 'text-complexity-idea',
-    phase: 'enter',
+    stageId: 'about.01',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_STAGE_01']),
-    fallbackProgress: 0.05,
+    requiredCueName: 'ABS_STAGE_01',
+    fallbackProgress: cameraProgressAtStage(1),
   }),
   Object.freeze({
     id: 'portal-entry',
-    fieldId: 'text-background-unit',
-    phase: 'enter',
-    offsetWU: -2.1,
+    stageId: 'about.02',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_STAGE_02']),
-    fallbackProgress: 0.091667,
+    requiredCueName: 'ABS_STAGE_02',
+    fallbackProgress: cameraProgressAtStage(2),
   }),
   Object.freeze({
     id: 'portal-exit',
-    fieldId: 'text-background-unit',
-    phase: 'enter',
-    offsetWU: -1,
+    stageId: 'about.02',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_ROUND_PORTALS_EXIT']),
     requiredCueName: 'ABS_ROUND_PORTALS_EXIT',
-    fallbackProgress: 0.183333,
+    fallbackProgress: cameraProgressAtStage(2, 1),
   }),
   Object.freeze({
     id: 'portal-release',
-    fieldId: 'text-background-unit',
-    phase: 'enter',
-    offsetWU: -0.16,
+    stageId: 'about.02',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_ROUND_PORTALS_CLEAR']),
     requiredCueName: 'ABS_ROUND_PORTALS_CLEAR',
-    fallbackProgress: 0.2,
+    fallbackProgress: cameraProgressAtStage(2, 1),
   }),
   Object.freeze({
     id: 'personal-origin',
-    fieldId: 'text-background-unit',
-    phase: 'enter',
+    stageId: 'about.03',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_PERSONAL_ORIGIN']),
     requiredCueName: 'ABS_PERSONAL_ORIGIN',
-    fallbackProgress: 0.216667,
+    fallbackProgress: cameraProgressAtStage(3),
   }),
   Object.freeze({
     id: 'earned-thesis',
-    fieldId: 'text-complexity-curiosity',
-    phase: 'enter',
+    stageId: 'about.03',
+    stageProgress: 0.33,
     cueNames: Object.freeze(['ABS_TERRAIN_THESIS']),
     requiredCueName: 'ABS_TERRAIN_THESIS',
-    fallbackProgress: 0.266667,
+    fallbackProgress: cameraProgressAtStage(3, 0.33),
   }),
   Object.freeze({
     id: 'landscape-release',
-    fieldId: 'text-disciplines-title',
-    phase: 'exit',
-    offsetWU: -0.16,
+    stageId: 'about.03',
+    stageProgress: 0.9,
     cueNames: Object.freeze(['ABS_CANYON_CLEAR']),
     requiredCueName: 'ABS_CANYON_CLEAR',
-    fallbackProgress: 0.458333,
+    fallbackProgress: cameraProgressAtStage(3, 0.9),
   }),
   Object.freeze({
     id: 'gate-entry',
-    fieldId: 'text-life-momentum',
-    phase: 'enter',
-    offsetWU: -2.1,
+    stageId: 'about.04',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_ROLL_GATE_START', 'ABS_STAGE_04']),
-    fallbackProgress: 0.463333,
+    requiredCueName: 'ABS_ROLL_GATE_START',
+    fallbackProgress: cameraProgressAtStage(4),
   }),
   Object.freeze({
     id: 'gate-exit',
-    fieldId: 'text-life-momentum',
-    phase: 'enter',
-    offsetWU: -1,
+    stageId: 'about.04',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_ROLL_GATE_END']),
-    fallbackProgress: 0.676667,
+    requiredCueName: 'ABS_ROLL_GATE_END',
+    fallbackProgress: cameraProgressAtStage(4, 1),
   }),
   Object.freeze({
     id: 'gate-release',
-    fieldId: 'text-life-momentum',
-    phase: 'enter',
-    offsetWU: -0.16,
+    stageId: 'about.04',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_GATE_PASSAGE_CLEAR']),
     requiredCueName: 'ABS_GATE_PASSAGE_CLEAR',
-    fallbackProgress: 0.7,
+    fallbackProgress: cameraProgressAtStage(4, 1),
   }),
   Object.freeze({
     id: 'method',
-    fieldId: 'text-life-momentum',
-    phase: 'enter',
+    stageId: 'about.05',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_METHOD_RELEASE']),
     requiredCueName: 'ABS_METHOD_RELEASE',
-    fallbackProgress: 0.725,
+    fallbackProgress: cameraProgressAtStage(5),
   }),
   Object.freeze({
     id: 'lattice-approach',
-    fieldId: 'text-life-momentum',
-    phase: 'focus',
+    stageId: 'about.05',
+    stageProgress: 0.5,
     cueNames: Object.freeze(['ABS_LATTICE_APPROACH']),
     requiredCueName: 'ABS_LATTICE_APPROACH',
-    fallbackProgress: 0.75,
+    fallbackProgress: cameraProgressAtStage(5, 0.5),
   }),
   Object.freeze({
     id: 'split-lattice-entry',
-    fieldId: 'text-life-character',
-    phase: 'enter',
+    stageId: 'about.06',
+    stageProgress: 0,
     cueNames: Object.freeze(['ABS_SPLIT_LATTICE_ENTRY']),
     requiredCueName: 'ABS_SPLIT_LATTICE_ENTRY',
-    fallbackProgress: 0.758333,
+    fallbackProgress: cameraProgressAtStage(6),
   }),
   Object.freeze({
     id: 'finale-deceleration',
-    fieldId: 'text-life-character',
-    phase: 'exit',
+    stageId: 'about.06',
+    stageProgress: 0.3,
     cueNames: Object.freeze(['ABS_FINALE_DECEL']),
     requiredCueName: 'ABS_FINALE_DECEL',
-    fallbackProgress: 0.791667,
-  }),
-  Object.freeze({
-    id: 'camera-lock',
-    fieldId: 'text-epilogue-thinking',
-    phase: 'exit',
-    cueNames: Object.freeze(['ABS_CAMERA_LOCK']),
-    requiredCueName: 'ABS_CAMERA_LOCK',
-    fallbackProgress: 0.833333,
+    fallbackProgress: cameraProgressAtStage(6, 0.3),
   }),
   Object.freeze({
     id: 'invitation',
-    fieldId: 'text-epilogue-invitation',
-    phase: 'enter',
+    stageId: 'about.06',
+    stageProgress: 0.7,
+    cueNames: Object.freeze(['ABS_INVITATION']),
+    requiredCueName: 'ABS_INVITATION',
+    fallbackProgress: cameraProgressAtStage(6, 0.7),
+  }),
+  Object.freeze({
+    id: 'camera-lock',
+    stageId: 'about.06',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_CAMERA_LOCK']),
     requiredCueName: 'ABS_CAMERA_LOCK',
-    fallbackProgress: 0.833333,
+    fallbackProgress: CAMERA_TRAVEL_PROGRESS,
   }),
   Object.freeze({
     id: 'terminal-hold',
-    fieldId: 'text-epilogue-invitation',
-    phase: 'exit',
+    stageId: 'about.06',
+    stageProgress: 1,
     cueNames: Object.freeze(['ABS_TERMINAL_FRAME']),
     requiredCueName: 'ABS_TERMINAL_FRAME',
     fallbackProgress: 1,
@@ -165,26 +162,25 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function fieldTiming(storyLayout, fieldId, phase) {
-  const field = storyLayout?.fields?.find((candidate) => candidate.id === fieldId);
-  const phaseField = PHASE_FIELDS[phase];
-  const value = Number(field?.[phaseField]);
-  return Number.isFinite(value) ? value : null;
+function stageTiming(storyLayout, stageId, stageProgress) {
+  const section = storyLayout?.sections?.find((candidate) => candidate.id === stageId);
+  if (!section) return null;
+  return clean(
+    Number(section.startWU)
+    + ((Number(section.endWU) - Number(section.startWU)) * clamp01(stageProgress)),
+  );
 }
 
 export function compileAboutNarrativeJourneyMap(storyLayout) {
   const diagnostics = [];
   const anchors = JOURNEY_ROLES.map((role) => {
-    const fieldWU = fieldTiming(storyLayout, role.fieldId, role.phase);
-    // Offsets reserve camera passage inside Text-owned gaps. They never add
-    // page length or change the Blender-authored path.
-    const storyWU = Number.isFinite(fieldWU) ? fieldWU + (role.offsetWU || 0) : null;
+    const storyWU = stageTiming(storyLayout, role.stageId, role.stageProgress);
     if (!Number.isFinite(storyWU)) {
       diagnostics.push({
         level: 'warning',
-        code: 'journey-story-anchor-missing',
-        path: `tracks.text.fields.${role.fieldId}.${PHASE_FIELDS[role.phase]}`,
-        message: `The journey role “${role.id}” cannot resolve ${role.fieldId}:${role.phase}.`,
+        code: 'journey-story-stage-missing',
+        path: `storyLayout.sections.${role.stageId}`,
+        message: `The journey role “${role.id}” cannot resolve equal stage “${role.stageId}”.`,
       });
     }
     return {
@@ -200,7 +196,7 @@ export function compileAboutNarrativeJourneyMap(storyLayout) {
       diagnostics.push({
         level: 'error',
         code: 'journey-story-order',
-        path: `tracks.text.fields.${anchor.fieldId}`,
+        path: `storyLayout.sections.${anchor.stageId}`,
         message: `Journey role “${anchor.id}” resolves before “${previous.id}”.`,
       });
     }
@@ -209,7 +205,8 @@ export function compileAboutNarrativeJourneyMap(storyLayout) {
   const byId = new Map(anchors.map((anchor) => [anchor.id, anchor]));
   const signature = JSON.stringify(anchors.map((anchor) => [
     anchor.id,
-    anchor.offsetWU || 0,
+    anchor.stageId,
+    anchor.stageProgress,
     anchor.storyWU,
     anchor.cueNames,
     anchor.requiredCueName,

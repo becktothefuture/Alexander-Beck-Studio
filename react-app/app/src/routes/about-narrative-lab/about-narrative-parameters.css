@@ -117,12 +117,38 @@
 }
 
 .about-scene-parameter-panel__note {
-  margin: 0;
   padding: 6px 8px;
   color: var(--parameterizer-muted);
   border-bottom: 1px solid var(--parameterizer-separator);
   font-size: 9px;
   line-height: 1.35;
+}
+
+.about-scene-parameter-panel__note p {
+  margin: 0;
+}
+
+.about-scene-parameter-panel__note p + p {
+  margin-top: 5px;
+}
+
+.about-scene-parameter-panel__source {
+  color: var(--parameterizer-text);
+  font-family: var(--abs-font-mono);
+}
+
+.about-scene-parameter-panel__source > span::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--parameterizer-muted);
+  content: '';
+}
+
+.about-scene-parameter-panel__source[data-blender-preview-status='ready'] > span::before {
+  background: var(--parameterizer-accent);
 }
 
 .about-scene-parameter-panel .parameterizer-scroll {

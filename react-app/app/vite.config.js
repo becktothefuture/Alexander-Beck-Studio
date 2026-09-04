@@ -61,7 +61,11 @@ function publicDevGuardPlugin() {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const pathname = String(req.url || '').split('?', 1)[0];
-        if (pathname === '/api' || pathname.startsWith('/api/') || pathname.startsWith('/@fs/')) {
+        if (pathname === '/api'
+          || pathname.startsWith('/api/')
+          || pathname.startsWith('/@fs/')
+          || pathname === '/__about-blender-preview'
+          || pathname.startsWith('/__about-blender-preview/')) {
           res.statusCode = 404;
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
           res.end('Not available on the public development mirror.');

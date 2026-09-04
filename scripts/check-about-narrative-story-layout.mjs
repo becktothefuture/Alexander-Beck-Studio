@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  ABOUT_NARRATIVE_STAGE_IDS,
   ABOUT_NARRATIVE_STORY_GAP_PRESETS,
   compileAboutNarrativeStoryLayout,
   materializeAboutNarrativeStoryLayout,
@@ -45,6 +46,39 @@ test('documents without Story Stack flow preserve their authored timing', () => 
     layout.fields.map(({ id, startWU, focusWU, endWU }) => ({ id, startWU, focusWU, endWU })),
     legacy.tracks.text.fields.map(({ id, startWU, focusWU, endWU }) => ({ id, startWU, focusWU, endWU })),
   );
+});
+
+test('the canonical story uses seven equal Blender sections', () => {
+  for (const profileId of ['desktop', 'tablet', 'mobile']) {
+    const layout = compileAboutNarrativeStoryLayout(canonical, { profileId });
+    assert.equal(layout.sectionMode, 'equal-camera-distance');
+    assert.equal(layout.stageDurationWU, 5);
+    assert.equal(layout.durationWU, 35);
+    assert.deepEqual(layout.sections.map((section) => section.id), ABOUT_NARRATIVE_STAGE_IDS);
+    layout.sections.forEach((section, index) => {
+      assert.equal(section.startWU, index * layout.stageDurationWU);
+      assert.equal(section.endWU, (index + 1) * layout.stageDurationWU);
+      assert.equal(section.durationWU, layout.stageDurationWU);
+      assert.ok(section.fieldIds.length > 0, `${section.id} must contain text.`);
+    });
+    assert.deepEqual(
+      layout.fields.map((item) => item.stageId),
+      canonical.tracks.text.fields.map((item) => item.stageId),
+    );
+  }
+});
+
+test('oversized copy expands all seven sections by the same amount', () => {
+  const measurements = {
+    'text-background-unit': { contentHeightPx: 6_000, viewportHeightPx: 1_000 },
+  };
+  const layout = compileAboutNarrativeStoryLayout(canonical, {
+    profileId: 'desktop',
+    measurements,
+  });
+  assert.ok(layout.stageDurationWU > 5);
+  assert.equal(new Set(layout.sections.map((section) => section.durationWU)).size, 1);
+  assert.equal(layout.durationWU, layout.stageDurationWU * ABOUT_NARRATIVE_STAGE_IDS.length);
 });
 
 test('content order and named gaps replace stale authored timeline positions', () => {

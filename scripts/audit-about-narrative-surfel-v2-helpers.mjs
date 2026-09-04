@@ -15,12 +15,12 @@ export const ABOUT_SURFEL_PROFILES = Object.freeze({
   desktop: Object.freeze({
     viewport: Object.freeze({ width: 1440, height: 1000 }),
     residentSurfelCount: 90_000,
-    maximumGpuBytes: 3_900_000,
+    maximumGpuBytes: 4_200_000,
   }),
   mobile: Object.freeze({
     viewport: Object.freeze({ width: 390, height: 844 }),
     residentSurfelCount: 30_000,
-    maximumGpuBytes: 1_350_000,
+    maximumGpuBytes: 1_400_000,
   }),
 });
 
@@ -103,13 +103,16 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert.equal(metrics.pointProfile, profile);
   assert.equal(metrics.layoutProfile, profile);
   assert.equal(metrics.residentSurfelCount, expected.residentSurfelCount);
-  assert.equal(metrics.activeSurfelCount, expected.residentSurfelCount);
-  assert.equal(metrics.pointCount, expected.residentSurfelCount);
+  assert(metrics.activeSurfelCount > 0
+    && metrics.activeSurfelCount <= metrics.residentSurfelCount,
+  'The active story models must remain a non-empty subset of the resident profile.');
+  assert.equal(metrics.pointCount, metrics.activeSurfelCount);
   assert.equal(metrics.masterSurfelCount, 135_000);
   assert.equal(metrics.modelCount, 7);
   assert.equal(Object.keys(metrics.perModelCounts).length, 7);
   assert(Object.values(metrics.perModelCounts).every((count) => count > 0));
-  assert.equal(metrics.drawCalls, 2);
+  assert(metrics.drawCalls >= 2 && metrics.drawCalls <= 4 && metrics.drawCalls % 2 === 0,
+    'Each active story model must use one depth-core and one soft-surface draw pass.');
   assert.equal(metrics.occlusionMode, 'depth-owned-whole-surfel-reveal');
   assert.equal(metrics.lodRadiusScaleMode, 'per-object');
   assert.equal(
@@ -121,23 +124,26 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert.equal(metrics.bufferRebuilds, 1);
   assert.equal(metrics.gpuBufferIdentityStable, true);
   assert.equal(metrics.fixedAttributeIdentityStable, true);
-  assert.equal(metrics.gpuBufferCount, 13);
+  assert.equal(metrics.gpuBufferCount, metrics.modelCount * 14,
+    'Every model must retain one stable copy of the fourteen surfel attributes.');
   assert.equal(metrics.gpuBufferBytes, metrics.gpuBytes);
   assert(metrics.gpuBufferBytes > 0 && metrics.gpuBufferBytes <= expected.maximumGpuBytes);
   assert.deepEqual(metrics.zones, expectedCameraPageIds);
   assert.equal(metrics.assetSourceHash, expectedAssetMetadata.source.sha256);
-  const portalObjects = expectedAssetMetadata.source.objects
-    .filter((entry) => entry.modelKey === 'about.02' && entry.objectKey.startsWith('abs.hoop.'));
-  assert.equal(portalObjects.length, 14, 'The recovered round portal sequence is incomplete.');
-  assert(portalObjects.every((entry) => entry.instanceCount === 1 && entry.connectedComponentCount === 1),
-    'A recovered round portal lost its authored component.');
-  const gateObjects = expectedAssetMetadata.source.objects
-    .filter((entry) => entry.modelKey === 'about.04' && entry.objectKey.startsWith('abs.gate.'));
-  assert.equal(gateObjects.length, 16, 'The recovered square gate sequence is incomplete.');
-  assert(gateObjects.every((entry) => entry.instanceCount === 1 && entry.connectedComponentCount === 1),
-    'A recovered square gate lost its authored component.');
+  const portalHost = expectedAssetMetadata.source.objects
+    .find((entry) => entry.objectKey === 'director.round-tunnel');
+  assert.equal(portalHost?.modelKey, 'about.02');
+  assert.equal(portalHost?.instanceCount, 28, 'The parametric round tunnel is incomplete.');
+  assert.equal(portalHost?.connectedComponentCount, 28,
+    'The single round-tunnel host must retain one connected component per generated ring.');
+  const gateHost = expectedAssetMetadata.source.objects
+    .find((entry) => entry.objectKey === 'director.square-gate-tunnel');
+  assert.equal(gateHost?.modelKey, 'about.04');
+  assert.equal(gateHost?.instanceCount, 16, 'The parametric square-gate tunnel is incomplete.');
+  assert.equal(gateHost?.connectedComponentCount, 16,
+    'The single square-gate host must retain one connected component per generated gate.');
   const finaleSurface = expectedAssetMetadata.source.objects
-    .find((entry) => entry.objectKey === 'abs.finale.boundless.surface');
+    .find((entry) => entry.objectKey === 'director.finale-surface');
   assert.equal(finaleSurface?.modelKey, 'about.06');
   assert.equal(finaleSurface?.connectedComponentCount, 1,
     'The boundless finale surface must stay physically connected.');

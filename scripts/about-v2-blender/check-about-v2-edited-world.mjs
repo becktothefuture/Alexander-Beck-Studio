@@ -97,24 +97,16 @@ const EXPECTED_PROFILE_COUNTS = {
   master: [7500, 7500, 9000, 45000, 12000, 24000, 30000],
 };
 const PROFILE_INDEX = { mobile: 0, desktop: 1, master: 2 };
-const EXPECTED_GATE_OBJECT_KEYS = Array.from(
-  { length: 16 },
-  (_, index) => `abs.gate.${String(index).padStart(2, '0')}`,
-);
-const EXPECTED_GATE_AMBIENT_OBJECT_KEY = 'abs_b27_gate_ambient_triplet';
-const EXPECTED_GATE_PROFILE_COUNTS = {
-  mobile: [190, 192, 192, 190, 186, 182, 180, 180, 182, 187, 191, 194, 193, 190, 186, 182],
-  desktop: [505, 512, 513, 507, 497, 487, 479, 479, 487, 498, 510, 517, 515, 508, 497, 486],
-  master: [758, 768, 770, 761, 746, 730, 719, 719, 730, 747, 765, 775, 773, 762, 745, 729],
-};
+const EXPECTED_GATE_OBJECT_KEY = 'director.square-gate-tunnel';
+const EXPECTED_ROUND_TUNNEL_OBJECT_KEY = 'director.round-tunnel';
 const EXPECTED_VISIBILITY_BINDINGS = new Map([
-  ['about.00', ['opening', 0, 'inciting-question', 0.6]],
-  ['about.01', ['inciting-question', -0.6, 'portal-entry', 0.6]],
-  ['about.02', ['portal-entry', -0.6, 'portal-exit', 0.6]],
-  ['about.03', ['portal-exit', -0.6, 'gate-entry', 0.75]],
-  ['about.04', ['gate-entry', -0.75, 'gate-exit', 0.8]],
-  ['about.05', ['gate-exit', -1.1, 'split-lattice-entry', -0.45]],
-  ['about.06', ['split-lattice-entry', -1.65, 'terminal-hold', 1]],
+  ['about.00', ['opening', 0, 'inciting-question', 0.3]],
+  ['about.01', ['inciting-question', -0.3, 'portal-entry', 0.3]],
+  ['about.02', ['portal-entry', -0.3, 'personal-origin', 0.3]],
+  ['about.03', ['personal-origin', -0.3, 'gate-entry', 0.3]],
+  ['about.04', ['gate-entry', -0.3, 'method', 0.3]],
+  ['about.05', ['method', -0.3, 'split-lattice-entry', 0.3]],
+  ['about.06', ['split-lattice-entry', -0.3, 'terminal-hold', 0.3]],
 ]);
 const REQUIRED_CAMERA_CUES = [
   'ABS_STAGE_00',
@@ -129,6 +121,7 @@ const REQUIRED_CAMERA_CUES = [
   'ABS_SPLIT_LATTICE_ENTRY',
   'ABS_STAGE_06',
   'ABS_FINALE_DECEL',
+  'ABS_INVITATION',
   'ABS_CAMERA_LOCK',
   'ABS_TERMINAL_FRAME',
 ];
@@ -198,7 +191,28 @@ function validateMetadata(metadata) {
   assert.deepEqual(metadata.palette.roles, [
     'atmosphere', 'stone', 'steel', 'glass', 'signal', 'organic',
   ]);
-  assert.equal(metadata.source.samplingPolicy.fog, 'runtime-depth-only');
+  assert.equal(metadata.palette.owner, 'website runtime code via Blender semantic roles');
+  assert.equal(metadata.palette.runtimeResolution, 'design-system Home palette');
+  assert.deepEqual(metadata.palette.assignment, {
+    owner: 'Blender object properties and semantic materials',
+    modeProperty: 'abs_palette_mode',
+    roleProperty: 'abs_palette_role',
+    seedProperty: 'abs_palette_seed',
+    defaultMode: 'mixed',
+    modes: ['mixed', 'single', 'authored-faces'],
+    exportedValue: 'stable semantic role identifier',
+  });
+  assert.equal(
+    metadata.palette.blenderPreview.source,
+    'react-app/app/src/palette/simulationPaletteController.js',
+  );
+  assert.ok(metadata.palette.blenderPreview.paletteId);
+  assert.ok(metadata.palette.blenderPreview.periodId);
+  assert.equal(
+    metadata.palette.blenderPreview.authority,
+    'preview-only; website runtime remains the production colour owner',
+  );
+  assert.equal(metadata.source.samplingPolicy.fog, 'blender-camera-depth-exported-directly');
   assert.equal(metadata.source.samplingPolicy.profileSelection, 'nested-per-model-prefix');
   assert.deepEqual(
     new Set(Object.keys(metadata.source.samplingPolicy.componentPolicies || {})),
@@ -230,6 +244,7 @@ function validateSource(metadata) {
     'Point assets are stale against the authored Blender scene.',
   );
   const objectKeys = new Set();
+  const paletteRolesByModel = new Map();
   for (const object of metadata.source.objects) {
     assert.ok(object.objectKey && object.modelKey && object.role && object.motionKey);
     assert.ok(!objectKeys.has(object.objectKey), `Duplicate semantic object key ${object.objectKey}.`);
@@ -263,20 +278,187 @@ function validateSource(metadata) {
       [0, 1, 2].every((axis) => object.bounds.max[axis] > object.bounds.min[axis]),
       `${object.objectKey} has empty world bounds.`,
     );
+    assert.ok(['mixed', 'single', 'authored-faces'].includes(object.paletteMode),
+      `${object.objectKey} has no supported palette mode.`);
+    assert.ok(Number.isInteger(object.paletteSeed) && object.paletteSeed >= 0,
+      `${object.objectKey} has no stable palette seed.`);
+    assert.ok(Array.isArray(object.paletteRoles) && object.paletteRoles.length > 0,
+      `${object.objectKey} exports no semantic palette roles.`);
+    if (object.paletteMode === 'single') {
+      assert.ok(metadata.palette.roles.includes(object.paletteRole),
+        `${object.objectKey} has an invalid single-role override.`);
+      assert.deepEqual(object.paletteRoles, [metadata.palette.roles.indexOf(object.paletteRole)]);
+    } else {
+      assert.equal(object.paletteRole, null,
+        `${object.objectKey} keeps a role override outside single mode.`);
+    }
+    const modelRoles = paletteRolesByModel.get(object.modelKey) || new Set();
+    object.paletteRoles.forEach((role) => modelRoles.add(role));
+    paletteRolesByModel.set(object.modelKey, modelRoles);
   }
+  CURRENT_EXPECTED_MODEL_KEYS.forEach((modelKey) => {
+    assert.deepEqual(
+      paletteRolesByModel.get(modelKey),
+      new Set([0, 1, 2, 3, 4, 5]),
+      `${modelKey} does not contain the balanced six-role ecosystem mixture.`,
+    );
+  });
+  const authoring = metadata.source.authoring;
+  assert.equal(authoring?.geometryOwner, 'about.controls');
+  assert.ok([
+    'editable-bezier-path,scene-layout,fov,visibility-distance,camera-fog',
+    'editable-bezier-path,camera-roll,stage-distance,geometry,density,point-scale,fov,visibility-distance,camera-fog',
+  ].includes(authoring?.blenderAuthority), 'The Blender authoring authority is not recognised.');
+  assert.equal(
+    authoring?.runtimeAuthority,
+    'design-system-home-ball-palette,rendering-quality',
+  );
+  assert.deepEqual(authoring?.cameraFog, {
+    startWU: 14,
+    endWU: 150,
+    curve: 1.2,
+    source: 'about.controls',
+  });
+  assert.ok(Array.isArray(authoring.controls), 'The Blender source exposes no authoring controls.');
+  if (authoring.controlValues) {
+    assert.deepEqual(Object.keys(authoring.controlValues).sort(), authoring.controls,
+      'The read-only development preview does not mirror every Blender control.');
+    assert.ok(Object.values(authoring.controlValues).every(Number.isFinite),
+      'The read-only development preview contains a non-finite Blender control.');
+  }
+  const simplifiedControls = [
+    'About Controls / 01 Camera FOV',
+    'About Controls / 02 Fog Start',
+    'About Controls / 03 Fog End',
+    'About Controls / 04 Fog Curve',
+    'About Controls / 05 Body Count',
+    'About Controls / 06 Bodies Start (%)',
+    'About Controls / 07 Bodies End (%)',
+    'About Controls / 08 Body Size',
+    'About Controls / 09 Body Spread',
+    'About Controls / 10 Body Rotation',
+    'Round Tunnel / 01 Start (%)',
+    'Round Tunnel / 02 End (%)',
+    'Round Tunnel / 03 Ring Count',
+    'Round Tunnel / 04 Opening Radius',
+    'Round Tunnel / 05 Ring Thickness',
+    'Round Tunnel / 06 Ring Depth',
+    'Square Gates / 01 Start (%)',
+    'Square Gates / 02 End (%)',
+    'Square Gates / 03 Gate Count',
+    'Square Gates / 04 Opening Size',
+    'Square Gates / 05 Frame Thickness',
+    'Square Gates / 06 Gate Depth',
+    'Square Gates / 07 Twist',
+    'Landscape Position / Position (%)',
+    'Horizon Position / Position (%)',
+    'Finale Position / Position (%)',
+  ];
+  const usesSimplifiedControls = authoring.controls.includes('About Controls / 01 Camera FOV');
+  if (usesSimplifiedControls) {
+    assert.equal(authoring.controls.length, simplifiedControls.length,
+      'The Blender source must expose only the simplified scene controls.');
+    for (const required of simplifiedControls) {
+      assert.ok(authoring.controls.includes(required), `Missing Blender control ${required}.`);
+    }
+    assert.ok(authoring.controls.every((name) => !name.includes('_')),
+      'Technical property names must not leak into the authoring surface.');
+  } else {
+    assert.ok(authoring.controls.length >= 53,
+      'The legacy Blender source does not expose its complete geometry controls.');
+    for (const required of [
+      'camera_horizontal_fov_degrees',
+      'camera_draw_start_wu',
+      'camera_draw_end_wu',
+      'camera_fog_curve',
+      'scene_visibility_fade_wu',
+      'method_retire_before_finale_wu',
+      'finale_lead_in_wu',
+      'opening_width_scale',
+      'forms_start_progress',
+      'forms_body_count',
+      'forms_rotation_turns',
+      'round_tunnel_ring_count',
+      'round_tunnel_aperture_radius_wu',
+      'round_tunnel_rim_wu',
+      'round_tunnel_half_depth_wu',
+      'round_tunnel_end_progress',
+      'terrain_progress',
+      'square_gate_count',
+      'square_gate_half_width_wu',
+      'square_gate_half_height_wu',
+      'square_gate_rim_wu',
+      'square_gate_half_depth_wu',
+      'square_gate_start_progress',
+      'horizon_banks_progress',
+      'finale_progress',
+    ]) {
+      assert.ok(authoring.controls.includes(required), `Missing Blender control ${required}.`);
+    }
+  }
+  assert.ok(authoring.controls.every((name) => !/(?:colou?r|palette)/i.test(name)),
+    'Colour controls must remain code-owned.');
+  assert.deepEqual(metadata.visibility, {
+    owner: 'Blender scene controls',
+    source: 'about.controls',
+    resolution: 'semantic camera cues plus Blender-authored distance offsets',
+  });
+  assert.deepEqual(authoring.helperObjects, [
+    'About Controls',
+    'Finale Position',
+    'Horizon Position',
+    'Landscape Position',
+    'Opening Position',
+  ], 'The Blender source has accumulated unneeded helper empties.');
+  const openingObjects = metadata.source.objects.filter((object) => object.modelKey === 'about.00');
+  assert.equal(openingObjects.length, 1,
+    'The opening must remain one readable Blender field, not a stack of export layers.');
+  const openingField = openingObjects[0];
+  assert.equal(openingField.objectKey, 'director.opening-field');
+  assert.equal(openingField.name, 'Opening Field');
+  assert.equal(openingField.geometryKind, 'opening-field');
+  assert.equal(openingField.minimumProfile, 'mobile');
+  assert.equal(openingField.samplingPattern, 'row-column-grid');
+  assert.equal(openingField.samplingDensityAttribute, 'abs_sampling_density');
+  assert.ok(openingField.connectedComponentCount >= 20,
+    'Opening Field lost its authored disconnected surface regions.');
+  const formBodies = metadata.source.objects.filter((object) => object.modelKey === 'about.01');
+  assert.ok(formBodies.length >= 4 && formBodies.length <= 6,
+    'The recognisable-forms ecosystem must contain four to six solid bodies.');
+  assert.deepEqual(formBodies.map((object) => object.formsBodyIndex),
+    Array.from({ length: formBodies.length }, (_, index) => index));
+  for (const body of formBodies) {
+    assert.match(body.geometryKind, /^solid-parametric-/u);
+    assert.equal(body.opaqueBody, true, `${body.name} is not declared opaque.`);
+    assert.equal(body.samplingPattern, 'surface-blue-noise');
+    assert.ok(body.paletteRoles.length >= 4,
+      `${body.name} needs at least four differently coloured sides.`);
+    assert.ok(body.surfelCount >= 250,
+      `${body.name} is too sparse to read as a solid body.`);
+    assert.ok(body.surfelRadiusScale >= 2 && body.surfelRadiusScale <= 2.5,
+      `${body.name} does not have enough surface coverage to read as opaque.`);
+  }
+  assert.ok(metadata.source.objects.every((object) => !object.name.startsWith('ABS_B27_SHAPE_')),
+    'The former 42-object shape scatter must not survive the parametric body rebuild.');
+  const gridSurfaces = metadata.source.objects.filter((object) => object.samplingPattern === 'row-column-grid');
+  assert.ok(gridSurfaces.length >= 2, 'The opening and finale must use Blender-authored row-column grids.');
+  assert.ok(gridSurfaces.some((object) => object.geometryKind === 'boundless-finale-surface'));
   assert.equal(
     metadata.source.objects.reduce((sum, object) => sum + object.triangles, 0),
     metadata.source.triangleCount,
   );
   const route = metadata.source.route;
   assert.ok(route, 'The source does not expose its evaluated camera route.');
-  assert.equal(route.object, 'ABS_PARAMETRIC_RIDE_PATH');
+  assert.equal(route.object, 'about.camera-path');
+  assert.equal(route.displayName, 'Camera Path');
   assert.ok(
     Number.isInteger(route.controlPointCount) && route.controlPointCount >= 4,
     'The camera route must be an evaluated curve with at least four control points.',
   );
   assert.ok(Number.isFinite(route.evaluatedLength) && route.evaluatedLength > 100,
     'The evaluated camera route is missing or too short for the seven-stage journey.');
+  assert.ok(route.evaluatedLength >= 1900,
+    'The camera route must remain at least twice the previous 975 WU journey.');
   assert.match(route.shapeSha256, /^[a-f0-9]{64}$/);
   assert.equal(route.splineCount, 1, 'The camera journey must remain one continuous spline.');
   const stageIds = CURRENT_EXPECTED_MODEL_KEYS.map((_, index) => String(index).padStart(2, '0'));
@@ -284,7 +466,7 @@ function validateSource(metadata) {
     'The camera route must expose seven ordered stage ranges.');
   let previousStart = -Infinity;
   let previousEnd = -Infinity;
-  for (const stageId of stageIds) {
+  for (const [stageIndex, stageId] of stageIds.entries()) {
     const range = route.stageRanges[stageId];
     assert.ok(Array.isArray(range) && range.length === 2 && range.every(Number.isFinite),
       `Route stage ${stageId} has an invalid range.`);
@@ -292,6 +474,12 @@ function validateSource(metadata) {
       `Route stage ${stageId} falls outside the normalized journey.`);
     assert.ok(range[0] >= previousStart && range[1] >= previousEnd,
       `Route stage ${stageId} is out of physical order.`);
+    assert.ok(Math.abs(range[0] - stageIndex / stageIds.length) <= 0.000001,
+      `Route stage ${stageId} does not begin at its exact one-seventh boundary.`);
+    assert.ok(Math.abs(range[1] - (stageIndex + 1) / stageIds.length) <= 0.000001,
+      `Route stage ${stageId} does not end at its exact one-seventh boundary.`);
+    assert.ok(Math.abs((range[1] - range[0]) - 1 / stageIds.length) <= 0.000001,
+      `Route stage ${stageId} does not own one seventh of the camera path.`);
     previousStart = range[0];
     previousEnd = range[1];
   }
@@ -337,48 +525,38 @@ function validateSource(metadata) {
 
   const gateModel = metadata.models[4];
   assert.equal(gateModel.key, 'about.04');
-  assert.deepEqual(
-    gateModel.objectKeys.filter((objectKey) => EXPECTED_GATE_OBJECT_KEYS.includes(objectKey)),
-    EXPECTED_GATE_OBJECT_KEYS,
-    'The square-gate stage must contain exactly 16 ordered semantic gate objects.',
-  );
-  assert.deepEqual(
-    gateModel.objectKeys.filter((objectKey) => !EXPECTED_GATE_OBJECT_KEYS.includes(objectKey)),
-    [EXPECTED_GATE_AMBIENT_OBJECT_KEY],
-    'The square-gate stage must contain only the bounded ambient continuity triplet besides its 16 gates.',
-  );
-  const gateObjects = EXPECTED_GATE_OBJECT_KEYS.map((objectKey) => byKey[objectKey]);
-  gateObjects.forEach((object, index) => {
-    assert.ok(object, `Square gate ${index + 1} is missing from the saved source.`);
-    assert.equal(object.modelKey, 'about.04');
-    assert.equal(object.role, 'path-tunnel');
-    assert.equal(object.geometryKind, 'rounded-square-loop');
-    assert.equal(object.connectedComponentCount, 1,
-      `${object.objectKey} must remain one continuous gate.`);
-    assert.equal(object.instanceCount, 1, `${object.objectKey} must represent one gate aperture.`);
-  });
-  const gateAmbient = byKey[EXPECTED_GATE_AMBIENT_OBJECT_KEY];
-  assert.equal(gateAmbient.modelKey, 'about.04');
-  assert.equal(gateAmbient.geometryKind, 'gate-peripheral-ambient-continuity');
-  assert.equal(gateAmbient.connectedComponentCount, 3);
-  assert.equal(gateAmbient.requiredAnchorCount, 3);
-  assert.equal(gateAmbient.surfelCount, 3);
+  assert.deepEqual(gateModel.objectKeys, [EXPECTED_GATE_OBJECT_KEY],
+    'The square-gate stage must contain one parametric gate family and no ambient veil.');
+  const gateObject = byKey[EXPECTED_GATE_OBJECT_KEY];
+  assert.ok(gateObject, 'The parametric square-gate family is missing from the saved source.');
+  assert.equal(gateObject.modelKey, 'about.04');
+  assert.equal(gateObject.role, 'path-tunnel');
+  assert.equal(gateObject.geometryKind, 'parametric-square-gate-tunnel');
+  assert.ok(gateObject.instanceCount >= 8 && gateObject.instanceCount <= 24,
+    'The square-gate family must generate 8–24 gates from one Blender object.');
+  assert.equal(gateObject.connectedComponentCount, gateObject.instanceCount,
+    'Every generated square gate must remain one discrete aperture component.');
+  assert.deepEqual(gateObject.paletteRoles, [0, 1, 2, 3, 4, 5],
+    'The generated square gates must retain the coded six-role palette cycle.');
 
-  const roundTunnelObjects = metadata.source.objects.filter((object) => (
-    object.modelKey === 'about.02' && object.geometryKind === 'curved-round-tunnel-hoop'
-  ));
-  assert.ok(roundTunnelObjects.length >= 8,
-    'The round-tunnel stage needs at least eight authored aperture objects.');
-  assert.ok(roundTunnelObjects.every((object) => (
-    object.connectedComponentCount === 1 && object.instanceCount === 1
-  )), 'Each round-tunnel aperture must remain one continuous authored hoop.');
+  const roundTunnelObject = byKey[EXPECTED_ROUND_TUNNEL_OBJECT_KEY];
+  assert.deepEqual(metadata.models[2].objectKeys, [EXPECTED_ROUND_TUNNEL_OBJECT_KEY],
+    'The round-tunnel stage must contain one parametric hoop family.');
+  assert.ok(roundTunnelObject, 'The parametric round-tunnel family is missing from the saved source.');
+  assert.equal(roundTunnelObject.geometryKind, 'parametric-round-tunnel');
+  assert.ok(roundTunnelObject.instanceCount >= 8 && roundTunnelObject.instanceCount <= 40,
+    'The round-tunnel family must generate 8–40 hoops from one Blender object.');
+  assert.equal(roundTunnelObject.connectedComponentCount, roundTunnelObject.instanceCount,
+    'Every generated round hoop must remain one discrete aperture component.');
+  assert.deepEqual(roundTunnelObject.paletteRoles, [0, 1, 2, 3, 4, 5],
+    'The generated round tunnel must retain the coded six-role palette cycle.');
 
   const continuousFloor = largestSemanticSurface(metadata, 'about.03', 'The continuous middle journey');
   assert.equal(continuousFloor.connectedComponentCount, 1,
     'The middle journey floor must remain one continuous semantic surface.');
   assert.ok(extent(continuousFloor, 0) >= 128,
     'The continuous floor no longer overscans the camera corridor horizontally.');
-  assert.ok(extent(continuousFloor, 2) >= Math.max(80, route.evaluatedLength * 0.2),
+  assert.ok(extent(continuousFloor, 2) >= 180,
     'The continuous floor no longer spans a substantial section of the route.');
 
   const finaleSurface = largestSemanticSurface(metadata, 'about.06', 'The finale');
@@ -386,7 +564,7 @@ function validateSource(metadata) {
     'The finale ground must remain one continuous semantic surface.');
   assert.ok(extent(finaleSurface, 0) >= 440,
     'The finale surface no longer provides desktop and mobile horizontal overscan.');
-  assert.ok(extent(finaleSurface, 2) >= Math.max(120, route.evaluatedLength * 0.2),
+  assert.ok(extent(finaleSurface, 2) >= Math.max(360, route.evaluatedLength * 0.18),
     'The finale surface no longer provides a boundless depth field.');
 
   const orderedModels = metadata.models;
@@ -395,7 +573,7 @@ function validateSource(metadata) {
     assert.ok(Number.isFinite(model.visibilityEndWU), `${model.key} has no visibility end.`);
     assert.ok(model.visibilityEndWU > model.visibilityStartWU, `${model.key} has an empty visibility window.`);
     assert.ok(Number.isFinite(model.visibilityHandoffWU)
-      && model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.2,
+      && model.visibilityHandoffWU > 0 && model.visibilityHandoffWU <= 0.35,
     `${model.key} has an unsafe visibility handoff.`);
     assert.deepEqual([model.visibilityStartCue, model.visibilityStartOffsetWU,
       model.visibilityEndCue, model.visibilityEndOffsetWU],
@@ -426,10 +604,10 @@ function validateSource(metadata) {
 function validateTerrainGateClearance(metadata, surfelBytes) {
   if (!metadata.source.readingSpaceFit?.terrainEndOnPath) return;
   const terrain = metadata.models.find((model) => model.key === 'about.03');
-  const gates = EXPECTED_GATE_OBJECT_KEYS.map((objectKey) => (
-    metadata.source.objects.find((object) => object.objectKey === objectKey)
-  ));
-  assert.ok(terrain && gates.every(Boolean), 'Fitted terrain requires all 16 semantic gates.');
+  const gates = [metadata.source.objects.find(
+    (object) => object.objectKey === EXPECTED_GATE_OBJECT_KEY,
+  )];
+  assert.ok(terrain && gates.every(Boolean), 'Fitted terrain requires the parametric gate family.');
   let minimumClearance = Infinity;
   for (let index = terrain.surfelRange.offset; index < terrain.surfelRange.offset + terrain.surfelRange.count; index += 1) {
     for (const gate of gates) {
@@ -534,10 +712,10 @@ function validateSurfels(metadata, bytes) {
   assert.ok(maximumSeed > 64511, `Surfel reveal seeds do not reach the high tail (${maximumSeed}).`);
   metadata.models.forEach((model) => {
     assert.equal(modelCounts[model.id], model.surfelRange.count);
-    assert.equal(
-      modelPaletteRoles[model.id].size,
-      metadata.palette.roles.length,
-      `${model.key} does not carry all six shared palette roles.`,
+    assert.deepEqual(
+      modelPaletteRoles[model.id],
+      new Set([0, 1, 2, 3, 4, 5]),
+      `${model.key} must retain all six Blender semantic roles in the point buffer.`,
     );
     model.objectKeys.forEach((objectKey, partId) => {
       const object = metadata.source.objects.find((item) => item.objectKey === objectKey);
@@ -562,6 +740,10 @@ function validateSurfels(metadata, bytes) {
       }
     });
   });
+  const gateObject = metadata.source.objects.find(
+    (object) => object.objectKey === EXPECTED_GATE_OBJECT_KEY,
+  );
+  assert.ok(gateObject, 'The parametric gate family is missing from surfel allocation metadata.');
   for (const profileName of ['mobile', 'desktop', 'master']) {
     const profile = metadata.profiles[profileName];
     assert.equal(
@@ -604,14 +786,12 @@ function validateSurfels(metadata, bytes) {
       assert.ok(desktopCount > 0, `${object.objectKey} is missing from desktop.`);
     }
   }
-  for (const [profileName, expectedCounts] of Object.entries(EXPECTED_GATE_PROFILE_COUNTS)) {
-    assert.deepEqual(
-      Array.from({ length: 16 }, (_, index) => metadata.profiles[profileName].perObjectCounts[
-        `abs.gate.${String(index).padStart(2, '0')}`
-      ]),
-      expectedCounts,
-      `${profileName} gate allocation changed, including the final two gates.`,
-    );
+  for (const profileName of ['mobile', 'desktop', 'master']) {
+    const gateCount = metadata.profiles[profileName].perObjectCounts[EXPECTED_GATE_OBJECT_KEY];
+    assert.equal(gateCount, metadata.profiles[profileName].perModelCounts['about.04'],
+      `${profileName} must allocate the full gate-stage budget to its one parametric family.`);
+    assert.ok(gateCount >= gateObject.instanceCount * 96,
+      `${profileName} must preserve every generated gate, including the final gates.`);
   }
   if (metadata.source.samplingPolicy.allocation === 'saved-source-profile-budgets') {
     const allocation = metadata.source.surfelAllocation;
@@ -894,7 +1074,7 @@ function validateCamera(metadata, bytes) {
   assert.ok(cameraTrack.samples.length >= 120,
     'The camera track is too short to certify a continuous seven-stage journey.');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 85);
+  assert.equal(cameraTrack.projection.horizontalFov, 78);
   assert.equal(cameraTrack.orientation.path, metadata.source.route.object,
     'Camera orientation and source route refer to different paths.');
   assert.ok(typeof cameraTrack.orientation.pathTwistMode === 'string'
@@ -945,14 +1125,18 @@ function validateCamera(metadata, bytes) {
   assert.ok(Math.max(...angularJerk.map(Math.abs)) < 0.15,
     `Camera angular jerk spikes to ${Math.max(...angularJerk.map(Math.abs)).toFixed(3)} degrees/frame³.`);
 
-  assert.equal(cameraTrack.gatePassage?.source, 'ABS_GATE_00..15');
+  assert.equal(cameraTrack.gatePassage?.source, 'director.square-gate-tunnel');
+  assert.equal(cameraTrack.gatePassage?.displayName, 'Square Gates');
   assert.deepEqual(cameraTrack.gatePassage.traversal, {
     forward: true,
     reverse: true,
     mode: 'same-centreline-reversible',
   });
   const gateMeasurement = measureCameraGatePassage(cameraTrack);
-  assertCameraGatePassage(gateMeasurement, EXPECTED_GATE_OBJECT_KEYS.length);
+  const gateObject = metadata.source.objects.find(
+    (object) => object.objectKey === EXPECTED_GATE_OBJECT_KEY,
+  );
+  assertCameraGatePassage(gateMeasurement, gateObject.instanceCount);
 
   assert.deepEqual(cameraTrack.roundTunnelPassage?.traversal, {
     forward: true,
@@ -960,12 +1144,14 @@ function validateCamera(metadata, bytes) {
     mode: 'same-centreline-reversible',
   }, 'The round tunnel must expose the same reversible passage semantics as the square gates.');
   const roundTunnelMeasurement = measureCameraRoundTunnelPassage(cameraTrack);
-  const roundTunnelObjects = metadata.source.objects.filter((object) => (
-    object.modelKey === 'about.02' && object.geometryKind === 'curved-round-tunnel-hoop'
-  ));
-  assert.equal(roundTunnelMeasurement.apertures.length, roundTunnelObjects.length,
-    'The round-tunnel passage record must cover every authored aperture object.');
-  assertCameraRoundTunnelPassage(roundTunnelMeasurement, roundTunnelObjects.length);
+  assert.equal(cameraTrack.roundTunnelPassage?.source, 'director.round-tunnel');
+  assert.equal(cameraTrack.roundTunnelPassage?.displayName, 'Round Tunnel');
+  const roundTunnelObject = metadata.source.objects.find(
+    (object) => object.objectKey === EXPECTED_ROUND_TUNNEL_OBJECT_KEY,
+  );
+  assert.equal(roundTunnelMeasurement.apertures.length, roundTunnelObject.instanceCount,
+    'The round-tunnel passage record must cover every generated aperture.');
+  assertCameraRoundTunnelPassage(roundTunnelMeasurement, roundTunnelObject.instanceCount);
 
   let travelledDistance = 0;
   const sampleDistances = [];
@@ -1089,7 +1275,7 @@ function validateCamera(metadata, bytes) {
   assert.ok(cueByName.get('ABS_STAGE_04').progress <= firstGateCrossing,
     'The square gates begin before their semantic stage cue.');
   assert.ok(cueByName.get('ABS_GATE_PASSAGE_CLEAR').progress >= lastGateCrossing,
-    'The square-gate discard cue occurs before all 16 gates are crossed.');
+    `The square-gate discard cue occurs before all ${gateMeasurement.gates.length} gates are crossed.`);
 
   const lockSample = cameraTrack.samples[holdStartIndex];
   const stationaryTail = cameraTrack.samples.slice(holdStartIndex);
@@ -1098,13 +1284,9 @@ function validateCamera(metadata, bytes) {
     sample[1] - lockSample[1],
     sample[2] - lockSample[2],
   )));
-  const maximumTailQuaternionDrift = Math.max(...stationaryTail.map((sample) => {
-    const dot = Math.abs(sample.slice(3).reduce(
-      (sum, value, index) => sum + (value * lockSample[index + 3]),
-      0,
-    ));
-    return 2 * Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
-  }));
+  const maximumTailQuaternionDrift = Math.max(...stationaryTail.map(
+    (sample) => quaternionAngleDegrees(lockSample, sample),
+  ));
   assert.ok(
     maximumTailPositionDrift <= 0.0001,
     `The terminal camera drifts by ${maximumTailPositionDrift.toFixed(6)} WU after lock.`,

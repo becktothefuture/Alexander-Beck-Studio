@@ -63,6 +63,7 @@ export const ABOUT_NARRATIVE_TRACK_TEXT_KINDS = Object.freeze([
 export const ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND = 'career-sequence';
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ABOUT_STAGE_ID_PATTERN = /^about\.0[0-6]$/;
 const WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
 const CAREER_SEQUENCE_MAX_WORDS = 56;
 const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:/i;
@@ -151,7 +152,7 @@ const TRANSFORM_KEYS = new Set([
 ]);
 const TRANSITION_KEYS = new Set(['startWU', 'endWU', 'type', 'easing', 'correspondence']);
 const MODIFIER_KEYS = new Set(['id', 'enabled', 'parameters']);
-const TEXT_BASE_KEYS = new Set(['id', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'flow', 'protected']);
+const TEXT_BASE_KEYS = new Set(['id', 'stageId', 'kind', 'startWU', 'focusWU', 'endWU', 'publishable', 'presentation', 'flow', 'protected']);
 const TITLE_KEYS = new Set([...TEXT_BASE_KEYS, 'movement', 'preset', 'titleStyle', 'text', 'description', 'anchor']);
 const SCROLL_BLOCK_KEYS = new Set([...TEXT_BASE_KEYS, 'block', 'reveal']);
 const STUB_KEYS = new Set([...TEXT_BASE_KEYS, 'label']);
@@ -1046,6 +1047,14 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
   unknownKeys(diagnostics, field, allowed, path);
   if (!isObject(field)) return;
   validateId(field.id, seen, diagnostics, `${path}.id`);
+  if (field.stageId != null && !ABOUT_STAGE_ID_PATTERN.test(field.stageId)) {
+    diagnostic(
+      diagnostics,
+      'text-stage-id',
+      `${path}.stageId`,
+      'Text stageId must identify one of the seven Blender stages, about.00 through about.06.',
+    );
+  }
   if (!ABOUT_NARRATIVE_TRACK_TEXT_KINDS.includes(field.kind)) diagnostic(diagnostics, 'text-kind', `${path}.kind`, 'Unsupported Text field kind.');
   ['startWU', 'focusWU', 'endWU'].forEach((key) => validateTime(field[key], diagnostics, `${path}.${key}`, { max: durationWU }));
   if (!(Number(field.startWU) <= Number(field.focusWU) && Number(field.focusWU) <= Number(field.endWU))) diagnostic(diagnostics, 'text-order', path, 'Text timing must satisfy startWU ≤ focusWU ≤ endWU.');

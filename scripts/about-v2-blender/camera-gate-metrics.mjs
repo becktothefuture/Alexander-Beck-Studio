@@ -6,6 +6,9 @@ const dot = (first, second) => first.reduce((sum, value, index) => sum + value *
 const subtract = (first, second) => first.map((value, index) => value - second[index]);
 const mix = (first, second, amount) => first.map((value, index) => value + (second[index] - value) * amount);
 const normalise = (vector) => vector.map((value) => value / Math.hypot(...vector));
+const dedupeCrossings = (crossings) => crossings.filter((crossing, index) => (
+  index === 0 || Math.abs(crossing.distanceWU - crossings[index - 1].distanceWU) > 0.0001
+));
 
 function rotate(quaternion, vector) {
   const [x, y, z, w] = quaternion;
@@ -96,7 +99,7 @@ export function measureCameraGatePassage(track) {
           position: point, clearanceWU: clearance, planeOffset,
         });
       }
-      intersections.push(crossings);
+      intersections.push(dedupeCrossings(crossings));
     }
     const crossing = intersections[1][0];
     const approaches = crossing ? [16, 12, 8, 6, 4, 2, 1].map((leadWU) => {
@@ -215,7 +218,7 @@ export function measureCameraRoundTunnelPassage(track) {
           planeOffset,
         });
       }
-      intersections.push(crossings);
+      intersections.push(dedupeCrossings(crossings));
     }
     const crossing = intersections[1][0];
     const approaches = crossing ? [16, 12, 8, 6, 4, 2, 1]

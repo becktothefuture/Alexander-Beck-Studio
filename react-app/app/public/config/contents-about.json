@@ -71,8 +71,8 @@
   },
   "profiles": {
     "desktop": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22,
+      "storyDurationWU": 35,
+      "scrollDurationWU": 35,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -86,8 +86,8 @@
       }
     },
     "tablet": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22,
+      "storyDurationWU": 35,
+      "scrollDurationWU": 35,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -101,8 +101,8 @@
       }
     },
     "mobile": {
-      "storyDurationWU": 22,
-      "scrollDurationWU": 22,
+      "storyDurationWU": 35,
+      "scrollDurationWU": 35,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -141,7 +141,7 @@
         },
         {
           "id": "move-ride-material-yard",
-          "atWU": 1.4,
+          "atWU": 6.133333,
           "position": [
             -0.961133,
             0.127497,
@@ -157,7 +157,7 @@
         },
         {
           "id": "move-ride-hoops",
-          "atWU": 2.55,
+          "atWU": 8.066666,
           "position": [
             -6.21457,
             0.706026,
@@ -173,7 +173,7 @@
         },
         {
           "id": "move-ride-archive",
-          "atWU": 3.6,
+          "atWU": 11.403143,
           "position": [
             -10.033584,
             1.641439,
@@ -189,7 +189,7 @@
         },
         {
           "id": "move-ride-question-drop",
-          "atWU": 7.15,
+          "atWU": 16.133333,
           "position": [
             5.481822,
             0.376012,
@@ -205,7 +205,7 @@
         },
         {
           "id": "move-ride-interchange",
-          "atWU": 8.05,
+          "atWU": 18.066666,
           "position": [
             3.83791,
             -0.635608,
@@ -221,7 +221,7 @@
         },
         {
           "id": "move-ride-workshops",
-          "atWU": 8.95,
+          "atWU": 21.150572,
           "position": [
             0.616126,
             0.443149,
@@ -237,7 +237,7 @@
         },
         {
           "id": "move-ride-assembly-hall",
-          "atWU": 11.5,
+          "atWU": 25.625333,
           "position": [
             8.457375,
             12.655872,
@@ -253,7 +253,7 @@
         },
         {
           "id": "move-ride-pressure-wall",
-          "atWU": 14.5,
+          "atWU": 28.424666,
           "position": [
             -8.720155,
             12.041027,
@@ -269,7 +269,7 @@
         },
         {
           "id": "move-ride-transfer-bridge",
-          "atWU": 14.85,
+          "atWU": 28.899666,
           "position": [
             -8.892663,
             5.978348,
@@ -285,7 +285,7 @@
         },
         {
           "id": "move-ride-city",
-          "atWU": 16.1,
+          "atWU": 30.1,
           "position": [
             -4.589521,
             1.598717,
@@ -301,7 +301,7 @@
         },
         {
           "id": "move-ride-terminal",
-          "atWU": 18.75,
+          "atWU": 33.5,
           "position": [
             -0.00548,
             1.560461,
@@ -334,7 +334,7 @@
         },
         {
           "id": "look-ride-material-yard",
-          "atWU": 1.4,
+          "atWU": 6.133333,
           "rotation": [
             1.795071,
             15.126695,
@@ -349,7 +349,7 @@
         },
         {
           "id": "look-ride-hoops",
-          "atWU": 2.55,
+          "atWU": 8.066666,
           "rotation": [
             4.07672,
             13.010915,
@@ -364,7 +364,7 @@
         },
         {
           "id": "look-ride-archive",
-          "atWU": 3.6,
+          "atWU": 11.403143,
           "rotation": [
             3.223741,
             -0.331295,
@@ -379,7 +379,7 @@
         },
         {
           "id": "look-ride-question-drop",
-          "atWU": 7.15,
+          "atWU": 16.133333,
           "rotation": [
             -4.724358,
             0.195832,
@@ -394,7 +394,7 @@
         },
         {
           "id": "look-ride-interchange",
-          "atWU": 8.05,
+          "atWU": 18.066666,
           "rotation": [
             1.781351,
             17.439713,
@@ -409,7 +409,7 @@
         },
         {
           "id": "look-ride-workshops",
-          "atWU": 8.95,
+          "atWU": 21.150572,
           "rotation": [
             7.896003,
             -23.40029,
@@ -424,7 +424,7 @@
         },
         {
           "id": "look-ride-assembly-hall",
-          "atWU": 11.5,
+          "atWU": 25.625333,
           "rotation": [
             -22.032471,
             5.875563,
@@ -439,7 +439,7 @@
         },
         {
           "id": "look-ride-pressure-wall",
-          "atWU": 14.5,
+          "atWU": 28.424666,
           "rotation": [
             1.644754,
             26.553158,
@@ -454,7 +454,7 @@
         },
         {
           "id": "look-ride-transfer-bridge",
-          "atWU": 14.85,
+          "atWU": 28.899666,
           "rotation": [
             -27.686361,
             -0.975424,
@@ -469,7 +469,7 @@
         },
         {
           "id": "look-ride-city",
-          "atWU": 16.1,
+          "atWU": 30.1,
           "rotation": [
             -4.380426,
             -13.296853,
@@ -484,7 +484,7 @@
         },
         {
           "id": "look-ride-terminal",
-          "atWU": 18.75,
+          "atWU": 33.5,
           "rotation": [
             1.856959,
             0,
@@ -528,7 +528,7 @@
         },
         {
           "id": "visibility-long-assembly-end",
-          "atWU": 22,
+          "atWU": 35,
           "visibility": 1,
           "easing": "linear",
           "locked": true,
@@ -569,7 +569,7 @@
             "mobileYOffset": 0
           },
           "shapeParameters": {
-            "storyDurationWU": 22,
+            "storyDurationWU": 35,
             "widthScale": 1,
             "heightScale": 1,
             "depthScale": 1,
@@ -594,11 +594,11 @@
             "finaleFogClearEndWU": 21.8,
             "finaleFogStartWU": 220,
             "finaleFogEndWU": 560,
-            "backgroundAnchorWU": 3.6,
-            "intersectionAnchorWU": 8.05,
-            "disciplinesAnchorWU": 11.5,
-            "cityAnchorWU": 16.1,
-            "finaleAnchorWU": 20.1
+            "backgroundAnchorWU": 11.403143,
+            "intersectionAnchorWU": 18.066666,
+            "disciplinesAnchorWU": 25.625333,
+            "cityAnchorWU": 30.1,
+            "finaleAnchorWU": 33.6
           },
           "modifiers": []
         }
@@ -617,7 +617,7 @@
         },
         {
           "id": "key-long-assembly-end",
-          "atWU": 22,
+          "atWU": 35,
           "stateId": "v2-long-assembly",
           "protected": true,
           "trigger": {
@@ -657,10 +657,11 @@
       "fields": [
         {
           "id": "text-promise-main",
+          "stageId": "about.00",
           "kind": "title",
           "startWU": 0,
-          "focusWU": 0.4,
-          "endWU": 0.8,
+          "focusWU": 0.425,
+          "endWU": 0.85,
           "publishable": true,
           "flow": {
             "minScreens": 0.85,
@@ -682,10 +683,11 @@
         },
         {
           "id": "text-complexity-idea",
+          "stageId": "about.01",
           "kind": "title",
-          "startWU": 1.4,
-          "focusWU": 1.8,
-          "endWU": 2.2,
+          "startWU": 6.133333,
+          "focusWU": 6.533333,
+          "endWU": 6.933333,
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
@@ -706,10 +708,11 @@
         },
         {
           "id": "text-complexity-conditions",
+          "stageId": "about.01",
           "kind": "title",
-          "startWU": 2.55,
-          "focusWU": 2.95,
-          "endWU": 3.35,
+          "startWU": 8.066666,
+          "focusWU": 8.466666,
+          "endWU": 8.866666,
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
@@ -730,10 +733,11 @@
         },
         {
           "id": "text-background-unit",
+          "stageId": "about.02",
           "kind": "scroll-block",
-          "startWU": 3.6,
-          "focusWU": 4.1,
-          "endWU": 7.05,
+          "startWU": 11.403143,
+          "focusWU": 11.983143,
+          "endWU": 13.596857,
           "publishable": true,
           "flow": {
             "minScreens": 1.8,
@@ -804,10 +808,11 @@
         },
         {
           "id": "text-complexity-curiosity",
+          "stageId": "about.03",
           "kind": "title",
-          "startWU": 7.15,
-          "focusWU": 7.55,
-          "endWU": 7.95,
+          "startWU": 16.133333,
+          "focusWU": 16.533333,
+          "endWU": 16.933333,
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
@@ -828,10 +833,11 @@
         },
         {
           "id": "text-complexity-listen",
+          "stageId": "about.03",
           "kind": "title",
-          "startWU": 8.05,
-          "focusWU": 8.45,
-          "endWU": 8.85,
+          "startWU": 18.066666,
+          "focusWU": 18.466666,
+          "endWU": 18.866666,
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
@@ -852,10 +858,11 @@
         },
         {
           "id": "text-discipline-labels",
+          "stageId": "about.04",
           "kind": "scroll-block",
-          "startWU": 8.95,
-          "focusWU": 9.7,
-          "endWU": 11.4,
+          "startWU": 21.150572,
+          "focusWU": 21.730572,
+          "endWU": 23.849429,
           "publishable": true,
           "flow": {
             "minScreens": 1.6,
@@ -908,10 +915,11 @@
         },
         {
           "id": "text-disciplines-title",
+          "stageId": "about.05",
           "kind": "scroll-block",
-          "startWU": 11.5,
-          "focusWU": 12.1,
-          "endWU": 14.4,
+          "startWU": 25.625333,
+          "focusWU": 26.205333,
+          "endWU": 27.799333,
           "publishable": true,
           "flow": {
             "minScreens": 1.8,
@@ -1033,10 +1041,11 @@
         },
         {
           "id": "text-life-momentum",
+          "stageId": "about.05",
           "kind": "title",
-          "startWU": 14.5,
-          "focusWU": 14.85,
-          "endWU": 15.2,
+          "startWU": 28.424666,
+          "focusWU": 28.899666,
+          "endWU": 29.374666,
           "publishable": true,
           "flow": {
             "minScreens": 0.95,
@@ -1057,10 +1066,11 @@
         },
         {
           "id": "text-life-character",
+          "stageId": "about.06",
           "kind": "scroll-block",
-          "startWU": 16.1,
-          "focusWU": 16.45,
-          "endWU": 16.8,
+          "startWU": 30.1,
+          "focusWU": 30.68,
+          "endWU": 31.9,
           "publishable": true,
           "flow": {
             "minScreens": 1.8,
@@ -1094,10 +1104,11 @@
         },
         {
           "id": "text-epilogue-shaping",
+          "stageId": "about.06",
           "kind": "title",
-          "startWU": 17.1,
-          "focusWU": 17.45,
-          "endWU": 17.8,
+          "startWU": 32,
+          "focusWU": 32.35,
+          "endWU": 32.7,
           "publishable": true,
           "flow": {
             "minScreens": 0.7,
@@ -1118,10 +1129,11 @@
         },
         {
           "id": "text-epilogue-thinking",
+          "stageId": "about.06",
           "kind": "title",
-          "startWU": 18.05,
-          "focusWU": 18.4,
-          "endWU": 18.75,
+          "startWU": 32.8,
+          "focusWU": 33.15,
+          "endWU": 33.5,
           "publishable": true,
           "flow": {
             "minScreens": 0.7,
@@ -1142,10 +1154,11 @@
         },
         {
           "id": "text-epilogue-invitation",
+          "stageId": "about.06",
           "kind": "title",
-          "startWU": 20.1,
-          "focusWU": 20.65,
-          "endWU": 22,
+          "startWU": 33.6,
+          "focusWU": 34.3,
+          "endWU": 35,
           "publishable": true,
           "flow": {
             "minScreens": 1.4,
@@ -1172,9 +1185,9 @@
         {
           "id": "effect-long-assembly-service-pulse",
           "type": "state-effect",
-          "startWU": 13.45,
-          "activationWU": 13.85,
-          "endWU": 14.85,
+          "startWU": 26.849333,
+          "activationWU": 27.249333,
+          "endWU": 28.899666,
           "targetStateId": "v2-long-assembly",
           "parameters": {
             "effectId": "living-wave-v1",
@@ -1199,9 +1212,9 @@
         {
           "id": "effect-long-assembly-workshop-check",
           "type": "state-effect",
-          "startWU": 14.85,
-          "activationWU": 15.1,
-          "endWU": 16.1,
+          "startWU": 29.024666,
+          "activationWU": 29.274666,
+          "endWU": 30.1,
           "targetStateId": "v2-long-assembly",
           "parameters": {
             "effectId": "living-wave-v1",
@@ -1226,9 +1239,9 @@
         {
           "id": "effect-long-assembly-living-canopy",
           "type": "state-effect",
-          "startWU": 16.1,
-          "activationWU": 16.1,
-          "endWU": 22,
+          "startWU": 30.1,
+          "activationWU": 30.1,
+          "endWU": 35,
           "targetStateId": "v2-long-assembly",
           "parameters": {
             "effectId": "living-wave-v1",

@@ -580,8 +580,8 @@ const sessionParameter = (control) => pageParameter('session', control);
  */
 export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
   Object.freeze({
-    id: 'page-point-cloud',
-    label: 'Point cloud',
+    id: 'page-rendering',
+    label: 'Rendering',
     controls: Object.freeze([
       sessionParameter(selectControl('qualityTier', 'Quality', [
         { value: 'auto', label: 'Auto' },
@@ -589,26 +589,14 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
         { value: 'mobile', label: 'Low · mobile' },
         { value: 'master', label: 'Maximum · preview' },
       ], 'auto')),
-      rideParameter('density'),
-      globalParameter('material', 'opacity', ['pointMaterial', 'opacity'], {
-        label: 'Circle opacity',
-      }),
       globalParameter('material', 'surfelCoverage', ['pointMaterial', 'surfelCoverage'], {
         label: 'Surface fill',
       }),
-      globalParameter('material', 'backfaceRetention', ['pointMaterial', 'backfaceRetention'], {
-        label: 'Back surface reveal',
-      }),
-      globalParameter('material', 'minPointSize', ['pointMaterial', 'minPointSize'], {
-        label: 'Distant size target',
-      }),
       globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize'], {
-        label: 'Max circle size',
+        label: 'Global point size',
         min: 4,
         max: 18,
       }),
-      globalParameter('material', 'perspectiveResponse', ['pointMaterial', 'perspectiveResponse']),
-      globalParameter('material', 'edgeSoftness', ['pointMaterial', 'edgeSoftness']),
     ]),
   }),
   Object.freeze({
@@ -616,41 +604,17 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
     label: 'Atmosphere',
     controls: Object.freeze([
       globalParameter('material', 'atmosphereStrength', ['pointMaterial', 'atmosphereStrength']),
-      globalParameter('camera', 'distanceFogStartWU', ['camera', 'distanceFogStartWU']),
-      globalParameter('camera', 'distanceFogEndWU', ['camera', 'distanceFogEndWU']),
-      globalParameter('camera', 'distanceFogCurve', ['camera', 'distanceFogCurve']),
-      rideParameter('finaleFogClearStartWU', { label: 'Finale reveal begins' }),
-      rideParameter('finaleFogClearEndWU', { label: 'Finale clear by' }),
     ]),
   }),
   Object.freeze({
-    id: 'page-motion',
-    label: 'Emergence and motion',
-    controls: Object.freeze([
-      rideParameter('structureManifestationAmount', {
-        label: 'Fog emergence spread',
-        max: 0.8,
-      }),
-      rideParameter('structureAmbientAmount', { label: 'Motion amount' }),
-      rideParameter('structureAmbientScaleWU', { label: 'Motion scale' }),
-      rideParameter('structureAmbientSpeed', { label: 'Motion speed' }),
-      rideParameter('structureMotionCoherence'),
-      rideParameter('finaleMotionGain'),
-    ]),
-  }),
-  Object.freeze({
-    id: 'page-camera-flow',
-    label: 'Camera and flow',
+    id: 'page-movement',
+    label: 'Movement',
     controls: Object.freeze([
       globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing'], {
         label: 'Scroll glide',
       }),
-      globalParameter('camera', 'pointerPanDegrees', ['camera', 'pointerPanDegrees'], {
-        label: 'Mouse drift amount',
-      }),
-      globalParameter('camera', 'pointerPanResponseMs', ['camera', 'pointerPanResponseMs'], {
-        label: 'Mouse drift response',
-      }),
+      rideParameter('structureAmbientAmount', { label: 'Particle motion' }),
+      rideParameter('structureAmbientSpeed', { label: 'Particle speed' }),
     ]),
   }),
 ]);

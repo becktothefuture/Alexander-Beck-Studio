@@ -176,6 +176,7 @@
     "sim:validate" : "node scripts\/validate-simulation-catalog.mjs",
     "start" : "npm run preview",
     "studio:check" : "node scripts\/studio.mjs check",
+    "studio:about-blender" : "node scripts\/about-v2-blender\/watch-about-v2-blend.mjs --initial",
     "studio:dev" : "node scripts\/studio.mjs dev",
     "studio:publish" : "node scripts\/studio.mjs publish",
     "studio:status" : "node scripts\/studio.mjs status",

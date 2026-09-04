@@ -12,6 +12,7 @@ import json
 import math
 import random
 import sys
+import zlib
 from bisect import bisect_left
 from pathlib import Path
 
@@ -1915,7 +1916,8 @@ def apply_semantics(
         "abs_semantic_schema": 2,
         "abs_stage_id": stage,
         "abs_text_binding": f"about-stage-{stage}",
-        "abs_palette_mode": "single-colour-unit" if role == "path-tunnel" else "multicolour-field",
+        "abs_palette_mode": "mixed",
+        "abs_palette_seed": zlib.crc32(obj.name.encode("utf-8")) & 0x7FFFFFFF,
         "abs_transition_mode": "inherited-geometry",
         "abs_role": role,
         "abs_model_id": f"about.{stage}",

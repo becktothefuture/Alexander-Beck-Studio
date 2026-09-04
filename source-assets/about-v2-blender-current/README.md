@@ -1,123 +1,176 @@
 # About V2 cinematic point world
 
-`about-v2-track-working.blend` is the canonical source for the About page geometry,
-camera, semantic visibility, palette roles and export metadata. Open it in Blender
-4.3 or newer.
+`about-v2-track-working.blend` is the canonical source for the About page camera
+and geometry. Open it in Blender 4.3 or newer.
 
-The accepted source SHA-256 is
-`4ae8204542c4fe4dcb195dacef4f787f5204567aa76ea4b96f9be8d1cbf10253`.
-The generated web bundle must record this tracked file and hash in `meta.json`.
+The generated web bundle must record this file and its current SHA-256 in
+`meta.json`; do not keep a second hand-authored hash in this guide.
 
-## Scene overview
+## Ownership
 
-The source exports 191 objects across seven semantic models:
+- Blender owns the editable camera rail, its ten roll values, horizontal FOV,
+  every visible geometry, ecosystem visibility, camera draw distance, density,
+  and per-ecosystem point scale.
+- Website code reads the Blender visibility and fog values directly. It resolves
+  semantic material roles through the same design-system palette used by Home.
+- The exporter samples the evaluated Blender camera for every frame. The browser
+  must not add another spline, spring, sway, or roll transform.
 
-| Model | Physical span | Composition |
-| --- | ---: | --- |
-| `about.00` | 0–55 WU | Deep irregular opening field with calm copy volume |
-| `about.01` | 55–111 WU | Triangles, squares, diamonds, pyramids, spheres and cubes |
-| `about.02` | 111–226 WU | 28 round hoops on the curved camera path |
-| `about.03` | 226–297 WU | Continuous flight floor and mountain range, with clients nested at 234–262 WU |
-| `about.04` | 282–409 WU | 16 rounded-square gates |
-| `about.05` | 408–478 WU | Method ground, fog and atmospheric depth |
-| `about.06` | 478–503 WU | Shaping, thinking and a boundless terminal horizon |
+## Scene
 
-Semantic visibility is resolved from the website journey map:
+The camera rail is one continuous 3,054.419434 WU Bezier path. Its forward
+distance is 16% longer than the previous saved route. The seven ecosystems are:
 
-- `about.00`: `opening` to `inciting-question + 0.60 WU`;
-- `about.01`: `inciting-question - 0.60 WU` to `portal-entry + 0.60 WU`;
-- `about.02`: `portal-entry - 0.60 WU` to `portal-exit + 0.60 WU`;
-- `about.03`: `portal-exit - 0.60 WU` to `gate-entry + 0.75 WU`;
-- `about.04`: `gate-entry - 0.75 WU` to `gate-exit + 0.80 WU`;
-- `about.05`: `gate-exit - 1.10 WU` to `split-lattice-entry - 0.45 WU`;
-- `about.06`: `split-lattice-entry - 1.65 WU` to `terminal-hold + 1.00 WU`.
+1. deep opening field;
+2. four to six solid, recognisable bodies with differently coloured faces;
+3. curved round tunnel with 28 hoops;
+4. landscape floor;
+5. 16 square gates;
+6. paired horizon banks;
+7. boundless finale surface.
 
-The runtime derives complementary entrance and exit handoffs from adjacent overlaps.
-Inactive models have zero instance count, so passed gates no longer remain in the GPU
-draw workload or reappear in the ending.
+There are clear physical gaps between the first six ecosystems. The horizon banks
+and finale overlap intentionally so the final landscape arrives before the banks
+leave the viewport.
 
-## Camera contract
+The complete camera path is divided into seven equal-distance sections. Each
+ecosystem owns one seventh of the travel, and the website gives the corresponding
+text section the same duration. `equalize-scene-sections.py` is the final source
+normalizer after any legacy rebuild; it restores the section positions, semantic
+cues, opening depth, and adjacent visibility handoffs without adding geometry.
 
-- `ABS_CAMERA` uses a fixed 85 degree horizontal FOV.
-- Frames 1–430 follow the equal-distance C2-continuous S-curve. Frames 431–901
-  preserve the accepted late rail and constant cumulative arclength. The full moving
-  track is 503.1467 WU, with a maximum step delta of 0.000015 WU.
-- Frames 901–1001 are the stationary terminal hold.
-- The camera and all 28 round hoops share the same curvature controls.
-- The late rail is straight before the square gates. The camera crosses all 16 gate
-  aperture planes in order and stays inside every opening.
-- Maximum angular rate is 0.6904 degrees per WU and maximum measured roll is
-  0.000004 degrees.
-- Website coordinates map Blender `(x, y, z)` to site `(x, z, -y)`.
+`Scene Camera` travels directly on `Camera Path`. Its `rail_progress`
+property moves linearly from 0 to 1 on frames 1–901 and then holds to frame 1001.
+Website coordinates map Blender `(x, y, z)` to site `(x, z, -y)`.
 
-`ABS_PARAMETRIC_RIDE_PATH` documents the accepted path. The exported camera is the
-baked authority. Use the camera curvature controls described below so the camera and
-round hoops remain aligned.
+The opening is one `Opening Field` mesh. Its disconnected components retain the
+authored depth sheets, atmosphere patches, stars, and signal geometry, but those
+parts no longer appear as separate Outliner layers. One point attribute preserves
+their relative density weighting. Mobile, desktop, and master exports use nested
+point budgets from the same field instead of separate quality-tier objects.
 
-## Live authoring controls
+## Blender navigation
 
-Select `ABS_AUTHORING_CONTROLS` in Blender. It exposes 31 live controls grouped by
-scene purpose:
+The Outliner contains one `ABOUT SCENE` root with nine numbered collections:
 
-- opening width, depth, density and surfel size;
-- shape-field width and depth plus body scale;
-- camera lateral and vertical curvature with all 28 hoops;
-- round-hoop radius and surfel size;
-- floor and mountain width and relief;
-- logo-atmosphere density and surfel size;
-- square-gate density and surfel size;
-- Method width, depth, height and density;
-- finale width, depth, height and density.
+1. `00 CONTROLS`
+2. `01 CAMERA`
+3. `02 OPENING`
+4. `03 SOLID BODIES`
+5. `04 ROUND TUNNEL`
+6. `05 LANDSCAPE`
+7. `06 SQUARE GATES`
+8. `07 HORIZON`
+9. `08 FINALE`
 
-The final refinement adds opening asymmetry, shape-path progression, floor/mountain
-depth and density, Method bank spread and finale-surface overscan controls. They are
-stored as `opening_asymmetry_scale`, `shape_path_progression`,
-`floor_mountain_depth_scale`, `floor_mountain_density_scale`, `method_bank_spread`
-and `finale_surface_overscan`.
+Visible names are for people. The exporter finds critical objects through their
+stable `abs_system_id` or `abs_object_id` properties, so a future display-name
+change does not break the website. Run `simplify-scene-names.py` after a legacy
+rebuild to restore the readable hierarchy. It does not save the file.
 
-The controls are non-destructive drivers. Their default value is `1.0` and reproduces
-the accepted evaluated geometry and every camera matrix. The Blender Text Editor
-contains `ABS_AUTHORING_GUIDE` with the same workflow and safe ranges.
+## Blender controls
 
-Density controls change allocation weights inside the fixed profile budgets. They do
-not regenerate topology or increase the total surfel count. Shape counts and gate
-counts remain fixed; edit their individual Blender objects only when a topology
-change is explicitly intended.
+Select `About Controls` for camera FOV and fog, plus body count, start, end,
+size, spread, and rotation. Select `Round Tunnel` for its start, end, ring count,
+opening radius, ring thickness, and ring depth. Select `Square Gates` for its
+start, end, gate count, opening size, frame thickness, gate depth, and twist.
+`Landscape Position`, `Horizon Position`, and `Finale Position` each expose one
+path-position property. Use normal Transform values for spatial fine tuning.
+`Internal Export Data` is machine metadata and does not need editing.
 
-After any non-default edit, repeat desktop and mobile copy-clearance, viewport,
-continuity, motion, gate and performance audits. A working Blender file alone does
-not prove browser composition.
+Edit the ten points of `Camera Path` in Edit Mode to change the route
+shape. Only five helper empties remain: the single controls object and one group rig
+each for the opening, terrain, horizon banks, and finale. The 28 round hoops are
+generated by `Round Tunnel`; the 16 square gates are generated by `Square Gates`.
+These two Geometry Nodes objects replace 44
+separate tunnel meshes and follow the edited camera rail automatically.
 
-## Scene organisation
+Changing `03 Ring Count` or `03 Gate Count` adds or removes complete
+apertures. Their start/end controls set the occupied path range. The aperture, rim,
+and depth controls rebuild the source profiles. `07 Twist`
+applies a progressive local roll across the square passage. All changes update in
+Blender after the dependency graph refreshes, and the exporter writes the evaluated
+result and matching camera-passage measurements to the web bundle.
 
-`ABS_AUTHORING_STAGES` contains named collections for the seven runtime stages and
-their substages. `ABS_AUTHORING_RIGS` contains the live control rigs. The earlier
-`ABS_B27_CONTROLS_ARCHIVE` object is inert and retained only for forensic context.
-Eligible export meshes identify `ABS_AUTHORING_CONTROLS` as their parameter owner.
+The Blender Text Editor contains one `README - About Scene` quick guide.
 
-Historical third-party donor objects remain hidden and non-exporting inside the
-source file for provenance. They are listed in `THIRD-PARTY-MODELS.md`. None of those
-donor objects enters the current 191-object public point-world export.
+## Semantic palette assignment
 
-## Point budgets
+Every export object uses `abs_palette_mode`. The default is `mixed`.
+`authored-faces` preserves deliberate face assignments on the solid forms.
+Use `single` with `abs_palette_role` only for an intentional one-role override.
+`abs_palette_seed` keeps mixed assignments stable. Do not add per-circle controls.
 
-| Model | Mobile | Desktop | Master |
-| --- | ---: | ---: | ---: |
-| `about.00` | 2,000 | 5,000 | 7,500 |
-| `about.01` | 2,000 | 5,000 | 7,500 |
-| `about.02` | 2,000 | 6,000 | 9,000 |
-| `about.03` | 10,000 | 30,000 | 45,000 |
-| `about.04` | 3,000 | 8,000 | 12,000 |
-| `about.05` | 5,000 | 16,000 | 24,000 |
-| `about.06` | 6,000 | 20,000 | 30,000 |
-| **Total** | **30,000** | **90,000** | **135,000** |
+The only export materials are `Palette - Atmosphere`, `Palette - Stone`,
+`Palette - Steel`, `Palette - Glass`, `Palette - Signal`, and `Palette - Organic`.
+They store the stable roles atmosphere, stone, steel, glass, signal, and organic.
+The exporter writes the role identifier, not RGB. The browser resolves each role
+through the active Home palette and updates shader uniforms when that palette
+changes. It does not rebuild geometry or point buffers.
 
-Mobile and desktop are deterministic nested prefixes of the master asset. The packed
-surfel record remains 32 bytes. The exporter samples evaluated polygon surfaces and
-honours object transforms, material palette roles, density weights, minimum profiles,
-surfel scale, semantic visibility and the evaluated camera.
+Round-tunnel rings and square gates receive one role per complete generated
+component. Continuous surfaces use broad spatial cells or bands. Flat point grids
+use ordered regions. The star field and opening cloud retain a deterministic
+weighted mixture.
+
+Blender material colours are preview values only. Resolve the current preview
+directly from the website source before synchronising the six material swatches:
+
+```bash
+node scripts/about-v2-blender/resolve-home-palette-preview.mjs
+```
+
+`apply-semantic-palette-system.py` reapplies the object properties, consolidates
+export-facing material slots, and restores coherent deterministic assignments. It
+does not contain production RGB values and does not save the file.
+
+`consolidate-opening-field.py` is the idempotent source migration for the opening.
+It creates the single `Opening Field` object and does not save the file.
+
+`lengthen-about-scene.py` adds the reviewed forward spacing and opening depth
+without adding another exposed property. It keeps all normalized stage positions,
+camera timing, tunnel counts, gate counts, lateral bends, and heights unchanged.
+It also preserves the finale's boundless depth ratio on the longer rail.
+
+## Runtime controls
+
+Visibility is stored on the exported Blender objects and resolved from their
+camera cues. Every ecosystem uses the same 0.3 WU fade distance on each side of
+its equal section. Adjacent stages therefore share a consistent 0.6 WU handoff
+without keeping passed geometry alive.
+The Blender compositor previews the same camera-relative fog used by the browser.
+The development parameter panel exposes only seven runtime controls: quality,
+surface fill, global point size, atmosphere, scroll glide, particle motion, and particle speed. It saves authored values to
+`react-app/app/public/config/contents-about.json`.
+
+`Body 01 - Cube` through `Body 06 - Hexagonal Prism` are the complete parametric forms
+set. `forms_body_count` selects four, five, or six bodies for Blender and export.
+Each closed mesh assigns opaque semantic materials per face. Concentrating the
+fixed forms point budget on those few surfaces, with an overlap-safe point radius,
+makes the browser bodies read as solid rather than as a transparent scatter.
+
+`Opening Field` and the finale surface use `row-column-grid` sampling, so exported
+dots stay in orderly rows and columns. Curved and volumetric geometry keeps
+surface blue-noise sampling.
 
 ## Export and validation
+
+For live development, keep Blender and `http://localhost:8012/about.html` open,
+then run this in a separate terminal:
+
+```bash
+npm run studio:about-blender
+```
+
+The watcher reads the canonical `.blend` only after it has settled on disk,
+exports into a temporary candidate directory, validates the bundle integrity,
+and promotes `meta.json` last into the ignored `.cache/` development preview.
+The development About page watches that source hash and reloads at the same
+scroll position. Canonical browser assets are not replaced during iteration,
+and browser values are never written back into Blender. Use the `About Controls`
+object for scene controls; press `/` on the development page for the separate
+runtime-only preview controls. Run the strict asset and narrative checks before
+promoting an accepted Blender revision to the canonical browser assets.
 
 Run from the repository root:
 
@@ -132,23 +185,16 @@ npm run check:about-v2-assets
 npm run check:about-narrative
 ```
 
-Then run the browser evidence gates:
+When authoring changes require palette reassignment, run
+`scripts/about-v2-blender/apply-semantic-palette-system.py` inside the open
+canonical file and save before the background export.
 
-```bash
-npm run audit:about-recovery-viewport
-npm run audit:about-particle-continuity
-npm run audit:about-recovery-motion
-npm run audit:about-recovery-logos
-```
+After a rebuild or spacing migration, run
+`scripts/about-v2-blender/equalize-scene-sections.py` last, then save. It is the
+single normalization step for the seven equal camera-distance sections.
 
-The asset checker rejects a stale source hash, wrong profile budget, missing semantic
-binding, unresolved cue, changed FOV, irregular camera cadence, terminal drift,
-incomplete round tunnel, incomplete square-gate passage or bounded finale.
-
-The reusable control installer and mutation checker are:
-
-- `scripts/about-v2-blender/install-about-v2-authoring-controls.py`
-- `scripts/about-v2-blender/check-about-v2-authoring-controls.py`
-
-The installer is idempotent, but the canonical file already contains the accepted
-rig. Use it only when repairing a copy or validating a new source candidate.
+Then run the browser viewport, continuity, motion, logo, and gate-passage audits.
+The asset checker verifies the doubled route, the five-helper limit, Blender/code
+ownership, all required ecosystem controls, camera cadence, the configured round
+hoop and square-gate counts, their one-object parametric topology, and the unbounded
+finale composition.

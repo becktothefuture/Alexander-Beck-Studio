@@ -816,7 +816,12 @@ test('local authoring JSON write contract', async (t) => {
         });
         assert.equal(typeof middleware, 'function');
 
-        for (const url of ['/api', '/api/design-system/config', '/@fs/private-file']) {
+        for (const url of [
+          '/api',
+          '/api/design-system/config',
+          '/@fs/private-file',
+          '/__about-blender-preview/meta.json',
+        ]) {
           const response = createResponse();
           let nextCalled = false;
           middleware({ url }, response, () => { nextCalled = true; });

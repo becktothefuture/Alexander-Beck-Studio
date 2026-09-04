@@ -22,6 +22,7 @@ import {
   createAboutNarrativeCameraSteadycamSample,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
 import { writeAboutSceneLook } from '../react-app/app/src/routes/about-narrative-lab/aboutSceneLook.js';
+import { resolveAboutSurfelPaletteColors } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelPalette.js';
 import { aboutSurfelIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProjection.js';
 import { compileAboutNarrativeComposerPlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
 import { loadAboutNarrativePointFieldPersistenceSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
@@ -71,13 +72,13 @@ function bundleFixture({ missingCue = false } = {}) {
     }
   }
   const modelBindings = [
-    ['about.00', 'opening', 0, 'inciting-question', 0.6],
-    ['about.01', 'inciting-question', -0.6, 'portal-entry', 0.6],
-    ['about.02', 'portal-entry', -0.6, 'portal-exit', 0.6],
-    ['about.03', 'portal-exit', -0.6, 'gate-entry', 0.75],
-    ['about.04', 'gate-entry', -0.75, 'gate-exit', 0.8],
-    ['about.05', 'gate-exit', -1.1, 'split-lattice-entry', -0.45],
-    ['about.06', 'split-lattice-entry', -1.65, 'terminal-hold', 1],
+    ['about.00', 'opening', 0, 'inciting-question', 0.3],
+    ['about.01', 'inciting-question', -0.3, 'portal-entry', 0.3],
+    ['about.02', 'portal-entry', -0.3, 'personal-origin', 0.3],
+    ['about.03', 'personal-origin', -0.3, 'gate-entry', 0.3],
+    ['about.04', 'gate-entry', -0.3, 'method', 0.3],
+    ['about.05', 'method', -0.3, 'split-lattice-entry', 0.3],
+    ['about.06', 'split-lattice-entry', -0.3, 'terminal-hold', 0.3],
   ];
   const points = modelBindings.flatMap(() => fixturePoints);
   const pointsPerModel = fixturePoints.length;
@@ -124,7 +125,7 @@ function bundleFixture({ missingCue = false } = {}) {
     },
     visibilityStartWU: id * 4,
     visibilityEndWU: id * 4 + 8,
-    visibilityHandoffWU: 0.18,
+    visibilityHandoffWU: 0.3,
     visibilityStartCue,
     visibilityStartOffsetWU,
     visibilityEndCue,
@@ -223,7 +224,7 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
     aboutSurfelIntersectsRect,
     decodeAboutSurfelNormal,
     resolveAboutSurfelRadiusPx,
-    createAboutSurfelPaletteRoles: () => [0],
+    resolveAboutSurfelPaletteColors,
     getSimulationPaletteSnapshot: () => palette,
     subscribeSimulationPalette: (listener) => { paletteListener = listener; return () => { paletteListener = null; }; },
     resolveAboutBlenderSceneContract: (input) => {

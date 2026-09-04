@@ -1,42 +1,41 @@
 import {
-  SIMULATION_MATERIAL_ROLE_COUNT,
-  createSimulationMaterialSequence,
+  DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+  resolveSimulationColorDistribution,
+  resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 
-// Blender semantic roles describe surfaces, not literal website colours.
-// Map steel away from the Home palette's pale editorial role so structural
-// shells remain visible against the light studio window in every reveal.
-const SEMANTIC_DOMINANT_ROLES = Object.freeze([0, 5, 1, 3, 4, 5]);
+export const ABOUT_BLENDER_PALETTE_ROLES = Object.freeze([
+  'atmosphere',
+  'stone',
+  'steel',
+  'glass',
+  'signal',
+  'organic',
+]);
 
-function positiveInteger(value) {
-  return Math.max(0, Math.floor(Number(value) || 0));
-}
+// Blender owns these six stable semantic slots. Their website colours are the
+// corresponding six Home material roles, resolved from the live shared palette.
+// Keep this bridge semantic so distribution ordering can change without making
+// the About scene a second palette source.
+export const ABOUT_HOME_ROLE_BY_BLENDER_ROLE = Object.freeze({
+  atmosphere: 'product-design',
+  stone: 'experience-design',
+  steel: 'art-direction',
+  glass: 'motion-3d',
+  signal: 'creative-engineering',
+  organic: 'parametric-systems',
+});
 
-export function createAboutSurfelPaletteRoles(count, {
-  modelId = 0,
-  partId = 0,
-  semanticRole = 0,
-  snapshot,
-} = {}) {
-  const roleCount = positiveInteger(count);
-  if (!roleCount) return new Uint8Array();
-
-  // Blender owns material boundaries and the site owns their active colours.
-  // Keep most surfels on the authored semantic role so a screen, shell, cable,
-  // or control remains legible. The interleaved Home rhythm supplies accents,
-  // so every sufficiently large material stays multicolour and follows the
-  // same scheduled palette as the homepage simulations.
-  const offset = (
-    Math.imul(positiveInteger(modelId) + 1, 37)
-    + Math.imul(positiveInteger(partId) + 1, 17)
-    + Math.imul(positiveInteger(semanticRole), 11)
-  ) % roleCount;
-  const sequence = createSimulationMaterialSequence(roleCount, { offset }, snapshot);
-  const semanticIndex = positiveInteger(semanticRole) % SIMULATION_MATERIAL_ROLE_COUNT;
-  const dominantRole = SEMANTIC_DOMINANT_ROLES[semanticIndex];
-  return Uint8Array.from(sequence, (role, index) => (
-    ((index + offset) % 4 === 0)
-      ? positiveInteger(role?.distributionIndex) % SIMULATION_MATERIAL_ROLE_COUNT
-      : dominantRole
-  ));
+export function resolveAboutSurfelPaletteColors(snapshot = {}) {
+  const colors = resolveSimulationPaletteColors(snapshot.colors);
+  const distribution = resolveSimulationColorDistribution(
+    snapshot.distribution || DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
+    colors.length,
+  );
+  const byRole = new Map(distribution.map((role) => [role.roleId, role]));
+  return Object.freeze(ABOUT_BLENDER_PALETTE_ROLES.map((semanticRole, index) => {
+    const homeRoleId = ABOUT_HOME_ROLE_BY_BLENDER_ROLE[semanticRole];
+    const homeRole = byRole.get(homeRoleId) || distribution[index] || distribution[0];
+    return colors[homeRole.colorIndex];
+  }));
 }

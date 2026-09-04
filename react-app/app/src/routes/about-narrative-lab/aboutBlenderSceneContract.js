@@ -3,14 +3,8 @@ import { resolveAboutNarrativeJourneyMap } from './aboutNarrativeJourneyMap.js';
 const SHA256_PATTERN = /^[a-f\d]{64}$/i;
 const FILE_KEYS = Object.freeze(['cameraTrack', 'surfels']);
 const EPSILON = 0.000001;
-const EXPECTED_MODEL_BINDINGS = Object.freeze([
-  Object.freeze(['about.00', 'opening', 0, 'inciting-question', 0.6]),
-  Object.freeze(['about.01', 'inciting-question', -0.6, 'portal-entry', 0.6]),
-  Object.freeze(['about.02', 'portal-entry', -0.6, 'portal-exit', 0.6]),
-  Object.freeze(['about.03', 'portal-exit', -0.6, 'gate-entry', 0.75]),
-  Object.freeze(['about.04', 'gate-entry', -0.75, 'gate-exit', 0.8]),
-  Object.freeze(['about.05', 'gate-exit', -1.1, 'split-lattice-entry', -0.45]),
-  Object.freeze(['about.06', 'split-lattice-entry', -1.65, 'terminal-hold', 1]),
+const EXPECTED_MODEL_KEYS = Object.freeze([
+  'about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06',
 ]);
 
 function isSha256(value) {
@@ -41,6 +35,16 @@ function metadataDiagnostics(meta) {
     diagnostics.push(diagnostic(
       'scene-source-hash-invalid', 'meta.source.sha256',
       'The bundle must declare its authored-source SHA-256.',
+    ));
+  }
+  const cameraFog = meta?.source?.authoring?.cameraFog;
+  if (meta?.source?.authoring && (!cameraFog || !Number.isFinite(cameraFog.startWU) || cameraFog.startWU < 0
+    || !Number.isFinite(cameraFog.endWU) || cameraFog.endWU <= cameraFog.startWU
+    || !Number.isFinite(cameraFog.curve) || cameraFog.curve < 0.45 || cameraFog.curve > 2.5
+    || cameraFog.source !== 'about.controls')) {
+    diagnostics.push(diagnostic(
+      'scene-camera-fog-invalid', 'meta.source.authoring.cameraFog',
+      'Camera draw distance must come from finite Blender-authored fog controls.',
     ));
   }
   const models = Array.isArray(meta?.models) ? meta.models : [];
@@ -324,7 +328,7 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
   }
   if (meta != null && Array.isArray(meta.models)) {
     const actualKeys = meta.models.map((model) => model?.key);
-    const expectedKeys = EXPECTED_MODEL_BINDINGS.map(([key]) => key);
+    const expectedKeys = EXPECTED_MODEL_KEYS;
     if (actualKeys.length !== expectedKeys.length
       || actualKeys.some((key, index) => key !== expectedKeys[index])) {
       diagnostics.push(diagnostic(
@@ -332,28 +336,6 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
         'The About world must declare exactly seven ordered semantic stages.',
         { expected: expectedKeys, actual: actualKeys },
       ));
-    } else {
-      EXPECTED_MODEL_BINDINGS.forEach((binding, index) => {
-        const model = meta.models[index];
-        const actual = [
-          model.visibilityStartCue,
-          model.visibilityStartOffsetWU,
-          model.visibilityEndCue,
-          model.visibilityEndOffsetWU,
-        ];
-        const expected = binding.slice(1);
-        if (actual.some((value, bindingIndex) => (
-          typeof expected[bindingIndex] === 'number'
-            ? !Number.isFinite(value) || Math.abs(value - expected[bindingIndex]) > EPSILON
-            : value !== expected[bindingIndex]
-        ))) {
-          diagnostics.push(diagnostic(
-            'scene-model-binding-invalid', `meta.models.${index}`,
-            `${binding[0]} is not bound to its required story handoff.`,
-            { modelKey: binding[0], expected, actual },
-          ));
-        }
-      });
     }
   }
   if (diagnostics.length) return result('incompatible', diagnostics, empty);
@@ -381,7 +363,6 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
   const modelKeys = new Set();
   const windows = meta.models.map((model, index) => {
     const path = `meta.models.${index}`;
-    const startDiagnosticCount = diagnostics.length;
     if (!model || model.id !== index || typeof model.key !== 'string' || !model.key
       || modelKeys.has(model.key)) {
       diagnostics.push(diagnostic(
@@ -391,23 +372,21 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
       return null;
     }
     modelKeys.add(model.key);
-    if (!Number.isFinite(model.visibilityStartWU) || model.visibilityStartWU < 0
-      || !Number.isFinite(model.visibilityEndWU)
-      || model.visibilityEndWU <= model.visibilityStartWU) {
-      diagnostics.push(diagnostic(
-        'scene-authored-window-invalid', path,
-        `${model.key} must declare finite ordered authored bounds; missing or malformed bounds are not unbounded.`,
-      ));
-    }
+    const startCue = model.visibilityStartCue;
+    const startOffsetWU = Number(model.visibilityStartOffsetWU);
+    const endCue = model.visibilityEndCue;
+    const endOffsetWU = Number(model.visibilityEndOffsetWU);
+    const handoffWU = Number(model.visibilityHandoffWU);
     const resolved = {};
     const resolvedStory = {};
-    for (const side of ['Start', 'End']) {
-      const cue = model[`visibility${side}Cue`];
-      const offsetWU = model[`visibility${side}OffsetWU`];
+    for (const [side, cue, offsetWU] of [
+      ['Start', startCue, startOffsetWU],
+      ['End', endCue, endOffsetWU],
+    ]) {
       if (typeof cue !== 'string' || !cue || !anchors.has(cue) || !Number.isFinite(offsetWU)) {
         diagnostics.push(diagnostic(
           'scene-visibility-cue-unresolved', `${path}.visibility${side}Cue`,
-          `${model.key} requires an existing story cue and finite explicit offset; authored-WU fallback is unsupported.`,
+          `${model.key} requires an existing story cue and finite Blender-authored offset.`,
         ));
       } else {
         resolved[side] = anchors.get(cue) + offsetWU;
@@ -424,7 +403,7 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
           { modelKey: model.key, startWU, endWU },
         ));
       }
-    } else if (diagnostics.length === startDiagnosticCount) {
+    } else {
       diagnostics.push(diagnostic('scene-resolved-window-invalid', path, `${model.key} has non-finite resolved bounds.`));
     }
     // Retiming does not rehabilitate an inverted source binding from a rejected
@@ -436,11 +415,11 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
         { modelKey: model.key, startWU: resolvedStory.Start, endWU: resolvedStory.End },
       ));
     }
-    const handoffWU = model.visibilityHandoffWU;
     if (!Number.isFinite(handoffWU) || handoffWU <= 0
       || handoffWU * (startWU > 0 ? 2 : 1) > endWU - startWU + EPSILON
       || handoffWU * (resolvedStory.Start > 0 ? 2 : 1)
-        > resolvedStory.End - resolvedStory.Start + EPSILON) {
+        > resolvedStory.End - resolvedStory.Start + EPSILON
+    ) {
       diagnostics.push(diagnostic(
         'scene-visibility-handoff-invalid', `${path}.visibilityHandoffWU`,
         `${model.key} needs a positive bounded handoff that permits full visibility.`,
@@ -448,7 +427,7 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
     }
     return Object.freeze({
       modelId: model.id, modelKey: model.key, startWU, endWU, handoffWU,
-      source: 'semantic-journey-cues',
+      source: 'blender-authored-visibility',
     });
   });
   if (diagnostics.length) return result('incompatible', diagnostics, empty);
