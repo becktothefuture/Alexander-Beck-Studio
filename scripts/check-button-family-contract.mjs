@@ -132,7 +132,7 @@ test('the production switcher presents one stable, explicit action', () => {
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill\.simulation-focus-switcher \{[\s\S]*?--abs-labelled-action-height: 34px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 14px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?font-weight: var\(--abs-weight-medium\);[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:active \{[\s\S]*?translate: 0 0;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
+    /\.simulation-focus-pill\.simulation-focus-switcher \{[\s\S]*?--abs-labelled-action-height: 36px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 20px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?backdrop-filter:[\s\S]*?var\(--abs-soft-control-blur\)[\s\S]*?font-weight: 500;[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:focus-visible \{[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:active \{[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 0;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?translate: 0 0\.5px;[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
   );
   assert.doesNotMatch(
     sources.switcher,
