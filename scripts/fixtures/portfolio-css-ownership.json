@@ -1,6 +1,6 @@
 {
-  "status": "m20-quiet-uppercase-effect-switcher",
-  "mainRuleCount": 1449,
+  "status": "m21-optical-effect-switcher-press",
+  "mainRuleCount": 1450,
   "portfolioRuleCount": 489,
   "relevantMainRuleCount": 449,
   "overlapCount": 214,
@@ -9,6 +9,6 @@
   "shellSharedCount": 177,
   "plannedMainOwnerCount": 177,
   "plannedPortfolioOwnerCount": 37,
-  "overlapSignature": "260b1a2e033b65b978d7b024045652e970d44404b5974c58edd9b7b6dbfc301a",
+  "overlapSignature": "ff35cff09af5d2dc5a399a5699a6ebad8ca4da4b08b52c2dd4035372f09e312a",
   "conditionalOverlapCount": 66
 }
