@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
-import { compileAboutNarrativeJourneyMap } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
 
 export const ABOUT_SURFEL_OUTPUT_DIR = process.env.ABS_ABOUT_VISUAL_OUTPUT
   || 'output/playwright/about-narrative-hardening/runtime';
@@ -63,6 +62,12 @@ export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000
   await page.waitForFunction(({ expectedProfile, expectedCount, expectedSourceHash }) => {
     const root = document.querySelector('.about-narrative-lab');
     const metrics = window.__aboutNarrativeRuntime?.getMetrics?.();
+    if (metrics?.assetSourceHash && metrics.assetSourceHash !== expectedSourceHash) {
+      throw new Error(`About source mismatch: active ${metrics.assetSourceHash}; expected ${expectedSourceHash}. Check Blender preview selection before auditing.`);
+    }
+    if (metrics?.state === 'error' || root?.dataset.aboutSceneReady === 'error') {
+      throw new Error(`About scene failed readiness: ${metrics?.error || 'unknown scene error'}`);
+    }
     return root?.dataset.pointAsset === 'blender-surfel-v2'
       && root?.dataset.worldStage === 'blender-surfel-scene'
       && metrics?.state === 'ready'
@@ -72,7 +77,6 @@ export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000
       && metrics.layoutProfile === expectedProfile
       && metrics.assetSourceHash === expectedSourceHash
       && metrics.journeyMapValid === true
-      && metrics.journeyMapCertifiable === true
       && metrics.bundleIntegrityVerified === true
       && metrics.sceneContractStatus === 'compatible'
       && root.dataset.aboutSceneReady === 'true'
@@ -95,7 +99,6 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert.equal(metrics.assetVersion, 2);
   assert.equal(metrics.fallbackAsset, false);
   assert.equal(metrics.journeyMapValid, true);
-  assert.equal(metrics.journeyMapCertifiable, true);
   assert.equal(metrics.bundleIntegrityVerified, true);
   assert.equal(metrics.sceneContractStatus, 'compatible');
   assert.deepEqual(metrics.sceneContractDiagnostics, []);
@@ -108,10 +111,11 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   'The active story models must remain a non-empty subset of the resident profile.');
   assert.equal(metrics.pointCount, metrics.activeSurfelCount);
   assert.equal(metrics.masterSurfelCount, 135_000);
-  assert.equal(metrics.modelCount, 7);
-  assert.equal(Object.keys(metrics.perModelCounts).length, 7);
+  assert.equal(metrics.modelCount, expectedAssetMetadata.models.length);
+  assert.equal(Object.keys(metrics.perModelCounts).length, expectedAssetMetadata.models.length);
   assert(Object.values(metrics.perModelCounts).every((count) => count > 0));
-  assert(metrics.drawCalls >= 2 && metrics.drawCalls <= 4 && metrics.drawCalls % 2 === 0,
+  assert(metrics.drawCalls >= 2 && metrics.drawCalls <= metrics.modelCount * 2
+    && metrics.drawCalls % 2 === 0,
     'Each active story model must use one depth-core and one soft-surface draw pass.');
   assert.equal(metrics.occlusionMode, 'depth-owned-whole-surfel-reveal');
   assert.equal(metrics.lodRadiusScaleMode, 'per-object');
@@ -133,14 +137,14 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   const portalHost = expectedAssetMetadata.source.objects
     .find((entry) => entry.objectKey === 'director.round-tunnel');
   assert.equal(portalHost?.modelKey, 'about.02');
-  assert.equal(portalHost?.instanceCount, 28, 'The parametric round tunnel is incomplete.');
-  assert.equal(portalHost?.connectedComponentCount, 28,
+  assert.equal(portalHost?.instanceCount, 10, 'The parametric round tunnel is incomplete.');
+  assert.equal(portalHost?.connectedComponentCount, 10,
     'The single round-tunnel host must retain one connected component per generated ring.');
   const gateHost = expectedAssetMetadata.source.objects
     .find((entry) => entry.objectKey === 'director.square-gate-tunnel');
   assert.equal(gateHost?.modelKey, 'about.04');
-  assert.equal(gateHost?.instanceCount, 16, 'The parametric square-gate tunnel is incomplete.');
-  assert.equal(gateHost?.connectedComponentCount, 16,
+  assert.equal(gateHost?.instanceCount, 26, 'The parametric square-gate tunnel is incomplete.');
+  assert.equal(gateHost?.connectedComponentCount, 26,
     'The single square-gate host must retain one connected component per generated gate.');
   const finaleSurface = expectedAssetMetadata.source.objects
     .find((entry) => entry.objectKey === 'director.finale-surface');
@@ -170,25 +174,34 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   }
 }
 
-// Read the measured story rail, then use the production semantic map. A named
-// passage may grow without moving this audit back onto an obsolete fixed WU.
+// Inspect the actual compiled rail. Reconstructing equal sections from DOM
+// spans loses measured reading entry and can certify the wrong camera poses.
 export async function getAboutSurfelJourneyMap(page) {
-  const layout = await page.evaluate(() => {
-    const fields = Array.from(document.querySelectorAll('[data-render-span-id]')).map((node) => ({
-      id: node.querySelector('[data-text-field-id]')?.dataset.textFieldId,
-      startWU: Number(node.dataset.storyStartWu),
-      focusWU: Number(node.dataset.storyFocusWu),
-      endWU: Number(node.dataset.storyEndWu),
-    })).filter((field) => field.id);
-    return { fields, durationWU: Math.max(0, ...fields.map((field) => field.endWU)) };
-  });
-  const map = compileAboutNarrativeJourneyMap(layout);
+  const map = await page.evaluate(() => (
+    window.__aboutNarrativeRuntime?.getMetrics?.()?.storyJourneyMap || null
+  ));
+  assert.ok(map, 'About runtime did not expose its compiled story journey map.');
   assert.equal(map.valid, true, `Measured About journey is invalid: ${JSON.stringify(map.diagnostics)}`);
   return map;
 }
 
 export const ABOUT_SURFEL_FOOTPRINTS = Object.freeze({
+  'opening-reading': Object.freeze({
+    renderedVisibleCount: 150,
+    occupiedBinCount: 24, occupiedRowCount: 8, occupiedColumnCount: 6,
+    leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
+    leftOccupiedBinCount: 8, rightOccupiedBinCount: 8,
+    framedLeftDepthSpanWU: 50, framedRightDepthSpanWU: 50,
+  }),
+  'opening-reading-mobile': Object.freeze({
+    renderedVisibleCount: 60,
+    occupiedBinCount: 10, occupiedRowCount: 6, occupiedColumnCount: 6,
+    leftOccupiedColumnCount: 2, rightOccupiedColumnCount: 2,
+    leftOccupiedBinCount: 3, rightOccupiedBinCount: 3,
+    framedLeftDepthSpanWU: 40, framedRightDepthSpanWU: 40,
+  }),
   passage: Object.freeze({ occupiedBinCount: 6, occupiedRowCount: 3, occupiedColumnCount: 3 }),
+  'passage-mobile': Object.freeze({ occupiedBinCount: 4, occupiedRowCount: 3, occupiedColumnCount: 3 }),
   // Reduced motion holds the authored entrance rather than flying through it.
   'passage-cut': Object.freeze({ occupiedBinCount: 6, occupiedRowCount: 2, occupiedColumnCount: 3 }),
   'reading-banks': Object.freeze({
@@ -204,6 +217,13 @@ export const ABOUT_SURFEL_FOOTPRINTS = Object.freeze({
     readingLeftOccupiedBinCount: 12, readingRightOccupiedBinCount: 12,
     readingLeftSecondaryColumnRows: 4, readingRightSecondaryColumnRows: 4,
     readingLeftPopulatedDepthWU: 10, readingRightPopulatedDepthWU: 10,
+  }),
+  'terrain-reading': Object.freeze({
+    // The terrain begins as a broad foreground field, then drops to a quiet
+    // horizon while the denser disciplines and client lists cross it.
+    renderedVisibleCount: 80,
+    occupiedBinCount: 4, occupiedRowCount: 1, occupiedColumnCount: 4,
+    framedDepthSpanWU: 20,
   }),
   'bank-arrival': Object.freeze({
     // The first method title still looks out from the gate exit. The next
@@ -232,6 +252,12 @@ export const ABOUT_SURFEL_FOOTPRINTS = Object.freeze({
     leftOccupiedColumnCount: 6, rightOccupiedColumnCount: 6,
     leftOccupiedBinCount: 6, rightOccupiedBinCount: 6,
     fullWidthRowCount: 1, groundFullWidthRowCount: 1, framedDepthSpanWU: 20,
+  }),
+  'finale-product': Object.freeze({
+    renderedVisibleCount: 2000,
+    occupiedBinCount: 18, occupiedRowCount: 4, occupiedColumnCount: 6,
+    leftOccupiedColumnCount: 3, rightOccupiedColumnCount: 2,
+    framedDepthSpanWU: 40,
   }),
   'terminal-ground': Object.freeze({
     // At rest require a deep, continuous foreground, including both outer 2%
@@ -371,7 +397,9 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
       ].join(', '));
       for (const node of lineNodes) {
         const effectiveOpacity = opacity(node);
-        if (effectiveOpacity <= 0.05) continue;
+        // The production snap state uses 1 for the active line and 0.2 for
+        // contextual neighbours. Protect only the line intended for reading.
+        if (effectiveOpacity < 0.5) continue;
         for (const bounds of node.matches('img')
           ? [rect(node.getBoundingClientRect())] : paintedRects(node)) {
           const clipped = intersection(bounds, editorialClip);

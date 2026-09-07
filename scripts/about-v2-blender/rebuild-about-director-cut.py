@@ -716,7 +716,7 @@ def update_timeline(scene):
     scene.frame_start = 1
     scene.frame_end = 1001
     scene["abs_narrative_stage_ranges"] = json.dumps({
-        f"{index:02d}": [round(index / 7, 6), round((index + 1) / 7, 6)]
+        f"about.{index:02d}": [round(index / 7, 6), round((index + 1) / 7, 6)]
         for index in range(7)
     }, separators=(",", ":"))
 

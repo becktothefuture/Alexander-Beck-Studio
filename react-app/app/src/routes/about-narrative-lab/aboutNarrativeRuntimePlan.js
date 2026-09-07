@@ -469,91 +469,40 @@ export function sampleAboutNarrativeTitleFieldInto(
   if (!target?._aboutNarrativeTitleFieldSample) {
     throw new TypeError('sampleAboutNarrativeTitleFieldInto requires a target from createAboutNarrativeTitleFieldSample().');
   }
-  const isOpener = field?.preset === 'opener-v1';
-  const isFinale = field?.preset === 'finale-v1';
-  const openerStartY = Number(textMotion?.openerStartY ?? 36);
-  if (reducedMotion) {
-    target.opacity = 1;
-    target.blur = 0;
-    target.x = 0;
-    target.y = 0;
-    target.z = 0;
-    return target;
-  }
-
   const startWU = Number(field?.startWU ?? 0);
   const endWU = Number(field?.endWU ?? startWU);
-  const valueWU = Number(storyWU) || 0;
-  const startY = Number(textMotion?.startY ?? -110);
-  const endY = Number(textMotion?.endY ?? 130);
-  const entryDepth = Number(textMotion?.entryDepth ?? 360);
-  const exitDepth = Number(textMotion?.exitDepth ?? 220);
-  if (isFinale) {
-    const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
-    if (valueWU < startWU) {
-      target.opacity = 0;
-      target.blur = 0;
-      target.x = 0;
-      target.y = 0;
-      target.z = 0;
-      return target;
-    }
-    const entryProgress = applyAboutNarrativeTrackEasing(
-      'smoothstep',
-      (valueWU - startWU) / (focusWU - startWU),
-    );
-    // Finale copy enters through a quiet spatial settle. It is fully opaque
-    // from its first rendered frame so the forming bust never competes with
-    // partially legible typography.
-    target.opacity = 1;
-    target.blur = 0;
-    target.x = 0;
-    target.y = mix(18, 0, entryProgress);
-    target.z = mix(-entryDepth * 0.12, 0, entryProgress);
-    return target;
-  }
-  if (isOpener) {
-    const spanWU = Math.max(0.00001, endWU - startWU);
-    const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
-    const travelProgress = applyAboutNarrativeTrackEasing('smoothstep', progress);
-    const usesUnitExit = Number.isFinite(Number(textMotion?.titleExitOpacity));
-    const readableEnd = Math.min(0.98, Math.max(
-      0,
-      Number(textMotion?.readableEnd ?? 0.72),
-    ));
-    const exitProgress = applyAboutNarrativeTrackEasing(
-      'smoothstep',
-      (progress - readableEnd) / Math.max(0.00001, 1 - readableEnd),
-    );
-    // The opening title, rule, and description share these inherited values.
-    // They travel and settle out as one lockup instead of dimming title glyphs
-    // independently before the parent disappears.
-    target.opacity = usesUnitExit ? 1 - exitProgress : 1;
-    target.blur = 0;
-    target.x = 0;
-    target.y = usesUnitExit ? mix(openerStartY, endY, travelProgress) : openerStartY;
-    target.z = usesUnitExit ? mix(0, exitDepth * 0.4, travelProgress) : 0;
-    return target;
-  }
-  if (valueWU < startWU || valueWU > endWU) {
-    const before = valueWU < startWU;
-    target.opacity = 0;
-    target.blur = 0;
-    target.x = 0;
-    target.y = before ? startY : endY;
-    target.z = before ? -entryDepth : exitDepth;
-    return target;
-  }
-
-  const spanWU = Math.max(0.00001, endWU - startWU);
-  const progress = Math.min(1, Math.max(0, (valueWU - startWU) / spanWU));
-  // Travelling titles use position and depth as their complete transition.
-  // Keeping glyphs solid and sharp makes legibility independent of scroll speed.
-  target.opacity = 1;
+  const progress = (Number(storyWU) - startWU) / Math.max(0.000001, endWU - startWU);
+  const holds = field?.preset === 'finale-v1'
+    || field?.presentation?.layout === 'text-finale-cta';
+  const active = progress >= 0 && (progress < 1 || holds);
+  // The shared colour-draw controller owns entrance. Scroll owns only exit.
+  const fadeSpan = Math.max(0.001, Math.min(0.5, Number(textMotion?.exitFraction ?? textMotion?.readableStart ?? 0.18)));
+  const exit = holds ? 1 : applyAboutNarrativeTrackEasing('smoothstep', (1 - progress) / fadeSpan);
+  target.opacity = active ? (reducedMotion ? 1 : exit) : 0;
   target.blur = 0;
   target.x = 0;
-  target.y = mix(startY, endY, progress);
-  target.z = mix(-entryDepth, exitDepth, progress);
+  target.y = 0;
+  target.z = 0;
+  if (!reducedMotion) {
+    // Restore the August 17 scroll-owned travel, independent of colour draw.
+    const travel = Math.min(1, Math.max(0, progress));
+    const entryDepth = Number(textMotion?.entryDepth ?? 280);
+    const exitDepth = Number(textMotion?.exitDepth ?? 180);
+    if (holds) {
+      const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
+      const settle = applyAboutNarrativeTrackEasing('smoothstep',
+        (Number(storyWU) - startWU) / (focusWU - startWU));
+      target.y = mix(18, 0, settle);
+      target.z = mix(-entryDepth * 0.12, 0, settle);
+    } else if (field?.preset === 'opener-v1') {
+      const drift = applyAboutNarrativeTrackEasing('smoothstep', travel);
+      target.y = mix(Number(textMotion?.openerStartY ?? 0), Number(textMotion?.endY ?? -24), drift);
+      target.z = mix(0, exitDepth * 0.4, drift);
+    } else {
+      target.y = mix(Number(textMotion?.startY ?? 30), Number(textMotion?.endY ?? -24), travel);
+      target.z = mix(-entryDepth, exitDepth, travel);
+    }
+  }
   return target;
 }
 

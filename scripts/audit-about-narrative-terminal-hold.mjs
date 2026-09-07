@@ -11,7 +11,6 @@ import {
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER === 'webkit' ? 'webkit' : 'chromium';
-const requireCertifiableCues = process.env.ABS_ALLOW_LEGACY_ABOUT_CUES !== '1';
 const capturePixels = process.env.ABS_ABOUT_TERMINAL_CAPTURE !== '0';
 const outputDir = process.env.ABS_ABOUT_TERMINAL_OUTPUT_DIR || 'output/playwright/about-narrative-terminal-hold';
 const recordVideo = process.env.ABS_ABOUT_TERMINAL_VIDEO === '1';
@@ -43,7 +42,7 @@ function assertVectorStable(before, after, label) {
 function assertTerminalWorld(metrics, profileId) {
   assert.equal(metrics.bundleIntegrityVerified, true);
   assert.equal(metrics.sceneContractStatus, 'compatible');
-  assert.equal(metrics.journeyMapCertifiable, true);
+  assert.equal(metrics.journeyMapValid, true);
   for (const [key, model] of Object.entries(metrics.modelFraming)) {
     if (key === 'about.06') {
       assert.ok(model.stageVisibility > 0.99 && model.framedVisibleCount >= 400,
@@ -85,7 +84,7 @@ async function readTerminalState(page) {
     const scrollport = document.querySelector('.about-narrative-scrollport');
     return {
       cameraLocked: root?.dataset.aboutCameraLocked === 'true',
-      journeyCertifiable: root?.dataset.aboutJourneyCertifiable === 'true',
+      journeyValid: root?.dataset.aboutJourneyValid === 'true',
       actionsVisible: finale?.dataset.actionsVisible === 'true',
       actionsHidden: actions?.getAttribute('aria-hidden'),
       actionsInert: Boolean(actions?.inert),
@@ -179,7 +178,7 @@ try {
     else assert.ok(before.metrics.controls.motionAmountWU > 0, 'The camera lock froze the final material.');
     assert.ok(before.interfaceState.copyBounds.length >= 3, 'The final lockup must be measurable.');
     assertTerminalWorld(before.metrics, profile.id);
-    if (requireCertifiableCues) assert.equal(before.interfaceState.journeyCertifiable, true);
+    assert.equal(before.interfaceState.journeyValid, true);
 
     const beforePath = `${outputDir}/${browserName}-${profile.id}-before.png`;
     const afterPath = `${outputDir}/${browserName}-${profile.id}-after.png`;
@@ -288,7 +287,7 @@ try {
 
   await writeFile(
     `${outputDir}/${browserName}-report.json`,
-    `${JSON.stringify({ baseUrl, browserChannel: process.env.ABS_CHROMIUM_CHANNEL || null, requireCertifiableCues, capturePixels, evidence }, null, 2)}\n`,
+    `${JSON.stringify({ baseUrl, browserChannel: process.env.ABS_CHROMIUM_CHANNEL || null, capturePixels, evidence }, null, 2)}\n`,
   );
   console.log(`PASS: ${browserName} ${profiles.map((profile) => profile.id).join(', ')}: fixed final camera/copy and preference-correct idle material motion.`);
 } finally {

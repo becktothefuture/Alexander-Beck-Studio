@@ -67,16 +67,10 @@ export function getAboutNarrativeComposerEditorialReveal(
     viewportHeight,
     viewportThreshold,
   );
-  const revealTravel = Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0);
-  const revealSoftnessWU = Math.max(
-    0.001,
-    Number(record.revealSoftnessPx || 0) / Math.max(1, viewportHeight),
-  );
-  const completionViewportY = Number(viewportThreshold) - revealTravel;
   return getAboutNarrativeSharedRevealProgress(
     viewportY,
-    completionViewportY + revealSoftnessWU,
-    revealSoftnessWU,
+    undefined,
+    Math.max(0.001, Number(record.editorialMotion?.fadeDurationWU) || 0.2),
     reducedMotion,
   );
 }
@@ -112,7 +106,6 @@ export function sampleAboutNarrativeComposerTitleInto(field, storyWU, textMotion
 export function createAboutNarrativeComposerContextSample() {
   return {
     visible: false,
-    titleOpacity: 0,
     ruleScale: 0,
     descriptionOpacity: 0,
     actionOpacity: 0,
@@ -125,7 +118,6 @@ export function createAboutNarrativeComposerContextSample() {
 
 export const ABOUT_NARRATIVE_ARRIVAL_DURATION_MS = 900;
 export const ABOUT_NARRATIVE_FINALE_PHASES = Object.freeze({
-  title: Object.freeze({ start: 0, end: 220 }),
   rule: Object.freeze({ start: 100, end: 360 }),
   description: Object.freeze({ start: 180, end: 600 }),
   actions: Object.freeze({ start: 260, end: ABOUT_NARRATIVE_ARRIVAL_DURATION_MS }),
@@ -156,7 +148,6 @@ export function sampleAboutNarrativeComposerContextInto(
   // it in the reusable sample also preserves arrival through DOM remeasurement.
   target.previousTimeMs = target.visible && options.visible !== false ? nowMs : null;
   target.complete = target.visible && target.elapsedMs >= ABOUT_NARRATIVE_ARRIVAL_DURATION_MS;
-  target.titleOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.title);
   target.ruleScale = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.rule);
   target.descriptionOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.description);
   target.actionOpacity = sampleFinalePhase(target.elapsedMs, ABOUT_NARRATIVE_FINALE_PHASES.actions);

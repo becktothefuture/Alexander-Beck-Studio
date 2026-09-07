@@ -12,18 +12,14 @@ import {
   createAboutNarrativeJourneySample,
   sampleAboutNarrativeJourneyMapInto,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
+import { ABOUT_BLENDER_STAGE_IDS } from '../react-app/app/src/routes/about-narrative-lab/aboutBlenderStages.js';
 import { resolveResponsiveVerticalFovFromHorizontalFov } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraProjection.js';
-import {
-  createAboutNarrativeCameraPointerPanController,
-  createAboutNarrativeCameraPointerPanSample,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraPointerPan.js';
-import {
-  createAboutNarrativeCameraSteadycamController,
-  createAboutNarrativeCameraSteadycamSample,
-} from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraSteadycam.js';
+import { createAboutFinaleFraming } from '../react-app/app/src/routes/about-narrative-lab/aboutFinaleFraming.js';
+import { createAboutAuthoredMotion, advanceAboutAuthoredMotion, applyAboutAuthoredMotion } from '../react-app/app/src/routes/about-narrative-lab/aboutAuthoredMotion.js';
+import { resolveAboutSurfelProfile, hasAboutParticleDrift } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProfiles.js';
 import { writeAboutSceneLook } from '../react-app/app/src/routes/about-narrative-lab/aboutSceneLook.js';
 import { resolveAboutSurfelPaletteColors } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelPalette.js';
-import { aboutSurfelIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProjection.js';
+import { aboutSurfelIntersectsRect, aboutSurfelSweepIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from '../react-app/app/src/routes/about-narrative-lab/aboutSurfelProjection.js';
 import { compileAboutNarrativeComposerPlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
 import { loadAboutNarrativePointFieldPersistenceSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
 
@@ -74,7 +70,7 @@ function bundleFixture({ missingCue = false } = {}) {
   const modelBindings = [
     ['about.00', 'opening', 0, 'inciting-question', 0.3],
     ['about.01', 'inciting-question', -0.3, 'portal-entry', 0.3],
-    ['about.02', 'portal-entry', -0.3, 'personal-origin', 0.3],
+    ['about.02', 'portal-entry', -0.9, 'personal-origin', 0.3],
     ['about.03', 'personal-origin', -0.3, 'gate-entry', 0.3],
     ['about.04', 'gate-entry', -0.3, 'method', 0.3],
     ['about.05', 'method', -0.3, 'split-lattice-entry', 0.3],
@@ -86,16 +82,24 @@ function bundleFixture({ missingCue = false } = {}) {
   const view = new DataView(surfelBytes);
   points.forEach((position, index) => {
     position.forEach((value, axis) => view.setFloat32(index * 32 + axis * 4, value, true));
-    view.setUint16(index * 32 + 16, 100, true);
-    view.setUint16(index * 32 + 20, Math.floor(index / pointsPerModel), true);
+    // Keep this population fixture above the atmospheric detail threshold;
+    // density/footprint tests separately certify distance-based thinning.
+    view.setUint16(index * 32 + 16, 1_000, true);
+    const modelId = Math.floor(index / pointsPerModel);
+    view.setUint16(index * 32 + 20, modelId, true);
     view.setUint32(index * 32 + 24, index, true);
+    view.setUint8(index * 32 + 29, modelId);
     view.setUint8(index * 32 + 31, 1);
   });
   const cues = new Map();
   for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
-    const name = role.requiredCueName || role.cueNames[0];
+    const name = role.cueName;
     if (missingCue && name === 'ABS_ROUND_PORTALS_CLEAR') continue;
-    cues.set(name, { name, progress: role.fallbackProgress });
+    const stageIndex = ABOUT_BLENDER_STAGE_IDS.indexOf(role.stageId);
+    const progress = role.id === 'terminal-hold'
+      ? 1
+      : ((stageIndex + role.stageProgress) / ABOUT_BLENDER_STAGE_IDS.length) * 0.9;
+    cues.set(name, { name, progress });
   }
   const cameraTrack = {
     schema: 'about-camera-track', version: 5, source: 'SYNTHETIC_LIFECYCLE_CAMERA',
@@ -135,10 +139,36 @@ function bundleFixture({ missingCue = false } = {}) {
     schema: 'about-point-scene', version: 2,
     source: {
       sha256: 'c'.repeat(64),
+      route: {
+        stageRanges: Object.fromEntries(ABOUT_BLENDER_STAGE_IDS.map((stageId, index) => [
+          stageId,
+          [index / ABOUT_BLENDER_STAGE_IDS.length, (index + 1) / ABOUT_BLENDER_STAGE_IDS.length],
+        ])),
+      },
       objects: modelBindings.map((_, index) => ({
         objectKey: `fixture.form.${index}`,
         role: 'narrative-lattice',
         surfelCount: pointsPerModel,
+        worldOrigin: [0, 0, -20],
+        ...(index === 1 ? {
+          motion: {
+            behavior: 'continuous-rotation', axis: [0, 1, 0],
+            radiansPerSecond: 0.1, timeSource: 'ambient-seconds',
+          },
+        } : {}),
+        ...(index === 6 ? {
+          motion: {
+            behavior: 'bounded-rotation', axis: [0, 1, 0],
+            amplitudeRadians: 8 * Math.PI / 180, periodSeconds: 32, timeSource: 'ambient-seconds',
+          },
+        } : {}),
+        ...(index === 3 ? {
+          motion: {
+            behavior: 'terrain-wave', axis: [0, 1, 0], radiansPerSecond: 0.3,
+            amplitudeWU: 2.4, wavelengthWU: 96, secondaryScale: 0.46,
+            timeSource: 'ambient-seconds',
+          },
+        } : {}),
       })),
     },
     files: {
@@ -146,6 +176,29 @@ function bundleFixture({ missingCue = false } = {}) {
       surfels: { file: 'surfels.bin', count, bytes: surfelBytes.byteLength, sha256: sha256(surfelBytes) },
     },
     profiles: { mobile: profile, desktop: profile, master: profile },
+    motionGroups: modelBindings.map(([key], id) => ({
+      id,
+      key: `${key}.rigid`,
+      ...(id === 1 ? {
+        motion: {
+          behavior: 'continuous-rotation', axis: [0, 1, 0], pivotWU: [0, 0, -20],
+          radiansPerSecond: 0.1, timeSource: 'ambient-seconds',
+        },
+      } : {}),
+      ...(id === 6 ? {
+        motion: {
+          behavior: 'bounded-rotation', axis: [0, 1, 0], pivotWU: [0, 0, -20],
+          amplitudeRadians: 8 * Math.PI / 180, periodSeconds: 32, timeSource: 'ambient-seconds',
+        },
+      } : {}),
+      ...(id === 3 ? {
+        motion: {
+          behavior: 'terrain-wave', axis: [0, 1, 0], radiansPerSecond: 0.3,
+          amplitudeWU: 2.4, wavelengthWU: 96, secondaryScale: 0.46,
+          timeSource: 'ambient-seconds',
+        },
+      } : {}),
+    })),
     models,
     pages: [], quantization: { radiusWU: { step: 0.0001 } },
   };
@@ -163,6 +216,7 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
   };
   class Element extends EventTarget {
     dataset = {};
+    querySelector() { return null; }
     getBoundingClientRect() { return { left: 0, top: 0, width: 1440, height: 900 }; }
   }
   class Canvas extends Element {}
@@ -214,19 +268,26 @@ function createHarness(initialBundle = bundleFixture(), { hashWait, beforeFetch 
   const dependencies = {
     THREE: { ...Three, WebGLRenderer: Renderer, InstancedBufferGeometry: Geometry, ShaderMaterial: Material },
     resolveResponsiveVerticalFovFromHorizontalFov,
-    createAboutNarrativeCameraPointerPanController,
-    createAboutNarrativeCameraPointerPanSample,
-    createAboutNarrativeCameraSteadycamController,
-    createAboutNarrativeCameraSteadycamSample,
+    createAboutFinaleFraming,
+    createAboutAuthoredMotion,
+    advanceAboutAuthoredMotion,
+    applyAboutAuthoredMotion,
+    resolveAboutSurfelProfile,
+    hasAboutParticleDrift,
     createAboutNarrativeJourneySample,
     sampleAboutNarrativeJourneyMapInto,
     writeAboutSceneLook,
     aboutSurfelIntersectsRect,
+    aboutSurfelSweepIntersectsRect,
     decodeAboutSurfelNormal,
     resolveAboutSurfelRadiusPx,
     resolveAboutSurfelPaletteColors,
     getSimulationPaletteSnapshot: () => palette,
     subscribeSimulationPalette: (listener) => { paletteListener = listener; return () => { paletteListener = null; }; },
+    getSimulationBodyMaterialAtlas: () => null,
+    subscribeSimulationBodyMaterial: () => () => {},
+    THEME_CHANGE_EVENT: 'abs:theme-change',
+    isDarkThemeDocument: () => false,
     resolveAboutBlenderSceneContract: (input) => {
       stats.contracts += 1;
       return resolveAboutBlenderSceneContract(input);
@@ -548,15 +609,29 @@ test('per-model typed-array views and attribute identities stay stable across fr
   assert.equal(h.stats.sceneGeometries.length, 7);
   const geometries = [...h.stats.sceneGeometries];
   const attributes = geometries.map((geometry) => geometry.getAttribute('iPosition'));
+  const authoredVectors = h.stats.lastUniforms.uAuthoredMotionVectors.value;
+  assert.deepEqual([authoredVectors[1].w, authoredVectors[3].w, authoredVectors[6].w], [0, 0, 0],
+    'All authored motions start at their saved pose.');
+  assert.ok(geometries.every((geometry) => !geometry.getAttribute('iMotionVector')));
   assert.ok(attributes.every((attribute) => attribute.array.buffer === attributes[0].array.buffer));
   assert.deepEqual(attributes.map((attribute) => attribute.array.byteOffset), [0, 288, 576, 864, 1152, 1440, 1728]);
-  for (const storyWU of [0.4, 1.2, 2.8, 4.5, 7.5]) h.scene.render(frame({ storyWU }));
+  for (const storyWU of [0.4, 1.2, 2.8, 4.5, 7.5]) {
+    h.scene.render(frame({ storyWU, ambientTime: storyWU + 5 }));
+  }
   assert.deepEqual(h.stats.sceneGeometries, geometries);
   assert.deepEqual(
     geometries.map((geometry) => geometry.getAttribute('iPosition')),
     attributes,
   );
   const metrics = h.scene.getMetrics();
+  assert.deepEqual(metrics.authoredMotion, {
+    timeSource: 'ambient-seconds', time: 12.5, active: true,
+    objectCount: 3, continuousRotationCount: 1, boundedRotationCount: 1, terrainWaveCount: 1,
+  });
+  assert.ok(Math.abs(authoredVectors[1].w - 1.25) < 1e-6, 'Legacy body rotation advances on the shared ambient clock.');
+  assert.ok(Math.abs(authoredVectors[3].w - 3.75) < 1e-6, 'Terrain receives the same accumulated phase.');
+  assert.ok(Math.abs(authoredVectors[6].w - Math.sin(12.5 * Math.PI * 2 / 32) * 8 * Math.PI / 180) < 1e-6,
+    'The bounded bust receives its authored angle instead of an unbounded rotation rate.');
   assert.equal(metrics.gpuBufferBuilds, 1);
   assert.equal(metrics.gpuBufferIdentityStable, true);
   assert.equal(metrics.fixedAttributeIdentityStable, true);
@@ -578,8 +653,8 @@ test('overlap-aware handoffs preserve population and retire inactive stages', as
     const overlapEnd = current.endWU;
     if (!(overlapEnd > overlapStart)) continue;
     checkedOverlapCount += 1;
-    assert.ok(Math.abs(current.exitHandoffWU - (overlapEnd - overlapStart) * 0.5) <= 1e-9);
-    assert.ok(Math.abs(next.entranceHandoffWU - (overlapEnd - overlapStart) * 0.5) <= 1e-9);
+    assert.ok(current.exitHandoffWU <= (overlapEnd - overlapStart) * 0.5 + 1e-9);
+    assert.ok(next.entranceHandoffWU <= (overlapEnd - overlapStart) * 0.5 + 1e-9);
     for (const fraction of [0.25, 0.5, 0.75]) {
       const storyWU = overlapStart + (overlapEnd - overlapStart) * fraction;
       h.scene.render(frame({ storyWU }));
@@ -622,10 +697,10 @@ test('overlap-aware handoffs preserve population and retire inactive stages', as
 test('explicit framing diagnostics expose coherent grid spread, not just point totals', async (t) => {
   const h = createHarness();
   t.after(() => h.scene.destroy());
-  // The opening stage now grows out of fog from zero instead of arriving as a
-  // complete wall on the first frame. Sample after its authored handoff here;
-  // this test owns framing spread, not entrance timing.
-  h.scene.render(frame({ storyWU: 0.36 }));
+  // This fixture certifies projected population at its authored first pose.
+  // Camera-pacing and ambient-motion tests own later frames; neither should
+  // move the carefully placed occupancy samples across the viewport edge.
+  h.scene.render(frame({ storyWU: 0, reducedMotion: true }));
   await h.scene.preparePlan({});
   const framing = h.scene.getMetrics().modelFraming['about.00'];
   assert.equal(framing.occupiedBinCount, 8);

@@ -2,6 +2,8 @@ const TRACK_EPSILON = 0.000001;
 const TRACK_FRAME_SAMPLE_WU = 0.025;
 
 export const ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU = 22;
+// Measured reading layouts can grow beyond the authored baseline on narrow screens.
+export const ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU = 96;
 export const ABOUT_NARRATIVE_LONG_RIDE_ORIGIN_Z = 14;
 export const ABOUT_NARRATIVE_LONG_RIDE_FORWARD_UNITS_PER_WU = 18.5;
 export const ABOUT_NARRATIVE_LONG_RIDE_LOOK_AHEAD_WU = 0.82;
@@ -203,7 +205,7 @@ export function createAboutNarrativeLongRideStoryMapper(parameters = {}) {
   const storyDurationWU = clamp(
     Number(parameters.storyDurationWU ?? ABOUT_NARRATIVE_LONG_RIDE_BASE_DURATION_WU),
     8,
-    48,
+    ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU,
   );
   const runtimeAnchors = runtimeAnchorValues(parameters, storyDurationWU);
   const runtimeWUAtBaseWU = (baseWU) => {

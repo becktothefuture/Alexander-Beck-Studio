@@ -73,6 +73,7 @@ const STORY_FIELD_IDS = Object.freeze([
   'text-complexity-curiosity',
   'text-complexity-listen',
   'text-discipline-labels',
+  'text-selected-clients',
   'text-disciplines-title',
   'text-life-momentum',
   'text-life-character',
@@ -86,34 +87,33 @@ const RESPONSIVE_PROFILES = Object.freeze([
   ['mobile', 390, 844],
 ]);
 const VISIBILITY_BINDINGS = Object.freeze([
-  ['about.00', 'opening', 0, 'inciting-question', 0.3],
-  ['about.01', 'inciting-question', -0.3, 'portal-entry', 0.3],
-  ['about.02', 'portal-entry', -0.3, 'personal-origin', 0.3],
+  ['about.00', 'opening', 0, 'portal-entry', 0.3],
+  ['about.02', 'portal-entry', -0.9, 'personal-origin', 0.3],
   ['about.03', 'personal-origin', -0.3, 'gate-entry', 0.3],
-  ['about.04', 'gate-entry', -0.3, 'method', 0.3],
-  ['about.05', 'method', -0.3, 'split-lattice-entry', 0.3],
-  ['about.06', 'split-lattice-entry', -0.3, 'terminal-hold', 0.3],
+  ['about.04', 'gate-entry', -0.3, 'split-lattice-entry', 0.3],
+  ['about.05', 'method', -0.3, 'terminal-hold', 0.9],
+  ['about.06', 'method', -0.3, 'terminal-hold', 0.3],
 ]);
-// Blender owns the physical cue position inside each equal section. The
-// camera moves through frames 1-901, then holds through frame 1001.
+// Blender owns this physical order. The square passage crosses the about.04
+// titles and about.05 prose before its exit coincides with the finale entry.
 const PHYSICAL_CUES = Object.freeze([
-  ['ABS_STAGE_00', 0, 0],
-  ['ABS_STAGE_01', 1, 0],
-  ['ABS_STAGE_02', 2, 0],
-  ['ABS_ROUND_PORTALS_EXIT', 2, 1],
-  ['ABS_ROUND_PORTALS_CLEAR', 2, 1],
-  ['ABS_PERSONAL_ORIGIN', 3, 0],
-  ['ABS_TERRAIN_THESIS', 3, 0.33],
-  ['ABS_CANYON_CLEAR', 3, 0.9],
-  ['ABS_ROLL_GATE_START', 4, 0],
-  ['ABS_ROLL_GATE_END', 4, 1],
-  ['ABS_GATE_PASSAGE_CLEAR', 4, 1],
-  ['ABS_METHOD_RELEASE', 5, 0],
-  ['ABS_LATTICE_APPROACH', 5, 0.5],
-  ['ABS_SPLIT_LATTICE_ENTRY', 6, 0],
-  ['ABS_FINALE_DECEL', 6, 0.3],
-  ['ABS_INVITATION', 6, 0.7],
-  ['ABS_CAMERA_LOCK', 7, 0],
+  'ABS_STAGE_00',
+  'ABS_STAGE_01',
+  'ABS_STAGE_02',
+  'ABS_ROUND_PORTALS_EXIT',
+  'ABS_ROUND_PORTALS_CLEAR',
+  'ABS_PERSONAL_ORIGIN',
+  'ABS_TERRAIN_THESIS',
+  'ABS_CANYON_CLEAR',
+  'ABS_ROLL_GATE_START',
+  'ABS_METHOD_RELEASE',
+  'ABS_LATTICE_APPROACH',
+  'ABS_ROLL_GATE_END',
+  'ABS_GATE_PASSAGE_CLEAR',
+  'ABS_SPLIT_LATTICE_ENTRY',
+  'ABS_FINALE_DECEL',
+  'ABS_INVITATION',
+  'ABS_CAMERA_LOCK',
 ]);
 
 function cameraPositionAtProgress(progress) {
@@ -130,8 +130,9 @@ function cameraTravelBetween(map, startWU, endWU) {
   const sample = createAboutNarrativeJourneySample();
   let previous;
   let distance = 0;
-  for (let index = 0; index <= 32; index += 1) {
-    sampleAboutNarrativeJourneyMapInto(map, startWU + (endWU - startWU) * index / 32, sample);
+  const steps = Math.max(32, Math.ceil((endWU - startWU) / map.durationWU * 2048));
+  for (let index = 0; index <= steps; index += 1) {
+    sampleAboutNarrativeJourneyMapInto(map, startWU + (endWU - startWU) * index / steps, sample);
     const position = cameraPositionAtProgress(sample.progress);
     if (previous) distance += Math.hypot(...position.map((value, axis) => value - previous[axis]));
     previous = position;
@@ -178,27 +179,54 @@ function isFullyScheduled(window, storyWU) {
 }
 
 for (const [profileId, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
-  for (const measuredScreens of [null, 0.3, 3]) {
-    test(`${profileId} keeps constant physical speed across ${measuredScreens ?? 'estimated'}-screen content`, () => {
+  // Content-paced chapters map their semantic boundaries to the same Blender
+  // cues even when responsive measurement changes each chapter's duration.
+  for (const measuredScreens of [null, 0.3, 1.8]) {
+    test(`${profileId} maps ${measuredScreens ?? 'estimated'}-screen content to Blender cues`, () => {
       const responsivePlan = compileResponsivePlan(inlineSize, blockSize, measuredScreens);
       assert.equal(responsivePlan.valid, true, JSON.stringify(responsivePlan.diagnostics));
       assert.deepEqual(responsivePlan.textFields.map((field) => field.id), STORY_FIELD_IDS);
       const map = resolveAboutNarrativeJourneyMap(responsivePlan.journeyMap, cameraTrack);
-      assert.equal(map.certifiable, true, JSON.stringify(map.diagnostics));
+      assert.equal(map.valid, true, JSON.stringify(map.diagnostics));
       assert.equal(map.durationWU, responsivePlan.durationWU);
       assert.equal(map.lockStoryWU, map.durationWU, 'No stationary scroll tail before the page end.');
       const byId = new Map(map.anchors.map((item) => [item.id, item]));
       assert.equal(responsivePlan.storyLayout.sections.length, 7);
-      assert.equal(new Set(responsivePlan.storyLayout.sections
-        .map((section) => section.durationWU)).size, 1);
+      const breathingGap = responsivePlan.storyLayout.gaps
+        .find((gap) => gap.fromFieldId === 'text-complexity-conditions');
+      closeWU(
+        responsivePlan.resolver.scrollWUFromStoryWU(breathingGap.endWU)
+          - responsivePlan.resolver.scrollWUFromStoryWU(breathingGap.startWU),
+        1.32,
+        'Second title to background prose breathing gap',
+      );
+      const methodGap = responsivePlan.storyLayout.gaps
+        .find((gap) => gap.fromFieldId === 'text-life-momentum');
+      closeWU(
+        responsivePlan.resolver.scrollWUFromStoryWU(methodGap.endWU)
+          - responsivePlan.resolver.scrollWUFromStoryWU(methodGap.startWU),
+        1.32,
+        'Second working-method title to prose breathing gap',
+      );
+      const roundExitGap = responsivePlan.storyLayout.gaps
+        .find((gap) => gap.fromFieldId === 'text-complexity-listen');
+      closeWU(
+        responsivePlan.resolver.scrollWUFromStoryWU(roundExitGap.endWU)
+          - responsivePlan.resolver.scrollWUFromStoryWU(roundExitGap.startWU),
+        1.32,
+        'Round-tunnel titles to terrain prose breathing gap',
+      );
+      assert.ok(responsivePlan.storyLayout.gaps
+        .filter((gap) => gap !== breathingGap && gap !== methodGap && gap !== roundExitGap)
+        .every((gap) => gap.durationWU === 0));
       // Each semantic camera cue is placed inside the same seven sections as
-      // its corresponding text. Copy length cannot move a section boundary.
+      // its corresponding text. Content now determines those chapter boundaries.
       for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
         const section = responsivePlan.storyLayout.sections
           .find((item) => item.id === role.stageId);
         closeWU(
           byId.get(role.id).storyWU,
-          section.startWU + section.durationWU * role.stageProgress,
+          section.sceneStartWU + (section.sceneEndWU - section.sceneStartWU) * role.stageProgress,
           role.id,
         );
       }
@@ -214,27 +242,21 @@ for (const [profileId, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
         sampleAboutNarrativeJourneyMapInto(map, map.durationWU * index / 2500, sample);
         assert.equal(sample.progress, forward[index], 'Reverse must retrace the exact physical rail.');
       }
-      // Measure XYZ travel from the real exported camera, not the new distance
-      // metric, across section boundaries, bends and the old deceleration tail.
-      const sliceWU = map.durationWU / 80;
-      const expectedTravel = map.pathLengthWU / 80;
-      for (let index = 0; index < 80; index += 1) {
-        const actual = cameraTravelBetween(map, index * sliceWU, (index + 1) * sliceWU);
-        assert.ok(Math.abs(actual - expectedTravel) / expectedTravel < 0.002,
-          `Unequal camera travel at slice ${index}: ${actual} versus ${expectedTravel}.`);
-      }
-      const stageTravel = responsivePlan.storyLayout.sections.map((section) => (
-        cameraTravelBetween(map, section.startWU, section.endWU)
-      ));
-      stageTravel.forEach((distance, index) => {
-        assert.ok(Math.abs(distance - map.pathLengthWU / 7) / (map.pathLengthWU / 7) < 0.002,
-          `Section ${index} must travel one seventh of the camera path.`);
-      });
       for (const item of map.anchors) {
         sampleAboutNarrativeJourneyMapInto(map, item.cameraStoryWU, sample);
         const actual = cameraPositionAtProgress(sample.progress);
         const expected = cameraPositionAtProgress(Math.min(item.journeyProgress, map.lockProgress));
         actual.forEach((value, axis) => closeWU(value, expected[axis], `${item.id} physical cue`));
+        closeWU(sample.sceneStoryWU, item.storyWU, `${item.id} visibility clock`);
+      }
+      for (let index = 1; index < map.interpolationAnchors.length; index += 1) {
+        const from = map.interpolationAnchors[index - 1];
+        const to = map.interpolationAnchors[index];
+        const middleWU = (from.storyWU + to.storyWU) * 0.5;
+        sampleAboutNarrativeJourneyMapInto(map, middleWU, sample);
+        assert.ok(sample.cameraDistanceWU >= from.cameraDistanceWU - 0.000001
+          && sample.cameraDistanceWU <= to.cameraDistanceWU + 0.000001,
+        `${from.id} to ${to.id}: easing must stay inside the authored interval.`);
       }
       sampleAboutNarrativeJourneyMapInto(map, map.durationWU + 10, sample);
       assert.equal(sample.progress, map.lockProgress);
@@ -243,7 +265,7 @@ for (const [profileId, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
   }
 }
 
-test('real model windows follow camera distance and keep every physical passage visible', () => {
+test('real model windows follow semantic passages and preserve the finale composition', () => {
   assert.deepEqual(assetMeta.models.map((model) => model.key), VISIBILITY_BINDINGS.map(([key]) => key));
   for (const [key, startCue, startOffset, endCue, endOffset] of VISIBILITY_BINDINGS) {
     const model = assetMeta.models.find((item) => item.key === key);
@@ -256,50 +278,57 @@ test('real model windows follow camera distance and keep every physical passage 
     const map = resolveAboutNarrativeJourneyMap(responsivePlan.journeyMap, cameraTrack);
     const windows = resolveExportedWindows(map);
     const byId = new Map(map.anchors.map((item) => [item.id, item]));
+    const windowByKey = new Map(windows.map((window) => [window.key, window]));
     windows.forEach((window, index) => {
       assert.ok(window.endWU > window.startWU);
-      if (index) {
-        // Admit the interest field before its title and the square gates
-        // early enough to frame the first opening on approach.
-        const adjacentGapWU = window.startWU - windows[index - 1].endWU;
-        closeWU(adjacentGapWU, -0.6, 'Adjacent overlap');
-      }
-      const model = assetMeta.models[index];
-      const startWU = byId.get(model.visibilityStartCue).cameraStoryWU;
-      const endWU = byId.get(model.visibilityEndCue).cameraStoryWU;
-      const passagePositions = [startWU, (startWU + endWU) / 2, endWU];
+      const passagePositions = [
+        window.startWU + window.handoffWU,
+        (window.startWU + window.endWU) / 2,
+        window.endWU - window.handoffWU,
+      ];
       for (const position of passagePositions) {
-        assert.ok(isFullyScheduled(window, position), `${model.key} vanished during its physical passage.`);
+        assert.ok(isFullyScheduled(window, position), `${window.key} vanished during its visibility window.`);
       }
     });
+    const gates = windowByKey.get('about.04');
+    for (const cueId of ['gate-entry', 'method', 'lattice-approach', 'gate-exit']) {
+      assert.ok(isFullyScheduled(gates, byId.get(cueId).storyWU),
+        `The square passage must remain visible at ${cueId}.`);
+    }
+    assert.equal(windowByKey.has('about.01'), false, 'The removed cluster has no render window.');
+    assert.ok(isFullyScheduled(windowByKey.get('about.00'), byId.get('inciting-question').storyWU),
+      'The opening field continues behind the background and experience reading stage.');
+    closeWU(windowByKey.get('about.05').startWU,
+      byId.get('method').storyWU - 0.3, 'about.05 restored platform approach');
+    closeWU(windowByKey.get('about.06').startWU,
+      byId.get('method').storyWU - 0.3, 'about.06 restored bust reveal');
+    assert.ok(windowByKey.get('about.06').endWU <= windowByKey.get('about.05').endWU);
     for (let index = 0; index <= 500; index += 1) {
       const storyWU = map.durationWU * index / 500;
       assert.ok(windows.some((window) => isFullyScheduled(window, storyWU)), `Empty scene at ${storyWU}.`);
       const active = windows.filter((window) => storyWU >= window.startWU && storyWU < window.endWU);
-      assert.ok(active.length <= 3, 'At most three adjacent handoff stages may overlap.');
-      active.forEach((window, activeIndex) => {
-        if (!activeIndex) return;
-        assert.equal(window.modelId, active[activeIndex - 1].modelId + 1,
-          'Only directly adjacent authored stages may overlap.');
-      });
+      assert.ok(active.length <= 3, 'The restored finale may combine the platform and bust with outgoing gates.');
     }
   }
 });
 
-test('uneven and duplicate camera samples cannot alter scroll speed', () => {
+test('uneven and duplicate camera samples retain monotone semantic mapping', () => {
   const track = { ...cameraTrack, sampleCount: 5, samples: [
     [0, 0, 0, 0, 0, 0, 1], [0, 0, -1, 0, 0, 0, 1],
     [0, 0, -1, 0, 0, 0, 1], [0, 0, -9, 0, 0, 0, 1], [0, 0, -9, 0, 0, 0, 1],
   ] };
   const map = resolveAboutNarrativeJourneyMap(plan.journeyMap, track);
   assert.equal(map.valid, true);
-  for (const fraction of [0, 0.1, 0.25, 0.5, 0.9, 1]) {
-    const sample = sampleAboutNarrativeJourneyMapInto(map, fraction * map.durationWU);
-    const cursor = sample.progress * 4;
-    const lower = Math.floor(cursor), upper = Math.min(4, lower + 1);
-    const z = track.samples[lower][2]
-      + (track.samples[upper][2] - track.samples[lower][2]) * (cursor - lower);
-    closeWU(z, -9 * fraction, `Irregular rail at ${fraction}`);
+  for (let index = 1; index < map.interpolationAnchors.length; index += 1) {
+    const from = map.interpolationAnchors[index - 1];
+    const to = map.interpolationAnchors[index];
+    const sample = sampleAboutNarrativeJourneyMapInto(
+      map,
+      (from.storyWU + to.storyWU) * 0.5,
+    );
+    assert.ok(sample.cameraDistanceWU >= from.cameraDistanceWU - 0.000001
+      && sample.cameraDistanceWU <= to.cameraDistanceWU + 0.000001,
+    `Irregular rail ${from.id} to ${to.id} must not overshoot.`);
   }
 });
 
@@ -321,7 +350,7 @@ test('reduced motion cuts between authored poses while retaining the endpoint', 
 });
 
 test('reduced motion settles after passages and never steps backwards through reading', () => {
-  for (const [exitId, readingId] of [['portal-exit', 'personal-origin'], ['gate-exit', 'lattice-approach']]) {
+  for (const [exitId, readingId] of [['portal-exit', 'personal-origin'], ['gate-entry', 'method']]) {
     const exit = journeyMap.anchors.find((anchor) => anchor.id === exitId);
     const reading = journeyMap.anchors.find((anchor) => anchor.id === readingId);
     const sample = sampleAboutNarrativeJourneyMapInto(journeyMap, exit.cameraStoryWU + 0.001, undefined, true);
@@ -347,9 +376,9 @@ test('a stationary camera rail fails before a partial distance map can render', 
   assert.ok(Number.isFinite(sample.progress));
 });
 
-test('the solid-title entry guard also applies before reduced-motion glyphs', () => {
+test('the shared title entry guard applies in reduced motion', () => {
   assert.match(timelineSource, /if \(storyWU < Number\(field\.startWU\)\) return false;/);
-  assert.match(timelineSource, /const visible = solidTitles \? fieldActive : !reducedMotion \|\| fieldActive;/);
+  assert.match(timelineSource, /const visible = fieldActive;/);
   for (const [inlineSize, blockSize] of [[1440, 900], [900, 1024], [390, 844]]) {
     const reduced = compileAboutNarrativeComposerPlan(loaded.document, {
       inlineSize, blockSize, prefersReducedMotion: true,
@@ -357,7 +386,7 @@ test('the solid-title entry guard also applies before reduced-motion glyphs', ()
     assert.equal(reduced.valid, true);
     assert.equal(reduced.reducedMotion, true);
     const map = resolveAboutNarrativeJourneyMap(reduced.journeyMap, cameraTrack);
-    assert.equal(map.certifiable, true);
+    assert.equal(map.valid, true);
     assert.deepEqual(reduced.textFields.map((field) => field.id), STORY_FIELD_IDS);
     for (const title of reduced.textFields.filter((field) => field.kind === 'title')) {
       const sample = createAboutNarrativeTitleFieldSample();
@@ -372,7 +401,7 @@ test('the solid-title entry guard also applies before reduced-motion glyphs', ()
   }
 });
 
-test('missing passage cues retain a monotonic degraded runtime but cannot certify', () => {
+test('missing passage cues invalidate the Blender-authored journey without inventing positions', () => {
   for (const cueName of [
     'ABS_ROUND_PORTALS_EXIT', 'ABS_ROUND_PORTALS_CLEAR', 'ABS_PERSONAL_ORIGIN',
     'ABS_TERRAIN_THESIS', 'ABS_CANYON_CLEAR', 'ABS_GATE_PASSAGE_CLEAR',
@@ -383,12 +412,8 @@ test('missing passage cues retain a monotonic degraded runtime but cannot certif
     const incompleteTrack = structuredClone(cameraTrack);
     incompleteTrack.journeyCues = incompleteTrack.journeyCues.filter((cue) => cue.name !== cueName);
     const map = resolveAboutNarrativeJourneyMap(plan.journeyMap, incompleteTrack);
-    assert.equal(map.certifiable, false, cueName);
+    assert.equal(map.valid, false, cueName);
     assert.ok(map.diagnostics.some((item) => item.path === `cameraTrack.journeyCues.${cueName}`));
-    if (!map.valid) {
-      assert.ok(map.diagnostics.some((item) => item.code === 'journey-camera-order'),
-        `${cueName} can invalidate an obsolete fallback only through strict camera-order validation.`);
-    }
     const sample = createAboutNarrativeJourneySample();
     let previous = 0;
     for (let index = 0; index <= 250; index += 1) {
@@ -400,21 +425,16 @@ test('missing passage cues retain a monotonic degraded runtime but cannot certif
   }
   const noCueTrack = structuredClone(cameraTrack);
   noCueTrack.journeyCues = [];
-  const fallback = resolveAboutNarrativeJourneyMap(plan.journeyMap, noCueTrack);
-  assert.equal(fallback.valid, true);
-  assert.equal(fallback.certifiable, false);
+  const incomplete = resolveAboutNarrativeJourneyMap(plan.journeyMap, noCueTrack);
+  assert.equal(incomplete.valid, false);
   for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
-    closeWU(
-      fallback.anchors.find((item) => item.id === role.id).journeyProgress,
-      role.fallbackProgress,
-      `${role.id} degraded fallback`,
-    );
+    assert.equal(incomplete.anchors.find((item) => item.id === role.id).journeyProgress, null);
   }
   const currentExport = resolveAboutNarrativeJourneyMap(plan.journeyMap, cameraTrack);
   assert.equal(currentExport.valid, true, JSON.stringify(currentExport.diagnostics));
 });
 
-test('the selected real camera bundle preserves equal physical sections and source hashes', async () => {
+test('the selected real camera bundle preserves the authored physical cue order and source hashes', async () => {
   const cameraBytes = await readFile(resolve(ASSET_DIRECTORY, 'camera-track.json'));
   assert.equal(createHash('sha256').update(cameraBytes).digest('hex'),
     assetMeta.files.cameraTrack.sha256, 'Camera bytes and metadata must come from one export.');
@@ -424,15 +444,12 @@ test('the selected real camera bundle preserves equal physical sections and sour
   assert.equal(cameraTrack.samples.length, cameraTrack.sampleCount);
   assert.equal(cameraTrack.frameEnd - cameraTrack.frameStart + 1, cameraTrack.sampleCount);
   const frameSpan = cameraTrack.frameEnd - cameraTrack.frameStart;
-  const cameraLock = cameraTrack.journeyCues.find((item) => item.name === 'ABS_CAMERA_LOCK');
-  const travelFrameSpan = cameraLock.frame - cameraTrack.frameStart;
-  for (const [name, stageIndex, stageProgress] of PHYSICAL_CUES) {
+  let previousFrame = cameraTrack.frameStart;
+  for (const name of PHYSICAL_CUES) {
     const cue = cameraTrack.journeyCues.find((item) => item.name === name);
     assert.ok(cue, `${name} must exist in the real selected bundle; no supplied success cues.`);
-    const expectedFrame = Math.round(
-      cameraTrack.frameStart + travelFrameSpan * (stageIndex + stageProgress) / 7,
-    );
-    assert.equal(cue.frame, expectedFrame, `${name} must retain its equal-section position.`);
+    assert.ok(cue.frame >= previousFrame, `${name} must preserve the intended physical order.`);
+    previousFrame = cue.frame;
     closeWU(cue.progress, (cue.frame - cameraTrack.frameStart) / frameSpan, `${name} frame quantization`);
     const resolved = journeyMap.anchors.filter((item) => item.cueName === name);
     assert.ok(resolved.length > 0, `${name} must actually drive a story anchor.`);
@@ -440,14 +457,12 @@ test('the selected real camera bundle preserves equal physical sections and sour
   }
 });
 
-test('the real selected export certifies the canonical thirteen-field story without supplied cues', () => {
+test('the real selected export drives the canonical story from Blender cues', () => {
   assert.deepEqual(canonical.tracks.text.fields.map((field) => field.id), STORY_FIELD_IDS);
-  assert.equal(journeyMap.valid, true, journeyMap.diagnostics?.map((item) => item.message).join('\n'));
-  assert.equal(journeyMap.certifiable, true,
+  assert.equal(journeyMap.valid, true,
     `The real bundle at ${ASSET_DIRECTORY} is not ready: ${JSON.stringify(journeyMap.diagnostics)}`);
-  assert.ok(journeyMap.anchors.every((item) => item.cueSource !== 'fallback'));
   assert.equal(
-    journeyMap.diagnostics.some((item) => item.code === 'journey-required-camera-cue-missing'),
+    journeyMap.diagnostics.some((item) => item.code === 'journey-camera-cue-missing'),
     false,
   );
   assert.deepEqual(
@@ -462,10 +477,10 @@ test('the real selected export certifies the canonical thirteen-field story with
       'earned-thesis',
       'landscape-release',
       'gate-entry',
-      'gate-exit',
-      'gate-release',
       'method',
       'lattice-approach',
+      'gate-exit',
+      'gate-release',
       'split-lattice-entry',
       'finale-deceleration',
       'invitation',
@@ -487,7 +502,7 @@ test('the real semantic reading cues do not need physical stage markers', () => 
   semanticOnlyTrack.journeyCues = semanticOnlyTrack.journeyCues
     .filter((cue) => cue.name !== 'ABS_STAGE_03' && cue.name !== 'ABS_STAGE_05');
   const semanticMap = resolveAboutNarrativeJourneyMap(plan.journeyMap, semanticOnlyTrack);
-  assert.equal(semanticMap.certifiable, true);
+  assert.equal(semanticMap.valid, true);
   for (const [roleId, cueName] of [
     ['earned-thesis', 'ABS_TERRAIN_THESIS'],
     ['split-lattice-entry', 'ABS_SPLIT_LATTICE_ENTRY'],
@@ -507,16 +522,12 @@ test('physical set boundaries cannot substitute for missing required reading cue
     const incompleteTrack = structuredClone(cameraTrack);
     incompleteTrack.journeyCues = incompleteTrack.journeyCues.filter((cue) => cue.name !== requiredCue);
     const incompleteMap = resolveAboutNarrativeJourneyMap(plan.journeyMap, incompleteTrack);
-    assert.equal(incompleteMap.certifiable, false, 'A physical marker must not certify a missing semantic cue.');
+    assert.equal(incompleteMap.valid, false, 'A physical marker must not replace a missing semantic cue.');
     const reading = incompleteMap.anchors.find((item) => item.id === roleId);
-    assert.equal(reading.cueName, '');
-    assert.equal(reading.cueSource, 'fallback');
-    const role = ABOUT_NARRATIVE_JOURNEY_ROLES.find((item) => item.id === roleId);
-    closeWU(reading.journeyProgress, role.fallbackProgress, `${roleId} bounded fallback`);
-    assert.notEqual(reading.journeyProgress,
-      cameraTrack.journeyCues.find((cue) => cue.name === physicalCue).progress);
+    assert.equal(reading.cueName, requiredCue);
+    assert.equal(reading.journeyProgress, null);
     assert.ok(incompleteMap.diagnostics.some((item) => (
-      item.code === 'journey-required-camera-cue-missing'
+      item.code === 'journey-camera-cue-missing'
         && item.path === `cameraTrack.journeyCues.${requiredCue}`
     )));
     const sample = createAboutNarrativeJourneySample();
@@ -553,13 +564,9 @@ test('drafts missing an equal section remain bounded but cannot render', () => {
   assert.ok(sample.progress > 0 && sample.progress < 1);
 });
 
-test('the camera travels through the invitation at the same rate and stops only at the page end', () => {
+test('the camera travels through the invitation and stops only at the page end', () => {
   const sample = createAboutNarrativeJourneySample();
   const invitation = anchor('invitation');
-  const windowWU = 0.1;
-  const middle = cameraTravelBetween(journeyMap, journeyMap.durationWU / 2, journeyMap.durationWU / 2 + windowWU);
-  const last = cameraTravelBetween(journeyMap, journeyMap.durationWU - windowWU, journeyMap.durationWU);
-  assert.ok(Math.abs(last - middle) / middle < 0.002, 'No independent finale deceleration.');
   for (const fraction of [0, 0.1, 0.25, 0.5, 0.9]) {
     sampleAboutNarrativeJourneyMapInto(journeyMap,
       invitation.storyWU + (journeyMap.durationWU - invitation.storyWU) * fraction, sample);
@@ -576,8 +583,11 @@ test('the camera travels through the invitation at the same rate and stops only 
 
 test('runtime camera progress follows the journey map and V2 has no post-page continuation', () => {
   assert.match(sceneSource, /sampleAboutNarrativeJourneyMapInto\(/);
-  assert.match(sceneSource, /frame\?\.reducedMotion \|\| cameraLocked/);
-  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample\)/);
+  assert.match(sceneSource, /cameraMotionSource: 'shared-scroll-sample'/);
+  assert.match(sceneSource, /camera\.position\.copy\(cameraAuthoredPosition\)/);
+  assert.doesNotMatch(sceneSource, /steadycamController|pointerPanController/);
+  assert.match(sceneSource,
+    /writeAboutSceneLook\(controls, frame, entranceScale, journeySample(?:, authoredCameraFog)?\)/);
   assert.match(timelineSource, /if \(!finaleContinuation \|\| !plan\) return null;/);
   assert.doesNotMatch(timelineSource, /V2 continues its outgoing material current/);
 });
@@ -587,7 +597,7 @@ test('the camera lock preserves continuous ambient motion without changing its p
     storyWU: plan.durationWU,
     durationWU: plan.durationWU,
     reducedMotion: false,
-    globals: plan.globals,
+    globals: { ...plan.globals, sceneMotion: { masterIntensity: 1.5, masterSpeed: 2 } },
     simulation: { visibility: 1 },
     world: {
       to: {
@@ -610,8 +620,10 @@ test('the camera lock preserves continuous ambient motion without changing its p
     locked: true,
   });
   assert.equal(controls.finaleProgress, 1);
-  closeWU(controls.motionAmountWU, 0.225, 'Finale motion remains active');
-  assert.equal(controls.motionSpeed, 0.44);
+  closeWU(controls.motionAmountWU, 0.075, 'Shared ambient intensity remains active at the endpoint');
+  assert.equal(controls.motionSpeed, 0.72);
+  assert.equal(controls.masterMotionIntensity, 1.5);
+  assert.equal(controls.masterMotionSpeed, 2);
   for (const finaleProgress of [0, 0.25, 0.75, 1]) {
     const beforeLock = writeAboutSceneLook({}, frame, 1, { valid: true, finaleProgress, locked: false });
     const afterLock = writeAboutSceneLook({}, frame, 1, { valid: true, finaleProgress, locked: true });
@@ -623,22 +635,27 @@ test('the camera lock preserves continuous ambient motion without changing its p
   assert.equal(reduced.motionAmountWU, 0, 'Reduced Motion keeps a static final scene.');
 });
 
-test('the lattice fog is prepared before the first closing title', () => {
+test('fog retains one owner throughout reading, passages, and the finale', () => {
+  const authoredFog = { startWU: 30, endWU: 240, curve: 1.6 };
+  const camera = { distanceFogOverride: 0, distanceFogStartWU: 14, distanceFogEndWU: 70, distanceFogCurve: 1.2 };
   const frame = {
     storyWU: anchor('split-lattice-entry').storyWU,
     durationWU: plan.durationWU,
-    globals: { camera: { distanceFogStartWU: 14, distanceFogEndWU: 70 } },
+    globals: { camera },
     world: { to: { shapeParameters: { finaleFogStartWU: 220, finaleFogEndWU: 560 } } },
   };
-  const journey = { valid: true, finaleProgress: 0, runwayProgress: 0, runwayApproachProgress: 0 };
-  const before = writeAboutSceneLook({}, frame, 1, journey);
-  const threshold = writeAboutSceneLook({}, frame, 1, { ...journey, runwayApproachProgress: 1 });
-  assert.equal(before.fogProgress, 0);
-  assert.equal(before.fogEndWU, 70);
-  assert.equal(threshold.fogProgress, 0.35);
-  assert.equal(threshold.fogEndWU, 241.5);
-  assert.equal(threshold.finaleProgress, 0);
-  assert.equal(threshold.runwayProgress, 0);
+  for (const progress of [0, 0.25, 0.5, 1]) {
+    const journey = { valid: true, finaleProgress: progress, runwayProgress: progress, runwayApproachProgress: progress };
+    camera.distanceFogOverride = 0;
+    const inherited = writeAboutSceneLook({}, frame, 1, journey, authoredFog);
+    assert.deepEqual([inherited.fogSource, inherited.fogStartWU, inherited.fogEndWU, inherited.fogCurve],
+      ['blender', 30, 240, 1.6]);
+    camera.distanceFogOverride = 1;
+    const overridden = writeAboutSceneLook({}, frame, 1, journey, authoredFog);
+    assert.deepEqual([overridden.fogSource, overridden.fogStartWU, overridden.fogEndWU, overridden.fogCurve],
+      ['website', 14, 70, 1.2]);
+    assert.equal(overridden.fogProgress, 0, 'Scene progress cannot replace the selected viewing distance.');
+  }
 });
 
 test('invitation phases use elapsed milliseconds inside the local 900ms budget', () => {
@@ -667,7 +684,7 @@ for (const fraction of [0.1, 0.25, 0.5]) {
     assert.equal(sample.actionOpacity, 0);
     sampleAboutNarrativeComposerContextInto(field, storyWU, false, sample, { timestampMs: 1900 });
     assert.equal(sample.complete, true);
-    for (const key of ['titleOpacity', 'ruleScale', 'descriptionOpacity', 'actionOpacity']) {
+    for (const key of ['ruleScale', 'descriptionOpacity', 'actionOpacity']) {
       assert.equal(sample[key], 1, key);
     }
   });
@@ -709,10 +726,56 @@ test('direct end and reduced motion expose a complete invitation immediately', (
     sampleAboutNarrativeComposerContextInto(field, storyWU, reduced, sample);
     assert.equal(sample.visible, true);
     assert.equal(sample.complete, true);
-    assert.equal(sample.titleOpacity, 1);
     assert.equal(sample.ruleScale, 1);
     assert.equal(sample.descriptionOpacity, 1);
     assert.equal(sample.actionOpacity, 1);
     assert.equal(sample.y, 0);
+  }
+});
+
+test('oversized content is rejected before compiling an unbounded story rail', () => {
+  const plan = compileResponsivePlan(1440, 900, 6);
+  assert.equal(plan.valid, false);
+  assert.ok(plan.diagnostics.some((item) => (
+    item.code === 'parameter-range'
+      && item.path.endsWith('.storyDurationWU')
+  )), JSON.stringify(plan.diagnostics));
+});
+
+
+test('camera speed joins continuously across reading and passage cues and settles at the end', () => {
+  for (const [, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
+    const responsivePlan = compileResponsivePlan(inlineSize, blockSize, 1.8);
+    const map = resolveAboutNarrativeJourneyMap(responsivePlan.journeyMap, cameraTrack);
+    const sample = createAboutNarrativeJourneySample();
+    const distance = (time) => sampleAboutNarrativeJourneyMapInto(map, time, sample).cameraDistanceWU;
+    for (const item of map.interpolationAnchors) {
+      const step = 0.000001;
+      const beforeRate = (distance(item.storyWU) - distance(item.storyWU - step)) / step;
+      const afterRate = (distance(item.storyWU + step) - distance(item.storyWU)) / step;
+      assert.ok(Math.abs(beforeRate - afterRate) < 0.02,
+        `${item.id}: camera speed jumps from ${beforeRate} to ${afterRate}.`);
+    }
+    assert.equal(map.interpolationAnchors.at(-1).cameraRate, 0);
+  }
+});
+
+
+test('scene reading cues arrive at the first visible prose pixel rather than its later timeline marker', () => {
+  for (const [, inlineSize, blockSize] of RESPONSIVE_PROFILES) {
+    const responsivePlan = compileResponsivePlan(inlineSize, blockSize, 1.8);
+    const map = resolveAboutNarrativeJourneyMap(responsivePlan.journeyMap, cameraTrack);
+    for (const [cueId, fieldId] of [
+      ['inciting-question', 'text-background-unit'],
+      ['personal-origin', 'text-discipline-labels'],
+      ['method', 'text-life-character'],
+    ]) {
+      const cue = map.anchors.find((item) => item.id === cueId);
+      const field = responsivePlan.textFields.find((item) => item.id === fieldId);
+      const firstVisibleScrollWU = responsivePlan.resolver.scrollWUFromStoryWU(field.startWU)
+        + responsivePlan.globals.editorialRevealThreshold - 1;
+      closeWU(responsivePlan.resolver.scrollWUFromStoryWU(cue.storyWU), firstVisibleScrollWU,
+        `${cueId}: scene handoff must match actual prose entry`);
+    }
   }
 });

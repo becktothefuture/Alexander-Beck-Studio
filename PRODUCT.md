@@ -8,7 +8,7 @@ Alexander Beck Studio is a creative-technologist portfolio. It helps prospective
 
 The product surface is the public website: Home, Work, About, and Contact inside one persistent studio shell. The interactive material demonstrates the practice, but visitors must still be able to understand the offer and reach Contact without exploring every interaction.
 
-The current build and preview boundaries are documented in [README.md](README.md#routes). Work and About are not fully launched by default. A development experience or an intentional preview is not proof of public release.
+The current build and preview boundaries are documented in [README.md](README.md#routes). Work and About show Coming soon in production; their full experiences remain available in local development. A development experience or an intentional preview is not proof of public release.
 
 Standalone labs, authoring panels, the live styleguide, and other experiments in this repository support development. They are not additional public product destinations. The historical `portfolio` and `playground` source names do not create separate Work and Lab products.
 

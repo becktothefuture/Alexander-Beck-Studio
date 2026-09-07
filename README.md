@@ -69,10 +69,10 @@ The `legacy/` name does not mean unused: it contains the active simulation engin
 | --- | --- | --- |
 | Home (`/index.html`, also `/`) | Interactive simulation wall, identity, expertise, and Daily Simulation | Same route plus local authoring tools |
 | Work (`/portfolio.html`) | **Coming soon.** The full canvas is excluded at build time; URL parameters, browser storage, and case-study access grants cannot enable it. | Spatial catalogue with snippets, protected case studies, an in-window access gate, and a detail drawer |
-| About (`/about.html`) | Canonical spatial narrative; its authoring panel remains excluded from production. | Same narrative plus local authoring controls |
+| About (`/about.html`) | **Coming soon.** The full narrative is excluded at build time; there is no preview-link or browser-storage bypass. | Canonical spatial narrative plus local authoring controls |
 | Contact (`/contact.html`) | Contact invitation, email-copy feedback, and LinkedIn | Same visitor-facing route |
 
-These are the current source/build contracts, not a claim about the latest deployed site. Work remains held for a separate launch decision. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
+These are the current source/build contracts, not a claim about the latest deployed site. Work and About remain held for separate launch decisions. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
 
 ## Source of truth
 

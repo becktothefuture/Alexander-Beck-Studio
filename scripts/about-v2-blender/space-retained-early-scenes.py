@@ -625,9 +625,12 @@ def main():
     ensure_control(controls, "forms_end_progress", 0.28, 0.22, 0.285714, "End of the recognisable-forms ecosystem.")
     ensure_control(controls, "forms_body_count", 5, 4, 6, "Number of solid recognisable bodies exported and rendered.")
     ensure_control(controls, "forms_body_scale", 1.0, 0.5, 2.5, "Scale of each recognisable form.")
-    ensure_control(controls, "forms_lateral_spread", 1.0, 0.35, 3.0, "Recognisable-form horizontal spread around the rail.")
-    ensure_control(controls, "forms_vertical_spread", 1.0, 0.35, 3.0, "Recognisable-form vertical spread around the rail.")
+    ensure_control(controls, "forms_lateral_spread", 1.0, 1.0, 3.0, "Extra spacing above the collision-safe minimum.")
+    ensure_control(controls, "forms_vertical_spread", 1.0, 1.0, 3.0, "Extra spacing above the collision-safe minimum.")
     ensure_control(controls, "forms_rotation_turns", 0.18, -1.0, 1.0, "Total body rotation across the forms passage.")
+    ensure_control(controls, "forms_copies_per_shape", 6, 1, 6, "Number of collision-safe copies generated for each enabled shape.")
+    ensure_control(controls, "forms_random_seed", 1303, 0, 1000000, "Seed for deterministic random positions and rotations.")
+    ensure_control(controls, "forms_minimum_gap_wu", 4.0, 0.5, 40.0, "Minimum empty surface distance between visible bodies.")
     if "forms_internal_path_progression" in controls:
         del controls["forms_internal_path_progression"]
     ensure_control(controls, "forms_density_scale", 1.0, 0.2, 3.0, "Recognisable-form export point-density multiplier.")
@@ -672,6 +675,11 @@ def main():
     with open(simplify_path, "r", encoding="utf-8") as handle:
         source = handle.read()
     exec(compile(source, simplify_path, "exec"), namespace)
+    body_field_path = str(Path(__file__).with_name("parameterize-solid-body-field.py"))
+    namespace = {"__name__": "__main__", "__file__": body_field_path}
+    with open(body_field_path, "r", encoding="utf-8") as handle:
+        source = handle.read()
+    exec(compile(source, body_field_path, "exec"), namespace)
     print(json.dumps({"openingObjects": opening, "forms": forms, "roundHoops": hoops, "corridors": corridors, "saved": False}))
 
 

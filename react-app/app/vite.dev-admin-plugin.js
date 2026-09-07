@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { spawn } from 'node:child_process';
-import { createReadStream, lstatSync, realpathSync } from 'node:fs';
+import { lstatSync, realpathSync } from 'node:fs';
 import {
   writeFile,
 } from 'node:fs/promises';
@@ -8,6 +8,7 @@ import { dirname, relative, resolve } from 'node:path';
 import process from 'node:process';
 import { flattenDesignConfigDir } from '../../scripts/lib/flatten-design-config.mjs';
 import { runLocalFileTransaction } from '../../scripts/lib/local-file-transaction.mjs';
+import { createAboutPreviewResolver } from '../../scripts/lib/about-blender-preview.mjs';
 import {
   SIMULATION_ADMIN_PATHS,
   createSimulationIssue,
@@ -31,13 +32,6 @@ const ABOUT_BLENDER_PREVIEW_ROOT = resolve(
   repoRoot,
   '.cache',
   'about-v2-blender-preview',
-  'current',
-);
-const ABOUT_BLENDER_PREVIEW_LOCK = resolve(
-  repoRoot,
-  '.cache',
-  'about-v2-blender-preview',
-  '.updating',
 );
 const ABOUT_BLENDER_PREVIEW_FILES = Object.freeze({
   'meta.json': 'application/json; charset=utf-8',
@@ -299,12 +293,17 @@ export function createDevAdminPlugin({
     configPath: aboutNarrativeConfigPath,
     targetVersion: 7,
   });
+  const aboutPreview = createAboutPreviewResolver({
+    sourcePath: resolve(repoRoot, 'source-assets/about-v2-blender-current/about-v2-track-working.blend'),
+    canonicalDirectory: resolve(repoRoot, 'react-app/app/public/models/about-v2-edited-world'),
+    previewDirectory: ABOUT_BLENDER_PREVIEW_ROOT,
+  });
   return {
     name: 'design-system-dev-plugin',
     configureServer(server) {
       aboutPersistence.cleanup().catch(() => {});
 
-      server.middlewares.use('/__about-blender-preview', (req, res) => {
+      server.middlewares.use('/__about-blender-preview', async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'HEAD') {
           if (!requestIsSameOrigin(req)) {
             sendJson(res, 403, {
@@ -321,52 +320,44 @@ export function createDevAdminPlugin({
           });
           return;
         }
-        let fileName;
+        let assetPath;
         try {
-          fileName = decodeURIComponent(String(req.url || '').split('?', 1)[0])
+          assetPath = decodeURIComponent(String(req.url || '').split('?', 1)[0])
             .replace(/^\/+/, '');
         } catch {
           res.statusCode = 400;
           res.end('Malformed preview path');
           return;
         }
+        const [first, second, extra] = assetPath.split('/');
+        const bundleHash = second && /^[a-f0-9]{64}$/u.test(first) ? first : '';
+        const fileName = bundleHash ? second : first;
         const contentType = ABOUT_BLENDER_PREVIEW_FILES[fileName];
-        if (!contentType) {
-          res.statusCode = 404;
-          res.end('Not Found');
-          return;
-        }
-        try {
-          lstatSync(ABOUT_BLENDER_PREVIEW_LOCK);
-          res.statusCode = 503;
-          res.setHeader('Retry-After', '1');
-          res.end('Preview update in progress');
-          return;
-        } catch (error) {
-          if (error?.code !== 'ENOENT') {
-            res.statusCode = 500;
-            res.end('Preview state check failed');
-            return;
-          }
-        }
-        const filePath = resolve(ABOUT_BLENDER_PREVIEW_ROOT, fileName);
-        if (!pathIsWithin(ABOUT_BLENDER_PREVIEW_ROOT, filePath)) {
+        if (!contentType || extra || second && !bundleHash) {
           res.statusCode = 404;
           res.end('Not Found');
           return;
         }
         res.setHeader('Cache-Control', 'no-store');
         res.setHeader('Content-Type', contentType);
-        if (req.method === 'HEAD') {
-          res.end();
-          return;
+        try {
+          if (!bundleHash && fileName === 'meta.json') {
+            const metadata = await aboutPreview.resolve();
+            res.end(req.method === 'HEAD' ? undefined : JSON.stringify(metadata));
+            return;
+          }
+          // An immutable URL prevents an older manifest from being combined
+          // with a newly published camera or point buffer across requests.
+          const bundle = bundleHash ? aboutPreview.getBundle(bundleHash) : null;
+          if (!bundle) {
+            res.statusCode = 409;
+            res.end('Reload the preview manifest to select a complete scene bundle.');
+            return;
+          }
+          res.end(req.method === 'HEAD' ? undefined : bundle.buffers[fileName]);
+        } catch (error) {
+          sendJson(res, 503, { preview: { status: 'unavailable', message: error.message } });
         }
-        const stream = createReadStream(filePath);
-        stream.once('error', (error) => {
-          if (!res.headersSent) res.statusCode = error?.code === 'ENOENT' ? 404 : 500;
-          res.end(error?.code === 'ENOENT' ? 'Not Found' : 'Preview read failed');
-        });
-        stream.pipe(res);
       });
 
       const mountAboutNarrativePersistence = ({ endpoint, configPath, persistence, label }) => {

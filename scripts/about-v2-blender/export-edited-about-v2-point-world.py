@@ -27,8 +27,10 @@ PORTRAIT_MAX_VERTICAL_FOV_DEGREES = 115
 DEFAULT_SURFEL_BUDGETS = {"mobile": 30000, "desktop": 90000, "master": 135000}
 PROFILE_ORDER = ("mobile", "desktop", "master")
 PROFILE_INDEX = {profile: index for index, profile in enumerate(PROFILE_ORDER)}
+MAX_MOTION_GROUPS = 32
 EXCLUDED_COLLECTIONS = {
     "00 CONTROLS", "01 CAMERA",
+    "99 EXCLUDED FINALE BODIES",
     "ABS_CAMERA_RIG", "ABS_GUIDES", "ABS_NARRATIVE_GUIDES", "ABS_PREVIEW_LIGHTS",
 }
 DEPRECATED_SCENE_COLLECTIONS = {
@@ -44,6 +46,7 @@ SITE_BASIS = Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
 PALETTE_ROLES = ("atmosphere", "stone", "steel", "glass", "signal", "organic")
 ROLE_TO_PALETTE = {role: index for index, role in enumerate(PALETTE_ROLES)}
 PALETTE_MODES = ("mixed", "single", "authored-faces")
+RENDERING_PROFILES = ("atmosphere", "solid", "bust")
 INTERNAL_PROPERTY_KEYS = ("ABS Internal Data", "Internal Export Data")
 SYSTEM_IDS = {
     "camera": "about.camera",
@@ -80,30 +83,35 @@ SIMPLIFIED_CONTROL_SOURCES = {
     "camera_draw_end_wu": ("About Controls", "03 Fog End", 1.0),
     "camera_fog_curve": ("About Controls", "04 Fog Curve", 1.0),
     "camera_horizontal_fov_degrees": ("About Controls", "01 Camera FOV", 1.0),
-    "forms_body_count": ("About Controls", "05 Body Count", 1.0),
-    "forms_start_progress": ("About Controls", "06 Bodies Start (%)", 0.01),
-    "forms_end_progress": ("About Controls", "07 Bodies End (%)", 0.01),
-    "forms_body_scale": ("About Controls", "08 Body Size", 1.0),
-    "forms_lateral_spread": ("About Controls", "09 Body Spread", 1.0),
-    "forms_vertical_spread": ("About Controls", "09 Body Spread", 1.0),
-    "forms_rotation_turns": ("About Controls", "10 Body Rotation", 1.0),
-    "round_tunnel_start_progress": ("Round Tunnel", "01 Start (%)", 0.01),
-    "round_tunnel_end_progress": ("Round Tunnel", "02 End (%)", 0.01),
-    "round_tunnel_ring_count": ("Round Tunnel", "03 Ring Count", 1.0),
-    "round_tunnel_aperture_radius_wu": ("Round Tunnel", "04 Opening Radius", 1.0),
-    "round_tunnel_rim_wu": ("Round Tunnel", "05 Ring Thickness", 1.0),
-    "round_tunnel_half_depth_wu": ("Round Tunnel", "06 Ring Depth", 0.5),
-    "square_gate_start_progress": ("Square Gates", "01 Start (%)", 0.01),
-    "square_gate_end_progress": ("Square Gates", "02 End (%)", 0.01),
-    "square_gate_count": ("Square Gates", "03 Gate Count", 1.0),
-    "square_gate_half_width_wu": ("Square Gates", "04 Opening Size", 0.5),
-    "square_gate_half_height_wu": ("Square Gates", "04 Opening Size", 0.5),
-    "square_gate_rim_wu": ("Square Gates", "05 Frame Thickness", 1.0),
-    "square_gate_half_depth_wu": ("Square Gates", "06 Gate Depth", 0.5),
-    "square_gate_roll_turns": ("Square Gates", "07 Twist", 1.0),
-    "terrain_progress": ("Landscape Position", "Position (%)", 0.01),
-    "horizon_banks_progress": ("Horizon Position", "Position (%)", 0.01),
-    "finale_progress": ("Finale Position", "Position (%)", 0.01),
+    "opening_start_progress": ("About Controls", "05 Opening Start (%)", 0.01),
+    "opening_end_progress": ("About Controls", "06 Opening End (%)", 0.01),
+    "forms_body_count": ("About Controls", "07 Body Count", 1.0),
+    "forms_start_progress": ("About Controls", "08 Bodies Start (%)", 0.01),
+    "forms_end_progress": ("About Controls", "09 Bodies End (%)", 0.01),
+    "forms_body_scale": ("About Controls", "10 Body Size", 1.0),
+    "forms_lateral_spread": ("About Controls", "11 Body Spread", 1.0),
+    "forms_vertical_spread": ("About Controls", "11 Body Spread", 1.0),
+    "forms_rotation_turns": ("About Controls", "12 Body Rotation", 1.0),
+    "forms_copies_per_shape": ("About Controls", "13 Copies Per Shape", 1.0),
+    "forms_random_seed": ("About Controls", "14 Random Seed", 1.0),
+    "forms_minimum_gap_wu": ("About Controls", "15 Minimum Gap", 1.0),
+    "round_tunnel_start_progress": ("About Controls", "16 Start (%)", 0.01),
+    "round_tunnel_end_progress": ("About Controls", "17 End (%)", 0.01),
+    "round_tunnel_ring_count": ("About Controls", "18 Ring Count", 1.0),
+    "round_tunnel_aperture_radius_wu": ("About Controls", "19 Opening Radius", 1.0),
+    "round_tunnel_rim_wu": ("About Controls", "20 Ring Thickness", 1.0),
+    "round_tunnel_half_depth_wu": ("About Controls", "21 Ring Depth", 0.5),
+    "terrain_start_progress": ("About Controls", "22 Landscape Start (%)", 0.01),
+    "terrain_end_progress": ("About Controls", "23 Landscape End (%)", 0.01),
+    "square_gate_start_progress": ("About Controls", "26 Start (%)", 0.01),
+    "square_gate_end_progress": ("About Controls", "27 End (%)", 0.01),
+    "square_gate_count": ("About Controls", "28 Gate Count", 1.0),
+    "square_gate_half_width_wu": ("About Controls", "29 Opening Size", 0.5),
+    "square_gate_half_height_wu": ("About Controls", "29 Opening Size", 0.5),
+    "square_gate_rim_wu": ("About Controls", "30 Frame Thickness", 1.0),
+    "square_gate_half_depth_wu": ("About Controls", "31 Gate Depth", 0.5),
+    "square_gate_roll_turns": ("About Controls", "32 Twist", 1.0),
+    "square_gate_aperture_growth": ("About Controls", "37 Gate Growth", 1.0),
 }
 
 
@@ -164,15 +172,15 @@ def hydrate_internal_properties(scene):
 
 def simplified_authoring_control_values(scene):
     values = {}
-    seen = set()
-    for owner_name, control_name, _ in SIMPLIFIED_CONTROL_SOURCES.values():
-        pair = (owner_name, control_name)
-        if pair in seen:
+    controls = bpy.data.objects.get("About Controls")
+    if controls is None:
+        return values
+    for control_name in controls.keys():
+        if not re.match(r"^\d{2} ", str(control_name)):
             continue
-        seen.add(pair)
-        owner = bpy.data.objects.get(owner_name)
-        if owner is not None and control_name in owner:
-            values[f"{owner_name} / {control_name}"] = round(float(owner[control_name]), 6)
+        value = finite_number(controls[control_name])
+        if value is not None:
+            values[f"About Controls / {control_name}"] = round(value, 6)
     return dict(sorted(values.items()))
 
 
@@ -211,6 +219,59 @@ def finite_number(value, fallback=None):
     except (TypeError, ValueError):
         return fallback
     return number if math.isfinite(number) else fallback
+
+
+def authored_motion(obj):
+    behavior = str(obj.get("abs_motion_behavior") or "").strip()
+    if not behavior:
+        return None
+    if behavior not in {"continuous-rotation", "bounded-rotation", "terrain-wave"}:
+        raise RuntimeError(f'{obj.name} uses unsupported motion behavior "{behavior}".')
+    raw_axis = obj.get("abs_motion_axis")
+    if raw_axis is None or len(raw_axis) != 3:
+        raise RuntimeError(f"{obj.name} needs a three-component abs_motion_axis.")
+    axis = blender_to_site(Vector(tuple(float(value) for value in raw_axis)))
+    if not math.isfinite(axis.length) or axis.length <= 1e-6:
+        raise RuntimeError(f"{obj.name} has an invalid abs_motion_axis.")
+    axis.normalize()
+    speed = finite_number(obj.get("abs_motion_speed_radians_per_second"))
+    if speed is None or not 0.005 <= speed <= 1.0:
+        raise RuntimeError(f"{obj.name} has an invalid authored motion speed.")
+    contract = {
+        "behavior": behavior,
+        "axis": [round(value, 8) if abs(value) >= 1e-8 else 0 for value in axis],
+        "radiansPerSecond": round(speed, 8),
+        "timeSource": "ambient-seconds",
+    }
+    if behavior == "bounded-rotation":
+        amplitude = finite_number(obj.get("abs_motion_amplitude_radians"))
+        period = finite_number(obj.get("abs_motion_period_seconds"))
+        if amplitude is None or not 0 < amplitude <= math.pi / 2:
+            raise RuntimeError(f"{obj.name} has an invalid bounded rotation amplitude.")
+        if period is None or not 8 <= period <= 240:
+            raise RuntimeError(f"{obj.name} has an invalid bounded rotation period.")
+        if abs(speed * period - 2 * math.pi) > 1e-5:
+            raise RuntimeError(f"{obj.name} bounded rotation speed and period disagree.")
+        contract.update({
+            "amplitudeRadians": round(amplitude, 8),
+            "periodSeconds": round(period, 6),
+        })
+    if behavior == "terrain-wave":
+        amplitude = finite_number(obj.get("abs_motion_amplitude_wu"))
+        wavelength = finite_number(obj.get("abs_motion_wavelength_wu"))
+        secondary = finite_number(obj.get("abs_motion_secondary_scale"))
+        if amplitude is None or not 0.1 <= amplitude <= 12.0:
+            raise RuntimeError(f"{obj.name} has an invalid terrain motion amplitude.")
+        if wavelength is None or not 12.0 <= wavelength <= 400.0:
+            raise RuntimeError(f"{obj.name} has an invalid terrain motion wavelength.")
+        if secondary is None or not 0.0 <= secondary <= 1.0:
+            raise RuntimeError(f"{obj.name} has an invalid secondary terrain wave scale.")
+        contract.update({
+            "amplitudeWU": round(amplitude, 6),
+            "wavelengthWU": round(wavelength, 6),
+            "secondaryScale": round(secondary, 6),
+        })
+    return contract
 
 
 def resolve_surfel_budgets(scene, args):
@@ -503,12 +564,17 @@ def object_semantics(obj, collection_names, fallbacks):
     if palette_seed is None or palette_seed != round(palette_seed) \
             or not 0 <= palette_seed <= 0x7FFFFFFF:
         raise RuntimeError(f"{obj.name} needs an integer abs_palette_seed from 0 to 2147483647.")
+    rendering_profile = str(obj.get("abs_rendering_profile") or "atmosphere").strip()
+    if rendering_profile not in RENDERING_PROFILES:
+        raise RuntimeError(f"{obj.name} has an invalid rendering profile.")
     return {
         "role": role,
+        "renderingProfile": rendering_profile,
         "modelKey": model_key,
         "objectKey": object_key,
         "motionKey": motion_key,
         "motionSubgroups": motion_subgroups,
+        "motion": authored_motion(obj),
         "material": {"manifestationSpreadScale": manifestation_scale, "detailBiasScale": detail_scale},
         "minimumProfile": minimum_profile,
         "revealKey": reveal_key,
@@ -543,6 +609,7 @@ def object_semantics(obj, collection_names, fallbacks):
         "spanWU": finite_number(obj.get("abs_span_wu")),
         "instanceCount": instance_count,
         "formsBodyIndex": finite_number(obj.get("abs_forms_body_index")),
+        "formsCopyIndex": finite_number(obj.get("abs_forms_copy_index")),
         "opaqueBody": bool(obj.get("abs_opaque_body", False)),
         "paletteMode": palette_mode,
         "paletteRole": palette_role or None,
@@ -650,6 +717,7 @@ def collect_scene_geometry(objects):
             if not mesh.loop_triangles:
                 continue
             matrix = evaluated.matrix_world
+            world_origin = blender_to_site(matrix.translation)
             collection_names = {collection.name for collection in obj.users_collection}
             semantics = object_semantics(obj, collection_names, fallbacks)
             sampling_density_attribute = None
@@ -781,7 +849,12 @@ def collect_scene_geometry(objects):
                 surfaces.append({
                     "name": obj.name,
                     **semantics,
-                    "worldOrigin": blender_to_site(matrix.translation),
+                    "worldOrigin": world_origin,
+                    "clearanceRadiusWU": max(
+                        (point - world_origin).length
+                        for triangle in triangles
+                        for point in triangle["vertices"]
+                    ),
                     "collections": sorted(collection_names),
                     "triangles": triangles,
                     "samplingTriangles": sampling_triangles,
@@ -798,6 +871,20 @@ def collect_scene_geometry(objects):
             evaluated.to_mesh_clear()
     if not surfaces:
         raise RuntimeError("The Blender scene contains no exportable evaluated mesh surface.")
+    controls = require_system_object(bpy.context.scene, "controls")
+    required_gap = finite_number(controls.get("forms_minimum_gap_wu"), 0.0)
+    if required_gap is None or required_gap < 0:
+        raise RuntimeError("about.controls has an invalid solid-body minimum gap.")
+    form_surfaces = [surface for surface in surfaces if surface["modelKey"] == "about.01"]
+    for index, left in enumerate(form_surfaces):
+        for right in form_surfaces[index + 1:]:
+            centre_distance = (left["worldOrigin"] - right["worldOrigin"]).length
+            surface_gap = centre_distance - left["clearanceRadiusWU"] - right["clearanceRadiusWU"]
+            if surface_gap + 1e-4 < required_gap:
+                raise RuntimeError(
+                    f'{left["name"]} and {right["name"]} have only {surface_gap:.6f} WU '
+                    f'clearance; About Controls requires {required_gap:.6f} WU.'
+                )
     roles_by_model = {}
     modes_by_model = {}
     for surface in surfaces:
@@ -808,9 +895,12 @@ def collect_scene_geometry(objects):
     for model_key, modes in modes_by_model.items():
         if "mixed" not in modes and "authored-faces" not in modes:
             continue
-        if roles_by_model[model_key] != set(range(len(PALETTE_ROLES))):
+        expected_roles = set(range(len(PALETTE_ROLES)))
+        if model_key == "about.05":
+            expected_roles.discard(ROLE_TO_PALETTE["steel"])
+        if roles_by_model[model_key] != expected_roles:
             raise RuntimeError(
-                f"{model_key} must visibly contain all six semantic roles across its ecosystem."
+                f"{model_key} does not contain its complete authored semantic role mixture."
             )
     unique_fallbacks = {json.dumps(item, sort_keys=True): item for item in fallbacks}
     return (
@@ -1302,6 +1392,9 @@ def describe_square_gate_apertures(scene):
         half_height = float(controls["square_gate_half_height_wu"])
         rim = float(controls["square_gate_rim_wu"])
         half_depth = float(controls["square_gate_half_depth_wu"])
+        growth = float(controls.get("37 Gate Growth", 1.0))
+        if not math.isfinite(growth) or growth < 1.0:
+            raise RuntimeError("Square gate growth must be finite and at least 1x.")
         frames = parametric_passage_frames(
             scene,
             float(controls["square_gate_start_progress"]),
@@ -1319,14 +1412,28 @@ def describe_square_gate_apertures(scene):
                 "reverse": True,
                 "mode": "same-centreline-reversible",
             },
+            "growth": {
+                "mode": "linear-by-gate-index",
+                "startScale": 1.0,
+                "endScale": round(growth, 6),
+            },
             "apertures": [{
                 "id": index + 1,
                 "centre": rounded_vector(centre),
                 "right": rounded_vector(right),
                 "up": rounded_vector(up),
                 "normal": rounded_vector(normal),
-                "innerHalfSize": [round(half_width, 6), round(half_height, 6)],
-                "outerHalfSize": [round(half_width + rim, 6), round(half_height + rim, 6)],
+                "scale": round(
+                    1.0 + (growth - 1.0) * index / max(1, len(frames) - 1), 6,
+                ),
+                "innerHalfSize": [
+                    round(half_width * (1.0 + (growth - 1.0) * index / max(1, len(frames) - 1)), 6),
+                    round(half_height * (1.0 + (growth - 1.0) * index / max(1, len(frames) - 1)), 6),
+                ],
+                "outerHalfSize": [
+                    round((half_width + rim) * (1.0 + (growth - 1.0) * index / max(1, len(frames) - 1)), 6),
+                    round((half_height + rim) * (1.0 + (growth - 1.0) * index / max(1, len(frames) - 1)), 6),
+                ],
                 "halfDepth": round(half_depth, 6),
             } for index, (centre, right, up, normal) in enumerate(frames)],
         }
@@ -1868,9 +1975,28 @@ def build_scene_contract(surfaces, args):
             if surface["motionSubgroups"] > 1:
                 motion_keys.add(f'{surface["motionKey"]}.strand-{subgroup:02d}')
     motion_keys = sorted(motion_keys)
-    if len(motion_keys) > 256:
-        raise RuntimeError("The packed contract supports at most 256 motion groups.")
+    if len(motion_keys) > MAX_MOTION_GROUPS:
+        raise RuntimeError(f"The runtime shader supports at most {MAX_MOTION_GROUPS} motion groups.")
     motion_id_by_key = {key: index for index, key in enumerate(motion_keys)}
+    authored_motion_by_key = {}
+    for surface in surfaces:
+        motion = surface.get("motion")
+        if not motion:
+            continue
+        contract = dict(motion)
+        if motion["behavior"] in {"continuous-rotation", "bounded-rotation"}:
+            contract["pivotWU"] = [round(value, 6) for value in surface["worldOrigin"]]
+        keys = [surface["motionKey"]]
+        if surface["motionSubgroups"] > 1:
+            keys = [
+                f'{surface["motionKey"]}.strand-{subgroup:02d}'
+                for subgroup in range(surface["motionSubgroups"])
+            ]
+        for key in keys:
+            existing = authored_motion_by_key.get(key)
+            if existing is not None and existing != contract:
+                raise RuntimeError(f'Motion group "{key}" has conflicting authored contracts.')
+            authored_motion_by_key[key] = contract
     records, models = [], []
     profile_object_counts = {name: {} for name in profile_model_counts}
     for model_id, model_key in enumerate(model_keys):
@@ -1987,10 +2113,14 @@ def build_scene_contract(surfaces, args):
         materials = [surface['material'] for surface in model_surfaces]
         if any(material != materials[0] for material in materials):
             raise RuntimeError(f'Model {model_key} has conflicting source material scales.')
+        rendering_profiles = {surface["renderingProfile"] for surface in model_surfaces}
+        if len(rendering_profiles) != 1:
+            raise RuntimeError(f'Model {model_key} has conflicting rendering profiles.')
         models.append({
             "id": model_id,
             "key": model_key,
             "role": model_surfaces[0]["role"],
+            "renderingProfile": model_surfaces[0]["renderingProfile"],
             "motionGroup": motion_id_by_key[model_surfaces[0]["motionKey"]],
             "motionKey": model_surfaces[0]["motionKey"],
             "motionSubgroups": max(surface["motionSubgroups"] for surface in model_surfaces),
@@ -2024,7 +2154,7 @@ def build_scene_contract(surfaces, args):
             "selection": "nested-per-model-prefix",
         }
     pages = build_camera_pages(models, profiles)
-    return records, models, profiles, motion_keys, pages
+    return records, models, profiles, motion_keys, authored_motion_by_key, pages
 
 
 def build_camera_pages(models, profiles):
@@ -2196,13 +2326,29 @@ def main():
     assert_clean_scene(scene)
     route_contract = describe_route(scene)
     resolve_surfel_budgets(scene, args)
-    surfaces, fallbacks = collect_scene_geometry(
-        eligible_mesh_objects(scene),
-    )
+    original_frame, original_subframe = scene.frame_current, scene.frame_subframe
+    try:
+        # Animated source objects export from their authored rest frame. Browser
+        # ambient time then reproduces the movement from that exact pose.
+        scene.frame_set(scene.frame_start)
+        surfaces, fallbacks = collect_scene_geometry(
+            eligible_mesh_objects(scene),
+        )
+    finally:
+        scene.frame_set(original_frame, subframe=original_subframe)
     model_budget_contract = resolve_model_budget_contract(scene, surfaces, args)
-    records, models, profiles, motion_keys, pages = build_scene_contract(surfaces, args)
+    records, models, profiles, motion_keys, authored_motion_by_key, pages = (
+        build_scene_contract(surfaces, args)
+    )
     surfel_path = output_dir / "surfels.bin"
     camera_path, camera_track = export_camera_track(output_dir, scene, scene.camera)
+    camera_travel_wu = sum(
+        math.dist(left[:3], right[:3])
+        for left, right in zip(camera_track["samples"], camera_track["samples"][1:])
+    )
+    route_contract["curveLength"] = route_contract["evaluatedLength"]
+    route_contract["evaluatedLength"] = round(camera_travel_wu, 6)
+    route_contract["evaluatedLengthSource"] = "exported-camera-track"
     write_surfel_file(surfel_path, records)
     for obsolete_name in (
         f"{args.slug}-points-low.bin", f"{args.slug}-points-medium.bin",
@@ -2216,7 +2362,9 @@ def main():
         "objectKey": surface["objectKey"],
         "modelKey": surface["modelKey"],
         "role": surface["role"],
+        "renderingProfile": surface["renderingProfile"],
         "motionKey": surface["motionKey"],
+        **({"motion": surface["motion"]} if surface["motion"] else {}),
         "revealGroup": surface["revealKey"],
         "componentPolicy": surface["componentPolicy"],
         "densityGroup": surface["densityGroup"],
@@ -2243,6 +2391,11 @@ def main():
             int(round(surface["formsBodyIndex"]))
             if surface["formsBodyIndex"] is not None else None
         ),
+        "formsCopyIndex": (
+            int(round(surface["formsCopyIndex"]))
+            if surface["formsCopyIndex"] is not None else None
+        ),
+        "clearanceRadiusWU": round(surface["clearanceRadiusWU"], 6),
         "opaqueBody": surface["opaqueBody"],
         "paletteMode": surface["paletteMode"],
         "paletteRole": surface["paletteRole"],
@@ -2425,7 +2578,12 @@ def main():
             "resolution": "semantic camera cues plus Blender-authored distance offsets",
         },
         "motionGroups": [
-            {"id": index, "key": key} for index, key in enumerate(motion_keys)
+            {
+                "id": index,
+                "key": key,
+                **({"motion": authored_motion_by_key[key]} if key in authored_motion_by_key else {}),
+            }
+            for index, key in enumerate(motion_keys)
         ],
         "models": models,
         "pages": pages,

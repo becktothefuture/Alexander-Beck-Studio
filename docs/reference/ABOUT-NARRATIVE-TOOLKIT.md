@@ -1,12 +1,128 @@
-# About Director — retired
+# About narrative toolkit
 
-> The About Director no longer mounts on the development About page. Press `/` on
-> `/about.html` to open the replacement whole-scene parameter panel. The material
-> below is retained only as historical schema and migration documentation; its
-> editor routes, shortcuts, panels, and workflow are not current product behavior.
+The development About page uses one whole-scene parameter panel. Press `/` on
+`/about.html` to open it. The retired Director editor is documented separately
+below for schema and migration maintenance; its timeline and inspector do not
+mount in the current page.
 
-About Director is the local authoring product for the canonical About narrative. The current
-canonical document is **schema v7**.
+## Current page contract
+
+`react-app/app/public/config/contents-about.json` is the canonical source for
+copy, measured story pacing and durable website appearance controls.
+`aboutSceneControlRegistry.js` in `src/routes/about-narrative-lab/` defines the
+shared control labels, defaults, ranges and document operations used by the
+panel. Live apply, canonical save, reload and reset use this same document.
+Diagnostic quality selection is session-only. Blender owns geometry, placement,
+camera path, physical alignment, visibility cues and the default viewing distance.
+
+The development preview accepts a cached scene only when its source hash matches
+the saved canonical `.blend` and its metadata, camera and point data pass bundle
+integrity checks. Source hashes are reused while the file signature is unchanged.
+A stale cache falls back to the validated canonical export. The panel reports
+the active source, expected source, bundle identity and stale/exporting status.
+The watcher verifies source identity before and after export, then publishes an
+immutable complete bundle through an atomic pointer. A camera or point-data change
+updates the bundle identity even when the Blender source hash is unchanged.
+
+The current Rendering group includes **Show backfaces**. It maps to the existing
+`globals.pointMaterial.backfaceRetention` value: off saves `0`, on saves `1`.
+The vertex shader rejects rear-facing samples before drawing; CPU diagnostics use
+that same normal threshold. Toggle changes use the panel's existing revert, save,
+and reload path. Blender remains the geometry and camera source.
+
+The canonical Blender file now contains `Finale Bust - Connected Reconstructed Surface`:
+one connected mesh with 38,514 vertices and 77,024 triangles. It was reconstructed
+with screened Poisson (depth 8, point weight 4, PyMeshLab 2025.7.post1) from the
+existing 24,000 oriented samples in `models/napoleon-bust/napoleon-points-high.bin`.
+It is a reconstruction, not a recovered original scan. The original CC BY 4.0
+attribution remains in that asset's `meta.json` and in the Blender object metadata.
+The old proxy mesh remains as an unused Blender datablock. The website samples
+the connected surface using the quality budgets recorded in the canonical
+`public/models/about-v2-edited-world/meta.json`; this guide does not duplicate
+those budgets or the camera controls.
+
+The current Blender choreography is `text-scene-symphony/v1`. It aligns the
+content stages named `about.00` through `about.06` to semantic camera
+intervals instead of equal-distance sections:
+
+1. `about.00` holds the opener and first two titles over the opening field.
+2. `about.01` keeps the opening field for Background and Experience.
+3. `about.02` carries two titles through the shape-free round tunnel.
+4. `about.03` provides the longer terrain clearing for Disciplines and
+   Selected Clients.
+5. `about.04` carries two titles through 26 square gates that grow from `1x`
+   to `3.2x`.
+6. `about.05` keeps the How I Work prose in the same passage after the gates
+   have opened to at least `2x`.
+7. `about.06` rises from below toward the upright bust and closed platform. Two
+   closing subtitles precede the final invitation. The bust and platform occupy
+   the upper viewport; the final title, description and actions sit below them.
+
+The seven IDs above are semantic content stages. The export contains six active
+models: `about.00`, `about.02`, `about.03`, `about.04`, `about.05` and `about.06`.
+The opening field spans both opening stages. The 24-body `about.01` cluster is
+retained in an excluded Blender collection and is not drawn or exported. Model
+visibility follows the semantic cues rather than packed model ID order.
+
+One sampled scroll position drives text, camera travel, scene visibility and
+progress. Camera distance uses a monotone interpolation through measured story
+anchors: gentle continuous travel during reading, faster travel through title
+passages, and smooth changes in speed. It adds no independent camera lag; reverse
+scrolling retraces the same path. The camera holds at the endpoint while the
+separate ambient clock continues until pause or Reduced Motion stops it.
+
+Every in-between title uses the same motion window, depth curve, colour entrance
+and exit behavior as “I think in pictures.” Chapter allocation is separate from
+title travel. Reading space extends the following gap rather than slowing the
+second statement. Measured layout reserves at least half a viewport between a
+completed pair and the incoming prose. The opening and final titles retain
+explicit bookend variants. Typography changes trigger remeasurement so narrow,
+short and enlarged-text layouts can expand without clipping.
+
+The current About content uses exactly five typography roles: Body, Small Body,
+Eyebrow, Main Title, and Inbetween Title. `--about-type-*` variables in
+`about-narrative-lab.css` map them to the existing responsive size sources. All
+reader-facing text uses weight 400. Body covers prose, role headings and role or
+discipline descriptions; Small Body covers opening/ending support and contact
+labels. Eyebrows use Geist and uppercase. Main Title is shared by the opening and
+ending. The five sizes, their leading, text measures and spacing are adjustable
+through the existing parameter panel.
+The shared shell and development editor keep their own control typography.
+
+Prose and descriptions snap between the configured opacity levels as scrolling
+crosses each line's thresholds, including the exit. They do not interpolate an
+opacity fade. Titles retain their quick palette-colour draw.
+
+Experience entries have a date eyebrow, a regular body heading and a maximum of
+two sentences (40 words) per role. A separate gap precedes Experience. The role
+header reveals as one unit; description lines use the prose opacity steps so a
+long entry does not dim before it has been read. Browser measurements reserve the
+space needed for the descriptions. The measured page-length target is a baseline,
+not a cap that clips reader content. Validate with `scripts/audit-about-typography.mjs`.
+
+Rendering uses shared atmospheric-point, solid-surface and bust profiles. Point
+population controls admission within the selected quality budget; coverage
+controls the point footprint. Opaque cores, depth occlusion and backface culling
+keep the platform closed-looking at oblique angles. The Home palette and layered
+atmosphere remain shared. Viewing-distance overrides are resolved once per frame
+for the whole journey; resetting the group restores Blender's defaults.
+
+Ambient motion dispatches by authored behavior: rigid body rotation, coherent
+terrain deformation or bounded bust rotation. Solid surfaces do not inherit
+independent particle wobble. The bust turns ±8° over a 32-second cycle around its
+grounded vertical axis. Its upright alignment and contact with the platform are
+authored in Blender. The final layout measures text bounds to separate the
+upper bust/platform composition from the invitation below.
+
+## Historical Director contract — retired
+
+The following Director sections retain the older editor and procedural-adapter
+contracts for migration maintenance. They do not describe the current parameter
+panel, Blender runtime, title pacing or finale. Current Blender authoring and
+verification instructions resume under their named headings near the end.
+
+About Director was the local authoring product for the canonical About narrative.
+Its canonical document uses **schema v7**.
 
 ## Director 4.0 editor contract
 
@@ -120,7 +236,14 @@ Other ownership stays separate:
 
 - Shared color, typography, and shell geometry: `public/config/design-system.json`
 - Contact and social destinations: `public/config/contents-home.json`
+- Editable camera rail, scene geometry, model visibility, persistent motion and
+  authored fog, density and draw-distance defaults:
+  `source-assets/about-v2-blender-current/about-v2-track-working.blend`
+- Semantic score normalization:
+  `scripts/about-v2-blender/choreograph-text-scene-symphony.py`
 - Shape algorithms and safe control ranges: `src/routes/about-narrative-lab/aboutNarrativeDefinitions.js` and `aboutNarrativePointShapes.js`
+- Exported point buffers and camera metadata:
+  `public/models/about-v2-edited-world/` after candidate review and promotion
 - Generated buffers, caches, playhead state, undo history, drafts, and diagnostics: runtime only
 
 ## World units and scroll
@@ -129,8 +252,9 @@ Other ownership stays separate:
 
 The sequence saves one Story duration and one Scroll duration per responsive profile. The fixed Text
 spine defines both values and therefore defines the page's editorial rhythm. The profile resolver
-maps physical scroll distance to that authored Story WU without measuring DOM content into the
-creative timing model.
+maps each semantic content interval to its matching Blender cue interval. This piecewise mapping gives
+long prose its complete reading distance while preserving the intended camera passage. It does not
+divide the rail into equal sections or infer creative timing from raw mesh bounds.
 
 Schema-v7 Text timing is immutable in the Director: its order, enter, focus, exit, and final page
 boundary cannot be moved. Camera, Form, and Effect objects store bindings to those Text moments and
@@ -450,22 +574,28 @@ The protected reduced-motion profile step-samples camera and visibility, removes
 depth/blur travel, gathering motion, and ambient modifiers. It keeps stable text, settled Form
 states, and the six labels only during their authored interval.
 
-The Blender camera maps native scroll position to cumulative distance along the exported rail.
-Equal scroll distances produce equal physical travel, including during the invitation and in reverse.
-Text cues do not retime the camera. Native scrolling, zero camera settling and zero pointer pan keep
-camera position tied to scrolling without a second motion clock. The authored endpoint is reached
-at the native page end; there is no extra brake or stationary scroll tail. Model visibility follows
-physical distance cues rather than the old editorial timings.
+## Current Blender runtime
+
+The Blender camera maps the shared scroll sample through the seven semantic score
+intervals and then to cumulative distance along the exported rail. The mapping is
+monotone, continuous and reversible, with smooth travel-rate changes; each text
+beat can own a different physical span. Reading intervals receive slower travel
+while the title passages carry faster movement. There is no subsequent camera
+settling or pointer pan to detach the camera from the text. The endpoint is reached
+at the native page end; there is no extra brake or stationary scroll tail. Model
+visibility follows the same exported semantic cues.
 
 The square-gate camera uses a close aim on the same Blender rail. Its continuous
 world-X right-axis reference carries the frame through the vertical loop without
 the former world-up flip. The original aim blends back after the passage; the rail,
-point geometry, nine authored bank keys and FOV stay unchanged. The first gate is
-fully admitted before entry. The camera export includes the evaluated apertures,
-so validation checks all 14 physical crossings and their approach framing, plus
-full-quaternion change per physical distance rather than forward direction alone.
+point geometry, authored bank keys and FOV remain Blender-owned. The first gate
+is fully admitted before entry. The camera export includes all 26 evaluated
+apertures and the `37 Gate Growth` value, so validation can check every physical
+crossing, the linear `1x` to `3.2x` aperture progression and approach framing,
+plus full-quaternion change per physical distance rather than forward direction
+alone.
 
-Editorial text passes through the full viewport with only an edge feather. Narrative titles use their
+Editorial text passes through the full viewport with discrete line-opacity steps. Narrative titles use their
 authored viewport anchor without upper-half correction rules. Contact reveals on elapsed visible time
 at partial invitation stops and does not require the endpoint. Ambient material motion remains
 independent and pausable. Reduced Motion cuts between authored camera poses and keeps the same final
@@ -492,19 +622,21 @@ seed points before the existing Geometry Nodes generators; this removes the form
 while retaining the 135k/90k/30k master, desktop and mobile point budgets. Its introductory paragraph
 is present at the first rendered opener pose rather than entering through the delayed bookend sequence.
 
-The finite method banks open onto one connected, full-width ground surface. Its source-authored
-8-second response travels across X with a 2.6-second delay, 2-second pulse and 3.2-WU displacement.
-The source continues outside the side/foreground frustum and beyond the distance fog. Both motion
-pause and reduced motion freeze its deformation. The canonical source and export are rebuilt through
-`fit-about-reading-spaces.py`, `create-about-terminal-study.py`, and the existing exporter; copying an
-old candidate camera is not an integration procedure.
+The terrain uses source-authored coherent deformation. The final active geometry
+is a closed platform and a connected upright bust; `director.finale-surface` is
+the bust's retained stable export key, not a full-width ground plane. The bust's
+bounded ±8° turn lasts 32 seconds and keeps its base grounded. Motion pause and
+Reduced Motion freeze ambient effects. Use the current exporter and scene checks;
+copying an old candidate camera or running superseded study scripts is not an
+integration procedure.
 
 Surfel admission uses opaque geometric scale rather than opacity. Route entry, depth fog and bounded
 stage handoffs grow each circle from zero radius; exiting stages shrink before their visibility window
 closes. Fully inactive stages return in the vertex shader before motion and matrix work, retaining the
 stable shared buffers and two-draw-call renderer. About uses the existing reduced-resolution layered
 atmosphere compositor for broad haze, so the fuller fog does not add a ray-marched volume or another
-WebGL scene pass. The final bookend lockup remains vertically centred in the usable viewport.
+WebGL scene pass. The final bust/platform composition occupies the upper viewport;
+measured title, description and action bounds define the separate space below.
 
 The composition audit covers career text, client artwork, prose, titles and action contents. Its
 intrusion test uses decoded normals, actual ambient/terminal displacement, shader LOD/admission and
@@ -513,8 +645,9 @@ diagnostic. Terminal clearance also projects the complete source-to-maximum-disp
 every ending point, so a one-second sample cannot miss a pulse peak. Painted regions are batched into
 one projection pass; this work never runs in the RAF loop.
 Optional failure collection keeps later checkpoint evidence but still exits unsuccessfully. Reading
-banks require height, population and depth on both sides of the copy. The terminal ground must fill
-two complete horizontal grid rows and both outside 2% strips, with depth on each side. Continuous
+banks require height, population and depth on both sides of the copy. Finale checks
+must verify an upright, grounded bust and a closed-looking platform with no
+intersection with the final text or actions, over the complete turn cycle. Continuous
 forward/reverse recordings and inspected frames remain required; occupancy alone is not visual approval.
 
 ## Adding a new Shape generator
@@ -523,7 +656,7 @@ forward/reverse recordings and inspected frames remain required; occupancy alone
 2. Add a deterministic generator in `aboutNarrativePointShapes.js`.
 3. Return exact typed-array lengths, presence, size, attributes, and bounds.
 4. Do not allocate or generate inside the RAF loop.
-5. Add schema/compiler and density tests in `scripts/check-about-narrative.mjs`.
+5. Add schema/compiler and density tests in `scripts/check-about-narrative-main.mjs`.
 6. Verify Try, Apply, Cancel, incoming boundary, outgoing boundary, mobile, and reduced motion.
 
 ## Adding a future point-field adapter
@@ -532,9 +665,46 @@ A future adapter must use the shared renderer, scene, camera, resources, playhea
 
 An adapter must support preparation cancellation, explicit activation weight, deterministic `update(frame)`, and full disposal. It must not own the camera timeline, DOM text, persistence, or another animation loop.
 
+## Current Blender authoring order
+
+Run any required topology, naming, palette, control or persistent-motion repair
+first. Run
+`scripts/about-v2-blender/choreograph-text-scene-symphony.py` last in the open
+canonical Blender file. It deterministically restores its pre-score rail/finale
+baseline and then reapplies the semantic markers, camera timing, model
+visibility, gate growth and the frontal bust/platform finale. The script also invokes
+`smooth-camera-drone-motion.py`; it does not save or export. Inspect the result,
+then save the canonical `.blend` deliberately.
+
+`equalize-scene-sections.py` is superseded as the final normalizer for this
+scene and must not run after the choreography script. The older
+`lengthen-opening-solid-bodies.py` and `compact-finale-approach.py` spacing
+overrides must not run afterward either because they replace parts of the
+semantic score. If a legacy rebuild still requires any of those steps,
+`choreograph-text-scene-symphony.py` must follow them.
+
+Export to an explicit candidate directory first:
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+  source-assets/about-v2-blender-current/about-v2-track-working.blend \
+  --python scripts/about-v2-blender/export-edited-about-v2-point-world.py -- \
+  --candidate-output-dir output/about-v2-candidates/text-scene-symphony
+
+node scripts/about-v2-blender/check-about-v2-edited-world.mjs \
+  --asset-dir output/about-v2-candidates/text-scene-symphony \
+  --source-blend source-assets/about-v2-blender-current/about-v2-track-working.blend
+```
+
+Only promote the candidate to
+`react-app/app/public/models/about-v2-edited-world/` after the asset check and
+visual review. Canonical export requires both `--output-dir` and
+`--allow-canonical-output`. A valid candidate is not browser acceptance.
+
 ## Verification
 
 ```bash
+npm run check:about-v2-assets
 npm run check:about-narrative
 npm run check:about-narrative-hardening
 node scripts/audit-about-gate-passage.mjs
@@ -548,12 +718,19 @@ npm run check:site
 npm run certify:about-narrative
 ```
 
-The browser audit verifies exact-WU sampling, the Position/Rotation/FOV camera lanes, the held final camera with continuous material motion, global fog,
-continuous visibility, editor/playback presence, typography roles, portal placement, protected
-boundaries, keyframe navigation, native discipline labels, uninterrupted palette, text edit/undo, WebGL
-readiness, timeline collapse, and editor clearance above the persistent Button Bar.
+The browser audit must verify all seven semantic text/scene beats, the opening
+field across `about.00` and `about.01`, the shape-free round passage, terrain
+reading clearance, every growing square-gate crossing, the prose interval after
+the gates exceed `2x`, and the rise into the upright bust/platform finale. It also
+verifies identical in-between-title travel per scroll distance, the half-viewport
+title-to-prose clearance, exact-WU sampling, the held final camera with
+continuous material motion, global fog, continuous visibility, typography roles,
+portal placement, protected boundaries, WebGL readiness and editor clearance
+above the persistent Button Bar.
 
 The certification runtime-visual audit captures the full authored arc at 32 exact Story WU
 checkpoints. It records Point Field and compatibility visibility state and produces independent-review contact sheets for
-desktop, mobile, and reduced motion. These contact sheets are required release evidence, not optional
-debug output. Run certification from a clean isolated checkout so its source commit is exact.
+desktop, mobile, and reduced motion. Inspect those sheets and continuous
+forward/reverse recordings before recording browser acceptance. They are release
+evidence, not optional debug output. Run certification from a clean isolated
+checkout so its source commit is exact.

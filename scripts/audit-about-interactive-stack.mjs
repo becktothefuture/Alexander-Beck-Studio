@@ -9,7 +9,7 @@ const canonical = JSON.parse(await readFile(
   new URL('../react-app/app/public/config/contents-about.json', import.meta.url),
   'utf8',
 ));
-const stackField = canonical.tracks.text.fields.find((field) => field.id === 'text-disciplines-title');
+const stackField = canonical.tracks.text.fields.find((field) => field.id === 'text-life-character');
 const stackModule = stackField?.block?.modules?.find((module) => module.kind === 'interactive-stack');
 const storyDurationWU = canonical.profiles.desktop.storyDurationWU;
 const stackStoryWU = Math.min(stackField.endWU - 0.15, stackField.startWU + 1.1);
@@ -263,7 +263,7 @@ async function auditEditorControls() {
   await page.goto(`${baseUrl}/about.html?edit=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.about-track-editor');
   await page.getByRole('tab', { name: 'Text', exact: true }).click();
-  await page.locator('[data-track-object-id="text-disciplines-title"]').click();
+  await page.locator('[data-track-object-id="text-life-character"]').click();
   const folder = page.locator('[data-inspector-group="interactive-stack"]');
   await folder.waitFor({ state: 'visible' });
   assert.equal(await folder.locator('[data-parameter-id]').count(), 7);
@@ -305,10 +305,10 @@ async function auditRetiredStack() {
     await setStoryWU(page, stackStoryWU);
     assert.equal(await page.locator('.about-interactive-stack').count(), 0);
     assert.equal(previewRequests.length, 0);
-    const passage = page.locator('[data-text-field-id="text-disciplines-title"] .about-narrative-editorial-stack');
+    const passage = page.locator('[data-text-field-id="text-life-character"] .about-narrative-editorial-stack');
     assert.equal(await passage.count(), 1);
     assert.equal(await passage.evaluate((node) => getComputedStyle(node).rowGap), '25.6px');
-    assert.equal(await passage.locator(':scope > *').count(), 7);
+    assert.equal(await passage.locator(':scope > *').count(), 4);
     await context.close();
   }
 }

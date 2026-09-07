@@ -10,6 +10,11 @@ import {
   ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS,
 } from './aboutNarrativeDefinitions.js';
 import {
+  getAboutSceneControlAvailability,
+  resetAboutSceneParameterGroup,
+  writeAboutSceneParameter,
+} from './aboutSceneControlRegistry.js';
+import {
   loadAboutNarrativeSource,
   saveAboutNarrativeSource,
 } from './aboutNarrativePersistence.js';
@@ -24,34 +29,13 @@ const PERSISTENCE_OPTIONS = Object.freeze({
   targetVersion: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
 });
 
-function getRideState(document) {
-  return document.tracks.pointField.stateDefinitions.find(
-    (state) => state.shapeId === 'long-assembly-corridor-v1',
-  );
-}
-
 function readParameter(snapshot, entry) {
   if (entry.scope === 'session') {
     return snapshot[entry.control.id] ?? entry.control.defaultValue;
   }
   const { document } = snapshot;
-  if (entry.scope === 'long-assembly') {
-    return getRideState(document)?.shapeParameters?.[entry.control.id]
-      ?? entry.control.defaultValue;
-  }
   return entry.path.reduce((value, key) => value?.[key], document.globals)
     ?? entry.control.defaultValue;
-}
-
-function mutateParameter(document, entry, value) {
-  if (entry.scope === 'long-assembly') {
-    const state = getRideState(document);
-    if (state) state.shapeParameters[entry.control.id] = value;
-    return;
-  }
-  const leaf = entry.path.at(-1);
-  const target = entry.path.slice(0, -1).reduce((value, key) => value[key], document.globals);
-  target[leaf] = value;
 }
 
 function formatValue(value, step) {
@@ -62,7 +46,7 @@ function formatValue(value, step) {
   return Number(value).toFixed(decimals);
 }
 
-function ParameterRow({ disabled, entry, groupLabel, store, value }) {
+function ParameterRow({ disabled, disabledReason, entry, groupLabel, sourceFog, store, value }) {
   const control = entry.control;
   const controlId = `about-scene-${entry.scope}-${entry.path.join('-')}`;
   if (control.type === 'select') {
@@ -94,12 +78,12 @@ function ParameterRow({ disabled, entry, groupLabel, store, value }) {
     if (!Number.isFinite(nextValue)) return;
     if (store.getSnapshot().gestureState) {
       store.updateGesture(
-        (draft) => mutateParameter(draft, entry, nextValue),
+        (draft) => writeAboutSceneParameter(draft, entry, nextValue, sourceFog),
         { selection: PANEL_SELECTION },
       );
       return;
     }
-    store.commit(label, (draft) => mutateParameter(draft, entry, nextValue), {
+    store.commit(label, (draft) => writeAboutSceneParameter(draft, entry, nextValue, sourceFog), {
       selectionAfter: PANEL_SELECTION,
       requireValid: true,
     });
@@ -112,9 +96,27 @@ function ParameterRow({ disabled, entry, groupLabel, store, value }) {
     if (store.getSnapshot().gestureState) store.cancelGesture();
   };
 
+  if (control.type === 'toggle') {
+    return (
+      <label className="parameterizer-row" htmlFor={controlId} title={control.label}>
+        <span className="parameterizer-label">{control.label}</span>
+        <span className="parameterizer-control">
+          <input
+            id={controlId}
+            type="checkbox"
+            checked={Number(value) > 0}
+            disabled={disabled}
+            aria-label={`${groupLabel} ${control.label}`}
+            onChange={(event) => updateValue(event.target.checked ? 1 : 0)}
+          />
+        </span>
+      </label>
+    );
+  }
+
   return (
-    <label className="parameterizer-row" htmlFor={controlId} title={control.label}>
-      <span className="parameterizer-label">{control.label}</span>
+    <label className="parameterizer-row" htmlFor={controlId} title={disabledReason || control.label}>
+      <span className="parameterizer-label">{control.label}{disabledReason ? ` · ${disabledReason}` : ''}</span>
       <span className="parameterizer-control">
         <input
           id={controlId}
@@ -125,6 +127,7 @@ function ParameterRow({ disabled, entry, groupLabel, store, value }) {
           value={value}
           disabled={disabled}
           aria-label={`${groupLabel} ${control.label}`}
+          aria-description={disabledReason || undefined}
           onPointerDown={(event) => {
             event.currentTarget.setPointerCapture?.(event.pointerId);
             beginGesture();
@@ -197,6 +200,31 @@ export default function AboutNarrativeParameterPanel({
   const snapshot = useSyncExternalStore(store.subscribe, getParameterSnapshot, getParameterSnapshot);
   const panelRef = useRef(null);
   const [message, setMessage] = useState('Loading canonical source…');
+  const [sceneCapabilities, setSceneCapabilities] = useState(null);
+  const sceneAssetRoot = blenderPreview?.assetRoot || '/models/about-v2-edited-world';
+  const sceneBundleKey = blenderPreview?.bundleHash || blenderPreview?.sourceSha || sceneAssetRoot;
+  const motionBehaviors = sceneCapabilities?.bundleKey === sceneBundleKey
+    ? sceneCapabilities.motionBehaviors : null;
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const controller = new AbortController();
+    fetch(`${sceneAssetRoot}/meta.json`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('The active scene metadata is unavailable.');
+        return response.json();
+      })
+      .then((metadata) => setSceneCapabilities({
+        bundleKey: sceneBundleKey,
+        motionBehaviors: [...new Set((metadata.motionGroups || [])
+          .map((group) => group.motion?.behavior).filter(Boolean))],
+      }))
+      .catch(() => {
+        if (!controller.signal.aborted) setSceneCapabilities({ bundleKey: sceneBundleKey, motionBehaviors: undefined });
+      });
+    return () => controller.abort();
+  }, [sceneAssetRoot, sceneBundleKey, visible]);
+
   const controls = useMemo(() => ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.flatMap(
     (group) => group.controls,
   ), []);
@@ -276,6 +304,18 @@ export default function AboutNarrativeParameterPanel({
     || snapshot.saveState.status === 'saving'
     || snapshot.sourceState.readOnly;
   const status = getPanelStatus(snapshot, message);
+  const fogOverride = Number(snapshot.document.globals.camera.distanceFogOverride) > 0;
+  const effectiveFog = fogOverride ? {
+    startWU: snapshot.document.globals.camera.distanceFogStartWU,
+    endWU: snapshot.document.globals.camera.distanceFogEndWU,
+    curve: snapshot.document.globals.camera.distanceFogCurve,
+  } : blenderPreview?.cameraFog;
+  const resetGroup = (group) => {
+    store.cancelGesture();
+    store.commit(`Reset ${group.label}`, (draft) => resetAboutSceneParameterGroup(draft, group), {
+      selectionAfter: PANEL_SELECTION, requireValid: true,
+    });
+  };
 
   return (
     <aside
@@ -301,36 +341,57 @@ export default function AboutNarrativeParameterPanel({
 
       <div className="about-scene-parameter-panel__note">
         <p>
-          Blender owns every visible geometry, the camera, scene visibility, and draw-distance fog. Save the canonical Blender file to update this development preview.
+          Blender owns visible geometry, the camera path, scene visibility, and the default viewing distance. Run the Blender sync watcher, then save the canonical file to update this preview.
         </p>
         <p
           className="about-scene-parameter-panel__source"
           data-blender-preview-status={blenderPreview?.status || 'inactive'}
           title={blenderPreview?.sourceFile || 'Blender preview source'}
         >
-          <span>{blenderPreview?.status === 'ready' ? 'Blender synced' : 'Blender preview'}</span>
+          <span>{blenderPreview?.activeSource === 'preview' ? 'Saved Blender preview' : 'Canonical Blender export'}
+            {` · ${blenderPreview?.status || 'inactive'}`}
+          </span>
           {blenderPreview?.controlCount
-            ? ` · ${blenderPreview.controlCount} source controls · ${blenderPreview.sourceSha.slice(0, 8)}`
-            : ` · ${blenderPreview?.status || 'inactive'}`}
+            ? ` · ${blenderPreview.controlCount} source controls · ${blenderPreview.sourceSha?.slice(0, 8)}`
+            : null}
+          {blenderPreview?.bundleHash ? ` · bundle ${blenderPreview.bundleHash.slice(0, 8)}` : null}
+          {blenderPreview?.status === 'stale' ? ' · waiting for an export of the saved source' : null}
         </p>
         <p>
-          The controls below affect the browser runtime only. They never write to or replace Blender parameters.
+          Website controls can override that viewing distance without changing Blender. Moving a distance slider enables the override; switch it off to use the Blender values again.
         </p>
       </div>
 
       <div className="parameterizer-scroll">
         {ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS.map((group, index) => (
           <ParameterFolder key={group.id} group={group} initiallyOpen={index === 0}>
+            {group.id === 'page-viewing-distance' ? (
+              <p className="about-scene-parameter-panel__note" data-about-effective-fog={fogOverride ? 'website' : 'blender'}>
+                {fogOverride ? 'Website override' : 'Blender defaults'}
+                {effectiveFog ? ` · ${formatValue(effectiveFog.startWU, 1)}–${formatValue(effectiveFog.endWU, 1)} WU · curve ${formatValue(effectiveFog.curve, 0.01)}` : ' · loading source distance'}
+              </p>
+            ) : null}
+
             {group.controls.map((entry) => (
               <ParameterRow
                 key={`${entry.scope}-${entry.path.join('.')}`}
-                disabled={entry.scope === 'session' ? false : disabled}
+                disabled={entry.scope === 'session' ? false : disabled || Boolean(getAboutSceneControlAvailability(entry, motionBehaviors))}
+                disabledReason={getAboutSceneControlAvailability(entry, motionBehaviors)}
                 entry={entry}
                 groupLabel={group.label}
+                sourceFog={blenderPreview?.cameraFog}
                 store={store}
-                value={readParameter(snapshot, entry)}
+                value={!fogOverride && effectiveFog && entry.path[0] === 'camera'
+                  ? ({ distanceFogStartWU: effectiveFog.startWU, distanceFogEndWU: effectiveFog.endWU, distanceFogCurve: effectiveFog.curve }[entry.control.id]
+                    ?? readParameter(snapshot, entry))
+                  : readParameter(snapshot, entry)}
               />
             ))}
+            <div className="parameterizer-actions">
+              <button type="button" disabled={disabled} onClick={() => resetGroup(group)}>
+                {group.id === 'page-viewing-distance' ? 'Reset to Blender' : `Reset ${group.label.toLowerCase()}`}
+              </button>
+            </div>
           </ParameterFolder>
         ))}
       </div>

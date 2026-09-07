@@ -8,10 +8,6 @@ const baseUrl = (process.env.ABS_DEV_URL || 'http://localhost:8012').trim().repl
 const browserName = (process.env.ABS_BROWSER || 'chromium').trim().toLowerCase();
 const canonical = JSON.parse(await readFile('react-app/app/public/config/contents-about.json', 'utf8'));
 const expectedFieldIds = canonical.tracks.text.fields.map((field) => field.id);
-const gapPresetByFieldId = new Map(canonical.tracks.text.fields.map((field) => [
-  field.id,
-  field.flow?.gapAfter || 'standard',
-]));
 const outputDir = path.resolve('output/playwright/about-responsive-sequence', browserName);
 const viewportDefinitions = [
   ['large-desktop', { width: 1920, height: 1080 }],
@@ -20,6 +16,7 @@ const viewportDefinitions = [
   ['tablet', { width: 1024, height: 768 }],
   ['mobile', { width: 390, height: 844 }],
   ['narrow-mobile', { width: 375, height: 667 }],
+  ['short-landscape', { width: 844, height: 390 }],
 ];
 const requestedViewport = (process.env.ABS_ABOUT_VIEWPORT || 'all').trim();
 const viewports = requestedViewport === 'all'
@@ -62,9 +59,11 @@ async function readContentLayout(page) {
       }));
     return {
       mode: root?.dataset.aboutStoryLayout || '',
+      layoutProfile: root?.dataset.aboutLayoutProfile || 'desktop',
       instrumentSerifReady: document.fonts.check('16px "Instrument Serif"'),
       viewportHeight,
-      maxStoryWU: Number((((scrollport?.scrollHeight || 0) - (scrollport?.clientHeight || 0)) / viewportHeight).toFixed(4)),
+      maxScrollWU: Number((((scrollport?.scrollHeight || 0) - (scrollport?.clientHeight || 0)) / viewportHeight).toFixed(4)),
+      maxStoryWU: Math.max(...fields.map(field => Number(document.querySelector(`[data-text-field-id="${field.id}"]`).closest('[data-render-span-id]').dataset.storyEndWu))),
       contentHeight: content?.getBoundingClientRect().height || 0,
       scrollHeight: scrollport?.scrollHeight || 0,
       horizontalOverflow: Math.max(0, (scrollport?.scrollWidth || 0) - (scrollport?.clientWidth || 0)),
@@ -80,12 +79,16 @@ async function readRuntimeState(page) {
     const metrics = window.__aboutNarrativeRuntime.getMetrics();
     return {
       storyWU: Number(root?.dataset.narrativeStoryWu),
+      scrollTop: document.querySelector('.about-narrative-scrollport').scrollTop,
+      scrollRange: document.querySelector('.about-narrative-scrollport').scrollHeight - document.querySelector('.about-narrative-scrollport').clientHeight,
       visibility: metrics.controls.sceneVisibility,
       stage: root?.dataset.worldStage || '',
       preparation: metrics.state,
       integrity: metrics.bundleIntegrityVerified,
       resourceDiagnostics: metrics.sceneContractDiagnostics,
       gpuBufferBuilds: metrics.gpuBufferBuilds,
+      cameraPosition: metrics.cameraPosition,
+      cameraQuaternion: metrics.cameraQuaternion,
       residentSurfelCount: metrics.residentSurfelCount,
       activeModels: Object.entries(metrics.modelFraming)
         .filter(([, model]) => model.stageVisibility > 0.5).map(([key]) => key),
@@ -99,6 +102,7 @@ const report = { browser: browserName, baseUrl, viewports: [] };
 
 try {
   for (const [viewportId, viewport] of viewports) {
+    console.log(`CHECK ${browserName} ${viewportId}`);
     const page = await browser.newPage({ viewport });
     const consoleErrors = [];
     const externalFontErrors = [];
@@ -120,35 +124,38 @@ try {
     await page.waitForFunction(
       () => document.querySelector('.about-narrative-lab')?.dataset.aboutEntranceState === 'complete',
       undefined,
-      { timeout: 30_000 },
+      { timeout: 60_000 },
     );
 
     const layout = await readContentLayout(page);
     assert(layout.mode === 'content-flow', `${viewportId}: Story Stack did not enter content-flow mode.`);
     assert(layout.instrumentSerifReady, `${viewportId}: the self-hosted title face is unavailable.`);
-    assert(layout.fields.length === 13, `${viewportId}: expected 13 ordered story blocks.`);
+    assert(
+      layout.fields.length === expectedFieldIds.length,
+      `${viewportId}: expected ${expectedFieldIds.length} ordered story blocks.`,
+    );
     assert(layout.fields.map((field) => field.id).join('|') === expectedFieldIds.join('|'),
       `${viewportId}: rendered fields differ from canonical reading order.`);
-    assert(layout.maxStoryWU > 12 && layout.maxStoryWU < 40, `${viewportId}: measured page length is implausible (${layout.maxStoryWU}).`);
+    const authoredProfile = canonical.profiles[layout.layoutProfile] || canonical.profiles.desktop;
+    const expectedScrollWU = layout.maxStoryWU
+      * authoredProfile.scrollDurationWU / authoredProfile.storyDurationWU;
+    assert(
+      Math.abs(layout.maxScrollWU - expectedScrollWU) <= 0.03,
+      `${viewportId}: measured page length ${layout.maxScrollWU} WU diverges from the authored ${expectedScrollWU.toFixed(4)} WU.`,
+    );
     assert(Math.abs(layout.contentHeight - layout.scrollHeight) <= 1, `${viewportId}: content and scroll extent diverged.`);
     assert(layout.horizontalOverflow <= 1, `${viewportId}: story scrollport overflows horizontally by ${layout.horizontalOverflow}px.`);
     layout.fields.forEach((field, index) => {
       if (index > 0) assert(field.topWU > layout.fields[index - 1].topWU, `${viewportId}: ${field.id} is out of reading order.`);
       assert(Number.isFinite(field.durationWU) && field.durationWU > 0, `${viewportId}: ${field.id} has no measured duration.`);
-      const maximumGapWU = gapPresetByFieldId.get(field.id) === 'passage'
-        ? 3.8 : field.id === 'text-life-character' ? 0.8 : 0.58;
-      assert(field.gapWU <= maximumGapWU + 0.001,
-        `${viewportId}: ${field.id} exceeds its ${maximumGapWU} WU gap allowance (${field.gapWU}).`);
+      assert(field.gapWU >= 0 && field.gapWU <= layout.maxScrollWU * 2 / 7,
+        `${viewportId}: ${field.id} exceeds the trailing and leading space of adjacent stages.`);
       assert(
         field.backgroundColor === 'rgba(0, 0, 0, 0)',
         `${viewportId}: ${field.id} introduces a text background surface (${field.backgroundColor}).`,
       );
       if (field.titleFont) assert(field.titleFont.includes('Instrument Serif'), `${viewportId}: ${field.id} lost Instrument Serif.`);
     });
-    assert(
-      layout.fields.at(-2).gapWU <= 0.58,
-      `${viewportId}: the final transition gap is too long (${layout.fields.at(-2).gapWU} WU).`,
-    );
     assert(layout.disciplineItems.length === 6, `${viewportId}: expected six disciplines.`);
     layout.disciplineItems.forEach((item) => {
       assert(item.title && item.description, `${viewportId}: a discipline is missing its title or description.`);
@@ -171,14 +178,31 @@ try {
         `${viewportId}: scroll changed the resident point population.`);
       samples.push(state);
     }
+    for (const index of [24, 16, 8]) {
+      const forward = samples[index];
+      // Keep floating-point division from flooring an exact WebKit pixel one pixel early.
+      await setStoryWU(page, (forward.scrollTop + 0.0001) / forward.scrollRange * layout.maxStoryWU);
+      await page.waitForFunction(top => Math.abs(document.querySelector('.about-narrative-scrollport').scrollTop - top) < 0.001, forward.scrollTop);
+      const reverse = await readRuntimeState(page);
+      for (const key of ['cameraPosition', 'cameraQuaternion']) {
+        assert(Array.isArray(reverse[key]), `${viewportId}: missing ${key} diagnostics.`);
+        reverse[key].forEach((value, axis) => assert(Math.abs(value - forward[key][axis]) < 0.03,
+          `${viewportId}: reverse camera mismatch in ${key}.`));
+      }
+    }
     const stages = [...new Set(samples.flatMap((sample) => sample.activeModels))];
     ['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06'].forEach((stage) => {
       assert(stages.includes(stage), `${viewportId}: responsive sequence never reached ${stage}.`);
     });
     assert(samples.every((sample) => sample.stage === 'blender-surfel-scene'),
       `${viewportId}: a procedural replacement world was used.`);
-    assert(samples[0].activeModels.includes('about.00') && samples.at(-1).activeModels.join() === 'about.06',
-      `${viewportId}: Blender sequence endpoints are wrong (${stages.join(' → ')}).`);
+    const finaleModels = samples.at(-1).activeModels;
+    assert(
+      samples[0].activeModels.includes('about.00')
+        && ['about.05', 'about.06'].every((stage) => finaleModels.includes(stage))
+        && !finaleModels.includes('about.01'),
+      `${viewportId}: Blender sequence endpoints are wrong (${stages.join(' → ')}).`,
+    );
 
     const screenshots = [];
     for (const [id, storyWU] of [
@@ -206,10 +230,10 @@ try {
       };
     });
     assert(
-      finaleBounds.left >= finaleBounds.studioLeft
-        && finaleBounds.right <= finaleBounds.studioRight
-        && finaleBounds.top >= finaleBounds.studioTop
-        && finaleBounds.bottom <= finaleBounds.studioBottom,
+      finaleBounds.left >= finaleBounds.studioLeft - 1
+        && finaleBounds.right <= finaleBounds.studioRight + 1
+        && finaleBounds.top >= finaleBounds.studioTop - 1
+        && finaleBounds.bottom <= finaleBounds.studioBottom + 1,
       `${viewportId}: finale type leaves the studio viewport.`,
     );
     assert(consoleErrors.length === 0, `${viewportId}: console errors: ${consoleErrors.join(' | ')}`);

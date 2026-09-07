@@ -50,8 +50,8 @@ const READER_TEXT_KEYS = new Set([
 ]);
 const READER_CONTAINER_KEYS = new Set(['block', 'independentWork', 'items', 'modules']);
 const WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
-const CORE_WORD_LIMIT = 280;
-const TOTAL_WORD_LIMIT = 419;
+const CORE_WORD_LIMIT = 365;
+const TOTAL_WORD_LIMIT = 505;
 
 function collectAuthoredText(value) {
   if (Array.isArray(value)) {
@@ -92,12 +92,13 @@ function collectCoreText() {
           item.yearLabel,
           item.employer,
           item.role,
+          item.description,
         ]),
         module.independentWork?.label,
         module.independentWork?.text,
       ];
     });
-    return [...blockText, ...moduleText].filter(Boolean);
+    return [block.label, ...blockText, ...moduleText].filter(Boolean);
   });
 }
 
@@ -148,18 +149,21 @@ test('both word budgets include all five career rows and the qualified date word
   const coreText = collectCoreText().join(' ');
 
   assert.equal(career.items.length, 5);
-  assert.equal(countWords(careerCopy), 35);
+  assert.equal(countWords(careerCopy), 116);
   assert.equal(countWords('Joined 2024'), 2);
   assert.equal(countWords('May–Sep 2026'), 3);
   assert.ok(authoredText.includes(careerCopy));
   assert.ok(coreText.includes(careerCopy));
-  assert.equal(countWords(coreText), 261);
-  assert.equal(countWords(authoredText), 400);
+  assert.equal(countWords(coreText), 352);
+  assert.equal(countWords(authoredText), 490);
 });
 
-test('development and production share canonical About playback without authoring controls', () => {
+test('development keeps canonical About playback while production holds publication', () => {
   assert.match(aboutRouteSource, /mainLandmarkHeadingId: 'about-route-title'/);
-  assert.doesNotMatch(aboutRouteSource, /AboutComingSoon|about-coming-soon|preview.*about/);
+  assert.match(aboutRouteSource, /if \(!import\.meta\.env\.DEV\) return Promise\.resolve\(\)/);
+  assert.match(aboutRouteSource, /secondary: <AboutComingSoon \/>/);
+  assert.match(aboutRouteSource, /import\.meta\.env\.DEV \? lazy\(loadAboutNarrativeExperience\) : null/);
+  assert.doesNotMatch(aboutRouteSource, /preview.*about|searchParams|localStorage/);
   assert.doesNotMatch(aboutRouteSource, /getAboutExperienceVersion|experienceVersion=/);
   assert.match(aboutExperienceSource, /const initialDocument = ABOUT_NARRATIVE_DOCUMENT/);
   assert.match(aboutExperienceSource, /const resolvedExperienceVersion = CANONICAL_ABOUT_EXPERIENCE_VERSION/);
@@ -173,10 +177,11 @@ test('the canonical document carries the accepted spoken narrative', () => {
   const authoredText = getAuthoredText();
   const modules = getEditorialModules();
   const openingModules = getTextField('text-background-unit')?.block?.modules || [];
-  const multidisciplinaryModules = getTextField('text-disciplines-title')?.block?.modules || [];
+  const disciplineField = getTextField('text-discipline-labels');
+  const clientField = getTextField('text-selected-clients');
   const workingModules = getTextField('text-life-character')?.block?.modules || [];
-  const disciplines = getTextField('text-discipline-labels')?.block?.items || [];
-  const selectedClients = modules.find((module) => module.id === 'selected-clients');
+  const disciplines = disciplineField?.block?.items || [];
+  const selectedClients = clientField?.block?.modules?.find((module) => module.id === 'selected-clients');
 
   assert.equal(getTextField('text-promise-main').text, 'Hi, I’m Alex.');
   assert.equal(
@@ -185,19 +190,19 @@ test('the canonical document carries the accepted spoken narrative', () => {
   );
   assert.equal(
     getTextField('text-complexity-idea').text,
-    'I’ve always been fascinated by…',
+    'I think in pictures.',
   );
   assert.equal(
     getTextField('text-complexity-conditions').text,
-    '…how ideas become visual.',
+    'Design was my way in.',
   );
   assert.equal(
     getTextField('text-complexity-curiosity').text,
-    'The problems that interest me…',
+    'I follow the idea.',
   );
   assert.equal(
     getTextField('text-complexity-listen').text,
-    '…rarely belong to one discipline.',
+    'It rarely stays in one lane.',
   );
   assert.deepEqual(openingModules.map((module) => module.id), ['context', 'career-turns', 'practice', 'career-sequence']);
   assert.equal(openingModules[0].text,
@@ -206,41 +211,64 @@ test('the canonical document carries the accepted spoken narrative', () => {
   assert.match(openingModules[1].text, /Identity work brought product, brand and trust/);
   assert.match(openingModules[2].text, /make things clear without losing their character/);
   assert.equal(openingModules[3].items.length, 5);
+  assert.equal(getTextField('text-background-unit').block.label, 'My background');
+  assert.equal(getTextField('text-disciplines-title').text, 'I connect the disciplines.');
+  assert.equal(getTextField('text-life-character').block.label, 'How I work');
   assert.doesNotMatch(authoredText, /I’ve worked in agencies, in-house and independently/);
-  assert.equal(multidisciplinaryModules.some((module) => module.id === 'making-early'), false);
-  assert.equal(multidisciplinaryModules.some((module) => module.id === 'background'), false);
-  assert.match(multidisciplinaryModules.find((module) => module.id === 'ai-judgement').text, /A decision in one discipline changes what’s possible in another/);
-  assert.match(multidisciplinaryModules.find((module) => module.id === 'ai-judgement').text, /code and AI to turn assumptions into things we can test/);
-  assert.doesNotMatch(multidisciplinaryModules.find((module) => module.id === 'ai-judgement').text, /My practice brings together/);
-  assert.deepEqual(multidisciplinaryModules.map((module) => module.id), ['ai-judgement', 'selected-clients']);
+  assert.match(disciplineField.block.text, /A decision in one discipline changes what’s possible in another/);
+  assert.match(disciplineField.block.text, /code and AI to turn assumptions into things we can test/);
+  assert.doesNotMatch(disciplineField.block.text, /My practice brings together/);
   assert.deepEqual(workingModules.map((module) => module.id), ['begin', 'make', 'collaborate']);
   assert.match(workingModules[0].text, /A real thing reveals more than a long explanation/);
   assert.match(workingModules[1].text, /If an interaction is hard to follow, I can change it in code and test it again/);
   assert.match(workingModules[2].text, /invite collaborators to challenge it while decisions are open/);
   assert.equal(selectedClients.label, 'Selected clients');
   assert.equal(openingModules.some((module) => module.id === 'selected-clients'), false);
-  assert.equal(multidisciplinaryModules.some((module) => module.id === 'selected-clients'), true);
+  assert.equal(workingModules.some((module) => module.id === 'selected-clients'), false);
+  assert.equal(clientField.block.kind, 'stack');
+  assert.deepEqual(clientField.block.modules.map((module) => module.id), ['selected-clients']);
+  assert.deepEqual(
+    selectedClients.items.map((item) => item.id),
+    [
+      'yoti',
+      'sp-global',
+      'bentley',
+      'sunexpress',
+      'mccann',
+      'american-heart-association',
+      'sony',
+      'jaguar-land-rover',
+      'maybourne-hotels',
+      'experian',
+      'dcc',
+      'tourism-ireland',
+      'lufthansa',
+      'general-motors',
+      'think-money-think-life',
+    ],
+  );
+  assert.ok(selectedClients.items.every((item) => item.label && item.src && item.alt));
   assert.equal(
     selectedClients.items
       .find((item) => item.id === 'mccann').label,
     'McCann Worldgroup',
   );
   assert.equal(modules.some((module) => module.kind === 'interactive-stack'), false);
-  assert.equal(getTextField('text-disciplines-title').block.kind, 'stack');
+  assert.equal(disciplineField.block.kind, 'disciplines');
   assert.equal(disciplines.length, 6);
   assert.ok(disciplines.every((item) => item.description.length >= 50));
   assert.doesNotMatch(authoredText, /Over the past thirteen years/);
   assert.doesNotMatch(authoredText, /\bfear\b|\bafraid\b/i);
 });
 
-test('personal origin and career context precede the thesis without adding a story field', () => {
+test('personal origin and career context precede the thesis and its separate client evidence field', () => {
   const fields = document.tracks.text.fields;
   const originIndex = fields.findIndex((field) => field.id === 'text-background-unit');
   const thesisIndex = fields.findIndex((field) => field.id === 'text-complexity-curiosity');
   const disciplinesIndex = fields.findIndex((field) => field.id === 'text-discipline-labels');
   const proofIndex = fields.findIndex((field) => field.id === 'text-disciplines-title');
 
-  assert.equal(fields.length, 13);
+  assert.equal(fields.length, 14);
   assert.ok(originIndex < thesisIndex && thesisIndex < disciplinesIndex && disciplinesIndex < proofIndex);
   assert.equal(getEditorialModules().filter((module) => module.id === 'background').length, 0);
   assert.equal(getEditorialModules().filter((module) => module.id === 'career-turns').length, 1);
@@ -249,12 +277,31 @@ test('personal origin and career context precede the thesis without adding a sto
   assert.doesNotMatch(getAuthoredText(), /\bFACT SLOT\b|\bNON-PRODUCTION\b|\bTBC\b|\bTBD\b|—/);
 });
 
+test('the story alternates paired statements with prose and evidence sections', () => {
+  const fields = document.tracks.text.fields;
+  assert.deepEqual(
+    fields.map((field) => field.kind),
+    [
+      'title',
+      'title', 'title', 'scroll-block',
+      'title', 'title', 'scroll-block', 'scroll-block',
+      'title', 'title', 'scroll-block',
+      'title', 'title', 'title',
+    ],
+  );
+  assert.equal(getTextField('text-background-unit').block.modules.at(-1).kind, 'career-sequence');
+  assert.equal(getTextField('text-discipline-labels').block.kind, 'disciplines');
+  assert.equal(getTextField('text-discipline-labels').block.text.length > 0, true);
+  assert.equal(getTextField('text-selected-clients').block.modules.at(-1).id, 'selected-clients');
+  assert.equal(getTextField('text-life-character').block.modules.some((module) => module.id === 'selected-clients'), false);
+});
+
 test('the canonical ending moves from an active working method into the invitation', () => {
   const workingTitle = getTextField('text-life-momentum').text;
   const workingField = getTextField('text-life-character');
   const finale = getTextField('text-epilogue-invitation');
 
-  assert.equal(workingTitle, 'Make the work visible early.');
+  assert.equal(workingTitle, 'I make it real, early.');
   assert.equal(getTextField('text-life-form'), undefined);
   assert.equal(workingField.kind, 'scroll-block');
   assert.equal(workingField.presentation.layout, 'reading');

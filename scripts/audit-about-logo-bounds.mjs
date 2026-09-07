@@ -22,8 +22,8 @@ function check(code, pass, message, actual, expected) {
 }
 
 async function centreClientGrid(page) {
-  const focusWU = await checkpointStoryWU(page, { fieldId: 'text-disciplines-title', phase: 'focus' });
-  assert(Number.isFinite(focusWU), 'The disciplines field has no focus timing.');
+  const focusWU = await checkpointStoryWU(page, { fieldId: 'text-selected-clients', phase: 'focus' });
+  assert(Number.isFinite(focusWU), 'The selected-clients field has no focus timing.');
   await driveAboutStoryWU(page, focusWU);
   await page.waitForFunction(() => (
     document.querySelector('.about-narrative-client-field')?.dataset.clientFieldReady === 'true'
@@ -35,7 +35,7 @@ async function centreClientGrid(page) {
 async function centreClientLogo(page, logoId) {
   const clientWU = await page.evaluate((requestedLogoId) => {
     const root = document.querySelector('.about-narrative-lab');
-    const field = document.querySelector('[data-text-field-id="text-disciplines-title"]');
+    const field = document.querySelector('[data-text-field-id="text-selected-clients"]');
     const target = field?.querySelector(`[data-client-logo="${requestedLogoId}"]`);
     const canvas = document.querySelector('.about-narrative-world__canvas');
     if (!root || !field || !target || !canvas) return null;

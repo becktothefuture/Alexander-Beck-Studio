@@ -23,6 +23,8 @@ import {
   DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
   SIMULATION_MATERIAL_ROLE_COUNT,
 } from '../react-app/app/src/palette/simulationPaletteContract.js';
+import { getAboutNarrativeEditorialFocusOpacity, getAboutNarrativeSharedRevealProgress } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeReveal.js';
+import { ABOUT_BLENDER_STAGE_IDS } from '../react-app/app/src/routes/about-narrative-lab/aboutBlenderStages.js';
 
 const ROOT = new URL('../', import.meta.url);
 const SHAPE_ID = 'long-assembly-corridor-v1';
@@ -90,7 +92,26 @@ test('the canonical About source preserves the complete authored text spine and 
   });
   assert.equal(loaded.valid, true, loaded.message);
   const textById = new Map(document.tracks.text.fields.map((field) => [field.id, field]));
-  assert.equal(document.tracks.text.fields.length, 13);
+  assert.equal(document.tracks.text.fields.length, 14);
+  assert.deepEqual(
+    document.tracks.text.fields.map((field) => [field.id, field.stageId]),
+    [
+      ['text-promise-main', 'about.00'],
+      ['text-complexity-idea', 'about.00'],
+      ['text-complexity-conditions', 'about.00'],
+      ['text-background-unit', 'about.01'],
+      ['text-complexity-curiosity', 'about.02'],
+      ['text-complexity-listen', 'about.02'],
+      ['text-discipline-labels', 'about.03'],
+      ['text-selected-clients', 'about.03'],
+      ['text-disciplines-title', 'about.04'],
+      ['text-life-momentum', 'about.04'],
+      ['text-life-character', 'about.05'],
+      ['text-epilogue-shaping', 'about.06'],
+      ['text-epilogue-thinking', 'about.06'],
+      ['text-epilogue-invitation', 'about.06'],
+    ],
+  );
   assert(document.tracks.text.fields.every((field) => field.flow));
   assertMomentBound(document.tracks.pointField.keys, textById, 'Point-field key');
   assertMomentBound(document.tracks.visibility.keys, textById, 'Visibility key');
@@ -154,19 +175,19 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
   assert.equal(assetMeta.profiles.mobile.surfelCount, 30_000);
   assert(assetMeta.profiles.mobile.surfelCount <= assetMeta.profiles.desktop.surfelCount);
   assert.equal(assetMeta.profiles.master.surfelCount, assetMeta.files.surfels.count);
-  assert.equal(assetMeta.models.length, 7);
+  assert.equal(assetMeta.models.length, 6);
+  assert.equal(ABOUT_BLENDER_STAGE_IDS.length, 7, 'Reading keeps its own stage without exporting the removed body cluster.');
   assert.deepEqual(
     new Set(assetMeta.models.map((model) => model.key)),
-    new Set(['about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06']),
+    new Set(['about.00', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06']),
   );
   const expectedVisibilityCues = new Map([
-    ['about.00', ['opening', 'inciting-question']],
-    ['about.01', ['inciting-question', 'portal-entry']],
+    ['about.00', ['opening', 'portal-entry']],
     ['about.02', ['portal-entry', 'personal-origin']],
     ['about.03', ['personal-origin', 'gate-entry']],
-    ['about.04', ['gate-entry', 'method']],
-    ['about.05', ['method', 'split-lattice-entry']],
-    ['about.06', ['split-lattice-entry', 'terminal-hold']],
+    ['about.04', ['gate-entry', 'split-lattice-entry']],
+    ['about.05', ['method', 'terminal-hold']],
+    ['about.06', ['method', 'terminal-hold']],
   ]);
   for (const model of assetMeta.models) {
     assert(model.surfelRange.count > 0, `${model.id} has no master surfels`);
@@ -184,11 +205,13 @@ test('the runtime consumes the v2 progressive surfel manifest without procedural
     assert(Number.isFinite(model.visibilityEndOffsetWU));
   }
   assert.deepEqual(assetMeta.source.authoring.cameraFog, {
-    startWU: 14, endWU: 150, curve: 1.2, source: 'about.controls',
+    startWU: assetMeta.source.authoring.controlValues['About Controls / 02 Fog Start'],
+    endWU: assetMeta.source.authoring.controlValues['About Controls / 03 Fog End'],
+    curve: assetMeta.source.authoring.controlValues['About Controls / 04 Fog Curve'],
+    source: 'about.controls',
   });
-  assert.match(sceneSource, /controls\.fogStartWU = authoredCameraFog\.startWU/);
-  assert.match(sceneSource, /controls\.fogEndWU = authoredCameraFog\.endWU/);
-  assert.match(sceneSource, /controls\.fogCurve = authoredCameraFog\.curve/);
+  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample, authoredCameraFog\)/);
+  assert.doesNotMatch(sceneSource, /controls\.fogStartWU = authoredCameraFog\.startWU/);
   assert.equal(assetMeta.source.objects.some((object) => object.objectKey === 'gn.lens.chamber'), false);
   assert.match(sceneSource, /const SURFEL_STRIDE_BYTES = 32;/);
   assert.match(sceneSource, /createProgressiveSourceOrder\(meta, qualityTier, totalCount\)/);
@@ -254,7 +277,7 @@ test('the shared-buffer surfel shader reveals whole, fully coloured circles from
   assert.doesNotMatch(sceneSource, /vFogVisibility|vVisibility|visibility \* edge/);
   assert.match(sceneSource, /float edge = 1\.0 - smoothstep\(/);
   assert.match(sceneSource, /if \(uDepthCorePass > 0\.5\)[\s\S]*?circleRadius > 0\.96[\s\S]*?vec4\(shaded, 1\.0\)/);
-  assert.match(sceneSource, /if \(circleRadius <= 0\.96\) discard;[\s\S]*?float alpha = edge;[\s\S]*?vec4\(shaded, alpha\)/);
+  assert.match(sceneSource, /if \(circleRadius <= 0\.96\) discard;[\s\S]*?float alpha = edge \* materialAlpha;[\s\S]*?vec4\(shaded, alpha\)/);
   assert.match(sceneSource, /transparent: false,[\s\S]*?alphaToCoverage: true,[\s\S]*?depthWrite: true,[\s\S]*?blending: THREE\.NoBlending/);
   assert.match(sceneSource, /antialias: true/);
   assert.match(sceneSource, /sceneGroup\.add\(core, soft\)/);
@@ -300,12 +323,17 @@ test('Blender role assignments remain intact and resolve through the Home palett
     const roles = new Set(assetMeta.source.objects
       .filter((object) => object.modelKey === model.key)
       .flatMap((object) => object.paletteRoles));
-    assert.deepEqual(roles, new Set([0, 1, 2, 3, 4, 5]), `${model.key} lost its six-role mixture`);
+    const expectedRoles = model.key === 'about.05'
+      ? new Set([0, 1, 3, 4, 5])
+      : new Set([0, 1, 2, 3, 4, 5]);
+    assert.deepEqual(roles, expectedRoles, `${model.key} lost its authored palette mixture`);
   }
 
   assert.match(sceneSource, /paletteRoles\[destinationIndex\] = view\.getUint8\(offset \+ 28\)/);
   assert.doesNotMatch(sceneSource, /createAboutSurfelPaletteRoles|materialPaletteKey/);
   assert.match(sceneSource, /vec3 shaded = paletteColor\(vPalette\);/);
+  assert.match(sceneSource, /texture2D\(uMaterialAtlas, atlasUv\)/);
+  assert.match(sceneSource, /getSimulationBodyMaterialAtlas/);
   assert.doesNotMatch(sceneSource, /normalLight|depthLight/);
 });
 
@@ -341,7 +369,7 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
   assert.match(sceneSource, /uniforms\.uFogStartWU\.value = controls\.fogStartWU/);
   assert.match(sceneSource, /uniforms\.uFogEndWU\.value = Math\.max\(controls\.fogStartWU \+ 0\.001, controls\.fogEndWU\)/);
   assert.match(sceneSource, /uniforms\.uMotionAmountWU\.value = controls\.motionAmountWU/);
-  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample\)/);
+  assert.match(sceneSource, /writeAboutSceneLook\(controls, frame, entranceScale, journeySample, authoredCameraFog\)/);
   assert.match(sceneSource, /stableAttributeIdentities\(surfelGeometries\)/);
   assert.match(sceneSource, /lodRadiusScaleMode: 'per-object'/);
   assert.match(sceneSource, /Math\.sqrt\(masterCount \/ Math\.max\(1, profileCount\)\)/);
@@ -352,13 +380,16 @@ test('runtime controls change projected detail, coverage, fog, and coherent moti
   assert.match(sceneSource, /frameTimeMs,/);
 });
 
-test('the recovered Blender camera keeps a fixed wide projection, constant curved travel, and a late hold', () => {
+test('the recovered Blender camera keeps its authored projection, bounded curved travel, and a late hold', () => {
   assert.equal(cameraTrack.version, 5);
   assert.equal(cameraTrack.source, 'about.camera');
   assert.equal(cameraTrack.displayName, 'Scene Camera');
   assert.equal(cameraTrack.projection.type, 'perspective');
   assert.equal(cameraTrack.projection.fovAxis, 'horizontal');
-  assert.equal(cameraTrack.projection.horizontalFov, 78);
+  assert.equal(
+    cameraTrack.projection.horizontalFov,
+    assetMeta.source.authoring.controlValues['About Controls / 01 Camera FOV'],
+  );
   assert.equal(cameraTrack.projection.sensorFit, 'HORIZONTAL');
   assert.equal(cameraTrack.sampleCount, cameraTrack.frameEnd - cameraTrack.frameStart + 1);
   assert.equal(cameraTrack.rollControl, undefined);
@@ -380,10 +411,9 @@ test('the recovered Blender camera keeps a fixed wide projection, constant curve
     ), 0));
     rotationSteps.push(2 * Math.acos(Math.min(1, quaternionDot)) * 180 / Math.PI);
   }
-  const meanStep = movingSteps.reduce((sum, value) => sum + value, 0) / movingSteps.length;
-  assert.ok(movingSteps.every((step) => Math.abs(step - meanStep) / meanStep < 0.001),
-    'Every moving frame must retain near-constant arc length.');
-  assert.ok(Math.max(...rotationSteps) < 1, 'Authored rotation must remain continuous between frames.');
+  assert.ok(movingSteps.every((step) => step > 0.01 && step < 10),
+    'Every pre-lock frame must advance through a bounded authored camera cadence.');
+  assert.ok(Math.max(...rotationSteps) < 1.65, 'Authored rotation must remain continuous between frames.');
   assert.ok(Math.max(...rotationSteps) > 0.05, 'The accepted path must retain its authored curvature.');
   assert.ok(Math.max(...cameraTrack.samples.slice(0, lockIndex + 1).map((sample) => Math.abs(sample[0]))) > 5,
     'The camera path must retain its lateral rollercoaster sweep.');
@@ -393,8 +423,10 @@ test('the recovered Blender camera keeps a fixed wide projection, constant curve
   const finalQuaternion = cameraTrack.samples.at(-1).slice(3);
   assert(Math.abs(Math.hypot(...finalQuaternion) - 1) < 0.00001);
   assert.match(sceneSource, /sampleCameraTrack\([\s\S]{0,160}?cameraTrack,[\s\S]{0,80}?progress,[\s\S]{0,80}?cameraAuthoredPosition,[\s\S]{0,80}?cameraAuthoredQuaternion,[\s\S]{0,80}?cameraTargetQuaternion/);
-  assert.match(sceneSource, /steadycamController\.sampleInto\([\s\S]{0,220}?steadycamSample/);
-  assert.match(sceneSource, /camera\.position\.set\([\s\S]{0,180}?steadycamSample\.position/);
+  assert.match(sceneSource, /camera\.position\.copy\(cameraAuthoredPosition\)/);
+  assert.match(sceneSource, /camera\.quaternion\.copy\(cameraAuthoredQuaternion\)/);
+  assert.match(sceneSource, /cameraMotionSource: 'shared-scroll-sample'/);
+  assert.doesNotMatch(sceneSource, /steadycamController|pointerPanController/);
   assert.match(sceneSource, /sampleAuthoredRollDegrees\(cameraTrack, progress\)/);
 });
 
@@ -413,44 +445,43 @@ test('the canonical camera directly follows each scroll sample without drift or 
   assert.deepEqual(sample.quaternion, [0, 0, 0, 1]);
 });
 
-test('canonical titles retain their fast entrance, fade floor, and opaque finale', () => {
-  assert.equal(document.globals.textMotion.titleDrawDurationMs, 90);
-  assert.equal(document.globals.textMotion.titleColorCount, 5);
-  assert.equal(document.globals.textMotion.titleLineStaggerMs, 70);
-  assert.equal(document.globals.textMotion.titleExitOpacity, 0.2);
-  const opener = document.tracks.text.fields.find((field) => field.preset === 'opener-v1');
-  const sample = createAboutNarrativeTitleFieldSample();
-  const start = sampleAboutNarrativeTitleFieldInto(
-    opener,
-    opener.startWU,
-    document.globals.textMotion,
-    false,
-    sample,
-  );
-  assert.deepEqual({ opacity: start.opacity, y: start.y, z: start.z }, { opacity: 1, y: 0, z: 0 });
-  assert.match(timelineSource, /field\.preset === 'finale-v1'[\s\S]*?glyph\.style\.opacity = '1'/);
+test('titles restore reversible vertical and depth travel behind the colour draw', () => {
+  const titles = document.tracks.text.fields.filter(field => field.kind === 'title');
+  for (const field of titles) {
+    const sample = createAboutNarrativeTitleFieldSample();
+    const values = [0, 0.09, 0.18, 0.5, 0.82, 0.91, 1];
+    const states = values.map(progress => ({ ...sampleAboutNarrativeTitleFieldInto(
+      field, field.startWU + (field.endWU - field.startWU) * progress,
+      document.globals.textMotion, false, sample,
+    ) }));
+    states.forEach(state => assert.deepEqual([state.x, state.blur], [0, 0]));
+    assert.notDeepEqual([states[0].y, states[0].z], [states.at(-1).y, states.at(-1).z]);
+    assert.equal(states[0].opacity, 1);
+    assert.equal(states[3].opacity, 1);
+    assert.equal(states.at(-1).opacity, field.preset === 'finale-v1' ? 1 : 0);
+    values.toReversed().forEach((progress, index) => {
+      assert.deepEqual({ ...sampleAboutNarrativeTitleFieldInto(field,
+        field.startWU + (field.endWU - field.startWU) * progress,
+        document.globals.textMotion, false, sample) }, states[states.length - 1 - index]);
+    });
+    sampleAboutNarrativeTitleFieldInto(field, field.focusWU, document.globals.textMotion, true, sample);
+    assert.equal(sample.opacity, 1);
+    assert.deepEqual([sample.y, sample.z], [0, 0]);
+  }
+  assert.doesNotMatch(timelineSource, /applyAboutTitleLineExit/);
+  assert.match(timelineSource, /syncTitleEntrance/);
   assert.match(experienceSource, /<CopyEmailAction[\s\S]*?onActivate=\{onFinaleEmailPress\}/);
-  assert.match(experienceSource, /<LinkedInAction[\s\S]*?href=\{ABOUT_NARRATIVE_CONTACT\.linkedin\}/);
 });
 
-test('canonical titles resolve frozen desktop and mobile viewport positions with global fallbacks', () => {
-  const expectedViewportY = new Map([
-    ['text-promise-main', [51, 48]],
-    ['text-complexity-idea', [70, 72]],
-    ['text-complexity-conditions', [28, 28]],
-    ['text-complexity-curiosity', [60, 63]],
-    ['text-complexity-listen', [60, 63]],
-    ['text-life-momentum', [77, 76]],
-    ['text-epilogue-shaping', [51, 51]],
-    ['text-epilogue-thinking', [51, 51]],
-    ['text-epilogue-invitation', [48, 48]],
-  ]);
-  for (const [fieldId, [desktop, mobile]] of expectedViewportY) {
-    const field = document.tracks.text.fields.find((candidate) => candidate.id === fieldId);
-    assert.deepEqual(field.presentation.viewportY, { desktop, mobile }, fieldId);
-  }
-  assert.match(experienceSource, /responsiveViewportY\[layoutProfile === 'mobile' \? 'mobile' : 'desktop'\]/);
-  assert.match(experienceSource, /fieldViewportY \?\? \(isOpener \|\| isFinale[\s\S]*?textMotion\.bookendViewportY[\s\S]*?textMotion\.standardViewportY/);
+test('statement titles share the centrally controlled viewport anchor with an explicit opener variant', () => {
+  document.tracks.text.fields.filter(field => field.kind === 'title').forEach(field => {
+    assert.equal(field.presentation?.viewportY, undefined);
+  });
+  assert.equal(document.globals.textMotion.standardViewportY, 50);
+  assert.equal(document.globals.textMotion.bookendViewportY, 50);
+  assert.match(experienceSource, /const viewportY = Number\(textMotion\?\.\[isOpener \? 'bookendViewportY' : 'standardViewportY'\] \?\? 50\)/);
+  assert.match(experienceSource, /'--about-title-viewport-y': `\$\{viewportY\}%`/);
+  assert.doesNotMatch(experienceSource, /responsiveViewportY|field\.presentation\?\.viewportY/);
 });
 
 test('mobile client logos remain a two-column grid in short and tall viewports', () => {
@@ -465,6 +496,13 @@ test('mobile client logos remain a two-column grid in short and tall viewports',
   );
 });
 
+test('tablet client logos use the same two-column small-space layout', () => {
+  assert.match(
+    stylesSource,
+    /data-about-layout-profile='tablet'[\s\S]*?\.about-narrative-client-logos[\s\S]*?grid-template-columns:\s*repeat\(2,/,
+  );
+});
+
 test('discipline markers retain complete copy and live scene palette roles', () => {
   const disciplines = document.tracks.text.fields.find((field) => field.block?.kind === 'disciplines');
   assert(disciplines?.block.items.length > 0);
@@ -472,6 +510,59 @@ test('discipline markers retain complete copy and live scene palette roles', () 
   assert.match(experienceSource, /data-material-role=\{materialRole\}/);
   assert.match(stylesSource, /--simulation-role-product-design/);
   assert.match(stylesSource, /--simulation-role-motion-3d/);
+  assert.match(stylesSource, /\.about-narrative-discipline-list li\s*\{[\s\S]*?border:\s*0;/);
+  assert.match(stylesSource, /\.about-narrative-discipline-list__copy\s*\{[\s\S]*?gap:\s*0;/);
   assert.match(stylesSource, /clip-path:\s*circle\(50%\)/);
+  assert.match(stylesSource, /margin-top:\s*calc\(\(1lh - var\(--discipline-marker-size\)\) \/ 2\)/);
   assert.match(sceneSource, /vec3 paletteColor\(float role\)[\s\S]*?return uPalette5;/);
+});
+
+test('editorial lines and atomic rows use the same reversible middle-band focus', () => {
+  const positions = [0.9, 0.72, 0.6, 0.5, 0.3, 0.1];
+  const sample = y => getAboutNarrativeEditorialFocusOpacity(getAboutNarrativeSharedRevealProgress(y), y);
+  const forward = positions.map(sample);
+  assert.equal(forward[0], 0.2);
+  assert.equal(forward[3], 1);
+  assert.equal(forward.at(-1), 0.2);
+  assert.deepEqual(positions.toReversed().map(sample), forward.toReversed());
+});
+
+
+test('editorial focus snaps at both boundaries without intermediate opacity', () => {
+  for (const resting of [0.2, 0.35]) {
+    const samples = Array.from({ length: 1001 }, (_, index) => {
+      const y = 1 - index / 1000;
+      return getAboutNarrativeEditorialFocusOpacity(getAboutNarrativeSharedRevealProgress(y), y, false, resting);
+    });
+    assert.deepEqual([...new Set(samples)].sort(), [resting, 1]);
+    assert.equal(samples.filter((value, index) => index > 0 && value !== samples[index - 1]).length, 2);
+    assert.deepEqual(samples.toReversed(), Array.from({ length: 1001 }, (_, index) => {
+      const y = index / 1000;
+      return getAboutNarrativeEditorialFocusOpacity(getAboutNarrativeSharedRevealProgress(y), y, false, resting);
+    }));
+    assert.equal(getAboutNarrativeEditorialFocusOpacity(0.4999, 0.6, false, resting), resting);
+    assert.equal(getAboutNarrativeEditorialFocusOpacity(0.5, 0.6, false, resting), 1);
+    assert.equal(getAboutNarrativeEditorialFocusOpacity(1, 0.2199, false, resting), resting);
+    assert.equal(getAboutNarrativeEditorialFocusOpacity(1, 0.2201, false, resting), 1);
+  }
+});
+
+
+test('the active finale contains the platform and upright bounded-turn bust without the added body cluster', () => {
+  assert.ok(assetMeta.source.objects.every((object) => object.modelKey !== 'about.01'));
+  assert.ok(assetMeta.source.objects.every((object) => !object.objectKey.startsWith('director.form-body.')));
+  const platform = assetMeta.source.objects.find((object) => object.objectKey === 'director.finale-platform');
+  const bust = assetMeta.source.objects.find((object) => object.objectKey === 'director.finale-surface');
+  assert.equal(platform?.modelKey, 'about.05');
+  assert.equal(bust?.modelKey, 'about.06');
+  const motion = assetMeta.motionGroups.find((group) => group.key === bust.motionKey)?.motion;
+  assert.equal(motion?.behavior, 'bounded-rotation');
+  assert.deepEqual(motion.axis, [0, 1, 0]);
+  assert.equal(motion.timeSource, 'ambient-seconds');
+  assert.equal(motion.periodSeconds, 32);
+  assert.ok(Math.abs(motion.amplitudeRadians - 8 * Math.PI / 180) < 0.000001);
+  assert.equal(motion.pivotWU.length, 3);
+  assert.ok(motion.pivotWU.every(Number.isFinite));
+  assert.match(experienceSource, /data-about-finale-scene-zone/);
+  assert.match(experienceSource, /data-about-finale-copy/);
 });

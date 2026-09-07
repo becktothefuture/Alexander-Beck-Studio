@@ -330,7 +330,7 @@ export function validateAboutNarrativeDocument(input, {
     ['camera.cadence', globals.camera?.cadence, 0.01, 24],
     ['camera.fov', globals.camera?.fov, 20, 90],
     ['pointMaterial.opacity', globals.pointMaterial?.opacity, 0, 1],
-    ['pointMaterial.pointSize', globals.pointMaterial?.pointSize, 0.1, 20],
+    ['pointMaterial.pointSize', globals.pointMaterial?.pointSize, 0.1, 32],
     ['swarmTurbulence.amplitude', globals.swarmTurbulence?.amplitude, 0, 0.25],
     ['swarmTurbulence.speed', globals.swarmTurbulence?.speed, 0, 2],
     ['swarmTurbulence.irregularity', globals.swarmTurbulence?.irregularity, 0, 1],
@@ -360,8 +360,8 @@ export function validateAboutNarrativeDocument(input, {
     }
   });
   [
-    ['camera.distanceFogStartWU', globals.camera?.distanceFogStartWU, 0, 40],
-    ['camera.distanceFogEndWU', globals.camera?.distanceFogEndWU, 0.1, 240],
+    ['camera.distanceFogStartWU', globals.camera?.distanceFogStartWU, 0, 200],
+    ['camera.distanceFogEndWU', globals.camera?.distanceFogEndWU, 1, 560],
   ].forEach(([path, value, min, max]) => {
     if (value != null && (!finite(value) || Number(value) < min || Number(value) > max)) {
       diagnostics.push({ level: 'error', code: 'global-range', path: `globals.${path}`, message: `Value must be finite and between ${min} and ${max}.` });

@@ -21,7 +21,8 @@ test('projected point diagnostics preserve shader admission and physical spacing
   const radius = (overrides = {}) => resolveAboutSurfelRadiusPx({ ...point, ...overrides }, controls);
   assert.ok(Math.abs(radius() - 0.75) < 1e-12);
   assert.equal(radius({ lodRank: 0.6 }), 0);
-  assert.equal(radius({ lodRank: 0.6, preserve: true }), radius());
+  assert.equal(radius({ lodRank: 0.6, preserve: true }), 0,
+    'Recognition metadata must not bypass the visible population control.');
   assert.equal(radius({ surfaceFacing: -0.26 }), 0);
   assert.equal(radius({ revealProgress: 0 }), 0);
   assert.ok(Math.abs(radius({ revealProgress: 0.5 }) - radius() * 0.5) < 1e-12,
@@ -292,10 +293,8 @@ test('an entirely transparent lockup qualifies only for the named entry checkpoi
   assert.equal(state.copyProtection.lockupVisible, false);
   assert.deepEqual(state.copyProtection.regions, []);
   assert.equal(state.protectedNdcBounds, null);
-  for (const id of ['lattice-title-entry', 'invitation']) {
-    assert.equal(permitsUnpaintedEntry(state, { id }), true);
-  }
-  for (const id of ['shaping', 'thinking', 'invitation-focus', 'terminal-hold']) {
+  assert.equal(permitsUnpaintedEntry(state, { id: 'invitation' }), true);
+  for (const id of ['finale-deceleration', 'shaping', 'thinking', 'invitation-focus', 'terminal-hold']) {
     assert.equal(permitsUnpaintedEntry(state, { id }), false);
   }
 });

@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { watch } from 'node:fs';
 import {
-  copyFile,
   mkdir,
   mkdtemp,
-  readFile,
-  rename,
   rm,
   stat,
   writeFile,
@@ -16,6 +12,7 @@ import {
 import { basename, dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { createBlenderSourceReader, publishAboutPreviewBundle } from '../lib/about-blender-preview.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..', '..');
@@ -27,13 +24,13 @@ const SOURCE_BLEND = join(
 );
 const EXPORTER = join(SCRIPT_DIR, 'export-edited-about-v2-point-world.py');
 const STAGE_ROOT = join(REPO_ROOT, '.cache', 'about-v2-blender-preview');
-const OUTPUT_DIR = join(STAGE_ROOT, 'current');
-const UPDATE_LOCK = join(STAGE_ROOT, '.updating');
+const EXPORT_LOCK = join(STAGE_ROOT, '.exporting');
 const BLENDER_BIN = process.env.ABS_BLENDER_BIN
   || '/Applications/Blender.app/Contents/MacOS/Blender';
 const WATCH_INTERVAL_MS = 750;
 const STABLE_INTERVAL_MS = 350;
-const PROMOTED_FILES = Object.freeze(['surfels.bin', 'camera-track.json', 'meta.json']);
+const readSourceIdentity = createBlenderSourceReader();
+const readSource = () => readSourceIdentity(SOURCE_BLEND);
 const once = process.argv.includes('--once');
 const initial = once || process.argv.includes('--initial');
 
@@ -63,7 +60,7 @@ const wait = (milliseconds) => new Promise((resolveWait) => {
 
 async function fileSignature() {
   const source = await stat(SOURCE_BLEND);
-  return `${source.size}:${source.mtimeMs}`;
+  return `${source.dev}:${source.ino}:${source.size}:${source.mtimeMs}:${source.ctimeMs}`;
 }
 
 async function stableSignature() {
@@ -77,56 +74,14 @@ async function stableSignature() {
   throw new Error('The Blender source did not settle after saving.');
 }
 
-async function promoteFile(stageDir, fileName) {
-  const source = join(stageDir, fileName);
-  const temporary = join(OUTPUT_DIR, `.${fileName}.${process.pid}.tmp`);
-  await copyFile(source, temporary);
-  await rename(temporary, join(OUTPUT_DIR, fileName));
-}
-
-const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
-
-async function validatePreviewBundle(stageDir) {
-  const metadata = JSON.parse(await readFile(join(stageDir, 'meta.json'), 'utf8'));
-  if (metadata.schema !== 'about-point-scene' || metadata.version !== 2) {
-    throw new Error('The preview export has an unsupported point-scene contract.');
-  }
-  if (!metadata.source?.sha256 || metadata.source?.semanticFallbacks?.length) {
-    throw new Error('The preview export has no source hash or contains semantic fallbacks.');
-  }
-  if (metadata.models?.length !== 7 || metadata.layout?.strideBytes !== 32) {
-    throw new Error('The preview export does not contain the complete seven-model point world.');
-  }
-  const cameraBytes = await readFile(join(stageDir, 'camera-track.json'));
-  const camera = JSON.parse(cameraBytes.toString('utf8'));
-  if (camera.schema !== 'about-camera-track' || camera.samples?.length < 2) {
-    throw new Error('The preview export has no usable Blender camera track.');
-  }
-  for (const key of ['surfels', 'cameraTrack']) {
-    const record = metadata.files?.[key];
-    if (!record?.file || !Number.isInteger(record.bytes) || !record.sha256) {
-      throw new Error(`The preview export has no complete ${key} file record.`);
-    }
-    const bytes = key === 'cameraTrack'
-      ? cameraBytes
-      : await readFile(join(stageDir, record.file));
-    if (bytes.length !== record.bytes || sha256(bytes) !== record.sha256) {
-      throw new Error(`The preview export failed its ${key} integrity check.`);
-    }
-  }
-  const controlValues = metadata.source?.authoring?.controlValues;
-  if (!controlValues || Object.values(controlValues).some((value) => !Number.isFinite(value))) {
-    throw new Error('The preview export has no finite Blender control mirror.');
-  }
-}
-
 async function exportSavedBlend(trigger) {
-  const signature = await stableSignature();
+  await stableSignature();
+  const sourceBefore = await readSource();
   await mkdir(STAGE_ROOT, { recursive: true });
-  await mkdir(OUTPUT_DIR, { recursive: true });
   const stageDir = await mkdtemp(join(STAGE_ROOT, 'stage-'));
   console.log(`\n[About Blender] ${trigger}: exporting the saved canonical scene…`);
   try {
+    await writeFile(EXPORT_LOCK, `${process.pid}\n`, 'utf8');
     await run(BLENDER_BIN, [
       '--background',
       SOURCE_BLEND,
@@ -136,18 +91,13 @@ async function exportSavedBlend(trigger) {
       '--candidate-output-dir',
       stageDir,
     ]);
-    await validatePreviewBundle(stageDir);
-    await writeFile(UPDATE_LOCK, `${process.pid}\n`, 'utf8');
-    try {
-      // Promote the manifest last. The dev page treats a changed source hash in
-      // meta.json as the signal that the binary and camera track are complete.
-      for (const fileName of PROMOTED_FILES) await promoteFile(stageDir, fileName);
-    } finally {
-      await rm(UPDATE_LOCK, { force: true });
-    }
-    console.log('[About Blender] Preview updated. The dev About page will reload at the same scroll position.');
-    return signature;
+    await publishAboutPreviewBundle({
+      stageDirectory: stageDir, previewDirectory: STAGE_ROOT, sourceBefore, readSource,
+    });
+    console.log('[About Blender] Preview updated. The dev About page will refresh the scene at the same scroll position.');
+    return sourceBefore.signature;
   } finally {
+    await rm(EXPORT_LOCK, { force: true });
     await rm(stageDir, { recursive: true, force: true });
   }
 }
@@ -173,7 +123,9 @@ async function requestExport(trigger) {
   } catch (error) {
     console.error(`[About Blender] Export failed: ${error.message}`);
     console.error('[About Blender] Keeping the last good preview. Save the Blender file again after correcting the scene.');
-    handledSignature = await fileSignature().catch(() => current);
+    handledSignature = error.code === 'ABOUT_SOURCE_CHANGED'
+      ? '' : await fileSignature().catch(() => current);
+    if (error.code === 'ABOUT_SOURCE_CHANGED') exportQueued = true;
     if (once) process.exitCode = 1;
   } finally {
     exportRunning = false;

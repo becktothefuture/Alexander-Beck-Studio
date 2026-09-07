@@ -1,3 +1,4 @@
+import { ABOUT_SCENE_CONTROL_REGISTRY, normalizeAboutSceneControls } from './aboutSceneControlRegistry.js';
 import {
   ABOUT_NARRATIVE_ADAPTER_DEFINITIONS,
   ABOUT_NARRATIVE_BLOCK_KINDS,
@@ -10,6 +11,7 @@ import {
   ABOUT_NARRATIVE_INTERACTION_DEFINITIONS,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
   ABOUT_NARRATIVE_MODIFIER_DEFINITIONS,
+  ABOUT_NARRATIVE_GLOBAL_CONTROLS,
   ABOUT_NARRATIVE_SHAPE_DEFINITIONS,
   ABOUT_NARRATIVE_TITLE_STYLES,
   ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES,
@@ -47,6 +49,7 @@ import {
   ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
   getAboutNarrativeDisciplineMinimumSeparation,
 } from './aboutNarrativeDisciplinePositions.js';
+import { isAboutBlenderStageId } from './aboutBlenderStages.js';
 
 export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
@@ -63,7 +66,6 @@ export const ABOUT_NARRATIVE_TRACK_TEXT_KINDS = Object.freeze([
 export const ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND = 'career-sequence';
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const ABOUT_STAGE_ID_PATTERN = /^about\.0[0-6]$/;
 const WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
 const CAREER_SEQUENCE_MAX_WORDS = 56;
 const UNSAFE_TEXT_PATTERN = /<\/?(?:script|style|iframe)|\bon\w+\s*=|javascript:/i;
@@ -73,10 +75,11 @@ const LEGACY_CAMERA_BAKE_MAX_ROTATION_ERROR_DEGREES = 1.5;
 const LEGACY_CAMERA_BAKE_MAX_SCALAR_ERROR = 0.25;
 const LEGACY_CAMERA_BAKE_MAX_DEPTH = 9;
 const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'globals', 'profiles', 'tracks', 'library']);
-const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'editorialMotion', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
+const GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'editorialMotion', 'typography', 'worldRail', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion', 'storyPacing', 'sceneMotion']);
 const LEGACY_GLOBAL_KEYS = new Set(['scrollSmoothing', 'readingWidthRem', 'editorialRevealThreshold', 'camera', 'pointMaterial', 'swarmTurbulence', 'textMotion']);
 const GLOBAL_WORLD_RAIL_KEYS = new Set(['originZ', 'unitsPerWU']);
 const GLOBAL_CAMERA_KEYS = new Set([
+  'distanceFogOverride',
   'distanceFogStartWU',
   'distanceFogEndWU',
   'distanceFogCurve',
@@ -95,6 +98,7 @@ const LEGACY_GLOBAL_CAMERA_KEYS = new Set([
   'distanceFogEndWU',
 ]);
 const POINT_MATERIAL_KEYS = new Set([
+  ...ABOUT_SCENE_CONTROL_REGISTRY.pointMaterial.map((control) => control.id),
   'opacity',
   'pointSize',
   'surfelCoverage',
@@ -103,6 +107,7 @@ const POINT_MATERIAL_KEYS = new Set([
   'perspectiveResponse',
   'edgeSoftness',
   'atmosphereStrength',
+  'pixelRatioCap',
   'pointerRadiusPx',
   'pointerForcePx',
   'pointerVariation',
@@ -110,7 +115,8 @@ const POINT_MATERIAL_KEYS = new Set([
   'pointerReturnMs',
 ]);
 const SWARM_TURBULENCE_KEYS = new Set(['amplitude', 'speed', 'irregularity', 'individuality', 'axisSpread']);
-const TEXT_MOTION_KEYS = new Set(['preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'titleShadowOpacity', 'titleShadowBlurPx', 'titleDrawDurationMs', 'titleColorCount', 'titleLineStaggerMs', 'titleExitOpacity', 'titleExitLineStagger', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TEXT_MOTION_KEYS = new Set([...ABOUT_SCENE_CONTROL_REGISTRY.textMotion.map((control) => control.id), 'preset', 'standardMaxWidthCh', 'displayMaxWidthCh', 'standardViewportY', 'bookendViewportY', 'durationScale', 'startY', 'openerStartY', 'endY', 'readableStart', 'readableEnd', 'titleShadowOpacity', 'titleShadowBlurPx', 'titleDrawDurationMs', 'titleColorCount', 'titleLineStaggerMs', 'titleExitOpacity', 'titleExitLineStagger', 'perspective', 'entryDepth', 'exitDepth', 'maxBlur']);
+const TYPOGRAPHY_KEYS = new Set(ABOUT_SCENE_CONTROL_REGISTRY.typography.map((control) => control.id));
 const EDITORIAL_MOTION_KEYS = new Set([...Object.keys(ABOUT_NARRATIVE_EDITORIAL_MOTION_DEFAULTS)]);
 const PROFILE_KEYS = new Set(['storyDurationWU', 'scrollDurationWU', 'overrides']);
 const REDUCED_PROFILE_KEYS = new Set(['mode', 'motionPolicy']);
@@ -160,7 +166,13 @@ const DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'choreography']);
 const LEGACY_DISCIPLINE_KEYS = new Set([...TEXT_BASE_KEYS, 'fieldTravelStartWU', 'fieldTravelEndWU', 'choreography']);
 const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
 const VIEWPORT_Y_KEYS = new Set(['desktop', 'mobile']);
-const STORY_FLOW_KEYS = new Set(['minScreens', 'gapAfter', 'focusMode', 'focusOffsetScreens']);
+const STORY_FLOW_KEYS = new Set([
+  'minScreens',
+  'gapAfter',
+  'gapAfterScreens',
+  'focusMode',
+  'focusOffsetScreens',
+]);
 const STORY_GAP_PRESETS = new Set(['none', 'tight', 'standard', 'chapter', 'finale', 'passage', 'arrival']);
 const STORY_FOCUS_MODES = new Set(['middle', 'reading-start']);
 const BLOCK_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'modules', 'moduleGapRem', 'emphasis', 'worldInfluence']);
@@ -170,7 +182,7 @@ const REVEAL_KEYS = new Set(['fadeDurationWU']);
 const LEGACY_REVEAL_KEYS = new Set(['fadeDelayWU', 'fadeDurationWU', 'blurDelayWU', 'blurDurationWU']);
 const MODULE_KEYS = new Set(['id', 'kind', 'text', 'label', 'items', 'parameters', 'emphasis', 'independentWork']);
 const MODULE_ITEM_KEYS = new Set(['id', 'label', 'src', 'alt', 'caption', 'scale', 'offsetX', 'offsetY']);
-const CAREER_SEQUENCE_ITEM_KEYS = new Set(['id', 'yearLabel', 'employer', 'role']);
+const CAREER_SEQUENCE_ITEM_KEYS = new Set(['id', 'yearLabel', 'employer', 'role', 'description']);
 const CAREER_SEQUENCE_INDEPENDENT_WORK_KEYS = new Set(['label', 'text']);
 const INTERACTIVE_STACK_ITEM_KEYS = new Set(['id', 'type', 'src', 'poster', 'alt', 'width', 'height', 'aspectRatio', 'fit']);
 const INTERACTIVE_STACK_PARAMETER_KEYS = new Set([
@@ -317,6 +329,31 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   unknownKeys(diagnostics, globals.pointMaterial, POINT_MATERIAL_KEYS, 'globals.pointMaterial');
   unknownKeys(diagnostics, globals.swarmTurbulence, SWARM_TURBULENCE_KEYS, 'globals.swarmTurbulence');
   unknownKeys(diagnostics, globals.textMotion, TEXT_MOTION_KEYS, 'globals.textMotion');
+  for (const owner of ['storyPacing', 'sceneMotion']) {
+    if (globals[owner] == null) continue;
+    const controls = ABOUT_SCENE_CONTROL_REGISTRY[owner];
+    unknownKeys(diagnostics, globals[owner], new Set(controls.map((control) => control.id)), `globals.${owner}`);
+    controls.forEach((control) => validateControlValue(globals[owner]?.[control.id], control, diagnostics, `globals.${owner}.${control.id}`));
+  }
+  for (const owner of ['pointMaterial', 'textMotion']) {
+    ABOUT_SCENE_CONTROL_REGISTRY[owner].forEach((control) => {
+      if (globals[owner]?.[control.id] != null) {
+        validateControlValue(globals[owner][control.id], control, diagnostics, `globals.${owner}.${control.id}`);
+      }
+    });
+  }
+  if (globals.typography != null) {
+    unknownKeys(diagnostics, globals.typography, TYPOGRAPHY_KEYS, 'globals.typography');
+    const typographyControls = ABOUT_NARRATIVE_GLOBAL_CONTROLS
+      .find((owner) => owner.id === 'typography')
+      ?.controls || [];
+    typographyControls.forEach((control) => validateControlValue(
+      globals.typography?.[control.id],
+      control,
+      diagnostics,
+      `globals.typography.${control.id}`,
+    ));
+  }
   if (globals.editorialMotion != null) {
     unknownKeys(diagnostics, globals.editorialMotion, EDITORIAL_MOTION_KEYS, 'globals.editorialMotion');
     validateEditorialReveal(Object.fromEntries(
@@ -358,36 +395,51 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   }
   const fogStartWU = Number(globals.camera?.distanceFogStartWU);
   const fogEndWU = Number(globals.camera?.distanceFogEndWU);
-  if (!finite(fogStartWU) || fogStartWU < 0 || fogStartWU > 40) {
-    diagnostic(diagnostics, 'camera-fog-start', 'globals.camera.distanceFogStartWU', 'Global camera fog start must stay between 0 and 40 WU.');
+  if (!finite(fogStartWU) || fogStartWU < 0 || fogStartWU > 200) {
+    diagnostic(diagnostics, 'camera-fog-start', 'globals.camera.distanceFogStartWU', 'Global camera fog start must stay between 0 and 200 WU.');
   }
-  if (!finite(fogEndWU) || fogEndWU < 0.1 || fogEndWU > 240) {
-    diagnostic(diagnostics, 'camera-fog-end', 'globals.camera.distanceFogEndWU', 'Global camera fog end must stay between 0.1 and 240 WU.');
+  if (!finite(fogEndWU) || fogEndWU < 1 || fogEndWU > 560) {
+    diagnostic(diagnostics, 'camera-fog-end', 'globals.camera.distanceFogEndWU', 'Global camera fog end must stay between 1 and 560 WU.');
   }
   if (finite(fogStartWU) && finite(fogEndWU) && fogStartWU >= fogEndWU) {
     diagnostic(diagnostics, 'camera-fog-order', 'globals.camera', 'Global camera fog must begin before circles are fully faded.');
   }
   const distanceFogCurve = Number(globals.camera?.distanceFogCurve);
   if (globals.camera?.distanceFogCurve != null
-    && (!finite(distanceFogCurve) || distanceFogCurve < 0.45 || distanceFogCurve > 2.5)) {
-    diagnostic(diagnostics, 'camera-fog-curve', 'globals.camera.distanceFogCurve', 'Global camera fog curve must stay between 0.45 and 2.5.');
+    && (!finite(distanceFogCurve) || distanceFogCurve < 0.2 || distanceFogCurve > 5)) {
+    diagnostic(diagnostics, 'camera-fog-curve', 'globals.camera.distanceFogCurve', 'Global camera fog curve must stay between 0.2 and 5.');
+  }
+  const distanceFogOverride = Number(globals.camera?.distanceFogOverride ?? 0);
+  if (!finite(distanceFogOverride) || ![0, 1].includes(distanceFogOverride)) {
+    diagnostic(diagnostics, 'camera-fog-override', 'globals.camera.distanceFogOverride', 'The Blender distance override must be 0 or 1.');
   }
   const surfelCoverage = Number(globals.pointMaterial?.surfelCoverage);
   if (globals.pointMaterial?.surfelCoverage != null
-    && (!finite(surfelCoverage) || surfelCoverage < 0.6 || surfelCoverage > 1.2)) {
+    && (!finite(surfelCoverage) || surfelCoverage < 0.25 || surfelCoverage > 2.5)) {
     diagnostic(
       diagnostics,
       'point-material-surfel-coverage',
       'globals.pointMaterial.surfelCoverage',
-      'Global surfel coverage must stay between 0.6 and 1.2.',
+      'Global surfel coverage must stay between 0.25 and 2.5.',
+    );
+  }
+  const pointSize = Number(globals.pointMaterial?.pointSize);
+  if (globals.pointMaterial?.pointSize != null
+    && (!finite(pointSize) || pointSize < 2 || pointSize > 32)) {
+    diagnostic(
+      diagnostics,
+      'point-material-point-size',
+      'globals.pointMaterial.pointSize',
+      'Global point size must stay between 2 and 32 pixels.',
     );
   }
   [
     ['backfaceRetention', 0, 1, 'Back surface reveal'],
-    ['minPointSize', 0.75, 4, 'Minimum point size'],
-    ['perspectiveResponse', 0.6, 1.2, 'Depth scaling'],
-    ['edgeSoftness', 0.65, 2.4, 'Circle edge'],
-    ['atmosphereStrength', 0, 2, 'Visible haze'],
+    ['minPointSize', 0.25, 8, 'Minimum point size'],
+    ['perspectiveResponse', 0.25, 2, 'Depth scaling'],
+    ['edgeSoftness', 0.5, 4, 'Circle edge'],
+    ['atmosphereStrength', 0, 4, 'Visible haze'],
+    ['pixelRatioCap', 1, 3, 'Render resolution'],
   ].forEach(([key, minimum, maximum, label]) => {
     const value = globals.pointMaterial?.[key];
     if (value != null && (!finite(value) || Number(value) < minimum || Number(value) > maximum)) {
@@ -447,7 +499,11 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   const legacyCompatibleGlobals = { ...globals };
   delete legacyCompatibleGlobals.worldRail;
   delete legacyCompatibleGlobals.editorialMotion;
+  delete legacyCompatibleGlobals.typography;
+  delete legacyCompatibleGlobals.storyPacing;
+  delete legacyCompatibleGlobals.sceneMotion;
   const legacyCompatibleTextMotion = { ...(legacyCompatibleGlobals.textMotion || {}) };
+  delete legacyCompatibleTextMotion.exitFraction;
   delete legacyCompatibleTextMotion.standardViewportY;
   delete legacyCompatibleTextMotion.bookendViewportY;
   delete legacyCompatibleTextMotion.titleShadowOpacity;
@@ -828,6 +884,13 @@ function validateCareerSequenceItem(item, diagnostics, path, seenIds) {
   validateSafeText(item.yearLabel, diagnostics, `${path}.yearLabel`, { required: true, maximum: 24 });
   validateSafeText(item.employer, diagnostics, `${path}.employer`, { required: true, maximum: 80 });
   validateSafeText(item.role, diagnostics, `${path}.role`, { required: true, maximum: 100 });
+  if (item.description != null) {
+    validateSafeText(item.description, diagnostics, `${path}.description`, { required: true, maximum: 320 });
+    const sentences = String(item.description).split(/[.!?]+(?:\s+|$)/u).filter((part) => part.trim());
+    if (sentences.length > 2 || (String(item.description).match(WORD_PATTERN)?.length || 0) > 40) {
+      diagnostic(diagnostics, 'career-description-length', `${path}.description`, 'Role descriptions must be at most two sentences and 40 words.');
+    }
+  }
 }
 
 function countCareerSequenceWords(module) {
@@ -1047,7 +1110,7 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
   unknownKeys(diagnostics, field, allowed, path);
   if (!isObject(field)) return;
   validateId(field.id, seen, diagnostics, `${path}.id`);
-  if (field.stageId != null && !ABOUT_STAGE_ID_PATTERN.test(field.stageId)) {
+  if (field.stageId != null && !isAboutBlenderStageId(field.stageId)) {
     diagnostic(
       diagnostics,
       'text-stage-id',
@@ -1095,6 +1158,17 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
             'story-flow-focus-offset',
             `${path}.flow.focusOffsetScreens`,
             'Story block focus offset must be between 0 and 6 screens.',
+          );
+        }
+      }
+      if (field.flow.gapAfterScreens != null) {
+        const gapAfterScreens = Number(field.flow.gapAfterScreens);
+        if (!Number.isFinite(gapAfterScreens) || gapAfterScreens < 0 || gapAfterScreens > 3) {
+          diagnostic(
+            diagnostics,
+            'story-flow-gap-after-screens',
+            `${path}.flow.gapAfterScreens`,
+            'A field-specific gap must stay between 0 and 3 viewport heights.',
           );
         }
       }
@@ -1676,8 +1750,10 @@ export function normalizeAboutNarrativeTrackDocument(input) {
     ...firstEditorialReveal,
     ...source.globals.editorialMotion,
   };
+  const sceneControls = normalizeAboutSceneControls(source.globals);
   const globals = {
     ...source.globals,
+    ...sceneControls,
     editorialMotion: {
       fadeDurationWU: Number(
         editorialMotion.fadeDurationWU
@@ -1694,14 +1770,11 @@ export function normalizeAboutNarrativeTrackDocument(input) {
     },
     textMotion: {
       ...source.globals.textMotion,
+      ...sceneControls.textMotion,
       standardViewportY: Number(source.globals.textMotion?.standardViewportY ?? standardViewportY ?? 50),
       bookendViewportY: Number(source.globals.textMotion?.bookendViewportY ?? openerViewportY ?? 70),
       titleShadowOpacity: Number(source.globals.textMotion?.titleShadowOpacity ?? 0.3),
       titleShadowBlurPx: Number(source.globals.textMotion?.titleShadowBlurPx ?? 28),
-      titleDrawDurationMs: Number(source.globals.textMotion?.titleDrawDurationMs ?? 220),
-      titleColorCount: Number(source.globals.textMotion?.titleColorCount ?? 5),
-      titleLineStaggerMs: Number(source.globals.textMotion?.titleLineStaggerMs ?? 140),
-      titleExitOpacity: Number(source.globals.textMotion?.titleExitOpacity ?? 0.2),
       titleExitLineStagger: Number(source.globals.textMotion?.titleExitLineStagger ?? 0.16),
     },
   };

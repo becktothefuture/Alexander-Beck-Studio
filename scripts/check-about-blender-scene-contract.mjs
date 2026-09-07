@@ -8,28 +8,29 @@ import {
 } from '../react-app/app/src/routes/about-narrative-lab/aboutBlenderSceneContract.js';
 import { compileAboutNarrativeComposerPlan } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeComposer.js';
 import { ABOUT_NARRATIVE_JOURNEY_ROLES } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
+import { ABOUT_BLENDER_STAGE_IDS } from '../react-app/app/src/routes/about-narrative-lab/aboutBlenderStages.js';
 import { loadAboutNarrativePointFieldPersistenceSource } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
 
 // Semantic metadata fixtures only. The current fixture is transcribed from the
-// accepted equal-section export; v31 remains the independent rejected baseline.
+// accepted text-scene choreography; v31 remains the independent rejected baseline.
 // Cue progress below is the exact exported value, including frame rounding.
 // Source hashes identify the metadata snapshots, not the synthetic two-sample
 // cameras below. These tests require no ignored export or canonical promotion
 // and do not certify geometry, the camera path, Blender source or visuals.
-const CURRENT_EQUAL_CUES = [
-  ['ABS_STAGE_00', 0], ['ABS_STAGE_01', 0.129], ['ABS_STAGE_02', 0.257],
-  ['ABS_ROUND_BANK_START', 0.262], ['ABS_ROUND_BANK_LEFT', 0.283],
-  ['ABS_ROUND_BANK_RIGHT', 0.315], ['ABS_ROUND_BANK_END', 0.347],
-  ['ABS_STAGE_03', 0.386], ['ABS_ROUND_PORTALS_EXIT', 0.386],
-  ['ABS_ROUND_PORTALS_CLEAR', 0.386], ['ABS_PERSONAL_ORIGIN', 0.386],
-  ['ABS_TERRAIN_THESIS', 0.428], ['ABS_CANYON_CLEAR', 0.501],
-  ['ABS_STAGE_04', 0.514], ['ABS_ROLL_GATE_START', 0.514],
-  ['ABS_GATE_BANK_LEFT', 0.54], ['ABS_GATE_BANK_RIGHT', 0.572],
-  ['ABS_GATE_BANK_SETTLE', 0.604], ['ABS_STAGE_05', 0.643],
-  ['ABS_ROLL_GATE_END', 0.643], ['ABS_GATE_PASSAGE_CLEAR', 0.643],
-  ['ABS_METHOD_RELEASE', 0.643], ['ABS_LATTICE_APPROACH', 0.707],
-  ['ABS_SPLIT_LATTICE_ENTRY', 0.771], ['ABS_STAGE_06', 0.771],
-  ['ABS_FINALE_DECEL', 0.81], ['ABS_INVITATION', 0.861],
+const CURRENT_CHOREOGRAPHY_CUES = [
+  ['ABS_STAGE_00', 0], ['ABS_STAGE_01', 0.069], ['ABS_STAGE_02', 0.309],
+  ['ABS_ROUND_BANK_START', 0.313], ['ABS_ROUND_BANK_LEFT', 0.333],
+  ['ABS_ROUND_BANK_RIGHT', 0.361], ['ABS_ROUND_BANK_END', 0.394],
+  ['ABS_STAGE_03', 0.419], ['ABS_ROUND_PORTALS_EXIT', 0.419],
+  ['ABS_ROUND_PORTALS_CLEAR', 0.419], ['ABS_PERSONAL_ORIGIN', 0.419],
+  ['ABS_TERRAIN_THESIS', 0.485], ['ABS_CANYON_CLEAR', 0.599],
+  ['ABS_STAGE_04', 0.619], ['ABS_ROLL_GATE_START', 0.619],
+  ['ABS_GATE_BANK_LEFT', 0.647], ['ABS_GATE_BANK_RIGHT', 0.677],
+  ['ABS_GATE_BANK_SETTLE', 0.707], ['ABS_STAGE_05', 0.724],
+  ['ABS_METHOD_RELEASE', 0.724], ['ABS_LATTICE_APPROACH', 0.779],
+  ['ABS_ROLL_GATE_END', 0.834], ['ABS_GATE_PASSAGE_CLEAR', 0.834],
+  ['ABS_SPLIT_LATTICE_ENTRY', 0.834], ['ABS_STAGE_06', 0.834],
+  ['ABS_FINALE_DECEL', 0.854], ['ABS_INVITATION', 0.881],
   ['ABS_CAMERA_LOCK', 0.9], ['ABS_TERMINAL_FRAME', 1],
 ];
 // Keep the rejected v31 export independent; never add recovery cues to it.
@@ -43,13 +44,13 @@ const V31_CUES = [
   ['ABS_SPLIT_LATTICE_ENTRY', 0.833009], ['ABS_FINALE_DECEL', 0.85496],
   ['ABS_CAMERA_LOCK', 0.909975], ['ABS_TERMINAL_FRAME', 1],
 ];
-const CURRENT_EQUAL_WINDOWS = [
-  [0, 5.3, 0.3, 'opening', 0, 'inciting-question', 0.3],
-  [4.7, 10.3, 0.3, 'inciting-question', -0.3, 'portal-entry', 0.3],
-  [9.7, 15.3, 0.3, 'portal-entry', -0.3, 'personal-origin', 0.3],
+const CURRENT_CHOREOGRAPHY_WINDOWS = [
+  [0, 10.3, 0.3, 'opening', 0, 'portal-entry', 0.3],
+  [29.7, 35.3, 0.3, 'split-lattice-entry', -0.3, 'terminal-hold', 0.3],
+  [9.1, 15.3, 0.3, 'portal-entry', -0.9, 'personal-origin', 0.3],
   [14.7, 20.3, 0.3, 'personal-origin', -0.3, 'gate-entry', 0.3],
-  [19.7, 25.3, 0.3, 'gate-entry', -0.3, 'method', 0.3],
-  [24.7, 30.3, 0.3, 'method', -0.3, 'split-lattice-entry', 0.3],
+  [19.7, 30.3, 0.3, 'gate-entry', -0.3, 'split-lattice-entry', 0.3],
+  [29.7, 35.9, 0.3, 'split-lattice-entry', -0.3, 'terminal-hold', 0.9],
   [29.7, 35.3, 0.3, 'split-lattice-entry', -0.3, 'terminal-hold', 0.3],
 ];
 const V31_WINDOWS = [
@@ -61,16 +62,23 @@ const V31_WINDOWS = [
   [16.62, 17.06, 0.12, 'split-lattice-entry', -0.48, 'split-lattice-entry', -0.04],
 ];
 const sourceHashes = {
-  current: 'd0a5a80126f4b422eae3acb5ff832b0575815d3f9109800b82245a4720b53cde',
+  current: '1985cdde78d2b08c2e6498f167b629d66ed87b9dc3e6176cad759cb93ae53a46',
   v31: '85df0a5b553b7d8728e14bdd040c2d57c233b564b923c7e5f6a9d85fb8917893',
 };
+const STAGE_RANGES = Object.freeze(Object.fromEntries(ABOUT_BLENDER_STAGE_IDS.map((stageId, index) => [stageId,
+  Object.freeze([
+    [0, 0.027038559, 0.410078484, 0.486687443, 0.657931086, 0.753682639, 0.914162981][index],
+    [0.027038559, 0.410078484, 0.486687443, 0.657931086, 0.753682639, 0.914162981, 1][index],
+  ]),
+])));
 
 function semanticFixture(version = 'current') {
   return {
     meta: {
       schema: 'about-point-scene', version: 2,
-      source: { sha256: sourceHashes[version] },
-      models: (version === 'v31' ? V31_WINDOWS : CURRENT_EQUAL_WINDOWS).map((window, id) => ({
+      source: { sha256: sourceHashes[version], route: { stageRanges: STAGE_RANGES } },
+      motionGroups: ABOUT_BLENDER_STAGE_IDS.map((key, id) => ({ id, key: `${key}.coherent` })),
+      models: (version === 'v31' ? V31_WINDOWS : CURRENT_CHOREOGRAPHY_WINDOWS).map((window, id) => ({
         id, key: `about.0${id}`,
         visibilityStartWU: window[0], visibilityEndWU: window[1], visibilityHandoffWU: window[2],
         visibilityStartCue: window[3], visibilityStartOffsetWU: window[4],
@@ -81,7 +89,7 @@ function semanticFixture(version = 'current') {
       schema: 'about-camera-track', version: 5, source: 'SYNTHETIC_SEMANTIC_FIXTURE', sampleCount: 2,
       projection: { type: 'perspective', fovAxis: 'horizontal', horizontalFov: 65, portraitMaxVerticalFov: 115 },
       samples: [[0, 0, 0, 0, 0, 0, 1], [0, 0, -10, 0, 0, 0, 1]],
-      journeyCues: (version === 'v31' ? V31_CUES : CURRENT_EQUAL_CUES)
+      journeyCues: (version === 'v31' ? V31_CUES : CURRENT_CHOREOGRAPHY_CUES)
         .map(([name, progress]) => ({ name, progress })),
     },
   };
@@ -122,6 +130,17 @@ test('source material scales preserve defaults and reject unsafe values or share
   const shared = structuredClone(meta.models);
   shared[2].motionKey = 'about.03';
   assert.ok(hasCode(resolve(material, meta.motionGroups, shared), 'scene-model-material-invalid'));
+});
+
+test('motion group capacity is enforced even when model materials are omitted', () => {
+  const { meta, cameraTrack } = semanticFixture();
+  meta.motionGroups = [{ id: 40, key: 'about.00.surface' }];
+  const resolved = resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap: storyMapFor() });
+  assert.equal(resolved.status, 'incompatible');
+  assert.ok(hasCode(resolved, 'scene-motion-groups-invalid'));
+  delete meta.motionGroups;
+  assert.ok(hasCode(resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap: storyMapFor() }),
+    'scene-motion-groups-invalid'));
 });
 
 test('the recovered seventh model may own material motion, while an eighth remains unsupported', () => {
@@ -205,12 +224,12 @@ test('absent inputs are pending; supplied legacy inputs are explicitly incompati
 });
 
 for (const [profile, width, height] of [['desktop', 1440, 900], ['tablet', 900, 900], ['mobile', 390, 844]]) {
-  test(`equal-section metadata fixture is compatible with the current ${profile} story map`, () => {
+  test(`choreographed metadata fixture is compatible with the current ${profile} story map`, () => {
     const fixture = { ...semanticFixture(), storyMap: storyMapFor(width, height) };
     const before = JSON.stringify(fixture);
     const value = resolveAboutBlenderSceneContract(fixture);
     assert.equal(value.status, 'compatible', JSON.stringify(value.diagnostics));
-    assert.equal(value.journeyMap.certifiable, true);
+    assert.equal(value.journeyMap.valid, true);
     assert.equal(value.visibilityWindows.length, 7);
     assert.ok(value.visibilityWindows.every((window) => window.source === 'blender-authored-visibility'
       && Number.isFinite(window.startWU) && Number.isFinite(window.endWU) && window.endWU > window.startWU));
@@ -220,12 +239,12 @@ for (const [profile, width, height] of [['desktop', 1440, 900], ['tablet', 900, 
     assert.equal(gate.endWU, anchors.get('gate-exit') + 0.3);
     value.visibilityWindows.forEach((window, index) => {
       const model = fixture.meta.models[index];
-      const [, , handoffWU, startCue, startOffsetWU, endCue, endOffsetWU] = CURRENT_EQUAL_WINDOWS[index];
+      const [, , handoffWU, startCue, startOffsetWU, endCue, endOffsetWU] = CURRENT_CHOREOGRAPHY_WINDOWS[index];
       assert.equal(window.startWU, anchors.get(startCue) + startOffsetWU);
       assert.equal(window.endWU, anchors.get(endCue) + endOffsetWU);
       assert.equal(window.handoffWU, handoffWU);
-      if (index > 0) assert.ok(window.startWU < value.visibilityWindows[index - 1].endWU,
-        `${model.key} must retain its exported overlap with the previous model.`);
+      assert.deepEqual([window.startCue, window.startOffsetWU, window.endCue, window.endOffsetWU],
+        [startCue, startOffsetWU, endCue, endOffsetWU], `${model.key} must retain its semantic cue binding.`);
     });
     assert.ok(value.visibilityWindows[6].endWU > value.journeyMap.durationWU);
     assert.equal(JSON.stringify(fixture), before, 'The contract must not mutate its inputs.');
@@ -234,7 +253,7 @@ for (const [profile, width, height] of [['desktop', 1440, 900], ['tablet', 900, 
   });
 }
 
-test('the equal-section fixture covers every journey role with its exact exported cue progress', () => {
+test('the choreographed fixture covers every journey role with its exact exported cue progress', () => {
   const fixture = semanticFixture();
   const value = resolveAboutBlenderSceneContract({ ...fixture, storyMap: storyMapFor() });
   assert.equal(value.status, 'compatible');
@@ -242,12 +261,11 @@ test('the equal-section fixture covers every journey role with its exact exporte
     ABOUT_NARRATIVE_JOURNEY_ROLES.map((role) => role.id));
   for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
     const anchor = value.journeyMap.anchors.find((item) => item.id === role.id);
-    const cueName = role.requiredCueName || role.cueNames[0];
+    const cueName = role.cueName;
     const cue = fixture.cameraTrack.journeyCues.find((item) => item.name === cueName);
-    assert.ok(cue, `The equal-section fixture must contain the exported cue for ${role.id}.`);
+    assert.ok(cue, `The choreographed fixture must contain the exported cue for ${role.id}.`);
     assert.equal(anchor.cueName, cueName);
     assert.equal(anchor.journeyProgress, cue.progress);
-    assert.notEqual(anchor.cueSource, 'fallback');
   }
 });
 
@@ -270,30 +288,31 @@ test('mixed v31 visibility metadata and current camera cues still reject inverte
   assert.ok(hasCode(value, 'scene-model-sequence-invalid'));
 });
 
-test('missing required and non-required camera cues cannot silently use fallback progress', () => {
+test('missing Blender camera cues cannot silently use invented progress', () => {
   for (const role of ABOUT_NARRATIVE_JOURNEY_ROLES) {
     const fixture = semanticFixture();
     fixture.cameraTrack.journeyCues = fixture.cameraTrack.journeyCues
-      .filter((cue) => !role.cueNames.includes(cue.name));
+      .filter((cue) => cue.name !== role.cueName);
     const value = resolveAboutBlenderSceneContract({ ...fixture, storyMap: storyMapFor() });
     assert.equal(value.status, 'incompatible', role.id);
-    assert.ok(value.diagnostics.some((item) => item.code === 'scene-camera-cue-unresolved'
-      && item.path === `storyMap.anchors.${role.id}`), role.id);
+    assert.ok(value.diagnostics.some((item) => item.code === 'journey-camera-cue-missing'
+      && item.path === `cameraTrack.journeyCues.${role.cueName}`), role.id);
     assert.equal(value.visibilityWindows, null);
   }
 });
 
-test('required semantic cues cannot downgrade to legacy aliases', () => {
-  const requiredNames = new Set(ABOUT_NARRATIVE_JOURNEY_ROLES
-    .map((role) => role.requiredCueName).filter(Boolean));
-  for (const name of requiredNames) {
-    const fixture = semanticFixture();
-    fixture.cameraTrack.journeyCues = fixture.cameraTrack.journeyCues.filter((cue) => cue.name !== name);
-    const value = resolveAboutBlenderSceneContract({ ...fixture, storyMap: storyMapFor() });
-    assert.equal(value.status, 'incompatible', name);
-    assert.ok(hasCode(value, 'journey-required-camera-cue-missing'), name);
-    assert.equal(value.visibilityWindows, null);
-  }
+test('Blender stage ranges use the same identifiers and positions as website stages', () => {
+  const renamed = semanticFixture();
+  renamed.meta.source.route.stageRanges = { ...STAGE_RANGES, 'about.07': STAGE_RANGES['about.06'] };
+  delete renamed.meta.source.route.stageRanges['about.06'];
+  assert.ok(hasCode(resolveAboutBlenderSceneContract({ ...renamed, storyMap: storyMapFor() }),
+    'scene-stage-sequence-invalid'));
+
+  const drifted = semanticFixture();
+  drifted.meta.source.route.stageRanges = structuredClone(STAGE_RANGES);
+  drifted.meta.source.route.stageRanges['about.04'] = [0.58, 5 / 7];
+  assert.ok(hasCode(resolveAboutBlenderSceneContract({ ...drifted, storyMap: storyMapFor() }),
+    'scene-stage-range-invalid'));
 });
 
 test('runtime visibility rejects malformed Blender-authored visibility fields', () => {
@@ -326,13 +345,23 @@ test('malformed story maps, duplicate camera cues and reordered models reject', 
   assert.ok(hasCode(resolveAboutBlenderSceneContract({ ...reordered, storyMap: storyMapFor() }), 'scene-model-sequence-invalid'));
 });
 
-test('responsive re-resolution preserves equal section bounds without mutating the earlier result', () => {
+test('responsive re-resolution preserves semantic cue bindings, order and immutability', () => {
   const fixture = semanticFixture();
   const desktop = resolveAboutBlenderSceneContract({ ...fixture, storyMap: storyMapFor() });
   const snapshot = JSON.stringify(desktop);
   const mobile = resolveAboutBlenderSceneContract({ ...fixture, storyMap: storyMapFor(390, 844) });
   assert.equal(mobile.status, 'compatible');
-  assert.equal(desktop.visibilityWindows[4].startWU, mobile.visibilityWindows[4].startWU);
+  desktop.visibilityWindows.forEach((window, index) => {
+    const responsive = mobile.visibilityWindows[index];
+    assert.equal(window.modelKey, responsive.modelKey);
+    assert.equal(window.source, 'blender-authored-visibility');
+    assert.equal(responsive.source, 'blender-authored-visibility');
+    assert.deepEqual(
+      [window.startCue, window.startOffsetWU, window.endCue, window.endOffsetWU],
+      [responsive.startCue, responsive.startOffsetWU, responsive.endCue, responsive.endOffsetWU],
+    );
+    assert.ok(window.startWU < window.endWU && responsive.startWU < responsive.endWU);
+  });
   assert.equal(JSON.stringify(desktop), snapshot);
 });
 

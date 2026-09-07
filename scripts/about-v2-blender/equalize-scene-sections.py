@@ -18,31 +18,27 @@ CAMERA_END_FRAME = 901
 SCENE_END_FRAME = 1001
 CONTRACT = "seven-equal-camera-distance-sections/v1"
 OPENING_DEPTH_SCALE = 1.8
-OPENING_NEAR_WORLD_Y = 174.88
+OPENING_NEAR_WORLD_Y = 165.0
 
 OBJECT_NAMES = {
     "controls": "About Controls",
-    "round": "Round Tunnel",
-    "square": "Square Gates",
-    "landscape": "Landscape Position",
-    "horizon": "Horizon Position",
-    "finale": "Finale Position",
     "path": "Camera Path",
     "opening": "Opening Field",
 }
 
-# Each object family remains editable through the small existing control set.
-# These values place its authored centre or passage inside one equal seventh.
+# About Controls is the single public authoring surface. These values place each
+# controlled ecosystem or passage inside one equal seventh.
 CONTROL_VALUES = {
-    ("controls", "06 Bodies Start (%)"): 15.5,
-    ("controls", "07 Bodies End (%)"): 28.0,
-    ("round", "01 Start (%)"): 28.571429,
-    ("round", "02 End (%)"): 42.857143,
-    ("landscape", "Position (%)"): 50.0,
-    ("square", "01 Start (%)"): 57.142857,
-    ("square", "02 End (%)"): 71.428571,
-    ("horizon", "Position (%)"): 78.571429,
-    ("finale", "Position (%)"): 92.857143,
+    ("controls", "05 Opening Start (%)"): 1.5,
+    ("controls", "06 Opening End (%)"): 14.0,
+    ("controls", "08 Bodies Start (%)"): 15.5,
+    ("controls", "09 Bodies End (%)"): 28.0,
+    ("controls", "16 Start (%)"): 28.571429,
+    ("controls", "17 End (%)"): 42.857143,
+    ("controls", "22 Landscape Start (%)"): 44.0,
+    ("controls", "23 Landscape End (%)"): 56.0,
+    ("controls", "26 Start (%)"): 60.0,
+    ("controls", "27 End (%)"): 71.428571,
 }
 
 VISIBILITY_CUES = {
@@ -70,7 +66,10 @@ def plain_value(value):
 
 def equal_stage_ranges():
     return {
-        f"{index:02d}": [round(index / SECTION_COUNT, 6), round((index + 1) / SECTION_COUNT, 6)]
+        f"about.{index:02d}": [
+            round(index / SECTION_COUNT, 6),
+            round((index + 1) / SECTION_COUNT, 6),
+        ]
         for index in range(SECTION_COUNT)
     }
 

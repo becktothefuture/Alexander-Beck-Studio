@@ -1,5 +1,8 @@
 # About V2 cinematic story implementation plan
 
+> Historical plan. The experimental Blender scripts named below were removed
+> after the current canonical scene and export contract replaced them.
+
 Implementation update, 2026-08-30: the current career component contains five rows, including Critical Mass. The finale holds its camera and copy, not its ambient material motion. See [career approval and dot separation](ABOUT-V2-CAREER-DISPERSION-2026-08-30.md) for the current decisions and evidence. The plan below is the historical approval record.
 
 - Status: implementation-ready; career copy remains fact-gated

@@ -1,5 +1,8 @@
 # About V2 live-scene mutation checklist
 
+> Historical checklist. The recovery script named below was removed after the
+> current canonical scene and equal-stage contract replaced that workflow.
+
 - Status: superseded pre-mutation handoff; implementation completed 2026-08-29
 - Source: `source-assets/about-v2-blender-current/about-v2-track-working.blend`
 - Blender: 4.3 or newer

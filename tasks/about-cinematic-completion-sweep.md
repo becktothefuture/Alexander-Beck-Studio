@@ -70,7 +70,7 @@ Independent read-only review found four requirement gaps:
 
 1. Canonical `meta.json` still declares `split-lattice-finale`. The connected response requires diagnostic `terminalStudy` metadata, and the study capture substitutes assets only in its own browser. The normal preview cannot show it.
 2. `audit-about-narrative-runtime-visuals.mjs` targets deleted `text-life-form` and expects camera lock at invitation start/focus. Those assertions conflict with the current 13-field, page-end-only camera contract and cannot certify composition.
-3. `create-about-terminal-study.py` pins an earlier source hash. Rebuild on the current `550af31a...` source; copying the old study bundle would risk restoring the old gate camera.
+3. The earlier terminal-study generator pinned an obsolete source hash. It was removed after its accepted surface was integrated into the canonical scene; copying that old study bundle would restore the wrong gate camera.
 4. Current checks do not cover every text line, the full terminal perimeter/motion envelope, repeated route cycles, real hidden-tab behavior, zoom or physical device operation. Twelve occupied image columns at one moment do not prove an invisible perimeter through motion.
 
 Standards: two findings; the reduced-motion transition is the main motion-contract issue. Specification: four findings; the absent integrated ending is the main missing outcome. These are distinct review axes, not a certification of the rendered experience.

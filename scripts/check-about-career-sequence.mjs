@@ -136,7 +136,7 @@ test('canonical production copy contains the five directly approved career rows'
   assert.equal(modules.filter((module) => module.kind === 'career-sequence').length, 1);
   const career = getCareerSequence(canonical);
   // Approved in Alexander's career follow-up. MRM's departure date was not supplied.
-  assert.deepEqual(career, {
+  assert.deepEqual({ ...career, items: career.items.map(({ description, ...item }) => item) }, {
     id: 'career-sequence',
     kind: 'career-sequence',
     label: 'Experience',
@@ -151,6 +151,7 @@ test('canonical production copy contains the five directly approved career rows'
   assert.equal(modules.some((module) => module.id === 'background'), false);
   assert.doesNotMatch(career.items.map((item) => item.yearLabel).join(' '), /present/i);
   assert.equal(getCareerSequence(baseFixture), undefined);
+  assert.ok(career.items.every((item) => item.description?.trim()));
 });
 
 for (const sequence of [FICTIONAL_CAREER_SEQUENCE, FICTIONAL_FIVE_ROW_SEQUENCE]) {
@@ -239,6 +240,7 @@ test('career copy limits keep the module compact', () => {
     [(career) => { career.items[0].yearLabel = 'x'.repeat(25); }, '.yearLabel'],
     [(career) => { career.items[0].employer = 'x'.repeat(81); }, '.employer'],
     [(career) => { career.items[0].role = 'x'.repeat(101); }, '.role'],
+    [(career) => { career.items[0].description = 'x'.repeat(321); }, '.description'],
     [(career) => { career.independentWork.label = 'x'.repeat(41); }, '.independentWork.label'],
     [(career) => { career.independentWork.text = 'x'.repeat(121); }, '.independentWork.text'],
   ];
@@ -359,16 +361,36 @@ test('Story Stack reserves a structural footprint for heading, rows, and indepen
 
 test('the renderer and responsive stylesheet keep the career sequence semantic and atomic', () => {
   assert.match(experienceSource, /function EditorialCareerSequence/);
-  assert.match(experienceSource, /<section[\s\S]*aria-labelledby=\{labelId\}/);
-  assert.match(experienceSource, /<h2 id=\{labelId\}/);
+  assert.match(experienceSource, /<section[\s\S]*aria-label=\{module\.label \|\| 'Experience'\}/);
+  assert.doesNotMatch(experienceSource, /about-narrative-career-sequence__label/);
   assert.match(experienceSource, /<ol className="about-narrative-career-sequence__list">/);
   assert.match(experienceSource, /data-editorial-atomic-row="true"/);
   assert.match(experienceSource, /data-editorial-reveal="career-row"/);
   assert.match(experienceSource, /data-editorial-reveal="career-independent-work"/);
   assert.match(experienceSource, /module\.kind === ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND/);
   assert.match(cssSource, /\.about-narrative-career-sequence__row\s*\{/);
+  assert.match(cssSource, /\.about-narrative-career-sequence__list\s*\{[\s\S]*?border:\s*0;/);
+  assert.match(cssSource, /\.about-narrative-career-sequence__header\s*\{[\s\S]*?gap:\s*0;/);
   assert.match(
     cssSource,
     /data-about-layout-profile='mobile'[\s\S]*\.about-narrative-career-sequence__row[\s\S]*grid-template-columns: minmax\(0, 1fr\)/,
   );
+});
+
+test('career descriptions reject more than two sentences or forty words', () => {
+  for (const description of ['First sentence. Second sentence. Third sentence.', 'word '.repeat(41)]) {
+    const result = invalidCareer((career) => { career.items[0].description = description; });
+    assert.equal(result.valid, false);
+    assert.ok(hasDiagnostic(result, 'career-description-length'));
+  }
+});
+
+test('role descriptions survive the canonical save and reload path', () => {
+  const source = withCareerSequence();
+  getCareerSequence(source).items[0].description = 'I designed the service. I worked with engineers.';
+  const loaded = loadAboutNarrativePointFieldPersistenceSource(source);
+  assert.equal(loaded.valid, true, loaded.message);
+  const reloaded = loadAboutNarrativePointFieldPersistenceSource(serializeAboutNarrativePointFieldSource(loaded.document));
+  assert.equal(reloaded.valid, true, reloaded.message);
+  assert.equal(getCareerSequence(reloaded.document).items[0].description, getCareerSequence(source).items[0].description);
 });

@@ -22,7 +22,7 @@ export function decodeAboutSurfelNormal(xEncoded, yEncoded) {
 
 export function resolveAboutSurfelRadiusPx(point, controls) {
   const { radiusWU, cameraDepthWU, projectionScalePx, surfaceFacing,
-    lodRank, featureClass, preserve, revealProgress, detailBiasScale = 1 } = point;
+    lodRank, featureClass, revealProgress, detailBiasScale = 1, renderingProfile = 0 } = point;
   if (revealProgress <= 0 || surfaceFacing < -clamp(controls.backfaceRetention, 0, 1)) return 0;
   const depth = 8 * Math.pow(Math.max(0.0001, cameraDepthWU) / 8,
     clamp(controls.perspectiveResponse, 0.1, 2));
@@ -31,7 +31,13 @@ export function resolveAboutSurfelRadiusPx(point, controls) {
   const featureRetention = 1 + 0.12 * clamp(featureClass * 0.5, 0, 1);
   const detailFraction = clamp(spacingForDetail * controls.detailBias * detailBiasScale
     * featureRetention / 3.5, 0.12, 1);
-  if (!preserve && lodRank > detailFraction) return 0;
+  const density = clamp(controls.pointDensity ?? 1, 0.25, 1);
+  if (lodRank > (renderingProfile > 0 ? density : detailFraction * density)) return 0;
+  if (renderingProfile > 0) {
+    const coverage = renderingProfile > 1 ? (controls.bustCoverage ?? 1.35) : (controls.solidCoverage ?? 1.5);
+    return Math.min(Math.max(controls.minPointSizePx, controls.maxPointSizePx),
+      Math.max(controls.minPointSizePx, physicalRadiusPx * coverage / Math.sqrt(density))) * revealProgress;
+  }
   const facingArea = clamp(Math.abs(surfaceFacing), 0.16, 1);
   const facingAxis = clamp(Math.abs(surfaceFacing), 0.30, 1);
   const grazingWeight = 0.5 * (1 - smoothstep(0.15, 0.55, Math.abs(surfaceFacing)));

@@ -38,8 +38,8 @@ const getModule = (fieldId, moduleId) => getTextField(fieldId).block.modules
 
 test('current editorial type hierarchy is canonical', () => {
   assert.equal(getModule('text-background-unit', 'practice').emphasis, undefined);
-  assert.equal(getModule('text-disciplines-title', 'making-early').emphasis, undefined);
-  assert.equal(getModule('text-disciplines-title', 'ai-judgement').emphasis, undefined);
+  assert.equal(getTextField('text-discipline-labels').block.emphasis, undefined);
+  assert.equal(getModule('text-life-character', 'begin').emphasis, undefined);
   assert.match(experienceSource, /data-editorial-reveal="line"/);
   assert.doesNotMatch(experienceSource, /data-editorial-reveal': 'word'/);
   assert.match(styleSource, /font-size:\s*calc\(var\(--about-editorial-type-size\) \* 2\.7\)/);
@@ -53,7 +53,7 @@ test('current editorial type hierarchy is canonical', () => {
   assert.match(styleSource, /font-style:\s*normal/);
   assert.match(styleSource, /text-align:\s*center/);
   assert.equal(getTextField('text-background-unit').block.moduleGapRem, undefined);
-  assert.equal(getTextField('text-disciplines-title').block.moduleGapRem, undefined);
+  assert.equal(getTextField('text-life-character').block.moduleGapRem, undefined);
 });
 
 test('each visual line enters and leaves focus independently', () => {

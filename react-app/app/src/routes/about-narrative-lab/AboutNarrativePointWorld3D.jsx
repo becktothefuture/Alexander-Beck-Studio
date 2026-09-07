@@ -75,7 +75,7 @@ function createRuntimeAdapter({
     if (routeMaterialOnly) return false;
     const atmosphereStrength = Number(latestFrame?.globals?.pointMaterial?.atmosphereStrength);
     atmosphereProfileOverrides.intensityScale = Number.isFinite(atmosphereStrength)
-      ? Math.min(2, Math.max(0, atmosphereStrength))
+      ? Math.min(4, Math.max(0, atmosphereStrength))
       : 1;
     const rendered = scene.render(latestFrame);
     if (rendered && atmosphereCleanup) {

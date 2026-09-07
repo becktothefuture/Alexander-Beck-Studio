@@ -74,6 +74,6 @@ The named tunnel credentials remain outside the repository. Do not commit them. 
 
 ## Production deployment
 
-`.github/workflows/gh-pages.yml` listens only for pushes to `main`. It installs the locked root and app dependencies, runs `npm run check:site`, builds the public About editor preview, verifies the output, and deploys `react-app/app/dist` to GitHub Pages.
+`.github/workflows/gh-pages.yml` listens only for pushes to `main`. It installs the locked root and app dependencies, runs `npm run check:site`, builds the production site with Work and About held behind Coming soon, verifies the output, and deploys `react-app/app/dist` to GitHub Pages.
 
 Saving a local file, starting a public dev tunnel, running a build, or creating a commit does not deploy production. Only pushing the commit to `origin/main` can start that workflow.

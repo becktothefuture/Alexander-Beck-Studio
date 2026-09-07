@@ -3,14 +3,6 @@ import {
   resolveResponsiveVerticalFovFromHorizontalFov,
 } from './aboutNarrativeCameraProjection.js';
 import {
-  createAboutNarrativeCameraPointerPanController,
-  createAboutNarrativeCameraPointerPanSample,
-} from './aboutNarrativeCameraPointerPan.js';
-import {
-  createAboutNarrativeCameraSteadycamController,
-  createAboutNarrativeCameraSteadycamSample,
-} from './aboutNarrativeCameraSteadycam.js';
-import {
   createAboutNarrativeJourneySample,
   sampleAboutNarrativeJourneyMapInto,
 } from './aboutNarrativeJourneyMap.js';
@@ -19,12 +11,20 @@ import {
   validateAboutBlenderSceneBundle,
 } from './aboutBlenderSceneContract.js';
 import { writeAboutSceneLook } from './aboutSceneLook.js';
+import { createAboutAuthoredMotion, advanceAboutAuthoredMotion, applyAboutAuthoredMotion } from './aboutAuthoredMotion.js';
+import { resolveAboutSurfelProfile, hasAboutParticleDrift } from './aboutSurfelProfiles.js';
+import { createAboutFinaleFraming } from './aboutFinaleFraming.js';
 import { resolveAboutSurfelPaletteColors } from './aboutSurfelPalette.js';
 import { aboutSurfelIntersectsRect, aboutSurfelSweepIntersectsRect, decodeAboutSurfelNormal, resolveAboutSurfelRadiusPx } from './aboutSurfelProjection.js';
 import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
 } from '../../palette/simulationPaletteController.js';
+import {
+  getSimulationBodyMaterialAtlas,
+  subscribeSimulationBodyMaterial,
+} from '../../legacy/modules/rendering/materials/simulation-body-material.js';
+import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../lib/theme-state.js';
 
 const DEFAULT_ASSET_ROOT = '/models/about-v2-edited-world';
 const SURFEL_STRIDE_BYTES = 32;
@@ -37,10 +37,10 @@ const EMPTY_DIAGNOSTICS = Object.freeze([]);
 const EMPTY_MODEL_FRAMING = Object.freeze({});
 const EMPTY_VISIBILITY_WINDOWS = Object.freeze([]);
 const PALETTE_ROLE_COUNT = 6;
-const POINTER_LOOK_DISTANCE_WU = 18;
 const CONTINUITY_GRID_COLUMNS = 12;
 const CONTINUITY_GRID_ROWS = 8;
 const CONTINUITY_SAMPLES_PER_ACTIVE_MODEL = 2048;
+const MAX_AUTHORED_MOTION_GROUPS = 32;
 const ADAPTER_ID = 'blender-surfel-v2';
 const RUNTIME_DIAGNOSTICS_ENABLED = import.meta.env.DEV || __CERTIFY__;
 
@@ -48,6 +48,11 @@ function finiteNumberOrNull(value) {
   if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function applyAuthoredMotionToPoint(point, pointIndex, decoded, ambientTime, reducedMotion = false) {
+  if (reducedMotion) return point;
+  return applyAboutAuthoredMotion(point, decoded.motionGroups[pointIndex], decoded.authoredMotion);
 }
 
 const SURFEL_VERTEX_SHADER = `
@@ -73,6 +78,11 @@ const SURFEL_VERTEX_SHADER = `
   uniform float uCoverage;
   uniform float uBackfaceRetention;
   uniform float uDetailBias;
+  uniform float uPointDensity;
+  uniform float uSolidCoverage;
+  uniform float uBustCoverage;
+  uniform vec2 uGroupProfiles[32];
+  uniform vec2 uTerrainMotionGroups;
   uniform float uPerspectiveResponse;
   uniform float uFogStartWU;
   uniform float uFogEndWU;
@@ -83,6 +93,8 @@ const SURFEL_VERTEX_SHADER = `
   uniform float uManifestationSpread;
   uniform vec4 uModelMaterials[7];
   uniform float uMotionTime;
+  uniform vec4 uAuthoredMotionPivots[32];
+  uniform vec4 uAuthoredMotionVectors[32];
   uniform float uMotionAmountWU;
   uniform float uMotionScaleWU;
   uniform float uMotionCoherence;
@@ -98,14 +110,23 @@ const SURFEL_VERTEX_SHADER = `
 
   varying vec2 vCircle;
   varying float vPalette;
+  varying float vSurfaceLight;
 
   float separatedSurfelRadius(
     float physicalRadiusPx,
     float surfaceFacing,
     float coverage,
     float minimumRadiusPx,
-    float maximumRadiusPx
+    float maximumRadiusPx,
+    float profile
   ) {
+    if (profile > 0.5) {
+      // Surface points overlap to own a continuous opaque silhouette. Reducing
+      // the point population changes texture, not the physical object's size.
+      float surfaceCoverage = profile > 1.5 ? uBustCoverage : uSolidCoverage;
+      return min(maximumRadiusPx, max(minimumRadiusPx,
+        physicalRadiusPx * surfaceCoverage / sqrt(max(0.25, uPointDensity))));
+    }
     // Bound the billboard by its radius-derived projected spacing. At grazing
     // angles its source area is foreshortened; a fixed pixel floor otherwise
     // turns distant rows into solid colour bands. Keep every source point and
@@ -129,6 +150,14 @@ const SURFEL_VERTEX_SHADER = `
       normal.xy = (1.0 - abs(normal.yx)) * signs;
     }
     return normalize(normal);
+  }
+
+  vec3 rotateAroundAxis(vec3 vector, vec3 axis, float angle) {
+    float cosine = cos(angle);
+    float sine = sin(angle);
+    return vector * cosine
+      + cross(axis, vector) * sine
+      + axis * dot(axis, vector) * (1.0 - cosine);
   }
 
   void main() {
@@ -164,6 +193,30 @@ const SURFEL_VERTEX_SHADER = `
       vPalette = iPalette;
       return;
     }
+    vec3 authoredPosition = iPosition;
+    vec3 authoredNormal = octDecodeNormal(iNormalOct);
+    int motionIndex = int(floor(iMotionGroup + 0.5));
+    vec3 motionPivot = uAuthoredMotionPivots[motionIndex].xyz;
+    vec4 motionVector = uAuthoredMotionVectors[motionIndex];
+    float motionType = uAuthoredMotionPivots[motionIndex].w;
+    vec2 surfaceProfile = uGroupProfiles[motionIndex];
+    if (uReducedMotion < 0.5 && (motionType == 1.0 || motionType == 3.0)) {
+      float angle = motionVector.w;
+      vec3 axis = normalize(motionVector.xyz);
+      authoredPosition = motionPivot
+        + rotateAroundAxis(iPosition - motionPivot, axis, angle);
+      authoredNormal = normalize(rotateAroundAxis(authoredNormal, axis, angle));
+    } else if (uReducedMotion < 0.5 && motionType == 2.0) {
+      float wavelengthWU = max(0.001, motionPivot.y);
+      float spatialPhase = (iPosition.x + iPosition.z * 0.61)
+        * (6.28318530718 / wavelengthWU);
+      float phase = motionVector.w;
+      float primary = sin(spatialPhase + phase) - sin(spatialPhase);
+      float secondary = sin(spatialPhase * 1.73 - phase * 0.64 + 1.2)
+        - sin(spatialPhase * 1.73 + 1.2);
+      float displacement = motionPivot.x * (primary + motionPivot.z * secondary);
+      authoredPosition += normalize(motionVector.xyz) * displacement;
+    }
     float groupPhase = iMotionGroup * 2.39996323 * uMotionCoherence;
     vec3 rigidMotion = vec3(
       sin((uMotionTime * 0.71) + groupPhase) * 0.6,
@@ -196,8 +249,17 @@ const SURFEL_VERTEX_SHADER = `
       rigidMotion = vec3(0.0, uTerminalAmplitudeWU * response, 0.0);
       individualMotion = vec3(0.0);
     }
-    vec4 viewCenter = modelViewMatrix * vec4(iPosition + rigidMotion + individualMotion, 1.0);
-    vec3 viewNormal = normalize(normalMatrix * octDecodeNormal(iNormalOct));
+    // A sculpture, gate, or terrain surface has one authored transform. Only
+    // atmospheric points use the small independent drift field.
+    rigidMotion *= surfaceProfile.y;
+    individualMotion *= surfaceProfile.y;
+    vec4 viewCenter = modelViewMatrix * vec4(authoredPosition + rigidMotion + individualMotion, 1.0);
+    vec3 viewNormal = normalize(normalMatrix * authoredNormal);
+    // Portrait form modulates the shared Home material using its authored
+    // surface normal. The point sprite alone cannot describe facial planes.
+    vSurfaceLight = surfaceProfile.x > 1.5
+      ? 0.38 + 0.62 * max(0.0, dot(viewNormal, normalize(vec3(-0.45, 0.65, 1.0))))
+      : 1.0;
     float surfaceFacing = dot(viewNormal, normalize(-viewCenter.xyz));
     float cameraDepth = max(0.0001, -viewCenter.z);
     // Break the fog boundary into a shallow, stable volume in world space.
@@ -252,7 +314,8 @@ const SURFEL_VERTEX_SHADER = `
       0.12,
       1.0
     );
-    if ((iPreserve < 0.5 && iLodRank > detailFraction)
+    float population = surfaceProfile.x > 0.5 ? uPointDensity : detailFraction * uPointDensity;
+    if (iLodRank > population
       || surfaceFacing < -clamp(uBackfaceRetention, 0.0, 1.0)
       || revealProgress <= 0.0) {
       gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
@@ -265,7 +328,8 @@ const SURFEL_VERTEX_SHADER = `
       surfaceFacing,
       uCoverage,
       uMinPointSizePx,
-      max(uMinPointSizePx, uMaxPointSizePx)
+      max(uMinPointSizePx, uMaxPointSizePx),
+      surfaceProfile.x
     );
     // Fog admits each circle with one local zero-to-full growth. The route
     // entrance can scale that first material arrival once; stage windows only
@@ -292,9 +356,17 @@ const SURFEL_FRAGMENT_SHADER = `
   uniform vec3 uPalette5;
   uniform float uDepthCorePass;
   uniform float uEdgeSoftness;
+  uniform float uUseMaterialAtlas;
+  uniform sampler2D uMaterialAtlas;
+  uniform float uMaterialAtlasCellScale;
+  uniform vec2 uMaterialAtlasInset;
+  uniform vec2 uMaterialAtlasSpriteScale;
+  uniform vec4 uMaterialSlots0;
+  uniform vec2 uMaterialSlots1;
 
   varying vec2 vCircle;
   varying float vPalette;
+  varying float vSurfaceLight;
 
   vec3 paletteColor(float role) {
     if (role < 0.5) return uPalette0;
@@ -305,23 +377,44 @@ const SURFEL_FRAGMENT_SHADER = `
     return uPalette5;
   }
 
+  float materialSlot(float role) {
+    if (role < 0.5) return uMaterialSlots0.x;
+    if (role < 1.5) return uMaterialSlots0.y;
+    if (role < 2.5) return uMaterialSlots0.z;
+    if (role < 3.5) return uMaterialSlots0.w;
+    if (role < 4.5) return uMaterialSlots1.x;
+    return uMaterialSlots1.y;
+  }
+
   void main() {
     float circleRadius = length(vCircle);
     if (circleRadius > 1.0) discard;
     float edgeWidth = max(fwidth(circleRadius) * uEdgeSoftness, 0.018);
     float edge = 1.0 - smoothstep(1.0 - edgeWidth, 1.0, circleRadius);
 
-    // About circles use the same flat material as Home. Geometry and depth
-    // still describe the Blender scene; lighting never mutates palette colour.
     vec3 shaded = paletteColor(vPalette);
+    float materialAlpha = 1.0;
+    if (uUseMaterialAtlas > 0.5) {
+      vec2 localUv = (vCircle * 0.5) + vec2(0.5);
+      vec2 atlasUv = vec2(
+        materialSlot(vPalette) * uMaterialAtlasCellScale
+          + uMaterialAtlasInset.x
+          + localUv.x * uMaterialAtlasSpriteScale.x,
+        uMaterialAtlasInset.y + localUv.y * uMaterialAtlasSpriteScale.y
+      );
+      vec4 materialSample = texture2D(uMaterialAtlas, atlasUv);
+      shaded = materialSample.rgb;
+      materialAlpha = materialSample.a;
+      if (materialAlpha <= 0.025) discard;
+    }
+    shaded *= vSurfaceLight;
     if (uDepthCorePass > 0.5) {
-      // Every admitted surfel owns an opaque, true-palette interior. Fog never
-      // dilutes its colour into the page background.
+      // The shared Home shading keeps an opaque depth-owning interior.
       if (circleRadius > 0.96) discard;
       gl_FragColor = vec4(shaded, 1.0);
     } else {
       if (circleRadius <= 0.96) discard;
-      float alpha = edge;
+      float alpha = edge * materialAlpha;
       if (alpha <= 0.025) discard;
       // Multisample alpha-to-coverage converts this alpha into sample coverage.
       // Covered samples own depth without alpha blending, so circles stay clean
@@ -524,6 +617,14 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
   const lodRanks = new Float32Array(count);
   const revealRanks = new Uint16Array(count);
   const motionGroups = new Uint8Array(count);
+  const authoredMotion = createAboutAuthoredMotion(meta.motionGroups);
+  const motionPivots = authoredMotion.pivots;
+  const motionVectors = authoredMotion.vectors;
+  const motionSlotByGroup = new Int16Array(256);
+  motionSlotByGroup.fill(-1);
+  (meta.motionGroups || []).forEach(({ id, motion }) => {
+    if (motion) motionSlotByGroup[id] = id;
+  });
   const featureClasses = new Uint8Array(count);
   const preserveFlags = new Uint8Array(count);
   const visibilityStartsWU = new Float32Array(count);
@@ -569,6 +670,9 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     // records; they never recolour individual surfels.
     paletteRoles[destinationIndex] = view.getUint8(offset + 28);
     motionGroups[destinationIndex] = view.getUint8(offset + 29);
+    if (motionGroups[destinationIndex] >= MAX_AUTHORED_MOTION_GROUPS) {
+      throw new RangeError('A point motion group exceeds the 32-group shader capacity.');
+    }
     featureClasses[destinationIndex] = view.getUint8(offset + 30);
     preserveFlags[destinationIndex] = view.getUint8(offset + 31) ? 1 : 0;
   }
@@ -590,6 +694,10 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
     lodRanks,
     revealRanks,
     motionGroups,
+    authoredMotion,
+    motionPivots,
+    motionVectors,
+    motionSlotByGroup,
     featureClasses,
     preserveFlags,
     visibilityStartsWU,
@@ -600,9 +708,13 @@ function decodeV2Surfels(meta, buffer, qualityTier) {
 }
 
 function resolveEffectiveVisibilityWindows(windows) {
-  return Object.freeze(windows.map((window, index) => {
-    const previous = windows[index - 1];
-    const next = windows[index + 1];
+  return Object.freeze(windows.map((window) => {
+    const previous = windows
+      .filter((candidate) => Number(candidate.startWU) < Number(window.startWU))
+      .sort((left, right) => Number(right.startWU) - Number(left.startWU))[0];
+    const next = windows
+      .filter((candidate) => Number(candidate.startWU) > Number(window.startWU))
+      .sort((left, right) => Number(left.startWU) - Number(right.startWU))[0];
     const authoredHandoffWU = Math.max(
       0.001,
       finiteNumberOrNull(window.handoffWU) ?? DEFAULT_VISIBILITY_HANDOFF_WU,
@@ -613,15 +725,14 @@ function resolveEffectiveVisibilityWindows(windows) {
     const outgoingOverlapWU = next
       ? Math.max(0, Number(window.endWU) - Number(next.startWU))
       : Number.POSITIVE_INFINITY;
-    // Split each adjacent overlap into complementary halves. The arriving
-    // stage settles before the departing stage recedes, so the combined
-    // population never falls below one full stage and physical passages are
-    // fully admitted before the camera reaches them.
+    // Split short adjacent overlaps into complementary halves, but never let a
+    // long-lived composited subject stretch another model's authored reveal.
+    // This keeps long-lived composited subjects from slowing adjacent reveals.
     const entranceHandoffWU = Number.isFinite(incomingOverlapWU)
-      ? Math.max(0.001, incomingOverlapWU * 0.5)
+      ? Math.min(authoredHandoffWU, Math.max(0.001, incomingOverlapWU * 0.5))
       : authoredHandoffWU;
     const exitHandoffWU = Number.isFinite(outgoingOverlapWU)
-      ? Math.max(0.001, outgoingOverlapWU * 0.5)
+      ? Math.min(authoredHandoffWU, Math.max(0.001, outgoingOverlapWU * 0.5))
       : authoredHandoffWU;
     return Object.freeze({
       ...window,
@@ -701,6 +812,11 @@ function createUniforms(snapshot = getSimulationPaletteSnapshot()) {
     uCoverage: { value: 0.7 },
     uBackfaceRetention: { value: 0 },
     uDetailBias: { value: 1 },
+    uPointDensity: { value: 1 },
+    uSolidCoverage: { value: 1.15 },
+    uBustCoverage: { value: 0.85 },
+    uGroupProfiles: { value: Array.from({ length: 32 }, () => new THREE.Vector2()) },
+    uTerrainMotionGroups: { value: new THREE.Vector2(-1, -1) },
     uPerspectiveResponse: { value: 1 },
     uFogStartWU: { value: 14 },
     uFogEndWU: { value: 70 },
@@ -711,6 +827,12 @@ function createUniforms(snapshot = getSimulationPaletteSnapshot()) {
     uManifestationSpread: { value: 0.24 },
     uModelMaterials: { value: Array.from({ length: 7 }, () => new THREE.Vector4(-1, -1, 1, 1)) },
     uMotionTime: { value: 0 },
+    uAuthoredMotionPivots: {
+      value: Array.from({ length: MAX_AUTHORED_MOTION_GROUPS }, () => new THREE.Vector4()),
+    },
+    uAuthoredMotionVectors: {
+      value: Array.from({ length: MAX_AUTHORED_MOTION_GROUPS }, () => new THREE.Vector4()),
+    },
     uMotionAmountWU: { value: 0 },
     uMotionScaleWU: { value: 20 },
     uMotionCoherence: { value: 0.72 },
@@ -724,6 +846,13 @@ function createUniforms(snapshot = getSimulationPaletteSnapshot()) {
     uTerminalDelay: { value: 2.6 },
     uTerminalPulseDuration: { value: 2 },
     uEdgeSoftness: { value: 1.35 },
+    uUseMaterialAtlas: { value: 0 },
+    uMaterialAtlas: { value: null },
+    uMaterialAtlasCellScale: { value: 1 },
+    uMaterialAtlasInset: { value: new THREE.Vector2() },
+    uMaterialAtlasSpriteScale: { value: new THREE.Vector2(1, 1) },
+    uMaterialSlots0: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uMaterialSlots1: { value: new THREE.Vector2(0, 0) },
     uPalette0: { value: new THREE.Color(paletteColors[0]) },
     uPalette1: { value: new THREE.Color(paletteColors[1]) },
     uPalette2: { value: new THREE.Color(paletteColors[2]) },
@@ -731,6 +860,37 @@ function createUniforms(snapshot = getSimulationPaletteSnapshot()) {
     uPalette4: { value: new THREE.Color(paletteColors[4]) },
     uPalette5: { value: new THREE.Color(paletteColors[5]) },
   };
+}
+
+function createSimulationBodyAtlasTexture(atlas) {
+  const texture = new THREE.CanvasTexture(atlas.canvas);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.premultiplyAlpha = false;
+  if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function applySimulationBodyAtlas(uniforms, atlas, texture, colors) {
+  uniforms.uUseMaterialAtlas.value = atlas && texture ? 1 : 0;
+  uniforms.uMaterialAtlas.value = texture;
+  if (!atlas) return;
+  uniforms.uMaterialAtlasCellScale.value = atlas.cellStridePx / atlas.widthPx;
+  uniforms.uMaterialAtlasInset.value.set(
+    atlas.gutterPx / atlas.widthPx,
+    atlas.gutterPx / atlas.heightPx,
+  );
+  uniforms.uMaterialAtlasSpriteScale.value.set(
+    atlas.detailPx / atlas.widthPx,
+    atlas.detailPx / atlas.heightPx,
+  );
+  const slots = colors.map((color) => atlas.getSlot(color));
+  uniforms.uMaterialSlots0.value.set(slots[0], slots[1], slots[2], slots[3]);
+  uniforms.uMaterialSlots1.value.set(slots[4], slots[5]);
 }
 
 function syncPalette(uniforms, snapshot = getSimulationPaletteSnapshot()) {
@@ -765,6 +925,9 @@ function arrayBytes(decoded) {
     + decoded.lodRanks.byteLength
     + decoded.revealRanks.byteLength
     + decoded.motionGroups.byteLength
+    + decoded.motionPivots.byteLength
+    + decoded.motionVectors.byteLength
+    + decoded.motionSlotByGroup.byteLength
     + decoded.featureClasses.byteLength
     + decoded.preserveFlags.byteLength
     + decoded.visibilityStartsWU.byteLength
@@ -893,9 +1056,21 @@ function modelFramingSnapshot(
         decoded.positions[positionOffset + 1],
         decoded.positions[positionOffset + 2],
       );
+      const sourceX = point.x;
+      const sourceY = point.y;
+      const sourceZ = point.z;
+      if (renderState) {
+        applyAuthoredMotionToPoint(
+          point,
+          pointIndex,
+          decoded,
+          renderState.authoredTime,
+          reducedMotion,
+        );
+      }
       const fogSpanWU = Math.max(0.001, controls.fogEndWU - controls.fogStartWU);
       const fogVolumeField = Math.sin(
-        point.x * 0.031 + point.y * 0.047 + point.z * 0.019
+        sourceX * 0.031 + sourceY * 0.047 + sourceZ * 0.019
           + decoded.motionGroups[pointIndex] * 0.37,
       );
       const fogVolumeOffsetWU = fogVolumeField * Math.min(3.5, fogSpanWU * 0.025);
@@ -925,7 +1100,7 @@ function modelFramingSnapshot(
                 surfaceFacing: sweepNormal.dot(view.multiplyScalar(-1).normalize()),
                 lodRank: decoded.lodRanks[pointIndex], featureClass: decoded.featureClasses[pointIndex],
                 preserve: decoded.preserveFlags[pointIndex] >= 0.5, revealProgress: 1,
-                detailBiasScale: model.material?.detailBiasScale ?? 1,
+                detailBiasScale: model.material?.detailBiasScale ?? 1, renderingProfile: resolveAboutSurfelProfile(model),
               }, controls);
             };
             const middle = startWorld.clone();
@@ -950,10 +1125,10 @@ function modelFramingSnapshot(
         const time = ((phase - region * responseDelaySeconds) % periodSeconds + periodSeconds) % periodSeconds;
         const pulse = Math.sin(Math.PI * Math.min(1, time / pulseDurationSeconds));
         point.y += amplitude * pulse * pulse;
-      } else if (renderState && controls.motionAmountWU > 0) {
+      } else if (renderState && hasAboutParticleDrift(model) && controls.motionAmountWU > 0) {
         const time = renderState.motionTime;
         const groupPhase = decoded.motionGroups[pointIndex] * 2.39996323 * controls.motionCoherence;
-        const pointPhase = (point.x * 0.62 + point.y * 0.94 + point.z * 1.18) / controls.motionScaleWU
+        const pointPhase = (sourceX * 0.62 + sourceY * 0.94 + sourceZ * 1.18) / controls.motionScaleWU
           + decoded.revealRanks[pointIndex] / 65535 * 5.3 + decoded.lodRanks[pointIndex] * 9.7;
         const individual = 0.12 + 0.16 * (1 - controls.motionCoherence);
         point.x += controls.motionAmountWU * (Math.sin(time * 0.71 + groupPhase) * 0.6
@@ -1019,14 +1194,16 @@ function modelFramingSnapshot(
         const normalOffset = pointIndex * 2;
         const normal = new THREE.Vector3(...decodeAboutSurfelNormal(
           decoded.normalOct[normalOffset], decoded.normalOct[normalOffset + 1],
-        )).applyMatrix3(normalMatrix).normalize();
+        ));
+        if (!reducedMotion) applyAboutAuthoredMotion(normal, decoded.motionGroups[pointIndex], decoded.authoredMotion, true);
+        normal.applyMatrix3(normalMatrix).normalize();
         const surfaceFacing = normal.dot(viewPoint.multiplyScalar(-1).normalize());
         const renderedRadiusPx = resolveAboutSurfelRadiusPx({
           radiusWU: decoded.radii[pointIndex], cameraDepthWU: rawCameraDepth,
           projectionScalePx: renderState.projectionScalePx, surfaceFacing,
           lodRank: decoded.lodRanks[pointIndex], featureClass: decoded.featureClasses[pointIndex],
           preserve: decoded.preserveFlags[pointIndex] >= 0.5, revealProgress,
-          detailBiasScale: model.material?.detailBiasScale ?? 1,
+          detailBiasScale: model.material?.detailBiasScale ?? 1, renderingProfile: resolveAboutSurfelProfile(model),
         }, controls);
         if (renderedRadiusPx > 0 && framed) {
           renderedVisibleCount += 1;
@@ -1239,7 +1416,6 @@ export function createBlenderPointScene({
   );
 
   const qualityTier = pointProfile || (layoutProfile === 'mobile' ? 'mobile' : 'desktop');
-  const maximumPixelRatio = qualityTier === 'mobile' ? 1.25 : 1.5;
   const renderer = new THREE.WebGLRenderer({
     canvas,
     alpha: true,
@@ -1255,30 +1431,16 @@ export function createBlenderPointScene({
   const cameraAuthoredPosition = new THREE.Vector3();
   const cameraAuthoredQuaternion = new THREE.Quaternion();
   const cameraTargetQuaternion = new THREE.Quaternion();
-  const cameraBasePosition = new THREE.Vector3();
-  const cameraForward = new THREE.Vector3();
-  const cameraRight = new THREE.Vector3();
-  const cameraUp = new THREE.Vector3();
-  const cameraLookTarget = new THREE.Vector3();
-  const cameraLookMatrix = new THREE.Matrix4();
   const continuityNormalMatrix = new THREE.Matrix3();
   const continuityPoint = new THREE.Vector3();
   const continuityViewPoint = new THREE.Vector3();
   const continuityProjectedPoint = new THREE.Vector3();
   const continuityNormal = new THREE.Vector3();
-  const pointerPanController = createAboutNarrativeCameraPointerPanController({
-    initialNowMs: performance.now(),
-  });
-  const pointerPanSample = createAboutNarrativeCameraPointerPanSample();
-  const steadycamController = createAboutNarrativeCameraSteadycamController({
-    initialNowMs: performance.now(),
-  });
-  const steadycamSample = createAboutNarrativeCameraSteadycamSample();
-  const steadycamAuthoredPosition = [0, 0, 0];
-  const steadycamAuthoredQuaternion = [0, 0, 0, 1];
   const journeySample = createAboutNarrativeJourneySample();
-  const finePointerQuery = window.matchMedia('(pointer: fine)');
   const uniforms = createUniforms();
+  const finaleFraming = createAboutFinaleFraming();
+  const finaleSceneZone = root.querySelector('[data-about-finale-scene-zone]');
+  let baseProjectionScalePx = 1;
   const listeners = new Set();
   const abortController = new AbortController();
   let activeAbortController = abortController;
@@ -1316,9 +1478,9 @@ export function createBlenderPointScene({
   let drawCalls = 0;
   let stageRadiusCoupledToVisibility = false;
   let cameraRollDegrees = 0;
-  let lastCameraProgress = null;
   let lastCameraLocked = null;
   let motionTime = 0;
+  let authoredTime = 0;
   let terminalStudy = null;
   let bufferBuilds = 0;
   let authoredCameraFog = Object.freeze({ startWU: 14, endWU: 150, curve: 1.2 });
@@ -1326,6 +1488,9 @@ export function createBlenderPointScene({
   let paletteId = '';
   let paletteGeneration = 0;
   let paletteUniformUpdates = 0;
+  let materialAtlasKey = '';
+  let materialAtlasTexture = null;
+  let materialTheme = isDarkThemeDocument() ? 'dark' : 'light';
 
   const notify = () => listeners.forEach((listener) => listener());
   const setState = (nextState, nextError = '') => {
@@ -1343,7 +1508,7 @@ export function createBlenderPointScene({
     sceneContractStatus = status;
     sceneContractDiagnostics = diagnostics;
     root.dataset.sceneContractStatus = status;
-    root.dataset.aboutJourneyCertifiable = status === 'compatible' ? 'true' : 'false';
+    root.dataset.aboutJourneyValid = status === 'compatible' ? 'true' : 'false';
   };
 
   const resetPresentation = ({ clear = false } = {}) => {
@@ -1395,7 +1560,7 @@ export function createBlenderPointScene({
     const rect = canvas.getBoundingClientRect();
     width = Math.max(1, rect.width);
     height = Math.max(1, rect.height);
-    pixelRatio = Math.min(window.devicePixelRatio || 1, maximumPixelRatio);
+    pixelRatio = Math.min(window.devicePixelRatio || 1, controls.pixelRatioCap);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -1409,7 +1574,19 @@ export function createBlenderPointScene({
     uniforms.uViewportPx.value.set(width * pixelRatio, height * pixelRatio);
     uniforms.uProjectionScalePx.value = (height * pixelRatio)
       / Math.max(0.0001, 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)));
-    pointerPanController.setViewport(rect.left, rect.top, rect.width, rect.height);
+    baseProjectionScalePx = uniforms.uProjectionScalePx.value;
+    // The finale is initially positioned offscreen in the scrolling story.
+    // Measure its internal layout relative to its own viewport-sized field.
+    const zoneRect = finaleSceneZone?.getBoundingClientRect();
+    const fieldRect = finaleSceneZone?.closest('[data-text-field-id]')?.getBoundingClientRect();
+    const imageRect = zoneRect && fieldRect ? {
+      left: zoneRect.left,
+      right: zoneRect.right,
+      top: rect.top + zoneRect.top - fieldRect.top,
+      bottom: rect.top + zoneRect.bottom - fieldRect.top,
+      height: zoneRect.height,
+    } : null;
+    finaleFraming.configure(camera, cameraTrack, meta, rect, imageRect, decoded);
   };
 
   const disposeDecodedScene = () => {
@@ -1431,7 +1608,6 @@ export function createBlenderPointScene({
     resolvedJourneyCameraTrack = null;
     resolvedJourneyMeta = null;
     resolvedModelVisibilityWindows = EMPTY_VISIBILITY_WINDOWS;
-    lastCameraProgress = null;
     lastCameraLocked = null;
     activeCount = 0;
     drawCalls = 0;
@@ -1447,12 +1623,34 @@ export function createBlenderPointScene({
       curve: Number(sourceFog.curve),
     }) : authoredCameraFog;
     for (const material of uniforms.uModelMaterials.value) material.set(-1, -1, 1, 1);
+    uniforms.uAuthoredMotionPivots.value.forEach((pivot) => pivot.set(0, 0, 0, 0));
+    uniforms.uAuthoredMotionVectors.value.forEach((vector) => vector.set(0, 0, 0, 0));
+    (meta.motionGroups || []).filter((group) => group.motion).forEach((group) => {
+      const motionSlot = group.id;
+      const pivotOffset = motionSlot * 3;
+      const vectorOffset = motionSlot * 4;
+      uniforms.uAuthoredMotionPivots.value[motionSlot].set(
+        nextDecoded.motionPivots[pivotOffset],
+        nextDecoded.motionPivots[pivotOffset + 1],
+        nextDecoded.motionPivots[pivotOffset + 2],
+        nextDecoded.authoredMotion.types[group.id],
+      );
+      uniforms.uAuthoredMotionVectors.value[motionSlot].fromArray(
+        nextDecoded.motionVectors,
+        vectorOffset,
+      );
+    });
+    uniforms.uTerrainMotionGroups.value.set(-1, -1);
     for (const [index, model] of meta.models.entries()) {
-      if (!model.material) continue;
-      const groups = meta.motionGroups.filter((entry) => entry.key === model.motionKey
-        || entry.key.startsWith(`${model.motionKey}.`)).map((entry) => entry.id);
+      const groups = (meta.motionGroups || []).filter((entry) => entry.key === model.motionKey
+        || entry.key.startsWith(`${model.key}.`)).map((entry) => entry.id);
+      if (!groups.length) continue;
       uniforms.uModelMaterials.value[index].set(Math.min(...groups), Math.max(...groups),
-        model.material.manifestationSpreadScale, model.material.detailBiasScale);
+        model.material?.manifestationSpreadScale ?? 1, model.material?.detailBiasScale ?? 1);
+      groups.forEach((id) => uniforms.uGroupProfiles.value[id].set(
+        resolveAboutSurfelProfile(model), hasAboutParticleDrift(model) ? 1 : 0,
+      ));
+      if (model.key === 'about.03') uniforms.uTerrainMotionGroups.value.set(Math.min(...groups), Math.max(...groups));
     }
     terminalStudy = meta.terminalResponse || (RUNTIME_DIAGNOSTICS_ENABLED
       && meta.terminalStudy?.schema === 'about-terminal-study/v1'
@@ -1460,7 +1658,7 @@ export function createBlenderPointScene({
     uniforms.uTerminalMotionGroups.value.set(-1, -1);
     if (terminalStudy) {
       const model = meta.models.find((entry) => entry.key === terminalStudy.modelKey);
-      const groups = meta.motionGroups.filter((entry) => entry.key === model?.motionKey
+      const groups = (meta.motionGroups || []).filter((entry) => entry.key === model?.motionKey
         || entry.key.startsWith(`${model?.motionKey}.`)).map((entry) => entry.id);
       if (groups.length) {
         uniforms.uTerminalMotionGroups.value.set(Math.min(...groups), Math.max(...groups));
@@ -1602,10 +1800,9 @@ export function createBlenderPointScene({
       ? journeySample.progress
       : (frame?.durationWU > 0 ? frame.storyWU / frame.durationWU : 0);
     const cameraLocked = journeySample.valid && journeySample.locked;
-    writeAboutSceneLook(controls, frame, entranceScale, journeySample);
-    controls.fogStartWU = authoredCameraFog.startWU;
-    controls.fogEndWU = authoredCameraFog.endWU;
-    controls.fogCurve = authoredCameraFog.curve;
+    writeAboutSceneLook(controls, frame, entranceScale, journeySample, authoredCameraFog);
+    const nextPixelRatio = Math.min(window.devicePixelRatio || 1, controls.pixelRatioCap);
+    if (Math.abs(nextPixelRatio - pixelRatio) > 0.001) resize();
     if (cameraTrack) {
       sampleCameraTrack(
         cameraTrack,
@@ -1614,71 +1811,34 @@ export function createBlenderPointScene({
         cameraAuthoredQuaternion,
         cameraTargetQuaternion,
       );
-      steadycamAuthoredPosition[0] = cameraAuthoredPosition.x;
-      steadycamAuthoredPosition[1] = cameraAuthoredPosition.y;
-      steadycamAuthoredPosition[2] = cameraAuthoredPosition.z;
-      steadycamAuthoredQuaternion[0] = cameraAuthoredQuaternion.x;
-      steadycamAuthoredQuaternion[1] = cameraAuthoredQuaternion.y;
-      steadycamAuthoredQuaternion[2] = cameraAuthoredQuaternion.z;
-      steadycamAuthoredQuaternion[3] = cameraAuthoredQuaternion.w;
-      steadycamController.configure(frame?.globals?.camera);
-      const snapSteadycam = Boolean(
-        frame?.reducedMotion
-        || cameraLocked
-        || document.hidden
-        || lastCameraProgress == null
-        || Math.abs(progress - lastCameraProgress) > 0.08
-      );
-      steadycamController.sampleInto(
-        steadycamSample,
-        steadycamAuthoredPosition,
-        steadycamAuthoredQuaternion,
-        performance.now(),
-        snapSteadycam,
-      );
-      lastCameraProgress = progress;
-      camera.position.set(
-        steadycamSample.position[0],
-        steadycamSample.position[1],
-        steadycamSample.position[2],
-      );
-      camera.quaternion.set(
-        steadycamSample.quaternion[0],
-        steadycamSample.quaternion[1],
-        steadycamSample.quaternion[2],
-        steadycamSample.quaternion[3],
-      ).normalize();
+      // One scroll sample owns the complete camera pose. Speed smoothing belongs
+      // to the reversible journey map, never a second time-based camera filter.
+      camera.position.copy(cameraAuthoredPosition);
+      camera.quaternion.copy(cameraAuthoredQuaternion);
       cameraRollDegrees = sampleAuthoredRollDegrees(cameraTrack, progress);
-      cameraBasePosition.copy(camera.position);
-      cameraForward.set(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
-      cameraRight.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-      cameraUp.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-      pointerPanController.configure(frame?.globals?.camera);
-      pointerPanController.sampleInto(
-        pointerPanSample,
-        performance.now(),
-        Boolean(frame?.reducedMotion || cameraLocked),
-        document.hidden,
-        finePointerQuery.matches,
-      );
-      const lateralWU = Math.tan(THREE.MathUtils.degToRad(-pointerPanSample.yawDegrees))
-        * POINTER_LOOK_DISTANCE_WU;
-      const verticalWU = Math.tan(THREE.MathUtils.degToRad(pointerPanSample.pitchDegrees))
-        * POINTER_LOOK_DISTANCE_WU * 0.35;
-      camera.position
-        .addScaledVector(cameraRight, lateralWU)
-        .addScaledVector(cameraUp, verticalWU);
-      cameraLookTarget.copy(cameraBasePosition)
-        .addScaledVector(cameraForward, POINTER_LOOK_DISTANCE_WU);
-      cameraLookMatrix.lookAt(camera.position, cameraLookTarget, cameraUp);
-      camera.quaternion.setFromRotationMatrix(cameraLookMatrix);
     }
+    const framingProgress = resolvedJourneyMap
+      ? smoothstep(resolvedJourneyMap.finaleStartWU, resolvedJourneyMap.invitationStoryWU, Number(frame?.storyWU) || 0)
+      : 0;
+    uniforms.uProjectionScalePx.value = baseProjectionScalePx * finaleFraming.apply(
+      camera, framingProgress, controls.bustTurnAmount * controls.masterMotionIntensity,
+    );
     if (lastCameraLocked !== cameraLocked) {
       lastCameraLocked = cameraLocked;
       root.dataset.aboutCameraLocked = cameraLocked ? 'true' : 'false';
     }
     // Every temporal shader frequency is an integer multiple of 0.01. This
     // shared period bounds GPU phase without changing any point's pose at wrap.
+    authoredTime = Math.max(0, Number(frame?.ambientTime) || 0);
+    advanceAboutAuthoredMotion(decoded.authoredMotion, authoredTime, controls, Boolean(frame?.reducedMotion));
+    for (let id = 0; id < MAX_AUTHORED_MOTION_GROUPS; id += 1) {
+      if (!decoded.authoredMotion.types[id]) continue;
+      uniforms.uAuthoredMotionPivots.value[id].set(
+        decoded.motionPivots[id * 3], decoded.motionPivots[id * 3 + 1],
+        decoded.motionPivots[id * 3 + 2], decoded.authoredMotion.types[id],
+      );
+      uniforms.uAuthoredMotionVectors.value[id].fromArray(decoded.motionVectors, id * 4);
+    }
     const motionPeriod = Math.PI * 200;
     motionTime = ((Number(frame?.ambientTime ?? frame?.storyTime ?? 0) * controls.motionSpeed)
       % motionPeriod + motionPeriod) % motionPeriod;
@@ -1709,6 +1869,9 @@ export function createBlenderPointScene({
     uniforms.uCoverage.value = controls.surfelCoverage;
     uniforms.uBackfaceRetention.value = controls.backfaceRetention;
     uniforms.uDetailBias.value = controls.detailBias;
+    uniforms.uPointDensity.value = controls.pointDensity;
+    uniforms.uSolidCoverage.value = controls.solidCoverage;
+    uniforms.uBustCoverage.value = controls.bustCoverage;
     uniforms.uPerspectiveResponse.value = controls.perspectiveResponse;
     uniforms.uFogStartWU.value = controls.fogStartWU;
     uniforms.uFogEndWU.value = Math.max(controls.fogStartWU + 0.001, controls.fogEndWU);
@@ -1750,6 +1913,13 @@ export function createBlenderPointScene({
   // checks; continuous Playwright sampling reads only this authored state.
   const getMotionSnapshot = () => Object.freeze({
     storyWU: Number(latestFrame?.storyWU) || 0,
+    ambientTime: authoredTime,
+    gpuBufferBuilds: bufferBuilds,
+    authoredMotion: (meta?.motionGroups || []).filter((group) => group.motion).map((group) => ({
+      key: group.key, behavior: group.motion.behavior,
+      phase: decoded?.authoredMotion.phases[group.id] || 0,
+      angle: decoded?.motionVectors[group.id * 4 + 3] || 0,
+    })),
     cameraDistanceWU: journeySample.cameraDistanceWU,
     cameraPosition: Object.freeze(camera.position.toArray()),
     cameraQuaternion: Object.freeze(camera.quaternion.toArray()),
@@ -1824,6 +1994,13 @@ export function createBlenderPointScene({
           const sourceX = continuityPoint.x;
           const sourceY = continuityPoint.y;
           const sourceZ = continuityPoint.z;
+          applyAuthoredMotionToPoint(
+            continuityPoint,
+            pointIndex,
+            decoded,
+            authoredTime,
+            reducedMotion,
+          );
           if (terminalStudy && model.key === terminalStudy.modelKey) {
             const travelXWU = terminalStudy.travelXWU;
             const region = (continuityPoint.x - travelXWU[0])
@@ -1833,7 +2010,7 @@ export function createBlenderPointScene({
               % period + period) % period;
             const pulse = Math.sin(Math.PI * Math.min(1, time / uniforms.uTerminalPulseDuration.value));
             continuityPoint.y += uniforms.uTerminalAmplitudeWU.value * pulse * pulse;
-          } else if (controls.motionAmountWU > 0) {
+          } else if (hasAboutParticleDrift(model) && controls.motionAmountWU > 0) {
             const groupPhase = decoded.motionGroups[pointIndex] * 2.39996323
               * controls.motionCoherence;
             const pointPhase = (sourceX * 0.62 + sourceY * 0.94 + sourceZ * 1.18)
@@ -1890,8 +2067,9 @@ export function createBlenderPointScene({
             normalX = (1 - Math.abs(normalY)) * (normalX >= 0 ? 1 : -1);
             normalY = (1 - Math.abs(oldX)) * (normalY >= 0 ? 1 : -1);
           }
-          continuityNormal.set(normalX, normalY, normalZ).normalize()
-            .applyMatrix3(continuityNormalMatrix).normalize();
+          continuityNormal.set(normalX, normalY, normalZ).normalize();
+          if (!reducedMotion) applyAboutAuthoredMotion(continuityNormal, decoded.motionGroups[pointIndex], decoded.authoredMotion, true);
+          continuityNormal.applyMatrix3(continuityNormalMatrix).normalize();
           const surfaceFacing = continuityNormal.dot(
             continuityViewPoint.multiplyScalar(-1).normalize(),
           );
@@ -1904,7 +2082,7 @@ export function createBlenderPointScene({
             featureClass: decoded.featureClasses[pointIndex],
             preserve: decoded.preserveFlags[pointIndex] >= 0.5,
             revealProgress,
-            detailBiasScale: model.material?.detailBiasScale ?? 1,
+            detailBiasScale: model.material?.detailBiasScale ?? 1, renderingProfile: resolveAboutSurfelProfile(model),
           }, controls);
           if (!(renderedRadiusPx > 0)) continue;
           continuityProjectedPoint.copy(continuityPoint).project(camera);
@@ -2020,13 +2198,29 @@ export function createBlenderPointScene({
     cameraDistancePerStoryWU: resolvedJourneyMap?.durationWU > 0
       ? resolvedJourneyMap.pathLengthWU / resolvedJourneyMap.durationWU : 0,
     journeyMapValid: journeySample.valid,
-    journeyMapCertifiable: journeySample.certifiable,
     cameraLocked: journeySample.locked,
     atInvitation: journeySample.atInvitation,
     storyWU: Number(latestFrame?.storyWU) || 0,
     sceneStoryWU: uniforms.uStoryWU.value,
     ambientTime: Number(latestFrame?.ambientTime) || 0,
     motionTime,
+    finaleFraming: finaleFraming.snapshot(),
+    storyJourneyMap: resolvedStoryJourneyMap,
+    authoredMotion: Object.freeze({
+      timeSource: 'ambient-seconds',
+      time: authoredTime,
+      active: !latestFrame?.reducedMotion,
+      objectCount: (meta?.source?.objects || []).filter((object) => object.motion).length,
+      continuousRotationCount: (meta?.source?.objects || []).filter(
+        (object) => object.motion?.behavior === 'continuous-rotation',
+      ).length,
+      boundedRotationCount: (meta?.source?.objects || []).filter(
+        (object) => object.motion?.behavior === 'bounded-rotation',
+      ).length,
+      terrainWaveCount: (meta?.source?.objects || []).filter(
+        (object) => object.motion?.behavior === 'terrain-wave',
+      ).length,
+    }),
     terminalResponse: terminalStudy ? {
       schema: terminalStudy.schema,
       periodSeconds: terminalStudy.periodSeconds,
@@ -2043,8 +2237,7 @@ export function createBlenderPointScene({
     } : null,
     cameraPosition: Object.freeze(camera.position.toArray()),
     cameraQuaternion: Object.freeze(camera.quaternion.toArray()),
-    steadycam: steadycamController.getSnapshot(steadycamSample),
-    pointerPan: Object.freeze({ ...pointerPanSample }),
+    cameraMotionSource: 'shared-scroll-sample',
     stageVisibilityMode: latestFrame?.reducedMotion
       ? 'authored-settled-cuts' : 'authored-bounded-whole-surfel-handoff',
     stageRadiusCoupledToVisibility,
@@ -2067,7 +2260,7 @@ export function createBlenderPointScene({
         pulseDurationSeconds: uniforms.uTerminalPulseDuration.value,
       } : null,
       {
-        motionTime, widthPx: width * pixelRatio, heightPx: height * pixelRatio,
+        motionTime, authoredTime, widthPx: width * pixelRatio, heightPx: height * pixelRatio,
         projectionScalePx: uniforms.uProjectionScalePx.value,
         revealVisibility: Math.min(uniforms.uSceneVisibility.value, uniforms.uOpacity.value),
         presentationScale: uniforms.uEntranceScale.value,
@@ -2081,6 +2274,9 @@ export function createBlenderPointScene({
     paletteId,
     paletteGeneration,
     paletteUniformUpdates,
+    materialAtlasKey,
+    materialTheme,
+    sharedBodyMaterial: uniforms.uUseMaterialAtlas.value > 0.5,
     contextAvailable,
     visible,
     controls: Object.freeze({ ...controls }),
@@ -2148,33 +2344,40 @@ export function createBlenderPointScene({
     resize();
     if (latestFrame) render(latestFrame);
   };
-  const handlePointerMove = (event) => {
-    pointerPanController.setPointerFromClient(
-      event.clientX,
-      event.clientY,
-      event.pointerType,
-      event.buttons,
-    );
-  };
-  const handlePointerLeave = (event) => {
-    pointerPanController.setPointerOutside(event.pointerType);
-  };
-
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(root);
   resizeObserver.observe(canvas);
+  if (finaleSceneZone) resizeObserver.observe(finaleSceneZone);
   canvas.addEventListener('webglcontextlost', handleContextLost);
   canvas.addEventListener('webglcontextrestored', handleContextRestored);
-  root.addEventListener('pointermove', handlePointerMove, { passive: true });
-  root.addEventListener('pointerleave', handlePointerLeave, { passive: true });
   window.addEventListener('resize', resize, { passive: true });
+  const syncBodyMaterial = (snapshot = getSimulationPaletteSnapshot()) => {
+    const colors = resolveAboutSurfelPaletteColors(snapshot);
+    materialTheme = isDarkThemeDocument() ? 'dark' : 'light';
+    const atlas = getSimulationBodyMaterialAtlas(colors, { theme: materialTheme });
+    const nextKey = atlas?.key || 'flat';
+    if (nextKey === materialAtlasKey) return;
+    const previousTexture = materialAtlasTexture;
+    materialAtlasTexture = atlas ? createSimulationBodyAtlasTexture(atlas) : null;
+    materialAtlasKey = nextKey;
+    applySimulationBodyAtlas(uniforms, atlas, materialAtlasTexture, colors);
+    previousTexture?.dispose();
+  };
   const unsubscribePalette = subscribeSimulationPalette((snapshot) => {
     paletteId = snapshot.paletteId;
     paletteGeneration = Number(snapshot.generation) || 0;
     paletteUniformUpdates += 1;
     syncPalette(uniforms, snapshot);
+    syncBodyMaterial(snapshot);
     if (latestFrame && visible) render(latestFrame);
   });
+  const handleMaterialThemeChange = () => {
+    syncBodyMaterial();
+    if (latestFrame && visible) render(latestFrame);
+  };
+  const unsubscribeBodyMaterial = subscribeSimulationBodyMaterial(handleMaterialThemeChange);
+  window.addEventListener(THEME_CHANGE_EVENT, handleMaterialThemeChange);
+  syncBodyMaterial();
   resize();
   void load();
 
@@ -2187,10 +2390,12 @@ export function createBlenderPointScene({
       resizeObserver.disconnect();
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
-      root.removeEventListener('pointermove', handlePointerMove);
-      root.removeEventListener('pointerleave', handlePointerLeave);
       window.removeEventListener('resize', resize);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleMaterialThemeChange);
       unsubscribePalette();
+      unsubscribeBodyMaterial();
+      materialAtlasTexture?.dispose();
+      materialAtlasTexture = null;
       listeners.clear();
       disposeDecodedScene();
       renderer.dispose();
@@ -2202,7 +2407,7 @@ export function createBlenderPointScene({
       delete root.dataset.worldStage;
       delete root.dataset.worldError;
       delete root.dataset.aboutCameraLocked;
-      delete root.dataset.aboutJourneyCertifiable;
+      delete root.dataset.aboutJourneyValid;
       delete root.dataset.bundleIntegrityVerified;
       delete root.dataset.sceneContractStatus;
       delete root.dataset.aboutSceneReady;

@@ -69,15 +69,15 @@ test('a complete line remains visible in the lower, middle and upper viewport', 
   }
 });
 
-test('the clipped V2 reading window owns visibility without a second line-opacity fade', async () => {
+test('the V2 reading window preserves line focus and keyboard access', async () => {
   const css = await readFile(new URL(
     '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css', import.meta.url,
   ), 'utf8');
   assert.match(css, /\[data-editorial-reveal\]\s*\{[^}]*opacity: var\(--editorial-focus-opacity/,
     'Unclipped legacy/editorial views retain their focus treatment.');
-  assert.match(css,
+  assert.doesNotMatch(css,
     /\.about-narrative-lab\[data-about-experience-version='v2'\]:not\(\[data-editor-active='true'\]\)\s+\.about-narrative-render-span--editorial \[data-editorial-reveal\]\s*\{\s*opacity: 1;\s*\}/,
-    'V2 prose, disciplines and career rows must remain opaque throughout the viewport.');
+    'V2 must not bypass the shared focus-opacity treatment.');
   assert.match(css, /\[data-text-field-id\]:focus-within\s*\{\s*clip-path: none;\s*mask-image: none;/,
     'Keyboard focus must still escape the reading clip.');
 });

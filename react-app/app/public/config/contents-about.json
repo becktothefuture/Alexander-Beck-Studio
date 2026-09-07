@@ -3,17 +3,35 @@
   "globals": {
     "scrollSmoothing": 0.64,
     "readingWidthRem": 50,
-    "editorialRevealThreshold": 0.78,
+    "editorialRevealThreshold": 0.18,
     "editorialMotion": {
       "fadeDurationWU": 0.2,
       "maxBlurPx": 0,
       "travelPx": 0
+    },
+    "typography": {
+      "bodySizeScale": 1,
+      "smallBodySizeScale": 1,
+      "eyebrowSizeScale": 1,
+      "mainTitleSizeScale": 1,
+      "inbetweenTitleSizeScale": 1,
+      "bodyLineHeightScale": 1,
+      "smallBodyLineHeightScale": 1,
+      "eyebrowLineHeightScale": 1,
+      "mainTitleLineHeightScale": 1,
+      "inbetweenTitleLineHeightScale": 1,
+      "paragraphSpacingScale": 1,
+      "listingSeparationScale": 1,
+      "rowSpacingScale": 1,
+      "clientRowGapScale": 1,
+      "clientColumnGapScale": 1
     },
     "worldRail": {
       "originZ": 14,
       "unitsPerWU": 18.5
     },
     "camera": {
+      "distanceFogOverride": 0,
       "distanceFogStartWU": 14,
       "distanceFogEndWU": 150,
       "distanceFogCurve": 1.2,
@@ -26,16 +44,20 @@
       "opacity": 1,
       "pointSize": 6,
       "surfelCoverage": 0.7,
-      "backfaceRetention": 1,
+      "backfaceRetention": 0,
       "minPointSize": 1.15,
       "perspectiveResponse": 1,
       "edgeSoftness": 1.35,
       "atmosphereStrength": 1.2,
+      "pixelRatioCap": 2,
       "pointerRadiusPx": 182,
       "pointerForcePx": 0,
       "pointerVariation": 0,
       "pointerResponseMs": 65,
-      "pointerReturnMs": 720
+      "pointerReturnMs": 720,
+      "pointDensity": 1,
+      "solidCoverage": 1.5,
+      "bustCoverage": 1.35
     },
     "swarmTurbulence": {
       "amplitude": 0,
@@ -46,11 +68,11 @@
     },
     "textMotion": {
       "preset": "travelling-title-v1",
-      "standardMaxWidthCh": 21,
+      "standardMaxWidthCh": 12,
       "displayMaxWidthCh": 17,
       "standardViewportY": 50,
       "bookendViewportY": 50,
-      "durationScale": 1.35,
+      "durationScale": 1,
       "startY": 30,
       "openerStartY": 0,
       "endY": -24,
@@ -66,13 +88,28 @@
       "perspective": 1600,
       "entryDepth": 280,
       "exitDepth": 180,
-      "maxBlur": 0
+      "maxBlur": 0,
+      "exitFraction": 0.18
+    },
+    "storyPacing": {
+      "titleToProseGapScreens": 0.5,
+      "readingSpaceScale": 1,
+      "passageScale": 1
+    },
+    "sceneMotion": {
+      "masterIntensity": 1,
+      "masterSpeed": 1,
+      "bodyRotationSpeed": 1,
+      "terrainAmplitude": 1,
+      "terrainSpeed": 1,
+      "bustTurnAmount": 1,
+      "bustTurnSpeed": 1
     }
   },
   "profiles": {
     "desktop": {
       "storyDurationWU": 35,
-      "scrollDurationWU": 35,
+      "scrollDurationWU": 8.8,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -87,7 +124,7 @@
     },
     "tablet": {
       "storyDurationWU": 35,
-      "scrollDurationWU": 35,
+      "scrollDurationWU": 8.8,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -102,7 +139,7 @@
     },
     "mobile": {
       "storyDurationWU": 35,
-      "scrollDurationWU": 35,
+      "scrollDurationWU": 8.8,
       "overrides": {
         "camera": {},
         "visibility": {},
@@ -669,11 +706,7 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "opener",
-            "viewportY": {
-              "desktop": 51,
-              "mobile": 48
-            }
+            "layout": "opener"
           },
           "movement": "spatial",
           "preset": "opener-v1",
@@ -683,7 +716,7 @@
         },
         {
           "id": "text-complexity-idea",
-          "stageId": "about.01",
+          "stageId": "about.00",
           "kind": "title",
           "startWU": 6.133333,
           "focusWU": 6.533333,
@@ -695,20 +728,16 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 70,
-              "mobile": 72
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I’ve always been fascinated by…"
+          "text": "I think in pictures."
         },
         {
           "id": "text-complexity-conditions",
-          "stageId": "about.01",
+          "stageId": "about.00",
           "kind": "title",
           "startWU": 8.066666,
           "focusWU": 8.466666,
@@ -716,24 +745,21 @@
           "publishable": true,
           "flow": {
             "minScreens": 0.8,
-            "gapAfter": "passage",
+            "gapAfter": "none",
+            "gapAfterScreens": 0.9,
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 28,
-              "mobile": 28
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…how ideas become visual."
+          "text": "Design was my way in."
         },
         {
           "id": "text-background-unit",
-          "stageId": "about.02",
+          "stageId": "about.01",
           "kind": "scroll-block",
           "startWU": 11.403143,
           "focusWU": 11.983143,
@@ -775,40 +801,46 @@
                     "id": "dennerlein",
                     "yearLabel": "2014–2017",
                     "employer": "Dennerlein GmbH",
-                    "role": "Art Director"
+                    "role": "Art Director",
+                    "description": "I redesigned an airline website, working on the customer journey and booking flows."
                   },
                   {
                     "id": "yoti",
                     "yearLabel": "2017–2019",
                     "employer": "Yoti",
-                    "role": "Senior Product Designer"
+                    "role": "Senior Product Designer",
+                    "description": "I designed privacy-first onboarding and helped build the design system across web and mobile."
                   },
                   {
                     "id": "hugo-and-cat",
                     "yearLabel": "2020–2024",
                     "employer": "Hugo & Cat",
-                    "role": "Associate Design Director"
+                    "role": "Associate Design Director",
+                    "description": "I directed web and mobile design for Bentley, Gen Digital and S&P Global, and developed shared design standards."
                   },
                   {
                     "id": "mrm",
                     "yearLabel": "Joined 2024",
                     "employer": "MRM (McCann)",
-                    "role": "Associate Design Director"
+                    "role": "Associate Design Director",
+                    "description": "I shaped UX and UI strategy, ran research and stakeholder workshops, and built interactive prototypes alongside engineers."
                   },
                   {
                     "id": "critical-mass",
                     "yearLabel": "May–Sep 2026",
                     "employer": "Critical Mass",
-                    "role": "Associate Design Director"
+                    "role": "Associate Design Director",
+                    "description": "I worked on client management and cross-team collaboration towards AI and digital transformation for the American Heart Association."
                   }
                 ]
               }
-            ]
+            ],
+            "label": "My background"
           }
         },
         {
           "id": "text-complexity-curiosity",
-          "stageId": "about.03",
+          "stageId": "about.02",
           "kind": "title",
           "startWU": 16.133333,
           "focusWU": 16.533333,
@@ -820,20 +852,16 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 60,
-              "mobile": 63
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "The problems that interest me…"
+          "text": "I follow the idea."
         },
         {
           "id": "text-complexity-listen",
-          "stageId": "about.03",
+          "stageId": "about.02",
           "kind": "title",
           "startWU": 18.066666,
           "focusWU": 18.466666,
@@ -842,23 +870,20 @@
           "flow": {
             "minScreens": 0.8,
             "gapAfter": "standard",
+            "gapAfterScreens": 0.8,
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 60,
-              "mobile": 63
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "…rarely belong to one discipline."
+          "text": "It rarely stays in one lane."
         },
         {
           "id": "text-discipline-labels",
-          "stageId": "about.04",
+          "stageId": "about.03",
           "kind": "scroll-block",
           "startWU": 21.150572,
           "focusWU": 21.730572,
@@ -907,37 +932,33 @@
                 "label": "Parametric Systems",
                 "description": "I build systems that help the work scale without losing the details that give it character."
               }
-            ]
+            ],
+            "text": "A decision in one discipline changes what’s possible in another. I use motion, code and AI to turn assumptions into things we can test."
           },
           "reveal": {
             "fadeDurationWU": 0.2
           }
         },
         {
-          "id": "text-disciplines-title",
-          "stageId": "about.05",
+          "id": "text-selected-clients",
+          "stageId": "about.03",
           "kind": "scroll-block",
-          "startWU": 25.625333,
-          "focusWU": 26.205333,
-          "endWU": 27.799333,
+          "startWU": 23.95,
+          "focusWU": 24.5,
+          "endWU": 25.45,
           "publishable": true,
           "flow": {
-            "minScreens": 1.8,
-            "gapAfter": "passage",
+            "minScreens": 1.5,
+            "gapAfter": "standard",
             "focusMode": "reading-start"
           },
           "presentation": {
-            "layout": "disciplines"
+            "layout": "reading"
           },
           "block": {
-            "id": "disciplines-passage",
+            "id": "selected-clients-unit",
             "kind": "stack",
             "modules": [
-              {
-                "id": "ai-judgement",
-                "kind": "prose",
-                "text": "A decision in one discipline changes what’s possible in another. I use motion, code and AI to turn assumptions into things we can test."
-              },
               {
                 "id": "selected-clients",
                 "kind": "logo-grid",
@@ -1037,11 +1058,35 @@
                 ]
               }
             ]
+          },
+          "reveal": {
+            "fadeDurationWU": 0.2
           }
         },
         {
+          "id": "text-disciplines-title",
+          "stageId": "about.04",
+          "kind": "title",
+          "startWU": 25.625333,
+          "focusWU": 26.205333,
+          "endWU": 27.799333,
+          "publishable": true,
+          "flow": {
+            "minScreens": 0.8,
+            "gapAfter": "tight",
+            "focusMode": "middle"
+          },
+          "presentation": {
+            "layout": "center"
+          },
+          "movement": "spatial",
+          "preset": "travelling-title-v1",
+          "titleStyle": "standard",
+          "text": "I connect the disciplines."
+        },
+        {
           "id": "text-life-momentum",
-          "stageId": "about.05",
+          "stageId": "about.04",
           "kind": "title",
           "startWU": 28.424666,
           "focusWU": 28.899666,
@@ -1050,23 +1095,20 @@
           "flow": {
             "minScreens": 0.95,
             "gapAfter": "passage",
+            "gapAfterScreens": 0.6,
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 77,
-              "mobile": 76
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "Make the work visible early."
+          "text": "I make it real, early."
         },
         {
           "id": "text-life-character",
-          "stageId": "about.06",
+          "stageId": "about.05",
           "kind": "scroll-block",
           "startWU": 30.1,
           "focusWU": 30.68,
@@ -1099,7 +1141,8 @@
                 "kind": "prose",
                 "text": "I set a clear direction and invite collaborators to challenge it while decisions are open. I stay involved through delivery, keeping the central idea visible as the details evolve."
               }
-            ]
+            ],
+            "label": "How I work"
           }
         },
         {
@@ -1116,11 +1159,7 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 51,
-              "mobile": 51
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1141,11 +1180,7 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "center",
-            "viewportY": {
-              "desktop": 51,
-              "mobile": 51
-            }
+            "layout": "center"
           },
           "movement": "spatial",
           "preset": "travelling-title-v1",
@@ -1166,11 +1201,7 @@
             "focusMode": "middle"
           },
           "presentation": {
-            "layout": "text-finale-cta",
-            "viewportY": {
-              "desktop": 48,
-              "mobile": 48
-            }
+            "layout": "text-finale-cta"
           },
           "movement": "spatial",
           "preset": "finale-v1",

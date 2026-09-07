@@ -84,7 +84,7 @@ test('Contact and About share one centred, compact two-action family', () => {
   assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.match(
     sources.aboutStyles,
-    /data-about-experience-version='v2'[\s\S]*?\.about-narrative-finale-content \{[\s\S]*?top: 50%;[\s\S]*?justify-items: center;[\s\S]*?transform: translate3d\(0, -50%, 0\)/,
+    /\.about-narrative-spatial-copy\.is-finale \.about-narrative-finale-content \{[\s\S]*?grid-template-rows: minmax\(0, 1fr\) auto;[\s\S]*?justify-items: center;[\s\S]*?transform: none/,
   );
   assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
   assert.doesNotMatch(sources.aboutStyles, /left: 50%;[\s\S]{0,120}width: 50%/);

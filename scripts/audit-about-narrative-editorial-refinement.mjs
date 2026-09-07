@@ -1,255 +1,216 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
+import { driveAboutStoryWU as holdAboutStoryWU } from './audit-about-narrative-surfel-v2-helpers.mjs';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const browserName = process.env.ABS_BROWSER || 'chromium';
-const browserType = browserName === 'webkit' ? webkit : chromium;
-const outputDir = resolve('output/playwright/about-narrative-editorial-refinement');
-const aboutUrl = `${baseUrl}/about.html?edit=0`;
-
-await mkdir(outputDir, { recursive: true });
-const browser = await browserType.launch({ headless: true });
-
-async function openAbout(viewport) {
-  const context = await browser.newContext({ viewport });
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() !== 'error') return;
-    const sourceUrl = message.location().url || '';
-    // Google Fonts can rotate cached asset URLs independently of the app.
-    // Keep application errors fatal while allowing the declared font fallback.
-    if (sourceUrl.startsWith('https://fonts.gstatic.com/')) return;
-    errors.push(sourceUrl ? `${message.text()} @ ${sourceUrl}` : message.text());
-  });
-  await page.goto(aboutUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', {
-    timeout: 30_000,
-  });
-  await page.waitForFunction(() => (
-    Number(getComputedStyle(document.querySelector('.about-narrative-opening-scroll-cue')).opacity) > 0.99
-  ));
-  return { context, errors, page };
-}
-
-async function setStoryWU(page, storyWU) {
-  await page.locator('.about-narrative-scrollport').evaluate((node, value) => {
-    node.scrollTop = Math.min(
-      node.scrollHeight - node.clientHeight,
-      Math.max(0, Number(value) * node.clientHeight),
-    );
-    node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  }, storyWU);
+const outputDir = resolve(process.env.ABS_ABOUT_EDITORIAL_OUTPUT || 'output/playwright/about-narrative-editorial-refinement', browserName);
+const viewportFilter = process.env.ABS_ABOUT_VIEWPORT;
+const viewports = [
+  ['desktop', { width: 1440, height: 1000 }],
+  ['tablet', { width: 1024, height: 768 }],
+  ['mobile', { width: 390, height: 844 }],
+  ['narrow-mobile', { width: 375, height: 667 }],
+  ['short-landscape', { width: 844, height: 390 }],
+].filter(([id]) => !viewportFilter || id === viewportFilter);
+async function driveAboutStoryWU(page, target) {
+  await page.evaluate(value => {
+    const scrollport = document.querySelector('.about-narrative-scrollport');
+    const duration = Math.max(...Array.from(document.querySelectorAll('[data-render-span-id]'), node => Number(node.dataset.storyEndWu)));
+    scrollport.scrollTop = Math.min(1, Math.max(0, value / duration)) * (scrollport.scrollHeight - scrollport.clientHeight);
+    scrollport.dispatchEvent(new Event('scroll'));
+  }, target);
   try {
-    await page.waitForFunction((target) => {
-      const current = Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu);
-      return Math.abs(current - target) < 0.04;
-    }, storyWU, { timeout: 10_000 });
-  } catch (error) {
-    const state = await page.evaluate(() => {
-      const root = document.querySelector('.about-narrative-lab');
-      const scrollport = document.querySelector('.about-narrative-scrollport');
-      return {
-        clientHeight: scrollport?.clientHeight,
-        scrollHeight: scrollport?.scrollHeight,
-        scrollTop: scrollport?.scrollTop,
-        storyWU: root?.dataset.narrativeStoryWu,
-      };
-    });
-    throw new Error(`${error.message}; state=${JSON.stringify(state)}`);
+    await page.waitForFunction(value => Math.abs(Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu) - value) < 0.035,
+      target, { timeout: 3000 });
+  } catch {
+    // A pending Lenis destination can need several held frames to synchronise.
+    await holdAboutStoryWU(page, target);
   }
 }
 
-async function readFinaleTiming(page) {
-  return page.locator('[data-text-field-id="text-epilogue-invitation"]').evaluate((node) => {
-    const wrapper = node.closest('.about-narrative-render-span');
-    const scrollport = document.querySelector('.about-narrative-scrollport');
-    const viewportHeight = Math.max(1, scrollport.clientHeight);
-    return {
-      startWU: wrapper.offsetTop / viewportHeight,
-      durationWU: Number.parseFloat(
-        getComputedStyle(wrapper).getPropertyValue('--story-block-duration-wu'),
-      ),
-      pageEndWU: (scrollport.scrollHeight - scrollport.clientHeight) / viewportHeight,
-    };
-  });
-}
-
+const report = [];
+await mkdir(outputDir, { recursive: true });
+const browser = await (browserName === 'webkit' ? webkit : chromium).launch({ headless: true, ...(browserName === 'chromium' && process.env.ABS_CHROMIUM_CHANNEL ? { channel: process.env.ABS_CHROMIUM_CHANNEL } : {}) });
 try {
-  const desktop = await openAbout({ width: 1440, height: 1000 });
-  const { page } = desktop;
-  const initial = await page.evaluate(() => {
-    const openingCue = document.querySelector('.about-narrative-opening-scroll-cue');
-    const openingCueRect = openingCue?.getBoundingClientRect();
-    const scrollportRect = document.querySelector('.about-narrative-scrollport')?.getBoundingClientRect();
-    const pullSentence = document.querySelector('.about-narrative-editorial-pull-sentence');
-    const pullStyle = getComputedStyle(pullSentence);
-    const prose = document.querySelector('.about-narrative-editorial-copy');
-    const proseStyle = getComputedStyle(prose);
-    const emphasis = Array.from(document.querySelectorAll('[data-editorial-emphasis]'));
-    const lineReveals = Array.from(document.querySelectorAll('[data-editorial-reveal="line"]'));
-    const spatialTitles = Array.from(document.querySelectorAll('.about-narrative-spatial-title'));
-    const logoField = document.querySelector('.about-narrative-client-field');
-    return {
-      emphasisCount: emphasis.length,
-      emphasisOpacity: emphasis.map((node) => Number(getComputedStyle(node).opacity)),
-      lineRevealCount: lineReveals.length,
-      lineRevealOpacity: lineReveals.map((node) => Number(getComputedStyle(node).opacity)),
-      logoCount: document.querySelectorAll('.about-narrative-client-logos > li').length,
-      logoReady: logoField?.dataset.clientFieldReady,
-      openingCueArrowCount: openingCue?.querySelectorAll('[class*="ti-arrow"]').length,
-      openingCueLabel: openingCue?.textContent?.replace(/\s+/gu, ' ').trim(),
-      openingCueLineCount: openingCue?.querySelectorAll('.about-narrative-opening-scroll-cue__line').length,
-      openingCueOpacity: Number(getComputedStyle(openingCue).opacity),
-      openingCueState: document.querySelector('.about-narrative-lab')?.dataset.openingScrollCue,
-      openingTitleOpacity: Number(getComputedStyle(document.querySelector('#about-route-title')).opacity),
-      openingCueBottomGap: scrollportRect && openingCueRect
-        ? scrollportRect.bottom - openingCueRect.bottom
-        : 0,
-      pullBorderBottom: pullStyle.borderBottomWidth,
-      pullBorderTop: pullStyle.borderTopWidth,
-      pullFontFamily: pullStyle.fontFamily,
-      pullFontSize: Number.parseFloat(pullStyle.fontSize),
-      pullFontStyle: pullStyle.fontStyle,
-      pullTextAlign: pullStyle.textAlign,
-      pullLineHeight: Number.parseFloat(pullStyle.lineHeight),
-      pullListItemCount: pullSentence?.querySelectorAll('li').length,
-      pullTag: pullSentence?.tagName,
-      proseFontSize: Number.parseFloat(proseStyle.fontSize),
-      ruleCount: document.querySelectorAll('.about-narrative-opening-copy .route-title-lockup__rule, .about-narrative-finale-content .route-title-lockup__rule').length,
-      spatialTitleFilters: spatialTitles.map((node) => getComputedStyle(node).filter),
-      spatialTitleShadows: spatialTitles.map((node) => getComputedStyle(node).textShadow),
-      wordRevealCount: document.querySelectorAll('[data-editorial-reveal="word"]').length,
-    };
-  });
-  assert.equal(initial.pullTag, 'P');
-  assert.equal(initial.pullListItemCount, 0);
-  assert.equal(initial.pullBorderTop, '0px');
-  assert.equal(initial.pullBorderBottom, '0px');
-  assert.match(initial.pullFontFamily, /Instrument Serif/);
-  assert.equal(initial.pullFontStyle, 'normal');
-  assert.equal(initial.pullTextAlign, 'center');
-  assert.ok(initial.pullFontSize >= initial.proseFontSize * 2.35);
-  assert.ok(initial.pullLineHeight <= initial.pullFontSize * 1.05);
-  assert.equal(initial.emphasisCount, 0);
-  initial.emphasisOpacity.forEach((opacity) => assert.equal(opacity, 0));
-  assert.ok(initial.lineRevealCount > 0);
-  initial.lineRevealOpacity.forEach((opacity) => assert.equal(opacity, 1));
-  initial.spatialTitleFilters.forEach((filter) => assert.equal(filter, 'none'));
-  initial.spatialTitleShadows.forEach((shadow) => assert.equal(shadow, 'none'));
-  assert.equal(initial.wordRevealCount, 0);
-  assert.equal(initial.ruleCount, 2);
-  assert.equal(initial.logoCount, 14);
-  assert.equal(initial.openingCueArrowCount, 0);
-  assert.equal(initial.openingCueLabel, 'Scroll');
-  assert.equal(initial.openingCueLineCount, 1);
-  assert.ok(initial.openingCueOpacity > 0.99);
-  assert.equal(initial.openingCueState, 'visible');
-  assert.ok(initial.openingTitleOpacity > 0.99);
-  assert.ok(initial.openingCueBottomGap >= 24 && initial.openingCueBottomGap <= 56);
-
-  await page.locator('.about-narrative-scrollport').evaluate((node) => {
-    node.scrollTop = 80;
-    node.dispatchEvent(new Event('scroll', { bubbles: true }));
-  });
-  await page.waitForFunction(() => (
-    Number(getComputedStyle(document.querySelector('.about-narrative-opening-scroll-cue')).opacity) < 0.01
-  ));
-  assert.equal(
-    await page.locator('.about-narrative-lab').getAttribute('data-opening-scroll-cue'),
-    'hidden',
-  );
-
-  await page.waitForFunction(() => (
-    document.querySelector('.about-narrative-client-field')?.dataset.clientFieldReady === 'true'
-  ));
-  await page.locator('.about-narrative-editorial-pull-sentence').first().evaluate((node) => {
-    node.scrollIntoView({ block: 'center' });
-  });
-  await page.waitForTimeout(180);
-  await page.screenshot({
-    path: `${outputDir}/${browserName}-desktop-pull-sentence.png`,
-  });
-
-  await page.locator('.about-narrative-client-field').evaluate((node) => {
-    node.scrollIntoView({ block: 'center' });
-  });
-  await page.waitForTimeout(180);
-  const logoState = await page.evaluate(() => {
-    const yoti = getComputedStyle(document.querySelector('[data-client-logo="yoti"]'));
-    const standard = getComputedStyle(document.querySelector('[data-client-logo="sp-global"]'));
-    return {
-      standardScale: Number(standard.getPropertyValue('--client-logo-display-scale')),
-      yotiScale: Number(yoti.getPropertyValue('--client-logo-display-scale')),
-    };
-  });
-  assert.equal(logoState.standardScale, 0.94);
-  assert.equal(logoState.yotiScale, 1.1);
-  await page.screenshot({ path: `${outputDir}/${browserName}-desktop-logo-breath.png` });
-
-  await page.goto(aboutUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.about-narrative-lab[data-world-prepare="ready"]', {
-    timeout: 30_000,
-  });
-  await page.waitForTimeout(500);
-  const finaleTiming = await readFinaleTiming(page);
-  await setStoryWU(page, finaleTiming.startWU + (finaleTiming.durationWU * 0.05));
-  // The finale arrives through depth and position. Its type must never fade or
-  // blur while the bust resolves behind it.
-  assert.ok(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title').evaluate((node) => (
-    Number(getComputedStyle(node).opacity) >= 0.95
-  )));
-  await page.screenshot({ path: `${outputDir}/${browserName}-desktop-bust-resolved.png` });
-
-  await setStoryWU(page, finaleTiming.startWU + (finaleTiming.durationWU * 0.5));
-  assert.ok(await page.locator('[data-text-field-id="text-epilogue-invitation"] .about-narrative-spatial-title').evaluate((node) => (
-    Number(getComputedStyle(node).opacity) >= 0.95
-  )));
-  await setStoryWU(page, finaleTiming.pageEndWU);
-  await page.screenshot({ path: `${outputDir}/${browserName}-desktop-finale.png` });
-  assert.deepEqual(desktop.errors, []);
-  await desktop.context.close();
-
-  const mobile = await openAbout({ width: 390, height: 844 });
-  await mobile.page.waitForTimeout(1_500);
-  const mobileLogoState = await mobile.page.evaluate(() => ({
-    layoutProfile: document.querySelector('.about-narrative-lab')?.dataset.aboutLayoutProfile,
-    openingOpacity: Number(getComputedStyle(
-      document.querySelector('.about-narrative-opening-copy'),
-    ).opacity),
-    openingCueBottom: document.querySelector('.about-narrative-opening-scroll-cue')?.getBoundingClientRect().bottom,
-    openingCueOpacity: Number(getComputedStyle(
-      document.querySelector('.about-narrative-opening-scroll-cue'),
-    ).opacity),
-    scrollportBottom: document.querySelector('.about-narrative-scrollport')
-      ?.getBoundingClientRect().bottom,
-    standardScale: Number(getComputedStyle(
-      document.querySelector('[data-client-logo="sp-global"]'),
-    ).getPropertyValue('--client-logo-display-scale')),
-    storyWU: Number(document.querySelector('.about-narrative-lab')?.dataset.narrativeStoryWu),
-    titleOpacity: Number(getComputedStyle(
-      document.querySelector('#about-route-title'),
-    ).opacity),
-    yotiScale: Number(getComputedStyle(
-      document.querySelector('[data-client-logo="yoti"]'),
-    ).getPropertyValue('--client-logo-display-scale')),
-  }));
-  assert.equal(mobileLogoState.layoutProfile, 'mobile');
-  assert.ok(mobileLogoState.openingOpacity > 0.9);
-  assert.ok(mobileLogoState.openingCueOpacity > 0.9);
-  assert.ok(mobileLogoState.scrollportBottom - mobileLogoState.openingCueBottom >= 24);
-  assert.equal(mobileLogoState.standardScale, 0.92);
-  assert.ok(mobileLogoState.storyWU < 0.04);
-  assert.ok(mobileLogoState.titleOpacity > 0.9);
-  assert.equal(mobileLogoState.yotiScale, 1.08);
-  await mobile.page.screenshot({ path: `${outputDir}/${browserName}-mobile-opening.png` });
-  assert.deepEqual(mobile.errors, []);
-  await mobile.context.close();
-
-  console.log(`About editorial refinement browser proof passed: ${outputDir}`);
+  for (const [id, viewport] of viewports) {
+    for (const theme of ['light', 'dark']) {
+      const reducedMotion = id === 'mobile' && theme === 'dark' ? 'reduce' : 'no-preference';
+      const context = await browser.newContext({ viewport, colorScheme: theme, reducedMotion });
+      const page = await context.newPage();
+      const errors = [];
+      page.on('pageerror', error => errors.push(error.message));
+      await page.goto(`${baseUrl}/about.html?edit=0`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.querySelector('.about-narrative-lab')?.dataset.pointWorldState === 'ready');
+      console.log(`READY ${id} ${theme}`);
+      await page.waitForFunction(() => document.fonts.status === 'loaded', undefined, { timeout: 15000 });
+      await page.waitForTimeout(600);
+      const layout = await page.evaluate(() => {
+        const root = document.querySelector('.about-narrative-lab');
+        const scroll = document.querySelector('.about-narrative-scrollport');
+        const fields = [...document.querySelectorAll('[data-render-span-id]')].map(node => ({
+          id: node.querySelector('[data-text-field-id]').dataset.textFieldId,
+          start: Number(node.dataset.storyStartWu), end: Number(node.dataset.storyEndWu),
+          title: Boolean(node.querySelector('h1, .about-narrative-spatial-title')),
+          physicalStart: node.offsetTop / scroll.clientHeight,
+          resolvedStart: Number.parseFloat(getComputedStyle(node).getPropertyValue('--render-span-start-wu')),
+        }));
+        const prose = document.querySelector('.about-narrative-editorial-copy');
+        const titles = [...document.querySelectorAll('.about-narrative-spatial-title, #about-route-title')];
+        const sizes = [prose, ...titles].map(node => Number.parseFloat(getComputedStyle(node).fontSize));
+        root.style.setProperty('--about-prose-scale', 1);
+        root.style.setProperty('--about-title-scale', 1);
+        root.style.setProperty('--about-intermediate-title-multiplier', 1);
+        const baselineSizes = [prose, ...titles].map(node => Number.parseFloat(getComputedStyle(node).fontSize));
+        root.style.removeProperty('--about-prose-scale');
+        root.style.removeProperty('--about-title-scale');
+        root.style.removeProperty('--about-intermediate-title-multiplier');
+        return {
+          fields, sizes, baselineSizes,
+          eyebrows: [...document.querySelectorAll('.about-narrative-editorial-eyebrow')].map(node => node.textContent),
+          paragraphGap: Number.parseFloat(getComputedStyle(document.querySelector('.about-narrative-editorial-stack')).rowGap),
+          listSeparation: Number.parseFloat(getComputedStyle(document.querySelector('.about-narrative-career-sequence')).marginBlockStart),
+          standardTitleMeasure: getComputedStyle(root).getPropertyValue('--about-title-standard-max-width').trim(),
+          intermediateTitles: titles.map(node => !node.classList.contains('route-centered-page__title')),
+          maxScroll: (scroll.scrollHeight - scroll.clientHeight) / scroll.clientHeight,
+          overflow: scroll.scrollWidth - scroll.clientWidth,
+          titlePositions: [...document.querySelectorAll('[data-title-viewport-y]')].map(node => node.dataset.titleViewportY),
+          wordCount: document.querySelectorAll('[data-editorial-reveal="word"]').length,
+          atomicCount: document.querySelectorAll('[data-editorial-atomic-row="true"]').length,
+        };
+      });
+      // Preserve the authored mapping while content measurement makes room for
+      // paragraph spacing and labels. Extra space must be measured content.
+      const expectedScroll = layout.fields.at(-1).end * 8.8 / 35;
+      assert.ok(Math.abs(layout.maxScroll - expectedScroll) < 0.01, `${id}: measured scroll mapping drift`);
+      const methodTitle = layout.fields.find(field => field.id === 'text-life-momentum');
+      const methodProse = layout.fields.find(field => field.id === 'text-life-character');
+      const methodGapScreens = (methodProse.start - methodTitle.end) * layout.maxScroll / layout.fields.at(-1).end;
+      assert.ok(methodGapScreens >= 0.59, `${id}: working-method title gap ${methodGapScreens}`);
+      assert.ok(layout.maxScroll >= 8.79 && layout.maxScroll <= 14, `${id}: ${layout.maxScroll} physical viewports`);
+      assert.equal(layout.standardTitleMeasure, '12ch');
+      assert.deepEqual(layout.eyebrows, ['My background', 'How I work']);
+      assert.ok(layout.paragraphGap >= (viewport.width <= 900 ? 32 : 40), `${id}: paragraph spacing too dense`);
+      assert.ok(layout.listSeparation >= 24, `${id}: missing extra break before listings`);
+      assert.ok(layout.overflow <= 1, `${id}: horizontal overflow`);
+      layout.fields.forEach(field => assert.ok(Math.abs(field.physicalStart - field.resolvedStart) < 0.004, `${id}: ${field.id} physical drift`));
+      assert.ok(layout.titlePositions.every(value => value === '50'));
+      assert.equal(layout.wordCount, 0);
+      assert.ok(layout.atomicCount >= 20);
+      assert.ok(Math.abs(layout.sizes[0] / layout.baselineSizes[0] - (['mobile', 'narrow-mobile'].includes(id) ? 1.16 : 1.18)) < 0.001, `${id}: prose scale`);
+      const mainSizes = layout.sizes.slice(1).filter((_, index) => !layout.intermediateTitles[index]);
+      const intermediateSizes = layout.sizes.slice(1).filter((_, index) => layout.intermediateTitles[index]);
+      assert.equal(new Set(mainSizes).size, 1, `${id}: opening/ending title parity`);
+      assert.equal(new Set(intermediateSizes).size, 1, `${id}: one inbetween title size`);
+      assert.ok(intermediateSizes.every(size => size < mainSizes[0]), `${id}: title hierarchy`);
+      console.log(`LAYOUT ${id}: ${layout.maxScroll.toFixed(2)} viewports`);
+      const duration = layout.fields.at(-1).end;
+      const titleStates = [];
+      for (const field of layout.fields.filter(field => field.title)) {
+        console.log(`TITLE ${field.id}`);
+        const next = layout.fields[layout.fields.indexOf(field) + 1];
+        await driveAboutStoryWU(page, field.start + (field.end - field.start) * (next && !next.title ? 0.05 : 0.5));
+        await page.waitForTimeout(650);
+        const state = await page.locator(`[data-text-field-id="${field.id}"]`).evaluate(node => {
+          const title = node.querySelector('h1, .about-narrative-spatial-title');
+          const rect = title.getBoundingClientRect();
+          const studio = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
+          return {
+            centreError: (rect.top + rect.bottom - studio.top - studio.bottom) / 2,
+            opacity: Number(getComputedStyle(node).getPropertyValue('--fragment-opacity')),
+            width: rect.width, studioWidth: studio.width,
+            transparentGlyphs: [...title.querySelectorAll('[data-route-enter-glyph]')]
+              .filter(glyph => ['transparent', 'rgba(0, 0, 0, 0)'].includes(getComputedStyle(glyph).color)).length,
+          };
+        });
+        assert.ok(Math.abs(state.centreError) <= 45, `${id}: ${field.id} centre error ${state.centreError}px`);
+        assert.ok(state.opacity > 0.99, `${id}: ${field.id} never focused`);
+        assert.ok(state.width <= state.studioWidth);
+        assert.equal(state.transparentGlyphs, 0, `${id}: ${field.id} left glyphs transparent`);
+        titleStates.push({ id: field.id, ...state });
+        if (['text-complexity-idea', 'text-life-momentum', 'text-epilogue-thinking'].includes(field.id)) {
+          await page.screenshot({ path: `${outputDir}/${id}-${theme}-${field.id}.png` });
+        }
+      }
+      const reveals = [];
+      for (const kind of ['line', 'heading', 'career-row', 'logo', 'discipline']) {
+        const node = page.locator(`[data-editorial-reveal="${kind}"]`).first();
+        const samples = [];
+        for (const y of kind === 'line' ? [0.9, 0.64, 0.60, 0.5, 0.24, 0.20, 0.1, 0.24, 0.5, 0.64] : [0.9, 0.5, 0.1, 0.5]) {
+          const story = await node.evaluate((element, viewportY) => {
+            const scroll = document.querySelector('.about-narrative-scrollport');
+            const top = element.getBoundingClientRect().top - scroll.getBoundingClientRect().top + scroll.scrollTop;
+            const end = Number(document.querySelector('[data-text-field-id="text-epilogue-invitation"]').closest('[data-render-span-id]').dataset.storyEndWu);
+            return (top - viewportY * scroll.clientHeight) / (scroll.scrollHeight - scroll.clientHeight) * end;
+          }, y);
+          await driveAboutStoryWU(page, story);
+          samples.push(await node.evaluate(element => Number(getComputedStyle(element).opacity)));
+        }
+        if (reducedMotion === 'reduce') samples.forEach(value => assert.equal(value, 1));
+        else {
+          assert.deepEqual(samples, kind === 'line' ? [0.2, 0.2, 1, 1, 1, 0.2, 0.2, 1, 1, 0.2] : [0.2, 1, 0.2, 1], `${id}: ${kind} must snap at both reading-band edges and reverse exactly`);
+        }
+        reveals.push({ kind, samples });
+        if (kind === 'line') {
+          const target = layout.fields.find(field => field.id === 'text-background-unit');
+          await driveAboutStoryWU(page, target.start + (target.end - target.start) * 0.2);
+          await page.screenshot({ path: `${outputDir}/${id}-${theme}-reading.png` });
+        }
+      }
+      for (const label of await page.locator('.about-narrative-editorial-eyebrow').all()) {
+        const labelPosition = await label.evaluate(element => {
+          const scroll = document.querySelector('.about-narrative-scrollport');
+          const top = element.getBoundingClientRect().top - scroll.getBoundingClientRect().top + scroll.scrollTop;
+          const end = Math.max(...[...document.querySelectorAll('[data-render-span-id]')].map(span => Number(span.dataset.storyEndWu)));
+          return { id: element.id, story: (top - 0.35 * scroll.clientHeight) / (scroll.scrollHeight - scroll.clientHeight) * end };
+        });
+        await driveAboutStoryWU(page, labelPosition.story);
+        assert.equal(await label.evaluate(element => Number(getComputedStyle(element).opacity)), 1);
+        await page.screenshot({ path: `${outputDir}/${id}-${theme}-${labelPosition.id}.png` });
+      }
+      await driveAboutStoryWU(page, duration);
+      const finale = await page.locator('.about-narrative-finale-actions').evaluate(node => {
+        const rect = node.getBoundingClientRect();
+        const studio = document.querySelector('.about-narrative-scrollport').getBoundingClientRect();
+        const bar = document.querySelector('[data-button-bar]')?.getBoundingClientRect();
+        return { inert: node.inert, bottom: rect.bottom, limit: Math.min(studio.bottom, bar?.top ?? studio.bottom), top: rect.top, studioTop: studio.top };
+      });
+      assert.equal(finale.inert, false);
+      assert.ok(finale.top >= finale.studioTop && finale.bottom <= finale.limit + 1, `${id}: CTA clearance ${JSON.stringify(finale)}`);
+      const action = page.locator('.about-narrative-finale-actions button').first();
+      await action.focus();
+      assert.equal(await action.evaluate(node => node === document.activeElement), true);
+      // Capture the resting endpoint after the title's bounded colour-draw entrance.
+      await page.waitForTimeout(650);
+      const finalTitle = await page.locator('[data-text-field-id="text-epilogue-invitation"]').evaluate(node => ({
+        opacity: Number(getComputedStyle(node).getPropertyValue('--fragment-opacity')),
+        transparentGlyphs: [...node.querySelectorAll('[data-route-enter-glyph]')]
+          .filter(glyph => getComputedStyle(glyph).color === 'rgba(0, 0, 0, 0)').length,
+      }));
+      assert.ok(finalTitle.opacity > 0.99, `${id}: focused CTA hides final title`);
+      assert.equal(finalTitle.transparentGlyphs, 0, `${id}: focused CTA leaves final title staged`);
+      await page.screenshot({ path: `${outputDir}/${id}-${theme}-finale.png` });
+      const target = duration * 0.4;
+      await driveAboutStoryWU(page, target);
+      await page.setViewportSize({ width: viewport.width + 24, height: viewport.height + 16 });
+      await page.waitForTimeout(400);
+      const restored = await page.locator('.about-narrative-lab').getAttribute('data-narrative-story-wu');
+      assert.ok(Math.abs(Number(restored) - target) < 0.05, `${id}: resize changed Story position`);
+      await page.waitForFunction(() => !window.__aboutNarrativeRuntime || window.__aboutNarrativeRuntime.getMetrics().state === 'ready');
+      const metrics = await page.evaluate(() => window.__aboutNarrativeRuntime?.getMetrics());
+      if (metrics) {
+        assert.equal(metrics.gpuBufferBuilds, 1);
+        assert.equal(metrics.gpuBufferIdentityStable, true);
+      }
+      assert.deepEqual(errors, []);
+      report.push({ id, theme, reducedMotion, ...layout, titleStates, reveals, finale });
+      console.log(`PASS ${browserName} ${id} ${theme}: ${layout.maxScroll.toFixed(2)} viewports`);
+      await context.close();
+    }
+  }
 } finally {
+  await writeFile(`${outputDir}/report${viewportFilter ? `-${viewportFilter}` : ''}.json`, `${JSON.stringify(report, null, 2)}\n`);
   await browser.close();
 }

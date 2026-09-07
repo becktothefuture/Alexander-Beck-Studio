@@ -33,7 +33,7 @@ import './about-narrative-lab.css';
 
 const CANONICAL_ABOUT_EXPERIENCE_VERSION = 'v2';
 
-function getRenderSpanStyle(span, storyField = null, storyGap = null) {
+function getRenderSpanStyle(span, resolver, storyGap = null) {
   const startWU = Number(span.scrollBounds.startWU);
   const focusWU = Number(span.scrollBounds.focusWU);
   const endWU = Number(span.scrollBounds.endWU);
@@ -42,9 +42,10 @@ function getRenderSpanStyle(span, storyField = null, storyGap = null) {
     '--render-span-focus-wu': focusWU,
     '--render-span-end-wu': endWU,
     '--render-span-duration-wu': Math.max(0.001, endWU - startWU),
-    '--story-block-duration-wu': Number(storyField?.durationWU)
-      || Math.max(0.001, endWU - startWU),
-    '--story-gap-after-wu': Number(storyGap?.durationWU) || 0,
+    '--story-block-duration-wu': Math.max(0.001, endWU - startWU),
+    '--story-gap-after-wu': storyGap
+      ? resolver.scrollWUFromStoryWU(storyGap.endWU) - resolver.scrollWUFromStoryWU(storyGap.startWU)
+      : 0,
   };
 }
 
@@ -453,15 +454,12 @@ function EditorialList({
   );
 }
 
-function EditorialCareerSequence({ module, labelId }) {
+function EditorialCareerSequence({ module }) {
   return (
     <section
       className="about-narrative-career-sequence"
-      aria-labelledby={labelId}
+      aria-label={module.label || 'Experience'}
     >
-      <h2 id={labelId} className="about-narrative-career-sequence__label">
-        {module.label}
-      </h2>
       <ol className="about-narrative-career-sequence__list">
         {(module.items || []).map((item) => (
           <li
@@ -471,8 +469,18 @@ function EditorialCareerSequence({ module, labelId }) {
             key={item.id}
           >
             <span className="about-narrative-career-sequence__year">{item.yearLabel}</span>
-            <strong className="about-narrative-career-sequence__employer">{item.employer}</strong>
-            <span className="about-narrative-career-sequence__role">{item.role}</span>
+            <div className="about-narrative-career-sequence__header">
+              <h3 className="about-narrative-career-sequence__heading">
+                <span className="about-narrative-career-sequence__employer">{item.employer}</span>
+                {', '}
+                <span className="about-narrative-career-sequence__role">{item.role}</span>
+              </h3>
+              {item.description ? (
+                <p className="about-narrative-career-sequence__description">
+                  {item.description}
+                </p>
+              ) : null}
+            </div>
           </li>
         ))}
       </ol>
@@ -480,6 +488,7 @@ function EditorialCareerSequence({ module, labelId }) {
         <p
           className="about-narrative-career-sequence__independent-work"
           data-editorial-reveal="career-independent-work"
+          data-editorial-atomic-row="true"
         >
           <span className="about-narrative-career-sequence__independent-label">
             {module.independentWork.label}
@@ -525,7 +534,6 @@ function EditorialStack({ block, motionProfile, scrollportRef }) {
             <EditorialCareerSequence
               key={module.id}
               module={module}
-              labelId={`${block.id}-${module.id}-label`}
             />
           );
         }
@@ -589,7 +597,18 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
       <section
         {...commonProps}
         className="about-narrative-editorial-unit"
+        aria-labelledby={block.label ? `${block.id}-eyebrow` : undefined}
       >
+        {block.label ? (
+          <h2
+            id={`${block.id}-eyebrow`}
+            className="about-narrative-editorial-eyebrow"
+            data-editorial-reveal="heading"
+            data-editorial-atomic-row="true"
+          >
+            {block.label}
+          </h2>
+        ) : null}
         <EditorialStack
           block={block}
           motionProfile={motionProfile}
@@ -603,29 +622,37 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
     // so each discipline can carry its explanation without another text track.
     // The list item is the reveal unit: its label and description never separate.
     return (
-      <ol {...commonProps} className="about-narrative-discipline-list" aria-label={block.label || 'Areas of expertise'}>
-        {(block.items || []).map((item) => {
-          const label = typeof item === 'string' ? item : item.label;
-          const description = typeof item === 'string' ? '' : item.description;
-          const itemId = typeof item === 'string' ? item : item.id;
-          const materialRole = itemId === 'motion-and-3d' ? 'motion-3d' : itemId;
-          return (
-            <li
-              data-editorial-reveal="discipline"
-              data-material-role={materialRole}
-              key={itemId}
-            >
-              <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
-              <span className="about-narrative-discipline-list__copy">
-                <strong className="about-narrative-discipline-list__label">{label}</strong>
-                {description ? (
-                  <span className="about-narrative-discipline-list__description">{description}</span>
-                ) : null}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+      <section {...commonProps} className="about-narrative-discipline-section" aria-label={block.label || 'Areas of expertise'}>
+        {block.text ? (
+          <p className="about-narrative-editorial-copy about-narrative-discipline-section__intro">
+            <EditorialLineText text={block.text} emphasis={block.emphasis} />
+          </p>
+        ) : null}
+        <ol className="about-narrative-discipline-list">
+          {(block.items || []).map((item) => {
+            const label = typeof item === 'string' ? item : item.label;
+            const description = typeof item === 'string' ? '' : item.description;
+            const itemId = typeof item === 'string' ? item : item.id;
+            const materialRole = itemId === 'motion-and-3d' ? 'motion-3d' : itemId;
+            return (
+              <li
+                data-editorial-reveal="discipline"
+                data-editorial-atomic-row="true"
+                data-material-role={materialRole}
+                key={itemId}
+              >
+                <span className="about-narrative-discipline-list__marker" aria-hidden="true" />
+                <span className="about-narrative-discipline-list__copy">
+                  <span className="about-narrative-discipline-list__label">{label}</span>
+                  {description ? (
+                    <span className="about-narrative-discipline-list__description">{description}</span>
+                  ) : null}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
     );
   }
   if (block.kind === 'list') {
@@ -662,7 +689,6 @@ function ScrollBlockField({ field, onSelect, motionProfile, scrollportRef }) {
 
 function TitleField({
   field,
-  layoutProfile,
   textMotion,
   isPrimaryTitle,
   drawTitleEntrances,
@@ -678,17 +704,7 @@ function TitleField({
   const isOpener = field.preset === 'opener-v1';
   const titleStyle = field.titleStyle
     || (isOpener || isFinale ? 'display' : 'standard');
-  const responsiveViewportY = field.presentation?.viewportY;
-  const fieldViewportY = responsiveViewportY && typeof responsiveViewportY === 'object'
-    ? responsiveViewportY[layoutProfile === 'mobile' ? 'mobile' : 'desktop']
-    : responsiveViewportY;
-  const authoredViewportY = Number(fieldViewportY ?? (isOpener || isFinale
-    ? textMotion.bookendViewportY
-    : textMotion.standardViewportY));
-  const viewportYBounds = { min: 0, max: 100 };
-  const viewportY = Number.isFinite(authoredViewportY)
-    ? Math.min(viewportYBounds.max, Math.max(viewportYBounds.min, authoredViewportY))
-    : null;
+  const viewportY = Number(textMotion?.[isOpener ? 'bookendViewportY' : 'standardViewportY'] ?? 50);
   const descriptionId = `${field.id}-description`;
   return (
     <section
@@ -704,63 +720,66 @@ function TitleField({
     >
       {isFinale ? (
         <div className="about-narrative-finale-content">
-          <div className="about-narrative-finale-lockup route-title-lockup">
-            <Heading
-              id={headingId}
-              className="about-narrative-spatial-title about-narrative-spatial-fragment route-centered-page__title route-bookend-title route-title-lockup__title"
-              data-primary-copy
-              data-about-title-draw={drawTitleEntrances ? true : undefined}
-              data-route-enter-variant="bookend-title"
-            >
-              {field.text}
-            </Heading>
-            <span className="route-title-lockup__rule" aria-hidden="true" />
-          </div>
-          <div className="about-narrative-finale-support">
-            {field.description ? (
-              <p
-                id={descriptionId}
-                className="about-narrative-finale-description route-centered-page__description route-intro-description"
-                data-route-enter-variant="bookend-description"
+          <div className="about-narrative-finale-scene-zone" data-about-finale-scene-zone aria-hidden="true" />
+          <div className="about-narrative-finale-copy" data-about-finale-copy>
+            <div className="about-narrative-finale-lockup route-title-lockup">
+              <Heading
+                id={headingId}
+                className="about-narrative-spatial-title about-narrative-spatial-fragment route-centered-page__title route-bookend-title route-title-lockup__title"
+                data-primary-copy
+                data-about-title-draw={drawTitleEntrances ? true : undefined}
+                data-route-enter-variant="bookend-title"
               >
-                {field.description}
-                {!showFinaleEmailAction ? (
-                  <>
-                    {' '}
-                    <a
-                      className="about-narrative-finale-description__link"
-                      href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
-                      data-sound-action="press"
-                      data-sound-source="about-email-link"
-                    >
-                      Send me an email.
-                    </a>
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {showFinaleEmailAction ? (
-              <div
-                className="about-narrative-finale-actions contact-action-stack"
-                aria-hidden="true"
-                inert
-              >
-                <div className="about-narrative-finale-email contact-action-stack__primary">
-                  <CopyEmailAction
-                    email={ABOUT_NARRATIVE_CONTACT.email}
-                    onActivate={onFinaleEmailPress}
-                    soundSource="about-copy-email"
-                    statusId="about-copy-status"
-                  />
+                {field.text}
+              </Heading>
+              <span className="route-title-lockup__rule" aria-hidden="true" />
+            </div>
+            <div className="about-narrative-finale-support">
+              {field.description ? (
+                <p
+                  id={descriptionId}
+                  className="about-narrative-finale-description route-centered-page__description route-intro-description"
+                  data-route-enter-variant="bookend-description"
+                >
+                  {field.description}
+                  {!showFinaleEmailAction ? (
+                    <>
+                      {' '}
+                      <a
+                        className="about-narrative-finale-description__link"
+                        href={`mailto:${ABOUT_NARRATIVE_CONTACT.email}`}
+                        data-sound-action="press"
+                        data-sound-source="about-email-link"
+                      >
+                        Send me an email.
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {showFinaleEmailAction ? (
+                <div
+                  className="about-narrative-finale-actions contact-action-stack"
+                  aria-hidden="true"
+                  inert
+                >
+                  <div className="about-narrative-finale-email contact-action-stack__primary">
+                    <CopyEmailAction
+                      email={ABOUT_NARRATIVE_CONTACT.email}
+                      onActivate={onFinaleEmailPress}
+                      soundSource="about-copy-email"
+                      statusId="about-copy-status"
+                    />
+                  </div>
+                  <div className="contact-action-stack__secondary">
+                    <LinkedInAction
+                      href={ABOUT_NARRATIVE_CONTACT.linkedin}
+                      soundSource="about-linkedin"
+                    />
+                  </div>
                 </div>
-                <div className="contact-action-stack__secondary">
-                  <LinkedInAction
-                    href={ABOUT_NARRATIVE_CONTACT.linkedin}
-                    soundSource="about-linkedin"
-                  />
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         </div>
       ) : isOpener ? (
@@ -820,11 +839,11 @@ function TitleField({
 
 function TextRenderSpan({
   field,
-  layoutProfile,
+  textMotion,
   span,
+  resolver,
   storyField,
   storyGap,
-  textMotion,
   isPrimaryTitle,
   drawTitleEntrances,
   onFinaleEmailPress,
@@ -844,12 +863,11 @@ function TextRenderSpan({
         data-story-focus-wu={storyField?.focusWU}
         data-story-end-wu={storyField?.endWU}
         data-presentation-layout={layout}
-        style={getRenderSpanStyle(span, storyField, storyGap)}
+        style={getRenderSpanStyle(span, resolver, storyGap)}
       >
         <div className="about-narrative-spatial-stage">
           <TitleField
             field={field}
-            layoutProfile={layoutProfile}
             textMotion={textMotion}
             isPrimaryTitle={isPrimaryTitle}
             drawTitleEntrances={drawTitleEntrances}
@@ -870,7 +888,7 @@ function TextRenderSpan({
         data-story-focus-wu={storyField?.focusWU}
         data-story-end-wu={storyField?.endWU}
         data-presentation-layout={layout}
-        style={getRenderSpanStyle(span, storyField, storyGap)}
+        style={getRenderSpanStyle(span, resolver, storyGap)}
       >
         <ScrollBlockField
           field={field}
@@ -1154,14 +1172,28 @@ export function AboutNarrativeLabExperience({
   ), [runtimePlan, textFieldsById]);
   const ParameterPanel = parameterPanelModule;
   const blenderWorldReady = !__DEV__ || blenderPreview.status !== 'loading';
-  const blenderAssetRoot = blenderPreview.status === 'ready'
-    ? blenderPreview.assetRoot
-    : undefined;
+  const blenderAssetRoot = blenderPreview.assetRoot || undefined;
   const globals = runtimePlan?.model?.globals || playbackDocument.globals;
+  const typography = globals.typography || {};
   const contentExtentWU = runtimePlan?.resolver?.contentExtentWU
     || playbackDocument.profiles.desktop.scrollDurationWU + 1;
   const rootStyle = {
     '--about-reading-width': `${globals.readingWidthRem}rem`,
+    '--about-body-size-scale': Number(typography.bodySizeScale) || 1,
+    '--about-small-body-size-scale': Number(typography.smallBodySizeScale) || 1,
+    '--about-eyebrow-size-scale': Number(typography.eyebrowSizeScale) || 1,
+    '--about-main-title-size-scale': Number(typography.mainTitleSizeScale) || 1,
+    '--about-inbetween-title-size-scale': Number(typography.inbetweenTitleSizeScale) || 1,
+    '--about-body-line-height-scale': Number(typography.bodyLineHeightScale) || 1,
+    '--about-small-body-line-height-scale': Number(typography.smallBodyLineHeightScale) || 1,
+    '--about-eyebrow-line-height-scale': Number(typography.eyebrowLineHeightScale) || 1,
+    '--about-main-title-line-height-scale': Number(typography.mainTitleLineHeightScale) || 1,
+    '--about-inbetween-title-line-height-scale': Number(typography.inbetweenTitleLineHeightScale) || 1,
+    '--about-paragraph-spacing-scale': Number(typography.paragraphSpacingScale) || 1,
+    '--about-listing-separation-scale': Number(typography.listingSeparationScale) || 1,
+    '--about-row-spacing-scale': Number(typography.rowSpacingScale) || 1,
+    '--about-client-row-gap-scale': Number(typography.clientRowGapScale) || 1,
+    '--about-client-column-gap-scale': Number(typography.clientColumnGapScale) || 1,
     '--about-title-standard-max-width': `${Number(globals.textMotion.standardMaxWidthCh) || 28}ch`,
     '--about-title-display-max-width': `${Number(globals.textMotion.displayMaxWidthCh) || 22}ch`,
     '--about-text-perspective': `${Number(globals.textMotion.perspective) || 1600}px`,
@@ -1185,6 +1217,7 @@ export function AboutNarrativeLabExperience({
       data-about-parameter-panel={parameterPanelVisible ? 'open' : 'closed'}
       data-about-blender-preview={blenderPreview.status}
       data-about-blender-source={blenderPreview.sourceSha || undefined}
+      data-about-blender-bundle={blenderPreview.bundleHash || undefined}
       data-about-story-layout={runtimePlan?.storyLayout?.mode || 'legacy'}
       data-about-restoring={restorationPending ? 'true' : 'false'}
       data-about-layout-ready={layoutReady ? 'true' : 'false'}
@@ -1197,7 +1230,7 @@ export function AboutNarrativeLabExperience({
       />
       {runtimePlan && blenderWorldReady ? (
         <AboutNarrativeWorld
-          key={blenderAssetRoot || 'canonical-about-blender-scene'}
+          key={blenderPreview.bundleHash || blenderPreview.sourceSha || 'canonical-about-blender-scene'}
           assetRoot={blenderAssetRoot}
           rendererId="three-point-world-v1"
           rootRef={rootRef}
@@ -1225,11 +1258,11 @@ export function AboutNarrativeLabExperience({
               <TextRenderSpan
                 key={span.id}
                 field={field}
-                layoutProfile={runtimePlan.layoutProfile}
+                textMotion={globals.textMotion}
+                resolver={runtimePlan.resolver}
                 span={span}
                 storyField={storyFieldsById.get(field.id)}
                 storyGap={storyGapsByFieldId.get(field.id)}
-                textMotion={globals.textMotion}
                 isPrimaryTitle={field.id === primaryTitleId}
                 drawTitleEntrances={resolvedExperienceVersion === 'v2'}
                 onFinaleEmailPress={handleFinaleEmailPress}

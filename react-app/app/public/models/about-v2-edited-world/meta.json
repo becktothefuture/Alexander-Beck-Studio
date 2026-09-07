@@ -6,69 +6,64 @@
   "creator": "Alexander Beck",
   "source": {
     "file": "source-assets/about-v2-blender-current/about-v2-track-working.blend",
-    "sha256": "d0a5a80126f4b422eae3acb5ff832b0575815d3f9109800b82245a4720b53cde",
+    "sha256": "5b4a609e8f29960494fe2a8a01cff6fdf947f7dcdac7a28568d754024f814019",
     "route": {
       "object": "about.camera-path",
       "displayName": "Camera Path",
-      "controlPointCount": 10,
-      "evaluatedLength": 3053.557617,
-      "shapeSha256": "b4c54d4014829fddd1acbb9a50d6324e71061e722f83dcaf6130df47a8ab4e21",
+      "controlPointCount": 11,
+      "evaluatedLength": 4477.627156,
+      "shapeSha256": "d2cd56b5dc091807c66e51bc99cbc3deeb22be323064f20f357ad72423d56ee4",
       "splineCount": 1,
       "stageRanges": {
-        "00": [
+        "about.00": [
           0.0,
-          0.142857
+          0.031057259
         ],
-        "01": [
-          0.142857,
-          0.285714
+        "about.01": [
+          0.031057259,
+          0.471027123
         ],
-        "02": [
-          0.285714,
-          0.428571
+        "about.02": [
+          0.471027123,
+          0.559022639
         ],
-        "03": [
-          0.428571,
-          0.571429
+        "about.03": [
+          0.559022639,
+          0.755718551
         ],
-        "04": [
-          0.571429,
-          0.714286
+        "about.04": [
+          0.755718551,
+          0.869584882
         ],
-        "05": [
-          0.714286,
-          0.857143
+        "about.05": [
+          0.869584882,
+          0.942051763
         ],
-        "06": [
-          0.857143,
+        "about.06": [
+          0.942051763,
           1.0
         ]
-      }
+      },
+      "curveLength": 4635.425781,
+      "evaluatedLengthSource": "exported-camera-track"
     },
     "topology": {
-      "modelCount": 7,
+      "modelCount": 6,
       "modelKeys": [
         "about.00",
-        "about.01",
         "about.02",
         "about.03",
         "about.04",
         "about.05",
         "about.06"
       ],
-      "objectCount": 12,
+      "objectCount": 6,
       "objectKeys": [
         "director.opening-field",
-        "director.form-body.00",
-        "director.form-body.01",
-        "director.form-body.02",
-        "director.form-body.03",
-        "director.form-body.04",
         "director.round-tunnel",
         "director.terrain",
         "director.square-gate-tunnel",
-        "director.horizon-bank.-1",
-        "director.horizon-bank.1",
+        "director.finale-platform",
         "director.finale-surface"
       ],
       "models": [
@@ -76,16 +71,6 @@
           "key": "about.00",
           "objectKeys": [
             "director.opening-field"
-          ]
-        },
-        {
-          "key": "about.01",
-          "objectKeys": [
-            "director.form-body.00",
-            "director.form-body.01",
-            "director.form-body.02",
-            "director.form-body.03",
-            "director.form-body.04"
           ]
         },
         {
@@ -109,8 +94,7 @@
         {
           "key": "about.05",
           "objectKeys": [
-            "director.horizon-bank.-1",
-            "director.horizon-bank.1"
+            "director.finale-platform"
           ]
         },
         {
@@ -121,15 +105,16 @@
         }
       ]
     },
-    "objectCount": 12,
-    "triangleCount": 29449,
-    "surfaceArea": 2556108.07686,
+    "objectCount": 6,
+    "triangleCount": 103856,
+    "surfaceArea": 917953.906346,
     "objects": [
       {
         "name": "Opening Field",
         "objectKey": "director.opening-field",
         "modelKey": "about.00",
         "role": "narrative-world",
+        "renderingProfile": "atmosphere",
         "motionKey": "about.00.coherent",
         "revealGroup": "about.00",
         "componentPolicy": "semantic-material-projected-coverage",
@@ -138,9 +123,9 @@
         "minimumProfile": "mobile",
         "profilePrefixOrder": "nested-minimum-profile-mobile",
         "samplingDensityAttribute": "abs_sampling_density",
-        "samplingPattern": "row-column-grid",
+        "samplingPattern": "surface-blue-noise",
         "featurePriority": 1.0,
-        "surfelRadiusScale": 0.28,
+        "surfelRadiusScale": 2.5,
         "geometryKind": "opening-field",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
@@ -151,6 +136,8 @@
         "spanWU": null,
         "instanceCount": 1,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 2480.885058,
         "opaqueBody": false,
         "paletteMode": "mixed",
         "paletteRole": null,
@@ -164,388 +151,35 @@
           5
         ],
         "worldOrigin": [
-          0.0,
-          2.0,
-          12.319962
+          -0.052328,
+          1.947672,
+          708.23938
         ],
         "sceneDensityWeight": 1.0,
         "preserveMinPx": null,
         "collections": [
           "02 OPENING"
         ],
-        "triangles": 11939,
-        "surfaceArea": 2131350.90391,
-        "samplingSurfaceArea": 280992.308596,
+        "triangles": 1200,
+        "surfaceArea": 430.932555,
+        "samplingSurfaceArea": 430.932555,
         "surfelCount": 7500,
-        "semanticAnchorCount": 15,
-        "connectedComponentCount": 173,
-        "protectedComponentCount": 10,
-        "componentAnchorCount": 10,
-        "requiredAnchorCount": 15,
-        "spacingTarget": 6.120918,
-        "bounds": {
-          "min": [
-            -478.806335,
-            -446.904968,
-            -478.849304
-          ],
-          "max": [
-            478.458923,
-            454.043945,
-            -174.87999
-          ]
-        }
-      },
-      {
-        "name": "Body 01 - Cube",
-        "objectKey": "director.form-body.00",
-        "modelKey": "about.01",
-        "role": "narrative-world",
-        "motionKey": "about.01.coherent",
-        "revealGroup": "about.01",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.01",
-        "densityFactor": 1.0,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 1.2,
-        "surfelRadiusScale": 2.25,
-        "geometryKind": "solid-parametric-cube",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": 0,
-        "opaqueBody": true,
-        "paletteMode": "authored-faces",
-        "paletteRole": null,
-        "paletteSeed": 2059576301,
-        "paletteRoles": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5
-        ],
-        "worldOrigin": [
-          -29.184713,
-          9.168573,
-          -574.867554
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "03 SOLID BODIES"
-        ],
-        "triangles": 12,
-        "surfaceArea": 2073.998765,
-        "samplingSurfaceArea": 2073.998765,
-        "surfelCount": 1628,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 1,
+        "connectedComponentCount": 1200,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
         "requiredAnchorCount": 6,
-        "spacingTarget": 1.128696,
+        "spacingTarget": 0.239703,
         "bounds": {
           "min": [
-            -40.898926,
-            -1.360027,
-            -589.113647
+            -307.352142,
+            -215.726089,
+            -1762.784058
           ],
           "max": [
-            -17.470499,
-            19.697174,
-            -560.62146
-          ]
-        }
-      },
-      {
-        "name": "Body 02 - Pyramid",
-        "objectKey": "director.form-body.01",
-        "modelKey": "about.01",
-        "role": "narrative-world",
-        "motionKey": "about.01.coherent",
-        "revealGroup": "about.01",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.01",
-        "densityFactor": 1.0,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 1.2,
-        "surfelRadiusScale": 2.25,
-        "geometryKind": "solid-parametric-pyramid",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": 1,
-        "opaqueBody": true,
-        "paletteMode": "authored-faces",
-        "paletteRole": null,
-        "paletteSeed": 231052155,
-        "paletteRoles": [
-          0,
-          2,
-          3,
-          4,
-          5
-        ],
-        "worldOrigin": [
-          22.804743,
-          -5.477016,
-          -643.893311
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "03 SOLID BODIES"
-        ],
-        "triangles": 6,
-        "surfaceArea": 1551.693859,
-        "samplingSurfaceArea": 1551.693859,
-        "surfelCount": 1218,
-        "semanticAnchorCount": 5,
-        "connectedComponentCount": 1,
-        "protectedComponentCount": 1,
-        "componentAnchorCount": 1,
-        "requiredAnchorCount": 5,
-        "spacingTarget": 1.128702,
-        "bounds": {
-          "min": [
-            8.33739,
-            -21.40382,
-            -652.600708
-          ],
-          "max": [
-            28.849354,
-            8.155457,
-            -632.596924
-          ]
-        }
-      },
-      {
-        "name": "Body 03 - Octahedron",
-        "objectKey": "director.form-body.02",
-        "modelKey": "about.01",
-        "role": "narrative-world",
-        "motionKey": "about.01.coherent",
-        "revealGroup": "about.01",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.01",
-        "densityFactor": 1.0,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 1.2,
-        "surfelRadiusScale": 2.25,
-        "geometryKind": "solid-parametric-octahedron",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": 2,
-        "opaqueBody": true,
-        "paletteMode": "authored-faces",
-        "paletteRole": null,
-        "paletteSeed": 348963521,
-        "paletteRoles": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5
-        ],
-        "worldOrigin": [
-          4.542846,
-          18.10306,
-          -724.625977
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "03 SOLID BODIES"
-        ],
-        "triangles": 8,
-        "surfaceArea": 739.047976,
-        "samplingSurfaceArea": 739.047976,
-        "surfelCount": 580,
-        "semanticAnchorCount": 6,
-        "connectedComponentCount": 1,
-        "protectedComponentCount": 1,
-        "componentAnchorCount": 1,
-        "requiredAnchorCount": 6,
-        "spacingTarget": 1.128814,
-        "bounds": {
-          "min": [
-            -4.510174,
-            6.870901,
-            -733.708679
-          ],
-          "max": [
-            13.595865,
-            29.335218,
-            -715.543274
-          ]
-        }
-      },
-      {
-        "name": "Body 04 - Triangular Prism",
-        "objectKey": "director.form-body.03",
-        "modelKey": "about.01",
-        "role": "narrative-world",
-        "motionKey": "about.01.coherent",
-        "revealGroup": "about.01",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.01",
-        "densityFactor": 1.0,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 1.2,
-        "surfelRadiusScale": 2.25,
-        "geometryKind": "solid-parametric-triangular-prism",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": 3,
-        "opaqueBody": true,
-        "paletteMode": "authored-faces",
-        "paletteRole": null,
-        "paletteSeed": 1674310231,
-        "paletteRoles": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "worldOrigin": [
-          57.095398,
-          16.465723,
-          -791.578369
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "03 SOLID BODIES"
-        ],
-        "triangles": 8,
-        "surfaceArea": 2064.940966,
-        "samplingSurfaceArea": 2064.940966,
-        "surfelCount": 1621,
-        "semanticAnchorCount": 5,
-        "connectedComponentCount": 1,
-        "protectedComponentCount": 1,
-        "componentAnchorCount": 1,
-        "requiredAnchorCount": 5,
-        "spacingTarget": 1.128658,
-        "bounds": {
-          "min": [
-            40.898449,
-            2.018107,
-            -807.837891
-          ],
-          "max": [
-            67.728615,
-            25.282637,
-            -777.071472
-          ]
-        }
-      },
-      {
-        "name": "Body 05 - Icosahedron",
-        "objectKey": "director.form-body.04",
-        "modelKey": "about.01",
-        "role": "narrative-world",
-        "motionKey": "about.01.coherent",
-        "revealGroup": "about.01",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.01",
-        "densityFactor": 1.0,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 1.2,
-        "surfelRadiusScale": 2.25,
-        "geometryKind": "solid-parametric-icosahedron",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": 4,
-        "opaqueBody": true,
-        "paletteMode": "authored-faces",
-        "paletteRole": null,
-        "paletteSeed": 2108647412,
-        "paletteRoles": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5
-        ],
-        "worldOrigin": [
-          49.702324,
-          -9.988154,
-          -871.694885
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "03 SOLID BODIES"
-        ],
-        "triangles": 20,
-        "surfaceArea": 3126.350993,
-        "samplingSurfaceArea": 3126.350993,
-        "surfelCount": 2453,
-        "semanticAnchorCount": 6,
-        "connectedComponentCount": 1,
-        "protectedComponentCount": 1,
-        "componentAnchorCount": 1,
-        "requiredAnchorCount": 6,
-        "spacingTarget": 1.128938,
-        "bounds": {
-          "min": [
-            31.743382,
-            -26.84067,
-            -887.687927
-          ],
-          "max": [
-            67.661263,
-            6.864361,
-            -855.701843
+            303.04425,
+            212.776749,
+            -147.917358
           ]
         }
       },
@@ -554,17 +188,18 @@
         "objectKey": "director.round-tunnel",
         "modelKey": "about.02",
         "role": "path-tunnel",
+        "renderingProfile": "solid",
         "motionKey": "about.02.coherent",
         "revealGroup": "about.02",
         "componentPolicy": "authored-instance-perimeter",
         "densityGroup": "about.02",
-        "densityFactor": 1.55,
+        "densityFactor": 0.775,
         "minimumProfile": "mobile",
         "profilePrefixOrder": "nested-minimum-profile-mobile",
         "samplingDensityAttribute": null,
         "samplingPattern": "surface-blue-noise",
         "featurePriority": 6.0,
-        "surfelRadiusScale": 1.12,
+        "surfelRadiusScale": 0.84,
         "geometryKind": "parametric-round-tunnel",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
@@ -573,8 +208,10 @@
         "holeRadiusWU": null,
         "viewportSpan": false,
         "spanWU": null,
-        "instanceCount": 28,
+        "instanceCount": 10,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 2581.255492,
         "opaqueBody": false,
         "paletteMode": "mixed",
         "paletteRole": null,
@@ -597,26 +234,26 @@
         "collections": [
           "04 ROUND TUNNEL"
         ],
-        "triangles": 13440,
-        "surfaceArea": 1718.43645,
-        "samplingSurfaceArea": 1718.43645,
+        "triangles": 4800,
+        "surfaceArea": 34448.597052,
+        "samplingSurfaceArea": 34448.597052,
         "surfelCount": 9000,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 28,
-        "protectedComponentCount": 28,
-        "componentAnchorCount": 28,
-        "requiredAnchorCount": 28,
-        "spacingTarget": 0.436964,
+        "connectedComponentCount": 10,
+        "protectedComponentCount": 10,
+        "componentAnchorCount": 10,
+        "requiredAnchorCount": 10,
+        "spacingTarget": 1.956431,
         "bounds": {
           "min": [
-            -59.561584,
-            0.423742,
-            -1387.109009
+            -108.975319,
+            -38.340996,
+            -2579.306641
           ],
           "max": [
-            55.284401,
-            31.188778,
-            -964.534241
+            22.980839,
+            86.878586,
+            -2176.187012
           ]
         }
       },
@@ -625,7 +262,21 @@
         "objectKey": "director.terrain",
         "modelKey": "about.03",
         "role": "narrative-world",
+        "renderingProfile": "atmosphere",
         "motionKey": "about.03.coherent",
+        "motion": {
+          "behavior": "terrain-wave",
+          "axis": [
+            0,
+            1.0,
+            0
+          ],
+          "radiansPerSecond": 0.31415927,
+          "timeSource": "ambient-seconds",
+          "amplitudeWU": 2.4,
+          "wavelengthWU": 96.0,
+          "secondaryScale": 0.46
+        },
         "revealGroup": "about.03",
         "componentPolicy": "semantic-material-projected-coverage",
         "densityGroup": "about.03",
@@ -646,6 +297,8 @@
         "spanWU": null,
         "instanceCount": 1,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 476.495499,
         "opaqueBody": false,
         "paletteMode": "mixed",
         "paletteRole": null,
@@ -659,35 +312,35 @@
           5
         ],
         "worldOrigin": [
-          -40.87257,
-          32.771038,
-          -1604.225098
+          -8.259173,
+          -27.995319,
+          -3056.424072
         ],
         "sceneDensityWeight": 1.0,
         "preserveMinPx": null,
         "collections": [
           "05 LANDSCAPE"
         ],
-        "triangles": 1232,
-        "surfaceArea": 43930.728086,
-        "samplingSurfaceArea": 43930.728086,
+        "triangles": 19712,
+        "surfaceArea": 457414.212749,
+        "samplingSurfaceArea": 457414.212749,
         "surfelCount": 45000,
         "semanticAnchorCount": 6,
         "connectedComponentCount": 1,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
         "requiredAnchorCount": 6,
-        "spacingTarget": 0.988048,
+        "spacingTarget": 3.188222,
         "bounds": {
           "min": [
-            -160.283142,
-            -4.516666,
-            -1725.585327
+            -404.432831,
+            -62.460648,
+            -3388.172119
           ],
           "max": [
-            77.653595,
-            17.336636,
-            -1503.852783
+            387.91449,
+            -19.314724,
+            -2724.676025
           ]
         }
       },
@@ -696,17 +349,18 @@
         "objectKey": "director.square-gate-tunnel",
         "modelKey": "about.04",
         "role": "path-tunnel",
+        "renderingProfile": "solid",
         "motionKey": "about.04.coherent",
         "revealGroup": "about.04",
         "componentPolicy": "authored-instance-perimeter",
         "densityGroup": "about.04",
-        "densityFactor": 1.7,
+        "densityFactor": 1.105,
         "minimumProfile": "mobile",
         "profilePrefixOrder": "nested-minimum-profile-mobile",
         "samplingDensityAttribute": null,
         "samplingPattern": "surface-blue-noise",
         "featurePriority": 6.0,
-        "surfelRadiusScale": 1.0,
+        "surfelRadiusScale": 0.85,
         "geometryKind": "parametric-square-gate-tunnel",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
@@ -715,8 +369,10 @@
         "holeRadiusWU": null,
         "viewportSpan": false,
         "spanWU": null,
-        "instanceCount": 16,
+        "instanceCount": 26,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 4007.71091,
         "opaqueBody": false,
         "paletteMode": "mixed",
         "paletteRole": null,
@@ -739,46 +395,47 @@
         "collections": [
           "06 SQUARE GATES"
         ],
-        "triangles": 512,
-        "surfaceArea": 2810.832839,
-        "samplingSurfaceArea": 2810.832839,
+        "triangles": 832,
+        "surfaceArea": 345029.582425,
+        "samplingSurfaceArea": 345029.582425,
         "surfelCount": 12000,
         "semanticAnchorCount": 6,
-        "connectedComponentCount": 16,
-        "protectedComponentCount": 16,
-        "componentAnchorCount": 16,
-        "requiredAnchorCount": 16,
-        "spacingTarget": 0.483979,
+        "connectedComponentCount": 26,
+        "protectedComponentCount": 26,
+        "componentAnchorCount": 26,
+        "requiredAnchorCount": 26,
+        "spacingTarget": 5.362133,
         "bounds": {
           "min": [
-            -20.202944,
-            17.721281,
-            -2254.037598
+            -215.171692,
+            -74.186607,
+            -3957.909668
           ],
           "max": [
-            58.571846,
-            42.654617,
-            -1818.47937
+            292.751923,
+            630.783752,
+            -3441.612793
           ]
         }
       },
       {
-        "name": "Horizon - Left",
-        "objectKey": "director.horizon-bank.-1",
+        "name": "Finale Platform",
+        "objectKey": "director.finale-platform",
         "modelKey": "about.05",
         "role": "narrative-world",
+        "renderingProfile": "solid",
         "motionKey": "about.05.coherent",
         "revealGroup": "about.05",
         "componentPolicy": "semantic-material-projected-coverage",
         "densityGroup": "about.05",
-        "densityFactor": 3.2,
+        "densityFactor": 3.0,
         "minimumProfile": "mobile",
         "profilePrefixOrder": "nested-minimum-profile-mobile",
         "samplingDensityAttribute": null,
         "samplingPattern": "surface-blue-noise",
-        "featurePriority": 3.0,
-        "surfelRadiusScale": 0.42,
-        "geometryKind": "paired-horizon-bank",
+        "featurePriority": 4.0,
+        "surfelRadiusScale": 1.6,
+        "geometryKind": "finale-platform",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
         "proximityRole": null,
@@ -788,128 +445,71 @@
         "spanWU": null,
         "instanceCount": 1,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 86.284507,
         "opaqueBody": false,
-        "paletteMode": "mixed",
+        "paletteMode": "authored-faces",
         "paletteRole": null,
-        "paletteSeed": 105104270,
+        "paletteSeed": 18470231,
         "paletteRoles": [
           0,
           1,
-          2,
           3,
           4,
           5
         ],
         "worldOrigin": [
-          56.085636,
-          26.467012,
-          -2470.406738
+          38.790115,
+          771.368408,
+          -3703.947754
         ],
         "sceneDensityWeight": 1.0,
         "preserveMinPx": null,
         "collections": [
-          "07 HORIZON"
+          "08 BUST FINALE"
         ],
-        "triangles": 56,
-        "surfaceArea": 15918.8543,
-        "samplingSurfaceArea": 15918.8543,
-        "surfelCount": 12000,
-        "semanticAnchorCount": 6,
+        "triangles": 288,
+        "surfaceArea": 50192.73751,
+        "samplingSurfaceArea": 50192.73751,
+        "surfelCount": 27750,
+        "semanticAnchorCount": 5,
         "connectedComponentCount": 1,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
-        "requiredAnchorCount": 6,
-        "spacingTarget": 1.151769,
+        "requiredAnchorCount": 5,
+        "spacingTarget": 1.344897,
         "bounds": {
           "min": [
-            -55.094456,
-            7.91418,
-            -2562.682129
+            -47.157497,
+            771.368408,
+            -3789.895264
           ],
           "max": [
-            29.566429,
-            55.405083,
-            -2378.060547
+            124.737724,
+            778.368408,
+            -3618.000244
           ]
         }
       },
       {
-        "name": "Horizon - Right",
-        "objectKey": "director.horizon-bank.1",
-        "modelKey": "about.05",
-        "role": "narrative-world",
-        "motionKey": "about.05.coherent",
-        "revealGroup": "about.05",
-        "componentPolicy": "semantic-material-projected-coverage",
-        "densityGroup": "about.05",
-        "densityFactor": 3.2,
-        "minimumProfile": "mobile",
-        "profilePrefixOrder": "nested-minimum-profile-mobile",
-        "samplingDensityAttribute": null,
-        "samplingPattern": "surface-blue-noise",
-        "featurePriority": 3.0,
-        "surfelRadiusScale": 0.42,
-        "geometryKind": "paired-horizon-bank",
-        "cameraPassFrame": null,
-        "cameraClearanceWU": null,
-        "proximityRole": null,
-        "traversalMode": null,
-        "holeRadiusWU": null,
-        "viewportSpan": false,
-        "spanWU": null,
-        "instanceCount": 1,
-        "formsBodyIndex": null,
-        "opaqueBody": false,
-        "paletteMode": "mixed",
-        "paletteRole": null,
-        "paletteSeed": 192575112,
-        "paletteRoles": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5
-        ],
-        "worldOrigin": [
-          56.085636,
-          26.467012,
-          -2470.406738
-        ],
-        "sceneDensityWeight": 1.0,
-        "preserveMinPx": null,
-        "collections": [
-          "07 HORIZON"
-        ],
-        "triangles": 56,
-        "surfaceArea": 15918.861735,
-        "samplingSurfaceArea": 15918.861735,
-        "surfelCount": 12000,
-        "semanticAnchorCount": 6,
-        "connectedComponentCount": 1,
-        "protectedComponentCount": 1,
-        "componentAnchorCount": 1,
-        "requiredAnchorCount": 6,
-        "spacingTarget": 1.151769,
-        "bounds": {
-          "min": [
-            84.381386,
-            11.616112,
-            -2563.182129
-          ],
-          "max": [
-            162.690765,
-            69.94532,
-            -2378.223145
-          ]
-        }
-      },
-      {
-        "name": "Finale Surface",
+        "name": "Finale Bust",
         "objectKey": "director.finale-surface",
         "modelKey": "about.06",
         "role": "narrative-world",
-        "motionKey": "about.06.coherent",
+        "renderingProfile": "bust",
+        "motionKey": "about.06.bust",
+        "motion": {
+          "behavior": "bounded-rotation",
+          "axis": [
+            0,
+            1.0,
+            0
+          ],
+          "radiansPerSecond": 0.19634954,
+          "timeSource": "ambient-seconds",
+          "amplitudeRadians": 0.13962634,
+          "periodSeconds": 32.0
+        },
         "revealGroup": "about.06",
         "componentPolicy": "semantic-material-projected-coverage",
         "densityGroup": "about.06",
@@ -917,23 +517,25 @@
         "minimumProfile": "mobile",
         "profilePrefixOrder": "nested-minimum-profile-mobile",
         "samplingDensityAttribute": null,
-        "samplingPattern": "row-column-grid",
+        "samplingPattern": "surface-blue-noise",
         "featurePriority": 8.0,
-        "surfelRadiusScale": 0.52,
-        "geometryKind": "boundless-finale-surface",
+        "surfelRadiusScale": 0.85,
+        "geometryKind": "licensed-reconstructed-bust-mesh",
         "cameraPassFrame": null,
         "cameraClearanceWU": null,
         "proximityRole": null,
         "traversalMode": null,
         "holeRadiusWU": null,
-        "viewportSpan": true,
+        "viewportSpan": false,
         "spanWU": null,
         "instanceCount": 1,
         "formsBodyIndex": null,
+        "formsCopyIndex": null,
+        "clearanceRadiusWU": 131.973148,
         "opaqueBody": false,
         "paletteMode": "mixed",
         "paletteRole": null,
-        "paletteSeed": 1624393685,
+        "paletteSeed": 1776,
         "paletteRoles": [
           0,
           1,
@@ -943,35 +545,35 @@
           5
         ],
         "worldOrigin": [
-          13.639963,
-          10.981472,
-          -2903.836426
+          38.790115,
+          778.368408,
+          -3703.947754
         ],
         "sceneDensityWeight": 1.0,
         "preserveMinPx": null,
         "collections": [
-          "08 FINALE"
+          "08 BUST FINALE"
         ],
-        "triangles": 2160,
-        "surfaceArea": 334903.426982,
-        "samplingSurfaceArea": 334903.426982,
-        "surfelCount": 30000,
+        "triangles": 77024,
+        "surfaceArea": 30437.844055,
+        "samplingSurfaceArea": 30437.844055,
+        "surfelCount": 33750,
         "semanticAnchorCount": 6,
         "connectedComponentCount": 1,
         "protectedComponentCount": 1,
         "componentAnchorCount": 1,
         "requiredAnchorCount": 6,
-        "spacingTarget": 3.341175,
+        "spacingTarget": 0.949664,
         "bounds": {
           "min": [
-            -332.823486,
-            -22.516171,
-            -3249.19458
+            -3.761429,
+            778.368408,
+            -3748.94458
           ],
           "max": [
-            350.193298,
-            -0.591983,
-            -2691.797852
+            81.411263,
+            908.233948,
+            -3658.734863
           ]
         }
       }
@@ -986,98 +588,122 @@
         "About Controls / 02 Fog Start",
         "About Controls / 03 Fog End",
         "About Controls / 04 Fog Curve",
-        "About Controls / 05 Body Count",
-        "About Controls / 06 Bodies Start (%)",
-        "About Controls / 07 Bodies End (%)",
-        "About Controls / 08 Body Size",
-        "About Controls / 09 Body Spread",
-        "About Controls / 10 Body Rotation",
-        "Finale Position / Position (%)",
-        "Horizon Position / Position (%)",
-        "Landscape Position / Position (%)",
-        "Round Tunnel / 01 Start (%)",
-        "Round Tunnel / 02 End (%)",
-        "Round Tunnel / 03 Ring Count",
-        "Round Tunnel / 04 Opening Radius",
-        "Round Tunnel / 05 Ring Thickness",
-        "Round Tunnel / 06 Ring Depth",
-        "Square Gates / 01 Start (%)",
-        "Square Gates / 02 End (%)",
-        "Square Gates / 03 Gate Count",
-        "Square Gates / 04 Opening Size",
-        "Square Gates / 05 Frame Thickness",
-        "Square Gates / 06 Gate Depth",
-        "Square Gates / 07 Twist"
+        "About Controls / 05 Opening Start (%)",
+        "About Controls / 06 Opening End (%)",
+        "About Controls / 07 Body Count",
+        "About Controls / 08 Bodies Start (%)",
+        "About Controls / 09 Bodies End (%)",
+        "About Controls / 10 Body Size",
+        "About Controls / 11 Body Spread",
+        "About Controls / 12 Body Rotation",
+        "About Controls / 13 Copies Per Shape",
+        "About Controls / 14 Random Seed",
+        "About Controls / 15 Minimum Gap",
+        "About Controls / 16 Start (%)",
+        "About Controls / 17 End (%)",
+        "About Controls / 18 Ring Count",
+        "About Controls / 19 Opening Radius",
+        "About Controls / 20 Ring Thickness",
+        "About Controls / 21 Ring Depth",
+        "About Controls / 22 Landscape Start (%)",
+        "About Controls / 23 Landscape End (%)",
+        "About Controls / 24 Mountain Height",
+        "About Controls / 25 Mountain Detail",
+        "About Controls / 26 Start (%)",
+        "About Controls / 27 End (%)",
+        "About Controls / 28 Gate Count",
+        "About Controls / 29 Opening Size",
+        "About Controls / 30 Frame Thickness",
+        "About Controls / 31 Gate Depth",
+        "About Controls / 32 Twist",
+        "About Controls / 33 Bust Scale",
+        "About Controls / 34 Orbit Amount",
+        "About Controls / 35 Orbit Radius",
+        "About Controls / 36 Platform Turn",
+        "About Controls / 37 Gate Growth"
       ],
       "controlValues": {
-        "About Controls / 01 Camera FOV": 78.0,
-        "About Controls / 02 Fog Start": 14.0,
-        "About Controls / 03 Fog End": 150.0,
-        "About Controls / 04 Fog Curve": 1.2,
-        "About Controls / 05 Body Count": 5.0,
-        "About Controls / 06 Bodies Start (%)": 15.5,
-        "About Controls / 07 Bodies End (%)": 28.0,
-        "About Controls / 08 Body Size": 1.0,
-        "About Controls / 09 Body Spread": 1.0,
-        "About Controls / 10 Body Rotation": 0.18,
-        "Finale Position / Position (%)": 92.857143,
-        "Horizon Position / Position (%)": 78.571429,
-        "Landscape Position / Position (%)": 50.0,
-        "Round Tunnel / 01 Start (%)": 28.571429,
-        "Round Tunnel / 02 End (%)": 42.857143,
-        "Round Tunnel / 03 Ring Count": 28.0,
-        "Round Tunnel / 04 Opening Radius": 7.38,
-        "Round Tunnel / 05 Ring Thickness": 0.42,
-        "Round Tunnel / 06 Ring Depth": 0.44,
-        "Square Gates / 01 Start (%)": 57.142857,
-        "Square Gates / 02 End (%)": 71.428571,
-        "Square Gates / 03 Gate Count": 16.0,
-        "Square Gates / 04 Opening Size": 15.2,
-        "Square Gates / 05 Frame Thickness": 1.1,
-        "Square Gates / 06 Gate Depth": 1.1,
-        "Square Gates / 07 Twist": 0.35
+        "About Controls / 01 Camera FOV": 85.0,
+        "About Controls / 02 Fog Start": 43.939999,
+        "About Controls / 03 Fog End": 223.119995,
+        "About Controls / 04 Fog Curve": 1.0,
+        "About Controls / 05 Opening Start (%)": 1.66,
+        "About Controls / 06 Opening End (%)": 43.0,
+        "About Controls / 07 Body Count": 6.0,
+        "About Controls / 08 Bodies Start (%)": 92.0,
+        "About Controls / 09 Bodies End (%)": 99.0,
+        "About Controls / 10 Body Size": 0.72,
+        "About Controls / 11 Body Spread": 1.65,
+        "About Controls / 12 Body Rotation": 1.15,
+        "About Controls / 13 Copies Per Shape": 4.0,
+        "About Controls / 14 Random Seed": 1024.0,
+        "About Controls / 15 Minimum Gap": 15.9,
+        "About Controls / 16 Start (%)": 45.5,
+        "About Controls / 17 End (%)": 54.0,
+        "About Controls / 18 Ring Count": 10.0,
+        "About Controls / 19 Opening Radius": 60.0,
+        "About Controls / 20 Ring Thickness": 0.52,
+        "About Controls / 21 Ring Depth": 4.95,
+        "About Controls / 22 Landscape Start (%)": 56.0,
+        "About Controls / 23 Landscape End (%)": 72.5,
+        "About Controls / 24 Mountain Height": 67.510002,
+        "About Controls / 25 Mountain Detail": 8.0,
+        "About Controls / 26 Start (%)": 73.0,
+        "About Controls / 27 End (%)": 90.0,
+        "About Controls / 28 Gate Count": 26.0,
+        "About Controls / 29 Opening Size": 110.0,
+        "About Controls / 30 Frame Thickness": 1.44,
+        "About Controls / 31 Gate Depth": 6.66,
+        "About Controls / 32 Twist": 0.615,
+        "About Controls / 33 Bust Scale": 0.84,
+        "About Controls / 34 Orbit Amount": 96.0,
+        "About Controls / 35 Orbit Radius": 150.0,
+        "About Controls / 36 Platform Turn": 18.0,
+        "About Controls / 37 Gate Growth": 3.2
       },
       "helperObjects": [
         "About Controls",
+        "Bust Focus",
+        "Finale Approach Start",
+        "Finale Camera Rig",
         "Finale Position",
-        "Horizon Position",
         "Landscape Position",
-        "Opening Position"
+        "Opening Position",
+        "Tunnel Camera Aim",
+        "Tunnel Camera Path",
+        "Tunnel Camera Roll"
       ],
       "cameraFog": {
-        "startWU": 14.0,
-        "endWU": 150.0,
-        "curve": 1.2,
+        "startWU": 43.939999,
+        "endWU": 223.119995,
+        "curve": 1.0,
         "source": "about.controls"
       }
     },
     "surfelBudgetContract": {
       "mobile": {
         "about.00": 2000,
-        "about.01": 2000,
         "about.02": 2000,
         "about.03": 10000,
         "about.04": 3000,
-        "about.05": 5000,
-        "about.06": 6000
+        "about.05": 6000,
+        "about.06": 7000
       },
       "desktop": {
         "about.00": 5000,
-        "about.01": 5000,
         "about.02": 6000,
         "about.03": 30000,
         "about.04": 8000,
-        "about.05": 16000,
-        "about.06": 20000
+        "about.05": 18500,
+        "about.06": 22500
       },
       "master": {
         "about.00": 7500,
-        "about.01": 7500,
         "about.02": 9000,
         "about.03": 45000,
         "about.04": 12000,
-        "about.05": 24000,
-        "about.06": 30000
+        "about.05": 27750,
+        "about.06": 33750
       }
     },
     "semanticFallbacks": [],
@@ -1155,12 +781,12 @@
       "file": "surfels.bin",
       "count": 135000,
       "bytes": 4320000,
-      "sha256": "69c928a5f5a3df557a49bf88d710eb07f6fd558767ed041b794d203fc4ca05eb"
+      "sha256": "2058650bba2a14f30583a609cdc8b300bf11cf4cff6b9b8b560b1d8804f6ecdb"
     },
     "cameraTrack": {
       "file": "camera-track.json",
-      "bytes": 90549,
-      "sha256": "f2736c04850a4f1576a421642bd7e8ad355b53260d6988f179c6750b56666285"
+      "bytes": 91492,
+      "sha256": "5fe9bd7322e0131b7d2c65144dbe0327690af73ffbc4e6a37109f799b746967d"
     }
   },
   "layout": {
@@ -1233,14 +859,14 @@
   },
   "bounds": {
     "min": [
-      -473.428467,
-      -441.605286,
-      -3248.406738
+      -403.915863,
+      -215.674011,
+      -3956.093994
     ],
     "max": [
-      473.081055,
-      448.744263,
-      -197.301254
+      387.302979,
+      908.217285,
+      -147.917358
     ]
   },
   "palette": {
@@ -1286,27 +912,53 @@
     },
     {
       "id": 1,
-      "key": "about.01.coherent"
-    },
-    {
-      "id": 2,
       "key": "about.02.coherent"
     },
     {
-      "id": 3,
-      "key": "about.03.coherent"
+      "id": 2,
+      "key": "about.03.coherent",
+      "motion": {
+        "behavior": "terrain-wave",
+        "axis": [
+          0,
+          1.0,
+          0
+        ],
+        "radiansPerSecond": 0.31415927,
+        "timeSource": "ambient-seconds",
+        "amplitudeWU": 2.4,
+        "wavelengthWU": 96.0,
+        "secondaryScale": 0.46
+      }
     },
     {
-      "id": 4,
+      "id": 3,
       "key": "about.04.coherent"
     },
     {
-      "id": 5,
+      "id": 4,
       "key": "about.05.coherent"
     },
     {
-      "id": 6,
-      "key": "about.06.coherent"
+      "id": 5,
+      "key": "about.06.bust",
+      "motion": {
+        "behavior": "bounded-rotation",
+        "axis": [
+          0,
+          1.0,
+          0
+        ],
+        "radiansPerSecond": 0.19634954,
+        "timeSource": "ambient-seconds",
+        "amplitudeRadians": 0.13962634,
+        "periodSeconds": 32.0,
+        "pivotWU": [
+          38.790115,
+          778.368408,
+          -3703.947754
+        ]
+      }
     }
   ],
   "models": [
@@ -1314,6 +966,7 @@
       "id": 0,
       "key": "about.00",
       "role": "narrative-world",
+      "renderingProfile": "atmosphere",
       "motionGroup": 0,
       "motionKey": "about.00.coherent",
       "motionSubgroups": 1,
@@ -1332,51 +985,19 @@
         "master": 7500
       },
       "visibilityStartWU": 0.0,
-      "visibilityEndWU": 5.3,
+      "visibilityEndWU": 10.3,
       "visibilityHandoffWU": 0.3,
       "visibilityStartCue": "opening",
       "visibilityStartOffsetWU": 0.0,
-      "visibilityEndCue": "inciting-question",
-      "visibilityEndOffsetWU": 0.3
-    },
-    {
-      "id": 1,
-      "key": "about.01",
-      "role": "narrative-world",
-      "motionGroup": 1,
-      "motionKey": "about.01.coherent",
-      "motionSubgroups": 1,
-      "revealGroup": "about.01",
-      "objectKeys": [
-        "director.form-body.00",
-        "director.form-body.01",
-        "director.form-body.02",
-        "director.form-body.03",
-        "director.form-body.04"
-      ],
-      "surfelRange": {
-        "offset": 7500,
-        "count": 7500,
-        "byteOffset": 240000
-      },
-      "profileCounts": {
-        "mobile": 2000,
-        "desktop": 5000,
-        "master": 7500
-      },
-      "visibilityStartWU": 4.7,
-      "visibilityEndWU": 10.3,
-      "visibilityHandoffWU": 0.3,
-      "visibilityStartCue": "inciting-question",
-      "visibilityStartOffsetWU": -0.3,
       "visibilityEndCue": "portal-entry",
       "visibilityEndOffsetWU": 0.3
     },
     {
-      "id": 2,
+      "id": 1,
       "key": "about.02",
       "role": "path-tunnel",
-      "motionGroup": 2,
+      "renderingProfile": "solid",
+      "motionGroup": 1,
       "motionKey": "about.02.coherent",
       "motionSubgroups": 1,
       "revealGroup": "about.02",
@@ -1384,28 +1005,29 @@
         "director.round-tunnel"
       ],
       "surfelRange": {
-        "offset": 15000,
+        "offset": 7500,
         "count": 9000,
-        "byteOffset": 480000
+        "byteOffset": 240000
       },
       "profileCounts": {
         "mobile": 2000,
         "desktop": 6000,
         "master": 9000
       },
-      "visibilityStartWU": 9.7,
+      "visibilityStartWU": 9.1,
       "visibilityEndWU": 15.3,
       "visibilityHandoffWU": 0.3,
       "visibilityStartCue": "portal-entry",
-      "visibilityStartOffsetWU": -0.3,
+      "visibilityStartOffsetWU": -0.9,
       "visibilityEndCue": "personal-origin",
       "visibilityEndOffsetWU": 0.3
     },
     {
-      "id": 3,
+      "id": 2,
       "key": "about.03",
       "role": "narrative-world",
-      "motionGroup": 3,
+      "renderingProfile": "atmosphere",
+      "motionGroup": 2,
       "motionKey": "about.03.coherent",
       "motionSubgroups": 1,
       "revealGroup": "about.03",
@@ -1413,9 +1035,9 @@
         "director.terrain"
       ],
       "surfelRange": {
-        "offset": 24000,
+        "offset": 16500,
         "count": 45000,
-        "byteOffset": 768000
+        "byteOffset": 528000
       },
       "profileCounts": {
         "mobile": 10000,
@@ -1431,10 +1053,11 @@
       "visibilityEndOffsetWU": 0.3
     },
     {
-      "id": 4,
+      "id": 3,
       "key": "about.04",
       "role": "path-tunnel",
-      "motionGroup": 4,
+      "renderingProfile": "solid",
+      "motionGroup": 3,
       "motionKey": "about.04.coherent",
       "motionSubgroups": 1,
       "revealGroup": "about.04",
@@ -1442,9 +1065,9 @@
         "director.square-gate-tunnel"
       ],
       "surfelRange": {
-        "offset": 69000,
+        "offset": 61500,
         "count": 12000,
-        "byteOffset": 2208000
+        "byteOffset": 1968000
       },
       "profileCounts": {
         "mobile": 3000,
@@ -1452,71 +1075,76 @@
         "master": 12000
       },
       "visibilityStartWU": 19.7,
-      "visibilityEndWU": 25.3,
-      "visibilityHandoffWU": 0.3,
-      "visibilityStartCue": "gate-entry",
-      "visibilityStartOffsetWU": -0.3,
-      "visibilityEndCue": "method",
-      "visibilityEndOffsetWU": 0.3
-    },
-    {
-      "id": 5,
-      "key": "about.05",
-      "role": "narrative-world",
-      "motionGroup": 5,
-      "motionKey": "about.05.coherent",
-      "motionSubgroups": 1,
-      "revealGroup": "about.05",
-      "objectKeys": [
-        "director.horizon-bank.-1",
-        "director.horizon-bank.1"
-      ],
-      "surfelRange": {
-        "offset": 81000,
-        "count": 24000,
-        "byteOffset": 2592000
-      },
-      "profileCounts": {
-        "mobile": 5000,
-        "desktop": 16000,
-        "master": 24000
-      },
-      "visibilityStartWU": 24.7,
       "visibilityEndWU": 30.3,
       "visibilityHandoffWU": 0.3,
-      "visibilityStartCue": "method",
+      "visibilityStartCue": "gate-entry",
       "visibilityStartOffsetWU": -0.3,
       "visibilityEndCue": "split-lattice-entry",
       "visibilityEndOffsetWU": 0.3
     },
     {
-      "id": 6,
+      "id": 4,
+      "key": "about.05",
+      "role": "narrative-world",
+      "renderingProfile": "solid",
+      "motionGroup": 4,
+      "motionKey": "about.05.coherent",
+      "motionSubgroups": 1,
+      "revealGroup": "about.05",
+      "objectKeys": [
+        "director.finale-platform"
+      ],
+      "surfelRange": {
+        "offset": 73500,
+        "count": 27750,
+        "byteOffset": 2352000
+      },
+      "profileCounts": {
+        "mobile": 6000,
+        "desktop": 18500,
+        "master": 27750
+      },
+      "visibilityStartWU": 26.7,
+      "visibilityEndWU": 35.9,
+      "visibilityHandoffWU": 0.3,
+      "visibilityStartCue": "method",
+      "visibilityStartOffsetWU": -0.3,
+      "visibilityEndCue": "terminal-hold",
+      "visibilityEndOffsetWU": 0.9
+    },
+    {
+      "id": 5,
       "key": "about.06",
       "role": "narrative-world",
-      "motionGroup": 6,
-      "motionKey": "about.06.coherent",
+      "renderingProfile": "bust",
+      "motionGroup": 5,
+      "motionKey": "about.06.bust",
       "motionSubgroups": 1,
       "revealGroup": "about.06",
       "objectKeys": [
         "director.finale-surface"
       ],
       "surfelRange": {
-        "offset": 105000,
-        "count": 30000,
-        "byteOffset": 3360000
+        "offset": 101250,
+        "count": 33750,
+        "byteOffset": 3240000
       },
       "profileCounts": {
-        "mobile": 6000,
-        "desktop": 20000,
-        "master": 30000
+        "mobile": 7000,
+        "desktop": 22500,
+        "master": 33750
       },
-      "visibilityStartWU": 29.7,
+      "visibilityStartWU": 26.7,
       "visibilityEndWU": 35.3,
       "visibilityHandoffWU": 0.3,
-      "visibilityStartCue": "split-lattice-entry",
+      "visibilityStartCue": "method",
       "visibilityStartOffsetWU": -0.3,
       "visibilityEndCue": "terminal-hold",
-      "visibilityEndOffsetWU": 0.3
+      "visibilityEndOffsetWU": 0.3,
+      "material": {
+        "manifestationSpreadScale": 0.02,
+        "detailBiasScale": 2.0
+      }
     }
   ],
   "pages": [
@@ -1544,9 +1172,9 @@
         "master": 7500
       },
       "activeStartWU": 0.0,
-      "activeEndWU": 5.3,
+      "activeEndWU": 10.3,
       "preloadStartWU": 0.0,
-      "releaseEndWU": 6.05,
+      "releaseEndWU": 11.05,
       "sharedModelIdsWithPrevious": [],
       "handoff": "byte-identical-model-prefix"
     },
@@ -1571,53 +1199,8 @@
         {
           "modelId": 1,
           "offset": 7500,
-          "count": 7500,
-          "byteOffset": 240000,
-          "profileCounts": {
-            "mobile": 2000,
-            "desktop": 5000,
-            "master": 7500
-          }
-        }
-      ],
-      "profileCounts": {
-        "mobile": 4000,
-        "desktop": 10000,
-        "master": 15000
-      },
-      "activeStartWU": 4.7,
-      "activeEndWU": 10.3,
-      "preloadStartWU": 3.95,
-      "releaseEndWU": 11.05,
-      "sharedModelIdsWithPrevious": [
-        0
-      ],
-      "handoff": "byte-identical-model-prefix",
-      "handoffOverlapWU": 2.1
-    },
-    {
-      "id": "camera-page-03",
-      "modelIds": [
-        1,
-        2
-      ],
-      "ranges": [
-        {
-          "modelId": 1,
-          "offset": 7500,
-          "count": 7500,
-          "byteOffset": 240000,
-          "profileCounts": {
-            "mobile": 2000,
-            "desktop": 5000,
-            "master": 7500
-          }
-        },
-        {
-          "modelId": 2,
-          "offset": 15000,
           "count": 9000,
-          "byteOffset": 480000,
+          "byteOffset": 240000,
           "profileCounts": {
             "mobile": 2000,
             "desktop": 6000,
@@ -1630,28 +1213,28 @@
         "desktop": 11000,
         "master": 16500
       },
-      "activeStartWU": 9.7,
+      "activeStartWU": 9.1,
       "activeEndWU": 15.3,
-      "preloadStartWU": 8.95,
+      "preloadStartWU": 8.35,
       "releaseEndWU": 16.05,
       "sharedModelIdsWithPrevious": [
-        1
+        0
       ],
       "handoff": "byte-identical-model-prefix",
-      "handoffOverlapWU": 2.1
+      "handoffOverlapWU": 2.7
     },
     {
-      "id": "camera-page-04",
+      "id": "camera-page-03",
       "modelIds": [
-        2,
-        3
+        1,
+        2
       ],
       "ranges": [
         {
-          "modelId": 2,
-          "offset": 15000,
+          "modelId": 1,
+          "offset": 7500,
           "count": 9000,
-          "byteOffset": 480000,
+          "byteOffset": 240000,
           "profileCounts": {
             "mobile": 2000,
             "desktop": 6000,
@@ -1659,10 +1242,10 @@
           }
         },
         {
-          "modelId": 3,
-          "offset": 24000,
+          "modelId": 2,
+          "offset": 16500,
           "count": 45000,
-          "byteOffset": 768000,
+          "byteOffset": 528000,
           "profileCounts": {
             "mobile": 10000,
             "desktop": 30000,
@@ -1680,23 +1263,23 @@
       "preloadStartWU": 13.95,
       "releaseEndWU": 21.05,
       "sharedModelIdsWithPrevious": [
-        2
+        1
       ],
       "handoff": "byte-identical-model-prefix",
       "handoffOverlapWU": 2.1
     },
     {
-      "id": "camera-page-05",
+      "id": "camera-page-04",
       "modelIds": [
-        3,
-        4
+        2,
+        3
       ],
       "ranges": [
         {
-          "modelId": 3,
-          "offset": 24000,
+          "modelId": 2,
+          "offset": 16500,
           "count": 45000,
-          "byteOffset": 768000,
+          "byteOffset": 528000,
           "profileCounts": {
             "mobile": 10000,
             "desktop": 30000,
@@ -1704,10 +1287,10 @@
           }
         },
         {
-          "modelId": 4,
-          "offset": 69000,
+          "modelId": 3,
+          "offset": 61500,
           "count": 12000,
-          "byteOffset": 2208000,
+          "byteOffset": 1968000,
           "profileCounts": {
             "mobile": 3000,
             "desktop": 8000,
@@ -1721,27 +1304,28 @@
         "master": 57000
       },
       "activeStartWU": 19.7,
-      "activeEndWU": 25.3,
+      "activeEndWU": 30.3,
       "preloadStartWU": 18.95,
-      "releaseEndWU": 26.05,
+      "releaseEndWU": 31.05,
       "sharedModelIdsWithPrevious": [
-        3
+        2
       ],
       "handoff": "byte-identical-model-prefix",
       "handoffOverlapWU": 2.1
     },
     {
-      "id": "camera-page-06",
+      "id": "camera-page-05",
       "modelIds": [
+        3,
         4,
         5
       ],
       "ranges": [
         {
-          "modelId": 4,
-          "offset": 69000,
+          "modelId": 3,
+          "offset": 61500,
           "count": 12000,
-          "byteOffset": 2208000,
+          "byteOffset": 1968000,
           "profileCounts": {
             "mobile": 3000,
             "desktop": 8000,
@@ -1749,76 +1333,42 @@
           }
         },
         {
-          "modelId": 5,
-          "offset": 81000,
-          "count": 24000,
-          "byteOffset": 2592000,
+          "modelId": 4,
+          "offset": 73500,
+          "count": 27750,
+          "byteOffset": 2352000,
           "profileCounts": {
-            "mobile": 5000,
-            "desktop": 16000,
-            "master": 24000
-          }
-        }
-      ],
-      "profileCounts": {
-        "mobile": 8000,
-        "desktop": 24000,
-        "master": 36000
-      },
-      "activeStartWU": 24.7,
-      "activeEndWU": 30.3,
-      "preloadStartWU": 23.95,
-      "releaseEndWU": 31.05,
-      "sharedModelIdsWithPrevious": [
-        4
-      ],
-      "handoff": "byte-identical-model-prefix",
-      "handoffOverlapWU": 2.1
-    },
-    {
-      "id": "camera-page-07",
-      "modelIds": [
-        5,
-        6
-      ],
-      "ranges": [
-        {
-          "modelId": 5,
-          "offset": 81000,
-          "count": 24000,
-          "byteOffset": 2592000,
-          "profileCounts": {
-            "mobile": 5000,
-            "desktop": 16000,
-            "master": 24000
+            "mobile": 6000,
+            "desktop": 18500,
+            "master": 27750
           }
         },
         {
-          "modelId": 6,
-          "offset": 105000,
-          "count": 30000,
-          "byteOffset": 3360000,
+          "modelId": 5,
+          "offset": 101250,
+          "count": 33750,
+          "byteOffset": 3240000,
           "profileCounts": {
-            "mobile": 6000,
-            "desktop": 20000,
-            "master": 30000
+            "mobile": 7000,
+            "desktop": 22500,
+            "master": 33750
           }
         }
       ],
       "profileCounts": {
-        "mobile": 11000,
-        "desktop": 36000,
-        "master": 54000
+        "mobile": 16000,
+        "desktop": 49000,
+        "master": 73500
       },
-      "activeStartWU": 29.7,
-      "activeEndWU": 35.3,
-      "preloadStartWU": 28.95,
-      "releaseEndWU": 36.05,
+      "activeStartWU": 26.7,
+      "activeEndWU": 35.9,
+      "preloadStartWU": 25.95,
+      "releaseEndWU": 36.65,
       "sharedModelIdsWithPrevious": [
-        5
+        3
       ],
       "handoff": "byte-identical-model-prefix",
-      "handoffOverlapWU": 2.1
+      "handoffOverlapWU": 5.1
     }
   ],
   "profiles": {
@@ -1826,26 +1376,19 @@
       "surfelCount": 30000,
       "perModelCounts": {
         "about.00": 2000,
-        "about.01": 2000,
         "about.02": 2000,
         "about.03": 10000,
         "about.04": 3000,
-        "about.05": 5000,
-        "about.06": 6000
+        "about.05": 6000,
+        "about.06": 7000
       },
       "perObjectCounts": {
         "director.opening-field": 2000,
-        "director.form-body.00": 434,
-        "director.form-body.01": 325,
-        "director.form-body.02": 155,
-        "director.form-body.03": 432,
-        "director.form-body.04": 654,
         "director.round-tunnel": 2000,
         "director.terrain": 10000,
         "director.square-gate-tunnel": 3000,
-        "director.horizon-bank.-1": 2500,
-        "director.horizon-bank.1": 2500,
-        "director.finale-surface": 6000
+        "director.finale-platform": 6000,
+        "director.finale-surface": 7000
       },
       "selection": "nested-per-model-prefix"
     },
@@ -1853,26 +1396,19 @@
       "surfelCount": 90000,
       "perModelCounts": {
         "about.00": 5000,
-        "about.01": 5000,
         "about.02": 6000,
         "about.03": 30000,
         "about.04": 8000,
-        "about.05": 16000,
-        "about.06": 20000
+        "about.05": 18500,
+        "about.06": 22500
       },
       "perObjectCounts": {
         "director.opening-field": 5000,
-        "director.form-body.00": 1085,
-        "director.form-body.01": 812,
-        "director.form-body.02": 387,
-        "director.form-body.03": 1081,
-        "director.form-body.04": 1635,
         "director.round-tunnel": 6000,
         "director.terrain": 30000,
         "director.square-gate-tunnel": 8000,
-        "director.horizon-bank.-1": 8000,
-        "director.horizon-bank.1": 8000,
-        "director.finale-surface": 20000
+        "director.finale-platform": 18500,
+        "director.finale-surface": 22500
       },
       "selection": "nested-per-model-prefix"
     },
@@ -1880,26 +1416,19 @@
       "surfelCount": 135000,
       "perModelCounts": {
         "about.00": 7500,
-        "about.01": 7500,
         "about.02": 9000,
         "about.03": 45000,
         "about.04": 12000,
-        "about.05": 24000,
-        "about.06": 30000
+        "about.05": 27750,
+        "about.06": 33750
       },
       "perObjectCounts": {
         "director.opening-field": 7500,
-        "director.form-body.00": 1628,
-        "director.form-body.01": 1218,
-        "director.form-body.02": 580,
-        "director.form-body.03": 1621,
-        "director.form-body.04": 2453,
         "director.round-tunnel": 9000,
         "director.terrain": 45000,
         "director.square-gate-tunnel": 12000,
-        "director.horizon-bank.-1": 12000,
-        "director.horizon-bank.1": 12000,
-        "director.finale-surface": 30000
+        "director.finale-platform": 27750,
+        "director.finale-surface": 33750
       },
       "selection": "nested-per-model-prefix"
     }
@@ -1913,11 +1442,11 @@
     "projection": {
       "type": "perspective",
       "fovAxis": "horizontal",
-      "horizontalFov": 78.0,
+      "horizontalFov": 85.0,
       "referenceAspect": 1.6,
-      "referenceVerticalFov": 53.689,
+      "referenceVerticalFov": 59.6,
       "portraitMaxVerticalFov": 115,
-      "sensorVerticalFov": 56.725,
+      "sensorVerticalFov": 62.84,
       "sensorFit": "HORIZONTAL"
     },
     "orientation": {

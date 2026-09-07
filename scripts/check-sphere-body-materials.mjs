@@ -85,7 +85,7 @@ const primaryRouteSemanticCoverage = Object.freeze({
     {
       path: 'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
       renderer: 'webgl',
-      imports: [],
+      imports: ['getSimulationBodyMaterialAtlas', 'subscribeSimulationBodyMaterial'],
     },
   ]),
   Contact: Object.freeze([
@@ -332,8 +332,8 @@ function assertPrimaryRouteSemanticContracts() {
         pattern: /radiusPx\s*=\s*separatedSurfelRadius\([\s\S]{0,800}?radiusPx\s*\*=\s*revealProgress\s*\*\s*clamp\(uEntranceScale,\s*0\.0,\s*1\.0\)/,
       },
       {
-        label: 'About circle footprint must stay below its spacing and maximum-radius bounds',
-        pattern: /float\s+separatedSurfelRadius\([\s\S]{0,1300}?return\s+min\(maximumRadiusPx,\s*min\(preferredRadiusPx,\s*spacingCapPx\)\)/,
+        label: 'Atmospheric circles retain their spacing cap; solid profiles have bounded overlapping coverage',
+        pattern: /float\s+separatedSurfelRadius\([\s\S]{0,2200}?return\s+min\(maximumRadiusPx,\s*min\(preferredRadiusPx,\s*spacingCapPx\)\)/,
       },
       {
         label: 'About must discard only fragments outside the complete circle',
@@ -345,7 +345,7 @@ function assertPrimaryRouteSemanticContracts() {
       },
       {
         label: 'About fog must admit whole opaque palette bodies with edge-only multisample coverage',
-        pattern: /revealProgress\s*=\s*smoothstep\([\s\S]*?revealProgress\s*<=\s*0\.0[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*1\.0\)[\s\S]*?alpha\s*=\s*edge[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*alpha\)/,
+        pattern: /revealProgress\s*=\s*smoothstep\([\s\S]*?revealProgress\s*<=\s*0\.0[\s\S]*?texture2D\(uMaterialAtlas,\s*atlasUv\)[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*1\.0\)[\s\S]*?alpha\s*=\s*edge\s*\*\s*materialAlpha[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*alpha\)/,
       },
       {
         label: 'About surfels must keep multisample depth ownership in both passes',

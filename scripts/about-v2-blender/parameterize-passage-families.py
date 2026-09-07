@@ -12,20 +12,22 @@ import zlib
 import bpy
 
 
-PATH_NAME = "ABS_PARAMETRIC_RIDE_PATH"
-CONTROLS_NAME = "ABS_DIRECTOR_CUT_CONTROLS"
-COLLECTION_NAME = "ABS_PARAMETRIC_PASSAGES"
-ROUND_NAME = "ABS_PARAMETRIC_ROUND_TUNNEL"
-SQUARE_NAME = "ABS_PARAMETRIC_SQUARE_GATE_TUNNEL"
+PATH_NAME = "Camera Path"
+CONTROLS_NAME = "About Controls"
+ROUND_COLLECTION_NAME = "04 ROUND TUNNEL"
+SQUARE_COLLECTION_NAME = "06 SQUARE GATES"
+ROUND_NAME = "Round Tunnel"
+SQUARE_NAME = "Square Gates"
 ROUND_GROUP_NAME = "ABS_GN_PARAMETRIC_ROUND_TUNNEL"
 SQUARE_GROUP_NAME = "ABS_GN_PARAMETRIC_SQUARE_GATE_TUNNEL"
+SQUARE_GROWTH_CONTROL = "37 Gate Growth"
 PALETTE_MATERIALS = (
-    "ABS_0_ATMOSPHERE",
-    "ABS_1_STONE",
-    "ABS_2_STEEL",
-    "ABS_3_GLASS",
-    "ABS_4_SIGNAL",
-    "ABS_5_ORGANIC",
+    "Palette - Atmosphere",
+    "Palette - Stone",
+    "Palette - Steel",
+    "Palette - Glass",
+    "Palette - Signal",
+    "Palette - Organic",
 )
 
 
@@ -103,10 +105,10 @@ def remove_previous_passages(scene):
             bpy.data.meshes.remove(data)
 
 
-def ensure_collection(scene):
-    collection = bpy.data.collections.get(COLLECTION_NAME)
+def ensure_collection(scene, name):
+    collection = bpy.data.collections.get(name)
     if collection is None:
-        collection = bpy.data.collections.new(COLLECTION_NAME)
+        collection = bpy.data.collections.new(name)
     if collection.name not in {child.name for child in scene.collection.children}:
         scene.collection.children.link(collection)
     return collection
@@ -300,6 +302,21 @@ def build_square_group(path, controls):
         [("turns", "square_gate_roll_turns")], "2*pi*turns",
     )
     rotation = node(group, "ShaderNodeCombineXYZ", "SQUARE_ROLL_VECTOR")
+    growth_delta = node(group, "ShaderNodeMath", "SQUARE_GROWTH_DELTA")
+    growth_delta.operation = "SUBTRACT"
+    growth_delta.inputs[1].default_value = 1.0
+    driver(
+        growth_delta.inputs[0], "default_value", controls,
+        [("growth", SQUARE_GROWTH_CONTROL)], "growth",
+    )
+    growth_amount = node(group, "ShaderNodeMath", "SQUARE_GROWTH_AMOUNT")
+    growth_amount.operation = "MULTIPLY"
+    growth_factor = node(group, "ShaderNodeMath", "SQUARE_GROWTH_FACTOR")
+    growth_factor.operation = "ADD"
+    growth_factor.inputs[1].default_value = 1.0
+    growth_vector = node(group, "ShaderNodeCombineXYZ", "SQUARE_GROWTH_VECTOR")
+    growth_vector.inputs["Z"].default_value = 1.0
+    growth_instances = node(group, "GeometryNodeScaleInstances", "SQUARE_APERTURE_GROWTH")
     scale = node(group, "GeometryNodeScaleInstances", "SQUARE_DEPTH")
     depth_scale = node(group, "ShaderNodeCombineXYZ", "SQUARE_DEPTH_VECTOR")
     depth_scale.inputs["X"].default_value = 1.0
@@ -321,7 +338,14 @@ def build_square_group(path, controls):
     group.links.new(fraction.outputs[0], angle.inputs[0])
     group.links.new(angle.outputs[0], rotation.inputs["Z"])
     link(group, rotation, "Vector", rotate, "Rotation")
-    link(group, rotate, "Instances", scale, "Instances")
+    group.links.new(fraction.outputs[0], growth_amount.inputs[0])
+    group.links.new(growth_delta.outputs[0], growth_amount.inputs[1])
+    group.links.new(growth_amount.outputs[0], growth_factor.inputs[0])
+    group.links.new(growth_factor.outputs[0], growth_vector.inputs["X"])
+    group.links.new(growth_factor.outputs[0], growth_vector.inputs["Y"])
+    link(group, rotate, "Instances", growth_instances, "Instances")
+    link(group, growth_vector, "Vector", growth_instances, "Scale")
+    link(group, growth_instances, "Instances", scale, "Instances")
     link(group, depth_scale, "Vector", scale, "Scale")
     link(group, scale, "Instances", realize, "Geometry")
     material_geometry = add_material_cycle(group, realize.outputs["Geometry"], islands.outputs["Island Index"])
@@ -334,11 +358,15 @@ def install_controls(controls):
     ensure_control(controls, "round_tunnel_aperture_radius_wu", 7.38, 3.0, 24.0, "Clear radius of every round tunnel opening.")
     ensure_control(controls, "round_tunnel_rim_wu", 0.42, 0.15, 4.0, "Radial thickness of every round tunnel hoop.")
     ensure_control(controls, "round_tunnel_half_depth_wu", 0.22, 0.08, 4.0, "Half-depth of each round tunnel hoop along the rail.")
-    ensure_control(controls, "square_gate_count", 16, 8, 24, "Number of generated square gates.")
+    ensure_control(controls, "square_gate_count", 26, 8, 32, "Number of generated square gates.")
     ensure_control(controls, "square_gate_half_width_wu", 7.6, 3.0, 28.0, "Clear half-width of every square gate.")
     ensure_control(controls, "square_gate_half_height_wu", 7.6, 3.0, 28.0, "Clear half-height of every square gate.")
     ensure_control(controls, "square_gate_rim_wu", 1.1, 0.2, 5.0, "Thickness of every square gate rim.")
     ensure_control(controls, "square_gate_half_depth_wu", 0.55, 0.1, 5.0, "Half-depth of every square gate along the rail.")
+    ensure_control(
+        controls, SQUARE_GROWTH_CONTROL, 2.6, 1.0, 4.0,
+        "Final square-gate opening scale. Gates grow linearly from 1x to this value.",
+    )
     for obsolete in (
         "round_tunnel_radius_scale", "round_tunnel_depth_scale",
         "square_gate_width_scale", "square_gate_height_scale", "square_gate_depth_scale",
@@ -360,7 +388,7 @@ def prune_empty_abs_collections():
     while changed:
         changed = False
         for collection in list(bpy.data.collections):
-            if not collection.name.startswith("ABS_") or collection.name == COLLECTION_NAME:
+            if not collection.name.startswith("ABS_"):
                 continue
             if len(collection.objects) or len(collection.children):
                 continue
@@ -397,9 +425,10 @@ def main():
         raise RuntimeError("The director-cut camera path and controls must exist first.")
     install_controls(controls)
     remove_previous_passages(scene)
-    collection = ensure_collection(scene)
+    round_collection = ensure_collection(scene, ROUND_COLLECTION_NAME)
+    square_collection = ensure_collection(scene, SQUARE_COLLECTION_NAME)
     round_group = build_round_group(path, controls)
-    round_host = make_host(ROUND_NAME, collection, round_group)
+    round_host = make_host(ROUND_NAME, round_collection, round_group)
     set_semantics(round_host, "about.02", "director.round-tunnel", "parametric-round-tunnel", 1.55, 1.12, 28)
     round_host["abs_aperture_radius_wu"] = 7.38
     round_host["abs_aperture_rim_wu"] = 0.42
@@ -407,11 +436,12 @@ def main():
     bind_host_controls(round_host, controls, "round_tunnel_ring_count", "round_tunnel_density_scale", "round_tunnel_point_scale", 1.55, 1.12)
 
     square_group = build_square_group(path, controls)
-    square_host = make_host(SQUARE_NAME, collection, square_group)
-    set_semantics(square_host, "about.04", "director.square-gate-tunnel", "parametric-square-gate-tunnel", 1.7, 1.0, 16)
+    square_host = make_host(SQUARE_NAME, square_collection, square_group)
+    set_semantics(square_host, "about.04", "director.square-gate-tunnel", "parametric-square-gate-tunnel", 1.7, 1.0, 26)
     square_host["abs_aperture_half_size"] = [7.6, 7.6]
     square_host["abs_aperture_rim_wu"] = 1.1
     square_host["abs_half_depth"] = 0.55
+    square_host["abs_aperture_growth"] = float(controls[SQUARE_GROWTH_CONTROL])
     square_host["abs_traversal_mode"] = "same-centreline-reversible"
     bind_host_controls(square_host, controls, "square_gate_count", "square_gate_density_scale", "square_gate_point_scale", 1.7, 1.0)
 
@@ -429,6 +459,7 @@ def main():
         "objects": [round_host.name, square_host.name],
         "roundCount": int(controls["round_tunnel_ring_count"]),
         "squareCount": int(controls["square_gate_count"]),
+        "squareGrowth": float(controls[SQUARE_GROWTH_CONTROL]),
         "removedEmptyCollections": removed_collections,
         "saved": False,
     }))

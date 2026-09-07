@@ -25,7 +25,7 @@ const disciplineField = stackFixture.tracks.text.fields.find((field) => field.id
 const stackModule = disciplineField?.block?.modules?.find((module) => module.id === 'project-impressions');
 const canonicalWithStack = structuredClone(canonical);
 canonicalWithStack.tracks.text.fields
-  .find((field) => field.id === 'text-disciplines-title')
+  .find((field) => field.id === 'text-life-character')
   .block.modules.push(structuredClone(stackModule));
 
 function readWebpMetadata(bytes) {
@@ -75,7 +75,7 @@ function readWebpMetadata(bytes) {
 }
 
 function stackErrorCodes(document) {
-  const fieldIndex = document.tracks.text.fields.findIndex((field) => field.id === 'text-disciplines-title');
+  const fieldIndex = document.tracks.text.fields.findIndex((field) => field.id === 'text-life-character');
   const moduleIndex = document.tracks.text.fields[fieldIndex].block.modules
     .findIndex((module) => module.id === 'project-impressions');
   const stackPath = `tracks.text.fields.${fieldIndex}.block.modules.${moduleIndex}`;
@@ -164,18 +164,18 @@ test('parameter resolution clamps invalid live values to shared bounds', () => {
 
 test('strict schema rejects duplicate IDs, unsupported fields, invalid limits, and video without poster', () => {
   const duplicate = structuredClone(canonicalWithStack);
-  const duplicateModule = duplicate.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
+  const duplicateModule = duplicate.tracks.text.fields.find((field) => field.id === 'text-life-character')
     .block.modules.find((module) => module.id === 'project-impressions');
   duplicateModule.items[1].id = duplicateModule.items[0].id;
   assert.ok(stackErrorCodes(duplicate).includes('duplicate-id'));
 
   const unknown = structuredClone(canonicalWithStack);
-  unknown.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
+  unknown.tracks.text.fields.find((field) => field.id === 'text-life-character')
     .block.modules.find((module) => module.id === 'project-impressions').items[0].mystery = true;
   assert.ok(stackErrorCodes(unknown).includes('unknown-key'));
 
   const video = structuredClone(canonicalWithStack);
-  const videoItem = video.tracks.text.fields.find((field) => field.id === 'text-disciplines-title')
+  const videoItem = video.tracks.text.fields.find((field) => field.id === 'text-life-character')
     .block.modules.find((module) => module.id === 'project-impressions').items[0];
   videoItem.type = 'video';
   assert.ok(stackErrorCodes(video).includes('unsafe-text'));

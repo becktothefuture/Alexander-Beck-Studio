@@ -1,156 +1,32 @@
 const EPSILON = 0.000001;
 const RUNWAY_APPROACH_WU = 0.5;
-const CAMERA_TRAVEL_PROGRESS = 0.9;
 
-const cameraProgressAtStage = (stageIndex, stageProgress = 0) => (
-  (stageIndex + stageProgress) / 7 * CAMERA_TRAVEL_PROGRESS
-);
+const journeyRole = (id, stageId, stageProgress, cueName) => Object.freeze({
+  id,
+  stageId,
+  stageProgress,
+  cueName,
+});
 
 const JOURNEY_ROLES = Object.freeze([
-  Object.freeze({
-    id: 'opening',
-    stageId: 'about.00',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_STAGE_00']),
-    requiredCueName: 'ABS_STAGE_00',
-    fallbackProgress: 0,
-  }),
-  Object.freeze({
-    id: 'inciting-question',
-    stageId: 'about.01',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_STAGE_01']),
-    requiredCueName: 'ABS_STAGE_01',
-    fallbackProgress: cameraProgressAtStage(1),
-  }),
-  Object.freeze({
-    id: 'portal-entry',
-    stageId: 'about.02',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_STAGE_02']),
-    requiredCueName: 'ABS_STAGE_02',
-    fallbackProgress: cameraProgressAtStage(2),
-  }),
-  Object.freeze({
-    id: 'portal-exit',
-    stageId: 'about.02',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_ROUND_PORTALS_EXIT']),
-    requiredCueName: 'ABS_ROUND_PORTALS_EXIT',
-    fallbackProgress: cameraProgressAtStage(2, 1),
-  }),
-  Object.freeze({
-    id: 'portal-release',
-    stageId: 'about.02',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_ROUND_PORTALS_CLEAR']),
-    requiredCueName: 'ABS_ROUND_PORTALS_CLEAR',
-    fallbackProgress: cameraProgressAtStage(2, 1),
-  }),
-  Object.freeze({
-    id: 'personal-origin',
-    stageId: 'about.03',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_PERSONAL_ORIGIN']),
-    requiredCueName: 'ABS_PERSONAL_ORIGIN',
-    fallbackProgress: cameraProgressAtStage(3),
-  }),
-  Object.freeze({
-    id: 'earned-thesis',
-    stageId: 'about.03',
-    stageProgress: 0.33,
-    cueNames: Object.freeze(['ABS_TERRAIN_THESIS']),
-    requiredCueName: 'ABS_TERRAIN_THESIS',
-    fallbackProgress: cameraProgressAtStage(3, 0.33),
-  }),
-  Object.freeze({
-    id: 'landscape-release',
-    stageId: 'about.03',
-    stageProgress: 0.9,
-    cueNames: Object.freeze(['ABS_CANYON_CLEAR']),
-    requiredCueName: 'ABS_CANYON_CLEAR',
-    fallbackProgress: cameraProgressAtStage(3, 0.9),
-  }),
-  Object.freeze({
-    id: 'gate-entry',
-    stageId: 'about.04',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_ROLL_GATE_START', 'ABS_STAGE_04']),
-    requiredCueName: 'ABS_ROLL_GATE_START',
-    fallbackProgress: cameraProgressAtStage(4),
-  }),
-  Object.freeze({
-    id: 'gate-exit',
-    stageId: 'about.04',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_ROLL_GATE_END']),
-    requiredCueName: 'ABS_ROLL_GATE_END',
-    fallbackProgress: cameraProgressAtStage(4, 1),
-  }),
-  Object.freeze({
-    id: 'gate-release',
-    stageId: 'about.04',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_GATE_PASSAGE_CLEAR']),
-    requiredCueName: 'ABS_GATE_PASSAGE_CLEAR',
-    fallbackProgress: cameraProgressAtStage(4, 1),
-  }),
-  Object.freeze({
-    id: 'method',
-    stageId: 'about.05',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_METHOD_RELEASE']),
-    requiredCueName: 'ABS_METHOD_RELEASE',
-    fallbackProgress: cameraProgressAtStage(5),
-  }),
-  Object.freeze({
-    id: 'lattice-approach',
-    stageId: 'about.05',
-    stageProgress: 0.5,
-    cueNames: Object.freeze(['ABS_LATTICE_APPROACH']),
-    requiredCueName: 'ABS_LATTICE_APPROACH',
-    fallbackProgress: cameraProgressAtStage(5, 0.5),
-  }),
-  Object.freeze({
-    id: 'split-lattice-entry',
-    stageId: 'about.06',
-    stageProgress: 0,
-    cueNames: Object.freeze(['ABS_SPLIT_LATTICE_ENTRY']),
-    requiredCueName: 'ABS_SPLIT_LATTICE_ENTRY',
-    fallbackProgress: cameraProgressAtStage(6),
-  }),
-  Object.freeze({
-    id: 'finale-deceleration',
-    stageId: 'about.06',
-    stageProgress: 0.3,
-    cueNames: Object.freeze(['ABS_FINALE_DECEL']),
-    requiredCueName: 'ABS_FINALE_DECEL',
-    fallbackProgress: cameraProgressAtStage(6, 0.3),
-  }),
-  Object.freeze({
-    id: 'invitation',
-    stageId: 'about.06',
-    stageProgress: 0.7,
-    cueNames: Object.freeze(['ABS_INVITATION']),
-    requiredCueName: 'ABS_INVITATION',
-    fallbackProgress: cameraProgressAtStage(6, 0.7),
-  }),
-  Object.freeze({
-    id: 'camera-lock',
-    stageId: 'about.06',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_CAMERA_LOCK']),
-    requiredCueName: 'ABS_CAMERA_LOCK',
-    fallbackProgress: CAMERA_TRAVEL_PROGRESS,
-  }),
-  Object.freeze({
-    id: 'terminal-hold',
-    stageId: 'about.06',
-    stageProgress: 1,
-    cueNames: Object.freeze(['ABS_TERMINAL_FRAME']),
-    requiredCueName: 'ABS_TERMINAL_FRAME',
-    fallbackProgress: 1,
-  }),
+  journeyRole('opening', 'about.00', 0, 'ABS_STAGE_00'),
+  journeyRole('inciting-question', 'about.01', 0, 'ABS_STAGE_01'),
+  journeyRole('portal-entry', 'about.02', 0, 'ABS_STAGE_02'),
+  journeyRole('portal-exit', 'about.02', 1, 'ABS_ROUND_PORTALS_EXIT'),
+  journeyRole('portal-release', 'about.02', 1, 'ABS_ROUND_PORTALS_CLEAR'),
+  journeyRole('personal-origin', 'about.03', 0, 'ABS_PERSONAL_ORIGIN'),
+  journeyRole('earned-thesis', 'about.03', 0.33, 'ABS_TERRAIN_THESIS'),
+  journeyRole('landscape-release', 'about.03', 0.9, 'ABS_CANYON_CLEAR'),
+  journeyRole('gate-entry', 'about.04', 0, 'ABS_ROLL_GATE_START'),
+  journeyRole('method', 'about.05', 0, 'ABS_METHOD_RELEASE'),
+  journeyRole('lattice-approach', 'about.05', 0.5, 'ABS_LATTICE_APPROACH'),
+  journeyRole('gate-exit', 'about.05', 1, 'ABS_ROLL_GATE_END'),
+  journeyRole('gate-release', 'about.05', 1, 'ABS_GATE_PASSAGE_CLEAR'),
+  journeyRole('split-lattice-entry', 'about.06', 0, 'ABS_SPLIT_LATTICE_ENTRY'),
+  journeyRole('finale-deceleration', 'about.06', 0.3, 'ABS_FINALE_DECEL'),
+  journeyRole('invitation', 'about.06', 0.7, 'ABS_INVITATION'),
+  journeyRole('camera-lock', 'about.06', 1, 'ABS_CAMERA_LOCK'),
+  journeyRole('terminal-hold', 'about.06', 1, 'ABS_TERMINAL_FRAME'),
 ]);
 
 const clean = (value) => Math.round(Number(value) * 1_000_000) / 1_000_000;
@@ -165,10 +41,9 @@ function deepFreeze(value) {
 function stageTiming(storyLayout, stageId, stageProgress) {
   const section = storyLayout?.sections?.find((candidate) => candidate.id === stageId);
   if (!section) return null;
-  return clean(
-    Number(section.startWU)
-    + ((Number(section.endWU) - Number(section.startWU)) * clamp01(stageProgress)),
-  );
+  const startWU = Number(section.sceneStartWU ?? section.startWU);
+  const endWU = Number(section.sceneEndWU ?? section.endWU);
+  return clean(startWU + (endWU - startWU) * clamp01(stageProgress));
 }
 
 export function compileAboutNarrativeJourneyMap(storyLayout) {
@@ -208,9 +83,7 @@ export function compileAboutNarrativeJourneyMap(storyLayout) {
     anchor.stageId,
     anchor.stageProgress,
     anchor.storyWU,
-    anchor.cueNames,
-    anchor.requiredCueName,
-    anchor.fallbackProgress,
+    anchor.cueName,
   ]));
   return deepFreeze({
     valid: diagnostics.length === 0,
@@ -225,24 +98,9 @@ export function compileAboutNarrativeJourneyMap(storyLayout) {
   });
 }
 
-function resolveCue(cameraTrack, cueNames, fallbackProgress, requiredCueName) {
-  const cues = cameraTrack?.journeyCues || [];
-  for (const cueName of cueNames) {
-    const cue = cues.find((candidate) => candidate.name === cueName);
-    const progress = Number(cue?.progress);
-    if (Number.isFinite(progress)) {
-      return {
-        cueName,
-        cueSource: cueName === requiredCueName ? 'semantic' : 'legacy',
-        progress: clamp01(progress),
-      };
-    }
-  }
-  return {
-    cueName: '',
-    cueSource: 'fallback',
-    progress: clamp01(fallbackProgress),
-  };
+function resolveCue(cameraTrack, cueName) {
+  const cue = cameraTrack?.journeyCues?.find((candidate) => candidate.name === cueName);
+  return Number.isFinite(cue?.progress) ? clamp01(cue.progress) : null;
 }
 
 function cameraPathDistances(cameraTrack) {
@@ -281,11 +139,57 @@ function progressAtDistance(distances, distance) {
   return (from + mix) / Math.max(1, distances.length - 1);
 }
 
+// Monotone cubic Hermite rates preserve every semantic Blender cue while
+// joining passage and reading speeds continuously. These are compiled once;
+// sampling is stateless and reversing scroll retraces the same physical rail.
+function writeCameraTravelRates(anchors) {
+  const slopes = anchors.slice(1).map((anchor, index) => (
+    (anchor.cameraDistanceWU - anchors[index].cameraDistanceWU)
+      / Math.max(EPSILON, anchor.storyWU - anchors[index].storyWU)
+  ));
+  anchors.forEach((anchor, index) => {
+    if (index === 0 || index === anchors.length - 1) {
+      anchor.cameraRate = 0;
+      return;
+    }
+    const before = slopes[index - 1];
+    const after = slopes[index];
+    if (before <= EPSILON || after <= EPSILON) {
+      anchor.cameraRate = 0;
+      return;
+    }
+    const beforeSpan = anchor.storyWU - anchors[index - 1].storyWU;
+    const afterSpan = anchors[index + 1].storyWU - anchor.storyWU;
+    const beforeWeight = 2 * afterSpan + beforeSpan;
+    const afterWeight = afterSpan + 2 * beforeSpan;
+    anchor.cameraRate = (beforeWeight + afterWeight)
+      / (beforeWeight / before + afterWeight / after);
+  });
+}
+
+function cameraDistanceAtStoryWU(anchors, storyWU) {
+  if (!anchors.length) return 0;
+  if (storyWU <= anchors[0].storyWU) return anchors[0].cameraDistanceWU;
+  const last = anchors.at(-1);
+  if (storyWU >= last.storyWU) return last.cameraDistanceWU;
+  let toIndex = 1;
+  while (toIndex < anchors.length && storyWU > anchors[toIndex].storyWU) toIndex += 1;
+  const from = anchors[toIndex - 1];
+  const to = anchors[toIndex];
+  const spanWU = Math.max(EPSILON, to.storyWU - from.storyWU);
+  const progress = clamp01((storyWU - from.storyWU) / spanWU);
+  const squared = progress * progress;
+  const cubed = squared * progress;
+  return (2 * cubed - 3 * squared + 1) * from.cameraDistanceWU
+    + (cubed - 2 * squared + progress) * spanWU * from.cameraRate
+    + (-2 * cubed + 3 * squared) * to.cameraDistanceWU
+    + (cubed - squared) * spanWU * to.cameraRate;
+}
+
 export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
   if (!storyMap?.valid) {
     return deepFreeze({
       valid: false,
-      certifiable: false,
       diagnostics: storyMap?.diagnostics || [],
       anchors: [],
       signature: '',
@@ -300,32 +204,29 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
 
   const diagnostics = [];
   const anchors = storyMap.anchors.map((anchor) => {
-    const cue = resolveCue(
-      cameraTrack,
-      anchor.cueNames,
-      anchor.fallbackProgress,
-      anchor.requiredCueName,
-    );
-    if (anchor.requiredCueName && cue.cueName !== anchor.requiredCueName) {
+    const journeyProgress = resolveCue(cameraTrack, anchor.cueName);
+    if (!Number.isFinite(journeyProgress)) {
       diagnostics.push({
-        level: 'warning',
-        code: 'journey-required-camera-cue-missing',
-        path: `cameraTrack.journeyCues.${anchor.requiredCueName}`,
-        message: `Journey role “${anchor.id}” requires camera cue “${anchor.requiredCueName}” for certification.`,
+        level: 'error',
+        code: 'journey-camera-cue-missing',
+        path: `cameraTrack.journeyCues.${anchor.cueName}`,
+        message: `Journey role “${anchor.id}” requires Blender camera cue “${anchor.cueName}”.`,
       });
     }
     return {
       id: anchor.id,
+      stageId: anchor.stageId,
+      stageProgress: anchor.stageProgress,
       storyWU: anchor.storyWU,
-      journeyProgress: clean(cue.progress),
-      cueName: cue.cueName,
-      cueSource: cue.cueSource,
+      journeyProgress: Number.isFinite(journeyProgress) ? clean(journeyProgress) : null,
+      cueName: anchor.cueName,
     };
   });
   anchors.forEach((anchor, index) => {
-    if (index === 0) return;
+    if (index === 0 || !Number.isFinite(anchor.journeyProgress)) return;
     const previous = anchors[index - 1];
-    if (anchor.journeyProgress < previous.journeyProgress - EPSILON) {
+    if (Number.isFinite(previous.journeyProgress)
+      && anchor.journeyProgress < previous.journeyProgress - EPSILON) {
       diagnostics.push({
         level: 'error',
         code: 'journey-camera-order',
@@ -334,10 +235,11 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
       });
     }
   });
-  const lockProgress = anchors.find((anchor) => anchor.id === 'camera-lock')?.journeyProgress ?? 1;
+  const authoredLockProgress = anchors.find((anchor) => anchor.id === 'camera-lock')?.journeyProgress;
+  const lockProgress = Number.isFinite(authoredLockProgress) ? authoredLockProgress : 1;
   // Exported sample time and editorial cues are not physical distance. Measure
-  // the existing rail once so equal native scroll always travels equal length,
-  // including the export's accelerated sections and its stationary tail.
+  // the existing rail once so semantic story anchors can target exact Blender
+  // positions, including the export's accelerated sections and stationary tail.
   const pathDistances = cameraPathDistances(cameraTrack);
   const pathLengthWU = distanceAtProgress(pathDistances, lockProgress);
   if (!(pathLengthWU > EPSILON) || !Number.isFinite(pathLengthWU)) {
@@ -347,13 +249,33 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
     });
   }
   for (const anchor of anchors) {
-    anchor.cameraDistanceWU = Math.min(pathLengthWU,
-      distanceAtProgress(pathDistances, anchor.journeyProgress));
-    anchor.cameraStoryWU = pathLengthWU > EPSILON
-      ? anchor.cameraDistanceWU / pathLengthWU * storyMap.durationWU : 0;
+    anchor.cameraDistanceWU = Number.isFinite(anchor.journeyProgress)
+      ? Math.min(pathLengthWU, distanceAtProgress(pathDistances, anchor.journeyProgress))
+      : 0;
+    // Preserve this compatibility field for visibility consumers. It now uses
+    // the semantic story clock, so camera and scene visibility cross each
+    // Blender cue at the same content-paced point.
+    anchor.cameraStoryWU = anchor.storyWU;
   }
+  const interpolationAnchors = [];
+  for (const anchor of anchors) {
+    const previous = interpolationAnchors.at(-1);
+    if (previous && Math.abs(previous.storyWU - anchor.storyWU) <= EPSILON) {
+      if (Math.abs(previous.cameraDistanceWU - anchor.cameraDistanceWU) > EPSILON) {
+        diagnostics.push({
+          level: 'error',
+          code: 'journey-coincident-anchor-drift',
+          path: `cameraTrack.journeyCues.${anchor.cueName}`,
+          message: `Coincident journey cue “${anchor.id}” resolves to a different camera position.`,
+        });
+      }
+      continue;
+    }
+    interpolationAnchors.push(anchor);
+  }
+  writeCameraTravelRates(interpolationAnchors);
   const reducedReadingCuts = [
-    ['portal-exit', 'personal-origin'], ['gate-exit', 'lattice-approach'],
+    ['portal-exit', 'personal-origin'], ['gate-entry', 'method'],
   ].flatMap(([startId, endId]) => {
     const start = anchors.find((anchor) => anchor.id === startId);
     const end = anchors.find((anchor) => anchor.id === endId);
@@ -365,12 +287,10 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
 
   return deepFreeze({
     valid: !diagnostics.some((item) => item.level === 'error'),
-    certifiable: !diagnostics.some((item) => (
-      item.level === 'error' || item.code === 'journey-required-camera-cue-missing'
-    )),
     diagnostics,
     anchors,
-    signature: `${storyMap.signature}:${cameraTrack?.source?.sha256 || cameraTrack?.sampleCount || ''}:scroll-distance-v1`,
+    interpolationAnchors,
+    signature: `${storyMap.signature}:${cameraTrack?.source?.sha256 || cameraTrack?.sampleCount || ''}:semantic-monotone-v4`,
     finaleStartWU: storyMap.finaleStartWU,
     runwayStartWU: storyMap.runwayStartWU,
     lockStoryWU: storyMap.durationWU,
@@ -386,7 +306,6 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
 export function createAboutNarrativeJourneySample() {
   return {
     valid: false,
-    certifiable: false,
     progress: 0,
     cameraDistanceWU: 0,
     sceneStoryWU: 0,
@@ -404,7 +323,6 @@ export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reduced
   output.sceneStoryWU = time;
   if (!map?.valid || map.anchors.length < 2) {
     output.valid = false;
-    output.certifiable = false;
     output.progress = map?.durationWU > 0 ? clamp01(time / map.durationWU) : 0;
     output.cameraDistanceWU = 0;
     output.finaleProgress = 0;
@@ -416,8 +334,11 @@ export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reduced
   }
 
   output.valid = true;
-  output.certifiable = Boolean(map.certifiable);
-  output.cameraDistanceWU = clamp01(time / map.durationWU) * map.pathLengthWU;
+  output.sceneStoryWU = Math.min(time, map.durationWU);
+  output.cameraDistanceWU = cameraDistanceAtStoryWU(
+    map.interpolationAnchors || map.anchors,
+    output.sceneStoryWU,
+  );
   if (reducedMotion) {
     // Accessible playback cuts between existing authored poses. It never flies
     // continuously, and it still resolves to the same final world and camera.

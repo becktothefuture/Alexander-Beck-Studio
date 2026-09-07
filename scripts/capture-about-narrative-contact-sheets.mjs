@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 import sharp from 'sharp';
+import { resolveAboutNarrativeJourneyMap } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeJourneyMap.js';
+import { getAboutSurfelJourneyMap } from './audit-about-narrative-surfel-v2-helpers.mjs';
 
 const baseUrl = process.env.ABS_BASE_URL || 'http://localhost:8012';
 const phase = process.env.ABS_CONTACT_SHEET_PHASE || 'current';
@@ -43,6 +45,7 @@ const colorScheme = process.env.ABS_CONTACT_SHEET_THEME === 'dark' ? 'dark' : 'l
 // Each sequence answers one visual question. Keep `rhythm` aligned with every
 // authored text handoff; the focused probes may sample the material more densely.
 const sequences = {
+  symphony: [],
   ecosystems: [],
   fields: [],
   reading: [],
@@ -239,10 +242,11 @@ async function createContactSheet(id, evidence) {
     const evidenceLine = state.finaleBounds
       ? `${contentLine} · CTA ${state.finaleBounds.top}–${state.finaleBounds.bottom}px`
       : contentLine;
+    const checkpointLine = state.checkpointId ? `${state.checkpointId} · ` : '';
     const label = Buffer.from(`
       <svg width="${panelWidth}" height="${labelHeight}" xmlns="http://www.w3.org/2000/svg">
         <rect width="100%" height="100%" fill="#f3f1e9"/>
-        <text x="10" y="17" fill="#111" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">WU ${state.storyWU.toFixed(3)} · visibility ${state.visibility.toFixed(2)}</text>
+        <text x="10" y="17" fill="#111" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700">${escapeXml(checkpointLine)}WU ${state.storyWU.toFixed(3)} · visibility ${state.visibility.toFixed(2)}</text>
         <text x="10" y="34" fill="#333" font-family="Arial, Helvetica, sans-serif" font-size="10">${escapeXml(worldLine)}</text>
         <text x="10" y="49" fill="#555" font-family="Arial, Helvetica, sans-serif" font-size="9">${escapeXml(evidenceLine.slice(0, 82))}</text>
       </svg>
@@ -320,7 +324,7 @@ await setStoryWU(page, 0);
 const ecosystemWindows = await page.evaluate(() => (
   window.__aboutNarrativeRuntime?.getMetrics?.().resolvedVisibilityWindows || []
 ));
-for (const [modelId, visibilityWindow] of ecosystemWindows.entries()) {
+for (const [modelId, visibilityWindow] of (requestedSequenceIds.has('ecosystems') ? ecosystemWindows : []).entries()) {
   let best = { storyWU: visibilityWindow.startWU, renderedVisibleCount: -1 };
   for (let sample = 0; sample <= 10; sample += 1) {
     const storyWU = visibilityWindow.startWU
@@ -356,9 +360,10 @@ const storyFields = await page.locator('[data-render-span-id]').evaluateAll((nod
 sequences.fields = storyFields.flatMap((field) => [field.startWU, field.focusWU, field.endWU]);
 sequences.craft = [0, ...storyFields.filter((field) => [
   'text-background-unit', 'text-discipline-labels', 'text-disciplines-title',
-  'text-life-momentum', 'text-life-character', 'text-epilogue-invitation',
+  'text-selected-clients', 'text-life-momentum', 'text-life-character',
+  'text-epilogue-invitation',
 ].includes(field.id)).map((field) => field.focusWU), durationWU];
-const readingStops = await page.evaluate(() => {
+const readingStops = await page.evaluate((storyDurationWU) => {
   const scrollport = document.querySelector('.about-narrative-scrollport');
   const port = scrollport.getBoundingClientRect();
   const height = scrollport.clientHeight;
@@ -375,26 +380,108 @@ const readingStops = await page.evaluate(() => {
     return {
       index, fieldId, text: node.innerText.trim().replace(/\s+/g, ' '),
       storyWU: (scrollport.scrollTop + bounds.top - port.top + bounds.height / 2
-        - 0.5 * height) / height,
+        - 0.5 * height) / Math.max(1, scrollport.scrollHeight - height) * storyDurationWU,
       heightPx: bounds.height, clearHeightPx, fullyFits: bounds.height <= clearHeightPx,
       kind: node.dataset.editorialReveal || node.className,
     };
   });
-});
+}, durationWU);
 sequences.reading = readingStops.map((stop) => stop.storyWU);
-const report = { baseUrl, phase, experienceVersion, canonicalConfigName, browserName, browserChannel, viewportId, viewport, deviceScaleFactor, colorScheme, reducedMotion, durationWU, storyFields, readingStops, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
+const storyFieldById = new Map(storyFields.map((field) => [field.id, field]));
+const fieldCheckpoint = (id, fieldId, phase = 'focus') => {
+  const field = storyFieldById.get(fieldId);
+  if (!field || !Number.isFinite(field[`${phase}WU`])) {
+    throw new Error(`Missing ${phase} timing for choreography field ${fieldId}.`);
+  }
+  return { id, storyWU: field[`${phase}WU`], source: `field:${fieldId}:${phase}` };
+};
+const fieldFractionCheckpoint = (id, fieldId, fraction) => {
+  const field = storyFieldById.get(fieldId);
+  if (!field) throw new Error(`Missing choreography field ${fieldId}.`);
+  return {
+    id,
+    storyWU: field.startWU + ((field.endWU - field.startWU) * fraction),
+    source: `field:${fieldId}:${fraction}`,
+  };
+};
+const readingCheckpoints = (fieldId, kind = null) => readingStops.filter((stop) => (
+  stop.fieldId === fieldId && (!kind || stop.kind === kind)
+));
+const selectReadingCheckpoint = (id, fieldId, position, kind = null) => {
+  const candidates = readingCheckpoints(fieldId, kind);
+  if (!candidates.length) throw new Error(`Missing reading targets for choreography field ${fieldId}.`);
+  const index = position === 'first' ? 0
+    : position === 'last' ? candidates.length - 1
+      : Math.floor((candidates.length - 1) / 2);
+  const target = candidates[index];
+  return { id, storyWU: target.storyWU, source: `content:${fieldId}:${target.kind}:${index}` };
+};
+const journeyMap = resolveAboutNarrativeJourneyMap(await getAboutSurfelJourneyMap(page), cameraTrack);
+if (!journeyMap.valid) {
+  throw new Error(`Cannot build semantic choreography sheet: ${JSON.stringify(journeyMap.diagnostics)}`);
+}
+const journeyAnchorById = new Map(journeyMap.anchors.map((anchor) => [anchor.id, anchor]));
+const anchorCheckpoint = (id, anchorId) => {
+  const anchor = journeyAnchorById.get(anchorId);
+  if (!Number.isFinite(anchor?.cameraStoryWU)) {
+    throw new Error(`Missing choreography journey anchor ${anchorId}.`);
+  }
+  return { id, storyWU: anchor.cameraStoryWU, source: `journey:${anchorId}` };
+};
+sequences.symphony = [
+  fieldCheckpoint('opening-title', 'text-promise-main'),
+  fieldCheckpoint('opening-idea', 'text-complexity-idea'),
+  fieldCheckpoint('opening-conditions', 'text-complexity-conditions'),
+  fieldCheckpoint('background-prose', 'text-background-unit'),
+  selectReadingCheckpoint('experience-last-role', 'text-background-unit', 'last', 'career-row'),
+  anchorCheckpoint('round-entry', 'portal-entry'),
+  fieldCheckpoint('round-title-idea', 'text-complexity-curiosity'),
+  fieldCheckpoint('round-title-listen', 'text-complexity-listen'),
+  anchorCheckpoint('round-exit', 'portal-exit'),
+  selectReadingCheckpoint('disciplines-first', 'text-discipline-labels', 'first', 'discipline'),
+  fieldCheckpoint('disciplines-focus', 'text-discipline-labels'),
+  selectReadingCheckpoint('disciplines-last', 'text-discipline-labels', 'last', 'discipline'),
+  selectReadingCheckpoint('clients-first', 'text-selected-clients', 'first', 'logo'),
+  selectReadingCheckpoint('clients-middle', 'text-selected-clients', 'middle', 'logo'),
+  selectReadingCheckpoint('clients-last', 'text-selected-clients', 'last', 'logo'),
+  anchorCheckpoint('square-entry', 'gate-entry'),
+  fieldCheckpoint('square-title-disciplines', 'text-disciplines-title'),
+  fieldCheckpoint('square-title-momentum', 'text-life-momentum'),
+  anchorCheckpoint('square-exit', 'gate-exit'),
+  fieldCheckpoint('method-start', 'text-life-character', 'start'),
+  fieldCheckpoint('method-focus', 'text-life-character'),
+  fieldFractionCheckpoint('method-late', 'text-life-character', 0.8),
+  anchorCheckpoint('finale-deceleration', 'finale-deceleration'),
+  fieldCheckpoint('closing-title-shaping', 'text-epilogue-shaping'),
+  fieldCheckpoint('closing-title-thinking', 'text-epilogue-thinking'),
+  fieldCheckpoint('final-title', 'text-epilogue-invitation'),
+  anchorCheckpoint('terminal-assembly', 'terminal-hold'),
+];
+const report = { baseUrl, phase, experienceVersion, canonicalConfigName, browserName, browserChannel, viewportId, viewport, deviceScaleFactor, colorScheme, reducedMotion, durationWU, storyFields, readingStops, choreographyAnchors: journeyMap.anchors, configFingerprint, recordedAt: new Date().toISOString(), contactSheets: {}, sequences: {} };
 for (const [id, requestedStoryValues] of Object.entries(sequences)) {
   if (!requestedSequenceIds.has(id)) continue;
-  const storyValues = [...new Set(requestedStoryValues.map((value) => (
-    Math.min(durationWU, Math.max(0, Number(value) || 0))
-  )))];
+  const storyValues = [];
+  const seenValues = new Set();
+  for (const requestedValue of requestedStoryValues) {
+    const record = typeof requestedValue === 'object'
+      ? requestedValue : { id: '', storyWU: requestedValue, source: 'authored-probe' };
+    const storyWU = Math.min(durationWU, Math.max(0, Number(record.storyWU) || 0));
+    const key = `${record.id}:${storyWU.toFixed(6)}`;
+    if (seenValues.has(key)) continue;
+    seenValues.add(key);
+    storyValues.push({ ...record, storyWU });
+  }
   const evidence = [];
-  for (const storyWU of storyValues) {
+  for (const sample of storyValues) {
+    const { storyWU } = sample;
     await setStoryWU(page, storyWU);
     const state = await readFrameState(page, storyWU);
-    const screenshot = `${outputDir}/${id}-wu-${storyWU.toFixed(3).replace('.', '-')}.png`;
+    state.checkpointId = sample.id || '';
+    state.checkpointSource = sample.source || '';
+    const checkpointSlug = sample.id ? `-${sample.id.replace(/[^a-z0-9-]+/giu, '-')}` : '';
+    const screenshot = `${outputDir}/${id}${checkpointSlug}-wu-${storyWU.toFixed(3).replace('.', '-')}.png`;
     await page.screenshot({ path: screenshot, fullPage: false });
-    evidence.push({ screenshot, state });
+    evidence.push({ id: sample.id || null, source: sample.source || null, screenshot, state });
   }
   report.sequences[id] = evidence;
 }

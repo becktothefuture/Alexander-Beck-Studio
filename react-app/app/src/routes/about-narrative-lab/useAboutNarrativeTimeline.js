@@ -4,12 +4,12 @@ import {
   createSmoothScrollMediaQueries,
   shouldUseNativeSmoothScroll,
 } from '../../lib/smooth-scroll.js';
-import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
 import {
   createEntranceSequence,
   measureBookendTitleGlyphLines,
   prepareBookendTitleGlyphs,
 } from '../../lib/motion/entrance-sequence.js';
+import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
 import {
   compileAboutNarrativeComposerPlan,
   createAboutNarrativeComposerContextSample,
@@ -36,11 +36,6 @@ import {
 } from './aboutNarrativeFinaleOrbit.js';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
-const smoothstep = (value) => {
-  const progress = clamp01(value);
-  return progress * progress * (3 - (2 * progress));
-};
-const FINALE_EPSILON = 0.000001;
 const ABOUT_TITLE_DRAW_SELECTOR = '[data-about-title-draw]';
 const ABOUT_TITLE_DRAW_TARGET_DEFAULTS = Object.freeze({
   trigger: 'about-title',
@@ -49,44 +44,14 @@ const ABOUT_TITLE_DRAW_TARGET_DEFAULTS = Object.freeze({
   variant: 'bookend-title',
 });
 
+const FINALE_EPSILON = 0.000001;
+
 function writeSemanticStyle(record, property, value) {
   if (record.styles[property] === value) return;
   record.styles[property] = value;
   record.node.style.setProperty(property, value);
 }
 
-function applyAboutTitleLineExit(titleField, storyWU, textMotion, reducedMotion) {
-  if (!titleField?.drawNode) return;
-  const { drawNode, field, glyphs } = titleField;
-  if (glyphs.length === 0) return;
-  if (field.preset === 'opener-v1') {
-    // The opening lockup owns one shared exit through --fragment-opacity and
-    // --fragment-* transforms. Keep its title glyphs solid so the title, rule,
-    // and description never split into different exit gestures.
-    glyphs.forEach((glyph) => { if (glyph.style.opacity !== '1') glyph.style.opacity = '1'; });
-    return;
-  }
-  if (field.preset === 'finale-v1' || field.presentation?.layout === 'text-finale-cta') {
-    glyphs.forEach((glyph) => { if (glyph.style.opacity !== '1') glyph.style.opacity = '1'; });
-    return;
-  }
-  const durationWU = Math.max(0.000001, Number(field.endWU) - Number(field.startWU));
-  const fieldProgress = clamp01((Number(storyWU) - Number(field.startWU)) / durationWU);
-  const readableEnd = clamp01(Number(textMotion.titleExitStart ?? textMotion.readableEnd ?? 0.76));
-  const exitProgress = reducedMotion
-    ? 0
-    : clamp01((fieldProgress - readableEnd) / Math.max(0.000001, 1 - readableEnd));
-  const fadedOpacity = clamp01(Number(textMotion.titleExitOpacity ?? 0.2));
-  const lineStagger = clamp01(Number(textMotion.titleExitLineStagger ?? 0.16));
-  const lineCount = Math.max(1, Number(drawNode.dataset.routeEnterLineCount || 1));
-  const staggeredSpan = 1 + (Math.max(0, lineCount - 1) * lineStagger);
-  glyphs.forEach((glyph) => {
-    const lineIndex = Math.max(0, Number(glyph.dataset.routeEnterLineIndex || 0));
-    const lineProgress = smoothstep((exitProgress * staggeredSpan) - (lineIndex * lineStagger));
-    const opacity = String(1 + ((fadedOpacity - 1) * lineProgress));
-    if (glyph.style.opacity !== opacity) glyph.style.opacity = opacity;
-  });
-}
 // Periodically restart only the audio distance clock. The visible phase is
 // already wrapped per revolution; this keeps even an extremely long session
 // away from floating-point growth without changing the orbit.
@@ -142,7 +107,6 @@ export function useAboutNarrativeTimeline({
   document,
   editorStore = null,
   finaleContinuation = false,
-  solidTitles = false,
   rootRef,
   worldRuntimeRef,
   scrollportRef,
@@ -207,6 +171,7 @@ export function useAboutNarrativeTimeline({
     let activeTitleEntranceKey = '';
     let activeTitleEntranceNode = null;
     let activeTitleEntranceReduced = false;
+    let activeTitleEntranceDeadline = 0;
     let disposed = false;
     let measuredViewportWidth = 0;
     let measuredViewportHeight = 0;
@@ -403,13 +368,24 @@ export function useAboutNarrativeTimeline({
     };
 
     const collectContentPressure = (viewportHeight) => {
+      // Prepare intermediate lettering before measuring its wrapped layout,
+      // rather than replacing text at the moment it becomes visible.
+      content.querySelectorAll(`${ABOUT_TITLE_DRAW_SELECTOR}:not(.route-centered-page__title)`)
+        .forEach(prepareBookendTitleGlyphs);
       const pressure = {};
       const editorialFieldHeights = new Map();
       const editorialRevealMetrics = new Map();
       content.querySelectorAll('[data-text-field-id]').forEach((node) => {
         const fieldId = node.dataset.textFieldId;
         if (!fieldId) return;
-        const measuredHeightPx = Math.max(node.scrollHeight, node.getBoundingClientRect().height);
+        const title = node.querySelector('h1, h2');
+        const isTitle = node.closest('.about-narrative-render-span--title');
+        const titleStyle = isTitle && title ? getComputedStyle(title) : null;
+        // Measure the untransformed text lines. Projected bounds vary with
+        // scroll depth; the protective ink padding is not reading content.
+        const measuredHeightPx = titleStyle
+          ? Math.max(0, title.offsetHeight - Number.parseFloat(titleStyle.paddingTop) - Number.parseFloat(titleStyle.paddingBottom))
+          : Math.max(node.scrollHeight, node.getBoundingClientRect().height);
         const previous = pressure[fieldId]?.measuredHeightPx || 0;
         pressure[fieldId] = {
           measuredHeightPx: Math.max(previous, measuredHeightPx),
@@ -494,18 +470,15 @@ export function useAboutNarrativeTimeline({
             sample = createAboutNarrativeComposerTitleSample();
             titleSampleByIdRef.current.set(field.id, sample);
           }
-          const drawNode = solidTitles
-            ? node.querySelector(ABOUT_TITLE_DRAW_SELECTOR)
-            : null;
-          const glyphs = drawNode ? measureBookendTitleGlyphLines(drawNode) : [];
+          const drawNode = node.querySelector(ABOUT_TITLE_DRAW_SELECTOR);
+          if (drawNode) measureBookendTitleGlyphLines(drawNode);
           titleFields.push({
+            drawNode,
+            drawKey: drawNode ? `${field.id}:${field.text}` : '',
             node,
             styles: Object.create(null),
             field,
             sample,
-            drawNode,
-            glyphs,
-            drawKey: drawNode ? `${field.id}:${field.text}` : '',
           });
         }
         if (field.presentation?.layout === 'text-finale-cta'
@@ -618,7 +591,7 @@ export function useAboutNarrativeTimeline({
       activeTitleEntranceReduced = reducedMotion;
       if (!nextNode) return;
 
-      titleField.glyphs = prepareBookendTitleGlyphs(nextNode);
+      prepareBookendTitleGlyphs(nextNode);
       const drawLineCount = Math.max(
         1,
         Number(nextNode.dataset.routeEnterLineCount || 1),
@@ -648,7 +621,12 @@ export function useAboutNarrativeTimeline({
         bookendDelayMs: 0,
       });
       activeTitleEntrance.stage();
-      void activeTitleEntrance.play();
+      // A measured layout or route handoff can retire the queued entrance RAF.
+      // The Story sampler remains live, so it also guarantees the ink endpoint.
+      // Never leave a visited heading staged as transparent after its draw window.
+      activeTitleEntranceDeadline = performance.now() + activeTitleEntrance.totalMs + 160;
+      const entrance = activeTitleEntrance;
+      void entrance.play().catch(() => entrance.cancel());
     };
 
     const updateSemanticText = (frame, time) => {
@@ -659,16 +637,11 @@ export function useAboutNarrativeTimeline({
         const {
           field,
           sample,
-          drawNode,
         } = titleField;
         sampleAboutNarrativeComposerTitleInto(field, frame.storyWU, textMotion, reducedMotion, sample);
         const fieldActive = isFieldActive(field, frame.storyWU, frame.durationWU);
-        const usesUnitExit = field.preset === 'opener-v1';
-        if (fieldActive && drawNode) activeTitleField = titleField;
-        // V2 titles stay present for their Text moment. Their glyph lines own
-        // the colour entrance and the controlled fade to the authored floor;
-        // this parent gate prevents adjacent sticky moments from overlapping.
-        const visible = solidTitles ? fieldActive : !reducedMotion || fieldActive;
+        const visible = fieldActive;
+        if (fieldActive && titleField.drawNode) activeTitleField = titleField;
         // Hidden sticky titles need only their visibility gate. Do not keep
         // invalidating the entire offscreen glyph tree as the camera moves.
         if (visible) {
@@ -681,15 +654,15 @@ export function useAboutNarrativeTimeline({
           titleField,
           '--fragment-opacity',
           visible
-            ? ((solidTitles && !usesUnitExit) ? '1' : sample.opacity.toFixed(4))
+            ? sample.opacity.toFixed(4)
             : '0',
         );
       }
-      const immediateInvitation = activeTitleField?.field.presentation?.layout === 'text-finale-cta'
-        && frame.storyWU >= activeTitleField.field.endWU - 0.001;
-      syncTitleEntrance(activeTitleField, reducedMotion || immediateInvitation, textMotion);
-      applyAboutTitleLineExit(activeTitleField, frame.storyWU, textMotion, reducedMotion);
-
+      syncTitleEntrance(activeTitleField, reducedMotion, textMotion);
+      if (activeTitleEntranceDeadline > 0 && performance.now() >= activeTitleEntranceDeadline) {
+        activeTitleEntrance?.cancel();
+        activeTitleEntranceDeadline = 0;
+      }
       const viewportThreshold = frame.globals.editorialRevealThreshold;
       const viewportHeight = Math.max(1, measurementsRef.current.viewportHeight);
       const scrollWU = planRef.current.resolver.scrollWUFromStoryWU(frame.storyWU);
@@ -794,7 +767,6 @@ export function useAboutNarrativeTimeline({
             );
           }
         }
-        writeSemanticStyle(contextField, '--spatial-context-opacity', sample.titleOpacity.toFixed(4));
         writeSemanticStyle(contextField, '--route-title-rule-scale', sample.ruleScale.toFixed(4));
         writeSemanticStyle(contextField, '--spatial-description-opacity', sample.descriptionOpacity.toFixed(4));
         writeSemanticStyle(contextField, '--spatial-action-opacity', sample.actionOpacity.toFixed(4));
@@ -833,10 +805,13 @@ export function useAboutNarrativeTimeline({
       // scroll position first. Semantic DOM and the camera then sample that
       // one position in this RAF; the camera has no independent easing layer.
       const paintedScrollTop = scrollport.scrollTop;
-      const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
+      const elapsedSeconds = Math.max(0, (time - previousTime) / 1000);
+      const deltaSeconds = Math.min(0.05, elapsedSeconds);
       previousTime = time;
       if (!planRef.current.reducedMotion && !motionPausedRef?.current && !window.document.hidden) {
-        ambientSeconds += deltaSeconds;
+        // Analytic ambient motion follows elapsed visible time, even on slower
+        // devices. Only the transport integrator needs the bounded delta.
+        ambientSeconds += elapsedSeconds;
       }
       const nextStoryWU = readTransport(deltaSeconds, paintedScrollTop);
       const continuation = getFinaleContinuation(planRef.current);
@@ -1027,12 +1002,12 @@ export function useAboutNarrativeTimeline({
 
     return () => {
       disposed = true;
+      activeTitleEntrance?.cancel();
       window.cancelAnimationFrame(raf);
       window.clearTimeout(measureTimer);
       window.clearTimeout(preparationTimer);
       lenis?.destroy();
       scrollSoundController.reset();
-      activeTitleEntrance?.cancel();
       resizeObserver.disconnect();
       unsubscribe?.();
       reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
@@ -1061,7 +1036,7 @@ export function useAboutNarrativeTimeline({
       // development editor restarts this effect; removing these values would
       // reflow the page before the next instance reads its scroll position.
     };
-  }, [contentRef, editorStore, finaleContinuation, motionPausedRef, onStoryProgress, playScrollDetent, rootRef, scrollportRef, solidTitles, worldRuntimeRef]);
+  }, [contentRef, editorStore, finaleContinuation, motionPausedRef, onStoryProgress, playScrollDetent, rootRef, scrollportRef, worldRuntimeRef]);
 
   return { runtimePlan, layoutReady };
 }

@@ -1,11 +1,9 @@
 import { resolveAboutNarrativeJourneyMap } from './aboutNarrativeJourneyMap.js';
+import { ABOUT_BLENDER_STAGE_IDS } from './aboutBlenderStages.js';
 
 const SHA256_PATTERN = /^[a-f\d]{64}$/i;
 const FILE_KEYS = Object.freeze(['cameraTrack', 'surfels']);
 const EPSILON = 0.000001;
-const EXPECTED_MODEL_KEYS = Object.freeze([
-  'about.00', 'about.01', 'about.02', 'about.03', 'about.04', 'about.05', 'about.06',
-]);
 
 function isSha256(value) {
   return typeof value === 'string' && SHA256_PATTERN.test(value);
@@ -23,6 +21,48 @@ function result(status, diagnostics, values) {
   });
 }
 
+function stageRangeDiagnostics(meta) {
+  const diagnostics = [];
+  const ranges = meta?.source?.route?.stageRanges;
+  if (!ranges || typeof ranges !== 'object' || Array.isArray(ranges)) {
+    return [diagnostic(
+      'scene-stage-ranges-invalid', 'meta.source.route.stageRanges',
+      'The Blender route must export one normalized range for every About stage.',
+    )];
+  }
+  const keys = Object.keys(ranges);
+  if (keys.length !== ABOUT_BLENDER_STAGE_IDS.length
+    || keys.some((key, index) => key !== ABOUT_BLENDER_STAGE_IDS[index])) {
+    diagnostics.push(diagnostic(
+      'scene-stage-sequence-invalid', 'meta.source.route.stageRanges',
+      'Blender stage ranges and website stage IDs must use the same ordered identifiers.',
+      { expected: ABOUT_BLENDER_STAGE_IDS, actual: keys },
+    ));
+    return diagnostics;
+  }
+  let previousEnd = 0;
+  for (const [index, stageId] of ABOUT_BLENDER_STAGE_IDS.entries()) {
+    const range = ranges[stageId];
+    if (!Array.isArray(range) || range.length !== 2 || !range.every(Number.isFinite)
+      || range[0] < 0 || range[1] > 1 || range[1] <= range[0]
+      || Math.abs(range[0] - previousEnd) > EPSILON) {
+      diagnostics.push(diagnostic(
+        'scene-stage-range-invalid', `meta.source.route.stageRanges.${stageId}`,
+        `${stageId} must be a finite, contiguous normalized Blender route range.`,
+      ));
+    }
+    previousEnd = Array.isArray(range) ? Number(range[1]) : Number.NaN;
+    if (index === ABOUT_BLENDER_STAGE_IDS.length - 1
+      && Math.abs(previousEnd - 1) > EPSILON) {
+      diagnostics.push(diagnostic(
+        'scene-stage-range-invalid', `meta.source.route.stageRanges.${stageId}`,
+        'The final Blender stage must end at normalized route distance 1.',
+      ));
+    }
+  }
+  return diagnostics;
+}
+
 function metadataDiagnostics(meta) {
   const diagnostics = [];
   if (meta?.schema !== 'about-point-scene' || meta?.version !== 2) {
@@ -37,6 +77,7 @@ function metadataDiagnostics(meta) {
       'The bundle must declare its authored-source SHA-256.',
     ));
   }
+  diagnostics.push(...stageRangeDiagnostics(meta));
   const cameraFog = meta?.source?.authoring?.cameraFog;
   if (meta?.source?.authoring && (!cameraFog || !Number.isFinite(cameraFog.startWU) || cameraFog.startWU < 0
     || !Number.isFinite(cameraFog.endWU) || cameraFog.endWU <= cameraFog.startWU
@@ -48,14 +89,44 @@ function metadataDiagnostics(meta) {
     ));
   }
   const models = Array.isArray(meta?.models) ? meta.models : [];
+  const groups = Array.isArray(meta?.motionGroups) ? meta.motionGroups : [];
+  const validGroups = groups.length > 0 && groups.every((group) =>
+    Number.isInteger(group?.id) && group.id >= 0 && group.id < 32
+    && typeof group.key === 'string' && group.key.length > 0)
+    && new Set(groups.map((group) => group.id)).size === groups.length;
+  if (!validGroups) diagnostics.push(diagnostic(
+    'scene-motion-groups-invalid', 'meta.motionGroups',
+    'Every motion group requires a unique identifier below the 32-group shader capacity and a semantic key.',
+  ));
+  const finiteVector = (value) => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
+  for (const group of Array.isArray(meta.motionGroups) ? meta.motionGroups : []) {
+    if (!group?.motion) continue;
+    const motion = group.motion;
+    const common = Number.isInteger(group.id) && group.id >= 0 && group.id < 32
+      && finiteVector(motion.axis) && Math.abs(Math.hypot(...motion.axis) - 1) < 0.001
+      && motion.timeSource === 'ambient-seconds';
+    const rotation = motion.behavior === 'continuous-rotation'
+      && finiteVector(motion.pivotWU) && Number.isFinite(motion.radiansPerSecond) && motion.radiansPerSecond >= 0;
+    const bounded = motion.behavior === 'bounded-rotation' && finiteVector(motion.pivotWU)
+      && Number.isFinite(motion.amplitudeRadians) && motion.amplitudeRadians >= 0 && motion.amplitudeRadians <= Math.PI / 2
+      && Number.isFinite(motion.periodSeconds) && motion.periodSeconds >= 1;
+    const terrain = motion.behavior === 'terrain-wave'
+      && Number.isFinite(motion.amplitudeWU) && motion.amplitudeWU >= 0
+      && Number.isFinite(motion.wavelengthWU) && motion.wavelengthWU > 0
+      && Number.isFinite(motion.secondaryScale) && motion.secondaryScale >= 0
+      && Number.isFinite(motion.radiansPerSecond) && motion.radiansPerSecond >= 0;
+    if (!common || !(rotation || bounded || terrain)) diagnostics.push(diagnostic(
+      'scene-authored-motion-invalid', `meta.motionGroups.${group.id}.motion`,
+      'Authored motion needs a supported behavior, unit axis, finite parameters, and a bounded group identifier.',
+    ));
+  }
   for (const [index, model] of models.entries()) {
+    if (model?.renderingProfile != null && !['atmosphere', 'solid', 'bust'].includes(model.renderingProfile)) {
+      diagnostics.push(diagnostic('scene-rendering-profile-invalid', `meta.models[${index}].renderingProfile`,
+        'The model must use an atmospheric, solid-surface, or bust rendering profile.'));
+    }
     if (model?.material == null) continue;
     const material = model.material;
-    const groups = Array.isArray(meta.motionGroups) ? meta.motionGroups : [];
-    const validGroups = groups.length > 0 && groups.every((group) =>
-      Number.isInteger(group?.id) && group.id >= 0 && group.id <= 255
-      && typeof group.key === 'string' && group.key.length > 0)
-      && new Set(groups.map((group) => group.id)).size === groups.length;
     const owned = typeof model.motionKey === 'string' && model.motionKey.length > 0
       ? groups.filter((group) => typeof group?.key === 'string'
         && (group.key === model.motionKey || group.key.startsWith(`${model.motionKey}.`))) : [];
@@ -66,7 +137,7 @@ function metadataDiagnostics(meta) {
       || material.manifestationSpreadScale < 0.001 || material.manifestationSpreadScale > 1
       || !Number.isFinite(material.detailBiasScale)
       || material.detailBiasScale < 0.2 || material.detailBiasScale > 2
-      || !ids.length || ids.some((id) => !Number.isInteger(id) || id < 0 || id > 255)
+      || !ids.length || ids.some((id) => !Number.isInteger(id) || id < 0 || id >= 32)
       || new Set(ids).size !== ids.length || last - first + 1 !== ids.length
       || groups.some((group) => group?.id >= first && group.id <= last && !owned.includes(group))
       || models.some((other) => other !== model && other?.motionKey
@@ -303,9 +374,7 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
     || storyMap.anchors.some((anchor) => (
       !anchor || typeof anchor.id !== 'string' || !anchor.id
       || !Number.isFinite(anchor.storyWU) || anchor.storyWU < 0
-      || !Array.isArray(anchor.cueNames) || !anchor.cueNames.length
-      || anchor.cueNames.some((name) => typeof name !== 'string' || !name)
-      || !Number.isFinite(anchor.fallbackProgress)
+      || typeof anchor.cueName !== 'string' || !anchor.cueName
     ))
     || new Set(storyMap.anchors?.map((anchor) => anchor?.id)).size !== storyMap.anchors?.length)) {
     diagnostics.push(diagnostic(
@@ -328,12 +397,16 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
   }
   if (meta != null && Array.isArray(meta.models)) {
     const actualKeys = meta.models.map((model) => model?.key);
-    const expectedKeys = EXPECTED_MODEL_KEYS;
+    // The archived body collection is optional in older compatible exports;
+    // narrative stages remain stable even when that model is not exported.
+    const expectedKeys = actualKeys.includes('about.01')
+      ? ABOUT_BLENDER_STAGE_IDS
+      : ABOUT_BLENDER_STAGE_IDS.filter((key) => key !== 'about.01');
     if (actualKeys.length !== expectedKeys.length
       || actualKeys.some((key, index) => key !== expectedKeys[index])) {
       diagnostics.push(diagnostic(
         'scene-model-sequence-invalid', 'meta.models',
-        'The About world must declare exactly seven ordered semantic stages.',
+        'The About world must declare its ordered semantic models, with the archived body model optional.',
         { expected: expectedKeys, actual: actualKeys },
       ));
     }
@@ -342,22 +415,14 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
   if (pending.length) return result('pending', pending, empty);
 
   const journeyMap = resolveAboutNarrativeJourneyMap(storyMap, cameraTrack);
-  if (!journeyMap.valid || !journeyMap.certifiable) {
+  if (!journeyMap.valid) {
     diagnostics.push(diagnostic(
       'scene-journey-incompatible', 'cameraTrack.journeyCues',
-      'The camera and current story do not form a certifiable journey.',
+      'The camera and current story do not form one complete Blender-authored journey.',
     ), ...journeyMap.diagnostics);
   }
-  for (const anchor of journeyMap.anchors) {
-    if (anchor.cueSource === 'fallback') {
-      diagnostics.push(diagnostic(
-        'scene-camera-cue-unresolved', `storyMap.anchors.${anchor.id}`,
-        `Journey role “${anchor.id}” has no exported camera cue; fallback progress is unsupported.`,
-      ));
-    }
-  }
-  // Scenery follows its physical position on the rail. Editorial length must
-  // not hide a structure before a constant-speed camera has passed through it.
+  // Scenery follows semantic camera cues. Responsive editorial reflow may move
+  // story-world distances without changing the authored physical rail ranges.
   const anchors = new Map(journeyMap.anchors.map((anchor) => [anchor.id, anchor.cameraStoryWU]));
   const storyAnchors = new Map(journeyMap.anchors.map((anchor) => [anchor.id, anchor.storyWU]));
   const modelKeys = new Set();
@@ -427,6 +492,7 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
     }
     return Object.freeze({
       modelId: model.id, modelKey: model.key, startWU, endWU, handoffWU,
+      startCue, startOffsetWU, endCue, endOffsetWU,
       source: 'blender-authored-visibility',
     });
   });

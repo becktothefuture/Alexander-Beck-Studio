@@ -176,3 +176,15 @@ test('remaps physical scroll while preserving Story WU across profile and viewpo
     nextResolver,
   }), /viewport heights must be finite and greater than zero/u);
 });
+
+test('canonical 35 Story WU maps uniformly to 11 physical viewport units', () => {
+  const profiles = Object.fromEntries(['desktop', 'tablet', 'mobile'].map(id => [id, { storyDurationWU: 35, scrollDurationWU: 11 }]));
+  for (const previewLayoutProfile of Object.keys(profiles)) {
+    const resolver = createAboutNarrativeProfileResolver({ profiles, previewLayoutProfile });
+    for (let storyWU = 0; storyWU <= 35; storyWU += 0.25) {
+      const scrollWU = resolver.scrollWUFromStoryWU(storyWU);
+      assert.ok(Math.abs(scrollWU - storyWU * 11 / 35) < 1e-9);
+      assert.ok(Math.abs(resolver.storyWUFromScrollWU(scrollWU) - storyWU) < 1e-9);
+    }
+  }
+});

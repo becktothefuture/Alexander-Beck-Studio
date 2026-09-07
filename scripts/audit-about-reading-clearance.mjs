@@ -22,7 +22,7 @@ const groups = [
   ['thesis','[data-text-field-id="text-complexity-curiosity"]'],
   ['listening','[data-text-field-id="text-complexity-listen"]'],
   ['disciplines','[data-text-field-id="text-discipline-labels"]'],
-  ['clients','[data-text-field-id="text-disciplines-title"]'],
+  ['clients','[data-text-field-id="text-selected-clients"] .about-narrative-client-field'],
   ['method','[data-text-field-id="text-life-character"]'],
 ];
 const titles=['text-complexity-idea','text-complexity-conditions','text-life-momentum'];

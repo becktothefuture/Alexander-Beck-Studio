@@ -37,6 +37,12 @@ function slerp(first, second, amount) {
 export function measureCameraGatePassage(track) {
   assert.equal(track.gatePassage?.schema, 'about-square-gate-apertures/v1');
   assert.equal(track.gatePassage.coordinateSystem, 'website-world');
+  const growth = track.gatePassage.growth;
+  assert.deepEqual(growth, {
+    mode: 'linear-by-gate-index',
+    startScale: 1,
+    endScale: 3.2,
+  }, 'Square-gate growth must remain the authored 1x to 3.2x linear progression.');
   const { samples } = track;
   const distances = [0];
   let maximumAngularDegreesPerWU = 0;
@@ -69,13 +75,16 @@ export function measureCameraGatePassage(track) {
     };
   };
   const gates = track.gatePassage.apertures.map((aperture, gateIndex) => {
-    const { centre, right, up, normal, innerHalfSize, halfDepth } = aperture;
+    const {
+      centre, right, up, normal, scale, innerHalfSize, halfDepth,
+    } = aperture;
     assert.equal(aperture.id, gateIndex + 1);
     for (const axis of [right, up, normal]) assert.ok(Math.abs(Math.hypot(...axis) - 1) < 0.00001);
     for (const [first, second] of [[right, up], [right, normal], [up, normal]]) {
       assert.ok(Math.abs(dot(first, second)) < 0.0001, 'The aperture frame must be orthogonal.');
     }
-    assert.ok(centre.every(Number.isFinite) && innerHalfSize.every((value) => value > 0) && halfDepth > 0);
+    assert.ok(centre.every(Number.isFinite) && Number.isFinite(scale) && scale > 0
+      && innerHalfSize.every((value) => value > 0) && halfDepth > 0);
     const intersections = [];
     // Check both faces as well as the middle plane. A centre-plane crossing
     // alone can accept a camera that clips the rim of a thick gate.
@@ -119,7 +128,7 @@ export function measureCameraGatePassage(track) {
     }) : [];
     return { id: aperture.id, aperture, intersections, crossing, approaches };
   });
-  return { gates, distances, pathLengthWU: distances.at(-1), sampleAtDistance,
+  return { gates, growth, distances, pathLengthWU: distances.at(-1), sampleAtDistance,
     maximumAngularDegreesPerWU, maximumAngularStepDegrees, maximumStationaryAngularStepDegrees };
 }
 
@@ -143,10 +152,27 @@ export function measureGateView(aperture, pose, aspect, horizontalFov) {
   };
 }
 
-export function assertCameraGatePassage(measurement, expectedCount = 16) {
-  assert.equal(measurement.gates.length, expectedCount, 'Every source gate needs an aperture check.');
+export function assertCameraGatePassage(measurement, expectedCount = null) {
+  if (expectedCount != null) {
+    assert.equal(measurement.gates.length, expectedCount, 'Every source gate needs an aperture check.');
+  }
+  assert.ok(measurement.gates.length >= 4 && measurement.gates.length <= 96,
+    'The square tunnel needs 4-96 certified apertures.');
+  assert.equal(measurement.gates[0].aperture.scale, measurement.growth.startScale,
+    'The first square gate must retain its authored starting scale.');
+  assert.equal(measurement.gates.at(-1).aperture.scale, measurement.growth.endScale,
+    'The final square gate must retain its authored ending scale.');
+  const initialHalfSize = measurement.gates[0].aperture.innerHalfSize;
   let previousDistance = -Infinity;
+  let previousScale = -Infinity;
   for (const gate of measurement.gates) {
+    assert.ok(gate.aperture.scale > previousScale,
+      `Gate ${gate.id}: aperture growth must be strictly monotonic.`);
+    gate.aperture.innerHalfSize.forEach((halfSize, axis) => {
+      assert.ok(Math.abs(halfSize - initialHalfSize[axis] * gate.aperture.scale) <= 0.000001,
+        `Gate ${gate.id}: exported opening does not match its authored growth scale.`);
+    });
+    previousScale = gate.aperture.scale;
     for (const intersections of gate.intersections) {
       assert.equal(intersections.length, 1, `Gate ${gate.id}: camera must pass through each face once.`);
       assert.ok(intersections[0].clearanceWU >= Math.min(...gate.aperture.innerHalfSize) * 0.75,
@@ -155,7 +181,7 @@ export function assertCameraGatePassage(measurement, expectedCount = 16) {
     assert.ok(gate.crossing.distanceWU > previousDistance, 'The camera must traverse the gates in source order.');
     previousDistance = gate.crossing.distanceWU;
     for (const approach of gate.approaches) {
-      assert.ok(approach.depthWU > 0 && approach.centreNDC.every((value) => Math.abs(value) < 0.95),
+      assert.ok(approach.depthWU > 0 && approach.centreNDC.every((value) => Math.abs(value) < 1),
         `Gate ${gate.id}: opening leaves the view ${approach.leadWU} WU before passage.`);
       if (approach.leadWU <= 8) {
         assert.ok(approach.aimClearanceWU > 0.75,

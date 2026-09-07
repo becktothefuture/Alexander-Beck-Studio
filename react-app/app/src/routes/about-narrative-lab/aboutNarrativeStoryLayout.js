@@ -5,6 +5,7 @@ import {
   getAboutNarrativeCameraRotationFromQuaternion,
   writeAboutNarrativeCameraLookAtQuaternion,
 } from './aboutNarrativeCameraRig.js';
+import { ABOUT_BLENDER_STAGE_IDS } from './aboutBlenderStages.js';
 import {
   compileAboutNarrativeLongRideTrack,
   sampleAboutNarrativeLongRidePositionInto,
@@ -13,6 +14,12 @@ import { ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND } from './aboutNarrativeTrackSchem
 
 const FLOW_EPSILON = 0.000001;
 const DEFAULT_PROFILE_ID = 'desktop';
+
+// Physical viewport travel captured from the first statement, independent of
+// the story-to-scroll ratio, line wrapping, and the following chapter.
+export const ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS = Object.freeze({
+  desktop: 0.24, tablet: 0.22, mobile: 0.2,
+});
 
 export const ABOUT_NARRATIVE_STORY_GAP_PRESETS = Object.freeze({
   none: Object.freeze({ desktop: 0, tablet: 0, mobile: 0 }),
@@ -31,16 +38,6 @@ export const ABOUT_NARRATIVE_STORY_FOCUS_MODES = Object.freeze([
   'reading-start',
 ]);
 
-export const ABOUT_NARRATIVE_STAGE_IDS = Object.freeze([
-  'about.00',
-  'about.01',
-  'about.02',
-  'about.03',
-  'about.04',
-  'about.05',
-  'about.06',
-]);
-
 const PROFILE_ESTIMATES = Object.freeze({
   desktop: Object.freeze({
     charactersPerScreen: 1_750,
@@ -49,7 +46,7 @@ const PROFILE_ESTIMATES = Object.freeze({
     careerItemScreens: 0.14,
     careerIndependentWorkScreens: 0.1,
     editorialLeadScreens: 0.82,
-    editorialTailScreens: 0.24,
+    editorialTailScreens: 0.1,
     titleContentPaddingScreens: 0.2,
   }),
   tablet: Object.freeze({
@@ -59,7 +56,7 @@ const PROFILE_ESTIMATES = Object.freeze({
     careerItemScreens: 0.16,
     careerIndependentWorkScreens: 0.12,
     editorialLeadScreens: 0.76,
-    editorialTailScreens: 0.22,
+    editorialTailScreens: 0.1,
     titleContentPaddingScreens: 0.22,
   }),
   mobile: Object.freeze({
@@ -69,7 +66,7 @@ const PROFILE_ESTIMATES = Object.freeze({
     careerItemScreens: 0.2,
     careerIndependentWorkScreens: 0.15,
     editorialLeadScreens: 0.68,
-    editorialTailScreens: 0.2,
+    editorialTailScreens: 0.1,
     titleContentPaddingScreens: 0.26,
   }),
 });
@@ -146,6 +143,9 @@ function getFlow(field) {
     focusOffsetScreens: finite(flow.focusOffsetScreens)
       ? clamp(Number(flow.focusOffsetScreens), 0, 6)
       : null,
+    gapAfterScreens: finite(flow.gapAfterScreens)
+      ? clamp(Number(flow.gapAfterScreens), 0, 3)
+      : 0,
   };
 }
 
@@ -214,14 +214,14 @@ function compileLegacyLayout(fields, profileId) {
   });
 }
 
-function compileEqualStageLayout(document, fields, {
+function compileStagedLayout(document, fields, {
   profileId,
   profile,
   measurements,
   editorialLeadScreens,
   diagnostics,
 }) {
-  const stageIds = ABOUT_NARRATIVE_STAGE_IDS;
+  const stageIds = ABOUT_BLENDER_STAGE_IDS;
   const fieldsByStage = new Map(stageIds.map((stageId) => [stageId, []]));
   fields.forEach((field) => fieldsByStage.get(field.stageId)?.push(field));
   stageIds.forEach((stageId) => {
@@ -230,11 +230,23 @@ function compileEqualStageLayout(document, fields, {
         level: 'error',
         code: 'story-stage-empty',
         path: `tracks.text.fields.${stageId}`,
-        message: `Equal story stage “${stageId}” needs at least one Text field.`,
+        message: `Story stage “${stageId}” needs at least one Text field.`,
       });
     }
   });
 
+  const authoredProfile = document.profiles[profileId];
+  const scrollToStory = authoredProfile.storyDurationWU / authoredProfile.scrollDurationWU;
+  const pacing = document.globals?.storyPacing;
+  const readingSpaceScale = Math.max(0.75, Number(pacing?.readingSpaceScale) || 1);
+  const passageScale = Math.max(0.5, Number(pacing?.passageScale) || 1);
+  const titleMotionScale = Math.max(0.1, Number(document.globals?.textMotion?.durationScale) || 1);
+  const titleTravelScreens = (ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS[profileId]
+    ?? ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS.desktop) * titleMotionScale;
+  // Editorial content is positioned below its timeline origin by the reveal
+  // threshold. Account for its first visible pixel, not only its start marker.
+  const readingClearanceScreens = Math.max(0, Number(pacing?.titleToProseGapScreens ?? 0.5))
+    + Math.max(0, 1 - editorialLeadScreens);
   const measurementsById = new Map();
   const durationById = new Map();
   fields.forEach((field) => {
@@ -242,13 +254,16 @@ function compileEqualStageLayout(document, fields, {
     const measurement = getMeasurement(measurements, field.id);
     const measuredScreens = measuredNaturalScreens(measurement);
     const naturalScreens = measuredScreens ?? estimateNaturalScreens(field, profile);
-    const durationWU = getSectionDurationWU(
-      field,
-      flow,
-      naturalScreens,
-      profile,
-      editorialLeadScreens,
-    );
+    const physicalToStory = measuredScreens == null ? 1 : scrollToStory;
+    const isStatement = field.kind === 'title'
+      && field.preset !== 'opener-v1' && field.preset !== 'finale-v1';
+    const readingFitWU = (naturalScreens + editorialLeadScreens
+      + profile.editorialTailScreens) * physicalToStory;
+    const durationWU = field.kind === 'scroll-block'
+      ? cleanWU(Math.max(readingFitWU, Math.max(flow.minScreens, readingFitWU) * readingSpaceScale))
+      : isStatement
+        ? cleanWU(titleTravelScreens * scrollToStory)
+        : cleanWU(Math.max(flow.minScreens, naturalScreens * physicalToStory));
     measurementsById.set(field.id, {
       flow,
       naturalScreens,
@@ -261,30 +276,33 @@ function compileEqualStageLayout(document, fields, {
     document?.profiles?.[profileId]?.storyDurationWU
     ?? document?.profiles?.desktop?.storyDurationWU,
   );
-  const requestedStageWU = Number.isFinite(requestedTotalWU) && requestedTotalWU > 0
-    ? requestedTotalWU / stageIds.length
-    : 5;
-  const requiredStageWU = Math.max(...stageIds.map((stageId) => (
-    fieldsByStage.get(stageId)
-      .reduce((sum, field) => sum + durationById.get(field.id), 0)
-  )));
-  const stageDurationWU = cleanWU(Math.max(requestedStageWU, requiredStageWU));
+  // A short estimated layout may need the authored reading allocation until
+  // real measurements arrive. Allocate it to reading, never title motion.
+  const occupiedTotalWU = [...durationById.values()].reduce((sum, value) => sum + value, 0);
+  const readingFields = fields.filter((field) => field.kind === 'scroll-block');
+  const readingTotalWU = readingFields.reduce((sum, field) => sum + durationById.get(field.id), 0);
+  const extraReadingWU = Math.max(0, requestedTotalWU * readingSpaceScale - occupiedTotalWU);
+  readingFields.forEach((field) => {
+    const durationWU = durationById.get(field.id);
+    durationById.set(field.id, cleanWU(durationWU
+      + extraReadingWU * durationWU / Math.max(FLOW_EPSILON, readingTotalWU)));
+  });
+  const gapAfterById = new Map(fields.map((field, fieldIndex) => {
+    const next = fields[fieldIndex + 1];
+    const authoredGapScreens = measurementsById.get(field.id).flow.gapAfterScreens;
+    const leadsToReading = field.kind === 'title' && next?.kind === 'scroll-block';
+    const gapScreens = leadsToReading
+      ? Math.max(readingClearanceScreens, Math.max(authoredGapScreens, readingClearanceScreens)
+        * (['about.02', 'about.04'].includes(field.stageId) ? passageScale : 1))
+      : authoredGapScreens;
+    return [field.id, next ? cleanWU(gapScreens * scrollToStory) : 0];
+  }));
   const compiledFields = [];
+  let stageCursorWU = 0;
   const sections = stageIds.map((stageId, stageIndex) => {
     const stageFields = fieldsByStage.get(stageId);
-    const startWU = cleanWU(stageIndex * stageDurationWU);
-    const endWU = cleanWU(startWU + stageDurationWU);
-    const occupiedWU = stageFields.reduce(
-      (sum, field) => sum + durationById.get(field.id),
-      0,
-    );
-    const slackWU = Math.max(0, stageDurationWU - occupiedWU);
-    // The route opener must be present at Story WU 0. Every later stage uses
-    // equal leading, inter-field, and trailing space within its one-seventh.
-    const edgeStage = stageIndex === 0 || stageIndex === stageIds.length - 1;
-    const gapCount = edgeStage ? Math.max(1, stageFields.length) : stageFields.length + 1;
-    const gapWU = slackWU / gapCount;
-    let cursorWU = startWU + (stageIndex === 0 ? 0 : gapWU);
+    const startWU = cleanWU(stageCursorWU);
+    let cursorWU = startWU;
     stageFields.forEach((field) => {
       const durationWU = durationById.get(field.id);
       const flowData = measurementsById.get(field.id);
@@ -301,11 +319,14 @@ function compileEqualStageLayout(document, fields, {
         durationWU,
         naturalScreens: cleanWU(flowData.naturalScreens),
         minScreens: flowData.flow.minScreens,
-        gapAfter: 'equal-stage',
+        gapAfter: 'none',
         measured: flowData.measured,
       });
-      cursorWU = fieldEndWU + gapWU;
+      cursorWU = cleanWU(fieldEndWU + gapAfterById.get(field.id));
     });
+    const endWU = cursorWU;
+    const stageDurationWU = cleanWU(endWU - startWU);
+    stageCursorWU = endWU;
     return {
       id: stageId,
       index: stageIndex,
@@ -316,33 +337,47 @@ function compileEqualStageLayout(document, fields, {
     };
   });
 
+  // Text blocks enter before their logical timeline markers. Scene boundaries
+  // meet that measured viewport entry so a tunnel is already clear when the
+  // following prose begins, while titles retain their independent motion span.
+  sections.forEach((section) => {
+    const first = compiledFields.find((field) => field.id === section.fieldIds[0]);
+    section.sceneStartWU = cleanWU(first?.kind === 'scroll-block'
+      ? first.startWU + (editorialLeadScreens - 1) * scrollToStory
+      : section.startWU);
+  });
+  sections.forEach((section, index) => {
+    section.sceneEndWU = sections[index + 1]?.sceneStartWU ?? section.endWU;
+  });
+
   const gaps = compiledFields.slice(0, -1).map((field, index) => {
     const next = compiledFields[index + 1];
     return {
       id: `gap-${field.id}-to-${next.id}`,
       fromFieldId: field.id,
       toFieldId: next.id,
-      preset: field.stageId === next.stageId ? 'equal-field' : 'equal-stage',
+      preset: 'none',
       startWU: field.endWU,
       endWU: next.startWU,
       durationWU: cleanWU(Math.max(0, next.startWU - field.endWU)),
     };
   });
-  const durationWU = cleanWU(stageDurationWU * stageIds.length);
+  const durationWU = cleanWU(stageCursorWU);
   const signature = JSON.stringify({
     profileId,
-    stageDurationWU,
     sections: sections.map((section) => [
       section.id,
       section.startWU,
       section.endWU,
+      section.sceneStartWU,
+      section.sceneEndWU,
       section.fieldIds,
     ]),
     fields: compiledFields.map((field) => [field.id, field.startWU, field.focusWU, field.endWU]),
   });
   return Object.freeze({
     mode: 'content-flow',
-    sectionMode: 'equal-camera-distance',
+    sectionMode: 'content-paced',
     profileId,
     valid: !diagnostics.some((item) => item.level === 'error'),
     diagnostics: Object.freeze(diagnostics.map(Object.freeze)),
@@ -352,7 +387,6 @@ function compileEqualStageLayout(document, fields, {
       ...section,
       fieldIds: Object.freeze(section.fieldIds),
     }))),
-    stageDurationWU,
     durationWU,
     contentExtentWU: cleanWU(durationWU + 1),
     editorialLeadWU: cleanWU(editorialLeadScreens),
@@ -394,7 +428,7 @@ export function compileAboutNarrativeStoryLayout(document, {
 
   const stagedFields = fields.filter((field) => typeof field.stageId === 'string');
   if (stagedFields.length === fields.length) {
-    return compileEqualStageLayout(document, fields, {
+    return compileStagedLayout(document, fields, {
       profileId,
       profile,
       measurements,
@@ -508,8 +542,9 @@ export function materializeAboutNarrativeStoryLayout(document, layout) {
   });
   Object.entries(output.profiles || {}).forEach(([profileId, profile]) => {
     if (profileId === 'reduced-motion' || !profile) return;
+    const authoredRatio = profile.scrollDurationWU / profile.storyDurationWU;
     profile.storyDurationWU = layout.durationWU;
-    profile.scrollDurationWU = layout.durationWU;
+    profile.scrollDurationWU = cleanWU(layout.durationWU * authoredRatio);
   });
   synchronizeAboutNarrativeMomentTriggers(output, { storyLayout: layout });
 

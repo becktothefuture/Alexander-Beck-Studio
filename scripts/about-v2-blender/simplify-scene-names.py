@@ -255,13 +255,33 @@ def rename_objects(scene, collections):
             obj for obj in scene.objects
             if semantic_property(obj, "abs_forms_body_index") is not None
         ),
-        key=lambda obj: int(round(float(semantic_property(obj, "abs_forms_body_index")))),
+        key=lambda obj: (
+            int(round(float(semantic_property(obj, "abs_forms_copy_index") or 0))),
+            int(round(float(semantic_property(obj, "abs_forms_body_index")))),
+        ),
     )
-    if len(forms) != len(FORM_NAMES):
-        raise RuntimeError(f"Expected six solid bodies, found {len(forms)}.")
-    for form, name in zip(forms, FORM_NAMES):
+    source_indices = {
+        int(round(float(semantic_property(obj, "abs_forms_body_index"))))
+        for obj in forms
+        if int(round(float(semantic_property(obj, "abs_forms_copy_index") or 0))) == 0
+    }
+    if source_indices != set(range(len(FORM_NAMES))):
+        raise RuntimeError("Expected one source for each of the six solid-body shapes.")
+    form_names = []
+    seen_form_pairs = set()
+    for form in forms:
+        shape_index = int(round(float(semantic_property(form, "abs_forms_body_index"))))
+        repeat_index = int(round(float(semantic_property(form, "abs_forms_copy_index") or 0)))
+        pair = (shape_index, repeat_index)
+        if pair in seen_form_pairs:
+            raise RuntimeError(f"Duplicate solid-body shape/copy pair {pair}.")
+        seen_form_pairs.add(pair)
+        name = FORM_NAMES[shape_index]
+        if repeat_index > 0:
+            name += f" / Copy {repeat_index + 1:02d}"
         form.name = name
         resolved[name] = form
+        form_names.append(name)
 
     for name, system_id in SYSTEM_IDS.items():
         obj = resolved[name]
@@ -295,7 +315,7 @@ def rename_objects(scene, collections):
         "00 CONTROLS": ["About Controls"],
         "01 CAMERA": ["Camera Path", "Scene Camera"],
         "02 OPENING": opening_members,
-        "03 SOLID BODIES": list(FORM_NAMES),
+        "03 SOLID BODIES": form_names,
         "04 ROUND TUNNEL": ["Round Tunnel"],
         "05 LANDSCAPE": ["Landscape Position", "Landscape"],
         "06 SQUARE GATES": ["Square Gates"],
@@ -401,9 +421,11 @@ def simplify_texts():
         "Edit Camera Path in Edit Mode to change the route.\n"
         "Scene Camera is the website camera. Round Tunnel and Square Gates are live\n"
         "Geometry Nodes systems, so do not create one object per ring or gate.\n"
-        "The opening is one Opening Field mesh. Its disconnected components retain\n"
-        "the authored depth, atmosphere and signal geometry without extra Outliner\n"
-        "layers. Opening Position moves and scales the complete field.\n\n"
+        "The opening is one coherent volumetric Opening Field with no separate star,\n"
+        "signal, depth-sheet or atmosphere-patch layers. Opening Position moves and\n"
+        "scales the complete field.\n"
+        "Solid bodies use linked copies in collision-safe packed cells. Select About\n"
+        "Controls to set copies per shape, random seed and minimum surface gap.\n\n"
         "COLOUR\n"
         "The six Palette materials are semantic slots only. Export objects use\n"
         "abs_palette_mode: mixed by default, single only for an explicit role, or\n"

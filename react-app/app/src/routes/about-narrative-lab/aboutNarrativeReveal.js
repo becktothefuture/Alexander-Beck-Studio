@@ -1,8 +1,8 @@
 const clamp01 = (value) => Math.min(1, Math.max(0, Number(value) || 0));
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 
-export const ABOUT_NARRATIVE_REVEAL_START_VIEWPORT_Y = 1;
-export const ABOUT_NARRATIVE_REVEAL_TRAVEL_VIEWPORT = 0.2;
+export const ABOUT_NARRATIVE_REVEAL_START_VIEWPORT_Y = 0.72;
+export const ABOUT_NARRATIVE_REVEAL_TRAVEL_VIEWPORT = 0.22;
 export const ABOUT_NARRATIVE_REVEAL_ROW_TOLERANCE_PX = 1;
 export const ABOUT_NARRATIVE_REVEAL_ROW_ADVANCE_CAP = 1.25;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MIN_PX = 4;
@@ -11,12 +11,7 @@ export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.2;
 export const ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY = 1;
 export const ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD = 0.12;
 export const ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y = 0.32;
-export const ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y = 0.08;
-
-const smoothstep = (start, end, value) => {
-  const progress = clamp01((Number(value) - start) / Math.max(0.000001, end - start));
-  return progress * progress * (3 - (2 * progress));
-};
+export const ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y = 0.12;
 
 export function getAboutNarrativeEditorialFocusOpacity(
   lineProgress,
@@ -24,27 +19,16 @@ export function getAboutNarrativeEditorialFocusOpacity(
   reducedMotion = false,
   restingOpacity = ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY,
 ) {
-  const entryOpacity = reducedMotion
-    ? Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
-    : smoothstep(0.12, 0.72, lineProgress);
-  const exitOpacity = reducedMotion
-    ? Number(Number(viewportY) >= ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y)
-    : smoothstep(
-      ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y,
-      ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y,
-      viewportY,
-    );
-  const focusProgress = entryOpacity * exitOpacity;
-  if (reducedMotion) {
-    return focusProgress > 0
-      ? ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY
-      : clamp01(restingOpacity);
-  }
-  const resolvedRestingOpacity = clamp01(restingOpacity);
-  return resolvedRestingOpacity + (
-    (ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY - resolvedRestingOpacity)
-    * focusProgress
-  );
+  // Cross each edge of the reading band in one step. Sampling position alone
+  // keeps entry and exit identical when scrolling back through the paragraph.
+  const entryThreshold = reducedMotion ? ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD : 0.5;
+  const exitThreshold = reducedMotion
+    ? ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y
+    : (ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y + ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y) / 2;
+  // Resolve exact boundary ties consistently despite floating-point scroll math.
+  const focused = Number(lineProgress) + 1e-7 >= entryThreshold
+    && Number(viewportY) + 1e-7 >= exitThreshold;
+  return focused ? ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY : clamp01(restingOpacity);
 }
 
 export function getAboutNarrativeEditorialPhraseOpacity(

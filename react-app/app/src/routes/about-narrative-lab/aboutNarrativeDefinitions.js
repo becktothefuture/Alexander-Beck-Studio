@@ -1,3 +1,5 @@
+import { ABOUT_SCENE_CONTROL_REGISTRY } from './aboutSceneControlRegistry.js';
+import { ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU } from './aboutNarrativeLongRideTrack.js';
 import {
   ABOUT_NARRATIVE_CORRESPONDENCE_MODES,
 } from './aboutNarrativeCorrespondenceRegistry.js';
@@ -220,6 +222,9 @@ export const ABOUT_NARRATIVE_SCROLL_SMOOTHING_CONTROL = numberControl(
   0,
   1,
   0.01,
+  '',
+  '',
+  0.64,
 );
 
 export const ABOUT_NARRATIVE_CAMERA_STEADICAM_CONTROLS = Object.freeze([
@@ -243,9 +248,10 @@ export const ABOUT_NARRATIVE_VISIBILITY_TRACK_CONTROL_GROUPS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_CAMERA_FOG_CONTROLS = Object.freeze([
-  numberControl('distanceFogStartWU', 'Fog begins', 0, 40, 0.1, 'WU'),
-  numberControl('distanceFogEndWU', 'Fully faded', 0.1, 240, 0.1, 'WU'),
-  numberControl('distanceFogCurve', 'Fog curve', 0.45, 2.5, 0.05, '×', '', 1.2),
+  numberControl('distanceFogOverride', 'Override Blender distance', 0, 1, 1, '', '', 0),
+  numberControl('distanceFogStartWU', 'Fog begins', 0, 200, 0.5, 'WU', '', 14),
+  numberControl('distanceFogEndWU', 'Viewing distance', 1, 560, 1, 'WU', '', 150),
+  numberControl('distanceFogCurve', 'Fog curve', 0.2, 5, 0.05, '×', '', 1.2),
 ]);
 
 // Compatibility export for older contract checks. Camera keys no longer use
@@ -298,12 +304,16 @@ export const ABOUT_NARRATIVE_DISCIPLINE_REVEAL_CONTROLS = Object.freeze([
 ]);
 
 export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
+  ...['storyPacing', 'sceneMotion'].map((id) => Object.freeze({
+    id, label: id === 'storyPacing' ? 'Story pacing' : 'Ambient motion',
+    controls: ABOUT_SCENE_CONTROL_REGISTRY[id],
+  })),
   Object.freeze({
     id: 'sequence',
     label: 'Sequence',
     controls: Object.freeze([
       ABOUT_NARRATIVE_SCROLL_SMOOTHING_CONTROL,
-      numberControl('readingWidthRem', 'Text corridor width', 30, 90, 1, 'rem', 'text-widths'),
+      numberControl('readingWidthRem', 'Text corridor width', 30, 90, 1, 'rem', 'text-widths', 50),
       numberControl('editorialRevealThreshold', 'Reveal starts', 0.8, 1, 0.01, '×H', 'text-editorial'),
     ]),
   }),
@@ -315,6 +325,10 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    id: 'typography',
+    label: 'Typography',
+    controls: ABOUT_SCENE_CONTROL_REGISTRY.typography,
+  }),  Object.freeze({
     id: 'camera',
     label: 'Camera',
     controls: Object.freeze([
@@ -331,23 +345,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
   Object.freeze({
     id: 'material',
     label: 'Point material and pointer pressure',
-    controls: Object.freeze([
-      numberControl('opacity', 'Circle population', 0.2, 1, 0.01),
-      numberControl('pointSize', 'Global point size', 2, 18, 0.1, 'px', '', 6),
-      numberControl('surfelCoverage', 'Surfel coverage', 0.6, 1.2, 0.01, '×', '', 0.7),
-      numberControl('backfaceRetention', 'Back surface reveal', 0, 1, 0.01, '×', '', 1),
-      numberControl('minPointSize', 'Distant size target', 0.75, 4, 0.05, 'px', '', 1.15),
-      numberControl('perspectiveResponse', 'Depth scaling', 0.6, 1.2, 0.01, '×', '', 1),
-      numberControl('edgeSoftness', 'Circle edge', 0.65, 2.4, 0.05, '×', '', 1.35),
-      numberControl('atmosphereStrength', 'Visible haze', 0, 2, 0.05, '×', '', 1),
-      numberControl('pointerRadiusPx', 'Pointer pressure radius', 40, 308, 2, 'px'),
-      numberControl('pointerForcePx', 'Pointer pressure force', 0, 152, 1, 'px'),
-      numberControl('pointerVariation', 'Pointer organic variation', 0, 1.04, 0.01),
-      numberControl('pointerResponseMs', 'Pointer response', 20, 120, 5, 'ms'),
-      numberControl('pointerReturnMs', 'Pointer return', 80, 1200, 10, 'ms'),
-    ]),
-  }),
-  Object.freeze({
+    controls: ABOUT_SCENE_CONTROL_REGISTRY.pointMaterial,
+  }),  Object.freeze({
     id: 'swarmTurbulence',
     label: 'Shared turbulence',
     controls: Object.freeze([
@@ -361,31 +360,8 @@ export const ABOUT_NARRATIVE_GLOBAL_CONTROLS = Object.freeze([
   Object.freeze({
     id: 'textMotion',
     label: 'Spatial titles',
-    controls: Object.freeze([
-      numberControl('standardMaxWidthCh', 'Standard title width', 8, 60, 1, 'ch', 'text-widths'),
-      numberControl('displayMaxWidthCh', 'Display title width', 8, 60, 1, 'ch', 'text-widths'),
-      numberControl('standardViewportY', 'Travelling title Y', 0, 100, 1, '%', 'text-layout'),
-      numberControl('bookendViewportY', 'Opener and finale Y', 0, 100, 1, '%', 'text-layout'),
-      numberControl('durationScale', 'Travel duration', 0.75, 2.5, 0.05, '×'),
-      numberControl('startY', 'Entry Y', -500, 500, 2, 'px', 'text-path'),
-      numberControl('openerStartY', 'Opener Y', -500, 500, 2, 'px', 'text-path'),
-      numberControl('endY', 'Exit Y', -500, 500, 2, 'px', 'text-path'),
-      numberControl('readableStart', 'Clear-in point', 0, 1, 0.01, '', 'text-clarity'),
-      numberControl('readableEnd', 'Clear-out point', 0, 1, 0.01, '', 'text-clarity'),
-      numberControl('maxBlur', 'Maximum blur', 0, 100, 1, 'px', 'text-clarity'),
-      numberControl('titleDrawDurationMs', 'Line colour flash', 80, 500, 10, 'ms', 'text-draw'),
-      numberControl('titleColorCount', 'Draw colour count', 1, 8, 1, '', 'text-draw'),
-      numberControl('titleLineStaggerMs', 'Next-line delay', 0, 400, 10, 'ms', 'text-draw'),
-      numberControl('titleExitOpacity', 'Faded text opacity', 0, 1, 0.01, '', 'text-draw'),
-      numberControl('titleExitLineStagger', 'Fade line stagger', 0, 0.4, 0.01, '', 'text-draw'),
-      numberControl('titleShadowOpacity', 'Background shadow opacity', 0, 1, 0.01, '', 'text-shadow'),
-      numberControl('titleShadowBlurPx', 'Background shadow blur', 0, 120, 1, 'px', 'text-shadow'),
-      numberControl('perspective', 'Perspective', 1400, 3200, 20, 'px', 'text-depth'),
-      numberControl('entryDepth', 'Entry depth (−Z)', 0, 3000, 10, 'px', 'text-depth'),
-      numberControl('exitDepth', 'Exit depth (+Z)', 0, 3000, 10, 'px', 'text-depth'),
-    ]),
-  }),
-]);
+    controls: ABOUT_SCENE_CONTROL_REGISTRY.textMotion,
+  }),]);
 
 export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
   'long-assembly-corridor-v1': Object.freeze({
@@ -395,18 +371,18 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
     adapterId: 'point-field-v1',
     cost: 1,
     parameters: Object.freeze([
-      numberControl('storyDurationWU', 'Story depth', 8, 48, 0.05, 'WU', 'shape-dimensions'),
+      numberControl('storyDurationWU', 'Story depth', 8, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.05, 'WU', 'shape-dimensions'),
       numberControl('widthScale', 'Corridor width', 0.5, 1.6, 0.01, '×', 'shape-dimensions'),
       numberControl('heightScale', 'Corridor height', 0.5, 1.6, 0.01, '×', 'shape-dimensions'),
       numberControl('depthScale', 'Landmark spacing', 0.65, 1.35, 0.01, '×', 'shape-dimensions'),
       ABOUT_NARRATIVE_LONG_RIDE_LOOK_AHEAD_CONTROL,
-      numberControl('density', 'Surface detail', 0.2, 2, 0.01, '×', 'shape-distribution', 1),
-      numberControl('structureManifestationAmount', 'Fog emergence spread', 0, 1.8, 0.01, 'WU', 'shape-distribution'),
-      numberControl('structureAmbientAmount', 'Particle drift amount', 0, 0.3, 0.005, 'WU', 'shape-distribution'),
-      numberControl('structureAmbientScaleWU', 'Motion scale', 2, 40, 0.1, 'WU', 'shape-distribution', 20),
-      numberControl('structureAmbientSpeed', 'Particle drift speed', 0, 1.5, 0.01, '×', 'shape-distribution'),
+      numberControl('density', 'Point population', 0.05, 4, 0.01, '×', 'shape-distribution', 1),
+      numberControl('structureManifestationAmount', 'Fog emergence spread', 0, 0.8, 0.01, 'WU', 'shape-distribution'),
+      numberControl('structureAmbientAmount', 'Particle drift amount', 0, 2, 0.01, 'WU', 'shape-distribution'),
+      numberControl('structureAmbientScaleWU', 'Motion scale', 0.25, 120, 0.25, 'WU', 'shape-distribution', 20),
+      numberControl('structureAmbientSpeed', 'Particle drift speed', 0, 6, 0.02, '×', 'shape-distribution'),
       numberControl('structureMotionCoherence', 'Model variation', 0, 1, 0.01, '', 'shape-distribution', 0.72),
-      numberControl('finaleMotionGain', 'Finale motion gain', 0, 2, 0.05, '×', 'shape-finale', 1.4),
+      numberControl('finaleMotionGain', 'Finale motion gain', 0, 6, 0.05, '×', 'shape-finale', 1.4),
       numberControl('hoopRadius', 'Hoop radius', 3, 6, 0.05, 'WU', 'shape-hoops'),
       numberControl('hoopCount', 'Hoop count', 10, 26, 1, '', 'shape-hoops'),
       numberControl('loopStartWU', 'Loop begins', 7.6, 9, 0.05, 'WU', 'shape-loop'),
@@ -420,11 +396,11 @@ export const ABOUT_NARRATIVE_SHAPE_DEFINITIONS = Object.freeze({
       numberControl('finaleFogClearEndWU', 'Workbench clear by', 12, 22, 0.05, 'WU', 'shape-finale', 21.8),
       numberControl('finaleFogStartWU', 'Clear fog begins', 20, 400, 5, 'WU', 'shape-finale', 220),
       numberControl('finaleFogEndWU', 'Clear fog fully faded', 80, 560, 5, 'WU', 'shape-finale', 560),
-      derivedNumberControl('backgroundAnchorWU', 'Background anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
-      derivedNumberControl('intersectionAnchorWU', 'Intersection anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
-      derivedNumberControl('disciplinesAnchorWU', 'Disciplines anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
-      derivedNumberControl('cityAnchorWU', 'City anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
-      derivedNumberControl('finaleAnchorWU', 'Finale anchor', 0, 48, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('backgroundAnchorWU', 'Background anchor', 0, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('intersectionAnchorWU', 'Intersection anchor', 0, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('disciplinesAnchorWU', 'Disciplines anchor', 0, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('cityAnchorWU', 'City anchor', 0, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.01, 'WU', 'shape-dimensions'),
+      derivedNumberControl('finaleAnchorWU', 'Finale anchor', 0, ABOUT_NARRATIVE_LONG_RIDE_MAX_DURATION_WU, 0.01, 'WU', 'shape-dimensions'),
     ]),
   }),
   'cluster-v1': Object.freeze({
@@ -544,11 +520,6 @@ function findGlobalControl(ownerId, controlId) {
     ?.controls.find((control) => control.id === controlId);
 }
 
-function findLongAssemblyControl(controlId) {
-  return ABOUT_NARRATIVE_SHAPE_DEFINITIONS['long-assembly-corridor-v1']
-    .parameters.find((control) => control.id === controlId);
-}
-
 function pageParameter(scope, control, path = null, controlOverrides = null) {
   if (!control) throw new Error('About V2 page parameter references an unknown control.');
   return Object.freeze({
@@ -564,12 +535,6 @@ const globalParameter = (ownerId, controlId, path, controlOverrides = null) => p
   path,
   controlOverrides,
 );
-const rideParameter = (controlId, controlOverrides = null) => pageParameter(
-  'long-assembly',
-  findLongAssemblyControl(controlId),
-  null,
-  controlOverrides,
-);
 const sessionParameter = (control) => pageParameter('session', control);
 
 /**
@@ -580,23 +545,73 @@ const sessionParameter = (control) => pageParameter('session', control);
  */
 export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
   Object.freeze({
+    id: 'page-typography',
+    label: 'Typography',
+    controls: Object.freeze([
+      ...ABOUT_NARRATIVE_GLOBAL_CONTROLS
+        .find((owner) => owner.id === 'typography')
+        .controls
+        .map((control) => pageParameter('globals', control, ['typography', control.id])),
+      globalParameter('sequence', 'readingWidthRem', ['readingWidthRem']),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-spatial-titles',
+    label: 'Spatial titles',
+    controls: Object.freeze(ABOUT_NARRATIVE_GLOBAL_CONTROLS
+      .find((owner) => owner.id === 'textMotion')
+      .controls
+      .map((control) => pageParameter('globals', control, ['textMotion', control.id]))),
+  }),
+  Object.freeze({
+    id: 'page-story-pacing',
+    label: 'Reading and pacing',
+    controls: Object.freeze([
+      ...ABOUT_SCENE_CONTROL_REGISTRY.storyPacing.map((control) => (
+        pageParameter('globals', control, ['storyPacing', control.id])
+      )),
+      globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing'], { label: 'Scroll glide' }),
+    ]),
+  }),
+  Object.freeze({
     id: 'page-rendering',
     label: 'Rendering',
     controls: Object.freeze([
-      sessionParameter(selectControl('qualityTier', 'Quality', [
+      sessionParameter(selectControl('qualityTier', 'Point detail', [
         { value: 'auto', label: 'Auto' },
         { value: 'desktop', label: 'High · desktop' },
         { value: 'mobile', label: 'Low · mobile' },
         { value: 'master', label: 'Maximum · preview' },
       ], 'auto')),
+      globalParameter('material', 'pointDensity', ['pointMaterial', 'pointDensity']),
+      globalParameter('material', 'solidCoverage', ['pointMaterial', 'solidCoverage']),
+      globalParameter('material', 'bustCoverage', ['pointMaterial', 'bustCoverage']),
       globalParameter('material', 'surfelCoverage', ['pointMaterial', 'surfelCoverage'], {
-        label: 'Surface fill',
+        label: 'Atmospheric point coverage',
+      }),
+      globalParameter('material', 'backfaceRetention', ['pointMaterial', 'backfaceRetention'], {
+        label: 'Show backfaces',
+        type: 'toggle',
       }),
       globalParameter('material', 'pointSize', ['pointMaterial', 'pointSize'], {
-        label: 'Global point size',
-        min: 4,
-        max: 18,
+        label: 'Point size',
       }),
+      globalParameter('material', 'minPointSize', ['pointMaterial', 'minPointSize']),
+      globalParameter('material', 'pixelRatioCap', ['pointMaterial', 'pixelRatioCap']),
+      globalParameter('material', 'perspectiveResponse', ['pointMaterial', 'perspectiveResponse']),
+      globalParameter('material', 'edgeSoftness', ['pointMaterial', 'edgeSoftness']),
+    ]),
+  }),
+  Object.freeze({
+    id: 'page-viewing-distance',
+    label: 'Viewing distance',
+    controls: Object.freeze([
+      globalParameter('camera', 'distanceFogOverride', ['camera', 'distanceFogOverride'], {
+        type: 'toggle',
+      }),
+      globalParameter('camera', 'distanceFogStartWU', ['camera', 'distanceFogStartWU']),
+      globalParameter('camera', 'distanceFogEndWU', ['camera', 'distanceFogEndWU']),
+      globalParameter('camera', 'distanceFogCurve', ['camera', 'distanceFogCurve']),
     ]),
   }),
   Object.freeze({
@@ -608,13 +623,11 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
   }),
   Object.freeze({
     id: 'page-movement',
-    label: 'Movement',
+    label: 'Ambient motion',
     controls: Object.freeze([
-      globalParameter('sequence', 'scrollSmoothing', ['scrollSmoothing'], {
-        label: 'Scroll glide',
-      }),
-      rideParameter('structureAmbientAmount', { label: 'Particle motion' }),
-      rideParameter('structureAmbientSpeed', { label: 'Particle speed' }),
+      ...ABOUT_SCENE_CONTROL_REGISTRY.sceneMotion.map((control) => (
+        pageParameter('globals', control, ['sceneMotion', control.id])
+      )),
     ]),
   }),
 ]);
