@@ -1,12 +1,11 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
@@ -22,9 +21,6 @@ import { SimulationFocusContext, useSimulationFocus } from './SimulationFocusCon
 
 const DAILY_FOCUS_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
 const DAILY_FOCUS_ID_SET = new Set(DAILY_FOCUS_SIMULATIONS.map((entry) => entry.id));
-const SWITCHER_EXIT_MS = 160;
-const SWITCHER_HOLD_MS = 880;
-const SWITCHER_ENTRY_MS = 400;
 
 function readUrlMode() {
   if (typeof window === 'undefined') return null;
@@ -34,22 +30,6 @@ function readUrlMode() {
   } catch {
     return null;
   }
-}
-
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
-    () => window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (!mediaQuery) return undefined;
-    const handleChange = () => setPrefersReducedMotion(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  return prefersReducedMotion;
 }
 
 export function SimulationFocusProvider({
@@ -190,108 +170,9 @@ export function SimulationFocusSwitcher() {
     shouldShowSwitcher,
     simulationTransitionPhase,
   } = useSimulationFocus();
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const [displayedSimulation, setDisplayedSimulation] = useState(activeSimulation);
-  const [motionPhase, setMotionPhase] = useState('idle');
-  const [animatedInlineSize, setAnimatedInlineSize] = useState(null);
-  const switcherButtonRef = useRef(null);
-  const displayedSimulationRef = useRef(activeSimulation);
-  const motionPhaseRef = useRef('idle');
-  const exitTimerRef = useRef(null);
-  const holdTimerRef = useRef(null);
-  const entryTimerRef = useRef(null);
-  const widthFrameRef = useRef(null);
+  if (!shouldShowSwitcher || !activeSimulation) return null;
 
-  useLayoutEffect(() => {
-    if (motionPhase !== 'holding' || !switcherButtonRef.current) return undefined;
-    const button = switcherButtonRef.current;
-    const previousSize = button.style.getPropertyValue('--simulation-focus-pill-inline-size');
-
-    // Measure the new label at its intrinsic width without ever painting that reset.
-    button.style.removeProperty('--simulation-focus-pill-inline-size');
-    const nextSize = button.scrollWidth;
-    if (previousSize) {
-      button.style.setProperty('--simulation-focus-pill-inline-size', previousSize);
-    }
-
-    if (!Number.isFinite(nextSize) || nextSize <= 0) return undefined;
-
-    widthFrameRef.current = window.requestAnimationFrame(() => {
-      setAnimatedInlineSize(nextSize);
-      widthFrameRef.current = null;
-    });
-    return () => {
-      if (widthFrameRef.current !== null) window.cancelAnimationFrame(widthFrameRef.current);
-    };
-  }, [displayedSimulation?.id, motionPhase]);
-
-  const clearHandoffTimers = useCallback(() => {
-    if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
-    if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
-    if (entryTimerRef.current) window.clearTimeout(entryTimerRef.current);
-    exitTimerRef.current = null;
-    holdTimerRef.current = null;
-    entryTimerRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    if (!activeSimulation) return undefined;
-    if (
-      activeSimulation.id === displayedSimulationRef.current?.id
-      && motionPhaseRef.current === 'idle'
-    ) return undefined;
-
-    clearHandoffTimers();
-
-    if (prefersReducedMotion || !displayedSimulationRef.current) {
-      displayedSimulationRef.current = activeSimulation;
-      motionPhaseRef.current = 'idle';
-      setAnimatedInlineSize(null);
-      setDisplayedSimulation(activeSimulation);
-      setMotionPhase('idle');
-      return undefined;
-    }
-
-    const currentWidth = switcherButtonRef.current?.getBoundingClientRect().width;
-    if (Number.isFinite(currentWidth) && currentWidth > 0) {
-      setAnimatedInlineSize(currentWidth);
-    }
-
-    motionPhaseRef.current = 'departing';
-    setMotionPhase('departing');
-
-    exitTimerRef.current = window.setTimeout(() => {
-      displayedSimulationRef.current = activeSimulation;
-      setDisplayedSimulation(activeSimulation);
-      motionPhaseRef.current = 'holding';
-      setMotionPhase('holding');
-      exitTimerRef.current = null;
-
-      holdTimerRef.current = window.setTimeout(() => {
-        motionPhaseRef.current = 'arriving';
-        setMotionPhase('arriving');
-        holdTimerRef.current = null;
-
-        entryTimerRef.current = window.setTimeout(() => {
-          motionPhaseRef.current = 'idle';
-          setMotionPhase('idle');
-          entryTimerRef.current = null;
-        }, SWITCHER_ENTRY_MS);
-      }, SWITCHER_HOLD_MS);
-    }, SWITCHER_EXIT_MS);
-
-    return undefined;
-  }, [activeSimulation, clearHandoffTimers, prefersReducedMotion]);
-
-  useEffect(() => () => {
-    clearHandoffTimers();
-    if (widthFrameRef.current !== null) window.cancelAnimationFrame(widthFrameRef.current);
-  }, [clearHandoffTimers]);
-
-  if (!shouldShowSwitcher || !activeSimulation || !displayedSimulation) return null;
-
-  const isAdvancing = motionPhase !== 'idle';
-  const isUnavailable = isSelectionPending || isAdvancing;
+  const isAdvancing = isSelectionPending || simulationTransitionPhase !== 'idle';
 
   return (
     <div
@@ -300,38 +181,31 @@ export function SimulationFocusSwitcher() {
       data-route-enter="control"
     >
       <button
-        ref={switcherButtonRef}
         type="button"
         className="abs-labelled-action simulation-focus-pill simulation-focus-switcher"
         data-simulation-id={activeSimulation.id}
         data-sound-action="step"
         data-sound-source="simulation-next"
         data-advancing={String(isAdvancing)}
-        data-phase={motionPhase}
         data-transition-phase={simulationTransitionPhase}
-        data-motion-preference={prefersReducedMotion ? 'reduced' : 'full'}
         aria-label={isAdvancing
-          ? 'Selecting the next simulation'
-          : `Show next simulation. Currently ${activeSimulation.name}`}
-        aria-busy={isUnavailable ? 'true' : undefined}
-        aria-disabled={isUnavailable ? 'true' : undefined}
-        disabled={isUnavailable}
-        style={animatedInlineSize === null ? undefined : { '--simulation-focus-pill-inline-size': `${animatedInlineSize}px` }}
+          ? `Changing visual effect. Current effect: ${activeSimulation.name}`
+          : `Change visual effect. Current effect: ${activeSimulation.name}`}
+        aria-busy={isAdvancing ? 'true' : undefined}
+        aria-disabled={isAdvancing ? 'true' : undefined}
+        disabled={isAdvancing}
         onClick={advanceSimulation}
       >
-        <span
-          className="simulation-focus-pill__label simulation-focus-pill__label--handoff"
-          aria-hidden="true"
-        >
-          {displayedSimulation.name}
+        <span className="simulation-focus-pill__label" aria-hidden="true">
+          Change effect
         </span>
         <span className="simulation-focus-pill__icon" aria-hidden="true">
-          <RefreshCw strokeWidth={1.8} />
+          <Shuffle strokeWidth={1.8} />
         </span>
       </button>
 
       <span className="simulation-focus-switcher-status" aria-live="polite">
-        Current simulation: {activeSimulation.name}
+        Current effect: {activeSimulation.name}
       </span>
     </div>
   );
