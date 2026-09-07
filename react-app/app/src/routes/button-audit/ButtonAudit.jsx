@@ -55,7 +55,7 @@ function AuditSimulationSwitcher() {
         onClick={handleAdvance}
       >
         <span className="simulation-focus-pill__label" aria-hidden="true">
-          Change effect
+          CHANGE EFFECT
         </span>
       </button>
 

@@ -196,7 +196,7 @@ export function SimulationFocusSwitcher() {
         onClick={advanceSimulation}
       >
         <span className="simulation-focus-pill__label" aria-hidden="true">
-          Change effect
+          CHANGE EFFECT
         </span>
       </button>
 

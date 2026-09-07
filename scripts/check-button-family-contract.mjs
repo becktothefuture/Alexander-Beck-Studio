@@ -124,7 +124,7 @@ test('production copy confirmation rotates inside one stable label window', () =
 test('the production switcher presents one stable, explicit action', () => {
   assert.match(
     sources.switcher,
-    /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?Change effect/,
+    /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?CHANGE EFFECT/,
   );
   assert.match(
     sources.switcher,
@@ -132,7 +132,7 @@ test('the production switcher presents one stable, explicit action', () => {
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 39\.6px;[\s\S]*?--abs-labelled-action-pad-x: 16px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?width: fit-content;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;/,
+    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 34px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 14px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?font-weight: var\(--abs-weight-medium\);[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-switcher:active \{[\s\S]*?translate: 0 0;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
   );
   assert.doesNotMatch(
     sources.switcher,
@@ -142,7 +142,7 @@ test('the production switcher presents one stable, explicit action', () => {
     sources.main,
     /simulation-focus-pill__(?:icon|label--handoff)|simulation-switcher-icon-handoff/,
   );
-  assert.match(sources.buttonAudit, /Change effect/);
+  assert.match(sources.buttonAudit, /CHANGE EFFECT/);
   assert.doesNotMatch(sources.buttonAudit, /Shuffle|simulation-focus-pill__icon/);
   assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
   assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);

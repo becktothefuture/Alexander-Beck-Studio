@@ -2732,18 +2732,71 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill {
-  --abs-labelled-action-height: 39.6px;
-  --abs-labelled-action-pad-x: 16px;
+  --abs-labelled-action-height: 34px;
+  --abs-labelled-action-font-size: 0.65625rem;
+  --abs-labelled-action-pad-x: 14px;
   --abs-labelled-action-gap: 0;
+  --simulation-switcher-edge-rest:
+    color-mix(in srgb, var(--text-primary) 12%, transparent);
+  --simulation-switcher-edge-hover:
+    color-mix(in srgb, var(--text-primary) 18%, transparent);
+  --simulation-switcher-fill-rest:
+    color-mix(in srgb, var(--abs-soft-control-fill) 72%, transparent);
+  --simulation-switcher-fill-hover:
+    color-mix(in srgb, var(--abs-soft-control-fill-hover) 76%, transparent);
+  --simulation-switcher-fill-pressed:
+    color-mix(in srgb, var(--abs-soft-control-fill-pressed) 70%, transparent);
   width: fit-content;
   max-width: calc(100vw - (var(--gap-md) * 2));
+  overflow: visible;
+  background: var(--simulation-switcher-fill-rest);
+  color: var(--text-muted);
+  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-rest);
+  font-weight: var(--abs-weight-medium);
   line-height: 1;
+  letter-spacing: 0.09em;
   pointer-events: auto;
   transition:
-    translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
     background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
     color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
     box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
+}
+
+.simulation-focus-pill::after {
+  content: '';
+  position: absolute;
+  inset-block: calc((var(--abs-labelled-action-height) - 44px) / 2);
+  inset-inline: -5px;
+  border-radius: inherit;
+}
+
+.simulation-focus-switcher[data-advancing='true'] {
+  background: var(--simulation-switcher-fill-hover);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+}
+
+.simulation-focus-switcher:focus-visible {
+  background: var(--simulation-switcher-fill-hover);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+  translate: 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .simulation-focus-switcher:hover:where(:not(:focus-visible, :disabled)) {
+    background: var(--simulation-switcher-fill-hover);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+    translate: 0 0;
+  }
+}
+
+.simulation-focus-switcher:active {
+  background: var(--simulation-switcher-fill-pressed);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+  translate: 0 0;
 }
 
 html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher {
@@ -2757,6 +2810,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill__label {
   display: block;
   flex: 0 0 auto;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
