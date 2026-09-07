@@ -17,6 +17,8 @@ Installed in the primary beck.fyi checkout on `feat/design-mode-pipeline`, using
 | `npm run check:about-narrative` | 204 tests passed, with the exported finale-framing regression suite included. |
 | Skill metadata / `git diff --check` | Passed. |
 | `npm run audit:about-publication` | Passed in Chromium and WebKit at 390px and 1440px, light/dark, reduced motion: direct URLs, old preview queries, SPA navigation and browser history all retain Coming soon. |
+| `npm run audit:transition-flows` | Passed serially in Chromium and WebKit at 1280×900 with normal motion; six route transitions per browser. |
+| `npm run audit:release-smoke` | Passed against the production build: route/semantic/accessibility/runtime smoke, unknown-path fallback and 18 Work publication checks. |
 | Release dependencies and mutation fixtures | Both dependency audits report zero vulnerabilities; route registry, lint ratchet and dependency-cycle mutation fixtures passed. Tracked ignored-artifact inventory is empty. |
 
 The installed Codex CLI registered `design-mode` using local stdio, an absolute Node/tooling path and `DM_PORT=9960`. A parsed comparison verified that all existing Codex settings and MCP servers were preserved. No Cloud transport is configured. The running task also used the same command through an SDK client because tools registered during a task are not added to its original tool inventory.
