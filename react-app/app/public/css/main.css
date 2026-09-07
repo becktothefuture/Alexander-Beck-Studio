@@ -2732,29 +2732,33 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill.simulation-focus-switcher {
-  --abs-labelled-action-height: 34px;
+  --abs-labelled-action-height: 36px;
   --abs-labelled-action-font-size: 0.65625rem;
-  --abs-labelled-action-pad-x: 14px;
+  --abs-labelled-action-pad-x: 20px;
   --abs-labelled-action-gap: 0;
-  --simulation-switcher-edge-rest:
-    color-mix(in srgb, var(--text-primary) 12%, transparent);
-  --simulation-switcher-edge-hover:
-    color-mix(in srgb, var(--text-primary) 18%, transparent);
-  --simulation-switcher-fill-rest:
-    color-mix(in srgb, var(--abs-soft-control-fill) 72%, transparent);
-  --simulation-switcher-fill-hover:
-    color-mix(in srgb, var(--abs-soft-control-fill-hover) 76%, transparent);
-  --simulation-switcher-fill-pressed:
-    color-mix(in srgb, var(--abs-soft-control-fill-pressed) 70%, transparent);
+  --simulation-switcher-fill-rest: var(--abs-soft-control-fill);
+  --simulation-switcher-fill-hover: var(--abs-soft-control-fill-hover);
+  --simulation-switcher-fill-pressed: var(--abs-soft-control-fill-pressed);
+  --simulation-switcher-ink-rest:
+    color-mix(in srgb, var(--text-primary) 58%, transparent);
+  --simulation-switcher-ink-active:
+    color-mix(in srgb, var(--text-primary) 72%, transparent);
   width: fit-content;
   max-width: calc(100vw - (var(--gap-md) * 2));
   overflow: visible;
   background: var(--simulation-switcher-fill-rest);
-  color: var(--text-muted);
-  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-rest);
-  font-weight: var(--abs-weight-medium);
+  color: var(--simulation-switcher-ink-rest);
+  box-shadow: var(--abs-soft-control-shadow-rest);
+  -webkit-backdrop-filter:
+    blur(var(--abs-soft-control-blur))
+    saturate(var(--abs-soft-control-saturation));
+  backdrop-filter:
+    blur(var(--abs-soft-control-blur))
+    saturate(var(--abs-soft-control-saturation));
+  font-weight: 500;
   line-height: 1;
   letter-spacing: 0.09em;
+  outline: none;
   pointer-events: auto;
   transition:
     background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
@@ -2772,30 +2776,31 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 
 .simulation-focus-pill.simulation-focus-switcher[data-advancing='true'] {
   background: var(--simulation-switcher-fill-hover);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+  color: var(--simulation-switcher-ink-active);
+  box-shadow: var(--abs-soft-control-shadow-hover);
 }
 
 .simulation-focus-pill.simulation-focus-switcher:focus-visible {
   background: var(--simulation-switcher-fill-hover);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+  color: var(--simulation-switcher-ink-active);
+  outline: none;
+  box-shadow: var(--abs-soft-control-shadow-hover);
   translate: 0 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .simulation-focus-pill.simulation-focus-switcher:hover:where(:not(:focus-visible, :disabled)) {
     background: var(--simulation-switcher-fill-hover);
-    color: var(--text-primary);
-    box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+    color: var(--simulation-switcher-ink-active);
+    box-shadow: var(--abs-soft-control-shadow-hover);
     translate: 0 0;
   }
 }
 
 .simulation-focus-pill.simulation-focus-switcher:active {
   background: var(--simulation-switcher-fill-pressed);
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
+  color: var(--simulation-switcher-ink-active);
+  box-shadow: var(--abs-soft-control-shadow-rest);
   translate: 0 0;
 }
 
@@ -2810,6 +2815,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 .simulation-focus-pill__label {
   display: block;
   flex: 0 0 auto;
+  translate: 0 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -5229,8 +5235,12 @@ body.about-narrative-page #simulations:is(
   }
 
   .simulation-focus-pill.simulation-focus-switcher {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    -webkit-backdrop-filter:
+      blur(var(--abs-soft-control-blur))
+      saturate(var(--abs-soft-control-saturation));
+    backdrop-filter:
+      blur(var(--abs-soft-control-blur))
+      saturate(var(--abs-soft-control-saturation));
     background: var(--simulation-switcher-fill-rest);
   }
 }
