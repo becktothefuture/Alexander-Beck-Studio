@@ -47,7 +47,7 @@ async function assertCanonicalSettledState(page, expectedEntry) {
       label: switcher?.getAttribute('aria-label') || '',
       advancing: switcher?.dataset.advancing || '',
       transactionPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
-      disabled: Boolean(switcher?.disabled),
+      disabled: Boolean(switcher?.disabled || switcher?.getAttribute('aria-disabled') === 'true'),
       chooserPresent: Boolean(document.querySelector('.simulation-focus-modal')),
       chooserOpenClass: document.documentElement.classList.contains('simulation-focus-modal-open'),
       overlayChildCount: document.querySelector('#window-overlay-modal-host')?.childElementCount || 0,

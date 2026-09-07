@@ -626,7 +626,7 @@ async function runRapidProbe(browser, profile, entries) {
         return {
           phase,
           busy,
-          disabled: Boolean(switcher?.disabled),
+          disabled: Boolean(switcher?.disabled || switcher?.getAttribute('aria-disabled') === 'true'),
         };
       }));
       await page.waitForTimeout(12);

@@ -1,68 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ActionButton } from '../../components/app/ActionButton.jsx';
+import { useButtonInteractions } from '../../lib/useButtonInteractions.js';
 import homeContent from 'virtual:abs-content/home';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
-import {
-  getDailyFocusSimulations,
-  getResolvedSimulationFocus,
-  writeManualSimulationFocus,
-} from '../../data/simulationCatalog.js';
+import { SimulationFocusSwitcher } from '../../components/simulation-focus/SimulationFocusProvider.jsx';
+import { SimulationFocusContext } from '../../components/simulation-focus/SimulationFocusContext.js';
+import { getDailyFocusSimulations } from '../../data/simulationCatalog.js';
 import './button-audit.css';
 
-const AUDIT_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
-
-function getInitialAuditSimulation() {
-  const resolved = getResolvedSimulationFocus().activeSimulation;
-  return AUDIT_SIMULATIONS.find((simulation) => simulation.id === resolved?.id)
-    || AUDIT_SIMULATIONS[0]
-    || null;
-}
-
-function getNextAuditSimulation(currentId) {
-  const currentIndex = AUDIT_SIMULATIONS.findIndex((simulation) => simulation.id === currentId);
-  if (currentIndex < 0 || AUDIT_SIMULATIONS.length < 2) return null;
-  return AUDIT_SIMULATIONS[(currentIndex + 1) % AUDIT_SIMULATIONS.length];
-}
+const AUDIT_SIMULATIONS = getDailyFocusSimulations();
 
 function AuditSimulationSwitcher() {
-  const [displayedSimulation, setDisplayedSimulation] = useState(getInitialAuditSimulation);
-
-  const handleAdvance = () => {
-    if (!displayedSimulation) return;
-    const nextSimulation = getNextAuditSimulation(displayedSimulation.id);
-    if (!nextSimulation) return;
-
-    writeManualSimulationFocus(nextSimulation.id);
-    setDisplayedSimulation(nextSimulation);
-  };
-
-  if (!displayedSimulation) return null;
-
+  const [index, setIndex] = useState(0);
   return (
-    <div
-      className="simulation-focus-switcher-slot"
-      data-pending="false"
-      data-route-enter="control"
-    >
-      <button
-        type="button"
-        className="abs-labelled-action simulation-focus-pill simulation-focus-switcher simulation-focus-switcher--audit"
-        data-simulation-id={displayedSimulation.id}
-        data-sound-action="step"
-        data-sound-source="simulation-next"
-        data-advancing="false"
-        aria-label={`Change visual effect. Current effect: ${displayedSimulation.name}`}
-        onClick={handleAdvance}
-      >
-        <span className="simulation-focus-pill__label" aria-hidden="true">
-          CHANGE EFFECT
-        </span>
-      </button>
-
-      <span className="simulation-focus-switcher-status" aria-live="polite">
-        Current effect: {displayedSimulation.name}
-      </span>
-    </div>
+    <SimulationFocusContext.Provider value={{
+      activeSimulation: AUDIT_SIMULATIONS[index],
+      advanceSimulation: () => setIndex((current) => (current + 1) % AUDIT_SIMULATIONS.length),
+      isSelectionPending: false,
+      shouldShowSwitcher: true,
+      simulationTransitionPhase: 'idle',
+    }}>
+      <SimulationFocusSwitcher />
+    </SimulationFocusContext.Provider>
   );
 }
 
@@ -110,7 +70,12 @@ function LinkedInSpecimen({ href }) {
 }
 
 export function ButtonAudit() {
+  useButtonInteractions();
+  const fileInputRef = useRef(null);
   const [theme, setTheme] = useState('dark');
+  const [blur, setBlur] = useState(16);
+  const [imageUrl, setImageUrl] = useState(null);
+  useEffect(() => () => { if (imageUrl) URL.revokeObjectURL(imageUrl); }, [imageUrl]);
   const contact = homeContent.contact || {};
   const email = contact.email || 'alexander@beck.fyi';
   const linkedin = homeContent.socials?.items?.linkedin?.url
@@ -129,27 +94,48 @@ export function ButtonAudit() {
     <main
       className="button-audit"
       data-audit-theme={theme}
+      style={{ '--abs-soft-control-blur': `${blur}px` }}
     >
-      <div className="button-audit__background" aria-hidden="true" />
+      <img
+        className="button-audit__background"
+        src={imageUrl || '/images/about/interactive-stack/preview-01.webp'}
+        alt=""
+      />
       <header className="button-audit__header">
-        <h1>Button audit</h1>
-        <button
-          type="button"
+        <div><p className="button-audit__eyebrow">Studio / Interaction study</p><h1>Feel the difference.</h1><p>Press, hold, release. Same touch, every time.</p></div>
+        <ActionButton
+          variant="secondary"
+          label={theme === 'dark' ? 'Dark' : 'Light'}
           className="button-audit__theme-toggle"
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           aria-pressed={theme === 'dark'}
           onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
-        >
-          <span aria-hidden="true">{theme === 'dark' ? 'Dark' : 'Light'}</span>
-        </button>
+        />
       </header>
 
-      <section className="button-audit-family" aria-label="Labelled action buttons">
+      <section className="button-audit__settings" aria-label="Preview settings">
+        <label className="button-audit__blur">
+          <span>Backdrop blur <output>{blur}px</output></span>
+          <input type="range" min="0" max="40" step="1" value={blur}
+            onChange={(event) => setBlur(Number(event.target.value))} />
+        </label>
+        <div className="button-audit__upload">
+          <span>Use your own image</span>
+          <ActionButton variant="secondary" label="Choose image" onClick={() => fileInputRef.current?.click()} />
+          <input ref={fileInputRef} hidden aria-label="Use your own image" type="file" accept="image/*" onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) setImageUrl(URL.createObjectURL(file));
+          }} />
+        </div>
+        <ActionButton variant="secondary" label="Reset preview" className="button-audit__reset" onClick={() => {
+          setBlur(16);
+          setImageUrl(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }} />
+        <p>Preview settings stay on this page.</p>
+      </section>
+      <section className="button-audit-family button-audit-family--actions" aria-label="Labelled action buttons">
         <div className="button-audit__grid">
-          <Specimen id="home-simulation-switcher">
-            <AuditSimulationSwitcher />
-          </Specimen>
-
           <EmailSpecimen
             copyText={contact.copy}
             email={email}
@@ -157,18 +143,22 @@ export function ButtonAudit() {
           />
 
           <LinkedInSpecimen href={linkedin} />
+          <Specimen id="home-simulation-switcher">
+            <AuditSimulationSwitcher />
+          </Specimen>
         </div>
       </section>
 
       <section className="button-audit-family" aria-label="Circular utility buttons">
+        <p className="button-audit__utility-heading">Utility controls / Same material and rebound</p>
         <div className="button-audit__grid">
           <Specimen
             id="portfolio-gate-close"
             variant="button-audit-specimen--corner-control"
           >
-            <button
-              type="button"
-              className="portfolio-access-gate__close abs-icon-btn abs-circular-utility"
+            <ActionButton
+              variant="icon"
+              className="portfolio-access-gate__close"
               aria-label="Close portfolio gate specimen"
             >
               <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
@@ -177,7 +167,7 @@ export function ButtonAudit() {
                   d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
                 />
               </svg>
-            </button>
+            </ActionButton>
           </Specimen>
 
           <Specimen
@@ -185,9 +175,9 @@ export function ButtonAudit() {
             variant="button-audit-specimen--corner-control"
           >
             <div className="button-audit-playground-context">
-              <button
-                type="button"
-                className="playground-lightbox__close abs-icon-btn abs-circular-utility"
+              <ActionButton
+                variant="icon"
+                className="playground-lightbox__close"
                 aria-label="Close Lab media specimen"
               >
                 <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
@@ -196,7 +186,7 @@ export function ButtonAudit() {
                     d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
                   />
                 </svg>
-              </button>
+              </ActionButton>
             </div>
           </Specimen>
 
@@ -204,17 +194,18 @@ export function ButtonAudit() {
             id="project-view-return"
             variant="button-audit-specimen--corner-control"
           >
-            <button
-              className="button-audit-utility abs-icon-btn abs-circular-utility"
-              type="button"
+            <ActionButton
+              variant="icon"
+              className="button-audit-utility"
               aria-label="Back to portfolio projects specimen"
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
-            </button>
+            </ActionButton>
           </Specimen>
         </div>
       </section>
 
+      <p className="button-audit__note">Real site components. Try keyboard focus and a long press.</p>
     </main>
   );
 }

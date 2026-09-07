@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActionLabel } from './ActionLabel.jsx';
+import { ActionButton } from './ActionButton.jsx';
 import { triggerHaptic } from '../../lib/haptics.js';
 
 const COPY_FEEDBACK_MS = 3000;
@@ -69,10 +71,8 @@ export function CopyEmailAction({
       : '';
   return (
     <>
-      <button
-        type="button"
+      <ActionButton
         className={[
-          'abs-labelled-action',
           'contact-email-row',
           copyState === 'copied' ? 'is-copied' : '',
           copyState === 'error' ? 'is-error' : '',
@@ -87,14 +87,14 @@ export function CopyEmailAction({
       >
         <span className="contact-email-label-window" aria-hidden="true">
           <span className="contact-email-label contact-email-label--idle">
-            <span className="contact-email-text">{email}</span>
+            <span className="contact-email-text"><ActionLabel>Copy email</ActionLabel></span>
             <span className="contact-email-copy">
               <i className="ti ti-copy" aria-hidden="true" />
             </span>
           </span>
           <span className="contact-email-label contact-email-label--copied">
             <span className="contact-email-feedback-text">
-              {copyText.statusCopied || 'Copied'}
+              <ActionLabel>{copyText.statusCopied || 'Copied'}</ActionLabel>
             </span>
             <span className="contact-email-copy contact-email-feedback-icon">
               <i className="ti ti-check" aria-hidden="true" />
@@ -102,14 +102,14 @@ export function CopyEmailAction({
           </span>
           <span className="contact-email-label contact-email-label--error">
             <span className="contact-email-feedback-text">
-              {copyText.statusError || 'Copy failed'}
+              <ActionLabel>{copyText.statusError || 'Copy failed'}</ActionLabel>
             </span>
             <span className="contact-email-copy contact-email-feedback-icon">
               <i className="ti ti-alert-triangle" aria-hidden="true" />
             </span>
           </span>
         </span>
-      </button>
+      </ActionButton>
       <div id={statusId} className="contact-copy-status" data-copy-status aria-live="polite">
         {statusText}
       </div>

@@ -2547,9 +2547,6 @@ p {
 }
 
 .simulation-focus-switcher-slot {
-  --simulation-switcher-motion-duration: 520ms;
-  --simulation-switcher-motion-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
-  --simulation-switcher-motion-travel: calc(100% + 5px);
   --home-simulation-switcher-footer-gap: clamp(24px, calc(54px - 4vw), 40px);
   position: fixed;
   left: 50%;
@@ -2579,273 +2576,6 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 
 html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
-}
-
-/*
- * Shared raised-glass button system
- *
- * Labelled actions and circular utilities share one material and interaction
- * language. Route/component selectors below own anatomy and placement only.
- */
-:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn) {
-  --abs-soft-control-translate-duration: var(--abs-soft-control-lift-duration);
-  --abs-soft-control-translate-easing: var(--abs-soft-control-lift-easing);
-  box-sizing: border-box;
-  isolation: isolate;
-  appearance: none;
-  margin: 0;
-  border: 0;
-  background: var(--abs-soft-control-fill);
-  color: var(--abs-soft-control-ink);
-  font-family: var(--abs-font-sans);
-  font-weight: var(--abs-weight-regular);
-  text-decoration: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: var(--abs-soft-control-shadow-rest);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur))
-    saturate(var(--abs-soft-control-saturation));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur))
-    saturate(var(--abs-soft-control-saturation));
-  translate: 0 0;
-  transform: none;
-  filter: none;
-  transition:
-    translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
-    background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
-    color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
-    box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
-}
-
-.abs-labelled-action {
-  --abs-labelled-action-height: 44px;
-  --abs-labelled-action-font-size: 0.875rem;
-  --abs-labelled-action-icon-size: 1rem;
-  --abs-labelled-action-pad-x: 20px;
-  --abs-labelled-action-gap: 12px;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--abs-labelled-action-gap);
-  width: auto;
-  min-width: 0;
-  min-height: var(--abs-labelled-action-height);
-  max-width: 100%;
-  padding: 0 var(--abs-labelled-action-pad-x);
-  border-radius: var(--abs-radius-pill);
-  overflow: hidden;
-  font-size: var(--abs-labelled-action-font-size);
-  line-height: 1;
-  letter-spacing: var(--abs-letter-spacing-tight);
-  white-space: nowrap;
-}
-
-.abs-circular-utility.abs-icon-btn {
-  --abs-circular-utility-size: 56px;
-  --abs-circular-utility-icon-size: 26px;
-  --ui-icon-glyph-size: var(--abs-circular-utility-icon-size);
-  display: grid;
-  place-items: center;
-  inline-size: var(--abs-circular-utility-size);
-  block-size: var(--abs-circular-utility-size);
-  min-inline-size: var(--abs-circular-utility-size);
-  min-block-size: var(--abs-circular-utility-size);
-  max-inline-size: var(--abs-circular-utility-size);
-  max-block-size: var(--abs-circular-utility-size);
-  aspect-ratio: 1 / 1;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 50%;
-  corner-shape: round;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.abs-circular-utility.abs-icon-btn::before {
-  content: none;
-}
-
-.abs-circular-utility.abs-icon-btn > :is(svg, i) {
-  display: block;
-  inline-size: var(--abs-circular-utility-icon-size);
-  block-size: var(--abs-circular-utility-icon-size);
-  margin: 0;
-  line-height: 1;
-}
-
-.abs-circular-utility.abs-icon-btn > i {
-  font-size: var(--abs-circular-utility-icon-size);
-}
-
-.abs-labelled-action[data-advancing='true'] {
-  background: var(--abs-soft-control-fill-hover);
-  color: var(--abs-soft-control-ink-strong);
-}
-
-:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):focus-visible {
-  background: var(--abs-soft-control-fill-hover);
-  color: var(--abs-soft-control-ink-strong);
-  outline: 3px solid var(--abs-soft-control-focus);
-  outline-offset: 3px;
-  box-shadow: var(--abs-soft-control-shadow-hover);
-  translate: 0 -1px;
-}
-
-.abs-circular-utility.abs-icon-btn[data-focus-contrast='complementary']:focus-visible {
-  outline: var(--abs-focus-ring-width) solid rgb(var(--abs-rgb-white));
-  outline-offset: var(--abs-focus-ring-offset);
-  box-shadow: 0 0 0 calc(var(--abs-focus-ring-offset) + var(--abs-focus-ring-width))
-    rgb(var(--abs-rgb-black));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):hover:where(:not(:focus-visible, :disabled)) {
-    background: var(--abs-soft-control-fill-hover);
-    color: var(--abs-soft-control-ink-strong);
-    box-shadow: var(--abs-soft-control-shadow-hover);
-    translate: 0 -2px;
-  }
-}
-
-:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):active {
-  --abs-soft-control-translate-duration: var(--abs-soft-control-press-duration);
-  --abs-soft-control-translate-easing: var(--abs-soft-control-press-easing);
-  animation: none;
-  color: var(--abs-soft-control-ink-strong);
-  box-shadow: none;
-  translate: 0 1px;
-  transform: none;
-  filter: none;
-}
-
-.abs-labelled-action:disabled,
-.abs-circular-utility.abs-icon-btn:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.abs-labelled-action[data-advancing='true']:disabled {
-  opacity: 1;
-}
-
-.simulation-focus-pill.simulation-focus-switcher {
-  --abs-labelled-action-height: 36px;
-  --abs-labelled-action-font-size: 0.65625rem;
-  --abs-labelled-action-pad-x: 20px;
-  --abs-labelled-action-gap: 0;
-  --simulation-switcher-fill-rest: var(--abs-soft-control-fill);
-  --simulation-switcher-fill-hover: var(--abs-soft-control-fill-hover);
-  --simulation-switcher-fill-pressed: var(--abs-soft-control-fill-pressed);
-  --simulation-switcher-ink-rest:
-    color-mix(in srgb, var(--text-primary) 58%, transparent);
-  --simulation-switcher-ink-active:
-    color-mix(in srgb, var(--text-primary) 72%, transparent);
-  --simulation-switcher-ink-pressed:
-    color-mix(in srgb, var(--text-primary) 82%, transparent);
-  width: fit-content;
-  max-width: calc(100vw - (var(--gap-md) * 2));
-  overflow: visible;
-  background: var(--simulation-switcher-fill-rest);
-  color: var(--simulation-switcher-ink-rest);
-  box-shadow: var(--abs-soft-control-shadow-rest);
-  -webkit-backdrop-filter:
-    blur(var(--abs-soft-control-blur))
-    saturate(var(--abs-soft-control-saturation));
-  backdrop-filter:
-    blur(var(--abs-soft-control-blur))
-    saturate(var(--abs-soft-control-saturation));
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.09em;
-  outline: none;
-  pointer-events: auto;
-  transition:
-    translate var(--abs-soft-control-press-duration) var(--abs-soft-control-press-easing),
-    background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
-    color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
-    box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
-}
-
-.simulation-focus-pill::after {
-  content: '';
-  position: absolute;
-  inset-block: calc((var(--abs-labelled-action-height) - 44px) / 2);
-  inset-inline: -5px;
-  border-radius: inherit;
-}
-
-.simulation-focus-pill.simulation-focus-switcher[data-advancing='true'] {
-  background: var(--simulation-switcher-fill-rest);
-  color: var(--simulation-switcher-ink-pressed);
-  box-shadow: var(--abs-soft-control-shadow-rest);
-  translate: 0 1px;
-}
-
-.simulation-focus-pill.simulation-focus-switcher:focus-visible:where(:not([data-advancing='true'])) {
-  background: var(--simulation-switcher-fill-hover);
-  color: var(--simulation-switcher-ink-active);
-  outline: none;
-  box-shadow: var(--abs-soft-control-shadow-hover);
-  translate: 0 0;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .simulation-focus-pill.simulation-focus-switcher:hover:where(:not(:focus-visible, :disabled)) {
-    background: var(--simulation-switcher-fill-hover);
-    color: var(--simulation-switcher-ink-active);
-    box-shadow: var(--abs-soft-control-shadow-hover);
-    translate: 0 0;
-  }
-}
-
-.simulation-focus-pill.simulation-focus-switcher:active {
-  background: var(--simulation-switcher-fill-rest);
-  color: var(--simulation-switcher-ink-pressed);
-  box-shadow: var(--abs-soft-control-shadow-rest);
-  translate: 0 1px;
-}
-
-html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher {
-  corner-shape: round;
-}
-
-.simulation-focus-pill:disabled {
-  cursor: wait;
-}
-
-.simulation-focus-pill__label {
-  display: block;
-  flex: 0 0 auto;
-  translate: 0 -0.5px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.simulation-focus-switcher-status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn),
-  .simulation-focus-pill.simulation-focus-switcher {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-    translate: none !important;
-    filter: none !important;
-    rotate: none !important;
-  }
 }
 
 /* Legacy JS-driven stagger classes removed — nav links use the CSS
@@ -5238,15 +4968,6 @@ body.about-narrative-page #simulations:is(
     animation: none;
   }
 
-  .simulation-focus-pill.simulation-focus-switcher {
-    -webkit-backdrop-filter:
-      blur(var(--abs-soft-control-blur))
-      saturate(var(--abs-soft-control-saturation));
-    backdrop-filter:
-      blur(var(--abs-soft-control-blur))
-      saturate(var(--abs-soft-control-saturation));
-    background: var(--simulation-switcher-fill-rest);
-  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -5757,27 +5478,21 @@ html.is-safari .noise::before {
    NO color changes - keep colors as-is
    ═══════════════════════════════════════════════════════════════════════════════ */
 /* Base transition for all buttons and links */
-button:not(:active),
+button:not(.abs-labelled-action, .abs-circular-utility):not(:active),
 [role="button"]:not(#quote-display):not(.portfolio-project-card):not(:active),
-a:not(:active) {
+a:not(.abs-labelled-action, .abs-circular-utility):not(:active) {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
 }
 
 /* Press effect: scale down and blur — quote puck excluded (drag-only, no key press) */
-button:active,
+button:not(.abs-labelled-action, .abs-circular-utility):active,
 [role="button"]:not(#quote-display):not(.portfolio-project-card):active,
-a:active {
+a:not(.abs-labelled-action, .abs-circular-utility):active {
   transform: scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
-}
-
-/* Shared button family stays press-nudge-only (no scale, no blur, no inset/edge depth). */
-:is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):active {
-  transform: none;
-  filter: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -5869,20 +5584,20 @@ body.dark-mode {
 }
 
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
-:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year) {
+:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):not(:where(.abs-labelled-action, .abs-circular-utility)) {
   transform: translateZ(0);
   transition:
     transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
     box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
+:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):not(:where(.abs-labelled-action, .abs-circular-utility)):hover {
   transform: translateZ(0);
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 
-a:hover,
-button:hover {
+a:not(.abs-labelled-action, .abs-circular-utility):hover,
+button:not(.abs-labelled-action, .abs-circular-utility):hover {
   --abs-cursor-pulse-ms: 520ms;
   transform-origin: center;
   transform: translateZ(0);
@@ -5901,7 +5616,7 @@ button:hover {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Hover State: Foreground Lift ─── */
-:is(.footer_link, .abs-icon-btn):hover {
+:is(.footer_link, .abs-icon-btn):not(:where(.abs-circular-utility)):hover {
   color: var(--text-primary);
   opacity: 1;
   position: relative;
@@ -5918,7 +5633,7 @@ button:hover {
   color: var(--cursor-color, var(--link-hover-color));
 }
 
-.abs-icon-btn:hover {
+.abs-icon-btn:not(.abs-circular-utility):hover {
   background: transparent;
 }
 
@@ -6509,13 +6224,6 @@ body.cv-page .route-topbar .gate-back:not(.abs-circular-utility) {
   --contact-email-label-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
   --contact-email-label-travel: calc(100% + 5px);
   --contact-email-label-blur: 1.25px;
-  inline-size: fit-content;
-  width: fit-content;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-inline: var(--abs-labelled-action-pad-x);
   z-index: 1;
   will-change: auto;
   text-rendering: geometricPrecision;
@@ -7293,18 +7001,6 @@ body.portfolio-page--locked #simulations {
   width: auto;
   max-width: 100%;
   min-width: 0;
-}
-
-.contact-linkedin-action {
-  width: auto;
-  min-width: 0;
-  padding-inline: 18px 24px;
-}
-
-.contact-linkedin-action i {
-  flex: 0 0 auto;
-  font-size: var(--abs-labelled-action-icon-size);
-  line-height: 1;
 }
 
 @media (max-width: 600px) {

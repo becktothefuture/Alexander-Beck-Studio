@@ -1,3 +1,4 @@
+import { ActionButton } from '../../../components/app/ActionButton.jsx';
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { getPlaygroundMediaStyle } from './mediaPresentation.js';
 import { PlaygroundMedia } from './PlaygroundMedia.jsx';
@@ -158,10 +159,10 @@ export function PlaygroundLightbox({
         }}
       >
         <section className="playground-lightbox__surface playground-lightbox__dialog">
-          <button
+          <ActionButton
+            variant="icon"
             ref={closeButtonRef}
-            type="button"
-            className="playground-lightbox__close abs-icon-btn abs-circular-utility"
+            className="playground-lightbox__close"
             aria-label={`Close ${item.label}`}
             data-sound-action="manual"
             data-sound-source="lab-project-close"
@@ -173,7 +174,7 @@ export function PlaygroundLightbox({
                 d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
               />
             </svg>
-          </button>
+          </ActionButton>
 
           <div
             className="playground-lightbox__media-shell"

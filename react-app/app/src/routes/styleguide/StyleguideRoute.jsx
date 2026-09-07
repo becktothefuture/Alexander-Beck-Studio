@@ -1,3 +1,4 @@
+import { ActionButton } from '../../components/app/ActionButton.jsx';
 import { ShellButtonBar } from '../../components/app/ShellButtonBar.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
 import { StyleguideTypographySection } from './StyleguideTypography.jsx';
@@ -42,9 +43,9 @@ export function getStyleguideRouteView() {
       <header className="ui-top">
         <div className="ui-top-main route-topbar">
           <div className="route-topbar__left">
-            <a href={homeHref} className="gate-back abs-icon-btn abs-circular-utility" aria-label="Back to home">
+            <ActionButton variant="icon" href={homeHref} className="gate-back" aria-label="Back to home">
               <i className="ti ti-arrow-left" aria-hidden="true" />
-            </a>
+            </ActionButton>
           </div>
           <div className="route-topbar__center" />
           <div className="route-topbar__right ui-top-right" />
@@ -106,9 +107,9 @@ export function getStyleguideRouteView() {
               <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
                 {renderSoundOnIcon()}
               </button>
-              <a href={homeHref} className="gate-back abs-icon-btn abs-circular-utility" aria-label="Sample back">
+              <ActionButton variant="icon" href={homeHref} className="gate-back" aria-label="Sample back">
                 <i className="ti ti-arrow-left" aria-hidden="true" />
-              </a>
+              </ActionButton>
             </div>
           </section>
 

@@ -61,3 +61,9 @@ Instrument Serif's finer strokes are more vulnerable to visual interruption than
 ## Verification matrix
 
 Visual changes require a fresh root build and coverage of Home, Work, About, and Contact at desktop/mobile and light/dark. Check the default Work gate on production preview; use development for the full Work gate, snippet stage, and case-study drawer at desktop, tablet, and mobile sizes. Check the public About narrative at desktop and mobile when affected. Motion/routing changes require serial Chromium and WebKit transition audits. The live `/styleguide.html` must remain aligned with the actual component markup.
+
+## Action button testing
+
+The development-only `/lab/button-audit.html` renders the shared Copy email, LinkedIn, and Change effect components over a photo. Use it to compare hover, press, release, keyboard focus, both themes, and reduced motion. Its blur and image controls are local preview settings. See the quiet control contract in `COMPONENT-LIBRARY.md`.
+
+Action controls have one component and stylesheet: `ActionButton.jsx` and `action-buttons.css`, with primary, secondary and icon variants. The Home reference is the latest 36px, icon-free, widely tracked CHANGE EFFECT button. The test page also uses these variants for its own theme, image and reset actions.

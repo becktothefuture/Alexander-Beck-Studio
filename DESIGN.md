@@ -145,13 +145,13 @@ The quiet material has exactly two reusable control families. `.abs-labelled-act
 
 - The resting material uses one restrained translucent fill per studio-window theme. A 16px backdrop blur and gentle saturation preserve local context without flattening the material behind it.
 - Every quiet control has no outer border and no drop shadow. Physical depth comes only from two complementary inset shadows: one sharp 0.5px light-facing edge and one softer occluded edge. The dark-theme light edge is 20% quieter than the approved audit prototype.
-- Hover lifts the complete control by 2px with a bounded elastic settle. Keyboard focus lifts it by 1px and adds a clear 3px outline. Press moves it down by 1px over 90ms. These states never scale text, icons, or the control surface.
-- Contact copy keeps one fixed-width label window. The email label exits upward and the Copied/check or error state enters from below using the shared restrained label motion. The Contact background ripple still starts in the same click frame; the retired contained colour wash is not part of the control.
+- Hover lifts the complete control by 2px with a bounded elastic settle. Keyboard focus lifts it by 1px and adds a clear 3px outline. Press moves it down by 3px and compresses it to 98% width / 92% height over 80ms. Release uses a damped 320ms rebound. Labelled controls keep a round capsule in every route, including when the global corner setting uses squircles. Primary capsules are 48px high. The latest Home secondary remains a 36px, icon-free capsule with 10.5px medium Geist, 0.09em tracking and a vertically centered label; an invisible target preserves 44px+ input reach under pressure.
+- Contact copy keeps one fixed-width label window. The Copy email label exits upward and the Copied/check or error state enters from below using the shared restrained label motion. The Contact background ripple still starts in the same click frame; the retired contained colour wash is not part of the control.
 - Do not stack a colored halo, glow, outer shadow, or second hover field on top of this material. State must remain calm and legible over moving simulation content.
 - The custom cursor remains one consistent shadow-free translucent mid-gray lens in both site themes and over every control, including circular controls. Its only interactive response reduces the 57.6px lens to 20px (`scale(0.3472222)`) with `opacity: 0.72`; controls do not request a route-, overlay-, or geometry-specific cursor. Work keeps the resting lens over its keyboard-focusable drag surface and uses the smaller state only for nested project items and other true actions.
 - The manual site theme owns these values because these controls live inside the studio window. Never derive them from the browser-aware wall or outer-frame palette.
 
-The Home switcher is a compact, text-only next action, not a selector or dialog trigger. Its visible label is the quiet utility instruction `CHANGE EFFECT`: 10.5px regular-medium Geist with `0.09em` tracking inside a 36px capsule with balanced 20px inline padding and a half-pixel upward optical baseline correction. A 44px invisible hit area preserves touch access around the smaller surface. The switcher keeps the shared 16px backdrop blur and paired light/shadow inset edges, but uses softer secondary ink and no outer outline or drop shadow. Hover and focus change only the material and ink. Press moves the complete capsule and label down by 1px into the page and strengthens the label contrast while preserving the resting fill and the original light/shadow edge direction; it never caves inward, scales, bounces, or springs. The pressed treatment persists while the simulation transaction commits so the action reads as acknowledged. The current effect name stays in the accessible name and polite status announcement instead of changing the visible action label. The control adds no label handoff or icon animation. On mobile, equal footer side tracks place the edge caption on the page centreline between the social controls and London time.
+The Home switcher is a labelled next action with a persistent, icon-free **CHANGE EFFECT** label. Activation requests the next simulation immediately. No extra label hold or width animation delays the next input. The current simulation remains available through the accessible name and live status. All action variants and quiet icon controls use `ActionButton`, `action-buttons.css` and one delegated input handler for the same pressure and release, with slightly tighter tracking inside a stable label width. Primary labels use sentence/brand case; only secondary labels use capitals. Labels center their visible ink rather than the font line box, including copy feedback states. Reduced motion removes the movement and tracking change, retaining fill, inset depth, and action feedback.
 
 ### Motion and material presence
 
@@ -159,7 +159,7 @@ The Home switcher is a compact, text-only next action, not a selector or dialog 
 - Animate route-owned content inside the stable window.
 - The first readable frame uses final geometry. Text must not become legible while still moving into its layout position.
 - Entrance order is identity, context, action, then supporting detail. Returning from an interruption is faster and simpler than the first entrance.
-- Hover and press motion should feel compact, tactile, and bounded.
+- Hover and press motion should feel compact, tactile, and bounded. Shared action capsules use a visible downward squash, slightly tighter tracking within a stable label width, and a short damped release. Pointer/keyboard release owns the rebound; asynchronous actions never hold the material down.
 - Reduced motion removes travel, blur, scale, stagger, parallax, continuous field motion, and Ken Burns effects while preserving hierarchy and state.
 - Preserve selected media as the physical object during Work snippet and case-study expansion and reversal.
 
@@ -222,12 +222,13 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Its supporting description is centred at 75% of the shared intro measure, capped at `37.8ch`, so the copy leaves more room for the ripple field at every width. The title rule uses a Contact-owned fluid optical offset: it sits midway between the visible title and description rather than merely inheriting equal box-model gaps.
 - The ripple field is a route-specific motion behavior. Its balls use flat palette fills, create a quiet
   zone around content, and respond to the copy action.
-- The email address uses Geist within a borderless quiet-control capsule; its momentary pressed light starts with the background ripple, while copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
+- The email-copy action uses Geist within a borderless quiet-control capsule; its momentary pressed light starts with the background ripple, while copy success is expressed with visible text, icon state, sound, haptic feedback, and material motion.
 - Contact retains the shared spacing/type roles even though its simulation and action are unique.
 
 ### Footer
 
 - The footer is quiet edge metadata: social links, studio statement, and London time.
+- On mobile, equal footer side tracks place the edge caption on the page centreline between the social controls and London time.
 - Desktop keeps all three footer groups on one shared vertical centre line; individual groups do not use corrective vertical offsets.
 - It remains subordinate to route content and must stay readable without becoming a second navigation bar.
 - Work suppresses the Home-only edge caption.

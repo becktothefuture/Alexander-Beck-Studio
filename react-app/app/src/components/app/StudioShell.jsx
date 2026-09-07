@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
+import { useButtonInteractions } from '../../lib/useButtonInteractions.js';
+import './action-buttons.css';
 import { SiteFooter } from '../SiteFooter.jsx';
 import { RouteTransitionLoader } from './RouteTransitionLoader.jsx';
 import { ShellButtonBar } from './ShellButtonBar.jsx';
@@ -102,6 +104,7 @@ export function StudioShell({
   surfaceRefs,
   onRoutePrewarm,
 }) {
+  useButtonInteractions();
   const atmosphereGlowCanvasRef = useRef(null);
   const titleCanvasRef = useRef(null);
   const routeWindowClassName = studioWindowClassName ?? wallClassName;

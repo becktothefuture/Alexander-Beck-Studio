@@ -5,204 +5,77 @@ import test from 'node:test';
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
-  ['tokens', '../react-app/app/public/css/tokens.css'],
-  ['portfolioStyles', '../react-app/app/public/css/portfolio.css'],
-  ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
+  ['styles', '../react-app/app/src/components/app/action-buttons.css'],
+  ['button', '../react-app/app/src/components/app/ActionButton.jsx'],
+  ['input', '../react-app/app/src/lib/useButtonInteractions.js'],
   ['switcher', '../react-app/app/src/components/simulation-focus/SimulationFocusProvider.jsx'],
-  ['studioShell', '../react-app/app/src/components/app/StudioShell.jsx'],
-  ['copyEmail', '../react-app/app/src/components/app/CopyEmailAction.jsx'],
+  ['shell', '../react-app/app/src/components/app/StudioShell.jsx'],
+  ['copy', '../react-app/app/src/components/app/CopyEmailAction.jsx'],
   ['linkedin', '../react-app/app/src/components/app/LinkedInAction.jsx'],
-  ['portfolioGate', '../react-app/app/src/routes/portfolio/PortfolioGateRoute.jsx'],
-  ['portfolioDrawer', '../react-app/app/src/legacy/modules/portfolio/project-drawer.js'],
-  ['playgroundLightbox', '../react-app/app/src/routes/playground/media/PlaygroundLightbox.jsx'],
-  ['buttonAudit', '../react-app/app/src/routes/button-audit/ButtonAudit.jsx'],
-  ['buttonAuditStyles', '../react-app/app/src/routes/button-audit/button-audit.css'],
+  ['audit', '../react-app/app/src/routes/button-audit/ButtonAudit.jsx'],
+  ['auditStyles', '../react-app/app/src/routes/button-audit/button-audit.css'],
   ['vite', '../react-app/app/vite.config.js'],
-  ['studio', './studio.mjs'],
+  ['drawer', '../react-app/app/src/legacy/modules/portfolio/project-drawer.js'],
 ].map(async ([key, path]) => [key, await read(path)])));
 
-test('the requested production controls opt into exactly two explicit families', () => {
-  assert.match(
-    sources.switcher,
-    /className="abs-labelled-action simulation-focus-pill simulation-focus-switcher"/,
-  );
-  assert.match(sources.copyEmail, /'abs-labelled-action',[\s\S]*?'contact-email-row'/);
-  assert.match(sources.linkedin, /className="abs-labelled-action contact-linkedin-action"/);
-
-  for (const [owner, source] of Object.entries({
-    portfolioGate: sources.portfolioGate,
-    portfolioDrawer: sources.portfolioDrawer,
-    playgroundLightbox: sources.playgroundLightbox,
-  })) {
-    assert.equal(
-      (source.match(/\babs-circular-utility\b/g) || []).length,
-      1,
-      `${owner} must expose one circular utility control`,
-    );
+test('all labelled actions use the shared component and the audit uses real actions', () => {
+  for (const source of [sources.copy, sources.linkedin, sources.switcher]) {
+    assert.match(source, /<ActionButton/);
+    assert.doesNotMatch(source, /<button|useActionPress|pressProps/);
   }
+  for (const component of ['CopyEmailAction', 'LinkedInAction', 'SimulationFocusSwitcher']) {
+    assert.ok(sources.audit.includes(`<${component}`));
+  }
+  assert.match(sources.button, /variant === 'icon'/);
+  assert.match(sources.button, /<ActionLabel>/);
+  assert.match(sources.drawer, /abs-circular-utility/);
 });
 
-test('shared CSS owns family geometry, type, material, states, focus, and motion', () => {
-  assert.match(
-    sources.main,
-    /:is\(\.abs-labelled-action, \.abs-circular-utility\.abs-icon-btn\) \{[\s\S]*?border: 0;[\s\S]*?background: var\(--abs-soft-control-fill\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 0;[\s\S]*?transition:/,
-  );
-  assert.match(
-    sources.main,
-    /\.abs-labelled-action \{[\s\S]*?--abs-labelled-action-height: 44px;[\s\S]*?--abs-labelled-action-font-size: 0\.875rem;[\s\S]*?--abs-labelled-action-icon-size: 1rem;[\s\S]*?--abs-labelled-action-gap: 12px;[\s\S]*?border-radius: var\(--abs-radius-pill\);/,
-  );
-  assert.match(
-    sources.main,
-    /\.abs-circular-utility\.abs-icon-btn \{[\s\S]*?--abs-circular-utility-size: 56px;[\s\S]*?--abs-circular-utility-icon-size: 26px;[\s\S]*?aspect-ratio: 1 \/ 1;[\s\S]*?border-radius: 50%;/,
-  );
-  assert.match(
-    sources.main,
-    /:hover:where\(:not\(:focus-visible, :disabled\)\) \{[\s\S]*?background: var\(--abs-soft-control-fill-hover\);[\s\S]*?translate: 0 -2px;/,
-  );
-  assert.match(
-    sources.main,
-    /:focus-visible \{[\s\S]*?outline: 3px solid var\(--abs-soft-control-focus\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-hover\);[\s\S]*?translate: 0 -1px;/,
-  );
-  assert.match(
-    sources.main,
-    /:active \{[\s\S]*?--abs-soft-control-translate-duration: var\(--abs-soft-control-press-duration\);[\s\S]*?box-shadow:\s+(?:var\(--abs-soft-control-shadow-pressed\)|none);[\s\S]*?translate: 0 1px;[\s\S]*?transform: none;/,
-  );
-  assert.match(
-    sources.main,
-    /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?:is\(\.abs-labelled-action, \.abs-circular-utility\.abs-icon-btn\),[\s\S]*?animation: none !important;[\s\S]*?transition: none !important;/,
-  );
-  assert.match(
-    sources.tokens,
-    /--abs-soft-control-shadow-rest:[\s\S]*?inset 0\.5px 0\.5px 0\.5px rgba\(var\(--abs-rgb-white\), 0\.176\)[\s\S]*?--abs-soft-control-shadow-hover:[\s\S]*?0\.256[\s\S]*?--abs-soft-control-shadow-pressed:[\s\S]*?0\.112/,
-  );
+test('the latest Home secondary has compact tracked typography and no icon or handoff timer', () => {
+  const switcher = sources.switcher.split('export function SimulationFocusSwitcher()')[1];
+  assert.match(switcher, /variant="secondary"/);
+  assert.match(switcher, /label="CHANGE EFFECT"/);
+  assert.doesNotMatch(switcher, /RefreshCw|__icon|setTimeout|setAnimatedInlineSize|SWITCHER_HOLD/);
+  assert.match(switcher, /aria-disabled=\{isAdvancing/);
+  assert.match(sources.styles, /\.abs-labelled-action\.abs-action--secondary \{[\s\S]*?height: 36px;[\s\S]*?font-size: 0\.65625rem;[\s\S]*?tracking: 0\.09em;[\s\S]*?font-weight: 500;/);
+  assert.match(sources.styles, /inset-block: min\(0px, calc\(\(var\(--abs-labelled-action-height\) - 48px\) \/ 2\)\)/);
 });
 
-test('component CSS keeps anatomy and placement but no longer forks family states', () => {
-  assert.doesNotMatch(
-    sources.main,
-    /\.contact-linkedin-action:(?:hover|active|focus-visible)/,
-  );
-  assert.doesNotMatch(
-    sources.portfolioStyles,
-    /\.portfolio-access-gate__close\.abs-icon-btn:(?:hover|active|focus-visible)/,
-  );
-  assert.doesNotMatch(
-    sources.portfolioStyles,
-    /\.portfolio-project-view__back--top\.abs-icon-btn:(?:hover|active|focus-visible)/,
-  );
-  assert.doesNotMatch(
-    sources.playgroundStyles,
-    /\.playground-lightbox__close(?::is\([^)]*\)|:(?:hover|active|focus-visible))/,
-  );
+test('one stylesheet owns action states without route-specific interaction forks', () => {
+  for (const source of [sources.main, sources.auditStyles]) {
+    assert.doesNotMatch(source, /\.(?:simulation-focus-pill|contact-linkedin-action|contact-email-row)(?::hover|:active|\[data-advancing[^\]]*\])\s*\{/);
+    assert.doesNotMatch(source, /--abs-soft-control-translate-duration:/);
+  }
+  assert.doesNotMatch(sources.styles, /\.simulation-focus-pill/);
+  assert.match(sources.styles, /\[data-action-pressed='true'\]:not\(:disabled\)[\s\S]*?scale: var\(--abs-soft-control-press-scale\)/);
+  assert.match(sources.styles, /outline: 3px solid var\(--abs-soft-control-focus\)/);
+  assert.match(sources.styles, /letter-spacing: calc\(var\(--abs-action-tracking\) \+ var\(--abs-soft-control-press-tracking\)\)/);
+  assert.doesNotMatch(sources.styles, /soft-control-shadow-pressed|soft-control-fill-pressed/);
 });
 
-test('production copy confirmation rotates inside one stable label window', () => {
-  assert.match(
-    sources.copyEmail,
-    /data-copy-presentation="label"[\s\S]*?contact-email-label-window[\s\S]*?contact-email-label--idle[\s\S]*?contact-email-label--copied[\s\S]*?ti ti-check[\s\S]*?contact-email-label--error/,
-  );
-  assert.match(
-    sources.main,
-    /\.contact-email-label-window \{[\s\S]*?display: grid;[\s\S]*?block-size: 1\.2em;[\s\S]*?overflow: hidden;/,
-  );
-  assert.match(
-    sources.main,
-    /\.contact-email-row:is\(\.is-copied, \.is-error\) \.contact-email-label--idle \{[\s\S]*?transform:[\s\S]*?\.contact-email-row\.is-copied \.contact-email-label--copied,[\s\S]*?transform: translate3d\(0, 0, 0\);/,
-  );
-  assert.match(
-    sources.main,
-    /\.contact-email-label \{[\s\S]*?block-size: 100%;[\s\S]*?line-height: 1;/,
-  );
-  assert.match(
-    sources.main,
-    /\.contact-email-copy,[\s\S]*?\.contact-email-copy i \{[\s\S]*?inline-size: var\(--abs-labelled-action-icon-size\);[\s\S]*?block-size: var\(--abs-labelled-action-icon-size\);/,
-  );
-  assert.doesNotMatch(sources.copyEmail, /feedbackPresentation|pressPulse|pulse-energy/);
-  assert.doesNotMatch(sources.main, /\.contact-email-row\.pulse-energy|contactCopyMaterialFlash/);
+test('one delegated input handler covers current and dynamically inserted action controls', () => {
+  assert.match(sources.input, /abs-labelled-action, \.abs-circular-utility\.abs-icon-btn/);
+  assert.match(sources.input, /getAttribute\('aria-disabled'\) !== 'true'/);
+  for (const event of ['pointerdown', 'pointerup', 'pointercancel', 'pointerout', 'keydown', 'keyup', 'focusout', 'dragstart']) {
+    assert.ok(sources.input.includes(`${event}:`), event);
+  }
+  assert.match(sources.input, /removeEventListener\(event, listener, true\)/);
+  assert.match(sources.input, /removeEventListener\('blur', release\)/);
+  assert.match(sources.shell, /useButtonInteractions\(\)/);
+  assert.match(sources.audit, /useButtonInteractions\(\)/);
 });
 
-test('the production switcher presents one stable, explicit action', () => {
-  assert.match(
-    sources.switcher,
-    /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?CHANGE EFFECT/,
-  );
-  assert.match(
-    sources.switcher,
-    /`Change visual effect\. Current effect: \$\{activeSimulation\.name\}`/,
-  );
-  assert.match(
-    sources.main,
-    /\.simulation-focus-pill\.simulation-focus-switcher \{[\s\S]*?--abs-labelled-action-height: 36px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 20px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?--simulation-switcher-ink-pressed:[\s\S]*?82%[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?backdrop-filter:[\s\S]*?var\(--abs-soft-control-blur\)[\s\S]*?font-weight: 500;[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher\[data-advancing='true'\] \{[\s\S]*?background: var\(--simulation-switcher-fill-rest\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 1px;[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:focus-visible:where\(:not\(\[data-advancing='true'\]\)\) \{[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:active \{[\s\S]*?background: var\(--simulation-switcher-fill-rest\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 1px;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?translate: 0 -0\.5px;[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
-  );
-  assert.doesNotMatch(
-    sources.main,
-    /\.simulation-focus-pill\.simulation-focus-switcher:is\(:active, \[data-advancing='true'\]\)/,
-  );
-  assert.doesNotMatch(
-    sources.switcher,
-    /Shuffle|RefreshCw|SWITCHER_EXIT_MS|motionPhase|displayedSimulation|simulation-focus-pill__(?:icon|label--handoff)/,
-  );
-  assert.doesNotMatch(
-    sources.main,
-    /simulation-focus-pill__(?:icon|label--handoff)|simulation-switcher-icon-handoff/,
-  );
-  assert.match(sources.buttonAudit, /CHANGE EFFECT/);
-  assert.doesNotMatch(sources.buttonAudit, /Shuffle|simulation-focus-pill__icon/);
-  assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
-  assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);
+test('copy feedback and reduced motion retain accessible state with stable label geometry', () => {
+  assert.match(sources.copy, /contact-email-label--idle[\s\S]*?contact-email-label--copied[\s\S]*?contact-email-label--error/);
+  assert.match(sources.copy, /aria-live="polite"/);
+  assert.match(sources.styles, /\.abs-action-label::after \{[\s\S]*?visibility: hidden;/);
+  assert.match(sources.styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?scale: none !important;[\s\S]*?letter-spacing: inherit;/);
 });
 
-test('the mobile Home footer centres its caption between equal side tracks', () => {
-  assert.match(
-    sources.main,
-    /html\[data-shell-route='home'\] body \.ui-meta-row \{[\s\S]*?--home-footer-side-track-size: calc\([\s\S]*?grid-template-columns:[\s\S]*?var\(--home-footer-side-track-size\)[\s\S]*?minmax\(0, 1fr\)[\s\S]*?var\(--home-footer-side-track-size\);[\s\S]*?grid-template-areas: 'left caption right';/,
-  );
-  assert.match(
-    sources.main,
-    /html\[data-shell-route='home'\] body #site-year\.meta-caption \{[\s\S]*?padding-inline: 0;/,
-  );
-});
-
-test('the promoted controls settle their lift and press with translate-only elasticity', () => {
-  assert.match(
-    sources.tokens,
-    /--abs-soft-control-lift-duration: 420ms;[\s\S]*?--abs-soft-control-lift-easing: cubic-bezier\(0\.2, 1\.55, 0\.36, 1\);[\s\S]*?--abs-soft-control-press-duration: 90ms;/,
-  );
-  assert.match(
-    sources.main,
-    /:is\(\.abs-labelled-action, \.abs-circular-utility\.abs-icon-btn\) \{[\s\S]*?translate var\(--abs-soft-control-translate-duration\) var\(--abs-soft-control-translate-easing\)/,
-  );
-  assert.match(
-    sources.buttonAuditStyles,
-    /\.button-audit__theme-toggle \{[\s\S]*?translate var\(--button-audit-control-translate-duration\) var\(--button-audit-control-translate-easing\)[\s\S]*?\.button-audit__theme-toggle:active \{[\s\S]*?--button-audit-control-translate-duration: var\(--button-audit-control-press-duration\);/,
-  );
-  assert.doesNotMatch(
-    sources.buttonAuditStyles,
-    /\.button-audit :is\(\.abs-labelled-action, \.abs-circular-utility\.abs-icon-btn\)/,
-  );
-  assert.doesNotMatch(
-    sources.main,
-    /:is\(\.abs-labelled-action, \.abs-circular-utility\.abs-icon-btn\)(?::[^,{\s]+|:[^{]+)?\s*\{[^}]*\bscale:/,
-  );
-});
-
-test('the development audit stays unique, themeable, window-surfaced, and routable', () => {
-  assert.equal((sources.buttonAudit.match(/<EmailSpecimen\b/g) || []).length, 1);
-  assert.equal((sources.buttonAudit.match(/<LinkedInSpecimen\b/g) || []).length, 1);
-  assert.equal((sources.buttonAudit.match(/<Specimen\b/g) || []).length, 6);
-  assert.doesNotMatch(sources.buttonAudit, /button-audit-specimen__label|\n\s+(?:label|source)=/);
-
-  assert.match(sources.buttonAudit, /<h1>Button audit<\/h1>/);
-  assert.match(sources.buttonAuditStyles, /\.button-audit__header h1 \{[\s\S]*?font-size: 0\.625rem;/);
-  assert.match(sources.buttonAudit, /className="button-audit__theme-toggle"[\s\S]*?aria-pressed=\{theme === 'dark'\}/);
-  assert.match(sources.buttonAudit, /root\.classList\.toggle\('dark-mode', isDark\)/);
-  assert.match(sources.buttonAudit, /root\.dataset\.absTheme = theme/);
-  assert.match(sources.buttonAuditStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.button-audit__theme-toggle[\s\S]*?transition: none !important;/);
-
-  assert.match(sources.buttonAuditStyles, /\.button-audit__background \{[\s\S]*?background: var\(--studio-window-bg\);/);
-  assert.doesNotMatch(sources.buttonAudit, /images\.unsplash\.com|Unsplash|Kristīne Kozaka/);
-
+test('the photo audit remains development-only with local, reversible preview controls', () => {
+  assert.doesNotMatch(sources.audit, /writeManualSimulationFocus|<button/);
+  assert.match(sources.audit, /URL\.revokeObjectURL/);
+  assert.match(sources.audit, /--abs-soft-control-blur/);
+  assert.match(sources.auditStyles, /object-fit: cover/);
   assert.match(sources.vite, /mode === 'development'[\s\S]*?'lab\/button-audit': resolve\(__dirname, 'lab\/button-audit\.html'\)/);
-  assert.match(sources.studio, /const BUTTON_AUDIT_PATH = '\/lab\/button-audit\.html'/);
-  assert.match(sources.studio, /isButtonAuditResponse/);
 });

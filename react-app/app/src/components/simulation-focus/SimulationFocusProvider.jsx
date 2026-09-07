@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { ActionButton } from '../app/ActionButton.jsx';
 import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
@@ -169,8 +170,8 @@ export function SimulationFocusSwitcher() {
     shouldShowSwitcher,
     simulationTransitionPhase,
   } = useSimulationFocus();
-  if (!shouldShowSwitcher || !activeSimulation) return null;
 
+  if (!shouldShowSwitcher || !activeSimulation) return null;
   const isAdvancing = isSelectionPending || simulationTransitionPhase !== 'idle';
 
   return (
@@ -179,27 +180,21 @@ export function SimulationFocusSwitcher() {
       data-pending={String(isSelectionPending)}
       data-route-enter="control"
     >
-      <button
-        type="button"
-        className="abs-labelled-action simulation-focus-pill simulation-focus-switcher"
+      <ActionButton
+        variant="secondary"
+        className="simulation-focus-pill simulation-focus-switcher"
+        label="CHANGE EFFECT"
         data-simulation-id={activeSimulation.id}
         data-sound-action="step"
         data-sound-source="simulation-next"
         data-advancing={String(isAdvancing)}
+        data-phase={isAdvancing ? 'switching' : 'idle'}
         data-transition-phase={simulationTransitionPhase}
-        aria-label={isAdvancing
-          ? `Changing visual effect. Current effect: ${activeSimulation.name}`
-          : `Change visual effect. Current effect: ${activeSimulation.name}`}
+        aria-label={`${isAdvancing ? 'Changing' : 'Change'} visual effect. Current effect: ${activeSimulation.name}`}
         aria-busy={isAdvancing ? 'true' : undefined}
         aria-disabled={isAdvancing ? 'true' : undefined}
-        disabled={isAdvancing}
-        onClick={advanceSimulation}
-      >
-        <span className="simulation-focus-pill__label" aria-hidden="true">
-          CHANGE EFFECT
-        </span>
-      </button>
-
+        onClick={() => { if (!isAdvancing) advanceSimulation(); }}
+      />
       <span className="simulation-focus-switcher-status" aria-live="polite">
         Current effect: {activeSimulation.name}
       </span>

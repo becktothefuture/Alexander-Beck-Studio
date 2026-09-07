@@ -1,3 +1,4 @@
+import { ActionButton } from '../../../components/app/ActionButton.jsx';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { fitMediaSize, getMediaExpansionFrame } from '../../../lib/motion/media-expansion.js';
 import { PlaygroundMedia } from '../../playground/media/PlaygroundMedia.jsx';
@@ -189,10 +190,10 @@ export function WorkSnippetStage({
       <button ref={backdropRef} type="button" className="work-snippet-stage__backdrop"
         aria-label="Close project" tabIndex={-1}
         onClick={() => onRequestClose?.({ reason: 'backdrop' })} />
-      <button ref={closeButtonRef} type="button" className="work-snippet-stage__close abs-circular-utility abs-icon-btn"
+      <ActionButton variant="icon" ref={closeButtonRef} className="work-snippet-stage__close"
         aria-label="Close project" onClick={() => onRequestClose?.({ reason: 'button' })}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
-      </button>
+      </ActionButton>
       <div ref={surfaceRef} className="work-snippet-stage__surface">
         <div ref={mediaRef} className="work-snippet-stage__media">
           <PlaygroundMedia item={item} renderMode="active" active visible motionAllowed={motionAllowed}

@@ -1,3 +1,4 @@
+import { ActionButton } from '../../components/app/ActionButton.jsx';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import {
@@ -281,9 +282,9 @@ export function PortfolioGateRoute() {
       aria-busy={accepted ? 'true' : 'false'}
       onKeyDown={handleKeyDown}
     >
-      <button
-        type="button"
-        className="portfolio-access-gate__close abs-icon-btn abs-circular-utility"
+      <ActionButton
+        variant="icon"
+        className="portfolio-access-gate__close"
         aria-label="Close Work access prompt"
         data-sound-action="manual"
         data-sound-source="portfolio-gate-close"
@@ -296,7 +297,7 @@ export function PortfolioGateRoute() {
             d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
           />
         </svg>
-      </button>
+      </ActionButton>
 
       <section className="route-centered-page__inner portfolio-access-gate__inner">
         <p className="route-kicker">Private case study</p>

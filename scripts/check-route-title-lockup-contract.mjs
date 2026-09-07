@@ -6,6 +6,7 @@ const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const designConfig = JSON.parse(await read('../react-app/app/public/config/design-system.json'));
 const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
+  ['actionButtons', '../react-app/app/src/components/app/action-buttons.css'],
   ['portfolioRoute', '../react-app/app/src/routes/portfolio/PortfolioRoute.jsx'],
   ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['contactStyles', '../react-app/app/src/routes/contact/contact-route.css'],
@@ -82,7 +83,8 @@ test('Contact and About share one centred, compact two-action family', () => {
   );
   assert.match(sources.main, /\.contact-email-text \{[\s\S]*?font: inherit;/);
   assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
-  assert.match(sources.main, /\.contact-linkedin-action i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
+  assert.match(sources.actionButtons, /\.abs-labelled-action > i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
+  assert.doesNotMatch(sources.main, /\.contact-linkedin-action i \{/);
   assert.match(
     sources.aboutStyles,
     /\.about-narrative-spatial-copy\.is-finale \.about-narrative-finale-content \{[\s\S]*?grid-template-rows: minmax\(0, 1fr\) auto;[\s\S]*?justify-items: center;[\s\S]*?transform: none/,

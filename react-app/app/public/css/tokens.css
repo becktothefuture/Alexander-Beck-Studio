@@ -99,26 +99,27 @@
   /* Shared raised-glass control material. Depth comes only from paired inset edges. */
   --abs-soft-control-fill: rgba(247, 249, 244, 0.64);
   --abs-soft-control-fill-hover: rgba(252, 253, 249, 0.8);
-  --abs-soft-control-fill-pressed: rgba(232, 236, 226, 0.86);
   --abs-soft-control-ink: rgba(14, 19, 13, 0.8);
   --abs-soft-control-ink-strong: #0b100b;
   --abs-soft-control-shadow-rest:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.64),
-    inset -1.5px -1.5px 3px rgba(11, 18, 10, 0.18);
+    inset -1px -1px 2px rgba(11, 18, 10, 0.09);
   --abs-soft-control-shadow-hover:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.82),
-    inset -1.5px -1.5px 3px rgba(11, 18, 10, 0.22);
-  --abs-soft-control-shadow-pressed:
-    inset 2px 2px 5px rgba(11, 18, 10, 0.24),
-    inset -0.5px -0.5px 0.5px rgba(var(--abs-rgb-white), 0.5);
+    inset -1px -1px 2px rgba(11, 18, 10, 0.12);
   --abs-soft-control-focus: #101710;
   --abs-soft-control-blur: 16px;
   --abs-soft-control-saturation: 1.16;
   --abs-soft-control-material-duration: 180ms;
   --abs-soft-control-material-easing: cubic-bezier(0.2, 0.72, 0.25, 1);
-  --abs-soft-control-lift-duration: 420ms;
-  --abs-soft-control-lift-easing: cubic-bezier(0.2, 1.55, 0.36, 1);
-  --abs-soft-control-press-duration: 90ms;
+  --abs-soft-control-lift-duration: 320ms;
+  --abs-soft-control-lift-easing: linear(0, 0.5 12%, 0.88 24%, 1.12 40%, 0.96 62%, 1.015 80%, 1);
+  --abs-soft-control-press-duration: 80ms;
+  --abs-soft-control-press-travel: 3px;
+  --abs-soft-control-press-scale-x: 0.98;
+  --abs-soft-control-press-scale-y: 0.92;
+  --abs-soft-control-press-scale: var(--abs-soft-control-press-scale-x) var(--abs-soft-control-press-scale-y);
+  --abs-soft-control-press-tracking: -0.025em;
   --abs-soft-control-press-easing: cubic-bezier(0.2, 0.72, 0.28, 1);
 
   /* Shared progress/pagination line language. Thickness is projected from shell config. */
@@ -914,20 +915,16 @@
 body.dark-mode,
 body[data-abs-theme='dark'] {
   --studio-window-color-scheme: dark;
-  --abs-soft-control-fill: rgba(12, 16, 12, 0.52);
+  --abs-soft-control-fill: rgba(12, 16, 12, 0.64);
   --abs-soft-control-fill-hover: rgba(18, 23, 17, 0.68);
-  --abs-soft-control-fill-pressed: rgba(7, 10, 7, 0.74);
   --abs-soft-control-ink: rgba(var(--abs-rgb-white), 0.92);
   --abs-soft-control-ink-strong: rgb(var(--abs-rgb-white));
   --abs-soft-control-shadow-rest:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.176),
-    inset -1.5px -1.5px 3px rgba(var(--abs-rgb-black), 0.3);
+    inset -1px -1px 2px rgba(var(--abs-rgb-black), 0.15);
   --abs-soft-control-shadow-hover:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.256),
-    inset -1.5px -1.5px 3px rgba(var(--abs-rgb-black), 0.36);
-  --abs-soft-control-shadow-pressed:
-    inset 2px 2px 5px rgba(var(--abs-rgb-black), 0.38),
-    inset -0.5px -0.5px 0.5px rgba(var(--abs-rgb-white), 0.112);
+    inset -1px -1px 2px rgba(var(--abs-rgb-black), 0.18);
   --abs-soft-control-focus: rgb(var(--abs-rgb-white));
   --abs-indicator-ink: rgb(var(--abs-rgb-white));
   /* Theme changes the studio-window interior, never the outer wall/frame. */

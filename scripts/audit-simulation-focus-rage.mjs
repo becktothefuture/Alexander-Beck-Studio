@@ -32,7 +32,7 @@ async function readState(page) {
     const switcher = document.querySelector('.simulation-focus-switcher');
     return {
       id: switcher?.dataset.simulationId || '',
-      disabled: Boolean(switcher?.disabled),
+      disabled: Boolean(switcher?.disabled || switcher?.getAttribute('aria-disabled') === 'true'),
       labelPhase: switcher?.dataset.phase || '',
       transactionPhase: root.dataset.absSimulationFocusTransition || 'idle',
       routePhase: root.dataset.absTransitionPhase || 'idle',

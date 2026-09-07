@@ -11,8 +11,11 @@ export async function waitForSimulationSwitcherIdle(page, waitMs = 30_000) {
       const switcher = document.querySelector('.simulation-focus-switcher');
       return Boolean(
         switcher
+        && root.dataset.absBootState === 'ready'
+        && !document.getElementById('abs-boot-overlay')
         && !switcher.disabled
-        && switcher.dataset.advancing === 'false'
+        && switcher.getAttribute('aria-disabled') !== 'true'
+        && switcher.dataset.phase === 'idle'
         && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle'
       );
     },
