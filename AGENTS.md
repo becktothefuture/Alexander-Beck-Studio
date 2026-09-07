@@ -12,6 +12,8 @@
 
 ### Product UI and design system
 
+- For Design Mode browser handoffs, use `.agents/skills/design-mode/SKILL.md`. The visual proposal is not source truth; `design-mode.config.mjs` registers deterministic token ownership. Other edits still follow the product UI workflow below.
+
 - Before changing product UI, read `PRODUCT.md` and `DESIGN.md`, then use `.agents/skills/design-system-ui/SKILL.md` (`$design-system-ui`). This is the repository workflow for the existing website; generic frontend-design guidance must not replace its approved direction.
 - Inspect and reuse the existing components, semantic tokens, and focused reference before adding a pattern. New tokens, components, variants, radii, breakpoints, or interactions require approval unless the current request already covers them.
 - After an approved design-system change is implemented in its authoritative source, update the affected design guidance. Do not present a proposed behavior as implemented.

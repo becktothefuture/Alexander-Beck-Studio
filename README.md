@@ -30,6 +30,8 @@ Git operations use the system `git` binary and do not require GitHub CLI or Home
 
 ## Design
 
+Visual authoring with Design Mode is available in development. See [`docs/development/DESIGN-MODE.md`](docs/development/DESIGN-MODE.md) for one-time setup, the token-aware agent workflow and its current limits. Start with `npm run design:setup`; invoke `$design-mode` to apply a captured batch to source.
+
 [`PRODUCT.md`](PRODUCT.md) records the approved product purpose, visitor journey, non-goals, and open strategic questions. [`DESIGN.md`](DESIGN.md) is the design constitution for Home, Work, About, Contact, and the shared shell. It records the design thesis, cross-route rules, fluid responsive policy, intentional exceptions, and audit items that need verification. Exact authored values remain in `react-app/app/public/config/design-system.json`; component-level usage remains in `docs/reference/SITE-STYLEGUIDE.md` and `docs/reference/COMPONENT-LIBRARY.md`.
 
 Codex UI work should use the repository skill [`design-system-ui`](.agents/skills/design-system-ui/SKILL.md), following [`AGENTS.md`](AGENTS.md). Start with `$design-system-ui` for an explicit invocation.

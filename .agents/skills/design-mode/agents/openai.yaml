@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Mode"
+  short_description: "Apply visual edits while preserving design tokens"
+  default_prompt: "Use $design-mode to apply my visual edits to the current project while preserving tokens and responsive behaviour."
