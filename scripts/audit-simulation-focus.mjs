@@ -45,7 +45,7 @@ async function assertCanonicalSettledState(page, expectedEntry) {
     return {
       id: switcher?.dataset.simulationId || '',
       label: switcher?.getAttribute('aria-label') || '',
-      motionPhase: switcher?.dataset.phase || '',
+      advancing: switcher?.dataset.advancing || '',
       transactionPhase: document.documentElement.dataset.absSimulationFocusTransition || 'idle',
       disabled: Boolean(switcher?.disabled),
       chooserPresent: Boolean(document.querySelector('.simulation-focus-modal')),
@@ -71,7 +71,7 @@ async function assertCanonicalSettledState(page, expectedEntry) {
     throw new Error(`Expected accessible label to include "${expectedEntry.name}": ${JSON.stringify(state)}`);
   }
   if (
-    state.motionPhase !== 'idle'
+    state.advancing !== 'false'
     || state.transactionPhase !== 'idle'
     || state.disabled
     || state.chooserPresent

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import homeContent from 'virtual:abs-content/home';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
@@ -11,9 +10,6 @@ import {
 import './button-audit.css';
 
 const AUDIT_SIMULATIONS = Object.freeze(getDailyFocusSimulations());
-const AUDIT_SWITCHER_EXIT_MS = 160;
-const AUDIT_SWITCHER_HOLD_MS = 880;
-const AUDIT_SWITCHER_ENTRY_MS = 400;
 
 function getInitialAuditSimulation() {
   const resolved = getResolvedSimulationFocus().activeSimulation;
@@ -30,129 +26,41 @@ function getNextAuditSimulation(currentId) {
 
 function AuditSimulationSwitcher() {
   const [displayedSimulation, setDisplayedSimulation] = useState(getInitialAuditSimulation);
-  const [phase, setPhase] = useState('idle');
-  const [animatedInlineSize, setAnimatedInlineSize] = useState(null);
-  const buttonRef = useRef(null);
-  const phaseRef = useRef('idle');
-  const exitTimerRef = useRef(null);
-  const holdTimerRef = useRef(null);
-  const entryTimerRef = useRef(null);
-  const widthFrameRef = useRef(null);
-  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
-    ?? false;
 
-  useLayoutEffect(() => {
-    if (phase !== 'holding' || !buttonRef.current) return undefined;
-    const button = buttonRef.current;
-    const previousSize = button.style.getPropertyValue('--simulation-focus-pill-inline-size');
-
-    button.style.removeProperty('--simulation-focus-pill-inline-size');
-    const nextSize = button.scrollWidth;
-    if (previousSize) {
-      button.style.setProperty('--simulation-focus-pill-inline-size', previousSize);
-    }
-
-    if (!Number.isFinite(nextSize) || nextSize <= 0) return undefined;
-    widthFrameRef.current = window.requestAnimationFrame(() => {
-      setAnimatedInlineSize(nextSize);
-      widthFrameRef.current = null;
-    });
-    return () => {
-      if (widthFrameRef.current !== null) window.cancelAnimationFrame(widthFrameRef.current);
-    };
-  }, [displayedSimulation?.id, phase]);
-
-  useEffect(() => () => {
-    if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
-    if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
-    if (entryTimerRef.current) window.clearTimeout(entryTimerRef.current);
-    if (widthFrameRef.current !== null) window.cancelAnimationFrame(widthFrameRef.current);
-  }, []);
-
-  const handleAdvance = useCallback(() => {
-    if (phaseRef.current !== 'idle' || !displayedSimulation) return;
+  const handleAdvance = () => {
+    if (!displayedSimulation) return;
     const nextSimulation = getNextAuditSimulation(displayedSimulation.id);
     if (!nextSimulation) return;
 
-    if (prefersReducedMotion) {
-      writeManualSimulationFocus(nextSimulation.id);
-      setAnimatedInlineSize(null);
-      setDisplayedSimulation(nextSimulation);
-      return;
-    }
-
-    const currentWidth = buttonRef.current?.getBoundingClientRect().width;
-    if (Number.isFinite(currentWidth) && currentWidth > 0) {
-      setAnimatedInlineSize(currentWidth);
-    }
-
-    phaseRef.current = 'departing';
-    setPhase('departing');
-
-    exitTimerRef.current = window.setTimeout(() => {
-      writeManualSimulationFocus(nextSimulation.id);
-      setDisplayedSimulation(nextSimulation);
-      phaseRef.current = 'holding';
-      setPhase('holding');
-      exitTimerRef.current = null;
-
-      holdTimerRef.current = window.setTimeout(() => {
-        phaseRef.current = 'arriving';
-        setPhase('arriving');
-        holdTimerRef.current = null;
-
-        entryTimerRef.current = window.setTimeout(() => {
-          phaseRef.current = 'idle';
-          setPhase('idle');
-          entryTimerRef.current = null;
-        }, AUDIT_SWITCHER_ENTRY_MS);
-      }, AUDIT_SWITCHER_HOLD_MS);
-    }, AUDIT_SWITCHER_EXIT_MS);
-  }, [displayedSimulation, prefersReducedMotion]);
+    writeManualSimulationFocus(nextSimulation.id);
+    setDisplayedSimulation(nextSimulation);
+  };
 
   if (!displayedSimulation) return null;
-
-  const isAdvancing = phase !== 'idle';
 
   return (
     <div
       className="simulation-focus-switcher-slot"
-      data-pending={String(isAdvancing)}
+      data-pending="false"
       data-route-enter="control"
     >
       <button
-        ref={buttonRef}
         type="button"
         className="abs-labelled-action simulation-focus-pill simulation-focus-switcher simulation-focus-switcher--audit"
         data-simulation-id={displayedSimulation.id}
         data-sound-action="step"
         data-sound-source="simulation-next"
-        data-advancing={String(isAdvancing)}
-        data-phase={phase}
-        data-motion-preference={prefersReducedMotion ? 'reduced' : 'full'}
-        aria-label={isAdvancing
-          ? 'Selecting the next simulation'
-          : `Show next simulation. Currently ${displayedSimulation.name}`}
-        aria-busy={isAdvancing ? 'true' : undefined}
-        aria-disabled={isAdvancing ? 'true' : undefined}
-        style={animatedInlineSize === null
-          ? undefined
-          : { '--simulation-focus-pill-inline-size': `${animatedInlineSize}px` }}
+        data-advancing="false"
+        aria-label={`Change visual effect. Current effect: ${displayedSimulation.name}`}
         onClick={handleAdvance}
       >
-        <span
-          className="simulation-focus-pill__label simulation-focus-pill__label--handoff"
-          aria-hidden="true"
-        >
-          {displayedSimulation.name}
-        </span>
-        <span className="simulation-focus-pill__icon" aria-hidden="true">
-          <RefreshCw strokeWidth={1.8} />
+        <span className="simulation-focus-pill__label" aria-hidden="true">
+          CHANGE EFFECT
         </span>
       </button>
 
       <span className="simulation-focus-switcher-status" aria-live="polite">
-        {phase === 'idle' ? `Current simulation: ${displayedSimulation.name}` : ''}
+        Current effect: {displayedSimulation.name}
       </span>
     </div>
   );

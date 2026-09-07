@@ -470,13 +470,14 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
       expectations.routeBacked.id,
       15000,
     );
-    await page.waitForFunction((name) => (
-      document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() === name
+    await page.waitForFunction((simulationId) => (
+      document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === simulationId
+      && document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() === 'CHANGE EFFECT'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'out'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'hold'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'in'
       && !document.querySelector('#modal-blur-layer.active')
-    ), expectations.routeBacked.name, { timeout: 15000 });
+    ), expectations.routeBacked.id, { timeout: 15000 });
     await page.waitForTimeout(1200);
 
     const routeBacked = await readFrameState(page);

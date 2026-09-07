@@ -1,6 +1,6 @@
 {
-  "status": "m16-two-family-consolidated",
-  "mainRuleCount": 1453,
+  "status": "m22-physical-effect-switcher-press",
+  "mainRuleCount": 1449,
   "portfolioRuleCount": 489,
   "relevantMainRuleCount": 449,
   "overlapCount": 214,
@@ -9,6 +9,6 @@
   "shellSharedCount": 177,
   "plannedMainOwnerCount": 177,
   "plannedPortfolioOwnerCount": 37,
-  "overlapSignature": "39e528733b03662f35f1e98fdd4305c6ded0627b5bd3cbd420d5e6a06825cb7d",
+  "overlapSignature": "260b1a2e033b65b978d7b024045652e970d44404b5974c58edd9b7b6dbfc301a",
   "conditionalOverlapCount": 66
 }

@@ -8,6 +8,7 @@ const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
   ['portfolioRoute', '../react-app/app/src/routes/portfolio/PortfolioRoute.jsx'],
   ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
+  ['contactStyles', '../react-app/app/src/routes/contact/contact-route.css'],
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
@@ -88,6 +89,25 @@ test('Contact and About share one centred, compact two-action family', () => {
   );
   assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
   assert.doesNotMatch(sources.aboutStyles, /left: 50%;[\s\S]{0,120}width: 50%/);
+});
+
+test('Contact keeps its narrower copy and divider optically centred at every width', () => {
+  assert.match(
+    sources.contactStyles,
+    /--contact-route-description-width: min\(75%, 37\.8ch\)/,
+  );
+  assert.match(
+    sources.contactStyles,
+    /--contact-route-rule-optical-offset:[\s\S]*?clamp\(11px, calc\(20\.714px - 0\.9524vw\), 15px\)/,
+  );
+  assert.match(
+    sources.contactStyles,
+    /\.contact-route__inner > \.route-title-lockup__rule \{[\s\S]*?margin-top: var\(--contact-route-rule-optical-offset\)/,
+  );
+  assert.match(
+    sources.contactStyles,
+    /\.contact-route__inner > \.route-intro-description \{[\s\S]*?inline-size: var\(--contact-route-description-width\);[\s\S]*?max-inline-size: var\(--contact-route-description-width\)/,
+  );
 });
 
 test('every production bookend uses one cached paint endpoint and glyph-only travel contract', () => {

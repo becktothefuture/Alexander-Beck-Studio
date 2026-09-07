@@ -121,32 +121,46 @@ test('production copy confirmation rotates inside one stable label window', () =
   assert.doesNotMatch(sources.main, /\.contact-email-row\.pulse-energy|contactCopyMaterialFlash/);
 });
 
-test('the production switcher uses one label across a three-beat handoff', () => {
+test('the production switcher presents one stable, explicit action', () => {
   assert.match(
     sources.switcher,
-    /SWITCHER_EXIT_MS = 160[\s\S]*?SWITCHER_HOLD_MS = 880[\s\S]*?SWITCHER_ENTRY_MS = 400/,
+    /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?CHANGE EFFECT/,
   );
-  assert.equal((sources.switcher.match(/simulation-focus-pill__label--handoff/g) || []).length, 1);
-  assert.doesNotMatch(sources.switcher, /simplifiedLabel|label--next|incomingSimulation/);
   assert.match(
     sources.switcher,
-    /motionPhaseRef\.current = 'departing'[\s\S]*?setDisplayedSimulation\(activeSimulation\)[\s\S]*?motionPhaseRef\.current = 'holding'[\s\S]*?motionPhaseRef\.current = 'arriving'[\s\S]*?motionPhaseRef\.current = 'idle'/,
+    /`Change visual effect\. Current effect: \$\{activeSimulation\.name\}`/,
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill\[data-phase='departing'\][\s\S]*?\.simulation-focus-pill\[data-phase='holding'\][\s\S]*?\.simulation-focus-pill\[data-phase='arriving'\]/,
+    /\.simulation-focus-pill\.simulation-focus-switcher \{[\s\S]*?--abs-labelled-action-height: 36px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 20px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?--simulation-switcher-ink-pressed:[\s\S]*?82%[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?backdrop-filter:[\s\S]*?var\(--abs-soft-control-blur\)[\s\S]*?font-weight: 500;[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher\[data-advancing='true'\] \{[\s\S]*?background: var\(--simulation-switcher-fill-rest\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 1px;[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:focus-visible:where\(:not\(\[data-advancing='true'\]\)\) \{[\s\S]*?outline: none;[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:active \{[\s\S]*?background: var\(--simulation-switcher-fill-rest\);[\s\S]*?box-shadow: var\(--abs-soft-control-shadow-rest\);[\s\S]*?translate: 0 1px;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?translate: 0 -0\.5px;[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
   );
-  assert.match(
+  assert.doesNotMatch(
     sources.main,
-    /--simulation-switcher-handoff-duration: 1440ms;[\s\S]*?--simulation-switcher-width-duration: 440ms;[\s\S]*?inline-size var\(--simulation-switcher-width-duration\)[\s\S]*?simulation-switcher-icon-handoff/,
+    /\.simulation-focus-pill\.simulation-focus-switcher:is\(:active, \[data-advancing='true'\]\)/,
   );
-  assert.match(
+  assert.doesNotMatch(
+    sources.switcher,
+    /Shuffle|RefreshCw|SWITCHER_EXIT_MS|motionPhase|displayedSimulation|simulation-focus-pill__(?:icon|label--handoff)/,
+  );
+  assert.doesNotMatch(
     sources.main,
-    /\.simulation-focus-pill__icon \{[\s\S]*?position: absolute;[\s\S]*?inset-inline-start: calc\([\s\S]*?translate: -50% -50%;[\s\S]*?\.simulation-focus-pill:is\(\[data-phase='departing'\], \[data-phase='holding'\]\)[\s\S]*?inset-inline-start: 50%;/,
+    /simulation-focus-pill__(?:icon|label--handoff)|simulation-switcher-icon-handoff/,
   );
-  assert.match(sources.buttonAudit, /simulation-focus-pill__label--handoff/);
+  assert.match(sources.buttonAudit, /CHANGE EFFECT/);
+  assert.doesNotMatch(sources.buttonAudit, /Shuffle|simulation-focus-pill__icon/);
   assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
   assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);
+});
+
+test('the mobile Home footer centres its caption between equal side tracks', () => {
+  assert.match(
+    sources.main,
+    /html\[data-shell-route='home'\] body \.ui-meta-row \{[\s\S]*?--home-footer-side-track-size: calc\([\s\S]*?grid-template-columns:[\s\S]*?var\(--home-footer-side-track-size\)[\s\S]*?minmax\(0, 1fr\)[\s\S]*?var\(--home-footer-side-track-size\);[\s\S]*?grid-template-areas: 'left caption right';/,
+  );
+  assert.match(
+    sources.main,
+    /html\[data-shell-route='home'\] body #site-year\.meta-caption \{[\s\S]*?padding-inline: 0;/,
+  );
 });
 
 test('the promoted controls settle their lift and press with translate-only elasticity', () => {

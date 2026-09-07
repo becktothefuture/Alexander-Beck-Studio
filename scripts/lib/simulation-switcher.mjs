@@ -12,7 +12,7 @@ export async function waitForSimulationSwitcherIdle(page, waitMs = 30_000) {
       return Boolean(
         switcher
         && !switcher.disabled
-        && switcher.dataset.phase === 'idle'
+        && switcher.dataset.advancing === 'false'
         && (root.dataset.absSimulationFocusTransition || 'idle') === 'idle'
       );
     },
