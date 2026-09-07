@@ -2732,6 +2732,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill {
+  --abs-labelled-action-height: 39.6px;
   max-width: calc(100vw - (var(--gap-md) * 2));
   line-height: 1;
   pointer-events: auto;
@@ -2754,20 +2755,6 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   display: block;
   flex: 0 0 auto;
   white-space: nowrap;
-}
-
-.simulation-focus-pill__icon {
-  display: grid;
-  place-items: center;
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
-}
-
-.simulation-focus-pill__icon svg {
-  display: block;
-  width: 13px;
-  height: 13px;
 }
 
 .simulation-focus-switcher-status {

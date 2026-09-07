@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Shuffle } from 'lucide-react';
 import homeContent from 'virtual:abs-content/home';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
@@ -57,9 +56,6 @@ function AuditSimulationSwitcher() {
       >
         <span className="simulation-focus-pill__label" aria-hidden="true">
           Change effect
-        </span>
-        <span className="simulation-focus-pill__icon" aria-hidden="true">
-          <Shuffle strokeWidth={1.8} />
         </span>
       </button>
 
