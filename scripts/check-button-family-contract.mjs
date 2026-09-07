@@ -132,7 +132,7 @@ test('the production switcher presents one stable, explicit action', () => {
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 39\.6px;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;/,
+    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 39\.6px;[\s\S]*?--abs-labelled-action-pad-x: 16px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?width: fit-content;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;/,
   );
   assert.doesNotMatch(
     sources.switcher,
@@ -146,6 +146,17 @@ test('the production switcher presents one stable, explicit action', () => {
   assert.doesNotMatch(sources.buttonAudit, /Shuffle|simulation-focus-pill__icon/);
   assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
   assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);
+});
+
+test('the mobile Home footer centres its caption between equal side tracks', () => {
+  assert.match(
+    sources.main,
+    /html\[data-shell-route='home'\] body \.ui-meta-row \{[\s\S]*?--home-footer-side-track-size: calc\([\s\S]*?grid-template-columns:[\s\S]*?var\(--home-footer-side-track-size\)[\s\S]*?minmax\(0, 1fr\)[\s\S]*?var\(--home-footer-side-track-size\);[\s\S]*?grid-template-areas: 'left caption right';/,
+  );
+  assert.match(
+    sources.main,
+    /html\[data-shell-route='home'\] body #site-year\.meta-caption \{[\s\S]*?padding-inline: 0;/,
+  );
 });
 
 test('the promoted controls settle their lift and press with translate-only elasticity', () => {
