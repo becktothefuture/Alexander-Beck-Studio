@@ -2784,7 +2784,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   translate: 0 1px;
 }
 
-.simulation-focus-pill.simulation-focus-switcher:focus-visible {
+.simulation-focus-pill.simulation-focus-switcher:focus-visible:where(:not([data-advancing='true'])) {
   background: var(--simulation-switcher-fill-hover);
   color: var(--simulation-switcher-ink-active);
   outline: none;
