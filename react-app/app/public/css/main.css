@@ -2731,7 +2731,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   opacity: 1;
 }
 
-.simulation-focus-pill {
+.simulation-focus-pill.simulation-focus-switcher {
   --abs-labelled-action-height: 34px;
   --abs-labelled-action-font-size: 0.65625rem;
   --abs-labelled-action-pad-x: 14px;
@@ -2770,13 +2770,13 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   border-radius: inherit;
 }
 
-.simulation-focus-switcher[data-advancing='true'] {
+.simulation-focus-pill.simulation-focus-switcher[data-advancing='true'] {
   background: var(--simulation-switcher-fill-hover);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
 }
 
-.simulation-focus-switcher:focus-visible {
+.simulation-focus-pill.simulation-focus-switcher:focus-visible {
   background: var(--simulation-switcher-fill-hover);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
@@ -2784,7 +2784,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .simulation-focus-switcher:hover:where(:not(:focus-visible, :disabled)) {
+  .simulation-focus-pill.simulation-focus-switcher:hover:where(:not(:focus-visible, :disabled)) {
     background: var(--simulation-switcher-fill-hover);
     color: var(--text-primary);
     box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
@@ -2792,7 +2792,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   }
 }
 
-.simulation-focus-switcher:active {
+.simulation-focus-pill.simulation-focus-switcher:active {
   background: var(--simulation-switcher-fill-pressed);
   color: var(--text-primary);
   box-shadow: inset 0 0 0 1px var(--simulation-switcher-edge-hover);
@@ -2828,7 +2828,7 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
 
 @media (prefers-reduced-motion: reduce) {
   :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn),
-  .simulation-focus-pill {
+  .simulation-focus-pill.simulation-focus-switcher {
     animation: none !important;
     transition: none !important;
     transform: none !important;
@@ -5228,10 +5228,10 @@ body.about-narrative-page #simulations:is(
     animation: none;
   }
 
-  .simulation-focus-pill {
+  .simulation-focus-pill.simulation-focus-switcher {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: color-mix(in srgb, var(--frame-inner-surface) 88%, transparent);
+    background: var(--simulation-switcher-fill-rest);
   }
 }
 
