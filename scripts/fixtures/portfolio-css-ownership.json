@@ -1,6 +1,6 @@
 {
-  "status": "m19-balanced-effect-switcher-footer",
-  "mainRuleCount": 1444,
+  "status": "m20-quiet-uppercase-effect-switcher",
+  "mainRuleCount": 1449,
   "portfolioRuleCount": 489,
   "relevantMainRuleCount": 449,
   "overlapCount": 214,
@@ -9,6 +9,6 @@
   "shellSharedCount": 177,
   "plannedMainOwnerCount": 177,
   "plannedPortfolioOwnerCount": 37,
-  "overlapSignature": "1ce43fca57e8f01e78d2ccf8804944a4b297ae1b5cfc5effcff70d661f3318ac",
+  "overlapSignature": "260b1a2e033b65b978d7b024045652e970d44404b5974c58edd9b7b6dbfc301a",
   "conditionalOverlapCount": 66
 }

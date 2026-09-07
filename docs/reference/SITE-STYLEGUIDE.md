@@ -42,6 +42,8 @@ Instrument Serif is limited to the Home canvas title, route-level titles using `
 
 Work, Contact, and both About bookends use the shared `.route-title-lockup` treatment: a short rule in the current title colour, one globally authored line-to-description gap, and the ordered entrance `title → centre-out rule → description`. About's opening and finale lockups remain vertically centred. The finale keeps its contact action as an inline text link inside the description, not a separate button row.
 
+Contact keeps the shared type roles but narrows its centred description to 75% of the standard intro measure, capped at `37.8ch`. A Contact-owned fluid rule offset compensates for the serif title's optical lower edge so the short rule remains visually centred between the title and description across breakpoints.
+
 - `--abs-font-headline`: Instrument Serif with its defined fallbacks
 - `--route-entry-title-size`: shared responsive size for Home and route-entry titles
 - `--route-bookend-title-scale` and `--route-bookend-title-size`: shared route-identity scale and resolved size

@@ -21,8 +21,20 @@
 }
 
 .contact-route__inner {
+  --contact-route-description-width: min(75%, 37.8ch);
+  --contact-route-rule-optical-offset:
+    clamp(11px, calc(20.714px - 0.9524vw), 15px);
   position: relative;
   z-index: 1;
+}
+
+.contact-route__inner > .route-title-lockup__rule {
+  margin-top: var(--contact-route-rule-optical-offset);
+}
+
+.contact-route__inner > .route-intro-description {
+  inline-size: var(--contact-route-description-width);
+  max-inline-size: var(--contact-route-description-width);
 }
 
 @media (prefers-reduced-motion: reduce) {
