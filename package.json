@@ -27,6 +27,7 @@
   "scripts" : {
     "audit:release-smoke" : "node scripts/audit-release-smoke.mjs && node scripts/audit-unknown-route-fallback.mjs && npm run audit:work-publication",
     "audit:work-publication" : "node scripts/audit-work-publication.mjs",
+    "audit:about-publication" : "node scripts/audit-about-publication.mjs",
     "check:work-publication" : "node scripts/check-work-publication.mjs",
     "audit:unknown-route-fallback" : "node scripts/audit-unknown-route-fallback.mjs",
     "audit:focus-contrast" : "node scripts/audit-focus-contrast-contract.mjs",

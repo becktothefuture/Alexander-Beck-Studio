@@ -147,13 +147,13 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   }
 
   if (routeId === 'about') {
+    const comingSoonTitle = document.querySelector('[data-about-publication="held"] #about-coming-soon-title');
     const aboutRoute = document.querySelector(
       '.about-narrative-lab[data-route-content="about"]',
     );
     return Boolean(
       body.classList.contains('about-page')
-      && aboutRoute
-      && aboutRoute.dataset.aboutSceneReady === 'true'
+      && (comingSoonTitle || aboutRoute?.dataset.aboutSceneReady === 'true')
     );
   }
 

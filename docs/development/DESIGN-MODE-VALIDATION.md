@@ -13,9 +13,11 @@ Installed in the primary beck.fyi checkout on `feat/design-mode-pipeline`, using
 | `npm run check:design-mode-mcp` | Passed; eight tools, simulated handshake, token metadata and isolated source-save/reload. |
 | `npm run check:design-mode-extension` | Passed; token-only Copy/Send, empty/Original guards, mixed badge count and fail-closed source matching. |
 | Upstream extension unit tests | 29 passed at the pinned revision. |
-| `npm run check:site` | Passed in the primary checkout, including lint, source/config tests and production build. Release validation must be repeated after merging newer remote changes. |
+| `npm run check:site` | Passed in the primary checkout and again in the isolated release checkout after merging current remote code and fixing production About readiness; includes lint, source/config tests and production build. |
 | `npm run check:about-narrative` | 204 tests passed, with the exported finale-framing regression suite included. |
 | Skill metadata / `git diff --check` | Passed. |
+| `npm run audit:about-publication` | Passed in Chromium and WebKit at 390px and 1440px, light/dark, reduced motion: direct URLs, old preview queries, SPA navigation and browser history all retain Coming soon. |
+| Release dependencies and mutation fixtures | Both dependency audits report zero vulnerabilities; route registry, lint ratchet and dependency-cycle mutation fixtures passed. Tracked ignored-artifact inventory is empty. |
 
 The installed Codex CLI registered `design-mode` using local stdio, an absolute Node/tooling path and `DM_PORT=9960`. A parsed comparison verified that all existing Codex settings and MCP servers were preserved. No Cloud transport is configured. The running task also used the same command through an SDK client because tools registered during a task are not added to its original tool inventory.
 
@@ -49,3 +51,5 @@ Canvas and WebGL objects are not DOM layers. The existing simulation controls an
 This proves a real extension cycle in the dedicated test profile, not installation in the user's normal Chrome profile. The user still needs to Load unpacked there and select MCP → Local → 9960 → Auto-connect. Continuous extension CPU/frame-time cost, every nested drawer/state, and a full arbitrary-CSS save matrix have not been certified.
 
 Source changes were reviewed independently. The separate Home caption-alignment edits and local output/backups remain outside the About and Design Mode commits. Production About and Work are held behind Coming soon at build time; the full local experiences remain editable. No production website dependency, Vite plugin or authoring endpoint was introduced by Design Mode.
+
+Production navigation acceptance caught the About readiness observer still waiting for the development narrative. The production hold now has its own readiness path, with a regression test confirming that development still waits for its scene. The publication audit waits for completed navigation before invoking browser history and accepts both normal Home and the existing Daily Simulation Home readiness path.
