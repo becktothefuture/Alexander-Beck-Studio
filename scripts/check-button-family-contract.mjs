@@ -121,30 +121,36 @@ test('production copy confirmation rotates inside one stable label window', () =
   assert.doesNotMatch(sources.main, /\.contact-email-row\.pulse-energy|contactCopyMaterialFlash/);
 });
 
-test('the production switcher uses one label across a three-beat handoff', () => {
+test('the production switcher presents one stable, explicit action', () => {
   assert.match(
     sources.switcher,
-    /SWITCHER_EXIT_MS = 160[\s\S]*?SWITCHER_HOLD_MS = 880[\s\S]*?SWITCHER_ENTRY_MS = 400/,
+    /import \{ Shuffle \} from 'lucide-react'/,
   );
-  assert.equal((sources.switcher.match(/simulation-focus-pill__label--handoff/g) || []).length, 1);
-  assert.doesNotMatch(sources.switcher, /simplifiedLabel|label--next|incomingSimulation/);
   assert.match(
     sources.switcher,
-    /motionPhaseRef\.current = 'departing'[\s\S]*?setDisplayedSimulation\(activeSimulation\)[\s\S]*?motionPhaseRef\.current = 'holding'[\s\S]*?motionPhaseRef\.current = 'arriving'[\s\S]*?motionPhaseRef\.current = 'idle'/,
+    /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?Change effect/,
+  );
+  assert.match(
+    sources.switcher,
+    /`Change visual effect\. Current effect: \$\{activeSimulation\.name\}`/,
+  );
+  assert.match(
+    sources.switcher,
+    /<Shuffle strokeWidth=\{1\.8\} \/>/,
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill\[data-phase='departing'\][\s\S]*?\.simulation-focus-pill\[data-phase='holding'\][\s\S]*?\.simulation-focus-pill\[data-phase='arriving'\]/,
+    /\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;[\s\S]*?\.simulation-focus-pill__icon \{[\s\S]*?flex: 0 0 auto;/,
   );
-  assert.match(
+  assert.doesNotMatch(
+    sources.switcher,
+    /RefreshCw|SWITCHER_EXIT_MS|motionPhase|displayedSimulation|simulation-focus-pill__label--handoff/,
+  );
+  assert.doesNotMatch(
     sources.main,
-    /--simulation-switcher-handoff-duration: 1440ms;[\s\S]*?--simulation-switcher-width-duration: 440ms;[\s\S]*?inline-size var\(--simulation-switcher-width-duration\)[\s\S]*?simulation-switcher-icon-handoff/,
+    /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/,
   );
-  assert.match(
-    sources.main,
-    /\.simulation-focus-pill__icon \{[\s\S]*?position: absolute;[\s\S]*?inset-inline-start: calc\([\s\S]*?translate: -50% -50%;[\s\S]*?\.simulation-focus-pill:is\(\[data-phase='departing'\], \[data-phase='holding'\]\)[\s\S]*?inset-inline-start: 50%;/,
-  );
-  assert.match(sources.buttonAudit, /simulation-focus-pill__label--handoff/);
+  assert.match(sources.buttonAudit, /Change effect[\s\S]*?<Shuffle strokeWidth=\{1\.8\} \/>/);
   assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
   assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);
 });

@@ -355,7 +355,8 @@ body.body.dark-mode {
     justify-self: center;
     transform: none;
     width: 100%;
-    max-width: 320px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .edge-caption__line {
@@ -2731,31 +2732,10 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill {
-  --simulation-switcher-exit-duration: 160ms;
-  --simulation-switcher-entry-duration: 400ms;
-  --simulation-switcher-handoff-duration: 1440ms;
-  --simulation-switcher-width-duration: 440ms;
-  --simulation-switcher-icon-in-duration: 240ms;
-  --simulation-switcher-icon-out-duration: 320ms;
-  --simulation-switcher-icon-position-easing: cubic-bezier(0.2, 1.25, 0.36, 1);
-  --simulation-switcher-handoff-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
-  --simulation-switcher-exit-travel: 9px;
-  --simulation-switcher-entry-travel: 10px;
-  --simulation-switcher-icon-half-size: 8px;
-  inline-size: var(--simulation-focus-pill-inline-size, fit-content);
   max-width: calc(100vw - (var(--gap-md) * 2));
-  padding-inline:
-    var(--abs-labelled-action-pad-x)
-    calc(
-      var(--abs-labelled-action-pad-x)
-      + var(--abs-labelled-action-icon-size)
-      + var(--abs-labelled-action-gap)
-    );
   line-height: 1;
   pointer-events: auto;
-  will-change: inline-size;
   transition:
-    inline-size var(--simulation-switcher-width-duration) var(--simulation-switcher-handoff-easing),
     translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
     background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
     color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
@@ -2770,76 +2750,24 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   cursor: wait;
 }
 
-.simulation-focus-pill__label--handoff {
-  position: static;
+.simulation-focus-pill__label {
   display: block;
   flex: 0 0 auto;
   white-space: nowrap;
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  will-change: opacity, transform;
 }
 
 .simulation-focus-pill__icon {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: calc(
-    100%
-    - var(--abs-labelled-action-pad-x)
-    - var(--simulation-switcher-icon-half-size)
-  );
   display: grid;
   place-items: center;
   width: 13px;
   height: 13px;
-  translate: -50% -50%;
-  rotate: 0deg;
-  transform-origin: center;
-  will-change: inset-inline-start, rotate;
-  transition: inset-inline-start
-    var(--simulation-switcher-icon-out-duration)
-    var(--simulation-switcher-icon-position-easing);
+  flex: 0 0 auto;
 }
 
 .simulation-focus-pill__icon svg {
   display: block;
   width: 13px;
   height: 13px;
-}
-
-.simulation-focus-pill:is([data-phase='departing'], [data-phase='holding'])
-  .simulation-focus-pill__icon {
-  inset-inline-start: 50%;
-  transition-duration: var(--simulation-switcher-icon-in-duration);
-}
-
-.simulation-focus-pill[data-phase='departing'] .simulation-focus-pill__label--handoff {
-  opacity: 0;
-  transform: translate3d(0, calc(-1 * var(--simulation-switcher-exit-travel)), 0);
-  transition:
-    opacity var(--simulation-switcher-exit-duration) ease-out,
-    transform var(--simulation-switcher-exit-duration) ease-out;
-}
-
-.simulation-focus-pill[data-phase='holding'] .simulation-focus-pill__label--handoff {
-  opacity: 0;
-  transform: translate3d(0, var(--simulation-switcher-entry-travel), 0);
-}
-
-.simulation-focus-pill[data-phase='arriving'] .simulation-focus-pill__label--handoff {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition:
-    opacity var(--simulation-switcher-entry-duration) var(--simulation-switcher-handoff-easing),
-    transform var(--simulation-switcher-entry-duration) var(--simulation-switcher-handoff-easing);
-}
-
-.simulation-focus-pill[data-advancing='true'] .simulation-focus-pill__icon {
-  rotate: 0deg;
-  animation: simulation-switcher-icon-handoff
-    var(--simulation-switcher-handoff-duration)
-    cubic-bezier(0.45, 0, 0.2, 1)
-    both;
 }
 
 .simulation-focus-switcher-status {
@@ -2854,39 +2782,15 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   border: 0;
 }
 
-@keyframes simulation-switcher-icon-handoff {
-  0% {
-    rotate: 0deg;
-  }
-
-  18% {
-    rotate: 54deg;
-  }
-
-  72% {
-    rotate: 306deg;
-  }
-
-  100% {
-    rotate: 360deg;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn),
-  .simulation-focus-pill,
-  .simulation-focus-pill__label--handoff,
-  .simulation-focus-pill__icon {
+  .simulation-focus-pill {
     animation: none !important;
     transition: none !important;
     transform: none !important;
     translate: none !important;
     filter: none !important;
     rotate: none !important;
-  }
-
-  .simulation-focus-pill__icon {
-    translate: -50% -50% !important;
   }
 }
 
@@ -5716,11 +5620,10 @@ html.is-safari .noise::before {
   }
 
   html[data-shell-route='home'] body .ui-meta-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'caption caption'
-      'left right';
-    row-gap: 6px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'left caption right';
+    column-gap: clamp(6px, 2vw, 8px);
+    row-gap: 0;
     padding-inline-end: 0;
   }
 
@@ -7707,7 +7610,7 @@ body.dark-mode .cv-photo {
 @media (max-width: 767px) {
   html[data-shell-route='home'] body .ui-top-main {
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: clamp(16.5px, 3.96vw, 44px);
+    gap: clamp(24px, 5.94vw, 44px);
   }
 
   html[data-shell-route='home'] body .ui-top-main:not(.route-topbar) {
