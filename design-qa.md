@@ -1,3 +1,63 @@
+# Design QA — Home Effect Button Optical Alignment and Physical Press
+
+## Comparison target
+
+- Source visual truth: `/workspace/scratch/home-effect-optical-rest-1363x936.png`, the previously accepted live desktop control, plus the user's explicit requirement that press preserve the raised glass edge direction.
+- Browser-rendered implementation: `/workspace/scratch/home-effect-final-f-rest-1363x936.png`.
+- Full-view comparison: `/workspace/scratch/home-effect-source-vs-final.png`.
+- Focused control comparison: `/workspace/scratch/home-effect-focused-comparison.png`.
+- Live implementation: `https://www.beck.fyi/?verify=e4dda4014` using `main.css?v=effect-contact-20260907f`.
+
+## Normalization and state
+
+- Source and implementation captures: `1363 × 936` pixels at a `1363 × 936` CSS viewport and `1×` density.
+- The full-view comparison places both equal-size captures side by side without rescaling.
+- The focused comparison uses the same `240 × 120` crop around the Home effect control from each capture, then scales both equally for inspection.
+- State: Home, light theme, rested control for visual comparison; activation and advancing states checked separately on the live control.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain.
+- The focused comparison confirms that the label is optically centred without changing the accepted capsule geometry, blur, padding, or edge lighting.
+- The final press treatment preserves the resting fill and both inset-edge directions. It moves the complete capsule and label down by `1px` and changes label ink from `58%` to `82%`, so it reads as pressure into the page rather than the button caving into itself.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Fonts and typography | Passed | The label remains 10.5px, weight 500, `0.09em` tracked Geist. Its line box centre is `0.5px` above the 36px capsule centre, matching the intended uppercase optical correction. |
+| Spacing and layout rhythm | Passed | The live capsule remains `136.39 × 36px` with 20px inline padding and a 44px effective target. The full-view comparison shows unchanged placement and footer rhythm. |
+| Colors and visual tokens | Passed | Rest and press use the same `rgba(247, 249, 244, 0.64)` fill and the same paired inset shadows. Press changes only position and label contrast; no shadow or highlight inversion remains. |
+| Image quality and asset fidelity | Passed | No image or icon assets changed. The live simulation remains the production renderer; randomized particle placement is expected. |
+| Copy and content | Passed | The visible label remains `CHANGE EFFECT`; the accessible name and polite status retain the current-effect context. |
+
+## Responsive and interaction evidence
+
+- The live production stylesheet is `main.css?v=effect-contact-20260907f`.
+- Activation set `data-advancing="true"`, disabled the control during the transaction, and changed the accessible label to `Changing visual effect. Current effect: …`.
+- Live CSS inspection confirmed that both `:active` and the advancing state keep the resting fill and `--abs-soft-control-shadow-rest`, use `translate: 0 1px`, and strengthen the label to the dedicated 82% pressed ink.
+- The focus selector explicitly excludes the advancing state, so keyboard focus cannot mask the press acknowledgement.
+- Browser console check on the successful final tab found no site-origin errors; only the cloud browser extension's own metadata messages were present.
+
+## Comparison history
+
+1. P2: the first stronger press reversed the inset lighting and depressed the label independently, making the capsule appear to cave into itself. Fixed by restoring the resting fill and inset shadows, removing the label-only dip, and reducing pressed ink from 92% to 82%.
+2. P2: focus-visible could override the advancing treatment in keyboard-driven checks. Fixed by excluding `data-advancing="true"` from the focus selector.
+3. Post-fix evidence: `home-effect-source-vs-final.png` and `home-effect-focused-comparison.png` confirm no resting-state regression; the live `f` stylesheet confirms physically consistent press rules.
+
+## Implementation checklist
+
+- [x] Keep the half-pixel upward optical label correction.
+- [x] Preserve the resting glass fill, blur, highlight, and shadow direction during press.
+- [x] Move the complete control down by 1px instead of inverting its material.
+- [x] Strengthen the label modestly without an independent vertical dip.
+- [x] Preserve the acknowledgement through the advancing transaction and keyboard focus.
+- [x] Verify the final production stylesheet, primary click interaction, visual comparison, and page console.
+
+final result: passed
+
+---
+
 # Design QA — Home Circular Simulation Switcher
 
 ## Comparison target
