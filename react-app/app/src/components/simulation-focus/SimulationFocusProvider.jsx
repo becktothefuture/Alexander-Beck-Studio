@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Shuffle } from 'lucide-react';
 import {
   getDailyFocusSimulations,
   getResolvedSimulationFocus,
@@ -198,9 +197,6 @@ export function SimulationFocusSwitcher() {
       >
         <span className="simulation-focus-pill__label" aria-hidden="true">
           Change effect
-        </span>
-        <span className="simulation-focus-pill__icon" aria-hidden="true">
-          <Shuffle strokeWidth={1.8} />
         </span>
       </button>
 

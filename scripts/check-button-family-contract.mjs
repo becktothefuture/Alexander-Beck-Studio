@@ -124,10 +124,6 @@ test('production copy confirmation rotates inside one stable label window', () =
 test('the production switcher presents one stable, explicit action', () => {
   assert.match(
     sources.switcher,
-    /import \{ Shuffle \} from 'lucide-react'/,
-  );
-  assert.match(
-    sources.switcher,
     /className="simulation-focus-pill__label" aria-hidden="true">[\s\S]*?Change effect/,
   );
   assert.match(
@@ -135,22 +131,19 @@ test('the production switcher presents one stable, explicit action', () => {
     /`Change visual effect\. Current effect: \$\{activeSimulation\.name\}`/,
   );
   assert.match(
-    sources.switcher,
-    /<Shuffle strokeWidth=\{1\.8\} \/>/,
-  );
-  assert.match(
     sources.main,
-    /\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;[\s\S]*?\.simulation-focus-pill__icon \{[\s\S]*?flex: 0 0 auto;/,
+    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 39\.6px;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?white-space: nowrap;/,
   );
   assert.doesNotMatch(
     sources.switcher,
-    /RefreshCw|SWITCHER_EXIT_MS|motionPhase|displayedSimulation|simulation-focus-pill__label--handoff/,
+    /Shuffle|RefreshCw|SWITCHER_EXIT_MS|motionPhase|displayedSimulation|simulation-focus-pill__(?:icon|label--handoff)/,
   );
   assert.doesNotMatch(
     sources.main,
-    /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/,
+    /simulation-focus-pill__(?:icon|label--handoff)|simulation-switcher-icon-handoff/,
   );
-  assert.match(sources.buttonAudit, /Change effect[\s\S]*?<Shuffle strokeWidth=\{1\.8\} \/>/);
+  assert.match(sources.buttonAudit, /Change effect/);
+  assert.doesNotMatch(sources.buttonAudit, /Shuffle|simulation-focus-pill__icon/);
   assert.doesNotMatch(sources.buttonAuditStyles, /simulation-focus-pill__label--handoff|simulation-switcher-icon-handoff/);
   assert.doesNotMatch(sources.studioShell, /key=\{`controls-\$\{routeRenderKey\}`\}/);
 });
