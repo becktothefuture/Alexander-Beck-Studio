@@ -2744,7 +2744,7 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
   --simulation-switcher-ink-active:
     color-mix(in srgb, var(--text-primary) 72%, transparent);
   --simulation-switcher-ink-pressed:
-    color-mix(in srgb, var(--text-primary) 92%, transparent);
+    color-mix(in srgb, var(--text-primary) 82%, transparent);
   width: fit-content;
   max-width: calc(100vw - (var(--gap-md) * 2));
   overflow: visible;
@@ -2778,9 +2778,9 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill.simulation-focus-switcher[data-advancing='true'] {
-  background: var(--simulation-switcher-fill-pressed);
+  background: var(--simulation-switcher-fill-rest);
   color: var(--simulation-switcher-ink-pressed);
-  box-shadow: var(--abs-soft-control-shadow-pressed);
+  box-shadow: var(--abs-soft-control-shadow-rest);
   translate: 0 1px;
 }
 
@@ -2802,9 +2802,9 @@ html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
 }
 
 .simulation-focus-pill.simulation-focus-switcher:active {
-  background: var(--simulation-switcher-fill-pressed);
+  background: var(--simulation-switcher-fill-rest);
   color: var(--simulation-switcher-ink-pressed);
-  box-shadow: var(--abs-soft-control-shadow-pressed);
+  box-shadow: var(--abs-soft-control-shadow-rest);
   translate: 0 1px;
 }
 
@@ -2822,12 +2822,6 @@ html.abs-corner-shape-squircle .simulation-focus-pill.simulation-focus-switcher 
   translate: 0 -0.5px;
   text-transform: uppercase;
   white-space: nowrap;
-  transition: translate var(--abs-soft-control-press-duration) var(--abs-soft-control-press-easing);
-}
-
-.simulation-focus-pill.simulation-focus-switcher:is(:active, [data-advancing='true'])
-  .simulation-focus-pill__label {
-  translate: 0 0.5px;
 }
 
 .simulation-focus-switcher-status {
