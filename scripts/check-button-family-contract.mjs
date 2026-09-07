@@ -132,7 +132,7 @@ test('the production switcher presents one stable, explicit action', () => {
   );
   assert.match(
     sources.main,
-    /\.simulation-focus-pill \{[\s\S]*?--abs-labelled-action-height: 34px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 14px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?font-weight: var\(--abs-weight-medium\);[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-switcher:active \{[\s\S]*?translate: 0 0;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
+    /\.simulation-focus-pill\.simulation-focus-switcher \{[\s\S]*?--abs-labelled-action-height: 34px;[\s\S]*?--abs-labelled-action-font-size: 0\.65625rem;[\s\S]*?--abs-labelled-action-pad-x: 14px;[\s\S]*?--abs-labelled-action-gap: 0;[\s\S]*?font-weight: var\(--abs-weight-medium\);[\s\S]*?letter-spacing: 0\.09em;[\s\S]*?\.simulation-focus-pill::after \{[\s\S]*?44px[\s\S]*?\.simulation-focus-pill\.simulation-focus-switcher:active \{[\s\S]*?translate: 0 0;[\s\S]*?\.simulation-focus-pill__label \{[\s\S]*?text-transform: uppercase;[\s\S]*?white-space: nowrap;/,
   );
   assert.doesNotMatch(
     sources.switcher,
