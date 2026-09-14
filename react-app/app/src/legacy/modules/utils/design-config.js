@@ -1,6 +1,7 @@
 /* global __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__:readonly */
 
 import { withBasePath } from '../../../lib/base-path.js';
+import { normalizeThemeTransition } from '../../../lib/theme-transition.js';
 import {
   normalizeSimulationAtmosphereConfig,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
@@ -457,6 +458,7 @@ function pruneShellConfig(shell = {}) {
     );
   }
   if (isPlainObject(nextShell.motion)) {
+    nextShell.motion.themeTransition = normalizeThemeTransition(nextShell.motion.themeTransition);
     for (const key of RETIRED_SHELL_MOTION_KEYS) {
       delete nextShell.motion[key];
     }

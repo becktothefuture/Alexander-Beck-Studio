@@ -36,7 +36,7 @@
   --shell-wall-bg: var(--abs-wall-base);
   --studio-window-bg-light: var(--bg-light);
   --studio-window-bg-dark: var(--bg-dark);
-  --studio-window-bg: var(--studio-window-bg-light);
+  --studio-window-bg: var(--abs-theme-window-bg, var(--studio-window-bg-light));
   --studio-window-color-scheme: light;
   /* RGB zero is true black in sRGB and Display P3; no gamut override is needed. */
   --frame-color-site: #000000;
@@ -426,8 +426,8 @@
   --text-color-dark: #f0f0f0;
   --text-color-dark-muted: #c8c8c8;
   
-  --text-primary: var(--text-color-light);
-  --text-muted: var(--text-color-light-muted);
+  --text-primary: var(--abs-theme-ink, var(--text-color-light));
+  --text-muted: var(--abs-theme-muted-ink, var(--text-color-light-muted));
   --text-quiet: var(--text-primary);
   --text-strong: var(--text-primary);
   --text-input: var(--text-primary);
@@ -928,15 +928,15 @@ body[data-abs-theme='dark'] {
   --abs-soft-control-focus: rgb(var(--abs-rgb-white));
   --abs-indicator-ink: rgb(var(--abs-rgb-white));
   /* Theme changes the studio-window interior, never the outer wall/frame. */
-  --studio-window-bg: var(--studio-window-bg-dark);
+  --studio-window-bg: var(--abs-theme-window-bg, var(--studio-window-bg-dark));
   --frame-inner-surface: var(--studio-window-bg);
   --frame-vignette-edge-rgb: 16, 17, 19;
   --frame-vignette-ambient-rgb: 10, 10, 10;
   --frame-vignette-edge-opacity: 0.66;
   --frame-vignette-ambient-opacity: 0.4;
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
-  --text-primary: var(--text-color-dark);
-  --text-muted: var(--text-color-dark-muted);
+  --text-primary: var(--abs-theme-ink, var(--text-color-dark));
+  --text-muted: var(--abs-theme-muted-ink, var(--text-color-dark-muted));
   --text-logo: #f0f0f0;
   --shell-chrome-ink: var(--text-primary);
   /* Single stroke color override for dark mode */

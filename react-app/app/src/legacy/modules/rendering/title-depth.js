@@ -734,7 +734,16 @@ function createTitlePlaneController(canvas) {
   controller.lastRelevantBodySignature = getTitleRelevantBodySignature(document.body);
   controller.rootMutationObserver = typeof MutationObserver === 'function'
     ? new MutationObserver((records) => {
-      const hasNonBodyMutation = records.some((record) => record.target !== document.body);
+      const hasNonBodyMutation = records.some((record) => {
+        if (record.target === document.body) return false;
+        if (record.target === document.documentElement && record.attributeName === 'style') {
+          // Afterglow changes lighting every frame. Only an ink change needs a
+          // new title bitmap; background/rim updates must not remeasure glyphs.
+          const titleStyle = (value) => String(value || '').replace(/--abs-theme-(?:window-bg|rim-opacity|noise-opacity):[^;]*;?/g, '');
+          return titleStyle(record.oldValue) !== titleStyle(record.target.getAttribute('style'));
+        }
+        return true;
+      });
       const nextBodySignature = getTitleRelevantBodySignature(document.body);
       const bodyContractChanged = nextBodySignature !== controller.lastRelevantBodySignature;
       controller.lastRelevantBodySignature = nextBodySignature;
@@ -743,6 +752,7 @@ function createTitlePlaneController(canvas) {
     : null;
   controller.rootMutationObserver?.observe(document.documentElement, {
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: [
       'class',
       'style',

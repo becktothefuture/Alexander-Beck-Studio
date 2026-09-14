@@ -56,7 +56,7 @@ const PRIMARY_SCENARIOS = Object.freeze([
     id: 'portfolio',
     path: '/portfolio.html?absAudit=1',
     routeId: 'portfolio',
-    sourceIds: ['portfolio:speed-field'],
+    sourceIds: ['portfolio:dot-field'],
     sourceKinds: ['canvas'],
   },
   {

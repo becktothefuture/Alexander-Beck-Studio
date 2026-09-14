@@ -309,7 +309,7 @@ function getMasterPanelContent({
     append: {
       menu: generateStudioShellControlsHTML({ sectionKeys: ['menuEdge'] }),
       layout: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
-      motion: generateStudioShellControlsHTML({ sectionKeys: ['routeEntrance'] }),
+      motion: generateStudioShellControlsHTML({ sectionKeys: ['routeEntrance', 'themeTransition'] }),
       puck: generateStudioShellControlsHTML({
         sectionKeys: ['puck'],
         puckPrependHTML: getPuckColorControlsHTML(),

@@ -5,6 +5,7 @@ import {
 } from '../core/state.js';
 import {
   applyShellLayoutVars,
+  getShellConfig,
   getShellRouteTransitionConfig,
   patchShellLayout,
   patchShellMotion,
@@ -12,8 +13,11 @@ import {
   syncShellToDocument,
 } from '../visual/site-shell.js';
 import { resize } from '../rendering/renderer.js';
+import { DEFAULT_THEME_TRANSITION, normalizeThemeTransition } from '../../../lib/theme-transition.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
+  themeSurfaceDurationMs: DEFAULT_THEME_TRANSITION.surfaceDurationMs,
+  themeGlowDurationMs: DEFAULT_THEME_TRANSITION.glowDurationMs,
   scriptMaxWidth: 431,
   scriptPaddingX: 0,
   scriptPaddingY: 0,
@@ -66,6 +70,13 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
 };
 
 const SHELL_OBJECT_CONTROL_SECTIONS = [
+  {
+    key: 'themeTransition', title: 'Theme Afterglow', icon: '◐', defaultOpen: true,
+    controls: [
+      { id: 'themeSurfaceDurationMs', label: 'Surface', min: 0, max: 1000, step: 1, unit: 'ms' },
+      { id: 'themeGlowDurationMs', label: 'Glow Finish', min: 0, max: 1000, step: 10, unit: 'ms' },
+    ],
+  },
   {
     key: 'routeEntrance',
     title: 'View Entrances',
@@ -256,8 +267,11 @@ function readNumber(rootStyle, name, fallback) {
 function readCurrentConfig() {
   const rootStyle = getComputedStyle(document.documentElement);
   const routeTransition = getShellRouteTransitionConfig();
+  const themeTransition = normalizeThemeTransition(getShellConfig()?.motion?.themeTransition);
 
   return {
+    themeSurfaceDurationMs: themeTransition.surfaceDurationMs,
+    themeGlowDurationMs: themeTransition.glowDurationMs,
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
     scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
     scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
@@ -391,6 +405,13 @@ function syncStudioRuntimeState(config) {
 }
 
 export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {}) {
+  const themeTransition = normalizeThemeTransition({
+    surfaceDurationMs: config.themeSurfaceDurationMs,
+    glowDurationMs: config.themeGlowDurationMs,
+  });
+  config.themeSurfaceDurationMs = themeTransition.surfaceDurationMs;
+  config.themeGlowDurationMs = themeTransition.glowDurationMs;
+  patchShellMotion({ themeTransition });
   const root = document.documentElement;
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
   const scriptPaddingX = clamp(config.scriptPaddingX, 0, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
@@ -446,6 +467,8 @@ export function applyStudioSurfaceConfig(config, { refreshGeometry = false } = {
   });
 
   const studioSurfaceSnapshot = {
+    themeSurfaceDurationMs: themeTransition.surfaceDurationMs,
+    themeGlowDurationMs: themeTransition.glowDurationMs,
     scriptMaxWidth,
     scriptPaddingX,
     scriptPaddingY,
@@ -742,6 +765,10 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.menuEdgeFarOpacityLight = Number(clamp(config.menuEdgeFarOpacityLight, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityLight).toFixed(3));
   nextShell.surface.menuEdgeFarOpacityDark = Number(clamp(config.menuEdgeFarOpacityDark, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.menuEdgeFarOpacityDark).toFixed(3));
   nextShell.motion = { ...(baseShell?.motion || {}) };
+  nextShell.motion.themeTransition = normalizeThemeTransition({
+    surfaceDurationMs: config.themeSurfaceDurationMs,
+    glowDurationMs: config.themeGlowDurationMs,
+  });
   nextShell.motion.routeTransition = {
     ...(baseShell?.motion?.routeTransition || {}),
     materialDurationMs: Math.round(config.materialDurationMs),

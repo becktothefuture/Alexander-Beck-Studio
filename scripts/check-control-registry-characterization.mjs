@@ -489,14 +489,14 @@ test('registered control binding preserves state, CSS/runtime, and atmosphere ap
   bgLight.dispatch('input');
   assert.equal(bgLightVal.textContent, '#d8d8d8');
   assert.equal(cssValues.get('--studio-window-bg-light'), '#d8d8d8');
-  assert.equal(cssValues.get('--studio-window-bg'), '#d8d8d8');
+  assert.equal(cssValues.get('--studio-window-bg'), 'var(--abs-theme-window-bg, #d8d8d8)');
 
   bgDark.dispatch('input');
   assert.equal(bgDarkVal.textContent, '#18202a');
   assert.equal(cssValues.get('--studio-window-bg-dark'), '#18202a');
   assert.equal(
     cssValues.get('--studio-window-bg'),
-    '#d8d8d8',
+    'var(--abs-theme-window-bg, #d8d8d8)',
     'Editing the inactive theme must not replace the visible studio-window color.',
   );
 

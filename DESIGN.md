@@ -156,6 +156,7 @@ The Home switcher is a labelled next action with a persistent, icon-free **CHANG
 
 ### Motion and material presence
 
+- Manual theme changes use Afterglow: the studio-window surface settles in `313ms`, while the existing inner reflection and atmospheric material settle in `500ms`. Both start together on a smooth, bounded curve. The selected theme and toggle state commit immediately; repeated input reverses from the displayed appearance. A contrast-safe ink handoff keeps text readable, and grain strength follows the changing surface to avoid a mid-transition texture spike. The frame, wall, navigation geometry, and authored light/dark endpoints stay fixed. Boot, preference reconciliation, hidden documents, and Reduced Motion settle immediately. Theme changes reset atmosphere history; the tail comes from material interpolation, not retained source frames.
 - The physical frame, window, Button Bar, Utility Rail, and outside shell remain present during route changes.
 - Animate route-owned content inside the stable window.
 - The first readable frame uses final geometry. Text must not become legible while still moving into its layout position.

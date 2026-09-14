@@ -149,6 +149,10 @@
       "materialExitStaggerMs": 70,
       "cardTravelPx": 16,
       "cardTiltDeg": 1.2
+    },
+    "themeTransition": {
+      "surfaceDurationMs": 313,
+      "glowDurationMs": 500
     }
   },
   "hero": {

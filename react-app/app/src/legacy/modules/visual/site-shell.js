@@ -459,7 +459,7 @@ export function applyWindowPalette({ light, dark, active }) {
 
   root.style.setProperty('--studio-window-bg-light', nextLight);
   root.style.setProperty('--studio-window-bg-dark', nextDark);
-  root.style.setProperty('--studio-window-bg', nextActive);
+  root.style.setProperty('--studio-window-bg', `var(--abs-theme-window-bg, ${nextActive})`);
   root.style.setProperty('--frame-inner-surface', 'var(--studio-window-bg)');
 }
 

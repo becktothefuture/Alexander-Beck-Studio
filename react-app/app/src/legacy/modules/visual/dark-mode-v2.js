@@ -8,7 +8,8 @@ import { refreshSimulationPalettePresentation } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
-import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
+import { applyShellLayoutVars, getShellConfig, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
+import { captureThemeAppearance, finishThemeTransition, startThemeTransition } from '../../../lib/theme-transition.js';
 import { forEachPanelUiDocument, resolvePanelUiDocument } from '../ui/panel-ui-context.js';
 import {
   THEME_CHANGE_EVENT,
@@ -251,12 +252,16 @@ export function bindThemeSegmentControls(uiDocument) {
 /**
  * Set theme (auto, light, or dark)
  */
-function applyTheme(theme, { persist = true } = {}) {
+function applyTheme(theme, { persist = true, animate = false } = {}) {
+  const wasDark = isRenderedDarkMode();
   currentTheme = normalizeThemePreference(theme);
   const effectiveTheme = getEffectiveThemePreference(currentTheme);
   const shouldBeDark = resolveShouldBeDark(currentTheme);
+  const appearance = animate && wasDark !== shouldBeDark ? captureThemeAppearance(wasDark) : null;
+  if (!appearance) finishThemeTransition();
   
   applyDarkModeToDOM(shouldBeDark);
+  if (appearance) startThemeTransition(appearance, shouldBeDark, getShellConfig()?.motion?.themeTransition);
   
   // Save preference
   if (persist) writeThemePreference(currentTheme);
@@ -274,8 +279,8 @@ function applyTheme(theme, { persist = true } = {}) {
   devLog(`🎨 Theme set to: ${effectiveTheme} (saved: ${currentTheme}, rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
 
-export function setTheme(theme) {
-  applyTheme(theme);
+export function setTheme(theme, options) {
+  applyTheme(theme, { animate: true, ...options });
 }
 
 /**

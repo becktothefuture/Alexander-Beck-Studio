@@ -1,4 +1,5 @@
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../../../lib/theme-state.js';
+import { getThemeGlowMix } from '../../../../lib/theme-transition.js';
 import {
   getSimulationPaletteSnapshot,
   subscribeSimulationPalette,
@@ -576,21 +577,28 @@ function copyActiveSource() {
 }
 
 function resolveSourceRenderProfile() {
+  const themeMix = getThemeGlowMix();
+  const intensity = themeMix === null ? renderProfile.intensity
+    : configuration.light.intensity + (configuration.dark.intensity - configuration.light.intensity) * themeMix;
+  const colourStrength = themeMix === null ? renderProfile.colourStrength
+    : configuration.light.colourStrength + (configuration.dark.colourStrength - configuration.light.colourStrength) * themeMix;
   const sourceOverrides = typeof activeSource?.getRenderProfileOverrides === 'function'
     ? activeSource.getRenderProfileOverrides()
     : activeSource?.renderProfileOverrides;
   const intensityScale = Number(sourceOverrides?.intensityScale);
   const colourStrengthScale = Number(sourceOverrides?.colourStrengthScale);
   Object.assign(sourceRenderProfile, renderProfile);
+  // The lighting timeline supplies the tail; feedback must not extend it.
+  if (themeMix !== null) sourceRenderProfile.memoryMs = 0;
   sourceRenderProfile.intensity = Math.min(
     1,
-    Math.max(0, renderProfile.intensity * (Number.isFinite(intensityScale) ? intensityScale : 1)),
+    Math.max(0, intensity * (Number.isFinite(intensityScale) ? intensityScale : 1)),
   );
   sourceRenderProfile.colourStrength = Math.min(
     1.6,
     Math.max(
       0,
-      renderProfile.colourStrength * (Number.isFinite(colourStrengthScale) ? colourStrengthScale : 1),
+      colourStrength * (Number.isFinite(colourStrengthScale) ? colourStrengthScale : 1),
     ),
   );
   return sourceRenderProfile;
@@ -839,6 +847,8 @@ function handleThemeChange() {
   rebuildProfile();
   clearOutput();
   applyPresentationState();
+  // Reset history, then prime fresh light in the same task to avoid a blank glow frame.
+  if (getThemeGlowMix() !== null) renderSafely(performance.now());
   if (isCanvasAtmosphereEnabled() && activeSource?.scheduler === 'internal') scheduleInternalFrame();
 }
 

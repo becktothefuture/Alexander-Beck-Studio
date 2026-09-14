@@ -36,9 +36,9 @@
   transition:
     scale var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
     translate var(--abs-soft-control-translate-duration) var(--abs-soft-control-translate-easing),
-    background-color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
+    background-color var(--abs-theme-surface-duration, var(--abs-soft-control-material-duration)) var(--abs-soft-control-material-easing),
     color var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing),
-    box-shadow var(--abs-soft-control-material-duration) var(--abs-soft-control-material-easing);
+    box-shadow var(--abs-theme-surface-duration, var(--abs-soft-control-material-duration)) var(--abs-soft-control-material-easing);
 }
 
 .abs-labelled-action {

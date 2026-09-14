@@ -5057,11 +5057,11 @@ html.entrance-complete.noise-ready .noise,
 html.entrance-complete .noise-ready .noise {
   visibility: visible;
   opacity: calc(
-    var(--noise-opacity-light)
+    var(--abs-theme-noise-opacity, var(--noise-opacity-light))
     * var(--abs-noise-enabled)
   );
   mix-blend-mode: normal;
-  transition: visibility 0s linear 0s, opacity 160ms ease-out;
+  transition: visibility 0s linear 0s, opacity var(--abs-theme-noise-duration, 160ms) ease-out;
 }
 
 .noise::before {
@@ -5095,7 +5095,7 @@ html.entrance-complete .noise-ready .noise {
 html.entrance-complete.noise-ready body.dark-mode .noise,
 html.entrance-complete body.dark-mode.noise-ready .noise {
   opacity: calc(
-    var(--noise-opacity-dark)
+    var(--abs-theme-noise-opacity, var(--noise-opacity-dark))
     * var(--abs-noise-enabled)
   );
 }

@@ -74,6 +74,8 @@ Control ownership remains repo-native: `playgroundPanel.js` is the registry and 
 
 ### Production simulation atmosphere
 
+Manual theme timing is authored separately at `shell.motion.themeTransition`: `surfaceDurationMs` defaults to `313`, and `glowDurationMs` to `500`. The **Motion → Theme Afterglow** controls apply live and use the existing canonical save path. Normalization clamps durations to `0–1000ms` and keeps the glow duration at least as long as the surface duration. Zero for both disables the transition. Temporary `--abs-theme-*` presentation values never enter saved configuration. Reduced Motion and initial preference restoration bypass the animation.
+
 The shared atmosphere has one canonical shell location:
 
 - `shell.surface.simulationAtmosphere` owns the enabled state, large and small spreads, short memory, edge strength/thickness/inset, and Light/Dark intensity and colour profiles;
