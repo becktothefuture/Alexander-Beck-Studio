@@ -1,8 +1,12 @@
 export const UTILITY_RAIL_DEFAULTS = Object.freeze({
   utilityRailButtonSizePx: 32,
   utilityRailHorizontalOffsetPx: -11,
+  utilityRailPaddingPx: 6,
+  utilityRailCornerRadiusPx: 33,
   utilityRailMobileButtonSizePx: 25,
   utilityRailMobileHorizontalOffsetPx: -11,
+  utilityRailMobilePaddingPx: 5,
+  utilityRailMobileCornerRadiusPx: 29.5,
   utilityRailMobileVerticalPositionVh: 76,
 });
 
@@ -20,6 +24,26 @@ export const UTILITY_RAIL_CONTROL_GROUPS = Object.freeze([
         step: 1,
         display: 'px',
         hint: 'Desktop size of both utility buttons. The icon scales with the button.',
+      },
+      {
+        id: 'utilityRailPaddingPx',
+        label: 'Padding',
+        type: 'range',
+        min: 0,
+        max: 32,
+        step: 1,
+        display: 'px',
+        hint: 'Space around the theme and sound buttons.',
+      },
+      {
+        id: 'utilityRailCornerRadiusPx',
+        label: 'Corner Radius',
+        type: 'range',
+        min: 0,
+        max: 80,
+        step: 0.5,
+        display: 'px',
+        hint: 'Roundness of the curved edge join. Limited by the available panel height.',
       },
       {
         id: 'utilityRailHorizontalOffsetPx',
@@ -46,6 +70,26 @@ export const UTILITY_RAIL_CONTROL_GROUPS = Object.freeze([
         step: 1,
         display: 'px',
         hint: 'Mobile-only size for both utility buttons. The icon scales with the button.',
+      },
+      {
+        id: 'utilityRailMobilePaddingPx',
+        label: 'Padding',
+        type: 'range',
+        min: 0,
+        max: 32,
+        step: 1,
+        display: 'px',
+        hint: 'Space around the theme and sound buttons.',
+      },
+      {
+        id: 'utilityRailMobileCornerRadiusPx',
+        label: 'Corner Radius',
+        type: 'range',
+        min: 0,
+        max: 80,
+        step: 0.5,
+        display: 'px',
+        hint: 'Roundness of the curved edge join. Limited by the available panel height.',
       },
       {
         id: 'utilityRailMobileHorizontalOffsetPx',
@@ -101,6 +145,10 @@ export function applyUtilityRailCssVars(source = {}, root = null) {
   if (!targetRoot?.style) return;
   const config = normalizeUtilityRailConfig(source);
 
+  targetRoot.style.setProperty('--utility-rail-padding', `${config.utilityRailPaddingPx}px`);
+  targetRoot.style.setProperty('--utility-rail-corner-radius', `${config.utilityRailCornerRadiusPx}px`);
+  targetRoot.style.setProperty('--utility-rail-mobile-padding', `${config.utilityRailMobilePaddingPx}px`);
+  targetRoot.style.setProperty('--utility-rail-mobile-corner-radius', `${config.utilityRailMobileCornerRadiusPx}px`);
   targetRoot.style.setProperty('--utility-rail-button-size', `${config.utilityRailButtonSizePx}px`);
   targetRoot.style.setProperty(
     '--utility-rail-icon-size',
@@ -131,7 +179,7 @@ export function applyUtilityRailCssVars(source = {}, root = null) {
 export function formatUtilityRailControlValue(value, control) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return String(value ?? '');
-  if (control.display === 'px') return `${Math.round(numeric)}px`;
+  if (control.display === 'px') return `${control.step < 1 ? Number(numeric.toFixed(1)) : Math.round(numeric)}px`;
   if (control.display === '%') return `${Math.round(numeric)}%`;
   return String(numeric);
 }

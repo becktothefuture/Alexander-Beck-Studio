@@ -18,9 +18,10 @@ The live reference is `/styleguide.html`. It must describe production components
 
 - Component: `ShellUtilityRail.jsx` with shared behavior in `ShellUtilityControls.jsx`
 - Position: fixed to the studio-window right edge; desktop centres at `50svh`, while mobile defaults to an outward `-11px` offset and a `76svh` centre
-- Controls: theme above sound in one vertical capsule at every viewport width
+- Controls: theme above sound in one edge-integrated bay at every viewport width; icons, buttons, states, and event handlers remain shared
 - Geometry: desktop uses `32px` visible buttons; mobile uses quieter `25px` visible buttons with proportionally scaled icons
-- Configuration: the top-level **Utility Rail** group exposes separate **Desktop** and **Mobile** geometry, including the mobile vertical position
+- Contour: `ShellUtilityRail` measures the window and controls on resize/token changes. Two tangent cubic curves form each shoulder; the window and overlay hosts share the same clip, and the shell join uses that curve for its fill and soft light. The new lighting blends into the existing edge above and below the bay. Native window corners remain unchanged. The rail itself has no border, fill, or floating shadow. Short screens constrain the vertical anchor to preserve clearance. Shared surface light intensity, bevel depth, and edge softness apply with neutral defaults when those controls are present.
+- Configuration: the top-level **Utility Rail** group exposes separate **Desktop** and **Mobile** geometry, including the mobile vertical position. **Padding** (0–32px) and **Corner Radius** (0–80px, in 0.5px steps) adjust the integrated bay separately for each viewport group. Radius is constrained by the available panel height; the button faces and icons keep their existing styling.
 - Accessibility: both buttons keep an accessible name, `aria-pressed`, and a visible focus ring; at the default mobile size, coarse-pointer hit regions expand invisibly to `44px` without overlapping
 - Global keyboard: when no focused control or open modal owns the key, Left and Right Arrow activate the previous or next route with wraparound; Space advances the Home Daily Simulation
 - Primary navigation never moves into a route top bar

@@ -26,6 +26,12 @@ A control is complete only when it supports:
 
 Removing a control also means removing its persistence/export path. Browser storage and `window.__*` caches are helpers, never design truth.
 
+### Utility Rail shape controls
+
+**Utility Rail → Layout & Shape** exposes **Padding** and **Corner Radius** in both the Desktop and Mobile groups. `src/lib/utilityRailControls.js` owns the schema, bounds, defaults, normalization, and CSS projection. The canonical keys are `runtime.utilityRailPaddingPx` (6), `utilityRailCornerRadiusPx` (33), `utilityRailMobilePaddingPx` (5), and `utilityRailMobileCornerRadiusPx` (29.5).
+
+Padding changes the space around the two controls. Corner Radius changes the vertical reach of the tangent curves in the edge join; available height limits the rendered radius. The shared registry supplies the controls to the existing docked/detached panel and includes their values in **Save Design JSON**. Reload and generated runtime config use the same authored keys. Touch-region clearance remains derived from padding and button size. Button styling, icons, lighting, panel shell geometry, and interaction timing remain unchanged.
+
 ### Production simulation body size
 
 `runtime.homeSimulationBodyRadiusPx` is the one production master radius for Daily Simulation circle material. Its authored default is `8.9px`, matching Tension. The legacy Home modes and the route-backed Tension, Convergence, and Depth renderers all consume this value; no production simulation owns a separate body-size multiplier. Perspective and other 3D projections may reduce the rendered radius by depth, but their foreground radius remains the global value.

@@ -1,29 +1,69 @@
 .shell-utility-rail {
-  --utility-rail-surface: linear-gradient(180deg, #151515 0%, #050505 100%);
+  --utility-rail-effective-padding: var(--utility-rail-padding, 6px);
+  --utility-rail-effective-corner-radius: var(--utility-rail-corner-radius, 33px);
   --utility-rail-effective-button-size: var(--utility-rail-button-size, 32px);
   --utility-rail-effective-icon-size: var(--utility-rail-icon-size, 14.72px);
   --utility-rail-effective-horizontal-offset: var(--utility-rail-horizontal-offset, -11px);
   --utility-rail-effective-vertical-position: 50svh;
+  --utility-rail-edge-clearance: calc(var(--utility-rail-effective-button-size) * 2 + 14px);
   position: fixed;
-  inset-block-start: var(--utility-rail-effective-vertical-position);
-  inset-inline-end: calc(
+  inset-block-start: clamp(
+    calc(var(--safari-tint-inset-y, var(--safari-tint-inset)) + var(--utility-rail-edge-clearance)),
+    var(--utility-rail-effective-vertical-position),
+    calc(100svh - var(--shell-bottom-band-height) - var(--abs-safe-bottom) - var(--utility-rail-edge-clearance))
+  );
+  inset-inline-end: max(var(--utility-rail-viewport-clearance, 0px), calc(
     var(--safari-tint-inset-x, var(--safari-tint-inset))
     + var(--utility-rail-effective-horizontal-offset)
-  );
+  ));
   z-index: 400;
   box-sizing: border-box;
-  padding: 5px;
+  padding: var(--utility-rail-effective-padding);
   color: #72747d;
   color-scheme: dark;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 999px;
-  background: var(--utility-rail-surface);
-  box-shadow:
-    inset 0 1px 1px rgb(255 255 255 / 0.11),
-    inset 0 -1px 0 rgb(0 0 0 / 0.64),
-    0 8px 24px rgb(0 0 0 / 0.42);
-  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(calc(-50% + var(--utility-rail-contour-shift, 0px)));
   pointer-events: auto;
+}
+
+/* The controls occupy a bay in the black shell. One clipped surface owns the
+   window edge and its reflected light, including both organic shoulders. */
+.app-scene[data-utility-contour='ready'] #simulations,
+.app-scene[data-utility-contour='ready'] .window-overlay-layer,
+.app-scene[data-utility-contour='ready'] #portfolio-sheet-host {
+  clip-path: var(--utility-window-clip);
+}
+
+/* Only replace the short straight-edge segment behind the rail. The existing
+   exterior reflection and native corners keep their authored rendering. */
+.shell-window-contour {
+  display: none;
+  position: fixed;
+  z-index: 99;
+  overflow: visible;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom,
+    transparent var(--contour-fade-start),
+    #000 var(--contour-start),
+    #000 var(--contour-end),
+    transparent var(--contour-fade-end));
+}
+
+.app-scene[data-utility-contour='ready'] .shell-window-contour {
+  display: block;
+}
+
+.shell-window-contour__surface {
+  fill: var(--frame-color, #000);
+}
+
+.shell-window-contour__light {
+  fill: none;
+  stroke: rgba(var(--inner-wall-top-light-rgb), max(0.18, var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85))));
+  stroke-width: calc(3px * var(--surface-edge-depth, 1));
+  opacity: var(--surface-light-intensity, 1);
 }
 
 .shell-utility-controls {
@@ -109,7 +149,10 @@
     --utility-rail-effective-icon-size: var(--utility-rail-mobile-icon-size, 11.5px);
     --utility-rail-effective-horizontal-offset: var(--utility-rail-mobile-horizontal-offset, -11px);
     --utility-rail-effective-vertical-position: var(--utility-rail-mobile-vertical-position, 76svh);
-    padding: 4px;
+    /* Keep the existing expanded touch region inside the viewport too. */
+    --utility-rail-viewport-clearance: max(0px, calc((44px - var(--utility-rail-effective-button-size)) / 2 - var(--utility-rail-effective-padding)));
+    --utility-rail-effective-padding: var(--utility-rail-mobile-padding, 5px);
+    --utility-rail-effective-corner-radius: var(--utility-rail-mobile-corner-radius, 29.5px);
   }
 
   .shell-utility-controls {

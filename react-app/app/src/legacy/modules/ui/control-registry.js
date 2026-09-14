@@ -1574,7 +1574,7 @@ export const CONTROL_SECTIONS = {
   // UTILITY RAIL - Persistent theme and sound controls at the window edge
   // ═══════════════════════════════════════════════════════════════════════════
   utilityRail: {
-    title: 'Position & Scale',
+    title: 'Layout & Shape',
     icon: '⋮',
     defaultOpen: true,
     controls: createUtilityRailControls()

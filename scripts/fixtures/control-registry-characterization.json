@@ -36,12 +36,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 291,
-  "descriptorDigest": "48b56eef62401f60de0b100de370057ee91c814cf5cf7f82dae2e8b3e25f864d",
-  "renderedControlCount": 267,
-  "renderedIdDigest": "933e979ff807bf2d7a29212db5e96c4f03f8140ab88a315397e48b97002ee2e6",
-  "generatedMarkupDigest": "89b676841b53d8f9bfa6daaa05b61d3c49871c11b9c751874e55e27303e82350",
-  "parseFormatDigest": "d0166921066611b4f14e8609a2d135c8b9d7c0d2c18e752f704c305c6b33be99",
+  "controlCount": 295,
+  "descriptorDigest": "07079c0f88c3aa3f7faf52a2dce174ce163467b7bcc3fa7a7fcd738c00e17575",
+  "renderedControlCount": 271,
+  "renderedIdDigest": "e413241b94d92f53236697307197055a40fb63cccd8c0d969572293975fee032",
+  "generatedMarkupDigest": "32555cccb3bd8be3badb873a9aff3d746e61c1657691f19a13467a592d7e370b",
+  "parseFormatDigest": "54f60d76f634edd84cd7a9832e4cf2b019555701e4a671f8abc7e04501e087dd",
   "sentinels": [
     {
       "id": "ballMassKg",
