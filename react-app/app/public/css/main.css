@@ -3738,7 +3738,15 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   bottom: calc(var(--shell-bottom-band-height) + var(--abs-safe-bottom));
   left: var(--safari-tint-inset-x, var(--safari-tint-inset));
   border-radius: var(--frame-outer-radius);
+  /* Back the antialiased window edge with its own surface, not a transparent
+     shadow cutout that can expose the black shell as a hairline. */
+  background: var(--frame-inner-surface);
+  /* Blend the clipped surface into its halo across the contact pixels. The
+     existing near/far reflections keep their authored strength and reach. */
+  --frame-edge-blend-shadow: 0 0 calc(var(--abs-size-1px) * 3) var(--abs-size-1px)
+    rgba(var(--inner-wall-top-light-rgb), var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)));
   box-shadow:
+    var(--frame-edge-blend-shadow),
     0 calc(var(--outer-wall-glow-near-shift, 0px))
       var(--outer-wall-glow-near-blur, 14px)
       var(--outer-wall-glow-near-size, 0px)
@@ -3757,6 +3765,7 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   #abs-scene::before,
   .app-scene::before {
   box-shadow:
+    var(--frame-edge-blend-shadow),
     0 calc(var(--outer-wall-glow-near-shift, 0px))
       var(--outer-wall-glow-near-blur, 14px)
       var(--outer-wall-glow-near-size, 0px)
@@ -4755,8 +4764,8 @@ html[data-abs-instrument-wake] #simulations::after {
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
   background: none;
-  box-shadow: inset 0 0 var(--inner-wall-rim-blur, 18px) var(--inner-wall-rim-size, 8px)
-    rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-rim-opacity, 0.16));
+  box-shadow: inset 0 0 var(--inner-wall-rim-blur, 160px) var(--inner-wall-rim-size, 25px)
+    rgba(var(--inner-wall-top-light-rgb), var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)));
 }
 
 .inner-wall-gradient-edge {

@@ -9,7 +9,7 @@ The expanded physical order is:
 
 1. browser/page ground;
 2. outer frame and inner wall;
-3. the thin static inner-wall rim, lit from above;
+3. the broad, diffuse inner-wall reflection;
 4. route scene transform group and background noise;
 5. low-resolution simulation-atmosphere glow;
 6. registered crisp route material, including Home's rear/main pass;
@@ -26,6 +26,8 @@ The expanded physical order is:
 `simulationLayer` and optional `heroLayer` content are scene-side. Visible route copy and controls belong in `uiLayer`. The centered Home title is the sole intentional text exception: its semantic DOM source remains accessible while its visible Canvas path stays with the balls.
 
 The frame vignette and route UI are descendants of `#simulations`, in that order. This keeps entrance blur, grouped Home legibility fields, and control effects inside the studio-window contour while preserving `#simulations` as the sole rounded clip. Do not mount route UI as an unclipped viewport sibling of the wall.
+
+The exterior reflection uses the same contour behind `#simulations`, with a solid `--frame-inner-surface` backing beneath the antialiased join. A 1px light overlap with 3px blur blends the clipped surface into the halo, using the current inner-rim light strength in both themes. Its near and far light layers keep their authored strength and reach; smoothing the join must preserve their prominence. The window interior uses a broad white inset reflection, with no dark perimeter stroke or inset shadow; authored strengths and softness live in `shell.surface`.
 
 The production atmosphere does not change those owners. `StudioShell` mounts `.simulation-atmosphere-glow-canvas` inside `#shell-wall-slot`, below the registered source material. The canonical atmosphere edge strength is zero, so its compatibility Canvas stays hidden and does not paint. `.inner-wall-gradient-edge` at `0` owns the neutral static rim directly above the window background and below background noise, atmosphere, and route material. `#simulations` remains the sole outer rounded clip; the rim inherits its geometry and must not generate an independent Canvas, SVG, or route-specific corner path.
 
