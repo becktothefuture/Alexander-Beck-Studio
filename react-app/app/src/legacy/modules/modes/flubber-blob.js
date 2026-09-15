@@ -8,6 +8,10 @@ import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColorWithIndex } from '../visual/colors.js';
 import { subscribeScenePointer } from '../input/scene-pointer.js';
+import {
+  createCohesionPointer, resetCohesionPointer, updateCohesionPointer,
+  finishCohesionPointerStep, resolveCohesionPushSpeed,
+} from './cohesion-pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
@@ -23,15 +27,13 @@ const GEL_TARGET_NEIGHBORS = 7;
 const GEL_MAX_NEIGHBORS = 10;
 const WALL_SOUND_MIN_INTERVAL_MS = 58;
 const AUDIT_METRICS_INTERVAL_FRAMES = 12;
-const COHESION_BODY_COUNT = 2;
+const COHESION_BODY_SCALES = [1, 1, 1.5];
+const COHESION_BODY_COUNT = COHESION_BODY_SCALES.length;
 
 let spawnX = new Float32Array(0);
 let spawnY = new Float32Array(0);
 let prevX = new Float32Array(0);
 let prevY = new Float32Array(0);
-let grabOffsetX = new Float32Array(0);
-let grabOffsetY = new Float32Array(0);
-let grabWeight = new Float32Array(0);
 let phase = new Float32Array(0);
 let bodyId = new Uint8Array(0);
 let gridHead = new Int32Array(0);
@@ -49,6 +51,8 @@ let gelAdjHead = new Int32Array(0);
 let gelAdjNext = new Int32Array(0);
 let gelAdjOther = new Int16Array(0);
 let gelAdjLink = new Int16Array(0);
+
+const cohesionPointer = createCohesionPointer();
 
 const wallHit = { nx: 0, ny: 0, penetration: 0 };
 const centerStats = { x: 0, y: 0, vx: 0, vy: 0, radius: 1 };
@@ -102,20 +106,7 @@ const blob = {
   contactIterationsThisFrame: 0,
   gridBuildsThisFrame: 0,
   wallImpactThisFrame: false,
-  pointerX: 0,
-  pointerY: 0,
-  pointerVx: 0,
-  pointerVy: 0,
-  lastPointerX: 0,
-  lastPointerY: 0,
-  lastPointerTime: 0,
-  lastPointerSequence: null,
-  pointerActive: false,
-  isDragging: false,
-  dragPointerId: null,
-  dragBodyId: -1,
-  dragWeightTotal: 0,
-  lastWallSoundFrame: -1,
+  pointerContact: false,
   interBodyCollisionCount: 0,
   wallCollisionCount: 0,
 };
@@ -139,7 +130,6 @@ function ensureCapacity(count) {
   if (
     spawnX.length >= count &&
     prevX.length >= count &&
-    grabOffsetX.length >= count &&
     gridNext.length >= count &&
     visited.length >= count &&
     queue.length >= count
@@ -151,9 +141,6 @@ function ensureCapacity(count) {
   spawnY = new Float32Array(count);
   prevX = new Float32Array(count);
   prevY = new Float32Array(count);
-  grabOffsetX = new Float32Array(count);
-  grabOffsetY = new Float32Array(count);
-  grabWeight = new Float32Array(count);
   phase = new Float32Array(count);
   bodyId = new Uint8Array(count);
   gridNext = new Int32Array(count);
@@ -198,11 +185,11 @@ function computeSpawnRadius(count, ballRadius, w, h) {
 function getInitialCenter(w, h, radius, bodyIndex) {
   const portrait = h > w * 1.18;
   const xRatio = portrait
-    ? (bodyIndex === 0 ? 0.32 : 0.68)
-    : (bodyIndex === 0 ? 0.3 : 0.7);
+    ? [0.3, 0.7, 0.5][bodyIndex]
+    : [0.24, 0.76, 0.5][bodyIndex];
   const yRatio = portrait
-    ? (bodyIndex === 0 ? 0.38 : 0.58)
-    : (bodyIndex === 0 ? 0.45 : 0.55);
+    ? [0.25, 0.4, 0.7][bodyIndex]
+    : [0.32, 0.32, 0.68][bodyIndex];
   return {
     x: clamp(w * xRatio, radius, Math.max(radius, w - radius)),
     y: clamp(h * yRatio, radius, Math.max(radius, h - radius))
@@ -247,7 +234,7 @@ function addGelLink(a, b, rest, seen, neighborCounts) {
   const baseRest = clamp(rest, contactRest, maxRest);
   const radialA = Math.hypot(spawnX[i], spawnY[i]);
   const radialB = Math.hypot(spawnX[j], spawnY[j]);
-  const edgeBias = clamp((radialA + radialB) / Math.max(1, blob.spawnRadius * 2), 0, 1);
+  const edgeBias = clamp((radialA + radialB) / Math.max(1, blob.spawnRadius * COHESION_BODY_SCALES[bodyId[i]] * 2), 0, 1);
   const noise = Math.sin((i + 1) * 12.9898 + (j + 1) * 78.233) * 43758.5453;
   const grain = noise - Math.floor(noise);
   gelLinkA[linkIndex] = i;
@@ -755,182 +742,70 @@ function resolveParticleContacts(
   blob.maxOverlap = maxOverlap;
 }
 
-function beginDragHandle(detail) {
+function applyPointerContact(dt) {
   const g = getGlobals();
-  const balls = g.balls || [];
-  const selectedBodyId = detail?.inBounds ? findBodyAtPoint(detail.x, detail.y) : -1;
-  if (blob.count <= 0 || selectedBodyId < 0) {
-    blob.isDragging = false;
-    blob.dragPointerId = null;
-    blob.dragBodyId = -1;
-    blob.dragWeightTotal = 0;
-    grabWeight.fill(0, 0, blob.count);
-    return false;
+  blob.pointerContact = false;
+  if (!cohesionPointer.active) return;
+  if (g.pointerInCanvas === false || (typeof document !== 'undefined' && document.hidden)) {
+    resetCohesionPointer(cohesionPointer);
+    return;
   }
-
-  const dpr = g.DPR || 1;
-  const radius = Math.max(blob.ballRadius * 4.5, Number(g.flubberBlobInfluenceRadius ?? 320) * dpr);
-  const radiusSq = radius * radius;
-  const falloff = clamp(Number(g.flubberBlobGrabLocality ?? 0.32), 0, 1);
-  const exponent = 0.85 + falloff * 1.45;
-  let total = 0;
-  let nearest = -1;
-  let nearestDistSq = Number.POSITIVE_INFINITY;
-
-  for (let i = 0; i < blob.count; i++) {
-    if (bodyId[i] !== selectedBodyId) {
-      grabWeight[i] = 0;
-      continue;
-    }
-    const ball = balls[i];
-    const dx = ball.x - detail.x;
-    const dy = ball.y - detail.y;
-    const distSq = dx * dx + dy * dy;
-    if (distSq < nearestDistSq) {
-      nearestDistSq = distSq;
-      nearest = i;
-    }
-
-    let weight = 0;
-    if (distSq < radiusSq) {
-      weight = Math.pow(1 - distSq / radiusSq, exponent);
-    }
-    grabWeight[i] = weight;
-    grabOffsetX[i] = dx;
-    grabOffsetY[i] = dy;
-    total += weight;
-  }
-
-  if (total <= 0 && nearest >= 0) {
-    grabWeight[nearest] = 1;
-    grabOffsetX[nearest] = balls[nearest].x - detail.x;
-    grabOffsetY[nearest] = balls[nearest].y - detail.y;
-    total = 1;
-  }
-
-  blob.isDragging = total > 0;
-  blob.dragPointerId = detail.pointerId ?? null;
-  blob.dragBodyId = selectedBodyId;
-  blob.dragWeightTotal = total;
-  return blob.isDragging;
-}
-
-function applyDragHandle(dt, speedLimit) {
-  if (!blob.isDragging || blob.dragWeightTotal <= 0) return;
-  const g = getGlobals();
-  const balls = g.balls || [];
-  const dragStrength = clamp(Number(g.flubberBlobMousePush ?? 2.1), 0, 3);
-  if (dragStrength <= 0) return;
-
-  const stiffness = 20 + dragStrength * 34;
-  const velocityBlend = clamp((0.08 + dragStrength * 0.065) * dt * 60, 0.05, 0.42);
-  const positionBlend = clamp((0.1 + dragStrength * 0.065) * dt * 60, 0.06, 0.46);
-  const maxPositionStep = blob.ballRadius * (0.55 + dragStrength * 0.26);
-  const pointerVx = clamp(blob.pointerVx, -speedLimit, speedLimit);
-  const pointerVy = clamp(blob.pointerVy, -speedLimit, speedLimit);
-  let pullX = 0;
-  let pullY = 0;
-  let pullWeight = 0;
-
-  for (let i = 0; i < blob.count; i++) {
-    const weight = grabWeight[i];
-    if (weight <= 0) continue;
-
-    const ball = balls[i];
-    const targetX = blob.pointerX + grabOffsetX[i];
-    const targetY = blob.pointerY + grabOffsetY[i];
-    const dx = targetX - ball.x;
-    const dy = targetY - ball.y;
-    const weightedPositionBlend = positionBlend * weight;
-    let stepX = dx * weightedPositionBlend;
-    let stepY = dy * weightedPositionBlend;
-    const stepLen = Math.hypot(stepX, stepY);
-    if (stepLen > maxPositionStep && stepLen > 1e-6) {
-      const scale = maxPositionStep / stepLen;
-      stepX *= scale;
-      stepY *= scale;
-    }
-
-    ball.x += stepX;
-    ball.y += stepY;
-    ball.vx += (dx * stiffness * dt + (pointerVx - ball.vx) * velocityBlend) * weight;
-    ball.vy += (dy * stiffness * dt + (pointerVy - ball.vy) * velocityBlend) * weight;
-
-    pullX += stepX * weight;
-    pullY += stepY * weight;
-    pullWeight += weight;
-  }
-
-  if (pullWeight > 0) {
-    const follow = clamp(Number(g.flubberBlobBodyFollow ?? 0.08), 0, 1) * 0.18;
-    const nudgeX = (pullX / pullWeight) * follow;
-    const nudgeY = (pullY / pullWeight) * follow;
-    const start = bodyStarts[blob.dragBodyId];
-    const end = start + bodyCounts[blob.dragBodyId];
-    for (let i = start; i < end; i++) {
-      const inverseWeight = 1 - Math.min(1, grabWeight[i]);
-      balls[i].x += nudgeX * inverseWeight;
-      balls[i].y += nudgeY * inverseWeight;
-      balls[i].vx += pointerVx * follow * 0.035 * inverseWeight;
-      balls[i].vy += pointerVy * follow * 0.035 * inverseWeight;
-    }
-  }
-}
-
-function endDragHandle(cancelled = false) {
-  if (!blob.isDragging) return;
-  const g = getGlobals();
   const balls = g.balls || [];
   const dpr = g.DPR || 1;
-  const speedLimit = clamp(Number(g.flubberBlobMaxSpeed ?? 1200), 360, 1800) * dpr;
-  const throwGain = cancelled ? 0 : clamp(Number(g.flubberBlobClickRepulsion ?? 1.25), 0, 3);
-  const pointerVx = clamp(blob.pointerVx, -speedLimit, speedLimit);
-  const pointerVy = clamp(blob.pointerVy, -speedLimit, speedLimit);
-  const patchTransfer = throwGain * 0.34;
-  const bodyTransfer = throwGain * 0.06;
+  const strength = clamp(Number(g.flubberBlobMousePush ?? 2.1), 0, 3);
+  const transfer = clamp(Number(g.flubberBlobClickRepulsion ?? 1.25), 0, 3);
+  // Retain the existing saved radius control, expressed as a small contact footprint.
+  const radiusScale = clamp(Number(g.flubberBlobInfluenceRadius ?? 320) / 320, 0.375, 1.3125);
+  const contactRadius = blob.ballRadius + (cohesionPointer.pointerType === 'mouse' ? 18 : 28) * dpr * radiusScale;
+  const segmentX = cohesionPointer.x - cohesionPointer.fromX;
+  const segmentY = cohesionPointer.y - cohesionPointer.fromY;
+  const segmentSq = segmentX * segmentX + segmentY * segmentY;
 
-  if (throwGain > 0) {
-    const start = bodyStarts[blob.dragBodyId];
-    const end = start + bodyCounts[blob.dragBodyId];
-    for (let i = start; i < end; i++) {
-      const weight = grabWeight[i];
-      const bodyWeight = 1 - Math.min(1, weight);
-      balls[i].vx += pointerVx * (weight * patchTransfer + bodyWeight * bodyTransfer);
-      balls[i].vy += pointerVy * (weight * patchTransfer + bodyWeight * bodyTransfer);
-    }
-  }
-
-  blob.isDragging = false;
-  blob.dragPointerId = null;
-  blob.dragBodyId = -1;
-  blob.dragWeightTotal = 0;
-  grabWeight.fill(0, 0, blob.count);
-}
-
-function findBodyAtPoint(x, y) {
-  const g = getGlobals();
-  const balls = g.balls || [];
-  if (blob.count <= 0) return -1;
-
-  const nearBodyDistance = blob.ballRadius * 2.6;
-  const nearBodyDistanceSq = nearBodyDistance * nearBodyDistance;
   for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
     const stats = getBodyStats(bodyIndex);
-    const dxCenter = x - stats.x;
-    const dyCenter = y - stats.y;
-    const centerGate = stats.radius + blob.ballRadius * 1.8;
-    if ((dxCenter * dxCenter + dyCenter * dyCenter) > centerGate * centerGate) continue;
     const start = bodyStarts[bodyIndex];
     const end = start + bodyCounts[bodyIndex];
+    let nearestSq = contactRadius * contactRadius;
+    let contactX = cohesionPointer.x;
+    let contactY = cohesionPointer.y;
     for (let i = start; i < end; i++) {
       const ball = balls[i];
-      const dx = x - ball.x;
-      const dy = y - ball.y;
-      if ((dx * dx + dy * dy) <= nearBodyDistanceSq) return bodyIndex;
+      const t = segmentSq > 0.0001 ? clamp(
+        ((ball.x - cohesionPointer.fromX) * segmentX + (ball.y - cohesionPointer.fromY) * segmentY) / segmentSq, 0, 1,
+      ) : 1;
+      const x = cohesionPointer.fromX + segmentX * t;
+      const y = cohesionPointer.fromY + segmentY * t;
+      const distanceSq = (ball.x - x) ** 2 + (ball.y - y) ** 2;
+      if (distanceSq < nearestSq) {
+        nearestSq = distanceSq;
+        contactX = x;
+        contactY = y;
+      }
+    }
+    const depth = 1 - Math.sqrt(nearestSq) / contactRadius;
+    if (depth <= 0) continue;
+    const sweptContact = segmentSq > contactRadius * contactRadius;
+    let nx = stats.x - (sweptContact ? cohesionPointer.fromX : contactX);
+    let ny = stats.y - (sweptContact ? cohesionPointer.fromY : contactY);
+    let normalLength = Math.hypot(nx, ny);
+    if (normalLength < 0.001) {
+      nx = cohesionPointer.vx || Math.cos(bodyIndex * GOLDEN_ANGLE);
+      ny = cohesionPointer.vy || Math.sin(bodyIndex * GOLDEN_ANGLE);
+      normalLength = Math.hypot(nx, ny);
+    }
+    nx /= normalLength;
+    ny /= normalLength;
+    const closingSpeed = (cohesionPointer.vx - stats.vx) * nx + (cohesionPointer.vy - stats.vy) * ny;
+    const deltaSpeed = resolveCohesionPushSpeed(depth, closingSpeed, strength, transfer, dt, dpr);
+    if (deltaSpeed <= 0) continue;
+    blob.pointerContact = true;
+    // Transfer the contact to the complete body so a swipe cannot tear off beads.
+    for (let i = start; i < end; i++) {
+      balls[i].vx += nx * deltaSpeed;
+      balls[i].vy += ny * deltaSpeed;
     }
   }
-
-  return -1;
+  finishCohesionPointerStep(cohesionPointer, dt);
 }
 
 function measureGelConnectivity(maxStretchRatio) {
@@ -1216,32 +1091,6 @@ function integrateParticles(dt) {
   }
 }
 
-function updatePointerKinematics(detail, smoothing = 0.35) {
-  const now = detail.time || performance.now();
-  const sequence = detail.sequence ?? null;
-  const shouldSeed = !blob.pointerActive
-    || blob.lastPointerTime <= 0
-    || (sequence !== null && blob.lastPointerSequence !== sequence)
-    || detail.justEnteredCanvas === true;
-  if (shouldSeed) {
-    blob.pointerVx = 0;
-    blob.pointerVy = 0;
-  } else {
-    const dt = Math.max(0.008, (now - blob.lastPointerTime) / 1000);
-    const vx = (detail.x - blob.lastPointerX) / dt;
-    const vy = (detail.y - blob.lastPointerY) / dt;
-    blob.pointerVx += (vx - blob.pointerVx) * smoothing;
-    blob.pointerVy += (vy - blob.pointerVy) * smoothing;
-  }
-  blob.pointerX = detail.x;
-  blob.pointerY = detail.y;
-  blob.lastPointerX = detail.x;
-  blob.lastPointerY = detail.y;
-  blob.lastPointerTime = now;
-  blob.lastPointerSequence = sequence;
-  blob.pointerActive = detail.inBounds === true;
-}
-
 function resizeBlobIfNeeded() {
   const g = getGlobals();
   const canvas = g.canvas;
@@ -1251,6 +1100,7 @@ function resizeBlobIfNeeded() {
   const h = canvas.height;
   if (Math.abs(w - blob.lastW) < 1 && Math.abs(h - blob.lastH) < 1) return;
 
+  resetCohesionPointer(cohesionPointer);
   const oldW = Math.max(1, blob.lastW || w);
   const oldH = Math.max(1, blob.lastH || h);
   const sx = w / oldW;
@@ -1286,33 +1136,8 @@ function resizeBlobIfNeeded() {
 }
 
 function handlePointer(type, detail) {
-  const g = getGlobals();
-  if (g.currentMode !== MODES.FLUBBER_BLOB) return;
-  if (!detail) return;
-
-  if (type === 'down') {
-    if (!detail.inBounds) return;
-    updatePointerKinematics(detail, 0.52);
-    if (!beginDragHandle(detail)) {
-      blob.pointerActive = false;
-      blob.pointerVx = 0;
-      blob.pointerVy = 0;
-    }
-    return;
-  }
-
-  if (type === 'move') {
-    if (!blob.isDragging) return;
-    if (blob.isDragging && blob.dragPointerId !== null && detail.pointerId !== null && detail.pointerId !== blob.dragPointerId) return;
-    updatePointerKinematics(detail, 0.52);
-    return;
-  }
-
-  if (type === 'up' || type === 'cancel') {
-    if (blob.isDragging && blob.dragPointerId !== null && detail.pointerId !== null && detail.pointerId !== blob.dragPointerId) return;
-    endDragHandle(type === 'cancel');
-    if (type === 'cancel') blob.pointerActive = false;
-  }
+  if (getGlobals().currentMode !== MODES.FLUBBER_BLOB) return;
+  updateCohesionPointer(cohesionPointer, type, detail);
 }
 
 function ensurePointerSubscription() {
@@ -1323,14 +1148,21 @@ function ensurePointerSubscription() {
 function exposeAuditHook() {
   if (typeof window === 'undefined') return;
   window.__ABS_FLUBBER_BLOB_AUDIT__ = {
-    getMetrics: () => ({ ...auditMetrics })
+    getMetrics: () => ({ ...auditMetrics, pointerActive: cohesionPointer.active, pointerType: cohesionPointer.pointerType, pointerContact: blob.pointerContact })
   };
 }
 
 function updateAuditMetrics() {
   const stats = getCenterStats();
-  const firstBody = getBodyStats(0);
-  const secondBody = getBodyStats(1);
+  let minimumSeparation = Infinity;
+  for (let a = 0; a < blob.bodyCount; a++) {
+    for (let b = a + 1; b < blob.bodyCount; b++) {
+      const first = bodyStats[a];
+      const second = bodyStats[b];
+      minimumSeparation = Math.min(minimumSeparation,
+        Math.hypot(second.x - first.x, second.y - first.y) - first.radius - second.radius);
+    }
+  }
   auditMetrics.mode = MODES.FLUBBER_BLOB;
   auditMetrics.particleCount = blob.count;
   auditMetrics.linkCount = blob.linkCount;
@@ -1342,12 +1174,7 @@ function updateAuditMetrics() {
   auditMetrics.centerY = stats.y;
   auditMetrics.radius = stats.radius;
   auditMetrics.bodyCount = blob.bodyCount;
-  auditMetrics.minimumBodySeparation = Math.max(
-    0,
-    Math.hypot(secondBody.x - firstBody.x, secondBody.y - firstBody.y)
-      - firstBody.radius
-      - secondBody.radius,
-  );
+  auditMetrics.minimumBodySeparation = Math.max(0, minimumSeparation);
   auditMetrics.interBodyCollisionCount = blob.interBodyCollisionCount;
   auditMetrics.wallCollisionCount = blob.wallCollisionCount;
   auditMetrics.contactIterationsUsed = blob.contactIterationsThisFrame;
@@ -1365,17 +1192,20 @@ export function initializeFlubberBlob() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const adjustedCount = getMobileAdjustedCount(g.flubberBlobBallCount || 160);
+  const adjustedCount = getMobileAdjustedCount(g.flubberBlobBallCount || 306);
   if (adjustedCount <= 0) return;
-  const count = Math.max(COHESION_BODY_COUNT * 20, adjustedCount - (adjustedCount % COHESION_BODY_COUNT));
+  const count = Math.max(COHESION_BODY_COUNT * 12, adjustedCount);
 
   ensureCapacity(count);
   blob.count = count;
   blob.bodyCount = COHESION_BODY_COUNT;
   bodyStarts[0] = 0;
-  bodyCounts[0] = Math.floor(count / COHESION_BODY_COUNT);
+  // Equal bead density: a 1.5× diameter needs 2.25× as many beads.
+  bodyCounts[0] = Math.round(count / 4.25);
   bodyStarts[1] = bodyCounts[0];
-  bodyCounts[1] = count - bodyCounts[0];
+  bodyCounts[1] = bodyCounts[0];
+  bodyStarts[2] = bodyCounts[0] + bodyCounts[1];
+  bodyCounts[2] = count - bodyStarts[2];
   blob.ballRadius = Math.max(2, Number(g.R_MED) || 10);
   blob.spawnRadius = computeSpawnRadius(bodyCounts[0], blob.ballRadius, w, h);
   blob.lastW = w;
@@ -1386,11 +1216,8 @@ export function initializeFlubberBlob() {
   blob.maxLinkStretch = 1;
   blob.connectedComponents = COHESION_BODY_COUNT;
   blob.averageSpeed = 0;
-  blob.pointerActive = false;
-  blob.isDragging = false;
-  blob.dragPointerId = null;
-  blob.dragBodyId = -1;
-  blob.dragWeightTotal = 0;
+  resetCohesionPointer(cohesionPointer);
+  blob.pointerContact = false;
   blob.lastWallSoundFrame = -1;
   blob.interBodyCollisionCount = 0;
   blob.wallCollisionCount = 0;
@@ -1403,13 +1230,14 @@ export function initializeFlubberBlob() {
     generateSpawnOffsets(
       bodyStarts[bodyIndex],
       bodyCounts[bodyIndex],
-      blob.spawnRadius,
+      blob.spawnRadius * COHESION_BODY_SCALES[bodyIndex],
       bodyIndex * Math.PI * 0.37,
     );
+    bodyId.fill(bodyIndex, bodyStarts[bodyIndex], bodyStarts[bodyIndex] + bodyCounts[bodyIndex]);
   }
   buildGelLinks(count);
   for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
-    const start = getInitialCenter(w, h, blob.spawnRadius + blob.ballRadius, bodyIndex);
+    const start = getInitialCenter(w, h, blob.spawnRadius * COHESION_BODY_SCALES[bodyIndex] + blob.ballRadius, bodyIndex);
     const direction = bodyIndex === 0 ? 1 : -1;
     const baseVx = direction * speed;
     const baseVy = direction * speed * 0.08;
@@ -1505,8 +1333,8 @@ export function stepFlubberBlob(dtSeconds) {
   applyGelLinkDamping(dt, viscosity, materialFlow);
   applyGelEnvelope(dt, surfaceTension, stretch);
   applyWallRepulsion(dt, wallBounce, wallSquish);
+  applyPointerContact(dt);
   integrateParticles(dt);
-  applyDragHandle(dt, speedLimit);
 
   for (let iter = 0; iter < contactIterations; iter++) {
     solveGelLinks(1, linkStrength, compressionStrength, maxStretchRatio, linkGuard, tensionGrain);
@@ -1523,7 +1351,7 @@ export function stepFlubberBlob(dtSeconds) {
   if (particleCollisions) {
     const finalContactIterations = isMobile
       ? contactIterations
-      : contactIterations + (blob.isDragging ? 4 : 3);
+      : contactIterations + (blob.pointerContact ? 4 : 3);
     const finalContactPasses = isMobile ? 1 : 2;
     const settledContactBudget = blob.averageSpeed <= 24 * (g.DPR || 1);
     for (let pass = 0; pass < finalContactPasses; pass++) {
@@ -1534,7 +1362,7 @@ export function stepFlubberBlob(dtSeconds) {
         finalContactIterations,
         0,
         interBodyBounce,
-        settledContactBudget && !blob.isDragging && !blob.wallImpactThisFrame,
+        settledContactBudget && !blob.pointerContact && !blob.wallImpactThisFrame,
       );
     }
   }

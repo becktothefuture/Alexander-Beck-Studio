@@ -229,6 +229,12 @@ Modes that smooth pointer state, calculate pointer velocity, or derive deltas mu
 
 Do not move the title's CSS x/y placement to align a scene. If a depth scene needs alignment, map the existing DOM title center into canvas coordinates and align the scene to that point. Do not register, snapshot, or transition the title plane, and do not add a second title geometry owner; extend `title-depth.js` so audits, readiness, and accessibility continue to share one source.
 
+## Home simulation sizing and response
+
+- The authored shared Home body radius is 9.79 CSS px (a 10% increase); the existing mobile scale still applies. Non-featured legacy modes use the authored responsive size endpoints.
+- Cohesion has three independent bead clusters. The third has a 1.5× resting diameter, with 2.25× the bead population to retain the same bead size and density. The default total is 306 beads; mobile retains its count reduction. Stronger, more uniform links, reduced stretch and material creep, and gentle shape memory keep the clusters compact after contact pushes or collisions. Mouse contact pushes without clicking; touch and pen push only during an active primary contact, with a wider footprint. Contact transfers to the complete cluster. Touch/pen release, cancellation, UI entry, viewport exit and resize clear the interaction without a release throw. Mouse release leaves ordinary hover contact active. Fast swipes use a swept contact path and bounded impulses.
+- Convergence applies proximity-based mouse escape after the gentle cruise steering cap. Escape remains time-scaled and speed-limited, with reduced acceleration under Reduced Motion.
+
 ## Physics And Render Cost Contract
 
 - Desktop Pit retains its authored 120 Hz reference step during warm-up, direct/recent pointer interaction, or measured pile activity, then returns to 60 Hz after a 250 ms activity hold. Portfolio Pit and other collision-dense desktop modes retain 120 Hz; Water, Magnetic, Weightless, Flies, and Elastic use 60 Hz; mobile retains its existing 60 Hz reference.

@@ -1,6 +1,6 @@
 import { resolveMobileSimulationBodyScale } from './mobileSimulationSizing.js';
 
-export const DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX = 8.9;
+export const DEFAULT_HOME_SIMULATION_BODY_RADIUS_PX = 9.79;
 export const HOME_SIMULATION_BODY_RADIUS_MIN_PX = 6;
 export const HOME_SIMULATION_BODY_RADIUS_MAX_PX = 16;
 

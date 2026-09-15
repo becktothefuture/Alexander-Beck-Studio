@@ -230,7 +230,7 @@ const state = {
     [MODES.KALEIDOSCOPE_RIFT]: { desktop: 34, mobile: 32 },
     [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
     [MODES.ELASTIC_CENTER]: { desktop: 240, mobile: 150 },
-    [MODES.FLUBBER_BLOB]: { desktop: 160, mobile: 80 },
+    [MODES.FLUBBER_BLOB]: { desktop: 340, mobile: 170 },
     [MODES.PRESSURE_CRUCIBLE]: { desktop: 144, mobile: 96 },
     [MODES.STARFIELD_3D]: { desktop: 320, mobile: 220 },
     [MODES.SPHERE_3D]: { desktop: 240, mobile: 160 },
@@ -490,7 +490,7 @@ const state = {
   tensionLoomWarmupFrames: 8,
 
   // Soft Blob mode params
-  flubberBlobBallCount: 160,
+  flubberBlobBallCount: 306,
   flubberBlobParticleCollisions: true,
   flubberBlobContactIterations: 5,
   flubberBlobSurfaceTension: 0.04,
@@ -1811,7 +1811,7 @@ export function initState(config) {
   if (config.tensionLoomWarmupFrames !== undefined) state.tensionLoomWarmupFrames = clampInt(config.tensionLoomWarmupFrames, 0, 240, state.tensionLoomWarmupFrames);
 
   // Soft Blob mode
-  if (config.flubberBlobBallCount !== undefined) state.flubberBlobBallCount = clampInt(config.flubberBlobBallCount, 56, 180, state.flubberBlobBallCount);
+  if (config.flubberBlobBallCount !== undefined) state.flubberBlobBallCount = clampInt(config.flubberBlobBallCount, 56, 400, state.flubberBlobBallCount);
   state.flubberBlobParticleCollisions = true;
   if (config.flubberBlobContactIterations !== undefined) state.flubberBlobContactIterations = clampInt(config.flubberBlobContactIterations, 1, 6, state.flubberBlobContactIterations);
   if (config.flubberBlobSurfaceTension !== undefined) state.flubberBlobSurfaceTension = clampNumber(config.flubberBlobSurfaceTension, 0, 1.5, state.flubberBlobSurfaceTension);

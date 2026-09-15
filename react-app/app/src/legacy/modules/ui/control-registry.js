@@ -3763,12 +3763,12 @@ export const CONTROL_SECTIONS = {
         label: 'Density',
         stateKey: 'flubberBlobBallCount',
         type: 'range',
-        min: 56, max: 180, step: 4,
-        default: 160,
+        min: 56, max: 400, step: 1,
+        default: 306,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true,
-        hint: 'Total fixed-size beads shared evenly across the two gel bodies.'
+        hint: 'Total fixed-size beads across three gel bodies; the third has a 1.5× wider resting silhouette.'
       },
       {
         id: 'flubberBlobCohesion',
@@ -3816,36 +3816,36 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'flubberBlobInfluenceRadius',
-        label: 'Drag Radius',
+        label: 'Contact Area',
         stateKey: 'flubberBlobInfluenceRadius',
         type: 'range',
         min: 120, max: 420, step: 4,
         default: 320,
         format: v => Math.round(v) + 'px',
         parse: v => parseInt(v, 10),
-        hint: 'How much local material is grabbed around the cursor when dragging.'
+        hint: 'Size of the contact footprint around the pointer; touch uses a wider footprint.'
       },
       {
         id: 'flubberBlobMousePush',
-        label: 'Drag Strength',
+        label: 'Push Strength',
         stateKey: 'flubberBlobMousePush',
         type: 'range',
         min: 0, max: 3, step: 0.01,
         default: 2.1,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'How directly the grabbed material follows the cursor.'
+        hint: 'How firmly pointer contact pushes the complete body.'
       },
       {
         id: 'flubberBlobClickRepulsion',
-        label: 'Release Throw',
+        label: 'Motion Transfer',
         stateKey: 'flubberBlobClickRepulsion',
         type: 'range',
         min: 0, max: 3, step: 0.01,
         default: 1.25,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'How much cursor velocity transfers into the body when you let go.'
+        hint: 'How much approaching pointer motion transfers while touching a body.'
       },
       {
         id: 'flubberBlobWallBounce',
@@ -3867,7 +3867,7 @@ export const CONTROL_SECTIONS = {
         default: 0.5,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'Rebound strength when the two independent gel bodies collide.'
+        hint: 'Rebound strength when the three independent gel bodies collide.'
       },
       {
         id: 'flubberBlobMaxSpeed',
@@ -3878,7 +3878,7 @@ export const CONTROL_SECTIONS = {
         default: 1400,
         format: v => Math.round(v) + 'px/s',
         parse: v => parseInt(v, 10),
-        hint: 'Maximum material speed after drags, release throws, and wall rebounds.'
+        hint: 'Maximum material speed after pointer pushes and wall rebounds.'
       }
     ]
   },

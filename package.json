@@ -130,7 +130,7 @@
     "check:mode-buttons" : "node --test scripts/check-mode-buttons-characterization.mjs",
     "check:mode-runtime" : "node --test scripts/check-mode-runtime-bridge.mjs",
     "check:particle-fountain-b" : "node --test scripts/check-particle-fountain-b-contract.mjs",
-    "check:scene-pointer" : "node --test scripts/check-scene-pointer-contract.mjs",
+    "check:scene-pointer" : "node --test scripts/check-scene-pointer-contract.mjs scripts/check-cohesion-pointer.mjs",
     "check:hotspot-characterization" : "node --test scripts\/check-control-registry-characterization.mjs scripts\/check-portfolio-characterization.mjs",
     "check:simulation-switch-transaction" : "node --test scripts\/check-simulation-switch-transaction.mjs",
     "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",

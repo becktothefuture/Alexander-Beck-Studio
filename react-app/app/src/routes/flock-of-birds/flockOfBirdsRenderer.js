@@ -510,8 +510,8 @@ export function createFlockOfBirdsRenderer({
     }
 
     const radius = Math.max(1, config.mouseRadius);
-    const futureX = pointer.x + pointer.vx * 0.08;
-    const futureY = pointer.y + pointer.vy * 0.08;
+    const futureX = pointer.x + pointer.vx * 0.025;
+    const futureY = pointer.y + pointer.vy * 0.025;
     const dx = state.x[i] - futureX;
     const dy = state.y[i] - futureY;
     const d2 = dx * dx + dy * dy;
@@ -529,7 +529,7 @@ export function createFlockOfBirdsRenderer({
     const split = ((i & 1) === 0 ? 1 : -1) * config.mouseLateral;
     const lateralX = -awayY * split;
     const lateralY = awayX * split;
-    const strength = config.mouseAvoidance * 340 * falloff;
+    const strength = config.mouseAvoidance * 680 * falloff * (reducedMotion ? 0.35 : 1);
 
     ax += awayX * strength + lateralX * strength * 0.3;
     ay += awayY * strength * 0.82 + lateralY * strength * 0.18;
@@ -919,9 +919,6 @@ export function createFlockOfBirdsRenderer({
       addSoftBoundaryForces(config, i, ax, ay, time, flightBand);
       ax = forceScratch.ax;
       ay = forceScratch.ay;
-      addMouseForces(config, i, ax, ay, allowPointer);
-      ax = forceScratch.ax;
-      ay = forceScratch.ay;
 
       let homePressure = 0;
       const homeDx = xi - flightCenterX;
@@ -978,6 +975,12 @@ export function createFlockOfBirdsRenderer({
         ax *= scale;
         ay *= scale;
       }
+
+      // Escape acceleration is bounded by proximity and the existing speed cap,
+      // independently of the gentle cruise-turn limit.
+      addMouseForces(config, i, ax, ay, allowPointer);
+      ax = forceScratch.ax;
+      ay = forceScratch.ay;
 
       let nextVx = (vxi + ax * dt) * Math.max(0, 1 - config.drag * dt);
       let nextVy = (vyi + ay * dt) * Math.max(0, 1 - config.drag * dt);
