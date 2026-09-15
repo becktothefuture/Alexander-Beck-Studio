@@ -77,8 +77,10 @@ test('stationary velocity decays, fast swipes stay bounded, and forces cannot at
     const still = resolveCohesionPushSpeed(1, 0, 2.1, 1.25, dt);
     assert.equal(away, still);
     assert.ok(away > 0);
-    assert.ok(resolveCohesionPushSpeed(1, 1e9, 3, 3, dt) <= 1500 * dt);
-    assert.equal(still / dt, 420 * 2.1);
+    assert.ok(resolveCohesionPushSpeed(1, 1e9, 3, 3, dt) <= 3000 * dt);
+    assert.equal(still / dt, 840 * 2.1);
+    assert.equal(resolveCohesionPushSpeed(0.25, 0, 2.1, 1.25, dt), still * 0.25);
+    assert.equal(resolveCohesionPushSpeed(1, 0, 2.1, 1.25, dt, 2), still * 2);
   }
 });
 

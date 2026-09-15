@@ -74,8 +74,8 @@ export function finishCohesionPointerStep(pointer, dt) {
 export function resolveCohesionPushSpeed(depth, closingSpeed, strength, motionTransfer, dt, dpr = 1) {
   const contact = Math.max(0, Math.min(1, depth));
   if (contact === 0 || strength <= 0 || dt <= 0) return 0;
-  const push = 420 * dpr * strength * dt
+  const push = 840 * dpr * strength * dt
     + Math.max(0, Math.min(1200 * dpr, closingSpeed))
-      * (1 - Math.exp(-12 * strength * dt)) * motionTransfer;
-  return Math.min(1500 * dpr * dt, push * contact);
+      * (1 - Math.exp(-12 * strength * dt)) * motionTransfer * 2;
+  return Math.min(3000 * dpr * dt, push * contact);
 }
